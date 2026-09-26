@@ -251,6 +251,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_PuddleParams2",		GLSL_VEC4, 1 },
 	{ "u_PuddleHeight",		GLSL_VEC4, 1 },
 	{ "u_PuddleRipple",		GLSL_VEC4, 1 },
+	{ "u_RunoffParams",		GLSL_VEC4, 1 },
+	{ "u_RunoffParams2",		GLSL_VEC4, 1 },
+	{ "u_RunoffFrame",		GLSL_VEC4, 1 },
 
 	{ "u_SkinParams",			GLSL_VEC4, 1 },
 	{ "u_SkinWrap",				GLSL_VEC4, 1 },

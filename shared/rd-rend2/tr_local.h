@@ -275,6 +275,12 @@ extern cvar_t  *r_puddleRipples;
 extern cvar_t  *r_puddleRippleStrength;
 extern cvar_t  *r_puddleRippleScale;
 extern cvar_t  *r_puddleRippleRate;
+extern cvar_t  *r_weatherRunoff;
+extern cvar_t  *r_runoffStrength;
+extern cvar_t  *r_runoffSpeed;
+extern cvar_t  *r_runoffScale;
+extern cvar_t  *r_runoffProbe;
+extern cvar_t  *r_runoffEntities;
 extern cvar_t  *r_ssrQuality;
 extern cvar_t  *r_ssrSteps;
 extern cvar_t  *r_ssrRefineSteps;
@@ -2204,6 +2210,9 @@ typedef enum
 	UNIFORM_PUDDLEPARAMS2,		// 1 / scale
 	UNIFORM_PUDDLEHEIGHT,		// relief depth low, 1 / (high - low) (0: no height), softness, fill bias
 	UNIFORM_PUDDLERIPPLE,		// slope strength (0 off), 1 / cell size, ring clock (cycles mod 256), density
+	UNIFORM_RUNOFFPARAMS,		// strength (0 off, < 0 ineligible), 1 / scale, flow clock (cells mod 256), probe offset (world)
+	UNIFORM_RUNOFFPARAMS2,		// wind shear x, y (per unit of fall), windward amount, frame origin z
+	UNIFORM_RUNOFFFRAME,		// pattern frame: horizontal axis a1 (world xy), origin xy
 
 	UNIFORM_SKINPARAMS,		// skin SSS of this draw: scatter (0 = not skin), has mask, compare split x (< 0 off), unused
 	UNIFORM_SKINWRAP,		// skin SSS: rgb = wrap widths (r_skinSSS 1), w = transmission strength

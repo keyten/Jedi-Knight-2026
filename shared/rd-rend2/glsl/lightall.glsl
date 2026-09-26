@@ -706,6 +706,9 @@ uniform vec4 u_PuddleParams;   // coverage (0: off, < 0: excluded draw), roughne
 uniform vec4 u_PuddleParams2;  // 1 / pattern scale (world)
 uniform vec4 u_PuddleHeight;   // relief depth low, 1 / (high - low) (0: no usable height), softness, fill bias
 uniform vec4 u_PuddleRipple;   // slope strength (0: off), 1 / cell size (world), ring clock (cycles, mod 256), density
+uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / scale (world), flow clock (cells, mod 256), probe offset (world)
+uniform vec4 u_RunoffParams2;  // wind shear x, y (per unit of fall), windward amount, pattern origin z
+uniform vec4 u_RunoffFrame;    // pattern frame: horizontal axis a1 (world xy), origin xy
 #endif
 // Runtime A/B for the standard PBR diffuse model: 0 = Lambert, 1 = Burley/Disney
 uniform int u_DiffuseBRDF;
@@ -2577,11 +2580,11 @@ vec3 SSRSpecularWeight(in float roughness, in float NE, in vec3 specular)
 // 0..1 rain exposure of a world position: the particle test of weather.glsl
 // (culled when depth > stored depth) against the same map, with a small depth
 // bias and a bilinear blend of 4 binary tests for a soft, stable 1 texel edge.
-float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal)
+float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal, in float normalOffset)
 {
-	// half a texel along the normal: walls test the column in front of them
-	// instead of their own top
-	vec4 p = u_WeatherMvp * vec4(worldPosition + geometricNormal * u_WetnessParams2.y, 1.0);
+	// half a texel along the normal (normalOffset): walls test the column in
+	// front of them instead of their own top
+	vec4 p = u_WeatherMvp * vec4(worldPosition + geometricNormal * normalOffset, 1.0);
 	vec3 uvz = p.xyz / p.w * 0.5 + 0.5;
 	if (any(lessThan(uvz.xy, vec2(0.0))) || any(greaterThan(uvz.xy, vec2(1.0))))
 		return 0.0;
@@ -2628,6 +2631,88 @@ float PuddleField(vec2 p)
 	float w = PuddleValueNoise(p * 0.5 + 17.3);
 	vec2 q = p + (w - 0.5) * 0.8;
 	return 0.65 * PuddleValueNoise(q) + 0.35 * PuddleValueNoise(q * 2.3 + 5.1);
+}
+
+// Water runoff (r_weatherRunoff): a thin film with streams running down
+// slopes and walls. On any plane the downhill direction (gravity projected
+// on the surface) is perpendicular to the contour lines, which are
+// horizontal, so a field of (horizontal across coordinate, world z) that is
+// stretched along z streams along projected gravity on every slope, and a
+// pattern that moves toward lower z can never run uphill. World anchored:
+// no swimming with the camera, no UV seams.
+
+// Value noise whose lattice repeats every 256 cells along y (the flow
+// axis): the CPU flow clock wraps at 256 cells without a jump.
+float RunoffNoise(vec2 p)
+{
+	vec2 i = floor(p);
+	vec2 f = p - i;
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	float y0 = mod(i.y, 256.0);
+	float y1 = mod(i.y + 1.0, 256.0);
+	float a = PuddleHash(vec2(i.x, y0));
+	float b = PuddleHash(vec2(i.x + 1.0, y0));
+	float c = PuddleHash(vec2(i.x, y1));
+	float d = PuddleHash(vec2(i.x + 1.0, y1));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+// across, along (world z): pattern cells, clock: cells (u_RunoffParams.z).
+// Static channels (water keeps its paths) of two widths, wiggled by a low
+// frequency warp, and pulses running down them at two speeds (1 and 1 / 1.7
+// x r_runoffSpeed), so the whole does not read as one scrolling texture.
+// Returns x = film (thin sheet everywhere, full in the streams, pulsing),
+// y = stream core.
+vec2 RunoffStreaks(float across, float along, float clock)
+{
+	float w = PuddleValueNoise(vec2(across * 0.35 + 3.1, along * 0.15));
+	float a = across + (w - 0.5) * 1.6;
+	float wide = smoothstep(0.52, 0.78, PuddleValueNoise(vec2(a * 1.3, along * 0.09 + 7.7)));
+	float narrow = smoothstep(0.60, 0.80, PuddleValueNoise(vec2(a * 3.7 + 11.0, along * 0.22 + 2.9)));
+	float stream = max(wide, 0.8 * narrow);
+	// the along lattice of the moving layers repeats every 256 cells and the
+	// clock enters with an integer factor: seamless clock wrap
+	float p1 = RunoffNoise(vec2(a * 3.1 + 5.0, along + clock));
+	float p2 = RunoffNoise(vec2(a * 5.3 + 19.0, along * 1.7 + clock));
+	float pulse = 0.55 + 0.45 * smoothstep(0.25, 0.85, 0.6 * p1 + 0.4 * p2);
+	return vec2(mix(0.25, 1.0, stream) * pulse, stream * pulse);
+}
+
+// One streak field for the bin k (0..7) of the contour direction: across
+// runs along the fixed horizontal axis at k x 22.5 degrees in the pattern
+// frame. A drop drifting with the wind keeps across + shear x z constant.
+vec2 RunoffBin(in vec3 rel, in float k)
+{
+	float angle = k * (M_PI / 8.0);
+	vec2 axis = u_RunoffFrame.xy * cos(angle) + vec2(-u_RunoffFrame.y, u_RunoffFrame.x) * sin(angle);
+	float across = (dot(rel.xy, axis) + dot(u_RunoffParams2.xy, axis) * rel.z) * u_RunoffParams.y;
+	return RunoffStreaks(across + k * 37.0, rel.z * u_RunoffParams.y, u_RunoffParams.z);
+}
+
+// The across coordinate has to follow the contour line (horizontal, in the
+// surface), but rotating it per pixel distorts badly at large world
+// coordinates on curved rock. So the contour direction picks the nearest of
+// 8 fixed axes (world axes, or an entity's yaw frame): walls are exact with
+// any horizontal axis (flow is straight down), slopes are off by at most
+// 11 degrees. One evaluation for 70 % of the directions, a continuous blend
+// of two bins in between.
+vec2 RunoffPattern(in vec3 worldPosition, in vec3 geometricNormal)
+{
+	vec2 a1 = u_RunoffFrame.xy;
+	vec2 a2 = vec2(-a1.y, a1.x);
+	vec3 rel = worldPosition - vec3(u_RunoffFrame.zw, u_RunoffParams2.w);
+	// contour = perp(normal) in the frame, its angle mod 180 degrees in bins
+	float n1 = dot(geometricNormal.xy, a1);
+	float n2 = dot(geometricNormal.xy, a2);
+	float bin = mod(atan(n1, -n2) * (8.0 / M_PI), 8.0);
+	float k0 = floor(bin);
+	float blend = clamp((bin - k0 - 0.35) / 0.3, 0.0, 1.0);
+	vec2 result = vec2(0.0);
+	if (blend < 1.0)
+		result += (1.0 - blend) * RunoffBin(rel, k0);
+	if (blend > 0.0)
+		result += blend * RunoffBin(rel, mod(k0 + 1.0, 8.0));
+	return result;
 }
 
 // Rain ripples on standing water (r_puddleRipples): expanding rings that only
@@ -3009,13 +3094,19 @@ void main()
 	vec3 ripple = vec3(0.0);	// ungated rings: height, world slope
 	float rippleMask = 0.0;
 	vec2 rippleSlope = vec2(0.0);	// the slope applied to N
+	float runoff = 0.0;			// water film / streak mask
+	float runoffCore = 0.0;		// stream centres
+	float runoffW = 0.0;		// slope class weight: 1 - puddle slope, no down facing
+	float runoffExposure = 0.0;	// rain exposure with the wall probe
+	vec3 runoffFlow = vec3(0.0);	// gravity projected on the surface
+	vec2 runoffField = vec2(0.0);	// ungated pattern (debug 25)
 	// pixel footprint of the undisplaced surface, taken in uniform control flow
 	float rippleFootprint = length(fwidth((u_ViewOrigin - var_ViewDir.xyz).xy));
 	if (u_WetnessParams.x > 0.0 || u_WetnessParams2.z > 0.0)
 	{
 		vec3 wetGeoNormal = normalize(vertexNormal);
 		if (u_WetnessParams.x > 0.0 || u_WetnessParams2.z == 1.0)
-			rainExposure = ComputeRainExposure(u_ViewOrigin - viewDir, wetGeoNormal);
+			rainExposure = ComputeRainExposure(u_ViewOrigin - viewDir, wetGeoNormal, u_WetnessParams2.y);
 		// walls get about half the rain, faces pointing down none
 		// (entities: most of the side, u_WetnessParams3.x)
 		float facing = mix(u_WetnessParams3.x, 1.0, clamp(wetGeoNormal.z, 0.0, 1.0)) * step(-0.2, wetGeoNormal.z);
@@ -3059,7 +3150,7 @@ void main()
 
 			// rain ripples: only on the submerged core, fading out before its
 			// edge, so no ring reaches the fringe film or dry stone
-			if (u_PuddleRipple.x > 0.0 && (puddle > 0.35 || u_WetnessParams2.z >= 17.0))
+			if (u_PuddleRipple.x > 0.0 && (puddle > 0.35 || (u_WetnessParams2.z >= 17.0 && u_WetnessParams2.z <= 20.0)))
 			{
 				ripple = PuddleRipples((u_ViewOrigin - viewDir).xy, rippleFootprint);
 				rippleMask = smoothstep(0.35, 0.9, puddle);
@@ -3068,6 +3159,47 @@ void main()
 				vec3 tilt = vec3(-rippleSlope, 0.0);
 				N = normalize(N + tilt - wetGeoNormal * dot(wetGeoNormal, tilt));
 			}
+		}
+
+		// Runoff: where puddles fade out with the slope, a film runs down.
+		// Classes blend smoothly: up facing flat -> puddle (puddleSlope),
+		// sloped / near vertical -> runoff (the exact complement), down
+		// facing -> fading out to none on ceilings.
+		const vec3 gravity = vec3(0.0, 0.0, -1.0);
+		runoffFlow = gravity - wetGeoNormal * dot(gravity, wetGeoNormal);
+		float flowLength = length(runoffFlow);
+		runoffFlow = flowLength > 0.05 ? runoffFlow / flowLength : vec3(0.0);
+		runoffW = (1.0 - smoothstep(u_PuddleParams.z, u_PuddleParams.w, wetGeoNormal.z)) *
+			smoothstep(0.05, 0.2, flowLength) * smoothstep(-0.35, 0.05, wetGeoNormal.z);
+		bool runoffDebug = u_WetnessParams2.z >= 21.0 && u_WetnessParams2.z <= 26.0;
+		if (u_RunoffParams.x > 0.0 && ((u_WetnessParams.x > 0.0 && runoffW > 0.0) || runoffDebug))
+		{
+			vec3 worldPosition = u_ViewOrigin - viewDir;
+			// The weather map is top down: vertical rain on up facing
+			// surfaces. A steep face also tests a column a little further out
+			// (r_runoffProbe, <= 32 units): an exterior wall next to open sky
+			// counts as exposed, a wall under a deeper roof stays dry.
+			runoffExposure = rainExposure;
+			float steep = 1.0 - smoothstep(0.35, 0.7, wetGeoNormal.z);
+			if (u_RunoffParams.w > 0.0 && steep > 0.0 && runoffExposure < 1.0)
+				runoffExposure = max(runoffExposure,
+					steep * ComputeRainExposure(worldPosition, wetGeoNormal, u_RunoffParams.w));
+			// windward faces run a little more, leeward ones less
+			vec2 windDir = u_RunoffParams2.xy / max(length(u_RunoffParams2.xy), 1e-6);
+			float windward = 1.0 + u_RunoffParams2.z * dot(-windDir, wetGeoNormal.xy);
+			float gate = runoffW * smoothstep(0.25, 0.9, runoffExposure) * windward *
+				u_RunoffParams.x * step(0.0, u_WetnessParams.x);
+			if (gate > 0.0 || u_WetnessParams2.z == 25.0)
+				runoffField = RunoffPattern(worldPosition, wetGeoNormal);
+			runoff = clamp(runoffField.x * gate, 0.0, 1.0);
+			runoffCore = clamp(runoffField.y * gate, 0.0, 1.0);
+			if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
+				runoff = runoffCore = 0.0;
+			// the film smooths the surface detail, most in the streams
+			N = normalize(mix(N, wetGeoNormal, 0.4 * runoff + 0.4 * runoffCore));
+			// a film is wet surface: the material response below (darkening,
+			// roughness, per class) applies to it
+			wetness = max(wetness, runoff);
 		}
 	}
   #endif
@@ -3200,6 +3332,13 @@ void main()
 		porosity = mix(1.0, porosity, u_WetnessParams3.y);
 		diffuse.rgb *= 1.0 - wetness * u_WetnessParams.z * porosity;
 		roughness = mix(roughness, max(roughness * u_WetnessParams.y, 0.08), wetness);
+	}
+	if (runoffCore > 0.0)
+	{
+		// running streams: a thicker, smoother film than the wet surface
+		// around them (F0 kept, no tint, no emission)
+		roughness = mix(roughness, max(roughness * 0.5, 0.06), runoffCore);
+		diffuse.rgb *= 1.0 - 0.08 * runoffCore;
 	}
 	if (puddleEdge > 0.0)
 	{
@@ -3487,8 +3626,8 @@ void main()
   #endif
 
   #if defined(USE_WETNESS)
-	// r_weatherWetnessDebug 1-16 (not 4), written unlit (tone mapping is bypassed)
-	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 20.0 && u_WetnessParams2.z != 4.0)
+	// r_weatherWetnessDebug 1-26 (not 4), written unlit (tone mapping is bypassed)
+	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 26.0 && u_WetnessParams2.z != 4.0)
 	{
 		float shade = 0.35 + 0.65 * NE;
 		vec3 debugColor;
@@ -3540,6 +3679,30 @@ void main()
 		}
 		else if (u_WetnessParams2.z == 20.0)	// final effective normal
 			debugColor = N * 0.5 + 0.5;
+		else if (u_WetnessParams2.z == 21.0)	// geometric normal
+			debugColor = normalize(vertexNormal) * 0.5 + 0.5;
+		else if (u_WetnessParams2.z >= 22.0 && u_WetnessParams2.z != 25.0 && u_WetnessParams2.z != 26.0 && u_RunoffParams.x <= 0.0)
+			// runoff off (grey) or excluded draw (magenta)
+			debugColor = (u_RunoffParams.x < 0.0 ? vec3(1.0, 0.0, 1.0) : vec3(0.25)) * shade;
+		else if (u_WetnessParams2.z == 22.0)	// slope class: puddle blue, slope green, steep yellow, down facing red
+		{
+			float c = normalize(vertexNormal).z;
+			vec3 runColor = mix(vec3(0.1, 0.8, 0.1), vec3(1.0, 0.85, 0.1), 1.0 - smoothstep(0.35, 0.7, c));
+			debugColor = mix(vec3(0.05, 0.2, 1.0), runColor, 1.0 - smoothstep(u_PuddleParams.z, u_PuddleParams.w, c));
+			debugColor = mix(vec3(0.8, 0.1, 0.1), debugColor, smoothstep(-0.35, 0.05, c)) * shade;
+		}
+		else if (u_WetnessParams2.z == 23.0)	// flow direction (gravity on the surface), black where flat
+			debugColor = (runoffFlow * 0.5 + 0.5) * smoothstep(0.0, 0.1, length(runoffFlow));
+		else if (u_WetnessParams2.z == 24.0)	// runoff mask, red: exposure added by the wall probe
+		{
+			debugColor = mix(vec3(0.25) * shade, vec3(0.1, 0.6, 1.0), runoff);
+			debugColor = mix(debugColor, vec3(0.9, 0.9, 1.0), runoffCore * 0.6);
+			debugColor = mix(debugColor, vec3(0.9, 0.1, 0.1), 0.6 * clamp(runoffExposure - rainExposure, 0.0, 1.0));
+		}
+		else if (u_WetnessParams2.z == 25.0)	// ungated animated flow field: film grey, streams cyan
+			debugColor = mix(vec3(runoffField.x), vec3(0.1, 0.9, 1.0), runoffField.y);
+		else if (u_WetnessParams2.z == 26.0)	// final roughness
+			debugColor = vec3(roughness);
 		else if (u_WetnessParams2.z == 1.0)
 			debugColor = vec3(rainExposure) * shade;
 		else if (u_WetnessParams2.z == 2.0)

@@ -2209,6 +2209,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, off);
 		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS2, off);
 		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEPARAMS, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS, off);
 		return;
 	}
 
@@ -2309,6 +2310,81 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		rainAmount
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLERIPPLE, ripple);
+
+	// runoff (lightall RunoffStreaks): gravity driven film on slopes and
+	// walls. World geometry, and entities with r_runoffEntities, whose
+	// pattern frame follows their origin and yaw so it does not swim on them.
+	float runoffStrength = 0.0f;
+	if (r_weatherRunoff->integer)
+	{
+		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
+		runoffStrength = (eligible && (world || r_runoffEntities->integer)) ?
+			Com_Clamp(0.001f, 2.0f, r_runoffStrength->value) : -1.0f;
+	}
+	// the flow clock counts pattern cells of the along axis (1 / scale per
+	// world unit), integrated once per frame and wrapped at 256 cells: the
+	// shader's along lattice repeats every 256 cells, so the wrap is seamless
+	const float runoffInvScale = 1.0f / Com_Clamp(4.0f, 1024.0f, r_runoffScale->value);
+	static double runoffClock = 0.0;
+	static int runoffFrame = -1;
+	static float runoffTime = 0.0f;
+	if (runoffFrame != tr.frameCount)
+	{
+		const float dt = backEnd.refdef.floatTime - runoffTime;
+		if (runoffFrame >= 0 && dt > 0.0f)
+			runoffClock = fmod(runoffClock + MIN(dt, 0.1f) * Com_Clamp(0.0f, 256.0f, r_runoffSpeed->value) * runoffInvScale, 256.0);
+		runoffFrame = tr.frameCount;
+		runoffTime = backEnd.refdef.floatTime;
+	}
+	const vec4_t runoff = {
+		runoffStrength,
+		runoffInvScale,
+		(float)runoffClock,
+		MIN(Com_Clamp(0.0f, 4.0f, r_runoffProbe->value) * ws->texelSizeWorld, 32.0f)
+	};
+	// wind leans the streaks downwind (never upward: the shear is per unit of
+	// fall), at most about 20 degrees; windward faces run a little more
+	const float windX = ws->windDirection[0], windY = ws->windDirection[1];
+	const float windLength = sqrtf(windX * windX + windY * windY);
+	const float lean = MIN(windLength / 400.0f, 0.35f);
+	vec2_t windDir = { 0.0f, 0.0f };
+	if (windLength > 1.0f)
+	{
+		windDir[0] = windX / windLength;
+		windDir[1] = windY / windLength;
+	}
+	// pattern frame: world axes, or the entity's horizontal yaw axis
+	vec4_t frame = { 1.0f, 0.0f, 0.0f, 0.0f };
+	float frameOriginZ = 0.0f;
+	if (backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity)
+	{
+		const refEntity_t &e = backEnd.currentEntity->e;
+		float ax = e.axis[0][0], ay = e.axis[0][1];
+		if (ax * ax + ay * ay < 0.01f)
+		{
+			// forward axis near vertical: the left axis gives the yaw
+			ax = e.axis[1][1];
+			ay = -e.axis[1][0];
+		}
+		const float axisLength = sqrtf(ax * ax + ay * ay);
+		if (axisLength > 1e-4f)
+		{
+			frame[0] = ax / axisLength;
+			frame[1] = ay / axisLength;
+		}
+		frame[2] = e.origin[0];
+		frame[3] = e.origin[1];
+		frameOriginZ = e.origin[2];
+	}
+	const vec4_t runoff2 = {
+		windDir[0] * lean,
+		windDir[1] * lean,
+		lean > 0.0f ? MIN(windLength / 400.0f, 1.0f) * 0.3f : 0.0f,
+		frameOriginZ
+	};
+	uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS, runoff);
+	uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS2, runoff2);
+	uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFFRAME, frame);
 	uniformDataWriter.SetUniformMatrix4x4(UNIFORM_WEATHERMVP, ws->weatherMVP);
 	samplerBindingsWriter.AddStaticImage(tr.weatherDepthImage, TB_WEATHERDEPTH);
 }
