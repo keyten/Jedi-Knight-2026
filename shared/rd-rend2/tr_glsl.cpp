@@ -529,7 +529,13 @@ static size_t GLSL_GetShaderHeader(
 	// froxel volumetric fog (tr_volumetric.cpp): also enables the froxel
 	// lookup of the fog pass, generic and surface sprite programs
 	if (R_VolumetricFroxelEnabled())
+	{
 		Q_strcat(dest, size, "#define USE_FROXEL_FOG\n");
+		// local fog volumes (tr_fogvolume.cpp), sizes of the VolumetricFog block
+		Q_strcat(dest, size, va("#define MAX_GPU_FOG_VOLUMES %i\n", MAX_GPU_FOG_VOLUMES));
+		Q_strcat(dest, size, va("#define FROXEL_MAX_SLICES %i\n", FROXEL_MAX_SLICES));
+		Q_strcat(dest, size, va("#define FROXEL_LOCAL_POOL %i\n", FROXEL_LOCAL_POOL));
+	}
 
 	if (r_cubeMapping->integer)
 	{

@@ -108,8 +108,8 @@ Per froxel, one slice per draw:
    full froxel wide) when temporal accumulation is on, the dynamic lights at the froxel center.
 2. **Medium.** Sum of the extinction of the fog volumes that contain the point: their axial bounds and the plane
    of their visible side (the same `inFog` test as `CalcFog`); the global fog everywhere below its cap plane.
-   Albedo = extinction weighted fog color. The height fog and the density noise are in; future local density volumes go into
-   `FroxelMedium`.
+   Albedo = extinction weighted fog color. The height fog, the density noise and the local fog volumes (see Local fog
+   volumes) are in `FroxelMedium` too.
 3. **Baked light.** `volumetricStaticGrid` at the point, isotropic, `* r_volumetricFogStaticScale`.
 4. **Sun.** Phase `4 pi HG(g, dot(sunDir, viewDir))`, `* r_volumetricFogSunScale`:
    - with cascaded shadow maps this frame (`VPF_USESUNLIGHT`): `sunRadiance * shadow`, blended to the baked sun
@@ -267,7 +267,8 @@ caller): without it the wrap is repeat, and `IMGFLAG_MIPMAP` allocates the mip c
 ### Media
 
 `r_volumetricFogNoise` is a bit mask: 1 height fog, 2 BSP fog volumes, 4 the global fog. The flag of each fog
-volume travels in `fogMaxs[i].w`. There are no local density volumes in the renderer yet. With 0, or with both
+volume travels in `fogMaxs[i].w`. Bit 8: the local fog volumes with the noise flag (`FOGVOLUME_NOISE`, env.json
+`"Noise"`, `r_fogvol add ... noise 1`); they use the same field and periods. With 0, or with both
 contrasts at 0, the injection takes a uniform branch and samples nothing.
 
 ### Wind and the temporal filter
@@ -336,6 +337,223 @@ Optical depth is view 1 and the final scattering is view 6 or 9. Views 11 and 12
 **World space vs camera grid:** set `r_volumetricFogFreeze 1` and move. The frozen volume keeps its froxel
 grid, and inside it the pattern of view 15 must stay at the same world place as view 13 (which has no froxels at
 all). A pattern that follows the old frustum's cells, or the screen, is a grid artefact.
+
+## Local fog volumes
+
+Small analytic participating media over the BSP fog: a smoke pocket, a steam cloud, a local haze, a dust region.
+They are one more medium of `FroxelMedium`, like the height fog: extinctions add, the albedo is the extinction
+weighted average, and every light of the froxel fog applies without any change: the baked grid, the sun and its
+cascades, the dynamic lights and their shadows, the HG phase, the temporal filter, the integration, the
+composite, and the lookups of the transparent surfaces. There is no extra pass and no new texture. Code:
+`shared/rd-rend2/tr_fogvolume.cpp`; GLSL in `volumetric_common.glsl` (`FroxelLocalShapeDensity`, list decoding)
+and `volumetric_inject.glsl`. Only in mode 2; modes 0 and 1 ignore them.
+
+### Representation
+
+```c
+refFogVolume_t (rd-common/tr_types.h, SP and MP)
+  id              stable per volume for the temporal filter, 0 = anonymous
+  shape           FOGVOLUME_ELLIPSOID (a sphere has equal extents) or FOGVOLUME_BOX (oriented)
+  origin, axis[3] transform; axis all zero = world axes (orthonormalized by the renderer)
+  extents         radii / half sizes along the axes
+  depthForOpaque  as fogParms: distance through full density after which the transmittance is 1.5/255
+  color           scattering color 0..1, as fogParms (sRGB, converted like the fog volumes)
+  softness        0..1 of the extents over which the density fades to 0
+  flags           FOGVOLUME_NOISE: density noise (r_volumetricFogNoise 8)
+```
+
+Extinction: `-ln(1.5/255) / depthForOpaque * volumetricFogScale * r_volumetricFogScale`, the unit of the BSP
+fog volumes and of the height fog. With equal `depthForOpaque`, the core of a local volume is exactly as dense
+as a BSP fog volume.
+
+**Soft boundary.** It is analytic, and it costs three dot products plus one smoothstep per axis. With
+`q = R (p - origin) / extents` (unit local space) and `s = softness`:
+
+```
+ellipsoid  rho = 1 - smoothstep(1 - s, 1, |q|)
+box        rho = prod over the axes of (1 - smoothstep(1 - s, 1, |q_i|))      (also rounds the corners)
+sigma(p)   = rho * extinction * fade(view depth)
+```
+
+- The density and its slope are both 0 at the boundary, so there is never a hard edge. The CPU harness measured a
+  largest step of 1.4e-4 per 1/20000 of the radius, and a slope of 0.004 just inside the boundary.
+- `s` is clamped to at least 0.05, and to at least 8 world units along the smallest extent. A thinner edge than a
+  froxel would alias.
+- `s = 1` fades from the center (a cloud), `s = 0.3` gives a dense core with a soft skin.
+- `fade` takes local volumes out between 0.8 x and 1 x the near side of the last slice. The last slice has no list,
+  because the tail beyond far extrapolates the medium of the last slice and would stretch a local volume to
+  infinity. At the default far of 4096 the fade starts around 2800 units.
+
+### Authoring routes
+
+1. **Runtime scene API** (game / FX code). Volumes are added per scene, like a dynamic light, through the optional
+   renderer extension `GetRefFogVolumeAPI` (`rd-common/tr_public.h`). It follows the same pattern as
+   `GetRefAreaLightAPI` and `GetRefFoliageAPI`: `refexport_t` and `REF_API_VERSION` are unchanged, so an old engine
+   loads the new renderer and a renderer without the symbol simply has no volumes.
+   - `AddFogVolumeToScene(const refFogVolume_t *)` must be called between `ClearScene` and `RenderScene`, every
+     frame.
+   - Storage is `backEndData->fogVolumes[256]` with the dlight lifetime: `RE_ClearScene` / `RE_EndScene` advance
+     the first index, and `R_InitNextFrame` resets it.
+   - No engine or cgame caller exists yet: a cgame trap is future work.
+   - Callers should pass an `id` for anything that moves (see Temporal).
+2. **Per map, `cubemaps/<map>/env.json`**. This is the existing environment config of rend2, read by
+   `R_LoadEnvironmentJson`. A new optional `"FogVolumes"` array sits next to `"Cubemaps"`:
+   - It is read on every world map load, whatever `r_cubeMapping` / `r_diffuseIBL` are. `"Cubemaps"` keeps its old
+     behavior exactly.
+   - A file with only `FogVolumes` no longer prints "no Cubemaps" and falls back to the cubemap entities as before.
+   - The BSP format is not changed, and no map needs a new asset.
+   - The map volumes are added to every world scene by `R_FogVolumesBeginScene` (`tr_scene.cpp`).
+
+   ```json
+   { "FogVolumes": [
+       { "Shape": "sphere", "Origin": [x, y, z], "Radius": 96, "Opaque": 250,
+         "Color": [0.55, 0.55, 0.58], "Softness": 0.6 },
+       { "Shape": "box", "Origin": [x, y, z], "Size": [320, 160, 48], "Angles": [0, 315, 0],
+         "Opaque": 600, "Noise": 1 } ] }
+   ```
+
+   Keys:
+   - `Shape`: sphere | ellipsoid | box
+   - `Origin`: required
+   - `Radius` or `Size`: `Size` gives the half extents
+   - `Angles`: pitch, yaw, roll
+   - `Opaque`: default 600
+   - `Color`: default 0.75 0.75 0.78
+   - `Softness`: default 0.5
+   - `Noise`: 0 / 1 / true / false
+
+   Limitation: the file is one per map. 28 SP maps already ship an `env.json` with cubemaps (`assets8_pbr1.pk3`),
+   so a pk3 that adds fog volumes to one of those maps must repeat its `"Cubemaps"`.
+3. **Debug spawn `r_fogvol`**. Renderer-side volumes near the camera, so the feature can be tested with no asset
+   (`sv_cheats 1` for `add` / `test`, cleared on map change):
+
+   ```
+   r_fogvol                                    map + r_fogvol volumes, last frame statistics, warnings
+   r_fogvol add [sphere|ellipsoid|box] [radius r | size x y z] [opaque u] [color r g b] [soft s]
+                [angles p y r] [noise 0|1] [at trace|view|eye|x y z] [swing x y z seconds]
+   r_fogvol test <count> [spread]              deterministic spheres ahead (timings)
+   r_fogvol remove <index> | clear
+   r_fogvol slices                             per slice lists of the last frame (GPU indices)
+   r_fogvol dump                               the r_fogvol volumes as a "FogVolumes" array for env.json
+   ```
+
+   - `at trace` (default): the volume is placed in front of the wall under the crosshair, pulled back by its
+     radius. It uses `SV_Trace` in SP and `CM_BoxTrace` in MP.
+   - `at view`: 1.5 radii ahead. `at eye`: centered on the camera.
+   - `swing`: moves the volume on a sine, for the moving-volume and ghosting tests.
+   - Authoring loop: `add`, adjust, then `dump` and paste the result into the map's env.json.
+
+### Culling (`R_FogVolumesBuild`, once per frame for the froxel view)
+
+1. Candidates are the scene's volumes plus the ones that vanished since the previous frame (see Temporal). Each
+   gets a bounding sphere: max extent for an ellipsoid, `|extents|` for a box. The sphere of a changed volume
+   also covers its previous state.
+2. Frustum test: the sphere against the 4 side planes of the view, and depth in `[0, fade end]`. This is the test
+   of `R_VolumetricCullLights` for the dynamic lights.
+3. Sort by `view depth - radius` and keep the nearest `MAX_GPU_FOG_VOLUMES` = 64. The rest are dropped and counted
+   (`r_fogvol`, developer print).
+4. **Per slice packed lists.** For each slice k (0 .. N-2), in near-to-far order, the uploaded volumes whose sphere
+   overlaps the slice depth range `[B(k), B(k+1)]` are appended to a pool of 8 bit indices.
+   - Header per slice = `first | count << 16`.
+   - The injection of slice k decodes only its list: a froxel never loops over every volume.
+   - The jittered sample stays inside its slice, so the slice range is exact.
+   - Pool overflow (2048 entries) drops the far slices first, and is counted.
+5. The injection evaluates each listed volume with an early reject outside its unit shape.
+
+### Maximum count and UBO budget
+
+The volumes ride in the existing `VolumetricFog` std140 block, so there is no new binding:
+
+| part | size |
+|---|---|
+| previous block (camera, lights, noise, 24 BSP fogs) | 2256 B |
+| `u_FroxelLocalParams` | 16 B |
+| 9 vec4 per volume (rows, previous rows, color, shape, motion) x 64 | 9216 B |
+| slice headers, `ivec4[32]` (128 slices) | 512 B |
+| index pool, `ivec4[128]` (2048 x 8 bit) | 2048 B |
+| **total** | **14 048 B** |
+
+- The total is below the 16 384 B of `GL_MAX_UNIFORM_BLOCK_SIZE` that GL 3.2 guarantees. It is checked by a
+  `static_assert`, and at init against the driver's value: if the driver is too small, froxel fog is disabled
+  with a warning.
+- 64 volumes also fit the 8 bit indices.
+- The block is appended once per scene, into a scene UBO of 1 MB.
+- Pool size, from the CPU harness: 240 frames of random scenes with up to ~45 volumes, radii up to 724 and
+  teleporting moves. Median use 324 entries, 95th percentile 1071, maximum 1428. With the first choice (1024), 12
+  frames overflowed, which is why the pool is 2048.
+
+### Temporal
+
+The history clamp works on radiance, so a moving density would otherwise ghost. Each frame's volumes are paired
+with the previous frame's by `id`; an anonymous volume (id 0) is paired by identical parameters.
+
+- **Changed** (moved by more than 0.01 units, rotated, resized, or density / softness changed by more than 1%):
+  the previous rows, extinction, softness and shape are uploaded (`u_FroxelLocalMotion`, `u_FroxelLocalPrev*`).
+- **New**: previous extinction 0.
+- **Vanished**: listed for one more frame with current extinction 0 and its previous state.
+
+In the injection, for the jittered sample only:
+
+```
+change = sum |sigma_i(p) - sigma_i,prev(p)| / max(sigma_local(p), sigma_local,prev(p))
+weight *= 1 - smoothstep(0.02, 0.25, change)
+```
+
+- Where a volume really moved, appeared or vanished, the history is dropped in proportion to the change, so no
+  smoke ghost follows a fast volume.
+- Inside a static volume, or where a moving volume's density did not change, `change = 0` and the history keeps
+  its full weight.
+- The radiance clamp and the noise wind weight are unchanged and combine with it.
+- An anonymous volume that moves is new every frame: it gets no temporal accumulation (more jitter noise), but no
+  ghost either. Pass an id.
+
+### Debug
+
+- Views 16 to 19 (see Debug views): local σ only, local vs BSP / height share, bounds (outer and inner shell),
+  volumes per slice.
+- `r_fogvol` shows the counts of the last frame: submitted, invalid, vanished, in view, uploaded, dropped,
+  changed, and pool use.
+- `r_fogvol slices` prints each slice with its depth range, count and GPU indices, and the id of each GPU index.
+
+### Asset test (persistent authoring)
+
+- `build/test-assets/zz_volumetric_test.pk3` (389 bytes) contains only `cubemaps/hoth2/env.json`. There is no
+  BSP, no texture and no shader. The source is next to it in `build/test-assets/zz_volumetric_test/`.
+- Why `hoth2`: it is a stock map with a sun and a global fog, and it has no `env.json` in the installed packs.
+  `t2_port` has fog brushes but comes from a mod pack, and every other map with fog brushes already has an
+  `env.json`.
+- To test a local volume crossing a BSP fog volume boundary, use `r_fogvol` on `kor1` / `t2_rogue` / `vjun2`.
+  No asset is needed.
+- The three volumes were placed offline from the BSP: spawn `-2312 9856 1041`, yaw 315. The points were checked
+  to be in empty leaves, with open space (about 1.7k units up to the sky above the spawn). The terrain is a patch,
+  so the exact ground height was not verified.
+
+| # | medium | shape | place |
+|---|---|---|---|
+| 0 | smoke pocket | sphere r 96, opaque 250, soft 0.6 | 300 ahead of the spawn, 80 above the feet |
+| 1 | ground haze / steam slab | box 320 x 160 x 48, yaw 315, opaque 600, soft 0.8 | 700 ahead, just above the ground |
+| 2 | sunlit cloud | ellipsoid 420 x 300 x 160, opaque 900, soft 0.9, noise | 1400 ahead, 450 up |
+
+Install: copy the pk3 to `base/`, then `r_volumetricFog 2`, `vid_restart`, `map hoth2`, and run `r_fogvol` (it
+should report `map volumes: 3`).
+
+### Timings
+
+Not measured: the game has not been run with this change. Procedure: `r_speeds 100`, "Froxel fog inject",
+1920x1080, a fog map, a stationary camera, `r_fogvol clear`, then `r_fogvol test N` with the camera kept still.
+
+| preset | 0 volumes | 1 | 8 | 32 | 64 |
+|---|---|---|---|---|---|
+| low | | | | | |
+| medium | | | | | |
+| high | | | | | |
+
+Expected shape:
+- No local volumes: one uniform branch per `FroxelMedium` call.
+- Per listed volume and froxel: three dot products, a `sqrt` or three smoothsteps, a second evaluation for a
+  changed volume. Only volumes listed for the slice are evaluated.
+- More froxels become non-empty, so more of them take the light path (sun cascades, grid, dlights).
+- CPU: one sort and at most 64 x 128 sphere / slice tests per frame.
 
 ## Integration (`volumetric_integrate.glsl`)
 
@@ -422,7 +640,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogHeightMax` | 1 | height fog: maximum density below the base, multiple of the base density |
 | `r_volumetricFogHeightTop` | 0 | height fog: soft cutoff height above the base, 0 = none |
 | `r_volumetricFogHeightColor` | 0.7 0.75 0.8 | height fog: scattering color (albedo), as fogParms |
-| `r_volumetricFogNoise` | 0 | density noise media mask: 1 height fog, 2 BSP fog volumes, 4 global fog |
+| `r_volumetricFogNoise` | 0 | density noise media mask: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag |
 | `r_volumetricFogNoiseScale` | 4096 | macro noise tile period (world units) |
 | `r_volumetricFogNoiseContrast` | 1 | macro contrast c, 0..4 (0 = homogeneous) |
 | `r_volumetricFogNoiseDetailScale` | 900 | detail noise tile period (world units) |
@@ -456,6 +674,10 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 13 | density noise m(p) at the scene surface (see Heterogeneous density) |
 | 14 | froxel extinction at the scene depth without the noise |
 | 15 | froxel extinction at the scene depth with the noise |
+| 16 | as 1, local fog volumes only (the injection drops the BSP fog and the height fog) |
+| 17 | share of the fog along the ray: red = local fog volumes, green = BSP / height fog, brightness = opacity |
+| 18 | local fog volume bounds over the frame: outer shell (bright rim), inner shell where the soft edge starts (thin rim), one hue per GPU index, dimmed behind the scene |
+| 19 | number of local fog volumes in the list of the froxel slice at the scene depth (heat, 8 = red), slice stripes |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see
@@ -513,6 +735,17 @@ vs `*-vfog.dll`).
 | noise, mean | `r_volumetricFogNoiseContrast 0` vs `1` / `3` | similar average fog (view 1 far away) | 1 |
 | noise, repetition | open outdoor fog, look far | no visible tiling at typical distances | 15, 6 |
 | noise timings | see Samples and cost | fill the table | - |
+| local: sphere in an empty room | any map without fog, `r_fogvol add sphere radius 96 opaque 300` | soft round puff lit by the grid / sun, no hard edge | 16, 18, 6 |
+| local: overlapping spheres | two `add` at close points | densities add smoothly, no seam where they overlap | 16, 19 |
+| local: crossing BSP fog | kor1 / t2_rogue / vjun2, volume across a fog brush boundary | both media visible and additive, no pop at the boundary | 17, 11, 16 |
+| local: moving volume | `r_fogvol add ... swing 0 300 0 1` | no smoke trail behind it; history weight drops only on its moving edge | 8, 16 |
+| local: static volume | stationary camera and volume | full history (view 8 as the BSP fog), no extra shimmer | 8 |
+| local: saber inside / outside | saber on inside, then outside the volume | colored glow only where the volume is | 4 |
+| local: behind a wall from a dlight | volume on the far side of a wall from a dlight, `r_dlightMode 2` | no light leaks through the wall into the volume | 4 |
+| local: sunlit cloud | hoth2 with `zz_volumetric_test.pk3`, `r_sunlightMode 2` | bright on the sun side, shadowed by terrain / walls, beams through it | 3, 6 |
+| local: camera through the soft edge | walk into / out of a volume (`at eye` or a big one) | smooth transition, no pop | 1, 7 |
+| local: asset | hoth2 + pk3, `r_fogvol` | `map volumes: 3`, bounds in view 18 at the placed spots | 18 |
+| local: timings | see Local fog volumes, Timings | fill the table | - |
 
 ## Known limitations
 
@@ -530,15 +763,21 @@ vs `*-vfog.dll`).
   automatic base is the lowest floor, which can be a pit or a basement below the main ground level.
 - Density noise: 64^3 tile. With the macro field alone the period (4096) can show on huge open views when the
   volume far is raised; turn the detail on or raise the scale. The same field modulates every noisy medium (no
-  per medium scale). No local density volumes. A fast wind lowers the history weight of the noisy media (more
+  per medium scale). A fast wind lowers the history weight of the noisy media (more
   jitter noise). The mean is kept within 1% (0.8% up to contrast 3, 1.2% at 4 between half mip levels): checked on
   the CPU with the same generator code and the GPU's filtering.
+- Local fog volumes: mode 2 and the froxel main view only; they fade out near the froxel far distance (the tail
+  cannot carry them); a volume thinner than a froxel column or a slice is blurred by the froxel resolution; at
+  most 64 per view (the nearest) and 2048 slice list entries; the density noise is the global field; an
+  anonymous moving volume gets no temporal accumulation; no cgame trap yet (game / FX code needs one to call
+  the extension); one env.json per map is shared with the cubemaps.
 - Not run in game yet: correctness is verified by builds, offline compilation of every changed / new shader on
   the Intel and NVIDIA drivers, the legacy source comparison and the numeric checks above.
 
 ## Possible improvements (not implemented)
 
-- Local density volumes, per map height fog / noise settings, per medium noise scale.
+- Per map height fog / noise settings, per medium noise scale (local fog volumes use the global noise field).
+- A cgame trap for `AddFogVolumeToScene` (game / FX code), and fog volume primitives in the effects system.
 - Per tile light lists instead of per slice masks.
 - Depth aware (minimum depth per froxel column) skipping of hidden froxels.
 - Blue noise instead of a Halton cycle for the jitter.

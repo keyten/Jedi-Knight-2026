@@ -379,5 +379,14 @@ typedef struct refFoliageExport_s {
 
 typedef	const refFoliageExport_t* (QDECL *GetRefFoliageAPI_t) ( void );
 
+// Optional renderer extension (rend2 local fog volumes, r_volumetricFog 2),
+// looked up as "GetRefFogVolumeAPI". Same lifetime as a dynamic light: add
+// the volumes of a scene between ClearScene and RenderScene, every frame.
+typedef struct refFogVolumeExport_s {
+	void		(*AddFogVolumeToScene)( const refFogVolume_t *volume );
+} refFogVolumeExport_t;
+
+typedef	const refFogVolumeExport_t* (QDECL *GetRefFogVolumeAPI_t) ( void );
+
 #endif
 

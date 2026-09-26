@@ -15,8 +15,9 @@ void main()
 //
 // Media: the BSP fog volumes (axial bounds + the plane of their visible side), extinction and color
 // as the legacy volumetric fog, plus the optional height fog (r_volumetricFogHeight*, off by default)
-// whose extinction depends on world z. Extinctions add, albedos are extinction weighted. Without
-// both there is no medium. The selected media (r_volumetricFogNoise) are multiplied by the world space
+// whose extinction depends on world z, plus the local fog volumes (soft analytic ellipsoids / boxes,
+// tr_fogvolume.cpp) listed for this slice. Extinctions add, albedos are extinction weighted. Without
+// any of them there is no medium. The selected media (r_volumetricFogNoise) are multiplied by the world space
 // density noise m(p) (mean 1): only the extinction changes, the light does not.
 //
 // Light (the phase function is 4 pi HG, 1 = isotropic):
@@ -93,10 +94,14 @@ float FroxelHeightExtinction(in vec3 p)
 	return extinction;
 }
 
-// extinction (a) and albedo (rgb) of the fog volumes and the height fog at p (debug views 11 and 12
-// keep one of them, 14 drops the density noise). noisyFraction: share of the extinction that comes
-// from noise modulated media (their history weight is lowered when the noise moves).
-vec4 FroxelMedium(in vec3 p, in int debugView, out float noisyFraction)
+// extinction (a) and albedo (rgb) of the fog volumes, the height fog and the local fog volumes of
+// the slice at p (debug views 11, 12 and 16 keep one of them, 14 drops the density noise).
+// noisyFraction: share of the extinction that comes from noise modulated media (their history weight
+// is lowered when the noise moves). localFraction: share of the local volumes (before the noise).
+// localChange (only with wantChange): how much the local medium at p changed since the previous
+// frame, relative to it (moving, appearing and vanishing volumes; 0 when they are static).
+vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noisyFraction,
+	out float localFraction, out float localChange)
 {
 	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14;
 	float extinction = 0.0;
@@ -104,7 +109,57 @@ vec4 FroxelMedium(in vec3 p, in int debugView, out float noisyFraction)
 	float noisyExtinction = 0.0;
 	vec3 noisyAlbedo = vec3(0.0);
 
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11)
+	// local fog volumes: the packed list of this slice (CPU culled, tr_fogvolume.cpp)
+	float localExtinction = 0.0;
+	float localPrevious = 0.0;
+	float localDelta = 0.0;
+	int localHeader = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12) ?
+		FroxelLocalSliceHeader(u_FroxelSlice) : 0;
+	int localCount = localHeader >> 16;
+	if (localCount > 0)
+	{
+		int first = localHeader & 0xffff;
+		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+		for (int j = 0; j < localCount; j++)
+		{
+			int i = FroxelLocalPoolIndex(first + j);
+			vec4 shape = u_FroxelLocalShape[i];
+			vec4 color = u_FroxelLocalColor[i];
+			float e = color.a * fade * FroxelLocalShapeDensity(u_FroxelLocalX[i], u_FroxelLocalY[i],
+				u_FroxelLocalZ[i], shape.x, shape.y, shape.z, p);
+
+			if (wantChange)
+			{
+				vec4 motion = u_FroxelLocalMotion[i];
+				float previous = e;
+				if (motion.x > 0.5)
+				{
+					previous = motion.y * fade * FroxelLocalShapeDensity(u_FroxelLocalPrevX[i],
+						u_FroxelLocalPrevY[i], u_FroxelLocalPrevZ[i], motion.x - 1.0, motion.z, motion.w, p);
+				}
+				localPrevious += previous;
+				localDelta += abs(e - previous);
+			}
+
+			if (e <= 0.0)
+				continue;
+
+			localExtinction += e;
+			if (noise && shape.w > 0.5)
+			{
+				noisyExtinction += e;
+				noisyAlbedo += color.rgb * e;
+			}
+			else
+			{
+				extinction += e;
+				albedo += color.rgb * e;
+			}
+		}
+	}
+	localChange = localDelta / max(max(localExtinction, localPrevious), 1e-12);
+
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16)
 	{
 		float e = FroxelHeightExtinction(p);
 		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
@@ -119,7 +174,7 @@ vec4 FroxelMedium(in vec3 p, in int debugView, out float noisyFraction)
 		}
 	}
 
-	int numFogs = (debugView == 12) ? 0 : u_FroxelNumFogs;
+	int numFogs = (debugView == 12 || debugView == 16) ? 0 : u_FroxelNumFogs;
 	for (int i = 0; i < numFogs; i++)
 	{
 		vec4 mins = u_FroxelFogMins[i];
@@ -144,6 +199,8 @@ vec4 FroxelMedium(in vec3 p, in int debugView, out float noisyFraction)
 			albedo += fog.rgb * fog.a;
 		}
 	}
+
+	localFraction = localExtinction / max(extinction + noisyExtinction, 1e-12);
 
 	noisyFraction = 0.0;
 	if (noisyExtinction > 0.0)
@@ -378,15 +435,15 @@ void main()
 	vec3 p = FroxelWorldPosition(center + u_FroxelJitter.xyz * temporal);
 	vec3 pc = FroxelWorldPosition(center);
 
-	float noisyFraction;
-	vec4 medium = FroxelMedium(p, debugView, noisyFraction);
+	float noisyFraction, localFraction, localChange;
+	vec4 medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange);
 
 	// the medium at the center is only needed by the dynamic lights of this slice
 	vec4 mediumCenter = vec4(0.0);
 	if (u_LightMask != 0)
 	{
-		float unused;
-		mediumCenter = FroxelMedium(pc, debugView, unused);
+		float unused0, unused1, unused2;
+		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2);
 	}
 
 	// baked light and sun
@@ -470,10 +527,18 @@ void main()
 
 	vec4 current = vec4(medium.rgb * medium.a * (staticLight + sunLight), medium.a);
 
+	// debug view 17: share of the local volumes (red) and of the other media (green), integrated
+	// like an emission: the integrated rg is each medium's share of the opacity along the ray
+	if (debugView == 17)
+		current.rgb = vec3(localFraction, 1.0 - localFraction, 0.0) * medium.a;
+
 	// temporal accumulation with the reprojected history. Noise modulated media that move with the
-	// wind use a lower weight (R_VolumetricNoise), so the drifting density leaves no trail.
+	// wind use a lower weight (R_VolumetricNoise), so the drifting density leaves no trail. Where a
+	// local volume moved, appeared or vanished the history is dropped in proportion to the change of
+	// its density: no smoke ghost behind a moving volume, full history for static ones.
 	float weight = u_FroxelTemporalParams.x;
 	float froxelWeight = mix(weight, u_FroxelNoiseDetailOffset.w, noisyFraction);
+	froxelWeight *= 1.0 - smoothstep(0.02, 0.25, localChange);
 	if (weight > 0.0)
 	{
 		vec4 prevClip = u_FroxelPrevViewProjection * vec4(pc, 1.0);
@@ -511,6 +576,8 @@ void main()
 
 	// one bad froxel must not poison the next frames (history) nor the integrated column
 	vec4 dynamicEmission = vec4(mediumCenter.rgb * mediumCenter.a * dynamicLight, 1.0);
+	if (debugView == 17)
+		dynamicEmission.rgb = vec3(0.0);
 	if (any(isnan(current)) || any(isinf(current)))
 		current = vec4(0.0);
 	if (any(isnan(dynamicEmission)) || any(isinf(dynamicEmission)))

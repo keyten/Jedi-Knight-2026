@@ -52,6 +52,21 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelFogPlane[MAX_GPU_FOGS];
 	vec4 u_FroxelFogMins[MAX_GPU_FOGS];		// w: has plane
 	vec4 u_FroxelFogMaxs[MAX_GPU_FOGS];		// w: density noise applies
+
+	// local fog volumes (tr_fogvolume.cpp), nearest first. Per slice a packed list of the volumes
+	// that overlap it: header = first pool entry | count << 16, pool = 8 bit volume indices.
+	vec4 u_FroxelLocalParams;							// count, fade start, 1 / fade length, unused
+	vec4 u_FroxelLocalX[MAX_GPU_FOG_VOLUMES];			// world to unit local space rows (xyz, w offset)
+	vec4 u_FroxelLocalY[MAX_GPU_FOG_VOLUMES];
+	vec4 u_FroxelLocalZ[MAX_GPU_FOG_VOLUMES];
+	vec4 u_FroxelLocalPrevX[MAX_GPU_FOG_VOLUMES];		// the same rows in the previous frame
+	vec4 u_FroxelLocalPrevY[MAX_GPU_FOG_VOLUMES];
+	vec4 u_FroxelLocalPrevZ[MAX_GPU_FOG_VOLUMES];
+	vec4 u_FroxelLocalColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction (0: gone this frame)
+	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
+	vec4 u_FroxelLocalMotion[MAX_GPU_FOG_VOLUMES];		// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
+	ivec4 u_FroxelLocalSlices[FROXEL_MAX_SLICES / 4];	// slice headers
+	ivec4 u_FroxelLocalIndex[FROXEL_LOCAL_POOL / 16];	// index pool, 4 per int
 };
 
 uniform sampler3D u_FroxelVolume;
@@ -82,6 +97,49 @@ float FroxelPhase(in float g, in float cosTheta)
 	float g2 = g * g;
 	float denom = max(1.0 + g2 - 2.0 * g * cosTheta, 1e-4);
 	return (1.0 - g2) / (denom * sqrt(denom));
+}
+
+// Density (0..1) of a local fog volume at p. rows: world to unit local space (q = rows * p), the
+// shape is the unit sphere or the unit cube. The density fades out between the inner shell and the
+// boundary with a smoothstep: value and slope are 0 at the boundary, so the edge is never hard. The
+// box multiplies the fades of its three axes, which also rounds its corners.
+float FroxelLocalShapeDensity(in vec4 rx, in vec4 ry, in vec4 rz, in float shape, in float inner,
+	in float invWidth, in vec3 p)
+{
+	vec3 q = vec3(dot(rx.xyz, p) + rx.w, dot(ry.xyz, p) + ry.w, dot(rz.xyz, p) + rz.w);
+	if (shape < 0.5)
+	{
+		float r2 = dot(q, q);
+		if (r2 >= 1.0)
+			return 0.0;
+		float t = clamp((sqrt(r2) - inner) * invWidth, 0.0, 1.0);
+		return 1.0 - t * t * (3.0 - 2.0 * t);
+	}
+
+	vec3 a = abs(q);
+	if (max(a.x, max(a.y, a.z)) >= 1.0)
+		return 0.0;
+	vec3 t = clamp((a - vec3(inner)) * invWidth, 0.0, 1.0);
+	vec3 f = 1.0 - t * t * (3.0 - 2.0 * t);
+	return f.x * f.y * f.z;
+}
+
+// packed list of the local volumes of a slice: header = first pool entry | count << 16
+int FroxelLocalSliceHeader(in int slice)
+{
+	return u_FroxelLocalSlices[slice >> 2][slice & 3];
+}
+
+int FroxelLocalPoolIndex(in int entry)
+{
+	return (u_FroxelLocalIndex[entry >> 4][(entry >> 2) & 3] >> ((entry & 3) * 8)) & 255;
+}
+
+// local volumes fade out before the last slice: the tail beyond far extrapolates its medium
+float FroxelLocalFade(in float viewDepth)
+{
+	float t = clamp((viewDepth - u_FroxelLocalParams.y) * u_FroxelLocalParams.z, 0.0, 1.0);
+	return 1.0 - t * t * (3.0 - 2.0 * t);
 }
 
 #if defined(USE_FROXEL_NOISE)

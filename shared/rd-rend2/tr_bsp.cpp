@@ -3195,8 +3195,18 @@ static qboolean R_ParseSpawnVars( char *spawnVarChars, int maxSpawnVarChars, int
 	return qtrue;
 }
 
-void R_LoadEnvironmentJson(const char *baseName)
+/*
+=================
+R_LoadEnvironmentJson
+
+cubemaps/<map>/env.json: "Cubemaps" (only with r_cubeMapping or r_diffuseIBL,
+as before) and the local fog volumes of the froxel fog, "FogVolumes"
+(tr_fogvolume.cpp), read in any case. Both keys are optional.
+=================
+*/
+void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 {
+	const char *baseName = world->baseName;
 	char filename[MAX_QPATH];
 
 	union {
@@ -3215,7 +3225,8 @@ void R_LoadEnvironmentJson(const char *baseName)
 		return;
 	bufferEnd = buffer.c + filelen;
 
-	ri.Printf(PRINT_ALL, "Loaded Enviroment JSON: %s\n", filename);
+	if (cubemaps)
+		ri.Printf(PRINT_ALL, "Loaded Enviroment JSON: %s\n", filename);
 
 	if (JSON_ValueGetType(buffer.c, bufferEnd) != JSONTYPE_OBJECT)
 	{
@@ -3223,11 +3234,21 @@ void R_LoadEnvironmentJson(const char *baseName)
 		ri.FS_FreeFile(buffer.v);
 		return;
 	}
+	//-----------------------------FOG VOLUMES---------------------------------
+	R_LoadFogVolumesJson(world, buffer.c, bufferEnd, filename);
+
+	if (!cubemaps)
+	{
+		ri.FS_FreeFile(buffer.v);
+		return;
+	}
 	//-----------------------------CUBEMAPS------------------------------------
 	environmentArrayJson = JSON_ObjectGetNamedValue(buffer.c, bufferEnd, "Cubemaps");
 	if (!environmentArrayJson)
 	{
-		ri.Printf(PRINT_ALL, "Bad %s: no Cubemaps\n", filename);
+		// a file with fog volumes only: the cubemap entities are used
+		if (!world->numFogVolumes)
+			ri.Printf(PRINT_ALL, "Bad %s: no Cubemaps\n", filename);
 		ri.FS_FreeFile(buffer.v);
 		return;
 	}
@@ -4706,11 +4727,15 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		R_SetHeightFogBase(worldData);
 	}
 
+	// env.json: local fog volumes (always) and cubemaps (as below)
+	if (bspIndex == nullptr)
+		R_LoadEnvironmentJson(worldData,
+			(r_cubeMapping->integer || r_diffuseIBL->integer) ? qtrue : qfalse);
+
 	// load cubemaps
 	if ((r_cubeMapping->integer || r_diffuseIBL->integer) && bspIndex == nullptr)
 	{
-		// Try loading an env.json file first
-		R_LoadEnvironmentJson(worldData->baseName);
+		// the env.json cubemaps (above) come first
 
 		const int numCubemapEntities = 5;
 		const char *cubemapEntities[numCubemapEntities] =

@@ -32,6 +32,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_foliage.cpp"
 	"${SharedDir}/rd-rend2/tr_leafflutter.cpp"
 	"${SharedDir}/rd-rend2/tr_foliageinteract.cpp"
+	"${SharedDir}/rd-rend2/tr_fogvolume.cpp"
 	"${SharedDir}/rd-rend2/tr_forwardplus.cpp"
 	"${SharedDir}/rd-rend2/tr_arealights.cpp"
 	"${SharedDir}/rd-rend2/tr_ltc_data.h"

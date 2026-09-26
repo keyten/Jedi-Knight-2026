@@ -25,6 +25,13 @@ void main()
 //  14 extinction of the froxel at the scene depth, without the noise (the injection drops it)
 //  15 extinction of the froxel at the scene depth, with the noise
 //     (14, 15: heat of the optical depth of 512 units, the scale of view 1)
+//  16 density of the local fog volumes only     (the injection drops the BSP fog and the height fog)
+//  17 share of the fog along the ray: red = local fog volumes, green = BSP fog / height fog,
+//     brightness = opacity
+//  18 local fog volume bounds over the frame: outer shell (bright rim) and inner shell where the
+//     soft edge starts (thin rim), one hue per volume index, dimmed where behind the scene
+//  19 number of local volumes listed for the froxel slice at the scene depth (heat, 8 = red),
+//     slice stripes; r_fogvol slices prints the indices
 
 uniform sampler2D u_ScreenDepthMap;
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
@@ -42,6 +49,74 @@ vec3 Display(in vec3 hdr)
 	return hdr / (1.0 + hdr);
 }
 
+vec3 IndexHue(in int i)
+{
+	float h = fract(float(i) * 0.618034) * 6.0;
+	return clamp(vec3(abs(h - 3.0) - 1.0, 2.0 - abs(h - 2.0), 2.0 - abs(h - 4.0)), 0.0, 1.0);
+}
+
+// edges of the cube [-size, size]^3 along the ray o + t * d (unit local space): front and back
+// edges, dimmed behind the scene. -1: the ray misses the cube.
+float BoxOutline(in vec3 o, in vec3 d, in float size, in float sceneDistance, in float width)
+{
+	vec3 invD = 1.0 / mix(d, vec3(1e-8), lessThan(abs(d), vec3(1e-8)));
+	vec3 t0 = (-size - o) * invD;
+	vec3 t1 = ( size - o) * invD;
+	vec3 tMin = min(t0, t1);
+	vec3 tMax = max(t0, t1);
+	float tNear = max(max(tMin.x, tMin.y), tMin.z);
+	float tFar = min(min(tMax.x, tMax.y), tMax.z);
+	if (tNear > tFar || tFar <= 0.0)
+		return -1.0;
+
+	float coverage = 0.0;
+	for (int k = 0; k < 2; k++)
+	{
+		float t = (k == 0) ? tNear : tFar;
+		if (t <= 0.0)
+			continue;
+		vec3 edge = smoothstep(1.0 - width, 1.0, abs(o + d * t) / size);
+		float line = max(edge.x * edge.y, max(edge.y * edge.z, edge.x * edge.z));
+		coverage = max(coverage, line * ((t < sceneDistance) ? 1.0 : 0.35));
+	}
+	return coverage;
+}
+
+// view 18: outline of the local volume i along the ray origin + t * dir (t in world units).
+// rgb: color, a: coverage. sceneDistance: the scene along the ray (hidden parts are dimmed).
+vec4 LocalVolumeOutline(in int i, in vec3 origin, in vec3 dir, in float sceneDistance)
+{
+	vec4 rx = u_FroxelLocalX[i];
+	vec4 ry = u_FroxelLocalY[i];
+	vec4 rz = u_FroxelLocalZ[i];
+	vec3 o = vec3(dot(rx.xyz, origin) + rx.w, dot(ry.xyz, origin) + ry.w, dot(rz.xyz, origin) + rz.w);
+	vec3 d = vec3(dot(rx.xyz, dir), dot(ry.xyz, dir), dot(rz.xyz, dir));
+	float inner = u_FroxelLocalShape[i].y;
+	vec3 hue = IndexHue(i);
+	float dd = max(dot(d, d), 1e-12);
+
+	if (u_FroxelLocalShape[i].x < 0.5)
+	{
+		// closest approach of the ray to the center in the unit sphere space: rims at 1 and inner
+		float t = -dot(o, d) / dd;
+		if (t <= 0.0)
+			return vec4(0.0);
+		float b = length(o + d * t);
+		float visible = (t < sceneDistance) ? 1.0 : 0.35;
+		float outer = 1.0 - smoothstep(0.0, 0.03, abs(b - 1.0));
+		float soft = (1.0 - smoothstep(0.0, 0.015, abs(b - inner))) * 0.6;
+		float fill = (b < 1.0) ? 0.08 : 0.0;
+		return vec4(hue, max(max(outer, soft), fill) * visible);
+	}
+
+	// box: the outer and the inner cube, edges where two coordinates reach the faces
+	float outer = BoxOutline(o, d, 1.0, sceneDistance, 0.04);
+	if (outer < 0.0)
+		return vec4(0.0);
+	float soft = (inner > 0.05) ? BoxOutline(o, d, inner, sceneDistance, 0.02) * 0.6 : 0.0;
+	return vec4(hue, max(max(outer, soft), 0.08));
+}
+
 void main()
 {
 	vec2 tc = gl_FragCoord.xy / r_FBufScale;
@@ -52,7 +127,7 @@ void main()
 	int view = int(u_FroxelDebugParams.x);
 	vec3 color = vec3(0.0);
 
-	if (view == 1 || view == 11 || view == 12)
+	if (view == 1 || view == 11 || view == 12 || view == 16)
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
@@ -103,6 +178,40 @@ void main()
 		float slice = min(floor(w * u_FroxelGridSize.z), u_FroxelGridSize.z - 1.0);
 		float extinction = texture(u_FroxelSource, vec3(uv, (slice + 0.5) / u_FroxelGridSize.z)).a;
 		color = Heat(extinction * 512.0 / 4.0);
+	}
+	else if (view == 17)
+	{
+		float opacity = 1.0 - fog.a;
+		color = vec3(fog.r, fog.g, 0.0) / max(fog.r + fog.g, 1e-4) * sqrt(opacity);
+	}
+	else if (view == 18)
+	{
+		// drawn blended over the frame (RB_VolumetricDebugOverlay)
+		vec3 toScene = worldPos - u_FroxelViewOrigin.xyz;
+		float sceneDistance = length(toScene);
+		vec3 dir = toScene / max(sceneDistance, 1e-4);
+		vec4 outline = vec4(0.0);
+		int count = int(u_FroxelLocalParams.x);
+		for (int i = 0; i < count; i++)
+		{
+			if (u_FroxelLocalColor[i].a <= 0.0)
+				continue;	// gone this frame (kept one frame for the history)
+			vec4 o = LocalVolumeOutline(i, u_FroxelViewOrigin.xyz, dir, sceneDistance);
+			if (o.a > outline.a)
+				outline = o;
+		}
+		out_Color = outline;
+		return;
+	}
+	else if (view == 19)
+	{
+		float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+		int slice = int(min(floor(FroxelDepthToW(min(d, u_FroxelSliceParams.y)) * u_FroxelGridSize.z),
+			u_FroxelGridSize.z - 1.0));
+		int count = FroxelLocalSliceHeader(slice) >> 16;
+		color = (count > 0) ? Heat(float(count) / 8.0) : vec3(0.12);
+		if ((slice & 1) != 0)
+			color *= 0.75;
 	}
 	else if (view == 10)
 	{

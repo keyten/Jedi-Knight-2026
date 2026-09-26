@@ -48,7 +48,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include <algorithm>
 
-#define FROXEL_MAX_SLICES 128
 #define FROXEL_NEAR 8.0f
 #define FROXEL_AUTO_FAR 4096.0f
 
@@ -80,7 +79,8 @@ struct froxelState_t
 	qboolean built;				// GPU passes of this frame ran
 	int current;				// froxelInjectImage written this frame
 	int lightMask[FROXEL_MAX_SLICES];
-	qboolean frameHeightFog;	// the volume of this frame has the height fog medium
+	qboolean frameHeightFog;	// the volume of this frame has media outside the BSP fog
+								// volumes: the height fog or local fog volumes
 
 	// the last froxelInjectImage the GPU passes actually wrote: the history
 	// must not be an image whose build was skipped (never initialized or stale)
@@ -456,6 +456,16 @@ void R_CreateVolumetricImages( int width, int height )
 
 	if ( r_volumetricFog->integer != 2 )
 		return;
+
+	// the VolumetricFog block (with the local fog volumes) must fit in a UBO;
+	// GL 3.2 guarantees 16 KB, the block is below that
+	if ( glRefConfig.maxUniformBlockSize > 0 &&
+		(size_t)glRefConfig.maxUniformBlockSize < sizeof(VolumetricFogBlock) )
+	{
+		ri.Printf(PRINT_WARNING, "r_volumetricFog 2: uniform blocks up to %d bytes, %d needed: froxel fog disabled\n",
+			glRefConfig.maxUniformBlockSize, (int)sizeof(VolumetricFogBlock));
+		return;
+	}
 
 	const int quality = Com_Clampi(0, 2, r_volumetricFogQuality->integer);
 	const int gridScale = r_volumetricFogGridScale->integer > 0 ?
@@ -1179,7 +1189,7 @@ False when no medium is noisy (or both contrasts are 0).
 
 static qboolean R_VolumetricNoise( VolumetricFogBlock *block, const trRefdef_t *refdef, float historyWeight )
 {
-	const int mask = r_volumetricFogNoise->integer & 7;
+	const int mask = r_volumetricFogNoise->integer & 15;
 	const float macroContrast = Com_Clamp(0.0f, 4.0f, r_volumetricFogNoiseContrast->value);
 	const float detailContrast = Com_Clamp(0.0f, 4.0f, r_volumetricFogNoiseDetailContrast->value);
 	if ( !mask || !tr.froxelNoiseImage || (macroContrast <= 0.0f && detailContrast <= 0.0f) )
@@ -1296,10 +1306,15 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	const qboolean heightFogOn = R_VolumetricHeightFog(heightFog, heightFogColor, heightFogTop);
 	s_vf.frameHeightFog = qfalse;
 
+	const float nearZ = FROXEL_NEAR;
+	float farZ = (r_volumetricFogFar->value > 0.0f) ? r_volumetricFogFar->value : FROXEL_AUTO_FAR;
+	farZ = MAX(farZ, nearZ * 4.0f);
+
 	const qboolean worldView = (qboolean)(
 		view != NULL &&
 		tr.world != NULL &&
-		(tr.world->numfogs > 1 || heightFogOn) &&	// no fog volume, no height fog: nothing to do
+		// no fog volume, no height fog, no local fog volume: nothing to do
+		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ)) &&
 		tr.renderFbo != NULL &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) &&
 		!refdef->doLAGoggles &&
@@ -1333,10 +1348,6 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorNormalize(forward);
 	VectorNormalize(right);
 	VectorNormalize(up);
-
-	const float nearZ = FROXEL_NEAR;
-	float farZ = (r_volumetricFogFar->value > 0.0f) ? r_volumetricFogFar->value : FROXEL_AUTO_FAR;
-	farZ = MAX(farZ, nearZ * 4.0f);
 
 	// the frozen volume keeps its camera (r_volumetricFogFreeze)
 	const qboolean freeze = (qboolean)(r_volumetricFogFreeze->integer && s_vf.hasVolume && s_vf.world == tr.world);
@@ -1514,7 +1525,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// density noise of the selected media
 	const qboolean noise = R_VolumetricNoise(&block, refdef, block.temporalParams[0]);
-	const int noiseMask = noise ? (r_volumetricFogNoise->integer & 7) : 0;
+	const int noiseMask = noise ? (r_volumetricFogNoise->integer & 15) : 0;
 
 	// media: every fog volume of the map, as the Fogs block (volumetric units)
 	int numFogs = tr.world->numfogs - 1;
@@ -1531,6 +1542,13 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		const qboolean noisy = (qboolean)(noiseMask & ((fog == tr.world->globalFog) ? 4 : 2));
 		VectorSet4(block.fogMaxs[i], fog->bounds[1][0], fog->bounds[1][1], fog->bounds[1][2], noisy ? 1.0f : 0.0f);
 	}
+
+	// local fog volumes: culled, nearest first, per slice lists (tr_fogvolume.cpp).
+	// Like the height fog they are outside the BSP fog volumes: transparent
+	// surfaces without a fog volume look the volume up too.
+	const int numLocalVolumes = R_FogVolumesBuild(&block, view, refdef, forward, nearZ, farZ, s_vf.depth,
+		(noiseMask & 8) ? qtrue : qfalse);
+	s_vf.frameHeightFog = (qboolean)(heightFogOn || numLocalVolumes > 0);
 
 	s_vf.frozenBlock = block;
 	tr.volumetricFogUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
@@ -1871,7 +1889,11 @@ void RB_VolumetricDebugOverlay( void )
 	FBO_Bind(NULL);
 	GL_SetViewportAndScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	GL_Cull(CT_TWO_SIDED);
-	GL_State(GLS_DEPTHTEST_DISABLE);
+	// view 18 (local fog volume bounds) is drawn over the frame
+	if ( r_volumetricFogDebug->integer == 18 )
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+	else
+		GL_State(GLS_DEPTHTEST_DISABLE);
 	GLSL_BindProgram(sp);
 	RB_VolumetricBindBlocks();
 

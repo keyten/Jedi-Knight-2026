@@ -27,6 +27,9 @@ int			r_firstSceneDrawSurf;
 int			r_numdlights;
 int			r_firstSceneDlight;
 
+int			r_numfogvolumes;
+int			r_firstSceneFogVolume;
+
 int			r_numentities;
 int			r_firstSceneEntity;
 
@@ -52,6 +55,9 @@ void R_InitNextFrame( void ) {
 	r_numdlights = 0;
 	r_firstSceneDlight = 0;
 
+	r_numfogvolumes = 0;
+	r_firstSceneFogVolume = 0;
+
 	r_numentities = 0;
 	r_firstSceneEntity = 0;
 
@@ -70,6 +76,7 @@ RE_ClearScene
 */
 void RE_ClearScene( void ) {
 	r_firstSceneDlight = r_numdlights;
+	r_firstSceneFogVolume = r_numfogvolumes;
 	r_firstSceneEntity = r_numentities;
 	r_firstScenePoly = r_numpolys;
 }
@@ -313,6 +320,28 @@ void RE_AddDynamicLightToScene( const vec3_t org, float intensity, float r, floa
 
 /*
 =====================
+RE_AddFogVolumeToScene
+
+A local fog volume for this scene (tr_fogvolume.cpp), same lifetime as a
+dynamic light. Validated and converted when the froxel volume is built.
+=====================
+*/
+void RE_AddFogVolumeToScene( const refFogVolume_t *volume ) {
+	if ( !tr.registered || !volume ) {
+		return;
+	}
+	if ( r_numfogvolumes >= MAX_REF_FOG_VOLUMES ) {
+		ri.Printf( PRINT_DEVELOPER, "RE_AddFogVolumeToScene: more than %d fog volumes this frame\n", MAX_REF_FOG_VOLUMES );
+		return;
+	}
+	if ( volume->depthForOpaque <= 0.0f ) {
+		return;
+	}
+	backEndData->fogVolumes[r_numfogvolumes++] = *volume;
+}
+
+/*
+=====================
 RE_AddLightToScene
 
 =====================
@@ -518,6 +547,11 @@ void RE_BeginScene(const refdef_t *fd)
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
 
+	// local fog volumes: the map's and r_fogvol's, then the scene's list
+	R_FogVolumesBeginScene(fd);
+	tr.refdef.num_fogVolumes = r_numfogvolumes - r_firstSceneFogVolume;
+	tr.refdef.fogVolumes = &backEndData->fogVolumes[r_firstSceneFogVolume];
+
 	// Add the decals here because decals add polys and we need to ensure
 	// that the polys are added before the the renderer is prepared
 	if ( !(fd->rdflags & RDF_NOWORLDMODEL) )
@@ -572,6 +606,7 @@ void RE_EndScene()
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;
 	r_firstSceneEntity = r_numentities;
 	r_firstSceneDlight = r_numdlights;
+	r_firstSceneFogVolume = r_numfogvolumes;
 	r_firstScenePoly = r_numpolys;
 	tr.skyPortalEntities = 0;
 	tr.numCachedViewParms = 0;

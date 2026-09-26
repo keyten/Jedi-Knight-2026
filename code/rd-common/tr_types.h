@@ -327,6 +327,27 @@ typedef struct {
 	int			flags;		// FOLIAGE_INTERACTOR_*
 } foliageInteractor_t;
 
+// Local fog volumes (rend2 froxel fog, r_volumetricFog 2): a small analytic
+// participating medium (smoke pocket, steam, haze, dust) with a soft edge,
+// added per scene like a dynamic light through the optional renderer
+// extension GetRefFogVolumeAPI.
+#define	FOGVOLUME_ELLIPSOID			0		// a sphere is an ellipsoid with equal extents
+#define	FOGVOLUME_BOX				1		// oriented box
+
+#define	FOGVOLUME_NOISE				1		// flags: density noise (r_volumetricFogNoise 8)
+
+typedef struct {
+	int			id;				// stable per volume (temporal filter), 0 = anonymous
+	int			shape;			// FOGVOLUME_ELLIPSOID, FOGVOLUME_BOX
+	vec3_t		origin;
+	vec3_t		axis[3];		// orientation (unit vectors), all zero = world axes
+	vec3_t		extents;		// radii / half sizes along the axes
+	float		depthForOpaque;	// as fogParms: distance through full density to opaque
+	float		color[3];		// scattering color 0..1, as fogParms
+	float		softness;		// 0..1 of the extents over which the density fades to 0
+	int			flags;			// FOGVOLUME_NOISE
+} refFogVolume_t;
+
 
 typedef enum {
 	STEREO_CENTER,

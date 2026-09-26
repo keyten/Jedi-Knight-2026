@@ -1737,6 +1737,7 @@ static consoleCommand_t	commands[] = {
 	{ "gfxmeminfo",			GfxMemInfo_f },
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
+	{ "r_fogvol",			R_FogVolume_f },
 	//{ "imagecacheinfo",		RE_RegisterImages_Info_f },
 	{ "modellist",			R_Modellist_f },
 	//{ "modelcacheinfo",		RE_RegisterModels_Info_f },
@@ -2250,7 +2251,7 @@ void R_Register( void )
 	r_volumetricFogBloom = ri_Cvar_Get_NoComm("r_volumetricFogBloom", "0", CVAR_ARCHIVE, "Froxel fog: bright in-scattering added to the glow buffer (bloom), 0 = none");
 	ri.Cvar_CheckRange(r_volumetricFogBloom, 0.0f, 4.0f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise");
+	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice");
 	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 15, qtrue);
 	r_volumetricFogFreeze = ri_Cvar_Get_NoComm("r_volumetricFogFreeze", "0", CVAR_CHEAT, "Froxel fog: keep the current froxel volume and its camera (debugging)");
 	ri.Cvar_CheckRange(r_volumetricFogFreeze, 0, 1, qtrue);
@@ -2266,7 +2267,7 @@ void R_Register( void )
 	r_volumetricFogHeightTop = ri_Cvar_Get_NoComm("r_volumetricFogHeightTop", "0", CVAR_ARCHIVE, "Froxel fog height fog: height above the base where the medium fades out (soft cutoff), 0 = none");
 	ri.Cvar_CheckRange(r_volumetricFogHeightTop, 0.0f, 65536.0f, qfalse);
 	r_volumetricFogHeightColor = ri_Cvar_Get_NoComm("r_volumetricFogHeightColor", "0.7 0.75 0.8", CVAR_ARCHIVE, "Froxel fog height fog: scattering color (albedo), \"r g b\" in 0..1 as fogParms");
-	r_volumetricFogNoise = ri_Cvar_Get_NoComm("r_volumetricFogNoise", "0", CVAR_ARCHIVE, "Froxel fog: media with world space noise density, bits: 1 height fog, 2 BSP fog volumes, 4 global fog (0 = homogeneous)");
+	r_volumetricFogNoise = ri_Cvar_Get_NoComm("r_volumetricFogNoise", "0", CVAR_ARCHIVE, "Froxel fog: media with world space noise density, bits: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag (0 = homogeneous)");
 	ri.Cvar_CheckRange(r_volumetricFogNoise, 0, 7, qtrue);
 	r_volumetricFogNoiseScale = ri_Cvar_Get_NoComm("r_volumetricFogNoiseScale", "4096", CVAR_ARCHIVE, "Froxel fog noise: period of the macro noise tile (world units)");
 	ri.Cvar_CheckRange(r_volumetricFogNoiseScale, 64.0f, 65536.0f, qfalse);
@@ -3196,6 +3197,18 @@ Optional extension (tr_public.h): foliage interaction, tr_foliageinteract.cpp
 extern "C" Q_EXPORT const refFoliageExport_t* QDECL GetRefFoliageAPI ( void ) {
 	static const refFoliageExport_t foliage = { RE_SetFoliageInteractors };
 	return &foliage;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefFogVolumeAPI
+
+Optional extension (tr_public.h): local fog volumes, tr_fogvolume.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refFogVolumeExport_t* QDECL GetRefFogVolumeAPI ( void ) {
+	static const refFogVolumeExport_t fogVolumes = { RE_AddFogVolumeToScene };
+	return &fogVolumes;
 }
 
 /*
