@@ -78,6 +78,15 @@ int R_AOMode( void )
 	return Com_Clampi(AO_MODE_OFF, AO_MODE_GTAO, mode);
 }
 
+// Bent normals are a GTAO by-product for indirect lighting only; not in the
+// legacy / split screen comparison
+static float R_AOBentNormalStrength( void )
+{
+	if ( R_AOMode() != AO_MODE_GTAO || r_aoCompare->integer )
+		return 0.0f;
+	return Com_Clamp(0.0f, 1.0f, r_gtaoBentNormals->value);
+}
+
 static void R_AOImageNearest( image_t *image, int maxLevel )
 {
 	GL_Bind(image);
@@ -140,12 +149,19 @@ void R_CreateAOImages( int width, int height )
 			va("*gtao%d", i), NULL, aoWidth, aoHeight, IMGTYPE_COLORALPHA,
 			flags, GL_RGBA8);
 		R_AOImageNearest(tr.gtaoImage[i], 0);
+
+		// octahedral view space bent normal (r_gtaoBentNormals)
+		tr.gtaoBentImage[i] = R_CreateImage(
+			va("*gtaoBent%d", i), NULL, aoWidth, aoHeight, IMGTYPE_COLORALPHA,
+			flags, GL_RG8);
+		R_AOImageNearest(tr.gtaoBentImage[i], 0);
 	}
 
-	// final AO + contact shadow, sampled by lightall at full resolution
+	// final AO + contact shadow + octahedral world space bent normal, sampled
+	// by lightall at full resolution
 	tr.screenAoImage = R_CreateImage(
 		"*screenAo", NULL, width, height, IMGTYPE_COLORALPHA,
-		flags, GL_RG8);
+		flags, GL_RGBA8);
 
 	GL_SelectTexture(0);
 }
@@ -323,9 +339,12 @@ static void RB_RenderGTAODepth( const aoViewInfo_t& info )
 	RB_AOEndTimer(timer);
 }
 
-// returns the image holding the final GTAO result
-static image_t *RB_RenderGTAO( const aoViewInfo_t& info )
+// returns the image holding the final GTAO result; *bentResult receives the
+// matching bent normal image, NULL when r_gtaoBentNormals is off
+static image_t *RB_RenderGTAO( const aoViewInfo_t& info, image_t **bentResult )
 {
+	const int bent = R_AOBentNormalStrength() > 0.0f ? 1 : 0;
+
 	RB_RenderGTAODepth(info);
 
 	const float aoWidth = (float)tr.aoDepthImage->width;
@@ -353,7 +372,7 @@ static image_t *RB_RenderGTAO( const aoViewInfo_t& info )
 		Q_max(8.0f, 0.25f * backEnd.viewParms.viewportWidth / aoPixelScale),
 		info.pixelViewSize * aoPixelScale);
 
-	shaderProgram_t *sp = &tr.gtaoShader;
+	shaderProgram_t *sp = &tr.gtaoShader[bent];
 	RB_AOBeginPass(tr.gtaoFbo[0], sp);
 	GL_BindToTMU(tr.aoDepthImage, TB_COLORMAP);
 	RB_AOSetViewUniforms(sp, info);
@@ -374,12 +393,13 @@ static image_t *RB_RenderGTAO( const aoViewInfo_t& info )
 	{
 		timer = RB_AOBeginTimer("AO GTAO denoise");
 
-		sp = &tr.gtaoDenoiseShader;
+		sp = &tr.gtaoDenoiseShader[bent];
 		for ( int pass = 0; pass < numPasses; pass++ )
 		{
 			RB_AOBeginPass(tr.gtaoFbo[current ^ 1], sp);
 			GL_BindToTMU(tr.gtaoImage[current], TB_COLORMAP);
 			GL_BindToTMU(tr.aoDepthImage, TB_LIGHTMAP);
+			GL_BindToTMU(tr.gtaoBentImage[current], TB_NORMALMAP);
 			RB_AOSetViewUniforms(sp, info);
 			GLSL_SetUniformVec4(sp, UNIFORM_AOTEXELSIZE, texelSize);
 			VectorSet4(settings, (float)(1 << pass), 0.0f, 0.0f, 0.0f);
@@ -391,6 +411,7 @@ static image_t *RB_RenderGTAO( const aoViewInfo_t& info )
 		RB_AOEndTimer(timer);
 	}
 
+	*bentResult = bent ? tr.gtaoBentImage[current] : NULL;
 	return tr.gtaoImage[current];
 }
 
@@ -398,6 +419,7 @@ static void RB_RenderAOComposite(
 	const aoViewInfo_t& info,
 	int aoSource,
 	image_t *gtaoResult,
+	image_t *bentResult,
 	qboolean contactShadows )
 {
 	const int timer = RB_AOBeginTimer("AO composite/contact");
@@ -409,6 +431,7 @@ static void RB_RenderAOComposite(
 	GL_BindToTMU(tr.renderDepthImage, TB_LIGHTMAP);
 	GL_BindToTMU(tr.aoDepthImage, TB_NORMALMAP);
 	GL_BindToTMU(tr.screenSsaoImage, TB_DELUXEMAP);
+	GL_BindToTMU(bentResult ? bentResult : tr.whiteImage, TB_SPECULARMAP);
 
 	RB_AOSetViewUniforms(sp, info);
 
@@ -430,11 +453,27 @@ static void RB_RenderAOComposite(
 		info.pixelViewSize);
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS, settings);
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS2, settings2);
-	const vec4_t settings3 = { r_contactShadowSoft->integer ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
+	// bent normals only where the AO is GTAO (not the split screen)
+	const vec4_t settings3 = {
+		r_contactShadowSoft->integer ? 1.0f : 0.0f,
+		(bentResult && aoSource == 2) ? 1.0f : 0.0f,
+		0.0f, 0.0f };
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS3, settings3);
 
-	// the sun in view space (x right, y up, z forward)
 	const vec3_t *axis = backEnd.viewParms.ori.axis;
+
+	// view space (x right, y up, z forward) -> world, column major
+	matrix_t viewToWorld;
+	Matrix16Identity(viewToWorld);
+	for ( int i = 0; i < 3; i++ )
+	{
+		viewToWorld[0 + i] = -axis[1][i];
+		viewToWorld[4 + i] =  axis[2][i];
+		viewToWorld[8 + i] =  axis[0][i];
+	}
+	GLSL_SetUniformMatrix4x4(sp, UNIFORM_AOVIEWTOWORLD, viewToWorld);
+
+	// the sun in view space
 	const float *sunDir = backEnd.refdef.sunDir;
 	vec3_t lightDir = {
 		-DotProduct(sunDir, axis[1]),
@@ -525,8 +564,9 @@ void RB_RenderScreenSpaceLighting( void )
 		RB_RenderLegacySSAO();
 
 	image_t *gtaoResult = NULL;
+	image_t *bentResult = NULL;
 	if ( needGtao )
-		gtaoResult = RB_RenderGTAO(info);
+		gtaoResult = RB_RenderGTAO(info, &bentResult);
 
 	int aoSource = AO_MODE_OFF;
 	if ( compare )
@@ -543,7 +583,7 @@ void RB_RenderScreenSpaceLighting( void )
 	}
 	else if ( aoSource != AO_MODE_OFF || contact )
 	{
-		RB_RenderAOComposite(info, aoSource, gtaoResult, contact);
+		RB_RenderAOComposite(info, aoSource, gtaoResult, bentResult, contact);
 		backEnd.screenAoImage = tr.screenAoImage;
 	}
 
@@ -559,6 +599,15 @@ lightall parameters and debug views
 
 ============================================================
 */
+
+// r_debugAO views written by lightall itself (unlit, tone mapping bypassed):
+// 7 cascade shadow, 8 sun visibility, 9 diffuse ambient visibility,
+// 12 specular occlusion
+static qboolean RB_AODebugIsLightall( void )
+{
+	const int debugView = r_debugAO->integer;
+	return (qboolean)((debugView >= 7 && debugView <= 9) || debugView == 12);
+}
 
 void RB_AOSceneParams( vec4_t aoParams, vec4_t aoParams2 )
 {
@@ -582,15 +631,23 @@ void RB_AOSceneParams( vec4_t aoParams, vec4_t aoParams2 )
 	aoParams[2] = r_aoMultiBounce->integer ? 1.0f : 0.0f;
 	aoParams[3] = 0.5f * glConfig.vidWidth;
 
-	const int debugView = r_debugAO->integer;
-	aoParams2[0] = (debugView >= 7 && debugView <= 9) ? (float)debugView : 0.0f;
+	// specular occlusion of the indirect-only application: 0 = scalar AO,
+	// 1 = Lagarde (AO, roughness, N.V), 2 = bent cone / specular cone
+	const float bentStrength = R_AOBentNormalStrength();
+	int specOcclusion = r_aoSpecOcclusion->integer;
+	if ( specOcclusion < 0 )
+		specOcclusion = bentStrength > 0.0f ? 2 : 1;
+	aoParams2[1] = (float)Com_Clampi(0, 2, specOcclusion);
+	aoParams2[2] = bentStrength;
+
+	aoParams2[0] = RB_AODebugIsLightall() ? (float)r_debugAO->integer : 0.0f;
 }
 
 qboolean RB_AODebugBypassesToneMap( void )
 {
 	return (qboolean)(
 		(r_sunShadowMode->integer && r_shadowDebug->integer >= 1 && r_shadowDebug->integer <= 11) ||
-		(s_aoResources && r_debugAO->integer >= 7 && r_debugAO->integer <= 9) ||
+		(s_aoResources && RB_AODebugIsLightall()) ||
 		(r_autoPBRDebug->integer >= 1 && r_autoPBRDebug->integer <= 2) ||
 		(r_weatherWetness->integer && r_weatherWetnessDebug->integer >= 1 && r_weatherWetnessDebug->integer <= 26 && r_weatherWetnessDebug->integer != 4) ||
 		(r_diffuseIBL->integer && r_diffuseIBLDebug->integer >= 1 && r_diffuseIBLDebug->integer <= 5) ||
@@ -604,7 +661,7 @@ qboolean RB_AODebugBypassesToneMap( void )
 void RB_AODebugOverlay( void )
 {
 	const int debugView = r_debugAO->integer;
-	if ( !s_aoResources || debugView <= 0 || (debugView >= 7 && debugView <= 9) || debugView > 10 )
+	if ( !s_aoResources || debugView <= 0 || debugView > 12 || RB_AODebugIsLightall() )
 		return;
 
 	image_t *image = NULL;
@@ -623,6 +680,7 @@ void RB_AODebugOverlay( void )
 			break;
 		case 6: // contact shadow
 		case 10: // final AO map lightall used
+		case 11: // bent normal (world space)
 			image = s_debugFinalImage;
 			break;
 	}

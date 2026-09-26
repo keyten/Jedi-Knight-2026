@@ -183,6 +183,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_AOSettings2",			GLSL_VEC4, 1 },
 	{ "u_AOSettings3",			GLSL_VEC4, 1 },
 	{ "u_AOLightDir",			GLSL_VEC3, 1 },
+	{ "u_AOBentMap",			GLSL_INT, 1 },
+	{ "u_AOViewToWorld",		GLSL_MAT4x4, 1 },
 
 	{ "u_MBInvViewProjection",	GLSL_MAT4x4, 1 },
 	{ "u_MBPrevViewProjection",	GLSL_MAT4x4, 1 },
@@ -3306,9 +3308,17 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 		++numPrograms;
 	}
 
+	// 1 = with the bent normal output (r_gtaoBentNormals)
+	for (int i = 0; i < 2; i++)
 	{
-		shaderProgram_t *sp = &tr.gtaoShader;
-		GLSL_LoadGPUProgramBasic(builder, scratchAlloc, sp, "gtao", fallback_gtaoProgram);
+		shaderProgram_t *sp = &tr.gtaoShader[i];
+		GLSL_LoadGPUProgramBasicWithDefinitions(
+			builder,
+			scratchAlloc,
+			sp,
+			"gtao",
+			fallback_gtaoProgram,
+			i == 1 ? "#define BENT_NORMAL\n" : nullptr);
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_AODEPTHMAP, TB_COLORMAP);
@@ -3317,13 +3327,21 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 		++numPrograms;
 	}
 
+	for (int i = 0; i < 2; i++)
 	{
-		shaderProgram_t *sp = &tr.gtaoDenoiseShader;
-		GLSL_LoadGPUProgramBasic(builder, scratchAlloc, sp, "gtao_denoise", fallback_gtao_denoiseProgram);
+		shaderProgram_t *sp = &tr.gtaoDenoiseShader[i];
+		GLSL_LoadGPUProgramBasicWithDefinitions(
+			builder,
+			scratchAlloc,
+			sp,
+			"gtao_denoise",
+			fallback_gtao_denoiseProgram,
+			i == 1 ? "#define BENT_NORMAL\n" : nullptr);
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_AOMAP, TB_COLORMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_AODEPTHMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_AOBENTMAP, TB_NORMALMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -3338,6 +3356,7 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_AODEPTHMAP, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_LEGACYAOMAP, TB_DELUXEMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_AOBENTMAP, TB_SPECULARMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -4228,9 +4247,11 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.ssaoShader);
 
 	for ( i = 0; i < 2; i++)
+	{
 		GLSL_DeleteGPUShader(&tr.gtaoDepthShader[i]);
-	GLSL_DeleteGPUShader(&tr.gtaoShader);
-	GLSL_DeleteGPUShader(&tr.gtaoDenoiseShader);
+		GLSL_DeleteGPUShader(&tr.gtaoShader[i]);
+		GLSL_DeleteGPUShader(&tr.gtaoDenoiseShader[i]);
+	}
 	GLSL_DeleteGPUShader(&tr.aoCompositeShader);
 	GLSL_DeleteGPUShader(&tr.aoDebugShader);
 

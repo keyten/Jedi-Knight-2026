@@ -438,7 +438,9 @@ layout(std140) uniform Scene
 	// y = fraction of baked (lightmap/vertex) light treated as indirect
 	// z = multi-bounce approximation, w = split position in window pixels
 	vec4 u_AOParams;
-	vec4 u_AOParams2; // x = r_debugAO
+	// x = r_debugAO (lightall views), y = specular occlusion mode (0 scalar,
+	// 1 Lagarde, 2 cone), z = bent normal strength (0 = off)
+	vec4 u_AOParams2;
 #if defined(USE_SSGI)
 	// screen-space GI source (tr_ssgi.cpp, RB_SSGISceneParams): x = source bits
 	// (1 dynamic light, 2 emissive, 4 legacy glow), y = 1 linear scene / 0 legacy
@@ -2826,11 +2828,60 @@ vec3 AOMultiBounce(float visibility, vec3 albedo)
 	return max(vec3(visibility), ((visibility * a + b) * visibility + c) * visibility);
 }
 
-// Lagarde & de Rousiers 2014, "Moving Frostbite to PBR": specular occlusion
-// from ambient occlusion
-float SpecularOcclusion(float NE, float visibility, float roughness)
+// world space GTAO bent normal, octahedral in u_SSAOMap.ba (ao_composite.glsl)
+vec3 AODecodeBentNormal(vec2 e)
 {
-	return clamp(pow(NE + visibility, exp2(-16.0 * roughness - 1.0)) - 1.0 + visibility, 0.0, 1.0);
+	e = e * 2.0 - 1.0;
+	vec3 n = vec3(e, 1.0 - abs(e.x) - abs(e.y));
+	float t = max(-n.z, 0.0);
+	n.xy += vec2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
+	return normalize(n);
+}
+
+// Solid angle of the intersection of two spherical caps (half angle cosines
+// cosC1, cosC2, cosine of the angle between their axes cosB), with the
+// smoothstep approximation of Oat & Sander 2007 as used by Unity HDRP
+float SphericalCapIntersection(float cosC1, float cosC2, float cosB)
+{
+	float r1 = acos(clamp(cosC1, -1.0, 1.0));
+	float r2 = acos(clamp(cosC2, -1.0, 1.0));
+	float rd = acos(clamp(cosB, -1.0, 1.0));
+	float capArea = 2.0 * M_PI * (1.0 - max(cosC1, cosC2));
+	if (rd <= abs(r1 - r2))
+		return capArea; // one cap inside the other
+	if (rd >= r1 + r2)
+		return 0.0;
+	float diff = abs(r1 - r2);
+	float x = 1.0 - clamp((rd - diff) / max(r1 + r2 - diff, 1e-4), 0.0, 1.0);
+	return smoothstep(0.0, 1.0, x) * capArea;
+}
+
+// Specular occlusion of environment (cubemap) reflections from AO, u_AOParams2.y:
+//   0: scalar AO (specularIBL *= AO)
+//   1: Lagarde & de Rousiers 2014, "Moving Frostbite to PBR":
+//      saturate(pow(N.V + ao, exp2(-16 alpha - 1)) - 1 + ao), alpha = roughness^2
+//   2: Jimenez et al. 2016 cone / cone: the visibility cone around the bent
+//      normal B (cos = sqrt(1 - ao), cosine weighted AO) against the GGX lobe
+//      cone around R (cos = 10^-alpha^2), relative to the lobe part above the
+//      surface, so an unoccluded surface is exactly 1 at any angle and a
+//      mirror stays lit while R points into the unoccluded cone
+float AOSpecularOcclusion(vec3 N, vec3 E, vec3 B, float NE, float visibility, float roughness)
+{
+	int mode = int(u_AOParams2.y);
+	if (mode == 0)
+		return visibility;
+
+	float alpha = roughness * roughness;
+	if (mode == 1)
+		return clamp(pow(NE + visibility, exp2(-16.0 * alpha - 1.0)) - 1.0 + visibility, 0.0, 1.0);
+
+	alpha = max(alpha, 0.01);
+	vec3 R = reflect(-E, N);
+	float cosVisible = sqrt(clamp(1.0 - visibility, 0.0, 1.0));
+	float cosLobe = exp2(-3.32193 * alpha * alpha);
+	float visible = SphericalCapIntersection(cosVisible, cosLobe, dot(B, R));
+	float aboveSurface = SphericalCapIntersection(0.0, cosLobe, dot(N, R));
+	return aboveSurface > 1e-6 ? clamp(visible / aboveSurface, 0.0, 1.0) : visibility;
 }
 #endif
 
@@ -3204,12 +3255,13 @@ void main()
 	}
   #endif
 
-	// screen-space AO (r) and sun contact shadow (g) of this view
+	// screen-space AO (r), sun contact shadow (g) and GTAO bent normal (ba) of
+	// this view
 	float AO = 1.0;
 	float contactShadow = 1.0;
 	#if defined (USE_SSAO)
 	vec2 windowTex = gl_FragCoord.xy / r_FBufScale;
-	vec2 screenAO = texture(u_SSAOMap, windowTex).rg;
+	vec4 screenAO = texture(u_SSAOMap, windowTex);
 	AO = screenAO.r;
 	contactShadow = screenAO.g;
 	#if defined(USE_SILHOUETTE_POM)
@@ -3355,7 +3407,17 @@ void main()
 	}
   #endif
 
+	// Environment reflections. Legacy application: the F0 term is scaled by AO
+	// and the cubemap brightness follows the AO'd lighting (kept bit exact for
+	// A/B). Indirect-only: the whole IBL result is scaled by the specular
+	// occlusion, the cubemap brightness follows the unoccluded lighting.
 	vec3 specularAO = specular.rgb * AO;
+	float specOcclusion = 1.0;
+	bool unoccludedIBL = false;
+	vec3 unoccludedLighting = lightColor + ambientColor;
+	// direction of indirect (environment) light: bent towards the unoccluded
+	// directions by GTAO, never used for direct light
+	vec3 indirectN = N;
 #if defined(USE_SSAO)
 	vec3 ambientVisibility = vec3(AO);
 	bool indirectOnlyAO = u_AOParams.x == 1.0 ||
@@ -3366,17 +3428,32 @@ void main()
 		// share of baked lighting that is indirect, and (as specular
 		// occlusion) the environment reflections, never real-time direct
 		// light (sun, dynamic lights, light grid directed light)
+		if (u_AOParams2.z > 0.0)
+		{
+			// The bent normal comes from the depth buffer: add its offset from
+			// the geometric normal to the (normal mapped) shading normal. Only
+			// where the screen AO sees occlusion; views without GTAO sample
+			// the white image (AO 1), so their ba is never used.
+			float bentWeight = u_AOParams2.z * clamp((1.0 - screenAO.r) * 2.0, 0.0, 1.0);
+			vec3 geometricN = normalize(vertexNormal);
+			geometricN = dot(geometricN, E) < 0.0 ? -geometricN : geometricN;
+			vec3 bentN = AODecodeBentNormal(screenAO.ba);
+			indirectN = normalize(N + bentWeight * (bentN - geometricN));
+		}
 		if (u_AOParams.z > 0.0)
 			ambientVisibility = AOMultiBounce(AO, diffuse.rgb);
 		ambientColor *= ambientVisibility;
     #if defined(USE_LIGHTMAP) || defined(USE_LIGHT_VERTEX)
 		lightColor *= mix(vec3(1.0), ambientVisibility, u_AOParams.y);
     #endif
-		specularAO = specular.rgb * SpecularOcclusion(abs(dot(N, E)) + 1e-5, AO, roughness);
+		specularAO = specular.rgb;
+		specOcclusion = AOSpecularOcclusion(N, E, indirectN, abs(dot(N, E)) + 1e-5, AO, roughness);
+		unoccludedIBL = true;
 	}
 	else
 #endif
 	ambientColor *= AO;
+	vec3 iblLighting = unoccludedIBL ? unoccludedLighting : lightColor + ambientColor;
 
 	// The cubemap provides only an angular distribution. Keep the light-grid
 	// ambient as the energy source; never add the captured world's full light.
@@ -3386,7 +3463,7 @@ void main()
 	vec3 directionalFactor = vec3(1.0);
 	if (u_DiffuseIBLParams.w > 0.5)
 	{
-		probeIrradiance = max(texture(u_DiffuseIrradianceMap, N).rgb, vec3(0.0));
+		probeIrradiance = max(texture(u_DiffuseIrradianceMap, indirectN).rgb, vec3(0.0));
 		vec3 averageIrradiance = max(texelFetch(u_ProbeAverageMap,
 			ivec2(int(u_DiffuseIBLParams.z), 0), 0).rgb, vec3(0.0));
 		float averageLuma = dot(averageIrradiance, vec3(0.2126, 0.7152, 0.0722));
@@ -3441,15 +3518,18 @@ void main()
 	vec3 dynamicLight = CalcDynamicLightContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, diffuse.rgb, specular.rgb, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
-	vec3 cubemapReflection = CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, lightColor + ambientColor);
+	vec3 cubemapReflection = CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, iblLighting) * specOcclusion;
 	out_Color.rgb += cubemapReflection;
   #if defined(USE_SPECULARMAP)
 	out_SSRNormal = vec4(SSREncodeNormal(N), roughness, 1.0);
+	// SSR hits are traced geometry, not occluded again (indirect-only: the
+	// weight has no specular occlusion; ssr_composite removes the occluded
+	// cubemap where SSR hits)
 	out_SSRSpecular = vec4(sqrt(clamp(SSRSpecularWeight(roughness, NE, specularAO), 0.0, 1.0)), 0.0);
 	out_SSRCubemap.rgb = cubemapReflection;
   #endif
 #else
-	out_Color.rgb += CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, lightColor + ambientColor);
+	out_Color.rgb += CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, iblLighting) * specOcclusion;
 #endif
 #if defined(USE_SSGI)
 	SSGIWriteReceiver(N, roughness, diffuse.rgb);
@@ -3824,13 +3904,22 @@ void main()
   #endif
 
   #if defined(USE_SSAO)
-	// r_debugAO 7-9, written unlit (tone mapping is bypassed for these)
+	// r_debugAO 7-9, 12, written unlit (tone mapping is bypassed for these)
 	if (u_AOParams2.x >= 7.0)
 	{
 		if (u_AOParams2.x == 7.0)
 			out_Color.rgb = vec3(cascadeShadow);
 		else if (u_AOParams2.x == 8.0)
-			out_Color.rgb = vec3(cascadeShadow * contactShadow);
+		{
+			// combined sun visibility (without N.L)
+			float sunVisibility = cascadeShadow * contactShadow;
+		#if defined(USE_PARALLAXMAP)
+			sunVisibility *= pomSunShadow;
+		#endif
+			out_Color.rgb = vec3(sunVisibility);
+		}
+		else if (u_AOParams2.x == 12.0)
+			out_Color.rgb = vec3(indirectOnlyAO ? specOcclusion : AO);
 		else
 			out_Color.rgb = indirectOnlyAO ? ambientVisibility : vec3(AO);
 		out_Color.a = diffuse.a;

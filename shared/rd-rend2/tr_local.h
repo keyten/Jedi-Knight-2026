@@ -236,6 +236,7 @@ extern cvar_t  *r_aoApply;
 extern cvar_t  *r_aoCompare;
 extern cvar_t  *r_aoMultiBounce;
 extern cvar_t  *r_aoLightmapFraction;
+extern cvar_t  *r_aoSpecOcclusion;
 extern cvar_t  *r_debugAO;
 extern cvar_t  *r_gtaoQuality;
 extern cvar_t  *r_gtaoHalfRes;
@@ -244,6 +245,7 @@ extern cvar_t  *r_gtaoFalloff;
 extern cvar_t  *r_gtaoThickness;
 extern cvar_t  *r_gtaoPower;
 extern cvar_t  *r_gtaoDenoise;
+extern cvar_t  *r_gtaoBentNormals;
 extern cvar_t  *r_contactShadows;
 extern cvar_t  *r_contactShadowLength;
 extern cvar_t  *r_contactShadowSteps;
@@ -2188,6 +2190,8 @@ typedef enum
 	UNIFORM_AOSETTINGS2,	// pass specific
 	UNIFORM_AOSETTINGS3,	// pass specific
 	UNIFORM_AOLIGHTDIR,		// view space direction to the sun
+	UNIFORM_AOBENTMAP,		// GTAO bent normals
+	UNIFORM_AOVIEWTOWORLD,	// AO view space -> world space rotation
 
 	UNIFORM_MBINVVIEWPROJECTION,	// inverse of the current view projection
 	UNIFORM_MBPREVVIEWPROJECTION,	// previous frame view projection
@@ -3422,7 +3426,8 @@ typedef struct trGlobals_s {
 	image_t					*hdrDepthImage;
 	image_t					*aoDepthImage;		// GTAO: linear view depth, AO_DEPTH_MIPS levels
 	image_t					*gtaoImage[2];		// GTAO: r = visibility, gba = view normal
-	image_t					*screenAoImage;		// final: r = AO, g = sun contact shadow
+	image_t					*gtaoBentImage[2];	// GTAO: rg = octahedral view space bent normal
+	image_t					*screenAoImage;		// final: r = AO, g = sun contact shadow, ba = octahedral world bent normal
 	image_t                 *renderCubeImage;
 	image_t                 *renderCubeDepthImage;
 	image_t					*envBrdfImage;
@@ -3587,8 +3592,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t smaaResolveShader;
 	shaderProgram_t smaaTemporalResolveShader;
 	shaderProgram_t gtaoDepthShader[2];		// 0 = linearize, 1 = downsample mip
-	shaderProgram_t gtaoShader;
-	shaderProgram_t gtaoDenoiseShader;
+	shaderProgram_t gtaoShader[2];			// 1 = + bent normal (BENT_NORMAL)
+	shaderProgram_t gtaoDenoiseShader[2];	// 1 = + bent normal (BENT_NORMAL)
 	shaderProgram_t aoCompositeShader;
 	shaderProgram_t aoDebugShader;
 	shaderProgram_t motionBlurShader[MOTIONBLURDEF_COUNT];

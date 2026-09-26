@@ -14,6 +14,8 @@ void main()
 //       resolution), or a split screen of both
 //   g = short range contact shadow of the primary (sun) light, multiplied
 //       into the sun shadow map visibility by lightall
+//   ba = octahedral world space GTAO bent normal (r_gtaoBentNormals), upsampled
+//       with the AO weights; lightall uses it for indirect light only
 //
 // Contact shadows march a short ray from the receiver towards the sun through
 // the depth buffer. A sample is a hit when the ray is behind the depth buffer
@@ -33,10 +35,33 @@ uniform vec4 u_AOViewport;          // view rectangle in texture coordinates
 uniform vec4 u_AOTexelSize;         // xy = 1 / AO texture size, zw = 1 / screen size
 uniform vec4 u_AOSettings;          // AO source (0 none, 1 legacy, 2 GTAO, 3 split), split x, contact shadows, contact strength
 uniform vec4 u_AOSettings2;         // contact length, steps, thickness, view size of a pixel at depth 1
-uniform vec4 u_AOSettings3;         // soft contact shadows (r_contactShadowSoft), unused, unused, unused
+uniform vec4 u_AOSettings3;         // soft contact shadows (r_contactShadowSoft), bent normals, unused, unused
 uniform vec3 u_AOLightDir;          // view space direction to the sun
+uniform sampler2D u_AOBentMap;      // GTAO bent normals, octahedral view space (AO resolution)
+uniform mat4 u_AOViewToWorld;       // view space -> world space rotation
 
 out vec4 out_Color;
+
+// view space bent normals are stored with z flipped (gtao.glsl)
+vec3 ViewOctDecode(vec2 e)
+{
+	e = e * 2.0 - 1.0;
+	vec3 n = vec3(e, 1.0 - abs(e.x) - abs(e.y));
+	float t = max(-n.z, 0.0);
+	n.xy += vec2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
+	n.z = -n.z;
+	return normalize(n);
+}
+
+// world space octahedral encoding, decoded by lightall (AODecodeBentNormal)
+vec2 OctEncode(vec3 n)
+{
+	n /= abs(n.x) + abs(n.y) + abs(n.z);
+	vec2 p = n.xy;
+	if (n.z < 0.0)
+		p = (1.0 - abs(n.yx)) * vec2(n.x >= 0.0 ? 1.0 : -1.0, n.y >= 0.0 ? 1.0 : -1.0);
+	return p * 0.5 + 0.5;
+}
 
 float LinearDepth(float d)
 {
@@ -94,8 +119,11 @@ vec3 ContactNormal(ivec2 pix, vec3 P)
 // Depth-aware upsampling of the GTAO result: the 2x2 bilinear footprint,
 // each texel weighted by how well its tangent plane (depth + normal) predicts
 // this pixel's position. Falls back to the best matching texel on edges.
-float UpsampleGTAO(vec2 uv, vec3 P, float z)
+// The bent normal (view space) uses the same weights when requested.
+float UpsampleGTAO(vec2 uv, vec3 P, float z, bool withBent, out vec3 bent)
 {
+	vec3 bentSum = vec3(0.0);
+	vec3 bestBent = vec3(0.0, 0.0, -1.0);
 	vec2 aoSize = 1.0 / u_AOTexelSize.xy;
 	vec2 st = uv * aoSize - 0.5;
 	ivec2 base = ivec2(floor(st));
@@ -126,13 +154,18 @@ float UpsampleGTAO(vec2 uv, vec3 P, float z)
 		sum += s.r * w;
 		sumW += w;
 
+		vec3 b = withBent ? ViewOctDecode(texelFetch(u_AOBentMap, p, 0).rg) : vec3(0.0);
+		bentSum += b * w;
+
 		if (planeDist < bestDist)
 		{
 			bestDist = planeDist;
 			best = s.r;
+			bestBent = b;
 		}
 	}
 
+	bent = sumW > 1e-3 && dot(bentSum, bentSum) > 1e-8 ? normalize(bentSum) : bestBent;
 	return sumW > 1e-3 ? sum / sumW : best;
 }
 
@@ -233,24 +266,32 @@ void main()
 	{
 		// sky, far plane, depth hack: legacy AO kept as lightall saw it before
 		float legacy = u_AOSettings.x == 1.0 ? texture(u_LegacyAOMap, uv).r : 1.0;
-		out_Color = vec4(legacy, 1.0, 0.0, 1.0);
+		out_Color = vec4(legacy, 1.0, 0.5, 0.5);
 		return;
 	}
 
 	vec3 P = ViewPosition(uv, z);
 
 	float ao = 1.0;
+	bool withBent = u_AOSettings3.y > 0.5;
+	vec3 bentView = vec3(0.0, 0.0, -1.0);
 	int source = int(u_AOSettings.x);
 	if (source == 3)
 		source = uv.x < u_AOSettings.y ? 1 : 2;
 	if (source == 1)
 		ao = texture(u_LegacyAOMap, uv).r;
 	else if (source == 2)
-		ao = UpsampleGTAO(uv, P, z);
+		ao = UpsampleGTAO(uv, P, z, withBent, bentView);
+
+	// neutral encoding when off: lightall weights the bent normal by 1 - AO
+	// and the scene level strength, so it is not used then anyway
+	vec2 bentEncoded = vec2(0.5);
+	if (withBent && source == 2)
+		bentEncoded = OctEncode(normalize(mat3(u_AOViewToWorld) * bentView));
 
 	float contact = 1.0;
 	if (u_AOSettings.z > 0.5)
 		contact = ContactShadow(pix, uv, P, z);
 
-	out_Color = vec4(ao, contact, 0.0, 1.0);
+	out_Color = vec4(ao, contact, bentEncoded);
 }

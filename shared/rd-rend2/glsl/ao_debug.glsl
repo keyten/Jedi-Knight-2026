@@ -10,7 +10,7 @@ void main()
 
 /*[Fragment]*/
 // r_debugAO full screen views of the screen-space AO / contact shadow buffers
-// (the lightall based views 7-9 are written by lightall itself).
+// (the lightall based views 7-9 and 12 are written by lightall itself).
 
 uniform sampler2D u_ScreenImageMap; // buffer to show
 uniform sampler2D u_AODepthMap;     // GTAO linear depth
@@ -20,6 +20,15 @@ uniform vec4 u_AOSettings;          // x = r_debugAO, y = zFar
 in vec2 var_ScreenTex;
 
 out vec4 out_Color;
+
+vec3 OctDecode(vec2 e)
+{
+	e = e * 2.0 - 1.0;
+	vec3 n = vec3(e, 1.0 - abs(e.x) - abs(e.y));
+	float t = max(-n.z, 0.0);
+	n.xy += vec2(n.x >= 0.0 ? -t : t, n.y >= 0.0 ? -t : t);
+	return normalize(n);
+}
 
 void main()
 {
@@ -47,6 +56,11 @@ void main()
 	{
 		// contact shadow visibility
 		color = vec3(s.g);
+	}
+	else if (view == 11)
+	{
+		// world space bent normal * 0.5 + 0.5
+		color = OctDecode(s.ba) * 0.5 + 0.5;
 	}
 	else
 	{

@@ -40,6 +40,9 @@ void main()
 // direction (same orientation as XeGTAO's view space).
 //
 // Output: r = visibility (1 = unoccluded), gba = view space normal * 0.5 + 0.5
+// BENT_NORMAL: out_BentNormal.rg = octahedral view space bent normal (the
+// visibility weighted mean unoccluded direction, XeGTAO's "Algorithm 2"
+// extension), for indirect lighting only
 
 uniform sampler2D u_AODepthMap;  // linear view depth, AO resolution, AO_DEPTH_MIPS levels
 
@@ -51,6 +54,11 @@ uniform vec4 u_AOSettings;       // slices, steps per side, radius, falloff rang
 uniform vec4 u_AOSettings2;      // thin occluder compensation, final power, max radius (px), view size of a pixel at depth 1
 
 out vec4 out_Color;
+#if defined(BENT_NORMAL)
+// output 1 (bound by name as out_Glow): octahedral view space bent normal
+out vec4 out_Glow;
+#define out_BentNormal out_Glow
+#endif
 
 #define AO_PI      3.1415926535897932
 #define AO_HALF_PI 1.5707963267948966
@@ -114,6 +122,34 @@ vec3 ReconstructNormal(ivec2 pix, vec3 P, float z)
 	return dot(N, -P) < 0.0 ? -N : N;
 }
 
+#if defined(BENT_NORMAL)
+// View space octahedral encoding. Bent normals face the camera (-z), so z is
+// flipped to keep them in the unfolded half of the octahedron (ao_composite.glsl
+// decodes the same way).
+vec2 ViewOctEncode(vec3 n)
+{
+	n.z = -n.z;
+	n /= abs(n.x) + abs(n.y) + abs(n.z);
+	vec2 p = n.xy;
+	if (n.z < 0.0)
+		p = (1.0 - abs(n.yx)) * vec2(n.x >= 0.0 ? 1.0 : -1.0, n.y >= 0.0 ? 1.0 : -1.0);
+	return p * 0.5 + 0.5;
+}
+
+// rotation taking (0, 0, -1) to V applied to a (XeGTAO_RotFromToMatrix,
+// Rodrigues form). V always faces the camera, so the rotation is never 180
+// degrees.
+vec3 RotateFromViewAxis(vec3 V, vec3 a)
+{
+	const vec3 from = vec3(0.0, 0.0, -1.0);
+	float e = dot(from, V);
+	if (e > 1.0 - 0.0003)
+		return a;
+	vec3 v = cross(from, V);
+	return e * a + cross(v, a) + (dot(v, a) / (1.0 + e)) * v;
+}
+#endif
+
 // 4x4 ordered pattern, 0..15. Fixed in screen space: every 4x4 block holds
 // all slice rotations, which the denoiser then averages.
 float Bayer4(ivec2 p)
@@ -133,6 +169,9 @@ void main()
 	if (z < 0.0 || z >= u_AODepthParams.w)
 	{
 		out_Color = vec4(1.0, 0.5, 0.5, 0.0);
+#if defined(BENT_NORMAL)
+		out_BentNormal = vec4(ViewOctEncode(vec3(0.0, 0.0, -1.0)), 0.0, 0.0);
+#endif
 		return;
 	}
 
@@ -155,6 +194,9 @@ void main()
 	if (radiusFade <= 0.0)
 	{
 		out_Color = vec4(1.0, N * 0.5 + 0.5);
+#if defined(BENT_NORMAL)
+		out_BentNormal = vec4(ViewOctEncode(N), 0.0, 0.0);
+#endif
 		return;
 	}
 	screenRadius = min(screenRadius, u_AOSettings2.z);
@@ -170,6 +212,9 @@ void main()
 	vec2 viewportMax = u_AOViewport.xy + u_AOViewport.zw;
 
 	float visibility = 0.0;
+#if defined(BENT_NORMAL)
+	vec3 bentNormal = vec3(0.0);
+#endif
 	for (int slice = 0; slice < sliceCount; slice++)
 	{
 		float phi = (float(slice) + sliceNoise) * (AO_PI / float(sliceCount));
@@ -245,6 +290,17 @@ void main()
 		float iarc0 = (cosNorm + 2.0 * h0 * sinN - cos(2.0 * h0 - n)) / 4.0;
 		float iarc1 = (cosNorm + 2.0 * h1 * sinN - cos(2.0 * h1 - n)) / 4.0;
 		visibility += projectedNormalVecLength * (iarc0 + iarc1);
+
+#if defined(BENT_NORMAL)
+		// cosine weighted mean direction of the unoccluded arc, in the slice
+		// frame (-z towards the viewer), then rotated to view space
+		float t0 = (6.0 * sin(h0 - n) - sin(3.0 * h0 - n) + 6.0 * sin(h1 - n) -
+			sin(3.0 * h1 - n) + 16.0 * sinN - 3.0 * (sin(h0 + n) + sin(h1 + n))) / 12.0;
+		float t1 = (-cos(3.0 * h0 - n) - cos(3.0 * h1 - n) + 8.0 * cos(n) -
+			3.0 * (cos(h0 + n) + cos(h1 + n))) / 12.0;
+		vec3 localBentNormal = vec3(directionVec.xy * t0, -t1);
+		bentNormal += RotateFromViewAxis(V, localBentNormal) * projectedNormalVecLength;
+#endif
 	}
 
 	visibility /= float(sliceCount);
@@ -253,4 +309,10 @@ void main()
 	visibility = mix(1.0, visibility, radiusFade);
 
 	out_Color = vec4(visibility, N * 0.5 + 0.5);
+#if defined(BENT_NORMAL)
+	float bentLength = length(bentNormal);
+	vec3 B = bentLength > 1e-6 ? bentNormal / bentLength : N;
+	B = normalize(mix(N, B, radiusFade));
+	out_BentNormal = vec4(ViewOctEncode(B), 0.0, 0.0);
+#endif
 }

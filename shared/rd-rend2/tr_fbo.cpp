@@ -760,8 +760,10 @@ void FBO_Init(void)
 			tr.gtaoFbo[i] = FBO_Create(
 				va("_gtao%d", i), tr.gtaoImage[i]->width, tr.gtaoImage[i]->height);
 
+			// color 1: bent normals, only written by the BENT_NORMAL programs
 			FBO_Bind(tr.gtaoFbo[i]);
 			FBO_AttachTextureImage(tr.gtaoImage[i], 0);
+			FBO_AttachTextureImage(tr.gtaoBentImage[i], 1);
 			FBO_SetupDrawBuffers();
 
 			R_CheckFBO(tr.gtaoFbo[i]);
