@@ -3680,6 +3680,7 @@ const void *RB_PostProcess(const void *data)
 	RB_MotionBlurDebugOverlay();
 	RB_ScreenSpaceDebugOverlay();
 	RB_VolumetricDebugOverlay();
+	RB_FoliageFieldDebugOverlay();
 
 	backEnd.framePostProcessed = qtrue;
 	FBO_Bind(NULL);
@@ -3832,6 +3833,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_END_TIMED_BLOCK:
 			data = RB_EndTimedBlock(data);
+			break;
+		case RC_FOLIAGE_FIELD:
+			data = RB_FoliageFieldCommand(data);
 			break;
 		case RC_END_OF_LIST:
 		default:

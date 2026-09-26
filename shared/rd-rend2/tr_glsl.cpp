@@ -271,6 +271,10 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WeatherSurfaceMap",	GLSL_INT, 1 },
 	{ "u_SplashParams",			GLSL_VEC4, 1 },
 	{ "u_SplashParams2",		GLSL_VEC4, 1 },
+
+	{ "u_FoliageFieldMap",		GLSL_INT, 1 },
+	{ "u_FoliageFieldPrevMap",	GLSL_INT, 1 },
+	{ "u_FoliageFieldDebug",	GLSL_VEC4, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -1442,6 +1446,18 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 	}
 
 	program->uniformBuffer = (char *)R_Malloc(size, TAG_SHADERTEXT, qtrue);
+
+	// r_foliageField: every program with the foliage interaction library
+	// samples the bend field on its own fixed units (tr_foliagefield.cpp)
+	if (uniforms[UNIFORM_FOLIAGEFIELDMAP] != -1 || uniforms[UNIFORM_FOLIAGEFIELDPREVMAP] != -1)
+	{
+		GLint previousProgram = 0;
+		qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+		qglUseProgram(program->program);
+		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDMAP, TB_FOLIAGEFIELD);
+		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDPREVMAP, TB_FOLIAGEFIELD_PREV);
+		qglUseProgram(previousProgram);
+	}
 
 	program->uniformBlocks = 0;
 	for ( int i = 0; i < UNIFORM_BLOCK_COUNT; ++i )
@@ -3476,6 +3492,38 @@ static int GLSL_LoadGPUProgramScreenSpace(
 
 // Froxel volumetric fog (tr_volumetric.cpp). Every program gets the fragment
 // block of volumetric_common.glsl.
+// Persistent foliage bend field (tr_foliagefield.cpp): the update pass and the
+// r_foliageFieldDebug 1 overlay, with the collider functions of
+// foliage_interact.glsl as fragment library
+static const GPUShaderDesc *LoadFoliageInteractLibrary( Allocator& allocator );
+
+static int GLSL_LoadGPUProgramFoliageField(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUShaderDesc *library = LoadFoliageInteractLibrary(allocator);
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("foliage_field", allocator, fallback_foliage_fieldProgram);
+	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+
+	struct { shaderProgram_t *sp; const char *name; const char *defines; } programs[] = {
+		{ &tr.foliageFieldShader, "foliage_field", "" },
+		{ &tr.foliageFieldDebugShader, "foliage_field_debug", "#define DEBUG_VIEW\n" },
+	};
+	for ( const auto& program : programs )
+	{
+		if ( !GLSL_LoadGPUShader(builder, program.sp, program.name, attribs, NO_XFB_VARS,
+				program.defines, *programDesc, library) )
+		{
+			ri.Error(ERR_FATAL, "Could not load %s shader!", program.name);
+		}
+		GLSL_InitUniforms(program.sp);
+		GLSL_FinishGPUShader(program.sp);
+	}
+	return 2;
+}
+
 static int GLSL_LoadGPUProgramVolumetric(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -4097,6 +4145,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramVolumetric(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
 	if (r_diffuseIBL->integer)
@@ -4192,6 +4241,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);
 	GLSL_DeleteGPUShader(&tr.volumetricCompositeShader);
 	GLSL_DeleteGPUShader(&tr.volumetricDebugShader);
+	GLSL_DeleteGPUShader(&tr.foliageFieldShader);
+	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

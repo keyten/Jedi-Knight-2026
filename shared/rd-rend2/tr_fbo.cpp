@@ -587,6 +587,9 @@ void FBO_Init(void)
 	// froxel volumetric fog (tr_volumetric.cpp)
 	R_CreateVolumetricFBOs();
 
+	// persistent foliage bend field (tr_foliagefield.cpp)
+	R_CreateFoliageFieldFBOs();
+
 	// motion blur output (tr_motionblur.cpp)
 	tr.motionBlurFbo = NULL;
 	if (tr.motionBlurImage != NULL)

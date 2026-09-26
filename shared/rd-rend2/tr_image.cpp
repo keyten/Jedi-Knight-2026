@@ -3788,6 +3788,9 @@ void R_CreateBuiltinImages( void ) {
 	// froxel volumetric fog volumes (tr_volumetric.cpp)
 	R_CreateVolumetricImages(width, height);
 
+	// persistent foliage bend field (tr_foliagefield.cpp)
+	R_CreateFoliageFieldImages();
+
 	bool needVelocityBuffer = (
 		r_smaa->integer == 2
 		// || r_smaa->integer == 4

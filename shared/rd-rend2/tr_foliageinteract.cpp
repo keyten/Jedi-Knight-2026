@@ -48,6 +48,7 @@ static struct
 
 	// the scene being drawn
 	int sceneCount;				// colliders of the current scene (0: none)
+	bool sceneField;			// the current scene samples the persistent field
 	float time;
 	float previousTime;
 } s_fi = {};
@@ -111,6 +112,17 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 	const bool consecutive = s_fi.latchedFrame == tr.frameCount - 1 &&
 		fd->time >= s_fi.latchedTime && fd->time - s_fi.latchedTime <= 250;
 
+	// the persistent field (r_foliageField) follows this frame's player body
+	const foliageInteractor_t *player = NULL;
+	if (s_fi.submittedFrame == tr.frameCount)
+	{
+		for (int i = 0; i < s_fi.submittedCount && !player; ++i)
+		{
+			if (s_fi.submitted[i].flags & FOLIAGE_INTERACTOR_PLAYER)
+				player = &s_fi.submitted[i];
+		}
+	}
+
 	if ((debug & FOLIAGEINTERACT_DEBUG_FREEZE) && s_fi.latchedFrame >= 0)
 	{
 		// frozen: the same colliders in both frames, no motion
@@ -118,6 +130,7 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 		s_fi.previousCount = s_fi.currentCount;
 		s_fi.latchedFrame = tr.frameCount;
 		s_fi.latchedTime = fd->time;
+		R_FoliageFieldLatch(fd, consecutive, player);
 		return;
 	}
 
@@ -145,8 +158,11 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 			const float height = MAX(in->height, 1.0f);
 			VectorSet4(s_fi.current[count * 2 + 0],
 				in->base[0], in->base[1], in->base[2], in->base[2] + height);
+			// airborne bodies still part the grass they touch, but leave
+			// nothing in the persistent field
 			VectorSet4(s_fi.current[count * 2 + 1],
-				radius, in->velocity[0], in->velocity[1], 0.0f);
+				radius, in->velocity[0], in->velocity[1],
+				(in->flags & FOLIAGE_INTERACTOR_AIRBORNE) ? 1.0f : 0.0f);
 			++count;
 		}
 	}
@@ -161,9 +177,12 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 
 	s_fi.latchedFrame = tr.frameCount;
 	s_fi.latchedTime = fd->time;
+
+	R_FoliageFieldLatch(fd, consecutive, player);
 }
 
 static void R_FoliageInteractionDebugCapsules(const refdef_t *fd);
+static void R_FoliageFieldDebugBounds(const refdef_t *fd);
 
 /*
 =============
@@ -177,15 +196,19 @@ here and its view is excluded per draw.
 void R_FoliageInteractionBeginScene(const refdef_t *fd)
 {
 	s_fi.sceneCount = 0;
+	s_fi.sceneField = false;
 	if (!R_FoliageInteractionActive() || (fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) || !tr.world)
 		return;
 
 	if (s_fi.latchedFrame != tr.frameCount)
 		R_FoliageInteractionLatch(fd);
 	s_fi.sceneCount = s_fi.currentCount;
+	// the field keeps bending the plants after the characters are gone
+	s_fi.sceneField = R_FoliageFieldActive();
 
 	if (FoliageInteractionDebug() & FOLIAGEINTERACT_DEBUG_CAPSULES)
 		R_FoliageInteractionDebugCapsules(fd);
+	R_FoliageFieldDebugBounds(fd);
 }
 
 void R_FoliageInteractionReset(void)
@@ -195,6 +218,8 @@ void R_FoliageInteractionReset(void)
 	s_fi.currentCount = s_fi.previousCount = 0;
 	s_fi.latchedFrame = -1;
 	s_fi.sceneCount = 0;
+	s_fi.sceneField = false;
+	R_FoliageFieldReset();
 }
 
 /*
@@ -230,7 +255,12 @@ void RB_UpdateFoliageInteractionConstants(gpuFrame_t *frame, const trRefdef_t *r
 		Com_Memcpy(block.current, s_fi.current, sizeof(block.current));
 		Com_Memcpy(block.previous, s_fi.previous, sizeof(block.previous));
 	}
+	R_FoliageFieldBlock(&block, debug);
 	tr.foliageInteractionUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
+
+	// the first world scene of the frame updates the persistent field before
+	// its draws, with the colliders of this block
+	R_FoliageFieldQueueUpdate(frame->ubo[frame->currentScene], tr.foliageInteractionUboOffset);
 }
 
 UniformBlockBinding RB_GetFoliageInteractionBlockUniformBinding(void)
@@ -244,11 +274,12 @@ UniformBlockBinding RB_GetFoliageInteractionBlockUniformBinding(void)
 	return binding;
 }
 
-// the colliders reach the draws of this view: a world scene with colliders,
-// not the sky portal (its geometry lives at other coordinates)
+// the colliders reach the draws of this view: a world scene with colliders
+// (or the persistent field), not the sky portal (its geometry lives at other
+// coordinates)
 static bool RB_FoliageInteractionInView(void)
 {
-	return tr.foliageInteractionUboOffset != -1 && s_fi.sceneCount > 0 &&
+	return tr.foliageInteractionUboOffset != -1 && (s_fi.sceneCount > 0 || s_fi.sceneField) &&
 		backEnd.viewParms.viewParmType != VPT_SKYPORTAL;
 }
 
@@ -434,12 +465,41 @@ static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
 	}
 }
 
+// r_foliageFieldDebug 2: the square the persistent field covers, at the
+// player's feet (green)
+static void R_FoliageFieldDebugBounds(const refdef_t *fd)
+{
+	vec2_t mins, maxs;
+	if (!R_FoliageFieldBounds(mins, maxs))
+		return;
+
+	const qhandle_t shader = RE_RegisterShaderFromImage("*foliageInteractDebug", lightmaps2d,
+		stylesDefault, tr.whiteImage, qfalse);
+	static const byte green[4] = { 60, 255, 90, 255 };
+	float z = fd->vieworg[2] - 48.0f;
+	for (int i = 0; i < s_fi.currentCount; ++i)
+	{
+		if (i < s_fi.submittedCount && (s_fi.submitted[i].flags & FOLIAGE_INTERACTOR_PLAYER))
+			z = s_fi.current[i * 2][2] + 2.0f;
+	}
+	const float xs[4] = { mins[0], maxs[0], maxs[0], mins[0] };
+	const float ys[4] = { mins[1], mins[1], maxs[1], maxs[1] };
+	for (int i = 0; i < 4; ++i)
+	{
+		vec3_t a, b;
+		VectorSet(a, xs[i], ys[i], z);
+		VectorSet(b, xs[(i + 1) & 3], ys[(i + 1) & 3], z);
+		R_FoliageDebugSegment(shader, fd, a, b, green);
+	}
+}
+
 // r_foliageInteractionDebug: print the colliders once
 void R_FoliageInteractionList_f(void)
 {
 	ri.Printf(PRINT_ALL, "foliage interaction: %s, submitted %d (frame %d, now %d), uploaded %d, previous %d\n",
 		R_FoliageInteractionActive() ? "on" : "off", s_fi.submittedCount, s_fi.submittedFrame,
 		tr.frameCount, s_fi.currentCount, s_fi.previousCount);
+	R_FoliageFieldInfo();
 	for (int i = 0; i < s_fi.submittedCount; ++i)
 	{
 		const foliageInteractor_t *in = &s_fi.submitted[i];

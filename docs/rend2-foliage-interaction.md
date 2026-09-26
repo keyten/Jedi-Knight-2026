@@ -227,3 +227,139 @@ These are static NVIDIA vertex program sizes (`!!NVvp5.0` instructions, RTX 2060
 - **Timings and debug video.**
 - **Which stock models are `FOLIAGE_PLANT`** (`r_printAutoFoliage`): the fern side needs map models whose names contain
   "fern" / "plant".
+
+## Persistent bend field (`r_foliageField`)
+
+Without it, a plant goes back to its wind pose the frame the character leaves it. The field adds a short spring-back.
+There is no per plant state and no CPU physics. Code: `tr_foliagefield.cpp`, `glsl/foliage_field.glsl`, and
+`FoliageFieldBend` / `FoliageCharacterBend` in `glsl/foliage_interact.glsl`.
+
+### Representation and world mapping
+
+- Two `RGBA16F` square textures, ping-pong. Size is `r_foliageFieldSize` (64 / 128 / 256, latched, default 128).
+- Per texel: `rg` = bend vector d (same units as the direct push, tip offset per stem length), `ba` = its velocity v.
+- The square is `r_foliageFieldExtent` world units wide (default 1024, so 8 units per texel at 128), centered on the
+  **player collider**, never the view origin. Z is ignored: it is a 2D ground map.
+- `uv = (worldXY − center) / extent + 0.5`. The border fades out over the outer 3 %; outside the square the term is 0.
+- Memory: 2 × 128² × 8 B = 256 KB (64: 64 KB, 256: 1 MB). The textures always exist, so the cvar toggles without
+  `vid_restart`.
+
+### Update (once per frame, fragment pass; rend2's GL 3.2 baseline has no compute)
+
+The first world scene of the frame queues `RC_FOLIAGE_FIELD` right after its constants. It runs before that scene's
+draws and reads the colliders from the scene's `FoliageInteraction` block. Per texel:
+
+```
+prev    = texelFetch(previous, pix + shift)            // 0 outside: newly exposed strip
+target  = Σ colliders on the ground: push(texel center, feet + 10) × strength
+v      += Σ contact × speed factor × walk dir × 12 × r_foliageFieldImpulse × dt
+repeat ceil(dt·60) (≤ 6) times, h = dt / n:            // semi-implicit Euler
+    v += (k (target − d) − c v) h ;  d += v h
+clamp |d| ≤ 1.5, |v| ≤ 24; snap tiny values to exactly 0
+```
+
+- `k = ω²`, `c = 2ζω`, with `ω = 3 / (ζ T)`. T is `r_foliageFieldRecovery` (default 0.8 s) and ζ is
+  `r_foliageFieldDamping` (default 0.6).
+- There is no blur. The state of a patch never spreads to other patches.
+- **Airborne colliders** write nothing. cgame sets the new `FOLIAGE_INTERACTOR_AIRBORNE` flag from `groundEntityNum`.
+  The direct push still uses the capsule height, so jumping over grass leaves no trail.
+- CPU mirror (`ff_sim.py`, 0.3 s of contact at 200 u/s):
+
+  | Settings | Back to 5 % after leaving | Overshoot | Frame-rate independent |
+  |---|---|---|---|
+  | defaults | 0.83–0.88 s | 8 % | yes: 30 / 60 / 144 fps |
+  | ζ = 1 | 1.4 s | none | — |
+  | T = 0.5, ζ = 0.4 | 0.3 s | 22 % | — |
+
+### Scrolling and reset
+
+- The center snaps to whole texels. When the player moves, the update reads the previous state at the integer texel
+  shift. Stored bends stay on their world patches, with no resampling blur, and the newly exposed strips start at rest.
+- A frozen or paused frame (dt = 0) keeps the old center, and the next update applies the whole shift.
+- **Clear** happens on:
+  - the first use or re-enabling
+  - map load (`RE_LoadWorldMap` → `R_FoliageInteractionReset`, which was never called before) and `vid_restart`
+  - a non-consecutive frame (menu, pause, time jump > 250 ms)
+  - a shift of more than half the field (teleport)
+  - an `r_foliageFieldExtent` change, or `r_foliageFieldClear`
+- **Camera cuts do not clear it**: the field is gameplay state.
+
+### Views and temporal
+
+- Only the first world scene of the frame writes the field. Every view of the frame samples the same textures on
+  `TB_FOLIAGEFIELD` (23) and `TB_FOLIAGEFIELD_PREV` (24), bound once per frame: main view, mirrors, portals, sun and
+  point shadows, depth prepass, velocity.
+- The sky portal is excluded, as for the colliders.
+- The velocity pass samples the previous frame's state at the previous center. The motion vectors of the swinging
+  grass are therefore exact. This is the field's own history, not the screen TAA history.
+
+### Combination
+
+```
+final bend = wind + direct + field × (1 − heat)      // heat = direct contact of this vertex / tuft
+```
+
+- While a character stands in the plant, the direct push leads, and the field has followed the same push.
+- As the character leaves, the direct term fades out and the field takes over without a jump, then springs back.
+- **Grass** samples the field once at the tuft anchor, so all cards of a tuft stay coherent.
+- **MD3 plants (ferns)** sample it at the root. Every vertex gets root field × its `PlantBendWeight`. This keeps the
+  fronds rigid; with 8-unit texels, per vertex sampling would shear them.
+- **Leaf flutter (trees)** never samples the field.
+
+### Cvars
+
+| Cvar | Default | Meaning |
+|---|---|---|
+| `r_foliageField` | 0 | on / off (needs `r_foliageInteraction`) |
+| `r_foliageFieldSize` | 128 | texels per side (latched) |
+| `r_foliageFieldExtent` | 1024 | world size of the square |
+| `r_foliageFieldStrength` | 1 | scale of the field term |
+| `r_foliageFieldRecovery` | 0.8 | seconds to rest |
+| `r_foliageFieldDamping` | 0.6 | ζ; 1 = no swing past rest |
+| `r_foliageFieldImpulse` | 1 | extra momentum along the walk |
+| `r_foliageFieldDebug` | 0 | bits, see below |
+
+`r_foliageFieldDebug` bits:
+- 1: overlay in the lower left corner. Left: vectors (red / green = +x / +y). Right: magnitude heat. The player is the
+  cross.
+- 2: outline of the covered square.
+- 4: freeze.
+- 8: ×3 strength.
+- 16: field only (no direct push).
+- 32: direct push only.
+
+Commands: `r_foliageFieldClear`; `r_foliageInteractors` also prints the field state. A/B config:
+`tools/foliagefield_ab.cfg`.
+
+### Cost (estimated, not measured)
+
+- One 128² fragment pass looping over ≤ 16 colliders, expected well under 0.05 ms. It shows as "Foliage field" under
+  `r_speeds 100`.
+- Per vertex: +1 bilinear fetch in every grass / plant pass; +2 in the velocity pass.
+
+### Failure cases and limits
+
+- 2D: grass under a bridge the player crosses gets bent too.
+- The field is also active indoors.
+- 8-unit texels cannot draw single-blade trails.
+- The field covers ±512 units at the defaults. Beyond that, plants have only the direct push; they fade in over the
+  border.
+- A save / load or `map_restart` starts from rest.
+- A very fast move of more than half the extent per frame clears the field.
+- NPC trails are kept only while the NPC is within the player-centered square.
+- The spring pulls toward the push of all colliders summed. Two characters in one patch add up, clamped at 65° by
+  `FoliageApplyBend`.
+
+### Validation of the field
+
+- Done: both renderers, SP game and MP cgame build (MSVC). 24 GLSL cases compile and link on Intel and NVIDIA,
+  including `foliage_field` (update and `DEBUG_VIEW`). CPU mirror of the spring.
+- Not done (in game, by the user):
+  - walk through / stop / turn / circle / sprint
+  - NPC crossing
+  - teleport, `map_restart`
+  - cinematic camera, mirror
+  - TAA ghosting
+  - dense grass
+  - GPU timings
+  - debug captures

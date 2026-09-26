@@ -271,7 +271,7 @@ vec3 CalculateVertexOffset( in int vertex_id, in float sprite_time, in float win
 	{
 		vec3 stem = vec3(skew, height) + windTip;
 		vec3 q = attr_Position.xyz + vec3(0.0, 0.0, 0.4 * height);
-		vec2 bend = FoliageInteractionBend(q, g_FoliagePrevious, g_FoliageHeat);
+		vec2 bend = FoliageCharacterBend(q, attr_Position.xy, g_FoliagePrevious, g_FoliageHeat);
 		offset += (FoliageApplyBend(stem, bend, 1.0) - stem) * (1.0 - isLowerVertex);
 	}
 #endif

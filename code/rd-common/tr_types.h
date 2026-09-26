@@ -317,6 +317,7 @@ typedef struct {
 // frame by cgame through the optional renderer extension GetRefFoliageAPI.
 #define	MAX_FOLIAGE_INTERACTORS		16
 #define	FOLIAGE_INTERACTOR_PLAYER	1
+#define	FOLIAGE_INTERACTOR_AIRBORNE	2	// not on the ground (r_foliageField: leaves no trail)
 
 typedef struct {
 	int			id;			// entity number, pairs the collider with the previous frame

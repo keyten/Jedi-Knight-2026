@@ -311,6 +311,14 @@ cvar_t  *r_foliageInteractionRadius;
 cvar_t  *r_foliageInteractionMax;
 cvar_t  *r_foliageInteractionNPC;
 cvar_t  *r_foliageInteractionDebug;
+cvar_t  *r_foliageField;
+cvar_t  *r_foliageFieldSize;
+cvar_t  *r_foliageFieldExtent;
+cvar_t  *r_foliageFieldStrength;
+cvar_t  *r_foliageFieldRecovery;
+cvar_t  *r_foliageFieldDamping;
+cvar_t  *r_foliageFieldImpulse;
+cvar_t  *r_foliageFieldDebug;
 cvar_t  *r_plantWind;
 cvar_t  *r_autoPBRConvert;
 cvar_t  *r_diffuseBRDF;
@@ -1682,6 +1690,7 @@ static consoleCommand_t	commands[] = {
 	{ "skinsss_list",	R_SkinSSSList_f },
 	{ "r_printAutoFoliage", R_PrintAutoFoliage_f },
 	{ "r_foliageInteractors", R_FoliageInteractionList_f },
+	{ "r_foliageFieldClear", R_FoliageFieldClear_f },
 	{ "r_forwardPlusStats",	R_ForwardPlusStats_f },
 	{ "r_pomSilhouetteInfo",	R_PomSilhouetteInfo_f },
 	{ "r_autoPomSilhouette",	R_AutoPomSilhouette_f },
@@ -2106,6 +2115,30 @@ void R_Register( void )
 	r_foliageInteractionDebug = ri.Cvar_Get( "r_foliageInteractionDebug", "0", CVAR_CHEAT,
 		"Foliage interaction debug bits: 1 = draw colliders, 2 = x2 radius and strength, 4 = interaction only (no wind), 8 = contact heat color, 16 = freeze colliders, 32 = player only" );
 	ri.Cvar_CheckRange( r_foliageInteractionDebug, 0, 63, qtrue );
+	r_foliageField = ri.Cvar_Get( "r_foliageField", "0", CVAR_ARCHIVE,
+		"r_foliageInteraction: plants the characters leave spring back instead of snapping to rest (persistent bend field around the player)" );
+	ri.Cvar_CheckRange( r_foliageField, 0, 1, qtrue );
+	r_foliageFieldSize = ri.Cvar_Get( "r_foliageFieldSize", "128", CVAR_ARCHIVE | CVAR_LATCH,
+		"r_foliageField: texels per side of the bend field (64, 128 or 256)" );
+	ri.Cvar_CheckRange( r_foliageFieldSize, 64, 256, qtrue );
+	r_foliageFieldExtent = ri.Cvar_Get( "r_foliageFieldExtent", "1024", CVAR_ARCHIVE,
+		"r_foliageField: world size of the square around the player the field covers" );
+	ri.Cvar_CheckRange( r_foliageFieldExtent, 256.0f, 8192.0f, qfalse );
+	r_foliageFieldStrength = ri.Cvar_Get( "r_foliageFieldStrength", "1", CVAR_ARCHIVE,
+		"r_foliageField: scale of the persistent bend (0 = the field has no effect)" );
+	ri.Cvar_CheckRange( r_foliageFieldStrength, 0.0f, 4.0f, qfalse );
+	r_foliageFieldRecovery = ri.Cvar_Get( "r_foliageFieldRecovery", "0.8", CVAR_ARCHIVE,
+		"r_foliageField: seconds until a plant the characters left is back to rest (swing down to ~5 %)" );
+	ri.Cvar_CheckRange( r_foliageFieldRecovery, 0.1f, 10.0f, qfalse );
+	r_foliageFieldDamping = ri.Cvar_Get( "r_foliageFieldDamping", "0.6", CVAR_ARCHIVE,
+		"r_foliageField: spring damping ratio, 1 = no swing past rest, lower = more sway" );
+	ri.Cvar_CheckRange( r_foliageFieldDamping, 0.2f, 1.0f, qfalse );
+	r_foliageFieldImpulse = ri.Cvar_Get( "r_foliageFieldImpulse", "1", CVAR_ARCHIVE,
+		"r_foliageField: extra momentum along the walk that running through adds" );
+	ri.Cvar_CheckRange( r_foliageFieldImpulse, 0.0f, 4.0f, qfalse );
+	r_foliageFieldDebug = ri.Cvar_Get( "r_foliageFieldDebug", "0", CVAR_CHEAT,
+		"Foliage field debug bits: 1 = field overlay (vectors, magnitude), 2 = covered square, 4 = freeze, 8 = x3 strength, 16 = field only (no direct push), 32 = direct push only" );
+	ri.Cvar_CheckRange( r_foliageFieldDebug, 0, 63, qtrue );
 	r_plantWind = ri.Cvar_Get( "r_plantWind", "0", CVAR_ARCHIVE,
 		"Breeze bend of FOLIAGE_PLANT models (ferns) around their root, 0 = none; direction and speed from r_foliageWindDirection / r_foliageWindSpeed (needs r_autoFoliage)" );
 	ri.Cvar_CheckRange( r_plantWind, 0.0f, 4.0f, qfalse );

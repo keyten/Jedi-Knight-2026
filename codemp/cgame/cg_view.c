@@ -2442,7 +2442,7 @@ static void CG_AddFoliageInteractors( void )
 		VectorSet( mins, -15.0f, -15.0f, DEFAULT_MINS_2 );
 		VectorSet( maxs, 15.0f, 15.0f, (ps->pm_flags & PMF_DUCKED) ? crouch : stand );
 		CG_FillFoliageInteractor( &list[0], ps->clientNum, ps->origin, mins, maxs, ps->velocity,
-			FOLIAGE_INTERACTOR_PLAYER );
+			FOLIAGE_INTERACTOR_PLAYER | (ps->groundEntityNum == ENTITYNUM_NONE ? FOLIAGE_INTERACTOR_AIRBORNE : 0) );
 		distance2[0] = 0.0f;
 		count = 1;
 	}
@@ -2493,7 +2493,8 @@ static void CG_AddFoliageInteractors( void )
 		zu = ((es->solid >> 16) & 255) - 32;
 		VectorSet( mins, -x, -x, -zd );
 		VectorSet( maxs, x, x, zu );
-		CG_FillFoliageInteractor( &list[slot], es->number, cent->lerpOrigin, mins, maxs, es->pos.trDelta, 0 );
+		CG_FillFoliageInteractor( &list[slot], es->number, cent->lerpOrigin, mins, maxs, es->pos.trDelta,
+			es->groundEntityNum == ENTITYNUM_NONE ? FOLIAGE_INTERACTOR_AIRBORNE : 0 );
 		distance2[slot] = d2;
 	}
 

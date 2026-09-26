@@ -362,6 +362,14 @@ extern cvar_t  *r_foliageInteractionRadius;
 extern cvar_t  *r_foliageInteractionMax;
 extern cvar_t  *r_foliageInteractionNPC;
 extern cvar_t  *r_foliageInteractionDebug;
+extern cvar_t  *r_foliageField;
+extern cvar_t  *r_foliageFieldSize;
+extern cvar_t  *r_foliageFieldExtent;
+extern cvar_t  *r_foliageFieldStrength;
+extern cvar_t  *r_foliageFieldRecovery;
+extern cvar_t  *r_foliageFieldDamping;
+extern cvar_t  *r_foliageFieldImpulse;
+extern cvar_t  *r_foliageFieldDebug;
 extern cvar_t  *r_plantWind;
 extern cvar_t  *r_autoPBRConvert;
 extern cvar_t  *r_diffuseBRDF;
@@ -1182,6 +1190,11 @@ struct FoliageInteractionBlock
 	vec4_t params;		// current count, previous count, strength, 1 = no wind (debug)
 	vec4_t current[MAX_FOLIAGE_INTERACTORS * 2];
 	vec4_t previous[MAX_FOLIAGE_INTERACTORS * 2];
+	// persistent bend field (r_foliageField, tr_foliagefield.cpp)
+	vec4_t field;			// center x, y (world), 1 / extent, scale (0 = no field)
+	vec4_t fieldPrevious;	// the same for the previous frame's field
+	vec4_t fieldUpdate;		// update pass: time step, spring k, damping c, impulse
+	vec4_t fieldShift;		// update pass: texel shift x, y, clear; draws: w 1 = no direct term
 };
 
 // Froxel volumetric fog (r_volumetricFog 2, tr_volumetric.cpp). Same layout
@@ -1339,6 +1352,13 @@ enum
 	// per stage skin scatter mask of lightall (tr_skinsss.cpp, skinMask keyword).
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 22, else masks are ignored.
 	TB_SKINMASK      = 22,
+
+	// persistent foliage bend field (tr_foliagefield.cpp), sampled by the
+	// vertex shaders of the grass and plant draws: this frame's state and the
+	// previous frame's (motion vectors). Bound once per frame, no other
+	// program uses these units.
+	TB_FOLIAGEFIELD      = 23,
+	TB_FOLIAGEFIELD_PREV = 24,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -2256,6 +2276,10 @@ typedef enum
 	UNIFORM_WEATHERSURFACEMAP,	// r_rainSplashes: world-only weather depth (tr.weatherSurfaceImage)
 	UNIFORM_SPLASHPARAMS,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
 	UNIFORM_SPLASHPARAMS2,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
+
+	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageField: this frame's bend field (TB_FOLIAGEFIELD)
+	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
+	UNIFORM_FOLIAGEFIELDDEBUG,	// r_foliageFieldDebug 1 overlay: corner x, y, square size, bend of full heat
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -3572,6 +3596,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricCompositeShader;
 	shaderProgram_t volumetricDebugShader;
+	shaderProgram_t foliageFieldShader;			// r_foliageField update pass
+	shaderProgram_t foliageFieldDebugShader;	// r_foliageFieldDebug 1 overlay
 	shaderProgram_t ssrDownsampleShader;
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ssrResolveShader;
@@ -4726,6 +4752,19 @@ typedef struct endTimedBlockCommand_s {
 	qhandle_t timerHandle;
 } endTimedBlockCommand_t;
 
+// r_foliageField (tr_foliagefield.cpp): the bend field of this frame, before
+// the draws of the first world scene
+typedef struct foliageFieldCommand_s {
+	int		commandId;
+	GLuint	ubo;			// FoliageInteraction block of the scene
+	long	uboOffset;
+	int		source;			// state read (previous frame)
+	int		target;			// state written, -1: no update this frame
+	int		current;		// bound to TB_FOLIAGEFIELD after the pass
+	int		previous;		// bound to TB_FOLIAGEFIELD_PREV
+	qboolean clear;			// also clear both states first
+} foliageFieldCommand_t;
+
 typedef enum {
 	RC_END_OF_LIST,
 	RC_SET_COLOR,
@@ -4743,7 +4782,8 @@ typedef enum {
 	RC_CONVOLVECUBEMAP,
 	RC_POSTPROCESS,
 	RC_BEGIN_TIMED_BLOCK,
-	RC_END_TIMED_BLOCK
+	RC_END_TIMED_BLOCK,
+	RC_FOLIAGE_FIELD
 } renderCommand_t;
 
 struct gpuTimer_t
@@ -5019,6 +5059,20 @@ UniformBlockBinding RB_GetFoliageInteractionBlockUniformBinding(void);
 void RB_SetFoliageMotionUniforms(UniformDataWriter& writer, uint8_t cls);
 void RB_SetSpriteInteractionUniforms(UniformDataWriter& writer);
 bool RB_FoliageInteractionDebugColor(uint8_t cls, vec4_t color);
+
+// tr_foliagefield.cpp: persistent bend field of the character interaction
+bool R_FoliageFieldActive(void);
+void R_CreateFoliageFieldImages(void);
+void R_CreateFoliageFieldFBOs(void);
+void R_FoliageFieldReset(void);
+void R_FoliageFieldLatch(const refdef_t *fd, bool consecutive, const foliageInteractor_t *player);
+void R_FoliageFieldBlock(FoliageInteractionBlock *block, int debugBits);
+void R_FoliageFieldQueueUpdate(GLuint ubo, long uboOffset);
+void R_FoliageFieldClear_f(void);
+void R_FoliageFieldInfo(void);
+const void *RB_FoliageFieldCommand(const void *data);
+void RB_FoliageFieldDebugOverlay(void);
+bool R_FoliageFieldBounds(vec2_t mins, vec2_t maxs);
 void RB_AODebugOverlay(void);
 
 qboolean R_MotionBlurEnabled(void);

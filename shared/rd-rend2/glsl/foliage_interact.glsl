@@ -5,21 +5,33 @@
 // every pass (main, depth prepass, sun / point shadows, fog, motion vectors)
 // bends a plant the same way.
 //
-// Stateless: a pure function of the rest position and the colliders of this
-// frame (and of the previous frame, for motion vectors). The colliders are the
-// real character bodies sent by cgame, never the camera.
+// The direct push is stateless: a pure function of the rest position and the
+// colliders of this frame (and of the previous frame, for motion vectors). The
+// colliders are the real character bodies sent by cgame, never the camera.
+// The optional persistent field (r_foliageField) adds a short history.
 
 #define FOLIAGE_MAX_INTERACTORS 16
 
 // std140, FoliageInteractionBlock in tr_local.h. Per collider two vec4:
 //   [2i]     axis x, y, bottom z (feet), top z
-//   [2i + 1] radius, velocity x, velocity y, unused
+//   [2i + 1] radius, velocity x, velocity y, 1 = airborne
+// Then the persistent bend field (r_foliageField, tr_foliagefield.cpp): a
+// player centered world XY texture of the bend the characters left behind.
 layout(std140) uniform FoliageInteraction
 {
 	vec4 u_FIParams;	// current count, previous count, strength, debug: 1 = no wind
 	vec4 u_FICurrent[FOLIAGE_MAX_INTERACTORS * 2];
 	vec4 u_FIPrevious[FOLIAGE_MAX_INTERACTORS * 2];
+	vec4 u_FIField;			// field center x, y (world), 1 / extent, scale (0 = no field)
+	vec4 u_FIFieldPrevious;	// the same for the previous frame's field (motion vectors)
+	vec4 u_FIFieldUpdate;	// update pass: time step, spring k, damping c, impulse
+	vec4 u_FIFieldShift;	// update pass: texel shift x, y, clear (0 / 1); draws: w 1 = no direct term (debug)
 };
+
+// the field state: rg = bend (same units as FoliageInteractionBend), ba = its
+// velocity. This frame's and the previous frame's (velocity pass).
+uniform sampler2D u_FoliageFieldMap;
+uniform sampler2D u_FoliageFieldPrevMap;
 
 // the largest angle a stem turns away from its rest direction (65 degrees):
 // a character can flatten a plant but never fold it over its root
@@ -32,11 +44,60 @@ bool FoliageInteractionNoWind()
 	return u_FIParams.w > 0.5;
 }
 
+// Push of one collider (its two vec4 of the block) on the reference point q:
+// bend direction times magnitude, before the strength. Contact (distance to
+// the capsule) is the main term, so a character standing still keeps the plant
+// parted; velocity only biases the direction and adds a little push along the
+// walk. contact in [0, 1]; drive = walk direction times the speed factor.
+vec2 FoliageColliderPush(in vec4 axis, in vec4 body, in vec3 q, out float contact, out vec2 drive)
+{
+	contact = 0.0;
+	drive = vec2(0.0);
+	float radius = body.x;
+	float reach = radius * 1.75;
+
+	vec2 d = q.xy - axis.xy;
+	float d2 = dot(d, d);
+	if (d2 >= reach * reach)
+		return vec2(0.0);
+
+	// capsule: vertical segment with round ends at the feet and the head,
+	// so the lower legs reach the grass and a jump lifts the contact off
+	float z0 = axis.z + radius;
+	float z1 = max(axis.w - radius, z0);
+	float dz = q.z - clamp(q.z, z0, z1);
+	float dist = sqrt(d2 + dz * dz);
+	contact = max(1.0 - smoothstep(0.6 * radius, reach, dist), 0.0);
+	if (contact <= 0.0)
+		return vec2(0.0);
+
+	vec2 velocity = body.yz;
+	float speed = length(velocity);
+	vec2 moveDir = speed > 1.0 ? velocity / speed : vec2(0.0);
+	float len = sqrt(d2);
+	vec2 n;
+	if (len > 0.5)
+		n = d / len;
+	else if (speed > 1.0)
+		n = moveDir;	// right on the axis: push along the walk
+	else
+	{
+		float a = fract(sin(dot(q.xy, vec2(12.9898, 78.233))) * 43758.547) * 6.2832;
+		n = vec2(cos(a), sin(a));
+	}
+
+	// walking through: bias along the movement, a bit more in front of
+	// the body (|n + 0.6 s moveDir| >= 0.4, normalize is safe)
+	float s = clamp(speed * (1.0 / 320.0), 0.0, 1.0);
+	vec2 dir = normalize(n + (0.6 * s) * moveDir);
+	float magnitude = contact * (1.0 + 0.35 * s * max(dot(n, moveDir), 0.0));
+	drive = s * moveDir;
+	return dir * magnitude;
+}
+
 // Horizontal bend vector the colliders push the reference point q with: tip
 // displacement per unit of stem length, before FoliageApplyBend limits it.
-// Contact (distance to the capsule) is the main term, so a character standing
-// still keeps the plant parted; velocity only biases the direction and adds a
-// little push along the walk. heat = strongest contact in [0, 1].
+// heat = strongest contact in [0, 1].
 vec2 FoliageInteractionBend(in vec3 q, in bool previous, out float heat)
 {
 	vec2 bend = vec2(0.0);
@@ -50,50 +111,48 @@ vec2 FoliageInteractionBend(in vec3 q, in bool previous, out float heat)
 
 		vec4 axis = previous ? u_FIPrevious[2 * i] : u_FICurrent[2 * i];
 		vec4 body = previous ? u_FIPrevious[2 * i + 1] : u_FICurrent[2 * i + 1];
-		float radius = body.x;
-		float reach = radius * 1.75;
-
-		vec2 d = q.xy - axis.xy;
-		float d2 = dot(d, d);
-		if (d2 >= reach * reach)
-			continue;
-
-		// capsule: vertical segment with round ends at the feet and the head,
-		// so the lower legs reach the grass and a jump lifts the contact off
-		float z0 = axis.z + radius;
-		float z1 = max(axis.w - radius, z0);
-		float dz = q.z - clamp(q.z, z0, z1);
-		float dist = sqrt(d2 + dz * dz);
-		float contact = 1.0 - smoothstep(0.6 * radius, reach, dist);
-		if (contact <= 0.0)
-			continue;
-
-		vec2 velocity = body.yz;
-		float speed = length(velocity);
-		vec2 moveDir = speed > 1.0 ? velocity / speed : vec2(0.0);
-		float len = sqrt(d2);
-		vec2 n;
-		if (len > 0.5)
-			n = d / len;
-		else if (speed > 1.0)
-			n = moveDir;	// right on the axis: push along the walk
-		else
-		{
-			float a = fract(sin(dot(q.xy, vec2(12.9898, 78.233))) * 43758.547) * 6.2832;
-			n = vec2(cos(a), sin(a));
-		}
-
-		// walking through: bias along the movement, a bit more in front of
-		// the body (|n + 0.6 s moveDir| >= 0.4, normalize is safe)
-		float s = clamp(speed * (1.0 / 320.0), 0.0, 1.0);
-		vec2 dir = normalize(n + (0.6 * s) * moveDir);
-		float magnitude = contact * (1.0 + 0.35 * s * max(dot(n, moveDir), 0.0));
-
-		bend += dir * magnitude;
+		float contact;
+		vec2 drive;
+		bend += FoliageColliderPush(axis, body, q, contact, drive);
 		heat = max(heat, contact);
 	}
 
 	return bend * u_FIParams.z;
+}
+
+// Persistent bend field at the world position xy (r_foliageField): what the
+// characters left behind, springing back to rest. Zero outside the covered
+// square, faded over its border.
+vec2 FoliageFieldBend(in vec2 xy, in bool previous)
+{
+	vec4 field = previous ? u_FIFieldPrevious : u_FIField;
+	if (field.w == 0.0)
+		return vec2(0.0);
+
+	vec2 uv = (xy - field.xy) * field.z + 0.5;
+	vec2 edge = min(uv, 1.0 - uv);
+	float fade = smoothstep(0.0, 0.03, min(edge.x, edge.y));
+	if (fade <= 0.0)
+		return vec2(0.0);
+
+	vec2 bend = previous ? textureLod(u_FoliageFieldPrevMap, uv, 0.0).xy
+		: textureLod(u_FoliageFieldMap, uv, 0.0).xy;
+	return bend * (field.w * fade);
+}
+
+// Everything the characters do to a plant: the direct push of the colliders
+// at q and the persistent field at fieldXY (grass: the tuft anchor, MD3
+// plants: the root). While a character touches the plant the direct term
+// leads; as it leaves (heat -> 0) the field, which followed the same push,
+// takes over smoothly and springs back. heat: direct contact.
+vec2 FoliageCharacterBend(in vec3 q, in vec2 fieldXY, in bool previous, out float heat)
+{
+	vec2 direct = FoliageInteractionBend(q, previous, heat);
+	vec2 field = FoliageFieldBend(fieldXY, previous);
+	// r_foliageFieldDebug 16: the field alone
+	if (u_FIFieldShift.w > 0.5)
+		return field;
+	return direct + field * (1.0 - heat);
 }
 
 // Bends the stem vector v (vertex - root) by the horizontal bend vector,

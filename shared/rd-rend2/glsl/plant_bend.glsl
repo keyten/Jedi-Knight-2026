@@ -54,7 +54,8 @@ vec3 PlantBendPosition(in vec3 p, in vec3 root, in float weight, in float t, in 
 	bool interaction = u_PlantBendParams.w > 0.0;
 	if (!interaction || !FoliageInteractionNoWind())
 		bend += PlantWindBend(root, t);
+	// the persistent field at the root: the whole plant turns together
 	if (interaction)
-		bend += FoliageInteractionBend(p, previous, heat);
+		bend += FoliageCharacterBend(p, root.xy, previous, heat);
 	return root + FoliageApplyBend(p - root, bend, weight);
 }

@@ -2019,7 +2019,8 @@ static void CG_AddFoliageInteractors( void )
 		!(player->currentState.eFlags & EF_NODRAW) && !G_IsRidingVehicle( player->gent ) )
 	{
 		CG_FillFoliageInteractor( &list[0], 0, player->lerpOrigin, player->gent->mins,
-			player->gent->maxs, ps->velocity, FOLIAGE_INTERACTOR_PLAYER );
+			player->gent->maxs, ps->velocity, FOLIAGE_INTERACTOR_PLAYER |
+			(ps->groundEntityNum == ENTITYNUM_NONE ? FOLIAGE_INTERACTOR_AIRBORNE : 0) );
 		distance2[0] = 0.0f;
 		count = 1;
 	}
@@ -2063,7 +2064,8 @@ static void CG_AddFoliageInteractors( void )
 			slot--;
 		}
 		CG_FillFoliageInteractor( &list[slot], number, cent->lerpOrigin, gent->mins, gent->maxs,
-			gent->client->ps.velocity, 0 );
+			gent->client->ps.velocity,
+			gent->client->ps.groundEntityNum == ENTITYNUM_NONE ? FOLIAGE_INTERACTOR_AIRBORNE : 0 );
 		distance2[slot] = d2;
 	}
 

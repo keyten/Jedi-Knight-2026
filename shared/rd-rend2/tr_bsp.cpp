@@ -4868,6 +4868,9 @@ void RE_LoadWorldMap( const char *name ) {
 	tr.worldMapLoaded = qtrue;
 	tr.world = world;
 
+	// no colliders or persistent foliage bend of the previous map
+	R_FoliageInteractionReset();
+
 	// LTC area lights: maps/<map>.arealights.json, else r_ltcAutoAreaLights
 	// candidates from the emissive surfaces (used with r_ltcAreaLights)
 	R_LoadAreaLights(world->baseName);
