@@ -3580,6 +3580,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP2, TB_SHADOWMAPARRAY);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELNOISE, TB_DELUXEMAP);
+		// dynamic light lists of the injection (R_VolumetricBuildLightLists)
+		GLSL_SetUniformInt(sp, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
+		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
 		GLSL_SetFroxelLookupUnits(sp);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);

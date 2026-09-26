@@ -18,7 +18,8 @@ void main()
 //
 // out_Color  integrated volume, slice u_FroxelSlice: (S, T) at the far side of the slice
 // out_Carry  the same, for the next slice
-// out_Tail   last slice only: radiance (emission / extinction) and extinction, extrapolated beyond far
+// (beyond far the media are integrated analytically by FroxelLookup, lit by the tail pass of the
+// injection)
 
 uniform sampler3D u_FroxelSource;	// baked + sun emission (rgb), extinction (a)
 uniform sampler3D u_FroxelDynamic;	// dynamic light emission (rgb)
@@ -26,12 +27,10 @@ uniform sampler2D u_FroxelCarry;
 uniform int u_FroxelSlice;
 
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
-// 0 = out_Color, 1 = out_Glow, 2 = out_SSRNormal
+// 0 = out_Color, 1 = out_Glow
 out vec4 out_Color;		// integrated volume
 out vec4 out_Glow;		// carry
-out vec4 out_SSRNormal;	// tail
 #define out_Carry out_Glow
-#define out_Tail out_SSRNormal
 
 void main()
 {
@@ -50,17 +49,15 @@ void main()
 	// path length through the slice along the ray of the froxel center
 	vec2 ndc = (vec2(cell) + 0.5) / u_FroxelGridSize.xy * 2.0 - 1.0;
 	vec3 ray = u_FroxelRayForward.xyz + ndc.x * u_FroxelRayRight.xyz + ndc.y * u_FroxelRayUp.xyz;
-	float sliceNear = (slice > 0) ? FroxelWToDepth(float(slice) / numSlices) : 0.0;
+	float sliceNear = FroxelWToDepth(float(slice) / numSlices);
 	float sliceFar = FroxelWToDepth(float(slice + 1) / numSlices);
 	float pathLength = (sliceFar - sliceNear) * length(ray);
 
-	vec3 radiance = vec3(0.0);
 	vec3 scattered;
 	float sliceTransmittance = exp(-extinction * pathLength);
 	if (extinction > 1e-7)
 	{
-		radiance = emission / extinction;
-		scattered = radiance * (1.0 - sliceTransmittance);
+		scattered = emission / extinction * (1.0 - sliceTransmittance);
 	}
 	else
 	{
@@ -72,5 +69,4 @@ void main()
 
 	out_Color = state;
 	out_Carry = state;
-	out_Tail = vec4(radiance, extinction);
 }

@@ -47,6 +47,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 
 #include <algorithm>
+#include <vector>
 
 #define FROXEL_NEAR 8.0f
 #define FROXEL_AUTO_FAR 4096.0f
@@ -78,7 +79,6 @@ struct froxelState_t
 	int builtFrameNumber;
 	qboolean built;				// GPU passes of this frame ran
 	int current;				// froxelInjectImage written this frame
-	int lightMask[FROXEL_MAX_SLICES];
 	qboolean frameHeightFog;	// the volume of this frame has media outside the BSP fog
 								// volumes: the height fog or local fog volumes
 
@@ -97,7 +97,7 @@ struct froxelState_t
 	float fovX, fovY;
 	float nearZ, farZ;
 	int debug;
-	unsigned int noiseKey;
+	unsigned int mediumKey;
 	unsigned int frameIndex;
 
 	// frozen froxel camera (r_volumetricFogFreeze)
@@ -106,6 +106,21 @@ struct froxelState_t
 };
 
 static froxelState_t s_vf;
+
+// dynamic light lists of the froxels (R_VolumetricBuildLightLists): GL objects
+// created with the froxel resources, deleted by R_ShutdownVolumetric
+static struct
+{
+	GLuint lightBuffers[MAX_FRAMES];
+	GLuint listBuffers[MAX_FRAMES];
+	image_t lightImages[MAX_FRAMES];	// buffer textures, bound like images
+	image_t listImages[MAX_FRAMES];
+	int lightSlot;						// buffers of this frame
+	qboolean hasLights;					// this frame's volume has light lists
+	std::vector<uint32_t> lightCounts;
+	std::vector<uint32_t> lightCursor;
+	std::vector<uint32_t> lightList;
+} s_vfl;
 
 qboolean R_VolumetricFroxelEnabled( void )
 {
@@ -514,8 +529,9 @@ void R_CreateVolumetricFBOs( void )
 	if ( !s_vf.resources )
 		return;
 
-	// injection: one layer of froxelInjectImage[current] and of the dynamic
-	// light volume, attached per slice
+	// injection: froxelInjectImage[current] and the dynamic light volume,
+	// layered (every slice in one instanced draw, the geometry shader selects
+	// the layer)
 	tr.froxelInjectFbo = FBO_Create("_froxelInject", s_vf.width, s_vf.height);
 	FBO_Bind(tr.froxelInjectFbo);
 	qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -532,8 +548,7 @@ void R_CreateVolumetricFBOs( void )
 	}
 	R_CheckFBO(tr.froxelInjectFbo);
 
-	// integration: a layer of the integrated volume, the carried state and
-	// (last slice) the tail
+	// integration: a layer of the integrated volume and the carried state
 	tr.froxelIntegrateFbo = FBO_Create("_froxelIntegrate", s_vf.width, s_vf.height);
 	FBO_Bind(tr.froxelIntegrateFbo);
 	qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -541,10 +556,9 @@ void R_CreateVolumetricFBOs( void )
 	glState.currentFBO->colorImage[0] = tr.froxelIntegratedImage;
 	glState.currentFBO->colorBuffers[0] = tr.froxelIntegratedImage->texnum;
 	FBO_AttachTextureImage(tr.froxelCarryImage[0], 1);
-	FBO_AttachTextureImage(tr.froxelTailImage, 2);
 	{
-		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-		qglDrawBuffers(3, bufs);
+		const GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		qglDrawBuffers(2, bufs);
 	}
 	R_CheckFBO(tr.froxelIntegrateFbo);
 
@@ -576,6 +590,10 @@ void R_CreateVolumetricFBOs( void )
 				qglClearBufferfv(GL_COLOR, 1, zero);
 			}
 		}
+		// tail light: none until the first build
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D, tr.froxelTailImage->texnum, 0);
+		qglClearBufferfv(GL_COLOR, 0, zero);
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			tr.froxelInjectImage[0]->texnum, 0, 0);
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
@@ -598,9 +616,33 @@ void R_CreateVolumetricFBOs( void )
 		}
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
 			GL_TEXTURE_2D, tr.froxelCarryImage[0]->texnum, 0);
-		qglClearBufferfv(GL_COLOR, 2, zero);	// tail: no medium beyond far
 
 		GL_ResetScreenAuxWrite();
+	}
+
+	// dynamic light lists: buffer textures per frame (R_VolumetricBuildLightLists)
+	if ( !s_vfl.lightBuffers[0] && qglTexBuffer )
+	{
+		qglGenBuffers(MAX_FRAMES, s_vfl.lightBuffers);
+		qglGenBuffers(MAX_FRAMES, s_vfl.listBuffers);
+		for ( int f = 0; f < MAX_FRAMES; f++ )
+		{
+			image_t *images[2] = { &s_vfl.lightImages[f], &s_vfl.listImages[f] };
+			const GLuint buffers[2] = { s_vfl.lightBuffers[f], s_vfl.listBuffers[f] };
+			const GLenum formats[2] = { GL_RGBA32F, GL_R32UI };
+			for ( int b = 0; b < 2; b++ )
+			{
+				Com_Memset(images[b], 0, sizeof(image_t));
+				Q_strncpyz(images[b]->imgName, va("*froxelLights%d_%d", f, b), sizeof(images[b]->imgName));
+				images[b]->flags = IMGFLAG_TEXBUFFER;
+				qglBindBuffer(GL_TEXTURE_BUFFER, buffers[b]);
+				qglBufferData(GL_TEXTURE_BUFFER, 16, NULL, GL_STREAM_DRAW);
+				qglGenTextures(1, &images[b]->texnum);
+				GL_BindToTMU(images[b], TB_FPLUS_LIGHTS);
+				qglTexBuffer(GL_TEXTURE_BUFFER, formats[b], buffers[b]);
+			}
+		}
+		qglBindBuffer(GL_TEXTURE_BUFFER, 0);
 	}
 
 	// composite: color and glow of renderFbo only, the sampled depth must not
@@ -626,6 +668,31 @@ void R_CreateVolumetricFBOs( void )
 		qglDrawBuffers(2, bufs);
 	}
 	R_CheckFBO(tr.froxelCompositeFbo);
+}
+
+void R_ShutdownVolumetric( void )
+{
+	if ( s_vfl.lightBuffers[0] )
+	{
+		for ( int f = 0; f < MAX_FRAMES; f++ )
+		{
+			image_t *images[2] = { &s_vfl.lightImages[f], &s_vfl.listImages[f] };
+			for ( int b = 0; b < 2; b++ )
+			{
+				for ( int u = 0; u < MAX_TEXTURE_UNITS; u++ )
+				{
+					if ( glState.currenttextures[u] == (int)images[b]->texnum )
+						glState.currenttextures[u] = 0;
+				}
+				qglDeleteTextures(1, &images[b]->texnum);
+			}
+		}
+		qglDeleteBuffers(MAX_FRAMES, s_vfl.lightBuffers);
+		qglDeleteBuffers(MAX_FRAMES, s_vfl.listBuffers);
+	}
+	Com_Memset(s_vfl.lightBuffers, 0, sizeof(s_vfl.lightBuffers));
+	Com_Memset(s_vfl.listBuffers, 0, sizeof(s_vfl.listBuffers));
+	s_vfl.hasLights = qfalse;
 }
 
 /*
@@ -669,8 +736,60 @@ with the same layout, so that static + sun == the legacy value:
 
 The realtime sun radiance is estimated from the sunlit cells, so the beams
 have the brightness the map was compiled with.
+
+The split only knows the light direction: a lamp straight above can look like
+a high sun. The alpha of the static texture is the sun trust of the cell: 1
+when a ray towards the sun from the cell center or one of four corners (a
+tetrahedron, half a cell out) reaches the sky, 0 when the world blocks them all
+(indoors the sun part stays baked light). World geometry is static, so this is
+traced once here instead of probing the cascades per froxel every frame.
 =================
 */
+#define FROXEL_SUN_TRACE_DISTANCE 65536.0f
+
+// true when the world does not block the way from start towards the sun
+static qboolean R_VolumetricSunVisible( const vec3_t start, const vec3_t sunDir )
+{
+	vec3_t end;
+	VectorMA(start, FROXEL_SUN_TRACE_DISTANCE, sunDir, end);
+
+	trace_t trace;
+	Com_Memset(&trace, 0, sizeof(trace));
+#ifdef REND2_SP
+	ri.SV_Trace(&trace, start, vec3_origin, vec3_origin, end, ENTITYNUM_NONE, CONTENTS_SOLID, G2_NOCOLLIDE, 0);
+#else
+	ri.CM_BoxTrace(&trace, start, end, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, 0);
+#endif
+	if ( trace.startsolid || trace.allsolid )
+		return qfalse;
+	// the sky brushes are solid: reaching one is reaching the sky
+	return (qboolean)(trace.fraction >= 1.0f || (trace.surfaceFlags & SURF_SKY));
+}
+
+static float R_VolumetricSunTrust( const world_t *world, int cell, const vec3_t sunDir )
+{
+	const int bx = world->lightGridBounds[0];
+	const int by = world->lightGridBounds[1];
+	const int gridPos[3] = { cell % bx, (cell / bx) % by, cell / (bx * by) };
+
+	vec3_t center;
+	for ( int c = 0; c < 3; c++ )
+		center[c] = world->lightGridOrigin[c] + gridPos[c] * world->lightGridSize[c];
+
+	static const float corners[5][3] = {
+		{ 0.0f, 0.0f, 0.0f },
+		{ 1.0f, 1.0f, 1.0f }, { 1.0f, -1.0f, -1.0f }, { -1.0f, 1.0f, -1.0f }, { -1.0f, -1.0f, 1.0f } };
+	for ( int k = 0; k < 5; k++ )
+	{
+		vec3_t start;
+		for ( int c = 0; c < 3; c++ )
+			start[c] = center[c] + 0.5f * corners[k][c] * world->lightGridSize[c];
+		if ( R_VolumetricSunVisible(start, sunDir) )
+			return 1.0f;
+	}
+	return 0.0f;
+}
+
 void R_BuildVolumetricLightGrid( world_t *world )
 {
 	world->volumetricStaticGrid = NULL;
@@ -688,6 +807,10 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	}
 
 	const qboolean splitSun = tr.sunParsed;
+	const qboolean traceTrust = (qboolean)(splitSun &&
+		numCells == world->lightGridBounds[0] * world->lightGridBounds[1] * world->lightGridBounds[2]);
+	const int traceStart = ri.Milliseconds();
+	int numTraced = 0, numTrusted = 0;
 	vec3_t sunDir;
 	VectorCopy(tr.sunDirection, sunDir);
 	VectorNormalize(sunDir);
@@ -750,7 +873,15 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		staticData[i * 4 + 0] = FloatToHalf(total[0] - sun[0]);
 		staticData[i * 4 + 1] = FloatToHalf(total[1] - sun[1]);
 		staticData[i * 4 + 2] = FloatToHalf(total[2] - sun[2]);
-		staticData[i * 4 + 3] = FloatToHalf(sunFraction);
+		float trust = 1.0f;
+		if ( traceTrust && (sun[0] > 0.0f || sun[1] > 0.0f || sun[2] > 0.0f) )
+		{
+			trust = R_VolumetricSunTrust(world, i, sunDir);
+			numTraced++;
+			if ( trust > 0.0f )
+				numTrusted++;
+		}
+		staticData[i * 4 + 3] = FloatToHalf(trust);
 
 		sunData[i * 4 + 0] = FloatToHalf(sun[0]);
 		sunData[i * 4 + 1] = FloatToHalf(sun[1]);
@@ -772,7 +903,7 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	world->volumetricSunGrid = R_CreateImage3D(
 		"*volumetricSunGrid", (byte *)sunData,
 		world->lightGridBounds[0], world->lightGridBounds[1], world->lightGridBounds[2],
-		GL_RGBA16F);
+		GL_R11F_G11F_B10F);	// rgb only: half the size and bandwidth
 
 	// realtime sun radiance: 90th percentile of the sunlit cells, with their
 	// average color. A handful of cells is not a sun.
@@ -791,6 +922,8 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	ri.Printf(PRINT_DEVELOPER, "Froxel fog light grid: %d cells, %d sunlit, sun radiance %.3f %.3f %.3f\n",
 		numCells, numSunCells, world->volumetricSunRadiance[0],
 		world->volumetricSunRadiance[1], world->volumetricSunRadiance[2]);
+	ri.Printf(PRINT_DEVELOPER, "Froxel fog sun trust: %d cells traced, %d see the sun, %d msec\n",
+		numTraced, numTrusted, ri.Milliseconds() - traceStart);
 
 	Z_Free(sunLuma);
 	Z_Free(sunData);
@@ -857,50 +990,204 @@ static float R_VolumetricSliceDistance( int k, float nearZ, float farZ, int numS
 	return nearZ * powf(farZ / nearZ, (float)k / (float)numSlices);
 }
 
-// dynamic lights overlapping each slice of the main view frustum
-static void R_VolumetricCullLights( const viewParms_t *view, const trRefdef_t *refdef, const vec3_t forward )
+// slice of the view depth d (inverse of R_VolumetricSliceDistance)
+static int R_VolumetricDepthSlice( float d )
 {
-	// the lights of the Lights block, bit i = u_Lights[i] (Forward+: the most
-	// important MAX_DLIGHTS, tr_forwardplus.cpp)
-	int lightIndexes[MAX_DLIGHTS];
-	int shadowLayers[MAX_DLIGHTS];
-	const int numLights = R_GetUboDlights(refdef, lightIndexes, shadowLayers);
-	for ( int k = 0; k < s_vf.depth; k++ )
+	const float firstBoundary = R_VolumetricSliceDistance(1, s_vf.nearZ, s_vf.farZ, s_vf.depth);
+	if ( d <= firstBoundary )
+		return 0;
+	const int k = (int)floorf((float)s_vf.depth * logf(d / s_vf.nearZ) / logf(s_vf.farZ / s_vf.nearZ));
+	return Com_Clampi(0, s_vf.depth - 1, k);
+}
+
+/*
+=================
+R_VolumetricBuildLightLists
+
+Dynamic lights of the froxels, clustered like Forward+ (tr_forwardplus.cpp)
+but on the froxel grid: tiles of FROXEL_LIGHT_TILE x FROXEL_LIGHT_TILE froxels,
+one cluster per tile and slice. Every point light of the scene (Forward+: all
+of them, most important first; legacy: the MAX_DLIGHTS of the Lights block) is
+binned into the clusters its sphere may touch, at most FROXEL_LIGHTS_PER_CLUSTER
+per cluster (the least important drop out). Two buffer textures per frame:
+
+  lights  RGBA32F  2 texels per light: origin, radius | color, shadow cube layer (-1 none)
+  list    R32UI    one header per cluster (first entry | count << 24), then the
+                   light indexes
+=================
+*/
+#define FROXEL_LIGHT_TILE			8
+#define FROXEL_LIGHTS_PER_CLUSTER	32
+
+struct froxelLightRange_t
+{
+	int light;		// index into the lights buffer
+	int x0, x1, y0, y1, z0, z1;
+};
+
+static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *froxelProjection,
+	const dlight_t *dl, int tilesX, int tilesY, froxelLightRange_t *range )
+{
+	const float radius = dl->radius;
+	if ( radius <= 0.0f )
+		return qfalse;
+
+	// frustum sides
+	for ( int p = 0; p < 4; p++ )
 	{
-		const float sliceNear = R_VolumetricSliceDistance(k, s_vf.nearZ, s_vf.farZ, s_vf.depth);
-		const float sliceFar = R_VolumetricSliceDistance(k + 1, s_vf.nearZ, s_vf.farZ, s_vf.depth);
-		unsigned int mask = 0;
+		const cplane_t *plane = &view->frustum[p];
+		if ( DotProduct(dl->origin, plane->normal) - plane->dist < -radius )
+			return qfalse;
+	}
 
-		for ( int i = 0; i < numLights; i++ )
-		{
-			const dlight_t *dl = refdef->dlights + lightIndexes[i];
-			const float radius = dl->radius;
-			if ( radius <= 0.0f )
-				continue;
+	const float *mv = view->world.modelViewMatrix;
+	float eye[3];
+	for ( int r = 0; r < 3; r++ )
+		eye[r] = mv[r] * dl->origin[0] + mv[4 + r] * dl->origin[1] + mv[8 + r] * dl->origin[2] + mv[12 + r];
+	const float depth = -eye[2];
+	if ( depth + radius <= 0.0f || depth - radius >= s_vf.farZ )
+		return qfalse;
 
-			vec3_t delta;
-			VectorSubtract(dl->origin, view->ori.origin, delta);
-			const float depth = DotProduct(delta, forward);
-			if ( depth + radius < sliceNear || depth - radius > sliceFar )
-				continue;
+	range->z0 = R_VolumetricDepthSlice(depth - radius);
+	range->z1 = R_VolumetricDepthSlice(depth + radius);
+	range->x0 = 0;
+	range->x1 = tilesX - 1;
+	range->y0 = 0;
+	range->y1 = tilesY - 1;
 
-			qboolean inside = qtrue;
-			for ( int p = 0; p < 4; p++ )
+	// the projected bounding box of the sphere, the whole view once it reaches
+	// the camera plane
+	if ( depth - radius <= 1.0f )
+		return qtrue;
+
+	const float *P = froxelProjection;
+	float minX = 1e30f, maxX = -1e30f, minY = 1e30f, maxY = -1e30f;
+	for ( int c = 0; c < 8; c++ )
+	{
+		const float x = eye[0] + ((c & 1) ? radius : -radius);
+		const float y = eye[1] + ((c & 2) ? radius : -radius);
+		const float z = eye[2] + ((c & 4) ? radius : -radius);
+		const float cx = P[0] * x + P[4] * y + P[8] * z + P[12];
+		const float cy = P[1] * x + P[5] * y + P[9] * z + P[13];
+		const float cw = P[3] * x + P[7] * y + P[11] * z + P[15];
+		if ( cw <= 1e-4f )
+			return qtrue;
+		minX = MIN(minX, cx / cw);
+		maxX = MAX(maxX, cx / cw);
+		minY = MIN(minY, cy / cw);
+		maxY = MAX(maxY, cy / cw);
+	}
+	if ( maxX < -1.0f || minX > 1.0f || maxY < -1.0f || minY > 1.0f )
+		return qfalse;
+
+	const float tileX = (float)(s_vf.width) / (float)FROXEL_LIGHT_TILE;
+	const float tileY = (float)(s_vf.height) / (float)FROXEL_LIGHT_TILE;
+	range->x0 = Com_Clampi(0, tilesX - 1, (int)floorf((minX * 0.5f + 0.5f) * tileX));
+	range->x1 = Com_Clampi(0, tilesX - 1, (int)floorf((maxX * 0.5f + 0.5f) * tileX));
+	range->y0 = Com_Clampi(0, tilesY - 1, (int)floorf((minY * 0.5f + 0.5f) * tileY));
+	range->y1 = Com_Clampi(0, tilesY - 1, (int)floorf((maxY * 0.5f + 0.5f) * tileY));
+	return qtrue;
+}
+
+static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewParms_t *view,
+	const trRefdef_t *refdef, const float *froxelProjection )
+{
+	block->lightTileSize = 0;
+	block->lightTilesX = 0;
+	block->lightTilesY = 0;
+	s_vfl.hasLights = qfalse;
+
+	if ( !s_vfl.lightBuffers[0] || r_volumetricFogDlightScale->value <= 0.0f )
+		return;
+
+	int lightIndexes[MAX_RENDER_DLIGHTS];
+	int shadowLayers[MAX_RENDER_DLIGHTS];
+	const int numSceneLights = R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_RENDER_DLIGHTS);
+	if ( numSceneLights <= 0 )
+		return;
+
+	const int tilesX = (s_vf.width + FROXEL_LIGHT_TILE - 1) / FROXEL_LIGHT_TILE;
+	const int tilesY = (s_vf.height + FROXEL_LIGHT_TILE - 1) / FROXEL_LIGHT_TILE;
+	const int numClusters = tilesX * tilesY * s_vf.depth;
+
+	// lights touching the volume, in importance order
+	static vec4_t lightData[MAX_RENDER_DLIGHTS * 2];
+	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS];
+	int numLights = 0;
+	for ( int i = 0; i < numSceneLights; i++ )
+	{
+		const dlight_t *dl = refdef->dlights + lightIndexes[i];
+		froxelLightRange_t *range = &ranges[numLights];
+		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tilesX, tilesY, range) )
+			continue;
+		range->light = numLights;
+		VectorSet4(lightData[numLights * 2 + 0], dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
+		VectorSet4(lightData[numLights * 2 + 1], dl->color[0], dl->color[1], dl->color[2], (float)shadowLayers[i]);
+		numLights++;
+	}
+	if ( !numLights )
+		return;
+
+	// pass 1: counts, pass 2: fill (same order and cap)
+	s_vfl.lightCounts.assign(numClusters, 0);
+	for ( int n = 0; n < numLights; n++ )
+	{
+		const froxelLightRange_t& r = ranges[n];
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
 			{
-				const cplane_t *plane = &view->frustum[p];
-				if ( DotProduct(dl->origin, plane->normal) - plane->dist < -radius )
+				uint32_t *row = &s_vfl.lightCounts[(z * tilesY + y) * tilesX];
+				for ( int x = r.x0; x <= r.x1; x++ )
 				{
-					inside = qfalse;
-					break;
+					if ( row[x] < FROXEL_LIGHTS_PER_CLUSTER )
+						row[x]++;
 				}
 			}
-
-			if ( inside )
-				mask |= 1u << i;
-		}
-
-		s_vf.lightMask[k] = (int)mask;
 	}
+
+	uint32_t total = 0;
+	s_vfl.lightList.resize(numClusters);
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		s_vfl.lightList[c] = (uint32_t)numClusters + total;	// absolute first entry
+		total += s_vfl.lightCounts[c];
+	}
+	if ( numClusters + total >= (1u << 24) )
+		return;
+	s_vfl.lightList.resize(numClusters + total);
+
+	s_vfl.lightCursor.assign(numClusters, 0);
+	for ( int n = 0; n < numLights; n++ )
+	{
+		const froxelLightRange_t& r = ranges[n];
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
+			{
+				const int rowStart = (z * tilesY + y) * tilesX;
+				for ( int x = r.x0; x <= r.x1; x++ )
+				{
+					const int c = rowStart + x;
+					if ( s_vfl.lightCursor[c] < s_vfl.lightCounts[c] )
+						s_vfl.lightList[s_vfl.lightList[c] + s_vfl.lightCursor[c]++] = (uint32_t)r.light;
+				}
+			}
+	}
+	for ( int c = 0; c < numClusters; c++ )
+		s_vfl.lightList[c] |= s_vfl.lightCounts[c] << 24;
+
+	// this frame's buffers (orphaned: the GPU may still read the previous data)
+	const int slot = backEndData->realFrameNumber % MAX_FRAMES;
+	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.lightBuffers[slot]);
+	qglBufferData(GL_TEXTURE_BUFFER, numLights * 2 * sizeof(vec4_t), lightData, GL_STREAM_DRAW);
+	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.listBuffers[slot]);
+	qglBufferData(GL_TEXTURE_BUFFER, s_vfl.lightList.size() * sizeof(uint32_t), s_vfl.lightList.data(), GL_STREAM_DRAW);
+	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+	s_vfl.lightSlot = slot;
+	s_vfl.hasLights = qtrue;
+	block->lightTileSize = FROXEL_LIGHT_TILE;
+	block->lightTilesX = tilesX;
+	block->lightTilesY = tilesY;
 }
 
 /*
@@ -1243,19 +1530,39 @@ static qboolean R_VolumetricNoise( VolumetricFogBlock *block, const trRefdef_t *
 	return qtrue;
 }
 
-// the noise settings the history was built with (a change resets it)
-static unsigned int R_VolumetricNoiseKey( void )
+static unsigned int R_VolumetricHashBytes( unsigned int key, const void *data, size_t size )
 {
-	const float values[5] = {
+	const byte *bytes = (const byte *)data;
+	for ( size_t i = 0; i < size; i++ )
+		key = (key ^ bytes[i]) * 16777619u;
+	return key;
+}
+
+// The medium and light settings the history was built with (a change resets
+// it): the radiance clamp cannot repair a history whose extinction or noise
+// coordinates (the wind phase is absolute time * wind) are different.
+static unsigned int R_VolumetricMediumKey( void )
+{
+	const float values[] = {
 		(float)r_volumetricFogNoise->integer,
 		r_volumetricFogNoiseScale->value,
 		r_volumetricFogNoiseContrast->value,
 		r_volumetricFogNoiseDetailScale->value,
-		r_volumetricFogNoiseDetailContrast->value };
-	unsigned int key = 2166136261u;
-	const byte *bytes = (const byte *)values;
-	for ( size_t i = 0; i < sizeof(values); i++ )
-		key = (key ^ bytes[i]) * 16777619u;
+		r_volumetricFogNoiseDetailContrast->value,
+		r_volumetricFogScale->value,
+		tr.volumetricFogScale,
+		(float)r_volumetricFogHeight->integer,
+		r_volumetricFogHeightOpaque->value,
+		r_volumetricFogHeightBase->value,
+		r_volumetricFogHeightFalloff->value,
+		r_volumetricFogHeightMax->value,
+		r_volumetricFogHeightTop->value,
+		r_volumetricFogAnisotropy->value,
+		r_volumetricFogSunScale->value,
+		r_volumetricFogStaticScale->value };
+	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
+	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
+	key = R_VolumetricHashBytes(key, r_volumetricFogNoiseWind->string, strlen(r_volumetricFogNoiseWind->string));
 	return key;
 }
 
@@ -1394,7 +1701,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// history
 	const int debug = r_volumetricFogDebug->integer;
-	const unsigned int noiseKey = R_VolumetricNoiseKey();
+	const unsigned int mediumKey = R_VolumetricMediumKey();
 	const qboolean temporal = (qboolean)(r_volumetricFogTemporal->integer != 0);
 	qboolean historyValid = (qboolean)(
 		temporal &&
@@ -1406,7 +1713,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		s_vf.nearZ == nearZ &&
 		s_vf.farZ == farZ &&
 		s_vf.debug == debug &&
-		s_vf.noiseKey == noiseKey &&
+		s_vf.mediumKey == mediumKey &&
 		!r_volumetricFogReset->integer &&
 		tr.temporalHistoryValid);
 	if ( historyValid )
@@ -1438,10 +1745,10 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	s_vf.nearZ = nearZ;
 	s_vf.farZ = farZ;
 	s_vf.debug = debug;
-	s_vf.noiseKey = noiseKey;
+	s_vf.mediumKey = mediumKey;
 	s_vf.frameIndex++;
 
-	R_VolumetricCullLights(view, refdef, forward);
+	R_VolumetricBuildLightLists(&block, view, refdef, froxelProjection);
 
 	// froxel camera
 	const float *P = froxelProjection;
@@ -1541,6 +1848,46 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		VectorSet4(block.fogMins[i], fog->bounds[0][0], fog->bounds[0][1], fog->bounds[0][2], fog->hasSurface ? 1.0f : 0.0f);
 		const qboolean noisy = (qboolean)(noiseMask & ((fog == tr.world->globalFog) ? 4 : 2));
 		VectorSet4(block.fogMaxs[i], fog->bounds[1][0], fog->bounds[1][1], fog->bounds[1][2], noisy ? 1.0f : 0.0f);
+	}
+
+	// the slices each fog volume may touch: its bounds against the frustum
+	// sides and its view depth range, one slice wider on both sides (the
+	// injection samples at jittered positions, up to half a slice away)
+	for ( int i = 0; i < numFogs; i++ )
+	{
+		const fog_t *fog = tr.world->fogs + i + 1;
+		qboolean visible = qtrue;
+		for ( int p = 0; p < 4 && visible; p++ )
+		{
+			// the corner of the bounds furthest along the plane normal
+			const cplane_t *plane = &view->frustum[p];
+			vec3_t corner;
+			for ( int c = 0; c < 3; c++ )
+				corner[c] = fog->bounds[plane->normal[c] >= 0.0f ? 1 : 0][c];
+			if ( DotProduct(corner, plane->normal) - plane->dist < 0.0f )
+				visible = qfalse;
+		}
+		if ( !visible )
+			continue;
+
+		float minDepth = 1e30f, maxDepth = -1e30f;
+		for ( int c = 0; c < 8; c++ )
+		{
+			const vec3_t corner = {
+				fog->bounds[c & 1][0], fog->bounds[(c >> 1) & 1][1], fog->bounds[(c >> 2) & 1][2] };
+			vec3_t delta;
+			VectorSubtract(corner, view->ori.origin, delta);
+			const float depth = DotProduct(delta, forward);
+			minDepth = MIN(minDepth, depth);
+			maxDepth = MAX(maxDepth, depth);
+		}
+		if ( maxDepth < 0.0f || minDepth > farZ )
+			continue;
+
+		const int z0 = Q_max(0, R_VolumetricDepthSlice(minDepth) - 1);
+		const int z1 = Q_min(s_vf.depth - 1, R_VolumetricDepthSlice(maxDepth) + 1);
+		for ( int k = z0; k <= z1; k++ )
+			block.fogSlices[k] |= 1 << i;
 	}
 
 	// local fog volumes: culled, nearest first, per slice lists (tr_fogvolume.cpp).
@@ -1760,17 +2107,31 @@ void RB_VolumetricBuild( void )
 			GL_BindToTMU(tr.sunShadowArrayImage, TB_SHADOWMAP);
 		if ( tr.pointShadowArrayImage )
 			GL_BindToTMU(tr.pointShadowArrayImage, TB_SHADOWMAPARRAY);
-
-		for ( int k = 0; k < s_vf.depth; k++ )
+		if ( s_vfl.hasLights )
 		{
-			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				tr.froxelInjectImage[current]->texnum, 0, k);
-			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-				tr.froxelDynamicImage->texnum, 0, k);
-			GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, k);
-			GLSL_SetUniformInt(sp, UNIFORM_LIGHTMASK, s_vf.lightMask[k]);
-			RB_InstantTriangle();
+			GL_BindToTMU(&s_vfl.lightImages[s_vfl.lightSlot], TB_FPLUS_LIGHTS);
+			GL_BindToTMU(&s_vfl.listImages[s_vfl.lightSlot], TB_FPLUS_GRID);
 		}
+
+		// every slice: instance k renders layer k
+		const GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelInjectImage[current]->texnum, 0);
+		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, tr.froxelDynamicImage->texnum, 0);
+		qglDrawBuffers(2, bufs);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
+		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
+
+		// tail pass: the light at the far side of the volume (FroxelLookup
+		// lights the media beyond far with it), into the 2D tail alone (a
+		// layered attachment next to it would make the framebuffer incomplete)
+		const GLenum buf = GL_COLOR_ATTACHMENT0;
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D, tr.froxelTailImage->texnum, 0);
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
+		qglDrawBuffers(1, &buf);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, -1);
+		RB_InstantTriangle();
+		qglDrawBuffers(2, bufs);
 	}
 	RB_VolumetricEndTimer(timer);
 
@@ -1784,11 +2145,6 @@ void RB_VolumetricBuild( void )
 		GL_BindToTMU(tr.froxelInjectImage[current], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelDynamicImage, TB_NORMALMAP);
 
-		// the tail is draw buffer 2, masked by default with SSR / SSGI (the
-		// screen-space attachments of renderFbo, see GL_SetScreenAuxWrite)
-		GL_SetScreenAuxWrite(true);
-
-		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 		for ( int k = 0; k < s_vf.depth; k++ )
 		{
 			const int carryWrite = k & 1;
@@ -1796,14 +2152,11 @@ void RB_VolumetricBuild( void )
 				tr.froxelIntegratedImage->texnum, 0, k);
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
 				GL_TEXTURE_2D, tr.froxelCarryImage[carryWrite]->texnum, 0);
-			qglDrawBuffers((k == s_vf.depth - 1) ? 3 : 2, bufs);
 
 			GL_BindToTMU(tr.froxelCarryImage[carryWrite ^ 1], TB_LIGHTMAP);
 			GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, k);
 			RB_InstantTriangle();
 		}
-
-		GL_SetScreenAuxWrite(false);
 	}
 	RB_VolumetricEndTimer(timer);
 

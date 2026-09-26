@@ -1,8 +1,33 @@
 /*[Vertex]*/
+// every slice in one instanced draw: instance k = slice u_FroxelSlice + k (u_FroxelSlice -1: the tail
+// pass, one instance, not layered)
+uniform int u_FroxelSlice;
+flat out int var_VertexSlice;
+
 void main()
 {
 	vec2 position = vec2(2.0 * float(gl_VertexID & 2) - 1.0, 4.0 * float(gl_VertexID & 1) - 1.0);
 	gl_Position = vec4(position, 0.0, 1.0);
+	var_VertexSlice = u_FroxelSlice + gl_InstanceID;
+}
+
+/*[Geometry]*/
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+flat in int var_VertexSlice[];
+flat out int var_Slice;
+
+void main()
+{
+	for (int i = 0; i < 3; i++)
+	{
+		gl_Layer = max(var_VertexSlice[0], 0);
+		gl_Position = gl_in[i].gl_Position;
+		var_Slice = var_VertexSlice[0];
+		EmitVertex();
+	}
+	EndPrimitive();
 }
 
 /*[Fragment]*/
@@ -25,7 +50,8 @@ void main()
 //   sun     inside the cascaded shadow maps: realtime sun radiance * shadow * phase, beyond them (and
 //           where the cascades see no sun in the whole light grid cell) the baked sun part of the
 //           light grid * phase
-//   dynamic every light of the slice (CPU culled, u_LightMask) * attenuation * phase * its shadow map
+//   dynamic the lights of the froxel's cluster (CPU binned per tile and slice, R_VolumetricBuildLightLists)
+//           * attenuation * phase * its shadow map
 
 uniform sampler3D u_FroxelHistory;
 uniform sampler3D u_VolumetricStaticGrid;
@@ -37,8 +63,12 @@ uniform sampler2DArrayShadow u_ShadowMap;	// legacy sun cascades
 #endif
 uniform sampler2DArrayShadow u_ShadowMap2;	// dynamic light cube faces, 6 layers per light
 
-uniform int u_FroxelSlice;
-uniform int u_LightMask;
+flat in int var_Slice;	// slice of this layer, -1 = tail pass
+
+// dynamic light lists: 2 texels per light (origin, radius | color, shadow cube layer), and per
+// cluster a header (first entry | count << 24) followed by the light indexes
+uniform samplerBuffer u_FPlusLights;
+uniform usamplerBuffer u_FPlusGridMap;
 
 struct Light
 {
@@ -114,7 +144,7 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
 	int localHeader = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12) ?
-		FroxelLocalSliceHeader(u_FroxelSlice) : 0;
+		FroxelLocalSliceHeader(var_Slice) : 0;
 	int localCount = localHeader >> 16;
 	if (localCount > 0)
 	{
@@ -164,19 +194,24 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 		float e = FroxelHeightExtinction(p);
 		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
 		{
-			noisyExtinction = e;
-			noisyAlbedo = u_FroxelHeightFogColor.rgb * e;
+			noisyExtinction += e;
+			noisyAlbedo += u_FroxelHeightFogColor.rgb * e;
 		}
 		else
 		{
-			extinction = e;
-			albedo = u_FroxelHeightFogColor.rgb * e;
+			extinction += e;
+			albedo += u_FroxelHeightFogColor.rgb * e;
 		}
 	}
 
-	int numFogs = (debugView == 12 || debugView == 16) ? 0 : u_FroxelNumFogs;
+	// the fog volumes that may touch this slice (CPU culled)
+	int fogMask = (debugView == 12 || debugView == 16) ? 0 : u_FroxelFogSlices[var_Slice >> 2][var_Slice & 3];
+	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
 	{
+		if (((fogMask >> i) & 1) == 0)
+			continue;
+
 		vec4 mins = u_FroxelFogMins[i];
 		vec4 maxs = u_FroxelFogMaxs[i];
 		if (any(lessThan(p, mins.xyz)) || any(greaterThan(p, maxs.xyz)))
@@ -388,20 +423,33 @@ float DynamicLightShadow(in vec3 L, in float dist, in float radius, in int light
 	return result * 0.25;
 }
 
-// dynamic lights of this slice at p (viewDir: camera to p, unit)
-vec3 DynamicLights(in vec3 p, in vec3 viewDir, in float g)
+// cluster header of the froxel cell in the slice: first entry | count << 24, 0 = no lights
+uint FroxelLightCluster(in ivec2 cell, in int slice)
+{
+	if (u_FroxelLightTile <= 0)
+		return 0u;
+	ivec2 tile = cell / u_FroxelLightTile;
+	int cluster = (slice * u_FroxelLightTilesY + tile.y) * u_FroxelLightTilesX + tile.x;
+	return texelFetch(u_FPlusGridMap, cluster).r;
+}
+
+// dynamic lights of the cluster at p (viewDir: camera to p, unit)
+vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 {
 	vec3 light = vec3(0.0);
-	for (int i = 0; i < MAX_DLIGHTS; i++)
+	int first = int(cluster & 0xffffffu);
+	int count = int(cluster >> 24);
+	for (int j = 0; j < count; j++)
 	{
-		if ((u_LightMask & (1 << i)) == 0)
-			continue;
+		int i = int(texelFetch(u_FPlusGridMap, first + j).r);
+		vec4 originRadius = texelFetch(u_FPlusLights, i * 2);
+		vec4 colorLayer = texelFetch(u_FPlusLights, i * 2 + 1);
+		float radius = originRadius.w;
 
-		Light dl = u_Lights[i];
-		vec3 L = dl.origin.xyz - p;
+		vec3 L = originRadius.xyz - p;
 		float sqrDist = max(dot(L, L), 1e-4);
 		// CalcLightAttenuation of lightall: zero at the radius
-		float attenuation = clamp(0.5 * dl.radius * dl.radius / sqrDist - 0.5, 0.0, 1.0);
+		float attenuation = clamp(0.5 * radius * radius / sqrDist - 0.5, 0.0, 1.0);
 		if (attenuation <= 0.0)
 			continue;
 
@@ -410,24 +458,86 @@ vec3 DynamicLights(in vec3 p, in vec3 viewDir, in float g)
 		float phase = FroxelPhase(g, dot(L / dist, viewDir));
 
 		float shadow = 1.0;
-		// origin.w = shadow cube layer (legacy: i, Forward+: slot or -1)
-		int shadowLayer = int(dl.origin.w);
+		// shadow cube layer (legacy: i, Forward+: slot or -1)
+		int shadowLayer = int(colorLayer.w);
 		if (u_FroxelShadowParams.z > 0.5 && shadowLayer >= 0)
-			shadow = DynamicLightShadow(L, dist, dl.radius, shadowLayer);
+			shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
 
-		light += dl.color * attenuation * phase * shadow;
+		light += colorLayer.rgb * attenuation * phase * shadow;
 	}
 
 	return light;
 }
 
+// Baked light (returned, isotropic) and sun (phase included) at p. sunUnshadowed: the sun without
+// its realtime shadow (debug view 2).
+vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, out vec3 sunLight, out vec3 sunUnshadowed)
+{
+	sunLight = vec3(0.0);
+	sunUnshadowed = vec3(0.0);
+
+	vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
+	vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
+	vec4 staticGrid = texture(u_VolumetricStaticGrid, gridCoord);
+	vec3 staticLight = staticGrid.rgb * u_FroxelLightParams.w;
+	float trust = staticGrid.a;
+
+	if (u_FroxelSunDirection.w > 0.5)
+	{
+		// sunlight travels along -sunDirection, towards the camera is -viewDir
+		float phase = FroxelPhase(g, dot(u_FroxelSunDirection.xyz, viewDir));
+		vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb;
+		sunUnshadowed = bakedSun;
+		sunLight = bakedSun;
+		if (u_FroxelSunColor.w > 0.5)
+		{
+			float coverage;
+			float shadow = SunShadow(p, temporal, coverage);
+
+			// The split light grid only knows the light direction: a lamp straight above can
+			// look like a high sun. The baked sun part is trusted only where the sky is visible from
+			// the light grid cell (traced at map load, R_BuildVolumetricLightGrid); deep in shadow
+			// (indoors) it stays baked light.
+			coverage *= trust;
+			sunLight = mix(bakedSun, u_FroxelSunColor.rgb * shadow, coverage);
+			sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb, coverage);
+		}
+		sunLight *= phase * u_FroxelLightParams.y;
+		sunUnshadowed *= phase * u_FroxelLightParams.y;
+	}
+
+	return staticLight;
+}
+
 void main()
 {
 	ivec2 cell = ivec2(gl_FragCoord.xy);
-	float slice = float(u_FroxelSlice);
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
 	float g = u_FroxelLightParams.x;
+
+	// tail pass (var_Slice < 0, into u_FroxelTail): the light at the far side of the volume,
+	// without albedo, lights the media beyond far (FroxelLookup). No medium test: a fog volume may
+	// start beyond far.
+	if (var_Slice < 0)
+	{
+		vec3 pf = FroxelWorldPosition(vec3(vec2(cell) + 0.5, u_FroxelGridSize.z));
+		vec3 sunTail, unusedSun;
+		vec3 light = BakedAndSunLight(pf, 0.0, g, sunTail, unusedSun) + sunTail;
+		if (debugView == 3)
+			light = sunTail;
+		else if (debugView == 4)
+			light = vec3(0.0);
+		else if (debugView == 5)
+			light -= sunTail;
+		if (any(isnan(light)) || any(isinf(light)))
+			light = vec3(0.0);
+		out_Color = vec4(light, 1.0);
+		out_Dynamic = vec4(0.0);
+		return;
+	}
+
+	float slice = float(var_Slice);
 
 	// the baked light and the sun are sampled at a jittered position and accumulated over frames, the
 	// dynamic lights at the froxel center
@@ -438,9 +548,10 @@ void main()
 	float noisyFraction, localFraction, localChange;
 	vec4 medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange);
 
-	// the medium at the center is only needed by the dynamic lights of this slice
+	// the medium at the center is only needed where the cluster has dynamic lights
+	uint cluster = FroxelLightCluster(cell, var_Slice);
 	vec4 mediumCenter = vec4(0.0);
-	if (u_LightMask != 0)
+	if ((cluster >> 24) != 0u)
 	{
 		float unused0, unused1, unused2;
 		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2);
@@ -451,55 +562,14 @@ void main()
 	vec3 sunLight = vec3(0.0);
 	vec3 sunUnshadowed = vec3(0.0);
 	if (medium.a > 0.0)
-	{
-		vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
-		vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
-		staticLight = texture(u_VolumetricStaticGrid, gridCoord).rgb * u_FroxelLightParams.w;
-
-		if (u_FroxelSunDirection.w > 0.5)
-		{
-			// sunlight travels along -sunDirection, towards the camera is -viewDir
-			float phase = FroxelPhase(g, dot(u_FroxelSunDirection.xyz, viewDir));
-			vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb;
-			sunUnshadowed = bakedSun;
-			sunLight = bakedSun;
-			if (u_FroxelSunColor.w > 0.5)
-			{
-				float coverage;
-				float shadow = SunShadow(p, temporal, coverage);
-
-				// The split light grid only knows the light direction: a lamp straight above can
-				// look like a high sun. Trust the baked sun part only where the cascades see the sun
-				// somewhere in the light grid cell; deep in shadow (indoors) it stays baked light.
-				float trust = 1.0;
-				if (dot(bakedSun, vec3(1.0)) > 0.0)
-				{
-					vec3 cell = 0.5 * vec3(u_FroxelGridScale.ww, u_FroxelGridOrigin.w);
-					float unused;
-					float visibility =
-						SunShadow(p + cell * vec3( 1.0,  1.0,  1.0), 1.0, unused) +
-						SunShadow(p + cell * vec3( 1.0, -1.0, -1.0), 1.0, unused) +
-						SunShadow(p + cell * vec3(-1.0,  1.0, -1.0), 1.0, unused) +
-						SunShadow(p + cell * vec3(-1.0, -1.0,  1.0), 1.0, unused) +
-						shadow;
-					trust = clamp(visibility * 2.5, 0.0, 1.0);
-				}
-
-				coverage *= trust;
-				sunLight = mix(bakedSun, u_FroxelSunColor.rgb * shadow, coverage);
-				sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb, coverage);
-			}
-			sunLight *= phase * u_FroxelLightParams.y;
-			sunUnshadowed *= phase * u_FroxelLightParams.y;
-		}
-	}
+		staticLight = BakedAndSunLight(p, temporal, g, sunLight, sunUnshadowed);
 
 	// dynamic lights
 	vec3 dynamicLight = vec3(0.0);
 	if (mediumCenter.a > 0.0)
 	{
 		vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
-		dynamicLight = DynamicLights(pc, viewDir, g) * u_FroxelLightParams.z;
+		dynamicLight = DynamicLights(cluster, pc, viewDir, g) * u_FroxelLightParams.z;
 	}
 
 	// debug views of a single light term

@@ -1233,7 +1233,9 @@ struct VolumetricFogBlock
 	vec4_t noiseNormMacro[4];		// mean normalization of the macro noise at lod 0, 0.5, ..., 7.5
 	vec4_t noiseNormDetail[4];		// same, detail noise
 	int numFogs;
-	int pad0[3];
+	int lightTileSize;				// dynamic light lists: froxels per tile side (0 = no lights)
+	int lightTilesX;				// tiles per slice
+	int lightTilesY;
 	vec4_t fogColor[MAX_GPU_FOGS];	// rgb albedo (fog color), a: extinction per unit
 	vec4_t fogPlane[MAX_GPU_FOGS];	// as the Fogs block
 	vec4_t fogMins[MAX_GPU_FOGS];	// w: has plane
@@ -1252,6 +1254,9 @@ struct VolumetricFogBlock
 	vec4_t localMotion[MAX_GPU_FOG_VOLUMES];	// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
 	int localSlices[FROXEL_MAX_SLICES];			// per slice: first pool entry | count << 16 (ivec4[32])
 	int localIndex[FROXEL_LOCAL_POOL / 4];		// 8 bit volume indices, 4 per int (ivec4[128])
+
+	// BSP fog volumes that may touch each slice (bit i = fog i, MAX_GPU_FOGS <= 32)
+	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
 };
 
 // 14 048 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
@@ -5102,6 +5107,7 @@ struct UniformBlockBinding;
 qboolean R_VolumetricFroxelEnabled(void);
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
+void R_ShutdownVolumetric(void);
 void R_BuildVolumetricLightGrid(world_t *world);
 void R_SetHeightFogBase(const world_t *worldData);
 void R_VolumetricFog_f(void);
@@ -5202,6 +5208,7 @@ void R_ForwardPlusPrepareScene(const trRefdef_t *refdef);
 int R_ForwardPlusNumShadowSlots(void);
 int R_ForwardPlusShadowSlotLight(int slot);
 int R_GetUboDlights(const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers);
+int R_GetDlightList(const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers, int maxLights);
 void RB_UpdateForwardPlus(struct gpuFrame_t *frame, const trRefdef_t *refdef);
 void RB_ForwardPlusCameraParams(int viewParm, CameraBlock *cameraBlock);
 qboolean RB_ForwardPlusViewEnabled(int viewParm);

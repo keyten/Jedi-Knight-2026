@@ -62,11 +62,16 @@ discretisation (see Integration).
 
 - `Fx = ceil(width / gridScale)`, `Fy = ceil(height / gridScale)`, `Fz = slices`; x, y cover the main view.
 - Slices are exponential in view depth (distance along the view forward axis):
-  `B(k) = near * (far / near)^(k / Fz)`, slice k spans `[B(k), B(k+1)]`, slice 0 starts at the camera.
+  `B(k) = near * (far / near)^(k / Fz)`, slice k spans `[B(k), B(k+1)]`, slice 0 starts at the camera. The slice
+  coordinate is linear inside slice 0 (`d = z * B(1)`, `FroxelWToDepth` / `FroxelDepthToW`), so its samples lie
+  inside its own integration domain `[0, B(1)]` (center 4.6 units, not 8.5 at the near plane).
   `near = 8` units, `far = r_volumetricFogFar` (0 = 4096). With 48 slices every slice is 13.9% deeper than the
   previous one: ~1 unit thick at 8 units, ~14 at 100, ~140 at 1000.
-- Beyond `far` the medium of the last slice is extrapolated analytically (tail texture), so distant walls and the
-  sky of a global fog are fogged like before.
+- Beyond `far` the media are integrated analytically per pixel (`FroxelTailMedium`): every BSP fog volume clipped
+  to its bounds and visible side along the segment `[far, d]`, and the exact integral of the height fog
+  (exponential above its cap, constant below, top cut in the middle of its fade). A bounded fog that ends at 4500
+  stops there, one that starts beyond far is still seen. They are lit by the tail texture: the baked + sun light
+  at the far side of each froxel column, without albedo (the tail pass of the injection).
 - Presets (`r_volumetricFogQuality`), **starting points, not profiled yet**:
 
 | quality | pixels per froxel | slices | 1920x1080 grid | froxels | volume memory |
@@ -75,8 +80,8 @@ discretisation (see Integration).
 | 1 medium (default) | 8 | 48 | 240 x 135 x 48 | 1.56 M | 43.5 MB |
 | 2 high | 8 | 64 | 240 x 135 x 64 | 2.07 M | 58.1 MB |
 
-  `r_volumetricFogGridScale` / `r_volumetricFogSlices` override the preset (latched). Draws per frame: `2 * slices
-  + 1`.
+  `r_volumetricFogGridScale` / `r_volumetricFogSlices` override the preset (latched). Draws per frame: one
+  instanced injection draw, the tail pass, `slices` integration draws and the composite.
 
 ### Froxel data
 
@@ -86,40 +91,47 @@ discretisation (see Integration).
 | `froxelDynamicImage` | R11G11B10F 3D | Fx Fy Fz | emission of the dynamic lights, this frame only |
 | `froxelIntegratedImage` | RGBA16F 3D | Fx Fy Fz | rgb = in-scattering S, a = transmittance T, between the camera and the far side `B(k+1)` of slice k |
 | `froxelCarryImage[2]` | RGBA16F 2D | Fx Fy | integration state between two slices (ping-pong, no feedback loop) |
-| `froxelTailImage` | RGBA16F 2D | Fx Fy | radiance (emission / extinction) and extinction of the last slice |
-| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | baked light without the sun (rgb), sun fraction (a, debug) |
-| `world->volumetricSunGrid` | RGBA16F 3D | light grid | baked sun part |
+| `froxelTailImage` | RGBA16F 2D | Fx Fy | light at the far side of the volume (baked + sun with phase, no albedo): lights the media beyond far |
+| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | baked light without the sun (rgb), sun trust (a, traced at load) |
+| `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part |
+| froxel light lists | buffer textures | per frame | lights (RGBA32F, 2 texels) and cluster headers + indexes (R32UI) |
 
 Emission (not radiance) is stored because it is linear in the medium: blending two frames of emission and
 extinction is correct at fog boundaries and under jitter.
 
 ### Pipeline without compute shaders
 
-Rend2 runs on a GL 3.2 core context: no compute shaders, no image load / store. Every slice of a 3D texture is
-rendered with a full screen triangle into a framebuffer with that layer attached (`glFramebufferTextureLayer`),
-one draw per slice. The integration carries its running state in a 2D texture ping-pong, because sampling another
+Rend2 runs on a GL 3.2 core context: no compute shaders, no image load / store. The injection renders every slice
+in one instanced draw into layered attachments (`glFramebufferTexture`): the geometry shader sends instance k to
+layer k (`gl_Layer`). The integration needs the previous slice, so it stays one draw per slice with that layer
+attached (`glFramebufferTextureLayer`). The integration carries its running state in a 2D texture ping-pong, because sampling another
 layer of the texture that is being rendered to is a feedback loop in GL.
 
 ## Injection (`volumetric_inject.glsl`)
 
-Per froxel, one slice per draw:
+Per froxel (instance / layer = slice):
 
 1. **Position.** The baked light and the sun are sampled at a jittered position (Halton 2, 3, 5 over 8 frames, a
    full froxel wide) when temporal accumulation is on, the dynamic lights at the froxel center.
 2. **Medium.** Sum of the extinction of the fog volumes that contain the point: their axial bounds and the plane
    of their visible side (the same `inFog` test as `CalcFog`); the global fog everywhere below its cap plane.
-   Albedo = extinction weighted fog color. The height fog, the density noise and the local fog volumes (see Local fog
-   volumes) are in `FroxelMedium` too.
+   Albedo = extinction weighted fog color. Only the fog volumes of the slice's CPU mask are tested (bounds against
+   the frustum sides and the view depth range, one slice wider for the jitter; `fogSlices`). The height fog, the
+   density noise and the local fog volumes (see Local fog volumes) are in `FroxelMedium` too; all media add.
 3. **Baked light.** `volumetricStaticGrid` at the point, isotropic, `* r_volumetricFogStaticScale`.
 4. **Sun.** Phase `4 pi HG(g, dot(sunDir, viewDir))`, `* r_volumetricFogSunScale`:
    - with cascaded shadow maps this frame (`VPF_USESUNLIGHT`): `sunRadiance * shadow`, blended to the baked sun
      part at the far end of the last cascade (same fade as lightall);
    - without them: the baked sun part `volumetricSunGrid`.
-5. **Dynamic lights.** The lights of this slice (`u_LightMask`, see culling) with lightall's attenuation
+5. **Dynamic lights.** The lights of the froxel's cluster with lightall's attenuation
    `clamp(0.5 * r^2 / d^2 - 0.5)`, phase `4 pi HG(g, dot(toLight, viewDir))`, their shadow map (see Shadows),
    `* r_volumetricFogDlightScale`. The dynamic light system is the only source: sabers, bolts, explosions are
    volumetric exactly when game code adds a dynamic light for them. There are no spot / projected lights in the
-   renderer.
+   renderer. Clustered like Forward+ but on the froxel grid (`R_VolumetricBuildLightLists`): tiles of 8 x 8
+   froxels per slice, each light sphere binned into the clusters its projected bounds and depth range touch, at
+   most 32 per cluster (the least important drop out). With `r_forwardPlus 1` every point light of the scene is a
+   candidate (no `MAX_DLIGHTS` limit), otherwise the lights of the Lights block. The medium at the froxel center is
+   evaluated only where the cluster has lights.
 6. **Temporal filter** of baked + sun (see Temporal). The dynamic light emission is written to its own volume
    without history.
 
@@ -139,8 +151,13 @@ their average color, so light beams have the brightness the map was compiled wit
 refdef sun color is used.
 
 The direction of a grid cell is a mix of all its lights, so a lamp straight above can look like a high sun. The
-injection therefore trusts the baked sun part only where the cascades see the sun somewhere in the grid cell (4
-extra cascade lookups at the cell corners): deep in shadow (indoors) it stays baked light and is not darkened.
+injection therefore trusts the baked sun part only where the sky is visible from the grid cell: at map load, for
+every cell with a sun part, rays towards the sun from the cell center and four corners of a tetrahedron half a
+cell out (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` surface counts as the sky). Trust
+= 1 if any reaches it, stored in the alpha of `volumetricStaticGrid` (trilinear between cells). Deep in shadow
+(indoors) the sun part stays baked light and is not darkened. The central realtime cascade lookup stays, so
+characters still cut the beams; the trust no longer depends on the cascade range or on moving occluders. The load
+time is printed with `developer 1` ("Froxel fog sun trust").
 
 Offline check on the stock maps (`maps/*.bsp` with fog, sun from the sky shader):
 
@@ -381,8 +398,8 @@ sigma(p)   = rho * extinction * fade(view depth)
   froxel would alias.
 - `s = 1` fades from the center (a cloud), `s = 0.3` gives a dense core with a soft skin.
 - `fade` takes local volumes out between 0.8 x and 1 x the near side of the last slice. The last slice has no list,
-  because the tail beyond far extrapolates the medium of the last slice and would stretch a local volume to
-  infinity. At the default far of 4096 the fade starts around 2800 units.
+  and the analytic tail beyond far does not contain local volumes, so without the fade they would end with a hard
+  cut at far. At the default far of 4096 the fade starts around 2800 units.
 
 ### Authoring routes
 
@@ -449,7 +466,7 @@ sigma(p)   = rho * extinction * fade(view depth)
    gets a bounding sphere: max extent for an ellipsoid, `|extents|` for a box. The sphere of a changed volume
    also covers its previous state.
 2. Frustum test: the sphere against the 4 side planes of the view, and depth in `[0, fade end]`. This is the test
-   of `R_VolumetricCullLights` for the dynamic lights.
+   of `R_VolumetricLightRange` for the dynamic lights.
 3. Sort by `view depth - radius` and keep the nearest `MAX_GPU_FOG_VOLUMES` = 64. The rest are dropped and counted
    (`r_fogvol`, developer print).
 4. **Per slice packed lists.** For each slice k (0 .. N-2), in near-to-far order, the uploaded volumes whose sphere
@@ -583,15 +600,19 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
   leave trails. They are sampled at the froxel center with a fixed shadow pattern, so they need none.
 - **History reset**: map change, no volume in the previous frame, camera move over 256 units, rotation over 75
   degrees, FOV change over 15%, near / far / debug view change, `r_volumetricFogReset 1` (game code, cleared by the
-  renderer), the motion blur cut detection (`tr.temporalHistoryValid`, when `r_motionBlur` is on).
+  renderer), the motion blur cut detection (`tr.temporalHistoryValid`, when `r_motionBlur` is on), and any change
+  of the medium key (`R_VolumetricMediumKey`: fog scales, every height fog and noise setting including the wind,
+  anisotropy, sun / static scale). The radiance clamp cannot repair a history built with another extinction, and
+  the wind phase is absolute time * wind, so a new wind moves the whole pattern.
 - "A volume in the previous frame" means one the GPU passes actually wrote (`RB_VolumetricBuild` records the
   frame and the image), not only one the constants planned: a skipped build (no draw surfaces, the view not on
   `renderFbo`, ...) must not turn a never written image into the history. The volumes are cleared at creation,
   and the inject pass drops a NaN / Inf history and never writes one, so a bad froxel cannot be fed back.
 - **Draw buffers 2-4 are color masked by default when SSR is on** (`GL_ResetSSRAuxWrite` after every
   `qglColorMask`, the SSR material attachments of `renderFbo`). Any froxel pass that writes attachment 2 or
-  higher, or clears it, must enable it with `GL_SetSSRAuxWrite(true)` and restore it. The integrate pass writes
-  the tail there: without it the tail was never written, which on a first map is zeroed memory (no fog beyond
+  higher, or clears it, must enable it with `GL_SetSSRAuxWrite(true)` and restore it. The integrate pass used to
+  write the tail there (it is now written by the injection's tail pass to attachment 0): without it the tail was
+  never written, which on a first map is zeroed memory (no fog beyond
   far) and after a map change (the GL context is kept) recycled VRAM: black blurry froxel squares over the whole
   sky (seen on taspir1), history and light term independent, gone after `vid_restart`.
 - Depth discontinuities: the froxel volume is world anchored and defined behind geometry too, so reprojection has
@@ -758,8 +779,9 @@ vs `*-vfog.dll`).
 - The light grid split is a heuristic; `r_volumetricFogSunScale` / `StaticScale` balance it per map.
 - The history of the view model region is reprojected like the world (the volume is world space).
 - Moving fog volumes (brush entities) are not supported (neither are they in the legacy fog).
-- Height fog: beyond `r_volumetricFogFar` the last slice extinction is extrapolated (constant along the ray);
-  thin layers far away are limited by the slice depth; only mode 2 has it; one global layer set by cvars; the
+- Beyond `r_volumetricFogFar` the medium is exact (analytic) but its light is the light of the last slice of the
+  column, and the density noise is not applied there (mean 1). Height fog: the soft top is a hard cut in the
+  middle of its fade beyond far; thin layers far away are limited by the slice depth; only mode 2 has it; one global layer set by cvars; the
   automatic base is the lowest floor, which can be a pit or a basement below the main ground level.
 - Density noise: 64^3 tile. With the macro field alone the period (4096) can show on huge open views when the
   volume far is raised; turn the detail on or raise the scale. The same field modulates every noisy medium (no
@@ -778,6 +800,5 @@ vs `*-vfog.dll`).
 
 - Per map height fog / noise settings, per medium noise scale (local fog volumes use the global noise field).
 - A cgame trap for `AddFogVolumeToScene` (game / FX code), and fog volume primitives in the effects system.
-- Per tile light lists instead of per slice masks.
 - Depth aware (minimum depth per froxel column) skipping of hidden froxels.
 - Blue noise instead of a Halton cycle for the jitter.

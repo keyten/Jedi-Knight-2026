@@ -3047,6 +3047,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ClearAreaLights();
 		R_FoliageInteractionReset();
 		R_ShutdownPomSilhouette();
+		R_ShutdownVolumetric();
 
 		if (!destroyWindow && !restarting)
 		{

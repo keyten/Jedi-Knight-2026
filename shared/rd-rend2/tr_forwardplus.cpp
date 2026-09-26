@@ -585,10 +585,17 @@ int R_ForwardPlusShadowSlotLight( int slot )
 
 int R_GetUboDlights( const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers )
 {
+	return R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_DLIGHTS);
+}
+
+// the point lights of the scene, most important first (Forward+) or in scene
+// order (legacy), at most maxLights; shadowLayers: cube layer or -1
+int R_GetDlightList( const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers, int maxLights )
+{
 	if ( !s_fp.active )
 	{
 		// legacy: unchanged, light i uses shadow cube i
-		const int n = Q_min(refdef->num_dlights, MAX_DLIGHTS);
+		const int n = Q_min(Q_min(refdef->num_dlights, MAX_DLIGHTS), maxLights);
 		for ( int i = 0; i < n; i++ )
 		{
 			lightIndexes[i] = i;
@@ -600,7 +607,7 @@ int R_GetUboDlights( const trRefdef_t *refdef, int *lightIndexes, int *shadowLay
 	R_ForwardPlusPrepareScene(refdef);
 	// point lights only: the legacy Lights block has no area light shape
 	int n = 0;
-	for ( int k = 0; k < s_fp.numLights && n < MAX_DLIGHTS; k++ )
+	for ( int k = 0; k < s_fp.numLights && n < maxLights; k++ )
 	{
 		const int light = s_fp.order[k];
 		if ( refdef->dlights[light].areaType != DLIGHT_POINT )
