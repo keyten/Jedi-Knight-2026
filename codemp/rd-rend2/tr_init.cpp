@@ -2278,7 +2278,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogSlices, 0, 128, qtrue);
 	r_volumetricFogFar = ri.Cvar_Get("r_volumetricFogFar", "0", CVAR_ARCHIVE, "Froxel fog: distance covered by the froxel slices, 0 = automatic (4096). Beyond it the medium of the last slice is extrapolated");
 	ri.Cvar_CheckRange(r_volumetricFogFar, 0, 65536, qfalse);
-	r_volumetricFogAnisotropy = ri.Cvar_Get("r_volumetricFogAnisotropy", "0.2", CVAR_ARCHIVE, "Froxel fog: Henyey-Greenstein g of the sun and dynamic light scattering, 0 = isotropic, > 0 forward, < 0 backward");
+	r_volumetricFogAnisotropy = ri.Cvar_Get("r_volumetricFogAnisotropy", "0.2", CVAR_ARCHIVE, "Froxel fog: Henyey-Greenstein g of the sun and dynamic light scattering, 0 = isotropic, > 0 forward, < 0 backward; the default of the media without their own g (fogAnisotropy, local volume and FX anisotropy)");
 	ri.Cvar_CheckRange(r_volumetricFogAnisotropy, -0.9f, 0.9f, qfalse);
 	r_volumetricFogTemporal = ri.Cvar_Get("r_volumetricFogTemporal", "1", CVAR_ARCHIVE, "Froxel fog: temporal reprojection and jittered sampling");
 	ri.Cvar_CheckRange(r_volumetricFogTemporal, 0, 1, qtrue);
@@ -2298,8 +2298,8 @@ void R_Register( void )
 	r_volumetricEmission = ri.Cvar_Get("r_volumetricEmission", "1", CVAR_ARCHIVE, "Froxel fog: scale of the emission of local fog volumes and FX particle media (glowing gas), 0 = off");
 	ri.Cvar_CheckRange(r_volumetricEmission, 0.0f, 16.0f, qfalse);
 	r_volumetricFogReset = ri.Cvar_Get("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 34, qtrue);
+	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 39, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volParticles = ri.Cvar_Get("r_volParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");

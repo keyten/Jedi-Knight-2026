@@ -1942,8 +1942,9 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		MAX(r_volumetricEmission->value, 0.0f),	// emission of local volumes / FX particles
 		4.0f);	// history radiance clamped to [current / 4, current * 4]
 
+	const float globalAnisotropy = Com_Clamp(-0.9f, 0.9f, r_volumetricFogAnisotropy->value);
 	VectorSet4(block.lightParams,
-		Com_Clamp(-0.9f, 0.9f, r_volumetricFogAnisotropy->value),
+		globalAnisotropy,
 		r_volumetricFogSunScale->value,
 		r_volumetricFogDlightScale->value,
 		r_volumetricFogStaticScale->value);
@@ -2003,7 +2004,17 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		const fog_t *fog = tr.world->fogs + i + 1;
 		const float extinction = (-logf(1.5f / 255.0f)) / fog->parms.depthForOpaque *
 			tr.volumetricFogScale * r_volumetricFogScale->value;
-		VectorSet4(block.fogColor[i], fog->color[0], fog->color[1], fog->color[2], extinction);
+		// per fog medium (fogAlbedo / fogAnisotropy shader keywords), else the legacy
+		// fog color and the global r_volumetricFogAnisotropy
+		if ( fog->parms.hasAlbedo )
+		{
+			VectorSet4(block.fogColor[i], fog->parms.albedo[0] * tr.identityLight,
+				fog->parms.albedo[1] * tr.identityLight, fog->parms.albedo[2] * tr.identityLight, extinction);
+		}
+		else
+			VectorSet4(block.fogColor[i], fog->color[0], fog->color[1], fog->color[2], extinction);
+		VectorSet4(block.fogMedium[i], fog->parms.hasAnisotropy ? fog->parms.anisotropy : globalAnisotropy,
+			0.0f, 0.0f, 0.0f);
 		VectorCopy4(fog->surface, block.fogPlane[i]);
 		VectorSet4(block.fogMins[i], fog->bounds[0][0], fog->bounds[0][1], fog->bounds[0][2], fog->hasSurface ? 1.0f : 0.0f);
 		const qboolean noisy = (qboolean)(noiseMask & ((fog == tr.world->globalFog) ? 4 : 2));

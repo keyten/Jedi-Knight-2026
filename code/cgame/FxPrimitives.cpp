@@ -197,6 +197,8 @@ void CParticle::DrawVolumetricMedia()
 	particle.extinction = mVolume.extinction * mAlphaFade;
 	VectorCopy( mVolume.albedo, particle.color );
 	particle.softness = mVolume.softness;
+	particle.anisotropy = mVolume.anisotropy;
+	particle.flags = mVolume.hasAnisotropy ? VOLPARTICLE_ANISOTROPY : 0;
 
 	// glow (visible by itself, lights nothing: a Light primitive does that): per
 	// world unit emissive * density, faded like the sprite. With emissiveTint the

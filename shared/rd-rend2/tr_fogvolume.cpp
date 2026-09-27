@@ -94,6 +94,7 @@ struct fogVolumeEval_t
 	float invWidth;				// 1 / softness
 	vec3_t albedo;
 	vec3_t emission;			// source per world unit at full shape density (0: no glow)
+	float anisotropy;			// Henyey-Greenstein g (own or r_volumetricFogAnisotropy)
 	qboolean noisy;
 	float radius;				// bounding sphere around origin
 };
@@ -256,6 +257,11 @@ static qboolean R_FogVolumeEvaluate( const refFogVolume_t *volume, qboolean nois
 		out->albedo[c] = albedo * tr.identityLight;
 	}
 
+	// phase: its own g (FOGVOLUME_ANISOTROPY), else the global one as the other media
+	out->anisotropy = Com_Clamp(-0.9f, 0.9f, (volume->flags & FOGVOLUME_ANISOTROPY) ?
+		volume->anisotropy : r_volumetricFogAnisotropy->value);
+	if ( out->anisotropy != out->anisotropy )
+		out->anisotropy = 0.0f;	// NaN
 	out->noisy = (qboolean)(noise && (volume->flags & FOGVOLUME_NOISE));
 	out->radius = (out->shape == FOGVOLUME_BOX) ?
 		VectorLength(out->extents) :
@@ -533,7 +539,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		VectorCopy4(p->rows[2], block->localPrevZ[n]);
 		VectorSet4(block->localColor[n], e->albedo[0], e->albedo[1], e->albedo[2], e->extinction);
 		VectorSet4(block->localShape[n], (float)e->shape, e->inner, e->invWidth, e->noisy ? 1.0f : 0.0f);
-		VectorSet4(block->localEmission[n], e->emission[0], e->emission[1], e->emission[2], 0.0f);
+		VectorSet4(block->localEmission[n], e->emission[0], e->emission[1], e->emission[2], e->anisotropy);
 		if ( !VectorCompare(e->emission, vec3_origin) )
 			anyEmission = qtrue;
 		// x: 0 unchanged, else 1 + the shape of the previous state (the id may change shape)
@@ -666,6 +672,8 @@ env.json "FogVolumes" (R_LoadEnvironmentJson, tr_bsp.cpp)
 Shape sphere | ellipsoid | box; Radius (sphere) or Size (half extents);
 Angles pitch yaw roll; Opaque as fogParms depthForOpaque; Color as fogParms;
 Softness 0..1; Noise 0 | 1 (r_volumetricFogNoise 8). Defaults as r_fogvol add.
+"Anisotropy": Henyey-Greenstein g -0.9..0.9 of the scattering (> 0 forward, < 0
+back); absent = r_volumetricFogAnisotropy. "Color" is the scattering albedo.
 Emission (glowing gas, lights nothing): "Emissive": [r, g, b] scene linear HDR
 radiance of the opaque medium, "EmissiveDensity": per unit (default: the
 extinction of the volume). "Opaque": 0 = no extinction, a pure glow, which
@@ -772,6 +780,8 @@ void R_LoadFogVolumesJson( world_t *world, const char *json, const char *jsonEnd
 		volume.flags = (noise > 0.5f) ? FOGVOLUME_NOISE : 0;
 		R_FogVolumeJsonVector(entry, jsonEnd, "Emissive", volume.emissive);
 		R_FogVolumeJsonFloat(entry, jsonEnd, "EmissiveDensity", &volume.emissiveDensity);
+		if ( R_FogVolumeJsonFloat(entry, jsonEnd, "Anisotropy", &volume.anisotropy) )
+			volume.flags |= FOGVOLUME_ANISOTROPY;
 
 		if ( volume.depthForOpaque <= 0.0f && !R_FogVolumeEmitsAlone(&volume) )
 		{
@@ -829,6 +839,7 @@ static void R_FogVolumeUsage( void )
 		"         soft    <0..1>                  soft edge, part of the extents (default 0.5)\n"
 		"         angles  <pitch> <yaw> <roll>    orientation\n"
 		"         noise   0|1                     density noise (r_volumetricFogNoise 8)\n"
+		"         aniso   <g>                     Henyey-Greenstein g -0.9..0.9 (default r_volumetricFogAnisotropy)\n"
 		"         emit    <r> <g> <b> [density]   glow: scene linear radiance of the opaque medium,\n"
 		"                                         emissive density per unit (default: the extinction);\n"
 		"                                         opaque 0 = no extinction (needs a density)\n"
@@ -837,6 +848,8 @@ static void R_FogVolumeUsage( void )
 		"         swing   <x> <y> <z> <seconds>   sine motion (moving volume test)\n"
 		"       r_fogvol test <count> [spread]    spheres around the camera (timings, sv_cheats)\n"
 		"       r_fogvol emittest                 pure glow (no extinction) + dense glowing smoke ahead\n"
+		"       r_fogvol mediumtest               per-medium phase: g +0.8 and g -0.8 overlapping,\n"
+		"                                         isotropic red albedo beside them\n"
 		"       r_fogvol remove <index> | clear\n"
 		"       r_fogvol slices                   slice lists of the last frame\n"
 		"       r_fogvol dump                     r_fogvol volumes as an env.json \"FogVolumes\" array\n"
@@ -878,11 +891,12 @@ static void R_FogVolumePrintVolume( const char *label, const refFogVolume_t *v )
 		Com_sprintf(emission, sizeof(emission), " emit (%g %g %g) density %s", v->emissive[0], v->emissive[1],
 			v->emissive[2], (v->emissiveDensity > 0.0f) ? va("%g", v->emissiveDensity) : "= extinction");
 	}
-	ri.Printf(PRINT_ALL, "  %s %s at (%.0f %.0f %.0f) extents (%.0f %.0f %.0f) opaque %g color (%g %g %g) soft %g%s%s\n",
+	ri.Printf(PRINT_ALL, "  %s %s at (%.0f %.0f %.0f) extents (%.0f %.0f %.0f) opaque %g color (%g %g %g) soft %g%s%s%s\n",
 		label, R_FogVolumeShapeName(v->shape, v->extents),
 		v->origin[0], v->origin[1], v->origin[2], v->extents[0], v->extents[1], v->extents[2],
 		v->depthForOpaque, v->color[0], v->color[1], v->color[2], v->softness,
-		(v->flags & FOGVOLUME_NOISE) ? " noise" : "", emission);
+		(v->flags & FOGVOLUME_NOISE) ? " noise" : "",
+		(v->flags & FOGVOLUME_ANISOTROPY) ? va(" aniso %g", v->anisotropy) : "", emission);
 }
 
 static void R_FogVolumeList( void )
@@ -965,12 +979,14 @@ static void R_FogVolumeDump( void )
 	{
 		const debugFogVolume_t *d = &s_fv.debug[i];
 		const refFogVolume_t *v = &d->volume;
-		char emission[128] = "";
+		char emission[160] = "";
 		if ( MAX(v->emissive[0], MAX(v->emissive[1], v->emissive[2])) > 0.0f )
 		{
 			Com_sprintf(emission, sizeof(emission), ", \"Emissive\": [%g, %g, %g], \"EmissiveDensity\": %g",
 				v->emissive[0], v->emissive[1], v->emissive[2], v->emissiveDensity);
 		}
+		if ( v->flags & FOGVOLUME_ANISOTROPY )
+			Q_strcat(emission, sizeof(emission), va(", \"Anisotropy\": %g", v->anisotropy));
 		const char *size = (v->shape != FOGVOLUME_BOX && v->extents[0] == v->extents[1] && v->extents[1] == v->extents[2]) ?
 			va("\"Radius\": %g", v->extents[0]) :
 			va("\"Size\": [%g, %g, %g]", v->extents[0], v->extents[1], v->extents[2]);
@@ -1099,7 +1115,13 @@ static void R_FogVolumeAdd( void )
 		}
 		else if ( !Q_stricmp(key, "noise") && R_FogVolumeParseNumbers(i + 1, 1, values) )
 		{
-			v->flags = (values[0] > 0.5f) ? FOGVOLUME_NOISE : 0;
+			v->flags = (v->flags & ~FOGVOLUME_NOISE) | ((values[0] > 0.5f) ? FOGVOLUME_NOISE : 0);
+			i += 2;
+		}
+		else if ( !Q_stricmp(key, "aniso") && R_FogVolumeParseNumbers(i + 1, 1, values) )
+		{
+			v->anisotropy = Com_Clamp(-0.9f, 0.9f, values[0]);
+			v->flags |= FOGVOLUME_ANISOTROPY;
 			i += 2;
 		}
 		else if ( !Q_stricmp(key, "swing") && R_FogVolumeParseNumbers(i + 1, 4, values) && values[3] > 0.0f )
@@ -1275,6 +1297,52 @@ static void R_FogVolumeEmitTest( void )
 	R_FogVolumeWarnings();
 }
 
+// per-medium phase test without assets (r_volumetricFogDebug 35-39): A forward
+// scattering (g +0.8) and B back scattering (g -0.8) white spheres overlapping in
+// the middle (the two lobe mixture: bright towards and away from the sun there),
+// C an isotropic (g 0) colored absorptive medium (albedo 1 0.2 0.2: green and blue
+// are absorbed, not scattered) beside them
+static void R_FogVolumeMediumTest( void )
+{
+	if ( !R_FogVolumeCheat("mediumtest") )
+		return;
+	if ( !s_fv.hasCamera || !tr.world )
+	{
+		ri.Printf(PRINT_WARNING, "r_fogvol mediumtest: no world view yet (load a map)\n");
+		return;
+	}
+	if ( s_fv.numDebug + 3 > MAX_DEBUG_FOG_VOLUMES )
+	{
+		ri.Printf(PRINT_WARNING, "r_fogvol mediumtest: no room (r_fogvol clear)\n");
+		return;
+	}
+
+	static const float offsets[3] = { 70.0f, -70.0f, -300.0f };
+	static const float anisotropy[3] = { 0.8f, -0.8f, 0.0f };
+	for ( int n = 0; n < 3; n++ )
+	{
+		debugFogVolume_t d = {};
+		refFogVolume_t *v = &d.volume;
+		v->shape = FOGVOLUME_ELLIPSOID;
+		VectorSet(v->extents, 110.0f, 110.0f, 110.0f);
+		VectorMA(s_fv.cameraOrigin, 450.0f, s_fv.cameraAxis[0], v->origin);
+		VectorMA(v->origin, offsets[n], s_fv.cameraAxis[1], v->origin);
+		v->depthForOpaque = 400.0f;
+		if ( n == 2 )
+			VectorSet(v->color, 1.0f, 0.2f, 0.2f);
+		else
+			VectorSet(v->color, 0.9f, 0.9f, 0.9f);
+		v->softness = 0.5f;
+		v->anisotropy = anisotropy[n];
+		v->flags = FOGVOLUME_ANISOTROPY;
+		AxisClear(v->axis);
+		v->id = FOGVOLUME_ID_DEBUG | (++s_fv.nextDebugId & 0x0FFFFFFF);
+		s_fv.debug[s_fv.numDebug++] = d;
+		R_FogVolumePrintVolume(va("%d:", s_fv.numDebug - 1), v);
+	}
+	R_FogVolumeWarnings();
+}
+
 /*
 =================
 R_FogVolume_f
@@ -1305,6 +1373,8 @@ void R_FogVolume_f( void )
 		R_FogVolumeTest();
 	else if ( !Q_stricmp(cmd, "emittest") )
 		R_FogVolumeEmitTest();
+	else if ( !Q_stricmp(cmd, "mediumtest") )
+		R_FogVolumeMediumTest();
 	else if ( !Q_stricmp(cmd, "slices") )
 		R_FogVolumeSlices();
 	else if ( !Q_stricmp(cmd, "dump") )

@@ -287,6 +287,8 @@ public:
 	vec3_t			mVolEmissive;			// glow: scene linear radiance of the opaque medium (0 = none)
 	float			mVolEmissiveDensity;	// per world unit, 0 = the extinction
 	bool			mVolEmissiveTint;		// times the particle's current rgb (fire fading to black)
+	bool			mVolHasAnisotropy;		// else r_volumetricFogAnisotropy
+	float			mVolAnisotropy;			// Henyey-Greenstein g of the scattering
 
 	// spot cone of a Light (rend2 spot lights): the "spot" group, a point
 	// light when absent
@@ -353,6 +355,7 @@ private:
 	bool ParseVolEmissive( const gsl::cstring_span& val );
 	bool ParseVolEmissiveDensity( const gsl::cstring_span& val );
 	bool ParseVolEmissiveTint( const gsl::cstring_span& val );
+	bool ParseVolAnisotropy( const gsl::cstring_span& val );
 
 	bool ParseSpot( const CGPGroup& grp );
 	bool ParseSpotInner( const gsl::cstring_span& val );

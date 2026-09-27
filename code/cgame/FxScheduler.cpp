@@ -970,6 +970,8 @@ static void FX_SetVolumetricMedia( CParticle *particle, const CPrimitiveTemplate
 	VectorCopy( fx->mVolEmissive, media.emissive );
 	media.emissiveDensity = fx->mVolEmissiveDensity;
 	media.emissiveTint = fx->mVolEmissiveTint;
+	media.hasAnisotropy = fx->mVolHasAnisotropy;
+	media.anisotropy = fx->mVolAnisotropy;
 	particle->SetVolumetricMedia( &media );
 }
 

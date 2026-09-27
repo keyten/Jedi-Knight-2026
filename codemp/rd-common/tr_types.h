@@ -346,6 +346,7 @@ typedef struct {
 #define	FOGVOLUME_BOX				1		// oriented box
 
 #define	FOGVOLUME_NOISE				1		// flags: density noise (r_volumetricFogNoise 8)
+#define	FOGVOLUME_ANISOTROPY		2		// flags: anisotropy is set (else r_volumetricFogAnisotropy)
 
 typedef struct {
 	int			id;				// stable per volume (temporal filter), 0 = anonymous
@@ -356,7 +357,7 @@ typedef struct {
 	float		depthForOpaque;	// as fogParms: distance through full density to opaque
 	float		color[3];		// scattering color 0..1, as fogParms
 	float		softness;		// 0..1 of the extents over which the density fades to 0
-	int			flags;			// FOGVOLUME_NOISE
+	int			flags;			// FOGVOLUME_NOISE, FOGVOLUME_ANISOTROPY
 	// emission (glowing gas, visible by itself; lights nothing: add a dlight for that).
 	// Source per world unit j = emissive * emissiveDensity * shape density. emissive is
 	// the HDR linear radiance of an opaque emitting medium; emissiveDensity (1 / unit)
@@ -364,6 +365,9 @@ typedef struct {
 	// allowed for an emitting volume with emissiveDensity > 0.
 	float		emissive[3];
 	float		emissiveDensity;
+	// Henyey-Greenstein g of the scattering (-0.9..0.9, > 0 forward), used with the
+	// FOGVOLUME_ANISOTROPY flag; without it the global r_volumetricFogAnisotropy
+	float		anisotropy;
 } refFogVolume_t;
 
 // Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volParticles):
@@ -383,7 +387,13 @@ typedef struct {
 	// emission per world unit at the center (HDR linear radiance / unit, fades included,
 	// see refFogVolume_t); extinction may be 0 for a pure glow
 	float		emission[3];
+	// Henyey-Greenstein g of the scattering, used with VOLPARTICLE_ANISOTROPY in flags
+	// (else r_volumetricFogAnisotropy)
+	float		anisotropy;
+	int			flags;
 } refVolParticle_t;
+
+#define	VOLPARTICLE_ANISOTROPY		1		// refVolParticle_t flags: anisotropy is set
 
 // Spot lights (rend2): a dynamic light limited to a cone around dir, added per
 // scene like a dynamic light through the optional renderer extension

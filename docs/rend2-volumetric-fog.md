@@ -983,6 +983,154 @@ The game was **not** launched. Checklist rows "emit: ..." below; timings to fill
 | `r_fogvol emittest`, hoth2 | | |
 | 4 thermal detonators at once | | |
 
+## Per-medium albedo and anisotropy
+
+Each medium scatters with its own albedo and Henyey-Greenstein g. Before this, every medium used the one global
+`r_volumetricFogAnisotropy`. The global g stays the **default**: a medium without its own g uses it, so a map without
+metadata looks exactly as before. Per-medium values only override it.
+
+### Medium sample (`volumetric_inject.glsl`, `FroxelMediumSample`)
+
+Every medium i at the froxel has an extinction σt_i, an albedo a_i (rgb) and a g_i. The injection accumulates:
+
+```
+σt   = Σ σt_i                                   (extinction, the history alpha, unchanged)
+S_i  = σt_i · a_i                               (scattering coefficient σs, rgb)
+lobe slots k = 1..3, one per distinct g:        S_k = Σ_{g_i = g_k} S_i
+j_scatter = Σ_k S_k · L · P(g_k, θ)             per light term (4π-normalised HG: FroxelPhase)
+```
+
+- **Exact** (it is Σ_i S_i P(g_i)) as long as at most 3 distinct g overlap in one froxel. Legacy media all share the
+  global g and use one slot. A +g / −g overlap uses two slots and keeps both peaks. The default fog, an authored
+  smoke and a back-scattering medium use three.
+- **Only a 4th distinct g is approximated.** It merges into the slot with the nearest g, and that slot gets the
+  scattering-weighted mean cosine `g_k = Σ w_i g_i / Σ w_i` with `w_i = luma(S_i)`. The energy stays exact (the
+  4π HG averages 1 for any g) and so does the first moment. Only the lobe shape changes. g is never averaged
+  plainly, as `(g1 + g2) / 2`. Debug view 37 shows where this happens (green).
+- Why not a single HG lobe with the mixed g: equal +0.8 / −0.8 media average to g = 0 and give an isotropic
+  medium, which loses 96% of both peaks. A fog at 0.2 with smoke at 0.8 loses 74% of the forward peak. Fixed
+  sign bins (one forward lobe, one backward lobe) have the same problem for same-sign mixes.
+- The weight w_i is the luminance of S_i, not a per-channel weight. This only matters for merged slots.
+- A black (fully absorptive) medium adds extinction but no lobe.
+- The density noise scales σt and S of the noisy media, not their g.
+
+Light terms and energy:
+
+- Lights, shadows, cookies and the light grid are evaluated **once**. Each g only adds its phase: `FroxelPhases`
+  returns a `vec4` (3 slots + the global g).
+- The **isotropic baked part stays isotropic** (no phase) for every g, as before. The directed baked part
+  (`r_volumetricFogStaticDirectional`) and the sun take the phase of each slot. Dynamic lights take the phase at the
+  froxel centre with the slots of the medium there.
+- The global g is still used in two places, both documented limits:
+  - The **tail beyond far** (`u_FroxelTail`). It stores light that already has its phase, so BSP fog and height
+    fog beyond the last slice use the global g even with `fogAnisotropy`.
+  - The **sprite particle light field** (`r_particleLight`). The sprites are not a medium of the volume.
+- The albedo semantics are unchanged: the fog colour is the albedo, in the fogParms convention.
+
+### Defaults
+
+| medium | albedo | g |
+|---|---|---|
+| BSP fog (`fogParms`) | fog colour | `r_volumetricFogAnisotropy` |
+| BSP fog with `fogAlbedo` / `fogAnisotropy` | `fogAlbedo` | `fogAnisotropy` |
+| height fog (`r_volumetricFogHeight*`) | `r_volumetricFogHeightColor` | `r_volumetricFogAnisotropy` |
+| local volume (`refFogVolume_t`, env.json, `r_fogvol`) | `color` | `anisotropy` with `FOGVOLUME_ANISOTROPY`, else global |
+| FX medium (`volumetricMedia`) | `albedo` / start rgb | `anisotropy`, else global |
+
+### Authoring
+
+BSP fog shader. `fogParms` is unchanged, and the new keywords are optional, general (not stage) keywords:
+
+```
+textures/test/medium_fog
+{
+	surfaceparm fog
+	surfaceparm nonsolid
+	surfaceparm trans
+	fogParms ( 0.6 0.6 0.65 ) 800
+	fogAnisotropy 0.6          // HG g -0.9..0.9, froxel fog only
+	fogAlbedo 0.9 0.4 0.3      // froxel scattering albedo 0..1 (same colour space as fogParms), legacy fog unchanged
+}
+```
+
+Local fog volumes:
+
+- API: `refFogVolume_t.anisotropy` together with `flags |= FOGVOLUME_ANISOTROPY`. A zero-initialised struct keeps
+  the global g.
+- env.json: `"Anisotropy": 0.6`.
+- Console: `r_fogvol add ... aniso 0.6`. `r_fogvol dump` writes it out.
+
+FX media (MP `codemp/client`, SP `code/cgame`):
+
+```
+volumetricMedia
+{
+	extinction	0.02
+	albedo		0.3 0.3 0.3
+	anisotropy	0.6         // optional, default r_volumetricFogAnisotropy
+}
+```
+
+`refVolParticle_t.anisotropy` goes with `flags = VOLPARTICLE_ANISOTROPY`. On the GPU, g is packed into
+`invExtent.w` together with the inner shell (`round(inner·255) + 0.001 + 0.998·(g+1)/2`). The particle block is at
+16272 of 16384 bytes, so there is no room for another array. The round trip error is 1/510 on inner and 1.5e-5 on g.
+
+### Debug views (`r_volumetricFogDebug`)
+
+These are opacity-weighted along the ray. The injection writes value · σt with no light, and the overlay shows the
+mean. Dark grey means no medium.
+
+| view | shows |
+|---|---|
+| 35 | extinction: the opacity of the medium |
+| 36 | single scattering albedo Σ S_k / σt, rgb (dark = absorptive) |
+| 37 | lobe slots: red = slots in use / 3, green = merged (more than 3 distinct g), blue = 1 − share of the strongest slot |
+| 38 | effective mixed g (scattering-weighted mean cosine): red = forward, blue = backward |
+| 39 | phase of the sunlight towards the camera, lobe mixture: P / (1 + P), 0.5 grey = isotropic |
+
+Test without assets: `r_fogvol mediumtest` (sv_cheats). It places:
+
+- A, g +0.8 (white), and B, g −0.8 (white), overlapping in front of the camera.
+- C, an isotropic, coloured, absorptive medium (albedo 1 0.2 0.2) beside them.
+
+To test a single isotropic, forward or backward medium: `r_fogvol add sphere aniso 0|0.8|-0.8`.
+
+### Validation
+
+Offline:
+
+- **GLSL** (`glslcheck_vf.py`): 48 program variants on Intel UHD and NVIDIA RTX 2060 compile without warnings.
+- **Mixing** (numpy, the slot model against the exact per-medium sum Σ S_i P(g_i), in luminance):
+
+| case | max rel. error | single mean-g lobe (for comparison) |
+|---|---|---|
+| isotropic g = 0, strong +0.8, negative −0.8 | 0 | 0 |
+| overlap +0.8 / −0.8 | 0 | 0.96 |
+| overlap +0.8 / −0.4, unequal σs | 0 | 0.65 |
+| same sign 0.1 / 0.8 | 0 | 0.79 |
+| fog 0.2 + smoke 0.8 + −0.5 | 0 | 0.90 |
+| 4 distinct g (merge) | 1.5e-3 | 0.86 |
+| coloured absorptive (albedo 1 0.2 0.2) | 0 (S = σt·(1, 0.2, 0.2)) | 0 |
+| legacy: 3 fogs with the global g | 7e-16 | 7e-16 |
+
+  Energy (⟨P⟩ = 1) and the first moment match the exact sum in every case.
+
+In game: not yet run. Suggested captures: `r_fogvol mediumtest` with views 0, 35–39, looking towards the sun, at
+90° to it and away from it. Also a legacy-fog map (for example hoth2) before and after, which should show no
+difference.
+
+### Cost
+
+- **NV fragment assembly of the inject program:** 6852 → 9220 instructions (tex 232 → 240, transcendental 234 → 316).
+  Most of the increase is inlining: `FroxelAddScattering` has 4 call sites, and `FroxelMedium` is called at the
+  jittered point and at the froxel centre. The noise lookup is inlined at its 3 lazy call sites but still
+  evaluated once at runtime.
+- **Runtime per froxel:**
+  - per medium: a search over ≤ 3 slots;
+  - per light term (sun, directed baked, each dynamic light): 3 more HG evaluations (the `vec4` of phases);
+  - shadow taps, texture fetches and light lists are unchanged.
+- **UBO:** the VolumetricFog block grows by 24 vec4 (15072 → 15456 bytes). The particle block does not grow.
+
 ## Sprite particle lighting (`r_particleLight`)
 
 Ordinary FX sprites, drawn by `generic.glsl` with their authored vertex colour, are lit by the local light. This works
@@ -1173,7 +1321,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogGridScale` | 0 | latched. Screen pixels per froxel, 0 = preset |
 | `r_volumetricFogSlices` | 0 | latched. Depth slices (16..128), 0 = preset |
 | `r_volumetricFogFar` | 0 | Distance covered by the slices, 0 = 4096 |
-| `r_volumetricFogAnisotropy` | 0.2 | HG g of sun and dynamic light scattering, -0.9..0.9. The baked light stays isotropic |
+| `r_volumetricFogAnisotropy` | 0.2 | HG g of sun and dynamic light scattering, -0.9..0.9, for every medium without its own g (`fogAnisotropy`, local volume / FX `anisotropy`). The baked light stays isotropic |
 | `r_volumetricFogTemporal` | 1 | Temporal accumulation and jitter |
 | `r_volumetricFogHistoryWeight` | 0.9 | Weight of the history, 0..0.98 |
 | `r_volumetricFogSunScale` | 1 | Sun scattering multiplier (baked and realtime) |
@@ -1250,6 +1398,7 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 32 | combined source (extinction forced to 0) |
 | 33 | emission alone, integrated with the real extinction |
 | 34 | history contribution: red = history part of the scattering, green = emission (no history) |
+| 35-39 | per-medium albedo and anisotropy: extinction, albedo, lobe slots, mixed g, sun phase (see "Per-medium albedo and anisotropy") |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see

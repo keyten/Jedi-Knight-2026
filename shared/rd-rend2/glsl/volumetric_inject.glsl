@@ -41,11 +41,13 @@ void main()
 // Media: the BSP fog volumes (axial bounds + the plane of their visible side), extinction and color
 // as the legacy volumetric fog, plus the optional height fog (r_volumetricFogHeight*, off by default)
 // whose extinction depends on world z, plus the local fog volumes (soft analytic ellipsoids / boxes,
-// tr_fogvolume.cpp) listed for this slice. Extinctions add, albedos are extinction weighted. Without
-// any of them there is no medium. The selected media (r_volumetricFogNoise) are multiplied by the world space
+// tr_fogvolume.cpp) listed for this slice, plus the FX particle media. Extinctions add; each medium
+// scatters with its own albedo and Henyey-Greenstein g (FroxelMediumSample: up to 3 phase lobes,
+// one per distinct g; media without their own g use r_volumetricFogAnisotropy). Without any of
+// them there is no medium. The selected media (r_volumetricFogNoise) are multiplied by the world space
 // density noise m(p) (mean 1): only the extinction changes, the light does not.
 //
-// Light (the phase function is 4 pi HG, 1 = isotropic):
+// Light (the phase function is 4 pi HG, 1 = isotropic, per lobe of the medium):
 //   baked   light grid without the sun (isotropic, legacy brightness)
 //   sun     inside the cascaded shadow maps: realtime sun radiance * shadow * phase, beyond them (and
 //           where the cascades see no sun in the whole light grid cell) the baked sun part of the
@@ -140,23 +142,120 @@ float FroxelHeightExtinction(in vec3 p)
 	return extinction;
 }
 
-// extinction (a) and albedo (rgb) of the fog volumes, the height fog and the local fog volumes of
-// the slice at p, and the FX particle media (debug views 11, 12, 16 and 26 keep one of them, 14 drops
-// the density noise).
+// Medium sample of the injection (per-medium albedo and anisotropy). Every medium i (BSP fog,
+// height fog, local volume, FX particle medium) has an extinction s_i, an albedo a_i (rgb) and a
+// Henyey-Greenstein g_i (its own, else the global r_volumetricFogAnisotropy). The overlap:
+//   extinction      s = sum s_i
+//   scattering      S_i = s_i * a_i (rgb)
+//   phase lobes     up to FROXEL_LOBES slots, one per distinct g: the media with the same g share
+//                   a slot, S_k = sum S_i, g_k = g
+//   source          j = sum_k S_k * L * P(g_k)   per light term (4 pi HG, FroxelPhase)
+// This is the exact mixture sum_i S_i P(g_i) as long as a froxel holds at most FROXEL_LOBES
+// distinct g (legacy media: all the global g, one slot; a +g / -g overlap: two slots, both peaks
+// kept; the default fog + an authored smoke + a back scattering medium: three). Only a further
+// distinct g is merged into the slot of the nearest g, with the scattering weighted mean cosine
+//   g_k = sum w_i g_i / sum w_i,  w_i = luma(S_i)
+// (energy exact: 4 pi P averages 1 for any g; first moment exact; the lobe shape approximated;
+// never a plain average of g). The weight is the luminance of S_i, not per channel.
+#define FROXEL_LOBES 3
+
+struct FroxelMediumSample
+{
+	vec3 scatter0;		// S_k of the slots (0 when unused)
+	vec3 scatter1;
+	vec3 scatter2;
+	vec3 g;				// g_k of the slots
+	float extinction;	// s
+	float lobes;		// slots in use
+	float merged;		// 1: more distinct g than slots, some were merged (debug view 37)
+};
+
+// lobe accumulators: rgb = sum S_i, a = sum w_i g_i; weight = sum w_i; key = g of the slot
+struct FroxelLobes
+{
+	vec4 scatter[FROXEL_LOBES];
+	float weight[FROXEL_LOBES];
+	float key[FROXEL_LOBES];
+	int count;
+	bool merged;
+};
+
+void FroxelAddScattering(inout FroxelLobes lobes, in float extinction, in vec3 albedo, in float g)
+{
+	vec3 s = albedo * extinction;
+	float w = Luma(s);
+	if (w <= 0.0)
+		return;	// black: absorbs only, no phase
+
+	// the slot of this g, else a free one, else the nearest g
+	int k = -1;
+	for (int i = 0; i < lobes.count; i++)
+	{
+		if (abs(lobes.key[i] - g) < 1e-3)
+			k = i;
+	}
+	if (k < 0 && lobes.count < FROXEL_LOBES)
+	{
+		k = lobes.count++;
+		lobes.key[k] = g;
+	}
+	if (k < 0)
+	{
+		lobes.merged = true;
+		k = 0;
+		float nearest = 1e9;
+		for (int i = 0; i < FROXEL_LOBES; i++)
+		{
+			float d = abs(lobes.scatter[i].a / max(lobes.weight[i], 1e-20) - g);
+			if (d < nearest)
+			{
+				nearest = d;
+				k = i;
+			}
+		}
+	}
+
+	lobes.scatter[k] += vec4(s, w * g);
+	lobes.weight[k] += w;
+}
+
+// scattering weighted mean of a per-slot value (debug views)
+float FroxelLobeMean(in FroxelMediumSample m, in vec3 value)
+{
+	vec3 w = vec3(Luma(m.scatter0), Luma(m.scatter1), Luma(m.scatter2));
+	return dot(w, value) / max(w.x + w.y + w.z, 1e-20);
+}
+
+// the medium of the fog volumes, the height fog and the local fog volumes of the slice at p, and
+// the FX particle media (debug views 11, 12, 16 and 26 keep one of them, 14 drops the density
+// noise).
 // noisyFraction: share of the extinction that comes from noise modulated media (their history weight
 // is lowered when the noise moves). localFraction: share of the local volumes (before the noise).
 // localChange (only with wantChange): how much the local medium at p changed since the previous
 // frame, relative to it (moving, appearing and vanishing volumes; 0 when they are static).
 // particleChange: the same for the FX particle media (their own history reduction), particleFraction:
 // their share of the extinction (before the noise).
-vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noisyFraction,
+FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noisyFraction,
 	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
 	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14;
-	float extinction = 0.0;
-	vec3 albedo = vec3(0.0);
+	float globalG = u_FroxelLightParams.x;
+	float extinction = 0.0;			// with the noise
+	float plainExtinction = 0.0;	// without the noise (the fractions)
 	float noisyExtinction = 0.0;
-	vec3 noisyAlbedo = vec3(0.0);
+	FroxelLobes lobes;
+	for (int i = 0; i < FROXEL_LOBES; i++)
+	{
+		lobes.scatter[i] = vec4(0.0);
+		lobes.weight[i] = 0.0;
+		lobes.key[i] = 0.0;
+	}
+	lobes.count = 0;
+	lobes.merged = false;
+
+	// the density noise m(p) of the noisy media, evaluated at the first one (the noise scales their
+	// extinction and scattering, not their g)
+	float m = -1.0;
 
 	// local fog volumes: the packed list of this slice (CPU culled, tr_fogvolume.cpp)
 	float localExtinction = 0.0;
@@ -194,16 +293,17 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 				continue;
 
 			localExtinction += e;
+			plainExtinction += e;
 			if (noise && shape.w > 0.5)
 			{
+				if (m < 0.0)
+					m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+				e *= m;
 				noisyExtinction += e;
-				noisyAlbedo += color.rgb * e;
 			}
-			else
-			{
-				extinction += e;
-				albedo += color.rgb * e;
-			}
+			extinction += e;
+			// its own g or the global one (CPU resolved)
+			FroxelAddScattering(lobes, e, color.rgb, u_FroxelLocalEmission[i].w);
 		}
 	}
 	localChange = localDelta / max(max(localExtinction, localPrevious), 1e-12);
@@ -223,7 +323,8 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 		{
 			int i = FroxelParticlePoolIndex(first + j);
 			vec4 center = u_FroxelParticleCenter[i];
-			float e = center.w * fade * FroxelParticleDensity(center.xyz, u_FroxelParticleInvExtent[i], p);
+			vec4 invExtent = u_FroxelParticleInvExtent[i];
+			float e = center.w * fade * FroxelParticleDensity(center.xyz, invExtent, p);
 			vec4 color = u_FroxelParticleColor[i];
 
 			if (wantChange)
@@ -243,25 +344,27 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 				continue;
 
 			particleExtinction += e;
+			plainExtinction += e;
 			extinction += e;
-			albedo += color.rgb * e;
+			FroxelAddScattering(lobes, e, color.rgb, FroxelParticleAnisotropy(invExtent.w));
 		}
 	}
 	particleChange = particleDelta / max(max(particleExtinction, particlePrevious), 1e-12);
 
+	// the height fog has no metadata: the global g
 	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26)
 	{
 		float e = FroxelHeightExtinction(p);
+		plainExtinction += e;
 		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
 		{
+			if (m < 0.0)
+				m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+			e *= m;
 			noisyExtinction += e;
-			noisyAlbedo += u_FroxelHeightFogColor.rgb * e;
 		}
-		else
-		{
-			extinction += e;
-			albedo += u_FroxelHeightFogColor.rgb * e;
-		}
+		extinction += e;
+		FroxelAddScattering(lobes, e, u_FroxelHeightFogColor.rgb, globalG);
 	}
 
 	// the fog volumes that may touch this slice (CPU culled)
@@ -283,34 +386,42 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 		if (mins.w > 0.5 && dot(p, plane.xyz) - plane.w < 0.0)
 			continue;
 
+		// albedo: fogAlbedo or the fog color, g: fogAnisotropy or the global one (CPU resolved)
 		vec4 fog = u_FroxelFogColor[i];
+		float e = fog.a;
+		plainExtinction += e;
 		if (noise && maxs.w > 0.5)
 		{
-			noisyExtinction += fog.a;
-			noisyAlbedo += fog.rgb * fog.a;
+			if (m < 0.0)
+				m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+			e *= m;
+			noisyExtinction += e;
 		}
-		else
-		{
-			extinction += fog.a;
-			albedo += fog.rgb * fog.a;
-		}
+		extinction += e;
+		FroxelAddScattering(lobes, e, fog.rgb, u_FroxelFogMedium[i].x);
 	}
 
-	localFraction = localExtinction / max(extinction + noisyExtinction, 1e-12);
-	particleFraction = particleExtinction / max(extinction + noisyExtinction, 1e-12);
+	localFraction = localExtinction / max(plainExtinction, 1e-12);
+	particleFraction = particleExtinction / max(plainExtinction, 1e-12);
+	noisyFraction = noisyExtinction / max(extinction, 1e-12);
 
-	noisyFraction = 0.0;
-	if (noisyExtinction > 0.0)
-	{
-		float viewDepth = dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
-		float m = FroxelNoiseModulation(p, viewDepth);
-		noisyExtinction *= m;
-		extinction += noisyExtinction;
-		albedo += noisyAlbedo * m;
-		noisyFraction = noisyExtinction / max(extinction, 1e-12);
-	}
+	FroxelMediumSample result;
+	result.scatter0 = lobes.scatter[0].rgb;
+	result.scatter1 = lobes.scatter[1].rgb;
+	result.scatter2 = lobes.scatter[2].rgb;
+	result.g = vec3(lobes.scatter[0].a / max(lobes.weight[0], 1e-20),
+		lobes.scatter[1].a / max(lobes.weight[1], 1e-20),
+		lobes.scatter[2].a / max(lobes.weight[2], 1e-20));
+	result.extinction = extinction;
+	result.lobes = float(lobes.count);
+	result.merged = lobes.merged ? 1.0 : 0.0;
+	return result;
+}
 
-	return vec4(albedo / max(extinction, 1e-12), extinction);
+// scattering source of the sample for the light of each slot (light0..2 carry the phase of g_k)
+vec3 FroxelScatter(in FroxelMediumSample m, in vec3 light0, in vec3 light1, in vec3 light2)
+{
+	return m.scatter0 * light0 + m.scatter1 * light1 + m.scatter2 * light2;
 }
 
 // Emission source j_e at p (radiance per world unit, the unit of the scattering source
@@ -604,10 +715,24 @@ uint FroxelLightCluster(in ivec2 cell, in int slice)
 	return texelFetch(u_FPlusGridMap, cluster).r;
 }
 
-// dynamic lights of the cluster at p (viewDir: camera to p, unit)
-vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
+// Henyey-Greenstein phase of the four g of the injection: xyz the lobe slots of the medium sample
+// (FroxelMediumSample.g), w the global g (sprite particle light field, tail)
+vec4 FroxelPhases(in vec4 g, in float cosTheta)
 {
-	vec3 light = vec3(0.0);
+	return vec4(FroxelPhase(g.x, cosTheta), FroxelPhase(g.y, cosTheta), FroxelPhase(g.z, cosTheta),
+		FroxelPhase(g.w, cosTheta));
+}
+
+// dynamic lights of the cluster at p (viewDir: camera to p, unit), with the phase of each g
+// (FroxelPhases): light0..2 for the lobe slots, lightGlobal for the global g. The lights, shadows
+// and cookies are evaluated once, each g only costs its phase.
+void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, out vec3 light0,
+	out vec3 light1, out vec3 light2, out vec3 lightGlobal)
+{
+	light0 = vec3(0.0);
+	light1 = vec3(0.0);
+	light2 = vec3(0.0);
+	lightGlobal = vec3(0.0);
 	int first = int(cluster & 0xffffffu);
 	int count = int(cluster >> 24);
 	for (int j = 0; j < count; j++)
@@ -636,7 +761,7 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 		if (attenuation <= 0.0)
 			continue;
 		// light travels from the light (-L) to the camera (-viewDir)
-		float phase = FroxelPhase(g, dot(L / dist, viewDir));
+		vec4 phase = FroxelPhases(g, dot(L / dist, viewDir));
 
 		float shadow = 1.0;
 		// shadow cube layer (legacy: i, Forward+: slot or -1)
@@ -653,25 +778,56 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 		vec3 cookie = SpotCookie(-L / dist, spot, spot2, length(p - u_FroxelViewOrigin.xyz));
 
 		// pointAtten * coneAtten * cookie * shadow * phase
-		light += colorLayer.rgb * cookie * attenuation * phase * shadow;
+		vec3 light = colorLayer.rgb * cookie * attenuation * shadow;
+		light0 += light * phase.x;
+		light1 += light * phase.y;
+		light2 += light * phase.z;
+		lightGlobal += light * phase.w;
 	}
-
-	return light;
 }
 
-// Baked light (returned: isotropic part + directed part with its phase) and sun (phase included) at
-// p. sunUnshadowed: the sun without its realtime shadow (debug view 2). Debug views 20-25 replace the
-// returned light with one baked term (no sun, no phase unless stated).
-vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, in int debugView, out vec3 sunLight,
-	out vec3 sunUnshadowed)
+// Baked light and sun at p, the phase kept apart for the lobes of the medium: the light terms are
+// evaluated once, each g (FroxelPhases: the three lobe slots, the global g) only costs its phase.
+//   isotropic       baked light without the sun, no phase (legacy brightness, whatever the g)
+//   directed        directed baked part (r_volumetricFogStaticDirectional), phase directedPhase
+//                   (1 without the split, faded to 1 by the incoherence)
+//   sun             sun radiance * sun scale (shadowed), phase sunPhase
+//   sunUnshadowed   the sun without its realtime shadow (debug view 2)
+// Debug views 20-25 replace isotropic with one baked term (no sun, no phase unless stated).
+struct FroxelStaticLight
 {
-	sunLight = vec3(0.0);
-	sunUnshadowed = vec3(0.0);
+	vec3 isotropic;
+	vec3 directed;
+	vec4 directedPhase;
+	vec3 sun;
+	vec3 sunUnshadowed;
+	vec4 sunPhase;
+};
+
+// baked + sun of lobe k (0..2 the slots of the medium sample, 3 the global g)
+vec3 FroxelStaticLobe(in FroxelStaticLight l, in int k)
+{
+	return l.isotropic + l.directed * l.directedPhase[k];
+}
+
+vec3 FroxelSunLobe(in FroxelStaticLight l, in int k)
+{
+	return l.sun * l.sunPhase[k];
+}
+
+FroxelStaticLight BakedAndSunLight(in vec3 p, in float temporal, in vec4 g, in int debugView)
+{
+	FroxelStaticLight l;
+	l.directed = vec3(0.0);
+	l.directedPhase = vec4(1.0);
+	l.sun = vec3(0.0);
+	l.sunUnshadowed = vec3(0.0);
+	l.sunPhase = vec4(1.0);
 
 	vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
 	vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
 	vec4 staticGrid = texture(u_VolumetricStaticGrid, gridCoord);
-	vec3 isotropic = staticGrid.rgb * u_FroxelLightParams.w;
+	l.isotropic = staticGrid.rgb * u_FroxelLightParams.w;
 	float trust = staticGrid.a;
 
 	// directed (non-sun) part of the light grid (R_BuildVolumetricLightGrid). The direction is
@@ -683,39 +839,38 @@ vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, in int debugView
 	float dirLength = length(dirVec);
 	float coherence = (dirGrid.a > 1e-6) ? clamp(dirLength / dirGrid.a, 0.0, 1.0) : 0.0;
 	vec3 lightDir = (dirLength > 1e-8) ? dirVec / dirLength : vec3(0.0, 0.0, 1.0);
-	vec3 directedPhased = directed;
-	if (u_FroxelDebugParams.w > 0.5)
-	{
-		// the light travels along -lightDir, towards the camera is -viewDir
-		directedPhased *= mix(1.0, FroxelPhase(g, dot(lightDir, viewDir)), coherence);
-	}
-	vec3 staticLight = isotropic + directedPhased;
 
 	if (debugView >= 20 && debugView <= 25)
 	{
 		vec3 bakedSun = (u_FroxelSunDirection.w > 0.5) ? texture(u_VolumetricSunGrid, gridCoord).rgb : vec3(0.0);
-		if (debugView == 20)
-			return isotropic;
-		if (debugView == 21)
-			return directed;
-		if (debugView == 22)	// direction towards the light, dimmed by the incoherence
-			return (lightDir * 0.5 + 0.5) * coherence * dot(directed, vec3(0.2126, 0.7152, 0.0722));
-		if (debugView == 23)
-			return bakedSun * u_FroxelLightParams.w;
 		vec3 reconstructed = staticGrid.rgb + dirGrid.rgb + bakedSun;
-		if (debugView == 24)
-			return reconstructed * u_FroxelLightParams.w;
-		// 25: 100 * |I + D + B - legacy| (the legacy grid of the fog without the split)
-		return abs(reconstructed - texture(u_VolumetricLegacyGrid, gridCoord).rgb) * 100.0;
+		if (debugView == 21)
+			l.isotropic = directed;
+		else if (debugView == 22)	// direction towards the light, dimmed by the incoherence
+			l.isotropic = (lightDir * 0.5 + 0.5) * coherence * dot(directed, vec3(0.2126, 0.7152, 0.0722));
+		else if (debugView == 23)
+			l.isotropic = bakedSun * u_FroxelLightParams.w;
+		else if (debugView == 24)
+			l.isotropic = reconstructed * u_FroxelLightParams.w;
+		else if (debugView == 25)	// 100 * |I + D + B - legacy| (the legacy grid of the fog without the split)
+			l.isotropic = abs(reconstructed - texture(u_VolumetricLegacyGrid, gridCoord).rgb) * 100.0;
+		return l;
+	}
+
+	l.directed = directed;
+	if (u_FroxelDebugParams.w > 0.5)
+	{
+		// the light travels along -lightDir, towards the camera is -viewDir
+		l.directedPhase = mix(vec4(1.0), FroxelPhases(g, dot(lightDir, viewDir)), coherence);
 	}
 
 	if (u_FroxelSunDirection.w > 0.5)
 	{
 		// sunlight travels along -sunDirection, towards the camera is -viewDir
-		float phase = FroxelPhase(g, dot(u_FroxelSunDirection.xyz, viewDir));
+		l.sunPhase = FroxelPhases(g, dot(u_FroxelSunDirection.xyz, viewDir));
 		vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb;
-		sunUnshadowed = bakedSun;
-		sunLight = bakedSun;
+		l.sunUnshadowed = bakedSun;
+		l.sun = bakedSun;
 		if (u_FroxelSunColor.w > 0.5)
 		{
 			float coverage;
@@ -726,14 +881,14 @@ vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, in int debugView
 			// the light grid cell (traced at map load, R_BuildVolumetricLightGrid); deep in shadow
 			// (indoors) it stays baked light.
 			coverage *= trust;
-			sunLight = mix(bakedSun, u_FroxelSunColor.rgb * shadow, coverage);
-			sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb, coverage);
+			l.sun = mix(bakedSun, u_FroxelSunColor.rgb * shadow, coverage);
+			l.sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb, coverage);
 		}
-		sunLight *= phase * u_FroxelLightParams.y;
-		sunUnshadowed *= phase * u_FroxelLightParams.y;
+		l.sun *= u_FroxelLightParams.y;
+		l.sunUnshadowed *= u_FroxelLightParams.y;
 	}
 
-	return staticLight;
+	return l;
 }
 
 void main()
@@ -741,23 +896,26 @@ void main()
 	ivec2 cell = ivec2(gl_FragCoord.xy);
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
+	// the global g: the tail beyond far and the sprite particle light field (not a medium)
 	float g = u_FroxelLightParams.x;
 
 	// tail pass (var_Slice < 0, into u_FroxelTail): the light at the far side of the volume,
 	// without albedo, lights the media beyond far (FroxelLookup). No medium test: a fog volume may
-	// start beyond far.
+	// start beyond far. The tail light is stored with its phase: the media beyond far (BSP fog
+	// volumes, height fog) are lit with the global g there, also a fog with fogAnisotropy.
 	if (var_Slice < 0)
 	{
 		vec3 pf = FroxelWorldPosition(vec3(vec2(cell) + 0.5, u_FroxelGridSize.z));
-		vec3 sunTail, unusedSun;
-		vec3 light = BakedAndSunLight(pf, 0.0, g, debugView, sunTail, unusedSun) + sunTail;
+		FroxelStaticLight tail = BakedAndSunLight(pf, 0.0, vec4(g), debugView);
+		vec3 sunTail = FroxelSunLobe(tail, 3);
+		vec3 light = FroxelStaticLobe(tail, 3) + sunTail;
 		if (debugView == 3)
 			light = sunTail;
 		else if (debugView == 4)
 			light = vec3(0.0);
 		else if (debugView == 5)
 			light -= sunTail;
-		else if (debugView == 31 || debugView == 33 || debugView == 34)
+		else if (debugView == 31 || debugView == 33 || debugView == 34 || debugView >= 35)
 			light = vec3(0.0);
 		if (any(isnan(light)) || any(isinf(light)))
 			light = vec3(0.0);
@@ -776,7 +934,7 @@ void main()
 	vec3 pc = FroxelWorldPosition(center);
 
 	float noisyFraction, localFraction, localChange, particleFraction, particleChange;
-	vec4 medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange,
+	FroxelMediumSample medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange,
 		particleFraction, particleChange);
 
 	// FX particles (smoke) change all the time: where their density changed the history keeps only the
@@ -786,51 +944,60 @@ void main()
 
 	// the medium at the center is only needed where the cluster has dynamic lights
 	uint cluster = FroxelLightCluster(cell, var_Slice);
-	vec4 mediumCenter = vec4(0.0);
+	FroxelMediumSample mediumCenter = FroxelMediumSample(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 0.0, 0.0, 0.0);
 	if ((cluster >> 24) != 0u)
 	{
 		float unused0, unused1, unused2, unused3, unused4;
 		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2, unused3, unused4);
 	}
 
-	// baked light and sun
-	vec3 staticLight = vec3(0.0);
-	vec3 sunLight = vec3(0.0);
-	vec3 sunUnshadowed = vec3(0.0);
-	if (medium.a > 0.0)
-		staticLight = BakedAndSunLight(p, temporal, g, debugView, sunLight, sunUnshadowed);
+	// baked light and sun, with the phases of the lobe slots of the medium and of the global g
+	FroxelStaticLight staticLight = FroxelStaticLight(vec3(0.0), vec3(0.0), vec4(1.0), vec3(0.0), vec3(0.0), vec4(1.0));
+	if (medium.extinction > 0.0)
+		staticLight = BakedAndSunLight(p, temporal, vec4(medium.g, g), debugView);
 
 	// dynamic lights
-	vec3 dynamicLight = vec3(0.0);
-	if (mediumCenter.a > 0.0)
+	vec3 dynamic0 = vec3(0.0);
+	vec3 dynamic1 = vec3(0.0);
+	vec3 dynamic2 = vec3(0.0);
+	vec3 dynamicGlobal = vec3(0.0);
+	if (mediumCenter.extinction > 0.0)
 	{
 		vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
-		dynamicLight = DynamicLights(cluster, pc, viewDir, g) * u_FroxelLightParams.z;
+		DynamicLights(cluster, pc, viewDir, vec4(mediumCenter.g, g), dynamic0, dynamic1, dynamic2, dynamicGlobal);
+		dynamic0 *= u_FroxelLightParams.z;
+		dynamic1 *= u_FroxelLightParams.z;
+		dynamic2 *= u_FroxelLightParams.z;
+		dynamicGlobal *= u_FroxelLightParams.z;
 	}
 
-	// sprite particle light field: the light at the froxel center, also where there is no medium.
-	// Baked + sun at the center without the temporal jitter (full shadow filter, no history), reused
-	// when the fog evaluated them there already.
+	// sprite particle light field: the light at the froxel center, also where there is no medium,
+	// with the global g (the sprites are no medium of the volume). Baked + sun at the center without
+	// the temporal jitter (full shadow filter, no history), reused when the fog evaluated them there
+	// already.
 	vec3 particleLight = vec3(0.0);
 	if (u_ParticleLight.x > 0.5)
 	{
 		vec3 particleStatic, particleSun;
-		if (medium.a > 0.0 && temporal == 0.0 && debugView < 20)
+		if (medium.extinction > 0.0 && temporal == 0.0 && debugView < 20)
 		{
-			particleStatic = staticLight;
-			particleSun = sunLight;
+			particleStatic = FroxelStaticLobe(staticLight, 3);
+			particleSun = FroxelSunLobe(staticLight, 3);
 		}
 		else
 		{
-			vec3 unusedSun;
-			particleStatic = BakedAndSunLight(pc, 0.0, g, 0, particleSun, unusedSun);
+			FroxelStaticLight l = BakedAndSunLight(pc, 0.0, vec4(g), 0);
+			particleStatic = FroxelStaticLobe(l, 3);
+			particleSun = FroxelSunLobe(l, 3);
 		}
 
-		vec3 particleDynamic = dynamicLight;
-		if ((cluster >> 24) != 0u && mediumCenter.a <= 0.0)
+		vec3 particleDynamic = dynamicGlobal;
+		if ((cluster >> 24) != 0u && mediumCenter.extinction <= 0.0)
 		{
 			vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
-			particleDynamic = DynamicLights(cluster, pc, viewDir, g) * u_FroxelLightParams.z;
+			vec3 unused0, unused1, unused2;
+			DynamicLights(cluster, pc, viewDir, vec4(g), unused0, unused1, unused2, particleDynamic);
+			particleDynamic *= u_FroxelLightParams.z;
 		}
 
 		int term = int(u_ParticleLight.y);
@@ -846,30 +1013,41 @@ void main()
 			particleLight = vec3(0.0);
 	}
 
+	// the light of each lobe slot: baked + sun, and the dynamic lights
+	vec3 static0 = FroxelStaticLobe(staticLight, 0);
+	vec3 static1 = FroxelStaticLobe(staticLight, 1);
+	vec3 static2 = FroxelStaticLobe(staticLight, 2);
+	vec3 sun0 = FroxelSunLobe(staticLight, 0);
+	vec3 sun1 = FroxelSunLobe(staticLight, 1);
+	vec3 sun2 = FroxelSunLobe(staticLight, 2);
+
 	// debug views of a single light term
 	if (debugView == 2)
 	{
-		sunLight = sunUnshadowed;
-		staticLight = vec3(0.0);
-		dynamicLight = vec3(0.0);
+		sun0 = staticLight.sunUnshadowed * staticLight.sunPhase.x;
+		sun1 = staticLight.sunUnshadowed * staticLight.sunPhase.y;
+		sun2 = staticLight.sunUnshadowed * staticLight.sunPhase.z;
+		static0 = static1 = static2 = vec3(0.0);
+		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
 	else if (debugView == 3)
 	{
-		staticLight = vec3(0.0);
-		dynamicLight = vec3(0.0);
+		static0 = static1 = static2 = vec3(0.0);
+		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
 	else if (debugView == 4)
 	{
-		staticLight = vec3(0.0);
-		sunLight = vec3(0.0);
+		static0 = static1 = static2 = vec3(0.0);
+		sun0 = sun1 = sun2 = vec3(0.0);
 	}
 	else if (debugView == 5 || (debugView >= 20 && debugView <= 25))
 	{
-		sunLight = vec3(0.0);
-		dynamicLight = vec3(0.0);
+		sun0 = sun1 = sun2 = vec3(0.0);
+		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
 
-	vec4 current = vec4(medium.rgb * medium.a * (staticLight + sunLight), medium.a);
+	// j_scatter = sum_k S_k * L * P(g_k) (FroxelMediumSample)
+	vec4 current = vec4(FroxelScatter(medium, static0 + sun0, static1 + sun1, static2 + sun2), medium.extinction);
 
 	// emission j_e at the froxel center: no jitter and no history (it goes to the dynamic volume), so
 	// a fast fire or explosion leaves no after-image and the history clamp sees scattering only
@@ -878,12 +1056,51 @@ void main()
 	// debug view 17: share of the local volumes (red) and of the other media (green), integrated
 	// like an emission: the integrated rg is each medium's share of the opacity along the ray
 	if (debugView == 17)
-		current.rgb = vec3(localFraction, 1.0 - localFraction, 0.0) * medium.a;
+		current.rgb = vec3(localFraction, 1.0 - localFraction, 0.0) * medium.extinction;
 
 	// debug view 27: FX particle media, red = history reduction where the particle density changed,
 	// green = their share of the medium, integrated like view 17
 	if (debugView == 27)
-		current.rgb = vec3(1.0 - particleKeep, particleFraction, 0.0) * medium.a;
+		current.rgb = vec3(1.0 - particleKeep, particleFraction, 0.0) * medium.extinction;
+
+	// debug views 35-39 of the medium sample, integrated like view 17 (value * extinction: the
+	// opacity weighted value along the ray, no light):
+	//   35 extinction (white = opacity)
+	//   36 single scattering albedo sum_k S_k / extinction, rgb (dark = absorptive)
+	//   37 lobe slots: red = slots in use / 3, green = more distinct g than slots (merged,
+	//      approximated), blue = 1 - the share of the strongest slot in the scattering
+	//   38 effective mixed g (scattering weighted mean cosine): red > 0 forward, blue < 0 backward
+	//   39 phase of the sunlight towards the camera, the lobe mixture: P / (1 + P), 0.5 grey =
+	//      isotropic, brighter forward, darker backward
+	bool mediumDebug = debugView >= 35 && debugView <= 39;
+	if (mediumDebug)
+	{
+		vec3 scatter = medium.scatter0 + medium.scatter1 + medium.scatter2;
+		vec3 value = vec3(0.0);
+		if (debugView == 35)
+			value = vec3(1.0);
+		else if (debugView == 36)
+			value = scatter / max(medium.extinction, 1e-12);
+		else if (debugView == 37)
+		{
+			vec3 w = vec3(Luma(medium.scatter0), Luma(medium.scatter1), Luma(medium.scatter2));
+			float strongest = max(w.x, max(w.y, w.z)) / max(w.x + w.y + w.z, 1e-20);
+			value = vec3(medium.lobes / 3.0, medium.merged, 1.0 - strongest);
+		}
+		else if (debugView == 38)
+		{
+			float gMixed = FroxelLobeMean(medium, medium.g);
+			value = vec3(max(gMixed, 0.0), 0.0, max(-gMixed, 0.0));
+		}
+		else
+		{
+			vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
+			vec4 phases = FroxelPhases(vec4(medium.g, g), dot(u_FroxelSunDirection.xyz, viewDir));
+			float phase = FroxelLobeMean(medium, phases.xyz);
+			value = vec3(phase / (1.0 + phase));
+		}
+		current.rgb = value * medium.extinction;
+	}
 
 	// temporal accumulation with the reprojected history. Noise modulated media that move with the
 	// wind use a lower weight (R_VolumetricNoise), so the drifting density leaves no trail. Where a
@@ -929,9 +1146,11 @@ void main()
 		current.rgb = vec3(weight) * current.a;
 
 	// one bad froxel must not poison the next frames (history) nor the integrated column
-	vec4 dynamicEmission = vec4(mediumCenter.rgb * mediumCenter.a * dynamicLight, 1.0);
-	if (debugView == 17)
+	vec4 dynamicEmission = vec4(FroxelScatter(mediumCenter, dynamic0, dynamic1, dynamic2), 1.0);
+	if (debugView == 17 || mediumDebug)
 		dynamicEmission.rgb = vec3(0.0);
+	if (mediumDebug)
+		emission = vec3(0.0);
 
 	// j_total = j_scatter + j_emissive. Debug views: 30 scattering source, 31 emissive source,
 	// 32 both (integrated with the extinction forced to 0: the sum of j * length along the ray),

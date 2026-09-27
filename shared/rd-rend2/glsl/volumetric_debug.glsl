@@ -47,6 +47,11 @@ void main()
 //     source j_e, 32 j_s + j_e (30-32: sum of j * length along the ray, the extinction forced to 0),
 //     33 emission integrated with the real extinction (self absorption in dense smoke),
 //     34 history contribution: red = history part of the scattering, green = emission (no history)
+//  35-39 per-medium albedo and anisotropy (volumetric_inject.glsl FroxelMediumSample), opacity
+//     weighted along the ray, dark grey without medium: 35 extinction (opacity), 36 single
+//     scattering albedo rgb (dark = absorptive), 37 lobes (red = forward g, green = -backward g,
+//     blue = share of the backward lobe), 38 effective mixed g (red forward, blue backward),
+//     39 phase of the sunlight towards the camera P / (1 + P) (0.5 grey = isotropic)
 //
 // r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -154,7 +159,7 @@ vec4 ParticleOutline(in int i, in vec3 origin, in vec3 dir, in float sceneDistan
 	float b = length(o + d * t);
 	float visible = (t < sceneDistance) ? 1.0 : 0.35;
 	float outer = 1.0 - smoothstep(0.0, 0.04, abs(b - 1.0));
-	float soft = (1.0 - smoothstep(0.0, 0.02, abs(b - invExtent.w))) * 0.6;
+	float soft = (1.0 - smoothstep(0.0, 0.02, abs(b - FroxelParticleInner(invExtent.w)))) * 0.6;
 	float fill = (b < 1.0) ? 0.06 : 0.0;
 	return vec4(IndexHue(i), max(max(outer, soft), fill) * visible);
 }
@@ -239,6 +244,19 @@ void main()
 	{
 		float opacity = 1.0 - fog.a;
 		color = vec3(fog.r, fog.g, 0.0) / max(opacity, 1e-4) * sqrt(opacity);
+	}
+	else if (view == 35)
+	{
+		// extinction: the opacity of the medium along the ray
+		color = vec3(1.0 - fog.a);
+	}
+	else if (view >= 36 && view <= 39)
+	{
+		// opacity weighted mean of the medium value along the ray (the injection writes value *
+		// extinction), dark grey where there is (almost) no medium
+		float opacity = 1.0 - fog.a;
+		vec3 value = fog.rgb / max(opacity, 1e-4);
+		color = mix(vec3(0.05), clamp(value, 0.0, 1.0), smoothstep(0.0, 0.05, opacity));
 	}
 	else if (view == 28)
 	{

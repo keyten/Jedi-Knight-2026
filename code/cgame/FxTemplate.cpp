@@ -96,6 +96,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	VectorClear( mVolEmissive );
 	mVolEmissiveDensity = 0.0f;
 	mVolEmissiveTint = false;
+	mVolHasAnisotropy = false;
+	mVolAnisotropy = 0.0f;
 
 	// a point light unless the Light has a spot group
 	mSpot = false;
@@ -210,6 +212,8 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	VectorCopy( that.mVolEmissive, mVolEmissive );
 	mVolEmissiveDensity	= that.mVolEmissiveDensity;
 	mVolEmissiveTint	= that.mVolEmissiveTint;
+	mVolHasAnisotropy	= that.mVolHasAnisotropy;
+	mVolAnisotropy		= that.mVolAnisotropy;
 
 	mSpot				= that.mSpot;
 	mSpotInner			= that.mSpotInner;
@@ -1804,6 +1808,8 @@ bool CPrimitiveTemplate::ParseLength( const CGPGroup& grp )
 //								// opaque medium; visible by itself, lights nothing
 //		emissiveDensity	0.02	// optional, per world unit (default: the extinction)
 //		emissiveTint	1		// optional, times the particle's current rgb
+//		anisotropy	0.6			// optional, Henyey-Greenstein g -0.9..0.9 of the
+//								// scattering (default r_volumetricFogAnisotropy)
 //	}
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseVolExtinction( const gsl::cstring_span& val )
@@ -1895,6 +1901,18 @@ bool CPrimitiveTemplate::ParseVolEmissiveTint( const gsl::cstring_span& val )
 	return false;
 }
 
+bool CPrimitiveTemplate::ParseVolAnisotropy( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolAnisotropy = Com_Clamp( -0.9f, 0.9f, min );
+		mVolHasAnisotropy = true;
+		return true;
+	}
+	return false;
+}
+
 bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 {
 	if ( mType != Particle && mType != OrientedParticle )
@@ -1920,6 +1938,7 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 		{ CSTRING_VIEW( "emissive" ), &CPrimitiveTemplate::ParseVolEmissive },
 		{ CSTRING_VIEW( "emissiveDensity" ), &CPrimitiveTemplate::ParseVolEmissiveDensity },
 		{ CSTRING_VIEW( "emissiveTint" ), &CPrimitiveTemplate::ParseVolEmissiveTint },
+		{ CSTRING_VIEW( "anisotropy" ), &CPrimitiveTemplate::ParseVolAnisotropy },
 	};
 	return ParseGroup( grp, parseMethods, "volumetricMedia" );
 }

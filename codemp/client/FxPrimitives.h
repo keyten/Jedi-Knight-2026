@@ -310,6 +310,8 @@ struct SFxVolumetricMedia
 	vec3_t		emissive;		// glow radiance of the opaque medium (0 = none)
 	float		emissiveDensity;	// per world unit, 0 = the extinction
 	bool		emissiveTint;	// times the particle's current rgb
+	bool		hasAnisotropy;	// else r_volumetricFogAnisotropy
+	float		anisotropy;		// Henyey-Greenstein g -0.9..0.9
 };
 
 class CParticle : public CEffect

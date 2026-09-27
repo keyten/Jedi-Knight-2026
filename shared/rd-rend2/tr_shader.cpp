@@ -3127,6 +3127,38 @@ static qboolean ParseShader( const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+		// fogAnisotropy <g>: froxel fog (r_volumetricFog 2) Henyey-Greenstein g of this
+		// fog, overrides r_volumetricFogAnisotropy; fogParms and the legacy fog are unchanged
+		else if ( !Q_stricmp( token, "fogAnisotropy" ) )
+		{
+			token = COM_ParseExt( text, qfalse );
+			if ( !token[0] )
+			{
+				ri.Printf( PRINT_WARNING, "WARNING: missing parm for 'fogAnisotropy' keyword in shader '%s'\n", shader.name );
+				continue;
+			}
+			shader.fogParms.anisotropy = Com_Clamp( -0.9f, 0.9f, atof( token ) );
+			shader.fogParms.hasAnisotropy = qtrue;
+			SkipRestOfLine( text );
+			continue;
+		}
+		// fogAlbedo <r g b>: froxel fog scattering albedo of this fog (0..1, same color space
+		// as fogParms), overrides the fogParms color in the froxel fog only
+		else if ( !Q_stricmp( token, "fogAlbedo" ) )
+		{
+			if ( !ParseVector( text, 3, shader.fogParms.albedo ) ) {
+				return qfalse;
+			}
+			for ( int c = 0; c < 3; c++ )
+			{
+				shader.fogParms.albedo[c] = Com_Clamp( 0.0f, 1.0f, shader.fogParms.albedo[c] );
+				if ( tr.linearLight )
+					shader.fogParms.albedo[c] = sRGBtoRGB( shader.fogParms.albedo[c] );
+			}
+			shader.fogParms.hasAlbedo = qtrue;
+			SkipRestOfLine( text );
+			continue;
+		}
 		// portal
 		else if ( !Q_stricmp(token, "portal") )
 		{

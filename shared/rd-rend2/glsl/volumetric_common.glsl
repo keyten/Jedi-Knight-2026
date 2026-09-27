@@ -56,6 +56,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelFogPlane[MAX_GPU_FOGS];
 	vec4 u_FroxelFogMins[MAX_GPU_FOGS];		// w: has plane
 	vec4 u_FroxelFogMaxs[MAX_GPU_FOGS];		// w: density noise applies
+	vec4 u_FroxelFogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or the global one)
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first. Per slice a packed list of the volumes
 	// that overlap it: header = first pool entry | count << 16, pool = 8 bit volume indices.
@@ -69,7 +70,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelLocalColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction (0: gone this frame)
 	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
 	vec4 u_FroxelLocalMotion[MAX_GPU_FOG_VOLUMES];		// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
-	vec4 u_FroxelLocalEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density, w unused
+	vec4 u_FroxelLocalEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density, w: anisotropy g
 	ivec4 u_FroxelLocalSlices[FROXEL_MAX_SLICES / 4];	// slice headers
 	ivec4 u_FroxelLocalIndex[FROXEL_LOCAL_POOL / 16];	// index pool, 4 per int
 
@@ -85,10 +86,10 @@ layout(std140) uniform VolumetricParticles
 {
 	vec4 u_FroxelParticleParams;										// count, fade start, 1 / fade length, history floor
 	vec4 u_FroxelParticleCenter[MAX_GPU_VOL_PARTICLES];				// xyz, w: extinction (0: gone this frame)
-	vec4 u_FroxelParticleInvExtent[MAX_GPU_VOL_PARTICLES];			// 1 / extent per world axis, w: inner
+	vec4 u_FroxelParticleInvExtent[MAX_GPU_VOL_PARTICLES];			// 1 / extent per world axis, w: inner | g (FroxelParticleInner)
 	vec4 u_FroxelParticleColor[MAX_GPU_VOL_PARTICLES];				// rgb albedo, w: previous extinction
 	vec4 u_FroxelParticlePrevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: changed (0/1) + 2 * (emission slot + 1)
-	vec4 u_FroxelParticlePrevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner
+	vec4 u_FroxelParticlePrevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner | g
 	ivec4 u_FroxelParticleSlices[FROXEL_MAX_SLICES / 4];				// slice headers
 	ivec4 u_FroxelParticleIndex[VOL_PARTICLE_POOL / 8];				// index pool, 2 per int
 	vec4 u_FroxelParticleEmission[MAX_GPU_EMISSIVE_PARTICLES];		// rgb emission per unit at the center
@@ -104,6 +105,18 @@ bool FroxelParticleChanged(in float w)
 int FroxelParticleEmissionSlot(in float w)
 {
 	return int(floor(w * 0.5 + 0.25)) - 1;
+}
+
+// the fields packed into u_FroxelParticleInvExtent[i].w (R_VolParticlePackInner):
+// round(inner * 255) + 0.001 + 0.998 * (g + 1) / 2
+float FroxelParticleInner(in float w)
+{
+	return floor(w) * (1.0 / 255.0);
+}
+
+float FroxelParticleAnisotropy(in float w)
+{
+	return clamp((fract(w) - 0.001) / 0.998 * 2.0 - 1.0, -0.9, 0.9);
 }
 #endif
 
@@ -199,14 +212,15 @@ float FroxelLocalFade(in float viewDepth)
 
 #if defined(USE_FROXEL_PARTICLES)
 // Density (0..1) of an FX particle proxy at p: an ellipsoid along the world axes (invExtent.xyz), full
-// density inside the inner shell (invExtent.w), smoothstep to 0 at the boundary.
+// density inside the inner shell (FroxelParticleInner(invExtent.w)), smoothstep to 0 at the boundary.
 float FroxelParticleDensity(in vec3 center, in vec4 invExtent, in vec3 p)
 {
 	vec3 q = (p - center) * invExtent.xyz;
 	float r2 = dot(q, q);
 	if (r2 >= 1.0)
 		return 0.0;
-	float t = clamp((sqrt(r2) - invExtent.w) / max(1.0 - invExtent.w, 1e-3), 0.0, 1.0);
+	float inner = FroxelParticleInner(invExtent.w);
+	float t = clamp((sqrt(r2) - inner) / max(1.0 - inner, 1e-3), 0.0, 1.0);
 	return 1.0 - t * t * (3.0 - 2.0 * t);
 }
 

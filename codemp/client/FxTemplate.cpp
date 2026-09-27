@@ -94,6 +94,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	VectorClear( mVolEmissive );
 	mVolEmissiveDensity = 0.0f;
 	mVolEmissiveTint = false;
+	mVolHasAnisotropy = false;
+	mVolAnisotropy = 0.0f;
 
 	// a point light unless the Light has a spot group
 	mSpot = false;
@@ -211,6 +213,8 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	VectorCopy( that.mVolEmissive, mVolEmissive );
 	mVolEmissiveDensity	= that.mVolEmissiveDensity;
 	mVolEmissiveTint	= that.mVolEmissiveTint;
+	mVolHasAnisotropy	= that.mVolHasAnisotropy;
+	mVolAnisotropy		= that.mVolAnisotropy;
 
 	mSpot				= that.mSpot;
 	mSpotInner			= that.mSpotInner;
@@ -2141,6 +2145,8 @@ bool CPrimitiveTemplate::ParseLength( CGPGroup *grp )
 //								// opaque medium; visible by itself, lights nothing
 //		emissiveDensity	0.02	// optional, per world unit (default: the extinction)
 //		emissiveTint	1		// optional, times the particle's current rgb
+//		anisotropy	0.6			// optional, Henyey-Greenstein g -0.9..0.9 of the
+//								// scattering (default r_volumetricFogAnisotropy)
 //	}
 //
 // input:
@@ -2213,6 +2219,14 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( CGPGroup *grp )
 		{
 			if ( ParseFloat( val, &min, &max ) )
 				mVolEmissiveTint = ( min > 0.5f );
+		}
+		else if ( !Q_stricmp( key, "anisotropy" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+			{
+				mVolAnisotropy = Com_Clamp( -0.9f, 0.9f, min );
+				mVolHasAnisotropy = true;
+			}
 		}
 		else
 			theFxHelper.Print( "Unknown key parsing a volumetricMedia group: %s\n", key );

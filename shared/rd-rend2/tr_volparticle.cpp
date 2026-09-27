@@ -75,6 +75,7 @@ struct volParticleEval_t
 	float inner;				// 1 - softness
 	vec3_t albedo;
 	vec3_t emission;			// emission per world unit at the center (0: no glow)
+	float anisotropy;			// Henyey-Greenstein g (own or r_volumetricFogAnisotropy)
 };
 
 // a candidate of this frame
@@ -166,6 +167,12 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 	softness = MIN(1.0f, MAX(softness, VOLPARTICLE_MIN_FADE / minExtent));
 	out->inner = 1.0f - softness;
 
+	// phase: its own g (VOLPARTICLE_ANISOTROPY), else the global one as the other media
+	out->anisotropy = Com_Clamp(-0.9f, 0.9f, (particle->flags & VOLPARTICLE_ANISOTROPY) ?
+		particle->anisotropy : r_volumetricFogAnisotropy->value);
+	if ( Q_isnan(out->anisotropy) )
+		out->anisotropy = 0.0f;
+
 	// albedo in the fogParms convention, as the local fog volumes
 	for ( int c = 0; c < 3; c++ )
 	{
@@ -175,6 +182,16 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 		out->albedo[c] = albedo * tr.identityLight;
 	}
 	return qtrue;
+}
+
+// invExtent.w of the GPU block: the inner shell (8 bit) and the anisotropy g in one
+// float (the block has no room for another array, see VolumetricParticlesBlock):
+// w = round(inner * 255) + 0.001 + 0.998 * (g + 1) / 2, decoded by
+// FroxelParticleInner / FroxelParticleAnisotropy (volumetric_common.glsl)
+static float R_VolParticlePackInner( float inner, float anisotropy )
+{
+	const float q = floorf(Com_Clamp(0.0f, 1.0f, inner) * 255.0f + 0.5f);
+	return q + 0.001f + 0.998f * 0.5f * (Com_Clamp(-1.0f, 1.0f, anisotropy) + 1.0f);
 }
 
 static qboolean R_VolParticleChanged( const volParticleEval_t *a, const volParticleEval_t *b )
@@ -451,7 +468,8 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		const volParticleEval_t *p = c->previous ? c->previous : e;
 
 		VectorSet4(block->center[n], e->center[0], e->center[1], e->center[2], e->extinction);
-		VectorSet4(block->invExtent[n], e->invExtent[0], e->invExtent[1], e->invExtent[2], e->inner);
+		VectorSet4(block->invExtent[n], e->invExtent[0], e->invExtent[1], e->invExtent[2],
+			R_VolParticlePackInner(e->inner, e->anisotropy));
 		VectorSet4(block->color[n], e->albedo[0], e->albedo[1], e->albedo[2],
 			c->previous ? c->previous->extinction : 0.0f);
 		// w: changed (0/1) + 2 * (emission slot + 1), the slots to the most important emitters
@@ -471,7 +489,8 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		}
 		VectorSet4(block->prevCenter[n], p->center[0], p->center[1], p->center[2],
 			(c->changed ? 1.0f : 0.0f) + slotCode);
-		VectorSet4(block->prevInvExtent[n], p->invExtent[0], p->invExtent[1], p->invExtent[2], p->inner);
+		VectorSet4(block->prevInvExtent[n], p->invExtent[0], p->invExtent[1], p->invExtent[2],
+			R_VolParticlePackInner(p->inner, e->anisotropy));
 
 		if ( c->changed )
 			s_vp.statChanged++;

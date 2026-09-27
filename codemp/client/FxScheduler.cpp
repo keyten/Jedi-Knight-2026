@@ -1725,6 +1725,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 		VectorCopy( fx->mVolEmissive, media.emissive );
 		media.emissiveDensity = fx->mVolEmissiveDensity;
 		media.emissiveTint = fx->mVolEmissiveTint;
+	media.hasAnisotropy = fx->mVolHasAnisotropy;
+	media.anisotropy = fx->mVolAnisotropy;
 		particle->SetVolumetricMedia( &media );
 	}
 
