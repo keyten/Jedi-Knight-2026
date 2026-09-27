@@ -603,6 +603,19 @@ void FBO_Init(void)
 		R_CheckFBO(tr.motionBlurFbo);
 	}
 
+	// lens rain output (tr_rainlens.cpp)
+	tr.rainLensFbo = NULL;
+	if (tr.rainLensImage != NULL)
+	{
+		tr.rainLensFbo = FBO_Create(
+			"_rainLens", tr.rainLensImage->width,
+			tr.rainLensImage->height);
+		FBO_Bind(tr.rainLensFbo);
+		FBO_AttachTextureImage(tr.rainLensImage, 0);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.rainLensFbo);
+	}
+
 	if (r_drawSunRays->integer)
 	{
 		tr.sunRaysFbo = FBO_Create(

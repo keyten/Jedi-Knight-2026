@@ -192,6 +192,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_MBParams2",			GLSL_VEC4, 1 },
 	{ "u_MBParams3",			GLSL_VEC4, 1 },
 
+	{ "u_RainLensParams",		GLSL_VEC4, 1 },
+	{ "u_RainLensParams2",		GLSL_VEC4, 1 },
+
 	{ "u_SSRNormalMap",			GLSL_INT, 1 },
 	{ "u_SSRSpecularMap",		GLSL_INT, 1 },
 	{ "u_SSRCubemapMap",		GLSL_INT, 1 },
@@ -3382,6 +3385,40 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 	return numPrograms;
 }
 
+static int GLSL_LoadGPUProgramRainLens(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	// Always built, like motion blur: r_rainLens is latched
+	static const char *defines[RAINLENSDEF_COUNT] =
+	{
+		nullptr,
+		"#define USE_DEBUG\n",
+	};
+
+	int numPrograms = 0;
+	for (int i = 0; i < RAINLENSDEF_COUNT; i++)
+	{
+		shaderProgram_t *sp = &tr.rainLensShader[i];
+		GLSL_LoadGPUProgramBasicWithDefinitions(
+			builder,
+			scratchAlloc,
+			sp,
+			"rainlens",
+			fallback_rainlensProgram,
+			defines[i]);
+
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	}
+
+	return numPrograms;
+}
+
 static int GLSL_LoadGPUProgramMotionBlur(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -4174,6 +4211,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramSSAO(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramScreenSpaceAO(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramRainLens(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramVolumetric(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
@@ -4269,6 +4307,9 @@ void GLSL_ShutdownGPUShaders(void)
 
 	for ( i = 0; i < MOTIONBLURDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.motionBlurShader[i]);
+
+	for ( i = 0; i < RAINLENSDEF_COUNT; i++)
+		GLSL_DeleteGPUShader(&tr.rainLensShader[i]);
 
 	GLSL_DeleteGPUShader(&tr.volumetricInjectShader);
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);

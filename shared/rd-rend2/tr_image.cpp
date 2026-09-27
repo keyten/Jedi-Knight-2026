@@ -4010,6 +4010,9 @@ void R_CreateBuiltinImages( void ) {
 	// motion blur output target (tr_motionblur.cpp)
 	R_CreateMotionBlurImages(width, height, hdrFormat);
 
+	// lens rain output target (tr_rainlens.cpp)
+	R_CreateRainLensImages(width, height, hdrFormat);
+
 	// screen-space reflection / GI targets (tr_screenspace.cpp)
 	R_CreateScreenSpaceImages(width, height, hdrFormat);
 

@@ -252,6 +252,12 @@ extern cvar_t  *r_contactShadowSteps;
 extern cvar_t  *r_contactShadowThickness;
 extern cvar_t  *r_contactShadowStrength;
 
+extern cvar_t  *r_rainLens;
+extern cvar_t  *r_rainLensAmount;
+extern cvar_t  *r_rainLensRefraction;
+extern cvar_t  *r_rainLensScale;
+extern cvar_t  *r_rainLensDebug;
+
 extern cvar_t  *r_motionBlur;
 extern cvar_t  *r_motionBlurShutterAngle;
 extern cvar_t  *r_motionBlurReferenceFps;
@@ -1905,6 +1911,13 @@ enum
 
 enum
 {
+	RAINLENSDEF_DEFAULT	= 0,
+	RAINLENSDEF_DEBUG	= 1,	// r_rainLensDebug views
+	RAINLENSDEF_COUNT
+};
+
+enum
+{
 	SSRDEF_TRACE		= 0,	// ray march, linear
 	SSRDEF_TRACE_HIZ	= 1,	// ray march, hierarchical depth
 	SSRDEF_CLASSIFY		= 2,	// early depth mask of the pixels that need a ray
@@ -2221,6 +2234,9 @@ typedef enum
 	UNIFORM_MBPARAMS,		// exposure scale, max length (px), max samples, velocity buffer valid
 	UNIFORM_MBPARAMS2,		// view model scale, P[14], P[10], legacy (display encoded) HDR buffer
 	UNIFORM_MBPARAMS3,		// debug view, quality, 0, 0
+
+	UNIFORM_RAINLENSPARAMS,		// lens time, density, refraction, scale
+	UNIFORM_RAINLENSPARAMS2,	// last exposed time, drain time, debug view, legacy (display encoded) HDR buffer
 
 	UNIFORM_SSRNORMALMAP,	// tr_ssr.cpp, see the ssr_*.glsl headers
 	UNIFORM_SSRSPECULARMAP,
@@ -3471,6 +3487,7 @@ typedef struct trGlobals_s {
 	image_t					*smaaBlendImage;
 	image_t					*smaaResolveImage;
 	image_t					*motionBlurImage;	// motion blur output (HDR), copied back into renderImage
+	image_t					*rainLensImage;		// lens rain output (HDR), copied back into renderImage
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
 	image_t					*froxelIntegratedImage;	// froxel fog: integrated in-scattering (rgb), transmittance (a)
@@ -3531,6 +3548,7 @@ typedef struct trGlobals_s {
 	FBO_t					*temporalResolveFbo;
 	FBO_t					*historyFbo;
 	FBO_t					*motionBlurFbo;
+	FBO_t					*rainLensFbo;
 	FBO_t					*froxelInjectFbo;		// layers attached per slice
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth
@@ -3625,6 +3643,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t aoCompositeShader;
 	shaderProgram_t aoDebugShader;
 	shaderProgram_t motionBlurShader[MOTIONBLURDEF_COUNT];
+	shaderProgram_t rainLensShader[RAINLENSDEF_COUNT];
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricCompositeShader;
@@ -4772,6 +4791,7 @@ typedef struct postProcessCommand_s {
 	int		commandId;
 	trRefdef_t	refdef;
 	viewParms_t	viewParms;
+	float		rainLensExposure;	// tr_rainlens.cpp, 0 = no rain on the lens
 } postProcessCommand_t;
 
 typedef struct beginTimedBlockCommand_s {
@@ -5117,6 +5137,13 @@ void RB_MotionBlurUpdateHistory(struct gpuFrame_t *frame, const struct gpuFrame_
 qboolean RB_MotionBlurActive(void);
 void RB_MotionBlur(FBO_t *srcFbo);
 void RB_MotionBlurDebugOverlay(void);
+
+// tr_rainlens.cpp
+void R_CreateRainLensImages(int width, int height, int hdrFormat);
+float R_RainLensExposure(const trRefdef_t *refdef, const viewParms_t *viewParms);
+qboolean RB_RainLensUpdate(float exposure);
+void RB_RainLens(FBO_t *srcFbo, float exposure);
+void RB_RainLensDebugOverlay(void);
 
 /*
 ============================================================

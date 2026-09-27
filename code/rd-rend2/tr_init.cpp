@@ -205,6 +205,11 @@ cvar_t  *r_contactShadowSteps;
 cvar_t  *r_contactShadowThickness;
 cvar_t  *r_contactShadowStrength;
 
+cvar_t  *r_rainLens;
+cvar_t  *r_rainLensAmount;
+cvar_t  *r_rainLensRefraction;
+cvar_t  *r_rainLensScale;
+cvar_t  *r_rainLensDebug;
 cvar_t  *r_motionBlur;
 cvar_t  *r_motionBlurShutterAngle;
 cvar_t  *r_motionBlurReferenceFps;
@@ -1947,6 +1952,14 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_contactShadowThickness, 0.1f, 64.0f, qfalse );
 	r_contactShadowStrength = ri_Cvar_Get_NoComm( "r_contactShadowStrength", "0.85", CVAR_ARCHIVE, "Contact shadow strength" );
 	ri.Cvar_CheckRange( r_contactShadowStrength, 0.0f, 1.0f, qfalse );
+
+	r_rainLens = ri_Cvar_Get_NoComm( "r_rainLens", "0", CVAR_ARCHIVE | CVAR_LATCH, "Rain droplets on the camera lens while it rains and the camera is outside (needs r_hdr)" );
+	ri.Cvar_CheckRange( r_rainLens, 0, 1, qtrue );
+	r_rainLensAmount = ri_Cvar_Get_NoComm( "r_rainLensAmount", "0.5", CVAR_ARCHIVE, "Lens rain droplet density, 0..1" );
+	r_rainLensRefraction = ri_Cvar_Get_NoComm( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens rain droplet refraction strength" );
+	r_rainLensScale = ri_Cvar_Get_NoComm( "r_rainLensScale", "1.0", CVAR_ARCHIVE, "Lens rain droplet size, relative to the screen height" );
+	r_rainLensDebug = ri_Cvar_Get_NoComm( "r_rainLensDebug", "0", CVAR_CHEAT, "Lens rain debug view (forces the effect on): 1 = droplet mask, 2 = normal, 3 = UV offset, 4 = scene / composition split" );
+	ri.Cvar_CheckRange( r_rainLensDebug, 0, 4, qtrue );
 
 	r_motionBlur = ri_Cvar_Get_NoComm( "r_motionBlur", "0", CVAR_ARCHIVE | CVAR_LATCH, "Velocity based camera and object motion blur (needs r_hdr)" );
 	ri.Cvar_CheckRange( r_motionBlur, 0, 1, qtrue );

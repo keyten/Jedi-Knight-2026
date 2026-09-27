@@ -3513,7 +3513,13 @@ const void *RB_PostProcess(const void *data)
 	// unchanged. See docs/rend2-motion-blur.md.
 	const qboolean motionBlur = RB_MotionBlurActive();
 
-	if (motionBlur)
+	// Lens rain (screen fixed) takes the same order: after the temporal
+	// resolve so the drops stay out of its history, before bloom so
+	// refracted lights bloom where they are seen. See docs/rend2-rain-lens.md.
+	const float rainLensExposure = cmd ? cmd->rainLensExposure : 0.0f;
+	const qboolean rainLens = RB_RainLensUpdate(rainLensExposure);
+
+	if (motionBlur || rainLens)
 	{
 		if (r_smaa->integer == 2)
 		{
@@ -3522,6 +3528,8 @@ const void *RB_PostProcess(const void *data)
 		}
 
 		RB_MotionBlur(srcFbo);
+		if (rainLens)
+			RB_RainLens(srcFbo, rainLensExposure);
 		RB_DynamicGlowPrepare();
 
 		if (r_smaa->integer && r_smaa->integer != 2)
@@ -3678,6 +3686,7 @@ const void *RB_PostProcess(const void *data)
 
 	RB_AODebugOverlay();
 	RB_MotionBlurDebugOverlay();
+	RB_RainLensDebugOverlay();
 	RB_ScreenSpaceDebugOverlay();
 	RB_VolumetricDebugOverlay();
 	RB_FoliageFieldDebugOverlay();
