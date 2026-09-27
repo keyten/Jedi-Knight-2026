@@ -802,6 +802,187 @@ Expected GPU shape:
   `wantChange` (the jittered sample).
 - Smoke makes more froxels non-empty, so more of them take the light path.
 
+## Volumetric emission (glowing media)
+
+A medium can emit radiance by itself: fire, the core of an explosion, plasma haze. The glow is **only seen**,
+it lights nothing. Lighting the surroundings stays the job of a dynamic light: a `Light` primitive of the same
+efx (the `Flash` of `thermal/explosion.efx`) keeps working unchanged, and emission never creates a dlight.
+
+### Equation
+
+The source term of the integration (per world unit) becomes
+
+```
+j_total   = j_scatter + j_emissive
+j_scatter = sigma_s * L_in = albedo * sigma_t * (L_baked + L_sun) + albedo * sigma_t * L_dlights
+j_emissive(p) = sum over emitters of  E_rgb * d_e * shape(p) * fade
+```
+
+- `sigma_t` (extinction) and `d_e` (emissive density) are per world unit, the unit of `depthForOpaque`.
+- `E_rgb` is scene linear HDR radiance, the frame buffer before tone mapping. It is used without an sRGB or
+  overbright conversion.
+- `j` is therefore radiance per world unit, the same unit as the existing source.
+- `shape(p)` is the soft density (0..1) of the local volume or particle proxy, and `fade` is the far fade of the
+  local lists.
+- Density noise is not applied to the emission, so the glow stays stable without history.
+
+Integration (`volumetric_integrate.glsl`), per slice of length `l`:
+
+```
+x   = sigma_t * l
+phi = (1 - exp(-x)) / x                                           x >= 0.05
+phi = 1 - x/2 + x^2/6 - x^3/24 + x^4/120                          x <  0.05
+S  += T * j_total * l * phi
+T  *= exp(-x)
+```
+
+`phi` is the mean transmittance inside the slice, and it tends to 1 as `x` tends to 0:
+
+- There is no division by zero.
+- A medium without extinction adds exactly `j * l` per slice, so its emission is not lost.
+- `phi <= 1`, so the brightness is bounded.
+- Dense emitting smoke saturates to `j / sigma_t`. In coupled mode that is exactly `E_rgb`.
+
+This replaces the former hard branch (`extinction <= 1e-7 -> emission * length`). That branch was exact only at 0,
+and in fp32 its cancellation reached about 1e-4 near the threshold. The series is below 0.05 because `1 - exp(-x)`
+loses precision in fp32 there. The CPU harness measured a relative error of at most 2.1e-6 over x = 0 and 1e-9..1e3,
+with a step of 6e-7 at the switch.
+
+### Coupled vs independent emissive density
+
+| authored | `d_e` | reads as |
+|---|---|---|
+| no density (default) | `sigma_t` of the emitter | blackbody-like: an opaque core shows `E_rgb`, a thin edge `E * sigma_t * l` |
+| `emissiveDensity > 0` | that value | independent of the extinction; with no extinction the thin limit holds everywhere: `E * d_e * l` |
+
+A pure glow (extinction 0) needs an explicit density.
+
+### Where the emission is evaluated
+
+`FroxelEmission` (`volumetric_inject.glsl`) runs at the froxel center, with no jitter. It reads the same
+per-slice lists as the medium: the local volumes (skipped when `localParams.w`, "some volume emits", is 0) and
+the FX particles (only those with an emission slot).
+
+The result goes to the **dynamic volume** (`froxelDynamicImage`, R11G11B10F), which has no history, next to the
+dynamic light scattering:
+
+- A fast explosion or fire leaves no after-image.
+- A volume or particle that vanishes stops glowing on the same frame. The "vanished" candidate that drops the
+  scattering history carries no emission.
+- The history clamp of the scattered source (`radiance = rgb / a`) never sees the emission. Without that, a
+  glowing froxel with little extinction would widen the clamp range.
+
+The cost of having no history is aliasing at the froxel scale on the soft edges. The emission shapes are smooth
+(smoothstep shells), so this is limited.
+
+`r_volumetricEmission` (default 1, 0 = off) is only a global scale. The API is per volume and per particle.
+
+### HDR and bloom
+
+Nothing is special-cased:
+
+- The emission is part of `S`, which the composite adds to the HDR scene.
+- Bloom uses the existing highlight policies: the `r_volumetricFogBloom` soft knee on the luminance of `S`
+  (`luma - 0.5`, squared), and the scene-linear threshold of `r_bloom 1`.
+- A bright core blooms. Dim emissive haze stays below the knee and does not, however large its volume.
+- The emission is never written to the glow buffer directly.
+
+### Local volumes
+
+`refFogVolume_t` gains `emissive[3]` and `emissiveDensity`, appended at the end of the struct.
+
+`depthForOpaque <= 0` (no extinction) is now accepted when the volume emits with an explicit density.
+Upload: `localEmission[i]` of the VolumetricFog block (rgb = `E * d_e`). The block grows from 14 048 B to
+15 072 B, below the 16 384 B GL 3.2 minimum.
+
+- env.json keys: `"Emissive": [r, g, b]` and `"EmissiveDensity": d`. `"Opaque": 0` gives a pure glow.
+- Game or FX code, through `GetRefFogVolumeAPI`: fill the two new fields.
+- The debug volume, no asset needed:
+  - `r_fogvol add sphere radius 96 opaque 0 emit 0.5 0.8 2 0.01` adds a pure glow.
+  - `r_fogvol add sphere radius 96 opaque 150 color 0.2 0.2 0.2 emit 4 1.6 0.4` adds dense glowing smoke.
+  - `r_fogvol emittest` spawns both, 400 units ahead and side by side.
+  - `r_fogvol dump` prints the env.json keys.
+
+### FX particles (efx)
+
+The `volumetricMedia` group of a Particle / OrientedParticle gains three keys:
+
+```
+volumetricMedia
+{
+	extinction		0.004 0.006	// may be 0 with an emissiveDensity: a pure glow
+	emissive		6 3 1.2		// scene linear HDR radiance of the opaque medium (0 = none)
+	emissiveDensity	0.02		// optional, per world unit; default: the rolled extinction
+	emissiveTint	1			// optional: times the sprite's current rgb (fire fading to black)
+}
+```
+
+The FX code sends `refVolParticle_t.emission[3]`, which is `j` at the center per world unit:
+
+- The glow fades with the sprite. With `emissiveTint 1` that is its current rgb, which already carries the alpha
+  fade for additive art, plus the alpha for `useAlpha` art. Without the tint it is the alpha fade.
+- A particle is submitted when it has an extinction or an emission.
+- `r_volParticlesScale` (a density scale) does not scale the emission.
+
+On the renderer side:
+
+- **Ranking**: the particle ranks by `max(extinction, luminance(j))`.
+- **Emission slots**: the 24 most important uploaded emitters get a slot in `emission[24]` of the
+  VolumetricParticles block (15 888 B to 16 272 B). The slot is packed into `prevCenter.w` as
+  `changed + 2 * (slot + 1)`, and `FroxelParticleChanged` / `FroxelParticleEmissionSlot` decode it.
+- **Over the cap**: further emitters keep their medium but do not glow. `r_volparticles` reports them as
+  "glows dropped".
+
+Only the chosen primitive is converted. Additive FX in general are **not** turned into volumetric emission.
+
+### Asset proof
+
+`build/test-assets/zz_volumetric_emission_test.pk3` overrides `effects/thermal/explosion.efx` (from `assets1.pk3`).
+It is used by the SP thermal detonator (`wp_thermal.cpp`, `cg_weapons.cpp`) and the MP one (`cg_weaponinit.c`).
+
+- **Changed**: only `Particle explosion_cloud` (fire sprites `exp02_2`, `exp02_3`, `effects/fire`) gets
+  `volumetricMedia { extinction 0.004 0.006, albedo 0.25 0.22 0.2, radiusScale 0.6, softness 0.6, emissive 6 3 1.2,
+  emissiveDensity 0.02, emissiveTint 1 }`.
+- **Unchanged, byte for byte**: `LingeringSmoke`, `Dust`, the `Flash` Light (dlight, 250 ms), the sound and the
+  decal. The flash still lights the room; the cloud glows during its 0.5-1 s life and fades with its sprite.
+
+Expected magnitude:
+
+- At the proxy center: `j = 6 * 0.02 = 0.12` per unit.
+- A proxy of radius about 0.6 * 25-60 gives an optical source of about 2-4 through the middle at full alpha, well
+  above the bloom knee.
+
+### Debug views
+
+| view | shows |
+|---|---|
+| 30 | scattering source only, `sum j_s * l` along the ray (extinction forced to 0 in the integration) |
+| 31 | emissive source only, `sum j_e * l` (idem) |
+| 32 | combined source `sum (j_s + j_e) * l` (idem) |
+| 33 | final integrated emission: only `j_e`, integrated with the real extinction (self absorption in dense smoke) |
+| 34 | history contribution: red = luminance of the history part of the scattered source (weight * source), green = luminance of the emission (never from history) |
+
+Views 31, 33 and 34 also drop the light of the tail beyond far, so they show the emitters alone.
+
+### Validation
+
+Done here:
+- Builds: rend2 SP and MP, both engines, SP game (FX code), and MP cgame (MSVC Release).
+- Offline GLSL on Intel UHD and RTX 2060: 48 x 2 cases, no failures.
+- CPU harness for `phi`:
+  - error bound (above);
+  - pure glow sigma = 0, where `S = j * 192` exactly;
+  - sigma of 1e-12..1e-6, which gives a continuous result (the old branch was also continuous but less precise);
+  - dense glowing smoke, which converges to `E` exactly with T = 4e-12.
+- CPU harness for the packing round trip (24 slots x changed) and the UBO sizes.
+
+The game was **not** launched. Checklist rows "emit: ..." below; timings to fill:
+
+| scene | inject ms (emission off / on) | integrate ms |
+|---|---|---|
+| `r_fogvol emittest`, hoth2 | | |
+| 4 thermal detonators at once | | |
+
 ## Sprite particle lighting (`r_particleLight`)
 
 Ordinary FX sprites, drawn by `generic.glsl` with their authored vertex colour, are lit by the local light. This works
@@ -924,10 +1105,13 @@ Front to back over the slices of every froxel column, with the medium constant i
 
 ```
 length = (B(k+1) - B(k)) * |ray|                     // path length along the froxel's ray
-Ts     = exp(-extinction * length)
-S     += T * (emission / extinction) * (1 - Ts)      // extinction -> 0: emission * length
+x      = extinction * length
+Ts     = exp(-x)
+S     += T * j * length * phi(x)                     // phi = (1 - Ts) / x, series below 0.05 (-> 1 at 0)
 T     *= Ts
 ```
+
+`j` is the whole source: scattering plus emission (see "Volumetric emission").
 
 This is the discretisation of the legacy ray march (`color += light * T * (1 - exp(-z))`), so extinction is in
 the same units as `depthToOpaque` and fog maps keep their density. Checked numerically against the exact
@@ -997,6 +1181,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogStaticScale` | 1 | Baked light scattering multiplier |
 | `r_volumetricFogDlightShadows` | 1 | Dynamic lights use their shadow maps (needs `r_dlightMode 2`) |
 | `r_volumetricFogBloom` | 0 | Bright in-scattering added to the glow buffer |
+| `r_volumetricEmission` | 1 | scale of the emission of local volumes and FX particle media, 0 = off |
 | `r_volumetricFogReset` | 0 | Set by game code on camera cuts, cleared by the renderer |
 | `r_volumetricFogDebug` | 0 | cheat, debug views below |
 | `r_volumetricFogFreeze` | 0 | cheat, keep the volume and its camera |
@@ -1060,6 +1245,11 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 26 | as 1, FX particle media only (the injection drops every other medium) |
 | 27 | FX particle media along the ray, opacity weighted: red = history reduction where the particle density changed, green = particle share |
 | 28 | FX particle proxy bounds over the frame (uploaded particles), one hue per GPU index, dimmed behind the scene |
+| 30 | scattering source `sum j_s * l` (extinction forced to 0) |
+| 31 | emissive source `sum j_e * l` (extinction forced to 0) |
+| 32 | combined source (extinction forced to 0) |
+| 33 | emission alone, integrated with the real extinction |
+| 34 | history contribution: red = history part of the scattering, green = emission (no history) |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see
@@ -1149,6 +1339,13 @@ vs `*-vfog.dll`).
 | plight: volumetric off / on | `r_volumetricFog 1` vs `2` | mode 1: authored sprites; mode 2: lit sprites, fog applied once | - |
 | plight: lit / unlit | `r_particleLightMix 0 / 1` | only alpha-blended sprites change | pl 5 |
 | plight: timings | see Sprite particle lighting, Timings | fill the table | - |
+| emit: pure glow | `r_fogvol emittest`, left sphere (opaque 0) | blue glow, no black, no NaN squares, T unchanged behind it | 31, 7 |
+| emit: dense smoke | `r_fogvol emittest`, right sphere | orange core about the emissive radiance, darker smoky rim, scene hidden behind | 33 vs 31 |
+| emit: fire + dlight | thermal detonator with the test pk3, `r_volParticles 1` | cloud glows, room still lit by the Flash dlight only | 31, 4 |
+| emit: explosion | several detonators | glow follows the sprites, `r_volparticles` shows the emissive count | 33 |
+| emit: bloom | `r_volumetricFogBloom 0 / 1`, `r_bloom 0 / 1` | only the bright core blooms, dim glow haze does not | - |
+| emit: rapid disappear | `r_fogvol clear`, end of the explosion | glow gone on the same frame, no after-image | 34 |
+| emit: off | `r_volumetricEmission 0` | exactly the scattering-only look | 32 vs 30 |
 
 ## Known limitations
 

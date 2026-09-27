@@ -273,6 +273,9 @@ public:
 	float			mVolRadiusScale;
 	vec3_t			mVolAspect;
 	float			mVolSoftness;
+	vec3_t			mVolEmissive;			// glow: scene linear radiance of the opaque medium (0 = none)
+	float			mVolEmissiveDensity;	// per world unit, 0 = the extinction
+	bool			mVolEmissiveTint;		// times the particle's current rgb (fire fading to black)
 
 	// spot cone of a Light (rend2 spot lights): the "spot" group, a point
 	// light when absent

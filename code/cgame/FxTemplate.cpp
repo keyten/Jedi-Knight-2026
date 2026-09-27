@@ -93,6 +93,9 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mVolRadiusScale = 0.75f;
 	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
 	mVolSoftness = 0.5f;
+	VectorClear( mVolEmissive );
+	mVolEmissiveDensity = 0.0f;
+	mVolEmissiveTint = false;
 
 	// a point light unless the Light has a spot group
 	mSpot = false;
@@ -204,6 +207,9 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mVolRadiusScale		= that.mVolRadiusScale;
 	VectorCopy( that.mVolAspect, mVolAspect );
 	mVolSoftness		= that.mVolSoftness;
+	VectorCopy( that.mVolEmissive, mVolEmissive );
+	mVolEmissiveDensity	= that.mVolEmissiveDensity;
+	mVolEmissiveTint	= that.mVolEmissiveTint;
 
 	mSpot				= that.mSpot;
 	mSpotInner			= that.mSpotInner;
@@ -1794,6 +1800,10 @@ bool CPrimitiveTemplate::ParseLength( const CGPGroup& grp )
 //		radiusScale	0.75		// optional, proxy radius / sprite radius
 //		aspect		1 1 0.7		// optional, ellipsoid scale along world x y z
 //		softness	0.5			// optional, soft part of the radius 0..1
+//		emissive	6 3 1.2		// optional glow: scene linear HDR radiance of the
+//								// opaque medium; visible by itself, lights nothing
+//		emissiveDensity	0.02	// optional, per world unit (default: the extinction)
+//		emissiveTint	1		// optional, times the particle's current rgb
 //	}
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseVolExtinction( const gsl::cstring_span& val )
@@ -1852,6 +1862,39 @@ bool CPrimitiveTemplate::ParseVolSoftness( const gsl::cstring_span& val )
 	return false;
 }
 
+bool CPrimitiveTemplate::ParseVolEmissive( const gsl::cstring_span& val )
+{
+	vec3_t min, max;
+	if ( ParseVector( val, min, max ) == true )
+	{
+		VectorSet( mVolEmissive, Q_max( 0.0f, min[0] ), Q_max( 0.0f, min[1] ), Q_max( 0.0f, min[2] ) );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolEmissiveDensity( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolEmissiveDensity = Q_max( 0.0f, min );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolEmissiveTint( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolEmissiveTint = ( min > 0.5f );
+		return true;
+	}
+	return false;
+}
+
 bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 {
 	if ( mType != Particle && mType != OrientedParticle )
@@ -1873,6 +1916,10 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 		{ CSTRING_VIEW( "aspect" ), &CPrimitiveTemplate::ParseVolAspect },
 
 		{ CSTRING_VIEW( "softness" ), &CPrimitiveTemplate::ParseVolSoftness },
+
+		{ CSTRING_VIEW( "emissive" ), &CPrimitiveTemplate::ParseVolEmissive },
+		{ CSTRING_VIEW( "emissiveDensity" ), &CPrimitiveTemplate::ParseVolEmissiveDensity },
+		{ CSTRING_VIEW( "emissiveTint" ), &CPrimitiveTemplate::ParseVolEmissiveTint },
 	};
 	return ParseGroup( grp, parseMethods, "volumetricMedia" );
 }

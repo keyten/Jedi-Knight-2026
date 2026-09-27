@@ -967,6 +967,9 @@ static void FX_SetVolumetricMedia( CParticle *particle, const CPrimitiveTemplate
 	media.radiusScale = fx->mVolRadiusScale;
 	VectorCopy( fx->mVolAspect, media.aspect );
 	media.softness = fx->mVolSoftness;
+	VectorCopy( fx->mVolEmissive, media.emissive );
+	media.emissiveDensity = fx->mVolEmissiveDensity;
+	media.emissiveTint = fx->mVolEmissiveTint;
 	particle->SetVolumetricMedia( &media );
 }
 

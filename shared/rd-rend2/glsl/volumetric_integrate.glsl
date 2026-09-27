@@ -12,9 +12,15 @@ void main()
 // Beer-Lambert with the medium constant inside a slice (the discretisation of the legacy volumetric
 // ray march, color += light * T * (1 - exp(-z))):
 //
-//   Ts = exp(-extinction * length)
-//   S += T * (emission / extinction) * (1 - Ts)
+//   x  = extinction * length
+//   Ts = exp(-x)
+//   S += T * j * length * phi(x),  phi(x) = (1 - exp(-x)) / x = the mean transmittance in the slice
 //   T *= Ts
+//
+// j = j_scatter + j_emissive (radiance per world unit): the baked + sun source, the dynamic volume
+// (dynamic light scattering + emission of local volumes and FX particles). phi -> 1 as x -> 0 (series
+// below 0.05, no division by 0): a glowing medium without extinction adds j * length, it neither
+// vanishes nor explodes; phi <= 1, so S stays bounded by j * length per slice.
 //
 // out_Color  integrated volume, slice u_FroxelSlice: (S, T) at the far side of the slice
 // out_Carry  the same, for the next slice
@@ -22,7 +28,7 @@ void main()
 // injection)
 
 uniform sampler3D u_FroxelSource;	// baked + sun emission (rgb), extinction (a)
-uniform sampler3D u_FroxelDynamic;	// dynamic light emission (rgb)
+uniform sampler3D u_FroxelDynamic;	// dynamic light scattering + emission (rgb)
 uniform sampler2D u_FroxelCarry;
 uniform int u_FroxelSlice;
 
@@ -53,16 +59,18 @@ void main()
 	float sliceFar = FroxelWToDepth(float(slice + 1) / numSlices);
 	float pathLength = (sliceFar - sliceNear) * length(ray);
 
-	vec3 scattered;
-	float sliceTransmittance = exp(-extinction * pathLength);
-	if (extinction > 1e-7)
-	{
-		scattered = emission / extinction * (1.0 - sliceTransmittance);
-	}
-	else
-	{
-		scattered = emission * pathLength;
-	}
+	// debug views 30-32 (volumetric_inject.glsl): the source alone, without extinction
+	int debugView = int(u_FroxelDebugParams.x);
+	if (debugView >= 30 && debugView <= 32)
+		extinction = 0.0;
+
+	float x = max(extinction, 0.0) * pathLength;
+	float sliceTransmittance = exp(-x);
+	// below 0.05 the series (1 - exp(-x) cancels in fp32 there; truncation < 1e-9)
+	float phi = (x < 0.05) ?
+		1.0 - x * (1.0 / 2.0 - x * (1.0 / 6.0 - x * (1.0 / 24.0 - x * (1.0 / 120.0)))) :
+		(1.0 - sliceTransmittance) / x;
+	vec3 scattered = emission * (pathLength * phi);
 
 	state.rgb += state.a * scattered;
 	state.a *= sliceTransmittance;

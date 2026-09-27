@@ -357,6 +357,13 @@ typedef struct {
 	float		color[3];		// scattering color 0..1, as fogParms
 	float		softness;		// 0..1 of the extents over which the density fades to 0
 	int			flags;			// FOGVOLUME_NOISE
+	// emission (glowing gas, visible by itself; lights nothing: add a dlight for that).
+	// Source per world unit j = emissive * emissiveDensity * shape density. emissive is
+	// the HDR linear radiance of an opaque emitting medium; emissiveDensity (1 / unit)
+	// <= 0 = the extinction of the volume. depthForOpaque <= 0 (no extinction) is
+	// allowed for an emitting volume with emissiveDensity > 0.
+	float		emissive[3];
+	float		emissiveDensity;
 } refFogVolume_t;
 
 // Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volParticles):
@@ -373,6 +380,9 @@ typedef struct {
 	float		extinction;		// per world unit at the center, alpha fade included
 	float		color[3];		// scattering color (albedo) 0..1
 	float		softness;		// 0..1 of the radius over which the density fades to 0
+	// emission per world unit at the center (HDR linear radiance / unit, fades included,
+	// see refFogVolume_t); extinction may be 0 for a pure glow
+	float		emission[3];
 } refVolParticle_t;
 
 // Spot lights (rend2): a dynamic light limited to a cone around dir, added per

@@ -43,6 +43,10 @@ void main()
 //     where the soft edge starts, one hue per index (0 = most important), dimmed behind the scene
 //  29 dynamic lights listed for the froxel cluster at the scene depth (heat, 8 = red), cyan where
 //     spot lights are listed (brighter: more), slice stripes (the slice light mask of the injection)
+//  30-34 emission (volumetric_inject.glsl FroxelEmission): 30 scattering source j_s, 31 emissive
+//     source j_e, 32 j_s + j_e (30-32: sum of j * length along the ray, the extinction forced to 0),
+//     33 emission integrated with the real extinction (self absorption in dense smoke),
+//     34 history contribution: red = history part of the scattering, green = emission (no history)
 //
 // r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -178,7 +182,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25))
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34))
 	{
 		color = Display(fog.rgb);
 	}

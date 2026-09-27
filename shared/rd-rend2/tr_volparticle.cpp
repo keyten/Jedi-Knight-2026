@@ -74,6 +74,7 @@ struct volParticleEval_t
 	float extinction;			// per world unit at the center
 	float inner;				// 1 - softness
 	vec3_t albedo;
+	vec3_t emission;			// emission per world unit at the center (0: no glow)
 };
 
 // a candidate of this frame
@@ -107,6 +108,8 @@ static struct
 	int statVanished;
 	int statPoolUsed;
 	int statPoolDropped;
+	int statEmissive;			// uploaded with an emission slot
+	int statEmissiveDropped;	// uploaded, emissive, no slot left (medium kept, no glow)
 	int statMaxPerSlice;
 	int statBuildMicroseconds;
 	int statLastPrint;
@@ -123,7 +126,7 @@ Conversion
 static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volParticleEval_t *out )
 {
 	Com_Memset(out, 0, sizeof(*out));
-	if ( !(particle->radius > 0.0f) || !(particle->extinction > 0.0f) )
+	if ( !(particle->radius > 0.0f) || !R_VolParticleHasMedium(particle) )
 		return qfalse;
 
 	out->id = particle->id;
@@ -142,8 +145,21 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 	}
 	out->radius = maxExtent;
 
+	// emission (scene linear radiance per unit, the fades applied by the FX code): not scaled by
+	// r_volParticlesScale, a density scale, but by r_volumetricEmission in the injection
+	qboolean emits = qfalse;
+	for ( int c = 0; c < 3; c++ )
+	{
+		const float e = particle->emission[c];
+		out->emission[c] = (e > 0.0f && e < 1e6f) ? e : 0.0f;	// NaN, Inf -> 0
+		if ( out->emission[c] > 0.0f )
+			emits = qtrue;
+	}
+
 	out->extinction = particle->extinction * r_volParticlesScale->value;
-	if ( !(out->extinction > 0.0f) || Q_isnan(out->extinction) )
+	if ( Q_isnan(out->extinction) || !(out->extinction >= 0.0f) )
+		out->extinction = 0.0f;
+	if ( !(out->extinction > 0.0f) && !emits )
 		return qfalse;
 
 	float softness = Com_Clamp(VOLPARTICLE_MIN_SOFTNESS, 1.0f, particle->softness);
@@ -296,9 +312,11 @@ qboolean R_VolParticlesInFrustum( const viewParms_t *view, const trRefdef_t *ref
 static void R_VolParticlesPrintStats( const char *prefix )
 {
 	ri.Printf(PRINT_ALL, "%svolumetric FX particles (frame %d): %d submitted, %d rejected, %d culled, "
-		"%d capped, %d uploaded (%d changed, %d vanished), pool %d/%d (%d dropped, max %d per slice), build %d us\n",
+		"%d capped, %d uploaded (%d changed, %d vanished, %d/%d emissive, %d glows dropped), pool %d/%d "
+		"(%d dropped, max %d per slice), build %d us\n",
 		prefix, s_vp.statFrame, s_vp.statSubmitted, s_vp.statRejected, s_vp.statCulled, s_vp.statCapped,
-		s_vp.statUploaded, s_vp.statChanged, s_vp.statVanished, s_vp.statPoolUsed, VOL_PARTICLE_POOL,
+		s_vp.statUploaded, s_vp.statChanged, s_vp.statVanished, s_vp.statEmissive, MAX_GPU_EMISSIVE_PARTICLES,
+		s_vp.statEmissiveDropped, s_vp.statPoolUsed, VOL_PARTICLE_POOL,
 		s_vp.statPoolDropped, s_vp.statMaxPerSlice, s_vp.statBuildMicroseconds);
 }
 
@@ -337,6 +355,8 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	s_vp.statVanished = 0;
 	s_vp.statPoolUsed = 0;
 	s_vp.statPoolDropped = 0;
+	s_vp.statEmissive = 0;
+	s_vp.statEmissiveDropped = 0;
 	s_vp.statMaxPerSlice = 0;
 
 	numSlices = Com_Clampi(1, FROXEL_MAX_SLICES, numSlices);
@@ -382,6 +402,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		volParticleCandidate_t *c = &candidates[numCandidates++];
 		c->current = s_vp.previous[j];
 		c->current.extinction = 0.0f;
+		VectorClear(c->current.emission);	// no glow after it vanished (no after-image)
 		c->previous = &s_vp.previous[j];
 		c->changed = qtrue;
 		VectorCopy(c->previous->center, c->center);
@@ -399,7 +420,9 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 			s_vp.statCulled++;
 			continue;
 		}
-		const float extinction = MAX(c->current.extinction, c->previous ? c->previous->extinction : 0.0f);
+		// a glow ranks like a medium whose extinction is its luminance per unit
+		const float extinction = MAX(MAX(c->current.extinction, c->previous ? c->previous->extinction : 0.0f),
+			0.2126f * c->current.emission[0] + 0.7152f * c->current.emission[1] + 0.0722f * c->current.emission[2]);
 		const float distance = MAX(c->depth, nearZ);
 		c->importance = extinction * c->radius * c->radius / (distance * distance);
 		order[numVisible++] = i;
@@ -431,7 +454,23 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		VectorSet4(block->invExtent[n], e->invExtent[0], e->invExtent[1], e->invExtent[2], e->inner);
 		VectorSet4(block->color[n], e->albedo[0], e->albedo[1], e->albedo[2],
 			c->previous ? c->previous->extinction : 0.0f);
-		VectorSet4(block->prevCenter[n], p->center[0], p->center[1], p->center[2], c->changed ? 1.0f : 0.0f);
+		// w: changed (0/1) + 2 * (emission slot + 1), the slots to the most important emitters
+		float slotCode = 0.0f;
+		if ( !VectorCompare(e->emission, vec3_origin) )
+		{
+			if ( s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES )
+			{
+				const int slot = s_vp.statEmissive++;
+				VectorSet4(block->emission[slot], e->emission[0], e->emission[1], e->emission[2], 0.0f);
+				slotCode = 2.0f * (float)(slot + 1);
+			}
+			else
+			{
+				s_vp.statEmissiveDropped++;
+			}
+		}
+		VectorSet4(block->prevCenter[n], p->center[0], p->center[1], p->center[2],
+			(c->changed ? 1.0f : 0.0f) + slotCode);
 		VectorSet4(block->prevInvExtent[n], p->invExtent[0], p->invExtent[1], p->invExtent[2], p->inner);
 
 		if ( c->changed )
@@ -512,5 +551,6 @@ void R_VolParticles_f( void )
 	R_VolParticlesPrintStats("");
 	ri.Printf(PRINT_ALL, "limits: %d per scene, %d uploaded (r_volParticlesMax %d), %d slice list entries\n",
 		MAX_REF_VOL_PARTICLES, MAX_GPU_VOL_PARTICLES, r_volParticlesMax->integer, VOL_PARTICLE_POOL);
-	ri.Printf(PRINT_ALL, "r_volumetricFogDebug 26: particle density, 27: particle history reduction, 28: proxy bounds\n");
+	ri.Printf(PRINT_ALL, "r_volumetricFogDebug 26: particle density, 27: particle history reduction, 28: proxy bounds, "
+		"31/33: emission\n");
 }

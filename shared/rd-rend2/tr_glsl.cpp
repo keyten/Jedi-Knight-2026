@@ -3626,8 +3626,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		{
 			Com_sprintf(defines, sizeof(defines),
 				"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
-				"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n",
-				MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL);
+				"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
+				"#define MAX_GPU_EMISSIVE_PARTICLES %i\n",
+				MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES);
 		}
 		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
 				defines, *programDesc, common) )

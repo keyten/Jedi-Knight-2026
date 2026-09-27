@@ -91,6 +91,9 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mVolRadiusScale = 0.75f;
 	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
 	mVolSoftness = 0.5f;
+	VectorClear( mVolEmissive );
+	mVolEmissiveDensity = 0.0f;
+	mVolEmissiveTint = false;
 
 	// a point light unless the Light has a spot group
 	mSpot = false;
@@ -205,6 +208,9 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mVolRadiusScale		= that.mVolRadiusScale;
 	VectorCopy( that.mVolAspect, mVolAspect );
 	mVolSoftness		= that.mVolSoftness;
+	VectorCopy( that.mVolEmissive, mVolEmissive );
+	mVolEmissiveDensity	= that.mVolEmissiveDensity;
+	mVolEmissiveTint	= that.mVolEmissiveTint;
 
 	mSpot				= that.mSpot;
 	mSpotInner			= that.mSpotInner;
@@ -2131,6 +2137,10 @@ bool CPrimitiveTemplate::ParseLength( CGPGroup *grp )
 //		radiusScale	0.75		// optional, proxy radius / sprite radius
 //		aspect		1 1 0.7		// optional, ellipsoid scale along world x y z
 //		softness	0.5			// optional, soft part of the radius 0..1
+//		emissive	6 3 1.2		// optional glow: scene linear HDR radiance of the
+//								// opaque medium; visible by itself, lights nothing
+//		emissiveDensity	0.02	// optional, per world unit (default: the extinction)
+//		emissiveTint	1		// optional, times the particle's current rgb
 //	}
 //
 // input:
@@ -2188,6 +2198,21 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( CGPGroup *grp )
 		{
 			if ( ParseFloat( val, &min, &max ) )
 				mVolSoftness = Com_Clamp( 0.0f, 1.0f, min );
+		}
+		else if ( !Q_stricmp( key, "emissive" ) )
+		{
+			if ( ParseVector( val, vmin, vmax ) )
+				VectorSet( mVolEmissive, Q_max( 0.0f, vmin[0] ), Q_max( 0.0f, vmin[1] ), Q_max( 0.0f, vmin[2] ) );
+		}
+		else if ( !Q_stricmp( key, "emissiveDensity" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mVolEmissiveDensity = Q_max( 0.0f, min );
+		}
+		else if ( !Q_stricmp( key, "emissiveTint" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mVolEmissiveTint = ( min > 0.5f );
 		}
 		else
 			theFxHelper.Print( "Unknown key parsing a volumetricMedia group: %s\n", key );

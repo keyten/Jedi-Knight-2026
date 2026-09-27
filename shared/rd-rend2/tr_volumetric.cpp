@@ -1939,7 +1939,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorSet4(block.temporalParams,
 		historyValid ? r_volumetricFogHistoryWeight->value : 0.0f,
 		historyValid ? 1.0f : 0.0f,
-		0.0f,
+		MAX(r_volumetricEmission->value, 0.0f),	// emission of local volumes / FX particles
 		4.0f);	// history radiance clamped to [current / 4, current * 4]
 
 	VectorSet4(block.lightParams,

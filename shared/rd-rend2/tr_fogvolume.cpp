@@ -93,6 +93,7 @@ struct fogVolumeEval_t
 	float inner;				// 1 - softness
 	float invWidth;				// 1 / softness
 	vec3_t albedo;
+	vec3_t emission;			// source per world unit at full shape density (0: no glow)
 	qboolean noisy;
 	float radius;				// bounding sphere around origin
 };
@@ -190,10 +191,18 @@ static void R_FogVolumeAxes( const vec3_t in[3], vec3_t out[3] )
 	CrossProduct(out[0], out[1], out[2]);
 }
 
+// a volume that glows without extinction: explicit emissive density and color
+static qboolean R_FogVolumeEmitsAlone( const refFogVolume_t *volume )
+{
+	return (qboolean)(volume->emissiveDensity > 0.0f &&
+		MAX(volume->emissive[0], MAX(volume->emissive[1], volume->emissive[2])) > 0.0f);
+}
+
 static qboolean R_FogVolumeEvaluate( const refFogVolume_t *volume, qboolean noise, fogVolumeEval_t *out )
 {
 	Com_Memset(out, 0, sizeof(*out));
-	if ( volume->depthForOpaque <= 0.0f )
+	const qboolean scatters = (qboolean)(volume->depthForOpaque > 0.0f);
+	if ( !scatters && !R_FogVolumeEmitsAlone(volume) )
 		return qfalse;
 
 	out->key = R_FogVolumeKey(volume);
@@ -209,10 +218,22 @@ static qboolean R_FogVolumeEvaluate( const refFogVolume_t *volume, qboolean nois
 	}
 
 	// the same unit as the BSP fog volumes and the height fog
-	out->extinction = (-logf(1.5f / 255.0f)) / volume->depthForOpaque *
-		tr.volumetricFogScale * r_volumetricFogScale->value;
-	if ( !(out->extinction > 0.0f) )
-		return qfalse;
+	if ( scatters )
+	{
+		out->extinction = (-logf(1.5f / 255.0f)) / volume->depthForOpaque *
+			tr.volumetricFogScale * r_volumetricFogScale->value;
+		if ( !(out->extinction > 0.0f) )
+			return qfalse;
+	}
+
+	// emission j = emissive * density per unit: explicit, or coupled to the extinction (an
+	// opaque volume then shows exactly the emissive radiance). Scene linear, no conversion.
+	const float emissiveDensity = (volume->emissiveDensity > 0.0f) ? volume->emissiveDensity : out->extinction;
+	for ( int c = 0; c < 3; c++ )
+	{
+		const float e = MAX(volume->emissive[c], 0.0f) * emissiveDensity;
+		out->emission[c] = (e > 0.0f && e < 1e6f) ? e : 0.0f;	// NaN, Inf -> 0
+	}
 
 	float softness = Com_Clamp(FOGVOLUME_MIN_SOFTNESS, 1.0f, volume->softness);
 	softness = MIN(1.0f, MAX(softness, FOGVOLUME_MIN_FADE / minExtent));
@@ -347,7 +368,7 @@ qboolean R_FogVolumesInFrustum( const viewParms_t *view, const trRefdef_t *refde
 	for ( int i = 0; i < refdef->num_fogVolumes; i++ )
 	{
 		const refFogVolume_t *volume = &refdef->fogVolumes[i];
-		if ( volume->depthForOpaque <= 0.0f )
+		if ( volume->depthForOpaque <= 0.0f && !R_FogVolumeEmitsAlone(volume) )
 			continue;
 		const float radius = (volume->shape == FOGVOLUME_BOX) ?
 			VectorLength(volume->extents) :
@@ -464,6 +485,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		fogVolumeCandidate_t *c = &candidates[numCandidates++];
 		c->current = s_fv.previous[j];
 		c->current.extinction = 0.0f;
+		VectorClear(c->current.emission);	// no glow after it vanished
 		c->previous = &s_fv.previous[j];
 		c->changed = qtrue;
 		VectorCopy(c->previous->origin, c->center);
@@ -496,6 +518,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 	}
 
 	// volume data
+	qboolean anyEmission = qfalse;
 	for ( int n = 0; n < numUploaded; n++ )
 	{
 		const fogVolumeCandidate_t *c = &candidates[order[n]];
@@ -510,6 +533,9 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		VectorCopy4(p->rows[2], block->localPrevZ[n]);
 		VectorSet4(block->localColor[n], e->albedo[0], e->albedo[1], e->albedo[2], e->extinction);
 		VectorSet4(block->localShape[n], (float)e->shape, e->inner, e->invWidth, e->noisy ? 1.0f : 0.0f);
+		VectorSet4(block->localEmission[n], e->emission[0], e->emission[1], e->emission[2], 0.0f);
+		if ( !VectorCompare(e->emission, vec3_origin) )
+			anyEmission = qtrue;
 		// x: 0 unchanged, else 1 + the shape of the previous state (the id may change shape)
 		VectorSet4(block->localMotion[n],
 			c->changed ? 1.0f + (float)p->shape : 0.0f,
@@ -562,7 +588,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		(float)numUploaded,
 		fadeStart,
 		1.0f / MAX(fadeEnd - fadeStart, 1.0f),
-		0.0f);
+		anyEmission ? 1.0f : 0.0f);
 
 	// the state the next frame is compared with
 	Com_Memcpy(s_fv.previous, current, numCurrent * sizeof(current[0]));
@@ -640,6 +666,10 @@ env.json "FogVolumes" (R_LoadEnvironmentJson, tr_bsp.cpp)
 Shape sphere | ellipsoid | box; Radius (sphere) or Size (half extents);
 Angles pitch yaw roll; Opaque as fogParms depthForOpaque; Color as fogParms;
 Softness 0..1; Noise 0 | 1 (r_volumetricFogNoise 8). Defaults as r_fogvol add.
+Emission (glowing gas, lights nothing): "Emissive": [r, g, b] scene linear HDR
+radiance of the opaque medium, "EmissiveDensity": per unit (default: the
+extinction of the volume). "Opaque": 0 = no extinction, a pure glow, which
+needs an EmissiveDensity.
 
 ============================================================
 */
@@ -740,10 +770,13 @@ void R_LoadFogVolumesJson( world_t *world, const char *json, const char *jsonEnd
 		float noise = 0.0f;
 		R_FogVolumeJsonFloat(entry, jsonEnd, "Noise", &noise);
 		volume.flags = (noise > 0.5f) ? FOGVOLUME_NOISE : 0;
+		R_FogVolumeJsonVector(entry, jsonEnd, "Emissive", volume.emissive);
+		R_FogVolumeJsonFloat(entry, jsonEnd, "EmissiveDensity", &volume.emissiveDensity);
 
-		if ( volume.depthForOpaque <= 0.0f )
+		if ( volume.depthForOpaque <= 0.0f && !R_FogVolumeEmitsAlone(&volume) )
 		{
-			ri.Printf(PRINT_WARNING, "%s: FogVolumes[%d]: Opaque must be > 0\n", filename, i);
+			ri.Printf(PRINT_WARNING, "%s: FogVolumes[%d]: Opaque must be > 0 (or Emissive with an EmissiveDensity)\n",
+				filename, i);
 			continue;
 		}
 
@@ -796,10 +829,14 @@ static void R_FogVolumeUsage( void )
 		"         soft    <0..1>                  soft edge, part of the extents (default 0.5)\n"
 		"         angles  <pitch> <yaw> <roll>    orientation\n"
 		"         noise   0|1                     density noise (r_volumetricFogNoise 8)\n"
+		"         emit    <r> <g> <b> [density]   glow: scene linear radiance of the opaque medium,\n"
+		"                                         emissive density per unit (default: the extinction);\n"
+		"                                         opaque 0 = no extinction (needs a density)\n"
 		"         at      trace|view|eye|<x y z>  trace: in front of the wall under the crosshair\n"
 		"                                         (default), view: 1.5 radii ahead, eye: on the camera\n"
 		"         swing   <x> <y> <z> <seconds>   sine motion (moving volume test)\n"
 		"       r_fogvol test <count> [spread]    spheres around the camera (timings, sv_cheats)\n"
+		"       r_fogvol emittest                 pure glow (no extinction) + dense glowing smoke ahead\n"
 		"       r_fogvol remove <index> | clear\n"
 		"       r_fogvol slices                   slice lists of the last frame\n"
 		"       r_fogvol dump                     r_fogvol volumes as an env.json \"FogVolumes\" array\n"
@@ -834,11 +871,18 @@ static const char *R_FogVolumeKeyName( unsigned int key )
 
 static void R_FogVolumePrintVolume( const char *label, const refFogVolume_t *v )
 {
-	ri.Printf(PRINT_ALL, "  %s %s at (%.0f %.0f %.0f) extents (%.0f %.0f %.0f) opaque %g color (%g %g %g) soft %g%s\n",
+	const qboolean emits = (qboolean)(MAX(v->emissive[0], MAX(v->emissive[1], v->emissive[2])) > 0.0f);
+	char emission[128] = "";
+	if ( emits )
+	{
+		Com_sprintf(emission, sizeof(emission), " emit (%g %g %g) density %s", v->emissive[0], v->emissive[1],
+			v->emissive[2], (v->emissiveDensity > 0.0f) ? va("%g", v->emissiveDensity) : "= extinction");
+	}
+	ri.Printf(PRINT_ALL, "  %s %s at (%.0f %.0f %.0f) extents (%.0f %.0f %.0f) opaque %g color (%g %g %g) soft %g%s%s\n",
 		label, R_FogVolumeShapeName(v->shape, v->extents),
 		v->origin[0], v->origin[1], v->origin[2], v->extents[0], v->extents[1], v->extents[2],
 		v->depthForOpaque, v->color[0], v->color[1], v->color[2], v->softness,
-		(v->flags & FOGVOLUME_NOISE) ? " noise" : "");
+		(v->flags & FOGVOLUME_NOISE) ? " noise" : "", emission);
 }
 
 static void R_FogVolumeList( void )
@@ -921,15 +965,21 @@ static void R_FogVolumeDump( void )
 	{
 		const debugFogVolume_t *d = &s_fv.debug[i];
 		const refFogVolume_t *v = &d->volume;
+		char emission[128] = "";
+		if ( MAX(v->emissive[0], MAX(v->emissive[1], v->emissive[2])) > 0.0f )
+		{
+			Com_sprintf(emission, sizeof(emission), ", \"Emissive\": [%g, %g, %g], \"EmissiveDensity\": %g",
+				v->emissive[0], v->emissive[1], v->emissive[2], v->emissiveDensity);
+		}
 		const char *size = (v->shape != FOGVOLUME_BOX && v->extents[0] == v->extents[1] && v->extents[1] == v->extents[2]) ?
 			va("\"Radius\": %g", v->extents[0]) :
 			va("\"Size\": [%g, %g, %g]", v->extents[0], v->extents[1], v->extents[2]);
 		ri.Printf(PRINT_ALL,
 			"  { \"Shape\": \"%s\", \"Origin\": [%.1f, %.1f, %.1f], %s, \"Angles\": [%g, %g, %g], "
-			"\"Opaque\": %g, \"Color\": [%g, %g, %g], \"Softness\": %g, \"Noise\": %d }%s\n",
+			"\"Opaque\": %g, \"Color\": [%g, %g, %g], \"Softness\": %g, \"Noise\": %d%s }%s\n",
 			R_FogVolumeShapeName(v->shape, v->extents), v->origin[0], v->origin[1], v->origin[2], size,
 			d->angles[0], d->angles[1], d->angles[2], v->depthForOpaque, v->color[0], v->color[1], v->color[2],
-			v->softness, (v->flags & FOGVOLUME_NOISE) ? 1 : 0, (i + 1 < s_fv.numDebug) ? "," : "");
+			v->softness, (v->flags & FOGVOLUME_NOISE) ? 1 : 0, emission, (i + 1 < s_fv.numDebug) ? "," : "");
 	}
 	ri.Printf(PRINT_ALL, "]\n");
 }
@@ -1017,10 +1067,20 @@ static void R_FogVolumeAdd( void )
 			VectorCopy(values, v->extents);
 			i += 4;
 		}
-		else if ( !Q_stricmp(key, "opaque") && R_FogVolumeParseNumbers(i + 1, 1, values) && values[0] > 0.0f )
+		else if ( !Q_stricmp(key, "opaque") && R_FogVolumeParseNumbers(i + 1, 1, values) && values[0] >= 0.0f )
 		{
 			v->depthForOpaque = values[0];
 			i += 2;
+		}
+		else if ( !Q_stricmp(key, "emit") && R_FogVolumeParseNumbers(i + 1, 3, values) )
+		{
+			VectorCopy(values, v->emissive);
+			i += 4;
+			if ( R_FogVolumeParseNumbers(i, 1, values) )
+			{
+				v->emissiveDensity = MAX(0.0f, values[0]);
+				i++;
+			}
 		}
 		else if ( !Q_stricmp(key, "color") && R_FogVolumeParseNumbers(i + 1, 3, values) )
 		{
@@ -1067,6 +1127,12 @@ static void R_FogVolumeAdd( void )
 			R_FogVolumeUsage();
 			return;
 		}
+	}
+
+	if ( v->depthForOpaque <= 0.0f && !R_FogVolumeEmitsAlone(v) )
+	{
+		ri.Printf(PRINT_WARNING, "r_fogvol add: opaque 0 needs emit <r> <g> <b> <density>\n");
+		return;
 	}
 
 	for ( int c = 0; c < 3; c++ )
@@ -1158,6 +1224,57 @@ static void R_FogVolumeTest( void )
 	R_FogVolumeWarnings();
 }
 
+// emission test without assets: A a pure glow (no extinction, the small extinction
+// limit of the integration), B dense glowing smoke (emission coupled to the
+// extinction, self absorbed: its core shows about the emissive radiance)
+static void R_FogVolumeEmitTest( void )
+{
+	if ( !R_FogVolumeCheat("emittest") )
+		return;
+	if ( !s_fv.hasCamera || !tr.world )
+	{
+		ri.Printf(PRINT_WARNING, "r_fogvol emittest: no world view yet (load a map)\n");
+		return;
+	}
+	if ( s_fv.numDebug + 2 > MAX_DEBUG_FOG_VOLUMES )
+	{
+		ri.Printf(PRINT_WARNING, "r_fogvol emittest: no room (r_fogvol clear)\n");
+		return;
+	}
+
+	for ( int n = 0; n < 2; n++ )
+	{
+		debugFogVolume_t d = {};
+		refFogVolume_t *v = &d.volume;
+		v->shape = FOGVOLUME_ELLIPSOID;
+		VectorSet(v->extents, 96.0f, 96.0f, 96.0f);
+		VectorMA(s_fv.cameraOrigin, 400.0f, s_fv.cameraAxis[0], v->origin);
+		VectorMA(v->origin, (n == 0) ? 130.0f : -130.0f, s_fv.cameraAxis[1], v->origin);
+		VectorCopy(fogVolumeDefaultColor, v->color);
+		v->softness = 0.6f;
+		AxisClear(v->axis);
+		if ( n == 0 )
+		{
+			// A: no extinction, 192 units through the center: about 0.01 * 192 = 1.9 x (0.5 0.8 2.0)
+			v->depthForOpaque = 0.0f;
+			VectorSet(v->emissive, 0.5f, 0.8f, 2.0f);
+			v->emissiveDensity = 0.01f;
+		}
+		else
+		{
+			// B: opaque over 150 units, dark smoke glowing orange, emission = extinction * emissive
+			v->depthForOpaque = 150.0f;
+			VectorSet(v->color, 0.2f, 0.2f, 0.2f);
+			VectorSet(v->emissive, 4.0f, 1.6f, 0.4f);
+			v->emissiveDensity = 0.0f;
+		}
+		v->id = FOGVOLUME_ID_DEBUG | (++s_fv.nextDebugId & 0x0FFFFFFF);
+		s_fv.debug[s_fv.numDebug++] = d;
+		R_FogVolumePrintVolume(va("%d:", s_fv.numDebug - 1), v);
+	}
+	R_FogVolumeWarnings();
+}
+
 /*
 =================
 R_FogVolume_f
@@ -1186,6 +1303,8 @@ void R_FogVolume_f( void )
 		R_FogVolumeAdd();
 	else if ( !Q_stricmp(cmd, "test") )
 		R_FogVolumeTest();
+	else if ( !Q_stricmp(cmd, "emittest") )
+		R_FogVolumeEmitTest();
 	else if ( !Q_stricmp(cmd, "slices") )
 		R_FogVolumeSlices();
 	else if ( !Q_stricmp(cmd, "dump") )

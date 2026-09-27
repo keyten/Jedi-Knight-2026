@@ -230,7 +230,7 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 			{
 				vec4 prevCenter = u_FroxelParticlePrevCenter[i];
 				float previous = e;
-				if (prevCenter.w > 0.5)
+				if (FroxelParticleChanged(prevCenter.w))
 				{
 					previous = color.w * fade * FroxelParticleDensity(prevCenter.xyz,
 						u_FroxelParticlePrevInvExtent[i], p);
@@ -311,6 +311,54 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	}
 
 	return vec4(albedo / max(extinction, 1e-12), extinction);
+}
+
+// Emission source j_e at p (radiance per world unit, the unit of the scattering source
+// extinction * albedo * light): the local volumes and FX particle media of the slice that emit. Their
+// density shape without the noise (stable without history), the same fade. Independent of the
+// extinction: a medium with extinction 0 may glow (the integration takes the limit).
+vec3 FroxelEmission(in vec3 p, in int debugView)
+{
+	vec3 emission = vec3(0.0);
+
+	int localHeader = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26) ?
+		FroxelLocalSliceHeader(var_Slice) : 0;
+	int localCount = localHeader >> 16;
+	if (localCount > 0)
+	{
+		int first = localHeader & 0xffff;
+		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+		for (int j = 0; j < localCount; j++)
+		{
+			int i = FroxelLocalPoolIndex(first + j);
+			vec3 e = u_FroxelLocalEmission[i].rgb;
+			if (max(e.r, max(e.g, e.b)) <= 0.0)
+				continue;
+			vec4 shape = u_FroxelLocalShape[i];
+			emission += e * fade * FroxelLocalShapeDensity(u_FroxelLocalX[i], u_FroxelLocalY[i],
+				u_FroxelLocalZ[i], shape.x, shape.y, shape.z, p);
+		}
+	}
+
+	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 16) ?
+		FroxelParticleSliceHeader(var_Slice) : 0;
+	int particleCount = particleHeader >> 16;
+	if (particleCount > 0)
+	{
+		int first = particleHeader & 0xffff;
+		float fade = FroxelParticleFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+		for (int j = 0; j < particleCount; j++)
+		{
+			int i = FroxelParticlePoolIndex(first + j);
+			int slot = FroxelParticleEmissionSlot(u_FroxelParticlePrevCenter[i].w);
+			if (slot < 0 || slot >= MAX_GPU_EMISSIVE_PARTICLES)
+				continue;
+			emission += u_FroxelParticleEmission[slot].rgb * fade *
+				FroxelParticleDensity(u_FroxelParticleCenter[i].xyz, u_FroxelParticleInvExtent[i], p);
+		}
+	}
+
+	return emission * u_FroxelTemporalParams.z;
 }
 
 // one hardware filtered tap with temporal accumulation (the jittered positions soften the beams),
@@ -709,6 +757,8 @@ void main()
 			light = vec3(0.0);
 		else if (debugView == 5)
 			light -= sunTail;
+		else if (debugView == 31 || debugView == 33 || debugView == 34)
+			light = vec3(0.0);
 		if (any(isnan(light)) || any(isinf(light)))
 			light = vec3(0.0);
 		out_Color = vec4(light, 1.0);
@@ -821,6 +871,10 @@ void main()
 
 	vec4 current = vec4(medium.rgb * medium.a * (staticLight + sunLight), medium.a);
 
+	// emission j_e at the froxel center: no jitter and no history (it goes to the dynamic volume), so
+	// a fast fire or explosion leaves no after-image and the history clamp sees scattering only
+	vec3 emission = FroxelEmission(pc, debugView);
+
 	// debug view 17: share of the local volumes (red) and of the other media (green), integrated
 	// like an emission: the integrated rg is each medium's share of the opacity along the ray
 	if (debugView == 17)
@@ -878,6 +932,27 @@ void main()
 	vec4 dynamicEmission = vec4(mediumCenter.rgb * mediumCenter.a * dynamicLight, 1.0);
 	if (debugView == 17)
 		dynamicEmission.rgb = vec3(0.0);
+
+	// j_total = j_scatter + j_emissive. Debug views: 30 scattering source, 31 emissive source,
+	// 32 both (integrated with the extinction forced to 0: the sum of j * length along the ray),
+	// 33 emission integrated with the real extinction (self absorption), 34 history contribution
+	// (red: the history part of the scattering, green: the emission, never from history)
+	if (debugView == 30)
+		emission = vec3(0.0);
+	else if (debugView == 31 || debugView == 33)
+	{
+		current.rgb = vec3(0.0);
+		dynamicEmission.rgb = vec3(0.0);
+	}
+	else if (debugView == 34)
+	{
+		vec3 luma = vec3(0.2126, 0.7152, 0.0722);
+		current.rgb = vec3(weight * dot(current.rgb, luma), 0.0, 0.0);
+		dynamicEmission.rgb = vec3(0.0);
+		emission = vec3(0.0, dot(emission, luma), 0.0);
+	}
+	dynamicEmission.rgb += emission;
+
 	if (any(isnan(current)) || any(isinf(current)))
 		current = vec4(0.0);
 	if (any(isnan(dynamicEmission)) || any(isinf(dynamicEmission)))

@@ -310,6 +310,9 @@ struct SFxVolumetricMedia
 	float		radiusScale;	// proxy radius = sprite radius * radiusScale
 	vec3_t		aspect;			// ellipsoid scale along the world axes
 	float		softness;		// 0..1 of the radius over which the density fades
+	vec3_t		emissive;		// glow radiance of the opaque medium (0 = none)
+	float		emissiveDensity;	// per world unit, 0 = the extinction
+	bool		emissiveTint;	// times the particle's current rgb
 };
 
 //------------------------------

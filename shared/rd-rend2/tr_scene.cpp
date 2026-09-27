@@ -384,7 +384,7 @@ void RE_AddVolumetricParticleToScene( const refVolParticle_t *particle ) {
 		return;
 	}
 	if ( Q_isnan(particle->origin[0]) || Q_isnan(particle->origin[1]) || Q_isnan(particle->origin[2]) ||
-		!(particle->radius > 0.0f) || !(particle->extinction > 0.0f) ) {
+		!(particle->radius > 0.0f) || !R_VolParticleHasMedium(particle) ) {
 		r_volParticlesRejected++;
 		return;
 	}

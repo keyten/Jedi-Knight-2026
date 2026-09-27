@@ -59,7 +59,7 @@ layout(std140) uniform VolumetricFog
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first. Per slice a packed list of the volumes
 	// that overlap it: header = first pool entry | count << 16, pool = 8 bit volume indices.
-	vec4 u_FroxelLocalParams;							// count, fade start, 1 / fade length, unused
+	vec4 u_FroxelLocalParams;							// count, fade start, 1 / fade length, 1 = some volume emits
 	vec4 u_FroxelLocalX[MAX_GPU_FOG_VOLUMES];			// world to unit local space rows (xyz, w offset)
 	vec4 u_FroxelLocalY[MAX_GPU_FOG_VOLUMES];
 	vec4 u_FroxelLocalZ[MAX_GPU_FOG_VOLUMES];
@@ -69,6 +69,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelLocalColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction (0: gone this frame)
 	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
 	vec4 u_FroxelLocalMotion[MAX_GPU_FOG_VOLUMES];		// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
+	vec4 u_FroxelLocalEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density, w unused
 	ivec4 u_FroxelLocalSlices[FROXEL_MAX_SLICES / 4];	// slice headers
 	ivec4 u_FroxelLocalIndex[FROXEL_LOCAL_POOL / 16];	// index pool, 4 per int
 
@@ -86,11 +87,24 @@ layout(std140) uniform VolumetricParticles
 	vec4 u_FroxelParticleCenter[MAX_GPU_VOL_PARTICLES];				// xyz, w: extinction (0: gone this frame)
 	vec4 u_FroxelParticleInvExtent[MAX_GPU_VOL_PARTICLES];			// 1 / extent per world axis, w: inner
 	vec4 u_FroxelParticleColor[MAX_GPU_VOL_PARTICLES];				// rgb albedo, w: previous extinction
-	vec4 u_FroxelParticlePrevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: 1 = changed
+	vec4 u_FroxelParticlePrevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: changed (0/1) + 2 * (emission slot + 1)
 	vec4 u_FroxelParticlePrevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner
 	ivec4 u_FroxelParticleSlices[FROXEL_MAX_SLICES / 4];				// slice headers
 	ivec4 u_FroxelParticleIndex[VOL_PARTICLE_POOL / 8];				// index pool, 2 per int
+	vec4 u_FroxelParticleEmission[MAX_GPU_EMISSIVE_PARTICLES];		// rgb emission per unit at the center
 };
+
+// the fields packed into u_FroxelParticlePrevCenter[i].w
+bool FroxelParticleChanged(in float w)
+{
+	return mod(w, 2.0) > 0.5;
+}
+
+// emission slot of a particle, -1 = not emissive
+int FroxelParticleEmissionSlot(in float w)
+{
+	return int(floor(w * 0.5 + 0.25)) - 1;
+}
 #endif
 
 uniform sampler3D u_FroxelVolume;

@@ -198,7 +198,29 @@ void CParticle::DrawVolumetricMedia()
 	VectorCopy( mVolume.albedo, particle.color );
 	particle.softness = mVolume.softness;
 
-	if ( particle.radius > 0.0f && particle.extinction > 0.0f )
+	// glow (visible by itself, lights nothing: a Light primitive does that): per
+	// world unit emissive * density, faded like the sprite. With emissiveTint the
+	// sprite's current rgb, which already carries the alpha fade unless the art
+	// uses its alpha channel.
+	float glowDensity = ( mVolume.emissiveDensity > 0.0f ) ? mVolume.emissiveDensity : mVolume.extinction;
+	vec3_t glowFade;
+	if ( mVolume.emissiveTint )
+	{
+		const float alpha = ( mFlags & FX_USE_ALPHA ) ? mAlphaFade : 1.0f;
+		VectorSet( glowFade, mRefEnt.shaderRGBA[0] * alpha / 255.0f, mRefEnt.shaderRGBA[1] * alpha / 255.0f,
+			mRefEnt.shaderRGBA[2] * alpha / 255.0f );
+	}
+	else
+	{
+		VectorSet( glowFade, mAlphaFade, mAlphaFade, mAlphaFade );
+	}
+	for ( int i = 0; i < 3; i++ )
+	{
+		particle.emission[i] = mVolume.emissive[i] * glowDensity * glowFade[i];
+	}
+
+	if ( particle.radius > 0.0f && ( particle.extinction > 0.0f || particle.emission[0] > 0.0f ||
+		particle.emission[1] > 0.0f || particle.emission[2] > 0.0f ) )
 	{
 		theFxHelper.AddVolumetricParticle( &particle );
 	}

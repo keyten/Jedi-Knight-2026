@@ -90,6 +90,11 @@ typedef unsigned int glIndex_t;
 #define MAX_REF_VOL_PARTICLES 1024
 #define MAX_GPU_VOL_PARTICLES 128	// UBO budget (see VolumetricParticlesBlock)
 #define VOL_PARTICLE_POOL     2560
+#define MAX_GPU_EMISSIVE_PARTICLES 24	// emissive ones among them (UBO budget, own slots)
+
+// an FX particle medium that scatters (extinction) or glows (emission), or both
+#define R_VolParticleHasMedium(p) ((p)->extinction > 0.0f || (p)->emission[0] > 0.0f || \
+	(p)->emission[1] > 0.0f || (p)->emission[2] > 0.0f)
 
 #define MAX_CALC_PSHADOWS    64
 #define MAX_DRAWN_PSHADOWS    32 // do not increase past 32, because bit flags are used on surfaces
@@ -179,6 +184,7 @@ extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
 extern cvar_t	*r_volumetricFogDlightShadows;
 extern cvar_t	*r_volumetricFogBloom;
+extern cvar_t	*r_volumetricEmission;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
 extern cvar_t	*r_volParticles;
@@ -1278,7 +1284,7 @@ struct VolumetricFogBlock
 	vec4_t sliceParams;				// near, far, log2(far / near), sky distance
 	vec4_t gridSize;				// froxels x, y, z, frame index
 	vec4_t jitter;					// jitter in froxel units, w: temporal accumulation
-	vec4_t temporalParams;			// history weight, history valid, unused, radiance clamp ratio
+	vec4_t temporalParams;			// history weight, history valid, emission scale (r_volumetricEmission), radiance clamp ratio
 	vec4_t lightParams;				// anisotropy g, sun scale, dlight scale, static scale
 	vec4_t sunColor;				// realtime sun radiance, w: cascaded shadow maps available
 	vec4_t sunDirection;			// towards the sun, w: split light grid available
@@ -1305,7 +1311,7 @@ struct VolumetricFogBlock
 	vec4_t fogMaxs[MAX_GPU_FOGS];	// w: 1 = density noise applies to this fog
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first
-	vec4_t localParams;							// count, fade start, 1 / fade length, unused
+	vec4_t localParams;							// count, fade start, 1 / fade length, 1 = some volume emits
 	vec4_t localX[MAX_GPU_FOG_VOLUMES];			// world to unit local space rows (xyz, w offset)
 	vec4_t localY[MAX_GPU_FOG_VOLUMES];
 	vec4_t localZ[MAX_GPU_FOG_VOLUMES];
@@ -1315,6 +1321,7 @@ struct VolumetricFogBlock
 	vec4_t localColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction per unit (0: gone this frame)
 	vec4_t localShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
 	vec4_t localMotion[MAX_GPU_FOG_VOLUMES];	// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
+	vec4_t localEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density (emissive * density), w unused
 	int localSlices[FROXEL_MAX_SLICES];			// per slice: first pool entry | count << 16 (ivec4[32])
 	int localIndex[FROXEL_LOCAL_POOL / 4];		// 8 bit volume indices, 4 per int (ivec4[128])
 
@@ -1322,7 +1329,7 @@ struct VolumetricFogBlock
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
 };
 
-// 14 048 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
+// 15 072 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
 // Volumetric FX particles of the froxel injection (tr_volparticle.cpp). Same
@@ -1334,13 +1341,14 @@ struct VolumetricParticlesBlock
 	vec4_t center[MAX_GPU_VOL_PARTICLES];				// xyz, w: extinction per unit (0: gone this frame)
 	vec4_t invExtent[MAX_GPU_VOL_PARTICLES];			// 1 / (radius * aspect) per world axis, w: inner
 	vec4_t color[MAX_GPU_VOL_PARTICLES];				// rgb albedo, w: previous extinction
-	vec4_t prevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: 1 = changed
+	vec4_t prevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: changed (0/1) + 2 * (emission slot + 1)
 	vec4_t prevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner
 	int slices[FROXEL_MAX_SLICES];						// per slice: first pool entry | count << 16 (ivec4[32])
 	int index[VOL_PARTICLE_POOL / 2];					// 16 bit particle indices, 2 per int (ivec4[320])
+	vec4_t emission[MAX_GPU_EMISSIVE_PARTICLES];		// rgb emission per unit at the center, w unused
 };
 
-// 15 888 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
+// 16 272 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
 static_assert(sizeof(VolumetricParticlesBlock) <= 16384, "VolumetricParticles block above the GL 3.2 minimum UBO size");
 
 struct surfaceSprite_t
