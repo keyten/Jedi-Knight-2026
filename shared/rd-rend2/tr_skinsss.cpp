@@ -449,7 +449,11 @@ static void SkinBuildKernel( int taps )
 	for ( int i = 0; i < taps; i++ )
 	{
 		if ( i != center )
-			VectorCopy4(k[i], s_kernel.kernel[n++]);
+		{
+			// VectorCopy4 is a macro and evaluates its destination four times.
+			VectorCopy4(k[i], s_kernel.kernel[n]);
+			n++;
+		}
 	}
 
 	// each channel sums to 1: the diffusion moves light, it does not add any
