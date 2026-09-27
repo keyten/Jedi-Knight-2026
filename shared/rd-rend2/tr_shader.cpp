@@ -3005,6 +3005,19 @@ static qboolean ParseShader( const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+		// particleLighting <on|off>: overrides the blend state classification of
+		// the sprite particle lighting (r_particleLight, tr_volumetric.cpp)
+		else if ( !Q_stricmp( token, "particleLighting" ) ) {
+			token = COM_ParseExt( text, qfalse );
+			if ( !Q_stricmp( token, "on" ) || !Q_stricmp( token, "1" ) )
+				shader.particleLight = 1;
+			else if ( !Q_stricmp( token, "off" ) || !Q_stricmp( token, "0" ) )
+				shader.particleLight = -1;
+			else
+				ri.Printf( PRINT_WARNING, "WARNING: particleLighting expects on or off in shader '%s'\n", shader.name );
+			SkipRestOfLine( text );
+			continue;
+		}
 		// silhouettePOM: explicit opt-in to the displaced silhouette shell
 		// (r_pomSilhouette, tr_pom_silhouette.cpp). The displacement itself
 		// stays parallaxDepth / parallaxBias of the normalHeightMap stage.

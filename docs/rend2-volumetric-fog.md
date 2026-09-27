@@ -802,6 +802,122 @@ Expected GPU shape:
   `wantChange` (the jittered sample).
 - Smoke makes more froxels non-empty, so more of them take the light path.
 
+## Sprite particle lighting (`r_particleLight`)
+
+Ordinary FX sprites, drawn by `generic.glsl` with their authored vertex colour, are lit by the local light. This works
+without any medium. It is separate from the FX particle media above: a sprite doesn't need a `volumetricMedia` block,
+and a `volumetricMedia` particle is also lit this way.
+
+### Why the froxel volumes can't be reused
+
+- `froxelInjectImage.rgb` is σ·albedo·(baked + sun) and `froxelDynamicImage` is σ·albedo·dynamic.
+- In empty air σ = 0, so both are 0.
+- The plain incident light L_in only exists inside the inject shader (`staticLight`, `sunLight`, `dynamicLight`).
+
+### Representation: the particle light field (option A)
+
+- The inject pass gets a third layered attachment, `froxelParticleLightImage`. It is R11G11B10F at the full froxel grid
+  (W×H×D; layered MRT uses one layer count).
+- It is written as `out_SSRNormal`, because outputs bind by name; `#define out_ParticleLight`.
+- Contents: baked + sun + dynamic L_in at the **un-jittered froxel centre**, before σ and albedo.
+  - It is written in every froxel, with or without a medium.
+  - It is this frame only, with no history, so saber trails can't appear.
+- Baked + sun use the full 4-tap CSM filter (temporal 0) at the centre. They are reused from the fog evaluation when
+  that already ran at the centre (medium present and `r_volumetricFogTemporal 0`).
+- Dynamic lights come from the same cluster lists (`FroxelLightCluster`, `DynamicLights`). They are evaluated even
+  where `mediumCenter` is empty.
+- The shadows are the same CSM and point-cube taps, the attenuation is the same, and the scales are the same
+  (`r_volumetricFog{Static,Sun,Dlight}Scale`). Smoke gets no light through a wall where the fog gets none.
+- **Phase:** the sun and dlight terms carry the fog's HG phase towards the camera (g = `r_volumetricFogAnisotropy`).
+  - That is the radiance a camera-facing billboard scatters to this camera, so it is correct for sprites seen from the
+    main view.
+  - It is not valid for other views. Reflections, portals and refraction fills have froxel mode 0 and draw sprites
+    unlit.
+- **Why not option B** (lighting in the sprite shader): it would need the static grid, CSM taps and a clustered
+  point-shadow loop (4 cube taps × up to 32 lights) per smoke fragment, with 10-30× overdraw near explosions.
+  `generic.glsl` has none of that plumbing. The field reuses the inject evaluation and costs the sprite one 3D fetch.
+
+### Material response and classification
+
+`RB_ParticleLightClass` (`tr_volumetric.cpp`) uses the shader state only, never names.
+
+| condition | class |
+|---|---|
+| entity not `RT_SPRITE` / `RT_ORIENTED_QUAD`, or `RF_VOLUMETRIC` / `RF_FIRST_PERSON` | none (untouched) |
+| shader `particleLighting off` | unlit |
+| stage `glow`, or `rgbGen lightingDiffuse[Entity]` | unlit |
+| shader `particleLighting on` | lit |
+| `blendFunc GL_SRC_ALPHA` or `GL_ONE` / `GL_ONE_MINUS_SRC_ALPHA` | **lit** (smoke, dust: colour is a reflectance) |
+| anything else: additive `GL_ONE` / `GL_SRC_ALPHA` over `GL_ONE`, modulate, opaque | unlit (emitters and filters) |
+
+Additive sprites (muzzle flashes, sparks, fireballs, glows) are never multiplied by the light, so they can't turn grey
+in the dark.
+
+- Lit stages use the generic fog permutation (`GENERICDEF_USE_FOG`), which adds no new permutations. The fog mode stays
+  2 (none) unless the stage is really fogged.
+- `generic.glsl` multiplies the colour before the froxel fog:
+  `color.rgb *= mix(1, clamp(L * gain, floor, 4), mix)`, with
+  `gain = r_particleLightScale / (mapAverage * r_volumetricFogStaticScale)`.
+  - `mapAverage` is the mean luminance of the valid light grid cells (`world_t::particleLightReference`).
+  - An average place of the map keeps the authored colour. A dark room darkens smoke down to `r_particleLightFloor`,
+    and a saber or a sunbeam brightens it.
+- **Fog is applied once.** The particle light is incident light at the sprite. The fog between the sprite and the
+  camera (S, T of `FroxelFog`) is applied afterwards by the existing code, and the field is never multiplied by T.
+
+Stock assets (`classify.py` over assets0-3; `LIT` = automatic):
+
+| effect | shader | class |
+|---|---|---|
+| `volumetric/black_smoke`, `black_smoke2`, `droid_smoke` | `gfx/misc/black_smoke[2]`, `gfx/effects/alpha_smoke[2]` | lit |
+| `repeater/muzzle_smoke` | `gfx/misc/black_smoke` / `gfx/effects/whiteflare` | lit / unlit |
+| `chunks/dustfall`, explosion `Dust` | `gfx/effects/alpha_smoke`, `gfx/misc/dotfill_a` | lit |
+| `droidexplosion1` LingeringSmoke | `gfx/effects/alpha_smoke` | lit |
+| `rocket/explosion`, `explosion1`, `thermal/explosion` LingeringSmoke | `gfx/misc/steam` (GL_ONE GL_ONE) | unlit |
+| `bespin/dust`, `env/impact_dust`, `slide_dust` puffs | `gfx/misc/dust`, `gfx/misc/steam` (additive) | unlit |
+| fireballs, flashes, sparks | `gfx/exp/*`, `gfx/misc/exp0*` (glow), `whiteflash`, `spark*`, `saberflare` | unlit |
+| tails, lines, decals | not sprites | none |
+
+No asset changes were needed: the blend state never classifies an additive sprite as lit. The additive "smoke"
+puffs (`gfx/misc/steam`, `gfx/misc/dust`) are drawn as emitters by the original art. They stay unlit unless a shader
+override adds `particleLighting on`, which could go in the task-#5 test pk3. The shared stock shader was not changed.
+
+### Cvars
+
+| cvar | default | |
+|---|---|---|
+| `r_particleLight` | 0 | latched (`vid_restart`): creates the field. Needs `r_volumetricFog 2`. The froxel build then also runs on maps without any fog medium. |
+| `r_particleLightMix` | 1 | 0 = authored colour (lit/unlit A/B toggle without a restart), 1 = lit |
+| `r_particleLightScale` | 1 | gain relative to the map average light |
+| `r_particleLightFloor` | 0.03 | minimum light factor |
+| `r_particleLightDebug` | 0 | 1 field (just in front of the scene), 2 baked only, 3 sun only, 4 dynamic lights only (2-4 also change what sprites receive), 5 classification: magenta = lit, cyan = unlit sprites |
+
+### Cost
+
+- **Memory:** one R11G11B10F volume, 4 B per froxel:
+
+  | quality | grid | memory |
+  |---|---|---|
+  | high (1080p) | 240×135×64 | 8.3 MB |
+  | medium | 240×135×48 | 6.2 MB |
+  | low | 120×68×32 | 1.0 MB |
+
+- **Extra light evaluations per froxel** in the inject pass:
+  - Baked + sun at the centre: 4 grid fetches + 4 CSM taps. This is skipped when the fog already evaluated them there.
+  - Dynamic lights in froxels whose cluster has lights but no medium: the same loop as the fog.
+  - Maps without fog media now run the whole froxel pipeline (inject, integrate, composite of a transparent
+    volume).
+- **Per lit sprite fragment:** 1 trilinear 3D fetch plus the froxel UV math.
+
+### Timings
+
+Not measured: the game has not been run with this change. Measure with `r_speeds 100`, reading "Froxel fog inject"
+with `r_particleLight 0` / `1` (`vid_restart` between), on a map without fog and on one with fog.
+
+| map | inject off | inject on | total frame off / on |
+|---|---|---|---|
+| no fog (e.g. yavin1b) | - | | |
+| fog (e.g. hoth2) | | | |
+
 ## Integration (`volumetric_integrate.glsl`)
 
 Front to back over the slices of every froxel column, with the medium constant inside a slice:
@@ -1024,6 +1140,15 @@ vs `*-vfog.dll`).
 | fx: legacy RF_VOLUMETRIC | DEMP2 shot / charged impact | unchanged fake volumetric shading of the model | - |
 | fx: off | `r_volParticles 0` | exactly the previous look; `r_volparticles` shows 0 submitted | - |
 | fx: timings | see FX particle media, Timings | fill the table | - |
+| plight: dark room | `r_volumetricFog 2`, `r_particleLight 1` + `vid_restart`, droid smoke in an unlit corridor | smoke darker than with `r_particleLightMix 0`, not black | pl 1, 2 |
+| plight: saber beside smoke | ignite a saber next to `volumetric/black_smoke` | smoke takes the blade colour on the near side | pl 4 |
+| plight: red / blue saber sweep | swing red then blue through the smoke | colour follows the blade, no trail (no history) | pl 4 |
+| plight: light behind a wall | dlight on the far side of a wall, `r_dlightMode 2` | no light on smoke across the wall | pl 4 |
+| plight: sunlit smoke | outdoor map with sun, smoke half in shadow | lit side bright, shadowed side dark | pl 3 |
+| plight: additive sparks | sparks / muzzle flash next to smoke | sparks unchanged in the dark, cyan in pl 5; smoke magenta | pl 5 |
+| plight: volumetric off / on | `r_volumetricFog 1` vs `2` | mode 1: authored sprites; mode 2: lit sprites, fog applied once | - |
+| plight: lit / unlit | `r_particleLightMix 0 / 1` | only alpha-blended sprites change | pl 5 |
+| plight: timings | see Sprite particle lighting, Timings | fill the table | - |
 
 ## Known limitations
 

@@ -728,6 +728,24 @@ void main()
 		}
 	}
 
+#if defined(USE_FOG) && defined(USE_FROXEL_FOG)
+	// sprite particle lighting (r_particleLight, RB_ParticleLightSetupDraw): the authored color of
+	// smoke / dust is a reflectance, lit by the particle light field relative to the map average.
+	// Before the fog: the fog between the sprite and the camera (S, T) is applied once, below.
+	if (u_ParticleLight.w >= 2.0)
+	{
+		// r_particleLightDebug 5: magenta = lit, cyan = unlit (additive) sprite
+		vec3 tint = (u_ParticleLight.w >= 3.0) ? vec3(0.0, 1.0, 1.0) : vec3(1.0, 0.0, 1.0);
+		color.rgb = tint * max(dot(color.rgb, vec3(0.3333)), 0.1);
+	}
+	else if (u_ParticleLight.w > 0.0)
+	{
+		vec3 gain = ParticleLightLookup(var_WSPosition) * u_ParticleLight.x;
+		gain = clamp(gain, vec3(u_ParticleLight.y), vec3(u_ParticleLight.z));
+		color.rgb *= mix(vec3(1.0), gain, u_ParticleLight.w);
+	}
+#endif
+
 #if defined(USE_FOG)
 #if defined(USE_FROXEL_FOG)
 	// froxel volume of the main view (r_volumetricFog 2), or no fog here when

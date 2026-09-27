@@ -52,6 +52,12 @@ void main()
 //           light grid * phase
 //   dynamic the lights of the froxel's cluster (CPU binned per tile and slice, R_VolumetricBuildLightLists)
 //           * attenuation * phase * its shadow map
+//
+// out_ParticleLight  R11G11B10F  (r_particleLight, u_ParticleLight.x > 0) the incident light at the
+//                       froxel center without extinction and albedo: baked + sun + dynamic, the same
+//                       shadows, attenuation and phase as the fog (phase towards the camera: valid for
+//                       camera facing sprites seen from this view only). Written in empty space too,
+//                       this frame only (no history). Sprite particles are lit with it (generic.glsl).
 
 uniform sampler3D u_FroxelHistory;
 uniform sampler3D u_VolumetricStaticGrid;
@@ -97,10 +103,12 @@ layout(std140) uniform Lights
 };
 
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
-// 0 = out_Color, 1 = out_Glow
+// 0 = out_Color, 1 = out_Glow, 2 = out_SSRNormal
 out vec4 out_Color;
 out vec4 out_Glow;
+out vec4 out_SSRNormal;
 #define out_Dynamic out_Glow
+#define out_ParticleLight out_SSRNormal
 
 float Luma(in vec3 c)
 {
@@ -620,6 +628,7 @@ void main()
 			light = vec3(0.0);
 		out_Color = vec4(light, 1.0);
 		out_Dynamic = vec4(0.0);
+		out_ParticleLight = vec4(0.0);
 		return;
 	}
 
@@ -662,6 +671,44 @@ void main()
 	{
 		vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
 		dynamicLight = DynamicLights(cluster, pc, viewDir, g) * u_FroxelLightParams.z;
+	}
+
+	// sprite particle light field: the light at the froxel center, also where there is no medium.
+	// Baked + sun at the center without the temporal jitter (full shadow filter, no history), reused
+	// when the fog evaluated them there already.
+	vec3 particleLight = vec3(0.0);
+	if (u_ParticleLight.x > 0.5)
+	{
+		vec3 particleStatic, particleSun;
+		if (medium.a > 0.0 && temporal == 0.0 && debugView < 20)
+		{
+			particleStatic = staticLight;
+			particleSun = sunLight;
+		}
+		else
+		{
+			vec3 unusedSun;
+			particleStatic = BakedAndSunLight(pc, 0.0, g, 0, particleSun, unusedSun);
+		}
+
+		vec3 particleDynamic = dynamicLight;
+		if ((cluster >> 24) != 0u && mediumCenter.a <= 0.0)
+		{
+			vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
+			particleDynamic = DynamicLights(cluster, pc, viewDir, g) * u_FroxelLightParams.z;
+		}
+
+		int term = int(u_ParticleLight.y);
+		if (term == 2)
+			particleLight = particleStatic;
+		else if (term == 3)
+			particleLight = particleSun;
+		else if (term == 4)
+			particleLight = particleDynamic;
+		else
+			particleLight = particleStatic + particleSun + particleDynamic;
+		if (any(isnan(particleLight)) || any(isinf(particleLight)))
+			particleLight = vec3(0.0);
 	}
 
 	// debug views of a single light term
@@ -753,4 +800,5 @@ void main()
 
 	out_Color = current;
 	out_Dynamic = dynamicEmission;
+	out_ParticleLight = vec4(particleLight, 1.0);
 }

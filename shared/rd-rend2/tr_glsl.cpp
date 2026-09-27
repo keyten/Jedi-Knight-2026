@@ -223,6 +223,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_SSGIRadianceMap",		GLSL_INT, 1 },
 	{ "u_SSGISourceMap",		GLSL_INT, 1 },
 
+	{ "u_ParticleLight",		GLSL_VEC4, 1 },
+	{ "u_ParticleLightVolume",	GLSL_INT, 1 },
+
 	{ "u_FroxelFogMode",		GLSL_INT, 1 },
 	{ "u_FroxelVolume",			GLSL_INT, 1 },
 	{ "u_FroxelTail",			GLSL_INT, 1 },
@@ -2155,6 +2158,8 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 {
 	GLSL_SetUniformInt(program, UNIFORM_FROXELVOLUME, TB_CUBEMAP);
 	GLSL_SetUniformInt(program, UNIFORM_FROXELTAIL, TB_ENVBRDFMAP);
+	// sprite particle light field (r_particleLight), generic programs only
+	GLSL_SetUniformInt(program, UNIFORM_PARTICLELIGHTVOLUME, TB_SHADOWMAPARRAY);
 }
 
 static int GLSL_LoadGPUProgramGeneric(
@@ -3646,6 +3651,8 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
 		GLSL_SetFroxelLookupUnits(sp);
+		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here
+		GLSL_SetUniformInt(sp, UNIFORM_PARTICLELIGHTVOLUME, TB_ENTITYGRID_AMBIENT);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -4553,6 +4560,11 @@ shaderProgram_t *GLSL_GetGenericShaderProgram(int stage)
 		pStage->adjustColorsForFog != ACFF_NONE &&
 		r_drawfog->integer &&
 		!tess.shader->isSky)
+		shaderAttribs |= GENERICDEF_USE_FOG;
+
+	// sprite particle lighting (r_particleLight): the field lookup is part of
+	// the froxel fog code (RB_ParticleLightNeedsFogProgram)
+	if (!backEnd.depthFill && RB_ParticleLightNeedsFogProgram(tess.shader, pStage))
 		shaderAttribs |= GENERICDEF_USE_FOG;
 
 	if (pStage->bundle[0].tcGen != TCGEN_TEXTURE)

@@ -464,6 +464,7 @@ void R_CreateVolumetricImages( int width, int height )
 	s_vf.builtVolumeImage = -1;
 	tr.froxelInjectImage[0] = tr.froxelInjectImage[1] = NULL;
 	tr.froxelDynamicImage = NULL;
+	tr.froxelParticleLightImage = NULL;
 	tr.froxelIntegratedImage = NULL;
 	tr.froxelCarryImage[0] = tr.froxelCarryImage[1] = NULL;
 	tr.froxelTailImage = NULL;
@@ -503,6 +504,13 @@ void R_CreateVolumetricImages( int width, int height )
 
 	tr.froxelDynamicImage = R_CreateImage3D(
 		"*froxelDynamic", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R11F_G11F_B10F);
+	// sprite particle light field (r_particleLight, latched): the incident
+	// light of every froxel, a third layered attachment of the injection
+	if ( r_particleLight->integer )
+	{
+		tr.froxelParticleLightImage = R_CreateImage3D(
+			"*froxelParticleLight", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R11F_G11F_B10F);
+	}
 	tr.froxelIntegratedImage = R_CreateImage3D(
 		"*froxelIntegrated", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
 	tr.froxelTailImage = R_CreateImage(
@@ -542,9 +550,16 @@ void R_CreateVolumetricFBOs( void )
 	glState.currentFBO->colorBuffers[0] = tr.froxelInjectImage[0]->texnum;
 	glState.currentFBO->colorImage[1] = tr.froxelDynamicImage;
 	glState.currentFBO->colorBuffers[1] = tr.froxelDynamicImage->texnum;
+	if ( tr.froxelParticleLightImage )
 	{
-		const GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		qglDrawBuffers(2, bufs);
+		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+			tr.froxelParticleLightImage->texnum, 0, 0);
+		glState.currentFBO->colorImage[2] = tr.froxelParticleLightImage;
+		glState.currentFBO->colorBuffers[2] = tr.froxelParticleLightImage->texnum;
+	}
+	{
+		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+		qglDrawBuffers(tr.froxelParticleLightImage ? 3 : 2, bufs);
 	}
 	R_CheckFBO(tr.froxelInjectFbo);
 
@@ -589,6 +604,17 @@ void R_CreateVolumetricFBOs( void )
 				qglClearBufferfv(GL_COLOR, 0, zero);
 				qglClearBufferfv(GL_COLOR, 1, zero);
 			}
+			if ( tr.froxelParticleLightImage )
+			{
+				qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+					tr.froxelParticleLightImage->texnum, 0, k);
+				qglClearBufferfv(GL_COLOR, 2, zero);
+			}
+		}
+		if ( tr.froxelParticleLightImage )
+		{
+			// the tail below is a 2D image: no layered attachment next to it
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, 0, 0);
 		}
 		// tail light: none until the first build
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -598,6 +624,11 @@ void R_CreateVolumetricFBOs( void )
 			tr.froxelInjectImage[0]->texnum, 0, 0);
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
 			tr.froxelDynamicImage->texnum, 0, 0);
+		if ( tr.froxelParticleLightImage )
+		{
+			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+				tr.froxelParticleLightImage->texnum, 0, 0);
+		}
 
 		FBO_Bind(tr.froxelIntegrateFbo);
 		for ( int k = 0; k < s_vf.depth; k++ )
@@ -831,6 +862,7 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	world->volumetricDirVecGrid = NULL;
 	world->volumetricHasSunCells = qfalse;
 	VectorClear(world->volumetricSunRadiance);
+	world->particleLightReference = 0.0f;
 
 	if ( r_volumetricFog->integer != 2 || !world->lightGridData || world->numGridArrayElements <= 0 )
 		return;
@@ -859,6 +891,8 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	float *sunLuma = (float *)Z_Malloc(numCells * sizeof(float), TAG_TEMP_WORKSPACE, qtrue);
 	int numSunCells = 0;
 	vec3_t sunColorSum = { 0.0f, 0.0f, 0.0f };
+	double referenceSum = 0.0;
+	int numReferenceCells = 0;
 
 	for ( int i = 0; i < numCells; i++ )
 	{
@@ -925,6 +959,12 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		}
 
 		const float dirLuma = 0.2126f * directed[0] + 0.7152f * directed[1] + 0.0722f * directed[2];
+		if ( validCell )
+		{
+			// the light of an average place of the map (r_particleLight reference)
+			referenceSum += 0.2126f * total[0] + 0.7152f * total[1] + 0.0722f * total[2];
+			numReferenceCells++;
+		}
 		if ( dirLuma > 0.0f )
 			numDirCells++;
 
@@ -989,6 +1029,9 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		"*volumetricDirVecGrid", (byte *)dirVecData,
 		world->lightGridBounds[0], world->lightGridBounds[1], world->lightGridBounds[2],
 		GL_RGBA16F);
+
+	if ( numReferenceCells > 0 )
+		world->particleLightReference = (float)(referenceSum / numReferenceCells);
 
 	// realtime sun radiance: 90th percentile of the sunlit cells, with their
 	// average color. A handful of cells is not a sun.
@@ -1715,8 +1758,9 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		view != NULL &&
 		tr.world != NULL &&
 		// no fog volume, no height fog, no local fog volume, no FX particle medium: nothing to do
+		// the sprite particle light field (r_particleLight) needs the injection even without media
 		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ) ||
-			R_VolParticlesInFrustum(view, refdef, farZ)) &&
+			R_VolParticlesInFrustum(view, refdef, farZ) || tr.froxelParticleLightImage != NULL) &&
 		tr.renderFbo != NULL &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) &&
 		!refdef->doLAGoggles &&
@@ -2103,6 +2147,119 @@ void RB_VolumetricSetupFogDraw( int mode, UniformDataWriter& uniforms, SamplerBi
 }
 
 /*
+=================
+RB_ParticleLightClass
+
+Sprite particle lighting (r_particleLight): which FX sprite stages are lit by
+the particle light field. From the shader state only, no names:
+- the entity is a sprite (RT_SPRITE: CParticle, CFlash) or an oriented quad
+  (RT_ORIENTED_QUAD: COrientedParticle), not RF_VOLUMETRIC / first person
+- lit: alpha blending, GL_SRC_ALPHA or GL_ONE (premultiplied) over
+  GL_ONE_MINUS_SRC_ALPHA: smoke, dust, steam. The color is a reflectance.
+- unlit: everything else, additive (GL_ONE / GL_SRC_ALPHA over GL_ONE: sparks,
+  flashes, glows, fire) and modulate (darkening filters). An additive sprite
+  emits light, lighting it would grey it out where there is no light.
+- unlit as well: glow stages, rgbGen lightingDiffuse (already lit)
+- the shader keyword particleLighting on / off overrides the blend test
+=================
+*/
+int RB_ParticleLightClass( const shader_t *shader, const shaderStage_t *stage )
+{
+	const trRefEntity_t *ent = backEnd.currentEntity;
+	if ( !ent || ent == &tr.worldEntity || !stage || !shader )
+		return PARTICLE_LIGHT_NONE;
+	if ( ent->e.reType != RT_SPRITE && ent->e.reType != RT_ORIENTED_QUAD )
+		return PARTICLE_LIGHT_NONE;
+	if ( ent->e.renderfx & (RF_VOLUMETRIC | RF_FIRST_PERSON) )
+		return PARTICLE_LIGHT_NONE;
+
+	if ( shader->particleLight < 0 )
+		return PARTICLE_LIGHT_UNLIT;
+	if ( stage->glow ||
+		stage->rgbGen == CGEN_LIGHTING_DIFFUSE ||
+		stage->rgbGen == CGEN_LIGHTING_DIFFUSE_ENTITY )
+		return PARTICLE_LIGHT_UNLIT;
+	if ( shader->particleLight > 0 )
+		return PARTICLE_LIGHT_LIT;
+
+	const uint32_t src = stage->stateBits & GLS_SRCBLEND_BITS;
+	const uint32_t dst = stage->stateBits & GLS_DSTBLEND_BITS;
+	if ( dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA &&
+		(src == GLS_SRCBLEND_SRC_ALPHA || src == GLS_SRCBLEND_ONE) )
+		return PARTICLE_LIGHT_LIT;
+	return PARTICLE_LIGHT_UNLIT;
+}
+
+// the field of this frame can be looked up by this draw
+static qboolean RB_ParticleLightActive( const shader_t *shader )
+{
+	return (qboolean)(
+		tr.froxelParticleLightImage != NULL &&
+		s_vf.built &&
+		r_particleLightMix->value > 0.0f &&
+		RB_VolumetricFogMode(shader->sort) == 1);
+}
+
+/*
+=================
+RB_ParticleLightNeedsFogProgram
+
+The lookup is in the froxel fog code of generic.glsl (USE_FOG): lit sprites
+(and, with r_particleLightDebug 5, the unlit ones) use the fog permutation
+even outside of fog. Their fog mode is then 2 (none) unless they are fogged.
+=================
+*/
+qboolean RB_ParticleLightNeedsFogProgram( const shader_t *shader, const shaderStage_t *stage )
+{
+	if ( !RB_ParticleLightActive(shader) )
+		return qfalse;
+	const int particleClass = RB_ParticleLightClass(shader, stage);
+	if ( particleClass == PARTICLE_LIGHT_LIT )
+		return qtrue;
+	return (qboolean)(particleClass == PARTICLE_LIGHT_UNLIT && r_particleLightDebug->integer == 5);
+}
+
+/*
+=================
+RB_ParticleLightSetupDraw
+
+u_ParticleLight of the generic programs, set for every generic stage (the
+value stays in the program): x = gain (r_particleLightScale over the map
+average light, so that an average place keeps the authored color), y = floor,
+z = max gain, w = mix (0 = off; 2 / 3 = r_particleLightDebug 5 tint of a
+lit / unlit sprite).
+=================
+*/
+void RB_ParticleLightSetupDraw( const shader_t *shader, const shaderStage_t *stage,
+	UniformDataWriter& uniforms, SamplerBindingsWriter& samplers )
+{
+	if ( !s_vf.resources )
+		return;
+
+	vec4_t params = { 0.0f, 0.0f, 0.0f, 0.0f };
+	if ( RB_ParticleLightNeedsFogProgram(shader, stage) )
+	{
+		const int particleClass = RB_ParticleLightClass(shader, stage);
+		if ( r_particleLightDebug->integer == 5 )
+		{
+			params[3] = (particleClass == PARTICLE_LIGHT_LIT) ? 2.0f : 3.0f;
+		}
+		else
+		{
+			// the field carries the baked light times r_volumetricFogStaticScale
+			const float reference = MAX(0.05f,
+				(tr.world ? tr.world->particleLightReference : 0.0f) * r_volumetricFogStaticScale->value);
+			params[0] = r_particleLightScale->value / reference;
+			params[1] = r_particleLightFloor->value;
+			params[2] = 4.0f;
+			params[3] = r_particleLightMix->value;
+		}
+		samplers.AddStaticImage(tr.froxelParticleLightImage, TB_SHADOWMAPARRAY);
+	}
+	uniforms.SetUniformVec4(UNIFORM_PARTICLELIGHT, params);
+}
+
+/*
 ============================================================
 
 GPU passes
@@ -2232,12 +2389,32 @@ void RB_VolumetricBuild( void )
 		}
 
 		// every slice: instance k renders layer k
-		const GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+		const int numBufs = tr.froxelParticleLightImage ? 3 : 2;
 		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelInjectImage[current]->texnum, 0);
 		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, tr.froxelDynamicImage->texnum, 0);
-		qglDrawBuffers(2, bufs);
+		if ( tr.froxelParticleLightImage )
+		{
+			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, tr.froxelParticleLightImage->texnum, 0);
+			// draw buffer 2 is color masked by default with SSR / SSGI (GL_ResetScreenAuxWrite)
+			GL_SetScreenAuxWrite(true);
+		}
+		qglDrawBuffers(numBufs, bufs);
+		{
+			// sprite particle light field: on, debug term (r_particleLightDebug 2-4)
+			const int term = r_particleLightDebug->integer;
+			vec4_t particleLight;
+			VectorSet4(particleLight, tr.froxelParticleLightImage ? 1.0f : 0.0f,
+				(term >= 2 && term <= 4) ? (float)term : 0.0f, 0.0f, 0.0f);
+			GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, particleLight);
+		}
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
 		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
+		if ( tr.froxelParticleLightImage )
+		{
+			GL_ResetScreenAuxWrite();
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, 0, 0);
+		}
 
 		// tail pass: the light at the far side of the volume (FroxelLookup
 		// lights the media beyond far with it), into the 2D tail alone (a
@@ -2249,7 +2426,7 @@ void RB_VolumetricBuild( void )
 		qglDrawBuffers(1, &buf);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, -1);
 		RB_InstantTriangle();
-		qglDrawBuffers(2, bufs);
+		qglDrawBuffers(numBufs, bufs);
 	}
 	RB_VolumetricEndTimer(timer);
 
@@ -2351,7 +2528,10 @@ r_volumetricFogDebug views, drawn over the tone mapped frame
 */
 void RB_VolumetricDebugOverlay( void )
 {
-	if ( !s_vf.resources || !r_volumetricFogDebug->integer || !s_vf.frameUsable )
+	// r_particleLightDebug 1-4: the particle light field instead of a fog view
+	const qboolean particleLightView = (qboolean)(tr.froxelParticleLightImage != NULL &&
+		r_particleLightDebug->integer >= 1 && r_particleLightDebug->integer <= 4);
+	if ( !s_vf.resources || (!r_volumetricFogDebug->integer && !particleLightView) || !s_vf.frameUsable )
 		return;
 	if ( backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE) )
 		return;
@@ -2361,7 +2541,7 @@ void RB_VolumetricDebugOverlay( void )
 	GL_SetViewportAndScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	GL_Cull(CT_TWO_SIDED);
 	// views 18 (local fog volume bounds) and 28 (FX particle proxies) are drawn over the frame
-	if ( r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28 )
+	if ( !particleLightView && (r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28) )
 		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 	else
 		GL_State(GLS_DEPTHTEST_DISABLE);
@@ -2375,5 +2555,11 @@ void RB_VolumetricDebugOverlay( void )
 	GL_BindToTMU(tr.froxelIntegratedImage, TB_CUBEMAP);
 	GL_BindToTMU(tr.froxelTailImage, TB_ENVBRDFMAP);
 	GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+	if ( tr.froxelParticleLightImage )
+		GL_BindToTMU(tr.froxelParticleLightImage, TB_ENTITYGRID_AMBIENT);
+	{
+		vec4_t particleLight = { particleLightView ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
+		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, particleLight);
+	}
 	RB_InstantTriangle();
 }

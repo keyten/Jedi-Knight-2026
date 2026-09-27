@@ -185,6 +185,11 @@ extern cvar_t	*r_volParticles;
 extern cvar_t	*r_volParticlesMax;
 extern cvar_t	*r_volParticlesScale;
 extern cvar_t	*r_volParticlesHistory;
+extern cvar_t	*r_particleLight;
+extern cvar_t	*r_particleLightMix;
+extern cvar_t	*r_particleLightScale;
+extern cvar_t	*r_particleLightFloor;
+extern cvar_t	*r_particleLightDebug;
 extern cvar_t	*r_volParticlesDebug;
 extern cvar_t	*r_volumetricFogFreeze;
 extern cvar_t	*r_volumetricFogHeight;
@@ -1651,6 +1656,7 @@ typedef struct shader_s {
 
 	qboolean	explicitlyDefined;		// found in a .shader file
 	qboolean	alphaShadow;			// q3map_alphashadow: use the base alpha as a sun-shadow cutout
+	int8_t		particleLight;			// particleLighting keyword: 0 = auto (blend state), 1 = on, -1 = off (r_particleLight)
 	float		surfaceLight;			// q3map_surfacelight / surfacelight value, 0 = none (area light hint only)
 	vec3_t		surfaceLightColor;		// q3map_lightRGB / lightColor, all 0 = not given
 	uint16_t foliageSignals;       // registration-time material evidence
@@ -2297,6 +2303,9 @@ typedef enum
 	UNIFORM_SSGIALBEDOMAP,		// tr_ssgi.cpp, see the ssgi_*.glsl headers
 	UNIFORM_SSGIRADIANCEMAP,
 	UNIFORM_SSGISOURCEMAP,
+
+	UNIFORM_PARTICLELIGHT,	// sprite particle lighting (tr_volumetric.cpp): scale, floor, max gain, mix; inject: field on, term, 0, 0
+	UNIFORM_PARTICLELIGHTVOLUME,	// particle light field (froxelParticleLightImage)
 
 	UNIFORM_FROXELFOGMODE,	// 0 = legacy fog, 1 = froxel volume lookup, 2 = none (composited), tr_volumetric.cpp
 	UNIFORM_FROXELVOLUME,	// integrated scattering / transmittance volume
@@ -3030,6 +3039,7 @@ typedef struct {
 	image_t		*volumetricDirVecGrid;	// direction towards the light * luminance (rgb)
 	vec3_t		volumetricSunRadiance;	// realtime sun radiance estimated from the sunlit cells
 	qboolean	volumetricHasSunCells;
+	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLight: gain 1 there)
 
 	int			skyboxportal;
 	int			numClusters;
@@ -3531,6 +3541,7 @@ typedef struct trGlobals_s {
 	image_t					*rainLensImage;		// lens rain output (HDR), copied back into renderImage
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
+	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLight), no sigma / albedo
 	image_t					*froxelIntegratedImage;	// froxel fog: integrated in-scattering (rgb), transmittance (a)
 	image_t					*froxelCarryImage[2];	// froxel fog: integration state between slices
 	image_t					*froxelTailImage;	// froxel fog: last slice radiance (rgb) and extinction (a)
@@ -5213,6 +5224,11 @@ void RB_VolumetricBeginView(void);
 int RB_VolumetricFogMode(float sort);
 qboolean RB_VolumetricHeightFogSurface(float sort);
 void RB_VolumetricSetupFogDraw(int mode, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
+// sprite particle lighting (r_particleLight): PARTICLE_LIGHT_* class of a generic stage
+enum { PARTICLE_LIGHT_NONE, PARTICLE_LIGHT_LIT, PARTICLE_LIGHT_UNLIT };
+int RB_ParticleLightClass(const shader_t *shader, const shaderStage_t *stage);
+qboolean RB_ParticleLightNeedsFogProgram(const shader_t *shader, const shaderStage_t *stage);
+void RB_ParticleLightSetupDraw(const shader_t *shader, const shaderStage_t *stage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 void RB_VolumetricBuild(void);
 qboolean RB_VolumetricCompositeActive(void);
 void RB_VolumetricComposite(void);

@@ -99,6 +99,14 @@ uniform sampler2D u_FroxelTail;
 // 0 = legacy fog, 1 = froxel volume lookup, 2 = none (the composite applied it)
 uniform int u_FroxelFogMode;
 
+// Sprite particle lighting (r_particleLight). u_ParticleLightVolume (R11G11B10F 3D, the froxel grid)
+// holds the light arriving at the froxel center, without extinction and albedo: baked + sun +
+// dynamic lights, with the shadows, attenuation and phase (towards the camera) of the fog.
+// Injection: u_ParticleLight x = write it, y = debug term (0 all, 2 baked, 3 sun, 4 dynamic).
+// generic.glsl: x = gain, y = floor, z = max gain, w = mix (0 off, 2 / 3 classification tint).
+uniform sampler3D u_ParticleLightVolume;
+uniform vec4 u_ParticleLight;
+
 #define FROXEL_DEPTH_HACK_MAX 0.3001
 
 // view depth of the slice coordinate w (0 = camera, 1 = far). Slice 0 spans [0, B(1)] linearly, as its
@@ -412,6 +420,18 @@ vec4 FroxelLookup(in vec2 uv, in float d, in float rayScale, in vec3 worldPos)
 	}
 
 	return fog;
+}
+
+// light of the particle light field at worldPos (froxel texel centers: slice k at w = (k + 0.5) / N)
+vec3 ParticleLightLookup(in vec3 worldPos)
+{
+	vec4 clip = u_FroxelViewProjection * vec4(worldPos, 1.0);
+	if (clip.w <= 0.0)
+		return vec3(0.0);
+	vec2 uv = clamp((clip.xy / clip.w) * 0.5 + 0.5, 0.0, 1.0);
+	float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+	float w = FroxelDepthToW(clamp(d, 0.0, u_FroxelSliceParams.y));
+	return texture(u_ParticleLightVolume, vec3(uv, w)).rgb;
 }
 
 // In-scattering (rgb) and transmittance (a) between the camera and worldPos

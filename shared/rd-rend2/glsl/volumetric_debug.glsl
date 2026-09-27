@@ -41,6 +41,9 @@ void main()
 //     density changed, green = particle share of the medium
 //  28 FX particle proxy bounds over the frame (uploaded particles only): outer shell and inner shell
 //     where the soft edge starts, one hue per index (0 = most important), dimmed behind the scene
+//
+// r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
+// the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
 
 uniform sampler2D u_ScreenDepthMap;
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
@@ -155,6 +158,15 @@ void main()
 
 	int view = int(u_FroxelDebugParams.x);
 	vec3 color = vec3(0.0);
+
+	if (u_ParticleLight.x > 0.5)
+	{
+		// a little in front of the surface: the froxel there is in the air, not behind the wall
+		vec3 toScene = worldPos - u_FroxelViewOrigin.xyz;
+		vec3 airPos = u_FroxelViewOrigin.xyz + toScene * 0.97;
+		out_Color = vec4(Display(ParticleLightLookup(airPos)), 1.0);
+		return;
+	}
 
 	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26)
 	{

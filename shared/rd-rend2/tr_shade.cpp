@@ -2011,6 +2011,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 				stageFog ? froxelFogMode : (froxelFogMode == 0 ? 0 : 2),
 				uniformDataWriter, samplerBindingsWriter);
 		}
+		// sprite particle lighting (r_particleLight): lit smoke / dust sprites
+		// look the particle light field up, the fog is applied after it once
+		if (pStage->glslShaderGroup != tr.lightallShader && !backEnd.depthFill)
+			RB_ParticleLightSetupDraw(input->shader, pStage, uniformDataWriter, samplerBindingsWriter);
 
 		if ( stageFog ) {
 			vec4_t fogColorMask;
