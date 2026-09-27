@@ -121,6 +121,8 @@ cvar_t	*r_volParticles;
 cvar_t	*r_spotLights;
 cvar_t	*r_spotShadows;
 cvar_t	*r_spotLightDebug;
+cvar_t	*r_lightCookies;
+cvar_t	*r_lightCookieDebug;
 cvar_t	*r_volParticlesMax;
 cvar_t	*r_volParticlesScale;
 cvar_t	*r_volParticlesHistory;
@@ -2359,6 +2361,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_spotShadows, 0, 1, qtrue);
 	r_spotLightDebug = ri_Cvar_Get_NoComm("r_spotLightDebug", "0", CVAR_CHEAT, "Spot lights: 1 cones + per second light list, 2 cones + shadow frustums, 3 surfaces lit by spots only (no fog dlights), 4 fog lit by spots only (no spots on surfaces)");
 	ri.Cvar_CheckRange(r_spotLightDebug, 0, 4, qtrue);
+	r_lightCookies = ri_Cvar_Get_NoComm("r_lightCookies", "1", CVAR_ARCHIVE, "Spot light cookies / gobos (efx spot cookie, tr_lightcookie.cpp): 0 off, 1 intensity, 2 colored");
+	ri.Cvar_CheckRange(r_lightCookies, 0, 2, qtrue);
+	r_lightCookieDebug = ri_Cvar_Get_NoComm("r_lightCookieDebug", "0", CVAR_CHEAT, "Spot light cookies on surfaces: 1 projected uv, 2 cookie factor, 3 cookie * shadow");
+	ri.Cvar_CheckRange(r_lightCookieDebug, 0, 3, qtrue);
 	r_volParticlesDebug = ri_Cvar_Get_NoComm("r_volParticlesDebug", "0", CVAR_CHEAT, "r_volParticles: 1 = print the culling statistics every 60 frames");
 	r_volumetricFogFreeze = ri_Cvar_Get_NoComm("r_volumetricFogFreeze", "0", CVAR_CHEAT, "Froxel fog: keep the current froxel volume and its camera (debugging)");
 	ri.Cvar_CheckRange(r_volumetricFogFreeze, 0, 1, qtrue);
@@ -3110,6 +3116,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ShutDownQueries();
 		FBO_Shutdown();
 		R_DeleteTextures();
+		R_LightCookiesShutdown();
 		R_DestroyGPUBuffers();
 		R_ShutdownForwardPlus();
 		R_ClearAreaLights();
@@ -3339,7 +3346,7 @@ Optional extension (tr_public.h): spot lights, tr_spotlight.cpp
 @@@@@@@@@@@@@@@@@@@@@
 */
 extern "C" Q_EXPORT const refSpotLightExport_t* QDECL GetRefSpotLightAPI ( void ) {
-	static const refSpotLightExport_t spotLights = { RE_AddSpotLightToScene };
+	static const refSpotLightExport_t spotLights = { RE_AddSpotLightToScene, RE_RegisterLightCookie };
 	return &spotLights;
 }
 

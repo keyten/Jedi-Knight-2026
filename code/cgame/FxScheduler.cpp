@@ -1094,6 +1094,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay
 						VectorSet( ax[0], 1.0f, 0.0f, 0.0f );
 					MakeNormalVectors( ax[0], ax[1], ax[2] );
 					const float outer = fx->mSpotOuter.GetVal();
+					light->SetSpotCookie( fx->mSpotCookie, fx->mSpotCookieRoll );
 					light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
 						fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
 					light->SetSpotClient( clientID, -1, -1, vec3_origin );
@@ -1942,6 +1943,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ve
 			if ( light && fx->mSpot )
 			{
 				const float outer = fx->mSpotOuter.GetVal();
+				light->SetSpotCookie( fx->mSpotCookie, fx->mSpotCookieRoll );
 				light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
 					fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
 				if ( flags & FX_RELATIVE )

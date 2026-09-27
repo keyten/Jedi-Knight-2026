@@ -185,6 +185,8 @@ extern cvar_t	*r_volParticles;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotShadows;
 extern cvar_t	*r_spotLightDebug;
+extern cvar_t	*r_lightCookies;
+extern cvar_t	*r_lightCookieDebug;
 extern cvar_t	*r_volParticlesMax;
 extern cvar_t	*r_volParticlesScale;
 extern cvar_t	*r_volParticlesHistory;
@@ -766,6 +768,11 @@ typedef struct dlight_s {
 	float	spotCosInner;		// full intensity at and above
 	float	spotCosOuter;		// zero at and below
 	qboolean spotNoShadow;
+	// cookie (tr_lightcookie.cpp): layer of tr.lightCookieArray, -1 = none
+	// (factor 1); roll of the cookie around the axis, radians, from the
+	// stable basis of R_SpotShadowAxis
+	int		cookieLayer;
+	float	cookieRoll;
 	// written by R_GatherFrameViews for this scene: shadow cube index whose
 	// layer 0 holds the one perspective view (-1 = none: cube faces or
 	// unshadowed) and its world to clip matrix
@@ -1137,7 +1144,7 @@ struct LightsBlock
 		vec3_t color;
 		float radius;
 		vec4_t spot;		// cone axis, cos outer angle (-2: point light)
-		vec4_t spot2;		// cos inner angle (-1: point light), projected spot shadow (1/0), unused, unused
+		vec4_t spot2;		// cos inner angle (-1: point light), projected spot shadow (1/0), cookie layer (-1 none), cookie roll
 	};
 
 	matrix_t shadowVP1;
@@ -1444,6 +1451,11 @@ enum
 	// program uses these units.
 	TB_FOLIAGEFIELD      = 23,
 	TB_FOLIAGEFIELD_PREV = 24,
+
+	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
+	// cookie, of lightall and volumetric_inject. Needs
+	// GL_MAX_TEXTURE_IMAGE_UNITS > 25, else r_lightCookies stays off.
+	TB_LIGHTCOOKIES      = 25,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -2396,6 +2408,9 @@ typedef enum
 	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageField: this frame's bend field (TB_FOLIAGEFIELD)
 	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
 	UNIFORM_FOLIAGEFIELDDEBUG,	// r_foliageFieldDebug 1 overlay: corner x, y, square size, bend of full heat
+
+	UNIFORM_LIGHTCOOKIEMAP,		// spot light cookies: tr.lightCookieArray (TB_LIGHTCOOKIES)
+	UNIFORM_LIGHTCOOKIEPARAMS,	// enabled (0/1), rgb (0/1), world size of a pixel / froxel at distance 1, debug mode
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -3540,6 +3555,7 @@ typedef struct trGlobals_s {
 	char					mapColorGradingLut[MAX_QPATH];
 	image_t					*sunShadowArrayImage;
 	image_t					*pointShadowArrayImage;
+	image_t					*lightCookieArray;	// tr_lightcookie.cpp, NULL until a cookie is registered
 	image_t                 *screenSsaoImage;	// legacy SSAO: r = AO, g = 1
 	image_t					*hdrDepthImage;
 	image_t					*aoDepthImage;		// GTAO: linear view depth, AO_DEPTH_MIPS levels
@@ -5115,6 +5131,7 @@ qhandle_t RE_RegisterShaderNoMip( const char *name );
 const char		*RE_ShaderNameFromIndex(int index);
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, int flags, int internalFormat );
 image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags = IMGFLAG_CLAMPTOEDGE);
+image_t *R_Create2DImageArray(const char *name, byte *pic, int width, int height, int layers, imgType_t type, int flags, int internalFormat);
 image_t *R_GetLoadedImage(const char *name, int flags);
 
 void R_CreateColorGradingImages(void);
@@ -5308,6 +5325,23 @@ float R_SpotShadowFov(const dlight_t *dl);
 void R_SpotShadowAxis(const dlight_t *dl, vec3_t axis[3]);
 void R_SpotLightsBeginScene(const refdef_t *fd, int firstSceneDlight);
 void R_Spot_f(void);
+
+/*
+============================================================
+
+LIGHT COOKIES, tr_lightcookie.cpp
+
+============================================================
+*/
+
+int RE_RegisterLightCookie(const char *name);
+qboolean R_LightCookiesActive(void);
+void R_LightCookiesShutdown(void);
+const char *R_LightCookieName(int layer);
+void R_SpotSetCookie(dlight_t *dl, int handle, const vec3_t up);
+qboolean R_SpotCookieUV(const dlight_t *dl, const vec3_t point, vec2_t uv);
+void R_LightCookieParams(float footprintPerDistance, vec4_t out);
+image_t *R_LightCookieImage(void);
 
 /*
 ============================================================

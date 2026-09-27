@@ -343,6 +343,10 @@ void	cgi_R_AddSpotLight( const refSpotLight_t *light ) {
 	Q_syscall( CG_R_ADDSPOTLIGHT, light );
 }
 
+int		cgi_R_RegisterLightCookie( const char *name ) {
+	return Q_syscall( CG_R_REGISTERLIGHTCOOKIE, name );
+}
+
 void	cgi_R_RenderScene( const refdef_t *fd ) {
 	Q_syscall( CG_R_RENDERSCENE, fd );
 }

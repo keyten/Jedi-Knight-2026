@@ -292,6 +292,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FoliageFieldMap",		GLSL_INT, 1 },
 	{ "u_FoliageFieldPrevMap",	GLSL_INT, 1 },
 	{ "u_FoliageFieldDebug",	GLSL_VEC4, 1 },
+
+	{ "u_LightCookieMap",		GLSL_INT, 1 },
+	{ "u_LightCookieParams",	GLSL_VEC4, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -2881,6 +2884,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_LTCMATRIXMAP, TB_LTC_MATRIX);
 			GLSL_SetUniformInt(program, UNIFORM_LTCAMPLITUDEMAP, TB_LTC_AMPLITUDE);
 			GLSL_SetUniformInt(program, UNIFORM_SKINMASKMAP, TB_SKINMASK);
+			GLSL_SetUniformInt(program, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
 			if ( variant == 1 )
 				GLSL_SetPomSilhouetteUnits(program);
 			qglUseProgram(0);
@@ -3650,6 +3654,7 @@ static int GLSL_LoadGPUProgramVolumetric(
 		// dynamic light lists of the injection (R_VolumetricBuildLightLists)
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
+		GLSL_SetUniformInt(sp, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
 		GLSL_SetFroxelLookupUnits(sp);
 		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here
 		GLSL_SetUniformInt(sp, UNIFORM_PARTICLELIGHTVOLUME, TB_ENTITYGRID_AMBIENT);

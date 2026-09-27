@@ -1148,7 +1148,8 @@ per cluster (the least important drop out). Two buffer textures per frame:
 
   lights  RGBA32F  FROXEL_LIGHT_TEXELS per light: origin, radius | color, shadow cube layer
                    (-1 none) | spot axis, cos outer (-2: point) | cos inner (-1: point),
-                   projected spot shadow, 0, 0 (tr_spotlight.cpp)
+                   projected spot shadow, cookie layer (-1 none), cookie roll
+                   (tr_spotlight.cpp, tr_lightcookie.cpp)
   list    R32UI    one header per cluster (first entry | count << 24), then the
                    light indexes
 =================
@@ -1254,6 +1255,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	// lights touching the volume, in importance order
 	static vec4_t lightData[MAX_RENDER_DLIGHTS * FROXEL_LIGHT_TEXELS];
 	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS];
+	const qboolean cookiesActive = R_LightCookiesActive();
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
 	{
@@ -1270,7 +1272,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
 		VectorSet4(t + 4, dl->color[0], dl->color[1], dl->color[2], (float)shadowLayer);
 		VectorSet4(t + 8, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
-		VectorSet4(t + 12, dl->spotCosInner, projected, 0.0f, 0.0f);
+		VectorSet4(t + 12, dl->spotCosInner, projected,
+			cookiesActive ? (float)dl->cookieLayer : -1.0f, dl->cookieRoll);
 		numLights++;
 	}
 	if ( !numLights )
@@ -2420,6 +2423,14 @@ void RB_VolumetricBuild( void )
 			VectorSet4(particleLight, tr.froxelParticleLightImage ? 1.0f : 0.0f,
 				(term >= 2 && term <= 4) ? (float)term : 0.0f, 0.0f, 0.0f);
 			GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, particleLight);
+		}
+		{
+			// spot light cookies (tr_lightcookie.cpp): lod from the world size of a froxel
+			vec4_t cookie;
+			R_LightCookieParams(2.0f * tanf(DEG2RAD(backEnd.viewParms.fovY * 0.5f)) / (float)s_vf.height, cookie);
+			GLSL_SetUniformVec4(sp, UNIFORM_LIGHTCOOKIEPARAMS, cookie);
+			if ( cookie[0] > 0.0f )
+				GL_BindToTMU(R_LightCookieImage(), TB_LIGHTCOOKIES);
 		}
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
 		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);

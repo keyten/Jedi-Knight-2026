@@ -1727,6 +1727,46 @@ bool SpotDebugSkipLight(in float cosInner)
 	return (mode == 3.0 && cosInner < -0.5) || (mode == 4.0 && cosInner > -0.5);
 }
 
+// spot light cookies (tr_lightcookie.cpp, same functions in volumetric_inject.glsl).
+// One 2D array, a layer per cookie; the layer comes with the light, so the
+// sampler is uniform in the loop. The lod is explicit (implicit derivatives are
+// undefined in the non-uniform Forward+ loop), from the world size of a pixel.
+#define LIGHT_COOKIE_SIZE 256.0
+uniform sampler2DArray u_LightCookieMap;
+uniform vec4 u_LightCookieParams;	// enabled, rgb, world size of a pixel at distance 1, debug mode
+
+vec3 g_cookieDebug = vec3(0.0);		// r_lightCookieDebug view of the strongest cookie light
+
+// d = unit direction light -> receiver; spot = axis, cos outer; roll around the
+// axis from the stable basis of R_SpotShadowAxis. xy = cookie uv (the outer
+// cone is the inscribed disc), z = t * tan outer (<= 0: behind the lamp)
+vec3 SpotCookieUV(in vec3 d, in vec4 spot, in float roll)
+{
+	vec3 axis = spot.xyz;
+	vec3 up0 = abs(axis.z) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
+	vec3 left = normalize(cross(up0, axis));
+	vec3 up = cross(axis, left);
+	float c = cos(roll), s = sin(roll);
+	float x = dot(d, left), y = dot(d, up);
+	float tanOuter = sqrt(max(1.0 - spot.w * spot.w, 1e-6)) / spot.w;
+	float r = dot(d, axis) * tanOuter;
+	float inv = 0.5 / max(r, 1e-5);
+	return vec3(0.5 - (c * x + s * y) * inv, 0.5 - (c * y - s * x) * inv, r);
+}
+
+// spot2: cos inner, projected shadow, cookie layer (-1 none), roll. 1 without cookie
+vec3 SpotCookie(in vec3 d, in vec4 spot, in vec4 spot2, in float viewDist)
+{
+	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5)
+		return vec3(1.0);
+	vec3 uvr = SpotCookieUV(d, spot, spot2.w);
+	if (uvr.z <= 0.0)
+		return vec3(0.0);
+	float texels = LIGHT_COOKIE_SIZE * 0.5 * u_LightCookieParams.z * viewDist / uvr.z;
+	vec4 cookie = textureLod(u_LightCookieMap, vec3(uvr.xy, spot2.z), log2(max(texels, 1e-4)));
+	return u_LightCookieParams.y > 0.5 ? cookie.rgb : vec3(cookie.a);
+}
+
 #if defined(USE_DSHADOWS)
 #define DEPTH_MAX_ERROR 0.0000152587890625
 
@@ -1851,7 +1891,7 @@ struct FPlusLight
 	vec3  color;		// area lights: radiance
 	float type;			// 0 = point, FPLUS_TYPE_*
 	int   shadowSlot;	// < 0 = unshadowed
-	int   flags;		// area lights: AREALIGHT_*
+	int   flags;		// area lights: AREALIGHT_*; point lights: cookie layer (-1 none)
 	float halfWidth;	// area lights: along right (line: half length)
 	float halfHeight;	// area lights: along up (line: tube radius)
 };
@@ -1916,14 +1956,18 @@ FPlusLight FPlusFetchLight(in int lightIndex)
 }
 
 // point lights (type 0): the spot cone, tr_spotlight.cpp. halfWidth holds the
-// cos inner angle (-1: no cone), halfHeight the projected shadow flag; the
-// axis and cos outer are fetched only for spot lights
-vec4 FPlusSpot(in FPlusLight light, in int lightIndex, out vec2 spot2)
+// cos inner angle (-1: no cone), halfHeight the projected shadow flag, flags the
+// cookie layer (tr_lightcookie.cpp); the axis and cos outer are fetched only for
+// spot lights, the cookie roll only with a cookie. spot2 as u_Lights[].spot2
+vec4 FPlusSpot(in FPlusLight light, in int lightIndex, out vec4 spot2)
 {
-	spot2 = vec2(light.halfWidth, light.halfHeight);
+	spot2 = vec4(light.halfWidth, light.halfHeight, float(light.flags), 0.0);
 	if (light.halfWidth < -0.5)
 		return vec4(0.0, 0.0, 0.0, -2.0);
-	return texelFetch(u_FPlusLights, u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS + 3);
+	int base = u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS;
+	if (light.flags >= 0)
+		spot2.w = texelFetch(u_FPlusLights, base + 4).x;
+	return texelFetch(u_FPlusLights, base + 3);
 }
 
 // r_forwardPlusDebug 6 / 7 / 9 only show some lights
@@ -2056,7 +2100,8 @@ float g_dlightShadowVisibility = 1.0;
 
 // shadowLayer: cube index in u_ShadowMap2 (6 layers each), < 0 = unshadowed.
 // spot: cone axis, cos outer; spot2: cos inner, projected spot shadow (> 0.5:
-// layer 6 * shadowLayer through u_SpotShadowVP). Point lights: -2 / -1, 0
+// layer 6 * shadowLayer through u_SpotShadowVP), cookie layer, cookie roll.
+// Point lights: -2 / -1, 0, -1
 vec3 EvaluateDynamicLight(
 	in DLightSurface s,
 	in vec3 lightOrigin,
@@ -2064,7 +2109,7 @@ vec3 EvaluateDynamicLight(
 	in float lightRadius,
 	in int shadowLayer,
 	in vec4 spot,
-	in vec2 spot2)
+	in vec4 spot2)
 {
 	vec3  L  = lightOrigin - s.position;
 	float sqrLightDist = dot(L, L);
@@ -2074,9 +2119,9 @@ vec3 EvaluateDynamicLight(
 	#if defined(USE_DSHADOWS)
 		vec3 sampleVector = L;
 		L /= sqrt(sqrLightDist);
+		float dlightShadow = 1.0;
 		if (shadowLayer >= 0)
 		{
-			float dlightShadow;
 			bool projected = spot2.y > 0.5;
 			// 1 / tan(half field of view) of the spot view (a cube face: 1)
 			float fovScale = projected ? spot.w / sqrt(max(1.0 - spot.w * spot.w, 1e-6)) : 1.0;
@@ -2110,9 +2155,25 @@ vec3 EvaluateDynamicLight(
 			attenuation *= dlightShadow;
 		}
 	#else
+		float dlightShadow = 1.0;
 		L /= sqrt(sqrLightDist);
 	#endif
 	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
+	// the cookie modulates the light before the BRDF (radial * cone * cookie * shadow)
+	if (spot2.z > -0.5)
+	{
+		vec3 cookie = SpotCookie(-L, spot, spot2, length(s.position - u_ViewOrigin));
+		lightColor *= cookie;
+		float mode = u_LightCookieParams.w;
+		if (mode > 0.5)
+		{
+			vec3 uvr = SpotCookieUV(-L, spot, spot2.w);
+			float cone = SpotConeAttenuation(L, spot, spot2.x);
+			vec3 v = mode < 1.5 ? vec3(fract(uvr.xy), 0.0) * step(0.0, uvr.z) :
+				mode < 2.5 ? cookie : cookie * dlightShadow;
+			g_cookieDebug = max(g_cookieDebug, v * cone);
+		}
+	}
 	attenuation *= DynamicLightReceiverVisibility(s, L);
 
 	float NL = clamp(dot(s.N, L), 0.0, 1.0);
@@ -2378,7 +2439,7 @@ vec3 CalcDynamicLightContribution(
 		float lightRadius;
 		int shadowLayer;
 		vec4 spot;
-		vec2 spot2;
+		vec4 spot2;
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
@@ -2410,7 +2471,7 @@ vec3 CalcDynamicLightContribution(
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
 			spot = u_Lights[k].spot;
-			spot2 = u_Lights[k].spot2.xy;
+			spot2 = u_Lights[k].spot2;
 			// the loop index is the cube; spot lights without shadow: none
 			shadowLayer = u_Lights[k].spot2.y < -0.5 ? -1 : k;
 		}
@@ -2431,15 +2492,16 @@ vec3 EvaluateDynamicLightSimple(
 	in vec3 lightColor,
 	in float lightRadius,
 	in vec4 spot,
-	in float spotCosInner)
+	in vec4 spot2)
 {
 	vec3 L = lightOrigin - position;
 	float sqrLightDist = dot(L, L);
 	float attenuation = CalcLightAttenuation(lightRadius * lightRadius / sqrLightDist);
 	L /= sqrt(sqrLightDist);
-	attenuation *= SpotConeAttenuation(L, spot, spotCosInner);
+	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
+	vec3 cookie = SpotCookie(-L, spot, spot2, length(position - u_ViewOrigin));
 	float NL = clamp(dot(N, L), 0.0, 1.0);
-	return lightColor * attenuation * NL;
+	return lightColor * cookie * attenuation * NL;
 }
 
 vec3 CalcDynamicLightContribution(
@@ -2457,7 +2519,7 @@ vec3 CalcDynamicLightContribution(
 		vec3 lightOrigin, lightColor;
 		float lightRadius;
 		vec4 spot;
-		vec2 spot2;
+		vec4 spot2;
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
@@ -2477,11 +2539,11 @@ vec3 CalcDynamicLightContribution(
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
 			spot = u_Lights[k].spot;
-			spot2 = u_Lights[k].spot2.xy;
+			spot2 = u_Lights[k].spot2;
 		}
 		if (SpotDebugSkipLight(spot2.x))
 			continue;
-		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor, lightRadius, spot, spot2.x);
+		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor, lightRadius, spot, spot2);
 	}
 	return outLight;
 }
@@ -3761,6 +3823,19 @@ void main()
 	if (FPlusDebugColor(u_ViewOrigin - viewDir, out_Color.rgb, dynamicLight, fplusDebugColor))
 	{
 		out_Color = vec4(fplusDebugColor, diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
+
+	// r_lightCookieDebug 1 projected uv, 2 cookie factor, 3 cookie * shadow
+	// (lights with a cookie, weighted by the cone), written unlit
+	if (u_LightCookieParams.w > 0.5 && u_LightMask != 0)
+	{
+		out_Color = vec4(g_cookieDebug, diffuse.a);
 		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
     #if defined(USE_SSR) && defined(USE_SPECULARMAP)
 		out_SSRSpecular = vec4(0.0);

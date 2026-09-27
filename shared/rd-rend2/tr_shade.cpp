@@ -2327,7 +2327,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			}
 
 			if (enableDLights)
+			{
 				uniformDataWriter.SetUniformInt(UNIFORM_LIGHTMASK, tess.dlightBits);
+				// spot light cookies (tr_lightcookie.cpp): lod from the world size of a pixel
+				vec4_t cookie;
+				R_LightCookieParams(2.0f * tanf(DEG2RAD(backEnd.viewParms.fovY * 0.5f)) /
+					(float)Q_max(1, backEnd.viewParms.viewportHeight), cookie);
+				uniformDataWriter.SetUniformVec4(UNIFORM_LIGHTCOOKIEPARAMS, cookie);
+				if (cookie[0] > 0.0f)
+					samplerBindingsWriter.AddStaticImage(R_LightCookieImage(), TB_LIGHTCOOKIES);
+			}
 			else
 				uniformDataWriter.SetUniformInt(UNIFORM_LIGHTMASK, 0);
 

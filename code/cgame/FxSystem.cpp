@@ -162,14 +162,25 @@ void SFxHelper::AddLightToScene( vec3_t org, float radius, float red, float gree
 }
 
 //------------------------------------------------------
+int SFxHelper::RegisterLightCookie( const char *name )
+{
+	// cl_rendererSpotLights 2: the engine has CG_R_REGISTERLIGHTCOOKIE
+	if ( cl_rendererSpotLights.integer >= 2 )
+	{
+		return cgi_R_RegisterLightCookie( name );
+	}
+	return 0;
+}
+
+//------------------------------------------------------
 void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
-	float innerAngle, float outerAngle, int flags )
+	float innerAngle, float outerAngle, int flags, int cookie, const vec3_t up )
 {
 	// set by the engine when its renderer has spot lights: older engines lack
 	// the trap
 	if ( cl_rendererSpotLights.integer )
 	{
-		refSpotLight_t light;
+		refSpotLight_t light = {};
 		VectorCopy( org, light.origin );
 		VectorCopy( dir, light.dir );
 		light.radius = radius;
@@ -177,6 +188,9 @@ void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float r
 		light.innerAngle = innerAngle;
 		light.outerAngle = outerAngle;
 		light.flags = flags;
+		light.cookie = cookie;
+		if ( up )
+			VectorCopy( up, light.up );
 		cgi_R_AddSpotLight( &light );
 		return;
 	}

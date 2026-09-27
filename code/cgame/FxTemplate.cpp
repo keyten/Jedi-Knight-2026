@@ -100,6 +100,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mSpotOuter.SetRange( 30.0f, 30.0f );
 	VectorSet( mSpotDir, 1.0f, 0.0f, 0.0f );
 	mSpotShadows = true;
+	mSpotCookie = 0;
+	mSpotCookieRoll = 0.0f;
 }
 
 //-----------------------------------------------------------
@@ -208,6 +210,8 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mSpotOuter			= that.mSpotOuter;
 	VectorCopy( that.mSpotDir, mSpotDir );
 	mSpotShadows		= that.mSpotShadows;
+	mSpotCookie			= that.mSpotCookie;
+	mSpotCookieRoll		= that.mSpotCookieRoll;
 }
 
 //------------------------------------------------------
@@ -1885,7 +1889,12 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 //		direction	1 0 0		// optional, the cone axis in the effect's axes (forward
 //								//	= the effect's direction / the bolt's / muzzle's forward)
 //		shadows		1			// optional, 0 = never casts a shadow
+//		cookie		gfx/test/volumetric_cookie	// optional light cookie / gobo image
+//		cookieRoll	0			// optional, degrees around the axis
 //	}
+//
+//	A cookie is a spot light property (its projection is the cone): it is only
+//	accepted in this group, point lights have none.
 //
 //	Renderers (engines) without spot lights draw the point light.
 //------------------------------------------------------
@@ -1933,6 +1942,25 @@ bool CPrimitiveTemplate::ParseSpotShadows( const gsl::cstring_span& val )
 	return false;
 }
 
+bool CPrimitiveTemplate::ParseSpotCookie( const gsl::cstring_span& val )
+{
+	const std::string name( val.begin(), val.end() );
+	// registered now (effect load): no hitch when the light first shows
+	mSpotCookie = theFxHelper.RegisterLightCookie( name.c_str() );
+	return true;
+}
+
+bool CPrimitiveTemplate::ParseSpotCookieRoll( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mSpotCookieRoll = min;
+		return true;
+	}
+	return false;
+}
+
 bool CPrimitiveTemplate::ParseSpot( const CGPGroup& grp )
 {
 	if ( mType != Light )
@@ -1955,6 +1983,9 @@ bool CPrimitiveTemplate::ParseSpot( const CGPGroup& grp )
 
 		{ CSTRING_VIEW( "shadows" ), &CPrimitiveTemplate::ParseSpotShadows },
 		{ CSTRING_VIEW( "shadow" ), &CPrimitiveTemplate::ParseSpotShadows },
+
+		{ CSTRING_VIEW( "cookie" ), &CPrimitiveTemplate::ParseSpotCookie },
+		{ CSTRING_VIEW( "cookieRoll" ), &CPrimitiveTemplate::ParseSpotCookieRoll },
 	};
 	return ParseGroup( grp, parseMethods, "spot" );
 }

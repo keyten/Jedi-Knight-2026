@@ -292,6 +292,8 @@ public:
 	CFxRange		mSpotOuter;
 	vec3_t			mSpotDir;			// in the effect's axes (1 0 0 = its forward)
 	bool			mSpotShadows;
+	int				mSpotCookie;		// light cookie handle (RegisterLightCookie), 0 = none
+	float			mSpotCookieRoll;	// degrees around the axis
 
 private:
 
@@ -351,6 +353,8 @@ private:
 	bool ParseSpotOuter( const gsl::cstring_span& val );
 	bool ParseSpotDir( const gsl::cstring_span& val );
 	bool ParseSpotShadows( const gsl::cstring_span& val );
+	bool ParseSpotCookie( const gsl::cstring_span& val );
+	bool ParseSpotCookieRoll( const gsl::cstring_span& val );
 
 	bool ParseModels( const CGPProperty& grp );
 	bool ParseShaders( const CGPProperty& grp );

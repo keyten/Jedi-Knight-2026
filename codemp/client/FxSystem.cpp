@@ -33,12 +33,21 @@ void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
 	}
 }
 
+int SFxHelper::RegisterLightCookie( const char *name )
+{
+	if ( reSpotLights && reSpotLights->RegisterLightCookie )
+	{
+		return reSpotLights->RegisterLightCookie( name );
+	}
+	return 0;
+}
+
 void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
-	float innerAngle, float outerAngle, int flags )
+	float innerAngle, float outerAngle, int flags, int cookie, const vec3_t up )
 {
 	if ( reSpotLights && reSpotLights->AddSpotLightToScene )
 	{
-		refSpotLight_t light;
+		refSpotLight_t light = {};
 		VectorCopy( org, light.origin );
 		VectorCopy( dir, light.dir );
 		light.radius = radius;
@@ -46,6 +55,9 @@ void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float r
 		light.innerAngle = innerAngle;
 		light.outerAngle = outerAngle;
 		light.flags = flags;
+		light.cookie = cookie;
+		if ( up )
+			VectorCopy( up, light.up );
 		reSpotLights->AddSpotLightToScene( &light );
 		return;
 	}

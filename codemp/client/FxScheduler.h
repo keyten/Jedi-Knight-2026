@@ -281,6 +281,8 @@ public:
 	CFxRange		mSpotOuter;
 	vec3_t			mSpotDir;			// in the effect's axes (1 0 0 = its forward)
 	bool			mSpotShadows;
+	int				mSpotCookie;		// light cookie handle (RegisterLightCookie), 0 = none
+	float			mSpotCookieRoll;	// degrees around the axis
 
 	// Lower level parsing utilities
 	bool ParseVector( const char *val, vec3_t min, vec3_t max );

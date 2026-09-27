@@ -1043,6 +1043,7 @@ qboolean	cgi_R_AddLineLightToScene( const vec3_t start, const vec3_t end, float 
 void	cgi_R_SetFoliageInteractors( const foliageInteractor_t *interactors, int count );
 void	cgi_R_AddVolumetricParticle( const refVolParticle_t *particle );
 void	cgi_R_AddSpotLight( const refSpotLight_t *light );
+int		cgi_R_RegisterLightCookie( const char *name );
 void	cgi_R_RenderScene( const refdef_t *fd );
 void	cgi_R_SetColor( const float *rgba );	// NULL = 1,1,1,1
 void	cgi_R_DrawStretchPic( float x, float y, float w, float h,

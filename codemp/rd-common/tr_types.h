@@ -390,6 +390,8 @@ typedef struct {
 	float		innerAngle;		// degrees from the axis, full intensity inside
 	float		outerAngle;		// degrees from the axis, zero outside (clamped to 89)
 	int			flags;			// SPOTLIGHT_*
+	int			cookie;			// RegisterLightCookie handle, 0 = none (a spot light only)
+	vec3_t		up;				// optional top of the cookie, zero = a stable default
 } refSpotLight_t;
 
 

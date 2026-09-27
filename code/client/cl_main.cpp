@@ -1211,7 +1211,8 @@ void CL_InitRef( void ) {
 	reSpotLights = GetRefSpotLightAPI ? GetRefSpotLightAPI() : NULL;
 	// the cgame calls CG_R_ADDSPOTLIGHT only when set (FX spot lights)
 	Cvar_Get( "cl_rendererSpotLights", "0", CVAR_ROM );
-	Cvar_Set2( "cl_rendererSpotLights", reSpotLights ? "1" : "0", qtrue );
+	// 2: also light cookies (CG_R_REGISTERLIGHTCOOKIE)
+	Cvar_Set2( "cl_rendererSpotLights", !reSpotLights ? "0" : reSpotLights->RegisterLightCookie ? "2" : "1", qtrue );
 
 	Com_Printf( "-------------------------------\n");
 

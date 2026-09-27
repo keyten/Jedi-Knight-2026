@@ -75,7 +75,7 @@ uniform sampler2DArrayShadow u_ShadowMap2;	// dynamic light cube faces, 6 layers
 flat in int var_Slice;	// slice of this layer, -1 = tail pass
 
 // dynamic light lists: FROXEL_LIGHT_TEXELS per light (origin, radius | color, shadow cube layer |
-// spot axis, cos outer | cos inner, projected spot shadow), and per cluster a header (first entry |
+// spot axis, cos outer | cos inner, projected spot shadow, cookie layer, cookie roll), and per cluster a header (first entry |
 // count << 24) followed by the light indexes
 #define FROXEL_LIGHT_TEXELS 4
 uniform samplerBuffer u_FPlusLights;
@@ -492,6 +492,38 @@ float SpotConeAttenuation(in vec3 L, in vec4 spot, in float cosInner)
 	return smoothstep(spot.w, cosInner, dot(-L, spot.xyz));
 }
 
+// spot light cookies, as SpotCookieUV / SpotCookie of lightall.glsl (tr_lightcookie.cpp): the lod
+// comes from the world size of a froxel instead of a pixel, same formula
+#define LIGHT_COOKIE_SIZE 256.0
+uniform sampler2DArray u_LightCookieMap;
+uniform vec4 u_LightCookieParams;	// enabled, rgb, world size of a froxel at distance 1, unused
+
+vec3 SpotCookieUV(in vec3 d, in vec4 spot, in float roll)
+{
+	vec3 axis = spot.xyz;
+	vec3 up0 = abs(axis.z) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
+	vec3 left = normalize(cross(up0, axis));
+	vec3 up = cross(axis, left);
+	float c = cos(roll), s = sin(roll);
+	float x = dot(d, left), y = dot(d, up);
+	float tanOuter = sqrt(max(1.0 - spot.w * spot.w, 1e-6)) / spot.w;
+	float r = dot(d, axis) * tanOuter;
+	float inv = 0.5 / max(r, 1e-5);
+	return vec3(0.5 - (c * x + s * y) * inv, 0.5 - (c * y - s * x) * inv, r);
+}
+
+vec3 SpotCookie(in vec3 d, in vec4 spot, in vec4 spot2, in float viewDist)
+{
+	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5)
+		return vec3(1.0);
+	vec3 uvr = SpotCookieUV(d, spot, spot2.w);
+	if (uvr.z <= 0.0)
+		return vec3(0.0);
+	float texels = LIGHT_COOKIE_SIZE * 0.5 * u_LightCookieParams.z * viewDist / uvr.z;
+	vec4 cookie = textureLod(u_LightCookieMap, vec3(uvr.xy, spot2.z), log2(max(texels, 1e-4)));
+	return u_LightCookieParams.y > 0.5 ? cookie.rgb : vec3(cookie.a);
+}
+
 // spot light shadow: the one perspective view in layer 6 * slot (u_SpotShadowVP), same depth
 // convention as the cube faces; pulled towards the light as DynamicLightShadow
 float SpotLightShadow(in vec3 lightOrigin, in vec3 L, in float dist, in int slot, in float cosOuter)
@@ -569,8 +601,11 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
 		}
 
-		// pointAtten * coneAtten * shadow * phase
-		light += colorLayer.rgb * attenuation * phase * shadow;
+		// cookie (tr_lightcookie.cpp): the radiance leaving the lamp towards p
+		vec3 cookie = SpotCookie(-L / dist, spot, spot2, length(p - u_FroxelViewOrigin.xyz));
+
+		// pointAtten * coneAtten * cookie * shadow * phase
+		light += colorLayer.rgb * cookie * attenuation * phase * shadow;
 	}
 
 	return light;

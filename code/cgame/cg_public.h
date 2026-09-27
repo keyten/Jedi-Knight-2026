@@ -237,6 +237,10 @@ Ghoul2 Insert End
 	// spot light (rend2 spot lights); only called with cl_rendererSpotLights
 	// set by the engine (older engines lack it)
 	CG_R_ADDSPOTLIGHT,
+
+	// light cookie of a spot light (rend2); only called with
+	// cl_rendererSpotLights 2 (older engines lack it)
+	CG_R_REGISTERLIGHTCOOKIE,
 } cgameImport_t;
 
 #ifdef JK2_MODE

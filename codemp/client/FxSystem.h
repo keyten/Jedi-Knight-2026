@@ -186,8 +186,9 @@ public:
 	}
 	// rend2 spot light (optional renderer extension); the point light of
 	// AddLightToScene with other renderers
+	int		RegisterLightCookie( const char *name );	// 0 = unavailable
 	void	AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
-				float innerAngle, float outerAngle, int flags );
+				float innerAngle, float outerAngle, int flags, int cookie = 0, const vec3_t up = NULL );
 
 	inline	int		RegisterShader( const char *shader )
 	{

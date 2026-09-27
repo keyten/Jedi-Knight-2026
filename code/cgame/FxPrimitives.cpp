@@ -1664,6 +1664,22 @@ void CLight::SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, fl
 	mSpotInner = inner;
 	mSpotOuter = outer;
 	mSpotFlags = flags;
+	// cookie top: the effect's (bolt's) up in the plane across the cone,
+	// turned by the efx cookieRoll (renderer: refSpotLight_t::up)
+	VectorMA( ax[2], -DotProduct( ax[2], mSpotDir ), mSpotDir, mSpotUp );
+	if ( VectorNormalize( mSpotUp ) <= 0.0f )
+	{
+		VectorMA( ax[1], -DotProduct( ax[1], mSpotDir ), mSpotDir, mSpotUp );
+		VectorNormalize( mSpotUp );
+	}
+	if ( mSpotCookieRoll != 0.0f )
+	{
+		vec3_t side;
+		CrossProduct( mSpotDir, mSpotUp, side );
+		const float r = DEG2RAD( mSpotCookieRoll );
+		VectorScale( mSpotUp, cosf( r ), mSpotUp );
+		VectorMA( mSpotUp, sinf( r ), side, mSpotUp );
+	}
 }
 
 //----------------------------

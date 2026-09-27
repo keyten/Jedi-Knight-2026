@@ -98,6 +98,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mSpotOuter.SetRange( 30.0f, 30.0f );
 	VectorSet( mSpotDir, 1.0f, 0.0f, 0.0f );
 	mSpotShadows = true;
+	mSpotCookie = 0;
+	mSpotCookieRoll = 0.0f;
 }
 
 //-----------------------------------------------------------
@@ -209,6 +211,8 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mSpotOuter			= that.mSpotOuter;
 	VectorCopy( that.mSpotDir, mSpotDir );
 	mSpotShadows		= that.mSpotShadows;
+	mSpotCookie			= that.mSpotCookie;
+	mSpotCookieRoll		= that.mSpotCookieRoll;
 
 	return *this;
 }
@@ -2206,6 +2210,8 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( CGPGroup *grp )
 //		direction	1 0 0		// optional, the cone axis in the effect's axes (forward
 //								//	= the effect's direction / the bolt's forward)
 //		shadows		1			// optional, 0 = never casts a shadow
+//		cookie		gfx/test/volumetric_cookie	// optional light cookie / gobo image
+//		cookieRoll	0			// optional, degrees around the axis
 //	}
 //
 //	Renderers without spot lights draw the point light.
@@ -2251,6 +2257,16 @@ bool CPrimitiveTemplate::ParseSpot( CGPGroup *grp )
 		{
 			if ( ParseFloat( val, &min, &max ) )
 				mSpotShadows = ( min != 0.0f );
+		}
+		else if ( !Q_stricmp( key, "cookie" ) )
+		{
+			// light cookie / gobo, registered now (effect load); spot lights only
+			mSpotCookie = theFxHelper.RegisterLightCookie( val );
+		}
+		else if ( !Q_stricmp( key, "cookieRoll" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mSpotCookieRoll = min;
 		}
 		else
 			theFxHelper.Print( "Unknown key parsing a spot group: %s\n", key );

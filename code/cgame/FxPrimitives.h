@@ -232,6 +232,9 @@ protected:
 	float		mSpotInner;		// degrees
 	float		mSpotOuter;
 	int			mSpotFlags;		// SPOTLIGHT_*
+	int			mSpotCookie;	// light cookie handle, 0 = none (a spot light only)
+	float		mSpotCookieRoll;	// degrees around the axis
+	vec3_t		mSpotUp;		// world: the cookie's top
 	short		mSpotClientID;
 	char		mSpotModelNum;
 	char		mSpotBoltNum;
@@ -247,7 +250,7 @@ protected:
 		{
 			// rend2 spot lights; the point light below with other renderers
 			theFxHelper.AddSpotLightToScene( mOrigin1, mSpotDir, mRefEnt.radius, mRefEnt.lightingOrigin,
-				mSpotInner, mSpotOuter, mSpotFlags );
+				mSpotInner, mSpotOuter, mSpotFlags, mSpotCookie, mSpotUp );
 			return;
 		}
 		theFxHelper.AddLightToScene( mOrigin1, mRefEnt.radius,
@@ -256,12 +259,14 @@ protected:
 
 public:
 
-	CLight() { mSpot = false; mSpotClientID = -1; mSpotModelNum = -1; mSpotBoltNum = -1; }
+	CLight() { mSpot = false; mSpotClientID = -1; mSpotModelNum = -1; mSpotBoltNum = -1; mSpotCookie = 0; mSpotCookieRoll = 0.0f; VectorClear( mSpotUp ); }
 	virtual ~CLight() {}
 	virtual bool Update();
 
 	// ax: the effect's axes when it was created
 	void SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags );
+	// before SetSpot
+	void SetSpotCookie( int cookie, float rollDegrees ) { mSpotCookie = cookie; mSpotCookieRoll = rollDegrees; }
 	// follow the client's bolt (modelNum, boltNum >= 0; offset = the light's
 	// offset along the bolt axes) or its muzzle
 	void SetSpotClient( int clientID, int modelNum, int boltNum, const vec3_t offset );

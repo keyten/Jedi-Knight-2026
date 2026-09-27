@@ -1679,6 +1679,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 			if ( light && fx->mSpot )
 			{
 				const float outer = fx->mSpotOuter.GetVal();
+				light->SetSpotCookie( fx->mSpotCookie, fx->mSpotCookieRoll );
 				light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
 					fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
 			}

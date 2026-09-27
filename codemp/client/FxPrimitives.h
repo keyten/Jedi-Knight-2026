@@ -254,6 +254,9 @@ protected:
 	float		mSpotInner;		// degrees
 	float		mSpotOuter;
 	int			mSpotFlags;		// SPOTLIGHT_*
+	int			mSpotCookie;	// light cookie handle, 0 = none (a spot light only)
+	float		mSpotCookieRoll;	// degrees around the axis
+	vec3_t		mSpotUp;		// world: the cookie's top
 
 	void		UpdateSize();
 	void		UpdateRGB();
@@ -265,11 +268,14 @@ public:
 	{
 		mEntNum = -1; mModelNum = -1; mBoltNum = -1;
 		mSpot = false;
+		mSpotCookie = 0; mSpotCookieRoll = 0.0f; VectorClear( mSpotUp );
 	}
 
 	// ax: the effect's axes when it was created (the bolt's for a relative
 	// light until its first update)
 	void SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags );
+	// before SetSpot
+	void SetSpotCookie( int cookie, float rollDegrees ) { mSpotCookie = cookie; mSpotCookieRoll = rollDegrees; }
 
 	inline void SetBoltinfo( CGhoul2Info_v *ghoul2,  int entNum, int modelNum = -1, int boltNum = -1 )
 	{

@@ -1025,6 +1025,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reSpotLights && reSpotLights->AddSpotLightToScene )
 			reSpotLights->AddSpotLightToScene( (const refSpotLight_t *) VMA(1) );
 		return 0;
+	case CG_R_REGISTERLIGHTCOOKIE:
+		if ( reSpotLights && reSpotLights->RegisterLightCookie )
+			return reSpotLights->RegisterLightCookie( (const char *) VMA(1) );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;

@@ -865,12 +865,14 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// light data of the scene, shared by its views
 	vec4_t lightData[MAX_RENDER_DLIGHTS * FPLUS_LIGHT_TEXELS];
+	const qboolean cookiesActive = R_LightCookiesActive();
 	for ( int i = 0; i < s_fp.numLights; i++ )
 	{
 		const dlight_t *dl = refdef->dlights + i;
 		float *t = lightData[i * FPLUS_LIGHT_TEXELS];
-		// point:  origin, radius | color, 0 | shadow slot, 0, cos inner,
-		//         projected spot shadow | cone axis, cos outer | unused
+		// point:  origin, radius | color, 0 | shadow slot, cookie layer (-1
+		//         none), cos inner, projected spot shadow | cone axis, cos
+		//         outer | cookie roll, 0, 0, 0 (tr_lightcookie.cpp)
 		//         (tr_spotlight.cpp; point lights: cos inner -1, cos outer -2)
 		// area:   centre, cull radius | radiance, type | -1, flags, half width,
 		//         half height | right | up (tr_arealights.cpp)
@@ -879,7 +881,8 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		if ( dl->areaType == DLIGHT_POINT )
 		{
 			const float projected = (dl->spotShadowSlot >= 0 && dl->spotShadowSlot == s_fp.shadowSlot[i]) ? 1.0f : 0.0f;
-			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], 0.0f, dl->spotCosInner, projected);
+			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], cookiesActive ? (float)dl->cookieLayer : -1.0f,
+				dl->spotCosInner, projected);
 		}
 		else
 			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], (float)dl->areaFlags, dl->halfWidth, dl->halfHeight);
@@ -893,7 +896,7 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		else
 		{
 			VectorSet4(t + 12, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
-			VectorSet4(t + 16, 0.0f, 0.0f, 0.0f, 0.0f);
+			VectorSet4(t + 16, dl->cookieRoll, 0.0f, 0.0f, 0.0f);
 		}
 	}
 	const int lightBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_LIGHTS, lightData,

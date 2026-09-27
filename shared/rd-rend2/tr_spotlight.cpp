@@ -34,6 +34,8 @@ conventions as the cube faces.
 
 Submission: the optional renderer extension GetRefSpotLightAPI
 (refSpotLightExport_t). The existing AddLightToScene calls are unchanged.
+
+Cookies / gobos (refSpotLight_t::cookie): tr_lightcookie.cpp.
 */
 
 #include "tr_local.h"
@@ -205,6 +207,7 @@ void RE_AddSpotLightToScene( const refSpotLight_t *light )
 		return;
 	R_SetSpotCone(dl, light->dir, light->innerAngle, light->outerAngle);
 	dl->spotNoShadow = (light->flags & SPOTLIGHT_NOSHADOW) ? qtrue : qfalse;
+	R_SpotSetCookie(dl, light->cookie, light->up);
 }
 
 /*
@@ -241,6 +244,7 @@ static void R_SpotUsage( void )
 		"r_spot attach [radius] [outer] [inner]      - a flashlight moving with the camera\n"
 		"r_spot spin <index> <degrees per second>    - turn a spot around the world up axis\n"
 		"r_spot noshadow <index> <0|1>\n"
+		"r_spot cookie <index> <image|none>          - light cookie / gobo (r_lightCookies)\n"
 		"r_spot list | clear\n"
 		"defaults: radius 600, outer 30, inner 20, color 1 1 1\n");
 }
@@ -285,12 +289,13 @@ static void R_SpotList( void )
 	for ( int i = 0; i < s_spot.numSpots; i++ )
 	{
 		const debugSpot_t *d = &s_spot.spots[i];
-		ri.Printf(PRINT_ALL, "  %d: %s origin (%.0f %.0f %.0f) dir (%.2f %.2f %.2f) radius %.0f cone %.1f / %.1f%s spin %.0f\n",
+		ri.Printf(PRINT_ALL, "  %d: %s origin (%.0f %.0f %.0f) dir (%.2f %.2f %.2f) radius %.0f cone %.1f / %.1f%s spin %.0f cookie %s\n",
 			i, d->attached ? "attached" : "placed",
 			d->light.origin[0], d->light.origin[1], d->light.origin[2],
 			d->light.dir[0], d->light.dir[1], d->light.dir[2], d->light.radius,
 			d->light.innerAngle, d->light.outerAngle,
-			(d->light.flags & SPOTLIGHT_NOSHADOW) ? " noshadow" : "", d->spin);
+			(d->light.flags & SPOTLIGHT_NOSHADOW) ? " noshadow" : "", d->spin,
+			d->light.cookie ? R_LightCookieName(d->light.cookie - 1) : "none");
 	}
 }
 
@@ -313,6 +318,20 @@ void R_Spot_f( void )
 	{
 		s_spot.numSpots = 0;
 		ri.Printf(PRINT_ALL, "r_spot lights cleared\n");
+	}
+	else if ( !Q_stricmp(cmd, "cookie") )
+	{
+		// r_spot cookie <index> <image | none>
+		const int index = ri.Cmd_Argc() > 2 ? atoi(ri.Cmd_Argv(2)) : -1;
+		if ( index < 0 || index >= s_spot.numSpots || ri.Cmd_Argc() < 4 )
+		{
+			R_SpotUsage();
+			return;
+		}
+		const char *name = ri.Cmd_Argv(3);
+		s_spot.spots[index].light.cookie = Q_stricmp(name, "none") ? RE_RegisterLightCookie(name) : 0;
+		ri.Printf(PRINT_ALL, "r_spot %d: cookie %s\n", index,
+			s_spot.spots[index].light.cookie ? R_LightCookieName(s_spot.spots[index].light.cookie - 1) : "none");
 	}
 	else if ( !Q_stricmp(cmd, "spin") || !Q_stricmp(cmd, "noshadow") )
 	{
@@ -452,6 +471,7 @@ void R_SpotLightsBeginScene( const refdef_t *fd, int firstSceneDlight )
 			VectorMA(fd->vieworg, -8.0f, fd->viewaxis[1], light.origin);
 			VectorMA(light.origin, -6.0f, fd->viewaxis[2], light.origin);
 			VectorCopy(fd->viewaxis[0], light.dir);
+			VectorCopy(fd->viewaxis[2], light.up);	// the cookie turns with the view
 		}
 		else if ( s_spot.spots[i].spin != 0.0f )
 		{
@@ -494,6 +514,9 @@ void R_SpotLightsBeginScene( const refdef_t *fd, int firstSceneDlight )
 					dl->spotDir[1], dl->spotDir[2], RAD2DEG(acosf(dl->spotCosInner)),
 					RAD2DEG(acosf(dl->spotCosOuter)),
 					!R_DlightCastsShadow(dl) ? "off" : R_SpotProjectedShadow(dl) ? "projected" : "cube");
+				if ( dl->cookieLayer >= 0 )
+					ri.Printf(PRINT_ALL, " cookie %d %s roll %.0f%s", dl->cookieLayer, R_LightCookieName(dl->cookieLayer),
+						RAD2DEG(dl->cookieRoll), R_LightCookiesActive() ? "" : " (r_lightCookies off)");
 			}
 			ri.Printf(PRINT_ALL, "\n");
 		}

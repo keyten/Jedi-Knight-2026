@@ -2542,6 +2542,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 	int lightIndexes[MAX_DLIGHTS];
 	int shadowLayers[MAX_DLIGHTS];
 	lightsBlock.numLights = R_GetUboDlights(refdef, lightIndexes, shadowLayers);
+	const qboolean cookiesActive = R_LightCookiesActive();
 	for (int i = 0; i < lightsBlock.numLights; ++i)
 	{
 		const dlight_t *dlight = refdef->dlights + lightIndexes[i];
@@ -2564,7 +2565,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 			dlight->spotCosOuter);
 		VectorSet4(lightData->spot2, dlight->spotCosInner,
 			shadowLayers[i] < 0 || !R_DlightCastsShadow(dlight) ? -1.0f : (projected ? 1.0f : 0.0f),
-			0.0f, 0.0f);
+			cookiesActive ? (float)dlight->cookieLayer : -1.0f, dlight->cookieRoll);
 	}
 	// spot shadow views of this scene, by shadow slot (R_GatherFrameViews)
 	for (int i = 0; i < refdef->num_dlights; ++i)

@@ -286,6 +286,7 @@ dlight_t *R_AllocSceneDlight( void ) {
 	dl->spotCosInner = -1.0f;	// cone factor 1 (R_SpotConeAttenuation)
 	dl->spotCosOuter = -2.0f;
 	dl->spotShadowSlot = -1;
+	dl->cookieLayer = -1;
 	return dl;
 }
 

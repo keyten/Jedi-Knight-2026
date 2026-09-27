@@ -429,6 +429,9 @@ typedef	const refVolParticleExport_t* (QDECL *GetRefVolParticleAPI_t) ( void );
 // renderers) callers fall back to AddLightToScene.
 typedef struct refSpotLightExport_s {
 	void		(*AddSpotLightToScene)( const refSpotLight_t *light );
+	// light cookie / gobo image for refSpotLight_t::cookie, 0 = unavailable.
+	// Call at load time (effect registration)
+	int			(*RegisterLightCookie)( const char *name );
 } refSpotLightExport_t;
 
 typedef	const refSpotLightExport_t* (QDECL *GetRefSpotLightAPI_t) ( void );
