@@ -273,6 +273,7 @@ extern cvar_t  *r_weatherWetDarkening;
 extern cvar_t  *r_weatherWetNormal;
 extern cvar_t  *r_weatherWetBias;
 extern cvar_t  *r_weatherWetnessDebug;
+extern cvar_t  *r_weatherMaterialPrint;
 extern cvar_t  *r_weatherWetEntityFacing;
 extern cvar_t  *r_weatherPuddles;
 extern cvar_t  *r_puddleCoverage;
@@ -1476,6 +1477,8 @@ typedef struct {
 	qboolean		emissive;
 	qboolean		cloth;
 	qboolean		specularScaleAuthored;	// specularScale / roughness / gloss ... keywords
+	qboolean		weatherScaleAuthored;	// stage level weatherResponse keyword
+	vec3_t			weatherScale;			// weatherResponse: wetness, puddle, runoff (1 = automatic, 0 = off)
 
 	AlphaTestType	alphaTestType;
 
@@ -1626,6 +1629,8 @@ typedef struct shader_s {
 
 	float		portalRange;			// distance to fog out at
 	qboolean	isPortal;
+
+	vec3_t		weatherScale;			// shader level weatherResponse, default of every stage
 
 	cullType_t	cullType;				// CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 	qboolean	polygonOffset;			// set for decals and other items that must be offset
@@ -2279,6 +2284,7 @@ typedef enum
 	UNIFORM_RUNOFFPARAMS,		// strength (0 off, < 0 ineligible), 1 / scale, flow clock (cells mod 256), probe offset (world)
 	UNIFORM_RUNOFFPARAMS2,		// wind shear x, y (per unit of fall), windward amount, frame origin z
 	UNIFORM_RUNOFFFRAME,		// pattern frame: horizontal axis a1 (world xy), origin xy
+	UNIFORM_WEATHERMATERIAL,	// debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
 
 	UNIFORM_SKINPARAMS,		// skin SSS of this draw: scatter (0 = not skin), has mask, compare split x (< 0 off), unused
 	UNIFORM_SKINWRAP,		// skin SSS: rgb = wrap widths (r_skinSSS 1), w = transmission strength

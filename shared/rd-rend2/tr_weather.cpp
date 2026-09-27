@@ -2175,25 +2175,85 @@ qboolean R_WeatherWetnessEnabled(void)
 	return qtrue;
 }
 
-// Structural eligibility only: sky, portals, liquids, fog, blended / glow
-// stages and the view weapon stay dry. Returns false for such stages.
-static bool R_WetnessStageEligible(const shader_t *shader, const shaderStage_t *pStage)
+// Why a stage stays dry, u_WeatherMaterial.w for r_weatherWetnessDebug 31.
+// Structural exclusions only: sky, portals, liquids, fog, blended / glow /
+// uniformly emissive stages and the view weapon, plus weatherResponse 0.
+typedef enum {
+	WETEXCLUDE_NONE,
+	WETEXCLUDE_SKY,
+	WETEXCLUDE_PORTAL,
+	WETEXCLUDE_LIQUID,			// water, slime, lava, fog volumes
+	WETEXCLUDE_TRANSLUCENT,		// sort after opaque
+	WETEXCLUDE_BLENDED,			// additive / blended stage
+	WETEXCLUDE_GLOW,
+	WETEXCLUDE_EMISSIVE,		// emissive over the whole surface (no emissive map)
+	WETEXCLUDE_FIRSTPERSON,
+	WETEXCLUDE_AUTHORED,		// weatherResponse 0
+	WETEXCLUDE_PASS,			// depth / shadow pass, r_lightmap
+} wetExclusion_t;
+
+static const char *const wetExclusionNames[] = {
+	"none", "sky", "portal", "liquid/fog", "translucent sort", "blended", "glow",
+	"emissive", "first person", "weatherResponse 0", "pass"
+};
+
+static wetExclusion_t R_WetnessStageExclusion(const shader_t *shader, const shaderStage_t *pStage)
 {
-	if (shader->isSky || shader->isPortal || (shader->surfaceFlags & SURF_SKY))
-		return false;
+	if (shader->isSky || (shader->surfaceFlags & SURF_SKY))
+		return WETEXCLUDE_SKY;
+	if (shader->isPortal)
+		return WETEXCLUDE_PORTAL;
 	if (shader->contentFlags & (CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA | CONTENTS_FOG))
-		return false;
+		return WETEXCLUDE_LIQUID;
 	if (shader->sort > SS_OPAQUE)
-		return false;
+		return WETEXCLUDE_TRANSLUCENT;
 	const uint32_t dstBlend = pStage->stateBits & GLS_DSTBLEND_BITS;
 	if (dstBlend != 0 && dstBlend != GLS_DSTBLEND_ZERO)
-		return false;
+		return WETEXCLUDE_BLENDED;
 	if (pStage->glow)
-		return false;
+		return WETEXCLUDE_GLOW;
+	// emissiveColor / emissiveScale without an emissive map: a light panel
+	// glowing over its whole surface, a water film on it reads as plastic
+	if (pStage->emissive && pStage->bundle[TB_EMISSIVEMAP].image[0] == tr.whiteImage &&
+		pStage->emissiveIntensity * VectorLength(pStage->emissiveColor) > 0.0f)
+		return WETEXCLUDE_EMISSIVE;
 	if (backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity &&
 		(backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON))
-		return false;
-	return true;
+		return WETEXCLUDE_FIRSTPERSON;
+	if (pStage->weatherScale[0] <= 0.0f && pStage->weatherScale[1] <= 0.0f && pStage->weatherScale[2] <= 0.0f)
+		return WETEXCLUDE_AUTHORED;
+	return WETEXCLUDE_NONE;
+}
+
+// r_weatherMaterialPrint 1: one frame of drawn shaders whose weather response
+// is not the automatic default, then the cvar resets itself
+static void R_WeatherMaterialPrint(const shader_t *shader, const vec3_t scale, wetExclusion_t reason)
+{
+	static int printFrame = -1;
+	static byte printed[MAX_SHADERS];
+	if (!r_weatherMaterialPrint->integer)
+	{
+		printFrame = -1;
+		return;
+	}
+	if (printFrame < 0)
+	{
+		printFrame = tr.frameCount;
+		memset(printed, 0, sizeof(printed));
+		ri.Printf(PRINT_ALL, "weather material response (wetness puddle runoff, exclusion):\n");
+	}
+	else if (printFrame != tr.frameCount)
+	{
+		ri.Cvar_Set("r_weatherMaterialPrint", "0");
+		return;
+	}
+	if (shader->index < 0 || shader->index >= MAX_SHADERS || printed[shader->index])
+		return;
+	if (reason == WETEXCLUDE_NONE && scale[0] == 1.0f && scale[1] == 1.0f && scale[2] == 1.0f)
+		return;
+	printed[shader->index] = 1;
+	ri.Printf(PRINT_ALL, "  %-48s %.2f %.2f %.2f  %s\n", shader->name,
+		scale[0], scale[1], scale[2], wetExclusionNames[reason]);
 }
 
 void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
@@ -2213,13 +2273,28 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		return;
 	}
 
-	const bool eligible = !backEnd.depthFill &&
-		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
-		!r_lightmap->integer &&
-		R_WetnessStageEligible(shader, pStage);
+	wetExclusion_t exclusion = R_WetnessStageExclusion(shader, pStage);
+	if (exclusion == WETEXCLUDE_NONE && (backEnd.depthFill ||
+		(backEnd.viewParms.flags & VPF_DEPTHSHADOW) || r_lightmap->integer))
+		exclusion = WETEXCLUDE_PASS;
+	const bool eligible = exclusion == WETEXCLUDE_NONE;
+
+	// weatherResponse scales of the material. Cloth soaks but never holds a
+	// standing mirror puddle, and sheds less of a visible film.
+	vec3_t scale;
+	VectorCopy(pStage->weatherScale, scale);
+	if (pStage->cloth || pStage->materialClass == MATCLASS_CLOTH)
+	{
+		scale[1] = 0.0f;
+		scale[2] *= 0.3f;
+	}
+	R_WeatherMaterialPrint(shader, scale, exclusion);
+	const vec4_t material = { scale[0], scale[1], scale[2], (float)exclusion };
+	uniformDataWriter.SetUniformVec4(UNIFORM_WEATHERMATERIAL, material);
 
 	// strength < 0 marks an ineligible draw for r_weatherWetnessDebug 2
-	const float strength = eligible ? Com_Clamp(0.0f, 1.0f, r_weatherWetStrength->value) : -1.0f;
+	const float strength = eligible ?
+		Com_Clamp(0.0f, 1.0f, r_weatherWetStrength->value * scale[0]) : -1.0f;
 	// per material class response (tr_autopbr.cpp): cloth only darkens,
 	// armor / metal get glossier
 	vec3_t response;
@@ -2251,7 +2326,8 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	if (r_weatherPuddles->integer)
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
-		coverage = (eligible && world) ? Com_Clamp(0.001f, 1.0f, r_puddleCoverage->value) : -1.0f;
+		coverage = (eligible && world && scale[1] > 0.0f) ?
+			Com_Clamp(0.001f, 1.0f, r_puddleCoverage->value * scale[1]) : -1.0f;
 	}
 	float slopeMin = 0.90f, slopeMax = 0.98f;
 	sscanf(r_puddleSlope->string, "%f %f", &slopeMin, &slopeMax);
@@ -2318,8 +2394,8 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	if (r_weatherRunoff->integer)
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
-		runoffStrength = (eligible && (world || r_runoffEntities->integer)) ?
-			Com_Clamp(0.001f, 2.0f, r_runoffStrength->value) : -1.0f;
+		runoffStrength = (eligible && (world || r_runoffEntities->integer) && scale[2] > 0.0f) ?
+			Com_Clamp(0.001f, 2.0f, r_runoffStrength->value * scale[2]) : -1.0f;
 	}
 	// the flow clock counts pattern cells of the along axis (1 / scale per
 	// world unit), integrated once per frame and wrapped at 256 cells: the

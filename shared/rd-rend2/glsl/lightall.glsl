@@ -711,6 +711,7 @@ uniform vec4 u_PuddleRipple;   // slope strength (0: off), 1 / cell size (world)
 uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / scale (world), flow clock (cells, mod 256), probe offset (world)
 uniform vec4 u_RunoffParams2;  // wind shear x, y (per unit of fall), windward amount, pattern origin z
 uniform vec4 u_RunoffFrame;    // pattern frame: horizontal axis a1 (world xy), origin xy
+uniform vec4 u_WeatherMaterial; // debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
 #endif
 // Runtime A/B for the standard PBR diffuse model: 0 = Lambert, 1 = Burley/Disney
 uniform int u_DiffuseBRDF;
@@ -3717,8 +3718,8 @@ void main()
   #endif
 
   #if defined(USE_WETNESS)
-	// r_weatherWetnessDebug 1-26 (not 4), written unlit (tone mapping is bypassed)
-	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 26.0 && u_WetnessParams2.z != 4.0)
+	// r_weatherWetnessDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
+	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 31.0 && u_WetnessParams2.z != 4.0)
 	{
 		float shade = 0.35 + 0.65 * NE;
 		vec3 debugColor;
@@ -3734,7 +3735,31 @@ void main()
 			debugDepth = PuddleRelief(debugRawDepth);
 		}
     #endif
-		if (u_WetnessParams2.z >= 11.0 && u_WetnessParams2.z <= 15.0 && u_WetnessParams2.z != 13.0 && u_WetnessParams2.z != 15.0 && debugDepth < 0.0)
+		if (u_WetnessParams2.z >= 27.0)
+		{
+			// material weather controls: 27 on (green) / excluded (red),
+			// 28-30 weatherResponse wetness / puddle / runoff scale
+			// (black 0, grey 1 = automatic, yellow > 1), 31 exclusion reason
+			int reason = int(u_WeatherMaterial.w + 0.5);
+			if (u_WetnessParams2.z == 27.0)
+				debugColor = (reason == 0 ? vec3(0.1, 0.8, 0.2) : vec3(0.85, 0.1, 0.1)) * shade;
+			else if (u_WetnessParams2.z <= 30.0)
+			{
+				float s = u_WetnessParams2.z == 28.0 ? u_WeatherMaterial.x :
+					(u_WetnessParams2.z == 29.0 ? u_WeatherMaterial.y : u_WeatherMaterial.z);
+				debugColor = (s <= 1.0 ? vec3(0.5 * s) : mix(vec3(0.5), vec3(1.0, 0.85, 0.1), clamp((s - 1.0) / 3.0, 0.0, 1.0))) * shade;
+			}
+			else
+			{
+				// none, sky, portal, liquid, translucent, blended, glow, emissive,
+				// first person, weatherResponse 0, pass
+				vec3 reasonColors[11] = vec3[11](vec3(0.4), vec3(0.3, 0.6, 1.0), vec3(0.6, 0.2, 0.9),
+					vec3(0.05, 0.2, 0.9), vec3(0.2, 0.9, 0.9), vec3(1.0, 0.5, 0.1), vec3(1.0, 1.0, 0.2),
+					vec3(1.0, 0.95, 0.75), vec3(0.9, 0.3, 0.6), vec3(0.9, 0.1, 0.1), vec3(0.1));
+				debugColor = reasonColors[clamp(reason, 0, 10)] * shade;
+			}
+		}
+		else if (u_WetnessParams2.z >= 11.0 && u_WetnessParams2.z <= 15.0 && u_WetnessParams2.z != 13.0 && u_WetnessParams2.z != 15.0 && debugDepth < 0.0)
 			debugColor = vec3(1.0, 0.0, 1.0) * shade;
 		else if (u_WetnessParams2.z == 11.0)	// raw sampled height, white = 1 (top of the 0..1 range)
 			debugColor = vec3(1.0 - debugRawDepth);

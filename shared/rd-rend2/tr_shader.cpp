@@ -123,8 +123,10 @@ static void ClearGlobalShader(void)
 		stages[i].specularScale[1] =
 		stages[i].specularScale[2] = r_baseSpecular->value;
 		stages[i].specularScale[3] = 0.99f;
+		VectorSet(stages[i].weatherScale, 1.0f, 1.0f, 1.0f);
 	}
 
+	VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
 	shader.contentFlags = CONTENTS_SOLID | CONTENTS_OPAQUE;
 }
 
@@ -1198,6 +1200,37 @@ static bool ParseSurfaceSpritesOptional(
 
 /*
 ===================
+ParseWeatherResponse
+
+weatherResponse <wetness> [<puddle> [<runoff>]]
+
+Optional per material scales of the automatic rain response (tr_weather.cpp),
+1 = automatic, 0 = off, clamped to 0..4. Missing values stay 1, except that a
+single 0 turns the whole response off.
+===================
+*/
+static qboolean ParseWeatherResponse( const char **text, vec3_t out )
+{
+	int count = 0;
+	for ( ; count < 3; count++ )
+	{
+		const char *token = COM_ParseExt( text, qfalse );
+		if ( !token[0] )
+			break;
+		out[count] = Com_Clamp( 0.0f, 4.0f, atof( token ) );
+	}
+	if ( !count )
+	{
+		ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'weatherResponse' keyword in shader '%s'\n", shader.name );
+		return qfalse;
+	}
+	for ( int i = count; i < 3; i++ )
+		out[i] = (count == 1 && out[0] == 0.0f) ? 0.0f : 1.0f;
+	return qtrue;
+}
+
+/*
+===================
 ParseStage
 ===================
 */
@@ -2214,6 +2247,17 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 			continue;
 		}
+		//
+		// weatherResponse <wetness> [<puddle> [<runoff>]]
+		//
+		else if (!Q_stricmp(token, "weatherResponse"))
+		{
+			if (!ParseWeatherResponse(text, stage->weatherScale))
+				return qfalse;
+			stage->weatherScaleAuthored = qtrue;
+
+			continue;
+		}
 		// surfaceSprites <type> ...
 		//
 		else if ( !Q_stricmp( token, "surfacesprites" ) )
@@ -2834,6 +2878,12 @@ static qboolean ParseShader( const char **text )
 		else if ( !Q_stricmp( token, "material" ) || !Q_stricmp( token, "q3map_material" ) )
 		{
 			ParseMaterial( text );
+		}
+		// weatherResponse <wetness> [<puddle> [<runoff>]]: default of every stage
+		else if ( !Q_stricmp( token, "weatherResponse" ) )
+		{
+			ParseWeatherResponse( text, shader.weatherScale );
+			continue;
 		}
 		// sun parms
 		else if ( !Q_stricmp( token, "sun" ) || !Q_stricmp( token, "q3map_sun" ) || !Q_stricmp( token, "q3map_sunExt" ) || !Q_stricmp( token, "q3gl2_sun" ) ) {
@@ -4435,6 +4485,12 @@ static shader_t *FinishShader( void ) {
 		shader.sort = SS_ENVIRONMENT;
 	}
 
+	// shader level weatherResponse is the default of stages without their own
+	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+		if ( !stages[stage].weatherScaleAuthored )
+			VectorCopy( shader.weatherScale, stages[stage].weatherScale );
+	}
+
 	//
 	// set polygon offset
 	//
@@ -5632,6 +5688,7 @@ shader_t *R_CreateShaderFromTextureBundle(
 	{
 		Com_Memset(&shader, 0, sizeof(shader));
 		Com_Memset(&stages, 0, sizeof(stages));
+		VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
 
 		Q_strncpyz(shader.name, name, sizeof(shader.name));
 
@@ -5654,6 +5711,7 @@ static void CreateInternalShaders( void ) {
 	// init the default shader
 	Com_Memset( &shader, 0, sizeof( shader ) );
 	Com_Memset( &stages, 0, sizeof( stages ) );
+	VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
@@ -5717,6 +5775,7 @@ static void CreateExternalShaders( void ) {
 
 		Com_Memset( &shader, 0, sizeof( shader ) );
 		Com_Memset( &stages, 0, sizeof( stages ) );
+		VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
 
 		Q_strncpyz( shader.name, "gfx/2d/sunflare", sizeof( shader.name ) );
 

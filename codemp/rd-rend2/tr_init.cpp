@@ -222,6 +222,7 @@ cvar_t  *r_weatherWetDarkening;
 cvar_t  *r_weatherWetNormal;
 cvar_t  *r_weatherWetBias;
 cvar_t  *r_weatherWetnessDebug;
+cvar_t  *r_weatherMaterialPrint;
 cvar_t  *r_weatherWetEntityFacing;
 cvar_t  *r_weatherPuddles;
 cvar_t  *r_puddleCoverage;
@@ -1942,7 +1943,8 @@ void R_Register( void )
 	r_weatherWetNormal = ri.Cvar_Get( "r_weatherWetNormal", "1", CVAR_ARCHIVE, "Scale of the per material wet normal flattening (1 = material table)" );
 	r_weatherWetEntityFacing = ri.Cvar_Get( "r_weatherWetEntityFacing", "0.85", CVAR_ARCHIVE, "Wetness of vertical faces of characters and props (world walls: 0.5)" );
 	r_weatherWetBias = ri.Cvar_Get( "r_weatherWetBias", "2", CVAR_ARCHIVE, "Rain occlusion depth bias in world units" );
-	r_weatherWetnessDebug = ri.Cvar_Get( "r_weatherWetnessDebug", "0", CVAR_CHEAT, "1 rain exposure, 2 wetness mask (magenta: excluded), 3 effective roughness, 4 dry / wet split, 5 puddle slope, 6 puddle noise, 7 exposure x slope, 8 puddle mask, 9 puddle roughness, 10 puddle eligibility, 11 material height (magenta: none), 12 height low / high, 13 macro puddle mask, 14 micro depression mask, 15 combined puddle, 16 wet material class, 17 ripple height, 18 ripple normal offset, 19 ripple masking, 20 final normal, 21 geometric normal, 22 runoff slope class, 23 projected gravity, 24 runoff mask, 25 runoff flow field, 26 runoff roughness" );
+	r_weatherWetnessDebug = ri.Cvar_Get( "r_weatherWetnessDebug", "0", CVAR_CHEAT, "1 rain exposure, 2 wetness mask (magenta: excluded), 3 effective roughness, 4 dry / wet split, 5 puddle slope, 6 puddle noise, 7 exposure x slope, 8 puddle mask, 9 puddle roughness, 10 puddle eligibility, 11 material height (magenta: none), 12 height low / high, 13 macro puddle mask, 14 micro depression mask, 15 combined puddle, 16 wet material class, 17 ripple height, 18 ripple normal offset, 19 ripple masking, 20 final normal, 21 geometric normal, 22 runoff slope class, 23 projected gravity, 24 runoff mask, 25 runoff flow field, 26 runoff roughness, 27 material weather on / off, 28 weatherResponse wetness, 29 puddle, 30 runoff scale, 31 exclusion reason" );
+	r_weatherMaterialPrint = ri.Cvar_Get( "r_weatherMaterialPrint", "0", CVAR_TEMP, "1: print the drawn shaders with a non default weather response or an exclusion for one frame" );
 	r_weatherPuddles = ri.Cvar_Get( "r_weatherPuddles", "0", CVAR_ARCHIVE, "Procedural puddles on flat rain exposed world surfaces (needs r_weatherWetness)" );
 	r_puddleCoverage = ri.Cvar_Get( "r_puddleCoverage", "0.35", CVAR_ARCHIVE, "Fraction of flat exposed area covered by puddles, 0-1" );
 	r_puddleRoughness = ri.Cvar_Get( "r_puddleRoughness", "0.04", CVAR_ARCHIVE, "Roughness of the puddle water surface" );
