@@ -128,13 +128,16 @@ float FroxelHeightExtinction(in vec3 p)
 }
 
 // extinction (a) and albedo (rgb) of the fog volumes, the height fog and the local fog volumes of
-// the slice at p (debug views 11, 12 and 16 keep one of them, 14 drops the density noise).
+// the slice at p, and the FX particle media (debug views 11, 12, 16 and 26 keep one of them, 14 drops
+// the density noise).
 // noisyFraction: share of the extinction that comes from noise modulated media (their history weight
 // is lowered when the noise moves). localFraction: share of the local volumes (before the noise).
 // localChange (only with wantChange): how much the local medium at p changed since the previous
 // frame, relative to it (moving, appearing and vanishing volumes; 0 when they are static).
+// particleChange: the same for the FX particle media (their own history reduction), particleFraction:
+// their share of the extinction (before the noise).
 vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noisyFraction,
-	out float localFraction, out float localChange)
+	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
 	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14;
 	float extinction = 0.0;
@@ -146,7 +149,7 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	float localExtinction = 0.0;
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
-	int localHeader = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12) ?
+	int localHeader = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26) ?
 		FroxelLocalSliceHeader(var_Slice) : 0;
 	int localCount = localHeader >> 16;
 	if (localCount > 0)
@@ -192,7 +195,48 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	}
 	localChange = localDelta / max(max(localExtinction, localPrevious), 1e-12);
 
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16)
+	// FX particle media: the packed list of this slice (CPU culled and capped, tr_volparticle.cpp)
+	float particleExtinction = 0.0;
+	float particlePrevious = 0.0;
+	float particleDelta = 0.0;
+	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 11 && debugView != 12 &&
+		debugView != 16) ? FroxelParticleSliceHeader(var_Slice) : 0;
+	int particleCount = particleHeader >> 16;
+	if (particleCount > 0)
+	{
+		int first = particleHeader & 0xffff;
+		float fade = FroxelParticleFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
+		for (int j = 0; j < particleCount; j++)
+		{
+			int i = FroxelParticlePoolIndex(first + j);
+			vec4 center = u_FroxelParticleCenter[i];
+			float e = center.w * fade * FroxelParticleDensity(center.xyz, u_FroxelParticleInvExtent[i], p);
+			vec4 color = u_FroxelParticleColor[i];
+
+			if (wantChange)
+			{
+				vec4 prevCenter = u_FroxelParticlePrevCenter[i];
+				float previous = e;
+				if (prevCenter.w > 0.5)
+				{
+					previous = color.w * fade * FroxelParticleDensity(prevCenter.xyz,
+						u_FroxelParticlePrevInvExtent[i], p);
+				}
+				particlePrevious += previous;
+				particleDelta += abs(e - previous);
+			}
+
+			if (e <= 0.0)
+				continue;
+
+			particleExtinction += e;
+			extinction += e;
+			albedo += color.rgb * e;
+		}
+	}
+	particleChange = particleDelta / max(max(particleExtinction, particlePrevious), 1e-12);
+
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26)
 	{
 		float e = FroxelHeightExtinction(p);
 		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
@@ -208,7 +252,8 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	}
 
 	// the fog volumes that may touch this slice (CPU culled)
-	int fogMask = (debugView == 12 || debugView == 16) ? 0 : u_FroxelFogSlices[var_Slice >> 2][var_Slice & 3];
+	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26) ? 0 :
+		u_FroxelFogSlices[var_Slice >> 2][var_Slice & 3];
 	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
 	{
@@ -239,6 +284,7 @@ vec4 FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noi
 	}
 
 	localFraction = localExtinction / max(extinction + noisyExtinction, 1e-12);
+	particleFraction = particleExtinction / max(extinction + noisyExtinction, 1e-12);
 
 	noisyFraction = 0.0;
 	if (noisyExtinction > 0.0)
@@ -585,16 +631,22 @@ void main()
 	vec3 p = FroxelWorldPosition(center + u_FroxelJitter.xyz * temporal);
 	vec3 pc = FroxelWorldPosition(center);
 
-	float noisyFraction, localFraction, localChange;
-	vec4 medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange);
+	float noisyFraction, localFraction, localChange, particleFraction, particleChange;
+	vec4 medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange,
+		particleFraction, particleChange);
+
+	// FX particles (smoke) change all the time: where their density changed the history keeps only the
+	// floor r_volParticlesHistory of its weight (no long smoke ghost), not 0 (the jittered samples of a
+	// drifting puff would flicker)
+	float particleKeep = mix(1.0, u_FroxelParticleParams.w, smoothstep(0.02, 0.25, particleChange));
 
 	// the medium at the center is only needed where the cluster has dynamic lights
 	uint cluster = FroxelLightCluster(cell, var_Slice);
 	vec4 mediumCenter = vec4(0.0);
 	if ((cluster >> 24) != 0u)
 	{
-		float unused0, unused1, unused2;
-		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2);
+		float unused0, unused1, unused2, unused3, unused4;
+		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2, unused3, unused4);
 	}
 
 	// baked light and sun
@@ -642,6 +694,11 @@ void main()
 	if (debugView == 17)
 		current.rgb = vec3(localFraction, 1.0 - localFraction, 0.0) * medium.a;
 
+	// debug view 27: FX particle media, red = history reduction where the particle density changed,
+	// green = their share of the medium, integrated like view 17
+	if (debugView == 27)
+		current.rgb = vec3(1.0 - particleKeep, particleFraction, 0.0) * medium.a;
+
 	// temporal accumulation with the reprojected history. Noise modulated media that move with the
 	// wind use a lower weight (R_VolumetricNoise), so the drifting density leaves no trail. Where a
 	// local volume moved, appeared or vanished the history is dropped in proportion to the change of
@@ -649,6 +706,7 @@ void main()
 	float weight = u_FroxelTemporalParams.x;
 	float froxelWeight = mix(weight, u_FroxelNoiseDetailOffset.w, noisyFraction);
 	froxelWeight *= 1.0 - smoothstep(0.02, 0.25, localChange);
+	froxelWeight *= particleKeep;
 	if (weight > 0.0)
 	{
 		vec4 prevClip = u_FroxelPrevViewProjection * vec4(pc, 1.0);

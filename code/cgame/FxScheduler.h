@@ -275,6 +275,16 @@ public:
 
 	CFxRange		mElasticity;
 
+	// participating medium of Particle / OrientedParticle (rend2 volumetric FX
+	// particles): the "volumetricMedia" group, off when absent
+	bool			mVolMedia;
+	CFxRange		mVolExtinction;
+	bool			mVolHasAlbedo;		// else the start rgb of the particle
+	vec3_t			mVolAlbedo;
+	float			mVolRadiusScale;
+	vec3_t			mVolAspect;
+	float			mVolSoftness;
+
 private:
 
 	// Lower level parsing utilities
@@ -320,6 +330,13 @@ private:
 	bool ParseSize( const CGPGroup& grp );
 	bool ParseSize2( const CGPGroup& grp );
 	bool ParseLength( const CGPGroup& grp );
+	bool ParseVolumetricMedia( const CGPGroup& grp );
+
+	bool ParseVolExtinction( const gsl::cstring_span& val );
+	bool ParseVolAlbedo( const gsl::cstring_span& val );
+	bool ParseVolRadiusScale( const gsl::cstring_span& val );
+	bool ParseVolAspect( const gsl::cstring_span& val );
+	bool ParseVolSoftness( const gsl::cstring_span& val );
 
 	bool ParseModels( const CGPProperty& grp );
 	bool ParseShaders( const CGPProperty& grp );

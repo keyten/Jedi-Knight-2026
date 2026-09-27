@@ -570,6 +570,7 @@ extern	vmCvar_t		cg_bobroll;
 extern	vmCvar_t		cg_shadows;
 extern	vmCvar_t		r_saberAreaLights;
 extern	vmCvar_t		r_foliageInteraction;
+extern	vmCvar_t		r_volParticles;
 extern	vmCvar_t		cg_renderToTextureFX;
 extern	vmCvar_t		cg_shadowCullDistance;
 extern	vmCvar_t		cg_paused;
@@ -1039,6 +1040,7 @@ void	cgi_R_AddPolyToScene( qhandle_t hShader , int numVerts, const polyVert_t *v
 void	cgi_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b );
 qboolean	cgi_R_AddLineLightToScene( const vec3_t start, const vec3_t end, float radius, float range, float r, float g, float b );
 void	cgi_R_SetFoliageInteractors( const foliageInteractor_t *interactors, int count );
+void	cgi_R_AddVolumetricParticle( const refVolParticle_t *particle );
 void	cgi_R_RenderScene( const refdef_t *fd );
 void	cgi_R_SetColor( const float *rgba );	// NULL = 1,1,1,1
 void	cgi_R_DrawStretchPic( float x, float y, float w, float h,

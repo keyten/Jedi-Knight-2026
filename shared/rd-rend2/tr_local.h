@@ -83,6 +83,14 @@ typedef unsigned int glIndex_t;
 #define MAX_GPU_FOG_VOLUMES   64	// 8 bit indices, UBO budget (see VolumetricFogBlock)
 #define FROXEL_LOCAL_POOL     2048
 
+// Volumetric FX particles (tr_volparticle.cpp): the scene takes up to
+// MAX_REF_VOL_PARTICLES per frame, the MAX_GPU_VOL_PARTICLES most important in
+// the froxel frustum reach the VolumetricParticles block, listed per slice in
+// a pool of VOL_PARTICLE_POOL 16 bit indices.
+#define MAX_REF_VOL_PARTICLES 1024
+#define MAX_GPU_VOL_PARTICLES 128	// UBO budget (see VolumetricParticlesBlock)
+#define VOL_PARTICLE_POOL     2560
+
 #define MAX_CALC_PSHADOWS    64
 #define MAX_DRAWN_PSHADOWS    32 // do not increase past 32, because bit flags are used on surfaces
 #define PSHADOW_MAP_SIZE      1024
@@ -173,6 +181,11 @@ extern cvar_t	*r_volumetricFogDlightShadows;
 extern cvar_t	*r_volumetricFogBloom;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
+extern cvar_t	*r_volParticles;
+extern cvar_t	*r_volParticlesMax;
+extern cvar_t	*r_volParticlesScale;
+extern cvar_t	*r_volParticlesHistory;
+extern cvar_t	*r_volParticlesDebug;
 extern cvar_t	*r_volumetricFogFreeze;
 extern cvar_t	*r_volumetricFogHeight;
 extern cvar_t	*r_volumetricFogHeightOpaque;
@@ -1277,6 +1290,24 @@ struct VolumetricFogBlock
 // 14 048 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
+// Volumetric FX particles of the froxel injection (tr_volparticle.cpp). Same
+// layout as the VolumetricParticles block of glsl/volumetric_common.glsl
+// (std140), only in the injection and debug programs.
+struct VolumetricParticlesBlock
+{
+	vec4_t params;										// count, fade start, 1 / fade length, history floor
+	vec4_t center[MAX_GPU_VOL_PARTICLES];				// xyz, w: extinction per unit (0: gone this frame)
+	vec4_t invExtent[MAX_GPU_VOL_PARTICLES];			// 1 / (radius * aspect) per world axis, w: inner
+	vec4_t color[MAX_GPU_VOL_PARTICLES];				// rgb albedo, w: previous extinction
+	vec4_t prevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: 1 = changed
+	vec4_t prevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner
+	int slices[FROXEL_MAX_SLICES];						// per slice: first pool entry | count << 16 (ivec4[32])
+	int index[VOL_PARTICLE_POOL / 2];					// 16 bit particle indices, 2 per int (ivec4[320])
+};
+
+// 15 888 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
+static_assert(sizeof(VolumetricParticlesBlock) <= 16384, "VolumetricParticles block above the GL 3.2 minimum UBO size");
+
 struct surfaceSprite_t
 {
 	surfaceSpriteType_t type;
@@ -2050,6 +2081,7 @@ enum uniformBlock_t
 	UNIFORM_BLOCK_SURFACESPRITE,
 	UNIFORM_BLOCK_VOLUMETRIC_FOG,
 	UNIFORM_BLOCK_FOLIAGE_INTERACTION,
+	UNIFORM_BLOCK_VOLUMETRIC_PARTICLES,
 	UNIFORM_BLOCK_COUNT
 };
 
@@ -2398,6 +2430,8 @@ typedef struct {
 
 	int			num_fogVolumes;		// local fog volumes (tr_fogvolume.cpp)
 	const refFogVolume_t	*fogVolumes;
+	int			num_volParticles;	// volumetric FX particles (tr_volparticle.cpp)
+	const refVolParticle_t	*volParticles;
 
 	int			numPolys;
 	struct srfPoly_s	*polys;
@@ -3692,6 +3726,7 @@ typedef struct trGlobals_s {
 	long lightsUboOffset;
 	long fogsUboOffset;
 	long volumetricFogUboOffset;
+	long volParticlesUboOffset;
 	long foliageInteractionUboOffset;
 	long skyEntityUboOffset;
 	long entityUboOffsets[REFENTITYNUM_WORLD + 1];
@@ -4966,6 +5001,7 @@ typedef struct backEndData_s {
 	drawSurf_t	drawSurfs[MAX_DRAWSURFS];
 	dlight_t	dlights[MAX_RENDER_DLIGHTS];	// MAX_DLIGHTS used unless Forward+
 	refFogVolume_t	fogVolumes[MAX_REF_FOG_VOLUMES];	// local fog volumes, same lifetime as dlights
+	refVolParticle_t	volParticles[MAX_REF_VOL_PARTICLES];	// volumetric FX particles, same lifetime
 	trRefEntity_t	entities[MAX_REFENTITIES];
 	srfPoly_t	*polys;//[MAX_POLYS];
 	polyVert_t	*polyVerts;//[MAX_POLYVERTS];
@@ -5197,6 +5233,22 @@ qboolean R_FogVolumesInFrustum(const viewParms_t *view, const trRefdef_t *refdef
 int R_FogVolumesBuild(VolumetricFogBlock *block, const viewParms_t *view, const trRefdef_t *refdef,
 	const vec3_t forward, float nearZ, float farZ, int numSlices, qboolean noise);
 void R_FogVolume_f(void);
+qboolean R_FogVolumeSphereInFrustum(const viewParms_t *view, const vec3_t forward,
+	const vec3_t center, float radius, float maxDepth, float *depth);
+
+/*
+============================================================
+
+VOLUMETRIC FX PARTICLES, tr_volparticle.cpp
+
+============================================================
+*/
+
+void RE_AddVolumetricParticleToScene(const refVolParticle_t *particle);
+qboolean R_VolParticlesInFrustum(const viewParms_t *view, const trRefdef_t *refdef, float farZ);
+int R_VolParticlesBuild(VolumetricParticlesBlock *block, const viewParms_t *view, const trRefdef_t *refdef,
+	const vec3_t forward, float nearZ, float farZ, int numSlices);
+void R_VolParticles_f(void);
 
 /*
 ============================================================

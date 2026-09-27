@@ -25,6 +25,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "FxScheduler.h"
 #include "ghoul2/G2.h"
 
+void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
+{
+	if ( reVolParticles && reVolParticles->AddVolumetricParticleToScene )
+	{
+		reVolParticles->AddVolumetricParticleToScene( particle );
+	}
+}
+
 cvar_t	*fx_debug;
 #ifdef _DEBUG
 cvar_t	*fx_freeze;

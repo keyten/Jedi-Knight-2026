@@ -1681,6 +1681,7 @@ viewOrigin.w = 0.
 void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 {
 	tr.volumetricFogUboOffset = -1;
+	tr.volParticlesUboOffset = -1;
 	if ( !s_vf.resources )
 		return;
 
@@ -1713,8 +1714,9 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	const qboolean worldView = (qboolean)(
 		view != NULL &&
 		tr.world != NULL &&
-		// no fog volume, no height fog, no local fog volume: nothing to do
-		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ)) &&
+		// no fog volume, no height fog, no local fog volume, no FX particle medium: nothing to do
+		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ) ||
+			R_VolParticlesInFrustum(view, refdef, farZ)) &&
 		tr.renderFbo != NULL &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) &&
 		!refdef->doLAGoggles &&
@@ -1789,6 +1791,10 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		s_vf.frameActive = qfalse;
 		s_vf.frameUsable = qtrue;
 		tr.volumetricFogUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
+
+		// the debug views read the particle block: none while frozen
+		static const VolumetricParticlesBlock noParticles = {};
+		tr.volParticlesUboOffset = RB_AppendConstantsData(frame, &noParticles, sizeof(noParticles));
 		return;
 	}
 
@@ -1989,7 +1995,14 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	// surfaces without a fog volume look the volume up too.
 	const int numLocalVolumes = R_FogVolumesBuild(&block, view, refdef, forward, nearZ, farZ, s_vf.depth,
 		(noiseMask & 8) ? qtrue : qfalse);
-	s_vf.frameHeightFog = (qboolean)(heightFogOn || numLocalVolumes > 0);
+
+	// FX particle media: culled, capped, per slice lists (tr_volparticle.cpp),
+	// in their own block (the VolumetricFog block is near the UBO minimum)
+	static VolumetricParticlesBlock particles;
+	const int numParticles = R_VolParticlesBuild(&particles, view, refdef, forward, nearZ, farZ, s_vf.depth);
+	tr.volParticlesUboOffset = RB_AppendConstantsData(frame, &particles, sizeof(particles));
+
+	s_vf.frameHeightFog = (qboolean)(heightFogOn || numLocalVolumes > 0 || numParticles > 0);
 
 	s_vf.frozenBlock = block;
 	tr.volumetricFogUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
@@ -2152,6 +2165,10 @@ static void RB_VolumetricBindBlocks( void )
 
 	const UniformBlockBinding binding = RB_GetVolumetricFogBlockUniformBinding();
 	RB_BindUniformBlock(binding.ubo, binding.block, binding.offset);
+
+	// FX particle media, read by the injection and the debug views
+	if ( tr.volParticlesUboOffset != -1 )
+		RB_BindUniformBlock(frameUbo, UNIFORM_BLOCK_VOLUMETRIC_PARTICLES, tr.volParticlesUboOffset);
 }
 
 /*
@@ -2343,8 +2360,8 @@ void RB_VolumetricDebugOverlay( void )
 	FBO_Bind(NULL);
 	GL_SetViewportAndScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	GL_Cull(CT_TWO_SIDED);
-	// view 18 (local fog volume bounds) is drawn over the frame
-	if ( r_volumetricFogDebug->integer == 18 )
+	// views 18 (local fog volume bounds) and 28 (FX particle proxies) are drawn over the frame
+	if ( r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28 )
 		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 	else
 		GL_State(GLS_DEPTHTEST_DISABLE);

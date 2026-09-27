@@ -76,6 +76,23 @@ layout(std140) uniform VolumetricFog
 	ivec4 u_FroxelFogSlices[FROXEL_MAX_SLICES / 4];
 };
 
+#if defined(USE_FROXEL_PARTICLES)
+// FX particle media (tr_volparticle.cpp, injection and debug views only), most important first. Per
+// slice a packed list of the particles that overlap it: header = first pool entry | count << 16,
+// pool = 16 bit particle indices.
+layout(std140) uniform VolumetricParticles
+{
+	vec4 u_FroxelParticleParams;										// count, fade start, 1 / fade length, history floor
+	vec4 u_FroxelParticleCenter[MAX_GPU_VOL_PARTICLES];				// xyz, w: extinction (0: gone this frame)
+	vec4 u_FroxelParticleInvExtent[MAX_GPU_VOL_PARTICLES];			// 1 / extent per world axis, w: inner
+	vec4 u_FroxelParticleColor[MAX_GPU_VOL_PARTICLES];				// rgb albedo, w: previous extinction
+	vec4 u_FroxelParticlePrevCenter[MAX_GPU_VOL_PARTICLES];			// previous frame, w: 1 = changed
+	vec4 u_FroxelParticlePrevInvExtent[MAX_GPU_VOL_PARTICLES];		// previous frame, w: inner
+	ivec4 u_FroxelParticleSlices[FROXEL_MAX_SLICES / 4];				// slice headers
+	ivec4 u_FroxelParticleIndex[VOL_PARTICLE_POOL / 8];				// index pool, 2 per int
+};
+#endif
+
 uniform sampler3D u_FroxelVolume;
 uniform sampler2D u_FroxelTail;
 
@@ -157,6 +174,37 @@ float FroxelLocalFade(in float viewDepth)
 	float t = clamp((viewDepth - u_FroxelLocalParams.y) * u_FroxelLocalParams.z, 0.0, 1.0);
 	return 1.0 - t * t * (3.0 - 2.0 * t);
 }
+
+#if defined(USE_FROXEL_PARTICLES)
+// Density (0..1) of an FX particle proxy at p: an ellipsoid along the world axes (invExtent.xyz), full
+// density inside the inner shell (invExtent.w), smoothstep to 0 at the boundary.
+float FroxelParticleDensity(in vec3 center, in vec4 invExtent, in vec3 p)
+{
+	vec3 q = (p - center) * invExtent.xyz;
+	float r2 = dot(q, q);
+	if (r2 >= 1.0)
+		return 0.0;
+	float t = clamp((sqrt(r2) - invExtent.w) / max(1.0 - invExtent.w, 1e-3), 0.0, 1.0);
+	return 1.0 - t * t * (3.0 - 2.0 * t);
+}
+
+int FroxelParticleSliceHeader(in int slice)
+{
+	return u_FroxelParticleSlices[slice >> 2][slice & 3];
+}
+
+int FroxelParticlePoolIndex(in int entry)
+{
+	return (u_FroxelParticleIndex[entry >> 3][(entry >> 1) & 3] >> ((entry & 1) * 16)) & 0xffff;
+}
+
+// as FroxelLocalFade
+float FroxelParticleFade(in float viewDepth)
+{
+	float t = clamp((viewDepth - u_FroxelParticleParams.y) * u_FroxelParticleParams.z, 0.0, 1.0);
+	return 1.0 - t * t * (3.0 - 2.0 * t);
+}
+#endif
 
 #if defined(USE_FROXEL_NOISE)
 // Density noise (r_volumetricFogNoise): a tiling 64^3 texture sampled in world space, r = macro field,

@@ -69,6 +69,9 @@ struct SFxHelper
 
 	void	AddFxToScene( refEntity_t *ent );
 	void	AddLightToScene( vec3_t org, float radius, float red, float green, float blue );
+	// participating medium of an FX particle (rend2 volumetric FX particles,
+	// engine + renderer extension); nothing unless r_volParticles is set
+	void	AddVolumetricParticle( const refVolParticle_t *particle );
 
 	int		RegisterShader( const gsl::cstring_span& shader );
 	int		RegisterModel( const gsl::cstring_span& model );

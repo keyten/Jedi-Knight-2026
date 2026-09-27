@@ -84,6 +84,15 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 
 	mVariance.SetRange( 1.0f, 1.0f );
 	mDensity.SetRange( 10.0f, 10.0f );// default this high so it doesn't do bad things
+
+	// no participating medium unless the primitive has a volumetricMedia group
+	mVolMedia = false;
+	mVolExtinction.SetRange( 0.02f, 0.02f );
+	mVolHasAlbedo = false;
+	VectorSet( mVolAlbedo, 1.0f, 1.0f, 1.0f );
+	mVolRadiusScale = 0.75f;
+	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
+	mVolSoftness = 0.5f;
 }
 
 //-----------------------------------------------------------
@@ -178,6 +187,14 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mTexCoordT			= that.mTexCoordT;
 
 	mElasticity			= that.mElasticity;
+
+	mVolMedia			= that.mVolMedia;
+	mVolExtinction		= that.mVolExtinction;
+	mVolHasAlbedo		= that.mVolHasAlbedo;
+	VectorCopy( that.mVolAlbedo, mVolAlbedo );
+	mVolRadiusScale		= that.mVolRadiusScale;
+	VectorCopy( that.mVolAspect, mVolAspect );
+	mVolSoftness		= that.mVolSoftness;
 }
 
 //------------------------------------------------------
@@ -1748,6 +1765,101 @@ bool CPrimitiveTemplate::ParseLength( const CGPGroup& grp )
 }
 
 
+//------------------------------------------------------
+// ParseVolumetricMedia
+//	The participating medium of a particle (rend2 volumetric FX particles,
+//	docs/rend2-volumetric-fog.md "FX particle media"). Its presence turns it on:
+//
+//	volumetricMedia
+//	{
+//		extinction	0.02 0.03	// per world unit at full alpha, range
+//		albedo		0.2 0.2 0.2	// optional, default = the start rgb
+//		radiusScale	0.75		// optional, proxy radius / sprite radius
+//		aspect		1 1 0.7		// optional, ellipsoid scale along world x y z
+//		softness	0.5			// optional, soft part of the radius 0..1
+//	}
+//------------------------------------------------------
+bool CPrimitiveTemplate::ParseVolExtinction( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolExtinction.SetRange( Q_max( 0.0f, min ), Q_max( 0.0f, max ) );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolAlbedo( const gsl::cstring_span& val )
+{
+	vec3_t min, max;
+	if ( ParseVector( val, min, max ) == true )
+	{
+		VectorCopy( min, mVolAlbedo );
+		mVolHasAlbedo = true;
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolRadiusScale( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolRadiusScale = Q_max( 0.0f, min );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolAspect( const gsl::cstring_span& val )
+{
+	vec3_t min, max;
+	if ( ParseVector( val, min, max ) == true )
+	{
+		VectorCopy( min, mVolAspect );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolSoftness( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mVolSoftness = Com_Clamp( 0.0f, 1.0f, min );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
+{
+	if ( mType != Particle && mType != OrientedParticle )
+	{
+		theFxHelper.Print( "volumetricMedia is only supported by Particle and OrientedParticle, ignored\n" );
+		return false;
+	}
+
+	mVolMedia = true;
+
+	static StringViewIMap< ParseMethod > parseMethods{
+		{ CSTRING_VIEW( "extinction" ), &CPrimitiveTemplate::ParseVolExtinction },
+
+		{ CSTRING_VIEW( "albedo" ), &CPrimitiveTemplate::ParseVolAlbedo },
+		{ CSTRING_VIEW( "color" ), &CPrimitiveTemplate::ParseVolAlbedo },
+
+		{ CSTRING_VIEW( "radiusScale" ), &CPrimitiveTemplate::ParseVolRadiusScale },
+
+		{ CSTRING_VIEW( "aspect" ), &CPrimitiveTemplate::ParseVolAspect },
+
+		{ CSTRING_VIEW( "softness" ), &CPrimitiveTemplate::ParseVolSoftness },
+	};
+	return ParseGroup( grp, parseMethods, "volumetricMedia" );
+}
+
 // Parse a primitive, apply defaults first, grab any base level
 //	key pairs, then process any sub groups we may contain.
 //------------------------------------------------------
@@ -1859,6 +1971,8 @@ bool CPrimitiveTemplate::ParsePrimitive( const CGPGroup& grp )
 
 			{ CSTRING_VIEW( "length" ), &CPrimitiveTemplate::ParseLength },
 			{ CSTRING_VIEW( "height" ), &CPrimitiveTemplate::ParseLength },
+
+			{ CSTRING_VIEW( "volumetricMedia" ), &CPrimitiveTemplate::ParseVolumetricMedia },
 		};
 		auto pos = parseMethods.find( subGrp.GetName() );
 		if( pos == parseMethods.end() )

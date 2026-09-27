@@ -44,6 +44,7 @@ const uniformBlockInfo_t uniformBlocksInfo[UNIFORM_BLOCK_COUNT] = {
 	{ 10, "SurfaceSprite", sizeof(SurfaceSpriteBlock) },
 	{ 11, "VolumetricFog", sizeof(VolumetricFogBlock) },
 	{ 12, "FoliageInteraction", sizeof(FoliageInteractionBlock) },
+	{ 13, "VolumetricParticles", sizeof(VolumetricParticlesBlock) },
 };
 
 typedef struct uniformInfo_s
@@ -3608,10 +3609,19 @@ static int GLSL_LoadGPUProgramVolumetric(
 	{
 		const GPUProgramDesc *programDesc =
 			LoadProgramSource(name, allocator, fallback);
-		// the density noise is sampled by the injection and the debug views only
+		// the density noise and the FX particle media (VolumetricParticles
+		// block) are read by the injection and the debug views only
 		const bool noise = (sp == &tr.volumetricInjectShader || sp == &tr.volumetricDebugShader);
+		char defines[256] = "";
+		if ( noise )
+		{
+			Com_sprintf(defines, sizeof(defines),
+				"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
+				"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n",
+				MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL);
+		}
 		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-				noise ? "#define USE_FROXEL_NOISE\n" : "", *programDesc, common) )
+				defines, *programDesc, common) )
 		{
 			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
 		}

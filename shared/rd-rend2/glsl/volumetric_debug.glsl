@@ -36,6 +36,11 @@ void main()
 //     dynamic lights; R_BuildVolumetricLightGrid): 20 isotropic I, 21 directed D (no phase),
 //     22 direction of D (rgb = dir * 0.5 + 0.5, dimmed by the incoherence), 23 baked sun B,
 //     24 reconstructed I + D + B, 25 100 * |I + D + B - legacy merged grid|
+//  26 density of the FX particle media only    (the injection drops every other medium)
+//  27 FX particle media along the ray, opacity weighted: red = history reduction where the particle
+//     density changed, green = particle share of the medium
+//  28 FX particle proxy bounds over the frame (uploaded particles only): outer shell and inner shell
+//     where the soft edge starts, one hue per index (0 = most important), dimmed behind the scene
 
 uniform sampler2D u_ScreenDepthMap;
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
@@ -121,6 +126,26 @@ vec4 LocalVolumeOutline(in int i, in vec3 origin, in vec3 dir, in float sceneDis
 	return vec4(hue, max(max(outer, soft), 0.08));
 }
 
+// view 28: outline of the FX particle proxy i (ellipsoid along the world axes), as the local
+// ellipsoids of view 18
+vec4 ParticleOutline(in int i, in vec3 origin, in vec3 dir, in float sceneDistance)
+{
+	vec4 center = u_FroxelParticleCenter[i];
+	vec4 invExtent = u_FroxelParticleInvExtent[i];
+	vec3 o = (origin - center.xyz) * invExtent.xyz;
+	vec3 d = dir * invExtent.xyz;
+	float dd = max(dot(d, d), 1e-12);
+	float t = -dot(o, d) / dd;
+	if (t <= 0.0)
+		return vec4(0.0);
+	float b = length(o + d * t);
+	float visible = (t < sceneDistance) ? 1.0 : 0.35;
+	float outer = 1.0 - smoothstep(0.0, 0.04, abs(b - 1.0));
+	float soft = (1.0 - smoothstep(0.0, 0.02, abs(b - invExtent.w))) * 0.6;
+	float fill = (b < 1.0) ? 0.06 : 0.0;
+	return vec4(IndexHue(i), max(max(outer, soft), fill) * visible);
+}
+
 void main()
 {
 	vec2 tc = gl_FragCoord.xy / r_FBufScale;
@@ -131,7 +156,7 @@ void main()
 	int view = int(u_FroxelDebugParams.x);
 	vec3 color = vec3(0.0);
 
-	if (view == 1 || view == 11 || view == 12 || view == 16)
+	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26)
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
@@ -187,6 +212,30 @@ void main()
 	{
 		float opacity = 1.0 - fog.a;
 		color = vec3(fog.r, fog.g, 0.0) / max(fog.r + fog.g, 1e-4) * sqrt(opacity);
+	}
+	else if (view == 27)
+	{
+		float opacity = 1.0 - fog.a;
+		color = vec3(fog.r, fog.g, 0.0) / max(opacity, 1e-4) * sqrt(opacity);
+	}
+	else if (view == 28)
+	{
+		// drawn blended over the frame (RB_VolumetricDebugOverlay)
+		vec3 toScene = worldPos - u_FroxelViewOrigin.xyz;
+		float sceneDistance = length(toScene);
+		vec3 dir = toScene / max(sceneDistance, 1e-4);
+		vec4 outline = vec4(0.0);
+		int count = min(int(u_FroxelParticleParams.x), MAX_GPU_VOL_PARTICLES);
+		for (int i = 0; i < count; i++)
+		{
+			if (u_FroxelParticleCenter[i].w <= 0.0)
+				continue;	// gone this frame (kept one frame for the history)
+			vec4 o = ParticleOutline(i, u_FroxelViewOrigin.xyz, dir, sceneDistance);
+			if (o.a > outline.a)
+				outline = o;
+		}
+		out_Color = outline;
+		return;
 	}
 	else if (view == 18)
 	{

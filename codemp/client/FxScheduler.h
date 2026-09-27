@@ -264,6 +264,16 @@ public:
 	int				mSoundRadius;
 	int				mSoundVolume;
 
+	// participating medium of Particle / OrientedParticle (rend2 volumetric FX
+	// particles): the "volumetricMedia" group, off when absent
+	bool			mVolMedia;
+	CFxRange		mVolExtinction;
+	bool			mVolHasAlbedo;		// else the start rgb of the particle
+	vec3_t			mVolAlbedo;
+	float			mVolRadiusScale;
+	vec3_t			mVolAspect;
+	float			mVolSoftness;
+
 	// Lower level parsing utilities
 	bool ParseVector( const char *val, vec3_t min, vec3_t max );
 	bool ParseFloat( const char *val, float *min, float *max );
@@ -302,6 +312,7 @@ public:
 	bool ParseSize( CGPGroup *grp );
 	bool ParseSize2( CGPGroup *grp );
 	bool ParseLength( CGPGroup *grp );
+	bool ParseVolumetricMedia( CGPGroup *grp );
 
 	bool ParseModels( CGPValue *grp );
 	bool ParseShaders( CGPValue *grp );

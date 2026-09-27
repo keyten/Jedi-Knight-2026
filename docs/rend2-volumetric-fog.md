@@ -603,6 +603,205 @@ Expected shape:
 - More froxels become non-empty, so more of them take the light path (sun cascades, grid, dlights).
 - CPU: one sort and at most 64 x 128 sphere / slice tests per frame.
 
+## FX particle media (`r_volParticles`, `tr_volparticle.cpp`)
+
+Selected FX particles (smoke, steam, gas) add real density to the froxel medium. Once in `FroxelMedium` they get
+every light of the froxel fog with no particle lighting code: the baked grid, the sun and its cascades, dynamic
+lights (saber, blaster colors) with their point shadows, HG phase, temporal filter and integration.
+
+Nothing is automatic. A sprite becomes a medium only when its `.efx` primitive asks for it: sparks, muzzle
+flashes, saber effects, additive glows and view-model effects stay sprites. The renderer never guesses smoke from
+a shader name.
+
+### Legacy fields that are NOT used
+
+- `RF_VOLUMETRIC` (0x20) keeps its legacy meaning: fake volumetric shading of models (DEMP2), passed to rend2 as
+  `u_FXVolumetricBase`. It is not touched.
+- The `.efx` key `density` (`CPrimitiveTemplate::mDensity`) is the spacing of the effects spawned by an emitter
+  along its path (`CEmitter::Update`, squared distance between `emitFx` spawns). It has nothing to do with media
+  and is not reused.
+- `mFlags` has no free bit (the 32 bits are rgb / alpha / size / length / size2 group flags and primitive flags),
+  and `mSpawnFlags` never reaches the particle. `shaderRGBA`, `shaderTexCoord` and `frame` are not used to carry
+  density either.
+
+### EFX syntax
+
+A new sub-group of `Particle` and `OrientedParticle`. Its presence turns the medium on:
+
+```
+Particle
+{
+	...
+	volumetricMedia
+	{
+		extinction	0.04 0.06		// per world unit at the center at full particle alpha, random range
+		albedo		0.07 0.07 0.07	// optional scattering color 0..1 (alias "color"); default: the start rgb
+		radiusScale	1.0				// optional, proxy radius = sprite radius * radiusScale (default 0.75)
+		aspect		1 1 0.8			// optional, ellipsoid scale along world x y z (default 1 1 1, 0.25..4)
+		softness	0.7				// optional, soft part of the radius 0..1 (default 0.5)
+	}
+}
+```
+
+- The extinction is multiplied every frame by the particle's alpha fade (the value `UpdateAlpha` computes, 0..1,
+  before `useAlpha` or the rgb modulation), so a smoke puff thins out as its sprite fades.
+- The proxy radius follows the sprite size (`mRefEnt.radius` after `UpdateSize`). The proxy is a soft ellipsoid
+  along the world axes: full density inside `1 - softness`, a smoothstep to 0 at the boundary. The sprite texture
+  is not voxelized.
+- On another primitive type the group prints a warning and is ignored. Unknown keys in the group print a warning.
+- Older engines and renderers print "Unknown group key parsing a particle" and draw the sprite as before.
+
+Parsers: MP `CPrimitiveTemplate::ParseVolumetricMedia` (`codemp/client/FxTemplate.cpp`, `Q_stricmp` chain of
+`ParsePrimitive`'s sub-groups), SP the same name (`code/cgame/FxTemplate.cpp`, `ParseGroup` with a
+`StringViewIMap` of `ParseVol*` methods). The template fields `mVolMedia`, `mVolExtinction`, `mVolHasAlbedo`,
+`mVolAlbedo`, `mVolRadiusScale`, `mVolAspect`, `mVolSoftness` are copied by `operator=`. `CreateEffect` rolls
+them into an `SFxVolumetricMedia` for each spawned particle (`CParticle::SetVolumetricMedia`, which also gives the
+particle a unique id for the temporal filter).
+
+### Submission to the renderer
+
+```
+// rd-common/tr_types.h
+typedef struct {
+	int			id;				// stable per particle while it lives (temporal filter)
+	vec3_t		origin;
+	float		radius;			// proxy radius (world units)
+	vec3_t		aspect;			// ellipsoid scale along the world axes (1 1 1 = sphere)
+	float		extinction;		// per world unit at the center, alpha fade included
+	float		color[3];		// scattering color (albedo) 0..1
+	float		softness;		// 0..1 of the radius over which the density fades to 0
+} refVolParticle_t;
+
+// rd-common/tr_public.h, optional export "GetRefVolParticleAPI"
+typedef struct refVolParticleExport_s {
+	void		(*AddVolumetricParticleToScene)( const refVolParticle_t *particle );
+} refVolParticleExport_t;
+```
+
+- It is an optional renderer export, like `GetRefFogVolumeAPI` / `GetRefFoliageAPI`. There is no
+  `REF_API_VERSION` bump and no refEntity flag; other renderers simply lack the export.
+- It has the same lifetime as a dynamic light: `RE_AddVolumetricParticleToScene` (`tr_scene.cpp`) appends to
+  `backEndData->volParticles[1024]`, and the scene slice goes to `refdef.volParticles`. NaN origins, radius <= 0,
+  extinction <= 0 and anything past 1024 are counted as rejected. With `r_volParticles 0` it returns at once.
+- MP: the FX system lives in the client executable. `cl_main.cpp` looks the export up next to
+  `GetRefFoliageAPI` (`reVolParticles`), and `SFxHelper::AddVolumetricParticle` (`FxSystem.cpp`) calls it.
+- SP: the FX system lives in the game module. It sends the particle through the new cgame trap
+  `CG_R_ADDVOLPARTICLE` (appended to `cgameImport_t`, `cgi_R_AddVolumetricParticle`), and the engine forwards it
+  to the export (`cl_cgame.cpp`). The game module calls the trap only while the mirrored cvar `r_volParticles` is
+  set, because older engines lack the trap. This is the pattern of `r_foliageInteraction` / `r_saberAreaLights`.
+- `CParticle::Draw` / `COrientedParticle::Draw` submit the medium after the sprite. When the sprite is culled
+  (center behind the camera, or closer than `fx_nearCull` / 16 units), `Update` still computes size and alpha and
+  submits the medium, so smoke around the camera keeps fogging the view. Particles with `depthHack` (first person)
+  or `playerView` (2D) never submit.
+
+### Culling (`R_VolParticlesBuild`, once per frame for the froxel view)
+
+1. Pairing with the previous frame by id: the previous array is sorted by id, found by binary search, and
+   duplicate ids pair one to one. A changed particle's bounding sphere is the union of its old and new spheres.
+   Particles that vanished get one more frame with extinction 0 (as local fog volumes do).
+2. Frustum: the sphere is tested against the four side planes and the depth range 0 .. fade end (the start of the
+   last slice). Particles fade out over the last 20% like the local volumes, because the tail cannot carry them.
+3. Importance `max(extinction, previous) * r^2 / max(depth, near)^2` (projected optical footprint). A
+   **deterministic** sort (importance, then id, then live before vanished) keeps the first `r_volParticlesMax`
+   (default 128, hard cap `MAX_GPU_VOL_PARTICLES` 128). The rest count as capped. The same input in any order
+   gives the same selection (checked by the harness).
+4. Per slice lists (near to far, 16 bit indices, pool `VOL_PARTICLE_POOL` 2560). When the pool is full, the far
+   slices lose their entries first, and the drops are counted. The injection evaluates only the particles of its
+   slice, never "all particles in all froxels".
+5. `s_vf.frameHeightFog` is also set by particles (transparent surfaces outside BSP fog look the volume up).
+   `R_VolParticlesInFrustum` also opens the froxel pass on maps without any fog.
+
+UBO: particles have their own block `VolumetricParticles` (slot 13, 15 888 bytes). The `VolumetricFog` block is
+already at 14 048 of the 16 384 bytes GL 3.2 guarantees. Only the injection and debug programs declare it
+(`USE_FROXEL_PARTICLES`).
+
+| member | size |
+|---|---|
+| params: count, fade start, 1 / fade length, history floor | 16 |
+| center (xyz, extinction), invExtent (1 / extent xyz, inner), color (albedo, previous extinction), prevCenter (xyz, changed), prevInvExtent: 5 x vec4 x 128 | 10 240 |
+| slice headers int[128] | 512 |
+| index pool 2560 x 16 bit | 5 120 |
+
+### Temporal (dynamic medium)
+
+The static-fog temporal weight (`r_volumetricFogHistoryWeight` 0.9) would leave a long smoke ghost behind a
+moving puff. The injection evaluates each listed particle twice, now and in its previous state, and computes
+`particleChange = sum |e - e_prev| / max(sum e, sum e_prev)`, separate from `localChange`. Then:
+
+```
+particleKeep = mix(1, r_volParticlesHistory, smoothstep(0.02, 0.25, particleChange))
+froxelWeight *= particleKeep
+```
+
+- Where the particle density did not change, the history is untouched (a static fog around the smoke keeps its
+  full weight).
+- Where it changed, the weight drops to `0.9 * 0.3 = 0.27` by default. The ghost decays about 4x per frame, and
+  the jittered samples of a drifting puff are still averaged a little (no hard flicker). `r_volParticlesHistory 0`
+  drops the history entirely there; `1` treats smoke as static fog.
+- Particles never enter `R_VolumetricMediumKey`: smoke does not reset the whole history.
+
+### Debug
+
+- `r_volumetricFogDebug 26`: optical depth of the particle media only (the injection drops the BSP fog, the
+  height fog and the local volumes).
+- `27`: particle media along the ray, opacity weighted. Red is the history reduction (1 - particleKeep), green is
+  the particle share of the medium.
+- `28`: proxy ellipsoids of the uploaded particles over the frame: outer shell, inner shell where the soft edge
+  starts, one hue per GPU index (0 = most important), dimmed behind the scene. Capped and culled particles are not
+  drawn (the block holds only the uploaded ones); their counts are in `r_volparticles`.
+- `r_volparticles`: prints the last froxel frame: submitted, rejected, culled, capped, uploaded (changed,
+  vanished), pool use / dropped / max per slice, and the CPU build time in microseconds.
+- `r_volParticlesDebug 1` (cheat): the same line every 60 frames.
+- `r_volumetricFogDebug` is now clamped to 0..28 (it was 0..15, which made views 16 to 25 unreachable).
+
+### Selected assets and the test pk3
+
+All the files come from `assets1.pk3`. It is shared by SP and MP, and the Steam copy has the same files and sizes. Each file
+was opened and read before a primitive was chosen:
+
+| file | primitive | why | block |
+|---|---|---|---|
+| `effects/volumetric/black_smoke.efx` | its only Particle (`gfx/misc/black_smoke`, useAlpha, size 4-10 -> 12-24, alpha 0.6 -> 0) | dark smoke | extinction 0.04-0.06, albedo 0.07, radiusScale 1, softness 0.7 |
+| `effects/volumetric/droid_smoke.efx` | its only Particle (damaged droid smoke, same shader, alpha 0.75 -> 0) | dark smoke | extinction 0.03-0.05, albedo 0.1, radiusScale 1, softness 0.7 |
+| `effects/rocket/explosion.efx` | only `LingeringSmoke` (`gfx/misc/steam`, size 5-10 -> 35-55, nonlinear fade) | the smoke after the blast | extinction 0.015-0.025, albedo = its rgb, radiusScale 0.9, aspect 1 1 0.8, softness 0.6 |
+
+Not changed:
+- In `rocket/explosion`: `OrangeGlow` (fireball), `Dust` (debris), `Light`, `Flash`, `Decal`, `CameraShake`, `Sound`.
+- `thermal/explosion` (its `LingeringSmoke` would be a good fourth candidate).
+- `noghri_stick/gas_cloud` (it exists in the install; its Particle #1 `gfx/effects/Wcloud` is the gas, and #2
+  `fxflare` is sparkle and must stay a sprite).
+
+`build/test-assets/zz_volumetric_media_test.pk3` contains only the three `.efx` files:
+- `effects/volumetric/black_smoke.efx` (502 bytes)
+- `effects/volumetric/droid_smoke.efx` (464 bytes)
+- `effects/rocket/explosion.efx` (2526 bytes)
+
+Each one is the original text byte for byte (CRLF) with the `volumetricMedia` block inserted. There are no
+textures and no shaders: the overrides still reference the base assets. The unpacked copy is in
+`build/test-assets/zz_volumetric_media_test/`. It is a content proof, not an asset overhaul.
+
+### Timings
+
+Not measured: the game has not been run with this change.
+
+- GPU procedure: `r_speeds 100`, "Froxel fog inject", 1920x1080, a stationary camera, a stream of
+  `volumetric/black_smoke` (for example several emitters in a test map).
+- CPU procedure: `r_volparticles`, "build N us".
+
+| preset | 0 particles | 16 | 64 | 128 (cap) |
+|---|---|---|---|---|
+| low | | | | |
+| medium | | | | |
+| high | | | | |
+
+CPU harness (not the game, Release x64, this machine): 1024 submitted particles, 128 uploaded, pool full. The build
+takes 0.3-0.4 ms, dominated by the sort of the visible candidates.
+
+Expected GPU shape:
+- Per listed particle and froxel: one ellipsoid distance, one `sqrt`, one smoothstep, and twice that where
+  `wantChange` (the jittered sample).
+- Smoke makes more froxels non-empty, so more of them take the light path.
+
 ## Integration (`volumetric_integrate.glsl`)
 
 Front to back over the slices of every froxel column, with the medium constant inside a slice:
@@ -699,6 +898,11 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogNoiseDetailScale` | 900 | detail noise tile period (world units) |
 | `r_volumetricFogNoiseDetailContrast` | 0 | detail contrast, 0 = off (no second fetch) |
 | `r_volumetricFogNoiseWind` | 0 0 0 | noise drift, world units per second |
+| `r_volParticles` | 0 | FX particles with a `volumetricMedia` block add media (mirrored by the SP game module, so off by default) |
+| `r_volParticlesMax` | 128 | most important particles uploaded per frame, 0..128 |
+| `r_volParticlesScale` | 1 | extinction multiplier of the particle media |
+| `r_volParticlesHistory` | 0.3 | share of the history weight kept where the particle density changed |
+| `r_volParticlesDebug` | 0 | cheat, 1 = culling statistics every 60 frames |
 
 The existing `r_volumetricFogScale`, `r_volumetricFogDefaultScale` and the `volumetricFogScale` worldspawn key
 scale the extinction in both modes; `r_volumetricFogSamples` only concerns the legacy ray march. Mode 2 needs
@@ -737,6 +941,9 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 23 | baked sun part B only (no realtime sun) |
 | 24 | reconstructed I + D + B, no phase: must look like view 5 with `r_sunlightMode 0` before the split |
 | 25 | 100 * abs(I + D + B - legacy merged grid): black = exact |
+| 26 | as 1, FX particle media only (the injection drops every other medium) |
+| 27 | FX particle media along the ray, opacity weighted: red = history reduction where the particle density changed, green = particle share |
+| 28 | FX particle proxy bounds over the frame (uploaded particles), one hue per GPU index, dimmed behind the scene |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see
@@ -805,6 +1012,18 @@ vs `*-vfog.dll`).
 | local: camera through the soft edge | walk into / out of a volume (`at eye` or a big one) | smooth transition, no pop | 1, 7 |
 | local: asset | hoth2 + pk3, `r_fogvol` | `map volumes: 3`, bounds in view 18 at the placed spots | 18 |
 | local: timings | see Local fog volumes, Timings | fill the table | - |
+| fx: black smoke | `r_volParticles 1`, `zz_volumetric_media_test.pk3`, a map spawning `volumetric/black_smoke` (or `playfx`-style test) | dark soft puffs that shadow / absorb the light behind them; sprite still drawn | 26, 28, 1 |
+| fx: droid smoke | damage a droid (R2 / R5 / mouse) until it smokes | smoke trail with volume, follows the droid | 26, 28 |
+| fx: rocket smoke | fire a rocket at a wall | only the lingering smoke has volume; fireball, dust, flash unchanged | 26, 28 |
+| fx: saber through smoke | saber on, swing through the smoke | colored glow inside the smoke only | 4, 6 |
+| fx: moving source | smoking droid walking / rocket smoke drifting | no long ghost behind it, no strong flicker | 27, 8 |
+| fx: behind a wall from a dlight | smoke on the far side of a wall from a point light, `r_dlightMode 2` | no light leak through the wall | 4 |
+| fx: stress | many emitters (several explosions at once) | `r_volparticles`: capped > 0, uploaded 128, no hitch; far slices drop first | 28 |
+| fx: temporal off / on | `r_volumetricFogTemporal 0 / 1`, `r_volParticlesHistory 0 / 0.3 / 1` | off: noisier, no ghost; 1: visible trail | 27, 8 |
+| fx: camera inside smoke | walk into a smoke column | fog stays (medium submitted while the sprite is culled) | 1 |
+| fx: legacy RF_VOLUMETRIC | DEMP2 shot / charged impact | unchanged fake volumetric shading of the model | - |
+| fx: off | `r_volParticles 0` | exactly the previous look; `r_volparticles` shows 0 submitted | - |
+| fx: timings | see FX particle media, Timings | fill the table | - |
 
 ## Known limitations
 
@@ -831,6 +1050,10 @@ vs `*-vfog.dll`).
   most 64 per view (the nearest) and 2048 slice list entries; the density noise is the global field; an
   anonymous moving volume gets no temporal accumulation; no cgame trap yet (game / FX code needs one to call
   the extension); one env.json per map is shared with the cubemaps.
+- FX particle media: mode 2 and the froxel main view only; soft ellipsoids along the world axes (no rotation,
+  no texture shape); at most 128 particles per view (the most important) and 2560 slice list entries; opt-in per
+  `.efx` primitive; `r_volParticles` defaults to 0 because the SP game module mirrors it (older engines lack the
+  trap); capped / culled particles are counted but not drawn by view 28.
 - Not run in game yet: correctness is verified by builds, offline compilation of every changed / new shader on
   the Intel and NVIDIA drivers, the legacy source comparison and the numeric checks above.
 

@@ -135,8 +135,57 @@ void CParticle::Draw(void)
 		VectorCopy( mOrigin1, mRefEnt.origin );
 
 		theFxHelper.AddFxToScene(&mRefEnt);
+		DrawVolumetricMedia();
 	}
 	drawnFx++;
+}
+
+//----------------------------
+// Volumetric FX particle media (rend2 froxel fog, r_volParticles)
+//----------------------------
+void CParticle::SetVolumetricMedia( const SFxVolumetricMedia *media )
+{
+	// unique while the particle lives: the renderer pairs it with its
+	// previous frame by id (temporal filter)
+	static int nextVolId = 0;
+
+	mVolMedia = ( media != NULL );
+	if ( !mVolMedia )
+	{
+		return;
+	}
+	mVolume = *media;
+	nextVolId = ( nextVolId + 1 ) & 0x7fffffff;
+	if ( nextVolId == 0 )
+	{
+		nextVolId = 1;
+	}
+	mVolId = nextVolId;
+}
+
+// A soft ellipsoid proxy around the particle: its sprite radius, its alpha
+// fade. Also sent when the sprite itself is culled (behind the camera, too
+// close): the medium around the camera still fogs the view.
+void CParticle::DrawVolumetricMedia(void)
+{
+	if ( !mVolMedia || ( mFlags & ( FX_PLAYER_VIEW | FX_DEPTH_HACK ) ) )
+	{
+		return;
+	}
+
+	refVolParticle_t particle;
+	particle.id = mVolId;
+	VectorCopy( mOrigin1, particle.origin );
+	particle.radius = mRefEnt.radius * mVolume.radiusScale;
+	VectorCopy( mVolume.aspect, particle.aspect );
+	particle.extinction = mVolume.extinction * mAlphaFade;
+	VectorCopy( mVolume.albedo, particle.color );
+	particle.softness = mVolume.softness;
+
+	if ( particle.radius > 0.0f && particle.extinction > 0.0f )
+	{
+		theFxHelper.AddVolumetricParticle( &particle );
+	}
 }
 
 //----------------------------
@@ -205,6 +254,13 @@ bool CParticle::Update(void)
 		UpdateRotation();
 
 		Draw();
+	}
+	else if ( mVolMedia )
+	{
+		// the medium may still surround the camera
+		UpdateSize();
+		UpdateAlpha();
+		DrawVolumetricMedia();
 	}
 
 	return true;
@@ -573,6 +629,8 @@ void CParticle::UpdateAlpha(void)
 		perc1 = flrand(0.0f, perc1);
 	}
 
+	mAlphaFade = perc1;
+
 	alpha = Com_Clamp(0, 255, perc1 * 255.0f);
 	if ( mFlags & FX_USE_ALPHA )
 	{
@@ -655,6 +713,7 @@ void COrientedParticle::Draw(void)
 	}
 
 	theFxHelper.AddFxToScene( &mRefEnt );
+	DrawVolumetricMedia();
 	drawnFx++;
 }
 
@@ -734,6 +793,13 @@ bool COrientedParticle::Update(void)
 		UpdateRotation();
 
 		Draw();
+	}
+	else if ( mVolMedia )
+	{
+		// the medium may still surround the camera
+		UpdateSize();
+		UpdateAlpha();
+		DrawVolumetricMedia();
 	}
 
 	return true;

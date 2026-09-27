@@ -335,6 +335,10 @@ void	cgi_R_SetFoliageInteractors( const foliageInteractor_t *interactors, int co
 	Q_syscall( CG_R_SETFOLIAGEINTERACTORS, interactors, count );
 }
 
+void	cgi_R_AddVolumetricParticle( const refVolParticle_t *particle ) {
+	Q_syscall( CG_R_ADDVOLPARTICLE, particle );
+}
+
 void	cgi_R_RenderScene( const refdef_t *fd ) {
 	Q_syscall( CG_R_RENDERSCENE, fd );
 }

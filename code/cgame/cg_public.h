@@ -229,6 +229,10 @@ Ghoul2 Insert End
 	// foliage character colliders (rend2 foliage extension); only called with
 	// r_foliageInteraction set (older engines lack it)
 	CG_R_SETFOLIAGEINTERACTORS,
+
+	// participating medium of an FX particle (rend2 volumetric FX particles);
+	// only called with r_volParticles set (older engines lack it)
+	CG_R_ADDVOLPARTICLE,
 } cgameImport_t;
 
 #ifdef JK2_MODE

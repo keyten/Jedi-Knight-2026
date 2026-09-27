@@ -279,6 +279,17 @@ public:
 };
 
 //------------------------------
+// Volumetric FX particle media (rend2 froxel fog, r_volParticles): the rolled
+// "volumetricMedia" parameters of one particle (CPrimitiveTemplate)
+struct SFxVolumetricMedia
+{
+	float		extinction;		// per world unit at the center, at full particle alpha
+	vec3_t		albedo;			// scattering color 0..1
+	float		radiusScale;	// proxy radius = sprite radius * radiusScale
+	vec3_t		aspect;			// ellipsoid scale along the world axes
+	float		softness;		// 0..1 of the radius over which the density fades
+};
+
 class CParticle : public CEffect
 {
 protected:
@@ -308,11 +319,18 @@ protected:
 	char		mModelNum;
 	char		mBoltNum;
 
+	// participating medium of the particle ("volumetricMedia" group), see DrawVolumetricMedia
+	bool		mVolMedia;
+	int			mVolId;
+	float		mAlphaFade;		// alpha of this frame, 0..1 (UpdateAlpha)
+	SFxVolumetricMedia	mVolume;
+
 	bool		UpdateOrigin();
 	void		UpdateSize();
 	void		UpdateRGB();
 	void		UpdateAlpha();
 	void		UpdateRotation();
+	void		DrawVolumetricMedia();
 
 
 public:
@@ -328,7 +346,10 @@ public:
 	inline CParticle(void)
 	{
 		mRefEnt.reType = RT_SPRITE; mEntNum = -1; mModelNum = -1; mBoltNum = -1;
+		mVolMedia = false; mVolId = 0; mAlphaFade = 1.0f;
 	}
+
+	void SetVolumetricMedia( const SFxVolumetricMedia *media );
 
 	virtual void Init();
 	virtual void Die();

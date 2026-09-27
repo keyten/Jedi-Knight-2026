@@ -176,6 +176,10 @@ public:
 #endif
 		re->AddMiniRefEntityToScene( ent );
 	}
+	// participating medium of an FX particle (rend2 volumetric FX particles,
+	// optional renderer extension); nothing with other renderers
+	void	AddVolumetricParticle( const refVolParticle_t *particle );
+
 	inline	void	AddLightToScene( vec3_t org, float radius, float red, float green, float blue )
 	{
 		re->AddLightToScene(	org, radius, red, green, blue );

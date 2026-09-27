@@ -113,6 +113,11 @@ cvar_t	*r_volumetricFogDlightShadows;
 cvar_t	*r_volumetricFogBloom;
 cvar_t	*r_volumetricFogReset;
 cvar_t	*r_volumetricFogDebug;
+cvar_t	*r_volParticles;
+cvar_t	*r_volParticlesMax;
+cvar_t	*r_volParticlesScale;
+cvar_t	*r_volParticlesHistory;
+cvar_t	*r_volParticlesDebug;
 cvar_t	*r_volumetricFogFreeze;
 cvar_t	*r_volumetricFogHeight;
 cvar_t	*r_volumetricFogHeightOpaque;
@@ -1722,6 +1727,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
 	{ "r_fogvol",			R_FogVolume_f },
+	{ "r_volparticles",		R_VolParticles_f },
 	//{ "imagecacheinfo",		RE_RegisterImages_Info_f },
 	{ "modellist",			R_Modellist_f },
 	//{ "modelcacheinfo",		RE_RegisterModels_Info_f },
@@ -2278,8 +2284,19 @@ void R_Register( void )
 	r_volumetricFogBloom = ri.Cvar_Get("r_volumetricFogBloom", "0", CVAR_ARCHIVE, "Froxel fog: bright in-scattering added to the glow buffer (bloom), 0 = none");
 	ri.Cvar_CheckRange(r_volumetricFogBloom, 0.0f, 4.0f, qfalse);
 	r_volumetricFogReset = ri.Cvar_Get("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 15, qtrue);
+	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 28, qtrue);
+	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
+	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
+	r_volParticles = ri.Cvar_Get("r_volParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");
+	ri.Cvar_CheckRange(r_volParticles, 0, 1, qtrue);
+	r_volParticlesMax = ri.Cvar_Get("r_volParticlesMax", "128", CVAR_ARCHIVE, "r_volParticles: most important particles uploaded per frame (the rest is capped)");
+	ri.Cvar_CheckRange(r_volParticlesMax, 0, MAX_GPU_VOL_PARTICLES, qtrue);
+	r_volParticlesScale = ri.Cvar_Get("r_volParticlesScale", "1", CVAR_ARCHIVE, "r_volParticles: extinction multiplier of the particle media");
+	ri.Cvar_CheckRange(r_volParticlesScale, 0, 16, qfalse);
+	r_volParticlesHistory = ri.Cvar_Get("r_volParticlesHistory", "0.3", CVAR_ARCHIVE, "r_volParticles: share of the temporal history weight kept where the particle density changed (0 = none, 1 = as static fog)");
+	ri.Cvar_CheckRange(r_volParticlesHistory, 0, 1, qfalse);
+	r_volParticlesDebug = ri.Cvar_Get("r_volParticlesDebug", "0", CVAR_CHEAT, "r_volParticles: 1 = print the culling statistics every 60 frames");
 	r_volumetricFogFreeze = ri.Cvar_Get("r_volumetricFogFreeze", "0", CVAR_CHEAT, "Froxel fog: keep the current froxel volume and its camera (debugging)");
 	ri.Cvar_CheckRange(r_volumetricFogFreeze, 0, 1, qtrue);
 	r_volumetricFogHeight = ri.Cvar_Get("r_volumetricFogHeight", "0", CVAR_ARCHIVE, "Froxel fog (r_volumetricFog 2): height fog (ground haze) medium, 0 = off, 1 = on");
@@ -3174,6 +3191,18 @@ Optional extension (tr_public.h): local fog volumes, tr_fogvolume.cpp
 extern "C" Q_EXPORT const refFogVolumeExport_t* QDECL GetRefFogVolumeAPI ( void ) {
 	static const refFogVolumeExport_t fogVolumes = { RE_AddFogVolumeToScene };
 	return &fogVolumes;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefVolParticleAPI
+
+Optional extension (tr_public.h): volumetric FX particles, tr_volparticle.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refVolParticleExport_t* QDECL GetRefVolParticleAPI ( void ) {
+	static const refVolParticleExport_t volParticles = { RE_AddVolumetricParticleToScene };
+	return &volParticles;
 }
 
 /*

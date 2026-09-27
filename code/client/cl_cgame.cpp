@@ -1017,6 +1017,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reFoliage && reFoliage->SetFoliageInteractors )
 			reFoliage->SetFoliageInteractors( (const foliageInteractor_t *) VMA(1), args[2] );
 		return 0;
+	case CG_R_ADDVOLPARTICLE:
+		if ( reVolParticles && reVolParticles->AddVolumetricParticleToScene )
+			reVolParticles->AddVolumetricParticleToScene( (const refVolParticle_t *) VMA(1) );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;

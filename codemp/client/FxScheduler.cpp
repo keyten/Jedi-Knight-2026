@@ -1450,13 +1450,14 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 
 	// Now create the appropriate effect entity
 	//------------------------
+	CParticle *particle = NULL;	// Particle / OrientedParticle, for the volumetric medium
 	switch( fx->mType )
 	{
 	//---------
 	case Particle:
 	//---------
 
-		FX_AddParticle( org, vel, accel,
+		particle = FX_AddParticle( org, vel, accel,
 						fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
 						fx->mAlphaStart.GetVal(), fx->mAlphaEnd.GetVal(), fx->mAlphaParm.GetVal(),
 						sRGB, eRGB, fx->mRGBParm.GetVal(),
@@ -1633,7 +1634,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 	case OrientedParticle:
 	//-------------------
 
-		FX_AddOrientedParticle( org, ax[0], vel, accel,
+		particle = FX_AddOrientedParticle( org, ax[0], vel, accel,
 					fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
 					fx->mAlphaStart.GetVal(), fx->mAlphaEnd.GetVal(), fx->mAlphaParm.GetVal(),
 					sRGB, eRGB, fx->mRGBParm.GetVal(),
@@ -1696,6 +1697,21 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 	default:
 		assert(0);
 		break;
+	}
+
+	// participating medium (rend2 volumetric FX particles, "volumetricMedia")
+	if ( particle && fx->mVolMedia )
+	{
+		SFxVolumetricMedia media;
+		media.extinction = fx->mVolExtinction.GetVal();
+		if ( fx->mVolHasAlbedo )
+			VectorCopy( fx->mVolAlbedo, media.albedo );
+		else
+			VectorCopy( sRGB, media.albedo );
+		media.radiusScale = fx->mVolRadiusScale;
+		VectorCopy( fx->mVolAspect, media.aspect );
+		media.softness = fx->mVolSoftness;
+		particle->SetVolumetricMedia( &media );
 	}
 
 	// Track when we need to clean ourselves up if we are a copy

@@ -162,6 +162,16 @@ void SFxHelper::AddLightToScene( vec3_t org, float radius, float red, float gree
 }
 
 //------------------------------------------------------
+void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
+{
+	// the renderer cvar, mirrored: older engines lack the trap
+	if ( r_volParticles.integer )
+	{
+		cgi_R_AddVolumetricParticle( particle );
+	}
+}
+
+//------------------------------------------------------
 void SFxHelper::AddPolyToScene( int shader, int count, polyVert_t *verts )
 {
 	cgi_R_AddPolyToScene( shader, count, verts );

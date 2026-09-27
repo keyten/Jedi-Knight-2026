@@ -82,6 +82,15 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 
 	mVariance.SetRange( 1.0f, 1.0f );
 	mDensity.SetRange( 10.0f, 10.0f );// default this high so it doesn't do bad things
+
+	// no participating medium unless the primitive has a volumetricMedia group
+	mVolMedia = false;
+	mVolExtinction.SetRange( 0.02f, 0.02f );
+	mVolHasAlbedo = false;
+	VectorSet( mVolAlbedo, 1.0f, 1.0f, 1.0f );
+	mVolRadiusScale = 0.75f;
+	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
+	mVolSoftness = 0.5f;
 }
 
 //-----------------------------------------------------------
@@ -179,6 +188,14 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 
 	mSoundRadius		= that.mSoundRadius;
 	mSoundVolume		= that.mSoundVolume;
+
+	mVolMedia			= that.mVolMedia;
+	mVolExtinction		= that.mVolExtinction;
+	mVolHasAlbedo		= that.mVolHasAlbedo;
+	VectorCopy( that.mVolAlbedo, mVolAlbedo );
+	mVolRadiusScale		= that.mVolRadiusScale;
+	VectorCopy( that.mVolAspect, mVolAspect );
+	mVolSoftness		= that.mVolSoftness;
 
 	return *this;
 }
@@ -2085,6 +2102,85 @@ bool CPrimitiveTemplate::ParseLength( CGPGroup *grp )
 // Parse a primitive, apply defaults first, grab any base level
 //	key pairs, then process any sub groups we may contain.
 //------------------------------------------------------
+//------------------------------------------------------
+// ParseVolumetricMedia
+//	The participating medium of a particle (rend2 volumetric FX particles,
+//	docs/rend2-volumetric-fog.md "FX particle media"). Its presence turns it on:
+//
+//	volumetricMedia
+//	{
+//		extinction	0.02 0.03	// per world unit at full alpha, range
+//		albedo		0.2 0.2 0.2	// optional, default = the start rgb
+//		radiusScale	0.75		// optional, proxy radius / sprite radius
+//		aspect		1 1 0.7		// optional, ellipsoid scale along world x y z
+//		softness	0.5			// optional, soft part of the radius 0..1
+//	}
+//
+// input:
+//	the parse group to process
+//
+// return:
+//	success of parse operation.
+//------------------------------------------------------
+bool CPrimitiveTemplate::ParseVolumetricMedia( CGPGroup *grp )
+{
+	CGPValue	*pairs;
+	const char	*key;
+	const char	*val;
+	float		min, max;
+	vec3_t		vmin, vmax;
+
+	if ( mType != Particle && mType != OrientedParticle )
+	{
+		theFxHelper.Print( "volumetricMedia is only supported by Particle and OrientedParticle, ignored\n" );
+		return false;
+	}
+
+	mVolMedia = true;
+
+	pairs = grp->GetPairs();
+	while( pairs )
+	{
+		key = pairs->GetName();
+		val = pairs->GetTopValue();
+
+			 if ( !Q_stricmp( key, "extinction" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mVolExtinction.SetRange( Q_max( 0.0f, min ), Q_max( 0.0f, max ) );
+		}
+		else if ( !Q_stricmp( key, "albedo" ) || !Q_stricmp( key, "color" ) )
+		{
+			if ( ParseVector( val, vmin, vmax ) )
+			{
+				VectorCopy( vmin, mVolAlbedo );
+				mVolHasAlbedo = true;
+			}
+		}
+		else if ( !Q_stricmp( key, "radiusScale" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mVolRadiusScale = Q_max( 0.0f, min );
+		}
+		else if ( !Q_stricmp( key, "aspect" ) )
+		{
+			if ( ParseVector( val, vmin, vmax ) )
+				VectorCopy( vmin, mVolAspect );
+		}
+		else if ( !Q_stricmp( key, "softness" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mVolSoftness = Com_Clamp( 0.0f, 1.0f, min );
+		}
+		else
+			theFxHelper.Print( "Unknown key parsing a volumetricMedia group: %s\n", key );
+
+		pairs = (CGPValue *)pairs->GetNext();
+	}
+
+	return true;
+}
+
 bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 {
 	CGPGroup	*subGrp;
@@ -2195,6 +2291,8 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 			ParseSize2( subGrp );
 		else if ( !Q_stricmp( key, "length" ) || !Q_stricmp( key, "height" ) )
 			ParseLength( subGrp );
+		else if ( !Q_stricmp( key, "volumetricMedia" ) )
+			ParseVolumetricMedia( subGrp );
 		else
 			theFxHelper.Print( "Unknown group key parsing a particle: %s\n", key );
 

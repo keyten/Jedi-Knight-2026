@@ -303,7 +303,7 @@ static float R_FogVolumeSliceDistance( int k, float nearZ, float farZ, int numSl
 	return nearZ * powf(farZ / nearZ, (float)k / (float)numSlices);
 }
 
-static qboolean R_FogVolumeSphereInFrustum( const viewParms_t *view, const vec3_t forward,
+qboolean R_FogVolumeSphereInFrustum( const viewParms_t *view, const vec3_t forward,
 	const vec3_t center, float radius, float maxDepth, float *depth )
 {
 	vec3_t delta;

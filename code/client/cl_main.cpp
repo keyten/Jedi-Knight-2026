@@ -88,6 +88,7 @@ clientStatic_t		cls;
 refexport_t	re;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
+const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 static void *rendererLib = NULL;
 
 //RAZFIXME: BAD BAD, maybe? had to move it out of ghoul2_shared.h -> CGhoul2Info_v at the least..
@@ -901,6 +902,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	memset( &re, 0, sizeof( re ) );
 	reAreaLights = NULL;
 	reFoliage = NULL;
+	reVolParticles = NULL;
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -1200,6 +1202,8 @@ void CL_InitRef( void ) {
 	reAreaLights = GetRefAreaLightAPI ? GetRefAreaLightAPI() : NULL;
 	GetRefFoliageAPI_t GetRefFoliageAPI = (GetRefFoliageAPI_t)Sys_LoadFunction( rendererLib, "GetRefFoliageAPI" );
 	reFoliage = GetRefFoliageAPI ? GetRefFoliageAPI() : NULL;
+	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
+	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
 
 	Com_Printf( "-------------------------------\n");
 

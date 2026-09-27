@@ -349,6 +349,22 @@ typedef struct {
 	int			flags;			// FOGVOLUME_NOISE
 } refFogVolume_t;
 
+// Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volParticles):
+// the participating medium of an FX particle that opted in with a
+// "volumetricMedia" block in its .efx primitive. A soft ellipsoid proxy around
+// the particle, added per scene like a dynamic light through the optional
+// renderer extension GetRefVolParticleAPI. Not a refEntity flag: RF_VOLUMETRIC
+// is the legacy fake volumetric shading of models (DEMP2).
+typedef struct {
+	int			id;				// stable per particle while it lives (temporal filter)
+	vec3_t		origin;
+	float		radius;			// proxy radius (world units)
+	vec3_t		aspect;			// ellipsoid scale along the world axes (1 1 1 = sphere)
+	float		extinction;		// per world unit at the center, alpha fade included
+	float		color[3];		// scattering color (albedo) 0..1
+	float		softness;		// 0..1 of the radius over which the density fades to 0
+} refVolParticle_t;
+
 
 typedef enum {
 	STEREO_CENTER,

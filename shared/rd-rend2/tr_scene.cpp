@@ -30,6 +30,10 @@ int			r_firstSceneDlight;
 int			r_numfogvolumes;
 int			r_firstSceneFogVolume;
 
+int			r_numvolparticles;
+int			r_firstSceneVolParticle;
+int			r_volParticlesRejected;		// invalid or over the list this frame (tr_volparticle.cpp)
+
 int			r_numentities;
 int			r_firstSceneEntity;
 
@@ -58,6 +62,10 @@ void R_InitNextFrame( void ) {
 	r_numfogvolumes = 0;
 	r_firstSceneFogVolume = 0;
 
+	r_numvolparticles = 0;
+	r_firstSceneVolParticle = 0;
+	r_volParticlesRejected = 0;
+
 	r_numentities = 0;
 	r_firstSceneEntity = 0;
 
@@ -77,6 +85,7 @@ RE_ClearScene
 void RE_ClearScene( void ) {
 	r_firstSceneDlight = r_numdlights;
 	r_firstSceneFogVolume = r_numfogvolumes;
+	r_firstSceneVolParticle = r_numvolparticles;
 	r_firstSceneEntity = r_numentities;
 	r_firstScenePoly = r_numpolys;
 }
@@ -342,6 +351,31 @@ void RE_AddFogVolumeToScene( const refFogVolume_t *volume ) {
 
 /*
 =====================
+RE_AddVolumetricParticleToScene
+
+The participating medium of an FX particle for this scene
+(tr_volparticle.cpp), same lifetime as a dynamic light. Culled and capped
+when the froxel volume is built.
+=====================
+*/
+void RE_AddVolumetricParticleToScene( const refVolParticle_t *particle ) {
+	if ( !tr.registered || !particle || !r_volParticles->integer ) {
+		return;
+	}
+	if ( r_numvolparticles >= MAX_REF_VOL_PARTICLES ) {
+		r_volParticlesRejected++;
+		return;
+	}
+	if ( Q_isnan(particle->origin[0]) || Q_isnan(particle->origin[1]) || Q_isnan(particle->origin[2]) ||
+		!(particle->radius > 0.0f) || !(particle->extinction > 0.0f) ) {
+		r_volParticlesRejected++;
+		return;
+	}
+	backEndData->volParticles[r_numvolparticles++] = *particle;
+}
+
+/*
+=====================
 RE_AddLightToScene
 
 =====================
@@ -551,6 +585,8 @@ void RE_BeginScene(const refdef_t *fd)
 	R_FogVolumesBeginScene(fd);
 	tr.refdef.num_fogVolumes = r_numfogvolumes - r_firstSceneFogVolume;
 	tr.refdef.fogVolumes = &backEndData->fogVolumes[r_firstSceneFogVolume];
+	tr.refdef.num_volParticles = r_numvolparticles - r_firstSceneVolParticle;
+	tr.refdef.volParticles = &backEndData->volParticles[r_firstSceneVolParticle];
 
 	// Add the decals here because decals add polys and we need to ensure
 	// that the polys are added before the the renderer is prepared
@@ -607,6 +643,7 @@ void RE_EndScene()
 	r_firstSceneEntity = r_numentities;
 	r_firstSceneDlight = r_numdlights;
 	r_firstSceneFogVolume = r_numfogvolumes;
+	r_firstSceneVolParticle = r_numvolparticles;
 	r_firstScenePoly = r_numpolys;
 	tr.skyPortalEntities = 0;
 	tr.numCachedViewParms = 0;

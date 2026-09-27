@@ -128,6 +128,7 @@ cvar_t	*cl_reconnectArgs;
 refexport_t	*re = NULL;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
+const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 static void	*rendererLib = NULL;
 
 ping_t	cl_pinglist[MAX_PINGREQUESTS];
@@ -2323,6 +2324,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	re = NULL;
 	reAreaLights = NULL;
 	reFoliage = NULL;
+	reVolParticles = NULL;
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -2547,6 +2549,8 @@ void CL_InitRef( void ) {
 	reAreaLights = GetRefAreaLightAPI ? GetRefAreaLightAPI() : NULL;
 	GetRefFoliageAPI_t GetRefFoliageAPI = (GetRefFoliageAPI_t)Sys_LoadFunction( rendererLib, "GetRefFoliageAPI" );
 	reFoliage = GetRefFoliageAPI ? GetRefFoliageAPI() : NULL;
+	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
+	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
 
 	// unpause so the cgame definately gets a snapshot and renders a frame
 	Cvar_Set( "cl_paused", "0" );
