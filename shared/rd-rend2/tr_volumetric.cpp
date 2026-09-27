@@ -469,6 +469,7 @@ void R_CreateVolumetricImages( int width, int height )
 	tr.froxelCarryImage[0] = tr.froxelCarryImage[1] = NULL;
 	tr.froxelTailImage = NULL;
 	tr.froxelNoiseImage = NULL;
+	tr.froxelMediaImage = NULL;
 
 	if ( r_volumetricFog->integer != 2 )
 		return;
@@ -516,6 +517,13 @@ void R_CreateVolumetricImages( int width, int height )
 	tr.froxelTailImage = R_CreateImage(
 		"*froxelTail", NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+	// media self-shadow (r_volumetricSelfShadow, latched): the extinction of
+	// this frame, built before the injection, read along the light rays
+	if ( r_volumetricSelfShadow->integer )
+	{
+		tr.froxelMediaImage = R_CreateImage3D(
+			"*froxelMedia", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R16F);
+	}
 
 	R_CreateVolumetricNoiseImage();
 
@@ -530,6 +538,7 @@ void R_CreateVolumetricImages( int width, int height )
 
 void R_CreateVolumetricFBOs( void )
 {
+	tr.froxelMediaFbo = NULL;
 	tr.froxelInjectFbo = NULL;
 	tr.froxelIntegrateFbo = NULL;
 	tr.froxelCompositeFbo = NULL;
@@ -562,6 +571,19 @@ void R_CreateVolumetricFBOs( void )
 		qglDrawBuffers(tr.froxelParticleLightImage ? 3 : 2, bufs);
 	}
 	R_CheckFBO(tr.froxelInjectFbo);
+
+	// media (r_volumetricSelfShadow): the extinction volume alone, layered
+	if ( tr.froxelMediaImage )
+	{
+		tr.froxelMediaFbo = FBO_Create("_froxelMedia", s_vf.width, s_vf.height);
+		FBO_Bind(tr.froxelMediaFbo);
+		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelMediaImage->texnum, 0);
+		glState.currentFBO->colorImage[0] = tr.froxelMediaImage;
+		glState.currentFBO->colorBuffers[0] = tr.froxelMediaImage->texnum;
+		const GLenum buf = GL_COLOR_ATTACHMENT0;
+		qglDrawBuffers(1, &buf);
+		R_CheckFBO(tr.froxelMediaFbo);
+	}
 
 	// integration: a layer of the integrated volume and the carried state
 	tr.froxelIntegrateFbo = FBO_Create("_froxelIntegrate", s_vf.width, s_vf.height);
@@ -628,6 +650,13 @@ void R_CreateVolumetricFBOs( void )
 		{
 			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
 				tr.froxelParticleLightImage->texnum, 0, 0);
+		}
+
+		// media: empty (the layered attachment clears every layer)
+		if ( tr.froxelMediaFbo )
+		{
+			FBO_Bind(tr.froxelMediaFbo);
+			qglClearBufferfv(GL_COLOR, 0, zero);
 		}
 
 		FBO_Bind(tr.froxelIntegrateFbo);
@@ -1237,6 +1266,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	block->lightTileSize = 0;
 	block->lightTilesX = 0;
 	block->lightTilesY = 0;
+	VectorSet4(block->selfShadowLights, -1.0f, -1.0f, -1.0f, -1.0f);
 	s_vfl.hasLights = qfalse;
 
 	if ( !s_vfl.lightBuffers[0] || r_volumetricFogDlightScale->value <= 0.0f )
@@ -1278,6 +1308,39 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	}
 	if ( !numLights )
 		return;
+
+	// media self-shadow of the dynamic lights (r_volumetricSelfShadow 2): only
+	// the strongest few march through the media, scored by the light arriving
+	// near the camera, luminance * radius^2 / max(distance, radius / 4)^2
+	if ( tr.froxelMediaImage && r_volumetricSelfShadow->integer >= 2 )
+	{
+		const int maxShadowed = Com_Clampi(0, 4, r_volumetricSelfShadowLights->integer);
+		float best[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		for ( int n = 0; n < numLights; n++ )
+		{
+			const float *t = lightData[n * FROXEL_LIGHT_TEXELS];
+			const float radius = t[3];
+			const float luminance = 0.2126f * t[4] + 0.7152f * t[5] + 0.0722f * t[6];
+			const float dist = Q_max(Distance(t, view->ori.origin), 0.25f * radius);
+			const float score = luminance * radius * radius / Q_max(dist * dist, 1.0f);
+			if ( score <= 0.0f )
+				continue;
+			for ( int k = 0; k < maxShadowed; k++ )
+			{
+				if ( score > best[k] )
+				{
+					for ( int m = maxShadowed - 1; m > k; m-- )
+					{
+						best[m] = best[m - 1];
+						block->selfShadowLights[m] = block->selfShadowLights[m - 1];
+					}
+					best[k] = score;
+					block->selfShadowLights[k] = (float)n;
+					break;
+				}
+			}
+		}
+	}
 
 	// pass 1: counts, pass 2: fill (same order and cap)
 	s_vfl.lightCounts.assign(numClusters, 0);
@@ -1986,6 +2049,14 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorSet4(block.debugParams, (float)debug, r_volumetricFogBloom->value, 0.0f,
 		r_volumetricFogStaticDirectional->integer ? 1.0f : 0.0f);
 
+	// media self-shadow: the media pass builds the extinction of this frame
+	// before the injection (RB_VolumetricBuild)
+	VectorSet4(block.selfShadow,
+		tr.froxelMediaImage ? (float)r_volumetricSelfShadow->integer : 0.0f,
+		(float)Com_Clampi(2, 16, r_volumetricSelfShadowSamples->integer),
+		Com_Clamp(32.0f, 8192.0f, r_volumetricSelfShadowDistance->value),
+		r_volumetricSelfShadowOutside->integer ? 1.0f : 0.0f);
+
 	// height fog medium, added to the fog volumes by the injection
 	VectorCopy4(heightFog, block.heightFog);
 	VectorCopy4(heightFogColor, block.heightFogColor);
@@ -2381,8 +2452,29 @@ void RB_VolumetricBuild( void )
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	RB_VolumetricBindBlocks();
 
+	// media (r_volumetricSelfShadow): the extinction of this frame at the
+	// froxel centers, no jitter and no history, so the light rays of the
+	// injection see the current density (moving smoke) of every froxel. The
+	// injection program in its media mode (u_ParticleLight.z), all slices in
+	// one layered draw.
+	int timer;
+	if ( tr.froxelMediaFbo )
+	{
+		timer = RB_VolumetricBeginTimer("Froxel fog media");
+		shaderProgram_t *sp = &tr.volumetricInjectShader;
+		FBO_Bind(tr.froxelMediaFbo);
+		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
+		GLSL_BindProgram(sp);
+		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		const vec4_t mediaMode = { 0.0f, 0.0f, 1.0f, 0.0f };
+		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, mediaMode);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
+		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
+		RB_VolumetricEndTimer(timer);
+	}
+
 	// injection + temporal filter, one slice per draw
-	int timer = RB_VolumetricBeginTimer("Froxel fog inject");
+	timer = RB_VolumetricBeginTimer("Froxel fog inject");
 	{
 		shaderProgram_t *sp = &tr.volumetricInjectShader;
 		FBO_Bind(tr.froxelInjectFbo);
@@ -2414,6 +2506,8 @@ void RB_VolumetricBuild( void )
 			GL_BindToTMU(&s_vfl.lightImages[s_vfl.lightSlot], TB_FPLUS_LIGHTS);
 			GL_BindToTMU(&s_vfl.listImages[s_vfl.lightSlot], TB_FPLUS_GRID);
 		}
+		if ( tr.froxelMediaImage )
+			GL_BindToTMU(tr.froxelMediaImage, TB_FROXELMEDIA);
 
 		// every slice: instance k renders layer k
 		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
@@ -2592,6 +2686,9 @@ void RB_VolumetricDebugOverlay( void )
 	GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
 	if ( tr.froxelParticleLightImage )
 		GL_BindToTMU(tr.froxelParticleLightImage, TB_ENTITYGRID_AMBIENT);
+	// view 40: the extinction of this frame (r_volumetricSelfShadow)
+	if ( tr.froxelMediaImage )
+		GL_BindToTMU(tr.froxelMediaImage, TB_FROXELMEDIA);
 	// view 29: the dynamic light lists of the froxel slices
 	if ( s_vfl.hasLights )
 	{

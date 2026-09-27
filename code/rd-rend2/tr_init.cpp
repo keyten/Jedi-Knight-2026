@@ -113,6 +113,11 @@ cvar_t	*r_volumetricFogSunScale;
 cvar_t	*r_volumetricFogDlightScale;
 cvar_t	*r_volumetricFogStaticScale;
 cvar_t	*r_volumetricFogStaticDirectional;
+cvar_t	*r_volumetricSelfShadow;
+cvar_t	*r_volumetricSelfShadowSamples;
+cvar_t	*r_volumetricSelfShadowDistance;
+cvar_t	*r_volumetricSelfShadowOutside;
+cvar_t	*r_volumetricSelfShadowLights;
 cvar_t	*r_volumetricFogDlightShadows;
 cvar_t	*r_volumetricFogBloom;
 cvar_t	*r_volumetricEmission;
@@ -2329,6 +2334,16 @@ void R_Register( void )
 	r_volumetricFogStaticScale = ri_Cvar_Get_NoComm("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogStaticDirectional = ri_Cvar_Get_NoComm("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE, "Froxel fog: 1 = the directed (non-sun) light grid part gets the phase function along its baked direction, 0 = isotropic");
+	r_volumetricSelfShadow = ri_Cvar_Get_NoComm("r_volumetricSelfShadow", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: dense media shadow the light inside the media (current frame density along the light ray): 0 = off, 1 = sun, 2 = sun + the r_volumetricSelfShadowLights strongest dynamic lights (vid_restart)");
+	ri.Cvar_CheckRange(r_volumetricSelfShadow, 0, 2, qtrue);
+	r_volumetricSelfShadowSamples = ri_Cvar_Get_NoComm("r_volumetricSelfShadowSamples", "6", CVAR_ARCHIVE, "Froxel fog self-shadow: density samples along the sun ray (dynamic lights use half, at least 3)");
+	ri.Cvar_CheckRange(r_volumetricSelfShadowSamples, 2, 16, qtrue);
+	r_volumetricSelfShadowDistance = ri_Cvar_Get_NoComm("r_volumetricSelfShadowDistance", "768", CVAR_ARCHIVE, "Froxel fog self-shadow: length of the light ray march in world units (clipped to the froxel volume)");
+	ri.Cvar_CheckRange(r_volumetricSelfShadowDistance, 32, 8192, qfalse);
+	r_volumetricSelfShadowOutside = ri_Cvar_Get_NoComm("r_volumetricSelfShadowOutside", "1", CVAR_ARCHIVE, "Froxel fog self-shadow: 1 = beyond the march the height fog is integrated analytically (other media there count as empty), 0 = nothing beyond the march");
+	ri.Cvar_CheckRange(r_volumetricSelfShadowOutside, 0, 1, qtrue);
+	r_volumetricSelfShadowLights = ri_Cvar_Get_NoComm("r_volumetricSelfShadowLights", "2", CVAR_ARCHIVE, "Froxel fog self-shadow, r_volumetricSelfShadow 2: number of the strongest dynamic lights with a media shadow (0-4)");
+	ri.Cvar_CheckRange(r_volumetricSelfShadowLights, 0, 4, qtrue);
 	r_volumetricFogDlightShadows = ri_Cvar_Get_NoComm("r_volumetricFogDlightShadows", "1", CVAR_ARCHIVE, "Froxel fog: dynamic lights use their shadow maps (needs r_dlightMode 2)");
 	ri.Cvar_CheckRange(r_volumetricFogDlightShadows, 0, 1, qtrue);
 	r_volumetricFogBloom = ri_Cvar_Get_NoComm("r_volumetricFogBloom", "0", CVAR_ARCHIVE, "Froxel fog: bright in-scattering added to the glow buffer (bloom), 0 = none");
@@ -2336,8 +2351,8 @@ void R_Register( void )
 	r_volumetricEmission = ri_Cvar_Get_NoComm("r_volumetricEmission", "1", CVAR_ARCHIVE, "Froxel fog: scale of the emission of local fog volumes and FX particle media (glowing gas), 0 = off");
 	ri.Cvar_CheckRange(r_volumetricEmission, 0.0f, 16.0f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 39, qtrue);
+	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 45, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volParticles = ri_Cvar_Get_NoComm("r_volParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");

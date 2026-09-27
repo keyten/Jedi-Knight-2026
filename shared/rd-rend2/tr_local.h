@@ -182,6 +182,11 @@ extern cvar_t	*r_volumetricFogSunScale;
 extern cvar_t	*r_volumetricFogDlightScale;
 extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
+extern cvar_t	*r_volumetricSelfShadow;
+extern cvar_t	*r_volumetricSelfShadowSamples;
+extern cvar_t	*r_volumetricSelfShadowDistance;
+extern cvar_t	*r_volumetricSelfShadowOutside;
+extern cvar_t	*r_volumetricSelfShadowLights;
 extern cvar_t	*r_volumetricFogDlightShadows;
 extern cvar_t	*r_volumetricFogBloom;
 extern cvar_t	*r_volumetricEmission;
@@ -1301,6 +1306,8 @@ struct VolumetricFogBlock
 	vec4_t noiseLod;				// lod offsets log2(64 / period) - 1 (macro, detail), slice thickness / depth, w: 1 = noise on
 	vec4_t noiseNormMacro[4];		// mean normalization of the macro noise at lod 0, 0.5, ..., 7.5
 	vec4_t noiseNormDetail[4];		// same, detail noise
+	vec4_t selfShadow;				// media self-shadow: mode (0 off, 1 sun, 2 + lights), sun samples, distance, 1 = analytic height fog beyond
+	vec4_t selfShadowLights;		// indices of the self-shadowed dynamic lights in the light buffer, -1 = none
 	int numFogs;
 	int lightTileSize;				// dynamic light lists: froxels per tile side (0 = no lights)
 	int lightTilesX;				// tiles per slice
@@ -1330,7 +1337,7 @@ struct VolumetricFogBlock
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
 };
 
-// 15 456 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
+// 15 488 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
 // Volumetric FX particles of the froxel injection (tr_volparticle.cpp). Same
@@ -1465,6 +1472,10 @@ enum
 	// cookie, of lightall and volumetric_inject. Needs
 	// GL_MAX_TEXTURE_IMAGE_UNITS > 25, else r_lightCookies stays off.
 	TB_LIGHTCOOKIES      = 25,
+
+	// froxel fog extinction of this frame (r_volumetricSelfShadow), in
+	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
+	TB_FROXELMEDIA       = 13,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -2371,6 +2382,7 @@ typedef enum
 	UNIFORM_VOLUMETRICLEGACYGRID,	// merged legacy light grid (debug view 25)
 	UNIFORM_FROXELSLICE,	// slice rendered by the injection / integration pass
 	UNIFORM_FROXELNOISE,	// tiling density noise
+	UNIFORM_FROXELMEDIA,	// extinction of this frame (r_volumetricSelfShadow)
 
 	UNIFORM_FPLUSLIGHTS,	// Forward+ light data (buffer texture)
 	UNIFORM_FPLUSGRID,		// Forward+ cluster offset / count (buffer texture)
@@ -3599,7 +3611,8 @@ typedef struct trGlobals_s {
 	image_t					*froxelIntegratedImage;	// froxel fog: integrated in-scattering (rgb), transmittance (a)
 	image_t					*froxelCarryImage[2];	// froxel fog: integration state between slices
 	image_t					*froxelTailImage;	// froxel fog: last slice radiance (rgb) and extinction (a)
-	image_t					*froxelNoiseImage;	// froxel fog: tiling density noise, r = macro, g = detail (64^3, mips)
+	image_t					*froxelNoiseImage;
+	image_t					*froxelMediaImage;	// froxel fog: extinction of this frame, no history (r_volumetricSelfShadow light rays)	// froxel fog: tiling density noise, r = macro, g = detail (64^3, mips)
 	// shared screen-space infrastructure (tr_screenspace.cpp)
 	image_t					*screenNormalImage;	// rg = octahedral world normal, b = roughness, a = SSR receiver
 	image_t					*screenHiZImage;	// closest linear view depth, SCREEN_HIZ_MIPS levels
@@ -3655,6 +3668,7 @@ typedef struct trGlobals_s {
 	FBO_t					*historyFbo;
 	FBO_t					*motionBlurFbo;
 	FBO_t					*rainLensFbo;
+	FBO_t					*froxelMediaFbo;		// froxelMediaImage, layered (r_volumetricSelfShadow)
 	FBO_t					*froxelInjectFbo;		// layers attached per slice
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth

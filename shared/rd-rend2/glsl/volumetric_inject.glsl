@@ -131,6 +131,71 @@ vec3 FroxelWorldPosition(in vec3 froxel)
 	return u_FroxelViewOrigin.xyz + ray * d;
 }
 
+// Media self-shadow (r_volumetricSelfShadow, u_FroxelSelfShadow): the light reaching a froxel is
+// attenuated by exp(-optical depth) of the media between it and the light. The media pass
+// (u_ParticleLight.z = 1, RB_VolumetricBuild) writes the extinction of this frame at the froxel
+// centers into u_FroxelMedia (R16F, no jitter, no history: moving smoke shadows where it is now);
+// the injection marches it along the light ray. Geometry shadows are applied separately.
+uniform sampler3D u_FroxelMedia;
+
+// volume texture coordinates of p (texel centers = froxel centers); false outside the volume
+bool FroxelMediaCoord(in vec3 p, out vec3 coord)
+{
+	vec4 clip = u_FroxelViewProjection * vec4(p, 1.0);
+	coord = vec3(0.0);
+	if (clip.w <= 1e-3 || clip.w > u_FroxelSliceParams.y)
+		return false;
+	// clip.w = view depth (as the history reprojection)
+	coord = vec3(clip.xy / clip.w * 0.5 + 0.5, FroxelDepthToW(clip.w));
+	return all(greaterThanEqual(coord.xy, vec2(0.0))) && all(lessThanEqual(coord.xy, vec2(1.0)));
+}
+
+// Optical depth of the media along p + dir * t, t in [0, len]: steps samples, one per interval of
+// a quadratic spacing (dense near p, where the shadow detail is), jittered inside its interval
+// (jitter in [0, 1), the history averages the offsets). The camera relative volume knows nothing
+// outside the view frustum and beyond far: where the ray leaves it the march stops and those media
+// count as empty. With u_FroxelSelfShadow.w the height fog, known everywhere, is integrated
+// analytically from where the march ended up to total (>= len).
+float FroxelMediaOpticalDepth(in vec3 p, in vec3 dir, in float len, in float total, in int steps,
+	in float jitter)
+{
+	float tau = 0.0;
+	float tEnd = len;
+	float invSteps = 1.0 / float(steps);
+	float e0 = 0.0;
+	for (int i = 0; i < steps; i++)
+	{
+		float x = float(i + 1) * invSteps;
+		float e1 = len * x * x;
+		vec3 coord;
+		if (!FroxelMediaCoord(p + dir * mix(e0, e1, jitter), coord))
+		{
+			tEnd = e0;
+			break;
+		}
+		tau += texture(u_FroxelMedia, coord).r * (e1 - e0);
+		e0 = e1;
+	}
+
+	if (u_FroxelSelfShadow.w > 0.5 && u_FroxelHeightFog.x > 0.0 && total > tEnd)
+	{
+		vec3 a = p + dir * tEnd;
+		tau += FroxelHeightOpticalDepth(a, p + dir * total, total - tEnd);
+	}
+	return tau;
+}
+
+// march offset of a froxel: interleaved gradient noise, rotated every frame with the temporal
+// accumulation, the interval centers without it
+float FroxelSelfShadowJitter(in ivec2 cell, in int slice, in float temporal)
+{
+	if (temporal <= 0.0)
+		return 0.5;
+	vec2 q = vec2(cell) + float(slice) * vec2(5.588238, 3.137);
+	float n = fract(52.9829189 * fract(dot(q, vec2(0.06711056, 0.00583715))));
+	return fract(n + u_FroxelGridSize.w * 0.61803399);
+}
+
 // extinction of the height fog at p, world anchored:
 //   sigma0 * min(exp(-(z - base) / falloff), maxScale) * (1 - smoothstep(top - fade, top, z - base))
 float FroxelHeightExtinction(in vec3 p)
@@ -726,7 +791,7 @@ vec4 FroxelPhases(in vec4 g, in float cosTheta)
 // dynamic lights of the cluster at p (viewDir: camera to p, unit), with the phase of each g
 // (FroxelPhases): light0..2 for the lobe slots, lightGlobal for the global g. The lights, shadows
 // and cookies are evaluated once, each g only costs its phase.
-void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, out vec3 light0,
+void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in float jitter, out vec3 light0,
 	out vec3 light1, out vec3 light2, out vec3 lightGlobal)
 {
 	light0 = vec3(0.0);
@@ -772,6 +837,14 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, out v
 				shadow = SpotLightShadow(originRadius.xyz, L, dist, shadowLayer, spot.w);
 			else
 				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
+		}
+
+		// media self-shadow of the strongest few lights (r_volumetricSelfShadow 2, chosen by
+		// R_VolumetricBuildLightLists), half the sun samples; the others only get their geometry shadow
+		if (u_FroxelSelfShadow.x > 1.5 && shadow > 0.0 && any(equal(vec4(float(i)), u_FroxelSelfShadowLights)))
+		{
+			int steps = max(3, int(u_FroxelSelfShadow.y) / 2);
+			shadow *= exp(-FroxelMediaOpticalDepth(p, L / dist, min(dist, u_FroxelSelfShadow.z), dist, steps, jitter));
 		}
 
 		// cookie (tr_lightcookie.cpp): the radiance leaving the lamp towards p
@@ -896,6 +969,21 @@ void main()
 	ivec2 cell = ivec2(gl_FragCoord.xy);
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
+
+	// media pass (r_volumetricSelfShadow): the extinction of this frame at the froxel center
+	if (u_ParticleLight.z > 0.5)
+	{
+		float unused0, unused1, unused2, unused3, unused4;
+		vec3 center = FroxelWorldPosition(vec3(vec2(cell) + 0.5, float(var_Slice) + 0.5));
+		float extinction = FroxelMedium(center, debugView, false, unused0, unused1, unused2, unused3,
+			unused4).extinction;
+		if (isnan(extinction) || isinf(extinction))
+			extinction = 0.0;
+		out_Color = vec4(max(extinction, 0.0));
+		out_Dynamic = vec4(0.0);
+		out_ParticleLight = vec4(0.0);
+		return;
+	}
 	// the global g: the tail beyond far and the sprite particle light field (not a medium)
 	float g = u_FroxelLightParams.x;
 
@@ -956,6 +1044,27 @@ void main()
 	if (medium.extinction > 0.0)
 		staticLight = BakedAndSunLight(p, temporal, vec4(medium.g, g), debugView);
 
+	// media self-shadow of the sun: the optical depth of this frame's media towards the sun, on top
+	// of the geometry (cascade) shadow. Only where the froxel has a medium lit by the sun, or the
+	// sprite particle light field needs it.
+	float selfShadowJitter = FroxelSelfShadowJitter(cell, var_Slice, temporal);
+	float mediaTau = 0.0;
+	float mediaT = 1.0;
+	vec3 sunGeometry = staticLight.sun;
+	if (u_FroxelSelfShadow.x > 0.5 && u_FroxelSunDirection.w > 0.5 &&
+		((medium.extinction > 0.0 && any(greaterThan(staticLight.sunUnshadowed, vec3(0.0)))) || u_ParticleLight.x > 0.5))
+	{
+		mediaTau = FroxelMediaOpticalDepth(p, u_FroxelSunDirection.xyz, u_FroxelSelfShadow.z, 32768.0,
+			int(u_FroxelSelfShadow.y), selfShadowJitter);
+		mediaT = exp(-mediaTau);
+	}
+	staticLight.sun *= mediaT;
+	// debug views 43 geometry shadow only, 44 media shadow only (45 = both, as view 3)
+	if (debugView == 43)
+		staticLight.sun = sunGeometry;
+	else if (debugView == 44)
+		staticLight.sun = staticLight.sunUnshadowed * mediaT;
+
 	// dynamic lights
 	vec3 dynamic0 = vec3(0.0);
 	vec3 dynamic1 = vec3(0.0);
@@ -964,7 +1073,8 @@ void main()
 	if (mediumCenter.extinction > 0.0)
 	{
 		vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
-		DynamicLights(cluster, pc, viewDir, vec4(mediumCenter.g, g), dynamic0, dynamic1, dynamic2, dynamicGlobal);
+		DynamicLights(cluster, pc, viewDir, vec4(mediumCenter.g, g), selfShadowJitter, dynamic0, dynamic1, dynamic2,
+			dynamicGlobal);
 		dynamic0 *= u_FroxelLightParams.z;
 		dynamic1 *= u_FroxelLightParams.z;
 		dynamic2 *= u_FroxelLightParams.z;
@@ -988,7 +1098,7 @@ void main()
 		{
 			FroxelStaticLight l = BakedAndSunLight(pc, 0.0, vec4(g), 0);
 			particleStatic = FroxelStaticLobe(l, 3);
-			particleSun = FroxelSunLobe(l, 3);
+			particleSun = FroxelSunLobe(l, 3) * mediaT;
 		}
 
 		vec3 particleDynamic = dynamicGlobal;
@@ -996,7 +1106,7 @@ void main()
 		{
 			vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
 			vec3 unused0, unused1, unused2;
-			DynamicLights(cluster, pc, viewDir, vec4(g), unused0, unused1, unused2, particleDynamic);
+			DynamicLights(cluster, pc, viewDir, vec4(g), selfShadowJitter, unused0, unused1, unused2, particleDynamic);
 			particleDynamic *= u_FroxelLightParams.z;
 		}
 
@@ -1030,7 +1140,7 @@ void main()
 		static0 = static1 = static2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
-	else if (debugView == 3)
+	else if (debugView == 3 || (debugView >= 43 && debugView <= 45))
 	{
 		static0 = static1 = static2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
@@ -1072,7 +1182,9 @@ void main()
 	//   38 effective mixed g (scattering weighted mean cosine): red > 0 forward, blue < 0 backward
 	//   39 phase of the sunlight towards the camera, the lobe mixture: P / (1 + P), 0.5 grey =
 	//      isotropic, brighter forward, darker backward
-	bool mediumDebug = debugView >= 35 && debugView <= 39;
+	//   41 optical depth of the media towards the sun / 8 (r_volumetricSelfShadow)
+	//   42 media transmittance towards the sun
+	bool mediumDebug = debugView >= 35 && debugView <= 42 && debugView != 40;
 	if (mediumDebug)
 	{
 		vec3 scatter = medium.scatter0 + medium.scatter1 + medium.scatter2;
@@ -1087,6 +1199,10 @@ void main()
 			float strongest = max(w.x, max(w.y, w.z)) / max(w.x + w.y + w.z, 1e-20);
 			value = vec3(medium.lobes / 3.0, medium.merged, 1.0 - strongest);
 		}
+		else if (debugView == 41)
+			value = vec3(mediaTau * 0.125);
+		else if (debugView == 42)
+			value = vec3(mediaT);
 		else if (debugView == 38)
 		{
 			float gMixed = FroxelLobeMean(medium, medium.g);

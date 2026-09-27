@@ -48,6 +48,8 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelNoiseLod;				// lod offsets (macro, detail), slice thickness / view depth, w: 1 = noise on
 	vec4 u_FroxelNoiseNormMacro[4];		// mean normalization at lod 0, 0.5, ..., 7.5
 	vec4 u_FroxelNoiseNormDetail[4];
+	vec4 u_FroxelSelfShadow;			// media self-shadow: mode (0 off, 1 sun, 2 + lights), sun samples, distance, 1 = analytic height fog beyond
+	vec4 u_FroxelSelfShadowLights;		// light buffer indices of the self-shadowed dynamic lights, -1 = none
 	int u_FroxelNumFogs;
 	int u_FroxelLightTile;					// dynamic light lists: froxels per tile side (0 = no lights)
 	int u_FroxelLightTilesX;

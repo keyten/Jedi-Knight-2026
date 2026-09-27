@@ -61,6 +61,7 @@ uniform sampler2D u_ScreenDepthMap;
 uniform samplerBuffer u_FPlusLights;
 uniform usamplerBuffer u_FPlusGridMap;
 #define FROXEL_LIGHT_TEXELS 4
+uniform sampler3D u_FroxelMedia;	// extinction of this frame (r_volumetricSelfShadow, view 40)
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
 
 out vec4 out_Color;
@@ -187,7 +188,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34))
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34) || (view >= 43 && view <= 45))
 	{
 		color = Display(fog.rgb);
 	}
@@ -250,7 +251,18 @@ void main()
 		// extinction: the opacity of the medium along the ray
 		color = vec3(1.0 - fog.a);
 	}
-	else if (view >= 36 && view <= 39)
+	else if (view == 40)
+	{
+		// extinction of this frame (media pass) at the surface slice, as view 14
+		vec4 clip = u_FroxelViewProjection * vec4(worldPos, 1.0);
+		vec2 uv = clamp(clip.xy / max(clip.w, 1e-3) * 0.5 + 0.5, 0.0, 1.0);
+		float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+		float w = FroxelDepthToW(min(d, u_FroxelSliceParams.y));
+		float slice = min(floor(w * u_FroxelGridSize.z), u_FroxelGridSize.z - 1.0);
+		float extinction = texture(u_FroxelMedia, vec3(uv, (slice + 0.5) / u_FroxelGridSize.z)).r;
+		color = (u_FroxelSelfShadow.x > 0.5) ? Heat(extinction * 512.0 / 4.0) : vec3(0.3, 0.0, 0.3);
+	}
+	else if (view >= 36 && view <= 42)
 	{
 		// opacity weighted mean of the medium value along the ray (the injection writes value *
 		// extinction), dark grey where there is (almost) no medium

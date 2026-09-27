@@ -1496,6 +1496,139 @@ vs `*-vfog.dll`).
 | emit: rapid disappear | `r_fogvol clear`, end of the explosion | glow gone on the same frame, no after-image | 34 |
 | emit: off | `r_volumetricEmission 0` | exactly the scattering-only look | 32 vs 30 |
 
+## Media self-shadowing (`r_volumetricSelfShadow`)
+
+Dense media dim the direct light inside themselves: the light reaching a froxel is multiplied by
+`T_light = exp(-∫σt ds)` along the ray towards the light, on top of the geometry shadow (cascades for the sun,
+shadow cubes / spot maps for dynamic lights). The geometry shadows are unchanged and are still applied separately.
+
+### Pass architecture
+
+Before this change the injection computed the medium and its lighting in one fragment and wrote
+`froxelInject = (scatter · L, σt)` after the temporal blend. A froxel could not see the density of the other
+froxels in the same frame, so a light ray march was impossible without a feedback loop.
+
+```
+before:  inject (medium + light + history) -> integrate -> composite
+after:   media (σt, this frame) -> inject (medium + light + light-ray march in the media + history)
+                                -> integrate -> composite
+```
+
+1. **Media pass** ("Froxel fog media" timer). This is the injection program in media mode (`u_ParticleLight.z = 1`),
+   drawn as one layered instanced draw with every slice. It evaluates `FroxelMedium` at the froxel centers: the BSP
+   fogs, height fog and noise, local volumes and volumetric FX particles. It uses no jitter and no history, and
+   writes `froxelMediaImage`.
+2. **Injection** samples `froxelMediaImage` (`u_FroxelMedia`, unit 13) along the light rays. It writes different
+   images, so there is no read/write feedback. It still evaluates `FroxelMedium` itself for its own lobes and albedo.
+   The texture is used only for the light rays.
+3. Integration and composite are unchanged.
+
+With `r_volumetricSelfShadow 0` the image, the FBO and the media pass do not exist, and the injection takes one
+uniform branch.
+
+### Current vs. history density
+
+The light rays read the current frame's extinction only, so moving smoke shadows where it is now. The temporal
+accumulation still applies to the injected radiance, and the existing radiance clamp absorbs shadow changes. The
+extinction that the integration uses (alpha of `froxelInject`) is still blended with history, as before. That is
+unchanged and out of scope here.
+
+### Sun
+
+`FroxelMediaOpticalDepth` marches from the jittered froxel sample towards the sun, over
+`r_volumetricSelfShadowDistance` (default 768 units):
+
+- `r_volumetricSelfShadowSamples` samples (default 6, range 2–16). Interval edges are `len · (i/N)²`, dense near
+  the froxel where the shadow detail is. There is one sample per interval, at a jittered position inside it.
+- The jitter is interleaved gradient noise per froxel, rotated each frame. With temporal accumulation off it sits
+  at the interval center. The history averages the offsets.
+- Density is fetched with trilinear filtering from the R16F volume.
+- The march runs only where the froxel has a medium lit by the sun, or for the sprite particle light field.
+
+The transmittance multiplies the sun term only (realtime and the trusted baked sun part). The isotropic and
+directed baked light are not attenuated: their direction is not a single ray. The sprite particle light field
+(`r_particleLight`) gets the same sun attenuation, so sprites inside smoke darken too.
+
+**Sample count cost.** At quality 1 and 1080p (240×135×48 ≈ 1.56 M froxels) and 6 samples, the worst case is
+≈ 9.3 M trilinear fetches per frame. Only froxels with a medium pay. The default must be chosen by measurement
+(see the timing table).
+
+### Frustum limitation
+
+The froxel volume is camera relative. It knows nothing about media outside the view frustum or beyond the far
+distance. When a light ray leaves the volume (side planes, far plane, behind the camera):
+
+- The march stops. The unknown media there count as **empty**. A smoke column just outside the screen edge
+  therefore casts no media shadow into the view, and its shadow appears when it enters the frustum.
+- With `r_volumetricSelfShadowOutside 1` (default), the height fog is added analytically from the point where the
+  march ended to the end of the ray (`FroxelHeightOpticalDepth`, exact; the noise is not included). The sun ray is
+  treated as 32768 units, and a light ray ends at the light. The height fog is the only medium known everywhere.
+  BSP fogs, local volumes and particles beyond the march are not included.
+- Media beyond `r_volumetricSelfShadowDistance` on a ray that stays inside the volume are also ignored, except
+  the analytic height fog.
+
+Expected artefact: a slight brightening of the self-shadow where rays leave the frustum close to the screen
+edges. It is most visible with a low sun pointing sideways out of the view, and in view 41 near the screen border.
+
+### Dynamic lights
+
+`r_volumetricSelfShadow 2` adds the media shadow to the `r_volumetricSelfShadowLights` strongest dynamic lights
+(default 2, max 4). `R_VolumetricBuildLightLists` chooses them by
+`luminance · radius² / max(distance to camera, radius/4)²` and passes their light buffer indices in
+`u_FroxelSelfShadowLights`. They use half the sun samples (at least 3) over `min(distance to light,
+r_volumetricSelfShadowDistance)`. The analytic height fog applies up to the light. All other lights keep only
+their geometry shadows. Mode 1 is sun only.
+
+### Resources
+
+| resource | format | size (1080p, quality 1: 240×135×48) | quality 2 (64 slices) |
+|---|---|---|---|
+| `froxelMediaImage` | R16F 3D | 3.1 MB | 4.1 MB |
+| `_froxelMedia` FBO | layered, 1 attachment | – | – |
+| VolumetricFog block | +2 vec4 (`u_FroxelSelfShadow`, `u_FroxelSelfShadowLights`) | 15 488 bytes | |
+
+### Cvars
+
+| cvar | default | |
+|---|---|---|
+| `r_volumetricSelfShadow` | 0 | 0 off, 1 sun, 2 sun + strongest lights (latched, vid_restart) |
+| `r_volumetricSelfShadowSamples` | 6 | sun samples (lights: half, min 3) |
+| `r_volumetricSelfShadowDistance` | 768 | light ray march length (world units) |
+| `r_volumetricSelfShadowOutside` | 1 | analytic height fog beyond the march |
+| `r_volumetricSelfShadowLights` | 2 | number of self-shadowed dynamic lights (mode 2) |
+
+### Debug views (`r_volumetricFogDebug`)
+
+| view | shows |
+|---|---|
+| 40 | media density of this frame (media pass) at the surface slice, heat as view 14; purple = self-shadow off |
+| 41 | sun ray optical depth / 8, opacity weighted along the view ray |
+| 42 | sun media transmittance, opacity weighted |
+| 43 | sun light with the geometry shadow only |
+| 44 | sun light with the media shadow only |
+| 45 | sun light with both (= view 3 with self-shadow on) |
+
+### Validation (in game, not run yet)
+
+No new assets are needed. Use a dense debug local volume (see "Local fog volumes", e.g. an `env.json` FogVolume
+or `r_fogvol` with a high density) or the smoke test PK3 from the volumetric FX particle task.
+
+- Dense sphere lit by the sun: in view 42 the sun side is bright and the far side is dark. In view 45 the
+  side facing away from the sun is darker than with `r_volumetricSelfShadow 0`.
+- Moving smoke: the view 44 shadow follows the puff with no lag (current density).
+- Smoke next to a wall: view 43 shows only the wall shadow, view 44 only the smoke, view 45 both.
+- Thin legacy BSP fog / thin height haze: T ≈ 1, a subtle change. A very dense BSP fog darkens noticeably; that
+  is physically right for that density.
+- Frustum boundary: turn the camera past a dense volume and watch the shadow inside the view near the screen
+  edge (the expected artefact above).
+- Timings, `r_speeds 100`, quality 1:
+
+| samples | Froxel fog media | Froxel fog inject (self-shadow on) | inject (off) |
+|---|---|---|---|
+| 4 | | | |
+| 6 | | | |
+| 8 | | | |
+
 ## Known limitations
 
 - Only the main view of the first world scene has a volume; portals, mirrors, the sky portal and the LA goggles

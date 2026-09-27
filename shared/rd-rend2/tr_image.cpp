@@ -2605,6 +2605,11 @@ image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, in
 		dataFormat = GL_RGBA;
 		dataType = GL_HALF_FLOAT;
 	}
+	else if (internalFormat == GL_R16F)
+	{
+		dataFormat = GL_RED;
+		dataType = GL_HALF_FLOAT;
+	}
 	else if (internalFormat == GL_RGB16)
 	{
 		dataFormat = GL_RGB;
