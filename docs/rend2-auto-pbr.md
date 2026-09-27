@@ -327,3 +327,39 @@ for each scene/subject. F8 captures `r_autoPBR 0/1/2` + `r_autoPBRDebug 1/2`, F7
   IBL from the cubemaps, is the next big step.
 - **Normal maps.** Only 42 of 1191 player textures have `_n`/`_nh`. Generated normal quality
   (`r_genNormalMaps`) or hand-made normal maps for key characters matter a lot for per-pixel lighting.
+
+## Part 3: roughness variation (`r_autoPBRRoughness`, task 10)
+
+`r_autoPBRRoughness 0` (default) = constant class roughness. `1` = a generated `<diffuse>_aORMS`
+map for `PBR_SOURCE_LEGACY` stages only. Authored `_specGloss/_rmo/_orm`, explicit maps, scalar
+keywords and converted `LEGACY_SPEC` stages are never touched. The maps are built at shader
+registration (turning it on needs `vid_restart`). At draw time the map is bound instead of
+`whiteImage` only while `r_autoPBR` and `r_autoPBRRoughness` are both on, so turning it off is instant.
+
+Algorithm (`R_BuildAutoRoughnessORMSImage`, tr_image.cpp; numpy port `tools/rend2_autorough_preview.py`):
+1. linear luminance, box downsampled to ≤512;
+2. `d = log L − lowpass(log L)` (2× box, radius size/32): baked light, creases and painted highlights
+   become a ratio to their neighbourhood, absolute brightness is gone;
+3. `v` = 3×3 std-dev of `d` (magnitude, sign-free), normalised by its own 90th percentile, `1−e^(−2v)`;
+4. highlight guard: where the low pass is in the top 3 %, `v` fades to its mean;
+5. `m = 1 − 0.25·(1 − v)`; texel = canonical ORMS (1, m, 1, 1), a multiplier of the class values.
+
+The mean of `m` is stored in `image_t::autoRoughness`. `R_AutoPBRSpecularScale` sets
+rough = class / mean (up to 2), and lightall clamps `ORMS.y` to 1 per texel, so the average stays at
+the class value. Result: roughly ±0.1 around the class value, standard mips (the multiplier
+averages toward its mean, which is never glossier; no sparkle source).
+
+Refused on purpose: no `1 − luma`, no AO from diffuse, no spatial metalness (painted metal + cloth
+in one texture keeps its class constant, and the fix is an authored `_orm`). A flat texture
+(p90 < 0.01) gets a constant map.
+
+Cost: numpy port 50–80 ms for 512², ~300 ms for 2048² (the downsample dominates). The C++ version
+is O(pixels) with sliding-window blurs; real timings are printed per map with `developer 1`, and as
+a total by `pbr_dumpMaterials` ("N roughness maps generated in X ms"). Memory: ≤512² RGBA +
+mips per legacy diffuse.
+
+Debug: `r_autoPBRDebug 3` shows the final roughness in grey (blue = not auto PBR);
+`pbr_dumpMaterials` lists `rough-gen <map> mean sigma`.
+
+Known artifact: UV island borders against a black atlas background count as detail and become
+rough outlines. They are mostly off-surface texels, but they can bleed at low mips.

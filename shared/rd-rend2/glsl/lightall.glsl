@@ -3366,7 +3366,8 @@ void main()
 	specular.rgb = mix(vec3(0.08) * ORMS.w, diffuse.rgb, ORMS.z);
 	diffuse.rgb *= vec3(1.0 - ORMS.z);
 
-	roughness = mix(0.01, 1.0, ORMS.y);
+	// r_autoPBRRoughness scales past 1 to keep the class mean (tr_autopbr.cpp)
+	roughness = mix(0.01, 1.0, min(ORMS.y, 1.0));
 	AO = min(ORMS.x, AO);
   #else
     #if defined(USE_SILHOUETTE_POM)
@@ -3862,6 +3863,9 @@ void main()
 	if (u_MaterialDebug.a > 0.0)
 	{
 		vec3 debugColor = u_MaterialDebug.rgb;
+		// r_autoPBRDebug 3: final perceptual roughness (ORMS.y after u_SpecularScale)
+		if (u_MaterialDebug.a > 1.5)
+			debugColor = vec3(roughness);
 		if (u_LeafFlutterDebug == 8.0)
 			debugColor = mix(vec3(0.05, 0.1, 0.8), vec3(1.0, 0.85, 0.1), var_LeafFlutter);
 		out_Color = vec4(debugColor * (0.35 + 0.65 * NE), diffuse.a);

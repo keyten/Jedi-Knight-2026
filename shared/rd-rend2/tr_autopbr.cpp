@@ -164,7 +164,22 @@ qboolean R_AutoPBRSpecularScale( const shaderStage_t *stage, vec4_t out )
 	out[1] = m->specular;
 	out[2] = m->ao;
 	out[3] = m->roughness;
+	// generated map: the texels are 1 - 0.25 * (1 - detail), divide their
+	// mean out so the average roughness stays the class value. Rough classes
+	// need a scale above 1; lightall clamps the product per texel
+	const image_t *orms = R_AutoPBRRoughnessImage( stage );
+	if ( orms && orms->autoRoughness[0] > 0.0f )
+		out[3] = Com_Clamp( 0.0f, 2.0f, m->roughness / orms->autoRoughness[0] );
 	return qtrue;
+}
+
+// r_autoPBRRoughness: the generated ORMS map to bind instead of whiteImage
+image_t *R_AutoPBRRoughnessImage( const shaderStage_t *stage )
+{
+	if ( !stage->autoRoughnessImage || !r_autoPBR->integer || !r_autoPBRRoughness->integer ||
+		stage->pbrSource != PBR_SOURCE_LEGACY )
+		return NULL;
+	return stage->autoRoughnessImage;
 }
 
 qboolean R_AutoPBRDebugColor( const shaderStage_t *stage, vec4_t out )
@@ -183,6 +198,17 @@ qboolean R_AutoPBRDebugColor( const shaderStage_t *stage, vec4_t out )
 
 	if ( stage->pbrSource == PBR_SOURCE_NONE )
 		return qfalse;
+
+	if ( r_autoPBRDebug->integer == 3 )
+	{
+		// lightall shows its final roughness in grey (a = 2), everything
+		// r_autoPBR does not drive is tinted blue
+		if ( R_IsAutoPBRSource( stage->pbrSource ) && r_autoPBR->integer )
+			VectorSet4( out, 1.0f, 1.0f, 1.0f, 2.0f );
+		else
+			VectorSet4( out, 0.15f, 0.25f, 0.6f, 1.0f );
+		return qtrue;
+	}
 
 	if ( r_autoPBRDebug->integer == 2 )
 	{
@@ -700,6 +726,11 @@ void R_PBRDumpMaterials_f( void )
 					masked ? " mask " : "",
 					masked && stage->legacySpecImage ? stage->legacySpecImage->imgName : "",
 					stage->legacyEnvDropped ? " (env stage dropped)" : "" );
+				if ( stage->autoRoughnessImage )
+					ri.Printf( PRINT_ALL, "     rough-gen %s mean %.3f sigma %.3f%s\n",
+						stage->autoRoughnessImage->imgName, stage->autoRoughnessImage->autoRoughness[0],
+						stage->autoRoughnessImage->autoRoughness[1],
+						R_AutoPBRRoughnessImage( stage ) ? "" : " (inactive)" );
 			}
 			else
 			{
@@ -729,6 +760,8 @@ void R_PBRDumpMaterials_f( void )
 	for ( int c = 0; c < MATCLASS_COUNT; c++ )
 		ri.Printf( PRINT_ALL, " %s %d", materialDefaults[c].name, perClass[c] );
 	ri.Printf( PRINT_ALL, "\n" );
+	ri.Printf( PRINT_ALL, "r_autoPBRRoughness %d: %d roughness maps generated in %d ms\n",
+		r_autoPBRRoughness->integer, autoRoughnessMaps, autoRoughnessMsec );
 	if ( gouraud && !r_autoPBRConvert->integer )
 		ri.Printf( PRINT_ALL, "gouraud stages are vertex lit (generic.glsl); r_autoPBRConvert 1 + vid_restart converts the lightingSpecular ones\n" );
 }

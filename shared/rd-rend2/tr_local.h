@@ -377,6 +377,7 @@ extern cvar_t  *r_foliageFieldImpulse;
 extern cvar_t  *r_foliageFieldDebug;
 extern cvar_t  *r_plantWind;
 extern cvar_t  *r_autoPBRConvert;
+extern cvar_t  *r_autoPBRRoughness;
 extern cvar_t  *r_diffuseBRDF;
 extern cvar_t  *r_diffuseIBL;
 extern cvar_t  *r_diffuseIBLStrength;
@@ -694,6 +695,10 @@ typedef struct image_s {
 	// 0 = top), the relief the height aware puddles use (tr_weather.cpp);
 	// 0 0 for every other image
 	float		heightRange[2];
+
+	// r_autoPBRRoughness map (<diffuse>_aORMS): mean and std-dev of the
+	// roughness multiplier; 0 0 for every other image
+	float		autoRoughness[2];
 } image_t;
 
 typedef struct cubemap_s {
@@ -1507,6 +1512,7 @@ typedef struct {
 	qboolean        pbrDrawn;		// drawn since registration, for pbr_dumpMaterials
 	image_t        *legacySpecImage;	// r_autoPBRConvert: mask of the removed lightingSpecular stage
 	qboolean        legacyEnvDropped;	// r_autoPBRConvert: fake tcGen environment stage removed
+	image_t        *autoRoughnessImage;	// r_autoPBRRoughness: generated ORMS of a legacy stage, bound at draw time
 	struct shaderProgram_s *glslShaderGroup;
 	int glslShaderIndex;
 
@@ -5005,6 +5011,8 @@ void R_LoadPackedMaterialImage(shaderStage_t *stage, const char *packedImageName
 image_t *R_BuildSDRSpecGlossImage(shaderStage_t *stage, const char *specImageName, int flags);
 image_t *R_BuildNormalHeightImage(const char *normalName, const char *heightName, int flags);
 image_t *R_BuildLegacySpecORMSImage(const char *specImageName, int flags);
+image_t *R_BuildAutoRoughnessORMSImage(const char *diffuseName, int flags);
+extern int autoRoughnessMaps, autoRoughnessMsec;
 qhandle_t RE_RegisterShader( const char *name );
 qhandle_t RE_RegisterShaderNoMip( const char *name );
 const char		*RE_ShaderNameFromIndex(int index);
@@ -5047,6 +5055,7 @@ typedef struct { materialClass_t cls; const char *reason; const char *token; } m
 void R_ClassifyMaterialName(materialMatch_t *match, const char *shaderName, const char *diffuseName);
 qboolean R_AutoPBRSpecularScale(const shaderStage_t *stage, vec4_t out);
 qboolean R_AutoPBRDebugColor(const shaderStage_t *stage, vec4_t out);
+image_t *R_AutoPBRRoughnessImage(const shaderStage_t *stage);
 const char *R_MaterialClassName(materialClass_t cls);
 // r_weatherWetness response of the stage class: darkening, wet roughness scale, normal flattening
 void R_WetnessResponse(const shaderStage_t *stage, vec3_t out);

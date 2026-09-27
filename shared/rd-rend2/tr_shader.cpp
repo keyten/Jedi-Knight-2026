@@ -3555,6 +3555,11 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 						stage->specularScale[1] = 0.5f;
 						stage->pbrSource = stage->specularScaleAuthored ?
 							PBR_SOURCE_SCALAR : PBR_SOURCE_LEGACY;
+						// r_autoPBRRoughness: roughness variation from the diffuse
+						// detail, bound instead of whiteImage at draw time only
+						// while r_autoPBR and r_autoPBRRoughness are on
+						if (stage->pbrSource == PBR_SOURCE_LEGACY && r_autoPBRRoughness->integer)
+							stage->autoRoughnessImage = R_BuildAutoRoughnessORMSImage(diffuseImg->imgName, specularFlags);
 					}
 				}
 				if (stage->pbrSource == PBR_SOURCE_NONE)

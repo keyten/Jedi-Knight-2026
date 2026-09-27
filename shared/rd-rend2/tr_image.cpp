@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "glext.h"
 #include "tr_smaa.h"
 
+#include <algorithm>
+
 static byte			 s_intensitytable[256];
 static unsigned char s_gammatable[256];
 
@@ -3080,6 +3082,231 @@ image_t *R_BuildLegacySpecORMSImage(const char *specImageName, int flags)
 
 	image = R_CreateImage(ormsName, pic, width, height, IMGTYPE_COLORALPHA, flags, 0);
 	Z_Free(pic);
+
+	return image;
+}
+
+/*
+===============
+R_BuildAutoRoughnessORMSImage
+
+r_autoPBRRoughness 1: subtle roughness variation for a legacy diffuse-only
+stage (docs/rend2-auto-pbr.md). NOT roughness = 1 - luma: the absolute
+brightness of an old texture is mostly painted light, so only the local
+detail magnitude is used.
+
+  1. linear luminance, box downsampled to at most 512
+  2. d = log(L) - lowpass(log(L))   ratio to the local mean: baked shading,
+                                    creases and painted highlights lose
+                                    their absolute level
+  3. v = 3x3 std-dev of d            magnitude only, a dark and a bright
+                                    detail count the same
+  4. v normalised by its own 90th percentile, soft clipped to 0..1
+  5. highlight guard: where the low pass is in the brightest 3 % (painted
+     specular blob) v fades to its mean, it never becomes a glossy patch
+  6. m = 1 - AMP * (1 - v)          roughness multiplier, detailed = rough
+
+Canonical ORMS texel: O 1, R m, M 1, S 1 (all multipliers of the draw time
+class specularScale, tr_autopbr.cpp). No AO, no spatial metalness. The mean
+of m is kept in the image so R_AutoPBRSpecularScale can divide it out and
+the average roughness stays the class value. Cached as <diffuse>_aORMS.
+===============
+*/
+#define AUTOROUGH_MAX_SIZE	512
+#define AUTOROUGH_AMPLITUDE	0.25f
+
+int		autoRoughnessMaps;
+int		autoRoughnessMsec;
+
+static inline int R_AutoRoughIndex( int i, int n, qboolean wrap )
+{
+	return wrap ? ((i % n) + n) % n : Com_Clampi( 0, n - 1, i );
+}
+
+// one box pass over n samples spaced by stride, sliding window sum
+static void R_AutoRoughBox1D( const float *src, float *dst, int n, int stride, int radius, qboolean wrap )
+{
+	const float norm = 1.0f / (float)(2 * radius + 1);
+	float sum = 0.0f;
+	for ( int k = -radius; k <= radius; k++ )
+		sum += src[R_AutoRoughIndex( k, n, wrap ) * stride];
+	for ( int i = 0; i < n; i++ )
+	{
+		dst[i * stride] = sum * norm;
+		sum += src[R_AutoRoughIndex( i + radius + 1, n, wrap ) * stride]
+			 - src[R_AutoRoughIndex( i - radius, n, wrap ) * stride];
+	}
+}
+
+// separable box blur, run twice (close to a gaussian), wrapping or clamped
+static void R_AutoRoughBlur( float *data, float *tmp, int w, int h, int radius, qboolean wrap )
+{
+	for ( int pass = 0; pass < 2; pass++ )
+	{
+		for ( int y = 0; y < h; y++ )
+			R_AutoRoughBox1D( data + y * w, tmp + y * w, w, 1, radius, wrap );
+		for ( int x = 0; x < w; x++ )
+			R_AutoRoughBox1D( tmp + x, data + x, h, w, radius, wrap );
+	}
+}
+
+static float R_AutoRoughPercentile( const float *data, float *scratch, int count, float fraction )
+{
+	memcpy( scratch, data, count * sizeof( float ) );
+	const int n = Com_Clampi( 0, count - 1, (int)(fraction * (float)(count - 1)) );
+	std::nth_element( scratch, scratch + n, scratch + count );
+	return scratch[n];
+}
+
+image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
+{
+	char	ormsName[MAX_QPATH];
+	int		width, height;
+	byte	*pic;
+
+	if ( !diffuseName || !diffuseName[0] )
+		return NULL;
+
+	flags &= ~(IMGFLAG_SRGB | IMGFLAG_GENNORMALMAP);
+	flags |= IMGFLAG_NOLIGHTSCALE;
+
+	COM_StripExtension( diffuseName, ormsName, sizeof( ormsName ) );
+	Q_strcat( ormsName, sizeof( ormsName ), "_aORMS" );
+
+	image_t *image = R_GetLoadedImage( ormsName, flags );
+	if ( image != NULL )
+		return image;
+
+	R_LoadImage( diffuseName, &pic, &width, &height );
+	if ( pic == NULL )
+		return NULL;
+
+	const int startMsec = ri.Milliseconds();
+
+	int step = 1;
+	while ( MAX( width, height ) / step > AUTOROUGH_MAX_SIZE )
+		step *= 2;
+	const int w = MAX( width / step, 1 );
+	const int h = MAX( height / step, 1 );
+	const int count = w * h;
+	const qboolean wrap = (qboolean)!(flags & IMGFLAG_CLAMPTOEDGE);
+
+	float linear[256];
+	for ( int i = 0; i < 256; i++ )
+		linear[i] = (float)sRGBtoRGB( ByteToFloat( (byte)i ) );
+
+	float *logL  = (float *)R_Malloc( count * sizeof( float ), TAG_TEMP_WORKSPACE );
+	float *low   = (float *)R_Malloc( count * sizeof( float ), TAG_TEMP_WORKSPACE );
+	float *v     = (float *)R_Malloc( count * sizeof( float ), TAG_TEMP_WORKSPACE );
+	float *tmp   = (float *)R_Malloc( count * sizeof( float ), TAG_TEMP_WORKSPACE );
+
+	// 1. log luminance of the box downsampled picture
+	for ( int y = 0; y < h; y++ )
+	{
+		for ( int x = 0; x < w; x++ )
+		{
+			float sum = 0.0f;
+			for ( int sy = 0; sy < step; sy++ )
+			{
+				const byte *p = pic + 4 * ((y * step + sy) * width + x * step);
+				for ( int sx = 0; sx < step; sx++, p += 4 )
+					sum += 0.2126f * linear[p[0]] + 0.7152f * linear[p[1]] + 0.0722f * linear[p[2]];
+			}
+			logL[y * w + x] = logf( sum / (float)(step * step) + 0.02f );
+		}
+	}
+	Z_Free( pic );
+
+	// 2. illumination = low pass of log luminance, removed as a ratio
+	memcpy( low, logL, count * sizeof( float ) );
+	R_AutoRoughBlur( low, tmp, w, h, MAX( 2, MAX( w, h ) / 32 ), wrap );
+	for ( int i = 0; i < count; i++ )
+		logL[i] -= low[i];	// logL is the detail d from here on
+
+	// 3. local std-dev of the detail
+	for ( int y = 0; y < h; y++ )
+	{
+		for ( int x = 0; x < w; x++ )
+		{
+			float s = 0.0f, s2 = 0.0f;
+			for ( int ky = -1; ky <= 1; ky++ )
+			{
+				int yy = y + ky;
+				yy = wrap ? ((yy % h) + h) % h : Com_Clampi( 0, h - 1, yy );
+				for ( int kx = -1; kx <= 1; kx++ )
+				{
+					int xx = x + kx;
+					xx = wrap ? ((xx % w) + w) % w : Com_Clampi( 0, w - 1, xx );
+					const float d = logL[yy * w + xx];
+					s += d;
+					s2 += d * d;
+				}
+			}
+			s *= 1.0f / 9.0f;
+			v[y * w + x] = sqrtf( MAX( s2 * (1.0f / 9.0f) - s * s, 0.0f ) );
+		}
+	}
+
+	// 4. relative to the texture's own detail, soft clipped
+	const float p90 = R_AutoRoughPercentile( v, tmp, count, 0.90f );
+	// a flat picture has no detail to speak of: constant roughness
+	const float scale = p90 > 0.01f ? 1.0f / p90 : 0.0f;
+	double meanV = 0.0;
+	for ( int i = 0; i < count; i++ )
+	{
+		v[i] = 1.0f - expf( -2.0f * v[i] * scale );
+		meanV += v[i];
+	}
+	meanV /= (double)count;
+	if ( scale == 0.0f )
+		meanV = 1.0;
+
+	// 5. painted highlights: the brightest low frequency areas fall back to the mean
+	const float p97 = R_AutoRoughPercentile( low, tmp, count, 0.97f );
+	for ( int i = 0; i < count; i++ )
+	{
+		float g = Com_Clamp( 0.0f, 1.0f, (low[i] - (p97 - 0.3f)) / 0.3f );
+		g = g * g * (3.0f - 2.0f * g);
+		if ( scale == 0.0f )
+			g = 1.0f;
+		v[i] += ((float)meanV - v[i]) * g;
+	}
+
+	// 6. canonical ORMS
+	byte *orms = (byte *)R_Malloc( count * 4, TAG_TEMP_WORKSPACE );
+	double sum = 0.0, sum2 = 0.0;
+	for ( int i = 0; i < count; i++ )
+	{
+		const byte r = FloatToByte( 1.0f - AUTOROUGH_AMPLITUDE * (1.0f - v[i]) );
+		const float m = ByteToFloat( r );
+		sum += m;
+		sum2 += m * m;
+		orms[i * 4 + 0] = 255;
+		orms[i * 4 + 1] = r;
+		orms[i * 4 + 2] = 255;
+		orms[i * 4 + 3] = 255;
+	}
+	const float mean = (float)(sum / count);
+	const float sigma = sqrtf( MAX( (float)(sum2 / count) - mean * mean, 0.0f ) );
+
+	Z_Free( logL );
+	Z_Free( low );
+	Z_Free( v );
+	Z_Free( tmp );
+
+	image = R_CreateImage( ormsName, orms, w, h, IMGTYPE_COLORALPHA, flags, 0 );
+	Z_Free( orms );
+	if ( image )
+	{
+		image->autoRoughness[0] = mean;
+		image->autoRoughness[1] = sigma;
+	}
+
+	const int msec = ri.Milliseconds() - startMsec;
+	autoRoughnessMaps++;
+	autoRoughnessMsec += msec;
+	ri.Printf( PRINT_DEVELOPER, "auto roughness %s: %dx%d, mean %.3f sigma %.3f, %d ms\n",
+		ormsName, w, h, mean, sigma, msec );
 
 	return image;
 }

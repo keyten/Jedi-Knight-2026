@@ -2402,7 +2402,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 					}
 					else if (r_specularMapping->integer)
 					{
-						samplerBindingsWriter.AddStaticImage(tr.whiteImage, TB_SPECULARMAP);
+						// r_autoPBRRoughness: generated ORMS of a legacy stage
+						image_t *orms = R_AutoPBRRoughnessImage(pStage);
+						samplerBindingsWriter.AddStaticImage(orms ? orms : tr.whiteImage, TB_SPECULARMAP);
 					}
 
 					if (enableCubeMaps)

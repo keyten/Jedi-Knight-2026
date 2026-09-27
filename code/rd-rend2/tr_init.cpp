@@ -330,6 +330,7 @@ cvar_t  *r_foliageFieldImpulse;
 cvar_t  *r_foliageFieldDebug;
 cvar_t  *r_plantWind;
 cvar_t  *r_autoPBRConvert;
+cvar_t  *r_autoPBRRoughness;
 cvar_t  *r_diffuseBRDF;
 cvar_t  *r_diffuseIBL;
 cvar_t  *r_diffuseIBLStrength;
@@ -2099,8 +2100,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_skinSSSDebug, 0, 8, qtrue );
 	r_autoPBR = ri_Cvar_Get_NoComm( "r_autoPBR", "0", CVAR_ARCHIVE, "PBR parameters of legacy materials without authored specular / packed maps: 0 = current rend2 fallback, 1 = generic dielectric, 2 = heuristic material classes" );
 	ri.Cvar_CheckRange( r_autoPBR, 0, 2, qtrue );
-	r_autoPBRDebug = ri_Cvar_Get_NoComm( "r_autoPBRDebug", "0", CVAR_CHEAT, "Auto PBR debug view: 1 = material class, 2 = parameter source (authored / auto)" );
-	ri.Cvar_CheckRange( r_autoPBRDebug, 0, 2, qtrue );
+	r_autoPBRDebug = ri_Cvar_Get_NoComm( "r_autoPBRDebug", "0", CVAR_CHEAT, "Auto PBR debug view: 1 = material class, 2 = parameter source (authored / auto), 3 = roughness (generated variation in grey, blue = not auto PBR)" );
+	ri.Cvar_CheckRange( r_autoPBRDebug, 0, 3, qtrue );
 	r_autoFoliage = ri_Cvar_Get_NoComm( "r_autoFoliage", "0", CVAR_ARCHIVE,
 		"MD3 foliage semantics: 0 = off, 1 = conservative stock-safe, 2 = broader experimental" );
 	ri.Cvar_CheckRange( r_autoFoliage, 0, 2, qtrue );
@@ -2196,6 +2197,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_plantWind, 0.0f, 4.0f, qfalse );
 	r_autoPBRConvert = ri_Cvar_Get_NoComm( "r_autoPBRConvert", "0", CVAR_ARCHIVE | CVAR_LATCH, "Convert legacy shaders with alphaGen lightingSpecular / tcGen environment stages (vertex lit in rend2) to per pixel lightall materials; the specular mask becomes spatial roughness / metalness" );
 	ri.Cvar_CheckRange( r_autoPBRConvert, 0, 1, qtrue );
+	r_autoPBRRoughness = ri_Cvar_Get_NoComm( "r_autoPBRRoughness", "0", CVAR_ARCHIVE, "Auto PBR roughness of legacy diffuse-only materials: 0 = constant class roughness, 1 = subtle variation generated from the diffuse detail (maps are built at load, turning it on needs vid_restart)" );
+	ri.Cvar_CheckRange( r_autoPBRRoughness, 0, 1, qtrue );
 	r_diffuseBRDF = ri_Cvar_Get_NoComm( "r_diffuseBRDF", "0", CVAR_ARCHIVE, "Standard PBR diffuse BRDF: 0 = Lambert, 1 = Burley/Disney" );
 	ri.Cvar_CheckRange( r_diffuseBRDF, 0, 1, qtrue );
 	r_diffuseIBL = ri_Cvar_Get_NoComm( "r_diffuseIBL", "0", CVAR_ARCHIVE | CVAR_LATCH, "Directional light-grid ambient from runtime cubemap probes" );
