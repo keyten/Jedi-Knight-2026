@@ -92,8 +92,10 @@ discretisation (see Integration).
 | `froxelIntegratedImage` | RGBA16F 3D | Fx Fy Fz | rgb = in-scattering S, a = transmittance T, between the camera and the far side `B(k+1)` of slice k |
 | `froxelCarryImage[2]` | RGBA16F 2D | Fx Fy | integration state between two slices (ping-pong, no feedback loop) |
 | `froxelTailImage` | RGBA16F 2D | Fx Fy | light at the far side of the volume (baked + sun with phase, no albedo): lights the media beyond far |
-| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | baked light without the sun (rgb), sun trust (a, traced at load) |
-| `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part |
+| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | isotropic baked light I (rgb), sun trust (a, traced at load) |
+| `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part B |
+| `world->volumetricDirGrid` | RGBA16F 3D | light grid | directed non-sun baked light D (rgb), luminance of D (a) |
+| `world->volumetricDirVecGrid` | RGBA16F 3D | light grid | direction towards the light * luminance of D (rgb) |
 | froxel light lists | buffer textures | per frame | lights (RGBA32F, 2 texels) and cluster headers + indexes (R32UI) |
 
 Emission (not radiance) is stored because it is linear in the medium: blending two frames of emission and
@@ -118,7 +120,9 @@ Per froxel (instance / layer = slice):
    Albedo = extinction weighted fog color. Only the fog volumes of the slice's CPU mask are tested (bounds against
    the frustum sides and the view depth range, one slice wider for the jitter; `fogSlices`). The height fog, the
    density noise and the local fog volumes (see Local fog volumes) are in `FroxelMedium` too; all media add.
-3. **Baked light.** `volumetricStaticGrid` at the point, isotropic, `* r_volumetricFogStaticScale`.
+3. **Baked light.** `volumetricStaticGrid` (I, isotropic) + `volumetricDirGrid` (D), `* r_volumetricFogStaticScale`.
+   With `r_volumetricFogStaticDirectional 1` D gets `mix(1, 4 pi HG(g, dot(L, viewDir)), coherence)` along its
+   baked direction L (see Directed baked light); otherwise D is isotropic too.
 4. **Sun.** Phase `4 pi HG(g, dot(sunDir, viewDir))`, `* r_volumetricFogSunScale`:
    - with cascaded shadow maps this frame (`VPF_USESUNLIGHT`): `sunRadiance * shadow`, blended to the baked sun
      part at the far end of the last cascade (same fade as lightall);
@@ -158,6 +162,33 @@ cell out (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` s
 (indoors) the sun part stays baked light and is not darkened. The central realtime cascade lookup stays, so
 characters still cut the beams; the trust no longer depends on the cascade range or on moving occluders. The load
 time is printed with `developer 1` ("Froxel fog sun trust").
+
+### Directed baked light
+
+The remainder `R = legacy - B` is split once more into an isotropic part I and a directed part D, which keeps the
+light grid direction (`latLong`, towards the light, decoded as `R_SetupEntityLightingGrid`: 256 steps per turn;
+the sun split used 255 before, a slightly different sun fraction f). Per channel, style slot 0 as the legacy map:
+
+| grid | legacy total | D | I |
+|---|---|---|---|
+| HDR | `ambient + direct` | `(1 - f) * direct` | `ambient` |
+| LDR | `max(ambient, direct)` | `min((1 - f) * max(0, direct - ambient), R)` | `R - D` |
+
+`I + D + B == legacy` in float for every cell; `I, D >= 0`. The LDR legacy value is a max, not a sum:
+`max(a, d) = a + max(0, d - a)`, so only the excess of the direct light over the ambient light is directed; where
+the max picked the ambient light nothing is. The sun-aligned share `f * direct` is already in B and never gets
+the non-sun phase. Cells inside walls (`styles[0] == LS_LSNONE`) keep their light in I.
+
+The direction is stored multiplied by the luminance of D. Trilinear filtering between cells lit from different
+directions shortens the vector: `coherence = |v| / lum(D)` fades the phase to isotropic, so a disagreeing
+neighbourhood does not produce the "noodles" the legacy code comment warns about. With `g = 0` the phase is 1
+and the result is the previous one up to half rounding (at load, `developer 1` prints "Froxel fog directed light
+grid: N cells, reconstruction error max / mean"; debug view 25 shows it on the GPU, including the R11G11B10F sun
+grid). Memory: +16 bytes per grid cell (two RGBA16F volumes; a 1M-cell grid = 16 MB, typical grids 1-4 MB).
+Cost: two more trilinear 3D fetches and one phase per injected froxel (and per tail texel).
+
+The light grid has one dominant direction per cell for all its non-ambient light: several lamps become one
+lobe between them, and a lamp aligned with the sun goes partly into B. No asset change or rebake is needed.
 
 Offline check on the stock maps (`maps/*.bsp` with fog, sun from the sky shader):
 
@@ -661,6 +692,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogHeightMax` | 1 | height fog: maximum density below the base, multiple of the base density |
 | `r_volumetricFogHeightTop` | 0 | height fog: soft cutoff height above the base, 0 = none |
 | `r_volumetricFogHeightColor` | 0.7 0.75 0.8 | height fog: scattering color (albedo), as fogParms |
+| `r_volumetricFogStaticDirectional` | 0 | 1 = the directed non-sun light grid part gets the phase function along its baked direction |
 | `r_volumetricFogNoise` | 0 | density noise media mask: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag |
 | `r_volumetricFogNoiseScale` | 4096 | macro noise tile period (world units) |
 | `r_volumetricFogNoiseContrast` | 1 | macro contrast c, 0..4 (0 = homogeneous) |
@@ -699,6 +731,12 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 17 | share of the fog along the ray: red = local fog volumes, green = BSP / height fog, brightness = opacity |
 | 18 | local fog volume bounds over the frame: outer shell (bright rim), inner shell where the soft edge starts (thin rim), one hue per GPU index, dimmed behind the scene |
 | 19 | number of local fog volumes in the list of the froxel slice at the scene depth (heat, 8 = red), slice stripes |
+| 20 | isotropic baked light I only |
+| 21 | directed baked light D only, without phase |
+| 22 | direction of D: rgb = dir * 0.5 + 0.5, dimmed by the incoherence and scaled by the luminance of D |
+| 23 | baked sun part B only (no realtime sun) |
+| 24 | reconstructed I + D + B, no phase: must look like view 5 with `r_sunlightMode 0` before the split |
+| 25 | 100 * abs(I + D + B - legacy merged grid): black = exact |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see

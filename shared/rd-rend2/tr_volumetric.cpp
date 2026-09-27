@@ -714,6 +714,21 @@ static float R_VolumetricSmoothstep( float edge0, float edge1, float x )
 	return t * t * (3.0f - 2.0f * t);
 }
 
+// GPU interpretation of a half float (denormals included)
+static float R_VolumetricHalfToFloat( uint16_t h )
+{
+	const int exponent = (h >> 10) & 0x1f;
+	const int fraction = h & 0x3ff;
+	float value;
+	if ( exponent == 0 )
+		value = ldexpf((float)fraction, -24);
+	else if ( exponent == 0x1f )
+		value = fraction ? 0.0f : 65504.0f;
+	else
+		value = ldexpf((float)(fraction | 0x400), exponent - 25);
+	return (h & 0x8000) ? -value : value;
+}
+
 static int R_VolumetricCompareFloats( const void *a, const void *b )
 {
 	const float fa = *(const float *)a;
@@ -736,6 +751,24 @@ with the same layout, so that static + sun == the legacy value:
 
 The realtime sun radiance is estimated from the sunlit cells, so the beams
 have the brightness the map was compiled with.
+
+The non-sun remainder is split once more, so that the froxel fog can give
+the directed light grid part a phase function along its baked direction
+(r_volumetricFogStaticDirectional), with isotropic + directed + sun == legacy
+(f = sun fraction of the cell, exact in float, only half rounding remains):
+
+  HDR (legacy = ambient + direct):
+    directed  D = (1 - f) * direct
+    isotropic I = ambient
+  LDR (legacy = max(ambient, direct) = ambient + max(0, direct - ambient)):
+    directed  D = min((1 - f) * max(0, direct - ambient), legacy - sun)
+    isotropic I = legacy - sun - D
+    where the legacy max picked the ambient light nothing is directed.
+
+The direction is stored weighted by the luminance of D, so that trilinear
+filtering between cells lit from different directions shortens it: the
+injection falls back to isotropic in proportion (coherence). Cells in walls
+(styles[0] == LS_LSNONE) keep their light in I, their direction is undefined.
 
 The split only knows the light direction: a lamp straight above can look like
 a high sun. The alpha of the static texture is the sun trust of the cell: 1
@@ -794,6 +827,8 @@ void R_BuildVolumetricLightGrid( world_t *world )
 {
 	world->volumetricStaticGrid = NULL;
 	world->volumetricSunGrid = NULL;
+	world->volumetricDirGrid = NULL;
+	world->volumetricDirVecGrid = NULL;
 	world->volumetricHasSunCells = qfalse;
 	VectorClear(world->volumetricSunRadiance);
 
@@ -817,6 +852,10 @@ void R_BuildVolumetricLightGrid( world_t *world )
 
 	uint16_t *staticData = (uint16_t *)Z_Malloc(numCells * sizeof(uint16_t) * 4, TAG_TEMP_WORKSPACE, qtrue);
 	uint16_t *sunData = (uint16_t *)Z_Malloc(numCells * sizeof(uint16_t) * 4, TAG_TEMP_WORKSPACE, qtrue);
+	uint16_t *dirData = (uint16_t *)Z_Malloc(numCells * sizeof(uint16_t) * 4, TAG_TEMP_WORKSPACE, qtrue);
+	uint16_t *dirVecData = (uint16_t *)Z_Malloc(numCells * sizeof(uint16_t) * 4, TAG_TEMP_WORKSPACE, qtrue);
+	int numDirCells = 0;
+	float maxError = 0.0f, sumError = 0.0f, maxRelError = 0.0f;
 	float *sunLuma = (float *)Z_Malloc(numCells * sizeof(float), TAG_TEMP_WORKSPACE, qtrue);
 	int numSunCells = 0;
 	vec3_t sunColorSum = { 0.0f, 0.0f, 0.0f };
@@ -852,27 +891,53 @@ void R_BuildVolumetricLightGrid( world_t *world )
 			}
 		}
 
+		// direction towards the light, as R_SetupEntityLightingGrid (256 steps per turn)
+		const float lat = data->latLong[1] * (2.0f * M_PI / 256.0f);
+		const float lng = data->latLong[0] * (2.0f * M_PI / 256.0f);
+		vec3_t cellDir;
+		cellDir[0] = cosf(lat) * sinf(lng);
+		cellDir[1] = sinf(lat) * sinf(lng);
+		cellDir[2] = cosf(lng);
+
 		float sunFraction = 0.0f;
 		if ( splitSun )
 		{
-			// direction towards the light, as R_SetupEntityLightingGrid
-			const float lat = data->latLong[1] * (2.0f * M_PI / 255.0f);
-			const float lng = data->latLong[0] * (2.0f * M_PI / 255.0f);
-			vec3_t cellDir;
-			cellDir[0] = cosf(lat) * sinf(lng);
-			cellDir[1] = sinf(lat) * sinf(lng);
-			cellDir[2] = cosf(lng);
 			sunFraction = R_VolumetricSmoothstep(
 				FROXEL_SUN_COS_OUTER, FROXEL_SUN_COS_INNER, DotProduct(cellDir, sunDir));
 		}
 
-		vec3_t sun;
+		const qboolean validCell = (qboolean)(data->styles[0] != LS_LSNONE);
+		vec3_t sun, directed, isotropic;
 		for ( int c = 0; c < 3; c++ )
+		{
 			sun[c] = MIN(sunFraction * direct[c], total[c]);
+			const float rest = total[c] - sun[c];
+			float d = 0.0f;
+			if ( validCell )
+			{
+				d = world->hdrLightGrid ?
+					(1.0f - sunFraction) * direct[c] :
+					(1.0f - sunFraction) * MAX(0.0f, direct[c] - ambient[c]);
+				d = Com_Clamp(0.0f, rest, d);
+			}
+			directed[c] = d;
+			isotropic[c] = rest - d;
+		}
 
-		staticData[i * 4 + 0] = FloatToHalf(total[0] - sun[0]);
-		staticData[i * 4 + 1] = FloatToHalf(total[1] - sun[1]);
-		staticData[i * 4 + 2] = FloatToHalf(total[2] - sun[2]);
+		const float dirLuma = 0.2126f * directed[0] + 0.7152f * directed[1] + 0.0722f * directed[2];
+		if ( dirLuma > 0.0f )
+			numDirCells++;
+
+		staticData[i * 4 + 0] = FloatToHalf(isotropic[0]);
+		staticData[i * 4 + 1] = FloatToHalf(isotropic[1]);
+		staticData[i * 4 + 2] = FloatToHalf(isotropic[2]);
+		for ( int c = 0; c < 3; c++ )
+		{
+			dirData[i * 4 + c] = FloatToHalf(directed[c]);
+			dirVecData[i * 4 + c] = FloatToHalf(cellDir[c] * dirLuma);
+		}
+		dirData[i * 4 + 3] = FloatToHalf(dirLuma);
+		dirVecData[i * 4 + 3] = FloatToHalf(0.0f);
 		float trust = 1.0f;
 		if ( traceTrust && (sun[0] > 0.0f || sun[1] > 0.0f || sun[2] > 0.0f) )
 		{
@@ -887,6 +952,18 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		sunData[i * 4 + 1] = FloatToHalf(sun[1]);
 		sunData[i * 4 + 2] = FloatToHalf(sun[2]);
 		sunData[i * 4 + 3] = FloatToHalf(1.0f);
+
+		// reconstruction error of the stored parts against the legacy value
+		for ( int c = 0; c < 3; c++ )
+		{
+			const float stored = R_VolumetricHalfToFloat(staticData[i * 4 + c]) +
+				R_VolumetricHalfToFloat(dirData[i * 4 + c]) + R_VolumetricHalfToFloat(sunData[i * 4 + c]);
+			const float error = fabsf(stored - total[c]);
+			maxError = MAX(maxError, error);
+			sumError += error;
+			if ( total[c] > 1e-3f )
+				maxRelError = MAX(maxRelError, error / total[c]);
+		}
 
 		const float luma = 0.2126f * sun[0] + 0.7152f * sun[1] + 0.0722f * sun[2];
 		if ( sunFraction > 0.5f && luma > 0.0f )
@@ -904,6 +981,14 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		"*volumetricSunGrid", (byte *)sunData,
 		world->lightGridBounds[0], world->lightGridBounds[1], world->lightGridBounds[2],
 		GL_R11F_G11F_B10F);	// rgb only: half the size and bandwidth
+	world->volumetricDirGrid = R_CreateImage3D(
+		"*volumetricDirGrid", (byte *)dirData,
+		world->lightGridBounds[0], world->lightGridBounds[1], world->lightGridBounds[2],
+		GL_RGBA16F);	// half floats: I + D + B must match the legacy grid
+	world->volumetricDirVecGrid = R_CreateImage3D(
+		"*volumetricDirVecGrid", (byte *)dirVecData,
+		world->lightGridBounds[0], world->lightGridBounds[1], world->lightGridBounds[2],
+		GL_RGBA16F);
 
 	// realtime sun radiance: 90th percentile of the sunlit cells, with their
 	// average color. A handful of cells is not a sun.
@@ -925,6 +1010,13 @@ void R_BuildVolumetricLightGrid( world_t *world )
 	ri.Printf(PRINT_DEVELOPER, "Froxel fog sun trust: %d cells traced, %d see the sun, %d msec\n",
 		numTraced, numTrusted, ri.Milliseconds() - traceStart);
 
+	// the sun part is counted as half here, its R11G11B10F texture adds its
+	// own rounding on the GPU (debug view 25)
+	ri.Printf(PRINT_DEVELOPER, "Froxel fog directed light grid: %d cells, reconstruction error max %g (%.3f%%), mean %g\n",
+		numDirCells, maxError, maxRelError * 100.0f, sumError / (3.0f * numCells));
+
+	Z_Free(dirVecData);
+	Z_Free(dirData);
 	Z_Free(sunLuma);
 	Z_Free(sunData);
 	Z_Free(staticData);
@@ -1559,7 +1651,8 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricFogHeightTop->value,
 		r_volumetricFogAnisotropy->value,
 		r_volumetricFogSunScale->value,
-		r_volumetricFogStaticScale->value };
+		r_volumetricFogStaticScale->value,
+		(float)r_volumetricFogStaticDirectional->integer };
 	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogNoiseWind->string, strlen(r_volumetricFogNoiseWind->string));
@@ -1823,7 +1916,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		dlightShadows ? 1.0f : 0.0f,
 		0.0002f);	// cascade depth bias (normalized depth)
 
-	VectorSet4(block.debugParams, (float)debug, r_volumetricFogBloom->value, 0.0f, 0.0f);
+	VectorSet4(block.debugParams, (float)debug, r_volumetricFogBloom->value, 0.0f,
+		r_volumetricFogStaticDirectional->integer ? 1.0f : 0.0f);
 
 	// height fog medium, added to the fog volumes by the injection
 	VectorCopy4(heightFog, block.heightFog);
@@ -2098,11 +2192,18 @@ void RB_VolumetricBuild( void )
 		image_t *sunGrid = tr.world->volumetricSunGrid ? tr.world->volumetricSunGrid : tr.whiteImage3D;
 		if ( !tr.world->volumetricStaticGrid && tr.world->volumetricLightMaps[0] )
 			staticGrid = tr.world->volumetricLightMaps[0];
+		// without the split the static grid holds everything: nothing is directed
+		image_t *dirGrid = tr.world->volumetricDirGrid ? tr.world->volumetricDirGrid : tr.blackImage3D;
+		image_t *dirVecGrid = tr.world->volumetricDirVecGrid ? tr.world->volumetricDirVecGrid : tr.blackImage3D;
+		image_t *legacyGrid = tr.world->volumetricLightMaps[0] ? tr.world->volumetricLightMaps[0] : tr.blackImage3D;
 
 		GL_BindToTMU(tr.froxelInjectImage[previous], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
 		GL_BindToTMU(staticGrid, TB_LIGHTMAP);
 		GL_BindToTMU(sunGrid, TB_NORMALMAP);
+		GL_BindToTMU(dirGrid, TB_SPECULARMAP);
+		GL_BindToTMU(dirVecGrid, TB_SSAOMAP);
+		GL_BindToTMU(legacyGrid, TB_EMISSIVEMAP);
 		if ( tr.sunShadowArrayImage )
 			GL_BindToTMU(tr.sunShadowArrayImage, TB_SHADOWMAP);
 		if ( tr.pointShadowArrayImage )

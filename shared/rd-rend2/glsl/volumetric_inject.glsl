@@ -56,6 +56,9 @@ void main()
 uniform sampler3D u_FroxelHistory;
 uniform sampler3D u_VolumetricStaticGrid;
 uniform sampler3D u_VolumetricSunGrid;
+uniform sampler3D u_VolumetricDirGrid;		// directed non-sun light (rgb), its luminance (a)
+uniform sampler3D u_VolumetricDirVecGrid;	// direction towards the light * luminance (rgb)
+uniform sampler3D u_VolumetricLegacyGrid;	// merged legacy light grid (debug view 25)
 #if defined(USE_SHADOWS2)
 uniform sampler2DArray u_ShadowMap;		// raw sun cascade depth
 #else
@@ -469,9 +472,11 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 	return light;
 }
 
-// Baked light (returned, isotropic) and sun (phase included) at p. sunUnshadowed: the sun without
-// its realtime shadow (debug view 2).
-vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, out vec3 sunLight, out vec3 sunUnshadowed)
+// Baked light (returned: isotropic part + directed part with its phase) and sun (phase included) at
+// p. sunUnshadowed: the sun without its realtime shadow (debug view 2). Debug views 20-25 replace the
+// returned light with one baked term (no sun, no phase unless stated).
+vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, in int debugView, out vec3 sunLight,
+	out vec3 sunUnshadowed)
 {
 	sunLight = vec3(0.0);
 	sunUnshadowed = vec3(0.0);
@@ -479,8 +484,43 @@ vec3 BakedAndSunLight(in vec3 p, in float temporal, in float g, out vec3 sunLigh
 	vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
 	vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
 	vec4 staticGrid = texture(u_VolumetricStaticGrid, gridCoord);
-	vec3 staticLight = staticGrid.rgb * u_FroxelLightParams.w;
+	vec3 isotropic = staticGrid.rgb * u_FroxelLightParams.w;
 	float trust = staticGrid.a;
+
+	// directed (non-sun) part of the light grid (R_BuildVolumetricLightGrid). The direction is
+	// weighted by the luminance: between cells lit from different directions the filtered vector
+	// is shorter than the luminance, the phase fades to isotropic in proportion (coherence).
+	vec4 dirGrid = texture(u_VolumetricDirGrid, gridCoord);
+	vec3 directed = dirGrid.rgb * u_FroxelLightParams.w;
+	vec3 dirVec = texture(u_VolumetricDirVecGrid, gridCoord).rgb;
+	float dirLength = length(dirVec);
+	float coherence = (dirGrid.a > 1e-6) ? clamp(dirLength / dirGrid.a, 0.0, 1.0) : 0.0;
+	vec3 lightDir = (dirLength > 1e-8) ? dirVec / dirLength : vec3(0.0, 0.0, 1.0);
+	vec3 directedPhased = directed;
+	if (u_FroxelDebugParams.w > 0.5)
+	{
+		// the light travels along -lightDir, towards the camera is -viewDir
+		directedPhased *= mix(1.0, FroxelPhase(g, dot(lightDir, viewDir)), coherence);
+	}
+	vec3 staticLight = isotropic + directedPhased;
+
+	if (debugView >= 20 && debugView <= 25)
+	{
+		vec3 bakedSun = (u_FroxelSunDirection.w > 0.5) ? texture(u_VolumetricSunGrid, gridCoord).rgb : vec3(0.0);
+		if (debugView == 20)
+			return isotropic;
+		if (debugView == 21)
+			return directed;
+		if (debugView == 22)	// direction towards the light, dimmed by the incoherence
+			return (lightDir * 0.5 + 0.5) * coherence * dot(directed, vec3(0.2126, 0.7152, 0.0722));
+		if (debugView == 23)
+			return bakedSun * u_FroxelLightParams.w;
+		vec3 reconstructed = staticGrid.rgb + dirGrid.rgb + bakedSun;
+		if (debugView == 24)
+			return reconstructed * u_FroxelLightParams.w;
+		// 25: 100 * |I + D + B - legacy| (the legacy grid of the fog without the split)
+		return abs(reconstructed - texture(u_VolumetricLegacyGrid, gridCoord).rgb) * 100.0;
+	}
 
 	if (u_FroxelSunDirection.w > 0.5)
 	{
@@ -523,7 +563,7 @@ void main()
 	{
 		vec3 pf = FroxelWorldPosition(vec3(vec2(cell) + 0.5, u_FroxelGridSize.z));
 		vec3 sunTail, unusedSun;
-		vec3 light = BakedAndSunLight(pf, 0.0, g, sunTail, unusedSun) + sunTail;
+		vec3 light = BakedAndSunLight(pf, 0.0, g, debugView, sunTail, unusedSun) + sunTail;
 		if (debugView == 3)
 			light = sunTail;
 		else if (debugView == 4)
@@ -562,7 +602,7 @@ void main()
 	vec3 sunLight = vec3(0.0);
 	vec3 sunUnshadowed = vec3(0.0);
 	if (medium.a > 0.0)
-		staticLight = BakedAndSunLight(p, temporal, g, sunLight, sunUnshadowed);
+		staticLight = BakedAndSunLight(p, temporal, g, debugView, sunLight, sunUnshadowed);
 
 	// dynamic lights
 	vec3 dynamicLight = vec3(0.0);
@@ -589,7 +629,7 @@ void main()
 		staticLight = vec3(0.0);
 		sunLight = vec3(0.0);
 	}
-	else if (debugView == 5)
+	else if (debugView == 5 || (debugView >= 20 && debugView <= 25))
 	{
 		sunLight = vec3(0.0);
 		dynamicLight = vec3(0.0);

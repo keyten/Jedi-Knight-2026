@@ -112,6 +112,7 @@ cvar_t	*r_volumetricFogHistoryWeight;
 cvar_t	*r_volumetricFogSunScale;
 cvar_t	*r_volumetricFogDlightScale;
 cvar_t	*r_volumetricFogStaticScale;
+cvar_t	*r_volumetricFogStaticDirectional;
 cvar_t	*r_volumetricFogDlightShadows;
 cvar_t	*r_volumetricFogBloom;
 cvar_t	*r_volumetricFogReset;
@@ -2309,6 +2310,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogDlightScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogStaticScale = ri_Cvar_Get_NoComm("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
+	r_volumetricFogStaticDirectional = ri_Cvar_Get_NoComm("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE, "Froxel fog: 1 = the directed (non-sun) light grid part gets the phase function along its baked direction, 0 = isotropic");
 	r_volumetricFogDlightShadows = ri_Cvar_Get_NoComm("r_volumetricFogDlightShadows", "1", CVAR_ARCHIVE, "Froxel fog: dynamic lights use their shadow maps (needs r_dlightMode 2)");
 	ri.Cvar_CheckRange(r_volumetricFogDlightShadows, 0, 1, qtrue);
 	r_volumetricFogBloom = ri_Cvar_Get_NoComm("r_volumetricFogBloom", "0", CVAR_ARCHIVE, "Froxel fog: bright in-scattering added to the glow buffer (bloom), 0 = none");

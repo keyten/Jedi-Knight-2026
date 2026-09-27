@@ -231,6 +231,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FroxelCarry",			GLSL_INT, 1 },
 	{ "u_VolumetricStaticGrid",	GLSL_INT, 1 },
 	{ "u_VolumetricSunGrid",	GLSL_INT, 1 },
+	{ "u_VolumetricDirGrid",	GLSL_INT, 1 },
+	{ "u_VolumetricDirVecGrid",	GLSL_INT, 1 },
+	{ "u_VolumetricLegacyGrid",	GLSL_INT, 1 },
 	{ "u_FroxelSlice",			GLSL_INT, 1 },
 	{ "u_FroxelNoise",			GLSL_INT, 1 },
 
@@ -3622,6 +3625,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELCARRY, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSTATICGRID, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSUNGRID, TB_NORMALMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRGRID, TB_SPECULARMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRVECGRID, TB_SSAOMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICLEGACYGRID, TB_EMISSIVEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELDYNAMIC, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP2, TB_SHADOWMAPARRAY);

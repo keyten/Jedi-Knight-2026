@@ -3920,6 +3920,11 @@ void R_CreateBuiltinImages( void ) {
 		tr.whiteImage3D = R_CreateImage3D(
 			"*white3D", (byte *)data, 8, 8, 1, GL_RGBA8
 		);
+		byte black[8 * 8 * 4];
+		Com_Memset( black, 0, sizeof( black ) );
+		tr.blackImage3D = R_CreateImage3D(
+			"*black3D", black, 8, 8, 1, GL_RGBA8
+		);
 	}
 
 	if (r_dlightMode->integer >= 2)

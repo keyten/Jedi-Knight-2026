@@ -32,6 +32,10 @@ void main()
 //     soft edge starts (thin rim), one hue per volume index, dimmed where behind the scene
 //  19 number of local volumes listed for the froxel slice at the scene depth (heat, 8 = red),
 //     slice stripes; r_fogvol slices prints the indices
+//  20-25 baked light grid terms, as in-scattering (the injection keeps only that term, no sun, no
+//     dynamic lights; R_BuildVolumetricLightGrid): 20 isotropic I, 21 directed D (no phase),
+//     22 direction of D (rgb = dir * 0.5 + 0.5, dimmed by the incoherence), 23 baked sun B,
+//     24 reconstructed I + D + B, 25 100 * |I + D + B - legacy merged grid|
 
 uniform sampler2D u_ScreenDepthMap;
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
@@ -131,7 +135,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if (view >= 2 && view <= 6)
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25))
 	{
 		color = Display(fog.rgb);
 	}
