@@ -22,8 +22,8 @@ void main()
 // with the capsule / sphere proxies of RB_SSRCollectEmitters, blurred by the roughness cone and hidden
 // behind the surface the SSR ray hit first.
 //
-// u_SSRTraceMap = final SSR (resolve or temporal accumulation), u_SSRHistoryMap = trace (hit distance
-// and confidence, for the emitter occlusion).
+// u_SSRTraceMap = final SSR (resolve or temporal accumulation), u_SSRHistoryMap = trace (hit point and
+// confidence, for the emitter occlusion).
 // u_SSRSettings: x = strength (confidence scale), y = split x in window pixels (r_ssrCompare, pixels
 // left of it keep the cubemap reflection, -1 = off), z = debug view 7..11 (0 = off), w = pass:
 // 0 = signed delta (float target), 1 = replaced cubemap part (subtracted), 2 = added part
@@ -129,8 +129,8 @@ void main()
 			vec3 R = reflect(-V, N);
 			vec3 O = P + N * max(0.05, 0.002 * z);
 
-			vec4 hit = texelFetch(u_SSRHistoryMap, pix / int(u_SSRSettings2.x), 0);
-			float occluderDistance = hit.w > 0.0 ? hit.z * u_SSRSettings2.y : 1.0e30;
+			vec4 hit = texelFetch(u_SSRHistoryMap, min(pix / int(u_SSRSettings2.x), textureSize(u_SSRHistoryMap, 0) - ivec2(1)), 0);
+			float occluderDistance = hit.w > 0.0 ? length(SSRHitPosition(hit) - O) : 1.0e30;
 
 			float fade = 1.0 - smoothstep(0.5, 1.0, normalRoughness.b / maxRoughness);
 			emitterPart = EmitterReflection(O, R, normalRoughness.b, occluderDistance, hit.w) *

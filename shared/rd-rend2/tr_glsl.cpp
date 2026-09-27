@@ -207,8 +207,12 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_SSRSettings",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings2",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings3",			GLSL_VEC4, 1 },
+	{ "u_SSRSettings4",			GLSL_VEC4, 1 },
 	{ "u_SSRWorldToView",		GLSL_MAT4x4, 1 },
 	{ "u_SSRReproject",			GLSL_MAT4x4, 1 },
+	{ "u_SSRPrevViewToView",	GLSL_MAT4x4, 1 },
+	{ "u_SSRHitMap",			GLSL_INT, 1 },
+	{ "u_SSRPrevHitMap",		GLSL_INT, 1 },
 	{ "u_SSREmitters",			GLSL_VEC4, SSR_MAX_EMITTERS * 3 },
 	{ "u_SSREmitterParams",		GLSL_VEC4, 1 },
 	{ "u_SSGIAlbedoMap",		GLSL_INT, 1 },
@@ -3466,6 +3470,8 @@ static int GLSL_LoadGPUProgramScreenSpace(
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, TB_ENVBRDFMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHIZMAP, TB_SHADOWMAPARRAY);
 		GLSL_SetUniformInt(sp, UNIFORM_VELOCITYMAP, TB_SSAOMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHITMAP, TB_SSR_HIT);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRPREVHITMAP, TB_SSR_PREVHIT);
 		GLSL_SetUniformInt(sp, UNIFORM_SSGIALBEDOMAP, TB_SSGI_ALBEDO);
 		GLSL_SetUniformInt(sp, UNIFORM_SSGIRADIANCEMAP, TB_SSGI_RADIANCE);
 		GLSL_SetUniformInt(sp, UNIFORM_SSGISOURCEMAP, TB_SSGI_SOURCE);
@@ -3479,9 +3485,11 @@ static int GLSL_LoadGPUProgramScreenSpace(
 
 	if (R_SSRResourcesEnabled())
 	{
-		load(&tr.ssrDownsampleShader, "ssr_downsample", "ssr_downsample", fallback_ssr_downsampleProgram, nullptr);
+		load(&tr.ssrDownsampleShader[0], "ssr_downsample", "ssr_downsample", fallback_ssr_downsampleProgram, nullptr);
+		load(&tr.ssrDownsampleShader[1], "ssr_downsample_first", "ssr_downsample", fallback_ssr_downsampleProgram, "#define FIRST_LEVEL\n");
 		load(&tr.ssrTraceShader[SSRDEF_TRACE], "ssr_trace", "ssr_trace", fallback_ssr_traceProgram, nullptr);
 		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ], "ssr_trace_hiz", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n");
+		load(&tr.ssrTraceShader[SSRDEF_CLASSIFY], "ssr_classify", "ssr_trace", fallback_ssr_traceProgram, "#define CLASSIFY\n");
 		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, nullptr);
 		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, nullptr);
 		load(&tr.ssrCompositeShader, "ssr_composite", "ssr_composite", fallback_ssr_compositeProgram, nullptr);
@@ -4270,7 +4278,8 @@ void GLSL_ShutdownGPUShaders(void)
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);
-	GLSL_DeleteGPUShader(&tr.ssrDownsampleShader);
+	for ( i = 0; i < 2; i++ )
+		GLSL_DeleteGPUShader(&tr.ssrDownsampleShader[i]);
 	for ( i = 0; i < SSRDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.ssrTraceShader[i]);
 	GLSL_DeleteGPUShader(&tr.ssrResolveShader);

@@ -13,7 +13,12 @@ void main()
 // history is rejected when
 //   - the reprojected point is off screen or the history is invalid (camera cut, teleport, map load,
 //     FOV change: u_SSRSettings.x = 0),
-//   - the previous surface there has another depth (disocclusion), normal or roughness,
+//   - the previous surface there has another depth (disocclusion), normal or roughness (the depth
+//     tolerance of moving surfaces grows with their screen motion only),
+//   - the reflected point moved: the ray hit of this frame (u_SSRHitMap) and the one of the history
+//     (u_SSRPrevHitMap, brought into this view) are further apart than the reflection cone or two trace
+//     pixels, or one of them is a hit and the other a miss. The receiver alone does not tell: a mirror
+//     under a moving camera keeps its depth and normal while it reflects something else,
 // and it is clamped to the range of the current 3x3 neighborhood (YCoCg), so reflections of moving
 // things do not smear. Large motion lowers the history weight.
 //
@@ -21,7 +26,7 @@ void main()
 // Output 0: accumulated premultiplied radiance, confidence. Output 1: geometry for the next frame
 // (view depth, octahedral world normal, roughness; roughness -1 = no receiver).
 //
-// u_SSRSettings: x = history valid, y = history weight, z = velocity buffer valid
+// u_SSRSettings: x = history valid, y = history weight, z = velocity buffer valid, w = trace grid scale
 
 out vec4 out_Color;
 out vec4 out_Glow;
@@ -81,9 +86,11 @@ void main()
 	if (u_SSRSettings.z > 0.5)
 	{
 		vec2 objectUV = uv - texture(u_VelocityMap, uv).rg;
-		// a moving surface: the static depth prediction does not hold
-		if (length((objectUV - prevUV) / u_SSRTexelSize.xy) > 1.0)
-			tolerance = 0.25 * z + 8.0;
+		// a moving surface: the static depth prediction is off by about as much as it moved (its screen
+		// motion in world units at its depth), never more than the old blanket tolerance
+		float objectMotion = length((objectUV - prevUV) / u_SSRTexelSize.xy);
+		if (objectMotion > 1.0)
+			tolerance = min(tolerance + 2.0 * objectMotion * z * u_SSRDepthParams.w, 0.25 * z + 8.0);
 		prevUV = objectUV;
 	}
 
@@ -100,11 +107,34 @@ void main()
 	if (abs(prevGeom.w - normalRoughness.b) > 0.1)
 		return;
 
+	// the reflected point: this frame's hit against the history's
+	float gridScale = u_SSRSettings.w;
+	ivec2 hitMax = textureSize(u_SSRHitMap, 0) - ivec2(1);
+	vec4 hitNow = texelFetch(u_SSRHitMap, clamp(pix / int(gridScale), ivec2(0), hitMax), 0);
+	vec4 hitPrev = texelFetch(u_SSRPrevHitMap, clamp(ivec2(prevUV / (u_SSRTexelSize.xy * gridScale)), ivec2(0), hitMax), 0);
+	float hitAgreement = 1.0;
+	if ((hitNow.w > 0.0) != (hitPrev.w > 0.0))
+	{
+		// a hit appeared or vanished (faint ones blend, the clamp handles them)
+		hitAgreement = 1.0 - smoothstep(0.1, 0.4, max(hitNow.w, hitPrev.w));
+	}
+	else if (hitNow.w > 0.0)
+	{
+		vec3 Qnow = SSRHitPosition(hitNow);
+		vec3 Qprev = (u_SSRPrevViewToView * vec4(SSRHitPosition(hitPrev), 1.0)).xyz;
+		float apart = Qprev.z > 1.0 ? length((SSRProjectToUV(Qprev) - hitNow.xy) / u_SSRTexelSize.xy) : 1.0e6;
+		float footprint = length(Qnow - P) * SSRConeTangent(normalRoughness.b) / (max(Qnow.z, 1.0) * u_SSRDepthParams.w);
+		float allowed = max(2.0 * gridScale, footprint);
+		hitAgreement = 1.0 - smoothstep(allowed, 2.0 * allowed, apart);
+	}
+	if (hitAgreement <= 0.0)
+		return;
+
 	vec4 history = textureLod(u_SSRHistoryMap, prevUV, 0.0);
 	vec4 history2 = clamp(vec4(RGBToYCoCg(history.rgb), history.a), lo, hi);
 	history = vec4(YCoCgToRGB(history2.rgb), history2.a);
 
 	float motion = length((uv - prevUV) / u_SSRTexelSize.xy);
-	float weight = u_SSRSettings.y * (1.0 - 0.5 * smoothstep(2.0, 24.0, motion));
+	float weight = u_SSRSettings.y * (1.0 - 0.5 * smoothstep(2.0, 24.0, motion)) * hitAgreement;
 	out_Color = mix(current, history, weight);
 }

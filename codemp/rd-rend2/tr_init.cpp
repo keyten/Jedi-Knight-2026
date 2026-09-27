@@ -258,6 +258,8 @@ cvar_t  *r_ssrDebug;
 cvar_t  *r_ssrEmitters;
 cvar_t  *r_ssrEmitterIntensity;
 cvar_t  *r_ssrEmitterMaxRoughness;
+cvar_t  *r_ssrHitCache;
+cvar_t  *r_ssrCull;
 
 cvar_t  *r_ssgi;
 cvar_t  *r_ssgiSource;
@@ -1985,14 +1987,18 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrStrength, 0.0f, 1.0f, qfalse );
 	r_ssrCompare = ri.Cvar_Get( "r_ssrCompare", "0", CVAR_ARCHIVE, "SSR split screen: left half cubemap reflections only, right half with SSR" );
 	ri.Cvar_CheckRange( r_ssrCompare, 0, 1, qtrue );
-	r_ssrDebug = ri.Cvar_Get( "r_ssrDebug", "0", CVAR_CHEAT, "SSR debug view: 1 = material normal, 2 = roughness, 3 = specular reflectance, 4 = ray hit/miss, 5 = hit distance, 6 = confidence, 7 = raw SSR, 8 = cubemap reflection, 9 = hybrid reflection, 10 = replaced part (SSR - cubemap), 11 = light saber / effect reflections" );
-	ri.Cvar_CheckRange( r_ssrDebug, 0, 11, qtrue );
+	r_ssrDebug = ri.Cvar_Get( "r_ssrDebug", "0", CVAR_CHEAT, "SSR debug view: 1 = material normal, 2 = roughness, 3 = specular reflectance, 4 = ray hit/miss, 5 = hit distance, 6 = confidence, 7 = raw SSR, 8 = cubemap reflection, 9 = hybrid reflection, 10 = replaced part (SSR - cubemap), 11 = light saber / effect reflections, 12 = hit cache (green = reused, red = traced)" );
+	ri.Cvar_CheckRange( r_ssrDebug, 0, 12, qtrue );
 	r_ssrEmitters = ri.Cvar_Get( "r_ssrEmitters", "1", CVAR_ARCHIVE, "SSR: reflect light sabers, blaster bolts and other additive effect primitives (analytic, also off screen)" );
 	ri.Cvar_CheckRange( r_ssrEmitters, 0, 1, qtrue );
 	r_ssrEmitterIntensity = ri.Cvar_Get( "r_ssrEmitterIntensity", "1", CVAR_ARCHIVE, "SSR: brightness of the light saber / effect reflections" );
 	ri.Cvar_CheckRange( r_ssrEmitterIntensity, 0.0f, 16.0f, qfalse );
 	r_ssrEmitterMaxRoughness = ri.Cvar_Get( "r_ssrEmitterMaxRoughness", "0.35", CVAR_ARCHIVE, "SSR: rougher surfaces do not reflect light sabers / effects (their dynamic light highlight already does)" );
 	ri.Cvar_CheckRange( r_ssrEmitterMaxRoughness, 0.05f, 1.0f, qfalse );
+	r_ssrHitCache = ri.Cvar_Get( "r_ssrHitCache", "1", CVAR_ARCHIVE, "SSR: reuse the ray hits of the previous frame while they are still valid (each pixel is traced again every 4 frames)" );
+	ri.Cvar_CheckRange( r_ssrHitCache, 0, 1, qtrue );
+	r_ssrCull = ri.Cvar_Get( "r_ssrCull", "1", CVAR_ARCHIVE, "SSR: run the ray march only on the pixels that need a ray (early depth test)" );
+	ri.Cvar_CheckRange( r_ssrCull, 0, 1, qtrue );
 
 	r_ssgi = ri.Cvar_Get( "r_ssgi", "0", CVAR_ARCHIVE | CVAR_LATCH, "Screen-space diffuse GI: bounces dynamic light (sabers, blasters, explosions) and emission, not the baked lighting (needs vid_restart)" );
 	ri.Cvar_CheckRange( r_ssgi, 0, 1, qtrue );

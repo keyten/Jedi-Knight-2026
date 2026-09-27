@@ -309,6 +309,8 @@ extern cvar_t  *r_ssrDebug;
 extern cvar_t  *r_ssrEmitters;
 extern cvar_t  *r_ssrEmitterIntensity;
 extern cvar_t  *r_ssrEmitterMaxRoughness;
+extern cvar_t  *r_ssrHitCache;
+extern cvar_t  *r_ssrCull;
 
 extern cvar_t  *r_ssgi;
 extern cvar_t  *r_ssgiSource;
@@ -1341,6 +1343,10 @@ enum
 	TB_SSGI_RADIANCE = 15,
 	TB_SSGI_SOURCE   = 16,
 
+	// SSR ray hits of this and the previous frame (hit cache, tr_ssr.cpp)
+	TB_SSR_HIT       = 10,
+	TB_SSR_PREVHIT   = 11,
+
 	// silhouette POM group footprints of lightall / fogpass / pom_silhouette_depth
 	// (tr_pom_silhouette.cpp). The silhouette lightall set is lightmap / vertex
 	// lit only, the entity grid units (LIGHT_VECTOR) are free there. Needs
@@ -1890,6 +1896,7 @@ enum
 {
 	SSRDEF_TRACE		= 0,	// ray march, linear
 	SSRDEF_TRACE_HIZ	= 1,	// ray march, hierarchical depth
+	SSRDEF_CLASSIFY		= 2,	// early depth mask of the pixels that need a ray
 	SSRDEF_COUNT
 };
 
@@ -2219,8 +2226,12 @@ typedef enum
 	UNIFORM_SSRSETTINGS,	// pass specific
 	UNIFORM_SSRSETTINGS2,	// pass specific
 	UNIFORM_SSRSETTINGS3,	// pass specific
+	UNIFORM_SSRSETTINGS4,	// pass specific
 	UNIFORM_SSRWORLDTOVIEW,	// world -> SSR view space (x right, y up, z forward)
 	UNIFORM_SSRREPROJECT,	// SSR view space -> previous frame clip space
+	UNIFORM_SSRPREVVIEWTOVIEW,	// previous frame SSR view space -> SSR view space
+	UNIFORM_SSRHITMAP,		// SSR ray hits of this frame
+	UNIFORM_SSRPREVHITMAP,	// SSR ray hits of the previous frame (hit cache)
 	UNIFORM_SSREMITTERS,	// SSR_MAX_EMITTERS * 3 vec4, see RB_SSRCollectEmitters
 	UNIFORM_SSREMITTERPARAMS,	// count, 0, max roughness, 0
 	UNIFORM_SSGIALBEDOMAP,		// tr_ssgi.cpp, see the ssgi_*.glsl headers
@@ -3461,7 +3472,7 @@ typedef struct trGlobals_s {
 	image_t					*ssrSpecularImage;	// rgb = sqrt(specular IBL weight)
 	image_t					*ssrCubemapImage;	// rgb = cubemap specular added by lightall, a = view depth
 	image_t					*ssrColorImage;		// opaque HDR scene, SSR_COLOR_MIPS levels
-	image_t					*ssrTraceImage;		// xy = hit uv, z = hit distance / max, w = confidence
+	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
 	image_t					*ssrHistoryImage[2];
 	image_t					*ssrHistoryGeomImage[2];	// x = view depth, yz = octahedral normal, w = roughness
@@ -3512,7 +3523,7 @@ typedef struct trGlobals_s {
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth
 	FBO_t					*ssrColorFbo[SSR_COLOR_MIPS];
-	FBO_t					*ssrTraceFbo;
+	FBO_t					*ssrTraceFbo[2];
 	FBO_t					*ssrResolveFbo;
 	FBO_t					*ssrHistoryFbo[2];
 	FBO_t					*screenHiZFbo[SCREEN_HIZ_MIPS];
@@ -3608,7 +3619,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumetricDebugShader;
 	shaderProgram_t foliageFieldShader;			// r_foliageField update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageFieldDebug 1 overlay
-	shaderProgram_t ssrDownsampleShader;
+	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ssrResolveShader;
 	shaderProgram_t ssrTemporalShader;

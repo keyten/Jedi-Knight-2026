@@ -96,15 +96,20 @@ look.
    1. shared: MSAA: resolve depth into `renderDepthImage` and the attachments into their textures; `screenHiZ`
       mip 0 = linear view depth (`ssr_hiz` LINEARIZE), with Hi-Z tracing (SSR or SSGI) also mips 1-6 = closest depth
    2. screen-space GI when enabled (`rend2-ssgi.md`), composited into color 0 first
-   3. `RB_RenderSSR`: `ssrColor` mip 0 = copy of color 0 (resolves MSAA), mips 1-6: 4x4 box downsample (`ssr_downsample`)
-   4. trace (`ssr_trace`, full or half resolution) -> `ssrTrace`
-   5. resolve (`ssr_resolve`, full resolution) -> `ssrResolve`
-   6. optional temporal accumulation (`ssr_temporal`) -> `ssrHistory[current]`
-   7. composite (`ssr_composite`) into color 0 through `ssrCompositeFbo` (color 0 only: the glow and material
+   3. `RB_RenderSSR`: `ssrColor` mip 0 = copy of color 0 (resolves MSAA), mips 1-6: 4x4 box downsample
+      (`ssr_downsample`), premultiplied by coverage: mip 1 leaves out the first person weapon and the texels outside
+      the view rectangle (16 masked taps), the next mips filter the premultiplied result
+   4. classify (`ssr_classify`, `r_ssrCull 1`): nearest depth where a pixel needs a ray, so the trace is rejected
+      by the early depth test everywhere else
+   5. trace (`ssr_trace`, full or half resolution) -> `ssrTrace[current]`, reusing valid hits of
+      `ssrTrace[previous]` (hit cache)
+   6. resolve (`ssr_resolve`, full resolution) -> `ssrResolve`
+   7. optional temporal accumulation (`ssr_temporal`) -> `ssrHistory[current]`
+   8. composite (`ssr_composite`) into color 0 through `ssrCompositeFbo` (color 0 only: the glow and material
       attachments stay untouched and the sampled depth is not attached)
 5. Main pass, **the rest**: decals, see-through, blended surfaces, fog passes, sun, flares - on top of the hybrid
    result.
-6. Post processing unchanged; `r_ssrDebug 1-6` overlays at its end.
+6. Post processing unchanged; `r_ssrDebug 1-6` and `12` overlays at its end.
 
 SSR therefore samples the opaque HDR scene before tone mapping (in the same space lightall writes: scene linear
 with HDR lightmaps / `r_linearLighting`, display encoded otherwise - the same space as the cubemap reflection it
@@ -114,9 +119,9 @@ replaces), without particles or glass in it.
 
 | image | format | size |
 |---|---|---|
-| `ssrColor` | as renderImage, 7 mips | full |
+| `ssrColor` | as renderImage, 7 mips (1-6 premultiplied coverage) | full |
 | `screenHiZ` (shared) | R32F, 7 mips | full |
-| `ssrTrace` | RGBA16 (hit uv 1/65535, distance, confidence) | full (half resolution uses a quarter) |
+| `ssrTrace[2]` | RGBA16 (hit uv, log hit depth, confidence + reused bit), depth 16 (classification) | trace resolution (half: a quarter); this frame and the previous (hit cache) |
 | `ssrResolve` | RGBA16F (premultiplied radiance, confidence) | full |
 | `ssrHistory[2]`, `ssrHistoryGeom[2]` | RGBA16F | full, only with `r_ssrTemporal 1` |
 
@@ -127,7 +132,8 @@ replaces), without particles or glass in it.
   towards and behind the camera) and to the view rectangle.
 - The view space ray is projected to the screen; its screen position and 1 / depth are linear in screen space,
   so the steps are spread evenly over the covered pixels (McGuire & Mara 2014) with a per pixel jitter
-  (interleaved gradient noise, changing per frame).
+  (interleaved gradient noise; it changes per frame only with `r_ssrTemporal 1`, which averages it - without the
+  accumulation a changing jitter would only flicker).
 - A crossing: the ray segment reaches behind a depth buffer surface but not further than its assumed thickness,
   `r_ssrThickness * (1 + z / 512)`. It is refined with `r_ssrRefineSteps` binary search steps.
 - Hi-Z (`r_ssrHiZ`, from `r_ssrQuality` medium): walks the closest depth mips. Cells the ray passes entirely in
@@ -140,6 +146,25 @@ replaces), without particles or glass in it.
   surfaces are sharp, rough ones blurred, and the sharpness matches the cubemap mip they blend with. Above
   `r_ssrMaxRoughness` only the cubemap is used (smooth fade from 70% of it).
 
+- The trace stores the hit **surface** point (its uv and log encoded view depth), not a distance: it is fixed in
+  the world, so the next frame can reuse it, and the resolve derives the hit distance from it.
+
+### Hit cache (`r_ssrHitCache 1`)
+
+The expensive part of the SSR is finding the hit, not reading its color. The trace first reprojects the receiver
+into the previous frame (velocity buffer, or the previous camera), reads the hit stored there and brings the point
+into this view. It is reused without a march when it is still the hit of this frame's ray:
+
+- on the ray, within the roughness cone (at least two trace pixels of angle), not beyond the ray length;
+- on screen and still the visible surface there (current depth within `max(3% + 2, thickness / 4)`);
+- not a moving object (the velocity at the hit leads back to where the cached hit was);
+- nothing new in between (4 depth taps along the ray segment).
+
+The confidence terms are recomputed with the current geometry, and the radiance is always read from this frame's
+scene: lights, sabers or a door changing color show at once. Each pixel still traces once every 4 frames (2x2
+rotation), invalid hits every frame. Needs a valid history (same cut rules as the temporal accumulation).
+`r_ssrDebug 12` shows reused (green) and traced (red) hits.
+
 ### Confidence
 
 Product of: hit ambiguity (ray depth vs surface depth / thickness), back facing hits (hit normal facing away from
@@ -150,7 +175,10 @@ start offset (self intersection) have 0.
 
 ### Half resolution
 
-One ray per 2x2 block (the lower left pixel). The resolve upsamples from the four nearest trace texels weighted
+One ray per 2x2 block. With `r_ssrTemporal 1` the traced pixel of the block rotates over the frames ((0,0),
+(1,1), (1,0), (0,1)), so thin reflective details are not skipped for good; without it the lower left pixel. The
+trace image is allocated at half size (the resolution is latched: `r_ssrHalfRes` / `r_ssrQuality` changes apply at
+the next `vid_restart`). The resolve upsamples from the four nearest trace texels weighted
 by bilinear position, depth similarity and normal similarity (`pow(dot, 8)`), and fetches the radiance per
 sample, so reflections do not leak across silhouettes.
 
@@ -158,13 +186,15 @@ sample, so reflections do not leak across silhouettes.
 
 Creates the velocity buffer (as SMAA T2x / motion blur do) and two history buffers. Each receiver is reprojected
 with the velocity of the depth prepass when available (moving doors, NPCs), otherwise with the previous camera.
-The history is rejected off screen, on disocclusion (previous depth vs the depth the point would have), on a
-different normal (dot < 0.9) or roughness (> 0.1), and after a cut: frame gap, map change, viewport change,
+The history is rejected off screen, on disocclusion (previous depth vs the depth the point would have; for moving
+surfaces the tolerance grows with their screen motion only), on a different normal (dot < 0.9) or roughness
+(> 0.1), when the **reflected point** changed (this frame's hit against the previous hit brought into this view:
+further apart than the reflection cone or two trace pixels, or a confident hit appeared / vanished - a mirror under
+a moving camera keeps its depth and normal while it reflects something else), and after a cut: frame gap, map change, viewport change,
 camera move > 192 units, rotation > 35 degrees, FOV change > 1 degree, or (with `r_motionBlur`) a reset of the
 motion blur history (`tr.temporalHistoryValid`, which also covers `r_motionBlurReset`). The history is clamped to the YCoCg range of
 the 3x3 neighborhood of the current frame, and its weight (`r_ssrTemporalWeight`) halves with large motion.
-Accumulation is optional; the SSR is stable without it (the jitter then just changes the sample positions each
-frame).
+Accumulation is optional; the SSR is stable without it (no jitter, no phase rotation).
 
 ## Light sabers and effects (analytic emitters)
 
@@ -210,6 +240,8 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrTemporalWeight` | 0.9 | history weight |
 | `r_ssrStrength` | 1 | confidence scale. 0 = cubemap only (and no SSR work unless a debug view or the compare is on) |
 | `r_ssrCompare` | 0 | split screen: left half cubemap reflections only, right half hybrid |
+| `r_ssrHitCache` | 1 | reuse the previous frame's hits while valid (each pixel retraced every 4 frames) |
+| `r_ssrCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
 | `r_ssrDebug` | 0 | cheat, see below |
 | `r_ssrEmitters` | 1 | reflect light sabers and additive effects (analytic) |
 | `r_ssrEmitterIntensity` | 1 | brightness of those reflections |
@@ -233,6 +265,7 @@ color of the view before the rest of the pass and go through the normal tone map
 | 9 | final hybrid reflection `C + c * (SSR * W - C)` |
 | 10 | replaced part `abs(c * (SSR * W - C))` |
 | 11 | light saber / effect reflections alone (9 includes them) |
+| 12 | hit cache: reused hit (green), traced hit (red), miss (dark) |
 
 A/B: `r_ssr 0` is the previous renderer; `r_ssrCompare 1` shows cubemap-only and hybrid side by side in the same
 frame; `r_ssrDebug 8` vs `9` shows the reflection term alone. `build/ab/*-pressr.dll` (HEAD) vs `*-ssr.dll`.
@@ -280,16 +313,21 @@ To check in game (`r_ssr 1`, `r_ssrCompare 1`, `r_ssrDebug 4/6/9/10`):
 - MSAA: normals are averaged on silhouettes, silhouette pixels mostly fail the depth validation and keep the
   cubemap reflection.
 - `r_hdr 0`: the scene buffer is 8 bit, the composite clamps (subtract pass, then add pass).
-- The first person weapon is detected by its depth range; a weapon drawn without `RF_DEPTHHACK` would be a
-  normal receiver/hit target.
+- The first person weapon is detected by its depth range (hardware depth <= 0.3). World geometry only lands there
+  closer than ~1.43 x `r_znear` (a few units), and would then just not be a receiver or hit. A weapon drawn
+  without `RF_DEPTHHACK` would be a normal receiver/hit target. Its color is in the scene copy, but it is left
+  out of the blurred mips, so rough reflections near it do not pick it up.
 - Only the main view of a scene gets SSR (not portals, mirrors, sky portals).
-- Temporal reprojection uses the receiver's motion, not the motion of the reflected point; the neighborhood clamp
-  hides most of the difference on glossy surfaces.
+- MSAA: the attachments are averaged per pixel while the depth is one sample; a representative-sample resolve
+  would need multisample textures (the attachments are renderbuffers). Silhouette pixels mostly fail the depth
+  validation and keep the cubemap.
+- Rough reflections are a mirror ray plus a cone blur of the scene (cheap, matches the cubemap prefilter), not a
+  distribution of rays: occlusion and parallax inside a rough lobe are those of the mirror direction.
 
 ## Possible improvements (not implemented)
 
-- Reflection parallax aware reprojection (reproject the hit point), and stochastic GGX ray directions with
-  temporal + spatial denoising for physically correct rough reflections instead of the cone blur.
+- Stochastic GGX ray directions with temporal + spatial denoising for physically correct rough reflections
+  instead of the cone blur (the hit cache and the hit based history rejection are the base for it).
 - Fog along the reflected ray; SSR for transparent surfaces (water, glass) in their own pass.
 - A screen-space emissive layer for the remaining additive effects (exact look, on screen only), next to the
   analytic emitters.

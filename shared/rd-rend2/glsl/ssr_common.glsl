@@ -32,6 +32,8 @@ uniform sampler2D u_SSRHistoryMap;
 uniform sampler2D u_SSRHistoryGeomMap;
 uniform sampler2D u_SSRHiZMap;
 uniform sampler2D u_VelocityMap;
+uniform sampler2D u_SSRHitMap;        // SSR ray hits of this frame (trace resolution)
+uniform sampler2D u_SSRPrevHitMap;    // SSR ray hits of the previous frame (hit cache)
 
 uniform vec4 u_SSRProjection;   // P[0], P[5], P[8], P[9]
 uniform vec4 u_SSRDepthParams;  // P[14], P[10], zFar, view space size of one pixel at depth 1
@@ -40,8 +42,10 @@ uniform vec4 u_SSRTexelSize;    // 1 / source size, 1 / destination size
 uniform vec4 u_SSRSettings;     // pass specific
 uniform vec4 u_SSRSettings2;    // pass specific
 uniform vec4 u_SSRSettings3;    // pass specific
+uniform vec4 u_SSRSettings4;    // pass specific
 uniform mat4 u_SSRWorldToView;
 uniform mat4 u_SSRReproject;    // view space -> previous frame clip space
+uniform mat4 u_SSRPrevViewToView; // previous frame view space -> view space
 
 // RF_DEPTHHACK surfaces (first person weapon) are drawn with glDepthRange(0, 0.3)
 #define SSR_DEPTH_HACK_MAX 0.3001
@@ -144,6 +148,47 @@ vec3 SSRSpecularWeight(ivec2 pix)
 {
 	vec3 w = texelFetch(u_SSRSpecularMap, pix, 0).rgb;
 	return w * w;
+}
+
+/*
+SSR trace texels (RGBA16, tr_ssr.cpp): xy = hit uv, z = SSREncodeHitDepth(hit view depth), w = confidence
+(0 = miss). The lowest bit of w flags a hit reused from the previous frame (hit cache, r_ssrDebug 12).
+The hit depth is log encoded over [1, zFar]: 16 bits keep it within ~0.02% everywhere.
+*/
+float SSREncodeHitDepth(float z)
+{
+	return clamp(log2(max(z, 1.0)) / log2(max(u_SSRDepthParams.z, 2.0)), 0.0, 1.0);
+}
+
+float SSRDecodeHitDepth(float e)
+{
+	return exp2(e * log2(max(u_SSRDepthParams.z, 2.0)));
+}
+
+// view space hit point of a trace texel
+vec3 SSRHitPosition(vec4 hit)
+{
+	return SSRViewPosition(hit.xy, SSRDecodeHitDepth(hit.z));
+}
+
+float SSREncodeConfidence(float confidence, bool reused)
+{
+	float q = floor(clamp(confidence, 0.0, 1.0) * 32767.0) * 2.0 + (reused ? 1.0 : 0.0);
+	return q / 65535.0;
+}
+
+bool SSRHitReused(float w)
+{
+	return (int(w * 65535.0 + 0.5) & 1) != 0;
+}
+
+// full resolution pixel that half resolution trace texel q traces: 2q + phase, the phase rotates over
+// the frames with the temporal accumulation (u_SSR... phase uniform of the pass, 0 or 1 per axis)
+ivec2 SSRTracePixel(ivec2 q, float gridScale, vec2 phase, ivec2 fullSize)
+{
+	if (gridScale < 1.5)
+		return q;
+	return min(q * 2 + ivec2(phase), fullSize - ivec2(1));
 }
 
 float SSRInterleavedGradientNoise(vec2 pixel)

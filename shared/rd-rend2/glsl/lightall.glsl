@@ -2524,14 +2524,32 @@ float luma(vec3 color)
 	return dot(color, weight);
 }
 
-vec3 CalcIBLContribution(
+// Specular IBL weight W: the factor applied to the cubemap radiance
+// (F0 * EnvBRDF.x + EnvBRDF.y). SSR replaces cubemap radiance with
+// screen-space radiance under the same W, so it is computed once.
+vec3 SpecularIBLWeight(in float roughness, in float NE, in vec3 specular)
+{
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP)
+	// Base BRDF
+	#if !defined(USE_CLOTH_BRDF)
+		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).rg;
+		return specular.rgb * EnvBRDF.x + EnvBRDF.y;
+	// Cloth BRDF
+	#else
+		return vec3(texture(u_EnvBrdfMap, vec2(roughness, NE)).b);
+	#endif
+#else
+	return vec3(0.0);
+#endif
+}
+
+// Cubemap radiance of the reflection, before the specular weight
+vec3 CalcIBLRadiance(
 	in float roughness,
 	in vec3 N,
 	in vec3 E,
 	in vec3 viewOrigin,
 	in vec3 viewDir,
-	in float NE,
-	in vec3 specular,
 	in vec3 lighting
 )
 {
@@ -2545,38 +2563,29 @@ vec3 CalcIBLContribution(
 
 	// Scale reflection based on current light luminance / max luminance of the cubemap 
 	cubeLightColor.rgb *= clamp(luma(lighting) / cubeLightColor.a, 0.0, 1.0);
-
-	// Base BRDF
-	#if !defined(USE_CLOTH_BRDF)
-		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).rg;
-		return cubeLightColor.rgb * (specular.rgb * EnvBRDF.x + EnvBRDF.y);
-	// Cloth BRDF
-	#else
-		float EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).b;
-		return cubeLightColor.rgb * EnvBRDF;
-	#endif
+	return cubeLightColor.rgb;
 #else
 	return vec3(0.0);
 #endif
 }
 
-#if defined(USE_SSR)
-// The factor CalcIBLContribution applies to the cubemap radiance: SSR
-// replaces cubemap radiance with screen-space radiance under the same BRDF.
-vec3 SSRSpecularWeight(in float roughness, in float NE, in vec3 specular)
+vec3 CalcIBLContribution(
+	in float roughness,
+	in vec3 N,
+	in vec3 E,
+	in vec3 viewOrigin,
+	in vec3 viewDir,
+	in float NE,
+	in vec3 specular,
+	in vec3 lighting
+)
 {
-#if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP)
-	#if !defined(USE_CLOTH_BRDF)
-		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).rg;
-		return specular.rgb * EnvBRDF.x + EnvBRDF.y;
-	#else
-		return vec3(texture(u_EnvBrdfMap, vec2(roughness, NE)).b);
-	#endif
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_CUBEMAP) && defined(USE_SPECULARMAP)
+	return CalcIBLRadiance(roughness, N, E, viewOrigin, viewDir, lighting) * SpecularIBLWeight(roughness, NE, specular);
 #else
 	return vec3(0.0);
 #endif
 }
-#endif
 
 #if defined(USE_WETNESS) && defined(PER_PIXEL_LIGHTING)
 // 0..1 rain exposure of a world position: the particle test of weather.glsl
@@ -3518,14 +3527,16 @@ void main()
 	vec3 dynamicLight = CalcDynamicLightContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, diffuse.rgb, specular.rgb, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
-	vec3 cubemapReflection = CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, iblLighting) * specOcclusion;
+	// one EnvBRDF lookup for the cubemap and the SSR weight
+	vec3 iblWeight = SpecularIBLWeight(roughness, NE, specularAO);
+	vec3 cubemapReflection = CalcIBLRadiance(roughness, N, E, u_ViewOrigin, viewDir, iblLighting) * iblWeight * specOcclusion;
 	out_Color.rgb += cubemapReflection;
   #if defined(USE_SPECULARMAP)
 	out_SSRNormal = vec4(SSREncodeNormal(N), roughness, 1.0);
 	// SSR hits are traced geometry, not occluded again (indirect-only: the
 	// weight has no specular occlusion; ssr_composite removes the occluded
 	// cubemap where SSR hits)
-	out_SSRSpecular = vec4(sqrt(clamp(SSRSpecularWeight(roughness, NE, specularAO), 0.0, 1.0)), 0.0);
+	out_SSRSpecular = vec4(sqrt(clamp(iblWeight, 0.0, 1.0)), 0.0);
 	out_SSRCubemap.rgb = cubemapReflection;
   #endif
 #else
