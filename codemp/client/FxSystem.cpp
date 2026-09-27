@@ -33,6 +33,25 @@ void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
 	}
 }
 
+void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
+	float innerAngle, float outerAngle, int flags )
+{
+	if ( reSpotLights && reSpotLights->AddSpotLightToScene )
+	{
+		refSpotLight_t light;
+		VectorCopy( org, light.origin );
+		VectorCopy( dir, light.dir );
+		light.radius = radius;
+		VectorCopy( rgb, light.color );
+		light.innerAngle = innerAngle;
+		light.outerAngle = outerAngle;
+		light.flags = flags;
+		reSpotLights->AddSpotLightToScene( &light );
+		return;
+	}
+	re->AddLightToScene( org, radius, rgb[0], rgb[1], rgb[2] );
+}
+
 cvar_t	*fx_debug;
 #ifdef _DEBUG
 cvar_t	*fx_freeze;

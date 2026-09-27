@@ -653,7 +653,7 @@ void FBO_Init(void)
 	{
 		for (i = 0; i < MAX_DLIGHTS * 6; i++)
 		{
-			tr.shadowCubeFbo[i] = FBO_Create(va("_shadowCubeFbo_%i", i), PSHADOW_MAP_SIZE, PSHADOW_MAP_SIZE);
+			tr.shadowCubeFbo[i] = FBO_Create(va("_shadowCubeFbo_%i", i), DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE);
 			FBO_Bind(tr.shadowCubeFbo[i]);
 			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tr.pointShadowArrayImage->texnum, 0, i);
 			qglDrawBuffer(GL_NONE);

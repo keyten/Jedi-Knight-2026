@@ -2747,6 +2747,8 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 		// the light owning shadow slot s (r_dynamicShadowMaxLights)
 		const int numShadowCubes = R_ForwardPlusActive() ?
 			R_ForwardPlusNumShadowSlots() : refdef->num_dlights;
+		for (int i = 0; i < refdef->num_dlights; i++)
+			refdef->dlights[i].spotShadowSlot = -1;
 		if (numShadowCubes && r_dlightMode->integer >= 2)
 		{
 			for (int i = 0; i < numShadowCubes; i++)
@@ -2755,6 +2757,12 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				int j;
 				const int lightNum = R_ForwardPlusActive() ?
 					R_ForwardPlusShadowSlotLight(i) : i;
+				if (lightNum < 0 || lightNum >= refdef->num_dlights)
+					continue;	// Forward+: unused slot below the last one
+				dlight_t *shadowLight = &refdef->dlights[lightNum];
+				// spot lights (tr_spotlight.cpp): SPOTLIGHT_NOSHADOW / r_spotShadows 0
+				if (!R_DlightCastsShadow(shadowLight))
+					continue;
 
 				Com_Memset(&shadowParms, 0, sizeof(shadowParms));
 
@@ -2773,6 +2781,32 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				shadowParms.zNear = 1.0f;
 
 				VectorCopy(refdef->dlights[lightNum].origin, shadowParms.ori.origin);
+
+				if (R_SpotProjectedShadow(shadowLight))
+				{
+					// a spot light: one perspective view along the cone into
+					// layer 0 of its cube slot, sampled through spotShadowVP
+					shadowParms.fovX = shadowParms.fovY = R_SpotShadowFov(shadowLight);
+					R_SpotShadowAxis(shadowLight, shadowParms.ori.axis);
+
+					shadowParms.targetFbo = tr.shadowCubeFbo[i * 6];
+					shadowParms.targetFboLayer = 0;
+
+					shadowParms.currentViewParm = tr.numCachedViewParms;
+					shadowParms.viewParmType = VPT_POINT_SHADOWS;
+
+					R_RotateForViewer(&shadowParms.world, &shadowParms);
+					R_SetupProjection(&shadowParms, shadowParms.zNear, shadowParms.zFar, qtrue);
+					R_SetupProjectionZ(&shadowParms);
+
+					Matrix16Multiply(shadowParms.projectionMatrix, shadowParms.world.modelViewMatrix,
+						shadowLight->spotShadowVP);
+					shadowLight->spotShadowSlot = i;
+
+					Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &shadowParms, sizeof(viewParms_t));
+					tr.numCachedViewParms++;
+					continue;
+				}
 
 				for (j = 0; j < 6; j++)
 				{

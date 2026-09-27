@@ -1146,13 +1146,16 @@ of them, most important first; legacy: the MAX_DLIGHTS of the Lights block) is
 binned into the clusters its sphere may touch, at most FROXEL_LIGHTS_PER_CLUSTER
 per cluster (the least important drop out). Two buffer textures per frame:
 
-  lights  RGBA32F  2 texels per light: origin, radius | color, shadow cube layer (-1 none)
+  lights  RGBA32F  FROXEL_LIGHT_TEXELS per light: origin, radius | color, shadow cube layer
+                   (-1 none) | spot axis, cos outer (-2: point) | cos inner (-1: point),
+                   projected spot shadow, 0, 0 (tr_spotlight.cpp)
   list    R32UI    one header per cluster (first entry | count << 24), then the
                    light indexes
 =================
 */
 #define FROXEL_LIGHT_TILE			8
 #define FROXEL_LIGHTS_PER_CLUSTER	32
+#define FROXEL_LIGHT_TEXELS			4	// must match volumetric_inject.glsl / volumetric_debug.glsl
 
 struct froxelLightRange_t
 {
@@ -1163,22 +1166,25 @@ struct froxelLightRange_t
 static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *froxelProjection,
 	const dlight_t *dl, int tilesX, int tilesY, froxelLightRange_t *range )
 {
-	const float radius = dl->radius;
-	if ( radius <= 0.0f )
+	if ( dl->radius <= 0.0f )
 		return qfalse;
+	// spot lights: the sphere around the cone (tr_spotlight.cpp)
+	vec3_t center;
+	float radius;
+	R_SpotBoundingSphere(dl, center, &radius);
 
 	// frustum sides
 	for ( int p = 0; p < 4; p++ )
 	{
 		const cplane_t *plane = &view->frustum[p];
-		if ( DotProduct(dl->origin, plane->normal) - plane->dist < -radius )
+		if ( DotProduct(center, plane->normal) - plane->dist < -radius )
 			return qfalse;
 	}
 
 	const float *mv = view->world.modelViewMatrix;
 	float eye[3];
 	for ( int r = 0; r < 3; r++ )
-		eye[r] = mv[r] * dl->origin[0] + mv[4 + r] * dl->origin[1] + mv[8 + r] * dl->origin[2] + mv[12 + r];
+		eye[r] = mv[r] * center[0] + mv[4 + r] * center[1] + mv[8 + r] * center[2] + mv[12 + r];
 	const float depth = -eye[2];
 	if ( depth + radius <= 0.0f || depth - radius >= s_vf.farZ )
 		return qfalse;
@@ -1246,7 +1252,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	const int numClusters = tilesX * tilesY * s_vf.depth;
 
 	// lights touching the volume, in importance order
-	static vec4_t lightData[MAX_RENDER_DLIGHTS * 2];
+	static vec4_t lightData[MAX_RENDER_DLIGHTS * FROXEL_LIGHT_TEXELS];
 	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS];
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
@@ -1256,8 +1262,15 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tilesX, tilesY, range) )
 			continue;
 		range->light = numLights;
-		VectorSet4(lightData[numLights * 2 + 0], dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
-		VectorSet4(lightData[numLights * 2 + 1], dl->color[0], dl->color[1], dl->color[2], (float)shadowLayers[i]);
+		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotShadows 0) and
+		// the legacy cube index of a light that has none
+		const int shadowLayer = R_DlightCastsShadow(dl) ? shadowLayers[i] : -1;
+		const float projected = (shadowLayer >= 0 && dl->spotShadowSlot == shadowLayer) ? 1.0f : 0.0f;
+		float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
+		VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
+		VectorSet4(t + 4, dl->color[0], dl->color[1], dl->color[2], (float)shadowLayer);
+		VectorSet4(t + 8, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
+		VectorSet4(t + 12, dl->spotCosInner, projected, 0.0f, 0.0f);
 		numLights++;
 	}
 	if ( !numLights )
@@ -1313,7 +1326,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	// this frame's buffers (orphaned: the GPU may still read the previous data)
 	const int slot = backEndData->realFrameNumber % MAX_FRAMES;
 	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.lightBuffers[slot]);
-	qglBufferData(GL_TEXTURE_BUFFER, numLights * 2 * sizeof(vec4_t), lightData, GL_STREAM_DRAW);
+	qglBufferData(GL_TEXTURE_BUFFER, numLights * FROXEL_LIGHT_TEXELS * sizeof(vec4_t), lightData, GL_STREAM_DRAW);
 	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.listBuffers[slot]);
 	qglBufferData(GL_TEXTURE_BUFFER, s_vfl.lightList.size() * sizeof(uint32_t), s_vfl.lightList.data(), GL_STREAM_DRAW);
 	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
@@ -2557,6 +2570,12 @@ void RB_VolumetricDebugOverlay( void )
 	GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
 	if ( tr.froxelParticleLightImage )
 		GL_BindToTMU(tr.froxelParticleLightImage, TB_ENTITYGRID_AMBIENT);
+	// view 29: the dynamic light lists of the froxel slices
+	if ( s_vfl.hasLights )
+	{
+		GL_BindToTMU(&s_vfl.lightImages[s_vfl.lightSlot], TB_FPLUS_LIGHTS);
+		GL_BindToTMU(&s_vfl.listImages[s_vfl.lightSlot], TB_FPLUS_GRID);
+	}
 	{
 		vec4_t particleLight = { particleLightView ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
 		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, particleLight);

@@ -36,6 +36,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_foliagefield.cpp"
 	"${SharedDir}/rd-rend2/tr_fogvolume.cpp"
 	"${SharedDir}/rd-rend2/tr_volparticle.cpp"
+	"${SharedDir}/rd-rend2/tr_spotlight.cpp"
 	"${SharedDir}/rd-rend2/tr_forwardplus.cpp"
 	"${SharedDir}/rd-rend2/tr_arealights.cpp"
 	"${SharedDir}/rd-rend2/tr_ltc_data.h"

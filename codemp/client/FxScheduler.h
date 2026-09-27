@@ -274,6 +274,14 @@ public:
 	vec3_t			mVolAspect;
 	float			mVolSoftness;
 
+	// spot cone of a Light (rend2 spot lights): the "spot" group, a point
+	// light when absent
+	bool			mSpot;
+	CFxRange		mSpotInner;			// degrees from the axis
+	CFxRange		mSpotOuter;
+	vec3_t			mSpotDir;			// in the effect's axes (1 0 0 = its forward)
+	bool			mSpotShadows;
+
 	// Lower level parsing utilities
 	bool ParseVector( const char *val, vec3_t min, vec3_t max );
 	bool ParseFloat( const char *val, float *min, float *max );
@@ -313,6 +321,7 @@ public:
 	bool ParseSize2( CGPGroup *grp );
 	bool ParseLength( CGPGroup *grp );
 	bool ParseVolumetricMedia( CGPGroup *grp );
+	bool ParseSpot( CGPGroup *grp );
 
 	bool ParseModels( CGPValue *grp );
 	bool ParseShaders( CGPValue *grp );

@@ -184,6 +184,10 @@ public:
 	{
 		re->AddLightToScene(	org, radius, red, green, blue );
 	}
+	// rend2 spot light (optional renderer extension); the point light of
+	// AddLightToScene with other renderers
+	void	AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
+				float innerAngle, float outerAngle, int flags );
 
 	inline	int		RegisterShader( const char *shader )
 	{

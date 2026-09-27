@@ -129,6 +129,7 @@ refexport_t	*re = NULL;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
+const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 static void	*rendererLib = NULL;
 
 ping_t	cl_pinglist[MAX_PINGREQUESTS];
@@ -2325,6 +2326,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reAreaLights = NULL;
 	reFoliage = NULL;
 	reVolParticles = NULL;
+	reSpotLights = NULL;
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -2551,6 +2553,8 @@ void CL_InitRef( void ) {
 	reFoliage = GetRefFoliageAPI ? GetRefFoliageAPI() : NULL;
 	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
 	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
+	GetRefSpotLightAPI_t GetRefSpotLightAPI = (GetRefSpotLightAPI_t)Sys_LoadFunction( rendererLib, "GetRefSpotLightAPI" );
+	reSpotLights = GetRefSpotLightAPI ? GetRefSpotLightAPI() : NULL;
 
 	// unpause so the cgame definately gets a snapshot and renders a frame
 	Cvar_Set( "cl_paused", "0" );
@@ -2735,6 +2739,8 @@ static void CL_GenerateQKey(void)
 CL_Init
 ====================
 */
+void FX_Play_f( void );	// FXExport.cpp
+
 void CL_Init( void ) {
 //	Com_Printf( "----- Client Initialization -----\n" );
 
@@ -2879,6 +2885,7 @@ void CL_Init( void ) {
 	// register our commands
 	//
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "Forward command to server" );
+	Cmd_AddCommand ("fxplay", FX_Play_f, "Developer: play an effect in front of the camera, along the view (fxplay <efx> [distance])" );
 	Cmd_AddCommand ("globalservers", CL_GlobalServers_f, "Query the masterserver for serverlist" );
 	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f, "Add server to favorites" );
 	Cmd_AddCommand ("record", CL_Record_f, "Record a demo" );
@@ -2955,6 +2962,7 @@ void CL_Shutdown( void ) {
 	//CL_ShutdownUI();
 
 	Cmd_RemoveCommand ("cmd");
+	Cmd_RemoveCommand ("fxplay");
 	Cmd_RemoveCommand ("configstrings");
 	Cmd_RemoveCommand ("clientinfo");
 	Cmd_RemoveCommand ("snd_restart");

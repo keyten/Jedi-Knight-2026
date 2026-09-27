@@ -487,6 +487,8 @@ struct Light
 	vec4 origin;
 	vec3 color;
 	float radius;
+	vec4 spot;		// cone axis, cos outer angle (-2: point light), tr_spotlight.cpp
+	vec4 spot2;		// cos inner angle (-1: point light), shadow (-1 none, 0 cube, 1 projected), unused, unused
 };
 
 layout(std140) uniform Lights
@@ -503,6 +505,7 @@ layout(std140) uniform Lights
 	vec4 u_ShadowDebug;
 	int u_NumLights;
 	Light u_Lights[32];
+	mat4 u_SpotShadowVP[32];	// spot light shadow views, by shadow slot (layer 6 * slot)
 };
 
 uniform int u_LightMask;
@@ -1709,6 +1712,21 @@ float CalcLightAttenuation(float normDist)
 	return clamp(attenuation, 0.0, 1.0);
 }
 
+// spot light cone (tr_spotlight.cpp, same function in volumetric_inject.glsl):
+// L = receiver to light, unit; spot = axis, cos outer. Point lights (cos outer
+// -2, cos inner -1): 1
+float SpotConeAttenuation(in vec3 L, in vec4 spot, in float cosInner)
+{
+	return smoothstep(spot.w, cosInner, dot(-L, spot.xyz));
+}
+
+// r_spotLightDebug 3: spot lights only on surfaces, 4: no spot lights on surfaces
+bool SpotDebugSkipLight(in float cosInner)
+{
+	float mode = u_ShadowDebug.z;
+	return (mode == 3.0 && cosInner < -0.5) || (mode == 4.0 && cosInner > -0.5);
+}
+
 #if defined(USE_DSHADOWS)
 #define DEPTH_MAX_ERROR 0.0000152587890625
 
@@ -1771,6 +1789,27 @@ float pcfShadow(in sampler2DArrayShadow depthMap, in vec3 L, in float distance, 
 	}
 	shadow /= float(samples);
 	return shadow;
+}
+
+// spot light shadow (tr_spotlight.cpp): one perspective view in layer 6 * slot,
+// same near 1 / far radius depth as the cube faces; position already biased
+float SpotShadow(in sampler2DArrayShadow depthMap, in vec3 position, in int slot, in float fovScale)
+{
+	vec4 clip = u_SpotShadowVP[slot] * vec4(position, 1.0);
+	if (clip.w <= 1e-3)
+		return 1.0;
+	vec3 ndc = clip.xyz / clip.w;
+	vec3 coord = ndc * 0.5 + 0.5;
+	// as the cube PCF: a disk of about 1.5 texels of a 90 degree face,
+	// scaled by the narrower field of view (fovScale = 1 / tan(fov / 2))
+	float radius = (M_PI / 512.0) * 0.5 * fovScale;
+	float shadow = 0.0;
+	for (int i = 0; i < 9; ++i)
+	{
+		vec2 uv = coord.xy + poissonDiscPolar[i] * radius;
+		shadow += texture(depthMap, vec4(uv, float(slot) * 6.0, coord.z));
+	}
+	return shadow / 9.0;
 }
 
 float getLightDepth(in vec3 Vec, in float f)
@@ -1874,6 +1913,17 @@ FPlusLight FPlusFetchLight(in int lightIndex)
 	light.halfWidth = t2.z;
 	light.halfHeight = t2.w;
 	return light;
+}
+
+// point lights (type 0): the spot cone, tr_spotlight.cpp. halfWidth holds the
+// cos inner angle (-1: no cone), halfHeight the projected shadow flag; the
+// axis and cos outer are fetched only for spot lights
+vec4 FPlusSpot(in FPlusLight light, in int lightIndex, out vec2 spot2)
+{
+	spot2 = vec2(light.halfWidth, light.halfHeight);
+	if (light.halfWidth < -0.5)
+		return vec4(0.0, 0.0, 0.0, -2.0);
+	return texelFetch(u_FPlusLights, u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS + 3);
 }
 
 // r_forwardPlusDebug 6 / 7 / 9 only show some lights
@@ -2004,13 +2054,17 @@ float PomLocalLightWeight(in float cut, in vec3 toLight, in vec3 lightColor, in 
 float g_dlightShadowVisibility = 1.0;
 #endif
 
-// shadowLayer: cube index in u_ShadowMap2 (6 layers each), < 0 = unshadowed
+// shadowLayer: cube index in u_ShadowMap2 (6 layers each), < 0 = unshadowed.
+// spot: cone axis, cos outer; spot2: cos inner, projected spot shadow (> 0.5:
+// layer 6 * shadowLayer through u_SpotShadowVP). Point lights: -2 / -1, 0
 vec3 EvaluateDynamicLight(
 	in DLightSurface s,
 	in vec3 lightOrigin,
 	in vec3 lightColor,
 	in float lightRadius,
-	in int shadowLayer)
+	in int shadowLayer,
+	in vec4 spot,
+	in vec2 spot2)
 {
 	vec3  L  = lightOrigin - s.position;
 	float sqrLightDist = dot(L, L);
@@ -2023,28 +2077,34 @@ vec3 EvaluateDynamicLight(
 		if (shadowLayer >= 0)
 		{
 			float dlightShadow;
+			bool projected = spot2.y > 0.5;
+			// 1 / tan(half field of view) of the spot view (a cube face: 1)
+			float fovScale = projected ? spot.w / sqrt(max(1.0 - spot.w * spot.w, 1e-6)) : 1.0;
+			vec3 lookupDir = L;
 			if (u_ShadowDebug.y > 0.5)
 			{
-				// r_dlightShadowBias 1: bias in cube texels at the receiver
-				// (a 90 degree face spans 2 * distance): a normal offset
-				// growing towards grazing angles plus a clamped slope term
-				// covering the PCF footprint (about 2 texels)
+				// r_dlightShadowBias 1: bias in shadow map texels at the
+				// receiver (a 90 degree face spans 2 * distance, a spot view
+				// 2 * distance / fovScale): a normal offset growing towards
+				// grazing angles plus a clamped slope term covering the PCF
+				// footprint (about 2 texels)
 				vec3 geoNormal = normalize(s.vertexNormal);
-				float texelWorld = 2.0 * sqrt(sqrLightDist) / float(DSHADOW_MAP_SIZE);
+				float texelWorld = 2.0 * sqrt(sqrLightDist) / (float(DSHADOW_MAP_SIZE) * fovScale);
 				float cosTheta = clamp(dot(geoNormal, L), 0.0, 1.0);
 				float slope = min(sqrt(1.0 - cosTheta * cosTheta) / max(cosTheta, 1e-3), 4.0);
 				sampleVector -= geoNormal * (texelWorld * 1.5 * (1.0 - cosTheta));
-				vec3 lookupDir = normalize(sampleVector);
+				lookupDir = normalize(sampleVector);
 				sampleVector -= lookupDir * (texelWorld * (1.0 + 2.0 * slope));
-				float distance = getLightDepth(sampleVector, lightRadius);
-				dlightShadow = pcfShadow(u_ShadowMap2, lookupDir, distance, shadowLayer);
 			}
 			else
 			{
 				sampleVector += L * tan(acos(dot(s.vertexNormal, -L)));
-				float distance = getLightDepth(sampleVector, lightRadius);
-				dlightShadow = pcfShadow(u_ShadowMap2, L, distance, shadowLayer);
 			}
+			// one call site each: every lightall permutation inlines them
+			if (projected)
+				dlightShadow = SpotShadow(u_ShadowMap2, lightOrigin - sampleVector, shadowLayer, fovScale);
+			else
+				dlightShadow = pcfShadow(u_ShadowMap2, lookupDir, getLightDepth(sampleVector, lightRadius), shadowLayer);
 			if (attenuation > 0.0 && dot(s.N, L) > 0.0)
 				g_dlightShadowVisibility = min(g_dlightShadowVisibility, dlightShadow);
 			attenuation *= dlightShadow;
@@ -2052,6 +2112,7 @@ vec3 EvaluateDynamicLight(
 	#else
 		L /= sqrt(sqrLightDist);
 	#endif
+	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
 	attenuation *= DynamicLightReceiverVisibility(s, L);
 
 	float NL = clamp(dot(s.N, L), 0.0, 1.0);
@@ -2316,6 +2377,8 @@ vec3 CalcDynamicLightContribution(
 		vec3 lightOrigin, lightColor;
 		float lightRadius;
 		int shadowLayer;
+		vec4 spot;
+		vec2 spot2;
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
@@ -2337,6 +2400,7 @@ vec3 CalcDynamicLightContribution(
 			lightColor = light.color;
 			lightRadius = light.radius;
 			shadowLayer = light.shadowSlot;
+			spot = FPlusSpot(light, lightIndex, spot2);
 		}
 		else
 		{
@@ -2345,12 +2409,17 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = u_Lights[k].origin.xyz;
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
-			shadowLayer = k;
+			spot = u_Lights[k].spot;
+			spot2 = u_Lights[k].spot2.xy;
+			// the loop index is the cube; spot lights without shadow: none
+			shadowLayer = u_Lights[k].spot2.y < -0.5 ? -1 : k;
 		}
+		if (SpotDebugSkipLight(spot2.x))
+			continue;
 #if defined(USE_PARALLAXMAP)
 		g_pomLightWeight = PomLocalLightWeight(pomCut, lightOrigin - s.position, lightColor, lightRadius);
 #endif
-		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius, shadowLayer);
+		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius, shadowLayer, spot, spot2);
 	}
 	return outColor;
 }
@@ -2360,12 +2429,15 @@ vec3 EvaluateDynamicLightSimple(
 	in vec3 N,
 	in vec3 lightOrigin,
 	in vec3 lightColor,
-	in float lightRadius)
+	in float lightRadius,
+	in vec4 spot,
+	in float spotCosInner)
 {
 	vec3 L = lightOrigin - position;
 	float sqrLightDist = dot(L, L);
 	float attenuation = CalcLightAttenuation(lightRadius * lightRadius / sqrLightDist);
 	L /= sqrt(sqrLightDist);
+	attenuation *= SpotConeAttenuation(L, spot, spotCosInner);
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	return lightColor * attenuation * NL;
 }
@@ -2384,6 +2456,8 @@ vec3 CalcDynamicLightContribution(
 	{
 		vec3 lightOrigin, lightColor;
 		float lightRadius;
+		vec4 spot;
+		vec2 spot2;
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
@@ -2393,6 +2467,7 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = light.origin;
 			lightColor = light.color;
 			lightRadius = light.radius;
+			spot = FPlusSpot(light, lightIndex, spot2);
 		}
 		else
 		{
@@ -2401,8 +2476,12 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = u_Lights[k].origin.xyz;
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
+			spot = u_Lights[k].spot;
+			spot2 = u_Lights[k].spot2.xy;
 		}
-		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor, lightRadius);
+		if (SpotDebugSkipLight(spot2.x))
+			continue;
+		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor, lightRadius, spot, spot2.x);
 	}
 	return outLight;
 }

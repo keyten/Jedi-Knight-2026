@@ -1082,9 +1082,22 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay
 
 			if ( cent && cent->gent && cent->gent->client )
 			{
-				FX_AddLight( cent->gent->client->renderInfo.muzzlePoint, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
+				CLight *light = FX_AddLight( cent->gent->client->renderInfo.muzzlePoint, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
 						sRGB, eRGB, fx->mRGBParm.GetVal(),
 						fx->mLife.GetVal(), fx->mFlags );
+				// spot group: the cone along the muzzle, followed every frame
+				if ( light && fx->mSpot )
+				{
+					vec3_t ax[3];
+					VectorCopy( cent->gent->client->renderInfo.muzzleDir, ax[0] );
+					if ( VectorNormalize( ax[0] ) <= 0.0f )
+						VectorSet( ax[0], 1.0f, 0.0f, 0.0f );
+					MakeNormalVectors( ax[0], ax[1], ax[2] );
+					const float outer = fx->mSpotOuter.GetVal();
+					light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
+						fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
+					light->SetSpotClient( clientID, -1, -1, vec3_origin );
+				}
 			}
 		}
 		break;
@@ -1919,9 +1932,26 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ve
 	case Light:
 	//---------
 
-		FX_AddLight( org, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
-						sRGB, eRGB, fx->mRGBParm.GetVal(),
-						fx->mLife.GetVal(), fx->mFlags );
+		{
+			CLight *light = FX_AddLight( org, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
+							sRGB, eRGB, fx->mRGBParm.GetVal(),
+							fx->mLife.GetVal(), fx->mFlags );
+			// spot group: the cone along the effect's direction; a relative
+			// (bolted) spot follows its bolt every frame, org being then the
+			// offset from it
+			if ( light && fx->mSpot )
+			{
+				const float outer = fx->mSpotOuter.GetVal();
+				light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
+					fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
+				if ( flags & FX_RELATIVE )
+				{
+					vec3_t offset;
+					VectorSet( offset, fx->mOrigin1X.GetVal(), fx->mOrigin1Y.GetVal(), fx->mOrigin1Z.GetVal() );
+					light->SetSpotClient( clientID, modelNum, boltNum, offset );
+				}
+			}
+		}
 		break;
 
 	//---------

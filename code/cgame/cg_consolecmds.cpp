@@ -27,6 +27,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cg_headers.h"
 
 #include "cg_media.h"	//just for cgs....
+#include "FxScheduler.h"	// fxplay
 
 void CG_TargetCommand_f( void );
 extern qboolean	player_locked;
@@ -207,6 +208,37 @@ void CG_LoadHud_f( void ) {
 	CG_LoadMenus( hudSet );
 }
 
+/*
+fxplay <efx> [distance | muzzle]: developer test of an effect (for example a spot
+Light, effects/test/volumetric_spot) at distance (default 0) in front of the
+camera, its forward along the view; "muzzle": attached to the player's weapon
+muzzle, followed every frame (a bolted spot light turns with it)
+*/
+static void CG_FxPlay_f( void )
+{
+	if ( cgi_Argc() < 2 )
+	{
+		CG_Printf( "usage: fxplay <efx file> [distance | muzzle]\n" );
+		return;
+	}
+	if ( !cg_developer.integer )
+	{
+		CG_Printf( "fxplay needs developer 1\n" );
+		return;
+	}
+	const char *file = CG_Argv( 1 );
+	if ( cgi_Argc() > 2 && !Q_stricmp( CG_Argv( 2 ), "muzzle" ) )
+	{
+		theFxScheduler.PlayEffect( file, cg.snap ? cg.snap->ps.clientNum : 0 );
+		return;
+	}
+	const float dist = cgi_Argc() > 2 ? atof( CG_Argv( 2 ) ) : 0.0f;
+	vec3_t org, fwd;
+	VectorMA( cg.refdef.vieworg, dist, cg.refdef.viewaxis[0], org );
+	VectorCopy( cg.refdef.viewaxis[0], fwd );
+	theFxScheduler.PlayEffect( file, org, fwd );
+}
+
 typedef struct {
 	const char	*cmd;
 	void		(*func)(void);
@@ -228,6 +260,7 @@ static consoleCommand_t	commands[] = {
 	{ "dpweapprev",			CG_DPPrevWeapon_f },
 	{ "forcenext",			CG_NextForcePower_f },
 	{ "forceprev",			CG_PrevForcePower_f },
+	{ "fxplay",				CG_FxPlay_f },
 	{ "invnext",			CG_NextInventory_f },
 	{ "invprev",			CG_PrevInventory_f },
 	{ "la_zoom",			CG_ToggleLAGoggles },

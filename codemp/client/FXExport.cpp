@@ -54,6 +54,31 @@ void FX_PlayEffect( const char *file, vec3_t org, vec3_t fwd, int vol, int rad )
 	theFxScheduler.PlayEffect(file, org, fwd, vol, rad);
 }
 
+/*
+fxplay <efx> [distance]: developer test of an effect (for example a spot Light,
+effects/test/volumetric_spot.efx) at distance (default 0) in front of the
+camera of the last rendered scene, its forward along the view
+*/
+void FX_Play_f( void )
+{
+	if ( Cmd_Argc() < 2 )
+	{
+		Com_Printf( "usage: fxplay <efx file> [distance]\n" );
+		return;
+	}
+	if ( !theFxHelper.refdef || !com_developer || !com_developer->integer )
+	{
+		Com_Printf( "fxplay: needs developer 1 and a running game\n" );
+		return;
+	}
+	const refdef_t *rd = theFxHelper.refdef;
+	const float dist = Cmd_Argc() > 2 ? atof( Cmd_Argv( 2 ) ) : 0.0f;
+	vec3_t org, fwd;
+	VectorMA( rd->vieworg, dist, rd->viewaxis[0], org );
+	VectorCopy( rd->viewaxis[0], fwd );
+	theFxScheduler.PlayEffect( Cmd_Argv( 1 ), org, fwd );
+}
+
 void FX_PlayEffectID( int id, vec3_t org, vec3_t fwd, int vol, int rad, qboolean isPortal )
 {
 #ifdef __FXCHECKER

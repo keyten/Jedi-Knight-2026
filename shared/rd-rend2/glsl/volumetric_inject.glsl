@@ -74,8 +74,10 @@ uniform sampler2DArrayShadow u_ShadowMap2;	// dynamic light cube faces, 6 layers
 
 flat in int var_Slice;	// slice of this layer, -1 = tail pass
 
-// dynamic light lists: 2 texels per light (origin, radius | color, shadow cube layer), and per
-// cluster a header (first entry | count << 24) followed by the light indexes
+// dynamic light lists: FROXEL_LIGHT_TEXELS per light (origin, radius | color, shadow cube layer |
+// spot axis, cos outer | cos inner, projected spot shadow), and per cluster a header (first entry |
+// count << 24) followed by the light indexes
+#define FROXEL_LIGHT_TEXELS 4
 uniform samplerBuffer u_FPlusLights;
 uniform usamplerBuffer u_FPlusGridMap;
 
@@ -84,6 +86,8 @@ struct Light
 	vec4 origin;
 	vec3 color;
 	float radius;
+	vec4 spot;
+	vec4 spot2;
 };
 
 layout(std140) uniform Lights
@@ -100,6 +104,7 @@ layout(std140) uniform Lights
 	vec4 u_ShadowDebug;
 	int u_NumLights;
 	Light u_Lights[MAX_DLIGHTS];
+	mat4 u_SpotShadowVP[MAX_DLIGHTS];	// spot light shadow views, by shadow slot (layer 6 * slot)
 };
 
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
@@ -480,6 +485,35 @@ float DynamicLightShadow(in vec3 L, in float dist, in float radius, in int light
 	return result * 0.25;
 }
 
+// spot light cone, as lightall.glsl SpotConeAttenuation (tr_spotlight.cpp): L = froxel to light,
+// unit; spot = axis, cos outer. Point lights (cos outer -2, cos inner -1): 1
+float SpotConeAttenuation(in vec3 L, in vec4 spot, in float cosInner)
+{
+	return smoothstep(spot.w, cosInner, dot(-L, spot.xyz));
+}
+
+// spot light shadow: the one perspective view in layer 6 * slot (u_SpotShadowVP), same depth
+// convention as the cube faces; pulled towards the light as DynamicLightShadow
+float SpotLightShadow(in vec3 lightOrigin, in vec3 L, in float dist, in int slot, in float cosOuter)
+{
+	vec3 dir = L / dist;
+	vec3 position = lightOrigin - (L - dir * min(2.0 + 0.02 * dist, 0.5 * dist));
+	vec4 clip = u_SpotShadowVP[slot] * vec4(position, 1.0);
+	if (clip.w <= 1e-3)
+		return 1.0;
+	vec3 coord = clip.xyz / clip.w * 0.5 + 0.5;
+	// the 0.006 radian spread of the cube taps, in the spot view's texture space
+	float fovScale = cosOuter / sqrt(max(1.0 - cosOuter * cosOuter, 1e-6));
+	float spread = 0.006 * 0.5 * fovScale;
+	float layer = float(slot) * 6.0;
+	float result = 0.0;
+	result += texture(u_ShadowMap2, vec4(coord.xy + vec2( spread,  spread), layer, coord.z));
+	result += texture(u_ShadowMap2, vec4(coord.xy + vec2( spread, -spread), layer, coord.z));
+	result += texture(u_ShadowMap2, vec4(coord.xy + vec2(-spread,  spread), layer, coord.z));
+	result += texture(u_ShadowMap2, vec4(coord.xy + vec2(-spread, -spread), layer, coord.z));
+	return result * 0.25;
+}
+
 // cluster header of the froxel cell in the slice: first entry | count << 24, 0 = no lights
 uint FroxelLightCluster(in ivec2 cell, in int slice)
 {
@@ -499,9 +533,16 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 	for (int j = 0; j < count; j++)
 	{
 		int i = int(texelFetch(u_FPlusGridMap, first + j).r);
-		vec4 originRadius = texelFetch(u_FPlusLights, i * 2);
-		vec4 colorLayer = texelFetch(u_FPlusLights, i * 2 + 1);
+		vec4 originRadius = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS);
+		vec4 colorLayer = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 1);
+		vec4 spot = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 2);
+		vec4 spot2 = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 3);
 		float radius = originRadius.w;
+
+		// r_spotLightDebug 3: no dynamic light in the fog, 4: spot lights only
+		float spotDebug = u_ShadowDebug.z;
+		if (spotDebug == 3.0 || (spotDebug == 4.0 && spot2.x < -0.5))
+			continue;
 
 		vec3 L = originRadius.xyz - p;
 		float sqrDist = max(dot(L, L), 1e-4);
@@ -511,6 +552,9 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 			continue;
 
 		float dist = sqrt(sqrDist);
+		attenuation *= SpotConeAttenuation(L / dist, spot, spot2.x);
+		if (attenuation <= 0.0)
+			continue;
 		// light travels from the light (-L) to the camera (-viewDir)
 		float phase = FroxelPhase(g, dot(L / dist, viewDir));
 
@@ -518,8 +562,14 @@ vec3 DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in float g)
 		// shadow cube layer (legacy: i, Forward+: slot or -1)
 		int shadowLayer = int(colorLayer.w);
 		if (u_FroxelShadowParams.z > 0.5 && shadowLayer >= 0)
-			shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
+		{
+			if (spot2.y > 0.5)
+				shadow = SpotLightShadow(originRadius.xyz, L, dist, shadowLayer, spot.w);
+			else
+				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
+		}
 
+		// pointAtten * coneAtten * shadow * phase
 		light += colorLayer.rgb * attenuation * phase * shadow;
 	}
 

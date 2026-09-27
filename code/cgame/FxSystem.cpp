@@ -162,6 +162,28 @@ void SFxHelper::AddLightToScene( vec3_t org, float radius, float red, float gree
 }
 
 //------------------------------------------------------
+void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
+	float innerAngle, float outerAngle, int flags )
+{
+	// set by the engine when its renderer has spot lights: older engines lack
+	// the trap
+	if ( cl_rendererSpotLights.integer )
+	{
+		refSpotLight_t light;
+		VectorCopy( org, light.origin );
+		VectorCopy( dir, light.dir );
+		light.radius = radius;
+		VectorCopy( rgb, light.color );
+		light.innerAngle = innerAngle;
+		light.outerAngle = outerAngle;
+		light.flags = flags;
+		cgi_R_AddSpotLight( &light );
+		return;
+	}
+	cgi_R_AddLightToScene( org, radius, rgb[0], rgb[1], rgb[2] );
+}
+
+//------------------------------------------------------
 void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
 {
 	// the renderer cvar, mirrored: older engines lack the trap

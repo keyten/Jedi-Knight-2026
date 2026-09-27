@@ -422,3 +422,13 @@ typedef struct refVolParticleExport_s {
 } refVolParticleExport_t;
 
 typedef	const refVolParticleExport_t* (QDECL *GetRefVolParticleAPI_t) ( void );
+
+// Optional renderer extension (rend2 spot lights), looked up as
+// "GetRefSpotLightAPI". Same lifetime as a dynamic light: add the lights of a
+// scene between ClearScene and RenderScene, every frame. Without it (other
+// renderers) callers fall back to AddLightToScene.
+typedef struct refSpotLightExport_s {
+	void		(*AddSpotLightToScene)( const refSpotLight_t *light );
+} refSpotLightExport_t;
+
+typedef	const refSpotLightExport_t* (QDECL *GetRefSpotLightAPI_t) ( void );

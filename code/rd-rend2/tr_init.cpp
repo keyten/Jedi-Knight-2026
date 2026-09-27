@@ -118,6 +118,9 @@ cvar_t	*r_volumetricFogBloom;
 cvar_t	*r_volumetricFogReset;
 cvar_t	*r_volumetricFogDebug;
 cvar_t	*r_volParticles;
+cvar_t	*r_spotLights;
+cvar_t	*r_spotShadows;
+cvar_t	*r_spotLightDebug;
 cvar_t	*r_volParticlesMax;
 cvar_t	*r_volParticlesScale;
 cvar_t	*r_volParticlesHistory;
@@ -1770,6 +1773,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfog",				R_VolumetricFog_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_volparticles",		R_VolParticles_f },
+	{ "r_spot",				R_Spot_f },
 	//{ "imagecacheinfo",		RE_RegisterImages_Info_f },
 	{ "modellist",			R_Modellist_f },
 	//{ "modelcacheinfo",		RE_RegisterModels_Info_f },
@@ -2327,8 +2331,8 @@ void R_Register( void )
 	r_volumetricFogBloom = ri_Cvar_Get_NoComm("r_volumetricFogBloom", "0", CVAR_ARCHIVE, "Froxel fog: bright in-scattering added to the glow buffer (bloom), 0 = none");
 	ri.Cvar_CheckRange(r_volumetricFogBloom, 0.0f, 4.0f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 28, qtrue);
+	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights)");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 29, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volParticles = ri_Cvar_Get_NoComm("r_volParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");
@@ -2349,6 +2353,12 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_particleLightFloor, 0, 1, qfalse);
 	r_particleLightDebug = ri_Cvar_Get_NoComm("r_particleLightDebug", "0", CVAR_CHEAT, "r_particleLight: 1 light field, 2 baked only, 3 sun only, 4 dynamic lights only, 5 classification (magenta lit, cyan unlit sprites)");
 	ri.Cvar_CheckRange(r_particleLightDebug, 0, 5, qtrue);
+	r_spotLights = ri_Cvar_Get_NoComm("r_spotLights", "1", CVAR_ARCHIVE, "Spot lights (GetRefSpotLightAPI, efx spot group): 0 = submitted as the point lights they would be without the cone");
+	ri.Cvar_CheckRange(r_spotLights, 0, 1, qtrue);
+	r_spotShadows = ri_Cvar_Get_NoComm("r_spotShadows", "1", CVAR_ARCHIVE, "Spot lights (r_dlightMode 2): 1 = shadowed (one perspective view up to 60 degrees, else cube faces), 0 = no spot light shadows");
+	ri.Cvar_CheckRange(r_spotShadows, 0, 1, qtrue);
+	r_spotLightDebug = ri_Cvar_Get_NoComm("r_spotLightDebug", "0", CVAR_CHEAT, "Spot lights: 1 cones + per second light list, 2 cones + shadow frustums, 3 surfaces lit by spots only (no fog dlights), 4 fog lit by spots only (no spots on surfaces)");
+	ri.Cvar_CheckRange(r_spotLightDebug, 0, 4, qtrue);
 	r_volParticlesDebug = ri_Cvar_Get_NoComm("r_volParticlesDebug", "0", CVAR_CHEAT, "r_volParticles: 1 = print the culling statistics every 60 frames");
 	r_volumetricFogFreeze = ri_Cvar_Get_NoComm("r_volumetricFogFreeze", "0", CVAR_CHEAT, "Froxel fog: keep the current froxel volume and its camera (debugging)");
 	ri.Cvar_CheckRange(r_volumetricFogFreeze, 0, 1, qtrue);
@@ -3319,6 +3329,18 @@ Optional extension (tr_public.h): volumetric FX particles, tr_volparticle.cpp
 extern "C" Q_EXPORT const refVolParticleExport_t* QDECL GetRefVolParticleAPI ( void ) {
 	static const refVolParticleExport_t volParticles = { RE_AddVolumetricParticleToScene };
 	return &volParticles;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefSpotLightAPI
+
+Optional extension (tr_public.h): spot lights, tr_spotlight.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refSpotLightExport_t* QDECL GetRefSpotLightAPI ( void ) {
+	static const refSpotLightExport_t spotLights = { RE_AddSpotLightToScene };
+	return &spotLights;
 }
 
 /*

@@ -69,6 +69,10 @@ struct SFxHelper
 
 	void	AddFxToScene( refEntity_t *ent );
 	void	AddLightToScene( vec3_t org, float radius, float red, float green, float blue );
+	// rend2 spot light (optional engine / renderer extension); the point light
+	// of AddLightToScene without it
+	void	AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
+				float innerAngle, float outerAngle, int flags );
 	// participating medium of an FX particle (rend2 volumetric FX particles,
 	// engine + renderer extension); nothing unless r_volParticles is set
 	void	AddVolumetricParticle( const refVolParticle_t *particle );

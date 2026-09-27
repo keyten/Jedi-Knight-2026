@@ -479,6 +479,9 @@ static void R_ForwardPlusSelectShadows( const trRefdef_t *refdef )
 		// area lights are unshadowed (LTC is not an area shadow)
 		if ( refdef->dlights[i].areaType != DLIGHT_POINT )
 			score[i] = -1.0f;
+		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotShadows 0)
+		if ( !R_DlightCastsShadow(refdef->dlights + i) )
+			score[i] = -1.0f;
 		candidates[i] = i;
 	}
 
@@ -658,12 +661,15 @@ static qboolean R_ForwardPlusLightRange(
 	const viewParms_t *view, const dlight_t *dl, const fplusSlicing_t *slicing,
 	float tileSize, int tilesX, int tilesY, fplusLightRange_t *range )
 {
-	const float radius = dl->radius;
-	if ( radius <= 0.0f )
+	if ( dl->radius <= 0.0f )
 		return qfalse;
+	// spot lights: the sphere around the cone (tr_spotlight.cpp)
+	vec3_t center;
+	float radius;
+	R_SpotBoundingSphere(dl, center, &radius);
 
 	float eye[3];
-	R_TransformPoint(view->world.modelViewMatrix, dl->origin, eye);
+	R_TransformPoint(view->world.modelViewMatrix, center, eye);
 	const float depth = -eye[2];
 	if ( depth + radius <= view->zNear || depth - radius >= view->zFar )
 		return qfalse;
@@ -863,12 +869,20 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 	{
 		const dlight_t *dl = refdef->dlights + i;
 		float *t = lightData[i * FPLUS_LIGHT_TEXELS];
-		// point:  origin, radius | color, 0 | shadow slot
+		// point:  origin, radius | color, 0 | shadow slot, 0, cos inner,
+		//         projected spot shadow | cone axis, cos outer | unused
+		//         (tr_spotlight.cpp; point lights: cos inner -1, cos outer -2)
 		// area:   centre, cull radius | radiance, type | -1, flags, half width,
 		//         half height | right | up (tr_arealights.cpp)
 		VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
 		VectorSet4(t + 4, dl->color[0], dl->color[1], dl->color[2], (float)dl->areaType);
-		VectorSet4(t + 8, (float)s_fp.shadowSlot[i], (float)dl->areaFlags, dl->halfWidth, dl->halfHeight);
+		if ( dl->areaType == DLIGHT_POINT )
+		{
+			const float projected = (dl->spotShadowSlot >= 0 && dl->spotShadowSlot == s_fp.shadowSlot[i]) ? 1.0f : 0.0f;
+			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], 0.0f, dl->spotCosInner, projected);
+		}
+		else
+			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], (float)dl->areaFlags, dl->halfWidth, dl->halfHeight);
 		if ( dl->areaType != DLIGHT_POINT )
 		{
 			// the window reaches range = cull radius - half diagonal
@@ -878,7 +892,7 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		}
 		else
 		{
-			VectorSet4(t + 12, 0.0f, 0.0f, 0.0f, 0.0f);
+			VectorSet4(t + 12, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
 			VectorSet4(t + 16, 0.0f, 0.0f, 0.0f, 0.0f);
 		}
 	}

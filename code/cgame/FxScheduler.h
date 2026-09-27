@@ -285,6 +285,14 @@ public:
 	vec3_t			mVolAspect;
 	float			mVolSoftness;
 
+	// spot cone of a Light (rend2 spot lights): the "spot" group, a point
+	// light when absent
+	bool			mSpot;
+	CFxRange		mSpotInner;			// degrees from the axis
+	CFxRange		mSpotOuter;
+	vec3_t			mSpotDir;			// in the effect's axes (1 0 0 = its forward)
+	bool			mSpotShadows;
+
 private:
 
 	// Lower level parsing utilities
@@ -337,6 +345,12 @@ private:
 	bool ParseVolRadiusScale( const gsl::cstring_span& val );
 	bool ParseVolAspect( const gsl::cstring_span& val );
 	bool ParseVolSoftness( const gsl::cstring_span& val );
+
+	bool ParseSpot( const CGPGroup& grp );
+	bool ParseSpotInner( const gsl::cstring_span& val );
+	bool ParseSpotOuter( const gsl::cstring_span& val );
+	bool ParseSpotDir( const gsl::cstring_span& val );
+	bool ParseSpotShadows( const gsl::cstring_span& val );
 
 	bool ParseModels( const CGPProperty& grp );
 	bool ParseShaders( const CGPProperty& grp );

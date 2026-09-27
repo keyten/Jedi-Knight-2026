@@ -245,6 +245,7 @@ vmCvar_t	cg_shadows;
 vmCvar_t	r_saberAreaLights;	// renderer cvar (rend2 LTC area lights), mirrored
 vmCvar_t	r_foliageInteraction;	// renderer cvar (rend2 foliage interaction), mirrored
 vmCvar_t	r_volParticles;		// renderer cvar (rend2 volumetric FX particles), mirrored
+vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
 vmCvar_t	cg_footsteps;
@@ -361,6 +362,7 @@ static cvarTable_t cvarTable[] = {
 	{ &r_saberAreaLights, "r_saberAreaLights", "0", CVAR_ARCHIVE },
 	{ &r_foliageInteraction, "r_foliageInteraction", "0", CVAR_ARCHIVE },
 	{ &r_volParticles, "r_volParticles", "0", CVAR_ARCHIVE },
+	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },
 	{ &cg_footsteps, "cg_footsteps", "3", CVAR_ARCHIVE  },//1 = sounds, 2 = sounds & effects, 3 = sounds, effects & marks, 4 = always

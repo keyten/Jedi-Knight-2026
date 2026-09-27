@@ -1622,6 +1622,12 @@ bool CLight::Update()
 		return false;
 	}
 
+	// spot lights follow their bolt / muzzle (the point lights below never did)
+	if ( mSpot && mSpotClientID >= 0 && !UpdateSpotBolt() )
+	{
+		return false;
+	}
+
 	//FIXME: Handle Relative and Bolted Effects
 	/*
 	if ( mFlags & FX_RELATIVE )
@@ -1642,6 +1648,72 @@ bool CLight::Update()
 
 	Draw();
 
+	return true;
+}
+
+//----------------------------
+void CLight::SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags )
+{
+	mSpot = true;
+	VectorCopy( localDir, mSpotLocalDir );
+	VectorScale( ax[0], localDir[0], mSpotDir );
+	VectorMA( mSpotDir, localDir[1], ax[1], mSpotDir );
+	VectorMA( mSpotDir, localDir[2], ax[2], mSpotDir );
+	if ( VectorNormalize( mSpotDir ) <= 0.0f )
+		VectorSet( mSpotDir, 0.0f, 0.0f, -1.0f );
+	mSpotInner = inner;
+	mSpotOuter = outer;
+	mSpotFlags = flags;
+}
+
+//----------------------------
+void CLight::SetSpotClient( int clientID, int modelNum, int boltNum, const vec3_t offset )
+{
+	mSpotClientID = clientID;
+	mSpotModelNum = modelNum;
+	mSpotBoltNum = boltNum;
+	VectorCopy( offset, mSpotOrgOffset );
+}
+
+//----------------------------
+// the bolt's (or muzzle's) origin and axes this frame; false: the light dies
+// with what it is attached to
+bool CLight::UpdateSpotBolt()
+{
+	if ( mSpotClientID < 0 || mSpotClientID >= ENTITYNUM_WORLD )
+	{
+		return false;
+	}
+
+	vec3_t ax[3] = {};
+	if ( mSpotModelNum >= 0 && mSpotBoltNum >= 0 )
+	{
+		const centity_t &cent = cg_entities[mSpotClientID];
+		if ( !cent.gent || !cent.gent->ghoul2.IsValid() )
+		{
+			return false;
+		}
+		if ( !theFxHelper.GetOriginAxisFromBolt( cent, mSpotModelNum, mSpotBoltNum, mOrigin1, ax ) )
+		{
+			return false;
+		}
+		VectorMA( mOrigin1, mSpotOrgOffset[0], ax[0], mOrigin1 );
+		VectorMA( mOrigin1, mSpotOrgOffset[1], ax[1], mOrigin1 );
+		VectorMA( mOrigin1, mSpotOrgOffset[2], ax[2], mOrigin1 );
+	}
+	else
+	{
+		// the muzzle of the client (CreateEffect with a client id)
+		GetOrigin( mSpotClientID, mOrigin1 );
+		GetDir( mSpotClientID, ax[0] );
+		if ( VectorNormalize( ax[0] ) <= 0.0f )
+		{
+			return true;	// keep the last direction
+		}
+		MakeNormalVectors( ax[0], ax[1], ax[2] );
+	}
+
+	SetSpot( mSpotLocalDir, ax, mSpotInner, mSpotOuter, mSpotFlags );
 	return true;
 }
 

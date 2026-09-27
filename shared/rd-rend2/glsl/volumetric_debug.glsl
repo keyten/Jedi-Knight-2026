@@ -41,11 +41,17 @@ void main()
 //     density changed, green = particle share of the medium
 //  28 FX particle proxy bounds over the frame (uploaded particles only): outer shell and inner shell
 //     where the soft edge starts, one hue per index (0 = most important), dimmed behind the scene
+//  29 dynamic lights listed for the froxel cluster at the scene depth (heat, 8 = red), cyan where
+//     spot lights are listed (brighter: more), slice stripes (the slice light mask of the injection)
 //
 // r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
 
 uniform sampler2D u_ScreenDepthMap;
+// view 29: the dynamic light lists of the injection (R_VolumetricBuildLightLists)
+uniform samplerBuffer u_FPlusLights;
+uniform usamplerBuffer u_FPlusGridMap;
+#define FROXEL_LIGHT_TEXELS 4
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
 
 out vec4 out_Color;
@@ -275,6 +281,37 @@ void main()
 			u_FroxelGridSize.z - 1.0));
 		int count = FroxelLocalSliceHeader(slice) >> 16;
 		color = (count > 0) ? Heat(float(count) / 8.0) : vec3(0.12);
+		if ((slice & 1) != 0)
+			color *= 0.75;
+	}
+	else if (view == 29)
+	{
+		vec4 clip = u_FroxelViewProjection * vec4(worldPos, 1.0);
+		vec2 uv = clamp(clip.xy / max(clip.w, 1e-3) * 0.5 + 0.5, 0.0, 1.0);
+		float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+		int slice = int(min(floor(FroxelDepthToW(min(d, u_FroxelSliceParams.y)) * u_FroxelGridSize.z),
+			u_FroxelGridSize.z - 1.0));
+		color = vec3(0.12);
+		if (u_FroxelLightTile > 0)
+		{
+			ivec2 cell = min(ivec2(uv * u_FroxelGridSize.xy), ivec2(u_FroxelGridSize.xy) - 1);
+			ivec2 tile = cell / u_FroxelLightTile;
+			int cluster = (slice * u_FroxelLightTilesY + tile.y) * u_FroxelLightTilesX + tile.x;
+			uint header = texelFetch(u_FPlusGridMap, cluster).r;
+			int first = int(header & 0xffffffu);
+			int count = int(header >> 24);
+			int spots = 0;
+			for (int j = 0; j < count; j++)
+			{
+				int i = int(texelFetch(u_FPlusGridMap, first + j).r);
+				if (texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 3).x > -0.5)
+					spots++;
+			}
+			if (count > 0)
+				color = Heat(float(count) / 8.0);
+			if (spots > 0)
+				color = mix(color, vec3(0.0, 1.0, 1.0), clamp(0.4 + 0.2 * float(spots), 0.0, 1.0));
+		}
 		if ((slice & 1) != 0)
 			color *= 0.75;
 	}

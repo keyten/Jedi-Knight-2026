@@ -223,21 +223,48 @@ protected:
 	vec3_t		mRGBEnd;
 	float		mRGBParm;
 
+	// spot cone (the efx "spot" group), a point light when mSpot is false.
+	// Spot lights follow their client (bolt, or the muzzle without one) when
+	// mSpotClientID >= 0; point lights never did and still don't
+	bool		mSpot;
+	vec3_t		mSpotLocalDir;	// in the effect / bolt / muzzle axes
+	vec3_t		mSpotDir;		// world
+	float		mSpotInner;		// degrees
+	float		mSpotOuter;
+	int			mSpotFlags;		// SPOTLIGHT_*
+	short		mSpotClientID;
+	char		mSpotModelNum;
+	char		mSpotBoltNum;
+	vec3_t		mSpotOrgOffset;	// bolted: offset along the bolt axes
 
 	void		UpdateSize();
 	void		UpdateRGB();
+	bool		UpdateSpotBolt();
 
 	void Draw()
 	{
+		if ( mSpot )
+		{
+			// rend2 spot lights; the point light below with other renderers
+			theFxHelper.AddSpotLightToScene( mOrigin1, mSpotDir, mRefEnt.radius, mRefEnt.lightingOrigin,
+				mSpotInner, mSpotOuter, mSpotFlags );
+			return;
+		}
 		theFxHelper.AddLightToScene( mOrigin1, mRefEnt.radius,
 			mRefEnt.lightingOrigin[0], mRefEnt.lightingOrigin[1], mRefEnt.lightingOrigin[2] );
 	}
 
 public:
 
-	CLight() {}
+	CLight() { mSpot = false; mSpotClientID = -1; mSpotModelNum = -1; mSpotBoltNum = -1; }
 	virtual ~CLight() {}
 	virtual bool Update();
+
+	// ax: the effect's axes when it was created
+	void SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags );
+	// follow the client's bolt (modelNum, boltNum >= 0; offset = the light's
+	// offset along the bolt axes) or its muzzle
+	void SetSpotClient( int clientID, int modelNum, int boltNum, const vec3_t offset );
 
 	inline void SetSizeStart( float sz )	{ mSizeStart = sz;			}
 	inline void SetSizeEnd( float sz )		{ mSizeEnd = sz;			}

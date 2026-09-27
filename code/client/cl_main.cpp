@@ -89,6 +89,7 @@ refexport_t	re;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
+const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 static void *rendererLib = NULL;
 
 //RAZFIXME: BAD BAD, maybe? had to move it out of ghoul2_shared.h -> CGhoul2Info_v at the least..
@@ -903,6 +904,8 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reAreaLights = NULL;
 	reFoliage = NULL;
 	reVolParticles = NULL;
+	reSpotLights = NULL;
+	Cvar_Set2( "cl_rendererSpotLights", "0", qtrue );
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -1204,6 +1207,11 @@ void CL_InitRef( void ) {
 	reFoliage = GetRefFoliageAPI ? GetRefFoliageAPI() : NULL;
 	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
 	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
+	GetRefSpotLightAPI_t GetRefSpotLightAPI = (GetRefSpotLightAPI_t)Sys_LoadFunction( rendererLib, "GetRefSpotLightAPI" );
+	reSpotLights = GetRefSpotLightAPI ? GetRefSpotLightAPI() : NULL;
+	// the cgame calls CG_R_ADDSPOTLIGHT only when set (FX spot lights)
+	Cvar_Get( "cl_rendererSpotLights", "0", CVAR_ROM );
+	Cvar_Set2( "cl_rendererSpotLights", reSpotLights ? "1" : "0", qtrue );
 
 	Com_Printf( "-------------------------------\n");
 

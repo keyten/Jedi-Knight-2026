@@ -91,6 +91,13 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mVolRadiusScale = 0.75f;
 	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
 	mVolSoftness = 0.5f;
+
+	// a point light unless the Light has a spot group
+	mSpot = false;
+	mSpotInner.SetRange( 20.0f, 20.0f );
+	mSpotOuter.SetRange( 30.0f, 30.0f );
+	VectorSet( mSpotDir, 1.0f, 0.0f, 0.0f );
+	mSpotShadows = true;
 }
 
 //-----------------------------------------------------------
@@ -196,6 +203,12 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mVolRadiusScale		= that.mVolRadiusScale;
 	VectorCopy( that.mVolAspect, mVolAspect );
 	mVolSoftness		= that.mVolSoftness;
+
+	mSpot				= that.mSpot;
+	mSpotInner			= that.mSpotInner;
+	mSpotOuter			= that.mSpotOuter;
+	VectorCopy( that.mSpotDir, mSpotDir );
+	mSpotShadows		= that.mSpotShadows;
 
 	return *this;
 }
@@ -2181,6 +2194,73 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( CGPGroup *grp )
 	return true;
 }
 
+//------------------------------------------------------
+// ParseSpot
+//	Turns a Light into a spot light (rend2 spot lights, docs/rend2-spot-lights.md).
+//	Its presence turns it on; without it the Light is the point light it always was:
+//
+//	spot
+//	{
+//		innerAngle	20			// degrees from the axis, full intensity inside (range)
+//		outerAngle	30			// degrees from the axis, zero outside (range, max 89)
+//		direction	1 0 0		// optional, the cone axis in the effect's axes (forward
+//								//	= the effect's direction / the bolt's forward)
+//		shadows		1			// optional, 0 = never casts a shadow
+//	}
+//
+//	Renderers without spot lights draw the point light.
+//------------------------------------------------------
+bool CPrimitiveTemplate::ParseSpot( CGPGroup *grp )
+{
+	CGPValue	*pairs;
+	const char	*key;
+	const char	*val;
+	float		min, max;
+	vec3_t		vmin, vmax;
+
+	if ( mType != Light )
+	{
+		theFxHelper.Print( "spot is only supported by Light, ignored\n" );
+		return false;
+	}
+
+	mSpot = true;
+
+	pairs = grp->GetPairs();
+	while( pairs )
+	{
+		key = pairs->GetName();
+		val = pairs->GetTopValue();
+
+			 if ( !Q_stricmp( key, "innerAngle" ) || !Q_stricmp( key, "inner" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mSpotInner.SetRange( Com_Clamp( 0.0f, 89.0f, min ), Com_Clamp( 0.0f, 89.0f, max ) );
+		}
+		else if ( !Q_stricmp( key, "outerAngle" ) || !Q_stricmp( key, "outer" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mSpotOuter.SetRange( Com_Clamp( 0.5f, 89.0f, min ), Com_Clamp( 0.5f, 89.0f, max ) );
+		}
+		else if ( !Q_stricmp( key, "direction" ) || !Q_stricmp( key, "dir" ) )
+		{
+			if ( ParseVector( val, vmin, vmax ) && VectorNormalize( vmin ) > 0.0f )
+				VectorCopy( vmin, mSpotDir );
+		}
+		else if ( !Q_stricmp( key, "shadows" ) || !Q_stricmp( key, "shadow" ) )
+		{
+			if ( ParseFloat( val, &min, &max ) )
+				mSpotShadows = ( min != 0.0f );
+		}
+		else
+			theFxHelper.Print( "Unknown key parsing a spot group: %s\n", key );
+
+		pairs = (CGPValue *)pairs->GetNext();
+	}
+
+	return true;
+}
+
 bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 {
 	CGPGroup	*subGrp;
@@ -2293,6 +2373,8 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 			ParseLength( subGrp );
 		else if ( !Q_stricmp( key, "volumetricMedia" ) )
 			ParseVolumetricMedia( subGrp );
+		else if ( !Q_stricmp( key, "spot" ) )
+			ParseSpot( subGrp );
 		else
 			theFxHelper.Print( "Unknown group key parsing a particle: %s\n", key );
 

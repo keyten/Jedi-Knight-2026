@@ -182,6 +182,9 @@ extern cvar_t	*r_volumetricFogBloom;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
 extern cvar_t	*r_volParticles;
+extern cvar_t	*r_spotLights;
+extern cvar_t	*r_spotShadows;
+extern cvar_t	*r_spotLightDebug;
 extern cvar_t	*r_volParticlesMax;
 extern cvar_t	*r_volParticlesScale;
 extern cvar_t	*r_volParticlesHistory;
@@ -753,6 +756,21 @@ typedef struct dlight_s {
 	vec3_t	areaUp;				// unit (LINE: unused, rebuilt per pixel)
 	float	halfWidth;			// along right (LINE: half length)
 	float	halfHeight;			// along up (LINE: tube radius)
+
+	// spot lights (tr_spotlight.cpp): areaType stays DLIGHT_POINT (same
+	// radial falloff, list, culling and shadow slot as a point light), the
+	// cone multiplies it. Point lights: spot = qfalse, cosines -2 / -1 (the
+	// cone factor is 1)
+	qboolean spot;
+	vec3_t	spotDir;			// unit, away from the light
+	float	spotCosInner;		// full intensity at and above
+	float	spotCosOuter;		// zero at and below
+	qboolean spotNoShadow;
+	// written by R_GatherFrameViews for this scene: shadow cube index whose
+	// layer 0 holds the one perspective view (-1 = none: cube faces or
+	// unshadowed) and its world to clip matrix
+	int		spotShadowSlot;
+	matrix_t spotShadowVP;
 } dlight_t;
 
 enum
@@ -1118,6 +1136,8 @@ struct LightsBlock
 		vec4_t origin;
 		vec3_t color;
 		float radius;
+		vec4_t spot;		// cone axis, cos outer angle (-2: point light)
+		vec4_t spot2;		// cos inner angle (-1: point light), projected spot shadow (1/0), unused, unused
 	};
 
 	matrix_t shadowVP1;
@@ -1135,6 +1155,9 @@ struct LightsBlock
 	float pad0[3];
 
 	Light lights[MAX_DLIGHTS];
+	// spot light shadows (tr_spotlight.cpp): world to clip of the one
+	// perspective view in layer 6 * slot of pointShadowArrayImage
+	matrix_t spotShadowVP[MAX_DLIGHT_SHADOWS];
 };
 
 struct FogsBlock
@@ -5265,6 +5288,26 @@ qboolean R_VolParticlesInFrustum(const viewParms_t *view, const trRefdef_t *refd
 int R_VolParticlesBuild(VolumetricParticlesBlock *block, const viewParms_t *view, const trRefdef_t *refdef,
 	const vec3_t forward, float nearZ, float farZ, int numSlices);
 void R_VolParticles_f(void);
+
+/*
+============================================================
+
+SPOT LIGHTS, tr_spotlight.cpp
+
+============================================================
+*/
+
+dlight_t *R_AddSceneDynamicLight(const vec3_t org, float intensity, float r, float g, float b, int additive);
+void RE_AddSpotLightToScene(const refSpotLight_t *light);
+float R_SpotConeAttenuation(const dlight_t *dl, const vec3_t point);
+void R_SpotBoundingSphere(const dlight_t *dl, vec3_t center, float *radius);
+qboolean R_SpotSphereInCone(const dlight_t *dl, const vec3_t center, float radius);
+qboolean R_SpotProjectedShadow(const dlight_t *dl);
+qboolean R_DlightCastsShadow(const dlight_t *dl);
+float R_SpotShadowFov(const dlight_t *dl);
+void R_SpotShadowAxis(const dlight_t *dl, vec3_t axis[3]);
+void R_SpotLightsBeginScene(const refdef_t *fd, int firstSceneDlight);
+void R_Spot_f(void);
 
 /*
 ============================================================

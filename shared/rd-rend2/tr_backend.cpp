@@ -2534,7 +2534,8 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		(float)Com_Clampi(0, 2, r_shadowPcssQuality->integer));
 	VectorSet4(lightsBlock.shadowDebug,
 		(float)Com_Clampi(0, 11, r_shadowDebug->integer),
-		r_dlightShadowBias->integer ? 1.0f : 0.0f, 0.0f, 0.0f);
+		r_dlightShadowBias->integer ? 1.0f : 0.0f,
+		(float)Com_Clampi(0, 4, r_spotLightDebug->integer), 0.0f);
 
 	// legacy: the first MAX_DLIGHTS lights, shadow cube i. Forward+: the most
 	// important ones (froxel fog), shadow slot or -1 (tr_forwardplus.cpp)
@@ -2555,6 +2556,22 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 			(float)shadowLayers[i]);
 		VectorCopy(dlight->color, lightData->color);
 		lightData->radius = dlight->radius;
+		// spot lights (tr_spotlight.cpp); y: shadow of the legacy loop, -1
+		// none (it uses the loop index as the cube), 1 projected, 0 cube
+		const qboolean projected = (qboolean)(dlight->spotShadowSlot >= 0 &&
+			dlight->spotShadowSlot == shadowLayers[i]);
+		VectorSet4(lightData->spot, dlight->spotDir[0], dlight->spotDir[1], dlight->spotDir[2],
+			dlight->spotCosOuter);
+		VectorSet4(lightData->spot2, dlight->spotCosInner,
+			shadowLayers[i] < 0 || !R_DlightCastsShadow(dlight) ? -1.0f : (projected ? 1.0f : 0.0f),
+			0.0f, 0.0f);
+	}
+	// spot shadow views of this scene, by shadow slot (R_GatherFrameViews)
+	for (int i = 0; i < refdef->num_dlights; ++i)
+	{
+		const dlight_t *dlight = refdef->dlights + i;
+		if (dlight->spotShadowSlot >= 0 && dlight->spotShadowSlot < MAX_DLIGHT_SHADOWS)
+			memcpy(lightsBlock.spotShadowVP[dlight->spotShadowSlot], dlight->spotShadowVP, sizeof(matrix_t));
 	}
 	// TODO: Add pshadow data
 

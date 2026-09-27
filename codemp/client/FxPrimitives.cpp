@@ -1547,8 +1547,32 @@ void CEmitter::UpdateAngles(void)
 //----------------------------
 void CLight::Draw(void)
 {
-	theFxHelper.AddLightToScene( mOrigin1, mRefEnt.radius, mRefEnt.origin[0], mRefEnt.origin[1], mRefEnt.origin[2] );
+	if ( mSpot )
+	{
+		// rend2 spot lights; the point light below with other renderers
+		theFxHelper.AddSpotLightToScene( mOrigin1, mSpotDir, mRefEnt.radius, mRefEnt.origin,
+			mSpotInner, mSpotOuter, mSpotFlags );
+	}
+	else
+	{
+		theFxHelper.AddLightToScene( mOrigin1, mRefEnt.radius, mRefEnt.origin[0], mRefEnt.origin[1], mRefEnt.origin[2] );
+	}
 	drawnFx++;
+}
+
+//----------------------------
+void CLight::SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags )
+{
+	mSpot = true;
+	VectorCopy( localDir, mSpotLocalDir );
+	VectorScale( ax[0], localDir[0], mSpotDir );
+	VectorMA( mSpotDir, localDir[1], ax[1], mSpotDir );
+	VectorMA( mSpotDir, localDir[2], ax[2], mSpotDir );
+	if ( VectorNormalize( mSpotDir ) <= 0.0f )
+		VectorSet( mSpotDir, 0.0f, 0.0f, -1.0f );
+	mSpotInner = inner;
+	mSpotOuter = outer;
+	mSpotFlags = flags;
 }
 
 //----------------------------
@@ -1579,6 +1603,10 @@ bool CLight::Update(void)
 		VectorMA( mOrigin1, mOrgOffset[0], ax[0], mOrigin1 );
 		VectorMA( mOrigin1, mOrgOffset[1], ax[1], mOrigin1 );
 		VectorMA( mOrigin1, mOrgOffset[2], ax[2], mOrigin1 );
+
+		// a bolted spot turns with its bolt
+		if ( mSpot )
+			SetSpot( mSpotLocalDir, ax, mSpotInner, mSpotOuter, mSpotFlags );
 	}
 
 	UpdateSize();

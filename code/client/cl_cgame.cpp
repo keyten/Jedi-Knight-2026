@@ -1021,6 +1021,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reVolParticles && reVolParticles->AddVolumetricParticleToScene )
 			reVolParticles->AddVolumetricParticleToScene( (const refVolParticle_t *) VMA(1) );
 		return 0;
+	case CG_R_ADDSPOTLIGHT:
+		if ( reSpotLights && reSpotLights->AddSpotLightToScene )
+			reSpotLights->AddSpotLightToScene( (const refSpotLight_t *) VMA(1) );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;

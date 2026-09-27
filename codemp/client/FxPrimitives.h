@@ -247,6 +247,14 @@ protected:
 	char		mModelNum;
 	char		mBoltNum;
 
+	// spot cone (the efx "spot" group), a point light when mSpot is false
+	bool		mSpot;
+	vec3_t		mSpotLocalDir;	// in the effect / bolt axes
+	vec3_t		mSpotDir;		// world, updated from the bolt every frame when relative
+	float		mSpotInner;		// degrees
+	float		mSpotOuter;
+	int			mSpotFlags;		// SPOTLIGHT_*
+
 	void		UpdateSize();
 	void		UpdateRGB();
 
@@ -256,7 +264,12 @@ public:
 	inline CLight(void)
 	{
 		mEntNum = -1; mModelNum = -1; mBoltNum = -1;
+		mSpot = false;
 	}
+
+	// ax: the effect's axes when it was created (the bolt's for a relative
+	// light until its first update)
+	void SetSpot( const vec3_t localDir, const vec3_t ax[3], float inner, float outer, int flags );
 
 	inline void SetBoltinfo( CGhoul2Info_v *ghoul2,  int entNum, int modelNum = -1, int boltNum = -1 )
 	{

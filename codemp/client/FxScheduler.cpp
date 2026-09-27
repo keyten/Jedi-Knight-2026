@@ -1669,10 +1669,20 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 	case Light:
 	//---------
 
-		FX_AddLight( org, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
-						sRGB, eRGB, fx->mRGBParm.GetVal(),
-						fx->mLife.GetVal(), flags, fx->mMatImpactFX, fxParm,
-						ghoul2, entNum, modelNum, boltNum);
+		{
+			CLight *light = FX_AddLight( org, fx->mSizeStart.GetVal(), fx->mSizeEnd.GetVal(), fx->mSizeParm.GetVal(),
+							sRGB, eRGB, fx->mRGBParm.GetVal(),
+							fx->mLife.GetVal(), flags, fx->mMatImpactFX, fxParm,
+							ghoul2, entNum, modelNum, boltNum);
+			// spot group: the cone along the effect's direction (the bolt's,
+			// updated every frame, when relative)
+			if ( light && fx->mSpot )
+			{
+				const float outer = fx->mSpotOuter.GetVal();
+				light->SetSpot( fx->mSpotDir, ax, Q_min( fx->mSpotInner.GetVal(), outer ), outer,
+					fx->mSpotShadows ? 0 : SPOTLIGHT_NOSHADOW );
+			}
+		}
 		break;
 
 	//---------

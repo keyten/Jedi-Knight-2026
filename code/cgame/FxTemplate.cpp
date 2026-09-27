@@ -93,6 +93,13 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mVolRadiusScale = 0.75f;
 	VectorSet( mVolAspect, 1.0f, 1.0f, 1.0f );
 	mVolSoftness = 0.5f;
+
+	// a point light unless the Light has a spot group
+	mSpot = false;
+	mSpotInner.SetRange( 20.0f, 20.0f );
+	mSpotOuter.SetRange( 30.0f, 30.0f );
+	VectorSet( mSpotDir, 1.0f, 0.0f, 0.0f );
+	mSpotShadows = true;
 }
 
 //-----------------------------------------------------------
@@ -195,6 +202,12 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mVolRadiusScale		= that.mVolRadiusScale;
 	VectorCopy( that.mVolAspect, mVolAspect );
 	mVolSoftness		= that.mVolSoftness;
+
+	mSpot				= that.mSpot;
+	mSpotInner			= that.mSpotInner;
+	mSpotOuter			= that.mSpotOuter;
+	VectorCopy( that.mSpotDir, mSpotDir );
+	mSpotShadows		= that.mSpotShadows;
 }
 
 //------------------------------------------------------
@@ -1860,6 +1873,92 @@ bool CPrimitiveTemplate::ParseVolumetricMedia( const CGPGroup& grp )
 	return ParseGroup( grp, parseMethods, "volumetricMedia" );
 }
 
+//------------------------------------------------------
+// ParseSpot
+//	Turns a Light into a spot light (rend2 spot lights, docs/rend2-spot-lights.md).
+//	Its presence turns it on; without it the Light is the point light it always was:
+//
+//	spot
+//	{
+//		innerAngle	20			// degrees from the axis, full intensity inside (range)
+//		outerAngle	30			// degrees from the axis, zero outside (range, max 89)
+//		direction	1 0 0		// optional, the cone axis in the effect's axes (forward
+//								//	= the effect's direction / the bolt's / muzzle's forward)
+//		shadows		1			// optional, 0 = never casts a shadow
+//	}
+//
+//	Renderers (engines) without spot lights draw the point light.
+//------------------------------------------------------
+bool CPrimitiveTemplate::ParseSpotInner( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mSpotInner.SetRange( Com_Clamp( 0.0f, 89.0f, min ), Com_Clamp( 0.0f, 89.0f, max ) );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseSpotOuter( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mSpotOuter.SetRange( Com_Clamp( 0.5f, 89.0f, min ), Com_Clamp( 0.5f, 89.0f, max ) );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseSpotDir( const gsl::cstring_span& val )
+{
+	vec3_t min, max;
+	if ( ParseVector( val, min, max ) == true && VectorNormalize( min ) > 0.0f )
+	{
+		VectorCopy( min, mSpotDir );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseSpotShadows( const gsl::cstring_span& val )
+{
+	float min, max;
+	if ( ParseFloat( val, min, max ) == true )
+	{
+		mSpotShadows = ( min != 0.0f );
+		return true;
+	}
+	return false;
+}
+
+bool CPrimitiveTemplate::ParseSpot( const CGPGroup& grp )
+{
+	if ( mType != Light )
+	{
+		theFxHelper.Print( "spot is only supported by Light, ignored\n" );
+		return false;
+	}
+
+	mSpot = true;
+
+	static StringViewIMap< ParseMethod > parseMethods{
+		{ CSTRING_VIEW( "innerAngle" ), &CPrimitiveTemplate::ParseSpotInner },
+		{ CSTRING_VIEW( "inner" ), &CPrimitiveTemplate::ParseSpotInner },
+
+		{ CSTRING_VIEW( "outerAngle" ), &CPrimitiveTemplate::ParseSpotOuter },
+		{ CSTRING_VIEW( "outer" ), &CPrimitiveTemplate::ParseSpotOuter },
+
+		{ CSTRING_VIEW( "direction" ), &CPrimitiveTemplate::ParseSpotDir },
+		{ CSTRING_VIEW( "dir" ), &CPrimitiveTemplate::ParseSpotDir },
+
+		{ CSTRING_VIEW( "shadows" ), &CPrimitiveTemplate::ParseSpotShadows },
+		{ CSTRING_VIEW( "shadow" ), &CPrimitiveTemplate::ParseSpotShadows },
+	};
+	return ParseGroup( grp, parseMethods, "spot" );
+}
+
 // Parse a primitive, apply defaults first, grab any base level
 //	key pairs, then process any sub groups we may contain.
 //------------------------------------------------------
@@ -1973,6 +2072,7 @@ bool CPrimitiveTemplate::ParsePrimitive( const CGPGroup& grp )
 			{ CSTRING_VIEW( "height" ), &CPrimitiveTemplate::ParseLength },
 
 			{ CSTRING_VIEW( "volumetricMedia" ), &CPrimitiveTemplate::ParseVolumetricMedia },
+			{ CSTRING_VIEW( "spot" ), &CPrimitiveTemplate::ParseSpot },
 		};
 		auto pos = parseMethods.find( subGrp.GetName() );
 		if( pos == parseMethods.end() )

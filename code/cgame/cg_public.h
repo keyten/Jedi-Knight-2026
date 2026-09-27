@@ -233,6 +233,10 @@ Ghoul2 Insert End
 	// participating medium of an FX particle (rend2 volumetric FX particles);
 	// only called with r_volParticles set (older engines lack it)
 	CG_R_ADDVOLPARTICLE,
+
+	// spot light (rend2 spot lights); only called with cl_rendererSpotLights
+	// set by the engine (older engines lack it)
+	CG_R_ADDSPOTLIGHT,
 } cgameImport_t;
 
 #ifdef JK2_MODE

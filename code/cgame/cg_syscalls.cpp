@@ -339,6 +339,10 @@ void	cgi_R_AddVolumetricParticle( const refVolParticle_t *particle ) {
 	Q_syscall( CG_R_ADDVOLPARTICLE, particle );
 }
 
+void	cgi_R_AddSpotLight( const refSpotLight_t *light ) {
+	Q_syscall( CG_R_ADDSPOTLIGHT, light );
+}
+
 void	cgi_R_RenderScene( const refdef_t *fd ) {
 	Q_syscall( CG_R_RENDERSCENE, fd );
 }

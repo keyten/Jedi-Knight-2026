@@ -283,27 +283,32 @@ dlight_t *R_AllocSceneDlight( void ) {
 	Com_Memset( dl, 0, sizeof( *dl ) );
 	dl->areaType = DLIGHT_POINT;
 	dl->areaId = -1;
+	dl->spotCosInner = -1.0f;	// cone factor 1 (R_SpotConeAttenuation)
+	dl->spotCosOuter = -2.0f;
+	dl->spotShadowSlot = -1;
 	return dl;
 }
 
 /*
 =====================
-RE_AddDynamicLightToScene
+R_AddSceneDynamicLight
 
+The point light of RE_AddDynamicLightToScene, NULL when it was not added.
+Spot lights (tr_spotlight.cpp) start from it.
 =====================
 */
-void RE_AddDynamicLightToScene( const vec3_t org, float intensity, float r, float g, float b, int additive ) {
+dlight_t *R_AddSceneDynamicLight( const vec3_t org, float intensity, float r, float g, float b, int additive ) {
 	dlight_t	*dl;
 
 	if ( !tr.registered ) {
-		return;
+		return NULL;
 	}
 	if ( intensity <= 0 ) {
-		return;
+		return NULL;
 	}
 	dl = R_AllocSceneDlight();
 	if ( !dl ) {
-		return;
+		return NULL;
 	}
 	VectorCopy (org, dl->origin);
 	dl->radius = intensity;
@@ -325,6 +330,17 @@ void RE_AddDynamicLightToScene( const vec3_t org, float intensity, float r, floa
 	}
 
 	dl->additive = additive;
+	return dl;
+}
+
+/*
+=====================
+RE_AddDynamicLightToScene
+
+=====================
+*/
+void RE_AddDynamicLightToScene( const vec3_t org, float intensity, float r, float g, float b, int additive ) {
+	R_AddSceneDynamicLight( org, intensity, r, g, b, additive );
 }
 
 /*
@@ -573,6 +589,9 @@ void RE_BeginScene(const refdef_t *fd)
 
 	// r_ltcAreaLights: the map's area lights (and r_ltcDebug 6 / 7 polygons)
 	R_AddAreaLightsToScene(fd);
+
+	// r_spot test lights, r_spotLightDebug cones of the scene's spot lights
+	R_SpotLightsBeginScene(fd, r_firstSceneDlight);
 
 	// r_foliageInteraction: the character colliders of this scene (and the
 	// r_foliageInteractionDebug 1 capsules)

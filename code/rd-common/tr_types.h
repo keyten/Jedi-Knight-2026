@@ -365,6 +365,23 @@ typedef struct {
 	float		softness;		// 0..1 of the radius over which the density fades to 0
 } refVolParticle_t;
 
+// Spot lights (rend2): a dynamic light limited to a cone around dir, added per
+// scene like a dynamic light through the optional renderer extension
+// GetRefSpotLightAPI. The radial falloff is the one of AddLightToScene
+// (radius = range); the cone fades smoothly from innerAngle to outerAngle.
+#define SPOTLIGHT_ADDITIVE	1	// as AddAdditiveLightToScene
+#define SPOTLIGHT_NOSHADOW	2	// never casts a shadow (r_dlightMode 2)
+
+typedef struct {
+	vec3_t		origin;
+	vec3_t		dir;			// cone axis, away from the light (normalized by the renderer)
+	float		radius;			// range, as the intensity of AddLightToScene
+	float		color[3];		// as AddLightToScene
+	float		innerAngle;		// degrees from the axis, full intensity inside
+	float		outerAngle;		// degrees from the axis, zero outside (clamped to 89)
+	int			flags;			// SPOTLIGHT_*
+} refSpotLight_t;
+
 
 typedef enum {
 	STEREO_CENTER,
