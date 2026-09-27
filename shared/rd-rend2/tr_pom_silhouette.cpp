@@ -54,6 +54,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -146,6 +149,74 @@ static struct
 	int lastAutoMode;
 	qboolean warnedAuto;
 } s_pom;
+
+// Keep a copy of the vector's control bytes outside the vector itself. A
+// disabled silhouette POM still reaches shutdown; comparing these bytes does
+// not dereference a potentially corrupt element or call vector::size().
+static struct pomObjectsDiagnostic_t
+{
+	unsigned char expected[sizeof(s_pom.objects)];
+	int expectedCount;
+	uint32_t reportedMarker;
+
+	pomObjectsDiagnostic_t() : expectedCount(0), reportedMarker(0)
+	{
+		std::memcpy(expected, &s_pom.objects, sizeof(expected));
+	}
+} s_pomObjectsDiagnostic;
+
+static void R_PomSnapshotObjects( void )
+{
+	std::memcpy(s_pomObjectsDiagnostic.expected, &s_pom.objects,
+		sizeof(s_pomObjectsDiagnostic.expected));
+}
+
+static void R_PomCheckObjects( const char *stage )
+{
+	const unsigned char *actualBytes =
+		reinterpret_cast<const unsigned char *>(&s_pom.objects);
+	bool disabledVectorNonzero = false;
+	if ( r_pomSilhouette && !r_pomSilhouette->integer )
+	{
+		for ( size_t i = 0; i < sizeof(s_pom.objects); i++ )
+			disabledVectorNonzero |= actualBytes[i] != 0;
+	}
+	if ( s_pomObjectsDiagnostic.reportedMarker == 0x504f4d21u ||
+		(!disabledVectorNonzero &&
+			!std::memcmp(s_pomObjectsDiagnostic.expected, &s_pom.objects,
+				sizeof(s_pomObjectsDiagnostic.expected))) )
+		return;
+
+	// Read the representation as bytes: vector::size(), iteration and even a
+	// pointer subtraction would be unsafe after the control block was damaged.
+	unsigned char actual[sizeof(s_pom.objects)];
+	std::memcpy(actual, &s_pom.objects, sizeof(actual));
+	char expectedHex[sizeof(actual) * 2 + 1];
+	char actualHex[sizeof(actual) * 2 + 1];
+	for ( size_t i = 0; i < sizeof(actual); i++ )
+	{
+		std::snprintf(expectedHex + i * 2, 3, "%02x", s_pomObjectsDiagnostic.expected[i]);
+		std::snprintf(actualHex + i * 2, 3, "%02x", actual[i]);
+	}
+
+	char report[1024];
+	const int length = std::snprintf(report, sizeof(report),
+		"rend2 silhouette POM object vector changed unexpectedly\n"
+		"stage=%s time_ms=%d r_pomSilhouette=%d expected_objects=%d\n"
+		"expected_control=%s\nactual_control=%s\n"
+		"The state was overwritten before this check; the writer is not yet known.\n",
+		stage, ri.Milliseconds(), r_pomSilhouette ? r_pomSilhouette->integer : -1,
+		s_pomObjectsDiagnostic.expectedCount, expectedHex, actualHex);
+	if ( length > 0 )
+	{
+		// FS_WriteFile closes the file, so the report survives an immediate
+		// process crash even when the normal console log was not enabled.
+		ri.FS_WriteFile("rend2-state-diagnostic.txt", report,
+			length < (int)sizeof(report) ? length : (int)sizeof(report) - 1);
+		ri.Printf(PRINT_WARNING, "%s", report);
+	}
+	s_pomObjectsDiagnostic.reportedMarker = 0x504f4d21u;
+}
 
 /*
 ============================================================
@@ -365,6 +436,7 @@ static const char *R_PomSilhouetteShaderReason( const shader_t *shader )
 
 void R_PomSilhouetteBeginWorld( world_t *world )
 {
+	R_PomCheckObjects("begin world");
 	s_pom.candidates.clear();
 	world->numPomShells = 0;
 	world->pomShells = nullptr;
@@ -1050,6 +1122,8 @@ void R_PomSilhouetteFinishWorld( world_t *world )
 	qglTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, objects.buffer);
 	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
 	s_pom.objects.push_back(objects);
+	s_pomObjectsDiagnostic.expectedCount++;
+	R_PomSnapshotObjects();
 
 	world->pomGroupsImage = objects.image;
 	world->pomGroupsBuffer = objects.buffer;
@@ -1160,6 +1234,7 @@ qboolean R_PomSilhouetteActive( void )
 
 void R_PomSilhouetteBeginFrame( void )
 {
+	R_PomCheckObjects("begin frame");
 	if ( r_parallaxMapping->integer != s_pom.lastParallaxMapping )
 	{
 		s_pom.lastParallaxMapping = r_parallaxMapping->integer;
@@ -1502,6 +1577,7 @@ void R_PomSilhouetteInfo_f( void )
 
 void R_ShutdownPomSilhouette( void )
 {
+	R_PomCheckObjects("shutdown");
 	for ( pomWorldObjects_t& o : s_pom.objects )
 	{
 		if ( o.image )
@@ -1513,6 +1589,8 @@ void R_ShutdownPomSilhouette( void )
 			qglDeleteBuffers(1, &o.buffer);
 	}
 	s_pom.objects.clear();
+	s_pomObjectsDiagnostic.expectedCount = 0;
+	R_PomSnapshotObjects();
 	s_pom.candidates.clear();
 	s_pom.fallbacks.clear();
 	s_pom.warnedShaders.clear();
