@@ -2671,7 +2671,7 @@ float luma(vec3 color)
 // screen-space radiance under the same W, so it is computed once.
 vec3 SpecularIBLWeight(in float roughness, in float NE, in vec3 specular)
 {
-#if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP)
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP) && (defined(USE_CUBEMAP) || defined(USE_SSR))
 	// Base BRDF
 	#if !defined(USE_CLOTH_BRDF)
 		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).rg;

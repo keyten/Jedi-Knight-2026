@@ -453,9 +453,17 @@ static rserr_t GLimp_SetMode(glconfig_t *glConfig, const windowDesc_t *windowDes
 
 	if ( windowDesc->api == GRAPHICS_API_OPENGL )
 	{
+		SDL_GL_ResetAttributes();
 		for (i = 0; i < 16; i++)
 		{
 			int testColorBits, testDepthBits, testStencilBits;
+
+			// A failed context/display attempt must not leave its window behind.
+			if ( screen != NULL )
+			{
+				SDL_DestroyWindow( screen );
+				screen = NULL;
+			}
 
 			// 0 - default
 			// 1 - minus colorBits
@@ -555,10 +563,8 @@ static rserr_t GLimp_SetMode(glconfig_t *glConfig, const windowDesc_t *windowDes
 				}
 			}
 
-			if ( windowDesc->gl.contextFlags & GLCONTEXT_DEBUG )
-			{
-				SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
-			}
+			SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS,
+				(windowDesc->gl.contextFlags & GLCONTEXT_DEBUG) ? SDL_GL_CONTEXT_DEBUG_FLAG : 0 );
 
 			if(r_stereo->integer)
 			{
@@ -759,20 +765,31 @@ window_t WIN_Init( const windowDesc_t *windowDesc, glconfig_t *glConfig )
 	r_ext_multisample_default_fb = Cvar_Get("r_ext_multisample_default_fb", "1", CVAR_ROM);
 	Cvar_Get( "r_availableModes", "", CVAR_ROM );
 
-	// Create the window and set up the context
-	if(!GLimp_StartDriverAndSetMode( glConfig, windowDesc, r_mode->integer,
-										(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer ))
+	// Rend2 prefers 4.3 Core, but retains its 3.2 Core baseline. Keep this
+	// negotiation inside the window layer, without changing the renderer ABI.
+	windowDesc_t effectiveDesc = *windowDesc;
+	qboolean initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, r_mode->integer,
+		(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer );
+	if ( !initialized && effectiveDesc.api == GRAPHICS_API_OPENGL &&
+		effectiveDesc.gl.profile == GLPROFILE_CORE &&
+		effectiveDesc.gl.majorVersion == 4 && effectiveDesc.gl.minorVersion == 3 )
+	{
+		Com_Printf( "OpenGL 4.3 Core context unavailable; falling back to OpenGL 3.2 Core.\n" );
+		effectiveDesc.gl.majorVersion = 3;
+		effectiveDesc.gl.minorVersion = 2;
+		initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, r_mode->integer,
+			(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer );
+	}
+	if ( !initialized )
 	{
 		if( r_mode->integer != R_MODE_FALLBACK )
 		{
 			Com_Printf( "Setting r_mode %d failed, falling back on r_mode %d\n", r_mode->integer, R_MODE_FALLBACK );
 
-			if (!GLimp_StartDriverAndSetMode( glConfig, windowDesc, R_MODE_FALLBACK, qfalse, qfalse ))
-			{
-				// Nothing worked, give up
-				Com_Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
-			}
+			initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, R_MODE_FALLBACK, qfalse, qfalse );
 		}
+		if ( !initialized )
+			Com_Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
 	}
 
 	glConfig->deviceSupportsGamma =

@@ -254,6 +254,17 @@ PFNGLPOPDEBUGGROUPPROC qglPopDebugGroupKHR;
 PFNGLOBJECTLABELPROC qglObjectLabel;
 PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
 
+// Optional OpenGL 4.3 entry points
+PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
+PFNGLDISPATCHCOMPUTEINDIRECTPROC qglDispatchComputeIndirect;
+PFNGLMEMORYBARRIERPROC qglMemoryBarrier;
+PFNGLBINDIMAGETEXTUREPROC qglBindImageTexture;
+PFNGLGETINTEGERI_VPROC qglGetIntegeri_v;
+PFNGLGETINTEGER64VPROC qglGetInteger64v;
+PFNGLSHADERSTORAGEBLOCKBINDINGPROC qglShaderStorageBlockBinding;
+PFNGLGETPROGRAMRESOURCEINDEXPROC qglGetProgramResourceIndex;
+PFNGLGETPROGRAMRESOURCEIVPROC qglGetProgramResourceiv;
+
 static qboolean GLimp_HaveExtension(const char *ext)
 {
 	const char *ptr = Q_stristr( glConfigExt.originalExtensionString, ext );
@@ -320,7 +331,11 @@ static void QCALL GLimp_OnError(GLenum source, GLenum type, GLuint id, GLenum se
 
 void GLimp_InitCoreFunctions()
 {
-	Com_Printf("Initializing OpenGL 3.2 functions\n");
+	qglGetIntegerv(GL_MAJOR_VERSION, &glRefConfig.glMajorVersion);
+	qglGetIntegerv(GL_MINOR_VERSION, &glRefConfig.glMinorVersion);
+	Com_Printf("OpenGL context: %d.%d (baseline: 3.2 Core)\n",
+		glRefConfig.glMajorVersion, glRefConfig.glMinorVersion);
+	Com_Printf("Initializing OpenGL 3.2 baseline functions\n");
 
 	// Drawing commands
 	GetGLFunction (qglDrawRangeElements, "glDrawRangeElements", qtrue);
@@ -750,4 +765,96 @@ void GLimp_InitExtensions()
 		qglEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
 		qglDebugMessageCallbackARB(GLimp_OnError, NULL);
 	}
+}
+
+qboolean R_HasModernFeatures(uint32_t requiredFeatures)
+{
+	return (qboolean)(glRefConfig.modernPaths && requiredFeatures != 0 &&
+		(glRefConfig.modernFeatures & requiredFeatures) == requiredFeatures);
+}
+
+void R_PrintModernCapabilities()
+{
+	ri.Printf(PRINT_ALL, "Rend2 OpenGL %d.%d: %s\n",
+		glRefConfig.glMajorVersion, glRefConfig.glMinorVersion,
+		glRefConfig.modernPaths ? "GL 4.3 modern paths available" : "legacy paths selected");
+	ri.Printf(PRINT_ALL, "...compute: %s, SSBO: %s, image load/store: %s (r_gl43 %d)\n",
+		(glRefConfig.modernFeatures & MODERN_COMPUTE) ? "supported" : "unavailable",
+		(glRefConfig.modernFeatures & MODERN_SSBO) ? "supported" : "unavailable",
+		(glRefConfig.modernFeatures & MODERN_IMAGE_LOAD_STORE) ? "supported" : "unavailable",
+		r_gl43->integer);
+}
+
+void GLimp_InitModernFunctions()
+{
+	// Clear optional functions and limits on every new context, including a
+	// vid_restart from a modern driver to the baseline or forced legacy mode.
+	qglDispatchCompute = nullptr;
+	qglDispatchComputeIndirect = nullptr;
+	qglMemoryBarrier = nullptr;
+	qglBindImageTexture = nullptr;
+	qglGetIntegeri_v = nullptr;
+	qglGetInteger64v = nullptr;
+	qglShaderStorageBlockBinding = nullptr;
+	qglGetProgramResourceIndex = nullptr;
+	qglGetProgramResourceiv = nullptr;
+	glRefConfig.modernFeatures = 0;
+	glRefConfig.modernPaths = qfalse;
+	Com_Memset(glRefConfig.maxComputeWorkGroupCount, 0, sizeof(glRefConfig.maxComputeWorkGroupCount));
+	Com_Memset(glRefConfig.maxComputeWorkGroupSize, 0, sizeof(glRefConfig.maxComputeWorkGroupSize));
+	glRefConfig.maxComputeWorkGroupInvocations = 0;
+	glRefConfig.maxComputeSharedMemorySize = 0;
+	glRefConfig.maxComputeShaderStorageBlocks = 0;
+	glRefConfig.maxShaderStorageBufferBindings = 0;
+	glRefConfig.maxShaderStorageBlockSize = 0;
+	glRefConfig.shaderStorageBufferOffsetAlignment = 0;
+	glRefConfig.maxImageUnits = 0;
+	glRefConfig.maxComputeImageUniforms = 0;
+
+	// Do not infer compute support from an extension substring or a GLSL
+	// version alone: the modern tier requires an actual GL 4.3+ context.
+	const bool gl43 = glRefConfig.glMajorVersion > 4 ||
+		(glRefConfig.glMajorVersion == 4 && glRefConfig.glMinorVersion >= 3);
+	const bool glsl430 = glRefConfig.glslMajorVersion > 4 ||
+		(glRefConfig.glslMajorVersion == 4 && glRefConfig.glslMinorVersion >= 30);
+	if ( gl43 && glsl430 )
+	{
+		const bool barrier = GetGLFunction(qglMemoryBarrier, "glMemoryBarrier", qfalse) != qfalse;
+		bool compute = GetGLFunction(qglDispatchCompute, "glDispatchCompute", qfalse) != qfalse;
+		compute = GetGLFunction(qglDispatchComputeIndirect, "glDispatchComputeIndirect", qfalse) && compute;
+		compute = GetGLFunction(qglGetIntegeri_v, "glGetIntegeri_v", qfalse) && compute;
+		if ( compute && barrier )
+		{
+			for ( GLuint axis = 0; axis < 3; ++axis )
+			{
+				qglGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, axis, &glRefConfig.maxComputeWorkGroupCount[axis]);
+				qglGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, axis, &glRefConfig.maxComputeWorkGroupSize[axis]);
+			}
+			qglGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &glRefConfig.maxComputeWorkGroupInvocations);
+			qglGetIntegerv(GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &glRefConfig.maxComputeSharedMemorySize);
+			glRefConfig.modernFeatures |= MODERN_COMPUTE;
+		}
+
+		bool ssbo = GetGLFunction(qglGetInteger64v, "glGetInteger64v", qfalse) != qfalse;
+		ssbo = GetGLFunction(qglShaderStorageBlockBinding, "glShaderStorageBlockBinding", qfalse) && ssbo;
+		ssbo = GetGLFunction(qglGetProgramResourceIndex, "glGetProgramResourceIndex", qfalse) && ssbo;
+		ssbo = GetGLFunction(qglGetProgramResourceiv, "glGetProgramResourceiv", qfalse) && ssbo;
+		if ( ssbo && barrier )
+		{
+			qglGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &glRefConfig.maxShaderStorageBufferBindings);
+			qglGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &glRefConfig.maxShaderStorageBlockSize);
+			qglGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &glRefConfig.shaderStorageBufferOffsetAlignment);
+			qglGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS, &glRefConfig.maxComputeShaderStorageBlocks);
+			glRefConfig.modernFeatures |= MODERN_SSBO;
+		}
+
+		if ( GetGLFunction(qglBindImageTexture, "glBindImageTexture", qfalse) && barrier )
+		{
+			qglGetIntegerv(GL_MAX_IMAGE_UNITS, &glRefConfig.maxImageUnits);
+			qglGetIntegerv(GL_MAX_COMPUTE_IMAGE_UNIFORMS, &glRefConfig.maxComputeImageUniforms);
+			glRefConfig.modernFeatures |= MODERN_IMAGE_LOAD_STORE;
+		}
+		glRefConfig.modernPaths = (qboolean)(r_gl43->integer && glRefConfig.modernFeatures != 0);
+	}
+	R_PrintModernCapabilities();
 }

@@ -1,0 +1,3764 @@
+[
+  {
+    "var": "r_hdr",
+    "default": "1",
+    "restart": true,
+    "description": "Disable/enable rendering in HDR",
+    "name": "r_hdr",
+    "category": "Pipeline prerequisites",
+    "section": "HDR",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_toneMap",
+    "default": "1",
+    "restart": true,
+    "description": "Disable/enable tonemapping",
+    "name": "r_toneMap",
+    "category": "Pipeline prerequisites",
+    "section": "Tone mapping",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_autoExposure",
+    "default": "1",
+    "restart": false,
+    "description": "Disable/enable auto exposure",
+    "name": "r_autoExposure",
+    "category": "Pipeline prerequisites",
+    "section": "Auto exposure",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_depthPrepass",
+    "default": "1",
+    "restart": false,
+    "description": "",
+    "name": "r_depthPrepass",
+    "category": "Pipeline prerequisites",
+    "section": "Depth prepass",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_normalMapping",
+    "default": "1",
+    "restart": true,
+    "description": "Disable/enable normal mapping",
+    "name": "r_normalMapping",
+    "category": "Pipeline prerequisites",
+    "section": "Normal mapping",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_specularMapping",
+    "default": "1",
+    "restart": true,
+    "description": "Disable/enable specular mapping",
+    "name": "r_specularMapping",
+    "category": "Pipeline prerequisites",
+    "section": "Specular mapping",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_parallaxMapping",
+    "default": "0",
+    "restart": false,
+    "description": "Disable/enable parallax mapping",
+    "name": "r_parallaxMapping",
+    "category": "Pipeline prerequisites",
+    "section": "Parallax mapping",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_sunlightMode",
+    "default": "1",
+    "restart": true,
+    "description": "",
+    "name": "r_sunlightMode",
+    "category": "Pipeline prerequisites",
+    "section": "Realtime sunlight",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_dlightMode",
+    "default": "1",
+    "restart": true,
+    "description": "",
+    "name": "r_dlightMode",
+    "category": "Pipeline prerequisites",
+    "section": "Dynamic lighting",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_cubeMapping",
+    "default": "0",
+    "restart": true,
+    "description": "Disable/enable cubemapping",
+    "name": "r_cubeMapping",
+    "category": "Pipeline prerequisites",
+    "section": "Cubemap reflections",
+    "spec": "",
+    "range": null
+  },
+  {
+    "var": "r_toneMapMode",
+    "default": "0",
+    "restart": false,
+    "description": "0 legacy Rend2 filmic, 1 ACES fitted, 2 AgX-like.",
+    "name": "r_toneMapMode",
+    "category": "Colors & post-processing",
+    "section": "Tone mapping",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_colorGrading",
+    "default": "1",
+    "restart": false,
+    "description": "disable / enable color grading.",
+    "name": "r_colorGrading",
+    "category": "Colors & post-processing",
+    "section": "Color grading LUTs",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_colorGradingLut",
+    "default": "",
+    "restart": false,
+    "description": "select a LUT manually; empty uses `maps/<map>.cube` if present; `*identity` is neutral.",
+    "name": "r_colorGradingLut",
+    "category": "Colors & post-processing",
+    "section": "Color grading LUTs",
+    "spec": "\"<file>.cube\"",
+    "range": null
+  },
+  {
+    "var": "r_colorGradingIntensity",
+    "default": "1",
+    "restart": false,
+    "description": "blend between the original image and the LUT.",
+    "name": "r_colorGradingIntensity",
+    "category": "Colors & post-processing",
+    "section": "Color grading LUTs",
+    "spec": "0..1",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_linearLighting",
+    "default": "0",
+    "restart": true,
+    "description": "legacy / linear-light handling of non-HDR lightmaps. Requires `vid_restart`.",
+    "name": "r_linearLighting",
+    "category": "Colors & post-processing",
+    "section": "Linear lighting",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_bloom",
+    "default": "-1",
+    "restart": false,
+    "description": "legacy glow / off / HDR bloom.",
+    "name": "r_bloom",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_bloomIntensity",
+    "default": "0.15",
+    "restart": false,
+    "description": "bloom strength.",
+    "name": "r_bloomIntensity",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_bloomThreshold",
+    "default": "2.0",
+    "restart": false,
+    "description": "scene-linear brightness where optional scene bloom begins.",
+    "name": "r_bloomThreshold",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      64.0,
+      false
+    ]
+  },
+  {
+    "var": "r_bloomKnee",
+    "default": "0.5",
+    "restart": false,
+    "description": "softness around the threshold.",
+    "name": "r_bloomKnee",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_bloomScatter",
+    "default": "0.7",
+    "restart": false,
+    "description": "how widely the bloom pyramid spreads.",
+    "name": "r_bloomScatter",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_bloomSceneIntensity",
+    "default": "0",
+    "restart": false,
+    "description": "contribution from bright non-emissive scene pixels; `0` keeps bloom emissive-only.",
+    "name": "r_bloomSceneIntensity",
+    "category": "Colors & post-processing",
+    "section": "HDR bloom",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      2.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlur",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable velocity motion blur. Requires `vid_restart`.",
+    "name": "r_motionBlur",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_motionBlurShutterAngle",
+    "default": "180",
+    "restart": false,
+    "description": "exposure length.",
+    "name": "r_motionBlurShutterAngle",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<degrees>",
+    "range": [
+      0.0,
+      360.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlurReferenceFps",
+    "default": "60",
+    "restart": false,
+    "description": "FPS the shutter angle refers to; `0` uses the current frame interval.",
+    "name": "r_motionBlurReferenceFps",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<fps>",
+    "range": [
+      0.0,
+      1000.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlurMaxPixels",
+    "default": "32",
+    "restart": false,
+    "description": "maximum streak length at 1080p.",
+    "name": "r_motionBlurMaxPixels",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<pixels>",
+    "range": [
+      1.0,
+      128.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlurQuality",
+    "default": "1",
+    "restart": false,
+    "description": "low / medium / high.",
+    "name": "r_motionBlurQuality",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_motionBlurSamples",
+    "default": "0",
+    "restart": false,
+    "description": "sample override; `0` uses the quality preset.",
+    "name": "r_motionBlurSamples",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      32.0,
+      true
+    ]
+  },
+  {
+    "var": "r_motionBlurViewModelScale",
+    "default": "0.5",
+    "restart": false,
+    "description": "blur strength for first-person hands, weapons and saber.",
+    "name": "r_motionBlurViewModelScale",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlurCutDistance",
+    "default": "256",
+    "restart": false,
+    "description": "one-frame translation treated as a camera cut.",
+    "name": "r_motionBlurCutDistance",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<units>",
+    "range": [
+      16.0,
+      16384.0,
+      false
+    ]
+  },
+  {
+    "var": "r_motionBlurCutAngle",
+    "default": "75",
+    "restart": false,
+    "description": "one-frame rotation treated as a camera cut.",
+    "name": "r_motionBlurCutAngle",
+    "category": "Colors & post-processing",
+    "section": "Velocity motion blur",
+    "spec": "<degrees>",
+    "range": [
+      1.0,
+      180.0,
+      false
+    ]
+  },
+  {
+    "var": "r_autoPBR",
+    "default": "0",
+    "restart": false,
+    "description": "legacy fallback / generic dielectric / heuristic material classes.",
+    "name": "r_autoPBR",
+    "category": "Materials & surface detail",
+    "section": "Auto PBR material classification",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoPBRRoughness",
+    "default": "0",
+    "restart": true,
+    "description": "constant class roughness / generate an automatic roughness map. Turning it on requires `vid_restart`.",
+    "name": "r_autoPBRRoughness",
+    "category": "Materials & surface detail",
+    "section": "Automatic roughness variation",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoPBRConvert",
+    "default": "0",
+    "restart": true,
+    "description": "keep the old vertex-lit path / convert compatible shaders to per-pixel PBR. Requires `vid_restart`.",
+    "name": "r_autoPBRConvert",
+    "category": "Materials & surface detail",
+    "section": "Legacy shiny material conversion",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_diffuseBRDF",
+    "default": "0",
+    "restart": false,
+    "description": "Lambert / Burley-Disney diffuse.",
+    "name": "r_diffuseBRDF",
+    "category": "Materials & surface detail",
+    "section": "Diffuse BRDF",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoEmissive",
+    "default": "0",
+    "restart": false,
+    "description": "legacy behavior / expose compatible legacy glow stages as emissive sources.",
+    "name": "r_autoEmissive",
+    "category": "Materials & surface detail",
+    "section": "Automatic emissive compatibility",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomAdaptiveSteps",
+    "default": "0",
+    "restart": false,
+    "description": "legacy fixed traversal / angle-adaptive traversal.",
+    "name": "r_pomAdaptiveSteps",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomMinSteps",
+    "default": "8",
+    "restart": false,
+    "description": "linear samples at normal incidence.",
+    "name": "r_pomMinSteps",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "<count>",
+    "range": [
+      4.0,
+      64.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomMaxSteps",
+    "default": "32",
+    "restart": false,
+    "description": "linear samples at grazing angles.",
+    "name": "r_pomMaxSteps",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "<count>",
+    "range": [
+      4.0,
+      64.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomBinarySteps",
+    "default": "8",
+    "restart": false,
+    "description": "final hit refinement.",
+    "name": "r_pomBinarySteps",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      16.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomFadeStart",
+    "default": "0",
+    "restart": false,
+    "description": "distance where relief begins flattening.",
+    "name": "r_pomFadeStart",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "<distance>",
+    "range": [
+      0.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomFadeEnd",
+    "default": "0",
+    "restart": false,
+    "description": "distance where POM becomes normal mapping only.",
+    "name": "r_pomFadeEnd",
+    "category": "Materials & surface detail",
+    "section": "Adaptive POM traversal",
+    "spec": "<distance>",
+    "range": [
+      0.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSelfShadow",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable relief self-shadowing. Requires `vid_restart`.",
+    "name": "r_pomSelfShadow",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowLights",
+    "default": "1",
+    "restart": false,
+    "description": "sun only / sun + strongest local / sun + limited local lights / all local lights.",
+    "name": "r_pomSelfShadowLights",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "0..3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowMaxLocalLights",
+    "default": "2",
+    "restart": false,
+    "description": "local-light budget for mode 2.",
+    "name": "r_pomSelfShadowMaxLocalLights",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "<count>",
+    "range": [
+      1.0,
+      4.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowSteps",
+    "default": "12",
+    "restart": false,
+    "description": "samples per shadow ray.",
+    "name": "r_pomSelfShadowSteps",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "<count>",
+    "range": [
+      4.0,
+      32.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowStrength",
+    "default": "1",
+    "restart": false,
+    "description": "global shadow strength.",
+    "name": "r_pomSelfShadowStrength",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowBias",
+    "default": "0.02",
+    "restart": false,
+    "description": "ray-start bias inside the height field.",
+    "name": "r_pomSelfShadowBias",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.25,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSelfShadowSoftness",
+    "default": "4",
+    "restart": false,
+    "description": "penetration-to-shadow scale.",
+    "name": "r_pomSelfShadowSoftness",
+    "category": "Materials & surface detail",
+    "section": "POM self-shadowing",
+    "spec": "<value>",
+    "range": [
+      0.5,
+      64.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSilhouette",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable shell rendering. Requires `vid_restart`.",
+    "name": "r_pomSilhouette",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteDistance",
+    "default": "512",
+    "restart": false,
+    "description": "shell range; farther surfaces use ordinary POM.",
+    "name": "r_pomSilhouetteDistance",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      8192.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteFade",
+    "default": "96",
+    "restart": false,
+    "description": "crossfade width.",
+    "name": "r_pomSilhouetteFade",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      1024.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteSteps",
+    "default": "12",
+    "restart": false,
+    "description": "normal-angle ray samples.",
+    "name": "r_pomSilhouetteSteps",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<count>",
+    "range": [
+      4.0,
+      64.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteMaxSteps",
+    "default": "48",
+    "restart": false,
+    "description": "grazing-angle ray samples.",
+    "name": "r_pomSilhouetteMaxSteps",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<count>",
+    "range": [
+      4.0,
+      128.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteBinarySteps",
+    "default": "6",
+    "restart": false,
+    "description": "hit refinement.",
+    "name": "r_pomSilhouetteBinarySteps",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      16.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteViewDependence",
+    "default": "1",
+    "restart": false,
+    "description": "how quickly samples increase toward grazing angles.",
+    "name": "r_pomSilhouetteViewDependence",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteShadows",
+    "default": "1",
+    "restart": false,
+    "description": "displaced shells cast into sun cascades.",
+    "name": "r_pomSilhouetteShadows",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_pomSilhouetteContactShadows",
+    "default": "0",
+    "restart": false,
+    "description": "apply screen-space sun contact shadows to shell pixels.",
+    "name": "r_pomSilhouetteContactShadows",
+    "category": "Materials & surface detail",
+    "section": "Silhouette POM",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoPomSilhouetteMode",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable automatic mode globally.",
+    "name": "r_autoPomSilhouetteMode",
+    "category": "Materials & surface detail",
+    "section": "Automatic silhouette POM",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_aoMode",
+    "default": "-1",
+    "restart": false,
+    "description": "follow legacy `r_ssao` / off / legacy SSAO / GTAO.",
+    "name": "r_aoMode",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "-1 | 0 | 1 | 2",
+    "range": [
+      -1.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_aoApply",
+    "default": "-1",
+    "restart": false,
+    "description": "automatic / legacy application / indirect-light-only application.",
+    "name": "r_aoApply",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_aoMultiBounce",
+    "default": "1",
+    "restart": false,
+    "description": "preserve more indirect light on bright surfaces.",
+    "name": "r_aoMultiBounce",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_aoLightmapFraction",
+    "default": "0.5",
+    "restart": false,
+    "description": "share of baked light treated as indirect.",
+    "name": "r_aoLightmapFraction",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_aoSpecOcclusion",
+    "default": "-1",
+    "restart": false,
+    "description": "auto / scalar / Lagarde / bent-normal cone specular occlusion.",
+    "name": "r_aoSpecOcclusion",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "-1 | 0 | 1 | 2",
+    "range": [
+      -1.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_gtaoQuality",
+    "default": "2",
+    "restart": false,
+    "description": "low / medium / high / ultra.",
+    "name": "r_gtaoQuality",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "0..3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_gtaoHalfRes",
+    "default": "1",
+    "restart": true,
+    "description": "full / half resolution. Requires `vid_restart`.",
+    "name": "r_gtaoHalfRes",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_gtaoRadius",
+    "default": "32",
+    "restart": false,
+    "description": "world-space radius.",
+    "name": "r_gtaoRadius",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      512.0,
+      false
+    ]
+  },
+  {
+    "var": "r_gtaoFalloff",
+    "default": "0.6",
+    "restart": false,
+    "description": "distance falloff.",
+    "name": "r_gtaoFalloff",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "<value>",
+    "range": [
+      0.05,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_gtaoThickness",
+    "default": "0.2",
+    "restart": false,
+    "description": "thin-occluder compensation.",
+    "name": "r_gtaoThickness",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_gtaoPower",
+    "default": "1.5",
+    "restart": false,
+    "description": "visibility contrast.",
+    "name": "r_gtaoPower",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "<value>",
+    "range": [
+      0.1,
+      8.0,
+      false
+    ]
+  },
+  {
+    "var": "r_gtaoDenoise",
+    "default": "2",
+    "restart": false,
+    "description": "edge-aware denoise passes.",
+    "name": "r_gtaoDenoise",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "0..3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_gtaoBentNormals",
+    "default": "1",
+    "restart": false,
+    "description": "bent-normal strength for indirect lighting.",
+    "name": "r_gtaoBentNormals",
+    "category": "Lighting & shadows",
+    "section": "GTAO",
+    "spec": "0..1",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_contactShadows",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable sun contact shadows.",
+    "name": "r_contactShadows",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_contactShadowLength",
+    "default": "16",
+    "restart": false,
+    "description": "maximum ray length.",
+    "name": "r_contactShadowLength",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      128.0,
+      false
+    ]
+  },
+  {
+    "var": "r_contactShadowSteps",
+    "default": "12",
+    "restart": false,
+    "description": "ray samples.",
+    "name": "r_contactShadowSteps",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "<count>",
+    "range": [
+      2.0,
+      32.0,
+      true
+    ]
+  },
+  {
+    "var": "r_contactShadowThickness",
+    "default": "6",
+    "restart": false,
+    "description": "assumed blocker thickness.",
+    "name": "r_contactShadowThickness",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "<units>",
+    "range": [
+      0.1,
+      64.0,
+      false
+    ]
+  },
+  {
+    "var": "r_contactShadowStrength",
+    "default": "0.85",
+    "restart": false,
+    "description": "shadow strength.",
+    "name": "r_contactShadowStrength",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_contactShadowSoft",
+    "default": "0",
+    "restart": false,
+    "description": "first-hit / softer depth-weighted result.",
+    "name": "r_contactShadowSoft",
+    "category": "Lighting & shadows",
+    "section": "Screen-space contact shadows",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_forwardPlus",
+    "default": "0",
+    "restart": false,
+    "description": "legacy dynamic-light masks / clustered Forward+.",
+    "name": "r_forwardPlus",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_forwardPlusTileSize",
+    "default": "64",
+    "restart": false,
+    "description": "screen tile size.",
+    "name": "r_forwardPlusTileSize",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "<pixels>",
+    "range": [
+      16.0,
+      256.0,
+      true
+    ]
+  },
+  {
+    "var": "r_forwardPlusSlices",
+    "default": "16",
+    "restart": false,
+    "description": "logarithmic depth slices.",
+    "name": "r_forwardPlusSlices",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "<count>",
+    "range": [
+      1.0,
+      64.0,
+      true
+    ]
+  },
+  {
+    "var": "r_forwardPlusNearSlice",
+    "default": "48",
+    "restart": false,
+    "description": "depth covered by the first slice.",
+    "name": "r_forwardPlusNearSlice",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      1024.0,
+      false
+    ]
+  },
+  {
+    "var": "r_forwardPlusMaxLightsPerCluster",
+    "default": "64",
+    "restart": false,
+    "description": "light cap per cluster.",
+    "name": "r_forwardPlusMaxLightsPerCluster",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "<count>",
+    "range": [
+      1.0,
+      255.0,
+      true
+    ]
+  },
+  {
+    "var": "r_dynamicShadowMaxLights",
+    "default": "4",
+    "restart": false,
+    "description": "strongest dynamic lights allowed shadow cubes when `r_dlightMode 2` is active.",
+    "name": "r_dynamicShadowMaxLights",
+    "category": "Lighting & shadows",
+    "section": "Forward+ dynamic lighting",
+    "spec": "<count>",
+    "range": null
+  },
+  {
+    "var": "r_ssgi",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable SSGI. Requires `vid_restart`.",
+    "name": "r_ssgi",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiSource",
+    "default": "0",
+    "restart": false,
+    "description": "dynamic + emissive / emissive only / full scene, with mode 2 experimental.",
+    "name": "r_ssgiSource",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiIntensity",
+    "default": "1",
+    "restart": false,
+    "description": "indirect-light strength.",
+    "name": "r_ssgiIntensity",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      8.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssgiQuality",
+    "default": "1",
+    "restart": false,
+    "description": "low / medium / high / ultra.",
+    "name": "r_ssgiQuality",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "0..3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiRays",
+    "default": "0",
+    "restart": false,
+    "description": "rays per traced pixel; `0` uses the quality preset.",
+    "name": "r_ssgiRays",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      8.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiSteps",
+    "default": "0",
+    "restart": false,
+    "description": "ray-march steps; `0` uses the preset.",
+    "name": "r_ssgiSteps",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      256.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiMaxDistance",
+    "default": "256",
+    "restart": false,
+    "description": "bounce distance.",
+    "name": "r_ssgiMaxDistance",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<units>",
+    "range": [
+      16.0,
+      4096.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssgiThickness",
+    "default": "12",
+    "restart": false,
+    "description": "assumed depth-buffer surface thickness.",
+    "name": "r_ssgiThickness",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<units>",
+    "range": [
+      0.5,
+      256.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssgiTemporal",
+    "default": "1",
+    "restart": false,
+    "description": "temporal accumulation.",
+    "name": "r_ssgiTemporal",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiHistoryWeight",
+    "default": "0.9",
+    "restart": false,
+    "description": "history weight.",
+    "name": "r_ssgiHistoryWeight",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.98,
+      false
+    ]
+  },
+  {
+    "var": "r_ssgiDenoise",
+    "default": "-1",
+    "restart": false,
+    "description": "denoise passes; `-1` uses the preset.",
+    "name": "r_ssgiDenoise",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "-1..4",
+    "range": [
+      -1.0,
+      4.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiHalfResolution",
+    "default": "-1",
+    "restart": true,
+    "description": "preset / full / half-resolution tracing; changing trace resolution takes effect after `vid_restart`.",
+    "name": "r_ssgiHalfResolution",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiHiZ",
+    "default": "-1",
+    "restart": false,
+    "description": "preset / linear / hierarchical tracing.",
+    "name": "r_ssgiHiZ",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssgiEmissiveScale",
+    "default": "1",
+    "restart": false,
+    "description": "physical emissive contribution.",
+    "name": "r_ssgiEmissiveScale",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssgiGlowScale",
+    "default": "0",
+    "restart": false,
+    "description": "legacy glow/auto-emissive contribution.",
+    "name": "r_ssgiGlowScale",
+    "category": "Lighting & shadows",
+    "section": "Screen-space global illumination",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_diffuseIBL",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable directional probe ambient. Requires `vid_restart`.",
+    "name": "r_diffuseIBL",
+    "category": "Lighting & shadows",
+    "section": "Directional diffuse ambient",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_diffuseIBLStrength",
+    "default": "1",
+    "restart": false,
+    "description": "modulation strength.",
+    "name": "r_diffuseIBLStrength",
+    "category": "Lighting & shadows",
+    "section": "Directional diffuse ambient",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ltcAreaLights",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable LTC rectangle and line lights. Requires `vid_restart`.",
+    "name": "r_ltcAreaLights",
+    "category": "Lighting & shadows",
+    "section": "LTC area lights",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_ltcIntensityScale",
+    "default": "1",
+    "restart": false,
+    "description": "global radiance multiplier.",
+    "name": "r_ltcIntensityScale",
+    "category": "Lighting & shadows",
+    "section": "LTC area lights",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_ltcStaticDiffuse",
+    "default": "0",
+    "restart": false,
+    "description": "also add diffuse for `static_specular` lights.",
+    "name": "r_ltcStaticDiffuse",
+    "category": "Lighting & shadows",
+    "section": "LTC area lights",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_ltcMaxLights",
+    "default": "64",
+    "restart": false,
+    "description": "maximum map area lights used per scene.",
+    "name": "r_ltcMaxLights",
+    "category": "Lighting & shadows",
+    "section": "LTC area lights",
+    "spec": "<count>",
+    "range": null
+  },
+  {
+    "var": "r_ltcAutoAreaLights",
+    "default": "1",
+    "restart": false,
+    "description": "off / confident lamp shapes / also looser candidates.",
+    "name": "r_ltcAutoAreaLights",
+    "category": "Lighting & shadows",
+    "section": "Automatic LTC lamp detection",
+    "spec": "0 | 1 | 2",
+    "range": null
+  },
+  {
+    "var": "r_saberAreaLights",
+    "default": "0",
+    "restart": false,
+    "description": "point-light sabers / LTC line-light sabers.",
+    "name": "r_saberAreaLights",
+    "category": "Lighting & shadows",
+    "section": "Saber line area lights",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_spotLights",
+    "default": "1",
+    "restart": false,
+    "description": "submit authored spots as ordinary point lights / as spot lights.",
+    "name": "r_spotLights",
+    "category": "Lighting & shadows",
+    "section": "Spot / projected lights",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_spotShadows",
+    "default": "1",
+    "restart": false,
+    "description": "disable / enable spot shadows.",
+    "name": "r_spotShadows",
+    "category": "Lighting & shadows",
+    "section": "Spot / projected lights",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_lightCookies",
+    "default": "1",
+    "restart": false,
+    "description": "off / intensity-only cookie / colored cookie.",
+    "name": "r_lightCookies",
+    "category": "Lighting & shadows",
+    "section": "Light cookies / gobos",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_sunShadowMode",
+    "default": "1",
+    "restart": true,
+    "description": "legacy / Shadows 2.0. Requires `vid_restart`.",
+    "name": "r_sunShadowMode",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_shadowPcss",
+    "default": "1",
+    "restart": false,
+    "description": "disable / enable PCSS.",
+    "name": "r_shadowPcss",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_sunShadowAlphaCasters",
+    "default": "1",
+    "restart": true,
+    "description": "alpha-tested foliage/cutout casters and receivers. Requires `vid_restart`.",
+    "name": "r_sunShadowAlphaCasters",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_shadowCascadeBlend",
+    "default": "0.10",
+    "restart": false,
+    "description": "cascade overlap.",
+    "name": "r_shadowCascadeBlend",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.3,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowDepthBias",
+    "default": "0.15",
+    "restart": false,
+    "description": "constant receiver bias.",
+    "name": "r_shadowDepthBias",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      8.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowNormalBias",
+    "default": "0.75",
+    "restart": false,
+    "description": "normal offset.",
+    "name": "r_shadowNormalBias",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      8.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowSlopeBias",
+    "default": "1.0",
+    "restart": false,
+    "description": "slope-dependent bias.",
+    "name": "r_shadowSlopeBias",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowReceiverBiasClamp",
+    "default": "4.0",
+    "restart": false,
+    "description": "maximum receiver correction.",
+    "name": "r_shadowReceiverBiasClamp",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      32.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowPcssQuality",
+    "default": "1",
+    "restart": false,
+    "description": "low / high / ultra.",
+    "name": "r_shadowPcssQuality",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "0..2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_shadowSunAngularDiameter",
+    "default": "0.53",
+    "restart": false,
+    "description": "apparent sun size.",
+    "name": "r_shadowSunAngularDiameter",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<degrees>",
+    "range": [
+      0.0,
+      8.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowPcssMaxPenumbra",
+    "default": "32",
+    "restart": false,
+    "description": "maximum penumbra size.",
+    "name": "r_shadowPcssMaxPenumbra",
+    "category": "Lighting & shadows",
+    "section": "Sun Shadows 2.0",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      256.0,
+      false
+    ]
+  },
+  {
+    "var": "r_entityLightGrid",
+    "default": "0",
+    "restart": true,
+    "description": "legacy / three CPU samples / per-fragment GPU samples. Requires `vid_restart`.",
+    "name": "r_entityLightGrid",
+    "category": "Player & model lighting",
+    "section": "Multi-point / per-pixel BSP light-grid lighting",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_skinSSS",
+    "default": "0",
+    "restart": true,
+    "description": "off / wrapped diffuse / screen-space diffusion. Requires `vid_restart`.",
+    "name": "r_skinSSS",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_skinSSSMixed",
+    "default": "0",
+    "restart": true,
+    "description": "also process mixed `*_head` textures. Requires `vid_restart`.",
+    "name": "r_skinSSSMixed",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_skinSSSStrength",
+    "default": "1",
+    "restart": false,
+    "description": "share of skin diffuse replaced by the diffused copy.",
+    "name": "r_skinSSSStrength",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "0..1",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_skinSSSWidth",
+    "default": "8",
+    "restart": false,
+    "description": "diffusion radius.",
+    "name": "r_skinSSSWidth",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "<mm>",
+    "range": [
+      0.0,
+      40.0,
+      false
+    ]
+  },
+  {
+    "var": "r_skinSSSQuality",
+    "default": "1",
+    "restart": false,
+    "description": "11 / 17 / 25 taps.",
+    "name": "r_skinSSSQuality",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "0..2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_skinSSSWrap",
+    "default": "0.3",
+    "restart": false,
+    "description": "mode-1 wrap width.",
+    "name": "r_skinSSSWrap",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_skinSSSFollowSurface",
+    "default": "1",
+    "restart": false,
+    "description": "depth/normal edge stopping.",
+    "name": "r_skinSSSFollowSurface",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_skinSSSTransmission",
+    "default": "0",
+    "restart": false,
+    "description": "optional back-light term.",
+    "name": "r_skinSSSTransmission",
+    "category": "Player & model lighting",
+    "section": "Skin subsurface scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      2.0,
+      false
+    ]
+  },
+  {
+    "var": "r_shadowCasterLod",
+    "default": "0",
+    "restart": false,
+    "description": "shadow-view LOD / camera-view LOD for Ghoul2 shadow casters.",
+    "name": "r_shadowCasterLod",
+    "category": "Player & model lighting",
+    "section": "Character shadow improvements",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_dlightShadowBias",
+    "default": "0",
+    "restart": false,
+    "description": "legacy / texel-scaled dynamic-light shadow bias.",
+    "name": "r_dlightShadowBias",
+    "category": "Player & model lighting",
+    "section": "Character shadow improvements",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssr",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable hybrid SSR + cubemap reflections. Requires `vid_restart`.",
+    "name": "r_ssr",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrQuality",
+    "default": "1",
+    "restart": false,
+    "description": "low / medium / high / ultra.",
+    "name": "r_ssrQuality",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0..3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrSteps",
+    "default": "0",
+    "restart": false,
+    "description": "ray-march override; `0` uses the preset.",
+    "name": "r_ssrSteps",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      256.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrRefineSteps",
+    "default": "0",
+    "restart": false,
+    "description": "hit-refinement override.",
+    "name": "r_ssrRefineSteps",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      16.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrMaxDistance",
+    "default": "1024",
+    "restart": false,
+    "description": "maximum ray length.",
+    "name": "r_ssrMaxDistance",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<units>",
+    "range": [
+      16.0,
+      16384.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrThickness",
+    "default": "8",
+    "restart": false,
+    "description": "assumed depth-buffer thickness.",
+    "name": "r_ssrThickness",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<units>",
+    "range": [
+      0.5,
+      256.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrMaxRoughness",
+    "default": "0.6",
+    "restart": false,
+    "description": "roughness where SSR fully fades to cubemap.",
+    "name": "r_ssrMaxRoughness",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.05,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrEdgeFade",
+    "default": "0.1",
+    "restart": false,
+    "description": "screen-edge fade.",
+    "name": "r_ssrEdgeFade",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.5,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrHalfRes",
+    "default": "-1",
+    "restart": false,
+    "description": "preset / full / half-resolution tracing.",
+    "name": "r_ssrHalfRes",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrHiZ",
+    "default": "-1",
+    "restart": false,
+    "description": "preset / linear / hierarchical tracing.",
+    "name": "r_ssrHiZ",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "-1 | 0 | 1",
+    "range": [
+      -1.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrTemporal",
+    "default": "0",
+    "restart": true,
+    "description": "temporal accumulation. Requires `vid_restart`.",
+    "name": "r_ssrTemporal",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrTemporalWeight",
+    "default": "0.9",
+    "restart": false,
+    "description": "history weight.",
+    "name": "r_ssrTemporalWeight",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.98,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrStrength",
+    "default": "1",
+    "restart": false,
+    "description": "confidence/replacement scale.",
+    "name": "r_ssrStrength",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrHitCache",
+    "default": "1",
+    "restart": false,
+    "description": "reuse still-valid previous-frame ray hits; pixels are periodically retraced.",
+    "name": "r_ssrHitCache",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrCull",
+    "default": "1",
+    "restart": false,
+    "description": "skip ray marching on pixels that cannot use SSR.",
+    "name": "r_ssrCull",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrEmitters",
+    "default": "1",
+    "restart": false,
+    "description": "analytic saber/blaster/effect reflections.",
+    "name": "r_ssrEmitters",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_ssrEmitterIntensity",
+    "default": "1",
+    "restart": false,
+    "description": "analytic emitter brightness.",
+    "name": "r_ssrEmitterIntensity",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_ssrEmitterMaxRoughness",
+    "default": "0.35",
+    "restart": false,
+    "description": "roughness limit for analytic emitters.",
+    "name": "r_ssrEmitterMaxRoughness",
+    "category": "Reflections",
+    "section": "Screen-space reflections",
+    "spec": "<value>",
+    "range": [
+      0.05,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFog",
+    "default": "0",
+    "restart": true,
+    "description": "off / legacy light-grid ray march / froxel volumetric fog. Requires `vid_restart`.",
+    "name": "r_volumetricFog",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogQuality",
+    "default": "1",
+    "restart": true,
+    "description": "low / medium / high. Requires `vid_restart`.",
+    "name": "r_volumetricFogQuality",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "0..2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogGridScale",
+    "default": "0",
+    "restart": true,
+    "description": "manual screen pixels per froxel; `0` uses the preset. Requires `vid_restart`.",
+    "name": "r_volumetricFogGridScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<pixels>",
+    "range": [
+      0.0,
+      32.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogSlices",
+    "default": "0",
+    "restart": true,
+    "description": "manual depth slices; `0` uses the preset. Requires `vid_restart`.",
+    "name": "r_volumetricFogSlices",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      128.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogFar",
+    "default": "0",
+    "restart": false,
+    "description": "froxel range; `0` uses the automatic default.",
+    "name": "r_volumetricFogFar",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogAnisotropy",
+    "default": "0.2",
+    "restart": false,
+    "description": "fallback Henyey-Greenstein phase asymmetry.",
+    "name": "r_volumetricFogAnisotropy",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<g>",
+    "range": [
+      -0.9,
+      0.9,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogTemporal",
+    "default": "1",
+    "restart": false,
+    "description": "temporal accumulation.",
+    "name": "r_volumetricFogTemporal",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogHistoryWeight",
+    "default": "0.9",
+    "restart": false,
+    "description": "history weight.",
+    "name": "r_volumetricFogHistoryWeight",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.98,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogSunScale",
+    "default": "1",
+    "restart": false,
+    "description": "sun scattering multiplier.",
+    "name": "r_volumetricFogSunScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogDlightScale",
+    "default": "1",
+    "restart": false,
+    "description": "dynamic-light scattering multiplier.",
+    "name": "r_volumetricFogDlightScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogStaticScale",
+    "default": "1",
+    "restart": false,
+    "description": "baked-light scattering multiplier.",
+    "name": "r_volumetricFogStaticScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogDlightShadows",
+    "default": "1",
+    "restart": false,
+    "description": "dynamic-light shadows inside fog; needs `r_dlightMode 2`.",
+    "name": "r_volumetricFogDlightShadows",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogBloom",
+    "default": "0",
+    "restart": false,
+    "description": "add bright in-scattering to bloom.",
+    "name": "r_volumetricFogBloom",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogReset",
+    "default": "0",
+    "restart": false,
+    "description": "gameplay hook to clear temporal history after a camera cut.",
+    "name": "r_volumetricFogReset",
+    "category": "Volumetric lighting & fog",
+    "section": "Froxel volumetric fog",
+    "spec": "1",
+    "range": null
+  },
+  {
+    "var": "r_volumetricFogStaticDirectional",
+    "default": "0",
+    "restart": false,
+    "description": "isotropic baked local light / apply the phase function along its reconstructed baked direction.",
+    "name": "r_volumetricFogStaticDirectional",
+    "category": "Volumetric lighting & fog",
+    "section": "Directional baked light in volumetrics",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_volumetricFogHeight",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable height fog.",
+    "name": "r_volumetricFogHeight",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightOpaque",
+    "default": "3000",
+    "restart": false,
+    "description": "opaque distance at the base height.",
+    "name": "r_volumetricFogHeightOpaque",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      1000000.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightBase",
+    "default": "0",
+    "restart": false,
+    "description": "base world height.",
+    "name": "r_volumetricFogHeightBase",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "<z>",
+    "range": null
+  },
+  {
+    "var": "r_volumetricFogHeightFalloff",
+    "default": "256",
+    "restart": false,
+    "description": "exponential scale height.",
+    "name": "r_volumetricFogHeightFalloff",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightMax",
+    "default": "1",
+    "restart": false,
+    "description": "density cap below the base.",
+    "name": "r_volumetricFogHeightMax",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "<value>",
+    "range": [
+      1.0,
+      64.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightTop",
+    "default": "0",
+    "restart": false,
+    "description": "optional soft upper cutoff.",
+    "name": "r_volumetricFogHeightTop",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "<units>",
+    "range": [
+      0.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightColor",
+    "default": "0.7 0.75 0.8",
+    "restart": false,
+    "description": "scattering color.",
+    "name": "r_volumetricFogHeightColor",
+    "category": "Volumetric lighting & fog",
+    "section": "Height fog",
+    "spec": "\"r g b\"",
+    "range": null
+  },
+  {
+    "var": "r_volumetricFogNoise",
+    "default": "0",
+    "restart": false,
+    "description": "1 height fog, 2 BSP fog, 4 global fog, 8 noise-enabled local volumes; bits can be combined.",
+    "name": "r_volumetricFogNoise",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "<bits>",
+    "range": [
+      0.0,
+      7.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogNoiseScale",
+    "default": "4096",
+    "restart": false,
+    "description": "macro-noise period.",
+    "name": "r_volumetricFogNoiseScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "<units>",
+    "range": [
+      64.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogNoiseContrast",
+    "default": "1",
+    "restart": false,
+    "description": "macro contrast.",
+    "name": "r_volumetricFogNoiseContrast",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogNoiseDetailScale",
+    "default": "900",
+    "restart": false,
+    "description": "detail-noise period.",
+    "name": "r_volumetricFogNoiseDetailScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "<units>",
+    "range": [
+      16.0,
+      65536.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogNoiseDetailContrast",
+    "default": "0",
+    "restart": false,
+    "description": "detail strength; `0` avoids the second fetch.",
+    "name": "r_volumetricFogNoiseDetailContrast",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogNoiseWind",
+    "default": "0 0 0",
+    "restart": false,
+    "description": "world-space drift speed.",
+    "name": "r_volumetricFogNoiseWind",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric density noise",
+    "spec": "\"x y z\"",
+    "range": null
+  },
+  {
+    "var": "r_volParticles",
+    "default": "0",
+    "restart": false,
+    "description": "disable / submit authored volumetric FX media.",
+    "name": "r_volParticles",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric FX particles",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volParticlesMax",
+    "default": "128",
+    "restart": false,
+    "description": "maximum important particles uploaded per frame.",
+    "name": "r_volParticlesMax",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric FX particles",
+    "spec": "<count>",
+    "range": null
+  },
+  {
+    "var": "r_volParticlesScale",
+    "default": "1",
+    "restart": false,
+    "description": "extinction multiplier.",
+    "name": "r_volParticlesScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric FX particles",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volParticlesHistory",
+    "default": "0.3",
+    "restart": false,
+    "description": "temporal-history retention where particle density changes.",
+    "name": "r_volParticlesHistory",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric FX particles",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_particleLight",
+    "default": "0",
+    "restart": true,
+    "description": "authored sprite color / volumetric-light-field lighting. Requires `vid_restart`.",
+    "name": "r_particleLight",
+    "category": "Volumetric lighting & fog",
+    "section": "Sprite particle lighting",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_particleLightMix",
+    "default": "1",
+    "restart": false,
+    "description": "blend between authored and lit color.",
+    "name": "r_particleLightMix",
+    "category": "Volumetric lighting & fog",
+    "section": "Sprite particle lighting",
+    "spec": "0..1",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_particleLightScale",
+    "default": "1",
+    "restart": false,
+    "description": "light-field gain.",
+    "name": "r_particleLightScale",
+    "category": "Volumetric lighting & fog",
+    "section": "Sprite particle lighting",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_particleLightFloor",
+    "default": "0.03",
+    "restart": false,
+    "description": "minimum light factor.",
+    "name": "r_particleLightFloor",
+    "category": "Volumetric lighting & fog",
+    "section": "Sprite particle lighting",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricEmission",
+    "default": "1",
+    "restart": false,
+    "description": "global volumetric emission scale; `0` disables it.",
+    "name": "r_volumetricEmission",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric emission",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      16.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricSelfShadow",
+    "default": "0",
+    "restart": true,
+    "description": "off / sun / sun + strongest dynamic lights. Requires `vid_restart`.",
+    "name": "r_volumetricSelfShadow",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric self-shadowing",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricSelfShadowSamples",
+    "default": "6",
+    "restart": false,
+    "description": "density samples along the sun ray.",
+    "name": "r_volumetricSelfShadowSamples",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric self-shadowing",
+    "spec": "<count>",
+    "range": [
+      2.0,
+      16.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricSelfShadowDistance",
+    "default": "768",
+    "restart": false,
+    "description": "maximum light-ray march.",
+    "name": "r_volumetricSelfShadowDistance",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric self-shadowing",
+    "spec": "<units>",
+    "range": [
+      32.0,
+      8192.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricSelfShadowOutside",
+    "default": "1",
+    "restart": false,
+    "description": "ignore / analytically include height fog beyond the march.",
+    "name": "r_volumetricSelfShadowOutside",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric self-shadowing",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricSelfShadowLights",
+    "default": "2",
+    "restart": false,
+    "description": "strongest dynamic lights self-shadowed in mode 2.",
+    "name": "r_volumetricSelfShadowLights",
+    "category": "Volumetric lighting & fog",
+    "section": "Volumetric self-shadowing",
+    "spec": "<count>",
+    "range": [
+      0.0,
+      4.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricMultiScatter",
+    "default": "0",
+    "restart": false,
+    "description": "off / sun / sun + self-shadowed dynamic lights.",
+    "name": "r_volumetricMultiScatter",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricMSOctaves",
+    "default": "2",
+    "restart": false,
+    "description": "scattering orders beyond single scattering.",
+    "name": "r_volumetricMSOctaves",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "1..3",
+    "range": [
+      1.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricMSAttenuation",
+    "default": "0.25",
+    "restart": false,
+    "description": "optical-depth scale per octave.",
+    "name": "r_volumetricMSAttenuation",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricMSContribution",
+    "default": "0.5",
+    "restart": false,
+    "description": "returned energy per octave.",
+    "name": "r_volumetricMSContribution",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricMSPhase",
+    "default": "0.5",
+    "restart": false,
+    "description": "anisotropy reduction per octave.",
+    "name": "r_volumetricMSPhase",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricMSLength",
+    "default": "64",
+    "restart": false,
+    "description": "characteristic dense-medium size.",
+    "name": "r_volumetricMSLength",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      4096.0,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricMSShadowFill",
+    "default": "0.25",
+    "restart": false,
+    "description": "limited fill into geometry shadows.",
+    "name": "r_volumetricMSShadowFill",
+    "category": "Volumetric lighting & fog",
+    "section": "Approximate multiple scattering",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      0.5,
+      false
+    ]
+  },
+  {
+    "var": "r_volumetricFogRGB",
+    "default": "0",
+    "restart": true,
+    "description": "scalar / per-channel extinction and transmittance. Requires `vid_restart`.",
+    "name": "r_volumetricFogRGB",
+    "category": "Volumetric lighting & fog",
+    "section": "RGB extinction / wavelength-dependent absorption",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_volumetricFogHeightExtinction",
+    "default": "1 1 1",
+    "restart": false,
+    "description": "relative RGB extinction for procedural height fog.",
+    "name": "r_volumetricFogHeightExtinction",
+    "category": "Volumetric lighting & fog",
+    "section": "RGB extinction / wavelength-dependent absorption",
+    "spec": "\"r g b\"",
+    "range": null
+  },
+  {
+    "var": "r_weatherCull",
+    "default": "1",
+    "restart": false,
+    "description": "draw every weather chunk / cull invisible chunks.",
+    "name": "r_weatherCull",
+    "category": "Rain & wet surfaces",
+    "section": "Weather chunk culling",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_rainStreaks",
+    "default": "0",
+    "restart": false,
+    "description": "legacy / modern rain streaks.",
+    "name": "r_rainStreaks",
+    "category": "Rain & wet surfaces",
+    "section": "Modern rain streaks",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_rainStreakWidth",
+    "default": "1",
+    "restart": false,
+    "description": "streak width.",
+    "name": "r_rainStreakWidth",
+    "category": "Rain & wet surfaces",
+    "section": "Modern rain streaks",
+    "spec": "<value>",
+    "range": [
+      0.25,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainStreakLength",
+    "default": "1",
+    "restart": false,
+    "description": "length multiplier.",
+    "name": "r_rainStreakLength",
+    "category": "Rain & wet surfaces",
+    "section": "Modern rain streaks",
+    "spec": "<value>",
+    "range": [
+      0.25,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainOpacity",
+    "default": "1",
+    "restart": false,
+    "description": "opacity.",
+    "name": "r_rainOpacity",
+    "category": "Rain & wet surfaces",
+    "section": "Modern rain streaks",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainLighting",
+    "default": "1",
+    "restart": false,
+    "description": "fixed brightness / light-grid + sun lighting.",
+    "name": "r_rainLighting",
+    "category": "Rain & wet surfaces",
+    "section": "Modern rain streaks",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_weatherWetness",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable wet materials. Requires `vid_restart`.",
+    "name": "r_weatherWetness",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_weatherWetStrength",
+    "default": "1",
+    "restart": false,
+    "description": "overall wetness.",
+    "name": "r_weatherWetStrength",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "0..1",
+    "range": null
+  },
+  {
+    "var": "r_weatherWetRoughness",
+    "default": "1",
+    "restart": false,
+    "description": "scale of class-specific smoothing.",
+    "name": "r_weatherWetRoughness",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_weatherWetDarkening",
+    "default": "1",
+    "restart": false,
+    "description": "scale of class-specific albedo darkening.",
+    "name": "r_weatherWetDarkening",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_weatherWetNormal",
+    "default": "1",
+    "restart": false,
+    "description": "scale of class-specific normal flattening.",
+    "name": "r_weatherWetNormal",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_weatherWetEntityFacing",
+    "default": "0.85",
+    "restart": false,
+    "description": "wetness of vertical character/prop faces.",
+    "name": "r_weatherWetEntityFacing",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_weatherWetBias",
+    "default": "2",
+    "restart": false,
+    "description": "rain-occlusion depth bias.",
+    "name": "r_weatherWetBias",
+    "category": "Rain & wet surfaces",
+    "section": "Rain wetness",
+    "spec": "<units>",
+    "range": null
+  },
+  {
+    "var": "r_weatherPuddles",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable procedural puddles.",
+    "name": "r_weatherPuddles",
+    "category": "Rain & wet surfaces",
+    "section": "Procedural puddles",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_puddleCoverage",
+    "default": "0.35",
+    "restart": false,
+    "description": "approximate covered fraction.",
+    "name": "r_puddleCoverage",
+    "category": "Rain & wet surfaces",
+    "section": "Procedural puddles",
+    "spec": "0..1",
+    "range": null
+  },
+  {
+    "var": "r_puddleRoughness",
+    "default": "0.04",
+    "restart": false,
+    "description": "water roughness.",
+    "name": "r_puddleRoughness",
+    "category": "Rain & wet surfaces",
+    "section": "Procedural puddles",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_puddleSlope",
+    "default": "0.90 0.98",
+    "restart": false,
+    "description": "geometric-normal range where puddles can form.",
+    "name": "r_puddleSlope",
+    "category": "Rain & wet surfaces",
+    "section": "Procedural puddles",
+    "spec": "\"min max\"",
+    "range": null
+  },
+  {
+    "var": "r_puddleScale",
+    "default": "192",
+    "restart": false,
+    "description": "macro puddle pattern size.",
+    "name": "r_puddleScale",
+    "category": "Rain & wet surfaces",
+    "section": "Procedural puddles",
+    "spec": "<units>",
+    "range": null
+  },
+  {
+    "var": "r_puddleHeight",
+    "default": "1",
+    "restart": false,
+    "description": "ignore / use material height data.",
+    "name": "r_puddleHeight",
+    "category": "Rain & wet surfaces",
+    "section": "Height-aware puddles",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_puddleHeightSoftness",
+    "default": "0.08",
+    "restart": false,
+    "description": "water-line transition width.",
+    "name": "r_puddleHeightSoftness",
+    "category": "Rain & wet surfaces",
+    "section": "Height-aware puddles",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_puddleHeightFill",
+    "default": "0",
+    "restart": false,
+    "description": "bias the virtual water level.",
+    "name": "r_puddleHeightFill",
+    "category": "Rain & wet surfaces",
+    "section": "Height-aware puddles",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_puddleRipples",
+    "default": "1",
+    "restart": false,
+    "description": "disable / enable ripples.",
+    "name": "r_puddleRipples",
+    "category": "Rain & wet surfaces",
+    "section": "Puddle ripples",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_puddleRippleStrength",
+    "default": "0.35",
+    "restart": false,
+    "description": "ring normal strength.",
+    "name": "r_puddleRippleStrength",
+    "category": "Rain & wet surfaces",
+    "section": "Puddle ripples",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_puddleRippleScale",
+    "default": "20",
+    "restart": false,
+    "description": "cell/ring scale.",
+    "name": "r_puddleRippleScale",
+    "category": "Rain & wet surfaces",
+    "section": "Puddle ripples",
+    "spec": "<units>",
+    "range": null
+  },
+  {
+    "var": "r_puddleRippleRate",
+    "default": "1.1",
+    "restart": false,
+    "description": "ring cycles per second.",
+    "name": "r_puddleRippleRate",
+    "category": "Rain & wet surfaces",
+    "section": "Puddle ripples",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_weatherRunoff",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable runoff.",
+    "name": "r_weatherRunoff",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_runoffStrength",
+    "default": "1",
+    "restart": false,
+    "description": "film/streak strength.",
+    "name": "r_runoffStrength",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_runoffSpeed",
+    "default": "24",
+    "restart": false,
+    "description": "flow speed.",
+    "name": "r_runoffSpeed",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "<units/s>",
+    "range": null
+  },
+  {
+    "var": "r_runoffScale",
+    "default": "48",
+    "restart": false,
+    "description": "streak-cell size.",
+    "name": "r_runoffScale",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "<units>",
+    "range": null
+  },
+  {
+    "var": "r_runoffProbe",
+    "default": "1.5",
+    "restart": false,
+    "description": "small outward rain-exposure probe for steep walls; `0` disables it.",
+    "name": "r_runoffProbe",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_runoffEntities",
+    "default": "0",
+    "restart": false,
+    "description": "also apply runoff to characters, props and movers.",
+    "name": "r_runoffEntities",
+    "category": "Rain & wet surfaces",
+    "section": "Water runoff",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_rainSplashes",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable impact splashes.",
+    "name": "r_rainSplashes",
+    "category": "Rain & wet surfaces",
+    "section": "Rain impact splashes",
+    "spec": "0 | 1",
+    "range": null
+  },
+  {
+    "var": "r_rainSplashSize",
+    "default": "6",
+    "restart": false,
+    "description": "splash radius.",
+    "name": "r_rainSplashSize",
+    "category": "Rain & wet surfaces",
+    "section": "Rain impact splashes",
+    "spec": "<units>",
+    "range": [
+      1.0,
+      64.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainSplashLifetime",
+    "default": "350",
+    "restart": false,
+    "description": "lifetime.",
+    "name": "r_rainSplashLifetime",
+    "category": "Rain & wet surfaces",
+    "section": "Rain impact splashes",
+    "spec": "<ms>",
+    "range": [
+      50.0,
+      2000.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainSplashOpacity",
+    "default": "0.5",
+    "restart": false,
+    "description": "opacity.",
+    "name": "r_rainSplashOpacity",
+    "category": "Rain & wet surfaces",
+    "section": "Rain impact splashes",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_rainLens",
+    "default": "0",
+    "restart": true,
+    "description": "disable / enable lens droplets. Requires `vid_restart`.",
+    "name": "r_rainLens",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_rainLensAmount",
+    "default": "0.5",
+    "restart": false,
+    "description": "droplet density.",
+    "name": "r_rainLensAmount",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..1",
+    "range": null
+  },
+  {
+    "var": "r_rainLensRefraction",
+    "default": "1.0",
+    "restart": false,
+    "description": "refraction strength.",
+    "name": "r_rainLensRefraction",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_rainLensScale",
+    "default": "1.0",
+    "restart": false,
+    "description": "droplet size relative to screen height.",
+    "name": "r_rainLensScale",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "<value>",
+    "range": null
+  },
+  {
+    "var": "r_autoFoliage",
+    "default": "0",
+    "restart": false,
+    "description": "off / conservative stock-safe detection / broader experimental detection.",
+    "name": "r_autoFoliage",
+    "category": "Foliage",
+    "section": "Automatic foliage classification",
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoGrass",
+    "default": "0",
+    "restart": false,
+    "description": "legacy / two-card cross / three-card tuft / adaptive three-to-two cards.",
+    "name": "r_autoGrass",
+    "category": "Foliage",
+    "section": "Auto grass geometry",
+    "spec": "0 | 1 | 2 | 3",
+    "range": [
+      0.0,
+      3.0,
+      true
+    ]
+  },
+  {
+    "var": "r_autoGrassLodDist",
+    "default": "600",
+    "restart": false,
+    "description": "third-card fade distance in adaptive mode.",
+    "name": "r_autoGrassLodDist",
+    "category": "Foliage",
+    "section": "Auto grass geometry",
+    "spec": "<units>",
+    "range": [
+      16.0,
+      16384.0,
+      false
+    ]
+  },
+  {
+    "var": "r_autoGrassWidth",
+    "default": "1",
+    "restart": false,
+    "description": "card width multiplier.",
+    "name": "r_autoGrassWidth",
+    "category": "Foliage",
+    "section": "Auto grass geometry",
+    "spec": "<value>",
+    "range": [
+      0.25,
+      2.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageWind",
+    "default": "0",
+    "restart": false,
+    "description": "legacy sway / coherent breeze.",
+    "name": "r_foliageWind",
+    "category": "Foliage",
+    "section": "Coherent foliage wind",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_foliageWindStrength",
+    "default": "1",
+    "restart": false,
+    "description": "global strength.",
+    "name": "r_foliageWindStrength",
+    "category": "Foliage",
+    "section": "Coherent foliage wind",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageWindSpeed",
+    "default": "1",
+    "restart": false,
+    "description": "time scale.",
+    "name": "r_foliageWindSpeed",
+    "category": "Foliage",
+    "section": "Coherent foliage wind",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageWindDirection",
+    "default": "30",
+    "restart": false,
+    "description": "world-space yaw.",
+    "name": "r_foliageWindDirection",
+    "category": "Foliage",
+    "section": "Coherent foliage wind",
+    "spec": "<degrees>",
+    "range": [
+      0.0,
+      360.0,
+      false
+    ]
+  },
+  {
+    "var": "r_leafFlutter",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable leaf flutter.",
+    "name": "r_leafFlutter",
+    "category": "Foliage",
+    "section": "Leaf flutter",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_leafFlutterStrength",
+    "default": "1",
+    "restart": false,
+    "description": "position amplitude.",
+    "name": "r_leafFlutterStrength",
+    "category": "Foliage",
+    "section": "Leaf flutter",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_leafFlutterSpeed",
+    "default": "1",
+    "restart": false,
+    "description": "animation speed.",
+    "name": "r_leafFlutterSpeed",
+    "category": "Foliage",
+    "section": "Leaf flutter",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_leafFlutterNormal",
+    "default": "0.25",
+    "restart": false,
+    "description": "lighting-normal wobble.",
+    "name": "r_leafFlutterNormal",
+    "category": "Foliage",
+    "section": "Leaf flutter",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_plantWind",
+    "default": "0",
+    "restart": false,
+    "description": "root-bend strength; `0` disables it.",
+    "name": "r_plantWind",
+    "category": "Foliage",
+    "section": "Plant root wind",
+    "spec": "0..4",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageInteraction",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable character interaction.",
+    "name": "r_foliageInteraction",
+    "category": "Foliage",
+    "section": "Character / foliage interaction",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_foliageInteractionStrength",
+    "default": "1",
+    "restart": false,
+    "description": "bend strength.",
+    "name": "r_foliageInteractionStrength",
+    "category": "Foliage",
+    "section": "Character / foliage interaction",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageInteractionRadius",
+    "default": "1",
+    "restart": false,
+    "description": "character capsule radius scale.",
+    "name": "r_foliageInteractionRadius",
+    "category": "Foliage",
+    "section": "Character / foliage interaction",
+    "spec": "<value>",
+    "range": [
+      0.5,
+      3.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageInteractionMax",
+    "default": "8",
+    "restart": false,
+    "description": "uploaded character limit.",
+    "name": "r_foliageInteractionMax",
+    "category": "Foliage",
+    "section": "Character / foliage interaction",
+    "spec": "<count>",
+    "range": null
+  },
+  {
+    "var": "r_foliageInteractionNPC",
+    "default": "1",
+    "restart": false,
+    "description": "player only / player + nearby NPCs and players.",
+    "name": "r_foliageInteractionNPC",
+    "category": "Foliage",
+    "section": "Character / foliage interaction",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_foliageField",
+    "default": "0",
+    "restart": false,
+    "description": "disable / enable persistent recovery.",
+    "name": "r_foliageField",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_foliageFieldSize",
+    "default": "128",
+    "restart": true,
+    "description": "bend-field texture size. Requires `vid_restart`.",
+    "name": "r_foliageFieldSize",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "64 | 128 | 256",
+    "range": [
+      64.0,
+      256.0,
+      true
+    ]
+  },
+  {
+    "var": "r_foliageFieldExtent",
+    "default": "1024",
+    "restart": false,
+    "description": "world size covered around the player.",
+    "name": "r_foliageFieldExtent",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "<units>",
+    "range": [
+      256.0,
+      8192.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageFieldStrength",
+    "default": "1",
+    "restart": false,
+    "description": "field contribution.",
+    "name": "r_foliageFieldStrength",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageFieldRecovery",
+    "default": "0.8",
+    "restart": false,
+    "description": "approximate time back to rest.",
+    "name": "r_foliageFieldRecovery",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "<seconds>",
+    "range": [
+      0.1,
+      10.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageFieldDamping",
+    "default": "0.6",
+    "restart": false,
+    "description": "spring damping; 1 avoids overshoot.",
+    "name": "r_foliageFieldDamping",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "<value>",
+    "range": [
+      0.2,
+      1.0,
+      false
+    ]
+  },
+  {
+    "var": "r_foliageFieldImpulse",
+    "default": "1",
+    "restart": false,
+    "description": "extra momentum from moving through plants.",
+    "name": "r_foliageFieldImpulse",
+    "category": "Foliage",
+    "section": "Persistent foliage bend field",
+    "spec": "<value>",
+    "range": [
+      0.0,
+      4.0,
+      false
+    ]
+  },
+  {
+    "var": "r_glslCache",
+    "default": "1",
+    "restart": true,
+    "description": "compile every time / use the on-disk program cache. Requires `vid_restart`.",
+    "name": "r_glslCache",
+    "category": "Performance & loading",
+    "section": "GLSL program cache",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ]
+  },
+  {
+    "var": "r_glslCacheMaxMB",
+    "default": "512",
+    "restart": false,
+    "description": "maximum cache size; least-recently-used entries are evicted first.",
+    "name": "r_glslCacheMaxMB",
+    "category": "Performance & loading",
+    "section": "GLSL program cache",
+    "spec": "<MB>",
+    "range": [
+      16.0,
+      4096.0,
+      true
+    ]
+  }
+]

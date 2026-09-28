@@ -3428,8 +3428,25 @@ typedef enum {
 // We can't change glConfig_t without breaking DLL/vms compatibility, so
 // store extensions we have here.
 typedef struct {
+	int glMajorVersion;
+	int glMinorVersion;
 	int glslMajorVersion;
 	int glslMinorVersion;
+
+	// Hardware capabilities and startup policy are separate. Feature code
+	// uses R_HasModernFeatures(), then checks the limits it actually needs.
+	uint32_t modernFeatures;
+	qboolean modernPaths;
+	int maxComputeWorkGroupCount[3];
+	int maxComputeWorkGroupSize[3];
+	int maxComputeWorkGroupInvocations;
+	int maxComputeSharedMemorySize;
+	int maxComputeShaderStorageBlocks;
+	int maxShaderStorageBufferBindings;
+	GLint64 maxShaderStorageBlockSize;
+	int shaderStorageBufferOffsetAlignment;
+	int maxImageUnits;
+	int maxComputeImageUniforms;
 
 	gpuIhv_t hardwareVendor;
 
@@ -3455,6 +3472,16 @@ typedef struct {
 
 	qboolean annotateResources;
 } glRefConfig_t;
+
+enum modernFeature_t
+{
+	MODERN_COMPUTE = 1u << 0,
+	MODERN_SSBO = 1u << 1,
+	MODERN_IMAGE_LOAD_STORE = 1u << 2
+};
+
+qboolean R_HasModernFeatures(uint32_t requiredFeatures);
+void R_PrintModernCapabilities();
 
 enum
 {
@@ -4144,6 +4171,7 @@ extern cvar_t	*r_bloomScatter;
 extern cvar_t	*r_bloomSceneIntensity;
 
 extern cvar_t	*r_debugContext;
+extern cvar_t *r_gl43;
 extern cvar_t	*r_debugWeather;
 extern cvar_t	*r_weatherCull;
 extern cvar_t	*r_weatherDebugChunks;
@@ -4351,6 +4379,7 @@ IMPLEMENTATION SPECIFIC FUNCTIONS
 QINLINE void GLimp_LogComment( char *comment ) {}
 void GLimp_InitExtensions();
 void GLimp_InitCoreFunctions();
+void GLimp_InitModernFunctions();
 
 /*
 ====================================================================
@@ -4619,6 +4648,11 @@ GLSL
 */
 
 void GLSL_InitSplashScreenShader();
+// source is a GLSL body (version 430 is prepended); program must be empty.
+// Failure is nonfatal so the owning feature can keep its legacy path.
+bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
+	const char *source, uint32_t requiredFeatures);
+void GLSL_DeleteGPUShader(shaderProgram_t *program);
 void GLSL_LoadGPUShaders();
 void GLSL_ShutdownGPUShaders(void);
 void GLSL_VertexAttribsState(uint32_t stateBits, VertexArraysProperties *vertexArrays);

@@ -627,3 +627,14 @@ extern PFNGLPUSHDEBUGGROUPPROC qglPushDebugGroupKHR;
 extern PFNGLPOPDEBUGGROUPPROC qglPopDebugGroupKHR;
 extern PFNGLOBJECTLABELPROC qglObjectLabel;
 extern PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
+
+// Optional OpenGL 4.3 entry points. Gate calls with R_HasModernFeatures.
+extern PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
+extern PFNGLDISPATCHCOMPUTEINDIRECTPROC qglDispatchComputeIndirect;
+extern PFNGLMEMORYBARRIERPROC qglMemoryBarrier;
+extern PFNGLBINDIMAGETEXTUREPROC qglBindImageTexture;
+extern PFNGLGETINTEGERI_VPROC qglGetIntegeri_v;
+extern PFNGLGETINTEGER64VPROC qglGetInteger64v;
+extern PFNGLSHADERSTORAGEBLOCKBINDINGPROC qglShaderStorageBlockBinding;
+extern PFNGLGETPROGRAMRESOURCEINDEXPROC qglGetProgramResourceIndex;
+extern PFNGLGETPROGRAMRESOURCEIVPROC qglGetProgramResourceiv;

@@ -580,6 +580,7 @@ cvar_t	*r_bloomScatter;
 cvar_t	*r_bloomSceneIntensity;
 
 cvar_t *r_debugContext;
+cvar_t *r_gl43;
 cvar_t *r_debugWeather;
 cvar_t *r_weatherCull;
 cvar_t *r_weatherDebugChunks;
@@ -856,8 +857,8 @@ static void InitOpenGL( void )
 		memset(&glConfig, 0, sizeof(glConfig));
 
 		windowDesc.api = GRAPHICS_API_OPENGL;
-		windowDesc.gl.majorVersion = 3;
-		windowDesc.gl.minorVersion = 2;
+		windowDesc.gl.majorVersion = r_gl43->integer ? 4 : 3;
+		windowDesc.gl.minorVersion = r_gl43->integer ? 3 : 2;
 		windowDesc.gl.profile = GLPROFILE_CORE;
 		if ( r_debugContext->integer )
 			windowDesc.gl.contextFlags = GLCONTEXT_DEBUG;
@@ -903,6 +904,7 @@ static void InitOpenGL( void )
 
 		// initialize extensions
 		GLimp_InitExtensions();
+		GLimp_InitModernFunctions();
 
 		// Create the default VAO
 		GLuint vao;
@@ -1633,6 +1635,7 @@ static void GfxInfo_f( void )
 	ri.Printf( PRINT_ALL, "\nGL_VENDOR: %s\n", glConfig.vendor_string );
 	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glConfig.renderer_string );
 	ri.Printf( PRINT_ALL, "GL_VERSION: %s\n", glConfig.version_string );
+	R_PrintModernCapabilities();
 	ri.Printf( PRINT_ALL, "GL_EXTENSIONS: " );
 	R_PrintLongString( glConfigExt.originalExtensionString );
 	ri.Printf( PRINT_ALL, "\n" );
@@ -1853,6 +1856,8 @@ void R_Register( void )
 	r_bloomSceneIntensity = ri_Cvar_Get_NoComm("r_bloomSceneIntensity", "0", CVAR_ARCHIVE, "Optional HDR scene bloom, independent of emissive bloom");
 	ri.Cvar_CheckRange(r_bloomSceneIntensity, 0.f, 2.f, qfalse);
 
+	r_gl43 = ri_Cvar_Get_NoComm( "r_gl43", "1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Prefer GL 4.3 and allow modern paths; 0 forces legacy paths after vid_restart" );
 	r_debugContext						= ri_Cvar_Get_NoComm( "r_debugContext",			"0",		CVAR_LATCH, "" );
 	r_debugWeather						= ri_Cvar_Get_NoComm( "r_debugWeather",			"0",		CVAR_ARCHIVE, "" );
 	r_weatherCull = ri_Cvar_Get_NoComm("r_weatherCull", "1", CVAR_ARCHIVE,

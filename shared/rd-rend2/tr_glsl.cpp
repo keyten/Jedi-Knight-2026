@@ -1346,6 +1346,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 	{
 		for ( const PendingShader& pending : pendingShaders )
 		{
+			ri.Printf(PRINT_DEVELOPER, "Compiling GPU program '%s', stage %d\n", name, pending.type);
 			const GLuint shader = GLSL_CompileGPUShader(
 				program,
 				pending.source.c_str(),
@@ -1370,6 +1371,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 		GLSL_BindShaderInterface(shaderProgram);
 		if ( s_glslCache.enabled )
 			qglProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+		ri.Printf(PRINT_DEVELOPER, "Linking GPU program '%s'\n", name);
 		GLSL_LinkProgram(program);
 
 		if ( s_glslCache.enabled )
@@ -1506,6 +1508,10 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 		program->uniformBlocks |= (1u << i);
 	}
 
+	// The remaining reflection is only for developer diagnostics.
+	if ( !ri.Cvar_VariableIntegerValue("developer") )
+		return;
+
 	GLint numActiveUniformBlocks = 0;
 	qglGetProgramiv(program->program, GL_ACTIVE_UNIFORM_BLOCKS, &numActiveUniformBlocks);
 	ri.Printf(PRINT_DEVELOPER, "..num uniform blocks: %d\n", numActiveUniformBlocks);
@@ -1527,31 +1533,34 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 		GLint numMembers = 0;
 		qglGetActiveUniformBlockiv(
 			program->program, i, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &numMembers);
+		ri.Printf(PRINT_DEVELOPER, "....active uniforms: %d\n", numMembers);
 
 		if (numMembers > 0)
 		{
-			GLuint memberIndices[128];
+			// Arrays of structs (notably Lights) can expose more than 128
+			// active uniforms. GL writes numMembers entries into these buffers.
+			std::vector<GLuint> memberIndices(numMembers);
 			qglGetActiveUniformBlockiv(
 				program->program,
 				i,
 				GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES,
-				(GLint *)memberIndices);
+				(GLint *)memberIndices.data());
 
-			GLint memberOffsets[128];
+			std::vector<GLint> memberOffsets(numMembers);
 			qglGetActiveUniformsiv(
 				program->program,
 				numMembers,
-				memberIndices,
+				memberIndices.data(),
 				GL_UNIFORM_OFFSET,
-				memberOffsets);
+				memberOffsets.data());
 
-			GLint memberTypes[128];
+			std::vector<GLint> memberTypes(numMembers);
 			qglGetActiveUniformsiv(
 				program->program,
 				numMembers,
-				memberIndices,
+				memberIndices.data(),
 				GL_UNIFORM_TYPE,
-				memberTypes);
+				memberTypes.data());
 
 			for (int j = 0; j < numMembers; ++j)
 			{
@@ -1954,6 +1963,58 @@ void GLSL_SetUniformMatrix4x4(shaderProgram_t *program, int uniformNum, const fl
 	Com_Memcpy (compare, matrix, sizeof (float) * 16 * numElements);
 
 	qglUniformMatrix4fv(uniforms[uniformNum], numElements, GL_FALSE, matrix);
+}
+
+bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
+	const char *source, uint32_t requiredFeatures)
+{
+	assert(program && program->program == 0);
+	if ( !R_HasModernFeatures(requiredFeatures | MODERN_COMPUTE) )
+		return false;
+
+	const GLuint shader = qglCreateShader(GL_COMPUTE_SHADER);
+	if ( !shader )
+		return false;
+	const GLchar *sources[] = { "#version 430 core\n", source };
+	qglShaderSource(shader, ARRAY_LEN(sources), sources, nullptr);
+	qglCompileShader(shader);
+	if ( !GLSL_IsGPUShaderCompiled(shader) )
+	{
+		ri.Printf(PRINT_ALL, "Compute shader '%s' failed; using legacy path.\n", name);
+		GLSL_PrintShaderInfoLog(shader, qfalse);
+		qglDeleteShader(shader);
+		return false;
+	}
+
+	const GLuint linkedProgram = qglCreateProgram();
+	if ( !linkedProgram )
+	{
+		qglDeleteShader(shader);
+		return false;
+	}
+	qglAttachShader(linkedProgram, shader);
+	qglLinkProgram(linkedProgram);
+	GLint linked = GL_FALSE;
+	qglGetProgramiv(linkedProgram, GL_LINK_STATUS, &linked);
+	qglDetachShader(linkedProgram, shader);
+	qglDeleteShader(shader);
+	if ( linked != GL_TRUE )
+	{
+		ri.Printf(PRINT_ALL, "Compute program '%s' failed to link; using legacy path.\n", name);
+		GLSL_PrintProgramInfoLog(linkedProgram, qfalse);
+		qglDeleteProgram(linkedProgram);
+		return false;
+	}
+
+	Com_Memset(program, 0, sizeof(*program));
+	const size_t nameSize = strlen(name) + 1;
+	program->name = (char *)R_Malloc(nameSize, TAG_GENERAL);
+	Q_strncpyz(program->name, name, nameSize);
+	program->program = linkedProgram;
+	GLSL_InitUniforms(program);
+	if ( glRefConfig.annotateResources )
+		qglObjectLabel(GL_PROGRAM, linkedProgram, -1, name);
+	return true;
 }
 
 void GLSL_DeleteGPUShader(shaderProgram_t *program)
