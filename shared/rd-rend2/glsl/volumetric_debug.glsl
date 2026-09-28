@@ -52,11 +52,25 @@ void main()
 //     scattering albedo rgb (dark = absorptive), 37 lobes (red = forward g, green = -backward g,
 //     blue = share of the backward lobe), 38 effective mixed g (red forward, blue backward),
 //     39 phase of the sunlight towards the camera P / (1 + P) (0.5 grey = isotropic)
+//  40-50 media self-shadow and multiple scattering (volumetric_inject.glsl)
+//  51-56 RGB extinction (r_volumetricFogRGB; dark magenta when off):
+//     51 sigma_t.rgb of the froxel at the scene depth, as the opacity of 512 units per channel
+//        1 - exp(-512 sigma_t) (red = absorbs red)
+//     52 transmittance T.rgb between the camera and the scene (the color the medium lets through)
+//     53 color shift of a white surface: (T.rgb - T_scalar) * 4 + 0.5 (grey = none; the scalar
+//        reference uses sigma = mean(sigma_t.rgb), the in-scattering S is the same in both)
+//     54 |T.rgb - T_scalar| heat (max channel, 0.25 = red): where RGB and scalar extinction differ
+//     55 extinction chroma sigma_t.rgb / mean at the scene depth / 3 (grey = neutral, black = none)
+//     56 transmittance of the analytic tail beyond the last slice (white = none; dark blue where
+//        the scene is inside the volume)
 //
 // r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
 
 uniform sampler2D u_ScreenDepthMap;
+#if defined(USE_FROXEL_RGB)
+uniform sampler3D u_FroxelExtinction;	// sigma_t.rgb of this frame (views 51, 55)
+#endif
 // view 29: the dynamic light lists of the injection (R_VolumetricBuildLightLists)
 uniform samplerBuffer u_FPlusLights;
 uniform usamplerBuffer u_FPlusGridMap;
@@ -188,7 +202,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34) || (view >= 43 && view <= 45))
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34) || (view >= 43 && view <= 48))
 	{
 		color = Display(fog.rgb);
 	}
@@ -262,7 +276,7 @@ void main()
 		float extinction = texture(u_FroxelMedia, vec3(uv, (slice + 0.5) / u_FroxelGridSize.z)).r;
 		color = (u_FroxelSelfShadow.x > 0.5) ? Heat(extinction * 512.0 / 4.0) : vec3(0.3, 0.0, 0.3);
 	}
-	else if (view >= 36 && view <= 42)
+	else if ((view >= 36 && view <= 42) || view == 49 || view == 50)
 	{
 		// opacity weighted mean of the medium value along the ray (the injection writes value *
 		// extinction), dark grey where there is (almost) no medium
@@ -348,6 +362,51 @@ void main()
 		}
 		if ((slice & 1) != 0)
 			color *= 0.75;
+	}
+	else if (view >= 51 && view <= 56)
+	{
+#if defined(USE_FROXEL_RGB)
+		vec3 T;
+		FroxelFogRGB(worldPos, T);
+		vec4 clip = u_FroxelViewProjection * vec4(worldPos, 1.0);
+		vec2 uv = clamp(clip.xy / max(clip.w, 1e-3) * 0.5 + 0.5, 0.0, 1.0);
+		float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+		float w = FroxelDepthToW(min(d, u_FroxelSliceParams.y));
+		float slice = min(floor(w * u_FroxelGridSize.z), u_FroxelGridSize.z - 1.0);
+		vec3 sigma = texture(u_FroxelExtinction, vec3(uv, (slice + 0.5) / u_FroxelGridSize.z)).rgb;
+		if (view == 51)
+			color = vec3(1.0) - exp(-sigma * 512.0);
+		else if (view == 52)
+			color = T;
+		else if (view == 53)
+			color = clamp((T - vec3(fog.a)) * 4.0 + 0.5, 0.0, 1.0);
+		else if (view == 54)
+		{
+			vec3 delta = abs(T - vec3(fog.a));
+			color = Heat(max(delta.r, max(delta.g, delta.b)) * 4.0);
+		}
+		else if (view == 55)
+		{
+			float mean = dot(sigma, vec3(1.0 / 3.0));
+			color = (mean > 1e-7) ? sigma / mean / 3.0 : vec3(0.0);
+		}
+		else
+		{
+			float farZ = u_FroxelSliceParams.y;
+			color = vec3(0.0, 0.0, 0.25);
+			if (d > farZ)
+			{
+				vec3 toPos = worldPos - u_FroxelViewOrigin.xyz;
+				vec3 a = u_FroxelViewOrigin.xyz + toPos * (farZ / d);
+				float len = (d - farZ) * length(toPos) / max(d, 1e-3);
+				vec3 tau;
+				FroxelTailMediumRGB(a, toPos / max(length(toPos), 1e-6), len, tau);
+				color = exp(-tau);
+			}
+		}
+#else
+		color = vec3(0.3, 0.0, 0.3);
+#endif
 	}
 	else if (view == 10)
 	{

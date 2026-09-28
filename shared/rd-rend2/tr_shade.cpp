@@ -1330,162 +1330,178 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 
 	backEnd.pc.c_fogDraws++;
 
-	UniformDataWriter uniformDataWriter;
-	uniformDataWriter.Start(sp);
-	RB_SetFoliageMotionUniforms(uniformDataWriter, input->foliageMotion);
-	uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, MAX(input->fogNum - 1, 0));
-	if (input->numPasses > 0 && tess.shader->fogPass != FP_EQUAL)
-		uniformDataWriter.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, input->xstages[0]->alphaTestType);
-	else
-		uniformDataWriter.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
-
-	if (r_volumetricFog->integer)
+	// RGB extinction (r_volumetricFogRGB): a froxel lookup is two draws, the
+	// transmittance multiply and the in-scattering add (RB_VolumetricSetupFogPassDraw)
+	const int numFogDraws = (froxelFogMode == 1 && R_VolumetricFroxelRGB()) ? 2 : 1;
+	for (int fogDraw = 0; fogDraw < numFogDraws; fogDraw++)
 	{
-		if (tr.world)
-		{
-			vec3_t sampleOrigin;
-			VectorMA(tr.world->lightGridOrigin, -0.5f, tr.world->lightGridSize, sampleOrigin);
-			uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, sampleOrigin);
-			uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, tr.world->lightGridInverseSize);
-		}
+		const int rgbPass = (numFogDraws == 2) ? fogDraw + 1 : 0;
+		UniformDataWriter uniformDataWriter;
+		uniformDataWriter.Start(sp);
+		RB_SetFoliageMotionUniforms(uniformDataWriter, input->foliageMotion);
+		uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, MAX(input->fogNum - 1, 0));
+		if (input->numPasses > 0 && tess.shader->fogPass != FP_EQUAL)
+			uniformDataWriter.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, input->xstages[0]->alphaTestType);
 		else
-		{
-			const vec3_t origin = { 0.0f, 0.0f, 0.0f };
-			const vec3_t size = { 1.0f, 1.0f, 1.0f };
-			uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, origin);
-			uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, size);
-		}
-	}
+			uniformDataWriter.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
 
-	uint32_t stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-	if (tr.world && r_volumetricFog->integer)
-		stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-
-	if ( tess.shader->fogPass == FP_EQUAL )
-		stateBits |= GLS_DEPTHFUNC_EQUAL;
-
-	if (input->shader->polygonOffset == qtrue)
-		stateBits |= GLS_POLYGON_OFFSET_FILL;
-
-	if (pomFog)
-		stateBits = RB_PomSilhouetteStateBits(stateBits, qtrue);
-
-	if (input->numPasses > 0 && input->xstages[0]->stateBits & GLS_DEPTH_CLAMP)
-		stateBits |= GLS_DEPTH_CLAMP;
-
-	const UniformBlockBinding uniformBlockBindings[] = {
-		GetCameraBlockUniformBinding(backEnd.currentEntity),
-		GetFogsBlockUniformBinding(),
-		GetEntityBlockUniformBinding(backEnd.currentEntity),
-		GetShaderInstanceBlockUniformBinding(
-			backEnd.currentEntity, input->shader),
-		GetBonesBlockUniformBinding(),
-		GetSceneBlockUniformBinding(),
-		RB_GetVolumetricFogBlockUniformBinding(),
-		RB_GetFoliageInteractionBlockUniformBinding()
-	};
-
-	SamplerBindingsWriter samplerBindingsWriter;
-	RB_VolumetricSetupFogDraw(froxelFogMode, uniformDataWriter, samplerBindingsWriter);
-	if (pomFog)
-		RB_PomSilhouetteSetupDraw(input->xstages[0], uniformDataWriter, samplerBindingsWriter, qtrue);
-	if (input->numPasses > 0)
-	{
-		if (input->xstages[0]->alphaTestType != ALPHA_TEST_NONE && tess.shader->fogPass != FP_EQUAL)
-			samplerBindingsWriter.AddStaticImage(input->xstages[0]->bundle[0].image[0], 0);
-		else
-			samplerBindingsWriter.AddStaticImage(tr.whiteImage, 0);
-
-		if (tr.world && r_volumetricFog->integer && tr.world->lightGridData && !tr.refdef.doLAGoggles)
-		{
-			samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
-		}
-		else if (r_volumetricFog->integer)
-		{
-			samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
-		}
-	}
-
-	Allocator& frameAllocator = *backEndData->perFrameMemory;
-	DrawItem item = {};
-	item.renderState.stateBits = stateBits;
-	item.renderState.cullType = cullType;
-	item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, input->shader);
-	item.program = sp;
-	item.uniformData = uniformDataWriter.Finish(frameAllocator);
-	item.ibo = input->externalIBO ? input->externalIBO : backEndData->currentFrame->dynamicIbo;
-	item.samplerBindings = samplerBindingsWriter.Finish(
-		frameAllocator, &item.numSamplerBindings);
-
-	DrawItemSetVertexAttributes(
-		item, attribs, vertexArrays->numVertexArrays, frameAllocator);
-	DrawItemSetUniformBlockBindings(
-		item, uniformBlockBindings, frameAllocator);
-
-	RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
-
-	uint32_t key;
-	if (input->shader->sort == SS_ENVIRONMENT)
-		key = RB_CreateSkySortKey(item, 14, input->shader->isSky ? backEnd.skyNumber : 0, input->shader->sort);
-	else
-		key = RB_CreateSortKey(item, 14, input->shader->sort);
-
-	RB_AddDrawItem(backEndData->currentPass, key, item);
-
-	// invert fog planes and render global fog into them. The froxel volume
-	// already holds every fog along the ray.
-	if (froxelFogMode == 0 && input->fogNum != tr.world->globalFogIndex && tr.world->globalFogIndex != -1)
-	{
-		// only invert render fog planes
-		if (input->shader->sort != SS_FOG)
-			return;
-		if (backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity)
-			return;
-		// well, no idea how to handle this case, it's actually wrong
-		if (cullType == CT_TWO_SIDED)
-			return;
-		if (cullType == CT_FRONT_SIDED)
-			cullType = CT_BACK_SIDED;
-		else
-			cullType = CT_FRONT_SIDED;
-		UniformDataWriter uniformDataWriterBack;
-		uniformDataWriterBack.Start(sp);
-		uniformDataWriterBack.SetUniformInt(UNIFORM_FOGINDEX, tr.world->globalFogIndex - 1);
-		uniformDataWriterBack.SetUniformInt(UNIFORM_FROXELFOGMODE, 0);
-
-		// Fog planes shouldn't have any form of blending or alpha testing
 		if (r_volumetricFog->integer)
 		{
-			uniformDataWriterBack.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
-			SamplerBindingsWriter samplerBindingsWriter;
-			samplerBindingsWriter.AddStaticImage(tr.whiteImage, 0);
+			if (tr.world)
+			{
+				vec3_t sampleOrigin;
+				VectorMA(tr.world->lightGridOrigin, -0.5f, tr.world->lightGridSize, sampleOrigin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, sampleOrigin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, tr.world->lightGridInverseSize);
+			}
+			else
+			{
+				const vec3_t origin = { 0.0f, 0.0f, 0.0f };
+				const vec3_t size = { 1.0f, 1.0f, 1.0f };
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, origin);
+				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, size);
+			}
+		}
 
-			if (tr.world && tr.world->lightGridData)
+		uint32_t stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		if (tr.world && r_volumetricFog->integer)
+			stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+
+		if ( tess.shader->fogPass == FP_EQUAL )
+			stateBits |= GLS_DEPTHFUNC_EQUAL;
+
+		if (input->shader->polygonOffset == qtrue)
+			stateBits |= GLS_POLYGON_OFFSET_FILL;
+
+		// RGB extinction (r_volumetricFogRGB): color * T.rgb, then + S
+		if (rgbPass == 1)
+			stateBits = (stateBits & ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) | GLS_SRCBLEND_ZERO | GLS_DSTBLEND_SRC_COLOR;
+		else if (rgbPass == 2)
+			stateBits = (stateBits & ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE;
+
+		if (pomFog)
+			stateBits = RB_PomSilhouetteStateBits(stateBits, qtrue);
+
+		if (input->numPasses > 0 && input->xstages[0]->stateBits & GLS_DEPTH_CLAMP)
+			stateBits |= GLS_DEPTH_CLAMP;
+
+		const UniformBlockBinding uniformBlockBindings[] = {
+			GetCameraBlockUniformBinding(backEnd.currentEntity),
+			GetFogsBlockUniformBinding(),
+			GetEntityBlockUniformBinding(backEnd.currentEntity),
+			GetShaderInstanceBlockUniformBinding(
+				backEnd.currentEntity, input->shader),
+			GetBonesBlockUniformBinding(),
+			GetSceneBlockUniformBinding(),
+			RB_GetVolumetricFogBlockUniformBinding(),
+			RB_GetFoliageInteractionBlockUniformBinding()
+		};
+
+		SamplerBindingsWriter samplerBindingsWriter;
+		RB_VolumetricSetupFogDraw(froxelFogMode, uniformDataWriter, samplerBindingsWriter);
+		RB_VolumetricSetupFogPassDraw(rgbPass, uniformDataWriter, samplerBindingsWriter);
+		if (pomFog)
+			RB_PomSilhouetteSetupDraw(input->xstages[0], uniformDataWriter, samplerBindingsWriter, qtrue);
+		if (input->numPasses > 0)
+		{
+			if (input->xstages[0]->alphaTestType != ALPHA_TEST_NONE && tess.shader->fogPass != FP_EQUAL)
+				samplerBindingsWriter.AddStaticImage(input->xstages[0]->bundle[0].image[0], 0);
+			else
+				samplerBindingsWriter.AddStaticImage(tr.whiteImage, 0);
+
+			if (tr.world && r_volumetricFog->integer && tr.world->lightGridData && !tr.refdef.doLAGoggles)
 			{
 				samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
 			}
-			else
+			else if (r_volumetricFog->integer)
 			{
 				samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
 			}
 		}
 
-		DrawItem backItem = {};
-		memcpy(&backItem, &item, sizeof(item));
-		backItem.renderState.cullType = cullType;
-		backItem.uniformData = uniformDataWriterBack.Finish(frameAllocator);
-		backItem.samplerBindings = samplerBindingsWriter.Finish(
+		Allocator& frameAllocator = *backEndData->perFrameMemory;
+		DrawItem item = {};
+		item.renderState.stateBits = stateBits;
+		item.renderState.cullType = cullType;
+		item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, input->shader);
+		item.program = sp;
+		item.uniformData = uniformDataWriter.Finish(frameAllocator);
+		item.ibo = input->externalIBO ? input->externalIBO : backEndData->currentFrame->dynamicIbo;
+		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
 
 		DrawItemSetVertexAttributes(
-			backItem, attribs, vertexArrays->numVertexArrays, frameAllocator);
+			item, attribs, vertexArrays->numVertexArrays, frameAllocator);
 		DrawItemSetUniformBlockBindings(
-			backItem, uniformBlockBindings, frameAllocator);
+			item, uniformBlockBindings, frameAllocator);
 
-		RB_FillDrawCommand(backItem.draw, GL_TRIANGLES, 1, input);
+		RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
 
-		const uint32_t key = RB_CreateSortKey(backItem, 14, input->shader->sort);
-		RB_AddDrawItem(backEndData->currentPass, key, backItem);
+		// the in-scattering add after the transmittance multiply (stage 15 sorts after 14)
+		const int fogStage = (rgbPass == 2) ? 15 : 14;
+		uint32_t key;
+		if (input->shader->sort == SS_ENVIRONMENT)
+			key = RB_CreateSkySortKey(item, fogStage, input->shader->isSky ? backEnd.skyNumber : 0, input->shader->sort);
+		else
+			key = RB_CreateSortKey(item, fogStage, input->shader->sort);
+
+		RB_AddDrawItem(backEndData->currentPass, key, item);
+
+		// invert fog planes and render global fog into them. The froxel volume
+		// already holds every fog along the ray (mode 0: a single fog draw).
+		if (froxelFogMode == 0 && input->fogNum != tr.world->globalFogIndex && tr.world->globalFogIndex != -1)
+		{
+			// only invert render fog planes
+			if (input->shader->sort != SS_FOG)
+				return;
+			if (backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity)
+				return;
+			// well, no idea how to handle this case, it's actually wrong
+			if (cullType == CT_TWO_SIDED)
+				return;
+			if (cullType == CT_FRONT_SIDED)
+				cullType = CT_BACK_SIDED;
+			else
+				cullType = CT_FRONT_SIDED;
+			UniformDataWriter uniformDataWriterBack;
+			uniformDataWriterBack.Start(sp);
+			uniformDataWriterBack.SetUniformInt(UNIFORM_FOGINDEX, tr.world->globalFogIndex - 1);
+			uniformDataWriterBack.SetUniformInt(UNIFORM_FROXELFOGMODE, 0);
+
+			// Fog planes shouldn't have any form of blending or alpha testing
+			if (r_volumetricFog->integer)
+			{
+				uniformDataWriterBack.SetUniformInt(UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
+				SamplerBindingsWriter samplerBindingsWriter;
+				samplerBindingsWriter.AddStaticImage(tr.whiteImage, 0);
+
+				if (tr.world && tr.world->lightGridData)
+				{
+					samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
+				}
+				else
+				{
+					samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
+				}
+			}
+
+			DrawItem backItem = {};
+			memcpy(&backItem, &item, sizeof(item));
+			backItem.renderState.cullType = cullType;
+			backItem.uniformData = uniformDataWriterBack.Finish(frameAllocator);
+			backItem.samplerBindings = samplerBindingsWriter.Finish(
+				frameAllocator, &item.numSamplerBindings);
+
+			DrawItemSetVertexAttributes(
+				backItem, attribs, vertexArrays->numVertexArrays, frameAllocator);
+			DrawItemSetUniformBlockBindings(
+				backItem, uniformBlockBindings, frameAllocator);
+
+			RB_FillDrawCommand(backItem.draw, GL_TRIANGLES, 1, input);
+
+			const uint32_t key = RB_CreateSortKey(backItem, 14, input->shader->sort);
+			RB_AddDrawItem(backEndData->currentPass, key, backItem);
+		}
 	}
 }
 

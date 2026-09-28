@@ -70,6 +70,7 @@ static const int froxelQualitySlices[] = { 32, 48, 64 };
 struct froxelState_t
 {
 	qboolean resources;
+	qboolean rgb;				// RGB extinction (r_volumetricFogRGB, latched)
 	int width, height, depth;
 
 	// the volume of this frame
@@ -125,6 +126,36 @@ static struct
 qboolean R_VolumetricFroxelEnabled( void )
 {
 	return s_vf.resources;
+}
+
+qboolean R_VolumetricFroxelRGB( void )
+{
+	return (qboolean)(s_vf.resources && s_vf.rgb);
+}
+
+/*
+=================
+R_VolumetricExtinctionColor
+
+Relative extinction per channel of a medium (r_volumetricFogRGB):
+sigma_t.rgb = sigma * c, c normalized to mean 1, so the scalar sigma (the
+alpha channels, self-shadow, multiple scattering, history weights) is the
+mean of sigma_t.rgb and a medium keeps its average opacity. Negative values
+are clamped, black (or no color) is neutral (1 1 1).
+=================
+*/
+void R_VolumetricExtinctionColor( const float *in, vec3_t out )
+{
+	vec3_t c;
+	for ( int i = 0; i < 3; i++ )
+		c[i] = (in && in[i] > 0.0f) ? in[i] : 0.0f;
+	const float mean = (c[0] + c[1] + c[2]) * (1.0f / 3.0f);
+	if ( !(mean > 0.0f) )
+	{
+		VectorSet(out, 1.0f, 1.0f, 1.0f);
+		return;
+	}
+	VectorScale(c, 1.0f / mean, out);
 }
 
 /*
@@ -470,6 +501,9 @@ void R_CreateVolumetricImages( int width, int height )
 	tr.froxelTailImage = NULL;
 	tr.froxelNoiseImage = NULL;
 	tr.froxelMediaImage = NULL;
+	tr.froxelExtinctionImage[0] = tr.froxelExtinctionImage[1] = NULL;
+	tr.froxelTransmittanceImage = NULL;
+	tr.froxelCarryTImage[0] = tr.froxelCarryTImage[1] = NULL;
 
 	if ( r_volumetricFog->integer != 2 )
 		return;
@@ -524,6 +558,34 @@ void R_CreateVolumetricImages( int width, int height )
 		tr.froxelMediaImage = R_CreateImage3D(
 			"*froxelMedia", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R16F);
 	}
+	// RGB extinction (r_volumetricFogRGB, latched): sigma_t.rgb next to the
+	// injected volume (history ping-pong) and T.rgb next to the integrated one,
+	// RGBA16F (R11G11B10F bands T near 1 and drifts in the temporal filter).
+	// 24 bytes per froxel, nothing in the scalar mode.
+	if ( r_volumetricFogRGB->integer )
+	{
+		GLint units = 0;
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
+		if ( units > TB_FROXELCARRYT )
+		{
+			s_vf.rgb = qtrue;
+			for ( int i = 0; i < 2; i++ )
+			{
+				tr.froxelExtinctionImage[i] = R_CreateImage3D(
+					va("*froxelExtinction%d", i), NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
+				tr.froxelCarryTImage[i] = R_CreateImage(
+					va("*froxelCarryT%d", i), NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
+					IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+			}
+			tr.froxelTransmittanceImage = R_CreateImage3D(
+				"*froxelTransmittance", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
+		}
+		else
+		{
+			ri.Printf(PRINT_WARNING, "r_volumetricFogRGB: needs more than %d texture units, scalar extinction is used\n",
+				TB_FROXELCARRYT);
+		}
+	}
 
 	R_CreateVolumetricNoiseImage();
 
@@ -532,8 +594,21 @@ void R_CreateVolumetricImages( int width, int height )
 	if ( !r_depthPrepass->integer )
 		ri.Printf(PRINT_WARNING, "r_volumetricFog 2 needs r_depthPrepass 1, the legacy volumetric fog is used\n");
 
-	ri.Printf(PRINT_ALL, "Froxel volumetric fog: %d x %d x %d froxels (%d pixels per froxel)\n",
-		s_vf.width, s_vf.height, s_vf.depth, gridScale);
+	ri.Printf(PRINT_ALL, "Froxel volumetric fog: %d x %d x %d froxels (%d pixels per froxel)%s\n",
+		s_vf.width, s_vf.height, s_vf.depth, gridScale, s_vf.rgb ? ", RGB extinction" : "");
+}
+
+// draw buffers of the injection: 0 media, 1 dynamic light, 2 particle light
+// (r_particleLight), 3 sigma_t.rgb (r_volumetricFogRGB); absent ones GL_NONE
+static int R_VolumetricInjectDrawBuffers( GLenum bufs[4] )
+{
+	bufs[0] = GL_COLOR_ATTACHMENT0;
+	bufs[1] = GL_COLOR_ATTACHMENT1;
+	bufs[2] = tr.froxelParticleLightImage ? GL_COLOR_ATTACHMENT2 : GL_NONE;
+	bufs[3] = GL_COLOR_ATTACHMENT3;
+	if ( s_vf.rgb )
+		return 4;
+	return tr.froxelParticleLightImage ? 3 : 2;
 }
 
 void R_CreateVolumetricFBOs( void )
@@ -566,9 +641,17 @@ void R_CreateVolumetricFBOs( void )
 		glState.currentFBO->colorImage[2] = tr.froxelParticleLightImage;
 		glState.currentFBO->colorBuffers[2] = tr.froxelParticleLightImage->texnum;
 	}
+	if ( s_vf.rgb )
 	{
-		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-		qglDrawBuffers(tr.froxelParticleLightImage ? 3 : 2, bufs);
+		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+			tr.froxelExtinctionImage[0]->texnum, 0, 0);
+		glState.currentFBO->colorImage[3] = tr.froxelExtinctionImage[0];
+		glState.currentFBO->colorBuffers[3] = tr.froxelExtinctionImage[0]->texnum;
+	}
+	{
+		GLenum bufs[4];
+		const int numBufs = R_VolumetricInjectDrawBuffers(bufs);
+		qglDrawBuffers(numBufs, bufs);
 	}
 	R_CheckFBO(tr.froxelInjectFbo);
 
@@ -593,9 +676,18 @@ void R_CreateVolumetricFBOs( void )
 	glState.currentFBO->colorImage[0] = tr.froxelIntegratedImage;
 	glState.currentFBO->colorBuffers[0] = tr.froxelIntegratedImage->texnum;
 	FBO_AttachTextureImage(tr.froxelCarryImage[0], 1);
+	if ( s_vf.rgb )
 	{
-		const GLenum bufs[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-		qglDrawBuffers(2, bufs);
+		// RGB extinction: a layer of T.rgb and its carry
+		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+			tr.froxelTransmittanceImage->texnum, 0, 0);
+		glState.currentFBO->colorImage[2] = tr.froxelTransmittanceImage;
+		glState.currentFBO->colorBuffers[2] = tr.froxelTransmittanceImage->texnum;
+		FBO_AttachTextureImage(tr.froxelCarryTImage[0], 3);
+	}
+	{
+		const GLenum bufs[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+		qglDrawBuffers(s_vf.rgb ? 4 : 2, bufs);
 	}
 	R_CheckFBO(tr.froxelIntegrateFbo);
 
@@ -632,7 +724,19 @@ void R_CreateVolumetricFBOs( void )
 					tr.froxelParticleLightImage->texnum, 0, k);
 				qglClearBufferfv(GL_COLOR, 2, zero);
 			}
+			if ( s_vf.rgb )
+			{
+				// draw buffer 3 (R_VolumetricInjectDrawBuffers)
+				for ( int i = 0; i < 2; i++ )
+				{
+					qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+						tr.froxelExtinctionImage[i]->texnum, 0, k);
+					qglClearBufferfv(GL_COLOR, 3, zero);
+				}
+			}
 		}
+		if ( s_vf.rgb )
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, 0, 0);
 		if ( tr.froxelParticleLightImage )
 		{
 			// the tail below is a 2D image: no layered attachment next to it
@@ -651,6 +755,11 @@ void R_CreateVolumetricFBOs( void )
 			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
 				tr.froxelParticleLightImage->texnum, 0, 0);
 		}
+		if ( s_vf.rgb )
+		{
+			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+				tr.froxelExtinctionImage[0]->texnum, 0, 0);
+		}
 
 		// media: empty (the layered attachment clears every layer)
 		if ( tr.froxelMediaFbo )
@@ -660,11 +769,31 @@ void R_CreateVolumetricFBOs( void )
 		}
 
 		FBO_Bind(tr.froxelIntegrateFbo);
+		const float noFogRGB[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		for ( int k = 0; k < s_vf.depth; k++ )
 		{
 			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 				tr.froxelIntegratedImage->texnum, 0, k);
 			qglClearBufferfv(GL_COLOR, 0, noFog);
+			if ( s_vf.rgb )
+			{
+				qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+					tr.froxelTransmittanceImage->texnum, 0, k);
+				qglClearBufferfv(GL_COLOR, 2, noFogRGB);
+			}
+		}
+		if ( s_vf.rgb )
+		{
+			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+				tr.froxelTransmittanceImage->texnum, 0, 0);
+			for ( int i = 0; i < 2; i++ )
+			{
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+					GL_TEXTURE_2D, tr.froxelCarryTImage[i]->texnum, 0);
+				qglClearBufferfv(GL_COLOR, 3, noFogRGB);
+			}
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+				GL_TEXTURE_2D, tr.froxelCarryTImage[0]->texnum, 0);
 		}
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			tr.froxelIntegratedImage->texnum, 0, 0);
@@ -1451,7 +1580,13 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	// soft cutoff: fades out over the last falloff (at most the whole layer)
 	const float topHeight = MAX(0.0f, r_volumetricFogHeightTop->value);
 	VectorSet4(color, albedo[0], albedo[1], albedo[2], topHeight - MIN(falloff, topHeight));
-	VectorSet4(top, topHeight, 0.0f, 0.0f, 0.0f);
+
+	// relative extinction per channel (r_volumetricFogRGB), mean 1
+	vec3_t extinctionColor = { 1.0f, 1.0f, 1.0f };
+	sscanf(r_volumetricFogHeightExtinction->string, "%f %f %f",
+		&extinctionColor[0], &extinctionColor[1], &extinctionColor[2]);
+	R_VolumetricExtinctionColor(extinctionColor, extinctionColor);
+	VectorSet4(top, topHeight, extinctionColor[0], extinctionColor[1], extinctionColor[2]);
 	return qtrue;
 }
 
@@ -1774,9 +1909,18 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricFogAnisotropy->value,
 		r_volumetricFogSunScale->value,
 		r_volumetricFogStaticScale->value,
-		(float)r_volumetricFogStaticDirectional->integer };
+		(float)r_volumetricFogStaticDirectional->integer,
+		// the sun octaves are in the history (r_volumetricMultiScatter)
+		(float)r_volumetricMultiScatter->integer,
+		(float)r_volumetricMSOctaves->integer,
+		r_volumetricMSAttenuation->value,
+		r_volumetricMSContribution->value,
+		r_volumetricMSPhase->value,
+		r_volumetricMSLength->value,
+		r_volumetricMSShadowFill->value };
 	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
+	key = R_VolumetricHashBytes(key, r_volumetricFogHeightExtinction->string, strlen(r_volumetricFogHeightExtinction->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogNoiseWind->string, strlen(r_volumetricFogNoiseWind->string));
 	return key;
 }
@@ -2057,6 +2201,38 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		Com_Clamp(32.0f, 8192.0f, r_volumetricSelfShadowDistance->value),
 		r_volumetricSelfShadowOutside->integer ? 1.0f : 0.0f);
 
+	// approximate multiple scattering: octaves of the self-shadowed light terms,
+	// so only with the media self-shadow (without an optical depth towards the
+	// light there is no lost energy to return). a <= b (Hillaire 2016): an octave
+	// never gains more from the lower attenuation than it loses by its weight.
+	{
+		static qboolean warnedNoSelfShadow = qfalse;
+		static qboolean warnedAttenuation = qfalse;
+		int msMode = r_volumetricMultiScatter->integer;
+		if ( msMode && !block.selfShadow[0] )
+		{
+			if ( !warnedNoSelfShadow )
+				ri.Printf(PRINT_ALL, "r_volumetricMultiScatter needs r_volumetricSelfShadow (vid_restart), ignored\n");
+			warnedNoSelfShadow = qtrue;
+			msMode = 0;
+		}
+		// the dynamic light octaves only exist where their media shadow does
+		msMode = MIN(msMode, (int)block.selfShadow[0]);
+		const float b = Com_Clamp(0.0f, 1.0f, r_volumetricMSContribution->value);
+		float a = Com_Clamp(0.0f, 1.0f, r_volumetricMSAttenuation->value);
+		if ( a > b )
+		{
+			if ( !warnedAttenuation )
+				ri.Printf(PRINT_ALL, "r_volumetricMSAttenuation %g > r_volumetricMSContribution %g: clamped to %g (energy)\n", a, b, b);
+			warnedAttenuation = qtrue;
+			a = b;
+		}
+		VectorSet4(block.multiScatter, (float)msMode, (float)Com_Clampi(1, 3, r_volumetricMSOctaves->integer), b,
+			Com_Clamp(1.0f, 4096.0f, r_volumetricMSLength->value));
+		VectorSet4(block.multiScatter2, a, Com_Clamp(0.0f, 1.0f, r_volumetricMSPhase->value),
+			Com_Clamp(0.0f, 0.5f, r_volumetricMSShadowFill->value), 0.0f);
+	}
+
 	// height fog medium, added to the fog volumes by the injection
 	VectorCopy4(heightFog, block.heightFog);
 	VectorCopy4(heightFogColor, block.heightFogColor);
@@ -2084,8 +2260,12 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		}
 		else
 			VectorSet4(block.fogColor[i], fog->color[0], fog->color[1], fog->color[2], extinction);
+		// fogExtinctionColor (r_volumetricFogRGB), mean 1; neutral without it
+		vec3_t extinctionColor;
+		R_VolumetricExtinctionColor(fog->parms.hasExtinctionColor ? fog->parms.extinctionColor : NULL,
+			extinctionColor);
 		VectorSet4(block.fogMedium[i], fog->parms.hasAnisotropy ? fog->parms.anisotropy : globalAnisotropy,
-			0.0f, 0.0f, 0.0f);
+			extinctionColor[0], extinctionColor[1], extinctionColor[2]);
 		VectorCopy4(fog->surface, block.fogPlane[i]);
 		VectorSet4(block.fogMins[i], fog->bounds[0][0], fog->bounds[0][1], fog->bounds[0][2], fog->hasSurface ? 1.0f : 0.0f);
 		const qboolean noisy = (qboolean)(noiseMask & ((fog == tr.world->globalFog) ? 4 : 2));
@@ -2236,12 +2416,35 @@ void RB_VolumetricSetupFogDraw( int mode, UniformDataWriter& uniforms, SamplerBi
 	if ( !s_vf.resources )
 		return;
 
+	// RGB extinction: the lookup of T.rgb (u_FroxelFogMode 3)
+	if ( mode == 1 && s_vf.rgb )
+		mode = 3;
 	uniforms.SetUniformInt(UNIFORM_FROXELFOGMODE, mode);
-	if ( mode == 1 )
+	if ( mode == 1 || mode == 3 )
 	{
 		samplers.AddStaticImage(tr.froxelIntegratedImage, TB_CUBEMAP);
 		samplers.AddStaticImage(tr.froxelTailImage, TB_ENVBRDFMAP);
 	}
+	if ( mode == 3 )
+		samplers.AddStaticImage(tr.froxelTransmittanceImage, TB_FROXELTRANSMITTANCE);
+}
+
+/*
+=================
+RB_VolumetricSetupFogPassDraw
+
+The fog pass (RB_FogPass) blends one color over the surface: the scalar
+lookup outputs (S, 1 - T) for ONE, ONE_MINUS_SRC_ALPHA. With RGB extinction
+it is drawn twice: rgbPass 1 the transmittance (u_FroxelFogMode 3, blend
+ZERO, SRC_COLOR), rgbPass 2 the in-scattering (4, ONE, ONE). Call after
+RB_VolumetricSetupFogDraw (overrides its mode).
+=================
+*/
+void RB_VolumetricSetupFogPassDraw( int rgbPass, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers )
+{
+	if ( !s_vf.rgb || rgbPass <= 0 )
+		return;
+	uniforms.SetUniformInt(UNIFORM_FROXELFOGMODE, rgbPass == 1 ? 3 : 4);
 }
 
 /*
@@ -2508,18 +2711,22 @@ void RB_VolumetricBuild( void )
 		}
 		if ( tr.froxelMediaImage )
 			GL_BindToTMU(tr.froxelMediaImage, TB_FROXELMEDIA);
+		// RGB extinction: the history of sigma_t.rgb
+		if ( s_vf.rgb )
+			GL_BindToTMU(tr.froxelExtinctionImage[previous], TB_FROXELEXTINCTION);
 
 		// every slice: instance k renders layer k
-		const GLenum bufs[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-		const int numBufs = tr.froxelParticleLightImage ? 3 : 2;
+		GLenum bufs[4];
+		const int numBufs = R_VolumetricInjectDrawBuffers(bufs);
 		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelInjectImage[current]->texnum, 0);
 		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, tr.froxelDynamicImage->texnum, 0);
 		if ( tr.froxelParticleLightImage )
-		{
 			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, tr.froxelParticleLightImage->texnum, 0);
-			// draw buffer 2 is color masked by default with SSR / SSGI (GL_ResetScreenAuxWrite)
+		if ( s_vf.rgb )
+			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, tr.froxelExtinctionImage[current]->texnum, 0);
+		// draw buffers 2 and up are color masked by default with SSR / SSGI (GL_ResetScreenAuxWrite)
+		if ( numBufs > 2 )
 			GL_SetScreenAuxWrite(true);
-		}
 		qglDrawBuffers(numBufs, bufs);
 		{
 			// sprite particle light field: on, debug term (r_particleLightDebug 2-4)
@@ -2539,11 +2746,12 @@ void RB_VolumetricBuild( void )
 		}
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
 		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
-		if ( tr.froxelParticleLightImage )
-		{
+		if ( numBufs > 2 )
 			GL_ResetScreenAuxWrite();
+		if ( tr.froxelParticleLightImage )
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, 0, 0);
-		}
+		if ( s_vf.rgb )
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, 0, 0);
 
 		// tail pass: the light at the far side of the volume (FroxelLookup
 		// lights the media beyond far with it), into the 2D tail alone (a
@@ -2568,6 +2776,12 @@ void RB_VolumetricBuild( void )
 		GLSL_BindProgram(sp);
 		GL_BindToTMU(tr.froxelInjectImage[current], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelDynamicImage, TB_NORMALMAP);
+		if ( s_vf.rgb )
+		{
+			// T.rgb and its carry in draw buffers 2 and 3
+			GL_BindToTMU(tr.froxelExtinctionImage[current], TB_FROXELEXTINCTION);
+			GL_SetScreenAuxWrite(true);
+		}
 
 		for ( int k = 0; k < s_vf.depth; k++ )
 		{
@@ -2576,11 +2790,21 @@ void RB_VolumetricBuild( void )
 				tr.froxelIntegratedImage->texnum, 0, k);
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
 				GL_TEXTURE_2D, tr.froxelCarryImage[carryWrite]->texnum, 0);
-
 			GL_BindToTMU(tr.froxelCarryImage[carryWrite ^ 1], TB_LIGHTMAP);
+			if ( s_vf.rgb )
+			{
+				qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+					tr.froxelTransmittanceImage->texnum, 0, k);
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+					GL_TEXTURE_2D, tr.froxelCarryTImage[carryWrite]->texnum, 0);
+				GL_BindToTMU(tr.froxelCarryTImage[carryWrite ^ 1], TB_FROXELCARRYT);
+			}
+
 			GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, k);
 			RB_InstantTriangle();
 		}
+		if ( s_vf.rgb )
+			GL_ResetScreenAuxWrite();
 	}
 	RB_VolumetricEndTimer(timer);
 
@@ -2631,14 +2855,31 @@ void RB_VolumetricComposite( void )
 	// color * T + S (source alpha = T), glow * T. The destination alpha is
 	// kept: GL_State only masks all channels, so mask alpha directly and
 	// restore the full mask GL_State assumes afterwards.
-	GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_SRC_ALPHA);
-	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 	GLSL_BindProgram(sp);
 	RB_VolumetricBindBlocks();
 	GL_BindToTMU(tr.renderDepthImage, TB_COLORMAP);
 	GL_BindToTMU(tr.froxelIntegratedImage, TB_CUBEMAP);
 	GL_BindToTMU(tr.froxelTailImage, TB_ENVBRDFMAP);
-	RB_InstantTriangle();
+	if ( s_vf.rgb )
+	{
+		// RGB extinction: color * T.rgb (blend ZERO, SRC_COLOR), then + S
+		// (ONE, ONE); the same for the glow. Two draws, in this order.
+		GL_BindToTMU(tr.froxelTransmittanceImage, TB_FROXELTRANSMITTANCE);
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ZERO | GLS_DSTBLEND_SRC_COLOR);
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELFOGMODE, 3);
+		RB_InstantTriangle();
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELFOGMODE, 4);
+		RB_InstantTriangle();
+	}
+	else
+	{
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_SRC_ALPHA);
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+		RB_InstantTriangle();
+	}
 	qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	GL_ResetScreenAuxWrite();
 
@@ -2689,6 +2930,12 @@ void RB_VolumetricDebugOverlay( void )
 	// view 40: the extinction of this frame (r_volumetricSelfShadow)
 	if ( tr.froxelMediaImage )
 		GL_BindToTMU(tr.froxelMediaImage, TB_FROXELMEDIA);
+	// views 51-56: RGB extinction (r_volumetricFogRGB)
+	if ( s_vf.rgb )
+	{
+		GL_BindToTMU(tr.froxelTransmittanceImage, TB_FROXELTRANSMITTANCE);
+		GL_BindToTMU(tr.froxelExtinctionImage[s_vf.current], TB_FROXELEXTINCTION);
+	}
 	// view 29: the dynamic light lists of the froxel slices
 	if ( s_vfl.hasLights )
 	{

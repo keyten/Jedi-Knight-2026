@@ -3159,6 +3159,18 @@ static qboolean ParseShader( const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
+		// fogExtinctionColor <r g b>: froxel fog RGB extinction (r_volumetricFogRGB) of this
+		// fog: relative extinction per channel, normalized to mean 1 (depthForOpaque stays the
+		// mean opaque distance), e.g. water 3 1 0.6 absorbs red first. No effect otherwise.
+		else if ( !Q_stricmp( token, "fogExtinctionColor" ) )
+		{
+			if ( !ParseVector( text, 3, shader.fogParms.extinctionColor ) ) {
+				return qfalse;
+			}
+			shader.fogParms.hasExtinctionColor = qtrue;
+			SkipRestOfLine( text );
+			continue;
+		}
 		// portal
 		else if ( !Q_stricmp(token, "portal") )
 		{

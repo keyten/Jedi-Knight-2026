@@ -60,8 +60,16 @@ void main()
 //                       shadows, attenuation and phase as the fog (phase towards the camera: valid for
 //                       camera facing sprites seen from this view only). Written in empty space too,
 //                       this frame only (no history). Sprite particles are lit with it (generic.glsl).
+//
+// out_Extinction  RGBA16F  (r_volumetricFogRGB, USE_FROXEL_RGB) sigma_t.rgb of the media, temporally
+//                       filtered like out_Color.a (same weight, same reprojection). Each medium's
+//                       sigma_t.rgb = sigma_i * c_i (extinction color, mean 1: out_Color.a stays the scalar
+//                       sigma) and its scattering sigma_s.rgb = sigma_t.rgb * albedo.rgb.
 
 uniform sampler3D u_FroxelHistory;
+#if defined(USE_FROXEL_RGB)
+uniform sampler3D u_FroxelExtinction;	// history of out_Extinction
+#endif
 uniform sampler3D u_VolumetricStaticGrid;
 uniform sampler3D u_VolumetricSunGrid;
 uniform sampler3D u_VolumetricDirGrid;		// directed non-sun light (rgb), its luminance (a)
@@ -116,6 +124,11 @@ out vec4 out_Glow;
 out vec4 out_SSRNormal;
 #define out_Dynamic out_Glow
 #define out_ParticleLight out_SSRNormal
+#if defined(USE_FROXEL_RGB)
+// 3 = out_SSRSpecular
+out vec4 out_SSRSpecular;
+#define out_Extinction out_SSRSpecular
+#endif
 
 float Luma(in vec3 c)
 {
@@ -233,6 +246,9 @@ struct FroxelMediumSample
 	float extinction;	// s
 	float lobes;		// slots in use
 	float merged;		// 1: more distinct g than slots, some were merged (debug view 37)
+#if defined(USE_FROXEL_RGB)
+	vec3 extinctionRGB;	// sigma_t.rgb = sum s_i * c_i (mean = extinction)
+#endif
 };
 
 // lobe accumulators: rgb = sum S_i, a = sum w_i g_i; weight = sum w_i; key = g of the slot
@@ -308,6 +324,9 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 	float extinction = 0.0;			// with the noise
 	float plainExtinction = 0.0;	// without the noise (the fractions)
 	float noisyExtinction = 0.0;
+#if defined(USE_FROXEL_RGB)
+	vec3 extinctionRGB = vec3(0.0);
+#endif
 	FroxelLobes lobes;
 	for (int i = 0; i < FROXEL_LOBES; i++)
 	{
@@ -359,7 +378,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 
 			localExtinction += e;
 			plainExtinction += e;
-			if (noise && shape.w > 0.5)
+			if (noise && FroxelLocalNoisy(shape.w))
 			{
 				if (m < 0.0)
 					m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -368,7 +387,13 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 			}
 			extinction += e;
 			// its own g or the global one (CPU resolved)
+#if defined(USE_FROXEL_RGB)
+			vec3 c = FroxelLocalExtinctionColor(shape.w);
+			extinctionRGB += e * c;
+			FroxelAddScattering(lobes, e, color.rgb * c, u_FroxelLocalEmission[i].w);
+#else
 			FroxelAddScattering(lobes, e, color.rgb, u_FroxelLocalEmission[i].w);
+#endif
 		}
 	}
 	localChange = localDelta / max(max(localExtinction, localPrevious), 1e-12);
@@ -411,6 +436,9 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 			particleExtinction += e;
 			plainExtinction += e;
 			extinction += e;
+#if defined(USE_FROXEL_RGB)
+			extinctionRGB += vec3(e);	// FX media have no extinction color
+#endif
 			FroxelAddScattering(lobes, e, color.rgb, FroxelParticleAnisotropy(invExtent.w));
 		}
 	}
@@ -429,7 +457,12 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 			noisyExtinction += e;
 		}
 		extinction += e;
+#if defined(USE_FROXEL_RGB)
+		extinctionRGB += e * u_FroxelHeightFogTop.yzw;
+		FroxelAddScattering(lobes, e, u_FroxelHeightFogColor.rgb * u_FroxelHeightFogTop.yzw, globalG);
+#else
 		FroxelAddScattering(lobes, e, u_FroxelHeightFogColor.rgb, globalG);
+#endif
 	}
 
 	// the fog volumes that may touch this slice (CPU culled)
@@ -463,7 +496,12 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 			noisyExtinction += e;
 		}
 		extinction += e;
+#if defined(USE_FROXEL_RGB)
+		extinctionRGB += e * u_FroxelFogMedium[i].yzw;
+		FroxelAddScattering(lobes, e, fog.rgb * u_FroxelFogMedium[i].yzw, u_FroxelFogMedium[i].x);
+#else
 		FroxelAddScattering(lobes, e, fog.rgb, u_FroxelFogMedium[i].x);
+#endif
 	}
 
 	localFraction = localExtinction / max(plainExtinction, 1e-12);
@@ -480,6 +518,9 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 	result.extinction = extinction;
 	result.lobes = float(lobes.count);
 	result.merged = lobes.merged ? 1.0 : 0.0;
+#if defined(USE_FROXEL_RGB)
+	result.extinctionRGB = extinctionRGB;
+#endif
 	return result;
 }
 
@@ -788,11 +829,71 @@ vec4 FroxelPhases(in vec4 g, in float cosTheta)
 		FroxelPhase(g.w, cosTheta));
 }
 
+// Approximate multiple scattering (r_volumetricMultiScatter, u_FroxelMultiScatter): the octave model
+// of Wrenninge, Kulla, Lundqvist, "Oz: The Great and Volumetric" (SIGGRAPH 2013), as used by Hillaire
+// (Frostbite 2016) and the UE volumetric clouds. A self-shadowed light term L * P(g) * exp(-tau) gets
+// the octaves i = 1..N
+//   q^i * L_fill * P(c^i g) * exp(-a^i tau)
+// (light that reached p after further scatterings: along diffuse paths, so it saw less optical depth,
+// a^i, lost energy, q^i, and forgot its direction, c^i). The published model adds b^i even to thin
+// media (energy from nowhere at tau -> 0) and ignores the albedo; here the energy per octave is
+//   q = b * albedo * (1 - exp(-extinction * l))
+// every further scattering keeps only the albedo, and a medium thin at the scale l (fog: extinction *
+// l << 1) has no second scattering to speak of: order i fades as (extinction * l)^i. q <= b * albedo
+// <= 0.95, so the series is bounded; the caller also clamps single + multiple scattering of a light to
+// its unshadowed single scattering at an isotropic or better phase (FroxelMultiScatterClamp).
+//   xyz  weights q^i * exp(-a^i tau) of the octaves 1..3 (0 beyond r_volumetricMSOctaves)
+//   w    thickness 1 - exp(-extinction * l)
+vec4 FroxelMultiScatterWeights(in float tau, in float extinction, in float albedo)
+{
+	float thickness = 1.0 - exp(-max(extinction, 0.0) * u_FroxelMultiScatter.w);
+	float q = min(u_FroxelMultiScatter.z * clamp(albedo, 0.0, 1.0) * thickness, 0.95);
+	vec3 w = vec3(0.0);
+	float qi = 1.0;
+	float ai = 1.0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (float(i) >= u_FroxelMultiScatter.y)
+			break;
+		qi *= q;
+		ai *= u_FroxelMultiScatter2.x;
+		w[i] = qi * exp(-ai * tau);
+	}
+	return vec4(w, thickness);
+}
+
+// sum over the octaves of weight * phase, per g of FroxelPhases (lobe slots, global)
+vec4 FroxelMultiScatterPhases(in vec4 weights, in vec4 g, in float cosTheta)
+{
+	vec4 phases = vec4(0.0);
+	float c = 1.0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (weights[i] <= 0.0)
+			break;
+		c *= u_FroxelMultiScatter2.y;
+		phases += weights[i] * FroxelPhases(g * c, cosTheta);
+	}
+	return phases;
+}
+
+// Energy guard of a light term: single + multiple scattering <= the unshadowed light at the phase
+// max(P, 1) (1 = isotropic, FroxelPhase is 4 pi HG). In a conservative medium lit from outside the
+// radiance inside cannot exceed the incident radiance (maximum principle of a source-free transport):
+// the octaves only return light that the media shadow removed, never more than the medium would
+// scatter without it, whatever the albedo, density or ray length.
+vec3 FroxelMultiScatterClamp(in vec3 single, in vec3 multi, in vec3 unshadowed, in float phase)
+{
+	return min(multi, max(unshadowed * max(phase, 1.0) - single, vec3(0.0)));
+}
+
 // dynamic lights of the cluster at p (viewDir: camera to p, unit), with the phase of each g
 // (FroxelPhases): light0..2 for the lobe slots, lightGlobal for the global g. The lights, shadows
 // and cookies are evaluated once, each g only costs its phase.
-void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in float jitter, out vec3 light0,
-	out vec3 light1, out vec3 light2, out vec3 lightGlobal)
+// msMedium: extinction and albedo luma of the medium for the multiple scattering octaves of the
+// self-shadowed lights (r_volumetricMultiScatter 2), extinction 0 = none
+void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in float jitter, in vec2 msMedium,
+	out vec3 light0, out vec3 light1, out vec3 light2, out vec3 lightGlobal)
 {
 	light0 = vec3(0.0);
 	light1 = vec3(0.0);
@@ -829,6 +930,8 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		vec4 phase = FroxelPhases(g, dot(L / dist, viewDir));
 
 		float shadow = 1.0;
+		float geometryShadow = 1.0;
+		float mediaTau = -1.0;	// < 0: no media shadow, no octaves
 		// shadow cube layer (legacy: i, Forward+: slot or -1)
 		int shadowLayer = int(colorLayer.w);
 		if (u_FroxelShadowParams.z > 0.5 && shadowLayer >= 0)
@@ -838,24 +941,46 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 			else
 				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
 		}
+		geometryShadow = shadow;
 
 		// media self-shadow of the strongest few lights (r_volumetricSelfShadow 2, chosen by
-		// R_VolumetricBuildLightLists), half the sun samples; the others only get their geometry shadow
-		if (u_FroxelSelfShadow.x > 1.5 && shadow > 0.0 && any(equal(vec4(float(i)), u_FroxelSelfShadowLights)))
+		// R_VolumetricBuildLightLists), half the sun samples; the others only get their geometry shadow.
+		// The octaves may lighten a geometry shadow a little, so the march also runs in it when they are on.
+		bool msLight = u_FroxelMultiScatter.x > 1.5 && msMedium.x > 0.0;
+		if (u_FroxelSelfShadow.x > 1.5 && (shadow > 0.0 || (msLight && u_FroxelMultiScatter2.z > 0.0)) && any(equal(vec4(float(i)), u_FroxelSelfShadowLights)))
 		{
 			int steps = max(3, int(u_FroxelSelfShadow.y) / 2);
-			shadow *= exp(-FroxelMediaOpticalDepth(p, L / dist, min(dist, u_FroxelSelfShadow.z), dist, steps, jitter));
+			mediaTau = FroxelMediaOpticalDepth(p, L / dist, min(dist, u_FroxelSelfShadow.z), dist, steps, jitter);
+			shadow *= exp(-mediaTau);
 		}
 
 		// cookie (tr_lightcookie.cpp): the radiance leaving the lamp towards p
 		vec3 cookie = SpotCookie(-L / dist, spot, spot2, length(p - u_FroxelViewOrigin.xyz));
 
 		// pointAtten * coneAtten * cookie * shadow * phase
-		vec3 light = colorLayer.rgb * cookie * attenuation * shadow;
-		light0 += light * phase.x;
-		light1 += light * phase.y;
-		light2 += light * phase.z;
-		lightGlobal += light * phase.w;
+		vec3 unshadowed = colorLayer.rgb * cookie * attenuation;
+		vec3 light = unshadowed * shadow;
+		vec3 add0 = light * phase.x;
+		vec3 add1 = light * phase.y;
+		vec3 add2 = light * phase.z;
+		vec3 addGlobal = light * phase.w;
+
+		// multiple scattering octaves of a self-shadowed light (r_volumetricMultiScatter 2)
+		if (msLight && mediaTau >= 0.0)
+		{
+			vec4 weights = FroxelMultiScatterWeights(mediaTau, msMedium.x, msMedium.y);
+			vec4 msPhase = FroxelMultiScatterPhases(weights, g, dot(L / dist, viewDir));
+			vec3 msLightColor = unshadowed * mix(geometryShadow, 1.0, u_FroxelMultiScatter2.z * weights.w);
+			add0 += FroxelMultiScatterClamp(add0, msLightColor * msPhase.x, unshadowed, phase.x);
+			add1 += FroxelMultiScatterClamp(add1, msLightColor * msPhase.y, unshadowed, phase.y);
+			add2 += FroxelMultiScatterClamp(add2, msLightColor * msPhase.z, unshadowed, phase.z);
+			addGlobal += FroxelMultiScatterClamp(addGlobal, msLightColor * msPhase.w, unshadowed, phase.w);
+		}
+
+		light0 += add0;
+		light1 += add1;
+		light2 += add2;
+		lightGlobal += addGlobal;
 	}
 }
 
@@ -982,6 +1107,9 @@ void main()
 		out_Color = vec4(max(extinction, 0.0));
 		out_Dynamic = vec4(0.0);
 		out_ParticleLight = vec4(0.0);
+#if defined(USE_FROXEL_RGB)
+		out_Extinction = vec4(0.0);
+#endif
 		return;
 	}
 	// the global g: the tail beyond far and the sprite particle light field (not a medium)
@@ -1003,13 +1131,16 @@ void main()
 			light = vec3(0.0);
 		else if (debugView == 5)
 			light -= sunTail;
-		else if (debugView == 31 || debugView == 33 || debugView == 34 || debugView >= 35)
+		else if (debugView == 31 || debugView == 33 || debugView == 34 || (debugView >= 35 && debugView <= 50))
 			light = vec3(0.0);
 		if (any(isnan(light)) || any(isinf(light)))
 			light = vec3(0.0);
 		out_Color = vec4(light, 1.0);
 		out_Dynamic = vec4(0.0);
 		out_ParticleLight = vec4(0.0);
+#if defined(USE_FROXEL_RGB)
+		out_Extinction = vec4(0.0);
+#endif
 		return;
 	}
 
@@ -1032,7 +1163,11 @@ void main()
 
 	// the medium at the center is only needed where the cluster has dynamic lights
 	uint cluster = FroxelLightCluster(cell, var_Slice);
+#if defined(USE_FROXEL_RGB)
+	FroxelMediumSample mediumCenter = FroxelMediumSample(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 0.0, 0.0, 0.0, vec3(0.0));
+#else
 	FroxelMediumSample mediumCenter = FroxelMediumSample(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 0.0, 0.0, 0.0);
+#endif
 	if ((cluster >> 24) != 0u)
 	{
 		float unused0, unused1, unused2, unused3, unused4;
@@ -1065,6 +1200,33 @@ void main()
 	else if (debugView == 44)
 		staticLight.sun = staticLight.sunUnshadowed * mediaT;
 
+	// multiple scattering octaves of the sun (r_volumetricMultiScatter, FroxelMultiScatterWeights) from
+	// the media optical depth towards the sun. The geometry (cascade) shadow is lightened by at most
+	// r_volumetricMSShadowFill * thickness: a thick cloud in a shadow glows a little, the shadow stays.
+	// In the history like the single scattering (same jitter, same radiance clamp).
+	vec3 msSun0 = vec3(0.0);
+	vec3 msSun1 = vec3(0.0);
+	vec3 msSun2 = vec3(0.0);
+	vec3 msSunGlobal = vec3(0.0);
+	float msThickness = 0.0;
+	if (u_FroxelMultiScatter.x > 0.5 && u_FroxelSelfShadow.x > 0.5 && u_FroxelSunDirection.w > 0.5 &&
+		medium.extinction > 0.0 && any(greaterThan(staticLight.sunUnshadowed, vec3(0.0))))
+	{
+		float albedo = Luma(medium.scatter0 + medium.scatter1 + medium.scatter2) / medium.extinction;
+		vec4 weights = FroxelMultiScatterWeights(mediaTau, medium.extinction, albedo);
+		msThickness = weights.w;
+		vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
+		vec4 msPhase = FroxelMultiScatterPhases(weights, vec4(medium.g, g), dot(u_FroxelSunDirection.xyz, viewDir));
+		vec3 sunFill = mix(sunGeometry, staticLight.sunUnshadowed, u_FroxelMultiScatter2.z * weights.w);
+		vec3 sunSingle = staticLight.sun;
+		vec3 sunTop = staticLight.sunUnshadowed;
+		vec4 sp = staticLight.sunPhase;
+		msSun0 = FroxelMultiScatterClamp(sunSingle * sp.x, sunFill * msPhase.x, sunTop, sp.x);
+		msSun1 = FroxelMultiScatterClamp(sunSingle * sp.y, sunFill * msPhase.y, sunTop, sp.y);
+		msSun2 = FroxelMultiScatterClamp(sunSingle * sp.z, sunFill * msPhase.z, sunTop, sp.z);
+		msSunGlobal = FroxelMultiScatterClamp(sunSingle * sp.w, sunFill * msPhase.w, sunTop, sp.w);
+	}
+
 	// dynamic lights
 	vec3 dynamic0 = vec3(0.0);
 	vec3 dynamic1 = vec3(0.0);
@@ -1073,7 +1235,9 @@ void main()
 	if (mediumCenter.extinction > 0.0)
 	{
 		vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
-		DynamicLights(cluster, pc, viewDir, vec4(mediumCenter.g, g), selfShadowJitter, dynamic0, dynamic1, dynamic2,
+		vec2 msMedium = vec2(mediumCenter.extinction,
+			Luma(mediumCenter.scatter0 + mediumCenter.scatter1 + mediumCenter.scatter2) / max(mediumCenter.extinction, 1e-12));
+		DynamicLights(cluster, pc, viewDir, vec4(mediumCenter.g, g), selfShadowJitter, msMedium, dynamic0, dynamic1, dynamic2,
 			dynamicGlobal);
 		dynamic0 *= u_FroxelLightParams.z;
 		dynamic1 *= u_FroxelLightParams.z;
@@ -1092,13 +1256,13 @@ void main()
 		if (medium.extinction > 0.0 && temporal == 0.0 && debugView < 20)
 		{
 			particleStatic = FroxelStaticLobe(staticLight, 3);
-			particleSun = FroxelSunLobe(staticLight, 3);
+			particleSun = FroxelSunLobe(staticLight, 3) + msSunGlobal;
 		}
 		else
 		{
 			FroxelStaticLight l = BakedAndSunLight(pc, 0.0, vec4(g), 0);
 			particleStatic = FroxelStaticLobe(l, 3);
-			particleSun = FroxelSunLobe(l, 3) * mediaT;
+			particleSun = FroxelSunLobe(l, 3) * mediaT + msSunGlobal;
 		}
 
 		vec3 particleDynamic = dynamicGlobal;
@@ -1106,7 +1270,7 @@ void main()
 		{
 			vec3 viewDir = normalize(pc - u_FroxelViewOrigin.xyz);
 			vec3 unused0, unused1, unused2;
-			DynamicLights(cluster, pc, viewDir, vec4(g), selfShadowJitter, unused0, unused1, unused2, particleDynamic);
+			DynamicLights(cluster, pc, viewDir, vec4(g), selfShadowJitter, vec2(0.0), unused0, unused1, unused2, particleDynamic);
 			particleDynamic *= u_FroxelLightParams.z;
 		}
 
@@ -1131,6 +1295,24 @@ void main()
 	vec3 sun1 = FroxelSunLobe(staticLight, 1);
 	vec3 sun2 = FroxelSunLobe(staticLight, 2);
 
+	// debug views 46 sun single scattering, 47 sun octaves only, 48 both (as view 3); the views of an
+	// isolated shadow (2, 43, 44) stay single scattering
+	vec3 ssSun0 = sun0;
+	vec3 ssSun1 = sun1;
+	vec3 ssSun2 = sun2;
+	if (debugView == 47)
+	{
+		sun0 = msSun0;
+		sun1 = msSun1;
+		sun2 = msSun2;
+	}
+	else if (debugView != 2 && debugView != 43 && debugView != 44 && debugView != 46)
+	{
+		sun0 += msSun0;
+		sun1 += msSun1;
+		sun2 += msSun2;
+	}
+
 	// debug views of a single light term
 	if (debugView == 2)
 	{
@@ -1140,7 +1322,7 @@ void main()
 		static0 = static1 = static2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
-	else if (debugView == 3 || (debugView >= 43 && debugView <= 45))
+	else if (debugView == 3 || (debugView >= 43 && debugView <= 48))
 	{
 		static0 = static1 = static2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
@@ -1158,6 +1340,9 @@ void main()
 
 	// j_scatter = sum_k S_k * L * P(g_k) (FroxelMediumSample)
 	vec4 current = vec4(FroxelScatter(medium, static0 + sun0, static1 + sun1, static2 + sun2), medium.extinction);
+#if defined(USE_FROXEL_RGB)
+	vec3 currentExtinction = medium.extinctionRGB;
+#endif
 
 	// emission j_e at the froxel center: no jitter and no history (it goes to the dynamic volume), so
 	// a fast fire or explosion leaves no after-image and the history clamp sees scattering only
@@ -1184,7 +1369,10 @@ void main()
 	//      isotropic, brighter forward, darker backward
 	//   41 optical depth of the media towards the sun / 8 (r_volumetricSelfShadow)
 	//   42 media transmittance towards the sun
-	bool mediumDebug = debugView >= 35 && debugView <= 42 && debugView != 40;
+	//   49 multiple scattering ratio of the sun: octaves / (single + octaves), luma (r_volumetricMultiScatter)
+	//   50 optical depth: red = towards the sun / 8, green = extinction * r_volumetricMSLength / 8,
+	//      blue = thickness 1 - exp(-extinction * l)
+	bool mediumDebug = (debugView >= 35 && debugView <= 42 && debugView != 40) || debugView == 49 || debugView == 50;
 	if (mediumDebug)
 	{
 		vec3 scatter = medium.scatter0 + medium.scatter1 + medium.scatter2;
@@ -1203,6 +1391,14 @@ void main()
 			value = vec3(mediaTau * 0.125);
 		else if (debugView == 42)
 			value = vec3(mediaT);
+		else if (debugView == 49)
+		{
+			float ss = Luma(FroxelScatter(medium, ssSun0, ssSun1, ssSun2));
+			float ms = Luma(FroxelScatter(medium, msSun0, msSun1, msSun2));
+			value = vec3(ms / max(ss + ms, 1e-12));
+		}
+		else if (debugView == 50)
+			value = vec3(mediaTau, medium.extinction * u_FroxelMultiScatter.w, 8.0 * msThickness) * 0.125;
 		else if (debugView == 38)
 		{
 			float gMixed = FroxelLobeMean(medium, medium.g);
@@ -1254,6 +1450,13 @@ void main()
 
 				weight = froxelWeight;
 				current = mix(current, history, weight);
+#if defined(USE_FROXEL_RGB)
+				vec3 historyExtinction = texture(u_FroxelExtinction, coord).rgb;
+				if (any(isnan(historyExtinction)) || any(isinf(historyExtinction)) ||
+					any(lessThan(historyExtinction, vec3(0.0))))
+					historyExtinction = currentExtinction;
+				currentExtinction = mix(currentExtinction, historyExtinction, weight);
+#endif
 			}
 		}
 	}
@@ -1292,6 +1495,15 @@ void main()
 		current = vec4(0.0);
 	if (any(isnan(dynamicEmission)) || any(isinf(dynamicEmission)))
 		dynamicEmission = vec4(0.0, 0.0, 0.0, 1.0);
+
+#if defined(USE_FROXEL_RGB)
+	// the debug views that integrate a value * extinction measure a scalar opacity
+	if (debugView == 8 || debugView == 17 || debugView == 27 || mediumDebug)
+		currentExtinction = vec3(current.a);
+	if (any(isnan(currentExtinction)) || any(isinf(currentExtinction)))
+		currentExtinction = vec3(0.0);
+	out_Extinction = vec4(max(currentExtinction, vec3(0.0)), current.a);
+#endif
 
 	out_Color = current;
 	out_Dynamic = dynamicEmission;

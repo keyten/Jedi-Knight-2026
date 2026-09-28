@@ -751,6 +751,17 @@ void main()
 	// froxel volume of the main view (r_volumetricFog 2), or no fog here when
 	// the composite after the opaque layers applies it
 	vec4 fogColorOpacity = vec4(0.0);
+#if defined(USE_FROXEL_RGB)
+	// RGB extinction (r_volumetricFogRGB): the opacity per channel, 1 - T.rgb
+	vec3 fogOpacityRGB = vec3(0.0);
+	if (u_FroxelFogMode == 3)
+	{
+		vec3 froxelT;
+		fogColorOpacity.rgb = FroxelFogRGB(var_WSPosition, froxelT);
+		fogOpacityRGB = vec3(1.0) - froxelT;
+	}
+	else
+#endif
 	if (u_FroxelFogMode == 1)
 	{
 		vec4 froxelFog = FroxelFog(var_WSPosition);
@@ -766,12 +777,33 @@ void main()
 	vec4 fogColorOpacity = CalcFog(u_ViewOrigin, var_WSPosition, fog);
 #endif
 #if defined(USE_VOLUMETRIC_FOG)
+#if defined(USE_FROXEL_RGB)
+	if (u_FroxelFogMode == 3)
+	{
+		// the same with the opacity per channel
+		color.rgb *= vec3(1.0) - u_FogColorMask.a * fogOpacityRGB;
+		color.rgb += u_FogColorMask.a * fogColorOpacity.rgb;
+		color.rgb *= vec3(1.0) - u_FogColorMask.rgb * fogOpacityRGB;
+		emissive *= vec3(1.0) - u_FogColorMask.a * fogOpacityRGB;
+		emissive *= vec3(1.0) - u_FogColorMask.rgb * fogOpacityRGB;
+	}
+	else
+	{
+#endif
 	color.rgb *= 1.0 - u_FogColorMask.a * fogColorOpacity.a;
 	color.rgb += u_FogColorMask.a * fogColorOpacity.rgb;
 	color.rgb *= vec3(1.0) - u_FogColorMask.rgb * fogColorOpacity.a;
 	emissive *= 1.0 - u_FogColorMask.a * fogColorOpacity.a;
 	emissive *= vec3(1.0) - u_FogColorMask.rgb * fogColorOpacity.a;
+#if defined(USE_FROXEL_RGB)
+	}
+#endif
 #else
+#if defined(USE_FROXEL_RGB)
+	// without the volumetric fog blend (not with r_volumetricFog 2): the mean opacity
+	if (u_FroxelFogMode == 3)
+		fogColorOpacity.a = dot(fogOpacityRGB, vec3(1.0 / 3.0));
+#endif
 	color *= vec4(1.0) - u_FogColorMask * fogColorOpacity.a;
 	emissive *= vec3(1.0) - u_FogColorMask.rgb * fogColorOpacity.a;
 #endif

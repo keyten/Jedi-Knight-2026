@@ -241,6 +241,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FroxelSlice",			GLSL_INT, 1 },
 	{ "u_FroxelNoise",			GLSL_INT, 1 },
 	{ "u_FroxelMedia",			GLSL_INT, 1 },
+	{ "u_FroxelTransmittance",	GLSL_INT, 1 },
+	{ "u_FroxelExtinction",		GLSL_INT, 1 },
+	{ "u_FroxelCarryT",			GLSL_INT, 1 },
 
 	{ "u_FPlusLights",			GLSL_INT, 1 },
 	{ "u_FPlusGridMap",			GLSL_INT, 1 },
@@ -560,6 +563,10 @@ static size_t GLSL_GetShaderHeader(
 		Q_strcat(dest, size, va("#define MAX_GPU_FOG_VOLUMES %i\n", MAX_GPU_FOG_VOLUMES));
 		Q_strcat(dest, size, va("#define FROXEL_MAX_SLICES %i\n", FROXEL_MAX_SLICES));
 		Q_strcat(dest, size, va("#define FROXEL_LOCAL_POOL %i\n", FROXEL_LOCAL_POOL));
+		Q_strcat(dest, size, va("#define FROXEL_EXTINCTION_PALETTE %i\n", FROXEL_EXTINCTION_PALETTE));
+		// RGB extinction (r_volumetricFogRGB, latched): transmittance per channel
+		if (R_VolumetricFroxelRGB())
+			Q_strcat(dest, size, "#define USE_FROXEL_RGB\n");
 	}
 
 	if (r_cubeMapping->integer)
@@ -2162,6 +2169,7 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 {
 	GLSL_SetUniformInt(program, UNIFORM_FROXELVOLUME, TB_CUBEMAP);
 	GLSL_SetUniformInt(program, UNIFORM_FROXELTAIL, TB_ENVBRDFMAP);
+	GLSL_SetUniformInt(program, UNIFORM_FROXELTRANSMITTANCE, TB_FROXELTRANSMITTANCE);
 	// sprite particle light field (r_particleLight), generic programs only
 	GLSL_SetUniformInt(program, UNIFORM_PARTICLELIGHTVOLUME, TB_SHADOWMAPARRAY);
 }
@@ -3654,6 +3662,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP2, TB_SHADOWMAPARRAY);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELNOISE, TB_DELUXEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELMEDIA, TB_FROXELMEDIA);
+		// RGB extinction: the history (inject) or source (integrate, debug) and the carry
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELEXTINCTION, TB_FROXELEXTINCTION);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELCARRYT, TB_FROXELCARRYT);
 		// dynamic light lists of the injection (R_VolumetricBuildLightLists)
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);

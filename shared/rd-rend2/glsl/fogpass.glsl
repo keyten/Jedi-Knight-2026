@@ -550,6 +550,22 @@ void main()
 #if defined(USE_FROXEL_FOG)
 	// froxel volume of the main view (r_volumetricFog 2): in-scattering and
 	// transmittance up to this fragment, all fog volumes along the ray
+#if defined(USE_FROXEL_RGB)
+	// RGB extinction (r_volumetricFogRGB): two draws (RB_FogPass), 3 = the transmittance (blend ZERO,
+	// SRC_COLOR), 4 = the in-scattering (blend ONE, ONE)
+	if (u_FroxelFogMode >= 3)
+	{
+		vec3 froxelT;
+#if defined(USE_SILHOUETTE_POM)
+		vec3 froxelS = FroxelFogRGB(fogPosition, froxelT);
+#else
+		vec3 froxelS = FroxelFogRGB(var_WSPosition, froxelT);
+#endif
+		out_Color = (u_FroxelFogMode == 3) ? vec4(froxelT, 1.0) : vec4(froxelS, 0.0);
+		out_Glow = (u_FroxelFogMode == 3) ? vec4(froxelT, 1.0) : vec4(0.0);
+		return;
+	}
+#endif
 	if (u_FroxelFogMode == 1)
 	{
 #if defined(USE_SILHOUETTE_POM)

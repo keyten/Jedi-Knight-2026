@@ -1629,6 +1629,322 @@ or `r_fogvol` with a high density) or the smoke test PK3 from the volumetric FX 
 | 6 | | | |
 | 8 | | | |
 
+## Approximate multiple scattering (`r_volumetricMultiScatter`)
+
+The froxel fog is single scattering. With the media self-shadow on, the inside of dense smoke, steam or a cloud
+goes almost black: the medium is lit only by light that crossed its whole optical depth `tau` unscattered.
+Real media with a high albedo return most of that light through higher scattering orders. This feature adds a
+bounded, documented approximation of those orders. It adds no pass, texture, or history, and it reuses `tau`
+from the self-shadow march.
+
+### Reference
+
+Wrenninge, Kulla, Lundqvist, *Oz: The Great and Volumetric* (SIGGRAPH 2013 talk), multiple-scattering
+octaves. Hillaire, *Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite* (SIGGRAPH 2016) and the
+UE4/5 volumetric clouds use the same model in real time:
+
+    L_ms = sum_{i=0..N} b^i * sigma_s * L * P(c^i g) * exp(-a^i tau),   a <= b
+
+**Physical effect.** Light that reaches a deep point after more scatterings travelled along diffuse paths. In
+the model this appears three ways:
+
+- It effectively saw less optical depth (`a^i`).
+- It carries less energy per order (`b^i`).
+- It has forgotten its direction, so the phase tends to isotropic (`c^i`).
+
+**Where the published model breaks energy conservation.**
+
+- It is not a solution of the RTE.
+- At `tau -> 0` every octave still adds `b^i` times the single scattering, which creates energy in thin fog.
+- It ignores the albedo.
+- It ignores the geometry of the medium: a side-lit slab gets the same boost as a cloud core.
+- It is local, so there is no lateral transport and no bleeding into geometry shadow.
+
+### Equations used here (`volumetric_inject.glsl`, `FroxelMultiScatter*`)
+
+For every light term that has a media optical depth `tau`: the sun, and in mode 2 the self-shadowed dynamic
+lights.
+
+    thickness = 1 - exp(-sigma_t * l)                       l = r_volumetricMSLength
+    q         = min(b * albedo * thickness, 0.95)           albedo = luma(sum S_k) / sigma_t
+    w_i       = q^i * exp(-a^i * tau)                       i = 1..N (r_volumetricMSOctaves)
+    L_fill    = mix(L_geometry, L_unshadowed, fill * thickness)
+    ms_k      = L_fill * sum_i w_i * P(c^i g_k)             per phase-lobe slot k and the global g
+    ms_k      = min(ms_k, L_unshadowed * max(P(g_k), 1) - ss_k)   (energy guard)
+    j        += sum_k S_k * ms_k                            (FroxelScatter, like the single scattering)
+
+- **Thin media are left alone.** Order `i` scales as `(sigma_t * l)^i` when `sigma_t * l << 1`. The energy guard
+  also leaves no room where the self-shadow removed nothing: at `tau ~ 0`, `ss = L * P` already reaches the
+  bound whenever `P >= 1`. In thin fog the feature is therefore invisible (view 49 ~ 0).
+- **Albedo.** Each further scattering keeps only the albedo, so `q` contains it. Black smoke gets no octaves,
+  and steam or clouds (albedo ~ 1) get the most.
+- **Energy guard.** `q <= 0.95`, so the series stays finite (`sum q^i <= q / (1 - q)`). The clamp is the physical
+  bound: in a conservative, source-free medium lit from outside, the radiance inside cannot exceed the incident
+  radiance (maximum principle). The octaves only *return* light removed by the media shadow. They never make a
+  point brighter than the same medium would be without the shadow at an isotropic-or-better phase, whatever
+  the albedo, density, or ray length. In addition, `a <= b` is enforced on the CPU (Hillaire's condition), with
+  a console warning.
+- **Shadows.** The geometry (cascade or cube) shadow is lightened by at most `fill * thickness`, and `fill` is
+  at most 0.5. A thick cloud inside a building's shadow glows faintly, but the shadow stays.
+- **Baked / isotropic light.** It gets no octaves. It has no media shadow to recover, and boosting it would be
+  exactly the uncontrolled ambient boost this feature avoids.
+- **Temporal.** The sun octaves are part of the scattering that enters the history, with the same jitter and
+  radiance clamp. The dynamic-light octaves go to the dynamic volume, which has no history. The MS cvars are part
+  of the medium key, so changing them resets the history.
+- **Sprite particle light field.** `r_particleLight` receives the global-g octaves too, so sprites inside smoke
+  match the smoke.
+- **Prerequisite.** Without `r_volumetricSelfShadow` the feature is a no-op (console note once). There is no
+  `tau`, so there is no lost energy to return.
+
+### Cvars (artist parameters)
+
+| cvar | default | |
+|---|---|---|
+| `r_volumetricMultiScatter` | 0 | 0 off, 1 sun, 2 sun + self-shadowed dynamic lights (capped by `r_volumetricSelfShadow`) |
+| `r_volumetricMSOctaves` | 2 | octaves beyond single scattering (1-3) |
+| `r_volumetricMSAttenuation` | 0.25 | `a`: optical depth scale per octave (lower = deeper light), kept `<= b` |
+| `r_volumetricMSContribution` | 0.5 | `b`: energy per octave, times albedo and thickness |
+| `r_volumetricMSPhase` | 0.5 | `c`: anisotropy scale per octave (0 = isotropic octaves) |
+| `r_volumetricMSLength` | 64 | `l`: typical size of a dense medium (world units), sets what counts as "thin" |
+| `r_volumetricMSShadowFill` | 0.25 | how far thick media may lighten a geometry shadow (0-0.5) |
+
+### Debug views (`r_volumetricFogDebug`)
+
+| view | shows |
+|---|---|
+| 46 | sun single scattering only (with the media shadow) |
+| 47 | sun multiple-scattering term only |
+| 48 | sun single + multiple scattering |
+| 49 | MS ratio `ms / (ss + ms)` of the sun, luma, opacity weighted (0 = no effect) |
+| 50 | red = sun optical depth / 8, green = `sigma_t * l` / 8, blue = thickness |
+
+Views 2, 43, and 44 stay single scattering, so they isolate the shadows. Views 3 and 45 include the octaves.
+
+### GPU cost
+
+Every change is in the injection fragment shader, behind uniform branches. Mode 0 costs only the branch.
+
+- NVIDIA offline dump of the full inject variant (noise, particles, shadows): 11 930 → 12 438 fp instructions
+  (+4.3%), transcendentals 420 → 457, no new texture fetch.
+- At runtime, per medium froxel with sun: N exp and N `FroxelPhases` (4 HG each).
+- Per self-shadowed dynamic light (mode 2): the same, plus the march now also runs in geometry shadow when
+  `fill > 0`.
+- No bandwidth change.
+
+### Failure modes
+
+- `l` is global and is not the real thickness. A huge but thin fog bank is underestimated, and a small but
+  very dense puff is overestimated at its rim.
+- Side-lit slabs get the same compensation as cores. There is no lateral transport and no light bleeding
+  around geometry-shadow edges beyond the `fill` term.
+- `tau` is truncated where the self-shadow march leaves the frustum or far distance. MS is correspondingly weaker
+  there, and it inherits the self-shadow frustum artefact.
+- `q` uses the albedo luminance. A chromatic albedo shifts colour only through `S_k`, not through a per-channel
+  `q^i`, so the deep reddening of coloured media is under-represented.
+- In a backlit view (`P < 1`), the guard allows the octaves up to the isotropic level. This is right for a
+  diffused medium, but it can slightly brighten thin back-scattering media where `tau` is already large.
+
+### Validation (in game, not run yet)
+
+Build (MSVC, SP + MP renderers) and offline GLSL checks (48 cases × Intel/NVIDIA) pass. No assets are needed.
+Use the dense test volumes from "Media self-shadowing" (`r_fogvol`, `env.json` FogVolume, `r_fogvol mediumtest`,
+or the volumetric-particle smoke). Set `r_volumetricSelfShadow 1` (or 2), then run `vid_restart`.
+
+| case | expect |
+|---|---|
+| thin height fog / BSP fog | view 49 ~ 0; with the feature toggled, no visible change |
+| dense smoke sphere, strong sun | 46: dark core; 47: core and far side filled; 48: soft interior, silhouette unchanged |
+| colored saber in smoke (mode 2) | halo inside the smoke extends deeper; the colour is kept |
+| cloud in a geometry shadow | 43 vs 48: the shadow stays visible, only slightly lifted inside thick media |
+| `fogAlbedo 0.1 0.1 0.1` vs `0.95 0.95 0.95` | dark smoke: view 49 ~ 0; white steam: clear fill |
+| albedo ~ 1, `r_fogvol` density ×10, long ray | 48 never brighter than view 2 (unshadowed) looking towards the sun; backlit, at most the isotropic level |
+
+Screenshots per case: views 46 / 47 / 48, plus 3 with `r_volumetricMultiScatter 0` vs 1. Also record timings,
+`r_speeds 100`: inject at MS 0 / 1 / 2.
+
+## RGB extinction (`r_volumetricFogRGB`)
+
+A medium can let the color channels through differently: water absorbs red first, a smoke can
+look bluish in front of a white wall and yellowish in transmission. The scalar path stores one
+extinction σ and one transmittance T in alpha channels, so this is an opt-in extension.
+`r_volumetricFogRGB 0` (default) is the scalar path: same textures, same equations, no extra
+memory. `r_volumetricFogRGB 1` (latched, `vid_restart`) makes the extinction and the
+transmittance per channel. It needs more than 28 texture units; otherwise it warns and uses the
+scalar path.
+
+### Material input
+
+Each medium gets an extinction color `c` (relative). It is normalized to a mean of 1, so
+`depthForOpaque` / `Opaque` keeps its meaning as the mean opaque distance and
+σ = mean(σt.rgb). Black, negative or missing values are neutral (1 1 1).
+
+| Medium | Parameter |
+|---|---|
+| BSP fog / water (shader) | `fogExtinctionColor <r g b>` (next to `fogAlbedo` / `fogAnisotropy`) |
+| Local fog volume | env.json `"Extinction": [r, g, b]`, `r_fogvol add ... extinction r g b`, `refFogVolume_t.extinctionColor` + `FOGVOLUME_EXTINCTION` |
+| Height fog | `r_volumetricFogHeightExtinction "r g b"` (default `1 1 1`) |
+| FX particle media | always neutral |
+
+Media without these parameters are (σ, σ, σ). Because `c` has a mean of 1, a neutral medium
+matches the scalar mode up to fp32 rounding (CPU harness: 7.6e-6). Everything that reads the
+scalar σ is unchanged: media self-shadow, multiple scattering, history weights, noise fractions.
+
+`refFogVolume_t.extinctionColor` is added at the end of the struct and only read when the
+`FOGVOLUME_EXTINCTION` flag is set. No caller outside the renderer uses the fog volume API yet.
+
+### Representation and memory
+
+| Texture | Format | Content |
+|---|---|---|
+| `froxelInject[2]` | RGBA16F 3D | rgb = σs.rgb · L (unchanged meaning), a = σ = mean(σt.rgb) |
+| `froxelExtinction[2]` (new) | RGBA16F 3D | rgb = σt.rgb, temporally filtered like `froxelInject.a` (same weight, same reprojection); history ping-pong with froxelInject |
+| `froxelIntegrated` | RGBA16F 3D | rgb = S.rgb, a = scalar T = exp(−∫σ) (the scalar reference) |
+| `froxelTransmittance` (new) | RGBA16F 3D | rgb = T.rgb |
+| `froxelCarryT[2]` (new) | RGBA16F 2D | T.rgb between slices |
+| `froxelTail` | RGBA16F 2D | unchanged (light without albedo) |
+
+We don't try to fit S.rgb and T.rgb into one RGBA16F texture. We use RGBA16F instead of
+R11G11B10F because T near 1 would band with a 6-bit mantissa, and the temporal filter drifts
+on σ.
+
+The added memory is 24 bytes per froxel plus the 2D carry. Values below are for 1920×1080:
+
+| Preset | Grid | Added volumes | Added carry |
+|---|---|---|---|
+| Q0 | 120×68×32 | +6.0 MiB | +0.12 MiB |
+| Q1 | 240×135×48 | +35.6 MiB | +0.49 MiB |
+| Q2 | 240×135×64 | +47.5 MiB | +0.49 MiB |
+
+Scalar mode adds 0. The VolumetricFog UBO gains a 16-entry extinction palette (256 bytes, total
+16 288 bytes, below the 16 KB GL 3.2 minimum). Local volumes reference a palette entry through
+`localShape.w = noisy + 2 · index`. Entry 0 is neutral. Past 15 distinct colors per frame, the
+farther volumes fall back to neutral, and a developer message is printed.
+
+### Injection
+
+Each medium i has σt_i.rgb = σ_i · c_i and scatters σs_i.rgb = σt_i.rgb · albedo_i.rgb. This is
+the phase-lobe accumulation with albedo · c, so `froxelInject.rgb` already holds σs.rgb · L.
+σt.rgb goes to the 4th MRT output (`out_SSRSpecular`, attachment 3). The debug views that
+integrate value · σ (8, 17, 27, 35-50) write (σ, σ, σ) there, so they stay scalar opacity views.
+
+### Integration (per channel)
+
+```
+x.rgb   = σt.rgb · Δ
+Ts.rgb  = exp(−x.rgb)
+phi.rgb = x < 0.05 ? 1 − x/2 + x²/6 − x³/24 + x⁴/120 : (1 − Ts) / x    (per channel)
+S.rgb  += T.rgb · j.rgb · Δ · phi.rgb        j = σs·L + dynamic + emission
+T.rgb  *= Ts.rgb
+T      *= exp(−σ · Δ)                        (alpha: scalar reference)
+```
+
+Each channel uses the small-σ series independently. A glowing channel with no extinction adds
+j·Δ, as in the scalar mode.
+
+### Tail
+
+`FroxelTailMediumRGB` integrates the BSP fogs and the height fog beyond far per channel:
+τ.rgb = Σ c_i τ_i and scatter.rgb = Σ albedo_i c_i τ_i. Then
+S += T · light · scatter · phi(τ) and T *= exp(−τ). The tail is not scalar in RGB mode, so the
+horizon color stays continuous. CPU harness results: froxels + tail vs analytic 1e-6, jump at far
+2e-7.
+
+### Composition
+
+The scalar composite is one fixed-function blend (ONE, SRC_ALPHA). scene.rgb · T.rgb + S can't
+be expressed with a scalar source alpha, and GL 3.2 does not guarantee dual-source blending. So
+in RGB mode the composite is drawn twice, in order:
+
+1. `u_FroxelFogMode 3`, blend ZERO, SRC_COLOR, out = T.rgb: color · T, glow · T
+2. `u_FroxelFogMode 4`, blend ONE, ONE, out = S (color) and bloom(S) (glow)
+
+The destination alpha stays masked as before. Bloom: the glow buffer is attenuated per channel
+and the knee still uses the luma of S.
+
+### Transparent surfaces
+
+- **generic** (in-shader fog): `u_FroxelFogMode 3` = `FroxelFogRGB`. Both `u_FogColorMask`
+  formulas are applied with the opacity per channel, 1 − T.rgb, and the emissive (glow) is
+  attenuated per channel.
+- **surface sprites**: rgb · T.rgb + S, and additive sprites use rgb · T.rgb.
+- **fog pass** (a blended overlay on multi-stage surfaces after SS_FOG): two draw items per
+  surface, `u_FroxelFogMode 3` (ZERO, SRC_COLOR) at sort stage 14, then 4 (ONE, ONE) at stage
+  15. Within a layer every multiply comes before every add. The scalar path already applies the
+  fog passes after all stages of the layer, so both modes share that approximation.
+- `RB_VolumetricSetupFogDraw` turns lookup mode 1 into 3 and binds `froxelTransmittance`
+  (unit 26) whenever RGB mode is on. Callers stay the same.
+
+### Debug views
+
+| View | Shows |
+|---|---|
+| 51 | σt.rgb at the scene depth, as 1 − exp(−512 σt) per channel (red = absorbs red) |
+| 52 | T.rgb from the camera to the scene |
+| 53 | Color shift of a white surface, (T.rgb − T_scalar) · 4 + 0.5 (grey = none) |
+| 54 | Heat of max \|T.rgb − T_scalar\| (0.25 = red) |
+| 55 | Extinction chroma σt.rgb / mean / 3 (grey = neutral) |
+| 56 | Transmittance of the analytic tail beyond far (dark blue = scene inside the volume) |
+
+In RGB mode the scalar views (1, 7) show the scalar-reference T. Without `r_volumetricFogRGB`,
+views 51-56 are dark magenta.
+
+### Validation assets
+
+`r_fogvol rgbtest` places four white spheres (same mean opacity, 250 units) in a row: neutral,
+red absorbing (3 0.5 0.5, cyan), blue absorbing (0.5 0.5 3, yellow) and mixed (1 2 3). The
+middle two overlap.
+
+### Validation
+
+These checks have run:
+
+- Both renderers build with MSVC.
+- Offline GLSL (Intel UHD and RTX 2060): volumetric inject / integrate / composite / debug,
+  fogpass, generic and surface sprites, with and without `USE_FROXEL_RGB`. 180 cases × 2
+  drivers, 0 failures.
+- CPU harness (`rgbcheck.py`, fp32 mirror of the shaders):
+  - neutral RGB matches scalar
+  - homogeneous slab per channel matches analytic Beer-Lambert (T error ≤ 4e-6, S relative
+    error ≤ 2.4e-6, σ from 1e-7 to 0.1)
+  - pure glow gives S = j·L
+  - tail continuity at far
+
+In game (not run yet):
+
+1. `r_volumetricFogRGB 1`, `vid_restart`. The console should print "RGB extinction".
+2. White geometry behind media: `r_fogvol rgbtest` in front of a white wall. The spheres should
+   look neutral grey, cyan, yellow and orange-red. Check with debug 52 and 53.
+3. Colored light inside: a colored dlight or spot inside the red-absorbing sphere. The scattered
+   light should lose red with depth.
+4. Overlapping media: the middle two spheres should be greenish where they overlap (red and blue
+   are both absorbed). Check debug 55.
+5. Transparent surfaces: glass, sprites and fog-pass shaders through the spheres should be
+   tinted like the opaque background.
+6. Sky and tail: a BSP fog with `fogExtinctionColor` reaching past far. Check debug 56, and that
+   the horizon has no color step at the far plane.
+7. Bloom: a bright light behind a colored sphere. The bloom should take the transmitted color.
+8. Scalar compatibility: compare `r_volumetricFogRGB 0` and `1` with neutral media. Debug 54
+   should be black and the frames identical.
+9. Timings (`r_speeds` / GPU timers "Froxel fog inject / integrate / composite"): measure Q0–Q2,
+   RGB off vs on. The composite adds a second fullscreen draw. The inject writes one more MRT
+   and reads one more history texel. The integrate writes 2 more MRTs and reads 2 more texels
+   per froxel.
+
+| Pass (1080p) | Q1 scalar | Q1 RGB | Q2 scalar | Q2 RGB |
+|---|---|---|---|---|
+| inject | | | | |
+| integrate | | | | |
+| composite | | | | |
+
+### Limitations
+
+- The media self-shadow and multiple scattering use σ = mean(σt.rgb): light rays toward the sun
+  are not colored by the medium.
+- FX particle media (efx) have no extinction color.
+- There are at most 15 distinct local volume extinction colors per frame.
+- Dual-source blending (a single-draw composite) is not used. It would need GL 3.3 /
+  `ARB_blend_func_extended`.
+
 ## Known limitations
 
 - Only the main view of the first world scene has a volume; portals, mirrors, the sky portal and the LA goggles

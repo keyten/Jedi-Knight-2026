@@ -82,6 +82,7 @@ typedef unsigned int glIndex_t;
 #define MAX_REF_FOG_VOLUMES   256
 #define MAX_GPU_FOG_VOLUMES   64	// 8 bit indices, UBO budget (see VolumetricFogBlock)
 #define FROXEL_LOCAL_POOL     2048
+#define FROXEL_EXTINCTION_PALETTE 16	// distinct local volume extinction colors per frame (UBO budget)
 
 // Volumetric FX particles (tr_volparticle.cpp): the scene takes up to
 // MAX_REF_VOL_PARTICLES per frame, the MAX_GPU_VOL_PARTICLES most important in
@@ -187,6 +188,14 @@ extern cvar_t	*r_volumetricSelfShadowSamples;
 extern cvar_t	*r_volumetricSelfShadowDistance;
 extern cvar_t	*r_volumetricSelfShadowOutside;
 extern cvar_t	*r_volumetricSelfShadowLights;
+extern cvar_t	*r_volumetricMultiScatter;
+extern cvar_t	*r_volumetricFogRGB;
+extern cvar_t	*r_volumetricMSOctaves;
+extern cvar_t	*r_volumetricMSAttenuation;
+extern cvar_t	*r_volumetricMSContribution;
+extern cvar_t	*r_volumetricMSPhase;
+extern cvar_t	*r_volumetricMSLength;
+extern cvar_t	*r_volumetricMSShadowFill;
 extern cvar_t	*r_volumetricFogDlightShadows;
 extern cvar_t	*r_volumetricFogBloom;
 extern cvar_t	*r_volumetricEmission;
@@ -215,6 +224,7 @@ extern cvar_t	*r_volumetricFogHeightFalloff;
 extern cvar_t	*r_volumetricFogHeightMax;
 extern cvar_t	*r_volumetricFogHeightTop;
 extern cvar_t	*r_volumetricFogHeightColor;
+extern cvar_t	*r_volumetricFogHeightExtinction;
 extern cvar_t	*r_volumetricFogNoise;
 extern cvar_t	*r_volumetricFogNoiseScale;
 extern cvar_t	*r_volumetricFogNoiseContrast;
@@ -1299,7 +1309,7 @@ struct VolumetricFogBlock
 	vec4_t debugParams;				// debug view, bloom, frozen, directional baked light
 	vec4_t heightFog;				// height fog: base extinction per unit (0 = off), base z, 1 / falloff, log(max scale)
 	vec4_t heightFogColor;			// rgb albedo, w: fade out start above the base (top - fade)
-	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: unused
+	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color (r_volumetricFogRGB, 1 1 1)
 	vec4_t noiseParams;				// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4_t noiseMacroOffset;		// wind offset of the macro noise (tile units), w: 1 = height fog is noisy
 	vec4_t noiseDetailOffset;		// wind offset of the detail noise (tile units), w: history weight of noisy media
@@ -1308,6 +1318,8 @@ struct VolumetricFogBlock
 	vec4_t noiseNormDetail[4];		// same, detail noise
 	vec4_t selfShadow;				// media self-shadow: mode (0 off, 1 sun, 2 + lights), sun samples, distance, 1 = analytic height fog beyond
 	vec4_t selfShadowLights;		// indices of the self-shadowed dynamic lights in the light buffer, -1 = none
+	vec4_t multiScatter;			// multiple scattering octaves: mode (0 off, 1 sun, 2 + self-shadowed lights), octaves, contribution b, medium length l
+	vec4_t multiScatter2;			// attenuation a, phase c, shadow fill, unused
 	int numFogs;
 	int lightTileSize;				// dynamic light lists: froxels per tile side (0 = no lights)
 	int lightTilesX;				// tiles per slice
@@ -1316,7 +1328,7 @@ struct VolumetricFogBlock
 	vec4_t fogPlane[MAX_GPU_FOGS];	// as the Fogs block
 	vec4_t fogMins[MAX_GPU_FOGS];	// w: has plane
 	vec4_t fogMaxs[MAX_GPU_FOGS];	// w: 1 = density noise applies to this fog
-	vec4_t fogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or r_volumetricFogAnisotropy), yzw unused
+	vec4_t fogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or r_volumetricFogAnisotropy), yzw: extinction color (r_volumetricFogRGB, 1 1 1)
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first
 	vec4_t localParams;							// count, fade start, 1 / fade length, 1 = some volume emits
@@ -1327,7 +1339,7 @@ struct VolumetricFogBlock
 	vec4_t localPrevY[MAX_GPU_FOG_VOLUMES];
 	vec4_t localPrevZ[MAX_GPU_FOG_VOLUMES];
 	vec4_t localColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction per unit (0: gone this frame)
-	vec4_t localShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
+	vec4_t localShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * extinction palette index
 	vec4_t localMotion[MAX_GPU_FOG_VOLUMES];	// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
 	vec4_t localEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density (emissive * density), w: anisotropy g
 	int localSlices[FROXEL_MAX_SLICES];			// per slice: first pool entry | count << 16 (ivec4[32])
@@ -1335,9 +1347,14 @@ struct VolumetricFogBlock
 
 	// BSP fog volumes that may touch each slice (bit i = fog i, MAX_GPU_FOGS <= 32)
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
+
+	// extinction colors of the local fog volumes (r_volumetricFogRGB), indexed
+	// by localShape.w: entry 0 = neutral (1 1 1)
+	vec4_t extinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
 
-// 15 488 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
+// below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (16 288 with
+// the extinction palette)
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
 // Volumetric FX particles of the froxel injection (tr_volparticle.cpp). Same
@@ -1476,6 +1493,14 @@ enum
 	// froxel fog extinction of this frame (r_volumetricSelfShadow), in
 	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
 	TB_FROXELMEDIA       = 13,
+
+	// RGB extinction (r_volumetricFogRGB): the integrated transmittance of the
+	// froxel lookup (every program with USE_FROXEL_FOG), the injected extinction
+	// (inject history, integrate source, debug) and the integration carry.
+	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 28, else the scalar path is used.
+	TB_FROXELTRANSMITTANCE = 26,
+	TB_FROXELEXTINCTION    = 27,
+	TB_FROXELCARRYT        = 28,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -1661,6 +1686,11 @@ typedef struct {
 	float		anisotropy;			// Henyey-Greenstein g, -0.9..0.9
 	qboolean	hasAlbedo;
 	vec3_t		albedo;				// scattering albedo, linear like color
+	// fogExtinctionColor (r_volumetricFogRGB): relative extinction per channel,
+	// sigma_t.rgb = sigma * extinctionColor, normalized to mean 1 (the opacity
+	// of depthForOpaque is kept on average); without it (1, 1, 1)
+	qboolean	hasExtinctionColor;
+	vec3_t		extinctionColor;
 } fogParms_t;
 
 typedef enum {
@@ -2383,6 +2413,9 @@ typedef enum
 	UNIFORM_FROXELSLICE,	// slice rendered by the injection / integration pass
 	UNIFORM_FROXELNOISE,	// tiling density noise
 	UNIFORM_FROXELMEDIA,	// extinction of this frame (r_volumetricSelfShadow)
+	UNIFORM_FROXELTRANSMITTANCE,	// integrated RGB transmittance (r_volumetricFogRGB)
+	UNIFORM_FROXELEXTINCTION,		// injected RGB extinction (history / source)
+	UNIFORM_FROXELCARRYT,			// RGB transmittance of the previous slice
 
 	UNIFORM_FPLUSLIGHTS,	// Forward+ light data (buffer texture)
 	UNIFORM_FPLUSGRID,		// Forward+ cluster offset / count (buffer texture)
@@ -3612,6 +3645,9 @@ typedef struct trGlobals_s {
 	image_t					*froxelCarryImage[2];	// froxel fog: integration state between slices
 	image_t					*froxelTailImage;	// froxel fog: last slice radiance (rgb) and extinction (a)
 	image_t					*froxelNoiseImage;
+	image_t					*froxelExtinctionImage[2];	// froxel fog (r_volumetricFogRGB): injected sigma_t.rgb, history ping-pong with froxelInjectImage
+	image_t					*froxelTransmittanceImage;	// froxel fog (r_volumetricFogRGB): integrated T.rgb
+	image_t					*froxelCarryTImage[2];	// froxel fog (r_volumetricFogRGB): T.rgb between slices
 	image_t					*froxelMediaImage;	// froxel fog: extinction of this frame, no history (r_volumetricSelfShadow light rays)	// froxel fog: tiling density noise, r = macro, g = detail (64^3, mips)
 	// shared screen-space infrastructure (tr_screenspace.cpp)
 	image_t					*screenNormalImage;	// rg = octahedral world normal, b = roughness, a = SSR receiver
@@ -5281,6 +5317,8 @@ class SamplerBindingsWriter;
 struct UniformBlockBinding;
 
 qboolean R_VolumetricFroxelEnabled(void);
+qboolean R_VolumetricFroxelRGB(void);	// r_volumetricFogRGB active (latched, resources created)
+void R_VolumetricExtinctionColor(const float *in, vec3_t out);	// relative sigma_t.rgb, mean 1 (NULL: neutral)
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
 void R_ShutdownVolumetric(void);
@@ -5293,6 +5331,9 @@ void RB_VolumetricBeginView(void);
 int RB_VolumetricFogMode(float sort);
 qboolean RB_VolumetricHeightFogSurface(float sort);
 void RB_VolumetricSetupFogDraw(int mode, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
+// the fog pass of a surface in RGB mode: 0 = draw once, 1 = the transmittance
+// multiply (u_FroxelFogMode 3), 2 = the in-scattering add (4)
+void RB_VolumetricSetupFogPassDraw(int rgbPass, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 // sprite particle lighting (r_particleLight): PARTICLE_LIGHT_* class of a generic stage
 enum { PARTICLE_LIGHT_NONE, PARTICLE_LIGHT_LIT, PARTICLE_LIGHT_UNLIT };
 int RB_ParticleLightClass(const shader_t *shader, const shaderStage_t *stage);

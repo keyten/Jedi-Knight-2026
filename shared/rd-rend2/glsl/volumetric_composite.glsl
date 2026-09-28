@@ -14,6 +14,11 @@ void main()
 // The glow buffer is the source of bloom: the fog attenuates it like the scene (as the legacy fog
 // pass). r_volumetricFogBloom adds the bright part of the in-scattering (soft knee), so light beams
 // bloom and the dim haze does not.
+//
+// RGB extinction (r_volumetricFogRGB): scene.rgb * T.rgb + S cannot be one fixed-function blend with a
+// scalar source alpha, so the composite is drawn twice (RB_VolumetricComposite):
+//   u_FroxelFogMode 3  blend ZERO, SRC_COLOR  out = T.rgb      color = color * T, glow = glow * T
+//   u_FroxelFogMode 4  blend ONE, ONE         out = S, bloom   color += S, glow += bloom
 
 uniform sampler2D u_ScreenDepthMap;
 
@@ -26,7 +31,18 @@ void main()
 	float depth = texture(u_ScreenDepthMap, tc).r;
 
 	vec3 worldPos = FroxelSceneWorldPosition(tc, depth);
+#if defined(USE_FROXEL_RGB)
+	vec3 T;
+	vec4 fog = vec4(FroxelFogRGB(worldPos, T), 1.0);
+	if (u_FroxelFogMode == 3)
+	{
+		out_Color = vec4(T, 1.0);
+		out_Glow = vec4(T, 1.0);
+		return;
+	}
+#else
 	vec4 fog = FroxelFog(worldPos);
+#endif
 
 	vec3 bloom = vec3(0.0);
 	float bloomScale = u_FroxelDebugParams.y;
@@ -37,6 +53,11 @@ void main()
 		bloom = fog.rgb * knee * knee * bloomScale;
 	}
 
+#if defined(USE_FROXEL_RGB)
+	out_Color = vec4(fog.rgb, 0.0);
+	out_Glow = vec4(bloom, 0.0);
+#else
 	out_Color = vec4(fog.rgb, fog.a);
 	out_Glow = vec4(bloom, fog.a);
+#endif
 }

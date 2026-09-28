@@ -26,17 +26,38 @@ void main()
 // out_Carry  the same, for the next slice
 // (beyond far the media are integrated analytically by FroxelLookup, lit by the tail pass of the
 // injection)
+//
+// RGB extinction (r_volumetricFogRGB, USE_FROXEL_RGB): the same per channel with sigma_t.rgb of
+// u_FroxelExtinction (the source already holds sigma_s.rgb * L = sigma_t.rgb * albedo.rgb * L):
+//   x.rgb  = sigma_t.rgb * length
+//   S.rgb += T.rgb * j.rgb * length * phi(x.rgb)
+//   T.rgb *= exp(-x.rgb)
+// out_Color.rgb = S, out_Transmittance.rgb = T (draw buffers 2 and 3: the integrated T and its
+// carry). The alpha channels keep the scalar transmittance exp(-integral of sigma), sigma = mean of
+// sigma_t.rgb (source.a): what the scalar mode computes, the reference of the debug views 53 / 54
+// and the transmittance of the scalar lookups (debug views 1, 7).
 
 uniform sampler3D u_FroxelSource;	// baked + sun emission (rgb), extinction (a)
 uniform sampler3D u_FroxelDynamic;	// dynamic light scattering + emission (rgb)
 uniform sampler2D u_FroxelCarry;
 uniform int u_FroxelSlice;
+#if defined(USE_FROXEL_RGB)
+uniform sampler3D u_FroxelExtinction;	// sigma_t.rgb
+uniform sampler2D u_FroxelCarryT;		// T.rgb after the previous slice
+#endif
 
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
 // 0 = out_Color, 1 = out_Glow
 out vec4 out_Color;		// integrated volume
 out vec4 out_Glow;		// carry
 #define out_Carry out_Glow
+#if defined(USE_FROXEL_RGB)
+// 2 = out_SSRNormal, 3 = out_SSRSpecular
+out vec4 out_SSRNormal;
+out vec4 out_SSRSpecular;
+#define out_Transmittance out_SSRNormal
+#define out_CarryT out_SSRSpecular
+#endif
 
 void main()
 {
@@ -64,6 +85,25 @@ void main()
 	if (debugView >= 30 && debugView <= 32)
 		extinction = 0.0;
 
+#if defined(USE_FROXEL_RGB)
+	vec3 extinctionRGB = texelFetch(u_FroxelExtinction, ivec3(cell, slice), 0).rgb;
+	if (debugView >= 30 && debugView <= 32)
+		extinctionRGB = vec3(0.0);
+	vec3 T = vec3(1.0);
+	if (slice > 0)
+		T = texelFetch(u_FroxelCarryT, cell, 0).rgb;
+
+	vec3 xRGB = max(extinctionRGB, vec3(0.0)) * pathLength;
+	vec3 sliceT = exp(-xRGB);
+	state.rgb += T * emission * pathLength * FroxelPhi(xRGB, sliceT);
+	T *= sliceT;
+	state.a *= exp(-max(extinction, 0.0) * pathLength);
+
+	out_Color = state;
+	out_Carry = state;
+	out_Transmittance = vec4(T, state.a);
+	out_CarryT = vec4(T, state.a);
+#else
 	float x = max(extinction, 0.0) * pathLength;
 	float sliceTransmittance = exp(-x);
 	// below 0.05 the series (1 - exp(-x) cancels in fp32 there; truncation < 1e-9)
@@ -77,4 +117,5 @@ void main()
 
 	out_Color = state;
 	out_Carry = state;
+#endif
 }

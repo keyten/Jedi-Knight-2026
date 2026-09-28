@@ -631,6 +631,19 @@ void main()
 			out_Color.rgb = out_Color.rgb * froxelFog.a + froxelFog.rgb;
 	#endif
 		}
+	#if defined(USE_FROXEL_RGB)
+		else if (u_FroxelFogMode == 3)
+		{
+			// RGB extinction (r_volumetricFogRGB)
+			vec3 froxelT;
+			vec3 froxelS = FroxelFogRGB(var_WSPosition, froxelT);
+		#if defined(ADDITIVE_BLEND)
+			out_Color.rgb *= froxelT;
+		#else
+			out_Color.rgb = out_Color.rgb * froxelT + froxelS;
+		#endif
+		}
+	#endif
 	}
 	else
 	{

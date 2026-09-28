@@ -347,6 +347,7 @@ typedef struct {
 
 #define	FOGVOLUME_NOISE				1		// flags: density noise (r_volumetricFogNoise 8)
 #define	FOGVOLUME_ANISOTROPY		2		// flags: anisotropy is set (else r_volumetricFogAnisotropy)
+#define	FOGVOLUME_EXTINCTION		4		// flags: extinctionColor is set (else neutral)
 
 typedef struct {
 	int			id;				// stable per volume (temporal filter), 0 = anonymous
@@ -368,6 +369,11 @@ typedef struct {
 	// Henyey-Greenstein g of the scattering (-0.9..0.9, > 0 forward), used with the
 	// FOGVOLUME_ANISOTROPY flag; without it the global r_volumetricFogAnisotropy
 	float		anisotropy;
+	// relative extinction per channel (r_volumetricFogRGB), used with the
+	// FOGVOLUME_EXTINCTION flag: sigma_t.rgb = sigma * extinctionColor / mean,
+	// e.g. 3 0.5 0.5 absorbs red (the medium looks cyan). Appended last: older
+	// callers that do not set the flag keep a neutral medium.
+	float		extinctionColor[3];
 } refFogVolume_t;
 
 // Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volParticles):

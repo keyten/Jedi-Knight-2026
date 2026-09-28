@@ -15,6 +15,12 @@
 //                               phase included); the media beyond far are integrated analytically
 //
 // Units: extinction per world unit, as depthToOpaque of the legacy volumetric fog.
+//
+// RGB extinction (r_volumetricFogRGB, USE_FROXEL_RGB): the media have an extinction per channel
+// sigma_t.rgb = sigma * c.rgb (c: extinction color, mean 1, so the alpha channels keep the scalar
+// sigma = mean(sigma_t.rgb)). The transmittance is then a color:
+//   u_FroxelTransmittance  RGBA16F 3D  rgb = T.rgb at the far side of the slice (a = mean, unused)
+// and u_FroxelVolume.a is not read by the lookup (FroxelFogRGB).
 
 #if defined(USE_FROXEL_FOG)
 layout(std140) uniform VolumetricFog
@@ -41,7 +47,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelDebugParams;			// debug view, bloom, frozen volume, unused
 	vec4 u_FroxelHeightFog;				// height fog: base extinction (0 = off), base z, 1 / falloff, log(max scale)
 	vec4 u_FroxelHeightFogColor;		// rgb albedo, w: fade out start above the base
-	vec4 u_FroxelHeightFogTop;			// x: top above the base (0 = no cutoff)
+	vec4 u_FroxelHeightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color
 	vec4 u_FroxelNoiseParams;			// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4 u_FroxelNoiseMacroOffset;		// wind offset (tile units), w: 1 = height fog is noisy
 	vec4 u_FroxelNoiseDetailOffset;		// wind offset (tile units), w: history weight of the noisy media
@@ -50,6 +56,8 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelNoiseNormDetail[4];
 	vec4 u_FroxelSelfShadow;			// media self-shadow: mode (0 off, 1 sun, 2 + lights), sun samples, distance, 1 = analytic height fog beyond
 	vec4 u_FroxelSelfShadowLights;		// light buffer indices of the self-shadowed dynamic lights, -1 = none
+	vec4 u_FroxelMultiScatter;			// multiple scattering octaves: mode (0 off, 1 sun, 2 + self-shadowed lights), octaves, contribution b, medium length l
+	vec4 u_FroxelMultiScatter2;			// attenuation a, phase c, shadow fill, unused
 	int u_FroxelNumFogs;
 	int u_FroxelLightTile;					// dynamic light lists: froxels per tile side (0 = no lights)
 	int u_FroxelLightTilesX;
@@ -58,7 +66,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelFogPlane[MAX_GPU_FOGS];
 	vec4 u_FroxelFogMins[MAX_GPU_FOGS];		// w: has plane
 	vec4 u_FroxelFogMaxs[MAX_GPU_FOGS];		// w: density noise applies
-	vec4 u_FroxelFogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or the global one)
+	vec4 u_FroxelFogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or the global one), yzw: extinction color
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first. Per slice a packed list of the volumes
 	// that overlap it: header = first pool entry | count << 16, pool = 8 bit volume indices.
@@ -70,7 +78,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelLocalPrevY[MAX_GPU_FOG_VOLUMES];
 	vec4 u_FroxelLocalPrevZ[MAX_GPU_FOG_VOLUMES];
 	vec4 u_FroxelLocalColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction (0: gone this frame)
-	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy
+	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * palette index
 	vec4 u_FroxelLocalMotion[MAX_GPU_FOG_VOLUMES];		// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
 	vec4 u_FroxelLocalEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density, w: anisotropy g
 	ivec4 u_FroxelLocalSlices[FROXEL_MAX_SLICES / 4];	// slice headers
@@ -78,7 +86,21 @@ layout(std140) uniform VolumetricFog
 
 	// BSP fog volumes that may touch a slice (CPU culled): bit i = fog i
 	ivec4 u_FroxelFogSlices[FROXEL_MAX_SLICES / 4];
+
+	// extinction colors of the local fog volumes (r_volumetricFogRGB), entry 0 = neutral
+	vec4 u_FroxelExtinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
+
+// the fields packed into u_FroxelLocalShape[i].w
+bool FroxelLocalNoisy(in float w)
+{
+	return mod(w, 2.0) > 0.5;
+}
+
+vec3 FroxelLocalExtinctionColor(in float w)
+{
+	return u_FroxelExtinctionPalette[int(w * 0.5)].rgb;
+}
 
 #if defined(USE_FROXEL_PARTICLES)
 // FX particle media (tr_volparticle.cpp, injection and debug views only), most important first. Per
@@ -124,8 +146,13 @@ float FroxelParticleAnisotropy(in float w)
 
 uniform sampler3D u_FroxelVolume;
 uniform sampler2D u_FroxelTail;
+#if defined(USE_FROXEL_RGB)
+uniform sampler3D u_FroxelTransmittance;
+#endif
 
-// 0 = legacy fog, 1 = froxel volume lookup, 2 = none (the composite applied it)
+// 0 = legacy fog, 1 = froxel volume lookup, 2 = none (the composite applied it); RGB extinction:
+// 3 = RGB lookup (fog pass: its transmittance multiply draw), 4 = the in-scattering add draw of the
+// fog pass
 uniform int u_FroxelFogMode;
 
 // Sprite particle lighting (r_particleLight). u_ParticleLightVolume (R11G11B10F 3D, the froxel grid)
@@ -452,6 +479,111 @@ vec4 FroxelLookup(in vec2 uv, in float d, in float rayScale, in vec3 worldPos)
 	return fog;
 }
 
+#if defined(USE_FROXEL_RGB)
+// FroxelTailMedium per channel: returns the scattering optical depth sum albedo_i * tau_i.rgb,
+// tau: the optical depth sum tau_i.rgb (tau_i.rgb = c_i.rgb * tau_i)
+vec3 FroxelTailMediumRGB(in vec3 a, in vec3 dir, in float len, out vec3 tau)
+{
+	int debugView = int(u_FroxelDebugParams.x);
+	vec3 scatter = vec3(0.0);
+	tau = vec3(0.0);
+
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16)
+	{
+		vec3 t = FroxelHeightOpticalDepth(a, a + dir * len, len) * u_FroxelHeightFogTop.yzw;
+		scatter += u_FroxelHeightFogColor.rgb * t;
+		tau += t;
+	}
+
+	int numFogs = (debugView == 12 || debugView == 16) ? 0 : u_FroxelNumFogs;
+	vec3 invDir = 1.0 / mix(dir, vec3(1e-8), lessThan(abs(dir), vec3(1e-8)));
+	for (int i = 0; i < numFogs; i++)
+	{
+		vec3 t0 = (u_FroxelFogMins[i].xyz - a) * invDir;
+		vec3 t1 = (u_FroxelFogMaxs[i].xyz - a) * invDir;
+		vec3 tMin = min(t0, t1);
+		vec3 tMax = max(t0, t1);
+		float enter = max(max(max(tMin.x, tMin.y), tMin.z), 0.0);
+		float leave = min(min(min(tMax.x, tMax.y), tMax.z), len);
+		if (enter >= leave)
+			continue;
+
+		if (u_FroxelFogMins[i].w > 0.5)
+		{
+			vec4 plane = u_FroxelFogPlane[i];
+			float f0 = dot(a, plane.xyz) - plane.w;
+			float k = dot(dir, plane.xyz);
+			if (abs(k) < 1e-8)
+			{
+				if (f0 < 0.0)
+					continue;
+			}
+			else if (k > 0.0)
+				enter = max(enter, -f0 / k);
+			else
+				leave = min(leave, -f0 / k);
+			if (enter >= leave)
+				continue;
+		}
+
+		vec4 fog = u_FroxelFogColor[i];
+		vec3 t = fog.a * (leave - enter) * u_FroxelFogMedium[i].yzw;
+		scatter += fog.rgb * t;
+		tau += t;
+	}
+
+	return scatter;
+}
+
+// (1 - exp(-x)) / x per channel, the series below 0.05 (as the integration)
+vec3 FroxelPhi(in vec3 x, in vec3 t)
+{
+	vec3 series = 1.0 - x * (1.0 / 2.0 - x * (1.0 / 6.0 - x * (1.0 / 24.0 - x * (1.0 / 120.0))));
+	return mix((1.0 - t) / max(x, vec3(1e-20)), series, lessThan(x, vec3(0.05)));
+}
+
+// FroxelLookup with a transmittance per channel: returns the in-scattering, T = T.rgb
+vec3 FroxelLookupRGB(in vec2 uv, in float d, in float rayScale, in vec3 worldPos, out vec3 T)
+{
+	float numSlices = u_FroxelGridSize.z;
+	float farZ = u_FroxelSliceParams.y;
+	float firstBoundary = FroxelWToDepth(1.0 / numSlices);
+
+	float dc = clamp(d, 0.0, farZ);
+	float b = FroxelDepthToW(max(dc, firstBoundary)) * numSlices;
+	vec3 coord = vec3(uv, (b - 0.5) / numSlices);
+	vec3 S = texture(u_FroxelVolume, coord).rgb;
+	T = texture(u_FroxelTransmittance, coord).rgb;
+
+	if (dc < firstBoundary)
+	{
+		float f = dc / firstBoundary;
+		S *= f;
+		T = mix(vec3(1.0), T, f);
+	}
+
+	// beyond the slices: the media between far and d per channel, S += T * light * (sigma_s / sigma_t)
+	// * (1 - exp(-tau)) = T * light * scatter * phi(tau), T *= exp(-tau)
+	if (d > farZ)
+	{
+		vec3 toPos = worldPos - u_FroxelViewOrigin.xyz;
+		vec3 a = u_FroxelViewOrigin.xyz + toPos * (farZ / d);
+		float len = (d - farZ) * rayScale;
+		vec3 tau;
+		vec3 scatter = FroxelTailMediumRGB(a, toPos / max(length(toPos), 1e-6), len, tau);
+		if (any(greaterThan(tau, vec3(0.0))) || any(greaterThan(scatter, vec3(0.0))))
+		{
+			vec3 light = texture(u_FroxelTail, uv).rgb;
+			vec3 t = exp(-tau);
+			S += T * light * scatter * FroxelPhi(tau, t);
+			T *= t;
+		}
+	}
+
+	return S;
+}
+#endif
+
 // light of the particle light field at worldPos (froxel texel centers: slice k at w = (k + 0.5) / N)
 vec3 ParticleLightLookup(in vec3 worldPos)
 {
@@ -482,6 +614,27 @@ vec4 FroxelFog(in vec3 worldPos)
 
 	return FroxelLookup(clamp(uv, 0.0, 1.0), d, rayScale, worldPos);
 }
+
+#if defined(USE_FROXEL_RGB)
+// In-scattering between the camera and worldPos, T = the transmittance per channel
+vec3 FroxelFogRGB(in vec3 worldPos, out vec3 T)
+{
+	T = vec3(1.0);
+	vec4 clip = u_FroxelViewProjection * vec4(worldPos, 1.0);
+	if (clip.w <= 0.0)
+		return vec3(0.0);
+
+	vec2 uv = (clip.xy / clip.w) * 0.5 + 0.5;
+	vec3 toPos = worldPos - u_FroxelViewOrigin.xyz;
+	float d = dot(toPos, u_FroxelViewForward.xyz);
+	float rayScale = length(toPos) / max(d, 1e-3);
+
+	if (u_FroxelDebugParams.z > 0.5 && (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))))
+		return vec3(0.0);
+
+	return FroxelLookupRGB(clamp(uv, 0.0, 1.0), d, rayScale, worldPos, T);
+}
+#endif
 
 // World position of the depth buffer sample at render target coordinates tc. The first person view
 // model (depth hack range) is moved back to its real depth, the sky is at the sky distance.
