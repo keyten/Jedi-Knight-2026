@@ -105,6 +105,7 @@
 #define FEEDER_SIEGE_CLASS_INVENTORY		0x26			// for siege team choice
 #define FEEDER_SIEGE_CLASS_FORCE			0x27			// for siege team choice
 #define FEEDER_LANGUAGES					0x28			// for language choice
+#define FEEDER_RENDER_LUTS                   0x70            // luts/*.cube in the virtual filesystem
 #define FEEDER_MOVES						0x29			// moves for the data pad moves screen
 #define FEEDER_MOVES_TITLES					0x2a			// move titles for the data pad moves screen
 #define FEEDER_SABER_SINGLE_INFO			0x2b			// saber single

@@ -7776,6 +7776,14 @@ void Item_Slider_Paint(itemDef_t *item)
 	x = Item_Slider_ThumbPosition(item);
 //	DC->drawHandlePic( x - (SLIDER_THUMB_WIDTH / 2), y - 2, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT, DC->Assets.sliderThumb );
 	DC->drawHandlePic( x - (SLIDER_THUMB_WIDTH / 2), y+2, SLIDER_THUMB_WIDTH, SLIDER_THUMB_HEIGHT, DC->Assets.sliderThumb );
+	// The rendering overlay needs a readable value beside each slider.
+	if (item->cvar && !Q_strncmp(item->cvar, "ui_r2026_r_", 11)) {
+		const float value = DC->getCVarValue(item->cvar);
+		const char *format = item->window.group && strstr(item->window.group, "integer") ? "%.0f" : "%.3g";
+		const float barX = item->text ? item->textRect.x + item->textRect.w + 8 : item->window.rect.x;
+		DC->drawText(barX + SLIDER_WIDTH + 6, item->textRect.y, item->textscale,
+			newColor, va(format, value), 0, item->textStyle, item->font);
+	}
 
 }
 
@@ -10969,6 +10977,17 @@ Item_Slider_HandleKey
 */
 qboolean Item_Slider_HandleKey(itemDef_t *item, int key, qboolean down)
 {
+	if (down && item->cvar && !Q_strncmp(item->cvar, "ui_r2026_r_", 11) &&
+		(item->window.flags & WINDOW_HASFOCUS) && (key == A_CURSOR_LEFT || key == A_CURSOR_RIGHT)) {
+		const editFieldDef_t *edit = static_cast<editFieldDef_t *>(item->typeData);
+		if (!edit) return qfalse;
+		const bool integer = item->window.group && strstr(item->window.group, "integer");
+		const float step = integer ? 1.0f : (edit->maxVal - edit->minVal) / 1000.0f;
+		float value = DC->getCVarValue(item->cvar) + (key == A_CURSOR_RIGHT ? step : -step);
+		value = value < edit->minVal ? edit->minVal : value > edit->maxVal ? edit->maxVal : value;
+		DC->setCVar(item->cvar, va("%f", value));
+		return qtrue;
+	}
 	//DC->Print("slider handle key\n");
 //JLF MPMOVED
 

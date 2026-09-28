@@ -8,19 +8,7 @@
     "category": "Pipeline prerequisites",
     "section": "HDR",
     "spec": "",
-    "range": null,
-    "label": "High dynamic range",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_toneMap",
@@ -31,19 +19,7 @@
     "category": "Pipeline prerequisites",
     "section": "Tone mapping",
     "spec": "",
-    "range": null,
-    "label": "Compress HDR highlights",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_autoExposure",
@@ -54,19 +30,7 @@
     "category": "Pipeline prerequisites",
     "section": "Auto exposure",
     "spec": "",
-    "range": null,
-    "label": "Automatic exposure",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_depthPrepass",
@@ -77,19 +41,7 @@
     "category": "Pipeline prerequisites",
     "section": "Depth prepass",
     "spec": "",
-    "range": null,
-    "label": "Depth prepass",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_normalMapping",
@@ -100,19 +52,7 @@
     "category": "Pipeline prerequisites",
     "section": "Normal mapping",
     "spec": "",
-    "range": null,
-    "label": "Surface normal detail",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_specularMapping",
@@ -123,19 +63,7 @@
     "category": "Pipeline prerequisites",
     "section": "Specular mapping",
     "spec": "",
-    "range": null,
-    "label": "Material reflections",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_parallaxMapping",
@@ -146,19 +74,7 @@
     "category": "Pipeline prerequisites",
     "section": "Parallax mapping",
     "spec": "",
-    "range": null,
-    "label": "Surface height relief",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_sunlightMode",
@@ -169,23 +85,7 @@
     "category": "Pipeline prerequisites",
     "section": "Realtime sunlight",
     "spec": "",
-    "range": null,
-    "label": "Sun lighting",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Modulated",
-        1
-      ],
-      [
-        "Full lighting",
-        2
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_dlightMode",
@@ -196,23 +96,7 @@
     "category": "Pipeline prerequisites",
     "section": "Dynamic lighting",
     "spec": "",
-    "range": null,
-    "label": "Dynamic light shadows",
-    "performance": "light",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Per-pixel",
-        1
-      ],
-      [
-        "Shadowed",
-        2
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_cubeMapping",
@@ -223,19 +107,7 @@
     "category": "Pipeline prerequisites",
     "section": "Cubemap reflections",
     "spec": "",
-    "range": null,
-    "label": "Environment reflections",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_toneMapMode",
@@ -250,22 +122,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Tone mapper",
-    "performance": "zero",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "ACES",
-        1
-      ],
-      [
-        "AgX-like",
-        2
-      ]
     ]
   },
   {
@@ -281,18 +137,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Color grading",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -304,10 +148,7 @@
     "category": "Colors & post-processing",
     "section": "Color grading LUTs",
     "spec": "\"<file>.cube\"",
-    "range": null,
-    "label": "Choose color palette...",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_colorGradingIntensity",
@@ -322,10 +163,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Palette intensity",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_linearLighting",
@@ -336,19 +174,7 @@
     "category": "Colors & post-processing",
     "section": "Linear lighting",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Physically correct light blending",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_bloom",
@@ -363,22 +189,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Light glow",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Legacy",
-        -1
-      ],
-      [
-        "Modern",
-        1
-      ]
     ]
   },
   {
@@ -394,10 +204,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Glow brightness",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_bloomThreshold",
@@ -412,10 +219,7 @@
       0.0,
       64.0,
       false
-    ],
-    "label": "Glow brightness threshold",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_bloomKnee",
@@ -430,10 +234,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Glow threshold softness",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_bloomScatter",
@@ -448,10 +249,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Glow spread",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_bloomSceneIntensity",
@@ -466,10 +264,7 @@
       0.0,
       2.0,
       false
-    ],
-    "label": "Glow from bright surfaces",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlur",
@@ -484,18 +279,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Motion blur",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -511,10 +294,7 @@
       0.0,
       360.0,
       false
-    ],
-    "label": "Blur exposure angle (degrees)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurReferenceFps",
@@ -529,10 +309,7 @@
       0.0,
       1000.0,
       false
-    ],
-    "label": "Blur reference frame rate",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurMaxPixels",
@@ -547,10 +324,7 @@
       1.0,
       128.0,
       false
-    ],
-    "label": "Maximum blur length (pixels)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurQuality",
@@ -565,22 +339,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Motion blur quality",
-    "performance": "medium",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ]
     ]
   },
   {
@@ -596,10 +354,7 @@
       0.0,
       32.0,
       true
-    ],
-    "label": "Blur samples (0 = quality preset)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurViewModelScale",
@@ -614,10 +369,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "First-person weapon blur",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurCutDistance",
@@ -632,10 +384,7 @@
       16.0,
       16384.0,
       false
-    ],
-    "label": "Camera jump threshold",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_motionBlurCutAngle",
@@ -650,10 +399,7 @@
       1.0,
       180.0,
       false
-    ],
-    "label": "Camera turn threshold (degrees)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_autoPBR",
@@ -668,22 +414,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Legacy material adaptation",
-    "performance": "zero",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Dielectric",
-        1
-      ],
-      [
-        "Material classes",
-        2
-      ]
     ]
   },
   {
@@ -699,18 +429,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Automatic roughness detail",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -726,18 +444,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Convert old shiny materials",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -753,18 +459,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Diffuse light response",
-    "performance": "zero",
-    "enum": [
-      [
-        "Lambert",
-        0
-      ],
-      [
-        "Burley / Disney",
-        1
-      ]
     ]
   },
   {
@@ -780,18 +474,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Old glow emits physical light",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -807,18 +489,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Adaptive relief sampling",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -834,10 +504,7 @@
       4.0,
       64.0,
       true
-    ],
-    "label": "Relief samples: front view",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomMaxSteps",
@@ -852,10 +519,7 @@
       4.0,
       64.0,
       true
-    ],
-    "label": "Relief samples: grazing view",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomBinarySteps",
@@ -870,10 +534,7 @@
       0.0,
       16.0,
       true
-    ],
-    "label": "Relief hit refinement",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomFadeStart",
@@ -888,10 +549,7 @@
       0.0,
       65536.0,
       false
-    ],
-    "label": "Relief fade start (units)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomFadeEnd",
@@ -906,10 +564,7 @@
       0.0,
       65536.0,
       false
-    ],
-    "label": "Relief fade end (units)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSelfShadow",
@@ -924,18 +579,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Relief self-shadowing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -951,26 +594,6 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Lights casting relief shadows",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Sun",
-        0
-      ],
-      [
-        "Sun + strongest",
-        1
-      ],
-      [
-        "Sun + limited",
-        2
-      ],
-      [
-        "All lights",
-        3
-      ]
     ]
   },
   {
@@ -986,10 +609,7 @@
       1.0,
       4.0,
       true
-    ],
-    "label": "Relief local light limit",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSelfShadowSteps",
@@ -1004,10 +624,7 @@
       4.0,
       32.0,
       true
-    ],
-    "label": "Relief shadow ray samples",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSelfShadowStrength",
@@ -1022,10 +639,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Relief shadow strength",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSelfShadowBias",
@@ -1040,10 +654,7 @@
       0.0,
       0.25,
       false
-    ],
-    "label": "Relief shadow ray offset",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSelfShadowSoftness",
@@ -1058,10 +669,7 @@
       0.5,
       64.0,
       false
-    ],
-    "label": "Relief shadow softness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouette",
@@ -1076,18 +684,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Relief changes surface edges",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1103,10 +699,7 @@
       0.0,
       8192.0,
       false
-    ],
-    "label": "Edge relief distance (units)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteFade",
@@ -1121,10 +714,7 @@
       0.0,
       1024.0,
       false
-    ],
-    "label": "Edge relief fade distance",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteSteps",
@@ -1139,10 +729,7 @@
       4.0,
       64.0,
       true
-    ],
-    "label": "Edge relief ray samples",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteMaxSteps",
@@ -1157,10 +744,7 @@
       4.0,
       128.0,
       true
-    ],
-    "label": "Edge relief grazing-angle samples",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteBinarySteps",
@@ -1175,10 +759,7 @@
       0.0,
       16.0,
       true
-    ],
-    "label": "Edge relief hit refinement",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteViewDependence",
@@ -1193,10 +774,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Extra grazing-angle samples",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_pomSilhouetteShadows",
@@ -1211,18 +789,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Displaced edges cast shadows",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1238,18 +804,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Contact shadows on displaced edges",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1265,24 +819,12 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Automatic displaced edges",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
     "var": "r_aoMode",
     "default": "-1",
-    "restart": true,
+    "restart": false,
     "description": "follow legacy `r_ssao` / off / legacy SSAO / GTAO.",
     "name": "r_aoMode",
     "category": "Lighting & shadows",
@@ -1292,26 +834,6 @@
       -1.0,
       2.0,
       true
-    ],
-    "label": "Ambient occlusion method",
-    "performance": "medium",
-    "enum": [
-      [
-        "Follow legacy",
-        -1
-      ],
-      [
-        "Off",
-        0
-      ],
-      [
-        "Legacy SSAO",
-        1
-      ],
-      [
-        "GTAO",
-        2
-      ]
     ]
   },
   {
@@ -1327,22 +849,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Apply occlusion to",
-    "performance": "medium",
-    "enum": [
-      [
-        "Automatic",
-        -1
-      ],
-      [
-        "All lighting",
-        0
-      ],
-      [
-        "Indirect only",
-        1
-      ]
     ]
   },
   {
@@ -1358,18 +864,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Preserve bright indirect light",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1385,10 +879,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Baked light treated as indirect",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_aoSpecOcclusion",
@@ -1403,26 +894,6 @@
       -1.0,
       2.0,
       true
-    ],
-    "label": "Reflection occlusion method",
-    "performance": "medium",
-    "enum": [
-      [
-        "Automatic",
-        -1
-      ],
-      [
-        "Scalar",
-        0
-      ],
-      [
-        "Lagarde",
-        1
-      ],
-      [
-        "Directional cone",
-        2
-      ]
     ]
   },
   {
@@ -1438,26 +909,6 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Occlusion quality",
-    "performance": "medium",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ],
-      [
-        "Ultra",
-        3
-      ]
     ]
   },
   {
@@ -1473,18 +924,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Occlusion render resolution",
-    "performance": "medium",
-    "enum": [
-      [
-        "Full",
-        0
-      ],
-      [
-        "Half",
-        1
-      ]
     ]
   },
   {
@@ -1500,10 +939,7 @@
       1.0,
       512.0,
       false
-    ],
-    "label": "Occlusion radius (units)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_gtaoFalloff",
@@ -1518,10 +954,7 @@
       0.05,
       1.0,
       false
-    ],
-    "label": "Occlusion distance falloff",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_gtaoThickness",
@@ -1536,10 +969,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Thin object compensation",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_gtaoPower",
@@ -1554,10 +984,7 @@
       0.1,
       8.0,
       false
-    ],
-    "label": "Occlusion contrast",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_gtaoDenoise",
@@ -1572,10 +999,7 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Occlusion smoothing passes",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_gtaoBentNormals",
@@ -1590,15 +1014,12 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Directional occlusion strength",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_contactShadows",
     "default": "0",
-    "restart": true,
+    "restart": false,
     "description": "disable / enable sun contact shadows.",
     "name": "r_contactShadows",
     "category": "Lighting & shadows",
@@ -1608,18 +1029,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Small sun contact shadows",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1635,10 +1044,7 @@
       1.0,
       128.0,
       false
-    ],
-    "label": "Contact shadow length",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_contactShadowSteps",
@@ -1653,10 +1059,7 @@
       2.0,
       32.0,
       true
-    ],
-    "label": "Contact shadow ray samples",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_contactShadowThickness",
@@ -1671,10 +1074,7 @@
       0.1,
       64.0,
       false
-    ],
-    "label": "Contact shadow blocker thickness",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_contactShadowStrength",
@@ -1689,10 +1089,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Contact shadow strength",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_contactShadowSoft",
@@ -1707,18 +1104,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Softer contact shadows",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1734,18 +1119,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Clustered dynamic lights",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1761,10 +1134,7 @@
       16.0,
       256.0,
       true
-    ],
-    "label": "Lighting tile size (pixels)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_forwardPlusSlices",
@@ -1779,10 +1149,7 @@
       1.0,
       64.0,
       true
-    ],
-    "label": "Lighting depth layers",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_forwardPlusNearSlice",
@@ -1797,10 +1164,7 @@
       1.0,
       1024.0,
       false
-    ],
-    "label": "Nearest light layer depth",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_forwardPlusMaxLightsPerCluster",
@@ -1815,10 +1179,7 @@
       1.0,
       255.0,
       true
-    ],
-    "label": "Lights per cluster limit",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_forwardPlusMaxShadowLights",
@@ -1829,14 +1190,7 @@
     "category": "Lighting & shadows",
     "section": "Forward+ dynamic lighting",
     "spec": "<count>",
-    "range": [
-      0,
-      32,
-      true
-    ],
-    "label": "Dynamic lights with shadows",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_ssgi",
@@ -1851,18 +1205,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Screen-space bounced light",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -1878,22 +1220,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Bounced light sources",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Dynamic + emission",
-        0
-      ],
-      [
-        "Emission only",
-        1
-      ],
-      [
-        "Full scene (exp.)",
-        2
-      ]
     ]
   },
   {
@@ -1909,10 +1235,7 @@
       0.0,
       8.0,
       false
-    ],
-    "label": "Bounced light brightness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiQuality",
@@ -1927,26 +1250,6 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Bounced light quality",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ],
-      [
-        "Ultra",
-        3
-      ]
     ]
   },
   {
@@ -1962,10 +1265,7 @@
       0.0,
       8.0,
       true
-    ],
-    "label": "Bounce rays (0 = quality preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiSteps",
@@ -1980,10 +1280,7 @@
       0.0,
       256.0,
       true
-    ],
-    "label": "Bounce steps (0 = quality preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiMaxDistance",
@@ -1998,10 +1295,7 @@
       16.0,
       4096.0,
       false
-    ],
-    "label": "Bounced light ray distance (units)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiThickness",
@@ -2016,10 +1310,7 @@
       0.5,
       256.0,
       false
-    ],
-    "label": "Bounced light blocker thickness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiTemporal",
@@ -2034,18 +1325,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Bounced light temporal smoothing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2061,10 +1340,7 @@
       0.0,
       0.98,
       false
-    ],
-    "label": "Bounced light history retention",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiDenoise",
@@ -2079,10 +1355,7 @@
       -1.0,
       4.0,
       true
-    ],
-    "label": "Bounced light smoothing passes",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiHalfRes",
@@ -2097,22 +1370,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Bounced light resolution",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Quality preset",
-        -1
-      ],
-      [
-        "Full",
-        0
-      ],
-      [
-        "Half",
-        1
-      ]
     ]
   },
   {
@@ -2128,22 +1385,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Bounced light tracing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Quality preset",
-        -1
-      ],
-      [
-        "Linear",
-        0
-      ],
-      [
-        "Hierarchical",
-        1
-      ]
     ]
   },
   {
@@ -2159,10 +1400,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Bounced light emissive brightness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssgiGlowScale",
@@ -2177,10 +1415,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Bounce from old glow materials",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_diffuseIBL",
@@ -2195,18 +1430,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Directional environment light",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2222,10 +1445,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Environment light directionality",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_ltcAreaLights",
@@ -2236,19 +1456,7 @@
     "category": "Lighting & shadows",
     "section": "LTC area lights",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Area-shaped light sources",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_ltcIntensityScale",
@@ -2259,14 +1467,7 @@
     "category": "Lighting & shadows",
     "section": "LTC area lights",
     "spec": "<value>",
-    "range": [
-      0,
-      16,
-      false
-    ],
-    "label": "Area light brightness",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_ltcStaticDiffuse",
@@ -2277,19 +1478,7 @@
     "category": "Lighting & shadows",
     "section": "LTC area lights",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Add diffuse from static lamps",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_ltcMaxLights",
@@ -2300,14 +1489,7 @@
     "category": "Lighting & shadows",
     "section": "LTC area lights",
     "spec": "<count>",
-    "range": [
-      0,
-      256,
-      true
-    ],
-    "label": "Area light limit",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_ltcAutoAreaLights",
@@ -2318,23 +1500,7 @@
     "category": "Lighting & shadows",
     "section": "Automatic LTC lamp detection",
     "spec": "0 | 1 | 2",
-    "range": null,
-    "label": "Automatic lamp detection",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Confident lamps",
-        1
-      ],
-      [
-        "Broad detection",
-        2
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_ltcSaberAreaLights",
@@ -2345,19 +1511,7 @@
     "category": "Lighting & shadows",
     "section": "Saber line area lights",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Saber-shaped light sources",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_spotLights",
@@ -2372,18 +1526,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Spotlight cones",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2399,18 +1541,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Spotlight shadows",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2426,22 +1556,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Projected spotlight textures",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Brightness",
-        1
-      ],
-      [
-        "Colored",
-        2
-      ]
     ]
   },
   {
@@ -2457,18 +1571,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Sun shadow method",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Modern",
-        1
-      ]
     ]
   },
   {
@@ -2484,18 +1586,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Distance-dependent shadow softness",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2511,18 +1601,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Leaves cast cutout shadows",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2538,10 +1616,7 @@
       0.0,
       0.3,
       false
-    ],
-    "label": "Shadow cascade transition blend",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowDepthBias",
@@ -2556,10 +1631,7 @@
       0.0,
       8.0,
       false
-    ],
-    "label": "Shadow depth offset",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowNormalBias",
@@ -2574,10 +1646,7 @@
       0.0,
       8.0,
       false
-    ],
-    "label": "Shadow surface-normal offset",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowSlopeBias",
@@ -2592,10 +1661,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Shadow slope offset",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowReceiverBiasClamp",
@@ -2610,10 +1676,7 @@
       0.0,
       32.0,
       false
-    ],
-    "label": "Maximum shadow offset",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowPCSSQuality",
@@ -2628,22 +1691,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Soft sun shadow quality",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "High",
-        1
-      ],
-      [
-        "Ultra",
-        2
-      ]
     ]
   },
   {
@@ -2659,10 +1706,7 @@
       0.0,
       8.0,
       false
-    ],
-    "label": "Sun size (degrees)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowPCSSMaxPenumbra",
@@ -2677,10 +1721,7 @@
       0.0,
       256.0,
       false
-    ],
-    "label": "Maximum sun shadow softness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_entityLightGrid",
@@ -2695,22 +1736,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Character lighting detail",
-    "performance": "light",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Three samples",
-        1
-      ],
-      [
-        "Per-pixel",
-        2
-      ]
     ]
   },
   {
@@ -2726,22 +1751,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Skin light scattering",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Light wrap",
-        1
-      ],
-      [
-        "Diffusion",
-        2
-      ]
     ]
   },
   {
@@ -2757,18 +1766,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Allow mixed skin/head materials",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2784,10 +1781,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Skin scattering strength",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_skinSSSWidth",
@@ -2802,10 +1796,7 @@
       0.0,
       40.0,
       false
-    ],
-    "label": "Skin scattering width",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_skinSSSQuality",
@@ -2820,22 +1811,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Skin scattering quality",
-    "performance": "medium",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ]
     ]
   },
   {
@@ -2851,10 +1826,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Light wrapping around skin",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_skinSSSFollowSurface",
@@ -2869,10 +1841,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Scattering follows skin relief",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_skinSSSTransmission",
@@ -2887,10 +1856,7 @@
       0.0,
       2.0,
       false
-    ],
-    "label": "Light passing through skin",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_shadowCasterLod",
@@ -2905,18 +1871,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Character shadow detail follows view",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2932,18 +1886,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Dynamic shadow offset method",
-    "performance": "light",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Improved",
-        1
-      ]
     ]
   },
   {
@@ -2959,18 +1901,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Screen-space reflections",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -2986,26 +1916,6 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Reflection quality",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ],
-      [
-        "Ultra",
-        3
-      ]
     ]
   },
   {
@@ -3021,10 +1931,7 @@
       0.0,
       256.0,
       true
-    ],
-    "label": "Reflection samples (0 = preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrRefineSteps",
@@ -3039,10 +1946,7 @@
       0.0,
       16.0,
       true
-    ],
-    "label": "Reflection hit refinement (0 = preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrMaxDistance",
@@ -3057,10 +1961,7 @@
       16.0,
       16384.0,
       false
-    ],
-    "label": "Reflection ray distance (units)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrThickness",
@@ -3075,10 +1976,7 @@
       0.5,
       256.0,
       false
-    ],
-    "label": "Reflection blocker thickness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrMaxRoughness",
@@ -3093,10 +1991,7 @@
       0.05,
       1.0,
       false
-    ],
-    "label": "Maximum reflective roughness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrEdgeFade",
@@ -3111,10 +2006,7 @@
       0.0,
       0.5,
       false
-    ],
-    "label": "Reflection edge fade",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrHalfRes",
@@ -3129,22 +2021,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Reflection render resolution",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Quality preset",
-        -1
-      ],
-      [
-        "Full",
-        0
-      ],
-      [
-        "Half",
-        1
-      ]
     ]
   },
   {
@@ -3160,22 +2036,6 @@
       -1.0,
       1.0,
       true
-    ],
-    "label": "Reflection ray tracing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Quality preset",
-        -1
-      ],
-      [
-        "Linear",
-        0
-      ],
-      [
-        "Hierarchical",
-        1
-      ]
     ]
   },
   {
@@ -3191,18 +2051,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Reflection temporal smoothing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3218,10 +2066,7 @@
       0.0,
       0.98,
       false
-    ],
-    "label": "Reflection history retention",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrBlendStrength",
@@ -3236,10 +2081,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Screen reflection blend strength",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrHitCache",
@@ -3254,18 +2096,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Reuse reflection ray hits",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3281,18 +2111,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Skip nonreflective surfaces",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3308,18 +2126,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Reflect sabers and blaster effects",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3335,10 +2141,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Effect reflection brightness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_ssrEmitterMaxRoughness",
@@ -3353,10 +2156,7 @@
       0.05,
       1.0,
       false
-    ],
-    "label": "Effect reflection max roughness",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFog",
@@ -3371,22 +2171,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Volumetric fog method",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Legacy",
-        1
-      ],
-      [
-        "Modern",
-        2
-      ]
     ]
   },
   {
@@ -3402,22 +2186,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Fog quality",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Low",
-        0
-      ],
-      [
-        "Medium",
-        1
-      ],
-      [
-        "High",
-        2
-      ]
     ]
   },
   {
@@ -3433,10 +2201,7 @@
       0.0,
       32.0,
       true
-    ],
-    "label": "Fog cell size (0 = preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogSlices",
@@ -3451,10 +2216,7 @@
       0.0,
       128.0,
       true
-    ],
-    "label": "Fog depth layers (0 = preset)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogFar",
@@ -3469,10 +2231,7 @@
       0.0,
       65536.0,
       false
-    ],
-    "label": "Fog draw distance (0 = automatic)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogAnisotropy",
@@ -3487,10 +2246,7 @@
       -0.9,
       0.9,
       false
-    ],
-    "label": "Light scattering directionality",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogTemporal",
@@ -3505,18 +2261,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Fog temporal smoothing",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3532,10 +2276,7 @@
       0.0,
       0.98,
       false
-    ],
-    "label": "Fog history retention",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogSunScale",
@@ -3550,10 +2291,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Sunlight in fog",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogDlightScale",
@@ -3568,10 +2306,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Dynamic light in fog",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogStaticScale",
@@ -3586,10 +2321,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Baked light in fog",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogDlightShadows",
@@ -3604,18 +2336,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Dynamic light shadows in fog",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3631,10 +2351,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Fog light feeds glow",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogStaticDirectional",
@@ -3645,19 +2362,7 @@
     "category": "Volumetric lighting & fog",
     "section": "Directional baked light in volumetrics",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Directional baked light in fog",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_volumetricFogHeight",
@@ -3672,18 +2377,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Height-dependent fog",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -3699,10 +2392,7 @@
       1.0,
       1000000.0,
       false
-    ],
-    "label": "Fog opacity distance (units)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogHeightBase",
@@ -3713,14 +2403,7 @@
     "category": "Volumetric lighting & fog",
     "section": "Height fog",
     "spec": "<z>",
-    "range": [
-      -8192,
-      8192,
-      false
-    ],
-    "label": "Fog base altitude (units)",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_volumetricFogHeightFalloff",
@@ -3735,10 +2418,7 @@
       1.0,
       65536.0,
       false
-    ],
-    "label": "Fog altitude falloff (units)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogHeightMaxDensity",
@@ -3753,10 +2433,7 @@
       1.0,
       64.0,
       false
-    ],
-    "label": "Maximum fog density",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogHeightTopHeight",
@@ -3771,10 +2448,7 @@
       0.0,
       65536.0,
       false
-    ],
-    "label": "Fog ceiling (0 = unlimited)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogHeightColor",
@@ -3785,27 +2459,7 @@
     "category": "Volumetric lighting & fog",
     "section": "Height fog",
     "spec": "\"r g b\"",
-    "range": null,
-    "label": "Height fog color",
-    "performance": "light",
-    "enum": [
-      [
-        "Neutral",
-        "0.7 0.75 0.8"
-      ],
-      [
-        "White",
-        "1 1 1"
-      ],
-      [
-        "Warm",
-        "0.9 0.7 0.5"
-      ],
-      [
-        "Cool",
-        "0.5 0.7 0.9"
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_volumetricFogNoise",
@@ -3820,42 +2474,6 @@
       0.0,
       7.0,
       true
-    ],
-    "label": "Uneven fog density affects",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Height fog",
-        1
-      ],
-      [
-        "Map fog",
-        2
-      ],
-      [
-        "Height + map",
-        3
-      ],
-      [
-        "Global fog",
-        4
-      ],
-      [
-        "Height + global",
-        5
-      ],
-      [
-        "Map + global",
-        6
-      ],
-      [
-        "All fog",
-        7
-      ]
     ]
   },
   {
@@ -3871,10 +2489,7 @@
       64.0,
       65536.0,
       false
-    ],
-    "label": "Fog noise pattern size (units)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogNoiseContrast",
@@ -3889,10 +2504,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Fog noise contrast",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogNoiseDetailScale",
@@ -3907,10 +2519,7 @@
       16.0,
       65536.0,
       false
-    ],
-    "label": "Fog noise fine pattern size",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogNoiseDetailContrast",
@@ -3925,10 +2534,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Fog noise fine pattern contrast",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogNoiseWind",
@@ -3939,31 +2545,7 @@
     "category": "Volumetric lighting & fog",
     "section": "Volumetric density noise",
     "spec": "\"x y z\"",
-    "range": null,
-    "label": "Fog drift direction",
-    "performance": "light",
-    "enum": [
-      [
-        "Still",
-        "0 0 0"
-      ],
-      [
-        "East",
-        "32 0 0"
-      ],
-      [
-        "West",
-        "-32 0 0"
-      ],
-      [
-        "North",
-        "0 32 0"
-      ],
-      [
-        "South",
-        "0 -32 0"
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_volumetricParticles",
@@ -3978,18 +2560,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "3D smoke and dust volumes",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4001,14 +2571,7 @@
     "category": "Volumetric lighting & fog",
     "section": "Volumetric FX particles",
     "spec": "<count>",
-    "range": [
-      0,
-      128,
-      true
-    ],
-    "label": "3D particle limit",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_volumetricParticlesScale",
@@ -4023,10 +2586,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "3D particles pattern size (units)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricParticlesHistory",
@@ -4041,10 +2601,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Particle history persistence",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_particleLighting",
@@ -4059,18 +2616,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Smoke sprite lighting",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4086,10 +2631,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Smoke lighting blend",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_particleLightingScale",
@@ -4104,10 +2646,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Smoke lighting brightness",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_particleLightingFloor",
@@ -4122,10 +2661,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Minimum smoke brightness",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricEmission",
@@ -4140,10 +2676,7 @@
       0.0,
       16.0,
       false
-    ],
-    "label": "Glowing particles light fog",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricSelfShadow",
@@ -4158,22 +2691,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Fog casts shadows inside itself",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Sun only",
-        1
-      ],
-      [
-        "Sun + local",
-        2
-      ]
     ]
   },
   {
@@ -4189,10 +2706,7 @@
       2.0,
       16.0,
       true
-    ],
-    "label": "Fog self-shadow samples",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricSelfShadowDistance",
@@ -4207,10 +2721,7 @@
       32.0,
       8192.0,
       false
-    ],
-    "label": "Fog self-shadow distance (units)",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricSelfShadowOutsideHeightFog",
@@ -4225,18 +2736,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Fog self-shadows outside height fog",
-    "performance": "heavy",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4252,10 +2751,7 @@
       0.0,
       4.0,
       true
-    ],
-    "label": "Self-shadowed fog light limit",
-    "performance": "heavy",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatter",
@@ -4270,22 +2766,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Repeated fog light scattering",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Approximation",
-        1
-      ],
-      [
-        "Extended",
-        2
-      ]
     ]
   },
   {
@@ -4301,10 +2781,7 @@
       1.0,
       3.0,
       true
-    ],
-    "label": "Fog scattering layers",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatterAttenuation",
@@ -4319,10 +2796,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Fog scattering light loss",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatterContribution",
@@ -4337,10 +2811,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Fog scattering brightness contribution",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatterPhase",
@@ -4355,10 +2826,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Scattered light direction retention",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatterLength",
@@ -4373,10 +2841,7 @@
       1.0,
       4096.0,
       false
-    ],
-    "label": "Fog scattering length",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricMultiScatterShadowFill",
@@ -4391,10 +2856,7 @@
       0.0,
       0.5,
       false
-    ],
-    "label": "Fill dark fog shadows",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_volumetricFogRGBExtinction",
@@ -4409,18 +2871,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Colored fog light absorption",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4432,23 +2882,7 @@
     "category": "Volumetric lighting & fog",
     "section": "RGB extinction / wavelength-dependent absorption",
     "spec": "\"r g b\"",
-    "range": null,
-    "label": "Fog absorption color",
-    "performance": "light",
-    "enum": [
-      [
-        "Neutral",
-        "1 1 1"
-      ],
-      [
-        "Warm",
-        "0.6 1 1.4"
-      ],
-      [
-        "Cool",
-        "1.4 1 0.6"
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherCull",
@@ -4459,19 +2893,7 @@
     "category": "Rain & wet surfaces",
     "section": "Weather chunk culling",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Skip invisible weather regions",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_rainStreaks",
@@ -4482,19 +2904,7 @@
     "category": "Rain & wet surfaces",
     "section": "Modern rain streaks",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Rain streak style",
-    "performance": "light",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Modern",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_rainStreakWidth",
@@ -4509,10 +2919,7 @@
       0.25,
       4.0,
       false
-    ],
-    "label": "Rain streak width",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainStreakLength",
@@ -4527,10 +2934,7 @@
       0.25,
       4.0,
       false
-    ],
-    "label": "Rain streak length",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainStreakOpacity",
@@ -4545,10 +2949,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Rain streak opacity",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainStreakLighting",
@@ -4563,18 +2964,6 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Light rain from the world",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4590,18 +2979,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Rain makes surfaces wet",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -4613,14 +2990,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "0..1",
-    "range": [
-      0,
-      1,
-      false
-    ],
-    "label": "Wet surface strength",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherWetnessRoughness",
@@ -4631,14 +3001,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Wet surface roughness",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherWetnessDarkening",
@@ -4649,14 +3012,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Wet surface darkening",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherWetnessNormal",
@@ -4667,14 +3023,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Wet surface detail flattening",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherWetnessEntityFacing",
@@ -4685,14 +3034,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "<value>",
-    "range": [
-      0,
-      1,
-      false
-    ],
-    "label": "Wetness on vertical model faces",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherWetnessBias",
@@ -4703,14 +3045,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain wetness",
     "spec": "<units>",
-    "range": [
-      0,
-      64,
-      false
-    ],
-    "label": "Rain exposure depth offset",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddles",
@@ -4721,19 +3056,7 @@
     "category": "Rain & wet surfaces",
     "section": "Procedural puddles",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Procedural puddles",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherPuddleCoverage",
@@ -4744,14 +3067,7 @@
     "category": "Rain & wet surfaces",
     "section": "Procedural puddles",
     "spec": "0..1",
-    "range": [
-      0,
-      1,
-      false
-    ],
-    "label": "Puddle coverage",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleRoughness",
@@ -4762,14 +3078,7 @@
     "category": "Rain & wet surfaces",
     "section": "Procedural puddles",
     "spec": "<value>",
-    "range": [
-      0,
-      1,
-      false
-    ],
-    "label": "Puddle roughness",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleSlope",
@@ -4780,23 +3089,7 @@
     "category": "Rain & wet surfaces",
     "section": "Procedural puddles",
     "spec": "\"min max\"",
-    "range": null,
-    "label": "Puddles form on",
-    "performance": "light",
-    "enum": [
-      [
-        "Flat surfaces",
-        "0.90 0.98"
-      ],
-      [
-        "Very flat",
-        "0.97 0.995"
-      ],
-      [
-        "Gentle slopes",
-        "0.75 0.95"
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherPuddleScale",
@@ -4807,14 +3100,7 @@
     "category": "Rain & wet surfaces",
     "section": "Procedural puddles",
     "spec": "<units>",
-    "range": [
-      16,
-      4096,
-      false
-    ],
-    "label": "Puddle pattern size (units)",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleUseHeightMap",
@@ -4825,19 +3111,7 @@
     "category": "Rain & wet surfaces",
     "section": "Height-aware puddles",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Water fills material cracks",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherPuddleHeightSoftness",
@@ -4848,14 +3122,7 @@
     "category": "Rain & wet surfaces",
     "section": "Height-aware puddles",
     "spec": "<value>",
-    "range": [
-      0.001,
-      1,
-      false
-    ],
-    "label": "Puddle waterline softness",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleWaterLevelBias",
@@ -4866,14 +3133,7 @@
     "category": "Rain & wet surfaces",
     "section": "Height-aware puddles",
     "spec": "<value>",
-    "range": [
-      -1,
-      1,
-      false
-    ],
-    "label": "Puddle water level offset",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleRipples",
@@ -4884,19 +3144,7 @@
     "category": "Rain & wet surfaces",
     "section": "Puddle ripples",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Rain ripples in puddles",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherPuddleRippleStrength",
@@ -4907,14 +3155,7 @@
     "category": "Rain & wet surfaces",
     "section": "Puddle ripples",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Puddle ripple strength",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleRippleScale",
@@ -4925,14 +3166,7 @@
     "category": "Rain & wet surfaces",
     "section": "Puddle ripples",
     "spec": "<units>",
-    "range": [
-      1,
-      256,
-      false
-    ],
-    "label": "Puddle ripple pattern size (units)",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherPuddleRippleRate",
@@ -4943,14 +3177,7 @@
     "category": "Rain & wet surfaces",
     "section": "Puddle ripples",
     "spec": "<value>",
-    "range": [
-      0,
-      8,
-      false
-    ],
-    "label": "Puddle ripple rate",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherRunoff",
@@ -4961,19 +3188,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Water flowing down walls",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_weatherRunoffStrength",
@@ -4984,14 +3199,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Runoff strength",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherRunoffSpeed",
@@ -5002,14 +3210,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "<units/s>",
-    "range": [
-      0,
-      256,
-      false
-    ],
-    "label": "Runoff speed",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherRunoffScale",
@@ -5020,14 +3221,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "<units>",
-    "range": [
-      1,
-      512,
-      false
-    ],
-    "label": "Runoff pattern size (units)",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherRunoffProbe",
@@ -5038,14 +3232,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "<value>",
-    "range": [
-      0,
-      16,
-      false
-    ],
-    "label": "Wall rain exposure probe",
-    "performance": "light",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_weatherRunoffEntities",
@@ -5056,19 +3243,7 @@
     "category": "Rain & wet surfaces",
     "section": "Water runoff",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Water flows on characters/props",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_rainSplashes",
@@ -5079,19 +3254,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain impact splashes",
     "spec": "0 | 1",
-    "range": null,
-    "label": "Rain impact splashes",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
-    ]
+    "range": null
   },
   {
     "var": "r_rainSplashSize",
@@ -5106,10 +3269,7 @@
       1.0,
       64.0,
       false
-    ],
-    "label": "Splash size (units)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainSplashLifetime",
@@ -5124,10 +3284,7 @@
       50.0,
       2000.0,
       false
-    ],
-    "label": "Splash lifetime (ms)",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainSplashOpacity",
@@ -5142,10 +3299,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Splash opacity",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_rainLens",
@@ -5160,18 +3314,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Rain drops on camera lens",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5183,14 +3325,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
     "spec": "0..1",
-    "range": [
-      0,
-      1,
-      false
-    ],
-    "label": "Lens rain density",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_rainLensRefraction",
@@ -5201,14 +3336,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
     "spec": "<value>",
-    "range": [
-      0,
-      4,
-      false
-    ],
-    "label": "Lens rain refraction strength",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_rainLensDropSize",
@@ -5219,14 +3347,7 @@
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
     "spec": "<value>",
-    "range": [
-      0.25,
-      4,
-      false
-    ],
-    "label": "Lens drop size",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_autoFoliage",
@@ -5241,22 +3362,6 @@
       0.0,
       2.0,
       true
-    ],
-    "label": "Automatic plant detection",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "Conservative",
-        1
-      ],
-      [
-        "Experimental",
-        2
-      ]
     ]
   },
   {
@@ -5272,26 +3377,6 @@
       0.0,
       3.0,
       true
-    ],
-    "label": "Grass geometry",
-    "performance": "medium",
-    "enum": [
-      [
-        "Legacy",
-        0
-      ],
-      [
-        "Cross",
-        1
-      ],
-      [
-        "Tuft",
-        2
-      ],
-      [
-        "Adaptive",
-        3
-      ]
     ]
   },
   {
@@ -5307,10 +3392,7 @@
       16.0,
       16384.0,
       false
-    ],
-    "label": "Grass third-card fade distance",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_grassCardWidth",
@@ -5325,10 +3407,7 @@
       0.25,
       2.0,
       false
-    ],
-    "label": "Grass blade width",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageWind",
@@ -5343,18 +3422,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Coherent plant wind",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5370,10 +3437,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Plant wind strength",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageWindSpeed",
@@ -5388,10 +3452,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Plant wind speed",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageWindDirection",
@@ -5406,10 +3467,7 @@
       0.0,
       360.0,
       false
-    ],
-    "label": "Plant wind direction (degrees)",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_leafFlutter",
@@ -5424,18 +3482,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Leaf rustling",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5451,10 +3497,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Leaf rustling strength",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_leafFlutterSpeed",
@@ -5469,10 +3512,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Leaf rustling speed",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_leafFlutterNormal",
@@ -5487,10 +3527,7 @@
       0.0,
       1.0,
       false
-    ],
-    "label": "Leaf lighting wobble",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_plantWind",
@@ -5505,18 +3542,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Root-anchored plant bending",
-    "performance": "light",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5532,10 +3557,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Plant bending strength",
-    "performance": "light",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageInteraction",
@@ -5550,18 +3572,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Characters push plants aside",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5577,10 +3587,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Plant interaction strength",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageInteractionRadius",
@@ -5595,10 +3602,7 @@
       0.5,
       3.0,
       false
-    ],
-    "label": "Character push radius scale",
-    "performance": "medium",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageInteractionMaxInteractors",
@@ -5609,14 +3613,7 @@
     "category": "Foliage",
     "section": "Character / foliage interaction",
     "spec": "<count>",
-    "range": [
-      1,
-      16,
-      true
-    ],
-    "label": "Characters affecting plants",
-    "performance": "medium",
-    "enum": null
+    "range": null
   },
   {
     "var": "r_foliageInteractionNPCs",
@@ -5631,18 +3628,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Nearby characters also push plants",
-    "performance": "medium",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5658,18 +3643,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Plants recover after contact",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5685,22 +3658,6 @@
       64.0,
       256.0,
       true
-    ],
-    "label": "Plant recovery texture size",
-    "performance": "zero",
-    "enum": [
-      [
-        "64",
-        64
-      ],
-      [
-        "128",
-        128
-      ],
-      [
-        "256",
-        256
-      ]
     ]
   },
   {
@@ -5716,10 +3673,7 @@
       256.0,
       8192.0,
       false
-    ],
-    "label": "Plant recovery area size",
-    "performance": "zero",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageBendFieldStrength",
@@ -5734,10 +3688,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Plant recovery strength",
-    "performance": "zero",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageBendFieldRecoveryTime",
@@ -5752,10 +3703,7 @@
       0.1,
       10.0,
       false
-    ],
-    "label": "Plant recovery time (seconds)",
-    "performance": "zero",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageBendFieldDamping",
@@ -5770,10 +3718,7 @@
       0.2,
       1.0,
       false
-    ],
-    "label": "Plant spring damping",
-    "performance": "zero",
-    "enum": null
+    ]
   },
   {
     "var": "r_foliageBendFieldImpulse",
@@ -5788,10 +3733,7 @@
       0.0,
       4.0,
       false
-    ],
-    "label": "Extra plant bending momentum",
-    "performance": "zero",
-    "enum": null
+    ]
   },
   {
     "var": "r_shaderProgramCache",
@@ -5806,18 +3748,6 @@
       0.0,
       1.0,
       true
-    ],
-    "label": "Cache compiled shaders",
-    "performance": "zero",
-    "enum": [
-      [
-        "Off",
-        0
-      ],
-      [
-        "On",
-        1
-      ]
     ]
   },
   {
@@ -5833,9 +3763,6 @@
       16.0,
       4096.0,
       true
-    ],
-    "label": "Shader cache size (MB)",
-    "performance": "zero",
-    "enum": null
+    ]
   }
 ]

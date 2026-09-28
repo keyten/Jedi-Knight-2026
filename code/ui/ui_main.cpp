@@ -479,6 +479,7 @@ void Text_Paint(float x, float y, float scale, vec4_t color, const char *text, i
 int Key_GetCatcher( void );
 
 #define	UI_FPS_FRAMES	4
+#include "ui_render_settings.h"
 void _UI_Refresh( int realtime )
 {
 	static int index;
@@ -522,6 +523,7 @@ void _UI_Refresh( int realtime )
 	}
 
 	UI_UpdateCvars();
+	if (renderSettingsInitialized) UI_RenderSettingsUpdate();
 
 	if (Menu_Count() > 0)
 	{
@@ -678,6 +680,12 @@ void Text_PaintWithCursor(float x, float y, float scale, vec4_t color, const cha
 const char *UI_FeederItemText(float feederID, int index, int column, qhandle_t *handle)
 {
 	*handle = -1;
+	if (feederID == FEEDER_RENDER_LUTS) {
+		if (index == 0) return "Automatic (map LUT)";
+		if (index == 1) return "Neutral (identity)";
+		return index >= 2 && index < static_cast<int>(renderLuts.size()) + 2
+			? renderLuts[index - 2].c_str() + 5 : "";
+	}
 
 	if (feederID == FEEDER_SAVEGAMES)
 	{
@@ -898,7 +906,13 @@ static qboolean UI_RunMenuScript ( const char **args )
 
 	if (String_Parse(args, &name))
 	{
-		if (Q_stricmp(name, "resetdefaults") == 0)
+		if (Q_stricmp(name, "renderSettingsBegin") == 0) {
+			UI_RenderSettingsBegin();
+		}
+		else if (Q_stricmp(name, "renderLutsRefresh") == 0) {
+			UI_RenderLutsRefresh();
+		}
+		else if (Q_stricmp(name, "resetdefaults") == 0)
 		{
 			UI_ResetDefaults();
 		}
@@ -1809,6 +1823,7 @@ UI_FeederCount
 */
 static int UI_FeederCount(float feederID)
 {
+	if (feederID == FEEDER_RENDER_LUTS) return static_cast<int>(renderLuts.size()) + 2;
 	if (feederID == FEEDER_SAVEGAMES )
 	{
 		if (s_savegame.saveFileCnt == -1)
@@ -1879,7 +1894,10 @@ UI_FeederSelection
 */
 static void UI_FeederSelection(float feederID, int index, itemDef_t *item)
 {
-	if (feederID == FEEDER_SAVEGAMES)
+	if (feederID == FEEDER_RENDER_LUTS) {
+		UI_RenderLutSelect(index);
+	}
+	else if (feederID == FEEDER_SAVEGAMES)
 	{
 		s_savegame.currentLine = index;
 		UI_HandleLoadSelection();
@@ -2632,6 +2650,9 @@ UI_Init
 */
 void _UI_Init( qboolean inGameLoad )
 {
+	renderSettings.clear();
+	renderSettingsInitialized = false;
+	Cvar_Set("ui_r2026_restartPending", "0");
 	// Get the list of possible languages
 #ifndef JK2_MODE
 	uiInfo.languageCount = SE_GetNumLanguages();	// this does a dir scan, so use carefully
@@ -2700,7 +2721,7 @@ void _UI_Init( qboolean inGameLoad )
 	uiInfo.uiDC.deferScript			= &UI_DeferMenuScript;
 	uiInfo.uiDC.setBinding			= &trap_Key_SetBinding;
 	uiInfo.uiDC.setColor			= &UI_SetColor;
-	uiInfo.uiDC.setCVar				= Cvar_Set;
+	uiInfo.uiDC.setCVar				= UI_RenderSettingsSetCvar;
 	uiInfo.uiDC.setOverstrikeMode	= &trap_Key_SetOverstrikeMode;
 	uiInfo.uiDC.startLocalSound		= &trap_S_StartLocalSound;
 	uiInfo.uiDC.stopCinematic		= &UI_StopCinematic;
@@ -4056,7 +4077,8 @@ void _UI_KeyEvent( int key, qboolean down )
 		if (menu)
 		{
 			//DemoEnd();
-			if (key == A_ESCAPE && down && !Menus_AnyFullScreenVisible() && !(menu->window.flags & WINDOW_IGNORE_ESCAPE))
+			if (key == A_ESCAPE && down && !Menus_AnyFullScreenVisible() &&
+				Q_strncmp(menu->window.name, "render2026_", 11) && !(menu->window.flags & WINDOW_IGNORE_ESCAPE))
 			{
 				Menus_CloseAll();
 			}

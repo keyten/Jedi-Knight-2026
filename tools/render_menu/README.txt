@@ -1,23 +1,27 @@
-Jedi Academy 2026 rendering menu (single player)
+Jedi Academy 2026 live rendering overlay (SP)
 
-Copy zzzz_render2026_menu.pk3 into GameData/base (or your active mod).
-Restart the game. During gameplay: Esc -> RENDER 2026.
-Settings update cvars immediately. APPLY / RESTART runs vid_restart,
-which creates buffers and applies latched settings. BACK does not undo edits.
-Numeric values: click the value, edit, then press Enter. Right-click multi
-choices to cycle backwards. Hover a row for its description.
+Install the supplied openjk_sp.x86_64.exe next to the existing game executable.
+Put zzzz_render2026_menu.pk3 in GameData/base (or your active mod). Restart.
+Open with Esc -> RENDER 2026, or console: uimenu render2026_0
 
-First page contains existing pipeline prerequisites. Enable HDR and tone
-mapping for linear lighting / HDR bloom / motion blur / rain lens. Enable
-depth prepass for GTAO and contact shadows; sunlight for sun shadows.
-POM needs normal mapping and material height data. LTC saber lights need
-Forward+ and LTC. Wetness needs active map rain; puddles/runoff need wetness.
-Foliage flutter/plant wind need auto foliage; persistent field needs interaction.
-Some effects need updated engine/game modules, authored materials or map data.
-Automatic LTC changes may need map reload (r_ltcReloadLights).
+The game remains visible and running; mouse/keyboard control the overlay.
+CLOSE or Escape returns to gameplay. Live controls update immediately.
+* means a renderer restart is required. APPLY / RESTART is enabled only
+while a restart setting differs from its active value; it runs vid_restart.
+Latched controls show the requested value before restart.
 
-Use the matching Jedi Academy 2026 Rend2 binaries. This PK3 adds menus only.
-Labels use English to work with stock fonts. Debug views and authoring commands
-are intentionally omitted. Existing save/load/setup/datapad screens are retained.
-This overrides ui/ingame.menu; mods replacing that menu may conflict.
-Remove this PK3 to uninstall. Rendering cvars remain in your configuration.
+Drag numeric sliders; left/right arrows make fine adjustments. Integer
+controls stay integer. Every feature has an estimated GPU cost on hover;
+each page shows the highest cost among its features. Costs apply when the
+effect is active, not to moving a slider. Map/material requirements still apply.
+
+LUTs: put .cube files in base/luts, open Choose color palette, click a row.
+RESCAN LUT FOLDER refreshes the list without restarting the game. Automatic
+uses the map LUT; Neutral selects identity. Files inside loaded PK3s also work.
+Vector settings have named presets instead of free-form text.
+
+This version needs the supplied updated SP engine for LUT browsing, pending
+value display, accurate restart tracking and integer slider rounding.
+Use matching 2026 Rend2 renderer and game modules for the rendering features.
+This overrides ui/ingame.menu; other mods overriding it may conflict.
+Remove the PK3 to remove the overlay. Existing rendering choices are retained.
