@@ -639,10 +639,9 @@ void R_CreateVolumetricImages( int width, int height )
 
 	s_vf.resources = qtrue;
 	s_vf.computeAvailable = R_VolumetricComputeAvailable();
-	// A map reload can retain GPU programs and skip the shader loader. If
-	// the previous compute compilation failed, recreate raster carry now.
-	if ( !s_vf.computeAvailable || (tr.volumetricInjectShader.program &&
-		(!tr.volumetricInjectComputeShader.program || !tr.volumetricIntegrateComputeShader.program)) )
+	// A map reload can retain GPU programs and skip the shader loader: the
+	// raster programs exist only when the compute path was not loaded.
+	if ( !s_vf.computeAvailable || tr.volumetricInjectShader.program )
 		R_VolumetricEnsureRasterCarry();
 
 	if ( !r_depthPrepass->integer )
@@ -743,8 +742,8 @@ void R_CreateVolumetricFBOs( void )
 	}
 	{
 		const GLenum bufs[4] = { GL_COLOR_ATTACHMENT0,
-			tr.froxelCarryImage[0] ? GL_COLOR_ATTACHMENT1 : GL_NONE, GL_COLOR_ATTACHMENT2,
-			tr.froxelCarryTImage[0] ? GL_COLOR_ATTACHMENT3 : GL_NONE };
+			(GLenum)(tr.froxelCarryImage[0] ? GL_COLOR_ATTACHMENT1 : GL_NONE), GL_COLOR_ATTACHMENT2,
+			(GLenum)(tr.froxelCarryTImage[0] ? GL_COLOR_ATTACHMENT3 : GL_NONE) };
 		qglDrawBuffers(s_vf.rgb ? 4 : 2, bufs);
 	}
 	R_CheckFBO(tr.froxelIntegrateFbo);
@@ -2704,14 +2703,20 @@ void RB_VolumetricBuild( void )
 	if ( !backEnd.volumetricView || !s_vf.frameActive || s_vf.built )
 		return;
 
+	const bool compute = s_vf.computeAvailable && tr.volumetricInjectComputeShader.program &&
+		tr.volumetricIntegrateComputeShader.program &&
+		(!tr.froxelMediaFbo || tr.volumetricMediaComputeShader.program) &&
+		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE);
+	// the raster programs are only compiled without the compute path; programs
+	// kept over a renderer restart could lack both (no volume, no composite)
+	if ( !compute && !tr.volumetricInjectShader.program )
+		return;
+
 	s_vf.built = qtrue;
 
 	FBO_t *oldFbo = glState.currentFBO;
 	const int current = s_vf.current;
 	const int previous = current ^ 1;
-	const bool compute = s_vf.computeAvailable && tr.volumetricInjectComputeShader.program &&
-		tr.volumetricIntegrateComputeShader.program &&
-		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE);
 	s_vf.builtVolumeFrame = s_vf.volumeFrameNumber;
 	s_vf.builtVolumeImage = current;
 
@@ -2745,7 +2750,7 @@ void RB_VolumetricBuild( void )
 	if ( tr.froxelMediaFbo )
 	{
 		timer = RB_VolumetricBeginTimer("Froxel fog media");
-		shaderProgram_t *sp = compute ? &tr.volumetricInjectComputeShader : &tr.volumetricInjectShader;
+		shaderProgram_t *sp = compute ? &tr.volumetricMediaComputeShader : &tr.volumetricInjectShader;
 		if ( !compute )
 			FBO_Bind(tr.froxelMediaFbo);
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
@@ -2757,7 +2762,9 @@ void RB_VolumetricBuild( void )
 		if ( compute )
 		{
 			bindOutput(5, tr.froxelMediaImage, GL_R16F, true);
-			dispatchInject();
+			qglDispatchCompute((s_vf.width + 3) / 4, (s_vf.height + 3) / 4, (s_vf.depth + 3) / 4);
+			// the injection samples the media; nothing else reads them as an image
+			qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 		}
 		else
 			qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);

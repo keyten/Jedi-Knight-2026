@@ -6,8 +6,9 @@ void main()
 }
 
 /*[Fragment]*/
-// Froxel fog integration (tr_volumetric.cpp): slice u_FroxelSlice of every froxel column, front to
-// back. u_FroxelCarry holds the state after the previous slice.
+// Froxel fog integration (tr_volumetric.cpp), front to back. Raster: slice u_FroxelSlice of every
+// froxel column per draw, u_FroxelCarry holds the state after the previous slice. Compute
+// (USE_FROXEL_COMPUTE): one invocation per column walks all slices with the state in registers.
 //
 // Beer-Lambert with the medium constant inside a slice (the discretisation of the legacy volumetric
 // ray march, color += light * T * (1 - exp(-z))):
@@ -65,34 +66,53 @@ out vec4 out_SSRSpecular;
 #endif
 #endif
 
-// Both paths use the same Beer-Lambert step; compute keeps the running state
-// in registers, raster fetches it from the previous half-float carry texture.
-void FroxelIntegrate(ivec2 cell, int slice, inout vec4 state
+// the fetched inputs of one froxel
+struct FroxelSliceInput
+{
+	vec4 source;			// baked + sun emission (rgb), extinction (a)
+	vec3 dynamic;			// dynamic light scattering + emission
+#if defined(USE_FROXEL_RGB)
+	vec3 extinctionRGB;		// sigma_t.rgb
+#endif
+};
+
+FroxelSliceInput FroxelFetchSlice(in ivec3 froxel)
+{
+	FroxelSliceInput i;
+	i.source = texelFetch(u_FroxelSource, froxel, 0);
+	i.dynamic = texelFetch(u_FroxelDynamic, froxel, 0).rgb;
+#if defined(USE_FROXEL_RGB)
+	i.extinctionRGB = texelFetch(u_FroxelExtinction, froxel, 0).rgb;
+#endif
+	return i;
+}
+
+// length of the ray of the froxel center per unit of view depth
+float FroxelColumnRayLength(in ivec2 cell)
+{
+	vec2 ndc = (vec2(cell) + 0.5) / u_FroxelGridSize.xy * 2.0 - 1.0;
+	vec3 ray = u_FroxelRayForward.xyz + ndc.x * u_FroxelRayRight.xyz + ndc.y * u_FroxelRayUp.xyz;
+	return length(ray);
+}
+
+// One Beer-Lambert step through a slice (pathLength along the ray of the froxel
+// center). Compute keeps the running state in registers, raster fetches it from
+// the previous half-float carry texture.
+void FroxelIntegrate(in FroxelSliceInput i, in float pathLength, in int debugView, inout vec4 state
 #if defined(USE_FROXEL_RGB)
 	, inout vec3 T
 #endif
 )
 {
-	float numSlices = u_FroxelGridSize.z;
-
-	vec4 source = texelFetch(u_FroxelSource, ivec3(cell, slice), 0);
-	vec3 emission = source.rgb + texelFetch(u_FroxelDynamic, ivec3(cell, slice), 0).rgb;
-	float extinction = source.a;
-
-	// path length through the slice along the ray of the froxel center
-	vec2 ndc = (vec2(cell) + 0.5) / u_FroxelGridSize.xy * 2.0 - 1.0;
-	vec3 ray = u_FroxelRayForward.xyz + ndc.x * u_FroxelRayRight.xyz + ndc.y * u_FroxelRayUp.xyz;
-	float sliceNear = FroxelWToDepth(float(slice) / numSlices);
-	float sliceFar = FroxelWToDepth(float(slice + 1) / numSlices);
-	float pathLength = (sliceFar - sliceNear) * length(ray);
+	vec3 emission = i.source.rgb + i.dynamic;
+	float extinction = i.source.a;
 
 	// debug views 30-32 (volumetric_inject.glsl): the source alone, without extinction
-	int debugView = int(u_FroxelDebugParams.x);
 	if (debugView >= 30 && debugView <= 32)
 		extinction = 0.0;
 
 #if defined(USE_FROXEL_RGB)
-	vec3 extinctionRGB = texelFetch(u_FroxelExtinction, ivec3(cell, slice), 0).rgb;
+	vec3 extinctionRGB = i.extinctionRGB;
 	if (debugView >= 30 && debugView <= 32)
 		extinctionRGB = vec3(0.0);
 	vec3 xRGB = max(extinctionRGB, vec3(0.0)) * pathLength;
@@ -127,17 +147,34 @@ void main()
 	ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
 	if (any(greaterThanEqual(cell, ivec2(u_FroxelGridSize.xy))))
 		return;
+
+	// column invariants; the far side of a slice is the near side of the next
+	int numSlices = int(u_FroxelGridSize.z);
+	float rayLength = FroxelColumnRayLength(cell);
+	int debugView = int(u_FroxelDebugParams.x);
+	float sliceNear = FroxelWToDepth(0.0);
+
 	vec4 state = vec4(0.0, 0.0, 0.0, 1.0);
 #if defined(USE_FROXEL_RGB)
 	vec3 T = vec3(1.0);
 #endif
-	for (int slice = 0; slice < int(u_FroxelGridSize.z); ++slice)
+	// one invocation walks the column: the fetches of the next slice are issued
+	// before the math of this one, so their latency overlaps it
+	FroxelSliceInput next = FroxelFetchSlice(ivec3(cell, 0));
+	for (int slice = 0; slice < numSlices; ++slice)
 	{
-		FroxelIntegrate(cell, slice, state
+		FroxelSliceInput current = next;
+		if (slice + 1 < numSlices)
+			next = FroxelFetchSlice(ivec3(cell, slice + 1));
+
+		float sliceFar = FroxelWToDepth(float(slice + 1) / u_FroxelGridSize.z);
+		FroxelIntegrate(current, (sliceFar - sliceNear) * rayLength, debugView, state
 #if defined(USE_FROXEL_RGB)
 			, T
 #endif
 		);
+		sliceNear = sliceFar;
+
 		imageStore(u_IntegratedOutput, ivec3(cell, slice), state);
 #if defined(USE_FROXEL_RGB)
 		imageStore(u_TransmittanceOutput, ivec3(cell, slice), vec4(T, state.a));
@@ -157,7 +194,11 @@ void main()
 	if (slice > 0)
 		T = texelFetch(u_FroxelCarryT, cell, 0).rgb;
 #endif
-	FroxelIntegrate(cell, slice, state
+	float numSlices = u_FroxelGridSize.z;
+	float sliceNear = FroxelWToDepth(float(slice) / numSlices);
+	float sliceFar = FroxelWToDepth(float(slice + 1) / numSlices);
+	FroxelIntegrate(FroxelFetchSlice(ivec3(cell, slice)), (sliceFar - sliceNear) * FroxelColumnRayLength(cell),
+		int(u_FroxelDebugParams.x), state
 #if defined(USE_FROXEL_RGB)
 		, T
 #endif

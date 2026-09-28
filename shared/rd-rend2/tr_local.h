@@ -3832,6 +3832,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricInjectComputeShader;
+	shaderProgram_t volumetricMediaComputeShader;	// r_volumetricSelfShadow media pass
 	shaderProgram_t volumetricIntegrateComputeShader;
 	shaderProgram_t volumetricCompositeShader;
 	shaderProgram_t volumetricDebugShader;

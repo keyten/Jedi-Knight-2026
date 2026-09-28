@@ -108,25 +108,34 @@ With `r_gl43 1` and `r_volumetricFog 2`, GL 4.3 compute and image load/store use
 math as raster injection and integration. Injection dispatches a 3D grid (4 x 4 x 4 workgroups);
 the first invocation of each column also writes its tail light. Integration dispatches a 2D grid
 (8 x 8 workgroups), one invocation per XY column, and sequentially integrates all Z slices in registers
-with `imageStore` for each slice. No per-slice draws, attachment changes or carry texture accesses
+with `imageStore` for each slice. The column invariants (ray length) are computed once, the far depth of
+a slice is the near depth of the next, and the texel fetches of the next slice are issued before the math
+of the current one to hide their latency. No per-slice draws, attachment changes or carry texture accesses
 are needed. Carry textures are allocated only for raster, including fallback after compute compilation fails.
 
 RGB extinction, temporal history, local/particle media, particle lighting, shadows and cookies use
-the same inputs and outputs. Self-shadowing adds one compute media dispatch before injection.
-Image access and texture fetch barriers order each producer before its consumers and order image
-overwrites after previous-frame reads; image units are unbound after integration. Partial workgroups
-check their bounds. Compute integration keeps FP32 running state, whereas raster rounds it to
-RGBA16F after every slice; results can differ slightly from reduced accumulation rounding.
+the same inputs and outputs. Self-shadowing adds one compute media dispatch before injection, with its
+own kernel (`USE_FROXEL_MEDIA_PASS`: only the medium evaluation, so its register use is not sized by
+the lighting path). Image access and texture fetch barriers order each producer before its consumers
+and order image overwrites after previous-frame reads; image units are unbound after integration.
+Partial workgroups check their bounds. Compute integration keeps FP32 running state, whereas raster
+rounds it to RGBA16F after every slice; results can differ slightly from reduced accumulation rounding.
 
 `r_gl43 0` (followed by `vid_restart`) selects the existing raster implementation. Missing capabilities,
 insufficient workgroup/image/sampler/UBO limits, or a failed optional compute compile/link also select
-raster. Both compute programs must succeed before the fast path is used. Startup reports the selected
-path. With volumetric fog disabled no volumetric compute programs are loaded.
+raster. The compute programs (injection, media with `r_volumetricSelfShadow`, integration) are compiled
+first; the raster injection / integration are compiled only when one of them fails, so the large
+injection is not compiled twice. Compute programs use the program binary cache (`r_shaderProgramCache`)
+like the raster ones. Startup reports the selected path. With volumetric fog disabled no volumetric
+compute programs are loaded.
 
 GPU validation: `python tools/rend2/test_volumetric_compute.py` on Windows uses bundled SDL2 and a
-hidden GL context. It compiles raster/compute permutations for scalar/RGB extinction and both sun
-shadow modes, checks injection/media/tail/particle-light outputs, then checks all integrated slices against a Beer-Lambert reference, including empty
-media and dimensions that are not multiples of the workgroup size.
+hidden GL context. It compiles raster/compute/media permutations for scalar/RGB extinction and both sun
+shadow modes, checks injection/media/tail/particle-light outputs, checks all integrated slices against a
+Beer-Lambert reference (including empty media and dimensions that are not multiples of the workgroup
+size), and renders the raster injection (layered draws, tail draw) with the same inputs as compute —
+temporal history, jitter, reprojection between froxel centers, a varying light grid — and compares all
+outputs.
 
 ### Pipeline without compute shaders
 

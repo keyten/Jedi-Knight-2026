@@ -1,8 +1,10 @@
 """GPU regression checks using a hidden SDL GL context (Windows, bundled SDL2).
 
 Run from any directory: python tools/rend2/test_volumetric_compute.py
-Compiles actual raster/compute sources, then checks column integration against
-Beer-Lambert on a grid with partial workgroups, including zero extinction.
+Compiles actual raster/compute sources (and the compute media kernel), checks column
+integration against Beer-Lambert on a grid with partial workgroups, including zero
+extinction, and compares raster and compute injection with history, jitter and
+reprojection.
 """
 import ctypes as C
 import math
@@ -35,7 +37,7 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows):
+def program(name, compute, rgb, shadows, media=False):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
@@ -45,6 +47,7 @@ def program(name, compute, rgb, shadows):
     defines += '#define USE_FROXEL_RGB\n' if rgb else ''
     defines += '#define USE_SHADOWS2\n' if shadows else ''
     defines += '#define USE_FROXEL_COMPUTE\n' if compute else ''
+    defines += '#define USE_FROXEL_MEDIA_PASS\n' if media else ''
     body = fragment('volumetric_common') + fragment(name)
     sources = [(0x91B9, '#version 430 core\n' + defines + body)] if compute else [
         (0x8B31, '#version 150 core\n' + defines + (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Vertex]*/')[1].split('/*[')[0]),
@@ -61,7 +64,7 @@ def program(name, compute, rgb, shadows):
         ok, log = I(), C.create_string_buffer(16384)
         gl('glGetShaderiv', None, U, U, C.POINTER(I))(shader, 0x8B81, C.byref(ok))
         gl('glGetShaderInfoLog', None, U, I, P, P)(shader, len(log), None, log)
-        assert ok.value, (name, compute, rgb, shadows, log.value.decode())
+        assert ok.value, (name, compute, rgb, shadows, media, log.value.decode())
         gl('glAttachShader', None, U, U)(result, shader)
         gl('glDeleteShader', None, U)(shader)
     for index, output in enumerate(['out_Color', 'out_Glow', 'out_SSRNormal', 'out_SSRSpecular']):
@@ -176,11 +179,20 @@ def integration(prog, rgb):
     print(f'PASS: {"RGB" if rgb else "scalar"} integration, zero extinction, partial workgroups, all 17 slices')
 
 
-def injection(prog, rgb):
-    width, height, depth = 7, 5, 17
-    gl('glUseProgram', None, U)(prog)
-    buffers = [uniform_buffer(prog, 'VolumetricFog', {
-        'u_FroxelGridSize': [width, height, depth, 0],
+W, H, D = 7, 5, 17
+SAMPLERS = ['u_FroxelHistory', 'u_VolumetricStaticGrid', 'u_VolumetricSunGrid',
+            'u_VolumetricDirGrid', 'u_VolumetricDirVecGrid', 'u_VolumetricLegacyGrid',
+            'u_ShadowMap', 'u_ShadowMap2', 'u_FroxelNoise', 'u_FroxelMedia',
+            'u_FroxelExtinction', 'u_FPlusLights', 'u_FPlusGridMap', 'u_LightCookieMap']
+# world = (ndc.x * d, ndc.y * d, d); clip = (x + .1 z, y - .05 z, 0, z): the history
+# lookup lands between froxel centers, as after a small camera turn
+REPROJECT = [1, 0, 0, 0, 0, 1, 0, 0, .1, -.05, 0, 1, 0, 0, 0, 0]
+OUTPUT_FORMATS = [0x881A, 0x8C3A, 0x8C3A, 0x881A]  # inject, dynamic, particle light, sigma_t.rgb
+
+
+def block_values(temporal):
+    values = {
+        'u_FroxelGridSize': [W, H, D, 0],
         'u_FroxelSliceParams': [8, 128, 4, 128],
         'u_FroxelRayForward': [0, 0, 1, 0],
         'u_FroxelRayRight': [1, 0, 0, 0],
@@ -189,57 +201,181 @@ def injection(prog, rgb):
         'u_FroxelHeightFog': [.01, 0, 0, 0],
         'u_FroxelHeightFogColor': [.5, .5, .5, 0],
         'u_FroxelHeightFogTop': [0, .5, 1, 1.5],
-    })]
+    }
+    if temporal:
+        values.update({
+            'u_FroxelViewProjection': REPROJECT,
+            'u_FroxelPrevViewProjection': REPROJECT,
+            'u_FroxelJitter': [.25, -.25, .4, 1],
+            'u_FroxelTemporalParams': [.75, 1, 0, 4],
+            'u_FroxelGridScale': [1 / 64, 1 / 64, 1 / 128, 0],
+        })
+    return values
+
+
+def bind_program(prog, textures, temporal):
+    """Blocks and one texture unit per sampler, as the renderer does."""
+    gl('glUseProgram', None, U)(prog)
+    buffers = [uniform_buffer(prog, 'VolumetricFog', block_values(temporal))]
     for slot, block in enumerate(['Lights', 'VolumetricParticles'], 1):
         buffers.append(uniform_buffer(prog, block, {}, slot))
-    # Give every sampler a distinct unit, as the renderer does. Disabled
-    # shadow/cookie/light-list branches do not dereference their textures.
-    samplers = ['u_FroxelHistory', 'u_VolumetricStaticGrid', 'u_VolumetricSunGrid',
-                'u_VolumetricDirGrid', 'u_VolumetricDirVecGrid', 'u_VolumetricLegacyGrid',
-                'u_ShadowMap', 'u_ShadowMap2', 'u_FroxelNoise', 'u_FroxelMedia',
-                'u_FroxelExtinction', 'u_FPlusLights', 'u_FPlusGridMap', 'u_LightCookieMap']
-    black, baked = texture(1, 1, 1, [0] * 4), texture(1, 1, 1, [2, 3, 4, 0])
-    for unit, name in enumerate(samplers):
+    for unit, name in enumerate(SAMPLERS):
         loc = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, name.encode())
         gl('glUniform1i', None, I, I)(loc, unit)
         gl('glActiveTexture', None, U)(0x84C0 + unit)
-        gl('glBindTexture', None, U, U)(0x806F, baked if name == 'u_VolumetricStaticGrid' else black)
-    outputs = [texture(width, height, depth, internal=fmt) for fmt in [0x881A, 0x8C3A, 0x8C3A, 0x881A]]
-    media = texture(width, height, depth, internal=0x822D)
+        gl('glBindTexture', None, U, U)(0x806F, textures.get(name, textures['black']))
+    return buffers
+
+
+def uniform4(prog, name, *values):
+    loc = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, name.encode())
+    gl('glUniform4f', None, I, F, F, F, F)(loc, *values)
+
+
+def tail_texture():
     tail = U()
     gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(tail))
     gl('glBindTexture', None, U, U)(0x0DE1, tail)
-    gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(0x0DE1, 0, 0x881A, width, height, 0, 0x1908, 0x1406, None)
+    gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(0x0DE1, 0, 0x881A, W, H, 0, 0x1908, 0x1406, None)
     gl('glTexParameteri', None, U, U, I)(0x0DE1, 0x2801, 0x2600)
-    for unit, tex, fmt, layered in [(i, tex, fmt, 1) for i, (tex, fmt) in enumerate(zip(outputs, [0x881A, 0x8C3A, 0x8C3A, 0x881A]))] + [(4, tail, 0x881A, 0), (5, media, 0x822D, 1)]:
-        gl('glBindImageTexture', None, U, U, I, U, I, U, U)(unit, tex, 0, layered, 0, 0x88B9, fmt)
-    particle = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_ParticleLight')
-    gl('glUniform4f', None, I, F, F, F, F)(particle, 0, 0, 1, 0)
-    gl('glDispatchCompute', None, U, U, U)(2, 2, 5)
-    gl('glMemoryBarrier', None, U)(0x28)
-    medium = read(media, width * height * depth * 4)
-    assert all(abs(medium[i] - .01) < .00001 for i in range(0, len(medium), 4))
-    gl('glUniform4f', None, I, F, F, F, F)(particle, 1, 0, 0, 0)
-    gl('glDispatchCompute', None, U, U, U)(2, 2, 5)
-    gl('glMemoryBarrier', None, U)(0x28)
-    expected = [.005, .015, .03, .01] if rgb else [.01, .015, .02, .01]
-    for i, value in enumerate(read(outputs[0], len(medium))):
-        assert abs(value - expected[i % 4]) < .00003, (rgb, i, value, expected[i % 4])
-    for i, value in enumerate(read(outputs[2], len(medium))):
-        assert abs(value - [2, 3, 4, 1][i % 4]) < .00003, (i, value)
+    return tail
+
+
+def read2d(tex):
     gl('glMemoryBarrier', None, U)(0x100)
-    gl('glBindTexture', None, U, U)(0x0DE1, tail)
-    data = (F * (width * height * 4))()
+    gl('glBindTexture', None, U, U)(0x0DE1, tex)
+    data = (F * (W * H * 4))()
     gl('glGetTexImage', None, U, I, U, U, P)(0x0DE1, 0, 0x1908, 0x1406, data)
-    assert gl('glGetError', U)() == 0, 'tail readback GL error'
-    assert all(abs(value - [2, 3, 4, 1][i % 4]) < .00003 for i, value in enumerate(data)), list(data)[:28]
-    if rgb:
-        for i, value in enumerate(read(outputs[3], len(medium))):
-            assert abs(value - [.005, .01, .015, .01][i % 4]) < .00003
-    assert gl('glGetError', U)() == 0
+    return list(data)
+
+
+def delete_buffers(buffers):
     for buffer in buffers:
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(buffer))
-    print(f'PASS: {"RGB" if rgb else "scalar"} injection, media, tail, particle lighting, partial workgroups')
+
+
+def run_compute(inject, media, textures, temporal):
+    """Media kernel, then the injection kernel, as RB_VolumetricBuild dispatches them."""
+    outputs = [texture(W, H, D, internal=fmt) for fmt in OUTPUT_FORMATS]
+    media_tex, tail = texture(W, H, D, internal=0x822D), tail_texture()
+    bind_image = gl('glBindImageTexture', None, U, U, I, U, I, U, U)
+    buffers = bind_program(media, textures, temporal)
+    bind_image(5, media_tex, 0, 1, 0, 0x88B9, 0x822D)
+    gl('glDispatchCompute', None, U, U, U)(2, 2, 5)
+    gl('glMemoryBarrier', None, U)(0x08)  # texture fetch
+    delete_buffers(buffers)
+    buffers = bind_program(inject, dict(textures, u_FroxelMedia=media_tex), temporal)
+    for unit, (tex, fmt) in enumerate(zip(outputs, OUTPUT_FORMATS)):
+        bind_image(unit, tex, 0, 1, 0, 0x88B9, fmt)
+    bind_image(4, tail, 0, 0, 0, 0x88B9, 0x881A)
+    uniform4(inject, 'u_ParticleLight', 1, 0, 0, 0)
+    gl('glDispatchCompute', None, U, U, U)(2, 2, 5)
+    gl('glMemoryBarrier', None, U)(0x28)
+    for unit in range(6):
+        bind_image(unit, 0, 0, 0, 0, 0x88B9, 0x881A)
+    delete_buffers(buffers)
+    return media_tex, outputs, tail
+
+
+def run_raster(prog, textures, temporal, rgb):
+    """The raster path: layered media draw, layered injection, tail draw."""
+    outputs = [texture(W, H, D, internal=fmt) for fmt in OUTPUT_FORMATS]
+    media_tex, tail = texture(W, H, D, internal=0x822D), tail_texture()
+    vao, fbo = U(), U()
+    gl('glGenVertexArrays', None, I, C.POINTER(U))(1, C.byref(vao))
+    gl('glBindVertexArray', None, U)(vao)
+    gl('glGenFramebuffers', None, I, C.POINTER(U))(1, C.byref(fbo))
+    gl('glBindFramebuffer', None, U, U)(0x8D40, fbo)
+    gl('glViewport', None, I, I, I, I)(0, 0, W, H)
+    attach = gl('glFramebufferTexture', None, U, U, U, I)
+    draw_buffers = gl('glDrawBuffers', None, I, C.POINTER(U))
+    draw = gl('glDrawArraysInstanced', None, U, I, I, I)
+    slice_loc = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_FroxelSlice')
+
+    buffers = bind_program(prog, textures, temporal)
+    gl('glUniform1i', None, I, I)(slice_loc, 0)
+    attach(0x8D40, 0x8CE0, media_tex, 0)
+    draw_buffers(1, (U * 1)(0x8CE0))
+    uniform4(prog, 'u_ParticleLight', 0, 0, 1, 0)
+    draw(4, 0, 3, D)
+    delete_buffers(buffers)
+
+    buffers = bind_program(prog, dict(textures, u_FroxelMedia=media_tex), temporal)
+    count = 4 if rgb else 3
+    for index in range(count):
+        attach(0x8D40, 0x8CE0 + index, outputs[index], 0)
+    draw_buffers(count, (U * count)(*[0x8CE0 + i for i in range(count)]))
+    assert gl('glCheckFramebufferStatus', U, U)(0x8D40) == 0x8CD5
+    uniform4(prog, 'u_ParticleLight', 1, 0, 0, 0)
+    draw(4, 0, 3, D)
+
+    # tail: the 2D tail alone (a layered attachment next to it is incomplete)
+    for index in range(1, count):
+        attach(0x8D40, 0x8CE0 + index, 0, 0)
+    gl('glFramebufferTexture2D', None, U, U, U, U, I)(0x8D40, 0x8CE0, 0x0DE1, tail, 0)
+    draw_buffers(1, (U * 1)(0x8CE0))
+    gl('glUniform1i', None, I, I)(slice_loc, -1)
+    draw(4, 0, 3, 1)
+    delete_buffers(buffers)
+
+    gl('glBindFramebuffer', None, U, U)(0x8D40, 0)
+    gl('glDeleteFramebuffers', None, I, C.POINTER(U))(1, C.byref(fbo))
+    gl('glDeleteVertexArrays', None, I, C.POINTER(U))(1, C.byref(vao))
+    return media_tex, outputs, tail
+
+
+def injection(inject, media, rgb):
+    count = W * H * D * 4
+    black, baked = texture(1, 1, 1, [0] * 4), texture(1, 1, 1, [2, 3, 4, 0])
+    media_tex, outputs, tail = run_compute(inject, media, {'black': black, 'u_VolumetricStaticGrid': baked}, False)
+    medium = read(media_tex, count)
+    assert all(abs(medium[i] - .01) < .00001 for i in range(0, len(medium), 4))
+    expected = [.005, .015, .03, .01] if rgb else [.01, .015, .02, .01]
+    for i, value in enumerate(read(outputs[0], count)):
+        assert abs(value - expected[i % 4]) < .00003, (rgb, i, value, expected[i % 4])
+    for i, value in enumerate(read(outputs[2], count)):
+        assert abs(value - [2, 3, 4, 1][i % 4]) < .00003, (i, value)
+    data = read2d(tail)
+    assert gl('glGetError', U)() == 0, 'tail readback GL error'
+    assert all(abs(value - [2, 3, 4, 1][i % 4]) < .00003 for i, value in enumerate(data)), data[:28]
+    if rgb:
+        for i, value in enumerate(read(outputs[3], count)):
+            assert abs(value - [.005, .01, .015, .01][i % 4]) < .00003
+    assert gl('glGetError', U)() == 0
+    print(f'PASS: {"RGB" if rgb else "scalar"} injection, media kernel, tail, particle lighting, partial workgroups')
+
+
+def pseudo_random(count, seed, low, high):
+    values, state = [], seed
+    for _ in range(count):
+        state = (state * 1103515245 + 12345) & 0x7FFFFFFF
+        values.append(low + (high - low) * state / 0x7FFFFFFF)
+    return values
+
+
+def raster_compute_match(inject, media, raster, rgb):
+    """Same inputs through both paths: temporal history, jitter, reprojection, a varying light grid."""
+    count = W * H * D * 4
+    history = pseudo_random(count, 7, .001, .05)
+    textures = {
+        'black': texture(1, 1, 1, [0] * 4),
+        'u_VolumetricStaticGrid': texture(3, 3, 3, pseudo_random(27 * 4, 3, .5, 4)),
+        'u_FroxelHistory': texture(W, H, D, history),
+        'u_FroxelExtinction': texture(W, H, D, pseudo_random(count, 11, .002, .02)),
+    }
+    names = ['media', 'inject', 'dynamic', 'particle light', 'sigma_t'][:5 if rgb else 4] + ['tail']
+    results = []
+    for media_tex, outputs, tail in [run_compute(inject, media, textures, True),
+                                     run_raster(raster, textures, True, rgb)]:
+        results.append([read(media_tex, count)] + [read(tex, count) for tex in outputs[:len(names) - 2]] +
+                       [read2d(tail)])
+    assert gl('glGetError', U)() == 0
+    changed = sum(abs(a - b) > 1e-3 for a, b in zip(results[0][1], read(textures['u_FroxelHistory'], count)))
+    assert changed > count // 4, ('the history had no effect', changed)
+    for name, computed, rastered in zip(names, results[0], results[1]):
+        for i, (a, b) in enumerate(zip(computed, rastered)):
+            assert math.isfinite(a) and abs(a - b) <= 1e-5 + 2e-3 * abs(b), (name, rgb, i, a, b)
+    print(f'PASS: {"RGB" if rgb else "scalar"} raster and compute injection match (history, jitter, reprojection)')
 
 
 def main():
@@ -253,17 +389,21 @@ def main():
     assert context, SDL.SDL_GetError()
     try:
         print(gl('glGetString', C.c_char_p, U)(0x1F02).decode())
+        permutations = 0
         for rgb in [False, True]:
             for shadows in [False, True]:
-                for name in ['volumetric_inject', 'volumetric_integrate']:
-                    for compute in [False, True]:
-                        prog = program(name, compute, rgb, shadows)
-                        if compute and name == 'volumetric_integrate' and not shadows:
-                            integration(prog, rgb)
-                        if compute and name == 'volumetric_inject' and not shadows:
-                            injection(prog, rgb)
-                        gl('glDeleteProgram', None, U)(prog)
-        print('PASS: 16 raster/compute shader permutations compiled and linked')
+                programs = {(name, compute): program(name, compute, rgb, shadows)
+                            for name in ['volumetric_inject', 'volumetric_integrate'] for compute in [False, True]}
+                media = program('volumetric_inject', True, rgb, shadows, media=True)
+                permutations += len(programs) + 1
+                if not shadows:
+                    integration(programs['volumetric_integrate', True], rgb)
+                    injection(programs['volumetric_inject', True], media, rgb)
+                    raster_compute_match(programs['volumetric_inject', True], media,
+                                         programs['volumetric_inject', False], rgb)
+                for prog in list(programs.values()) + [media]:
+                    gl('glDeleteProgram', None, U)(prog)
+        print(f'PASS: {permutations} raster/compute/media shader permutations compiled and linked')
     finally:
         SDL.SDL_GL_DeleteContext(context)
         SDL.SDL_DestroyWindow(window)

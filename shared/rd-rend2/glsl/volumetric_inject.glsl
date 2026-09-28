@@ -1102,6 +1102,18 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in float temporal, in vec4 g, in i
 	return l;
 }
 
+// media pass (r_volumetricSelfShadow): the extinction of this frame at the froxel center
+float FroxelMediaExtinction(in ivec2 cell, in int slice, in int debugView)
+{
+	float unused0, unused1, unused2, unused3, unused4;
+	vec3 center = FroxelWorldPosition(vec3(vec2(cell) + 0.5, float(slice) + 0.5));
+	float extinction = FroxelMedium(center, debugView, false, unused0, unused1, unused2, unused3,
+		unused4).extinction;
+	if (isnan(extinction) || isinf(extinction))
+		extinction = 0.0;
+	return max(extinction, 0.0);
+}
+
 #if defined(USE_FROXEL_COMPUTE)
 void FroxelInject(ivec2 cell)
 {
@@ -1113,16 +1125,11 @@ void main()
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
 
-	// media pass (r_volumetricSelfShadow): the extinction of this frame at the froxel center
+#if !defined(USE_FROXEL_COMPUTE)
+	// media pass of the raster path; compute has its own kernel (USE_FROXEL_MEDIA_PASS)
 	if (u_ParticleLight.z > 0.5)
 	{
-		float unused0, unused1, unused2, unused3, unused4;
-		vec3 center = FroxelWorldPosition(vec3(vec2(cell) + 0.5, float(var_Slice) + 0.5));
-		float extinction = FroxelMedium(center, debugView, false, unused0, unused1, unused2, unused3,
-			unused4).extinction;
-		if (isnan(extinction) || isinf(extinction))
-			extinction = 0.0;
-		out_Color = vec4(max(extinction, 0.0));
+		out_Color = vec4(FroxelMediaExtinction(cell, var_Slice, debugView));
 		out_Dynamic = vec4(0.0);
 		out_ParticleLight = vec4(0.0);
 #if defined(USE_FROXEL_RGB)
@@ -1130,6 +1137,7 @@ void main()
 #endif
 		return;
 	}
+#endif
 	// the global g: the tail beyond far and the sprite particle light field (not a medium)
 	float g = u_FroxelLightParams.x;
 
@@ -1539,6 +1547,18 @@ layout(rgba16f, binding = 3) uniform writeonly image3D u_ExtinctionOutput;
 layout(rgba16f, binding = 4) uniform writeonly image2D u_TailOutput;
 layout(r16f, binding = 5) uniform writeonly image3D u_MediaOutput;
 
+#if defined(USE_FROXEL_MEDIA_PASS)
+// Media pass kernel: only the medium evaluation, so its register use is not
+// sized by the lighting path of the full injection.
+void main()
+{
+	ivec3 cell = ivec3(gl_GlobalInvocationID);
+	if (any(greaterThanEqual(cell, ivec3(u_FroxelGridSize.xyz))))
+		return;
+	var_Slice = cell.z;
+	imageStore(u_MediaOutput, cell, vec4(FroxelMediaExtinction(cell.xy, cell.z, int(u_FroxelDebugParams.x))));
+}
+#else
 void main()
 {
 	ivec3 cell = ivec3(gl_GlobalInvocationID);
@@ -1546,11 +1566,6 @@ void main()
 		return;
 	var_Slice = cell.z;
 	FroxelInject(cell.xy);
-	if (u_ParticleLight.z > 0.5)
-	{
-		imageStore(u_MediaOutput, cell, out_Color);
-		return;
-	}
 	imageStore(u_InjectOutput, cell, out_Color);
 	imageStore(u_DynamicOutput, cell, out_Dynamic);
 	if (u_ParticleLight.x > 0.5)
@@ -1566,4 +1581,5 @@ void main()
 		imageStore(u_TailOutput, cell.xy, out_Color);
 	}
 }
+#endif
 #endif
