@@ -2389,7 +2389,9 @@ opaque layers applies it).
 */
 int RB_VolumetricFogMode( float sort )
 {
-	if ( !backEnd.volumetricView || backEnd.depthFill || backEnd.refractionFill )
+	// The main view state survives into HUD and menu draws. Screen-space
+	// UI must not inherit its froxel fog or the height-fog surface path.
+	if ( backEnd.projection2D || !backEnd.volumetricView || backEnd.depthFill || backEnd.refractionFill )
 		return 0;
 
 	// the sort key keeps the integer part of the sort (RB_CreateSortKey)
@@ -2815,6 +2817,7 @@ qboolean RB_VolumetricCompositeActive( void )
 {
 	return (qboolean)(
 		backEnd.volumetricView &&
+		!backEnd.projection2D &&
 		!backEnd.volumetricComposited &&
 		!backEnd.depthFill &&
 		!backEnd.refractionFill &&
