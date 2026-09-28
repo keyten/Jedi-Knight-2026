@@ -14,11 +14,37 @@ def quote(s):
     return '"' + s.replace('"', "'").replace('\n', ' ') + '"'
 
 
-def item(name, text, x, y, w, extra='', kind=1):
+def item(name, text, x, y, w, extra='', kind='ITEM_TYPE_BUTTON'):
     return f'''itemDef {{ name {name} rect {x} {y} {w} 19
-      type {kind} style 0 visible 1 font 4 textscale 0.8
-      textalign 0 textalignx 0 textaligny 0
+      type {kind} style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
+      textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
       forecolor 0.72 0.82 1 1 text {quote(text)} {extra} }}\n'''
+
+
+def validate_sp_menu(text):
+    """Check SP symbolic enums and type-dependent fields before packing."""
+    parser = (ROOT / 'code/ui/ui_shared.cpp').read_text(encoding='utf-8')
+    symbols = set(re.findall(r'"((?:ITEM_TYPE_|ITEM_ALIGN_|WINDOW_STYLE_)\w+)"', parser))
+    clean = re.sub(r'//[^\n]*|/\*.*?\*/', '', text, flags=re.S)
+    tokens = re.findall(r'"[^"\n]*"|[{}]|[^\s{}]+', clean)
+    prefixes = {'type': 'ITEM_TYPE_', 'style': 'WINDOW_STYLE_',
+                'textalign': 'ITEM_ALIGN_', 'descAlignment': 'ITEM_ALIGN_'}
+    stack = []
+    for i, token in enumerate(tokens):
+        if token == '{':
+            stack.append({'item': i > 0 and tokens[i-1] == 'itemDef', 'type': 'ITEM_TYPE_TEXT'})
+        elif token == '}':
+            assert stack, 'Unexpected closing brace'
+            stack.pop()
+        elif token in prefixes:
+            value = tokens[i+1]
+            assert value in symbols and value.startswith(prefixes[token]), f'Invalid SP {token}: {value}'
+            if token == 'type' and stack and stack[-1]['item']: stack[-1]['type'] = value
+        elif token in ('cvarFloatList', 'cvarStrList', 'maxChars', 'maxPaintChars'):
+            assert stack and stack[-1]['item'], f'{token} outside itemDef'
+            allowed = ('ITEM_TYPE_MULTI',) if token.endswith('List') else ('ITEM_TYPE_EDITFIELD', 'ITEM_TYPE_NUMERICFIELD')
+            assert stack[-1]['type'] in allowed, f'{token} incompatible with {stack[-1]["type"]}'
+    assert not stack, 'Unclosed menu block'
 
 
 def build(assets, reference):
@@ -82,12 +108,12 @@ def build(assets, reference):
     for p, (title, rows) in enumerate(pages):
         menu = f'render2026_{p}'
         generated += f'''menuDef {{ name {menu} fullScreen 1 visible 0 rect 0 0 640 480
-          style 1 backcolor 0.025 0.04 0.075 1 focusColor 1 0.72 0.25 1
-          descX 320 descY 407 descScale 0.65 descColor 0.85 0.85 0.85 1 descAlignment 1
+          style WINDOW_STYLE_FILLED backcolor 0.025 0.04 0.075 1 focusColor 1 0.72 0.25 1
+          descX 320 descY 407 descScale 0.65 descColor 0.85 0.85 0.85 1 descAlignment ITEM_ALIGN_CENTER
           onESC {{ close all ; open ingameMainMenu ; }}
           onOpen {{ setfocus setting_0 ; }}\n'''
-        generated += item('title', f'RENDER 2026 | {title}', 28, 23, 590, 'decoration', 0)
-        generated += item('hint', f'Page {p+1}/{len(pages)}  |  * = renderer restart / reload required', 28, 48, 590, 'decoration', 0)
+        generated += item('title', f'RENDER 2026 | {title}', 28, 23, 590, 'decoration', 'ITEM_TYPE_TEXT')
+        generated += item('hint', f'Page {p+1}/{len(pages)}  |  * = renderer restart / reload required', 28, 48, 590, 'decoration', 'ITEM_TYPE_TEXT')
         for i, c in enumerate(rows):
             rng = c['range']
             enum = None
@@ -105,13 +131,13 @@ def build(assets, reference):
                 labels = {0:'Off',1:'On'} if enum == [0,1] else {}
                 if c['name'] == 'r_toneMapMode': labels = {0:'Legacy',1:'ACES',2:'AgX-like'}
                 extra += 'cvarFloatList { ' + ' '.join(f'{quote(labels.get(v,str(v)))} {v}' for v in enum) + ' }'
-                kind = 12
+                kind = 'ITEM_TYPE_MULTI'
             else:
-                kind = 4 if c['name'] in ('r_colorGradingLut','r_puddleSlope') else 9
+                kind = 'ITEM_TYPE_EDITFIELD' if c['name'] in ('r_colorGradingLut','r_puddleSlope') else 'ITEM_TYPE_NUMERICFIELD'
                 extra += 'maxChars 128 maxPaintChars 20'
             # Right-aligned labels give all value fields the same starting X.
             row = item(f'setting_{i}', label, 26, 82+i*23, 586, extra, kind)
-            row = row.replace('textalign 0 textalignx 0', 'textalign 2 textalignx 330')
+            row = row.replace('textalign ITEM_ALIGN_LEFT textalignx 0', 'textalign ITEM_ALIGN_RIGHT textalignx 330')
             generated += row
         generated += item('previous', '< PREV', 28, 444, 95, f'action {{ close {menu} ; open render2026_{(p-1)%len(pages)} ; }}')
         generated += item('next', 'NEXT >', 145, 444, 95, f'action {{ close {menu} ; open render2026_{(p+1)%len(pages)} ; }}')
@@ -119,6 +145,7 @@ def build(assets, reference):
         generated += item('back', 'BACK', 524, 444, 88, 'action { close all ; open ingameMainMenu ; }')
         generated += '}\n'
     final = stock[:stock.rfind('}')] + generated + '\n}\n'
+    validate_sp_menu(final)
     output = HERE / 'zzzz_render2026_menu.pk3'
     payload = HERE / 'pk3/ui'
     payload.mkdir(parents=True, exist_ok=True)
