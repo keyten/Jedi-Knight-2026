@@ -30,6 +30,63 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 void GLSL_BindNullProgram(void);
 
+static int s_startupProgramsTotal;
+static int s_startupProgramsDone;
+static int s_startupLastPresent;
+static image_t *s_startupSplashImage;
+static GLint s_startupProgressUniform = -1;
+
+// Startup runs before the ordinary UI renderer and fonts are available.
+static void GLSL_DrawStartupProgress(int percent)
+{
+	if (!tr.splashScreenShader.program || s_startupProgressUniform < 0)
+		return;
+
+	GLint program, activeTexture, texture, viewport[4], scissor[4];
+	qglGetIntegerv(GL_CURRENT_PROGRAM, &program);
+	qglGetIntegerv(GL_ACTIVE_TEXTURE, &activeTexture);
+	qglActiveTexture(GL_TEXTURE0);
+	qglGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+	qglGetIntegerv(GL_VIEWPORT, viewport);
+	qglGetIntegerv(GL_SCISSOR_BOX, scissor);
+	FBO_t *fbo = glState.currentFBO;
+	const uint32_t stateBits = glState.glStateBits;
+	const int culling = glState.faceCulling;
+
+	FBO_Bind(nullptr);
+	qglViewport(0, 0, glConfig.vidWidth, glConfig.vidHeight);
+	qglScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
+	GL_State(GLS_DEPTHTEST_DISABLE);
+	GL_Cull(CT_TWO_SIDED);
+	// Use raw bindings and restore them: shader loaders also use raw glUseProgram.
+	qglBindTexture(GL_TEXTURE_2D, s_startupSplashImage->texnum);
+	qglUseProgram(tr.splashScreenShader.program);
+	qglUniform1i(s_startupProgressUniform, percent);
+	RB_InstantTriangle();
+	ri.WIN_Present(&window);
+	qglUseProgram(program);
+	qglBindTexture(GL_TEXTURE_2D, texture);
+	qglActiveTexture(activeTexture);
+	GL_State(stateBits);
+	GL_Cull(culling);
+	FBO_Bind(fbo);
+	qglViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	qglScissor(scissor[0], scissor[1], scissor[2], scissor[3]);
+}
+
+static void GLSL_StartupProgramReady()
+{
+	if (!s_startupProgramsTotal)
+		return;
+	++s_startupProgramsDone;
+	const int now = ri.Milliseconds();
+	if (now - s_startupLastPresent < 100)
+		return;
+	s_startupLastPresent = now;
+	// Reserve 100% until the cache has also been written.
+	GLSL_DrawStartupProgress(std::min(99, s_startupProgramsDone * 100 / s_startupProgramsTotal));
+}
+
 const uniformBlockInfo_t uniformBlocksInfo[UNIFORM_BLOCK_COUNT] = {
 	{ 0, "Camera", sizeof(CameraBlock) },
 	{ 1, "Scene", sizeof(SceneBlock) },
@@ -1385,6 +1442,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 	pendingShaders.clear();
 	program = 0;
 
+	GLSL_StartupProgramReady();
 	return true;
 }
 
@@ -2093,10 +2151,30 @@ void GLSL_InitSplashScreenShader()
 	const char *fs =
 		"#version 150 core\n"
 		"uniform sampler2D u_SplashTexture;\n"
+		"uniform int u_StartupProgress;\n"
+		"uniform float u_StartupScale;\n"
 		"in vec2 var_TexCoords;\n"
 		"out vec4 out_Color;\n"
+		// Built-in 3x5 glyphs: digits, S H A D E R : %. No game fonts needed.
+		"const int glyphs[18] = int[18](31599,29850,29671,31207,18925,31183,31695,18727,31727,31215,31183,23533,23530,15211,29391,23275,1040,21157);\n"
+		"const int label[8] = int[8](10,11,12,13,14,15,10,16);\n"
 		"void main() {\n"
 		"  out_Color = texture(u_SplashTexture, var_TexCoords);\n"
+		"  vec2 p = floor(gl_FragCoord.xy / u_StartupScale) - vec2(4.0);\n"
+		"  if (u_StartupProgress < 0 || p.x < 0.0 || p.y < 0.0 || p.x >= 56.0 || p.y >= 17.0) return;\n"
+		"  out_Color = vec4(out_Color.rgb * 0.2, 1.0);\n"
+		"  if (p.x >= 2.0 && p.x < 54.0 && p.y >= 2.0 && p.y < 4.0)\n"
+		"    out_Color = vec4(p.x - 2.0 < 52.0 * float(u_StartupProgress) / 100.0 ? vec3(0.3,0.8,1.0) : vec3(0.2), 1.0);\n"
+		"  ivec2 t = ivec2(p) - ivec2(2,8);\n"
+		"  if (t.x < 0 || t.x >= 52 || t.y < 0 || t.y >= 5 || (t.x % 4) == 3) return;\n"
+		"  int c = t.x / 4;\n"
+		"  int g = -1;\n"
+		"  if (c < 8) g = label[c];\n"
+		"  if (c == 9 && u_StartupProgress >= 100) g = u_StartupProgress / 100;\n"
+		"  if (c == 10 && u_StartupProgress >= 10) g = (u_StartupProgress / 10) % 10;\n"
+		"  if (c == 11) g = u_StartupProgress % 10;\n"
+		"  if (c == 12) g = 17;\n"
+		"  if (g >= 0 && ((glyphs[g] >> ((4-t.y)*3 + t.x%4)) & 1) != 0) out_Color = vec4(1.0);\n"
 		"}";
 
 	GLuint vshader = qglCreateShader(GL_VERTEX_SHADER);
@@ -2110,7 +2188,21 @@ void GLSL_InitSplashScreenShader()
 	GLuint program = qglCreateProgram();
 	qglAttachShader(program, vshader);
 	qglAttachShader(program, fshader);
-	qglLinkProgram(program);
+	if (!GLSL_IsGPUShaderCompiled(vshader) || !GLSL_IsGPUShaderCompiled(fshader))
+		ri.Error(ERR_FATAL, "Could not compile splash screen shader!");
+	GLSL_LinkProgram(program);
+	qglDetachShader(program, vshader);
+	qglDetachShader(program, fshader);
+	qglDeleteShader(vshader);
+	qglDeleteShader(fshader);
+	s_startupProgressUniform = qglGetUniformLocation(program, "u_StartupProgress");
+	GLint previousProgram;
+	qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+	qglUseProgram(program);
+	qglUniform1i(s_startupProgressUniform, -1);
+	qglUniform1f(qglGetUniformLocation(program, "u_StartupScale"),
+		std::max(2.0f, floorf(glConfig.vidHeight / 270.0f)));
+	qglUseProgram(previousProgram);
 
 	size_t splashLen = strlen("splash");
 	tr.splashScreenShader.program = program;
@@ -4230,6 +4322,55 @@ static int GLSL_LoadGPUProgramSMAA(
 	return 4;
 }
 
+static int GLSL_CountStartupPrograms()
+{
+	int count = 0;
+	for (int i = 0; i < GENERICDEF_COUNT; ++i)
+		count += GLSL_IsValidPermutationForGeneric(i) ? 1 : 0;
+	const bool pom = GLSL_PomSilhouetteEnabled();
+	for (int i = 0; i < LIGHTDEF_COUNT; ++i)
+	{
+		if (!GLSL_IsValidPermutationForLight(i & LIGHTDEF_LIGHTTYPE_MASK, i))
+			continue;
+		++count;
+		if (pom && GLSL_PomSilhouetteLightallIndex(i) >= 0)
+			++count;
+	}
+	for (int i = 0; i < FOGDEF_COUNT; ++i)
+		count += GLSL_IsValidPermutationForFog(i) ? 1 : 0;
+	for (int i = 0; i < VELOCITYDEF_COUNT; ++i)
+		count += GLSL_IsValidPermutationForFog(i) ? 1 : 0;
+	for (int i = 0; i < SSDEF_COUNT; ++i)
+	{
+		if ((i & SSDEF_FACE_CAMERA) && (i & SSDEF_FACE_UP))
+			continue;
+		if ((i & SSDEF_AUTO_GRASS) && (i & (SSDEF_FACE_CAMERA | SSDEF_FACE_UP |
+			SSDEF_FX_SPRITE | SSDEF_FOG_MODULATE | SSDEF_ADDITIVE | SSDEF_FLATTENED)))
+			continue;
+		++count;
+	}
+	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT;
+	if (pom)
+		count += POMSDEF_DEPTH_COUNT + 2;
+	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
+	// highpass/SSAO (2), foliage field (2), depth/gaussian blur (4), glow/bloom (3), weather (4).
+	count += 25;
+	if (R_AOResourcesEnabled())
+		count += 8;
+	if (R_ScreenSpaceResourcesEnabled())
+	{
+		count += 2;
+		if (R_SSRResourcesEnabled()) count += 9;
+		if (R_SSGIResourcesEnabled()) count += 7;
+		if (R_SkinSSSResourcesEnabled()) count += 3;
+	}
+	if (R_VolumetricFroxelEnabled()) count += 4;
+	if (r_cubeMapping->integer) ++count;
+	if (r_diffuseIBL->integer) count += 2;
+	if (r_smaa->integer) count += 4;
+	return count;
+}
+
 void GLSL_LoadGPUShaders()
 {
 #if 0
@@ -4292,6 +4433,13 @@ void GLSL_LoadGPUShaders()
 
 	Allocator allocator(512 * 1024);
 	ShaderProgramBuilder builder;
+	s_startupProgramsTotal = GLSL_CountStartupPrograms();
+	s_startupProgramsDone = 0;
+	s_startupSplashImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
+	if (!s_startupSplashImage)
+		s_startupSplashImage = tr.defaultImage;
+	s_startupLastPresent = ri.Milliseconds();
+	GLSL_DrawStartupProgress(0);
 	GLSL_CacheBegin();
 
 	int numGenShaders = 0;
@@ -4333,6 +4481,12 @@ void GLSL_LoadGPUShaders()
 		numEtcShaders += GLSL_LoadGPUProgramSMAA(builder, allocator);
 
 	GLSL_CacheEnd();
+	if (s_startupProgramsDone != s_startupProgramsTotal)
+		ri.Printf(PRINT_WARNING, "GLSL startup progress: expected %d programs, loaded %d\n",
+			s_startupProgramsTotal, s_startupProgramsDone);
+	GLSL_DrawStartupProgress(100);
+	s_startupProgramsTotal = 0;
+	s_startupSplashImage = nullptr;
 
 	ri.Printf(PRINT_ALL, "loaded %i GLSL shaders (%i gen %i light %i etc) in %5.2f seconds\n",
 		numGenShaders + numLightShaders + numEtcShaders, numGenShaders, numLightShaders,

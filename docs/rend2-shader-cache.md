@@ -55,6 +55,20 @@ GLSL cache: 712 from glslcache/rend2_sp.bin, 0 compiled and stored, 0 rejected, 
 
 To start over, delete the file (or set `r_glslCache 0`).
 
+## Startup progress
+
+The splash screen shows `SHADERS: N%` and a progress bar in its lower-left corner
+while GLSL programs are prepared. It counts completed programs, including cache
+hits, against the valid permutations and enabled shader families for this start.
+This is work completed, not a remaining-time estimate: individual programs can
+take very different amounts of time to compile.
+
+The splash has its own small built-in font so it can display progress before the
+game UI and fonts have initialized. Updates are limited to once per 100 ms;
+one slow driver compilation can keep the displayed percentage still until that
+program finishes. Progress stays below 100% until the disk cache has been saved.
+This covers the GLSL preparation stage, not the entire engine or map load.
+
 ## Measurements (offline, GL 3.2 core context, binary saved and loaded in separate processes)
 
 | Driver, lightall permutation | compile + link | load from binary | binary |
@@ -76,3 +90,7 @@ update or a new cvar combination still compiles; only the programs that changed 
    comes from the cache.
 4. `r_glslCache 0` + `vid_restart`: `GLSL cache: off (r_glslCache 0)`, same image.
 5. Replace the file with garbage: a warning, everything is compiled, the file is rebuilt, no crash.
+6. During a cold start or `vid_restart` that reloads GLSL programs, the splash
+   percentage and bar advance from 0 to 100. With a warm cache, they finish quickly.
+   Check SP and MP, with optional AO, SSR/SSGI, silhouette POM and SMAA enabled and
+   disabled; there should be no `GLSL startup progress: expected ...` warning.
