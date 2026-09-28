@@ -60,6 +60,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_decals.cpp"
 	"${SPDir}/rd-rend2/tr_draw.cpp"
 	"${SharedDir}/rd-rend2/tr_extensions.cpp"
+	"${SharedDir}/rd-rend2/tr_context.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.h"
 	"${SharedDir}/rd-rend2/tr_extratypes.h"
@@ -160,6 +161,7 @@ list(APPEND SPRend2IncludeDirectories ${MINIZIP_INCLUDE_DIRS})
 list(APPEND SPRend2Libraries          ${MINIZIP_LIBRARIES})
 
 find_package(OpenGL REQUIRED)
+include("${CMAKE_SOURCE_DIR}/cmake/RendererSDL2.cmake")
 set(SPRend2IncludeDirectories ${SPRend2IncludeDirectories} ${OPENGL_INCLUDE_DIR})
 set(SPRend2Libraries ${SPRend2Libraries} ${OPENGL_LIBRARIES})
 
@@ -209,6 +211,7 @@ function(add_sp_renderer_project ProjectName Label EngineName InstallDir Compone
 	set_target_properties(${ProjectName} PROPERTIES PROJECT_LABEL ${Label})
 
 	target_link_libraries(${ProjectName} ${SPRend2Libraries})
+	target_link_renderer_sdl2(${ProjectName})
 	target_include_directories(${ProjectName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 endfunction(add_sp_renderer_project)
 

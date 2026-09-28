@@ -1,10 +1,20 @@
 # Rend2 OpenGL 4.3 and optional modern paths
 
-Both SP and MP rend2 prefer an OpenGL 4.3 Core context. If creation fails,
-the SDL window layer retries the same display settings with OpenGL 3.2 Core,
-then applies the existing resolution fallback. The renderer/window API and
-`glconfig_t` ABI are unchanged. Deploy the rebuilt engine as well as the
-renderer DLL to get context negotiation.
+Both SP and MP rend2 prefer an OpenGL 4.3 Core context. Before calling the
+engine's window API, the renderer creates a hidden SDL window and probes a
+4.3 Core context with the requested debug flag. If the probe fails, it requests
+3.2 Core from the engine instead. Probe resources are destroyed before real
+initialization; an existing current context and SDL video ownership are
+preserved. `r_gl43 0` skips the probe. Capability loading always uses the final
+game context.
+
+This negotiation lives in the renderer DLL and works with older engines using
+the same renderer API; updating the EXE is not required. The DLL now links SDL2,
+already supplied by the game. The renderer/window API and `glconfig_t` ABI are
+unchanged. The updated engine retains a defensive 4.3-to-3.2 retry because real
+window/display/pixel-format settings can fail even after a successful hidden
+probe. Older engines retain their existing resolution fallback, but cannot
+recover from that additional failure themselves.
 
 `r_gl43 1` (default) requests 4.3 and permits modern paths. `r_gl43 0` requests
 3.2 and forces legacy paths. Apply changes with `vid_restart`. A driver may
@@ -78,8 +88,7 @@ implementation, comparison of output with the baseline, and GPU timings.
 
 ## Validation
 
-Build both renderer targets and both engines (the SDL layer lives in the
-engines). Exercise default startup, `r_gl43 0; vid_restart`, then
+Build both renderer targets. Exercise default startup, `r_gl43 0; vid_restart`, then
 `r_gl43 1; vid_restart`; confirm console / `gfxinfo` policy and actual version.
 On a GL 3.2/4.1-only machine confirm automatic context fallback and existing
 effects. For each future fast path, test shader/resource failure, boundary
@@ -112,3 +121,17 @@ Validation on Intel UHD Graphics, driver 27.20.100.8280:
   exercised the GL APIs directly, not an in-game feature using the new helper.
 - Automatic fallback after a rejected 4.3 context still needs testing on a
   driver without 4.3 support; the explicit legacy selection was tested above.
+
+Renderer-side negotiation validation:
+
+- Both SP/MP Release DLLs built with the SDL2 dependency.
+- A native harness compiled the actual `tr_context.cpp` implementation and
+  successfully probed a real 4.3 Core context on the same Intel driver.
+- Injecting a context-creation rejection selected 3.2; consuming that descriptor
+  created a real 3.2 Core context without relying on an engine version retry.
+- Legacy requests skipped probing. Successful and failed probes preserved an
+  existing current context and retained borrowed SDL video initialization;
+  video initialization owned by the probe was released.
+- This checks negotiation and cleanup, not full game/level startup. A naturally
+  unsupported driver and alternate display/pixel-format configurations remain
+  hardware coverage to test.

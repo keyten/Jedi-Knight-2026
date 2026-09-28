@@ -59,6 +59,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_debug.cpp"
 	"${SharedDir}/rd-rend2/tr_decals.cpp"
 	"${SharedDir}/rd-rend2/tr_extensions.cpp"
+	"${SharedDir}/rd-rend2/tr_context.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.h"
 	"${SharedDir}/rd-rend2/tr_extratypes.h"
@@ -161,6 +162,7 @@ list(APPEND MPRend2IncludeDirectories ${MINIZIP_INCLUDE_DIRS})
 list(APPEND MPRend2Libraries          ${MINIZIP_LIBRARIES})
 
 find_package(OpenGL REQUIRED)
+include("${CMAKE_SOURCE_DIR}/cmake/RendererSDL2.cmake")
 set(MPRend2IncludeDirectories ${MPRend2IncludeDirectories} ${OPENGL_INCLUDE_DIR})
 set(MPRend2Libraries ${MPRend2Libraries} ${OPENGL_LIBRARIES})
 
@@ -207,6 +209,7 @@ set_property(TARGET ${MPRend2} APPEND PROPERTY COMPILE_OPTIONS ${OPENJK_VISIBILI
 set_target_properties(${MPRend2} PROPERTIES INCLUDE_DIRECTORIES "${MPRend2IncludeDirectories}")
 set_target_properties(${MPRend2} PROPERTIES PROJECT_LABEL "MP Rend2 Renderer")
 target_link_libraries(${MPRend2} ${MPRend2Libraries})
+target_link_renderer_sdl2(${MPRend2})
 target_include_directories(${MPRend2} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # GLSL shader file generator

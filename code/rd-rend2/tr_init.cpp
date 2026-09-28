@@ -864,6 +864,7 @@ static void InitOpenGL( void )
 		if ( r_debugContext->integer )
 			windowDesc.gl.contextFlags = GLCONTEXT_DEBUG;
 
+		GLimp_ConfigureContext(&windowDesc);
 		window = ri.WIN_Init(&windowDesc, &glConfig);
 
 		GLimp_InitCoreFunctions();

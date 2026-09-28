@@ -4381,6 +4381,7 @@ IMPLEMENTATION SPECIFIC FUNCTIONS
 QINLINE void GLimp_LogComment( char *comment ) {}
 void GLimp_InitExtensions();
 void GLimp_InitCoreFunctions();
+void GLimp_ConfigureContext(windowDesc_t *desc);
 void GLimp_InitModernFunctions();
 
 /*
