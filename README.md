@@ -1,4 +1,4 @@
-# BetterJK
+# Jedi Academy 2026
 
 This mod aims to:
 - bring gameplay extensions (new force powers, weapons, etc) while keeping the game identity
@@ -11,13 +11,14 @@ It attempts to keep the full backward compatibility with the game and mods by in
 
 This is a fork of SomaZ/OpenJK:rend2-unified-wip.
 
-The name is a reference to a BetterJA mod that I once maintained.
 
 ## Graphics
 
+For the complete rendering feature and cvar reference, see [docs/rendering-features.md](docs/rendering-features.md).
+
 ### Tone mapper improvement
 
-If the map is rendered in HDR, its pixels have to be translated back into SDR monitor. BetterJK introduces two translators (so, works only with `r_hdr 1`).
+If the map is rendered in HDR, its pixels have to be translated back into SDR monitor. Jedi Academy 2026 introduces two translators (so, works only with `r_hdr 1`).
 
 - `r_toneMapMode 0` - legacy rend2 tone mapper (make sure you have `r_exposureCompensation 0). Removes parts that are too bright (unlike other tone mappers).
 - `r_toneMapMode 1` - ACES fitted, gives some cinematic effect (recommended with `r_exposureCompensation 1`).
