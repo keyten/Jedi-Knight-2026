@@ -141,7 +141,7 @@ void CParticle::Draw(void)
 }
 
 //----------------------------
-// Volumetric FX particle media (rend2 froxel fog, r_volParticles)
+// Volumetric FX particle media (rend2 froxel fog, r_volumetricParticles)
 //----------------------------
 void CParticle::SetVolumetricMedia( const SFxVolumetricMedia *media )
 {

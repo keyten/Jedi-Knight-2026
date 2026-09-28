@@ -115,18 +115,19 @@ applied to the debug views 3 to 5 of `r_toneMapDebug`.
 
 | cvar | default | |
 |---|---|---|
-| `r_colorGrading` | 1 | 0 = off, 1 = on, 2 = split screen with the original on the left |
-| `r_colorGradingLut` | "" | LUT to use, overrides the LUT of the map. Empty: use the LUT of the map |
+| `r_colorGrading` | 1 | 0 = off, 1 = on |
+| `r_colorGradingCompare` | 0 | 0 = off, 1 = split screen with the original on the left (requires grading enabled) |
+| `r_colorGradingLUT` | "" | LUT to use, overrides the LUT of the map. Empty: use the LUT of the map |
 | `r_colorGradingIntensity` | 1 | 0 = no grading, 1 = full LUT |
 
-The LUT in use is `r_colorGradingLut` when set, otherwise `maps/<map>.cube` next to the `.bsp` (for example
+The LUT in use is `r_colorGradingLUT` when set, otherwise `maps/<map>.cube` next to the `.bsp` (for example
 `maps/mp/ffa3.cube`, which works for existing maps without touching the BSP), otherwise none. All three cvars
 take effect immediately. Without a LUT nothing is sampled and the image is unchanged.
 
 File format: `.cube` 3D LUTs (`LUT_3D_SIZE` 2 to 128, red changing fastest), loaded from the game file
 system (pk3 or base folder). `TITLE` and comments are ignored; `DOMAIN_MIN`/`DOMAIN_MAX` must be 0 and 1;
 1D LUTs are not supported. A LUT that can't be loaded prints a warning once and grading stays off.
-`r_colorGradingLut *identity` uses a built-in 33x33x33 identity LUT for testing.
+`r_colorGradingLUT *identity` uses a built-in 33x33x33 identity LUT for testing.
 
 Precision: LUTs are stored as 16 bit per channel 3D textures and sampled at texel centers with trilinear
 filtering. An identity LUT changes values by less than 1e-5, so the 8 bit output differs by at most one
@@ -136,11 +137,11 @@ step, only for values sitting exactly on a rounding boundary.
 
 ```
 python tools/rend2/make_luts.py base/luts
-r_colorGradingLut luts/test_look.cube
-r_colorGrading 2                     // original | graded
+r_colorGradingLUT luts/test_look.cube
+r_colorGradingCompare 1                     // original | graded
 r_colorGradingIntensity 0.5
-r_colorGradingLut luts/identity.cube // should look unchanged
-r_colorGradingLut ""                 // back to the map LUT, if any
+r_colorGradingLUT luts/identity.cube // should look unchanged
+r_colorGradingLUT ""                 // back to the map LUT, if any
 ```
 
 ## Linear lighting (`r_linearLighting`, experimental)

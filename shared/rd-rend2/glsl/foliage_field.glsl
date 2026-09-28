@@ -6,7 +6,7 @@ void main()
 }
 
 /*[Fragment]*/
-// Persistent foliage bend field (r_foliageField, tr_foliagefield.cpp). The
+// Persistent foliage bend field (r_foliageBendField, tr_foliagefield.cpp). The
 // FoliageInteraction block and the collider functions come from
 // foliage_interact.glsl (pasted in front as a library).
 //
@@ -18,7 +18,7 @@ void main()
 // along the walk, so the plants swing back past rest a little after the
 // character left. No blur: the state never spreads to other texels.
 //
-// DEBUG_VIEW: r_foliageFieldDebug 1, the current field in a corner of the
+// DEBUG_VIEW: r_foliageBendFieldDebug 1, the current field in a corner of the
 // screen: left square = bend vector (red / green = +x / +y, gray = rest),
 // right square = bend magnitude heat; the player is the center.
 
@@ -66,7 +66,7 @@ const float FIELD_PROBE_HEIGHT = 10.0;
 const float FIELD_MAX_BEND = 1.5;
 const float FIELD_MAX_SPEED = 24.0;
 // kick rate of a walk through at full contact and full speed (bend / s^2 at
-// r_foliageFieldImpulse 1)
+// r_foliageBendFieldImpulse 1)
 const float FIELD_KICK_RATE = 12.0;
 
 void main()

@@ -16,13 +16,13 @@ From the geometric normal `Ng` (`c = Ng.z`). All the weights are smooth:
 
 | class | weight |
 |---|---|
-| flat, facing up → puddle | `puddleSlope = smoothstep(slopeMin, slopeMax, c)` (`r_puddleSlope`, default 0.90 0.98) |
+| flat, facing up → puddle | `puddleSlope = smoothstep(slopeMin, slopeMax, c)` (`r_weatherPuddleSlope`, default 0.90 0.98) |
 | sloped / near vertical → runoff | `runoffW = 1 - puddleSlope`, the exact complement |
 | facing down → none | `× smoothstep(-0.35, 0.05, c)` (ceilings 0, slightly overhanging faces reduced) |
 | steep (wall probe, debug only) | `1 - smoothstep(0.35, 0.7, c)` |
 
 With the defaults a 10° slope is a puddle candidate, 30°, 60° and vertical faces are runoff, and the range in between
-blends. Puddles are only on world geometry, while runoff can also be on entities (`r_runoffEntities`).
+blends. Puddles are only on world geometry, while runoff can also be on entities (`r_weatherRunoffEntities`).
 
 ## Gravity projection
 
@@ -50,12 +50,12 @@ angle (mod 180°) picks the nearest of **8 fixed horizontal axes**, 22.5° apart
 * slopes are off by at most 11°;
 * 70 % of directions use 1 evaluation. The rest blend 2 bins continuously, so rounded rock and pillars have no seams.
 
-`RunoffStreaks(across, along, clock)`, in pattern cells (`r_runoffScale` world units), uses 5 value-noise evaluations:
+`RunoffStreaks(across, along, clock)`, in pattern cells (`r_weatherRunoffScale` world units), uses 5 value-noise evaluations:
 
 * a low-frequency warp of `across`, so the streams wiggle;
 * static channels at two widths (`smoothstep`-thresholded noise, stretched 11× and 17× along the flow). Water keeps
   its paths;
-* two pulse layers that run down the channels at `r_runoffSpeed` and `r_runoffSpeed / 1.7`, so the result never reads
+* two pulse layers that run down the channels at `r_weatherRunoffSpeed` and `r_weatherRunoffSpeed / 1.7`, so the result never reads
   as one uniformly scrolling texture;
 * `film = (0.25 + 0.75 stream) × pulse`: a thin sheet everywhere, full in the streams. `core = stream × pulse`.
 
@@ -66,7 +66,7 @@ factor, so the wrap is seamless and the floats stay precise.
 **Wind** (`weatherSystem->windDirection`) shears `across` with the fall: `across + shear·z`, with shear up to 0.35
 (≈20°). Streaks lean downwind but still run down. Faces toward the wind run up to 30 % more, and sheltered faces less.
 
-**Entities** (`r_runoffEntities 1`): the pattern frame is the entity origin plus its yaw axis
+**Entities** (`r_weatherRunoffEntities 1`): the pattern frame is the entity origin plus its yaw axis
 (`u_RunoffFrame`, `u_RunoffParams2.w`). Movers, props and characters that translate or turn keep the pattern glued to
 them, and streaks stay world-vertical. Limitation: skinned limbs can slide a little under the pattern, and tilted props
 only re-derive the yaw.
@@ -76,11 +76,11 @@ only re-derive the yaw.
 `weatherDepth` is a **top-down** map. It is right for vertical rain on surfaces that face up. It does not know about
 wind-driven rain hitting a wall. Runoff uses the existing exposure conservatively (`smoothstep(0.25, 0.9, exposure)`).
 
-Cheap approximation for steep faces: a second exposure test further out along `Ng` (`r_runoffProbe` texels, default
+Cheap approximation for steep faces: a second exposure test further out along `Ng` (`r_weatherRunoffProbe` texels, default
 1.5, at most 32 world units), weighted by steepness: `exposure = max(base, steep × probe)`. An exterior wall next to
 open sky then counts as exposed, instead of getting the half-occluded bilinear result at its own top. A wall under a
 roof deeper than the probe stays dry. Walls under eaves shallower than the probe get wet, which is near-physical with
-wind. There is no directional weather map. If the probe proves unstable in game, `r_runoffProbe 0` limits runoff to
+wind. There is no directional weather map. If the probe proves unstable in game, `r_weatherRunoffProbe 0` limits runoff to
 what the top-down map sees. Debug 24 shows where the probe added exposure, in red.
 
 ## PBR response
@@ -95,13 +95,13 @@ what the top-down map sees. Debug 24 shows where the probe added exposure, in re
 | cvar | default | |
 |---|---|---|
 | `r_weatherRunoff` | 0 | on / off (needs `r_weatherWetness`) |
-| `r_runoffStrength` | 1 | film strength (0.001 – 2) |
-| `r_runoffSpeed` | 24 | pulse speed, world units / s |
-| `r_runoffScale` | 48 | streak cell size, world units |
-| `r_runoffProbe` | 1.5 | wall exposure probe, weather-map texels (0 off, ≤ 32 units) |
-| `r_runoffEntities` | 0 | runoff on characters, props and movers too |
+| `r_weatherRunoffStrength` | 1 | film strength (0.001 – 2) |
+| `r_weatherRunoffSpeed` | 24 | pulse speed, world units / s |
+| `r_weatherRunoffScale` | 48 | streak cell size, world units |
+| `r_weatherRunoffProbe` | 1.5 | wall exposure probe, weather-map texels (0 off, ≤ 32 units) |
+| `r_weatherRunoffEntities` | 0 | runoff on characters, props and movers too |
 
-## Debug (`r_weatherWetnessDebug`)
+## Debug (`r_weatherSurfaceDebug`)
 
 | | |
 |---|---|

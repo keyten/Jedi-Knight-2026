@@ -68,7 +68,7 @@ These are decided from shader and stage state, never from the file name:
 
 ## Debug
 
-`r_weatherWetnessDebug` (only while it is raining):
+`r_weatherSurfaceDebug` (only while it is raining):
 
 | Mode | Shows |
 |------|-------|
@@ -92,4 +92,4 @@ Mode 31 colours:
 | red | `weatherResponse 0` |
 | black | pass |
 
-`r_weatherMaterialPrint 1` prints, for one frame, every drawn shader with a non-default response or an exclusion (name, scales, reason). The cvar then resets itself.
+`r_weatherMaterialList` prints, for one frame, every drawn shader with a non-default response or an exclusion (name, scales, reason). The command requests the next rain rendering frame; no cvar state is saved.

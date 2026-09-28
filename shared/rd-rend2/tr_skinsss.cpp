@@ -36,7 +36,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // Which stages are skin (R_SkinSSSClassifyShader, once per shader):
 //   the MATCLASS_SKIN class of the auto PBR classifier (tr_autopbr.cpp), minus
 //   eyes / teeth / mouth / cap textures, minus *_head textures (hair, ears and neck in
-//   one texture) unless r_skinSSSMixed, minus shaders with an alpha blended lit
+//   one texture) unless r_skinSSSMixedHeads, minus shaders with an alpha blended lit
 //   layer on top (jedi_tf). Shader keywords override it: skinScatter <0..1>,
 //   skinMask <image> (R = scatter per texel, implies skinScatter 1).
 //
@@ -189,7 +189,7 @@ R_SkinSSSClassifyShader
 
 Called after CollapseStagesToGLSL. Only the opaque lit base of a skin
 material scatters; the decision is kept on the stage (skinScatter, skinReason)
-whatever r_skinSSS is, so the debug views and skinsss_list work in every mode.
+whatever r_skinSSS is, so the debug views and r_skinSSSList work in every mode.
 ===============
 */
 void R_SkinSSSClassifyShader( const shader_t *sh, shaderStage_t *stages, int numStages )
@@ -268,7 +268,7 @@ void R_SkinSSSClassifyShader( const shader_t *sh, shaderStage_t *stages, int num
 				SetSkin( stage, 0.0f, "excluded part" );
 				continue;
 			}
-			if ( !Q_stricmp( match.token, "head" ) && !r_skinSSSMixed->integer )
+			if ( !Q_stricmp( match.token, "head" ) && !r_skinSSSMixedHeads->integer )
 			{
 				SetSkin( stage, 0.0f, "mixed head" );
 				continue;
@@ -474,7 +474,7 @@ static float SkinWidthMM( void )
 	return Com_Clamp(0.1f, 40.0f, r_skinSSSWidth->value);
 }
 
-// skinsss_kernel: prints the kernel and the pixel radius at a few depths
+// r_skinSSSKernel: prints the kernel and the pixel radius at a few depths
 void R_SkinSSSKernel_f( void )
 {
 	const int taps = SkinTaps();
@@ -612,12 +612,12 @@ void RB_RenderSkinSSS( const screenViewInfo_t& info )
 /*
 ============================================================
 
-skinsss_list
+r_skinSSSList
 
 ============================================================
 */
 
-// skinsss_list [used|all|skin]: the skin decision of the lit stages
+// r_skinSSSList [used|all|skin]: the skin decision of the lit stages
 void R_SkinSSSList_f( void )
 {
 	const char *filter = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : "used";
@@ -625,7 +625,7 @@ void R_SkinSSSList_f( void )
 	const qboolean skinOnly = (qboolean)!Q_stricmp(filter, "skin");
 	int scatter = 0, listed = 0;
 
-	ri.Printf(PRINT_ALL, "r_skinSSS %d (built as %d), r_skinSSSMixed %d\n", r_skinSSS->integer, s_mode, r_skinSSSMixed->integer);
+	ri.Printf(PRINT_ALL, "r_skinSSS %d (built as %d), r_skinSSSMixedHeads %d\n", r_skinSSS->integer, s_mode, r_skinSSSMixedHeads->integer);
 	ri.Printf(PRINT_ALL, "%-4s %-48s %6s %-20s %s\n", "used", "shader", "scatter", "reason", "diffuse / mask");
 	for ( int i = 0; i < tr.numShaders; i++ )
 	{

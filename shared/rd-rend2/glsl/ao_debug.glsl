@@ -9,13 +9,13 @@ void main()
 }
 
 /*[Fragment]*/
-// r_debugAO full screen views of the screen-space AO / contact shadow buffers
+// r_aoDebug full screen views of the screen-space AO / contact shadow buffers
 // (the lightall based views 7-9 and 12 are written by lightall itself).
 
 uniform sampler2D u_ScreenImageMap; // buffer to show
 uniform sampler2D u_AODepthMap;     // GTAO linear depth
 
-uniform vec4 u_AOSettings;          // x = r_debugAO, y = zFar
+uniform vec4 u_AOSettings;          // x = r_aoDebug, y = zFar
 
 in vec2 var_ScreenTex;
 

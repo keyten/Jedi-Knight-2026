@@ -717,7 +717,7 @@ typedef struct cgameImport_s {
 	struct {
 		float			(*R_Font_StrLenPixels)					( const char *text, const int iFontIndex, const float scale );
 		// LTC line light (saber blade), qfalse = not taken: add the point light
-		// instead. Only called with r_saberAreaLights set (older engines lack it)
+		// instead. Only called with r_ltcSaberAreaLights set (older engines lack it)
 		qboolean		(*R_AddLineLightToScene)				( const vec3_t start, const vec3_t end, float radius, float range, float r, float g, float b );
 		// foliage character colliders (rend2 foliage extension), once per frame.
 		// Only called with r_foliageInteraction set (older engines lack it)

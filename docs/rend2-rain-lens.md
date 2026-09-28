@@ -82,9 +82,9 @@ size holds across resolutions, ultrawide and FOV changes.
 | cvar | default | |
 |---|---|---|
 | `r_rainLens` | 0 | latched, allocates the target, needs `r_hdr` |
-| `r_rainLensAmount` | 0.5 | density |
+| `r_rainLensDensity` | 0.5 | density |
 | `r_rainLensRefraction` | 1.0 | |
-| `r_rainLensScale` | 1.0 | drop size |
+| `r_rainLensDropSize` | 1.0 | drop size |
 | `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. 1 = mask (r) / trail film (g), 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
 
 GPU time: `r_speeds 100` shows the "Rain lens" timed block.

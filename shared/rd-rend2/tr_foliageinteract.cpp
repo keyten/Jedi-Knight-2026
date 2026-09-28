@@ -67,7 +67,7 @@ bool R_FoliageInteractionActive(void)
 // foliage classification
 bool R_PlantBendActive(void)
 {
-	return r_autoFoliage->integer && (R_FoliageInteractionActive() || r_plantWind->value > 0.0f);
+	return r_autoFoliage->integer && (R_FoliageInteractionActive() || (r_plantWind->integer && r_plantWindStrength->value > 0.0f));
 }
 
 uint8_t R_FoliageMotionClass(const drawSurf_t *drawSurf)
@@ -112,7 +112,7 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 	const bool consecutive = s_fi.latchedFrame == tr.frameCount - 1 &&
 		fd->time >= s_fi.latchedTime && fd->time - s_fi.latchedTime <= 250;
 
-	// the persistent field (r_foliageField) follows this frame's player body
+	// the persistent field (r_foliageBendField) follows this frame's player body
 	const foliageInteractor_t *player = NULL;
 	if (s_fi.submittedFrame == tr.frameCount)
 	{
@@ -141,14 +141,14 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 	float radiusScale = r_foliageInteractionRadius->value;
 	if (debug & FOLIAGEINTERACT_DEBUG_EXAGGERATE)
 		radiusScale *= 2.0f;
-	const bool playerOnly = !r_foliageInteractionNPC->integer || (debug & FOLIAGEINTERACT_DEBUG_PLAYER);
-	const int maxCount = Com_Clampi(1, MAX_FOLIAGE_INTERACTORS, r_foliageInteractionMax->integer);
+	const bool playerOnly = !r_foliageInteractionNPCs->integer || (debug & FOLIAGEINTERACT_DEBUG_PLAYER);
+	const int maxCount = Com_Clampi(1, MAX_FOLIAGE_INTERACTORS, r_foliageInteractionMaxInteractors->integer);
 
 	int count = 0;
 	if (s_fi.submittedFrame == tr.frameCount)
 	{
 		// cgame keeps the player first and sorts the others by distance, so
-		// a smaller r_foliageInteractionMax drops the farthest
+		// a smaller r_foliageInteractionMaxInteractors drops the farthest
 		for (int i = 0; i < s_fi.submittedCount && count < maxCount; ++i)
 		{
 			const foliageInteractor_t *in = &s_fi.submitted[i];
@@ -346,7 +346,7 @@ void RB_SetFoliageMotionUniforms(UniformDataWriter& writer, uint8_t cls)
 	}
 
 	const float yaw = DEG2RAD(r_foliageWindDirection->value);
-	const float windBend = PLANTWIND_BASE_BEND * r_plantWind->value;
+	const float windBend = PLANTWIND_BASE_BEND * (r_plantWind->integer ? r_plantWindStrength->value : 0.0f);
 	const bool interaction = RB_FoliageInteractionInView();
 
 	writer.SetUniformVec4(UNIFORM_PLANTBEND, root[0], root[1], root[2], invSize);
@@ -465,7 +465,7 @@ static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
 	}
 }
 
-// r_foliageFieldDebug 2: the square the persistent field covers, at the
+// r_foliageBendFieldDebug 2: the square the persistent field covers, at the
 // player's feet (green)
 static void R_FoliageFieldDebugBounds(const refdef_t *fd)
 {

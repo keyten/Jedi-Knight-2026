@@ -223,7 +223,7 @@ Ghoul2 Insert End
 	CG_OPENJK_GETMENU_BYNAME,
 
 	// LTC line light (rend2 area light extension), returns qfalse when not
-	// taken; only called with r_saberAreaLights set (older engines lack it)
+	// taken; only called with r_ltcSaberAreaLights set (older engines lack it)
 	CG_R_ADDLINELIGHTTOSCENE,
 
 	// foliage character colliders (rend2 foliage extension); only called with
@@ -231,7 +231,7 @@ Ghoul2 Insert End
 	CG_R_SETFOLIAGEINTERACTORS,
 
 	// participating medium of an FX particle (rend2 volumetric FX particles);
-	// only called with r_volParticles set (older engines lack it)
+	// only called with r_volumetricParticles set (older engines lack it)
 	CG_R_ADDVOLPARTICLE,
 
 	// spot light (rend2 spot lights); only called with cl_rendererSpotLights

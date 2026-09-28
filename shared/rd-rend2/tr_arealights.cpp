@@ -31,7 +31,7 @@ Lights UBO (froxel fog) nor the shadow cube selection.
 
 Sources, merged into the scene light list:
   map file    maps/<map>.arealights.json, loaded with the map, reloaded with
-              r_reloadAreaLights; static lamps default to specular only
+              r_ltcReloadLights; static lamps default to specular only
               (their diffuse light is already in the lightmap)
   scene API   RE_AddAreaLightToScene / RE_AddLineLightToScene (sabers),
               dynamic: diffuse + specular, diffuse feeds SSGI
@@ -125,17 +125,17 @@ void R_AreaLightsBeginFrame( void )
 	// first missing dependency is reported
 	if ( r_ltcAreaLights->modificationCount != s_al.ltcModCount ||
 		r_forwardPlus->modificationCount != s_al.fplusModCount ||
-		r_saberAreaLights->modificationCount != s_al.saberModCount )
+		r_ltcSaberAreaLights->modificationCount != s_al.saberModCount )
 	{
 		s_al.ltcModCount = r_ltcAreaLights->modificationCount;
 		s_al.fplusModCount = r_forwardPlus->modificationCount;
-		s_al.saberModCount = r_saberAreaLights->modificationCount;
+		s_al.saberModCount = r_ltcSaberAreaLights->modificationCount;
 
 		if ( wanted && !s_al.unitsOk )
 			ri.Printf(PRINT_WARNING, "LTC area lights need more than %d texture units, disabled\n", TB_LTC_AMPLITUDE + 1);
 		else if ( wanted && !fplus )
 			ri.Printf(PRINT_ALL, "LTC area lights require r_forwardPlus 1\n");
-		else if ( !wanted && r_saberAreaLights->integer )
+		else if ( !wanted && r_ltcSaberAreaLights->integer )
 			ri.Printf(PRINT_ALL, "Saber area lights require r_ltcAreaLights 1\n");
 	}
 
@@ -391,7 +391,7 @@ void R_ReloadAreaLights_f( void )
 {
 	if ( !tr.world )
 	{
-		ri.Printf(PRINT_ALL, "r_reloadAreaLights: no map loaded\n");
+		ri.Printf(PRINT_ALL, "r_ltcReloadLights: no map loaded\n");
 		return;
 	}
 	R_LoadAreaLightFile();
@@ -538,13 +538,13 @@ void RE_AddAreaLightToScene( const vec3_t center, const vec3_t right, const vec3
 
 /*
 A line emitter (saber blade). Returns qfalse when the renderer does not take
-it (area lights inactive, r_saberAreaLights 0, no room): the caller then adds
+it (area lights inactive, r_ltcSaberAreaLights 0, no room): the caller then adds
 its old point light, so the two never light the same frame twice.
 */
 qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float radius,
 	float range, float r, float g, float b )
 {
-	if ( !tr.registered || !s_al.active || !r_saberAreaLights->integer )
+	if ( !tr.registered || !s_al.active || !r_ltcSaberAreaLights->integer )
 		return qfalse;
 
 	vec3_t center, axis, up;
@@ -733,7 +733,7 @@ void R_AreaLightsNearest_f( void )
 
 Candidates from the emissive surfaces of the loaded map: used by
 r_ltcAutoAreaLights (in memory, at map load, when the map has no
-.arealights.json) and by r_extractAreaLights (written for review, never
+.arealights.json) and by r_ltcExtractLights (written for review, never
 loaded by itself; the map is never changed).
 
 Stock JA lamps are a lightmapped surface plus an additive "glow" stage
@@ -1278,7 +1278,7 @@ void R_ExtractAreaLights_f( void )
 {
 	if ( !tr.world )
 	{
-		ri.Printf(PRINT_ALL, "r_extractAreaLights: no map loaded\n");
+		ri.Printf(PRINT_ALL, "r_ltcExtractLights: no map loaded\n");
 		return;
 	}
 
@@ -1287,7 +1287,7 @@ void R_ExtractAreaLights_f( void )
 	R_FindAreaLightCandidates(tr.world, candidates, &numTriangles);
 
 	const int autoMode = Q_max(1, r_ltcAutoAreaLights->integer);
-	std::string out = "{\n\t\"generator\": \"r_extractAreaLights\",\n\t\"lights\": [\n";
+	std::string out = "{\n\t\"generator\": \"r_ltcExtractLights\",\n\t\"lights\": [\n";
 	int numOut = 0, numReview = 0;
 	for ( const areaCandidate_t& c : candidates )
 	{

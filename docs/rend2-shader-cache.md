@@ -1,7 +1,7 @@
-# Rend2 GLSL program cache (`r_glslCache`)
+# Rend2 GLSL program cache (`r_shaderProgramCache`)
 
 Rend2 compiles every GLSL program at every renderer start: about 700 lightall permutations in SP plus generic,
-fog, post-processing and so on. `r_glslCache 1` (default) stores the linked programs on disk
+fog, post-processing and so on. `r_shaderProgramCache 1` (default) stores the linked programs on disk
 (GL_ARB_get_program_binary), so later starts load them instead of compiling.
 
 Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
@@ -38,14 +38,14 @@ Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
 - **When it is written:** only when something changed, i.e. programs were compiled, rejected or evicted, or used
   entries need their age refreshed. A start that loads everything from the cache writes nothing.
 - **Cleanup:** entries unused for 16 rewrites (sources or cvar combinations you no longer use) are dropped.
-  `r_glslCacheMaxMB` (default 512) caps the size, evicting the least recently used entries first.
+  `r_shaderProgramCacheMaxMB` (default 512) caps the size, evicting the least recently used entries first.
 
 ## Cvars
 
 | Cvar | Default | |
 |---|---|---|
-| `r_glslCache` | 1 | 0 = compile everything as before, no file read or written. Latched. |
-| `r_glslCacheMaxMB` | 512 | size limit of the file |
+| `r_shaderProgramCache` | 1 | 0 = compile everything as before, no file read or written. Latched. |
+| `r_shaderProgramCacheMaxMB` | 512 | size limit of the file |
 
 The start-up console shows, after the existing `loaded N GLSL shaders ... in X seconds` line:
 
@@ -53,7 +53,7 @@ The start-up console shows, after the existing `loaded N GLSL shaders ... in X s
 GLSL cache: 712 from glslcache/rend2_sp.bin, 0 compiled and stored, 0 rejected, 45.3 MB
 ```
 
-To start over, delete the file (or set `r_glslCache 0`).
+To start over, delete the file (or set `r_shaderProgramCache 0`).
 
 ## Startup progress
 
@@ -88,7 +88,7 @@ update or a new cvar combination still compiles; only the programs that changed 
 2. Second start: `N from ...`, `0 compiled`, and a much shorter `loaded ... in X seconds`.
 3. Change `r_dlightMode` + `vid_restart`: only the affected programs are compiled. Switch back: everything
    comes from the cache.
-4. `r_glslCache 0` + `vid_restart`: `GLSL cache: off (r_glslCache 0)`, same image.
+4. `r_shaderProgramCache 0` + `vid_restart`: `GLSL cache: off (r_shaderProgramCache 0)`, same image.
 5. Replace the file with garbage: a warning, everything is compiled, the file is rebuilt, no crash.
 6. During a cold start or `vid_restart` that reloads GLSL programs, the splash
    percentage and bar advance from 0 to 100. With a warm cache, they finish quickly.

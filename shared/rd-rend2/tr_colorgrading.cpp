@@ -23,7 +23,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // map display-encoded sRGB values to display-encoded sRGB values.
 //
 // The LUT in use is, in order:
-//  - r_colorGradingLut, when set (a .cube file, or *identity)
+//  - r_colorGradingLUT, when set (a .cube file, or *identity)
 //  - maps/<map>.cube next to the .bsp of the current map, if it exists
 //  - none
 
@@ -117,7 +117,7 @@ void R_SetMapColorGrading( const char *worldName )
 R_UpdateColorGrading
 
 Called once per scene. Loads the LUT when the selection changes, so
-r_colorGradingLut takes effect immediately.
+r_colorGradingLUT takes effect immediately.
 ===============
 */
 void R_UpdateColorGrading( void )
@@ -125,7 +125,7 @@ void R_UpdateColorGrading( void )
 	const char *name = "";
 	if ( r_colorGrading->integer )
 	{
-		name = r_colorGradingLut->string[0] ? r_colorGradingLut->string : tr.mapColorGradingLut;
+		name = r_colorGradingLUT->string[0] ? r_colorGradingLUT->string : tr.mapColorGradingLut;
 	}
 
 	if ( !strcmp(name, tr.colorGradingLutName) )

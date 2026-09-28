@@ -1,5 +1,5 @@
 /*
- * Persistent foliage bend field (r_foliageField) of the character interaction
+ * Persistent foliage bend field (r_foliageBendField) of the character interaction
  * (tr_foliageinteract.cpp).
  *
  * The direct push of the colliders is stateless: a plant snaps back to its
@@ -20,11 +20,11 @@
  * latch as the colliders); every view of that frame (mirrors, portals,
  * shadows, motion vectors) only samples it. Cleared on map load, vid_restart,
  * pauses / time jumps, teleports (a shift of more than half the field) and
- * r_foliageFieldClear.
+ * r_foliageBendFieldClear.
  */
 #include "tr_local.h"
 
-// r_foliageFieldDebug bits
+// r_foliageBendFieldDebug bits
 enum
 {
 	FOLIAGEFIELD_DEBUG_OVERLAY    = 1,	// the field in a corner of the screen
@@ -65,25 +65,25 @@ static struct
 
 static int FoliageFieldDebug(void)
 {
-	return r_foliageFieldDebug ? r_foliageFieldDebug->integer : 0;
+	return r_foliageBendFieldDebug ? r_foliageBendFieldDebug->integer : 0;
 }
 
 bool R_FoliageFieldActive(void)
 {
-	return s_ff.resources && r_foliageField->integer && R_FoliageInteractionActive();
+	return s_ff.resources && r_foliageBendField->integer && R_FoliageInteractionActive();
 }
 
 /*
 =============
 Resources: two RGBA16F squares, sampled with linear filtering (the plants sit
-between texel centers), always created (256 KB at 128 x 128) so r_foliageField
-toggles without vid_restart; r_foliageFieldSize is latched.
+between texel centers), always created (256 KB at 128 x 128) so r_foliageBendField
+toggles without vid_restart; r_foliageBendFieldSize is latched.
 =============
 */
 void R_CreateFoliageFieldImages(void)
 {
 	s_ff = {};
-	const int requested = r_foliageFieldSize->integer;
+	const int requested = r_foliageBendFieldSize->integer;
 	s_ff.size = requested >= 256 ? 256 : (requested >= 128 ? 128 : 64);
 	for (int i = 0; i < 2; i++)
 	{
@@ -134,7 +134,7 @@ void R_FoliageFieldLatch(const refdef_t *fd, bool consecutive, const foliageInte
 	}
 
 	const int debug = FoliageFieldDebug();
-	const float extent = Com_Clamp(256.0f, 8192.0f, r_foliageFieldExtent->value);
+	const float extent = Com_Clamp(256.0f, 8192.0f, r_foliageBendFieldExtent->value);
 	const float texel = extent / s_ff.size;
 
 	bool clear = !s_ff.valid || !consecutive || s_ff.world != tr.world ||
@@ -216,7 +216,7 @@ void R_FoliageFieldBlock(FoliageInteractionBlock *block, int interactionDebugBit
 		return;
 
 	const int debug = FoliageFieldDebug();
-	float scale = r_foliageFieldStrength->value;
+	float scale = r_foliageBendFieldStrength->value;
 	if (debug & FOLIAGEFIELD_DEBUG_EXAGGERATE)
 		scale *= 3.0f;
 	if (debug & FOLIAGEFIELD_DEBUG_NO_FIELD)
@@ -227,13 +227,13 @@ void R_FoliageFieldBlock(FoliageInteractionBlock *block, int interactionDebugBit
 	VectorSet4(block->field, s_ff.originX * texel, s_ff.originY * texel, invExtent, scale);
 	VectorSet4(block->fieldPrevious, s_ff.prevCenter[0], s_ff.prevCenter[1], invExtent, scale);
 
-	// damped spring: r_foliageFieldRecovery = seconds until the swing is
-	// down to ~5 % (envelope exp(-zeta w t) = e^-3), zeta = r_foliageFieldDamping
-	const float zeta = Com_Clamp(0.2f, 1.0f, r_foliageFieldDamping->value);
-	const float recovery = Com_Clamp(0.1f, 10.0f, r_foliageFieldRecovery->value);
+	// damped spring: r_foliageBendFieldRecoveryTime = seconds until the swing is
+	// down to ~5 % (envelope exp(-zeta w t) = e^-3), zeta = r_foliageBendFieldDamping
+	const float zeta = Com_Clamp(0.2f, 1.0f, r_foliageBendFieldDamping->value);
+	const float recovery = Com_Clamp(0.1f, 10.0f, r_foliageBendFieldRecoveryTime->value);
 	const float omega = 3.0f / (zeta * recovery);
 	VectorSet4(block->fieldUpdate, s_ff.dt, omega * omega, 2.0f * zeta * omega,
-		MAX(r_foliageFieldImpulse->value, 0.0f));
+		MAX(r_foliageBendFieldImpulse->value, 0.0f));
 	VectorSet4(block->fieldShift, (float)s_ff.shiftX, (float)s_ff.shiftY, s_ff.clear ? 1.0f : 0.0f,
 		(debug & FOLIAGEFIELD_DEBUG_NO_DIRECT) ? 1.0f : 0.0f);
 	(void)interactionDebugBits;
@@ -326,7 +326,7 @@ const void *RB_FoliageFieldCommand(const void *data)
 =============
 RB_FoliageFieldDebugOverlay
 
-r_foliageFieldDebug 1: bend vectors (left) and magnitude heat (right) of the
+r_foliageBendFieldDebug 1: bend vectors (left) and magnitude heat (right) of the
 current field in the lower left corner, the player at the center
 =============
 */
@@ -353,7 +353,7 @@ void RB_FoliageFieldDebugOverlay(void)
 	GL_SelectTexture(0);
 }
 
-// r_foliageFieldDebug 2: the covered square (world XY), false when none
+// r_foliageBendFieldDebug 2: the covered square (world XY), false when none
 bool R_FoliageFieldBounds(vec2_t mins, vec2_t maxs)
 {
 	if (!s_ff.frameActive || !(FoliageFieldDebug() & FOLIAGEFIELD_DEBUG_BOUNDS))

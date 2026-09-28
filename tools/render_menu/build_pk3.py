@@ -68,7 +68,7 @@ def build(assets, reference):
         m = re.match(r'- `(r_\w+)\s+([^`]*)`\s*[—-]\s*(.*)', line)
         if not m: continue
         name, spec, desc = m.groups()
-        if name == 'r_autoPomSilhouette': name = 'r_autoPomSilhouetteMode'
+        if name == 'r_autoPOMSilhouette': name = 'r_autoPOMSilhouetteMode'
         if name in seen or name not in regs: continue
         # Console commands and gameplay hooks are not persistent user settings.
         if name in ('r_motionBlurReset', 'r_motionBlurShutterScale'): continue
@@ -133,7 +133,7 @@ def build(assets, reference):
                 extra += 'cvarFloatList { ' + ' '.join(f'{quote(labels.get(v,str(v)))} {v}' for v in enum) + ' }'
                 kind = 'ITEM_TYPE_MULTI'
             else:
-                kind = 'ITEM_TYPE_EDITFIELD' if c['name'] in ('r_colorGradingLut','r_puddleSlope') else 'ITEM_TYPE_NUMERICFIELD'
+                kind = 'ITEM_TYPE_EDITFIELD' if c['name'] in ('r_colorGradingLUT','r_weatherPuddleSlope') else 'ITEM_TYPE_NUMERICFIELD'
                 extra += 'maxChars 128 maxPaintChars 20'
             # Right-aligned labels give all value fields the same starting X.
             row = item(f'setting_{i}', label, 26, 82+i*23, 586, extra, kind)
@@ -166,7 +166,7 @@ POM needs normal mapping and material height data. LTC saber lights need
 Forward+ and LTC. Wetness needs active map rain; puddles/runoff need wetness.
 Foliage flutter/plant wind need auto foliage; persistent field needs interaction.
 Some effects need updated engine/game modules, authored materials or map data.
-Automatic LTC changes may need map reload (r_reloadAreaLights).
+Automatic LTC changes may need map reload (r_ltcReloadLights).
 
 Use the matching Jedi Academy 2026 Rend2 binaries. This PK3 adds menus only.
 Labels use English to work with stock fonts. Debug views and authoring commands

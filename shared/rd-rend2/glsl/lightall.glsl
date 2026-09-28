@@ -438,7 +438,7 @@ layout(std140) uniform Scene
 	// y = fraction of baked (lightmap/vertex) light treated as indirect
 	// z = multi-bounce approximation, w = split position in window pixels
 	vec4 u_AOParams;
-	// x = r_debugAO (lightall views), y = specular occlusion mode (0 scalar,
+	// x = r_aoDebug (lightall views), y = specular occlusion mode (0 scalar,
 	// 1 Lagarde, 2 cone), z = bent normal strength (0 = off)
 	vec4 u_AOParams2;
 #if defined(USE_SSGI)
@@ -1735,7 +1735,7 @@ bool SpotDebugSkipLight(in float cosInner)
 uniform sampler2DArray u_LightCookieMap;
 uniform vec4 u_LightCookieParams;	// enabled, rgb, world size of a pixel at distance 1, debug mode
 
-vec3 g_cookieDebug = vec3(0.0);		// r_lightCookieDebug view of the strongest cookie light
+vec3 g_cookieDebug = vec3(0.0);		// r_spotLightCookieDebug view of the strongest cookie light
 
 // d = unit direction light -> receiver; spot = axis, cos outer; roll around the
 // axis from the stable basis of R_SpotShadowAxis. xy = cookie uv (the outer
@@ -2026,7 +2026,7 @@ float PomLightImportance(in vec3 toLight, in vec3 lightColor, in float lightRadi
 	return dot(lightColor, vec3(0.2126, 0.7152, 0.0722)) * attenuation;
 }
 
-// r_pomSelfShadowLights 1 / 2: only the N strongest lights at this pixel get a
+// r_pomSelfShadowLightMode 1 / 2: only the N strongest lights at this pixel get a
 // self shadow ray. Returns the importance of the (N+1)-th strongest light; the
 // weight of a light fades in between 1x and 1.5x of it, so the choice changes
 // without pops. 0 = every light, < 0 = none.
@@ -2813,7 +2813,7 @@ float RunoffNoise(vec2 p)
 // across, along (world z): pattern cells, clock: cells (u_RunoffParams.z).
 // Static channels (water keeps its paths) of two widths, wiggled by a low
 // frequency warp, and pulses running down them at two speeds (1 and 1 / 1.7
-// x r_runoffSpeed), so the whole does not read as one scrolling texture.
+// x r_weatherRunoffSpeed), so the whole does not read as one scrolling texture.
 // Returns x = film (thin sheet everywhere, full in the streams, pulsing),
 // y = stream core.
 vec2 RunoffStreaks(float across, float along, float clock)
@@ -2868,7 +2868,7 @@ vec2 RunoffPattern(in vec3 worldPosition, in vec3 geometricNormal)
 	return result;
 }
 
-// Rain ripples on standing water (r_puddleRipples): expanding rings that only
+// Rain ripples on standing water (r_weatherPuddleRipples): expanding rings that only
 // tilt the water normal, so direct light, IBL, SSR and SSGI all show them.
 // 3 hashes of the PuddleHash family, 0..1.
 vec3 RippleHash3(vec2 p)
@@ -2944,7 +2944,7 @@ vec3 PuddleRipples(vec2 worldXY, float footprint)
 }
 
 #if defined(USE_PARALLAXMAP)
-// Height aware puddles (r_puddleHeight): the macro basin (0 where the macro
+// Height aware puddles (r_weatherPuddleUseHeightMap): the macro basin (0 where the macro
 // puddle fringe starts, 1 in its core) sets a static water level inside the
 // relief of the material, depth = PuddleRelief (1 = deepest). The
 // deepest cracks fill first, then the low areas, the core covers the peaks.
@@ -3379,7 +3379,7 @@ void main()
 			vec3 worldPosition = u_ViewOrigin - viewDir;
 			// The weather map is top down: vertical rain on up facing
 			// surfaces. A steep face also tests a column a little further out
-			// (r_runoffProbe, <= 32 units): an exterior wall next to open sky
+			// (r_weatherRunoffProbe, <= 32 units): an exterior wall next to open sky
 			// counts as exposed, a wall under a deeper roof stays dry.
 			runoffExposure = rainExposure;
 			float steep = 1.0 - smoothstep(0.35, 0.7, wetGeoNormal.z);
@@ -3831,7 +3831,7 @@ void main()
 		return;
 	}
 
-	// r_lightCookieDebug 1 projected uv, 2 cookie factor, 3 cookie * shadow
+	// r_spotLightCookieDebug 1 projected uv, 2 cookie factor, 3 cookie * shadow
 	// (lights with a cookie, weighted by the cone), written unlit
 	if (u_LightCookieParams.w > 0.5 && u_LightMask != 0)
 	{
@@ -3873,14 +3873,14 @@ void main()
   #endif
 
   #if defined(USE_WETNESS)
-	// r_weatherWetnessDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
+	// r_weatherSurfaceDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
 	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 31.0 && u_WetnessParams2.z != 4.0)
 	{
 		float shade = 0.35 + 0.65 * NE;
 		vec3 debugColor;
 		// 11-15: material depth of the shaded point (raw, and rescaled to the
 		// relief), < 0 without usable height (no normalHeightMap, flat height
-		// or r_puddleHeight 0): magenta in 11, 12, 14
+		// or r_weatherPuddleUseHeightMap 0): magenta in 11, 12, 14
 		float debugRawDepth = -1.0;
 		float debugDepth = -1.0;
     #if defined(USE_PARALLAXMAP)
@@ -4098,7 +4098,7 @@ void main()
   #endif
 
   #if defined(USE_SSAO)
-	// r_debugAO 7-9, 12, written unlit (tone mapping is bypassed for these)
+	// r_aoDebug 7-9, 12, written unlit (tone mapping is bypassed for these)
 	if (u_AOParams2.x >= 7.0)
 	{
 		if (u_AOParams2.x == 7.0)

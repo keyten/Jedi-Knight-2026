@@ -64,8 +64,8 @@ A sphere around the origin would have bent grass near the head and missed the fe
 | | |
 |---|---|
 | `MAX_FOLIAGE_INTERACTORS` | 16 (UBO array size, shader loop bound) |
-| `r_foliageInteractionMax` | 8 by default, 1–16. The first N of the list are uploaded: the player, then the nearest NPCs |
-| `r_foliageInteractionNPC 0` | player only |
+| `r_foliageInteractionMaxInteractors` | 8 by default, 1–16. The first N of the list are uploaded: the player, then the nearest NPCs |
+| `r_foliageInteractionNPCs 0` | player only |
 
 The vertex loop runs `count` times, where count is a uniform. Each collider first does an early out on horizontal
 distance (`reach = 1.75 r`). There is no spatial acceleration, since the count is small and fixed.
@@ -168,11 +168,12 @@ the maximum turn is 65.00° and the length is kept.
 | `r_foliageInteraction` | 0 | 1 = characters bend grass and `FOLIAGE_PLANT` models (plants need `r_autoFoliage ≥ 1`) |
 | `r_foliageInteractionStrength` | 1 | 0–4 (1 = a stem in full contact leans ~45°, never more than 65°) |
 | `r_foliageInteractionRadius` | 1 | capsule radius scale, 0.5–3 |
-| `r_foliageInteractionMax` | 8 | 1–16 colliders, player first |
-| `r_foliageInteractionNPC` | 1 | 0 = player only |
-| `r_plantWind` | 0 | fern root-bend breeze, 0–4 (1 ≈ 14° at the strongest gust); direction / speed from `r_foliageWindDirection` / `r_foliageWindSpeed` |
+| `r_foliageInteractionMaxInteractors` | 8 | 1–16 colliders, player first |
+| `r_foliageInteractionNPCs` | 1 | 0 = player only |
+| `r_plantWind` | 0 | Enable fern root-bend breeze (0/1); direction / speed from `r_foliageWindDirection` / `r_foliageWindSpeed` |
+| `r_plantWindStrength` | 1 | Root-bend strength, 0–4 (1 ≈ 14° at the strongest gust) |
 | `r_foliageInteractionDebug` (cheat) | 0 | bits: 1 draw colliders (yellow player, cyan NPC, + velocity line), 2 ×2 radius and strength, 4 interaction only (no wind), 8 contact heat (blue 0 → yellow 1), 16 freeze colliders, 32 player only |
-| `r_foliageInteractors` (command) | | prints the submitted and uploaded colliders |
+| `r_foliageInteractionList` (command) | | prints the submitted and uploaded colliders |
 
 `tools/foliageinteract_ab.cfg` binds the A/B screenshots, the debug toggles and a timing run.
 
@@ -225,10 +226,10 @@ These are static NVIDIA vertex program sizes (`!!NVvp5.0` instructions, RTX 2060
 - **Temporal and shadows**: TAA (`r_smaa 2`) / motion blur ghosting, sun shadows.
 - **Debug overlay (bit 1)**: compare the capsule with the body.
 - **Timings and debug video.**
-- **Which stock models are `FOLIAGE_PLANT`** (`r_printAutoFoliage`): the fern side needs map models whose names contain
+- **Which stock models are `FOLIAGE_PLANT`** (`r_autoFoliageList`): the fern side needs map models whose names contain
   "fern" / "plant".
 
-## Persistent bend field (`r_foliageField`)
+## Persistent bend field (`r_foliageBendField`)
 
 Without it, a plant goes back to its wind pose the frame the character leaves it. The field adds a short spring-back.
 There is no per plant state and no CPU physics. Code: `tr_foliagefield.cpp`, `glsl/foliage_field.glsl`, and
@@ -236,9 +237,9 @@ There is no per plant state and no CPU physics. Code: `tr_foliagefield.cpp`, `gl
 
 ### Representation and world mapping
 
-- Two `RGBA16F` square textures, ping-pong. Size is `r_foliageFieldSize` (64 / 128 / 256, latched, default 128).
+- Two `RGBA16F` square textures, ping-pong. Size is `r_foliageBendFieldSize` (64 / 128 / 256, latched, default 128).
 - Per texel: `rg` = bend vector d (same units as the direct push, tip offset per stem length), `ba` = its velocity v.
-- The square is `r_foliageFieldExtent` world units wide (default 1024, so 8 units per texel at 128), centered on the
+- The square is `r_foliageBendFieldExtent` world units wide (default 1024, so 8 units per texel at 128), centered on the
   **player collider**, never the view origin. Z is ignored: it is a 2D ground map.
 - `uv = (worldXY − center) / extent + 0.5`. The border fades out over the outer 3 %; outside the square the term is 0.
 - Memory: 2 × 128² × 8 B = 256 KB (64: 64 KB, 256: 1 MB). The textures always exist, so the cvar toggles without
@@ -252,14 +253,14 @@ draws and reads the colliders from the scene's `FoliageInteraction` block. Per t
 ```
 prev    = texelFetch(previous, pix + shift)            // 0 outside: newly exposed strip
 target  = Σ colliders on the ground: push(texel center, feet + 10) × strength
-v      += Σ contact × speed factor × walk dir × 12 × r_foliageFieldImpulse × dt
+v      += Σ contact × speed factor × walk dir × 12 × r_foliageBendFieldImpulse × dt
 repeat ceil(dt·60) (≤ 6) times, h = dt / n:            // semi-implicit Euler
     v += (k (target − d) − c v) h ;  d += v h
 clamp |d| ≤ 1.5, |v| ≤ 24; snap tiny values to exactly 0
 ```
 
-- `k = ω²`, `c = 2ζω`, with `ω = 3 / (ζ T)`. T is `r_foliageFieldRecovery` (default 0.8 s) and ζ is
-  `r_foliageFieldDamping` (default 0.6).
+- `k = ω²`, `c = 2ζω`, with `ω = 3 / (ζ T)`. T is `r_foliageBendFieldRecoveryTime` (default 0.8 s) and ζ is
+  `r_foliageBendFieldDamping` (default 0.6).
 - There is no blur. The state of a patch never spreads to other patches.
 - **Airborne colliders** write nothing. cgame sets the new `FOLIAGE_INTERACTOR_AIRBORNE` flag from `groundEntityNum`.
   The direct push still uses the capsule height, so jumping over grass leaves no trail.
@@ -281,7 +282,7 @@ clamp |d| ≤ 1.5, |v| ≤ 24; snap tiny values to exactly 0
   - map load (`RE_LoadWorldMap` → `R_FoliageInteractionReset`, which was never called before) and `vid_restart`
   - a non-consecutive frame (menu, pause, time jump > 250 ms)
   - a shift of more than half the field (teleport)
-  - an `r_foliageFieldExtent` change, or `r_foliageFieldClear`
+  - an `r_foliageBendFieldExtent` change, or `r_foliageBendFieldClear`
 - **Camera cuts do not clear it**: the field is gameplay state.
 
 ### Views and temporal
@@ -310,16 +311,16 @@ final bend = wind + direct + field × (1 − heat)      // heat = direct contact
 
 | Cvar | Default | Meaning |
 |---|---|---|
-| `r_foliageField` | 0 | on / off (needs `r_foliageInteraction`) |
-| `r_foliageFieldSize` | 128 | texels per side (latched) |
-| `r_foliageFieldExtent` | 1024 | world size of the square |
-| `r_foliageFieldStrength` | 1 | scale of the field term |
-| `r_foliageFieldRecovery` | 0.8 | seconds to rest |
-| `r_foliageFieldDamping` | 0.6 | ζ; 1 = no swing past rest |
-| `r_foliageFieldImpulse` | 1 | extra momentum along the walk |
-| `r_foliageFieldDebug` | 0 | bits, see below |
+| `r_foliageBendField` | 0 | on / off (needs `r_foliageInteraction`) |
+| `r_foliageBendFieldSize` | 128 | texels per side (latched) |
+| `r_foliageBendFieldExtent` | 1024 | world size of the square |
+| `r_foliageBendFieldStrength` | 1 | scale of the field term |
+| `r_foliageBendFieldRecoveryTime` | 0.8 | seconds to rest |
+| `r_foliageBendFieldDamping` | 0.6 | ζ; 1 = no swing past rest |
+| `r_foliageBendFieldImpulse` | 1 | extra momentum along the walk |
+| `r_foliageBendFieldDebug` | 0 | bits, see below |
 
-`r_foliageFieldDebug` bits:
+`r_foliageBendFieldDebug` bits:
 - 1: overlay in the lower left corner. Left: vectors (red / green = +x / +y). Right: magnitude heat. The player is the
   cross.
 - 2: outline of the covered square.
@@ -328,7 +329,7 @@ final bend = wind + direct + field × (1 − heat)      // heat = direct contact
 - 16: field only (no direct push).
 - 32: direct push only.
 
-Commands: `r_foliageFieldClear`; `r_foliageInteractors` also prints the field state. A/B config:
+Commands: `r_foliageBendFieldClear`; `r_foliageInteractionList` also prints the field state. A/B config:
 `tools/foliagefield_ab.cfg`.
 
 ### Cost (estimated, not measured)

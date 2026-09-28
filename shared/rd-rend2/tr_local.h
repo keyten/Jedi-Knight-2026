@@ -186,43 +186,43 @@ extern cvar_t	*r_volumetricFogStaticDirectional;
 extern cvar_t	*r_volumetricSelfShadow;
 extern cvar_t	*r_volumetricSelfShadowSamples;
 extern cvar_t	*r_volumetricSelfShadowDistance;
-extern cvar_t	*r_volumetricSelfShadowOutside;
-extern cvar_t	*r_volumetricSelfShadowLights;
+extern cvar_t	*r_volumetricSelfShadowOutsideHeightFog;
+extern cvar_t	*r_volumetricSelfShadowMaxLights;
 extern cvar_t	*r_volumetricMultiScatter;
-extern cvar_t	*r_volumetricFogRGB;
-extern cvar_t	*r_volumetricMSOctaves;
-extern cvar_t	*r_volumetricMSAttenuation;
-extern cvar_t	*r_volumetricMSContribution;
-extern cvar_t	*r_volumetricMSPhase;
-extern cvar_t	*r_volumetricMSLength;
-extern cvar_t	*r_volumetricMSShadowFill;
+extern cvar_t	*r_volumetricFogRGBExtinction;
+extern cvar_t	*r_volumetricMultiScatterOctaves;
+extern cvar_t	*r_volumetricMultiScatterAttenuation;
+extern cvar_t	*r_volumetricMultiScatterContribution;
+extern cvar_t	*r_volumetricMultiScatterPhase;
+extern cvar_t	*r_volumetricMultiScatterLength;
+extern cvar_t	*r_volumetricMultiScatterShadowFill;
 extern cvar_t	*r_volumetricFogDlightShadows;
 extern cvar_t	*r_volumetricFogBloom;
 extern cvar_t	*r_volumetricEmission;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
-extern cvar_t	*r_volParticles;
+extern cvar_t	*r_volumetricParticles;
 extern cvar_t	*r_spotLights;
-extern cvar_t	*r_spotShadows;
+extern cvar_t	*r_spotLightShadows;
 extern cvar_t	*r_spotLightDebug;
-extern cvar_t	*r_lightCookies;
-extern cvar_t	*r_lightCookieDebug;
-extern cvar_t	*r_volParticlesMax;
-extern cvar_t	*r_volParticlesScale;
-extern cvar_t	*r_volParticlesHistory;
-extern cvar_t	*r_particleLight;
-extern cvar_t	*r_particleLightMix;
-extern cvar_t	*r_particleLightScale;
-extern cvar_t	*r_particleLightFloor;
-extern cvar_t	*r_particleLightDebug;
-extern cvar_t	*r_volParticlesDebug;
+extern cvar_t	*r_spotLightCookies;
+extern cvar_t	*r_spotLightCookieDebug;
+extern cvar_t	*r_volumetricParticlesMax;
+extern cvar_t	*r_volumetricParticlesScale;
+extern cvar_t	*r_volumetricParticlesHistory;
+extern cvar_t	*r_particleLighting;
+extern cvar_t	*r_particleLightingMix;
+extern cvar_t	*r_particleLightingScale;
+extern cvar_t	*r_particleLightingFloor;
+extern cvar_t	*r_particleLightingDebug;
+extern cvar_t	*r_volumetricParticlesDebug;
 extern cvar_t	*r_volumetricFogFreeze;
 extern cvar_t	*r_volumetricFogHeight;
-extern cvar_t	*r_volumetricFogHeightOpaque;
+extern cvar_t	*r_volumetricFogHeightOpaqueDistance;
 extern cvar_t	*r_volumetricFogHeightBase;
 extern cvar_t	*r_volumetricFogHeightFalloff;
-extern cvar_t	*r_volumetricFogHeightMax;
-extern cvar_t	*r_volumetricFogHeightTop;
+extern cvar_t	*r_volumetricFogHeightMaxDensity;
+extern cvar_t	*r_volumetricFogHeightTopHeight;
 extern cvar_t	*r_volumetricFogHeightColor;
 extern cvar_t	*r_volumetricFogHeightExtinction;
 extern cvar_t	*r_volumetricFogNoise;
@@ -270,7 +270,8 @@ extern cvar_t  *r_toneMapDebug;
 extern cvar_t  *r_exposureCompensation;
 extern cvar_t  *r_linearLighting;
 extern cvar_t  *r_colorGrading;
-extern cvar_t  *r_colorGradingLut;
+extern cvar_t  *r_colorGradingCompare;
+extern cvar_t  *r_colorGradingLUT;
 extern cvar_t  *r_colorGradingIntensity;
 extern cvar_t  *r_autoEmissive;
 
@@ -282,7 +283,7 @@ extern cvar_t  *r_aoCompare;
 extern cvar_t  *r_aoMultiBounce;
 extern cvar_t  *r_aoLightmapFraction;
 extern cvar_t  *r_aoSpecOcclusion;
-extern cvar_t  *r_debugAO;
+extern cvar_t  *r_aoDebug;
 extern cvar_t  *r_gtaoQuality;
 extern cvar_t  *r_gtaoHalfRes;
 extern cvar_t  *r_gtaoRadius;
@@ -298,9 +299,9 @@ extern cvar_t  *r_contactShadowThickness;
 extern cvar_t  *r_contactShadowStrength;
 
 extern cvar_t  *r_rainLens;
-extern cvar_t  *r_rainLensAmount;
+extern cvar_t  *r_rainLensDensity;
 extern cvar_t  *r_rainLensRefraction;
-extern cvar_t  *r_rainLensScale;
+extern cvar_t  *r_rainLensDropSize;
 extern cvar_t  *r_rainLensDebug;
 
 extern cvar_t  *r_motionBlur;
@@ -318,32 +319,32 @@ extern cvar_t  *r_motionBlurDebug;
 
 extern cvar_t  *r_ssr;
 extern cvar_t  *r_weatherWetness;
-extern cvar_t  *r_weatherWetStrength;
-extern cvar_t  *r_weatherWetRoughness;
-extern cvar_t  *r_weatherWetDarkening;
-extern cvar_t  *r_weatherWetNormal;
-extern cvar_t  *r_weatherWetBias;
-extern cvar_t  *r_weatherWetnessDebug;
-extern cvar_t  *r_weatherMaterialPrint;
-extern cvar_t  *r_weatherWetEntityFacing;
+extern cvar_t  *r_weatherWetnessStrength;
+extern cvar_t  *r_weatherWetnessRoughness;
+extern cvar_t  *r_weatherWetnessDarkening;
+extern cvar_t  *r_weatherWetnessNormal;
+extern cvar_t  *r_weatherWetnessBias;
+extern cvar_t  *r_weatherSurfaceDebug;
+void R_WeatherMaterialList_f(void);
+extern cvar_t  *r_weatherWetnessEntityFacing;
 extern cvar_t  *r_weatherPuddles;
-extern cvar_t  *r_puddleCoverage;
-extern cvar_t  *r_puddleRoughness;
-extern cvar_t  *r_puddleSlope;
-extern cvar_t  *r_puddleScale;
-extern cvar_t  *r_puddleHeight;
-extern cvar_t  *r_puddleHeightSoftness;
-extern cvar_t  *r_puddleHeightFill;
-extern cvar_t  *r_puddleRipples;
-extern cvar_t  *r_puddleRippleStrength;
-extern cvar_t  *r_puddleRippleScale;
-extern cvar_t  *r_puddleRippleRate;
+extern cvar_t  *r_weatherPuddleCoverage;
+extern cvar_t  *r_weatherPuddleRoughness;
+extern cvar_t  *r_weatherPuddleSlope;
+extern cvar_t  *r_weatherPuddleScale;
+extern cvar_t  *r_weatherPuddleUseHeightMap;
+extern cvar_t  *r_weatherPuddleHeightSoftness;
+extern cvar_t  *r_weatherPuddleWaterLevelBias;
+extern cvar_t  *r_weatherPuddleRipples;
+extern cvar_t  *r_weatherPuddleRippleStrength;
+extern cvar_t  *r_weatherPuddleRippleScale;
+extern cvar_t  *r_weatherPuddleRippleRate;
 extern cvar_t  *r_weatherRunoff;
-extern cvar_t  *r_runoffStrength;
-extern cvar_t  *r_runoffSpeed;
-extern cvar_t  *r_runoffScale;
-extern cvar_t  *r_runoffProbe;
-extern cvar_t  *r_runoffEntities;
+extern cvar_t  *r_weatherRunoffStrength;
+extern cvar_t  *r_weatherRunoffSpeed;
+extern cvar_t  *r_weatherRunoffScale;
+extern cvar_t  *r_weatherRunoffProbe;
+extern cvar_t  *r_weatherRunoffEntities;
 extern cvar_t  *r_ssrQuality;
 extern cvar_t  *r_ssrSteps;
 extern cvar_t  *r_ssrRefineSteps;
@@ -355,14 +356,14 @@ extern cvar_t  *r_ssrHalfRes;
 extern cvar_t  *r_ssrHiZ;
 extern cvar_t  *r_ssrTemporal;
 extern cvar_t  *r_ssrTemporalWeight;
-extern cvar_t  *r_ssrStrength;
+extern cvar_t  *r_ssrBlendStrength;
 extern cvar_t  *r_ssrCompare;
 extern cvar_t  *r_ssrDebug;
 extern cvar_t  *r_ssrEmitters;
 extern cvar_t  *r_ssrEmitterIntensity;
 extern cvar_t  *r_ssrEmitterMaxRoughness;
 extern cvar_t  *r_ssrHitCache;
-extern cvar_t  *r_ssrCull;
+extern cvar_t  *r_ssrReceiverCull;
 
 extern cvar_t  *r_ssgi;
 extern cvar_t  *r_ssgiSource;
@@ -375,7 +376,7 @@ extern cvar_t  *r_ssgiThickness;
 extern cvar_t  *r_ssgiTemporal;
 extern cvar_t  *r_ssgiHistoryWeight;
 extern cvar_t  *r_ssgiDenoise;
-extern cvar_t  *r_ssgiHalfResolution;
+extern cvar_t  *r_ssgiHalfRes;
 extern cvar_t  *r_ssgiHiZ;
 extern cvar_t  *r_ssgiEmissiveScale;
 extern cvar_t  *r_ssgiGlowScale;
@@ -384,7 +385,7 @@ extern cvar_t  *r_ssgiDebug;
 extern cvar_t  *r_ssgiFreezeHistory;
 
 extern cvar_t  *r_skinSSS;
-extern cvar_t  *r_skinSSSMixed;
+extern cvar_t  *r_skinSSSMixedHeads;
 extern cvar_t  *r_skinSSSStrength;
 extern cvar_t  *r_skinSSSWidth;
 extern cvar_t  *r_skinSSSQuality;
@@ -398,10 +399,10 @@ extern cvar_t  *r_autoPBR;
 extern cvar_t  *r_autoPBRDebug;
 extern cvar_t  *r_autoFoliage;
 extern cvar_t  *r_autoFoliageDebug;
-extern cvar_t  *r_autoGrass;
-extern cvar_t  *r_autoGrassDebug;
-extern cvar_t  *r_autoGrassLodDist;
-extern cvar_t  *r_autoGrassWidth;
+extern cvar_t  *r_grassCardMode;
+extern cvar_t  *r_grassCardDebug;
+extern cvar_t  *r_grassCardLodDist;
+extern cvar_t  *r_grassCardWidth;
 extern cvar_t  *r_foliageWind;
 extern cvar_t  *r_foliageWindStrength;
 extern cvar_t  *r_foliageWindSpeed;
@@ -415,18 +416,19 @@ extern cvar_t  *r_leafFlutterDebug;
 extern cvar_t  *r_foliageInteraction;
 extern cvar_t  *r_foliageInteractionStrength;
 extern cvar_t  *r_foliageInteractionRadius;
-extern cvar_t  *r_foliageInteractionMax;
-extern cvar_t  *r_foliageInteractionNPC;
+extern cvar_t  *r_foliageInteractionMaxInteractors;
+extern cvar_t  *r_foliageInteractionNPCs;
 extern cvar_t  *r_foliageInteractionDebug;
-extern cvar_t  *r_foliageField;
-extern cvar_t  *r_foliageFieldSize;
-extern cvar_t  *r_foliageFieldExtent;
-extern cvar_t  *r_foliageFieldStrength;
-extern cvar_t  *r_foliageFieldRecovery;
-extern cvar_t  *r_foliageFieldDamping;
-extern cvar_t  *r_foliageFieldImpulse;
-extern cvar_t  *r_foliageFieldDebug;
+extern cvar_t  *r_foliageBendField;
+extern cvar_t  *r_foliageBendFieldSize;
+extern cvar_t  *r_foliageBendFieldExtent;
+extern cvar_t  *r_foliageBendFieldStrength;
+extern cvar_t  *r_foliageBendFieldRecoveryTime;
+extern cvar_t  *r_foliageBendFieldDamping;
+extern cvar_t  *r_foliageBendFieldImpulse;
+extern cvar_t  *r_foliageBendFieldDebug;
 extern cvar_t  *r_plantWind;
+extern cvar_t  *r_plantWindStrength;
 extern cvar_t  *r_autoPBRConvert;
 extern cvar_t  *r_autoPBRRoughness;
 extern cvar_t  *r_diffuseBRDF;
@@ -434,8 +436,8 @@ extern cvar_t  *r_diffuseIBL;
 extern cvar_t  *r_diffuseIBLStrength;
 extern cvar_t  *r_diffuseIBLDebug;
 
-extern cvar_t  *r_glslCache;
-extern cvar_t  *r_glslCacheMaxMB;
+extern cvar_t  *r_shaderProgramCache;
+extern cvar_t  *r_shaderProgramCacheMaxMB;
 
 extern cvar_t  *r_forwardPlus;
 extern cvar_t  *r_forwardPlusTileSize;
@@ -444,7 +446,7 @@ extern cvar_t  *r_forwardPlusNearSlice;
 extern cvar_t  *r_forwardPlusMaxLightsPerCluster;
 extern cvar_t  *r_forwardPlusDebug;
 extern cvar_t  *r_forwardPlusDebugLight;
-extern cvar_t  *r_dynamicShadowMaxLights;
+extern cvar_t  *r_forwardPlusMaxShadowLights;
 
 extern cvar_t  *r_ltcAreaLights;
 extern cvar_t  *r_ltcDebug;
@@ -453,7 +455,7 @@ extern cvar_t  *r_ltcIntensityScale;
 extern cvar_t  *r_ltcStaticDiffuse;
 extern cvar_t  *r_ltcMaxLights;
 extern cvar_t  *r_ltcAutoAreaLights;
-extern cvar_t  *r_saberAreaLights;
+extern cvar_t  *r_ltcSaberAreaLights;
 
 extern cvar_t  *r_normalMapping;
 extern cvar_t  *r_specularMapping;
@@ -461,7 +463,7 @@ extern cvar_t  *r_deluxeMapping;
 extern cvar_t  *r_deluxeSpecular;
 extern cvar_t  *r_parallaxMapping;
 extern cvar_t  *r_pomSelfShadow;
-extern cvar_t  *r_pomSelfShadowLights;
+extern cvar_t  *r_pomSelfShadowLightMode;
 extern cvar_t  *r_pomSelfShadowMaxLocalLights;
 extern cvar_t  *r_pomSelfShadowSteps;
 extern cvar_t  *r_pomSelfShadowStrength;
@@ -485,7 +487,7 @@ extern cvar_t  *r_pomSilhouetteViewDependence;
 extern cvar_t  *r_pomSilhouetteShadows;
 extern cvar_t  *r_pomSilhouetteContactShadows;
 extern cvar_t  *r_pomSilhouetteDebug;
-extern cvar_t  *r_autoPomSilhouetteMode;
+extern cvar_t  *r_autoPOMSilhouetteMode;
 extern cvar_t  *r_normalAmbient;
 extern cvar_t  *r_dlightMode;
 extern cvar_t  *r_pshadowDist;
@@ -512,10 +514,10 @@ extern cvar_t  *r_shadowDepthBias;
 extern cvar_t  *r_shadowNormalBias;
 extern cvar_t  *r_shadowSlopeBias;
 extern cvar_t  *r_shadowReceiverBiasClamp;
-extern cvar_t  *r_shadowPcss;
-extern cvar_t  *r_shadowPcssQuality;
+extern cvar_t  *r_shadowPCSS;
+extern cvar_t  *r_shadowPCSSQuality;
 extern cvar_t  *r_shadowSunAngularDiameter;
-extern cvar_t  *r_shadowPcssMaxPenumbra;
+extern cvar_t  *r_shadowPCSSMaxPenumbra;
 extern cvar_t  *r_shadowDebug;
 extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
@@ -1276,7 +1278,7 @@ struct FoliageInteractionBlock
 	vec4_t params;		// current count, previous count, strength, 1 = no wind (debug)
 	vec4_t current[MAX_FOLIAGE_INTERACTORS * 2];
 	vec4_t previous[MAX_FOLIAGE_INTERACTORS * 2];
-	// persistent bend field (r_foliageField, tr_foliagefield.cpp)
+	// persistent bend field (r_foliageBendField, tr_foliagefield.cpp)
 	vec4_t field;			// center x, y (world), 1 / extent, scale (0 = no field)
 	vec4_t fieldPrevious;	// the same for the previous frame's field
 	vec4_t fieldUpdate;		// update pass: time step, spring k, damping c, impulse
@@ -1309,7 +1311,7 @@ struct VolumetricFogBlock
 	vec4_t debugParams;				// debug view, bloom, frozen, directional baked light
 	vec4_t heightFog;				// height fog: base extinction per unit (0 = off), base z, 1 / falloff, log(max scale)
 	vec4_t heightFogColor;			// rgb albedo, w: fade out start above the base (top - fade)
-	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color (r_volumetricFogRGB, 1 1 1)
+	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color (r_volumetricFogRGBExtinction, 1 1 1)
 	vec4_t noiseParams;				// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4_t noiseMacroOffset;		// wind offset of the macro noise (tile units), w: 1 = height fog is noisy
 	vec4_t noiseDetailOffset;		// wind offset of the detail noise (tile units), w: history weight of noisy media
@@ -1328,7 +1330,7 @@ struct VolumetricFogBlock
 	vec4_t fogPlane[MAX_GPU_FOGS];	// as the Fogs block
 	vec4_t fogMins[MAX_GPU_FOGS];	// w: has plane
 	vec4_t fogMaxs[MAX_GPU_FOGS];	// w: 1 = density noise applies to this fog
-	vec4_t fogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or r_volumetricFogAnisotropy), yzw: extinction color (r_volumetricFogRGB, 1 1 1)
+	vec4_t fogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or r_volumetricFogAnisotropy), yzw: extinction color (r_volumetricFogRGBExtinction, 1 1 1)
 
 	// local fog volumes (tr_fogvolume.cpp), nearest first
 	vec4_t localParams;							// count, fade start, 1 / fade length, 1 = some volume emits
@@ -1348,7 +1350,7 @@ struct VolumetricFogBlock
 	// BSP fog volumes that may touch each slice (bit i = fog i, MAX_GPU_FOGS <= 32)
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
 
-	// extinction colors of the local fog volumes (r_volumetricFogRGB), indexed
+	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), indexed
 	// by localShape.w: entry 0 = neutral (1 1 1)
 	vec4_t extinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
@@ -1487,14 +1489,14 @@ enum
 
 	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
 	// cookie, of lightall and volumetric_inject. Needs
-	// GL_MAX_TEXTURE_IMAGE_UNITS > 25, else r_lightCookies stays off.
+	// GL_MAX_TEXTURE_IMAGE_UNITS > 25, else r_spotLightCookies stays off.
 	TB_LIGHTCOOKIES      = 25,
 
 	// froxel fog extinction of this frame (r_volumetricSelfShadow), in
 	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
 	TB_FROXELMEDIA       = 13,
 
-	// RGB extinction (r_volumetricFogRGB): the integrated transmittance of the
+	// RGB extinction (r_volumetricFogRGBExtinction): the integrated transmittance of the
 	// froxel lookup (every program with USE_FROXEL_FOG), the injected extinction
 	// (inject history, integrate source, debug) and the integration carry.
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 28, else the scalar path is used.
@@ -1632,7 +1634,7 @@ typedef struct {
 	materialClass_t materialClass;
 	const char     *materialReason;	// static string: rule that picked materialClass
 	const char     *materialToken;	// static string: token that matched, or NULL
-	qboolean        pbrDrawn;		// drawn since registration, for pbr_dumpMaterials
+	qboolean        pbrDrawn;		// drawn since registration, for r_pbrDumpMaterials
 	image_t        *legacySpecImage;	// r_autoPBRConvert: mask of the removed lightingSpecular stage
 	qboolean        legacyEnvDropped;	// r_autoPBRConvert: fake tcGen environment stage removed
 	image_t        *autoRoughnessImage;	// r_autoPBRRoughness: generated ORMS of a legacy stage, bound at draw time
@@ -1686,7 +1688,7 @@ typedef struct {
 	float		anisotropy;			// Henyey-Greenstein g, -0.9..0.9
 	qboolean	hasAlbedo;
 	vec3_t		albedo;				// scattering albedo, linear like color
-	// fogExtinctionColor (r_volumetricFogRGB): relative extinction per channel,
+	// fogExtinctionColor (r_volumetricFogRGBExtinction): relative extinction per channel,
 	// sigma_t.rgb = sigma * extinctionColor, normalized to mean 1 (the opacity
 	// of depthForOpaque is kept on average); without it (1, 1, 1)
 	qboolean	hasExtinctionColor;
@@ -1747,16 +1749,16 @@ typedef struct shader_s {
 
 	qboolean	explicitlyDefined;		// found in a .shader file
 	qboolean	alphaShadow;			// q3map_alphashadow: use the base alpha as a sun-shadow cutout
-	int8_t		particleLight;			// particleLighting keyword: 0 = auto (blend state), 1 = on, -1 = off (r_particleLight)
+	int8_t		particleLight;			// particleLighting keyword: 0 = auto (blend state), 1 = on, -1 = off (r_particleLighting)
 	float		surfaceLight;			// q3map_surfacelight / surfacelight value, 0 = none (area light hint only)
 	vec3_t		surfaceLightColor;		// q3map_lightRGB / lightColor, all 0 = not given
 	uint16_t foliageSignals;       // registration-time material evidence
 	uint8_t  foliageHint;          // foliageClass_t, before model/surface vetoes
-	qboolean	silhouettePOM;			// silhouettePOM: displaced silhouette shell (tr_pom_silhouette.cpp)
-	float		silhouetteDistance;		// silhouetteDistance: shell range limit, 0 = r_pomSilhouetteDistance
-	int			silhouetteSteps;		// silhouetteSteps: max linear ray steps, 0 = r_pomSilhouetteMaxSteps
+	qboolean	pomSilhouette;			// pomSilhouette: displaced silhouette shell (tr_pom_silhouette.cpp)
+	float		pomSilhouetteDistance;		// pomSilhouetteDistance: shell range limit, 0 = r_pomSilhouetteDistance
+	int			pomSilhouetteSteps;		// pomSilhouetteSteps: max linear ray steps, 0 = r_pomSilhouetteMaxSteps
 	int			pomSilhouetteSource;	// POM_SOURCE_*: why its surfaces got a shell (set at map load)
-	int			pomOverride;			// r_autoPomSilhouette <shader>: -1 none, 0 off, 1 on (cached)
+	int			pomOverride;			// r_autoPOMSilhouette <shader>: -1 none, 0 off, 1 on (cached)
 	int			pomOverrideGeneration;	// generation of the override list pomOverride was looked up in
 
 	int			surfaceFlags;			// if explicitlyDefined, this will have SURF_* flags
@@ -2146,7 +2148,7 @@ enum
 	SSDEF_ADDITIVE						= 0x20,
 	SSDEF_FLATTENED						= 0x40,
 	SSDEF_VELOCITY						= 0x80,
-	SSDEF_AUTO_GRASS					= 0x100,	// r_autoGrass: world stable cross/tri cards
+	SSDEF_AUTO_GRASS					= 0x100,	// r_grassCardMode: world stable cross/tri cards
 
 	SSDEF_ALL							= 0x1FF,
 	SSDEF_COUNT							= SSDEF_ALL + 1
@@ -2307,7 +2309,7 @@ typedef enum
 	UNIFORM_SPECULARSCALE,
 	UNIFORM_MATERIALDEBUG,	// r_autoPBRDebug: rgb = color, a = 1 when on (tr_autopbr.cpp)
 	UNIFORM_FOLIAGEDEBUG,
-	UNIFORM_AUTOGRASS,		// r_autoGrass: cards, lod distance, debug mode, width scale
+	UNIFORM_AUTOGRASS,		// r_grassCardMode: cards, lod distance, debug mode, width scale
 	UNIFORM_FOLIAGEWIND,	// r_foliageWind: wind dir x, y, amplitude, speed
 	UNIFORM_FOLIAGEWINDPARAMS,	// r_foliageWind: mode, debug, frozen time, frozen flag
 	UNIFORM_LEAFFLUTTER,		// r_leafFlutter: wind dir x, y, amplitude (0 = off), speed
@@ -2413,7 +2415,7 @@ typedef enum
 	UNIFORM_FROXELSLICE,	// slice rendered by the injection / integration pass
 	UNIFORM_FROXELNOISE,	// tiling density noise
 	UNIFORM_FROXELMEDIA,	// extinction of this frame (r_volumetricSelfShadow)
-	UNIFORM_FROXELTRANSMITTANCE,	// integrated RGB transmittance (r_volumetricFogRGB)
+	UNIFORM_FROXELTRANSMITTANCE,	// integrated RGB transmittance (r_volumetricFogRGBExtinction)
 	UNIFORM_FROXELEXTINCTION,		// injected RGB extinction (history / source)
 	UNIFORM_FROXELCARRYT,			// RGB transmittance of the previous slice
 
@@ -2465,9 +2467,9 @@ typedef enum
 	UNIFORM_SPLASHPARAMS,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
 	UNIFORM_SPLASHPARAMS2,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
 
-	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageField: this frame's bend field (TB_FOLIAGEFIELD)
-	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
-	UNIFORM_FOLIAGEFIELDDEBUG,	// r_foliageFieldDebug 1 overlay: corner x, y, square size, bend of full heat
+	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageBendField: this frame's bend field (TB_FOLIAGEFIELD)
+	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageBendField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
+	UNIFORM_FOLIAGEFIELDDEBUG,	// r_foliageBendFieldDebug 1 overlay: corner x, y, square size, bend of full heat
 
 	UNIFORM_LIGHTCOOKIEMAP,		// spot light cookies: tr.lightCookieArray (TB_LIGHTCOOKIES)
 	UNIFORM_LIGHTCOOKIEPARAMS,	// enabled (0/1), rgb (0/1), world size of a pixel / froxel at distance 1, debug mode
@@ -2757,7 +2759,7 @@ struct srfSprites_t
 	int numAttributes;
 	vertexAttribute_t *attributes;
 
-	// bounds of the sprite anchors, padded by the sprite size (r_autoGrass lod)
+	// bounds of the sprite anchors, padded by the sprite size (r_grassCardMode lod)
 	vec3_t spriteMins;
 	vec3_t spriteMaxs;
 };
@@ -3137,7 +3139,7 @@ typedef struct {
 	image_t		*volumetricDirVecGrid;	// direction towards the light * luminance (rgb)
 	vec3_t		volumetricSunRadiance;	// realtime sun radiance estimated from the sunlit cells
 	qboolean	volumetricHasSunCells;
-	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLight: gain 1 there)
+	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLighting: gain 1 there)
 
 	int			skyboxportal;
 	int			numClusters;
@@ -3466,7 +3468,7 @@ typedef struct {
 
 	qboolean debugContext;
 	qboolean timerQuery;
-	qboolean programBinary;		// GL_ARB_get_program_binary with a binary format, r_glslCache
+	qboolean programBinary;		// GL_ARB_get_program_binary with a binary format, r_shaderProgramCache
 
 	qboolean floatLightmap;
 
@@ -3667,14 +3669,14 @@ typedef struct trGlobals_s {
 	image_t					*rainLensImage;		// lens rain output (HDR), copied back into renderImage
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
-	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLight), no sigma / albedo
+	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLighting), no sigma / albedo
 	image_t					*froxelIntegratedImage;	// froxel fog: integrated in-scattering (rgb), transmittance (a)
 	image_t					*froxelCarryImage[2];	// froxel fog: integration state between slices
 	image_t					*froxelTailImage;	// froxel fog: last slice radiance (rgb) and extinction (a)
 	image_t					*froxelNoiseImage;
-	image_t					*froxelExtinctionImage[2];	// froxel fog (r_volumetricFogRGB): injected sigma_t.rgb, history ping-pong with froxelInjectImage
-	image_t					*froxelTransmittanceImage;	// froxel fog (r_volumetricFogRGB): integrated T.rgb
-	image_t					*froxelCarryTImage[2];	// froxel fog (r_volumetricFogRGB): T.rgb between slices
+	image_t					*froxelExtinctionImage[2];	// froxel fog (r_volumetricFogRGBExtinction): injected sigma_t.rgb, history ping-pong with froxelInjectImage
+	image_t					*froxelTransmittanceImage;	// froxel fog (r_volumetricFogRGBExtinction): integrated T.rgb
+	image_t					*froxelCarryTImage[2];	// froxel fog (r_volumetricFogRGBExtinction): T.rgb between slices
 	image_t					*froxelMediaImage;	// froxel fog: extinction of this frame, no history (r_volumetricSelfShadow light rays)	// froxel fog: tiling density noise, r = macro, g = detail (64^3, mips)
 	// shared screen-space infrastructure (tr_screenspace.cpp)
 	image_t					*screenNormalImage;	// rg = octahedral world normal, b = roughness, a = SSR receiver
@@ -3831,8 +3833,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricCompositeShader;
 	shaderProgram_t volumetricDebugShader;
-	shaderProgram_t foliageFieldShader;			// r_foliageField update pass
-	shaderProgram_t foliageFieldDebugShader;	// r_foliageFieldDebug 1 overlay
+	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
+	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ssrResolveShader;
@@ -4132,10 +4134,10 @@ extern  cvar_t  *r_shadowDepthBias;
 extern  cvar_t  *r_shadowNormalBias;
 extern  cvar_t  *r_shadowSlopeBias;
 extern  cvar_t  *r_shadowReceiverBiasClamp;
-extern  cvar_t  *r_shadowPcss;
-extern  cvar_t  *r_shadowPcssQuality;
+extern  cvar_t  *r_shadowPCSS;
+extern  cvar_t  *r_shadowPCSSQuality;
 extern  cvar_t  *r_shadowSunAngularDiameter;
-extern  cvar_t  *r_shadowPcssMaxPenumbra;
+extern  cvar_t  *r_shadowPCSSMaxPenumbra;
 extern  cvar_t  *r_shadowDebug;
 
 extern	cvar_t	*r_greyscale;
@@ -4178,9 +4180,9 @@ extern cvar_t	*r_weatherDebugChunks;
 extern cvar_t	*r_rainStreaks;
 extern cvar_t	*r_rainStreakWidth;
 extern cvar_t	*r_rainStreakLength;
-extern cvar_t	*r_rainOpacity;
-extern cvar_t	*r_rainLighting;
-extern cvar_t	*r_rainDebug;
+extern cvar_t	*r_rainStreakOpacity;
+extern cvar_t	*r_rainStreakLighting;
+extern cvar_t	*r_rainStreakDebug;
 extern cvar_t	*r_rainSplashes;
 extern cvar_t	*r_rainSplashSize;
 extern cvar_t	*r_rainSplashLifetime;
@@ -4996,7 +4998,7 @@ typedef struct endTimedBlockCommand_s {
 	qhandle_t timerHandle;
 } endTimedBlockCommand_t;
 
-// r_foliageField (tr_foliagefield.cpp): the bend field of this frame, before
+// r_foliageBendField (tr_foliagefield.cpp): the bend field of this frame, before
 // the draws of the first world scene
 typedef struct foliageFieldCommand_s {
 	int		commandId;
@@ -5351,7 +5353,7 @@ class SamplerBindingsWriter;
 struct UniformBlockBinding;
 
 qboolean R_VolumetricFroxelEnabled(void);
-qboolean R_VolumetricFroxelRGB(void);	// r_volumetricFogRGB active (latched, resources created)
+qboolean R_VolumetricFroxelRGB(void);	// r_volumetricFogRGBExtinction active (latched, resources created)
 void R_VolumetricExtinctionColor(const float *in, vec3_t out);	// relative sigma_t.rgb, mean 1 (NULL: neutral)
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
@@ -5368,7 +5370,7 @@ void RB_VolumetricSetupFogDraw(int mode, UniformDataWriter& uniforms, SamplerBin
 // the fog pass of a surface in RGB mode: 0 = draw once, 1 = the transmittance
 // multiply (u_FroxelFogMode 3), 2 = the in-scattering add (4)
 void RB_VolumetricSetupFogPassDraw(int rgbPass, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
-// sprite particle lighting (r_particleLight): PARTICLE_LIGHT_* class of a generic stage
+// sprite particle lighting (r_particleLighting): PARTICLE_LIGHT_* class of a generic stage
 enum { PARTICLE_LIGHT_NONE, PARTICLE_LIGHT_LIT, PARTICLE_LIGHT_UNLIT };
 int RB_ParticleLightClass(const shader_t *shader, const shaderStage_t *stage);
 qboolean RB_ParticleLightNeedsFogProgram(const shader_t *shader, const shaderStage_t *stage);
@@ -5461,8 +5463,8 @@ void R_PomSilhouetteBeginWorld(world_t *world);
 enum
 {
 	POM_SOURCE_NONE		= 0,
-	POM_SOURCE_KEYWORD	= 1,	// silhouettePOM keyword
-	POM_SOURCE_AUTO		= 2,	// ordinary POM height map, r_autoPomSilhouette
+	POM_SOURCE_KEYWORD	= 1,	// pomSilhouette keyword
+	POM_SOURCE_AUTO		= 2,	// ordinary POM height map, r_autoPOMSilhouette
 };
 
 // R_PomSilhouetteSurfaceMode: what R_AddWorldSurface adds for a surface

@@ -27,7 +27,7 @@ void main()
 // (beyond far the media are integrated analytically by FroxelLookup, lit by the tail pass of the
 // injection)
 //
-// RGB extinction (r_volumetricFogRGB, USE_FROXEL_RGB): the same per channel with sigma_t.rgb of
+// RGB extinction (r_volumetricFogRGBExtinction, USE_FROXEL_RGB): the same per channel with sigma_t.rgb of
 // u_FroxelExtinction (the source already holds sigma_s.rgb * L = sigma_t.rgb * albedo.rgb * L):
 //   x.rgb  = sigma_t.rgb * length
 //   S.rgb += T.rgb * j.rgb * length * phi(x.rgb)

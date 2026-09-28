@@ -42,7 +42,7 @@ fog, from the world size of a pixel / froxel:
 	lod = log2(LIGHT_COOKIE_SIZE * 0.5 * footprint / (t * tan outer))
 
 Contents: an opaque image is an intensity (white = full light): a = its
-luminance, rgb = its colour (r_lightCookies 2). An image with alpha is an
+luminance, rgb = its colour (r_spotLightCookies 2). An image with alpha is an
 occluder mask, as it is on an alpha tested surface (grate, window frame): the
 opaque texels block the light, transmission = 1 - alpha, grey. So the stock
 alpha tested grates of the game work as gobos unchanged.
@@ -72,14 +72,14 @@ static qboolean R_LightCookieUnitsOk( void )
 		s_cookie.unitsOk = (qboolean)(units > TB_LIGHTCOOKIES);
 		s_cookie.unitsChecked = qtrue;
 		if ( !s_cookie.unitsOk )
-			ri.Printf(PRINT_WARNING, "r_lightCookies: needs more than %d texture units, cookies are ignored\n", TB_LIGHTCOOKIES);
+			ri.Printf(PRINT_WARNING, "r_spotLightCookies: needs more than %d texture units, cookies are ignored\n", TB_LIGHTCOOKIES);
 	}
 	return s_cookie.unitsOk;
 }
 
 qboolean R_LightCookiesActive( void )
 {
-	return (qboolean)(r_lightCookies->integer && tr.lightCookieArray && R_LightCookieUnitsOk());
+	return (qboolean)(r_spotLightCookies->integer && tr.lightCookieArray && R_LightCookieUnitsOk());
 }
 
 // new renderer (vid_restart, map change with R_DeleteTextures): the array
@@ -136,7 +136,7 @@ R_LightCookieConvert
 Source image -> LIGHT_COOKIE_SIZE^2 RGBA8, box filtered (4x4 bilinear taps per
 texel: no aliasing of fine slits when a big source is shrunk). a = intensity,
 rgb = colour: luminance and colour of an opaque image, 1 - alpha (grey) of an
-occluder mask. The shaders use a, or rgb with r_lightCookies 2.
+occluder mask. The shaders use a, or rgb with r_spotLightCookies 2.
 =================
 */
 static void R_LightCookieConvert( const byte *pic, int w, int h, byte *out )
@@ -311,9 +311,9 @@ void R_LightCookieParams( float footprintPerDistance, vec4_t out )
 {
 	VectorSet4(out,
 		R_LightCookiesActive() ? 1.0f : 0.0f,
-		r_lightCookies->integer >= 2 ? 1.0f : 0.0f,
+		r_spotLightCookies->integer >= 2 ? 1.0f : 0.0f,
 		footprintPerDistance,
-		(float)Com_Clampi(0, 3, r_lightCookieDebug->integer));
+		(float)Com_Clampi(0, 3, r_spotLightCookieDebug->integer));
 }
 
 // NULL until a cookie is registered (nothing samples the unit then)

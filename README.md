@@ -42,9 +42,9 @@ You can use LUTs to do color correction on maps, e.g. make Tatooine more yellow-
 
 - `r_colorGrading 0` - disable.
 - `r_colorGrading 1` - enable.
-- `r_colorGrading 2` - split-screen comparison.
+- `r_colorGradingCompare 1` - split-screen comparison (with `r_colorGrading 1`).
 - `r_colorGradingIntensity 0.5` - intensity, value from 0 to 1.
-- `r_colorGradingLut luts/my_lut.cube`
+- `r_colorGradingLUT luts/my_lut.cube`
 
 You can download `.cube` LUTs on the internet, it's a common format. Just put them in `base/luts`.
 
@@ -64,7 +64,7 @@ r_gtaoPower
 r_gtaoDenoise
 
 Debugging:
-r_debugAO 0-10
+r_aoDebug 0-10
 r_aoCompare - split-screen comparison, SSAO/GTAO.
 
 Contact shadows:
@@ -96,7 +96,7 @@ r_motionBlurReset — cgame sets 1 when camera changes, renderer resets to 0.
 Creates true reflections for glassy surfaces.
 
 - r_ssr 0/1
-- r_ssrQuality 0–3, r_ssrSteps, r_ssrRefineSteps, r_ssrMaxDistance, r_ssrThickness, r_ssrMaxRoughness, r_ssrEdgeFade, r_ssrHalfRes, r_ssrHiZ, r_ssrTemporal (latch), r_ssrTemporalWeight, r_ssrStrength.
+- r_ssrQuality 0–3, r_ssrSteps, r_ssrRefineSteps, r_ssrMaxDistance, r_ssrThickness, r_ssrMaxRoughness, r_ssrEdgeFade, r_ssrHalfRes, r_ssrHiZ, r_ssrTemporal (latch), r_ssrTemporalWeight, r_ssrBlendStrength.
 - compare: r_ssrCompare, r_ssrDebug 1–11.
 - support lightsaber and effects reflections: r_ssrEmitters 0/1, r_ssrEmitterIntensity, r_ssrEmitterMaxRoughness
 

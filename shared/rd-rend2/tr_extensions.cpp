@@ -716,7 +716,7 @@ void GLimp_InitExtensions()
 		ri.Printf(PRINT_ALL, result[loaded], extension);
 	}
 
-	// GL_ARB_get_program_binary (core in 4.1): r_glslCache, tr_glsl.cpp
+	// GL_ARB_get_program_binary (core in 4.1): r_shaderProgramCache, tr_glsl.cpp
 	extension = "GL_ARB_get_program_binary";
 	glRefConfig.programBinary = qfalse;
 	if ( GLimp_HaveExtension( extension ) )

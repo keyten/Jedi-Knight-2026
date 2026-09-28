@@ -99,7 +99,7 @@ look.
    3. `RB_RenderSSR`: `ssrColor` mip 0 = copy of color 0 (resolves MSAA), mips 1-6: 4x4 box downsample
       (`ssr_downsample`), premultiplied by coverage: mip 1 leaves out the first person weapon and the texels outside
       the view rectangle (16 masked taps), the next mips filter the premultiplied result
-   4. classify (`ssr_classify`, `r_ssrCull 1`): nearest depth where a pixel needs a ray, so the trace is rejected
+   4. classify (`ssr_classify`, `r_ssrReceiverCull 1`): nearest depth where a pixel needs a ray, so the trace is rejected
       by the early depth test everywhere else
    5. trace (`ssr_trace`, full or half resolution) -> `ssrTrace[current]`, reusing valid hits of
       `ssrTrace[previous]` (hit cache)
@@ -169,7 +169,7 @@ rotation), invalid hits every frame. Needs a valid history (same cut rules as th
 
 Product of: hit ambiguity (ray depth vs surface depth / thickness), back facing hits (hit normal facing away from
 the ray), screen edge fade (`r_ssrEdgeFade`), end of the ray, rays back towards the camera, grazing views (the ray
-skims its own normal mapped surface), roughness fade, `r_ssrStrength`. Misses, rays leaving the screen, sky (no
+skims its own normal mapped surface), roughness fade, `r_ssrBlendStrength`. Misses, rays leaving the screen, sky (no
 depth), the first person weapon (hacked depth range: neither receiver nor hit), and hits closer than twice the
 start offset (self intersection) have 0.
 
@@ -238,10 +238,10 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrHiZ` | -1 | -1 preset, 0 linear, 1 hierarchical |
 | `r_ssrTemporal` | 0 | archive, latch. temporal accumulation |
 | `r_ssrTemporalWeight` | 0.9 | history weight |
-| `r_ssrStrength` | 1 | confidence scale. 0 = cubemap only (and no SSR work unless a debug view or the compare is on) |
+| `r_ssrBlendStrength` | 1 | confidence scale. 0 = cubemap only (and no SSR work unless a debug view or the compare is on) |
 | `r_ssrCompare` | 0 | split screen: left half cubemap reflections only, right half hybrid |
 | `r_ssrHitCache` | 1 | reuse the previous frame's hits while valid (each pixel retraced every 4 frames) |
-| `r_ssrCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
+| `r_ssrReceiverCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
 | `r_ssrDebug` | 0 | cheat, see below |
 | `r_ssrEmitters` | 1 | reflect light sabers and additive effects (analytic) |
 | `r_ssrEmitterIntensity` | 1 | brightness of those reflections |

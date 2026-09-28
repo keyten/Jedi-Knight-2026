@@ -15,7 +15,7 @@ usage: rend2_pbr_inventory.py <base dir with *.pk3> [--selftest] [--list CLASS] 
   --pairs  prints shader<TAB>diffuse<TAB>class<TAB>reason for every material,
            to diff against the C++ classifier
   --skin   skin scattering eligibility (r_skinSSS, port of R_SkinSSSClassifyShader
-           in tr_skinsss.cpp) of every skin class material; --mixed = r_skinSSSMixed 1
+           in tr_skinsss.cpp) of every skin class material; --mixed = r_skinSSSMixedHeads 1
 Nothing is written; the report goes to stdout (markdown).
 """
 
@@ -461,7 +461,7 @@ def main():
                 continue
             scatter, why = skin_eligibility(r['cls'], r['reason'], idx.shaders.get(r['name']), mixed)
             by_reason[why].append(r)
-        print('# skin scattering eligibility (r_skinSSSMixed %d)\n' % mixed)
+        print('# skin scattering eligibility (r_skinSSSMixedHeads %d)\n' % mixed)
         for why in ('skin', 'excluded part', 'mixed head', 'layered', 'blended'):
             rs = by_reason.get(why, [])
             used = [r for r in rs if r['surfs']]

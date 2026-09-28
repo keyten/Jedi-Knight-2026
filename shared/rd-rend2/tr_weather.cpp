@@ -875,11 +875,11 @@ namespace
 		};
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
 
-		// the rain's light (r_rainLighting): merged light grid, else the sun
-		image_t *grid = r_rainLighting->value > 0.0f && tr.world->volumetricLightMaps[0] ?
+		// the rain's light (r_rainStreakLighting): merged light grid, else the sun
+		image_t *grid = r_rainStreakLighting->value > 0.0f && tr.world->volumetricLightMaps[0] ?
 			tr.world->volumetricLightMaps[0] : nullptr;
 		vec4_t light = { 1.0f, 1.0f, 1.0f, grid ? 1.0f : 0.0f };
-		if (r_rainLighting->value > 0.0f && !grid)
+		if (r_rainStreakLighting->value > 0.0f && !grid)
 		{
 			vec3_t sunLight;
 			VectorMA(backEnd.refdef.sunAmbCol, 0.5f, backEnd.refdef.sunCol, sunLight);
@@ -1141,7 +1141,7 @@ void R_LoadWeatherImages()
 	if (tr.weatherSystem->weatherSlots[WEATHER_RAIN].active)
 	{
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].drawImage = R_FindImageFile("gfx/world/rain.jpg", type, flags);
-		// r_rainLighting reads the merged light grid (built at load only
+		// r_rainStreakLighting reads the merged light grid (built at load only
 		// for volumetric fog). Small, so built for every rain map, which
 		// keeps r_rainStreaks switchable at run time.
 		if (tr.world)
@@ -1878,12 +1878,12 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			rainStreak[1] = r_rainStreakLength->value;
 			rainStreak[2] = tr.weatherSystem->depthRangeWorld;
 			rainStreak[3] = (rainImage && (rainImage->flags & IMGFLAG_SRGB)) ? 1.0f : 0.0f;
-			rainShade[0] = r_rainOpacity->value;
-			rainShade[1] = r_rainLighting->value;
+			rainShade[0] = r_rainStreakOpacity->value;
+			rainShade[1] = r_rainStreakLighting->value;
 			// world size of one pixel at distance 1
 			rainShade[2] = 2.0f * tanf(DEG2RAD(backEnd.viewParms.fovY) * 0.5f) /
 				(float)MAX(backEnd.viewParms.viewportHeight, 1);
-			rainShade[3] = (float)r_rainDebug->integer;
+			rainShade[3] = (float)r_rainStreakDebug->integer;
 		}
 
 		// The update shader now wraps local XY at +/-1000, so every VBO slot
@@ -2175,7 +2175,7 @@ qboolean R_WeatherWetnessEnabled(void)
 	return qtrue;
 }
 
-// Why a stage stays dry, u_WeatherMaterial.w for r_weatherWetnessDebug 31.
+// Why a stage stays dry, u_WeatherMaterial.w for r_weatherSurfaceDebug 31.
 // Structural exclusions only: sky, portals, liquids, fog, blended / glow /
 // uniformly emissive stages and the view weapon, plus weatherResponse 0.
 typedef enum {
@@ -2225,13 +2225,22 @@ static wetExclusion_t R_WetnessStageExclusion(const shader_t *shader, const shad
 	return WETEXCLUDE_NONE;
 }
 
-// r_weatherMaterialPrint 1: one frame of drawn shaders whose weather response
-// is not the automatic default, then the cvar resets itself
+// The command requests one frame of drawn materials with a non-default response.
+static bool weatherMaterialListRequested = false;
+static int weatherMaterialListFrame = -1;
+
+void R_WeatherMaterialList_f(void)
+{
+	R_IssuePendingRenderCommands();
+	weatherMaterialListRequested = true;
+	weatherMaterialListFrame = -1;
+	ri.Printf(PRINT_ALL, "Weather material list requested for the next rain rendering frame.\n");
+}
 static void R_WeatherMaterialPrint(const shader_t *shader, const vec3_t scale, wetExclusion_t reason)
 {
-	static int printFrame = -1;
+	int &printFrame = weatherMaterialListFrame;
 	static byte printed[MAX_SHADERS];
-	if (!r_weatherMaterialPrint->integer)
+	if (!weatherMaterialListRequested)
 	{
 		printFrame = -1;
 		return;
@@ -2244,7 +2253,8 @@ static void R_WeatherMaterialPrint(const shader_t *shader, const vec3_t scale, w
 	}
 	else if (printFrame != tr.frameCount)
 	{
-		ri.Cvar_Set("r_weatherMaterialPrint", "0");
+		weatherMaterialListRequested = false;
+		printFrame = -1;
 		return;
 	}
 	if (shader->index < 0 || shader->index >= MAX_SHADERS || printed[shader->index])
@@ -2292,9 +2302,9 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	const vec4_t material = { scale[0], scale[1], scale[2], (float)exclusion };
 	uniformDataWriter.SetUniformVec4(UNIFORM_WEATHERMATERIAL, material);
 
-	// strength < 0 marks an ineligible draw for r_weatherWetnessDebug 2
+	// strength < 0 marks an ineligible draw for r_weatherSurfaceDebug 2
 	const float strength = eligible ?
-		Com_Clamp(0.0f, 1.0f, r_weatherWetStrength->value * scale[0]) : -1.0f;
+		Com_Clamp(0.0f, 1.0f, r_weatherWetnessStrength->value * scale[0]) : -1.0f;
 	// per material class response (tr_autopbr.cpp): cloth only darkens,
 	// armor / metal get glossier
 	vec3_t response;
@@ -2304,16 +2314,16 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// as their tops, world walls about half
 	const bool entity = backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity;
 	const vec4_t params3 = {
-		entity ? Com_Clamp(0.0f, 1.0f, r_weatherWetEntityFacing->value) : 0.5f,
+		entity ? Com_Clamp(0.0f, 1.0f, r_weatherWetnessEntityFacing->value) : 0.5f,
 		pStage->materialClass == MATCLASS_GENERIC ? 1.0f : 0.0f,
 		(float)pStage->materialClass,
 		0.0f
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS3, params3);
 	const vec4_t params2 = {
-		MAX(r_weatherWetBias->value, 0.0f) / ws->depthRangeWorld,	// world units -> depth
+		MAX(r_weatherWetnessBias->value, 0.0f) / ws->depthRangeWorld,	// world units -> depth
 		0.5f * ws->texelSizeWorld,
-		(float)r_weatherWetnessDebug->integer,
+		(float)r_weatherSurfaceDebug->integer,
 		0.5f * (float)glConfig.vidWidth
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, params);
@@ -2321,25 +2331,25 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 
 	// puddles: static world geometry only, never entities (characters,
 	// weapons, props, movers). coverage < 0 marks an ineligible draw for
-	// r_weatherWetnessDebug 10, 0 turns the layer off.
+	// r_weatherSurfaceDebug 10, 0 turns the layer off.
 	float coverage = 0.0f;
 	if (r_weatherPuddles->integer)
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
 		coverage = (eligible && world && scale[1] > 0.0f) ?
-			Com_Clamp(0.001f, 1.0f, r_puddleCoverage->value * scale[1]) : -1.0f;
+			Com_Clamp(0.001f, 1.0f, r_weatherPuddleCoverage->value * scale[1]) : -1.0f;
 	}
 	float slopeMin = 0.90f, slopeMax = 0.98f;
-	sscanf(r_puddleSlope->string, "%f %f", &slopeMin, &slopeMax);
+	sscanf(r_weatherPuddleSlope->string, "%f %f", &slopeMin, &slopeMax);
 	slopeMin = Com_Clamp(0.0f, 0.999f, slopeMin);
 	slopeMax = Com_Clamp(slopeMin + 0.001f, 1.0f, slopeMax);
 	const vec4_t puddle = {
 		coverage,
-		Com_Clamp(0.02f, 1.0f, r_puddleRoughness->value),
+		Com_Clamp(0.02f, 1.0f, r_weatherPuddleRoughness->value),
 		slopeMin,
 		slopeMax
 	};
-	const vec4_t puddle2 = { 1.0f / MAX(r_puddleScale->value, 8.0f), 0.0f, 0.0f, 0.0f };
+	const vec4_t puddle2 = { 1.0f / MAX(r_weatherPuddleScale->value, 8.0f), 0.0f, 0.0f, 0.0f };
 
 	// height aware puddles: only materials with a normalHeightMap (the
 	// USE_PARALLAXMAP shaders) and a relief of at least a few steps, the
@@ -2347,11 +2357,11 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	vec4_t puddleHeight = {
 		0.0f,
 		0.0f,
-		Com_Clamp(0.01f, 0.5f, r_puddleHeightSoftness->value),
-		Com_Clamp(-1.0f, 1.0f, r_puddleHeightFill->value)
+		Com_Clamp(0.01f, 0.5f, r_weatherPuddleHeightSoftness->value),
+		Com_Clamp(-1.0f, 1.0f, r_weatherPuddleWaterLevelBias->value)
 	};
 	const image_t *heightImage = pStage->bundle[TB_NORMALMAP].image[0];
-	if (r_puddleHeight->integer && heightImage && heightImage->type == IMGTYPE_NORMALHEIGHT &&
+	if (r_weatherPuddleUseHeightMap->integer && heightImage && heightImage->type == IMGTYPE_NORMALHEIGHT &&
 		heightImage->heightRange[1] - heightImage->heightRange[0] >= 4.0f / 255.0f)
 	{
 		puddleHeight[0] = heightImage->heightRange[0];
@@ -2362,7 +2372,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEHEIGHT, puddleHeight);
 
 	// rain ripples on the puddles (lightall PuddleRipples): the ring clock is
-	// integrated here once per frame, so r_puddleRippleRate changes never
+	// integrated here once per frame, so r_weatherPuddleRippleRate changes never
 	// jump the phase, and wrapped at 256 cycles for float precision (the
 	// shader wraps its ring index the same way, so the wrap is seamless)
 	static double rippleClock = 0.0;
@@ -2372,7 +2382,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	{
 		const float dt = backEnd.refdef.floatTime - rippleTime;
 		if (rippleFrame >= 0 && dt > 0.0f)
-			rippleClock = fmod(rippleClock + MIN(dt, 0.1f) * Com_Clamp(0.0f, 8.0f, r_puddleRippleRate->value), 256.0);
+			rippleClock = fmod(rippleClock + MIN(dt, 0.1f) * Com_Clamp(0.0f, 8.0f, r_weatherPuddleRippleRate->value), 256.0);
 		rippleFrame = tr.frameCount;
 		rippleTime = backEnd.refdef.floatTime;
 	}
@@ -2380,27 +2390,27 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// downpour (1000 / 2000 particles); the shader skips 1 cycle in 4 more
 	const float rainAmount = Com_Clamp(0.3f, 1.0f, (float)ws->weatherSlots[WEATHER_RAIN].particleCount / 2000.0f);
 	const vec4_t ripple = {
-		(r_puddleRipples->integer && coverage > 0.0f) ? Com_Clamp(0.0f, 2.0f, r_puddleRippleStrength->value) : 0.0f,
-		1.0f / Com_Clamp(4.0f, 256.0f, r_puddleRippleScale->value),
+		(r_weatherPuddleRipples->integer && coverage > 0.0f) ? Com_Clamp(0.0f, 2.0f, r_weatherPuddleRippleStrength->value) : 0.0f,
+		1.0f / Com_Clamp(4.0f, 256.0f, r_weatherPuddleRippleScale->value),
 		(float)rippleClock,
 		rainAmount
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLERIPPLE, ripple);
 
 	// runoff (lightall RunoffStreaks): gravity driven film on slopes and
-	// walls. World geometry, and entities with r_runoffEntities, whose
+	// walls. World geometry, and entities with r_weatherRunoffEntities, whose
 	// pattern frame follows their origin and yaw so it does not swim on them.
 	float runoffStrength = 0.0f;
 	if (r_weatherRunoff->integer)
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
-		runoffStrength = (eligible && (world || r_runoffEntities->integer) && scale[2] > 0.0f) ?
-			Com_Clamp(0.001f, 2.0f, r_runoffStrength->value * scale[2]) : -1.0f;
+		runoffStrength = (eligible && (world || r_weatherRunoffEntities->integer) && scale[2] > 0.0f) ?
+			Com_Clamp(0.001f, 2.0f, r_weatherRunoffStrength->value * scale[2]) : -1.0f;
 	}
 	// the flow clock counts pattern cells of the along axis (1 / scale per
 	// world unit), integrated once per frame and wrapped at 256 cells: the
 	// shader's along lattice repeats every 256 cells, so the wrap is seamless
-	const float runoffInvScale = 1.0f / Com_Clamp(4.0f, 1024.0f, r_runoffScale->value);
+	const float runoffInvScale = 1.0f / Com_Clamp(4.0f, 1024.0f, r_weatherRunoffScale->value);
 	static double runoffClock = 0.0;
 	static int runoffFrame = -1;
 	static float runoffTime = 0.0f;
@@ -2408,7 +2418,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	{
 		const float dt = backEnd.refdef.floatTime - runoffTime;
 		if (runoffFrame >= 0 && dt > 0.0f)
-			runoffClock = fmod(runoffClock + MIN(dt, 0.1f) * Com_Clamp(0.0f, 256.0f, r_runoffSpeed->value) * runoffInvScale, 256.0);
+			runoffClock = fmod(runoffClock + MIN(dt, 0.1f) * Com_Clamp(0.0f, 256.0f, r_weatherRunoffSpeed->value) * runoffInvScale, 256.0);
 		runoffFrame = tr.frameCount;
 		runoffTime = backEnd.refdef.floatTime;
 	}
@@ -2416,7 +2426,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		runoffStrength,
 		runoffInvScale,
 		(float)runoffClock,
-		MIN(Com_Clamp(0.0f, 4.0f, r_runoffProbe->value) * ws->texelSizeWorld, 32.0f)
+		MIN(Com_Clamp(0.0f, 4.0f, r_weatherRunoffProbe->value) * ws->texelSizeWorld, 32.0f)
 	};
 	// wind leans the streaks downwind (never upward: the shear is per unit of
 	// fall), at most about 20 degrees; windward faces run a little more

@@ -5271,7 +5271,7 @@ static void CG_RGBForSaberColor( saber_colors_t color, vec3_t rgb )
 }
 
 /*
-r_saberAreaLights (rend2 LTC area lights): every blade lights as a line along
+r_ltcSaberAreaLights (rend2 LTC area lights): every blade lights as a line along
 it instead of one averaged point light. qfalse = the renderer did not take
 it (area lights off, other renderer): the caller adds its point light, never
 both.
@@ -5281,7 +5281,7 @@ static qboolean CG_SaberBladeLineLights( saberInfo_t *saber, int firstBlade, int
 	qboolean taken = qfalse;
 	int i;
 
-	if ( !r_saberAreaLights.integer )
+	if ( !r_ltcSaberAreaLights.integer )
 	{
 		return qfalse;
 	}
@@ -5451,9 +5451,9 @@ void CG_DoSaber( vec3_t origin, vec3_t dir, float length, float lengthMax, float
 		vec3_t rgb={1,1,1};
 		vec3_t tip;
 		CG_RGBForSaberColor( color, rgb );
-		// r_saberAreaLights: a line along the blade instead (never both)
+		// r_ltcSaberAreaLights: a line along the blade instead (never both)
 		VectorMA( origin, length, dir, tip );
-		if ( !r_saberAreaLights.integer ||
+		if ( !r_ltcSaberAreaLights.integer ||
 			!trap->ext.R_AddLineLightToScene( origin, tip, radius*0.5f, length*1.4f, rgb[0], rgb[1], rgb[2] ) )
 		{
 			trap->R_AddLightToScene( mid, (length*1.4f) + (Q_flrand(0.0f, 1.0f)*3.0f), rgb[0], rgb[1], rgb[2] );

@@ -24,7 +24,7 @@ Every tree in the stock Yavin maps is a `misc_model_static` (MD3 entity), e.g. y
 
 The leaf materials are all `alphaFunc GE128`, `cull twosided`, `rgbGen lightingDiffuse`, so they go through lightall
 with `USE_LIGHT_VECTOR` and per-pixel lighting. The trunk materials are opaque and are never classified. Use
-`r_printAutoFoliage yavin` in game for the authoritative list.
+`r_autoFoliageList yavin` in game for the authoritative list.
 
 Not covered: trees placed as plain `misc_model` are baked into BSP triangles by q3map2 and never pass through the MD3
 path.

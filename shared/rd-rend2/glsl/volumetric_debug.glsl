@@ -53,7 +53,7 @@ void main()
 //     blue = share of the backward lobe), 38 effective mixed g (red forward, blue backward),
 //     39 phase of the sunlight towards the camera P / (1 + P) (0.5 grey = isotropic)
 //  40-50 media self-shadow and multiple scattering (volumetric_inject.glsl)
-//  51-56 RGB extinction (r_volumetricFogRGB; dark magenta when off):
+//  51-56 RGB extinction (r_volumetricFogRGBExtinction; dark magenta when off):
 //     51 sigma_t.rgb of the froxel at the scene depth, as the opacity of 512 units per channel
 //        1 - exp(-512 sigma_t) (red = absorbs red)
 //     52 transmittance T.rgb between the camera and the scene (the color the medium lets through)
@@ -64,7 +64,7 @@ void main()
 //     56 transmittance of the analytic tail beyond the last slice (white = none; dark blue where
 //        the scene is inside the volume)
 //
-// r_particleLightDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
+// r_particleLightingDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
 
 uniform sampler2D u_ScreenDepthMap;

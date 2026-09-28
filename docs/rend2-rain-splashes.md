@@ -119,7 +119,7 @@ with no depth write. Glow alpha is 0, so bloom behind it is untouched.
     fetch.
   - Beyond the fade distance (1500, or the rain's own if shorter) it also emits nothing.
   - For a live splash it takes the normal from 4 weather-depth neighbours around the impact, tilt-limited to 45°
-    because the D16 map is coarse. The light is the rain's (`r_rainLighting`: the merged light grid, else sun
+    because the D16 map is coarse. The light is the rain's (`r_rainStreakLighting`: the merged light grid, else sun
     ambient + half the sun, else 1) × the weather tint (acid rain stays green) × 0.8. It then emits:
     - **crown**: a quad in the surface plane, lifted 0.5 units, randomly rotated, radius
       `size · (0.35 + 0.65 √age)`;
@@ -138,7 +138,7 @@ time (`RB_TrackSplashSlots`). For `lifetime + 100 ms` after a remap, the slot's 
 
 `rainSplashVertex_t::impact` is the hook. A later event-driven ripple pass can draw the same VBO through a
 splash-like geometry shader into a camera-centred ripple height map that lightall samples, without touching the
-simulation. The procedural rings of `r_puddleRipples` are unchanged. The splash crown already reads as a ring on
+simulation. The procedural rings of `r_weatherPuddleRipples` are unchanged. The splash crown already reads as a ring on
 wet ground and puddles.
 
 ## Cvars

@@ -18,7 +18,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
-// Volumetric FX particles of the froxel fog (r_volumetricFog 2, r_volParticles),
+// Volumetric FX particles of the froxel fog (r_volumetricFog 2, r_volumetricParticles),
 // see docs/rend2-volumetric-fog.md, "FX particle media".
 //
 // FX particles whose .efx primitive has a "volumetricMedia" block (smoke,
@@ -32,7 +32,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // Culling (once per frame, for the froxel view): the bounding sphere against
 // the view frustum up to the local fade distance, then the most important
 // (projected optical footprint extinction * r^2 / depth^2, ties by id, so the
-// choice is deterministic) MAX_GPU_VOL_PARTICLES / r_volParticlesMax are
+// choice is deterministic) MAX_GPU_VOL_PARTICLES / r_volumetricParticlesMax are
 // uploaded, and per depth slice a packed list (16 bit indices in a pool of
 // VOL_PARTICLE_POOL) of the particles whose sphere overlaps the slice. When
 // the pool is full the far slices lose their entries first.
@@ -40,7 +40,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // Temporal: each particle is paired with its previous frame state by id.
 // Moved / grown / faded particles upload their previous shape; the injection
 // lowers the history weight where the particle density changed (down to the
-// floor r_volParticlesHistory), so moving smoke leaves no long ghost and a
+// floor r_volumetricParticlesHistory), so moving smoke leaves no long ghost and a
 // slowly drifting puff does not flicker. Vanished particles get one more
 // frame with no density, which clears the history of their last place.
 
@@ -49,7 +49,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <chrono>
 
-extern int r_volParticlesRejected;	// tr_scene.cpp
+extern int r_volumetricParticlesRejected;	// tr_scene.cpp
 
 // narrowest soft edge in world units (thinner than a froxel it would alias)
 #define VOLPARTICLE_MIN_FADE		4.0f
@@ -98,7 +98,7 @@ static struct
 	int previousFrame;
 	const world_t *previousWorld;
 
-	// statistics of the last froxel frame (r_volparticles, r_volParticlesDebug)
+	// statistics of the last froxel frame (r_volparticles, r_volumetricParticlesDebug)
 	int statFrame;
 	int statSubmitted;
 	int statRejected;			// invalid or over MAX_REF_VOL_PARTICLES (RE_AddVolumetricParticleToScene)
@@ -147,7 +147,7 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 	out->radius = maxExtent;
 
 	// emission (scene linear radiance per unit, the fades applied by the FX code): not scaled by
-	// r_volParticlesScale, a density scale, but by r_volumetricEmission in the injection
+	// r_volumetricParticlesScale, a density scale, but by r_volumetricEmission in the injection
 	qboolean emits = qfalse;
 	for ( int c = 0; c < 3; c++ )
 	{
@@ -157,7 +157,7 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 			emits = qtrue;
 	}
 
-	out->extinction = particle->extinction * r_volParticlesScale->value;
+	out->extinction = particle->extinction * r_volumetricParticlesScale->value;
 	if ( Q_isnan(out->extinction) || !(out->extinction >= 0.0f) )
 		out->extinction = 0.0f;
 	if ( !(out->extinction > 0.0f) && !emits )
@@ -296,7 +296,7 @@ or one of the previous frame that vanished (its history is dropped).
 */
 qboolean R_VolParticlesInFrustum( const viewParms_t *view, const trRefdef_t *refdef, float farZ )
 {
-	if ( !view || !tr.world || !r_volParticles->integer )
+	if ( !view || !tr.world || !r_volumetricParticles->integer )
 		return qfalse;
 
 	vec3_t forward;
@@ -363,8 +363,8 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		s_vp.numPrevious = 0;
 
 	s_vp.statFrame = backEndData->realFrameNumber;
-	s_vp.statSubmitted = r_volParticles->integer ? refdef->num_volParticles : 0;
-	s_vp.statRejected = r_volParticlesRejected;
+	s_vp.statSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
+	s_vp.statRejected = r_volumetricParticlesRejected;
 	s_vp.statCulled = 0;
 	s_vp.statCapped = 0;
 	s_vp.statUploaded = 0;
@@ -384,7 +384,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	Com_Memset(previousMatched, 0, s_vp.numPrevious * sizeof(previousMatched[0]));
 	int numCurrent = 0;
 	int numCandidates = 0;
-	const int numSubmitted = r_volParticles->integer ? refdef->num_volParticles : 0;
+	const int numSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
 	for ( int i = 0; i < numSubmitted && numCurrent < MAX_REF_VOL_PARTICLES; i++ )
 	{
 		volParticleEval_t *e = &current[numCurrent];
@@ -455,7 +455,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		return ca->current.extinction > cb->current.extinction;
 	});
 
-	const int maxUploaded = Com_Clampi(0, MAX_GPU_VOL_PARTICLES, r_volParticlesMax->integer);
+	const int maxUploaded = Com_Clampi(0, MAX_GPU_VOL_PARTICLES, r_volumetricParticlesMax->integer);
 	const int numUploaded = MIN(numVisible, maxUploaded);
 	s_vp.statUploaded = numUploaded;
 	s_vp.statCapped = numVisible - numUploaded;
@@ -531,7 +531,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		(float)numUploaded,
 		fadeStart,
 		1.0f / MAX(fadeEnd - fadeStart, 1.0f),
-		Com_Clamp(0.0f, 1.0f, r_volParticlesHistory->value));
+		Com_Clamp(0.0f, 1.0f, r_volumetricParticlesHistory->value));
 
 	// the state the next frame is compared with, sorted by id
 	std::stable_sort(current, current + numCurrent, []( const volParticleEval_t& a, const volParticleEval_t& b ) {
@@ -545,7 +545,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	s_vp.statBuildMicroseconds = (int)std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - startTime).count();
 
-	if ( r_volParticlesDebug->integer && (s_vp.statLastPrint > s_vp.statFrame || s_vp.statFrame - s_vp.statLastPrint >= 60) )
+	if ( r_volumetricParticlesDebug->integer && (s_vp.statLastPrint > s_vp.statFrame || s_vp.statFrame - s_vp.statLastPrint >= 60) )
 	{
 		s_vp.statLastPrint = s_vp.statFrame;
 		R_VolParticlesPrintStats("");
@@ -563,13 +563,13 @@ r_volparticles: statistics of the last froxel frame
 */
 void R_VolParticles_f( void )
 {
-	if ( !r_volParticles->integer )
-		ri.Printf(PRINT_ALL, "r_volParticles is 0: FX particles add no media\n");
+	if ( !r_volumetricParticles->integer )
+		ri.Printf(PRINT_ALL, "r_volumetricParticles is 0: FX particles add no media\n");
 	if ( !R_VolumetricFroxelEnabled() )
 		ri.Printf(PRINT_ALL, "the froxel fog is off (r_volumetricFog 2 needed)\n");
 	R_VolParticlesPrintStats("");
-	ri.Printf(PRINT_ALL, "limits: %d per scene, %d uploaded (r_volParticlesMax %d), %d slice list entries\n",
-		MAX_REF_VOL_PARTICLES, MAX_GPU_VOL_PARTICLES, r_volParticlesMax->integer, VOL_PARTICLE_POOL);
+	ri.Printf(PRINT_ALL, "limits: %d per scene, %d uploaded (r_volumetricParticlesMax %d), %d slice list entries\n",
+		MAX_REF_VOL_PARTICLES, MAX_GPU_VOL_PARTICLES, r_volumetricParticlesMax->integer, VOL_PARTICLE_POOL);
 	ri.Printf(PRINT_ALL, "r_volumetricFogDebug 26: particle density, 27: particle history reduction, 28: proxy bounds, "
 		"31/33: emission\n");
 }

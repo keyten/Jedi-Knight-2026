@@ -621,7 +621,7 @@ static size_t GLSL_GetShaderHeader(
 		Q_strcat(dest, size, va("#define FROXEL_MAX_SLICES %i\n", FROXEL_MAX_SLICES));
 		Q_strcat(dest, size, va("#define FROXEL_LOCAL_POOL %i\n", FROXEL_LOCAL_POOL));
 		Q_strcat(dest, size, va("#define FROXEL_EXTINCTION_PALETTE %i\n", FROXEL_EXTINCTION_PALETTE));
-		// RGB extinction (r_volumetricFogRGB, latched): transmittance per channel
+		// RGB extinction (r_volumetricFogRGBExtinction, latched): transmittance per channel
 		if (R_VolumetricFroxelRGB())
 			Q_strcat(dest, size, "#define USE_FROXEL_RGB\n");
 	}
@@ -947,7 +947,7 @@ GLenum ToGLShaderType( GPUShaderType type )
 /*
 =============================================================
 
-GLSL PROGRAM CACHE (r_glslCache), see docs/rend2-shader-cache.md
+GLSL PROGRAM CACHE (r_shaderProgramCache), see docs/rend2-shader-cache.md
 
 Linked program binaries (GL_ARB_get_program_binary), one file per renderer
 in the home path. The key is a hash of the complete stage sources, which
@@ -1036,7 +1036,7 @@ static void GLSL_CacheBegin( void )
 	s_glslCache.rejected = 0;
 	s_glslCache.fileSize = 0;
 	s_glslCache.generation = 1;
-	s_glslCache.enabled = r_glslCache->integer && glRefConfig.programBinary;
+	s_glslCache.enabled = r_shaderProgramCache->integer && glRefConfig.programBinary;
 	if ( !s_glslCache.enabled )
 		return;
 
@@ -1166,7 +1166,7 @@ static void GLSL_CacheEnd( void )
 	size_t total = sizeof(glslCacheFileHeader_t);
 	for ( const auto& it : s_glslCache.entries )
 		total += sizeof(glslCacheFileEntry_t) + it.second.data.size();
-	const size_t maxBytes = (size_t)Com_Clampi(16, 4096, r_glslCacheMaxMB->integer) * 1024 * 1024;
+	const size_t maxBytes = (size_t)Com_Clampi(16, 4096, r_shaderProgramCacheMaxMB->integer) * 1024 * 1024;
 	if ( total > maxBytes )
 	{
 		std::vector<std::pair<uint32_t, uint64_t>> byAge;
@@ -1535,7 +1535,7 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 
 	program->uniformBuffer = (char *)R_Malloc(size, TAG_SHADERTEXT, qtrue);
 
-	// r_foliageField: every program with the foliage interaction library
+	// r_foliageBendField: every program with the foliage interaction library
 	// samples the bend field on its own fixed units (tr_foliagefield.cpp)
 	if (uniforms[UNIFORM_FOLIAGEFIELDMAP] != -1 || uniforms[UNIFORM_FOLIAGEFIELDPREVMAP] != -1)
 	{
@@ -2323,7 +2323,7 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 	GLSL_SetUniformInt(program, UNIFORM_FROXELVOLUME, TB_CUBEMAP);
 	GLSL_SetUniformInt(program, UNIFORM_FROXELTAIL, TB_ENVBRDFMAP);
 	GLSL_SetUniformInt(program, UNIFORM_FROXELTRANSMITTANCE, TB_FROXELTRANSMITTANCE);
-	// sprite particle light field (r_particleLight), generic programs only
+	// sprite particle light field (r_particleLighting), generic programs only
 	GLSL_SetUniformInt(program, UNIFORM_PARTICLELIGHTVOLUME, TB_SHADOWMAPARRAY);
 }
 
@@ -3733,7 +3733,7 @@ static int GLSL_LoadGPUProgramScreenSpace(
 // Froxel volumetric fog (tr_volumetric.cpp). Every program gets the fragment
 // block of volumetric_common.glsl.
 // Persistent foliage bend field (tr_foliagefield.cpp): the update pass and the
-// r_foliageFieldDebug 1 overlay, with the collider functions of
+// r_foliageBendFieldDebug 1 overlay, with the collider functions of
 // foliage_interact.glsl as fragment library
 static const GPUShaderDesc *LoadFoliageInteractLibrary( Allocator& allocator );
 
@@ -4129,7 +4129,7 @@ static int GLSL_LoadGPUProgramWeather(
 	qglUseProgram(tr.weatherShader.program);
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-	// r_rainLighting: merged light grid, read in the vertex shader
+	// r_rainStreakLighting: merged light grid, read in the vertex shader
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherShader);
@@ -4497,7 +4497,7 @@ void GLSL_LoadGPUShaders()
 			s_glslCache.fileSize / (1024.0 * 1024.0));
 	else
 		ri.Printf(PRINT_ALL, "GLSL cache: off (%s)\n",
-			r_glslCache->integer ? "no GL_ARB_get_program_binary" : "r_glslCache 0");
+			r_shaderProgramCache->integer ? "no GL_ARB_get_program_binary" : "r_shaderProgramCache 0");
 }
 
 void GLSL_ShutdownGPUShaders(void)
@@ -4796,7 +4796,7 @@ shaderProgram_t *GLSL_GetGenericShaderProgram(int stage)
 		!tess.shader->isSky)
 		shaderAttribs |= GENERICDEF_USE_FOG;
 
-	// sprite particle lighting (r_particleLight): the field lookup is part of
+	// sprite particle lighting (r_particleLighting): the field lookup is part of
 	// the froxel fog code (RB_ParticleLightNeedsFogProgram)
 	if (!backEnd.depthFill && RB_ParticleLightNeedsFogProgram(tess.shader, pStage))
 		shaderAttribs |= GENERICDEF_USE_FOG;

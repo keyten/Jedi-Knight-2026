@@ -388,7 +388,7 @@ typedef struct refFogVolumeExport_s {
 
 typedef	const refFogVolumeExport_t* (QDECL *GetRefFogVolumeAPI_t) ( void );
 
-// Optional renderer extension (rend2 volumetric FX particles, r_volParticles),
+// Optional renderer extension (rend2 volumetric FX particles, r_volumetricParticles),
 // looked up as "GetRefVolParticleAPI". Same lifetime as a dynamic light: add
 // the particles of a scene between ClearScene and RenderScene, every frame.
 typedef struct refVolParticleExport_s {

@@ -63,7 +63,7 @@ void R_PomBeginFrame( void )
 // >= 256 all of them
 static float R_PomLocalLights( void )
 {
-	switch ( r_pomSelfShadowLights->integer )
+	switch ( r_pomSelfShadowLightMode->integer )
 	{
 	case 0:
 		return 0.0f;

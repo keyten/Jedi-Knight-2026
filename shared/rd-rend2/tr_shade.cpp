@@ -1330,7 +1330,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 
 	backEnd.pc.c_fogDraws++;
 
-	// RGB extinction (r_volumetricFogRGB): a froxel lookup is two draws, the
+	// RGB extinction (r_volumetricFogRGBExtinction): a froxel lookup is two draws, the
 	// transmittance multiply and the in-scattering add (RB_VolumetricSetupFogPassDraw)
 	const int numFogDraws = (froxelFogMode == 1 && R_VolumetricFroxelRGB()) ? 2 : 1;
 	for (int fogDraw = 0; fogDraw < numFogDraws; fogDraw++)
@@ -1373,7 +1373,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		if (input->shader->polygonOffset == qtrue)
 			stateBits |= GLS_POLYGON_OFFSET_FILL;
 
-		// RGB extinction (r_volumetricFogRGB): color * T.rgb, then + S
+		// RGB extinction (r_volumetricFogRGBExtinction): color * T.rgb, then + S
 		if (rgbPass == 1)
 			stateBits = (stateBits & ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) | GLS_SRCBLEND_ZERO | GLS_DSTBLEND_SRC_COLOR;
 		else if (rgbPass == 2)
@@ -2027,7 +2027,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 				stageFog ? froxelFogMode : (froxelFogMode == 0 ? 0 : 2),
 				uniformDataWriter, samplerBindingsWriter);
 		}
-		// sprite particle lighting (r_particleLight): lit smoke / dust sprites
+		// sprite particle lighting (r_particleLighting): lit smoke / dust sprites
 		// look the particle light field up, the fog is applied after it once
 		if (pStage->glslShaderGroup != tr.lightallShader && !backEnd.depthFill)
 			RB_ParticleLightSetupDraw(input->shader, pStage, uniformDataWriter, samplerBindingsWriter);

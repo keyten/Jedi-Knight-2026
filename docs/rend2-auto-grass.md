@@ -1,7 +1,7 @@
-# rend2 auto grass (`r_autoGrass`)
+# rend2 auto grass (`r_grassCardMode`)
 
 Stock Jedi Academy surface sprite grass is drawn as world-stable cross or tri-card tufts.
-BSP, shader scripts, textures and PK3s are unchanged. `r_autoGrass 0` (the default) is the legacy path.
+BSP, shader scripts, textures and PK3s are unchanged. `r_grassCardMode 0` (the default) is the legacy path.
 
 ## Current pipeline (legacy, unchanged)
 
@@ -53,7 +53,7 @@ old:  d = normalize(attr_Normal.xy + 2 * viewLeft.xy)          // turns with the
       (ORIENTED: d = viewLeft, up = viewUp)                    // faces the camera
 new:  d_k = rotate(normalize(attr_Normal.xy), k * 180deg / n)  // k = gl_InstanceID
       p_k = perp(d_k)
-      offset.xy = corner.x * r_autoGrassWidth * d_k + corner.y * width * p_k   // corner.y = legacy 0.2 lift of the top vertex
+      offset.xy = corner.x * r_grassCardWidth * d_k + corner.y * width * p_k   // corner.y = legacy 0.2 lift of the top vertex
       offset.z = corner.z                                      // then skew + wind, identical for all cards
 ```
 
@@ -69,10 +69,10 @@ new:  d_k = rotate(normalize(attr_Normal.xy), k * 180deg / n)  // k = gl_Instanc
 
 | cvar | values |
 |---|---|
-| `r_autoGrass` (archive, default 0) | 0 legacy · 1 two-card cross · 2 three-card tuft · 3 adaptive |
-| `r_autoGrassLodDist` (default 600) | mode 3: the third card starts fading at this distance and is gone at ×1.33 |
-| `r_autoGrassWidth` (default 1) | card width scale, 0.25–2 |
-| `r_autoGrassDebug` (cheat) | 1 colour by card (R/G/B) · 2 colour by card direction · 3/4/5 force 1/2/3 cards · 6 colour by LOD (green = 3 cards, orange = 2) |
+| `r_grassCardMode` (archive, default 0) | 0 legacy · 1 two-card cross · 2 three-card tuft · 3 adaptive |
+| `r_grassCardLodDist` (default 600) | mode 3: the third card starts fading at this distance and is gone at ×1.33 |
+| `r_grassCardWidth` (default 1) | card width scale, 0.25–2 |
+| `r_grassCardDebug` (cheat) | 1 colour by card (R/G/B) · 2 colour by card direction · 3/4/5 force 1/2/3 cards · 6 colour by LOD (green = 3 cards, orange = 2) |
 
 `r_speeds 7` prints `Surface sprites: draws N cards M (V verts)`. The counts cover all passes, and cards = sprites × instances.
 
@@ -97,7 +97,7 @@ back the rotation this feature removes. Add one only if profiling shows far gras
 
 ## Recommendation
 
-**Use `r_autoGrass 1` (two-card cross).** Once the grass stops turning with the camera and never goes edge-on,
+**Use `r_grassCardMode 1` (two-card cross).** Once the grass stops turning with the camera and never goes edge-on,
 most of the visual gain is already there.
 
 The main cost is alpha-tested overdraw, not draw calls. The draw-call count is unchanged in every mode.
@@ -107,7 +107,7 @@ The main cost is alpha-tested overdraw, not draw calls. The draw-call count is u
 * **Mode 3:** costs three cards only near the camera, where the tuft shape is visible.
 
 Overlapping cutout cards do not make the grass brighter, because alpha test is not blending. Grass does look
-denser, though. If a map looks too thick, lower `r_autoGrassWidth` to about 0.8 rather than touching alpha.
+denser, though. If a map looks too thick, lower `r_grassCardWidth` to about 0.8 rather than touching alpha.
 
 ## Validation status
 
@@ -115,18 +115,18 @@ denser, though. If a map looks too thick, lower `r_autoGrassWidth` to about 0.8 
 * Offline GLSL on the Intel UHD and NVIDIA RTX 2060 drivers: all `AUTO_GRASS` variants (± `USE_FOG`,
   ± `USE_VOLUMETRIC_FOG`, ± `VELOCITY_PASS`) and the legacy variants compile.
 * Legacy exactness: the preprocessed `surface_sprites.glsl` without `AUTO_GRASS` is identical to the previous
-  version for 7 define sets. With `r_autoGrass 0` the C++ path sets the same flags and uniforms, draws one instance, and only adds counters.
+  version for 7 define sets. With `r_grassCardMode 0` the C++ path sets the same flags and uniforms, draws one instance, and only adds counters.
 * **Not yet run in game.**
 
 ### In-game checklist (Yavin grass, e.g. `yavin1` / `yavin2`)
 
 1. Rotate a static camera through 360° in modes 0, 1 and 2. Check that tufts never vanish edge-on and do not
-   visibly turn with the camera. Use `r_autoGrassDebug 1` and `2` to confirm the orientation stays fixed.
-2. Walk through the field: no orientation popping. In mode 3 with `r_autoGrassDebug 6`, check that the
+   visibly turn with the camera. Use `r_grassCardDebug 1` and `2` to confirm the orientation stays fixed.
+2. Walk through the field: no orientation popping. In mode 3 with `r_grassCardDebug 6`, check that the
    green/orange boundary moves without pops.
 3. Fog volume area, `r_volumetricFog 0/1/2`.
 4. TAA and SMAA: no ghosting while moving, which checks the velocity pass.
-5. `r_autoGrass 0` looks identical to the previous build (A/B screenshots).
+5. `r_grassCardMode 0` looks identical to the previous build (A/B screenshots).
 6. Weather sprites (rain/snow maps) and FX sprites are unchanged in all modes.
 7. Sun shadows (`r_sunShadowAlphaCasters 1`): foliage shadows no longer swim with the camera.
 8. Screenshots in modes 0 / 1 / 2: front, 45°, 90° to the original card, looking down, and moving.

@@ -70,7 +70,7 @@ static const int froxelQualitySlices[] = { 32, 48, 64 };
 struct froxelState_t
 {
 	qboolean resources;
-	qboolean rgb;				// RGB extinction (r_volumetricFogRGB, latched)
+	qboolean rgb;				// RGB extinction (r_volumetricFogRGBExtinction, latched)
 	int width, height, depth;
 
 	// the volume of this frame
@@ -137,7 +137,7 @@ qboolean R_VolumetricFroxelRGB( void )
 =================
 R_VolumetricExtinctionColor
 
-Relative extinction per channel of a medium (r_volumetricFogRGB):
+Relative extinction per channel of a medium (r_volumetricFogRGBExtinction):
 sigma_t.rgb = sigma * c, c normalized to mean 1, so the scalar sigma (the
 alpha channels, self-shadow, multiple scattering, history weights) is the
 mean of sigma_t.rgb and a medium keeps its average opacity. Negative values
@@ -539,9 +539,9 @@ void R_CreateVolumetricImages( int width, int height )
 
 	tr.froxelDynamicImage = R_CreateImage3D(
 		"*froxelDynamic", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R11F_G11F_B10F);
-	// sprite particle light field (r_particleLight, latched): the incident
+	// sprite particle light field (r_particleLighting, latched): the incident
 	// light of every froxel, a third layered attachment of the injection
-	if ( r_particleLight->integer )
+	if ( r_particleLighting->integer )
 	{
 		tr.froxelParticleLightImage = R_CreateImage3D(
 			"*froxelParticleLight", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R11F_G11F_B10F);
@@ -558,11 +558,11 @@ void R_CreateVolumetricImages( int width, int height )
 		tr.froxelMediaImage = R_CreateImage3D(
 			"*froxelMedia", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_R16F);
 	}
-	// RGB extinction (r_volumetricFogRGB, latched): sigma_t.rgb next to the
+	// RGB extinction (r_volumetricFogRGBExtinction, latched): sigma_t.rgb next to the
 	// injected volume (history ping-pong) and T.rgb next to the integrated one,
 	// RGBA16F (R11G11B10F bands T near 1 and drifts in the temporal filter).
 	// 24 bytes per froxel, nothing in the scalar mode.
-	if ( r_volumetricFogRGB->integer )
+	if ( r_volumetricFogRGBExtinction->integer )
 	{
 		GLint units = 0;
 		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
@@ -582,7 +582,7 @@ void R_CreateVolumetricImages( int width, int height )
 		}
 		else
 		{
-			ri.Printf(PRINT_WARNING, "r_volumetricFogRGB: needs more than %d texture units, scalar extinction is used\n",
+			ri.Printf(PRINT_WARNING, "r_volumetricFogRGBExtinction: needs more than %d texture units, scalar extinction is used\n",
 				TB_FROXELCARRYT);
 		}
 	}
@@ -599,7 +599,7 @@ void R_CreateVolumetricImages( int width, int height )
 }
 
 // draw buffers of the injection: 0 media, 1 dynamic light, 2 particle light
-// (r_particleLight), 3 sigma_t.rgb (r_volumetricFogRGB); absent ones GL_NONE
+// (r_particleLighting), 3 sigma_t.rgb (r_volumetricFogRGBExtinction); absent ones GL_NONE
 static int R_VolumetricInjectDrawBuffers( GLenum bufs[4] )
 {
 	bufs[0] = GL_COLOR_ATTACHMENT0;
@@ -1119,7 +1119,7 @@ void R_BuildVolumetricLightGrid( world_t *world )
 		const float dirLuma = 0.2126f * directed[0] + 0.7152f * directed[1] + 0.0722f * directed[2];
 		if ( validCell )
 		{
-			// the light of an average place of the map (r_particleLight reference)
+			// the light of an average place of the map (r_particleLighting reference)
 			referenceSum += 0.2126f * total[0] + 0.7152f * total[1] + 0.0722f * total[2];
 			numReferenceCells++;
 		}
@@ -1423,7 +1423,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tilesX, tilesY, range) )
 			continue;
 		range->light = numLights;
-		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotShadows 0) and
+		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0) and
 		// the legacy cube index of a light that has none
 		const int shadowLayer = R_DlightCastsShadow(dl) ? shadowLayers[i] : -1;
 		const float projected = (shadowLayer >= 0 && dl->spotShadowSlot == shadowLayer) ? 1.0f : 0.0f;
@@ -1443,7 +1443,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	// near the camera, luminance * radius^2 / max(distance, radius / 4)^2
 	if ( tr.froxelMediaImage && r_volumetricSelfShadow->integer >= 2 )
 	{
-		const int maxShadowed = Com_Clampi(0, 4, r_volumetricSelfShadowLights->integer);
+		const int maxShadowed = Com_Clampi(0, 4, r_volumetricSelfShadowMaxLights->integer);
 		float best[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		for ( int n = 0; n < numLights; n++ )
 		{
@@ -1540,7 +1540,7 @@ R_VolumetricHeightFog
 Height fog medium (r_volumetricFogHeight 1, off by default), world anchored:
 
   sigma(p) = sigma0 * min(exp(-(p.z - base) / falloff), maxScale) * cutoff
-  sigma0   = -ln(1.5 / 255) / r_volumetricFogHeightOpaque * volumetricFogScale
+  sigma0   = -ln(1.5 / 255) / r_volumetricFogHeightOpaqueDistance * volumetricFogScale
 
 sigma0 is converted from a depthForOpaque distance exactly like the BSP fog
 volumes below, so both media share one unit (extinction per world unit).
@@ -1553,7 +1553,7 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	VectorSet4(color, 0.0f, 0.0f, 0.0f, 0.0f);
 	VectorSet4(top, 0.0f, 0.0f, 0.0f, 0.0f);
 
-	const float opaque = r_volumetricFogHeightOpaque->value;
+	const float opaque = r_volumetricFogHeightOpaqueDistance->value;
 	if ( !r_volumetricFogHeight->integer || opaque <= 0.0f )
 		return qfalse;
 
@@ -1563,7 +1563,7 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 		return qfalse;
 
 	const float falloff = MAX(1.0f, r_volumetricFogHeightFalloff->value);
-	const float maxScale = MAX(1.0f, r_volumetricFogHeightMax->value);
+	const float maxScale = MAX(1.0f, r_volumetricFogHeightMaxDensity->value);
 	VectorSet4(fog, extinction, r_volumetricFogHeightBase->value, 1.0f / falloff, logf(maxScale));
 
 	// albedo in the fogParms convention (R_LoadFogs, ParseShader)
@@ -1578,10 +1578,10 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	}
 
 	// soft cutoff: fades out over the last falloff (at most the whole layer)
-	const float topHeight = MAX(0.0f, r_volumetricFogHeightTop->value);
+	const float topHeight = MAX(0.0f, r_volumetricFogHeightTopHeight->value);
 	VectorSet4(color, albedo[0], albedo[1], albedo[2], topHeight - MIN(falloff, topHeight));
 
-	// relative extinction per channel (r_volumetricFogRGB), mean 1
+	// relative extinction per channel (r_volumetricFogRGBExtinction), mean 1
 	vec3_t extinctionColor = { 1.0f, 1.0f, 1.0f };
 	sscanf(r_volumetricFogHeightExtinction->string, "%f %f %f",
 		&extinctionColor[0], &extinctionColor[1], &extinctionColor[2]);
@@ -1628,12 +1628,12 @@ static void R_VolumetricFogUsage( void )
 static void R_VolumetricFogPrint( void )
 {
 	ri.Printf(PRINT_ALL, "volumetric fog medium: %s\n", r_volumetricFogHeight->integer ? "on" : "off");
-	ri.Printf(PRINT_ALL, "  opaque  %g\n", r_volumetricFogHeightOpaque->value);
+	ri.Printf(PRINT_ALL, "  opaque  %g\n", r_volumetricFogHeightOpaqueDistance->value);
 	ri.Printf(PRINT_ALL, "  falloff %g\n", r_volumetricFogHeightFalloff->value);
 	ri.Printf(PRINT_ALL, "  color   %s\n", r_volumetricFogHeightColor->string);
 	ri.Printf(PRINT_ALL, "  base    %g\n", r_volumetricFogHeightBase->value);
-	ri.Printf(PRINT_ALL, "  top     %g\n", r_volumetricFogHeightTop->value);
-	ri.Printf(PRINT_ALL, "  max     %g\n", r_volumetricFogHeightMax->value);
+	ri.Printf(PRINT_ALL, "  top     %g\n", r_volumetricFogHeightTopHeight->value);
+	ri.Printf(PRINT_ALL, "  max     %g\n", r_volumetricFogHeightMaxDensity->value);
 
 	if ( r_volumetricFog->integer != 2 || !s_vf.resources )
 		ri.Printf(PRINT_WARNING, "r_vfog needs r_volumetricFog 2 (then vid_restart)\n");
@@ -1668,8 +1668,8 @@ void R_VolumetricFog_f( void )
 	if ( !Q_stricmp(cmd, "reset") )
 	{
 		cvar_t *cvars[] = {
-			r_volumetricFogHeight, r_volumetricFogHeightOpaque, r_volumetricFogHeightFalloff,
-			r_volumetricFogHeightColor, r_volumetricFogHeightTop, r_volumetricFogHeightMax };
+			r_volumetricFogHeight, r_volumetricFogHeightOpaqueDistance, r_volumetricFogHeightFalloff,
+			r_volumetricFogHeightColor, r_volumetricFogHeightTopHeight, r_volumetricFogHeightMaxDensity };
 		for ( size_t i = 0; i < ARRAY_LEN(cvars); i++ )
 		{
 			if ( cvars[i]->resetString )
@@ -1690,10 +1690,10 @@ void R_VolumetricFog_f( void )
 			return;
 		}
 
-		ri.Cvar_Set("r_volumetricFogHeightOpaque", va("%g", opaque));
+		ri.Cvar_Set("r_volumetricFogHeightOpaqueDistance", va("%g", opaque));
 		ri.Cvar_Set("r_volumetricFogHeightFalloff", "65536");
-		ri.Cvar_Set("r_volumetricFogHeightTop", "0");
-		ri.Cvar_Set("r_volumetricFogHeightMax", "1");
+		ri.Cvar_Set("r_volumetricFogHeightTopHeight", "0");
+		ri.Cvar_Set("r_volumetricFogHeightMaxDensity", "1");
 		if ( argc >= 6 )
 		{
 			float rgb[3];
@@ -1722,11 +1722,11 @@ void R_VolumetricFog_f( void )
 	{
 		const char *key = ri.Cmd_Argv(i);
 		const char *cvar = NULL;
-		if ( !Q_stricmp(key, "opaque") ) cvar = "r_volumetricFogHeightOpaque";
+		if ( !Q_stricmp(key, "opaque") ) cvar = "r_volumetricFogHeightOpaqueDistance";
 		else if ( !Q_stricmp(key, "falloff") ) cvar = "r_volumetricFogHeightFalloff";
 		else if ( !Q_stricmp(key, "base") ) cvar = "r_volumetricFogHeightBase";
-		else if ( !Q_stricmp(key, "top") ) cvar = "r_volumetricFogHeightTop";
-		else if ( !Q_stricmp(key, "max") ) cvar = "r_volumetricFogHeightMax";
+		else if ( !Q_stricmp(key, "top") ) cvar = "r_volumetricFogHeightTopHeight";
+		else if ( !Q_stricmp(key, "max") ) cvar = "r_volumetricFogHeightMaxDensity";
 		else if ( !Q_stricmp(key, "color") ) cvar = "r_volumetricFogHeightColor";
 
 		if ( !cvar || numSettings >= (int)ARRAY_LEN(settings) )
@@ -1901,23 +1901,23 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricFogScale->value,
 		tr.volumetricFogScale,
 		(float)r_volumetricFogHeight->integer,
-		r_volumetricFogHeightOpaque->value,
+		r_volumetricFogHeightOpaqueDistance->value,
 		r_volumetricFogHeightBase->value,
 		r_volumetricFogHeightFalloff->value,
-		r_volumetricFogHeightMax->value,
-		r_volumetricFogHeightTop->value,
+		r_volumetricFogHeightMaxDensity->value,
+		r_volumetricFogHeightTopHeight->value,
 		r_volumetricFogAnisotropy->value,
 		r_volumetricFogSunScale->value,
 		r_volumetricFogStaticScale->value,
 		(float)r_volumetricFogStaticDirectional->integer,
 		// the sun octaves are in the history (r_volumetricMultiScatter)
 		(float)r_volumetricMultiScatter->integer,
-		(float)r_volumetricMSOctaves->integer,
-		r_volumetricMSAttenuation->value,
-		r_volumetricMSContribution->value,
-		r_volumetricMSPhase->value,
-		r_volumetricMSLength->value,
-		r_volumetricMSShadowFill->value };
+		(float)r_volumetricMultiScatterOctaves->integer,
+		r_volumetricMultiScatterAttenuation->value,
+		r_volumetricMultiScatterContribution->value,
+		r_volumetricMultiScatterPhase->value,
+		r_volumetricMultiScatterLength->value,
+		r_volumetricMultiScatterShadowFill->value };
 	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightExtinction->string, strlen(r_volumetricFogHeightExtinction->string));
@@ -1981,7 +1981,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		view != NULL &&
 		tr.world != NULL &&
 		// no fog volume, no height fog, no local fog volume, no FX particle medium: nothing to do
-		// the sprite particle light field (r_particleLight) needs the injection even without media
+		// the sprite particle light field (r_particleLighting) needs the injection even without media
 		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ) ||
 			R_VolParticlesInFrustum(view, refdef, farZ) || tr.froxelParticleLightImage != NULL) &&
 		tr.renderFbo != NULL &&
@@ -2199,7 +2199,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		tr.froxelMediaImage ? (float)r_volumetricSelfShadow->integer : 0.0f,
 		(float)Com_Clampi(2, 16, r_volumetricSelfShadowSamples->integer),
 		Com_Clamp(32.0f, 8192.0f, r_volumetricSelfShadowDistance->value),
-		r_volumetricSelfShadowOutside->integer ? 1.0f : 0.0f);
+		r_volumetricSelfShadowOutsideHeightFog->integer ? 1.0f : 0.0f);
 
 	// approximate multiple scattering: octaves of the self-shadowed light terms,
 	// so only with the media self-shadow (without an optical depth towards the
@@ -2218,19 +2218,19 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		}
 		// the dynamic light octaves only exist where their media shadow does
 		msMode = MIN(msMode, (int)block.selfShadow[0]);
-		const float b = Com_Clamp(0.0f, 1.0f, r_volumetricMSContribution->value);
-		float a = Com_Clamp(0.0f, 1.0f, r_volumetricMSAttenuation->value);
+		const float b = Com_Clamp(0.0f, 1.0f, r_volumetricMultiScatterContribution->value);
+		float a = Com_Clamp(0.0f, 1.0f, r_volumetricMultiScatterAttenuation->value);
 		if ( a > b )
 		{
 			if ( !warnedAttenuation )
-				ri.Printf(PRINT_ALL, "r_volumetricMSAttenuation %g > r_volumetricMSContribution %g: clamped to %g (energy)\n", a, b, b);
+				ri.Printf(PRINT_ALL, "r_volumetricMultiScatterAttenuation %g > r_volumetricMultiScatterContribution %g: clamped to %g (energy)\n", a, b, b);
 			warnedAttenuation = qtrue;
 			a = b;
 		}
-		VectorSet4(block.multiScatter, (float)msMode, (float)Com_Clampi(1, 3, r_volumetricMSOctaves->integer), b,
-			Com_Clamp(1.0f, 4096.0f, r_volumetricMSLength->value));
-		VectorSet4(block.multiScatter2, a, Com_Clamp(0.0f, 1.0f, r_volumetricMSPhase->value),
-			Com_Clamp(0.0f, 0.5f, r_volumetricMSShadowFill->value), 0.0f);
+		VectorSet4(block.multiScatter, (float)msMode, (float)Com_Clampi(1, 3, r_volumetricMultiScatterOctaves->integer), b,
+			Com_Clamp(1.0f, 4096.0f, r_volumetricMultiScatterLength->value));
+		VectorSet4(block.multiScatter2, a, Com_Clamp(0.0f, 1.0f, r_volumetricMultiScatterPhase->value),
+			Com_Clamp(0.0f, 0.5f, r_volumetricMultiScatterShadowFill->value), 0.0f);
 	}
 
 	// height fog medium, added to the fog volumes by the injection
@@ -2260,7 +2260,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		}
 		else
 			VectorSet4(block.fogColor[i], fog->color[0], fog->color[1], fog->color[2], extinction);
-		// fogExtinctionColor (r_volumetricFogRGB), mean 1; neutral without it
+		// fogExtinctionColor (r_volumetricFogRGBExtinction), mean 1; neutral without it
 		vec3_t extinctionColor;
 		R_VolumetricExtinctionColor(fog->parms.hasExtinctionColor ? fog->parms.extinctionColor : NULL,
 			extinctionColor);
@@ -2451,7 +2451,7 @@ void RB_VolumetricSetupFogPassDraw( int rgbPass, UniformDataWriter& uniforms, Sa
 =================
 RB_ParticleLightClass
 
-Sprite particle lighting (r_particleLight): which FX sprite stages are lit by
+Sprite particle lighting (r_particleLighting): which FX sprite stages are lit by
 the particle light field. From the shader state only, no names:
 - the entity is a sprite (RT_SPRITE: CParticle, CFlash) or an oriented quad
   (RT_ORIENTED_QUAD: COrientedParticle), not RF_VOLUMETRIC / first person
@@ -2497,7 +2497,7 @@ static qboolean RB_ParticleLightActive( const shader_t *shader )
 	return (qboolean)(
 		tr.froxelParticleLightImage != NULL &&
 		s_vf.built &&
-		r_particleLightMix->value > 0.0f &&
+		r_particleLightingMix->value > 0.0f &&
 		RB_VolumetricFogMode(shader->sort) == 1);
 }
 
@@ -2506,7 +2506,7 @@ static qboolean RB_ParticleLightActive( const shader_t *shader )
 RB_ParticleLightNeedsFogProgram
 
 The lookup is in the froxel fog code of generic.glsl (USE_FOG): lit sprites
-(and, with r_particleLightDebug 5, the unlit ones) use the fog permutation
+(and, with r_particleLightingDebug 5, the unlit ones) use the fog permutation
 even outside of fog. Their fog mode is then 2 (none) unless they are fogged.
 =================
 */
@@ -2517,7 +2517,7 @@ qboolean RB_ParticleLightNeedsFogProgram( const shader_t *shader, const shaderSt
 	const int particleClass = RB_ParticleLightClass(shader, stage);
 	if ( particleClass == PARTICLE_LIGHT_LIT )
 		return qtrue;
-	return (qboolean)(particleClass == PARTICLE_LIGHT_UNLIT && r_particleLightDebug->integer == 5);
+	return (qboolean)(particleClass == PARTICLE_LIGHT_UNLIT && r_particleLightingDebug->integer == 5);
 }
 
 /*
@@ -2525,9 +2525,9 @@ qboolean RB_ParticleLightNeedsFogProgram( const shader_t *shader, const shaderSt
 RB_ParticleLightSetupDraw
 
 u_ParticleLight of the generic programs, set for every generic stage (the
-value stays in the program): x = gain (r_particleLightScale over the map
+value stays in the program): x = gain (r_particleLightingScale over the map
 average light, so that an average place keeps the authored color), y = floor,
-z = max gain, w = mix (0 = off; 2 / 3 = r_particleLightDebug 5 tint of a
+z = max gain, w = mix (0 = off; 2 / 3 = r_particleLightingDebug 5 tint of a
 lit / unlit sprite).
 =================
 */
@@ -2541,7 +2541,7 @@ void RB_ParticleLightSetupDraw( const shader_t *shader, const shaderStage_t *sta
 	if ( RB_ParticleLightNeedsFogProgram(shader, stage) )
 	{
 		const int particleClass = RB_ParticleLightClass(shader, stage);
-		if ( r_particleLightDebug->integer == 5 )
+		if ( r_particleLightingDebug->integer == 5 )
 		{
 			params[3] = (particleClass == PARTICLE_LIGHT_LIT) ? 2.0f : 3.0f;
 		}
@@ -2550,10 +2550,10 @@ void RB_ParticleLightSetupDraw( const shader_t *shader, const shaderStage_t *sta
 			// the field carries the baked light times r_volumetricFogStaticScale
 			const float reference = MAX(0.05f,
 				(tr.world ? tr.world->particleLightReference : 0.0f) * r_volumetricFogStaticScale->value);
-			params[0] = r_particleLightScale->value / reference;
-			params[1] = r_particleLightFloor->value;
+			params[0] = r_particleLightingScale->value / reference;
+			params[1] = r_particleLightingFloor->value;
 			params[2] = 4.0f;
-			params[3] = r_particleLightMix->value;
+			params[3] = r_particleLightingMix->value;
 		}
 		samplers.AddStaticImage(tr.froxelParticleLightImage, TB_SHADOWMAPARRAY);
 	}
@@ -2729,8 +2729,8 @@ void RB_VolumetricBuild( void )
 			GL_SetScreenAuxWrite(true);
 		qglDrawBuffers(numBufs, bufs);
 		{
-			// sprite particle light field: on, debug term (r_particleLightDebug 2-4)
-			const int term = r_particleLightDebug->integer;
+			// sprite particle light field: on, debug term (r_particleLightingDebug 2-4)
+			const int term = r_particleLightingDebug->integer;
 			vec4_t particleLight;
 			VectorSet4(particleLight, tr.froxelParticleLightImage ? 1.0f : 0.0f,
 				(term >= 2 && term <= 4) ? (float)term : 0.0f, 0.0f, 0.0f);
@@ -2898,9 +2898,9 @@ r_volumetricFogDebug views, drawn over the tone mapped frame
 */
 void RB_VolumetricDebugOverlay( void )
 {
-	// r_particleLightDebug 1-4: the particle light field instead of a fog view
+	// r_particleLightingDebug 1-4: the particle light field instead of a fog view
 	const qboolean particleLightView = (qboolean)(tr.froxelParticleLightImage != NULL &&
-		r_particleLightDebug->integer >= 1 && r_particleLightDebug->integer <= 4);
+		r_particleLightingDebug->integer >= 1 && r_particleLightingDebug->integer <= 4);
 	if ( !s_vf.resources || (!r_volumetricFogDebug->integer && !particleLightView) || !s_vf.frameUsable )
 		return;
 	if ( backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE) )
@@ -2930,7 +2930,7 @@ void RB_VolumetricDebugOverlay( void )
 	// view 40: the extinction of this frame (r_volumetricSelfShadow)
 	if ( tr.froxelMediaImage )
 		GL_BindToTMU(tr.froxelMediaImage, TB_FROXELMEDIA);
-	// views 51-56: RGB extinction (r_volumetricFogRGB)
+	// views 51-56: RGB extinction (r_volumetricFogRGBExtinction)
 	if ( s_vf.rgb )
 	{
 		GL_BindToTMU(tr.froxelTransmittanceImage, TB_FROXELTRANSMITTANCE);

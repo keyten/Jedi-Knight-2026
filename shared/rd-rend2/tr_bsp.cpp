@@ -4096,7 +4096,7 @@ static void R_GenerateSurfaceSprites(
 	out->numIndices = out->numSprites * 6;
 	out->fogIndex = fogIndex;
 
-	// anchor bounds padded by the largest card, used by the r_autoGrass lod
+	// anchor bounds padded by the largest card, used by the r_grassCardMode lod
 	ClearBounds(out->spriteMins, out->spriteMaxs);
 	float pad = 0.0f;
 	for (size_t i = out->baseVertex; i < sprites->size(); i += 4)

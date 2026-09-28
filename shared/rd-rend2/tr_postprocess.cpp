@@ -67,7 +67,7 @@ void RB_GetColorGrading(image_t **lut, vec4_t params)
 	}
 
 	*lut = image;
-	params[0] = (float)r_colorGrading->integer;
+	params[0] = r_colorGradingCompare->integer ? 2.0f : 1.0f;
 	params[1] = intensity;
 	params[2] = (float)image->width;
 	params[3] = 0.0f;

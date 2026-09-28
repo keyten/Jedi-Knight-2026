@@ -118,7 +118,7 @@ XCVAR_DEF( cg_saberDynamicMarkTime,				"60000",				NULL,					CVAR_NONE )
 XCVAR_DEF( cg_saberModelTraceEffect,			"0",					NULL,					CVAR_NONE )
 XCVAR_DEF( cg_saberTrail,						"1",					NULL,					CVAR_ARCHIVE )
 // renderer cvar (rend2 LTC area lights), mirrored: sabers light as lines
-XCVAR_DEF( r_saberAreaLights,					"0",					NULL,					CVAR_ARCHIVE )
+XCVAR_DEF( r_ltcSaberAreaLights,					"0",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( r_foliageInteraction,				"0",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_scoreboardBots,					"1",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_scorePlums,						"1",					NULL,					CVAR_ARCHIVE )

@@ -90,7 +90,7 @@ Per-view parameters are appended to `CameraBlock` (lightall's Camera block only)
 
 Legacy mode still renders a cube for every light, up to 32. Forward+ separates render lights from shadowed lights:
 
-- `r_dynamicShadowMaxLights` (default 4, max 32) sets how many lights get a cube. It needs `r_dlightMode 2`.
+- `r_forwardPlusMaxShadowLights` (default 4, max 32) sets how many lights get a cube. It needs `r_dlightMode 2`.
 - Lights are ranked by importance. **Hysteresis:** a light that matches one of last frame's shadowed lights
   (position within max(16, radius/4), similar color) scores ×1.3 and keeps its slot.
 - The mapping is render light → shadow slot (−1 = unshadowed). The shader reads the slot from the light data.
@@ -109,19 +109,19 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
 | `r_forwardPlusMaxLightsPerCluster` | 64 | 1–255 |
 | `r_forwardPlusDebug` | 0 | cheat, **latched** (`vid_restart`: the debug views are only compiled into lightall when it is non-zero). 1 tiles, 2 slices, 3 clusters, 4 lights/cluster heatmap, 5 overflowing clusters (red), 6 shadowed lights only, 7 unshadowed only, 8 light spheres, 9 only light `r_forwardPlusDebugLight` |
 | `r_forwardPlusDebugLight` | 0 | light index for debug 9 |
-| `r_dynamicShadowMaxLights` | 4 | Forward+ shadow budget |
+| `r_forwardPlusMaxShadowLights` | 4 | Forward+ shadow budget |
 
 Dependency messages are printed once, when the cvar changes (and at renderer start). Nothing is auto-enabled:
 
 - `r_forwardPlusDebug` with `r_forwardPlus 0`: "requires clustered lighting. Enable r_forwardPlus 1."
-- `r_dynamicShadowMaxLights` changed with `r_forwardPlus 0`: "applies to r_forwardPlus 1 only".
+- `r_forwardPlusMaxShadowLights` changed with `r_forwardPlus 0`: "applies to r_forwardPlus 1 only".
 - Forward+ with a shadow budget but `r_dlightMode` < 2: "require r_dlightMode 2".
 
 Commands:
 
 - `r_forwardPlusStats`: lights (and how many were dropped by capacity), clusters, average/max lights per cluster,
   overflow, shadowed lights, CPU build time (last frame and average), GPU main-view time.
-- `r_spawnTestLights N [spread]` (sv_cheats): N deterministic, slowly orbiting renderer-only lights around the
+- `r_forwardPlusSpawnTestLights N [spread]` (sv_cheats): N deterministic, slowly orbiting renderer-only lights around the
   camera. They are not gameplay entities.
 - `r_forwardPlusBenchmark [frames]` (sv_cheats): runs legacy 8/32, then Forward+ 8/32/64/128/256 with test lights,
   and prints a table. The camera should stay still during the run.
@@ -145,8 +145,8 @@ Not measured yet: the game was not launched in this task (validation = build + o
 
 1. `r_forwardPlus 0` vs the `build/ab/*-prefplus.dll` DLLs: identical images (except scenes with exactly 32 lights,
    where the UB fix restores the world lighting).
-2. Legacy vs Forward+ with ≤ 32 lights (`r_spawnTestLights 8/31/32`): nearly identical lighting. Expected
-   differences: floating point summation order. With `r_dlightMode 2`, only `r_dynamicShadowMaxLights` lights cast
+2. Legacy vs Forward+ with ≤ 32 lights (`r_forwardPlusSpawnTestLights 8/31/32`): nearly identical lighting. Expected
+   differences: floating point summation order. With `r_dlightMode 2`, only `r_forwardPlusMaxShadowLights` lights cast
    shadows in Forward+ mode.
 3. 33, 64, 128, 256 test lights: all visible in Forward+. `r_forwardPlusStats` shows no capacity drops below 256.
 4. Debug views 1–5: tiles align with the screen; slices grow with distance; the heatmap is plausible. Check a long

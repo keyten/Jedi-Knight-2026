@@ -204,7 +204,7 @@ qboolean RB_RainLensUpdate( float exposure )
 	if ( r_rainLensDebug->integer )
 		return qtrue;
 
-	if ( r_rainLensAmount->value <= 0.0f )
+	if ( r_rainLensDensity->value <= 0.0f )
 		return qfalse;
 
 	return (qboolean)(s_lensTime - s_lastExposedTime < RAIN_LENS_DRAIN_SECONDS);
@@ -234,7 +234,7 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 		s_intensity = exposure;
 
 	const float density = debugView ? 1.0f :
-		Com_Clamp(0.0f, 1.0f, r_rainLensAmount->value) * s_intensity * s_wet;
+		Com_Clamp(0.0f, 1.0f, r_rainLensDensity->value) * s_intensity * s_wet;
 
 	const int timer = RB_RainLensBeginTimer("Rain lens");
 
@@ -249,7 +249,7 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 	vec4_t params, params2;
 	VectorSet4(params, s_lensTime, density,
 		Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value),
-		Com_Clamp(0.25f, 4.0f, r_rainLensScale->value));
+		Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value));
 	VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
 		(float)debugView, tr.linearLight ? 0.0f : 1.0f);
 	GLSL_SetUniformVec4(sp, UNIFORM_RAINLENSPARAMS, params);

@@ -85,7 +85,7 @@ void R_PerformanceCounters( void ) {
 			ri.Printf( PRINT_ALL, "Silhouette POM: shells %i (%i tris)  crossfade bases %i\n",
 				backEnd.pc.c_pomShellSurfaces, backEnd.pc.c_pomShellTriangles, backEnd.pc.c_pomFadeSurfaces );
 		}
-		// all passes; cards = sprites * instances (r_autoGrass)
+		// all passes; cards = sprites * instances (r_grassCardMode)
 		ri.Printf( PRINT_ALL, "Surface sprites: draws %i  cards %i (%i verts)\n",
 			backEnd.pc.c_spriteDraws, backEnd.pc.c_spriteCards, backEnd.pc.c_spriteCards * 4 );
 	}

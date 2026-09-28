@@ -70,7 +70,7 @@ All height samples use `textureGrad` with the stored gradients, so the routine i
 Not attenuated: lightmap ambient recovery, light grid ambient, cubemap / diffuse IBL, SSR, SSGI indirect light,
 emissive.
 
-### Local light budget (`r_pomSelfShadowLights`)
+### Local light budget (`r_pomSelfShadowLightMode`)
 
 A Forward+ cluster can hold many lights; a self shadow ray for each would cost `steps` samples per light. Modes 1 and
 2 give rays only to the N strongest lights **at this pixel**:
@@ -140,7 +140,7 @@ textures/test/bricks
 | cvar | default | |
 |---|---|---|
 | `r_pomSelfShadow` | 0 | self shadowing of direct light, **latched**; needs `r_parallaxMapping 1` (warns once, never enables it; starts working when parallax is turned on) |
-| `r_pomSelfShadowLights` | 1 | 0 sun only, 1 sun + strongest local light, 2 sun + `r_pomSelfShadowMaxLocalLights`, 3 all lights |
+| `r_pomSelfShadowLightMode` | 1 | 0 sun only, 1 sun + strongest local light, 2 sun + `r_pomSelfShadowMaxLocalLights`, 3 all lights |
 | `r_pomSelfShadowMaxLocalLights` | 2 | N for mode 2 (1–4) |
 | `r_pomSelfShadowSteps` | 12 | samples per shadow ray (4–32) |
 | `r_pomSelfShadowStrength` | 1 | 0 none … 1 physical, × material `pomSelfShadow` |
@@ -209,7 +209,7 @@ To fill in (ms, GPU, `r_speeds` / frame time, a POM wall frontal and at a grazin
 3. Brick wall / deep grooves / metal panel / floor with the sun (`r_sunlightMode 2`, then 1): shadows fall on the side
    away from the sun and move with it; `r_pomDebug 4`, `r_pomDebugFreezeLight 1` to compare.
 4. Point light / saber moved along a POM wall: grooves shadow away from the light, not like static AO; `r_pomDebug 5`.
-5. `r_forwardPlus 0/1`: identical self shadows; many lights: `r_pomSelfShadowLights 1/2/3`, no popping when lights
+5. `r_forwardPlus 0/1`: identical self shadows; many lights: `r_pomSelfShadowLightMode 1/2/3`, no popping when lights
    swap rank.
 6. `r_ssgi 1`: the bounce from a dynamic light near a POM wall carries the self shadow; no double darkening.
 7. Frontal and grazing views, `r_pomAdaptiveSteps 1`, `r_pomDebug 6`: fewer samples frontal, more grazing, no layering.

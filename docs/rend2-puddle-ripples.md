@@ -1,4 +1,4 @@
-# rend2 puddle rain ripples (`r_puddleRipples`)
+# rend2 puddle rain ripples (`r_weatherPuddleRipples`)
 
 Small expanding rings on the standing water of `r_weatherPuddles`. This is a shading feature only. The rings tilt the
 water normal and change nothing else: no color overlay, no emission, no extra pass, no texture and no CPU ring
@@ -47,7 +47,7 @@ don't depend on the material's texture scale or on the camera. `PuddleRipples` a
 | 1 | 37° | 0.79 | 3.3 | 4/3 |
 | 2 | 71° | 1.27 | 7.7 | 8/3 |
 
-Per layer, in cell units (`toCell = scale / r_puddleRippleScale`):
+Per layer, in cell units (`toCell = scale / r_weatherPuddleRippleScale`):
 
 ```
 clock  = T + clockOffset                     T: CPU ring clock in cycles, mod 256
@@ -76,7 +76,7 @@ ring   = RippleRing(q, center, fract(cycle), amp, 0.3, 0.07)
 ```
 ripple      = PuddleRipples(worldXY, footprint)        // (height, dh/dx, dh/dy), world units
 rippleMask  = smoothstep(0.35, 0.9, puddle)
-rippleSlope = ripple.yz * r_puddleRippleStrength * rippleMask
+rippleSlope = ripple.yz * r_weatherPuddleRippleStrength * rippleMask
 tilt        = (-rippleSlope, 0)
 N           = normalize(N + tilt - wetGeoNormal * dot(wetGeoNormal, tilt))
 ```
@@ -114,8 +114,8 @@ There is no impact buffer yet.
 
 `u_PuddleRipple` = (strength, 1 / cell size, clock, density):
 
-* strength is 0 when `r_puddleRipples` is 0 or when the draw gets no puddles (coverage ≤ 0);
-* the clock is integrated once per frame: `clock += min(dt, 0.1) * r_puddleRippleRate`, then `fmod 256`. Changing
+* strength is 0 when `r_weatherPuddleRipples` is 0 or when the draw gets no puddles (coverage ≤ 0);
+* the clock is integrated once per frame: `clock += min(dt, 0.1) * r_weatherPuddleRippleRate`, then `fmod 256`. Changing
   the rate never makes the phase jump, and a paused game (`dt` = 0) freezes the rings;
 * density = `clamp(rain particleCount / 2000, 0.3, 1)`: light rain (1000 particles) rings half the cells that a
   downpour does. The epoch skip then removes 1 cycle in 4.
@@ -124,14 +124,14 @@ There is no impact buffer yet.
 
 | cvar | default | meaning |
 |---|---|---|
-| `r_puddleRipples` | 1 | on / off (visible only with `r_weatherWetness 1`, `r_weatherPuddles 1` and rain) |
-| `r_puddleRippleStrength` | 0.35 | peak slope of a ring (0..2) |
-| `r_puddleRippleScale` | 20 | world size of a cell; a ring grows to a radius of 0.3 × this (6 units) |
-| `r_puddleRippleRate` | 1.1 | ring cycles per second per cell |
+| `r_weatherPuddleRipples` | 1 | on / off (visible only with `r_weatherWetness 1`, `r_weatherPuddles 1` and rain) |
+| `r_weatherPuddleRippleStrength` | 0.35 | peak slope of a ring (0..2) |
+| `r_weatherPuddleRippleScale` | 20 | world size of a cell; a ring grows to a radius of 0.3 × this (6 units) |
+| `r_weatherPuddleRippleRate` | 1.1 | ring cycles per second per cell |
 
 All four are runtime cvars (not latched).
 
-## Debug (`r_weatherWetnessDebug`)
+## Debug (`r_weatherSurfaceDebug`)
 
 | value | view |
 |---|---|
@@ -154,7 +154,7 @@ USE_CUBEMAP`), fragment instructions:
 | full | 1405 (+325: 247 for the 3 ring layers, 13 transcendentals) |
 
 All of this sits behind `u_PuddleRipple.x > 0 && puddle > 0.35`. Pixels outside the puddle core, dry maps and
-`r_puddleRipples 0` pay only for the branch and one `fwidth`. As a rough estimate, puddle core covering a whole
+`r_weatherPuddleRipples 0` pay only for the branch and one `fwidth`. As a rough estimate, puddle core covering a whole
 1080p screen costs ~0.5 G instructions per frame: about 0.15 ms on an RTX 2060, and a few ms on Intel UHD. The
 feature has not been timed in the game.
 
@@ -168,4 +168,4 @@ feature has not been timed in the game.
   of variation 0.21).
 * **Not tested in the game.** Still to check in the game: cubemap and SSR reflections, dynamic light and sun / moon
   highlights, puddle edges (debug 19), camera movement, a long static shot (flicker, grid) and GPU time with
-  `r_puddleRipples 0` vs `1`.
+  `r_weatherPuddleRipples 0` vs `1`.

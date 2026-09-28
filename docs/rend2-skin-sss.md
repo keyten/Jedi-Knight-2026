@@ -35,17 +35,17 @@ composite), the skin diffuse split and wrap in `glsl/lightall.glsl`, shared scre
 - jedi_tf (Twi'lek) face, lekku and skin shaders have two stages: an entity-tinted base plus an alpha blended
   painted layer.
 
-Eligibility with the default `r_skinSSSMixed 0` (materials under models/, number used by a model skin):
+Eligibility with the default `r_skinSSSMixedHeads 0` (materials under models/, number used by a model skin):
 
 | decision | materials | used |
 |---|---|---|
 | skin (scatters): faces, hands, neck, forehead, lekku / tentacles, howler, rancor, sand_creature | 134 | 129 |
 | excluded part: eyes, teeth, mouth, cap (bespin_cop hat) | 28 | 28 |
-| mixed head (`*_head`: hair + skin), needs a mask or `r_skinSSSMixed 1` | 92 | 67 |
+| mixed head (`*_head`: hair + skin), needs a mask or `r_skinSSSMixedHeads 1` | 92 | 67 |
 | layered (jedi_tf: lit alpha layer on top) | 8 | 8 |
 | blended base (jedi_rm hair heads, saboteur face plate) | 4 | 4 |
 
-With `r_skinSSSMixed 1`: 224 scatter (194 used), 10 layered (the jedi_tf heads join them).
+With `r_skinSSSMixedHeads 1`: 224 scatter (194 used), 10 layered (the jedi_tf heads join them).
 
 All 47 organic characters get at least one scattering surface. The 29 without one are droids, troopers,
 vehicles, Chewbacca / wampa / tauntaun (fur) and tusken (wrapped).
@@ -64,10 +64,10 @@ Only the opaque, lit lightall base stage scatters:
 3. class `skin` of the auto PBR classifier (`tr_autopbr.cpp`). Stages with authored PBR maps are classified
    with the same rules without changing their class (`R_ClassifyMaterialName`)
 4. token eyes / eye / eyesmouth / moutheyes / teeth / mouth / cap / caps → no ("excluded part")
-5. token `head` → no unless `r_skinSSSMixed 1` ("mixed head")
+5. token `head` → no unless `r_skinSSSMixedHeads 1` ("mixed head")
 6. a later lit stage alpha blended on top → no ("layered")
 
-`skinsss_list [used|all|skin]` prints the decision. `r_skinSSSDebug 1` shows it on screen: orange = scatters,
+`r_skinSSSList [used|all|skin]` prints the decision. `r_skinSSSDebug 1` shows it on screen: orange = scatters,
 yellow = excluded part, purple = mixed head / layered, blue = off by keyword, gray = not skin.
 
 ## Mode 2: buffers and passes
@@ -104,7 +104,7 @@ a separable 1D kernel (Jimenez et al.): 11 / 17 / 25 taps (`r_skinSSSQuality`), 
 weights integrated per tap and normalized per channel (the diffusion moves light, it adds none). The
 17-tap kernel over ±8 mm is as follows. The centre keeps 18 / 31 / 38 % of R / G / B and ±0.125 mm another
 17 / 28 / 29 %. Blue and green stay almost sharp while red spreads: mean distance 0.64 mm for red, 0.14 mm for
-green, 0.09 mm for blue. **The face does not turn into a gaussian blur.** `skinsss_kernel` prints it.
+green, 0.09 mm for blue. **The face does not turn into a gaussian blur.** `r_skinSSSKernel` prints it.
 
 **Screen scale:** radius (pixels) = `r_skinSSSWidth` [mm] / 28 mm per unit × `P[5]`·height/2 / view depth.
 A 64-unit player is 1.8 m tall. `r_skinSSSWidth 8` is the physical profile; larger values widen the whole
@@ -129,7 +129,7 @@ eyes, metal, emission, other surfaces) is untouched. A partial mask m gives
 | cvar | default | |
 |---|---|---|
 | `r_skinSSS` | 0 | 0 off, 1 wrap (approximation), 2 screen-space diffusion. Latched |
-| `r_skinSSSMixed` | 0 | also scatter `*_head` textures (hair + skin). Latched (registration) |
+| `r_skinSSSMixedHeads` | 0 | also scatter `*_head` textures (hair + skin). Latched (registration) |
 | `r_skinSSSStrength` | 1 | mode 2: share of the skin diffuse replaced by the diffused one |
 | `r_skinSSSWidth` | 8 | mode 2: radius in mm, 8 = physical profile |
 | `r_skinSSSQuality` | 1 | taps 11 / 17 / 25 |
@@ -139,7 +139,7 @@ eyes, metal, emission, other surfaces) is untouched. A partial mask m gives
 | `r_skinSSSCompare` | 0 | split screen, left half without |
 | `r_skinSSSDebug` | 0 | see below (cheat) |
 
-Commands: `skinsss_list`, `skinsss_kernel`.
+Commands: `r_skinSSSList`, `r_skinSSSKernel`.
 
 ## Debug views (`r_skinSSSDebug`)
 

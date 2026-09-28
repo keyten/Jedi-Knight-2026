@@ -130,17 +130,17 @@ Shadow view
 // the cone gets one perspective shadow view (else the cube faces, or none)
 qboolean R_SpotProjectedShadow( const dlight_t *dl )
 {
-	if ( !dl->spot || !r_spotShadows->integer )
+	if ( !dl->spot || !r_spotLightShadows->integer )
 		return qfalse;
 	return (qboolean)(dl->spotCosOuter >= cosf(DEG2RAD(SPOT_PROJECTED_MAX_ANGLE)) - 1e-4f);
 }
 
-// false: the light casts no shadow at all (SPOTLIGHT_NOSHADOW, r_spotShadows 0)
+// false: the light casts no shadow at all (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0)
 qboolean R_DlightCastsShadow( const dlight_t *dl )
 {
 	if ( !dl->spot )
 		return qtrue;
-	return (qboolean)(!dl->spotNoShadow && r_spotShadows->integer);
+	return (qboolean)(!dl->spotNoShadow && r_spotLightShadows->integer);
 }
 
 // field of view of the shadow view: the outer cone plus two texels, so the
@@ -244,7 +244,7 @@ static void R_SpotUsage( void )
 		"r_spot attach [radius] [outer] [inner]      - a flashlight moving with the camera\n"
 		"r_spot spin <index> <degrees per second>    - turn a spot around the world up axis\n"
 		"r_spot noshadow <index> <0|1>\n"
-		"r_spot cookie <index> <image|none>          - light cookie / gobo (r_lightCookies)\n"
+		"r_spot cookie <index> <image|none>          - light cookie / gobo (r_spotLightCookies)\n"
 		"r_spot list | clear\n"
 		"defaults: radius 600, outer 30, inner 20, color 1 1 1\n");
 }
@@ -284,8 +284,8 @@ static void R_SpotAdd( qboolean attached )
 
 static void R_SpotList( void )
 {
-	ri.Printf(PRINT_ALL, "%d r_spot light(s), r_spotLights %d, r_spotShadows %d\n",
-		s_spot.numSpots, r_spotLights->integer, r_spotShadows->integer);
+	ri.Printf(PRINT_ALL, "%d r_spot light(s), r_spotLights %d, r_spotLightShadows %d\n",
+		s_spot.numSpots, r_spotLights->integer, r_spotLightShadows->integer);
 	for ( int i = 0; i < s_spot.numSpots; i++ )
 	{
 		const debugSpot_t *d = &s_spot.spots[i];
@@ -516,7 +516,7 @@ void R_SpotLightsBeginScene( const refdef_t *fd, int firstSceneDlight )
 					!R_DlightCastsShadow(dl) ? "off" : R_SpotProjectedShadow(dl) ? "projected" : "cube");
 				if ( dl->cookieLayer >= 0 )
 					ri.Printf(PRINT_ALL, " cookie %d %s roll %.0f%s", dl->cookieLayer, R_LightCookieName(dl->cookieLayer),
-						RAD2DEG(dl->cookieRoll), R_LightCookiesActive() ? "" : " (r_lightCookies off)");
+						RAD2DEG(dl->cookieRoll), R_LightCookiesActive() ? "" : " (r_spotLightCookies off)");
 			}
 			ri.Printf(PRINT_ALL, "\n");
 		}

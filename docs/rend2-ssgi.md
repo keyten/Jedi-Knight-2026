@@ -49,7 +49,7 @@ materials do.
   - `r_ssgiSource 0` with `r_dynamiclight 0`: only emissive materials are bounced.
   - `r_ssgiTemporal 1` with `r_depthPrepass 0`: no velocity buffer, moving objects reproject with the camera.
   - `r_ssgiSource 2`: experimental, the baked lighting is bounced twice.
-  - trace resolution (`r_ssgiHalfResolution` / quality preset) changed: applied at the next `vid_restart`.
+  - trace resolution (`r_ssgiHalfRes` / quality preset) changed: applied at the next `vid_restart`.
   - `r_ssgi 1` before `vid_restart`.
 
 ## Source radiance (`dynamicRadiance`)
@@ -97,7 +97,7 @@ lightall writes it as MRT from the opaque shading pass. There is no second scene
 | `ssgiScene` | as renderImage | full, used only with a legacy scene buffer or `r_ssgiSource 2` |
 | `screenHiZ` (shared) | R32F, 7 mips | full |
 
-"trace" is half resolution (full with `r_ssgiHalfResolution 0` or the ultra preset). It is fixed at `vid_restart`.
+"trace" is half resolution (full with `r_ssgiHalfRes 0` or the ultra preset). It is fixed at `vid_restart`.
 
 ## Pass order (main world view)
 
@@ -169,7 +169,7 @@ lightall writes it as MRT from the opaque shading pass. There is no second scene
 | `r_ssgiTemporal` | 1 | temporal accumulation (runtime) |
 | `r_ssgiHistoryWeight` | 0.9 | maximum history weight |
 | `r_ssgiDenoise` | -1 | à-trous passes 0-4, -1 = preset |
-| `r_ssgiHalfResolution` | -1 | -1 preset, 0 full, 1 half (applied at `vid_restart`) |
+| `r_ssgiHalfRes` | -1 | -1 preset, 0 full, 1 half (applied at `vid_restart`) |
 | `r_ssgiHiZ` | -1 | -1 preset, 0 linear, 1 hierarchical |
 | `r_ssgiEmissiveScale` | 1 | explicit emissive materials as a source |
 | `r_ssgiGlowScale` | 0 | legacy glow / auto-emissive stages as a source (not physical) |

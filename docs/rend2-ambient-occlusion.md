@@ -31,7 +31,7 @@ shader permutation changes, the image is unchanged.
      split screen) and the contact shadow ray march. Skipped for plain legacy SSAO without contact shadows:
      lightall then samples `screenSsao` directly, exactly as before.
 3. Main pass: lightall applies AO and contact shadows.
-4. Post processing; `r_debugAO` overlays are drawn at its end.
+4. Post processing; `r_aoDebug` overlays are drawn at its end.
 
 Views without a result (no depth prepass, sky portal, ...) bind the white image (previously they could read a
 stale SSAO map of another view).
@@ -181,7 +181,7 @@ irradiance probe lookup and the specular occlusion cone, never for the sun, dyna
 | `r_contactShadowThickness` | 6 | assumed occluder thickness, world units |
 | `r_contactShadowStrength` | 0.85 | 0..1 |
 | `r_contactShadowSoft` | 0 | 1 = soft depth-weighted hits, steps packed near the receiver |
-| `r_debugAO` | 0 | cheat, debug views, see below |
+| `r_aoDebug` | 0 | cheat, debug views, see below |
 
 GPU resources (and the `USE_SSAO` define in the shaders) exist when `r_ssao`, `r_aoMode > 0` or
 `r_contactShadows` is set when the renderer starts; switching between modes afterwards is immediate, turning the
@@ -208,7 +208,7 @@ Quality presets (`r_gtaoQuality`), depth taps per pixel = slices x steps x 2:
 
 `*hdrDepth` / `_hdrDepth` and the `_quarter` FBOs are used by legacy SSAO as before.
 
-## Debug views (`r_debugAO`, cheat)
+## Debug views (`r_aoDebug`, cheat)
 
 | Value | View |
 |---|---|
@@ -236,7 +236,7 @@ r_aoMode 2                      // GTAO
 r_aoCompare 1                   // split screen legacy | GTAO
 r_aoMode 2; r_aoApply 0         // GTAO with the old application
 r_contactShadows 1              // toggle contact shadows (0/1)
-r_debugAO 2 / 3 / 11 / 9 / 12 / 6 / 8   // raw, denoised, bent normal, diffuse visibility,
+r_aoDebug 2 / 3 / 11 / 9 / 12 / 6 / 8   // raw, denoised, bent normal, diffuse visibility,
                                 // specular occlusion, contact, sun visibility
 r_aoSpecOcclusion 0 / 1 / 2     // scalar / Lagarde / cone specular occlusion
 r_gtaoBentNormals 0 / 1         // bent normals off / on

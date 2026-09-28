@@ -55,13 +55,13 @@ void main()
 //   dynamic the lights of the froxel's cluster (CPU binned per tile and slice, R_VolumetricBuildLightLists)
 //           * attenuation * phase * its shadow map
 //
-// out_ParticleLight  R11G11B10F  (r_particleLight, u_ParticleLight.x > 0) the incident light at the
+// out_ParticleLight  R11G11B10F  (r_particleLighting, u_ParticleLight.x > 0) the incident light at the
 //                       froxel center without extinction and albedo: baked + sun + dynamic, the same
 //                       shadows, attenuation and phase as the fog (phase towards the camera: valid for
 //                       camera facing sprites seen from this view only). Written in empty space too,
 //                       this frame only (no history). Sprite particles are lit with it (generic.glsl).
 //
-// out_Extinction  RGBA16F  (r_volumetricFogRGB, USE_FROXEL_RGB) sigma_t.rgb of the media, temporally
+// out_Extinction  RGBA16F  (r_volumetricFogRGBExtinction, USE_FROXEL_RGB) sigma_t.rgb of the media, temporally
 //                       filtered like out_Color.a (same weight, same reprojection). Each medium's
 //                       sigma_t.rgb = sigma_i * c_i (extinction color, mean 1: out_Color.a stays the scalar
 //                       sigma) and its scattering sigma_s.rgb = sigma_t.rgb * albedo.rgb.
@@ -842,7 +842,7 @@ vec4 FroxelPhases(in vec4 g, in float cosTheta)
 // l << 1) has no second scattering to speak of: order i fades as (extinction * l)^i. q <= b * albedo
 // <= 0.95, so the series is bounded; the caller also clamps single + multiple scattering of a light to
 // its unshadowed single scattering at an isotropic or better phase (FroxelMultiScatterClamp).
-//   xyz  weights q^i * exp(-a^i tau) of the octaves 1..3 (0 beyond r_volumetricMSOctaves)
+//   xyz  weights q^i * exp(-a^i tau) of the octaves 1..3 (0 beyond r_volumetricMultiScatterOctaves)
 //   w    thickness 1 - exp(-extinction * l)
 vec4 FroxelMultiScatterWeights(in float tau, in float extinction, in float albedo)
 {
@@ -1157,7 +1157,7 @@ void main()
 		particleFraction, particleChange);
 
 	// FX particles (smoke) change all the time: where their density changed the history keeps only the
-	// floor r_volParticlesHistory of its weight (no long smoke ghost), not 0 (the jittered samples of a
+	// floor r_volumetricParticlesHistory of its weight (no long smoke ghost), not 0 (the jittered samples of a
 	// drifting puff would flicker)
 	float particleKeep = mix(1.0, u_FroxelParticleParams.w, smoothstep(0.02, 0.25, particleChange));
 
@@ -1202,7 +1202,7 @@ void main()
 
 	// multiple scattering octaves of the sun (r_volumetricMultiScatter, FroxelMultiScatterWeights) from
 	// the media optical depth towards the sun. The geometry (cascade) shadow is lightened by at most
-	// r_volumetricMSShadowFill * thickness: a thick cloud in a shadow glows a little, the shadow stays.
+	// r_volumetricMultiScatterShadowFill * thickness: a thick cloud in a shadow glows a little, the shadow stays.
 	// In the history like the single scattering (same jitter, same radiance clamp).
 	vec3 msSun0 = vec3(0.0);
 	vec3 msSun1 = vec3(0.0);
@@ -1370,7 +1370,7 @@ void main()
 	//   41 optical depth of the media towards the sun / 8 (r_volumetricSelfShadow)
 	//   42 media transmittance towards the sun
 	//   49 multiple scattering ratio of the sun: octaves / (single + octaves), luma (r_volumetricMultiScatter)
-	//   50 optical depth: red = towards the sun / 8, green = extinction * r_volumetricMSLength / 8,
+	//   50 optical depth: red = towards the sun / 8, green = extinction * r_volumetricMultiScatterLength / 8,
 	//      blue = thickness 1 - exp(-extinction * l)
 	bool mediumDebug = (debugView >= 35 && debugView <= 42 && debugView != 40) || debugView == 49 || debugView == 50;
 	if (mediumDebug)

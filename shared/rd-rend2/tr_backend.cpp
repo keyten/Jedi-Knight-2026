@@ -2529,9 +2529,9 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		(float)M_PI / 360.0f;
 	VectorSet4(lightsBlock.shadowPcss,
 		tanf(angularRadius),
-		Com_Clamp(0.0f, 256.0f, r_shadowPcssMaxPenumbra->value),
-		r_shadowPcss->integer ? 1.0f : 0.0f,
-		(float)Com_Clampi(0, 2, r_shadowPcssQuality->integer));
+		Com_Clamp(0.0f, 256.0f, r_shadowPCSSMaxPenumbra->value),
+		r_shadowPCSS->integer ? 1.0f : 0.0f,
+		(float)Com_Clampi(0, 2, r_shadowPCSSQuality->integer));
 	VectorSet4(lightsBlock.shadowDebug,
 		(float)Com_Clampi(0, 11, r_shadowDebug->integer),
 		r_dlightShadowBias->integer ? 1.0f : 0.0f,

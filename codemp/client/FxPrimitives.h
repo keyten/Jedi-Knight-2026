@@ -298,7 +298,7 @@ public:
 };
 
 //------------------------------
-// Volumetric FX particle media (rend2 froxel fog, r_volParticles): the rolled
+// Volumetric FX particle media (rend2 froxel fog, r_volumetricParticles): the rolled
 // "volumetricMedia" parameters of one particle (CPrimitiveTemplate)
 struct SFxVolumetricMedia
 {

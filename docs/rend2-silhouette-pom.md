@@ -34,7 +34,7 @@ builder has no geometry stage), no conservative rasterization extension.
 
 ### Planar groups and the shell (map load)
 
-For every world / brush model surface whose shader has `silhouettePOM`, at the end of `R_CreateWorldVBOs` (the packed
+For every world / brush model surface whose shader has `pomSilhouette`, at the end of `R_CreateWorldVBOs` (the packed
 vertices already have their MikkTSpace tangents):
 
 1. positions are welded on a 1/8 unit grid and edges are matched;
@@ -120,7 +120,7 @@ Nothing special per effect: they read the depth buffer and the material outputs 
 
 ### Crossfade and distance
 
-Shells are used up to `r_pomSilhouetteDistance` (or `silhouetteDistance` of the shader if smaller). Surfaces farther
+Shells are used up to `r_pomSilhouetteDistance` (or `pomSilhouetteDistance` of the shader if smaller). Surfaces farther
 away keep ordinary POM. In the band `[distance - r_pomSilhouetteFade, distance]` both the shell and the base surface
 are drawn with complementary 4x4 ordered dither masks (the same threshold in every pass): every pixel is drawn by
 exactly one of them, no pop. With SMAA T2x / motion blur the dither is mostly hidden; without it the band shows a
@@ -172,9 +172,9 @@ camera inside the shell volume (thin volumes, e.g. pressed against a displaced w
 ```
 textures/test/rock_edge
 {
-    silhouettePOM                // opt-in, nothing is automatic
-    silhouetteDistance 384       // optional, shell range (min with r_pomSilhouetteDistance)
-    silhouetteSteps 32           // optional, linear steps at grazing angles (replaces r_pomSilhouetteMaxSteps)
+    pomSilhouette                // opt-in, nothing is automatic
+    pomSilhouetteDistance 384       // optional, shell range (min with r_pomSilhouetteDistance)
+    pomSilhouetteSteps 32           // optional, linear steps at grazing angles (replaces r_pomSilhouetteMaxSteps)
     {
         map textures/test/rock_edge
         normalHeightMap textures/test/rock_edge_nh
@@ -197,22 +197,22 @@ alpha; 467 of them in `assets8_pbr1/2`), which rend2 already finds next to the d
 no silhouette can come from them. Two `_h` files exist, rend2 does not read that suffix.
 
 ```
-r_autoPomSilhouette 1|0                    every material with ordinary POM (default 0)
-r_autoPomSilhouette <shader> 1|0|default   one shader; a trailing * is a prefix: textures/bespin/*
-r_autoPomSilhouette <shader>               state of the matching shaders of the current map
-r_autoPomSilhouette list                   shaders with a shell on this map + POM materials that kept ordinary POM (reason)
-r_autoPomSilhouette clear                  remove all per-shader switches
+r_autoPOMSilhouette 1|0                    every material with ordinary POM (default 0)
+r_autoPOMSilhouette <shader> 1|0|default   one shader; a trailing * is a prefix: textures/bespin/*
+r_autoPOMSilhouette <shader>               state of the matching shaders of the current map
+r_autoPOMSilhouette list                   shaders with a shell on this map + POM materials that kept ordinary POM (reason)
+r_autoPOMSilhouette clear                  remove all per-shader switches
 ```
 
-- Precedence per shader: switch `0` → off (also for `silhouettePOM` shaders), switch `1` → on, keyword → on, else
-  `r_autoPomSilhouette`. Among switches an exact name beats a prefix, a longer prefix a shorter one.
-- The global state is the archived cvar `r_autoPomSilhouetteMode` (set by the command). The per-shader switches are
+- Precedence per shader: switch `0` → off (also for `pomSilhouette` shaders), switch `1` → on, keyword → on, else
+  `r_autoPOMSilhouette`. Among switches an exact name beats a prefix, a longer prefix a shorter one.
+- The global state is the archived cvar `r_autoPOMSilhouetteMode` (set by the command). The per-shader switches are
   written to `pomsilhouette.cfg` in the mod folder by the command and read on first use.
 - Everything switches live: with `r_pomSilhouette 1` the shells are built at map load for **every** eligible POM
   surface (keyword or `_nh`), and the front end decides per frame. The price: shell memory for all of them (printed at
   load, `r_pomSilhouetteInfo`), and these surfaces are not leaf-merged even while unused (their ordinary draws still
   merge into multi-draws of the same VBO).
-- Needs `r_pomSilhouette 1` (latched): otherwise `r_autoPomSilhouette requires r_pomSilhouette 1` is printed once,
+- Needs `r_pomSilhouette 1` (latched): otherwise `r_autoPOMSilhouette requires r_pomSilhouette 1` is printed once,
   nothing is enabled on the user's behalf. `r_parallaxMapping 1` as for every POM.
 - Automatic materials use the existing POM data: `parallaxDepth` of the stage (`r_baseParallax` for discovered `_nh`)
   and its `parallaxBias`, which is 0 unless the shader sets it: the volume lies below the base plane, so the contour
@@ -244,7 +244,7 @@ costs a trace per shell pixel (walls included) and there is no automatic enablin
 | `r_pomSilhouetteContactShadows` | 0 | screen-space sun contact shadows on shell pixels |
 | `r_pomSilhouetteDebug` | 0 | cheat, see below |
 | `r_pomSilhouetteInfo` | command | shells, groups, walls, memory, fallbacks, last frame counters |
-| `r_autoPomSilhouette` | command | automatic mode and per-shader switches, see "Automatic mode" (`r_autoPomSilhouetteMode`, archive, 0) |
+| `r_autoPOMSilhouette` | command | automatic mode and per-shader switches, see "Automatic mode" (`r_autoPOMSilhouetteMode`, archive, 0) |
 
 `r_speeds 7` adds a line: shells drawn (all passes), shell triangles, crossfade base surfaces.
 
@@ -303,7 +303,7 @@ the material on a small and on a large surface, `r_pomSilhouetteDistance 0` as t
   lies outside the surface still hit the displaced surface (outer contour grows); "carved" rays cross the base
   polygon but miss (the contour shrinks where the surface is recessed). Occasional large distance errors at 10°
   (a thin crest skipped by the linear search, a later crest hit) are the usual ray march limit, reduced by
-  `silhouetteSteps`.
+  `pomSilhouetteSteps`.
 
 The game was **not** run: no screenshots, no GPU timings yet.
 
@@ -320,12 +320,12 @@ vid_restart`, `developer 1` for fallback reasons, `r_pomSilhouetteInfo`.
 4. GTAO (`r_aoMode`), contact shadows, SSR, SSGI, froxel fog and a legacy fog volume on the displaced edge.
 5. Sun shadows (`r_sunlightMode 2`) from the bumps onto the surface and the floor; `r_pomSilhouetteShadows 0` for
    comparison; acne on lit bumps. Shadow edges of other geometry on a shelled surface as soft as with
-   `r_autoPomSilhouette 0` (`r_shadowDebug 4/5/6`: blocker depth, penumbra, visibility);
+   `r_autoPOMSilhouette 0` (`r_shadowDebug 4/5/6`: blocker depth, penumbra, visibility);
    `r_pomSilhouetteContactShadows 1` for comparison.
 6. Crossfade: walk towards / away from the surface (`r_pomSilhouetteFade`, `r_pomSilhouetteDistance`).
 7. Movers with a shelled texture (brush models), motion blur / SMAA T2x on the displaced edge.
 8. `r_pomSilhouette 0` equals the `*-prespom.dll` build.
-9. Automatic mode: `r_autoPomSilhouette 1`, `r_autoPomSilhouette list`; switch one shader off and on
-   (`r_autoPomSilhouette textures/... 0`), a prefix (`textures/bespin/* 0`), restart the game and check that
+9. Automatic mode: `r_autoPOMSilhouette 1`, `r_autoPOMSilhouette list`; switch one shader off and on
+   (`r_autoPOMSilhouette textures/... 0`), a prefix (`textures/bespin/* 0`), restart the game and check that
    `pomsilhouette.cfg` kept the switches.
 10. Timings: `r_speeds 7` / `r_speeds 100`, with and without the material, debug 8 for the step count.

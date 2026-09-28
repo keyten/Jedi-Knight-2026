@@ -2721,21 +2721,21 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		spriteViewUp = &backEnd.refdef.viewaxis[2];
 	}
 
-	// r_autoGrass: vegetation billboards become world stable cross / tri-card
+	// r_grassCardMode: vegetation billboards become world stable cross / tri-card
 	// tufts drawn as instances of the same sprite data.  The instance count
 	// only depends on the sprite view origin, so prepass, velocity, cascade and
 	// colour passes draw the same geometry.
 	int numInstances = 1;
 	vec4_t autoGrass = { 0.0f, 0.0f, 0.0f, 1.0f };
-	if (r_autoGrass->integer &&
+	if (r_grassCardMode->integer &&
 		(ss->type == SURFSPRITE_VERTICAL || ss->type == SURFSPRITE_ORIENTED) &&
 		ss->facing != SURFSPRITE_FACING_UP &&
 		!(shaderFlags & SSDEF_ADDITIVE) &&
 		!((firstStage->stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) &&
 			surf->alphaTestType == ALPHA_TEST_NONE))
 	{
-		const int debug = r_autoGrassDebug->integer;
-		int mode = r_autoGrass->integer;
+		const int debug = r_grassCardDebug->integer;
+		int mode = r_grassCardMode->integer;
 		if (debug >= 3 && debug <= 5)
 			mode = debug - 2;	// force 1 / 2 / 3 cards
 		else if (mode == 1)
@@ -2754,7 +2754,7 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		{
 			// three cards near, two beyond; the shader fades the third card
 			// per sprite before the whole surface drops it
-			const float lodDist = MAX(r_autoGrassLodDist->value, 1.0f);
+			const float lodDist = MAX(r_grassCardLodDist->value, 1.0f);
 			float dist2 = 0.0f;
 			for (int i = 0; i < 3; ++i)
 			{
@@ -2775,7 +2775,7 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 			else if (debug == 6)
 				autoGrass[2] = (numInstances == 3) ? 6.0f : 7.0f;
 		}
-		autoGrass[3] = r_autoGrassWidth->value;
+		autoGrass[3] = r_grassCardWidth->value;
 
 		shaderFlags = (shaderFlags & ~SSDEF_FACE_CAMERA) | SSDEF_AUTO_GRASS;
 	}

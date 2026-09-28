@@ -2744,7 +2744,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 		R_ForwardPlusPrepareScene(refdef);
 
 		// dlight shadowmaps. Legacy: cube i for light i. Forward+: cube s for
-		// the light owning shadow slot s (r_dynamicShadowMaxLights)
+		// the light owning shadow slot s (r_forwardPlusMaxShadowLights)
 		const int numShadowCubes = R_ForwardPlusActive() ?
 			R_ForwardPlusNumShadowSlots() : refdef->num_dlights;
 		for (int i = 0; i < refdef->num_dlights; i++)
@@ -2760,7 +2760,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				if (lightNum < 0 || lightNum >= refdef->num_dlights)
 					continue;	// Forward+: unused slot below the last one
 				dlight_t *shadowLight = &refdef->dlights[lightNum];
-				// spot lights (tr_spotlight.cpp): SPOTLIGHT_NOSHADOW / r_spotShadows 0
+				// spot lights (tr_spotlight.cpp): SPOTLIGHT_NOSHADOW / r_spotLightShadows 0
 				if (!R_DlightCastsShadow(shadowLight))
 					continue;
 

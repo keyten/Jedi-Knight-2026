@@ -19,15 +19,15 @@ launched yet**: the in-game checks, GPU timings and screenshots below are still 
 | `r_ltcStaticDiffuse` | 0 | also add diffuse for `static_specular` lights (their diffuse is normally baked) |
 | `r_ltcMaxLights` | 64 | map lights per scene, most important first: emitted power / distance² (dynamic lights are not counted) |
 | `r_ltcAutoAreaLights` | 1 | for maps without an `.arealights.json`: 0 off, 1 confident lamp shapes, 2 also loosely fitted ones (see "Automatic conversion"). Runs at map load only while `r_ltcAreaLights` is on |
-| `r_saberAreaLights` | 0 | sabers light as lines instead of a point light |
+| `r_ltcSaberAreaLights` | 0 | sabers light as lines instead of a point light |
 
 There is no quality cvar, because the polygon integral takes no samples.
 
 Commands:
-- `r_reloadAreaLights` rereads the map file without restarting the map (or redoes the automatic conversion when there is no file).
+- `r_ltcReloadLights` rereads the map file without restarting the map (or redoes the automatic conversion when there is no file).
 - `r_ltcList` lists the loaded lights with their IDs.
 - `r_ltcNearest` shows the nearest light.
-- `r_extractAreaLights` writes candidate lights (see below).
+- `r_ltcExtractLights` writes candidate lights (see below).
 
 Dependency messages are printed once each time the cvars change, not every frame, and only the first
 missing dependency is reported:
@@ -124,7 +124,7 @@ Self-test: build with `-DLTC_TEST_HEADER='"path/tr_ltc_data.h"'` and run `ltcfit
 ## Authoring: `maps/<map>.arealights.json`
 
 A human-editable file, separate from the BSP. It can be packed in a PK3, and
-`r_reloadAreaLights` reloads it live. See `docs/samples/example.arealights.json`.
+`r_ltcReloadLights` reloads it live. See `docs/samples/example.arealights.json`.
 
 Top level: `{ "lights": [ ... ] }`.
 
@@ -200,7 +200,7 @@ or write a light file for a map.
 Cost: once per map load, only while `r_ltcAreaLights` is on. It is one texture readback per emitting
 image plus the sampling; the per-frame cost is a sort of the map's lights by importance.
 
-`r_extractAreaLights` writes the same candidates to `maps/<map>.arealights.generated.json` for
+`r_ltcExtractLights` writes the same candidates to `maps/<map>.arealights.generated.json` for
 review or hand tuning. `"review": false` marks the ones the automatic mode would take; the file also
 has `fittedToTexels`, `litArea`, `confidence` and `animated`. It is never loaded by itself; rename it
 to `<map>.arealights.json` to use it (a file always overrides the automatic mode).
@@ -211,7 +211,7 @@ in `shader_t` as hints. Nothing renders from them, so legacy behavior is unchang
 ## Sabers
 
 - cgame `CG_DoSaber` / `CG_DoSaberLight` (SP and MP) call `AddLineLightToScene(base, tip, radius/2,
-  length·1.4, rgb)` when the `r_saberAreaLights` mirror is on.
+  length·1.4, rgb)` when the `r_ltcSaberAreaLights` mirror is on.
 - Each blade becomes its own line. Only if the renderer returns false is the old point light added,
   so the two are never both active.
 - Blade radiance = saber color × 4 × `r_ltcIntensityScale` (`SABER_AREA_RADIANCE`, to be tuned in
@@ -224,7 +224,7 @@ renderer DLLs keep loading):
   other renderers).
 - SP adds syscall `CG_R_ADDLINELIGHTTOSCENE` (appended). MP adds `cgameImport_t.ext.R_AddLineLightToScene`
   (appended; legacy VM cgame returns false).
-- cgame only calls it when `r_saberAreaLights` is set, so an old engine with a new cgame stays safe
+- cgame only calls it when `r_ltcSaberAreaLights` is set, so an old engine with a new cgame stays safe
   unless that cvar is turned on.
 - Using saber lines needs the rebuilt engine and game modules as well as the renderer.
 

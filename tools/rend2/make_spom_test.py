@@ -95,11 +95,11 @@ def make_maps(out, name, fn, strength):
 
 
 def shader_text(name, diffuse, pattern, depth, bias, distance, steps):
-	lines = [name, '{', '\tsilhouettePOM']
+	lines = [name, '{', '\tpomSilhouette']
 	if distance:
-		lines.append('\tsilhouetteDistance %g' % distance)
+		lines.append('\tpomSilhouetteDistance %g' % distance)
 	if steps:
-		lines.append('\tsilhouetteSteps %d' % steps)
+		lines.append('\tpomSilhouetteSteps %d' % steps)
 	lines += [
 		'\t{',
 		'\t\tmap %s' % diffuse,
@@ -122,8 +122,8 @@ def main():
 	ap.add_argument('--out', required=True, help='mod folder to write')
 	ap.add_argument('--depth', type=float, default=0.06, help='parallaxDepth (texture units, as ordinary POM)')
 	ap.add_argument('--bias', type=float, default=0.5, help='parallaxBias: 0 recessed only, 1 protruding only')
-	ap.add_argument('--distance', type=float, default=0.0, help='silhouetteDistance, 0 = r_pomSilhouetteDistance')
-	ap.add_argument('--steps', type=int, default=0, help='silhouetteSteps, 0 = r_pomSilhouetteMaxSteps')
+	ap.add_argument('--distance', type=float, default=0.0, help='pomSilhouetteDistance, 0 = r_pomSilhouetteDistance')
+	ap.add_argument('--steps', type=int, default=0, help='pomSilhouetteSteps, 0 = r_pomSilhouetteMaxSteps')
 	ap.add_argument('--strength', type=float, default=24.0, help='normal map strength')
 	ap.add_argument('--override', action='append', default=[], metavar='SHADER:PATTERN',
 		help='replace a stock world shader by a silhouette POM material')

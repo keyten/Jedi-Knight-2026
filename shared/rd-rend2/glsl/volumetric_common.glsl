@@ -16,7 +16,7 @@
 //
 // Units: extinction per world unit, as depthToOpaque of the legacy volumetric fog.
 //
-// RGB extinction (r_volumetricFogRGB, USE_FROXEL_RGB): the media have an extinction per channel
+// RGB extinction (r_volumetricFogRGBExtinction, USE_FROXEL_RGB): the media have an extinction per channel
 // sigma_t.rgb = sigma * c.rgb (c: extinction color, mean 1, so the alpha channels keep the scalar
 // sigma = mean(sigma_t.rgb)). The transmittance is then a color:
 //   u_FroxelTransmittance  RGBA16F 3D  rgb = T.rgb at the far side of the slice (a = mean, unused)
@@ -87,7 +87,7 @@ layout(std140) uniform VolumetricFog
 	// BSP fog volumes that may touch a slice (CPU culled): bit i = fog i
 	ivec4 u_FroxelFogSlices[FROXEL_MAX_SLICES / 4];
 
-	// extinction colors of the local fog volumes (r_volumetricFogRGB), entry 0 = neutral
+	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), entry 0 = neutral
 	vec4 u_FroxelExtinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
 
@@ -155,7 +155,7 @@ uniform sampler3D u_FroxelTransmittance;
 // fog pass
 uniform int u_FroxelFogMode;
 
-// Sprite particle lighting (r_particleLight). u_ParticleLightVolume (R11G11B10F 3D, the froxel grid)
+// Sprite particle lighting (r_particleLighting). u_ParticleLightVolume (R11G11B10F 3D, the froxel grid)
 // holds the light arriving at the froxel center, without extinction and albedo: baked + sun +
 // dynamic lights, with the shadows, attenuation and phase (towards the camera) of the fog.
 // Injection: u_ParticleLight x = write it, y = debug term (0 all, 2 baked, 3 sun, 4 dynamic).

@@ -22,7 +22,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
 // A fragment shader only runs inside the projection of the geometry drawn, so
 // ordinary POM can shift texture coordinates but never move the outline of a
-// surface. Opt-in materials (shader keyword silhouettePOM) get a shell around
+// surface. Opt-in materials (shader keyword pomSilhouette) get a shell around
 // the displaced height field volume instead, built on the CPU at map load:
 //
 //   planar groups   connected triangles of one surface that are coplanar and
@@ -44,7 +44,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // them (both drawn, complementary masks). Unsupported surfaces keep ordinary
 // POM with a developer warning.
 //
-// Sources: the silhouettePOM keyword, or (r_autoPomSilhouette) every material
+// Sources: the pomSilhouette keyword, or (r_autoPOMSilhouette) every material
 // that already has ordinary POM, i.e. a lightall stage with a normal + height
 // map (explicit normalHeightMap or the discovered _nh image). With
 // r_pomSilhouette 1 shells are built for both at map load; which shaders use
@@ -97,7 +97,7 @@ struct pomWorldObjects_t
 	image_t *image;
 };
 
-// a shader whose surfaces kept ordinary POM, r_autoPomSilhouette list
+// a shader whose surfaces kept ordinary POM, r_autoPOMSilhouette list
 struct pomSkipped_t
 {
 	const shader_t *shader;
@@ -105,7 +105,7 @@ struct pomSkipped_t
 	int surfaces;
 };
 
-// r_autoPomSilhouette <shader> 1|0: exact shader name, or a prefix with a
+// r_autoPOMSilhouette <shader> 1|0: exact shader name, or a prefix with a
 // trailing '*'
 struct pomOverride_t
 {
@@ -221,7 +221,7 @@ static void R_PomCheckObjects( const char *stage )
 /*
 ============================================================
 
-Per-shader switches (r_autoPomSilhouette <shader> 1|0|default)
+Per-shader switches (r_autoPOMSilhouette <shader> 1|0|default)
 
 ============================================================
 */
@@ -279,7 +279,7 @@ static void R_PomSilhouetteLoadOverrides( void )
 
 static void R_PomSilhouetteSaveOverrides( void )
 {
-	std::string text = "// r_autoPomSilhouette <shader> 1|0: per-shader silhouette POM switches (rend2), written by the command\n";
+	std::string text = "// r_autoPOMSilhouette <shader> 1|0: per-shader silhouette POM switches (rend2), written by the command\n";
 	for ( const pomOverride_t& o : s_pom.overrides )
 		text += va("%s %d\n", o.pattern, o.value);
 	ri.FS_WriteFile(POM_OVERRIDE_FILE, text.c_str(), (int)text.size());
@@ -315,14 +315,14 @@ static qboolean R_PomSilhouetteShaderEnabled( shader_t *shader )
 		return (qboolean)(value != 0);
 	if ( shader->pomSilhouetteSource == POM_SOURCE_KEYWORD )
 		return qtrue;
-	return (qboolean)(shader->pomSilhouetteSource == POM_SOURCE_AUTO && r_autoPomSilhouetteMode->integer);
+	return (qboolean)(shader->pomSilhouetteSource == POM_SOURCE_AUTO && r_autoPOMSilhouetteMode->integer);
 }
 
 // fallback reasons are printed for shaders asked for explicitly only (keyword
 // or switched on), automatic candidates are just counted
 static qboolean R_PomSilhouetteLoud( shader_t *shader )
 {
-	return (qboolean)(shader->silhouettePOM || R_PomSilhouetteOverride(shader) == 1);
+	return (qboolean)(shader->pomSilhouette || R_PomSilhouetteOverride(shader) == 1);
 }
 
 /*
@@ -370,7 +370,7 @@ static void R_PomSilhouetteFallback( shader_t *shader, const char *reason )
 			return;
 	}
 	s_pom.warnedShaders.push_back(shader);
-	ri.Printf(PRINT_DEVELOPER, S_COLOR_YELLOW "silhouettePOM: '%s' keeps ordinary POM (%s)\n",
+	ri.Printf(PRINT_DEVELOPER, S_COLOR_YELLOW "pomSilhouette: '%s' keeps ordinary POM (%s)\n",
 		shader->name, reason);
 }
 
@@ -446,7 +446,7 @@ void R_PomSilhouetteBeginWorld( world_t *world )
 }
 
 // a lightall stage with ordinary POM (normal + height map): the automatic
-// candidates of r_autoPomSilhouette
+// candidates of r_autoPOMSilhouette
 static bool R_PomSilhouetteHasHeightField( const shader_t *shader )
 {
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -470,9 +470,9 @@ void R_PomSilhouetteCollect( world_t *world, msurface_t *surf,
 		return;
 
 	shader_t *shader = surf->shader;
-	if ( !shader->silhouettePOM && !R_PomSilhouetteHasHeightField(shader) )
+	if ( !shader->pomSilhouette && !R_PomSilhouetteHasHeightField(shader) )
 		return;
-	shader->pomSilhouetteSource = shader->silhouettePOM ? POM_SOURCE_KEYWORD : POM_SOURCE_AUTO;
+	shader->pomSilhouetteSource = shader->pomSilhouette ? POM_SOURCE_KEYWORD : POM_SOURCE_AUTO;
 
 	const char *reason = R_PomSilhouetteShaderReason(shader);
 	if ( !reason && *surf->data == SF_GRID )
@@ -1240,16 +1240,16 @@ void R_PomSilhouetteBeginFrame( void )
 		s_pom.lastParallaxMapping = r_parallaxMapping->integer;
 		s_pom.warnedParallax = qfalse;
 	}
-	if ( r_autoPomSilhouetteMode->integer != s_pom.lastAutoMode )
+	if ( r_autoPOMSilhouetteMode->integer != s_pom.lastAutoMode )
 	{
-		s_pom.lastAutoMode = r_autoPomSilhouetteMode->integer;
+		s_pom.lastAutoMode = r_autoPOMSilhouetteMode->integer;
 		s_pom.warnedAuto = qfalse;
 	}
 
-	if ( r_autoPomSilhouetteMode->integer && !r_pomSilhouette->integer && !s_pom.warnedAuto )
+	if ( r_autoPOMSilhouetteMode->integer && !r_pomSilhouette->integer && !s_pom.warnedAuto )
 	{
 		s_pom.warnedAuto = qtrue;
-		ri.Printf(PRINT_WARNING, "r_autoPomSilhouette requires r_pomSilhouette 1\n");
+		ri.Printf(PRINT_WARNING, "r_autoPOMSilhouette requires r_pomSilhouette 1\n");
 	}
 
 	if ( !r_pomSilhouette->integer )
@@ -1272,8 +1272,8 @@ void R_PomSilhouetteBeginFrame( void )
 static float R_PomSilhouetteRange( const shader_t *shader )
 {
 	float range = r_pomSilhouetteDistance->value;
-	if ( shader->silhouetteDistance > 0.0f )
-		range = Q_min(range, shader->silhouetteDistance);
+	if ( shader->pomSilhouetteDistance > 0.0f )
+		range = Q_min(range, shader->pomSilhouetteDistance);
 	return range;
 }
 
@@ -1448,8 +1448,8 @@ void RB_PomSilhouetteSetupDraw( const shaderStage_t *stage, UniformDataWriter& u
 	const bool depthShadow = (viewParms.flags & VPF_DEPTHSHADOW) != 0;
 	const bool ortho = (viewParms.flags & VPF_ORTHOGRAPHIC) != 0;
 
-	const float maxSteps = shader->silhouetteSteps > 0 ?
-		(float)shader->silhouetteSteps : (float)r_pomSilhouetteMaxSteps->integer;
+	const float maxSteps = shader->pomSilhouetteSteps > 0 ?
+		(float)shader->pomSilhouetteSteps : (float)r_pomSilhouetteMaxSteps->integer;
 	const float minSteps = Q_min((float)r_pomSilhouetteSteps->integer, maxSteps);
 	const vec4_t params = {
 		minSteps,
@@ -1556,8 +1556,8 @@ void R_PomSilhouetteInfo_f( void )
 				used++;
 		}
 	}
-	ri.Printf(PRINT_ALL, "  sources: %d keyword / %d automatic surfaces, %d in use (r_autoPomSilhouette %d, %d switches)\n",
-		keyword, automatic, used, r_autoPomSilhouetteMode->integer, (int)s_pom.overrides.size());
+	ri.Printf(PRINT_ALL, "  sources: %d keyword / %d automatic surfaces, %d in use (r_autoPOMSilhouette %d, %d switches)\n",
+		keyword, automatic, used, r_autoPOMSilhouetteMode->integer, (int)s_pom.overrides.size());
 	ri.Printf(PRINT_ALL, "  geometry: %d verts (%d bytes each), %d triangles, %d group texels\n",
 		s_pom.shellVerts, (int)sizeof(pomShellVertex_t), s_pom.shellTriangles, s_pom.groupTexels);
 	ri.Printf(PRINT_ALL, "  memory: VBO %.1f KB, IBO %.1f KB, group buffer %.1f KB\n",
@@ -1605,7 +1605,7 @@ void R_ShutdownPomSilhouette( void )
 /*
 ============================================================
 
-r_autoPomSilhouette command
+r_autoPOMSilhouette command
 
 ============================================================
 */
@@ -1656,8 +1656,8 @@ static void R_PomSilhouetteList( void )
 
 	std::vector<std::pair<shader_t *, int>> shaders;
 	R_PomSilhouetteShellShaders(shaders);
-	ri.Printf(PRINT_ALL, "shaders with a silhouette shell on this map (r_autoPomSilhouette %d):\n",
-		r_autoPomSilhouetteMode->integer);
+	ri.Printf(PRINT_ALL, "shaders with a silhouette shell on this map (r_autoPOMSilhouette %d):\n",
+		r_autoPOMSilhouetteMode->integer);
 	ri.Printf(PRINT_ALL, "  state source  switch  surfaces  shader\n");
 	for ( const auto& e : shaders )
 	{
@@ -1680,11 +1680,11 @@ static void R_PomSilhouetteList( void )
 static void R_PomSilhouetteUsage( void )
 {
 	ri.Printf(PRINT_ALL, "usage:\n"
-		"  r_autoPomSilhouette 1|0                    silhouette POM for every material with ordinary POM\n"
-		"  r_autoPomSilhouette <shader> 1|0|default   switch one shader ('textures/bespin/*' = prefix), saved to %s\n"
-		"  r_autoPomSilhouette <shader>               state of a shader\n"
-		"  r_autoPomSilhouette list                   shaders of the current map\n"
-		"  r_autoPomSilhouette clear                  remove every per-shader switch\n", POM_OVERRIDE_FILE);
+		"  r_autoPOMSilhouette 1|0                    silhouette POM for every material with ordinary POM\n"
+		"  r_autoPOMSilhouette <shader> 1|0|default   switch one shader ('textures/bespin/*' = prefix), saved to %s\n"
+		"  r_autoPOMSilhouette <shader>               state of a shader\n"
+		"  r_autoPOMSilhouette list                   shaders of the current map\n"
+		"  r_autoPOMSilhouette clear                  remove every per-shader switch\n", POM_OVERRIDE_FILE);
 }
 
 // what a switch did to the loaded shaders
@@ -1736,8 +1736,8 @@ void R_AutoPomSilhouette_f( void )
 	const int argc = ri.Cmd_Argc();
 	if ( argc < 2 )
 	{
-		ri.Printf(PRINT_ALL, "r_autoPomSilhouette %d (r_pomSilhouette %d), %d per-shader switches in %s\n",
-			r_autoPomSilhouetteMode->integer, r_pomSilhouette->integer, (int)s_pom.overrides.size(), POM_OVERRIDE_FILE);
+		ri.Printf(PRINT_ALL, "r_autoPOMSilhouette %d (r_pomSilhouette %d), %d per-shader switches in %s\n",
+			r_autoPOMSilhouetteMode->integer, r_pomSilhouette->integer, (int)s_pom.overrides.size(), POM_OVERRIDE_FILE);
 		for ( const pomOverride_t& o : s_pom.overrides )
 			ri.Printf(PRINT_ALL, "  %s %d\n", o.pattern, o.value);
 		R_PomSilhouetteUsage();
@@ -1753,9 +1753,9 @@ void R_AutoPomSilhouette_f( void )
 		}
 		else if ( !strcmp(arg, "0") || !strcmp(arg, "1") )
 		{
-			ri.Cvar_Set("r_autoPomSilhouetteMode", arg);
+			ri.Cvar_Set("r_autoPOMSilhouetteMode", arg);
 			if ( !r_pomSilhouette->integer )
-				ri.Printf(PRINT_WARNING, "r_autoPomSilhouette requires r_pomSilhouette 1\n");
+				ri.Printf(PRINT_WARNING, "r_autoPOMSilhouette requires r_pomSilhouette 1\n");
 			s_pom.warnedAuto = qtrue;
 		}
 		else if ( !Q_stricmp(arg, "clear") )
@@ -1814,6 +1814,6 @@ void R_AutoPomSilhouette_f( void )
 	R_PomSilhouetteSaveOverrides();
 
 	ri.Printf(PRINT_ALL, "%s: %s (saved to %s)\n", arg,
-		value < 0 ? "default (keyword / r_autoPomSilhouette)" : (value ? "on" : "off"), POM_OVERRIDE_FILE);
+		value < 0 ? "default (keyword / r_autoPOMSilhouette)" : (value ? "on" : "off"), POM_OVERRIDE_FILE);
 	R_PomSilhouetteReportPattern(arg);
 }

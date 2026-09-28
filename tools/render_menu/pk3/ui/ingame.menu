@@ -557,7 +557,7 @@ itemDef { name setting_1 rect 26 105 586 19
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_EDITFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "color Grading Lut" cvar "r_colorGradingLut" descText "Color grading LUTs: select a LUT manually; empty uses `maps/<map>.cube` if present; `*identity` is neutral." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "color Grading LUT" cvar "r_colorGradingLUT" descText "Color grading LUTs: select a LUT manually; empty uses `maps/<map>.cube` if present; `*identity` is neutral." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -737,7 +737,7 @@ itemDef { name setting_11 rect 26 335 586 19
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "pom Self Shadow Lights" cvar "r_pomSelfShadowLights" descText "POM self-shadowing: sun only / sun + strongest local / sun + limited local lights / all local lights." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 } }
+      forecolor 0.72 0.82 1 1 text "pom Self Shadow Light Mode" cvar "r_pomSelfShadowLightMode" descText "POM self-shadowing: sun only / sun + strongest local / sun + limited local lights / all local lights." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 } }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -857,7 +857,7 @@ itemDef { name setting_0 rect 26 82 586 19
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "auto Pom Silhouette Mode" cvar "r_autoPomSilhouetteMode" descText "Automatic silhouette POM: disable / enable automatic mode globally." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "auto POMSilhouette Mode" cvar "r_autoPOMSilhouetteMode" descText "Automatic silhouette POM: disable / enable automatic mode globally." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -1017,7 +1017,7 @@ itemDef { name setting_10 rect 26 312 586 19
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "dynamic Shadow Max Lights" cvar "r_dynamicShadowMaxLights" descText "Forward+ dynamic lighting: strongest dynamic lights allowed shadow cubes when `r_dlightMode 2` is active." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "forward Plus Max Shadow Lights" cvar "r_forwardPlusMaxShadowLights" descText "Forward+ dynamic lighting: strongest dynamic lights allowed shadow cubes when `r_dlightMode 2` is active." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1095,7 +1095,7 @@ itemDef { name setting_9 rect 26 289 586 19
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "ssgi Half Resolution *" cvar "r_ssgiHalfResolution" descText "Screen-space global illumination: preset / full / half-resolution tracing; changing trace resolution takes effect a" cvarFloatList { "-1" -1 "0" 0 "1" 1 } }
+      forecolor 0.72 0.82 1 1 text "ssgi Half Res *" cvar "r_ssgiHalfRes" descText "Screen-space global illumination: preset / full / half-resolution tracing; changing trace resolution takes effect a" cvarFloatList { "-1" -1 "0" 0 "1" 1 } }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1169,7 +1169,7 @@ itemDef { name setting_7 rect 26 243 586 19
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "saber Area Lights" cvar "r_saberAreaLights" descText "Saber line area lights: point-light sabers / LTC line-light sabers." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "ltc Saber Area Lights" cvar "r_ltcSaberAreaLights" descText "Saber line area lights: point-light sabers / LTC line-light sabers." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1177,11 +1177,11 @@ itemDef { name setting_9 rect 26 289 586 19
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "spot Shadows" cvar "r_spotShadows" descText "Spot / projected lights: disable / enable spot shadows." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "spot Light Shadows" cvar "r_spotLightShadows" descText "Spot / projected lights: disable / enable spot shadows." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "light Cookies" cvar "r_lightCookies" descText "Light cookies / gobos: off / intensity-only cookie / colored cookie." cvarFloatList { "0" 0 "1" 1 "2" 2 } }
+      forecolor 0.72 0.82 1 1 text "spot Light Cookies" cvar "r_spotLightCookies" descText "Light cookies / gobos: off / intensity-only cookie / colored cookie." cvarFloatList { "0" 0 "1" 1 "2" 2 } }
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1219,7 +1219,7 @@ itemDef { name hint rect 28 48 590 19
 itemDef { name setting_0 rect 26 82 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "shadow Pcss" cvar "r_shadowPcss" descText "Sun Shadows 2.0: disable / enable PCSS." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "shadow PCSS" cvar "r_shadowPCSS" descText "Sun Shadows 2.0: disable / enable PCSS." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1247,7 +1247,7 @@ itemDef { name setting_6 rect 26 220 586 19
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "shadow Pcss Quality" cvar "r_shadowPcssQuality" descText "Sun Shadows 2.0: low / high / ultra." cvarFloatList { "0" 0 "1" 1 "2" 2 } }
+      forecolor 0.72 0.82 1 1 text "shadow PCSSQuality" cvar "r_shadowPCSSQuality" descText "Sun Shadows 2.0: low / high / ultra." cvarFloatList { "0" 0 "1" 1 "2" 2 } }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1255,7 +1255,7 @@ itemDef { name setting_8 rect 26 266 586 19
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "shadow Pcss Max Penumbra" cvar "r_shadowPcssMaxPenumbra" descText "Sun Shadows 2.0: maximum penumbra size." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "shadow PCSSMax Penumbra" cvar "r_shadowPCSSMaxPenumbra" descText "Sun Shadows 2.0: maximum penumbra size." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -1297,7 +1297,7 @@ itemDef { name setting_1 rect 26 105 586 19
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "skin SSSMixed *" cvar "r_skinSSSMixed" descText "Skin subsurface scattering: also process mixed `*_head` textures. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "skin SSSMixed Heads *" cvar "r_skinSSSMixedHeads" descText "Skin subsurface scattering: also process mixed `*_head` textures. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1411,7 +1411,7 @@ itemDef { name setting_11 rect 26 335 586 19
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "ssr Strength" cvar "r_ssrStrength" descText "Screen-space reflections: confidence/replacement scale." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "ssr Blend Strength" cvar "r_ssrBlendStrength" descText "Screen-space reflections: confidence/replacement scale." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -1449,7 +1449,7 @@ itemDef { name setting_0 rect 26 82 586 19
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "ssr Cull" cvar "r_ssrCull" descText "Screen-space reflections: skip ray marching on pixels that cannot use SSR." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "ssr Receiver Cull" cvar "r_ssrReceiverCull" descText "Screen-space reflections: skip ray marching on pixels that cannot use SSR." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1589,7 +1589,7 @@ itemDef { name setting_2 rect 26 128 586 19
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Opaque" cvar "r_volumetricFogHeightOpaque" descText "Height fog: opaque distance at the base height." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Opaque Distance" cvar "r_volumetricFogHeightOpaqueDistance" descText "Height fog: opaque distance at the base height." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1601,11 +1601,11 @@ itemDef { name setting_5 rect 26 197 586 19
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Max" cvar "r_volumetricFogHeightMax" descText "Height fog: density cap below the base." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Max Density" cvar "r_volumetricFogHeightMaxDensity" descText "Height fog: density cap below the base." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Top" cvar "r_volumetricFogHeightTop" descText "Height fog: optional soft upper cutoff." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Fog Height Top Height" cvar "r_volumetricFogHeightTopHeight" descText "Height fog: optional soft upper cutoff." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1667,35 +1667,35 @@ itemDef { name setting_1 rect 26 105 586 19
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "vol Particles" cvar "r_volParticles" descText "Volumetric FX particles: disable / submit authored volumetric FX media." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "volumetric Particles" cvar "r_volumetricParticles" descText "Volumetric FX particles: disable / submit authored volumetric FX media." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "vol Particles Max" cvar "r_volParticlesMax" descText "Volumetric FX particles: maximum important particles uploaded per frame." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Particles Max" cvar "r_volumetricParticlesMax" descText "Volumetric FX particles: maximum important particles uploaded per frame." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "vol Particles Scale" cvar "r_volParticlesScale" descText "Volumetric FX particles: extinction multiplier." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Particles Scale" cvar "r_volumetricParticlesScale" descText "Volumetric FX particles: extinction multiplier." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "vol Particles History" cvar "r_volParticlesHistory" descText "Volumetric FX particles: temporal-history retention where particle density changes." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Particles History" cvar "r_volumetricParticlesHistory" descText "Volumetric FX particles: temporal-history retention where particle density changes." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "particle Light *" cvar "r_particleLight" descText "Sprite particle lighting: authored sprite color / volumetric-light-field lighting. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "particle Lighting *" cvar "r_particleLighting" descText "Sprite particle lighting: authored sprite color / volumetric-light-field lighting. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "particle Light Mix" cvar "r_particleLightMix" descText "Sprite particle lighting: blend between authored and lit color." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "particle Lighting Mix" cvar "r_particleLightingMix" descText "Sprite particle lighting: blend between authored and lit color." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "particle Light Scale" cvar "r_particleLightScale" descText "Sprite particle lighting: light-field gain." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "particle Lighting Scale" cvar "r_particleLightingScale" descText "Sprite particle lighting: light-field gain." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "particle Light Floor" cvar "r_particleLightFloor" descText "Sprite particle lighting: minimum light factor." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "particle Lighting Floor" cvar "r_particleLightingFloor" descText "Sprite particle lighting: minimum light factor." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1745,11 +1745,11 @@ itemDef { name setting_0 rect 26 82 586 19
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Self Shadow Outside" cvar "r_volumetricSelfShadowOutside" descText "Volumetric self-shadowing: ignore / analytically include height fog beyond the march." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "volumetric Self Shadow Outside Height Fog" cvar "r_volumetricSelfShadowOutsideHeightFog" descText "Volumetric self-shadowing: ignore / analytically include height fog beyond the march." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Self Shadow Lights" cvar "r_volumetricSelfShadowLights" descText "Volumetric self-shadowing: strongest dynamic lights self-shadowed in mode 2." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 "4" 4 } }
+      forecolor 0.72 0.82 1 1 text "volumetric Self Shadow Max Lights" cvar "r_volumetricSelfShadowMaxLights" descText "Volumetric self-shadowing: strongest dynamic lights self-shadowed in mode 2." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 "4" 4 } }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1757,31 +1757,31 @@ itemDef { name setting_3 rect 26 151 586 19
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSOctaves" cvar "r_volumetricMSOctaves" descText "Approximate multiple scattering: scattering orders beyond single scattering." cvarFloatList { "1" 1 "2" 2 "3" 3 } }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Octaves" cvar "r_volumetricMultiScatterOctaves" descText "Approximate multiple scattering: scattering orders beyond single scattering." cvarFloatList { "1" 1 "2" 2 "3" 3 } }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSAttenuation" cvar "r_volumetricMSAttenuation" descText "Approximate multiple scattering: optical-depth scale per octave." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Attenuation" cvar "r_volumetricMultiScatterAttenuation" descText "Approximate multiple scattering: optical-depth scale per octave." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSContribution" cvar "r_volumetricMSContribution" descText "Approximate multiple scattering: returned energy per octave." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Contribution" cvar "r_volumetricMultiScatterContribution" descText "Approximate multiple scattering: returned energy per octave." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSPhase" cvar "r_volumetricMSPhase" descText "Approximate multiple scattering: anisotropy reduction per octave." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Phase" cvar "r_volumetricMultiScatterPhase" descText "Approximate multiple scattering: anisotropy reduction per octave." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSLength" cvar "r_volumetricMSLength" descText "Approximate multiple scattering: characteristic dense-medium size." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Length" cvar "r_volumetricMultiScatterLength" descText "Approximate multiple scattering: characteristic dense-medium size." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric MSShadow Fill" cvar "r_volumetricMSShadowFill" descText "Approximate multiple scattering: limited fill into geometry shadows." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "volumetric Multi Scatter Shadow Fill" cvar "r_volumetricMultiScatterShadowFill" descText "Approximate multiple scattering: limited fill into geometry shadows." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "volumetric Fog RGB *" cvar "r_volumetricFogRGB" descText "RGB extinction / wavelength-dependent absorption: scalar / per-channel extinction and transmittance. Requires `vid_" cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "volumetric Fog RGBExtinction *" cvar "r_volumetricFogRGBExtinction" descText "RGB extinction / wavelength-dependent absorption: scalar / per-channel extinction and transmittance. Requires `vid_" cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1835,11 +1835,11 @@ itemDef { name setting_3 rect 26 151 586 19
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "rain Opacity" cvar "r_rainOpacity" descText "Modern rain streaks: opacity." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "rain Streak Opacity" cvar "r_rainStreakOpacity" descText "Modern rain streaks: opacity." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "rain Lighting" cvar "r_rainLighting" descText "Modern rain streaks: fixed brightness / light-grid + sun lighting." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "rain Streak Lighting" cvar "r_rainStreakLighting" descText "Modern rain streaks: fixed brightness / light-grid + sun lighting." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1847,27 +1847,27 @@ itemDef { name setting_6 rect 26 220 586 19
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Strength" cvar "r_weatherWetStrength" descText "Rain wetness: overall wetness." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Strength" cvar "r_weatherWetnessStrength" descText "Rain wetness: overall wetness." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Roughness" cvar "r_weatherWetRoughness" descText "Rain wetness: scale of class-specific smoothing." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Roughness" cvar "r_weatherWetnessRoughness" descText "Rain wetness: scale of class-specific smoothing." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Darkening" cvar "r_weatherWetDarkening" descText "Rain wetness: scale of class-specific albedo darkening." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Darkening" cvar "r_weatherWetnessDarkening" descText "Rain wetness: scale of class-specific albedo darkening." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Normal" cvar "r_weatherWetNormal" descText "Rain wetness: scale of class-specific normal flattening." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Normal" cvar "r_weatherWetnessNormal" descText "Rain wetness: scale of class-specific normal flattening." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Entity Facing" cvar "r_weatherWetEntityFacing" descText "Rain wetness: wetness of vertical character/prop faces." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Entity Facing" cvar "r_weatherWetnessEntityFacing" descText "Rain wetness: wetness of vertical character/prop faces." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "weather Wet Bias" cvar "r_weatherWetBias" descText "Rain wetness: rain-occlusion depth bias." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Wetness Bias" cvar "r_weatherWetnessBias" descText "Rain wetness: rain-occlusion depth bias." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -1905,47 +1905,47 @@ itemDef { name setting_0 rect 26 82 586 19
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Coverage" cvar "r_puddleCoverage" descText "Procedural puddles: approximate covered fraction." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Coverage" cvar "r_weatherPuddleCoverage" descText "Procedural puddles: approximate covered fraction." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Roughness" cvar "r_puddleRoughness" descText "Procedural puddles: water roughness." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Roughness" cvar "r_weatherPuddleRoughness" descText "Procedural puddles: water roughness." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_EDITFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Slope" cvar "r_puddleSlope" descText "Procedural puddles: geometric-normal range where puddles can form." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Slope" cvar "r_weatherPuddleSlope" descText "Procedural puddles: geometric-normal range where puddles can form." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Scale" cvar "r_puddleScale" descText "Procedural puddles: macro puddle pattern size." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Scale" cvar "r_weatherPuddleScale" descText "Procedural puddles: macro puddle pattern size." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Height" cvar "r_puddleHeight" descText "Height-aware puddles: ignore / use material height data." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Use Height Map" cvar "r_weatherPuddleUseHeightMap" descText "Height-aware puddles: ignore / use material height data." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Height Softness" cvar "r_puddleHeightSoftness" descText "Height-aware puddles: water-line transition width." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Height Softness" cvar "r_weatherPuddleHeightSoftness" descText "Height-aware puddles: water-line transition width." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_7 rect 26 243 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Height Fill" cvar "r_puddleHeightFill" descText "Height-aware puddles: bias the virtual water level." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Water Level Bias" cvar "r_weatherPuddleWaterLevelBias" descText "Height-aware puddles: bias the virtual water level." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Ripples" cvar "r_puddleRipples" descText "Puddle ripples: disable / enable ripples." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Ripples" cvar "r_weatherPuddleRipples" descText "Puddle ripples: disable / enable ripples." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Ripple Strength" cvar "r_puddleRippleStrength" descText "Puddle ripples: ring normal strength." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Ripple Strength" cvar "r_weatherPuddleRippleStrength" descText "Puddle ripples: ring normal strength." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Ripple Scale" cvar "r_puddleRippleScale" descText "Puddle ripples: cell/ring scale." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Ripple Scale" cvar "r_weatherPuddleRippleScale" descText "Puddle ripples: cell/ring scale." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "puddle Ripple Rate" cvar "r_puddleRippleRate" descText "Puddle ripples: ring cycles per second." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Puddle Ripple Rate" cvar "r_weatherPuddleRippleRate" descText "Puddle ripples: ring cycles per second." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -1983,23 +1983,23 @@ itemDef { name hint rect 28 48 590 19
 itemDef { name setting_0 rect 26 82 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "runoff Strength" cvar "r_runoffStrength" descText "Water runoff: film/streak strength." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Runoff Strength" cvar "r_weatherRunoffStrength" descText "Water runoff: film/streak strength." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "runoff Speed" cvar "r_runoffSpeed" descText "Water runoff: flow speed." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Runoff Speed" cvar "r_weatherRunoffSpeed" descText "Water runoff: flow speed." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "runoff Scale" cvar "r_runoffScale" descText "Water runoff: streak-cell size." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Runoff Scale" cvar "r_weatherRunoffScale" descText "Water runoff: streak-cell size." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "runoff Probe" cvar "r_runoffProbe" descText "Water runoff: small outward rain-exposure probe for steep walls; `0` disables it." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "weather Runoff Probe" cvar "r_weatherRunoffProbe" descText "Water runoff: small outward rain-exposure probe for steep walls; `0` disables it." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "runoff Entities" cvar "r_runoffEntities" descText "Water runoff: also apply runoff to characters, props and movers." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "weather Runoff Entities" cvar "r_weatherRunoffEntities" descText "Water runoff: also apply runoff to characters, props and movers." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -2023,7 +2023,7 @@ itemDef { name setting_9 rect 26 289 586 19
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "rain Lens Amount" cvar "r_rainLensAmount" descText "Rain on the camera lens: droplet density." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "rain Lens Density" cvar "r_rainLensDensity" descText "Rain on the camera lens: droplet density." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -2031,7 +2031,7 @@ itemDef { name setting_11 rect 26 335 586 19
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "rain Lens Scale" cvar "r_rainLensScale" descText "Rain on the camera lens: droplet size relative to screen height." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "rain Lens Drop Size" cvar "r_rainLensDropSize" descText "Rain on the camera lens: droplet size relative to screen height." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -2069,15 +2069,15 @@ itemDef { name setting_0 rect 26 82 586 19
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "auto Grass" cvar "r_autoGrass" descText "Auto grass geometry: legacy / two-card cross / three-card tuft / adaptive three-to-two cards." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 } }
+      forecolor 0.72 0.82 1 1 text "grass Card Mode" cvar "r_grassCardMode" descText "Auto grass geometry: legacy / two-card cross / three-card tuft / adaptive three-to-two cards." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 } }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "auto Grass Lod Dist" cvar "r_autoGrassLodDist" descText "Auto grass geometry: third-card fade distance in adaptive mode." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "grass Card Lod Dist" cvar "r_grassCardLodDist" descText "Auto grass geometry: third-card fade distance in adaptive mode." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "auto Grass Width" cvar "r_autoGrassWidth" descText "Auto grass geometry: card width multiplier." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "grass Card Width" cvar "r_grassCardWidth" descText "Auto grass geometry: card width multiplier." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
@@ -2113,7 +2113,7 @@ itemDef { name setting_11 rect 26 335 586 19
 itemDef { name setting_12 rect 26 358 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "plant Wind" cvar "r_plantWind" descText "Plant root wind: root-bend strength; `0` disables it." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 "4" 4 } }
+      forecolor 0.72 0.82 1 1 text "plant Wind" cvar "r_plantWind" descText "Plant root wind: Enable plant root wind bend." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -2147,51 +2147,55 @@ itemDef { name hint rect 28 48 590 19
 itemDef { name setting_0 rect 26 82 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Interaction" cvar "r_foliageInteraction" descText "Character / foliage interaction: disable / enable character interaction." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "plant Wind Strength" cvar "r_plantWindStrength" descText "Plant root wind: Plant root wind bend strength." cvarFloatList { "0" 0 "1" 1 "2" 2 "3" 3 "4" 4 } }
 itemDef { name setting_1 rect 26 105 586 19
-      type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
+      type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Interaction Strength" cvar "r_foliageInteractionStrength" descText "Character / foliage interaction: bend strength." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Interaction" cvar "r_foliageInteraction" descText "Character / foliage interaction: disable / enable character interaction." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_2 rect 26 128 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Interaction Radius" cvar "r_foliageInteractionRadius" descText "Character / foliage interaction: character capsule radius scale." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Interaction Strength" cvar "r_foliageInteractionStrength" descText "Character / foliage interaction: bend strength." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_3 rect 26 151 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Interaction Max" cvar "r_foliageInteractionMax" descText "Character / foliage interaction: uploaded character limit." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Interaction Radius" cvar "r_foliageInteractionRadius" descText "Character / foliage interaction: character capsule radius scale." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_4 rect 26 174 586 19
-      type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
+      type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Interaction NPC" cvar "r_foliageInteractionNPC" descText "Character / foliage interaction: player only / player + nearby NPCs and players." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "foliage Interaction Max Interactors" cvar "r_foliageInteractionMaxInteractors" descText "Character / foliage interaction: uploaded character limit." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_5 rect 26 197 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field" cvar "r_foliageField" descText "Persistent foliage bend field: disable / enable persistent recovery." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "foliage Interaction NPCs" cvar "r_foliageInteractionNPCs" descText "Character / foliage interaction: player only / player + nearby NPCs and players." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_6 rect 26 220 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Size *" cvar "r_foliageFieldSize" descText "Persistent foliage bend field: bend-field texture size. Requires `vid_restart`." cvarFloatList { "64" 64 "128" 128 "256" 256 } }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field" cvar "r_foliageBendField" descText "Persistent foliage bend field: disable / enable persistent recovery." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_7 rect 26 243 586 19
-      type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
+      type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Extent" cvar "r_foliageFieldExtent" descText "Persistent foliage bend field: world size covered around the player." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Size *" cvar "r_foliageBendFieldSize" descText "Persistent foliage bend field: bend-field texture size. Requires `vid_restart`." cvarFloatList { "64" 64 "128" 128 "256" 256 } }
 itemDef { name setting_8 rect 26 266 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Strength" cvar "r_foliageFieldStrength" descText "Persistent foliage bend field: field contribution." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Extent" cvar "r_foliageBendFieldExtent" descText "Persistent foliage bend field: world size covered around the player." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_9 rect 26 289 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Recovery" cvar "r_foliageFieldRecovery" descText "Persistent foliage bend field: approximate time back to rest." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Strength" cvar "r_foliageBendFieldStrength" descText "Persistent foliage bend field: field contribution." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_10 rect 26 312 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Damping" cvar "r_foliageFieldDamping" descText "Persistent foliage bend field: spring damping; 1 avoids overshoot." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Recovery Time" cvar "r_foliageBendFieldRecoveryTime" descText "Persistent foliage bend field: approximate time back to rest." maxChars 128 maxPaintChars 20 }
 itemDef { name setting_11 rect 26 335 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "foliage Field Impulse" cvar "r_foliageFieldImpulse" descText "Persistent foliage bend field: extra momentum from moving through plants." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Damping" cvar "r_foliageBendFieldDamping" descText "Persistent foliage bend field: spring damping; 1 avoids overshoot." maxChars 128 maxPaintChars 20 }
+itemDef { name setting_12 rect 26 358 586 19
+      type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
+      textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
+      forecolor 0.72 0.82 1 1 text "foliage Bend Field Impulse" cvar "r_foliageBendFieldImpulse" descText "Persistent foliage bend field: extra momentum from moving through plants." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0
@@ -2225,11 +2229,11 @@ itemDef { name hint rect 28 48 590 19
 itemDef { name setting_0 rect 26 82 586 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "glsl Cache *" cvar "r_glslCache" descText "GLSL program cache: compile every time / use the on-disk program cache. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "shader Program Cache *" cvar "r_shaderProgramCache" descText "GLSL program cache: compile every time / use the on-disk program cache. Requires `vid_restart`." cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_1 rect 26 105 586 19
       type ITEM_TYPE_NUMERICFIELD style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_RIGHT textalignx 330 textaligny 0
-      forecolor 0.72 0.82 1 1 text "glsl Cache Max MB" cvar "r_glslCacheMaxMB" descText "GLSL program cache: maximum cache size; least-recently-used entries are evicted first." maxChars 128 maxPaintChars 20 }
+      forecolor 0.72 0.82 1 1 text "shader Program Cache Max MB" cvar "r_shaderProgramCacheMaxMB" descText "GLSL program cache: maximum cache size; least-recently-used entries are evicted first." maxChars 128 maxPaintChars 20 }
 itemDef { name previous rect 28 444 95 19
       type ITEM_TYPE_BUTTON style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.8
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0

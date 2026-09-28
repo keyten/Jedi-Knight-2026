@@ -109,7 +109,7 @@ rays were added for them.
 These are real dlights. `CG_DoSaber` / `CG_AddSaberBlade` add one at the blade midpoint (radius about
 1.4 × length, `codemp/cgame/cg_players.c`). Weapon muzzle flashes and missiles add them in `cg_weapons.c` /
 `cg_ents.c`. They get shadow cubes only with `r_dlightMode 2`: in legacy mode every UBO light, with Forward+ the
-top `r_dynamicShadowMaxLights` (4). No lights are created by the renderer.
+top `r_forwardPlusMaxShadowLights` (4). No lights are created by the renderer.
 
 ## Debug
 

@@ -45,7 +45,7 @@ uniform vec3 u_SpriteViewLeft;
 uniform vec3 u_SpriteViewUp;
 
 #if defined(AUTO_GRASS)
-// r_autoGrass: x = angular spacing (180 / x degrees per instance),
+// r_grassCardMode: x = angular spacing (180 / x degrees per instance),
 // y = lod distance of the third card (0 = no lod), z = debug mode,
 // w = card width scale
 uniform vec4 u_AutoGrass;
@@ -634,7 +634,7 @@ void main()
 	#if defined(USE_FROXEL_RGB)
 		else if (u_FroxelFogMode == 3)
 		{
-			// RGB extinction (r_volumetricFogRGB)
+			// RGB extinction (r_volumetricFogRGBExtinction)
 			vec3 froxelT;
 			vec3 froxelS = FroxelFogRGB(var_WSPosition, froxelT);
 		#if defined(ADDITIVE_BLEND)

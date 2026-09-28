@@ -152,7 +152,7 @@ void R_SSGISelectResources( void )
 	s_ssgiResources = (qboolean)(r_ssgi->integer != 0);
 
 	// the trace resolution is a resource size: decided here, like r_ssgi
-	const int halfRes = r_ssgiHalfResolution->integer >= 0 ? r_ssgiHalfResolution->integer : R_SSGIQuality().halfRes;
+	const int halfRes = r_ssgiHalfRes->integer >= 0 ? r_ssgiHalfRes->integer : R_SSGIQuality().halfRes;
 	s_gridScale = halfRes ? 2 : 1;
 }
 
@@ -261,8 +261,8 @@ void R_SSGICheckDependencies( void )
 		if ( source == 2 )
 			notes |= SSGI_NOTE_FULL_SCENE;
 
-		const int halfRes = r_ssgiHalfResolution->integer >= 0 ?
-			r_ssgiHalfResolution->integer : R_SSGIQuality().halfRes;
+		const int halfRes = r_ssgiHalfRes->integer >= 0 ?
+			r_ssgiHalfRes->integer : R_SSGIQuality().halfRes;
 		if ( (halfRes ? 2 : 1) != s_gridScale )
 			notes |= SSGI_NOTE_RESOLUTION;
 	}
@@ -280,7 +280,7 @@ void R_SSGICheckDependencies( void )
 	if ( added & SSGI_NOTE_FULL_SCENE )
 		ri.Printf(PRINT_ALL, "SSGI: r_ssgiSource 2 is experimental, baked (lightmap) lighting is bounced a second time\n");
 	if ( added & SSGI_NOTE_RESOLUTION )
-		ri.Printf(PRINT_ALL, "SSGI: the trace resolution (r_ssgiHalfResolution / r_ssgiQuality) changes at the next vid_restart\n");
+		ri.Printf(PRINT_ALL, "SSGI: the trace resolution (r_ssgiHalfRes / r_ssgiQuality) changes at the next vid_restart\n");
 	if ( added & SSGI_NOTE_LATCHED )
 		ri.Printf(PRINT_ALL, "SSGI: r_ssgi takes effect after vid_restart\n");
 	s_shown = notes;

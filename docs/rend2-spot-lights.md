@@ -73,7 +73,7 @@ Spot lights are always at least 0.1° soft (inner is clamped to cosOuter + 0.002
 - **Wider cones** (> 60°) keep the 6 cube faces and the cube lookup.
 - **Receiver bias:** same `r_dlightShadowBias` modes. The texel size scales by 1 / tan(fov/2), and the PCF disk covers the same angle as on a cube face.
 - **Froxels:** 4 taps, pulled towards the light like the cube taps.
-- **Budget:** unchanged (`r_dynamicShadowMaxLights` under Forward+). `SPOTLIGHT_NOSHADOW` and `r_spotShadows 0` spots are never given a slot.
+- **Budget:** unchanged (`r_forwardPlusMaxShadowLights` under Forward+). `SPOTLIGHT_NOSHADOW` and `r_spotLightShadows 0` spots are never given a slot.
 - Unrelated fix: `shadowCubeFbo` was created with `PSHADOW_MAP_SIZE` metadata; it now uses `DSHADOW_MAP_SIZE`.
 
 ## Culling
@@ -137,7 +137,7 @@ The cookie never replaces the geometry shadow: both multiply. Module: `shared/rd
 **Image contents.**
 - An opaque image is an intensity: white is full light. The alpha channel holds its luminance and rgb its colour.
 - An image with alpha is an **occluder mask**, as on an alpha-tested surface: opaque texels block the light, and transmission is 1 − alpha, in grey. So the stock alpha-tested grates and window frames work as gobos unchanged.
-- `r_lightCookies 1` uses the intensity; `2` uses the colour.
+- `r_spotLightCookies 1` uses the intensity; `2` uses the colour.
 - The source is box filtered down to 256² (4×4 taps per texel).
 
 **GPU data (no size growth).**
@@ -165,7 +165,7 @@ spot
 The cookie's top is the effect's up axis (the bolt's up for bolted spots, updated every frame), projected across the cone and turned by `cookieRoll`. For client-muzzle spots in SP, the up comes from `MakeNormalVectors` of the muzzle direction. It is deterministic but not tied to the weapon's roll. Effects without these keys are unchanged.
 
 **Debug.**
-- `r_lightCookieDebug` (cheat) replaces lit surfaces that receive a cookie light (unlit output, weighted by the cone):
+- `r_spotLightCookieDebug` (cheat) replaces lit surfaces that receive a cookie light (unlit output, weighted by the cone):
   - 1: projected uv (fract, red/green);
   - 2: cookie factor;
   - 3: cookie × shadow.
@@ -195,7 +195,7 @@ Each file uses the existing `gfx/effects/blasterFrontFlash` sprite as the lamp.
 | cvar | effect |
 |---|---|
 | `r_spotLights 1` | 0 submits spots as point lights |
-| `r_spotShadows 1` | 0 turns off spot shadows |
+| `r_spotLightShadows 1` | 0 turns off spot shadows |
 | `r_spotLightDebug` (cheat) | 1 cones plus a per-second list (type, dir, cone, shadow mode); 2 adds the shadow frustums; 3 surfaces lit by spots only, fog without dlights; 4 fog lit by spots only, no spots on surfaces |
 | `r_volumetricFogDebug 29` | lights per froxel cluster at the scene depth (heat), cyan where spots are listed: the slice light mask |
 
@@ -230,13 +230,13 @@ Done:
 | spot: bolted efx | SP `fxplay effects/test/volumetric_spot muzzle` | cone follows the weapon |
 | spot: efx at camera | `fxplay effects/test/volumetric_spot 16` (MP and SP) | the same as `r_spot add` |
 | spot: point regression | sabers, blasters, `r_spotLights 0` A/B | identical point lights |
-| spot: shadow off/on | `r_spotShadows 0/1`, `_noshadow` efx | only spot shadows toggle |
+| spot: shadow off/on | `r_spotLightShadows 0/1`, `_noshadow` efx | only spot shadows toggle |
 | spot: wide | `volumetric_spot_wide` | cube-face shadow, `r_spotLightDebug 1` says "cube" |
 | cookie: checker on wall + fog | `r_volumetricFog 2`, `fxplay effects/test/volumetric_spot_cookie 16` facing a wall | 8×8 panes on the wall and the same shafts in the fog |
-| cookie: debug | `r_lightCookieDebug 1/2/3` | uv gradient inside the disc; the pattern; the pattern cut by geometry shadow |
+| cookie: debug | `r_spotLightCookieDebug 1/2/3` | uv gradient inside the disc; the pattern; the pattern cut by geometry shadow |
 | cookie: shadow overlap | `r_dlightMode 2`, an object in the beam | object shadow and cookie both visible, neither replaces the other |
 | cookie: moving | `r_spot attach`, `r_spot cookie 0 textures/imperial/grate02`, turn and roll the view | pattern stays locked to the lamp, no flip looking straight down |
 | cookie: near/far | walk from 50 to 700 units | the pattern scales with the cone; no shimmer far away (explicit lod) |
 | cookie: fog only | `r_volumetricFogDebug 4`, `r_spotLightDebug 4` | cookie shafts in the injected light |
-| cookie: A/B | `r_lightCookies 0/1/2` | 0 = the plain spot; 2 = colour (grey for the grate) |
+| cookie: A/B | `r_spotLightCookies 0/1/2` | 0 = the plain spot; 2 = colour (grey for the grate) |
 | spot: timings | `r_forwardPlusBenchmark` and the froxel timers, 0 vs 4 spots | record ms |

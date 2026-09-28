@@ -89,10 +89,10 @@ PCSS visibility; it never replaces it.
 | `r_shadowNormalBias` | 0.75 | normal offset in cascade texels |
 | `r_shadowSlopeBias` | 1.0 | receiver-plane correction multiplier |
 | `r_shadowReceiverBiasClamp` | 4.0 | derivative correction clamp in world units |
-| `r_shadowPcss` | 1 | enable sun PCSS |
-| `r_shadowPcssQuality` | 1 | 0 low, 1 high, 2 ultra |
+| `r_shadowPCSS` | 1 | enable sun PCSS |
+| `r_shadowPCSSQuality` | 1 | 0 low, 1 high, 2 ultra |
 | `r_shadowSunAngularDiameter` | 0.53 | apparent source diameter in degrees |
-| `r_shadowPcssMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
+| `r_shadowPCSSMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
 | `r_shadowDebug` | 0 | debug view, listed below |
 
 The contact controls are `r_contactShadows`, `r_contactShadowLength`,

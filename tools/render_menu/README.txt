@@ -14,7 +14,7 @@ POM needs normal mapping and material height data. LTC saber lights need
 Forward+ and LTC. Wetness needs active map rain; puddles/runoff need wetness.
 Foliage flutter/plant wind need auto foliage; persistent field needs interaction.
 Some effects need updated engine/game modules, authored materials or map data.
-Automatic LTC changes may need map reload (r_reloadAreaLights).
+Automatic LTC changes may need map reload (r_ltcReloadLights).
 
 Use the matching Jedi Academy 2026 Rend2 binaries. This PK3 adds menus only.
 Labels use English to work with stock fonts. Debug views and authoring commands

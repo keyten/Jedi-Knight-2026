@@ -25,7 +25,7 @@ used, and `u_Wind` is uploaded but never read. `ssWind v` sets `wind`, and also 
 `FoliageWind(anchor.xy, seed = attr_Position.w, t, height)` is a pure function of the anchor, the stable seed,
 time and the cvars. It has no camera or instance input, so:
 
-* all cards of an `r_autoGrass` tuft move as one;
+* all cards of an `r_grassCardMode` tuft move as one;
 * the sun cascades match the main view;
 * the velocity pass evaluates it again at `u_previousFrameTime` and gets exact motion vectors.
 
@@ -93,7 +93,7 @@ Done:
 
 1. Stationary camera for 10 s: gust patches drift downwind, and no blade orbits.
 2. `r_foliageWindDebug 3` while rotating and moving the camera: the grass stays still.
-3. Moving camera, dense grass, and `r_autoGrass 1/2`: the cards of a tuft stay together.
+3. Moving camera, dense grass, and `r_grassCardMode 1/2`: the cards of a tuft stay together.
 4. `r_motionBlurDebug` or the velocity view, and TAA / SMAA 2: no smearing or ghosting on still grass.
 5. `r_volumetricFog 1/2`, fogged areas, and sun shadows: the shadows follow the blades.
 6. A shader with ssWind 0 does not move. High ssWind is clamped to half the height. FX / fog sprites are unchanged.

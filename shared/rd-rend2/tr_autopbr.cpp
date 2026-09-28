@@ -103,10 +103,10 @@ void R_WetnessResponse( const shaderStage_t *stage, vec3_t out )
 	if ( cls < 0 || cls >= MATCLASS_COUNT )
 		cls = MATCLASS_GENERIC;
 	const wetnessResponse_t *w = &wetnessResponses[cls];
-	out[0] = Com_Clamp( 0.0f, 1.0f, w->darkening * r_weatherWetDarkening->value );
+	out[0] = Com_Clamp( 0.0f, 1.0f, w->darkening * r_weatherWetnessDarkening->value );
 	// the cvar scales the smoothing (1 - scale), 1 = table value
-	out[1] = Com_Clamp( 0.05f, 1.0f, 1.0f - (1.0f - w->roughnessScale) * r_weatherWetRoughness->value );
-	out[2] = Com_Clamp( 0.0f, 1.0f, w->normalFlatten * r_weatherWetNormal->value );
+	out[1] = Com_Clamp( 0.05f, 1.0f, 1.0f - (1.0f - w->roughnessScale) * r_weatherWetnessRoughness->value );
+	out[2] = Com_Clamp( 0.0f, 1.0f, w->normalFlatten * r_weatherWetnessNormal->value );
 }
 
 // r_autoPBRDebug colors of stages r_autoPBR does not change
@@ -574,7 +574,7 @@ void R_ClassifyMaterialName( materialMatch_t *stage, const char *shaderName, con
 /*
 ==============================================================================
 
-pbr_dumpMaterials
+r_pbrDumpMaterials
 
 ==============================================================================
 */
@@ -615,7 +615,7 @@ static const char *PBRSourceName( const shaderStage_t *stage )
 ===============
 R_PBRDumpMaterials_f
 
-pbr_dumpMaterials [used|all|auto|authored|gouraud|<class>]
+r_pbrDumpMaterials [used|all|auto|authored|gouraud|<class>]
 
 Lists the lit stages of the registered shaders (this level and the models
 loaded for it): lightall stages with the parameters r_autoPBR currently gives
@@ -648,7 +648,7 @@ void R_PBRDumpMaterials_f( void )
 		}
 		if ( classFilter < 0 )
 		{
-			ri.Printf( PRINT_ALL, "usage: pbr_dumpMaterials [used|all|auto|authored|gouraud|generic|metal|skin|cloth|leather|plastic|hair]\n" );
+			ri.Printf( PRINT_ALL, "usage: r_pbrDumpMaterials [used|all|auto|authored|gouraud|generic|metal|skin|cloth|leather|plastic|hair]\n" );
 			return;
 		}
 	}

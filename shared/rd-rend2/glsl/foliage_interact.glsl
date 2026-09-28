@@ -8,14 +8,14 @@
 // The direct push is stateless: a pure function of the rest position and the
 // colliders of this frame (and of the previous frame, for motion vectors). The
 // colliders are the real character bodies sent by cgame, never the camera.
-// The optional persistent field (r_foliageField) adds a short history.
+// The optional persistent field (r_foliageBendField) adds a short history.
 
 #define FOLIAGE_MAX_INTERACTORS 16
 
 // std140, FoliageInteractionBlock in tr_local.h. Per collider two vec4:
 //   [2i]     axis x, y, bottom z (feet), top z
 //   [2i + 1] radius, velocity x, velocity y, 1 = airborne
-// Then the persistent bend field (r_foliageField, tr_foliagefield.cpp): a
+// Then the persistent bend field (r_foliageBendField, tr_foliagefield.cpp): a
 // player centered world XY texture of the bend the characters left behind.
 layout(std140) uniform FoliageInteraction
 {
@@ -120,7 +120,7 @@ vec2 FoliageInteractionBend(in vec3 q, in bool previous, out float heat)
 	return bend * u_FIParams.z;
 }
 
-// Persistent bend field at the world position xy (r_foliageField): what the
+// Persistent bend field at the world position xy (r_foliageBendField): what the
 // characters left behind, springing back to rest. Zero outside the covered
 // square, faded over its border.
 vec2 FoliageFieldBend(in vec2 xy, in bool previous)
@@ -149,7 +149,7 @@ vec2 FoliageCharacterBend(in vec3 q, in vec2 fieldXY, in bool previous, out floa
 {
 	vec2 direct = FoliageInteractionBend(q, previous, heat);
 	vec2 field = FoliageFieldBend(fieldXY, previous);
-	// r_foliageFieldDebug 16: the field alone
+	// r_foliageBendFieldDebug 16: the field alone
 	if (u_FIFieldShift.w > 0.5)
 		return field;
 	return direct + field * (1.0 - heat);

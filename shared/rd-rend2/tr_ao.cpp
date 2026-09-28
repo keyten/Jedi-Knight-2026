@@ -42,7 +42,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // builds its GPU shaders, see R_CreateAOImages
 static qboolean s_aoResources = qfalse;
 
-// state of the last view that computed AO, for r_debugAO
+// state of the last view that computed AO, for r_aoDebug
 static image_t *s_debugGtaoImage = NULL;
 static image_t *s_debugFinalImage = NULL;
 static float s_debugZFar = 4096.0f;
@@ -383,9 +383,9 @@ static image_t *RB_RenderGTAO( const aoViewInfo_t& info, image_t **bentResult )
 
 	RB_AOEndTimer(timer);
 
-	// spatial denoise. r_debugAO 2 shows the raw result
+	// spatial denoise. r_aoDebug 2 shows the raw result
 	int numPasses = Com_Clampi(0, 3, r_gtaoDenoise->integer);
-	if ( r_debugAO->integer == 2 )
+	if ( r_aoDebug->integer == 2 )
 		numPasses = 0;
 
 	int current = 0;
@@ -524,7 +524,7 @@ void RB_RenderScreenSpaceLighting( void )
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
-	const int debugView = r_debugAO->integer;
+	const int debugView = r_aoDebug->integer;
 	const int mode = R_AOMode();
 	const qboolean compare = (qboolean)(r_aoCompare->integer != 0);
 	const qboolean contact = (qboolean)(
@@ -600,12 +600,12 @@ lightall parameters and debug views
 ============================================================
 */
 
-// r_debugAO views written by lightall itself (unlit, tone mapping bypassed):
+// r_aoDebug views written by lightall itself (unlit, tone mapping bypassed):
 // 7 cascade shadow, 8 sun visibility, 9 diffuse ambient visibility,
 // 12 specular occlusion
 static qboolean RB_AODebugIsLightall( void )
 {
-	const int debugView = r_debugAO->integer;
+	const int debugView = r_aoDebug->integer;
 	return (qboolean)((debugView >= 7 && debugView <= 9) || debugView == 12);
 }
 
@@ -640,7 +640,7 @@ void RB_AOSceneParams( vec4_t aoParams, vec4_t aoParams2 )
 	aoParams2[1] = (float)Com_Clampi(0, 2, specOcclusion);
 	aoParams2[2] = bentStrength;
 
-	aoParams2[0] = RB_AODebugIsLightall() ? (float)r_debugAO->integer : 0.0f;
+	aoParams2[0] = RB_AODebugIsLightall() ? (float)r_aoDebug->integer : 0.0f;
 }
 
 qboolean RB_AODebugBypassesToneMap( void )
@@ -649,18 +649,18 @@ qboolean RB_AODebugBypassesToneMap( void )
 		(r_sunShadowMode->integer && r_shadowDebug->integer >= 1 && r_shadowDebug->integer <= 11) ||
 		(s_aoResources && RB_AODebugIsLightall()) ||
 		(r_autoPBRDebug->integer >= 1 && r_autoPBRDebug->integer <= 2) ||
-		(r_weatherWetness->integer && r_weatherWetnessDebug->integer >= 1 && r_weatherWetnessDebug->integer <= 31 && r_weatherWetnessDebug->integer != 4) ||
+		(r_weatherWetness->integer && r_weatherSurfaceDebug->integer >= 1 && r_weatherSurfaceDebug->integer <= 31 && r_weatherSurfaceDebug->integer != 4) ||
 		(r_diffuseIBL->integer && r_diffuseIBLDebug->integer >= 1 && r_diffuseIBLDebug->integer <= 5) ||
 		RB_ForwardPlusDebugBypassesToneMap() ||
 		RB_SkinSSSDebugBypassesToneMap() ||
 		RB_PomSilhouetteDebugBypassesToneMap());
 }
 
-// Full screen r_debugAO views of the AO buffers, drawn at the end of the post
+// Full screen r_aoDebug views of the AO buffers, drawn at the end of the post
 // process chain
 void RB_AODebugOverlay( void )
 {
-	const int debugView = r_debugAO->integer;
+	const int debugView = r_aoDebug->integer;
 	if ( !s_aoResources || debugView <= 0 || debugView > 12 || RB_AODebugIsLightall() )
 		return;
 

@@ -317,7 +317,7 @@ typedef struct {
 // frame by cgame through the optional renderer extension GetRefFoliageAPI.
 #define	MAX_FOLIAGE_INTERACTORS		16
 #define	FOLIAGE_INTERACTOR_PLAYER	1
-#define	FOLIAGE_INTERACTOR_AIRBORNE	2	// not on the ground (r_foliageField: leaves no trail)
+#define	FOLIAGE_INTERACTOR_AIRBORNE	2	// not on the ground (r_foliageBendField: leaves no trail)
 
 typedef struct {
 	int			id;			// entity number, pairs the collider with the previous frame
@@ -359,14 +359,14 @@ typedef struct {
 	// Henyey-Greenstein g of the scattering (-0.9..0.9, > 0 forward), used with the
 	// FOGVOLUME_ANISOTROPY flag; without it the global r_volumetricFogAnisotropy
 	float		anisotropy;
-	// relative extinction per channel (r_volumetricFogRGB), used with the
+	// relative extinction per channel (r_volumetricFogRGBExtinction), used with the
 	// FOGVOLUME_EXTINCTION flag: sigma_t.rgb = sigma * extinctionColor / mean,
 	// e.g. 3 0.5 0.5 absorbs red (the medium looks cyan). Appended last: older
 	// callers that do not set the flag keep a neutral medium.
 	float		extinctionColor[3];
 } refFogVolume_t;
 
-// Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volParticles):
+// Volumetric FX particles (rend2 froxel fog, r_volumetricFog 2, r_volumetricParticles):
 // the participating medium of an FX particle that opted in with a
 // "volumetricMedia" block in its .efx primitive. A soft ellipsoid proxy around
 // the particle, added per scene like a dynamic light through the optional

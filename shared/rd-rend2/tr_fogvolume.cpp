@@ -95,7 +95,7 @@ struct fogVolumeEval_t
 	vec3_t albedo;
 	vec3_t emission;			// source per world unit at full shape density (0: no glow)
 	float anisotropy;			// Henyey-Greenstein g (own or r_volumetricFogAnisotropy)
-	vec3_t extinctionColor;		// relative sigma_t.rgb, mean 1 (r_volumetricFogRGB)
+	vec3_t extinctionColor;		// relative sigma_t.rgb, mean 1 (r_volumetricFogRGBExtinction)
 	qboolean noisy;
 	float radius;				// bounding sphere around origin
 };
@@ -545,7 +545,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		VectorCopy4(p->rows[1], block->localPrevY[n]);
 		VectorCopy4(p->rows[2], block->localPrevZ[n]);
 		VectorSet4(block->localColor[n], e->albedo[0], e->albedo[1], e->albedo[2], e->extinction);
-		// extinction color (r_volumetricFogRGB): an entry of the palette, 0 = neutral
+		// extinction color (r_volumetricFogRGBExtinction): an entry of the palette, 0 = neutral
 		static const vec3_t neutral = { 1.0f, 1.0f, 1.0f };
 		int palette = 0;
 		if ( R_VolumetricFroxelRGB() && !VectorCompare(e->extinctionColor, neutral) )
@@ -716,7 +716,7 @@ Emission (glowing gas, lights nothing): "Emissive": [r, g, b] scene linear HDR
 radiance of the opaque medium, "EmissiveDensity": per unit (default: the
 extinction of the volume). "Opaque": 0 = no extinction, a pure glow, which
 needs an EmissiveDensity.
-"Extinction": [r, g, b] relative extinction per channel (r_volumetricFogRGB),
+"Extinction": [r, g, b] relative extinction per channel (r_volumetricFogRGBExtinction),
 normalized to mean 1 (Opaque stays the mean opaque distance): [3, 0.5, 0.5]
 absorbs red, the medium and what is behind it turn cyan. Absent = neutral.
 
@@ -883,7 +883,7 @@ static void R_FogVolumeUsage( void )
 		"         angles  <pitch> <yaw> <roll>    orientation\n"
 		"         noise   0|1                     density noise (r_volumetricFogNoise 8)\n"
 		"         aniso   <g>                     Henyey-Greenstein g -0.9..0.9 (default r_volumetricFogAnisotropy)\n"
-		"         extinction <r> <g> <b>          relative extinction per channel, mean 1 (r_volumetricFogRGB)\n"
+		"         extinction <r> <g> <b>          relative extinction per channel, mean 1 (r_volumetricFogRGBExtinction)\n"
 		"         emit    <r> <g> <b> [density]   glow: scene linear radiance of the opaque medium,\n"
 		"                                         emissive density per unit (default: the extinction);\n"
 		"                                         opaque 0 = no extinction (needs a density)\n"
@@ -894,7 +894,7 @@ static void R_FogVolumeUsage( void )
 		"       r_fogvol emittest                 pure glow (no extinction) + dense glowing smoke ahead\n"
 		"       r_fogvol mediumtest               per-medium phase: g +0.8 and g -0.8 overlapping,\n"
 		"                                         isotropic red albedo beside them\n"
-		"       r_fogvol rgbtest                  RGB extinction (r_volumetricFogRGB): neutral, red absorbing,\n"
+		"       r_fogvol rgbtest                  RGB extinction (r_volumetricFogRGBExtinction): neutral, red absorbing,\n"
 		"                                         blue absorbing and mixed white spheres in a row\n"
 		"       r_fogvol remove <index> | clear\n"
 		"       r_fogvol slices                   slice lists of the last frame\n"
@@ -1273,7 +1273,7 @@ static void R_FogVolumeTest( void )
 		return;
 	}
 
-	// deterministic spheres in front of the camera, like r_spawnTestLights
+	// deterministic spheres in front of the camera, like r_forwardPlusSpawnTestLights
 	const int count = Com_Clampi(0, MAX_DEBUG_FOG_VOLUMES - s_fv.numDebug, (int)values[0]);
 	const float spread = MAX(64.0f, values[1]);
 	for ( int n = 0; n < count; n++ )
@@ -1405,7 +1405,7 @@ static void R_FogVolumeMediumTest( void )
 	R_FogVolumeWarnings();
 }
 
-// RGB extinction test without assets (r_volumetricFogRGB, r_volumetricFogDebug
+// RGB extinction test without assets (r_volumetricFogRGBExtinction, r_volumetricFogDebug
 // 51-56): four white scattering spheres in a row across the view, the same mean
 // opacity: neutral (1 1 1), red absorbing (3 0.5 0.5: cyan), blue absorbing
 // (0.5 0.5 3: yellow) and mixed (1 2 3: orange red). Put a white wall behind
@@ -1448,7 +1448,7 @@ static void R_FogVolumeRGBTest( void )
 	}
 	R_FogVolumeWarnings();
 	if ( !R_VolumetricFroxelRGB() )
-		ri.Printf(PRINT_WARNING, "r_fogvol rgbtest: r_volumetricFogRGB is off (set it to 1, then vid_restart): the spheres look alike\n");
+		ri.Printf(PRINT_WARNING, "r_fogvol rgbtest: r_volumetricFogRGBExtinction is off (set it to 1, then vid_restart): the spheres look alike\n");
 }
 
 /*

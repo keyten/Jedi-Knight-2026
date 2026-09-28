@@ -2963,7 +2963,7 @@ static qboolean ParseShader( const char **text )
 			continue;
 		}
 		// q3map_surfacelight deprecated as of 16 Jul 01
-		// kept only as a hint for r_extractAreaLights (tr_arealights.cpp);
+		// kept only as a hint for r_ltcExtractLights (tr_arealights.cpp);
 		// nothing renders from it
 		else if ( !Q_stricmp( token, "surfacelight" ) || !Q_stricmp( token, "q3map_surfacelight" ) )
 		{
@@ -3006,7 +3006,7 @@ static qboolean ParseShader( const char **text )
 			continue;
 		}
 		// particleLighting <on|off>: overrides the blend state classification of
-		// the sprite particle lighting (r_particleLight, tr_volumetric.cpp)
+		// the sprite particle lighting (r_particleLighting, tr_volumetric.cpp)
 		else if ( !Q_stricmp( token, "particleLighting" ) ) {
 			token = COM_ParseExt( text, qfalse );
 			if ( !Q_stricmp( token, "on" ) || !Q_stricmp( token, "1" ) )
@@ -3018,33 +3018,33 @@ static qboolean ParseShader( const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
-		// silhouettePOM: explicit opt-in to the displaced silhouette shell
+		// pomSilhouette: explicit opt-in to the displaced silhouette shell
 		// (r_pomSilhouette, tr_pom_silhouette.cpp). The displacement itself
 		// stays parallaxDepth / parallaxBias of the normalHeightMap stage.
-		else if ( !Q_stricmp( token, "silhouettePOM" ) ) {
-			shader.silhouettePOM = qtrue;
+		else if ( !Q_stricmp( token, "pomSilhouette" ) ) {
+			shader.pomSilhouette = qtrue;
 			continue;
 		}
-		// silhouetteDistance <units>: shell range limit, below r_pomSilhouetteDistance
-		else if ( !Q_stricmp( token, "silhouetteDistance" ) ) {
+		// pomSilhouetteDistance <units>: shell range limit, below r_pomSilhouetteDistance
+		else if ( !Q_stricmp( token, "pomSilhouetteDistance" ) ) {
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
 			{
-				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for silhouetteDistance in shader '%s'\n", shader.name );
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for pomSilhouetteDistance in shader '%s'\n", shader.name );
 				continue;
 			}
-			shader.silhouetteDistance = Q_max( 0.0f, (float)atof( token ) );
+			shader.pomSilhouetteDistance = Q_max( 0.0f, (float)atof( token ) );
 			continue;
 		}
-		// silhouetteSteps <n>: max linear ray steps, replaces r_pomSilhouetteMaxSteps
-		else if ( !Q_stricmp( token, "silhouetteSteps" ) ) {
+		// pomSilhouetteSteps <n>: max linear ray steps, replaces r_pomSilhouetteMaxSteps
+		else if ( !Q_stricmp( token, "pomSilhouetteSteps" ) ) {
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
 			{
-				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for silhouetteSteps in shader '%s'\n", shader.name );
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for pomSilhouetteSteps in shader '%s'\n", shader.name );
 				continue;
 			}
-			shader.silhouetteSteps = Com_Clampi( 4, 128, atoi( token ) );
+			shader.pomSilhouetteSteps = Com_Clampi( 4, 128, atoi( token ) );
 			continue;
 		}
 		// skip stuff that only the q3map needs
@@ -3159,7 +3159,7 @@ static qboolean ParseShader( const char **text )
 			SkipRestOfLine( text );
 			continue;
 		}
-		// fogExtinctionColor <r g b>: froxel fog RGB extinction (r_volumetricFogRGB) of this
+		// fogExtinctionColor <r g b>: froxel fog RGB extinction (r_volumetricFogRGBExtinction) of this
 		// fog: relative extinction per channel, normalized to mean 1 (depthForOpaque stays the
 		// mean opaque distance), e.g. water 3 1 0.6 absorbs red first. No effect otherwise.
 		else if ( !Q_stricmp( token, "fogExtinctionColor" ) )

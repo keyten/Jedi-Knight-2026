@@ -7,7 +7,7 @@
 // variant and pom_silhouette_depth). All of them trace with the functions below and the same
 // uniforms, so the depth prepass, the colour pass and the fog pass find the same hit.
 //
-// Geometry: a world surface with the silhouettePOM keyword gets a shell (tr_pom_silhouette.cpp):
+// Geometry: a world surface with the pomSilhouette keyword gets a shell (tr_pom_silhouette.cpp):
 // its triangles moved to the top of the displaced volume plus side walls along the boundary edges
 // of coplanar groups. The shell is only a conservative raster volume. Each shell vertex carries the
 // base surface frame (flat normal / tangent of its group) and the texture coordinates of its foot

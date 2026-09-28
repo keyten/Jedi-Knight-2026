@@ -45,7 +45,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //             closest depth mips (screenHiZ), tr_screenspace.cpp
 //   copy      opaque scene color -> ssrColor mip 0, mips 1.. (roughness blur,
 //             premultiplied coverage: no view model, nothing outside the view)
-//   classify  r_ssrCull: depth mask of the pixels that need a ray, so the
+//   classify  r_ssrReceiverCull: depth mask of the pixels that need a ray, so the
 //             trace only runs there (early depth test)
 //   trace     ray march (linear or Hi-Z), full or half res -> ssrTrace[current].
 //             Hit cache (r_ssrHitCache): the hit of the previous frame
@@ -208,7 +208,7 @@ void R_CreateSSRFBOs( void )
 
 	for ( int i = 0; i < 2; i++ )
 	{
-		// depth: the classification of the pixels that need a ray (r_ssrCull)
+		// depth: the classification of the pixels that need a ray (r_ssrReceiverCull)
 		tr.ssrTraceFbo[i] = R_ScreenCreateLevelFBO(va("_ssrTrace%d", i), tr.ssrTraceImage[i], 0);
 		FBO_CreateBuffer(tr.ssrTraceFbo[i], GL_DEPTH_COMPONENT16, 0, 0);
 		R_CheckFBO(tr.ssrTraceFbo[i]);
@@ -242,7 +242,7 @@ qboolean RB_SSRWantsView( void )
 
 	// SSR at zero strength without debug views is the legacy look: skip
 	// the work (the split screen compare still needs it)
-	return (qboolean)(r_ssrStrength->value > 0.0f || r_ssrDebug->integer || r_ssrCompare->integer);
+	return (qboolean)(r_ssrBlendStrength->value > 0.0f || r_ssrDebug->integer || r_ssrCompare->integer);
 }
 
 static const ssrQualityPreset_t& RB_SSRQuality( void )
@@ -531,7 +531,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			phase);
 
 		uint32_t traceState = GLS_DEPTHTEST_DISABLE;
-		if ( r_ssrCull->integer )
+		if ( r_ssrReceiverCull->integer )
 		{
 			// the pixels that need a ray get the nearest depth, the trace is
 			// drawn behind them: everything else is rejected before shading
@@ -666,7 +666,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, settings2);
 
 		vec4_t settings;
-		const float strength = Com_Clamp(0.0f, 1.0f, r_ssrStrength->value);
+		const float strength = Com_Clamp(0.0f, 1.0f, r_ssrBlendStrength->value);
 		if ( sceneDebug )
 		{
 			GL_State(GLS_DEPTHTEST_DISABLE);

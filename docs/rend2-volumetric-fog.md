@@ -223,14 +223,14 @@ volumes still builds no volume at all.
 
 ```
 h        = p.z - r_volumetricFogHeightBase
-sigma0   = -ln(1.5 / 255) / r_volumetricFogHeightOpaque * volumetricFogScale * r_volumetricFogScale
-sigma(h) = sigma0 * min(exp(-h / r_volumetricFogHeightFalloff), r_volumetricFogHeightMax)
-                  * (1 - smoothstep(top - fade, top, h))       top = r_volumetricFogHeightTop (0: no cutoff)
+sigma0   = -ln(1.5 / 255) / r_volumetricFogHeightOpaqueDistance * volumetricFogScale * r_volumetricFogScale
+sigma(h) = sigma0 * min(exp(-h / r_volumetricFogHeightFalloff), r_volumetricFogHeightMaxDensity)
+                  * (1 - smoothstep(top - fade, top, h))       top = r_volumetricFogHeightTopHeight (0: no cutoff)
                                                                 fade = min(falloff, top)
 medium   = fog volumes + height fog: extinctions add, albedo = extinction weighted average
 ```
 
-Units: extinction per world unit, the same conversion as the fog volumes. `r_volumetricFogHeightOpaque` is a
+Units: extinction per world unit, the same conversion as the fog volumes. `r_volumetricFogHeightOpaqueDistance` is a
 `fogParms` depthForOpaque: the distance through the medium at the base height after which the transmittance is
 1.5/255. There is no separate density scale. Below the base the density grows up to `HeightMax` times the base
 density (1 = flat layer below the base). The color is a `fogParms` color (sRGB, converted like the fog volumes).
@@ -603,7 +603,7 @@ Expected shape:
 - More froxels become non-empty, so more of them take the light path (sun cascades, grid, dlights).
 - CPU: one sort and at most 64 x 128 sphere / slice tests per frame.
 
-## FX particle media (`r_volParticles`, `tr_volparticle.cpp`)
+## FX particle media (`r_volumetricParticles`, `tr_volparticle.cpp`)
 
 Selected FX particles (smoke, steam, gas) add real density to the froxel medium. Once in `FroxelMedium` they get
 every light of the froxel fog with no particle lighting code: the baked grid, the sun and its cascades, dynamic
@@ -682,13 +682,13 @@ typedef struct refVolParticleExport_s {
   `REF_API_VERSION` bump and no refEntity flag; other renderers simply lack the export.
 - It has the same lifetime as a dynamic light: `RE_AddVolumetricParticleToScene` (`tr_scene.cpp`) appends to
   `backEndData->volParticles[1024]`, and the scene slice goes to `refdef.volParticles`. NaN origins, radius <= 0,
-  extinction <= 0 and anything past 1024 are counted as rejected. With `r_volParticles 0` it returns at once.
+  extinction <= 0 and anything past 1024 are counted as rejected. With `r_volumetricParticles 0` it returns at once.
 - MP: the FX system lives in the client executable. `cl_main.cpp` looks the export up next to
   `GetRefFoliageAPI` (`reVolParticles`), and `SFxHelper::AddVolumetricParticle` (`FxSystem.cpp`) calls it.
 - SP: the FX system lives in the game module. It sends the particle through the new cgame trap
   `CG_R_ADDVOLPARTICLE` (appended to `cgameImport_t`, `cgi_R_AddVolumetricParticle`), and the engine forwards it
-  to the export (`cl_cgame.cpp`). The game module calls the trap only while the mirrored cvar `r_volParticles` is
-  set, because older engines lack the trap. This is the pattern of `r_foliageInteraction` / `r_saberAreaLights`.
+  to the export (`cl_cgame.cpp`). The game module calls the trap only while the mirrored cvar `r_volumetricParticles` is
+  set, because older engines lack the trap. This is the pattern of `r_foliageInteraction` / `r_ltcSaberAreaLights`.
 - `CParticle::Draw` / `COrientedParticle::Draw` submit the medium after the sprite. When the sprite is culled
   (center behind the camera, or closer than `fx_nearCull` / 16 units), `Update` still computes size and alpha and
   submits the medium, so smoke around the camera keeps fogging the view. Particles with `depthHack` (first person)
@@ -702,7 +702,7 @@ typedef struct refVolParticleExport_s {
 2. Frustum: the sphere is tested against the four side planes and the depth range 0 .. fade end (the start of the
    last slice). Particles fade out over the last 20% like the local volumes, because the tail cannot carry them.
 3. Importance `max(extinction, previous) * r^2 / max(depth, near)^2` (projected optical footprint). A
-   **deterministic** sort (importance, then id, then live before vanished) keeps the first `r_volParticlesMax`
+   **deterministic** sort (importance, then id, then live before vanished) keeps the first `r_volumetricParticlesMax`
    (default 128, hard cap `MAX_GPU_VOL_PARTICLES` 128). The rest count as capped. The same input in any order
    gives the same selection (checked by the harness).
 4. Per slice lists (near to far, 16 bit indices, pool `VOL_PARTICLE_POOL` 2560). When the pool is full, the far
@@ -729,14 +729,14 @@ moving puff. The injection evaluates each listed particle twice, now and in its 
 `particleChange = sum |e - e_prev| / max(sum e, sum e_prev)`, separate from `localChange`. Then:
 
 ```
-particleKeep = mix(1, r_volParticlesHistory, smoothstep(0.02, 0.25, particleChange))
+particleKeep = mix(1, r_volumetricParticlesHistory, smoothstep(0.02, 0.25, particleChange))
 froxelWeight *= particleKeep
 ```
 
 - Where the particle density did not change, the history is untouched (a static fog around the smoke keeps its
   full weight).
 - Where it changed, the weight drops to `0.9 * 0.3 = 0.27` by default. The ghost decays about 4x per frame, and
-  the jittered samples of a drifting puff are still averaged a little (no hard flicker). `r_volParticlesHistory 0`
+  the jittered samples of a drifting puff are still averaged a little (no hard flicker). `r_volumetricParticlesHistory 0`
   drops the history entirely there; `1` treats smoke as static fog.
 - Particles never enter `R_VolumetricMediumKey`: smoke does not reset the whole history.
 
@@ -751,7 +751,7 @@ froxelWeight *= particleKeep
   drawn (the block holds only the uploaded ones); their counts are in `r_volparticles`.
 - `r_volparticles`: prints the last froxel frame: submitted, rejected, culled, capped, uploaded (changed,
   vanished), pool use / dropped / max per slice, and the CPU build time in microseconds.
-- `r_volParticlesDebug 1` (cheat): the same line every 60 frames.
+- `r_volumetricParticlesDebug 1` (cheat): the same line every 60 frames.
 - `r_volumetricFogDebug` is now clamped to 0..28 (it was 0..15, which made views 16 to 25 unreachable).
 
 ### Selected assets and the test pk3
@@ -922,7 +922,7 @@ The FX code sends `refVolParticle_t.emission[3]`, which is `j` at the center per
 - The glow fades with the sprite. With `emissiveTint 1` that is its current rgb, which already carries the alpha
   fade for additive art, plus the alpha for `useAlpha` art. Without the tint it is the alpha fade.
 - A particle is submitted when it has an extinction or an emission.
-- `r_volParticlesScale` (a density scale) does not scale the emission.
+- `r_volumetricParticlesScale` (a density scale) does not scale the emission.
 
 On the renderer side:
 
@@ -1024,7 +1024,7 @@ Light terms and energy:
 - The global g is still used in two places, both documented limits:
   - The **tail beyond far** (`u_FroxelTail`). It stores light that already has its phase, so BSP fog and height
     fog beyond the last slice use the global g even with `fogAnisotropy`.
-  - The **sprite particle light field** (`r_particleLight`). The sprites are not a medium of the volume.
+  - The **sprite particle light field** (`r_particleLighting`). The sprites are not a medium of the volume.
 - The albedo semantics are unchanged: the fog colour is the albedo, in the fogParms convention.
 
 ### Defaults
@@ -1131,7 +1131,7 @@ difference.
   - shadow taps, texture fetches and light lists are unchanged.
 - **UBO:** the VolumetricFog block grows by 24 vec4 (15072 → 15456 bytes). The particle block does not grow.
 
-## Sprite particle lighting (`r_particleLight`)
+## Sprite particle lighting (`r_particleLighting`)
 
 Ordinary FX sprites, drawn by `generic.glsl` with their authored vertex colour, are lit by the local light. This works
 without any medium. It is separate from the FX particle media above: a sprite doesn't need a `volumetricMedia` block,
@@ -1186,9 +1186,9 @@ in the dark.
   2 (none) unless the stage is really fogged.
 - `generic.glsl` multiplies the colour before the froxel fog:
   `color.rgb *= mix(1, clamp(L * gain, floor, 4), mix)`, with
-  `gain = r_particleLightScale / (mapAverage * r_volumetricFogStaticScale)`.
+  `gain = r_particleLightingScale / (mapAverage * r_volumetricFogStaticScale)`.
   - `mapAverage` is the mean luminance of the valid light grid cells (`world_t::particleLightReference`).
-  - An average place of the map keeps the authored colour. A dark room darkens smoke down to `r_particleLightFloor`,
+  - An average place of the map keeps the authored colour. A dark room darkens smoke down to `r_particleLightingFloor`,
     and a saber or a sunbeam brightens it.
 - **Fog is applied once.** The particle light is incident light at the sprite. The fog between the sprite and the
   camera (S, T of `FroxelFog`) is applied afterwards by the existing code, and the field is never multiplied by T.
@@ -1214,11 +1214,11 @@ override adds `particleLighting on`, which could go in the task-#5 test pk3. The
 
 | cvar | default | |
 |---|---|---|
-| `r_particleLight` | 0 | latched (`vid_restart`): creates the field. Needs `r_volumetricFog 2`. The froxel build then also runs on maps without any fog medium. |
-| `r_particleLightMix` | 1 | 0 = authored colour (lit/unlit A/B toggle without a restart), 1 = lit |
-| `r_particleLightScale` | 1 | gain relative to the map average light |
-| `r_particleLightFloor` | 0.03 | minimum light factor |
-| `r_particleLightDebug` | 0 | 1 field (just in front of the scene), 2 baked only, 3 sun only, 4 dynamic lights only (2-4 also change what sprites receive), 5 classification: magenta = lit, cyan = unlit sprites |
+| `r_particleLighting` | 0 | latched (`vid_restart`): creates the field. Needs `r_volumetricFog 2`. The froxel build then also runs on maps without any fog medium. |
+| `r_particleLightingMix` | 1 | 0 = authored colour (lit/unlit A/B toggle without a restart), 1 = lit |
+| `r_particleLightingScale` | 1 | gain relative to the map average light |
+| `r_particleLightingFloor` | 0.03 | minimum light factor |
+| `r_particleLightingDebug` | 0 | 1 field (just in front of the scene), 2 baked only, 3 sun only, 4 dynamic lights only (2-4 also change what sprites receive), 5 classification: magenta = lit, cyan = unlit sprites |
 
 ### Cost
 
@@ -1240,7 +1240,7 @@ override adds `particleLighting on`, which could go in the task-#5 test pk3. The
 ### Timings
 
 Not measured: the game has not been run with this change. Measure with `r_speeds 100`, reading "Froxel fog inject"
-with `r_particleLight 0` / `1` (`vid_restart` between), on a map without fog and on one with fog.
+with `r_particleLighting 0` / `1` (`vid_restart` between), on a map without fog and on one with fog.
 
 | map | inject off | inject on | total frame off / on |
 |---|---|---|---|
@@ -1334,11 +1334,11 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogDebug` | 0 | cheat, debug views below |
 | `r_volumetricFogFreeze` | 0 | cheat, keep the volume and its camera |
 | `r_volumetricFogHeight` | 0 | height fog on / off |
-| `r_volumetricFogHeightOpaque` | 3000 | height fog: depthForOpaque at the base height (units) |
+| `r_volumetricFogHeightOpaqueDistance` | 3000 | height fog: depthForOpaque at the base height (units) |
 | `r_volumetricFogHeightBase` | 0 | height fog: world z of the base, set to the lowest floor on map load |
 | `r_volumetricFogHeightFalloff` | 256 | height fog: scale height (density / e per this many units above the base) |
-| `r_volumetricFogHeightMax` | 1 | height fog: maximum density below the base, multiple of the base density |
-| `r_volumetricFogHeightTop` | 0 | height fog: soft cutoff height above the base, 0 = none |
+| `r_volumetricFogHeightMaxDensity` | 1 | height fog: maximum density below the base, multiple of the base density |
+| `r_volumetricFogHeightTopHeight` | 0 | height fog: soft cutoff height above the base, 0 = none |
 | `r_volumetricFogHeightColor` | 0.7 0.75 0.8 | height fog: scattering color (albedo), as fogParms |
 | `r_volumetricFogStaticDirectional` | 0 | 1 = the directed non-sun light grid part gets the phase function along its baked direction |
 | `r_volumetricFogNoise` | 0 | density noise media mask: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag |
@@ -1347,11 +1347,11 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogNoiseDetailScale` | 900 | detail noise tile period (world units) |
 | `r_volumetricFogNoiseDetailContrast` | 0 | detail contrast, 0 = off (no second fetch) |
 | `r_volumetricFogNoiseWind` | 0 0 0 | noise drift, world units per second |
-| `r_volParticles` | 0 | FX particles with a `volumetricMedia` block add media (mirrored by the SP game module, so off by default) |
-| `r_volParticlesMax` | 128 | most important particles uploaded per frame, 0..128 |
-| `r_volParticlesScale` | 1 | extinction multiplier of the particle media |
-| `r_volParticlesHistory` | 0.3 | share of the history weight kept where the particle density changed |
-| `r_volParticlesDebug` | 0 | cheat, 1 = culling statistics every 60 frames |
+| `r_volumetricParticles` | 0 | FX particles with a `volumetricMedia` block add media (mirrored by the SP game module, so off by default) |
+| `r_volumetricParticlesMax` | 128 | most important particles uploaded per frame, 0..128 |
+| `r_volumetricParticlesScale` | 1 | extinction multiplier of the particle media |
+| `r_volumetricParticlesHistory` | 0.3 | share of the history weight kept where the particle density changed |
+| `r_volumetricParticlesDebug` | 0 | cheat, 1 = culling statistics every 60 frames |
 
 The existing `r_volumetricFogScale`, `r_volumetricFogDefaultScale` and the `volumetricFogScale` worldspawn key
 scale the extinction in both modes; `r_volumetricFogSamples` only concerns the legacy ray march. Mode 2 needs
@@ -1467,30 +1467,30 @@ vs `*-vfog.dll`).
 | local: camera through the soft edge | walk into / out of a volume (`at eye` or a big one) | smooth transition, no pop | 1, 7 |
 | local: asset | hoth2 + pk3, `r_fogvol` | `map volumes: 3`, bounds in view 18 at the placed spots | 18 |
 | local: timings | see Local fog volumes, Timings | fill the table | - |
-| fx: black smoke | `r_volParticles 1`, `zz_volumetric_media_test.pk3`, a map spawning `volumetric/black_smoke` (or `playfx`-style test) | dark soft puffs that shadow / absorb the light behind them; sprite still drawn | 26, 28, 1 |
+| fx: black smoke | `r_volumetricParticles 1`, `zz_volumetric_media_test.pk3`, a map spawning `volumetric/black_smoke` (or `playfx`-style test) | dark soft puffs that shadow / absorb the light behind them; sprite still drawn | 26, 28, 1 |
 | fx: droid smoke | damage a droid (R2 / R5 / mouse) until it smokes | smoke trail with volume, follows the droid | 26, 28 |
 | fx: rocket smoke | fire a rocket at a wall | only the lingering smoke has volume; fireball, dust, flash unchanged | 26, 28 |
 | fx: saber through smoke | saber on, swing through the smoke | colored glow inside the smoke only | 4, 6 |
 | fx: moving source | smoking droid walking / rocket smoke drifting | no long ghost behind it, no strong flicker | 27, 8 |
 | fx: behind a wall from a dlight | smoke on the far side of a wall from a point light, `r_dlightMode 2` | no light leak through the wall | 4 |
 | fx: stress | many emitters (several explosions at once) | `r_volparticles`: capped > 0, uploaded 128, no hitch; far slices drop first | 28 |
-| fx: temporal off / on | `r_volumetricFogTemporal 0 / 1`, `r_volParticlesHistory 0 / 0.3 / 1` | off: noisier, no ghost; 1: visible trail | 27, 8 |
+| fx: temporal off / on | `r_volumetricFogTemporal 0 / 1`, `r_volumetricParticlesHistory 0 / 0.3 / 1` | off: noisier, no ghost; 1: visible trail | 27, 8 |
 | fx: camera inside smoke | walk into a smoke column | fog stays (medium submitted while the sprite is culled) | 1 |
 | fx: legacy RF_VOLUMETRIC | DEMP2 shot / charged impact | unchanged fake volumetric shading of the model | - |
-| fx: off | `r_volParticles 0` | exactly the previous look; `r_volparticles` shows 0 submitted | - |
+| fx: off | `r_volumetricParticles 0` | exactly the previous look; `r_volparticles` shows 0 submitted | - |
 | fx: timings | see FX particle media, Timings | fill the table | - |
-| plight: dark room | `r_volumetricFog 2`, `r_particleLight 1` + `vid_restart`, droid smoke in an unlit corridor | smoke darker than with `r_particleLightMix 0`, not black | pl 1, 2 |
+| plight: dark room | `r_volumetricFog 2`, `r_particleLighting 1` + `vid_restart`, droid smoke in an unlit corridor | smoke darker than with `r_particleLightingMix 0`, not black | pl 1, 2 |
 | plight: saber beside smoke | ignite a saber next to `volumetric/black_smoke` | smoke takes the blade colour on the near side | pl 4 |
 | plight: red / blue saber sweep | swing red then blue through the smoke | colour follows the blade, no trail (no history) | pl 4 |
 | plight: light behind a wall | dlight on the far side of a wall, `r_dlightMode 2` | no light on smoke across the wall | pl 4 |
 | plight: sunlit smoke | outdoor map with sun, smoke half in shadow | lit side bright, shadowed side dark | pl 3 |
 | plight: additive sparks | sparks / muzzle flash next to smoke | sparks unchanged in the dark, cyan in pl 5; smoke magenta | pl 5 |
 | plight: volumetric off / on | `r_volumetricFog 1` vs `2` | mode 1: authored sprites; mode 2: lit sprites, fog applied once | - |
-| plight: lit / unlit | `r_particleLightMix 0 / 1` | only alpha-blended sprites change | pl 5 |
+| plight: lit / unlit | `r_particleLightingMix 0 / 1` | only alpha-blended sprites change | pl 5 |
 | plight: timings | see Sprite particle lighting, Timings | fill the table | - |
 | emit: pure glow | `r_fogvol emittest`, left sphere (opaque 0) | blue glow, no black, no NaN squares, T unchanged behind it | 31, 7 |
 | emit: dense smoke | `r_fogvol emittest`, right sphere | orange core about the emissive radiance, darker smoky rim, scene hidden behind | 33 vs 31 |
-| emit: fire + dlight | thermal detonator with the test pk3, `r_volParticles 1` | cloud glows, room still lit by the Flash dlight only | 31, 4 |
+| emit: fire + dlight | thermal detonator with the test pk3, `r_volumetricParticles 1` | cloud glows, room still lit by the Flash dlight only | 31, 4 |
 | emit: explosion | several detonators | glow follows the sprites, `r_volparticles` shows the emissive count | 33 |
 | emit: bloom | `r_volumetricFogBloom 0 / 1`, `r_bloom 0 / 1` | only the bright core blooms, dim glow haze does not | - |
 | emit: rapid disappear | `r_fogvol clear`, end of the explosion | glow gone on the same frame, no after-image | 34 |
@@ -1547,7 +1547,7 @@ unchanged and out of scope here.
 
 The transmittance multiplies the sun term only (realtime and the trusted baked sun part). The isotropic and
 directed baked light are not attenuated: their direction is not a single ray. The sprite particle light field
-(`r_particleLight`) gets the same sun attenuation, so sprites inside smoke darken too.
+(`r_particleLighting`) gets the same sun attenuation, so sprites inside smoke darken too.
 
 **Sample count cost.** At quality 1 and 1080p (240×135×48 ≈ 1.56 M froxels) and 6 samples, the worst case is
 ≈ 9.3 M trilinear fetches per frame. Only froxels with a medium pay. The default must be chosen by measurement
@@ -1560,7 +1560,7 @@ distance. When a light ray leaves the volume (side planes, far plane, behind the
 
 - The march stops. The unknown media there count as **empty**. A smoke column just outside the screen edge
   therefore casts no media shadow into the view, and its shadow appears when it enters the frustum.
-- With `r_volumetricSelfShadowOutside 1` (default), the height fog is added analytically from the point where the
+- With `r_volumetricSelfShadowOutsideHeightFog 1` (default), the height fog is added analytically from the point where the
   march ended to the end of the ray (`FroxelHeightOpticalDepth`, exact; the noise is not included). The sun ray is
   treated as 32768 units, and a light ray ends at the light. The height fog is the only medium known everywhere.
   BSP fogs, local volumes and particles beyond the march are not included.
@@ -1572,7 +1572,7 @@ edges. It is most visible with a low sun pointing sideways out of the view, and 
 
 ### Dynamic lights
 
-`r_volumetricSelfShadow 2` adds the media shadow to the `r_volumetricSelfShadowLights` strongest dynamic lights
+`r_volumetricSelfShadow 2` adds the media shadow to the `r_volumetricSelfShadowMaxLights` strongest dynamic lights
 (default 2, max 4). `R_VolumetricBuildLightLists` chooses them by
 `luminance · radius² / max(distance to camera, radius/4)²` and passes their light buffer indices in
 `u_FroxelSelfShadowLights`. They use half the sun samples (at least 3) over `min(distance to light,
@@ -1594,8 +1594,8 @@ their geometry shadows. Mode 1 is sun only.
 | `r_volumetricSelfShadow` | 0 | 0 off, 1 sun, 2 sun + strongest lights (latched, vid_restart) |
 | `r_volumetricSelfShadowSamples` | 6 | sun samples (lights: half, min 3) |
 | `r_volumetricSelfShadowDistance` | 768 | light ray march length (world units) |
-| `r_volumetricSelfShadowOutside` | 1 | analytic height fog beyond the march |
-| `r_volumetricSelfShadowLights` | 2 | number of self-shadowed dynamic lights (mode 2) |
+| `r_volumetricSelfShadowOutsideHeightFog` | 1 | analytic height fog beyond the march |
+| `r_volumetricSelfShadowMaxLights` | 2 | number of self-shadowed dynamic lights (mode 2) |
 
 ### Debug views (`r_volumetricFogDebug`)
 
@@ -1665,9 +1665,9 @@ the model this appears three ways:
 For every light term that has a media optical depth `tau`: the sun, and in mode 2 the self-shadowed dynamic
 lights.
 
-    thickness = 1 - exp(-sigma_t * l)                       l = r_volumetricMSLength
+    thickness = 1 - exp(-sigma_t * l)                       l = r_volumetricMultiScatterLength
     q         = min(b * albedo * thickness, 0.95)           albedo = luma(sum S_k) / sigma_t
-    w_i       = q^i * exp(-a^i * tau)                       i = 1..N (r_volumetricMSOctaves)
+    w_i       = q^i * exp(-a^i * tau)                       i = 1..N (r_volumetricMultiScatterOctaves)
     L_fill    = mix(L_geometry, L_unshadowed, fill * thickness)
     ms_k      = L_fill * sum_i w_i * P(c^i g_k)             per phase-lobe slot k and the global g
     ms_k      = min(ms_k, L_unshadowed * max(P(g_k), 1) - ss_k)   (energy guard)
@@ -1691,7 +1691,7 @@ lights.
 - **Temporal.** The sun octaves are part of the scattering that enters the history, with the same jitter and
   radiance clamp. The dynamic-light octaves go to the dynamic volume, which has no history. The MS cvars are part
   of the medium key, so changing them resets the history.
-- **Sprite particle light field.** `r_particleLight` receives the global-g octaves too, so sprites inside smoke
+- **Sprite particle light field.** `r_particleLighting` receives the global-g octaves too, so sprites inside smoke
   match the smoke.
 - **Prerequisite.** Without `r_volumetricSelfShadow` the feature is a no-op (console note once). There is no
   `tau`, so there is no lost energy to return.
@@ -1701,12 +1701,12 @@ lights.
 | cvar | default | |
 |---|---|---|
 | `r_volumetricMultiScatter` | 0 | 0 off, 1 sun, 2 sun + self-shadowed dynamic lights (capped by `r_volumetricSelfShadow`) |
-| `r_volumetricMSOctaves` | 2 | octaves beyond single scattering (1-3) |
-| `r_volumetricMSAttenuation` | 0.25 | `a`: optical depth scale per octave (lower = deeper light), kept `<= b` |
-| `r_volumetricMSContribution` | 0.5 | `b`: energy per octave, times albedo and thickness |
-| `r_volumetricMSPhase` | 0.5 | `c`: anisotropy scale per octave (0 = isotropic octaves) |
-| `r_volumetricMSLength` | 64 | `l`: typical size of a dense medium (world units), sets what counts as "thin" |
-| `r_volumetricMSShadowFill` | 0.25 | how far thick media may lighten a geometry shadow (0-0.5) |
+| `r_volumetricMultiScatterOctaves` | 2 | octaves beyond single scattering (1-3) |
+| `r_volumetricMultiScatterAttenuation` | 0.25 | `a`: optical depth scale per octave (lower = deeper light), kept `<= b` |
+| `r_volumetricMultiScatterContribution` | 0.5 | `b`: energy per octave, times albedo and thickness |
+| `r_volumetricMultiScatterPhase` | 0.5 | `c`: anisotropy scale per octave (0 = isotropic octaves) |
+| `r_volumetricMultiScatterLength` | 64 | `l`: typical size of a dense medium (world units), sets what counts as "thin" |
+| `r_volumetricMultiScatterShadowFill` | 0.25 | how far thick media may lighten a geometry shadow (0-0.5) |
 
 ### Debug views (`r_volumetricFogDebug`)
 
@@ -1762,13 +1762,13 @@ or the volumetric-particle smoke). Set `r_volumetricSelfShadow 1` (or 2), then r
 Screenshots per case: views 46 / 47 / 48, plus 3 with `r_volumetricMultiScatter 0` vs 1. Also record timings,
 `r_speeds 100`: inject at MS 0 / 1 / 2.
 
-## RGB extinction (`r_volumetricFogRGB`)
+## RGB extinction (`r_volumetricFogRGBExtinction`)
 
 A medium can let the color channels through differently: water absorbs red first, a smoke can
 look bluish in front of a white wall and yellowish in transmission. The scalar path stores one
 extinction σ and one transmittance T in alpha channels, so this is an opt-in extension.
-`r_volumetricFogRGB 0` (default) is the scalar path: same textures, same equations, no extra
-memory. `r_volumetricFogRGB 1` (latched, `vid_restart`) makes the extinction and the
+`r_volumetricFogRGBExtinction 0` (default) is the scalar path: same textures, same equations, no extra
+memory. `r_volumetricFogRGBExtinction 1` (latched, `vid_restart`) makes the extinction and the
 transmittance per channel. It needs more than 28 texture units; otherwise it warns and uses the
 scalar path.
 
@@ -1885,7 +1885,7 @@ and the knee still uses the luma of S.
 | 55 | Extinction chroma σt.rgb / mean / 3 (grey = neutral) |
 | 56 | Transmittance of the analytic tail beyond far (dark blue = scene inside the volume) |
 
-In RGB mode the scalar views (1, 7) show the scalar-reference T. Without `r_volumetricFogRGB`,
+In RGB mode the scalar views (1, 7) show the scalar-reference T. Without `r_volumetricFogRGBExtinction`,
 views 51-56 are dark magenta.
 
 ### Validation assets
@@ -1911,7 +1911,7 @@ These checks have run:
 
 In game (not run yet):
 
-1. `r_volumetricFogRGB 1`, `vid_restart`. The console should print "RGB extinction".
+1. `r_volumetricFogRGBExtinction 1`, `vid_restart`. The console should print "RGB extinction".
 2. White geometry behind media: `r_fogvol rgbtest` in front of a white wall. The spheres should
    look neutral grey, cyan, yellow and orange-red. Check with debug 52 and 53.
 3. Colored light inside: a colored dlight or spot inside the red-absorbing sphere. The scattered
@@ -1923,7 +1923,7 @@ In game (not run yet):
 6. Sky and tail: a BSP fog with `fogExtinctionColor` reaching past far. Check debug 56, and that
    the horizon has no color step at the far plane.
 7. Bloom: a bright light behind a colored sphere. The bloom should take the transmitted color.
-8. Scalar compatibility: compare `r_volumetricFogRGB 0` and `1` with neutral media. Debug 54
+8. Scalar compatibility: compare `r_volumetricFogRGBExtinction 0` and `1` with neutral media. Debug 54
    should be black and the frames identical.
 9. Timings (`r_speeds` / GPU timers "Froxel fog inject / integrate / composite"): measure Q0–Q2,
    RGB off vs on. The composite adds a second fullscreen draw. The inject writes one more MRT
@@ -1972,7 +1972,7 @@ In game (not run yet):
   the extension); one env.json per map is shared with the cubemaps.
 - FX particle media: mode 2 and the froxel main view only; soft ellipsoids along the world axes (no rotation,
   no texture shape); at most 128 particles per view (the most important) and 2560 slice list entries; opt-in per
-  `.efx` primitive; `r_volParticles` defaults to 0 because the SP game module mirrors it (older engines lack the
+  `.efx` primitive; `r_volumetricParticles` defaults to 0 because the SP game module mirrors it (older engines lack the
   trap); capped / culled particles are counted but not drawn by view 28.
 - Not run in game yet: correctness is verified by builds, offline compilation of every changed / new shader on
   the Intel and NVIDIA drivers, the legacy source comparison and the numeric checks above.

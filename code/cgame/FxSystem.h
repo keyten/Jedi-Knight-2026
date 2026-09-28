@@ -75,7 +75,7 @@ struct SFxHelper
 	void	AddSpotLightToScene( const vec3_t org, const vec3_t dir, float radius, const vec3_t rgb,
 				float innerAngle, float outerAngle, int flags, int cookie = 0, const vec3_t up = NULL );
 	// participating medium of an FX particle (rend2 volumetric FX particles,
-	// engine + renderer extension); nothing unless r_volParticles is set
+	// engine + renderer extension); nothing unless r_volumetricParticles is set
 	void	AddVolumetricParticle( const refVolParticle_t *particle );
 
 	int		RegisterShader( const gsl::cstring_span& shader );

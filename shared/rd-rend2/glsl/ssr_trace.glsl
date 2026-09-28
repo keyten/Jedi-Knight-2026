@@ -27,7 +27,7 @@ void main()
 // cone, still the visible surface there, not moved (velocity buffer), nothing new in between. Valid cached
 // hits are traced again once every 4 frames (a 2x2 rotation), invalid ones every frame.
 //
-// CLASSIFY: the early depth pass of the trace (r_ssrCull). Writes the nearest depth where a pixel needs a
+// CLASSIFY: the early depth pass of the trace (r_ssrReceiverCull). Writes the nearest depth where a pixel needs a
 // ray (receiver, glossy enough, visible specular weight), discards the others.
 //
 // Output (RGBA16): see ssr_common.glsl. The confidence fades the SSR towards the cubemap reflection where

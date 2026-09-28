@@ -201,7 +201,7 @@ void SFxHelper::AddSpotLightToScene( const vec3_t org, const vec3_t dir, float r
 void SFxHelper::AddVolumetricParticle( const refVolParticle_t *particle )
 {
 	// the renderer cvar, mirrored: older engines lack the trap
-	if ( r_volParticles.integer )
+	if ( r_volumetricParticles.integer )
 	{
 		cgi_R_AddVolumetricParticle( particle );
 	}

@@ -15,7 +15,7 @@ void main()
 // pass). r_volumetricFogBloom adds the bright part of the in-scattering (soft knee), so light beams
 // bloom and the dim haze does not.
 //
-// RGB extinction (r_volumetricFogRGB): scene.rgb * T.rgb + S cannot be one fixed-function blend with a
+// RGB extinction (r_volumetricFogRGBExtinction): scene.rgb * T.rgb + S cannot be one fixed-function blend with a
 // scalar source alpha, so the composite is drawn twice (RB_VolumetricComposite):
 //   u_FroxelFogMode 3  blend ZERO, SRC_COLOR  out = T.rgb      color = color * T, glow = glow * T
 //   u_FroxelFogMode 4  blend ONE, ONE         out = S, bloom   color += S, glow += bloom

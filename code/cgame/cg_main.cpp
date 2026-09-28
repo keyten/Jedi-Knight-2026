@@ -242,9 +242,9 @@ vmCvar_t	cg_bobup;
 vmCvar_t	cg_bobpitch;
 vmCvar_t	cg_bobroll;
 vmCvar_t	cg_shadows;
-vmCvar_t	r_saberAreaLights;	// renderer cvar (rend2 LTC area lights), mirrored
+vmCvar_t	r_ltcSaberAreaLights;	// renderer cvar (rend2 LTC area lights), mirrored
 vmCvar_t	r_foliageInteraction;	// renderer cvar (rend2 foliage interaction), mirrored
-vmCvar_t	r_volParticles;		// renderer cvar (rend2 volumetric FX particles), mirrored
+vmCvar_t	r_volumetricParticles;		// renderer cvar (rend2 volumetric FX particles), mirrored
 vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
@@ -359,9 +359,9 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_fovAspectAdjust, "cg_fovAspectAdjust", "0", CVAR_ARCHIVE },
 	{ &cg_stereoSeparation, "cg_stereoSeparation", "0.4", CVAR_ARCHIVE  },
 	{ &cg_shadows, "cg_shadows", "1", CVAR_ARCHIVE  },
-	{ &r_saberAreaLights, "r_saberAreaLights", "0", CVAR_ARCHIVE },
+	{ &r_ltcSaberAreaLights, "r_ltcSaberAreaLights", "0", CVAR_ARCHIVE },
 	{ &r_foliageInteraction, "r_foliageInteraction", "0", CVAR_ARCHIVE },
-	{ &r_volParticles, "r_volParticles", "0", CVAR_ARCHIVE },
+	{ &r_volumetricParticles, "r_volumetricParticles", "0", CVAR_ARCHIVE },
 	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },

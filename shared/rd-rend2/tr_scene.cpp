@@ -32,7 +32,7 @@ int			r_firstSceneFogVolume;
 
 int			r_numvolparticles;
 int			r_firstSceneVolParticle;
-int			r_volParticlesRejected;		// invalid or over the list this frame (tr_volparticle.cpp)
+int			r_volumetricParticlesRejected;		// invalid or over the list this frame (tr_volparticle.cpp)
 
 int			r_numentities;
 int			r_firstSceneEntity;
@@ -64,7 +64,7 @@ void R_InitNextFrame( void ) {
 
 	r_numvolparticles = 0;
 	r_firstSceneVolParticle = 0;
-	r_volParticlesRejected = 0;
+	r_volumetricParticlesRejected = 0;
 
 	r_numentities = 0;
 	r_firstSceneEntity = 0;
@@ -376,16 +376,16 @@ when the froxel volume is built.
 =====================
 */
 void RE_AddVolumetricParticleToScene( const refVolParticle_t *particle ) {
-	if ( !tr.registered || !particle || !r_volParticles->integer ) {
+	if ( !tr.registered || !particle || !r_volumetricParticles->integer ) {
 		return;
 	}
 	if ( r_numvolparticles >= MAX_REF_VOL_PARTICLES ) {
-		r_volParticlesRejected++;
+		r_volumetricParticlesRejected++;
 		return;
 	}
 	if ( Q_isnan(particle->origin[0]) || Q_isnan(particle->origin[1]) || Q_isnan(particle->origin[2]) ||
 		!(particle->radius > 0.0f) || !R_VolParticleHasMedium(particle) ) {
-		r_volParticlesRejected++;
+		r_volumetricParticlesRejected++;
 		return;
 	}
 	backEndData->volParticles[r_numvolparticles++] = *particle;
@@ -585,7 +585,7 @@ void RE_BeginScene(const refdef_t *fd)
 	tr.refdef.num_entities = r_numentities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData->entities[r_firstSceneEntity];
 
-	// r_spawnTestLights (developer only), before the scene takes its lights
+	// r_forwardPlusSpawnTestLights (developer only), before the scene takes its lights
 	R_ForwardPlusAddTestLights(fd);
 
 	// r_ltcAreaLights: the map's area lights (and r_ltcDebug 6 / 7 polygons)

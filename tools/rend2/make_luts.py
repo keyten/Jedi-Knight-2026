@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes test .cube LUTs for rend2 color grading (r_colorGradingLut).
+"""Writes test .cube LUTs for rend2 color grading (r_colorGradingLUT).
 
 identity.cube    - neutral LUT, must not change the image
 test_look.cube   - deliberately strong look (contrast, teal shadows,
@@ -7,7 +7,7 @@ test_look.cube   - deliberately strong look (contrast, teal shadows,
 
 LUTs map display-encoded sRGB values to display-encoded sRGB values.
 Copy the files into a pk3 or the base folder, e.g. base/luts/, and use
-r_colorGradingLut luts/test_look.cube
+r_colorGradingLUT luts/test_look.cube
 
 Usage: make_luts.py [output directory] [size]
 """

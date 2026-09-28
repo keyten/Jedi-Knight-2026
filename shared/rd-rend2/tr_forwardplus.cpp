@@ -46,7 +46,7 @@ Lights are binned in importance order, so when a cluster is full
 (r_forwardPlusMaxLightsPerCluster) the least important lights are dropped.
 
 Point light shadows: only MAX_DLIGHT_SHADOWS cubes exist. Forward+ gives the
-r_dynamicShadowMaxLights most important lights a slot (with hysteresis so
+r_forwardPlusMaxShadowLights most important lights a slot (with hysteresis so
 slots do not jump between lights of similar importance); the shader reads the
 slot from the light data instead of assuming slot == light index.
 */
@@ -156,7 +156,7 @@ static struct
 	int readableTimer[MAX_FRAMES];
 	qboolean warnedCapacity;
 
-	// r_spawnTestLights
+	// r_forwardPlusSpawnTestLights
 	int testLights;
 	float testRadius;
 
@@ -217,7 +217,7 @@ void R_ForwardPlusNoteDroppedLight( void )
 // never every frame. Nothing gets enabled on the user's behalf.
 static void R_ForwardPlusCheckDependencies( void )
 {
-	const qboolean shadowsChanged = (qboolean)r_dynamicShadowMaxLights->modified;
+	const qboolean shadowsChanged = (qboolean)r_forwardPlusMaxShadowLights->modified;
 	if ( !s_fp.firstCheck && !r_forwardPlus->modified &&
 		!r_forwardPlusDebug->modified && !shadowsChanged )
 	{
@@ -228,22 +228,22 @@ static void R_ForwardPlusCheckDependencies( void )
 	s_fp.firstCheck = qfalse;
 	r_forwardPlus->modified = qfalse;
 	r_forwardPlusDebug->modified = qfalse;
-	r_dynamicShadowMaxLights->modified = qfalse;
+	r_forwardPlusMaxShadowLights->modified = qfalse;
 
 	if ( !r_forwardPlus->integer )
 	{
 		if ( r_forwardPlusDebug->integer )
 			ri.Printf(PRINT_ALL, "r_forwardPlusDebug requires clustered lighting. Enable r_forwardPlus 1.\n");
 		if ( shadowsChanged && !first )
-			ri.Printf(PRINT_ALL, "r_dynamicShadowMaxLights applies to r_forwardPlus 1 only (the legacy path shadows every light, up to %d).\n", MAX_DLIGHTS);
+			ri.Printf(PRINT_ALL, "r_forwardPlusMaxShadowLights applies to r_forwardPlus 1 only (the legacy path shadows every light, up to %d).\n", MAX_DLIGHTS);
 		return;
 	}
 
 	if ( s_fp.gpuFailed )
 		ri.Printf(PRINT_WARNING, "r_forwardPlus: buffer textures unavailable, legacy dynamic lights are used.\n");
 
-	if ( r_dynamicShadowMaxLights->integer > 0 && r_dlightMode->integer < 2 )
-		ri.Printf(PRINT_ALL, "Forward+ dynamic light shadows (r_dynamicShadowMaxLights) require r_dlightMode 2 (latched, vid_restart).\n");
+	if ( r_forwardPlusMaxShadowLights->integer > 0 && r_dlightMode->integer < 2 )
+		ri.Printf(PRINT_ALL, "Forward+ dynamic light shadows (r_forwardPlusMaxShadowLights) require r_dlightMode 2 (latched, vid_restart).\n");
 }
 
 static void R_ForwardPlusBenchmarkFrame( void );
@@ -463,7 +463,7 @@ static void R_ForwardPlusSelectShadows( const trRefdef_t *refdef )
 	s_fp.numShadowCubes = 0;
 
 	const qboolean worldScene = (qboolean)!(refdef->rdflags & RDF_NOWORLDMODEL);
-	int budget = Com_Clampi(0, MAX_DLIGHT_SHADOWS, r_dynamicShadowMaxLights->integer);
+	int budget = Com_Clampi(0, MAX_DLIGHT_SHADOWS, r_forwardPlusMaxShadowLights->integer);
 	if ( r_dlightMode->integer < 2 || !tr.pointShadowArrayImage || !worldScene )
 		budget = 0;
 
@@ -479,7 +479,7 @@ static void R_ForwardPlusSelectShadows( const trRefdef_t *refdef )
 		// area lights are unshadowed (LTC is not an area shadow)
 		if ( refdef->dlights[i].areaType != DLIGHT_POINT )
 			score[i] = -1.0f;
-		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotShadows 0)
+		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0)
 		if ( !R_DlightCastsShadow(refdef->dlights + i) )
 			score[i] = -1.0f;
 		candidates[i] = i;
@@ -1069,8 +1069,8 @@ void R_ForwardPlusStats_f( void )
 		st->maxPerCluster, Com_Clampi(1, 255, r_forwardPlusMaxLightsPerCluster->integer));
 	ri.Printf(PRINT_ALL, "  overflow: %d clusters full, %d light/cluster pairs dropped\n",
 		st->overflowClusters, st->overflowRefs);
-	ri.Printf(PRINT_ALL, "  shadowed lights: %d (r_dynamicShadowMaxLights %d, r_dlightMode %d)\n",
-		st->shadowed, r_dynamicShadowMaxLights->integer, r_dlightMode->integer);
+	ri.Printf(PRINT_ALL, "  shadowed lights: %d (r_forwardPlusMaxShadowLights %d, r_dlightMode %d)\n",
+		st->shadowed, r_forwardPlusMaxShadowLights->integer, r_dlightMode->integer);
 	ri.Printf(PRINT_ALL, "  CPU cluster build: %.3f ms last frame, %.3f ms avg\n",
 		st->buildMsec, R_ForwardPlusAverageBuild());
 	const float gpu = R_ForwardPlusAverageGpu();
@@ -1122,12 +1122,12 @@ void R_SpawnTestLights_f( void )
 {
 	if ( !ri.Cvar_VariableIntegerValue("sv_cheats") )
 	{
-		ri.Printf(PRINT_ALL, "r_spawnTestLights is cheat protected (sv_cheats 1).\n");
+		ri.Printf(PRINT_ALL, "r_forwardPlusSpawnTestLights is cheat protected (sv_cheats 1).\n");
 		return;
 	}
 	if ( ri.Cmd_Argc() < 2 )
 	{
-		ri.Printf(PRINT_ALL, "usage: r_spawnTestLights <count 0-%d> [spread radius]\n", MAX_RENDER_DLIGHTS);
+		ri.Printf(PRINT_ALL, "usage: r_forwardPlusSpawnTestLights <count 0-%d> [spread radius]\n", MAX_RENDER_DLIGHTS);
 		return;
 	}
 	s_fp.testLights = Com_Clampi(0, MAX_RENDER_DLIGHTS, atoi(ri.Cmd_Argv(1)));

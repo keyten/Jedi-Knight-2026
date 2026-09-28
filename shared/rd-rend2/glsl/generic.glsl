@@ -729,12 +729,12 @@ void main()
 	}
 
 #if defined(USE_FOG) && defined(USE_FROXEL_FOG)
-	// sprite particle lighting (r_particleLight, RB_ParticleLightSetupDraw): the authored color of
+	// sprite particle lighting (r_particleLighting, RB_ParticleLightSetupDraw): the authored color of
 	// smoke / dust is a reflectance, lit by the particle light field relative to the map average.
 	// Before the fog: the fog between the sprite and the camera (S, T) is applied once, below.
 	if (u_ParticleLight.w >= 2.0)
 	{
-		// r_particleLightDebug 5: magenta = lit, cyan = unlit (additive) sprite
+		// r_particleLightingDebug 5: magenta = lit, cyan = unlit (additive) sprite
 		vec3 tint = (u_ParticleLight.w >= 3.0) ? vec3(0.0, 1.0, 1.0) : vec3(1.0, 0.0, 1.0);
 		color.rgb = tint * max(dot(color.rgb, vec3(0.3333)), 0.1);
 	}
@@ -752,7 +752,7 @@ void main()
 	// the composite after the opaque layers applies it
 	vec4 fogColorOpacity = vec4(0.0);
 #if defined(USE_FROXEL_RGB)
-	// RGB extinction (r_volumetricFogRGB): the opacity per channel, 1 - T.rgb
+	// RGB extinction (r_volumetricFogRGBExtinction): the opacity per channel, 1 - T.rgb
 	vec3 fogOpacityRGB = vec3(0.0);
 	if (u_FroxelFogMode == 3)
 	{

@@ -193,7 +193,7 @@ Skin SSS, hair anisotropy and runtime spatial roughness are out of scope.
 - The selection happens at draw time: `RB_IterateStagesGeneric` calls `R_AutoPBRSpecularScale`
   before uploading `u_SpecularScale`. `r_autoPBR` therefore switches live, with no `vid_restart`,
   no GLSL change for the values, no new permutations and no generated textures (it reuses whiteImage).
-- Auto PBR has no effect with `r_specularMapping 0`; `pbr_dumpMaterials` warns about this.
+- Auto PBR has no effect with `r_specularMapping 0`; `r_pbrDumpMaterials` warns about this.
 
 ## Cvars and commands
 
@@ -202,7 +202,7 @@ Skin SSS, hair anisotropy and runtime spatial roughness are out of scope.
 | `r_autoPBR` | 0 | archive, runtime | 0 = current rend2 fallback, 1 = generic dielectric for every legacy material, 2 = heuristic classes |
 | `r_autoPBRDebug` | 0 | cheat | 1 = class colours (authored white, scalar cyan), 2 = source: explicit map green, discovered map teal, scalar cyan, auto orange, converted with spec mask magenta, legacy with `r_autoPBR 0` grey. **Red in both views = lit stage still vertex lit** (generic.glsl, not lightall). Unlit; bypasses tone mapping, sun rays and glow like `r_shadowDebug`. Forces the SSR contribution to 0 on those pixels. |
 | `r_autoPBRConvert` | 0 | archive, **latch** | 1 = convert `alphaGen lightingSpecular` / fake `tcGen environment` shaders (vertex lit today) to lightall, mask → ORMS. Needs `vid_restart`. |
-| `pbr_dumpMaterials [used\|all\|auto\|authored\|gouraud\|<class>]` | `used` | | Lists the lit lightall stages of the registered shaders: `used` = drawn since registration, `*` marks drawn stages. Columns: shader, source, class, reason:token, and the AO / rough / metal / F0 the shader receives *now*. Converted stages show `auto+specmask`, `x` after rough and metal (multiplied per texel), the mask image, and `(env stage dropped)`. Vertex-lit stages show as `GOURAUD` with the skip reason. Ends with per-source and per-class totals. |
+| `r_pbrDumpMaterials [used\|all\|auto\|authored\|gouraud\|<class>]` | `used` | | Lists the lit lightall stages of the registered shaders: `used` = drawn since registration, `*` marks drawn stages. Columns: shader, source, class, reason:token, and the AO / rough / metal / F0 the shader receives *now*. Converted stages show `auto+specmask`, `x` after rough and metal (multiplied per texel), the mask image, and `(env stage dropped)`. Vertex-lit stages show as `GOURAUD` with the skip reason. Ends with per-source and per-class totals. |
 
 The roughness and F0 views reuse the existing `r_ssrDebug 2` (roughness) and `r_ssrDebug 3`
 (specular reflectance), which need `r_ssr 1`.
@@ -210,7 +210,7 @@ The roughness and F0 views reuse the existing `r_ssrDebug 2` (roughness) and `r_
 ## Changed files
 
 - new `shared/rd-rend2/tr_autopbr.cpp`: defaults table, classifier, draw-time scale, debug colours,
-  `pbr_dumpMaterials`
+  `r_pbrDumpMaterials`
 - `shared/rd-rend2/tr_local.h`: `pbrSource_t`, `materialClass_t`, stage fields, `UNIFORM_MATERIALDEBUG`,
   cvar externs, prototypes
 - `shared/rd-rend2/tr_shader.cpp`: `specularScaleAuthored` flag at the five scalar keywords; source,
@@ -300,14 +300,14 @@ Part 2 first: `seta r_autoPBRConvert 1; vid_restart`. Then:
 
 - `r_autoPBRDebug 2`: troopers, protocol droids and first-person weapons should be magenta, **not red**.
   Red means the model is still vertex lit.
-- `pbr_dumpMaterials gouraud` lists what is still vertex lit and why.
+- `r_pbrDumpMaterials gouraud` lists what is still vertex lit and why.
 - Stormtrooper: a smooth per-pixel highlight that follows the old spec mask, and cubemap/SSR reflections
   on the white plates. There should be no second, vertex-lit highlight.
 - Protocol droid: metallic reflections in the gold, no `chr_inv` fake chrome swimming on top.
 - Compare `r_autoPBRConvert 0/1` (with `vid_restart`) at the same spot.
 
 `exec autopbr_ab.cfg` (copy it from `tools/` to `base/`), then `devmap <map>`, `npc spawn <npc>`, and F8
-for each scene/subject. F8 captures `r_autoPBR 0/1/2` + `r_autoPBRDebug 1/2`, F7 = `pbr_dumpMaterials`.
+for each scene/subject. F8 captures `r_autoPBR 0/1/2` + `r_autoPBRDebug 1/2`, F7 = `r_pbrDumpMaterials`.
 
 - Subjects: `kyle` (skin and cloth), `stormtrooper` (armour must be plastic green in debug 1,
   **not** metal), `protocol` / `r2d2` (metal), `reborn` / `cultist` (robes), `rodian` (leather boots),
@@ -355,11 +355,11 @@ in one texture keeps its class constant, and the fix is an authored `_orm`). A f
 
 Cost: numpy port 50–80 ms for 512², ~300 ms for 2048² (the downsample dominates). The C++ version
 is O(pixels) with sliding-window blurs; real timings are printed per map with `developer 1`, and as
-a total by `pbr_dumpMaterials` ("N roughness maps generated in X ms"). Memory: ≤512² RGBA +
+a total by `r_pbrDumpMaterials` ("N roughness maps generated in X ms"). Memory: ≤512² RGBA +
 mips per legacy diffuse.
 
 Debug: `r_autoPBRDebug 3` shows the final roughness in grey (blue = not auto PBR);
-`pbr_dumpMaterials` lists `rough-gen <map> mean sigma`.
+`r_pbrDumpMaterials` lists `rough-gen <map> mean sigma`.
 
 Known artifact: UV island borders against a black atlas background count as detail and become
 rough outlines. They are mostly off-surface texels, but they can bleed at low mips.
