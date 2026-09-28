@@ -39,13 +39,18 @@ void main()
 
 uniform sampler3D u_FroxelSource;	// baked + sun emission (rgb), extinction (a)
 uniform sampler3D u_FroxelDynamic;	// dynamic light scattering + emission (rgb)
+#if !defined(USE_FROXEL_COMPUTE)
 uniform sampler2D u_FroxelCarry;
 uniform int u_FroxelSlice;
+#endif
 #if defined(USE_FROXEL_RGB)
 uniform sampler3D u_FroxelExtinction;	// sigma_t.rgb
+#if !defined(USE_FROXEL_COMPUTE)
 uniform sampler2D u_FroxelCarryT;		// T.rgb after the previous slice
 #endif
+#endif
 
+#if !defined(USE_FROXEL_COMPUTE)
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
 // 0 = out_Color, 1 = out_Glow
 out vec4 out_Color;		// integrated volume
@@ -58,20 +63,21 @@ out vec4 out_SSRSpecular;
 #define out_Transmittance out_SSRNormal
 #define out_CarryT out_SSRSpecular
 #endif
+#endif
 
-void main()
+// Both paths use the same Beer-Lambert step; compute keeps the running state
+// in registers, raster fetches it from the previous half-float carry texture.
+void FroxelIntegrate(ivec2 cell, int slice, inout vec4 state
+#if defined(USE_FROXEL_RGB)
+	, inout vec3 T
+#endif
+)
 {
-	ivec2 cell = ivec2(gl_FragCoord.xy);
-	int slice = u_FroxelSlice;
 	float numSlices = u_FroxelGridSize.z;
 
 	vec4 source = texelFetch(u_FroxelSource, ivec3(cell, slice), 0);
 	vec3 emission = source.rgb + texelFetch(u_FroxelDynamic, ivec3(cell, slice), 0).rgb;
 	float extinction = source.a;
-
-	vec4 state = vec4(0.0, 0.0, 0.0, 1.0);
-	if (slice > 0)
-		state = texelFetch(u_FroxelCarry, cell, 0);
 
 	// path length through the slice along the ray of the froxel center
 	vec2 ndc = (vec2(cell) + 0.5) / u_FroxelGridSize.xy * 2.0 - 1.0;
@@ -89,20 +95,12 @@ void main()
 	vec3 extinctionRGB = texelFetch(u_FroxelExtinction, ivec3(cell, slice), 0).rgb;
 	if (debugView >= 30 && debugView <= 32)
 		extinctionRGB = vec3(0.0);
-	vec3 T = vec3(1.0);
-	if (slice > 0)
-		T = texelFetch(u_FroxelCarryT, cell, 0).rgb;
-
 	vec3 xRGB = max(extinctionRGB, vec3(0.0)) * pathLength;
 	vec3 sliceT = exp(-xRGB);
 	state.rgb += T * emission * pathLength * FroxelPhi(xRGB, sliceT);
 	T *= sliceT;
 	state.a *= exp(-max(extinction, 0.0) * pathLength);
 
-	out_Color = state;
-	out_Carry = state;
-	out_Transmittance = vec4(T, state.a);
-	out_CarryT = vec4(T, state.a);
 #else
 	float x = max(extinction, 0.0) * pathLength;
 	float sliceTransmittance = exp(-x);
@@ -115,7 +113,60 @@ void main()
 	state.rgb += state.a * scattered;
 	state.a *= sliceTransmittance;
 
-	out_Color = state;
-	out_Carry = state;
 #endif
 }
+
+#if defined(USE_FROXEL_COMPUTE)
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(rgba16f, binding = 0) uniform writeonly image3D u_IntegratedOutput;
+#if defined(USE_FROXEL_RGB)
+layout(rgba16f, binding = 1) uniform writeonly image3D u_TransmittanceOutput;
+#endif
+void main()
+{
+	ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+	if (any(greaterThanEqual(cell, ivec2(u_FroxelGridSize.xy))))
+		return;
+	vec4 state = vec4(0.0, 0.0, 0.0, 1.0);
+#if defined(USE_FROXEL_RGB)
+	vec3 T = vec3(1.0);
+#endif
+	for (int slice = 0; slice < int(u_FroxelGridSize.z); ++slice)
+	{
+		FroxelIntegrate(cell, slice, state
+#if defined(USE_FROXEL_RGB)
+			, T
+#endif
+		);
+		imageStore(u_IntegratedOutput, ivec3(cell, slice), state);
+#if defined(USE_FROXEL_RGB)
+		imageStore(u_TransmittanceOutput, ivec3(cell, slice), vec4(T, state.a));
+#endif
+	}
+}
+#else
+void main()
+{
+	ivec2 cell = ivec2(gl_FragCoord.xy);
+	int slice = u_FroxelSlice;
+	vec4 state = vec4(0.0, 0.0, 0.0, 1.0);
+	if (slice > 0)
+		state = texelFetch(u_FroxelCarry, cell, 0);
+#if defined(USE_FROXEL_RGB)
+	vec3 T = vec3(1.0);
+	if (slice > 0)
+		T = texelFetch(u_FroxelCarryT, cell, 0).rgb;
+#endif
+	FroxelIntegrate(cell, slice, state
+#if defined(USE_FROXEL_RGB)
+		, T
+#endif
+	);
+	out_Color = state;
+	out_Carry = state;
+#if defined(USE_FROXEL_RGB)
+	out_Transmittance = vec4(T, state.a);
+	out_CarryT = vec4(T, state.a);
+#endif
+}
+#endif

@@ -81,7 +81,8 @@ discretisation (see Integration).
 | 2 high | 8 | 64 | 240 x 135 x 64 | 2.07 M | 58.1 MB |
 
   `r_volumetricFogGridScale` / `r_volumetricFogSlices` override the preset (latched). Draws per frame: one
-  instanced injection draw, the tail pass, `slices` integration draws and the composite.
+  instanced injection draw, the tail pass, `slices` integration draws and the composite on raster;
+  two compute dispatches and the composite with the GL 4.3 fast path.
 
 ### Froxel data
 
@@ -101,9 +102,35 @@ discretisation (see Integration).
 Emission (not radiance) is stored because it is linear in the medium: blending two frames of emission and
 extinction is correct at fog boundaries and under jitter.
 
+### GL 4.3 compute fast path
+
+With `r_gl43 1` and `r_volumetricFog 2`, GL 4.3 compute and image load/store use the same shader
+math as raster injection and integration. Injection dispatches a 3D grid (4 x 4 x 4 workgroups);
+the first invocation of each column also writes its tail light. Integration dispatches a 2D grid
+(8 x 8 workgroups), one invocation per XY column, and sequentially integrates all Z slices in registers
+with `imageStore` for each slice. No per-slice draws, attachment changes or carry texture accesses
+are needed. Carry textures are allocated only for raster, including fallback after compute compilation fails.
+
+RGB extinction, temporal history, local/particle media, particle lighting, shadows and cookies use
+the same inputs and outputs. Self-shadowing adds one compute media dispatch before injection.
+Image access and texture fetch barriers order each producer before its consumers and order image
+overwrites after previous-frame reads; image units are unbound after integration. Partial workgroups
+check their bounds. Compute integration keeps FP32 running state, whereas raster rounds it to
+RGBA16F after every slice; results can differ slightly from reduced accumulation rounding.
+
+`r_gl43 0` (followed by `vid_restart`) selects the existing raster implementation. Missing capabilities,
+insufficient workgroup/image/sampler/UBO limits, or a failed optional compute compile/link also select
+raster. Both compute programs must succeed before the fast path is used. Startup reports the selected
+path. With volumetric fog disabled no volumetric compute programs are loaded.
+
+GPU validation: `python tools/rend2/test_volumetric_compute.py` on Windows uses bundled SDL2 and a
+hidden GL context. It compiles raster/compute permutations for scalar/RGB extinction and both sun
+shadow modes, checks injection/media/tail/particle-light outputs, then checks all integrated slices against a Beer-Lambert reference, including empty
+media and dimensions that are not multiples of the workgroup size.
+
 ### Pipeline without compute shaders
 
-Rend2 runs on a GL 3.2 core context: no compute shaders, no image load / store. The injection renders every slice
+The GL 3.2 fallback has no compute shaders or image load/store. The injection renders every slice
 in one instanced draw into layered attachments (`glFramebufferTexture`): the geometry shader sends instance k to
 layer k (`gl_Layer`). The integration needs the previous slice, so it stays one draw per slice with that layer
 attached (`glFramebufferTextureLayer`). The integration carries its running state in a 2D texture ping-pong, because sampling another

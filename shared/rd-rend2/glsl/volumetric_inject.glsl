@@ -82,7 +82,11 @@ uniform sampler2DArrayShadow u_ShadowMap;	// legacy sun cascades
 #endif
 uniform sampler2DArrayShadow u_ShadowMap2;	// dynamic light cube faces, 6 layers per light
 
+#if defined(USE_FROXEL_COMPUTE)
+int var_Slice;
+#else
 flat in int var_Slice;	// slice of this layer, -1 = tail pass
+#endif
 
 // dynamic light lists: FROXEL_LIGHT_TEXELS per light (origin, radius | color, shadow cube layer |
 // spot axis, cos outer | cos inner, projected spot shadow, cookie layer, cookie roll), and per cluster a header (first entry |
@@ -119,14 +123,23 @@ layout(std140) uniform Lights
 
 // fragment outputs are bound to draw buffers by name (shaderOutputNames, tr_glsl.cpp):
 // 0 = out_Color, 1 = out_Glow, 2 = out_SSRNormal
+#if defined(USE_FROXEL_COMPUTE)
+// Per-invocation results of the shared injection math.
+vec4 out_Color, out_Glow, out_SSRNormal;
+#else
 out vec4 out_Color;
 out vec4 out_Glow;
 out vec4 out_SSRNormal;
+#endif
 #define out_Dynamic out_Glow
 #define out_ParticleLight out_SSRNormal
 #if defined(USE_FROXEL_RGB)
 // 3 = out_SSRSpecular
+#if defined(USE_FROXEL_COMPUTE)
+vec4 out_SSRSpecular;
+#else
 out vec4 out_SSRSpecular;
+#endif
 #define out_Extinction out_SSRSpecular
 #endif
 
@@ -1089,9 +1102,14 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in float temporal, in vec4 g, in i
 	return l;
 }
 
+#if defined(USE_FROXEL_COMPUTE)
+void FroxelInject(ivec2 cell)
+{
+#else
 void main()
 {
 	ivec2 cell = ivec2(gl_FragCoord.xy);
+#endif
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
 
@@ -1509,3 +1527,43 @@ void main()
 	out_Dynamic = dynamicEmission;
 	out_ParticleLight = vec4(particleLight, 1.0);
 }
+
+#if defined(USE_FROXEL_COMPUTE)
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+layout(rgba16f, binding = 0) uniform writeonly image3D u_InjectOutput;
+layout(r11f_g11f_b10f, binding = 1) uniform writeonly image3D u_DynamicOutput;
+layout(r11f_g11f_b10f, binding = 2) uniform writeonly image3D u_ParticleOutput;
+#if defined(USE_FROXEL_RGB)
+layout(rgba16f, binding = 3) uniform writeonly image3D u_ExtinctionOutput;
+#endif
+layout(rgba16f, binding = 4) uniform writeonly image2D u_TailOutput;
+layout(r16f, binding = 5) uniform writeonly image3D u_MediaOutput;
+
+void main()
+{
+	ivec3 cell = ivec3(gl_GlobalInvocationID);
+	if (any(greaterThanEqual(cell, ivec3(u_FroxelGridSize.xyz))))
+		return;
+	var_Slice = cell.z;
+	FroxelInject(cell.xy);
+	if (u_ParticleLight.z > 0.5)
+	{
+		imageStore(u_MediaOutput, cell, out_Color);
+		return;
+	}
+	imageStore(u_InjectOutput, cell, out_Color);
+	imageStore(u_DynamicOutput, cell, out_Dynamic);
+	if (u_ParticleLight.x > 0.5)
+		imageStore(u_ParticleOutput, cell, out_ParticleLight);
+#if defined(USE_FROXEL_RGB)
+	imageStore(u_ExtinctionOutput, cell, out_Extinction);
+#endif
+	// The first invocation in each column also writes its analytic tail light.
+	if (cell.z == 0)
+	{
+		var_Slice = -1;
+		FroxelInject(cell.xy);
+		imageStore(u_TailOutput, cell.xy, out_Color);
+	}
+}
+#endif

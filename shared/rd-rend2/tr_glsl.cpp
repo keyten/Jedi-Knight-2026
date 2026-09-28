@@ -481,7 +481,7 @@ static size_t GLSL_GetShaderHeader(
 
 	dest[0] = '\0';
 
-	Q_strcat(dest, size, "#version 150 core\n");
+	Q_strcat(dest, size, shaderType == GL_COMPUTE_SHADER ? "#version 430 core\n" : "#version 150 core\n");
 
 	Q_strcat(dest, size,
 					"#ifndef M_PI\n"
@@ -3776,29 +3776,8 @@ static int GLSL_LoadGPUProgramVolumetric(
 	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	int numPrograms = 0;
 
-	auto load = [&]( shaderProgram_t *sp, const char *name, const GPUProgramDesc& fallback )
+	auto configure = [&]( shaderProgram_t *sp )
 	{
-		const GPUProgramDesc *programDesc =
-			LoadProgramSource(name, allocator, fallback);
-		// the density noise and the FX particle media (VolumetricParticles
-		// block) are read by the injection and the debug views only
-		const bool noise = (sp == &tr.volumetricInjectShader || sp == &tr.volumetricDebugShader);
-		char defines[256] = "";
-		if ( noise )
-		{
-			Com_sprintf(defines, sizeof(defines),
-				"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
-				"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
-				"#define MAX_GPU_EMISSIVE_PARTICLES %i\n",
-				MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES);
-		}
-		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-				defines, *programDesc, common) )
-		{
-			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
-		}
-
-		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		// every sampler on its own unit, see RB_VolumetricBuild / RB_VolumetricComposite
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELHISTORY, TB_COLORMAP);
@@ -3830,10 +3809,62 @@ static int GLSL_LoadGPUProgramVolumetric(
 		++numPrograms;
 	};
 
+	auto load = [&]( shaderProgram_t *sp, const char *name, const GPUProgramDesc& fallback )
+	{
+		const GPUProgramDesc *programDesc = LoadProgramSource(name, allocator, fallback);
+		const bool inject = sp == &tr.volumetricInjectShader;
+		char defines[512] = "";
+		if ( inject || sp == &tr.volumetricDebugShader )
+		{
+			Com_sprintf(defines, sizeof(defines),
+				"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
+				"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
+				"#define MAX_GPU_EMISSIVE_PARTICLES %i\n",
+				MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES);
+		}
+		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
+				defines, *programDesc, common) )
+			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
+		GLSL_InitUniforms(sp);
+		configure(sp);
+
+		// Compile the fragment body as compute, with the same defines and
+		// library as raster. A failed optional shader leaves raster available.
+		if ( !R_VolumetricComputeAvailable() ||
+			(!inject && sp != &tr.volumetricIntegrateShader) )
+			return;
+		Q_strcat(defines, sizeof(defines), "#define USE_FROXEL_COMPUTE\n");
+		for ( size_t i = 0; i < programDesc->numShaders; ++i )
+		{
+			const GPUShaderDesc& fragment = programDesc->shaders[i];
+			if ( fragment.type != GPUSHADER_FRAGMENT )
+				continue;
+			std::vector<char> source(16384 + strlen(common->source) + strlen(fragment.source) + strlen(defines));
+			const size_t headerLen = GLSL_GetShaderHeader(GL_COMPUTE_SHADER, defines, common,
+				fragment.firstLineNumber, source.data(), source.size());
+			Q_strcat(source.data(), source.size(), fragment.source);
+			shaderProgram_t *compute = inject ? &tr.volumetricInjectComputeShader : &tr.volumetricIntegrateComputeShader;
+			// GLSL_InitComputeShader supplies the version directive itself.
+			const char *body = strchr(source.data(), '\n') + 1;
+			if ( headerLen && GLSL_InitComputeShader(compute, va("%s_compute", name), body, MODERN_IMAGE_LOAD_STORE) )
+				configure(compute);
+			break;
+		}
+	};
+
 	load(&tr.volumetricInjectShader, "volumetric_inject", fallback_volumetric_injectProgram);
 	load(&tr.volumetricIntegrateShader, "volumetric_integrate", fallback_volumetric_integrateProgram);
 	load(&tr.volumetricCompositeShader, "volumetric_composite", fallback_volumetric_compositeProgram);
 	load(&tr.volumetricDebugShader, "volumetric_debug", fallback_volumetric_debugProgram);
+	if ( tr.volumetricInjectComputeShader.program && tr.volumetricIntegrateComputeShader.program )
+		ri.Printf(PRINT_ALL, "Froxel volumetric fog: GL 4.3 compute path\n");
+	else
+	{
+		GLSL_DeleteGPUShader(&tr.volumetricInjectComputeShader);
+		GLSL_DeleteGPUShader(&tr.volumetricIntegrateComputeShader);
+		R_VolumetricEnsureRasterCarry();
+		ri.Printf(PRINT_ALL, "Froxel volumetric fog: raster path\n");
+	}
 
 	return numPrograms;
 }
@@ -4570,6 +4601,8 @@ void GLSL_ShutdownGPUShaders(void)
 
 	GLSL_DeleteGPUShader(&tr.volumetricInjectShader);
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);
+	GLSL_DeleteGPUShader(&tr.volumetricInjectComputeShader);
+	GLSL_DeleteGPUShader(&tr.volumetricIntegrateComputeShader);
 	GLSL_DeleteGPUShader(&tr.volumetricCompositeShader);
 	GLSL_DeleteGPUShader(&tr.volumetricDebugShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldShader);

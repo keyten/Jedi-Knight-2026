@@ -3831,6 +3831,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t rainLensShader[RAINLENSDEF_COUNT];
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
+	shaderProgram_t volumetricInjectComputeShader;
+	shaderProgram_t volumetricIntegrateComputeShader;
 	shaderProgram_t volumetricCompositeShader;
 	shaderProgram_t volumetricDebugShader;
 	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
@@ -5359,6 +5361,8 @@ void R_VolumetricExtinctionColor(const float *in, vec3_t out);	// relative sigma
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
 void R_ShutdownVolumetric(void);
+qboolean R_VolumetricComputeAvailable(void);
+void R_VolumetricEnsureRasterCarry(void);
 void R_BuildVolumetricLightGrid(world_t *world);
 void R_SetHeightFogBase(const world_t *worldData);
 void R_VolumetricFog_f(void);

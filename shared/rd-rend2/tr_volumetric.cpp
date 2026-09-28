@@ -37,8 +37,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //              Transparent surfaces keep their fog pass / in-shader fog, with
 //              the volume looked up at the fragment instead of ray marched.
 //
-// GL 3.2 has no compute shaders: every slice of a 3D texture is rendered
-// with a full screen triangle into a framebuffer with that layer attached.
+// GL 4.3 (r_gl43) uses compute injection and column integration. GL 3.2
+// keeps layered raster injection and one integration draw per slice.
 //
 // Only the main view of the first world scene of a frame uses the volume;
 // portals, mirrors, sky portals, the LA goggles and other scenes use the
@@ -70,6 +70,7 @@ static const int froxelQualitySlices[] = { 32, 48, 64 };
 struct froxelState_t
 {
 	qboolean resources;
+	qboolean computeAvailable;	// limits of the current resource dimensions
 	qboolean rgb;				// RGB extinction (r_volumetricFogRGBExtinction, latched)
 	int width, height, depth;
 
@@ -107,6 +108,29 @@ struct froxelState_t
 };
 
 static froxelState_t s_vf;
+
+qboolean R_VolumetricComputeAvailable( void )
+{
+	if ( !s_vf.resources || !R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE) )
+		return qfalse;
+	if ( glRefConfig.maxImageUnits < 6 || glRefConfig.maxComputeImageUniforms < 6 ||
+		glRefConfig.maxComputeWorkGroupInvocations < 64 ||
+		glRefConfig.maxComputeWorkGroupSize[0] < 8 ||
+		glRefConfig.maxComputeWorkGroupSize[1] < 8 ||
+		glRefConfig.maxComputeWorkGroupSize[2] < 4 ||
+		(s_vf.width + 3) / 4 > glRefConfig.maxComputeWorkGroupCount[0] ||
+		(s_vf.height + 3) / 4 > glRefConfig.maxComputeWorkGroupCount[1] ||
+		(s_vf.depth + 3) / 4 > glRefConfig.maxComputeWorkGroupCount[2] )
+		return qfalse;
+
+	GLint samplers = 0, combinedSamplers = 0, blocks = 0;
+	qglGetIntegerv(GL_MAX_COMPUTE_TEXTURE_IMAGE_UNITS, &samplers);
+	qglGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &combinedSamplers);
+	qglGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS, &blocks);
+	// Stage limits count active samplers, not the largest global TMU index.
+	return (qboolean)(samplers >= (s_vf.rgb ? 14 : 13) &&
+		combinedSamplers > (s_vf.rgb ? TB_FROXELEXTINCTION : TB_LIGHTCOOKIES) && blocks >= 3);
+}
 
 // dynamic light lists of the froxels (R_VolumetricBuildLightLists): GL objects
 // created with the froxel resources, deleted by R_ShutdownVolumetric
@@ -488,6 +512,36 @@ Resources
 ============================================================
 */
 
+// Allocate carry only for raster, including an optional compute compile/link
+// failure after FBO initialization. Slice zero initializes the running state.
+void R_VolumetricEnsureRasterCarry( void )
+{
+	if ( !s_vf.resources || tr.froxelCarryImage[0] )
+		return;
+	for ( int i = 0; i < 2; ++i )
+	{
+		tr.froxelCarryImage[i] = R_CreateImage(
+			va("*froxelCarry%d", i), NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+		if ( s_vf.rgb )
+			tr.froxelCarryTImage[i] = R_CreateImage(
+				va("*froxelCarryT%d", i), NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
+				IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+	}
+	if ( tr.froxelIntegrateFbo )
+	{
+		FBO_t *oldFbo = glState.currentFBO;
+		FBO_Bind(tr.froxelIntegrateFbo);
+		FBO_AttachTextureImage(tr.froxelCarryImage[0], 1);
+		if ( s_vf.rgb )
+			FBO_AttachTextureImage(tr.froxelCarryTImage[0], 3);
+		const GLenum bufs[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+		qglDrawBuffers(s_vf.rgb ? 4 : 2, bufs);
+		R_CheckFBO(tr.froxelIntegrateFbo);
+		FBO_Bind(oldFbo);
+	}
+}
+
 void R_CreateVolumetricImages( int width, int height )
 {
 	Com_Memset(&s_vf, 0, sizeof(s_vf));
@@ -532,9 +586,6 @@ void R_CreateVolumetricImages( int width, int height )
 	{
 		tr.froxelInjectImage[i] = R_CreateImage3D(
 			va("*froxelInject%d", i), NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
-		tr.froxelCarryImage[i] = R_CreateImage(
-			va("*froxelCarry%d", i), NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 	}
 
 	tr.froxelDynamicImage = R_CreateImage3D(
@@ -573,9 +624,6 @@ void R_CreateVolumetricImages( int width, int height )
 			{
 				tr.froxelExtinctionImage[i] = R_CreateImage3D(
 					va("*froxelExtinction%d", i), NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
-				tr.froxelCarryTImage[i] = R_CreateImage(
-					va("*froxelCarryT%d", i), NULL, s_vf.width, s_vf.height, IMGTYPE_COLORALPHA,
-					IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 			}
 			tr.froxelTransmittanceImage = R_CreateImage3D(
 				"*froxelTransmittance", NULL, s_vf.width, s_vf.height, s_vf.depth, GL_RGBA16F);
@@ -590,6 +638,12 @@ void R_CreateVolumetricImages( int width, int height )
 	R_CreateVolumetricNoiseImage();
 
 	s_vf.resources = qtrue;
+	s_vf.computeAvailable = R_VolumetricComputeAvailable();
+	// A map reload can retain GPU programs and skip the shader loader. If
+	// the previous compute compilation failed, recreate raster carry now.
+	if ( !s_vf.computeAvailable || (tr.volumetricInjectShader.program &&
+		(!tr.volumetricInjectComputeShader.program || !tr.volumetricIntegrateComputeShader.program)) )
+		R_VolumetricEnsureRasterCarry();
 
 	if ( !r_depthPrepass->integer )
 		ri.Printf(PRINT_WARNING, "r_volumetricFog 2 needs r_depthPrepass 1, the legacy volumetric fog is used\n");
@@ -675,7 +729,8 @@ void R_CreateVolumetricFBOs( void )
 		tr.froxelIntegratedImage->texnum, 0, 0);
 	glState.currentFBO->colorImage[0] = tr.froxelIntegratedImage;
 	glState.currentFBO->colorBuffers[0] = tr.froxelIntegratedImage->texnum;
-	FBO_AttachTextureImage(tr.froxelCarryImage[0], 1);
+	if ( tr.froxelCarryImage[0] )
+		FBO_AttachTextureImage(tr.froxelCarryImage[0], 1);
 	if ( s_vf.rgb )
 	{
 		// RGB extinction: a layer of T.rgb and its carry
@@ -683,10 +738,13 @@ void R_CreateVolumetricFBOs( void )
 			tr.froxelTransmittanceImage->texnum, 0, 0);
 		glState.currentFBO->colorImage[2] = tr.froxelTransmittanceImage;
 		glState.currentFBO->colorBuffers[2] = tr.froxelTransmittanceImage->texnum;
-		FBO_AttachTextureImage(tr.froxelCarryTImage[0], 3);
+		if ( tr.froxelCarryTImage[0] )
+			FBO_AttachTextureImage(tr.froxelCarryTImage[0], 3);
 	}
 	{
-		const GLenum bufs[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+		const GLenum bufs[4] = { GL_COLOR_ATTACHMENT0,
+			tr.froxelCarryImage[0] ? GL_COLOR_ATTACHMENT1 : GL_NONE, GL_COLOR_ATTACHMENT2,
+			tr.froxelCarryTImage[0] ? GL_COLOR_ATTACHMENT3 : GL_NONE };
 		qglDrawBuffers(s_vf.rgb ? 4 : 2, bufs);
 	}
 	R_CheckFBO(tr.froxelIntegrateFbo);
@@ -786,25 +844,27 @@ void R_CreateVolumetricFBOs( void )
 		{
 			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
 				tr.froxelTransmittanceImage->texnum, 0, 0);
-			for ( int i = 0; i < 2; i++ )
+			for ( int i = 0; tr.froxelCarryTImage[0] && i < 2; i++ )
 			{
 				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
 					GL_TEXTURE_2D, tr.froxelCarryTImage[i]->texnum, 0);
 				qglClearBufferfv(GL_COLOR, 3, noFogRGB);
 			}
-			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
-				GL_TEXTURE_2D, tr.froxelCarryTImage[0]->texnum, 0);
+			if ( tr.froxelCarryTImage[0] )
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+					GL_TEXTURE_2D, tr.froxelCarryTImage[0]->texnum, 0);
 		}
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			tr.froxelIntegratedImage->texnum, 0, 0);
-		for ( int i = 0; i < 2; i++ )
+		for ( int i = 0; tr.froxelCarryImage[0] && i < 2; i++ )
 		{
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
 				GL_TEXTURE_2D, tr.froxelCarryImage[i]->texnum, 0);
 			qglClearBufferfv(GL_COLOR, 1, noFog);
 		}
-		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-			GL_TEXTURE_2D, tr.froxelCarryImage[0]->texnum, 0);
+		if ( tr.froxelCarryImage[0] )
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
+				GL_TEXTURE_2D, tr.froxelCarryImage[0]->texnum, 0);
 
 		GL_ResetScreenAuxWrite();
 	}
@@ -2649,6 +2709,9 @@ void RB_VolumetricBuild( void )
 	FBO_t *oldFbo = glState.currentFBO;
 	const int current = s_vf.current;
 	const int previous = current ^ 1;
+	const bool compute = s_vf.computeAvailable && tr.volumetricInjectComputeShader.program &&
+		tr.volumetricIntegrateComputeShader.program &&
+		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE);
 	s_vf.builtVolumeFrame = s_vf.volumeFrameNumber;
 	s_vf.builtVolumeImage = current;
 
@@ -2656,6 +2719,22 @@ void RB_VolumetricBuild( void )
 	GL_Cull(CT_TWO_SIDED);
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	RB_VolumetricBindBlocks();
+	if ( compute )
+	{
+		// Order image overwrites after texture reads from the previous frame.
+		qglMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		FBO_Bind(NULL);
+	}
+	auto bindOutput = []( GLuint unit, image_t *image, GLenum format, bool layered )
+	{
+		qglBindImageTexture(unit, image ? image->texnum : 0, 0,
+			layered ? GL_TRUE : GL_FALSE, 0, GL_WRITE_ONLY, format);
+	};
+	auto dispatchInject = [&]()
+	{
+		qglDispatchCompute((s_vf.width + 3) / 4, (s_vf.height + 3) / 4, (s_vf.depth + 3) / 4);
+		qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	};
 
 	// media (r_volumetricSelfShadow): the extinction of this frame at the
 	// froxel centers, no jitter and no history, so the light rays of the
@@ -2666,23 +2745,31 @@ void RB_VolumetricBuild( void )
 	if ( tr.froxelMediaFbo )
 	{
 		timer = RB_VolumetricBeginTimer("Froxel fog media");
-		shaderProgram_t *sp = &tr.volumetricInjectShader;
-		FBO_Bind(tr.froxelMediaFbo);
+		shaderProgram_t *sp = compute ? &tr.volumetricInjectComputeShader : &tr.volumetricInjectShader;
+		if ( !compute )
+			FBO_Bind(tr.froxelMediaFbo);
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
 		GLSL_BindProgram(sp);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
 		const vec4_t mediaMode = { 0.0f, 0.0f, 1.0f, 0.0f };
 		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, mediaMode);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
-		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
+		if ( compute )
+		{
+			bindOutput(5, tr.froxelMediaImage, GL_R16F, true);
+			dispatchInject();
+		}
+		else
+			qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
 		RB_VolumetricEndTimer(timer);
 	}
 
-	// injection + temporal filter, one slice per draw
+	// Injection + temporal filter: one 3D dispatch or one layered draw.
 	timer = RB_VolumetricBeginTimer("Froxel fog inject");
 	{
-		shaderProgram_t *sp = &tr.volumetricInjectShader;
-		FBO_Bind(tr.froxelInjectFbo);
+		shaderProgram_t *sp = compute ? &tr.volumetricInjectComputeShader : &tr.volumetricInjectShader;
+		if ( !compute )
+			FBO_Bind(tr.froxelInjectFbo);
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
 		GLSL_BindProgram(sp);
 
@@ -2720,16 +2807,19 @@ void RB_VolumetricBuild( void )
 		// every slice: instance k renders layer k
 		GLenum bufs[4];
 		const int numBufs = R_VolumetricInjectDrawBuffers(bufs);
-		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelInjectImage[current]->texnum, 0);
-		qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, tr.froxelDynamicImage->texnum, 0);
-		if ( tr.froxelParticleLightImage )
-			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, tr.froxelParticleLightImage->texnum, 0);
-		if ( s_vf.rgb )
-			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, tr.froxelExtinctionImage[current]->texnum, 0);
-		// draw buffers 2 and up are color masked by default with SSR / SSGI (GL_ResetScreenAuxWrite)
-		if ( numBufs > 2 )
-			GL_SetScreenAuxWrite(true);
-		qglDrawBuffers(numBufs, bufs);
+		if ( !compute )
+		{
+			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tr.froxelInjectImage[current]->texnum, 0);
+			qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, tr.froxelDynamicImage->texnum, 0);
+			if ( tr.froxelParticleLightImage )
+				qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, tr.froxelParticleLightImage->texnum, 0);
+			if ( s_vf.rgb )
+				qglFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, tr.froxelExtinctionImage[current]->texnum, 0);
+			// draw buffers 2 and up are color masked by default with SSR / SSGI (GL_ResetScreenAuxWrite)
+			if ( numBufs > 2 )
+				GL_SetScreenAuxWrite(true);
+			qglDrawBuffers(numBufs, bufs);
+		}
 		{
 			// sprite particle light field: on, debug term (r_particleLightingDebug 2-4)
 			const int term = r_particleLightingDebug->integer;
@@ -2747,33 +2837,46 @@ void RB_VolumetricBuild( void )
 				GL_BindToTMU(R_LightCookieImage(), TB_LIGHTCOOKIES);
 		}
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
-		qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
-		if ( numBufs > 2 )
-			GL_ResetScreenAuxWrite();
-		if ( tr.froxelParticleLightImage )
-			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, 0, 0);
-		if ( s_vf.rgb )
-			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, 0, 0);
+		if ( compute )
+		{
+			bindOutput(0, tr.froxelInjectImage[current], GL_RGBA16F, true);
+			bindOutput(1, tr.froxelDynamicImage, GL_R11F_G11F_B10F, true);
+			bindOutput(2, tr.froxelParticleLightImage, GL_R11F_G11F_B10F, true);
+			bindOutput(3, tr.froxelExtinctionImage[current], GL_RGBA16F, true);
+			bindOutput(4, tr.froxelTailImage, GL_RGBA16F, false);
+			dispatchInject();
+		}
+		else
+		{
+			qglDrawArraysInstanced(GL_TRIANGLES, 0, 3, s_vf.depth);
+			if ( numBufs > 2 )
+				GL_ResetScreenAuxWrite();
+			if ( tr.froxelParticleLightImage )
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, 0, 0);
+			if ( s_vf.rgb )
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, 0, 0);
 
-		// tail pass: the light at the far side of the volume (FroxelLookup
-		// lights the media beyond far with it), into the 2D tail alone (a
-		// layered attachment next to it would make the framebuffer incomplete)
-		const GLenum buf = GL_COLOR_ATTACHMENT0;
-		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			GL_TEXTURE_2D, tr.froxelTailImage->texnum, 0);
-		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
-		qglDrawBuffers(1, &buf);
-		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, -1);
-		RB_InstantTriangle();
-		qglDrawBuffers(numBufs, bufs);
+			// tail pass: the light at the far side of the volume (FroxelLookup
+			// lights the media beyond far with it), into the 2D tail alone (a
+			// layered attachment next to it would make the framebuffer incomplete)
+			const GLenum buf = GL_COLOR_ATTACHMENT0;
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+				GL_TEXTURE_2D, tr.froxelTailImage->texnum, 0);
+			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
+			qglDrawBuffers(1, &buf);
+			GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, -1);
+			RB_InstantTriangle();
+			qglDrawBuffers(numBufs, bufs);
+		}
 	}
 	RB_VolumetricEndTimer(timer);
 
-	// front to back integration, one slice per draw
+	// Front to back integration: one invocation per XY column, or one draw per slice.
 	timer = RB_VolumetricBeginTimer("Froxel fog integrate");
 	{
-		shaderProgram_t *sp = &tr.volumetricIntegrateShader;
-		FBO_Bind(tr.froxelIntegrateFbo);
+		shaderProgram_t *sp = compute ? &tr.volumetricIntegrateComputeShader : &tr.volumetricIntegrateShader;
+		if ( !compute )
+			FBO_Bind(tr.froxelIntegrateFbo);
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
 		GLSL_BindProgram(sp);
 		GL_BindToTMU(tr.froxelInjectImage[current], TB_COLORMAP);
@@ -2782,31 +2885,44 @@ void RB_VolumetricBuild( void )
 		{
 			// T.rgb and its carry in draw buffers 2 and 3
 			GL_BindToTMU(tr.froxelExtinctionImage[current], TB_FROXELEXTINCTION);
-			GL_SetScreenAuxWrite(true);
+			if ( !compute )
+				GL_SetScreenAuxWrite(true);
 		}
 
-		for ( int k = 0; k < s_vf.depth; k++ )
+		if ( compute )
 		{
-			const int carryWrite = k & 1;
-			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				tr.froxelIntegratedImage->texnum, 0, k);
-			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
-				GL_TEXTURE_2D, tr.froxelCarryImage[carryWrite]->texnum, 0);
-			GL_BindToTMU(tr.froxelCarryImage[carryWrite ^ 1], TB_LIGHTMAP);
-			if ( s_vf.rgb )
-			{
-				qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
-					tr.froxelTransmittanceImage->texnum, 0, k);
-				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
-					GL_TEXTURE_2D, tr.froxelCarryTImage[carryWrite]->texnum, 0);
-				GL_BindToTMU(tr.froxelCarryTImage[carryWrite ^ 1], TB_FROXELCARRYT);
-			}
-
-			GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, k);
-			RB_InstantTriangle();
+			bindOutput(0, tr.froxelIntegratedImage, GL_RGBA16F, true);
+			bindOutput(1, tr.froxelTransmittanceImage, GL_RGBA16F, true);
+			qglDispatchCompute((s_vf.width + 7) / 8, (s_vf.height + 7) / 8, 1);
+			qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			for ( GLuint unit = 0; unit < 6; ++unit )
+				bindOutput(unit, NULL, GL_RGBA16F, false);
 		}
-		if ( s_vf.rgb )
-			GL_ResetScreenAuxWrite();
+		else
+		{
+			for ( int k = 0; k < s_vf.depth; k++ )
+			{
+				const int carryWrite = k & 1;
+				qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+					tr.froxelIntegratedImage->texnum, 0, k);
+				qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1,
+					GL_TEXTURE_2D, tr.froxelCarryImage[carryWrite]->texnum, 0);
+				GL_BindToTMU(tr.froxelCarryImage[carryWrite ^ 1], TB_LIGHTMAP);
+				if ( s_vf.rgb )
+				{
+					qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2,
+						tr.froxelTransmittanceImage->texnum, 0, k);
+					qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3,
+						GL_TEXTURE_2D, tr.froxelCarryTImage[carryWrite]->texnum, 0);
+					GL_BindToTMU(tr.froxelCarryTImage[carryWrite ^ 1], TB_FROXELCARRYT);
+				}
+
+				GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, k);
+				RB_InstantTriangle();
+			}
+			if ( s_vf.rgb )
+				GL_ResetScreenAuxWrite();
+		}
 	}
 	RB_VolumetricEndTimer(timer);
 
