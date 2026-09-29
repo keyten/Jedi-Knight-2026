@@ -1682,13 +1682,22 @@ volumes below, so both media share one unit (extinction per world unit).
 False (and a zero base extinction) when off.
 =================
 */
+static float R_VolumetricHeightSetting(int component, const cvar_t *cvar)
+{
+	if (tr.world && (tr.world->heightFogSettingsMask & (1 << component)))
+		return tr.world->heightFogSettings[component];
+	if (component == 0 && !Q_stricmp(cvar->string, "auto"))
+		return tr.world ? tr.world->heightFogAutoBase : 0.0f;
+	return cvar->value;
+}
+
 static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 {
 	VectorSet4(fog, 0.0f, 0.0f, 0.0f, 0.0f);
 	VectorSet4(color, 0.0f, 0.0f, 0.0f, 0.0f);
 	VectorSet4(top, 0.0f, 0.0f, 0.0f, 0.0f);
 
-	const float opaque = r_volumetricFogHeightOpaqueDistance->value;
+	const float opaque = R_VolumetricHeightSetting(1, r_volumetricFogHeightOpaqueDistance);
 	if ( !r_volumetricFogHeight->integer || opaque <= 0.0f )
 		return qfalse;
 
@@ -1697,9 +1706,9 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	if ( extinction <= 0.0f )
 		return qfalse;
 
-	const float falloff = MAX(1.0f, r_volumetricFogHeightFalloff->value);
+	const float falloff = MAX(1.0f, R_VolumetricHeightSetting(2, r_volumetricFogHeightFalloff));
 	const float maxScale = MAX(1.0f, r_volumetricFogHeightMaxDensity->value);
-	VectorSet4(fog, extinction, r_volumetricFogHeightBase->value, 1.0f / falloff, logf(maxScale));
+	VectorSet4(fog, extinction, R_VolumetricHeightSetting(0, r_volumetricFogHeightBase), 1.0f / falloff, logf(maxScale));
 
 	// albedo in the fogParms convention (R_LoadFogs, ParseShader)
 	vec3_t albedo = { 0.7f, 0.75f, 0.8f };
@@ -1713,7 +1722,7 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	}
 
 	// soft cutoff: fades out over the last falloff (at most the whole layer)
-	const float topHeight = MAX(0.0f, r_volumetricFogHeightTopHeight->value);
+	const float topHeight = MAX(0.0f, R_VolumetricHeightSetting(3, r_volumetricFogHeightTopHeight));
 	VectorSet4(color, albedo[0], albedo[1], albedo[2], topHeight - MIN(falloff, topHeight));
 
 	// relative extinction per channel (r_volumetricFogRGBExtinction), mean 1
@@ -1763,11 +1772,14 @@ static void R_VolumetricFogUsage( void )
 static void R_VolumetricFogPrint( void )
 {
 	ri.Printf(PRINT_ALL, "volumetric fog medium: %s\n", r_volumetricFogHeight->integer ? "on" : "off");
-	ri.Printf(PRINT_ALL, "  opaque  %g\n", r_volumetricFogHeightOpaqueDistance->value);
-	ri.Printf(PRINT_ALL, "  falloff %g\n", r_volumetricFogHeightFalloff->value);
+	ri.Printf(PRINT_ALL, "  opaque  %g\n", R_VolumetricHeightSetting(1, r_volumetricFogHeightOpaqueDistance));
+	ri.Printf(PRINT_ALL, "  falloff %g\n", R_VolumetricHeightSetting(2, r_volumetricFogHeightFalloff));
 	ri.Printf(PRINT_ALL, "  color   %s\n", r_volumetricFogHeightColor->string);
-	ri.Printf(PRINT_ALL, "  base    %g\n", r_volumetricFogHeightBase->value);
-	ri.Printf(PRINT_ALL, "  top     %g\n", r_volumetricFogHeightTopHeight->value);
+	ri.Printf(PRINT_ALL, "  base    %g (%s)\n", R_VolumetricHeightSetting(0, r_volumetricFogHeightBase),
+		tr.world && (tr.world->heightFogSettingsMask & 1) ? "env.json" : r_volumetricFogHeightBase->string);
+	ri.Printf(PRINT_ALL, "  top     %g\n", R_VolumetricHeightSetting(3, r_volumetricFogHeightTopHeight));
+	if (tr.world && tr.world->heightFogSettingsMask)
+		ri.Printf(PRINT_ALL, "  env.json HeightFog overrides the corresponding cvars\n");
 	ri.Printf(PRINT_ALL, "  max     %g\n", r_volumetricFogHeightMaxDensity->value);
 
 	if ( r_volumetricFog->integer != 2 || !s_vf.resources )
@@ -1804,7 +1816,8 @@ void R_VolumetricFog_f( void )
 	{
 		cvar_t *cvars[] = {
 			r_volumetricFogHeight, r_volumetricFogHeightOpaqueDistance, r_volumetricFogHeightFalloff,
-			r_volumetricFogHeightColor, r_volumetricFogHeightTopHeight, r_volumetricFogHeightMaxDensity };
+			r_volumetricFogHeightColor, r_volumetricFogHeightTopHeight, r_volumetricFogHeightMaxDensity,
+			r_volumetricFogHeightBase };
 		for ( size_t i = 0; i < ARRAY_LEN(cvars); i++ )
 		{
 			if ( cvars[i]->resetString )
@@ -1925,6 +1938,7 @@ void R_VolumetricFog_f( void )
 		ri.Cvar_Set(settings[i].cvar, settings[i].value);
 	if ( autoBase )
 	{
+		ri.Cvar_Set("r_volumetricFogHeightBase", "auto");
 		if ( tr.world )
 			R_SetHeightFogBase(tr.world);
 		else
@@ -2036,11 +2050,11 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricFogScale->value,
 		tr.volumetricFogScale,
 		(float)r_volumetricFogHeight->integer,
-		r_volumetricFogHeightOpaqueDistance->value,
-		r_volumetricFogHeightBase->value,
-		r_volumetricFogHeightFalloff->value,
+		R_VolumetricHeightSetting(1, r_volumetricFogHeightOpaqueDistance),
+		R_VolumetricHeightSetting(0, r_volumetricFogHeightBase),
+		R_VolumetricHeightSetting(2, r_volumetricFogHeightFalloff),
 		r_volumetricFogHeightMaxDensity->value,
-		r_volumetricFogHeightTopHeight->value,
+		R_VolumetricHeightSetting(3, r_volumetricFogHeightTopHeight),
 		r_volumetricFogAnisotropy->value,
 		r_volumetricFogSunScale->value,
 		r_volumetricFogStaticScale->value,

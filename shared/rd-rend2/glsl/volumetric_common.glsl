@@ -352,8 +352,10 @@ float FroxelExpIntegral(in float h0, in float h1, in float len, in float invFall
 float FroxelHeightCappedIntegral(in float h0, in float h1, in float len)
 {
 	float invFalloff = u_FroxelHeightFog.z;
-	float hCap = -u_FroxelHeightFog.w / invFalloff;
 	float maxScale = exp(u_FroxelHeightFog.w);
+	if (invFalloff <= 0.0)
+		return len * min(1.0, maxScale);
+	float hCap = -u_FroxelHeightFog.w / invFalloff;
 	float lo = min(h0, h1);
 	float hi = max(h0, h1);
 	float integral;
@@ -389,6 +391,9 @@ float FroxelHeightOpticalDepth(in vec3 a, in vec3 b, in float len)
 {
 	float h0 = a.z - u_FroxelHeightFog.y;
 	float h1 = b.z - u_FroxelHeightFog.y;
+	// Avoid exponentials for segments entirely above the finite ceiling.
+	if (u_FroxelHeightFogTop.x > 0.0 && min(h0, h1) >= u_FroxelHeightFogTop.x)
+		return 0.0;
 
 	if (u_FroxelHeightFogTop.x <= 0.0)
 		return u_FroxelHeightFog.x * FroxelHeightCappedIntegral(h0, h1, len);
@@ -396,6 +401,10 @@ float FroxelHeightOpticalDepth(in vec3 a, in vec3 b, in float len)
 	float fade = u_FroxelHeightFogColor.w;
 	float top = u_FroxelHeightFogTop.x;
 	float dh = h1 - h0;
+	// A horizontal segment on the fade boundary belongs to only one band.
+	if (abs(dh) < 1e-6)
+		return u_FroxelHeightFog.x * len * exp(min(-h0 * u_FroxelHeightFog.z, u_FroxelHeightFog.w)) *
+			(1.0 - smoothstep(fade, top, h0));
 	float integral = 0.0;
 
 	vec2 below = FroxelHeightBand(h0, dh, -1e20, fade);

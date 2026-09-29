@@ -3117,6 +3117,12 @@ typedef struct {
 	int			numFogVolumes;
 	refFogVolume_t	*fogVolumes;
 
+	// Optional env.json HeightFog: base, opaqueDistance, falloff, top. Missing
+	// components use cvars; an automatic base is kept out of archived cvars.
+	vec4_t heightFogSettings;
+	int heightFogSettingsMask;
+	float heightFogAutoBase;
+
 	vec3_t		lightGridOrigin;
 	vec3_t		lightGridSize;
 	vec3_t		lightGridInverseSize;
@@ -5369,7 +5375,7 @@ void R_ShutdownVolumetric(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
 void R_BuildVolumetricLightGrid(world_t *world);
-void R_SetHeightFogBase(const world_t *worldData);
+void R_SetHeightFogBase(world_t *worldData);
 void R_VolumetricFog_f(void);
 void R_VolumetricLightStats_f(void);
 void RB_UpdateVolumetricConstants(struct gpuFrame_t *frame, const trRefdef_t *refdef);

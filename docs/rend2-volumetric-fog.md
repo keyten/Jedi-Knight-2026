@@ -284,9 +284,39 @@ Units: extinction per world unit, the same conversion as the fog volumes. `r_vol
 1.5/255. There is no separate density scale. Below the base the density grows up to `HeightMax` times the base
 density (1 = flat layer below the base). The color is a `fogParms` color (sRGB, converted like the fog volumes).
 
-The base height is set to the lowest floor of the map whenever it loads (`R_SetHeightFogBase`, tr_bsp.cpp: the
-lowest point of the visible opaque world surfaces, planar ones only when they face up; the world bounds if there
-is none); change the cvar afterwards to move it.
+Height settings resolve per component: map `HeightFog` in `cubemaps/<map>/env.json`, then cvars,
+then the automatic base when `r_volumetricFogHeightBase` is `auto` (the default). The automatic base is
+the lowest visible opaque floor (`R_SetHeightFogBase`, tr_bsp.cpp), or the world bounds if there is none.
+A pit or basement can put it below the main ground, so authored settings are preferred. Loading a map
+never overwrites the archived base cvar. Existing numeric archived values remain manual values;
+use `r_vfog base auto` to restore automatic placement.
+
+```json
+"HeightFog": { "base": 128, "opaqueDistance": 3000, "falloff": 256, "top": 1800 }
+```
+
+All four fields are optional; `top` is a height ABOVE the base, not an absolute world Z.
+`opaqueDistance: 0` disables the height medium on this map. The object does not enable height fog:
+`r_volumetricFogHeight 1` is still required. Map values are stored on the world, never copied into
+cvars, so they do not leak into another map. `r_vfog` prints the effective values and notes map overrides.
+
+Injection uses the mean smooth height extinction along each camera-ray slice, including the density
+cap and soft ceiling, for both static and dynamic scattering and scalar/RGB extinction. Slice boundaries
+do not follow Z jitter; lighting and spatial noise still do. Without noise this makes full-slice optical
+depth analytic below the fade and uses the existing three-point quadrature inside it. With noise the
+smooth mean is multiplied by the point-sampled modulation, so it remains an approximation. Lighting,
+mixed media, partial-slice lookups and temporal reprojection remain discretized. Self-shadow media
+keep point density: their rays run toward lights, rather than along the camera's slices.
+
+Only negligible height contributions are discarded before lighting. The threshold is `1e-5 / columnLength`,
+applied AFTER noise and scaled by the strongest RGB extinction channel. Across a whole volume column,
+discarded optical depth is at most approximately `1e-5` per channel, independent of slice count.
+This bounds attenuation error, not brightness under arbitrarily strong lights or forward scattering.
+Other media and independent emission are preserved. The analytic tail remains unculled, since its ray
+can be much longer than the froxel volume; sprite particle lighting still evaluates light in empty cells.
+
+A finite `top` also saves lighting above its ceiling (and skips height exponentials there).
+It stays optional: imposing `6-10 * falloff` by default can remove visible haze on long horizontal rays.
 
 Lighting is the one of the fog volumes (baked grid, sun + cascades, dynamic lights + their shadows, HG phase,
 temporal filter, bloom). The global fog stays a fog volume medium; the height fog adds to it and never replaces it.
@@ -1385,7 +1415,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogFreeze` | 0 | cheat, keep the volume and its camera |
 | `r_volumetricFogHeight` | 0 | height fog on / off |
 | `r_volumetricFogHeightOpaqueDistance` | 3000 | height fog: depthForOpaque at the base height (units) |
-| `r_volumetricFogHeightBase` | 0 | height fog: world z of the base, set to the lowest floor on map load |
+| `r_volumetricFogHeightBase` | auto | height fog: manual world z, or lowest floor fallback; map HeightFog.base takes priority |
 | `r_volumetricFogHeightFalloff` | 256 | height fog: scale height (density / e per this many units above the base) |
 | `r_volumetricFogHeightMaxDensity` | 1 | height fog: maximum density below the base, multiple of the base density |
 | `r_volumetricFogHeightTopHeight` | 0 | height fog: soft cutoff height above the base, 0 = none |
@@ -1462,9 +1492,12 @@ other GPU timed blocks (GL timestamp queries).
 Not measured yet (the renderer has not been run with this mode). Expected shape: injection dominates (one full
 screen triangle per slice at froxel resolution; cost grows with the number of fog volumes, the lights of the
 slice and the cascade lookups), integration is a few texture fetches per froxel, the composite is one full screen
-pass. Maps without fog volumes do no froxel work at all unless the height fog is on. The height fog adds one
-`exp`, one `smoothstep` and a few ALU to each of the two `FroxelMedium` calls per froxel (a uniform branch when
-off); it makes more froxels non-empty, so more of them take the light path. Profile with `r_speeds 100` on low / medium / high before
+pass. Maps without fog volumes do no froxel work at all unless another medium is on. Height fog now
+evaluates a slice integral (two endpoint exponentials on the uncapped exponential branch, plus the cap
+factor; up to three quadrature samples inside the soft top), reusing the mean for dynamic lighting when
+there is no temporal jitter. It skips fog lighting for negligible height-only cells. Sprite particle
+lighting may still need those cells. The integral improves density stability, but is not free; no timing
+gain is claimed without a GPU profile. Profile with `r_speeds 100` on low / medium / high before
 changing the presets.
 
 ## Validation checklist
@@ -2013,7 +2046,7 @@ In game (not run yet):
 - Beyond `r_volumetricFogFar` the geometry / optical depth of the BSP fogs is exact and the height fog nearly so
   (Gauss-Legendre in the soft top), but the light is the light of the last slice of the column (fog that starts
   far behind a dark far point is lit like that point), and the density noise is not applied there (its mean 1; a
-  long tail path averages many noise cells anyway). Height fog: thin layers far away are limited by the slice depth; only mode 2 has it; one global layer set by cvars; the
+  long tail path averages many noise cells anyway). Height fog: thin layers far away still have slice-resolution lighting and partial-slice interpolation; only mode 2 has it; one global layer set by map settings / cvars; the
   automatic base is the lowest floor, which can be a pit or a basement below the main ground level.
 - Density noise: 64^3 tile. With the macro field alone the period (4096) can show on huge open views when the
   volume far is raised; turn the detail on or raise the scale. The same field modulates every noisy medium (no
@@ -2034,7 +2067,7 @@ In game (not run yet):
 
 ## Possible improvements (not implemented)
 
-- Per map height fog / noise settings, per medium noise scale (local fog volumes use the global noise field).
+- Per map noise settings, per medium noise scale (local fog volumes use the global noise field).
 - A cgame trap for `AddFogVolumeToScene` (game / FX code), and fog volume primitives in the effects system.
 - Depth aware skipping of hidden froxels: per froxel tile the **farthest** (maximum) scene depth; a slice can be
   skipped only when it is behind the geometry of every pixel of the tile. The nearest depth would let one close

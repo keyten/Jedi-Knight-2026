@@ -2393,7 +2393,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogHeight, 0, 1, qtrue);
 	r_volumetricFogHeightOpaqueDistance = ri.Cvar_Get("r_volumetricFogHeightOpaqueDistance", "3000", CVAR_ARCHIVE, "Froxel fog height fog: distance at which the medium at the base height becomes opaque, as fogParms depthForOpaque (world units)");
 	ri.Cvar_CheckRange(r_volumetricFogHeightOpaqueDistance, 1.0f, 1000000.0f, qfalse);
-	r_volumetricFogHeightBase = ri.Cvar_Get("r_volumetricFogHeightBase", "0", CVAR_ARCHIVE, "Froxel fog height fog: world Z of the base height, set to the lowest floor of the map when it loads");
+	r_volumetricFogHeightBase = ri.Cvar_Get("r_volumetricFogHeightBase", "auto", CVAR_ARCHIVE, "Froxel fog height fog: world Z of the base, auto = lowest floor; env.json HeightFog.base takes priority");
 	r_volumetricFogHeightFalloff = ri.Cvar_Get("r_volumetricFogHeightFalloff", "256", CVAR_ARCHIVE, "Froxel fog height fog: height (world units) over which the density falls by a factor e above the base height");
 	ri.Cvar_CheckRange(r_volumetricFogHeightFalloff, 1.0f, 65536.0f, qfalse);
 	r_volumetricFogHeightMaxDensity = ri.Cvar_Get("r_volumetricFogHeightMaxDensity", "1", CVAR_ARCHIVE, "Froxel fog height fog: maximum density below the base height, as a multiple of the base density");

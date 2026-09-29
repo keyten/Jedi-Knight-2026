@@ -216,10 +216,12 @@ def block_values(temporal):
     return values
 
 
-def bind_program(prog, textures, temporal):
+def bind_program(prog, textures, temporal, overrides=None):
     """Blocks and one texture unit per sampler, as the renderer does."""
     gl('glUseProgram', None, U)(prog)
-    buffers = [uniform_buffer(prog, 'VolumetricFog', block_values(temporal))]
+    values = block_values(temporal)
+    values.update(overrides or {})
+    buffers = [uniform_buffer(prog, 'VolumetricFog', values)]
     for slot, block in enumerate(['Lights', 'VolumetricParticles'], 1):
         buffers.append(uniform_buffer(prog, block, {}, slot))
     for unit, name in enumerate(SAMPLERS):
@@ -257,17 +259,17 @@ def delete_buffers(buffers):
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(buffer))
 
 
-def run_compute(inject, media, textures, temporal):
+def run_compute(inject, media, textures, temporal, overrides=None):
     """Media kernel, then the injection kernel, as RB_VolumetricBuild dispatches them."""
     outputs = [texture(W, H, D, internal=fmt) for fmt in OUTPUT_FORMATS]
     media_tex, tail = texture(W, H, D, internal=0x822D), tail_texture()
     bind_image = gl('glBindImageTexture', None, U, U, I, U, I, U, U)
-    buffers = bind_program(media, textures, temporal)
+    buffers = bind_program(media, textures, temporal, overrides)
     bind_image(5, media_tex, 0, 1, 0, 0x88B9, 0x822D)
     gl('glDispatchCompute', None, U, U, U)(2, 2, 5)
     gl('glMemoryBarrier', None, U)(0x08)  # texture fetch
     delete_buffers(buffers)
-    buffers = bind_program(inject, dict(textures, u_FroxelMedia=media_tex), temporal)
+    buffers = bind_program(inject, dict(textures, u_FroxelMedia=media_tex), temporal, overrides)
     for unit, (tex, fmt) in enumerate(zip(outputs, OUTPUT_FORMATS)):
         bind_image(unit, tex, 0, 1, 0, 0x88B9, fmt)
     bind_image(4, tail, 0, 0, 0, 0x88B9, 0x881A)
@@ -280,7 +282,7 @@ def run_compute(inject, media, textures, temporal):
     return media_tex, outputs, tail
 
 
-def run_raster(prog, textures, temporal, rgb):
+def run_raster(prog, textures, temporal, rgb, overrides=None):
     """The raster path: layered media draw, layered injection, tail draw."""
     outputs = [texture(W, H, D, internal=fmt) for fmt in OUTPUT_FORMATS]
     media_tex, tail = texture(W, H, D, internal=0x822D), tail_texture()
@@ -295,7 +297,7 @@ def run_raster(prog, textures, temporal, rgb):
     draw = gl('glDrawArraysInstanced', None, U, I, I, I)
     slice_loc = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_FroxelSlice')
 
-    buffers = bind_program(prog, textures, temporal)
+    buffers = bind_program(prog, textures, temporal, overrides)
     gl('glUniform1i', None, I, I)(slice_loc, 0)
     attach(0x8D40, 0x8CE0, media_tex, 0)
     draw_buffers(1, (U * 1)(0x8CE0))
@@ -303,7 +305,7 @@ def run_raster(prog, textures, temporal, rgb):
     draw(4, 0, 3, D)
     delete_buffers(buffers)
 
-    buffers = bind_program(prog, dict(textures, u_FroxelMedia=media_tex), temporal)
+    buffers = bind_program(prog, dict(textures, u_FroxelMedia=media_tex), temporal, overrides)
     count = 4 if rgb else 3
     for index in range(count):
         attach(0x8D40, 0x8CE0 + index, outputs[index], 0)
@@ -381,6 +383,68 @@ def raster_compute_match(inject, media, raster, rgb):
     print(f'PASS: {"RGB" if rgb else "scalar"} raster and compute injection match (history, jitter, reprojection)')
 
 
+def height_fog(inject, media, raster, rgb):
+    """Compare actual GPU slice means against independent numerical integration."""
+    textures = {'black': texture(1, 1, 1, [0] * 4)}
+    # base, falloff, cap, top, camera Z, ray Z: ascending, descending,
+    # cap crossing, a thin ceiling, horizontal on fade, and a negligible medium.
+    cases = [(0, 8, 1, 0, 0, 1), (64, 8, 4, 0, 128, -1),
+             (48, 8, 4, 0, 0, 1), (0, 2, 1, 3, 0, 1),
+             (0, 8, 1, 16, 8, 0), (0, 8, 1, 16, 16, 0),
+             (0, 8, 1, 0, 80, 0), (0, 8, 1, 0, 96, 0), (0, 8, 1, 0, 200, 0)]
+    for base, falloff, cap, top, camera, ray_z in cases:
+        overrides = {
+            'u_FroxelHeightFog': [.01, base, 1 / falloff, math.log(cap)],
+            'u_FroxelHeightFogTop': [top, .5, 1, 1.5],
+            'u_FroxelHeightFogColor': [.5, .5, .5, max(0, top - falloff)],
+            'u_FroxelViewOrigin': [0, 0, camera, 0],
+            'u_FroxelRayForward': [1, 0, ray_z, 0],
+            'u_FroxelRayRight': [0, 1, 0, 0],
+            'u_FroxelRayUp': [0, 0, 0, 0],
+            'u_FroxelDebugParams': [35, 0, 0, 0],
+        }
+        outputs = run_compute(inject, media, textures, False, overrides)[1]
+        actual = read(outputs[0], W * H * D * 4)
+        rastered = read(run_raster(raster, textures, False, rgb, overrides)[1][0], len(actual))
+        # Set temporal jitter without history. Z jitter must not alter slice means.
+        jittered = dict(overrides, u_FroxelJitter=[0, 0, .4, 1])
+        shifted = read(run_compute(inject, media, textures, False, jittered)[1][0], len(actual))
+        for z in range(D):
+            near = 8 * 2 ** (4 * z / D) if z else 0
+            far = 8 * 2 ** (4 * (z + 1) / D)
+
+            def density(t):
+                h = camera + ray_z * (near + (far - near) * t) - base
+                scale = min(math.exp(min(80, -h / falloff)), cap)
+                if top:
+                    fade = max(0, top - falloff)
+                    u = max(0, min(1, (h - fade) / (top - fade)))
+                    scale *= 1 - u * u * (3 - 2 * u)
+                return .01 * scale
+
+            steps = 4096
+            mean = (density(0) + density(1) + sum(
+                density(i / steps) * (4 if i % 2 else 2) for i in range(1, steps))) / (3 * steps)
+            for y in range(H):
+                for x in range(W):
+                    ray_length = math.sqrt(1 + ray_z ** 2 + ((x + .5) / W * 2 - 1) ** 2)
+                    expected = mean if mean * (1.5 if rgb else 1) * 128 * ray_length >= 1e-5 else 0
+                    i = ((z * H + y) * W + x) * 4 + 3
+                    assert abs(actual[i] - expected) <= max(6e-8, expected * .0015), (
+                        'height mean', rgb, base, top, camera, ray_z, z, actual[i], expected)
+                    if expected == 0:
+                        assert actual[i] == 0, ('height culling', rgb, camera, x, y, z, actual[i])
+                    elif camera in (80, 96):
+                        assert actual[i] > 0, ('height must survive near-slice / RGB culling', rgb, camera)
+                    assert abs(actual[i] - rastered[i]) <= max(6e-8, expected * .0011), (
+                        'height raster/compute', i, actual[i], rastered[i])
+                    assert abs(actual[i] - shifted[i]) < 1e-7, ('height Z jitter', i)
+        if camera == 200:
+            assert all(value == 0 for value in actual), 'negligible height fog must be empty'
+    print(f'PASS: {"RGB" if rgb else "scalar"} height means, cap, thin top, fade boundary, '
+          'descending/horizontal rays, culling, Z jitter, raster/compute')
+
+
 def main():
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 4)
@@ -406,6 +470,8 @@ def main():
                     injection(programs['volumetric_inject', True], media, rgb)
                     raster_compute_match(programs['volumetric_inject', True], media,
                                          programs['volumetric_inject', False], rgb)
+                    height_fog(programs['volumetric_inject', True], media,
+                               programs['volumetric_inject', False], rgb)
                 for prog in list(programs.values()) + [media]:
                     gl('glDeleteProgram', None, U)(prog)
         print(f'PASS: {permutations} raster/compute/media shader permutations compiled and linked')

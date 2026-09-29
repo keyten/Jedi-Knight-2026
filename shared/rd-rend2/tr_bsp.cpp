@@ -3237,6 +3237,34 @@ void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 	//-----------------------------FOG VOLUMES---------------------------------
 	R_LoadFogVolumesJson(world, buffer.c, bufferEnd, filename);
 
+	const char *heightFog = JSON_ObjectGetNamedValue(buffer.c, bufferEnd, "HeightFog");
+	if (heightFog && JSON_ValueGetType(heightFog, bufferEnd) == JSONTYPE_OBJECT)
+	{
+		const char *keys[] = { "base", "opaqueDistance", "falloff", "top" };
+		for (int k = 0; k < 4; k++)
+		{
+			const char *value = JSON_ObjectGetNamedValue(heightFog, bufferEnd, keys[k]);
+			if (!value)
+				continue;
+			char text[64], *end;
+			const unsigned int size = JSON_ValueGetString(value, bufferEnd, text, sizeof(text));
+			const float number = (float)strtod(text, &end);
+			// Reject NaN, infinities, wrong types and values outside the cvar ranges.
+			const float lo = k == 0 ? -1e20f : (k == 2 ? 1.0f : 0.0f);
+			const float hi = k == 0 ? 1e20f : (k == 1 ? 1000000.0f : 65536.0f);
+			if (JSON_ValueGetType(value, bufferEnd) != JSONTYPE_VALUE || !size || size >= sizeof(text) ||
+				end == text || *end != '\0' || !(number >= lo && number <= hi))
+			{
+				ri.Printf(PRINT_WARNING, "%s: invalid HeightFog.%s\n", filename, keys[k]);
+				continue;
+			}
+			world->heightFogSettings[k] = number;
+			world->heightFogSettingsMask |= 1 << k;
+		}
+	}
+	else if (heightFog)
+		ri.Printf(PRINT_WARNING, "%s: HeightFog must be an object\n", filename);
+
 	if (!cubemaps)
 	{
 		ri.FS_FreeFile(buffer.v);
@@ -3247,7 +3275,7 @@ void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 	if (!environmentArrayJson)
 	{
 		// a file with fog volumes only: the cubemap entities are used
-		if (!world->numFogVolumes)
+		if (!world->numFogVolumes && !heightFog)
 			ri.Printf(PRINT_ALL, "Bad %s: no Cubemaps\n", filename);
 		ri.FS_FreeFile(buffer.v);
 		return;
@@ -3361,14 +3389,14 @@ void R_LoadCubemapEntities(const char *cubemapEntityName)
 =================
 R_SetHeightFogBase
 
-The base height of the froxel height fog (r_volumetricFogHeightBase) follows
-the lowest floor of every loaded map: the lowest point of the visible opaque
+The automatic fallback base of the froxel height fog follows the lowest floor
+of every loaded map: the lowest point of the visible opaque
 world surfaces, planar ones only when they face up (floors, not the underside
 of platforms). Patches and triangle soups (terrain) count by their bounds.
 Falls back to the bottom of the world bounds.
 =================
 */
-void R_SetHeightFogBase(const world_t *worldData)
+void R_SetHeightFogBase(world_t *worldData)
 {
 	const bmodel_t *world = &worldData->bmodels[0];
 	float height = world->bounds[0][2];
@@ -3391,7 +3419,7 @@ void R_SetHeightFogBase(const world_t *worldData)
 		found = qtrue;
 	}
 
-	ri.Cvar_Set("r_volumetricFogHeightBase", va("%g", height));
+	worldData->heightFogAutoBase = height;
 	ri.Printf(PRINT_DEVELOPER, "Froxel height fog base: %g (%s)\n", height,
 		found ? "lowest floor" : "world bounds");
 }

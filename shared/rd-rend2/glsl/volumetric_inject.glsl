@@ -226,11 +226,39 @@ float FroxelSelfShadowJitter(in ivec2 cell, in int slice, in float temporal)
 //   sigma0 * min(exp(-(z - base) / falloff), maxScale) * (1 - smoothstep(top - fade, top, z - base))
 float FroxelHeightExtinction(in vec3 p)
 {
+	if (u_FroxelHeightFog.x <= 0.0)
+		return 0.0;
 	float h = p.z - u_FroxelHeightFog.y;
+	if (u_FroxelHeightFogTop.x > 0.0 && h >= u_FroxelHeightFogTop.x)
+		return 0.0;
 	float extinction = u_FroxelHeightFog.x * exp(min(-h * u_FroxelHeightFog.z, u_FroxelHeightFog.w));
 	if (u_FroxelHeightFogTop.x > 0.0)
 		extinction *= 1.0 - smoothstep(u_FroxelHeightFogColor.w, u_FroxelHeightFogTop.x, h);
 	return extinction;
+}
+
+// Average the smooth height profile over the actual integration segment. Keep XY
+// jitter (the lighting ray), but not Z jitter: it must not move the slice boundaries.
+// y is the extinction threshold for a 1e-5 optical-depth budget over the WHOLE
+// column, rather than 1e-5 per slice. Noise and RGB are accounted for by the caller.
+vec2 FroxelHeightSlice(in vec2 column, in float slice)
+{
+	if (u_FroxelHeightFog.x <= 0.0)
+		return vec2(0.0);
+	vec2 ndc = column / u_FroxelGridSize.xy * 2.0 - 1.0;
+	vec3 ray = u_FroxelRayForward.xyz + ndc.x * u_FroxelRayRight.xyz + ndc.y * u_FroxelRayUp.xyz;
+	float nearDepth = FroxelWToDepth(slice / u_FroxelGridSize.z);
+	float farDepth = FroxelWToDepth((slice + 1.0) / u_FroxelGridSize.z);
+	vec3 a = u_FroxelViewOrigin.xyz + ray * nearDepth;
+	vec3 b = u_FroxelViewOrigin.xyz + ray * farDepth;
+	// Integration uses the unjittered column length; use that same length for
+	// the error budget even when XY jitter selects a slightly different ray.
+	vec2 centerNdc = (floor(column) + 0.5) / u_FroxelGridSize.xy * 2.0 - 1.0;
+	vec3 centerRay = u_FroxelRayForward.xyz + centerNdc.x * u_FroxelRayRight.xyz + centerNdc.y * u_FroxelRayUp.xyz;
+	float columnLength = u_FroxelSliceParams.y * length(centerRay);
+	// The integral is linear in len: len = 1 directly gives tau / sliceLength.
+	return vec2(FroxelHeightOpticalDepth(a, b, 1.0),
+		1e-5 / max(columnLength, 1e-6));
 }
 
 // Medium sample of the injection (per-medium albedo and anisotropy). Every medium i (BSP fog,
@@ -329,7 +357,7 @@ float FroxelLobeMean(in FroxelMediumSample m, in vec3 value)
 // frame, relative to it (moving, appearing and vanishing volumes; 0 when they are static).
 // particleChange: the same for the FX particle media (their own history reduction), particleFraction:
 // their share of the extinction (before the noise).
-FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange, out float noisyFraction,
+FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugView, in bool wantChange, out float noisyFraction,
 	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
 	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14;
@@ -460,15 +488,25 @@ FroxelMediumSample FroxelMedium(in vec3 p, in int debugView, in bool wantChange,
 	// the height fog has no metadata: the global g
 	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26)
 	{
-		float e = FroxelHeightExtinction(p);
-		plainExtinction += e;
+		float e = heightSample.x;
+		float plain = e;
 		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
 		{
 			if (m < 0.0)
 				m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
 			e *= m;
-			noisyExtinction += e;
 		}
+		// Cull only the height component; never erase local media or pure emission.
+		// The normalized RGB extinction can still have one stronger channel.
+		float channelScale = 1.0;
+#if defined(USE_FROXEL_RGB)
+		channelScale = max(u_FroxelHeightFogTop.y, max(u_FroxelHeightFogTop.z, u_FroxelHeightFogTop.w));
+#endif
+		if (e * channelScale < heightSample.y)
+			e = plain = 0.0;
+		plainExtinction += plain;
+		if (noise && u_FroxelNoiseMacroOffset.w > 0.5 && e > 0.0)
+			noisyExtinction += e;
 		extinction += e;
 #if defined(USE_FROXEL_RGB)
 		extinctionRGB += e * u_FroxelHeightFogTop.yzw;
@@ -1107,7 +1145,8 @@ float FroxelMediaExtinction(in ivec2 cell, in int slice, in int debugView)
 {
 	float unused0, unused1, unused2, unused3, unused4;
 	vec3 center = FroxelWorldPosition(vec3(vec2(cell) + 0.5, float(slice) + 0.5));
-	float extinction = FroxelMedium(center, debugView, false, unused0, unused1, unused2, unused3,
+	// Self-shadow rays are not camera rays: retain point density here.
+	float extinction = FroxelMedium(center, vec2(FroxelHeightExtinction(center), 0.0), debugView, false, unused0, unused1, unused2, unused3,
 		unused4).extinction;
 	if (isnan(extinction) || isinf(extinction))
 		extinction = 0.0;
@@ -1179,7 +1218,8 @@ void main()
 	vec3 pc = FroxelWorldPosition(center);
 
 	float noisyFraction, localFraction, localChange, particleFraction, particleChange;
-	FroxelMediumSample medium = FroxelMedium(p, debugView, true, noisyFraction, localFraction, localChange,
+	vec2 heightSample = FroxelHeightSlice(center.xy + u_FroxelJitter.xy * temporal, slice);
+	FroxelMediumSample medium = FroxelMedium(p, heightSample, debugView, true, noisyFraction, localFraction, localChange,
 		particleFraction, particleChange);
 
 	// FX particles (smoke) change all the time: where their density changed the history keeps only the
@@ -1197,7 +1237,8 @@ void main()
 	if ((cluster >> 24) != 0u)
 	{
 		float unused0, unused1, unused2, unused3, unused4;
-		mediumCenter = FroxelMedium(pc, debugView, false, unused0, unused1, unused2, unused3, unused4);
+		vec2 heightCenter = temporal == 0.0 ? heightSample : FroxelHeightSlice(center.xy, slice);
+		mediumCenter = FroxelMedium(pc, heightCenter, debugView, false, unused0, unused1, unused2, unused3, unused4);
 	}
 
 	// baked light and sun, with the phases of the lobe slots of the medium and of the global g
