@@ -199,6 +199,7 @@ public:
 	CMediaHandles	mMediaHandles;
 	std::string mPhysicalEffect;
 	std::vector<FxPhysical::Alternative> mPhysicalShaders;
+	bool mPhysicalAdvancedReady = false;
 	CMediaHandles	mImpactFxHandles;
 	CMediaHandles	mDeathFxHandles;
 	CMediaHandles	mEmitterFxHandles;
@@ -664,6 +665,7 @@ private:
 	// We hold a scheduled effect here
 	struct SScheduledEffect
 	{
+		FxPhysical::SourceContext mPhysicalSource;
 		CPrimitiveTemplate	*mpTemplate;	// primitive template
 		int		mStartTime;
 		char	mModelNum;		// uset to determine which ghoul2 model we want to bolt this effect to
@@ -681,6 +683,8 @@ private:
 	// must be in sync with gLoopedEffectArray[MAX_LOOPED_FX]!
 	//
 	SLoopedEffect	mLoopedEffectArray[MAX_LOOPED_FX];
+	// Sidecar: keep SP save chunks and the legacy loop record unchanged.
+	FxPhysical::SourceContext mLoopSources[MAX_LOOPED_FX];
 
 	int		ScheduleLoopedEffect( int id, int boltInfo, bool isPortal, int iLoopTime, bool isRelative );
 	void	AddLoopedEffects( );
@@ -712,6 +716,7 @@ private:
 public:
 
 	CFxScheduler();
+	void AuditPhysicalization(const char* file);
 
 	void	LoadSave_Read();
 	void	LoadSave_Write();

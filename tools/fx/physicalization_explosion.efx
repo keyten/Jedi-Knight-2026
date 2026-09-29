@@ -1,0 +1,70 @@
+// Synthetic lit burst with lingering smoke. No commercial asset contents.
+particle
+{
+ name Smoke
+ count 1
+ life 5000
+ flags useAlpha
+ shader gfx/misc/black_smoke
+ size
+ {
+  start 48
+  end 48
+  flags linear
+ }
+ alpha
+ {
+  start 0.8
+  end 0
+  flags linear
+ }
+}
+particle
+{
+ name Flash
+ count 1
+ life 300
+ flags setShaderTime
+ shader gfx/exp/explosion1
+ size
+ {
+  start 8
+  end 16
+  flags linear
+ }
+}
+Light
+{
+ count 1
+ life 300
+ size
+ {
+  start 100
+  end 10
+  flags linear
+ }
+}
+particle
+{
+ name AuthoredMedium
+ count 1
+ life 5000
+ shader gfx/misc/steam
+ size
+ {
+  start 24
+  end 24
+  flags linear
+ }
+ alpha
+ {
+  start 0.8
+  end 0
+  flags linear
+ }
+ volumetricMedia
+ {
+  extinction 0.005
+  radiusScale 0.5
+ }
+}

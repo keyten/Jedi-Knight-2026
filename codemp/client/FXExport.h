@@ -25,6 +25,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 int	FX_RegisterEffect(const char *file);
 
 void FX_PlayEffect( const char *file, vec3_t org, vec3_t fwd, int vol, int rad );		// builds arbitrary perp. right vector, does a cross product to define up
+void FX_Sources_f(void);
 void FX_Play_f( void );		// developer command fxplay
 
 void FX_PlayEffectID( int id, vec3_t org, vec3_t fwd, int vol, int rad, qboolean isPortal = qfalse );		// builds arbitrary perp. right vector, does a cross product to define up

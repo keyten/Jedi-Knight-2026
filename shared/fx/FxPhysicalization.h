@@ -9,11 +9,12 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace FxPhysical {
 
 enum Material { None, DarkSmoke, LightSmoke, Mist, DustCloud, Gas };
-enum Evidence { Rejected, StockSignature, HighConfidenceFamily };
+enum Evidence { Rejected, StockSignature, HighConfidenceFamily, HighConfidenceComposite };
 
 inline std::string LowerPath(const std::string& input) {
     std::string result;
@@ -140,10 +141,12 @@ inline float Strength(float value) {
     return std::isfinite(value) ? std::max(0.0f, std::min(16.0f, value)) : 0.0f;
 }
 
+struct AdvancedProfile;
 struct Alternative {
     int handle = 0;
     std::string shader;
     Profile profile;
+    std::shared_ptr<const AdvancedProfile> advanced;
 };
 
 struct Input {

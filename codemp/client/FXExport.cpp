@@ -59,6 +59,14 @@ fxplay <efx> [distance]: developer test of an effect (for example a spot Light,
 effects/test/volumetric_spot.efx) at distance (default 0) in front of the
 camera of the last rendered scene, its forward along the view
 */
+void FX_Sources_f(void)
+{
+    if (!theFxHelper.refdef || !com_developer || !com_developer->integer) {
+        Com_Printf("fxsources: needs developer 1 and a running game\n"); return;
+    }
+    theFxHelper.ReportPhysicalSources();
+}
+
 void FX_Play_f( void )
 {
 	if ( Cmd_Argc() < 2 )

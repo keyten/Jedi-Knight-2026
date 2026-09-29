@@ -116,6 +116,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //------------------------------
 class CEffect
 {
+public:
+	FxPhysical::SourceContext mPhysicalSource = theFxHelper.mPhysicalSources.Capture();
+
 protected:
 
 	vec3_t		mOrigin1;
@@ -153,8 +156,13 @@ public:
 
 	inline void SetMin( const vec3_t min )		{ if(min){VectorCopy(min,mMin);}else{VectorClear(mMin);}			}
 	inline void SetMax( const vec3_t max )		{ if(max){VectorCopy(max,mMax);}else{VectorClear(mMax);}			}
-	inline void SetFlags( int flags )		{ mFlags = flags;				}
-	inline void AddFlags( int flags )		{ mFlags |= flags;				}
+	inline void SetFlags( int flags ) { mFlags = flags; RestrictPhysicalSource(flags); }
+    void RestrictPhysicalSource(int flags) {
+        if (flags & (FX_DEPTH_HACK)) mPhysicalSource.domain |= FxPhysical::SourceView;
+        if (flags & FX_RELATIVE) mPhysicalSource.domain |= FxPhysical::SourceAttached;
+        if (flags & FX_APPLY_PHYSICS) mPhysicalSource.domain |= FxPhysical::SourcePhysics;
+    }
+	inline void AddFlags( int flags ) { mFlags |= flags; RestrictPhysicalSource(flags); }
 	inline void ClearFlags( int flags )		{ mFlags &= ~flags;				}
 	inline void SetOrigin1( const vec3_t org )	{ if(org){VectorCopy(org,mOrigin1);}else{VectorClear(mOrigin1);}	}
 	inline void SetTimeStart( int time )	{ mTimeStart = time; if (mFlags&FX_SET_SHADER_TIME) { mRefEnt.shaderTime = cg.time * 0.001f; }}
@@ -317,6 +325,9 @@ struct SFxVolumetricMedia
 	float		anisotropy;		// Henyey-Greenstein g -0.9..0.9
 	float opticalDepth;			// >0: automatic radius-normalized density
 	char autoEffect[64];			// nonempty: gated by live physicalization policy
+	bool autoCompositeOnly;
+	float adaptiveOpticalDepth, adaptiveRadiusScale, adaptiveSoftness;
+	float autoEmissionRadiance;
 };
 
 //------------------------------
@@ -355,6 +366,7 @@ protected:
 	float		mAlphaFade;		// alpha of this frame, 0..1 (UpdateAlpha)
 	SFxVolumetricMedia	mVolume;
 	bool mPhysicalizationLogged = false;
+	uint64_t mPhysicalSourceReported = 0;
 
 	void		DrawVolumetricMedia();
 

@@ -214,6 +214,24 @@ Light, effects/test/volumetric_spot) at distance (default 0) in front of the
 camera, its forward along the view; "muzzle": attached to the player's weapon
 muzzle, followed every frame (a bolted spot light turns with it)
 */
+static void CG_FxAudit_f(void)
+{
+    cgi_Cvar_Update(&cg_developer);
+    if (!cg_developer.integer) { CG_Printf("fxaudit needs developer 1\n"); return; }
+    if (cgi_Argc() != 2) { CG_Printf("usage: fxaudit <efx file>\n"); return; }
+    const std::string canonical = FxPhysical::EffectPath(CG_Argv(1));
+    if (canonical.empty()) { CG_Printf("fxaudit: invalid effect path\n"); return; }
+    const std::string file = canonical.substr(8, canonical.size() - 12);
+    theFxScheduler.AuditPhysicalization(file.c_str());
+}
+
+static void CG_FxSources_f(void)
+{
+    cgi_Cvar_Update(&cg_developer);
+    if (!cg_developer.integer) { CG_Printf("fxsources needs developer 1\n"); return; }
+    theFxHelper.ReportPhysicalSources();
+}
+
 static void CG_FxPlay_f( void )
 {
 	if ( cgi_Argc() < 2 )
@@ -268,7 +286,9 @@ static consoleCommand_t	commands[] = {
 	{ "dpweapprev",			CG_DPPrevWeapon_f },
 	{ "forcenext",			CG_NextForcePower_f },
 	{ "forceprev",			CG_PrevForcePower_f },
+	{ "fxaudit", CG_FxAudit_f },
 	{ "fxplay",				CG_FxPlay_f },
+	{ "fxsources", CG_FxSources_f },
 	{ "invnext",			CG_NextInventory_f },
 	{ "invprev",			CG_PrevInventory_f },
 	{ "la_zoom",			CG_ToggleLAGoggles },

@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #if !defined(FX_SCHEDULER_H_INC)
 	#include "FxScheduler.h"
+#include "fx/FxPhysicalizationEmission.h"
 #endif
 
 #include "cg_media.h"
@@ -192,25 +193,34 @@ void CParticle::DrawVolumetricMedia()
 	if (mVolume.autoEffect[0] && ((mFlags & (FX_RELATIVE | FX_APPLY_PHYSICS)) ||
 		!theFxHelper.PhysicalizationEnabled(mVolume.autoEffect))) return;
 
+	if (mVolume.autoEffect[0] && mVolume.autoCompositeOnly && !theFxHelper.PhysicalizationComposite()) return;
+	if (mVolume.autoEffect[0] && mVolume.autoEmissionRadiance > 0 && mVolume.opticalDepth <= 0 && !theFxHelper.PhysicalizationEmission()) return;
+	const bool adaptive = mVolume.autoEffect[0] && mVolume.adaptiveOpticalDepth > 0.0f && theFxHelper.PhysicalizationAdaptive();
+	const float radiusScale = adaptive ? mVolume.adaptiveRadiusScale : mVolume.radiusScale;
+	const float softness = adaptive ? mVolume.adaptiveSoftness : mVolume.softness;
+	const float opticalDepth = adaptive ? mVolume.adaptiveOpticalDepth : mVolume.opticalDepth;
+
 	refVolParticle_t particle;
 	particle.id = mVolId;
 	VectorCopy( mOrigin1, particle.origin );
-	particle.radius = mRefEnt.radius * mVolume.radiusScale;
+	particle.radius = mRefEnt.radius * radiusScale;
 	VectorCopy( mVolume.aspect, particle.aspect );
 	particle.extinction = mVolume.extinction * mAlphaFade;
-	if (mVolume.opticalDepth > 0.0f)
-		particle.extinction = FxPhysical::Extinction(mVolume.opticalDepth, particle.radius, mVolume.softness, mAlphaFade) *
+	if (opticalDepth > 0.0f)
+		particle.extinction = FxPhysical::Extinction(opticalDepth, particle.radius, softness, mAlphaFade) *
 			theFxHelper.mPhysicalizationStrength;
 	VectorCopy( mVolume.albedo, particle.color );
 	if (mVolume.autoEffect[0] && !mPhysicalizationLogged && theFxHelper.PhysicalizationDebug()) {
 		theFxHelper.PhysicalizationPrint("FX physicalization proxy: %s radius %.3f alpha %.3f sigma %.6f strength %.3f origin %.1f %.1f %.1f\n",
 			mVolume.autoEffect, particle.radius, mAlphaFade, particle.extinction,
 			theFxHelper.mPhysicalizationStrength, particle.origin[0], particle.origin[1], particle.origin[2]);
+
 		mPhysicalizationLogged = true;
 	}
-	particle.softness = mVolume.softness;
+	particle.softness = softness;
 	particle.anisotropy = mVolume.anisotropy;
 	particle.flags = mVolume.hasAnisotropy ? VOLPARTICLE_ANISOTROPY : 0;
+	if (mVolume.autoEffect[0]) particle.flags |= mVolume.autoEmissionRadiance > 0 ? VOLPARTICLE_AUTOGLOW : VOLPARTICLE_AUTODENSITY;
 
 	// glow (visible by itself, lights nothing: a Light primitive does that): per
 	// world unit emissive * density, faded like the sprite. With emissiveTint the
@@ -233,9 +243,27 @@ void CParticle::DrawVolumetricMedia()
 		particle.emission[i] = mVolume.emissive[i] * glowDensity * glowFade[i];
 	}
 
+	if (mVolume.autoEffect[0] && mVolume.autoEmissionRadiance > 0 && theFxHelper.PhysicalizationEmission()) {
+		const float envelope = FxPhysical::EmissionEnvelope(float(theFxHelper.mTime - mTimeStart), float(mTimeEnd - mTimeStart));
+		const float radiance = FxPhysical::Extinction(mVolume.autoEmissionRadiance, particle.radius, softness, envelope);
+		const float tint[] = {1.0f, 0.35f, 0.08f};
+		for (int i = 0; i < 3; ++i) particle.emission[i] = radiance * tint[i] * FxPhysical::LinearTint(mRefEnt.shaderRGBA[i]);
+	}
+
 	if ( particle.radius > 0.0f && ( particle.extinction > 0.0f || particle.emission[0] > 0.0f ||
 		particle.emission[1] > 0.0f || particle.emission[2] > 0.0f ) )
 	{
+        if (mVolume.autoEffect[0] && theFxHelper.mPhysicalSources.Enabled() && theFxHelper.PhysicalizationDebug() &&
+            mPhysicalSourceReported != theFxHelper.mPhysicalSources.Generation()) {
+            const FxPhysical::SourceContext source = theFxHelper.mPhysicalSources.Valid(mPhysicalSource) ? mPhysicalSource : FxPhysical::SourceContext();
+            theFxHelper.PhysicalizationPrint("FXSOURCE|%s|%llu|%llu|%u|%d\n", mVolume.autoEffect,
+                (unsigned long long)source.generation, (unsigned long long)source.id, source.domain, mVolId);
+            mPhysicalSourceReported = theFxHelper.mPhysicalSources.Generation();
+        }
+        if (mVolume.autoEffect[0] && theFxHelper.mPhysicalSourceFrame) {
+            const FxPhysical::SourceContext source = theFxHelper.mPhysicalSources.Valid(mPhysicalSource) ? mPhysicalSource : FxPhysical::SourceContext();
+            theFxHelper.mPhysicalSourceFrame->Submit(source, mVolume.autoEmissionRadiance > 0);
+        }
 		theFxHelper.AddVolumetricParticle( &particle );
 	}
 }

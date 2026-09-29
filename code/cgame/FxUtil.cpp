@@ -135,6 +135,7 @@ int	FX_Init( void )
 //-------------------------
 static void FX_FreeMember( SEffectList *obj )
 {
+	FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, obj->mEffect->mPhysicalSource);
 	obj->mEffect->Die();
 	delete obj->mEffect;
 	obj->mEffect = 0;
@@ -204,6 +205,10 @@ bool FX_ActiveFx(void)
 //-------------------------
 void FX_Add( bool portal )
 {
+    if (theFxHelper.mPhysicalSources.Enabled()) {
+        theFxHelper.mPhysicalSourceFrame = &theFxHelper.mPhysicalSourceScenes[portal ? 1 : 0];
+        theFxHelper.mPhysicalSourceFrame->Begin(theFxHelper.mPhysicalSources.Generation(), theFxHelper.mTime);
+    } else theFxHelper.mPhysicalSourceFrame = nullptr;
 	int			i;
 	SEffectList	*ef;
 
@@ -223,6 +228,7 @@ void FX_Add( bool portal )
 			{
 				continue;	//this one does not render in this scene
 			}
+			FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, ef->mEffect->mPhysicalSource);
 			// Effect is active
 			if ( theFxHelper.mTime > ef->mKillTime )
 			{
@@ -374,6 +380,7 @@ void FX_Add( bool portal )
 			theFxHelper.Print( ">Scheduled %4i\n", theFxScheduler.NumScheduledFx() );
 		}
 	}
+    theFxHelper.mPhysicalSourceFrame = nullptr;
 }
 
 

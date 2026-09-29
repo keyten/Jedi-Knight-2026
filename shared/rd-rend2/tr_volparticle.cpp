@@ -48,6 +48,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include <algorithm>
 #include <chrono>
+#include "fx/FxPhysicalizationAggregate.h"
 
 extern int r_volumetricParticlesRejected;	// tr_scene.cpp
 
@@ -68,6 +69,7 @@ extern int r_volumetricParticlesRejected;	// tr_scene.cpp
 struct volParticleEval_t
 {
 	int id;
+	bool automaticDensity, automaticGlow;
 	vec3_t center;
 	vec3_t invExtent;			// 1 / (radius * aspect)
 	float radius;				// bounding sphere
@@ -105,6 +107,7 @@ static struct
 	int statCulled;				// outside the frustum or beyond the fade
 	int statCapped;				// in view, not among the uploaded
 	int statUploaded;
+	int statCoalesced;
 	int statChanged;
 	int statVanished;
 	int statPoolUsed;
@@ -131,6 +134,8 @@ static qboolean R_VolParticleEvaluate( const refVolParticle_t *particle, volPart
 		return qfalse;
 
 	out->id = particle->id;
+	out->automaticDensity = (particle->flags & VOLPARTICLE_AUTODENSITY) != 0;
+	out->automaticGlow = (particle->flags & VOLPARTICLE_AUTOGLOW) != 0;
 	VectorCopy(particle->origin, out->center);
 
 	float minExtent = 1e30f;
@@ -206,6 +211,10 @@ static qboolean R_VolParticleChanged( const volParticleEval_t *a, const volParti
 	}
 	if ( fabsf(a->extinction - b->extinction) > VOLPARTICLE_DENSITY_EPSILON * MAX(a->extinction, b->extinction) )
 		return qtrue;
+	if (a->automaticGlow || b->automaticGlow) {
+		for (int i = 0; i < 3; ++i)
+			if (fabsf(a->emission[i] - b->emission[i]) > VOLPARTICLE_DENSITY_EPSILON * MAX(a->emission[i], b->emission[i])) return qtrue;
+	}
 	if ( fabsf(a->inner - b->inner) > 0.005f )
 		return qtrue;
 	return qfalse;
@@ -335,6 +344,7 @@ static void R_VolParticlesPrintStats( const char *prefix )
 		s_vp.statUploaded, s_vp.statChanged, s_vp.statVanished, s_vp.statEmissive, MAX_GPU_EMISSIVE_PARTICLES,
 		s_vp.statEmissiveDropped, s_vp.statPoolUsed, VOL_PARTICLE_POOL,
 		s_vp.statPoolDropped, s_vp.statMaxPerSlice, s_vp.statBuildMicroseconds);
+	ri.Printf(PRINT_ALL, "automatic exact coalescing: %d inputs folded (fx_physicalizationAggregate %d)\n", s_vp.statCoalesced, fx_physicalizationAggregate->integer);
 }
 
 /*
@@ -368,6 +378,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	s_vp.statCulled = 0;
 	s_vp.statCapped = 0;
 	s_vp.statUploaded = 0;
+	s_vp.statCoalesced = 0;
 	s_vp.statChanged = 0;
 	s_vp.statVanished = 0;
 	s_vp.statPoolUsed = 0;
@@ -380,33 +391,37 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	const float fadeEnd = R_VolParticleSliceDistance(numSlices - 1, nearZ, farZ, numSlices);
 	const float fadeStart = VOLPARTICLE_FADE_START * fadeEnd;
 
-	// convert and pair with the previous frame
+	// Convert actual accepted live records. Exact coalescing has one density
+	// owner and unchanged support; original FX objects/sprites remain intact.
 	Com_Memset(previousMatched, 0, s_vp.numPrevious * sizeof(previousMatched[0]));
 	int numCurrent = 0;
 	int numCandidates = 0;
-	const int numSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
-	for ( int i = 0; i < numSubmitted && numCurrent < MAX_REF_VOL_PARTICLES; i++ )
-	{
-		volParticleEval_t *e = &current[numCurrent];
-		if ( !R_VolParticleEvaluate(&refdef->volParticles[i], e) )
-		{
-			s_vp.statRejected++;
-			continue;
-		}
-		numCurrent++;
-
+	const bool aggregate = fx_physicalizationAggregate->integer == 1;
+	bool automaticGlows = false;
+	const auto pair = [&](volParticleEval_t* e) {
 		volParticleCandidate_t *c = &candidates[numCandidates++];
 		c->current = *e;
 		c->previous = R_VolParticleFindPrevious(e->id, previousMatched);
 		c->changed = c->previous ? R_VolParticleChanged(e, c->previous) : qtrue;
-
 		VectorCopy(e->center, c->center);
 		c->radius = e->radius;
-		if ( c->changed && c->previous )
-		{
-			R_VolParticleSphereUnion(e->center, e->radius, c->previous->center, c->previous->radius,
-				c->center, &c->radius);
-		}
+		if (c->changed && c->previous)
+			R_VolParticleSphereUnion(e->center, e->radius, c->previous->center, c->previous->radius, c->center, &c->radius);
+	};
+	const int numSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
+	for (int i = 0; i < numSubmitted && numCurrent < MAX_REF_VOL_PARTICLES; ++i) {
+		volParticleEval_t* e = &current[numCurrent];
+		if (R_VolParticleEvaluate(&refdef->volParticles[i], e)) {
+			++numCurrent;
+			automaticGlows = automaticGlows || e->automaticGlow;
+			if (!aggregate) pair(e);
+		} else ++s_vp.statRejected;
+	}
+	if (aggregate) {
+		const int before = numCurrent;
+		numCurrent = FxPhysical::CoalesceExact(current, numCurrent);
+		s_vp.statCoalesced = before - numCurrent;
+		for (int i = 0; i < numCurrent; ++i) pair(&current[i]);
 	}
 
 	// vanished since the previous frame: one more frame with no density, so
@@ -438,8 +453,10 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 			continue;
 		}
 		// a glow ranks like a medium whose extinction is its luminance per unit
-		const float extinction = MAX(MAX(c->current.extinction, c->previous ? c->previous->extinction : 0.0f),
+		float extinction = MAX(MAX(c->current.extinction, c->previous ? c->previous->extinction : 0.0f),
 			0.2126f * c->current.emission[0] + 0.7152f * c->current.emission[1] + 0.0722f * c->current.emission[2]);
+		if (c->current.automaticGlow && c->previous)
+			extinction = MAX(extinction, 0.2126f*c->previous->emission[0] + 0.7152f*c->previous->emission[1] + 0.0722f*c->previous->emission[2]);
 		const float distance = MAX(c->depth, nearZ);
 		c->importance = extinction * c->radius * c->radius / (distance * distance);
 		order[numVisible++] = i;
@@ -447,6 +464,8 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	std::sort(order, order + numVisible, [&]( int a, int b ) {
 		const volParticleCandidate_t *ca = &candidates[a];
 		const volParticleCandidate_t *cb = &candidates[b];
+		// New automatic glows cannot displace existing authored/density media.
+		if (ca->current.automaticGlow != cb->current.automaticGlow) return !ca->current.automaticGlow;
 		if ( ca->importance != cb->importance )
 			return ca->importance > cb->importance;
 		if ( ca->current.id != cb->current.id )
@@ -459,6 +478,21 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	const int numUploaded = MIN(numVisible, maxUploaded);
 	s_vp.statUploaded = numUploaded;
 	s_vp.statCapped = numVisible - numUploaded;
+
+	// Authored glows first; automatic glows use at most four spare slots.
+	int emissionSlots[MAX_GPU_VOL_PARTICLES];
+	if (automaticGlows) std::fill(emissionSlots, emissionSlots + numUploaded, -1);
+	int autoSlots = 0;
+	for (int pass = 0; automaticGlows && pass < 2; ++pass) {
+		for (int n = 0; n < numUploaded; ++n) {
+			const volParticleEval_t& e = candidates[order[n]].current;
+			if (int(e.automaticGlow) != pass || VectorCompare(e.emission, vec3_origin)) continue;
+			if (s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES && (!e.automaticGlow || autoSlots < 4)) {
+				emissionSlots[n] = s_vp.statEmissive++;
+				if (e.automaticGlow) ++autoSlots;
+			} else ++s_vp.statEmissiveDropped;
+		}
+	}
 
 	// particle data
 	for ( int n = 0; n < numUploaded; n++ )
@@ -474,19 +508,18 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 			c->previous ? c->previous->extinction : 0.0f);
 		// w: changed (0/1) + 2 * (emission slot + 1), the slots to the most important emitters
 		float slotCode = 0.0f;
-		if ( !VectorCompare(e->emission, vec3_origin) )
-		{
-			if ( s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES )
-			{
+		if (automaticGlows && emissionSlots[n] >= 0) {
+			const int slot = emissionSlots[n];
+			VectorSet4(block->emission[slot], e->emission[0], e->emission[1], e->emission[2], 0.0f);
+			slotCode = 2.0f * float(slot + 1);
+		} else if (!automaticGlows && !VectorCompare(e->emission, vec3_origin)) {
+			if (s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES) {
 				const int slot = s_vp.statEmissive++;
 				VectorSet4(block->emission[slot], e->emission[0], e->emission[1], e->emission[2], 0.0f);
-				slotCode = 2.0f * (float)(slot + 1);
-			}
-			else
-			{
-				s_vp.statEmissiveDropped++;
-			}
+				slotCode = 2.0f * float(slot + 1);
+			} else ++s_vp.statEmissiveDropped;
 		}
+
 		VectorSet4(block->prevCenter[n], p->center[0], p->center[1], p->center[2],
 			(c->changed ? 1.0f : 0.0f) + slotCode);
 		VectorSet4(block->prevInvExtent[n], p->invExtent[0], p->invExtent[1], p->invExtent[2],

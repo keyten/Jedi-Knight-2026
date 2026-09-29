@@ -72,8 +72,12 @@ cvar_t	*fx_countScale;
 cvar_t	*fx_nearCull;
 static cvar_t *fx_physicalization, *fx_physicalizationOptIn, *fx_physicalizationOptOut, *fx_physicalizationDebug;
 static cvar_t *fx_physicalizationStrength;
+static cvar_t *fx_physicalizationComposite, *fx_physicalizationAdaptive, *fx_physicalizationEmission, *fx_physicalizationSources;
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug && fx_physicalizationDebug->integer != 0; }
+bool SFxHelper::PhysicalizationComposite() const { return fx_physicalizationComposite && fx_physicalizationComposite->integer == 1; }
+bool SFxHelper::PhysicalizationAdaptive() const { return fx_physicalizationAdaptive && fx_physicalizationAdaptive->integer == 1; }
+bool SFxHelper::PhysicalizationEmission() const { return fx_physicalizationEmission && fx_physicalizationEmission->integer == 1; }
 
 void SFxHelper::PhysicalizationPrint(const char* message, ...) {
 	char text[1024];
@@ -104,6 +108,12 @@ void SFxHelper::ReInit(refdef_t* pRefdef)
 	fx_physicalizationOptOut = Cvar_Get("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
 	fx_physicalizationDebug = Cvar_Get("fx_physicalizationDebug", "0", 0);
 	fx_physicalizationStrength = Cvar_Get("fx_physicalizationStrength", "1", CVAR_ARCHIVE);
+	fx_physicalizationComposite = Cvar_Get("fx_physicalizationComposite", "0", CVAR_ARCHIVE);
+	fx_physicalizationAdaptive = Cvar_Get("fx_physicalizationAdaptive", "0", CVAR_ARCHIVE);
+	fx_physicalizationEmission = Cvar_Get("fx_physicalizationEmission", "0", CVAR_ARCHIVE);
+	fx_physicalizationSources = Cvar_Get("fx_physicalizationSources", "0", CVAR_ARCHIVE);
+	mPhysicalSources.Reset();
+	for (auto& scene : mPhysicalSourceScenes) scene.Begin(mPhysicalSources.Generation());
 	mTime = 0;
 	mOldTime = 0;
 	mFrameTime = 0;
@@ -127,6 +137,8 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frametime )
 {
+	mPhysicalSources.Enable(fx_physicalizationSources && fx_physicalizationSources->integer == 1);
+	if (frametime > 0 && frametime < mTime) mPhysicalSources.Reset();
 	if (fx_physicalizationStrength)
 		mPhysicalizationStrength = FxPhysical::Strength(fx_physicalizationStrength->value);
 	if (fx_physicalization)
@@ -206,3 +218,5 @@ qboolean SFxHelper::GetOriginAxisFromBolt(CGhoul2Info_v *pGhoul2, int mEntNum, i
 	}
 	return doesBoltExist;
 }
+
+#include "fx/FxPhysicalizationSourcesReport.h"

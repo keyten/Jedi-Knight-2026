@@ -203,6 +203,7 @@ extern cvar_t	*r_volumetricEmission;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
 extern cvar_t	*r_volumetricParticles;
+extern cvar_t *fx_physicalizationAggregate;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotLightShadows;
 extern cvar_t	*r_spotLightDebug;

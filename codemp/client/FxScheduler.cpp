@@ -90,6 +90,8 @@ int CFxScheduler::ScheduleLoopedEffect( int id, int boltInfo, CGhoul2Info_v *gho
 		theFxHelper.Print( "CFxScheduler::AddLoopedEffect- No Free Slots available for %d\n", mEffectTemplates[id].mEffectName);
 		return -1;
 	}
+	if (!mLoopedEffectArray[i].mId || !theFxHelper.mPhysicalSources.Valid(mLoopSources[i]))
+		mLoopSources[i] = theFxHelper.mPhysicalSources.Capture();
 	mLoopedEffectArray[i].mId = id;
 	mLoopedEffectArray[i].mBoltInfo = boltInfo;
 	mLoopedEffectArray[i].mGhoul2  = ghoul2;
@@ -123,6 +125,7 @@ void CFxScheduler::StopEffect( const char *file, int boltInfo, bool isPortal )
 			mLoopedEffectArray[i].mPortalEffect == isPortal
 			)
 		{
+			mLoopSources[i] = FxPhysical::SourceContext();
 			memset( &mLoopedEffectArray[i], 0, sizeof(mLoopedEffectArray[i]) );
 			return;
 		}
@@ -147,10 +150,14 @@ void CFxScheduler::AddLoopedEffects()
 			data->mEntityNum = entNum;
 			CGVM_GetLerpOrigin();
 
+			if (!theFxHelper.mPhysicalSources.Valid(mLoopSources[i]))
+				mLoopSources[i] = theFxHelper.mPhysicalSources.New(FxPhysical::SourceAttached | (mLoopedEffectArray[i].mPortalEffect ? FxPhysical::SourcePortal : 0));
+			FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, mLoopSources[i]);
 			PlayEffect( mLoopedEffectArray[i].mId, data->mPoint, 0, mLoopedEffectArray[i].mBoltInfo, mLoopedEffectArray[i].mGhoul2, -1, mLoopedEffectArray[i].mPortalEffect, false, mLoopedEffectArray[i].mIsRelative );	//very important to send FALSE to not recursively add me!
 			mLoopedEffectArray[i].mNextTime = theFxHelper.mTime + mEffectTemplates[mLoopedEffectArray[i].mId].mRepeatDelay;
 			if (mLoopedEffectArray[i].mLoopStopTime && mLoopedEffectArray[i].mLoopStopTime < theFxHelper.mTime)	//time's up
 			{//kill this entry
+				mLoopSources[i] = FxPhysical::SourceContext();
 				memset( &mLoopedEffectArray[i], 0, sizeof(mLoopedEffectArray[i]) );
 			}
 		}
@@ -190,6 +197,8 @@ SEffectTemplate &SEffectTemplate::operator=(const SEffectTemplate &that)
 //------------------------------------------------------
 void CFxScheduler::Clean(bool bRemoveTemplates /*= true*/, int idToPreserve /*= 0*/)
 {
+	theFxHelper.mPhysicalSources.Reset();
+	for (auto& source : mLoopSources) source = FxPhysical::SourceContext();
 	int								i, j;
 	TScheduledEffect::iterator		itr, next;
 
@@ -817,6 +826,17 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, matrix3_t axis, const int 
 	int						modelNum = 0, boltNum = -1;
 	int						entityNum = -1;
 
+	unsigned sourceDomain = (isPortal ? FxPhysical::SourcePortal : 0) |
+        ((boltInfo > 0 || entityNum != -1 || isRelative) ? FxPhysical::SourceAttached : 0);
+    FxPhysical::SourceContext source = theFxHelper.mPhysicalSources.Play(sourceDomain);
+    if (theFxHelper.mPhysicalSources.Enabled() && iLoopTime && boltInfo > 0) {
+        for (int slot = 0; slot < MAX_LOOPED_FX; ++slot)
+            if (mLoopedEffectArray[slot].mId == id && mLoopedEffectArray[slot].mBoltInfo == boltInfo &&
+                mLoopedEffectArray[slot].mPortalEffect == isPortal && theFxHelper.mPhysicalSources.Valid(mLoopSources[slot]))
+                source = mLoopSources[slot];
+    }
+    FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, source);
+
 	if ( boltInfo > 0 )
 	{
 		// extract the wraith ID from the bolt info
@@ -935,6 +955,7 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, matrix3_t axis, const int 
 					return;
 				}
 
+				sfx->mPhysicalSource = theFxHelper.mPhysicalSources.Capture();
 				sfx->mStartTime = theFxHelper.mTime + delay;
 				sfx->mpTemplate = prim;
 				sfx->mIsRelative = isRelative;
@@ -1077,7 +1098,8 @@ void CFxScheduler::AddScheduledEffects( bool portal )
 		SScheduledEffect *effect = *itr;
 
 		if (portal == effect->mPortalEffect && effect->mStartTime <= theFxHelper.mTime )
-		{ //only render portal fx on the skyportal pass and vice versa
+		{
+			FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, effect->mPhysicalSource);
 			if (effect->mBoltNum == -1)
 			{// ok, are we spawning a bolt on effect or a normal one?
 				if ( effect->mEntNum != ENTITYNUM_NONE )
@@ -1203,6 +1225,7 @@ void CFxScheduler::Draw2DEffects(float screenXScale, float screenYScale)
 //------------------------------------------------------
 void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, matrix3_t axis, int lateTime, int fxParm /*-1*/, CGhoul2Info_v *ghoul2, int entNum, int modelNum, int boltNum  )
 {
+	FxPhysical::SourceTracker::Scope primitiveSourceScope(theFxHelper.mPhysicalSources, FX_SourceForPrimitive(fx));
 	vec3_t	org, org2, temp,
 				vel, accel,
 				sRGB, eRGB,
@@ -1759,6 +1782,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 //------------------------------------------------------
 void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, SScheduledEffect *scheduledFx )
 {
+	FxPhysical::SourceTracker::Scope primitiveSourceScope(theFxHelper.mPhysicalSources, FX_SourceForPrimitive(fx));
 	int boltInfo;
 
 	// annoying bit....we have to pack the values back into an int before calling playEffect since there isn't the ideal overload we can already use.

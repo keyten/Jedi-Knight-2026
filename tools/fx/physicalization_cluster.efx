@@ -1,0 +1,21 @@
+// Synthetic coincident puffs. Sprites survive exact medium coalescing.
+particle
+{
+    name Smoke
+    count 4
+    life 5000
+    flags useAlpha
+    shader gfx/misc/black_smoke
+    size
+    {
+        start 48
+        end 48
+        flags linear
+    }
+    alpha
+    {
+        start 0.8
+        end 0
+        flags linear
+    }
+}

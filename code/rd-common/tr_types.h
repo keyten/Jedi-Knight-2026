@@ -390,6 +390,8 @@ typedef struct {
 } refVolParticle_t;
 
 #define	VOLPARTICLE_ANISOTROPY		1		// refVolParticle_t flags: anisotropy is set
+#define VOLPARTICLE_AUTODENSITY 2 // automatic non-emissive medium, exact coalescing eligible
+#define VOLPARTICLE_AUTOGLOW 4 // automatic glow: lower priority, separate bounded budget
 
 // Spot lights (rend2): a dynamic light limited to a cone around dir, added per
 // scene like a dynamic light through the optional renderer extension

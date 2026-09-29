@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "qcommon/safe/gsl.h"
 #include "fx/FxPhysicalization.h"
+#include "fx/FxPhysicalizationSources.h"
 
 
 #define irand	Q_irand
@@ -48,9 +49,16 @@ struct SFxHelper
 	void	Init();
 	void	AdjustTime( int time );
 	FxPhysical::Policy mPhysicalPolicy;
+	FxPhysical::SourceTracker mPhysicalSources;
+	FxPhysical::SourceLedger mPhysicalSourceScenes[2];
+	FxPhysical::SourceLedger* mPhysicalSourceFrame = nullptr;
+	void ReportPhysicalSources();
 	float mPhysicalizationStrength = 1.0f;
 	bool PhysicalizationEnabled(const char* effect) const { return mPhysicalPolicy.Enabled(effect); }
 	bool PhysicalizationDebug() const;
+	bool PhysicalizationComposite() const;
+	bool PhysicalizationAdaptive() const;
+	bool PhysicalizationEmission() const;
 	void PhysicalizationPrint(const char* message, ...);
 
 	// These functions are wrapped and used by the fx system in case it makes things a bit more portable

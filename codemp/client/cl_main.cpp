@@ -2739,6 +2739,7 @@ static void CL_GenerateQKey(void)
 CL_Init
 ====================
 */
+void FX_Sources_f(void);
 void FX_Play_f( void );	// FXExport.cpp
 
 void CL_Init( void ) {
@@ -2885,6 +2886,7 @@ void CL_Init( void ) {
 	// register our commands
 	//
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f, "Forward command to server" );
+	Cmd_AddCommand ("fxsources", FX_Sources_f, "Developer: inspect automatic FX source submissions" );
 	Cmd_AddCommand ("fxplay", FX_Play_f, "Developer: play an effect in front of the camera, along the view (fxplay <efx> [distance])" );
 	Cmd_AddCommand ("globalservers", CL_GlobalServers_f, "Query the masterserver for serverlist" );
 	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f, "Add server to favorites" );
@@ -2963,6 +2965,7 @@ void CL_Shutdown( void ) {
 
 	Cmd_RemoveCommand ("cmd");
 	Cmd_RemoveCommand ("fxplay");
+	Cmd_RemoveCommand ("fxsources");
 	Cmd_RemoveCommand ("configstrings");
 	Cmd_RemoveCommand ("clientinfo");
 	Cmd_RemoveCommand ("snd_restart");

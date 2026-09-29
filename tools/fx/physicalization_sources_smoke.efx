@@ -1,0 +1,76 @@
+// Synthetic source propagation: immediate/delayed puffs, runners, death and emitter children.
+particle
+{
+ name Smoke
+ count 1
+ life 1200
+ flags useAlpha deathFx
+ deathFx test/physicalization_cluster
+ shader gfx/misc/black_smoke
+ size
+ {
+  start 24
+  end 24
+ }
+ alpha
+ {
+  start 0.8
+  end 0
+  flags linear
+ }
+}
+particle
+{
+ name Smoke
+ count 2
+ delay 250
+ life 1200
+ flags useAlpha
+ shader gfx/misc/black_smoke
+ size
+ {
+  start 24
+  end 24
+ }
+ alpha
+ {
+  start 0.8
+  end 0
+  flags linear
+ }
+}
+fxRunner
+{
+ count 1
+ playFx test/physicalization_cluster
+}
+fxRunner
+{
+ count 1
+ delay 500
+ playFx test/physicalization_cluster
+}
+emitter
+{
+ count 1
+ life 1000
+ velocity 40 0 0
+ density 6
+ variance 0
+ flags emitFx
+ emitFx test/physicalization_cluster
+}
+particle
+{
+ name PhysicsParent
+ count 1
+ life 700
+ flags usePhysics deathFx
+ deathFx test/physicalization_cluster
+ shader gfx/misc/steam
+ size
+ {
+  start 2
+  end 2
+ }
+}

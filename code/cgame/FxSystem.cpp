@@ -31,9 +31,13 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 extern vmCvar_t	fx_debug;
 extern vmCvar_t	fx_freeze;
 extern vmCvar_t fx_physicalization, fx_physicalizationDebug, fx_physicalizationStrength;
+extern vmCvar_t fx_physicalizationComposite, fx_physicalizationAdaptive, fx_physicalizationEmission, fx_physicalizationSources;
 static cvar_t *physicalOptIn, *physicalOptOut;
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug.integer != 0; }
+bool SFxHelper::PhysicalizationComposite() const { return fx_physicalizationComposite.integer == 1; }
+bool SFxHelper::PhysicalizationAdaptive() const { return fx_physicalizationAdaptive.integer == 1; }
+bool SFxHelper::PhysicalizationEmission() const { return fx_physicalizationEmission.integer == 1; }
 
 void SFxHelper::PhysicalizationPrint(const char* message, ...) {
 	char text[1024];
@@ -51,6 +55,8 @@ extern void CG_ExplosionEffects( vec3_t origin, float intensity, int radius, int
 void SFxHelper::Init()
 {
 	mTime = 0;
+	mPhysicalSources.Reset();
+	for (auto& scene : mPhysicalSourceScenes) scene.Begin(mPhysicalSources.Generation());
 	// Lists are not VM mirrors: Cvar_Update rejects strings over 255 bytes.
 	physicalOptIn = gi.cvar("fx_physicalizationOptIn", "", CVAR_ARCHIVE);
 	physicalOptOut = gi.cvar("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
@@ -76,6 +82,7 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frameTime )
 {
+	mPhysicalSources.Enable(fx_physicalizationSources.integer == 1);
 	mPhysicalizationStrength = FxPhysical::Strength(fx_physicalizationStrength.value);
 	if (physicalOptIn && physicalOptOut)
 		mPhysicalPolicy.Update(fx_physicalization.integer, physicalOptIn->string, physicalOptOut->string);
@@ -288,3 +295,5 @@ int SFxHelper::GetOriginAxisFromBolt(const centity_t &cent, int modelNum, int bo
 	axis[2][2] = boltMatrix.matrix[2][2];
 	return doesBoltExist;
 }
+
+#include "fx/FxPhysicalizationSourcesReport.h"

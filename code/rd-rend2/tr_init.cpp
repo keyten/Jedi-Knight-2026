@@ -133,6 +133,7 @@ cvar_t	*r_volumetricEmission;
 cvar_t	*r_volumetricFogReset;
 cvar_t	*r_volumetricFogDebug;
 cvar_t	*r_volumetricParticles;
+cvar_t *fx_physicalizationAggregate;
 cvar_t	*r_spotLights;
 cvar_t	*r_spotLightShadows;
 cvar_t	*r_spotLightDebug;
@@ -2398,6 +2399,7 @@ void R_Register( void )
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volumetricParticles = ri_Cvar_Get_NoComm("r_volumetricParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");
 	ri.Cvar_CheckRange(r_volumetricParticles, 0, 1, qtrue);
+	fx_physicalizationAggregate = ri_Cvar_Get_NoComm("fx_physicalizationAggregate", "0", CVAR_ARCHIVE, "Experimental exact coalescing of coincident automatic non-emissive media only");
 	r_volumetricParticlesMax = ri_Cvar_Get_NoComm("r_volumetricParticlesMax", "128", CVAR_ARCHIVE, "r_volumetricParticles: most important particles uploaded per frame (the rest is capped)");
 	ri.Cvar_CheckRange(r_volumetricParticlesMax, 0, MAX_GPU_VOL_PARTICLES, qtrue);
 	r_volumetricParticlesScale = ri_Cvar_Get_NoComm("r_volumetricParticlesScale", "1", CVAR_ARCHIVE, "r_volumetricParticles: extinction multiplier of the particle media");

@@ -124,6 +124,7 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mMediaHandles		= that.mMediaHandles;
 	mPhysicalEffect = that.mPhysicalEffect;
 	mPhysicalShaders = that.mPhysicalShaders;
+	mPhysicalAdvancedReady = that.mPhysicalAdvancedReady;
 	mImpactFxHandles	= that.mImpactFxHandles;
 	mDeathFxHandles		= that.mDeathFxHandles;
 	mEmitterFxHandles	= that.mEmitterFxHandles;

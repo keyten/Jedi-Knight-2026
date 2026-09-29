@@ -239,6 +239,8 @@ int CFxScheduler::ScheduleLoopedEffect( int id, int boltInfo, bool isPortal, int
 		theFxHelper.Print( "CFxScheduler::AddLoopedEffect- No Free Slots available for %d\n", mEffectTemplates[id].mEffectName);
 		return -1;
 	}
+	if (!mLoopedEffectArray[i].mId || !theFxHelper.mPhysicalSources.Valid(mLoopSources[i]))
+		mLoopSources[i] = theFxHelper.mPhysicalSources.Capture();
 	mLoopedEffectArray[i].mId = id;
 	mLoopedEffectArray[i].mBoltInfo = boltInfo;
 	mLoopedEffectArray[i].mPortalEffect = isPortal;
@@ -271,6 +273,7 @@ void CFxScheduler::StopEffect( const char *file, int boltInfo, bool isPortal )
 			mLoopedEffectArray[i].mPortalEffect == isPortal
 			)
 		{
+			mLoopSources[i] = FxPhysical::SourceContext();
 			memset( &mLoopedEffectArray[i], 0, sizeof(mLoopedEffectArray[i]) );
 			return;
 		}
@@ -291,17 +294,22 @@ void CFxScheduler::AddLoopedEffects()
 			const int entNum = ( mLoopedEffectArray[i].mBoltInfo >> ENTITY_SHIFT )	& ENTITY_AND;
 			if ( cg_entities[entNum].gent->inuse )
 			{// only play the looped effect when the ent is still inUse....
+				if (!theFxHelper.mPhysicalSources.Valid(mLoopSources[i]))
+					mLoopSources[i] = theFxHelper.mPhysicalSources.New(FxPhysical::SourceAttached | (mLoopedEffectArray[i].mPortalEffect ? FxPhysical::SourcePortal : 0));
+				FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, mLoopSources[i]);
 				PlayEffect( mLoopedEffectArray[i].mId, cg_entities[entNum].lerpOrigin, 0, mLoopedEffectArray[i].mBoltInfo, -1, mLoopedEffectArray[i].mPortalEffect, false,  mLoopedEffectArray[i].mIsRelative );	//very important to send FALSE looptime to not recursively add me!
 				mLoopedEffectArray[i].mNextTime = theFxHelper.mTime + mEffectTemplates[mLoopedEffectArray[i].mId].mRepeatDelay;
 			}
 			else
 			{
 				theFxHelper.Print( "CFxScheduler::AddLoopedEffects- entity was removed without stopping any looping fx it owned." );
+				mLoopSources[i] = FxPhysical::SourceContext();
 				memset( &mLoopedEffectArray[i], 0, sizeof(mLoopedEffectArray[i]) );
 				continue;
 			}
 			if ( mLoopedEffectArray[i].mLoopStopTime && mLoopedEffectArray[i].mLoopStopTime < theFxHelper.mTime )	//time's up
 			{//kill this entry
+				mLoopSources[i] = FxPhysical::SourceContext();
 				memset( &mLoopedEffectArray[i], 0, sizeof(mLoopedEffectArray[i]) );
 			}
 		}
@@ -340,6 +348,8 @@ void SEffectTemplate::operator=(const SEffectTemplate &that)
 //------------------------------------------------------
 void CFxScheduler::Clean(bool bRemoveTemplates /*= true*/, int idToPreserve /*= 0*/)
 {
+	theFxHelper.mPhysicalSources.Reset();
+	for (auto& source : mLoopSources) source = FxPhysical::SourceContext();
 	int								i, j;
 	TScheduledEffect::iterator		itr, next;
 
@@ -417,6 +427,44 @@ void CFxScheduler::Clean(bool bRemoveTemplates /*= true*/, int idToPreserve /*= 
 // Return:
 //	int handle to the effect
 //------------------------------------------------------
+// Diagnostic only: register through the real parser, report resolved profiles,
+// then release only templates created by this call (including child preloads).
+// Existing game handles, schedules and looped effects are untouched.
+void CFxScheduler::AuditPhysicalization(const char* file)
+{
+    bool existing[FX_MAX_EFFECTS];
+    for (int i = 0; i < FX_MAX_EFFECTS; ++i) existing[i] = mEffectTemplates[i].mInUse;
+    TEffectID savedIDs = mEffectIDs;
+    const int handle = RegisterEffect(file);
+    const std::string path = FxPhysical::EffectPath(file);
+    if (handle) {
+        const SEffectTemplate& effect = mEffectTemplates[handle];
+        for (int i = 0; i < effect.mPrimitiveCount; ++i) {
+            const CPrimitiveTemplate* p = effect.mPrimitives[i];
+            int exact = 0, family = 0, composite = 0, adaptive = 0, emission = 0;
+            for (const FxPhysical::Alternative& a : p->mPhysicalShaders) {
+                const FxPhysical::Profile base = FxPhysical::Resolve(p->mPhysicalShaders, a.handle);
+                const FxPhysical::AdvancedProfile adv = FxPhysical::ResolveAdvanced(p->mPhysicalShaders, a.handle);
+                exact += base.material != FxPhysical::None && base.evidence == FxPhysical::StockSignature;
+                family += base.material != FxPhysical::None && base.evidence == FxPhysical::HighConfidenceFamily;
+                composite += base.material == FxPhysical::None && adv.composite.material != FxPhysical::None;
+                adaptive += adv.adaptive.material != FxPhysical::None;
+                emission += adv.emissionRadiance > 0;
+            }
+            theFxHelper.PhysicalizationPrint("FXAUDIT|%s|%d|%d|%d|%d|%d|%d|%d|%d|%d\n", path.c_str(), i,
+                int(p->mType == Particle || p->mType == OrientedParticle), int(p->mPhysicalShaders.size()),
+                exact, family, composite, adaptive, emission, int(p->mVolMedia));
+        }
+        theFxHelper.PhysicalizationPrint("FXAUDIT_END|%s|%d\n", path.c_str(), effect.mPrimitiveCount);
+    } else theFxHelper.PhysicalizationPrint("FXAUDIT_ERROR|%s\n", path.c_str());
+    for (int i = 1; i < FX_MAX_EFFECTS; ++i) {
+        if (existing[i] || !mEffectTemplates[i].mInUse) continue;
+        for (int j = 0; j < mEffectTemplates[i].mPrimitiveCount; ++j) delete mEffectTemplates[i].mPrimitives[j];
+        memset(&mEffectTemplates[i], 0, sizeof(mEffectTemplates[i]));
+    }
+    mEffectIDs.swap(savedIDs);
+}
+
 int CFxScheduler::RegisterEffect( const char *path, bool bHasCorrectPath /*= false*/ )
 {
 	// Dealing with file names:
@@ -864,6 +912,8 @@ void CFxScheduler::PlayEffect( const char *file, int clientID, bool isPortal )
 
 	// Don't bother scheduling the effect if the system is currently frozen
 
+	FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources,
+		theFxHelper.mPhysicalSources.Play(FxPhysical::SourceView | FxPhysical::SourceAttached | (isPortal ? FxPhysical::SourcePortal : 0)));
 	// Get the effect.
 	fx = &mEffectTemplates[id];
 
@@ -913,6 +963,7 @@ void CFxScheduler::PlayEffect( const char *file, int clientID, bool isPortal )
 					return;
 				}
 
+				sfx->mPhysicalSource = theFxHelper.mPhysicalSources.Capture();
 				sfx->mStartTime = theFxHelper.mTime + delay;
 				sfx->mpTemplate = prim;
 				sfx->mClientID	= clientID;
@@ -983,6 +1034,7 @@ static void FX_SetVolumetricMedia( CParticle *particle, const CPrimitiveTemplate
 
 void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay )
 {
+	FxPhysical::SourceTracker::Scope primitiveSourceScope(theFxHelper.mPhysicalSources, FX_SourceForPrimitive(fx));
 	vec3_t	sRGB, eRGB;
 	vec3_t	vel, accel;
 	vec3_t	org,org2;
@@ -1186,6 +1238,17 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int 
 	int	modelNum = 0, boltNum = -1;
 	int	entityNum = entNum;
 
+	unsigned sourceDomain = (isPortal ? FxPhysical::SourcePortal : 0) |
+        ((boltInfo > 0 || entityNum != -1 || isRelative) ? FxPhysical::SourceAttached : 0);
+    FxPhysical::SourceContext source = theFxHelper.mPhysicalSources.Play(sourceDomain);
+    if (theFxHelper.mPhysicalSources.Enabled() && iLoopTime && boltInfo > 0) {
+        for (int slot = 0; slot < MAX_LOOPED_FX; ++slot)
+            if (mLoopedEffectArray[slot].mId == id && mLoopedEffectArray[slot].mBoltInfo == boltInfo &&
+                mLoopedEffectArray[slot].mPortalEffect == isPortal && theFxHelper.mPhysicalSources.Valid(mLoopSources[slot]))
+                source = mLoopSources[slot];
+    }
+    FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, source);
+
 	if ( boltInfo > 0 )
 	{
 		// extract the wraith ID from the bolt info
@@ -1269,6 +1332,7 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int 
 					return;
 				}
 
+				sfx->mPhysicalSource = theFxHelper.mPhysicalSources.Capture();
 				sfx->mStartTime = theFxHelper.mTime + delay;
 				sfx->mpTemplate = prim;
 				sfx->mClientID = -1;
@@ -1421,6 +1485,7 @@ void CFxScheduler::AddScheduledEffects( bool portal )
 
 		if (portal == effect->mPortalEffect && effect->mStartTime <= theFxHelper.mTime )
 		{
+			FxPhysical::SourceTracker::Scope sourceScope(theFxHelper.mPhysicalSources, effect->mPhysicalSource);
 			if ( effect->mClientID >= 0 )
 			{
 				CreateEffect( effect->mpTemplate, effect->mClientID,
@@ -1512,6 +1577,7 @@ void CFxScheduler::AddScheduledEffects( bool portal )
 //------------------------------------------------------
 void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, vec3_t axis[3], int lateTime, int clientID, int modelNum, int boltNum )
 {
+	FxPhysical::SourceTracker::Scope primitiveSourceScope(theFxHelper.mPhysicalSources, FX_SourceForPrimitive(fx));
 	vec3_t	org, org2, temp,
 				vel, accel,
 				sRGB, eRGB,
