@@ -246,6 +246,7 @@ vmCvar_t	r_ltcSaberAreaLights;	// renderer cvar (rend2 LTC area lights), mirrore
 vmCvar_t	r_foliageInteraction;	// renderer cvar (rend2 foliage interaction), mirrored
 vmCvar_t	r_volumetricParticles;		// renderer cvar (rend2 volumetric FX particles), mirrored
 vmCvar_t fx_physicalization, fx_physicalizationDebug;
+vmCvar_t fx_physicalizationStrength;
 vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
@@ -367,6 +368,7 @@ static cvarTable_t cvarTable[] = {
 	{ NULL, "fx_physicalizationOptIn", "", CVAR_ARCHIVE },
 	{ NULL, "fx_physicalizationOptOut", "", CVAR_ARCHIVE },
 	{ &fx_physicalizationDebug, "fx_physicalizationDebug", "0", 0 },
+	{ &fx_physicalizationStrength, "fx_physicalizationStrength", "1", CVAR_ARCHIVE },
 	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },

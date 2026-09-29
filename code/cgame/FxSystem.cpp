@@ -30,7 +30,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 extern vmCvar_t	fx_debug;
 extern vmCvar_t	fx_freeze;
-extern vmCvar_t fx_physicalization, fx_physicalizationDebug;
+extern vmCvar_t fx_physicalization, fx_physicalizationDebug, fx_physicalizationStrength;
 static cvar_t *physicalOptIn, *physicalOptOut;
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug.integer != 0; }
@@ -76,6 +76,7 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frameTime )
 {
+	mPhysicalizationStrength = FxPhysical::Strength(fx_physicalizationStrength.value);
 	if (physicalOptIn && physicalOptOut)
 		mPhysicalPolicy.Update(fx_physicalization.integer, physicalOptIn->string, physicalOptOut->string);
 	if ( fx_freeze.integer || ( frameTime <= 0 ))

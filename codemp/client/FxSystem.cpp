@@ -71,6 +71,7 @@ cvar_t	*fx_freeze;
 cvar_t	*fx_countScale;
 cvar_t	*fx_nearCull;
 static cvar_t *fx_physicalization, *fx_physicalizationOptIn, *fx_physicalizationOptOut, *fx_physicalizationDebug;
+static cvar_t *fx_physicalizationStrength;
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug && fx_physicalizationDebug->integer != 0; }
 
@@ -102,6 +103,7 @@ void SFxHelper::ReInit(refdef_t* pRefdef)
 	fx_physicalizationOptIn = Cvar_Get("fx_physicalizationOptIn", "", CVAR_ARCHIVE);
 	fx_physicalizationOptOut = Cvar_Get("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
 	fx_physicalizationDebug = Cvar_Get("fx_physicalizationDebug", "0", 0);
+	fx_physicalizationStrength = Cvar_Get("fx_physicalizationStrength", "1", CVAR_ARCHIVE);
 	mTime = 0;
 	mOldTime = 0;
 	mFrameTime = 0;
@@ -125,6 +127,8 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frametime )
 {
+	if (fx_physicalizationStrength)
+		mPhysicalizationStrength = FxPhysical::Strength(fx_physicalizationStrength->value);
 	if (fx_physicalization)
 		mPhysicalPolicy.Update(fx_physicalization->integer, fx_physicalizationOptIn->string, fx_physicalizationOptOut->string);
 #ifdef _DEBUG

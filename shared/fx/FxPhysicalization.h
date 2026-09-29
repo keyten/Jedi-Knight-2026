@@ -136,6 +136,10 @@ inline float Extinction(float opticalDepth, float radius, float softness, float 
     return opticalDepth * std::max(0.0f, std::min(1.0f, alpha)) / length;
 }
 
+inline float Strength(float value) {
+    return std::isfinite(value) ? std::max(0.0f, std::min(16.0f, value)) : 0.0f;
+}
+
 struct Alternative {
     int handle = 0;
     std::string shader;

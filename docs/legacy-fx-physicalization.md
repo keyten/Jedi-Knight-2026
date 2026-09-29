@@ -94,11 +94,14 @@ set fx_physicalizationDebug 1
 При регистрации EFX выводятся путь, primitive, shader, материал и основание:
 `stock signature`, `high-confidence family` или `conservative fallback`.
 Для уже зарегистрированных эффектов нужна перезагрузка карты. Диагностика
-доступна и в Release-сборке. В SP можно зарегистрировать и проиграть эффект:
+доступна и в Release-сборке. При первой отправке автоматического proxy также
+выводятся actual radius, alpha, extinction, strength и world origin. Сам факт
+upload не гарантирует видимость: облако может оказаться за геометрией или
+моделью игрока. В SP можно зарегистрировать и проиграть эффект:
 
 ```text
 set developer 1
-fxplay volumetric/black_smoke 100
+fxplay volumetric/black_smoke2 160
 r_volparticles
 ```
 
@@ -108,6 +111,31 @@ Renderer сохраняет свой лимит выбранных particle medi
 при нагрузке часть proxies может не попасть в GPU. Opt-in режим удобен
 для последовательной визуальной настройки отдельных эффектов.
 
+Для воспроизводимого сравнения есть [fx-stage1-demo.cfg](../tools/fx/fx-stage1-demo.cfg).
+Положить его в активную game directory, загрузить карту и выполнить
+`exec fx-stage1-demo.cfg`. Рядом установить [physicalization_smoke.efx](../tools/fx/physicalization_smoke.efx)
+в `effects/test/`. Это наш синтетический неподвижный puff, использующий
+установленный smoke shader; он проверяет также high-confidence generic path.
+Demo создаёт puff,
+замораживает FX-время и оставляет переключение `fx_physicalization 0` / `2`
+для сравнения одной и той же геометрии. Завершить тест: `fx_freeze 0`.
+Debug view 26 помогает увидеть собственно среду поверх исходных спрайтов.
+
+`fx_physicalizationStrength` масштабирует только автоматическую optical depth
+и действует на живые частицы. По умолчанию 1; диапазон 0–16. Значения 4–8
+полезны для диагностики и настройки, поскольку добавка поверх сохранённого
+спрайта при 1 может быть слабо различима. Demo задаёт 8 для заметного сравнения;
+после теста вернуть `fx_physicalizationStrength 1`. Этот параметр не влияет на
+ручные `volumetricMedia`, в отличие от общего `r_volumetricParticlesScale`.
+
+При тесте установленной modded base нельзя рассчитывать на различие
+`rocket/explosion` или `volumetric/black_smoke`: пакет
+`zz_volumetric_media_test.pk3` уже задаёт им ручную среду, на которую
+`fx_physicalization` не действует. `volumetric/black_smoke2` в этом пакете
+не заменён. Команда `fxplay` зарегистрирована также в SP engine: до загрузки
+карты она выводит пояснение, с несовместимой game DLL — сообщение об её
+обновлении, после успешного вызова — подтверждение пути и расстояния.
+
 Общий C++11 harness проверяет режимы, смену списков, fingerprints, альтернативы,
 отсутствие RNG-вызовов и optical depth. Corpus replay проверяет все 1375
 штатных media alternatives: 31 точное совпадение и 1344 legacy. Этот replay
@@ -115,12 +143,18 @@ Renderer сохраняет свой лимит выбранных particle medi
 Команды генерации и тестирования описаны в [tools/fx](../tools/fx/README.md).
 
 Проверено при реализации: SP game DLL и MP engine собраны в RelWithDebInfo;
-134 проверки C++ harness, 1375 corpus alternatives и 6 тестов audit прошли.
+137 проверок C++ harness, 1375 corpus alternatives и 6 тестов audit прошли.
 В SP на stock `t1_fatal` проверены живые частицы `volumetric/black_smoke`
 со списком длиннее 255 символов. При замороженном FX-времени последовательность
 режимов 0, 1, 2, 3, 0, 2 дала renderer submission counts 0, 58, 2, 56, 0, 2:
 два дымовых proxy возвращаются при повторном opt-in, остальные 56 относятся
 к окружению карты и выключаются режимом 2. MP runtime и визуальная приёмка
 каждого профиля ещё не выполнены.
+
+Дополнительно проверена установленная modded base: `fxplay`, точный profile
+`black_smoke2` и generic high-confidence test smoke доходят до GPU; off/on
+действует на замороженные FX. В синтетическом тесте `strength 8`, radius 36
+и расстояние 32 units дают видимое затемнение обычной сцены. Это диагностическая
+настройка, а не новая плотность по умолчанию для штатных EFX.
 
 Дизайн и результаты исследования: [ревью предложения](legacy-fx-physicalization-review.md).

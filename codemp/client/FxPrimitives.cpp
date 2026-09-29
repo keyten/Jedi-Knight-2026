@@ -155,6 +155,7 @@ void CParticle::SetVolumetricMedia( const SFxVolumetricMedia *media )
 		return;
 	}
 	mVolume = *media;
+	mPhysicalizationLogged = false;
 	nextVolId = ( nextVolId + 1 ) & 0x7fffffff;
 	if ( nextVolId == 0 )
 	{
@@ -182,8 +183,15 @@ void CParticle::DrawVolumetricMedia(void)
 	VectorCopy( mVolume.aspect, particle.aspect );
 	particle.extinction = mVolume.extinction * mAlphaFade;
 	if (mVolume.opticalDepth > 0.0f)
-		particle.extinction = FxPhysical::Extinction(mVolume.opticalDepth, particle.radius, mVolume.softness, mAlphaFade);
+		particle.extinction = FxPhysical::Extinction(mVolume.opticalDepth, particle.radius, mVolume.softness, mAlphaFade) *
+			theFxHelper.mPhysicalizationStrength;
 	VectorCopy( mVolume.albedo, particle.color );
+	if (mVolume.autoEffect[0] && !mPhysicalizationLogged && theFxHelper.PhysicalizationDebug()) {
+		theFxHelper.PhysicalizationPrint("FX physicalization proxy: %s radius %.3f alpha %.3f sigma %.6f strength %.3f origin %.1f %.1f %.1f\n",
+			mVolume.autoEffect, particle.radius, mAlphaFade, particle.extinction,
+			theFxHelper.mPhysicalizationStrength, particle.origin[0], particle.origin[1], particle.origin[2]);
+		mPhysicalizationLogged = true;
+	}
 	particle.softness = mVolume.softness;
 	particle.anisotropy = mVolume.anisotropy;
 	particle.flags = mVolume.hasAnisotropy ? VOLPARTICLE_ANISOTROPY : 0;

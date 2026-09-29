@@ -221,6 +221,7 @@ static void CG_FxPlay_f( void )
 		CG_Printf( "usage: fxplay <efx file> [distance | muzzle]\n" );
 		return;
 	}
+	cgi_Cvar_Update(&cg_developer);
 	if ( !cg_developer.integer )
 	{
 		CG_Printf( "fxplay needs developer 1\n" );
@@ -235,6 +236,7 @@ static void CG_FxPlay_f( void )
 	if ( cgi_Argc() > 2 && !Q_stricmp( CG_Argv( 2 ), "muzzle" ) )
 	{
 		theFxScheduler.PlayEffect( file, cg.snap ? cg.snap->ps.clientNum : 0 );
+		CG_Printf("fxplay: %s at weapon muzzle\n", file);
 		return;
 	}
 	const float dist = cgi_Argc() > 2 ? atof( CG_Argv( 2 ) ) : 0.0f;
@@ -242,6 +244,7 @@ static void CG_FxPlay_f( void )
 	VectorMA( cg.refdef.vieworg, dist, cg.refdef.viewaxis[0], org );
 	VectorCopy( cg.refdef.viewaxis[0], fwd );
 	theFxScheduler.PlayEffect( file, org, fwd );
+	CG_Printf("fxplay: %s at distance %.0f\n", file, dist);
 }
 
 typedef struct {

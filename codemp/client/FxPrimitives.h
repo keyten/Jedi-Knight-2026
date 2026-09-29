@@ -350,6 +350,7 @@ protected:
 	int			mVolId;
 	float		mAlphaFade;		// alpha of this frame, 0..1 (UpdateAlpha)
 	SFxVolumetricMedia	mVolume;
+	bool mPhysicalizationLogged = false;
 
 	bool		UpdateOrigin();
 	void		UpdateSize();

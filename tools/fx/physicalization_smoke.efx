@@ -1,0 +1,22 @@
+// Synthetic stationary smoke puff for stage-1 visual verification.
+// Uses an installed Raven shader; contains no copied commercial EFX.
+particle
+{
+    name Smoke
+    count 1
+    life 5000
+    flags useAlpha
+    shader gfx/misc/black_smoke
+    size
+    {
+        start 48
+        end 48
+        flags linear
+    }
+    alpha
+    {
+        start 0.8
+        end 0
+        flags linear
+    }
+}

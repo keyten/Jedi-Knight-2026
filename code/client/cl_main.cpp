@@ -300,6 +300,15 @@ things like godmode, noclip, etc, are commands directed to the server,
 so when they are typed in at the console, they will need to be forwarded.
 ===================
 */
+static void CL_FxPlay_f(void) {
+	if (cls.state != CA_ACTIVE) {
+		Com_Printf("fxplay: load a single-player map first\n");
+		return;
+	}
+	if (!CL_GameCommand())
+		Com_Printf("fxplay: the loaded SP game DLL does not provide this command; restart with the updated jagame DLL\n");
+}
+
 void CL_ForwardCommandToServer( void ) {
 	const char	*cmd;
 	char	string[MAX_STRING_CHARS];
@@ -1324,6 +1333,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("cmd", CL_ForwardToServer_f);
 	Cmd_AddCommand ("configstrings", CL_Configstrings_f);
 	Cmd_AddCommand ("clientinfo", CL_Clientinfo_f);
+	Cmd_AddCommand ("fxplay", CL_FxPlay_f);
 	Cmd_AddCommand ("snd_restart", CL_Snd_Restart_f);
 	Cmd_AddCommand ("vid_restart", CL_Vid_Restart_f);
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
@@ -1378,6 +1388,7 @@ void CL_Shutdown( void ) {
 	Cmd_RemoveCommand ("cmd");
 	Cmd_RemoveCommand ("configstrings");
 	Cmd_RemoveCommand ("clientinfo");
+	Cmd_RemoveCommand ("fxplay");
 	Cmd_RemoveCommand ("snd_restart");
 	Cmd_RemoveCommand ("vid_restart");
 	Cmd_RemoveCommand ("disconnect");
@@ -1395,4 +1406,3 @@ void CL_Shutdown( void ) {
 
 	Com_Printf( "-----------------------\n" );
 }
-

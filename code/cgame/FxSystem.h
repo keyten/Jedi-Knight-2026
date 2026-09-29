@@ -48,6 +48,7 @@ struct SFxHelper
 	void	Init();
 	void	AdjustTime( int time );
 	FxPhysical::Policy mPhysicalPolicy;
+	float mPhysicalizationStrength = 1.0f;
 	bool PhysicalizationEnabled(const char* effect) const { return mPhysicalPolicy.Enabled(effect); }
 	bool PhysicalizationDebug() const;
 	void PhysicalizationPrint(const char* message, ...);

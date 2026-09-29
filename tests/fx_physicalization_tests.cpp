@@ -99,6 +99,9 @@ int main(int argc, char** argv) {
     Check(Extinction(0.1f, -1, 0.7f, 1) == 0, "negative radius rejected");
     Check(Extinction(0.1f, std::numeric_limits<float>::quiet_NaN(), 0.7f, 1) == 0, "NaN radius rejected");
     Check(Extinction(0.1f, 10, 0.7f, std::numeric_limits<float>::infinity()) == 0, "infinite alpha rejected");
+    Check(Strength(1) == 1 && Strength(8) == 8, "optical strength preserves valid calibration");
+    Check(Strength(-1) == 0 && Strength(100) == 16, "optical strength bounded");
+    Check(Strength(std::numeric_limits<float>::quiet_NaN()) == 0, "nonfinite optical strength disabled");
     std::cout << "PASS: " << checks << " policy/classification/optics checks\n";
     return 0;
 }
