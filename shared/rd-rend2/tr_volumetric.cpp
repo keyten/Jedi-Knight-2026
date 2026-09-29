@@ -202,8 +202,8 @@ void R_VolumetricExtinctionColor( const float *in, vec3_t out )
 
 Density noise (r_volumetricFogNoise)
 
-A tiling 64^3 RGBA8 texture generated at renderer init, sampled in world
-space: r = macro field, g = detail field (independent), b and a unused. Each
+A tiling 64^3 RG8 texture generated at renderer init, sampled in world
+space: r = macro field, g = detail field (independent). Each
 field is a tileable gradient noise FBM (lattice periods 4, 8 and 16 cells per
 tile, weights 1, 0.5, 0.25, every octave shifted by its own fraction of a cell
 so that their lattice points, where gradient noise is 0, do not line up into
@@ -223,16 +223,26 @@ and divided out (noiseNorm tables, every half mip level).
 #define FROXEL_NOISE_LEVELS 7		// 64, 32, ..., 1
 #define FROXEL_NOISE_TEXELS (FROXEL_NOISE_SIZE * FROXEL_NOISE_SIZE * FROXEL_NOISE_SIZE)
 #define FROXEL_NOISE_MEAN_SAMPLES 32768
+#define FROXEL_NOISE_NORM_STEPS (2 * (FROXEL_NOISE_LEVELS - 1) + 1)
+#define FROXEL_NOISE_NORM_BINS 1024
 // all mip levels of one field: 64^3 + 32^3 + ... + 1
 #define FROXEL_NOISE_CHAIN (262144 + 32768 + 4096 + 512 + 64 + 8 + 1)
+
+struct noiseMeanBin_t
+{
+	float mean;
+	int count;
+};
 
 struct froxelNoise_t
 {
 	qboolean valid;
-	// CPU copy of both fields with their box filtered mips (as the GPU mips),
+	// CPU copy of both fields with the exact box filtered mips uploaded to the GPU,
 	// static: kept over renderer restarts
 	byte chain[2][FROXEL_NOISE_CHAIN];
 	byte *levels[2][FROXEL_NOISE_LEVELS];
+	// Distribution of filtered samples: built once, independent of contrast.
+	noiseMeanBin_t distribution[2][FROXEL_NOISE_NORM_STEPS][FROXEL_NOISE_NORM_BINS];
 
 	// mean normalization at lod 0, 0.5, ..., 6 (13..15 = lod 6), cached by contrast
 	float normContrast[2];
@@ -364,7 +374,7 @@ static void R_NoiseGenerateField( byte *out, uint32_t seed )
 	Z_Free(ranks);
 }
 
-// 2x2x2 box filter with rounding (glGenerateMipmap of an RGBA8 texture)
+// 2x2x2 box filter with rounding; these exact bytes are uploaded at every mip.
 static void R_NoiseDownsample( const byte *in, int size, byte *out )
 {
 	const int half = size / 2;
@@ -426,24 +436,25 @@ static float R_NoiseSampleLod( int field, const float *u, float lod )
 
 static float R_NoiseContrast( float n, float c )
 {
-	return (1.0f + c) * powf(MAX(n, 1e-4f), c);
+	n = MAX(n, 1e-4f);
+	if ( c == 1.0f )
+		return 2.0f * n;
+	if ( c == 2.0f )
+		return 3.0f * n * n;
+	return (1.0f + c) * powf(n, c);
 }
 
-// 1 / E[f(n; c)] at lod 0, 0.5, ..., 6 of a field, n filtered as the GPU does
-// (trilinear, mip blend) at low discrepancy (R3 sequence) positions. Blending
-// two levels lowers the variance of n, so the half levels are measured too.
-static void R_NoiseMeasureNorm( int field, float contrast, float *norm )
+// Cache the contrast-independent filtered sample distribution once. Using each
+// bin's measured mean preserves the first moment (c=1) and avoids a contrast LUT:
+// arbitrary contrasts stay cheap without interpolation error along that axis.
+static void R_NoiseBuildDistribution( int field )
 {
-	for ( int j = 0; j < 16; j++ )
-		norm[j] = 1.0f;
-	if ( contrast <= 0.0f )
-		return;
-
 	static const double alpha[3] = { 0.8191725133961645, 0.6710436067037893, 0.5497004779019703 };
-	const int numSteps = 2 * (FROXEL_NOISE_LEVELS - 1) + 1;
-	for ( int j = 0; j < numSteps; j++ )
+	for ( int j = 0; j < FROXEL_NOISE_NORM_STEPS; j++ )
 	{
-		double sum = 0.0;
+		double sums[FROXEL_NOISE_NORM_BINS] = {};
+		noiseMeanBin_t *bins = s_noise.distribution[field][j];
+		Com_Memset(bins, 0, sizeof(s_noise.distribution[field][j]));
 		for ( int s = 0; s < FROXEL_NOISE_MEAN_SAMPLES; s++ )
 		{
 			float u[3];
@@ -452,13 +463,36 @@ static void R_NoiseMeasureNorm( int field, float contrast, float *norm )
 				const double x = 0.5 + alpha[a] * (double)s;
 				u[a] = (float)(x - floor(x));
 			}
-			sum += R_NoiseContrast(R_NoiseSampleLod(field, u, 0.5f * (float)j), contrast);
+			const float n = MAX(R_NoiseSampleLod(field, u, 0.5f * (float)j), 1e-4f);
+			const int b = MIN((int)(n * FROXEL_NOISE_NORM_BINS), FROXEL_NOISE_NORM_BINS - 1);
+			sums[b] += n;
+			bins[b].count++;
 		}
+		for ( int b = 0; b < FROXEL_NOISE_NORM_BINS; b++ )
+			bins[b].mean = bins[b].count ? (float)(sums[b] / bins[b].count) : 0.0f;
+	}
+}
+
+// 1 / E[f(n; c)] at lod 0, 0.5, ..., 6 (trilinear and mip blending).
+static void R_NoiseMeasureNorm( int field, float contrast, float *norm )
+{
+	for ( int j = 0; j < 16; j++ )
+		norm[j] = 1.0f;
+	if ( contrast <= 0.0f )
+		return;
+
+	for ( int j = 0; j < FROXEL_NOISE_NORM_STEPS; j++ )
+	{
+		double sum = 0.0;
+		const noiseMeanBin_t *bins = s_noise.distribution[field][j];
+		for ( int b = 0; b < FROXEL_NOISE_NORM_BINS; b++ )
+			if ( bins[b].count )
+				sum += (double)bins[b].count * R_NoiseContrast(bins[b].mean, contrast);
 		const double mean = sum / (double)FROXEL_NOISE_MEAN_SAMPLES;
 		norm[j] = (mean > 1e-6) ? (float)(1.0 / mean) : 1.0f;
 	}
-	for ( int j = numSteps; j < 16; j++ )
-		norm[j] = norm[numSteps - 1];
+	for ( int j = FROXEL_NOISE_NORM_STEPS; j < 16; j++ )
+		norm[j] = norm[FROXEL_NOISE_NORM_STEPS - 1];
 }
 
 static void R_CreateVolumetricNoiseImage( void )
@@ -484,23 +518,27 @@ static void R_CreateVolumetricNoiseImage( void )
 				R_NoiseDownsample(s_noise.levels[field][l - 1], FROXEL_NOISE_SIZE >> (l - 1),
 					s_noise.levels[field][l]);
 			}
+			R_NoiseBuildDistribution(field);
 		}
+		s_noise.normContrast[0] = s_noise.normContrast[1] = -1.0f;
 		s_noise.valid = qtrue;
 	}
-	s_noise.normContrast[0] = s_noise.normContrast[1] = -1.0f;
 
-	byte *texels = (byte *)Z_Malloc(FROXEL_NOISE_TEXELS * 4, TAG_TEMP_WORKSPACE, qtrue);
-	for ( int t = 0; t < FROXEL_NOISE_TEXELS; t++ )
+	byte *texels = (byte *)Z_Malloc(FROXEL_NOISE_CHAIN * 2, TAG_TEMP_WORKSPACE, qfalse);
+	for ( int t = 0; t < FROXEL_NOISE_CHAIN; t++ )
 	{
-		texels[t * 4 + 0] = s_noise.levels[0][0][t];
-		texels[t * 4 + 1] = s_noise.levels[1][0][t];
+		texels[t * 2 + 0] = s_noise.chain[0][t];
+		texels[t * 2 + 1] = s_noise.chain[1][t];
 	}
+	const byte *mipData[FROXEL_NOISE_LEVELS];
+	for ( int l = 0; l < FROXEL_NOISE_LEVELS; l++ )
+		mipData[l] = texels + 2 * (s_noise.levels[0][l] - s_noise.chain[0]);
 	// repeat, trilinear, full mip chain
-	tr.froxelNoiseImage = R_CreateImage3D("*froxelNoise", texels,
-		FROXEL_NOISE_SIZE, FROXEL_NOISE_SIZE, FROXEL_NOISE_SIZE, GL_RGBA8, IMGFLAG_MIPMAP);
+	tr.froxelNoiseImage = R_CreateImage3D("*froxelNoise", NULL,
+		FROXEL_NOISE_SIZE, FROXEL_NOISE_SIZE, FROXEL_NOISE_SIZE, GL_RG8, IMGFLAG_MIPMAP, mipData);
 	Z_Free(texels);
 
-	ri.Printf(PRINT_DEVELOPER, "Froxel fog density noise: %d^3 RGBA8, %d ms\n",
+	ri.Printf(PRINT_DEVELOPER, "Froxel fog density noise: %d^3 RG8, %d ms\n",
 		FROXEL_NOISE_SIZE, ri.Milliseconds() - start);
 }
 
@@ -1960,8 +1998,8 @@ Density noise constants (r_volumetricFogNoise, off by default):
   n_D   = noise.g at R30(p / P_D) + offset - windOffset_D
 
 The wind offsets are wrapped to the tile (the texture repeats), in double
-precision from the renderer time. A moving medium lowers the history weight
-of the noisy media so that the lag of the temporal filter stays below a tenth
+precision from a piecewise constant velocity and renderer time. A moving
+medium lowers the history weight of the noisy media so that the lag stays below a tenth
 of the finest noise feature:
 
   lag = |wind| * dt * w / (1 - w) <= lambda  ->  w_noise = min(w, lambda / (lambda + |wind| * dt))
@@ -1972,37 +2010,82 @@ False when no medium is noisy (or both contrasts are 0).
 #define FROXEL_NOISE_COS30 0.8660254f
 #define FROXEL_NOISE_SIN30 0.5f
 
+struct froxelNoiseWind_t
+{
+	qboolean valid;
+	const world_t *world;
+	int epochTime, lastTime;
+	float wind[3], periods[2];
+	double phase[2][3];
+};
+
+static froxelNoiseWind_t s_noiseWind;
+
+// Re-anchor only on wind/period changes. This integrates velocity continuously
+// without per-frame floating point accumulation, including repeated views at t.
+static void R_VolumetricNoiseWind( VolumetricFogBlock *block, int time, const float *wind, float macroPeriod, float detailPeriod )
+{
+	const float periods[2] = { macroPeriod, detailPeriod };
+	if ( !s_noiseWind.valid || s_noiseWind.world != tr.world || time < s_noiseWind.lastTime )
+	{
+		Com_Memset(&s_noiseWind, 0, sizeof(s_noiseWind));
+		s_noiseWind.valid = qtrue;
+		s_noiseWind.world = tr.world;
+		s_noiseWind.epochTime = time;
+		VectorCopy(wind, s_noiseWind.wind);
+		memcpy(s_noiseWind.periods, periods, sizeof(periods));
+	}
+
+	const double seconds = ((double)time - (double)s_noiseWind.epochTime) * 0.001;
+	const double velocity[2][3] = {
+		{ s_noiseWind.wind[0], s_noiseWind.wind[1], s_noiseWind.wind[2] },
+		{ FROXEL_NOISE_COS30 * (double)s_noiseWind.wind[0] - FROXEL_NOISE_SIN30 * (double)s_noiseWind.wind[1],
+		  FROXEL_NOISE_SIN30 * (double)s_noiseWind.wind[0] + FROXEL_NOISE_COS30 * (double)s_noiseWind.wind[1],
+		  s_noiseWind.wind[2] } };
+	const bool changed = memcmp(wind, s_noiseWind.wind, sizeof(s_noiseWind.wind)) != 0 ||
+		memcmp(periods, s_noiseWind.periods, sizeof(periods)) != 0;
+	for ( int field = 0; field < 2; field++ )
+	{
+		for ( int c = 0; c < 3; c++ )
+		{
+			const double p = s_noiseWind.phase[field][c] + velocity[field][c] * seconds / s_noiseWind.periods[field];
+			const double phase = p - floor(p);
+			(field ? block->noiseDetailOffset : block->noiseMacroOffset)[c] = (float)phase;
+			if ( changed )
+				s_noiseWind.phase[field][c] = phase;
+		}
+	}
+	if ( changed )
+	{
+		s_noiseWind.epochTime = time;
+		VectorCopy(wind, s_noiseWind.wind);
+		memcpy(s_noiseWind.periods, periods, sizeof(periods));
+	}
+	s_noiseWind.lastTime = time;
+}
+
 static qboolean R_VolumetricNoise( VolumetricFogBlock *block, const trRefdef_t *refdef, float historyWeight )
 {
 	const int mask = r_volumetricFogNoise->integer & 15;
 	const float macroContrast = Com_Clamp(0.0f, 4.0f, r_volumetricFogNoiseContrast->value);
 	const float detailContrast = Com_Clamp(0.0f, 4.0f, r_volumetricFogNoiseDetailContrast->value);
-	if ( !mask || !tr.froxelNoiseImage || (macroContrast <= 0.0f && detailContrast <= 0.0f) )
-		return qfalse;
-
 	const float macroPeriod = MAX(64.0f, r_volumetricFogNoiseScale->value);
 	const float detailPeriod = MAX(16.0f, r_volumetricFogNoiseDetailScale->value);
-	VectorSet4(block->noiseParams, 1.0f / macroPeriod, 1.0f / detailPeriod, macroContrast, detailContrast);
 
 	vec3_t wind = { 0.0f, 0.0f, 0.0f };
 	sscanf(r_volumetricFogNoiseWind->string, "%f %f %f", &wind[0], &wind[1], &wind[2]);
-	const double seconds = (double)refdef->time * 0.001;
-	const double detailWind[3] = {
-		FROXEL_NOISE_COS30 * wind[0] - FROXEL_NOISE_SIN30 * wind[1],
-		FROXEL_NOISE_SIN30 * wind[0] + FROXEL_NOISE_COS30 * wind[1],
-		wind[2] };
-	for ( int c = 0; c < 3; c++ )
-	{
-		const double macro = (double)wind[c] * seconds / macroPeriod;
-		const double detail = detailWind[c] * seconds / detailPeriod;
-		block->noiseMacroOffset[c] = (float)(macro - floor(macro));
-		block->noiseDetailOffset[c] = (float)(detail - floor(detail));
-	}
+	R_VolumetricNoiseWind(block, refdef->time, wind, macroPeriod, detailPeriod);
+	if ( !mask || !tr.froxelNoiseImage || (macroContrast <= 0.0f && detailContrast <= 0.0f) )
+		return qfalse;
+
+	VectorSet4(block->noiseParams, 1.0f / macroPeriod, 1.0f / detailPeriod, macroContrast, detailContrast);
 	block->noiseMacroOffset[3] = (mask & 1) ? 1.0f : 0.0f;
 
 	// history weight of the noisy media
 	const float speed = VectorLength(wind);
-	const float finest = ((detailContrast > 0.0f) ? detailPeriod : macroPeriod) / 16.0f;
+	const float finestPeriod = (macroContrast > 0.0f && detailContrast > 0.0f) ? MIN(macroPeriod, detailPeriod) :
+		((macroContrast > 0.0f) ? macroPeriod : detailPeriod);
+	const float finest = finestPeriod / 16.0f;
 	const float lambda = 0.1f * finest;
 	const float dt = Com_Clamp(1.0f / 240.0f, 1.0f / 15.0f, refdef->frameTime * 0.001f);
 	block->noiseDetailOffset[3] = (speed > 0.0f) ?
@@ -2038,7 +2121,7 @@ static unsigned int R_VolumetricHashBytes( unsigned int key, const void *data, s
 
 // The medium and light settings the history was built with (a change resets
 // it): the radiance clamp cannot repair a history whose extinction or noise
-// coordinates (the wind phase is absolute time * wind) are different.
+// coordinates are different. Wind changes also reset its temporal response.
 static unsigned int R_VolumetricMediumKey( void )
 {
 	const float values[] = {

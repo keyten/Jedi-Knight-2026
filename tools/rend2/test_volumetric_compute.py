@@ -37,7 +37,7 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows, media=False):
+def program(name, compute, rgb, shadows, media=False, probe=None):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
@@ -49,6 +49,9 @@ def program(name, compute, rgb, shadows, media=False):
     defines += '#define USE_FROXEL_COMPUTE\n' if compute else ''
     defines += '#define USE_FROXEL_MEDIA_PASS\n' if media else ''
     body = fragment('volumetric_common') + fragment(name)
+    if probe is not None:
+        assert compute
+        body = body.replace('void main()', 'void unusedMain()') + probe
     sources = [(0x91B9, '#version 430 core\n' + defines + body)] if compute else [
         (0x8B31, '#version 150 core\n' + defines + (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Vertex]*/')[1].split('/*[')[0]),
         (0x8B30, '#version 150 core\n' + defines + body),
@@ -85,12 +88,21 @@ def uniform_buffer(prog, block, values, slot=0):
     gl('glGetActiveUniformBlockiv', None, U, U, U, C.POINTER(I))(prog, index, 0x8A40, C.byref(size))
     data = bytearray(size.value)
     for name, value in values.items():
-        names = (C.c_char_p * 1)(name.encode())
+        array = re.search(r'\[(\d+)\]$', name)
+        query = re.sub(r'\[\d+\]$', '[0]', name) if array else name
+        names = (C.c_char_p * 1)(query.encode())
         member, offset = U(), I()
         gl('glGetUniformIndices', None, U, I, C.POINTER(C.c_char_p), C.POINTER(U))(prog, 1, names, C.byref(member))
         assert member.value != 0xFFFFFFFF, name
         gl('glGetActiveUniformsiv', None, U, I, C.POINTER(U), U, C.POINTER(I))(prog, 1, C.byref(member), 0x8A3B, C.byref(offset))
-        struct.pack_into('f' * len(value), data, offset.value, *value)
+        if array:
+            stride = I()
+            gl('glGetActiveUniformsiv', None, U, I, C.POINTER(U), U, C.POINTER(I))(prog, 1, C.byref(member), 0x8A3C, C.byref(stride))
+            offset.value += int(array[1]) * stride.value
+        if isinstance(value, bytes):
+            data[offset.value:offset.value + len(value)] = value
+        else:
+            struct.pack_into('f' * len(value), data, offset.value, *value)
     buffer = U()
     gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(buffer))
     gl('glBindBuffer', None, U, U)(0x8A11, buffer)
@@ -445,6 +457,90 @@ def height_fog(inject, media, raster, rgb):
           'descending/horizontal rays, culling, Z jitter, raster/compute')
 
 
+def density_noise(rgb):
+    """Execute actual medium/noise functions with known RG8 mip values."""
+    prog = program('volumetric_inject', True, rgb, False, probe=r'''
+void main()
+{
+    ivec3 cell = ivec3(gl_GlobalInvocationID);
+    if (cell.y != 0 || cell.z != 0 || cell.x >= 2) return;
+    var_Slice = 0;
+    vec3 p = vec3(float(cell.x) * 100.0, 0.0, 100.0);
+    float noisy, local, change, particle, particleChange;
+    FroxelMediumSample medium = FroxelMedium(p, u_FroxelHeightFog.xy, 0, false,
+        noisy, local, change, particle, particleChange);
+    float m = FroxelNoiseModulation(p, 100.0);
+    imageStore(u_InjectOutput, cell, vec4(medium.extinction, noisy, m, mix(0.9, 0.5, noisy)));
+}
+''')
+    noise = U()
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(noise))
+    output = texture(2, 1, 1)
+    gl('glUseProgram', None, U)(prog)
+    gl('glUniform1i', None, I, I)(gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_FroxelNoise'), 0)
+    gl('glBindImageTexture', None, U, U, I, U, I, U, U)(0, output, 0, 1, 0, 0x88B9, 0x881A)
+    values = {
+        'u_FroxelNoiseParams': [1, 1, 1, 0],
+        'u_FroxelViewForward': [0, 0, 1, 0],
+        'u_FroxelNoiseLod': [0, 0, .01, 1],
+        'u_FroxelNoiseNormMacro[0]': [1] * 4,
+        'u_FroxelNoiseNormMacro[1]': [1] * 4,
+        'u_FroxelNoiseNormMacro[2]': [1] * 4,
+        'u_FroxelNoiseNormMacro[3]': [1] * 4,
+        'u_FroxelNumFogs': struct.pack('i', 2),
+        'u_FroxelFogSlices[0]': struct.pack('4i', 3, 0, 0, 0),
+        'u_FroxelFogMins[0]': [-1000, -1000, -1000, 0],
+        'u_FroxelFogMins[1]': [-1000, -1000, -1000, 0],
+        'u_FroxelFogMaxs[0]': [1000, 1000, 1000, 0],
+        'u_FroxelFogMaxs[1]': [1000, 1000, 1000, 1],
+        'u_FroxelFogColor[0]': [.5, .5, .5, 1],
+        'u_FroxelFogColor[1]': [.5, .5, .5, 1],
+    }
+    # Each mip has a constant value: off-axis ray length alone changes its LOD.
+    for levels, height, homogeneous in [([13, 64, 128], False, 1), ([255] * 3, False, 1),
+                                        ([0] * 3, True, 1), ([13] * 3, False, 0)]:
+        gl('glActiveTexture', None, U)(0x84C0)
+        gl('glBindTexture', None, U, U)(0x806F, noise)
+        gl('glPixelStorei', None, U, I)(0x0CF5, 1)
+        for lod, value in enumerate(levels):
+            size = 4 >> lod
+            data = (C.c_ubyte * (size ** 3 * 2))(*([value, 0] * size ** 3))
+            gl('glTexImage3D', None, U, I, I, I, I, I, I, U, U, P)(
+                0x806F, lod, 0x822B, size, size, size, 0, 0x8227, 0x1401, data)
+            actual = (C.c_ubyte * len(data))()
+            gl('glGetTexImage', None, U, I, U, U, P)(0x806F, lod, 0x8227, 0x1401, actual)
+            assert bytes(actual) == bytes(data), ('RG8 mip upload', lod)
+        gl('glPixelStorei', None, U, I)(0x0CF5, 4)
+        for parameter, value in [(0x2801, 0x2703), (0x2800, 0x2601), (0x813D, 2)]:
+            gl('glTexParameteri', None, U, U, I)(0x806F, parameter, value)
+        case = dict(values)
+        case['u_FroxelFogColor[0]'] = [.5, .5, .5, homogeneous]
+        if height:
+            case['u_FroxelFogColor[1]'] = [.5, .5, .5, 0]
+            case['u_FroxelHeightFog'] = [1, .001, 0, 0]
+            case['u_FroxelNoiseMacroOffset'] = [0, 0, 0, 1]
+        buffer = uniform_buffer(prog, 'VolumetricFog', case)
+        gl('glDispatchCompute', None, U, U, U)(1, 1, 1)
+        gl('glMemoryBarrier', None, U)(0x28)
+        result = read(output, 8)
+        for x in range(2):
+            lod = .5 if x else 0
+            m = 2 * max((levels[0] * (1 - lod) + levels[1] * lod) / 255, 1e-4)
+            e = 0 if height else m
+            fraction = max(1 / (homogeneous + 1), e / (homogeneous + e))
+            expected = [homogeneous + e, fraction, m, .9 - .4 * fraction]
+            for a, b in zip(result[x * 4:x * 4 + 4], expected):
+                # RG8 hardware filtering may quantize the fractional-mip blend.
+                assert abs(a - b) < .003, (rgb, levels, height, x, result, expected)
+        gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(buffer))
+    assert gl('glGetError', U)() == 0
+    for tex in [noise, output]:
+        gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(tex))
+    gl('glDeleteProgram', None, U)(prog)
+    print(f'PASS: {"RGB" if rgb else "scalar"} noise void/clump fractions, height cutoff, '
+          'pure noisy medium, off-axis LOD, explicit RG8 mips')
+
+
 def main():
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 4)
@@ -458,6 +554,7 @@ def main():
         print(gl('glGetString', C.c_char_p, U)(0x1F02).decode())
         permutations = 0
         for rgb in [False, True]:
+            density_noise(rgb)
             for shadows in [False, True]:
                 programs = {(name, compute): program(name, compute, rgb, shadows)
                             for name in ['volumetric_inject', 'volumetric_integrate'] for compute in [False, True]}

@@ -2585,7 +2585,7 @@ image_t *R_Create2DImageArray(const char *name, byte *pic, int width, int height
 	return image;
 }
 
-image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags)
+image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags, const byte *const *mipData)
 {
 	image_t *image;
 	long hash;
@@ -2620,8 +2620,12 @@ image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, in
 		dataFormat = GL_RGBA;
 		dataType = GL_UNSIGNED_SHORT;
 	}
+	else if (internalFormat == GL_RG8)
+	{
+		dataFormat = GL_RG;
+	}
 
-	// IMGFLAG_MIPMAP: full mip chain (generated from level 0), trilinear;
+	// IMGFLAG_MIPMAP: full mip chain (provided or generated from level 0), trilinear;
 	// no IMGFLAG_CLAMPTOEDGE: repeat
 	const qboolean mipmap = (qboolean)((flags & IMGFLAG_MIPMAP) != 0);
 	int levels = 1;
@@ -2641,24 +2645,31 @@ image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, in
 	image->layers = depth;
 
 	GL_Bind(image);
-	if (internalFormat == GL_RGB16)
+	if (internalFormat == GL_RGB16 || internalFormat == GL_RG8)
 		qglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	if (ShouldUseImmutableTextures(image->flags, internalFormat))
+	const qboolean immutable = ShouldUseImmutableTextures(image->flags, internalFormat);
+	if (immutable)
 	{
 		qglTexStorage3D(GL_TEXTURE_3D, levels, internalFormat, width, height, depth);
-		if (data)
-			qglTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, width, height, depth, dataFormat, dataType, data);
 	}
-	else
+	for (int l = 0; l < (mipData ? levels : 1); l++)
 	{
-		qglTexImage3D(GL_TEXTURE_3D, 0, internalFormat, width, height, depth, 0, dataFormat, dataType, data);
+		const byte *pixels = mipData ? mipData[l] : data;
+		const int w = MAX(1, width >> l), h = MAX(1, height >> l), d = MAX(1, depth >> l);
+		if (immutable)
+		{
+			if (pixels)
+				qglTexSubImage3D(GL_TEXTURE_3D, l, 0, 0, 0, w, h, d, dataFormat, dataType, pixels);
+		}
+		else
+			qglTexImage3D(GL_TEXTURE_3D, l, internalFormat, w, h, d, 0, dataFormat, dataType, pixels);
 	}
-	if (internalFormat == GL_RGB16)
+	if (internalFormat == GL_RGB16 || internalFormat == GL_RG8)
 		qglPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
 	if (mipmap)
 	{
-		if (data)
+		if (data && !mipData)
 			qglGenerateMipmap(GL_TEXTURE_3D);
 		qglTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, levels - 1);
 	}

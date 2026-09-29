@@ -297,14 +297,23 @@ float FroxelNoiseNorm(in vec4 t0, in vec4 t1, in vec4 t2, in vec4 t3, in float l
 
 float FroxelNoiseContrast(in float n, in float c)
 {
-	return (1.0 + c) * pow(max(n, 1e-4), c);
+	n = max(n, 1e-4);
+	// Uniform branches: the default contrast needs no transcendental operation.
+	if (c == 1.0)
+		return 2.0 * n;
+	if (c == 2.0)
+		return 3.0 * n * n;
+	return (1.0 + c) * pow(n, c);
 }
 
 // density modulation m(p), world anchored. viewDepth selects the mip level from the slice thickness
 // (0: the finest level).
 float FroxelNoiseModulation(in vec3 p, in float viewDepth)
 {
-	float footprint = log2(max(viewDepth * u_FroxelNoiseLod.z, 1e-6));
+	// World ray length = viewDepth * rayScale; no division by viewDepth is needed.
+	// The debug surface view passes zero to request the finest mip.
+	float worldFootprint = (viewDepth > 0.0) ? length(p - u_FroxelViewOrigin.xyz) * u_FroxelNoiseLod.z : 0.0;
+	float footprint = log2(max(worldFootprint, 1e-6));
 	float m = 1.0;
 
 	float macroContrast = u_FroxelNoiseParams.z;

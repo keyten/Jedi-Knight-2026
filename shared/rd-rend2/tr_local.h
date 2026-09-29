@@ -5245,7 +5245,8 @@ qhandle_t RE_RegisterShader( const char *name );
 qhandle_t RE_RegisterShaderNoMip( const char *name );
 const char		*RE_ShaderNameFromIndex(int index);
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, int flags, int internalFormat );
-image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags = IMGFLAG_CLAMPTOEDGE);
+// mipData, when provided, contains every level including level 0 (instead of data).
+image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags = IMGFLAG_CLAMPTOEDGE, const byte *const *mipData = NULL);
 image_t *R_Create2DImageArray(const char *name, byte *pic, int width, int height, int layers, imgType_t type, int flags, int internalFormat);
 image_t *R_GetLoadedImage(const char *name, int flags);
 

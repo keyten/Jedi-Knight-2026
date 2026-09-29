@@ -360,10 +360,14 @@ lod      = max(log2(sliceThickness(depth) * 64 / P) - 1, 0)
   `E[(1 + c) n^c] = 1` for a uniform n and any c: the modulation keeps the average extinction (the mean optical
   depth). Trilinear filtering and the mips lower the variance of n, so the CPU measures `E[f]` of the real filtered
   texture at lod 0, 0.5, ..., 6 (32768 low discrepancy positions, the same trilinear / mip blend as the GPU) and
-  divides it out (`N`). Macro and detail are independent fields, so their product keeps the mean too.
+  divides it out (`N`). The filtered sample distribution is cached in 1024 bins per half mip; each bin retains
+  its measured mean and sample count. Changing contrast evaluates this small distribution rather than sampling
+  the texture again, without a LUT along the contrast axis. Macro and detail are independent fields, so their
+  product keeps the mean too.
 - **Contrast.** `c = 0` gives m = 1, the original homogeneous density. `c = 1` gives a density from 0 to 2x (voids
   and clumps). `c = 3` gives sparse clumps up to 4x. With `c <= 1` the standard deviation of m is at most 0.57.
-- **Anti-aliasing.** The mip level follows the froxel: one level sharper than the slice thickness (the jittered
+- **Anti-aliasing.** The mip level follows the froxel: one level sharper than the world-space ray segment
+  thickness (`distance(camera, p) * sliceRatio`, including the longer rays at screen edges; the jittered
   positions of the temporal filter average the rest). Far froxels see prefiltered noise with a lower contrast and
   the same mean, so distant fog tends to homogeneous instead of shimmering. Medium preset (48 slices, far 4096):
   macro (4096) lod 0 up to ~900 units, 1.1 at 2000, 2.2 at 4096; detail (900) 1.3 at 500, 3.3 at 2000.
@@ -375,13 +379,12 @@ lod      = max(log2(sliceThickness(depth) * 64 / P) - 1, 0)
 
 | | |
 |---|---|
-| image | `tr.froxelNoiseImage` (`*froxelNoise`), 3D, 64 x 64 x 64, `GL_RGBA8`, full mip chain (7 levels), `GL_REPEAT`, `LINEAR_MIPMAP_LINEAR` |
+| image | `tr.froxelNoiseImage` (`*froxelNoise`), 3D, 64 x 64 x 64, `GL_RG8`, full mip chain (7 levels), `GL_REPEAT`, `LINEAR_MIPMAP_LINEAR` |
 | r | macro field |
 | g | detail field (independent seed) |
-| b, a | unused (0) |
-| memory | 1 MiB + mips = 1.14 MiB of VRAM; CPU copy of both channels with their mips 0.57 MiB (static, kept for the mean tables) |
+| memory | 0.57 MiB of VRAM including mips; CPU copy 0.57 MiB plus 0.20 MiB of sample distributions (static, kept for the mean tables) |
 | created | at renderer init with `r_volumetricFog 2` only (`R_CreateVolumetricImages`), no asset |
-| CPU cost | generation ~120 ms once per process (the CPU copy survives `vid_restart`); mean table ~50 ms per channel, only when its contrast changes |
+| CPU cost | field generation and distribution sampling once per process; contrast table ~0.67 ms per channel on the test machine; CPU fields, distributions and cached normalization survive `vid_restart` |
 
 Generation (`R_NoiseGenerateField`, deterministic, fixed seeds): per channel, a tileable gradient (Perlin) noise
 FBM of 3 octaves with lattice periods 4, 8 and 16 cells per tile (weights 1, 0.5, 0.25, quintic fade, 12 edge
@@ -389,7 +392,16 @@ gradients from an integer hash of the lattice point modulo the period, so the ti
 by its own fraction of a cell, otherwise the lattice points of the three octaves (where gradient noise is 0)
 coincide and form a visible grid. Then rank based histogram equalization: every value 0..255 is taken by exactly
 1024 texels. `R_CreateImage3D` gained a `flags` argument (default `IMGFLAG_CLAMPTOEDGE`, as before for every other
-caller): without it the wrap is repeat, and `IMGFLAG_MIPMAP` allocates the mip chain (`glGenerateMipmap`).
+caller): without it the wrap is repeat, and `IMGFLAG_MIPMAP` allocates the mip chain. An optional `mipData`
+array uploads every CPU mip explicitly, on both immutable and mutable texture paths. Noise uses that array:
+normalization and GPU filtering start from identical bytes, independent of the driver's mip generation filter.
+`GL_RG8` uploads use `GL_RG` and unpack alignment 1, including the 1x1x1 last level.
+
+The CPU distribution approximation adds at most 0.0038% normalization error versus the previous full estimator
+in `tools/rend2/test_volumetric_noise.py` (both fields, all 13 half-mip LODs, 15 contrasts spanning 0.001..4).
+This does not remove the existing error from interpolation between half-mip normalization values. The test
+machine averaged 0.67 ms per contrast table versus 33.3 ms for just the old pow pass over the saved samples
+(excluding its trilinear sampling cost). Shader contrasts 1 and 2 use multiplication instead of `pow`.
 
 ### Media
 
@@ -401,8 +413,11 @@ contrasts at 0, the injection takes a uniform branch and samples nothing.
 ### Wind and the temporal filter
 
 `r_volumetricFogNoiseWind "x y z"` (units per second, default 0) moves the noise:
-`wind offset = fract(wind * t / P)` per octave, computed in double precision from the renderer time and wrapped
-to the tile (the detail wind is rotated like its coordinates). With no wind the noise is completely static in
+`wind offset = fract(phase_at_epoch + wind * (t - epoch) / P)` per octave, computed in double precision and wrapped
+to the tile (the detail wind is rotated like its coordinates). Changes to velocity or period first save the
+current tile phase and then start a new epoch, so editing wind cannot teleport the field. A stopped wind holds
+its last phase. Repeated views at the same time do not advance it twice; time rewind or a new world resets it.
+There is no per-frame floating point accumulation. With no wind the noise is completely static in
 the world. The weather system's wind is not used (it is gusty, and exists only with weather effects).
 
 The history clamp works on radiance (emission / extinction), which a moving density does not change, so it cannot
@@ -412,12 +427,18 @@ stays under a tenth of the finest noise feature (`P / 16` of the finest active o
 ```
 lag      = |wind| dt w / (1 - w)  <=  lambda = 0.1 P_finest / 16
 w_noise  = min(w, lambda / (lambda + |wind| dt))          dt = frame time, clamped to [1/240, 1/15] s
-w_froxel = mix(w, w_noise, noisy share of the froxel's extinction)
+noisyShare = max(noisy_base / total_base, noisy_modulated / total_modulated)
+w_froxel = mix(w, w_noise, noisyShare)
 ```
 
 At 60 fps with `w = 0.9`: winds up to ~32 u/s keep the full weight. At 128 u/s the weight is 0.90 macro only and
 0.73 with detail (lag 19 / 6 units). At 512 u/s it is 0.75 / 0.40. Media without noise keep the full weight in
-every case. Changing the mask, a scale or a contrast resets the history.
+every case. `P_finest` is the smaller period of the active fields, even when macro is finer than detail.
+The base share prevents disappearing clumps from regaining a high history weight in mixed media; the
+modulated share also reduces history when current clumps dominate the actual extinction. Height fog retains
+its base contribution to these fractions when a noise void trips the density cutoff. This is a conservative
+approximation, not a measurement of the previous noise phase. Changing the mask, a scale, a contrast or wind
+resets the history.
 
 ### Samples and cost
 
@@ -1360,7 +1381,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
   renderer), the motion blur cut detection (`tr.temporalHistoryValid`, when `r_motionBlur` is on), and any change
   of the medium key (`R_VolumetricMediumKey`: fog scales, every height fog and noise setting including the wind,
   anisotropy, sun / static scale). The radiance clamp cannot repair a history built with another extinction, and
-  the wind phase is absolute time * wind, so a new wind moves the whole pattern.
+  wind changes reset history even though the integrated noise phase remains continuous.
 - "A volume in the previous frame" means one the GPU passes actually wrote (`RB_VolumetricBuild` records the
   frame and the image), not only one the constants planned: a skipped build (no draw surfaces, the view not on
   `renderFbo`, ...) must not turn a never written image into the history. The volumes are cleared at creation,

@@ -365,6 +365,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float extinction = 0.0;			// with the noise
 	float plainExtinction = 0.0;	// without the noise (the fractions)
 	float noisyExtinction = 0.0;
+	float plainNoisyExtinction = 0.0;
 #if defined(USE_FROXEL_RGB)
 	vec3 extinctionRGB = vec3(0.0);
 #endif
@@ -421,6 +422,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 			plainExtinction += e;
 			if (noise && FroxelLocalNoisy(shape.w))
 			{
+				plainNoisyExtinction += e;
 				if (m < 0.0)
 					m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
 				e *= m;
@@ -503,10 +505,18 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 		channelScale = max(u_FroxelHeightFogTop.y, max(u_FroxelHeightFogTop.z, u_FroxelHeightFogTop.w));
 #endif
 		if (e * channelScale < heightSample.y)
-			e = plain = 0.0;
+		{
+			e = 0.0;
+			// A noise void still belongs to the moving medium for history weighting.
+			if (!noise || u_FroxelNoiseMacroOffset.w <= 0.5)
+				plain = 0.0;
+		}
 		plainExtinction += plain;
-		if (noise && u_FroxelNoiseMacroOffset.w > 0.5 && e > 0.0)
+		if (noise && u_FroxelNoiseMacroOffset.w > 0.5)
+		{
+			plainNoisyExtinction += plain;
 			noisyExtinction += e;
+		}
 		extinction += e;
 #if defined(USE_FROXEL_RGB)
 		extinctionRGB += e * u_FroxelHeightFogTop.yzw;
@@ -541,6 +551,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 		plainExtinction += e;
 		if (noise && maxs.w > 0.5)
 		{
+			plainNoisyExtinction += e;
 			if (m < 0.0)
 				m = FroxelNoiseModulation(p, dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
 			e *= m;
@@ -557,7 +568,10 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 
 	localFraction = localExtinction / max(plainExtinction, 1e-12);
 	particleFraction = particleExtinction / max(plainExtinction, 1e-12);
-	noisyFraction = noisyExtinction / max(extinction, 1e-12);
+	// Do not trust old clumps when today's noise is a void. Keep the stronger
+	// reduction when a clump dominates today's actual extinction, too.
+	noisyFraction = clamp(max(plainNoisyExtinction / max(plainExtinction, 1e-12),
+		noisyExtinction / max(extinction, 1e-12)), 0.0, 1.0);
 
 	FroxelMediumSample result;
 	result.scatter0 = lobes.scatter[0].rgb;
