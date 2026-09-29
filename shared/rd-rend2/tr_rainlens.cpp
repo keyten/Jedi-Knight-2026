@@ -20,12 +20,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 // Rain droplets on the camera lens (r_rainLens), glsl/rainlens.glsl.
 //
-// Optional polish, off by default. One fullscreen HDR pass in RB_PostProcess
+// Optional polish, off by default. A transient lower resolution lens field
+// and one fullscreen HDR composite in RB_PostProcess
 // after the SMAA T2x temporal resolve and motion blur, before bloom
 // extraction and tone mapping (see docs/rend2-rain-lens.md). It reads the
 // resolved scene and writes rainLensImage (a dedicated full resolution HDR
 // target: textureScratchImage is 256x256 RGBA8). The caller uses that target
-// as the scene source for the remaining color passes.
+// as the scene source for the remaining color passes; modern bloom also reads
+// the lens field to refract the emissive MRT.
 //
 // Active only for the main world view of the first scene while it rains
 // and the camera is outside (R_IsOutside, decided on the front end). The
@@ -63,6 +65,7 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 {
 	R_RainLensResetState();
 	tr.rainLensImage = NULL;
+	tr.rainLensFieldImage = NULL;
 
 	if ( !r_rainLens->integer )
 		return;
@@ -76,6 +79,12 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensImage = R_CreateImage(
 		"*rainLens", NULL, width, height, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
+	// Keep small beads several field pixels wide at ordinary drop sizes.
+	const int fieldHeight = Q_min(height, Q_max(540, height / 2));
+	const int fieldWidth = Q_max(1, width * fieldHeight / height);
+	tr.rainLensFieldImage = R_CreateImage(
+		"*rainLensField", NULL, fieldWidth, fieldHeight, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 }
 
 /*
@@ -161,7 +170,7 @@ qboolean RB_RainLensUpdate( float exposure )
 {
 	s_debugOutput = qfalse;
 
-	if ( !tr.rainLensImage || !tr.rainLensFbo )
+	if ( !tr.rainLensImage || !tr.rainLensFbo || !tr.rainLensFieldImage || !tr.rainLensFieldFbo )
 		return qfalse;
 
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
@@ -222,9 +231,10 @@ qboolean RB_RainLensUpdate( float exposure )
 RB_RainLens
 
 srcFbo holds the HDR scene (MSAA resolved, temporally resolved and motion
-blurred). Refracts it through the lens drops into rainLensImage. The caller
-uses rainLensFbo for subsequent color passes. Debug views stay in
-rainLensImage and are drawn by RB_RainLensDebugOverlay.
+blurred). Evaluates the procedural geometry into a lower resolution field,
+then refracts the HDR scene into rainLensImage. The caller uses rainLensFbo
+for subsequent color passes. Debug views use the original direct shader and
+are drawn by RB_RainLensDebugOverlay.
 =============
 */
 void RB_RainLens( FBO_t *srcFbo, float exposure )
@@ -233,7 +243,6 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 		return;
 
 	const int debugView = r_rainLensDebug->integer;
-	shaderProgram_t *sp = &tr.rainLensShader[debugView ? RAINLENSDEF_DEBUG : RAINLENSDEF_DEFAULT];
 
 	// exposure is zero while draining: keep the last density
 	static float s_intensity = 1.0f;
@@ -245,13 +254,8 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 
 	const int timer = RB_RainLensBeginTimer("Rain lens");
 
-	FBO_Bind(tr.rainLensFbo);
-	GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	GL_Cull(CT_TWO_SIDED);
-
-	GLSL_BindProgram(sp);
-	GL_BindToTMU(srcFbo->colorImage[0], TB_COLORMAP);
 
 	vec4_t params, params2;
 	VectorSet4(params, s_lensTime, density,
@@ -259,13 +263,39 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 		Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value));
 	VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
 		(float)debugView, tr.linearLight ? 0.0f : 1.0f);
-	GLSL_SetUniformVec4(sp, UNIFORM_RAINLENSPARAMS, params);
-	GLSL_SetUniformVec4(sp, UNIFORM_RAINLENSPARAMS2, params2);
-
-	RB_InstantTriangle();
-
 	if ( debugView )
+	{
+		FBO_Bind(tr.rainLensFbo);
+		GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
+		shaderProgram_t *sp = &tr.rainLensShader[RAINLENSDEF_DEBUG];
+		GLSL_BindProgram(sp);
+		GL_BindToTMU(srcFbo->colorImage[0], TB_COLORMAP);
+		GLSL_SetUniformVec4(sp, UNIFORM_RAINLENSPARAMS, params);
+		GLSL_SetUniformVec4(sp, UNIFORM_RAINLENSPARAMS2, params2);
+		RB_InstantTriangle();
 		s_debugOutput = qtrue;
+	}
+	else
+	{
+		FBO_Bind(tr.rainLensFieldFbo);
+		GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
+		shaderProgram_t *field = &tr.rainLensShader[RAINLENSDEF_FIELD];
+		GLSL_BindProgram(field);
+		VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
+			(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
+		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS, params);
+		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS2, params2);
+		RB_InstantTriangle();
+
+		FBO_Bind(tr.rainLensFbo);
+		GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
+		shaderProgram_t *composite = &tr.rainLensCompositeShader;
+		GLSL_BindProgram(composite);
+		GL_BindToTMU(srcFbo->colorImage[0], TB_COLORMAP);
+		GL_BindToTMU(tr.rainLensFieldImage, TB_LIGHTMAP);
+		GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params);
+		RB_InstantTriangle();
+	}
 
 	RB_RainLensEndTimer(timer);
 }

@@ -3334,7 +3334,7 @@ RB_DynamicGlowPrepare
 Downscaled glow / bloom source for the dynamic glow composite
 =============
 */
-static void RB_DynamicGlowPrepare(image_t *sceneImage)
+static void RB_DynamicGlowPrepare(image_t *sceneImage, qboolean rainLensFieldActive)
 {
 	if (RB_ModernBloomActive())
 	{
@@ -3348,6 +3348,10 @@ static void RB_DynamicGlowPrepare(image_t *sceneImage)
 		GLSL_BindProgram(&tr.bloomPrefilter);
 		GL_BindToTMU(tr.glowImage, TB_COLORMAP);
 		GL_BindToTMU(sceneImage, TB_LIGHTMAP);
+		GL_BindToTMU(rainLensFieldActive ? tr.rainLensFieldImage : tr.whiteImage, TB_NORMALMAP);
+		vec4_t lensParams = {rainLensFieldActive ? 1.0f : 0.0f, 0.0f,
+			Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value), 0.0f};
+		GLSL_SetUniformVec4(&tr.bloomPrefilter, UNIFORM_RAINLENSPARAMS, lensParams);
 		vec4_t bloomParams = {r_bloomThreshold->value, r_bloomKnee->value,
 			r_bloomSceneIntensity->value, tr.linearLight ? 1.0f : 0.0f};
 		GLSL_SetUniformVec4(&tr.bloomPrefilter, UNIFORM_BLOOMPARAMS, bloomParams);
@@ -3365,7 +3369,7 @@ static void RB_DynamicGlowPrepare(image_t *sceneImage)
 		return;
 
 	GL_Cull(CT_TWO_SIDED);
-	RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0]);
+	RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0], rainLensFieldActive);
 
 	if (r_dynamicGlowBloom->value > 0.0f)
 	{
@@ -3548,21 +3552,22 @@ const void *RB_PostProcess(const void *data)
 			RB_SMAATemporalResolve(srcFbo, dstBox);
 		}
 
-		RB_MotionBlur(srcFbo);
+		if (RB_MotionBlur(srcFbo) && !r_motionBlurDebug->integer)
+			srcFbo = tr.motionBlurFbo;
 		if (rainLens)
 		{
 			RB_RainLens(srcFbo, rainLensExposure);
 			if (!r_rainLensDebug->integer)
 				srcFbo = tr.rainLensFbo;
 		}
-		RB_DynamicGlowPrepare(srcFbo->colorImage[0]);
+		RB_DynamicGlowPrepare(srcFbo->colorImage[0], (qboolean)(rainLens && !r_rainLensDebug->integer));
 
 		if (r_smaa->integer && r_smaa->integer != 2)
 			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 	}
 	else
 	{
-		RB_DynamicGlowPrepare(srcFbo->colorImage[0]);
+		RB_DynamicGlowPrepare(srcFbo->colorImage[0], qfalse);
 
 		if (r_smaa->integer)
 		{

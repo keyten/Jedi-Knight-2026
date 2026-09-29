@@ -566,7 +566,7 @@ void RB_GaussianBlur(FBO_t *srcFbo, FBO_t *intermediateFbo, FBO_t *dstFbo, float
 	FBO_Blit (intermediateFbo, NULL, scale, dstFbo, NULL, &tr.gaussianBlurShader[1], NULL, GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO);
 }
 
-void RB_BloomDownscale(image_t *sourceImage, FBO_t *destFBO)
+void RB_BloomDownscale(image_t *sourceImage, FBO_t *destFBO, qboolean rainLensFieldActive)
 {
 	vec2_t invTexRes = { 1.0f / sourceImage->width, 1.0f / sourceImage->height };
 
@@ -577,7 +577,11 @@ void RB_BloomDownscale(image_t *sourceImage, FBO_t *destFBO)
 
 	GLSL_BindProgram(&tr.dglowDownsample);
 	GLSL_SetUniformVec2(&tr.dglowDownsample, UNIFORM_INVTEXRES, invTexRes);
+	vec4_t lensParams = {rainLensFieldActive ? 1.0f : 0.0f, 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value), 0.0f};
+	GLSL_SetUniformVec4(&tr.dglowDownsample, UNIFORM_RAINLENSPARAMS, lensParams);
 	GL_BindToTMU(sourceImage, 0);
+	GL_BindToTMU(rainLensFieldActive ? tr.rainLensFieldImage : tr.whiteImage, TB_LIGHTMAP);
 
 	// Draw fullscreen triangle
 	qglDrawArrays(GL_TRIANGLES, 0, 3);

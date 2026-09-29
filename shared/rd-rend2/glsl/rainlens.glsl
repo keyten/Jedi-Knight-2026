@@ -35,7 +35,7 @@ void main()
 uniform sampler2D u_ScreenImageMap; // HDR scene
 
 uniform vec4 u_RainLensParams;  // x = lens time (s), y = density (amount * intensity * wet), z = refraction, w = scale
-uniform vec4 u_RainLensParams2; // x = last exposed time (s), y = drain time (s), z = debug view, w = display encoded HDR buffer
+uniform vec4 u_RainLensParams2; // x = last exposed time, y = drain time; zw = debug/encoding or field dimensions
 
 out vec4 out_Color;
 
@@ -129,7 +129,9 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 
 	float column = floor(p.x);
 	vec3 h0 = Hash33(vec3(column, 0.0, 41.0));
-	float life = mix(7.0, 13.0, h0.x);
+	// Even the slowest drop has time to leave the screen, including its tail,
+	// before the next cycle replaces it.
+	float life = mix(14.0, 18.0, h0.x);
 	float t = time + h0.y * life;
 	float cycle = floor(t / life);
 	float age = fract(t / life) * life; // seconds
@@ -143,7 +145,8 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 	if (presence <= 0.0)
 		return vec4(0.0);
 
-	float radius = mix(0.2, 0.34, h.x);
+	float baseRadius = mix(0.2, 0.34, h.x);
+	float radius = baseRadius;
 	float x0 = column + 0.5 + (h.y - 0.5) * 0.3;
 	float y0 = heightCells * mix(0.35, 1.05, Hash33(vec3(column, cycle, 59.0)).x);
 
@@ -167,13 +170,15 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 	// Trail positions live in absolute lens space. Estimate when the drop
 	// passed this point from its mean speed; stick-slip only perturbs that
 	// time slightly, without making old film pulse at the current velocity.
-	if (d.y > 0.0 && d.y < y0 - center.y && abs(p.x - x0) < radius * 0.8 + 0.06)
+	float distanceAtPass = y0 - p.y;
+	float trailRadius = baseRadius * mix(1.0, 0.75, clamp(distanceAtPass / heightCells, 0.0, 1.0));
+	if (d.y > 0.0 && d.y < y0 - center.y && abs(p.x - x0) < trailRadius * 0.8 + 0.06)
 	{
-		float passedAt = (y0 - p.y) / speed;
+		float passedAt = distanceAtPass / speed;
 		float trailAge = max(s - passedAt, 0.0);
 		float dry = 1.0 - smoothstep(0.0, 2.2, trailAge);
 		float pathX = x0 + sin(passedAt * 2.3 + h.x * 6.0) * 0.06;
-		float width = radius * 0.8;
+		float width = trailRadius * 0.8;
 		trail = (1.0 - smoothstep(width * 0.6, width, abs(p.x - pathX))) * dry * presence;
 	}
 
@@ -198,10 +203,12 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 		vec3 hb = Hash33(vec3(column, cycle, seg + 71.0));
 		if (hb.x < 0.5)
 		{
-			float beadPassedAt = (seg + 0.5) / (3.0 * speed);
+			float beadDistance = (seg + 0.5) / 3.0;
+			float beadPassedAt = beadDistance / speed;
+			float radiusAtPass = baseRadius * mix(1.0, 0.75, clamp(beadDistance / heightCells, 0.0, 1.0));
 			vec2 bc = vec2(x0 + sin(beadPassedAt * 2.3 + h.x * 6.0) * 0.06
-				+ (hb.y - 0.5) * radius, y0 - (seg + 0.5) / 3.0);
-			float br = radius * mix(0.18, 0.32, hb.z);
+				+ (hb.y - 0.5) * radiusAtPass, y0 - beadDistance);
+			float br = radiusAtPass * mix(0.18, 0.32, hb.z);
 			vec4 bead = Cap((p - bc) / br, vec2(0.0));
 			bead.x *= trail;
 			radiusCells = br;
@@ -220,9 +227,12 @@ float Luminance(vec3 c)
 
 void main()
 {
+#if defined(USE_FIELD)
+	vec2 screenSize = u_RainLensParams2.zw;
+#else
 	vec2 screenSize = vec2(textureSize(u_ScreenImageMap, 0));
+#endif
 	vec2 uv = gl_FragCoord.xy / screenSize;
-	vec3 scene = texelFetch(u_ScreenImageMap, ivec2(gl_FragCoord.xy), 0).rgb;
 
 	float time = u_RainLensParams.x;
 	float density = u_RainLensParams.y;
@@ -246,7 +256,16 @@ void main()
 	float mask;
 	vec2 slope;
 	float radiusUV;
-	if (slider.x >= bead.x)
+	if (slider.x > 0.0 && bead.x > 0.0)
+	{
+		// Blend the two local slopes where droplets overlap, avoiding a
+		// sudden refraction flip as the dominant mask changes.
+		float sliderWeight = smoothstep(-0.12, 0.12, slider.x - bead.x);
+		mask = max(slider.x, bead.x);
+		slope = mix(bead.zw, slider.zw, sliderWeight);
+		radiusUV = mix(beadRadius / beadCells, sliderRadius / sliderCells, sliderWeight);
+	}
+	else if (slider.x >= bead.x)
 	{
 		mask = slider.x;
 		slope = slider.zw;
@@ -262,7 +281,18 @@ void main()
 	// thin water film of the trail: weak refraction only
 	float film = trail * (1.0 - mask) * 0.35;
 
+#if defined(USE_FIELD)
+	// Full-resolution optics and the bloom prefilter share this transient
+	// field. The offset is stored before refraction strength is applied.
+	vec2 fieldOffset = -slope * radiusUV * REFRACTION_SCALE * mask;
+	fieldOffset.x /= aspect;
+	fieldOffset += vec2(0.0, 0.002) * film;
+	out_Color = vec4(fieldOffset, max(mask, film), radiusUV * 0.18 * mask);
+	return;
+#endif
+
 	vec2 offset = vec2(0.0);
+	vec3 scene = texelFetch(u_ScreenImageMap, ivec2(gl_FragCoord.xy), 0).rgb;
 	vec3 color = scene;
 	if (mask > 0.001 || film > 0.001)
 	{
@@ -287,7 +317,7 @@ void main()
 			refracted += textureLod(u_ScreenImageMap, refrUV - by, 0.0).rgb * 0.2;
 		}
 
-		// Fresnel: slightly darker rim, the transmission of the water
+		// Artistic edge attenuation until reflected lighting is available.
 		float rim = clamp(dot(slope, slope) * 0.5, 0.0, 1.0);
 		refracted *= 0.97 - 0.09 * rim;
 

@@ -3614,6 +3614,7 @@ static int GLSL_LoadGPUProgramRainLens(
 	{
 		nullptr,
 		"#define USE_DEBUG\n",
+		"#define USE_FIELD\n",
 	};
 
 	int numPrograms = 0;
@@ -3631,6 +3632,19 @@ static int GLSL_LoadGPUProgramRainLens(
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	}
+
+	{
+		shaderProgram_t *sp = &tr.rainLensCompositeShader;
+		GLSL_LoadGPUProgramBasic(builder, scratchAlloc, sp,
+			"rainlens_composite", fallback_rainlens_compositeProgram);
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_LIGHTMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -4092,6 +4106,10 @@ static int GLSL_LoadGPUProgramDynamicGlowDownsample(
 		0);
 
 	GLSL_InitUniforms(&tr.dglowDownsample);
+	qglUseProgram(tr.dglowDownsample.program);
+	GLSL_SetUniformInt(&tr.dglowDownsample, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.dglowDownsample, UNIFORM_SCREENIMAGEMAP, TB_LIGHTMAP);
+	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.dglowDownsample);
 	return 1;
 }
@@ -4105,6 +4123,7 @@ static int GLSL_LoadGPUProgramBloomPrefilter(
 	qglUseProgram(tr.bloomPrefilter.program);
 	GLSL_SetUniformInt(&tr.bloomPrefilter, UNIFORM_TEXTUREMAP, TB_COLORMAP);
 	GLSL_SetUniformInt(&tr.bloomPrefilter, UNIFORM_BLOOMSCENEMAP, TB_LIGHTMAP);
+	GLSL_SetUniformInt(&tr.bloomPrefilter, UNIFORM_SCREENIMAGEMAP, TB_NORMALMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.bloomPrefilter);
 	return 1;
@@ -4672,6 +4691,7 @@ void GLSL_ShutdownGPUShaders(void)
 
 	for ( i = 0; i < RAINLENSDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.rainLensShader[i]);
+	GLSL_DeleteGPUShader(&tr.rainLensCompositeShader);
 
 	GLSL_DeleteGPUShader(&tr.volumetricInjectShader);
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);

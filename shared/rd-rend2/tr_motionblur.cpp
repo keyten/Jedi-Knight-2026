@@ -294,24 +294,24 @@ qboolean RB_MotionBlurActive( void )
 RB_MotionBlur
 
 srcFbo holds the HDR scene (renderImage, MSAA already resolved) and its
-depth. Blurs into motionBlurImage and copies the result back, so all later
-passes (bloom, SMAA 1, tone map, refraction) read the blurred scene. Debug
-views stay in motionBlurImage and are drawn by RB_MotionBlurDebugOverlay.
+depth. Blurs into motionBlurImage; the caller chains that color target to
+later passes. Returns false if the pass could not render. Debug views stay
+in motionBlurImage and are drawn by RB_MotionBlurDebugOverlay.
 =============
 */
-void RB_MotionBlur( FBO_t *srcFbo )
+qboolean RB_MotionBlur( FBO_t *srcFbo )
 {
 	s_debugOutput = qfalse;
 
 	if ( !srcFbo || !RB_MotionBlurActive() )
-		return;
+		return qfalse;
 
 	const gpuFrame_t *frame = backEndData->currentFrame;
 	const gpuFrame_t *previousFrame = backEndData->previousFrame;
 
 	matrix_t invViewProjection;
 	if ( !RB_InvertMatrix(frame->viewProjectionMatrix, invViewProjection) )
-		return;
+		return qfalse;
 
 	// the same previous view projection as the velocity pass
 	const float *prevViewProjection = frame->viewProjectionMatrix;
@@ -371,11 +371,9 @@ void RB_MotionBlur( FBO_t *srcFbo )
 
 	if ( debugView )
 		s_debugOutput = qtrue;
-	else
-		// only the scene color attachment, srcFbo also has the glow target
-		FBO_FastBlitIndexed(tr.motionBlurFbo, srcFbo, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 	RB_MotionBlurEndTimer(timer);
+	return qtrue;
 }
 
 // r_motionBlurDebug views, drawn at the end of the post process chain

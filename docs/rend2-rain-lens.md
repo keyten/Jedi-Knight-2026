@@ -2,7 +2,7 @@
 
 Optional, off by default. Procedural rain drops on the camera lens while it rains
 and the camera is outside. Code: `shared/rd-rend2/tr_rainlens.cpp`,
-`shared/rd-rend2/glsl/rainlens.glsl`.
+`shared/rd-rend2/glsl/rainlens.glsl`, `rainlens_composite.glsl`.
 
 ## Insertion point
 
@@ -22,19 +22,25 @@ When lens rain runs, `RB_PostProcess` uses the ordering branch that motion blur
 already uses. Without lens rain the ordering doesn't change. SSR and SSGI resolve
 in the main pass (before post-processing), so they're unaffected.
 
-Modern bloom's separate emissive MRT is not refracted. Refracted scene lights
-contribute to bloom only when `r_bloomSceneIntensity` is above zero; its default
-is zero. Legacy scene highpass likewise needs `r_dynamicGlowBloom` above zero.
+Modern bloom prefilter refracts its separate emissive MRT with the same lens
+field, so the glow follows the displaced source. The first legacy dynamic
+glow downsample applies the field too. Refracted scene energy also contributes
+when `r_bloomSceneIntensity` (modern) or `r_dynamicGlowBloom` (legacy) is
+above zero.
 
 ## Targets
 
 `textureScratchImage` is 256×256 RGBA8, so it can't be used here. The effect has
 a dedicated target: `tr.rainLensImage` (full resolution, same HDR format as
-`renderImage`) plus `tr.rainLensFbo`. They're allocated only with `r_rainLens 1`
-(latched) and `r_hdr 1`. The pass reads `srcFbo->colorImage[0]`, writes
-`rainLensFbo`. Subsequent color passes read `rainLensImage` directly; the
-original resolved FBO supplies depth for the final depth blit. It never reads
-and writes the same texture.
+`renderImage`) plus `tr.rainLensFbo`. A transient `RGBA16F` lens field stores
+offset, coverage and blur radius at half screen height (at least 540 pixels,
+unless the display is smaller). They're allocated only with `r_rainLens 1`
+(latched) and `r_hdr 1`. The field pass evaluates droplet state once per field
+pixel; the full resolution pass composites it with `srcFbo->colorImage[0]`.
+Modern bloom prefilter samples the same field for emissive refraction.
+Subsequent color passes read `rainLensImage` directly; the original resolved
+FBO supplies depth for the final depth blit. No pass reads and writes the same
+texture.
 
 ## Activation
 
@@ -65,12 +71,13 @@ Everything lives in lens space, normalised by the screen **height**, so the drop
 size holds across resolutions, ultrawide and FOV changes.
 - **Beads:** a hashed 13-cells-per-height grid. Each cell has a life cycle of
   4–10 s (grow, sit, evaporate/shrink). There's a density test per cycle.
-- **Sliders:** 4.5 columns per height, one drop per column per 7–13 s cycle. A
+- **Sliders:** 4.5 columns per height, one drop per column per 14–18 s cycle. A
   drop sticks for 0.8–3.5 s, then slides with stick-slip motion
   `travel = v(s − 0.9·sin(2πns)/(2πn))`. It gets a tail stretched by its speed,
   a thin trail anchored to the drop's path that dries according to approximate
   time since passage and leaves stationary small beads behind, and it
-  wipes the beads it crosses.
+  wipes the beads it crosses. At partial overlaps, normals are blended to
+  soften the refraction transition; water mass is not simulated.
 - **Shape:** a spherical cap `h = sqrt(1 − r²)`. It's egg-shaped
   (`r·(1 + q·lopsided)`) with a small hashed ellipse, and the edge is softened
   with `1 - smoothstep(0.78, 1, r)`. The slope includes the derivatives of the
@@ -78,7 +85,7 @@ size holds across resolutions, ultrawide and FOV changes.
 - **Refraction:** `offset = −slope · radius · r_rainLensRefraction · 1.6 · mask`.
   This produces a magnified, inverted image. Aspect is corrected.
 - **Optics:** a 5-tap disc blur inside the drop only, radius ∝ drop size. The
-  rim is up to 9% darker (Fresnel) and transmission is 0.97. The glint is
+  rim is darkened artistically (no reflected environment is available). The glint is
   proportional to the local refracted luminance. There are no white spots and no
   global darkening.
 - **Under cover:** drops born after the last exposed time are never shown.
@@ -97,6 +104,11 @@ size holds across resolutions, ultrawide and FOV changes.
 
 GPU time: `r_speeds 100` shows the "Rain lens" timed block.
 
+The field is regenerated every frame. It does not store water mass or
+adhesion, and sliders still follow screen-down gravity. Rotating the hashed
+grid with camera roll would move existing drops across the lens; roll-aware
+motion needs drop state or path history.
+
 ## Optional asset
 
 None is required. A normal/height atlas of real drop shapes could replace
@@ -107,9 +119,10 @@ isn't part of the baseline.
 
 - Heavy and light rain; walking under a roof (no new drops, drain in about 1 s)
   and back out (1.5 s ramp).
-- Bright lights and sabers blooming through drops; rapid turns (drops stay fixed
-  on the screen).
-- FOV changes, resolutions, ultrawide.
+- With `r_bloom 1`, compare the saber/glow position inside and outside drops;
+  check bright lights and rapid turns (drops stay fixed on the screen).
+- FOV changes, resolutions, ultrawide, and `r_rainLensDropSize 0.25` (small
+  beads must survive field sampling).
 - MSAA, `r_smaa 1`, `r_smaa 2` (no drop ghosting), `r_motionBlur`, `r_ssr`.
 - Tone mapping and auto exposure.
 - No effect in mirrors, portals, cubemap bakes (`r_cubemapping` rebuild) or UI

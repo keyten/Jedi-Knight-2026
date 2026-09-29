@@ -2048,6 +2048,7 @@ enum
 {
 	RAINLENSDEF_DEFAULT	= 0,
 	RAINLENSDEF_DEBUG	= 1,	// r_rainLensDebug views
+	RAINLENSDEF_FIELD	= 2,	// lower resolution droplet geometry
 	RAINLENSDEF_COUNT
 };
 
@@ -3675,8 +3676,9 @@ typedef struct trGlobals_s {
 	image_t					*smaaEdgeImage;
 	image_t					*smaaBlendImage;
 	image_t					*smaaResolveImage;
-	image_t					*motionBlurImage;	// motion blur output (HDR), copied back into renderImage
-	image_t					*rainLensImage;		// lens rain output (HDR), copied back into renderImage
+	image_t					*motionBlurImage;	// motion blur output (HDR)
+	image_t					*rainLensImage;		// lens rain output (HDR)
+	image_t					*rainLensFieldImage;	// lower resolution offset, mask, blur field
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
 	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLighting), no sigma / albedo
@@ -3743,6 +3745,7 @@ typedef struct trGlobals_s {
 	FBO_t					*historyFbo;
 	FBO_t					*motionBlurFbo;
 	FBO_t					*rainLensFbo;
+	FBO_t					*rainLensFieldFbo;
 	FBO_t					*froxelMediaFbo;		// froxelMediaImage, layered (r_volumetricSelfShadow)
 	FBO_t					*froxelInjectFbo;		// layers attached per slice
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
@@ -3839,6 +3842,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t aoDebugShader;
 	shaderProgram_t motionBlurShader[MOTIONBLURDEF_COUNT];
 	shaderProgram_t rainLensShader[RAINLENSDEF_COUNT];
+	shaderProgram_t rainLensCompositeShader;
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricInjectComputeShader;
@@ -5345,7 +5349,7 @@ qboolean R_MotionBlurEnabled(void);
 void R_CreateMotionBlurImages(int width, int height, int hdrFormat);
 void RB_MotionBlurUpdateHistory(struct gpuFrame_t *frame, const struct gpuFrame_t *previousFrame, const trRefdef_t *refdef);
 qboolean RB_MotionBlurActive(void);
-void RB_MotionBlur(FBO_t *srcFbo);
+qboolean RB_MotionBlur(FBO_t *srcFbo);
 void RB_MotionBlurDebugOverlay(void);
 
 // tr_rainlens.cpp

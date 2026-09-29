@@ -615,6 +615,17 @@ void FBO_Init(void)
 		FBO_SetupDrawBuffers();
 		R_CheckFBO(tr.rainLensFbo);
 	}
+	tr.rainLensFieldFbo = NULL;
+	if (tr.rainLensFieldImage != NULL)
+	{
+		tr.rainLensFieldFbo = FBO_Create(
+			"_rainLensField", tr.rainLensFieldImage->width,
+			tr.rainLensFieldImage->height);
+		FBO_Bind(tr.rainLensFieldFbo);
+		FBO_AttachTextureImage(tr.rainLensFieldImage, 0);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.rainLensFieldFbo);
+	}
 
 	if (r_drawSunRays->integer)
 	{

@@ -68,7 +68,7 @@ needs. If the jitter is fixed (`[8]` / `[9]`), the velocity shaders must subtrac
 depth prepass (velocity)  ->  main pass  ->  RB_PostProcess:
   MSAA resolve (color + depth)
   [r_smaa 2]   SMAA edges -> weights -> neighborhood -> temporal resolve -> history copy
-  MOTION BLUR  renderImage (HDR) -> motionBlurImage -> copied back into renderImage
+  MOTION BLUR  renderImage (HDR) -> motionBlurImage -> subsequent color passes
   dynamic glow / bloom source (downscale + highpass of the blurred HDR scene)
   [r_smaa 1/3] SMAA edges -> weights (neighborhood blending happens in the tone map pass)
   tone map + color grading -> sun rays -> glow composite -> debug overlays -> refraction
@@ -177,7 +177,7 @@ Displayed directly (after tone mapping, no grading), replacing the frame:
 With any debug view, history resets are printed to the console with their reason (`motion blur: history reset
 (camera teleport)`), once per reset.
 
-GPU time: `r_speeds 100` lists "Motion blur" (pass + copy back).
+GPU time: `r_speeds 100` lists "Motion blur" (pass only).
 
 ## Limitations
 
@@ -197,7 +197,8 @@ GPU time: `r_speeds 100` lists "Motion blur" (pass + copy back).
 ## Cost
 
 Estimates, not measurements (the game was not run): full screen motion at 1080p, medium quality, about 0.3-0.6
-ms on an RTX 2060 and 2-4 ms on Intel UHD; a still scene only pays the early out and the copy back (about 0.1 ms).
+ms on an RTX 2060 and 2-4 ms on Intel UHD; a still scene still pays for the blur
+pass, but no longer for a copy back. These older estimates need remeasurement.
 Memory: one full resolution RGBA16F image (16 MB at 1080p) plus, without `r_smaa 2`, the RG16F velocity buffer
 (8 MB) and one extra set of frame UBOs.
 

@@ -12,6 +12,8 @@ void main()
 /*[Fragment]*/
 uniform sampler2D u_TextureMap;    // dedicated glow / emissive MRT
 uniform sampler2D u_BloomSceneMap; // full HDR scene, optional source
+uniform sampler2D u_ScreenImageMap; // rain lens field when enabled
+uniform vec4 u_RainLensParams;     // x: lens field active, z: refraction strength
 // threshold, relative knee, scene contribution, linear-light framebuffer flag
 uniform vec4 u_BloomParams;
 in vec2 var_TexCoords;
@@ -31,6 +33,17 @@ void main()
 {
 	// The emissive MRT retains its texture mask and is never thresholded.
 	vec3 emission = DecodeScene(texture(u_TextureMap, var_TexCoords).rgb);
+	if (u_RainLensParams.x > 0.5)
+	{
+		vec4 lens = texture(u_ScreenImageMap, var_TexCoords);
+		if (lens.z > 0.001)
+		{
+			vec2 refrUV = clamp(var_TexCoords + lens.xy * u_RainLensParams.z,
+				vec2(0.0), vec2(1.0));
+			vec3 refracted = DecodeScene(texture(u_TextureMap, refrUV).rgb);
+			emission = mix(emission, refracted, clamp(lens.z, 0.0, 1.0));
+		}
+	}
 	vec3 scene = vec3(0.0);
 	if (u_BloomParams.z > 0.0)
 	{
