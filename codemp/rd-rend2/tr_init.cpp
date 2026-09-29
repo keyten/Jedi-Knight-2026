@@ -107,6 +107,7 @@ cvar_t	*r_volumetricFogTemporal;
 cvar_t	*r_volumetricFogHistoryWeight;
 cvar_t	*r_volumetricFogSunScale;
 cvar_t	*r_volumetricFogDlightScale;
+cvar_t	*r_volumetricFogLightTile;
 cvar_t	*r_volumetricFogStaticScale;
 cvar_t	*r_volumetricFogStaticDirectional;
 cvar_t	*r_volumetricSelfShadow;
@@ -1757,6 +1758,7 @@ static consoleCommand_t	commands[] = {
 	{ "gfxmeminfo",			GfxMemInfo_f },
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
+	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "r_spot",				R_Spot_f },
@@ -2313,6 +2315,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogSunScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogDlightScale = ri.Cvar_Get("r_volumetricFogDlightScale", "1", CVAR_ARCHIVE, "Froxel fog: dynamic light scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogDlightScale, 0.0f, 16.0f, qfalse);
+	r_volumetricFogLightTile = ri.Cvar_Get("r_volumetricFogLightTile", "8", CVAR_NONE, "Froxel fog: froxels per side of a dynamic light tile (4, 8, 16), see r_vfogLightStats");
+	ri.Cvar_CheckRange(r_volumetricFogLightTile, 4.0f, 16.0f, qtrue);
 	r_volumetricFogStaticScale = ri.Cvar_Get("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogStaticDirectional = ri.Cvar_Get("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE, "Froxel fog: 1 = the directed (non-sun) light grid part gets the phase function along its baked direction, 0 = isotropic");

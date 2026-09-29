@@ -47,6 +47,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 
 #include <algorithm>
+#include <chrono>
 #include <vector>
 
 #define FROXEL_NEAR 8.0f
@@ -145,6 +146,20 @@ static struct
 	std::vector<uint32_t> lightCounts;
 	std::vector<uint32_t> lightCursor;
 	std::vector<uint32_t> lightList;
+
+	// r_vfogLightStats: the last main view that had lights
+	struct
+	{
+		int lights;				// point / spot lights touching the volume
+		int tileSize;			// froxels per tile side
+		int clusters;
+		int nonEmptyClusters;
+		int lightRefs;			// light / cluster pairs kept
+		int maxPerCluster;
+		int overflowClusters;	// clusters that hit FROXEL_LIGHTS_PER_CLUSTER
+		int overflowRefs;		// light / cluster pairs dropped
+		double buildMsec;		// CPU binning + upload
+	} stats;
 } s_vfl;
 
 qboolean R_VolumetricFroxelEnabled( void )
@@ -1357,7 +1372,7 @@ static int R_VolumetricDepthSlice( float d )
 R_VolumetricBuildLightLists
 
 Dynamic lights of the froxels, clustered like Forward+ (tr_forwardplus.cpp)
-but on the froxel grid: tiles of FROXEL_LIGHT_TILE x FROXEL_LIGHT_TILE froxels,
+but on the froxel grid: tiles of N x N froxels (r_volumetricFogLightTile 4 / 8 / 16),
 one cluster per tile and slice. Every point light of the scene (Forward+: all
 of them, most important first; legacy: the MAX_DLIGHTS of the Lights block) is
 binned into the clusters its sphere may touch, at most FROXEL_LIGHTS_PER_CLUSTER
@@ -1371,7 +1386,6 @@ per cluster (the least important drop out). Two buffer textures per frame:
                    light indexes
 =================
 */
-#define FROXEL_LIGHT_TILE			8
 #define FROXEL_LIGHTS_PER_CLUSTER	32
 #define FROXEL_LIGHT_TEXELS			4	// must match volumetric_inject.glsl / volumetric_debug.glsl
 
@@ -1382,7 +1396,7 @@ struct froxelLightRange_t
 };
 
 static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *froxelProjection,
-	const dlight_t *dl, int tilesX, int tilesY, froxelLightRange_t *range )
+	const dlight_t *dl, int tileSize, int tilesX, int tilesY, froxelLightRange_t *range )
 {
 	if ( dl->radius <= 0.0f )
 		return qfalse;
@@ -1439,13 +1453,21 @@ static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *fr
 	if ( maxX < -1.0f || minX > 1.0f || maxY < -1.0f || minY > 1.0f )
 		return qfalse;
 
-	const float tileX = (float)(s_vf.width) / (float)FROXEL_LIGHT_TILE;
-	const float tileY = (float)(s_vf.height) / (float)FROXEL_LIGHT_TILE;
+	const float tileX = (float)(s_vf.width) / (float)tileSize;
+	const float tileY = (float)(s_vf.height) / (float)tileSize;
 	range->x0 = Com_Clampi(0, tilesX - 1, (int)floorf((minX * 0.5f + 0.5f) * tileX));
 	range->x1 = Com_Clampi(0, tilesX - 1, (int)floorf((maxX * 0.5f + 0.5f) * tileX));
 	range->y0 = Com_Clampi(0, tilesY - 1, (int)floorf((minY * 0.5f + 0.5f) * tileY));
 	range->y1 = Com_Clampi(0, tilesY - 1, (int)floorf((maxY * 0.5f + 0.5f) * tileY));
 	return qtrue;
+}
+
+// froxels per light tile side: 4, 8 (default) or 16. Read every frame, the
+// buffers are sized per frame.
+static int R_VolumetricLightTileSize( void )
+{
+	const int n = r_volumetricFogLightTile->integer;
+	return (n <= 5) ? 4 : ((n >= 12) ? 16 : 8);
 }
 
 static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewParms_t *view,
@@ -1466,8 +1488,10 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	if ( numSceneLights <= 0 )
 		return;
 
-	const int tilesX = (s_vf.width + FROXEL_LIGHT_TILE - 1) / FROXEL_LIGHT_TILE;
-	const int tilesY = (s_vf.height + FROXEL_LIGHT_TILE - 1) / FROXEL_LIGHT_TILE;
+	const auto buildStart = std::chrono::steady_clock::now();
+	const int tileSize = R_VolumetricLightTileSize();
+	const int tilesX = (s_vf.width + tileSize - 1) / tileSize;
+	const int tilesY = (s_vf.height + tileSize - 1) / tileSize;
 	const int numClusters = tilesX * tilesY * s_vf.depth;
 
 	// lights touching the volume, in importance order
@@ -1479,7 +1503,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	{
 		const dlight_t *dl = refdef->dlights + lightIndexes[i];
 		froxelLightRange_t *range = &ranges[numLights];
-		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tilesX, tilesY, range) )
+		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tileSize, tilesX, tilesY, range) )
 			continue;
 		range->light = numLights;
 		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0) and
@@ -1531,6 +1555,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	}
 
 	// pass 1: counts, pass 2: fill (same order and cap)
+	int overflowRefs = 0;
 	s_vfl.lightCounts.assign(numClusters, 0);
 	for ( int n = 0; n < numLights; n++ )
 	{
@@ -1543,6 +1568,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				{
 					if ( row[x] < FROXEL_LIGHTS_PER_CLUSTER )
 						row[x]++;
+					else
+						overflowRefs++;
 				}
 			}
 	}
@@ -1587,9 +1614,58 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 
 	s_vfl.lightSlot = slot;
 	s_vfl.hasLights = qtrue;
-	block->lightTileSize = FROXEL_LIGHT_TILE;
+	block->lightTileSize = tileSize;
 	block->lightTilesX = tilesX;
 	block->lightTilesY = tilesY;
+
+	s_vfl.stats.lights = numLights;
+	s_vfl.stats.tileSize = tileSize;
+	s_vfl.stats.clusters = numClusters;
+	s_vfl.stats.nonEmptyClusters = 0;
+	s_vfl.stats.lightRefs = (int)total;
+	s_vfl.stats.maxPerCluster = 0;
+	s_vfl.stats.overflowClusters = 0;
+	s_vfl.stats.overflowRefs = overflowRefs;
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		const int count = (int)s_vfl.lightCounts[c];
+		if ( count > 0 )
+			s_vfl.stats.nonEmptyClusters++;
+		if ( count >= FROXEL_LIGHTS_PER_CLUSTER )
+			s_vfl.stats.overflowClusters++;
+		s_vfl.stats.maxPerCluster = Q_max(s_vfl.stats.maxPerCluster, count);
+	}
+	s_vfl.stats.buildMsec = std::chrono::duration<double, std::milli>(
+		std::chrono::steady_clock::now() - buildStart).count();
+}
+
+/*
+=================
+R_VolumetricLightStats_f
+
+r_vfogLightStats: the froxel light lists of the last main view with lights
+(as r_forwardPlusStats), for the r_volumetricFogLightTile A/B
+=================
+*/
+void R_VolumetricLightStats_f( void )
+{
+	const auto& st = s_vfl.stats;
+	ri.Printf(PRINT_ALL, "Froxel fog light lists (r_volumetricFogLightTile %d -> %d froxels)\n",
+		r_volumetricFogLightTile->integer, R_VolumetricLightTileSize());
+	if ( !st.clusters )
+	{
+		ri.Printf(PRINT_ALL, "  no lights binned yet\n");
+		return;
+	}
+	ri.Printf(PRINT_ALL, "  lights: %d in the volume, tile %d froxels, %d clusters, %d non-empty\n",
+		st.lights, st.tileSize, st.clusters, st.nonEmptyClusters);
+	ri.Printf(PRINT_ALL, "  lights per cluster: avg %.2f (non-empty %.2f), max %d, cap %d\n",
+		(float)st.lightRefs / st.clusters,
+		st.nonEmptyClusters ? (float)st.lightRefs / st.nonEmptyClusters : 0.0f,
+		st.maxPerCluster, FROXEL_LIGHTS_PER_CLUSTER);
+	ri.Printf(PRINT_ALL, "  overflow: %d clusters full, %d light/cluster pairs dropped\n",
+		st.overflowClusters, st.overflowRefs);
+	ri.Printf(PRINT_ALL, "  CPU build: %.3f ms\n", st.buildMsec);
 }
 
 /*
@@ -1969,6 +2045,11 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricFogSunScale->value,
 		r_volumetricFogStaticScale->value,
 		(float)r_volumetricFogStaticDirectional->integer,
+		// the realtime sun color (refdef->sunCol) of maps without sunlit grid
+		// cells; r_forceSun 2 animates it every frame and is left to the clamp
+		(float)r_forceSun->integer,
+		r_forceSunLightScale->value,
+		(float)r_sunlightMode->integer,
 		// the sun octaves are in the history (r_volumetricMultiScatter)
 		(float)r_volumetricMultiScatter->integer,
 		(float)r_volumetricMultiScatterOctaves->integer,
@@ -2333,7 +2414,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// the slices each fog volume may touch: its bounds against the frustum
 	// sides and its view depth range, one slice wider on both sides (the
-	// injection samples at jittered positions, up to half a slice away)
+	// injection samples at jittered positions, up to half a slice away), and
+	// the fogs of the tail beyond far
 	for ( int i = 0; i < numFogs; i++ )
 	{
 		const fog_t *fog = tr.world->fogs + i + 1;
@@ -2362,6 +2444,15 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			minDepth = MIN(minDepth, depth);
 			maxDepth = MAX(maxDepth, depth);
 		}
+
+		// some of its bounds lie beyond far: the analytic tail (FroxelTailMedium) must see it.
+		// Fogs entirely closer than far are skipped there, per pixel of the composite.
+		if ( maxDepth > farZ )
+		{
+			block.tailFogs[0] |= 1 << i;
+			block.tailFogs[1] = i + 1;
+		}
+
 		if ( maxDepth < 0.0f || minDepth > farZ )
 			continue;
 

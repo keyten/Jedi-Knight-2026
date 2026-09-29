@@ -181,6 +181,7 @@ extern cvar_t	*r_volumetricFogTemporal;
 extern cvar_t	*r_volumetricFogHistoryWeight;
 extern cvar_t	*r_volumetricFogSunScale;
 extern cvar_t	*r_volumetricFogDlightScale;
+extern cvar_t	*r_volumetricFogLightTile;
 extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
 extern cvar_t	*r_volumetricSelfShadow;
@@ -1349,14 +1350,17 @@ struct VolumetricFogBlock
 
 	// BSP fog volumes that may touch each slice (bit i = fog i, MAX_GPU_FOGS <= 32)
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
+	// BSP fog volumes that may lie beyond far (the analytic tail): x = mask (bit i = fog i),
+	// y = loop bound (highest set bit + 1), zw unused
+	int tailFogs[4];							// ivec4
 
 	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), indexed
 	// by localShape.w: entry 0 = neutral (1 1 1)
 	vec4_t extinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
 
-// below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (16 288 with
-// the extinction palette)
+// below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (16 304 with
+// the extinction palette and the tail fog mask)
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
 // Volumetric FX particles of the froxel injection (tr_volparticle.cpp). Same
@@ -5367,6 +5371,7 @@ void R_VolumetricEnsureRasterCarry(void);
 void R_BuildVolumetricLightGrid(world_t *world);
 void R_SetHeightFogBase(const world_t *worldData);
 void R_VolumetricFog_f(void);
+void R_VolumetricLightStats_f(void);
 void RB_UpdateVolumetricConstants(struct gpuFrame_t *frame, const trRefdef_t *refdef);
 UniformBlockBinding RB_GetVolumetricFogBlockUniformBinding(void);
 void RB_VolumetricBeginView(void);

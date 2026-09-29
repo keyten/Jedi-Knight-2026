@@ -68,10 +68,17 @@ discretisation (see Integration).
   `near = 8` units, `far = r_volumetricFogFar` (0 = 4096). With 48 slices every slice is 13.9% deeper than the
   previous one: ~1 unit thick at 8 units, ~14 at 100, ~140 at 1000.
 - Beyond `far` the media are integrated analytically per pixel (`FroxelTailMedium`): every BSP fog volume clipped
-  to its bounds and visible side along the segment `[far, d]`, and the exact integral of the height fog
-  (exponential above its cap, constant below, top cut in the middle of its fade). A bounded fog that ends at 4500
-  stops there, one that starts beyond far is still seen. They are lit by the tail texture: the baked + sun light
-  at the far side of each froxel column, without albedo (the tail pass of the injection).
+  to its bounds and visible side along the segment `[far, d]` (exact), and the height fog: exact below its soft top
+  (exponential above its cap, constant below), a 3 point Gauss-Legendre rule inside the fade, the same
+  `1 - smoothstep` as the injection (transmittance error < 1e-4 against a numeric integral; the former cut in the
+  middle of the fade was off by up to 1 for level rays through the upper half of the fade). A bounded fog that ends
+  at 4500 stops there, one that starts beyond far is still seen. **Approximations** of the tail: the light is the
+  tail texture, the baked + sun light at the far side of each froxel column without albedo (the tail pass of the
+  injection), not the light along the segment; the density noise is its mean (1).
+- Tail cost (full resolution, every opaque pixel and every froxel-fogged transparent fragment beyond far): only the
+  BSP fogs whose bounds reach beyond far inside the frustum are looped (`u_FroxelTailFogs`, a mask built with the
+  per slice fog masks), and a pixel whose transmittance at far is below 1e-4 skips the tail (dense fog maps: every
+  pixel). Fog volumes closer than far cost one bit test per pixel.
 - Presets (`r_volumetricFogQuality`), **starting points, not profiled yet**:
 
 | quality | pixels per froxel | slices | 1920x1080 grid | froxels | volume memory |
@@ -168,7 +175,8 @@ Per froxel (instance / layer = slice):
    `* r_volumetricFogDlightScale`. The dynamic light system is the only source: sabers, bolts, explosions are
    volumetric exactly when game code adds a dynamic light for them. There are no spot / projected lights in the
    renderer. Clustered like Forward+ but on the froxel grid (`R_VolumetricBuildLightLists`): tiles of 8 x 8
-   froxels per slice, each light sphere binned into the clusters its projected bounds and depth range touch, at
+   froxels per slice (`r_volumetricFogLightTile 4 / 8 / 16`, not archived, for A/B; `r_vfogLightStats` prints
+   the lights, clusters, average / max lights per cluster, overflow and CPU build time of the last view), each light sphere binned into the clusters its projected bounds and depth range touch, at
    most 32 per cluster (the least important drop out). With `r_forwardPlus 1` every point light of the scene is a
    candidate (no `MAX_DLIGHTS` limit), otherwise the lights of the Lights block. The medium at the froxel center is
    evaluated only where the cluster has lights.
@@ -197,7 +205,10 @@ cell out (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` s
 = 1 if any reaches it, stored in the alpha of `volumetricStaticGrid` (trilinear between cells). Deep in shadow
 (indoors) the sun part stays baked light and is not darkened. The central realtime cascade lookup stays, so
 characters still cut the beams; the trust no longer depends on the cascade range or on moving occluders. The load
-time is printed with `developer 1` ("Froxel fog sun trust").
+time is printed with `developer 1` ("Froxel fog sun trust"). Only cells with a sun part are traced and the first ray
+that reaches the sky ends a cell (1 trace outdoors, up to 5 indoors). A disk cache (BSP checksum + sun direction)
+is only worth it if this line shows more than ~300 ms on the big maps; a CPU cache would not survive `vid_restart`
+(the renderer DLL is reloaded).
 
 ### Directed baked light
 
@@ -1362,6 +1373,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogHistoryWeight` | 0.9 | Weight of the history, 0..0.98 |
 | `r_volumetricFogSunScale` | 1 | Sun scattering multiplier (baked and realtime) |
 | `r_volumetricFogDlightScale` | 1 | Dynamic light scattering multiplier |
+| `r_volumetricFogLightTile` | 8 | froxels per side of a dynamic light tile (4, 8, 16; not archived, A/B with `r_vfogLightStats`) |
 | `r_volumetricFogStaticScale` | 1 | Baked light scattering multiplier |
 | `r_volumetricFogDlightShadows` | 1 | Dynamic lights use their shadow maps (needs `r_dlightMode 2`) |
 | `r_volumetricFogBloom` | 0 | Bright in-scattering added to the glow buffer |
@@ -1480,6 +1492,9 @@ vs `*-vfog.dll`).
 | height fog + fog volume | map with a fog volume near the ground | both visible, additive | 11, 12, 1 |
 | height fog + global fog | map with a global fog | global fog unchanged with `r_volumetricFogHeight 0` | 11 |
 | no fog map, defaults | any map without fog | no haze, no froxel timers in `r_speeds 100` | - |
+| sun trust load time | hoth2, vjun1, t3_hevil with `developer 1` | "Froxel fog sun trust: ... msec" (fill in) | - |
+| tail cost | open map with several fog volumes, looking at the sky | composite GPU time before / after the tail mask | 56 |
+| light tile A/B | many sabers / bolts in fog | `r_volumetricFogLightTile 4` vs `8`: inject time, `r_vfogLightStats` | 4 |
 | noise, stationary | fog map, `r_volumetricFogNoise 7` | clumps and voids, no crawling | 13, 15, 1 |
 | noise, translation / rotation | walk, strafe, turn | the pattern stays in the world (compare with 13) | 15, 13 |
 | noise, rapid movement | run and spin fast | no smearing beyond the unnoised fog | 15, 8 |
@@ -1597,7 +1612,8 @@ distance. When a light ray leaves the volume (side planes, far plane, behind the
 - The march stops. The unknown media there count as **empty**. A smoke column just outside the screen edge
   therefore casts no media shadow into the view, and its shadow appears when it enters the frustum.
 - With `r_volumetricSelfShadowOutsideHeightFog 1` (default), the height fog is added analytically from the point where the
-  march ended to the end of the ray (`FroxelHeightOpticalDepth`, exact; the noise is not included). The sun ray is
+  march ended to the end of the ray (`FroxelHeightOpticalDepth`, exact below the soft top, Gauss-Legendre inside
+  its fade; the noise is not included). The sun ray is
   treated as 32768 units, and a light ray ends at the light. The height fog is the only medium known everywhere.
   BSP fogs, local volumes and particles beyond the march are not included.
 - Media beyond `r_volumetricSelfShadowDistance` on a ray that stays inside the volume are also ignored, except
@@ -1992,9 +2008,10 @@ In game (not run yet):
 - The light grid split is a heuristic; `r_volumetricFogSunScale` / `StaticScale` balance it per map.
 - The history of the view model region is reprojected like the world (the volume is world space).
 - Moving fog volumes (brush entities) are not supported (neither are they in the legacy fog).
-- Beyond `r_volumetricFogFar` the medium is exact (analytic) but its light is the light of the last slice of the
-  column, and the density noise is not applied there (mean 1). Height fog: the soft top is a hard cut in the
-  middle of its fade beyond far; thin layers far away are limited by the slice depth; only mode 2 has it; one global layer set by cvars; the
+- Beyond `r_volumetricFogFar` the geometry / optical depth of the BSP fogs is exact and the height fog nearly so
+  (Gauss-Legendre in the soft top), but the light is the light of the last slice of the column (fog that starts
+  far behind a dark far point is lit like that point), and the density noise is not applied there (its mean 1; a
+  long tail path averages many noise cells anyway). Height fog: thin layers far away are limited by the slice depth; only mode 2 has it; one global layer set by cvars; the
   automatic base is the lowest floor, which can be a pit or a basement below the main ground level.
 - Density noise: 64^3 tile. With the macro field alone the period (4096) can show on huge open views when the
   volume far is raised; turn the detail on or raise the scale. The same field modulates every noisy medium (no
@@ -2017,5 +2034,9 @@ In game (not run yet):
 
 - Per map height fog / noise settings, per medium noise scale (local fog volumes use the global noise field).
 - A cgame trap for `AddFogVolumeToScene` (game / FX code), and fog volume primitives in the effects system.
-- Depth aware (minimum depth per froxel column) skipping of hidden froxels.
+- Depth aware skipping of hidden froxels: per froxel tile the **farthest** (maximum) scene depth; a slice can be
+  skipped only when it is behind the geometry of every pixel of the tile. The nearest depth would let one close
+  object remove fog that a neighbouring pixel on a far wall still needs (halos).
+- Tail light at 2-4 depths beyond far (logarithmic planes), interpolated per pixel, if the single far light shows
+  artifacts in game.
 - Blue noise instead of a Halton cycle for the jitter.
