@@ -9,9 +9,9 @@ void main()
 // Rain droplets on the camera lens (r_rainLens), tr_rainlens.cpp.
 //
 // Runs on the HDR scene after the SMAA T2x temporal resolve and motion blur,
-// before bloom extraction and tone mapping: refracted lights keep their HDR
-// value and bloom where they appear through a drop, and the screen fixed
-// drops never enter the temporal history.
+// before bloom extraction and tone mapping: refracted scene values remain HDR
+// for optional scene bloom extraction, and the screen fixed drops never enter
+// the temporal history. The dedicated emissive MRT is separate.
 //
 // Everything is procedural and deterministic in lens (screen) space, sized
 // relative to the screen height so resolution, ultrawide and FOV changes
@@ -67,13 +67,16 @@ float Exposure(float birth, float time)
 vec4 Cap(vec2 q, vec2 lopsided)
 {
 	// egg shaped, not a perfect circle
-	float r = length(q) * (1.0 + dot(q, lopsided));
+	float qLength = length(q);
+	float r = qLength * (1.0 + dot(q, lopsided));
 	if (r >= 1.0)
 		return vec4(0.0);
 
 	float h = sqrt(1.0 - r * r);
-	float edge = smoothstep(1.0, 0.78, r);
-	vec2 slope = q / max(h, 0.35);
+	float edge = 1.0 - smoothstep(0.78, 1.0, r);
+	// Gradient of the deformed height field, including the egg shape.
+	vec2 radiusGradient = q / max(qLength, 1e-4) * (1.0 + dot(q, lopsided)) + qLength * lopsided;
+	vec2 slope = r * radiusGradient / max(h, 0.35);
 	return vec4(edge, h, slope);
 }
 
@@ -106,10 +109,12 @@ vec4 Beads(vec2 p, float time, float density, out float radiusCells)
 	vec2 center = 0.5 + (h.xy - 0.5) * 0.36;
 
 	vec2 q = (f - center) / radius;
-	q.x *= mix(0.88, 1.12, h.y);
+	float xStretch = mix(0.88, 1.12, h.y);
+	q.x *= xStretch;
 	vec2 lopsided = (Hash33(vec3(cell, cycle + 7.0)).xy - 0.5) * 0.25;
 
 	vec4 cap = Cap(q, lopsided);
+	cap.z *= xStretch;
 	cap.x *= grow * evaporate * presence;
 	radiusCells = radius;
 	return cap;
@@ -159,31 +164,43 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 
 	vec2 d = p - center;
 
-	// trail: thin film from the start point down to the drop, drying from the top
-	if (d.y > 0.0 && d.y < y0 - center.y)
+	// Trail positions live in absolute lens space. Estimate when the drop
+	// passed this point from its mean speed; stick-slip only perturbs that
+	// time slightly, without making old film pulse at the current velocity.
+	if (d.y > 0.0 && d.y < y0 - center.y && abs(p.x - x0) < radius * 0.8 + 0.06)
 	{
-		float dry = clamp(1.0 - d.y / max(velocity + 0.5, 0.5) / 2.2, 0.0, 1.0);
+		float passedAt = (y0 - p.y) / speed;
+		float trailAge = max(s - passedAt, 0.0);
+		float dry = 1.0 - smoothstep(0.0, 2.2, trailAge);
+		float pathX = x0 + sin(passedAt * 2.3 + h.x * 6.0) * 0.06;
 		float width = radius * 0.8;
-		trail = (1.0 - smoothstep(width * 0.6, width, abs(d.x))) * dry * presence;
+		trail = (1.0 - smoothstep(width * 0.6, width, abs(p.x - pathX))) * dry * presence;
 	}
 
 	// tail: stretched upwards while moving
 	vec2 q = d / radius;
+	float tailStretch = 1.0;
 	if (q.y > 0.0)
-		q.y /= 1.0 + clamp(velocity * 0.6, 0.0, 1.5);
+	{
+		tailStretch = 1.0 + clamp(velocity * 0.6, 0.0, 1.5);
+		q.y /= tailStretch;
+	}
 
 	vec2 lopsided = vec2((h.y - 0.5) * 0.2, -0.12);
 	vec4 cap = Cap(q, lopsided);
+	cap.w /= tailStretch;
 	cap.x *= presence;
 
 	// small beads left behind along the trail
 	if (trail > 0.0 && cap.x <= 0.0)
 	{
-		float seg = floor(d.y * 3.0);
+		float seg = floor((y0 - p.y) * 3.0);
 		vec3 hb = Hash33(vec3(column, cycle, seg + 71.0));
 		if (hb.x < 0.5)
 		{
-			vec2 bc = vec2(x0 + (hb.y - 0.5) * radius, center.y + (seg + 0.5) / 3.0);
+			float beadPassedAt = (seg + 0.5) / (3.0 * speed);
+			vec2 bc = vec2(x0 + sin(beadPassedAt * 2.3 + h.x * 6.0) * 0.06
+				+ (hb.y - 0.5) * radius, y0 - (seg + 0.5) / 3.0);
 			float br = radius * mix(0.18, 0.32, hb.z);
 			vec4 bead = Cap((p - bc) / br, vec2(0.0));
 			bead.x *= trail;
@@ -260,11 +277,15 @@ void main()
 		float blur = radiusUV * 0.18 * mask;
 		vec2 bx = vec2(blur / aspect, blur * 0.3);
 		vec2 by = vec2(-blur * 0.3 / aspect, blur);
-		vec3 refracted = textureLod(u_ScreenImageMap, refrUV, 0.0).rgb * 0.2;
-		refracted += textureLod(u_ScreenImageMap, refrUV + bx, 0.0).rgb * 0.2;
-		refracted += textureLod(u_ScreenImageMap, refrUV - bx, 0.0).rgb * 0.2;
-		refracted += textureLod(u_ScreenImageMap, refrUV + by, 0.0).rgb * 0.2;
-		refracted += textureLod(u_ScreenImageMap, refrUV - by, 0.0).rgb * 0.2;
+		vec3 refracted = textureLod(u_ScreenImageMap, refrUV, 0.0).rgb;
+		if (mask > 0.001)
+		{
+			refracted *= 0.2;
+			refracted += textureLod(u_ScreenImageMap, refrUV + bx, 0.0).rgb * 0.2;
+			refracted += textureLod(u_ScreenImageMap, refrUV - bx, 0.0).rgb * 0.2;
+			refracted += textureLod(u_ScreenImageMap, refrUV + by, 0.0).rgb * 0.2;
+			refracted += textureLod(u_ScreenImageMap, refrUV - by, 0.0).rgb * 0.2;
+		}
 
 		// Fresnel: slightly darker rim, the transmission of the water
 		float rim = clamp(dot(slope, slope) * 0.5, 0.0, 1.0);

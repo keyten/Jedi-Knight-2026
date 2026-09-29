@@ -13,7 +13,7 @@ MSAA resolve
 [SMAA 2: edges + temporal resolve]   <- history stays drop free
 [motion blur]
 lens rain                            <- RB_RainLens
-dynamic glow / bloom extraction      <- refracted lights bloom where they are seen
+dynamic glow / bloom extraction      <- scene extraction sees refracted lights
 [SMAA 1 edges]                       <- edges of the refracted image
 tone map -> sun rays -> glow composite -> debug overlays -> refraction fill
 ```
@@ -22,14 +22,19 @@ When lens rain runs, `RB_PostProcess` uses the ordering branch that motion blur
 already uses. Without lens rain the ordering doesn't change. SSR and SSGI resolve
 in the main pass (before post-processing), so they're unaffected.
 
+Modern bloom's separate emissive MRT is not refracted. Refracted scene lights
+contribute to bloom only when `r_bloomSceneIntensity` is above zero; its default
+is zero. Legacy scene highpass likewise needs `r_dynamicGlowBloom` above zero.
+
 ## Targets
 
 `textureScratchImage` is 256×256 RGBA8, so it can't be used here. The effect has
 a dedicated target: `tr.rainLensImage` (full resolution, same HDR format as
 `renderImage`) plus `tr.rainLensFbo`. They're allocated only with `r_rainLens 1`
 (latched) and `r_hdr 1`. The pass reads `srcFbo->colorImage[0]`, writes
-`rainLensFbo`, and blits colour attachment 0 back (the motion blur pattern). It
-never reads and writes the same texture.
+`rainLensFbo`. Subsequent color passes read `rainLensImage` directly; the
+original resolved FBO supplies depth for the final depth blit. It never reads
+and writes the same texture.
 
 ## Activation
 
@@ -50,7 +55,8 @@ owns the lens.
 ## State
 
 Backend state is a lens clock (game time, so it pauses with the game), the last
-time the camera was exposed, and a 1.5 s ramp-up. A cut (map change, or a time
+time the camera was exposed, and a 1.5 s ramp-up that resets once the lens
+has drained under cover. A cut (map change, or a time
 jump over 1 s) clears it. There is no global rain transition.
 
 ## Droplet model
@@ -62,11 +68,13 @@ size holds across resolutions, ultrawide and FOV changes.
 - **Sliders:** 4.5 columns per height, one drop per column per 7–13 s cycle. A
   drop sticks for 0.8–3.5 s, then slides with stick-slip motion
   `travel = v(s − 0.9·sin(2πns)/(2πn))`. It gets a tail stretched by its speed,
-  a thin trail that dries from the top and leaves small beads behind, and it
+  a thin trail anchored to the drop's path that dries according to approximate
+  time since passage and leaves stationary small beads behind, and it
   wipes the beads it crosses.
 - **Shape:** a spherical cap `h = sqrt(1 − r²)`. It's egg-shaped
   (`r·(1 + q·lopsided)`) with a small hashed ellipse, and the edge is softened
-  with `smoothstep(1, 0.78, r)`. Slope = `q / max(h, 0.35)`.
+  with `1 - smoothstep(0.78, 1, r)`. The slope includes the derivatives of the
+  egg shape, ellipse, and stretched tail.
 - **Refraction:** `offset = −slope · radius · r_rainLensRefraction · 1.6 · mask`.
   This produces a magnified, inverted image. Aspect is corrected.
 - **Optics:** a 5-tap disc blur inside the drop only, radius ∝ drop size. The

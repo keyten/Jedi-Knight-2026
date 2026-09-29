@@ -3334,7 +3334,7 @@ RB_DynamicGlowPrepare
 Downscaled glow / bloom source for the dynamic glow composite
 =============
 */
-static void RB_DynamicGlowPrepare(void)
+static void RB_DynamicGlowPrepare(image_t *sceneImage)
 {
 	if (RB_ModernBloomActive())
 	{
@@ -3347,7 +3347,7 @@ static void RB_DynamicGlowPrepare(void)
 		GL_SetViewportAndScissor(0, 0, tr.glowFboScaled[0]->width, tr.glowFboScaled[0]->height);
 		GLSL_BindProgram(&tr.bloomPrefilter);
 		GL_BindToTMU(tr.glowImage, TB_COLORMAP);
-		GL_BindToTMU(tr.renderImage, TB_LIGHTMAP);
+		GL_BindToTMU(sceneImage, TB_LIGHTMAP);
 		vec4_t bloomParams = {r_bloomThreshold->value, r_bloomKnee->value,
 			r_bloomSceneIntensity->value, tr.linearLight ? 1.0f : 0.0f};
 		GLSL_SetUniformVec4(&tr.bloomPrefilter, UNIFORM_BLOOMPARAMS, bloomParams);
@@ -3374,7 +3374,7 @@ static void RB_DynamicGlowPrepare(void)
 		GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
 
 		GLSL_BindProgram(&tr.highpassShader);
-		GL_BindToTMU(tr.renderImage, 0);
+		GL_BindToTMU(sceneImage, 0);
 		GLSL_SetUniformVec3(&tr.highpassShader, UNIFORM_TONEMINAVGMAXLINEAR, tr.refdef.toneMinAvgMaxLinear);
 		GLSL_SetUniformFloat(&tr.highpassShader, UNIFORM_BLOOMSTRENGTH, r_dynamicGlowBloom->value);
 
@@ -3394,10 +3394,10 @@ static void RB_DynamicGlowPrepare(void)
 =============
 RB_SMAAEdgesAndWeights
 
-SMAA edge detection and blending weights of tr.renderImage
+SMAA edge detection and blending weights of the current scene image
 =============
 */
-static void RB_SMAAEdgesAndWeights(void)
+static void RB_SMAAEdgesAndWeights(image_t *sceneImage)
 {
 	GL_Cull(CT_TWO_SIDED);
 	GL_State(GLS_DEPTHTEST_DISABLE);
@@ -3406,7 +3406,7 @@ static void RB_SMAAEdgesAndWeights(void)
 	GL_SetViewportAndScissor(0, 0, tr.smaaEdgeFbo->width, tr.smaaEdgeFbo->height);
 	qglClearBufferfv(GL_COLOR, 0, colorBlack);
 	GLSL_BindProgram(&tr.smaaEdgeShader);
-	GL_BindToTMU(tr.renderImage, 0);
+	GL_BindToTMU(sceneImage, 0);
 	qglDrawArrays(GL_TRIANGLES, 0, 3);
 
 	FBO_Bind(tr.smaaBlendFbo);
@@ -3532,34 +3532,41 @@ const void *RB_PostProcess(const void *data)
 	const qboolean motionBlur = RB_MotionBlurActive();
 
 	// Lens rain (screen fixed) takes the same order: after the temporal
-	// resolve so the drops stay out of its history, before bloom so
-	// refracted lights bloom where they are seen. See docs/rend2-rain-lens.md.
+	// resolve so the drops stay out of its history, before bloom scene
+	// extraction. The dedicated emissive MRT remains independent.
 	const float rainLensExposure = cmd ? cmd->rainLensExposure : 0.0f;
 	const qboolean rainLens = RB_RainLensUpdate(rainLensExposure);
+	// Rain lens has color only. Keep the resolved scene FBO for the final
+	// depth blit even when subsequent color passes use rainLensFbo.
+	FBO_t *depthFbo = srcFbo;
 
 	if (motionBlur || rainLens)
 	{
 		if (r_smaa->integer == 2)
 		{
-			RB_SMAAEdgesAndWeights();
+			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 			RB_SMAATemporalResolve(srcFbo, dstBox);
 		}
 
 		RB_MotionBlur(srcFbo);
 		if (rainLens)
+		{
 			RB_RainLens(srcFbo, rainLensExposure);
-		RB_DynamicGlowPrepare();
+			if (!r_rainLensDebug->integer)
+				srcFbo = tr.rainLensFbo;
+		}
+		RB_DynamicGlowPrepare(srcFbo->colorImage[0]);
 
 		if (r_smaa->integer && r_smaa->integer != 2)
-			RB_SMAAEdgesAndWeights();
+			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 	}
 	else
 	{
-		RB_DynamicGlowPrepare();
+		RB_DynamicGlowPrepare(srcFbo->colorImage[0]);
 
 		if (r_smaa->integer)
 		{
-			RB_SMAAEdgesAndWeights();
+			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 			if (r_smaa->integer == 2)
 				RB_SMAATemporalResolve(srcFbo, dstBox);
 		}
@@ -3589,7 +3596,7 @@ const void *RB_PostProcess(const void *data)
 			FBO_Bind(NULL);
 			GL_SetViewportAndScissor(0, 0, srcFbo->width, srcFbo->height);
 			GLSL_BindProgram(&tr.smaaResolveShader);
-			GL_BindToTMU(tr.renderImage, 0);
+			GL_BindToTMU(srcFbo->colorImage[0], 0);
 			GL_BindToTMU(tr.smaaBlendImage, 1);
 			GL_BindToTMU(tr.velocityImage, 2);
 			if (exposure == 0.0f)
@@ -3624,7 +3631,7 @@ const void *RB_PostProcess(const void *data)
 		}
 
 		// Copy depth buffer to the backbuffer for depth culling refractive surfaces
-		FBO_FastBlit(srcFbo, srcBox, NULL, dstBox, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		FBO_FastBlit(depthFbo, srcBox, NULL, dstBox, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	}
 
 	if (r_drawSunRays->integer && !RB_AODebugBypassesToneMap())
@@ -3878,4 +3885,3 @@ void RB_ExecuteRenderCommands( const void *data ) {
 	}
 
 }
-

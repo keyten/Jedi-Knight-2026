@@ -24,7 +24,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // after the SMAA T2x temporal resolve and motion blur, before bloom
 // extraction and tone mapping (see docs/rend2-rain-lens.md). It reads the
 // resolved scene and writes rainLensImage (a dedicated full resolution HDR
-// target: textureScratchImage is 256x256 RGBA8), then copies it back.
+// target: textureScratchImage is 256x256 RGBA8). The caller uses that target
+// as the scene source for the remaining color passes.
 //
 // Active only for the main world view of the first scene while it rains
 // and the camera is outside (R_IsOutside, decided on the front end). The
@@ -200,6 +201,12 @@ qboolean RB_RainLensUpdate( float exposure )
 		s_lastExposedTime = s_lensTime;
 		s_wet = Q_min(1.0f, s_wet + dt / RAIN_LENS_RAMP_SECONDS);
 	}
+	else if ( s_lensTime - s_lastExposedTime >= RAIN_LENS_DRAIN_SECONDS )
+	{
+		// Keep the existing population stable while it drains. Once the lens
+		// is clear, new rain has to build up again on the next exposure.
+		s_wet = 0.0f;
+	}
 
 	if ( r_rainLensDebug->integer )
 		return qtrue;
@@ -215,9 +222,9 @@ qboolean RB_RainLensUpdate( float exposure )
 RB_RainLens
 
 srcFbo holds the HDR scene (MSAA resolved, temporally resolved and motion
-blurred). Refracts it through the lens drops into rainLensImage and copies
-the result back, so bloom, SMAA 1 and the tone map see the drops. Debug
-views stay in rainLensImage and are drawn by RB_RainLensDebugOverlay.
+blurred). Refracts it through the lens drops into rainLensImage. The caller
+uses rainLensFbo for subsequent color passes. Debug views stay in
+rainLensImage and are drawn by RB_RainLensDebugOverlay.
 =============
 */
 void RB_RainLens( FBO_t *srcFbo, float exposure )
@@ -259,9 +266,6 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 
 	if ( debugView )
 		s_debugOutput = qtrue;
-	else
-		// only the scene color attachment, srcFbo also has the glow target
-		FBO_FastBlitIndexed(tr.rainLensFbo, srcFbo, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 	RB_RainLensEndTimer(timer);
 }
