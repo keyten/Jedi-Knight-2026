@@ -68,8 +68,8 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelFogMaxs[MAX_GPU_FOGS];		// w: density noise applies
 	vec4 u_FroxelFogMedium[MAX_GPU_FOGS];	// x: anisotropy g (fogAnisotropy or the global one), yzw: extinction color
 
-	// local fog volumes (tr_fogvolume.cpp), nearest first. Per slice a packed list of the volumes
-	// that overlap it: header = first pool entry | count << 16, pool = 8 bit volume indices.
+	// local fog volumes (tr_fogvolume.cpp), most important first. XYZ membership masks live
+	// in an R32UI buffer texture shared by raster and compute injection.
 	vec4 u_FroxelLocalParams;							// count, fade start, 1 / fade length, 1 = some volume emits
 	vec4 u_FroxelLocalX[MAX_GPU_FOG_VOLUMES];			// world to unit local space rows (xyz, w offset)
 	vec4 u_FroxelLocalY[MAX_GPU_FOG_VOLUMES];
@@ -78,11 +78,10 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelLocalPrevY[MAX_GPU_FOG_VOLUMES];
 	vec4 u_FroxelLocalPrevZ[MAX_GPU_FOG_VOLUMES];
 	vec4 u_FroxelLocalColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction (0: gone this frame)
-	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * palette index
+	vec4 u_FroxelLocalShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * palette index + 32 * history break
 	vec4 u_FroxelLocalMotion[MAX_GPU_FOG_VOLUMES];		// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
 	vec4 u_FroxelLocalEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density, w: anisotropy g
-	ivec4 u_FroxelLocalSlices[FROXEL_MAX_SLICES / 4];	// slice headers
-	ivec4 u_FroxelLocalIndex[FROXEL_LOCAL_POOL / 16];	// index pool, 4 per int
+	vec4 u_FroxelLocalClusters;					// tile size, tiles X, tiles Y, unused
 
 	// BSP fog volumes that may touch a slice (CPU culled): bit i = fog i
 	ivec4 u_FroxelFogSlices[FROXEL_MAX_SLICES / 4];
@@ -105,10 +104,45 @@ bool FroxelLocalNoisy(in float w)
 
 vec3 FroxelLocalExtinctionColor(in float w)
 {
-	return u_FroxelExtinctionPalette[int(w * 0.5)].rgb;
+	return u_FroxelExtinctionPalette[(int(w) >> 1) & 15].rgb;
 }
 
 #if defined(USE_FROXEL_PARTICLES)
+uniform usamplerBuffer u_FPlusIndexMap;
+
+uvec2 FroxelLocalCluster(in vec3 p, in int slice)
+{
+	vec4 clip = u_FroxelViewProjection * vec4(p, 1.0);
+	vec2 uv = clamp(clip.xy / max(clip.w, 1e-4) * 0.5 + 0.5, 0.0, 1.0);
+	ivec2 size = ivec2(u_FroxelGridSize.xy);
+	ivec2 tile = min(ivec2(uv * vec2(size)), size - 1) / int(u_FroxelLocalClusters.x);
+	ivec2 tiles = ivec2(u_FroxelLocalClusters.yz);
+	int offset = 2 * ((slice * tiles.y + tile.y) * tiles.x + tile.x);
+	return uvec2(texelFetch(u_FPlusIndexMap, offset).r,
+		texelFetch(u_FPlusIndexMap, offset + 1).r);
+}
+
+// GLSL 1.50 has no findLSB; binary search and clear the lowest set bit.
+int FroxelLocalNext(inout uvec2 mask)
+{
+	int base = mask.x != 0u ? 0 : 32;
+	uint bits = base == 0 ? mask.x : mask.y;
+#if defined(USE_FROXEL_COMPUTE)
+	int bit = findLSB(bits);
+#else
+	uint v = bits;
+	int bit = 0;
+	if ((v & 65535u) == 0u) { v >>= 16; bit += 16; }
+	if ((v & 255u) == 0u) { v >>= 8; bit += 8; }
+	if ((v & 15u) == 0u) { v >>= 4; bit += 4; }
+	if ((v & 3u) == 0u) { v >>= 2; bit += 2; }
+	if ((v & 1u) == 0u) bit++;
+#endif
+	if (base == 0) mask.x = bits & (bits - 1u);
+	else mask.y = bits & (bits - 1u);
+	return base + bit;
+}
+
 // FX particle media (tr_volparticle.cpp, injection and debug views only), most important first. Per
 // slice a packed list of the particles that overlap it: header = first pool entry | count << 16,
 // pool = 16 bit particle indices.
@@ -214,6 +248,8 @@ float FroxelLocalShapeDensity(in vec4 rx, in vec4 ry, in vec4 rz, in float shape
 		float r2 = dot(q, q);
 		if (r2 >= 1.0)
 			return 0.0;
+		if (r2 <= inner * inner)
+			return 1.0;
 		float t = clamp((sqrt(r2) - inner) * invWidth, 0.0, 1.0);
 		return 1.0 - t * t * (3.0 - 2.0 * t);
 	}
@@ -221,20 +257,11 @@ float FroxelLocalShapeDensity(in vec4 rx, in vec4 ry, in vec4 rz, in float shape
 	vec3 a = abs(q);
 	if (max(a.x, max(a.y, a.z)) >= 1.0)
 		return 0.0;
+	if (max(a.x, max(a.y, a.z)) <= inner)
+		return 1.0;
 	vec3 t = clamp((a - vec3(inner)) * invWidth, 0.0, 1.0);
 	vec3 f = 1.0 - t * t * (3.0 - 2.0 * t);
 	return f.x * f.y * f.z;
-}
-
-// packed list of the local volumes of a slice: header = first pool entry | count << 16
-int FroxelLocalSliceHeader(in int slice)
-{
-	return u_FroxelLocalSlices[slice >> 2][slice & 3];
-}
-
-int FroxelLocalPoolIndex(in int entry)
-{
-	return (u_FroxelLocalIndex[entry >> 4][(entry >> 2) & 3] >> ((entry & 3) * 8)) & 255;
 }
 
 // local volumes fade out before the last slice: the tail beyond far (FroxelTailMedium) does not
@@ -255,7 +282,9 @@ float FroxelParticleDensity(in vec3 center, in vec4 invExtent, in vec3 p)
 	if (r2 >= 1.0)
 		return 0.0;
 	float inner = FroxelParticleInner(invExtent.w);
-	float t = clamp((sqrt(r2) - inner) / max(1.0 - inner, 1e-3), 0.0, 1.0);
+	if (r2 <= inner * inner)
+			return 1.0;
+		float t = clamp((sqrt(r2) - inner) / max(1.0 - inner, 1e-3), 0.0, 1.0);
 	return 1.0 - t * t * (3.0 - 2.0 * t);
 }
 

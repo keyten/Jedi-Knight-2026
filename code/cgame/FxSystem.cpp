@@ -30,6 +30,19 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 extern vmCvar_t	fx_debug;
 extern vmCvar_t	fx_freeze;
+extern vmCvar_t fx_physicalization, fx_physicalizationDebug;
+static cvar_t *physicalOptIn, *physicalOptOut;
+
+bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug.integer != 0; }
+
+void SFxHelper::PhysicalizationPrint(const char* message, ...) {
+	char text[1024];
+	va_list args;
+	va_start(args, message);
+	Q_vsnprintf(text, sizeof(text), message, args);
+	va_end(args);
+	gi.Printf("%s", text);
+}
 
 extern void CG_ExplosionEffects( vec3_t origin, float intensity, int radius, int time );
 
@@ -38,6 +51,9 @@ extern void CG_ExplosionEffects( vec3_t origin, float intensity, int radius, int
 void SFxHelper::Init()
 {
 	mTime = 0;
+	// Lists are not VM mirrors: Cvar_Update rejects strings over 255 bytes.
+	physicalOptIn = gi.cvar("fx_physicalizationOptIn", "", CVAR_ARCHIVE);
+	physicalOptOut = gi.cvar("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
 }
 
 //------------------------------------------------------
@@ -60,6 +76,8 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frameTime )
 {
+	if (physicalOptIn && physicalOptOut)
+		mPhysicalPolicy.Update(fx_physicalization.integer, physicalOptIn->string, physicalOptOut->string);
 	if ( fx_freeze.integer || ( frameTime <= 0 ))
 	{
 		// Allow no time progression when we are paused.

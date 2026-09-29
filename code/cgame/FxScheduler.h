@@ -197,6 +197,8 @@ public:
 	int				mCullRange;
 
 	CMediaHandles	mMediaHandles;
+	std::string mPhysicalEffect;
+	std::vector<FxPhysical::Alternative> mPhysicalShaders;
 	CMediaHandles	mImpactFxHandles;
 	CMediaHandles	mDeathFxHandles;
 	CMediaHandles	mEmitterFxHandles;

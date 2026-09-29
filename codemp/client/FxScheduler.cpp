@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cl_cgameapi.h"
 #include "FxScheduler.h"
 #include "qcommon/q_shared.h"
+#include "fx/FxPhysicalizationIntegration.h"
 
 #include <algorithm>
 #include <cmath>
@@ -366,7 +367,9 @@ int CFxScheduler::RegisterEffect( const char *file, bool bHasCorrectPath /*= fal
 	theFxHelper.CloseFile( fh );
 
 	// Lets convert the effect file into something that we can work with
-	return ParseEffect( sfile, parser.GetBaseParseGroup() );
+	const int handle = ParseEffect( sfile, parser.GetBaseParseGroup() );
+	if (handle) FX_AnalyzePhysicalization(&mEffectTemplates[handle], finalFilename.c_str(), FxPhysical::Fingerprint(data, len));
+	return handle;
 }
 
 
@@ -1713,7 +1716,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 	// participating medium (rend2 volumetric FX particles, "volumetricMedia")
 	if ( particle && fx->mVolMedia )
 	{
-		SFxVolumetricMedia media;
+		SFxVolumetricMedia media = {};
 		media.extinction = fx->mVolExtinction.GetVal();
 		if ( fx->mVolHasAlbedo )
 			VectorCopy( fx->mVolAlbedo, media.albedo );
@@ -1729,6 +1732,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 	media.anisotropy = fx->mVolAnisotropy;
 		particle->SetVolumetricMedia( &media );
 	}
+
+	FX_AttachPhysicalization(particle, fx);
 
 	// Track when we need to clean ourselves up if we are a copy
 	if ( fx->mCopy )
@@ -1763,4 +1768,3 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, SScheduledEffect *sched
 
 	PlayEffect( fx->mPlayFxHandles.GetHandle(), scheduledFx->mOrigin, scheduledFx->mAxis, boltInfo );
 }
-

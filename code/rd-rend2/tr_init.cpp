@@ -2441,7 +2441,7 @@ void R_Register( void )
 	r_volumetricFogHeightColor = ri_Cvar_Get_NoComm("r_volumetricFogHeightColor", "0.7 0.75 0.8", CVAR_ARCHIVE, "Froxel fog height fog: scattering color (albedo), \"r g b\" in 0..1 as fogParms");
 	r_volumetricFogHeightExtinction = ri_Cvar_Get_NoComm("r_volumetricFogHeightExtinction", "1 1 1", CVAR_ARCHIVE, "Froxel fog height fog: relative extinction per channel \"r g b\", normalized to mean 1 (r_volumetricFogRGBExtinction)");
 	r_volumetricFogNoise = ri_Cvar_Get_NoComm("r_volumetricFogNoise", "0", CVAR_ARCHIVE, "Froxel fog: media with world space noise density, bits: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag (0 = homogeneous)");
-	ri.Cvar_CheckRange(r_volumetricFogNoise, 0, 7, qtrue);
+	ri.Cvar_CheckRange(r_volumetricFogNoise, 0, 15, qtrue);
 	r_volumetricFogNoiseScale = ri_Cvar_Get_NoComm("r_volumetricFogNoiseScale", "4096", CVAR_ARCHIVE, "Froxel fog noise: period of the macro noise tile (world units)");
 	ri.Cvar_CheckRange(r_volumetricFogNoiseScale, 64.0f, 65536.0f, qfalse);
 	r_volumetricFogNoiseContrast = ri_Cvar_Get_NoComm("r_volumetricFogNoiseContrast", "1", CVAR_ARCHIVE, "Froxel fog noise: contrast of the macro noise, 0 = homogeneous, 1 = density 0..2x, higher = sparser clumps (the mean density is kept)");

@@ -30,7 +30,7 @@ void main()
 //     brightness = opacity
 //  18 local fog volume bounds over the frame: outer shell (bright rim) and inner shell where the
 //     soft edge starts (thin rim), one hue per volume index, dimmed where behind the scene
-//  19 number of local volumes listed for the froxel slice at the scene depth (heat, 8 = red),
+//  19 number of local volumes in the XYZ cluster at the scene depth (heat, 8 = red),
 //     slice stripes; r_fogvol slices prints the indices
 //  20-25 baked light grid terms, as in-scattering (the injection keeps only that term, no sun, no
 //     dynamic lights; R_BuildVolumetricLightGrid): 20 isotropic I, 21 directed D (no phase),
@@ -327,7 +327,13 @@ void main()
 		float d = dot(worldPos - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
 		int slice = int(min(floor(FroxelDepthToW(min(d, u_FroxelSliceParams.y)) * u_FroxelGridSize.z),
 			u_FroxelGridSize.z - 1.0));
-		int count = FroxelLocalSliceHeader(slice) >> 16;
+		uvec2 mask = u_FroxelLocalParams.x > 0.5 ? FroxelLocalCluster(worldPos, slice) : uvec2(0u);
+		int count = 0;
+		while (any(notEqual(mask, uvec2(0u))))
+		{
+			FroxelLocalNext(mask);
+			count++;
+		}
 		color = (count > 0) ? Heat(float(count) / 8.0) : vec3(0.12);
 		if ((slice & 1) != 0)
 			color *= 0.75;

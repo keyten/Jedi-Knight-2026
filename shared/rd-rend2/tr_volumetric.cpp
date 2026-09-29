@@ -129,7 +129,7 @@ qboolean R_VolumetricComputeAvailable( void )
 	qglGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &combinedSamplers);
 	qglGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS, &blocks);
 	// Stage limits count active samplers, not the largest global TMU index.
-	return (qboolean)(samplers >= (s_vf.rgb ? 14 : 13) &&
+	return (qboolean)(samplers >= (s_vf.rgb ? 15 : 14) &&
 		combinedSamplers > (s_vf.rgb ? TB_FROXELEXTINCTION : TB_LIGHTCOOKIES) && blocks >= 3);
 }
 
@@ -973,6 +973,7 @@ void R_CreateVolumetricFBOs( void )
 
 void R_ShutdownVolumetric( void )
 {
+	R_FogVolumesShutdown();
 	if ( s_vfl.lightBuffers[0] )
 	{
 		for ( int f = 0; f < MAX_FRAMES; f++ )
@@ -2559,7 +2560,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			block.fogSlices[k] |= 1 << i;
 	}
 
-	// local fog volumes: culled, nearest first, per slice lists (tr_fogvolume.cpp).
+	// local fog volumes: culled, importance sorted, XYZ cluster masks (tr_fogvolume.cpp).
 	// Like the height fog they are outside the BSP fog volumes: transparent
 	// surfaces without a fog volume look the volume up too.
 	const int numLocalVolumes = R_FogVolumesBuild(&block, view, refdef, forward, nearZ, farZ, s_vf.depth,
@@ -2944,6 +2945,7 @@ void RB_VolumetricBuild( void )
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
 		GLSL_BindProgram(sp);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		R_FogVolumesBindClusters();
 		const vec4_t mediaMode = { 0.0f, 0.0f, 1.0f, 0.0f };
 		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, mediaMode);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
@@ -2979,6 +2981,7 @@ void RB_VolumetricBuild( void )
 
 		GL_BindToTMU(tr.froxelInjectImage[previous], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		R_FogVolumesBindClusters();
 		GL_BindToTMU(staticGrid, TB_LIGHTMAP);
 		GL_BindToTMU(sunGrid, TB_NORMALMAP);
 		GL_BindToTMU(dirGrid, TB_SPECULARMAP);
@@ -3239,6 +3242,7 @@ void RB_VolumetricDebugOverlay( void )
 	GL_BindToTMU(tr.froxelIntegratedImage, TB_CUBEMAP);
 	GL_BindToTMU(tr.froxelTailImage, TB_ENVBRDFMAP);
 	GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		R_FogVolumesBindClusters();
 	if ( tr.froxelParticleLightImage )
 		GL_BindToTMU(tr.froxelParticleLightImage, TB_ENTITYGRID_AMBIENT);
 	// view 40: the extinction of this frame (r_volumetricSelfShadow)

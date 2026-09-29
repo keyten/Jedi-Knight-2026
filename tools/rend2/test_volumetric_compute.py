@@ -37,18 +37,22 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows, media=False, probe=None):
+def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
     defines += '#define MAX_DLIGHTS 32\n#define M_PI 3.14159265358979323846\n#define USE_FROXEL_FOG\n'
-    if name == 'volumetric_inject':
+    defines += '#define r_FBufScale vec2(1.0 / 7.0, 1.0 / 5.0)\n'
+    if name in ['volumetric_inject', 'volumetric_debug']:
         defines += '#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n'
     defines += '#define USE_FROXEL_RGB\n' if rgb else ''
     defines += '#define USE_SHADOWS2\n' if shadows else ''
     defines += '#define USE_FROXEL_COMPUTE\n' if compute else ''
     defines += '#define USE_FROXEL_MEDIA_PASS\n' if media else ''
     body = fragment('volumetric_common') + fragment(name)
+    if legacy_bits:
+        body = body.replace('#if defined(USE_FROXEL_COMPUTE)\n\tint bit = findLSB(bits);',
+                            '#if 0\n\tint bit = findLSB(bits);')
     if probe is not None:
         assert compute
         body = body.replace('void main()', 'void unusedMain()') + probe
@@ -198,7 +202,8 @@ W, H, D = 7, 5, 17
 SAMPLERS = ['u_FroxelHistory', 'u_VolumetricStaticGrid', 'u_VolumetricSunGrid',
             'u_VolumetricDirGrid', 'u_VolumetricDirVecGrid', 'u_VolumetricLegacyGrid',
             'u_ShadowMap', 'u_ShadowMap2', 'u_FroxelNoise', 'u_FroxelMedia',
-            'u_FroxelExtinction', 'u_FPlusLights', 'u_FPlusGridMap', 'u_LightCookieMap']
+            'u_FroxelExtinction', 'u_FPlusLights', 'u_FPlusGridMap', 'u_LightCookieMap',
+            'u_FPlusIndexMap']
 # world = (ndc.x * d, ndc.y * d, d); clip = (x + .1 z, y - .05 z, 0, z): the history
 # lookup lands between froxel centers, as after a small camera turn
 REPROJECT = [1, 0, 0, 0, 0, 1, 0, 0, .1, -.05, 0, 1, 0, 0, 0, 0]
@@ -541,6 +546,102 @@ void main()
           'pure noisy medium, off-axis LOD, explicit RG8 mips')
 
 
+def local_volumes(rgb, legacy_bits=False):
+    """Real GPU shape/cluster/history evaluation, including bits 31 and 63."""
+    prog = program('volumetric_inject', True, rgb, False, legacy_bits=legacy_bits, probe=r'''
+void main()
+{
+    int x = int(gl_GlobalInvocationID.x);
+    if (x >= 4 || gl_GlobalInvocationID.y != 0u || gl_GlobalInvocationID.z != 0u) return;
+    var_Slice = 0;
+    vec3 p = vec3(x == 0 ? 0.0 : x == 1 ? 0.85 : x == 2 ? 1.1 : -0.85, 0.0, 0.0);
+    float noisy, local, change, particle, particleChange;
+    FroxelMediumSample m = FroxelMedium(p, vec2(0.0), 0, true,
+        noisy, local, change, particle, particleChange);
+    float red = m.extinction;
+#if defined(USE_FROXEL_RGB)
+    red = m.extinctionRGB.r;
+#endif
+    imageStore(u_InjectOutput, ivec3(x, 0, 0), vec4(m.extinction, change, FroxelEmission(p, 0).r, red));
+}
+''')
+    gl('glUseProgram', None, U)(prog)
+    identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    values = {
+        'u_FroxelViewProjection': identity,
+        'u_FroxelPrevViewProjection': identity,
+        'u_FroxelGridSize': [16, 8, 1, 0],
+        'u_FroxelViewForward': [0, 0, 1, 0],
+        'u_FroxelLocalParams': [64, 1000, 1, 1],
+        'u_FroxelLocalClusters': [8, 2, 1, 0],
+        'u_FroxelTemporalParams': [0, 0, 1, 4],
+    }
+    for i, shape, sigma in [(31, 0, 1), (63, 1, 2)]:
+        for row, axis in [('X', 0), ('Y', 1), ('Z', 2)]:
+            v = [0, 0, 0, 0]
+            v[axis] = 1
+            values[f'u_FroxelLocal{row}[{i}]'] = v
+        values[f'u_FroxelLocalColor[{i}]'] = [1, 1, 1, sigma]
+        values[f'u_FroxelLocalShape[{i}]'] = [shape, .5, 2, 34 if i == 31 else 0]
+        values[f'u_FroxelLocalEmission[{i}]'] = [.25, 0, 0, 0]
+    if rgb:
+        values.update({'u_FroxelExtinctionPalette[0]': [1, 1, 1, 0],
+                       'u_FroxelExtinctionPalette[1]': [.5, 1, 1.5, 0]})
+    buffers = [uniform_buffer(prog, 'VolumetricFog', values),
+               uniform_buffer(prog, 'VolumetricParticles', {}, 2)]
+    mask_buffer, mask_texture = U(), U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(mask_buffer))
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(mask_texture))
+    gl('glBindBuffer', None, U, U)(0x8C2A, mask_buffer)
+    # Left tile is empty. Right tile contains both high bits, no low bits.
+    bits = (U * 4)(0, 0, 0x80000000, 0x80000000)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8C2A, C.sizeof(bits), bits, 0x88E4)
+    gl('glActiveTexture', None, U)(0x84C0)
+    gl('glBindTexture', None, U, U)(0x8C2A, mask_texture)
+    gl('glTexBuffer', None, U, U, U)(0x8C2A, 0x8236, mask_buffer)
+    gl('glUniform1i', None, I, I)(gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_FPlusIndexMap'), 0)
+    output = texture(4, 1, 1)
+    gl('glBindImageTexture', None, U, U, I, U, I, U, U)(0, output, 0, 1, 0, 0x88B9, 0x881A)
+    gl('glDispatchCompute', None, U, U, U)(1, 1, 1)
+    gl('glMemoryBarrier', None, U)(0x28)
+    actual = read(output, 16)
+    skin = 1 - .7 * .7 * (3 - 2 * .7)
+    for x, rho in enumerate([1, skin, 0, 0]):
+        expected = [3 * rho, 1 / 3 if rho else 0, .5 * rho, (2.5 if rgb else 3) * rho]
+        for a, e in zip(actual[x*4:x*4+4], expected):
+            assert abs(a-e) < .002, ('local cluster/shape/history', rgb, x, a, e)
+    # Pure glow: extinction is zero, emission still uses the cluster list.
+    for i in [31, 63]:
+        values[f'u_FroxelLocalColor[{i}]'] = [1, 1, 1, 0]
+    buffers.append(uniform_buffer(prog, 'VolumetricFog', values))
+    gl('glDispatchCompute', None, U, U, U)(1, 1, 1)
+    gl('glMemoryBarrier', None, U)(0x28)
+    actual = read(output, 16)
+    assert actual[0] == 0 and abs(actual[2] - .5) < .001, ('pure local emission', actual[:4])
+    # Static geometry, moving camera: history density used the old far fade.
+    values['u_FroxelLocalParams'] = [64, 0, 1, 1]
+    previous_projection = identity[:]
+    previous_projection[15] = .5
+    values['u_FroxelPrevViewProjection'] = previous_projection
+    values['u_FroxelLocalShape[31]'] = [0, .5, 2, 2]
+    values['u_FroxelLocalColor[31]'] = [1, 1, 1, 1]
+    values['u_FroxelLocalColor[63]'] = [1, 1, 1, 2]
+    buffers.append(uniform_buffer(prog, 'VolumetricFog', values))
+    gl('glDispatchCompute', None, U, U, U)(1, 1, 1)
+    gl('glMemoryBarrier', None, U)(0x28)
+    actual = read(output, 16)
+    assert abs(actual[1] - .5) < .001, ('previous camera fade', actual[:4])
+    assert gl('glGetError', U)() == 0
+    buffers.append(mask_buffer)
+    ids = (U * len(buffers))(*[b.value for b in buffers])
+    gl('glDeleteBuffers', None, I, C.POINTER(U))(len(ids), ids)
+    textures = (U * 2)(mask_texture.value, output.value)
+    gl('glDeleteTextures', None, I, C.POINTER(U))(2, textures)
+    gl('glDeleteProgram', None, U)(prog)
+    print(f'PASS: {"RGB" if rgb else "scalar"} local cluster culling, bits 31/63, soft shapes, '
+          f'appearance history break, palette decoding, pure emission, legacy bits={legacy_bits}')
+
+
 def main():
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 4)
@@ -554,6 +655,10 @@ def main():
         print(gl('glGetString', C.c_char_p, U)(0x1F02).decode())
         permutations = 0
         for rgb in [False, True]:
+            local_volumes(rgb)
+            local_volumes(rgb, True)
+            debug_program = program('volumetric_debug', False, rgb, True)
+            gl('glDeleteProgram', None, U)(debug_program)
             density_noise(rgb)
             for shadows in [False, True]:
                 programs = {(name, compute): program(name, compute, rgb, shadows)

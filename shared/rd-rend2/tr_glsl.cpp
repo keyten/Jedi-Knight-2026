@@ -3845,6 +3845,7 @@ static int GLSL_LoadGPUProgramVolumetric(
 		// dynamic light lists of the injection (R_VolumetricBuildLightLists)
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
+		GLSL_SetUniformInt(sp, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 		GLSL_SetUniformInt(sp, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
 		GLSL_SetFroxelLookupUnits(sp);
 		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here

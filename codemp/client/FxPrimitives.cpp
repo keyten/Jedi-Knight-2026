@@ -172,6 +172,8 @@ void CParticle::DrawVolumetricMedia(void)
 	{
 		return;
 	}
+	if (mVolume.autoEffect[0] && ((mFlags & (FX_RELATIVE | FX_APPLY_PHYSICS)) ||
+		!theFxHelper.PhysicalizationEnabled(mVolume.autoEffect))) return;
 
 	refVolParticle_t particle;
 	particle.id = mVolId;
@@ -179,6 +181,8 @@ void CParticle::DrawVolumetricMedia(void)
 	particle.radius = mRefEnt.radius * mVolume.radiusScale;
 	VectorCopy( mVolume.aspect, particle.aspect );
 	particle.extinction = mVolume.extinction * mAlphaFade;
+	if (mVolume.opticalDepth > 0.0f)
+		particle.extinction = FxPhysical::Extinction(mVolume.opticalDepth, particle.radius, mVolume.softness, mAlphaFade);
 	VectorCopy( mVolume.albedo, particle.color );
 	particle.softness = mVolume.softness;
 	particle.anisotropy = mVolume.anisotropy;

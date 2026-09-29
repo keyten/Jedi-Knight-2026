@@ -226,7 +226,12 @@ static void CG_FxPlay_f( void )
 		CG_Printf( "fxplay needs developer 1\n" );
 		return;
 	}
-	const char *file = CG_Argv( 1 );
+	const std::string canonical = FxPhysical::EffectPath(CG_Argv(1));
+	if (canonical.empty()) { CG_Printf("fxplay: invalid effect path\n"); return; }
+	const std::string relative = canonical.substr(8, canonical.size() - 12);
+	const char *file = relative.c_str();
+	// A test effect may not have been preloaded by the map or a weapon.
+	if (!theFxScheduler.RegisterEffect(file)) { CG_Printf("fxplay: cannot register %s\n", file); return; }
 	if ( cgi_Argc() > 2 && !Q_stricmp( CG_Argv( 2 ), "muzzle" ) )
 	{
 		theFxScheduler.PlayEffect( file, cg.snap ? cg.snap->ps.clientNum : 0 );

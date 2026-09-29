@@ -122,6 +122,8 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mCullRange			= that.mCullRange;
 
 	mMediaHandles		= that.mMediaHandles;
+	mPhysicalEffect = that.mPhysicalEffect;
+	mPhysicalShaders = that.mPhysicalShaders;
 	mImpactFxHandles	= that.mImpactFxHandles;
 	mDeathFxHandles		= that.mDeathFxHandles;
 	mEmitterFxHandles	= that.mEmitterFxHandles;
@@ -1493,6 +1495,10 @@ bool CPrimitiveTemplate::ParseShaders( CGPValue *grp )
 
 			handle = theFxHelper.RegisterShader( val );
 			mMediaHandles.AddHandle( handle );
+			FxPhysical::Alternative alternative;
+			alternative.handle = handle;
+			alternative.shader = FxPhysical::ShaderPath(val);
+			mPhysicalShaders.push_back(alternative);
 
 			list = (CGPValue *)list->GetNext();
 		}
@@ -1506,6 +1512,10 @@ bool CPrimitiveTemplate::ParseShaders( CGPValue *grp )
 		{
 			handle = theFxHelper.RegisterShader( val );
 			mMediaHandles.AddHandle( handle );
+			FxPhysical::Alternative alternative;
+			alternative.handle = handle;
+			alternative.shader = FxPhysical::ShaderPath(val);
+			mPhysicalShaders.push_back(alternative);
 		}
 		else
 		{

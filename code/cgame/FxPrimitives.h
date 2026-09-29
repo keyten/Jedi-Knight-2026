@@ -315,6 +315,8 @@ struct SFxVolumetricMedia
 	bool		emissiveTint;	// times the particle's current rgb
 	bool		hasAnisotropy;	// else r_volumetricFogAnisotropy
 	float		anisotropy;		// Henyey-Greenstein g -0.9..0.9
+	float opticalDepth;			// >0: automatic radius-normalized density
+	char autoEffect[64];			// nonempty: gated by live physicalization policy
 };
 
 //------------------------------
@@ -372,6 +374,7 @@ public:
 		mVolMedia = false; mVolId = 0; mAlphaFade = 1.0f; }
 
 	void SetVolumetricMedia( const SFxVolumetricMedia *media );
+	qhandle_t GetShader() const { return mRefEnt.customShader; }
 	virtual ~CParticle() {}
 
 	virtual void Die();

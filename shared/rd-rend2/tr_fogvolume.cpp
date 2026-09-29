@@ -36,14 +36,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //   - r_fogvol (debug spawn at the camera / trace point, no asset needed)
 //
 // Culling (once per frame, for the froxel view): bounding sphere against the
-// view frustum, the nearest MAX_GPU_FOG_VOLUMES are uploaded, then per depth
-// slice a packed list (8 bit indices in a pool of FROXEL_LOCAL_POOL, one
-// header per slice) of the volumes whose sphere overlaps the slice: the
-// injection only evaluates the volumes of its slice.
+// view frustum, the most important MAX_GPU_FOG_VOLUMES are uploaded. Each 8x8x1
+// cluster stores a 64-bit membership mask in an R32UI buffer texture.
+// Per-slice packed lists are retained only for console diagnostics.
 //
 // Temporal: each volume is paired with its previous frame state (by id, or by
-// identical parameters for anonymous volumes). Moved, appeared and vanished
-// volumes upload their previous transform too; the injection drops the
+// identical parameters for anonymous volumes). Appearance changes break
+// history locally. Moved, appeared and vanished volumes upload their previous
+// transform too; the injection drops the
 // history in proportion to the change of the local density, so a moving
 // volume leaves no ghost while a static one keeps its full history.
 
@@ -51,6 +51,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "json.h"
 
 #include <algorithm>
+#include <vector>
 
 // ids of the renderer's own volumes (game ids are used as they are)
 #define FOGVOLUME_ID_MAP		0x40000000
@@ -63,8 +64,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define FOGVOLUME_MIN_FADE		8.0f
 #define FOGVOLUME_MIN_SOFTNESS	0.05f
 
-// local volumes fade out over the last part of the slices: the tail beyond
-// far extrapolates the medium of the last slice, which has no local volume
+// Local volumes fade before the last slice: the analytic tail contains
+// BSP and height fog only, without local shape, phase, noise or emission.
 #define FOGVOLUME_FADE_START	0.8f
 
 // what counts as a change for the temporal filter
@@ -106,6 +107,7 @@ struct fogVolumeCandidate_t
 	fogVolumeEval_t current;	// extinction 0 when it vanished
 	const fogVolumeEval_t *previous;	// NULL: new this frame
 	qboolean changed;
+	qboolean historyBreak;
 	vec3_t center;				// bounding sphere, current and previous state
 	float radius;
 	float depth;				// view depth of the sphere center
@@ -147,6 +149,101 @@ static struct
 	byte statPool[FROXEL_LOCAL_POOL];
 	unsigned int statKeys[MAX_GPU_FOG_VOLUMES];
 } s_fv;
+
+// Two R32UI texels per 8x8x1 cluster: one bit per uploaded volume.
+// No per-cluster cap or index-pool overflow; shared by GL3.2 and compute.
+static struct
+{
+	GLuint buffers[MAX_FRAMES];
+	image_t images[MAX_FRAMES];
+	int slot;
+	std::vector<uint32_t> masks;
+} s_fvc;
+
+void R_FogVolumesBindClusters( void )
+{
+	if (s_fvc.buffers[s_fvc.slot])
+		GL_BindToTMU(&s_fvc.images[s_fvc.slot], TB_FPLUS_INDICES);
+}
+
+void R_FogVolumesShutdown( void )
+{
+	for (int f = 0; f < MAX_FRAMES; f++)
+	{
+		if (!s_fvc.buffers[f])
+			continue;
+		for (int u = 0; u < MAX_TEXTURE_UNITS; u++)
+			if (glState.currenttextures[u] == (int)s_fvc.images[f].texnum)
+				glState.currenttextures[u] = 0;
+		qglDeleteTextures(1, &s_fvc.images[f].texnum);
+	}
+	qglDeleteBuffers(MAX_FRAMES, s_fvc.buffers);
+	Com_Memset(s_fvc.buffers, 0, sizeof(s_fvc.buffers));
+	s_fvc.masks.clear();
+	s_fv.numPrevious = 0;
+}
+
+static void R_FogVolumesUploadClusters( void )
+{
+	if (!s_fvc.buffers[0])
+	{
+		qglGenBuffers(MAX_FRAMES, s_fvc.buffers);
+		for (int f = 0; f < MAX_FRAMES; f++)
+		{
+			image_t *image = &s_fvc.images[f];
+			Com_Memset(image, 0, sizeof(*image));
+			Q_strncpyz(image->imgName, va("*froxelLocalClusters%d", f), sizeof(image->imgName));
+			image->flags = IMGFLAG_TEXBUFFER;
+			qglBindBuffer(GL_TEXTURE_BUFFER, s_fvc.buffers[f]);
+			qglBufferData(GL_TEXTURE_BUFFER, 8, NULL, GL_STREAM_DRAW);
+			qglGenTextures(1, &image->texnum);
+			GL_BindToTMU(image, TB_FPLUS_INDICES);
+			qglTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, s_fvc.buffers[f]);
+		}
+	}
+	s_fvc.slot = backEndData->realFrameNumber % MAX_FRAMES;
+	qglBindBuffer(GL_TEXTURE_BUFFER, s_fvc.buffers[s_fvc.slot]);
+	qglBufferData(GL_TEXTURE_BUFFER, s_fvc.masks.size() * sizeof(uint32_t),
+		s_fvc.masks.data(), GL_STREAM_DRAW);
+	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
+}
+
+// Project the world AABB of the current/previous union sphere. A sphere
+// touching the camera plane conservatively occupies the whole screen.
+static void R_FogVolumeTileBounds( const VolumetricFogBlock *block,
+	const fogVolumeCandidate_t *c, int tilesX, int tilesY, int bounds[4] )
+{
+	bounds[0] = bounds[2] = 0;
+	bounds[1] = tilesX - 1;
+	bounds[3] = tilesY - 1;
+	if (c->depth - c->radius <= 1.0f)
+		return;
+	const float *m = block->viewProjection;
+	float lo[2] = { 1e30f, 1e30f }, hi[2] = { -1e30f, -1e30f };
+	for (int corner = 0; corner < 8; corner++)
+	{
+		vec3_t p;
+		for (int a = 0; a < 3; a++)
+			p[a] = c->center[a] + ((corner & (1 << a)) ? c->radius : -c->radius);
+		float w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
+		if (w <= 1e-4f)
+			return;
+		for (int a = 0; a < 2; a++)
+		{
+			float v = (m[a] * p[0] + m[4+a] * p[1] + m[8+a] * p[2] + m[12+a]) / w;
+			lo[a] = MIN(lo[a], v);
+			hi[a] = MAX(hi[a], v);
+		}
+	}
+	for (int a = 0; a < 2; a++)
+	{
+		const int tiles = a ? tilesY : tilesX;
+		const float scale = block->gridSize[a] / block->localClusters[0];
+		// One froxel of padding for jitter and floating-point boundary error.
+		bounds[2*a] = Com_Clampi(0, tiles-1, (int)floorf((lo[a]*0.5f+0.5f)*scale - 1.0f / block->localClusters[0]));
+		bounds[2*a+1] = Com_Clampi(0, tiles-1, (int)floorf((hi[a]*0.5f+0.5f)*scale + 1.0f / block->localClusters[0]));
+	}
+}
 
 /*
 ============================================================
@@ -198,6 +295,22 @@ static qboolean R_FogVolumeEmitsAlone( const refFogVolume_t *volume )
 {
 	return (qboolean)(volume->emissiveDensity > 0.0f &&
 		MAX(volume->emissive[0], MAX(volume->emissive[1], volume->emissive[2])) > 0.0f);
+}
+
+qboolean R_FogVolumeHasMedium( const refFogVolume_t *volume )
+{
+	return (qboolean)(volume->depthForOpaque > 0.0f || R_FogVolumeEmitsAlone(volume));
+}
+
+static qboolean R_FogVolumeAppearanceChanged( const fogVolumeEval_t *a, const fogVolumeEval_t *b )
+{
+	if (a->noisy != b->noisy || fabsf(a->anisotropy - b->anisotropy) > 1e-4f)
+		return qtrue;
+	for (int i = 0; i < 3; i++)
+		if (fabsf(a->albedo[i] - b->albedo[i]) > 1e-4f ||
+			fabsf(a->extinctionColor[i] - b->extinctionColor[i]) > 1e-4f)
+			return qtrue;
+	return qfalse;
 }
 
 static qboolean R_FogVolumeEvaluate( const refFogVolume_t *volume, qboolean noise, fogVolumeEval_t *out )
@@ -270,6 +383,15 @@ static qboolean R_FogVolumeEvaluate( const refFogVolume_t *volume, qboolean nois
 		VectorLength(out->extents) :
 		MAX(out->extents[0], MAX(out->extents[1], out->extents[2]));
 	return qtrue;
+}
+
+static qboolean R_FogVolumeContainsPoint( const fogVolumeEval_t *e, const vec3_t p )
+{
+	vec3_t q;
+	for (int a = 0; a < 3; a++)
+		q[a] = DotProduct(e->rows[a], p) + e->rows[a][3];
+	return (qboolean)(e->shape == FOGVOLUME_BOX ?
+		MAX(fabsf(q[0]), MAX(fabsf(q[1]), fabsf(q[2]))) < 1.0f : DotProduct(q, q) < 1.0f);
 }
 
 static qboolean R_FogVolumeChanged( const fogVolumeEval_t *a, const fogVolumeEval_t *b )
@@ -422,8 +544,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 	VectorSet4(block->extinctionPalette[0], 1.0f, 1.0f, 1.0f, 0.0f);
 	int paletteSize = 1;
 	int paletteOverflow = 0;
-	Com_Memset(block->localSlices, 0, sizeof(block->localSlices));
-	Com_Memset(block->localIndex, 0, sizeof(block->localIndex));
+	VectorSet4(block->localClusters, 8.0f, 1.0f, 1.0f, 0.0f);
 
 	if ( s_fv.previousWorld != tr.world )
 	{
@@ -468,6 +589,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		c->current = *e;
 		c->previous = NULL;
 		c->changed = qtrue;
+		c->historyBreak = qfalse;
 		for ( int j = 0; j < s_fv.numPrevious; j++ )
 		{
 			if ( !previousMatched[j] && s_fv.previous[j].key == e->key )
@@ -475,6 +597,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 				previousMatched[j] = qtrue;
 				c->previous = &s_fv.previous[j];
 				c->changed = R_FogVolumeChanged(e, c->previous);
+				c->historyBreak = R_FogVolumeAppearanceChanged(e, c->previous);
 				break;
 			}
 		}
@@ -501,23 +624,49 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		VectorClear(c->current.emission);	// no glow after it vanished
 		c->previous = &s_fv.previous[j];
 		c->changed = qtrue;
+		c->historyBreak = qfalse;
 		VectorCopy(c->previous->origin, c->center);
 		c->radius = c->previous->radius;
 		s_fv.statVanished++;
 	}
 
-	// frustum, nearest first
+	// Honor small GL3.2 texture-buffer limits by widening XY tiles only.
+	int tileSize = 8;
+	int tilesX = ((int)block->gridSize[0] + tileSize-1) / tileSize;
+	int tilesY = ((int)block->gridSize[1] + tileSize-1) / tileSize;
+	while (2 * tilesX * tilesY * numSlices > glRefConfig.maxTextureBufferSize)
+	{
+		tileSize *= 2;
+		tilesX = ((int)block->gridSize[0] + tileSize-1) / tileSize;
+		tilesY = ((int)block->gridSize[1] + tileSize-1) / tileSize;
+	}
+	VectorSet4(block->localClusters, (float)tileSize, (float)tilesX, (float)tilesY, 0.0f);
+
+	// Frustum and importance: projected coverage times optical opacity.
+	// Explicit glow remains selectable even without extinction.
 	int numVisible = 0;
 	for ( int i = 0; i < numCandidates; i++ )
 	{
 		fogVolumeCandidate_t *c = &candidates[i];
 		if ( !R_FogVolumeSphereInFrustum(view, forward, c->center, c->radius, fadeEnd, &c->depth) )
 			continue;
-		c->sortKey = c->depth - c->radius;
+		int b[4];
+		R_FogVolumeTileBounds(block, c, tilesX, tilesY, b);
+		const float area = (float)((b[1]-b[0]+1) * (b[3]-b[2]+1));
+		const float extinction = MAX(c->current.extinction, c->previous ? c->previous->extinction : 0.0f);
+		const float opacity = -expm1f(-extinction * 2.0f * c->radius);
+		const float glow = MAX(c->current.emission[0], MAX(c->current.emission[1], c->current.emission[2]));
+		c->sortKey = area * MAX(opacity, MIN(1.0f, glow * 2.0f * c->radius));
+		// Protect the medium at the camera, including its previous state.
+		if (R_FogVolumeContainsPoint(&c->current, view->ori.origin) ||
+			(c->previous && R_FogVolumeContainsPoint(c->previous, view->ori.origin)))
+			c->sortKey += block->gridSize[0] * block->gridSize[1];
 		order[numVisible++] = i;
 	}
 	std::sort(order, order + numVisible, [&]( int a, int b ) {
-		return candidates[a].sortKey < candidates[b].sortKey;
+		if (candidates[a].sortKey != candidates[b].sortKey)
+			return candidates[a].sortKey > candidates[b].sortKey;
+		return candidates[a].current.key < candidates[b].current.key;
 	});
 
 	const int numUploaded = MIN(numVisible, MAX_GPU_FOG_VOLUMES);
@@ -526,7 +675,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 	s_fv.statDropped = numVisible - numUploaded;
 	if ( s_fv.statDropped > 0 )
 	{
-		ri.Printf(PRINT_DEVELOPER, "local fog volumes: %d in view, the nearest %d are used\n",
+		ri.Printf(PRINT_DEVELOPER, "local fog volumes: %d in view, the most important %d are used\n",
 			numVisible, MAX_GPU_FOG_VOLUMES);
 	}
 
@@ -564,13 +713,13 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 				}
 				else
 				{
-					palette = 0;	// full: neutral (the nearest volumes keep their colors)
+					palette = 0;	// full: neutral (the most important volumes keep their colors)
 					paletteOverflow++;
 				}
 			}
 		}
 		VectorSet4(block->localShape[n], (float)e->shape, e->inner, e->invWidth,
-			(e->noisy ? 1.0f : 0.0f) + 2.0f * (float)palette);
+			(e->noisy ? 1.0f : 0.0f) + 2.0f * (float)palette + (c->historyBreak ? 32.0f : 0.0f));
 		VectorSet4(block->localEmission[n], e->emission[0], e->emission[1], e->emission[2], e->anisotropy);
 		if ( !VectorCompare(e->emission, vec3_origin) )
 			anyEmission = qtrue;
@@ -582,7 +731,7 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 			p->invWidth);
 
 		s_fv.statKeys[n] = e->key;
-		if ( c->changed )
+		if ( c->changed || c->historyBreak )
 			s_fv.statChanged++;
 	}
 
@@ -591,6 +740,13 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		ri.Printf(PRINT_DEVELOPER, "local fog volumes: more than %d extinction colors, %d volumes neutral\n",
 			FROXEL_EXTINCTION_PALETTE - 1, paletteOverflow);
 	}
+
+	// XYZ cluster masks; keep the slice summaries for r_fogvol diagnostics.
+	if (numUploaded > 0)
+		s_fvc.masks.assign(2 * tilesX * tilesY * numSlices, 0);
+	int tileBounds[MAX_GPU_FOG_VOLUMES][4];
+	for (int n = 0; n < numUploaded; n++)
+		R_FogVolumeTileBounds(block, &candidates[order[n]], tilesX, tilesY, tileBounds[n]);
 
 	// per slice lists, near to far; the last slice has none (see the fade)
 	int poolUsed = 0;
@@ -606,25 +762,29 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 			const fogVolumeCandidate_t *c = &candidates[order[n]];
 			if ( c->depth + c->radius < sliceNear || c->depth - c->radius > sliceFar )
 				continue;
+			const int *b = tileBounds[n];
+			for (int y = b[2]; y <= b[3]; y++)
+				for (int x = b[0]; x <= b[1]; x++)
+					s_fvc.masks[2 * ((k * tilesY + y) * tilesX + x) + (n >> 5)] |= uint32_t(1) << (n & 31);
 			if ( poolUsed >= FROXEL_LOCAL_POOL )
 			{
 				s_fv.statPoolOverflow++;
 				continue;
 			}
 
-			block->localIndex[poolUsed >> 2] |= n << ((poolUsed & 3) * 8);
 			s_fv.statPool[poolUsed] = (byte)n;
 			poolUsed++;
 			count++;
 		}
 
-		block->localSlices[k] = first | (count << 16);
-		s_fv.statSliceHeaders[k] = block->localSlices[k];
+		s_fv.statSliceHeaders[k] = first | (count << 16);
 	}
+	if (numUploaded > 0)
+		R_FogVolumesUploadClusters();
 	s_fv.statPoolUsed = poolUsed;
 	if ( s_fv.statPoolOverflow > 0 )
 	{
-		ri.Printf(PRINT_DEVELOPER, "local fog volumes: slice list pool full, %d entries of far slices dropped\n",
+		ri.Printf(PRINT_DEVELOPER, "local fog volumes: diagnostic slice pool full, %d entries omitted (rendering unaffected)\n",
 			s_fv.statPoolOverflow);
 	}
 
@@ -634,9 +794,16 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		1.0f / MAX(fadeEnd - fadeStart, 1.0f),
 		anyEmission ? 1.0f : 0.0f);
 
-	// the state the next frame is compared with
-	Com_Memcpy(s_fv.previous, current, numCurrent * sizeof(current[0]));
-	s_fv.numPrevious = numCurrent;
+	// Pair against what was actually rendered. A stable-ID volume admitted
+	// after culling must be new to history, even if its submitted state did
+	// not change. Vanished candidates are retained for this frame only.
+	s_fv.numPrevious = 0;
+	for (int n = 0; n < numUploaded; n++)
+	{
+		const fogVolumeEval_t *e = &candidates[order[n]].current;
+		if (e->extinction > 0.0f || !VectorCompare(e->emission, vec3_origin))
+			s_fv.previous[s_fv.numPrevious++] = *e;
+	}
 
 	return numUploaded;
 }
@@ -700,12 +867,12 @@ void R_FogVolumesBeginScene( const refdef_t *fd )
 
 env.json "FogVolumes" (R_LoadEnvironmentJson, tr_bsp.cpp)
 
-  "FogVolumes": [
-    { "Shape": "sphere", "Origin": [x, y, z], "Radius": 128,
-      "Opaque": 600, "Color": [0.8, 0.8, 0.85], "Softness": 0.6 },
-    { "Shape": "box", "Origin": [x, y, z], "Size": [256, 128, 64],
-      "Angles": [0, 45, 0], "Opaque": 1500, "Noise": 1 }
-  ]
+		"FogVolumes": [
+				{ "Shape": "sphere", "Origin": [x, y, z], "Radius": 128,
+						"Opaque": 600, "Color": [0.8, 0.8, 0.85], "Softness": 0.6 },
+				{ "Shape": "box", "Origin": [x, y, z], "Size": [256, 128, 64],
+						"Angles": [0, 45, 0], "Opaque": 1500, "Noise": 1 }
+		]
 
 Shape sphere | ellipsoid | box; Radius (sphere) or Size (half extents);
 Angles pitch yaw roll; Opaque as fogParms depthForOpaque; Color as fogParms;

@@ -70,6 +70,18 @@ cvar_t	*fx_freeze;
 #endif
 cvar_t	*fx_countScale;
 cvar_t	*fx_nearCull;
+static cvar_t *fx_physicalization, *fx_physicalizationOptIn, *fx_physicalizationOptOut, *fx_physicalizationDebug;
+
+bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug && fx_physicalizationDebug->integer != 0; }
+
+void SFxHelper::PhysicalizationPrint(const char* message, ...) {
+	char text[1024];
+	va_list args;
+	va_start(args, message);
+	Q_vsnprintf(text, sizeof(text), message, args);
+	va_end(args);
+	Com_Printf("%s", text);
+}
 
 #define DEFAULT_EXPLOSION_RADIUS	512
 
@@ -86,6 +98,10 @@ SFxHelper::SFxHelper() :
 
 void SFxHelper::ReInit(refdef_t* pRefdef)
 {
+	fx_physicalization = Cvar_Get("fx_physicalization", "0", CVAR_ARCHIVE);
+	fx_physicalizationOptIn = Cvar_Get("fx_physicalizationOptIn", "", CVAR_ARCHIVE);
+	fx_physicalizationOptOut = Cvar_Get("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
+	fx_physicalizationDebug = Cvar_Get("fx_physicalizationDebug", "0", 0);
 	mTime = 0;
 	mOldTime = 0;
 	mFrameTime = 0;
@@ -109,6 +125,8 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frametime )
 {
+	if (fx_physicalization)
+		mPhysicalPolicy.Update(fx_physicalization->integer, fx_physicalizationOptIn->string, fx_physicalizationOptOut->string);
 #ifdef _DEBUG
 	if ( fx_freeze->integer || ( frametime <= 0 ))
 #else

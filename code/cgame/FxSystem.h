@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define FX_SYSTEM_H_INC
 
 #include "qcommon/safe/gsl.h"
+#include "fx/FxPhysicalization.h"
 
 
 #define irand	Q_irand
@@ -46,6 +47,10 @@ struct SFxHelper
 
 	void	Init();
 	void	AdjustTime( int time );
+	FxPhysical::Policy mPhysicalPolicy;
+	bool PhysicalizationEnabled(const char* effect) const { return mPhysicalPolicy.Enabled(effect); }
+	bool PhysicalizationDebug() const;
+	void PhysicalizationPrint(const char* message, ...);
 
 	// These functions are wrapped and used by the fx system in case it makes things a bit more portable
 	void	Print( const char *msg, ... );

@@ -598,45 +598,39 @@ sigma(p)   = rho * extinction * fade(view depth)
    also covers its previous state.
 2. Frustum test: the sphere against the 4 side planes of the view, and depth in `[0, fade end]`. This is the test
    of `R_VolumetricLightRange` for the dynamic lights.
-3. Sort by `view depth - radius` and keep the nearest `MAX_GPU_FOG_VOLUMES` = 64. The rest are dropped and counted
-   (`r_fogvol`, developer print).
-4. **Per slice packed lists.** For each slice k (0 .. N-2), in near-to-far order, the uploaded volumes whose sphere
-   overlaps the slice depth range `[B(k), B(k+1)]` are appended to a pool of 8 bit indices.
-   - Header per slice = `first | count << 16`.
-   - The injection of slice k decodes only its list: a froxel never loops over every volume.
-   - The jittered sample stays inside its slice, so the slice range is exact.
-   - Pool overflow (2048 entries) drops the far slices first, and is counted.
-5. The injection evaluates each listed volume with an early reject outside its unit shape.
+3. Keep the 64 most important candidates: projected tile coverage times optical opacity
+   `1 - exp(-sigma * diameter)`. Explicit emission also contributes to importance; containing the camera
+   adds a large bonus. Equal scores use a stable volume key as the tie breaker.
+4. **XYZ cluster masks.** The projected rectangle of each current/previous union sphere is binned into
+   8 x 8 froxel tiles and overlapping Z slices. Two `R32UI` texels per cluster cover all 64 volumes, so
+   there is no list overflow. XY tiles widen on drivers with smaller texture-buffer limits. Camera-plane
+   intersections conservatively cover the screen; bounds include one froxel of padding.
+5. Scattering, emission and the media pass only evaluate the set bits of their cluster. Ellipsoids reject
+   the exterior and return full density in the core before taking a square root; boxes skip smoothsteps
+   in the core too. Debug view 19 shows the cluster count. `r_fogvol slices` retains CPU-only slice summaries.
 
 ### Maximum count and UBO budget
 
-The volumes ride in the existing `VolumetricFog` std140 block, so there is no new binding:
+Shape and appearance data remain in `VolumetricFog`. The former GPU slice headers and index pool are
+replaced by a 16-byte cluster descriptor, reducing the block from **16 304 B to 13 760 B**, below the
+16 384 B guaranteed by GL3.2. The existing static assertion and driver-size check still apply.
 
-| part | size |
-|---|---|
-| previous block (camera, lights, noise, 24 BSP fogs) | 2256 B |
-| `u_FroxelLocalParams` | 16 B |
-| 9 vec4 per volume (rows, previous rows, color, shape, motion) x 64 | 9216 B |
-| slice headers, `ivec4[32]` (128 slices) | 512 B |
-| index pool, `ivec4[128]` (2048 x 8 bit) | 2048 B |
-| **total** | **14 048 B** |
-
-- The total is below the 16 384 B of `GL_MAX_UNIFORM_BLOCK_SIZE` that GL 3.2 guarantees. It is checked by a
-  `static_assert`, and at init against the driver's value: if the driver is too small, froxel fog is disabled
-  with a warning.
-- 64 volumes also fit the 8 bit indices.
-- The block is appended once per scene, into a scene UBO of 1 MB.
-- Pool size, from the CPU harness: 240 frames of random scenes with up to ~45 volumes, radii up to 724 and
-  teleporting moves. Median use 324 entries, 95th percentile 1071, maximum 1428. With the first choice (1024), 12
-  frames overflowed, which is why the pool is 2048.
+Cluster masks use a separate buffer texture, shared by GL3.2 raster and GL4.3 compute, on the injection's
+unused `TB_FPLUS_INDICES` unit. At 240 x 135 x 48, 8 x 8 tiles require **195 840 B per frame slot**
+(30 x 17 x 48 x 8). No masks are uploaded for an empty local-volume set. CPU diagnostic storage covers
+all 64 x 128 possible slice references and has no effect on rendering.
 
 ### Temporal
 
 The history clamp works on radiance, so a moving density would otherwise ghost. Each frame's volumes are paired
-with the previous frame's by `id`; an anonymous volume (id 0) is paired by identical parameters.
+with the previous frame's uploaded volumes by `id`; an anonymous volume (id 0) is paired by identical
+parameters. A volume admitted after culling is new to history even if its stable-ID state is unchanged.
 
 - **Changed** (moved by more than 0.01 units, rotated, resized, or density / softness changed by more than 1%):
   the previous rows, extinction, softness and shape are uploaded (`u_FroxelLocalMotion`, `u_FroxelLocalPrev*`).
+- **Appearance changed**: resolved albedo, noise flag, anisotropy or extinction color changed. Bit 32 in
+  `localShape.w` marks a history break at the volume, even when density and geometry stay identical.
+  Emission has no temporal history and does not set this bit.
 - **New**: previous extinction 0.
 - **Vanished**: listed for one more frame with current extinction 0 and its previous state.
 
@@ -651,14 +645,17 @@ weight *= 1 - smoothstep(0.02, 0.25, change)
   smoke ghost follows a fast volume.
 - Inside a static volume, or where a moving volume's density did not change, `change = 0` and the history keeps
   its full weight.
-- The radiance clamp and the noise wind weight are unchanged and combine with it.
+- Previous density uses the previous camera projection for the far fade, so camera motion through the
+  fade region also reduces history. Local volumes still fade before the last slice: the analytic tail
+  supports BSP and height fog, and does not yet support local shape, noise, phase and emission.
+- The radiance clamp and the noise wind weight combine with this rejection.
 - An anonymous volume that moves is new every frame: it gets no temporal accumulation (more jitter noise), but no
   ghost either. Pass an id.
 
 ### Debug
 
 - Views 16 to 19 (see Debug views): local σ only, local vs BSP / height share, bounds (outer and inner shell),
-  volumes per slice.
+  volumes per XYZ cluster.
 - `r_fogvol` shows the counts of the last frame: submitted, invalid, vanished, in view, uploaded, dropped,
   changed, and pool use.
 - `r_fogvol slices` prints each slice with its depth range, count and GPU indices, and the id of each GPU index.
@@ -960,8 +957,8 @@ A pure glow (extinction 0) needs an explicit density.
 ### Where the emission is evaluated
 
 `FroxelEmission` (`volumetric_inject.glsl`) runs at the froxel center, with no jitter. It reads the same
-per-slice lists as the medium: the local volumes (skipped when `localParams.w`, "some volume emits", is 0) and
-the FX particles (only those with an emission slot).
+XYZ cluster masks as the medium for local volumes (skipped when `localParams.w`, "some volume emits", is 0). FX particles use their per-slice lists
+(only those with an emission slot).
 
 The result goes to the **dynamic volume** (`froxelDynamicImage`, R11G11B10F), which has no history, next to the
 dynamic light scattering:
@@ -2076,7 +2073,7 @@ In game (not run yet):
   the CPU with the same generator code and the GPU's filtering.
 - Local fog volumes: mode 2 and the froxel main view only; they fade out near the froxel far distance (the tail
   cannot carry them); a volume thinner than a froxel column or a slice is blurred by the froxel resolution; at
-  most 64 per view (the nearest) and 2048 slice list entries; the density noise is the global field; an
+  most 64 per view (by importance), with XYZ cluster masks; the density noise is the global field; an
   anonymous moving volume gets no temporal accumulation; no cgame trap yet (game / FX code needs one to call
   the extension); one env.json per map is shared with the cubemaps.
 - FX particle media: mode 2 and the froxel main view only; soft ellipsoids along the world axes (no rotation,

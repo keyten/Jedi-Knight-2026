@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "client/cl_cgameapi.h"
 #include "ghoul2/G2.h"
+#include "fx/FxPhysicalization.h"
 
 extern cvar_t	*fx_debug;
 
@@ -56,6 +57,10 @@ public:
 
 	void	ReInit(refdef_t* pRefdef);
 	void	AdjustTime( int time );
+	FxPhysical::Policy mPhysicalPolicy;
+	bool PhysicalizationEnabled(const char* effect) const { return mPhysicalPolicy.Enabled(effect); }
+	bool PhysicalizationDebug() const;
+	void PhysicalizationPrint(const char* message, ...);
 
 	// These functions are wrapped and used by the fx system in case it makes things a bit more portable
 	void	Print( const char *msg, ... );

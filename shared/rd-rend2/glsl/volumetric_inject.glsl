@@ -383,36 +383,36 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	// extinction and scattering, not their g)
 	float m = -1.0;
 
-	// local fog volumes: the packed list of this slice (CPU culled, tr_fogvolume.cpp)
+	// local fog volumes: the membership mask of this XYZ cluster (CPU culled, tr_fogvolume.cpp)
 	float localExtinction = 0.0;
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
-	int localHeader = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26) ?
-		FroxelLocalSliceHeader(var_Slice) : 0;
-	int localCount = localHeader >> 16;
-	if (localCount > 0)
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	if (any(notEqual(localMask, uvec2(0u))))
 	{
-		int first = localHeader & 0xffff;
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
-		for (int j = 0; j < localCount; j++)
+		float previousFade = FroxelLocalFade((u_FroxelPrevViewProjection * vec4(p, 1.0)).w);
+		while (any(notEqual(localMask, uvec2(0u))))
 		{
-			int i = FroxelLocalPoolIndex(first + j);
+			int i = FroxelLocalNext(localMask);
 			vec4 shape = u_FroxelLocalShape[i];
 			vec4 color = u_FroxelLocalColor[i];
-			float e = color.a * fade * FroxelLocalShapeDensity(u_FroxelLocalX[i], u_FroxelLocalY[i],
+			float density = FroxelLocalShapeDensity(u_FroxelLocalX[i], u_FroxelLocalY[i],
 				u_FroxelLocalZ[i], shape.x, shape.y, shape.z, p);
+			float e = color.a * fade * density;
 
 			if (wantChange)
 			{
 				vec4 motion = u_FroxelLocalMotion[i];
-				float previous = e;
+				float previous = color.a * previousFade * density;
 				if (motion.x > 0.5)
 				{
-					previous = motion.y * fade * FroxelLocalShapeDensity(u_FroxelLocalPrevX[i],
+					previous = motion.y * previousFade * FroxelLocalShapeDensity(u_FroxelLocalPrevX[i],
 						u_FroxelLocalPrevY[i], u_FroxelLocalPrevZ[i], motion.x - 1.0, motion.z, motion.w, p);
 				}
 				localPrevious += previous;
-				localDelta += abs(e - previous);
+				// Appearance changes must invalidate history even at unchanged density.
+				localDelta += shape.w >= 32.0 ? max(e, previous) : abs(e - previous);
 			}
 
 			if (e <= 0.0)
@@ -603,16 +603,13 @@ vec3 FroxelEmission(in vec3 p, in int debugView)
 {
 	vec3 emission = vec3(0.0);
 
-	int localHeader = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26) ?
-		FroxelLocalSliceHeader(var_Slice) : 0;
-	int localCount = localHeader >> 16;
-	if (localCount > 0)
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	if (any(notEqual(localMask, uvec2(0u))))
 	{
-		int first = localHeader & 0xffff;
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
-		for (int j = 0; j < localCount; j++)
+		while (any(notEqual(localMask, uvec2(0u))))
 		{
-			int i = FroxelLocalPoolIndex(first + j);
+			int i = FroxelLocalNext(localMask);
 			vec3 e = u_FroxelLocalEmission[i].rgb;
 			if (max(e.r, max(e.g, e.b)) <= 0.0)
 				continue;

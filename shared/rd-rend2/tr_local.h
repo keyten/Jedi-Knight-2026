@@ -76,12 +76,12 @@ typedef unsigned int glIndex_t;
 
 // Froxel volumetric fog (tr_volumetric.cpp) and its local fog volumes
 // (tr_fogvolume.cpp): the scene takes up to MAX_REF_FOG_VOLUMES per frame, the
-// nearest MAX_GPU_FOG_VOLUMES in the froxel frustum reach the VolumetricFog
-// block, listed per slice in a pool of FROXEL_LOCAL_POOL 8 bit indices.
+// most important MAX_GPU_FOG_VOLUMES reach the VolumetricFog block;
+// XYZ membership masks are in an R32UI buffer, slice lists are CPU diagnostics.
 #define FROXEL_MAX_SLICES     128
 #define MAX_REF_FOG_VOLUMES   256
-#define MAX_GPU_FOG_VOLUMES   64	// 8 bit indices, UBO budget (see VolumetricFogBlock)
-#define FROXEL_LOCAL_POOL     2048
+#define MAX_GPU_FOG_VOLUMES   64	// two 32-bit membership masks, UBO budget (see VolumetricFogBlock)
+#define FROXEL_LOCAL_POOL     8192	// CPU-only slice diagnostics: 64 volumes x 128 slices
 #define FROXEL_EXTINCTION_PALETTE 16	// distinct local volume extinction colors per frame (UBO budget)
 
 // Volumetric FX particles (tr_volparticle.cpp): the scene takes up to
@@ -1342,11 +1342,10 @@ struct VolumetricFogBlock
 	vec4_t localPrevY[MAX_GPU_FOG_VOLUMES];
 	vec4_t localPrevZ[MAX_GPU_FOG_VOLUMES];
 	vec4_t localColor[MAX_GPU_FOG_VOLUMES];		// rgb albedo, a: extinction per unit (0: gone this frame)
-	vec4_t localShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * extinction palette index
+	vec4_t localShape[MAX_GPU_FOG_VOLUMES];		// shape (0 ellipsoid, 1 box), inner, 1 / (1 - inner), noisy + 2 * extinction palette index + 32 * history break
 	vec4_t localMotion[MAX_GPU_FOG_VOLUMES];	// changed: 0 no, else 1 + previous shape; previous extinction, inner, 1 / (1 - inner)
 	vec4_t localEmission[MAX_GPU_FOG_VOLUMES];	// rgb emission per unit at full density (emissive * density), w: anisotropy g
-	int localSlices[FROXEL_MAX_SLICES];			// per slice: first pool entry | count << 16 (ivec4[32])
-	int localIndex[FROXEL_LOCAL_POOL / 4];		// 8 bit volume indices, 4 per int (ivec4[128])
+	vec4_t localClusters;				// tile size, tiles X, tiles Y, unused
 
 	// BSP fog volumes that may touch each slice (bit i = fog i, MAX_GPU_FOGS <= 32)
 	int fogSlices[FROXEL_MAX_SLICES];			// ivec4[32]
@@ -1359,7 +1358,7 @@ struct VolumetricFogBlock
 	vec4_t extinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
 
-// below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (16 304 with
+// below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (13 760 with
 // the extinction palette and the tail fog mask)
 static_assert(sizeof(VolumetricFogBlock) <= 16384, "VolumetricFog block above the GL 3.2 minimum UBO size");
 
@@ -5406,6 +5405,9 @@ LOCAL FOG VOLUMES, tr_fogvolume.cpp
 ============================================================
 */
 
+qboolean R_FogVolumeHasMedium(const refFogVolume_t *volume);
+void R_FogVolumesBindClusters(void);
+void R_FogVolumesShutdown(void);
 void RE_AddFogVolumeToScene(const refFogVolume_t *volume);
 void R_FogVolumesBeginScene(const refdef_t *fd);
 void R_LoadFogVolumesJson(world_t *world, const char *json, const char *jsonEnd, const char *filename);

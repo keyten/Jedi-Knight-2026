@@ -27,6 +27,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 	#include "FxScheduler.h"
 #endif
 
+#include "fx/FxPhysicalizationIntegration.h"
+
 #if !defined(GHOUL2_SHARED_H_INC)
 	#include "../game/ghoul2_shared.h"	//for CGhoul2Info_v
 #endif
@@ -485,7 +487,9 @@ int CFxScheduler::RegisterEffect( const char *path, bool bHasCorrectPath /*= fal
 		}
 	}
 	// Lets convert the effect file into something that we can work with
-	return ParseEffect( filenameNoExt, parser.GetBaseParseGroup() );
+	const int handle = ParseEffect( filenameNoExt, parser.GetBaseParseGroup() );
+	if (handle) FX_AnalyzePhysicalization(&mEffectTemplates[handle], pfile, FX_PhysicalFingerprint(pfile));
+	return handle;
 }
 
 
@@ -953,12 +957,14 @@ bool gEffectsInPortal = false; //this is just because I don't want to have to ad
 // participating medium (rend2 volumetric FX particles, "volumetricMedia")
 static void FX_SetVolumetricMedia( CParticle *particle, const CPrimitiveTemplate *fx, const vec3_t sRGB )
 {
-	if ( !particle || !fx->mVolMedia )
+	if ( !particle ) return;
+	if ( !fx->mVolMedia )
 	{
+		FX_AttachPhysicalization(particle, fx);
 		return;
 	}
 
-	SFxVolumetricMedia media;
+	SFxVolumetricMedia media = {};
 	media.extinction = fx->mVolExtinction.GetVal();
 	if ( fx->mVolHasAlbedo )
 		VectorCopy( fx->mVolAlbedo, media.albedo );

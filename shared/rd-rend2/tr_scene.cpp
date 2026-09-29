@@ -360,7 +360,7 @@ void RE_AddFogVolumeToScene( const refFogVolume_t *volume ) {
 		ri.Printf( PRINT_DEVELOPER, "RE_AddFogVolumeToScene: more than %d fog volumes this frame\n", MAX_REF_FOG_VOLUMES );
 		return;
 	}
-	if ( volume->depthForOpaque <= 0.0f ) {
+	if ( !R_FogVolumeHasMedium(volume) ) {
 		return;
 	}
 	backEndData->fogVolumes[r_numfogvolumes++] = *volume;
