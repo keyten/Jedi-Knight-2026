@@ -115,8 +115,10 @@ With `r_gl43 1` and `r_volumetricFog 2`, GL 4.3 compute and image load/store use
 math as raster injection and integration. Injection dispatches a 3D grid (4 x 4 x 4 workgroups);
 the first invocation of each column also writes its tail light. Integration dispatches a 2D grid
 (8 x 8 workgroups), one invocation per XY column, and sequentially integrates all Z slices in registers
-with `imageStore` for each slice. The column invariants (ray length) are computed once, the far depth of
-a slice is the near depth of the next, and the texel fetches of the next slice are issued before the math
+with `imageStore` for each slice. The column invariants (ray length and geometric slice ratio) are computed
+once: one `exp2` per column, then multiplication for subsequent boundaries, with the last boundary anchored
+to `far`. Slice 0 still starts at the camera. Image outputs are `restrict writeonly` (distinct textures).
+The far depth of a slice is the near depth of the next, and the texel fetches of the next slice are issued before the math
 of the current one to hide their latency. No per-slice draws, attachment changes or carry texture accesses
 are needed. Carry textures are allocated only for raster, including fallback after compute compilation fails.
 

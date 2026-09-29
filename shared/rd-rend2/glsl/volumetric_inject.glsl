@@ -1538,14 +1538,14 @@ void main()
 
 #if defined(USE_FROXEL_COMPUTE)
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
-layout(rgba16f, binding = 0) uniform writeonly image3D u_InjectOutput;
-layout(r11f_g11f_b10f, binding = 1) uniform writeonly image3D u_DynamicOutput;
-layout(r11f_g11f_b10f, binding = 2) uniform writeonly image3D u_ParticleOutput;
+layout(rgba16f, binding = 0) uniform restrict writeonly image3D u_InjectOutput;
+layout(r11f_g11f_b10f, binding = 1) uniform restrict writeonly image3D u_DynamicOutput;
+layout(r11f_g11f_b10f, binding = 2) uniform restrict writeonly image3D u_ParticleOutput;
 #if defined(USE_FROXEL_RGB)
-layout(rgba16f, binding = 3) uniform writeonly image3D u_ExtinctionOutput;
+layout(rgba16f, binding = 3) uniform restrict writeonly image3D u_ExtinctionOutput;
 #endif
-layout(rgba16f, binding = 4) uniform writeonly image2D u_TailOutput;
-layout(r16f, binding = 5) uniform writeonly image3D u_MediaOutput;
+layout(rgba16f, binding = 4) uniform restrict writeonly image2D u_TailOutput;
+layout(r16f, binding = 5) uniform restrict writeonly image3D u_MediaOutput;
 
 #if defined(USE_FROXEL_MEDIA_PASS)
 // Media pass kernel: only the medium evaluation, so its register use is not

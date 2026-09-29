@@ -138,9 +138,9 @@ void FroxelIntegrate(in FroxelSliceInput i, in float pathLength, in int debugVie
 
 #if defined(USE_FROXEL_COMPUTE)
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-layout(rgba16f, binding = 0) uniform writeonly image3D u_IntegratedOutput;
+layout(rgba16f, binding = 0) uniform restrict writeonly image3D u_IntegratedOutput;
 #if defined(USE_FROXEL_RGB)
-layout(rgba16f, binding = 1) uniform writeonly image3D u_TransmittanceOutput;
+layout(rgba16f, binding = 1) uniform restrict writeonly image3D u_TransmittanceOutput;
 #endif
 void main()
 {
@@ -152,7 +152,10 @@ void main()
 	int numSlices = int(u_FroxelGridSize.z);
 	float rayLength = FroxelColumnRayLength(cell);
 	int debugView = int(u_FroxelDebugParams.x);
-	float sliceNear = FroxelWToDepth(0.0);
+	// B(k+1) = B(k) * sliceRatio, except slice 0 starts at the camera.
+	float sliceRatio = exp2(u_FroxelSliceParams.z / float(numSlices));
+	float sliceNear = 0.0;
+	float sliceFar = u_FroxelSliceParams.x * sliceRatio;
 
 	vec4 state = vec4(0.0, 0.0, 0.0, 1.0);
 #if defined(USE_FROXEL_RGB)
@@ -167,13 +170,16 @@ void main()
 		if (slice + 1 < numSlices)
 			next = FroxelFetchSlice(ivec3(cell, slice + 1));
 
-		float sliceFar = FroxelWToDepth(float(slice + 1) / u_FroxelGridSize.z);
+		// Anchor the last boundary to far instead of accumulating rounding there.
+		if (slice + 1 == numSlices)
+			sliceFar = u_FroxelSliceParams.y;
 		FroxelIntegrate(current, (sliceFar - sliceNear) * rayLength, debugView, state
 #if defined(USE_FROXEL_RGB)
 			, T
 #endif
 		);
 		sliceNear = sliceFar;
+		sliceFar *= sliceRatio;
 
 		imageStore(u_IntegratedOutput, ivec3(cell, slice), state);
 #if defined(USE_FROXEL_RGB)

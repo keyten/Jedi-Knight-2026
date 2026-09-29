@@ -120,8 +120,10 @@ def read(tex, count):
     return list(data)
 
 
-def integration(prog, rgb):
-    width, height, depth = 7, 5, 17
+def integration(prog, rgb, depth=17, far_depth=128):
+    width, height = 7, 5
+    near_depth = 8
+    log_ratio = math.log2(far_depth / near_depth)
     values, dynamic, sigma = [], [], []
     for z in range(depth):
         for y in range(height):
@@ -135,7 +137,7 @@ def integration(prog, rgb):
     gl('glUseProgram', None, U)(prog)
     buffer = uniform_buffer(prog, 'VolumetricFog', {
         'u_FroxelGridSize': [width, height, depth, 0],
-        'u_FroxelSliceParams': [8, 128, 4, 128],
+        'u_FroxelSliceParams': [near_depth, far_depth, log_ratio, far_depth],
         'u_FroxelRayForward': [0, 0, 1, 0],
         'u_FroxelRayRight': [1, 0, 0, 0],
         'u_FroxelRayUp': [0, 1, 0, 0],
@@ -159,8 +161,8 @@ def integration(prog, rgb):
             ray = math.sqrt(1 + ((x + .5) / width * 2 - 1) ** 2 + ((y + .5) / height * 2 - 1) ** 2)
             for z in range(depth):
                 base = ((z * height + y) * width + x) * 4
-                near = 8 * 2 ** (4 * z / depth) if z else 0
-                far = 8 * 2 ** (4 * (z + 1) / depth)
+                near = near_depth * 2 ** (log_ratio * z / depth) if z else 0
+                far = near_depth * 2 ** (log_ratio * (z + 1) / depth)
                 length = (far - near) * ray
                 for channel in range(3):
                     density = extinction[base + channel] if rgb else source[base + 3]
@@ -176,7 +178,8 @@ def integration(prog, rgb):
                         assert abs(a - e) <= max(0.00002, abs(e) * 0.0011), (rgb, x, y, z, a, e)
     assert gl('glGetError', U)() == 0
     gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(buffer))
-    print(f'PASS: {"RGB" if rgb else "scalar"} integration, zero extinction, partial workgroups, all 17 slices')
+    print(f'PASS: {"RGB" if rgb else "scalar"} integration, zero extinction, partial workgroups, '
+          f'all {depth} slices, far={far_depth}')
 
 
 W, H, D = 7, 5, 17
@@ -397,7 +400,9 @@ def main():
                 media = program('volumetric_inject', True, rgb, shadows, media=True)
                 permutations += len(programs) + 1
                 if not shadows:
-                    integration(programs['volumetric_integrate', True], rgb)
+                    for depth, far_depth in [(17, 128), (16, 32), (32, 4096), (48, 4096),
+                                             (64, 4096), (128, 65536)]:
+                        integration(programs['volumetric_integrate', True], rgb, depth, far_depth)
                     injection(programs['volumetric_inject', True], media, rgb)
                     raster_compute_match(programs['volumetric_inject', True], media,
                                          programs['volumetric_inject', False], rgb)
