@@ -426,6 +426,28 @@ static float R_DlightLuminance( const dlight_t *dl )
 // the camera is inside of matter most
 static float R_DlightImportance( const dlight_t *dl, const vec3_t viewOrigin )
 {
+	if ( dl->areaType != DLIGHT_POINT )
+	{
+		// Radiance times projected emitter area estimates its solid-angle
+		// contribution. The influence radius is only a culling bound.
+		vec3_t delta, closest;
+		VectorSubtract(viewOrigin, dl->origin, delta);
+		VectorCopy(dl->origin, closest);
+		VectorMA(closest, Com_Clamp(-dl->halfWidth, dl->halfWidth,
+			DotProduct(delta, dl->areaRight)), dl->areaRight, closest);
+		if ( dl->areaType == DLIGHT_RECT )
+			VectorMA(closest, Com_Clamp(-dl->halfHeight, dl->halfHeight,
+				DotProduct(delta, dl->areaUp)), dl->areaUp, closest);
+		const float area = 4.0f * dl->halfWidth * dl->halfHeight;
+		const float distSq = DistanceSquared(viewOrigin, closest);
+		const float halfDiagonal = sqrtf(dl->halfWidth * dl->halfWidth +
+			dl->halfHeight * dl->halfHeight);
+		const float range = Q_max(dl->radius - halfDiagonal, 1.0f);
+		const float d2 = distSq / (range * range);
+		const float window = Q_max(0.0f, 1.0f - d2 * d2);
+		return Q_max(R_DlightLuminance(dl), 0.0f) * area /
+			Q_max(distSq, area) * window * window;
+	}
 	const float radius = Q_max(dl->radius, 1.0f);
 	const float distSq = DistanceSquared(dl->origin, viewOrigin);
 	const float minDistSq = 0.0625f * radius * radius;

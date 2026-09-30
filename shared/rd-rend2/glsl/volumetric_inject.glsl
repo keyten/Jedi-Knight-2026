@@ -977,7 +977,13 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		if (spotDebug == 3.0 || (spotDebug == 4.0 && spot2.x < -0.5))
 			continue;
 
-		vec3 L = originRadius.xyz - p;
+		// Saber fog proxy: use the closest point on the blade, while surface
+		// lighting continues to evaluate the LTC emitter exactly once.
+		bool lineLight = spot2.w < -999.0;
+		vec3 source = originRadius.xyz;
+		if (lineLight)
+			source += spot.xyz * clamp(dot(p - source, spot.xyz), -spot2.x, spot2.x);
+		vec3 L = source - p;
 		float sqrDist = max(dot(L, L), 1e-4);
 		// CalcLightAttenuation of lightall: zero at the radius
 		float attenuation = clamp(0.5 * radius * radius / sqrDist - 0.5, 0.0, 1.0);
@@ -985,7 +991,8 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 			continue;
 
 		float dist = sqrt(sqrDist);
-		attenuation *= SpotConeAttenuation(L / dist, spot, spot2.x);
+		if (!lineLight)
+			attenuation *= SpotConeAttenuation(L / dist, spot, spot2.x);
 		if (attenuation <= 0.0)
 			continue;
 		// light travels from the light (-L) to the camera (-viewDir)

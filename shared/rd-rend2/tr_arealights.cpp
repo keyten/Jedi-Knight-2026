@@ -95,6 +95,9 @@ static struct
 	int selected;				// map light highlighted by r_ltcDebug, -1 none
 } s_al = { {}, "", qfalse, qfalse, qfalse, -1, -1, -1, 0, -1 };
 
+// Keep near-equal map lights from trading the global budget every frame.
+static std::vector<unsigned char> s_previousMapSelection;
+
 qboolean R_AreaLightsActive( void )
 {
 	return s_al.active;
@@ -330,6 +333,7 @@ static void R_ClearImageAverages( void );
 static void R_LoadAreaLightFile( void )
 {
 	s_al.lights.clear();
+	s_previousMapSelection.clear();
 	s_al.selected = -1;
 	if ( !s_al.mapName[0] )
 		return;
@@ -476,6 +480,8 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 
 	const int maxLights = Com_Clampi(0, MAX_RENDER_DLIGHTS, r_ltcMaxLights->integer);
 	const int numLights = (int)s_al.lights.size();
+	if ( (int)s_previousMapSelection.size() != numLights )
+		s_previousMapSelection.assign(numLights, 0);
 	std::vector<std::pair<float, int>> order;
 	order.reserve(numLights);
 	for ( int i = 0; i < numLights; i++ )
@@ -493,10 +499,13 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 		float score = power / (reach * reach);
 		if ( dist - extent > 0.5f * l->range )
 			score *= 0.01f;
+		if ( s_previousMapSelection[i] )
+			score *= 1.15f;
 		order.push_back(std::make_pair(-score, i));
 	}
 	const int count = Q_min(maxLights, numLights);
 	std::partial_sort(order.begin(), order.begin() + count, order.end());
+	std::fill(s_previousMapSelection.begin(), s_previousMapSelection.end(), 0);
 
 	const float scale = Q_max(r_ltcIntensityScale->value, 0.0f);
 	for ( int k = 0; k < count; k++ )
@@ -513,6 +522,7 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 		{
 			break;
 		}
+		s_previousMapSelection[i] = 1;
 	}
 
 	R_AreaLightsDebugPolys(fd);
@@ -978,7 +988,7 @@ static void R_FitRect( const std::vector<const float *>& points, const vec3_t no
 // samples of sampleArea each, else the surface corners with its area);
 // peak = brightest texel of the region, the radiance never exceeds it
 static void R_EmitCandidate( const areaCandidate_t& base, const std::vector<const float *>& points,
-	const vec3_t power, const vec3_t peak, float sampleArea, qboolean sampled, const vec3_t normal,
+	const vec3_t power, const vec3_t peak, float litArea, qboolean sampled, const vec3_t normal,
 	const vec3_t scale, std::vector<areaCandidate_t>& out )
 {
 	if ( points.size() < 3 )
@@ -987,19 +997,19 @@ static void R_EmitCandidate( const areaCandidate_t& base, const std::vector<cons
 	mapAreaLight_t *l = &c.light;
 	c.sampled = sampled;
 	// a lit sample stands for a small square: half its side of margin
-	R_FitRect(points, normal, sampled ? 0.5f * sqrtf(sampleArea) : 0.0f, l);
+	R_FitRect(points, normal, sampled ? 0.5f * sqrtf(litArea / points.size()) : 0.0f, l);
 	if ( l->halfWidth < 0.5f || l->halfHeight < 0.5f )
 		return;
 
 	const float rectArea = 4.0f * l->halfWidth * l->halfHeight;
 	if ( sampled )
-		c.litArea = sampleArea * points.size();
+		c.litArea = litArea;
 	c.confidence = Com_Clamp(0.0f, 1.0f, c.litArea / rectArea);
 
 	// radiance: lit power spread over the rectangle (a blob of a few samples
 	// can get a rectangle smaller than its samples: capped at the peak)
 	for ( int k = 0; k < 3; k++ )
-		l->color[k] = Q_min(power[k] * sampleArea / rectArea, peak[k]) * scale[k];
+		l->color[k] = Q_min(power[k] / rectArea, peak[k]) * scale[k];
 	l->intensity = 1.0f;
 	l->mode = AREAMODE_STATIC_SPECULAR;
 	l->twoSided = qfalse;
@@ -1056,7 +1066,9 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 		std::vector<signed char> state((size_t)ns * nt, -1);
 		std::vector<litPoint_t> points((size_t)ns * nt);
 		std::vector<litPoint_t> colors((size_t)ns * nt);
+		std::vector<float> weights((size_t)ns * nt, 0.0f);
 		int inside = 0;
+		float totalWeight = 0.0f;
 		for ( int j = 0; j < nt; j++ )
 			for ( int i = 0; i < ns; i++ )
 			{
@@ -1080,7 +1092,14 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 
 					inside++;
 					const size_t cell = (size_t)j * ns + i;
-					const float fs = s - floorf(s), ft = t - floorf(t);
+					const float fs = (image->flags & IMGFLAG_CLAMPTOEDGE) ?
+						Com_Clamp(0.0f, 1.0f, s) : s - floorf(s);
+					const float ft = (image->flags & IMGFLAG_CLAMPTOEDGE) ?
+						Com_Clamp(0.0f, 1.0f, t) : t - floorf(t);
+					// One UV cell represents a different world area on each triangle.
+					weights[cell] = 2.0f * tri->area *
+						((smax - smin) / ns) * ((tmax - tmin) / nt) / fabsf(d);
+					totalWeight += weights[cell];
 					const int x = Com_Clampi(0, mask->width - 1, (int)(fs * mask->width));
 					const int y = Com_Clampi(0, mask->height - 1, (int)(ft * mask->height));
 					const float *rgb = &mask->rgb[((size_t)y * mask->width + x) * 3];
@@ -1093,9 +1112,10 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 					break;
 				}
 			}
-		if ( inside == 0 )
+		if ( inside == 0 || totalWeight <= 0.0f )
 			return;
-		const float sampleArea = area / inside;
+		// Normalize the discrete coverage back to the known geometry area.
+		const float weightScale = area / totalWeight;
 
 		// one light per connected lit blob (8-neighbours): a texture with two
 		// tubes or a row of bulbs gives one rectangle each, not one with gaps
@@ -1106,6 +1126,7 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 				continue;
 			std::vector<const float *> blob;
 			vec3_t power = { 0.0f, 0.0f, 0.0f }, peak = { 0.0f, 0.0f, 0.0f };
+			float litArea = 0.0f;
 			state[start] = 2;
 			stack.push_back((int)start);
 			while ( !stack.empty() )
@@ -1113,7 +1134,9 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 				const int cell = stack.back();
 				stack.pop_back();
 				blob.push_back(points[cell].p);
-				VectorAdd(power, colors[cell].p, power);
+				const float sampleArea = weights[cell] * weightScale;
+				litArea += sampleArea;
+				VectorMA(power, sampleArea, colors[cell].p, power);
 				for ( int k = 0; k < 3; k++ )
 					peak[k] = Q_max(peak[k], colors[cell].p[k]);
 				const int ci = cell % ns, cj = cell / ns;
@@ -1131,7 +1154,7 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 						}
 					}
 			}
-			R_EmitCandidate(c, blob, power, peak, sampleArea, qtrue, normal, emitter.scale, out);
+			R_EmitCandidate(c, blob, power, peak, litArea, qtrue, normal, emitter.scale, out);
 		}
 		return;
 	}

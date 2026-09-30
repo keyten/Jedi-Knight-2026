@@ -19,7 +19,7 @@ Written from the method of
 No code or data of the authors' reference implementation is used.
 
 BRDF fitted: GGX, isotropic, alpha = rend2 "roughness" (lightall uses it as
-the GGX alpha directly), height-correlated Smith masking-shadowing, no Fresnel
+the GGX alpha directly), Rend2's joint Smith visibility approximation, no Fresnel
 (the Fresnel split is in table 2).
 
 Tables: LTC_SIZE x LTC_SIZE, texel (i, j):
@@ -149,11 +149,14 @@ static double GgxEval(const vec3& V, const vec3& L, double alpha, double& pdf)
 	const double d = H.z * H.z * (a2 - 1.0) + 1.0;
 	const double D = a2 / (PI * d * d);
 	const double lambdaV = GgxLambda(V.z, alpha);
-	const double lambdaL = GgxLambda(L.z, alpha);
-	const double G2 = 1.0 / (1.0 + lambdaV + lambdaL);
 	const double G1V = 1.0 / (1.0 + lambdaV);
 	pdf = G1V * D / (4.0 * V.z);
-	return D * G2 / (4.0 * V.z);
+	// Match lightall.glsl::V_SmithJointApprox exactly. The sampler above
+	// remains valid importance sampling; only its importance distribution
+	// differs slightly from this target BRDF.
+	const double visibility = 0.5 / (L.z * (V.z * (1.0 - alpha) + alpha) +
+		V.z * (L.z * (1.0 - alpha) + alpha));
+	return D * visibility * L.z;
 }
 
 // visible normal sampling [Heitz 2018]
@@ -504,7 +507,7 @@ static int Fit(const char *outPath)
 		"// docs/rend2-ltc-area-lights.md for the parameterisation:\n"
 		"//   texel (i, j) at [(j * LTC_LUT_SIZE + i) * 4], u = i = sqrt(alpha),\n"
 		"//   v = j = sqrt(1 - cos(theta_view)); table 2 .w: u = z * 0.5 + 0.5, v = |F|\n"
-		"// GGX (height-correlated Smith), fitted with %d x %d samples per technique.\n\n"
+		"// GGX (Rend2 joint Smith approximation), fitted with %d x %d samples per technique.\n\n"
 		"#pragma once\n\n"
 		"#define LTC_LUT_SIZE %d\n\n",
 		FIT_SAMPLES, FIT_SAMPLES, LTC_SIZE);

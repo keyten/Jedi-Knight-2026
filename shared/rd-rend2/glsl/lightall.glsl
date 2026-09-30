@@ -2282,23 +2282,37 @@ float LtcQuadFormFactor(in mat3 Minv, in vec3 q0, in vec3 q1, in vec3 q2, in vec
 	return len * texture(u_LtcAmplitudeMap, uv).w;
 }
 
-vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightIndex)
+struct LtcSurfaceCache
 {
+	bool ready;
+	mat3 toTangent;
+#if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+	mat3 Minv;
+	vec3 fresnel;
+#endif
+};
+
+vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightIndex,
+	inout LtcSurfaceCache cache)
+{
+	vec3 toReceiver = s.position - light.origin;
+	// The bounding sphere is conservative for either emitter orientation.
+	float reach = light.radius + light.halfWidth + light.halfHeight;
+	if (dot(toReceiver, toReceiver) >= reach * reach)
+		return vec3(0.0);
 	int base = u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS;
 	vec3 right = texelFetch(u_FPlusLights, base + 3).xyz;
 	vec3 up = texelFetch(u_FPlusLights, base + 4).xyz;
 	bool twoSided = (light.flags & AREALIGHT_TWO_SIDED) != 0;
-	vec3 toReceiver = s.position - light.origin;
 
 	if (light.type == FPLUS_TYPE_LINE)
 	{
 		// the blade seen from the receiver: a ribbon one tube diameter wide,
 		// facing it (same projected area as the tube)
 		vec3 n = toReceiver - right * dot(toReceiver, right);
-		float l = length(n);
-		if (l < 1e-3)
-			return vec3(0.0);
-		up = cross(n / l, right);
+		float l2 = dot(n, n);
+		// The stored up axis defines a stable orientation on the blade axis.
+		up = cross(l2 > 1e-6 ? n * inversesqrt(l2) : cross(right, up), right);
 		twoSided = true;
 	}
 	else if (!twoSided && dot(toReceiver, cross(right, up)) <= 0.0)
@@ -2308,8 +2322,8 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	vec3 closest = light.origin +
 		right * clamp(dot(toReceiver, right), -light.halfWidth, light.halfWidth) +
 		up * clamp(dot(toReceiver, up), -light.halfHeight, light.halfHeight);
-	float d = length(s.position - closest) / max(light.radius, 1.0);
-	float d2 = d * d;
+	float d2 = dot(s.position - closest, s.position - closest) /
+		max(light.radius * light.radius, 1.0);
 	float window = clamp(1.0 - d2 * d2, 0.0, 1.0);
 	window *= window;
 	if (window <= 0.0)
@@ -2318,23 +2332,36 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	// POM self shadow: towards the centre (one ray, not one per corner)
 	window *= DynamicLightReceiverVisibility(s, normalize(light.origin - s.position));
 
-	// receiver tangent frame, T1 in the plane of N and E
+	// Receiver state is shared by all area lights in this fragment.
 	vec3 N = s.N;
-	float NE = dot(N, s.E);
-	vec3 T1 = s.E - N * NE;
-	if (dot(T1, T1) < 1e-8)
-		T1 = abs(N.z) < 0.999 ? cross(N, vec3(0.0, 0.0, 1.0)) : vec3(1.0, 0.0, 0.0);
-	T1 = normalize(T1);
-	vec3 T2 = cross(N, T1);
-	mat3 toTangent = transpose(mat3(T1, T2, N));
+	if (!cache.ready)
+	{
+		float signedNE = dot(N, s.E);
+		vec3 T1 = s.E - N * signedNE;
+		if (dot(T1, T1) < 1e-8)
+			T1 = abs(N.z) < 0.999 ? cross(N, vec3(0.0, 0.0, 1.0)) : vec3(1.0, 0.0, 0.0);
+		T1 = normalize(T1);
+		cache.toTangent = transpose(mat3(T1, cross(N, T1), N));
+#if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+		vec2 uv = vec2(sqrt(clamp(s.roughness, 0.0, 1.0)),
+			sqrt(1.0 - clamp(s.NE, 0.0, 1.0)));
+		uv = uv * LTC_LUT_SCALE + LTC_LUT_BIAS;
+		vec4 t1 = texture(u_LtcMatrixMap, uv);
+		vec4 t2 = texture(u_LtcAmplitudeMap, uv);
+		cache.Minv = mat3(vec3(t1.x, 0.0, t1.y), vec3(0.0, 1.0, 0.0), vec3(t1.z, 0.0, t1.w));
+		cache.fresnel = s.specular * t2.x + (1.0 - s.specular) * t2.y *
+			clamp(50.0 * s.specular.g, 0.0, 1.0);
+#endif
+		cache.ready = true;
+	}
 
 	vec3 R = right * light.halfWidth;
 	vec3 U = up * light.halfHeight;
 	vec3 c = light.origin - s.position;
-	vec3 q0 = toTangent * (c - R - U);
-	vec3 q1 = toTangent * (c - R + U);
-	vec3 q2 = toTangent * (c + R + U);
-	vec3 q3 = toTangent * (c + R - U);
+	vec3 q0 = cache.toTangent * (c - R - U);
+	vec3 q1 = cache.toTangent * (c - R + U);
+	vec3 q2 = cache.toTangent * (c + R + U);
+	vec3 q3 = cache.toTangent * (c + R - U);
 
 	vec3 radiance = light.color * window;
 	vec3 diffuseOut = vec3(0.0);
@@ -2362,22 +2389,15 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 	#if defined(USE_SPECULARMAP)
 	#if !defined(USE_CLOTH_BRDF)
-	vec2 uv = vec2(sqrt(clamp(s.roughness, 0.0, 1.0)), sqrt(1.0 - clamp(NE, 0.0, 1.0)));
-	uv = uv * LTC_LUT_SCALE + LTC_LUT_BIAS;
-	vec4 t1 = texture(u_LtcMatrixMap, uv);
-	vec4 t2 = texture(u_LtcAmplitudeMap, uv);
-	mat3 Minv = mat3(vec3(t1.x, 0.0, t1.y), vec3(0.0, 1.0, 0.0), vec3(t1.z, 0.0, t1.w));
-	float specFF = LtcQuadFormFactor(Minv, q0, q1, q2, q3, twoSided);
-	// Schlick split as F_Schlick, including its no-specular cut
-	vec3 F = s.specular * t2.x + (1.0 - s.specular) * t2.y * clamp(50.0 * s.specular.g, 0.0, 1.0);
-	specularOut = radiance * specFF * F;
+	float specFF = LtcQuadFormFactor(cache.Minv, q0, q1, q2, q3, twoSided);
+	specularOut = radiance * specFF * cache.fresnel;
 	#else
 	// cloth (Charlie) lobe: wide, a representative point is enough
 	vec3 L = normalize(closest - s.position);
 	vec3 H = normalize(L + s.E);
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	specularOut = radiance * M_PI * formFactor * CalcSpecular(s.specular,
-		clamp(dot(N, H), 0.0, 1.0), NL, NE, clamp(dot(L, H), 0.0, 1.0),
+		clamp(dot(N, H), 0.0, 1.0), NL, s.NE, clamp(dot(L, H), 0.0, 1.0),
 		clamp(dot(s.E, H), 0.0, 1.0), s.roughness);
 	#endif
 	#endif
@@ -2422,6 +2442,10 @@ vec3 CalcDynamicLightContribution(
 	s.specular = specular;
 	s.roughness = roughness;
 	s.vertexNormal = vertexNormal;
+#if defined(USE_LTC)
+	LtcSurfaceCache ltcCache;
+	ltcCache.ready = false;
+#endif
 
 	if (u_LightMask == 0)
 		return outColor;
@@ -2453,7 +2477,7 @@ vec3 CalcDynamicLightContribution(
 #if defined(USE_PARALLAXMAP)
 				g_pomLightWeight = PomLocalLightWeight(pomCut, light.origin - s.position, light.color, light.radius);
 #endif
-				outColor += EvaluateAreaLight(s, light, lightIndex);
+				outColor += EvaluateAreaLight(s, light, lightIndex, ltcCache);
 #endif
 				continue;
 			}

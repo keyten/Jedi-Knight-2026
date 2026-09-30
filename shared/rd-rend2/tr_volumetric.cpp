@@ -1523,7 +1523,17 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 
 	int lightIndexes[MAX_RENDER_DLIGHTS];
 	int shadowLayers[MAX_RENDER_DLIGHTS];
-	const int numSceneLights = R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_RENDER_DLIGHTS);
+	int numSceneLights = R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_RENDER_DLIGHTS);
+	// Surface lighting uses the LTC line directly. Fog needs a separate
+	// representation, so append saber lines only to this froxel light list.
+	for ( int i = 0; i < refdef->num_dlights && numSceneLights < MAX_RENDER_DLIGHTS; i++ )
+	{
+		if ( refdef->dlights[i].areaType == DLIGHT_LINE )
+		{
+			lightIndexes[numSceneLights] = i;
+			shadowLayers[numSceneLights++] = -1;
+		}
+	}
 	if ( numSceneLights <= 0 )
 		return;
 
@@ -1550,11 +1560,25 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		const int shadowLayer = R_DlightCastsShadow(dl) ? shadowLayers[i] : -1;
 		const float projected = (shadowLayer >= 0 && dl->spotShadowSlot == shadowLayer) ? 1.0f : 0.0f;
 		float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
-		VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
-		VectorSet4(t + 4, dl->color[0], dl->color[1], dl->color[2], (float)shadowLayer);
-		VectorSet4(t + 8, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
-		VectorSet4(t + 12, dl->spotCosInner, projected,
-			cookiesActive ? (float)dl->cookieLayer : -1.0f, dl->cookieRoll);
+		if ( dl->areaType == DLIGHT_LINE )
+		{
+			// The legacy saber point used blade length * 2 as its radius.
+			// Preserve its fog energy while locating the source on the blade.
+			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2],
+				Q_max(2.0f * dl->halfWidth, 1.0f));
+			VectorSet4(t + 4, dl->color[0] * 0.25f, dl->color[1] * 0.25f,
+				dl->color[2] * 0.25f, -1.0f);
+			VectorSet4(t + 8, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], -2.0f);
+			VectorSet4(t + 12, dl->halfWidth, -1.0f, -1.0f, -1000.0f);
+		}
+		else
+		{
+			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2], dl->radius);
+			VectorSet4(t + 4, dl->color[0], dl->color[1], dl->color[2], (float)shadowLayer);
+			VectorSet4(t + 8, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
+			VectorSet4(t + 12, dl->spotCosInner, projected,
+				cookiesActive ? (float)dl->cookieLayer : -1.0f, dl->cookieRoll);
+		}
 		numLights++;
 	}
 	if ( !numLights )

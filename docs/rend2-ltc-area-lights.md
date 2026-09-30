@@ -48,7 +48,7 @@ with DISK and SPOT reserved), `areaRight`, `areaUp`, `halfWidth`, `halfHeight`, 
 Flags: `AREALIGHT_TWO_SIDED`, `AREALIGHT_SPECULAR_ONLY`, `AREALIGHT_DYNAMIC`,
 `AREALIGHT_SELECTED` (debug highlight).
 
-They go through the unchanged Forward+ importance sort and sphere cluster culling
+They go through an area-aware Forward+ importance sort and sphere cluster culling
 (`R_ForwardPlusLightRange`). The light buffer grows from 3 to 5 RGBA32F texels per light:
 
 | texel | point light | area light |
@@ -61,7 +61,7 @@ They go through the unchanged Forward+ importance sort and sphere cluster cullin
 
 Point lights still fetch only 3 texels. Area lights are kept out of:
 - shadow cube selection (they are unshadowed),
-- `R_GetUboDlights` (the legacy Lights block, which is what froxel fog reads),
+- `R_GetUboDlights` (the legacy Lights block),
 - flares.
 
 **Physical evaluation vs culling.** The geometry itself does the falloff. `range` only drives a
@@ -97,7 +97,8 @@ Terms:
 `tools/ltcfit/ltcfit.cpp` is our own fitter, written from Heitz et al. 2016 ("Real-Time
 Polygonal-Light Shading with LTC") and Hill & Heitz 2016. It uses no code or data from the reference
 implementation, so no third-party license applies. The papers are cited in the source.
-- Model: GGX with height-correlated Smith, visible-normal importance sampling, and Nelder–Mead on
+- Model: GGX with Rend2's joint Smith visibility approximation (`V_SmithJointApprox`),
+  visible-normal importance sampling, and Nelder–Mead on
   (m11, m22, m13) with 2×32×32 MIS samples per texel. It runs in about 45 s on all cores.
 - Output: `shared/rd-rend2/tr_ltc_data.h`, which is compiled in and uploaded as two 64×64 RGBA16F
   textures (units 20 and 21). Nothing is fitted at startup.
@@ -117,7 +118,7 @@ g++ -O2 -std=c++17 -o ltcfit tools/ltcfit/ltcfit.cpp -lpthread && ./ltcfit share
 Self-test: build with `-DLTC_TEST_HEADER='"path/tr_ltc_data.h"'` and run `ltcfit -test`. It compares
 200 random rectangles against a Monte Carlo reference:
 - **diffuse**: 0.00% error,
-- **specular**: 9.2% mean absolute error relative to the mean, concentrated in grazing or
+- **specular**: 8.71% mean absolute error relative to the mean, concentrated in grazing or
   barely-overlapping cases where the values are tiny (typical for LTC fits),
 - norm at alpha→0, normal incidence = 1.0000.
 
@@ -240,8 +241,8 @@ renderer DLLs keep loading):
   per-corner rays.
 - **Shadows**: none. LTC gives the BRDF integral, not area visibility. Static lamps rely on the
   lightmap. `DynamicLightReceiverVisibility` is the hook for later.
-- **Volumetric fog**: area lights are not injected, because the fog reads the point-only legacy
-  UBO. The type is in the light data for a later capsule approximation.
+- **Volumetric fog**: saber lines use a froxel-only proxy located at the closest point on the
+  blade. Static rectangles are not injected.
 
 ## Validation still to do in game
 
@@ -261,7 +262,8 @@ when off.
 ## Limitations
 
 - The saber is a ribbon, not an exact line or tube integral.
-- There are no area shadows and no volumetric scattering from area lights.
+- There are no area shadows. Static rectangles have no volumetric scattering; saber lines use a
+  closest-point fog proxy without geometry shadows.
 - The specular LUT has a 9% mean error at grazing angles.
 - Vertex-lit surfaces are not lit by area lights.
 - Automatic lights: brightness follows the glow textures; curved lamps (patches) and lamps without a glow stage are not found; only flat faces and triangle soups are scanned.
