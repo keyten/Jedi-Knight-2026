@@ -798,6 +798,7 @@ typedef struct dlight_s {
 	vec3_t	areaUp;				// unit (LINE: unused, rebuilt per pixel)
 	float	halfWidth;			// along right (LINE: half length)
 	float	halfHeight;			// along up (LINE: tube radius)
+	float	areaHalfDiagonal;	// cached emitter extent, area lights only
 
 	// spot lights (tr_spotlight.cpp): areaType stays DLIGHT_POINT (same
 	// radial falloff, list, culling and shadow slot as a point light), the
@@ -5644,6 +5645,7 @@ void R_ForwardPlusNoteDroppedLight(void);
 void R_ForwardPlusPrepareScene(const trRefdef_t *refdef);
 int R_ForwardPlusNumShadowSlots(void);
 int R_ForwardPlusShadowSlotLight(int slot);
+int R_ForwardPlusLightShadowSlot(int light);
 int R_GetUboDlights(const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers);
 int R_GetDlightList(const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers, int maxLights);
 void RB_UpdateForwardPlus(struct gpuFrame_t *frame, const trRefdef_t *refdef);

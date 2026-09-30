@@ -48,19 +48,20 @@ with DISK and SPOT reserved), `areaRight`, `areaUp`, `halfWidth`, `halfHeight`, 
 Flags: `AREALIGHT_TWO_SIDED`, `AREALIGHT_SPECULAR_ONLY`, `AREALIGHT_DYNAMIC`,
 `AREALIGHT_SELECTED` (debug highlight).
 
-They go through an area-aware Forward+ importance sort and sphere cluster culling
+They go through an area-aware Forward+ importance sort and conservative rounded-rectangle or
+capsule cluster culling
 (`R_ForwardPlusLightRange`). The light buffer grows from 3 to 5 RGBA32F texels per light:
 
 | texel | point light | area light |
 |---|---|---|
 | t0 | origin, radius | centre, influence range |
 | t1 | color, 0 | radiance, type |
-| t2 | shadow slot, 0, 0, 0 | -1, flags, halfWidth, halfHeight |
-| t3 | – | right |
+| t2 | shadow slot, 0, 0, 0 | shadow slot (-1 for unshadowed), flags, halfWidth, halfHeight |
+| t3 | – | right, conservative cull radius |
 | t4 | – | up |
 
-Point lights still fetch only 3 texels. Area lights are kept out of:
-- shadow cube selection (they are unshadowed),
+Point lights still fetch only 3 texels. Dynamic saber lines may own a point-shadow cube at the
+blade centre; static rectangles remain unshadowed. Area lights are kept out of:
 - `R_GetUboDlights` (the legacy Lights block),
 - flares.
 
@@ -236,11 +237,11 @@ renderer DLLs keep loading):
   its own.
 - **SSR / cubemaps**: unchanged and additive. A surface shows both the direct LTC highlight and the
   reflection.
-- **POM self shadow**: one ray towards the emitter center, weighted by the existing per-pixel light
-  budget. Area lights are not in the budget ranking. This is an approximation; there are no
-  per-corner rays.
-- **Shadows**: none. LTC gives the BRDF integral, not area visibility. Static lamps rely on the
-  lightmap. `DynamicLightReceiverVisibility` is the hook for later.
+- **POM self shadow**: one ray towards the emitter center, ranked with point lights under the
+  same per-pixel budget. The area score uses a conservative emitter bound; there are no per-corner rays.
+- **Shadows**: dynamic saber lines use a point-shadow cube centred on the blade for LTC visibility
+  and froxel fog. It is a single-point approximation of line visibility. Static rectangles remain
+  unshadowed and rely on the lightmap.
 - **Volumetric fog**: saber lines use a froxel-only proxy located at the closest point on the
   blade. Static rectangles are not injected.
 
@@ -262,8 +263,8 @@ when off.
 ## Limitations
 
 - The saber is a ribbon, not an exact line or tube integral.
-- There are no area shadows. Static rectangles have no volumetric scattering; saber lines use a
-  closest-point fog proxy without geometry shadows.
+- Static rectangles have no area shadows or volumetric scattering. Saber lines use a closest-point
+  fog proxy and a point-shadow cube at the blade centre.
 - The specular LUT has a 9% mean error at grazing angles.
 - Vertex-lit surfaces are not lit by area lights.
 - Automatic lights: brightness follows the glow textures; curved lamps (patches) and lamps without a glow stage are not found; only flat faces and triangle soups are scanned.

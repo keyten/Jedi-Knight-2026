@@ -976,15 +976,15 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		vec4 spot = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 2);
 		vec4 spot2 = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 3);
 		float radius = originRadius.w;
+		bool lineLight = spot2.w < -999.0;
 
 		// r_spotLightDebug 3: no dynamic light in the fog, 4: spot lights only
 		float spotDebug = u_ShadowDebug.z;
-		if (spotDebug == 3.0 || (spotDebug == 4.0 && spot2.x < -0.5))
+		if (spotDebug == 3.0 || (spotDebug == 4.0 && (lineLight || spot2.x < -0.5)))
 			continue;
 
 		// Saber fog proxy: use the closest point on the blade, while surface
 		// lighting continues to evaluate the LTC emitter exactly once.
-		bool lineLight = spot2.w < -999.0;
 		vec3 source = originRadius.xyz;
 		if (lineLight)
 			source += spot.xyz * clamp(dot(p - source, spot.xyz), -spot2.x, spot2.x);
@@ -1010,7 +1010,12 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		int shadowLayer = int(colorLayer.w);
 		if (u_FroxelShadowParams.z > 0.5 && shadowLayer >= 0)
 		{
-			if (spot2.y > 0.5)
+			if (lineLight)
+			{
+				vec3 shadowL = originRadius.xyz - p;
+				shadow = DynamicLightShadow(shadowL, max(length(shadowL), 1e-2), spot.w, shadowLayer);
+			}
+			else if (spot2.y > 0.5)
 				shadow = SpotLightShadow(originRadius.xyz, L, dist, shadowLayer, spot.w);
 			else
 				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);

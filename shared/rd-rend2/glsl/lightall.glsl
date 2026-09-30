@@ -2026,6 +2026,27 @@ float PomLightImportance(in vec3 toLight, in vec3 lightColor, in float lightRadi
 	return dot(lightColor, vec3(0.2126, 0.7152, 0.0722)) * attenuation;
 }
 
+#if defined(USE_LTC)
+// Cheap conservative emitter bound for POM ranking. Use this same score when
+// assigning the ray weight, so area lights obey the point-light ray budget.
+float PomAreaLightImportance(in vec3 position, in FPlusLight light)
+{
+#if !defined(USE_SPECULARMAP)
+	if ((light.flags & AREALIGHT_SPECULAR_ONLY) != 0)
+		return 0.0;
+#endif
+	vec3 delta = light.origin - position;
+	float halfDiagonal = length(vec2(light.halfWidth, light.halfHeight));
+	float gap = max(length(delta) - halfDiagonal, 0.0);
+	float d2 = gap * gap;
+	float range2 = max(light.radius * light.radius, 1.0);
+	float window = clamp(1.0 - (d2 / range2) * (d2 / range2), 0.0, 1.0);
+	float area = 4.0 * light.halfWidth * light.halfHeight;
+	return dot(light.color, vec3(0.2126, 0.7152, 0.0722)) *
+		area / max(area + d2, 1e-6) * window * window;
+}
+#endif
+
 // r_pomSelfShadowLightMode 1 / 2: only the N strongest lights at this pixel get a
 // self shadow ray. Returns the importance of the (N+1)-th strongest light; the
 // weight of a light fades in between 1x and 1.5x of it, so the choice changes
@@ -2045,26 +2066,31 @@ float PomLocalLightCut(in vec3 position, in bool fplus, in ivec2 list)
 	float top[5] = float[5](0.0, 0.0, 0.0, 0.0, 0.0);
 	for (int k = 0; k < list.y; k++)
 	{
-		vec3 lightOrigin, lightColor;
-		float lightRadius;
+		float importance;
 		if (fplus)
 		{
-			FPlusLight light = FPlusFetchLight(FPlusLightIndex(list.x + k));
-			if (light.type != 0.0)
+			int lightIndex = FPlusLightIndex(list.x + k);
+			FPlusLight light = FPlusFetchLight(lightIndex);
+			if (FPlusDebugSkipLight(light, lightIndex))
 				continue;
-			lightOrigin = light.origin;
-			lightColor = light.color;
-			lightRadius = light.radius;
+			if (light.type != 0.0)
+			{
+#if defined(USE_LTC)
+				importance = PomAreaLightImportance(position, light);
+#else
+				continue;
+#endif
+			}
+			else
+				importance = PomLightImportance(light.origin - position, light.color, light.radius);
 		}
 		else
 		{
 			if ( ( u_LightMask & ( 1 << k ) ) == 0 )
 				continue;
-			lightOrigin = u_Lights[k].origin.xyz;
-			lightColor = u_Lights[k].color;
-			lightRadius = u_Lights[k].radius;
+			importance = PomLightImportance(u_Lights[k].origin.xyz - position,
+				u_Lights[k].color, u_Lights[k].radius);
 		}
-		float importance = PomLightImportance(lightOrigin - position, lightColor, lightRadius);
 		// insert into the descending list of the maxLights + 1 strongest
 		for (int j = 0; j < 5; j++)
 		{
@@ -2259,12 +2285,9 @@ vec3 LtcIntegrateEdgeVec(in vec3 v1, in vec3 v2)
 // form factor of the quad q0..q3 (receiver at the origin, tangent frame,
 // winding: cross(q1 - q0, q3 - q0) points away from the emitting side)
 // transformed by Minv, clipped by the horizon
-float LtcQuadFormFactor(in mat3 Minv, in vec3 q0, in vec3 q1, in vec3 q2, in vec3 q3, in bool twoSided)
+float LtcQuadFormFactorVectors(in vec3 L0, in vec3 L1, in vec3 L2, in vec3 L3,
+	in vec3 q0, in vec3 q1, in vec3 q3, in bool twoSided)
 {
-	vec3 L0 = normalize(Minv * q0);
-	vec3 L1 = normalize(Minv * q1);
-	vec3 L2 = normalize(Minv * q2);
-	vec3 L3 = normalize(Minv * q3);
 	vec3 F = LtcIntegrateEdgeVec(L0, L1) + LtcIntegrateEdgeVec(L1, L2) +
 		LtcIntegrateEdgeVec(L2, L3) + LtcIntegrateEdgeVec(L3, L0);
 	float len = length(F);
@@ -2282,12 +2305,31 @@ float LtcQuadFormFactor(in mat3 Minv, in vec3 q0, in vec3 q1, in vec3 q2, in vec
 	return len * texture(u_LtcAmplitudeMap, uv).w;
 }
 
+float LtcQuadFormFactor(in mat3 Minv, in vec3 q0, in vec3 q1, in vec3 q2, in vec3 q3, in bool twoSided)
+{
+	return LtcQuadFormFactorVectors(normalize(Minv * q0), normalize(Minv * q1),
+		normalize(Minv * q2), normalize(Minv * q3), q0, q1, q3, twoSided);
+}
+
+vec3 LtcTransformSpec(in vec4 m, in vec3 q)
+{
+	return vec3(m.x * q.x + m.z * q.z, q.y, m.y * q.x + m.w * q.z);
+}
+
+float LtcQuadFormFactorSpec(in vec4 m, in vec3 q0, in vec3 q1, in vec3 q2, in vec3 q3, in bool twoSided)
+{
+	return LtcQuadFormFactorVectors(normalize(LtcTransformSpec(m, q0)),
+		normalize(LtcTransformSpec(m, q1)), normalize(LtcTransformSpec(m, q2)),
+		normalize(LtcTransformSpec(m, q3)), q0, q1, q3, twoSided);
+}
+
 struct LtcSurfaceCache
 {
 	bool ready;
-	mat3 toTangent;
+	vec3 T1;
+	vec3 T2;
 #if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
-	mat3 Minv;
+	vec4 Minv;
 	vec3 fresnel;
 #endif
 };
@@ -2295,13 +2337,20 @@ struct LtcSurfaceCache
 vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightIndex,
 	inout LtcSurfaceCache cache)
 {
+#if !defined(USE_SPECULARMAP)
+	if ((light.flags & AREALIGHT_SPECULAR_ONLY) != 0)
+		return vec3(0.0);
+#endif
 	vec3 toReceiver = s.position - light.origin;
 	// The bounding sphere is conservative for either emitter orientation.
 	float reach = light.radius + light.halfWidth + light.halfHeight;
 	if (dot(toReceiver, toReceiver) >= reach * reach)
 		return vec3(0.0);
 	int base = u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS;
-	vec3 right = texelFetch(u_FPlusLights, base + 3).xyz;
+	vec4 rightData = texelFetch(u_FPlusLights, base + 3);
+	if (dot(toReceiver, toReceiver) >= rightData.w * rightData.w)
+		return vec3(0.0);
+	vec3 right = rightData.xyz;
 	vec3 up = texelFetch(u_FPlusLights, base + 4).xyz;
 	bool twoSided = (light.flags & AREALIGHT_TWO_SIDED) != 0;
 
@@ -2331,6 +2380,30 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 	// POM self shadow: towards the centre (one ray, not one per corner)
 	window *= DynamicLightReceiverVisibility(s, normalize(light.origin - s.position));
+	if (window <= 0.0)
+		return vec3(0.0);
+
+#if defined(USE_DSHADOWS)
+	// A saber owns a point-shadow cube at its centre. One visibility sample
+	// approximates the blade's occlusion without adding a visible point light.
+	if (light.type == FPLUS_TYPE_LINE && light.shadowSlot >= 0)
+	{
+		vec3 sampleVector = light.origin - s.position;
+		float shadowRadius = rightData.w;
+		if (u_ShadowDebug.y > 0.5)
+		{
+			float texelWorld = 2.0 * length(sampleVector) / float(DSHADOW_MAP_SIZE);
+			sampleVector -= normalize(s.vertexNormal) * texelWorld;
+			sampleVector -= normalize(sampleVector) * (2.0 * texelWorld);
+		}
+		float visibility = pcfShadow(u_ShadowMap2, normalize(sampleVector),
+			getLightDepth(sampleVector, shadowRadius), light.shadowSlot);
+		g_dlightShadowVisibility = min(g_dlightShadowVisibility, visibility);
+		window *= visibility;
+		if (window <= 0.0)
+			return vec3(0.0);
+	}
+#endif
 
 	// Receiver state is shared by all area lights in this fragment.
 	vec3 N = s.N;
@@ -2341,14 +2414,15 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		if (dot(T1, T1) < 1e-8)
 			T1 = abs(N.z) < 0.999 ? cross(N, vec3(0.0, 0.0, 1.0)) : vec3(1.0, 0.0, 0.0);
 		T1 = normalize(T1);
-		cache.toTangent = transpose(mat3(T1, cross(N, T1), N));
+		cache.T1 = T1;
+		cache.T2 = cross(N, T1);
 #if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
 		vec2 uv = vec2(sqrt(clamp(s.roughness, 0.0, 1.0)),
 			sqrt(1.0 - clamp(s.NE, 0.0, 1.0)));
 		uv = uv * LTC_LUT_SCALE + LTC_LUT_BIAS;
 		vec4 t1 = texture(u_LtcMatrixMap, uv);
 		vec4 t2 = texture(u_LtcAmplitudeMap, uv);
-		cache.Minv = mat3(vec3(t1.x, 0.0, t1.y), vec3(0.0, 1.0, 0.0), vec3(t1.z, 0.0, t1.w));
+		cache.Minv = t1;
 		cache.fresnel = s.specular * t2.x + (1.0 - s.specular) * t2.y *
 			clamp(50.0 * s.specular.g, 0.0, 1.0);
 #endif
@@ -2358,10 +2432,13 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	vec3 R = right * light.halfWidth;
 	vec3 U = up * light.halfHeight;
 	vec3 c = light.origin - s.position;
-	vec3 q0 = cache.toTangent * (c - R - U);
-	vec3 q1 = cache.toTangent * (c - R + U);
-	vec3 q2 = cache.toTangent * (c + R + U);
-	vec3 q3 = cache.toTangent * (c + R - U);
+	vec3 ct = vec3(dot(cache.T1, c), dot(cache.T2, c), dot(N, c));
+	vec3 rt = vec3(dot(cache.T1, R), dot(cache.T2, R), dot(N, R));
+	vec3 ut = vec3(dot(cache.T1, U), dot(cache.T2, U), dot(N, U));
+	vec3 q0 = ct - rt - ut;
+	vec3 q1 = ct - rt + ut;
+	vec3 q2 = ct + rt + ut;
+	vec3 q3 = ct + rt - ut;
 
 	vec3 radiance = light.color * window;
 	vec3 diffuseOut = vec3(0.0);
@@ -2389,7 +2466,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 	#if defined(USE_SPECULARMAP)
 	#if !defined(USE_CLOTH_BRDF)
-	float specFF = LtcQuadFormFactor(cache.Minv, q0, q1, q2, q3, twoSided);
+	float specFF = LtcQuadFormFactorSpec(cache.Minv, q0, q1, q2, q3, twoSided);
 	specularOut = radiance * specFF * cache.fresnel;
 	#else
 	// cloth (Charlie) lobe: wide, a representative point is enough
@@ -2475,7 +2552,9 @@ vec3 CalcDynamicLightContribution(
 				// area light (r_ltcAreaLights): only in the USE_LTC programs
 #if defined(USE_LTC)
 #if defined(USE_PARALLAXMAP)
-				g_pomLightWeight = PomLocalLightWeight(pomCut, light.origin - s.position, light.color, light.radius);
+				g_pomLightWeight = pomCut < 0.0 ? 0.0 :
+					pomCut == 0.0 ? 1.0 : smoothstep(pomCut, pomCut * 1.5,
+						PomAreaLightImportance(s.position, light));
 #endif
 				outColor += EvaluateAreaLight(s, light, lightIndex, ltcCache);
 #endif

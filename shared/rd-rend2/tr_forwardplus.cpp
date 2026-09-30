@@ -428,8 +428,9 @@ static float R_DlightImportance( const dlight_t *dl, const vec3_t viewOrigin )
 {
 	if ( dl->areaType != DLIGHT_POINT )
 	{
-		// Radiance times projected emitter area estimates its solid-angle
-		// contribution. The influence radius is only a culling bound.
+		// Radiance times emitter area estimates its solid-angle contribution.
+		// Keep a nonzero score outside the camera's influence range: the
+		// receiver visible across a room may still be next to this light.
 		vec3_t delta, closest;
 		VectorSubtract(viewOrigin, dl->origin, delta);
 		VectorCopy(dl->origin, closest);
@@ -440,13 +441,8 @@ static float R_DlightImportance( const dlight_t *dl, const vec3_t viewOrigin )
 				DotProduct(delta, dl->areaUp)), dl->areaUp, closest);
 		const float area = 4.0f * dl->halfWidth * dl->halfHeight;
 		const float distSq = DistanceSquared(viewOrigin, closest);
-		const float halfDiagonal = sqrtf(dl->halfWidth * dl->halfWidth +
-			dl->halfHeight * dl->halfHeight);
-		const float range = Q_max(dl->radius - halfDiagonal, 1.0f);
-		const float d2 = distSq / (range * range);
-		const float window = Q_max(0.0f, 1.0f - d2 * d2);
 		return Q_max(R_DlightLuminance(dl), 0.0f) * area /
-			Q_max(distSq, area) * window * window;
+			Q_max(distSq, area);
 	}
 	const float radius = Q_max(dl->radius, 1.0f);
 	const float distSq = DistanceSquared(dl->origin, viewOrigin);
@@ -496,10 +492,21 @@ static void R_ForwardPlusSelectShadows( const trRefdef_t *refdef )
 	int candidates[MAX_RENDER_DLIGHTS];
 	for ( int i = 0; i < n; i++ )
 	{
-		history[i] = budget ? R_MatchShadowHistory(refdef->dlights + i) : -1;
+		const dlight_t *dl = refdef->dlights + i;
+		history[i] = budget ? R_MatchShadowHistory(dl) : -1;
 		score[i] = s_fp.importance[i] * (history[i] >= 0 ? 1.3f : 1.0f);
-		// area lights are unshadowed (LTC is not an area shadow)
-		if ( refdef->dlights[i].areaType != DLIGHT_POINT )
+		// A dynamic saber line owns a point-shadow cube at its centre. Its
+		// surface lighting remains LTC; there is no second point light.
+		if ( dl->areaType == DLIGHT_LINE && (dl->areaFlags & AREALIGHT_DYNAMIC) )
+		{
+			const float radius = Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f);
+			const float distSq = DistanceSquared(dl->origin, refdef->vieworg);
+			score[i] = 0.25f * R_DlightLuminance(dl) * radius * radius /
+				Q_max(distSq, 0.0625f * radius * radius) *
+				(distSq < radius * radius ? 4.0f : 1.0f) *
+				(history[i] >= 0 ? 1.3f : 1.0f);
+		}
+		else if ( dl->areaType != DLIGHT_POINT )
 			score[i] = -1.0f;
 		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0)
 		if ( !R_DlightCastsShadow(refdef->dlights + i) )
@@ -608,6 +615,11 @@ int R_ForwardPlusShadowSlotLight( int slot )
 	return s_fp.slotLight[slot];
 }
 
+int R_ForwardPlusLightShadowSlot( int light )
+{
+	return s_fp.active && light >= 0 && light < s_fp.numLights ? s_fp.shadowSlot[light] : -1;
+}
+
 int R_GetUboDlights( const trRefdef_t *refdef, int *lightIndexes, int *shadowLayers )
 {
 	return R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_DLIGHTS);
@@ -685,44 +697,68 @@ static qboolean R_ForwardPlusLightRange(
 {
 	if ( dl->radius <= 0.0f )
 		return qfalse;
-	// spot lights: the sphere around the cone (tr_spotlight.cpp)
-	vec3_t center;
+	// A rectangle expanded by its influence range is the convex hull of its
+	// four corner spheres. A line needs only its two endpoint spheres.
+	vec3_t centers[4];
+	int numCenters = 1;
 	float radius;
-	R_SpotBoundingSphere(dl, center, &radius);
+	if ( dl->areaType == DLIGHT_POINT )
+		R_SpotBoundingSphere(dl, centers[0], &radius);
+	else
+	{
+		radius = Q_max(dl->radius - dl->areaHalfDiagonal, 0.0f);
+		numCenters = dl->areaType == DLIGHT_LINE ? 2 : 4;
+		if ( numCenters == 2 )
+			radius += dl->halfHeight;
+		for ( int i = 0; i < numCenters; i++ )
+		{
+			VectorMA(dl->origin, (i & 1) ? dl->halfWidth : -dl->halfWidth,
+				dl->areaRight, centers[i]);
+			if ( numCenters == 4 )
+				VectorMA(centers[i], (i & 2) ? dl->halfHeight : -dl->halfHeight,
+					dl->areaUp, centers[i]);
+		}
+	}
 
-	float eye[3];
-	R_TransformPoint(view->world.modelViewMatrix, center, eye);
-	const float depth = -eye[2];
-	if ( depth + radius <= view->zNear || depth - radius >= view->zFar )
+	float eyes[4][3];
+	float nearDepth = 1e30f, farDepth = -1e30f;
+	for ( int i = 0; i < numCenters; i++ )
+	{
+		R_TransformPoint(view->world.modelViewMatrix, centers[i], eyes[i]);
+		nearDepth = Q_min(nearDepth, -eyes[i][2] - radius);
+		farDepth = Q_max(farDepth, -eyes[i][2] + radius);
+	}
+	if ( farDepth <= view->zNear || nearDepth >= view->zFar )
 		return qfalse;
 
-	range->z0 = R_ForwardPlusSlice(slicing, Q_max(depth - radius, 0.0f));
-	range->z1 = R_ForwardPlusSlice(slicing, depth + radius);
+	range->z0 = R_ForwardPlusSlice(slicing, Q_max(nearDepth, 0.0f));
+	range->z1 = R_ForwardPlusSlice(slicing, farDepth);
 
 	range->x0 = 0;
 	range->x1 = tilesX - 1;
 	range->y0 = 0;
 	range->y1 = tilesY - 1;
-	if ( depth - radius <= view->zNear )
+	if ( nearDepth <= view->zNear )
 		return qtrue;
 
 	const float *p = view->projectionMatrix;
 	float minX = 1e30f, maxX = -1e30f, minY = 1e30f, maxY = -1e30f;
-	for ( int c = 0; c < 8; c++ )
-	{
-		const float x = eye[0] + ((c & 1) ? radius : -radius);
-		const float y = eye[1] + ((c & 2) ? radius : -radius);
-		const float z = eye[2] + ((c & 4) ? radius : -radius);
-		const float cx = p[0] * x + p[4] * y + p[8] * z + p[12];
-		const float cy = p[1] * x + p[5] * y + p[9] * z + p[13];
-		const float cw = p[3] * x + p[7] * y + p[11] * z + p[15];
-		if ( cw <= 1e-4f )
-			return qtrue;	// degenerate, keep the whole viewport
-		minX = Q_min(minX, cx / cw);
-		maxX = Q_max(maxX, cx / cw);
-		minY = Q_min(minY, cy / cw);
-		maxY = Q_max(maxY, cy / cw);
-	}
+	for ( int i = 0; i < numCenters; i++ )
+		for ( int c = 0; c < 8; c++ )
+		{
+			const float x = eyes[i][0] + ((c & 1) ? radius : -radius);
+			const float y = eyes[i][1] + ((c & 2) ? radius : -radius);
+			const float z = eyes[i][2] + ((c & 4) ? radius : -radius);
+			const float cx = p[0] * x + p[4] * y + p[8] * z + p[12];
+			const float cy = p[1] * x + p[5] * y + p[9] * z + p[13];
+			const float cw = p[3] * x + p[7] * y + p[11] * z + p[15];
+			if ( cw <= 1e-4f )
+				return qtrue;	// degenerate, keep the whole viewport
+			minX = Q_min(minX, cx / cw);
+			maxX = Q_max(maxX, cx / cw);
+			minY = Q_min(minY, cy / cw);
+			maxY = Q_max(maxY, cy / cw);
+		}
 	if ( maxX < -1.0f || minX > 1.0f || maxY < -1.0f || minY > 1.0f )
 		return qfalse;
 
@@ -911,8 +947,8 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		if ( dl->areaType != DLIGHT_POINT )
 		{
 			// the window reaches range = cull radius - half diagonal
-			t[3] = dl->radius - sqrtf(dl->halfWidth * dl->halfWidth + dl->halfHeight * dl->halfHeight);
-			VectorSet4(t + 12, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], 0.0f);
+			t[3] = dl->radius - dl->areaHalfDiagonal;
+			VectorSet4(t + 12, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], dl->radius);
 			VectorSet4(t + 16, dl->areaUp[0], dl->areaUp[1], dl->areaUp[2], 0.0f);
 		}
 		else

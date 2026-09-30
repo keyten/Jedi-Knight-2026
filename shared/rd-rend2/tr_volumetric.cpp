@@ -1187,11 +1187,39 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		if ( refdef->dlights[i].areaType == DLIGHT_LINE )
 		{
 			lightIndexes[numSceneLights] = i;
-			shadowLayers[numSceneLights++] = -1;
+			shadowLayers[numSceneLights++] = R_ForwardPlusLightShadowSlot(i);
 		}
 	}
 	if ( numSceneLights <= 0 )
 		return;
+	struct fogCandidate_t { int light, shadowLayer; float score; };
+	fogCandidate_t candidates[MAX_RENDER_DLIGHTS];
+	for ( int i = 0; i < numSceneLights; i++ )
+	{
+		const dlight_t *dl = refdef->dlights + lightIndexes[i];
+		vec3_t nearest;
+		VectorCopy(dl->origin, nearest);
+		float radius = dl->radius;
+		if ( dl->areaType == DLIGHT_LINE )
+		{
+			vec3_t delta;
+			VectorSubtract(view->ori.origin, dl->origin, delta);
+			VectorMA(nearest, Com_Clamp(-dl->halfWidth, dl->halfWidth,
+				DotProduct(delta, dl->areaRight)), dl->areaRight, nearest);
+			radius = Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f);
+		}
+		const float minDistSq = 0.0625f * radius * radius;
+		const float luminance = 0.2126f * dl->color[0] + 0.7152f * dl->color[1] +
+			0.0722f * dl->color[2];
+		candidates[i].light = lightIndexes[i];
+		candidates[i].shadowLayer = shadowLayers[i];
+		candidates[i].score = luminance * (dl->areaType == DLIGHT_LINE ? 0.25f : 1.0f) *
+			radius * radius / Q_max(DistanceSquared(view->ori.origin, nearest), minDistSq);
+	}
+	std::sort(candidates, candidates + numSceneLights,
+		[](const fogCandidate_t& a, const fogCandidate_t& b) {
+			return a.score != b.score ? a.score > b.score : a.light < b.light;
+		});
 
 	const auto buildStart = std::chrono::steady_clock::now();
 	const int tileSize = R_VolumetricLightTileSize();
@@ -1206,25 +1234,24 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
 	{
-		const dlight_t *dl = refdef->dlights + lightIndexes[i];
+		const dlight_t *dl = refdef->dlights + candidates[i].light;
 		froxelLightRange_t *range = &ranges[numLights];
 		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tileSize, tilesX, tilesY, range) )
 			continue;
 		range->light = numLights;
 		// spot lights without shadow (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0) and
 		// the legacy cube index of a light that has none
-		const int shadowLayer = R_DlightCastsShadow(dl) ? shadowLayers[i] : -1;
+		const int shadowLayer = R_DlightCastsShadow(dl) ? candidates[i].shadowLayer : -1;
 		const float projected = (shadowLayer >= 0 && dl->spotShadowSlot == shadowLayer) ? 1.0f : 0.0f;
 		float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
 		if ( dl->areaType == DLIGHT_LINE )
 		{
-			// The legacy saber point used blade length * 2 as its radius.
-			// Preserve its fog energy while locating the source on the blade.
+			// The API's range is the old single-blade point-light radius in SP.
 			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2],
-				Q_max(2.0f * dl->halfWidth, 1.0f));
+				Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f));
 			VectorSet4(t + 4, dl->color[0] * 0.25f, dl->color[1] * 0.25f,
-				dl->color[2] * 0.25f, -1.0f);
-			VectorSet4(t + 8, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], -2.0f);
+				dl->color[2] * 0.25f, (float)shadowLayer);
+			VectorSet4(t + 8, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], dl->radius);
 			VectorSet4(t + 12, dl->halfWidth, -1.0f, -1.0f, -1000.0f);
 		}
 		else

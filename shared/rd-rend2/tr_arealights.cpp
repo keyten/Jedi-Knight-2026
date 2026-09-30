@@ -67,6 +67,8 @@ struct mapAreaLight_t
 	vec3_t color;				// radiance = color * intensity
 	float intensity;
 	float range;
+	float halfDiagonal;			// cached geometry for scene selection
+	float power;				// cached radiance * emitting area
 	qboolean twoSided;
 	int mode;					// AREAMODE_*
 	qboolean automatic;			// r_ltcAutoAreaLights, not from a file
@@ -331,6 +333,16 @@ static void R_AutoAreaLights( void );
 static void R_ClearImageAverages( void );
 static void R_ClearAreaCandidates( void );
 
+static void R_CacheMapAreaLightMetrics( void )
+{
+	for ( mapAreaLight_t& l : s_al.lights )
+	{
+		l.halfDiagonal = sqrtf(l.halfWidth * l.halfWidth + l.halfHeight * l.halfHeight);
+		l.power = 4.0f * l.halfWidth * l.halfHeight * l.intensity *
+			(0.2126f * l.color[0] + 0.7152f * l.color[1] + 0.0722f * l.color[2]);
+	}
+}
+
 // the map file when there is one, else r_ltcAutoAreaLights candidates
 static void R_LoadAreaLightFile( void )
 {
@@ -382,6 +394,7 @@ void R_LoadAreaLights( const char *mapName )
 	Q_strncpyz(s_al.mapName, mapName ? mapName : "", sizeof(s_al.mapName));
 	R_ClearAreaCandidates();
 	R_LoadAreaLightFile();
+	R_CacheMapAreaLightMetrics();
 }
 
 void R_ClearAreaLights( void )
@@ -403,6 +416,7 @@ void R_ReloadAreaLights_f( void )
 		return;
 	}
 	R_LoadAreaLightFile();
+	R_CacheMapAreaLightMetrics();
 	if ( s_al.lights.empty() )
 		ri.Printf(PRINT_ALL, "maps/%s.arealights.json: none loaded (r_ltcAutoAreaLights %d)\n",
 			s_al.mapName, r_ltcAutoAreaLights->integer);
@@ -419,7 +433,8 @@ Scene
 
 
 static dlight_t *R_AddAreaDlight( int type, const vec3_t center, const vec3_t right, const vec3_t up,
-	float halfWidth, float halfHeight, float range, const vec3_t radiance, int flags, int id )
+	float halfWidth, float halfHeight, float halfDiagonal, float range,
+	const vec3_t radiance, int flags, int id )
 {
 	dlight_t *dl = R_AllocSceneDlight();
 	if ( !dl )
@@ -427,7 +442,9 @@ static dlight_t *R_AddAreaDlight( int type, const vec3_t center, const vec3_t ri
 	VectorCopy(center, dl->origin);
 	VectorCopy(radiance, dl->color);
 	// the cull sphere must hold every point the window reaches
-	dl->radius = range + sqrtf(halfWidth * halfWidth + halfHeight * halfHeight);
+	dl->areaHalfDiagonal = halfDiagonal >= 0.0f ? halfDiagonal :
+		sqrtf(halfWidth * halfWidth + halfHeight * halfHeight);
+	dl->radius = range + dl->areaHalfDiagonal;
 	dl->areaType = type;
 	dl->areaFlags = flags;
 	dl->areaId = id;
@@ -482,7 +499,9 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 			(want < (int)s_al.lights.size() ? want : -1);
 	}
 
-	const int maxLights = Com_Clampi(0, MAX_RENDER_DLIGHTS, r_ltcMaxLights->integer);
+	extern int r_numdlights;
+	const int maxLights = Q_min(Com_Clampi(0, MAX_RENDER_DLIGHTS, r_ltcMaxLights->integer),
+		Q_max(0, R_DlightCapacity() - r_numdlights));
 	const int numLights = (int)s_al.lights.size();
 	if ( (int)s_previousMapSelection.size() != numLights )
 		s_previousMapSelection.assign(numLights, 0);
@@ -495,13 +514,11 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 		// is not pushed out by small indicators next to the camera; lights
 		// whose sphere cannot reach the view origin's surroundings rank last
 		const mapAreaLight_t *l = &s_al.lights[i];
-		const float extent = l->range + sqrtf(l->halfWidth * l->halfWidth + l->halfHeight * l->halfHeight);
-		const float dist = Distance(fd->vieworg, l->center);
-		const float power = 4.0f * l->halfWidth * l->halfHeight * l->intensity *
-			(0.2126f * l->color[0] + 0.7152f * l->color[1] + 0.0722f * l->color[2]);
-		const float reach = Q_max(dist, 0.1f * l->range);
-		float score = power / (reach * reach);
-		if ( dist - extent > 0.5f * l->range )
+		const float distSq = DistanceSquared(fd->vieworg, l->center);
+		const float minDist = 0.1f * l->range;
+		float score = l->power / Q_max(distSq, minDist * minDist);
+		const float farDistance = l->range + l->halfDiagonal + 0.5f * l->range;
+		if ( distSq > farDistance * farDistance )
 			score *= 0.01f;
 		if ( s_previousMapSelection[i] )
 			score *= 1.15f;
@@ -522,7 +539,7 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 		if ( i == s_al.selected )
 			flags |= AREALIGHT_SELECTED;
 		if ( !R_AddAreaDlight(l->type, l->center, l->right, l->up, l->halfWidth, l->halfHeight,
-				l->range, radiance, flags, i) )
+				l->halfDiagonal, l->range, radiance, flags, i) )
 		{
 			break;
 		}
@@ -546,7 +563,7 @@ void RE_AddAreaLightToScene( const vec3_t center, const vec3_t right, const vec3
 	VectorSet(radiance, r, g, b);
 	VectorScale(radiance, Q_max(r_ltcIntensityScale->value, 0.0f), radiance);
 	range = Com_Clamp(AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
-	R_AddAreaDlight(DLIGHT_RECT, center, axisRight, axisUp, halfWidth, halfHeight, range, radiance,
+	R_AddAreaDlight(DLIGHT_RECT, center, axisRight, axisUp, halfWidth, halfHeight, -1.0f, range, radiance,
 		AREALIGHT_DYNAMIC | (twoSided ? AREALIGHT_TWO_SIDED : 0), -1);
 }
 
@@ -575,7 +592,7 @@ qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float rad
 	VectorScale(radiance, SABER_AREA_RADIANCE * Q_max(r_ltcIntensityScale->value, 0.0f), radiance);
 	range = Com_Clamp(AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
 	return (qboolean)(R_AddAreaDlight(DLIGHT_LINE, center, axis, up, halfLength,
-		Com_Clamp(0.25f, 16.0f, radius), range, radiance,
+		Com_Clamp(0.25f, 16.0f, radius), -1.0f, range, radiance,
 		AREALIGHT_DYNAMIC | AREALIGHT_TWO_SIDED, -1) != nullptr);
 }
 
