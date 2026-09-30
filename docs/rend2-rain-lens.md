@@ -108,8 +108,19 @@ nothing is stored in pixels.
   cell:
   - R = wetness, the path affinity (τ ≈ 12–22 s).
   - G = optical thin film (τ ≈ 2.5–5 s).
-- Deposits use `max()`. Decay continues unchanged under cover, and the field is
-  skipped once it's empty.
+- Deposits accumulate, bounded: `v = 1 − (1 − v)(1 − deposit)`. One pass of a
+  drop leaves a light trail. Heavy traffic wets the lens further, but never
+  past 1. A moving stamp applies only `coverage = ds / 2r` of its amount,
+  because the 60 Hz capsules overlap; one pass adds up to about one full
+  deposit.
+- Decay continues unchanged under cover, and the field is skipped once it's
+  empty.
+- Stamps write only the CPU field. The 30 Hz field tick marks it dirty, so the
+  texture uploads at most 30 times per second, and a trail shows at most 33 ms
+  late.
+- The surface affinity (pin noise, meander) and a tileable detail noise (the
+  splash and emerge structure) are cached per cell at init, so stamps and drops
+  sample them instead of hashing.
 
 **Sheets.**
 - A sheet is an elongated low-weight ribbon, 0.25–0.8 s long. It moves along
@@ -135,20 +146,43 @@ evaporating, and the film drains. Nothing is frozen or restored.
 - **Spawn timing.** Each family (micro, normal, large, flow, sheet) has its own
   Poisson timer. A unit exponential variate is consumed by `rate·dt`, so timing
   is irregular even as the rates change.
-- **Rate.** `rate = profile · r_rainLensDensity · exposed · lerp(0.2, 1, facing^1.5)`.
-  Here, `facing = −dot(forward, rain direction)`. The rain direction is world
-  down, tilted by the weather wind by at most 45°.
+- **Rate.** `rate = profile · r_rainLensDensity · exposed · intensityScale · facingTerm`.
+  - `facing = −dot(forward, rain direction)`. The rain direction is world
+    down, tilted by the weather wind by at most 45°.
+  - The facing term depends on the family. Impacts (micro, normal, large) use
+    `lerp(0.2, 1, facing^1.5)`, flows `lerp(0.55, 1, facing)` and sheets
+    `lerp(0.65, 1, facing)`. A downpour stays heavy when you look at the
+    horizon; only the direct hits need a lens facing the rain.
+  - `intensityScale = clamp(intensity / nominal, 0, 2)`. The nominal intensity
+    of each profile is its standard particle count / 5000: light 0.2,
+    normal/acid 0.4, heavy 1.0. The standard weather presets are therefore
+    unchanged, and custom particle counts rain more or less. The input
+    intensity is clamped to 0..2.
+- **Micro impacts.** A rain micro drop starts in the impact state. It spreads
+  to about 1.5× with a lopsided shape (more refraction), recoils and settles in
+  0.3 s. Satellites thrown by larger impacts land settled.
 - **Size.** `r = lerp(min, max, u^β)` with β > 1, so small drops dominate. Heavy
   rain lowers β.
 - **Peripheral bias.** Large drops, flows and sheets are rejection-sampled
   toward the edges. Micro and normal drops are uniform.
 
 **Events** (`LensWaterEvent`, at most 8 queued per update):
+- Events run after the profile blend and carry their own presets (film, sheet
+  and flow speed), independent of the active weather. Emerge uses film 1.0,
+  sheet speed 1.4 and flow speed 1.0; splash uses film 0.6.
 - `SPLASH` gives a burst of drops, one or two large impacts, micro drops and
   local film.
 - `SPRAY` gives repeated small impacts for its duration, biased toward a side.
-- `EMERGE` gives broad noisy film at once, 3–5 sheets, several flow heads and
-  15–40 beads.
+- `EMERGE` is a transient of about 2.5 s, not a burst:
+  - t = 0: an uneven film over the whole lens, with thick patches, thin holes
+    and fairly sharp edges; the refraction comes from the thickness gradient.
+    Also 2–4 broad sheets.
+  - 0.1–0.5 s: 2–5 flow heads start upstream and run with gravity.
+  - 0.4–1.5 s: narrower rivulets and one or two late thin sheets.
+  - 0–2.5 s: the film tears, and holes open and grow where the detail noise is
+    low.
+  - No beads are spawned. The residual mechanism leaves them behind the flows.
+  - A second emerge within 0.5 s only raises the strength.
 - `SUBMERGE` and `CLEAR` wipe everything.
 
 A continuous spray input (map emitters) spawns like a spray, with no events. It
@@ -301,10 +335,10 @@ deduplicated and replayed on load.
 |---|---|---|
 | `r_rainLens` | 0 | latched, needs `r_hdr`; off = no targets, no simulation |
 | `r_rainLensQuality` | 1 | latched: field 256/360/540, drops 48/96/128, samples 1/3/5 |
-| `r_rainLensDensity` | 1.0 | rain input 0..2 (was 0..1 with default 0.5: archived configs rain half as much) |
+| `r_rainLensDensity` | 1.0 | rain input 0..2 |
 | `r_rainLensDropSize` | 1.0 | geometry only (render, merge contact, trail width); rain amount unchanged |
 | `r_rainLensRefraction` | 1.0 | UV distortion 0..4 |
-| `r_rainLensFilm` | 1.0 | thin film / trail visibility 0..2 |
+| `r_rainLensFilm` | 1.0 | thin film / trail visibility 0..2. The film weight is capped at 0.25, so above 1 only the refraction grows (the composite treats weight > 0.25 as a compact drop with rim and glint) |
 | `r_rainLensBlur` | 1.0 | drop defocus 0..2 |
 | `r_rainLensReflection` | 1.0 | reflection + glints 0..2, 0 = refraction only |
 | `r_rainLensInertia` | 0 | camera acceleration response 0..2 |
@@ -355,9 +389,12 @@ measurements favour them.
 A headless harness (`tools/lenswater_harness`, MSVC `/O2`) tests the CPU core:
 - Heavy rain at density 2, at the caps, costs about 0.2 ms per update.
 - The 116k-cell field decay is branch-free.
-- A dry lens under cover costs nothing. With no agents, no sheets, no film, no
-  spray and no incoming rain, the pass is skipped. The film upload happens only
-  when the field changed (at most 30 Hz).
+- A dry lens under cover costs almost nothing. With no agents, no sheets, no
+  film, no events, no emerge, no spray and no incoming rain, `Update` returns
+  at once (no profile blend, no steps) and the pass is skipped.
+- CPU timings (`steady_clock`) are taken only with `r_rainLensDebug` or
+  `r_speeds` on, or every 16th frame for `rainlens_stats`.
+- The film uploads only on 30 Hz field ticks that changed it.
 - The optics add, per water pixel only, one cubemap fetch and two glint terms.
 
 ## Validation (in game, not yet done)
@@ -372,6 +409,12 @@ Harness-verified (`tools\lenswater_harness\build.bat`):
 - Heavy rain has many more flows and sheets without more large static drops.
   Light rain has no sheets.
 - Caps hold under emerge/splash spam, and the lens dries completely.
+- Emerge spawns no beads at t = 0 and starts with film and sheets. Flow heads
+  follow, the film tears, and residual beads appear.
+- One pass leaves an unsaturated trail; repeated passes accumulate, bounded.
+- Intensity scales the rate; a horizontal view keeps most heavy flows and
+  sheets; micro impacts have an impact phase.
+- The film goes dirty only on field ticks, and a dry update returns at once.
 - The spray emitter wets its side and stops out of range.
 - World event falloff, facing and side.
 - Inertia only when enabled.
@@ -382,7 +425,11 @@ In game:
   switching `rainlens_profile`.
 - Roof test: 5 s under cover, then back out.
 - Camera roll, looking up and down.
-- `heavyrain` should read as turnover, film and rivulets, not 2.5× the drops.
+- `heavyrain` should read as turnover, film and rivulets, not 2.5× the drops,
+  also when looking at the horizon.
+- Leaving water (debug 6 / 5, then the normal view): a wet, uneven lens that
+  tears into sheets and streams, with beads left behind, not a scatter of
+  drops.
 - Leave a pool in first and third person (one burst each).
 - An NPC jumping into water nearby (splash from its side).
 - `r_we lenswater splash 1`, an env.json spray emitter, and an efx `lensWater`

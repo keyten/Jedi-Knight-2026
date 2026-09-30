@@ -154,17 +154,6 @@ Profile ProfileFromWeather( int weather, float intensity )
 	}
 }
 
-// nominal intensity of a forced profile (rainlens_profile without rain)
-float ProfileIntensity( Profile profile )
-{
-	switch ( profile )
-	{
-	case PROFILE_LIGHT: return 0.2f;
-	case PROFILE_HEAVY: return 1.0f;
-	default: return 0.4f;
-	}
-}
-
 // lens space (x right, y up, z toward the viewer) of a world direction
 void WorldToLens( const vec3_t axis[3], const vec3_t world, float out[3] )
 {
@@ -820,7 +809,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	if ( forced != PROFILE_AUTO && !(rain && rain->active) )
 	{
 		// rainlens_profile forces rain for testing on dry maps
-		input->intensity = ProfileIntensity(forced);
+		input->intensity = LensWater::NominalIntensity(forced);
 		input->exposed = 1.0f;
 		input->facing = Com_Clamp(0.0f, 1.0f, refdef->viewaxis[0][2]);
 		vec3_t origin;
@@ -829,8 +818,9 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	}
 	else if ( rain && rain->active && !inWater )
 	{
-		// "lightrain" 1000, "rain" / "acidrain" 2000, "heavyrain" 5000 particles
-		input->intensity = Com_Clamp(0.0f, 1.0f, rain->particleCount / 5000.0f);
+		// "lightrain" 1000, "rain" / "acidrain" 2000, "heavyrain" 5000 particles;
+		// custom counts above that rain harder on the lens, up to twice
+		input->intensity = Com_Clamp(0.0f, 2.0f, rain->particleCount / 5000.0f);
 		input->weather = tr.weatherSystem->rainSubtype;
 
 		vec3_t origin;
@@ -1018,7 +1008,12 @@ qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 	}
 	VectorCopy(backEnd.refdef.vieworg, s_prevOrigin);
 
-	const qboolean active = (qboolean)s_water.Update(dt, in, CurrentParams());
+	// the core times itself only when the numbers are read, or now and then
+	// so rainlens_stats has recent values
+	static unsigned measureFrame = 0;
+	Params params = CurrentParams();
+	params.measure = r_rainLensDebug->integer != 0 || r_speeds->integer != 0 || (++measureFrame & 15u) == 0;
+	const qboolean active = (qboolean)s_water.Update(dt, in, params);
 
 	if ( input->submerged )
 		return qfalse;

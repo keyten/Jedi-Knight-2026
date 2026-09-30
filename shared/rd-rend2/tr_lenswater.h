@@ -97,6 +97,7 @@ struct Sheet
 {
 	Vec2 pos, prevPos, dir;
 	float width, length, strength, speed;
+	float film;			// film stamp strength (weather profile or event preset)
 	float age, lifetime;
 	uint32_t seed;
 };
@@ -124,12 +125,13 @@ struct Params
 	int maxDrops = 96;
 	int maxMicro = 256;
 	int maxSheets = 8;
+	bool measure = false;		// take the Stats timings this update
 };
 
 // weather and camera, per update
 struct Input
 {
-	float intensity = 0.0f;		// 0..1, rain particle count / 5000
+	float intensity = 0.0f;		// 0..2, rain particle count / 5000
 	float exposed = 0.0f;		// 0..1, 0 under cover: no new rain
 	float facing = 0.0f;		// 0..1, lens facing into the rain
 	Profile weather = PROFILE_NORMAL;	// profile of the weather subtype
@@ -223,6 +225,8 @@ public:
 		float refraction;		// distortion scale
 	};
 	static const ProfileParams &GetProfileParams(Profile profile);
+	// rain intensity the profile is tuned for (standard weather particle count / 5000)
+	static float NominalIntensity(Profile profile);
 	// the crossfaded parameters in use
 	const ProfileParams &Current() const { return current; }
 
@@ -239,9 +243,12 @@ private:
 	void SpraySpawn(float strength, Vec2 dir, float dt);
 	void ProcessEvents();
 	void SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread);
-	void SpawnMicro(Vec2 pos, float radius);
-	void SpawnFlow(Vec2 pos, float rn, Vec2 vel);
-	void SpawnSheet(Vec2 pos, float strength, float scale);
+	void SpawnMicro(Vec2 pos, float radius, bool impact);
+	void SpawnFlow(Vec2 pos, float rn, Vec2 vel, float filmAmount);
+	void SpawnSheet(Vec2 pos, float strength, float scale, float speed, float filmAmount);
+	void StartEmerge(float strength);
+	void UpdateEmerge(float dt);
+	void StampEmergeFilm(float strength);
 	void UpdateDrop(Drop &drop, float dt, const Input &input);
 	void UpdatePin(Drop &drop, const Input &input) const;
 	void MergeDrops(const Input &input);
@@ -251,9 +258,12 @@ private:
 	float Importance(const Drop &drop) const;
 	Vec2 RandomPosition(bool obstructive);
 	Vec2 SideBiasedPosition(Vec2 dir, float spread);
-	void StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount);
+	void StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount, float coverage);
 	void StampDisc(Vec2 center, float radius, float wet, float filmAmount, bool noisy);
 	float SampleField(Vec2 p, int channel) const;
+	float SampleAffinity(Vec2 p) const;
+	Vec2 AffinityGradient(Vec2 p) const;
+	float Detail(int x, int y, int ox, int oy) const;
 	Vec2 FieldGradient(Vec2 p, int channel) const;
 	float Random01();
 	float ExpRandom();
@@ -264,6 +274,7 @@ private:
 	std::vector<Sheet> sheets;
 	std::vector<Spray> sprays;
 	std::vector<Event> pendingEvents;
+	std::vector<Event> processingEvents;	// swapped with pendingEvents, keeps capacity
 	struct PendingResidual
 	{
 		Vec2 pos;
@@ -271,6 +282,8 @@ private:
 	};
 	std::vector<PendingResidual> residualSpawns;	// born while drops are iterated
 	std::vector<float> film;	// RG: wetness, film
+	std::vector<float> affinity;	// SurfaceAffinity per film cell (static)
+	std::vector<float> detail;		// tileable value noise per film cell (splash / emerge structure)
 	int filmWidth = 0, filmHeight = 0;
 	float aspect = 16.0f / 9.0f;
 	bool filmDirty = false;
@@ -295,6 +308,19 @@ private:
 	float agentMicroseconds = 0.0f, fieldMicroseconds = 0.0f, eventMicroseconds = 0.0f;
 	float sinceEvent = 1000.0f;
 	Input lastInput;
+
+	// Leaving water: a short choreographed transient rather than a burst.
+	// Film first, sheets break it up, flow heads and rivulets follow, the
+	// residual beads come from the moving water itself.
+	struct EmergeState
+	{
+		bool active;
+		float age, strength;
+		int flowsLeft, rivuletsLeft, lateSheetsLeft;
+		float nextFlow, nextRivulet, nextSheet;
+		int detailX, detailY;	// breakup pattern offset, same as the film stamp
+	};
+	EmergeState emerge = {};
 };
 
 // reference drop radius (lens units): mass 1, the dry-glass depinning size

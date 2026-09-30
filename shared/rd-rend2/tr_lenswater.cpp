@@ -68,8 +68,35 @@ const LensWater::ProfileParams s_profiles[PROFILE_COUNT] =
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
 	  0.60f, 5.0f, 22.0f, 20.0f, 0.9f, 0.45f, 1.25f, { 0.93f, 1.0f, 0.85f }, 1.15f },
 };
-constexpr int kProfileFloats = 21;
-static_assert(sizeof(LensWater::ProfileParams) == kProfileFloats * sizeof(float), "profile blend layout");
+
+// Rain hits a lens facing into it more often. Only the direct impacts
+// follow the facing closely: film turnover, rivulets and sheets of a
+// downpour stay heavy when the camera looks at the horizon.
+constexpr float kImpactFacingMin = 0.2f;
+constexpr float kFlowFacingMin = 0.55f;
+constexpr float kSheetFacingMin = 0.65f;
+constexpr float kMaxIntensityScale = 2.0f;
+
+// Water events are not rain: their own parameters, independent of whatever
+// weather profile happens to be active.
+struct EventPreset
+{
+	float film;			// film stamp strength
+	float sheetSpeed;	// lens heights / s at full tangential gravity
+	float flowSpeed;	// initial flow head speed, same units
+};
+constexpr EventPreset kEmergePreset = { 1.0f, 1.4f, 1.0f };
+constexpr EventPreset kSplashPreset = { 0.6f, 1.0f, 0.6f };
+constexpr float kSprayFilm = 0.35f;
+
+// emerge choreography (seconds)
+constexpr float kEmergeFlowStart = 0.1f, kEmergeFlowEnd = 0.5f;
+constexpr float kEmergeRivuletStart = 0.4f, kEmergeRivuletEnd = 1.5f;
+constexpr float kEmergeBreakup = 2.5f;	// film tearing ends
+constexpr float kEmergeBreakupTau = 0.3f;
+
+// tileable detail noise: lattice cells across the film height
+constexpr int kDetailCells = 12;
 
 // camera acceleration (world units / s^2) to lens gravity units
 constexpr float kInertiaScale = 2.0e-4f;
@@ -124,12 +151,28 @@ float SurfaceAffinity(Vec2 p)
 	return Lerp(a, b, ty);
 }
 
-Vec2 SurfaceAffinityGradient(Vec2 p)
+// Value noise on a lattice that wraps every period cells, sampled at lattice
+// coordinates (x, y): tiles seamlessly, so stamps can use random offsets.
+float TileableNoise(float x, float y, int periodX, int periodY)
 {
-	const float e = 0.25f / kNoiseFrequency;
-	return {
-		(SurfaceAffinity({ p.x + e, p.y }) - SurfaceAffinity({ p.x - e, p.y })) / (2.0f * e),
-		(SurfaceAffinity({ p.x, p.y + e }) - SurfaceAffinity({ p.x, p.y - e })) / (2.0f * e) };
+	const int ix = (int)std::floor(x), iy = (int)std::floor(y);
+	float tx = x - ix, ty = y - iy;
+	tx = tx * tx * (3.0f - 2.0f * tx);
+	ty = ty * ty * (3.0f - 2.0f * ty);
+	auto at = [&](int cx, int cy) {
+		cx = ((cx % periodX) + periodX) % periodX;
+		cy = ((cy % periodY) + periodY) % periodY;
+		return LatticeValue(cx + 7919, cy + 104729);
+	};
+	const float a = Lerp(at(ix, iy), at(ix + 1, iy), tx);
+	const float b = Lerp(at(ix, iy + 1), at(ix + 1, iy + 1), tx);
+	return Lerp(a, b, ty);
+}
+
+// Bounded accumulation: repeated deposits approach 1, never exceed it.
+inline float Deposit(float cell, float amount)
+{
+	return 1.0f - (1.0f - cell) * (1.0f - Saturate(amount));
 }
 
 float ReferenceSize(const Drop &drop) { return drop.radius / kRefRadius; }
@@ -171,6 +214,16 @@ const LensWater::ProfileParams &LensWater::GetProfileParams(Profile profile)
 	return s_profiles[(profile > PROFILE_AUTO && profile < PROFILE_COUNT) ? profile : PROFILE_NORMAL];
 }
 
+float LensWater::NominalIntensity(Profile profile)
+{
+	switch (profile)
+	{
+	case PROFILE_LIGHT: return 0.2f;
+	case PROFILE_HEAVY: return 1.0f;
+	default: return 0.4f;	// normal, acid, auto
+	}
+}
+
 float LensWater::Random01()
 {
 	rng ^= rng << 13;
@@ -190,9 +243,30 @@ void LensWater::Init(int width, int height)
 	filmHeight = std::max(height, 1);
 	aspect = (float)filmWidth / (float)filmHeight;
 	film.assign((size_t)filmWidth * filmHeight * 2, 0.0f);
+
+	// static noise fields, so per drop / per cell work is a lookup
+	const float h = (float)filmHeight;
+	const int periodY = kDetailCells;
+	const int periodX = std::max(1, (int)std::lround(kDetailCells * aspect));
+	const float detailScaleX = (float)periodX / (float)filmWidth;
+	const float detailScaleY = (float)periodY / (float)filmHeight;
+	affinity.resize((size_t)filmWidth * filmHeight);
+	detail.resize((size_t)filmWidth * filmHeight);
+	for (int y = 0; y < filmHeight; ++y)
+	for (int x = 0; x < filmWidth; ++x)
+	{
+		const size_t i = (size_t)y * filmWidth + x;
+		affinity[i] = SurfaceAffinity({ (x + 0.5f) / h - aspect * 0.5f, (y + 0.5f) / h - 0.5f });
+		detail[i] = TileableNoise(x * detailScaleX, y * detailScaleY, periodX, periodY);
+	}
+
 	drops.reserve(256);
 	micro.reserve(512);
 	sheets.reserve(16);
+	sprays.reserve(4);
+	pendingEvents.reserve(8);
+	processingEvents.reserve(8);
+	residualSpawns.reserve(256);
 	Clear();
 }
 
@@ -207,6 +281,7 @@ void LensWater::Clear()
 	filmDirty = true;
 	filmVisible = false;
 	filmMax = 0.0f;
+	emerge = {};
 	agentAccumulator = fieldAccumulator = interpolation = 0.0f;
 	timerMicro = ExpRandom();
 	timerNormal = ExpRandom();
@@ -225,7 +300,7 @@ void LensWater::QueueEvent(const Event &event)
 bool LensWater::Active() const
 {
 	return !drops.empty() || !micro.empty() || !sheets.empty() || filmVisible || filmDirty
-		|| !sprays.empty() || !pendingEvents.empty();
+		|| !sprays.empty() || !pendingEvents.empty() || emerge.active;
 }
 
 int LensWater::MaxInstances(const Params &p) const
@@ -245,20 +320,60 @@ void LensWater::BlendProfile(float dt, Profile target)
 	}
 	// weather changes crossfade over about a second
 	const float k = 1.0f - std::exp(-dt);
-	float *c = &current.microRate;
-	const float *g = &goal.microRate;
-	for (int i = 0; i < kProfileFloats; ++i)
-		c[i] += (g[i] - c[i]) * k;
+	auto blend = [k](float &c, float g) { c += (g - c) * k; };
+	ProfileParams &c = current;
+	blend(c.microRate, goal.microRate);
+	blend(c.normalRate, goal.normalRate);
+	blend(c.largeRate, goal.largeRate);
+	blend(c.flowRate, goal.flowRate);
+	blend(c.sheetRate, goal.sheetRate);
+	blend(c.sizeMin, goal.sizeMin);
+	blend(c.sizeMax, goal.sizeMax);
+	blend(c.sizeBeta, goal.sizeBeta);
+	blend(c.largeMin, goal.largeMin);
+	blend(c.largeMax, goal.largeMax);
+	blend(c.filmDeposit, goal.filmDeposit);
+	blend(c.filmTau, goal.filmTau);
+	blend(c.wetTau, goal.wetTau);
+	blend(c.beadLifetime, goal.beadLifetime);
+	blend(c.speed, goal.speed);
+	blend(c.centerSpawn, goal.centerSpawn);
+	blend(c.adhesion, goal.adhesion);
+	for (int i = 0; i < 3; ++i)
+		blend(c.tint[i], goal.tint[i]);
+	blend(c.refraction, goal.refraction);
 }
 
 bool LensWater::Update(float dt, const Input &input, const Params &p)
 {
 	using Clock = std::chrono::steady_clock;
-	auto micros = [](Clock::time_point a, Clock::time_point b) {
-		return std::chrono::duration<float, std::micro>(b - a).count();
-	};
-	const auto start = Clock::now();
+	dt = std::max(dt, 0.0f);
 	params = p;
+	sinceEvent += dt;
+
+	const bool incoming = (input.exposed > 0.0f && input.intensity > 0.0f && p.density > 0.0f)
+		|| input.sprayStrength > 0.0f;
+	if (!incoming && !Active())
+	{
+		// dry lens, nothing arriving: no profile blend, no steps, no timings
+		agentAccumulator = fieldAccumulator = interpolation = 0.0f;
+		lastUpdateMicroseconds = agentMicroseconds = fieldMicroseconds = eventMicroseconds = 0.0f;
+		lastInput = input;
+		return false;
+	}
+
+	// timings only when someone reads them (debug views, r_speeds, stats)
+	const bool measure = params.measure;
+	Clock::time_point mark;
+	auto lap = [&](float &out) {
+		if (!measure)
+			return;
+		const Clock::time_point now = Clock::now();
+		out = std::chrono::duration<float, std::micro>(now - mark).count();
+		mark = now;
+	};
+	const Clock::time_point start = measure ? Clock::now() : Clock::time_point();
+	mark = start;
 
 	// Camera acceleration, weak and optional, acts like extra gravity: the
 	// water lags behind a strongly accelerating camera.
@@ -273,40 +388,38 @@ bool LensWater::Update(float dt, const Input &input, const Params &p)
 	}
 	lastInput = in;
 
-	sinceEvent += std::max(dt, 0.0f);
-	const auto eventsStart = Clock::now();
-	ProcessEvents();
-	eventMicroseconds = micros(eventsStart, Clock::now());
+	// the profile first: rain spawned this update uses the current weather,
+	// events carry their own presets
 	BlendProfile(dt, profileOverride != PROFILE_AUTO ? profileOverride : in.weather);
+	ProcessEvents();
+	lap(eventMicroseconds);
 
-	const auto agentsStart = Clock::now();
-	agentAccumulator = std::min(agentAccumulator + std::max(dt, 0.0f), 0.2f);
+	agentAccumulator = std::min(agentAccumulator + dt, 0.2f);
 	while (agentAccumulator >= kAgentStep)
 	{
 		Step(kAgentStep, in);
 		agentAccumulator -= kAgentStep;
 	}
 	interpolation = agentAccumulator / kAgentStep;
-	agentMicroseconds = micros(agentsStart, Clock::now());
+	lap(agentMicroseconds);
 
-	const auto fieldStart = Clock::now();
-	fieldAccumulator = std::min(fieldAccumulator + std::max(dt, 0.0f), 0.2f);
+	fieldAccumulator = std::min(fieldAccumulator + dt, 0.2f);
 	while (fieldAccumulator >= kFieldStep)
 	{
 		DecayField(kFieldStep);
 		fieldAccumulator -= kFieldStep;
 	}
-	fieldMicroseconds = micros(fieldStart, Clock::now());
+	lap(fieldMicroseconds);
 
-	lastUpdateMicroseconds = micros(start, Clock::now());
+	if (measure)
+		lastUpdateMicroseconds = std::chrono::duration<float, std::micro>(Clock::now() - start).count();
 
-	const bool incoming = (in.exposed > 0.0f && in.intensity > 0.0f && p.density > 0.0f)
-		|| in.sprayStrength > 0.0f;
 	return Active() || incoming;
 }
 
 void LensWater::Step(float dt, const Input &input)
 {
+	UpdateEmerge(dt);
 	Spawn(dt, input);
 
 	for (Drop &drop : drops)
@@ -321,6 +434,11 @@ void LensWater::Step(float dt, const Input &input)
 	for (Drop &m : micro)
 	{
 		m.age += dt;
+		m.stateAge += dt;
+		if (m.state == STATE_IMPACT && m.stateAge >= 0.15f)
+			m.state = STATE_SETTLING;
+		if (m.state == STATE_SETTLING && m.stateAge >= 0.3f)
+			m.state = STATE_SETTLED;
 		m.radius -= evaporation * 1.5f * dt;
 	}
 	micro.erase(std::remove_if(micro.begin(), micro.end(),
@@ -338,7 +456,7 @@ void LensWater::UpdatePin(Drop &drop, const Input &input) const
 {
 	const float g = Length(input.gravity);
 	const float rn = ReferenceSize(drop);
-	const float noise = 1.0f + kPinNoise * (SurfaceAffinity(drop.pos) * 2.0f - 1.0f);
+	const float noise = 1.0f + kPinNoise * (SampleAffinity(drop.pos) * 2.0f - 1.0f);
 	const float seedAdhesion = 0.92f + 0.16f * ((drop.seed >> 8) & 0xffu) / 255.0f;
 	const float wet = Saturate(SampleField(drop.pos, 0));
 	const float pin = kPin * rn * noise * Lerp(1.0f, kWetPin, wet) * seedAdhesion
@@ -383,7 +501,7 @@ void LensWater::UpdateDrop(Drop &drop, float dt, const Input &input)
 		const float pinForce = drop.mass * g / std::max(drop.pinRatio, 1e-6f);
 		const float excess = std::max(drop.mass * g - kKinetic * pinForce, 0.0f) / drop.mass;
 		Vec2 accel = input.gravity * (excess / g * kGravityAccel * current.speed);
-		accel = accel + SurfaceAffinityGradient(drop.pos) * (kPathNoise * g);
+		accel = accel + AffinityGradient(drop.pos) * (kPathNoise * g);
 		accel = accel + FieldGradient(drop.pos, 0) * kWetAttract;
 		drop.vel = drop.vel + accel * dt;
 		drop.vel = drop.vel * std::exp(-(drop.type == DROP_FLOW ? kFlowDrag : kDrag) * dt);
@@ -411,12 +529,16 @@ void LensWater::UpdateDrop(Drop &drop, float dt, const Input &input)
 	{
 		// Trail: a small mass fraction becomes thin film along the swept
 		// segment; after this the trail belongs to the field and only decays.
+		// The coverage spreads one pass over the overlapping 60 Hz capsules,
+		// so a single drop leaves filmAmount and repeated passes accumulate.
 		const float deposit = 1.0f - std::exp(-kDeposit * ds / std::max(drop.radius, 1e-5f)
 			* (drop.type == DROP_FLOW ? 0.7f : 1.0f));
 		drop.mass *= 1.0f - deposit;
 		const float filmAmount = current.filmDeposit * Saturate(0.45f + 0.4f * rn)
 			* (drop.type == DROP_FLOW ? 1.4f : 1.0f);
-		StampCapsule(drop.prevPos, drop.pos, drop.radius * params.dropSize * 0.75f, 1.0f, filmAmount);
+		const float stampRadius = drop.radius * params.dropSize * 0.75f;
+		StampCapsule(drop.prevPos, drop.pos, stampRadius, 1.0f, filmAmount,
+			std::min(ds / std::max(2.0f * stampRadius, 1e-5f), 1.0f));
 
 		// residual beads left behind a sliding drop
 		if (rn > 0.55f && Random01() < 1.0f - std::exp(-kResidual * ds))
@@ -627,7 +749,9 @@ Vec2 LensWater::SideBiasedPosition(Vec2 dir, float spread)
 	return p;
 }
 
-void LensWater::SpawnMicro(Vec2 pos, float radius)
+// impact: a direct rain hit spreads, recoils and settles (satellites of a
+// larger impact are thrown droplets and land settled)
+void LensWater::SpawnMicro(Vec2 pos, float radius, bool impact)
 {
 	// an impact on an existing drop feeds it
 	for (Drop &drop : drops)
@@ -659,8 +783,9 @@ void LensWater::SpawnMicro(Vec2 pos, float radius)
 	m.radius = radius;
 	m.seed = Hash(seedCounter++ ^ 0x85ebca6bu);
 	m.type = DROP_MICRO;
-	m.state = STATE_SETTLED;
-	m.stateAge = m.mergeAge = 1.0f;
+	m.state = impact ? STATE_IMPACT : STATE_SETTLED;
+	m.stateAge = impact ? 0.0f : 1.0f;
+	m.mergeAge = 1.0f;
 	micro.push_back(m);
 }
 
@@ -692,25 +817,25 @@ void LensWater::SpawnRainDrop(float rn, bool large, const Vec2 *center, float sp
 			const float angle = Random01() * 6.2831853f;
 			const float dist = radius * params.dropSize * (1.6f + Random01());
 			SpawnMicro(pos + Vec2{ std::cos(angle) * dist, std::sin(angle) * dist },
-				kRefRadius * (0.12f + 0.15f * Random01()));
+				kRefRadius * (0.12f + 0.15f * Random01()), false);
 		}
 	}
 	Evict();
 }
 
-void LensWater::SpawnFlow(Vec2 pos, float rn, Vec2 vel)
+void LensWater::SpawnFlow(Vec2 pos, float rn, Vec2 vel, float filmAmount)
 {
 	Drop &drop = AddDrop(pos, rn * kRefRadius, DROP_FLOW);
 	drop.moving = true;
 	drop.vel = vel;
 	drop.state = STATE_SETTLING;
 	drop.stateAge = 0.15f;
-	StampDisc(pos, drop.radius * params.dropSize * 1.5f, 1.0f, current.filmDeposit, false);
+	StampDisc(pos, drop.radius * params.dropSize * 1.5f, 1.0f, filmAmount, false);
 	++spawnCount;
 	Evict();
 }
 
-void LensWater::SpawnSheet(Vec2 pos, float strength, float scale)
+void LensWater::SpawnSheet(Vec2 pos, float strength, float scale, float speed, float filmAmount)
 {
 	const size_t maxSheets = (size_t)std::max(params.maxSheets, 0);
 	if (maxSheets == 0)
@@ -739,7 +864,8 @@ void LensWater::SpawnSheet(Vec2 pos, float strength, float scale)
 	sheet.width = (0.08f + 0.10f * Random01()) * scale;
 	sheet.length = (0.18f + 0.22f * Random01()) * scale;
 	sheet.strength = strength;
-	sheet.speed = (0.7f + 0.7f * Random01()) * current.speed * std::max(Length(g), 0.3f);
+	sheet.speed = (0.7f + 0.7f * Random01()) * speed * std::max(Length(g), 0.3f);
+	sheet.film = filmAmount;
 	sheet.lifetime = 0.25f + 0.55f * Random01();
 	sheet.seed = Hash(seedCounter++ ^ 0xc2b2ae35u);
 	sheet.pos = sheet.prevPos = pos - dir * (sheet.length * 0.5f);
@@ -754,8 +880,10 @@ void LensWater::UpdateSheets(float dt, const Input &)
 		sheet.age += dt;
 		sheet.prevPos = sheet.pos;
 		sheet.pos = sheet.pos + sheet.dir * (sheet.speed * dt);
-		StampCapsule(sheet.prevPos, sheet.pos, sheet.width * params.dropSize * 0.45f, 1.0f,
-			0.45f * sheet.strength * current.filmDeposit);
+		const float stampRadius = sheet.width * params.dropSize * 0.45f;
+		const float ds = sheet.speed * dt;
+		StampCapsule(sheet.prevPos, sheet.pos, stampRadius, 1.0f, 0.45f * sheet.strength * sheet.film,
+			std::min(ds / std::max(2.0f * stampRadius, 1e-5f), 1.0f));
 	}
 	sheets.erase(std::remove_if(sheets.begin(), sheets.end(),
 		[](const Sheet &s) { return s.age >= s.lifetime; }), sheets.end());
@@ -763,11 +891,18 @@ void LensWater::UpdateSheets(float dt, const Input &)
 
 void LensWater::Spawn(float dt, const Input &input)
 {
-	// Rain hits a lens facing into it more often; spray and turbulence keep
-	// a baseline.
-	const float facing = Lerp(0.2f, 1.0f, std::pow(Saturate(input.facing), 1.5f));
-	const float rate = std::max(params.density, 0.0f) * Saturate(input.exposed) * facing
-		* (input.intensity > 0.0f ? 1.0f : 0.0f);
+	// Direct impacts follow the facing closely, flows and sheets much less
+	// (see kImpactFacingMin). The intensity scales the rates relative to
+	// the particle count the profile is tuned for, so the standard weather
+	// presets are unchanged and custom rain counts.
+	const float f = Saturate(input.facing);
+	const float impactFacing = Lerp(kImpactFacingMin, 1.0f, std::pow(f, 1.5f));
+	const float flowFacing = Lerp(kFlowFacingMin, 1.0f, f);
+	const float sheetFacing = Lerp(kSheetFacingMin, 1.0f, f);
+	const Profile profile = profileOverride != PROFILE_AUTO ? profileOverride : input.weather;
+	const float intensityScale = std::min(std::max(input.intensity, 0.0f) / NominalIntensity(profile),
+		kMaxIntensityScale);
+	const float rate = std::max(params.density, 0.0f) * Saturate(input.exposed) * intensityScale;
 
 	// Poisson timers: a unit exponential variate consumed by rate * dt
 	auto fire = [&](float &timer, float eventsPerSecond, auto &&spawn)
@@ -786,24 +921,26 @@ void LensWater::Spawn(float dt, const Input &input)
 	if (rate > 0.0f)
 	{
 		const float heavyFlow = std::max(params.heavyFlow, 0.0f);
-		fire(timerMicro, current.microRate * rate, [&]() {
-			SpawnMicro(RandomPosition(false), kRefRadius * (0.1f + 0.2f * Random01()));
+		fire(timerMicro, current.microRate * rate * impactFacing, [&]() {
+			SpawnMicro(RandomPosition(false), kRefRadius * (0.1f + 0.2f * Random01()), true);
 		});
-		fire(timerNormal, current.normalRate * rate, [&]() {
+		fire(timerNormal, current.normalRate * rate * impactFacing, [&]() {
 			const float rn = Lerp(current.sizeMin, current.sizeMax, std::pow(Random01(), current.sizeBeta));
 			SpawnRainDrop(rn, false, nullptr, 0.0f);
 		});
-		fire(timerLarge, current.largeRate * rate, [&]() {
+		fire(timerLarge, current.largeRate * rate * impactFacing, [&]() {
 			SpawnRainDrop(Lerp(current.largeMin, current.largeMax, Random01()), true, nullptr, 0.0f);
 		});
-		fire(timerFlow, current.flowRate * heavyFlow * rate, [&]() {
+		fire(timerFlow, current.flowRate * heavyFlow * rate * flowFacing, [&]() {
 			Vec2 pos = RandomPosition(true);
 			// runs start high on the lens so they cross it
 			pos = pos - Normalize(input.gravity, { 0.0f, -1.0f }) * (0.25f * Random01());
-			SpawnFlow(pos, 1.4f + 0.6f * Random01(), input.gravity * (0.25f * current.speed));
+			SpawnFlow(pos, 1.4f + 0.6f * Random01(), input.gravity * (0.25f * current.speed),
+				current.filmDeposit);
 		});
-		fire(timerSheet, current.sheetRate * heavyFlow * rate, [&]() {
-			SpawnSheet(RandomPosition(true), 0.6f + 0.4f * Random01(), 1.0f);
+		fire(timerSheet, current.sheetRate * heavyFlow * rate * sheetFacing, [&]() {
+			SpawnSheet(RandomPosition(true), 0.6f + 0.4f * Random01(), 1.0f, current.speed,
+				current.filmDeposit);
 		});
 	}
 
@@ -831,12 +968,12 @@ void LensWater::SpraySpawn(float s, Vec2 dir, float dt)
 		SpawnRainDrop(0.3f + 0.5f * Random01(), false, &at, 0.05f);
 	}
 	if (Random01() < std::min(30.0f * s * density * dt, 0.8f))
-		SpawnMicro(SideBiasedPosition(dir, 0.4f), kRefRadius * (0.1f + 0.2f * Random01()));
+		SpawnMicro(SideBiasedPosition(dir, 0.4f), kRefRadius * (0.1f + 0.2f * Random01()), true);
 	if (Random01() < std::min(0.6f * s * density * dt, 0.2f))
 	{
 		const Vec2 at = SideBiasedPosition(dir, 0.3f);
 		SpawnRainDrop(1.1f + 0.5f * Random01(), true, &at, 0.02f);
-		StampDisc(at, 0.06f, 1.0f, 0.35f * s, false);
+		StampDisc(at, 0.06f, 1.0f, kSprayFilm * s, false);
 	}
 }
 
@@ -867,10 +1004,11 @@ void LensWater::ProcessEvents()
 {
 	if (pendingEvents.empty())
 		return;
-	std::vector<Event> events;
-	events.swap(pendingEvents);
+	// swap, not move: both vectors keep their capacity
+	processingEvents.clear();
+	processingEvents.swap(pendingEvents);
 	sinceEvent = 0.0f;
-	for (const Event &event : events)
+	for (const Event &event : processingEvents)
 	{
 		const float s = std::max(event.strength, 0.05f);
 		switch (event.type)
@@ -883,7 +1021,7 @@ void LensWater::ProcessEvents()
 		case EVENT_SPLASH:
 		{
 			const Vec2 center = SideBiasedPosition(event.dir, 0.3f);
-			StampDisc(center, 0.1f + 0.08f * s, 1.0f, 0.5f * s, true);
+			StampDisc(center, 0.1f + 0.08f * s, 1.0f, kSplashPreset.film * s, true);
 			const int normal = 5 + (int)(8.0f * s);
 			for (int i = 0; i < normal; ++i)
 				SpawnRainDrop(0.4f + 0.7f * Random01(), false, &center, 0.12f + 0.1f * s);
@@ -896,7 +1034,7 @@ void LensWater::ProcessEvents()
 				const float angle = Random01() * 6.2831853f;
 				const float dist = std::sqrt(Random01()) * 0.2f;
 				SpawnMicro(center + Vec2{ std::cos(angle) * dist, std::sin(angle) * dist },
-					kRefRadius * (0.1f + 0.2f * Random01()));
+					kRefRadius * (0.1f + 0.2f * Random01()), true);
 			}
 			break;
 		}
@@ -907,41 +1045,139 @@ void LensWater::ProcessEvents()
 			break;
 
 		case EVENT_EMERGE:
-		{
-			// Leaving water: broad film immediately, then breakup into sheets,
-			// several large streams and residual beads.
-			StampDisc({ 0.0f, 0.0f }, 2.0f, 1.0f, 0.8f * std::min(s, 1.25f), true);
-			const Vec2 down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
-			const int numSheets = 3 + (int)(2.0f * s);
-			for (int i = 0; i < numSheets; ++i)
-			{
-				const Vec2 at = { (Random01() - 0.5f) * aspect * 0.9f, (Random01() - 0.5f) * 0.6f };
-				SpawnSheet(at - down * 0.2f, 0.8f + 0.2f * Random01(), 1.3f);
-			}
-			const int flows = 3 + (int)(4.0f * s);
-			for (int i = 0; i < flows; ++i)
-			{
-				const Vec2 at = { (Random01() - 0.5f) * aspect * 0.9f, (Random01() - 0.5f) * 0.8f };
-				SpawnFlow(at - down * 0.2f, 1.5f + 0.7f * Random01(), lastInput.gravity * 0.2f);
-			}
-			const int beads = 15 + (int)(25.0f * s);
-			for (int i = 0; i < beads; ++i)
-			{
-				Drop &bead = AddDrop(RandomPosition(false), kRefRadius * (0.3f + 0.7f * Random01()), DROP_BEAD);
-				bead.state = STATE_SETTLED;
-				++spawnCount;
-			}
-			Evict();
+			StartEmerge(s);
 			break;
 		}
-		}
 	}
+	processingEvents.clear();
+}
+
+/*
+Emerge. Leaving water is choreographed over about 2.5 s instead of dropping
+everything at once:
+  t = 0          uneven film over most of the lens (thick patches, thin holes)
+                 and 2-4 broad sheets
+  0.1 .. 0.5 s   2-5 flow heads start upstream and run with gravity
+  0.4 .. 1.5 s   narrower rivulets, a late thin sheet
+  0 .. 2.5 s     the film tears: holes open where the detail noise is low
+No beads are spawned: the residual mechanism leaves them behind the moving
+water, where they belong.
+*/
+void LensWater::StartEmerge(float strength)
+{
+	const float s = std::min(strength, 1.25f);
+	if (emerge.active && emerge.age < kEmergeFlowEnd)
+	{
+		// a second emerge right away: stronger, not doubled
+		emerge.strength = std::max(emerge.strength, s);
+		return;
+	}
+	emerge = {};
+	emerge.active = true;
+	emerge.strength = s;
+	emerge.detailX = (int)(Random01() * filmWidth);
+	emerge.detailY = (int)(Random01() * filmHeight);
+	emerge.flowsLeft = 2 + (int)(3.0f * std::min(s, 1.0f) + 0.5f);
+	emerge.rivuletsLeft = 2 + (int)(2.0f * std::min(s, 1.0f) + 0.5f);
+	emerge.lateSheetsLeft = s > 0.6f ? 2 : 1;
+	emerge.nextFlow = Lerp(kEmergeFlowStart, kEmergeFlowStart + 0.1f, Random01());
+	emerge.nextRivulet = Lerp(kEmergeRivuletStart, kEmergeRivuletStart + 0.2f, Random01());
+	emerge.nextSheet = Lerp(0.5f, 0.9f, Random01());
+
+	StampEmergeFilm(s);
+
+	// broad sheets start high on the lens and run through the film
+	const Vec2 down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
+	const int numSheets = 2 + (int)(2.0f * std::min(s, 1.0f) + 0.5f);
+	for (int i = 0; i < numSheets; ++i)
+	{
+		const Vec2 at = { (Random01() - 0.5f) * aspect * 0.85f, (Random01() - 0.5f) * 0.5f };
+		SpawnSheet(at - down * 0.2f, 0.8f + 0.2f * Random01(), 1.3f + 0.3f * Random01(),
+			kEmergePreset.sheetSpeed, kEmergePreset.film);
+	}
+}
+
+void LensWater::UpdateEmerge(float dt)
+{
+	if (!emerge.active)
+		return;
+	emerge.age += dt;
+	const float s = emerge.strength;
+	const Vec2 down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
+	// upstream edge of the lens: runs start there and cross it
+	auto upstream = [&](float spread) {
+		const Vec2 side = { -down.y, down.x };
+		const float across = (Random01() - 0.5f) * 2.0f * spread;
+		Vec2 p = down * -(0.3f + 0.15f * Random01());
+		p = p + Vec2{ side.x * across * aspect * 0.5f, side.y * across * 0.5f };
+		p.x = std::max(-aspect * 0.5f, std::min(aspect * 0.5f, p.x));
+		p.y = std::max(-0.5f, std::min(0.5f, p.y));
+		return p;
+	};
+
+	const float flowSpan = kEmergeFlowEnd - kEmergeFlowStart;
+	while (emerge.flowsLeft > 0 && emerge.age >= emerge.nextFlow)
+	{
+		SpawnFlow(upstream(0.9f), 1.5f + 0.6f * Random01() * s,
+			down * (0.35f * kEmergePreset.flowSpeed), kEmergePreset.film);
+		--emerge.flowsLeft;
+		emerge.nextFlow += flowSpan / 4.0f * (0.4f + 1.2f * Random01());
+	}
+
+	const float rivuletSpan = kEmergeRivuletEnd - kEmergeRivuletStart;
+	while (emerge.rivuletsLeft > 0 && emerge.age >= emerge.nextRivulet)
+	{
+		// narrower, slower: rivulets draining what is left of the film
+		SpawnFlow(upstream(0.8f) + down * (0.2f * Random01()), 1.2f + 0.3f * Random01(),
+			down * (0.2f * kEmergePreset.flowSpeed), 0.6f * kEmergePreset.film);
+		--emerge.rivuletsLeft;
+		emerge.nextRivulet += rivuletSpan / 4.0f * (0.4f + 1.2f * Random01());
+	}
+
+	while (emerge.lateSheetsLeft > 0 && emerge.age >= emerge.nextSheet)
+	{
+		SpawnSheet(upstream(0.7f), 0.5f + 0.2f * Random01(), 0.8f + 0.3f * Random01(),
+			kEmergePreset.sheetSpeed * 0.8f, 0.6f * kEmergePreset.film);
+		--emerge.lateSheetsLeft;
+		emerge.nextSheet += 0.3f + 0.4f * Random01();
+	}
+
+	if (emerge.age >= kEmergeBreakup && emerge.flowsLeft == 0 && emerge.rivuletsLeft == 0
+		&& emerge.lateSheetsLeft == 0)
+		emerge.active = false;
+}
+
+// Uneven film: thickness from the tileable detail noise, a smoothstep gives
+// patches with fairly sharp edges and thin holes. The film shader refracts
+// through the thickness gradient, so the structure is what makes a wet lens
+// visible; a uniform film would not show.
+void LensWater::StampEmergeFilm(float strength)
+{
+	if (film.empty())
+		return;
+	const float amount = kEmergePreset.film * std::min(strength, 1.0f);
+	for (int y = 0; y < filmHeight; ++y)
+	for (int x = 0; x < filmWidth; ++x)
+	{
+		const float n = Detail(x, y, emerge.detailX, emerge.detailY);
+		// second octave at a different offset breaks the lattice regularity
+		const float n2 = Detail(x * 2, y * 2, emerge.detailY, emerge.detailX);
+		const float v = 0.7f * n + 0.3f * n2;
+		const float thickness = 0.15f + 0.85f * Smoothstep(0.32f, 0.55f, v);
+		float *cell = &film[((size_t)y * filmWidth + x) * 2];
+		cell[0] = Deposit(cell[0], 0.85f + 0.15f * thickness);
+		cell[1] = Deposit(cell[1], amount * thickness);
+	}
+	filmMax = std::max(filmMax, 1.0f);
+	filmVisible = true;
 }
 
 /*
 Film / wetness field. R = wetness (path affinity, slow decay), G = optical
-thin film (fast decay). Deposits only add where new water passes; decay
-continues unchanged under cover.
+thin film (fast decay). Deposits accumulate, bounded by one, where new water
+passes; decay continues unchanged under cover. Stamps only write the CPU
+field: it is marked dirty here, on the 30 Hz field tick, so the texture
+upload never runs faster than that.
 */
 void LensWater::DecayField(float dt)
 {
@@ -952,15 +1188,37 @@ void LensWater::DecayField(float dt)
 	float maxWet = 0.0f, maxFilm = 0.0f;
 	float *cell = film.data();
 	const size_t count = film.size() / 2;
-	// branch free so the compiler vectorises it
-	for (size_t i = 0; i < count; ++i, cell += 2)
+	if (emerge.active && emerge.age < kEmergeBreakup)
 	{
-		const float w = cell[0] * wetK;
-		const float f = cell[1] * filmK;
-		cell[0] = w >= 1e-3f ? w : 0.0f;
-		cell[1] = f >= 1e-3f ? f : 0.0f;
-		maxWet = std::max(maxWet, w);
-		maxFilm = std::max(maxFilm, f);
+		// emerge breakup: the film tears where the detail noise is low, the
+		// holes grow as the threshold rises
+		const float threshold = Lerp(0.2f, 0.62f, emerge.age / kEmergeBreakup);
+		const float tearK = std::exp(-dt / kEmergeBreakupTau);
+		for (int y = 0; y < filmHeight; ++y)
+		for (int x = 0; x < filmWidth; ++x, cell += 2)
+		{
+			const float n = Detail(x, y, emerge.detailX, emerge.detailY);
+			const float tear = Lerp(filmK, tearK, Smoothstep(threshold, threshold - 0.08f, n));
+			const float w = cell[0] * wetK;
+			const float f = cell[1] * tear;
+			cell[0] = w >= 1e-3f ? w : 0.0f;
+			cell[1] = f >= 1e-3f ? f : 0.0f;
+			maxWet = std::max(maxWet, w);
+			maxFilm = std::max(maxFilm, f);
+		}
+	}
+	else
+	{
+		// branch free so the compiler vectorises it
+		for (size_t i = 0; i < count; ++i, cell += 2)
+		{
+			const float w = cell[0] * wetK;
+			const float f = cell[1] * filmK;
+			cell[0] = w >= 1e-3f ? w : 0.0f;
+			cell[1] = f >= 1e-3f ? f : 0.0f;
+			maxWet = std::max(maxWet, w);
+			maxFilm = std::max(maxFilm, f);
+		}
 	}
 	const float maxValue = std::max(maxWet, maxFilm) >= 1e-3f ? std::max(maxWet, maxFilm) : 0.0f;
 	filmMax = maxValue;
@@ -968,7 +1226,9 @@ void LensWater::DecayField(float dt)
 	filmDirty = true;
 }
 
-void LensWater::StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount)
+// coverage: the fraction of a full application this stamp represents (a
+// moving stamp overlaps its predecessors, see UpdateDrop)
+void LensWater::StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount, float coverage)
 {
 	if (film.empty() || radius <= 0.0f)
 		return;
@@ -996,14 +1256,21 @@ void LensWater::StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float film
 			continue;
 		const float falloff = 1.0f - Smoothstep(0.35f, 1.0f, d);
 		float *cell = &film[((size_t)y * filmWidth + x) * 2];
-		cell[0] = std::max(cell[0], wet * falloff);
-		cell[1] = std::max(cell[1], filmAmount * falloff);
+		if (coverage >= 1.0f)
+		{
+			cell[0] = Deposit(cell[0], wet * falloff);
+			cell[1] = Deposit(cell[1], filmAmount * falloff);
+		}
+		else
+		{
+			cell[0] = Deposit(cell[0], 1.0f - std::pow(1.0f - Saturate(wet * falloff), coverage));
+			cell[1] = Deposit(cell[1], 1.0f - std::pow(1.0f - Saturate(filmAmount * falloff), coverage));
+		}
 		touched = true;
 	}
 	if (touched)
 	{
-		filmMax = std::max(filmMax, std::max(wet, filmAmount));
-		filmDirty = true;
+		filmMax = std::max(filmMax, std::min(std::max(wet, filmAmount), 1.0f));
 		if (filmAmount > 0.01f)
 			filmVisible = true;
 	}
@@ -1013,7 +1280,7 @@ void LensWater::StampDisc(Vec2 center, float radius, float wet, float filmAmount
 {
 	if (!noisy)
 	{
-		StampCapsule(center, center, radius, wet, filmAmount);
+		StampCapsule(center, center, radius, wet, filmAmount, 1.0f);
 		return;
 	}
 	// broad irregular sheet of water (splash, emerge)
@@ -1024,22 +1291,21 @@ void LensWater::StampDisc(Vec2 center, float radius, float wet, float filmAmount
 	const float rc = radius * h;
 	const int x0 = std::max(0, (int)std::floor(cc.x - rc)), x1 = std::min(filmWidth - 1, (int)std::ceil(cc.x + rc));
 	const int y0 = std::max(0, (int)std::floor(cc.y - rc)), y1 = std::min(filmHeight - 1, (int)std::ceil(cc.y + rc));
-	const float jitter = Random01() * 100.0f;
+	// cached tileable noise at a random offset: no per cell hashing
+	const int ox = (int)(Random01() * filmWidth), oy = (int)(Random01() * filmHeight);
 	for (int y = y0; y <= y1; ++y)
 	for (int x = x0; x <= x1; ++x)
 	{
 		const float d = Length(Vec2{ x - cc.x, y - cc.y }) / std::max(rc, 1e-4f);
 		if (d >= 1.0f)
 			continue;
-		const Vec2 lens = { (x + 0.5f) / h - aspect * 0.5f, (y + 0.5f) / h - 0.5f };
-		const float n = SurfaceAffinity({ lens.x * 2.3f + jitter, lens.y * 2.3f });
+		const float n = Detail(x * 2, y * 2, ox, oy);
 		const float falloff = (1.0f - Smoothstep(0.5f, 1.0f, d)) * (0.55f + 0.45f * n);
 		float *cell = &film[((size_t)y * filmWidth + x) * 2];
-		cell[0] = std::max(cell[0], wet * falloff);
-		cell[1] = std::max(cell[1], filmAmount * falloff);
+		cell[0] = Deposit(cell[0], wet * falloff);
+		cell[1] = Deposit(cell[1], filmAmount * falloff);
 	}
-	filmMax = std::max(filmMax, std::max(wet, filmAmount));
-	filmDirty = true;
+	filmMax = std::max(filmMax, std::min(std::max(wet, filmAmount), 1.0f));
 	if (filmAmount > 0.01f)
 		filmVisible = true;
 }
@@ -1059,6 +1325,37 @@ float LensWater::SampleField(Vec2 p, int channel) const
 		return film[((size_t)cy * filmWidth + cx) * 2 + channel];
 	};
 	return Lerp(Lerp(at(x, y), at(x + 1, y), tx), Lerp(at(x, y + 1), at(x + 1, y + 1), tx), ty);
+}
+
+float LensWater::SampleAffinity(Vec2 p) const
+{
+	if (affinity.empty())
+		return SurfaceAffinity(p);
+	const float h = (float)filmHeight;
+	const float fx = std::max(0.0f, std::min((p.x + aspect * 0.5f) * h - 0.5f, (float)filmWidth - 1.001f));
+	const float fy = std::max(0.0f, std::min((p.y + 0.5f) * h - 0.5f, (float)filmHeight - 1.001f));
+	const int x = (int)fx, y = (int)fy;
+	const float tx = fx - x, ty = fy - y;
+	auto at = [&](int cx, int cy) {
+		return affinity[(size_t)std::min(cy, filmHeight - 1) * filmWidth + std::min(cx, filmWidth - 1)];
+	};
+	return Lerp(Lerp(at(x, y), at(x + 1, y), tx), Lerp(at(x, y + 1), at(x + 1, y + 1), tx), ty);
+}
+
+Vec2 LensWater::AffinityGradient(Vec2 p) const
+{
+	const float e = 0.25f / kNoiseFrequency;
+	return {
+		(SampleAffinity({ p.x + e, p.y }) - SampleAffinity({ p.x - e, p.y })) / (2.0f * e),
+		(SampleAffinity({ p.x, p.y + e }) - SampleAffinity({ p.x, p.y - e })) / (2.0f * e) };
+}
+
+// tileable detail noise at cell (x, y) shifted by (ox, oy), wrapping
+float LensWater::Detail(int x, int y, int ox, int oy) const
+{
+	const int cx = (x + ox) % filmWidth;
+	const int cy = (y + oy) % filmHeight;
+	return detail[(size_t)cy * filmWidth + cx];
 }
 
 Vec2 LensWater::FieldGradient(Vec2 p, int channel) const
@@ -1124,10 +1421,16 @@ int LensWater::BuildInstances(float *out, int maxInstances, float dropSize) cons
 	{
 		if (index >= n)
 			break;
-		write(0, m.pos.x, m.pos.y, m.radius * dropSize, 0.85f);
+		// a direct hit spreads wider than a bead (more refraction, lopsided),
+		// then recoils into the settled micro drop
+		float scale, irregularity;
+		ImpactShape(m, scale, irregularity);
+		if (scale > 1.0f)
+			scale = 1.0f + (scale - 1.0f) * 2.0f;
+		write(0, m.pos.x, m.pos.y, m.radius * dropSize * scale, 0.85f);
 		write(1, 0.0f, -1.0f, 1.0f, (float)DROP_MICRO);
 		write(2, 0.0f, 0.0f, 0.0f, (m.seed & 0xffffu) / 65535.0f);
-		write(3, 0.0f, (float)STATE_SETTLED, 0.0f, 0.0f);
+		write(3, 0.0f, (float)m.state, 0.0f, irregularity * 1.4f);
 		++index;
 	}
 	return n;

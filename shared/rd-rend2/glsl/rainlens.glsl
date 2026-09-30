@@ -61,7 +61,7 @@ void main()
 //
 // USE_FILM: fullscreen pass over the persistent CPU wetness (R) / film (G)
 // texture. A thin trail is almost transparent: weak refraction from the
-// film gradient, low weight, no blur.
+// film gradient, low weight (at most 0.25), no blur.
 //
 // USE_DROPS: instanced analytic quads from tr_lenswater.cpp, additively
 // blended over the film. A drop is a spherical cap in its own frame (motion
@@ -181,7 +181,9 @@ void main()
 		texture(u_TextureMap, uv + vec2(0.0, texel.y)).g - texture(u_TextureMap, uv - vec2(0.0, texel.y)).g);
 	vec2 offset = gradient * 0.035 * filmAmount;
 	offset.x /= aspect;
-	float weight = clamp(min(film * 0.45, 0.25) * filmAmount, 0.0, 0.5);
+	// Never above 0.25: the composite takes weight > 0.25 for a compact drop
+	// (rim, glint). r_rainLensFilm above one only strengthens the refraction.
+	float weight = min(film * 0.45, 0.25) * min(filmAmount, 1.0);
 	out_Color = vec4(offset, weight, 0.0);
 #elif defined(USE_DROPS)
 	vec2 offset;

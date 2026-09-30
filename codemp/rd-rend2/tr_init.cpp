@@ -1988,7 +1988,7 @@ void R_Register( void )
 	r_rainLensDensity = ri.Cvar_Get( "r_rainLensDensity", "1.0", CVAR_ARCHIVE, "Lens water: rain input multiplier, 0..2" );
 	r_rainLensRefraction = ri.Cvar_Get( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens water refraction strength, 0..4" );
 	r_rainLensDropSize = ri.Cvar_Get( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens water drop size (geometry only, not the amount of rain), 0.25..4" );
-	r_rainLensFilm = ri.Cvar_Get( "r_rainLensFilm", "1.0", CVAR_ARCHIVE, "Lens water thin film / trail visibility, 0..2" );
+	r_rainLensFilm = ri.Cvar_Get( "r_rainLensFilm", "1.0", CVAR_ARCHIVE, "Lens water thin film / trail visibility, 0..2 (above 1: stronger refraction only)" );
 	r_rainLensBlur = ri.Cvar_Get( "r_rainLensBlur", "1.0", CVAR_ARCHIVE, "Lens water drop defocus, 0..2" );
 	r_rainLensReflection = ri.Cvar_Get( "r_rainLensReflection", "1.0", CVAR_ARCHIVE, "Lens water reflection (environment cubemap / light grid) and light glints, 0..2; 0 = refraction only" );
 	r_rainLensInertia = ri.Cvar_Get( "r_rainLensInertia", "0", CVAR_ARCHIVE, "Lens water reacts to strong camera acceleration, 0..2 (0 = off)" );

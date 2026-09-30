@@ -1,8 +1,9 @@
 // Headless checks for the lens water simulation core
 // (shared/rd-rend2/tr_lenswater.cpp, r_rainLens). No renderer, no GL:
 // scenarios of the design doc (single drop, merge, trail, roof, roll,
-// heavy rain, caps) plus spray emitters, world event resolve, camera inertia
-// and the acid profile. See README.md.
+// heavy rain, caps) plus spray emitters, world event resolve, camera inertia,
+// the acid profile, the emerge transient, film accumulation, rate controls
+// and the dry / upload paths. See README.md.
 #include "tr_lenswater.h"
 #include <algorithm>
 #include <chrono>
@@ -128,7 +129,8 @@ int main()
 	{
 		auto measure = [&](Profile prof, int &flowsSeen, int &sheetsSeen, float &avgBeads) {
 			LensWater w; w.Init(455, 256);
-			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 0.5f; in.weather = prof;
+			// standard weather: each profile at its own particle count
+			Input in; in.intensity = LensWater::NominalIntensity(prof); in.exposed = 1.0f; in.facing = 0.5f; in.weather = prof;
 			flowsSeen = sheetsSeen = 0; avgBeads = 0.0f; int samples = 0;
 			for (int i = 0; i < 144 * 20; ++i)
 			{
@@ -219,10 +221,12 @@ int main()
 	// acid profile: tint and distortion scale blend in
 	{
 		LensWater w; w.Init(455, 256);
+		// rainlens_profile feeds the nominal intensity (a dry lens skips the blend)
+		Input in = Dry(); in.intensity = LensWater::NominalIntensity(PROFILE_ACID);
 		w.SetProfileOverride(PROFILE_ACID);
-		Run(w, 1.0f, Dry(), p);
+		Run(w, 1.0f, in, p);
 		w.SetProfileOverride(PROFILE_ACID);
-		Run(w, 6.0f, Dry(), p);
+		Run(w, 6.0f, in, p);
 		const LensWater::ProfileParams &c = w.Current();
 		CHECK(c.tint[2] < 0.9f && c.refraction > 1.1f, "acid tint (%.2f %.2f %.2f) refraction %.2f",
 			c.tint[0], c.tint[1], c.tint[2], c.refraction);
@@ -231,7 +235,7 @@ int main()
 	{
 		LensWater w; w.Init(455, 256);
 		Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY;
-		Params dense = p; dense.density = 2.0f;
+		Params dense = p; dense.density = 2.0f; dense.measure = true;
 		Run(w, 5.0f, in, dense);
 		double total = 0.0; int n = 0;
 		for (int i = 0; i < 600; ++i) { w.Update(1.0f / 60.0f, in, dense); w.ClearFilmDirty(); total += w.GetStats().updateMicroseconds; ++n; }
@@ -241,6 +245,101 @@ int main()
 		std::vector<float> inst(w.MaxInstances(dense) * INSTANCE_FLOATS);
 		const int count = w.BuildInstances(inst.data(), w.MaxInstances(dense), 1.0f);
 		CHECK(count == s.drops + s.micro + s.sheets, "instances %d", count);
+	}
+
+	// emerge: a transient, not a burst. Film and sheets first, no beads;
+	// flows follow, the film tears, residual beads come from the moving water
+	{
+		LensWater w; w.Init(455, 256);
+		w.QueueEvent({ EVENT_EMERGE, 1.0f, { 0, 0 }, 0.0f });
+		w.Update(1.0f / 60.0f + 1e-4f, Dry(), p);
+		Stats s = w.GetStats();
+		CHECK(s.drops == 0 && s.micro == 0, "emerge spawns no beads at t=0 (%d drops, %d micro)", s.drops, s.micro);
+		CHECK(s.sheets >= 2 && s.filmVisible, "emerge starts with film and sheets (%d)", s.sheets);
+		auto holes = [&]() {
+			int n = 0, dry = 0;
+			for (float y = -0.45f; y < 0.45f; y += 0.01f) for (float x = -0.8f; x < 0.8f; x += 0.01f) { ++n; dry += w.Film({ x, y }) < 0.12f; }
+			return (float)dry / n;
+		};
+		const float holesStart = holes();
+		CHECK(holesStart < 0.3f, "emerge film covers most of the lens (%.0f%% thin)", holesStart * 100.0f);
+		int flowsSeen = 0;
+		for (int i = 0; i < 144 * 3 / 2; ++i) { w.Update(1.0f / 144.0f, Dry(), p); w.ClearFilmDirty(); flowsSeen = std::max(flowsSeen, w.GetStats().flows); }
+		CHECK(flowsSeen >= 2, "emerge flow heads by 1.5 s (%d at once)", flowsSeen);
+		const float holesLater = holes();
+		CHECK(holesLater > holesStart + 0.2f, "emerge film tears (%.0f%% -> %.0f%% thin)", holesStart * 100.0f, holesLater * 100.0f);
+		Run(w, 2.0f, Dry(), p);
+		int residuals = 0;
+		for (const Drop &d : w.Drops()) residuals += d.type == DROP_RESIDUAL;
+		CHECK(residuals >= 1, "emerge leaves residual beads behind the flows (%d)", residuals);
+	}
+	// film accumulates: one pass leaves a trail, repeated passes wet it more
+	{
+		LensWater w; w.Init(455, 256);
+		float one = 0.0f, many = 0.0f;
+		for (int pass = 0; pass < 5; ++pass)
+		{
+			w.AddDrop({ 0.0f, 0.3f }, 1.5f * kRefRadius, DROP_NORMAL);
+			Run(w, 0.6f, Dry(), p);
+			w.Drops().clear();
+			if (pass == 0)
+				one = w.Film({ 0.0f, 0.2f });
+		}
+		many = w.Film({ 0.0f, 0.2f });
+		CHECK(one > 0.1f && one < 0.7f, "one pass: a trail, not saturated (%.2f)", one);
+		CHECK(many > one * 1.3f && many <= 1.0f, "repeated passes accumulate, bounded (%.2f -> %.2f)", one, many);
+	}
+	// intensity scales the rate relative to the profile's nominal intensity
+	{
+		auto spawned = [&](float intensity) {
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = intensity; in.exposed = 1.0f; in.facing = 0.5f; in.weather = PROFILE_HEAVY;
+			Run(w, 10.0f, in, p);
+			return w.spawnCount;
+		};
+		const int low = spawned(0.2f), high = spawned(1.0f);
+		CHECK(low * 2 < high, "heavy at intensity 0.2 rains less than at 1.0 (%d < %d)", low, high);
+	}
+	// horizontal view keeps most of the heavy rain flows and sheets
+	{
+		auto flows = [&](float facing, int &sheets) {
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = facing; in.weather = PROFILE_HEAVY;
+			int f = 0; sheets = 0;
+			for (int i = 0; i < 144 * 30; ++i) { w.Update(1.0f / 144.0f, in, p); w.ClearFilmDirty(); Stats s = w.GetStats(); f += s.flows; sheets += s.sheets; }
+			return f;
+		};
+		int sh0, sh1;
+		const int f0 = flows(0.0f, sh0), f1 = flows(1.0f, sh1);
+		CHECK(f0 > f1 * 0.4f && sh0 > sh1 * 0.45f, "horizontal heavy keeps flows %d/%d, sheets %d/%d", f0, f1, sh0, sh1);
+	}
+	// micro rain impacts spread before settling
+	{
+		LensWater w; w.Init(455, 256);
+		Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY;
+		int impacts = 0;
+		for (int i = 0; i < 144 * 2; ++i) { w.Update(1.0f / 144.0f, in, p); w.ClearFilmDirty(); for (const Drop &m : w.Micro()) impacts += m.state == STATE_IMPACT; }
+		CHECK(impacts > 0, "micro impacts have an impact phase (%d samples)", impacts);
+	}
+	// film texture goes dirty on field ticks only (30 Hz upload)
+	{
+		LensWater w; w.Init(455, 256);
+		w.AddDrop({ 0.0f, 0.3f }, 1.5f * kRefRadius, DROP_NORMAL);
+		Run(w, 0.3f, Dry(), p);		// moving, accumulators at an unknown phase
+		w.Update(0.25f, Dry(), p);	// clamped to 0.2: drains both accumulators
+		w.ClearFilmDirty();
+		w.Update(1.0f / 60.0f + 1e-4f, Dry(), p);	// one agent step, no field tick
+		const bool afterAgent = w.FilmDirty();
+		w.Update(1.0f / 60.0f + 1e-4f, Dry(), p);	// crosses the 30 Hz field tick
+		CHECK(!afterAgent && w.FilmDirty(), "film dirty only on the field tick (%d, %d)", (int)afterAgent, (int)w.FilmDirty());
+	}
+	// dry lens: early out, no work
+	{
+		LensWater w; w.Init(455, 256);
+		Params q = p; q.measure = true;
+		Run(w, 0.1f, Dry(), q);
+		const bool visible = w.Update(1.0f / 60.0f, Dry(), q);
+		CHECK(!visible && w.GetStats().updateMicroseconds == 0.0f, "dry update skipped");
 	}
 
 	printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);
