@@ -3612,10 +3612,9 @@ static int GLSL_LoadGPUProgramRainLens(
 	// Always built, like motion blur: r_rainLens is latched
 	static const char *defines[RAINLENSDEF_COUNT] =
 	{
-		nullptr,
-		"#define USE_DEBUG\n",
-		"#define USE_FIELD\n",
-		"#define USE_SIMULATION\n",
+		"#define USE_FILM\n",
+		"#define USE_DROPS\n",
+		"#define USE_DROPS\n#define USE_DEBUG_AGENTS\n",
 	};
 
 	int numPrograms = 0;
@@ -3632,7 +3631,7 @@ static int GLSL_LoadGPUProgramRainLens(
 
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
-		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		// film texture (USE_FILM) or instance records (USE_DROPS)
 		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_COLORMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
@@ -3647,6 +3646,7 @@ static int GLSL_LoadGPUProgramRainLens(
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_NORMALMAP, TB_NORMALMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;

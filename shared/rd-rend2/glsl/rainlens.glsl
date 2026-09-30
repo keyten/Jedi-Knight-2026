@@ -1,382 +1,243 @@
 /*[Vertex]*/
+#if defined(USE_DROPS)
+uniform sampler2D u_TextureMap;  // instance records, 4 rows (tr_lenswater.h)
+uniform vec4 u_RainLensParams;   // x = aspect, y = blur multiplier, w = debug view
+uniform vec4 u_RainLensParams2;  // zw = target size
+
+out vec2 var_Local;  // position relative to the instance centre, lens units
+flat out vec4 var_T0;
+flat out vec4 var_T1;
+flat out vec4 var_T2;
+flat out vec4 var_T3;
+
+void main()
+{
+	int id = gl_InstanceID;
+	var_T0 = texelFetch(u_TextureMap, ivec2(id, 0), 0);
+	var_T1 = texelFetch(u_TextureMap, ivec2(id, 1), 0);
+	var_T2 = texelFetch(u_TextureMap, ivec2(id, 2), 0);
+	var_T3 = texelFetch(u_TextureMap, ivec2(id, 3), 0);
+
+	vec2 corner = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1)) * 2.0 - 1.0;
+	vec2 axis = var_T1.xy;
+	vec2 side = vec2(-axis.y, axis.x);
+	// one target texel of margin so small drops stay antialiased
+	float pixel = 1.5 / u_RainLensParams2.w;
+
+	vec2 local;
+	if (var_T1.w > 4.5)
+	{
+		// sheet: oriented ribbon, wobble margin across
+		local = axis * corner.y * (var_T0.z + pixel) + side * corner.x * (var_T3.w * 1.4 + pixel);
+	}
+	else
+	{
+		float extent = var_T0.z * max(var_T1.z, 1.0) * (1.0 + var_T3.w * 0.5);
+		if (var_T2.z > 0.0)
+			extent = max(extent, length(var_T2.xy) + var_T2.z);
+		local = corner * (extent * 1.05 + pixel);
+	}
+	var_Local = local;
+
+	// lens space (screen height = 1, centred) to clip space
+	vec2 lens = var_T0.xy + local;
+	vec2 uv = vec2(lens.x / u_RainLensParams.x + 0.5, lens.y + 0.5);
+	gl_Position = vec4(uv * 2.0 - 1.0, 0.0, 1.0);
+}
+#else
 void main()
 {
 	vec2 position = vec2(2.0 * float(gl_VertexID & 2) - 1.0, 4.0 * float(gl_VertexID & 1) - 1.0);
 	gl_Position = vec4(position, 0.0, 1.0);
 }
+#endif
 
 /*[Fragment]*/
-// Rain droplets on the camera lens (r_rainLens), tr_rainlens.cpp.
+// Lens water field (r_rainLens), tr_rainlens.cpp / tr_lenswater.cpp.
 //
-// Runs on the HDR scene after the SMAA T2x temporal resolve and motion blur,
-// before bloom extraction and tone mapping: refracted scene values remain HDR
-// for optional scene bloom extraction, and the screen fixed drops never enter
-// the temporal history. The dedicated emissive MRT is separate.
+// Writes the shared lower resolution lens field read by the HDR composite
+// and the bloom prefilter:
+//   RG = unscaled UV refraction offset, B = optical weight, A = blur radius.
 //
-// The default mode is procedural and deterministic in lens (screen) space,
-// sized relative to the screen height so resolution, ultrawide and FOV changes
-// keep the drop size:
-//  - layer A: small beads in a dense hashed grid, each with its own life
-//    cycle (grow in, sit, evaporate);
-//  - layer B: sparse large drops, one per column and cycle, that stick for a
-//    while and then slide down with a stick-slip motion, stretched into a
-//    tail and leaving a thin drying trail that wipes the beads it crosses.
-// A procedural drop is a spherical cap: its analytic slope bends the view (magnified,
-// inverted image of what is behind it) and a small local disc blur defocuses
-// it. The rim is slightly darker, the glint scales with the local
-// scene luminance, so there are no white spots and no global darkening.
+// USE_FILM: fullscreen pass over the persistent CPU wetness (R) / film (G)
+// texture. A thin trail is almost transparent: weak refraction from the
+// film gradient, low weight, no blur.
 //
-// Drops born after the camera last saw the rain (u_RainLensParams2.x) are
-// never shown, the ones already on the lens drain quickly: going under a
-// roof stops new procedural drops. USE_SIMULATION instead reads persistent
-// mass and wetness from a small lattice texture.
-//
-// USE_DEBUG: r_rainLensDebug views, displayed as they are (no tone map).
+// USE_DROPS: instanced analytic quads from tr_lenswater.cpp, additively
+// blended over the film. A drop is a spherical cap in its own frame (motion
+// tail, lopsided impact shape) whose analytic slope bends the view; a merge
+// adds a relaxing second lobe, so overlapping heights sum their slopes rather
+// than switching normals. A sheet is a broad low-weight ribbon with strong
+// distortion. USE_DEBUG_AGENTS draws the same instances as flat colours.
 
-uniform sampler2D u_ScreenImageMap; // HDR scene
-uniform sampler2D u_TextureMap;     // persistent water state in USE_SIMULATION
-
-uniform vec4 u_RainLensParams;  // x = lens time (s), y = density (amount * intensity * wet), z = refraction, w = scale
-uniform vec4 u_RainLensParams2; // x = last exposed time, y = drain time; zw = debug/encoding or field dimensions
+uniform sampler2D u_TextureMap;
+uniform vec4 u_RainLensParams;
+uniform vec4 u_RainLensParams2;
 
 out vec4 out_Color;
 
-#define BEAD_CELLS_PER_HEIGHT   13.0
-#define SLIDER_CELLS_PER_HEIGHT 4.5
-#define REFRACTION_SCALE        1.6
+#define REFRACTION_SCALE 1.6
 
-vec3 Hash33(vec3 p)
-{
-	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
-	p += dot(p, p.yxz + 33.33);
-	return fract((p.xxy + p.yxx) * p.zyx);
-}
+#if defined(USE_DROPS)
+in vec2 var_Local;
+flat in vec4 var_T0;
+flat in vec4 var_T1;
+flat in vec4 var_T2;
+flat in vec4 var_T3;
 
-// Drain/presence factor of a drop born at 'birth': zero if the camera was
-// already under cover then, fading after the camera left the rain.
-float Exposure(float birth, float time)
+// Spherical cap of unit radius at q (in radii). x = soft mask, yz = outward
+// slope (zero at the centre, about one at the edge).
+vec3 Cap(vec2 q, vec2 lopsided)
 {
-	float lastExposed = u_RainLensParams2.x;
-	if (birth > lastExposed)
-		return 0.0;
-	float since = time - lastExposed;
-	return since <= 0.0 ? 1.0 : clamp(1.0 - since / u_RainLensParams2.y, 0.0, 1.0);
-}
-
-// Spherical cap of unit radius evaluated at q (in drop radii).
-// Returns mask in x, and the outward slope in zw (zero at the center, about
-// one at the soft edge).
-vec4 Cap(vec2 q, vec2 lopsided)
-{
-	// egg shaped, not a perfect circle
 	float qLength = length(q);
-	float r = qLength * (1.0 + dot(q, lopsided));
+	float egg = 1.0 + dot(q, lopsided);
+	float r = qLength * egg;
 	if (r >= 1.0)
-		return vec4(0.0);
-
+		return vec3(0.0);
 	float h = sqrt(1.0 - r * r);
 	float edge = 1.0 - smoothstep(0.78, 1.0, r);
-	// Gradient of the deformed height field, including the egg shape.
-	vec2 radiusGradient = q / max(qLength, 1e-4) * (1.0 + dot(q, lopsided)) + qLength * lopsided;
-	vec2 slope = r * radiusGradient / max(h, 0.35);
-	return vec4(edge, h, slope);
+	vec2 radiusGradient = q / max(qLength, 1e-4) * egg + qLength * lopsided;
+	return vec3(edge, r * radiusGradient / max(h, 0.35));
 }
 
-// Layer A: small static beads. p in bead cells.
-vec4 Beads(vec2 p, float time, float density, out float radiusCells)
+// Sheet thickness at a point relative to its centre (0..1). The wobble
+// follows the sheet: it moves rigidly, it does not swim.
+float SheetHeight(vec2 local)
 {
-	vec2 cell = floor(p);
-	vec2 f = fract(p);
-
-	vec3 h0 = Hash33(vec3(cell, 17.0));
-	float life = mix(4.0, 10.0, h0.x);
-	float t = time + h0.y * life;
-	float cycle = floor(t / life);
-	float age = fract(t / life);
-	float birth = time - age * life;
-
-	vec3 h = Hash33(vec3(cell, cycle + 3.0));
-	radiusCells = 0.0;
-	if (h.z >= density * 0.55)
-		return vec4(0.0);
-
-	float presence = Exposure(birth, time);
-	if (presence <= 0.0)
-		return vec4(0.0);
-
-	// grow in quickly, evaporate (shrink) at the end of the life
-	float grow = smoothstep(0.0, 0.04, age);
-	float evaporate = 1.0 - smoothstep(0.75, 1.0, age);
-	float radius = mix(0.1, 0.3, h.x * h.x) * mix(0.6, 1.0, evaporate);
-	vec2 center = 0.5 + (h.xy - 0.5) * 0.36;
-
-	vec2 q = (f - center) / radius;
-	float xStretch = mix(0.88, 1.12, h.y);
-	q.x *= xStretch;
-	vec2 lopsided = (Hash33(vec3(cell, cycle + 7.0)).xy - 0.5) * 0.25;
-
-	vec4 cap = Cap(q, lopsided);
-	cap.z *= xStretch;
-	cap.x *= grow * evaporate * presence;
-	radiusCells = radius;
-	return cap;
+	vec2 axis = var_T1.xy;
+	vec2 side = vec2(-axis.y, axis.x);
+	float a = dot(local, axis) / max(var_T0.z, 1e-4);
+	float c = dot(local, side) / max(var_T3.w, 1e-4);
+	float seed = var_T2.w;
+	c += 0.18 * sin(a * 3.1 + seed * 40.0) + 0.08 * sin(a * 7.3 + seed * 17.0);
+	float across = cos(clamp(c, -1.0, 1.0) * 1.5707963);
+	// thicker, rounded leading edge; thin tail
+	float along = mix(0.35, 1.0, smoothstep(-1.0, 0.7, a))
+		* (1.0 - smoothstep(0.75, 1.0, a)) * (1.0 - smoothstep(0.8, 1.0, -a));
+	return across * across * along;
 }
 
-// Layer B: sliding drops, one per column. p in slider cells, y up.
-// trail returns the wiping mask of the drop's path.
-vec4 Slider(vec2 p, float time, float density, float heightCells, out float radiusCells, out float trail)
+void Drop(out vec2 offset, out float weight, out float blur, out float mask)
 {
-	radiusCells = 0.0;
-	trail = 0.0;
+	float aspect = u_RainLensParams.x;
+	float radius = var_T0.z;
+	vec2 axis = var_T1.xy;
+	vec2 side = vec2(-axis.y, axis.x);
 
-	float column = floor(p.x);
-	vec3 h0 = Hash33(vec3(column, 0.0, 41.0));
-	float y0 = heightCells * mix(0.35, 1.05, h0.z);
-	float stick = mix(0.8, 3.5, h0.y);
-	float speed = mix(0.6, 1.4, h0.x); // cells per second
-	// Leave enough time to cross the screen and let the trail dry at every
-	// drop-size setting. The small margin also covers stick-slip travel.
-	float life = stick + (y0 + 0.5) / speed + 2.2;
-	float t = time + h0.y * life;
-	float cycle = floor(t / life);
-	float age = fract(t / life) * life; // seconds
-	float birth = time - age;
+	// drop frame: x across, y along the motion; the tail stretches behind
+	vec2 f = vec2(dot(var_Local, side), dot(var_Local, axis));
+	float stretch = f.y < 0.0 ? max(var_T1.z, 1.0) : 1.0;
+	f.y /= stretch;
+	float seed = var_T2.w;
+	vec2 lopsided = (vec2(fract(seed * 7.13), fract(seed * 3.71)) - 0.5) * (0.25 + var_T3.w);
+	vec3 cap = Cap(f / radius, lopsided);
+	// slope back to lens space: q = M p / r, d/dp = M^T d/dq
+	vec2 slope = side * cap.y + axis * (cap.z / stretch);
+	offset = -slope * radius * REFRACTION_SCALE * cap.x;
+	mask = cap.x;
+	blur = radius * 0.18 * cap.x;
 
-	vec3 h = Hash33(vec3(column, cycle, 53.0));
-	if (h.z >= density * 0.8)
-		return vec4(0.0);
-
-	float presence = Exposure(birth, time);
-	if (presence <= 0.0)
-		return vec4(0.0);
-
-	float baseRadius = mix(0.2, 0.34, h.x);
-	float radius = baseRadius;
-	float x0 = column + 0.5 + (h.y - 0.5) * 0.3;
-
-	// stick, then slide with a stick-slip motion; once the camera is under
-	// cover the drop lets go at once and runs off faster
-	float drained = max(time - u_RainLensParams2.x, 0.0);
-	float s = max(age - stick, 0.0) + drained * 2.0;
-	float n = 1.3;
-	float travel = speed * (s - 0.9 * sin(6.2831853 * n * s) / (6.2831853 * n));
-	float velocity = speed * (1.0 - 0.9 * cos(6.2831853 * n * s)) * step(0.0, s - 1e-4);
-
-	float wobble = sin(s * 2.3 + h.x * 6.0) * 0.06;
-	vec2 center = vec2(x0 + wobble, y0 - travel);
-	// the drop shrinks a little while it feeds the trail
-	radius *= mix(1.0, 0.75, clamp(travel / heightCells, 0.0, 1.0));
-
-	vec2 d = p - center;
-
-	// Trail positions live in absolute lens space. Estimate when the drop
-	// passed this point from its mean speed; stick-slip only perturbs that
-	// time slightly, without making old film pulse at the current velocity.
-	float distanceAtPass = y0 - p.y;
-	float trailRadius = baseRadius * mix(1.0, 0.75, clamp(distanceAtPass / heightCells, 0.0, 1.0));
-	if (d.y > 0.0 && d.y < y0 - center.y && abs(p.x - x0) < trailRadius * 0.8 + 0.06)
+	// merge: the absorbed drop relaxes into the survivor over ~180 ms
+	if (var_T2.z > 0.0)
 	{
-		float passedAt = distanceAtPass / speed;
-		float trailAge = max(s - passedAt, 0.0);
-		float dry = 1.0 - smoothstep(0.0, 2.2, trailAge);
-		float pathX = x0 + sin(passedAt * 2.3 + h.x * 6.0) * 0.06;
-		float width = trailRadius * 0.8;
-		trail = (1.0 - smoothstep(width * 0.6, width, abs(p.x - pathX))) * dry * presence;
+		vec3 lobe = Cap((var_Local - var_T2.xy) / var_T2.z, vec2(0.0));
+		offset -= lobe.yz * var_T2.z * REFRACTION_SCALE * lobe.x;
+		mask = 1.0 - (1.0 - mask) * (1.0 - lobe.x);
+		blur = max(blur, var_T2.z * 0.18 * lobe.x);
 	}
-
-	// tail: stretched upwards while moving
-	vec2 q = d / radius;
-	float tailStretch = 1.0;
-	if (q.y > 0.0)
-	{
-		tailStretch = 1.0 + clamp(velocity * 0.6, 0.0, 1.5);
-		q.y /= tailStretch;
-	}
-
-	vec2 lopsided = vec2((h.y - 0.5) * 0.2, -0.12);
-	vec4 cap = Cap(q, lopsided);
-	cap.w /= tailStretch;
-	cap.x *= presence;
-
-	// small beads left behind along the trail
-	if (trail > 0.0 && cap.x <= 0.0)
-	{
-		float seg = floor((y0 - p.y) * 3.0);
-		vec3 hb = Hash33(vec3(column, cycle, seg + 71.0));
-		if (hb.x < 0.5)
-		{
-			float beadDistance = (seg + 0.5) / 3.0;
-			float beadPassedAt = beadDistance / speed;
-			float radiusAtPass = baseRadius * mix(1.0, 0.75, clamp(beadDistance / heightCells, 0.0, 1.0));
-			vec2 bc = vec2(x0 + sin(beadPassedAt * 2.3 + h.x * 6.0) * 0.06
-				+ (hb.y - 0.5) * radiusAtPass, y0 - beadDistance);
-			float br = radiusAtPass * mix(0.18, 0.32, hb.z);
-			vec4 bead = Cap((p - bc) / br, vec2(0.0));
-			bead.x *= trail;
-			radiusCells = br;
-			return bead;
-		}
-	}
-
-	radiusCells = radius;
-	return cap;
+	weight = mask * var_T0.w;
+	offset.x /= aspect;
 }
 
-float Luminance(vec3 c)
+void Sheet(out vec2 offset, out float weight, out float blur, out float mask)
 {
-	return dot(c, vec3(0.2126, 0.7152, 0.0722));
+	float aspect = u_RainLensParams.x;
+	float strength = var_T0.w;
+	float e = 0.25 * var_T3.w;
+	float h = SheetHeight(var_Local);
+	vec2 gradient = vec2(
+		SheetHeight(var_Local + vec2(e, 0.0)) - SheetHeight(var_Local - vec2(e, 0.0)),
+		SheetHeight(var_Local + vec2(0.0, e)) - SheetHeight(var_Local - vec2(0.0, e))) / (2.0 * e);
+	// strong distortion, low optical weight
+	offset = gradient * var_T3.w * 0.02 * strength;
+	offset.x /= aspect;
+	mask = smoothstep(0.02, 0.3, h);
+	weight = mask * 0.2 * strength;
+	blur = 0.002 * h * strength;
 }
+#endif
 
 void main()
 {
-#if defined(USE_SIMULATION)
+#if defined(USE_FILM)
+	float aspect = u_RainLensParams.x;
+	float filmAmount = u_RainLensParams.y;
+	vec2 uv = gl_FragCoord.xy / u_RainLensParams2.zw;
+	vec2 texel = 1.0 / vec2(textureSize(u_TextureMap, 0));
+	float film = texture(u_TextureMap, uv).g;
+	// gradient per film cell (square in lens space)
+	vec2 gradient = 0.5 * vec2(
+		texture(u_TextureMap, uv + vec2(texel.x, 0.0)).g - texture(u_TextureMap, uv - vec2(texel.x, 0.0)).g,
+		texture(u_TextureMap, uv + vec2(0.0, texel.y)).g - texture(u_TextureMap, uv - vec2(0.0, texel.y)).g);
+	vec2 offset = gradient * 0.035 * filmAmount;
+	offset.x /= aspect;
+	float weight = clamp(min(film * 0.45, 0.25) * filmAmount, 0.0, 0.5);
+	out_Color = vec4(offset, weight, 0.0);
+#elif defined(USE_DROPS)
+	vec2 offset;
+	float weight, blur, mask;
+	bool sheet = var_T1.w > 4.5;
+	if (sheet)
+		Sheet(offset, weight, blur, mask);
+	else
+		Drop(offset, weight, blur, mask);
+	if (mask <= 0.0)
+		discard;
+
+#if defined(USE_DEBUG_AGENTS)
+	int view = int(u_RainLensParams.w);
+	int type = int(var_T1.w + 0.5);
+	vec3 color;
+	float alpha = 0.6;
+	if (view == 7)
 	{
-		vec2 fieldSize = u_RainLensParams2.zw;
-		vec2 uv = gl_FragCoord.xy / fieldSize;
-		vec2 texel = 1.0 / vec2(textureSize(u_TextureMap, 0));
-		vec4 water = texture(u_TextureMap, uv);
-		float mass = max(water.r, 0.0);
-		float mask = smoothstep(0.06, 0.34, mass);
-		float film = clamp(water.a * 0.18, 0.0, 0.25) * (1.0 - mask);
-		float aspect = fieldSize.x / fieldSize.y;
-		vec2 gradient = 0.5 * vec2(
-			texture(u_TextureMap, uv + vec2(texel.x, 0.0)).r -
-			texture(u_TextureMap, uv - vec2(texel.x, 0.0)).r,
-			texture(u_TextureMap, uv + vec2(0.0, texel.y)).r -
-			texture(u_TextureMap, uv - vec2(0.0, texel.y)).r);
-		float radiusUV = mix(0.012, 0.055, clamp(mass / 1.2, 0.0, 1.0));
-		// Encode the same slope/offset relation as the procedural field so
-		// the shared composite recovers the actual optical normal.
-		// The mass gradient points toward the cap center; the procedural
-		// spherical-cap slope points outward.
-		vec2 slope = -gradient * (0.07 / (radiusUV * REFRACTION_SCALE));
-		vec2 offset = -slope * radiusUV * REFRACTION_SCALE * mask;
-		offset.x /= aspect;
-		offset.y += 0.002 * film;
-		out_Color = vec4(offset, max(mask, film), radiusUV * 0.18 * mask);
-		return;
+		// Fdrive / Fpin: blue pinned, red beyond the depinning threshold
+		color = sheet || type == 0 ? vec3(0.4) : mix(vec3(0.1, 0.3, 1.0), vec3(1.0, 0.15, 0.1),
+			smoothstep(0.6, 1.2, var_T3.x));
 	}
-#endif
-#if defined(USE_FIELD)
-	vec2 screenSize = u_RainLensParams2.zw;
-#else
-	vec2 screenSize = vec2(textureSize(u_ScreenImageMap, 0));
-#endif
-	vec2 uv = gl_FragCoord.xy / screenSize;
-
-	float time = u_RainLensParams.x;
-	float density = u_RainLensParams.y;
-	float scale = max(u_RainLensParams.w, 0.1);
-	float aspect = screenSize.x / screenSize.y;
-
-	// lens space: y up, normalised by the screen height
-	vec2 lens = vec2((uv.x - 0.5) * aspect, uv.y);
-
-	float beadCells = BEAD_CELLS_PER_HEIGHT / scale;
-	float sliderCells = SLIDER_CELLS_PER_HEIGHT / scale;
-
-	float beadRadius, sliderRadius, trail;
-	vec4 bead = Beads(lens * beadCells + vec2(37.0, 0.0), time, density, beadRadius);
-	vec4 slider = Slider(lens * sliderCells + vec2(11.0, 0.0), time, density, sliderCells, sliderRadius, trail);
-
-	// the sliding drops' trails wipe the beads ("merge")
-	bead.x *= 1.0 - clamp(trail * 1.5, 0.0, 1.0);
-
-	// dominant drop; radius in texture coordinates (y)
-	float mask;
-	vec2 slope;
-	float radiusUV;
-	if (slider.x > 0.0 && bead.x > 0.0)
+	else if (view == 8)
 	{
-		// Blend the two local slopes where droplets overlap, avoiding a
-		// sudden refraction flip as the dominant mask changes.
-		float sliderWeight = smoothstep(-0.12, 0.12, slider.x - bead.x);
-		mask = max(slider.x, bead.x);
-		slope = mix(bead.zw, slider.zw, sliderWeight);
-		radiusUV = mix(beadRadius / beadCells, sliderRadius / sliderCells, sliderWeight);
-	}
-	else if (slider.x >= bead.x)
-	{
-		mask = slider.x;
-		slope = slider.zw;
-		radiusUV = sliderRadius / sliderCells;
+		// transient state: impact yellow, settling orange, merge lobe cyan, sheet magenta
+		int state = int(var_T3.y + 0.5);
+		color = vec3(0.35);
+		alpha = 0.2;
+		if (sheet) { color = vec3(1.0, 0.2, 1.0); alpha = 0.6; }
+		else if (state == 0) { color = vec3(1.0, 1.0, 0.1); alpha = 0.8; }
+		else if (state == 1) { color = vec3(1.0, 0.55, 0.1); alpha = 0.8; }
+		if (!sheet && var_T2.z > 0.0 && length(var_Local - var_T2.xy) < var_T2.z)
+		{
+			color = vec3(0.1, 1.0, 1.0);
+			alpha = 0.8;
+		}
 	}
 	else
 	{
-		mask = bead.x;
-		slope = bead.zw;
-		radiusUV = beadRadius / beadCells;
+		// agents: pinned blue, moving green, flow red, residual yellow,
+		// micro grey, sheet magenta
+		if (sheet) color = vec3(1.0, 0.2, 1.0);
+		else if (type == 0) color = vec3(0.6);
+		else if (type == 3) color = vec3(1.0, 0.15, 0.1);
+		else if (type == 4) color = vec3(1.0, 0.9, 0.1);
+		else if (var_T3.z > 0.5) color = vec3(0.1, 1.0, 0.2);
+		else color = vec3(0.1, 0.35, 1.0);
 	}
-
-	// thin water film of the trail: weak refraction only
-	float film = trail * (1.0 - mask) * 0.35;
-
-#if defined(USE_FIELD)
-	// Full-resolution optics and the bloom prefilter share this transient
-	// field. The offset is stored before refraction strength is applied.
-	vec2 fieldOffset = -slope * radiusUV * REFRACTION_SCALE * mask;
-	fieldOffset.x /= aspect;
-	fieldOffset += vec2(0.0, 0.002) * film;
-	out_Color = vec4(fieldOffset, max(mask, film), radiusUV * 0.18 * mask);
-	return;
+	// solid outline, translucent fill
+	float outline = 1.0 - smoothstep(0.0, 0.25, mask);
+	out_Color = vec4(color, max(alpha * mask, outline * 0.9) * step(0.001, mask));
+#else
+	out_Color = vec4(offset, weight, blur * u_RainLensParams.y);
 #endif
-
-	vec2 offset = vec2(0.0);
-	vec3 scene = texelFetch(u_ScreenImageMap, ivec2(gl_FragCoord.xy), 0).rgb;
-	vec3 color = scene;
-	if (mask > 0.001 || film > 0.001)
-	{
-		// magnified, inverted view of what is behind the drop
-		offset = -slope * radiusUV * u_RainLensParams.z * REFRACTION_SCALE * mask;
-		offset.x /= aspect;
-		offset += vec2(0.0, 0.002) * film * u_RainLensParams.z;
-
-		vec2 refrUV = clamp(uv + offset, vec2(0.0), vec2(1.0));
-
-		// defocus: a small rotated 4 tap disc, only inside drops
-		float blur = radiusUV * 0.18 * mask;
-		vec2 bx = vec2(blur / aspect, blur * 0.3);
-		vec2 by = vec2(-blur * 0.3 / aspect, blur);
-		vec3 refracted = textureLod(u_ScreenImageMap, refrUV, 0.0).rgb;
-		if (mask > 0.001)
-		{
-			refracted *= 0.2;
-			refracted += textureLod(u_ScreenImageMap, refrUV + bx, 0.0).rgb * 0.2;
-			refracted += textureLod(u_ScreenImageMap, refrUV - bx, 0.0).rgb * 0.2;
-			refracted += textureLod(u_ScreenImageMap, refrUV + by, 0.0).rgb * 0.2;
-			refracted += textureLod(u_ScreenImageMap, refrUV - by, 0.0).rgb * 0.2;
-		}
-
-		// Artistic edge attenuation until reflected lighting is available.
-		float rim = clamp(dot(slope, slope) * 0.5, 0.0, 1.0);
-		refracted *= 0.97 - 0.09 * rim;
-
-		// glint towards a light above the camera, tied to the local luminance
-		vec3 n = normalize(vec3(slope * 0.8, 1.0));
-		vec3 halfVec = normalize(vec3(-0.35, 0.55, 1.0) + vec3(0.0, 0.0, 1.0));
-		float spec = pow(max(dot(n, halfVec), 0.0), 80.0);
-		refracted += spec * Luminance(refracted) * 0.6;
-
-		color = mix(scene, refracted, clamp(max(mask, film), 0.0, 1.0));
-	}
-
-#if defined(USE_DEBUG)
-	int view = int(u_RainLensParams2.z);
-	if (view == 1)
-		color = vec3(mask, film, 0.0);
-	else if (view == 2)
-		color = mask > 0.0 ? normalize(vec3(slope * 0.8, 1.0)) * 0.5 + 0.5 : vec3(0.5, 0.5, 1.0);
-	else if (view == 3)
-		color = vec3(abs(offset) * 40.0, 0.0);
-	else if (view == 4)
-	{
-		// left: scene, right: composition (display range preview)
-		vec3 c = uv.x < 0.5 ? scene : color;
-		if (u_RainLensParams2.w < 0.5)
-			c = pow(c / (1.0 + c), vec3(1.0 / 2.2));
-		color = abs(uv.x - 0.5) < 0.0015 ? vec3(1.0, 0.8, 0.0) : c;
-	}
+#else
+	out_Color = vec4(0.0);
 #endif
-
-	out_Color = vec4(color, 1.0);
 }

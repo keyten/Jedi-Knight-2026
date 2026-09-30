@@ -18,58 +18,136 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
-// Rain droplets on the camera lens (r_rainLens), glsl/rainlens.glsl.
+// Water on the camera lens (r_rainLens), see docs/rend2-rain-lens.md.
 //
-// Optional polish, off by default. A transient lower resolution lens field
-// and one fullscreen HDR composite in RB_PostProcess
-// after the SMAA T2x temporal resolve and motion blur, before bloom
-// extraction and tone mapping (see docs/rend2-rain-lens.md). It reads the
-// resolved scene and writes rainLensImage (a dedicated full resolution HDR
-// target: textureScratchImage is 256x256 RGBA8). The caller uses that target
-// as the scene source for the remaining color passes; modern bloom also reads
-// the lens field to refract the emissive MRT.
+// Optional polish, off by default. The persistent lens state lives in
+// tr_lenswater.cpp (droplet agents, wetness / film field, sheets, weather
+// controller). This file feeds it the weather and camera input, rasterises
+// it into a lower resolution lens field (glsl/rainlens.glsl: RG = unscaled
+// UV offset, B = optical weight, A = blur radius) and runs one fullscreen HDR
+// composite (glsl/rainlens_composite.glsl) in RB_PostProcess after the SMAA
+// T2x temporal resolve and motion blur, before bloom extraction and tone
+// mapping. The composite writes rainLensImage, a dedicated full resolution
+// HDR target that the caller uses as the scene source for the remaining
+// color passes; modern bloom also reads the lens field to refract the
+// emissive MRT.
 //
-// Active only for the main world view of the first scene while it rains
-// and the camera is outside (R_IsOutside, decided on the front end). The
-// default drops are procedural; r_rainLensSimulation keeps water on a small
-// CPU lattice and uploads it to the same lens-field/optics path.
+// Active only for the main world view of the frame. Rain exposure only
+// controls new water: under cover the existing water keeps moving, merging
+// and drying.
 
 #include "tr_local.h"
 #include "tr_weather.h"
+#include "tr_lenswater.h"
 
-// drops already on the lens run off within this time under cover
-#define RAIN_LENS_DRAIN_SECONDS 1.2f
-// new drops ramp up over this time after stepping out
-#define RAIN_LENS_RAMP_SECONDS 1.5f
+#include <vector>
 
-static float s_lensTime;
-static float s_lastExposedTime;
-static float s_wet;
-static int s_lastRefdefTime;
-static qboolean s_clockValid;
-static qboolean s_debugOutput;
-static unsigned s_lastFrame;
+using namespace lenswater;
 
-static void R_RainLensResetState( void )
+namespace {
+LensWater s_water;
+std::vector<float> s_instanceData;
+int s_maxInstances;
+int s_lastRefdefTime;
+qboolean s_clockValid;
+qboolean s_debugOutput;
+unsigned s_lastFrame;
+// front end water transition state (R_RainLensInput)
+qboolean s_inWaterValid;
+qboolean s_inWater;
+int s_waterEnterTime;
+int s_lastEmergeTime;
+int s_pendingEvents;
+
+const int MAX_LENS_DROPS = 128;
+const int MAX_LENS_MICRO = 256;
+const int MAX_LENS_SHEETS = 8;
+
+int QualityLevel( void )
 {
-	s_lensTime = 0.0f;
-	s_lastExposedTime = -1000.0f;
-	s_wet = 0.0f;
+	return Com_Clampi(0, 2, r_rainLensQuality->integer);
+}
+
+int DropLimit( void )
+{
+	static const int limits[3] = { 48, 96, 128 };
+	if ( r_rainLensAgentLimit->integer > 0 )
+		return Com_Clampi(8, MAX_LENS_DROPS, r_rainLensAgentLimit->integer);
+	return limits[QualityLevel()];
+}
+
+Params CurrentParams( void )
+{
+	Params p;
+	p.density = Com_Clamp(0.0f, 2.0f, r_rainLensDensity->value);
+	p.dropSize = Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value);
+	p.pinning = Com_Clamp(0.1f, 4.0f, r_rainLensPinning->value);
+	p.merge = Com_Clamp(0.0f, 2.0f, r_rainLensMerge->value);
+	p.filmDecay = Com_Clamp(0.1f, 4.0f, r_rainLensFilmDecay->value);
+	p.wetDecay = Com_Clamp(0.1f, 4.0f, r_rainLensWetDecay->value);
+	p.heavyFlow = Com_Clamp(0.0f, 4.0f, r_rainLensHeavyFlow->value);
+	p.peripheralBias = Com_Clamp(0.0f, 2.0f, r_rainLensPeripheralBias->value);
+	p.maxDrops = DropLimit();
+	p.maxMicro = MAX_LENS_MICRO;
+	p.maxSheets = MAX_LENS_SHEETS;
+	return p;
+}
+
+Profile ProfileFromWeather( int weather, float intensity )
+{
+	switch ( weather )
+	{
+	case RAIN_WEATHER_LIGHT: return PROFILE_LIGHT;
+	case RAIN_WEATHER_NORMAL: return PROFILE_NORMAL;
+	case RAIN_WEATHER_HEAVY: return PROFILE_HEAVY;
+	case RAIN_WEATHER_ACID: return PROFILE_ACID;
+	default:
+		// unknown source: classify by particle count
+		return intensity < 0.3f ? PROFILE_LIGHT : (intensity < 0.7f ? PROFILE_NORMAL : PROFILE_HEAVY);
+	}
+}
+
+// nominal intensity of a forced profile (rainlens_profile without rain)
+float ProfileIntensity( Profile profile )
+{
+	switch ( profile )
+	{
+	case PROFILE_LIGHT: return 0.2f;
+	case PROFILE_HEAVY: return 1.0f;
+	default: return 0.4f;
+	}
+}
+
+void ResetState( void )
+{
 	s_lastRefdefTime = 0;
 	s_clockValid = qfalse;
 	s_debugOutput = qfalse;
 	s_lastFrame = 0;
+	s_inWaterValid = qfalse;
+	s_inWater = qfalse;
+	s_waterEnterTime = 0;
+	s_lastEmergeTime = -100000;
+	s_pendingEvents = 0;
 }
+} // namespace
 
 void R_CreateRainLensImages( int width, int height, int hdrFormat )
 {
-	R_RainLensResetState();
+	ResetState();
 	tr.rainLensImage = NULL;
 	tr.rainLensFieldImage = NULL;
-	tr.rainLensSimImage = NULL;
+	tr.rainLensFilmImage = NULL;
+	tr.rainLensInstanceImage = NULL;
 
 	if ( !r_rainLens->integer )
+	{
+		// no allocation, no simulation
+		s_water = LensWater();
+		s_instanceData.clear();
+		s_instanceData.shrink_to_fit();
 		return;
+	}
 
 	if ( !r_hdr->integer )
 	{
@@ -80,63 +158,140 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensImage = R_CreateImage(
 		"*rainLens", NULL, width, height, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	// Procedural beads need a fine field; persistent water has only 256
-	// samples vertically, so a larger conversion target wastes GPU work.
-	const int fieldHeight = r_rainLensSimulation->integer ? Q_min(height, 256) :
-		Q_min(height, Q_max(540, height / 2));
+
+	// The lens field is quality bounded, not proportional to the display:
+	// 256 / 360 / 540 texels high; only the composite runs at full resolution.
+	static const int fieldHeights[3] = { 256, 360, 540 };
+	int fieldHeight = r_rainLensFieldHeight->integer > 0 ?
+		Com_Clampi(64, 2160, r_rainLensFieldHeight->integer) : fieldHeights[QualityLevel()];
+	fieldHeight = Q_min(height, fieldHeight);
 	const int fieldWidth = Q_max(1, width * fieldHeight / height);
 	tr.rainLensFieldImage = R_CreateImage(
 		"*rainLensField", NULL, fieldWidth, fieldHeight, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-	if (r_rainLensSimulation->integer)
-	{
-		const int simHeight = 256;
-		const int simWidth = Q_max(1, width * simHeight / height);
-		tr.rainLensSimImage = R_CreateImage(
-			"*rainLensSim", NULL, simWidth, simHeight, IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-		R_RainLensSimInit(simWidth, simHeight);
-	}
+
+	// persistent wetness (R) and thin film (G)
+	const int filmHeight = Q_min(height, 256);
+	const int filmWidth = Q_max(1, width * filmHeight / height);
+	tr.rainLensFilmImage = R_CreateImage(
+		"*rainLensFilm", NULL, filmWidth, filmHeight, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RG16F);
+
+	// droplet / sheet instance records, fetched by gl_InstanceID
+	s_maxInstances = MAX_LENS_DROPS + MAX_LENS_MICRO + MAX_LENS_SHEETS;
+	tr.rainLensInstanceImage = R_CreateImage(
+		"*rainLensInstances", NULL, s_maxInstances, INSTANCE_TEXELS, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA32F);
+	s_instanceData.assign((size_t)s_maxInstances * INSTANCE_FLOATS, 0.0f);
+
+	const Profile override = s_water.GetProfileOverride();
+	s_water = LensWater();
+	s_water.Init(filmWidth, filmHeight);
+	s_water.SetProfileOverride(override);
 }
 
 /*
 =============
-R_RainLensExposure
+R_RainLensInput
 
-Front end, R_AddPostProcessCmd. Returns the rain intensity (0..1) the lens
-is exposed to: zero unless it rains, the scene is the main world view and
-the camera is outside. r_rainLensDebug forces it on for inspection.
+Front end, R_AddPostProcessCmd. The weather and camera input of the lens:
+rain intensity and subtype, whether new rain reaches it (main world view
+outside while it rains), how much it faces into the rain, and water surface
+transitions of the camera. R_IsOutside mutates a cache, so this runs here
+rather than in the back end.
 =============
 */
-float R_RainLensExposure( const trRefdef_t *refdef, const viewParms_t *viewParms )
+void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, rainLensInput_t *input )
 {
-	if ( !r_rainLens->integer || !tr.rainLensImage || !tr.world )
-		return 0.0f;
+	Com_Memset(input, 0, sizeof(*input));
 
-	if ( refdef->rdflags & RDF_NOWORLDMODEL )
-		return 0.0f;
+	if ( !r_rainLens->integer || !tr.rainLensImage || !tr.world )
+		return;
+
+	if ( refdef->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL) )
+		return;
 
 	if ( viewParms->viewParmType != VPT_MAIN || viewParms->isPortal || viewParms->isMirror
 		|| (viewParms->flags & VPF_DEPTHSHADOW) )
-		return 0.0f;
+		return;
 
-	if ( r_rainLensDebug->integer )
-		return 1.0f;
+	input->active = qtrue;
 
-	if ( !tr.weatherSystem )
-		return 0.0f;
+	// Leaving water seeds a lot of water at once; while submerged the lens
+	// is not drawn and entering water wipes it. Eyes bobbing at the surface
+	// must not emerge every frame: the camera has to be under for a moment,
+	// and emerging repeats at most once a second.
+	const qboolean inWater = (qboolean)((ri.CM_PointContents(refdef->vieworg, 0) & CONTENTS_WATER) != 0);
+	if ( refdef->time < s_lastEmergeTime || refdef->time < s_waterEnterTime )
+	{
+		// game time restarted (map change)
+		s_waterEnterTime = 0;
+		s_lastEmergeTime = -100000;
+	}
+	if ( s_inWaterValid && inWater != s_inWater )
+	{
+		if ( inWater )
+		{
+			s_pendingEvents |= RAINLENS_EVENT_SUBMERGE;
+			s_waterEnterTime = refdef->time;
+		}
+		else if ( refdef->time - s_waterEnterTime >= 250 && refdef->time - s_lastEmergeTime >= 1000 )
+		{
+			s_pendingEvents |= RAINLENS_EVENT_EMERGE;
+			s_lastEmergeTime = refdef->time;
+		}
+	}
+	s_inWater = inWater;
+	s_inWaterValid = qtrue;
+	input->submerged = inWater;
+	input->events = s_pendingEvents;
+	s_pendingEvents = 0;
 
-	const weatherObject_t *rain = &tr.weatherSystem->weatherSlots[WEATHER_RAIN];
-	if ( !rain->active )
-		return 0.0f;
+	const weatherObject_t *rain = tr.weatherSystem ? &tr.weatherSystem->weatherSlots[WEATHER_RAIN] : NULL;
+	const Profile forced = s_water.GetProfileOverride();
+	if ( forced != PROFILE_AUTO && !(rain && rain->active) )
+	{
+		// rainlens_profile forces rain for testing on dry maps
+		input->intensity = ProfileIntensity(forced);
+		input->exposed = 1.0f;
+		input->facing = Com_Clamp(0.0f, 1.0f, refdef->viewaxis[0][2]);
+		return;
+	}
+
+	if ( !rain || !rain->active || inWater )
+		return;
+
+	// "lightrain" 1000, "rain" / "acidrain" 2000, "heavyrain" 5000 particles
+	input->intensity = Com_Clamp(0.0f, 1.0f, rain->particleCount / 5000.0f);
+	input->weather = tr.weatherSystem->rainSubtype;
 
 	vec3_t origin;
 	VectorCopy(refdef->vieworg, origin);
-	if ( !R_IsOutside(origin) )
-		return 0.0f;
+	input->exposed = R_IsOutside(origin) ? 1.0f : 0.0f;
 
-	// "rain" 1000, "heavyrain" 2000, "heavyrainfog" 5000 particles
-	return Com_Clamp(0.25f, 1.0f, rain->particleCount / 5000.0f);
+	// Rain travels down, tilted by the wind; the lens gets more of it when
+	// it faces into the rain.
+	vec3_t fall;
+	VectorSet(fall, tr.weatherSystem->windDirection[0], tr.weatherSystem->windDirection[1],
+		-Q_max(rain->gravity, 0.1f) * 100.0f);
+	const float horizontal = sqrtf(fall[0] * fall[0] + fall[1] * fall[1]);
+	const float maxHorizontal = -fall[2];	// at most 45 degrees
+	if ( horizontal > maxHorizontal )
+	{
+		fall[0] *= maxHorizontal / horizontal;
+		fall[1] *= maxHorizontal / horizontal;
+	}
+	VectorNormalize(fall);
+	input->facing = Com_Clamp(0.0f, 1.0f, -DotProduct(refdef->viewaxis[0], fall));
+
+	// wind in lens space (viewaxis[1] points left), a hint for sheets
+	vec3_t wind;
+	VectorCopy(tr.weatherSystem->windDirection, wind);
+	wind[2] = 0.0f;
+	const float windSpeed = VectorNormalize(wind);
+	const float windAmount = Com_Clamp(0.0f, 1.0f, windSpeed / 100.0f);
+	input->windLens[0] = -DotProduct(wind, refdef->viewaxis[1]) * windAmount;
+	input->windLens[1] = DotProduct(wind, refdef->viewaxis[2]) * windAmount;
 }
 
 static int RB_RainLensBeginTimer( const char *name )
@@ -174,22 +329,26 @@ static void RB_RainLensEndTimer( int handle )
 =============
 RB_RainLensUpdate
 
-Advances the lens clock of the main scene and tells whether the pass runs
-this frame: while exposed, and until the drops on the lens have drained.
+Advances the lens water of the main scene by game time and tells whether
+the pass runs this frame: while water is on the lens or new rain reaches it.
+A dry lens under cover costs nothing.
 =============
 */
-qboolean RB_RainLensUpdate( float exposure )
+qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 {
 	s_debugOutput = qfalse;
 
+	if ( !input || !input->active )
+		return qfalse;
+
 	if ( !tr.rainLensImage || !tr.rainLensFbo || !tr.rainLensFieldImage || !tr.rainLensFieldFbo
-		|| (r_rainLensSimulation->integer && !tr.rainLensSimImage) )
+		|| !tr.rainLensFilmImage || !tr.rainLensInstanceImage )
 		return qfalse;
 
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
 		return qfalse;
 
-	// the first post processed world scene of a frame owns the lens
+	// the first post processed main world scene of a frame owns the lens
 	if ( s_clockValid && s_lastFrame == backEndData->realFrameNumber )
 		return qfalse;
 	s_lastFrame = backEndData->realFrameNumber;
@@ -197,53 +356,46 @@ qboolean RB_RainLensUpdate( float exposure )
 	// game time: pauses with the game, restarts on map change
 	const int now = backEnd.refdef.time;
 	const int delta = now - s_lastRefdefTime;
+	float dt = 0.0f;
 	if ( !s_clockValid || delta < 0 || delta > 1000 )
-	{
-		// cut: no drops carried over
-		s_lastExposedTime = s_lensTime - 1000.0f;
-		s_wet = 0.0f;
-		if (r_rainLensSimulation->integer)
-			R_RainLensSimClear();
-	}
+		s_water.Clear();	// cut: no water carried over
 	else
-	{
-		s_lensTime += delta * 0.001f;
-	}
+		dt = delta * 0.001f;
 	s_lastRefdefTime = now;
 	s_clockValid = qtrue;
 
-	// keep the float clock precise
-	if ( s_lensTime > 4096.0f )
+	Event event = {};
+	event.strength = 1.0f;
+	if ( input->events & RAINLENS_EVENT_SUBMERGE )
 	{
-		s_lensTime -= 2048.0f;
-		s_lastExposedTime -= 2048.0f;
+		event.type = EVENT_SUBMERGE;
+		s_water.QueueEvent(event);
+	}
+	if ( input->events & RAINLENS_EVENT_EMERGE )
+	{
+		event.type = EVENT_EMERGE;
+		s_water.QueueEvent(event);
 	}
 
-	const float dt = (delta > 0 && delta <= 1000) ? delta * 0.001f : 0.0f;
-	if (r_rainLensSimulation->integer)
-	{
-		const qboolean active = RB_RainLensSimUpdate(dt, exposure);
-		return (qboolean)(active || r_rainLensDebug->integer);
-	}
-	if ( exposure > 0.0f )
-	{
-		s_lastExposedTime = s_lensTime;
-		s_wet = Q_min(1.0f, s_wet + dt / RAIN_LENS_RAMP_SECONDS);
-	}
-	else if ( s_lensTime - s_lastExposedTime >= RAIN_LENS_DRAIN_SECONDS )
-	{
-		// Keep the existing population stable while it drains. Once the lens
-		// is clear, new rain has to build up again on the next exposure.
-		s_wet = 0.0f;
-	}
+	Input in;
+	in.intensity = input->intensity;
+	in.exposed = input->exposed;
+	in.facing = input->facing;
+	in.weather = ProfileFromWeather(input->weather, input->intensity);
+	// World gravity on the lens plane. viewaxis[1] points left; lens X
+	// points right and lens Y up, so looking up or down leaves little
+	// tangential gravity and rolling the camera turns it.
+	in.gravity.x = backEnd.refdef.viewaxis[1][2];
+	in.gravity.y = -backEnd.refdef.viewaxis[2][2];
+	in.wind.x = input->windLens[0];
+	in.wind.y = input->windLens[1];
 
-	if ( r_rainLensDebug->integer )
-		return qtrue;
+	const qboolean active = (qboolean)s_water.Update(dt, in, CurrentParams());
 
-	if ( r_rainLensDensity->value <= 0.0f )
+	if ( input->submerged )
 		return qfalse;
 
-	return (qboolean)(s_lensTime - s_lastExposedTime < RAIN_LENS_DRAIN_SECONDS);
+	return (qboolean)(active || r_rainLensDebug->integer);
 }
 
 /*
@@ -251,66 +403,115 @@ qboolean RB_RainLensUpdate( float exposure )
 RB_RainLens
 
 srcFbo holds the HDR scene (MSAA resolved, temporally resolved and motion
-blurred). Evaluates droplet geometry into a lower resolution field,
-then refracts the HDR scene into rainLensImage. The caller uses rainLensFbo
-for subsequent color passes. Debug views use the same field and composite
-as the normal image, and are drawn by RB_RainLensDebugOverlay.
+blurred). Rasterises the lens water into the lower resolution field, then
+refracts the HDR scene into rainLensImage. The caller uses rainLensFbo for
+subsequent color passes. Debug views are drawn by RB_RainLensDebugOverlay.
 =============
 */
-void RB_RainLens( FBO_t *srcFbo, float exposure )
+void RB_RainLens( FBO_t *srcFbo )
 {
 	if ( !srcFbo )
 		return;
 
 	const int debugView = r_rainLensDebug->integer;
+	const Params params = CurrentParams();
+	const float aspect = (float)tr.rainLensFieldFbo->width / (float)tr.rainLensFieldFbo->height;
 
-	// exposure is zero while draining: keep the last density
-	static float s_intensity = 1.0f;
-	if ( exposure > 0.0f )
-		s_intensity = exposure;
+	int timer = RB_RainLensBeginTimer("Rain lens field");
 
-	const float density = debugView ? 1.0f :
-		Com_Clamp(0.0f, 1.0f, r_rainLensDensity->value) * s_intensity * s_wet;
-
-	const int timer = RB_RainLensBeginTimer("Rain lens");
-
-	GL_State(GLS_DEPTHTEST_DISABLE);
-	GL_Cull(CT_TWO_SIDED);
-
-	vec4_t params, params2;
-	VectorSet4(params, s_lensTime, density,
-		Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value),
-		Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value));
-	const qboolean simulation = (qboolean)r_rainLensSimulation->integer;
-	const qboolean updateField = (qboolean)(!simulation || RB_RainLensSimUpload());
-	if (updateField)
+	if ( s_water.FilmDirty() )
 	{
-		FBO_Bind(tr.rainLensFieldFbo);
-		GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
-		shaderProgram_t *field = &tr.rainLensShader[
-			simulation ? RAINLENSDEF_SIMULATION : RAINLENSDEF_FIELD];
-		GLSL_BindProgram(field);
-		if (simulation)
-			GL_BindToTMU(tr.rainLensSimImage, TB_COLORMAP);
-		VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
-			(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
-		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS, params);
-		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS2, params2);
-		RB_InstantTriangle();
+		// GL_BindToTMU skips the unit switch when the image is already bound
+		GL_BindToTMU(tr.rainLensFilmImage, TB_COLORMAP);
+		GL_SelectTexture(TB_COLORMAP);
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, s_water.FilmWidth(), s_water.FilmHeight(),
+			GL_RG, GL_FLOAT, s_water.FilmData());
+		s_water.ClearFilmDirty();
 	}
 
+	const int numInstances = s_water.BuildInstances(s_instanceData.data(), s_maxInstances, params.dropSize);
+	if ( numInstances > 0 )
+	{
+		GL_BindToTMU(tr.rainLensInstanceImage, TB_COLORMAP);
+		GL_SelectTexture(TB_COLORMAP);
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, numInstances, INSTANCE_TEXELS,
+			GL_RGBA, GL_FLOAT, s_instanceData.data());
+	}
+
+	GL_Cull(CT_TWO_SIDED);
+	FBO_Bind(tr.rainLensFieldFbo);
+	GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
+
+	vec4_t params1, params2;
+	VectorSet4(params2, 0.0f, 0.0f,
+		(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
+
+	// thin film: weak refraction, low optical weight; it overwrites the field
+	if ( s_water.FilmVisible() )
+	{
+		GL_State(GLS_DEPTHTEST_DISABLE);
+		shaderProgram_t *film = &tr.rainLensShader[RAINLENSDEF_FILM];
+		GLSL_BindProgram(film);
+		GL_BindToTMU(tr.rainLensFilmImage, TB_COLORMAP);
+		VectorSet4(params1, aspect, Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value), 0.0f, 0.0f);
+		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS, params1);
+		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS2, params2);
+		RB_InstantTriangle();
+	}
+	else
+	{
+		const vec4_t black = { 0.0f, 0.0f, 0.0f, 0.0f };
+		qglClearBufferfv(GL_COLOR, 0, black);
+	}
+
+	// drops, micro drops and sheets: instanced analytic quads, added so
+	// temporary overlaps sum their surface slopes instead of switching
+	if ( numInstances > 0 )
+	{
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
+		shaderProgram_t *drops = &tr.rainLensShader[RAINLENSDEF_DROPS];
+		GLSL_BindProgram(drops);
+		GL_BindToTMU(tr.rainLensInstanceImage, TB_COLORMAP);
+		VectorSet4(params1, aspect, Com_Clamp(0.0f, 2.0f, r_rainLensBlur->value), 0.0f, 0.0f);
+		GLSL_SetUniformVec4(drops, UNIFORM_RAINLENSPARAMS, params1);
+		GLSL_SetUniformVec4(drops, UNIFORM_RAINLENSPARAMS2, params2);
+		qglDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, numInstances);
+	}
+
+	RB_RainLensEndTimer(timer);
+	timer = RB_RainLensBeginTimer("Rain lens composite");
+
+	static const float sampleCounts[3] = { 1.0f, 3.0f, 5.0f };
+	GL_State(GLS_DEPTHTEST_DISABLE);
 	FBO_Bind(tr.rainLensFbo);
 	GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
 	shaderProgram_t *composite = &tr.rainLensCompositeShader;
 	GLSL_BindProgram(composite);
 	GL_BindToTMU(srcFbo->colorImage[0], TB_COLORMAP);
 	GL_BindToTMU(tr.rainLensFieldImage, TB_LIGHTMAP);
-	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params);
-	VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
-		(float)debugView, tr.linearLight ? 0.0f : 1.0f);
+	GL_BindToTMU(tr.rainLensFilmImage, TB_NORMALMAP);
+	VectorSet4(params1, 0.0f, 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value), sampleCounts[QualityLevel()]);
+	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params1);
+	VectorSet4(params2, 0.0f, 0.0f, (float)debugView, tr.linearLight ? 0.0f : 1.0f);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS2, params2);
 	RB_InstantTriangle();
-	if (debugView)
+
+	// agent views over the composited image
+	if ( (debugView == 5 || debugView == 7 || debugView == 8) && numInstances > 0 )
+	{
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+		shaderProgram_t *agents = &tr.rainLensShader[RAINLENSDEF_DEBUG_AGENTS];
+		GLSL_BindProgram(agents);
+		GL_BindToTMU(tr.rainLensInstanceImage, TB_COLORMAP);
+		VectorSet4(params1, aspect, 1.0f, 0.0f, (float)debugView);
+		GLSL_SetUniformVec4(agents, UNIFORM_RAINLENSPARAMS, params1);
+		VectorSet4(params2, 0.0f, 0.0f, (float)tr.rainLensFbo->width, (float)tr.rainLensFbo->height);
+		GLSL_SetUniformVec4(agents, UNIFORM_RAINLENSPARAMS2, params2);
+		qglDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, numInstances);
+		GL_State(GLS_DEPTHTEST_DISABLE);
+	}
+	if ( debugView )
 		s_debugOutput = qtrue;
 
 	RB_RainLensEndTimer(timer);
@@ -325,4 +526,101 @@ void RB_RainLensDebugOverlay( void )
 	vec4i_t dstBox;
 	VectorSet4(dstBox, 0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	FBO_FastBlitFromTexture(tr.rainLensImage, NULL, dstBox, NULL, 0);
+}
+
+/*
+=============
+Console commands (developer testing, independent of the weather)
+=============
+*/
+static qboolean R_RainLensAvailable( void )
+{
+	if ( !tr.rainLensImage )
+	{
+		ri.Printf(PRINT_ALL, "Lens water is not active (r_rainLens 1, r_hdr 1, vid_restart)\n");
+		return qfalse;
+	}
+	return qtrue;
+}
+
+void R_RainLensClear_f( void )
+{
+	if ( R_RainLensAvailable() )
+		s_water.Clear();
+}
+
+void R_RainLensEvent_f( void )
+{
+	if ( ri.Cmd_Argc() < 2 )
+	{
+		ri.Printf(PRINT_ALL, "usage: rainlens_event <splash|spray|emerge> [strength] [side: left|right|up|down]\n");
+		return;
+	}
+	if ( !R_RainLensAvailable() )
+		return;
+
+	Event event = {};
+	const char *type = ri.Cmd_Argv(1);
+	if ( !Q_stricmp(type, "splash") )
+		event.type = EVENT_SPLASH;
+	else if ( !Q_stricmp(type, "spray") )
+		event.type = EVENT_SPRAY;
+	else if ( !Q_stricmp(type, "emerge") )
+		event.type = EVENT_EMERGE;
+	else
+	{
+		ri.Printf(PRINT_ALL, "unknown lens water event '%s'\n", type);
+		return;
+	}
+	event.strength = ri.Cmd_Argc() > 2 ? Com_Clamp(0.05f, 2.0f, atof(ri.Cmd_Argv(2))) : 1.0f;
+	event.duration = 2.5f;
+	if ( ri.Cmd_Argc() > 3 )
+	{
+		const char *side = ri.Cmd_Argv(3);
+		if ( !Q_stricmp(side, "left") ) event.dir = { -1.0f, 0.0f };
+		else if ( !Q_stricmp(side, "right") ) event.dir = { 1.0f, 0.0f };
+		else if ( !Q_stricmp(side, "up") ) event.dir = { 0.0f, 1.0f };
+		else if ( !Q_stricmp(side, "down") ) event.dir = { 0.0f, -1.0f };
+	}
+	s_water.QueueEvent(event);
+}
+
+void R_RainLensProfile_f( void )
+{
+	static const char *names[PROFILE_COUNT] = { "auto", "light", "rain", "heavy", "acid" };
+	if ( ri.Cmd_Argc() < 2 )
+	{
+		ri.Printf(PRINT_ALL, "usage: rainlens_profile <auto|light|rain|heavy|acid> (current: %s)\n",
+			names[s_water.GetProfileOverride()]);
+		return;
+	}
+	for ( int i = 0; i < PROFILE_COUNT; i++ )
+	{
+		if ( !Q_stricmp(ri.Cmd_Argv(1), names[i]) )
+		{
+			s_water.SetProfileOverride((Profile)i);
+			if ( i != PROFILE_AUTO )
+				ri.Printf(PRINT_ALL, "Lens water profile forced to %s (rains on the lens even without weather)\n", names[i]);
+			return;
+		}
+	}
+	ri.Printf(PRINT_ALL, "unknown profile '%s'\n", ri.Cmd_Argv(1));
+}
+
+void R_RainLensStats_f( void )
+{
+	if ( !R_RainLensAvailable() )
+		return;
+	static const char *names[PROFILE_COUNT] = { "auto", "light", "rain", "heavy", "acid" };
+	const Stats s = s_water.GetStats();
+	ri.Printf(PRINT_ALL, "Lens water (%s profile%s):\n", names[s.profile],
+		s_water.GetProfileOverride() != PROFILE_AUTO ? ", forced" : "");
+	ri.Printf(PRINT_ALL, "  drops %d / %d (beads %d, residual %d, moving %d, flow heads %d)\n",
+		s.drops, DropLimit(), s.beads, s.residuals, s.moving, s.flows);
+	ri.Printf(PRINT_ALL, "  micro drops %d / %d, sheets %d / %d\n", s.micro, MAX_LENS_MICRO, s.sheets, MAX_LENS_SHEETS);
+	ri.Printf(PRINT_ALL, "  lens field %dx%d, film %dx%d (%s, %s)\n",
+		tr.rainLensFieldImage ? tr.rainLensFieldImage->width : 0,
+		tr.rainLensFieldImage ? tr.rainLensFieldImage->height : 0,
+		s.filmWidth, s.filmHeight, s.filmVisible ? "visible" : "dry", s.filmDirty ? "dirty" : "uploaded");
+	ri.Printf(PRINT_ALL, "  agent update %.1f us CPU; GPU field / composite: r_speeds 100\n", s.updateMicroseconds);
 }

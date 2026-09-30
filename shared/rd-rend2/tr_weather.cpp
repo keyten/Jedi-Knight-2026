@@ -1183,6 +1183,7 @@ void RE_WorldEffectCommand(const char *command)
 		for (int i = 0; i < NUM_WEATHER_TYPES; i++)
 			tr.weatherSystem->weatherSlots[i].active = false;
 		tr.weatherSystem->activeWeatherTypes = 0;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_NONE;
 		tr.weatherSystem->frozen = false;
 		return;
 	}
@@ -1195,6 +1196,7 @@ void RE_WorldEffectCommand(const char *command)
 			tr.weatherSystem->weatherSlots[i].active = false;
 		tr.weatherSystem->activeWeatherTypes = 0;
 		tr.weatherSystem->activeWindObjects = 0;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_NONE;
 		tr.weatherSystem->frozen = false;
 	}
 
@@ -1286,6 +1288,7 @@ void RE_WorldEffectCommand(const char *command)
 
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].particleCount = 1000;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].active = true;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_LIGHT;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].gravity = 2.0f;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].fadeDistance = 6000.f;
 
@@ -1320,6 +1323,7 @@ void RE_WorldEffectCommand(const char *command)
 
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].particleCount = 2000;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].active = true;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_NORMAL;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].gravity = 2.0f;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].fadeDistance = 6000.f;
 
@@ -1359,6 +1363,7 @@ void RE_WorldEffectCommand(const char *command)
 
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].particleCount = 2000;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].active = true;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_ACID;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].gravity = 2.0f;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].fadeDistance = 6000.0f;
 
@@ -1395,6 +1400,7 @@ void RE_WorldEffectCommand(const char *command)
 
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].particleCount = 5000;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].active = true;
+		tr.weatherSystem->rainSubtype = RAIN_WEATHER_HEAVY;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].gravity = 2.8f;
 		tr.weatherSystem->weatherSlots[WEATHER_RAIN].fadeDistance = 6000.0f;
 

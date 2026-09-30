@@ -1,8 +1,21 @@
-# Rend2 lens rain (`r_rainLens`)
+# Rend2 lens water (`r_rainLens`)
 
-Optional, off by default. Procedural rain drops on the camera lens while it rains
-and the camera is outside. Code: `shared/rd-rend2/tr_rainlens.cpp`,
-`shared/rd-rend2/glsl/rainlens.glsl`, `rainlens_composite.glsl`.
+This is optional and off by default. Water on the virtual camera lens covers rain,
+spray, splashes and leaving water. It persists under cover and dries gradually.
+It isn't a general fluid solver. It's a bounded, art-directable hybrid:
+
+| phenomenon | representation | code |
+|---|---|---|
+| coherent drops (pin, merge, depin, residual beads, flow heads) | CPU droplet agents, fixed 60 Hz | `tr_lenswater.cpp` |
+| thin persistent water (trails, wet paths) | CPU wetness / film field, 30 Hz decay | `tr_lenswater.cpp` |
+| violent broad water (downpour, emerging) | a few short art-directed sheets | `tr_lenswater.cpp` |
+| optics | one shared lens field + HDR composite | `tr_rainlens.cpp`, `glsl/rainlens.glsl`, `glsl/rainlens_composite.glsl` |
+
+`tr_lenswater.cpp` has no GL or renderer dependencies, so a headless harness can
+test it. `tr_rainlens.cpp` gathers the weather and camera input, then rasterises
+the state and composites it. It replaced the older procedural hashed-cell drops and
+the `r_rainLensSimulation` mass/velocity lattice. The lattice smeared drops into gel,
+and the procedural drops vanished under cover.
 
 ## Insertion point
 
@@ -11,140 +24,240 @@ and the camera is outside. Code: `shared/rd-rend2/tr_rainlens.cpp`,
 ```
 MSAA resolve
 [SMAA 2: edges + temporal resolve]   <- history stays drop free
-[motion blur]
-lens rain                            <- RB_RainLens
-dynamic glow / bloom extraction      <- scene extraction sees refracted lights
-[SMAA 1 edges]                       <- edges of the refracted image
+[motion blur]                        <- the world blurs, the lens does not
+lens water                           <- RB_RainLens
+dynamic glow / bloom extraction      <- displaced lights bloom where they appear
+[SMAA 1 edges]
 tone map -> sun rays -> glow composite -> debug overlays -> refraction fill
 ```
 
-When lens rain runs, `RB_PostProcess` uses the ordering branch that motion blur
-already uses. Without lens rain the ordering doesn't change. SSR and SSGI resolve
-in the main pass (before post-processing), so they're unaffected.
+When the lens pass runs, it uses the ordering branch that motion blur already
+uses. Each effect writes its own target and the next effect reads it (source-FBO
+chaining), so nothing copies the scene back. The modern bloom prefilter refracts
+the emissive MRT with the same field, which keeps a saber's glow on the displaced
+blade. The first legacy dynamic-glow downsample does the same, weighted by the
+field's optical weight.
 
-Modern bloom prefilter refracts its separate emissive MRT with the same lens
-field, so the glow follows the displaced source. The first legacy dynamic
-glow downsample applies the field too. Refracted scene energy also contributes
-when `r_bloomSceneIntensity` (modern) or `r_dynamicGlowBloom` (legacy) is
-above zero.
+## Frame flow
 
-## Targets
+```
+front end  R_AddPostProcessCmd -> R_RainLensInput
+           rain intensity + subtype, exposed (R_IsOutside), facing, wind,
+           camera water transitions -> postProcessCommand_t.rainLens
+back end   RB_RainLensUpdate: game-time clock (cuts clear), gravity projection,
+           LensWater::Update  (events, profile, agents 60 Hz, field 30 Hz)
+           -> pass skipped unless water is visible or new rain arrives
+           RB_RainLens:
+             upload film RG (only when dirty) + instance records (RGBA32F)
+             field FBO: film pass (or clear), then additive instanced quads
+             full-resolution composite -> rainLensImage
+```
 
-`textureScratchImage` is 256×256 RGBA8, so it can't be used here. The effect has
-a dedicated target: `tr.rainLensImage` (full resolution, same HDR format as
-`renderImage`) plus `tr.rainLensFbo`. A transient `RGBA16F` lens field stores
-offset, coverage and blur radius at half screen height (at least 540 pixels,
-unless the display is smaller) for procedural drops. Persistent mode uses a
-256-pixel-high field, matching its simulation lattice. They're allocated only with `r_rainLens 1`
-(latched) and `r_hdr 1`. The field pass evaluates droplet state once per field
-pixel; the full resolution pass composites it with `srcFbo->colorImage[0]`.
-Modern bloom prefilter samples the same field for emissive refraction.
-Subsequent color passes read `rainLensImage` directly; the original resolved
-FBO supplies depth for the final depth blit. No pass reads and writes the same
-texture.
+## State (lens space)
 
-## Activation
+Positions are normalised by the screen height: `x = (u − 0.5)·aspect`,
+`y = v − 0.5`, y up. Resolution and aspect don't change drop behaviour, and
+nothing is stored in pixels.
 
-Decided on the front end (`R_AddPostProcessCmd` → `R_RainLensExposure`), because
-`R_IsOutside` mutates a cache. All of these must hold:
-- `r_rainLens` is on and the target exists;
-- it's a world scene (`!RDF_NOWORLDMODEL`);
-- the view is `VPT_MAIN`, not a portal, mirror or depth-shadow view;
-- `weatherSlots[WEATHER_RAIN].active`;
-- `R_IsOutside(vieworg)`.
+**Agents** (`LensDrop`: bead, drop, flow head, residual; plus micro drops):
+- **Mass and radius.** `m = (r / 0.02)³`, so two equal drops merge to
+  `r·∛2 ≈ 1.26 r` with mass and momentum conserved.
+- **Pinning (contact-angle hysteresis, artistic).**
+  - The drive is `m·|g|` and the pin is `r · noise(p) · lerp(1, 0.4, wet(p))`.
+  - A drop starts when the drive exceeds the pin and stops below 0.6 × the pin.
+  - The noise is a *stable* spatial value noise. It's never animated, so drops
+    meander instead of swimming.
+  - A merge increases mass faster than the pinning, so a merged drop depins.
+- **Gravity.** World down is projected on the camera right/up axes. Camera roll
+  turns the flow, and looking straight up or down leaves almost no tangential
+  gravity.
+- **Motion.**
+  - The acceleration is the excess force, scaled by the profile speed.
+  - Drag is 3/s, or 1.6/s for flow heads, with a clamped speed.
+  - A weak pull runs along the wetness gradient. Pinning is the main path
+    follower.
+- **Merge.**
+  - The test is O(n²) with contact at `0.85·(ri + rj)`.
+  - Moving drops and flows collect micro drops.
+  - An impact on an existing drop feeds that drop.
+  - After a merge, the survivor and the absorbed lobe relax into one cap over
+    180 ms instead of popping.
+- **Trails.**
+  - Each step loses `1 − exp(−0.006·ds/r)` of mass.
+  - The swept segment is stamped once into the field and then only decays, so
+    cost follows new activity, not trail lifetime.
+- **Residual beads.** `P = 1 − exp(−5·ds)` per step. They take 2–5 % of the
+  mass and are placed just outside the merge contact behind the drop.
+- **Flow heads.** A drop is promoted when it's larger than 1.25 reference radii
+  and faster than 0.22 lens/s. Flow heads deposit more film, get a longer tail
+  and collect micro drops from farther away.
+- **Impacts.** A drop goes IMPACT (0–150 ms, spread then recoil, lopsided) →
+  SETTLING (150–300 ms relax) → SETTLED. A drop can't move while in IMPACT.
+- **Evaporation.** The radius shrinks linearly. Per the profile, a reference drop
+  dries in `beadLifetime / 0.6`.
+- **Caps.**
+  - Drops: 48 / 96 / 128 by quality.
+  - Micro drops: 256.
+  - Sheets: 8.
+  - When full, the least valuable state is evicted. The score combines size,
+    speed, freshness and peripheral position. Flows score high, so a tiny old
+    bead goes first.
 
-Intensity = `particleCount / 5000`, clamped to 0.25..1.
+**Field.**
+- The film/wetness field is `min(screen height, 256)` texels high, 2 floats per
+  cell:
+  - R = wetness, the path affinity (τ ≈ 12–22 s).
+  - G = optical thin film (τ ≈ 2.5–5 s).
+- Deposits use `max()`. Decay continues unchanged under cover, and the field is
+  skipped once it's empty.
 
-Portals, mirrors, cubemap captures and shadow views never reach `RB_PostProcess`
-anyway. On the back end, only the first post-processed world scene of a frame
-owns the lens.
+**Sheets.**
+- A sheet is an elongated low-weight ribbon, 0.25–0.8 s long. It moves along
+  gravity plus the wind, with a stable wobble, and deposits film.
+- They're for heavy rain and splash/emerge events only. There's no
+  Navier–Stokes.
 
-## State
+## Controller
 
-In the default procedural mode, backend state is a lens clock (game time, so
-it pauses with the game), the last exposed time, and a 1.5 s ramp-up that
-resets once the lens has drained under cover. A cut clears it.
+Exposure only controls *new* water. Under cover, agents keep moving, merging and
+evaporating, and the film drains. Nothing is frozen or restored.
 
-`r_rainLensSimulation 1` selects persistent water. A 256-cells-high lens
-lattice stores mass, velocity and wetness, updated at 30 Hz in game time.
-Impact water is distributed by normalized kernel weights, with total mass
-scaling explicitly with drop area because local mass represents cap height.
-Mass and momentum flow conservatively to neighbors and
-merge there. Small deposits pin to the surface, while wet paths lower the
-pinning threshold and retain thin trails. Gravity is projected from world
-down onto the camera's right/up axes, so roll changes flow direction and
-looking vertically reduces it. No impacts are added under cover; mass and
-wetness decay there. Cuts clear the lattice. Its RGBA16F texture is uploaded
-only when a simulation step runs. The lens field is regenerated only on those
-uploads; the HDR optics composite still runs every displayed frame. The
-procedural mode remains the default and needs no state upload.
+- **Weather.** `RE_WorldEffectCommand` records `rainSubtype`: `lightrain` /
+  `rain` / `acidrain` / `heavyrain`. The intensity is `particleCount / 5000`.
+- **Profiles.** Light, normal, heavy and acid are rows of one parameter table,
+  and weather changes crossfade over about 1 s:
+  - **Light:** beads and rare merges; no flows or sheets.
+  - **Normal:** static beads, moving drops and thin paths at once.
+  - **Heavy:** many micro impacts, much more film, many fast flow heads
+    (1.6/s) and sheets (1.2/s), shorter bead life, and no more long-lived large
+    drops.
+  - **Acid:** stickier, with longer film and wet decay.
+- **Spawn timing.** Each family (micro, normal, large, flow, sheet) has its own
+  Poisson timer. A unit exponential variate is consumed by `rate·dt`, so timing
+  is irregular even as the rates change.
+- **Rate.** `rate = profile · r_rainLensDensity · exposed · lerp(0.2, 1, facing^1.5)`.
+  Here, `facing = −dot(forward, rain direction)`. The rain direction is world
+  down, tilted by the weather wind by at most 45°.
+- **Size.** `r = lerp(min, max, u^β)` with β > 1, so small drops dominate. Heavy
+  rain lowers β.
+- **Peripheral bias.** Large drops, flows and sheets are rejection-sampled
+  toward the edges. Micro and normal drops are uniform.
 
-## Droplet model
+**Events** (`LensWaterEvent`, at most 8 queued):
+- `SPLASH` gives a burst of drops, one or two large impacts, micro drops and
+  local film.
+- `SPRAY` gives repeated small impacts for its duration, biased toward a side.
+- `EMERGE` gives broad noisy film at once, 3–5 sheets, several flow heads and
+  15–40 beads.
+- `SUBMERGE` and `CLEAR` wipe everything.
 
-Everything lives in lens space, normalised by the screen **height**, so the drop
-size holds across resolutions, ultrawide and FOV changes.
-- **Beads:** a hashed 13-cells-per-height grid. Each cell has a life cycle of
-  4–10 s (grow, sit, evaporate/shrink). There's a density test per cycle.
-- **Sliders:** 4.5 columns per height, one drop per column per cycle. Its lifetime
-  depends on starting height, stick time, speed and screen height, so the drop
-  leaves the screen before the next cycle even at small drop sizes. A
-  drop sticks for 0.8–3.5 s, then slides with stick-slip motion
-  `travel = v(s − 0.9·sin(2πns)/(2πn))`. It gets a tail stretched by its speed,
-  a thin trail anchored to the drop's path that dries according to approximate
-  time since passage and leaves stationary small beads behind, and it
-  wipes the beads it crosses. At partial overlaps, normals are blended to
-  soften the refraction transition; water mass is not simulated in this mode.
-- **Shape:** a spherical cap `h = sqrt(1 − r²)`. It's egg-shaped
-  (`r·(1 + q·lopsided)`) with a small hashed ellipse, and the edge is softened
-  with `1 - smoothstep(0.78, 1, r)`. The slope includes the derivatives of the
-  egg shape, ellipse, and stretched tail.
-- **Refraction:** `offset = −slope · radius · r_rainLensRefraction · 1.6 · mask`.
-  This produces a magnified, inverted image. Aspect is corrected.
-- **Optics:** a 5-tap disc blur inside the drop only, radius ∝ drop size. The
-  rim is darkened artistically (no reflected environment is available). The glint is
-  proportional to the local refracted luminance. There are no white spots and no
-  global darkening.
-- **Under cover:** drops born after the last exposed time are never shown.
-  Existing drops fade over 1.2 s and sliders run off faster. The pass is skipped
-  after that, so it costs nothing indoors.
+Leaving water is detected on the front end:
+- `CM_PointContents(vieworg) & CONTENTS_WATER` on the main view.
+- Water → air emerges only if the camera was under for at least 250 ms, and at
+  most once a second.
+- While submerged, the lens isn't drawn.
+
+Waterfalls and other local spray have no automatic trigger yet. An authored hook
+(map entity, efx flag or game event) would queue `SPRAY` or `SPLASH`. For now it
+can be triggered through `rainlens_event`.
+
+## Optics
+
+- **Film pass** (`USE_FILM`, fullscreen at field resolution):
+  - `offset = ∇film · 0.035 · r_rainLensFilm`.
+  - `weight = min(0.45·film, 0.25) · r_rainLensFilm`.
+  - No blur.
+  - A trail refracts slightly and is never an opaque stripe. With no visible
+    film, the field is cleared instead.
+- **Drop pass** (`USE_DROPS`, instanced 4-vertex strips, records fetched by
+  `gl_InstanceID`, additive blend):
+  - A drop is a spherical cap in its own frame. It's stretched behind along
+    the motion (tail length `1 + 3|v|`, clamped) and lopsided by seed and
+    impact state.
+  - The analytic slope becomes `offset = −slope · r · 1.6 · mask`.
+  - The merge lobe adds its own cap, so overlapping heights sum their slopes
+    and normals don't switch hard.
+  - Sheets use a numerically differentiated ribbon profile: strong offset,
+    weight ≤ 0.2, tiny blur.
+  - Only covered pixels run, so the cost doesn't scale with field size ×
+    procedural work.
+- **Field.** RGBA16F, 256 / 360 / 540 high by `r_rainLensQuality` (or
+  `r_rainLensFieldHeight`, clamped to the screen). It holds RG = unscaled UV
+  offset, B = weight and A = blur radius. It's additive, so consumers clamp
+  B and A.
+- **Composite** (full resolution):
+  - A pixel with weight ≤ 0.001 costs one field fetch and one scene fetch.
+  - Water adds one refracted fetch, and blur taps run only where the blur
+    radius is above zero: 1 / 3 / 5 scene samples by quality.
+  - Rim darkening and the fixed glint apply to compact drops only
+    (`smoothstep(0.25, 0.6, weight)`).
+  - Environment reflection, Fresnel and a sun-driven glint are deferred until
+    there's a real reflection source.
 
 ## Cvars
 
 | cvar | default | |
 |---|---|---|
-| `r_rainLens` | 0 | latched, allocates the target, needs `r_hdr` |
-| `r_rainLensSimulation` | 0 | latched, persistent water mode; requires `r_rainLens 1` and `vid_restart` |
-| `r_rainLensDensity` | 0.5 | density |
-| `r_rainLensRefraction` | 1.0 | |
-| `r_rainLensDropSize` | 1.0 | drop size |
-| `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. Shows the production field: 1 = coverage (red) / blur radius (green); 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
+| `r_rainLens` | 0 | latched, needs `r_hdr`; off = no targets, no simulation |
+| `r_rainLensQuality` | 1 | latched: field 256/360/540, drops 48/96/128, samples 1/3/5 |
+| `r_rainLensDensity` | 1.0 | rain input 0..2 (was 0..1 with default 0.5: archived configs rain half as much) |
+| `r_rainLensDropSize` | 1.0 | geometry only (render, merge contact, trail width); rain amount unchanged |
+| `r_rainLensRefraction` | 1.0 | UV distortion 0..4 |
+| `r_rainLensFilm` | 1.0 | thin film / trail visibility 0..2 |
+| `r_rainLensBlur` | 1.0 | drop defocus 0..2 |
+| `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, merge lobe cyan, sheet magenta) |
 
-GPU time: `r_speeds 100` shows the "Rain lens" timed block.
+Developer cvars (cheat):
+- `r_rainLensFieldHeight` (latched, 0 = quality)
+- `r_rainLensAgentLimit` (8..128, 0 = quality)
+- `r_rainLensPinning`, `r_rainLensMerge`
+- `r_rainLensFilmDecay`, `r_rainLensWetDecay`
+- `r_rainLensHeavyFlow`
+- `r_rainLensPeripheralBias`
 
-In procedural mode the field is regenerated every frame. Its sliders follow
-screen-down gravity and it does not retain mass. The simulation mode keeps
-water state and projects gravity, but is still a small screen-space lattice,
-not a full fluid solver or optical model of a real camera objective.
+## Commands
 
-## Optional asset
+- `rainlens_clear` clears drops, sheets and film.
+- `rainlens_event splash|spray|emerge [strength] [left|right|up|down]` triggers
+  an event for manual testing.
+- `rainlens_profile light|rain|heavy|acid|auto` forces a profile. Without
+  active weather, a forced profile also rains on the lens everywhere, for
+  tuning on dry maps.
+- `rainlens_stats` prints counts by type, field sizes, the film state and the
+  CPU µs of the last update.
 
-None is required. A normal/height atlas of real drop shapes could replace
-`Cap()` for more irregular silhouettes. It would ship in an optional pk3, and
-isn't part of the baseline.
+GPU timings: `r_speeds 100` shows "Rain lens field" and "Rain lens composite".
 
-## Validation checklist (in game, not yet done)
+## Cost
 
-- In procedural mode, heavy and light rain; walking under a roof (no new drops,
-  drain in about 1 s) and back out (1.5 s ramp).
-- With `r_rainLensSimulation 1`, inspect merging, wet trails, cover transitions,
-  camera roll and vertical views. Verify that cuts clear the lens and paused
-  game time freezes the simulation.
-- With `r_bloom 1`, compare the saber/glow position inside and outside drops;
-  check bright lights and rapid turns (drops stay fixed on the screen).
-- FOV changes, resolutions, ultrawide, and `r_rainLensDropSize 0.25` (small
-  beads must survive field sampling).
-- MSAA, `r_smaa 1`, `r_smaa 2` (no drop ghosting), `r_motionBlur`, `r_ssr`.
-- Tone mapping and auto exposure.
-- No effect in mirrors, portals, cubemap bakes (`r_cubemapping` rebuild) or UI
-  3D models.
-- Timings at 1080p and 1440p/4K.
+A headless harness (MSVC `/O2`) tests the CPU core:
+- Heavy rain at density 2, at the caps, costs about 0.2 ms per update.
+- The 116k-cell field decay is branch-free.
+- A dry lens under cover costs nothing. With no agents, no sheets, no film and no
+  incoming rain, the pass is skipped. The film upload happens only when the
+  field changed (at most 30 Hz).
+
+## Validation (in game, not yet done)
+
+Harness-verified:
+- A single bead stays pinned and a large drop slides.
+- A merge gives r ≈ 1.26 r, conserves mass and depins.
+- Trails leave film and wetness; residuals appear.
+- Roll turns the flow and a vertical view pins.
+- Under cover there are no spawns, drops keep moving, the film decays and beads
+  remain.
+- Heavy rain has many more flows and sheets without more large static drops.
+  Light rain has no sheets.
+- Caps hold under emerge/splash spam, and the lens dries completely.
+
+In game:
+- Single drop, merge and trail on a bright scene (debug 5/6/7).
+- Roof test: 5 s under cover, then back out.
+- Camera roll, looking up and down.
+- `heavyrain` should read as turnover, film and rivulets, not 2.5× the drops.
+- Leave a pool (auto emerge).
+- Saber behind a drop with `r_bloom 1` (the glow follows the refracted blade).
+- `r_smaa 2` (no drop ghosting), `r_motionBlur`, MSAA.
+- No effect in mirrors, portals, sky portals, cubemap bakes and UI models.
+- `r_speeds 100` at 1080p, 1440p and 4K. The field should stay flat; only the
+  composite should scale.

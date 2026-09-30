@@ -89,7 +89,9 @@ LABELS = {
  'r_weatherPuddleWaterLevelBias':'Puddle water level offset', 'r_weatherPuddleRipples':'Rain ripples in puddles',
  'r_weatherRunoff':'Water flowing down walls', 'r_weatherRunoffProbe':'Wall rain exposure probe',
  'r_weatherRunoffEntities':'Water flows on characters/props', 'r_rainSplashes':'Rain impact splashes',
- 'r_rainLens':'Rain drops on camera lens', 'r_rainLensSimulation':'Persistent lens water', 'r_rainLensDropSize':'Lens drop size',
+ 'r_rainLens':'Water on camera lens', 'r_rainLensQuality':'Lens water quality', 'r_rainLensDropSize':'Lens drop size',
+ 'r_rainLensDensity':'Lens rain amount', 'r_rainLensRefraction':'Lens water refraction strength',
+ 'r_rainLensFilm':'Lens water trails / film', 'r_rainLensBlur':'Lens drop defocus',
  'r_autoFoliage':'Automatic plant detection', 'r_grassCardMode':'Grass geometry',
  'r_grassCardLodDist':'Grass third-card fade distance', 'r_grassCardWidth':'Grass blade width',
  'r_foliageWind':'Coherent plant wind', 'r_foliageWindDirection':'Plant wind direction (degrees)',
@@ -179,7 +181,8 @@ BOUNDS = {
  'r_weatherPuddleRippleScale':(1,256,False), 'r_weatherPuddleRippleRate':(0,8,False),
  'r_weatherRunoffStrength':(0,4,False), 'r_weatherRunoffSpeed':(0,256,False),
  'r_weatherRunoffScale':(1,512,False), 'r_weatherRunoffProbe':(0,16,False),
- 'r_rainLensDensity':(0,1,False), 'r_rainLensRefraction':(0,4,False), 'r_rainLensDropSize':(0.25,4,False),
+ 'r_rainLensDensity':(0,2,False), 'r_rainLensRefraction':(0,4,False), 'r_rainLensDropSize':(0.25,4,False),
+ 'r_rainLensFilm':(0,2,False), 'r_rainLensBlur':(0,2,False),
  'r_foliageInteractionMaxInteractors':(1,16,True),
 }
 

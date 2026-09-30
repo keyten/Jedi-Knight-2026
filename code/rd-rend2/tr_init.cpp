@@ -240,11 +240,21 @@ cvar_t  *r_contactShadowThickness;
 cvar_t  *r_contactShadowStrength;
 
 cvar_t  *r_rainLens;
-cvar_t  *r_rainLensSimulation;
+cvar_t  *r_rainLensQuality;
 cvar_t  *r_rainLensDensity;
 cvar_t  *r_rainLensRefraction;
 cvar_t  *r_rainLensDropSize;
+cvar_t  *r_rainLensFilm;
+cvar_t  *r_rainLensBlur;
 cvar_t  *r_rainLensDebug;
+cvar_t  *r_rainLensFieldHeight;
+cvar_t  *r_rainLensAgentLimit;
+cvar_t  *r_rainLensPinning;
+cvar_t  *r_rainLensMerge;
+cvar_t  *r_rainLensFilmDecay;
+cvar_t  *r_rainLensWetDecay;
+cvar_t  *r_rainLensHeavyFlow;
+cvar_t  *r_rainLensPeripheralBias;
 cvar_t  *r_motionBlur;
 cvar_t  *r_motionBlurShutterAngle;
 cvar_t  *r_motionBlurReferenceFps;
@@ -1800,6 +1810,10 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_volparticles",		R_VolParticles_f },
+	{ "rainlens_clear",		R_RainLensClear_f },
+	{ "rainlens_event",		R_RainLensEvent_f },
+	{ "rainlens_profile",	R_RainLensProfile_f },
+	{ "rainlens_stats",		R_RainLensStats_f },
 	{ "r_spot",				R_Spot_f },
 	//{ "imagecacheinfo",		RE_RegisterImages_Info_f },
 	{ "modellist",			R_Modellist_f },
@@ -2000,15 +2014,25 @@ void R_Register( void )
 	r_contactShadowStrength = ri_Cvar_Get_NoComm( "r_contactShadowStrength", "0.85", CVAR_ARCHIVE, "Contact shadow strength" );
 	ri.Cvar_CheckRange( r_contactShadowStrength, 0.0f, 1.0f, qfalse );
 
-	r_rainLens = ri_Cvar_Get_NoComm( "r_rainLens", "0", CVAR_ARCHIVE | CVAR_LATCH, "Rain droplets on the camera lens while it rains and the camera is outside (needs r_hdr)" );
+	r_rainLens = ri_Cvar_Get_NoComm( "r_rainLens", "0", CVAR_ARCHIVE | CVAR_LATCH, "Persistent water on the camera lens: rain, splashes, leaving water (needs r_hdr)" );
 	ri.Cvar_CheckRange( r_rainLens, 0, 1, qtrue );
-	r_rainLensSimulation = ri_Cvar_Get_NoComm( "r_rainLensSimulation", "0", CVAR_ARCHIVE | CVAR_LATCH, "Persistent water-on-lens simulation (requires r_rainLens 1 and vid_restart)" );
-	ri.Cvar_CheckRange( r_rainLensSimulation, 0, 1, qtrue );
-	r_rainLensDensity = ri_Cvar_Get_NoComm( "r_rainLensDensity", "0.5", CVAR_ARCHIVE, "Lens rain droplet density, 0..1" );
-	r_rainLensRefraction = ri_Cvar_Get_NoComm( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens rain droplet refraction strength" );
-	r_rainLensDropSize = ri_Cvar_Get_NoComm( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens rain droplet size, relative to the screen height" );
-	r_rainLensDebug = ri_Cvar_Get_NoComm( "r_rainLensDebug", "0", CVAR_CHEAT, "Lens rain debug view (forces the effect on): 1 = droplet mask, 2 = normal, 3 = UV offset, 4 = scene / composition split" );
-	ri.Cvar_CheckRange( r_rainLensDebug, 0, 4, qtrue );
+	r_rainLensQuality = ri_Cvar_Get_NoComm( "r_rainLensQuality", "1", CVAR_ARCHIVE | CVAR_LATCH, "Lens water quality: field resolution, drop count, defocus samples (0..2)" );
+	ri.Cvar_CheckRange( r_rainLensQuality, 0, 2, qtrue );
+	r_rainLensDensity = ri_Cvar_Get_NoComm( "r_rainLensDensity", "1.0", CVAR_ARCHIVE, "Lens water: rain input multiplier, 0..2" );
+	r_rainLensRefraction = ri_Cvar_Get_NoComm( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens water refraction strength, 0..4" );
+	r_rainLensDropSize = ri_Cvar_Get_NoComm( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens water drop size (geometry only, not the amount of rain), 0.25..4" );
+	r_rainLensFilm = ri_Cvar_Get_NoComm( "r_rainLensFilm", "1.0", CVAR_ARCHIVE, "Lens water thin film / trail visibility, 0..2" );
+	r_rainLensBlur = ri_Cvar_Get_NoComm( "r_rainLensBlur", "1.0", CVAR_ARCHIVE, "Lens water drop defocus, 0..2" );
+	r_rainLensDebug = ri_Cvar_Get_NoComm( "r_rainLensDebug", "0", CVAR_CHEAT, "Lens water debug view (forces the pass on): 1 = weight / blur, 2 = normal, 3 = UV offset, 4 = scene / final split, 5 = agents, 6 = film / wetness, 7 = pinning, 8 = transient state" );
+	ri.Cvar_CheckRange( r_rainLensDebug, 0, 8, qtrue );
+	r_rainLensFieldHeight = ri_Cvar_Get_NoComm( "r_rainLensFieldHeight", "0", CVAR_CHEAT | CVAR_LATCH, "Lens water field height override, 0 = r_rainLensQuality" );
+	r_rainLensAgentLimit = ri_Cvar_Get_NoComm( "r_rainLensAgentLimit", "0", CVAR_CHEAT, "Lens water drop limit override (8..128), 0 = r_rainLensQuality" );
+	r_rainLensPinning = ri_Cvar_Get_NoComm( "r_rainLensPinning", "1.0", CVAR_CHEAT, "Lens water adhesion multiplier" );
+	r_rainLensMerge = ri_Cvar_Get_NoComm( "r_rainLensMerge", "1.0", CVAR_CHEAT, "Lens water merge distance multiplier" );
+	r_rainLensFilmDecay = ri_Cvar_Get_NoComm( "r_rainLensFilmDecay", "1.0", CVAR_CHEAT, "Lens water thin film lifetime multiplier" );
+	r_rainLensWetDecay = ri_Cvar_Get_NoComm( "r_rainLensWetDecay", "1.0", CVAR_CHEAT, "Lens water wet path lifetime multiplier" );
+	r_rainLensHeavyFlow = ri_Cvar_Get_NoComm( "r_rainLensHeavyFlow", "1.0", CVAR_CHEAT, "Lens water rivulet / sheet rate multiplier" );
+	r_rainLensPeripheralBias = ri_Cvar_Get_NoComm( "r_rainLensPeripheralBias", "1.0", CVAR_CHEAT, "Lens water: keep large drops, flows and sheets away from the screen centre, 0..2" );
 
 	r_motionBlur = ri_Cvar_Get_NoComm( "r_motionBlur", "0", CVAR_ARCHIVE | CVAR_LATCH, "Velocity based camera and object motion blur (needs r_hdr)" );
 	ri.Cvar_CheckRange( r_motionBlur, 0, 1, qtrue );

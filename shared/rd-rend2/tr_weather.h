@@ -97,6 +97,16 @@ enum weatherBrushType_t
 	NUM_WEATHER_BRUSH_TYPES
 };
 
+// rain command of the weather, for the lens water profile (tr_rainlens.cpp)
+enum rainWeather_t
+{
+	RAIN_WEATHER_NONE,
+	RAIN_WEATHER_LIGHT,
+	RAIN_WEATHER_NORMAL,
+	RAIN_WEATHER_HEAVY,
+	RAIN_WEATHER_ACID
+};
+
 struct weatherSystem_t
 {
 	weatherObject_t weatherSlots[NUM_WEATHER_TYPES];
@@ -111,6 +121,7 @@ struct weatherSystem_t
 	bool frozen;
 	bool shaking;
 	float pain = 0.0f;
+	int rainSubtype = RAIN_WEATHER_NONE;	// rainWeather_t
 
 	srfWeather_t weatherSurface;
 

@@ -1151,23 +1151,31 @@ Usually moderate only in very heavy rain; normal rain has a much smaller cost.
 
 ## Rain on the camera lens
 
-Adds persistent beads, sliding droplets, trails and refraction on the camera while standing outside in rain. Existing drops fade and run off after moving under cover, and the pass is eventually skipped indoors.
+Adds persistent water on the camera lens:
+- Beads that pin, merge and depin, sliding drops that leave translucent wet trails and residual beads, and rivulets and sheets in heavy rain.
+- A burst of water when leaving a pool.
 
-**Requirements.** Requires HDR (`r_hdr 1`), active rain, the main world view and an outside camera position.
+Rain only adds water while the camera is outside. Under cover, existing water keeps moving and dries. Light, normal, heavy and acid rain use different profiles, so heavy rain means turnover, film and rivulets rather than just more drops. See `docs/rend2-rain-lens.md`.
+
+**Requirements.** Requires HDR (`r_hdr 1`) and the main world view. New rain needs active rain weather and an outside camera position.
 
 **Main controls**
-- `r_rainLens 0 | 1` — disable / enable lens droplets. Requires `vid_restart`.
-- `r_rainLensSimulation 0 | 1` — use persistent water mass, velocity and wetness on a small lens grid; requires `r_rainLens 1` and `vid_restart`.
+- `r_rainLens 0 | 1` — disable / enable lens water. Requires `vid_restart`.
+- `r_rainLensQuality 0..2` — field resolution, drop count and defocus samples. Requires `vid_restart`.
 
 **Other controls**
-- `r_rainLensDensity 0..1` — droplet density.
-- `r_rainLensRefraction <value>` — refraction strength.
-- `r_rainLensDropSize <value>` — droplet size relative to screen height.
+- `r_rainLensDensity 0..2` — rain input multiplier (default 1).
+- `r_rainLensRefraction 0..4` — refraction strength.
+- `r_rainLensDropSize 0.25..4` — drop size (geometry only).
+- `r_rainLensFilm 0..2` — thin film / trail visibility.
+- `r_rainLensBlur 0..2` — drop defocus.
 
 **Debug**
-- `r_rainLensDebug 1..4` — mask/trail film, normal, UV offset and scene/composition split; debug forces the effect on everywhere.
+- `r_rainLensDebug 1..8` — optical weight / blur, normal, UV offset, scene/final split, agents, film/wetness, pinning and transient state; forces the pass on.
+- `rainlens_event splash|spray|emerge`, `rainlens_profile light|rain|heavy|acid|auto`, `rainlens_clear`, `rainlens_stats`.
+- Tuning cvars (cheat): `r_rainLensFieldHeight`, `r_rainLensAgentLimit`, `r_rainLensPinning`, `r_rainLensMerge`, `r_rainLensFilmDecay`, `r_rainLensWetDecay`, `r_rainLensHeavyFlow`, `r_rainLensPeripheralBias`.
 
-Moderate fullscreen post-processing cost while the effect is active; after the lens dries indoors the pass costs nothing.
+The CPU simulation is bounded: up to 128 drops, 256 micro drops and 8 sheets, about 0.2 ms at worst. The field is quality bounded, and the full-resolution composite only samples extra where there is water. A dry lens under cover costs nothing.
 
 # Foliage
 

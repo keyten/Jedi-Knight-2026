@@ -23,8 +23,9 @@ void main()
 	vec2 sourceUV = var_TexCoords;
 	if (u_RainLensParams.x > 0.5)
 	{
+		// weighted like the scene composite: thin film barely moves the glow
 		vec4 lens = texture(u_ScreenImageMap, sourceUV);
-		sourceUV = clamp(sourceUV + lens.xy * u_RainLensParams.z,
+		sourceUV = clamp(sourceUV + lens.xy * u_RainLensParams.z * clamp(lens.z, 0.0, 1.0),
 			vec2(0.0), vec2(1.0));
 	}
 	// Based on "Next Generation Post Processing in Call of Duty: Advanced Warfare":

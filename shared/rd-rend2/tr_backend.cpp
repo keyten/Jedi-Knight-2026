@@ -3538,8 +3538,7 @@ const void *RB_PostProcess(const void *data)
 	// Lens rain (screen fixed) takes the same order: after the temporal
 	// resolve so the drops stay out of its history, before bloom scene
 	// extraction. The dedicated emissive MRT remains independent.
-	const float rainLensExposure = cmd ? cmd->rainLensExposure : 0.0f;
-	const qboolean rainLens = RB_RainLensUpdate(rainLensExposure);
+	const qboolean rainLens = RB_RainLensUpdate(cmd ? &cmd->rainLens : NULL);
 	// Rain lens has color only. Keep the resolved scene FBO for the final
 	// depth blit even when subsequent color passes use rainLensFbo.
 	FBO_t *depthFbo = srcFbo;
@@ -3556,7 +3555,7 @@ const void *RB_PostProcess(const void *data)
 			srcFbo = tr.motionBlurFbo;
 		if (rainLens)
 		{
-			RB_RainLens(srcFbo, rainLensExposure);
+			RB_RainLens(srcFbo);
 			if (!r_rainLensDebug->integer)
 				srcFbo = tr.rainLensFbo;
 		}

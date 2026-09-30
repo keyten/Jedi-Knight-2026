@@ -293,7 +293,7 @@ void	R_AddPostProcessCmd( ) {
 
 	cmd->refdef = tr.refdef;
 	cmd->viewParms = tr.viewParms;
-	cmd->rainLensExposure = R_RainLensExposure(&tr.refdef, &tr.viewParms);
+	R_RainLensInput(&tr.refdef, &tr.viewParms, &cmd->rainLens);
 }
 
 qhandle_t R_BeginTimedBlockCmd( const char *name )

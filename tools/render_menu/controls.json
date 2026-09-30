@@ -5151,7 +5151,7 @@
     "var": "r_rainLens",
     "default": "0",
     "restart": true,
-    "description": "disable / enable lens droplets. Requires `vid_restart`.",
+    "description": "disable / enable lens water. Requires `vid_restart`.",
     "name": "r_rainLens",
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
@@ -5161,7 +5161,7 @@
       1.0,
       true
     ],
-    "label": "Rain drops on camera lens",
+    "label": "Water on camera lens",
     "performance": "medium",
     "enum": [
       [
@@ -5175,47 +5175,51 @@
     ]
   },
   {
-    "var": "r_rainLensSimulation",
-    "default": "0",
+    "var": "r_rainLensQuality",
+    "default": "1",
     "restart": true,
-    "description": "persistent water simulation; requires r_rainLens 1 and vid_restart.",
-    "name": "r_rainLensSimulation",
+    "description": "field resolution, drop count and defocus samples. Requires `vid_restart`.",
+    "name": "r_rainLensQuality",
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
-    "spec": "0 | 1",
+    "spec": "0..2",
     "range": [
       0.0,
-      1.0,
+      2.0,
       true
     ],
-    "label": "Persistent lens water",
+    "label": "Lens water quality",
     "performance": "medium",
     "enum": [
       [
-        "Off",
+        "Low",
         0
       ],
       [
-        "On",
+        "Medium",
         1
+      ],
+      [
+        "High",
+        2
       ]
     ]
   },
   {
     "var": "r_rainLensDensity",
-    "default": "0.5",
+    "default": "1.0",
     "restart": false,
-    "description": "droplet density.",
+    "description": "rain input multiplier (default 1).",
     "name": "r_rainLensDensity",
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
-    "spec": "0..1",
+    "spec": "0..2",
     "range": [
       0,
-      1,
+      2,
       false
     ],
-    "label": "Lens rain density",
+    "label": "Lens rain amount",
     "performance": "medium",
     "enum": null
   },
@@ -5233,7 +5237,7 @@
       4,
       false
     ],
-    "label": "Lens rain refraction strength",
+    "label": "Lens water refraction strength",
     "performance": "medium",
     "enum": null
   },
@@ -5241,7 +5245,7 @@
     "var": "r_rainLensDropSize",
     "default": "1.0",
     "restart": false,
-    "description": "droplet size relative to screen height.",
+    "description": "drop size (geometry only).",
     "name": "r_rainLensDropSize",
     "category": "Rain & wet surfaces",
     "section": "Rain on the camera lens",
@@ -5252,6 +5256,42 @@
       false
     ],
     "label": "Lens drop size",
+    "performance": "medium",
+    "enum": null
+  },
+  {
+    "var": "r_rainLensFilm",
+    "default": "1.0",
+    "restart": false,
+    "description": "thin film / trail visibility.",
+    "name": "r_rainLensFilm",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": [
+      0,
+      2,
+      false
+    ],
+    "label": "Lens water trails / film",
+    "performance": "medium",
+    "enum": null
+  },
+  {
+    "var": "r_rainLensBlur",
+    "default": "1.0",
+    "restart": false,
+    "description": "drop defocus.",
+    "name": "r_rainLensBlur",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": [
+      0,
+      2,
+      false
+    ],
+    "label": "Lens drop defocus",
     "performance": "medium",
     "enum": null
   },

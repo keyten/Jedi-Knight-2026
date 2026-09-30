@@ -301,11 +301,21 @@ extern cvar_t  *r_contactShadowThickness;
 extern cvar_t  *r_contactShadowStrength;
 
 extern cvar_t  *r_rainLens;
-extern cvar_t  *r_rainLensSimulation;
+extern cvar_t  *r_rainLensQuality;
 extern cvar_t  *r_rainLensDensity;
 extern cvar_t  *r_rainLensRefraction;
 extern cvar_t  *r_rainLensDropSize;
+extern cvar_t  *r_rainLensFilm;
+extern cvar_t  *r_rainLensBlur;
 extern cvar_t  *r_rainLensDebug;
+extern cvar_t  *r_rainLensFieldHeight;
+extern cvar_t  *r_rainLensAgentLimit;
+extern cvar_t  *r_rainLensPinning;
+extern cvar_t  *r_rainLensMerge;
+extern cvar_t  *r_rainLensFilmDecay;
+extern cvar_t  *r_rainLensWetDecay;
+extern cvar_t  *r_rainLensHeavyFlow;
+extern cvar_t  *r_rainLensPeripheralBias;
 
 extern cvar_t  *r_motionBlur;
 extern cvar_t  *r_motionBlurShutterAngle;
@@ -2047,10 +2057,9 @@ enum
 
 enum
 {
-	RAINLENSDEF_DEFAULT	= 0,
-	RAINLENSDEF_DEBUG	= 1,	// r_rainLensDebug views
-	RAINLENSDEF_FIELD	= 2,	// lower resolution droplet geometry
-	RAINLENSDEF_SIMULATION = 3,	// persistent water state to lens field
+	RAINLENSDEF_FILM	= 0,	// wetness / film texture to lens field
+	RAINLENSDEF_DROPS	= 1,	// instanced drops, micro drops and sheets to lens field
+	RAINLENSDEF_DEBUG_AGENTS = 2,	// r_rainLensDebug 5, 7, 8 agent views
 	RAINLENSDEF_COUNT
 };
 
@@ -2374,8 +2383,8 @@ typedef enum
 	UNIFORM_MBPARAMS2,		// view model scale, P[14], P[10], legacy (display encoded) HDR buffer
 	UNIFORM_MBPARAMS3,		// debug view, quality, 0, 0
 
-	UNIFORM_RAINLENSPARAMS,		// lens time, density, refraction, scale
-	UNIFORM_RAINLENSPARAMS2,	// last exposed time, drain time, debug view, legacy (display encoded) HDR buffer
+	UNIFORM_RAINLENSPARAMS,		// per pass, see tr_rainlens.cpp
+	UNIFORM_RAINLENSPARAMS2,	// per pass: field size or debug view, legacy (display encoded) HDR buffer
 
 	UNIFORM_SSRNORMALMAP,	// tr_ssr.cpp, see the ssr_*.glsl headers
 	UNIFORM_SSRSPECULARMAP,
@@ -3681,7 +3690,8 @@ typedef struct trGlobals_s {
 	image_t					*motionBlurImage;	// motion blur output (HDR)
 	image_t					*rainLensImage;		// lens rain output (HDR)
 	image_t					*rainLensFieldImage;	// lower resolution offset, mask, blur field
-	image_t					*rainLensSimImage;	// persistent CPU-simulated mass and wetness
+	image_t					*rainLensFilmImage;	// persistent wetness (R) and thin film (G), CPU updated
+	image_t					*rainLensInstanceImage;	// lens drop / sheet instance records (RGBA32F)
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
 	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLighting), no sigma / albedo
@@ -5001,11 +5011,26 @@ typedef struct convolveCubemapCommand_s {
 	qboolean	filterDiffuse;
 } convolveCubemapCommand_t;
 
+// tr_rainlens.cpp: weather and camera input of the lens water, front end
+#define RAINLENS_EVENT_EMERGE	1	// camera left water
+#define RAINLENS_EVENT_SUBMERGE	2	// camera entered water
+
+typedef struct rainLensInput_s {
+	qboolean	active;		// main world view that owns the lens
+	qboolean	submerged;	// camera in water: lens not drawn
+	float		intensity;	// rain particle count / 5000, 0 = no rain
+	float		exposed;	// 1 = new rain reaches the lens (outside)
+	float		facing;		// 0..1, lens facing into the falling rain
+	int			weather;	// rainWeather_t
+	float		windLens[2];
+	int			events;		// RAINLENS_EVENT_*
+} rainLensInput_t;
+
 typedef struct postProcessCommand_s {
 	int		commandId;
 	trRefdef_t	refdef;
 	viewParms_t	viewParms;
-	float		rainLensExposure;	// tr_rainlens.cpp, 0 = no rain on the lens
+	rainLensInput_t	rainLens;
 } postProcessCommand_t;
 
 typedef struct beginTimedBlockCommand_s {
@@ -5357,14 +5382,14 @@ void RB_MotionBlurDebugOverlay(void);
 
 // tr_rainlens.cpp
 void R_CreateRainLensImages(int width, int height, int hdrFormat);
-void R_RainLensSimInit(int width, int height);
-void R_RainLensSimClear(void);
-qboolean RB_RainLensSimUpdate(float dt, float exposure);
-qboolean RB_RainLensSimUpload(void);
-float R_RainLensExposure(const trRefdef_t *refdef, const viewParms_t *viewParms);
-qboolean RB_RainLensUpdate(float exposure);
-void RB_RainLens(FBO_t *srcFbo, float exposure);
+void R_RainLensInput(const trRefdef_t *refdef, const viewParms_t *viewParms, rainLensInput_t *input);
+qboolean RB_RainLensUpdate(const rainLensInput_t *input);
+void RB_RainLens(FBO_t *srcFbo);
 void RB_RainLensDebugOverlay(void);
+void R_RainLensClear_f(void);
+void R_RainLensEvent_f(void);
+void R_RainLensProfile_f(void);
+void R_RainLensStats_f(void);
 
 /*
 ============================================================
