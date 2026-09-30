@@ -3180,7 +3180,7 @@ typedef struct {
 	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
 	// directional baked light moments, see R_BuildVolumetricStaticLighting
 	// (tr_volumetric_reconstruct.cpp)
-	image_t		*volumetricStaticGrid;	// non-sun baked baseline B (rgb), sky visibility trust (a)
+	image_t		*volumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f = align * vis (a)
 	image_t		*volumetricSunGrid;		// baked sun part
 	image_t		*volumetricDirMomentR;	// first angular moment of the red baked light (xyz), r_volumetricFogStaticDirectional
 	image_t		*volumetricDirMomentG;

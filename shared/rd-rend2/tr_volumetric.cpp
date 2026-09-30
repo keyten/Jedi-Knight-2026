@@ -124,7 +124,9 @@ qboolean R_VolumetricComputeAvailable( void )
 	qglGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &combinedSamplers);
 	qglGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS, &blocks);
 	// Stage limits count active samplers, not the largest global TMU index.
-	return (qboolean)(samplers >= (s_vf.rgb ? 15 : 14) &&
+	// + the three directional baked light moments (r_volumetricFogStaticDirectional)
+	const int moments = R_VolumetricStaticDirectional() ? 3 : 0;
+	return (qboolean)(samplers >= (s_vf.rgb ? 15 : 14) + moments &&
 		combinedSamplers > (s_vf.rgb ? TB_FROXELEXTINCTION : TB_LIGHTCOOKIES) && blocks >= 3);
 }
 

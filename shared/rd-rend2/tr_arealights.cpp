@@ -1420,6 +1420,10 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 		return;
 
 	auto add = [&]( const mapAreaLight_t& l, float confidence ) {
+		// a line / tube (right = axis, halfHeight = radius) is no rectangle: the
+		// reconstruction's quadrature would treat it as a thin two-sided panel
+		if ( l.type == DLIGHT_LINE )
+			return;
 		vrAreaSource a;
 		Com_Memset(&a, 0, sizeof(a));
 		VectorCopy(l.center, a.center);
@@ -1429,7 +1433,7 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 		a.halfHeight = l.halfHeight;
 		VectorScale(l.color, l.intensity, a.color);
 		a.confidence = confidence;
-		a.twoSided = l.type == DLIGHT_LINE || l.twoSided;
+		a.twoSided = l.twoSided;
 		out.push_back(a);
 	};
 

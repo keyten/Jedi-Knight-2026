@@ -25,8 +25,8 @@ Stages (mode 1; mode 2 stops after the split with M_c = Q_c * bspDir):
 
   split        S = clamp(alignment * visibility * D, 0, legacy), B = legacy - S,
                directional budget Q (HDR (1 - f) D, LDR (1 - f) max(D - A, 0), <= B)
-  gradients    six-neighbour finite differences of B.rgb and its luminance, never
-               through wall cells
+  gradients    six-neighbour finite differences of B.rgb (the luminance gradient is
+               their linear combination), never through wall cells
   seeds        local maxima of Q (per channel and luminance), favoured where the
                BSP direction field and the gradient field converge
   fit          per seed: support probes flood-connected within 4 cells, BSP direction
@@ -37,6 +37,8 @@ Stages (mode 1; mode 2 stops after the split with M_c = Q_c * bspDir):
                and the conditioning of A
   areas        known static emitters: quadrature moment per probe, calibrated against
                the grid (the anchor never adds its own radiance)
+  sources      one global budget of PROXY_MAX: area anchors first, point proxies fill
+               the rest; a point fitted twice keeps its best fit whole
   attribution  per source, flood its range; per cell and channel a match score m in
                [0, 1]; directional energy E = Q * max m (weak candidates never sum up to
                the whole budget), split between the sources by m, accumulated as the
@@ -55,7 +57,7 @@ namespace
 
 // thresholds, in cell diagonals or relative to the local brightness
 const int		SEED_MAX = 512;
-const int		PROXY_MAX = 256;
+const int		PROXY_MAX = 256;			// point proxies + area anchors
 const int		SUPPORT_MAX = 256;
 const float		SUPPORT_RADIUS = 4.0f;		// grid-normalized cells
 const float		SEED_MIN_RELATIVE = 0.03f;	// of the brightest cell of the channel
@@ -210,6 +212,7 @@ struct Source
 	// area: predicted = calibration * E_area(x)
 	float calibration;
 	int startCell;
+	int startCell2;		// two-sided area: the start on the back side, -1 if none / the same cell
 };
 
 struct Ctx
@@ -221,14 +224,18 @@ struct Ctx
 	float diag;
 	const float *B;				// 3 per cell
 	std::vector<float> Q;		// 3 per cell
-	std::vector<V3> grad[4];		// R, G, B, luminance
-	std::vector<V3> unitGrad[4];	// normalized
-	std::vector<float> strength[4];	// |grad| relative to the local brightness, 0..1
-	float eps[4];					// brightness floor of the gradient strength
+	std::vector<V3> grad[3];		// R, G, B (luminance: their LUMA combination, GradChannel)
+	std::vector<float> strength[3];	// |grad| relative to the local brightness, 0..1
+	float eps[4];					// brightness floor of the gradient strength (R, G, B, luminance)
 	float meanLuma;					// mean luminance of B over the valid cells
 	std::vector<V3> positions;
 	std::vector<int> stamp;
 	int currentStamp;
+	// scratch, reused between seeds / sources
+	std::vector<int> support;
+	std::vector<int> domain;
+	std::vector<Ray> rays;
+	std::vector<float> ratios;
 
 	int Index( int x, int y, int z ) const { return x + bx * (y + by * z); }
 	void Coord( int i, int *x, int *y, int *z ) const { *x = i % bx; *y = (i / bx) % by; *z = i / (bx * by); }
@@ -241,7 +248,18 @@ struct Ctx
 	}
 	float QChannel( int i, int ch ) const { return Channel(Q.data(), i, ch); }
 	float BChannel( int i, int ch ) const { return Channel(B, i, ch); }
-	float Strength( int i, int ch ) const { return strength[ch][i]; }
+	V3 GradChannel( int i, int ch ) const
+	{
+		if ( ch < 3 )
+			return grad[ch][i];
+		return Add(Add(Scale(grad[0][i], LUMA[0]), Scale(grad[1][i], LUMA[1])), Scale(grad[2][i], LUMA[2]));
+	}
+	float Strength( int i, int ch ) const
+	{
+		if ( ch < 3 )
+			return strength[ch][i];
+		return Saturate(Length(GradChannel(i, 3)) * diag / (BChannel(i, 3) + eps[3]));
+	}
 	int NewStamp()
 	{
 		if ( ++currentStamp == 0x7fffffff )
@@ -284,14 +302,18 @@ int NearestValid( const Ctx& ctx, V3 pos )
 // valid cells reachable from start through valid six-neighbours for which inside() holds,
 // nearest first (breadth first); walls are not crossed
 template<typename Inside>
-void Flood( Ctx& ctx, int start, Inside inside, int maxCells, std::vector<int>& out )
+void FloodMulti( Ctx& ctx, const int *starts, int numStarts, Inside inside, int maxCells, std::vector<int>& out )
 {
 	out.clear();
-	if ( start < 0 || !ctx.Valid(start) || !inside(start) )
-		return;
 	const int stamp = ctx.NewStamp();
-	ctx.stamp[start] = stamp;
-	out.push_back(start);
+	for ( int k = 0; k < numStarts; k++ )
+	{
+		const int start = starts[k];
+		if ( start < 0 || !ctx.Valid(start) || ctx.stamp[start] == stamp || !inside(start) )
+			continue;
+		ctx.stamp[start] = stamp;
+		out.push_back(start);
+	}
 	for ( size_t head = 0; head < out.size() && (int)out.size() < maxCells; head++ )
 	{
 		int x, y, z;
@@ -310,6 +332,12 @@ void Flood( Ctx& ctx, int start, Inside inside, int maxCells, std::vector<int>& 
 				out.push_back(j);
 		}
 	}
+}
+
+template<typename Inside>
+void Flood( Ctx& ctx, int start, Inside inside, int maxCells, std::vector<int>& out )
+{
+	FloodMulti(ctx, &start, 1, inside, maxCells, out);
 }
 
 /*
@@ -357,13 +385,13 @@ float AxisDerivative( const Ctx& ctx, int i, int axis, Field field, bool *known 
 
 void ComputeGradients( Ctx& ctx )
 {
-	for ( int ch = 0; ch < 4; ch++ )
+	for ( int ch = 0; ch < 3; ch++ )
 		ctx.grad[ch].assign(ctx.n, Make(0.0f, 0.0f, 0.0f));
 	for ( int i = 0; i < ctx.n; i++ )
 	{
 		if ( !ctx.Valid(i) )
 			continue;
-		for ( int ch = 0; ch < 4; ch++ )
+		for ( int ch = 0; ch < 3; ch++ )
 		{
 			auto field = [&]( int j ) { return ctx.BChannel(j, ch); };
 			float g[3];
@@ -375,16 +403,11 @@ void ComputeGradients( Ctx& ctx )
 			ctx.grad[ch][i] = Make(g[0], g[1], g[2]);
 		}
 	}
-	for ( int ch = 0; ch < 4; ch++ )
+	for ( int ch = 0; ch < 3; ch++ )
 	{
-		ctx.unitGrad[ch].resize(ctx.n);
 		ctx.strength[ch].resize(ctx.n);
 		for ( int i = 0; i < ctx.n; i++ )
-		{
-			float length;
-			ctx.unitGrad[ch][i] = Normalize(ctx.grad[ch][i], &length);
-			ctx.strength[ch][i] = Saturate(length * ctx.diag / (ctx.BChannel(i, ch) + ctx.eps[ch]));
-		}
+			ctx.strength[ch][i] = Saturate(Length(ctx.grad[ch][i]) * ctx.diag / (ctx.BChannel(i, ch) + ctx.eps[ch]));
 	}
 }
 
@@ -420,6 +443,11 @@ void FindSeeds( Ctx& ctx, std::vector<Seed>& seeds )
 {
 	seeds.clear();
 	std::vector<float> score(ctx.n);
+	// the BSP direction field is the same for every channel: its convergence once per cell
+	std::vector<float> convBsp(ctx.n, 0.0f);
+	for ( int i = 0; i < ctx.n; i++ )
+		if ( ctx.Valid(i) )
+			convBsp[i] = Saturate(Convergence(ctx, i, [&]( int j ) { return ctx.BspDir(j); }));
 	for ( int ch = 0; ch < 4; ch++ )
 	{
 		float maxQ = 0.0f;
@@ -435,14 +463,13 @@ void FindSeeds( Ctx& ctx, std::vector<Seed>& seeds )
 			const float q = ctx.QChannel(i, ch);
 			if ( !ctx.Valid(i) || q < SEED_MIN_RELATIVE * maxQ || q <= 1e-5f )
 				continue;
-			const float convBsp = Convergence(ctx, i, [&]( int j ) { return ctx.BspDir(j); });
 			float convGrad = 0.0f;
 			if ( ctx.Strength(i, ch) > GRADIENT_MIN_STRENGTH )
 			{
 				convGrad = Convergence(ctx, i, [&]( int j ) {
-					return ctx.Strength(j, ch) > GRADIENT_MIN_STRENGTH ? ctx.unitGrad[ch][j] : Make(0.0f, 0.0f, 0.0f); });
+					return ctx.Strength(j, ch) > GRADIENT_MIN_STRENGTH ? Normalize(ctx.GradChannel(j, ch)) : Make(0.0f, 0.0f, 0.0f); });
 			}
-			score[i] = (q / maxQ) * (0.5f + 0.5f * Saturate(convBsp)) * (0.5f + 0.5f * Saturate(convGrad));
+			score[i] = (q / maxQ) * (0.5f + 0.5f * convBsp[i]) * (0.5f + 0.5f * Saturate(convGrad));
 		}
 
 		// non-maximum suppression over the 26 neighbours (about one cell)
@@ -536,8 +563,7 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 	int sx, sy, sz;
 	ctx.Coord(seed.cell, &sx, &sy, &sz);
 
-	std::vector<int> support;
-	support.reserve(SUPPORT_MAX);
+	std::vector<int>& support = ctx.support;
 	Flood(ctx, seed.cell, [&]( int j ) {
 		int x, y, z;
 		ctx.Coord(j, &x, &y, &z);
@@ -554,8 +580,8 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 		return false;
 
 	// BSP direction rays and gradient rays, separate observations
-	std::vector<Ray> rays;
-	rays.reserve(support.size() * 2);
+	std::vector<Ray>& rays = ctx.rays;
+	rays.clear();
 	for ( int j : support )
 	{
 		const V3 x = ctx.Position(j);
@@ -568,7 +594,7 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 		if ( ctx.Strength(j, ch) > GRADIENT_MIN_STRENGTH )
 		{
 			float length;
-			const V3 d = Normalize(ctx.grad[ch][j], &length);
+			const V3 d = Normalize(ctx.GradChannel(j, ch), &length);
 			Ray r = { x, d, length * ctx.diag / maxQ };
 			rays.push_back(r);
 		}
@@ -614,6 +640,10 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 	}
 	if ( Length(Sub(p, seedPos)) > 6.0f * ctx.diag )
 		return false;
+	// the conditioning with the final Huber weights (the loop built A with the previous ones)
+	Zero(A);
+	for ( size_t k = 0; k < rays.size(); k++ )
+		AddProjector(A, rays[k].dir, rays[k].weight * huber[k]);
 
 	// residual and conditioning
 	double rss = 0.0, rw = 0.0;
@@ -766,8 +796,10 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 	proxy.sigmaP = sigmaP;
 	proxy.rayRms = *rms;
 	proxy.range = range;
+	proxy.type = VR_SOURCE_POINT;
 	proxy.area = -1;
 	proxy.support = (int)support.size();
+	s.startCell2 = -1;
 	s.startCell = NearestValid(ctx, p);
 	if ( s.startCell < 0 )
 		s.startCell = seed.cell;
@@ -820,17 +852,37 @@ bool BuildAreaAnchor( Ctx& ctx, int index, Source *out )
 	const V3 normal = Normalize(Cross(Load(a.right), Load(a.up)));
 	if ( Length(normal) <= 0.0f )
 		return false;
-	const int start = NearestValid(ctx, Add(center, Scale(normal, 0.5f * ctx.diag)));
-	if ( start < 0 )
+	// a two-sided emitter on a wall lights two grid components: a start on each side
+	int starts[2] = { NearestValid(ctx, Add(center, Scale(normal, 0.5f * ctx.diag))), -1 };
+	if ( a.twoSided )
+	{
+		starts[1] = NearestValid(ctx, Sub(center, Scale(normal, 0.5f * ctx.diag)));
+		if ( starts[0] < 0 )
+		{
+			starts[0] = starts[1];
+			starts[1] = -1;
+		}
+		if ( starts[1] == starts[0] )
+			starts[1] = -1;
+	}
+	if ( starts[0] < 0 )
 		return false;
-	int sx, sy, sz;
-	ctx.Coord(start, &sx, &sy, &sz);
-	std::vector<int> support;
-	Flood(ctx, start, [&]( int j ) {
+	const int numStarts = starts[1] >= 0 ? 2 : 1;
+	int sc[2][3];
+	for ( int k = 0; k < numStarts; k++ )
+		ctx.Coord(starts[k], &sc[k][0], &sc[k][1], &sc[k][2]);
+	std::vector<int>& support = ctx.support;
+	FloodMulti(ctx, starts, numStarts, [&]( int j ) {
 		int x, y, z;
 		ctx.Coord(j, &x, &y, &z);
-		const float d2 = (float)((x - sx) * (x - sx) + (y - sy) * (y - sy) + (z - sz) * (z - sz));
-		return d2 <= AREA_SUPPORT_RADIUS * AREA_SUPPORT_RADIUS;
+		for ( int k = 0; k < numStarts; k++ )
+		{
+			const float d2 = (float)((x - sc[k][0]) * (x - sc[k][0]) + (y - sc[k][1]) * (y - sc[k][1]) +
+				(z - sc[k][2]) * (z - sc[k][2]));
+			if ( d2 <= AREA_SUPPORT_RADIUS * AREA_SUPPORT_RADIUS )
+				return true;
+		}
+		return false;
 	}, SUPPORT_MAX, support);
 	if ( support.empty() )
 		return false;
@@ -850,7 +902,8 @@ bool BuildAreaAnchor( Ctx& ctx, int index, Source *out )
 
 	// calibration (median ratio of the projected brightness to the geometric reach) and the
 	// agreement of the BSP directions / gradients with the emitter direction
-	std::vector<float> ratios;
+	std::vector<float>& ratios = ctx.ratios;
+	ratios.clear();
 	float agree = 0.0f, agreeWeight = 0.0f;
 	for ( int j : support )
 	{
@@ -866,7 +919,7 @@ bool BuildAreaAnchor( Ctx& ctx, int index, Source *out )
 		const V3 u = Normalize(m);
 		const float s = ctx.Strength(j, 3);
 		const float bsp = Saturate(2.0f * Dot(ctx.BspDir(j), u) - 1.0f);
-		const float grad = Saturate(2.0f * Dot(ctx.unitGrad[3][j], u) - 1.0f);
+		const float grad = Saturate(2.0f * Dot(Normalize(ctx.GradChannel(j, 3)), u) - 1.0f);
 		agree += v * (s * grad + (1.0f - s) * bsp);
 		agreeWeight += v;
 	}
@@ -891,7 +944,8 @@ bool BuildAreaAnchor( Ctx& ctx, int index, Source *out )
 	s.chroma = chroma;
 	s.calibration = calibration;
 	s.energy = agreeWeight;
-	s.startCell = start;
+	s.startCell = starts[0];
+	s.startCell2 = starts[1];
 	vrProxy& proxy = s.proxy;
 	proxy.position[0] = center.x; proxy.position[1] = center.y; proxy.position[2] = center.z;
 	const float cmax = MaxComponent(chroma);
@@ -905,8 +959,17 @@ bool BuildAreaAnchor( Ctx& ctx, int index, Source *out )
 	const float target = std::max(RANGE_FALLOFF * ctx.meanLuma, 1e-9f);
 	proxy.range = std::max(RANGE_MIN * ctx.diag, std::min(RANGE_MAX * ctx.diag,
 		extent + sqrtf(calibration * area / target)));
+	proxy.type = VR_SOURCE_RECT;
 	proxy.area = index;
 	proxy.support = (int)support.size();
+	for ( int k = 0; k < 3; k++ )
+	{
+		proxy.right[k] = a.right[k];
+		proxy.up[k] = a.up[k];
+	}
+	proxy.halfWidth = a.halfWidth;
+	proxy.halfHeight = a.halfHeight;
+	proxy.twoSided = a.twoSided;
 	return true;
 }
 
@@ -929,8 +992,9 @@ void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
 	const vrProxy& proxy = src.proxy;
 	const bool area = proxy.area >= 0;
 	const float range2 = proxy.range * proxy.range;
-	std::vector<int> domain;
-	Flood(ctx, src.startCell, [&]( int j ) {
+	std::vector<int>& domain = ctx.domain;
+	const int starts[2] = { src.startCell, src.startCell2 };
+	FloodMulti(ctx, starts, src.startCell2 >= 0 ? 2 : 1, [&]( int j ) {
 		const V3 d = Sub(ctx.Position(j), src.position);
 		return Dot(d, d) <= range2;
 	}, DOMAIN_MAX, domain);
@@ -986,7 +1050,7 @@ void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
 				continue;
 			// RGB gradient where informative, the shared BSP direction where not
 			const float s = ctx.Strength(i, c);
-			const float grad = s > 0.0f ? Saturate(2.0f * Dot(ctx.unitGrad[c][i], u) - 1.0f) : 0.0f;
+			const float grad = s > 0.0f ? Saturate(2.0f * Dot(Normalize(ctx.grad[c][i]), u) - 1.0f) : 0.0f;
 			const float evidence = s * grad + (1.0f - s) * bsp;
 			const float compat = Saturate((Get(src.chroma, c) / chromaSum) / std::max(q[c] / qSum, 1e-6f));
 			const float m = Saturate(base * evidence * compat);
@@ -1025,14 +1089,14 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 	}
 	st.fits = (int)fitted.size();
 
-	// merge fits of one light: close and of the same colour (two white lamps apart stay two)
+	// merge fits of one light: close and of the same colour (two white lamps apart stay two).
+	// The strongest fit is kept whole (position, profile, sigma and start cell stay one
+	// consistent model); a weaker duplicate only adds its energy and its reach.
 	std::stable_sort(fitted.begin(), fitted.end(), []( const Source& a, const Source& b ) {
 		return a.proxy.confidence * a.energy > b.proxy.confidence * b.energy; });
 	std::vector<Source> points;
-	std::vector<float> mergeWeight;
 	for ( const Source& s : fitted )
 	{
-		const float w = s.proxy.confidence * s.energy;
 		bool merged = false;
 		for ( size_t k = 0; k < points.size(); k++ )
 		{
@@ -1042,22 +1106,15 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 				std::max(MERGE_DISTANCE * ctx.diag, o.proxy.sigmaP + s.proxy.sigmaP));
 			if ( Length(Sub(o.position, s.position)) < distance && Dot(o.chroma, s.chroma) > MERGE_CHROMA_COS )
 			{
-				const float total = mergeWeight[k] + w;
-				if ( total > 0.0f )
-					o.position = Add(Scale(o.position, mergeWeight[k] / total), Scale(s.position, w / total));
-				o.proxy.position[0] = o.position.x; o.proxy.position[1] = o.position.y; o.proxy.position[2] = o.position.z;
 				o.proxy.range = std::max(o.proxy.range, s.proxy.range);
 				o.energy += s.energy;
-				mergeWeight[k] = total;
+				st.mergedFits++;
 				merged = true;
 				break;
 			}
 		}
 		if ( !merged )
-		{
 			points.push_back(s);
-			mergeWeight.push_back(w);
-		}
 	}
 	st.msecFit = Msec(t);
 
@@ -1072,8 +1129,13 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 	}
 	std::stable_sort(anchors.begin(), anchors.end(), []( const Source& a, const Source& b ) {
 		return a.proxy.confidence * a.energy > b.proxy.confidence * b.energy; });
+	// one budget for all sources: anchors (known emitters) first, points fill the rest
 	if ( (int)anchors.size() > PROXY_MAX )
+	{
+		st.droppedSources += (int)anchors.size() - PROXY_MAX;
 		anchors.resize(PROXY_MAX);
+	}
+	const int pointBudget = PROXY_MAX - (int)anchors.size();
 	std::vector<Source> sources;
 	for ( const Source& p : points )
 	{
@@ -1088,8 +1150,12 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 				break;
 			}
 		}
-		if ( !duplicate && (int)sources.size() < PROXY_MAX )
+		if ( duplicate )
+			continue;
+		if ( (int)sources.size() < pointBudget )
 			sources.push_back(p);
+		else
+			st.droppedSources++;
 	}
 	st.pointProxies = (int)sources.size();
 	st.areaAnchors = (int)anchors.size();
@@ -1166,7 +1232,6 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 	ctx.currentStamp = 0;
 
 	const int n = ctx.n;
-	out.legacy.assign(n * 3, 0.0f);
 	out.baseline.assign(n * 3, 0.0f);
 	out.sun.assign(n * 3, 0.0f);
 	out.sunFraction.assign(n, 0.0f);
@@ -1186,9 +1251,10 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 		const float *D = in.direct + i * 3;
 		const float align = in.sunAlign ? Saturate(in.sunAlign[i]) : 0.0f;
 		const float vis = in.sunVis ? Saturate(in.sunVis[i]) : 1.0f;
-		const float f = align * vis;
-		out.sunFraction[i] = f;
 		const bool valid = in.valid[i] != 0;
+		// wall cells have no meaningful BSP direction: they stay isotropic static light
+		const float f = valid ? align * vis : 0.0f;
+		out.sunFraction[i] = f;
 		if ( valid )
 			st.validCells++;
 		for ( int c = 0; c < 3; c++ )
@@ -1197,7 +1263,6 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 			const float legacy = in.hdr ? a + d : std::max(a, d);
 			const float s = std::min(std::max(f * d, 0.0f), legacy);
 			const float b = legacy - s;
-			out.legacy[i * 3 + c] = legacy;
 			out.sun[i * 3 + c] = s;
 			out.baseline[i * 3 + c] = b;
 			st.maxSplitError = std::max(st.maxSplitError, fabsf(b + s - legacy));

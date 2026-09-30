@@ -7,7 +7,9 @@ emitters, a sun, walls that block light and invalidate cells, one dominant
 direction per cell quantized to latLong bytes, the directed / ambient split) and
 checks the cases of the design plus the invariants on every case, in modes 1 and 2:
 
-  B + S == legacy (float, and after the half float packing)
+  B + S == legacy (float, and after the half float packing), legacy from the inputs
+  wall cells: sun fraction 0, no baked sun; the static alpha packs the sun fraction
+  at most 256 sources in total
   |M_c| <= B_c (float and half)
   B + 3 g M.v >= 0 for |g| <= 1/3, no NaN
 
@@ -319,7 +321,25 @@ void CheckInvariants( const Grid& g, const vrOutput& out )
 	float maxSplit = 0.0f, maxHalfSplit = 0.0f, worstMoment = 0.0f, worstHalfMoment = 0.0f, worstPhase = 0.0f;
 	bool finite = true;
 	std::vector<uint16_t> baseline, moments[3];
-	VR_PackHalf(out, nullptr, baseline, moments);
+	VR_PackHalf(out, out.sunFraction.data(), baseline, moments);
+	float worstAlpha = 0.0f;
+	bool wallSun = false;
+	for ( int i = 0; i < g.n; i++ )
+	{
+		worstAlpha = std::max(worstAlpha, fabsf(VR_HalfToFloat(baseline[i * 4 + 3]) - out.sunFraction[i]));
+		if ( !g.valid[i] && (out.sunFraction[i] != 0.0f || out.sun[i * 3] != 0.0f || out.sun[i * 3 + 1] != 0.0f ||
+			out.sun[i * 3 + 2] != 0.0f) )
+			wallSun = true;
+	}
+	Check(worstAlpha <= 1e-3f, "static alpha == sun fraction (half)", worstAlpha);
+	Check(!wallSun, "wall cells are never sun");
+	Check(out.proxies.size() <= 256 && out.stats.pointProxies + out.stats.areaAnchors <= 256, "at most 256 sources",
+		(double)out.proxies.size());
+	bool proxiesSane = true;
+	for ( const vrProxy& p : out.proxies )
+		if ( (p.type == VR_SOURCE_RECT) != (p.area >= 0) || (p.type == VR_SOURCE_RECT && !(p.halfWidth > 0.0f)) )
+			proxiesSane = false;
+	Check(proxiesSane, "proxy type / rect parameters");
 	const bool hasMoments = !out.moment[0].empty();
 
 	// 26 directions
@@ -333,7 +353,9 @@ void CheckInvariants( const Grid& g, const vrOutput& out )
 	for ( int i = 0; i < g.n; i++ )
 		for ( int c = 0; c < 3; c++ )
 		{
-			const float B = out.baseline[i * 3 + c], S = out.sun[i * 3 + c], L = out.legacy[i * 3 + c];
+			const float a = std::max(g.ambient[i * 3 + c], 0.0f), d = std::max(g.direct[i * 3 + c], 0.0f);
+			const float L = g.scene.hdr ? a + d : std::max(a, d);
+			const float B = out.baseline[i * 3 + c], S = out.sun[i * 3 + c];
 			finite = finite && std::isfinite(B) && std::isfinite(S);
 			maxSplit = std::max(maxSplit, fabsf(B + S - L));
 			const float Bh = VR_HalfToFloat(baseline[i * 4 + c]);
@@ -430,7 +452,8 @@ void Run( const char *name, const Scene& scene, vrOutput& out1, Grid& grid )
 	if ( getenv("VR_VERBOSE") )
 		for ( const vrProxy& p : out1.proxies )
 			printf("    proxy %s at %.0f %.0f %.0f color %.2f %.2f %.2f conf %.2f sigma %.0f range %.0f support %d\n",
-				p.area >= 0 ? "area" : "point", p.position[0], p.position[1], p.position[2], p.color[0], p.color[1], p.color[2],
+				p.type == VR_SOURCE_RECT ? "rect" : "point", p.position[0],
+ p.position[1], p.position[2], p.color[0], p.color[1], p.color[2],
 				p.confidence, p.sigmaP, p.range, p.support);
 }
 
@@ -590,6 +613,68 @@ int main()
 			Directionality(out, nearCell));
 	}
 
+	// two-sided panel set in a wall between two rooms: both rooms are lit by it
+	{
+		Scene s = BaseScene(26, 24, 8);
+		const float wx = 12.5f * s.cellSize.x, t = 0.3f * s.cellSize.x;
+		s.walls.push_back({ Make(wx - t, -100, -100), Make(wx + t, 1e4f, 1e4f) });
+		const V3 c = CellPos(s, 12.5f, 12.0f, 3.5f);
+		for ( int side = 0; side < 2; side++ )
+		{
+			RectLight panel;
+			const float sign = side ? 1.0f : -1.0f;
+			panel.center = Add(c, Make(sign * (t + 1.0f), 0, 0));
+			// normal = cross(right, up) = sign * x
+			panel.right = Make(0, sign, 0);
+			panel.up = Make(0, 0, 1);
+			panel.halfWidth = 1.5f * s.cellSize.y;
+			panel.halfHeight = 1.0f * s.cellSize.z;
+			panel.radiance = Make(3.0f, 3.0f, 3.0f);
+			s.rects.push_back(panel);
+		}
+		vrAreaSource a;
+		memset(&a, 0, sizeof(a));
+		a.center[0] = c.x; a.center[1] = c.y; a.center[2] = c.z;
+		a.right[1] = 1; a.up[2] = 1;
+		a.halfWidth = 1.5f * s.cellSize.y; a.halfHeight = 1.0f * s.cellSize.z;
+		a.color[0] = a.color[1] = a.color[2] = 1.0f;
+		a.confidence = 0.8f;
+		a.twoSided = true;
+		s.areas.push_back(a);
+		Grid g; vrOutput out;
+		Run("two-sided panel in a wall", s, out, g);
+		Check(out.stats.areaAnchors >= 1, "area anchor accepted", out.stats.areaAnchors);
+		const int left = g.Index(8, 12, 3), right = g.Index(17, 12, 3);
+		const float cl = Cosine(MomentLuma(out, left), Make(1, 0, 0)), cr = Cosine(MomentLuma(out, right), Make(-1, 0, 0));
+		Check(cl > 0.8f, "front room: towards the panel", cl);
+		Check(cr > 0.8f, "back room: towards the panel", cr);
+		Check(Directionality(out, right) > 0.1f, "back room directional", Directionality(out, right));
+	}
+
+	// more static emitters than the source budget: one global cap
+	{
+		Scene s = BaseScene(40, 40, 4);
+		s.ambient = 0.001f;
+		for ( int y = 0; y < 15; y++ )
+			for ( int x = 0; x < 20; x++ )
+			{
+				vrAreaSource a;
+				memset(&a, 0, sizeof(a));
+				const V3 c = CellPos(s, 1.0f + x * 2.0f, 1.0f + y * 2.5f, 2.6f);
+				a.center[0] = c.x; a.center[1] = c.y; a.center[2] = c.z;
+				a.right[0] = 1; a.up[1] = -1;	// emits down
+				a.halfWidth = a.halfHeight = 16.0f;
+				a.color[0] = a.color[1] = a.color[2] = 1.0f;
+				a.confidence = 1.0f;
+				s.areas.push_back(a);
+				s.points.push_back({ Sub(c, Make(0, 0, 8.0f)), Make(300, 300, 300), 0.0f });
+			}
+		Grid g; vrOutput out;
+		Run("300 emitters, source budget", s, out, g);
+		printf("  anchors %d points %d dropped %d\n", out.stats.areaAnchors, out.stats.pointProxies, out.stats.droppedSources);
+		Check(out.stats.areaAnchors + out.stats.pointProxies <= 256, "global budget", out.stats.areaAnchors + out.stats.pointProxies);
+	}
+
 	// outdoor sun: the explicit sun layer, no point proxies
 	{
 		Scene s = BaseScene(16, 16, 8);
@@ -603,6 +688,25 @@ int main()
 		Check(out.sunFraction[probe] > 0.9f, "sun fraction", out.sunFraction[probe]);
 		Check(out.sun[probe * 3 + 1] > 0.8f * 0.85f, "sun layer holds the sun", out.sun[probe * 3 + 1]);
 		Check(out.stats.pointProxies == 0, "no point proxies", out.stats.pointProxies);
+	}
+
+	// window edge: partly open cells keep f = align * vis < 1 (the shader scales the realtime sun by it)
+	{
+		Scene s = BaseScene(16, 16, 8);
+		s.hasSun = true;
+		s.sunDir = Make(0, 0, 1);
+		s.sunColor = Make(1, 1, 1);
+		const float roof = 6.5f * s.cellSize.z;
+		// a roof with a hole over x 6.5 .. 9.5
+		s.walls.push_back({ Make(-1000, -1000, roof), Make(6.3f * s.cellSize.x, 1e4f, roof + 64.0f) });
+		s.walls.push_back({ Make(9.7f * s.cellSize.x, -1000, roof), Make(1e4f, 1e4f, roof + 64.0f) });
+		Grid g; vrOutput out;
+		Run("window edge", s, out, g);
+		bool partial = false;
+		for ( int i = 0; i < g.n; i++ )
+			if ( out.sunFraction[i] > 0.05f && out.sunFraction[i] < 0.95f )
+				partial = true;
+		Check(partial, "some cells partly in the sun");
 	}
 
 	// indoor lamp aligned with the sun: sky visibility keeps it out of the sun layer

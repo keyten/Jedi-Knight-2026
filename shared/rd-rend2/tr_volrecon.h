@@ -71,9 +71,16 @@ struct vrInput
 	int numAreas;
 };
 
-// an accepted source proxy (point) or area anchor
+enum vrSourceType
+{
+	VR_SOURCE_POINT,
+	VR_SOURCE_RECT
+};
+
+// an accepted source proxy (point) or area anchor; self-contained, it outlives vrInput
 struct vrProxy
 {
+	vrSourceType type;
 	float position[3];
 	float color[3];			// chromaticity, max component 1
 	float confidence;
@@ -82,11 +89,19 @@ struct vrProxy
 	float range;			// attribution range, world units
 	int area;				// index into vrInput::areas, -1 for a point proxy
 	int support;			// support probes
+	// VR_SOURCE_RECT: the emitter (copied from the area source)
+	float right[3];
+	float up[3];
+	float halfWidth;
+	float halfHeight;
+	bool twoSided;
 };
 
 struct vrStats
 {
 	int cells;
+	int mergedFits;
+	int droppedSources;		// over the global PROXY budget
 	int validCells;
 	int seeds;
 	int fits;
@@ -110,10 +125,9 @@ struct vrStats
 
 struct vrOutput
 {
-	std::vector<float> legacy;		// 3 per cell
 	std::vector<float> baseline;	// B, 3 per cell
 	std::vector<float> sun;			// S, 3 per cell
-	std::vector<float> sunFraction;	// 1 per cell
+	std::vector<float> sunFraction;	// 1 per cell, 0 in wall cells
 	std::vector<float> moment[3];	// M_R, M_G, M_B: 3 per cell each (empty with mode 0)
 	std::vector<vrProxy> proxies;
 	vrStats stats;
@@ -125,6 +139,7 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out );
 uint16_t VR_FloatToHalf( float f );
 float VR_HalfToFloat( uint16_t h );
 
+// legacy = B + S (not stored)
 // RGBA half texels: baseline B (alpha = alpha[i], or 1 without it) and, when the
 // output has them, the three moments (alpha 0). Moments are shortened after the
 // rounding where needed, so that |M_c| <= B_c also holds for the half values.

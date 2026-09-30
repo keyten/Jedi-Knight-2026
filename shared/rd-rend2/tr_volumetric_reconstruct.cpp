@@ -34,9 +34,10 @@ its layout, so that B + S == the legacy value:
                         (alignment smoothstep 25..10 degrees) times the part of the
                         cell that sees the sky: an indoor lamp that happens to be
                         aligned with the sun stays static light
-  volumetricStaticGrid  B = everything else (rgb), sky trust (a: 1 when any of the
-                        centre and four tetrahedral corner rays reach the sky; the
-                        realtime sun replaces the baked sun part only there)
+  volumetricStaticGrid  B = everything else (rgb), sun fraction f = alignment * sky
+                        visibility (a): inside the cascades the realtime sun replaces
+                        S with f * sun * shadow, so B + f * sun never counts the
+                        (1 - f) D kept in B twice
   volumetricDirMoment*  (mode 1, 2) the first angular moments of the attributed part
                         of B per colour channel, |M_c| <= B_c: the injection applies
                         B + 3 g (M.v) with |g| <= 1/3 (the L1 Henyey-Greenstein
@@ -67,8 +68,11 @@ static struct
 	std::vector<vrProxy> proxies;
 	int numAreaSources;
 	int numAreaCandidates;
-	int numTraced;
+	int numTraced;		// candidate cells
+	int numRefined;		// cells that got the four corner rays
+	int numRays;
 	int numSeeSky;
+
 	int msecTrace;
 	int msecAreaSources;
 	int msecUpload;
@@ -77,10 +81,39 @@ static struct
 	float maxRelError;
 } s_vr;
 
+// samplers of the injection without the moments (raster and compute), as R_VolumetricComputeAvailable
+#define FROXEL_INJECT_SAMPLERS(rgb) ((rgb) ? 15 : 14)
+#define FROXEL_MOMENT_SAMPLERS 3
+
+// the three moment samplers (units TB_SPECULARMAP, TB_SSAOMAP, TB_VOLUMETRICMOMENTB) on top of the
+// injection's own: GL 3.2 guarantees only 16 fragment samplers. Checked once per context (the
+// renderer DLL is reloaded with it).
+static qboolean R_VolumetricStaticDirectionalSupported( void )
+{
+	static int supported = -1;
+	if ( supported < 0 )
+	{
+		GLint fragment = 0, combined = 0;
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &fragment);
+		qglGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &combined);
+		const int needed = FROXEL_INJECT_SAMPLERS(r_volumetricFogRGBExtinction->integer != 0) + FROXEL_MOMENT_SAMPLERS;
+		supported = (fragment >= needed && combined > TB_VOLUMETRICMOMENTB) ? 1 : 0;
+		if ( !supported && r_volumetricFogStaticDirectional->integer )
+		{
+			ri.Printf(PRINT_WARNING, "r_volumetricFogStaticDirectional: needs %d fragment samplers and more than %d "
+				"texture units (have %d, %d), directional baked light disabled\n", needed, TB_VOLUMETRICMOMENTB,
+				fragment, combined);
+		}
+	}
+	return (qboolean)(supported != 0);
+}
+
 qboolean R_VolumetricStaticDirectional( void )
 {
-	return (qboolean)(R_VolumetricFroxelEnabled() && r_volumetricFogStaticDirectional->integer != 0);
+	return (qboolean)(R_VolumetricFroxelEnabled() && r_volumetricFogStaticDirectional->integer != 0 &&
+		R_VolumetricStaticDirectionalSupported());
 }
+
 
 void R_ClearVolumetricStaticReconstruction( void )
 {
@@ -121,9 +154,9 @@ static qboolean R_VolumetricSunVisible( const vec3_t start, const vec3_t sunDir 
 	return (qboolean)(trace.fraction >= 1.0f || (trace.surfaceFlags & SURF_SKY));
 }
 
-// part of the light grid cell that sees the sky towards the sun: its centre and four
-// corners of a tetrahedron half a cell out
-static float R_VolumetricSunVisibility( const world_t *world, int cell, const vec3_t sunDir )
+// rays of the light grid cell towards the sun: its centre and four corners of a
+// tetrahedron half a cell out; returns how many of rays [first, first + count) see the sky
+static int R_VolumetricSunRays( const world_t *world, int cell, const vec3_t sunDir, int first, int count )
 {
 	const int bx = world->lightGridBounds[0];
 	const int by = world->lightGridBounds[1];
@@ -137,7 +170,7 @@ static float R_VolumetricSunVisibility( const world_t *world, int cell, const ve
 		{ 0.0f, 0.0f, 0.0f },
 		{ 1.0f, 1.0f, 1.0f }, { 1.0f, -1.0f, -1.0f }, { -1.0f, 1.0f, -1.0f }, { -1.0f, -1.0f, 1.0f } };
 	int visible = 0;
-	for ( int k = 0; k < 5; k++ )
+	for ( int k = first; k < first + count; k++ )
 	{
 		vec3_t start;
 		for ( int c = 0; c < 3; c++ )
@@ -145,7 +178,7 @@ static float R_VolumetricSunVisibility( const world_t *world, int cell, const ve
 		if ( R_VolumetricSunVisible(start, sunDir) )
 			visible++;
 	}
-	return visible / 5.0f;
+	return visible;
 }
 
 static int R_VolumetricCompareFloats( const void *a, const void *b )
@@ -197,7 +230,6 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 	// the light grid in the linear space of the legacy volumetric texture
 	std::vector<float> ambient(numCells * 3), direct(numCells * 3), bspDir(numCells * 3);
 	std::vector<float> sunAlign(splitSun ? numCells : 0), sunVis(splitSun ? numCells : 0);
-	std::vector<float> trust(numCells, 1.0f);
 	std::vector<uint8_t> valid(numCells);
 	for ( int i = 0; i < numCells; i++ )
 	{
@@ -238,27 +270,58 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 		valid[i] = data->styles[0] != LS_LSNONE ? 1 : 0;
 	}
 
-	// sun alignment, and the sky visibility of the cells lit from the sun direction.
+	// sun alignment, and the sky visibility of the valid cells lit from the sun direction.
 	// World geometry is static: traced once here instead of probing the cascades
-	// per froxel every frame.
+	// per froxel every frame. Two passes: the centre ray of every candidate, then the
+	// four corner rays only where the centre result changes between neighbours (window
+	// edges, the rim of shadows); elsewhere the cell is all sky or all blocked.
 	const int traceStart = ri.Milliseconds();
-	s_vr.numTraced = s_vr.numSeeSky = 0;
+	s_vr.numTraced = s_vr.numSeeSky = s_vr.numRays = s_vr.numRefined = 0;
 	if ( splitSun )
 	{
+		const int *bounds = world->lightGridBounds;
+		// 0 = no candidate, 1 = centre blocked, 2 = centre sees the sky
+		std::vector<uint8_t> centre(numCells, 0);
 		for ( int i = 0; i < numCells; i++ )
 		{
 			const vec3_t cellDir = { bspDir[i * 3 + 0], bspDir[i * 3 + 1], bspDir[i * 3 + 2] };
-			sunAlign[i] = R_VolumetricSmoothstep(FROXEL_SUN_COS_OUTER, FROXEL_SUN_COS_INNER, DotProduct(cellDir, sunDir));
+			sunAlign[i] = valid[i] ? R_VolumetricSmoothstep(FROXEL_SUN_COS_OUTER, FROXEL_SUN_COS_INNER, DotProduct(cellDir, sunDir)) : 0.0f;
 			sunVis[i] = 1.0f;
 			const float *d = &direct[i * 3];
 			if ( sunAlign[i] > 0.0f && (d[0] > 0.0f || d[1] > 0.0f || d[2] > 0.0f) )
 			{
-				sunVis[i] = R_VolumetricSunVisibility(world, i, sunDir);
-				trust[i] = sunVis[i] > 0.0f ? 1.0f : 0.0f;
+				centre[i] = R_VolumetricSunRays(world, i, sunDir, 0, 1) ? 2 : 1;
+				s_vr.numRays++;
 				s_vr.numTraced++;
-				if ( sunVis[i] > 0.0f )
-					s_vr.numSeeSky++;
 			}
+		}
+		for ( int i = 0; i < numCells; i++ )
+		{
+			if ( !centre[i] )
+				continue;
+			const int x = i % bounds[0], y = (i / bounds[0]) % bounds[1], z = i / (bounds[0] * bounds[1]);
+			const int nb[6][3] = { { x - 1, y, z }, { x + 1, y, z }, { x, y - 1, z }, { x, y + 1, z }, { x, y, z - 1 }, { x, y, z + 1 } };
+			qboolean edge = qfalse;
+			for ( int k = 0; k < 6 && !edge; k++ )
+			{
+				if ( nb[k][0] < 0 || nb[k][1] < 0 || nb[k][2] < 0 ||
+					nb[k][0] >= bounds[0] || nb[k][1] >= bounds[1] || nb[k][2] >= bounds[2] )
+					continue;
+				const uint8_t other = centre[nb[k][0] + bounds[0] * (nb[k][1] + bounds[1] * nb[k][2])];
+				if ( other && other != centre[i] )
+					edge = qtrue;
+			}
+			const int seen = centre[i] == 2 ? 1 : 0;
+			if ( edge )
+			{
+				sunVis[i] = (seen + R_VolumetricSunRays(world, i, sunDir, 1, 4)) / 5.0f;
+				s_vr.numRays += 4;
+				s_vr.numRefined++;
+			}
+			else
+				sunVis[i] = (float)seen;
+			if ( sunVis[i] > 0.0f )
+				s_vr.numSeeSky++;
 		}
 	}
 	s_vr.msecTrace = ri.Milliseconds() - traceStart;
@@ -294,10 +357,22 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 	vrOutput out;
 	VR_Reconstruct(in, out);
 
-	// half float texels; the moments are shortened after the rounding where needed (|M| <= B)
+	// the inputs are not needed any more: give the memory back before the packing
+	// (a million cell grid holds a few hundred MB during the reconstruction)
+	std::vector<float>().swap(ambient);
+	std::vector<float>().swap(direct);
+	std::vector<float>().swap(bspDir);
+	std::vector<float>().swap(sunAlign);
+	std::vector<float>().swap(sunVis);
+	std::vector<vrAreaSource>().swap(areas);
+
+	// half float texels, alpha = the sun fraction; the moments are shortened after the
+	// rounding where needed (|M| <= B)
 	const int uploadStart = ri.Milliseconds();
 	std::vector<uint16_t> staticData, momentData[3];
-	VR_PackHalf(out, trust.data(), staticData, momentData);
+	VR_PackHalf(out, out.sunFraction.data(), staticData, momentData);
+	for ( int c = 0; c < 3; c++ )
+		std::vector<float>().swap(out.moment[c]);
 	std::vector<uint16_t> sunData(numCells * 4);
 	s_vr.maxError = s_vr.maxRelError = 0.0f;
 	double sumError = 0.0;
@@ -312,7 +387,7 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 		// (debug view 25)
 		for ( int c = 0; c < 3; c++ )
 		{
-			const float legacy = out.legacy[i * 3 + c];
+			const float legacy = out.baseline[i * 3 + c] + out.sun[i * 3 + c];
 			const float stored = VR_HalfToFloat(staticData[i * 4 + c]) + VR_HalfToFloat(sunData[i * 4 + c]);
 			const float error = fabsf(stored - legacy);
 			s_vr.maxError = MAX(s_vr.maxError, error);
@@ -338,6 +413,10 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 			b[0], b[1], b[2], GL_RGB16F);
 	}
 	s_vr.msecUpload = ri.Milliseconds() - uploadStart;
+	std::vector<uint16_t>().swap(staticData);
+	std::vector<uint16_t>().swap(sunData);
+	for ( int c = 0; c < 3; c++ )
+		std::vector<uint16_t>().swap(momentData[c]);
 
 	// the light of an average place of the map (r_particleLighting reference)
 	double referenceSum = 0.0;
@@ -346,8 +425,8 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 	{
 		if ( !valid[i] )
 			continue;
-		const float *l = &out.legacy[i * 3];
-		referenceSum += 0.2126f * l[0] + 0.7152f * l[1] + 0.0722f * l[2];
+		const float *bl = &out.baseline[i * 3], *sl = &out.sun[i * 3];
+		referenceSum += 0.2126f * (bl[0] + sl[0]) + 0.7152f * (bl[1] + sl[1]) + 0.0722f * (bl[2] + sl[2]);
 		numReferenceCells++;
 	}
 	if ( numReferenceCells > 0 )
@@ -394,8 +473,8 @@ void R_BuildVolumetricStaticLighting( world_t *world )
 	ri.Printf(PRINT_DEVELOPER, "Froxel fog light grid: %d cells, %d sunlit, sun radiance %.3f %.3f %.3f\n",
 		numCells, numSunCells, world->volumetricSunRadiance[0],
 		world->volumetricSunRadiance[1], world->volumetricSunRadiance[2]);
-	ri.Printf(PRINT_DEVELOPER, "Froxel fog sun visibility: %d cells traced, %d see the sky, %d msec\n",
-		s_vr.numTraced, s_vr.numSeeSky, s_vr.msecTrace);
+	ri.Printf(PRINT_DEVELOPER, "Froxel fog sun visibility: %d cells traced (%d refined, %d rays), %d see the sky, %d msec\n",
+		s_vr.numTraced, s_vr.numRefined, s_vr.numRays, s_vr.numSeeSky, s_vr.msecTrace);
 	ri.Printf(PRINT_DEVELOPER, "Froxel fog baked split: error max %g (%.3f%%), mean %g\n",
 		s_vr.maxError, s_vr.maxRelError * 100.0f, sumError / (3.0 * numCells));
 	if ( mode != 0 )
@@ -426,13 +505,14 @@ void R_VolumetricStaticStats_f( void )
 	static const char *modeNames[] = { "off", "reconstructed moments", "raw BSP direction moments" };
 	ri.Printf(PRINT_ALL, "r_volumetricFogStaticDirectional %d (%s)\n", s_vr.mode, modeNames[Com_Clampi(0, 2, s_vr.mode)]);
 	ri.Printf(PRINT_ALL, "  probes          %d cells, %d valid\n", st.cells, st.validCells);
-	ri.Printf(PRINT_ALL, "  sun visibility  %d cells traced, %d see the sky\n", s_vr.numTraced, s_vr.numSeeSky);
+	ri.Printf(PRINT_ALL, "  sun visibility  %d cells traced (%d refined at edges, %d rays), %d see the sky\n",
+		s_vr.numTraced, s_vr.numRefined, s_vr.numRays, s_vr.numSeeSky);
 	ri.Printf(PRINT_ALL, "  split error     max %g (%.3f%% relative), float %g\n", s_vr.maxError, s_vr.maxRelError * 100.0f,
 		st.maxSplitError);
 	if ( s_vr.mode == 1 )
 	{
-		ri.Printf(PRINT_ALL, "  seeds           %d, %d fitted\n", st.seeds, st.fits);
-		ri.Printf(PRINT_ALL, "  point proxies   %d\n", st.pointProxies);
+		ri.Printf(PRINT_ALL, "  seeds           %d, %d fitted, %d merged into a stronger fit\n", st.seeds, st.fits, st.mergedFits);
+		ri.Printf(PRINT_ALL, "  point proxies   %d (%d sources over the budget dropped)\n", st.pointProxies, st.droppedSources);
 		ri.Printf(PRINT_ALL, "  area anchors    %d accepted of %d static sources (%d emissive candidates)\n",
 			st.areaAnchors, s_vr.numAreaSources, s_vr.numAreaCandidates);
 		ri.Printf(PRINT_ALL, "  ray residual    mean %.3f, P95 %.3f cell diagonals\n", st.meanRayRms, st.p95RayRms);
@@ -453,9 +533,12 @@ void R_VolumetricStaticStats_f( void )
 		for ( size_t k = 0; k < s_vr.proxies.size(); k++ )
 		{
 			const vrProxy& p = s_vr.proxies[k];
-			ri.Printf(PRINT_ALL, "  %3d %-5s (%.0f %.0f %.0f) color %.2f %.2f %.2f confidence %.2f sigma %.0f range %.0f support %d\n",
-				(int)k, p.area >= 0 ? "area" : "point", p.position[0], p.position[1], p.position[2],
+			ri.Printf(PRINT_ALL, "  %3d %-5s (%.0f %.0f %.0f) color %.2f %.2f %.2f confidence %.2f sigma %.0f range %.0f support %d",
+				(int)k, p.type == VR_SOURCE_RECT ? "rect" : "point", p.position[0], p.position[1], p.position[2],
 				p.color[0], p.color[1], p.color[2], p.confidence, p.sigmaP, p.range, p.support);
+			if ( p.type == VR_SOURCE_RECT )
+				ri.Printf(PRINT_ALL, " size %.0f x %.0f%s", 2.0f * p.halfWidth, 2.0f * p.halfHeight, p.twoSided ? " two-sided" : "");
+			ri.Printf(PRINT_ALL, "\n");
 		}
 	}
 	else

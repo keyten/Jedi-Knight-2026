@@ -70,7 +70,7 @@ uniform sampler3D u_FroxelHistory;
 #if defined(USE_FROXEL_RGB)
 uniform sampler3D u_FroxelExtinction;	// history of out_Extinction
 #endif
-uniform sampler3D u_VolumetricStaticGrid;	// non-sun baked baseline B (rgb), sky visibility trust (a)
+uniform sampler3D u_VolumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f (a)
 uniform sampler3D u_VolumetricSunGrid;
 #if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
 // first angular moments of the non-sun baked light per channel (r_volumetricFogStaticDirectional):
@@ -1115,7 +1115,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 	vec3 gridCoordC = (pc - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
 	vec4 staticGrid = texture(u_VolumetricStaticGrid, gridCoordC);
 	l.baseline = staticGrid.rgb * u_FroxelLightParams.w;
-	float trust = staticGrid.a;
+	float sunWeight = staticGrid.a;
 
 #if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
 	// first angular moments of the attributed baked light (R_BuildVolumetricStaticLighting), one per
@@ -1177,13 +1177,14 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 			float coverage;
 			float shadow = SunShadow(p, temporal, coverage);
 
-			// The sun part of the light grid is the directed light of cells lit from the sun direction
-			// that see the sky (traced at map load, R_BuildVolumetricStaticLighting). The realtime sun
-			// replaces it only where some of the cell sees the sky; deep in shadow (indoors) it stays
-			// baked light.
-			coverage *= trust;
-			l.sun = mix(bakedSun, u_FroxelSunColor.rgb * shadow, coverage);
-			l.sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb, coverage);
+			// The sun part of the light grid is S = f D, f = sun alignment * sky visibility of the cell
+			// (traced at map load, R_BuildVolumetricStaticLighting); the other (1 - f) D stays in the
+			// baseline. Inside the cascades the realtime sun replaces exactly that part, f * sun, with
+			// its shadow: a window edge cell (f 0.2) never gets the full sun on top of 0.8 D, and deep
+			// indoors (f 0) the sun stays baked light.
+			l.sun = mix(bakedSun, u_FroxelSunColor.rgb * (sunWeight * shadow), coverage);
+			l.sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb * sunWeight, coverage);
+
 		}
 		l.sun *= u_FroxelLightParams.y;
 		l.sunUnshadowed *= u_FroxelLightParams.y;

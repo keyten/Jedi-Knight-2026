@@ -100,7 +100,7 @@ discretisation (see Integration).
 | `froxelIntegratedImage` | RGBA16F 3D | Fx Fy Fz | rgb = in-scattering S, a = transmittance T, between the camera and the far side `B(k+1)` of slice k |
 | `froxelCarryImage[2]` | RGBA16F 2D | Fx Fy | integration state between two slices (ping-pong, no feedback loop) |
 | `froxelTailImage` | RGBA16F 2D | Fx Fy | light at the far side of the volume (baked + sun with phase, no albedo): lights the media beyond far |
-| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | non-sun baked baseline B (rgb), sky trust (a, traced at load) |
+| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | non-sun baked baseline B (rgb), sun fraction f = align * vis (a, traced at load) |
 | `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part S |
 | `world->volumetricDirMomentR/G/B` | RGB16F 3D | light grid | `r_volumetricFogStaticDirectional 1, 2` only: first angular moment of the attributed baked light per colour channel (xyz, towards the light, `|M_c| <= B_c`) |
 | froxel light lists | buffer textures | per frame | lights (RGBA32F, 2 texels) and cluster headers + indexes (R32UI) |
@@ -196,7 +196,8 @@ grid cell is split with the light direction of the cell and the part of the cell
 ```
 align  = smoothstep(cos 25, cos 10, dot(cellDir, sunDir))       // 0 when the map has no sun shader
 vis    = rays reaching the sky / 5                               // centre + 4 tetrahedron corners, half a cell out
-S      = clamp(align * vis * direct, 0, legacy)                  // baked sun part
+f      = valid ? align * vis : 0                                 // wall cells (LS_LSNONE) are never sun
+S      = clamp(f * direct, 0, legacy)                            // baked sun part
 B      = legacy - S                                              // B + S == legacy value
 ```
 
@@ -204,10 +205,13 @@ The direction of a grid cell is a mix of all its lights, so a lamp straight abov
 visibility is part of the split, an aligned indoor lamp (no ray reaches the sky) stays static light B and is
 handled by the directional reconstruction below, never with the sun phase. Rays are traced only for cells with a
 sun alignment and a direct part (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` surface
-counts as the sky), all five of them. The alpha of `volumetricStaticGrid` is the sky trust (1 when any ray
-reaches the sky, trilinear between cells): the realtime sun replaces the baked sun part only there; deep in
-shadow (indoors) it stays baked light and is not darkened. The central realtime cascade lookup stays, so characters
-still cut the beams.
+counts as the sky), in two passes: the centre ray of every candidate cell, then the four corner rays only for the
+cells whose centre result differs from a candidate neighbour (window edges, shadow rims); elsewhere vis is 0 or 1.
+A large open outdoor area costs about one ray per cell instead of five. The alpha of `volumetricStaticGrid` is the
+sun fraction f (trilinear between cells). Inside the cascades the realtime sun replaces exactly the classified
+part: `mix(S, f * sun * shadow, coverage)`, so a window edge cell (f = 0.2, B holding 0.8 D) never gets the full
+sun on top of its B; deep indoors (f = 0) it stays baked light and is not darkened. The central realtime cascade
+lookup stays, so characters still cut the beams.
 
 The realtime sun radiance is the 90th percentile luminance of the sunlit cells (`align * vis > 0.5`, at least 16
 cells), with their average color, so light beams have the brightness the map was compiled with. Without sunlit
@@ -259,27 +263,37 @@ and a weaker blue lamp the blue channel stays nearly isotropic).
 
 **Reconstruction** (`tr_volrecon.cpp`, no renderer globals, effectively linear in the grid size):
 
-1. *Gradients* of B.rgb and its luminance, six-neighbour central differences, one-sided next to a wall cell, never
-   through `LS_LSNONE` cells. Strength `|grad B_c| * cellDiagonal / (B_c + eps)`.
+1. *Gradients* of B.rgb, six-neighbour central differences, one-sided next to a wall cell, never through
+   `LS_LSNONE` cells (the luminance gradient is their `LUMA` combination, not stored). Strength
+   `|grad B_c| * cellDiagonal / (B_c + eps)`.
 2. *Seeds*: local maxima (26 neighbours, non-maximum suppression) of Q per channel and luminance, favoured where the
-   BSP direction field and the gradient field converge (`-div`), at most 512.
+   BSP direction field (its convergence computed once per cell) and the gradient field converge (`-div`), at most
+   512. The threshold is 3% of the brightest cell of the channel on the whole map: a dim lamp in a dark room next
+   to a bright hangar may get no seed (it stays isotropic, the safe failure).
 3. *Point proxy fit* per seed: support probes flood-connected (six neighbours, no wall crossing) within 4 cells, at
    most 256. BSP direction rays (weight Q) and gradient rays (weight |grad|) are separate observations; the closed
-   form least squares point `p = A^-1 b`, `A = sum w (I - d d^T)`, with 3 Huber IRLS passes (delta half a cell
-   diagonal) and a tiny ridge towards the seed (parallel doorway rays stay near the brightest cell).
+   form least squares point `p = A^-1 b`, `A = sum w (I - d d^T)`, with Huber IRLS passes (delta half a cell
+   diagonal) and a tiny ridge towards the seed (parallel doorway rays stay near the brightest cell); the
+   conditioning uses A rebuilt with the final Huber weights.
    Confidence `C = C_ray * sqrt(C_gradient * C_profile * C_chroma)`: ray residual, the share of observations pointing
    at p, a monotonic (isotonic) radial profile of the brightness projected on the proxy colour (a flat field is no
    lamp), and the stability of the colour from the positive radial derivatives near / far. The conditioning of A
    raises the positional uncertainty sigma_p, it does not reject: a lamp smaller than a cell or a doorway proxy is
    fine, the fog only needs the incoming direction.
 4. *Merge* fits of one lamp (closer than max(0.75 diagonal, sigma sum), at most 1.5 diagonals, same colour); two
-   lamps of the same colour apart stay two. At most 256 proxies.
+   lamps of the same colour apart stay two. The strongest fit is kept whole (position, radial profile, sigma_p,
+   start cell stay one consistent model); the weaker one only adds its energy and range.
 5. *Area anchors*: the static emitters of `tr_arealights.cpp` (`R_CollectStaticAreaSources`: explicit non-dynamic
    `maps/<map>.arealights.json` lamps, and the emissive surface candidates `r_ltcAutoAreaLights 2` would take, not
    animated, whatever `r_ltcAreaLights` is; the candidate scan and texture mask readbacks are shared with the LTC
    path). Their moment per probe is a centre or 3x3 quadrature `sum w_k u_k / sum w_k`, `w_k = area cos / r^2`: a
    close large panel is naturally less directional. They are calibrated against the grid and never add their own
-   radiance; a point proxy of the same lamp is dropped.
+   radiance; a point proxy of the same lamp is dropped. A two-sided emitter floods from both of its sides (a panel
+   in a wall between two rooms lights both). Line / tube lights (`DLIGHT_LINE`) are not anchors: the rectangle
+   quadrature does not describe them.
+
+   **Budget**: at most 256 sources in total. Anchors first (confidence * energy order), point proxies fill what is
+   left; `r_vfogStaticStats` counts the dropped ones.
 6. *Attribution*: each source floods its range (where its predicted light falls below 1% of the mean baked light,
    2 to 10 cell diagonals), per cell and channel a match
    `m = C * C_pos * evidence * falloff * colourCompatibility` with `C_pos = r^2 / (r^2 + sigma_p^2)`, evidence the
@@ -290,7 +304,17 @@ and a weaker blue lamp the blue channel stays nearly isotropic).
 Invalid cells, the sun part and everything unexplained keep their light in B. `r_vfogStaticStats [proxies]` prints
 the probes, seeds, fits, point proxies, area anchors, mean / P95 ray residual, mean sigma_p, the attributed and the
 directional (after cancellation) share of the baked light, and the time of each stage; `developer 1` prints a
-summary at load.
+summary at load. The accepted sources (`vrProxy`: type point / rect, position, colour, confidence, sigma_p, range,
+and for a rect its axes, half sizes and sidedness) are kept after the load, independent of the temporary inputs,
+for later consumers (light portals, recovered spot lights, static specular lights).
+
+Memory: the reconstruction is transient. The largest parts on a million cell grid are the per cell accumulator
+(60 bytes), the three RGB gradients and strengths, Q, B, S and the moments; the renderer frees its input arrays
+right after `VR_Reconstruct` and the float moments after the half packing. A cell-centric attribution (spatial
+hash of the sources) or slabs would remove the accumulator; not done yet. Also deferred: a disk cache (sun
+visibility + half moments, ~19 bytes per cell, keyed by the grid, sun, geometry and area source hashes), a world
+space proxy debug draw, per-channel moment debug views, a local-contrast seed threshold, line source quadrature.
+
 
 Cost: memory +18 bytes per grid cell (three RGB16F volumes, mode 1 / 2 only); injection three more trilinear 3D
 fetches and three dots per froxel (and tail texel), the lobes one multiply-add each; no source loop and no per
