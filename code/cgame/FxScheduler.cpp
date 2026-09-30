@@ -589,7 +589,8 @@ int CFxScheduler::ParseEffect( const char *file, const CGPGroup& base )
 			{ CSTRING_VIEW( "fxrunner" ), FxRunner },
 			{ CSTRING_VIEW( "light" ), Light },
 			{ CSTRING_VIEW( "cameraShake" ), CameraShake },
-			{ CSTRING_VIEW( "flash" ), ScreenFlash }
+			{ CSTRING_VIEW( "flash" ), ScreenFlash },
+			{ CSTRING_VIEW( "lensWater" ), LensWater }
 		};
 		auto pos = primitiveTypes.find( primitiveGroup.GetName() );
 		if( pos != primitiveTypes.end() )
@@ -1179,6 +1180,17 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay
 			{
 				theFxHelper.CameraShake( cent->gent->currentOrigin, fx->mElasticity.GetVal(), fx->mRadius.GetVal(), fx->mLife.GetVal() );
 			}
+		}
+		break;
+
+	//---------
+	case LensWater:
+	//---------
+		// water onto the camera lens from the entity the effect is bolted to
+		if ( clientID >= 0 && clientID < ENTITYNUM_WORLD )
+		{
+			theFxHelper.AddLensWaterEvent( cg_entities[clientID].lerpOrigin, fx->mLensWaterType,
+				fx->mElasticity.GetVal(), fx->mRadius.GetVal(), fx->mLife.GetVal() );
 		}
 		break;
 
@@ -1785,7 +1797,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ve
 
 	// handle RGB color, but only for types that will use it
 	//---------------------------------------------------------------------------
-	if ( fx->mType != Sound && fx->mType != FxRunner && fx->mType != CameraShake )
+	if ( fx->mType != Sound && fx->mType != FxRunner && fx->mType != CameraShake && fx->mType != LensWater )
 	{
 		if ( fx->mSpawnFlags & FX_RGB_COMPONENT_INTERP )
 		{
@@ -2040,6 +2052,15 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ve
 		//	elasticity is actually the intensity...radius is the distance in which the shake will have some effect
 		//	life is how long the effect lasts.
 		theFxHelper.CameraShake( org, fx->mElasticity.GetVal(), fx->mRadius.GetVal(), fx->mLife.GetVal() );
+		break;
+
+	//---------
+	case LensWater:
+	//---------
+		// Water onto the camera lens: intensity is the strength, radius the
+		// reach (distance falloff), life the spray duration in ms.
+		theFxHelper.AddLensWaterEvent( org, fx->mLensWaterType, fx->mElasticity.GetVal(),
+			fx->mRadius.GetVal(), fx->mLife.GetVal() );
 		break;
 
 	//--------------

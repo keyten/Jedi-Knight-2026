@@ -5296,6 +5296,42 @@
     "enum": null
   },
   {
+    "var": "r_rainLensReflection",
+    "default": "1.0",
+    "restart": false,
+    "description": "reflection of the environment with Fresnel, and glints of the sun and nearby lights; 0 = refraction only.",
+    "name": "r_rainLensReflection",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": [
+      0,
+      2,
+      false
+    ],
+    "label": "Lens water reflections and glints",
+    "performance": "medium",
+    "enum": null
+  },
+  {
+    "var": "r_rainLensInertia",
+    "default": "0",
+    "restart": false,
+    "description": "water lags behind strong camera acceleration.",
+    "name": "r_rainLensInertia",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": [
+      0,
+      2,
+      false
+    ],
+    "label": "Lens water reacts to camera motion",
+    "performance": "medium",
+    "enum": null
+  },
+  {
     "var": "r_autoFoliage",
     "default": "0",
     "restart": false,

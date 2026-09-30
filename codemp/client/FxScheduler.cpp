@@ -410,6 +410,7 @@ struct primitiveType_s { const char *name; EPrimType type; } primitiveTypes[] = 
 	{ "light", Light },
 	{ "cameraShake", CameraShake },
 	{ "flash", ScreenFlash },
+	{ "lensWater", LensWater },
 };
 static const size_t numPrimitiveTypes = ARRAY_LEN( primitiveTypes );
 
@@ -1258,6 +1259,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 			//not supported yet
 		case Sound:
 		case CameraShake:
+		case LensWater:
 			//does not work bolted
 			break;
 		default:
@@ -1469,7 +1471,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 
 	// handle RGB color, but only for types that will use it
 	//---------------------------------------------------------------------------
-	if ( fx->mType != Sound && fx->mType != FxRunner && fx->mType != CameraShake )
+	if ( fx->mType != Sound && fx->mType != FxRunner && fx->mType != CameraShake && fx->mType != LensWater )
 	{
 		GetRGB_Colors( fx, sRGB, eRGB );
 	}
@@ -1719,6 +1721,15 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const vec3_t origin, ma
 		//	elasticity is actually the intensity...radius is the distance in which the shake will have some effect
 		//	life is how long the effect lasts.
 		theFxHelper.CameraShake( org, fx->mElasticity.GetVal(), fx->mRadius.GetVal(), fx->mLife.GetVal() );
+		break;
+
+	//---------
+	case LensWater:
+	//---------
+		// Water onto the camera lens: intensity is the strength, radius the
+		// reach (distance falloff), life the spray duration in ms.
+		theFxHelper.AddLensWaterEvent( org, fx->mLensWaterType, fx->mElasticity.GetVal(),
+			fx->mRadius.GetVal(), fx->mLife.GetVal() );
 		break;
 
 	//--------------

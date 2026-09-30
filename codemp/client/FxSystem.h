@@ -224,6 +224,9 @@ public:
 	}
 
 	void	CameraShake( vec3_t origin, float intensity, int radius, int time );
+	// water onto the camera lens (rend2 lens water renderer extension):
+	// nothing without it
+	void	AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs );
 	qboolean GetOriginAxisFromBolt(CGhoul2Info_v *pGhoul2, int mEntNum, int modelNum, int boltNum, vec3_t /*out*/origin, vec3_t /*out*/axis[3]);
 };
 

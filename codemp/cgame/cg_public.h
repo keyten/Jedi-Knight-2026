@@ -722,6 +722,9 @@ typedef struct cgameImport_s {
 		// foliage character colliders (rend2 foliage extension), once per frame.
 		// Only called with r_foliageInteraction set (older engines lack it)
 		void			(*R_SetFoliageInteractors)				( const foliageInteractor_t *interactors, int count );
+		// water onto the camera lens (rend2 lens water extension); a no-op
+		// without it (older engines, other renderers, legacy VM)
+		void			(*R_AddLensWaterEvent)					( const refLensWaterEvent_t *event );
 	} ext;
 } cgameImport_t;
 

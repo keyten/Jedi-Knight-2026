@@ -578,7 +578,7 @@ void RB_BloomDownscale(image_t *sourceImage, FBO_t *destFBO, qboolean rainLensFi
 	GLSL_BindProgram(&tr.dglowDownsample);
 	GLSL_SetUniformVec2(&tr.dglowDownsample, UNIFORM_INVTEXRES, invTexRes);
 	vec4_t lensParams = {rainLensFieldActive ? 1.0f : 0.0f, 0.0f,
-		Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value), 0.0f};
+		R_RainLensRefractionScale(), 0.0f};
 	GLSL_SetUniformVec4(&tr.dglowDownsample, UNIFORM_RAINLENSPARAMS, lensParams);
 	GL_BindToTMU(sourceImage, 0);
 	GL_BindToTMU(rainLensFieldActive ? tr.rainLensFieldImage : tr.whiteImage, TB_LIGHTMAP);

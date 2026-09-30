@@ -307,6 +307,8 @@ extern cvar_t  *r_rainLensRefraction;
 extern cvar_t  *r_rainLensDropSize;
 extern cvar_t  *r_rainLensFilm;
 extern cvar_t  *r_rainLensBlur;
+extern cvar_t  *r_rainLensReflection;
+extern cvar_t  *r_rainLensInertia;
 extern cvar_t  *r_rainLensDebug;
 extern cvar_t  *r_rainLensFieldHeight;
 extern cvar_t  *r_rainLensAgentLimit;
@@ -316,6 +318,8 @@ extern cvar_t  *r_rainLensFilmDecay;
 extern cvar_t  *r_rainLensWetDecay;
 extern cvar_t  *r_rainLensHeavyFlow;
 extern cvar_t  *r_rainLensPeripheralBias;
+extern cvar_t  *r_rainLensPBO;
+extern cvar_t  *r_rainLensMipBlur;
 
 extern cvar_t  *r_motionBlur;
 extern cvar_t  *r_motionBlurShutterAngle;
@@ -2065,6 +2069,13 @@ enum
 
 enum
 {
+	RAINLENSCOMPOSITE_DEFAULT = 0,	// ambient reflection (no cubemap)
+	RAINLENSCOMPOSITE_CUBEMAP = 1,	// nearest environment cubemap reflection
+	RAINLENSCOMPOSITE_COUNT
+};
+
+enum
+{
 	SSRDEF_TRACE		= 0,	// ray march, linear
 	SSRDEF_TRACE_HIZ	= 1,	// ray march, hierarchical depth
 	SSRDEF_CLASSIFY		= 2,	// early depth mask of the pixels that need a ray
@@ -2385,6 +2396,8 @@ typedef enum
 
 	UNIFORM_RAINLENSPARAMS,		// per pass, see tr_rainlens.cpp
 	UNIFORM_RAINLENSPARAMS2,	// per pass: field size or debug view, legacy (display encoded) HDR buffer
+	UNIFORM_RAINLENSOPTICS,		// vec4[8] lens reflection / glint lights, see tr_rainlens.cpp
+	UNIFORM_RAINLENSDEBUG,		// vec4[4] r_rainLensDebug 9 controller panel
 
 	UNIFORM_SSRNORMALMAP,	// tr_ssr.cpp, see the ssr_*.glsl headers
 	UNIFORM_SSRSPECULARMAP,
@@ -3129,6 +3142,11 @@ typedef struct {
 	int			numFogVolumes;
 	refFogVolume_t	*fogVolumes;
 
+	// lens water sources of the map ("LensWaterEmitters" of env.json,
+	// tr_rainlens.cpp): waterfalls and other spray near the camera
+	int			numLensWaterEmitters;
+	struct lensWaterEmitter_s	*lensWaterEmitters;
+
 	// Optional env.json HeightFog: base, opaqueDistance, falloff, top. Missing
 	// components use cvars; an automatic base is kept out of archived cvars.
 	vec4_t heightFogSettings;
@@ -3692,6 +3710,7 @@ typedef struct trGlobals_s {
 	image_t					*rainLensFieldImage;	// lower resolution offset, mask, blur field
 	image_t					*rainLensFilmImage;	// persistent wetness (R) and thin film (G), CPU updated
 	image_t					*rainLensInstanceImage;	// lens drop / sheet instance records (RGBA32F)
+	image_t					*rainLensMipImage;	// r_rainLensMipBlur: half resolution mipped scene copy
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
 	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLighting), no sigma / albedo
@@ -3759,6 +3778,7 @@ typedef struct trGlobals_s {
 	FBO_t					*motionBlurFbo;
 	FBO_t					*rainLensFbo;
 	FBO_t					*rainLensFieldFbo;
+	FBO_t					*rainLensMipFbo;
 	FBO_t					*froxelMediaFbo;		// froxelMediaImage, layered (r_volumetricSelfShadow)
 	FBO_t					*froxelInjectFbo;		// layers attached per slice
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
@@ -3855,7 +3875,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t aoDebugShader;
 	shaderProgram_t motionBlurShader[MOTIONBLURDEF_COUNT];
 	shaderProgram_t rainLensShader[RAINLENSDEF_COUNT];
-	shaderProgram_t rainLensCompositeShader;
+	shaderProgram_t rainLensCompositeShader[RAINLENSCOMPOSITE_COUNT];
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricInjectComputeShader;
@@ -5012,8 +5032,25 @@ typedef struct convolveCubemapCommand_s {
 } convolveCubemapCommand_t;
 
 // tr_rainlens.cpp: weather and camera input of the lens water, front end
-#define RAINLENS_EVENT_EMERGE	1	// camera left water
-#define RAINLENS_EVENT_SUBMERGE	2	// camera entered water
+#define RAINLENS_MAX_EVENTS		8
+#define RAINLENS_EVENT_SUBMERGE	16	// camera entered water (besides LENSWATER_*)
+
+typedef struct lensWaterEmitter_s {
+	vec3_t		origin;
+	vec3_t		dir;		// world direction of the water, zero = none
+	float		radius;
+	float		strength;
+	float		interval;	// LENSWATER_SPLASH: mean seconds between splashes
+	int			type;		// LENSWATER_SPRAY or LENSWATER_SPLASH
+	int			nextTime;	// game time of the next splash
+} lensWaterEmitter_t;
+
+typedef struct rainLensEvent_s {
+	int			type;		// LENSWATER_* or RAINLENS_EVENT_SUBMERGE
+	float		strength;	// after distance falloff
+	float		dirLens[2];	// lens space side the water comes from
+	float		duration;
+} rainLensEvent_t;
 
 typedef struct rainLensInput_s {
 	qboolean	active;		// main world view that owns the lens
@@ -5023,7 +5060,18 @@ typedef struct rainLensInput_s {
 	float		facing;		// 0..1, lens facing into the falling rain
 	int			weather;	// rainWeather_t
 	float		windLens[2];
-	int			events;		// RAINLENS_EVENT_*
+	int			numEvents;
+	rainLensEvent_t	events[RAINLENS_MAX_EVENTS];
+	float		sprayStrength;	// continuous spray of map emitters
+	float		sprayDir[2];
+	// optics, lens space (x right, y up, z toward the viewer)
+	float		keyDir[3];		// dominant light (sun or light grid direction)
+	float		keyColor[3];	// its radiance at the camera, zero = none
+	float		pointDir[3];	// brightest nearby dynamic light
+	float		pointColor[3];
+	float		ambient[3];		// light grid ambient: reflection without a cubemap
+	float		cameraLuma;		// light grid luma at the camera (cubemap normalisation)
+	int			cubemapIndex;	// R_CubemapForPoint(vieworg), 0 = none
 } rainLensInput_t;
 
 typedef struct postProcessCommand_s {
@@ -5387,6 +5435,11 @@ qboolean RB_RainLensUpdate(const rainLensInput_t *input);
 void RB_RainLens(FBO_t *srcFbo);
 void RB_RainLensDebugOverlay(void);
 void R_RainLensClear_f(void);
+void RE_AddLensWaterEvent(const refLensWaterEvent_t *event);
+void R_ShutdownRainLens(void);
+float R_RainLensRefractionScale(void);
+void R_LensWaterCommand(const char *args);
+void R_LoadLensWaterEmittersJson(world_t *world, const char *json, const char *jsonEnd, const char *filename);
 void R_RainLensEvent_f(void);
 void R_RainLensProfile_f(void);
 void R_RainLensStats_f(void);

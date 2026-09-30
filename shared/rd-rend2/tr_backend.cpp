@@ -3350,7 +3350,7 @@ static void RB_DynamicGlowPrepare(image_t *sceneImage, qboolean rainLensFieldAct
 		GL_BindToTMU(sceneImage, TB_LIGHTMAP);
 		GL_BindToTMU(rainLensFieldActive ? tr.rainLensFieldImage : tr.whiteImage, TB_NORMALMAP);
 		vec4_t lensParams = {rainLensFieldActive ? 1.0f : 0.0f, 0.0f,
-			Com_Clamp(0.0f, 4.0f, r_rainLensRefraction->value), 0.0f};
+			R_RainLensRefractionScale(), 0.0f};
 		GLSL_SetUniformVec4(&tr.bloomPrefilter, UNIFORM_RAINLENSPARAMS, lensParams);
 		vec4_t bloomParams = {r_bloomThreshold->value, r_bloomKnee->value,
 			r_bloomSceneIntensity->value, tr.linearLight ? 1.0f : 0.0f};

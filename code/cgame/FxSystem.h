@@ -98,6 +98,9 @@ struct SFxHelper
 	void	AddPolyToScene( int shader, int count, polyVert_t *verts );
 
 	void	CameraShake( vec3_t origin, float intensity, int radius, int time );
+	// water onto the camera lens (rend2 lens water, engine + renderer
+	// extension): nothing without it
+	void	AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs );
 };
 
 extern SFxHelper	theFxHelper;

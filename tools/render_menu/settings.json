@@ -3383,6 +3383,28 @@
     "range": null
   },
   {
+    "var": "r_rainLensReflection",
+    "default": "1.0",
+    "restart": false,
+    "description": "reflection of the environment with Fresnel, and glints of the sun and nearby lights; 0 = refraction only.",
+    "name": "r_rainLensReflection",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": null
+  },
+  {
+    "var": "r_rainLensInertia",
+    "default": "0",
+    "restart": false,
+    "description": "water lags behind strong camera acceleration.",
+    "name": "r_rainLensInertia",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0..2",
+    "range": null
+  },
+  {
     "var": "r_autoFoliage",
     "default": "0",
     "restart": false,

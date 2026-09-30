@@ -435,3 +435,13 @@ typedef struct refSpotLightExport_s {
 } refSpotLightExport_t;
 
 typedef	const refSpotLightExport_t* (QDECL *GetRefSpotLightAPI_t) ( void );
+
+// Optional renderer extension (rend2 lens water, r_rainLens), looked up as
+// "GetRefLensWaterAPI". Posts a one-shot water event onto the camera lens;
+// safe to call at any time (ignored while lens water is disabled). Without it
+// (other renderers) callers simply skip the effect.
+typedef struct refLensWaterExport_s {
+	void		(*AddLensWaterEvent)( const refLensWaterEvent_t *event );
+} refLensWaterExport_t;
+
+typedef	const refLensWaterExport_t* (QDECL *GetRefLensWaterAPI_t) ( void );

@@ -159,7 +159,8 @@ enum EPrimType
 	FxRunner,
 	Light,
 	CameraShake,
-	ScreenFlash
+	ScreenFlash,
+	LensWater		// water onto the camera lens (rend2 r_rainLens), like CameraShake
 };
 
 
@@ -303,6 +304,9 @@ public:
 	int				mSpotCookie;		// light cookie handle (RegisterLightCookie), 0 = none
 	float			mSpotCookieRoll;	// degrees around the axis
 
+	// LensWater primitive: LENSWATER_SPLASH / SPRAY / EMERGE ("lensEvent")
+	int				mLensWaterType;
+
 private:
 
 	// Lower level parsing utilities
@@ -367,6 +371,8 @@ private:
 	bool ParseSpotShadows( const gsl::cstring_span& val );
 	bool ParseSpotCookie( const gsl::cstring_span& val );
 	bool ParseSpotCookieRoll( const gsl::cstring_span& val );
+
+	bool ParseLensEvent( const gsl::cstring_span& val );
 
 	bool ParseModels( const CGPProperty& grp );
 	bool ParseShaders( const CGPProperty& grp );

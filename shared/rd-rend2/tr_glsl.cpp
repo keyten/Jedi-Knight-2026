@@ -252,6 +252,8 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_RainLensParams",		GLSL_VEC4, 1 },
 	{ "u_RainLensParams2",		GLSL_VEC4, 1 },
+	{ "u_RainLensOptics",		GLSL_VEC4, 10 },
+	{ "u_RainLensDebug",		GLSL_VEC4, 4 },
 
 	{ "u_SSRNormalMap",			GLSL_INT, 1 },
 	{ "u_SSRSpecularMap",		GLSL_INT, 1 },
@@ -3638,15 +3640,24 @@ static int GLSL_LoadGPUProgramRainLens(
 		++numPrograms;
 	}
 
+	// composite: ambient reflection, or the nearest environment cubemap
+	static const char *compositeDefines[RAINLENSCOMPOSITE_COUNT] =
 	{
-		shaderProgram_t *sp = &tr.rainLensCompositeShader;
-		GLSL_LoadGPUProgramBasic(builder, scratchAlloc, sp,
-			"rainlens_composite", fallback_rainlens_compositeProgram);
+		nullptr,
+		"#define USE_CUBEMAP\n",
+	};
+	for (int i = 0; i < RAINLENSCOMPOSITE_COUNT; i++)
+	{
+		shaderProgram_t *sp = &tr.rainLensCompositeShader[i];
+		GLSL_LoadGPUProgramBasicWithDefinitions(builder, scratchAlloc, sp,
+			"rainlens_composite", fallback_rainlens_compositeProgram, compositeDefines[i]);
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SPECULARMAP, TB_SPECULARMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CUBEMAP, TB_CUBEMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -4472,7 +4483,7 @@ static int GLSL_CountStartupPrograms()
 			continue;
 		++count;
 	}
-	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT;
+	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
 	if (pom)
 		count += POMSDEF_DEPTH_COUNT + 2;
 	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
@@ -4693,7 +4704,8 @@ void GLSL_ShutdownGPUShaders(void)
 
 	for ( i = 0; i < RAINLENSDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.rainLensShader[i]);
-	GLSL_DeleteGPUShader(&tr.rainLensCompositeShader);
+	for ( i = 0; i < RAINLENSCOMPOSITE_COUNT; i++)
+		GLSL_DeleteGPUShader(&tr.rainLensCompositeShader[i]);
 
 	GLSL_DeleteGPUShader(&tr.volumetricInjectShader);
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);

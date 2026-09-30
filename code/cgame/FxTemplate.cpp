@@ -107,6 +107,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mSpotShadows = true;
 	mSpotCookie = 0;
 	mSpotCookieRoll = 0.0f;
+
+	mLensWaterType = LENSWATER_SPLASH;
 }
 
 //-----------------------------------------------------------
@@ -225,6 +227,8 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mSpotShadows		= that.mSpotShadows;
 	mSpotCookie			= that.mSpotCookie;
 	mSpotCookieRoll		= that.mSpotCookieRoll;
+
+	mLensWaterType		= that.mLensWaterType;
 }
 
 //------------------------------------------------------
@@ -2063,6 +2067,25 @@ bool CPrimitiveTemplate::ParseSpot( const CGPGroup& grp )
 	return ParseGroup( grp, parseMethods, "spot" );
 }
 
+// LensWater primitive: "lensEvent splash | spray | emerge"
+//------------------------------------------------------
+bool CPrimitiveTemplate::ParseLensEvent( const gsl::cstring_span& val )
+{
+	if ( Q::stricmp( val, CSTRING_VIEW( "splash" ) ) == Q::Ordering::EQ )
+		mLensWaterType = LENSWATER_SPLASH;
+	else if ( Q::stricmp( val, CSTRING_VIEW( "spray" ) ) == Q::Ordering::EQ )
+		mLensWaterType = LENSWATER_SPRAY;
+	else if ( Q::stricmp( val, CSTRING_VIEW( "emerge" ) ) == Q::Ordering::EQ )
+		mLensWaterType = LENSWATER_EMERGE;
+	else
+	{
+		theFxHelper.Print( "Unknown lensEvent (splash, spray or emerge)\n" );
+		return false;
+	}
+	return true;
+}
+
+//------------------------------------------------------
 // Parse a primitive, apply defaults first, grab any base level
 //	key pairs, then process any sub groups we may contain.
 //------------------------------------------------------
@@ -2102,6 +2125,7 @@ bool CPrimitiveTemplate::ParsePrimitive( const CGPGroup& grp )
 				{ CSTRING_VIEW( "flag" ), &CPrimitiveTemplate::ParseFlags },
 				{ CSTRING_VIEW( "spawnFlags" ), &CPrimitiveTemplate::ParseSpawnFlags },
 				{ CSTRING_VIEW( "spawnFlag" ), &CPrimitiveTemplate::ParseSpawnFlags },
+				{ CSTRING_VIEW( "lensEvent" ), &CPrimitiveTemplate::ParseLensEvent },
 			};
 			auto pos = parseMethods.find( prop.GetName() );
 			if( pos != parseMethods.end() )

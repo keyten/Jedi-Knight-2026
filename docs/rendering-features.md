@@ -1169,11 +1169,15 @@ Rain only adds water while the camera is outside. Under cover, existing water ke
 - `r_rainLensDropSize 0.25..4` — drop size (geometry only).
 - `r_rainLensFilm 0..2` — thin film / trail visibility.
 - `r_rainLensBlur 0..2` — drop defocus.
+- `r_rainLensReflection 0..2` — reflection of the environment (nearest cubemap) with Fresnel, and glints of the sun and nearby lights; 0 = refraction only.
+- `r_rainLensInertia 0..2` — water lags behind strong camera acceleration (default 0).
 
 **Debug**
-- `r_rainLensDebug 1..8` — optical weight / blur, normal, UV offset, scene/final split, agents, film/wetness, pinning and transient state; forces the pass on.
+- `r_rainLensDebug 1..9` — optical weight / blur, normal, UV offset, scene/final split, agents, film/wetness, pinning, transient state and controller panel; forces the pass on.
 - `rainlens_event splash|spray|emerge`, `rainlens_profile light|rain|heavy|acid|auto`, `rainlens_clear`, `rainlens_stats`.
-- Tuning cvars (cheat): `r_rainLensFieldHeight`, `r_rainLensAgentLimit`, `r_rainLensPinning`, `r_rainLensMerge`, `r_rainLensFilmDecay`, `r_rainLensWetDecay`, `r_rainLensHeavyFlow`, `r_rainLensPeripheralBias`.
+- Tuning cvars (cheat): `r_rainLensFieldHeight`, `r_rainLensAgentLimit`, `r_rainLensPinning`, `r_rainLensMerge`, `r_rainLensFilmDecay`, `r_rainLensWetDecay`, `r_rainLensHeavyFlow`, `r_rainLensPeripheralBias`; profiling: `r_rainLensPBO`, `r_rainLensMipBlur`.
+
+**Maps and effects.** Waterfalls and spray: `LensWaterEmitters` in `cubemaps/<map>/env.json` or the efx `lensWater` primitive. Splashes of characters entering water nearby and leaving water yourself are automatic with the updated game modules. Scripts can use `r_we lenswater splash 1`.
 
 The CPU simulation is bounded: up to 128 drops, 256 micro drops and 8 sheets, about 0.2 ms at worst. The field is quality bounded, and the full-resolution composite only samples extra where there is water. A dry lens under cover costs nothing.
 

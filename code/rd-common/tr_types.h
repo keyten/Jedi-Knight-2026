@@ -412,6 +412,29 @@ typedef struct {
 	vec3_t		up;				// optional top of the cookie, zero = a stable default
 } refSpotLight_t;
 
+// Lens water events (rend2 r_rainLens): water thrown onto the virtual camera
+// lens by the world (splashes, waterfall spray, leaving water), posted through
+// the optional renderer extension GetRefLensWaterAPI. Events are one-shot; a
+// spray lasts `duration` seconds. The renderer resolves them against the main
+// view: without LENSWATER_F_ORIGIN they always reach the lens.
+#define LENSWATER_SPLASH	0	// a burst of drops and local film
+#define LENSWATER_SPRAY		1	// repeated small impacts for duration seconds
+#define LENSWATER_EMERGE	2	// the camera left water: broad film, sheets, streams
+
+#define LENSWATER_F_ORIGIN	1	// origin/radius valid: distance falloff and side bias
+#define LENSWATER_F_DIR		2	// dir valid: world direction the water travels
+#define LENSWATER_F_LOCAL	4	// about the viewer itself (the player emerging)
+
+typedef struct {
+	int			type;			// LENSWATER_SPLASH, ...
+	int			flags;			// LENSWATER_F_*
+	vec3_t		origin;			// world position of the source
+	vec3_t		dir;			// world direction the water travels
+	float		radius;			// reach of the source (world units)
+	float		strength;		// 0..2, 1 = nominal
+	float		duration;		// seconds, LENSWATER_SPRAY only (0 = default)
+} refLensWaterEvent_t;
+
 
 typedef enum {
 	STEREO_CENTER,

@@ -130,6 +130,7 @@ const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
+const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
 static void	*rendererLib = NULL;
 
 ping_t	cl_pinglist[MAX_PINGREQUESTS];
@@ -2327,6 +2328,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reFoliage = NULL;
 	reVolParticles = NULL;
 	reSpotLights = NULL;
+	reLensWater = NULL;
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -2555,6 +2557,8 @@ void CL_InitRef( void ) {
 	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
 	GetRefSpotLightAPI_t GetRefSpotLightAPI = (GetRefSpotLightAPI_t)Sys_LoadFunction( rendererLib, "GetRefSpotLightAPI" );
 	reSpotLights = GetRefSpotLightAPI ? GetRefSpotLightAPI() : NULL;
+	GetRefLensWaterAPI_t GetRefLensWaterAPI = (GetRefLensWaterAPI_t)Sys_LoadFunction( rendererLib, "GetRefLensWaterAPI" );
+	reLensWater = GetRefLensWaterAPI ? GetRefLensWaterAPI() : NULL;
 
 	// unpause so the cgame definately gets a snapshot and renders a frame
 	Cvar_Set( "cl_paused", "0" );

@@ -1029,6 +1029,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reSpotLights && reSpotLights->RegisterLightCookie )
 			return reSpotLights->RegisterLightCookie( (const char *) VMA(1) );
 		return 0;
+	case CG_R_ADDLENSWATEREVENT:
+		if ( reLensWater && reLensWater->AddLensWaterEvent )
+			reLensWater->AddLensWaterEvent( (const refLensWaterEvent_t *) VMA(1) );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;

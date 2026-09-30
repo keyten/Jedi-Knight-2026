@@ -266,6 +266,7 @@ extern	const refAreaLightExport_t	*reAreaLights;	// optional renderer extension,
 extern	const refFoliageExport_t	*reFoliage;		// optional renderer extension, may be NULL
 extern	const refVolParticleExport_t	*reVolParticles;	// optional renderer extension, may be NULL
 extern	const refSpotLightExport_t	*reSpotLights;	// optional renderer extension, may be NULL
+extern	const refLensWaterExport_t	*reLensWater;	// optional renderer extension, may be NULL
 
 
 //

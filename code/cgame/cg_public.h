@@ -241,6 +241,10 @@ Ghoul2 Insert End
 	// light cookie of a spot light (rend2); only called with
 	// cl_rendererSpotLights 2 (older engines lack it)
 	CG_R_REGISTERLIGHTCOOKIE,
+
+	// water onto the camera lens (rend2 r_rainLens); only called with
+	// cl_rendererLensWater set by the engine (older engines lack it)
+	CG_R_ADDLENSWATEREVENT,
 } cgameImport_t;
 
 #ifdef JK2_MODE

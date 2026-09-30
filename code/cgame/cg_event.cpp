@@ -255,6 +255,64 @@ static void CG_UseItem( centity_t *cent )
 
 
 /*
+===============
+CG_LensWaterEvent
+
+Water thrown onto the camera lens (rend2 r_rainLens, renderer extension).
+origin is used with LENSWATER_F_ORIGIN; the renderer applies the distance
+falloff and ignores events while the camera is under water.
+===============
+*/
+void CG_LensWaterEvent( int type, const vec3_t origin, int flags, float radius, float strength, float duration )
+{
+	if ( !cl_rendererLensWater.integer )
+		return;
+	refLensWaterEvent_t event;
+	memset( &event, 0, sizeof( event ) );
+	event.type = type;
+	event.flags = flags;
+	if ( origin )
+		VectorCopy( origin, event.origin );
+	event.radius = radius;
+	event.strength = strength;
+	event.duration = duration;
+	cgi_R_AddLensWaterEvent( &event );
+}
+
+// Water surface events: splashes of anything entering or leaving water near
+// the camera, and the viewer's own head leaving water in first person (the
+// game's waterlevel, pmove), so the lens gets the emerge burst.
+static int cg_lensWaterUnderTime = -1;
+
+static void CG_LensWaterSurfaceEvent( int event, const entityState_t *es, const vec3_t position )
+{
+	const qboolean viewer = (qboolean)( es->number == cg.snap->ps.clientNum );
+	switch ( event )
+	{
+	case EV_WATER_TOUCH:
+		CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 200.0f, viewer ? 0.5f : 0.7f, 0.0f );
+		break;
+	case EV_WATER_LEAVE:
+		CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 160.0f, viewer ? 0.3f : 0.45f, 0.0f );
+		break;
+	case EV_WATER_UNDER:
+		if ( viewer )
+			cg_lensWaterUnderTime = cg.time;
+		break;
+	case EV_WATER_CLEAR:
+		if ( viewer && !cg.renderingThirdPerson )
+		{
+			float strength = 1.0f;
+			if ( cg_lensWaterUnderTime >= 0 && cg.time >= cg_lensWaterUnderTime )
+				strength = Com_Clamp( 0.6f, 1.2f, 0.6f + ( cg.time - cg_lensWaterUnderTime ) * 0.0002f );
+			CG_LensWaterEvent( LENSWATER_EMERGE, NULL, LENSWATER_F_LOCAL, 0.0f, strength, 0.0f );
+		}
+		cg_lensWaterUnderTime = -1;
+		break;
+	}
+}
+
+/*
 ==============
 CG_EntityEvent
 
@@ -426,21 +484,25 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_WATER_TOUCH:
 		DEBUGNAME("EV_WATER_TOUCH");
 		cgi_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.watrInSound );
+		CG_LensWaterSurfaceEvent( event, es, position );
 		break;
 
 	case EV_WATER_LEAVE:
 		DEBUGNAME("EV_WATER_LEAVE");
 		cgi_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.watrOutSound );
+		CG_LensWaterSurfaceEvent( event, es, position );
 		break;
 
 	case EV_WATER_UNDER:
 		DEBUGNAME("EV_WATER_UNDER");
 		cgi_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.watrUnSound );
+		CG_LensWaterSurfaceEvent( event, es, position );
 		break;
 
 	case EV_WATER_CLEAR:
 		DEBUGNAME("EV_WATER_CLEAR");
 		CG_TryPlayCustomSound(NULL, es->number, CHAN_AUTO, "*gasp.wav", CS_BASIC );
+		CG_LensWaterSurfaceEvent( event, es, position );
 		break;
 
 	case EV_WATER_GURP1:

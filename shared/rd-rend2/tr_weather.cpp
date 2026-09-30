@@ -1177,6 +1177,17 @@ void RE_WorldEffectCommand(const char *command)
 		return;
 	}
 
+	// Lens water event (tr_rainlens.cpp): not a weather change, so the
+	// weather images are not reloaded
+	if (Q_stricmp(token, "lenswater") == 0)
+	{
+		R_LensWaterCommand(command);
+#ifdef REND2_SP
+		COM_EndParseSession();
+#endif
+		return;
+	}
+
 	//Die - clean up the whole weather system -rww
 	if (Q_stricmp(token, "die") == 0)
 	{

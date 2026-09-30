@@ -171,6 +171,23 @@ void SFxHelper::AdjustTime( int frametime )
 }
 
 //------------------------------------------------------
+void SFxHelper::AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs )
+{
+	if ( !reLensWater || !reLensWater->AddLensWaterEvent )
+		return;
+	refLensWaterEvent_t event = {};
+	event.type = type;
+	if ( radius > 0.0f )
+	{
+		event.flags = LENSWATER_F_ORIGIN;
+		VectorCopy( origin, event.origin );
+		event.radius = radius;
+	}
+	event.strength = strength > 0.0f ? strength : 1.0f;
+	event.duration = lifeMs * 0.001f;
+	reLensWater->AddLensWaterEvent( &event );
+}
+
 void SFxHelper::CameraShake( vec3_t origin, float intensity, int radius, int time )
 {
 	TCGCameraShake	*data = (TCGCameraShake *)cl.mSharedMemory;

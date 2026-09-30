@@ -382,6 +382,12 @@ static void CL_R_SetFoliageInteractors( const foliageInteractor_t *interactors, 
 		reFoliage->SetFoliageInteractors( interactors, count );
 }
 
+// optional renderer extension (tr_public.h): nothing without it
+static void CL_R_AddLensWaterEvent( const refLensWaterEvent_t *event ) {
+	if ( reLensWater && reLensWater->AddLensWaterEvent )
+		reLensWater->AddLensWaterEvent( event );
+}
+
 static void CGFX_AddLine( vec3_t start, vec3_t end, float size1, float size2, float sizeParm, float alpha1, float alpha2, float alphaParm, vec3_t sRGB, vec3_t eRGB, float rgbParm, int killTime, qhandle_t shader, int flags ) {
 	FX_AddLine( start, end, size1, size2, sizeParm, alpha1, alpha2, alphaParm, sRGB, eRGB, rgbParm, killTime, shader, flags );
 }
@@ -1926,6 +1932,7 @@ void CL_BindCGame( void ) {
 		cgi.ext.R_Font_StrLenPixels				= re->ext.Font_StrLenPixels;
 		cgi.ext.R_AddLineLightToScene			= CL_R_AddLineLightToScene;
 		cgi.ext.R_SetFoliageInteractors			= CL_R_SetFoliageInteractors;
+		cgi.ext.R_AddLensWaterEvent				= CL_R_AddLensWaterEvent;
 
 		GetCGameAPI = (GetCGameAPI_t)cgvm->GetModuleAPI;
 		ret = GetCGameAPI( CGAME_API_VERSION, &cgi );

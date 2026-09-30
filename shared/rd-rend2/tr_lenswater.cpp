@@ -54,21 +54,26 @@ const LensWater::ProfileParams s_profiles[PROFILE_COUNT] =
 {
 	// AUTO (unused: resolved before lookup), same as NORMAL
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f },
+	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
 	// LIGHT: beads, rare mergers, almost no continuous flow
 	{ 6.0f, 1.2f, 0.08f, 0.0f, 0.0f, 0.30f, 0.90f, 2.2f, 0.90f, 1.30f,
-	  0.35f, 2.5f, 12.0f, 30.0f, 0.8f, 0.6f, 1.0f },
+	  0.35f, 2.5f, 12.0f, 30.0f, 0.8f, 0.6f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
 	// NORMAL: static beads, moving drops and thin paths together
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f },
+	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
 	// HEAVY: turnover, film, rivulets and sheets rather than more beads
 	{ 40.0f, 5.0f, 0.5f, 1.6f, 1.2f, 0.30f, 1.10f, 1.4f, 1.00f, 1.50f,
-	  0.90f, 3.5f, 20.0f, 7.0f, 1.5f, 0.3f, 1.0f },
-	// ACID: stickier, longer lasting film
+	  0.90f, 3.5f, 20.0f, 7.0f, 1.5f, 0.3f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
+	// ACID: stickier, longer lasting film, slightly green-yellow and denser
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.60f, 5.0f, 22.0f, 20.0f, 0.9f, 0.45f, 1.25f },
+	  0.60f, 5.0f, 22.0f, 20.0f, 0.9f, 0.45f, 1.25f, { 0.93f, 1.0f, 0.85f }, 1.15f },
 };
-static_assert(sizeof(LensWater::ProfileParams) == 17 * sizeof(float), "profile blend layout");
+constexpr int kProfileFloats = 21;
+static_assert(sizeof(LensWater::ProfileParams) == kProfileFloats * sizeof(float), "profile blend layout");
+
+// camera acceleration (world units / s^2) to lens gravity units
+constexpr float kInertiaScale = 2.0e-4f;
+constexpr float kMaxInertia = 1.5f;
 
 inline Vec2 operator+(Vec2 a, Vec2 b) { return { a.x + b.x, a.y + b.y }; }
 inline Vec2 operator-(Vec2 a, Vec2 b) { return { a.x - b.x, a.y - b.y }; }
@@ -242,38 +247,61 @@ void LensWater::BlendProfile(float dt, Profile target)
 	const float k = 1.0f - std::exp(-dt);
 	float *c = &current.microRate;
 	const float *g = &goal.microRate;
-	for (int i = 0; i < 17; ++i)
+	for (int i = 0; i < kProfileFloats; ++i)
 		c[i] += (g[i] - c[i]) * k;
 }
 
 bool LensWater::Update(float dt, const Input &input, const Params &p)
 {
-	const auto start = std::chrono::steady_clock::now();
+	using Clock = std::chrono::steady_clock;
+	auto micros = [](Clock::time_point a, Clock::time_point b) {
+		return std::chrono::duration<float, std::micro>(b - a).count();
+	};
+	const auto start = Clock::now();
 	params = p;
-	lastInput = input;
 
+	// Camera acceleration, weak and optional, acts like extra gravity: the
+	// water lags behind a strongly accelerating camera.
+	Input in = input;
+	if (params.inertia > 0.0f)
+	{
+		Vec2 inertia = in.cameraAccel * (-kInertiaScale * params.inertia);
+		const float l = Length(inertia);
+		if (l > kMaxInertia)
+			inertia = inertia * (kMaxInertia / l);
+		in.gravity = in.gravity + inertia;
+	}
+	lastInput = in;
+
+	sinceEvent += std::max(dt, 0.0f);
+	const auto eventsStart = Clock::now();
 	ProcessEvents();
-	BlendProfile(dt, profileOverride != PROFILE_AUTO ? profileOverride : input.weather);
+	eventMicroseconds = micros(eventsStart, Clock::now());
+	BlendProfile(dt, profileOverride != PROFILE_AUTO ? profileOverride : in.weather);
 
+	const auto agentsStart = Clock::now();
 	agentAccumulator = std::min(agentAccumulator + std::max(dt, 0.0f), 0.2f);
 	while (agentAccumulator >= kAgentStep)
 	{
-		Step(kAgentStep, input);
+		Step(kAgentStep, in);
 		agentAccumulator -= kAgentStep;
 	}
 	interpolation = agentAccumulator / kAgentStep;
+	agentMicroseconds = micros(agentsStart, Clock::now());
 
+	const auto fieldStart = Clock::now();
 	fieldAccumulator = std::min(fieldAccumulator + std::max(dt, 0.0f), 0.2f);
 	while (fieldAccumulator >= kFieldStep)
 	{
 		DecayField(kFieldStep);
 		fieldAccumulator -= kFieldStep;
 	}
+	fieldMicroseconds = micros(fieldStart, Clock::now());
 
-	lastUpdateMicroseconds = std::chrono::duration<float, std::micro>(
-		std::chrono::steady_clock::now() - start).count();
+	lastUpdateMicroseconds = micros(start, Clock::now());
 
-	const bool incoming = input.exposed > 0.0f && input.intensity > 0.0f && p.density > 0.0f;
+	const bool incoming = (in.exposed > 0.0f && in.intensity > 0.0f && p.density > 0.0f)
+		|| in.sprayStrength > 0.0f;
 	return Active() || incoming;
 }
 
@@ -782,23 +810,57 @@ void LensWater::Spawn(float dt, const Input &input)
 	for (Spray &spray : sprays)
 	{
 		spray.remaining -= dt;
-		const float s = spray.strength;
-		if (Random01() < std::min(12.0f * s * dt, 0.5f))
-		{
-			const Vec2 at = SideBiasedPosition(spray.dir, 0.35f);
-			SpawnRainDrop(0.3f + 0.5f * Random01(), false, &at, 0.05f);
-		}
-		if (Random01() < std::min(30.0f * s * dt, 0.8f))
-			SpawnMicro(SideBiasedPosition(spray.dir, 0.4f), kRefRadius * (0.1f + 0.2f * Random01()));
-		if (Random01() < std::min(0.6f * s * dt, 0.2f))
-		{
-			const Vec2 at = SideBiasedPosition(spray.dir, 0.3f);
-			SpawnRainDrop(1.1f + 0.5f * Random01(), true, &at, 0.02f);
-			StampDisc(at, 0.06f, 1.0f, 0.35f * s, false);
-		}
+		SpraySpawn(spray.strength, spray.dir, dt);
 	}
 	sprays.erase(std::remove_if(sprays.begin(), sprays.end(),
 		[](const Spray &s) { return s.remaining <= 0.0f; }), sprays.end());
+
+	// map emitters (waterfalls): a continuous spray while the camera is near,
+	// independent of rain and cover
+	if (input.sprayStrength > 0.0f)
+		SpraySpawn(std::min(input.sprayStrength, 2.0f), input.sprayDir, dt);
+}
+
+// Spray: repeated short impacts biased toward the side the water comes from.
+void LensWater::SpraySpawn(float s, Vec2 dir, float dt)
+{
+	const float density = std::max(params.density, 0.0f);
+	if (Random01() < std::min(12.0f * s * density * dt, 0.5f))
+	{
+		const Vec2 at = SideBiasedPosition(dir, 0.35f);
+		SpawnRainDrop(0.3f + 0.5f * Random01(), false, &at, 0.05f);
+	}
+	if (Random01() < std::min(30.0f * s * density * dt, 0.8f))
+		SpawnMicro(SideBiasedPosition(dir, 0.4f), kRefRadius * (0.1f + 0.2f * Random01()));
+	if (Random01() < std::min(0.6f * s * density * dt, 0.2f))
+	{
+		const Vec2 at = SideBiasedPosition(dir, 0.3f);
+		SpawnRainDrop(1.1f + 0.5f * Random01(), true, &at, 0.02f);
+		StampDisc(at, 0.06f, 1.0f, 0.35f * s, false);
+	}
+}
+
+float ResolveWorldEvent(const float origin[3], float radius, const float viewOrigin[3],
+	const float forward[3], const float right[3], const float up[3], Vec2 &side)
+{
+	side = { 0.0f, 0.0f };
+	const float d[3] = { origin[0] - viewOrigin[0], origin[1] - viewOrigin[1], origin[2] - viewOrigin[2] };
+	const float dist = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+	if (radius <= 0.0f || dist >= radius)
+		return 0.0f;
+	float falloff = 1.0f - dist / radius;
+	falloff *= falloff;
+	if (dist < 1e-3f)
+		return falloff;	// at the camera: no side
+	const float inv = 1.0f / dist;
+	const float toSource[3] = { d[0] * inv, d[1] * inv, d[2] * inv };
+	// water thrown from behind the camera reaches the lens less
+	const float facing = Lerp(0.3f, 1.0f, Saturate(toSource[0] * forward[0]
+		+ toSource[1] * forward[1] + toSource[2] * forward[2]));
+	side = {
+		toSource[0] * right[0] + toSource[1] * right[1] + toSource[2] * right[2],
+		toSource[0] * up[0] + toSource[1] * up[1] + toSource[2] * up[2] };
+	return falloff * facing;
 }
 
 void LensWater::ProcessEvents()
@@ -807,6 +869,7 @@ void LensWater::ProcessEvents()
 		return;
 	std::vector<Event> events;
 	events.swap(pendingEvents);
+	sinceEvent = 0.0f;
 	for (const Event &event : events)
 	{
 		const float s = std::max(event.strength, 0.05f);
@@ -1089,6 +1152,12 @@ Stats LensWater::GetStats() const
 	s.filmDirty = filmDirty;
 	s.profile = activeProfile;
 	s.updateMicroseconds = lastUpdateMicroseconds;
+	s.agentMicroseconds = agentMicroseconds;
+	s.fieldMicroseconds = fieldMicroseconds;
+	s.eventMicroseconds = eventMicroseconds;
+	s.sinceEvent = sinceEvent;
+	s.sprays = (int)sprays.size();
+	s.continuousSpray = lastInput.sprayStrength;
 	return s;
 }
 

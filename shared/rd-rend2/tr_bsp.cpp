@@ -3236,6 +3236,7 @@ void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 	}
 	//-----------------------------FOG VOLUMES---------------------------------
 	R_LoadFogVolumesJson(world, buffer.c, bufferEnd, filename);
+	R_LoadLensWaterEmittersJson(world, buffer.c, bufferEnd, filename);
 
 	const char *heightFog = JSON_ObjectGetNamedValue(buffer.c, bufferEnd, "HeightFog");
 	if (heightFog && JSON_ValueGetType(heightFog, bufferEnd) == JSONTYPE_OBJECT)

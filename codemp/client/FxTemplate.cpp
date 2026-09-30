@@ -105,6 +105,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mSpotShadows = true;
 	mSpotCookie = 0;
 	mSpotCookieRoll = 0.0f;
+
+	mLensWaterType = LENSWATER_SPLASH;
 }
 
 //-----------------------------------------------------------
@@ -226,6 +228,8 @@ CPrimitiveTemplate &CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that
 	mSpotShadows		= that.mSpotShadows;
 	mSpotCookie			= that.mSpotCookie;
 	mSpotCookieRoll		= that.mSpotCookieRoll;
+
+	mLensWaterType		= that.mLensWaterType;
 
 	return *this;
 }
@@ -2327,6 +2331,23 @@ bool CPrimitiveTemplate::ParseSpot( CGPGroup *grp )
 	return true;
 }
 
+// LensWater primitive: "lensEvent splash | spray | emerge"
+bool CPrimitiveTemplate::ParseLensEvent( const char *val )
+{
+	if ( !Q_stricmp( val, "splash" ) )
+		mLensWaterType = LENSWATER_SPLASH;
+	else if ( !Q_stricmp( val, "spray" ) )
+		mLensWaterType = LENSWATER_SPRAY;
+	else if ( !Q_stricmp( val, "emerge" ) )
+		mLensWaterType = LENSWATER_EMERGE;
+	else
+	{
+		theFxHelper.Print( "Unknown lensEvent '%s' (splash, spray or emerge)\n", val );
+		return false;
+	}
+	return true;
+}
+
 bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 {
 	CGPGroup	*subGrp;
@@ -2414,6 +2435,8 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 		}
 		else if ( !Q_stricmp( key, "materialImpact" ) )
 			ParseMaterialImpact( val );
+		else if ( !Q_stricmp( key, "lensEvent" ) )
+			ParseLensEvent( val );
 		else
 			theFxHelper.Print( "Unknown key parsing an effect primitive: %s\n", key );
 

@@ -246,6 +246,13 @@ void SFxHelper::CameraShake( vec3_t origin, float intensity, int radius, int tim
 }
 
 //------------------------------------------------------
+void SFxHelper::AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs )
+{
+	CG_LensWaterEvent( type, origin, radius > 0.0f ? LENSWATER_F_ORIGIN : 0, radius,
+		strength > 0.0f ? strength : 1.0f, lifeMs * 0.001f );
+}
+
+//------------------------------------------------------
 int SFxHelper::GetOriginAxisFromBolt(const centity_t &cent, int modelNum, int boltNum, vec3_t /*out*/origin, vec3_t /*out*/axis[3])
 {
 	if ((cg.time-cent.snapShotTime) > 200)

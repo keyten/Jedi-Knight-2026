@@ -143,7 +143,7 @@ evaporating, and the film drains. Nothing is frozen or restored.
 - **Peripheral bias.** Large drops, flows and sheets are rejection-sampled
   toward the edges. Micro and normal drops are uniform.
 
-**Events** (`LensWaterEvent`, at most 8 queued):
+**Events** (`LensWaterEvent`, at most 8 queued per update):
 - `SPLASH` gives a burst of drops, one or two large impacts, micro drops and
   local film.
 - `SPRAY` gives repeated small impacts for its duration, biased toward a side.
@@ -151,15 +151,97 @@ evaporating, and the film drains. Nothing is frozen or restored.
   15–40 beads.
 - `SUBMERGE` and `CLEAR` wipe everything.
 
-Leaving water is detected on the front end:
-- `CM_PointContents(vieworg) & CONTENTS_WATER` on the main view.
-- Water → air emerges only if the camera was under for at least 250 ms, and at
-  most once a second.
-- While submerged, the lens isn't drawn.
+A continuous spray input (map emitters) spawns like a spray, with no events. It
+works without rain and under cover.
 
-Waterfalls and other local spray have no automatic trigger yet. An authored hook
-(map entity, efx flag or game event) would queue `SPRAY` or `SPLASH`. For now it
-can be triggered through `rainlens_event`.
+- **Acid:** also a slight green-yellow transmitted tint `(0.93, 1, 0.85)` and 1.15×
+  distortion. Both crossfade with the profile; the distortion also applies to bloom.
+- **Inertia** (`r_rainLensInertia`, default 0):
+  - The camera acceleration (the view origin, differentiated twice over game time,
+    filtered at 50 ms, reset on teleports and cuts) acts as extra gravity:
+    `g += −a · 2e-4 · r_rainLensInertia`, clamped to 1.5.
+  - Water lags behind a strongly accelerating camera and stays still for normal
+    movement.
+
+## World water (events, emitters, scripts)
+
+Everything the world throws onto the lens goes through one front-end queue in
+`tr_rainlens.cpp`:
+- `R_RainLensInput` resolves it against the main view once a frame
+  (`lenswater::ResolveWorldEvent`):
+  - Distance falloff `(1 − d/radius)²`.
+  - Facing `lerp(0.3, 1, dot(forward, toSource))`: water from behind the camera
+    reaches it less.
+  - Lens side from the direction to the source.
+- Events are dropped while the camera is under water.
+
+**Renderer extension.** `GetRefLensWaterAPI` → `AddLensWaterEvent(const refLensWaterEvent_t *)`
+is declared in both `tr_public.h`. `refLensWaterEvent_t` is in both `tr_types.h`:
+- `type`: `LENSWATER_SPLASH/SPRAY/EMERGE`.
+- `flags`:
+  - `LENSWATER_F_ORIGIN`: origin and radius give the falloff and side.
+  - `LENSWATER_F_DIR`: dir is the world direction of the water, which comes from
+    the opposite side.
+  - `LENSWATER_F_LOCAL`: the viewer itself.
+- Also `origin`, `dir`, `radius`, `strength` (0..2) and `duration` (s, spray).
+
+It's safe at any time and ignored while `r_rainLens` is off.
+
+| caller | path |
+|---|---|
+| SP cgame | `cgi_R_AddLensWaterEvent` → `CG_R_ADDLENSWATEREVENT` (only with `cl_rendererLensWater`, which the engine sets when the renderer exports the extension) |
+| MP cgame | `trap->ext.R_AddLensWaterEvent` (engine wrapper; a no-op on a legacy VM or another renderer) |
+| MP efx | the engine FX calls `reLensWater->AddLensWaterEvent` directly |
+
+**cgame hooks** (`CG_LensWaterEvent`, SP `cg_event.cpp`, MP `cg_event.c`):
+- `EV_WATER_TOUCH` of any entity: a SPLASH at its origin, radius 200, strength 0.7
+  (0.5 for the viewer).
+- `EV_WATER_LEAVE`: radius 160, strength 0.45 (0.3 for the viewer).
+- The viewer's `EV_WATER_CLEAR` (the head leaves water, the game's pmove `waterlevel`)
+  in first person: `EMERGE | LOCAL`. The strength is 0.6..1.2 from the time since
+  `EV_WATER_UNDER`.
+- The renderer's own contents test (`CONTENTS_WATER | CONTENTS_SLIME` at the camera,
+  under ≥ 250 ms) remains the fallback for third person and older games. Whichever
+  emerge comes first within a second wins, so there is one burst only.
+
+**EFX primitive `lensWater`** (SP cgame FX, MP engine FX), a one-shot like
+`cameraShake`:
+```
+lensWater
+{
+	lensEvent	spray		// splash | spray | emerge
+	intensity	0.8			// strength (a range works)
+	radius		320			// reach from the effect origin, 0 = everywhere
+	life		1500		// spray duration, ms
+}
+```
+A waterfall uses an `fx_runner` (or a looping effect) with a `repeatDelay` a
+little shorter than `life`. Bolted effects use the entity origin (SP); MP bolted
+lens water isn't supported, like cameraShake.
+
+**Map emitters** in `cubemaps/<map>/env.json`, next to `FogVolumes`:
+```json
+"LensWaterEmitters": [
+	{ "Origin": [ 1024, -512, 96 ], "Radius": 400, "Strength": 1.0, "Type": "spray",
+	  "Direction": [ 0, 0, -1 ] },
+	{ "Origin": [ 300, 80, 0 ], "Radius": 250, "Strength": 0.8, "Type": "splash", "Interval": 3 }
+]
+```
+- `spray`: while the camera is within the radius, the strongest emitter feeds the
+  continuous spray (falloff, facing, side as above).
+- `Direction` (optional): only water travelling toward the camera reaches it.
+- `splash`: fires at exponential intervals (mean `Interval` s, game time).
+- Up to 64 emitters are allowed.
+
+**Scripts and console.** `r_we lenswater <splash|spray|emerge> [strength] [duration] [x y z radius]`
+is the `RE_WorldEffectCommand` branch (it doesn't reload the weather images). It also
+works from:
+- SP `cgi_R_WorldEffectCommand`;
+- MP `trap->R_WorldEffectCommand`;
+- ICARUS through a console command.
+
+Don't route repeated server events through `CS_WORLD_FX` configstrings: they're
+deduplicated and replayed on load.
 
 ## Optics
 
@@ -185,14 +267,33 @@ can be triggered through `rainlens_event`.
   `r_rainLensFieldHeight`, clamped to the screen). It holds RG = unscaled UV
   offset, B = weight and A = blur radius. It's additive, so consumers clamp
   B and A.
-- **Composite** (full resolution):
+- **Composite** (full resolution, 2 variants: `USE_CUBEMAP` or not):
   - A pixel with weight ≤ 0.001 costs one field fetch and one scene fetch.
   - Water adds one refracted fetch, and blur taps run only where the blur
-    radius is above zero: 1 / 3 / 5 scene samples by quality.
-  - Rim darkening and the fixed glint apply to compact drops only
-    (`smoothstep(0.25, 0.6, weight)`).
-  - Environment reflection, Fresnel and a sun-driven glint are deferred until
-    there's a real reflection source.
+    radius is above zero: 1 / 3 / 5 scene samples by quality. With
+    `r_rainLensMipBlur`, it's one fetch from a mipped half-resolution copy.
+  - The refracted scene is multiplied by the profile tint.
+  - **Fresnel** (water, n = 1.333, F0 = 0.02, Schlick on the drop normal):
+    `water = (1 − F)·refracted + F·reflection`. At the drop rim, reflection takes
+    over. Thin film is nearly flat, so it reflects at about F0 and gets no glint.
+  - **Reflection:**
+    - The camera's nearest environment cubemap (`R_CubemapForPoint`, roughness mip
+      ≈ 0.35 of the chain, defocused). It's sampled with the drop's reflection
+      vector rotated to world space, and never brighter than the light grid at
+      the camera (like lightall).
+    - Without a cubemap (`r_cubeMapping 0`, no probes), a sky/ground ambient from
+      the light grid.
+  - **Glints** (compact drops only, weighted by F):
+    - The dominant light: the sun when the sky shader has one and the camera is
+      outside, else the light grid direction at the camera at half strength.
+      Radiance is the light grid directed light at the camera.
+    - The brightest nearby dynamic light (sabers, muzzle flashes; `luma · falloff`
+      within 2 × radius).
+    - Normalised Blinn-Phong with powers 220 and 120.
+    - There's no fixed screen-space light any more.
+  - Everything is gathered on the front end (`rainLensInput_t`, light grid via
+    `R_LightForPoint`), so the composite is branch-light.
+  - `r_rainLensReflection 0` gives pure refraction.
 
 ## Cvars
 
@@ -205,7 +306,16 @@ can be triggered through `rainlens_event`.
 | `r_rainLensRefraction` | 1.0 | UV distortion 0..4 |
 | `r_rainLensFilm` | 1.0 | thin film / trail visibility 0..2 |
 | `r_rainLensBlur` | 1.0 | drop defocus 0..2 |
-| `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, merge lobe cyan, sheet magenta) |
+| `r_rainLensReflection` | 1.0 | reflection + glints 0..2, 0 = refraction only |
+| `r_rainLensInertia` | 0 | camera acceleration response 0..2 |
+| `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, merge lobe cyan, sheet magenta), 9 controller panel |
+
+Debug view 9 draws bars in the top-left corner:
+- Cyan: intensity, exposed, facing, map spray.
+- Green: blended micro / normal / large / flow rates.
+- Orange: sheet rate, active sprays, the event flash (red, 0.3 s after an event),
+  drops / limit.
+- Then the profile swatch, with a white edge when forced.
 
 Developer cvars (cheat):
 - `r_rainLensFieldHeight` (latched, 0 = quality)
@@ -214,32 +324,45 @@ Developer cvars (cheat):
 - `r_rainLensFilmDecay`, `r_rainLensWetDecay`
 - `r_rainLensHeavyFlow`
 - `r_rainLensPeripheralBias`
+- `r_rainLensPBO`: film and instance uploads through a 3-slot pixel buffer ring.
+- `r_rainLensMipBlur` (latched): drop defocus from a mipped half-resolution scene
+  copy (a blit plus `glGenerateMipmap`) instead of the 3/5 taps.
+
+The last two are profiling options from the design doc. They're off until
+measurements favour them.
 
 ## Commands
 
 - `rainlens_clear` clears drops, sheets and film.
 - `rainlens_event splash|spray|emerge [strength] [left|right|up|down]` triggers
-  an event for manual testing.
+  an event for manual testing (lens space).
 - `rainlens_profile light|rain|heavy|acid|auto` forces a profile. Without
   active weather, a forced profile also rains on the lens everywhere, for
   tuning on dry maps.
-- `rainlens_stats` prints counts by type, field sizes, the film state and the
-  CPU µs of the last update.
+- `rainlens_stats` prints:
+  - counts by type and the blended rates;
+  - sprays, map spray, time since the last event and map emitters;
+  - field and film sizes and state, and the PBO mode;
+  - CPU µs: update, agents, field, events, upload;
+  - GPU ms of the field and composite (its own timestamp ring, read without
+    stalling, independent of `r_speeds`);
+  - the reflection source and the key / nearby light levels.
 
-GPU timings: `r_speeds 100` shows "Rain lens field" and "Rain lens composite".
+`r_speeds 100` also shows "Rain lens field" and "Rain lens composite".
 
 ## Cost
 
-A headless harness (MSVC `/O2`) tests the CPU core:
+A headless harness (`tools/lenswater_harness`, MSVC `/O2`) tests the CPU core:
 - Heavy rain at density 2, at the caps, costs about 0.2 ms per update.
 - The 116k-cell field decay is branch-free.
-- A dry lens under cover costs nothing. With no agents, no sheets, no film and no
-  incoming rain, the pass is skipped. The film upload happens only when the
-  field changed (at most 30 Hz).
+- A dry lens under cover costs nothing. With no agents, no sheets, no film, no
+  spray and no incoming rain, the pass is skipped. The film upload happens only
+  when the field changed (at most 30 Hz).
+- The optics add, per water pixel only, one cubemap fetch and two glint terms.
 
 ## Validation (in game, not yet done)
 
-Harness-verified:
+Harness-verified (`tools\lenswater_harness\build.bat`):
 - A single bead stays pinned and a large drop slides.
 - A merge gives r ≈ 1.26 r, conserves mass and depins.
 - Trails leave film and wetness; residuals appear.
@@ -249,15 +372,28 @@ Harness-verified:
 - Heavy rain has many more flows and sheets without more large static drops.
   Light rain has no sheets.
 - Caps hold under emerge/splash spam, and the lens dries completely.
+- The spray emitter wets its side and stops out of range.
+- World event falloff, facing and side.
+- Inertia only when enabled.
+- The acid tint and refraction.
 
 In game:
-- Single drop, merge and trail on a bright scene (debug 5/6/7).
+- Single drop, merge and trail on a bright scene (debug 5/6/7); debug 9 while
+  switching `rainlens_profile`.
 - Roof test: 5 s under cover, then back out.
 - Camera roll, looking up and down.
 - `heavyrain` should read as turnover, film and rivulets, not 2.5× the drops.
-- Leave a pool (auto emerge).
+- Leave a pool in first and third person (one burst each).
+- An NPC jumping into water nearby (splash from its side).
+- `r_we lenswater splash 1`, an env.json spray emitter, and an efx `lensWater`
+  primitive.
+- Reflections:
+  - on a map with cubemaps versus `r_cubeMapping 0`;
+  - the sun glint while turning toward / away from the sun and under a roof;
+  - a saber glint.
 - Saber behind a drop with `r_bloom 1` (the glow follows the refracted blade).
 - `r_smaa 2` (no drop ghosting), `r_motionBlur`, MSAA.
 - No effect in mirrors, portals, sky portals, cubemap bakes and UI models.
-- `r_speeds 100` at 1080p, 1440p and 4K. The field should stay flat; only the
+- `r_speeds 100` / `rainlens_stats` at 1080p, 1440p and 4K, with and without
+  `r_rainLensPBO` / `r_rainLensMipBlur`. The field should stay flat; only the
   composite should scale.

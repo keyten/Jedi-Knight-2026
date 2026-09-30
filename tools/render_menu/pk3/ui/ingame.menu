@@ -2559,6 +2559,14 @@ itemDef { name setting_8 rect 252 274 378 19
       type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
       forecolor 0.72 0.82 1 1 text "Lens drop defocus" group render2026 descText "Performance: medium | Range: 0 to 2 | Live" cvarFloat "ui_r2026_r_rainLensBlur" 1.0 0 2 }
+itemDef { name setting_9 rect 252 298 378 19
+      type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
+      textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
+      forecolor 0.72 0.82 1 1 text "Lens water reflections and glints" group render2026 descText "Performance: medium | Range: 0 to 2 | Live" cvarFloat "ui_r2026_r_rainLensReflection" 1.0 0 2 }
+itemDef { name setting_10 rect 252 322 378 19
+      type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
+      textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
+      forecolor 0.72 0.82 1 1 text "Lens water reacts to camera motion" group render2026 descText "Performance: medium | Range: 0 to 2 | Live" cvarFloat "ui_r2026_r_rainLensInertia" 0 0 2 }
 itemDef { name help0 rect 252 399 376 19
       type ITEM_TYPE_TEXT style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.6
       textalign ITEM_ALIGN_LEFT textalignx 0 textaligny 0

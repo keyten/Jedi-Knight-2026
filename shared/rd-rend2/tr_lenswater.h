@@ -120,6 +120,7 @@ struct Params
 	float wetDecay = 1.0f;
 	float heavyFlow = 1.0f;
 	float peripheralBias = 1.0f;
+	float inertia = 0.0f;		// camera acceleration response, 0 = off
 	int maxDrops = 96;
 	int maxMicro = 256;
 	int maxSheets = 8;
@@ -134,7 +135,17 @@ struct Input
 	Profile weather = PROFILE_NORMAL;	// profile of the weather subtype
 	Vec2 gravity = { 0.0f, -1.0f };	// tangential world gravity, |g| <= 1
 	Vec2 wind = { 0.0f, 0.0f };		// lens space wind hint
+	// continuous spray (map emitters), lens space side bias
+	float sprayStrength = 0.0f;
+	Vec2 sprayDir = { 0.0f, 0.0f };
+	// camera acceleration on the lens plane (world units / s^2, x right, y up)
+	Vec2 cameraAccel = { 0.0f, 0.0f };
 };
+
+// A world space water event seen from the camera: strength after distance
+// falloff and facing (0 = out of range), lens space side it comes from.
+float ResolveWorldEvent(const float origin[3], float radius, const float viewOrigin[3],
+	const float forward[3], const float right[3], const float up[3], Vec2 &side);
 
 struct Stats
 {
@@ -142,7 +153,13 @@ struct Stats
 	int filmWidth, filmHeight;
 	bool filmVisible, filmDirty;
 	Profile profile;
-	float updateMicroseconds;
+	float updateMicroseconds;	// whole update
+	float agentMicroseconds;	// fixed agent steps incl. trail stamps
+	float fieldMicroseconds;	// film / wetness decay
+	float eventMicroseconds;	// event processing
+	float sinceEvent;			// seconds since the last event
+	int sprays;
+	float continuousSpray;
 };
 
 // Instance record for the lens field raster, 4 RGBA32F texels
@@ -202,8 +219,12 @@ public:
 		float speed;
 		float centerSpawn;		// spawn weight at the screen centre
 		float adhesion;
+		float tint[3];			// transmitted colour (acid rain)
+		float refraction;		// distortion scale
 	};
 	static const ProfileParams &GetProfileParams(Profile profile);
+	// the crossfaded parameters in use
+	const ProfileParams &Current() const { return current; }
 
 private:
 	struct Spray
@@ -215,6 +236,7 @@ private:
 	void Step(float dt, const Input &input);
 	void DecayField(float dt);
 	void Spawn(float dt, const Input &input);
+	void SpraySpawn(float strength, Vec2 dir, float dt);
 	void ProcessEvents();
 	void SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread);
 	void SpawnMicro(Vec2 pos, float radius);
@@ -270,6 +292,8 @@ private:
 	uint32_t rng = 0x8f6a92d1u;
 	uint32_t seedCounter = 1;
 	float lastUpdateMicroseconds = 0.0f;
+	float agentMicroseconds = 0.0f, fieldMicroseconds = 0.0f, eventMicroseconds = 0.0f;
+	float sinceEvent = 1000.0f;
 	Input lastInput;
 };
 

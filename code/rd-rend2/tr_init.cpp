@@ -246,6 +246,8 @@ cvar_t  *r_rainLensRefraction;
 cvar_t  *r_rainLensDropSize;
 cvar_t  *r_rainLensFilm;
 cvar_t  *r_rainLensBlur;
+cvar_t  *r_rainLensReflection;
+cvar_t  *r_rainLensInertia;
 cvar_t  *r_rainLensDebug;
 cvar_t  *r_rainLensFieldHeight;
 cvar_t  *r_rainLensAgentLimit;
@@ -255,6 +257,8 @@ cvar_t  *r_rainLensFilmDecay;
 cvar_t  *r_rainLensWetDecay;
 cvar_t  *r_rainLensHeavyFlow;
 cvar_t  *r_rainLensPeripheralBias;
+cvar_t  *r_rainLensPBO;
+cvar_t  *r_rainLensMipBlur;
 cvar_t  *r_motionBlur;
 cvar_t  *r_motionBlurShutterAngle;
 cvar_t  *r_motionBlurReferenceFps;
@@ -2023,8 +2027,10 @@ void R_Register( void )
 	r_rainLensDropSize = ri_Cvar_Get_NoComm( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens water drop size (geometry only, not the amount of rain), 0.25..4" );
 	r_rainLensFilm = ri_Cvar_Get_NoComm( "r_rainLensFilm", "1.0", CVAR_ARCHIVE, "Lens water thin film / trail visibility, 0..2" );
 	r_rainLensBlur = ri_Cvar_Get_NoComm( "r_rainLensBlur", "1.0", CVAR_ARCHIVE, "Lens water drop defocus, 0..2" );
-	r_rainLensDebug = ri_Cvar_Get_NoComm( "r_rainLensDebug", "0", CVAR_CHEAT, "Lens water debug view (forces the pass on): 1 = weight / blur, 2 = normal, 3 = UV offset, 4 = scene / final split, 5 = agents, 6 = film / wetness, 7 = pinning, 8 = transient state" );
-	ri.Cvar_CheckRange( r_rainLensDebug, 0, 8, qtrue );
+	r_rainLensReflection = ri_Cvar_Get_NoComm( "r_rainLensReflection", "1.0", CVAR_ARCHIVE, "Lens water reflection (environment cubemap / light grid) and light glints, 0..2; 0 = refraction only" );
+	r_rainLensInertia = ri_Cvar_Get_NoComm( "r_rainLensInertia", "0", CVAR_ARCHIVE, "Lens water reacts to strong camera acceleration, 0..2 (0 = off)" );
+	r_rainLensDebug = ri_Cvar_Get_NoComm( "r_rainLensDebug", "0", CVAR_CHEAT, "Lens water debug view (forces the pass on): 1 = weight / blur, 2 = normal, 3 = UV offset, 4 = scene / final split, 5 = agents, 6 = film / wetness, 7 = pinning, 8 = transient state, 9 = controller panel" );
+	ri.Cvar_CheckRange( r_rainLensDebug, 0, 9, qtrue );
 	r_rainLensFieldHeight = ri_Cvar_Get_NoComm( "r_rainLensFieldHeight", "0", CVAR_CHEAT | CVAR_LATCH, "Lens water field height override, 0 = r_rainLensQuality" );
 	r_rainLensAgentLimit = ri_Cvar_Get_NoComm( "r_rainLensAgentLimit", "0", CVAR_CHEAT, "Lens water drop limit override (8..128), 0 = r_rainLensQuality" );
 	r_rainLensPinning = ri_Cvar_Get_NoComm( "r_rainLensPinning", "1.0", CVAR_CHEAT, "Lens water adhesion multiplier" );
@@ -2033,6 +2039,8 @@ void R_Register( void )
 	r_rainLensWetDecay = ri_Cvar_Get_NoComm( "r_rainLensWetDecay", "1.0", CVAR_CHEAT, "Lens water wet path lifetime multiplier" );
 	r_rainLensHeavyFlow = ri_Cvar_Get_NoComm( "r_rainLensHeavyFlow", "1.0", CVAR_CHEAT, "Lens water rivulet / sheet rate multiplier" );
 	r_rainLensPeripheralBias = ri_Cvar_Get_NoComm( "r_rainLensPeripheralBias", "1.0", CVAR_CHEAT, "Lens water: keep large drops, flows and sheets away from the screen centre, 0..2" );
+	r_rainLensPBO = ri_Cvar_Get_NoComm( "r_rainLensPBO", "0", CVAR_CHEAT, "Lens water: upload film / instances through a pixel buffer ring (profiling)" );
+	r_rainLensMipBlur = ri_Cvar_Get_NoComm( "r_rainLensMipBlur", "0", CVAR_CHEAT | CVAR_LATCH, "Lens water: drop defocus from a mipped half resolution scene copy instead of taps (profiling)" );
 
 	r_motionBlur = ri_Cvar_Get_NoComm( "r_motionBlur", "0", CVAR_ARCHIVE | CVAR_LATCH, "Velocity based camera and object motion blur (needs r_hdr)" );
 	ri.Cvar_CheckRange( r_motionBlur, 0, 1, qtrue );
@@ -3212,6 +3220,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_FoliageInteractionReset();
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();
+		R_ShutdownRainLens();
 
 		if (!destroyWindow && !restarting)
 		{
@@ -3437,6 +3446,18 @@ Optional extension (tr_public.h): spot lights, tr_spotlight.cpp
 extern "C" Q_EXPORT const refSpotLightExport_t* QDECL GetRefSpotLightAPI ( void ) {
 	static const refSpotLightExport_t spotLights = { RE_AddSpotLightToScene, RE_RegisterLightCookie };
 	return &spotLights;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefLensWaterAPI
+
+Optional extension (tr_public.h): lens water events, tr_rainlens.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refLensWaterExport_t* QDECL GetRefLensWaterAPI ( void ) {
+	static const refLensWaterExport_t lensWater = { RE_AddLensWaterEvent };
+	return &lensWater;
 }
 
 /*
