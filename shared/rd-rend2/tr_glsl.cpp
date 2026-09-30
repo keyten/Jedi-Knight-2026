@@ -294,8 +294,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FroxelCarry",			GLSL_INT, 1 },
 	{ "u_VolumetricStaticGrid",	GLSL_INT, 1 },
 	{ "u_VolumetricSunGrid",	GLSL_INT, 1 },
-	{ "u_VolumetricDirGrid",	GLSL_INT, 1 },
-	{ "u_VolumetricDirVecGrid",	GLSL_INT, 1 },
+	{ "u_VolumetricDirMomentR",	GLSL_INT, 1 },
+	{ "u_VolumetricDirMomentG",	GLSL_INT, 1 },
+	{ "u_VolumetricDirMomentB",	GLSL_INT, 1 },
 	{ "u_VolumetricLegacyGrid",	GLSL_INT, 1 },
 	{ "u_FroxelSlice",			GLSL_INT, 1 },
 	{ "u_FroxelNoise",			GLSL_INT, 1 },
@@ -3858,8 +3859,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELCARRY, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSTATICGRID, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSUNGRID, TB_NORMALMAP);
-		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRGRID, TB_SPECULARMAP);
-		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRVECGRID, TB_SSAOMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTR, TB_SPECULARMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTG, TB_SSAOMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTB, TB_VOLUMETRICMOMENTB);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICLEGACYGRID, TB_EMISSIVEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELDYNAMIC, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
@@ -3884,12 +3886,15 @@ static int GLSL_LoadGPUProgramVolumetric(
 
 	// the density noise and the FX particle media (VolumetricParticles block)
 	// are read by the injection and the debug views only
-	char particleDefines[256];
+	// The directional baked light moments (r_volumetricFogStaticDirectional,
+	// latched) are a permutation: without it no moment sampler, fetch or ALU.
+	char particleDefines[320];
 	Com_sprintf(particleDefines, sizeof(particleDefines),
 		"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
 		"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
-		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n",
-		MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES);
+		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s",
+		MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES,
+		R_VolumetricStaticDirectional() ? "#define USE_FROXEL_STATIC_RECONSTRUCTION\n" : "");
 
 	auto load = [&]( shaderProgram_t *sp, const char *name, const GPUProgramDesc *programDesc, const char *defines )
 	{

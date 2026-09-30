@@ -42,6 +42,7 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 #include "tr_local.h"
 #include "json.h"
 #include "tr_ltc_data.h"
+#include "tr_volrecon.h"
 
 #include <algorithm>
 #include <array>
@@ -328,6 +329,7 @@ static qboolean R_ParseAreaLight( const char *obj, const char *end, int index, c
 
 static void R_AutoAreaLights( void );
 static void R_ClearImageAverages( void );
+static void R_ClearAreaCandidates( void );
 
 // the map file when there is one, else r_ltcAutoAreaLights candidates
 static void R_LoadAreaLightFile( void )
@@ -378,12 +380,14 @@ static void R_LoadAreaLightFile( void )
 void R_LoadAreaLights( const char *mapName )
 {
 	Q_strncpyz(s_al.mapName, mapName ? mapName : "", sizeof(s_al.mapName));
+	R_ClearAreaCandidates();
 	R_LoadAreaLightFile();
 }
 
 void R_ClearAreaLights( void )
 {
 	s_al.lights.clear();
+	R_ClearAreaCandidates();
 	s_al.mapName[0] = '\0';
 	s_al.selected = -1;
 	s_al.debugShader = 0;
@@ -809,6 +813,12 @@ struct imageMask_t
 };
 
 static std::unordered_map<const image_t *, imageMask_t> s_imageMasks;
+
+// the emissive surface candidates of the loaded map, scanned once for both the
+// LTC auto lights and the volumetric reconstruction anchors
+static std::vector<areaCandidate_t> s_candidates;
+static int s_candidateTriangles;
+static qboolean s_candidatesValid;
 
 // images die with the renderer
 static void R_ClearImageAverages( void )
@@ -1243,6 +1253,23 @@ static void R_FindAreaLightCandidates( const world_t *world, std::vector<areaCan
 		R_BuildCandidate(tris, group.second, out);
 }
 
+static void R_ClearAreaCandidates( void )
+{
+	s_candidates.clear();
+	s_candidateTriangles = 0;
+	s_candidatesValid = qfalse;
+}
+
+static const std::vector<areaCandidate_t>& R_AreaLightCandidates( const world_t *world )
+{
+	if ( !s_candidatesValid )
+	{
+		R_FindAreaLightCandidates(world, s_candidates, &s_candidateTriangles);
+		s_candidatesValid = qtrue;
+	}
+	return s_candidates;
+}
+
 static qboolean R_AutoAccepts( const areaCandidate_t *c, int mode )
 {
 	const mapAreaLight_t *l = &c->light;
@@ -1279,9 +1306,7 @@ static void R_AutoAreaLights( void )
 	if ( mode <= 0 || !r_ltcAreaLights->integer || !tr.world )
 		return;
 
-	std::vector<areaCandidate_t> candidates;
-	int numTriangles = 0;
-	R_FindAreaLightCandidates(tr.world, candidates, &numTriangles);
+	const std::vector<areaCandidate_t>& candidates = R_AreaLightCandidates(tr.world);
 
 	int skipped = 0;
 	for ( const areaCandidate_t& c : candidates )
@@ -1357,4 +1382,69 @@ void R_ExtractAreaLights_f( void )
 	ri.FS_WriteFile(fileName, out.c_str(), (int)out.size());
 	ri.Printf(PRINT_ALL, "%s: %d candidates (%d marked for review) from %d emissive triangles\n",
 		fileName, numOut, numReview, numTriangles);
+}
+
+/*
+=================
+R_CollectStaticAreaSources
+
+The static emitters the directional baked light reconstruction of the froxel
+fog (tr_volumetric_reconstruct.cpp) may anchor light grid energy to: the lamps
+of maps/<map>.arealights.json that are not dynamic, and the emissive surface
+candidates r_ltcAutoAreaLights 2 would take (not animated), whatever
+r_ltcAreaLights is. They only attribute existing baked light, never add any.
+=================
+*/
+void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>& out, int *numCandidates )
+{
+	out.clear();
+	*numCandidates = 0;
+	if ( !world )
+		return;
+
+	auto add = [&]( const mapAreaLight_t& l, float confidence ) {
+		vrAreaSource a;
+		Com_Memset(&a, 0, sizeof(a));
+		VectorCopy(l.center, a.center);
+		VectorCopy(l.right, a.right);
+		VectorCopy(l.up, a.up);
+		a.halfWidth = l.halfWidth;
+		a.halfHeight = l.halfHeight;
+		VectorScale(l.color, l.intensity, a.color);
+		a.confidence = confidence;
+		a.twoSided = l.type == DLIGHT_LINE || l.twoSided;
+		out.push_back(a);
+	};
+
+	// explicit lamps: high confidence anchors
+	for ( const mapAreaLight_t& l : s_al.lights )
+		if ( !l.automatic && l.mode != AREAMODE_DYNAMIC )
+			add(l, 1.0f);
+	const size_t numExplicit = out.size();
+
+	const std::vector<areaCandidate_t>& candidates = R_AreaLightCandidates(world);
+	*numCandidates = (int)candidates.size();
+	for ( const areaCandidate_t& c : candidates )
+	{
+		if ( !R_AutoAccepts(&c, 2) )
+			continue;
+		const mapAreaLight_t *l = &c.light;
+		// one lamp split in fragments of the same size, or an explicit lamp over the surface
+		bool duplicate = false;
+		for ( size_t k = 0; k < out.size() && !duplicate; k++ )
+		{
+			const vrAreaSource& o = out[k];
+			const float d = DotProduct(o.right, l->right);
+			if ( Distance(o.center, l->center) < 4.0f && d * d > 0.98f &&
+				fabsf(o.halfWidth - l->halfWidth) < 2.0f && fabsf(o.halfHeight - l->halfHeight) < 2.0f )
+				duplicate = true;
+			else if ( k < numExplicit && Distance(o.center, l->center) < Q_max(o.halfWidth, o.halfHeight) )
+				duplicate = true;
+		}
+		if ( duplicate )
+			continue;
+		// a surfacelight hint and a rectangle fitted to the lit texels are stronger evidence
+		const float confidence = Com_Clamp(0.0f, 1.0f, c.confidence + (c.hinted ? 0.1f : 0.0f) + (c.sampled ? 0.05f : 0.0f));
+		add(*l, confidence);
+	}
 }

@@ -154,6 +154,7 @@ ENUMS = {
  'r_dlightShadowBias': [('Legacy',0),('Improved',1)],
  'r_volumetricFog': [('Off',0),('Legacy',1),('Modern',2)],
  'r_volumetricSelfShadow': [('Off',0),('Sun only',1),('Sun + local',2)],
+ 'r_volumetricFogStaticDirectional': [('Off',0),('Reconstructed',1),('Raw light grid',2)],
  'r_volumetricMultiScatter': [('Off',0),('Approximation',1),('Extended',2)],
  'r_autoFoliage': [('Off',0),('Conservative',1),('Experimental',2)],
  'r_grassCardMode': [('Legacy',0),('Cross',1),('Tuft',2),('Adaptive',3)],

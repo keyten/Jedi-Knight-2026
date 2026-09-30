@@ -1931,7 +1931,7 @@ itemDef { name setting_1 rect 252 106 378 19
 itemDef { name setting_2 rect 252 130 378 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
-      forecolor 0.72 0.82 1 1 text "Directional baked light in fog" group render2026 descText "Performance: light | Live" cvar "ui_r2026_r_volumetricFogStaticDirectional" cvarFloatList { "Off" 0 "On" 1 } }
+      forecolor 0.72 0.82 1 1 text "Directional baked light in fog *" group render2026_restart descText "Performance: light | Restart" cvar "ui_r2026_r_volumetricFogStaticDirectional" cvarFloatList { "Off" 0 "Reconstructed" 1 "Raw light grid" 2 } }
 itemDef { name setting_3 rect 252 154 378 19
       type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0

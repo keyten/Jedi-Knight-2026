@@ -704,14 +704,15 @@ Can significantly affect performance. Cost scales with froxel resolution, slice 
 
 ## Directional baked light in volumetrics
 
-Preserves directional information from the non-sun part of the BSP light grid, so baked local lighting can scatter more strongly toward or away from the camera instead of being treated as fully isotropic.
+Recovers where the baked (non-sun) light of the BSP light grid appears to come from, once at map load, so fog subtly brightens towards the lamps it is lit by instead of glowing uniformly. Red and blue lamps keep their own directions; where the light grid gives no confident answer the fog stays isotropic. It only redistributes the existing baked light over view directions, never adds light, and never changes the fog density. Stock maps need no changes; static emissive surfaces and `maps/<map>.arealights.json` lamps help it.
 
-**Requirements.** Requires froxel fog (`r_volumetricFog 2`).
+**Requirements.** Requires froxel fog (`r_volumetricFog 2`). Changing the mode needs `vid_restart`.
 
 **Main controls**
-- `r_volumetricFogStaticDirectional 0 | 1` — isotropic baked local light / apply the phase function along its reconstructed baked direction.
+- `r_volumetricFogStaticDirectional 0 | 1 | 2` — isotropic baked light / reconstructed per-channel directions / raw light grid direction (developer comparison).
+- `r_vfogStaticStats [proxies]` — what the reconstruction found on the loaded map.
 
-Adds a few 3D light-grid fetches and phase calculations per participating froxel and may slightly affect performance.
+Mode 0 costs nothing. Modes 1 and 2 add three small 3D texture fetches per participating froxel and a short map load step (a fraction of a second on large maps).
 
 ## Height fog
 

@@ -33,9 +33,10 @@ void main()
 //  19 number of local volumes in the XYZ cluster at the scene depth (heat, 8 = red),
 //     slice stripes; r_fogvol slices prints the indices
 //  20-25 baked light grid terms, as in-scattering (the injection keeps only that term, no sun, no
-//     dynamic lights; R_BuildVolumetricLightGrid): 20 isotropic I, 21 directed D (no phase),
-//     22 direction of D (rgb = dir * 0.5 + 0.5, dimmed by the incoherence), 23 baked sun B,
-//     24 reconstructed I + D + B, 25 100 * |I + D + B - legacy merged grid|
+//     dynamic lights; R_BuildVolumetricStaticLighting): 20 non-sun baseline B, 21 |M| per channel (the
+//     first angular moments, r_volumetricFogStaticDirectional), 22 direction of the luminance moment
+//     (rgb = dir * 0.5 + 0.5, dimmed by |M| / B), 23 baked sun S, 24 B + S, 25 100 * |B + S - legacy
+//     merged grid| (black)
 //  26 density of the FX particle media only    (the injection drops every other medium)
 //  27 FX particle media along the ray, opacity weighted: red = history reduction where the particle
 //     density changed, green = particle share of the medium
@@ -63,6 +64,9 @@ void main()
 //     55 extinction chroma sigma_t.rgb / mean at the scene depth / 3 (grey = neutral, black = none)
 //     56 transmittance of the analytic tail beyond the last slice (white = none; dark blue where
 //        the scene is inside the volume)
+//  57-58 directional baked light (r_volumetricFogStaticDirectional, black without it), as views 20-25:
+//     57 the baked light after the L1 phase B + 3 g (M.v) with the global g, 58 B * |M_c| / B_c (the
+//     directional fraction per channel)
 //
 // r_particleLightingDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -202,7 +206,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || (view >= 30 && view <= 34) || (view >= 43 && view <= 48))
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || view == 57 || view == 58 || (view >= 30 && view <= 34) || (view >= 43 && view <= 48))
 	{
 		color = Display(fog.rgb);
 	}

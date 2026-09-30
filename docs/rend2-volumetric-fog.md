@@ -100,10 +100,9 @@ discretisation (see Integration).
 | `froxelIntegratedImage` | RGBA16F 3D | Fx Fy Fz | rgb = in-scattering S, a = transmittance T, between the camera and the far side `B(k+1)` of slice k |
 | `froxelCarryImage[2]` | RGBA16F 2D | Fx Fy | integration state between two slices (ping-pong, no feedback loop) |
 | `froxelTailImage` | RGBA16F 2D | Fx Fy | light at the far side of the volume (baked + sun with phase, no albedo): lights the media beyond far |
-| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | isotropic baked light I (rgb), sun trust (a, traced at load) |
-| `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part B |
-| `world->volumetricDirGrid` | RGBA16F 3D | light grid | directed non-sun baked light D (rgb), luminance of D (a) |
-| `world->volumetricDirVecGrid` | RGBA16F 3D | light grid | direction towards the light * luminance of D (rgb) |
+| `world->volumetricStaticGrid` | RGBA16F 3D | light grid | non-sun baked baseline B (rgb), sky trust (a, traced at load) |
+| `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part S |
+| `world->volumetricDirMomentR/G/B` | RGB16F 3D | light grid | `r_volumetricFogStaticDirectional 1, 2` only: first angular moment of the attributed baked light per colour channel (xyz, towards the light, `|M_c| <= B_c`) |
 | froxel light lists | buffer textures | per frame | lights (RGBA32F, 2 texels) and cluster headers + indexes (R32UI) |
 
 Emission (not radiance) is stored because it is linear in the medium: blending two frames of emission and
@@ -158,16 +157,19 @@ layer of the texture that is being rendered to is a feedback loop in GL.
 
 Per froxel (instance / layer = slice):
 
-1. **Position.** The baked light and the sun are sampled at a jittered position (Halton 2, 3, 5 over 8 frames, a
-   full froxel wide) when temporal accumulation is on, the dynamic lights at the froxel center.
+1. **Position.** The sun and the media are sampled at a jittered position (Halton 2, 3, 5 over 8 frames, a
+   full froxel wide) when temporal accumulation is on; the dynamic lights and the static baked light field
+   (baseline and moments: coarse, smooth, static; a directional response of a jittered sample would linger in
+   the history) at the froxel center.
 2. **Medium.** Sum of the extinction of the fog volumes that contain the point: their axial bounds and the plane
    of their visible side (the same `inFog` test as `CalcFog`); the global fog everywhere below its cap plane.
    Albedo = extinction weighted fog color. Only the fog volumes of the slice's CPU mask are tested (bounds against
    the frustum sides and the view depth range, one slice wider for the jitter; `fogSlices`). The height fog, the
    density noise and the local fog volumes (see Local fog volumes) are in `FroxelMedium` too; all media add.
-3. **Baked light.** `volumetricStaticGrid` (I, isotropic) + `volumetricDirGrid` (D), `* r_volumetricFogStaticScale`.
-   With `r_volumetricFogStaticDirectional 1` D gets `mix(1, 4 pi HG(g, dot(L, viewDir)), coherence)` along its
-   baked direction L (see Directed baked light); otherwise D is isotropic too.
+3. **Baked light.** `volumetricStaticGrid` (B) `* r_volumetricFogStaticScale`. With
+   `r_volumetricFogStaticDirectional 1 / 2` (permutation `USE_FROXEL_STATIC_RECONSTRUCTION`) per channel
+   `max(B + 3 clamp(g, -1/3, 1/3) (M_c . viewDir), 0)`, the first order Henyey-Greenstein response of the
+   moments (see Directional baked light); otherwise B, isotropic.
 4. **Sun.** Phase `4 pi HG(g, dot(sunDir, viewDir))`, `* r_volumetricFogSunScale`:
    - with cascaded shadow maps this frame (`VPF_USESUNLIGHT`): `sunRadiance * shadow`, blended to the baked sun
      part at the far end of the last cascade (same fade as lightall);
@@ -185,59 +187,121 @@ Per froxel (instance / layer = slice):
 6. **Temporal filter** of baked + sun (see Temporal). The dynamic light emission is written to its own volume
    without history.
 
-### Light grid split by the sun direction (`R_BuildVolumetricLightGrid`)
+### Light grid split by the sun direction (`R_BuildVolumetricStaticLighting`)
 
 The legacy light map merges the baked sun with everything else; adding a realtime sun on top would count it
-twice. At map load (mode 2 only), every grid cell is split with the light direction of the cell:
+twice. At map load (mode 2 only, `tr_volumetric_reconstruct.cpp`, after the area lights: `RE_LoadWorldMap`), every
+grid cell is split with the light direction of the cell and the part of the cell that sees the sky:
 
 ```
-s      = smoothstep(cos 25, cos 10, dot(cellDir, sunDir))     // 0 when the map has no sun shader
-sun    = min(s * direct, legacyMerge)
-static = legacyMerge - sun                                     // static + sun == legacy value
+align  = smoothstep(cos 25, cos 10, dot(cellDir, sunDir))       // 0 when the map has no sun shader
+vis    = rays reaching the sky / 5                               // centre + 4 tetrahedron corners, half a cell out
+S      = clamp(align * vis * direct, 0, legacy)                  // baked sun part
+B      = legacy - S                                              // B + S == legacy value
 ```
 
-The realtime sun radiance is the 90th percentile luminance of the sunlit cells (`s > 0.5`, at least 16 cells), with
-their average color, so light beams have the brightness the map was compiled with. Without sunlit cells the
-refdef sun color is used.
+The direction of a grid cell is a mix of all its lights, so a lamp straight above can look like a high sun: the sky
+visibility is part of the split, an aligned indoor lamp (no ray reaches the sky) stays static light B and is
+handled by the directional reconstruction below, never with the sun phase. Rays are traced only for cells with a
+sun alignment and a direct part (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` surface
+counts as the sky), all five of them. The alpha of `volumetricStaticGrid` is the sky trust (1 when any ray
+reaches the sky, trilinear between cells): the realtime sun replaces the baked sun part only there; deep in
+shadow (indoors) it stays baked light and is not darkened. The central realtime cascade lookup stays, so characters
+still cut the beams.
 
-The direction of a grid cell is a mix of all its lights, so a lamp straight above can look like a high sun. The
-injection therefore trusts the baked sun part only where the sky is visible from the grid cell: at map load, for
-every cell with a sun part, rays towards the sun from the cell center and four corners of a tetrahedron half a
-cell out (collision world: `CM_BoxTrace`, SP `SV_Trace`; reaching a `SURF_SKY` surface counts as the sky). Trust
-= 1 if any reaches it, stored in the alpha of `volumetricStaticGrid` (trilinear between cells). Deep in shadow
-(indoors) the sun part stays baked light and is not darkened. The central realtime cascade lookup stays, so
-characters still cut the beams; the trust no longer depends on the cascade range or on moving occluders. The load
-time is printed with `developer 1` ("Froxel fog sun trust"). Only cells with a sun part are traced and the first ray
-that reaches the sky ends a cell (1 trace outdoors, up to 5 indoors). A disk cache (BSP checksum + sun direction)
-is only worth it if this line shows more than ~300 ms on the big maps; a CPU cache would not survive `vid_restart`
-(the renderer DLL is reloaded).
+The realtime sun radiance is the 90th percentile luminance of the sunlit cells (`align * vis > 0.5`, at least 16
+cells), with their average color, so light beams have the brightness the map was compiled with. Without sunlit
+cells the refdef sun color is used. `developer 1` prints "Froxel fog sun visibility: N cells traced, M see the sky,
+T msec" and the split error. A disk cache (BSP checksum + sun direction) is only worth it if this shows more than
+~300 ms on the big maps; a CPU cache would not survive `vid_restart` (the renderer DLL is reloaded).
 
-### Directed baked light
+### Directional baked light (`r_volumetricFogStaticDirectional`)
 
-The remainder `R = legacy - B` is split once more into an isotropic part I and a directed part D, which keeps the
-light grid direction (`latLong`, towards the light, decoded as `R_SetupEntityLightingGrid`: 256 steps per turn;
-the sun split used 255 before, a slightly different sun fraction f). Per channel, style slot 0 as the legacy map:
+The light grid stores per cell ambient A, directed D and **one** dominant direction (`latLong`, towards the light,
+decoded as `R_SetupEntityLightingGrid`: 256 steps per turn): q3map collapsed every lamp that reaches the cell into
+that direction. Fed straight into Henyey-Greenstein it is wrong wherever lamps overlap. The reconstruction recovers
+a conservative **first angular moment** of the baked light per colour channel instead, once at map load, and the
+injection applies the first order (L1) phase response. Nothing is added: the moments only redistribute the baseline
+over the view directions, their mean over the sphere is zero, and low confidence stays isotropic.
 
-| grid | legacy total | D | I |
-|---|---|---|---|
-| HDR | `ambient + direct` | `(1 - f) * direct` | `ambient` |
-| LDR | `max(ambient, direct)` | `min((1 - f) * max(0, direct - ambient), R)` | `R - D` |
+```
+known exact light          sun, dynamic point / spot lights   full HG (medium g)
+reconstructed baked light  moments M_R, M_G, M_B              B + 3 g_s (M_c . v), g_s = clamp(g, -1/3, 1/3)
+unexplained / diffuse      baseline B                          isotropic
+```
 
-`I + D + B == legacy` in float for every cell; `I, D >= 0`. The LDR legacy value is a max, not a sum:
-`max(a, d) = a + max(0, d - a)`, so only the excess of the direct light over the ambient light is directed; where
-the max picked the ambient light nothing is. The sun-aligned share `f * direct` is already in B and never gets
-the non-sun phase. Cells inside walls (`styles[0] == LS_LSNONE`) keep their light in I.
+The Legendre moments of HG are `g^l`; keeping `l = 0, 1` gives `1 + 3 g cos`. With `|M_c| <= B_c` (enforced after
+the half rounding too) and `|g_s| <= 1/3` the result is never negative (the shader still clamps at 0). For
+`g = 0.2` a perfectly coherent moment modulates the baked light between 0.4 and 1.6 times its baseline, far below
+the full HG forward peak: the intended behaviour for uncertain baked light. Opposite lamps of the same colour
+cancel to isotropic (the safe failure mode); red and blue lamps keep their own directions because every channel
+has its own moment. Moments are linear, so trilinear filtering between cells is well defined (explicit per cell
+lobes would swap source identities between neighbours).
 
-The direction is stored multiplied by the luminance of D. Trilinear filtering between cells lit from different
-directions shortens the vector: `coherence = |v| / lum(D)` fades the phase to isotropic, so a disagreeing
-neighbourhood does not produce the "noodles" the legacy code comment warns about. With `g = 0` the phase is 1
-and the result is the previous one up to half rounding (at load, `developer 1` prints "Froxel fog directed light
-grid: N cells, reconstruction error max / mean"; debug view 25 shows it on the GPU, including the R11G11B10F sun
-grid). Memory: +16 bytes per grid cell (two RGBA16F volumes; a 1M-cell grid = 16 MB, typical grids 1-4 MB).
-Cost: two more trilinear 3D fetches and one phase per injected froxel (and per tail texel).
+Modes (latched: the moment textures and the permutation are built at map load / program load):
 
-The light grid has one dominant direction per cell for all its non-ambient light: several lamps become one
-lobe between them, and a lamp aligned with the sun goes partly into B. No asset change or rebake is needed.
+| mode | moments | use |
+|---|---|---|
+| 0 | none: no moment texture, no sampler, fetch or ALU in the injection | default |
+| 1 | reconstructed (below) | the feature |
+| 2 | `M_c = Q_c * bspDir` (raw light grid direction, disagreeing neighbours cancel by filtering) | developer A/B |
+
+**Directional budget.** Only part of B may become directional:
+
+| grid | legacy | Q (per channel, f = align * vis, invalid cells 0) |
+|---|---|---|
+| HDR | `A + D` | `clamp((1 - f) D, 0, B)` |
+| LDR | `max(A, D)` | `clamp((1 - f) max(D - A, 0), 0, B)` |
+
+The whole B is evidence for finding lamps; Q is the most that may be attributed. A lamp q3map folded into the
+ambient part helps locating it, but that ambient energy stays isotropic (so at the exact midpoint of a strong red
+and a weaker blue lamp the blue channel stays nearly isotropic).
+
+**Reconstruction** (`tr_volrecon.cpp`, no renderer globals, effectively linear in the grid size):
+
+1. *Gradients* of B.rgb and its luminance, six-neighbour central differences, one-sided next to a wall cell, never
+   through `LS_LSNONE` cells. Strength `|grad B_c| * cellDiagonal / (B_c + eps)`.
+2. *Seeds*: local maxima (26 neighbours, non-maximum suppression) of Q per channel and luminance, favoured where the
+   BSP direction field and the gradient field converge (`-div`), at most 512.
+3. *Point proxy fit* per seed: support probes flood-connected (six neighbours, no wall crossing) within 4 cells, at
+   most 256. BSP direction rays (weight Q) and gradient rays (weight |grad|) are separate observations; the closed
+   form least squares point `p = A^-1 b`, `A = sum w (I - d d^T)`, with 3 Huber IRLS passes (delta half a cell
+   diagonal) and a tiny ridge towards the seed (parallel doorway rays stay near the brightest cell).
+   Confidence `C = C_ray * sqrt(C_gradient * C_profile * C_chroma)`: ray residual, the share of observations pointing
+   at p, a monotonic (isotonic) radial profile of the brightness projected on the proxy colour (a flat field is no
+   lamp), and the stability of the colour from the positive radial derivatives near / far. The conditioning of A
+   raises the positional uncertainty sigma_p, it does not reject: a lamp smaller than a cell or a doorway proxy is
+   fine, the fog only needs the incoming direction.
+4. *Merge* fits of one lamp (closer than max(0.75 diagonal, sigma sum), at most 1.5 diagonals, same colour); two
+   lamps of the same colour apart stay two. At most 256 proxies.
+5. *Area anchors*: the static emitters of `tr_arealights.cpp` (`R_CollectStaticAreaSources`: explicit non-dynamic
+   `maps/<map>.arealights.json` lamps, and the emissive surface candidates `r_ltcAutoAreaLights 2` would take, not
+   animated, whatever `r_ltcAreaLights` is; the candidate scan and texture mask readbacks are shared with the LTC
+   path). Their moment per probe is a centre or 3x3 quadrature `sum w_k u_k / sum w_k`, `w_k = area cos / r^2`: a
+   close large panel is naturally less directional. They are calibrated against the grid and never add their own
+   radiance; a point proxy of the same lamp is dropped.
+6. *Attribution*: each source floods its range (where its predicted light falls below 1% of the mean baked light,
+   2 to 10 cell diagonals), per cell and channel a match
+   `m = C * C_pos * evidence * falloff * colourCompatibility` with `C_pos = r^2 / (r^2 + sigma_p^2)`, evidence the
+   RGB gradient towards the source where informative, else the BSP direction, falloff = predicted / observed.
+   `E_c = Q_c * max m` (weak candidates never add up to the whole budget), split between the sources by m:
+   `M_c = E_c * sum(m u) / sum(m)`, point directions shortened by `r / sqrt(r^2 + sigma_p^2)`.
+
+Invalid cells, the sun part and everything unexplained keep their light in B. `r_vfogStaticStats [proxies]` prints
+the probes, seeds, fits, point proxies, area anchors, mean / P95 ray residual, mean sigma_p, the attributed and the
+directional (after cancellation) share of the baked light, and the time of each stage; `developer 1` prints a
+summary at load.
+
+Cost: memory +18 bytes per grid cell (three RGB16F volumes, mode 1 / 2 only); injection three more trilinear 3D
+fetches and three dots per froxel (and tail texel), the lobes one multiply-add each; no source loop and no per
+frame CPU work. Mode 0 compiles without them. Load time (synthetic 64 x 64 x 32 grid, 40 lamps and walls): about
+0.25 s, most of it the attribution.
+
+Validation: `tools/volrecon_test` (synthetic q3map-like grids: one lamp, a sub-cell lamp, red / blue, opposing and
+same-side white lamps, a doorway, a large ceiling panel, outdoor sun, an indoor lamp aligned with the sun, a diffuse
+room, an LDR byte grid; invariants `B + S == legacy`, `|M_c| <= B_c` in float and half, `B + 3 g M.v >= 0`, no NaN,
+in modes 1 and 2), and `tools/rend2/test_volumetric_compute.py` (the L1 response, clamp, sign and unchanged
+extinction on the GPU, raster = compute with moments).
 
 Offline check on the stock maps (`maps/*.bsp` with fog, sun from the sky shader):
 
@@ -1115,8 +1179,9 @@ Light terms and energy:
 
 - Lights, shadows, cookies and the light grid are evaluated **once**. Each g only adds its phase: `FroxelPhases`
   returns a `vec4` (3 slots + the global g).
-- The **isotropic baked part stays isotropic** (no phase) for every g, as before. The directed baked part
-  (`r_volumetricFogStaticDirectional`) and the sun take the phase of each slot. Dynamic lights take the phase at the
+- The **baked baseline stays isotropic** (no phase) for every g, as before. With
+  `r_volumetricFogStaticDirectional` the baked moments take the L1 response of each slot's g (clamped to +-1/3);
+  the sun takes the full phase of each slot. Dynamic lights take the phase at the
   froxel centre with the slots of the medium there.
 - The global g is still used in two places, both documented limits:
   - The **tail beyond far** (`u_FroxelTail`). It stores light that already has its phase, so BSP fog and height
@@ -1438,7 +1503,7 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricFogHeightMaxDensity` | 1 | height fog: maximum density below the base, multiple of the base density |
 | `r_volumetricFogHeightTopHeight` | 0 | height fog: soft cutoff height above the base, 0 = none |
 | `r_volumetricFogHeightColor` | 0.7 0.75 0.8 | height fog: scattering color (albedo), as fogParms |
-| `r_volumetricFogStaticDirectional` | 0 | 1 = the directed non-sun light grid part gets the phase function along its baked direction |
+| `r_volumetricFogStaticDirectional` | 0 | latched: 0 isotropic baked light, 1 reconstructed per channel moments (L1 phase), 2 raw light grid direction moments (developer A/B); see Directional baked light |
 | `r_volumetricFogNoise` | 0 | density noise media mask: 1 height fog, 2 BSP fog volumes, 4 global fog, 8 local fog volumes with the noise flag |
 | `r_volumetricFogNoiseScale` | 4096 | macro noise tile period (world units) |
 | `r_volumetricFogNoiseContrast` | 1 | macro contrast c, 0..4 (0 = homogeneous) |
@@ -1482,12 +1547,12 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 17 | share of the fog along the ray: red = local fog volumes, green = BSP / height fog, brightness = opacity |
 | 18 | local fog volume bounds over the frame: outer shell (bright rim), inner shell where the soft edge starts (thin rim), one hue per GPU index, dimmed behind the scene |
 | 19 | number of local fog volumes in the list of the froxel slice at the scene depth (heat, 8 = red), slice stripes |
-| 20 | isotropic baked light I only |
-| 21 | directed baked light D only, without phase |
-| 22 | direction of D: rgb = dir * 0.5 + 0.5, dimmed by the incoherence and scaled by the luminance of D |
-| 23 | baked sun part B only (no realtime sun) |
-| 24 | reconstructed I + D + B, no phase: must look like view 5 with `r_sunlightMode 0` before the split |
-| 25 | 100 * abs(I + D + B - legacy merged grid): black = exact |
+| 20 | non-sun baked baseline B only |
+| 21 | length of the moments per channel, |M_R|, |M_G|, |M_B| (black with `r_volumetricFogStaticDirectional 0`) |
+| 22 | direction of the luminance moment: rgb = dir * 0.5 + 0.5, dimmed by |M| / B and scaled by the luminance of B |
+| 23 | baked sun part S only (no realtime sun) |
+| 24 | B + S, no phase: must look like view 5 with `r_sunlightMode 0` before the split |
+| 25 | 100 * abs(B + S - legacy merged grid): black = exact |
 | 26 | as 1, FX particle media only (the injection drops every other medium) |
 | 27 | FX particle media along the ray, opacity weighted: red = history reduction where the particle density changed, green = particle share |
 | 28 | FX particle proxy bounds over the frame (uploaded particles), one hue per GPU index, dimmed behind the scene |
@@ -1497,6 +1562,8 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 33 | emission alone, integrated with the real extinction |
 | 34 | history contribution: red = history part of the scattering, green = emission (no history) |
 | 35-39 | per-medium albedo and anisotropy: extinction, albedo, lobe slots, mixed g, sun phase (see "Per-medium albedo and anisotropy") |
+| 57 | baked light after the L1 phase with the global g, `B + 3 g (M.v)` (as 20: no sun, no dynamic lights) |
+| 58 | directional fraction per channel: B * |M_c| / B_c |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see

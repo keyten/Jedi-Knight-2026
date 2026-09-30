@@ -1812,6 +1812,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
+	{ "r_vfogStaticStats",	R_VolumetricStaticStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
@@ -2393,7 +2394,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogLightTile, 4.0f, 16.0f, qtrue);
 	r_volumetricFogStaticScale = ri_Cvar_Get_NoComm("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
-	r_volumetricFogStaticDirectional = ri_Cvar_Get_NoComm("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE, "Froxel fog: 1 = the directed (non-sun) light grid part gets the phase function along its baked direction, 0 = isotropic");
+	r_volumetricFogStaticDirectional = ri_Cvar_Get_NoComm("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: directional baked light, the light grid light gets a first order (L1) phase response along the directions it is attributed to at map load: 0 = isotropic, 1 = reconstructed per channel moments (sources fitted from the light grid and the static area emitters), 2 = raw BSP light grid direction (developer comparison) (vid_restart)");
+	ri.Cvar_CheckRange(r_volumetricFogStaticDirectional, 0, 2, qtrue);
 	r_volumetricSelfShadow = ri_Cvar_Get_NoComm("r_volumetricSelfShadow", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: dense media shadow the light inside the media (current frame density along the light ray): 0 = off, 1 = sun, 2 = sun + the r_volumetricSelfShadowMaxLights strongest dynamic lights (vid_restart)");
 	ri.Cvar_CheckRange(r_volumetricSelfShadow, 0, 2, qtrue);
 	r_volumetricSelfShadowSamples = ri_Cvar_Get_NoComm("r_volumetricSelfShadowSamples", "6", CVAR_ARCHIVE, "Froxel fog self-shadow: density samples along the sun ray (dynamic lights use half, at least 3)");
@@ -2428,8 +2430,8 @@ void R_Register( void )
 	r_volumetricEmission = ri_Cvar_Get_NoComm("r_volumetricEmission", "1", CVAR_ARCHIVE, "Froxel fog: scale of the emission of local fog volumes and FX particle media (glowing gas), 0 = off");
 	ri.Cvar_CheckRange(r_volumetricEmission, 0.0f, 16.0f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 56, qtrue);
+	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 58, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volumetricParticles = ri_Cvar_Get_NoComm("r_volumetricParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");
@@ -3217,6 +3219,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_DestroyGPUBuffers();
 		R_ShutdownForwardPlus();
 		R_ClearAreaLights();
+		R_ClearVolumetricStaticReconstruction();
 		R_FoliageInteractionReset();
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();

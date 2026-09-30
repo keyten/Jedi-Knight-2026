@@ -37,7 +37,7 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False):
+def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False, static_recon=False):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
@@ -49,6 +49,7 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
     defines += '#define USE_SHADOWS2\n' if shadows else ''
     defines += '#define USE_FROXEL_COMPUTE\n' if compute else ''
     defines += '#define USE_FROXEL_MEDIA_PASS\n' if media else ''
+    defines += '#define USE_FROXEL_STATIC_RECONSTRUCTION\n' if static_recon else ''
     body = fragment('volumetric_common') + fragment(name)
     if legacy_bits:
         body = body.replace('#if defined(USE_FROXEL_COMPUTE)\n\tint bit = findLSB(bits);',
@@ -200,7 +201,8 @@ def integration(prog, rgb, depth=17, far_depth=128):
 
 W, H, D = 7, 5, 17
 SAMPLERS = ['u_FroxelHistory', 'u_VolumetricStaticGrid', 'u_VolumetricSunGrid',
-            'u_VolumetricDirGrid', 'u_VolumetricDirVecGrid', 'u_VolumetricLegacyGrid',
+            'u_VolumetricDirMomentR', 'u_VolumetricDirMomentG', 'u_VolumetricDirMomentB',
+            'u_VolumetricLegacyGrid',
             'u_ShadowMap', 'u_ShadowMap2', 'u_FroxelNoise', 'u_FroxelMedia',
             'u_FroxelExtinction', 'u_FPlusLights', 'u_FPlusGridMap', 'u_LightCookieMap',
             'u_FPlusIndexMap']
@@ -375,7 +377,7 @@ def pseudo_random(count, seed, low, high):
     return values
 
 
-def raster_compute_match(inject, media, raster, rgb):
+def raster_compute_match(inject, media, raster, rgb, extra_textures=None, overrides=None, label=''):
     """Same inputs through both paths: temporal history, jitter, reprojection, a varying light grid."""
     count = W * H * D * 4
     history = pseudo_random(count, 7, .001, .05)
@@ -385,10 +387,11 @@ def raster_compute_match(inject, media, raster, rgb):
         'u_FroxelHistory': texture(W, H, D, history),
         'u_FroxelExtinction': texture(W, H, D, pseudo_random(count, 11, .002, .02)),
     }
+    textures.update(extra_textures or {})
     names = ['media', 'inject', 'dynamic', 'particle light', 'sigma_t'][:5 if rgb else 4] + ['tail']
     results = []
-    for media_tex, outputs, tail in [run_compute(inject, media, textures, True),
-                                     run_raster(raster, textures, True, rgb)]:
+    for media_tex, outputs, tail in [run_compute(inject, media, textures, True, overrides),
+                                     run_raster(raster, textures, True, rgb, overrides)]:
         results.append([read(media_tex, count)] + [read(tex, count) for tex in outputs[:len(names) - 2]] +
                        [read2d(tail)])
     assert gl('glGetError', U)() == 0
@@ -397,7 +400,61 @@ def raster_compute_match(inject, media, raster, rgb):
     for name, computed, rastered in zip(names, results[0], results[1]):
         for i, (a, b) in enumerate(zip(computed, rastered)):
             assert math.isfinite(a) and abs(a - b) <= 1e-5 + 2e-3 * abs(b), (name, rgb, i, a, b)
-    print(f'PASS: {"RGB" if rgb else "scalar"} raster and compute injection match (history, jitter, reprojection)')
+    print(f'PASS: {"RGB" if rgb else "scalar"} raster and compute injection match (history, jitter, reprojection){label}')
+
+
+def static_reconstruction(rgb):
+    """USE_FROXEL_STATIC_RECONSTRUCTION: the baked light at the froxel center is B + 3 g (M_c.v) per channel
+    with g clamped to +-1/3 (the L1 Henyey-Greenstein response of the first angular moments), never negative;
+    the sign convention (M towards the light, v from the camera) and the clamp, in the particle light field
+    and the tail; the extinction does not change; raster and compute match."""
+    inject = program('volumetric_inject', True, rgb, False, static_recon=True)
+    media = program('volumetric_inject', True, rgb, False, media=True, static_recon=True)
+    raster = program('volumetric_inject', False, rgb, False, static_recon=True)
+    plain = program('volumetric_inject', True, rgb, False)
+    count = W * H * D * 4
+    base = [2, 3, 4]
+    textures = {
+        'black': texture(1, 1, 1, [0] * 4),
+        'u_VolumetricStaticGrid': texture(1, 1, 1, base + [1]),
+        # towards the camera's forward axis, backwards (|M| = B: the largest allowed), sideways
+        'u_VolumetricDirMomentR': texture(1, 1, 1, [0, 0, 1.5, 0]),
+        'u_VolumetricDirMomentG': texture(1, 1, 1, [0, 0, -3, 0]),
+        'u_VolumetricDirMomentB': texture(1, 1, 1, [1, 0, 0, 0]),
+    }
+    for g in [0.0, 0.25, 0.9, -0.6]:
+        gs = max(-1 / 3, min(1 / 3, g))
+        overrides = {'u_FroxelLightParams': [g, 1, 1, 1]}
+        _, outputs, tail = run_compute(inject, media, textures, False, overrides)
+        _, reference, _ = run_compute(plain, media, textures, False, overrides)
+        extinction = read(outputs[0], count)
+        reference_extinction = read(reference[0], count)
+        assert all(abs(extinction[i] - reference_extinction[i]) < 1e-9 for i in range(3, count, 4)), 'extinction changed'
+        for values, what, tol in [(read(outputs[2], count), 'particle light (R11G11B10F)', .06), (read2d(tail), 'tail (RGBA16F)', 1e-2)]:
+            for i in range(0, len(values), 4):
+                r, gg, b = values[i:i + 3]
+                assert min(r, gg, b) >= 0.0, (what, g, i, r, gg, b)
+                if gs == 0.0:
+                    assert all(abs(v - e) < tol for v, e in zip((r, gg, b), base)), (what, g, i, r, gg, b)
+                    continue
+                k = 3 * gs
+                vz_r = (r - 2) / (k * 1.5)
+                assert 0.5 < vz_r <= 1.0 + tol, (what, g, i, vz_r)
+                expected_g = max(3 - k * 3 * vz_r, 0.0)
+                assert abs(gg - expected_g) < tol * max(1.0, expected_g), (what, g, i, gg, expected_g)
+                vx = (b - 4) / k
+                assert vx * vx + vz_r * vz_r <= 1.0 + 4 * tol, (what, g, i, vx, vz_r)
+    delete = gl('glDeleteProgram', None, U)
+    extra = {
+        'u_VolumetricDirMomentR': texture(3, 3, 3, [v * .12 for v in pseudo_random(27 * 4, 5, -1, 1)]),
+        'u_VolumetricDirMomentG': texture(3, 3, 3, [v * .12 for v in pseudo_random(27 * 4, 6, -1, 1)]),
+        'u_VolumetricDirMomentB': texture(3, 3, 3, [v * .12 for v in pseudo_random(27 * 4, 8, -1, 1)]),
+    }
+    raster_compute_match(inject, media, raster, rgb, extra, {'u_FroxelLightParams': [0.2, 1, 1, 1]},
+                         ', static reconstruction')
+    for prog in [inject, media, raster, plain]:
+        delete(prog)
+    print(f'PASS: {"RGB" if rgb else "scalar"} static reconstruction L1 phase, clamp, sign, extinction unchanged')
 
 
 def height_fog(inject, media, raster, rgb):
@@ -660,6 +717,8 @@ def main():
             debug_program = program('volumetric_debug', False, rgb, True)
             gl('glDeleteProgram', None, U)(debug_program)
             density_noise(rgb)
+            static_reconstruction(rgb)
+            permutations += 3
             for shadows in [False, True]:
                 programs = {(name, compute): program(name, compute, rgb, shadows)
                             for name in ['volumetric_inject', 'volumetric_integrate'] for compute in [False, True]}

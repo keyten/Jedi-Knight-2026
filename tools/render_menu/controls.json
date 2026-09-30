@@ -3639,13 +3639,17 @@
   {
     "var": "r_volumetricFogStaticDirectional",
     "default": "0",
-    "restart": false,
-    "description": "isotropic baked local light / apply the phase function along its reconstructed baked direction.",
+    "restart": true,
+    "description": "isotropic baked light / reconstructed per-channel directions / raw light grid direction (developer comparison). Requires `vid_restart`.",
     "name": "r_volumetricFogStaticDirectional",
     "category": "Volumetric lighting & fog",
     "section": "Directional baked light in volumetrics",
-    "spec": "0 | 1",
-    "range": null,
+    "spec": "0 | 1 | 2",
+    "range": [
+      0.0,
+      2.0,
+      true
+    ],
     "label": "Directional baked light in fog",
     "performance": "light",
     "enum": [
@@ -3654,8 +3658,12 @@
         0
       ],
       [
-        "On",
+        "Reconstructed",
         1
+      ],
+      [
+        "Raw light grid",
+        2
       ]
     ]
   },

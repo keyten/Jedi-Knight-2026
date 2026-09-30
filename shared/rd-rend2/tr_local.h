@@ -1325,7 +1325,7 @@ struct VolumetricFogBlock
 	vec4_t gridOrigin;				// light grid sample origin, w: vertical cell size
 	vec4_t gridScale;				// world to light grid texture coordinates, w: horizontal cell size
 	vec4_t shadowParams;			// cascade far distance, shadow map size, dlight shadows, bias
-	vec4_t debugParams;				// debug view, bloom, frozen, directional baked light
+	vec4_t debugParams;				// debug view, bloom, frozen, unused
 	vec4_t heightFog;				// height fog: base extinction per unit (0 = off), base z, 1 / falloff, log(max scale)
 	vec4_t heightFogColor;			// rgb albedo, w: fade out start above the base (top - fade)
 	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color (r_volumetricFogRGBExtinction, 1 1 1)
@@ -1514,6 +1514,10 @@ enum
 	// froxel fog extinction of this frame (r_volumetricSelfShadow), in
 	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
 	TB_FROXELMEDIA       = 13,
+
+	// blue moment of the directional baked light (r_volumetricFogStaticDirectional)
+	// in volumetric_inject; red / green use TB_SPECULARMAP / TB_SSAOMAP there
+	TB_VOLUMETRICMOMENTB = 17,
 
 	// RGB extinction (r_volumetricFogRGBExtinction): the integrated transmittance of the
 	// froxel lookup (every program with USE_FROXEL_FOG), the injected extinction
@@ -2438,8 +2442,9 @@ typedef enum
 	UNIFORM_FROXELCARRY,	// integration state of the previous slice
 	UNIFORM_VOLUMETRICSTATICGRID,	// baked light grid without the sun
 	UNIFORM_VOLUMETRICSUNGRID,		// baked sun part of the light grid
-	UNIFORM_VOLUMETRICDIRGRID,		// directed (non-sun) part of the light grid
-	UNIFORM_VOLUMETRICDIRVECGRID,	// its direction weighted by its luminance
+	UNIFORM_VOLUMETRICDIRMOMENTR,	// first angular moments of the non-sun baked light, per channel
+	UNIFORM_VOLUMETRICDIRMOMENTG,
+	UNIFORM_VOLUMETRICDIRMOMENTB,
 	UNIFORM_VOLUMETRICLEGACYGRID,	// merged legacy light grid (debug view 25)
 	UNIFORM_FROXELSLICE,	// slice rendered by the injection / integration pass
 	UNIFORM_FROXELNOISE,	// tiling density noise
@@ -3171,15 +3176,21 @@ typedef struct {
 	image_t		*entityGridDirected;
 	image_t		*entityGridDirection;
 	color4ub_t	entityGridStyleColors[MAX_LIGHT_STYLES];
-	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun
-	// direction, see R_BuildVolumetricLightGrid (tr_volumetric.cpp)
-	image_t		*volumetricStaticGrid;	// baked light without the sun (rgb), sun fraction (a)
+	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
+	// directional baked light moments, see R_BuildVolumetricStaticLighting
+	// (tr_volumetric_reconstruct.cpp)
+	image_t		*volumetricStaticGrid;	// non-sun baked baseline B (rgb), sky visibility trust (a)
 	image_t		*volumetricSunGrid;		// baked sun part
-	image_t		*volumetricDirGrid;		// directed non-sun part (rgb), its luminance (a)
-	image_t		*volumetricDirVecGrid;	// direction towards the light * luminance (rgb)
+	image_t		*volumetricDirMomentR;	// first angular moment of the red baked light (xyz), r_volumetricFogStaticDirectional
+	image_t		*volumetricDirMomentG;
+	image_t		*volumetricDirMomentB;
 	vec3_t		volumetricSunRadiance;	// realtime sun radiance estimated from the sunlit cells
 	qboolean	volumetricHasSunCells;
 	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLighting: gain 1 there)
+	int			volumetricReconstructedSources;
+	int			volumetricReconstructedAreaSources;
+	int			volumetricDirectionalCells;
+	float		volumetricDirectionalEnergyFraction;
 
 	int			skyboxportal;
 	int			numClusters;
@@ -5464,7 +5475,12 @@ void R_CreateVolumetricFBOs(void);
 void R_ShutdownVolumetric(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
-void R_BuildVolumetricLightGrid(world_t *world);
+// tr_volumetric_reconstruct.cpp: light grid split by the sun and the directional
+// baked light moments (r_volumetricFogStaticDirectional), once per map load
+void R_BuildVolumetricStaticLighting(world_t *world);
+void R_ClearVolumetricStaticReconstruction(void);
+void R_VolumetricStaticStats_f(void);
+qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_STATIC_RECONSTRUCTION
 void R_SetHeightFogBase(world_t *worldData);
 void R_VolumetricFog_f(void);
 void R_VolumetricLightStats_f(void);
@@ -5656,6 +5672,10 @@ void R_AreaLightsBeginFrame(void);
 void R_CreateLtcImages(void);
 void R_LoadAreaLights(const char *mapName);
 void R_ClearAreaLights(void);
+// static emitters (explicit non-dynamic lamps, accepted emissive surface candidates) that
+// anchor the directional baked light reconstruction, tr_volumetric_reconstruct.cpp
+struct vrAreaSource;
+void R_CollectStaticAreaSources(const world_t *world, std::vector<vrAreaSource>& out, int *numCandidates);
 void R_AddAreaLightsToScene(const refdef_t *fd);
 void R_AreaLightsDrawDebug(void);
 void RB_AreaLightsBindTextures(SamplerBindingsWriter& samplers);
