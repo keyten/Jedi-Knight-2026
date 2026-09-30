@@ -88,6 +88,7 @@ struct EventPreset
 constexpr EventPreset kEmergePreset = { 1.0f, 1.4f, 1.0f };
 constexpr EventPreset kSplashPreset = { 0.6f, 1.0f, 0.6f };
 constexpr float kSprayFilm = 0.35f;
+constexpr float kMicroFilm = 0.05f;	// film deposit of a direct micro impact (0.025..0.075)
 
 // emerge choreography (seconds)
 constexpr float kEmergeFlowStart = 0.1f, kEmergeFlowEnd = 0.5f;
@@ -281,6 +282,7 @@ void LensWater::Clear()
 	filmDirty = true;
 	filmVisible = false;
 	filmMax = 0.0f;
+	dormantTime = 0.0f;
 	emerge = {};
 	agentAccumulator = fieldAccumulator = interpolation = 0.0f;
 	timerMicro = ExpRandom();
@@ -355,11 +357,21 @@ bool LensWater::Update(float dt, const Input &input, const Params &p)
 		|| input.sprayStrength > 0.0f;
 	if (!incoming && !Active())
 	{
-		// dry lens, nothing arriving: no profile blend, no steps, no timings
+		// dry lens, nothing arriving: no profile blend, no steps, no timings.
+		// Invisible wetness left behind keeps its age; it is decayed in one
+		// go when the lens wakes up.
+		if (filmMax > 0.0f)
+			dormantTime += dt;
 		agentAccumulator = fieldAccumulator = interpolation = 0.0f;
 		lastUpdateMicroseconds = agentMicroseconds = fieldMicroseconds = eventMicroseconds = 0.0f;
 		lastInput = input;
 		return false;
+	}
+	if (dormantTime > 0.0f)
+	{
+		// exp(-t / tau) composes: one decay over the whole sleep
+		DecayField(dormantTime);
+		dormantTime = 0.0f;
 	}
 
 	// timings only when someone reads them (debug views, r_speeds, stats)
@@ -922,7 +934,13 @@ void LensWater::Spawn(float dt, const Input &input)
 	{
 		const float heavyFlow = std::max(params.heavyFlow, 0.0f);
 		fire(timerMicro, current.microRate * rate * impactFacing, [&]() {
-			SpawnMicro(RandomPosition(false), kRefRadius * (0.1f + 0.2f * Random01()), true);
+			const Vec2 pos = RandomPosition(false);
+			const float size = Random01();
+			const float radius = kRefRadius * (0.1f + 0.2f * size);
+			SpawnMicro(pos, radius, true);
+			// each hit leaves a trace of film, more for a bigger one: a
+			// downpour wets the lens over time through the bounded accumulation
+			StampDisc(pos, radius * params.dropSize * 2.5f, 0.2f, kMicroFilm * (0.5f + size), false);
 		});
 		fire(timerNormal, current.normalRate * rate * impactFacing, [&]() {
 			const float rn = Lerp(current.sizeMin, current.sizeMax, std::pow(Random01(), current.sizeBeta));
@@ -1075,8 +1093,12 @@ void LensWater::StartEmerge(float strength)
 	emerge = {};
 	emerge.active = true;
 	emerge.strength = s;
-	emerge.detailX = (int)(Random01() * filmWidth);
-	emerge.detailY = (int)(Random01() * filmHeight);
+	const int detailX = (int)(Random01() * filmWidth);
+	const int detailY = (int)(Random01() * filmHeight);
+	emergePattern.resize((size_t)filmWidth * filmHeight);
+	for (int y = 0; y < filmHeight; ++y)
+	for (int x = 0; x < filmWidth; ++x)
+		emergePattern[(size_t)y * filmWidth + x] = Detail(x, y, detailX, detailY);
 	emerge.flowsLeft = 2 + (int)(3.0f * std::min(s, 1.0f) + 0.5f);
 	emerge.rivuletsLeft = 2 + (int)(2.0f * std::min(s, 1.0f) + 0.5f);
 	emerge.lateSheetsLeft = s > 0.6f ? 2 : 1;
@@ -1156,12 +1178,13 @@ void LensWater::StampEmergeFilm(float strength)
 	if (film.empty())
 		return;
 	const float amount = kEmergePreset.film * std::min(strength, 1.0f);
+	const int ox = (int)(Random01() * filmWidth), oy = (int)(Random01() * filmHeight);
 	for (int y = 0; y < filmHeight; ++y)
 	for (int x = 0; x < filmWidth; ++x)
 	{
-		const float n = Detail(x, y, emerge.detailX, emerge.detailY);
+		const float n = emergePattern[(size_t)y * filmWidth + x];
 		// second octave at a different offset breaks the lattice regularity
-		const float n2 = Detail(x * 2, y * 2, emerge.detailY, emerge.detailX);
+		const float n2 = Detail(x * 2, y * 2, ox, oy);
 		const float v = 0.7f * n + 0.3f * n2;
 		const float thickness = 0.15f + 0.85f * Smoothstep(0.32f, 0.55f, v);
 		float *cell = &film[((size_t)y * filmWidth + x) * 2];
@@ -1194,10 +1217,10 @@ void LensWater::DecayField(float dt)
 		// holes grow as the threshold rises
 		const float threshold = Lerp(0.2f, 0.62f, emerge.age / kEmergeBreakup);
 		const float tearK = std::exp(-dt / kEmergeBreakupTau);
-		for (int y = 0; y < filmHeight; ++y)
-		for (int x = 0; x < filmWidth; ++x, cell += 2)
+		const float *pattern = emergePattern.data();
+		for (size_t i = 0; i < count; ++i, cell += 2)
 		{
-			const float n = Detail(x, y, emerge.detailX, emerge.detailY);
+			const float n = pattern[i];
 			const float tear = Lerp(filmK, tearK, Smoothstep(threshold, threshold - 0.08f, n));
 			const float w = cell[0] * wetK;
 			const float f = cell[1] * tear;

@@ -302,11 +302,17 @@ int main()
 	}
 	// horizontal view keeps most of the heavy rain flows and sheets
 	{
+		// a single 30 s run is too noisy for the ratio: sum four random
+		// sequences (Clear advances the generator)
 		auto flows = [&](float facing, int &sheets) {
-			LensWater w; w.Init(455, 256);
-			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = facing; in.weather = PROFILE_HEAVY;
 			int f = 0; sheets = 0;
-			for (int i = 0; i < 144 * 30; ++i) { w.Update(1.0f / 144.0f, in, p); w.ClearFilmDirty(); Stats s = w.GetStats(); f += s.flows; sheets += s.sheets; }
+			for (int seed = 0; seed < 4; ++seed)
+			{
+				LensWater w; w.Init(455, 256);
+				for (int i = 0; i < seed; ++i) w.Clear();
+				Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = facing; in.weather = PROFILE_HEAVY;
+				for (int i = 0; i < 144 * 30; ++i) { w.Update(1.0f / 144.0f, in, p); w.ClearFilmDirty(); Stats s = w.GetStats(); f += s.flows; sheets += s.sheets; }
+			}
 			return f;
 		};
 		int sh0, sh1;
@@ -340,6 +346,37 @@ int main()
 		Run(w, 0.1f, Dry(), q);
 		const bool visible = w.Update(1.0f / 60.0f, Dry(), q);
 		CHECK(!visible && w.GetStats().updateMicroseconds == 0.0f, "dry update skipped");
+	}
+
+	// invisible wetness keeps ageing while the lens sleeps (lazy decay)
+	{
+		LensWater w; w.Init(455, 256);
+		w.AddDrop({ 0.0f, 0.3f }, 1.5f * kRefRadius, DROP_NORMAL);
+		Run(w, 1.0f, Dry(), p);
+		const Vec2 at = { w.Drops()[0].pos.x, w.Drops()[0].pos.y + 0.03f };
+		w.Drops().clear();
+		int frames = 0;
+		while (w.Active() && frames < 144 * 60) { w.Update(1.0f / 144.0f, Dry(), p); w.ClearFilmDirty(); ++frames; }
+		const float asleep = w.Wetness(at);
+		const bool sleeping = !w.Active();
+		Run(w, 30.0f, Dry(), p);		// dormant: no work
+		Input rain; rain.intensity = 1.0f; rain.exposed = 1.0f;
+		w.Update(1e-4f, rain, p);		// wakes: 30 s of decay at once
+		const float woken = w.Wetness(at);
+		CHECK(sleeping, "lens sleeps with invisible wetness (%d frames)", frames);
+		CHECK(asleep > 0.05f && woken < asleep * 0.2f, "dormant wetness decays on wake (%.3f -> %.3f)", asleep, woken);
+	}
+	// direct micro impacts of a downpour wet the lens
+	{
+		LensWater w; w.Init(455, 256);
+		Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY;
+		Params q = p; q.heavyFlow = 0.0f;	// no flows / sheets: impacts only
+		Run(w, 3.0f, in, q);
+		int wet = 0;
+		for (float y = -0.45f; y < 0.45f; y += 0.01f)
+			for (float x = -0.8f; x < 0.8f; x += 0.01f)
+				wet += w.Film({ x, y }) > 0.02f;
+		CHECK(wet > 100, "micro impacts leave film (%d samples)", wet);
 	}
 
 	printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);

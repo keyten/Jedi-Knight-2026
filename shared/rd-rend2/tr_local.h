@@ -3721,6 +3721,7 @@ typedef struct trGlobals_s {
 	image_t					*rainLensImage;		// lens rain output (HDR)
 	image_t					*rainLensFieldImage;	// lower resolution offset, mask, blur field
 	image_t					*rainLensFilmImage;	// persistent wetness (R) and thin film (G), CPU updated
+	image_t					*rainLensFilmFieldImage;	// film part of the lens field at film resolution, redrawn on film uploads
 	image_t					*rainLensInstanceImage;	// lens drop / sheet instance records (RGBA32F)
 	image_t					*rainLensMipImage;	// r_rainLensMipBlur: half resolution mipped scene copy
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
@@ -3790,6 +3791,7 @@ typedef struct trGlobals_s {
 	FBO_t					*motionBlurFbo;
 	FBO_t					*rainLensFbo;
 	FBO_t					*rainLensFieldFbo;
+	FBO_t					*rainLensFilmFieldFbo;
 	FBO_t					*rainLensMipFbo;
 	FBO_t					*froxelMediaFbo;		// froxelMediaImage, layered (r_volumetricSelfShadow)
 	FBO_t					*froxelInjectFbo;		// layers attached per slice

@@ -17,13 +17,13 @@ void main()
 // nearby dynamic light, never from a fixed screen direction.
 
 uniform sampler2D u_ScreenImageMap; // HDR scene
-uniform sampler2D u_TextureMap;     // RG: unscaled offset, B: optical weight, A: blur radius
+uniform sampler2D u_TextureMap;     // RG: unscaled offset, B: optical weight, A: physical blur radius
 uniform sampler2D u_NormalMap;      // wetness (R) / film (G), debug view 6 only
 uniform sampler2D u_SpecularMap;    // r_rainLensMipBlur: mipped half resolution scene
 #if defined(USE_CUBEMAP)
 uniform samplerCube u_CubeMap;      // nearest environment probe (alpha: probe luma)
 #endif
-uniform vec4 u_RainLensParams;      // z: refraction strength, w: scene samples (1, 3, 5)
+uniform vec4 u_RainLensParams;      // x: r_rainLensBlur, z: refraction strength, w: scene samples (1, 3, 5)
 uniform vec4 u_RainLensParams2;     // z: debug view, w: display encoded HDR
 // lens space (x right, y up, z toward the viewer):
 //  [0] key light direction, w: reflection amount
@@ -37,8 +37,12 @@ uniform vec4 u_RainLensOptics[10];
 uniform vec4 u_RainLensDebug[4];    // debug view 9 controller panel
 out vec4 out_Color;
 
-// offset of a reference drop edge (radius 0.02 * refraction scale 1.6):
-// turns the field offset back into an approximate surface slope
+// The field stores a drop's offset = -slope * radius * mask * 1.6 and its
+// physical blur A = radius * mask * 0.18 (rainlens.glsl REFRACTION_SCALE,
+// BLUR_SCALE), so offset / (A * 1.6 / 0.18) is the cap slope again at any
+// drop size, mask included. Film writes no A: its offset is turned back into
+// a slope with the edge offset of a reference drop (radius 0.02 * 1.6).
+#define OFFSET_PER_BLUR (1.6 / 0.18)
 #define REFERENCE_OFFSET 0.032
 #define WATER_F0 0.02
 
@@ -47,22 +51,31 @@ float Luminance(vec3 c)
 	return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec3 Reflection(vec3 n)
+// sky above, ground below: the ambient, a little of the key light upward
+vec3 AmbientReflection(vec3 r)
 {
-	float amount = u_RainLensOptics[0].w;
+	float upward = clamp(r.y * 0.5 + 0.5, 0.0, 1.0);
+	return (u_RainLensOptics[4].rgb * mix(0.6, 1.2, upward) + u_RainLensOptics[1].rgb * 0.15 * upward)
+		* u_RainLensOptics[0].w;
+}
+
+// detailed: compact drops and sheets take the cubemap, the nearly flat film
+// (Fresnel at about F0) only the ambient
+vec3 Reflection(vec3 n, bool detailed)
+{
 	// reflect the view ray (toward the viewer, +z) about the drop normal
 	vec3 r = 2.0 * n.z * n - vec3(0.0, 0.0, 1.0);
 #if defined(USE_CUBEMAP)
-	vec3 world = u_RainLensOptics[6].xyz * r.x + u_RainLensOptics[7].xyz * r.y + u_RainLensOptics[8].xyz * r.z;
-	vec4 probe = textureLod(u_CubeMap, world, u_RainLensOptics[1].w);
-	// like lightall: the probe never gets brighter than the light here
-	probe.rgb *= clamp(u_RainLensOptics[2].w / max(probe.a, 1e-4), 0.0, 1.0);
-	return probe.rgb * amount;
-#else
-	// sky above, ground below: the ambient, a little of the key light upward
-	float upward = clamp(r.y * 0.5 + 0.5, 0.0, 1.0);
-	return (u_RainLensOptics[4].rgb * mix(0.6, 1.2, upward) + u_RainLensOptics[1].rgb * 0.15 * upward) * amount;
+	if (detailed)
+	{
+		vec3 world = u_RainLensOptics[6].xyz * r.x + u_RainLensOptics[7].xyz * r.y + u_RainLensOptics[8].xyz * r.z;
+		vec4 probe = textureLod(u_CubeMap, world, u_RainLensOptics[1].w);
+		// like lightall: the probe never gets brighter than the light here
+		probe.rgb *= clamp(u_RainLensOptics[2].w / max(probe.a, 1e-4), 0.0, 1.0);
+		return probe.rgb * u_RainLensOptics[0].w;
+	}
 #endif
+	return AmbientReflection(r);
 }
 
 // normalised Blinn-Phong glint of a light seen in the drop
@@ -112,9 +125,13 @@ void main()
 	vec4 lens = texture(u_TextureMap, uv);
 	// the field is additive: overlaps can exceed one
 	float weight = clamp(lens.z, 0.0, 1.0);
-	float blur = clamp(lens.w, 0.0, 0.02);
+	float blur = clamp(lens.w * u_RainLensParams.x, 0.0, 0.02);
 	float aspect = screenSize.x / screenSize.y;
-	vec2 slope = -lens.xy * vec2(aspect, 1.0) / REFERENCE_OFFSET;
+	// physical slope scale; film only (A = 0) and the outermost drop edge
+	// fall back to the reference drop
+	float physicalOffset = lens.w * OFFSET_PER_BLUR;
+	float slopeScale = mix(REFERENCE_OFFSET, physicalOffset, smoothstep(0.0, 0.0015, physicalOffset));
+	vec2 slope = -lens.xy * vec2(aspect, 1.0) / slopeScale;
 
 	int debugView = int(u_RainLensParams2.z);
 	if (debugView == 1)
@@ -181,11 +198,16 @@ void main()
 		float fresnel = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0);
 		float amount = u_RainLensOptics[0].w;
 		fresnel *= min(amount, 1.0);
-		vec3 water = refracted * (1.0 - fresnel) + Reflection(n) * fresnel;
+		// compact drops (weight above the 0.25 film cap) and steep sheets
 		float drop = smoothstep(0.25, 0.6, weight);
-		water += drop * amount * (
-			Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +
-			Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 120.0)) * fresnel * 8.0;
+		bool detailed = amount > 0.0 && (drop > 0.001 || n.z < 0.97);
+		vec3 water = refracted * (1.0 - fresnel) + Reflection(n, detailed) * fresnel;
+		if (drop > 0.001 && amount > 0.0)
+		{
+			water += drop * amount * (
+				Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +
+				Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 120.0)) * fresnel * 8.0;
+		}
 
 		color = mix(scene, water, weight);
 	}

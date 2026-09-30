@@ -49,7 +49,9 @@ back end   RB_RainLensUpdate: game-time clock (cuts clear), gravity projection,
            -> pass skipped unless water is visible or new rain arrives
            RB_RainLens:
              upload film RG (only when dirty) + instance records (RGBA32F)
-             field FBO: film pass (or clear), then additive instanced quads
+             film cache: film pass at film resolution, only after an upload
+             field FBO: blit of the film cache (or clear), then additive
+             instanced quads
              full-resolution composite -> rainLensImage
 ```
 
@@ -279,7 +281,10 @@ deduplicated and replayed on load.
 
 ## Optics
 
-- **Film pass** (`USE_FILM`, fullscreen at field resolution):
+- **Film pass** (`USE_FILM`, fullscreen into `rainLensFilmFieldImage`, film
+  resolution RGBA16F). It runs only when the film was uploaded (30 Hz at most)
+  or `r_rainLensFilm` changed; every frame a bilinear blit copies the cache
+  into the field, so the five-tap gradient doesn't run per display frame.
   - `offset = ∇film · 0.035 · r_rainLensFilm`.
   - `weight = min(0.45·film, 0.25) · r_rainLensFilm`.
   - No blur.
@@ -293,14 +298,20 @@ deduplicated and replayed on load.
   - The analytic slope becomes `offset = −slope · r · 1.6 · mask`.
   - The merge lobe adds its own cap, so overlapping heights sum their slopes
     and normals don't switch hard.
-  - Sheets use a numerically differentiated ribbon profile: strong offset,
-    weight ≤ 0.2, tiny blur.
+  - Sheets use an analytically differentiated ribbon profile (6 trig
+    operations instead of 15): strong offset, weight ≤ 0.2, A = 0.0025 inside
+    the sheet.
   - Only covered pixels run, so the cost doesn't scale with field size ×
     procedural work.
 - **Field.** RGBA16F, 256 / 360 / 540 high by `r_rainLensQuality` (or
   `r_rainLensFieldHeight`, clamped to the screen). It holds RG = unscaled UV
-  offset, B = weight and A = blur radius. It's additive, so consumers clamp
-  B and A.
+  offset, B = weight and A = the physical blur radius `r · 0.18 · mask`,
+  before `r_rainLensBlur`. It's additive, so consumers clamp B and A.
+- **Normal reconstruction.** The composite recovers the drop slope as
+  `offset / (A · 1.6 / 0.18)`: radius and mask cancel, so a large drop isn't
+  steeper and a soft edge isn't flattened. Film writes no A and falls back to
+  the reference drop edge offset 0.032; `r_rainLensBlur` applies in the
+  composite.
 - **Composite** (full resolution, 2 variants: `USE_CUBEMAP` or not):
   - A pixel with weight ≤ 0.001 costs one field fetch and one scene fetch.
   - Water adds one refracted fetch, and blur taps run only where the blur
@@ -309,7 +320,10 @@ deduplicated and replayed on load.
   - The refracted scene is multiplied by the profile tint.
   - **Fresnel** (water, n = 1.333, F0 = 0.02, Schlick on the drop normal):
     `water = (1 − F)·refracted + F·reflection`. At the drop rim, reflection takes
-    over. Thin film is nearly flat, so it reflects at about F0 and gets no glint.
+    over. Thin film is nearly flat, so it reflects at about F0, takes the
+    ambient reflection instead of the cubemap and gets no glint. Cubemap
+    fetches and glints are branched on compact drops (weight above the 0.25
+    film cap) and steep sheets (n.z < 0.97).
   - **Reflection:**
     - The camera's nearest environment cubemap (`R_CubemapForPoint`, roughness mip
       ≈ 0.35 of the chain, defocused). It's sampled with the drop's reflection
@@ -326,7 +340,8 @@ deduplicated and replayed on load.
     - Normalised Blinn-Phong with powers 220 and 120.
     - There's no fixed screen-space light any more.
   - Everything is gathered on the front end (`rainLensInput_t`, light grid via
-    `R_LightForPoint`), so the composite is branch-light.
+    `R_LightForPoint`), so the composite is branch-light. It's skipped under
+    water and on a dry lens with no events, spray or exposed rain.
   - `r_rainLensReflection 0` gives pure refraction.
 
 ## Cvars
@@ -379,7 +394,8 @@ measurements favour them.
   - field and film sizes and state, and the PBO mode;
   - CPU µs: update, agents, field, events, upload;
   - GPU ms of the field and composite (its own timestamp ring, read without
-    stalling, independent of `r_speeds`);
+    stalling, independent of `r_speeds`). Timestamps and the upload timing are
+    taken on the frames the core measures (debug, `r_speeds`, every 16th);
   - the reflection source and the key / nearby light levels.
 
 `r_speeds 100` also shows "Rain lens field" and "Rain lens composite".
@@ -390,8 +406,15 @@ A headless harness (`tools/lenswater_harness`, MSVC `/O2`) tests the CPU core:
 - Heavy rain at density 2, at the caps, costs about 0.2 ms per update.
 - The 116k-cell field decay is branch-free.
 - A dry lens under cover costs almost nothing. With no agents, no sheets, no
-  film, no events, no emerge, no spray and no incoming rain, `Update` returns
-  at once (no profile blend, no steps) and the pass is skipped.
+  visible film, no events, no emerge, no spray and no incoming rain, `Update`
+  returns at once (no profile blend, no steps) and the pass is skipped.
+  Invisible wetness left behind sleeps: the time is accumulated, and on wake
+  one `exp(−t/τ)` decay is applied, so old paths age correctly at no idle
+  cost.
+- Direct micro impacts deposit a trace of film (0.025–0.075, 2.5 × radius),
+  so a downpour wets the lens over time through the bounded accumulation.
+- The emerge breakup reads a per-cell pattern built once at the emerge (no
+  modulo in the 30 Hz loop).
 - CPU timings (`steady_clock`) are taken only with `r_rainLensDebug` or
   `r_speeds` on, or every 16th frame for `rainlens_stats`.
 - The film uploads only on 30 Hz field ticks that changed it.
@@ -415,6 +438,8 @@ Harness-verified (`tools\lenswater_harness\build.bat`):
 - Intensity scales the rate; a horizontal view keeps most heavy flows and
   sheets; micro impacts have an impact phase.
 - The film goes dirty only on field ticks, and a dry update returns at once.
+- Invisible wetness decays over the dormant time on wake; micro impacts leave
+  film.
 - The spray emitter wets its side and stops out of range.
 - World event falloff, facing and side.
 - Inertia only when enabled.

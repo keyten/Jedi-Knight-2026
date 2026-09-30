@@ -183,6 +183,8 @@ public:
 	// Advances by dt seconds of game time; returns whether anything is
 	// visible or will become visible (the pass can be skipped otherwise).
 	bool Update(float dt, const Input &input, const Params &params);
+	// Something to draw or upload. Invisible wetness alone is not: it sleeps
+	// and its decay over the dormant time is applied once on wake.
 	bool Active() const;
 
 	// Writes up to maxInstances records (row major: INSTANCE_TEXELS rows of
@@ -318,9 +320,13 @@ private:
 		float age, strength;
 		int flowsLeft, rivuletsLeft, lateSheetsLeft;
 		float nextFlow, nextRivulet, nextSheet;
-		int detailX, detailY;	// breakup pattern offset, same as the film stamp
-	};
+		};
 	EmergeState emerge = {};
+	// shifted detail noise of the current emerge, per film cell: the film
+	// stamp and the breakup threshold share it, no per cell modulo
+	std::vector<float> emergePattern;
+	// game time slept with only invisible wetness left (lazy decay)
+	float dormantTime = 0.0f;
 };
 
 // reference drop radius (lens units): mass 1, the dry-glass depinning size

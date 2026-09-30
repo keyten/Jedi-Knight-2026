@@ -626,6 +626,17 @@ void FBO_Init(void)
 		FBO_SetupDrawBuffers();
 		R_CheckFBO(tr.rainLensFieldFbo);
 	}
+	tr.rainLensFilmFieldFbo = NULL;
+	if (tr.rainLensFilmFieldImage != NULL)
+	{
+		tr.rainLensFilmFieldFbo = FBO_Create(
+			"_rainLensFilmField", tr.rainLensFilmFieldImage->width,
+			tr.rainLensFilmFieldImage->height);
+		FBO_Bind(tr.rainLensFilmFieldFbo);
+		FBO_AttachTextureImage(tr.rainLensFilmFieldImage, 0);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.rainLensFilmFieldFbo);
+	}
 	tr.rainLensMipFbo = NULL;
 	if (tr.rainLensMipImage != NULL)
 	{

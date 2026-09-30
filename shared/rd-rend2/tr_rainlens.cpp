@@ -102,6 +102,13 @@ int s_gpuTimingIndex;
 qboolean s_gpuTimingsCreated;
 float s_gpuFieldMs, s_gpuCompositeMs;
 float s_uploadMicroseconds;
+// GPU timestamps and upload timing only on the frames the core measures
+qboolean s_measureFrame;
+
+// film part of the field (rainLensFilmFieldImage): redrawn when the film
+// texture or r_rainLensFilm changes, blitted into the field every frame
+qboolean s_filmFieldValid;
+float s_filmFieldAmount;
 
 const int MAX_LENS_DROPS = 128;
 const int MAX_LENS_MICRO = 256;
@@ -182,6 +189,8 @@ void ResetState( void )
 	s_lastLocalEmergeTime = -100000;
 	s_numWorldEvents = 0;
 	s_motionValid = qfalse;
+	s_measureFrame = qfalse;
+	s_filmFieldValid = qfalse;
 }
 
 void DeleteGLObjects( void )
@@ -502,6 +511,7 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensImage = NULL;
 	tr.rainLensFieldImage = NULL;
 	tr.rainLensFilmImage = NULL;
+	tr.rainLensFilmFieldImage = NULL;
 	tr.rainLensInstanceImage = NULL;
 	tr.rainLensMipImage = NULL;
 
@@ -541,6 +551,11 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensFilmImage = R_CreateImage(
 		"*rainLensFilm", NULL, filmWidth, filmHeight, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RG16F);
+	// its gradient pass output, same resolution (< 1 MB): the film changes
+	// at 30 Hz at most, so the five tap pass does not run every frame
+	tr.rainLensFilmFieldImage = R_CreateImage(
+		"*rainLensFilmField", NULL, filmWidth, filmHeight, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 
 	// droplet / sheet instance records, fetched by gl_InstanceID
 	s_maxInstances = MAX_LENS_DROPS + MAX_LENS_MICRO + MAX_LENS_SHEETS;
@@ -852,7 +867,16 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		input->windLens[0] = -DotProduct(wind, refdef->viewaxis[1]) * windAmount;
 		input->windLens[1] = DotProduct(wind, refdef->viewaxis[2]) * windAmount;
 	}
-	else if ( tr.sunParsed && !inWater )
+
+	// The optics are for the pass only. It is skipped under water and on a
+	// dry lens with nothing arriving (the lens state is last frame's, so an
+	// event or new rain of this frame always gathers).
+	const qboolean incoming = (qboolean)(input->numEvents > 0 || input->sprayStrength > 0.0f
+		|| (input->intensity > 0.0f && input->exposed > 0.0f && r_rainLensDensity->value > 0.0f));
+	if ( inWater || (!incoming && !s_water.Active() && !r_rainLensDebug->integer) )
+		return;
+
+	if ( !(rain && rain->active) && forced == PROFILE_AUTO && tr.sunParsed )
 	{
 		// no rain: the sun glint still needs to know whether the sky is open
 		vec3_t origin;
@@ -1013,6 +1037,7 @@ qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 	static unsigned measureFrame = 0;
 	Params params = CurrentParams();
 	params.measure = r_rainLensDebug->integer != 0 || r_speeds->integer != 0 || (++measureFrame & 15u) == 0;
+	s_measureFrame = (qboolean)params.measure;
 	const qboolean active = (qboolean)s_water.Update(dt, in, params);
 
 	if ( input->submerged )
@@ -1041,17 +1066,25 @@ void RB_RainLens( FBO_t *srcFbo )
 	const Params params = CurrentParams();
 	const float aspect = (float)tr.rainLensFieldFbo->width / (float)tr.rainLensFieldFbo->height;
 
-	GpuReadTimings();
+	// rainlens_stats timings: sampled like the core's (RB_RainLensUpdate)
+	const qboolean measure = s_measureFrame;
+	if ( measure )
+	{
+		GpuReadTimings();
+		GpuTimestamp(0);
+	}
 	int timer = RB_RainLensBeginTimer("Rain lens field");
-	GpuTimestamp(0);
 
-	const auto uploadStart = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point uploadStart;
+	if ( measure )
+		uploadStart = std::chrono::steady_clock::now();
 	if ( s_water.FilmDirty() )
 	{
 		UploadFloatTexture(tr.rainLensFilmImage, s_filmPbo, &s_filmPboSize,
 			s_water.FilmWidth(), s_water.FilmHeight(), GL_RG, s_water.FilmData(),
 			(size_t)s_water.FilmWidth() * s_water.FilmHeight() * 2 * sizeof(float));
 		s_water.ClearFilmDirty();
+		s_filmFieldValid = qfalse;
 	}
 
 	const int numInstances = s_water.BuildInstances(s_instanceData.data(), s_maxInstances, params.dropSize);
@@ -1062,34 +1095,53 @@ void RB_RainLens( FBO_t *srcFbo )
 			(size_t)numInstances * INSTANCE_FLOATS * sizeof(float));
 	}
 	s_pboIndex = (s_pboIndex + 1) % PBO_RING;
-	s_uploadMicroseconds = std::chrono::duration<float, std::micro>(
-		std::chrono::steady_clock::now() - uploadStart).count();
+	if ( measure )
+	{
+		s_uploadMicroseconds = std::chrono::duration<float, std::micro>(
+			std::chrono::steady_clock::now() - uploadStart).count();
+	}
 
 	GL_Cull(CT_TWO_SIDED);
-	FBO_Bind(tr.rainLensFieldFbo);
-	GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
-
 	vec4_t params1, params2;
-	VectorSet4(params2, 0.0f, 0.0f,
-		(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
 
-	// thin film: weak refraction, low optical weight; it overwrites the field
-	if ( s_water.FilmVisible() )
+	// Thin film: weak refraction, low optical weight. The gradient pass runs
+	// into the film resolution cache only when the film changed; every frame
+	// the cache overwrites the field with a bilinear blit.
+	const qboolean filmVisible = (qboolean)(s_water.FilmVisible() && tr.rainLensFilmFieldFbo);
+	const float filmAmount = Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value);
+	if ( filmVisible && (!s_filmFieldValid || filmAmount != s_filmFieldAmount) )
 	{
+		FBO_Bind(tr.rainLensFilmFieldFbo);
+		GL_SetViewportAndScissor(0, 0, tr.rainLensFilmFieldFbo->width, tr.rainLensFilmFieldFbo->height);
 		GL_State(GLS_DEPTHTEST_DISABLE);
 		shaderProgram_t *film = &tr.rainLensShader[RAINLENSDEF_FILM];
 		GLSL_BindProgram(film);
 		GL_BindToTMU(tr.rainLensFilmImage, TB_COLORMAP);
-		VectorSet4(params1, aspect, Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value), 0.0f, 0.0f);
+		VectorSet4(params1, aspect, filmAmount, 0.0f, 0.0f);
 		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS, params1);
+		VectorSet4(params2, 0.0f, 0.0f,
+			(float)tr.rainLensFilmFieldFbo->width, (float)tr.rainLensFilmFieldFbo->height);
 		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS2, params2);
 		RB_InstantTriangle();
+		s_filmFieldValid = qtrue;
+		s_filmFieldAmount = filmAmount;
+	}
+
+	// the blit is scissored too: the field's rectangle first
+	GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
+	if ( filmVisible )
+	{
+		FBO_FastBlit(tr.rainLensFilmFieldFbo, NULL, tr.rainLensFieldFbo, NULL, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		FBO_Bind(tr.rainLensFieldFbo);
 	}
 	else
 	{
+		FBO_Bind(tr.rainLensFieldFbo);
 		const vec4_t black = { 0.0f, 0.0f, 0.0f, 0.0f };
 		qglClearBufferfv(GL_COLOR, 0, black);
 	}
+	VectorSet4(params2, 0.0f, 0.0f,
+		(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
 
 	// drops, micro drops and sheets: instanced analytic quads, added so
 	// temporary overlaps sum their surface slopes instead of switching
@@ -1099,7 +1151,7 @@ void RB_RainLens( FBO_t *srcFbo )
 		shaderProgram_t *drops = &tr.rainLensShader[RAINLENSDEF_DROPS];
 		GLSL_BindProgram(drops);
 		GL_BindToTMU(tr.rainLensInstanceImage, TB_COLORMAP);
-		VectorSet4(params1, aspect, Com_Clamp(0.0f, 2.0f, r_rainLensBlur->value), 0.0f, 0.0f);
+		VectorSet4(params1, aspect, 0.0f, 0.0f, 0.0f);
 		GLSL_SetUniformVec4(drops, UNIFORM_RAINLENSPARAMS, params1);
 		GLSL_SetUniformVec4(drops, UNIFORM_RAINLENSPARAMS2, params2);
 		qglDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, numInstances);
@@ -1107,12 +1159,15 @@ void RB_RainLens( FBO_t *srcFbo )
 
 	RB_RainLensEndTimer(timer);
 	timer = RB_RainLensBeginTimer("Rain lens composite");
-	GpuTimestamp(1);
+	if ( measure )
+		GpuTimestamp(1);
 
 	// r_rainLensMipBlur: half resolution mipped copy for the defocus
 	const qboolean mipBlur = (qboolean)(r_rainLensMipBlur->integer && tr.rainLensMipImage && tr.rainLensMipFbo);
 	if ( mipBlur )
 	{
+		// blits are scissored: open it to the destination
+		GL_SetViewportAndScissor(0, 0, tr.rainLensMipFbo->width, tr.rainLensMipFbo->height);
 		FBO_FastBlit(srcFbo, NULL, tr.rainLensMipFbo, NULL, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 		GL_BindToTMU(tr.rainLensMipImage, TB_SPECULARMAP);
 		GL_SelectTexture(TB_SPECULARMAP);
@@ -1144,7 +1199,10 @@ void RB_RainLens( FBO_t *srcFbo )
 	GL_BindToTMU(mipBlur ? tr.rainLensMipImage : tr.whiteImage, TB_SPECULARMAP);
 	if ( cubemap )
 		GL_BindToTMU(cubemap->image, TB_CUBEMAP);
-	VectorSet4(params1, 0.0f, 0.0f, R_RainLensRefractionScale(), sampleCounts[QualityLevel()]);
+	// r_rainLensBlur applies here: the field keeps the physical blur, which
+	// the composite also uses to recover the drop slope
+	VectorSet4(params1, Com_Clamp(0.0f, 2.0f, r_rainLensBlur->value), 0.0f,
+		R_RainLensRefractionScale(), sampleCounts[QualityLevel()]);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params1);
 	VectorSet4(params2, 0.0f, 0.0f, (float)debugView, tr.linearLight ? 0.0f : 1.0f);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS2, params2);
@@ -1206,8 +1264,11 @@ void RB_RainLens( FBO_t *srcFbo )
 	if ( debugView )
 		s_debugOutput = qtrue;
 
-	GpuTimestamp(2);
-	s_gpuTimingIndex = (s_gpuTimingIndex + 1) % GPU_RING;
+	if ( measure )
+	{
+		GpuTimestamp(2);
+		s_gpuTimingIndex = (s_gpuTimingIndex + 1) % GPU_RING;
+	}
 	RB_RainLensEndTimer(timer);
 }
 

@@ -1,7 +1,7 @@
 /*[Vertex]*/
 #if defined(USE_DROPS)
 uniform sampler2D u_TextureMap;  // instance records, 4 rows (tr_lenswater.h)
-uniform vec4 u_RainLensParams;   // x = aspect, y = blur multiplier, w = debug view
+uniform vec4 u_RainLensParams;   // x = aspect, y = film amount (USE_FILM), w = debug view
 uniform vec4 u_RainLensParams2;  // zw = target size
 
 out vec2 var_Local;  // position relative to the instance centre, lens units
@@ -57,11 +57,14 @@ void main()
 //
 // Writes the shared lower resolution lens field read by the HDR composite
 // and the bloom prefilter:
-//   RG = unscaled UV refraction offset, B = optical weight, A = blur radius.
+//   RG = unscaled UV refraction offset, B = optical weight, A = physical
+//   blur radius (before r_rainLensBlur, also the slope scale of the composite).
 //
 // USE_FILM: fullscreen pass over the persistent CPU wetness (R) / film (G)
 // texture. A thin trail is almost transparent: weak refraction from the
-// film gradient, low weight (at most 0.25), no blur.
+// film gradient, low weight (at most 0.25), no blur. It runs at film
+// resolution into a cache, only when the film changed (30 Hz at most); the
+// cache is blitted into the field every frame.
 //
 // USE_DROPS: instanced analytic quads from tr_lenswater.cpp, additively
 // blended over the film. A drop is a spherical cap in its own frame (motion
@@ -76,7 +79,13 @@ uniform vec4 u_RainLensParams2;
 
 out vec4 out_Color;
 
+// A = physical blur proxy, radius * BLUR_SCALE * mask for a drop. The
+// composite applies r_rainLensBlur and recovers the slope as
+// offset / A * (BLUR_SCALE / REFRACTION_SCALE), keep rainlens_composite.glsl
+// in sync.
 #define REFRACTION_SCALE 1.6
+#define BLUR_SCALE 0.18
+#define SHEET_BLUR 0.0025
 
 #if defined(USE_DROPS)
 in vec2 var_Local;
@@ -100,21 +109,49 @@ vec3 Cap(vec2 q, vec2 lopsided)
 	return vec3(edge, r * radiusGradient / max(h, 0.35));
 }
 
-// Sheet thickness at a point relative to its centre (0..1). The wobble
-// follows the sheet: it moves rigidly, it does not swim.
-float SheetHeight(vec2 local)
+// smoothstep and its derivative
+vec2 SmoothstepD(float e0, float e1, float x)
+{
+	float t = clamp((x - e0) / (e1 - e0), 0.0, 1.0);
+	return vec2(t * t * (3.0 - 2.0 * t), 6.0 * t * (1.0 - t) / (e1 - e0));
+}
+
+// Sheet thickness at a point relative to its centre (x, 0..1) and its
+// analytic gradient in lens units (yz). The wobble follows the sheet: it
+// moves rigidly, it does not swim.
+vec3 SheetHeight(vec2 local)
 {
 	vec2 axis = var_T1.xy;
 	vec2 side = vec2(-axis.y, axis.x);
-	float a = dot(local, axis) / max(var_T0.z, 1e-4);
-	float c = dot(local, side) / max(var_T3.w, 1e-4);
+	float halfLength = max(var_T0.z, 1e-4);
+	float halfWidth = max(var_T3.w, 1e-4);
+	float a = dot(local, axis) / halfLength;
+	float c = dot(local, side) / halfWidth;
 	float seed = var_T2.w;
-	c += 0.18 * sin(a * 3.1 + seed * 40.0) + 0.08 * sin(a * 7.3 + seed * 17.0);
-	float across = cos(clamp(c, -1.0, 1.0) * 1.5707963);
+	vec2 phase = vec2(a * 3.1 + seed * 40.0, a * 7.3 + seed * 17.0);
+	c += 0.18 * sin(phase.x) + 0.08 * sin(phase.y);
+	float dcda = 0.558 * cos(phase.x) + 0.584 * cos(phase.y);
+
+	// across = cos^2(c pi / 2), d/dc = -pi / 2 sin(c pi)
+	float inside = step(abs(c), 1.0);
+	float angle = clamp(c, -1.0, 1.0) * 1.5707963;
+	float cosine = cos(angle);
+	float across = cosine * cosine;
+	float dAcross = -3.1415927 * sin(angle) * cosine * inside;
+
 	// thicker, rounded leading edge; thin tail
-	float along = mix(0.35, 1.0, smoothstep(-1.0, 0.7, a))
-		* (1.0 - smoothstep(0.75, 1.0, a)) * (1.0 - smoothstep(0.8, 1.0, -a));
-	return across * across * along;
+	vec2 lead = SmoothstepD(-1.0, 0.7, a);
+	vec2 front = SmoothstepD(0.75, 1.0, a);
+	vec2 tail = SmoothstepD(0.8, 1.0, -a);
+	float body = mix(0.35, 1.0, lead.x);
+	float along = body * (1.0 - front.x) * (1.0 - tail.x);
+	float dAlong = 0.65 * lead.y * (1.0 - front.x) * (1.0 - tail.x)
+		- body * front.y * (1.0 - tail.x)
+		+ body * (1.0 - front.x) * tail.y;
+
+	float dhda = across * dAlong + along * dAcross * dcda;
+	float dhdc = along * dAcross;
+	return vec3(across * along, axis * (dhda / halfLength) + side * (dhdc / halfWidth));
 }
 
 void Drop(out vec2 offset, out float weight, out float blur, out float mask)
@@ -135,7 +172,7 @@ void Drop(out vec2 offset, out float weight, out float blur, out float mask)
 	vec2 slope = side * cap.y + axis * (cap.z / stretch);
 	offset = -slope * radius * REFRACTION_SCALE * cap.x;
 	mask = cap.x;
-	blur = radius * 0.18 * cap.x;
+	blur = radius * BLUR_SCALE * cap.x;
 
 	// merge: the absorbed drop relaxes into the survivor over ~180 ms
 	if (var_T2.z > 0.0)
@@ -143,7 +180,7 @@ void Drop(out vec2 offset, out float weight, out float blur, out float mask)
 		vec3 lobe = Cap((var_Local - var_T2.xy) / var_T2.z, vec2(0.0));
 		offset -= lobe.yz * var_T2.z * REFRACTION_SCALE * lobe.x;
 		mask = 1.0 - (1.0 - mask) * (1.0 - lobe.x);
-		blur = max(blur, var_T2.z * 0.18 * lobe.x);
+		blur = max(blur, var_T2.z * BLUR_SCALE * lobe.x);
 	}
 	weight = mask * var_T0.w;
 	offset.x /= aspect;
@@ -153,17 +190,16 @@ void Sheet(out vec2 offset, out float weight, out float blur, out float mask)
 {
 	float aspect = u_RainLensParams.x;
 	float strength = var_T0.w;
-	float e = 0.25 * var_T3.w;
-	float h = SheetHeight(var_Local);
-	vec2 gradient = vec2(
-		SheetHeight(var_Local + vec2(e, 0.0)) - SheetHeight(var_Local - vec2(e, 0.0)),
-		SheetHeight(var_Local + vec2(0.0, e)) - SheetHeight(var_Local - vec2(0.0, e))) / (2.0 * e);
+	vec3 sheet = SheetHeight(var_Local);
+	float h = sheet.x;
 	// strong distortion, low optical weight
-	offset = gradient * var_T3.w * 0.02 * strength;
+	offset = sheet.yz * var_T3.w * 0.02 * strength;
 	offset.x /= aspect;
 	mask = smoothstep(0.02, 0.3, h);
 	weight = mask * 0.2 * strength;
-	blur = 0.002 * h * strength;
+	// A is also the composite's slope scale (offset / A): a constant
+	// thickness proxy inside the sheet, not scaled by the strength
+	blur = SHEET_BLUR * smoothstep(0.0, 0.1, h);
 }
 #endif
 
@@ -237,7 +273,7 @@ void main()
 	float outline = 1.0 - smoothstep(0.0, 0.25, mask);
 	out_Color = vec4(color, max(alpha * mask, outline * 0.9) * step(0.001, mask));
 #else
-	out_Color = vec4(offset, weight, blur * u_RainLensParams.y);
+	out_Color = vec4(offset, weight, blur);
 #endif
 #else
 	out_Color = vec4(0.0);
