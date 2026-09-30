@@ -89,7 +89,7 @@ LABELS = {
  'r_weatherPuddleWaterLevelBias':'Puddle water level offset', 'r_weatherPuddleRipples':'Rain ripples in puddles',
  'r_weatherRunoff':'Water flowing down walls', 'r_weatherRunoffProbe':'Wall rain exposure probe',
  'r_weatherRunoffEntities':'Water flows on characters/props', 'r_rainSplashes':'Rain impact splashes',
- 'r_rainLens':'Rain drops on camera lens', 'r_rainLensDropSize':'Lens drop size',
+ 'r_rainLens':'Rain drops on camera lens', 'r_rainLensSimulation':'Persistent lens water', 'r_rainLensDropSize':'Lens drop size',
  'r_autoFoliage':'Automatic plant detection', 'r_grassCardMode':'Grass geometry',
  'r_grassCardLodDist':'Grass third-card fade distance', 'r_grassCardWidth':'Grass blade width',
  'r_foliageWind':'Coherent plant wind', 'r_foliageWindDirection':'Plant wind direction (degrees)',

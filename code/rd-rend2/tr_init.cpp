@@ -240,6 +240,7 @@ cvar_t  *r_contactShadowThickness;
 cvar_t  *r_contactShadowStrength;
 
 cvar_t  *r_rainLens;
+cvar_t  *r_rainLensSimulation;
 cvar_t  *r_rainLensDensity;
 cvar_t  *r_rainLensRefraction;
 cvar_t  *r_rainLensDropSize;
@@ -2001,6 +2002,8 @@ void R_Register( void )
 
 	r_rainLens = ri_Cvar_Get_NoComm( "r_rainLens", "0", CVAR_ARCHIVE | CVAR_LATCH, "Rain droplets on the camera lens while it rains and the camera is outside (needs r_hdr)" );
 	ri.Cvar_CheckRange( r_rainLens, 0, 1, qtrue );
+	r_rainLensSimulation = ri_Cvar_Get_NoComm( "r_rainLensSimulation", "0", CVAR_ARCHIVE | CVAR_LATCH, "Persistent water-on-lens simulation (requires r_rainLens 1 and vid_restart)" );
+	ri.Cvar_CheckRange( r_rainLensSimulation, 0, 1, qtrue );
 	r_rainLensDensity = ri_Cvar_Get_NoComm( "r_rainLensDensity", "0.5", CVAR_ARCHIVE, "Lens rain droplet density, 0..1" );
 	r_rainLensRefraction = ri_Cvar_Get_NoComm( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens rain droplet refraction strength" );
 	r_rainLensDropSize = ri_Cvar_Get_NoComm( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens rain droplet size, relative to the screen height" );

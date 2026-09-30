@@ -3615,6 +3615,7 @@ static int GLSL_LoadGPUProgramRainLens(
 		nullptr,
 		"#define USE_DEBUG\n",
 		"#define USE_FIELD\n",
+		"#define USE_SIMULATION\n",
 	};
 
 	int numPrograms = 0;
@@ -3632,6 +3633,7 @@ static int GLSL_LoadGPUProgramRainLens(
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENIMAGEMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_COLORMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;

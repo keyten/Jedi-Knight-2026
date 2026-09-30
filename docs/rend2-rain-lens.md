@@ -60,10 +60,21 @@ owns the lens.
 
 ## State
 
-Backend state is a lens clock (game time, so it pauses with the game), the last
-time the camera was exposed, and a 1.5 s ramp-up that resets once the lens
-has drained under cover. A cut (map change, or a time
-jump over 1 s) clears it. There is no global rain transition.
+In the default procedural mode, backend state is a lens clock (game time, so
+it pauses with the game), the last exposed time, and a 1.5 s ramp-up that
+resets once the lens has drained under cover. A cut clears it.
+
+`r_rainLensSimulation 1` selects persistent water. A 256-cells-high lens
+lattice stores mass, velocity and wetness, updated at 30 Hz in game time.
+Impacts add water; mass and momentum flow conservatively to neighbors and
+merge there. Small deposits pin to the surface, while wet paths lower the
+pinning threshold and retain thin trails. Gravity is projected from world
+down onto the camera's right/up axes, so roll changes flow direction and
+looking vertically reduces it. No impacts are added under cover; mass and
+wetness decay there. Cuts clear the lattice. Its RGBA16F texture is uploaded
+only when a simulation step runs. The lens field is regenerated only on those
+uploads; the HDR optics composite still runs every displayed frame. The
+procedural mode remains the default and needs no state upload.
 
 ## Droplet model
 
@@ -77,7 +88,7 @@ size holds across resolutions, ultrawide and FOV changes.
   a thin trail anchored to the drop's path that dries according to approximate
   time since passage and leaves stationary small beads behind, and it
   wipes the beads it crosses. At partial overlaps, normals are blended to
-  soften the refraction transition; water mass is not simulated.
+  soften the refraction transition; water mass is not simulated in this mode.
 - **Shape:** a spherical cap `h = sqrt(1 − r²)`. It's egg-shaped
   (`r·(1 + q·lopsided)`) with a small hashed ellipse, and the edge is softened
   with `1 - smoothstep(0.78, 1, r)`. The slope includes the derivatives of the
@@ -97,17 +108,18 @@ size holds across resolutions, ultrawide and FOV changes.
 | cvar | default | |
 |---|---|---|
 | `r_rainLens` | 0 | latched, allocates the target, needs `r_hdr` |
+| `r_rainLensSimulation` | 0 | latched, persistent water mode; requires `r_rainLens 1` and `vid_restart` |
 | `r_rainLensDensity` | 0.5 | density |
 | `r_rainLensRefraction` | 1.0 | |
 | `r_rainLensDropSize` | 1.0 | drop size |
-| `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. 1 = mask (r) / trail film (g), 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
+| `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. 1 = coverage (red) / blur radius (green) in simulation mode, mask / trail film in procedural mode; 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
 
 GPU time: `r_speeds 100` shows the "Rain lens" timed block.
 
-The field is regenerated every frame. It does not store water mass or
-adhesion, and sliders still follow screen-down gravity. Rotating the hashed
-grid with camera roll would move existing drops across the lens; roll-aware
-motion needs drop state or path history.
+In procedural mode the field is regenerated every frame. Its sliders follow
+screen-down gravity and it does not retain mass. The simulation mode keeps
+water state and projects gravity, but is still a small screen-space lattice,
+not a full fluid solver or optical model of a real camera objective.
 
 ## Optional asset
 
@@ -117,8 +129,11 @@ isn't part of the baseline.
 
 ## Validation checklist (in game, not yet done)
 
-- Heavy and light rain; walking under a roof (no new drops, drain in about 1 s)
-  and back out (1.5 s ramp).
+- In procedural mode, heavy and light rain; walking under a roof (no new drops,
+  drain in about 1 s) and back out (1.5 s ramp).
+- With `r_rainLensSimulation 1`, inspect merging, wet trails, cover transitions,
+  camera roll and vertical views. Verify that cuts clear the lens and paused
+  game time freezes the simulation.
 - With `r_bloom 1`, compare the saber/glow position inside and outside drops;
   check bright lights and rapid turns (drops stay fixed on the screen).
 - FOV changes, resolutions, ultrawide, and `r_rainLensDropSize 0.25` (small

@@ -13,26 +13,28 @@ void main()
 // for optional scene bloom extraction, and the screen fixed drops never enter
 // the temporal history. The dedicated emissive MRT is separate.
 //
-// Everything is procedural and deterministic in lens (screen) space, sized
-// relative to the screen height so resolution, ultrawide and FOV changes
+// The default mode is procedural and deterministic in lens (screen) space,
+// sized relative to the screen height so resolution, ultrawide and FOV changes
 // keep the drop size:
 //  - layer A: small beads in a dense hashed grid, each with its own life
 //    cycle (grow in, sit, evaporate);
 //  - layer B: sparse large drops, one per column and cycle, that stick for a
 //    while and then slide down with a stick-slip motion, stretched into a
 //    tail and leaving a thin drying trail that wipes the beads it crosses.
-// A drop is a spherical cap: its analytic slope bends the view (magnified,
+// A procedural drop is a spherical cap: its analytic slope bends the view (magnified,
 // inverted image of what is behind it) and a small local disc blur defocuses
-// it. The rim is slightly darker (Fresnel), the glint scales with the local
+// it. The rim is slightly darker, the glint scales with the local
 // scene luminance, so there are no white spots and no global darkening.
 //
 // Drops born after the camera last saw the rain (u_RainLensParams2.x) are
 // never shown, the ones already on the lens drain quickly: going under a
-// roof stops new drops without any persistent state.
+// roof stops new procedural drops. USE_SIMULATION instead reads persistent
+// mass and wetness from a small lattice texture.
 //
 // USE_DEBUG: r_rainLensDebug views, displayed as they are (no tone map).
 
 uniform sampler2D u_ScreenImageMap; // HDR scene
+uniform sampler2D u_TextureMap;     // persistent water state in USE_SIMULATION
 
 uniform vec4 u_RainLensParams;  // x = lens time (s), y = density (amount * intensity * wet), z = refraction, w = scale
 uniform vec4 u_RainLensParams2; // x = last exposed time, y = drain time; zw = debug/encoding or field dimensions
@@ -227,6 +229,28 @@ float Luminance(vec3 c)
 
 void main()
 {
+#if defined(USE_SIMULATION)
+	{
+		vec2 fieldSize = u_RainLensParams2.zw;
+		vec2 uv = gl_FragCoord.xy / fieldSize;
+		vec2 texel = 1.0 / vec2(textureSize(u_TextureMap, 0));
+		vec4 water = texture(u_TextureMap, uv);
+		float mass = max(water.r, 0.0);
+		float mask = smoothstep(0.06, 0.34, mass);
+		float film = clamp(water.a * 0.18, 0.0, 0.25) * (1.0 - mask);
+		float aspect = fieldSize.x / fieldSize.y;
+		vec2 gradient = 0.5 * vec2(
+			texture(u_TextureMap, uv + vec2(texel.x, 0.0)).r -
+			texture(u_TextureMap, uv - vec2(texel.x, 0.0)).r,
+			texture(u_TextureMap, uv + vec2(0.0, texel.y)).r -
+			texture(u_TextureMap, uv - vec2(0.0, texel.y)).r);
+		vec2 offset = -gradient * vec2(0.07 / aspect, 0.07) * mask;
+		offset.y += 0.002 * film;
+		float radiusUV = mix(0.012, 0.055, clamp(mass / 1.2, 0.0, 1.0));
+		out_Color = vec4(offset, max(mask, film), radiusUV * 0.18 * mask);
+		return;
+	}
+#endif
 #if defined(USE_FIELD)
 	vec2 screenSize = u_RainLensParams2.zw;
 #else

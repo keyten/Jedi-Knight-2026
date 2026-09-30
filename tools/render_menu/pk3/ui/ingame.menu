@@ -2536,14 +2536,18 @@ itemDef { name setting_2 rect 252 130 378 19
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
       forecolor 0.72 0.82 1 1 text "Rain drops on camera lens *" group render2026_restart descText "Performance: medium | Restart" cvar "ui_r2026_r_rainLens" cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_3 rect 252 154 378 19
-      type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
+      type ITEM_TYPE_MULTI style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
-      forecolor 0.72 0.82 1 1 text "Lens rain density" group render2026 descText "Performance: medium | Range: 0 to 1 | Live" cvarFloat "ui_r2026_r_rainLensDensity" 0.5 0 1 }
+      forecolor 0.72 0.82 1 1 text "Persistent lens water *" group render2026_restart descText "Performance: medium | Restart" cvar "ui_r2026_r_rainLensSimulation" cvarFloatList { "Off" 0 "On" 1 } }
 itemDef { name setting_4 rect 252 178 378 19
       type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
-      forecolor 0.72 0.82 1 1 text "Lens rain refraction strength" group render2026 descText "Performance: medium | Range: 0 to 4 | Live" cvarFloat "ui_r2026_r_rainLensRefraction" 1.0 0 4 }
+      forecolor 0.72 0.82 1 1 text "Lens rain density" group render2026 descText "Performance: medium | Range: 0 to 1 | Live" cvarFloat "ui_r2026_r_rainLensDensity" 0.5 0 1 }
 itemDef { name setting_5 rect 252 202 378 19
+      type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
+      textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
+      forecolor 0.72 0.82 1 1 text "Lens rain refraction strength" group render2026 descText "Performance: medium | Range: 0 to 4 | Live" cvarFloat "ui_r2026_r_rainLensRefraction" 1.0 0 4 }
+itemDef { name setting_6 rect 252 226 378 19
       type ITEM_TYPE_SLIDER style WINDOW_STYLE_EMPTY visible 1 font 4 textscale 0.60
       textalign ITEM_ALIGN_RIGHT textalignx 200 textaligny 0
       forecolor 0.72 0.82 1 1 text "Lens drop size" group render2026 descText "Performance: medium | Range: 0.25 to 4 | Live" cvarFloat "ui_r2026_r_rainLensDropSize" 1.0 0.25 4 }

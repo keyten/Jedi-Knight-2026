@@ -301,6 +301,7 @@ extern cvar_t  *r_contactShadowThickness;
 extern cvar_t  *r_contactShadowStrength;
 
 extern cvar_t  *r_rainLens;
+extern cvar_t  *r_rainLensSimulation;
 extern cvar_t  *r_rainLensDensity;
 extern cvar_t  *r_rainLensRefraction;
 extern cvar_t  *r_rainLensDropSize;
@@ -2049,6 +2050,7 @@ enum
 	RAINLENSDEF_DEFAULT	= 0,
 	RAINLENSDEF_DEBUG	= 1,	// r_rainLensDebug views
 	RAINLENSDEF_FIELD	= 2,	// lower resolution droplet geometry
+	RAINLENSDEF_SIMULATION = 3,	// persistent water state to lens field
 	RAINLENSDEF_COUNT
 };
 
@@ -3679,6 +3681,7 @@ typedef struct trGlobals_s {
 	image_t					*motionBlurImage;	// motion blur output (HDR)
 	image_t					*rainLensImage;		// lens rain output (HDR)
 	image_t					*rainLensFieldImage;	// lower resolution offset, mask, blur field
+	image_t					*rainLensSimImage;	// persistent CPU-simulated mass and wetness
 	image_t					*froxelInjectImage[2];	// froxel fog: injected + temporally filtered media (history ping-pong)
 	image_t					*froxelDynamicImage;	// froxel fog: dynamic light in-scattering of this frame (no history)
 	image_t					*froxelParticleLightImage;	// froxel fog: incident light of the sprite particles (r_particleLighting), no sigma / albedo
@@ -5354,6 +5357,10 @@ void RB_MotionBlurDebugOverlay(void);
 
 // tr_rainlens.cpp
 void R_CreateRainLensImages(int width, int height, int hdrFormat);
+void R_RainLensSimInit(int width, int height);
+void R_RainLensSimClear(void);
+qboolean RB_RainLensSimUpdate(float dt, float exposure);
+qboolean RB_RainLensSimUpload(void);
 float R_RainLensExposure(const trRefdef_t *refdef, const viewParms_t *viewParms);
 qboolean RB_RainLensUpdate(float exposure);
 void RB_RainLens(FBO_t *srcFbo, float exposure);

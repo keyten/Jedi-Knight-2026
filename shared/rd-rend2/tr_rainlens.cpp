@@ -31,8 +31,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
 // Active only for the main world view of the first scene while it rains
 // and the camera is outside (R_IsOutside, decided on the front end). The
-// drops themselves are procedural in the shader; the only backend state is
-// the lens clock, the last time the camera saw the rain and a short ramp up.
+// default drops are procedural; r_rainLensSimulation keeps water on a small
+// CPU lattice and uploads it to the same lens-field/optics path.
 
 #include "tr_local.h"
 #include "tr_weather.h"
@@ -66,6 +66,7 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	R_RainLensResetState();
 	tr.rainLensImage = NULL;
 	tr.rainLensFieldImage = NULL;
+	tr.rainLensSimImage = NULL;
 
 	if ( !r_rainLens->integer )
 		return;
@@ -85,6 +86,15 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensFieldImage = R_CreateImage(
 		"*rainLensField", NULL, fieldWidth, fieldHeight, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+	if (r_rainLensSimulation->integer)
+	{
+		const int simHeight = 256;
+		const int simWidth = Q_max(1, width * simHeight / height);
+		tr.rainLensSimImage = R_CreateImage(
+			"*rainLensSim", NULL, simWidth, simHeight, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+		R_RainLensSimInit(simWidth, simHeight);
+	}
 }
 
 /*
@@ -170,7 +180,8 @@ qboolean RB_RainLensUpdate( float exposure )
 {
 	s_debugOutput = qfalse;
 
-	if ( !tr.rainLensImage || !tr.rainLensFbo || !tr.rainLensFieldImage || !tr.rainLensFieldFbo )
+	if ( !tr.rainLensImage || !tr.rainLensFbo || !tr.rainLensFieldImage || !tr.rainLensFieldFbo
+		|| (r_rainLensSimulation->integer && !tr.rainLensSimImage) )
 		return qfalse;
 
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
@@ -189,6 +200,8 @@ qboolean RB_RainLensUpdate( float exposure )
 		// cut: no drops carried over
 		s_lastExposedTime = s_lensTime - 1000.0f;
 		s_wet = 0.0f;
+		if (r_rainLensSimulation->integer)
+			R_RainLensSimClear();
 	}
 	else
 	{
@@ -205,6 +218,11 @@ qboolean RB_RainLensUpdate( float exposure )
 	}
 
 	const float dt = (delta > 0 && delta <= 1000) ? delta * 0.001f : 0.0f;
+	if (r_rainLensSimulation->integer)
+	{
+		const qboolean active = RB_RainLensSimUpdate(dt, exposure);
+		return (qboolean)(active || r_rainLensDebug->integer);
+	}
 	if ( exposure > 0.0f )
 	{
 		s_lastExposedTime = s_lensTime;
@@ -231,10 +249,11 @@ qboolean RB_RainLensUpdate( float exposure )
 RB_RainLens
 
 srcFbo holds the HDR scene (MSAA resolved, temporally resolved and motion
-blurred). Evaluates the procedural geometry into a lower resolution field,
+blurred). Evaluates droplet geometry into a lower resolution field,
 then refracts the HDR scene into rainLensImage. The caller uses rainLensFbo
-for subsequent color passes. Debug views use the original direct shader and
-are drawn by RB_RainLensDebugOverlay.
+for subsequent color passes. Procedural debug views use the original direct
+shader; simulation debug views use the field composite. Both are drawn by
+RB_RainLensDebugOverlay.
 =============
 */
 void RB_RainLens( FBO_t *srcFbo, float exposure )
@@ -263,7 +282,7 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 		Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value));
 	VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
 		(float)debugView, tr.linearLight ? 0.0f : 1.0f);
-	if ( debugView )
+	if ( debugView && !r_rainLensSimulation->integer )
 	{
 		FBO_Bind(tr.rainLensFbo);
 		GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
@@ -277,15 +296,23 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 	}
 	else
 	{
-		FBO_Bind(tr.rainLensFieldFbo);
-		GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
-		shaderProgram_t *field = &tr.rainLensShader[RAINLENSDEF_FIELD];
-		GLSL_BindProgram(field);
-		VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
-			(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
-		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS, params);
-		GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS2, params2);
-		RB_InstantTriangle();
+		const qboolean simulation = (qboolean)r_rainLensSimulation->integer;
+		const qboolean updateField = (qboolean)(!simulation || RB_RainLensSimUpload());
+		if (updateField)
+		{
+			FBO_Bind(tr.rainLensFieldFbo);
+			GL_SetViewportAndScissor(0, 0, tr.rainLensFieldFbo->width, tr.rainLensFieldFbo->height);
+			shaderProgram_t *field = &tr.rainLensShader[
+				simulation ? RAINLENSDEF_SIMULATION : RAINLENSDEF_FIELD];
+			GLSL_BindProgram(field);
+			if (simulation)
+				GL_BindToTMU(tr.rainLensSimImage, TB_COLORMAP);
+			VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
+				(float)tr.rainLensFieldFbo->width, (float)tr.rainLensFieldFbo->height);
+			GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS, params);
+			GLSL_SetUniformVec4(field, UNIFORM_RAINLENSPARAMS2, params2);
+			RB_InstantTriangle();
+		}
 
 		FBO_Bind(tr.rainLensFbo);
 		GL_SetViewportAndScissor(0, 0, tr.rainLensFbo->width, tr.rainLensFbo->height);
@@ -294,7 +321,12 @@ void RB_RainLens( FBO_t *srcFbo, float exposure )
 		GL_BindToTMU(srcFbo->colorImage[0], TB_COLORMAP);
 		GL_BindToTMU(tr.rainLensFieldImage, TB_LIGHTMAP);
 		GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params);
+		VectorSet4(params2, s_lastExposedTime, RAIN_LENS_DRAIN_SECONDS,
+			(float)debugView, tr.linearLight ? 0.0f : 1.0f);
+		GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS2, params2);
 		RB_InstantTriangle();
+		if (debugView)
+			s_debugOutput = qtrue;
 	}
 
 	RB_RainLensEndTimer(timer);

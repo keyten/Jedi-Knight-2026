@@ -5175,6 +5175,33 @@
     ]
   },
   {
+    "var": "r_rainLensSimulation",
+    "default": "0",
+    "restart": true,
+    "description": "persistent water simulation; requires r_rainLens 1 and vid_restart.",
+    "name": "r_rainLensSimulation",
+    "category": "Rain & wet surfaces",
+    "section": "Rain on the camera lens",
+    "spec": "0 | 1",
+    "range": [
+      0.0,
+      1.0,
+      true
+    ],
+    "label": "Persistent lens water",
+    "performance": "medium",
+    "enum": [
+      [
+        "Off",
+        0
+      ],
+      [
+        "On",
+        1
+      ]
+    ]
+  },
+  {
     "var": "r_rainLensDensity",
     "default": "0.5",
     "restart": false,

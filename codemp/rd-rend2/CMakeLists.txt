@@ -29,6 +29,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_ao.cpp"
 	"${SharedDir}/rd-rend2/tr_motionblur.cpp"
 	"${SharedDir}/rd-rend2/tr_rainlens.cpp"
+	"${SharedDir}/rd-rend2/tr_rainlens_sim.cpp"
 	"${SharedDir}/rd-rend2/tr_autopbr.cpp"
 	"${SharedDir}/rd-rend2/tr_foliage.cpp"
 	"${SharedDir}/rd-rend2/tr_leafflutter.cpp"

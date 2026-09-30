@@ -1157,6 +1157,7 @@ Adds persistent beads, sliding droplets, trails and refraction on the camera whi
 
 **Main controls**
 - `r_rainLens 0 | 1` — disable / enable lens droplets. Requires `vid_restart`.
+- `r_rainLensSimulation 0 | 1` — use persistent water mass, velocity and wetness on a small lens grid; requires `r_rainLens 1` and `vid_restart`.
 
 **Other controls**
 - `r_rainLensDensity 0..1` — droplet density.
