@@ -112,19 +112,33 @@ static void Step(float exposure)
 	{
 		const float cx = Random01() * s_width;
 		const float cy = Random01() * s_height;
-		const float radius = (1.8f + 2.5f * Random01()) *
-			Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value);
+		const float baseRadius = 1.8f + 2.5f * Random01();
+		const float sizeScale = Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value);
+		const float radius = baseRadius * sizeScale;
 		const float amount = 0.30f + 0.50f * Random01();
 		const int minX = Q_max(0, (int)floorf(cx - radius * 2.0f));
 		const int maxX = Q_min(s_width - 1, (int)ceilf(cx + radius * 2.0f));
 		const int minY = Q_max(0, (int)floorf(cy - radius * 2.0f));
 		const int maxY = Q_min(s_height - 1, (int)ceilf(cy + radius * 2.0f));
+		float weightSum = 0.0f;
 		for (int y = minY; y <= maxY; ++y)
 		for (int x = minX; x <= maxX; ++x)
 		{
 			const float dx = (x + 0.5f - cx) / radius;
 			const float dy = (y + 0.5f - cy) / radius;
-			const float mass = amount * expf(-1.5f * (dx * dx + dy * dy));
+			weightSum += expf(-1.5f * (dx * dx + dy * dy));
+		}
+		// This height-field uses local mass for both optics and pinning.
+		// Explicit area scaling keeps large caps raised and small beads visible.
+		// Normalize the raster weights so clipping at the edge is predictable.
+		const float massScale = amount * (2.0f * 3.14159265f / 3.0f) *
+			radius * radius / Q_max(weightSum, 1e-6f);
+		for (int y = minY; y <= maxY; ++y)
+		for (int x = minX; x <= maxX; ++x)
+		{
+			const float dx = (x + 0.5f - cx) / radius;
+			const float dy = (y + 0.5f - cy) / radius;
+			const float mass = massScale * expf(-1.5f * (dx * dx + dy * dy));
 			s_next[y * s_width + x].mass += mass;
 		}
 	}

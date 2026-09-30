@@ -34,7 +34,8 @@ above zero.
 a dedicated target: `tr.rainLensImage` (full resolution, same HDR format as
 `renderImage`) plus `tr.rainLensFbo`. A transient `RGBA16F` lens field stores
 offset, coverage and blur radius at half screen height (at least 540 pixels,
-unless the display is smaller). They're allocated only with `r_rainLens 1`
+unless the display is smaller) for procedural drops. Persistent mode uses a
+256-pixel-high field, matching its simulation lattice. They're allocated only with `r_rainLens 1`
 (latched) and `r_hdr 1`. The field pass evaluates droplet state once per field
 pixel; the full resolution pass composites it with `srcFbo->colorImage[0]`.
 Modern bloom prefilter samples the same field for emissive refraction.
@@ -66,7 +67,9 @@ resets once the lens has drained under cover. A cut clears it.
 
 `r_rainLensSimulation 1` selects persistent water. A 256-cells-high lens
 lattice stores mass, velocity and wetness, updated at 30 Hz in game time.
-Impacts add water; mass and momentum flow conservatively to neighbors and
+Impact water is distributed by normalized kernel weights, with total mass
+scaling explicitly with drop area because local mass represents cap height.
+Mass and momentum flow conservatively to neighbors and
 merge there. Small deposits pin to the surface, while wet paths lower the
 pinning threshold and retain thin trails. Gravity is projected from world
 down onto the camera's right/up axes, so roll changes flow direction and
@@ -82,7 +85,9 @@ Everything lives in lens space, normalised by the screen **height**, so the drop
 size holds across resolutions, ultrawide and FOV changes.
 - **Beads:** a hashed 13-cells-per-height grid. Each cell has a life cycle of
   4–10 s (grow, sit, evaporate/shrink). There's a density test per cycle.
-- **Sliders:** 4.5 columns per height, one drop per column per 14–18 s cycle. A
+- **Sliders:** 4.5 columns per height, one drop per column per cycle. Its lifetime
+  depends on starting height, stick time, speed and screen height, so the drop
+  leaves the screen before the next cycle even at small drop sizes. A
   drop sticks for 0.8–3.5 s, then slides with stick-slip motion
   `travel = v(s − 0.9·sin(2πns)/(2πn))`. It gets a tail stretched by its speed,
   a thin trail anchored to the drop's path that dries according to approximate
@@ -112,7 +117,7 @@ size holds across resolutions, ultrawide and FOV changes.
 | `r_rainLensDensity` | 0.5 | density |
 | `r_rainLensRefraction` | 1.0 | |
 | `r_rainLensDropSize` | 1.0 | drop size |
-| `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. 1 = coverage (red) / blur radius (green) in simulation mode, mask / trail film in procedural mode; 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
+| `r_rainLensDebug` | 0 | cheat. Forces the effect on everywhere. Shows the production field: 1 = coverage (red) / blur radius (green); 2 = normal, 3 = UV offset ×40, 4 = scene / composition split |
 
 GPU time: `r_speeds 100` shows the "Rain lens" timed block.
 

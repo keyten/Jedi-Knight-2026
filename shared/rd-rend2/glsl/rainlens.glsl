@@ -131,9 +131,12 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 
 	float column = floor(p.x);
 	vec3 h0 = Hash33(vec3(column, 0.0, 41.0));
-	// Even the slowest drop has time to leave the screen, including its tail,
-	// before the next cycle replaces it.
-	float life = mix(14.0, 18.0, h0.x);
+	float y0 = heightCells * mix(0.35, 1.05, h0.z);
+	float stick = mix(0.8, 3.5, h0.y);
+	float speed = mix(0.6, 1.4, h0.x); // cells per second
+	// Leave enough time to cross the screen and let the trail dry at every
+	// drop-size setting. The small margin also covers stick-slip travel.
+	float life = stick + (y0 + 0.5) / speed + 2.2;
 	float t = time + h0.y * life;
 	float cycle = floor(t / life);
 	float age = fract(t / life) * life; // seconds
@@ -150,14 +153,11 @@ vec4 Slider(vec2 p, float time, float density, float heightCells, out float radi
 	float baseRadius = mix(0.2, 0.34, h.x);
 	float radius = baseRadius;
 	float x0 = column + 0.5 + (h.y - 0.5) * 0.3;
-	float y0 = heightCells * mix(0.35, 1.05, Hash33(vec3(column, cycle, 59.0)).x);
 
 	// stick, then slide with a stick-slip motion; once the camera is under
 	// cover the drop lets go at once and runs off faster
-	float stick = mix(0.8, 3.5, h.y);
 	float drained = max(time - u_RainLensParams2.x, 0.0);
 	float s = max(age - stick, 0.0) + drained * 2.0;
-	float speed = mix(0.6, 1.4, h.x); // cells per second
 	float n = 1.3;
 	float travel = speed * (s - 0.9 * sin(6.2831853 * n * s) / (6.2831853 * n));
 	float velocity = speed * (1.0 - 0.9 * cos(6.2831853 * n * s)) * step(0.0, s - 1e-4);
@@ -244,9 +244,15 @@ void main()
 			texture(u_TextureMap, uv - vec2(texel.x, 0.0)).r,
 			texture(u_TextureMap, uv + vec2(0.0, texel.y)).r -
 			texture(u_TextureMap, uv - vec2(0.0, texel.y)).r);
-		vec2 offset = -gradient * vec2(0.07 / aspect, 0.07) * mask;
-		offset.y += 0.002 * film;
 		float radiusUV = mix(0.012, 0.055, clamp(mass / 1.2, 0.0, 1.0));
+		// Encode the same slope/offset relation as the procedural field so
+		// the shared composite recovers the actual optical normal.
+		// The mass gradient points toward the cap center; the procedural
+		// spherical-cap slope points outward.
+		vec2 slope = -gradient * (0.07 / (radiusUV * REFRACTION_SCALE));
+		vec2 offset = -slope * radiusUV * REFRACTION_SCALE * mask;
+		offset.x /= aspect;
+		offset.y += 0.002 * film;
 		out_Color = vec4(offset, max(mask, film), radiusUV * 0.18 * mask);
 		return;
 	}

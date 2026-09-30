@@ -24,7 +24,7 @@ void main()
 	if (u_RainLensParams.x > 0.5)
 	{
 		vec4 lens = texture(u_ScreenImageMap, sourceUV);
-		sourceUV = clamp(sourceUV + lens.xy * u_RainLensParams.z * clamp(lens.z, 0.0, 1.0),
+		sourceUV = clamp(sourceUV + lens.xy * u_RainLensParams.z,
 			vec2(0.0), vec2(1.0));
 	}
 	// Based on "Next Generation Post Processing in Call of Duty: Advanced Warfare":
@@ -37,7 +37,7 @@ void main()
 	color += 0.25 * 0.5 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2( 1.0, -1.0)));
 	color += 0.25 * 0.125 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2(-2.0,  0.0)));
 	color += 0.125 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2( 0.0,  0.0)));
-	color += 0.25 * 0.125 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2( 2.0, -2.0)));
+	color += 0.25 * 0.125 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2( 2.0,  0.0)));
 	color += 0.25 * 0.5 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2(-1.0,  1.0)));
 	color += 0.25 * 0.5 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2( 1.0,  1.0)));
 	color += 0.25 * 0.125 * texture(u_TextureMap, sourceUV + (u_InvTexRes * vec2(-2.0,  2.0)));
