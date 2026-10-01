@@ -497,7 +497,8 @@ static void R_ForwardPlusSelectShadows( const trRefdef_t *refdef )
 		score[i] = s_fp.importance[i] * (history[i] >= 0 ? 1.3f : 1.0f);
 		// A dynamic saber line owns a point-shadow cube at its centre. Its
 		// surface lighting remains LTC; there is no second point light.
-		if ( dl->areaType == DLIGHT_LINE && (dl->areaFlags & AREALIGHT_DYNAMIC) )
+		if ( dl->areaType == DLIGHT_LINE && (dl->areaFlags & AREALIGHT_DYNAMIC) &&
+			r_ltcSaberShadows->integer != 0 )
 		{
 			const float radius = Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f);
 			const float distSq = DistanceSquared(dl->origin, refdef->vieworg);
@@ -943,13 +944,19 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 				dl->spotCosInner, projected);
 		}
 		else
-			VectorSet4(t + 8, (float)s_fp.shadowSlot[i], (float)dl->areaFlags, dl->halfWidth, dl->halfHeight);
+			VectorSet4(t + 8,
+				dl->areaType == DLIGHT_RECT ? (float)dl->areaShadowSlot : (float)s_fp.shadowSlot[i],
+				(float)dl->areaFlags, dl->halfWidth, dl->halfHeight);
 		if ( dl->areaType != DLIGHT_POINT )
 		{
 			// the window reaches range = cull radius - half diagonal
 			t[3] = dl->radius - dl->areaHalfDiagonal;
 			VectorSet4(t + 12, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], dl->radius);
-			VectorSet4(t + 16, dl->areaUp[0], dl->areaUp[1], dl->areaUp[2], 0.0f);
+			VectorSet4(t + 16, dl->areaUp[0], dl->areaUp[1], dl->areaUp[2],
+				dl->areaDynamicShadowSlot >= 0 ?
+					(dl->areaType == DLIGHT_LINE ? (float)dl->areaDynamicShadowSlot :
+						(float)(R_LtcShadowCacheSlots() * LTC_STATIC_SHADOW_SAMPLES +
+							dl->areaDynamicShadowSlot * LTC_STATIC_SHADOW_SAMPLES)) : -1.0f);
 		}
 		else
 		{
@@ -1019,7 +1026,7 @@ void RB_ForwardPlusBindTextures( SamplerBindingsWriter& samplers )
 
 qboolean RB_ForwardPlusDebugBypassesToneMap( void )
 {
-	if ( R_AreaLightsActive() && r_ltcDebug->integer >= 1 && r_ltcDebug->integer <= 8 &&
+	if ( R_AreaLightsActive() && r_ltcDebug->integer >= 1 && r_ltcDebug->integer <= 14 &&
 		r_ltcDebug->integer != 6 && r_ltcDebug->integer != 7 )
 	{
 		return qtrue;	// r_ltcDebug views written unlit

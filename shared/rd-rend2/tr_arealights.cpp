@@ -150,7 +150,7 @@ void R_AreaLightsBeginFrame( void )
 
 float R_AreaLightsDebugParam( void )
 {
-	return s_al.active ? (float)Com_Clampi(0, 8, r_ltcDebug->integer) : 0.0f;
+	return s_al.active ? (float)Com_Clampi(0, 14, r_ltcDebug->integer) : 0.0f;
 }
 
 /*
@@ -181,6 +181,8 @@ void RB_AreaLightsBindTextures( SamplerBindingsWriter& samplers )
 {
 	samplers.AddStaticImage(tr.ltcMatrixImage, TB_LTC_MATRIX);
 	samplers.AddStaticImage(tr.ltcAmplitudeImage, TB_LTC_AMPLITUDE);
+	if (tr.ltcShadowArrayImage)
+		samplers.AddStaticImage(tr.ltcShadowArrayImage, TB_LTC_SHADOW);
 }
 
 /*
@@ -391,6 +393,7 @@ static void R_LoadAreaLightFile( void )
 
 void R_LoadAreaLights( const char *mapName )
 {
+	R_LtcShadowInvalidate();
 	Q_strncpyz(s_al.mapName, mapName ? mapName : "", sizeof(s_al.mapName));
 	R_ClearAreaCandidates();
 	R_LoadAreaLightFile();
@@ -399,6 +402,7 @@ void R_LoadAreaLights( const char *mapName )
 
 void R_ClearAreaLights( void )
 {
+	R_LtcShadowInvalidate();
 	s_al.lights.clear();
 	R_ClearAreaCandidates();
 	s_al.mapName[0] = '\0';
@@ -415,6 +419,7 @@ void R_ReloadAreaLights_f( void )
 		ri.Printf(PRINT_ALL, "r_ltcReloadLights: no map loaded\n");
 		return;
 	}
+	R_LtcShadowInvalidate();
 	R_LoadAreaLightFile();
 	R_CacheMapAreaLightMetrics();
 	if ( s_al.lights.empty() )
@@ -448,6 +453,8 @@ static dlight_t *R_AddAreaDlight( int type, const vec3_t center, const vec3_t ri
 	dl->areaType = type;
 	dl->areaFlags = flags;
 	dl->areaId = id;
+	dl->areaShadowSlot = -1;
+	dl->areaDynamicShadowSlot = -1;
 	VectorCopy(right, dl->areaRight);
 	VectorCopy(up, dl->areaUp);
 	dl->halfWidth = halfWidth;

@@ -110,6 +110,15 @@ typedef unsigned int glIndex_t;
 #define LEGACY_DLIGHT_LIMIT   MAX_DLIGHTS
 #define MAX_RENDER_DLIGHTS    256
 #define MAX_DLIGHT_SHADOWS    MAX_DLIGHTS
+
+#define LTC_STATIC_SHADOW_SIZE 128
+#define LTC_STATIC_SHADOW_SAMPLES 4
+#define LTC_STATIC_CACHE_SLOTS 64
+#define LTC_DYNAMIC_SHADOW_LIGHTS 4
+#define LTC_SCREEN_SABERS 2
+#define LTC_SHADOW_LAYERS_PER_LIGHT (LTC_STATIC_SHADOW_SAMPLES * 6)
+#define LTC_EXTRA_SHADOW_LAYERS (LTC_DYNAMIC_SHADOW_LIGHTS * LTC_SHADOW_LAYERS_PER_LIGHT + LTC_SCREEN_SABERS * 12)
+#define LTC_MAX_SHADOW_VIEWS (LTC_SHADOW_LAYERS_PER_LIGHT * (1 + LTC_DYNAMIC_SHADOW_LIGHTS) + LTC_SCREEN_SABERS * 12)
 #define CUBE_MAP_MIPS      8
 #define CUBE_MAP_ROUGHNESS_MIPS CUBE_MAP_MIPS - 2
 #define CUBE_MAP_SIZE      (1 << CUBE_MAP_MIPS)
@@ -473,6 +482,8 @@ extern cvar_t  *r_ltcStaticDiffuse;
 extern cvar_t  *r_ltcMaxLights;
 extern cvar_t  *r_ltcAutoAreaLights;
 extern cvar_t  *r_ltcSaberAreaLights;
+extern cvar_t  *r_ltcStaticShadows;
+extern cvar_t  *r_ltcSaberShadows;
 
 extern cvar_t  *r_normalMapping;
 extern cvar_t  *r_specularMapping;
@@ -794,6 +805,8 @@ typedef struct dlight_s {
 	int		areaType;			// DLIGHT_POINT, DLIGHT_RECT, DLIGHT_LINE
 	int		areaFlags;			// AREALIGHT_*
 	int		areaId;				// map light index, -1 = scene (dynamic) light
+	int		areaShadowSlot;		// cached rectangle shadow slot, -1 = unavailable
+	int		areaDynamicShadowSlot;	// character-only overlay slot, -1 = unavailable
 	vec3_t	areaRight;			// unit
 	vec3_t	areaUp;				// unit (LINE: unused, rebuilt per pixel)
 	float	halfWidth;			// along right (LINE: half length)
@@ -1495,6 +1508,9 @@ enum
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 21, else r_ltcAreaLights stays off.
 	TB_LTC_MATRIX    = 20,
 	TB_LTC_AMPLITUDE = 21,
+	// lightall only; these units overlap volume-only extinction/carry samplers
+	TB_LTC_SHADOW    = 27,
+	TB_LTC_SABER_SCREEN = 28,
 
 	// per stage skin scatter mask of lightall (tr_skinsss.cpp, skinMask keyword).
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 22, else masks are ignored.
@@ -2470,6 +2486,13 @@ typedef enum
 
 	UNIFORM_LTCMATRIXMAP,		// LTC area lights: tr.ltcMatrixImage (USE_LTC)
 	UNIFORM_LTCAMPLITUDEMAP,	// LTC area lights: tr.ltcAmplitudeImage (USE_LTC)
+	UNIFORM_LTCSHADOWMAP,
+	UNIFORM_LTCSABERSCREENMAP,
+	UNIFORM_LTCSCREENPARAMS,
+	UNIFORM_LTCSABER0,
+	UNIFORM_LTCSABERAXIS0,
+	UNIFORM_LTCSABER1,
+	UNIFORM_LTCSABERAXIS1,
 
 	UNIFORM_WEATHERDEPTHMAP,	// r_weatherWetness: tr.weatherDepthImage
 	UNIFORM_WEATHERMVP,			// world -> weather depth clip space
@@ -2644,6 +2667,9 @@ enum viewParmFlag_t {
 	VPF_SHADOWCASCADES	= 0x100,// Rendering sun shadow cascades
 	VPF_NOCLEAR			= 0x200,
 	VPF_NODIFFUSEIBL	= 0x400, // Probe captures must not sample partially generated irradiance
+	VPF_LTC_STATIC_SHADOW = 0x800,
+	VPF_LTC_DYNAMIC_SHADOW = 0x1000,
+	VPF_LTC_SABER_SHADOW = 0x2000,
 };
 using viewParmFlags_t = uint32_t;
 
@@ -2652,6 +2678,7 @@ enum viewParmType_t {
 	VPT_SUN_SHADOWS,
 	VPT_PLAYER_SHADOWS,
 	VPT_POINT_SHADOWS,
+	VPT_LTC_SHADOWS,
 	VPT_PORTAL,
 	VPT_MAIN,
 	VPT_ALL
@@ -3708,6 +3735,12 @@ typedef struct trGlobals_s {
 	image_t					*envBrdfImage;
 	image_t					*ltcMatrixImage;	// LTC inverse matrix (tr_ltc_data.h)
 	image_t					*ltcAmplitudeImage;	// LTC norm, fresnel, sphere form factor
+	image_t					*ltcShadowArrayImage;
+	FBO_t					*ltcShadowScratchFbo;
+	image_t					*ltcSaberTraceImage;
+	image_t					*ltcSaberHistoryImage[2];
+	image_t					*ltcSaberHistoryDepthImage[2];
+	image_t					*ltcSaberScreenImage;
 	image_t					*probeAverageImage;
 	image_t					*textureDepthImage;
 	image_t					*weatherDepthImage;
@@ -3798,6 +3831,9 @@ typedef struct trGlobals_s {
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth
 	FBO_t					*ssrColorFbo[SSR_COLOR_MIPS];
+	FBO_t					*ltcSaberTraceFbo;
+	FBO_t					*ltcSaberHistoryFbo[2];
+	FBO_t					*ltcSaberScreenFbo;
 	FBO_t					*ssrTraceFbo[2];
 	FBO_t					*ssrResolveFbo;
 	FBO_t					*ssrHistoryFbo[2];
@@ -3901,6 +3937,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
+	shaderProgram_t ltcSaberScreenShader[3];
 	shaderProgram_t ssrResolveShader;
 	shaderProgram_t ssrTemporalShader;
 	shaderProgram_t ssrCompositeShader;
@@ -3928,7 +3965,7 @@ typedef struct trGlobals_s {
 	size_t defaultFogsUboOffset;
 	size_t defaultShaderInstanceUboOffset;
 
-	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS];
+	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
 	long sceneUboOffset;
 	long temporalInfoUboOffset;
 	long lightsUboOffset;
@@ -3950,7 +3987,7 @@ typedef struct trGlobals_s {
 	// -----------------------------------------
 
 	viewParms_t				viewParms;
-	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS];
+	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
 	int						numCachedViewParms;
 	qboolean				portalRenderedThisFrame;
 
@@ -4320,6 +4357,8 @@ int R_CullPointAndRadius( const vec3_t origin, float radius );
 int R_CullLocalPointAndRadius( const vec3_t origin, float radius );
 
 void R_SetupProjection(viewParms_t *dest, float zProj, float zFar, qboolean computeFrustum);
+void R_RotateForViewer(orientationr_t *ori, viewParms_t *viewParms);
+void R_SetupProjectionZ(viewParms_t *dest);
 void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *ori );
 void R_BindAnimatedImageToTMU( textureBundle_t *bundle, int tmu );
 
@@ -5645,6 +5684,20 @@ void R_ForwardPlusBeginFrame(void);
 void R_ForwardPlusAddTestLights(const refdef_t *fd);
 void R_ForwardPlusNoteDroppedLight(void);
 void R_ForwardPlusPrepareScene(const trRefdef_t *refdef);
+void R_LtcShadowInvalidate(void);
+void R_LtcShadowGatherViews(trRefdef_t *refdef);
+int R_LtcShadowCacheSlots(void);
+void R_LtcShadowStats_f(void);
+void R_LtcSaberScreenStats_f(void);
+void R_LtcSaberScreenInvalidate(void);
+struct screenViewInfo_t;
+qboolean R_LtcSaberScreenResourcesEnabled(void);
+void R_LtcSaberScreenSelectResources(void);
+void R_CreateLtcSaberScreenImages(int width, int height);
+void R_CreateLtcSaberScreenFBOs(void);
+qboolean RB_LtcSaberScreenReady(void);
+void RB_RenderLtcSaberScreen(const screenViewInfo_t& info);
+void RB_ScreenPrepareSaberDepth(void);
 int R_ForwardPlusNumShadowSlots(void);
 int R_ForwardPlusShadowSlotLight(int slot);
 int R_ForwardPlusLightShadowSlot(int light);

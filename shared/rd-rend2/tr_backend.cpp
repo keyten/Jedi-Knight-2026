@@ -581,6 +581,9 @@ void RB_BeginDrawingView (void) {
 		targetFBO = tr.renderFbo;
 	}
 	FBO_Bind(targetFBO);
+	if (targetFBO == tr.ltcShadowScratchFbo)
+		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+			tr.ltcShadowArrayImage->texnum, 0, backEnd.viewParms.targetFboLayer);
 
 	//
 	// set the modelview matrix for the viewer
@@ -2377,7 +2380,10 @@ static void RB_RenderAllDepthRelatedPasses( drawSurf_t *drawSurfs, int numDrawSu
 		return;
 	}
 
-	if ( !r_depthPrepass->integer && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) )
+	if ( !r_depthPrepass->integer &&
+		!(r_ltcSaberShadows->integer == 2 &&
+			backEnd.viewParms.viewParmType == VPT_MAIN) &&
+		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) )
 	{
 		return;
 	}
@@ -2390,6 +2396,7 @@ static void RB_RenderAllDepthRelatedPasses( drawSurf_t *drawSurfs, int numDrawSu
 	}
 
 	RB_RenderDepthOnly(drawSurfs, numDrawSurfs);
+	RB_ScreenPrepareSaberDepth();
 
 	// SSAO / GTAO / contact shadows for the main pass of this view (tr_ao.cpp)
 	RB_RenderScreenSpaceLighting();
@@ -2535,7 +2542,8 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 	VectorSet4(lightsBlock.shadowDebug,
 		(float)Com_Clampi(0, 11, r_shadowDebug->integer),
 		r_dlightShadowBias->integer ? 1.0f : 0.0f,
-		(float)Com_Clampi(0, 4, r_spotLightDebug->integer), 0.0f);
+		(float)Com_Clampi(0, 4, r_spotLightDebug->integer),
+		(float)Com_Clampi(-1, 3, r_ltcSaberShadows->integer));
 
 	// legacy: the first MAX_DLIGHTS lights, shadow cube i. Forward+: the most
 	// important ones (froxel fog), shadow slot or -1 (tr_forwardplus.cpp)

@@ -3956,6 +3956,30 @@ void R_CreateBuiltinImages( void ) {
 			GL_DEPTH_COMPONENT16);
 	}
 
+	if (r_ltcAreaLights->integer)
+	{
+		R_LtcShadowInvalidate();
+		GLint maxLayers = 0, maxSamplers = 0;
+		qglGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &maxLayers);
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxSamplers);
+		const int slots = Q_min(LTC_STATIC_CACHE_SLOTS,
+			(maxLayers - LTC_EXTRA_SHADOW_LAYERS) / LTC_SHADOW_LAYERS_PER_LIGHT);
+		if (slots > 0 && maxSamplers > TB_LTC_SHADOW)
+		{
+			tr.ltcShadowArrayImage = R_Create2DImageArray("*ltcShadowArray", NULL,
+				LTC_STATIC_SHADOW_SIZE, LTC_STATIC_SHADOW_SIZE,
+				slots * LTC_SHADOW_LAYERS_PER_LIGHT + LTC_EXTRA_SHADOW_LAYERS,
+				IMGTYPE_COLORALPHA,
+				IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE |
+				IMGLFAG_SHADOWCOMP | IMGFLAG_MUTABLE, GL_DEPTH_COMPONENT16);
+			ri.Printf(PRINT_DEVELOPER, "LTC shadows: %d static cache slots, %d array layers\n",
+				slots, tr.ltcShadowArrayImage->layers);
+		}
+		else
+			ri.Printf(PRINT_WARNING, "LTC shadows unavailable: %d array layers, %d fragment samplers\n",
+				maxLayers, maxSamplers);
+	}
+
 	// with overbright bits active, we need an image which is some fraction of
 	// full color, for default lightmaps, etc
 	for (x = 0; x < DEFAULT_SIZE; x++) {
@@ -4048,6 +4072,7 @@ void R_CreateBuiltinImages( void ) {
 		// || r_smaa->integer == 4
 		|| R_SSRWantsVelocity()
 		|| R_SSGIWantsVelocity()
+		|| (r_ltcAreaLights->integer && R_LtcSaberScreenResourcesEnabled())
 		|| R_MotionBlurEnabled()
 		// || r_taa->integer
 		);

@@ -2337,6 +2337,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 					RB_ForwardPlusBindTextures(samplerBindingsWriter);
 					if (R_AreaLightsActive())
 						RB_AreaLightsBindTextures(samplerBindingsWriter);
+					if (RB_LtcSaberScreenReady())
+						samplerBindingsWriter.AddStaticImage(tr.ltcSaberScreenImage,
+							TB_LTC_SABER_SCREEN);
 				}
 				else
 					enableDLights = false;
@@ -2344,6 +2347,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 			if (enableDLights)
 			{
+				vec4_t ltcScreenParams = { RB_LtcSaberScreenReady() ? 1.0f : 0.0f,
+					0.0f, 0.0f, 0.0f };
+				uniformDataWriter.SetUniformVec4(UNIFORM_LTCSCREENPARAMS, ltcScreenParams);
 				uniformDataWriter.SetUniformInt(UNIFORM_LIGHTMASK, tess.dlightBits);
 				// spot light cookies (tr_lightcookie.cpp): lod from the world size of a pixel
 				vec4_t cookie;

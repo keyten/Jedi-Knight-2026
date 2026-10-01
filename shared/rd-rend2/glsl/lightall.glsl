@@ -517,6 +517,13 @@ uniform usamplerBuffer u_FPlusIndexMap;
 // LTC area lights (tr_arealights.cpp, tr_ltc_data.h)
 uniform sampler2D u_LtcMatrixMap;    // inverse LTC matrix (m00, m02, m20, m22)
 uniform sampler2D u_LtcAmplitudeMap; // norm, fresnel, 0, horizon clipped sphere form factor
+#if defined(USE_LTC_SHADOWS)
+uniform sampler2DArrayShadow u_LtcShadowMap;
+#endif
+#if defined(USE_LTC_SABER_SCREEN)
+uniform sampler2D u_LtcSaberScreenMap;
+uniform vec4 u_LtcScreenParams;
+#endif
 #endif
 uniform sampler2D u_DiffuseMap;
 
@@ -1767,7 +1774,7 @@ vec3 SpotCookie(in vec3 d, in vec4 spot, in vec4 spot2, in float viewDist)
 	return u_LightCookieParams.y > 0.5 ? cookie.rgb : vec3(cookie.a);
 }
 
-#if defined(USE_DSHADOWS)
+#if defined(USE_DSHADOWS) || defined(USE_LTC_SHADOWS)
 #define DEPTH_MAX_ERROR 0.0000152587890625
 
 vec2 poissonDiscPolar[9] = vec2[9]
@@ -1829,6 +1836,33 @@ float pcfShadow(in sampler2DArrayShadow depthMap, in vec3 L, in float distance, 
 	}
 	shadow /= float(samples);
 	return shadow;
+}
+
+// Stretch the existing midpoint cube's filter along the projected blade.
+// This changes only the lookup footprint; no additional depth views are needed.
+float SaberAnisotropicShadow(in sampler2DArrayShadow depthMap, in vec3 ray,
+	in float depth, in int slot, in vec3 bladeAxis, in float halfLength,
+	in float tubeRadius)
+{
+	vec3 D = normalize(ray);
+	vec3 projected = bladeAxis - D * dot(bladeAxis, D);
+	float projectedLength = length(projected);
+	if (projectedLength < 1e-4)
+		return pcfShadow(depthMap, D, depth, slot);
+	vec3 T = projected / projectedLength;
+	vec3 B = normalize(cross(D, T));
+	float inverseDistance = 1.0 / max(length(ray), 1.0);
+	float longRadius = min(halfLength * projectedLength * inverseDistance, 0.35);
+	float shortRadius = max(tubeRadius * inverseDistance, M_PI / 512.0);
+	float shadow = 0.0;
+	for (int i = 0; i < 9; ++i)
+	{
+		vec2 p = poissonDiscPolar[i];
+		vec3 direction = normalize(D + T * p.x * longRadius + B * p.y * shortRadius);
+		vec3 lookup = sampleCube(direction) + vec3(0.0, 0.0, float(slot * 6));
+		shadow += texture(depthMap, vec4(lookup, depth));
+	}
+	return shadow / 9.0;
 }
 
 // spot light shadow (tr_spotlight.cpp): one perspective view in layer 6 * slot,
@@ -2267,6 +2301,12 @@ vec3 g_ltcDiffuse = vec3(0.0);
 vec3 g_ltcMode = vec3(0.0);		// source mode tint, weighted by contribution
 float g_ltcBest = 0.0;
 int g_ltcBestLight = -1;		// strongest area light here (r_ltcDebug 8)
+float g_ltcStaticVisibility = 1.0;
+int g_ltcStaticSlot = -1;
+float g_ltcSaberCubeVisibility = 1.0;
+float g_ltcSaberScreenVisibility = 1.0;
+float g_ltcSaberScreenConfidence = 0.0;
+float g_ltcSaberFinalVisibility = 1.0;
 #endif
 
 // integral of the cosine lobe over one edge; the rational fit of
@@ -2334,6 +2374,112 @@ struct LtcSurfaceCache
 #endif
 };
 
+#if defined(USE_LTC_SHADOWS)
+vec2 LtcRectangleShadow(in DLightSurface s, in FPlusLight light,
+	in vec3 right, in vec3 up, in int dynamicCubeBase,
+	in LtcSurfaceCache cache)
+{
+	const float gauss = 0.5773502691896258;
+	vec3 emitterNormal = normalize(cross(right, up));
+	float farPlane = light.radius + length(vec2(light.halfWidth, light.halfHeight));
+	float diffuseVisible = 0.0, diffuseTotal = 0.0;
+	float specularVisible = 0.0, specularTotal = 0.0;
+	float plainVisible = 0.0;
+	for (int i = 0; i < 4; ++i)
+	{
+		vec2 p = vec2((i & 1) != 0 ? gauss : -gauss,
+			(i & 2) != 0 ? gauss : -gauss);
+		vec3 samplePosition = light.origin + right * (p.x * light.halfWidth) +
+			up * (p.y * light.halfHeight);
+		vec3 ray = samplePosition - s.position;
+		float distanceSq = max(dot(ray, ray), 1.0);
+		vec3 direction = ray * inversesqrt(distanceSq);
+		float incidence = abs(dot(emitterNormal, direction));
+		float geometric = incidence / distanceSq;
+		float wd = max(dot(s.N, direction), 0.0) * geometric;
+		float ws = wd;
+		#if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+		vec3 tangentRay = vec3(dot(cache.T1, direction),
+			dot(cache.T2, direction), dot(s.N, direction));
+		vec3 transformed = normalize(LtcTransformSpec(cache.Minv, tangentRay));
+		ws = max(transformed.z, 0.0) * geometric;
+		#endif
+		// Offset the receiver along its geometric normal to avoid contact acne.
+		vec3 biasedRay = samplePosition -
+			(s.position + normalize(s.vertexNormal) *
+				max(0.5, 2.0 * sqrt(distanceSq) / 128.0));
+		vec3 cubeCoord = sampleCube(normalize(biasedRay));
+		int staticCube = light.shadowSlot * 4 + i;
+		float depth = getLightDepth(biasedRay, farPlane);
+		float visibility = texture(u_LtcShadowMap,
+			vec4(cubeCoord.xy, cubeCoord.z + float(staticCube * 6), depth));
+		if (dynamicCubeBase >= 0)
+		{
+			float dynamicVisibility = texture(u_LtcShadowMap,
+				vec4(cubeCoord.xy, cubeCoord.z + float((dynamicCubeBase + i) * 6), depth));
+			visibility = min(visibility, dynamicVisibility);
+		}
+		diffuseVisible += wd * visibility;
+		diffuseTotal += wd;
+		specularVisible += ws * visibility;
+		specularTotal += ws;
+		plainVisible += visibility;
+	}
+	float fallback = plainVisible * 0.25;
+	return vec2(diffuseTotal > 1e-8 ? diffuseVisible / diffuseTotal : fallback,
+		specularTotal > 1e-8 ? specularVisible / specularTotal : fallback);
+}
+#if defined(USE_DSHADOWS)
+vec2 LtcSaberReferenceShadow(in DLightSurface s, in FPlusLight light,
+	in vec3 bladeAxis, in int extraCubeBase, in float midpointFar,
+	in LtcSurfaceCache cache)
+{
+	const float node = 0.7745966692414834;
+	float diffuseVisible = 0.0, diffuseTotal = 0.0;
+	float specularVisible = 0.0, specularTotal = 0.0;
+	for (int i = 0; i < 3; ++i)
+	{
+		float t = i == 0 ? -node : (i == 2 ? node : 0.0);
+		float quadrature = i == 1 ? 8.0 / 9.0 : 5.0 / 9.0;
+		vec3 samplePosition = light.origin + bladeAxis *
+			(t * light.halfWidth);
+		vec3 ray = samplePosition - s.position;
+		float distanceSq = max(dot(ray, ray), 1.0);
+		vec3 direction = ray * inversesqrt(distanceSq);
+		float wd = quadrature * max(dot(s.N, direction), 0.0) / distanceSq;
+		float ws = wd;
+		#if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+		vec3 tangentRay = vec3(dot(cache.T1, direction),
+			dot(cache.T2, direction), dot(s.N, direction));
+		vec3 transformed = normalize(LtcTransformSpec(cache.Minv, tangentRay));
+		ws = quadrature * max(transformed.z, 0.0) / distanceSq;
+		#endif
+		vec3 biasedRay = samplePosition -
+			(s.position + normalize(s.vertexNormal) *
+				max(0.5, 2.0 * sqrt(distanceSq) / 128.0));
+		float visibility;
+		if (i == 1)
+			visibility = pcfShadow(u_ShadowMap2, normalize(biasedRay),
+				getLightDepth(biasedRay, midpointFar), light.shadowSlot);
+		else
+		{
+			vec3 coord = sampleCube(normalize(biasedRay));
+			int cube = extraCubeBase + (i == 0 ? 0 : 1);
+			visibility = texture(u_LtcShadowMap, vec4(coord.xy,
+				coord.z + float(cube * 6),
+				getLightDepth(biasedRay, midpointFar + light.halfWidth)));
+		}
+		diffuseVisible += wd * visibility;
+		diffuseTotal += wd;
+		specularVisible += ws * visibility;
+		specularTotal += ws;
+	}
+	return vec2(diffuseVisible / max(diffuseTotal, 1e-8),
+		specularVisible / max(specularTotal, 1e-8));
+}
+#endif
+#endif
+
 vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightIndex,
 	inout LtcSurfaceCache cache)
 {
@@ -2386,7 +2532,9 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 #if defined(USE_DSHADOWS)
 	// A saber owns a point-shadow cube at its centre. One visibility sample
 	// approximates the blade's occlusion without adding a visible point light.
-	if (light.type == FPLUS_TYPE_LINE && light.shadowSlot >= 0)
+	if (light.type == FPLUS_TYPE_LINE && light.shadowSlot >= 0 &&
+		u_ShadowDebug.w != 0.0 &&
+		(u_ShadowDebug.w != 3.0 || texelFetch(u_FPlusLights, base + 4).w < 0.0))
 	{
 		vec3 sampleVector = light.origin - s.position;
 		float shadowRadius = rightData.w;
@@ -2396,8 +2544,34 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 			sampleVector -= normalize(s.vertexNormal) * texelWorld;
 			sampleVector -= normalize(sampleVector) * (2.0 * texelWorld);
 		}
-		float visibility = pcfShadow(u_ShadowMap2, normalize(sampleVector),
-			getLightDepth(sampleVector, shadowRadius), light.shadowSlot);
+		float shadowDepth = getLightDepth(sampleVector, shadowRadius);
+		float visibility = u_ShadowDebug.w < 0.0 ?
+			pcfShadow(u_ShadowMap2, normalize(sampleVector), shadowDepth, light.shadowSlot) :
+			SaberAnisotropicShadow(u_ShadowMap2, sampleVector, shadowDepth,
+				light.shadowSlot, right, light.halfWidth, light.halfHeight);
+		#if defined(USE_LTC_DEBUG)
+		g_ltcSaberCubeVisibility = min(g_ltcSaberCubeVisibility, visibility);
+		#endif
+		#if defined(USE_LTC_SABER_SCREEN)
+		if (u_ShadowDebug.w == 2.0 && u_LtcScreenParams.x > 0.5)
+		{
+			int channel = int(texelFetch(u_FPlusLights, base + 4).w);
+			if (channel >= 0 && channel < 2)
+			{
+				vec4 screen = texelFetch(u_LtcSaberScreenMap,
+					ivec2(gl_FragCoord.xy), 0);
+				vec2 value = channel == 0 ? screen.xy : screen.zw;
+				#if defined(USE_LTC_DEBUG)
+				g_ltcSaberScreenVisibility = min(g_ltcSaberScreenVisibility, value.x);
+				g_ltcSaberScreenConfidence = max(g_ltcSaberScreenConfidence, value.y);
+				#endif
+				visibility = mix(visibility, value.x, clamp(value.y, 0.0, 1.0));
+			}
+		}
+		#endif
+		#if defined(USE_LTC_DEBUG)
+		g_ltcSaberFinalVisibility = min(g_ltcSaberFinalVisibility, visibility);
+		#endif
 		g_dlightShadowVisibility = min(g_dlightShadowVisibility, visibility);
 		window *= visibility;
 		if (window <= 0.0)
@@ -2455,13 +2629,6 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		formFactor = LtcQuadFormFactor(mat3(1.0), q0, q1, q2, q3, twoSided);
 		#endif
 		diffuseOut = radiance * s.diffuse * formFactor;
-		#if defined(USE_SKIN_SSS)
-		g_skinDiffuse += diffuseOut;
-		#endif
-		#if defined(USE_SSGI)
-		// view independent diffuse only: the screen-space GI source
-		g_ssgiDynamicDiffuse += diffuseOut;
-		#endif
 	}
 
 	#if defined(USE_SPECULARMAP)
@@ -2477,6 +2644,46 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		clamp(dot(N, H), 0.0, 1.0), NL, s.NE, clamp(dot(L, H), 0.0, 1.0),
 		clamp(dot(s.E, H), 0.0, 1.0), s.roughness);
 	#endif
+	#endif
+	#if defined(USE_LTC_SHADOWS)
+	if (light.type == FPLUS_TYPE_RECT && light.shadowSlot >= 0)
+	{
+		int dynamicCubeBase = int(texelFetch(u_FPlusLights, base + 4).w);
+		vec2 visibility = LtcRectangleShadow(s, light, right, up,
+			dynamicCubeBase, cache);
+		diffuseOut *= visibility.x;
+		specularOut *= visibility.y;
+		#if defined(USE_LTC_DEBUG)
+		g_ltcStaticVisibility = min(g_ltcStaticVisibility,
+			0.5 * (visibility.x + visibility.y));
+		g_ltcStaticSlot = light.shadowSlot;
+		#endif
+	}
+	#if defined(USE_DSHADOWS)
+	if (light.type == FPLUS_TYPE_LINE && light.shadowSlot >= 0 &&
+		u_ShadowDebug.w == 3.0)
+	{
+		int extraCubeBase = int(texelFetch(u_FPlusLights, base + 4).w);
+		if (extraCubeBase >= 0)
+		{
+			vec2 visibility = LtcSaberReferenceShadow(s, light, right,
+				extraCubeBase, rightData.w, cache);
+			diffuseOut *= visibility.x;
+			specularOut *= visibility.y;
+			#if defined(USE_LTC_DEBUG)
+			g_ltcSaberFinalVisibility = min(g_ltcSaberFinalVisibility,
+				0.5 * (visibility.x + visibility.y));
+			#endif
+		}
+	}
+	#endif
+	#endif
+	#if defined(USE_SKIN_SSS)
+	g_skinDiffuse += diffuseOut;
+	#endif
+	#if defined(USE_SSGI)
+	// View independent diffuse is the screen-space GI source.
+	g_ssgiDynamicDiffuse += diffuseOut;
 	#endif
 
 	#if defined(USE_LTC_DEBUG)
@@ -2723,7 +2930,7 @@ bool LtcDebugColor(in vec3 position, in vec3 litColor, out vec3 color)
 {
 	color = litColor;
 	int mode = int(u_FPlusDebug.w);
-	if (!FPlusEnabled() || mode <= 0 || mode == 6 || mode == 7 || mode > 8)
+	if (!FPlusEnabled() || mode <= 0 || mode == 6 || mode == 7 || mode > 14)
 		return false;
 
 	if (mode == 1)
@@ -2759,6 +2966,18 @@ bool LtcDebugColor(in vec3 position, in vec3 litColor, out vec3 color)
 	}
 	else if (mode == 8)
 		color = g_ltcBestLight < 0 ? litColor * 0.1 : FPlusHashColor(g_ltcBestLight);
+	else if (mode == 9)
+		color = vec3(g_ltcStaticVisibility);
+	else if (mode == 10)
+		color = g_ltcStaticSlot < 0 ? vec3(0.0) : FPlusHashColor(g_ltcStaticSlot);
+	else if (mode == 11)
+		color = vec3(g_ltcSaberCubeVisibility);
+	else if (mode == 12)
+		color = vec3(g_ltcSaberScreenVisibility);
+	else if (mode == 13)
+		color = vec3(g_ltcSaberScreenConfidence);
+	else if (mode == 14)
+		color = vec3(g_ltcSaberFinalVisibility);
 	return true;
 }
 #endif

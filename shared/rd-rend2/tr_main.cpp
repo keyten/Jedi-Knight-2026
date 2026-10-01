@@ -777,7 +777,7 @@ R_RotateForViewer
 Sets up the modelview matrix for a given viewParm
 =================
 */
-static void R_RotateForViewer(orientationr_t *ori, viewParms_t *viewParms)
+void R_RotateForViewer(orientationr_t *ori, viewParms_t *viewParms)
 {
 	float	viewerMatrix[16];
 	vec3_t	origin;
@@ -1990,7 +1990,8 @@ static void R_AddEntitySurface(const trRefdef_t *refdef, trRefEntity_t *ent, int
 					R_AddGhoulSurfaces(ent, entityNum);
 				break;
 			case MOD_BAD:		// null model axis
-				if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal ) {
+				if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal &&
+					!(tr.viewParms.flags & (VPF_LTC_DYNAMIC_SHADOW | VPF_LTC_SABER_SHADOW)) ) {
 					break;
 				}
 
@@ -2076,6 +2077,26 @@ R_GenerateDrawSurfs
 ====================
 */
 void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
+	if (viewParms->flags & VPF_LTC_STATIC_SHADOW)
+	{
+		R_AddWorldSurfaces(viewParms, refdef);
+		return;
+	}
+	if (viewParms->flags & VPF_LTC_DYNAMIC_SHADOW)
+	{
+		for (int i = 0; i < refdef->num_entities; ++i)
+			if (refdef->entities[i].e.reType == RT_MODEL && refdef->entities[i].e.ghoul2)
+				R_AddEntitySurface(refdef, &refdef->entities[i], i);
+		return;
+	}
+	if (viewParms->flags & VPF_LTC_SABER_SHADOW)
+	{
+		R_AddWorldSurfaces(viewParms, refdef);
+		for (int i = 0; i < refdef->num_entities; ++i)
+			if (refdef->entities[i].e.reType == RT_MODEL)
+				R_AddEntitySurface(refdef, &refdef->entities[i], i);
+		return;
+	}
 
 	// TODO: Get rid of this
 	if (viewParms->viewParmType == VPT_PLAYER_SHADOWS)
@@ -2092,7 +2113,7 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 
 	R_AddPolygonSurfaces(refdef);
 
-	if ( tr.viewParms.viewParmType > VPT_POINT_SHADOWS &&
+	if ( tr.viewParms.viewParmType >= VPT_PORTAL &&
 		 tr.world &&
 		 backEndData->currentFrame->currentScene == 0 )
 	{
@@ -2742,6 +2763,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 	{
 		// Forward+: light importance order and shadow slot budget of this scene
 		R_ForwardPlusPrepareScene(refdef);
+		R_LtcShadowGatherViews(refdef);
 
 		// dlight shadowmaps. Legacy: cube i for light i. Forward+: cube s for
 		// the light owning shadow slot s (r_forwardPlusMaxShadowLights)

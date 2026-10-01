@@ -694,6 +694,17 @@ void FBO_Init(void)
 			R_CheckFBO(tr.shadowCubeFbo[i]);
 		}
 	}
+	if (tr.ltcShadowArrayImage)
+	{
+		tr.ltcShadowScratchFbo = FBO_Create("_ltcShadowScratch",
+			LTC_STATIC_SHADOW_SIZE, LTC_STATIC_SHADOW_SIZE);
+		FBO_Bind(tr.ltcShadowScratchFbo);
+		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+			tr.ltcShadowArrayImage->texnum, 0, 0);
+		qglDrawBuffer(GL_NONE);
+		qglReadBuffer(GL_NONE);
+		R_CheckFBO(tr.ltcShadowScratchFbo);
+	}
 
 	if (tr.sunShadowArrayImage != NULL)
 	{

@@ -321,6 +321,13 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_LtcMatrixMap",			GLSL_INT, 1 },
 	{ "u_LtcAmplitudeMap",		GLSL_INT, 1 },
+	{ "u_LtcShadowMap",			GLSL_INT, 1 },
+	{ "u_LtcSaberScreenMap",	GLSL_INT, 1 },
+	{ "u_LtcScreenParams",		GLSL_VEC4, 1 },
+	{ "u_LtcSaber0",			GLSL_VEC4, 1 },
+	{ "u_LtcSaberAxis0",		GLSL_VEC4, 1 },
+	{ "u_LtcSaber1",			GLSL_VEC4, 1 },
+	{ "u_LtcSaberAxis1",		GLSL_VEC4, 1 },
 
 	{ "u_WeatherDepthMap",		GLSL_INT, 1 },
 	{ "u_WeatherMvp",			GLSL_MAT4x4, 1 },
@@ -2875,6 +2882,10 @@ static int GLSL_LoadGPUProgramLightAll(
 		if (r_ltcAreaLights->integer && maxFragmentSamplers > TB_LTC_AMPLITUDE)
 		{
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC\n");
+			if (maxFragmentSamplers > TB_LTC_SHADOW)
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_SHADOWS\n");
+			if (maxFragmentSamplers > TB_LTC_SABER_SCREEN)
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_SABER_SCREEN\n");
 			if (r_ltcDebug->integer)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_DEBUG\n");
 		}
@@ -3093,6 +3104,8 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
 			GLSL_SetUniformInt(program, UNIFORM_LTCMATRIXMAP, TB_LTC_MATRIX);
 			GLSL_SetUniformInt(program, UNIFORM_LTCAMPLITUDEMAP, TB_LTC_AMPLITUDE);
+			GLSL_SetUniformInt(program, UNIFORM_LTCSHADOWMAP, TB_LTC_SHADOW);
+			GLSL_SetUniformInt(program, UNIFORM_LTCSABERSCREENMAP, TB_LTC_SABER_SCREEN);
 			GLSL_SetUniformInt(program, UNIFORM_SKINMASKMAP, TB_SKINMASK);
 			GLSL_SetUniformInt(program, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
 			if ( variant == 1 )
@@ -3761,6 +3774,7 @@ static int GLSL_LoadGPUProgramScreenSpace(
 		GLSL_SetUniformInt(sp, UNIFORM_SSGIALBEDOMAP, TB_SSGI_ALBEDO);
 		GLSL_SetUniformInt(sp, UNIFORM_SSGIRADIANCEMAP, TB_SSGI_RADIANCE);
 		GLSL_SetUniformInt(sp, UNIFORM_SSGISOURCEMAP, TB_SSGI_SOURCE);
+		GLSL_SetUniformInt(sp, UNIFORM_LTCSABERSCREENMAP, TB_LTC_SABER_SCREEN);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -3768,6 +3782,15 @@ static int GLSL_LoadGPUProgramScreenSpace(
 
 	load(&tr.screenHiZShader[0], "ssr_hiz_linearize", "ssr_hiz", fallback_ssr_hizProgram, "#define LINEARIZE\n");
 	load(&tr.screenHiZShader[1], "ssr_hiz", "ssr_hiz", fallback_ssr_hizProgram, nullptr);
+	if (R_LtcSaberScreenResourcesEnabled())
+	{
+		load(&tr.ltcSaberScreenShader[0], "ltc_saber_trace", "ltc_saber_screen",
+			fallback_ltc_saber_screenProgram, "#define LTC_SABER_TRACE\n#define USE_HIZ\n");
+		load(&tr.ltcSaberScreenShader[1], "ltc_saber_temporal", "ltc_saber_screen",
+			fallback_ltc_saber_screenProgram, "#define LTC_SABER_TEMPORAL\n");
+		load(&tr.ltcSaberScreenShader[2], "ltc_saber_filter", "ltc_saber_screen",
+			fallback_ltc_saber_screenProgram, "#define LTC_SABER_FILTER\n");
+	}
 
 	if (R_SSRResourcesEnabled())
 	{

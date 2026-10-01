@@ -751,15 +751,23 @@ void RE_RenderScene( const refdef_t *fd )
 			"Sunshadow Cascade",
 			"Player Shadowmap",
 			"Pointlight Shadow",
+			"LTC Shadow",
 			"Portal View",
 			"Main View"};
+		const char *viewName = viewParmTypeNames[tr.cachedViewParms[i].viewParmType];
+		if (tr.cachedViewParms[i].flags & VPF_LTC_STATIC_SHADOW)
+			viewName = "LTC static shadow build";
+		else if (tr.cachedViewParms[i].flags & VPF_LTC_DYNAMIC_SHADOW)
+			viewName = "LTC dynamic caster shadow";
+		else if (tr.cachedViewParms[i].flags & VPF_LTC_SABER_SHADOW)
+			viewName = "LTC saber reference shadow";
 		R_PushDebugGroup(AL_VIEW, va(
 			"%s_%i",
-			viewParmTypeNames[tr.cachedViewParms[i].viewParmType],
+			viewName,
 			i));
 		qhandle_t timer = R_BeginTimedBlockCmd(va(
 			"%s %i",
-			viewParmTypeNames[tr.cachedViewParms[i].viewParmType],
+			viewName,
 			i));
 		if (tr.cachedViewParms[i].viewParmType == VPT_MAIN)
 			R_ForwardPlusSetMainViewTimer(timer);

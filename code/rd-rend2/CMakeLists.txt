@@ -42,6 +42,8 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_lightcookie.cpp"
 	"${SharedDir}/rd-rend2/tr_forwardplus.cpp"
 	"${SharedDir}/rd-rend2/tr_arealights.cpp"
+	"${SharedDir}/rd-rend2/tr_ltcshadow.cpp"
+	"${SharedDir}/rd-rend2/tr_ltcscreen.cpp"
 	"${SharedDir}/rd-rend2/tr_ltc_data.h"
 	"${SharedDir}/rd-rend2/tr_screenspace.cpp"
 	"${SharedDir}/rd-rend2/tr_ssgi.cpp"

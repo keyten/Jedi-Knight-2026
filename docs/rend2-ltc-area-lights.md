@@ -13,13 +13,15 @@ launched yet**: the in-game checks, GPU timings and screenshots below are still 
 | cvar | default | |
 |---|---|---|
 | `r_ltcAreaLights` | 0 | archive, **latch** (vid_restart). The LTC code is only compiled into lightall when this is on |
-| `r_ltcDebug` | 0 | cheat, latch. 1 specular, 2 diffuse, 3 source mode, 4 area lights per cluster, 5 influence bounds, 6 outlines, 7 normals / axes, 8 strongest light id |
+| `r_ltcDebug` | 0 | cheat, latch. 1–8 lighting views; 9 static visibility, 10 cache slot, 11 saber cube, 12 saber screen, 13 screen confidence, 14 final saber visibility |
 | `r_ltcDebugLight` | -1 | map light highlighted in modes 5–7 (-1 = the nearest) |
 | `r_ltcIntensityScale` | 1 | radiance multiplier for all area lights |
 | `r_ltcStaticDiffuse` | 0 | also add diffuse for `static_specular` lights (their diffuse is normally baked) |
 | `r_ltcMaxLights` | 64 | map lights per scene, most important first: emitted power / distance² (dynamic lights are not counted) |
 | `r_ltcAutoAreaLights` | 1 | for maps without an `.arealights.json`: 0 off, 1 confident lamp shapes, 2 also loosely fitted ones (see "Automatic conversion"). Runs at map load only while `r_ltcAreaLights` is on |
 | `r_ltcSaberAreaLights` | 0 | sabers light as lines instead of a point light |
+| `r_ltcStaticShadows` | 0 | 0 off; 1 cached four-sample world shadows; 2 also redraw Ghoul2 casters for up to four nearby static lights per frame |
+| `r_ltcSaberShadows` | -1 | -1 original midpoint cube; 0 off; 1 anisotropic cube PCF; 2 midpoint cube plus temporal screen-space line visibility; 3 three-point reference (up to two sabers, others use mode 1) |
 
 There is no quality cvar, because the polygon integral takes no samples.
 
@@ -28,6 +30,15 @@ Commands:
 - `r_ltcList` lists the loaded lights with their IDs.
 - `r_ltcNearest` shows the nearest light.
 - `r_ltcExtractLights` writes candidate lights (see below).
+- `r_ltcShadowStats` shows cache, view, saber, and screen trace counters.
+
+## LTC shadows
+
+Static rectangle shadows keep the LTC lighting integral and multiply its diffuse and specular results by separate visibility estimates. Four 2×2 Gauss points on the rectangle each own six 128² D16 depth layers. Mode 1 renders world geometry once per cache fill, at most one new light per frame. Mode 2 adds a separate Ghoul2-only layer for up to four lights; cached world depth is reused. The cache holds up to 64 lights, reduced automatically to fit `GL_MAX_ARRAY_TEXTURE_LAYERS`. It is cleared on map unload, light reload, and renderer restart. With too few fragment samplers or array layers, rectangle lighting remains unshadowed.
+
+Saber mode 1 filters the existing midpoint shadow cube along the projected blade. Mode 2 traces one jittered blade point per half-resolution pixel against the pre-light depth pyramid, reprojects two saber channels with motion vectors, filters by receiver depth, and blends with mode 1 according to screen confidence. Portals, mirrors, screen exits, and invalid history use the midpoint cube. The depth pyramid is reused by SSR and SSGI when those passes are enabled. Mode 3 renders two additional cubes per saber at the outer Gauss nodes and combines them with the midpoint cube using diffuse and specular weights. Volumetric fog continues to use the midpoint cube.
+
+The shadow modes are runtime CVars. Their GPU resources are allocated when `r_ltcAreaLights` is enabled at renderer startup so modes can be switched without a restart. Screen mode 2 requires at least 29 fragment samplers; static and reference maps require at least 28. When those resources are unavailable, saber modes 2 and 3 use mode 1's cube filter. Compare modes on the same recorded scene and inspect `r_ltcDebug 9` through `14` before tuning quality or cost.
 
 Dependency messages are printed once each time the cvars change, not every frame, and only the first
 missing dependency is reported:

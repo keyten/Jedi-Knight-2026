@@ -54,10 +54,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 
 static qboolean s_screenResources = qfalse;
+static qboolean s_screenDepthResources = qfalse;
+static unsigned s_hiZFrame = ~0u;
+static int s_hiZView = -1;
+static int s_hiZScene = -1;
 
 qboolean R_ScreenSpaceResourcesEnabled( void )
 {
-	return s_screenResources;
+	return s_screenDepthResources;
 }
 
 /*
@@ -127,9 +131,14 @@ void R_CreateScreenSpaceImages( int width, int height, int hdrFormat )
 		R_SSRSelectResources();
 		R_SSGISelectResources();
 		R_SkinSSSSelectResources();
+		R_LtcSaberScreenSelectResources();
 		s_screenResources = (qboolean)(R_SSRResourcesEnabled() || R_SSGIResourcesEnabled() ||
 			R_SkinSSSResourcesEnabled());
+		s_screenDepthResources = (qboolean)(s_screenResources || R_LtcSaberScreenResourcesEnabled());
 	}
+	s_hiZFrame = ~0u;
+	s_hiZView = -1;
+	s_hiZScene = -1;
 
 	tr.screenNormalImage = NULL;
 	tr.screenHiZImage = NULL;
@@ -138,7 +147,9 @@ void R_CreateScreenSpaceImages( int width, int height, int hdrFormat )
 	{
 		// shared material attachment of renderFbo (MSAA: resolve target)
 		tr.screenNormalImage = R_ScreenCreateImage("*screenNormal", width, height, GL_RGB10_A2, qfalse);
-
+	}
+	if ( s_screenDepthResources )
+	{
 		// mip 0: linear view depth, mips: closest depth of the 2x2 texels
 		tr.screenHiZImage = R_ScreenCreateMipImage(
 			"*screenHiZ", width, height, GL_R32F, GL_RED, GL_FLOAT, SCREEN_HIZ_MIPS, qfalse);
@@ -147,6 +158,7 @@ void R_CreateScreenSpaceImages( int width, int height, int hdrFormat )
 	R_CreateSSRImages(width, height, hdrFormat);
 	R_CreateSSGIImages(width, height, hdrFormat);
 	R_CreateSkinSSSImages(width, height);
+	R_CreateLtcSaberScreenImages(width, height);
 
 	GL_SelectTexture(0);
 }
@@ -237,11 +249,13 @@ void R_CreateScreenSpaceFBOs( void )
 		tr.screenHiZFbo[i] = NULL;
 	tr.screenCompositeFbo = NULL;
 
-	if ( s_screenResources )
+	if ( s_screenDepthResources )
 	{
 		for ( int i = 0; i < SCREEN_HIZ_MIPS; i++ )
 			tr.screenHiZFbo[i] = R_ScreenCreateLevelFBO(va("_screenHiZ%d", i), tr.screenHiZImage, i);
-
+	}
+	if ( s_screenResources )
+	{
 		// color 0 of renderFbo only: the composites must not touch the glow
 		// and material attachments, and must not have the sampled depth attached
 		tr.screenCompositeFbo = FBO_Create("_screenComposite", tr.renderFbo->width, tr.renderFbo->height);
@@ -263,6 +277,7 @@ void R_CreateScreenSpaceFBOs( void )
 	R_CreateSSRFBOs();
 	R_CreateSSGIFBOs();
 	R_CreateSkinSSSFBOs();
+	R_CreateLtcSaberScreenFBOs();
 
 	if ( s_screenResources )
 	{
@@ -542,6 +557,32 @@ static void RB_ScreenBuildDepth( const screenViewInfo_t& info, int numLevels )
 	RB_ScreenSetLevelRange(tr.screenHiZImage, TB_SHADOWMAPARRAY, 0, SCREEN_HIZ_MIPS - 1);
 }
 
+void RB_ScreenPrepareSaberDepth(void)
+{
+	if (r_ltcSaberShadows->integer != 2 || !R_LtcSaberScreenResourcesEnabled() ||
+		!tr.screenHiZImage || backEnd.viewParms.viewParmType != VPT_MAIN ||
+		backEnd.viewParms.isPortal || backEnd.viewParms.isSkyPortal ||
+		glState.currentFBO != tr.renderFbo || !tr.world)
+		return;
+	screenViewInfo_t info;
+	RB_ScreenBuildViewInfo(info);
+	if (tr.msaaResolveFbo)
+		FBO_FastBlit(tr.renderFbo, NULL, tr.msaaResolveFbo, NULL,
+			GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	if (s_hiZFrame != backEndData->realFrameNumber ||
+		s_hiZScene != backEndData->currentFrame->currentScene ||
+		s_hiZView != backEnd.viewParms.currentViewParm)
+	{
+		int timer = RB_ScreenBeginTimer("LTC saber Hi-Z");
+		RB_ScreenBuildDepth(info, SCREEN_HIZ_MIPS);
+		RB_ScreenEndTimer(timer);
+		s_hiZFrame = backEndData->realFrameNumber;
+		s_hiZView = backEnd.viewParms.currentViewParm;
+		s_hiZScene = backEndData->currentFrame->currentScene;
+	}
+	RB_RenderLtcSaberScreen(info);
+}
+
 // shared textures of every screen-space program (ssr_common.glsl)
 void RB_ScreenBindGeometry( void )
 {
@@ -586,7 +627,15 @@ void RB_RenderScreenSpaceOpaque( void )
 	// shared inputs, once for all consumers
 	int timer = RB_ScreenBeginTimer("Screen geometry");
 	RB_ScreenResolveInputs();
-	RB_ScreenBuildDepth(info, Q_max(1, Q_max(ssrLevels, ssgiLevels)));
+	if (s_hiZFrame != backEndData->realFrameNumber ||
+		s_hiZScene != backEndData->currentFrame->currentScene ||
+		s_hiZView != backEnd.viewParms.currentViewParm)
+	{
+		RB_ScreenBuildDepth(info, Q_max(1, Q_max(ssrLevels, ssgiLevels)));
+		s_hiZFrame = backEndData->realFrameNumber;
+		s_hiZView = backEnd.viewParms.currentViewParm;
+		s_hiZScene = backEndData->currentFrame->currentScene;
+	}
 	RB_ScreenEndTimer(timer);
 
 	// skin first: the SSGI and SSR composites (and the SSR color pyramid)
@@ -689,7 +738,7 @@ qboolean RB_ScreenVelocityValid( void )
 {
 	return (qboolean)(
 		tr.velocityImage != NULL &&
-		r_depthPrepass->integer &&
+		(r_depthPrepass->integer || r_ltcSaberShadows->integer == 2) &&
 		backEndData->currentFrame &&
 		backEndData->currentFrame->currentScene == 0);
 }

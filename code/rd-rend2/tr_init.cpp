@@ -409,6 +409,8 @@ cvar_t  *r_ltcStaticDiffuse;
 cvar_t  *r_ltcMaxLights;
 cvar_t  *r_ltcAutoAreaLights;
 cvar_t  *r_ltcSaberAreaLights;
+cvar_t  *r_ltcStaticShadows;
+cvar_t  *r_ltcSaberShadows;
 
 cvar_t  *r_normalMapping;
 cvar_t  *r_specularMapping;
@@ -1802,6 +1804,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_ltcList",			R_AreaLightsList_f },
 	{ "r_ltcNearest",		R_AreaLightsNearest_f },
 	{ "r_ltcExtractLights",	R_ExtractAreaLights_f },
+	{ "r_ltcShadowStats",	R_LtcShadowStats_f },
 	{ "skinlist",			R_SkinList_f },
 	{ "fontlist",			R_FontList_f },
 	{ "screenshot",			R_ScreenShotJPEG_f },
@@ -2328,7 +2331,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_forwardPlusMaxShadowLights, 0, MAX_DLIGHT_SHADOWS, qtrue );
 
 	r_ltcAreaLights = ri_Cvar_Get_NoComm( "r_ltcAreaLights", "0", CVAR_ARCHIVE | CVAR_LATCH, "LTC rectangle / line area lights (maps/<map>.arealights.json, saber lines), requires r_forwardPlus 1" );
-	r_ltcDebug = ri_Cvar_Get_NoComm( "r_ltcDebug", "0", CVAR_CHEAT | CVAR_LATCH, "LTC area light debug: 1 specular, 2 diffuse, 3 source mode, 4 area lights per cluster, 5 influence bounds, 6 outlines, 7 normals / axes, 8 strongest light id" );
+	r_ltcDebug = ri_Cvar_Get_NoComm( "r_ltcDebug", "0", CVAR_CHEAT | CVAR_LATCH, "LTC debug: 1-8 lighting, 9 static visibility, 10 cache slot, 11 saber cube, 12 saber screen, 13 confidence, 14 hybrid visibility" );
+	ri.Cvar_CheckRange( r_ltcDebug, 0, 14, qtrue );
 	r_ltcDebugLight = ri_Cvar_Get_NoComm( "r_ltcDebugLight", "-1", CVAR_CHEAT, "LTC area light highlighted by r_ltcDebug (map light id, -1 = nearest)" );
 	r_ltcIntensityScale = ri_Cvar_Get_NoComm( "r_ltcIntensityScale", "1", CVAR_ARCHIVE, "LTC area lights: radiance multiplier" );
 	r_ltcStaticDiffuse = ri_Cvar_Get_NoComm( "r_ltcStaticDiffuse", "0", CVAR_ARCHIVE, "LTC area lights: also diffuse for static_specular map lights (their diffuse is usually baked in the lightmap)" );
@@ -2336,6 +2340,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ltcMaxLights, 0, MAX_RENDER_DLIGHTS, qtrue );
 	r_ltcAutoAreaLights = ri_Cvar_Get_NoComm( "r_ltcAutoAreaLights", "1", CVAR_ARCHIVE, "LTC area lights from the emissive surfaces of maps without an .arealights.json (at map load, r_ltcReloadLights): 0 off, 1 confident lamp shapes, 2 also loosely fitted ones (glow / emissive / surfacelight surfaces)" );
 	r_ltcSaberAreaLights = ri_Cvar_Get_NoComm( "r_ltcSaberAreaLights", "0", CVAR_ARCHIVE, "Saber blades light as LTC lines instead of a point light (requires r_ltcAreaLights 1)" );
+	r_ltcStaticShadows = ri_Cvar_Get_NoComm( "r_ltcStaticShadows", "0", CVAR_ARCHIVE, "Static rectangle LTC shadows: 0 off, 1 cached world, 2 cached world plus dynamic characters" );
+	ri.Cvar_CheckRange( r_ltcStaticShadows, 0, 2, qtrue );
+	r_ltcSaberShadows = ri_Cvar_Get_NoComm( "r_ltcSaberShadows", "-1", CVAR_ARCHIVE, "Saber LTC shadows: -1 midpoint cube, 0 off, 1 anisotropic cube, 2 hybrid screen space, 3 three point reference" );
+	ri.Cvar_CheckRange( r_ltcSaberShadows, -1, 3, qtrue );
 
 	r_normalMapping = ri_Cvar_Get_NoComm( "r_normalMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable normal mapping" );
 	r_specularMapping = ri_Cvar_Get_NoComm( "r_specularMapping", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable specular mapping" );
