@@ -96,7 +96,10 @@ static struct
 	int saberModCount;
 	qhandle_t debugShader;
 	int selected;				// map light highlighted by r_ltcDebug, -1 none
-} s_al = { {}, "", qfalse, qfalse, qfalse, -1, -1, -1, 0, -1 };
+	int calibrated;				// automatic lights calibrated from the light grid (r_ltcAreaCalibration)
+} s_al = { {}, "", qfalse, qfalse, qfalse, -1, -1, -1, 0, -1, 0 };
+
+#define AREA_CALIBRATION_MIN_CONFIDENCE 0.3f
 
 // Keep near-equal map lights from trading the global budget every frame.
 static std::vector<unsigned char> s_previousMapSelection;
@@ -396,6 +399,7 @@ void R_LoadAreaLights( const char *mapName )
 	R_LtcShadowInvalidate();
 	Q_strncpyz(s_al.mapName, mapName ? mapName : "", sizeof(s_al.mapName));
 	R_ClearAreaCandidates();
+	s_al.calibrated = 0;
 	R_LoadAreaLightFile();
 	R_CacheMapAreaLightMetrics();
 }
@@ -1430,7 +1434,7 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 	if ( !world )
 		return;
 
-	auto add = [&]( const mapAreaLight_t& l, float confidence ) {
+	auto add = [&]( const mapAreaLight_t& l, float confidence, int sourceIndex ) {
 		// a line / tube (right = axis, halfHeight = radius) is no rectangle: the
 		// reconstruction's quadrature would treat it as a thin two-sided panel
 		if ( l.type == DLIGHT_LINE )
@@ -1445,13 +1449,14 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 		VectorScale(l.color, l.intensity, a.color);
 		a.confidence = confidence;
 		a.twoSided = l.twoSided;
+		a.sourceIndex = sourceIndex;
 		out.push_back(a);
 	};
 
 	// explicit lamps: high confidence anchors
-	for ( const mapAreaLight_t& l : s_al.lights )
-		if ( !l.automatic && l.mode != AREAMODE_DYNAMIC )
-			add(l, 1.0f);
+	for ( size_t k = 0; k < s_al.lights.size(); k++ )
+		if ( !s_al.lights[k].automatic && s_al.lights[k].mode != AREAMODE_DYNAMIC )
+			add(s_al.lights[k], 1.0f, (int)k);
 	const size_t numExplicit = out.size();
 
 	const std::vector<areaCandidate_t>& candidates = R_AreaLightCandidates(world);
@@ -1477,6 +1482,58 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 			continue;
 		// a surfacelight hint and a rectangle fitted to the lit texels are stronger evidence
 		const float confidence = Com_Clamp(0.0f, 1.0f, c.confidence + (c.hinted ? 0.1f : 0.0f) + (c.sampled ? 0.05f : 0.0f));
-		add(*l, confidence);
+		// the automatic map light made from this candidate (r_ltcAutoAreaLights), for the calibration
+		int sourceIndex = -1;
+		for ( size_t k = 0; k < s_al.lights.size() && sourceIndex < 0; k++ )
+		{
+			const mapAreaLight_t& m = s_al.lights[k];
+			if ( m.automatic && Distance(m.center, l->center) < 4.0f && fabsf(m.halfWidth - l->halfWidth) < 2.0f &&
+				fabsf(m.halfHeight - l->halfHeight) < 2.0f )
+				sourceIndex = (int)k;
+		}
+		add(*l, confidence, sourceIndex);
 	}
+}
+
+/*
+=================
+R_CalibrateAreaLight
+
+r_ltcAreaCalibration: the radiance of a static area light measured from the light
+grid (tr_volrecon.cpp, area anchors). An automatic light takes it (the emissive
+texture only gives the chromaticity, the grid the absolute brightness); an
+authored light keeps its own value, the discrepancy is only reported.
+=================
+*/
+void R_CalibrateAreaLight( int index, const vec3_t radiance, float confidence )
+{
+	if ( index < 0 || index >= (int)s_al.lights.size() || confidence < AREA_CALIBRATION_MIN_CONFIDENCE )
+		return;
+	mapAreaLight_t *l = &s_al.lights[index];
+	const float scale = r_ltcAreaCalibrationScale->value;
+	vec3_t calibrated;
+	VectorScale(radiance, scale, calibrated);
+	const float measured = 0.2126f * calibrated[0] + 0.7152f * calibrated[1] + 0.0722f * calibrated[2];
+	const float current = l->intensity * (0.2126f * l->color[0] + 0.7152f * l->color[1] + 0.0722f * l->color[2]);
+	if ( !(measured > 0.0f) )
+		return;
+	if ( !l->automatic )
+	{
+		ri.Printf(PRINT_DEVELOPER, "r_ltcAreaCalibration: area light %d (%s) authored radiance %.3f, grid %.3f (kept)\n",
+			index, l->name, current, measured);
+		return;
+	}
+	VectorCopy(calibrated, l->color);
+	l->intensity = 1.0f;
+	l->range = R_AreaLightDefaultRange(l);
+	s_al.calibrated++;
+	ri.Printf(PRINT_DEVELOPER, "r_ltcAreaCalibration: area light %d radiance %.3f -> %.3f, range %.0f\n",
+		index, current, measured, l->range);
+}
+
+void R_FinishAreaLightCalibration( void )
+{
+	R_CacheMapAreaLightMetrics();
+	if ( s_al.calibrated )
+		ri.Printf(PRINT_DEVELOPER, "r_ltcAreaCalibration: %d automatic area lights calibrated from the light grid\n", s_al.calibrated);
 }

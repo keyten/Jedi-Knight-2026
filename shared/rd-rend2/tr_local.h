@@ -199,6 +199,11 @@ extern cvar_t	*r_recoveredVolumetricMaxLights;
 extern cvar_t	*r_recoveredPhysicalConfidence;
 extern cvar_t	*r_recoveredSpotConfidence;
 extern cvar_t	*r_staticLightDebug;
+extern cvar_t	*r_entityLightProbes;
+extern cvar_t	*r_lightPortals;
+extern cvar_t	*r_lightPortalDebug;
+extern cvar_t	*r_ltcAreaCalibration;
+extern cvar_t	*r_ltcAreaCalibrationScale;
 extern cvar_t	*r_volumetricSelfShadow;
 extern cvar_t	*r_volumetricSelfShadowSamples;
 extern cvar_t	*r_volumetricSelfShadowDistance;
@@ -3214,6 +3219,7 @@ typedef struct {
 	image_t		*entityGridDirected;
 	image_t		*entityGridDirection;
 	color4ub_t	entityGridStyleColors[MAX_LIGHT_STYLES];
+	qboolean	entityGridL1;	// r_entityLightProbes: the three volumes hold L1 probes (R, G, B: C1.xyz, C0)
 	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
 	// directional baked light moments, see R_BuildStaticLighting
 	// (tr_volumetric_reconstruct.cpp)
@@ -5531,6 +5537,11 @@ void R_VolumetricEnsureRasterCarry(void);
 // grid split by the sun, directional baked moments, structured / promoted lights);
 // tr_volumetric_reconstruct.cpp uploads it for the froxel fog
 void R_BuildStaticLighting(world_t *world);
+qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix);	// tr_bsp.cpp, dirMix: 3 channels or NULL
+qboolean R_EntityLightProbesWanted(void);
+void R_CalibrateAreaLight(int index, const vec3_t radiance, float confidence);	// tr_arealights.cpp
+void R_FinishAreaLightCalibration(void);
+void R_StaticLightPortalsBeginScene(const refdef_t *fd);
 void R_ClearStaticLighting(void);
 void R_StaticLightingStats_f(void);
 void R_StaticLightsBeginScene(const refdef_t *fd);

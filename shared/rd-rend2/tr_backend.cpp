@@ -2684,6 +2684,9 @@ static void RB_UpdateEntityLightConstants(
 	if (gridMode == 2 && (!tr.world->entityGridAmbient ||
 		!tr.world->entityGridDirected || !tr.world->entityGridDirection))
 		gridMode = 0;
+	// the shaders were built for L1 probes (or not): legacy light if the volumes do not match
+	if (gridMode == 2 && tr.world->entityGridL1 != R_EntityLightProbesWanted())
+		gridMode = 0;
 
 	entityBlock.gridParams[2] = (float)gridMode;
 	entityBlock.gridParams[3] = tr.forcedLinearLight ? 1.0f : 0.0f;

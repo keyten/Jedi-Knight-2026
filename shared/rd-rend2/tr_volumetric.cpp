@@ -158,6 +158,7 @@ static struct
 		int overflowRefs;		// light / cluster pairs dropped
 		int recoveredLights;	// promoted static lights in the volume (after the dynamic ones)
 		int recoveredCulled;	// promoted static lights out of the PVS
+		int portalShafts;		// light portal shafts in the volume
 		double buildMsec;		// CPU binning + upload
 	} stats;
 } s_vfl;
@@ -1079,6 +1080,7 @@ binned into the clusters its sphere may touch, at most FROXEL_LIGHTS_PER_CLUSTER
 per cluster (the least important drop out). Two buffer textures per frame:
 
   lights  RGBA32F  FROXEL_LIGHT_TEXELS per light: origin, radius | color, shadow cube layer
+                   (light portals: color, -3 - soft edge | then the portal layout below)
                    (-1 none) | spot axis, cos outer (-2: point) | cos inner (-1: point),
                    projected spot shadow, cookie layer (-1 none), cookie roll
                    (tr_spotlight.cpp, tr_lightcookie.cpp)
@@ -1087,7 +1089,7 @@ per cluster (the least important drop out). Two buffer textures per frame:
 =================
 */
 #define FROXEL_LIGHTS_PER_CLUSTER	32
-#define FROXEL_LIGHT_TEXELS			4	// must match volumetric_inject.glsl / volumetric_debug.glsl
+#define FROXEL_LIGHT_TEXELS			5	// must match volumetric_inject.glsl / volumetric_debug.glsl
 
 struct froxelLightRange_t
 {
@@ -1198,10 +1200,14 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	// the promoted lights of the static lighting reconstruction: their light is not in the baked
 	// field any more (r_staticLightDebug 5 drops them to show the residual, 4 drops the dynamic ones)
 	const std::vector<staticLight_t>& staticLights = R_StaticLights();
-	const qboolean recovered = (qboolean)(!staticLights.empty() && r_staticLightDebug->integer != 5);
-	if ( r_staticLightDebug->integer == 4 )
+	const std::vector<staticLightPortal_t>& portals = R_StaticLightPortals();
+	// r_lightPortalDebug 3: the portal shafts alone, 4: without them
+	const int portalDebug = r_lightPortalDebug->integer;
+	const qboolean recovered = (qboolean)(!staticLights.empty() && r_staticLightDebug->integer != 5 && portalDebug != 3);
+	const qboolean shafts = (qboolean)(!portals.empty() && portalDebug != 4 && r_staticLightDebug->integer != 4);
+	if ( r_staticLightDebug->integer == 4 || portalDebug == 3 )
 		numSceneLights = 0;
-	if ( numSceneLights <= 0 && !recovered )
+	if ( numSceneLights <= 0 && !recovered && !shafts )
 		return;
 	struct fogCandidate_t { int light, shadowLayer; float score; };
 	fogCandidate_t candidates[MAX_RENDER_DLIGHTS];
@@ -1245,8 +1251,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	const int numClusters = tilesX * tilesY * s_vf.depth;
 
 	// lights touching the volume, in importance order
-	static vec4_t lightData[(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED) * FROXEL_LIGHT_TEXELS];
-	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED];
+	static vec4_t lightData[(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX) * FROXEL_LIGHT_TEXELS];
+	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX];
 	const qboolean cookiesActive = R_LightCookiesActive();
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
@@ -1375,6 +1381,53 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	}
 	s_vfl.stats.recoveredLights = numRecovered;
 	s_vfl.stats.recoveredCulled = numRecoveredCulled;
+
+	// light portal shafts (the light of a source through its aperture), after the lamps: their
+	// light left the baked field, they come last only because the dynamic lights must not starve
+	int numShafts = 0;
+	if ( shafts )
+	{
+		const int viewCluster = R_StaticViewCluster(view->ori.origin);
+		const world_t *w = tr.world;
+		const float colorScale = r_volumetricFogStaticScale->value / r_volumetricFogDlightScale->value;
+		for ( const staticLightPortal_t& sp : portals )
+		{
+			const vrLightPortal& p = sp.portal;
+			if ( !(p.flags & VR_PORTAL_PROMOTED) || (p.flags & VR_PORTAL_SKY) || numShafts >= STATIC_PORTALS_MAX )
+				continue;
+			// PVS: either side of the aperture
+			if ( w && w->vis && viewCluster >= 0 && viewCluster < w->numClusters )
+			{
+				const byte *vis = w->vis + viewCluster * w->clusterBytes;
+				const int clusters[2] = { sp.frontCluster, sp.backCluster };
+				qboolean seen = qfalse;
+				for ( int k = 0; k < 2; k++ )
+					if ( clusters[k] < 0 || clusters[k] >= w->numClusters || (vis[clusters[k] >> 3] & (1 << (clusters[k] & 7))) )
+						seen = qtrue;
+				if ( !seen )
+					continue;
+			}
+			// the beam behind the aperture, inside a sphere
+			dlight_t dl;
+			Com_Memset(&dl, 0, sizeof(dl));
+			VectorMA(p.center, -0.5f * p.range, p.normal, dl.origin);
+			const float lateral = p.halfWidth + p.halfHeight + p.spreadTan * p.range;
+			dl.radius = sqrtf(0.25f * p.range * p.range + lateral * lateral);
+			froxelLightRange_t *range = &ranges[numLights];
+			if ( !R_VolumetricLightRange(view, froxelProjection, &dl, tileSize, tilesX, tilesY, range) )
+				continue;
+			range->light = numLights;
+			float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
+			VectorSet4(t + 0, p.center[0], p.center[1], p.center[2], p.range);
+			VectorSet4(t + 4, p.color[0] * colorScale, p.color[1] * colorScale, p.color[2] * colorScale, -3.0f - p.edge);
+			VectorSet4(t + 8, p.source[0], p.source[1], p.source[2], p.spreadTan);
+			VectorSet4(t + 12, p.right[0], p.right[1], p.right[2], p.halfWidth);
+			VectorSet4(t + 16, p.up[0], p.up[1], p.up[2], p.halfHeight);
+			numLights++;
+			numShafts++;
+		}
+	}
+	s_vfl.stats.portalShafts = numShafts;
 	if ( !numLights )
 		return;
 
@@ -1388,6 +1441,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		for ( int n = 0; n < numLights; n++ )
 		{
 			const float *t = lightData[n * FROXEL_LIGHT_TEXELS];
+			if ( t[7] < -2.5f )
+				continue;	// a portal shaft: no media march
 			const float radius = t[3];
 			const float luminance = 0.2126f * t[4] + 0.7152f * t[5] + 0.0722f * t[6];
 			const float dist = Q_max(Distance(t, view->ori.origin), 0.25f * radius);
@@ -1522,8 +1577,8 @@ void R_VolumetricLightStats_f( void )
 		st.maxPerCluster, FROXEL_LIGHTS_PER_CLUSTER);
 	ri.Printf(PRINT_ALL, "  overflow: %d clusters full, %d light/cluster pairs dropped\n",
 		st.overflowClusters, st.overflowRefs);
-	ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS\n",
-		st.recoveredLights, st.recoveredCulled);
+	ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS; portal shafts: %d\n",
+		st.recoveredLights, st.recoveredCulled, st.portalShafts);
 	ri.Printf(PRINT_ALL, "  CPU build: %.3f ms\n", st.buildMsec);
 }
 

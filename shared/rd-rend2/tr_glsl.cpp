@@ -2999,6 +2999,9 @@ static int GLSL_LoadGPUProgramLightAll(
 						Q_strcat(extradefines, sizeof(extradefines), "#define USE_ENTITY_GRID\n");
 					if (useEntityGpuGrid)
 						Q_strcat(extradefines, sizeof(extradefines), "#define USE_ENTITY_GPU_GRID\n");
+					// r_entityLightProbes: the three volumes are L1 probes (R_BuildEntityLightProbes)
+					if (useEntityGpuGrid && R_EntityLightProbesWanted())
+						Q_strcat(extradefines, sizeof(extradefines), "#define USE_ENTITY_GRID_L1\n");
 					break;
 				}
 

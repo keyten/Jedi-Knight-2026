@@ -4517,9 +4517,123 @@ static void R_BuildEntityLightGridTextures(world_t *world, qboolean update)
 		Z_Free(direction);
 }
 
+// r_entityLightProbes: replaces the three entity grid volumes by L1 irradiance probes, one
+// RGBA16F volume per colour channel c: xyz = C1_c, w = C0_c (-1: a cell in a wall), so that
+//   irradiance_c(N) = C0_c + C1_c . N
+// For the legacy model ambient A + directed D max(N.u, 0): C0 = A + D / 4, C1 = D / 2 u (its L1
+// projection). With the static lighting reconstruction, u is the per channel direction mix of
+// the attributed sources (tr_volrecon.cpp, vrOutput::entityDir): red from the left, blue from
+// the right instead of one compromise direction. Same A / D as R_PackEntityLightGrid (all styles
+// active at load, linear), r_ambientScale / r_directedScale applied here (map load).
+static float R_EntityProbeSRGBToLinear(float c)
+{
+	return (c <= 0.04045f) ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f);
+}
+
+qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix)
+{
+	world->entityGridL1 = qfalse;
+	if (!world->lightGridData || !world->lightGridArray || world->numGridArrayElements <= 0)
+		return qfalse;
+	GLint maxUnits = 0, max3DSize = 0;
+	qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxUnits);
+	qglGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3DSize);
+	if (maxUnits <= TB_ENTITYGRID_DIRECTION || world->lightGridBounds[0] > max3DSize ||
+		world->lightGridBounds[1] > max3DSize || world->lightGridBounds[2] > max3DSize)
+	{
+		ri.Printf(PRINT_WARNING, "Entity light probes exceed GPU texture limits; using legacy entity light\n");
+		return qfalse;
+	}
+	const bool hdr = world->hdrLightGrid != NULL;
+	const int cells = world->numGridArrayElements;
+	const float ambientScale = r_ambientScale->value, directedScale = r_directedScale->value;
+	std::vector<uint16_t> sh[3];
+	for (int c = 0; c < 3; c++)
+		sh[c].assign(cells * 4, 0);
+	for (int i = 0; i < cells; i++)
+	{
+		const mgrid_t *cell = R_DenseLightGridCell(world, i);
+		if (cell->styles[0] == LS_LSNONE)
+		{
+			for (int c = 0; c < 3; c++)
+				sh[c][i * 4 + 3] = FloatToHalf(-1.0f);
+			continue;
+		}
+		float a[3] = {}, d[3] = {};
+		if (hdr)
+		{
+			const float *source = world->hdrLightGrid + i * 6;
+			for (int c = 0; c < 3; c++)
+			{
+				a[c] = source[c];
+				d[c] = source[c + 3];
+			}
+		}
+		else
+		{
+			for (int styleSlot = 0; styleSlot < MAXLIGHTMAPS; styleSlot++)
+			{
+				const byte style = cell->styles[styleSlot];
+				if (style == LS_LSNONE)
+					break;
+				for (int c = 0; c < 3; c++)
+				{
+					const float styleFactor = styleColors[style][c] * (1.0f / (255.0f * 255.0f));
+					a[c] += cell->ambientLight[styleSlot][c] * styleFactor;
+					d[c] += cell->directLight[styleSlot][c] * styleFactor;
+				}
+			}
+			if (tr.forcedLinearLight)
+				for (int c = 0; c < 3; c++)
+				{
+					a[c] = R_EntityProbeSRGBToLinear(Com_Clamp(0.0f, 1.0f, a[c]));
+					d[c] = R_EntityProbeSRGBToLinear(Com_Clamp(0.0f, 1.0f, d[c]));
+				}
+		}
+		const int lat = cell->latLong[1] * (FUNCTABLE_SIZE / 256);
+		const int lng = cell->latLong[0] * (FUNCTABLE_SIZE / 256);
+		const float bspDir[3] = {
+			tr.sinTable[(lat + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK] * tr.sinTable[lng],
+			tr.sinTable[lat] * tr.sinTable[lng],
+			tr.sinTable[(lng + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK]
+		};
+		for (int c = 0; c < 3; c++)
+		{
+			const float A = Q_max(a[c], 0.0f) * ambientScale, D = Q_max(d[c], 0.0f) * directedScale;
+			const float *u = dirMix ? &dirMix[c][i * 3] : bspDir;
+			const float c0 = A + 0.25f * D;
+			vec3_t c1;
+			VectorScale(u, 0.5f * D, c1);
+			// de-ringing: |C1| <= C0 keeps the irradiance non-negative in every direction
+			const float length = VectorLength(c1);
+			if (length > c0 && length > 0.0f)
+				VectorScale(c1, c0 / length, c1);
+			for (int k = 0; k < 3; k++)
+				sh[c][i * 4 + k] = FloatToHalf(c1[k]);
+			sh[c][i * 4 + 3] = FloatToHalf(c0);
+		}
+	}
+	const int width = world->lightGridBounds[0], height = world->lightGridBounds[1], depth = world->lightGridBounds[2];
+	const int flags = IMGFLAG_CLAMPTOEDGE | IMGFLAG_NEAREST_3D;
+	// the same pointers (and texture units) as the legacy volumes: R, G, B
+	world->entityGridAmbient = R_CreateImage3D("*entityGridSH_R", (byte *)sh[0].data(), width, height, depth, GL_RGBA16F, flags);
+	world->entityGridDirected = R_CreateImage3D("*entityGridSH_G", (byte *)sh[1].data(), width, height, depth, GL_RGBA16F, flags);
+	world->entityGridDirection = R_CreateImage3D("*entityGridSH_B", (byte *)sh[2].data(), width, height, depth, GL_RGBA16F, flags);
+	world->entityGridL1 = qtrue;
+	return qtrue;
+}
+
+qboolean R_EntityLightProbesWanted(void)
+{
+	// debug views 1-9 compare the legacy volumes, 10 / 11 show the probes
+	const int debug = r_entityLightGridDebug->integer;
+	return (qboolean)(r_entityLightGrid->integer == 2 && r_entityLightProbes->integer != 0 && (debug == 0 || debug >= 10));
+}
+
 void R_UpdateEntityLightGridTextures(world_t *world)
 {
-	if (world && world->entityGridAmbient && !world->hdrLightGrid &&
+	// the L1 probes are built once at load (no light style refresh)
+	if (world && world->entityGridAmbient && !world->entityGridL1 && !world->hdrLightGrid &&
 		memcmp(world->entityGridStyleColors, styleColors, sizeof(world->entityGridStyleColors)) != 0)
 		R_BuildEntityLightGridTextures(world, qtrue);
 }
@@ -4623,7 +4737,8 @@ void R_BuildLightGridColorTexture(world_t *world)
 
 static void R_BuildLightGridTexture(world_t *world)
 {
-	if (r_entityLightGrid->integer > 1 || r_entityLightGridDebug->integer)
+	// r_entityLightProbes: the L1 probes are built with the static lighting reconstruction
+	if ((r_entityLightGrid->integer > 1 || r_entityLightGridDebug->integer) && !R_EntityLightProbesWanted())
 		R_BuildEntityLightGridTextures(world, qfalse);
 	if (r_volumetricFog->integer)
 		R_BuildLightGridColorTexture(world);

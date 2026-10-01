@@ -60,6 +60,12 @@ static struct
 	vrStats stats;
 	std::vector<vrProxy> proxies;
 	std::vector<staticLight_t> lights;
+	std::vector<staticLightPortal_t> portals;
+	qboolean fogConsumer;
+	qboolean entityProbes;
+	qboolean portalsOn;
+	qboolean calibration;
+	int numCalibrated;
 	int numAreaSources;
 	int numAreaCandidates;
 	int numTraced;		// candidate cells
@@ -86,6 +92,14 @@ void R_ClearStaticLighting( void )
 	Com_Memset(&s_sl.upload, 0, sizeof(s_sl.upload));
 	std::vector<vrProxy>().swap(s_sl.proxies);
 	std::vector<staticLight_t>().swap(s_sl.lights);
+	std::vector<staticLightPortal_t>().swap(s_sl.portals);
+	s_sl.fogConsumer = s_sl.entityProbes = s_sl.portalsOn = s_sl.calibration = qfalse;
+	s_sl.numCalibrated = 0;
+}
+
+const std::vector<staticLightPortal_t>& R_StaticLightPortals( void )
+{
+	return s_sl.portals;
 }
 
 const std::vector<staticLight_t>& R_StaticLights( void )
@@ -157,6 +171,17 @@ static float R_StaticLightTrace( void *user, const float start[3], const float e
 	return trace.fraction >= 1.0f ? 1.0f : 0.0f;
 }
 
+// 1 when the ray reaches a sky surface (sky portals: metadata only)
+static float R_StaticSkyTrace( void *user, const float start[3], const float end[3] )
+{
+	(void)user;
+	trace_t trace;
+	R_StaticTrace(&trace, start, end);
+	if ( trace.startsolid || trace.allsolid )
+		return 0.0f;
+	return (trace.fraction < 1.0f && (trace.surfaceFlags & SURF_SKY)) ? 1.0f : 0.0f;
+}
+
 // the leaf of a point (R_PointInLeaf works on tr.world, not yet set while loading)
 static const mnode_t *R_StaticPointInLeaf( const world_t *world, const vec3_t p )
 {
@@ -185,22 +210,39 @@ void R_BuildStaticLighting( world_t *world )
 	R_ClearStaticLighting();
 	R_ClearVolumetricStaticLighting(world);
 
-	// v1: the froxel fog is the only consumer
-	if ( r_volumetricFog->integer != 2 || !R_VolumetricFroxelEnabled() || !world->lightGridData ||
-		world->numGridArrayElements <= 0 )
-		return;
+	// the consumers: the froxel fog (its baked light, the recovered lights, the portal shafts),
+	// the entity L1 probes, the area light calibration. The fog needs nothing structured for its
+	// own baked split, the others need the reconstruction (mode 1).
+	const qboolean fog = (qboolean)(r_volumetricFog->integer == 2 && R_VolumetricFroxelEnabled());
+	const int fogMode = (fog && R_VolumetricStaticDirectional()) ? Com_Clampi(0, 2, r_volumetricFogStaticDirectional->integer) : 0;
+	const qboolean reconstruction = (qboolean)(r_staticLightReconstruction->integer != 0);
+	const qboolean entityProbes = R_EntityLightProbesWanted();
+	const qboolean portals = (qboolean)(fog && reconstruction && r_lightPortals->integer);
+	const qboolean calibration = (qboolean)(reconstruction && r_ltcAreaLights->integer && r_ltcAreaCalibration->integer);
+	const qboolean structured = (qboolean)(reconstruction && (fogMode == 1 || entityProbes || portals || calibration));
+	const qboolean entityDirections = (qboolean)(entityProbes && reconstruction);
+	const int mode = structured ? 1 : fogMode;
+	const qboolean promote = (qboolean)(fog && structured && r_recoveredVolumetricLights->integer);
 
 	const int numCells = world->numGridArrayElements;
-	if ( numCells != world->lightGridBounds[0] * world->lightGridBounds[1] * world->lightGridBounds[2] )
-	{
+	const qboolean grid = (qboolean)(world->lightGridData && numCells > 0 &&
+		numCells == world->lightGridBounds[0] * world->lightGridBounds[1] * world->lightGridBounds[2]);
+	if ( world->lightGridData && numCells > 0 && !grid )
 		ri.Printf(PRINT_WARNING, "R_BuildStaticLighting: light grid size mismatch, no reconstruction\n");
+	if ( !grid || (!fog && !structured && !entityProbes) )
+	{
+		// probes without a reconstruction: the legacy model in L1
+		if ( entityProbes )
+			R_BuildEntityLightProbes(world, NULL);
+		return;
+	}
+	if ( !fog && !structured )
+	{
+		R_BuildEntityLightProbes(world, NULL);
 		return;
 	}
 
 	const int startTime = ri.Milliseconds();
-	const int mode = R_VolumetricStaticDirectional() ? Com_Clampi(0, 2, r_volumetricFogStaticDirectional->integer) : 0;
-	const qboolean structured = (qboolean)(mode == 1 && r_staticLightReconstruction->integer);
-	const qboolean promote = (qboolean)(structured && r_recoveredVolumetricLights->integer);
 	const qboolean splitSun = tr.sunParsed;
 	vec3_t sunDir;
 	VectorCopy(tr.sunDirection, sunDir);
@@ -343,7 +385,13 @@ void R_BuildStaticLighting( world_t *world )
 		in.physicalThreshold = r_recoveredPhysicalConfidence->value;
 		in.spotThreshold = r_recoveredSpotConfidence->value;
 		in.maxPromoted = Com_Clampi(1, STATIC_LIGHTS_MAX_PROMOTED, r_recoveredVolumetricMaxLights->integer);
+		in.entityProbes = entityDirections ? true : false;
+		in.portals = portals ? true : false;
+		in.promotePortals = (portals && fog) ? true : false;
+		in.traceSky = R_StaticSkyTrace;
 	}
+	else if ( entityProbes )
+		in.entityProbes = true;	// the BSP direction alone (no reconstruction)
 
 	const int reconstructStart = ri.Milliseconds();
 	vrOutput out;
@@ -372,8 +420,51 @@ void R_BuildStaticLighting( world_t *world )
 		s_sl.lights.push_back(sl);
 	}
 
-	R_UploadVolumetricStaticLighting(world, out, valid.data(), &s_sl.upload);
+	// light portals, with the BSP regions on both sides of the aperture
+	for ( const vrLightPortal& p : out.portals )
+	{
+		staticLightPortal_t sp;
+		sp.portal = p;
+		vec3_t front, back;
+		const float eps = 0.5f * world->lightGridSize[0];
+		VectorMA(p.center, -eps, p.normal, front);
+		VectorMA(p.center, eps, p.normal, back);
+		const mnode_t *leafFront = world->nodes ? R_StaticPointInLeaf(world, front) : NULL;
+		const mnode_t *leafBack = world->nodes ? R_StaticPointInLeaf(world, back) : NULL;
+		sp.frontCluster = leafFront ? leafFront->cluster : -1;
+		sp.frontArea = leafFront ? leafFront->area : -1;
+		sp.backCluster = leafBack ? leafBack->cluster : -1;
+		sp.backArea = leafBack ? leafBack->area : -1;
+		s_sl.portals.push_back(sp);
+	}
 
+	// entity L1 probes from the per channel directions of the attribution
+	if ( entityProbes )
+	{
+		const float *dirs[3] = { out.entityDir[0].data(), out.entityDir[1].data(), out.entityDir[2].data() };
+		R_BuildEntityLightProbes(world, out.entityDir[0].empty() ? NULL : dirs);
+	}
+
+	// area lights calibrated from the grid (automatic ones take it, authored ones are reported)
+	if ( calibration )
+	{
+		for ( const vrStaticLight& l : out.lights )
+		{
+			if ( l.kind != VR_LIGHT_RECT || l.areaSourceIndex < 0 )
+				continue;
+			R_CalibrateAreaLight(l.areaSourceIndex, l.color, l.radiometricConfidence);
+			s_sl.numCalibrated++;
+		}
+		R_FinishAreaLightCalibration();
+	}
+
+	if ( fog )
+		R_UploadVolumetricStaticLighting(world, out, valid.data(), (qboolean)(fogMode != 0), &s_sl.upload);
+
+	s_sl.fogConsumer = fog;
+	s_sl.entityProbes = entityProbes;
+	s_sl.portalsOn = portals;
+	s_sl.calibration = calibration;
 	s_sl.valid = qtrue;
 	s_sl.mode = mode;
 	s_sl.promote = promote;
@@ -396,6 +487,13 @@ void R_BuildStaticLighting( world_t *world )
 			"(%d points, %d spots), %.1f%% of the baked light promoted, %d traces\n",
 			out.stats.physicalLights, out.stats.transportLights, out.stats.promotedPoints + out.stats.promotedSpots,
 			out.stats.promotedPoints, out.stats.promotedSpots, out.stats.promotedFraction * 100.0f, out.stats.traces);
+	}
+	if ( portals )
+	{
+		ri.Printf(PRINT_DEVELOPER, "Static lighting portals: %d (%d candidates, %d promoted, %d sky), %.1f%% of the baked "
+			"light in shafts, %d traces, %.0f msec\n", out.stats.portals, out.stats.portalCandidates,
+			out.stats.promotedPortals, out.stats.skyPortals, out.stats.portalFraction * 100.0f, out.stats.portalTraces,
+			out.stats.msecPortals);
 	}
 }
 
@@ -561,6 +659,46 @@ void R_StaticLightsBeginScene( const refdef_t *fd )
 	}
 }
 
+// r_lightPortalDebug 1: the apertures (orange: promoted shaft, grey: not promoted, blue: sky),
+// their normal and the line to the light behind; 2: also the shaft range
+void R_StaticLightPortalsBeginScene( const refdef_t *fd )
+{
+	if ( !r_lightPortalDebug->integer || !s_sl.valid || s_sl.portals.empty() || !tr.world ||
+		(fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) )
+		return;
+	const qhandle_t shader = RE_RegisterShaderFromImage("*staticLightDebug", lightmaps2d, stylesDefault, tr.whiteImage, qfalse);
+	static const byte promotedColor[4] = { 255, 150, 30, 255 };
+	static const byte plainColor[4] = { 150, 150, 150, 255 };
+	static const byte skyColor[4] = { 60, 140, 255, 255 };
+	static const byte sourceColor[4] = { 255, 230, 40, 255 };
+	for ( const staticLightPortal_t& sp : s_sl.portals )
+	{
+		const vrLightPortal& p = sp.portal;
+		const byte *color = (p.flags & VR_PORTAL_SKY) ? skyColor : (p.flags & VR_PORTAL_PROMOTED) ? promotedColor : plainColor;
+		vec3_t c[4];
+		for ( int k = 0; k < 4; k++ )
+		{
+			VectorMA(p.center, (k == 0 || k == 3) ? p.halfWidth : -p.halfWidth, p.right, c[k]);
+			VectorMA(c[k], (k < 2) ? p.halfHeight : -p.halfHeight, p.up, c[k]);
+		}
+		for ( int k = 0; k < 4; k++ )
+			R_StaticDebugSegment(shader, fd, c[k], c[(k + 1) & 3], color);
+		vec3_t tip;
+		VectorMA(p.center, 24.0f, p.normal, tip);
+		R_StaticDebugSegment(shader, fd, p.center, tip, color);
+		R_StaticDebugSegment(shader, fd, p.center, p.source, sourceColor);
+		if ( r_lightPortalDebug->integer >= 2 )
+		{
+			// the shaft's far end, along the line from the light through the centre
+			vec3_t dir, end;
+			VectorSubtract(p.center, p.source, dir);
+			VectorNormalize(dir);
+			VectorMA(p.center, p.range, dir, end);
+			R_StaticDebugSegment(shader, fd, p.center, end, color);
+		}
+	}
+}
+
 /*
 =================
 R_StaticLightingStats_f
@@ -606,6 +744,13 @@ void R_StaticLightingStats_f( void )
 			"partition error %g\n", s_sl.promote ? "on" : "off (r_recoveredVolumetricLights 0)", st.promotedPoints,
 			st.promotedSpots, st.promotedFraction * 100.0f, st.excessFraction * 100.0f, st.maxPartitionError);
 	}
+	ri.Printf(PRINT_ALL, "  consumers       fog %s, entity probes %s, portals %s, area calibration %s (%d area lights measured)\n",
+		s_sl.fogConsumer ? "on" : "off", s_sl.entityProbes ? "on" : "off", s_sl.portalsOn ? "on" : "off",
+		s_sl.calibration ? "on" : "off", s_sl.numCalibrated);
+	if ( s_sl.portalsOn )
+		ri.Printf(PRINT_ALL, "  portals         %d (%d candidates, %d shafts, %d sky), %.2f%% of the baked light in shafts, "
+			"%d traces, %.1f msec\n", st.portals, st.portalCandidates, st.promotedPortals, st.skyPortals,
+			st.portalFraction * 100.0f, st.portalTraces, st.msecPortals);
 	ri.Printf(PRINT_ALL, "  msec            total %d: sun trace %d, area sources %d, reconstruction %d (split %.1f, "
 		"gradients %.1f, seeds %.1f, fit %.1f, anchors %.1f, attribution %.1f, lights %.1f), upload %d\n",
 		s_sl.msecTotal, s_sl.msecTrace, s_sl.msecAreaSources, s_sl.msecReconstruct, st.msecSplit, st.msecGradients,
@@ -644,6 +789,21 @@ void R_StaticLightingStats_f( void )
 			ri.Printf(PRINT_ALL, "\n");
 		}
 	}
+	else if ( !Q_stricmp(arg, "portals") )
+	{
+		for ( size_t k = 0; k < s_sl.portals.size(); k++ )
+		{
+			const staticLightPortal_t& sp = s_sl.portals[k];
+			const vrLightPortal& p = sp.portal;
+			ri.Printf(PRINT_ALL, "  %3d%s%s (%.0f %.0f %.0f) n %.2f %.2f %.2f size %.0f x %.0f range %.0f color %.4f %.4f %.4f "
+				"conf %.2f solid %.2f leak %.2f excess %.2f receivers %d source %d clusters %d|%d areas %d|%d\n",
+				(int)k, (p.flags & VR_PORTAL_PROMOTED) ? " shaft" : "", (p.flags & VR_PORTAL_SKY) ? " sky" : "",
+				p.center[0], p.center[1], p.center[2], p.normal[0], p.normal[1], p.normal[2], 2.0f * p.halfWidth,
+				2.0f * p.halfHeight, p.range, p.color[0], p.color[1], p.color[2], p.confidence, p.solidBorder,
+				p.leakFraction, p.excessFraction, p.receivers, p.proxy, sp.frontCluster, sp.backCluster, sp.frontArea,
+				sp.backArea);
+		}
+	}
 	else
-		ri.Printf(PRINT_ALL, "  (r_vfogStaticStats proxies | lights: list the sources / the structured lights)\n");
+		ri.Printf(PRINT_ALL, "  (r_vfogStaticStats proxies | lights | portals: list the sources / the structured lights / the portals)\n");
 }

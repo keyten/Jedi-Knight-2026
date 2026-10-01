@@ -96,7 +96,7 @@ flat in int var_Slice;	// slice of this layer, -1 = tail pass
 // dynamic light lists: FROXEL_LIGHT_TEXELS per light (origin, radius | color, shadow cube layer |
 // spot axis, cos outer | cos inner, projected spot shadow, cookie layer, cookie roll), and per cluster a header (first entry |
 // count << 24) followed by the light indexes
-#define FROXEL_LIGHT_TEXELS 4
+#define FROXEL_LIGHT_TEXELS 5
 uniform samplerBuffer u_FPlusLights;
 uniform usamplerBuffer u_FPlusGridMap;
 
@@ -976,6 +976,47 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		vec4 spot = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 2);
 		vec4 spot2 = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 3);
 		float radius = originRadius.w;
+
+		// light portal shaft (tr_volrecon.cpp, PortalShape): the light at its source (spot.xyz)
+		// where the line source -> p crosses the aperture (center originRadius.xyz, right * half
+		// width spot2, up * half height texel 4), point attenuation to |source - center| + range,
+		// fading out to range behind the aperture. No shadow map: the aperture is the occluder.
+		if (colorLayer.w < -2.5)
+		{
+			if (u_ShadowDebug.z == 3.0)
+				continue;
+			vec4 upHeight = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 4);
+			vec3 center = originRadius.xyz;
+			float shaftRange = originRadius.w;
+			vec3 normal = cross(spot2.xyz, upHeight.xyz);
+			float sourceSide = dot(spot.xyz - center, normal);
+			float behind = -dot(p - center, normal);
+			if (sourceSide <= 0.0 || behind <= 0.0 || behind >= shaftRange)
+				continue;
+			vec3 toP = p - spot.xyz;
+			vec3 q = spot.xyz + toP * (sourceSide / (sourceSide + behind));
+			vec3 dq = q - center;
+			float softEdge = spot.w * behind + (-colorLayer.w - 3.0);
+			float du = abs(dot(dq, spot2.xyz)) - spot2.w;
+			float dv = abs(dot(dq, upHeight.xyz)) - upHeight.w;
+			float gate = clamp(-du / softEdge, 0.0, 1.0) * clamp(-dv / softEdge, 0.0, 1.0);
+			if (gate <= 0.0)
+				continue;
+			float shaftDist2 = max(dot(toP, toP), 1e-4);
+			float reach = sourceSide + shaftRange;
+			float shaft = gate * clamp(0.5 * reach * reach / shaftDist2 - 0.5, 0.0, 1.0) *
+				(1.0 - smoothstep(0.7 * shaftRange, shaftRange, behind));
+			if (shaft <= 0.0)
+				continue;
+			vec3 toLight = -toP * inversesqrt(shaftDist2);
+			vec4 shaftPhase = FroxelPhases(g, dot(toLight, viewDir));
+			vec3 shaftLight = colorLayer.rgb * shaft;
+			light0 += shaftLight * shaftPhase.x;
+			light1 += shaftLight * shaftPhase.y;
+			light2 += shaftLight * shaftPhase.z;
+			lightGlobal += shaftLight * shaftPhase.w;
+			continue;
+		}
 		bool lineLight = spot2.w < -999.0;
 
 		// r_spotLightDebug 3: no dynamic light in the fog, 4: spot lights only

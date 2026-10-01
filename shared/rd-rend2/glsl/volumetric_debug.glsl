@@ -78,7 +78,7 @@ uniform sampler3D u_FroxelExtinction;	// sigma_t.rgb of this frame (views 51, 55
 // view 29: the dynamic light lists of the injection (R_VolumetricBuildLightLists)
 uniform samplerBuffer u_FPlusLights;
 uniform usamplerBuffer u_FPlusGridMap;
-#define FROXEL_LIGHT_TEXELS 4
+#define FROXEL_LIGHT_TEXELS 5
 uniform sampler3D u_FroxelMedia;	// extinction of this frame (r_volumetricSelfShadow, view 40)
 uniform sampler3D u_FroxelSource;	// injected volume: rgb / a = history weight in view 8
 

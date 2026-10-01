@@ -1,8 +1,9 @@
 # Rend2: Static Lighting Reconstruction
 
-Status: first vertical slice (physical point / spot lights, energy promotion, unshadowed recovered lights in the
-froxel fog, debug). It builds, and the synthetic tests pass (`tools/volrecon_test`, 866 checks). **It has not been
-run in game yet.** There is no disk cache yet, so the cost is paid at every map load.
+Status: physical point / spot lights with energy promotion and unshadowed recovered lights in the froxel fog;
+phase 2 adds entity L1 probes, light portals with volumetric shafts, and grid-calibrated area lights. Everything
+builds, the synthetic tests pass (`tools/volrecon_test`, 1087 checks) and the changed shaders compile on Intel and
+NVIDIA. **None of it has been run in game yet.** There is no disk cache yet, so the cost is paid at every map load.
 
 ## Why
 
@@ -27,10 +28,16 @@ BSP light grid + BSP (traces) + sun + static area emitters
                 │
    B / S / M (residual) ───── tr_volumetric_reconstruct.cpp   froxel textures (adapter)
    structured lights  ─────── R_StaticLights()  → R_VolumetricBuildLightLists, r_staticLightDebug
+   light portals      ─────── R_StaticLightPortals() → froxel shafts, r_lightPortalDebug
+   entity directions  ─────── R_BuildEntityLightProbes (tr_bsp.cpp) → lightall USE_ENTITY_GRID_L1
+   calibrated RECT    ─────── R_CalibrateAreaLight (tr_arealights.cpp)
 ```
 
-v1 builds only when its one consumer, the froxel fog, is active (`r_volumetricFog 2`). Structured lights need
-`r_volumetricFogStaticDirectional 1` and `r_staticLightReconstruction 1`.
+The reconstruction is built when any consumer is on: the froxel fog (`r_volumetricFog 2`), the entity probes
+(`r_entityLightGrid 2` + `r_entityLightProbes`), the portals (fog + `r_lightPortals`), or the area calibration
+(`r_ltcAreaLights` + `r_ltcAreaCalibration`). It runs in mode 1 (structured) whenever one of them needs it, even with
+`r_volumetricFogStaticDirectional 0`; the fog then still gets only its isotropic split. Promotion (lights and
+portals) happens only when the fog consumes it, because only the fog injects the exact light.
 
 ## Structured lights (`vrStaticLight`)
 
@@ -112,6 +119,100 @@ effect on the next map load or `vid_restart`.
 - Main view only, like the rest of the froxel fog. Particle light (`r_particleLighting`) receives the recovered
   lights automatically through the same lists.
 
+## Entity L1 probes (`r_entityLightProbes`, with `r_entityLightGrid 2`)
+
+The legacy grid gives a character one ambient colour, one directed colour and **one** direction. With a red lamp
+on the left and a blue one on the right, that is a purple compromise from the middle. The probes store first-order
+irradiance per colour channel instead: `I_c(N) = C0_c + C1_c · N` (design §70–81).
+
+- **Library**: `vrOutput::entityDir[c]`, the per-channel direction mix `((D − E)·bspDir + M) / D`, taken from the
+  attribution **before** any promotion, since characters do not receive the recovered lights. The attributed part
+  E is spread over its sources (the moment M); the unattributed rest and the baked sun keep the BSP direction.
+  `|mix| ≤ 1`. Without a reconstruction (modes 0 and 2, or `r_staticLightReconstruction 0`) it is the BSP direction.
+- **Renderer** (`R_BuildEntityLightProbes`, tr_bsp.cpp):
+  - Uses the same A/D as `R_PackEntityLightGrid`: all styles active at load, linear, with `r_ambientScale` and
+    `r_directedScale` applied at load.
+  - `C0 = A + D/4`, `C1 = D/2 · mix`, de-ringed so that `|C1| ≤ C0`. This is the L1 projection of the legacy model.
+  - Three `RGBA16F` volumes (R, G, B: `C1.xyz`, `C0`; `w = −1` marks wall cells), bound to the same three entity
+    grid pointers and texture units. No new sampler.
+- **Shader** (`USE_ENTITY_GRID_L1`):
+  - Same manual 8-cell fetch as the legacy grid: wall cells are skipped and the rest renormalized.
+  - `L = normalize(luma C1)`, `directed = 2·max(C1_c·L, 0)`, `ambient = C0 + C1·N − directed·max(N·L, 0)`. The
+    diffuse is then exactly the L1 irradiance, and the specular keeps a directional lobe.
+  - The LDR minimum light (`RF_MINLIGHT`) still applies.
+- **Limitations**:
+  - Animated light styles are frozen at their load state (no per-frame refresh in L1).
+  - `r_ambientScale` and `r_directedScale` need a `vid_restart` to take effect.
+  - Debug views 1–9 of `r_entityLightGridDebug` compare the legacy volumes (the probes are then off); 10 shows C0,
+    11 shows the L1 direction.
+
+## Light portals and shafts (`r_lightPortals`, with `r_volumetricFog 2`)
+
+A light portal is an aperture (a door, window or gap) that the light of one source comes through (design §32–50).
+It is not a new source: its shaft replaces the baked light that came through it.
+
+**Detection** (`BuildPortals`). It runs over the 64 sources with the most explained light that are not promoted
+lights.
+
+- The design's ray-bundle bottleneck cannot tell a door from a lamp (the rays of a lamp converge on the lamp, §40),
+  so the aperture is found **geometrically**.
+- **Receivers**: stratified over the source's domain (distance bins × octants), so the few cells behind a door are
+  among them. Only receivers that can see the source are used.
+- **Constriction**: march along the segment from the receiver to the source in ¼-cell steps. The first point where
+  lateral probes (2 cells) hit solid on **both** sides of one axis is a constriction.
+- **Clustering**: constrictions on the same plane across the seed direction, laterally within 4 cell diagonals,
+  form one cluster. A cluster needs at least 6 receivers, at least 3% of the visible sampled receivers, and an
+  angular spread below about 34°. Receivers are counted, not weighted by light: behind a door they are dim next to
+  the lamp's own room.
+- **Aperture**: a 16×16 open/solid mask on the plane, from short traces through it.
+  - Take the open component around the cluster. If it reaches the mask border, retry with a mask of 2.5, 5, then
+    10 cells; if it still reaches the border, it is open space and rejected.
+  - At least 50% of the ring around the component must be solid.
+  - The rectangle comes from a PCA of the component. Upstream sky gives a `SKY` portal, which is metadata only
+    (the sun shafts come from the cascades, §113).
+- **Shaft model**: the design's finite linked source (§47). For a point x behind the plane:
+  - Take the point q where the line from the source proxy to x crosses the plane.
+  - The soft rectangle gate is 0 at the rim, so the shaft never passes through the wall. The soft edge is ¼ cell
+    plus the source's σ seen through the aperture.
+  - Multiply by the runtime point attenuation with `R = |source − center| + range`, and fade out over the range.
+  - A first version back-projected along one mean direction. It failed because rays from a lamp diverge after the
+    door.
+- **Energy**:
+  - Color: the one-sided envelope fit, as for lights, over the attributed cells the shaft reaches.
+  - Confidence: quality × solid ring × receiver share; a portal needs at least 0.25.
+  - Promotion: leak ≤ 15% (the cell must see its plane point q) and excess ≤ 20%. Then `Q`, `B` and `P` are
+    updated as for lights.
+  - The portal's source stays in the attribution of the remaining light, so its own room keeps its moments.
+
+**Runtime**:
+
+- The light texel stride goes from 4 to 5. A portal is marked by texel 1 `w = −3 − soft edge`. Texels: center and
+  range, color, source and penumbra, `right·halfW`, `up·halfH`.
+- Portals are appended after the dynamic and recovered lights, culled by the PVS of either side, then by the beam's
+  bounding sphere.
+- The `DynamicLights` portal branch evaluates the same shape with the HG phase towards the source. There is no
+  shadow lookup (the aperture is the occluder) and no media march. Particle light receives it through the same
+  lists.
+- `r_lightPortalDebug`: 1 draws the rectangles, the normal and the line to the source; 2 adds the shaft range;
+  3 leaves only the shafts in the fog; 4 removes them from the fog. `r_vfogStaticStats portals` lists the portals
+  with the BSP clusters and areas on both sides (front = receivers, back = source side).
+
+## Area light calibration (`r_ltcAreaCalibration`, with `r_ltcAreaLights`)
+
+The area anchors were already calibrated against the grid: the grid light ≈ `calibration · E_area(x)`, where
+`E_area` is the cosine-weighted solid angle of the emitter, so the emitter radiance is `calibration · chroma`
+(design §90–97). The quadrature is now 5×5 within about one emitter size of a probe.
+
+- `vrAreaSource::sourceIndex` / `vrStaticLight::areaSourceIndex` link an anchor back to its `s_al.lights` entry
+  (explicit lights by index, automatic lights by matching the candidate).
+- `R_CalibrateAreaLight`:
+  - **Automatic** lights take `color = radiance · r_ltcAreaCalibrationScale` and `intensity 1`; their range is
+    recomputed by `R_AreaLightDefaultRange` and the metrics are recached.
+  - **Authored** lights keep their values; `developer 1` reports the grid value next to theirs.
+  - Anchors below 0.3 confidence are left untouched.
+- The grid→LTC constant has not been validated against q3map output (§94); `r_ltcAreaCalibrationScale` holds it.
+  On the synthetic panel the recovered radiance is 3.003 for a true 3.0.
+
 ## Cvars and commands
 
 | cvar | default | |
@@ -122,11 +223,17 @@ effect on the next map load or `vid_restart`.
 | `r_recoveredPhysicalConfidence` | 0.6 | developer, map load |
 | `r_recoveredSpotConfidence` | 0.6 | developer, × physical threshold, map load |
 | `r_staticLightDebug` | 0 | 1 lights, 2 + range / sigma, 3 promoted only, 4 fog: recovered lights only, 5 fog: without recovered lights (residual) |
+| `r_entityLightProbes` | 1 | L1 probes instead of the legacy grid volumes, with `r_entityLightGrid 2` (latched) |
+| `r_lightPortals` | 1 | portals and froxel shafts, with `r_volumetricFog 2` (latched) |
+| `r_lightPortalDebug` | 0 | 1 portals, 2 + shaft range, 3 fog: shafts only, 4 fog: without shafts |
+| `r_ltcAreaCalibration` | 0 | automatic LTC area lights take the grid radiance (latched) |
+| `r_ltcAreaCalibrationScale` | 1 | developer, grid→LTC constant (latched) |
+| `r_entityLightGridDebug` | 0 | adds 10 L1 C0 and 11 L1 direction |
 
 `r_staticLightDebug` 1–3 colors: green physical (bright = promoted), yellow uncertain point, magenta transport,
 cyan area. Spots show their outer cone at R/4.
 
-`r_vfogStaticStats [proxies | lights]` prints the reconstruction stats, promoted energy, excess and partition
+`r_vfogStaticStats [proxies | lights | portals]` prints the active consumers, the portal statistics, and the reconstruction stats, promoted energy, excess and partition
 error. `lights` lists each structured light with kind, flags, confidences, leak, excess and cluster.
 `r_vfogLightStats` shows the recovered lights in the volume and those culled by the PVS.
 
@@ -140,13 +247,20 @@ error. `lights` lists each structured light with kind, flags, confidences, leak,
 | true 35° spot pointing down | SPOT, origin 12 u from the lamp, axis down, promoted, 0% excess |
 | lamp 6 u off a wall | physical, in the room, not promoted (leak 0.30) |
 | window edge | physical, not promoted (leak ~0.7) |
-| 64×64×32 grid, 40 lights | reconstruction 0.55 s total (the light stage about 0.2 s, about 60k traces) |
+| 64×64×32 grid, 40 lights | reconstruction 0.8 s total including portals (box traces; real BSP traces cost more) |
+| doorway with floor and frame | one portal at the gap, 200 u wide (gap 192), 520–640 u tall (gap about 616), shaft promoted, leak 0.03 |
+| omni light / true spot in an empty room | no portal |
+| red + blue | entity L1: red from the left, blue from the right |
+| ceiling panel of radiance 3.0 | calibrated radiance 3.003 |
 
 ## Not done yet (next steps of the design)
 
 - Disk cache (sections MOM1 / SRCS / …); currently rebuilt at every load.
 - Static shadows for recovered lights (cached cube atlas). Until then the leak gate keeps lamps near walls baked,
   which is most indoor lamps on real maps. Expect few promotions on stock maps.
-- Light portals, portal shafts, Forward+ specular-only lights, the L1 entity probes (`r_entityLightGrid 3`), rain,
-  and area-light calibration.
+- Forward+ specular-only lights, residual probes with exact recovered light on characters (§76), and rain on the
+  L1 probes.
+- Portal graph and regions (§99), merging of coplanar portals of different sources (each source keeps its own
+  shaft for now), and portals for sources that cannot see their receivers (around corners).
+- Validating the grid→LTC calibration constant against q3map-compiled test maps.
 - Tuning thresholds on stock maps (only synthetic grids so far).

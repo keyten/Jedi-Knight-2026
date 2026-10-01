@@ -116,10 +116,11 @@ R_UploadVolumetricStaticLighting
 =================
 */
 void R_UploadVolumetricStaticLighting( world_t *world, const vrOutput& out, const uint8_t *valid,
-	staticLightingUploadStats_t *stats )
+	qboolean moments, staticLightingUploadStats_t *stats )
 {
 	const int numCells = world->numGridArrayElements;
-	const int mode = out.moment[0].empty() ? 0 : 1;
+	// the reconstruction may run for other consumers while the fog itself is isotropic
+	const int mode = (moments && !out.moment[0].empty()) ? 1 : 0;
 
 	// half float texels, alpha = the sun fraction; the moments are shortened after the
 	// rounding where needed (|M| <= B)

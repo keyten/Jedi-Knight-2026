@@ -60,6 +60,7 @@ struct vrAreaSource
 	float color[3];		// linear, only the chromaticity is used
 	float confidence;	// 0..1
 	bool twoSided;
+	int sourceIndex;	// the renderer's own index (its area light), carried to vrStaticLight
 };
 
 struct vrInput
@@ -86,6 +87,13 @@ struct vrInput
 	float physicalThreshold;	// physicalConfidence above which a light is physical (0: default)
 	float spotThreshold;		// spotConfidence above which a physical light is a spot (0: default)
 	int maxPromoted;			// promoted light budget (0: default)
+	// entity L1 probes: per cell the direction mix of the directed light (vrOutput::entityDir)
+	bool entityProbes;
+	// light portals (mode 1, needs trace): apertures the transport sources shine through
+	bool portals;
+	bool promotePortals;		// move the promoted portals out of B / M (froxel shafts)
+	// 1 when the ray from start to end reaches a sky surface; may be null (no sky portals)
+	float (*traceSky)( void *user, const float start[3], const float end[3] );
 };
 
 enum vrSourceType
@@ -162,6 +170,46 @@ struct vrStaticLight
 	float halfWidth;
 	float halfHeight;
 	bool twoSided;
+	int areaSourceIndex;		// VR_LIGHT_RECT: vrAreaSource::sourceIndex of the emitter
+};
+
+enum vrPortalFlags
+{
+	VR_PORTAL_SKY		= 1 << 0,	// upstream of it is the sky: metadata only (the sun shafts come from the cascades)
+	VR_PORTAL_PROMOTED	= 1 << 1,	// a froxel shaft, its light is out of B / M
+	VR_PORTAL_PHYSICAL	= 1 << 2	// its source is a physical light
+};
+
+// a light portal: an aperture the light of one source comes through (a door, a window, a gap).
+// It transports existing light, it is no new source: the shaft is fitted to the light attributed
+// to the source behind it, and promoted (taken out of B / M) like a light.
+struct vrLightPortal
+{
+	int flags;
+	int proxy;					// the source behind it (index into vrOutput::proxies)
+	float center[3];
+	float normal[3];			// unit, towards the source side; cross(right, up) == normal
+	float right[3];				// unit
+	float up[3];				// unit
+	float halfWidth;
+	float halfHeight;
+	float incoming[3];			// unit, mean direction from the receivers towards the light
+	float source[3];			// the light behind it (its proxy): the shaft is that light, gated
+	float spreadTan;			// penumbra growth per unit behind the aperture (source uncertainty / distance)
+	float edge;					// soft edge at the aperture, world units
+	float range;				// the shaft fades out up to this distance behind the aperture
+	// runtime shaft (design: finite linked source): the point light at source, color *
+	// clamp(0.5 R^2 / r^2 - 0.5, 0, 1) with R = |source - center| + range, times the soft rectangle
+	// gate where the line source -> x crosses the plane, times the fade behind the aperture;
+	// already scaled by promotionWeight (the mean over the view directions, as the lights)
+	float color[3];
+	float confidence;
+	float solidBorder;			// solid part of the ring around the aperture
+	float explainedEnergy;		// attributed light of the receivers through it
+	float promotionWeight;
+	float leakFraction;
+	float excessFraction;
+	int receivers;
 };
 
 struct vrStats
@@ -199,6 +247,14 @@ struct vrStats
 	float promotedFraction;		// sum lum P / sum lum B (before)
 	float excessFraction;		// modelled light above the budget / promoted light
 	float maxPartitionError;	// max |B' + P - B|
+	// light portals
+	int portalCandidates;		// constriction clusters tried
+	int portals;
+	int skyPortals;
+	int promotedPortals;
+	int portalTraces;
+	float portalFraction;		// sum lum P of the portals / sum lum B (before)
+	float msecPortals;
 };
 
 struct vrOutput
@@ -210,6 +266,11 @@ struct vrOutput
 	std::vector<float> promoted;	// P, 3 per cell (empty when nothing is promoted)
 	std::vector<vrProxy> proxies;
 	std::vector<vrStaticLight> lights;
+	std::vector<vrLightPortal> portals;
+	// entity L1 probes (in.entityProbes): per channel and cell the direction mix of the directed
+	// light, ((D - E) * bspDir + M) / D with the attribution before any promotion (entities never
+	// get the promoted lights): the L1 vector part is D / 2 * this, |this| <= 1. Zero in walls.
+	std::vector<float> entityDir[3];
 	vrStats stats;
 };
 

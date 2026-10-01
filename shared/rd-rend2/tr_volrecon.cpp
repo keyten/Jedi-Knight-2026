@@ -239,6 +239,7 @@ struct Ctx
 	std::vector<float> ratios;
 	std::vector<float> scratchL;	// structured lights: the attributed part of one source, 3 per cell
 	int traces;
+	int portalTraces;
 
 	int Index( int x, int y, int z ) const { return x + bx * (y + by * z); }
 	void Coord( int i, int *x, int *y, int *z ) const { *x = i % bx; *y = (i / bx) % by; *z = i / (bx * by); }
@@ -835,7 +836,8 @@ void AreaMoment( const vrAreaSource& a, V3 x, float *energy, V3 *moment )
 	const float area = 4.0f * a.halfWidth * a.halfHeight;
 	const float extent = std::max(a.halfWidth, a.halfHeight) * 2.0f;
 	const float distance = Length(Sub(center, x));
-	const int n = (distance > 1e-3f && extent / distance < 0.25f) ? 1 : 3;
+	// 5 x 5 within about one emitter size (a large panel close to a probe), 1 x 1 far away
+	const int n = (distance > 1e-3f && extent / distance < 0.25f) ? 1 : ((distance > extent) ? 3 : 5);
 	const float sampleArea = area / (float)(n * n);
 	*energy = 0.0f;
 	*moment = Make(0.0f, 0.0f, 0.0f);
@@ -1100,6 +1102,40 @@ void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
 }
 
 // E = Q * max m, split by m: M = E * sum(m u) / sum(m); returns sum lum E
+// entity L1 probes: the direction mix ((D - E) bspDir + M) / D per channel, from the moments of the
+// whole attribution (before promotion). The unattributed directed light (and the baked sun) keeps
+// the BSP direction; opposite lamps of one colour partly cancel, which is safe for L1.
+void EntityDirections( Ctx& ctx, const std::vector<Accumulator>& acc, vrOutput& out )
+{
+	for ( int c = 0; c < 3; c++ )
+		out.entityDir[c].assign(ctx.n * 3, 0.0f);
+	for ( int i = 0; i < ctx.n; i++ )
+	{
+		if ( !ctx.Valid(i) )
+			continue;
+		const V3 b = ctx.BspDir(i);
+		for ( int c = 0; c < 3; c++ )
+		{
+			const float D = std::max(ctx.in->direct[i * 3 + c], 0.0f);
+			if ( D <= 0.0f )
+				continue;
+			const float E = acc.empty() ? 0.0f : std::min(ctx.Q[i * 3 + c] * acc[i].maxM[c], D);
+			const float *m = out.moment[c].empty() ? nullptr : &out.moment[c][i * 3];
+			V3 v = Scale(b, D - E);
+			if ( m )
+				v = Add(v, Make(m[0], m[1], m[2]));
+			v = Scale(v, 1.0f / D);
+			const float len = Length(v);
+			if ( !std::isfinite(len) )
+				continue;
+			if ( len > 1.0f )
+				v = Scale(v, 1.0f / len);
+			float *o = &out.entityDir[c][i * 3];
+			o[0] = v.x; o[1] = v.y; o[2] = v.z;
+		}
+	}
+}
+
 double ResolveMoments( Ctx& ctx, const std::vector<Accumulator>& acc, vrOutput& out )
 {
 	double energySum = 0.0;
@@ -1661,8 +1697,13 @@ void BuildLights( Ctx& ctx, const std::vector<Source>& sources, const std::vecto
 		light.cosOuter = -2.0f;
 		if ( src.proxy.area >= 0 )
 		{
-			// known emitters: not promoted yet (grid calibrated area lights come later)
+			// known emitters, not promoted: their grid calibrated radiance (calibration * E_area
+			// predicts the grid light; E_area is the cosine weighted solid angle of the emitter)
 			light.kind = VR_LIGHT_RECT;
+			for ( int c = 0; c < 3; c++ )
+				light.color[c] = Get(src.chroma, c) * src.calibration;
+			light.radiometricConfidence = src.proxy.confidence;
+			light.areaSourceIndex = ctx.in->areas[src.proxy.area].sourceIndex;
 			for ( int c = 0; c < 3; c++ )
 			{
 				light.right[c] = src.proxy.right[c];
@@ -1804,6 +1845,530 @@ void BuildLights( Ctx& ctx, const std::vector<Source>& sources, const std::vecto
 }
 
 
+/*
+-----------------------------------------------------------------------------
+Light portals
+-----------------------------------------------------------------------------
+
+An aperture the light of one source comes through. A converging ray bundle alone
+proves nothing (the rays of a lamp converge at the lamp, not at the door it shines
+through), so the aperture is found in the geometry: from each lit receiver towards
+its source, the first point of the segment where short lateral probes hit solid on
+both sides is a constriction. Constrictions of many receivers that cluster are a
+candidate; on the plane across the mean direction a 16 x 16 open / solid mask
+(short traces through the plane) gives the open component around the cluster, its
+oriented rectangle is the portal. An open component that reaches the mask border,
+or one without solid around it, is open space, not an aperture.
+
+The shaft: a receiver behind the aperture back-projects along the incoming
+direction onto the plane, inside the soft rectangle it gets the light. The color is
+the one-sided envelope of the light attributed to the source at the receivers the
+shaft reaches (as the lights); promoted like a light, so the shaft replaces baked
+light and never adds any. Sky portals are metadata only.
+*/
+
+const int		PORTAL_SOURCES = 64;		// sources examined, most explained light first
+const int		PORTAL_MAX = 32;
+const int		PORTAL_MASK = 16;
+const float		PORTAL_MASK_HALF = 2.5f;	// mask half extent, in the smallest cell size
+const float		PORTAL_PROBE = 2.0f;		// lateral probe length, in the smallest cell size
+const float		PORTAL_STEP = 0.25f;		// march step along a segment, in the smallest cell size
+const float		PORTAL_CLUSTER = 1.0f;		// cluster radius, in cell diagonals
+const int		PORTAL_MIN_RECEIVERS = 6;
+const float		PORTAL_MIN_SHARE = 0.03f;	// of the sampled receivers that see the source
+const float		PORTAL_FULL_SHARE = 0.1f;	// the receiver share of a fully confident portal
+const float		PORTAL_LATERAL = 4.0f;		// cluster reach in the plane, in cluster radii
+const float		PORTAL_MIN_SOLID = 0.5f;	// solid part of the ring around the open component
+const float		PORTAL_MAX_BORDER = 0.25f;	// mask border samples the open component may reach
+const float		PORTAL_MAX_SPREAD = 0.6f;	// radians: wider bundles are diffuse transport, no shaft
+const float		PORTAL_MIN_CONFIDENCE = 0.25f;
+
+inline void PlaneBasis( V3 n, V3 *right, V3 *up )
+{
+	const V3 helper = fabsf(n.z) < 0.9f ? Make(0.0f, 0.0f, 1.0f) : Make(1.0f, 0.0f, 0.0f);
+	*right = Normalize(Cross(helper, n));
+	*up = Cross(n, *right);		// cross(right, up) == n
+}
+
+float PortalTrace( Ctx& ctx, V3 a, V3 b )
+{
+	ctx.portalTraces++;
+	return Trace(ctx, a, b);
+}
+
+// the shaft shape at x (0..1, the point light attenuation included) and the plane point where
+// the line source -> x crosses the aperture
+float PortalShape( const vrLightPortal& p, V3 x, V3 *q )
+{
+	const V3 n = Load(p.normal), c = Load(p.center), S = Load(p.source);
+	const float sourceSide = Dot(Sub(S, c), n);		// > 0
+	const float t = -Dot(Sub(x, c), n);				// behind the aperture: > 0
+	if ( sourceSide <= 0.0f || t <= 0.0f || t >= p.range )
+		return 0.0f;
+	const V3 toX = Sub(x, S);
+	*q = Add(S, Scale(toX, sourceSide / (sourceSide + t)));
+	const V3 d = Sub(*q, c);
+	const float e = p.spreadTan * t + p.edge;
+	const float du = fabsf(Dot(d, Load(p.right))) - p.halfWidth;
+	const float dv = fabsf(Dot(d, Load(p.up))) - p.halfHeight;
+	// the soft edge lies inside the aperture: 0 at its rim, so the shaft never comes through the wall
+	const float gate = Saturate(-du / e) * Saturate(-dv / e);
+	if ( gate <= 0.0f )
+		return 0.0f;
+	const float R = sourceSide + p.range;
+	return gate * PointAttenuation(Length(toX), R) * (1.0f - Smoothstep(0.7f * p.range, p.range, t));
+}
+
+struct Constriction
+{
+	V3 point;
+	V3 dir;		// receiver towards the source
+	V3 receiver;
+	float weight;
+};
+
+// first constriction of the segment receiver -> source, false if none
+bool FindConstriction( Ctx& ctx, V3 x, V3 s, Constriction *out )
+{
+	float length;
+	const V3 a = Normalize(Sub(s, x), &length);
+	V3 r, u;
+	PlaneBasis(a, &r, &u);
+	const float cell = std::min(ctx.size.x, std::min(ctx.size.y, ctx.size.z));
+	const float step = PORTAL_STEP * cell, probe = PORTAL_PROBE * cell;
+	// the receiver's own surroundings are no aperture: start half a cell out
+	for ( float t = 0.5f * cell; t < length - 0.5f * cell; t += step )
+	{
+		const V3 p = Add(x, Scale(a, t));
+		const V3 axes[2] = { r, u };
+		for ( int k = 0; k < 2; k++ )
+		{
+			if ( PortalTrace(ctx, p, Add(p, Scale(axes[k], probe))) > 0.5f )
+				continue;
+			if ( PortalTrace(ctx, p, Sub(p, Scale(axes[k], probe))) > 0.5f )
+				continue;
+			out->point = p;
+			out->dir = a;
+			out->receiver = x;
+			return true;
+		}
+	}
+	return false;
+}
+
+// open component of the plane mask (half extent half) around centre: the aperture rectangle.
+// 0: no aperture, 1: fitted, 2: the open component reaches the mask border (try a larger mask)
+int FitApertureAt( Ctx& ctx, V3 centre, V3 n, float half, vrLightPortal *portal )
+{
+	V3 r, u;
+	PlaneBasis(n, &r, &u);
+	const float cell = std::min(ctx.size.x, std::min(ctx.size.y, ctx.size.z));
+	const float spacing = 2.0f * half / PORTAL_MASK;
+	const float eps = 0.25f * cell;
+	uint8_t open[PORTAL_MASK][PORTAL_MASK];
+	V3 points[PORTAL_MASK][PORTAL_MASK];
+	for ( int j = 0; j < PORTAL_MASK; j++ )
+		for ( int i = 0; i < PORTAL_MASK; i++ )
+		{
+			const V3 p = Add(centre, Add(Scale(r, (i + 0.5f) * spacing - half), Scale(u, (j + 0.5f) * spacing - half)));
+			points[j][i] = p;
+			open[j][i] = PortalTrace(ctx, Sub(p, Scale(n, eps)), Add(p, Scale(n, eps))) > 0.5f ? 1 : 0;
+		}
+
+	// the open sample nearest the centre, then its 4-connected component
+	int si = -1, sj = -1;
+	float best = 1e30f;
+	for ( int j = 0; j < PORTAL_MASK; j++ )
+		for ( int i = 0; i < PORTAL_MASK; i++ )
+		{
+			const float d = (i + 0.5f - 0.5f * PORTAL_MASK) * (i + 0.5f - 0.5f * PORTAL_MASK) +
+				(j + 0.5f - 0.5f * PORTAL_MASK) * (j + 0.5f - 0.5f * PORTAL_MASK);
+			if ( open[j][i] && d < best && d <= 9.0f )
+			{
+				best = d;
+				si = i;
+				sj = j;
+			}
+		}
+	if ( si < 0 )
+		return 0;
+	uint8_t inComp[PORTAL_MASK][PORTAL_MASK];
+	memset(inComp, 0, sizeof(inComp));
+	int stackI[PORTAL_MASK * PORTAL_MASK], stackJ[PORTAL_MASK * PORTAL_MASK];
+	int top = 0, count = 0, borderOpen = 0, ringSolid = 0, ringTotal = 0;
+	stackI[top] = si; stackJ[top] = sj; top++;
+	inComp[sj][si] = 1;
+	V3 mean = Make(0.0f, 0.0f, 0.0f);
+	std::vector<std::pair<float, float>> coords;
+	while ( top > 0 )
+	{
+		top--;
+		const int i = stackI[top], j = stackJ[top];
+		count++;
+		const float ci = (i + 0.5f) * spacing - half, cj = (j + 0.5f) * spacing - half;
+		coords.push_back(std::make_pair(ci, cj));
+		if ( i == 0 || j == 0 || i == PORTAL_MASK - 1 || j == PORTAL_MASK - 1 )
+			borderOpen++;
+		const int ni[4] = { i - 1, i + 1, i, i }, nj[4] = { j, j, j - 1, j + 1 };
+		for ( int k = 0; k < 4; k++ )
+		{
+			if ( ni[k] < 0 || nj[k] < 0 || ni[k] >= PORTAL_MASK || nj[k] >= PORTAL_MASK )
+				continue;
+			if ( !open[nj[k]][ni[k]] )
+			{
+				ringSolid++;
+				ringTotal++;
+				continue;
+			}
+			if ( inComp[nj[k]][ni[k]] )
+				continue;
+			inComp[nj[k]][ni[k]] = 1;
+			stackI[top] = ni[k]; stackJ[top] = nj[k]; top++;
+		}
+	}
+	// open component samples on the mask border vs the whole border
+	const int borderSamples = 4 * PORTAL_MASK - 4;
+	if ( count < 2 )
+		return 0;
+	if ( (float)borderOpen / borderSamples > PORTAL_MAX_BORDER )
+		return 2;
+	// the solid part of the ring around the component (open neighbours outside it count as open)
+	for ( int j = 0; j < PORTAL_MASK; j++ )
+		for ( int i = 0; i < PORTAL_MASK; i++ )
+		{
+			if ( !inComp[j][i] )
+				continue;
+			const int ni[4] = { i - 1, i + 1, i, i }, nj[4] = { j, j, j - 1, j + 1 };
+			for ( int k = 0; k < 4; k++ )
+				if ( ni[k] < 0 || nj[k] < 0 || ni[k] >= PORTAL_MASK || nj[k] >= PORTAL_MASK )
+					ringTotal++;	// beyond the mask: unknown, counts as open
+		}
+	const float solid = ringTotal > 0 ? (float)ringSolid / ringTotal : 0.0f;
+	if ( solid < PORTAL_MIN_SOLID )
+		return 0;
+
+	// oriented rectangle: PCA of the component samples in the plane
+	double mi = 0.0, mj = 0.0;
+	for ( const auto& c : coords )
+	{
+		mi += c.first;
+		mj += c.second;
+	}
+	mi /= count;
+	mj /= count;
+	double cii = 0.0, cij = 0.0, cjj = 0.0;
+	for ( const auto& c : coords )
+	{
+		const double di = c.first - mi, dj = c.second - mj;
+		cii += di * di;
+		cij += di * dj;
+		cjj += dj * dj;
+	}
+	const double angle = 0.5 * atan2(2.0 * cij, cii - cjj);
+	const float ca = (float)cos(angle), sa = (float)sin(angle);
+	const V3 axisR = Add(Scale(r, ca), Scale(u, sa));
+	const V3 axisU = Cross(n, axisR);
+	float hw = 0.0f, hh = 0.0f;
+	for ( const auto& c : coords )
+	{
+		const float di = (float)(c.first - mi), dj = (float)(c.second - mj);
+		hw = std::max(hw, fabsf(di * ca + dj * sa));
+		hh = std::max(hh, fabsf(-di * sa + dj * ca));
+	}
+	hw += 0.5f * spacing;
+	hh += 0.5f * spacing;
+	mean = Add(centre, Add(Scale(r, (float)mi), Scale(u, (float)mj)));
+
+	portal->center[0] = mean.x; portal->center[1] = mean.y; portal->center[2] = mean.z;
+	portal->normal[0] = n.x; portal->normal[1] = n.y; portal->normal[2] = n.z;
+	portal->right[0] = axisR.x; portal->right[1] = axisR.y; portal->right[2] = axisR.z;
+	portal->up[0] = axisU.x; portal->up[1] = axisU.y; portal->up[2] = axisU.z;
+	portal->halfWidth = hw;
+	portal->halfHeight = hh;
+	portal->solidBorder = solid;
+	portal->edge = 0.25f * cell;
+	return 1;
+}
+
+// a door is taller than a window: the mask grows (2.5, 5, 10 cells) while the opening fills it
+bool FitAperture( Ctx& ctx, V3 centre, V3 n, vrLightPortal *portal )
+{
+	const float cell = std::min(ctx.size.x, std::min(ctx.size.y, ctx.size.z));
+	float half = PORTAL_MASK_HALF * cell;
+	for ( int attempt = 0; attempt < 3; attempt++, half *= 2.0f )
+	{
+		const int result = FitApertureAt(ctx, centre, n, half, portal);
+		if ( result != 2 )
+			return result == 1;
+	}
+	return false;
+}
+
+void BuildPortals( Ctx& ctx, const std::vector<Source>& sources, const std::vector<Accumulator>& acc,
+	const std::vector<bool>& promotedLights, vrOutput& out )
+{
+	vrStats& st = out.stats;
+	out.portals.clear();
+	if ( !ctx.in->trace || !ctx.in->portals )
+		return;
+
+	// candidates: point / transport sources that are not exact lights, most light first
+	std::vector<int> order;
+	for ( size_t k = 0; k < sources.size(); k++ )
+		if ( sources[k].proxy.area < 0 && !promotedLights[k] )
+			order.push_back((int)k);
+	std::stable_sort(order.begin(), order.end(), [&]( int a, int b ) {
+		return out.lights[a].explainedEnergy > out.lights[b].explainedEnergy; });
+	if ( (int)order.size() > PORTAL_SOURCES )
+		order.resize(PORTAL_SOURCES);
+
+	double baselineSum = 0.0;
+	for ( int i = 0; i < ctx.n; i++ )
+		if ( ctx.Valid(i) )
+			baselineSum += Luma(ctx.B + i * 3);
+	if ( out.promoted.empty() )
+		out.promoted.assign(ctx.n * 3, 0.0f);
+	std::vector<float> before(out.baseline);
+	for ( size_t i = 0; i < before.size(); i++ )
+		before[i] += out.promoted[i];
+	double promotedSum = 0.0;
+
+	ctx.scratchL.assign(ctx.n * 3, 0.0f);
+	std::vector<int> touched;
+	struct Lit { int cell; float lum; };
+	std::vector<Lit> lit;
+	std::vector<Constriction> found;
+	std::vector<LightSample> lightSamples;
+	struct Hit { int cell; float model[3]; };
+	std::vector<Hit> hits;
+	const float physicalThreshold = ctx.in->physicalThreshold > 0.0f ? ctx.in->physicalThreshold : PHYSICAL_THRESHOLD;
+
+	for ( int k : order )
+	{
+		if ( (int)out.portals.size() >= PORTAL_MAX )
+			break;
+		const Source& src = sources[k];
+		SourceContributions(ctx, src, acc, touched);
+		lit.clear();
+		for ( int i : touched )
+		{
+			const float lum = Luma(&ctx.scratchL[i * 3]);
+			if ( lum > 0.0f )
+			{
+				Lit l = { i, lum };
+				lit.push_back(l);
+			}
+		}
+
+		// constrictions of receivers spread over the source's domain (distance bins x octants:
+		// the few cells behind a door must be among them) that see the source
+		SelectSamples(ctx, src.position, src.proxy.range, lightSamples);
+		found.clear();
+		int visibleReceivers = 0;
+		for ( const LightSample& l : lightSamples )
+		{
+			if ( l.lum <= 0.0f )
+				continue;
+			if ( PortalTrace(ctx, l.pos, src.position) < 0.5f )
+				continue;
+			visibleReceivers++;
+			Constriction c;
+			if ( FindConstriction(ctx, l.pos, src.position, &c) )
+			{
+				c.weight = l.lum;
+				found.push_back(c);
+			}
+		}
+
+		// greedy weighted clusters of the constriction points
+		std::vector<bool> used(found.size(), false);
+		const float clusterRadius = PORTAL_CLUSTER * ctx.diag;
+		for ( ;; )
+		{
+			int seed = -1;
+			for ( size_t m = 0; m < found.size(); m++ )
+				if ( !used[m] && (seed < 0 || found[m].weight > found[seed].weight) )
+					seed = (int)m;
+			if ( seed < 0 || (int)out.portals.size() >= PORTAL_MAX )
+				break;
+			V3 centre = Make(0.0f, 0.0f, 0.0f), dir = centre;
+			double weight = 0.0;
+			int members = 0;
+			std::vector<int> cluster;
+			// one aperture: about the same plane across the seed's direction, laterally anywhere in
+			// a door's reach
+			const V3 seedDir = found[seed].dir;
+			for ( size_t m = 0; m < found.size(); m++ )
+			{
+				if ( used[m] )
+					continue;
+				const V3 d = Sub(found[m].point, found[seed].point);
+				const float along = fabsf(Dot(d, seedDir));
+				const float lateral = Length(Sub(d, Scale(seedDir, Dot(d, seedDir))));
+				if ( along < 0.5f * clusterRadius && lateral < PORTAL_LATERAL * clusterRadius && Dot(found[m].dir, seedDir) > 0.7f )
+				{
+					used[m] = true;
+					cluster.push_back((int)m);
+					centre = Add(centre, Scale(found[m].point, found[m].weight));
+					dir = Add(dir, Scale(found[m].dir, found[m].weight));
+					weight += found[m].weight;
+					members++;
+				}
+			}
+			// receivers behind a door are dim next to the lamp's own room: count them, not their light
+			if ( members < PORTAL_MIN_RECEIVERS || members < PORTAL_MIN_SHARE * visibleReceivers )
+				continue;
+			st.portalCandidates++;
+			centre = Scale(centre, (float)(1.0 / weight));
+			const V3 n = Normalize(dir);
+			// angular spread of the bundle
+			double spread = 0.0;
+			for ( int m : cluster )
+				spread += found[m].weight * acosf(std::max(-1.0f, std::min(1.0f, Dot(found[m].dir, n))));
+			spread /= weight;
+			if ( spread > PORTAL_MAX_SPREAD )
+				continue;
+
+			vrLightPortal portal;
+			memset(&portal, 0, sizeof(portal));
+			if ( !FitAperture(ctx, centre, n, &portal) )
+				continue;
+			portal.proxy = k;
+			portal.incoming[0] = n.x; portal.incoming[1] = n.y; portal.incoming[2] = n.z;
+			portal.source[0] = src.position.x; portal.source[1] = src.position.y; portal.source[2] = src.position.z;
+			// penumbra: the positional uncertainty of the source, seen through the aperture
+			portal.spreadTan = src.proxy.sigmaP / std::max(Dot(Sub(src.position, Load(portal.center)), n), 1.0f);
+			portal.receivers = members;
+			if ( out.lights[k].physicalConfidence >= physicalThreshold )
+				portal.flags |= VR_PORTAL_PHYSICAL;
+			// the shaft reaches as far as its farthest receiver behind the plane
+			float range = 0.0f;
+			for ( int m : cluster )
+				range = std::max(range, Dot(Sub(Load(portal.center), found[m].receiver), n));
+			portal.range = std::max(range * 1.25f, ctx.diag);
+			if ( ctx.in->traceSky )
+			{
+				const V3 c = Load(portal.center);
+				const float far = 65536.0f;
+				const float a[3] = { c.x, c.y, c.z };
+				const float b[3] = { c.x + n.x * far, c.y + n.y * far, c.z + n.z * far };
+				if ( ctx.in->traceSky(ctx.in->traceUser, a, b) > 0.5f )
+					portal.flags |= VR_PORTAL_SKY;
+			}
+
+			// color: the one-sided envelope of L / shape over the lit cells the shaft reaches
+			std::vector<std::pair<float, float>> ratios;
+			double chroma[3] = { 0.0, 0.0, 0.0 }, chromaLum = 0.0;
+			for ( const Lit& l : lit )
+			{
+				V3 q;
+				const float shape = PortalShape(portal, ctx.Position(l.cell), &q);
+				if ( shape < MODEL_MIN )
+					continue;
+				ratios.push_back(std::make_pair(l.lum / shape, shape));
+				for ( int c = 0; c < 3; c++ )
+					chroma[c] += shape * ctx.scratchL[l.cell * 3 + c];
+				chromaLum += shape * l.lum;
+			}
+			if ( (int)ratios.size() < FIT_MIN_PROBES || chromaLum <= 0.0 )
+				continue;
+			const float brightness = WeightedPercentile(ratios, FIT_ENVELOPE);
+			double explainedShaft = 0.0, over = 0.0, total = 0.0;
+			for ( const Lit& l : lit )
+			{
+				V3 q;
+				const float shape = PortalShape(portal, ctx.Position(l.cell), &q);
+				if ( shape < MODEL_MIN )
+					continue;
+				explainedShaft += std::min(brightness * shape, l.lum);
+				over += std::max(brightness * shape - l.lum, 0.0f);
+				total += l.lum;
+			}
+			const float quality = total > 0.0 ? Saturate((float)((explainedShaft - 2.0 * over) / total)) : 0.0f;
+			portal.explainedEnergy = (float)weight;
+			portal.confidence = quality * Saturate((portal.solidBorder - 0.3f) / 0.4f) *
+				Saturate((float)members / (PORTAL_FULL_SHARE * visibleReceivers));
+			for ( int c = 0; c < 3; c++ )
+				portal.color[c] = (float)(brightness * chroma[c] / chromaLum);
+			if ( portal.flags & VR_PORTAL_SKY )
+			{
+				st.skyPortals++;
+				out.portals.push_back(portal);
+				continue;
+			}
+			if ( portal.confidence < PORTAL_MIN_CONFIDENCE )
+				continue;
+
+			// promotion over the source's domain: the plane point must be visible from the cell
+			if ( ctx.in->promotePortals )
+			{
+				const float w = portal.confidence;
+				hits.clear();
+				double seen = 0.0, leak = 0.0, overQ = 0.0;
+				for ( int i : ctx.domain )
+				{
+					V3 q;
+					const float shape = PortalShape(portal, ctx.Position(i), &q);
+					if ( shape <= 0.0f )
+						continue;
+					Hit h;
+					h.cell = i;
+					for ( int c = 0; c < 3; c++ )
+						h.model[c] = portal.color[c] * w * shape;
+					const float lum = Luma(h.model);
+					if ( PortalTrace(ctx, ctx.Position(i), q) > 0.5f )
+					{
+						seen += lum;
+						for ( int c = 0; c < 3; c++ )
+							overQ += LUMA[c] * std::max(h.model[c] - ctx.Q[i * 3 + c], 0.0f);
+						hits.push_back(h);
+					}
+					else
+						leak += lum;
+				}
+				portal.leakFraction = seen + leak > 0.0 ? (float)(leak / (seen + leak)) : 1.0f;
+				portal.excessFraction = seen > 0.0 ? (float)(overQ / seen) : 1.0f;
+				if ( portal.leakFraction <= LEAK_MAX && portal.excessFraction <= EXCESS_MAX && seen > 0.0 )
+				{
+					for ( const Hit& h : hits )
+						for ( int c = 0; c < 3; c++ )
+						{
+							const int idx = h.cell * 3 + c;
+							const float add = std::min(h.model[c], ctx.Q[idx]);
+							ctx.Q[idx] -= add;
+							out.baseline[idx] -= add;
+							out.promoted[idx] += add;
+							promotedSum += LUMA[c] * add;
+						}
+					portal.promotionWeight = w;
+					for ( int c = 0; c < 3; c++ )
+						portal.color[c] *= w;
+					portal.flags |= VR_PORTAL_PROMOTED;
+					st.promotedPortals++;
+				}
+			}
+			out.portals.push_back(portal);
+		}
+
+		for ( int i : touched )
+			ctx.scratchL[i * 3] = ctx.scratchL[i * 3 + 1] = ctx.scratchL[i * 3 + 2] = 0.0f;
+	}
+	std::vector<float>().swap(ctx.scratchL);
+
+	st.portals = (int)out.portals.size();
+	st.portalTraces = ctx.portalTraces;
+	st.traces = ctx.traces;
+	st.portalFraction = baselineSum > 0.0 ? (float)(promotedSum / baselineSum) : 0.0f;
+	bool any = false;
+	for ( size_t i = 0; i < out.promoted.size(); i++ )
+	{
+		any = any || out.promoted[i] > 0.0f;
+		st.maxPartitionError = std::max(st.maxPartitionError, fabsf(out.baseline[i] + out.promoted[i] - before[i]));
+	}
+	if ( !any )
+		out.promoted.clear();
+}
+
 void Reconstruct( Ctx& ctx, vrOutput& out )
 {
 	vrStats& st = out.stats;
@@ -1929,6 +2494,8 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 		Attribute(ctx, s, acc);
 
 	st.attributedFraction = (float)ResolveMoments(ctx, acc, out);
+	if ( ctx.in->entityProbes )
+		EntityDirections(ctx, acc, out);
 	st.msecAttribution = Msec(t);
 
 	for ( const Source& s : sources )
@@ -1938,15 +2505,26 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 	t = Clock::now();
 	std::vector<bool> promoted;
 	BuildLights(ctx, sources, acc, promoted, out);
-	if ( !out.promoted.empty() )
-	{
+	const auto reattribute = [&]() {
 		memset(acc.data(), 0, acc.size() * sizeof(Accumulator));
 		for ( size_t k = 0; k < sources.size(); k++ )
 			if ( !promoted[k] )
 				Attribute(ctx, sources[k], acc);
-		st.attributedFraction = (float)ResolveMoments(ctx, acc, out);
-	}
+	};
+	const bool lightsPromoted = !out.promoted.empty();
+	if ( lightsPromoted )
+		reattribute();
 	st.msecLights = Msec(t);
+
+	// light portals over what the lights left; a portal takes only the light of its shaft, its
+	// source stays in the attribution of the rest
+	t = Clock::now();
+	BuildPortals(ctx, sources, acc, promoted, out);
+	if ( st.promotedPortals > 0 )
+		reattribute();
+	if ( lightsPromoted || st.promotedPortals > 0 )
+		st.attributedFraction = (float)ResolveMoments(ctx, acc, out);
+	st.msecPortals = Msec(t);
 }
 
 } // namespace
@@ -1965,6 +2543,7 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 	ctx.diag = Length(ctx.size);
 	ctx.currentStamp = 0;
 	ctx.traces = 0;
+	ctx.portalTraces = 0;
 
 	const int n = ctx.n;
 	out.baseline.assign(n * 3, 0.0f);
@@ -1974,7 +2553,10 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 		out.moment[c].clear();
 	out.proxies.clear();
 	out.lights.clear();
+	out.portals.clear();
 	out.promoted.clear();
+	for ( int c = 0; c < 3; c++ )
+		out.entityDir[c].clear();
 	memset(&out.stats, 0, sizeof(out.stats));
 	vrStats& st = out.stats;
 	st.cells = n;
@@ -2096,6 +2678,10 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 		else
 			st.attributedFraction = 0.0f;
 	}
+
+	// entity probes without a reconstruction (modes 0, 2): the BSP direction alone
+	if ( in.entityProbes && out.entityDir[0].empty() )
+		EntityDirections(ctx, std::vector<Accumulator>(), out);
 
 	st.msecTotal = Msec(start);
 }

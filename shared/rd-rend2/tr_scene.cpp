@@ -596,6 +596,7 @@ void RE_BeginScene(const refdef_t *fd)
 
 	// r_staticLightDebug: the structured lights of the static lighting reconstruction
 	R_StaticLightsBeginScene(fd);
+	R_StaticLightPortalsBeginScene(fd);
 
 	// r_foliageInteraction: the character colliders of this scene (and the
 	// r_foliageInteractionDebug 1 capsules)

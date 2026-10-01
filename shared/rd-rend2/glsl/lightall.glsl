@@ -602,6 +602,75 @@ EntityGridSample SampleEntityGrid(vec3 position)
 	result.directed *= u_GridScale.y;
 	return result;
 }
+
+#if defined(USE_ENTITY_GRID_L1)
+// r_entityLightProbes: the three volumes hold L1 irradiance probes per colour channel (R, G, B),
+// xyz = C1, w = C0 (< 0: a cell in a wall), linear, scaled at load: I_c(N) = C0_c + C1_c . N.
+// Same manual 8 cell fetch as SampleEntityGrid: wall cells are skipped and the rest renormalized
+// (hardware filtering would blend the probes inside the walls in).
+struct EntityProbeSample
+{
+	vec3 c0;
+	vec3 c1R;
+	vec3 c1G;
+	vec3 c1B;
+	float validity;
+};
+
+EntityProbeSample SampleEntityProbe(vec3 position)
+{
+	EntityProbeSample result;
+	result.c0 = vec3(0.0);
+	result.c1R = vec3(0.0);
+	result.c1G = vec3(0.0);
+	result.c1B = vec3(0.0);
+	result.validity = 0.0;
+	vec3 cell = (position - u_LightGridOrigin) * u_LightGridCellInverseSize;
+	ivec3 bounds = textureSize(u_EntityGridAmbient, 0);
+	ivec3 base = clamp(ivec3(floor(cell)), ivec3(0), bounds - ivec3(1));
+	vec3 fraction = fract(cell);
+	float weightSum = 0.0;
+	for (int corner = 0; corner < 8; corner++)
+	{
+		ivec3 offset = ivec3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1);
+		int linear = base.x + bounds.x * (base.y + bounds.y * base.z) +
+			offset.x + bounds.x * (offset.y + bounds.y * offset.z);
+		if (linear >= bounds.x * bounds.y * bounds.z)
+			continue;
+		ivec3 address = ivec3(linear % bounds.x,
+			(linear / bounds.x) % bounds.y, linear / (bounds.x * bounds.y));
+		vec3 weightAxis = vec3(offset.x != 0 ? fraction.x : 1.0 - fraction.x,
+			offset.y != 0 ? fraction.y : 1.0 - fraction.y,
+			offset.z != 0 ? fraction.z : 1.0 - fraction.z);
+		float weight = weightAxis.x * weightAxis.y * weightAxis.z;
+		vec4 r = texelFetch(u_EntityGridAmbient, address, 0);
+		if (r.w < -0.5)
+			continue;
+		vec4 g = texelFetch(u_EntityGridDirected, address, 0);
+		vec4 b = texelFetch(u_EntityGridDirection, address, 0);
+		result.c0 += weight * vec3(r.w, g.w, b.w);
+		result.c1R += weight * r.xyz;
+		result.c1G += weight * g.xyz;
+		result.c1B += weight * b.xyz;
+		weightSum += weight;
+	}
+	if (weightSum > 0.0)
+	{
+		float inv = 1.0 / weightSum;
+		result.c0 *= inv;
+		result.c1R *= inv;
+		result.c1G *= inv;
+		result.c1B *= inv;
+		result.validity = weightSum;
+	}
+	return result;
+}
+
+vec3 EntityProbeIrradiance(in EntityProbeSample probe, in vec3 N)
+{
+	return max(probe.c0 + vec3(dot(probe.c1R, N), dot(probe.c1G, N), dot(probe.c1B, N)), vec3(0.0));
+}
+#endif
 #endif
 
 EntityGridSample SampleEntityMultiPoint(float worldZ)
@@ -3559,16 +3628,37 @@ void main()
 	#if defined(USE_ENTITY_GPU_GRID)
 	EntityGridSample gridGpu;
 	#endif
+	#if defined(USE_ENTITY_GRID_L1)
+	// the L1 probe: the dominant direction of its vector part, the directed light along it; the
+	// ambient is completed once the normal is known, so that the diffuse equals the irradiance
+	EntityProbeSample probe;
+	bool useProbe = u_GridParams.z > 1.5;
+	if (useProbe || u_GridScale.w > 9.5)
+		probe = SampleEntityProbe(u_ViewOrigin - viewDir);
+	vec3 probeLightColor = vec3(0.0);
+	#endif
 	EntityGridSample gridMulti;
-	#if defined(USE_ENTITY_GPU_GRID)
+	#if defined(USE_ENTITY_GPU_GRID) && !defined(USE_ENTITY_GRID_L1)
 	if (u_GridParams.z > 1.5 || u_GridScale.w > 0.5)
 		gridGpu = SampleEntityGrid(u_ViewOrigin - viewDir);
 	#endif
 	if ((u_GridParams.z > 0.5 && u_GridParams.z < 1.5) || u_GridScale.w > 0.5)
 		gridMulti = SampleEntityMultiPoint((u_ViewOrigin - viewDir).z);
+	#if defined(USE_ENTITY_GRID_L1)
+	if (useProbe)
+	{
+		vec3 luma = probe.c1R * 0.2126 + probe.c1G * 0.7152 + probe.c1B * 0.0722;
+		float lumaLength = length(luma);
+		L = lumaLength > 1e-6 ? luma / lumaLength : vec3(0.0, 0.0, 1.0);
+		probeLightColor = 2.0 * max(vec3(dot(probe.c1R, L), dot(probe.c1G, L), dot(probe.c1B, L)), vec3(0.0));
+		lightColor = probeLightColor * var_Color.rgb;
+		ambientColor = probe.c0 * var_Color.rgb;
+	}
+	else
+	#endif
 	if (u_GridParams.z > 0.5)
 	{
-		#if defined(USE_ENTITY_GPU_GRID)
+		#if defined(USE_ENTITY_GPU_GRID) && !defined(USE_ENTITY_GRID_L1)
 		EntityGridSample selected = u_GridParams.z > 1.5 ? gridGpu : gridMulti;
 		#else
 		EntityGridSample selected = gridMulti;
@@ -3588,6 +3678,18 @@ void main()
   #endif
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
 	L /= sqrt(sqrLightDist);
+  #if defined(USE_ENTITY_GRID) && defined(USE_ENTITY_GRID_L1)
+	if (useProbe)
+	{
+		// ambient + directed * max(N.L, 0) == the L1 irradiance; the LDR minimum light as the
+		// legacy grid (RF_MINLIGHT / RF_MORELIGHT)
+		vec3 irradiance = EntityProbeIrradiance(probe, N);
+		vec3 ambientPart = max(irradiance - probeLightColor * max(dot(N, L), 0.0), vec3(0.0));
+		if (u_GridScale.z < 0.5)
+			ambientPart = max(ambientPart, u_GridParams.w > 0.5 ? EntityGridSRGBDecode(u_GridMinimum.rgb) : u_GridMinimum.rgb);
+		ambientColor = ambientPart * var_Color.rgb;
+	}
+  #endif
 
   #if defined(USE_SKIN_SSS)
 	g_skinScatter = u_SkinParams.x;
@@ -4166,7 +4268,28 @@ void main()
 		return;
 	}
 
-  #if defined(USE_ENTITY_GPU_GRID)
+  #if defined(USE_ENTITY_GRID_L1)
+	// r_entityLightGridDebug 10: L0 (C0), 11: L1 direction of the luminance, dimmed by |C1| / C0
+	if (u_GridScale.w > 9.5)
+	{
+		vec3 debugColor = probe.c0;
+		if (u_GridScale.w > 10.5)
+		{
+			vec3 luma = probe.c1R * 0.2126 + probe.c1G * 0.7152 + probe.c1B * 0.0722;
+			float c0 = dot(probe.c0, vec3(0.2126, 0.7152, 0.0722));
+			float lumaLength = length(luma);
+			debugColor = (lumaLength > 1e-6 ? luma / lumaLength * 0.5 + 0.5 : vec3(0.5)) *
+				(c0 > 1e-6 ? clamp(lumaLength / c0, 0.0, 1.0) : 0.0);
+		}
+		out_Color = vec4(debugColor, diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
+  #elif defined(USE_ENTITY_GPU_GRID)
 	if (u_GridScale.w > 0.5)
 	{
 		vec3 legacy = u_AmbientLight + u_DirectedLight * max(dot(N, normalize(var_LightDir.xyz)), 0.0);

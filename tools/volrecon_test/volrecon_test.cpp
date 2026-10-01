@@ -321,6 +321,12 @@ void BuildGrid( Grid& g, const Scene& s, int mode )
 	in.trace = TraceScene;
 	in.traceUser = &g.scene;
 	in.promote = true;
+	in.entityProbes = true;
+	in.portals = true;
+	in.promotePortals = true;
+	for ( vrAreaSource& a : g.scene.areas )
+		a.sourceIndex = (int)(&a - g.scene.areas.data());
+	in.areas = g.scene.areas.empty() ? nullptr : g.scene.areas.data();
 }
 
 int g_failures = 0;
@@ -427,8 +433,28 @@ void CheckInvariants( const Grid& g, const vrOutput& out )
 			lightsSane = false;
 	}
 	Check(lightsSane, "structured lights sane");
+	bool dirSane = true;
+	for ( int c = 0; c < 3; c++ )
+		for ( size_t k = 0; k + 2 < out.entityDir[c].size(); k += 3 )
+		{
+			const float *v = &out.entityDir[c][k];
+			const float len = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+			if ( !std::isfinite(len) || len > 1.0f + 1e-4f )
+				dirSane = false;
+		}
+	Check(dirSane, "entity direction mix |v| <= 1, finite");
+	Check(!g.input.entityProbes || out.entityDir[0].size() == (size_t)g.n * 3, "entity directions present");
+	bool portalsSane = out.portals.size() <= 32;
+	for ( const vrLightPortal& p : out.portals )
+	{
+		if ( !(p.halfWidth > 0.0f) || !(p.halfHeight > 0.0f) || !(p.range > 0.0f) || !std::isfinite(p.color[0]) )
+			portalsSane = false;
+		if ( (p.flags & VR_PORTAL_PROMOTED) && (p.leakFraction > 0.15f || p.excessFraction > 0.2f || (p.flags & VR_PORTAL_SKY)) )
+			portalsSane = false;
+	}
+	Check(portalsSane, "portals sane");
 	Check(promoted <= 32 && promoted == out.stats.promotedPoints + out.stats.promotedSpots, "promoted budget", promoted);
-	Check(out.promoted.empty() == (promoted == 0), "P present iff promoted");
+	Check(out.promoted.empty() == (promoted + out.stats.promotedPortals == 0), "P present iff promoted");
 	Check(worstMoment <= 1e-6f, "|M_c| <= B_c (float)", worstMoment);
 	Check(worstHalfMoment <= 0.0f, "|M_c| <= B_c (half)", worstHalfMoment);
 	Check(worstPhase >= -1e-6f, "B + 3 g M.v >= 0 for |g| <= 1/3", worstPhase);
@@ -516,20 +542,32 @@ void Run( const char *name, const Scene& scene, vrOutput& out1, Grid& grid )
 	g_case = std::string(name) + " mode 1";
 	BuildGrid(grid, scene, 1);
 	grid.input.promote = false;
+	grid.input.promotePortals = false;
 	VR_Reconstruct(grid.input, out1);
 	CheckInvariants(grid, out1);
 
 	// structured lights promoted: the moments of out1 stay those of the whole baked light
 	g_case = std::string(name) + " mode 1 promoted";
 	grid.input.promote = true;
+	grid.input.promotePortals = true;
 	VR_Reconstruct(grid.input, g_lit);
 	CheckInvariants(grid, g_lit);
 	grid.input.promote = false;
+	grid.input.promotePortals = false;
 	const vrStats& st = out1.stats;
 	printf("%-28s seeds %3d fits %3d points %2d areas %d dirCells %5d dir %.3f attr %.3f rms %.2f sigma %.2f  %.1f ms\n",
 		name, st.seeds, st.fits, st.pointProxies, st.areaAnchors, st.directionalCells, st.directionalFraction,
 		st.attributedFraction, st.meanRayRms, st.meanSigmaP, st.msecTotal);
 	const vrStats& ls = g_lit.stats;
+	if ( ls.portals || ls.portalCandidates )
+		printf("  portals: %d (%d candidates, %d promoted, %d sky), %.1f%% of B, %d traces\n", ls.portals,
+			ls.portalCandidates, ls.promotedPortals, ls.skyPortals, ls.portalFraction * 100.0f, ls.portalTraces);
+	if ( getenv("VR_VERBOSE") )
+		for ( const vrLightPortal& p : g_lit.portals )
+			printf("    portal%s at %.0f %.0f %.0f n %.2f %.2f %.2f size %.0f x %.0f range %.0f color %.4f conf %.2f solid %.2f leak %.2f excess %.2f recv %d\n",
+				(p.flags & VR_PORTAL_PROMOTED) ? " promoted" : "", p.center[0], p.center[1], p.center[2],
+				p.normal[0], p.normal[1], p.normal[2], 2.0f * p.halfWidth, 2.0f * p.halfHeight, p.range,
+				p.color[1], p.confidence, p.solidBorder, p.leakFraction, p.excessFraction, p.receivers);
 	if ( ls.physicalLights || ls.transportLights )
 		printf("  lights: physical %d transport %d relocated %d promoted %d points %d spots, %.1f%% of B, excess %.1f%%, %d traces\n",
 			ls.physicalLights, ls.transportLights, ls.relocatedLights, ls.promotedPoints, ls.promotedSpots,
@@ -593,6 +631,7 @@ int main()
 		Check(CountKind(g_lit, VR_LIGHT_SPOT) == 0, "omni: no spot", CountKind(g_lit, VR_LIGHT_SPOT));
 		Check(g_lit.stats.promotedFraction > 0.05f, "omni: energy promoted", g_lit.stats.promotedFraction);
 		Check(g_lit.stats.excessFraction < 0.25f, "omni: model within the budget", g_lit.stats.excessFraction);
+		Check(g_lit.portals.empty(), "omni in an empty room: no portal", (double)g_lit.portals.size());
 	}
 
 	// a light between cells, smaller than the grid spacing
@@ -633,6 +672,10 @@ int main()
 			Cosine(Moment(out, 0, probeL), Make(-1, 0, 0)));
 		Check(Cosine(Moment(out, 2, probeR), Make(1, 0, 0)) > 0.9f, "M_B right of the centre",
 			Cosine(Moment(out, 2, probeR), Make(1, 0, 0)));
+		// entity L1: red from the left, blue from the right at the same probes
+		const float *er = &g_lit.entityDir[0][probeL * 3], *eb = &g_lit.entityDir[2][probeR * 3];
+		Check(er[0] < -0.5f, "entity L1: red from the left", er[0]);
+		Check(eb[0] > 0.5f, "entity L1: blue from the right", eb[0]);
 	}
 
 	// two equal white lights opposite each other: the moments cancel in the middle
@@ -686,6 +729,42 @@ int main()
 			g_lit.stats.promotedPoints + g_lit.stats.promotedSpots);
 	}
 
+	// doorway with a floor and a frame: the light of the lamp comes through it
+	{
+		Scene s = BaseScene(32, 24, 8);
+		const float wx = 12.5f * s.cellSize.x, t = 0.3f * s.cellSize.x;
+		const float y0 = 10.5f * s.cellSize.y, y1 = 13.5f * s.cellSize.y;
+		const float zTop = 4.5f * s.cellSize.z, zMax = 9.0f * s.cellSize.z, yMax = 25.0f * s.cellSize.y;
+		s.walls.push_back({ Make(-1000, -1000, -400), Make(1e4f, 1e4f, -40) });		// floor
+		s.walls.push_back({ Make(wx - t, -100, -100), Make(wx + t, y0, zMax) });
+		s.walls.push_back({ Make(wx - t, y1, -100), Make(wx + t, yMax, zMax) });
+		s.walls.push_back({ Make(wx - t, y0, zTop), Make(wx + t, y1, zMax) });
+		const V3 lamp = CellPos(s, 5.0f, 12.0f, 3.0f);
+		s.points.push_back({ lamp, Make(8000, 7000, 6000), 0.0f });
+		Grid g; vrOutput out;
+		Run("portal doorway", s, out, g);
+		const V3 opening = Make(wx, 12.0f * s.cellSize.y, 0.5f * zTop - 20.0f);
+		const vrLightPortal *best = nullptr;
+		float bestD = 1e30f;
+		for ( const vrLightPortal& p : g_lit.portals )
+		{
+			const float d = Length(Sub(Make(p.center[0], p.center[1], p.center[2]), opening));
+			if ( d < bestD )
+			{
+				bestD = d;
+				best = &p;
+			}
+		}
+		Check(best != nullptr, "doorway portal found", (double)g_lit.portals.size());
+		Check(best && fabsf(best->center[0] - wx) < 0.5f * s.cellSize.x, "doorway portal in the wall plane",
+			best ? best->center[0] - wx : 0.0f);
+		Check(best && fabsf(best->center[1] - opening.y) < 0.75f * s.cellSize.y, "doorway portal centred on the gap",
+			best ? best->center[1] - opening.y : 0.0f);
+		const float narrow = best ? 2.0f * std::min(best->halfWidth, best->halfHeight) : 0.0f;
+		Check(best && narrow > 0.5f * (y1 - y0) && narrow < 1.6f * (y1 - y0), "doorway portal width", narrow);
+		Check(best && fabsf(best->normal[0]) > 0.7f, "doorway portal faces along x", best ? best->normal[0] : 0.0f);
+	}
+
 	// a true spot light pointing down in an open room
 	{
 		Scene s = BaseScene(24, 24, 12);
@@ -707,6 +786,7 @@ int main()
 			x ? acosf(x->cosOuter) * 180.0f / PI : 0.0f);
 		Check(x && (x->flags & VR_LIGHT_PROMOTED) && x->excessFraction <= 0.2f, "spot: promoted within the budget",
 			x ? x->excessFraction : -1.0f);
+		Check(g_lit.portals.empty(), "spot in an empty room: no portal", (double)g_lit.portals.size());
 	}
 
 	// a lamp a few units off a wall: the fit may land in the wall, the light moves out within sigmaP
@@ -754,6 +834,14 @@ int main()
 			Cosine(MomentLuma(out, farCell), Make(0, 0, 1)));
 		Check(Directionality(out, nearCell) < Directionality(out, farCell), "shorter moment close to the panel",
 			Directionality(out, nearCell));
+		const vrStaticLight *rect = nullptr;
+		for ( const vrStaticLight& l : g_lit.lights )
+			if ( l.kind == VR_LIGHT_RECT )
+				rect = &l;
+		Check(rect && rect->areaSourceIndex == 0, "calibration: area index carried", rect ? rect->areaSourceIndex : -1);
+		const float radiance = rect ? LUMA[0] * rect->color[0] + LUMA[1] * rect->color[1] + LUMA[2] * rect->color[2] : 0.0f;
+		printf("  calibrated panel radiance %.3f (true 3.0)\n", radiance);
+		Check(radiance > 1.5f && radiance < 6.0f, "calibration: panel radiance within 2x", radiance);
 	}
 
 	// two-sided panel set in a wall between two rooms: both rooms are lit by it
