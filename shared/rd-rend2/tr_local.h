@@ -321,6 +321,8 @@ extern cvar_t  *r_rainLensDensity;
 extern cvar_t  *r_rainLensRefraction;
 extern cvar_t  *r_rainLensDropSize;
 extern cvar_t  *r_rainLensFilm;
+extern cvar_t  *r_rainLensFilmModel;
+extern cvar_t  *r_rainLensFilmMicro;
 extern cvar_t  *r_rainLensBlur;
 extern cvar_t  *r_rainLensReflection;
 extern cvar_t  *r_rainLensInertia;

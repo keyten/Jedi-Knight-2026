@@ -18,15 +18,16 @@ void main()
 
 uniform sampler2D u_ScreenImageMap; // HDR scene
 uniform sampler2D u_TextureMap;     // RG: unscaled offset, B: optical weight, A: physical blur radius
-uniform sampler2D u_NormalMap;      // wetness (R) / film (G), debug view 6 only
+uniform sampler2D u_NormalMap;      // wetness (R) / film (G): debug view 6, film-first drop classifier
 uniform sampler2D u_SpecularMap;    // r_rainLensMipBlur: mipped half resolution scene
 #if defined(USE_CUBEMAP)
 uniform samplerCube u_CubeMap;      // nearest environment probe (alpha: probe luma)
 #endif
-uniform vec4 u_RainLensParams;      // x: r_rainLensBlur, z: refraction strength, w: scene samples (1, 3, 5)
+uniform vec4 u_RainLensParams;      // x: r_rainLensBlur, y: film-first film amount (0 = hybrid model),
+                                    // z: refraction strength, w: scene samples (1, 3, 5)
 uniform vec4 u_RainLensParams2;     // z: debug view, w: display encoded HDR
 // lens space (x right, y up, z toward the viewer):
-//  [0] key light direction, w: reflection amount
+//  [0] key light direction, w: reflection amount (applied once, to the Fresnel)
 //  [1] key light radiance, w: cubemap mip
 //  [2] nearby light direction, w: light grid luma at the camera
 //  [3] nearby light radiance, w: mip blur on
@@ -45,6 +46,13 @@ out vec4 out_Color;
 #define OFFSET_PER_BLUR (1.6 / 0.18)
 #define REFERENCE_OFFSET 0.032
 #define WATER_F0 0.02
+// film-first film weight, keep in sync with rainlens.glsl (USE_FILM)
+#define FILM_WEIGHT 0.9
+
+float FilmCoverage(float film)
+{
+	return smoothstep(0.02, 0.3, film);
+}
 
 float Luminance(vec3 c)
 {
@@ -55,8 +63,7 @@ float Luminance(vec3 c)
 vec3 AmbientReflection(vec3 r)
 {
 	float upward = clamp(r.y * 0.5 + 0.5, 0.0, 1.0);
-	return (u_RainLensOptics[4].rgb * mix(0.6, 1.2, upward) + u_RainLensOptics[1].rgb * 0.15 * upward)
-		* u_RainLensOptics[0].w;
+	return u_RainLensOptics[4].rgb * mix(0.6, 1.2, upward) + u_RainLensOptics[1].rgb * 0.15 * upward;
 }
 
 // detailed: compact drops and sheets take the cubemap, the nearly flat film
@@ -72,7 +79,7 @@ vec3 Reflection(vec3 n, bool detailed)
 		vec4 probe = textureLod(u_CubeMap, world, u_RainLensOptics[1].w);
 		// like lightall: the probe never gets brighter than the light here
 		probe.rgb *= clamp(u_RainLensOptics[2].w / max(probe.a, 1e-4), 0.0, 1.0);
-		return probe.rgb * u_RainLensOptics[0].w;
+		return probe.rgb;
 	}
 #endif
 	return AmbientReflection(r);
@@ -193,7 +200,9 @@ void main()
 		vec3 water = refracted;
 		if (amount > 0.0)
 		{
-			float fresnel = WATER_F0 * min(amount, 1.0);
+			// r_rainLensReflection scales the reflected fraction once; the
+			// reflection sources are physical
+			float fresnel = clamp(WATER_F0 * amount, 0.0, 1.0);
 			vec3 reflected = AmbientReflection(vec3(0.0, 0.0, 1.0));
 			if (lens.w > 1e-5)
 			{
@@ -202,14 +211,19 @@ void main()
 				float slopeScale = mix(REFERENCE_OFFSET, physicalOffset, smoothstep(0.0, 0.0015, physicalOffset));
 				vec2 slope = -lens.xy * vec2(aspect, 1.0) / slopeScale;
 				vec3 n = normalize(vec3(slope * 0.8, 1.0));
-				fresnel = (WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0))
-					* min(amount, 1.0);
-				float drop = smoothstep(0.25, 0.6, weight);
+				fresnel = clamp((WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0))
+					* amount, 0.0, 1.0);
+				// film-first model: the wet film carries weight of its own,
+				// only the drop share above it is a compact drop
+				float filmShare = 0.0;
+				if (u_RainLensParams.y > 0.0)
+					filmShare = FilmCoverage(texture(u_NormalMap, uv).g) * FILM_WEIGHT * min(u_RainLensParams.y, 1.0);
+				float drop = smoothstep(0.25, 0.6, weight - filmShare);
 				bool detailed = drop > 0.001 || n.z < 0.97;
 				reflected = Reflection(n, detailed);
 				if (drop > 0.001)
 				{
-					reflected += drop * amount * (
+					reflected += drop * (
 						Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +
 						Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 120.0)) * 8.0;
 				}

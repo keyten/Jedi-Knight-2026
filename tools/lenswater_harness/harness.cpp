@@ -388,6 +388,58 @@ int main()
 				wet += w.Film({ x, y }) > 0.02f;
 		CHECK(wet > 100, "micro impacts leave film (%d samples)", wet);
 	}
+	// a queued spray produces drops within the next update: the optics
+	// gate must see it before any instance exists
+	{
+		LensWater w; w.Init(64, 36);
+		Event spray = {}; spray.type = EVENT_SPRAY; spray.strength = 1.0f; spray.duration = 1.0f;
+		w.QueueEvent(spray);
+		CHECK(!w.HasInstances() && w.MayProduceWater(), "queued spray may produce water");
+	}
+
+	// film-first model (B): micro drops are short impacts, not beads
+	{
+		auto maxMicroAge = [&](int model) {
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = 0.4f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_NORMAL;
+			Params q = p; q.heavyFlow = 0.0f; q.filmModel = model;
+			float maxAge = 0.0f;
+			for (int i = 0; i < 144 * 6; ++i)
+			{
+				w.Update(1.0f / 144.0f, in, q);
+				w.ClearFilmDirty();
+				for (const Drop &m : w.Micro())
+					maxAge = std::max(maxAge, m.age);
+			}
+			return maxAge;
+		};
+		const float ageA = maxMicroAge(0), ageB = maxMicroAge(1);
+		const float lifeMax = LensWater::GetProfileParams(PROFILE_NORMAL).microLifeMax;
+		CHECK(ageB <= lifeMax + 0.02f, "B: normal rain micro drops live <= %.1f s (%.2f s)", lifeMax, ageB);
+		CHECK(ageA > 2.5f, "A: micro drops still long lived (%.2f s)", ageA);
+	}
+	// film-first model: an expiring micro drop leaves its water as film
+	{
+		auto filmAfter = [&](int model, size_t &left) {
+			LensWater w; w.Init(455, 256);
+			Drop m = {};
+			m.pos = m.prevPos = { 0.3f, 0.1f };
+			m.radius = 0.3f * kRefRadius;
+			m.seed = 12345u;
+			m.type = DROP_MICRO;
+			m.state = STATE_SETTLED;
+			m.stateAge = m.mergeAge = 1.0f;
+			w.Micro().push_back(m);
+			Params q = p; q.filmModel = model;
+			Run(w, 2.5f, Dry(), q);
+			left = w.Micro().size();
+			return w.Film({ 0.3f, 0.1f });
+		};
+		size_t leftA, leftB;
+		const float filmA = filmAfter(0, leftA), filmB = filmAfter(1, leftB);
+		CHECK(leftB == 0 && filmB > 0.03f, "B: expired micro drop becomes film (%d left, film %.3f)", (int)leftB, filmB);
+		CHECK(leftA == 1 && filmA < 1e-3f, "A: the micro drop is still a bead (%d left, film %.3f)", (int)leftA, filmA);
+	}
 
 	printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);
 	return failures ? 1 : 0;

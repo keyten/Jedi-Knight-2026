@@ -281,8 +281,8 @@ deduplicated and replayed on load.
 
 ## Optics
 
-- **Film pass** (`USE_FILM`, fullscreen into `rainLensFilmFieldImage`, film
-  resolution RGBA16F). It runs only when the film was uploaded (30 Hz at most)
+- **Film pass** (`USE_FILM`, fullscreen into `rainLensFilmFieldImage`, field
+  resolution RGBA16F, so the blit is 1:1). It runs only when the film was uploaded (30 Hz at most)
   or `r_rainLensFilm` changed; every frame a bilinear blit copies the cache
   into the field, so the five-tap gradient doesn't run per display frame.
   - `offset = ∇film · 0.035 · r_rainLensFilm`.
@@ -290,6 +290,13 @@ deduplicated and replayed on load.
   - No blur.
   - A trail refracts slightly and is never an opaque stripe. With no visible
     film, the field is cleared instead.
+  - Film-first model (`r_rainLensFilmModel 1`, see below) instead:
+    `offset = ∇film · 0.035 · r_rainLensFilm + cov · micro · r_rainLensFilm ·
+    (0.0025 ∇N₂₂ + 0.0012 ∇N₆₅)` and `weight = 0.9 · cov · min(r_rainLensFilm, 1)`,
+    with `cov = smoothstep(0.02, 0.3, film)`. N₂₂ and N₆₅ are static quintic value
+    noise octaves of 22 and 65 cells per screen height, in lens space, with an
+    analytic gradient. Evenly wet glass refracts everywhere instead of only at
+    thickness edges.
 - **Drop pass** (`USE_DROPS`, instanced 4-vertex strips, records fetched by
   `gl_InstanceID`, additive blend):
   - A drop is a spherical cap in its own frame. It's stretched behind along
@@ -323,7 +330,11 @@ deduplicated and replayed on load.
     over. Thin film is nearly flat, so it reflects at about F0, takes the
     ambient reflection instead of the cubemap and gets no glint. Cubemap
     fetches and glints are branched on compact drops (weight above the 0.25
-    film cap) and steep sheets (n.z < 0.97).
+    film cap) and steep sheets (n.z < 0.97). In the film-first model the film's
+    own weight (recomputed from the raw film texture) is subtracted first.
+  - `r_rainLensReflection` scales the Fresnel once, `F' = clamp(F · amount, 0, 1)`.
+    The reflection sources and glints are physical (before 2026-10-01 the
+    amount was applied to both, so 0.5 gave about a quarter).
   - **Reflection:**
     - The camera's nearest environment cubemap (`R_CubemapForPoint`, roughness mip
       ≈ 0.35 of the chain, defocused). It's sampled with the drop's reflection
@@ -357,6 +368,7 @@ deduplicated and replayed on load.
 | `r_rainLensBlur` | 1.0 | drop defocus 0..2 |
 | `r_rainLensReflection` | 1.0 | reflection + glints 0..2, 0 = refraction only |
 | `r_rainLensInertia` | 0 | camera acceleration response 0..2 |
+| `r_rainLensFilmModel` | 0 | A/B: 0 = hybrid drops (A), 1 = film-first (B): micro drops live a profile `microLifeMin..Max` (light 1.5-3 s, normal 1-2, heavy 0.5-1, acid 1.2-2.4; ×0.6 at the screen centre), fade over the last 30 % and hand their water to the film; the film refracts through micro lens structure and is weighted by its coverage |
 | `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, merge lobe cyan, sheet magenta), 9 controller panel |
 
 Debug view 9 draws bars in the top-left corner:
@@ -373,6 +385,7 @@ Developer cvars (cheat):
 - `r_rainLensFilmDecay`, `r_rainLensWetDecay`
 - `r_rainLensHeavyFlow`
 - `r_rainLensPeripheralBias`
+- `r_rainLensFilmMicro` (0..4): film-first micro refraction multiplier
 - `r_rainLensPBO`: film and instance uploads through a 3-slot pixel buffer ring.
 - `r_rainLensMipBlur` (latched): drop defocus from a mipped half-resolution scene
   copy (a blit plus `glGenerateMipmap`) instead of the 3/5 taps.

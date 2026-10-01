@@ -64,7 +64,9 @@ void main()
 // texture. A thin trail is almost transparent: weak refraction from the
 // film gradient, low weight (at most 0.25), no blur. It runs at film
 // resolution into a cache, only when the film changed (30 Hz at most); the
-// cache is blitted into the field every frame.
+// cache is blitted into the field every frame. The film-first model
+// (r_rainLensFilmModel 1) adds static micro lens refraction under the film
+// coverage and weights the film by its coverage, so evenly wet glass shows.
 //
 // USE_DROPS: instanced analytic quads from tr_lenswater.cpp, additively
 // blended over the film. A drop is a spherical cap in its own frame (motion
@@ -86,6 +88,48 @@ out vec4 out_Color;
 #define REFRACTION_SCALE 1.6
 #define BLUR_SCALE 0.18
 #define SHEET_BLUR 0.0025
+
+#if defined(USE_FILM)
+// film-first model (u_RainLensParams.z): micro lens octaves, cells per
+// screen height, and their offset (lens units) per unit noise slope
+#define MICRO_COARSE_CELLS 22.0
+#define MICRO_FINE_CELLS 65.0
+#define MICRO_COARSE_SLOPE 0.0025
+#define MICRO_FINE_SLOPE 0.0012
+#define FILM_WEIGHT 0.9
+
+float FilmCoverage(float film)
+{
+	return smoothstep(0.02, 0.3, film);
+}
+
+float LatticeValue(ivec2 cell)
+{
+	uvec2 c = uvec2(cell);
+	uint h = c.x * 0x8da6b343u ^ c.y * 0xd8163841u;
+	h ^= h >> 16;
+	h *= 0x7feb352du;
+	h ^= h >> 15;
+	h *= 0x846ca68bu;
+	h ^= h >> 16;
+	return float(h & 0xffffu) * (1.0 / 65535.0);
+}
+
+// analytic gradient of quintic value noise at p (lattice units)
+vec2 NoiseGradient(vec2 p)
+{
+	ivec2 i = ivec2(floor(p));
+	vec2 f = fract(p);
+	vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	vec2 du = 30.0 * f * f * (f * (f - 2.0) + 1.0);
+	float a = LatticeValue(i);
+	float b = LatticeValue(i + ivec2(1, 0));
+	float c = LatticeValue(i + ivec2(0, 1));
+	float d = LatticeValue(i + ivec2(1, 1));
+	float k = a - b - c + d;
+	return du * vec2(b - a + k * u.y, c - a + k * u.x);
+}
+#endif
 
 #if defined(USE_DROPS)
 in vec2 var_Local;
@@ -218,10 +262,24 @@ void main()
 		texture(u_TextureMap, uv + vec2(texel.x, 0.0)).g - texture(u_TextureMap, uv - vec2(texel.x, 0.0)).g,
 		texture(u_TextureMap, uv + vec2(0.0, texel.y)).g - texture(u_TextureMap, uv - vec2(0.0, texel.y)).g);
 	vec2 offset = gradient * 0.035 * filmAmount;
-	offset.x /= aspect;
 	// Never above 0.25: the composite takes weight > 0.25 for a compact drop
 	// (rim, glint). r_rainLensFilm above one only strengthens the refraction.
 	float weight = min(film * 0.45, 0.25) * min(filmAmount, 1.0);
+	if (u_RainLensParams.z > 0.5)
+	{
+		// Film-first model: wet glass refracts everywhere, not only where the
+		// thickness changes. Two static micro lens octaves under the film
+		// coverage; the weight follows the coverage, the composite subtracts
+		// it again before it looks for compact drops (keep FilmCoverage in
+		// rainlens_composite.glsl in sync).
+		float coverage = FilmCoverage(film);
+		vec2 lens = vec2(uv.x * aspect, uv.y) + u_RainLensParams2.xy;
+		vec2 micro = MICRO_FINE_SLOPE * NoiseGradient(lens * MICRO_FINE_CELLS)
+			+ MICRO_COARSE_SLOPE * NoiseGradient(lens * MICRO_COARSE_CELLS + 37.0);
+		offset += micro * coverage * u_RainLensParams.w * filmAmount;
+		weight = coverage * FILM_WEIGHT * min(filmAmount, 1.0);
+	}
+	offset.x /= aspect;
 	out_Color = vec4(offset, weight, 0.0);
 #elif defined(USE_DROPS)
 	vec2 offset;

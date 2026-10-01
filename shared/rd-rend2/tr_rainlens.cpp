@@ -109,6 +109,8 @@ qboolean s_measureFrame;
 // texture or r_rainLensFilm changes, blitted into the field every frame
 qboolean s_filmFieldValid;
 float s_filmFieldAmount;
+int s_filmFieldModel;
+float s_filmFieldMicro;
 
 const int MAX_LENS_DROPS = 128;
 const int MAX_LENS_MICRO = 256;
@@ -144,6 +146,7 @@ Params CurrentParams( void )
 	p.maxDrops = DropLimit();
 	p.maxMicro = MAX_LENS_MICRO;
 	p.maxSheets = MAX_LENS_SHEETS;
+	p.filmModel = r_rainLensFilmModel->integer == 1 ? 1 : 0;
 	return p;
 }
 
@@ -551,10 +554,11 @@ void R_CreateRainLensImages( int width, int height, int hdrFormat )
 	tr.rainLensFilmImage = R_CreateImage(
 		"*rainLensFilm", NULL, filmWidth, filmHeight, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RG16F);
-	// its gradient pass output, same resolution (< 1 MB): the film changes
-	// at 30 Hz at most, so the five tap pass does not run every frame
+	// its gradient pass output at field resolution (a 1:1 blit; the
+	// film-first micro refraction needs the detail): the film changes at
+	// 30 Hz at most, so the pass does not run every frame
 	tr.rainLensFilmFieldImage = R_CreateImage(
-		"*rainLensFilmField", NULL, filmWidth, filmHeight, IMGTYPE_COLORALPHA,
+		"*rainLensFilmField", NULL, fieldWidth, fieldHeight, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 
 	// droplet / sheet instance records, fetched by gl_InstanceID
@@ -873,7 +877,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	// event or new rain of this frame always gathers).
 	const qboolean incoming = (qboolean)(input->numEvents > 0 || input->sprayStrength > 0.0f
 		|| (input->intensity > 0.0f && input->exposed > 0.0f && r_rainLensDensity->value > 0.0f));
-	if ( inWater || (!incoming && !s_water.HasInstances()
+	if ( inWater || (!incoming && !s_water.MayProduceWater()
 		&& !(s_water.FilmVisible() && r_rainLensFilm->value > 0.0f)
 		&& !r_rainLensDebug->integer) )
 		return;
@@ -1117,7 +1121,9 @@ void RB_RainLens( FBO_t *srcFbo )
 	// the cache overwrites the field with a bilinear blit.
 	const qboolean filmVisible = (qboolean)(renderFilm && tr.rainLensFilmFieldFbo);
 	const float filmAmount = Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value);
-	if ( filmVisible && (!s_filmFieldValid || filmAmount != s_filmFieldAmount) )
+	const float filmMicro = Com_Clamp(0.0f, 4.0f, r_rainLensFilmMicro->value);
+	if ( filmVisible && (!s_filmFieldValid || filmAmount != s_filmFieldAmount
+		|| params.filmModel != s_filmFieldModel || filmMicro != s_filmFieldMicro) )
 	{
 		FBO_Bind(tr.rainLensFilmFieldFbo);
 		GL_SetViewportAndScissor(0, 0, tr.rainLensFilmFieldFbo->width, tr.rainLensFilmFieldFbo->height);
@@ -1125,7 +1131,8 @@ void RB_RainLens( FBO_t *srcFbo )
 		shaderProgram_t *film = &tr.rainLensShader[RAINLENSDEF_FILM];
 		GLSL_BindProgram(film);
 		GL_BindToTMU(tr.rainLensFilmImage, TB_COLORMAP);
-		VectorSet4(params1, aspect, filmAmount, 0.0f, 0.0f);
+		// z, w: film-first model, its micro refraction
+		VectorSet4(params1, aspect, filmAmount, (float)params.filmModel, filmMicro);
 		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS, params1);
 		VectorSet4(params2, 0.0f, 0.0f,
 			(float)tr.rainLensFilmFieldFbo->width, (float)tr.rainLensFilmFieldFbo->height);
@@ -1133,6 +1140,8 @@ void RB_RainLens( FBO_t *srcFbo )
 		RB_InstantTriangle();
 		s_filmFieldValid = qtrue;
 		s_filmFieldAmount = filmAmount;
+		s_filmFieldModel = params.filmModel;
+		s_filmFieldMicro = filmMicro;
 	}
 
 	// the blit is scissored too: the field's rectangle first
@@ -1209,7 +1218,10 @@ void RB_RainLens( FBO_t *srcFbo )
 		GL_BindToTMU(cubemap->image, TB_CUBEMAP);
 	// r_rainLensBlur applies here: the field keeps the physical blur, which
 	// the composite also uses to recover the drop slope
-	VectorSet4(params1, Com_Clamp(0.0f, 2.0f, r_rainLensBlur->value), 0.0f,
+	// y: film-first model, the film share of the field weight (0 = hybrid
+	// model or no film in the field; the film texture may be stale then)
+	VectorSet4(params1, Com_Clamp(0.0f, 2.0f, r_rainLensBlur->value),
+		params.filmModel == 1 && filmVisible ? filmAmount : 0.0f,
 		R_RainLensRefractionScale(), sampleCounts[QualityLevel()]);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params1);
 	VectorSet4(params2, 0.0f, 0.0f, (float)debugView, tr.linearLight ? 0.0f : 1.0f);

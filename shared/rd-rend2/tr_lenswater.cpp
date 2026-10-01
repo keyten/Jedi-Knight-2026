@@ -54,19 +54,19 @@ const LensWater::ProfileParams s_profiles[PROFILE_COUNT] =
 {
 	// AUTO (unused: resolved before lookup), same as NORMAL
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
+	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f, 1.0f, 2.0f },
 	// LIGHT: beads, rare mergers, almost no continuous flow
 	{ 6.0f, 1.2f, 0.08f, 0.0f, 0.0f, 0.30f, 0.90f, 2.2f, 0.90f, 1.30f,
-	  0.35f, 2.5f, 12.0f, 30.0f, 0.8f, 0.6f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
+	  0.35f, 2.5f, 12.0f, 30.0f, 0.8f, 0.6f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f, 1.5f, 3.0f },
 	// NORMAL: static beads, moving drops and thin paths together
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
+	  0.55f, 3.0f, 15.0f, 18.0f, 1.0f, 0.45f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f, 1.0f, 2.0f },
 	// HEAVY: turnover, film, rivulets and sheets rather than more beads
 	{ 40.0f, 5.0f, 0.5f, 1.6f, 1.2f, 0.30f, 1.10f, 1.4f, 1.00f, 1.50f,
-	  0.90f, 3.5f, 20.0f, 7.0f, 1.5f, 0.3f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f },
+	  0.90f, 3.5f, 20.0f, 7.0f, 1.5f, 0.3f, 1.0f, { 1.0f, 1.0f, 1.0f }, 1.0f, 0.5f, 1.0f },
 	// ACID: stickier, longer lasting film, slightly green-yellow and denser
 	{ 14.0f, 3.0f, 0.35f, 0.15f, 0.05f, 0.30f, 1.00f, 1.8f, 0.95f, 1.40f,
-	  0.60f, 5.0f, 22.0f, 20.0f, 0.9f, 0.45f, 1.25f, { 0.93f, 1.0f, 0.85f }, 1.15f },
+	  0.60f, 5.0f, 22.0f, 20.0f, 0.9f, 0.45f, 1.25f, { 0.93f, 1.0f, 0.85f }, 1.15f, 1.2f, 2.4f },
 };
 
 // Rain hits a lens facing into it more often. Only the direct impacts
@@ -89,6 +89,10 @@ constexpr EventPreset kEmergePreset = { 1.0f, 1.4f, 1.0f };
 constexpr EventPreset kSplashPreset = { 0.6f, 1.0f, 0.6f };
 constexpr float kSprayFilm = 0.35f;
 constexpr float kMicroFilm = 0.05f;	// film deposit of a direct micro impact (0.025..0.075)
+// film-first model: an expiring micro drop hands its water to the film,
+// this much for a 0.3 reference radii drop
+constexpr float kMicroAbsorbFilm = 0.12f;
+constexpr float kMicroFadeStart = 0.7f;	// of the lifetime: weight / radius fade
 
 // emerge choreography (seconds)
 constexpr float kEmergeFlowStart = 0.1f, kEmergeFlowEnd = 0.5f;
@@ -344,6 +348,8 @@ void LensWater::BlendProfile(float dt, Profile target)
 	for (int i = 0; i < 3; ++i)
 		blend(c.tint[i], goal.tint[i]);
 	blend(c.refraction, goal.refraction);
+	blend(c.microLifeMin, goal.microLifeMin);
+	blend(c.microLifeMax, goal.microLifeMax);
 }
 
 bool LensWater::Update(float dt, const Input &input, const Params &p)
@@ -452,6 +458,14 @@ void LensWater::Step(float dt, const Input &input)
 		if (m.state == STATE_SETTLING && m.stateAge >= 0.3f)
 			m.state = STATE_SETTLED;
 		m.radius -= evaporation * 1.5f * dt;
+		// Film-first (B): a micro drop is a short impact, not a bead. Once
+		// its lifetime is over the water joins the film and the drop is gone.
+		if (params.filmModel == 1 && m.radius >= kMinMicroRadius && m.age >= MicroLifetime(m))
+		{
+			StampDisc(m.pos, m.radius * params.dropSize * 2.0f, 0.3f,
+				kMicroAbsorbFilm * m.radius / (0.3f * kRefRadius), false);
+			m.radius = 0.0f;
+		}
 	}
 	micro.erase(std::remove_if(micro.begin(), micro.end(),
 		[](const Drop &d) { return d.radius < kMinMicroRadius; }), micro.end());
@@ -691,6 +705,15 @@ float LensWater::Importance(const Drop &drop) const
 	if (drop.state != STATE_SETTLED)
 		importance += 1.0f;
 	return importance;
+}
+
+// Film-first model: a micro drop's lifetime, per drop from its seed and
+// shorter near the screen centre.
+float LensWater::MicroLifetime(const Drop &m) const
+{
+	const float u = (Hash(m.seed ^ 0x27d4eb2du) & 0xffffu) * (1.0f / 65535.0f);
+	const float centre = Lerp(0.6f, 1.0f, Smoothstep(0.1f, 0.45f, Length(m.pos)));
+	return std::max(Lerp(current.microLifeMin, current.microLifeMax, u) * centre, 0.1f);
 }
 
 // Hard caps: evict the least visually valuable state (tiny old beads first).
@@ -1449,7 +1472,15 @@ int LensWater::BuildInstances(float *out, int maxInstances, float dropSize) cons
 		ImpactShape(m, scale, irregularity);
 		if (scale > 1.0f)
 			scale = 1.0f + (scale - 1.0f) * 2.0f;
-		write(0, m.pos.x, m.pos.y, m.radius * dropSize * scale, 0.85f);
+		float weight = 0.85f;
+		if (params.filmModel == 1)
+		{
+			// film-first: dissolve into the film instead of popping
+			const float fade = Smoothstep(kMicroFadeStart, 1.0f, m.age / MicroLifetime(m));
+			weight *= 1.0f - fade;
+			scale *= 1.0f - 0.2f * fade;
+		}
+		write(0, m.pos.x, m.pos.y, m.radius * dropSize * scale, weight);
 		write(1, 0.0f, -1.0f, 1.0f, (float)DROP_MICRO);
 		write(2, 0.0f, 0.0f, 0.0f, (m.seed & 0xffffu) / 65535.0f);
 		write(3, 0.0f, (float)m.state, 0.0f, irregularity * 1.4f);

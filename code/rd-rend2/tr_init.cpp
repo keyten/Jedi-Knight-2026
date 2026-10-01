@@ -251,6 +251,8 @@ cvar_t  *r_rainLensDensity;
 cvar_t  *r_rainLensRefraction;
 cvar_t  *r_rainLensDropSize;
 cvar_t  *r_rainLensFilm;
+cvar_t  *r_rainLensFilmModel;
+cvar_t  *r_rainLensFilmMicro;
 cvar_t  *r_rainLensBlur;
 cvar_t  *r_rainLensReflection;
 cvar_t  *r_rainLensInertia;
@@ -2037,6 +2039,8 @@ void R_Register( void )
 	r_rainLensRefraction = ri_Cvar_Get_NoComm( "r_rainLensRefraction", "1.0", CVAR_ARCHIVE, "Lens water refraction strength, 0..4" );
 	r_rainLensDropSize = ri_Cvar_Get_NoComm( "r_rainLensDropSize", "1.0", CVAR_ARCHIVE, "Lens water drop size (geometry only, not the amount of rain), 0.25..4" );
 	r_rainLensFilm = ri_Cvar_Get_NoComm( "r_rainLensFilm", "1.0", CVAR_ARCHIVE, "Lens water thin film / trail visibility, 0..2 (above 1: stronger refraction only)" );
+	r_rainLensFilmModel = ri_Cvar_Get_NoComm( "r_rainLensFilmModel", "0", CVAR_ARCHIVE, "Lens water model: 0 = hybrid drops (A), 1 = film-first: short lived micro drops, refracting wet film (B)" );
+	r_rainLensFilmMicro = ri_Cvar_Get_NoComm( "r_rainLensFilmMicro", "1.0", CVAR_CHEAT, "Lens water film-first model: wet film micro refraction, 0..4" );
 	r_rainLensBlur = ri_Cvar_Get_NoComm( "r_rainLensBlur", "1.0", CVAR_ARCHIVE, "Lens water drop defocus, 0..2" );
 	r_rainLensReflection = ri_Cvar_Get_NoComm( "r_rainLensReflection", "1.0", CVAR_ARCHIVE, "Lens water reflection (environment cubemap / light grid) and light glints, 0..2; 0 = refraction only" );
 	r_rainLensInertia = ri_Cvar_Get_NoComm( "r_rainLensInertia", "0", CVAR_ARCHIVE, "Lens water reacts to strong camera acceleration, 0..2 (0 = off)" );

@@ -125,6 +125,7 @@ struct Params
 	int maxDrops = 96;
 	int maxMicro = 256;
 	int maxSheets = 8;
+	int filmModel = 0;			// 0 = hybrid drops (A), 1 = film-first (B)
 	bool measure = false;		// take the Stats timings this update
 };
 
@@ -199,6 +200,12 @@ public:
 	bool FilmDirty() const { return filmDirty; }
 	bool FilmVisible() const { return filmVisible; }
 	bool HasInstances() const { return !drops.empty() || !micro.empty() || !sheets.empty(); }
+	// instances now or possibly within the next update (sprays, queued
+	// events and an emerge spawn them): the optics must be ready for them
+	bool MayProduceWater() const
+	{
+		return HasInstances() || !sprays.empty() || !pendingEvents.empty() || emerge.active;
+	}
 	void ClearFilmDirty() { filmDirty = false; }
 
 	Stats GetStats() const;
@@ -226,6 +233,9 @@ public:
 		float adhesion;
 		float tint[3];			// transmitted colour (acid rain)
 		float refraction;		// distortion scale
+		// film-first model (B): a micro drop lives this long (seconds), then
+		// its water joins the film
+		float microLifeMin, microLifeMax;
 	};
 	static const ProfileParams &GetProfileParams(Profile profile);
 	// rain intensity the profile is tuned for (standard weather particle count / 5000)
@@ -259,6 +269,7 @@ private:
 	void UpdateSheets(float dt, const Input &input);
 	void Evict();
 	float Importance(const Drop &drop) const;
+	float MicroLifetime(const Drop &m) const;
 	Vec2 RandomPosition(bool obstructive);
 	Vec2 SideBiasedPosition(Vec2 dir, float spread);
 	void StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount, float coverage);
