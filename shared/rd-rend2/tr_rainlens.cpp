@@ -873,7 +873,12 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	// event or new rain of this frame always gathers).
 	const qboolean incoming = (qboolean)(input->numEvents > 0 || input->sprayStrength > 0.0f
 		|| (input->intensity > 0.0f && input->exposed > 0.0f && r_rainLensDensity->value > 0.0f));
-	if ( inWater || (!incoming && !s_water.Active() && !r_rainLensDebug->integer) )
+	if ( inWater || (!incoming && !s_water.HasInstances()
+		&& !(s_water.FilmVisible() && r_rainLensFilm->value > 0.0f)
+		&& !r_rainLensDebug->integer) )
+		return;
+
+	if ( r_rainLensReflection->value <= 0.0f )
 		return;
 
 	if ( !(rain && rain->active) && forced == PROFILE_AUTO && tr.sunParsed )
@@ -1038,12 +1043,14 @@ qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 	Params params = CurrentParams();
 	params.measure = r_rainLensDebug->integer != 0 || r_speeds->integer != 0 || (++measureFrame & 15u) == 0;
 	s_measureFrame = (qboolean)params.measure;
-	const qboolean active = (qboolean)s_water.Update(dt, in, params);
+	s_water.Update(dt, in, params);
 
 	if ( input->submerged )
 		return qfalse;
 
-	return (qboolean)(active || r_rainLensDebug->integer);
+	return (qboolean)(s_water.HasInstances()
+		|| (s_water.FilmVisible() && r_rainLensFilm->value > 0.0f)
+		|| r_rainLensDebug->integer);
 }
 
 /*
@@ -1078,7 +1085,8 @@ void RB_RainLens( FBO_t *srcFbo )
 	std::chrono::steady_clock::time_point uploadStart;
 	if ( measure )
 		uploadStart = std::chrono::steady_clock::now();
-	if ( s_water.FilmDirty() )
+	const qboolean renderFilm = (qboolean)(s_water.FilmVisible() && r_rainLensFilm->value > 0.0f);
+	if ( s_water.FilmDirty() && (renderFilm || debugView == 6) )
 	{
 		UploadFloatTexture(tr.rainLensFilmImage, s_filmPbo, &s_filmPboSize,
 			s_water.FilmWidth(), s_water.FilmHeight(), GL_RG, s_water.FilmData(),
@@ -1107,7 +1115,7 @@ void RB_RainLens( FBO_t *srcFbo )
 	// Thin film: weak refraction, low optical weight. The gradient pass runs
 	// into the film resolution cache only when the film changed; every frame
 	// the cache overwrites the field with a bilinear blit.
-	const qboolean filmVisible = (qboolean)(s_water.FilmVisible() && tr.rainLensFilmFieldFbo);
+	const qboolean filmVisible = (qboolean)(renderFilm && tr.rainLensFilmFieldFbo);
 	const float filmAmount = Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value);
 	if ( filmVisible && (!s_filmFieldValid || filmAmount != s_filmFieldAmount) )
 	{

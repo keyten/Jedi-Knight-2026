@@ -127,12 +127,6 @@ void main()
 	float weight = clamp(lens.z, 0.0, 1.0);
 	float blur = clamp(lens.w * u_RainLensParams.x, 0.0, 0.02);
 	float aspect = screenSize.x / screenSize.y;
-	// physical slope scale; film only (A = 0) and the outermost drop edge
-	// fall back to the reference drop
-	float physicalOffset = lens.w * OFFSET_PER_BLUR;
-	float slopeScale = mix(REFERENCE_OFFSET, physicalOffset, smoothstep(0.0, 0.0015, physicalOffset));
-	vec2 slope = -lens.xy * vec2(aspect, 1.0) / slopeScale;
-
 	int debugView = int(u_RainLensParams2.z);
 	if (debugView == 1)
 	{
@@ -141,6 +135,9 @@ void main()
 	}
 	if (debugView == 2)
 	{
+		float physicalOffset = lens.w * OFFSET_PER_BLUR;
+		float slopeScale = mix(REFERENCE_OFFSET, physicalOffset, smoothstep(0.0, 0.0015, physicalOffset));
+		vec2 slope = -lens.xy * vec2(aspect, 1.0) / slopeScale;
 		out_Color = vec4(normalize(vec3(slope * 0.8, 1.0)) * 0.5 + 0.5, 1.0);
 		return;
 	}
@@ -192,21 +189,32 @@ void main()
 		}
 		refracted *= u_RainLensOptics[5].rgb;
 
-		// Fresnel: energy split between transmission and reflection. Thin
-		// film is nearly flat, so it reflects at F0 and takes no glint.
-		vec3 n = normalize(vec3(slope * 0.8, 1.0));
-		float fresnel = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0);
 		float amount = u_RainLensOptics[0].w;
-		fresnel *= min(amount, 1.0);
-		// compact drops (weight above the 0.25 film cap) and steep sheets
-		float drop = smoothstep(0.25, 0.6, weight);
-		bool detailed = amount > 0.0 && (drop > 0.001 || n.z < 0.97);
-		vec3 water = refracted * (1.0 - fresnel) + Reflection(n, detailed) * fresnel;
-		if (drop > 0.001 && amount > 0.0)
+		vec3 water = refracted;
+		if (amount > 0.0)
 		{
-			water += drop * amount * (
-				Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +
-				Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 120.0)) * fresnel * 8.0;
+			float fresnel = WATER_F0 * min(amount, 1.0);
+			vec3 reflected = AmbientReflection(vec3(0.0, 0.0, 1.0));
+			if (lens.w > 1e-5)
+			{
+				// A scales the offset for drops and sheets; film has no A.
+				float physicalOffset = lens.w * OFFSET_PER_BLUR;
+				float slopeScale = mix(REFERENCE_OFFSET, physicalOffset, smoothstep(0.0, 0.0015, physicalOffset));
+				vec2 slope = -lens.xy * vec2(aspect, 1.0) / slopeScale;
+				vec3 n = normalize(vec3(slope * 0.8, 1.0));
+				fresnel = (WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0))
+					* min(amount, 1.0);
+				float drop = smoothstep(0.25, 0.6, weight);
+				bool detailed = drop > 0.001 || n.z < 0.97;
+				reflected = Reflection(n, detailed);
+				if (drop > 0.001)
+				{
+					reflected += drop * amount * (
+						Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +
+						Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 120.0)) * 8.0;
+				}
+			}
+			water = refracted * (1.0 - fresnel) + reflected * fresnel;
 		}
 
 		color = mix(scene, water, weight);

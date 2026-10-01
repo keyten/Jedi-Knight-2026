@@ -301,7 +301,7 @@ void LensWater::QueueEvent(const Event &event)
 
 bool LensWater::Active() const
 {
-	return !drops.empty() || !micro.empty() || !sheets.empty() || filmVisible || filmDirty
+	return !drops.empty() || !micro.empty() || !sheets.empty() || filmVisible
 		|| !sprays.empty() || !pendingEvents.empty() || emerge.active;
 }
 
@@ -1095,10 +1095,13 @@ void LensWater::StartEmerge(float strength)
 	emerge.strength = s;
 	const int detailX = (int)(Random01() * filmWidth);
 	const int detailY = (int)(Random01() * filmHeight);
+	const int octaveX = (int)(Random01() * filmWidth);
+	const int octaveY = (int)(Random01() * filmHeight);
 	emergePattern.resize((size_t)filmWidth * filmHeight);
 	for (int y = 0; y < filmHeight; ++y)
 	for (int x = 0; x < filmWidth; ++x)
-		emergePattern[(size_t)y * filmWidth + x] = Detail(x, y, detailX, detailY);
+		emergePattern[(size_t)y * filmWidth + x] = 0.7f * Detail(x, y, detailX, detailY)
+			+ 0.3f * Detail(x * 2, y * 2, octaveX, octaveY);
 	emerge.flowsLeft = 2 + (int)(3.0f * std::min(s, 1.0f) + 0.5f);
 	emerge.rivuletsLeft = 2 + (int)(2.0f * std::min(s, 1.0f) + 0.5f);
 	emerge.lateSheetsLeft = s > 0.6f ? 2 : 1;
@@ -1178,15 +1181,11 @@ void LensWater::StampEmergeFilm(float strength)
 	if (film.empty())
 		return;
 	const float amount = kEmergePreset.film * std::min(strength, 1.0f);
-	const int ox = (int)(Random01() * filmWidth), oy = (int)(Random01() * filmHeight);
 	for (int y = 0; y < filmHeight; ++y)
 	for (int x = 0; x < filmWidth; ++x)
 	{
-		const float n = emergePattern[(size_t)y * filmWidth + x];
-		// second octave at a different offset breaks the lattice regularity
-		const float n2 = Detail(x * 2, y * 2, ox, oy);
-		const float v = 0.7f * n + 0.3f * n2;
-		const float thickness = 0.15f + 0.85f * Smoothstep(0.32f, 0.55f, v);
+		const float pattern = emergePattern[(size_t)y * filmWidth + x];
+		const float thickness = 0.15f + 0.85f * Smoothstep(0.32f, 0.55f, pattern);
 		float *cell = &film[((size_t)y * filmWidth + x) * 2];
 		cell[0] = Deposit(cell[0], 0.85f + 0.15f * thickness);
 		cell[1] = Deposit(cell[1], amount * thickness);

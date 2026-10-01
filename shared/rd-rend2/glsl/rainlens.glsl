@@ -180,7 +180,7 @@ void Drop(out vec2 offset, out float weight, out float blur, out float mask)
 		vec3 lobe = Cap((var_Local - var_T2.xy) / var_T2.z, vec2(0.0));
 		offset -= lobe.yz * var_T2.z * REFRACTION_SCALE * lobe.x;
 		mask = 1.0 - (1.0 - mask) * (1.0 - lobe.x);
-		blur = max(blur, var_T2.z * BLUR_SCALE * lobe.x);
+		blur += var_T2.z * BLUR_SCALE * lobe.x;
 	}
 	weight = mask * var_T0.w;
 	offset.x /= aspect;
@@ -193,13 +193,15 @@ void Sheet(out vec2 offset, out float weight, out float blur, out float mask)
 	vec3 sheet = SheetHeight(var_Local);
 	float h = sheet.x;
 	// strong distortion, low optical weight
-	offset = sheet.yz * var_T3.w * 0.02 * strength;
+	// Match the offset fade to its slope denominator at the sheet edge.
+	float edgeMask = smoothstep(0.0, 0.1, h);
+	offset = sheet.yz * var_T3.w * 0.02 * strength * edgeMask;
 	offset.x /= aspect;
 	mask = smoothstep(0.02, 0.3, h);
 	weight = mask * 0.2 * strength;
 	// A is also the composite's slope scale (offset / A): a constant
 	// thickness proxy inside the sheet, not scaled by the strength
-	blur = SHEET_BLUR * smoothstep(0.0, 0.1, h);
+	blur = SHEET_BLUR * edgeMask;
 }
 #endif
 

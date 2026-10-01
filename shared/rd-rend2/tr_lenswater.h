@@ -183,8 +183,8 @@ public:
 	// Advances by dt seconds of game time; returns whether anything is
 	// visible or will become visible (the pass can be skipped otherwise).
 	bool Update(float dt, const Input &input, const Params &params);
-	// Something to draw or upload. Invisible wetness alone is not: it sleeps
-	// and its decay over the dormant time is applied once on wake.
+	// Visible water or pending events. A deferred film upload alone does not
+	// keep the simulation awake; it is uploaded when rendering resumes.
 	bool Active() const;
 
 	// Writes up to maxInstances records (row major: INSTANCE_TEXELS rows of
@@ -198,6 +198,7 @@ public:
 	int FilmHeight() const { return filmHeight; }
 	bool FilmDirty() const { return filmDirty; }
 	bool FilmVisible() const { return filmVisible; }
+	bool HasInstances() const { return !drops.empty() || !micro.empty() || !sheets.empty(); }
 	void ClearFilmDirty() { filmDirty = false; }
 
 	Stats GetStats() const;

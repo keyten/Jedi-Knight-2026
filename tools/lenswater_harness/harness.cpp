@@ -221,8 +221,8 @@ int main()
 	// acid profile: tint and distortion scale blend in
 	{
 		LensWater w; w.Init(455, 256);
-		// rainlens_profile feeds the nominal intensity (a dry lens skips the blend)
-		Input in = Dry(); in.intensity = LensWater::NominalIntensity(PROFILE_ACID);
+		// rainlens_profile feeds the nominal intensity and exposes the lens.
+		Input in = Dry(); in.intensity = LensWater::NominalIntensity(PROFILE_ACID); in.exposed = 1.0f;
 		w.SetProfileOverride(PROFILE_ACID);
 		Run(w, 1.0f, in, p);
 		w.SetProfileOverride(PROFILE_ACID);
@@ -365,6 +365,16 @@ int main()
 		const float woken = w.Wetness(at);
 		CHECK(sleeping, "lens sleeps with invisible wetness (%d frames)", frames);
 		CHECK(asleep > 0.05f && woken < asleep * 0.2f, "dormant wetness decays on wake (%.3f -> %.3f)", asleep, woken);
+	}
+	// A deferred film upload must not keep an otherwise dry lens awake.
+	{
+		LensWater w; w.Init(64, 36);
+		w.AddDrop({ 0.0f, 0.0f }, kRefRadius, DROP_NORMAL);
+		Run(w, 1.0f, Dry(), p);
+		w.Drops().clear();
+		for (int i = 0; i < 144 * 60 && w.FilmVisible(); ++i)
+			w.Update(1.0f / 144.0f, Dry(), p);
+		CHECK(w.FilmDirty() && !w.Active(), "deferred upload does not wake a dry lens");
 	}
 	// direct micro impacts of a downpour wet the lens
 	{
