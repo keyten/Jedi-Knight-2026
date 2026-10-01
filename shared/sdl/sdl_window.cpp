@@ -145,6 +145,11 @@ void GLimp_Minimize(void)
 
 void WIN_Present( window_t *window )
 {
+	// Renderer startup can present its splash/progress screen for a long time
+	// before the normal input frame runs. Keep servicing the OS window queue;
+	// IN_ProcessEvents will consume the queued SDL events on the next frame.
+	SDL_PumpEvents();
+
 	if ( window->api == GRAPHICS_API_OPENGL )
 	{
 		SDL_GL_SwapWindow(screen);
