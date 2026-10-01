@@ -1182,8 +1182,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	int lightIndexes[MAX_RENDER_DLIGHTS];
 	int shadowLayers[MAX_RENDER_DLIGHTS];
 	int numSceneLights = R_GetDlightList(refdef, lightIndexes, shadowLayers, MAX_RENDER_DLIGHTS);
-	// Surface lighting uses the LTC line directly. Fog needs a separate
-	// representation, so append saber lines only to this froxel light list.
+	// Surface lighting uses the LTC line directly. Append saber lights only
+	// to the froxel list, where mode 2 uses a shadowed point proxy.
 	for ( int i = 0; i < refdef->num_dlights && numSceneLights < MAX_RENDER_DLIGHTS; i++ )
 	{
 		if ( refdef->dlights[i].areaType == DLIGHT_LINE )
@@ -1199,10 +1199,12 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	for ( int i = 0; i < numSceneLights; i++ )
 	{
 		const dlight_t *dl = refdef->dlights + lightIndexes[i];
+		const qboolean lineFog = (qboolean)(dl->areaType == DLIGHT_LINE &&
+			r_ltcSaberAreaLights->integer != 2);
 		vec3_t nearest;
 		VectorCopy(dl->origin, nearest);
 		float radius = dl->radius;
-		if ( dl->areaType == DLIGHT_LINE )
+		if ( lineFog )
 		{
 			vec3_t delta;
 			VectorSubtract(view->ori.origin, dl->origin, delta);
@@ -1210,12 +1212,16 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				DotProduct(delta, dl->areaRight)), dl->areaRight, nearest);
 			radius = Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f);
 		}
+		else if ( dl->areaType == DLIGHT_LINE )
+			radius = Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f);
 		const float minDistSq = 0.0625f * radius * radius;
-		const float luminance = 0.2126f * dl->color[0] + 0.7152f * dl->color[1] +
-			0.0722f * dl->color[2];
+		const float *fogColor = lineFog || dl->areaType != DLIGHT_LINE ?
+			dl->color : dl->areaFogColor;
+		const float luminance = 0.2126f * fogColor[0] + 0.7152f * fogColor[1] +
+			0.0722f * fogColor[2];
 		candidates[i].light = lightIndexes[i];
 		candidates[i].shadowLayer = shadowLayers[i];
-		candidates[i].score = luminance * (dl->areaType == DLIGHT_LINE ? 0.25f : 1.0f) *
+		candidates[i].score = luminance * (lineFog ? 0.25f : 1.0f) *
 			radius * radius / Q_max(DistanceSquared(view->ori.origin, nearest), minDistSq);
 	}
 	std::sort(candidates, candidates + numSceneLights,
@@ -1237,6 +1243,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	for ( int i = 0; i < numSceneLights; i++ )
 	{
 		const dlight_t *dl = refdef->dlights + candidates[i].light;
+		const qboolean lineFog = (qboolean)(dl->areaType == DLIGHT_LINE &&
+			r_ltcSaberAreaLights->integer != 2);
 		froxelLightRange_t *range = &ranges[numLights];
 		if ( !R_VolumetricLightRange(view, froxelProjection, dl, tileSize, tilesX, tilesY, range) )
 			continue;
@@ -1246,7 +1254,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		const int shadowLayer = R_DlightCastsShadow(dl) ? candidates[i].shadowLayer : -1;
 		const float projected = (shadowLayer >= 0 && dl->spotShadowSlot == shadowLayer) ? 1.0f : 0.0f;
 		float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
-		if ( dl->areaType == DLIGHT_LINE )
+		if ( lineFog )
 		{
 			// The API's range is the old single-blade point-light radius in SP.
 			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2],
@@ -1255,6 +1263,17 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				dl->color[2] * 0.25f, (float)shadowLayer);
 			VectorSet4(t + 8, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], dl->radius);
 			VectorSet4(t + 12, dl->halfWidth, -1.0f, -1.0f, -1000.0f);
+		}
+		else if ( dl->areaType == DLIGHT_LINE )
+		{
+			// Mode 2 keeps the legacy point-light fog response and midpoint
+			// dynamic shadow, independently of the LTC surface intensity.
+			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2],
+				Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f));
+			VectorSet4(t + 4, dl->areaFogColor[0], dl->areaFogColor[1],
+				dl->areaFogColor[2], (float)shadowLayer);
+			VectorSet4(t + 8, 0.0f, 0.0f, 0.0f, -2.0f);
+			VectorSet4(t + 12, -1.0f, 0.0f, -1.0f, dl->radius);
 		}
 		else
 		{

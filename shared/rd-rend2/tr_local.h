@@ -478,6 +478,7 @@ extern cvar_t  *r_ltcAreaLights;
 extern cvar_t  *r_ltcDebug;
 extern cvar_t  *r_ltcDebugLight;
 extern cvar_t  *r_ltcIntensityScale;
+extern cvar_t  *r_ltcSaberIntensityScale;
 extern cvar_t  *r_ltcStaticDiffuse;
 extern cvar_t  *r_ltcMaxLights;
 extern cvar_t  *r_ltcAutoAreaLights;
@@ -807,6 +808,7 @@ typedef struct dlight_s {
 	int		areaId;				// map light index, -1 = scene (dynamic) light
 	int		areaShadowSlot;		// cached rectangle shadow slot, -1 = unavailable
 	int		areaDynamicShadowSlot;	// character-only overlay slot, -1 = unavailable
+	vec3_t	areaFogColor;		// unscaled saber color for the point fog proxy
 	vec3_t	areaRight;			// unit
 	vec3_t	areaUp;				// unit (LINE: unused, rebuilt per pixel)
 	float	halfWidth;			// along right (LINE: half length)

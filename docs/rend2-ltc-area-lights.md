@@ -15,11 +15,12 @@ launched yet**: the in-game checks, GPU timings and screenshots below are still 
 | `r_ltcAreaLights` | 0 | archive, **latch** (vid_restart). The LTC code is only compiled into lightall when this is on |
 | `r_ltcDebug` | 0 | cheat, latch. 1–8 lighting views; 9 static visibility, 10 cache slot, 11 saber cube, 12 saber screen, 13 screen confidence, 14 final saber visibility |
 | `r_ltcDebugLight` | -1 | map light highlighted in modes 5–7 (-1 = the nearest) |
-| `r_ltcIntensityScale` | 1 | radiance multiplier for all area lights |
+| `r_ltcIntensityScale` | 1 | radiance multiplier for map and scene area lights other than sabers |
+| `r_ltcSaberIntensityScale` | 1 | separate radiance multiplier for LTC saber lines |
 | `r_ltcStaticDiffuse` | 0 | also add diffuse for `static_specular` lights (their diffuse is normally baked) |
 | `r_ltcMaxLights` | 64 | map lights per scene, most important first: emitted power / distance² (dynamic lights are not counted) |
 | `r_ltcAutoAreaLights` | 1 | for maps without an `.arealights.json`: 0 off, 1 confident lamp shapes, 2 also loosely fitted ones (see "Automatic conversion"). Runs at map load only while `r_ltcAreaLights` is on |
-| `r_ltcSaberAreaLights` | 0 | sabers light as lines instead of a point light |
+| `r_ltcSaberAreaLights` | 0 | 0: dynamic point light; 1: LTC line on surfaces and line proxy in fog; 2: LTC line on surfaces and dynamic point light with midpoint cube shadow in fog |
 | `r_ltcStaticShadows` | 0 | 0 off; 1 cached four-sample world shadows; 2 also redraw Ghoul2 casters for up to four nearby static lights per frame |
 | `r_ltcSaberShadows` | -1 | -1 original midpoint cube; 0 off; 1 anisotropic cube PCF; 2 midpoint cube plus temporal screen-space line visibility; 3 three-point reference (up to two sabers, others use mode 1) |
 
@@ -227,8 +228,9 @@ in `shader_t` as hints. Nothing renders from them, so legacy behavior is unchang
   length·1.4, rgb)` when the `r_ltcSaberAreaLights` mirror is on.
 - Each blade becomes its own line. Only if the renderer returns false is the old point light added,
   so the two are never both active.
-- Blade radiance = saber color × 4 × `r_ltcIntensityScale` (`SABER_AREA_RADIANCE`, to be tuned in
-  game).
+- Blade radiance = saber color × 4 × `r_ltcSaberIntensityScale` (`SABER_AREA_RADIANCE`).
+  In mode 2, fog uses the original saber color and the midpoint dynamic shadow cube, so changing
+  LTC saber intensity only changes surface lighting.
 
 API, chosen to stay compatible (`refexport_t` and `REF_API_VERSION` are **unchanged**, so the A/B
 renderer DLLs keep loading):

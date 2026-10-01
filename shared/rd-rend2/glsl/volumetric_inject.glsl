@@ -1018,7 +1018,8 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 			else if (spot2.y > 0.5)
 				shadow = SpotLightShadow(originRadius.xyz, L, dist, shadowLayer, spot.w);
 			else
-				shadow = DynamicLightShadow(L, dist, radius, shadowLayer);
+				shadow = DynamicLightShadow(L, dist,
+					spot2.x < -0.5 && spot2.w > 0.0 ? spot2.w : radius, shadowLayer);
 		}
 		geometryShadow = shadow;
 

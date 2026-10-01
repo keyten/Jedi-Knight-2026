@@ -51,7 +51,7 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 #include <unordered_map>
 #include <vector>
 
-// saber blade radiance per unit of saber color (r_ltcIntensityScale applies too)
+// saber blade radiance per unit of saber color
 #define SABER_AREA_RADIANCE		4.0f
 #define AREALIGHT_MIN_RANGE		16.0f
 #define AREALIGHT_MAX_RANGE		8192.0f
@@ -596,11 +596,15 @@ qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float rad
 
 	vec3_t radiance;
 	VectorSet(radiance, r, g, b);
-	VectorScale(radiance, SABER_AREA_RADIANCE * Q_max(r_ltcIntensityScale->value, 0.0f), radiance);
+	VectorScale(radiance, SABER_AREA_RADIANCE * Q_max(r_ltcSaberIntensityScale->value, 0.0f), radiance);
 	range = Com_Clamp(AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
-	return (qboolean)(R_AddAreaDlight(DLIGHT_LINE, center, axis, up, halfLength,
+	dlight_t *light = R_AddAreaDlight(DLIGHT_LINE, center, axis, up, halfLength,
 		Com_Clamp(0.25f, 16.0f, radius), -1.0f, range, radiance,
-		AREALIGHT_DYNAMIC | AREALIGHT_TWO_SIDED, -1) != nullptr);
+		AREALIGHT_DYNAMIC | AREALIGHT_TWO_SIDED, -1);
+	if (!light)
+		return qfalse;
+	VectorSet(light->areaFogColor, r, g, b);
+	return qtrue;
 }
 
 /*
