@@ -94,3 +94,6 @@ update or a new cvar combination still compiles; only the programs that changed 
    percentage and bar advance from 0 to 100. With a warm cache, they finish quickly.
    Check SP and MP, with optional AO, SSR/SSGI, silhouette POM and SMAA enabled and
    disabled; there should be no `GLSL startup progress: expected ...` warning.
+7. During a cold start, click the window while shaders compile. On a driver
+   reporting `GLSL parallel shader compile: available`, the window should continue
+   handling messages even while one shader or program is still compiling.

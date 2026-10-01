@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "glsl_shaders.h"
 
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -35,6 +37,7 @@ static int s_startupProgramsDone;
 static int s_startupLastPresent;
 static image_t *s_startupSplashImage;
 static GLint s_startupProgressUniform = -1;
+static bool s_parallelShaderCompile;
 
 // Startup runs before the ordinary UI renderer and fonts are available.
 static void GLSL_DrawStartupProgress(int percent)
@@ -85,6 +88,50 @@ static void GLSL_StartupProgramReady()
 	s_startupLastPresent = now;
 	// Reserve 100% until the cache has also been written.
 	GLSL_DrawStartupProgress(std::min(99, s_startupProgramsDone * 100 / s_startupProgramsTotal));
+}
+
+static void GLSL_PresentStartupIfDue()
+{
+	if (!s_startupProgramsTotal)
+		return;
+	const int now = ri.Milliseconds();
+	if (now - s_startupLastPresent < 100)
+		return;
+	s_startupLastPresent = now;
+	GLSL_DrawStartupProgress(std::min(99, s_startupProgramsDone * 100 / s_startupProgramsTotal));
+}
+
+// With parallel shader compilation, status queries other than COMPLETION_STATUS
+// may wait for the driver. Present the splash while the driver is still working
+// so the window thread continues to service messages during a cold start.
+static void GLSL_WaitForShader(GLuint shader)
+{
+	if (!s_parallelShaderCompile || !s_startupProgramsTotal)
+		return;
+	GLint complete = GL_FALSE;
+	while (!complete)
+	{
+		qglGetShaderiv(shader, GL_COMPLETION_STATUS_ARB, &complete);
+		if (complete)
+			break;
+		GLSL_PresentStartupIfDue();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+}
+
+static void GLSL_WaitForProgram(GLuint program)
+{
+	if (!s_parallelShaderCompile || !s_startupProgramsTotal)
+		return;
+	GLint complete = GL_FALSE;
+	while (!complete)
+	{
+		qglGetProgramiv(program, GL_COMPLETION_STATUS_ARB, &complete);
+		if (complete)
+			break;
+		GLSL_PresentStartupIfDue();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 }
 
 const uniformBlockInfo_t uniformBlocksInfo[UNIFORM_BLOCK_COUNT] = {
@@ -720,8 +767,12 @@ static GLuint GLSL_CompileGPUShader(
 
 	qglShaderSource(shader, 1, &buffer, &size);
 	qglCompileShader(shader);
+	GLSL_PresentStartupIfDue();
+	GLSL_WaitForShader(shader);
 
-	if ( !GLSL_IsGPUShaderCompiled(shader) )
+	const bool compiled = GLSL_IsGPUShaderCompiled(shader);
+	GLSL_PresentStartupIfDue();
+	if ( !compiled )
 	{
 		GLSL_PrintShaderSource(shader);
 		GLSL_PrintShaderInfoLog(shader, qfalse);
@@ -818,9 +869,12 @@ static size_t GLSL_LoadGPUShaderSource(
 static void GLSL_LinkProgram(GLuint program)
 {
 	qglLinkProgram(program);
+	GLSL_PresentStartupIfDue();
+	GLSL_WaitForProgram(program);
 
 	GLint linked;
 	qglGetProgramiv(program, GL_LINK_STATUS, &linked);
+	GLSL_PresentStartupIfDue();
 	if ( linked != GL_TRUE )
 	{
 		GLSL_PrintProgramInfoLog(program, qfalse);
@@ -1207,6 +1261,7 @@ static void GLSL_CacheEnd( void )
 
 		for ( const auto& it : s_glslCache.entries )
 		{
+			GLSL_PresentStartupIfDue();
 			glslCacheFileEntry_t fileEntry = {};
 			fileEntry.key = it.first;
 			fileEntry.format = it.second.format;
@@ -1388,6 +1443,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 	if ( glslCacheEntry_t *entry = GLSL_CacheFind(cacheKey) )
 	{
 		qglProgramBinary(program, entry->format, entry->data.data(), (GLsizei)entry->data.size());
+		GLSL_PresentStartupIfDue();
 		GLint linked = GL_FALSE;
 		qglGetProgramiv(program, GL_LINK_STATUS, &linked);
 		if ( linked == GL_TRUE )
@@ -2057,6 +2113,7 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 		if ( cachedProgram )
 		{
 			qglProgramBinary(cachedProgram, entry->format, entry->data.data(), (GLsizei)entry->data.size());
+			GLSL_PresentStartupIfDue();
 			qglGetProgramiv(cachedProgram, GL_LINK_STATUS, &linked);
 		}
 		if ( linked == GL_TRUE )
@@ -2081,7 +2138,11 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 		return false;
 	qglShaderSource(shader, ARRAY_LEN(sources), sources, nullptr);
 	qglCompileShader(shader);
-	if ( !GLSL_IsGPUShaderCompiled(shader) )
+	GLSL_PresentStartupIfDue();
+	GLSL_WaitForShader(shader);
+	const bool compiled = GLSL_IsGPUShaderCompiled(shader);
+	GLSL_PresentStartupIfDue();
+	if ( !compiled )
 	{
 		ri.Printf(PRINT_ALL, "Compute shader '%s' failed; using legacy path.\n", name);
 		GLSL_PrintShaderInfoLog(shader, qfalse);
@@ -2099,8 +2160,11 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 	if ( s_glslCache.enabled )
 		qglProgramParameteri(linkedProgram, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
 	qglLinkProgram(linkedProgram);
+	GLSL_PresentStartupIfDue();
+	GLSL_WaitForProgram(linkedProgram);
 	GLint linked = GL_FALSE;
 	qglGetProgramiv(linkedProgram, GL_LINK_STATUS, &linked);
+	GLSL_PresentStartupIfDue();
 	qglDetachShader(linkedProgram, shader);
 	qglDeleteShader(shader);
 	if ( linked != GL_TRUE )
@@ -4599,6 +4663,10 @@ void GLSL_LoadGPUShaders()
 	Allocator allocator(512 * 1024);
 	ShaderProgramBuilder builder;
 	s_startupProgramsTotal = GLSL_CountStartupPrograms();
+	s_parallelShaderCompile = ri.GL_ExtensionSupported("GL_ARB_parallel_shader_compile") ||
+		ri.GL_ExtensionSupported("GL_KHR_parallel_shader_compile");
+	ri.Printf(PRINT_ALL, "GLSL parallel shader compile: %s\n",
+		s_parallelShaderCompile ? "available" : "unavailable");
 	s_startupProgramsDone = 0;
 	s_startupSplashImage = R_FindImageFile("menu/splash", IMGTYPE_COLORALPHA, IMGFLAG_NONE);
 	if (!s_startupSplashImage)
