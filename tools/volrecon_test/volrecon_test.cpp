@@ -5,9 +5,13 @@ Synthetic tests of the directional baked volumetric lighting reconstruction
 Builds q3map-like light grids (inverse square / linear point lights, rectangle
 emitters, a sun, walls that block light and invalidate cells, one dominant
 direction per cell quantized to latLong bytes, the directed / ambient split) and
-checks the cases of the design plus the invariants on every case, in modes 1 and 2:
+checks the cases of the design plus the invariants on every case, in modes 1 and 2,
+and mode 1 again with the structured lights promoted (a box trace as the BSP):
 
-  B + S == legacy (float, and after the half float packing), legacy from the inputs
+  B + P + S == legacy (float, and after the half float packing), legacy from the inputs
+  B' + P == B, B' >= 0, P >= 0; promoted lights physical, leak <= 15 %, at most 32
+  the structured light classes: omni POINT, true SPOT, doorway lamp neither spot nor
+  promoted, a lamp against a wall stays in the room
   wall cells: sun fraction 0, no baked sun; the static alpha packs the sun fraction
   at most 256 sources in total
   |M_c| <= B_c (float and half)
@@ -58,6 +62,8 @@ struct PointLight
 	V3 pos;
 	V3 color;		// radiant intensity, rgb
 	float radius;	// > 0: linear falloff to 0 at radius, else inverse square
+	V3 spotDir;		// non zero: a spot light along it (unit)
+	float cosOuter, cosInner;
 };
 
 struct RectLight
@@ -140,6 +146,17 @@ float Smoothstep( float e0, float e1, float x )
 	return t * t * (3.0f - 2.0f * t);
 }
 
+// as the renderer traces: 0 when blocked or starting in a wall
+float TraceScene( void *user, const float start[3], const float end[3] )
+{
+	const Scene& s = *(const Scene *)user;
+	const V3 a = Make(start[0], start[1], start[2]), b = Make(end[0], end[1], end[2]);
+	for ( const Box& w : s.walls )
+		if ( Inside(a, w) )
+			return 0.0f;
+	return Visible(s, a, b) ? 1.0f : 0.0f;
+}
+
 struct Grid
 {
 	Scene scene;
@@ -197,6 +214,8 @@ void BuildGrid( Grid& g, const Scene& s, int mode )
 						k = std::max(0.0f, 1.0f - r / l.radius) / (64.0f * 64.0f);
 					else
 						k = 1.0f / (r * r);
+					if ( Length(l.spotDir) > 0.0f )
+						k *= Smoothstep(l.cosOuter, l.cosInner, Dot(Normalize(Sub(p, l.pos)), l.spotDir));
 					if ( k > 0.0f )
 					{
 						Contrib c = { Scale(l.color, k), Normalize(d) };
@@ -299,6 +318,9 @@ void BuildGrid( Grid& g, const Scene& s, int mode )
 	in.sunVis = s.hasSun ? g.sunVis.data() : nullptr;
 	in.areas = s.areas.empty() ? nullptr : s.areas.data();
 	in.numAreas = (int)s.areas.size();
+	in.trace = TraceScene;
+	in.traceUser = &g.scene;
+	in.promote = true;
 }
 
 int g_failures = 0;
@@ -319,7 +341,7 @@ void Check( bool ok, const char *what, double value = 0.0 )
 void CheckInvariants( const Grid& g, const vrOutput& out )
 {
 	float maxSplit = 0.0f, maxHalfSplit = 0.0f, worstMoment = 0.0f, worstHalfMoment = 0.0f, worstPhase = 0.0f;
-	bool finite = true;
+	bool finite = true, negative = false;
 	std::vector<uint16_t> baseline, moments[3];
 	VR_PackHalf(out, out.sunFraction.data(), baseline, moments);
 	float worstAlpha = 0.0f;
@@ -356,12 +378,14 @@ void CheckInvariants( const Grid& g, const vrOutput& out )
 			const float a = std::max(g.ambient[i * 3 + c], 0.0f), d = std::max(g.direct[i * 3 + c], 0.0f);
 			const float L = g.scene.hdr ? a + d : std::max(a, d);
 			const float B = out.baseline[i * 3 + c], S = out.sun[i * 3 + c];
-			finite = finite && std::isfinite(B) && std::isfinite(S);
-			maxSplit = std::max(maxSplit, fabsf(B + S - L));
+			const float P = out.promoted.empty() ? 0.0f : out.promoted[i * 3 + c];
+			finite = finite && std::isfinite(B) && std::isfinite(S) && std::isfinite(P);
+			maxSplit = std::max(maxSplit, fabsf(B + P + S - L) / std::max(L, 1.0f));
+			negative = negative || B < -1e-7f || P < 0.0f;
 			const float Bh = VR_HalfToFloat(baseline[i * 4 + c]);
 			const float Sh = VR_HalfToFloat(VR_FloatToHalf(S));
 			if ( L > 1e-4f )
-				maxHalfSplit = std::max(maxHalfSplit, fabsf(Bh + Sh - L) / L);
+				maxHalfSplit = std::max(maxHalfSplit, fabsf(Bh + P + Sh - L) / L);
 			if ( !hasMoments )
 				continue;
 			const float *m = &out.moment[c][i * 3];
@@ -381,8 +405,30 @@ void CheckInvariants( const Grid& g, const vrOutput& out )
 				}
 		}
 	Check(finite, "all outputs finite");
-	Check(maxSplit <= 1e-6f, "B + S == legacy (float)", maxSplit);
-	Check(maxHalfSplit <= 2e-3f, "B + S == legacy after half rounding (relative)", maxHalfSplit);
+	Check(maxSplit <= 1e-6f, "B + P + S == legacy (float)", maxSplit);
+	Check(maxHalfSplit <= 2e-3f, "B + P + S == legacy after half rounding (relative)", maxHalfSplit);
+	Check(!negative, "B' >= 0, P >= 0");
+	Check(out.stats.maxPartitionError <= 1e-5f, "B' + P == B", out.stats.maxPartitionError);
+	Check(out.lights.size() == out.proxies.size(), "one structured light per proxy", (double)out.lights.size());
+	int promoted = 0;
+	bool lightsSane = true;
+	for ( const vrStaticLight& l : out.lights )
+	{
+		if ( l.flags & VR_LIGHT_PROMOTED )
+		{
+			promoted++;
+			if ( !(l.flags & VR_LIGHT_PHYSICAL) || l.kind == VR_LIGHT_TRANSPORT || l.kind == VR_LIGHT_RECT ||
+				!(l.radius > 0.0f) || !(l.promotionWeight > 0.0f) || l.leakFraction > 0.15f )
+				lightsSane = false;
+		}
+		if ( l.kind == VR_LIGHT_SPOT && !(l.cosInner > l.cosOuter) )
+			lightsSane = false;
+		if ( !std::isfinite(l.color[0]) || !std::isfinite(l.physicalConfidence) )
+			lightsSane = false;
+	}
+	Check(lightsSane, "structured lights sane");
+	Check(promoted <= 32 && promoted == out.stats.promotedPoints + out.stats.promotedSpots, "promoted budget", promoted);
+	Check(out.promoted.empty() == (promoted == 0), "P present iff promoted");
 	Check(worstMoment <= 1e-6f, "|M_c| <= B_c (float)", worstMoment);
 	Check(worstHalfMoment <= 0.0f, "|M_c| <= B_c (half)", worstHalfMoment);
 	Check(worstPhase >= -1e-6f, "B + 3 g M.v >= 0 for |g| <= 1/3", worstPhase);
@@ -432,6 +478,32 @@ const vrProxy *NearestProxy( const vrOutput& out, V3 p, float *distance )
 	return best;
 }
 
+vrOutput g_lit;
+
+const vrStaticLight *NearestLight( const vrOutput& out, V3 p, float *distance )
+{
+	const vrStaticLight *best = nullptr;
+	*distance = 1e30f;
+	for ( const vrStaticLight& x : out.lights )
+	{
+		const float d = Length(Sub(Make(x.origin[0], x.origin[1], x.origin[2]), p));
+		if ( d < *distance )
+		{
+			*distance = d;
+			best = &x;
+		}
+	}
+	return best;
+}
+
+int CountKind( const vrOutput& out, vrLightKind kind )
+{
+	int n = 0;
+	for ( const vrStaticLight& l : out.lights )
+		n += l.kind == kind ? 1 : 0;
+	return n;
+}
+
 void Run( const char *name, const Scene& scene, vrOutput& out1, Grid& grid )
 {
 	g_case = std::string(name) + " mode 2";
@@ -443,12 +515,32 @@ void Run( const char *name, const Scene& scene, vrOutput& out1, Grid& grid )
 
 	g_case = std::string(name) + " mode 1";
 	BuildGrid(grid, scene, 1);
+	grid.input.promote = false;
 	VR_Reconstruct(grid.input, out1);
 	CheckInvariants(grid, out1);
+
+	// structured lights promoted: the moments of out1 stay those of the whole baked light
+	g_case = std::string(name) + " mode 1 promoted";
+	grid.input.promote = true;
+	VR_Reconstruct(grid.input, g_lit);
+	CheckInvariants(grid, g_lit);
+	grid.input.promote = false;
 	const vrStats& st = out1.stats;
 	printf("%-28s seeds %3d fits %3d points %2d areas %d dirCells %5d dir %.3f attr %.3f rms %.2f sigma %.2f  %.1f ms\n",
 		name, st.seeds, st.fits, st.pointProxies, st.areaAnchors, st.directionalCells, st.directionalFraction,
 		st.attributedFraction, st.meanRayRms, st.meanSigmaP, st.msecTotal);
+	const vrStats& ls = g_lit.stats;
+	if ( ls.physicalLights || ls.transportLights )
+		printf("  lights: physical %d transport %d relocated %d promoted %d points %d spots, %.1f%% of B, excess %.1f%%, %d traces\n",
+			ls.physicalLights, ls.transportLights, ls.relocatedLights, ls.promotedPoints, ls.promotedSpots,
+			ls.promotedFraction * 100.0f, ls.excessFraction * 100.0f, ls.traces);
+	if ( getenv("VR_VERBOSE") )
+		for ( const vrStaticLight& l : g_lit.lights )
+			printf("    light %s%s%s at %.0f %.0f %.0f R %.0f color %.3f %.3f %.3f conf %.2f vis %.2f phys %.2f fit %.2f spot %.2f w %.2f leak %.2f\n",
+				l.kind == VR_LIGHT_SPOT ? "spot" : l.kind == VR_LIGHT_POINT ? "point" : l.kind == VR_LIGHT_RECT ? "rect" : "transport",
+				(l.flags & VR_LIGHT_PROMOTED) ? " promoted" : "", (l.flags & VR_LIGHT_RELOCATED) ? " relocated" : "",
+				l.origin[0], l.origin[1], l.origin[2], l.radius, l.color[0], l.color[1], l.color[2], l.confidence,
+				l.visibility, l.physicalConfidence, l.radiometricConfidence, l.spotConfidence, l.promotionWeight, l.leakFraction);
 	if ( getenv("VR_VERBOSE") )
 		for ( const vrProxy& p : out1.proxies )
 			printf("    proxy %s at %.0f %.0f %.0f color %.2f %.2f %.2f conf %.2f sigma %.0f range %.0f support %d\n",
@@ -495,6 +587,12 @@ int main()
 		Check(Cosine(MomentLuma(out, probe), Sub(light, g.Position(18, 12, 6))) > 0.95f, "moment towards the light",
 			Cosine(MomentLuma(out, probe), Sub(light, g.Position(18, 12, 6))));
 		Check(Directionality(out, probe) > 0.3f, "directional far field", Directionality(out, probe));
+		const vrStaticLight *l = NearestLight(g_lit, light, &d);
+		Check(l && l->kind == VR_LIGHT_POINT && (l->flags & VR_LIGHT_PROMOTED), "omni: a promoted POINT", l ? l->kind : -1);
+		Check(l && d < 0.5f * diag, "omni: light at the lamp", d / diag);
+		Check(CountKind(g_lit, VR_LIGHT_SPOT) == 0, "omni: no spot", CountKind(g_lit, VR_LIGHT_SPOT));
+		Check(g_lit.stats.promotedFraction > 0.05f, "omni: energy promoted", g_lit.stats.promotedFraction);
+		Check(g_lit.stats.excessFraction < 0.25f, "omni: model within the budget", g_lit.stats.excessFraction);
 	}
 
 	// a light between cells, smaller than the grid spacing
@@ -581,6 +679,51 @@ int main()
 		const float c = Cosine(MomentLuma(out, probe), Sub(opening, g.Position(18, 12, 2)));
 		Check(c > 0.8f, "light enters from the opening", c);
 		Check(Directionality(out, probe) > 0.15f, "room side keeps a direction", Directionality(out, probe));
+		// the cone through the opening is occlusion, not a spot
+		Check(CountKind(g_lit, VR_LIGHT_SPOT) == 0, "doorway: no spot", CountKind(g_lit, VR_LIGHT_SPOT));
+		// unshadowed at runtime, its light would pass the wall: it stays baked
+		Check(g_lit.stats.promotedPoints + g_lit.stats.promotedSpots == 0, "doorway: lamp behind the wall not promoted",
+			g_lit.stats.promotedPoints + g_lit.stats.promotedSpots);
+	}
+
+	// a true spot light pointing down in an open room
+	{
+		Scene s = BaseScene(24, 24, 12);
+		const V3 lamp = CellPos(s, 12.0f, 12.0f, 10.0f);
+		PointLight l = { lamp, Make(20000, 19000, 17000), 0.0f };
+		l.spotDir = Make(0, 0, -1);
+		l.cosOuter = cosf(35.0f * PI / 180.0f);
+		l.cosInner = cosf(22.0f * PI / 180.0f);
+		s.points.push_back(l);
+		Grid g; vrOutput out;
+		Run("true spot light", s, out, g);
+		float d;
+		const vrStaticLight *x = NearestLight(g_lit, lamp, &d);
+		const float diag = Length(s.cellSize);
+		Check(x && x->kind == VR_LIGHT_SPOT, "spot: classified SPOT", x ? x->kind : -1);
+		Check(x && d < 1.0f * diag, "spot: at the lamp", d / diag);
+		Check(x && x->axis[2] < -0.9f, "spot: axis down", x ? x->axis[2] : 0.0f);
+		Check(x && x->cosOuter > cosf(55.0f * PI / 180.0f) && x->cosOuter < cosf(20.0f * PI / 180.0f), "spot: outer angle",
+			x ? acosf(x->cosOuter) * 180.0f / PI : 0.0f);
+		Check(x && (x->flags & VR_LIGHT_PROMOTED) && x->excessFraction <= 0.2f, "spot: promoted within the budget",
+			x ? x->excessFraction : -1.0f);
+	}
+
+	// a lamp a few units off a wall: the fit may land in the wall, the light moves out within sigmaP
+	{
+		Scene s = BaseScene(24, 24, 12);
+		const float wx = 16.0f * s.cellSize.x + 20.0f;
+		s.walls.push_back({ Make(wx, -100, -100), Make(wx + 0.4f * s.cellSize.x, 1e4f, 1e4f) });
+		const V3 lamp = Make(wx - 6.0f, 12.0f * s.cellSize.y, 6.0f * s.cellSize.z);
+		s.points.push_back({ lamp, Make(6000, 6000, 6000), 0.0f });
+		Grid g; vrOutput out;
+		Run("lamp against a wall", s, out, g);
+		float d;
+		const vrStaticLight *x = NearestLight(g_lit, lamp, &d);
+		const float diag = Length(s.cellSize);
+		Check(x && (x->flags & VR_LIGHT_PHYSICAL), "wall lamp: physical", x ? x->physicalConfidence : 0.0f);
+		Check(x && x->origin[0] < wx, "wall lamp: in the room", x ? x->origin[0] - wx : 0.0f);
+		Check(x && d < 1.0f * diag, "wall lamp: near the lamp", d / diag);
 	}
 
 	// large emissive ceiling panel: taken from the area detector, not many points

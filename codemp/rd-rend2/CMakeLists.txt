@@ -55,6 +55,8 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_volumetric_reconstruct.cpp"
 	"${SharedDir}/rd-rend2/tr_volrecon.cpp"
 	"${SharedDir}/rd-rend2/tr_volrecon.h"
+	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
+	"${SharedDir}/rd-rend2/tr_staticlighting.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
 	"${SharedDir}/rd-rend2/tr_bsp.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.cpp"

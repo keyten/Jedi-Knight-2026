@@ -114,6 +114,12 @@ cvar_t	*r_volumetricFogDlightScale;
 cvar_t	*r_volumetricFogLightTile;
 cvar_t	*r_volumetricFogStaticScale;
 cvar_t	*r_volumetricFogStaticDirectional;
+cvar_t	*r_staticLightReconstruction;
+cvar_t	*r_recoveredVolumetricLights;
+cvar_t	*r_recoveredVolumetricMaxLights;
+cvar_t	*r_recoveredPhysicalConfidence;
+cvar_t	*r_recoveredSpotConfidence;
+cvar_t	*r_staticLightDebug;
 cvar_t	*r_volumetricSelfShadow;
 cvar_t	*r_volumetricSelfShadowSamples;
 cvar_t	*r_volumetricSelfShadowDistance;
@@ -1816,7 +1822,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
-	{ "r_vfogStaticStats",	R_VolumetricStaticStats_f },
+	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
@@ -2407,6 +2413,19 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogStaticDirectional = ri_Cvar_Get_NoComm("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: directional baked light, the light grid light gets a first order (L1) phase response along the directions it is attributed to at map load: 0 = isotropic, 1 = reconstructed per channel moments (sources fitted from the light grid and the static area emitters), 2 = raw BSP light grid direction (developer comparison) (vid_restart)");
 	ri.Cvar_CheckRange(r_volumetricFogStaticDirectional, 0, 2, qtrue);
+	// Static Lighting Reconstruction (tr_staticlighting.cpp)
+	r_staticLightReconstruction = ri_Cvar_Get_NoComm("r_staticLightReconstruction", "1", CVAR_ARCHIVE | CVAR_LATCH, "Static lighting reconstruction: structured lights (point / spot / transport / area) validated against the BSP and fitted from the light grid at map load, with r_volumetricFogStaticDirectional 1 (vid_restart)");
+	ri.Cvar_CheckRange(r_staticLightReconstruction, 0, 1, qtrue);
+	r_recoveredVolumetricLights = ri_Cvar_Get_NoComm("r_recoveredVolumetricLights", "1", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: the confident physical lights of r_staticLightReconstruction leave the baked light and are injected as exact point / spot lights (volumetric cones), unshadowed, after the dynamic lights (vid_restart)");
+	ri.Cvar_CheckRange(r_recoveredVolumetricLights, 0, 1, qtrue);
+	r_recoveredVolumetricMaxLights = ri_Cvar_Get_NoComm("r_recoveredVolumetricMaxLights", "32", CVAR_ARCHIVE | CVAR_LATCH, "Most recovered static lights promoted per map (1..32); the per view froxel budget is the same (vid_restart)");
+	ri.Cvar_CheckRange(r_recoveredVolumetricMaxLights, 1, 32, qtrue);
+	r_recoveredPhysicalConfidence = ri_Cvar_Get_NoComm("r_recoveredPhysicalConfidence", "0.6", CVAR_LATCH, "Developer: physical confidence above which a reconstructed light is a lamp (visibility * fit * position), map load");
+	ri.Cvar_CheckRange(r_recoveredPhysicalConfidence, 0.05, 1.0, qfalse);
+	r_recoveredSpotConfidence = ri_Cvar_Get_NoComm("r_recoveredSpotConfidence", "0.6", CVAR_LATCH, "Developer: spot confidence, as a fraction of r_recoveredPhysicalConfidence, above which a physical light is a spot, map load");
+	ri.Cvar_CheckRange(r_recoveredSpotConfidence, 0.05, 1.0, qfalse);
+	r_staticLightDebug = ri_Cvar_Get_NoComm("r_staticLightDebug", "0", CVAR_CHEAT, "Static lighting reconstruction debug: 1 structured lights (green physical, bright green promoted, yellow uncertain, magenta transport, cyan area), 2 also range and position uncertainty, 3 promoted only, 4 froxel fog with only the recovered lights, 5 froxel fog without them (the residual baked light)");
+	ri.Cvar_CheckRange(r_staticLightDebug, 0, 5, qtrue);
 	r_volumetricSelfShadow = ri_Cvar_Get_NoComm("r_volumetricSelfShadow", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: dense media shadow the light inside the media (current frame density along the light ray): 0 = off, 1 = sun, 2 = sun + the r_volumetricSelfShadowMaxLights strongest dynamic lights (vid_restart)");
 	ri.Cvar_CheckRange(r_volumetricSelfShadow, 0, 2, qtrue);
 	r_volumetricSelfShadowSamples = ri_Cvar_Get_NoComm("r_volumetricSelfShadowSamples", "6", CVAR_ARCHIVE, "Froxel fog self-shadow: density samples along the sun ray (dynamic lights use half, at least 3)");
@@ -3230,7 +3249,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_DestroyGPUBuffers();
 		R_ShutdownForwardPlus();
 		R_ClearAreaLights();
-		R_ClearVolumetricStaticReconstruction();
+		R_ClearStaticLighting();
 		R_FoliageInteractionReset();
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();

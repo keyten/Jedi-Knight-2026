@@ -1119,7 +1119,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 	float sunWeight = staticGrid.a;
 
 #if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-	// first angular moments of the attributed baked light (R_BuildVolumetricStaticLighting), one per
+	// first angular moments of the attributed baked light (R_BuildStaticLighting), one per
 	// channel: red and blue lamps keep their own directions, opposite lamps cancel to isotropic
 	vec3 viewDirC = normalize(pc - u_FroxelViewOrigin.xyz);
 	vec3 momentR = texture(u_VolumetricDirMomentR, gridCoordC).rgb;
@@ -1179,7 +1179,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 			float shadow = SunShadow(p, temporal, coverage);
 
 			// The sun part of the light grid is S = f D, f = sun alignment * sky visibility of the cell
-			// (traced at map load, R_BuildVolumetricStaticLighting); the other (1 - f) D stays in the
+			// (traced at map load, R_BuildStaticLighting); the other (1 - f) D stays in the
 			// baseline. Inside the cascades the realtime sun replaces exactly that part, f * sun, with
 			// its shadow: a window edge cell (f 0.2) never gets the full sun on top of 0.8 D, and deep
 			// indoors (f 0) the sun stays baked light.

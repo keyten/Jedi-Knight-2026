@@ -4750,7 +4750,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	R_LoadWeatherImages();
 	R_GenerateSurfaceSprites(worldData, worldIndex + 1);
 	R_BuildLightGridTexture(worldData);
-	// the froxel fog static light (R_BuildVolumetricStaticLighting) is built in
+	// the static lighting reconstruction (R_BuildStaticLighting) is built in
 	// RE_LoadWorldMap, after the area lights it anchors to
 	if (bspIndex == nullptr)
 		R_SetHeightFogBase(worldData);
@@ -4903,9 +4903,10 @@ void RE_LoadWorldMap( const char *name ) {
 	// candidates from the emissive surfaces (used with r_ltcAreaLights)
 	R_LoadAreaLights(world->baseName);
 
-	// froxel fog: light grid split by the sun and the directional baked light
-	// moments, anchored to the static area emitters found above
-	R_BuildVolumetricStaticLighting(world);
+	// static lighting reconstruction (froxel fog: light grid split by the sun, the
+	// directional baked light moments, the promoted lights), anchored to the static
+	// area emitters found above
+	R_BuildStaticLighting(world);
 
 	R_UpdateFixedExposureLevel();
 	R_SetMapColorGrading(tr.worldName);

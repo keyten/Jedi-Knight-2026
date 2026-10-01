@@ -33,7 +33,7 @@ void main()
 //  19 number of local volumes in the XYZ cluster at the scene depth (heat, 8 = red),
 //     slice stripes; r_fogvol slices prints the indices
 //  20-25 baked light grid terms, as in-scattering (the injection keeps only that term, no sun, no
-//     dynamic lights; R_BuildVolumetricStaticLighting): 20 non-sun baseline B, 21 |M| per channel (the
+//     dynamic lights; R_BuildStaticLighting): 20 non-sun baseline B, 21 |M| per channel (the
 //     first angular moments, r_volumetricFogStaticDirectional), 22 direction of the luminance moment
 //     (rgb = dir * 0.5 + 0.5, dimmed by |M| / B), 23 baked sun S, 24 B + S, 25 100 * |B + S - legacy
 //     merged grid| (black)

@@ -75,6 +75,7 @@ const float		RANGE_MAX = 10.0f;			// cell diagonals
 const float		RANGE_FALLOFF = 0.01f;		// range: predicted light down to 1 % of the mean baked light
 const int		DOMAIN_MAX = 32768;			// cells attributed to one source
 const int		PROFILE_BINS = 10;			// of half a cell diagonal
+const float		PROFILE_LIT = 0.02f;		// probes in the profile: at least this of the brightest
 
 const float		LUMA[3] = { 0.2126f, 0.7152f, 0.0722f };
 
@@ -236,6 +237,8 @@ struct Ctx
 	std::vector<int> domain;
 	std::vector<Ray> rays;
 	std::vector<float> ratios;
+	std::vector<float> scratchL;	// structured lights: the attributed part of one source, 3 per cell
+	int traces;
 
 	int Index( int x, int y, int z ) const { return x + bx * (y + by * z); }
 	void Coord( int i, int *x, int *y, int *z ) const { *x = i % bx; *y = (i / bx) % by; *z = i / (bx * by); }
@@ -710,13 +713,22 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 	const V3 chromaUnit = Normalize(chroma);
 
 	// radial profile of the brightness projected on the chroma: robust median per bin,
-	// non-increasing fit; its misfit and its decay are the profile confidence
+	// non-increasing fit; its misfit and its decay are the profile confidence. Only the lit
+	// probes: beside a spot light the dark probes outside its cone are no falloff.
 	const float binWidth = 0.5f * ctx.diag;
 	std::vector<float> bins[PROFILE_BINS];
 	std::vector<float> values(support.size());
+	float maxValue = 0.0f;
 	for ( size_t s = 0; s < support.size(); s++ )
 	{
 		values[s] = std::max(Dot(Load(&ctx.Q[support[s] * 3]), chromaUnit), 0.0f);
+		maxValue = std::max(maxValue, values[s]);
+	}
+	const float litValue = PROFILE_LIT * maxValue;
+	for ( size_t s = 0; s < support.size(); s++ )
+	{
+		if ( values[s] < litValue )
+			continue;
 		const int bin = std::min(PROFILE_BINS - 1, (int)(distances[s] / binWidth));
 		bins[bin].push_back(values[s]);
 	}
@@ -741,6 +753,8 @@ bool FitSeed( Ctx& ctx, const Seed& seed, Source *out, float *rms )
 	double misfit = 0.0, total = 0.0;
 	for ( size_t s = 0; s < support.size(); s++ )
 	{
+		if ( values[s] < litValue )
+			continue;
 		const int bin = std::min(PROFILE_BINS - 1, (int)(distances[s] / binWidth));
 		misfit += fabsf(values[s] - iso[binIndex[bin]]);
 		total += values[s];
@@ -987,7 +1001,10 @@ struct Accumulator
 	float sumMU[3][3];
 };
 
-void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
+// per cell of the source's domain (left in ctx.domain) and channel: the match score m in [0, 1]
+// and the direction vector; f( cell, m[3], dirVec ) for the cells with any m > 0
+template<typename F>
+void MatchSource( Ctx& ctx, const Source& src, F f )
 {
 	const vrProxy& proxy = src.proxy;
 	const bool area = proxy.area >= 0;
@@ -1043,7 +1060,8 @@ void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
 		if ( base <= 0.0f )
 			continue;
 
-		Accumulator& a = acc[i];
+		float ms[3] = { 0.0f, 0.0f, 0.0f };
+		bool any = false;
 		for ( int c = 0; c < 3; c++ )
 		{
 			if ( q[c] <= 0.0f )
@@ -1056,14 +1074,735 @@ void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
 			const float m = Saturate(base * evidence * compat);
 			if ( m <= 0.0f )
 				continue;
-			a.maxM[c] = std::max(a.maxM[c], m);
-			a.sumM[c] += m;
-			a.sumMU[c][0] += m * dirVec.x;
-			a.sumMU[c][1] += m * dirVec.y;
-			a.sumMU[c][2] += m * dirVec.z;
+			ms[c] = m;
+			any = true;
 		}
+		if ( any )
+			f(i, ms, dirVec);
 	}
 }
+
+void Attribute( Ctx& ctx, const Source& src, std::vector<Accumulator>& acc )
+{
+	MatchSource(ctx, src, [&]( int i, const float *m, V3 dirVec ) {
+		Accumulator& a = acc[i];
+		for ( int c = 0; c < 3; c++ )
+		{
+			if ( m[c] <= 0.0f )
+				continue;
+			a.maxM[c] = std::max(a.maxM[c], m[c]);
+			a.sumM[c] += m[c];
+			a.sumMU[c][0] += m[c] * dirVec.x;
+			a.sumMU[c][1] += m[c] * dirVec.y;
+			a.sumMU[c][2] += m[c] * dirVec.z;
+		}
+	});
+}
+
+// E = Q * max m, split by m: M = E * sum(m u) / sum(m); returns sum lum E
+double ResolveMoments( Ctx& ctx, const std::vector<Accumulator>& acc, vrOutput& out )
+{
+	double energySum = 0.0;
+	for ( int i = 0; i < ctx.n; i++ )
+	{
+		const Accumulator& a = acc[i];
+		float e[3] = { 0.0f, 0.0f, 0.0f };
+		for ( int c = 0; c < 3; c++ )
+		{
+			float *m = &out.moment[c][i * 3];
+			m[0] = m[1] = m[2] = 0.0f;
+			if ( a.sumM[c] <= 0.0f )
+				continue;
+			e[c] = ctx.Q[i * 3 + c] * a.maxM[c];
+			const float k = e[c] / a.sumM[c];
+			for ( int d = 0; d < 3; d++ )
+				m[d] = a.sumMU[c][d] * k;
+		}
+		energySum += Luma(e);
+	}
+	return energySum;
+}
+
+
+
+/*
+-----------------------------------------------------------------------------
+Structured lights
+-----------------------------------------------------------------------------
+
+Per point proxy: a stratified set of probes of its domain (bright and dark), their
+attributed part L_ij of this source, the direct visibility of each from the source.
+The source moves within its positional uncertainty when it does not see its probes,
+then the runtime model color * A(r; R) [* spot cone] is fitted to the visible probes
+only (a wall shadow is no falloff, an occluded sector no cone). The confident
+physical lights are promoted: their modelled light at the probes they see leaves
+the budget Q and the baseline B.
+*/
+
+const int		LIGHT_DISTANCE_BINS = 6;
+const int		LIGHT_SAMPLES_PER_BIN = 4;	// per distance bin and octant
+const int		LIGHT_RADIUS_STEPS = 28;
+const float		LIGHT_RADIUS_MIN = 0.5f;	// of the attribution range
+const float		LIGHT_RADIUS_MAX = 1.25f;	// beyond the attribution range there is nothing to match
+const float		PHYSICAL_THRESHOLD = 0.6f;
+const float		TRANSPORT_THRESHOLD = 0.35f;	// below: a transport proxy, no lamp
+const float		SPOT_THRESHOLD = 0.6f;		// of the physical threshold
+const int		PROMOTED_MAX = 32;
+const float		RELOCATE_VISIBILITY = 0.8f;	// below: search a better origin within sigmaP
+const float		RELOCATE_MAX = 0.75f;		// cell diagonals
+const float		LEAK_MAX = 0.15f;			// modelled light at blocked probes (the runtime light is unshadowed)
+const float		EXCESS_MAX = 0.2f;			// modelled light above the budget, of the light it takes out
+const float		SPOT_CONCENTRATION = 0.35f;	// rho of the outgoing directions
+const float		SPOT_IMPROVEMENT = 0.25f;	// E_spot <= (1 - this) * E_point
+const float		SPOT_OUTER_MIN = 0.14f;		// radians, ~8 degrees
+const float		SPOT_AXIS_COS = 0.94f;		// near and far axes within ~20 degrees
+const float		MODEL_MIN = 0.02f;			// probes the runtime model reaches: A above this
+const int		FIT_MIN_PROBES = 6;
+const float		FIT_ENVELOPE = 0.25f;		// percentile of L / A: the brightness of the runtime light
+
+struct LightSample
+{
+	int cell;
+	V3 pos;
+	float r;
+	V3 dirOut;		// from the light towards the probe
+	float L[3];		// attributed part of this source
+	float lum;
+	float vis;
+};
+
+struct RuntimeFit
+{
+	float radius;
+	float color[3];
+	float error;	// 1 - quality
+	float quality;	// explained part of the attributed light minus twice the overshoot
+};
+
+inline float Smoothstep( float e0, float e1, float x )
+{
+	if ( e1 <= e0 )
+		return x >= e1 ? 1.0f : 0.0f;
+	const float t = Saturate((x - e0) / (e1 - e0));
+	return t * t * (3.0f - 2.0f * t);
+}
+
+// CalcLightAttenuation of lightall / volumetric_inject: zero at the radius
+inline float PointAttenuation( float r, float R )
+{
+	return Saturate(0.5f * R * R / std::max(r * r, 1e-6f) - 0.5f);
+}
+
+float Trace( Ctx& ctx, V3 a, V3 b )
+{
+	ctx.traces++;
+	const float s[3] = { a.x, a.y, a.z }, e[3] = { b.x, b.y, b.z };
+	return ctx.in->trace(ctx.in->traceUser, s, e);
+}
+
+void SetOrigin( std::vector<LightSample>& samples, V3 origin )
+{
+	for ( LightSample& s : samples )
+		s.dirOut = Normalize(Sub(s.pos, origin), &s.r);
+}
+
+// energy weighted visibility of the lit probes from an origin; store: the visibility of every
+// probe (dark ones too) goes into samples
+float SampleVisibility( Ctx& ctx, std::vector<LightSample>& samples, V3 origin, bool store )
+{
+	double seen = 0.0, total = 0.0;
+	for ( LightSample& s : samples )
+	{
+		if ( s.lum <= 0.0f && !store )
+			continue;
+		const float vis = Trace(ctx, origin, s.pos);
+		if ( store )
+			s.vis = vis;
+		seen += s.lum * vis;
+		total += s.lum;
+	}
+	return total > 0.0 ? (float)(seen / total) : 0.0f;
+}
+
+// cone: axis xyz, cos outer, cos inner (null: point)
+inline float ModelShape( const LightSample& s, float R, const float *cone )
+{
+	float a = PointAttenuation(s.r, R);
+	if ( cone )
+		a *= Smoothstep(cone[3], cone[4], Dot(s.dirOut, Make(cone[0], cone[1], cone[2])));
+	return a;
+}
+
+// weighted percentile of (value, weight) pairs
+float WeightedPercentile( std::vector<std::pair<float, float>>& vw, float p )
+{
+	if ( vw.empty() )
+		return 0.0f;
+	std::sort(vw.begin(), vw.end());
+	double total = 0.0;
+	for ( const auto& e : vw )
+		total += e.second;
+	double sum = 0.0;
+	for ( const auto& e : vw )
+	{
+		sum += e.second;
+		if ( sum >= p * total )
+			return e.first;
+	}
+	return vw.back().first;
+}
+
+// the color for a radius and its error, one sided: the runtime light must reproduce as much
+// of the attributed light as it can without exceeding it (too little is safe, the rest stays
+// baked; too much is excess light in the fog). The brightness is a low weighted percentile of
+// L / A over the probes it reaches (a lower envelope), the quality the explained part minus
+// twice the overshoot. q3map lights fall off as 1 / r^2 while the runtime attenuation saturates
+// at 1 inside R / sqrt(3): saturated probes say nothing about the shape and are left out. A point
+// model across a spot's dark sector must stay dim, so the cone wins there.
+float FitError( const std::vector<LightSample>& samples, float R, const float *cone, float *color, float *quality )
+{
+	std::vector<std::pair<float, float>> ratios;
+	double chroma[3] = { 0.0, 0.0, 0.0 }, chromaLum = 0.0;
+	for ( const LightSample& s : samples )
+	{
+		if ( s.vis <= 0.5f )
+			continue;
+		const float a = ModelShape(s, R, cone);
+		if ( a < MODEL_MIN || a >= 0.999f )
+			continue;
+		ratios.push_back(std::make_pair(s.lum / a, a));
+		for ( int c = 0; c < 3; c++ )
+			chroma[c] += a * s.L[c];
+		chromaLum += a * s.lum;
+	}
+	color[0] = color[1] = color[2] = 0.0f;
+	*quality = 0.0f;
+	if ( (int)ratios.size() < FIT_MIN_PROBES || chromaLum <= 0.0 )
+		return 1e30f;
+	const float brightness = WeightedPercentile(ratios, FIT_ENVELOPE);
+	for ( int c = 0; c < 3; c++ )
+		color[c] = (float)(brightness * chroma[c] / chromaLum);
+
+	double explained = 0.0, over = 0.0, total = 0.0;
+	for ( const LightSample& s : samples )
+	{
+		if ( s.vis <= 0.5f )
+			continue;
+		const float a = ModelShape(s, R, cone);
+		if ( a < MODEL_MIN || a >= 0.999f )
+			continue;
+		const float model = brightness * a;
+		explained += std::min(model, s.lum);
+		over += std::max(model - s.lum, 0.0f);
+		total += s.lum;
+	}
+	if ( total <= 0.0 )
+		return 1e30f;
+	*quality = Saturate((float)((explained - 2.0 * over) / total));
+	return 1.0f - *quality;
+}
+
+// the radius by a log spaced search and a golden section refinement
+RuntimeFit FitRuntime( const std::vector<LightSample>& samples, float rangeHint, const float *cone )
+{
+	float radii[LIGHT_RADIUS_STEPS], errors[LIGHT_RADIUS_STEPS];
+	float color[3], rel;
+	int bestK = 0;
+	for ( int k = 0; k < LIGHT_RADIUS_STEPS; k++ )
+	{
+		const float t = (float)k / (LIGHT_RADIUS_STEPS - 1);
+		radii[k] = rangeHint * LIGHT_RADIUS_MIN * powf(LIGHT_RADIUS_MAX / LIGHT_RADIUS_MIN, t);
+		errors[k] = FitError(samples, radii[k], cone, color, &rel);
+		if ( errors[k] < errors[bestK] )
+			bestK = k;
+	}
+	float lo = radii[std::max(bestK - 1, 0)], hi = radii[std::min(bestK + 1, LIGHT_RADIUS_STEPS - 1)];
+	const float phi = 0.6180340f;
+	float x1 = hi - phi * (hi - lo), x2 = lo + phi * (hi - lo);
+	float f1 = FitError(samples, x1, cone, color, &rel), f2 = FitError(samples, x2, cone, color, &rel);
+	for ( int it = 0; it < 12; it++ )
+	{
+		if ( f1 < f2 )
+		{
+			hi = x2; x2 = x1; f2 = f1;
+			x1 = hi - phi * (hi - lo);
+			f1 = FitError(samples, x1, cone, color, &rel);
+		}
+		else
+		{
+			lo = x1; x1 = x2; f1 = f2;
+			x2 = lo + phi * (hi - lo);
+			f2 = FitError(samples, x2, cone, color, &rel);
+		}
+	}
+	RuntimeFit fit;
+	fit.radius = std::min(f1, f2) <= errors[bestK] ? (f1 < f2 ? x1 : x2) : radii[bestK];
+	fit.error = FitError(samples, fit.radius, cone, fit.color, &fit.quality);
+	return fit;
+}
+
+// the attributed part L_ij of one source into ctx.scratchL (its cells in touched), recomputed
+// from the finished accumulators instead of stored per source; ctx.domain is its domain afterwards
+void SourceContributions( Ctx& ctx, const Source& src, const std::vector<Accumulator>& acc, std::vector<int>& touched )
+{
+	touched.clear();
+	MatchSource(ctx, src, [&]( int i, const float *m, V3 ) {
+		const Accumulator& a = acc[i];
+		float *l = &ctx.scratchL[i * 3];
+		for ( int c = 0; c < 3; c++ )
+			if ( m[c] > 0.0f && a.sumM[c] > 0.0f )
+				l[c] = ctx.Q[i * 3 + c] * a.maxM[c] * m[c] / a.sumM[c];
+		touched.push_back(i);
+	});
+}
+
+// distance bins x octants around the origin; per bin the brightest probe and evenly spaced
+// others, the dark ones too (they are the evidence of the radius and of a cone)
+void SelectSamples( Ctx& ctx, V3 origin, float range, std::vector<LightSample>& samples )
+{
+	samples.clear();
+	const int numBins = LIGHT_DISTANCE_BINS * 8;
+	std::vector<int> bins[LIGHT_DISTANCE_BINS * 8];
+	for ( int i : ctx.domain )
+	{
+		float r;
+		const V3 d = Normalize(Sub(ctx.Position(i), origin), &r);
+		const int db = std::min(LIGHT_DISTANCE_BINS - 1, (int)(r / std::max(range, 1e-3f) * LIGHT_DISTANCE_BINS));
+		const int oct = (d.x >= 0.0f ? 1 : 0) | (d.y >= 0.0f ? 2 : 0) | (d.z >= 0.0f ? 4 : 0);
+		bins[db * 8 + oct].push_back(i);
+	}
+	for ( int b = 0; b < numBins; b++ )
+	{
+		const std::vector<int>& list = bins[b];
+		if ( list.empty() )
+			continue;
+		int brightest = list[0];
+		for ( int i : list )
+			if ( Luma(&ctx.scratchL[i * 3]) > Luma(&ctx.scratchL[brightest * 3]) )
+				brightest = i;
+		int picked[LIGHT_SAMPLES_PER_BIN];
+		int count = 0;
+		picked[count++] = brightest;
+		const int others = std::min((int)list.size(), LIGHT_SAMPLES_PER_BIN - 1);
+		for ( int k = 0; k < others; k++ )
+		{
+			const int i = list[(k * list.size() + list.size() / 2) / others];
+			if ( i != brightest )
+				picked[count++] = i;
+		}
+		for ( int k = 0; k < count; k++ )
+		{
+			LightSample s;
+			s.cell = picked[k];
+			s.pos = ctx.Position(s.cell);
+			for ( int c = 0; c < 3; c++ )
+				s.L[c] = ctx.scratchL[s.cell * 3 + c];
+			s.lum = Luma(s.L);
+			s.vis = 0.0f;
+			samples.push_back(s);
+		}
+	}
+	SetOrigin(samples, origin);
+}
+
+// validate and fit one point proxy; false if it cannot be fitted at all (a transport proxy)
+bool ClassifyPoint( Ctx& ctx, const Source& src, const std::vector<Accumulator>& acc,
+	std::vector<int>& touched, std::vector<LightSample>& samples, vrStaticLight& light )
+{
+	const vrProxy& proxy = src.proxy;
+	SourceContributions(ctx, src, acc, touched);
+	V3 origin = src.position;
+	SelectSamples(ctx, origin, proxy.range, samples);
+
+	double explained = 0.0, animated = 0.0;
+	for ( int i : touched )
+	{
+		const float lum = Luma(&ctx.scratchL[i * 3]);
+		explained += lum;
+		if ( ctx.in->animated && ctx.in->animated[i] )
+			animated += lum;
+		ctx.scratchL[i * 3] = ctx.scratchL[i * 3 + 1] = ctx.scratchL[i * 3 + 2] = 0.0f;
+	}
+	light.explainedEnergy = (float)explained;
+	// a flickering lamp is no static light
+	if ( explained > 0.0 && animated > 0.5 * explained )
+		light.flags |= VR_LIGHT_ANIMATED;
+	if ( samples.size() < 8 || explained <= 0.0 )
+		return false;
+
+	// visibility, and relocation within the positional uncertainty (never beyond it: the fit
+	// must not invent a lamp)
+	float V = SampleVisibility(ctx, samples, origin, true);
+	if ( V < RELOCATE_VISIBILITY && proxy.sigmaP > 0.0f )
+	{
+		const float rad = std::min(proxy.sigmaP, RELOCATE_MAX * ctx.diag);
+		const float s2 = proxy.sigmaP * proxy.sigmaP;
+		float bestScore = V;
+		V3 best = origin;
+		for ( int ring = 1; ring <= 2; ring++ )
+		{
+			const float step = rad * (ring == 1 ? 0.5f : 1.0f);
+			for ( int z = -1; z <= 1; z++ )
+				for ( int y = -1; y <= 1; y++ )
+					for ( int x = -1; x <= 1; x++ )
+					{
+						if ( !x && !y && !z )
+							continue;
+						const V3 o = Scale(Normalize(Make((float)x, (float)y, (float)z)), step);
+						const V3 c = Add(src.position, o);
+						const float score = SampleVisibility(ctx, samples, c, false) * expf(-0.5f * Dot(o, o) / s2);
+						if ( score > bestScore + 0.02f )
+						{
+							bestScore = score;
+							best = c;
+						}
+					}
+		}
+		if ( best.x != origin.x || best.y != origin.y || best.z != origin.z )
+		{
+			origin = best;
+			light.flags |= VR_LIGHT_RELOCATED;
+			SetOrigin(samples, origin);
+			V = SampleVisibility(ctx, samples, origin, true);
+		}
+	}
+	light.origin[0] = origin.x; light.origin[1] = origin.y; light.origin[2] = origin.z;
+	light.visibility = V;
+
+	// point model
+	const RuntimeFit point = FitRuntime(samples, proxy.range, nullptr);
+	light.kind = VR_LIGHT_POINT;
+	light.radius = point.radius;
+	for ( int c = 0; c < 3; c++ )
+		light.color[c] = point.color[c];
+	light.fitError = point.error;
+	light.radiometricConfidence = point.quality;
+	// the visibility decides; the transport confidence (a doorway converges as well as a lamp)
+	// and the position only temper the model quality
+	const auto physical = [&]( const RuntimeFit& fit ) {
+		const float R2 = fit.radius * fit.radius;
+		const float cPosition = R2 / (R2 + 4.0f * proxy.sigmaP * proxy.sigmaP);
+		return V * sqrtf(fit.quality * cPosition) * sqrtf(sqrtf(proxy.confidence));
+	};
+	light.physicalConfidence = physical(point);
+	const float physicalThreshold = ctx.in->physicalThreshold > 0.0f ? ctx.in->physicalThreshold : PHYSICAL_THRESHOLD;
+
+	// a spot: decided before the physical test, a point model of a spot explains nothing
+	do
+	{
+		// spot: concentrated outgoing directions of the visible lit probes, weighted by the angular
+		// intensity lum * r^2 (by lum alone the nearest probes decide, all around the light)
+		V3 m = Make(0.0f, 0.0f, 0.0f), nearAxis = m, farAxis = m;
+		double wsum = 0.0;
+		std::vector<float> litR;
+		for ( const LightSample& s : samples )
+			if ( s.vis > 0.5f && s.lum > 0.0f )
+			{
+				const float w = s.lum * s.r * s.r;
+				m = Add(m, Scale(s.dirOut, w));
+				wsum += w;
+				litR.push_back(s.r);
+			}
+		if ( wsum <= 0.0 || litR.size() < 6 )
+			break;
+		float mLength;
+		const V3 axis = Normalize(m, &mLength);
+		const float rho = (float)(mLength / wsum);
+		if ( rho < SPOT_CONCENTRATION )
+			break;
+
+		// the same axis from the near and the far half
+		std::nth_element(litR.begin(), litR.begin() + litR.size() / 2, litR.end());
+		const float medianR = litR[litR.size() / 2];
+		std::vector<std::pair<float, float>> thetas;
+		for ( const LightSample& s : samples )
+			if ( s.vis > 0.5f && s.lum > 0.0f )
+			{
+				const float w = s.lum * s.r * s.r;
+				if ( s.r <= medianR )
+					nearAxis = Add(nearAxis, Scale(s.dirOut, w));
+				else
+					farAxis = Add(farAxis, Scale(s.dirOut, w));
+				thetas.push_back(std::make_pair(acosf(std::max(-1.0f, std::min(1.0f, Dot(s.dirOut, axis)))), w));
+			}
+		if ( Dot(Normalize(nearAxis), Normalize(farAxis)) < SPOT_AXIS_COS )
+			break;
+
+		// the cone: the seed fit of a spot lands inside its cone, below the apex, so the origin slides
+		// along the axis within the positional uncertainty (keeping its visibility). Per origin the
+		// outer angle around the 92nd percentile of the lit directions, the inner as a fraction of it.
+		const float degree = 0.0174533f;
+		const float outerSteps[5] = { -10.0f, -5.0f, 0.0f, 5.0f, 10.0f };
+		const float innerFractions[4] = { 0.4f, 0.6f, 0.75f, 0.9f };
+		const float slide = std::min(1.5f * proxy.sigmaP, 1.5f * ctx.diag);
+		RuntimeFit spot = RuntimeFit();
+		spot.error = 1e30f;
+		float cone[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+		V3 apex = origin;
+		std::vector<LightSample> moved = samples, best = samples;
+		for ( int k = -4; k <= 4; k++ )
+		{
+			const V3 c = Add(origin, Scale(axis, slide * k / 4.0f));
+			if ( k )
+			{
+				SetOrigin(moved, c);
+				if ( SampleVisibility(ctx, moved, c, true) < V - 0.05f )
+					continue;
+			}
+			else
+				moved = samples;
+			thetas.clear();
+			for ( const LightSample& s : moved )
+				if ( s.vis > 0.5f && s.lum > 0.0f )
+					thetas.push_back(std::make_pair(acosf(std::max(-1.0f, std::min(1.0f, Dot(s.dirOut, axis)))), s.lum * s.r * s.r));
+			const float outer0 = WeightedPercentile(thetas, 0.92f);
+			for ( float os : outerSteps )
+			{
+				const float outer = std::min(1.48f, std::max(SPOT_OUTER_MIN, outer0 + os * degree));
+				for ( float f : innerFractions )
+				{
+					const float candidate[5] = { axis.x, axis.y, axis.z, cosf(outer), cosf(outer * f) };
+					const RuntimeFit fit = FitRuntime(moved, proxy.range, candidate);
+					if ( fit.error < spot.error )
+					{
+						spot = fit;
+						memcpy(cone, candidate, sizeof(cone));
+						apex = c;
+						best = moved;
+					}
+				}
+			}
+		}
+		const float improvement = point.error > 0.0f ? 1.0f - spot.error / point.error : 0.0f;
+		if ( improvement < SPOT_IMPROVEMENT )
+			break;
+
+		// the dark sector must be open space: probes outside the cone that the light sees. Behind
+		// a doorway the dark sector is blocked, and the light stays a point.
+		int outside = 0, openOutside = 0;
+		for ( const LightSample& s : best )
+			if ( Dot(s.dirOut, axis) < cone[3] )
+			{
+				outside++;
+				if ( s.vis > 0.5f )
+					openOutside++;
+			}
+		const float open = outside >= 4 ? (float)openOutside / outside : 0.0f;
+		const float spotPhysical = physical(spot);
+		light.spotConfidence = spotPhysical * Saturate((rho - SPOT_CONCENTRATION) / 0.3f) *
+			Saturate(improvement / 0.5f) * Saturate((open - 0.25f) / 0.5f);
+		const float spotThreshold = ctx.in->spotThreshold > 0.0f ? ctx.in->spotThreshold : SPOT_THRESHOLD;
+		if ( light.spotConfidence < spotThreshold * physicalThreshold )
+			break;
+
+		if ( apex.x != origin.x || apex.y != origin.y || apex.z != origin.z )
+		{
+			light.flags |= VR_LIGHT_RELOCATED;
+			light.origin[0] = apex.x; light.origin[1] = apex.y; light.origin[2] = apex.z;
+		}
+
+		light.kind = VR_LIGHT_SPOT;
+		light.radius = spot.radius;
+		for ( int c = 0; c < 3; c++ )
+			light.color[c] = spot.color[c];
+		light.fitError = spot.error;
+		light.radiometricConfidence = spot.quality;
+		light.physicalConfidence = spotPhysical;
+		light.axis[0] = axis.x; light.axis[1] = axis.y; light.axis[2] = axis.z;
+		light.cosOuter = cone[3];
+		light.cosInner = cone[4];
+	} while ( 0 );
+
+	if ( light.physicalConfidence >= physicalThreshold && MaxComponent(Load(light.color)) > 0.0f )
+		light.flags |= VR_LIGHT_PHYSICAL;
+	return true;
+}
+
+// the light of a structured light at x (point / spot, its color as stored)
+inline void LightModel( const vrStaticLight& l, V3 x, float *out )
+{
+	float r;
+	const V3 d = Normalize(Sub(x, Load(l.origin)), &r);
+	float a = PointAttenuation(r, l.radius);
+	if ( l.kind == VR_LIGHT_SPOT )
+		a *= Smoothstep(l.cosOuter, l.cosInner, Dot(d, Load(l.axis)));
+	for ( int c = 0; c < 3; c++ )
+		out[c] = l.color[c] * a;
+}
+
+void BuildLights( Ctx& ctx, const std::vector<Source>& sources, const std::vector<Accumulator>& acc,
+	std::vector<bool>& promoted, vrOutput& out )
+{
+	vrStats& st = out.stats;
+	promoted.assign(sources.size(), false);
+	out.lights.clear();
+	out.promoted.clear();
+
+	std::vector<int> touched;
+	std::vector<LightSample> samples;
+	if ( ctx.in->trace )
+		ctx.scratchL.assign(ctx.n * 3, 0.0f);
+	for ( size_t k = 0; k < sources.size(); k++ )
+	{
+		const Source& src = sources[k];
+		vrStaticLight light;
+		memset(&light, 0, sizeof(light));
+		light.proxy = (int)k;
+		light.confidence = src.proxy.confidence;
+		light.sigmaP = src.proxy.sigmaP;
+		light.radius = src.proxy.range;
+		light.explainedEnergy = src.energy;
+		for ( int c = 0; c < 3; c++ )
+		{
+			light.origin[c] = src.proxy.position[c];
+			light.color[c] = src.proxy.color[c];
+		}
+		light.cosInner = -1.0f;
+		light.cosOuter = -2.0f;
+		if ( src.proxy.area >= 0 )
+		{
+			// known emitters: not promoted yet (grid calibrated area lights come later)
+			light.kind = VR_LIGHT_RECT;
+			for ( int c = 0; c < 3; c++ )
+			{
+				light.right[c] = src.proxy.right[c];
+				light.up[c] = src.proxy.up[c];
+			}
+			light.halfWidth = src.proxy.halfWidth;
+			light.halfHeight = src.proxy.halfHeight;
+			light.twoSided = src.proxy.twoSided;
+		}
+		else
+		{
+			if ( !ctx.in->trace || !ClassifyPoint(ctx, src, acc, touched, samples, light) ||
+				light.physicalConfidence < TRANSPORT_THRESHOLD )
+				light.kind = VR_LIGHT_TRANSPORT;
+			if ( light.flags & VR_LIGHT_PHYSICAL )
+				st.physicalLights++;
+			if ( light.kind == VR_LIGHT_TRANSPORT )
+				st.transportLights++;
+			if ( light.flags & VR_LIGHT_RELOCATED )
+				st.relocatedLights++;
+		}
+		out.lights.push_back(light);
+	}
+	std::vector<float>().swap(ctx.scratchL);
+	st.traces = ctx.traces;
+	if ( !ctx.in->trace || !ctx.in->promote )
+		return;
+
+	// promotion, strongest first: the modelled light at the probes the light sees leaves Q and B
+	std::vector<int> order;
+	for ( size_t k = 0; k < out.lights.size(); k++ )
+	{
+		const vrStaticLight& l = out.lights[k];
+		if ( (l.flags & VR_LIGHT_PHYSICAL) && !(l.flags & VR_LIGHT_ANIMATED) )
+			order.push_back((int)k);
+	}
+	std::stable_sort(order.begin(), order.end(), [&]( int a, int b ) {
+		const vrStaticLight& la = out.lights[a];
+		const vrStaticLight& lb = out.lights[b];
+		return la.confidence * la.explainedEnergy * la.physicalConfidence >
+			lb.confidence * lb.explainedEnergy * lb.physicalConfidence; });
+	const int maxPromoted = ctx.in->maxPromoted > 0 ? ctx.in->maxPromoted : PROMOTED_MAX;
+
+	double baselineSum = 0.0;
+	for ( int i = 0; i < ctx.n; i++ )
+		if ( ctx.Valid(i) )
+			baselineSum += Luma(ctx.B + i * 3);
+	const std::vector<float> original(out.baseline);
+	std::vector<float> P(ctx.n * 3, 0.0f);
+	double promotedSum = 0.0, excessSum = 0.0;
+	struct Hit
+	{
+		int cell;
+		float model[3];
+	};
+	std::vector<Hit> hits;
+	int numPromoted = 0;
+	for ( int k : order )
+	{
+		if ( numPromoted >= maxPromoted )
+			break;
+		vrStaticLight& l = out.lights[k];
+		// partial promotion: an uncertain light leaves the rest of its energy baked (the model
+		// itself is already a lower envelope of the attributed light)
+		const float w = Saturate(l.physicalConfidence);
+		if ( w <= 0.0f )
+			continue;
+		const V3 o = Load(l.origin);
+		const float R2 = l.radius * l.radius;
+		const int start = NearestValid(ctx, o);
+		if ( start < 0 )
+			continue;
+		Flood(ctx, start, [&]( int j ) {
+			const V3 d = Sub(ctx.Position(j), o);
+			return Dot(d, d) <= R2;
+		}, DOMAIN_MAX, ctx.domain);
+
+		vrStaticLight scaled = l;
+		for ( int c = 0; c < 3; c++ )
+			scaled.color[c] = l.color[c] * w;
+		// the runtime light has no shadow (yet): too much of it behind walls and it stays baked
+		hits.clear();
+		double seen = 0.0, leak = 0.0, over = 0.0;
+		for ( int i : ctx.domain )
+		{
+			Hit h;
+			h.cell = i;
+			LightModel(scaled, ctx.Position(i), h.model);
+			const float lum = Luma(h.model);
+			if ( lum <= 0.0f )
+				continue;
+			if ( Trace(ctx, o, ctx.Position(i)) > 0.5f )
+			{
+				seen += lum;
+				for ( int c = 0; c < 3; c++ )
+					over += LUMA[c] * std::max(h.model[c] - ctx.Q[i * 3 + c], 0.0f);
+				hits.push_back(h);
+			}
+			else
+				leak += lum;
+		}
+		l.leakFraction = seen + leak > 0.0 ? (float)(leak / (seen + leak)) : 1.0f;
+		// and the runtime light must not be brighter than the baked light it replaces
+		l.excessFraction = seen > 0.0 ? (float)(over / seen) : 1.0f;
+		if ( l.leakFraction > LEAK_MAX || l.excessFraction > EXCESS_MAX || seen <= 0.0 )
+			continue;
+
+		for ( const Hit& h : hits )
+			for ( int c = 0; c < 3; c++ )
+			{
+				const int idx = h.cell * 3 + c;
+				const float add = std::min(h.model[c], ctx.Q[idx]);
+				ctx.Q[idx] -= add;
+				out.baseline[idx] -= add;
+				P[idx] += add;
+				promotedSum += LUMA[c] * add;
+				excessSum += LUMA[c] * (h.model[c] - add);
+			}
+		l.promotionWeight = w;
+		for ( int c = 0; c < 3; c++ )
+			l.color[c] = scaled.color[c];
+		l.flags |= VR_LIGHT_PROMOTED;
+		promoted[l.proxy] = true;
+		numPromoted++;
+		if ( l.kind == VR_LIGHT_SPOT )
+			st.promotedSpots++;
+		else
+			st.promotedPoints++;
+	}
+	st.traces = ctx.traces;
+	if ( !numPromoted )
+		return;
+
+	out.promoted.swap(P);
+	for ( size_t i = 0; i < original.size(); i++ )
+		st.maxPartitionError = std::max(st.maxPartitionError, fabsf(out.baseline[i] + out.promoted[i] - original[i]));
+	st.promotedFraction = baselineSum > 0.0 ? (float)(promotedSum / baselineSum) : 0.0f;
+	st.excessFraction = promotedSum > 0.0 ? (float)(excessSum / promotedSum) : 0.0f;
+}
+
 
 void Reconstruct( Ctx& ctx, vrOutput& out )
 {
@@ -1189,30 +1928,25 @@ void Reconstruct( Ctx& ctx, vrOutput& out )
 	for ( const Source& s : sources )
 		Attribute(ctx, s, acc);
 
-	// E = Q * max m, split by m: M = E * sum(m u) / sum(m)
-	double energySum = 0.0;
-	for ( int i = 0; i < ctx.n; i++ )
-	{
-		const Accumulator& a = acc[i];
-		float e[3] = { 0.0f, 0.0f, 0.0f };
-		for ( int c = 0; c < 3; c++ )
-		{
-			float *m = &out.moment[c][i * 3];
-			m[0] = m[1] = m[2] = 0.0f;
-			if ( a.sumM[c] <= 0.0f )
-				continue;
-			e[c] = ctx.Q[i * 3 + c] * a.maxM[c];
-			const float k = e[c] / a.sumM[c];
-			for ( int d = 0; d < 3; d++ )
-				m[d] = a.sumMU[c][d] * k;
-		}
-		energySum += Luma(e);
-	}
-	st.attributedFraction = (float)energySum;
+	st.attributedFraction = (float)ResolveMoments(ctx, acc, out);
 	st.msecAttribution = Msec(t);
 
 	for ( const Source& s : sources )
 		out.proxies.push_back(s.proxy);
+
+	// structured lights; the promoted ones leave B / Q, the moments are rebuilt from the rest
+	t = Clock::now();
+	std::vector<bool> promoted;
+	BuildLights(ctx, sources, acc, promoted, out);
+	if ( !out.promoted.empty() )
+	{
+		memset(acc.data(), 0, acc.size() * sizeof(Accumulator));
+		for ( size_t k = 0; k < sources.size(); k++ )
+			if ( !promoted[k] )
+				Attribute(ctx, sources[k], acc);
+		st.attributedFraction = (float)ResolveMoments(ctx, acc, out);
+	}
+	st.msecLights = Msec(t);
 }
 
 } // namespace
@@ -1230,6 +1964,7 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 	ctx.size = Load(in.cellSize);
 	ctx.diag = Length(ctx.size);
 	ctx.currentStamp = 0;
+	ctx.traces = 0;
 
 	const int n = ctx.n;
 	out.baseline.assign(n * 3, 0.0f);
@@ -1238,6 +1973,8 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out )
 	for ( int c = 0; c < 3; c++ )
 		out.moment[c].clear();
 	out.proxies.clear();
+	out.lights.clear();
+	out.promoted.clear();
 	memset(&out.stats, 0, sizeof(out.stats));
 	vrStats& st = out.stats;
 	st.cells = n;

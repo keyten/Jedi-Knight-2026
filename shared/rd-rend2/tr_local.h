@@ -193,6 +193,12 @@ extern cvar_t	*r_volumetricFogDlightScale;
 extern cvar_t	*r_volumetricFogLightTile;
 extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
+extern cvar_t	*r_staticLightReconstruction;
+extern cvar_t	*r_recoveredVolumetricLights;
+extern cvar_t	*r_recoveredVolumetricMaxLights;
+extern cvar_t	*r_recoveredPhysicalConfidence;
+extern cvar_t	*r_recoveredSpotConfidence;
+extern cvar_t	*r_staticLightDebug;
 extern cvar_t	*r_volumetricSelfShadow;
 extern cvar_t	*r_volumetricSelfShadowSamples;
 extern cvar_t	*r_volumetricSelfShadowDistance;
@@ -3207,7 +3213,7 @@ typedef struct {
 	image_t		*entityGridDirection;
 	color4ub_t	entityGridStyleColors[MAX_LIGHT_STYLES];
 	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
-	// directional baked light moments, see R_BuildVolumetricStaticLighting
+	// directional baked light moments, see R_BuildStaticLighting
 	// (tr_volumetric_reconstruct.cpp)
 	image_t		*volumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f = align * vis (a)
 	image_t		*volumetricSunGrid;		// baked sun part
@@ -5519,11 +5525,13 @@ void R_CreateVolumetricFBOs(void);
 void R_ShutdownVolumetric(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
-// tr_volumetric_reconstruct.cpp: light grid split by the sun and the directional
-// baked light moments (r_volumetricFogStaticDirectional), once per map load
-void R_BuildVolumetricStaticLighting(world_t *world);
-void R_ClearVolumetricStaticReconstruction(void);
-void R_VolumetricStaticStats_f(void);
+// tr_staticlighting.cpp: Static Lighting Reconstruction, once per map load (the light
+// grid split by the sun, directional baked moments, structured / promoted lights);
+// tr_volumetric_reconstruct.cpp uploads it for the froxel fog
+void R_BuildStaticLighting(world_t *world);
+void R_ClearStaticLighting(void);
+void R_StaticLightingStats_f(void);
+void R_StaticLightsBeginScene(const refdef_t *fd);
 qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_STATIC_RECONSTRUCTION
 void R_SetHeightFogBase(world_t *worldData);
 void R_VolumetricFog_f(void);

@@ -34,6 +34,14 @@ emitters. Output per cell:
 with |M_c| <= B_c, so B + 3 g M.v >= 0 for |g| <= 1/3 (the L1 Henyey-Greenstein
 response the froxel fog applies). The moments never add energy: their mean
 over the sphere is zero. See docs/rend2-volumetric-fog.md.
+
+Structured lights (docs/rend2-static-lighting.md): every point proxy is checked
+against the geometry (in.trace), fitted with the runtime point / spot attenuation
+and classified. With in.promote, the confident physical lights take their modelled
+part P out of the baked light (B' = B - P, moments rebuilt from the rest), so that
+B' + L1(M') + the exact lights is the original energy:
+
+  B' + P + S == legacy, P <= Q, |M'_c| <= B'_c
 */
 
 #pragma once
@@ -69,6 +77,15 @@ struct vrInput
 	const float *sunVis;	// 1 per cell 0..1, may be null (= 1)
 	const vrAreaSource *areas;
 	int numAreas;
+	// structured lights (mode 1): visibility between two points, 1 = clear, 0 = blocked or
+	// starting in solid. Without it no light is validated or promoted.
+	float (*trace)( void *user, const float start[3], const float end[3] );
+	void *traceUser;
+	const uint8_t *animated;	// 1 per cell, 1 = lit by an animated light style; may be null
+	bool promote;				// move the promoted lights out of B / M
+	float physicalThreshold;	// physicalConfidence above which a light is physical (0: default)
+	float spotThreshold;		// spotConfidence above which a physical light is a spot (0: default)
+	int maxPromoted;			// promoted light budget (0: default)
 };
 
 enum vrSourceType
@@ -90,6 +107,56 @@ struct vrProxy
 	int area;				// index into vrInput::areas, -1 for a point proxy
 	int support;			// support probes
 	// VR_SOURCE_RECT: the emitter (copied from the area source)
+	float right[3];
+	float up[3];
+	float halfWidth;
+	float halfHeight;
+	bool twoSided;
+};
+
+enum vrLightKind
+{
+	VR_LIGHT_TRANSPORT,		// light arrives from here, no lamp is known to be here
+	VR_LIGHT_POINT,
+	VR_LIGHT_SPOT,
+	VR_LIGHT_RECT
+};
+
+enum vrLightFlags
+{
+	VR_LIGHT_PHYSICAL	= 1 << 0,	// physicalConfidence above the threshold
+	VR_LIGHT_PROMOTED	= 1 << 1,	// an exact light, its part is out of B / M
+	VR_LIGHT_RELOCATED	= 1 << 2,	// moved within sigmaP to where it sees its probes
+	VR_LIGHT_ANIMATED	= 1 << 3	// lit cells of an animated style: never promoted
+};
+
+// a structured light (one per proxy), in the linear units of the grid
+struct vrStaticLight
+{
+	vrLightKind kind;
+	int flags;
+	int proxy;					// index into vrOutput::proxies
+	float origin[3];
+	// runtime light: color * clamp(0.5 R^2 / r^2 - 0.5, 0, 1) * smoothstep(cosOuter, cosInner, cos),
+	// the mean over the view directions (the froxel phase averages to 1). Already scaled by
+	// promotionWeight.
+	float color[3];
+	float radius;				// R
+	float confidence;			// reconstruction (the proxy)
+	float visibility;			// energy weighted direct visibility of its probes
+	float physicalConfidence;
+	float radiometricConfidence;
+	float spotConfidence;
+	float promotionWeight;		// 0 when not promoted
+	float explainedEnergy;		// sum of the attributed luminance
+	float sigmaP;
+	float fitError;				// weighted relative rms of the runtime model
+	float leakFraction;			// modelled light at blocked probes / all modelled light
+	float excessFraction;		// modelled light above the budget / modelled light at visible probes
+	float axis[3];				// spot
+	float cosInner;
+	float cosOuter;
+	// VR_LIGHT_RECT
 	float right[3];
 	float up[3];
 	float halfWidth;
@@ -120,7 +187,18 @@ struct vrStats
 	float msecFit;
 	float msecAreas;
 	float msecAttribution;
+	float msecLights;
 	float msecTotal;
+	// structured lights
+	int traces;
+	int physicalLights;
+	int promotedPoints;
+	int promotedSpots;
+	int transportLights;
+	int relocatedLights;
+	float promotedFraction;		// sum lum P / sum lum B (before)
+	float excessFraction;		// modelled light above the budget / promoted light
+	float maxPartitionError;	// max |B' + P - B|
 };
 
 struct vrOutput
@@ -129,7 +207,9 @@ struct vrOutput
 	std::vector<float> sun;			// S, 3 per cell
 	std::vector<float> sunFraction;	// 1 per cell, 0 in wall cells
 	std::vector<float> moment[3];	// M_R, M_G, M_B: 3 per cell each (empty with mode 0)
+	std::vector<float> promoted;	// P, 3 per cell (empty when nothing is promoted)
 	std::vector<vrProxy> proxies;
+	std::vector<vrStaticLight> lights;
 	vrStats stats;
 };
 
@@ -139,7 +219,7 @@ void VR_Reconstruct( const vrInput& in, vrOutput& out );
 uint16_t VR_FloatToHalf( float f );
 float VR_HalfToFloat( uint16_t h );
 
-// legacy = B + S (not stored)
+// legacy = B + P + S (not stored)
 // RGBA half texels: baseline B (alpha = alpha[i], or 1 without it) and, when the
 // output has them, the three moments (alpha 0). Moments are shortened after the
 // rounding where needed, so that |M_c| <= B_c also holds for the half values.

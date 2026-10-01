@@ -187,10 +187,16 @@ Per froxel (instance / layer = slice):
 6. **Temporal filter** of baked + sun (see Temporal). The dynamic light emission is written to its own volume
    without history.
 
-### Light grid split by the sun direction (`R_BuildVolumetricStaticLighting`)
+### Light grid split by the sun direction (`R_BuildStaticLighting`)
+
+The reconstruction is owned by the Static Lighting Reconstruction (`tr_staticlighting.cpp`, see
+[rend2-static-lighting.md](rend2-static-lighting.md)); `tr_volumetric_reconstruct.cpp` is only the fog adapter that
+uploads its textures. With `r_recoveredVolumetricLights` the promoted lamps are removed from B / M
+(B + P + S == legacy) and injected as exact point / spot lights after the dynamic ones; debug view 25 then shows
+P as the difference to the legacy grid.
 
 The legacy light map merges the baked sun with everything else; adding a realtime sun on top would count it
-twice. At map load (mode 2 only, `tr_volumetric_reconstruct.cpp`, after the area lights: `RE_LoadWorldMap`), every
+twice. At map load (mode 2 only, `tr_staticlighting.cpp`, after the area lights: `RE_LoadWorldMap`), every
 grid cell is split with the light direction of the cell and the part of the cell that sees the sky:
 
 ```

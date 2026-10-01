@@ -45,6 +45,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // legacy fog path.
 
 #include "tr_local.h"
+#include "tr_staticlighting.h"
 
 #include <algorithm>
 #include <chrono>
@@ -155,6 +156,8 @@ static struct
 		int maxPerCluster;
 		int overflowClusters;	// clusters that hit FROXEL_LIGHTS_PER_CLUSTER
 		int overflowRefs;		// light / cluster pairs dropped
+		int recoveredLights;	// promoted static lights in the volume (after the dynamic ones)
+		int recoveredCulled;	// promoted static lights out of the PVS
 		double buildMsec;		// CPU binning + upload
 	} stats;
 } s_vfl;
@@ -1192,7 +1195,13 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 			shadowLayers[numSceneLights++] = R_ForwardPlusLightShadowSlot(i);
 		}
 	}
-	if ( numSceneLights <= 0 )
+	// the promoted lights of the static lighting reconstruction: their light is not in the baked
+	// field any more (r_staticLightDebug 5 drops them to show the residual, 4 drops the dynamic ones)
+	const std::vector<staticLight_t>& staticLights = R_StaticLights();
+	const qboolean recovered = (qboolean)(!staticLights.empty() && r_staticLightDebug->integer != 5);
+	if ( r_staticLightDebug->integer == 4 )
+		numSceneLights = 0;
+	if ( numSceneLights <= 0 && !recovered )
 		return;
 	struct fogCandidate_t { int light, shadowLayer; float score; };
 	fogCandidate_t candidates[MAX_RENDER_DLIGHTS];
@@ -1236,8 +1245,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	const int numClusters = tilesX * tilesY * s_vf.depth;
 
 	// lights touching the volume, in importance order
-	static vec4_t lightData[MAX_RENDER_DLIGHTS * FROXEL_LIGHT_TEXELS];
-	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS];
+	static vec4_t lightData[(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED) * FROXEL_LIGHT_TEXELS];
+	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED];
 	const qboolean cookiesActive = R_LightCookiesActive();
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
@@ -1285,6 +1294,87 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		}
 		numLights++;
 	}
+
+	// recovered static lights after all dynamic ones: the per cluster cap is filled in list order,
+	// so a saber or an explosion is never pushed out by a lamp (the lamp's light is only missing
+	// where a cluster overflows). PVS of the view cluster, the froxel range, then importance.
+	int numRecovered = 0, numRecoveredCulled = 0;
+	if ( recovered )
+	{
+		struct recoveredCandidate_t { const vrStaticLight *light; float score; };
+		recoveredCandidate_t found[STATIC_LIGHTS_MAX_PROMOTED];
+		int numFound = 0;
+		const int viewCluster = R_StaticViewCluster(view->ori.origin);
+		for ( const staticLight_t& sl : staticLights )
+		{
+			const vrStaticLight& l = sl.light;
+			if ( !(l.flags & VR_LIGHT_PROMOTED) || numFound >= STATIC_LIGHTS_MAX_PROMOTED )
+				continue;
+			if ( R_StaticLightCulled(sl, viewCluster) )
+			{
+				numRecoveredCulled++;
+				continue;
+			}
+			const float luminance = 0.2126f * l.color[0] + 0.7152f * l.color[1] + 0.0722f * l.color[2];
+			const float minDist = 0.25f * l.radius;
+			found[numFound].light = &l;
+			found[numFound].score = luminance * l.radius * l.radius /
+				Q_max(DistanceSquared(view->ori.origin, l.origin), minDist * minDist);
+			numFound++;
+		}
+		std::sort(found, found + numFound, [](const recoveredCandidate_t& a, const recoveredCandidate_t& b) {
+			return a.score > b.score; });
+		const int maxRecovered = Com_Clampi(0, STATIC_LIGHTS_MAX_PROMOTED, r_recoveredVolumetricMaxLights->integer);
+		// the baked light was scaled by r_volumetricFogStaticScale, the dynamic sum gets
+		// r_volumetricFogDlightScale in the shader
+		const float colorScale = r_volumetricFogStaticScale->value / r_volumetricFogDlightScale->value;
+		// a froxel seen from the light: the cone edge is never sharper than that (narrow cones
+		// would alias into stair steps and sparkle), at the distance of half the radius
+		const float froxelSpan = 2.0f * tanf(DEG2RAD(view->fovX * 0.5f)) / (float)Q_max(s_vf.width, 1);
+		for ( int k = 0; k < numFound && numRecovered < maxRecovered; k++ )
+		{
+			const vrStaticLight& l = *found[k].light;
+			dlight_t dl;
+			Com_Memset(&dl, 0, sizeof(dl));
+			VectorCopy(l.origin, dl.origin);
+			dl.radius = l.radius;
+			const qboolean spot = (qboolean)(l.kind == VR_LIGHT_SPOT);
+			float cosOuter = l.cosOuter, cosInner = l.cosInner;
+			if ( spot )
+			{
+				const float lightDist = 0.5f * l.radius;
+				const float footprint = froxelSpan * Q_max(Distance(view->ori.origin, l.origin), lightDist) / lightDist;
+				const float outer = acosf(Com_Clamp(-1.0f, 1.0f, cosOuter));
+				const float inner = acosf(Com_Clamp(-1.0f, 1.0f, cosInner));
+				cosInner = cosf(Q_max(0.0f, Q_min(inner, outer - footprint)));
+				dl.spot = qtrue;
+				VectorCopy(l.axis, dl.spotDir);
+				dl.spotCosOuter = cosOuter;
+				dl.spotCosInner = cosInner;
+			}
+			froxelLightRange_t *range = &ranges[numLights];
+			if ( !R_VolumetricLightRange(view, froxelProjection, &dl, tileSize, tilesX, tilesY, range) )
+				continue;
+			range->light = numLights;
+			float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
+			VectorSet4(t + 0, l.origin[0], l.origin[1], l.origin[2], l.radius);
+			VectorSet4(t + 4, l.color[0] * colorScale, l.color[1] * colorScale, l.color[2] * colorScale, -1.0f);
+			if ( spot )
+			{
+				VectorSet4(t + 8, l.axis[0], l.axis[1], l.axis[2], cosOuter);
+				VectorSet4(t + 12, cosInner, 0.0f, -1.0f, 0.0f);
+			}
+			else
+			{
+				VectorSet4(t + 8, 0.0f, 0.0f, 1.0f, -2.0f);
+				VectorSet4(t + 12, -1.0f, 0.0f, -1.0f, 0.0f);
+			}
+			numLights++;
+			numRecovered++;
+		}
+	}
+	s_vfl.stats.recoveredLights = numRecovered;
+	s_vfl.stats.recoveredCulled = numRecoveredCulled;
 	if ( !numLights )
 		return;
 
@@ -1432,6 +1522,8 @@ void R_VolumetricLightStats_f( void )
 		st.maxPerCluster, FROXEL_LIGHTS_PER_CLUSTER);
 	ri.Printf(PRINT_ALL, "  overflow: %d clusters full, %d light/cluster pairs dropped\n",
 		st.overflowClusters, st.overflowRefs);
+	ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS\n",
+		st.recoveredLights, st.recoveredCulled);
 	ri.Printf(PRINT_ALL, "  CPU build: %.3f ms\n", st.buildMsec);
 }
 
