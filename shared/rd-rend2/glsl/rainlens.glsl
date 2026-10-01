@@ -305,13 +305,15 @@ void main()
 	}
 	else if (view == 8)
 	{
-		// transient state: impact yellow, settling orange, merge lobe cyan, sheet magenta
+		// transient state: impact yellow, settling orange, forming green,
+		// merge lobe cyan, sheet magenta
 		int state = int(var_T3.y + 0.5);
 		color = vec3(0.35);
 		alpha = 0.2;
 		if (sheet) { color = vec3(1.0, 0.2, 1.0); alpha = 0.6; }
 		else if (state == 0) { color = vec3(1.0, 1.0, 0.1); alpha = 0.8; }
 		else if (state == 1) { color = vec3(1.0, 0.55, 0.1); alpha = 0.8; }
+		else if (state == 3) { color = vec3(0.2, 1.0, 0.3); alpha = 0.8; }
 		if (!sheet && var_T2.z > 0.0 && length(var_Local - var_T2.xy) < var_T2.z)
 		{
 			color = vec3(0.1, 1.0, 1.0);

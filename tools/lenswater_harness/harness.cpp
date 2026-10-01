@@ -25,6 +25,8 @@ static Input Dry(Vec2 g = { 0.0f, -1.0f })
 	return in;
 }
 
+static float Length(Vec2 v) { return std::sqrt(v.x * v.x + v.y * v.y); }
+
 static void Run(LensWater &w, float seconds, const Input &in, const Params &p)
 {
 	for (float t = 0.0f; t < seconds; t += 1.0f / 144.0f)
@@ -439,6 +441,158 @@ int main()
 		const float filmA = filmAfter(0, leftA), filmB = filmAfter(1, leftB);
 		CHECK(leftB == 0 && filmB > 0.03f, "B: expired micro drop becomes film (%d left, film %.3f)", (int)leftB, filmB);
 		CHECK(leftA == 1 && filmA < 1e-3f, "A: the micro drop is still a bead (%d left, film %.3f)", (int)leftA, filmA);
+	}
+
+	// film-first emerge: drain front, beads grow out of the film, all dries
+	{
+		Params q = p; q.filmModel = 1;
+		int seedsOk = 0, beadsAt2 = 0, peripheral = 0, early = 0, late = 0, formingSmall = 0, formingSeen = 0;
+		float maxResidualAge = 0.0f, topFilm = 0.0f, bottomFilm = 0.0f;
+		for (int seed = 0; seed < 4; ++seed)
+		{
+			LensWater w; w.Init(455, 256);
+			for (int i = 0; i < seed * 7; ++i) w.AddDrop({ 0.0f, 0.0f }, kRefRadius, DROP_NORMAL);	// shift the rng
+			w.Drops().clear();
+			Event e = {}; e.type = EVENT_EMERGE; e.strength = 1.0f;
+			w.QueueEvent(e);
+			std::vector<float> inst((size_t)w.MaxInstances(q) * INSTANCE_FLOATS);
+			const int frames = 144 * 12;
+			for (int f = 1; f <= frames; ++f)
+			{
+				w.Update(1.0f / 144.0f, Dry(), q);
+				w.ClearFilmDirty();
+				const float t = f / 144.0f;
+				for (size_t i = 0; i < w.Drops().size(); ++i)
+				{
+					const Drop &d = w.Drops()[i];
+					if (d.type == DROP_RESIDUAL)
+						maxResidualAge = std::max(maxResidualAge, d.age);
+					if (d.state == STATE_FORMING && d.stateAge < 0.1f && formingSeen < 50)
+					{
+						// rendered radius while it grows out of the film
+						const int n = w.BuildInstances(inst.data(), w.MaxInstances(q), 1.0f);
+						const size_t index = w.Sheets().size() + i;
+						if ((int)index < n)
+						{
+							++formingSeen;
+							formingSmall += inst[index * 4 + 2] < 0.6f * d.radius;
+						}
+					}
+				}
+				if (f == (int)(0.1f * 144.0f))
+					early += (int)w.Drops().size();
+				if (f == (int)(0.6f * 144.0f))
+				{
+					// thinned fraction per emerge: the islands hold a little longer
+					int n = 0, top = 0, bottom = 0;
+					for (float y = 0.25f; y < 0.45f; y += 0.02f)
+						for (float x = -0.8f; x < 0.8f; x += 0.02f, ++n) top += w.Film({ x, y }) < 0.3f;
+					for (float y = -0.45f; y < -0.25f; y += 0.02f)
+						for (float x = -0.8f; x < 0.8f; x += 0.02f) bottom += w.Film({ x, y }) < 0.3f;
+					topFilm += top / (float)n;
+					bottomFilm += bottom / (float)n;
+				}
+				if (f == 2 * 144)
+				{
+					beadsAt2 += (int)w.Drops().size();
+					for (const Drop &d : w.Drops()) peripheral += Length(d.pos) > 0.2f;
+				}
+				if (f == 8 * 144)
+					late += (int)w.Drops().size();
+			}
+			++seedsOk;
+		}
+		printf("     film-first emerge (4 seeds): %d drops at 0.1 s, %d at 2 s (%d peripheral), %d at 8 s; thin top %.2f bottom %.2f (sum of 4) at 0.6 s; residual max age %.1f s\n",
+			early, beadsAt2, peripheral, late, topFilm, bottomFilm, maxResidualAge);
+		CHECK(early == 0, "B emerge: no drops at 0.1 s (%d)", early);
+		CHECK(beadsAt2 >= 8 * seedsOk && beadsAt2 <= 25 * seedsOk, "B emerge: 8..25 beads per emerge at 2 s (%.1f)", beadsAt2 / (float)seedsOk);
+		CHECK(peripheral >= 0.6f * beadsAt2, "B emerge: beads mostly peripheral (%d of %d)", peripheral, beadsAt2);
+		CHECK(late <= 3 * seedsOk, "B emerge: dry by 8 s (%.1f drops left)", late / (float)seedsOk);
+		CHECK(maxResidualAge < 10.0f, "B emerge: no residual older than 10 s (%.1f)", maxResidualAge);
+		CHECK(topFilm > 4.0f * 0.5f && bottomFilm < 4.0f * 0.1f, "B emerge: drains from the top (%.0f%% thin on top, %.0f%% below at 0.6 s)", topFilm * 25.0f, bottomFilm * 25.0f);
+		CHECK(formingSeen > 0 && formingSmall == formingSeen, "B emerge: beads grow out of the film (%d of %d small)", formingSmall, formingSeen);
+	}
+	// film-first rain: small beads, larger drops only by merging
+	{
+		Params q = p; q.filmModel = 1;
+		LensWater w; w.Init(455, 256);
+		Input in; in.intensity = 0.4f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_NORMAL;
+		float maxRest = 0.0f, maxAny = 0.0f;
+		for (int f = 0; f < 144 * 20; ++f)
+		{
+			w.Update(1.0f / 144.0f, in, q);
+			w.ClearFilmDirty();
+			for (const Drop &d : w.Drops())
+			{
+				if (d.restAge > 0.5f && d.mergeAge > 1.0f)
+					maxRest = std::max(maxRest, d.radius / kRefRadius);
+				maxAny = std::max(maxAny, d.radius / kRefRadius);
+			}
+		}
+		printf("     film-first normal rain 20 s: %d drops, largest %.2f ref (resting unmerged %.2f)\n",
+			(int)w.Drops().size(), maxAny, maxRest);
+		CHECK(maxRest < 0.9f, "B rain: resting beads stay small (%.2f ref)", maxRest);
+		CHECK(maxAny > 0.9f, "B rain: some beads grow by merging (%.2f ref)", maxAny);
+	}
+	// film-first sliding: speed grows with size, sticky defects stop drops
+	// just above their depinning size (stick-slip), not large ones
+	{
+		Params q = p; q.filmModel = 1;
+		auto slide = [&](float rn, int &stopped) {
+			float speedSum = 0.0f;
+			stopped = 0;
+			for (int lane = 0; lane < 8; ++lane)
+			{
+				LensWater w; w.Init(455, 256);
+				const uint32_t seed = w.AddDrop({ -0.7f + 0.2f * lane, 0.45f }, rn * kRefRadius, DROP_NORMAL).seed;
+				float travelled = 0.0f, alive = 0.0f, still = 0.0f;
+				bool moved = false, stuck = false;
+				for (int f = 0; f < 144 * 3; ++f)
+				{
+					w.Update(1.0f / 144.0f, Dry(), q);
+					w.ClearFilmDirty();
+					const Drop *d = nullptr;
+					for (const Drop &c : w.Drops())
+						if (c.seed == seed) d = &c;
+					if (!d)
+						break;
+					const float v = Length(d->vel);
+					if (f < 144 * 3 / 2)
+					{
+						travelled += v / 144.0f;
+						alive += 1.0f / 144.0f;
+					}
+					moved = moved || v > 0.04f;
+					still = v < 0.005f ? still + 1.0f / 144.0f : 0.0f;
+					stuck = stuck || (moved && still > 0.3f);
+				}
+				speedSum += alive > 0.0f ? travelled / alive : 0.0f;
+				stopped += stuck;
+			}
+			return speedSum / 8.0f;
+		};
+		int stops11, stops12, stops20;
+		const float v11 = slide(1.1f, stops11), v12 = slide(1.2f, stops12), v20 = slide(2.0f, stops20);
+		printf("     film-first slide, 8 lanes: rn 1.1 %.3f/s (%d stuck), rn 1.2 %.3f/s (%d stuck), rn 2.0 %.3f/s (%d stuck)\n",
+			v11, stops11, v12, stops12, v20, stops20);
+		CHECK(v20 > 2.0f * v12, "B slide: rn 2 runs >= 2x rn 1.2 (%.3f vs %.3f lens/s)", v20, v12);
+		CHECK(v20 > 0.2f && v20 < 0.5f, "B slide: rn 2 at a calm pace (%.3f lens/s)", v20);
+		CHECK(stops11 + stops12 >= 1 && stops20 == 0, "B slide: stick-slip on defects (%d small, %d large stuck)", stops11 + stops12, stops20);
+	}
+	// film-first downpour lays down film directly
+	{
+		auto coverage = [&](int model) {
+			Params q = p; q.filmModel = model; q.heavyFlow = 0.0f;
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY;
+			Run(w, 5.0f, in, q);
+			int wet = 0, n = 0;
+			for (float y = -0.45f; y < 0.45f; y += 0.02f)
+				for (float x = -0.8f; x < 0.8f; x += 0.02f, ++n) wet += w.Film({ x, y }) > 0.1f;
+			return wet / (float)n;
+		};
+		const float covA = coverage(0), covB = coverage(1);
+		CHECK(covB > 0.6f && covB > covA + 0.3f, "B heavy rain wets the lens (%.0f%% vs A %.0f%%)", covB * 100.0f, covA * 100.0f);
 	}
 
 	printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);

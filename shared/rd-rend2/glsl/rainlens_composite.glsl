@@ -25,7 +25,7 @@ uniform samplerCube u_CubeMap;      // nearest environment probe (alpha: probe l
 #endif
 uniform vec4 u_RainLensParams;      // x: r_rainLensBlur, y: film-first film amount (0 = hybrid model),
                                     // z: refraction strength, w: scene samples (1, 3, 5)
-uniform vec4 u_RainLensParams2;     // z: debug view, w: display encoded HDR
+uniform vec4 u_RainLensParams2;     // x: film-first model, z: debug view, w: display encoded HDR
 // lens space (x right, y up, z toward the viewer):
 //  [0] key light direction, w: reflection amount (applied once, to the Fresnel)
 //  [1] key light radiance, w: cubemap mip
@@ -48,6 +48,14 @@ out vec4 out_Color;
 #define WATER_F0 0.02
 // film-first film weight, keep in sync with rainlens.glsl (USE_FILM)
 #define FILM_WEIGHT 0.9
+// rainlens.glsl BLUR_SCALE: the field's A over the drop radius (mask 1)
+#define BLUR_SCALE 0.18
+// film-first glints: only drops of about a reference radius catch one, a
+// defocused (broad, dim) highlight, never far above the light itself, or
+// bloom turns every small bead into a white dot
+#define GLINT_RADIUS_MIN 0.008
+#define GLINT_RADIUS_FULL 0.02
+#define GLINT_LIMIT 1.5
 
 float FilmCoverage(float film)
 {
@@ -221,7 +229,14 @@ void main()
 				float drop = smoothstep(0.25, 0.6, weight - filmShare);
 				bool detailed = drop > 0.001 || n.z < 0.97;
 				reflected = Reflection(n, detailed);
-				if (drop > 0.001)
+				if (drop > 0.001 && u_RainLensParams2.x > 0.5)
+				{
+					float size = smoothstep(GLINT_RADIUS_MIN, GLINT_RADIUS_FULL, lens.w / BLUR_SCALE);
+					vec3 glint = (Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 70.0) +
+						Glint(n, u_RainLensOptics[2].xyz, u_RainLensOptics[3].rgb, 50.0)) * 2.5 * size;
+					reflected += drop * min(glint, GLINT_LIMIT * max(u_RainLensOptics[1].rgb, u_RainLensOptics[3].rgb));
+				}
+				else if (drop > 0.001)
 				{
 					reflected += drop * (
 						Glint(n, u_RainLensOptics[0].xyz, u_RainLensOptics[1].rgb, 220.0) +

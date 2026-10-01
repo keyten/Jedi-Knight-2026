@@ -1224,7 +1224,7 @@ void RB_RainLens( FBO_t *srcFbo )
 		params.filmModel == 1 && filmVisible ? filmAmount : 0.0f,
 		R_RainLensRefractionScale(), sampleCounts[QualityLevel()]);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS, params1);
-	VectorSet4(params2, 0.0f, 0.0f, (float)debugView, tr.linearLight ? 0.0f : 1.0f);
+	VectorSet4(params2, (float)params.filmModel, 0.0f, (float)debugView, tr.linearLight ? 0.0f : 1.0f);
 	GLSL_SetUniformVec4(composite, UNIFORM_RAINLENSPARAMS2, params2);
 
 	// optics, lens space: x right, y up, z toward the viewer

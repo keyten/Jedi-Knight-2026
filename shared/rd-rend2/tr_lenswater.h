@@ -54,6 +54,7 @@ enum DropState : uint8_t
 	STATE_IMPACT,	// 0..50 ms spread, 50..150 ms recoil
 	STATE_SETTLING,	// 150..300 ms relax
 	STATE_SETTLED,
+	STATE_FORMING,	// film-first model: grows out of the film, 0..250 ms
 };
 
 enum Profile
@@ -83,6 +84,7 @@ struct Drop
 	float age;
 	float stateAge;		// since the impact
 	float mergeAge;		// since the last merge
+	float restAge;		// at rest since (film-first model: dries after its lifetime)
 	Vec2 lobeOffset;	// absorbed drop relative to pos, relaxes after a merge
 	Vec2 mainOffset;	// surviving drop's pre-merge position relative to pos
 	float lobeRadius;
@@ -236,8 +238,13 @@ public:
 		// film-first model (B): a micro drop lives this long (seconds), then
 		// its water joins the film
 		float microLifeMin, microLifeMax;
+		// film-first: a bead at rest dries after this long (seconds), and
+		// the film rain itself lays down (per second at the nominal intensity)
+		float beadLifeMin, beadLifeMax;
+		float filmRain;
 	};
-	static const ProfileParams &GetProfileParams(Profile profile);
+	// filmModel 1: the film-first table (smaller drops, no large impacts)
+	static const ProfileParams &GetProfileParams(Profile profile, int filmModel = 0);
 	// rain intensity the profile is tuned for (standard weather particle count / 5000)
 	static float NominalIntensity(Profile profile);
 	// the crossfaded parameters in use
@@ -270,6 +277,11 @@ private:
 	void Evict();
 	float Importance(const Drop &drop) const;
 	float MicroLifetime(const Drop &m) const;
+	float RestLifetime(const Drop &drop) const;
+	float SampleDefect(Vec2 p) const;
+	void StampDrain(Vec2 center, float radius, float keep);
+	void StartFilmEmerge(float strength);
+	void UpdateFilmEmerge();
 	Vec2 RandomPosition(bool obstructive);
 	Vec2 SideBiasedPosition(Vec2 dir, float spread);
 	void StampCapsule(Vec2 a, Vec2 b, float radius, float wet, float filmAmount, float coverage);
@@ -298,6 +310,8 @@ private:
 	std::vector<float> film;	// RG: wetness, film
 	std::vector<float> affinity;	// SurfaceAffinity per film cell (static)
 	std::vector<float> detail;		// tileable value noise per film cell (splash / emerge structure)
+	std::vector<float> defect;		// fine contact line defects per film cell (film-first stick-slip)
+	float rainFilm = 0.0f;			// film-first: film laid down by the rain, per second
 	int filmWidth = 0, filmHeight = 0;
 	float aspect = 16.0f / 9.0f;
 	bool filmDirty = false;
@@ -332,8 +346,22 @@ private:
 		float age, strength;
 		int flowsLeft, rivuletsLeft, lateSheetsLeft;
 		float nextFlow, nextRivulet, nextSheet;
-		};
+		// film-first: a drain front along the gravity of the moment of
+		// emerging, then the film islands dewet into beads
+		bool filmFirst;
+		Vec2 down;
+		float drainTime;
+	};
 	EmergeState emerge = {};
+	struct EmergeSite
+	{
+		Vec2 pos;
+		float rn, time;
+		bool done;
+	};
+	std::vector<EmergeSite> emergeSites;
+	std::vector<float> emergeDrain;	// 0 (downstream) .. 1 (upstream) per film cell
+	std::vector<float> emergeKeep;	// film islands that hold until their site dewets
 	// shifted detail noise of the current emerge, per film cell: the film
 	// stamp and the breakup threshold share it, no per cell modulo
 	std::vector<float> emergePattern;

@@ -368,8 +368,8 @@ deduplicated and replayed on load.
 | `r_rainLensBlur` | 1.0 | drop defocus 0..2 |
 | `r_rainLensReflection` | 1.0 | reflection + glints 0..2, 0 = refraction only |
 | `r_rainLensInertia` | 0 | camera acceleration response 0..2 |
-| `r_rainLensFilmModel` | 0 | A/B: 0 = hybrid drops (A), 1 = film-first (B): micro drops live a profile `microLifeMin..Max` (light 1.5-3 s, normal 1-2, heavy 0.5-1, acid 1.2-2.4; ×0.6 at the screen centre), fade over the last 30 % and hand their water to the film; the film refracts through micro lens structure and is weighted by its coverage |
-| `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, merge lobe cyan, sheet magenta), 9 controller panel |
+| `r_rainLensFilmModel` | 0 | A/B: 0 = hybrid drops (A), 1 = film-first (B), see "Film-first model" below |
+| `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, forming green, merge lobe cyan, sheet magenta), 9 controller panel |
 
 Debug view 9 draws bars in the top-left corner:
 - Cyan: intensity, exposed, facing, map spray.
@@ -392,6 +392,53 @@ Developer cvars (cheat):
 
 The last two are profiling options from the design doc. They're off until
 measurements favour them.
+
+## Film-first model (`r_rainLensFilmModel 1`)
+
+Water on the lens is a film first; drops are what the film breaks into.
+Everything below applies only to model 1, so model 0 stays as the reference.
+
+- **Micro drops.** They live for a per-profile `microLifeMin..Max`: light
+  1.5-3 s, normal 1-2, heavy 0.5-1, acid 1.2-2.4, ×0.6 at the screen centre.
+  They fade over the last 30 % of that time and hand their water to the film.
+- **Film.** It refracts through static micro-lens noise (see Optics) and is
+  weighted by its coverage.
+- **Beads at rest dry.**
+  - `restAge` is the time since the drop last moved faster than 0.01 or merged.
+  - Beads, residuals and normal drops dry at `kDryRate` (about a second) once
+    `restAge` exceeds `beadLifeMin..Max`. Those bounds are light 6-10 s,
+    normal 4-8, heavy 2.5-5 and acid 5-9.
+  - The lifetime is ×0.5 at the centre and ×0.7..1.5 by size.
+  - A drying bead leaves a small film stamp.
+- **Forming.** `STATE_FORMING`: beads that dewet from the film grow over
+  250 ms (radius 0.3 → 1, weight too). Residuals pinch off the same way from
+  0.1 s, and rain flow heads grow in while they run.
+- **Emerge** (`StartFilmEmerge` / `UpdateFilmEmerge`):
+  - It starts as a nearly even sheet with no upstream flow heads.
+  - A drain front runs along the gravity of the moment of emerging, over
+    1.2 s / strength. Behind it the film thins to 0.1 (tau 0.15 s).
+  - Film islands (`emergePattern` > ~0.6) hold for 0.5-1.5 s.
+  - 10-20 nucleation sites sit on island tops, with peripheral rejection
+    and a 0.06 minimum spacing. As the front passes each one, it dewets
+    into a forming bead and pulls the film in (`StampDrain` ×0.2).
+  - Sites are rn 0.25-0.6. Downstream, 15 % are rn 0.9-1.3; those depin by
+    themselves and become the runs.
+- **Rain population.** It uses the `FilmFirstTable` profiles: micro ×1.3,
+  normal ×0.5, no large impacts, sizes 0.2-0.7 ref, beta 2.5.
+  - Impacts feed a drop within 1.5 × its radius, so beads grow by accretion
+    and merging.
+  - A downpour lays down film directly: `filmRain` per second is light 0,
+    normal 0.01, heavy 0.2 and acid 0.015, modulated by the detail noise.
+- **Sliding.**
+  - Drag is `kDrag · 1.5 / max(rn, 0.6)` (×1.2 for flows), so speed grows
+    with size: rn 1.2 ≈ 0.06, rn 2 ≈ 0.26 lens/s.
+  - Wetness and defects are sampled at the advancing contact line (1.2 r
+    ahead), not under the drop's own fresh trail.
+  - Sparse sticky defects (40 cells per height, up to ×2.5 adhesion) stop
+    drops just above their depinning size until rain or a merge feeds them.
+- **Glints.** They're gated by drop radius (`lens.w / 0.18`, smoothstep
+  0.008 → 0.02), so micros and small beads have none. Powers are 70 / 50 at
+  ×2.5, capped per channel at 1.5 × the light radiance.
 
 ## Commands
 
