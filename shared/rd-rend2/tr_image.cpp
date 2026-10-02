@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdint>
+#include <vector>
 
 namespace {
 using ImageProfileClock = std::chrono::steady_clock;
@@ -37,6 +39,8 @@ struct ImageLoadProfile {
 	int normalLookups = 0, normalGenerated = 0, autoRoughnessGenerated = 0;
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
+	int ddcHits = 0, ddcMisses = 0, ddcInvalid = 0, ddcWrites = 0;
+	long long ddcHashUs = 0, ddcReadUs = 0, ddcWriteUs = 0;
 	mapLoadTopEntry_t slowImages[8] = {};
 	mapLoadTopEntry_t slowNormals[8] = {};
 	mapLoadTopEntry_t slowAutoRoughness[8] = {};
@@ -85,6 +89,10 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 		imageLoadProfile.normalLookups, imageLoadProfile.normalGenerated,
 		imageLoadProfile.normalLookupUs / 1000, imageLoadProfile.normalBuildUs / 1000,
 		imageLoadProfile.autoRoughnessGenerated, imageLoadProfile.autoRoughnessUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] material DDC: %d hits, %d misses, %d invalid, %d writes; source hash %lld ms, read %lld ms, write %lld ms\n",
+		imageLoadProfile.ddcHits, imageLoadProfile.ddcMisses, imageLoadProfile.ddcInvalid,
+		imageLoadProfile.ddcWrites, imageLoadProfile.ddcHashUs / 1000,
+		imageLoadProfile.ddcReadUs / 1000, imageLoadProfile.ddcWriteUs / 1000);
 	for (int i = 0; i < 8 && imageLoadProfile.slowImages[i].usec; ++i)
 		ri.Printf(PRINT_ALL, "[map load] slow image %d: %lld ms %s\n", i + 1,
 			imageLoadProfile.slowImages[i].usec / 1000, imageLoadProfile.slowImages[i].name);
@@ -94,6 +102,170 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 	for (int i = 0; i < 8 && imageLoadProfile.slowAutoRoughness[i].usec; ++i)
 		ri.Printf(PRINT_ALL, "[map load] slow roughness %d: %lld ms %s\n", i + 1,
 			imageLoadProfile.slowAutoRoughness[i].usec / 1000, imageLoadProfile.slowAutoRoughness[i].name);
+}
+
+// CPU-side material cache. Entries contain decoded/prepared RGBA pixels, never
+// GPU handles or hunk pointers. A checksum makes interrupted writes a cache miss.
+namespace {
+constexpr std::uint32_t MATERIAL_DDC_MAGIC = 0x434D3252; // R2MC
+constexpr std::uint32_t MATERIAL_DDC_VERSION = 1;
+constexpr std::size_t MATERIAL_DDC_MAX_BYTES = 128u * 1024u * 1024u;
+constexpr std::uint64_t FNV_PRIME = 1099511628211ull;
+struct MaterialDdcKey { std::uint64_t lo = 14695981039346656037ull, hi = 7809847782465536322ull; };
+struct MaterialDdcHeader {
+	std::uint32_t magic, version, headerBytes, kind;
+	std::uint64_t keyLo, keyHi, payloadHash, headerHash;
+	std::uint32_t width, height, type, flags, pixelBytes, normalBytes;
+	float emissive[4], heightRange[2], roughness[2];
+};
+enum class MaterialDdcResult { Miss, Hit, Invalid };
+
+void MaterialDdcHash(MaterialDdcKey &key, const void *data, std::size_t size) {
+	const byte *bytes = static_cast<const byte *>(data);
+	for (std::size_t i = 0; i < size; ++i) {
+		key.lo = (key.lo ^ bytes[i]) * FNV_PRIME;
+		key.hi = (key.hi ^ bytes[i]) * (FNV_PRIME + 2);
+	}
+}
+
+bool MaterialDdcEnabled() {
+#ifdef REND2_SP
+	static cvar_t *enabled = ri.Cvar_Get("r_materialDDC", "1", CVAR_ARCHIVE);
+#else
+	static cvar_t *enabled = ri.Cvar_Get("r_materialDDC", "1", CVAR_ARCHIVE, "Cache prepared material textures on disk");
+#endif
+	return enabled && enabled->integer != 0;
+}
+
+void MaterialDdcHashCandidates(MaterialDdcKey &key, const char *name, bool &found) {
+	static const char *extensions[] = {"jpg", "png", "tga"};
+	char base[MAX_QPATH];
+	COM_StripExtension(name, base, sizeof(base));
+	const char *givenExtension = COM_GetExtension(name);
+	int preferred = -1;
+	for (int i = 0; i < 3; ++i)
+		if (!Q_stricmp(givenExtension, extensions[i])) preferred = i;
+	for (int pass = -1; pass < 3; ++pass) {
+		const int i = pass < 0 ? preferred : pass;
+		if (i < 0 || (pass >= 0 && i == preferred)) continue;
+		char candidate[MAX_QPATH];
+		if (pass < 0) Q_strncpyz(candidate, name, sizeof(candidate));
+		else Com_sprintf(candidate, sizeof(candidate), "%s.%s", base, extensions[i]);
+		MaterialDdcHash(key, candidate, strlen(candidate) + 1);
+		void *source = nullptr;
+		const long length = ri.FS_ReadFile(candidate, &source);
+		const std::uint64_t encodedLength = source && length >= 0 ? (std::uint64_t)length : UINT64_MAX;
+		MaterialDdcHash(key, &encodedLength, sizeof(encodedLength));
+		if (source) {
+			found = true;
+			if (length > 0) MaterialDdcHash(key, source, (std::size_t)length);
+			ri.FS_FreeFile(source);
+		}
+	}
+}
+
+bool MaterialDdcBuildKey(const char *name, int flags, imgType_t type,
+		std::uint32_t kind, MaterialDdcKey &key) {
+	const auto start = ImageProfileClock::now();
+	MaterialDdcHash(key, &MATERIAL_DDC_VERSION, sizeof(MATERIAL_DDC_VERSION));
+	MaterialDdcHash(key, &kind, sizeof(kind));
+	MaterialDdcHash(key, &flags, sizeof(flags));
+	MaterialDdcHash(key, &type, sizeof(type));
+	MaterialDdcHash(key, name, strlen(name) + 1);
+	bool found = false;
+	MaterialDdcHashCandidates(key, name, found);
+	if (kind == 1 && (flags & IMGFLAG_GENNORMALMAP) && r_normalMapping->integer &&
+			type != IMGTYPE_NORMAL) {
+		char normalName[MAX_QPATH];
+		COM_StripExtension(name, normalName, sizeof(normalName));
+		Q_strcat(normalName, sizeof(normalName), "_n");
+		bool normalPresent = false;
+		MaterialDdcHashCandidates(key, normalName, normalPresent);
+	}
+	if (imageLoadProfile.active) imageLoadProfile.ddcHashUs += ImageElapsedUs(start);
+	return found;
+}
+
+void MaterialDdcPath(const MaterialDdcKey &key, char (&path)[MAX_QPATH]) {
+	Com_sprintf(path, sizeof(path), "cache/r2m/%016llx%016llx.r2c",
+		(unsigned long long)key.lo, (unsigned long long)key.hi);
+}
+
+MaterialDdcResult MaterialDdcRead(const MaterialDdcKey &key, std::uint32_t kind,
+		imgType_t type, int flags, MaterialDdcHeader &header, std::vector<byte> &payload) {
+	char path[MAX_QPATH];
+	MaterialDdcPath(key, path);
+	const auto start = ImageProfileClock::now();
+	fileHandle_t file = 0;
+	const long length = ri.FS_FOpenFileRead(path, &file, qfalse);
+	if (!file) {
+		if (imageLoadProfile.active) { ++imageLoadProfile.ddcMisses; imageLoadProfile.ddcReadUs += ImageElapsedUs(start); }
+		return MaterialDdcResult::Miss;
+	}
+	bool valid = length >= (long)sizeof(header) && length <= (long)MATERIAL_DDC_MAX_BYTES;
+	if (valid)
+		valid = ri.FS_Read(&header, sizeof(header), file) == sizeof(header);
+	if (valid) {
+		const std::uint64_t expected = (std::uint64_t)header.pixelBytes + header.normalBytes;
+		const std::uint64_t pixels = (std::uint64_t)header.width * header.height * 4;
+		const std::uint64_t savedHeaderHash = header.headerHash;
+		header.headerHash = 0;
+		MaterialDdcKey headerDigest;
+		MaterialDdcHash(headerDigest, &header, sizeof(header));
+		header.headerHash = savedHeaderHash;
+		valid = header.magic == MATERIAL_DDC_MAGIC && header.version == MATERIAL_DDC_VERSION &&
+			header.headerBytes == sizeof(header) && header.kind == kind &&
+			header.keyLo == key.lo && header.keyHi == key.hi &&
+			header.headerHash == headerDigest.lo &&
+			header.type == (std::uint32_t)type && header.flags == (std::uint32_t)flags &&
+			header.width > 0 && header.height > 0 && header.width <= 16384 && header.height <= 16384 &&
+			pixels == header.pixelBytes &&
+			(kind == 1 ? header.normalBytes == pixels : header.normalBytes == 0) &&
+			expected == (std::uint64_t)length - sizeof(header);
+		if (valid) {
+			payload.resize((std::size_t)expected);
+			valid = ri.FS_Read(payload.data(), (int)payload.size(), file) == (int)payload.size();
+			MaterialDdcKey digest;
+			if (valid) {
+				MaterialDdcHash(digest, payload.data(), payload.size());
+				valid = digest.lo == header.payloadHash;
+			}
+		}
+	}
+	ri.FS_FCloseFile(file);
+	if (imageLoadProfile.active) {
+		imageLoadProfile.ddcReadUs += ImageElapsedUs(start);
+		if (valid) ++imageLoadProfile.ddcHits; else ++imageLoadProfile.ddcInvalid;
+	}
+	return valid ? MaterialDdcResult::Hit : MaterialDdcResult::Invalid;
+}
+
+void MaterialDdcWrite(const MaterialDdcKey &key, MaterialDdcHeader header,
+		const byte *pixels, const byte *normal) {
+	const std::uint64_t total = (std::uint64_t)header.pixelBytes + header.normalBytes + sizeof(header);
+	if (total > MATERIAL_DDC_MAX_BYTES || !pixels || (header.normalBytes && !normal)) return;
+	const auto start = ImageProfileClock::now();
+	header.magic = MATERIAL_DDC_MAGIC;
+	header.version = MATERIAL_DDC_VERSION;
+	header.headerBytes = sizeof(header);
+	header.keyLo = key.lo;
+	header.keyHi = key.hi;
+	std::vector<byte> bytes((std::size_t)total);
+	memcpy(bytes.data() + sizeof(header), pixels, header.pixelBytes);
+	if (header.normalBytes)
+		memcpy(bytes.data() + sizeof(header) + header.pixelBytes, normal, header.normalBytes);
+	MaterialDdcKey digest;
+	MaterialDdcHash(digest, bytes.data() + sizeof(header), (std::size_t)total - sizeof(header));
+	header.payloadHash = digest.lo;
+	MaterialDdcKey headerDigest;
+	MaterialDdcHash(headerDigest, &header, sizeof(header));
+	header.headerHash = headerDigest.lo;
+	memcpy(bytes.data(), &header, sizeof(header));
+	char path[MAX_QPATH];
+	MaterialDdcPath(key, path);
+	ri.FS_WriteFile(path, bytes.data(), (int)bytes.size());
+	if (imageLoadProfile.active) { ++imageLoadProfile.ddcWrites; imageLoadProfile.ddcWriteUs += ImageElapsedUs(start); }
+}
 }
 
 static byte			 s_intensitytable[256];
@@ -3264,6 +3436,23 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	if ( image != NULL )
 		return image;
 	const auto profileStart = ImageProfileClock::now();
+	MaterialDdcKey ddcKey;
+	const bool ddcEligible = MaterialDdcEnabled() &&
+		MaterialDdcBuildKey(diffuseName, flags, IMGTYPE_COLORALPHA, 2, ddcKey);
+	if (ddcEligible) {
+		MaterialDdcHeader cached = {};
+		std::vector<byte> pixels;
+		if (MaterialDdcRead(ddcKey, 2, IMGTYPE_COLORALPHA, flags, cached, pixels) == MaterialDdcResult::Hit) {
+			image = R_CreateImage(ormsName, pixels.data(), (int)cached.width, (int)cached.height,
+				IMGTYPE_COLORALPHA, flags, 0);
+			if (image) {
+				image->autoRoughness[0] = cached.roughness[0];
+				image->autoRoughness[1] = cached.roughness[1];
+			}
+			if (imageLoadProfile.active) imageLoadProfile.autoRoughnessUs += ImageElapsedUs(profileStart);
+			return image;
+		}
+	}
 	if (imageLoadProfile.active) ++imageLoadProfile.autoRoughnessGenerated;
 
 	R_LoadImage( diffuseName, &pic, &width, &height );
@@ -3385,6 +3574,18 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	Z_Free( v );
 	Z_Free( tmp );
 
+	if (ddcEligible) {
+		MaterialDdcHeader record = {};
+		record.kind = 2;
+		record.width = (std::uint32_t)w;
+		record.height = (std::uint32_t)h;
+		record.type = IMGTYPE_COLORALPHA;
+		record.flags = (std::uint32_t)flags;
+		record.pixelBytes = (std::uint32_t)((std::size_t)count * 4);
+		record.roughness[0] = mean;
+		record.roughness[1] = sigma;
+		MaterialDdcWrite(ddcKey, record, orms, nullptr);
+	}
 	image = R_CreateImage( ormsName, orms, w, h, IMGTYPE_COLORALPHA, flags, 0 );
 	Z_Free( orms );
 	if ( image )
@@ -3407,7 +3608,8 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	return image;
 }
 
-static void R_CreateNormalMap ( const char *name, byte *pic, int width, int height, int flags )
+static void R_CreateNormalMap ( const char *name, byte *pic, int width, int height, int flags,
+	std::vector<byte> *generatedPixels )
 {
 	char normalName[MAX_QPATH];
 	image_t *normalImage;
@@ -3510,6 +3712,8 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 		}
 #endif
 
+		if (generatedPixels)
+			generatedPixels->assign(normalPic, normalPic + (std::size_t)normalWidth * normalHeight * 4);
 		R_CreateImage( normalName, normalPic, normalWidth, normalHeight, IMGTYPE_NORMAL, normalFlags, 0 );
 		Z_Free( normalPic );
 		if (imageLoadProfile.active) {
@@ -3606,6 +3810,36 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		return image;
 	}
 	if (imageLoadProfile.active) ++imageLoadProfile.fileLookups;
+	// Only prepared diffuse pixels with an autogenerated normal need this record.
+	// Source hashes include every supported fallback extension and an authored _n.
+	const bool ddcCandidate = MaterialDdcEnabled() && type == IMGTYPE_COLORALPHA &&
+		(flags & IMGFLAG_GENNORMALMAP) && (flags & IMGFLAG_PICMIP) &&
+		(flags & IMGFLAG_MIPMAP) && r_normalMapping->integer &&
+		!(flags & IMGFLAG_HDR) && !(flags & IMGFLAG_CUBEMAP);
+	MaterialDdcKey ddcKey;
+	const bool ddcSourceFound = ddcCandidate && MaterialDdcBuildKey(name, flags, type, 1, ddcKey);
+	if (ddcSourceFound) {
+		MaterialDdcHeader cached = {};
+		std::vector<byte> pixels;
+		if (MaterialDdcRead(ddcKey, 1, type, flags, cached, pixels) == MaterialDdcResult::Hit &&
+			cached.normalBytes != 0) {
+			char normalName[MAX_QPATH];
+			COM_StripExtension(name, normalName, sizeof(normalName));
+			Q_strcat(normalName, sizeof(normalName), "_n");
+			const int normalFlags = (flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB)) | IMGFLAG_NOLIGHTSCALE;
+			if (!R_GetLoadedImage(normalName, normalFlags))
+				R_CreateImage(normalName, pixels.data() + cached.pixelBytes,
+					(int)cached.width, (int)cached.height, IMGTYPE_NORMAL, normalFlags, 0);
+			image = R_CreateImage(name, pixels.data(), (int)cached.width, (int)cached.height,
+				type, flags, 0);
+			if (image) {
+				VectorCopy4(cached.emissive, image->emissiveColor);
+				image->heightRange[0] = cached.heightRange[0];
+				image->heightRange[1] = cached.heightRange[1];
+			}
+			return image;
+		}
+	}
 	const auto fileLoadStart = ImageProfileClock::now();
 
 	//
@@ -3647,12 +3881,14 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		return NULL;
 	}
 	const auto prepareStart = ImageProfileClock::now();
+	std::vector<byte> generatedNormal;
 
 	if (r_normalMapping->integer && !(type == IMGTYPE_NORMAL) &&
 		(flags & IMGFLAG_PICMIP) && (flags & IMGFLAG_MIPMAP) && (flags & IMGFLAG_GENNORMALMAP))
 	{
 		const auto normalStart = ImageProfileClock::now();
-		R_CreateNormalMap( name, pic, width, height, flags );
+		R_CreateNormalMap( name, pic, width, height, flags,
+			ddcSourceFound ? &generatedNormal : nullptr );
 		if (imageLoadProfile.active) imageLoadProfile.normalUs += ImageElapsedUs(normalStart);
 	}
 
@@ -3694,6 +3930,21 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		if (imageLoadProfile.active) imageLoadProfile.emissiveUs += ImageElapsedUs(emissiveStart);
 	}
 	if (imageLoadProfile.active) imageLoadProfile.imagePrepareUs += ImageElapsedUs(prepareStart);
+	if (ddcSourceFound && !generatedNormal.empty() && width > 0 && height > 0 &&
+		(std::uint64_t)width * height * 8 + sizeof(MaterialDdcHeader) <= MATERIAL_DDC_MAX_BYTES) {
+		MaterialDdcHeader record = {};
+		record.kind = 1;
+		record.width = (std::uint32_t)width;
+		record.height = (std::uint32_t)height;
+		record.type = type;
+		record.flags = (std::uint32_t)flags;
+		record.pixelBytes = (std::uint32_t)((std::uint64_t)width * height * 4);
+		record.normalBytes = (std::uint32_t)generatedNormal.size();
+		VectorCopy4(emissiveColor, record.emissive);
+		record.heightRange[0] = heightRange[0];
+		record.heightRange[1] = heightRange[1];
+		MaterialDdcWrite(ddcKey, record, pic, generatedNormal.data());
+	}
 
 	image = R_CreateImage( name, pic, width, height, type, loadFlags, internalFormat);
 	if ( image )
