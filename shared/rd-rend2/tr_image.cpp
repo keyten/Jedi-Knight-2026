@@ -119,6 +119,7 @@ struct MaterialDdcHeader {
 	float emissive[4], heightRange[2], roughness[2];
 };
 enum class MaterialDdcResult { Miss, Hit, Invalid };
+bool materialDdcWorldLoad = false;
 
 void MaterialDdcHash(MaterialDdcKey &key, const void *data, std::size_t size) {
 	const byte *bytes = static_cast<const byte *>(data);
@@ -130,10 +131,13 @@ void MaterialDdcHash(MaterialDdcKey &key, const void *data, std::size_t size) {
 
 bool MaterialDdcEnabled() {
 #ifdef REND2_SP
-	static cvar_t *enabled = ri.Cvar_Get("r_materialDDC", "1", CVAR_ARCHIVE);
+	static cvar_t *world = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE);
+	static cvar_t *objects = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE);
 #else
-	static cvar_t *enabled = ri.Cvar_Get("r_materialDDC", "1", CVAR_ARCHIVE, "Cache prepared material textures on disk");
+	static cvar_t *world = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE, "Cache prepared BSP surface textures on disk");
+	static cvar_t *objects = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE, "Cache prepared NPC, object and other non-BSP textures on disk");
 #endif
+	const cvar_t *enabled = materialDdcWorldLoad ? world : objects;
 	return enabled && enabled->integer != 0;
 }
 
@@ -266,6 +270,10 @@ void MaterialDdcWrite(const MaterialDdcKey &key, MaterialDdcHeader header,
 	ri.FS_WriteFile(path, bytes.data(), (int)bytes.size());
 	if (imageLoadProfile.active) { ++imageLoadProfile.ddcWrites; imageLoadProfile.ddcWriteUs += ImageElapsedUs(start); }
 }
+}
+
+void R_SetMaterialDdcWorldLoad(qboolean worldLoad) {
+	materialDdcWorldLoad = worldLoad != qfalse;
 }
 
 static byte			 s_intensitytable[256];
@@ -4688,6 +4696,7 @@ R_InitImages
 ===============
 */
 void R_InitImages( void ) {
+	R_SetMaterialDdcWorldLoad(qfalse);
 	// build brightness translation tables
 	R_SetColorMappings();
 

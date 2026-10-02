@@ -4586,6 +4586,7 @@ void R_ShaderLoadProfileBegin( void );
 void R_ShaderLoadProfileEnd( const char *phase );
 void R_ImageLoadProfileBegin( void );
 void R_ImageLoadProfileEnd( const char *phase );
+void R_SetMaterialDdcWorldLoad( qboolean worldLoad );
 void R_ModelLoadProfileBegin( void );
 void R_ModelLoadProfileCheckpoint( const char *phase );
 void R_ModelLoadProfileEnd( void );

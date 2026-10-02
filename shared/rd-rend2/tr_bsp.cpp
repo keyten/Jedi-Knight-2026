@@ -4900,11 +4900,14 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		&header->lumps[LUMP_FOGS],
 		&header->lumps[LUMP_BRUSHES],
 		&header->lumps[LUMP_BRUSHSIDES]);
+	// BSP surface shader registration owns the world-material DDC policy.
+	R_SetMaterialDdcWorldLoad(qtrue);
 	R_LoadSurfaces(
 		worldData,
 		&header->lumps[LUMP_SURFACES],
 		&header->lumps[LUMP_DRAWVERTS],
 		&header->lumps[LUMP_DRAWINDEXES]);
+	R_SetMaterialDdcWorldLoad(qfalse);
 	R_LoadProfilePrint("BSP surfaces and patches", stageStart);
 	stageStart = ri.Milliseconds();
 	R_LoadMarksurfaces(worldData, &header->lumps[LUMP_LEAFSURFACES]);
@@ -5066,6 +5069,7 @@ Called directly from cgame
 */
 void RE_LoadWorldMap( const char *name ) {
 	const int loadStart = ri.Milliseconds();
+	R_SetMaterialDdcWorldLoad(qfalse);
 	if (R_LoadProfileEnabled())
 		ri.Printf(PRINT_ALL, "[map load] profile module: Rend2 DLL v%d (%s %s)\n",
 			MAP_LOAD_PROFILE_REND2_VERSION, __DATE__, __TIME__);
