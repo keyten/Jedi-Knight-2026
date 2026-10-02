@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_smaa.h"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 
 namespace {
@@ -33,7 +34,7 @@ using ImageProfileClock = std::chrono::steady_clock;
 struct ImageLoadProfile {
 	bool active = false;
 	int cacheHits = 0, fileLookups = 0, imagesCreated = 0;
-	long long fileLoadUs = 0, imagePrepareUs = 0, createUs = 0;
+	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 };
 ImageLoadProfile imageLoadProfile;
 long long ImageElapsedUs(ImageProfileClock::time_point start) {
@@ -62,6 +63,8 @@ void R_ImageLoadProfileEnd( void ) {
 		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.imagesCreated,
 		imageLoadProfile.fileLoadUs / 1000, imageLoadProfile.imagePrepareUs / 1000,
 		imageLoadProfile.createUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] image prepare: normal generation %lld ms, emissive color %lld ms\n",
+		imageLoadProfile.normalUs / 1000, imageLoadProfile.emissiveUs / 1000);
 }
 
 static byte			 s_intensitytable[256];
@@ -3486,6 +3489,12 @@ static float R_SRGBToLinear( float c )
 static void R_ComputeEmissiveColor( const byte *pic, int width, int height, int flags, vec4_t out )
 {
 	const qboolean srgb = (qboolean)((flags & IMGFLAG_SRGB) != 0);
+	static const std::array<float, 256> linearByte = [] {
+		std::array<float, 256> result{};
+		for (int i = 0; i < 256; ++i)
+			result[i] = R_SRGBToLinear(i * (1.0f / 255.0f));
+		return result;
+	}();
 	double sum[3] = { 0.0, 0.0, 0.0 };
 	double weightSum = 0.0;
 
@@ -3500,9 +3509,7 @@ static void R_ComputeEmissiveColor( const byte *pic, int width, int height, int 
 			float c[3];
 			for ( int i = 0; i < 3; i++ )
 			{
-				c[i] = p[i] * (1.0f / 255.0f);
-				if ( srgb )
-					c[i] = R_SRGBToLinear(c[i]);
+				c[i] = srgb ? linearByte[p[i]] : p[i] * (1.0f / 255.0f);
 			}
 			const float w = (0.2126f * c[0] + 0.7152f * c[1] + 0.0722f * c[2]) * (p[3] * (1.0f / 255.0f));
 			sum[0] += c[0] * w;
@@ -3594,7 +3601,9 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	if (r_normalMapping->integer && !(type == IMGTYPE_NORMAL) &&
 		(flags & IMGFLAG_PICMIP) && (flags & IMGFLAG_MIPMAP) && (flags & IMGFLAG_GENNORMALMAP))
 	{
+		const auto normalStart = ImageProfileClock::now();
 		R_CreateNormalMap( name, pic, width, height, flags );
+		if (imageLoadProfile.active) imageLoadProfile.normalUs += ImageElapsedUs(normalStart);
 	}
 
 	// flip height info, so we don't need to do this in the shader later
@@ -3629,8 +3638,11 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 
 	// before the upload, which may modify the picture
 	vec4_t emissiveColor = { 0.5f, 0.5f, 0.5f, 1.0f };
-	if ( internalFormat == 0 && type == IMGTYPE_COLORALPHA )
+	if ( internalFormat == 0 && type == IMGTYPE_COLORALPHA ) {
+		const auto emissiveStart = ImageProfileClock::now();
 		R_ComputeEmissiveColor( pic, width, height, loadFlags, emissiveColor );
+		if (imageLoadProfile.active) imageLoadProfile.emissiveUs += ImageElapsedUs(emissiveStart);
+	}
 	if (imageLoadProfile.active) imageLoadProfile.imagePrepareUs += ImageElapsedUs(prepareStart);
 
 	image = R_CreateImage( name, pic, width, height, type, loadFlags, internalFormat);

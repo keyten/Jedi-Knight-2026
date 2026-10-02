@@ -1719,11 +1719,14 @@ Ghoul2 Insert End
 			}
 		}
 	}
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame clients/NPC precache", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	CG_LoadingString( "static models" );
 	CG_CreateMiscEnts();
 	if (s_profileMapLoad)
-		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame NPC/static models", cgi_Milliseconds() - stageStart));
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame static models", cgi_Milliseconds() - stageStart));
 	stageStart = cgi_Milliseconds();
 
 	cg.loadLCARSStage = 9;
