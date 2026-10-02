@@ -145,6 +145,10 @@ struct Input
 	Vec2 sprayDir = { 0.0f, 0.0f };
 	// camera acceleration on the lens plane (world units / s^2, x right, y up)
 	Vec2 cameraAccel = { 0.0f, 0.0f };
+	// film-first: rain flux onto the lens, 0..2: the rain velocity relative
+	// to the camera along the lens normal, over the fall speed (1 = looking
+	// straight up into vertical rain, 0 = looking down or level and still)
+	float rainFlux = 1.0f;
 };
 
 // A world space water event seen from the camera: strength after distance
@@ -202,6 +206,9 @@ public:
 	bool FilmDirty() const { return filmDirty; }
 	bool FilmVisible() const { return filmVisible; }
 	bool HasInstances() const { return !drops.empty() || !micro.empty() || !sheets.empty(); }
+	// film-first: drift of the film micro structure (lens units), the
+	// draining water carries it down
+	Vec2 FilmFlow() const { return filmFlow; }
 	// instances now or possibly within the next update (sprays, queued
 	// events and an emerge spawn them): the optics must be ready for them
 	bool MayProduceWater() const
@@ -346,11 +353,13 @@ private:
 		float age, strength;
 		int flowsLeft, rivuletsLeft, lateSheetsLeft;
 		float nextFlow, nextRivulet, nextSheet;
-		// film-first: a drain front along the gravity of the moment of
-		// emerging, then the film islands dewet into beads
+		// film-first: the film drains along the gravity of the moment of
+		// emerging (Jeffreys profile), tears from the top, a rim collects
+		// at the bottom; the torn film and the rim become beads
 		bool filmFirst;
 		Vec2 down;
-		float drainTime;
+		float drainTime;	// until the film has torn down to the rim
+		Vec2 flowBase;		// filmFlow at the start
 	};
 	EmergeState emerge = {};
 	struct EmergeSite
@@ -360,8 +369,10 @@ private:
 		bool done;
 	};
 	std::vector<EmergeSite> emergeSites;
-	std::vector<float> emergeDrain;	// 0 (downstream) .. 1 (upstream) per film cell
-	std::vector<float> emergeKeep;	// film islands that hold until their site dewets
+	std::vector<float> emergeDrain;	// 0 (top, upstream) .. 1 (bottom) along the gravity, per film cell
+	std::vector<float> emergeStreak;	// drainage streaks: noise stretched along the gravity
+	std::vector<float> emergeRupture;	// film thickness where the cell tears
+	Vec2 filmFlow = { 0.0f, 0.0f };
 	// shifted detail noise of the current emerge, per film cell: the film
 	// stamp and the breakup threshold share it, no per cell modulo
 	std::vector<float> emergePattern;

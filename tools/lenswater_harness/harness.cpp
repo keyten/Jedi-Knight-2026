@@ -443,12 +443,23 @@ int main()
 		CHECK(leftA == 1 && filmA < 1e-3f, "A: the micro drop is still a bead (%d left, film %.3f)", (int)leftA, filmA);
 	}
 
-	// film-first emerge: drain front, beads grow out of the film, all dries
+	// film-first emerge: a draining film (thicker at the bottom, no sheets),
+	// small beads from the torn top first, a row of beads at the bottom rim
 	{
 		Params q = p; q.filmModel = 1;
-		int seedsOk = 0, beadsAt2 = 0, peripheral = 0, early = 0, late = 0, formingSmall = 0, formingSeen = 0;
-		float maxResidualAge = 0.0f, topFilm = 0.0f, bottomFilm = 0.0f;
-		for (int seed = 0; seed < 4; ++seed)
+		const int seeds = 4;
+		int early = 0, beadsAt2 = 0, peripheral = 0, rimAt2 = 0, late = 0, sheetsSeen = 0;
+		int formingSmall = 0, formingSeen = 0, monotonic = 0;
+		float ratio05 = 0.0f, flow03 = 0.0f, flow1 = 0.0f, flowEnd = 0.0f, flow8 = 0.0f;
+		float bornTopTime = 0.0f, bornBottomTime = 0.0f, bornTopSize = 0.0f, bornBottomSize = 0.0f;
+		int bornTop = 0, bornBottom = 0;
+		auto band = [](LensWater &w, float y0, float y1) {
+			float sum = 0.0f; int n = 0;
+			for (float y = y0; y < y1; y += 0.02f)
+				for (float x = -0.8f; x < 0.8f; x += 0.02f, ++n) sum += w.Film({ x, y });
+			return sum / n;
+		};
+		for (int seed = 0; seed < seeds; ++seed)
 		{
 			LensWater w; w.Init(455, 256);
 			for (int i = 0; i < seed * 7; ++i) w.AddDrop({ 0.0f, 0.0f }, kRefRadius, DROP_NORMAL);	// shift the rng
@@ -456,20 +467,27 @@ int main()
 			Event e = {}; e.type = EVENT_EMERGE; e.strength = 1.0f;
 			w.QueueEvent(e);
 			std::vector<float> inst((size_t)w.MaxInstances(q) * INSTANCE_FLOATS);
-			const int frames = 144 * 12;
-			for (int f = 1; f <= frames; ++f)
+			std::vector<uint32_t> known;
+			for (int f = 1; f <= 144 * 10; ++f)
 			{
 				w.Update(1.0f / 144.0f, Dry(), q);
 				w.ClearFilmDirty();
 				const float t = f / 144.0f;
+				sheetsSeen += (int)w.Sheets().size();
 				for (size_t i = 0; i < w.Drops().size(); ++i)
 				{
 					const Drop &d = w.Drops()[i];
-					if (d.type == DROP_RESIDUAL)
-						maxResidualAge = std::max(maxResidualAge, d.age);
+					if (std::find(known.begin(), known.end(), d.seed) == known.end())
+					{
+						known.push_back(d.seed);
+						if (d.pos.y > -0.36f)	// not the rim
+						{
+							if (d.pos.y > 0.0f) { bornTopTime += t; bornTopSize += d.radius; ++bornTop; }
+							else { bornBottomTime += t; bornBottomSize += d.radius; ++bornBottom; }
+						}
+					}
 					if (d.state == STATE_FORMING && d.stateAge < 0.1f && formingSeen < 50)
 					{
-						// rendered radius while it grows out of the film
 						const int n = w.BuildInstances(inst.data(), w.MaxInstances(q), 1.0f);
 						const size_t index = w.Sheets().size() + i;
 						if ((int)index < n)
@@ -481,36 +499,65 @@ int main()
 				}
 				if (f == (int)(0.1f * 144.0f))
 					early += (int)w.Drops().size();
-				if (f == (int)(0.6f * 144.0f))
+				if (f == (int)(0.3f * 144.0f))
+					flow03 += Length(w.FilmFlow());
+				if (f == 72 || f == 144 || f == 288)
 				{
-					// thinned fraction per emerge: the islands hold a little longer
-					int n = 0, top = 0, bottom = 0;
-					for (float y = 0.25f; y < 0.45f; y += 0.02f)
-						for (float x = -0.8f; x < 0.8f; x += 0.02f, ++n) top += w.Film({ x, y }) < 0.3f;
-					for (float y = -0.45f; y < -0.25f; y += 0.02f)
-						for (float x = -0.8f; x < 0.8f; x += 0.02f) bottom += w.Film({ x, y }) < 0.3f;
-					topFilm += top / (float)n;
-					bottomFilm += bottom / (float)n;
+					const float top = band(w, 0.25f, 0.45f), mid = band(w, -0.1f, 0.1f), bottom = band(w, -0.45f, -0.25f);
+					monotonic += top < mid && mid < bottom;
+					if (f == 72)
+						ratio05 += bottom / std::max(top, 1e-3f);
 				}
+				if (f == 144)
+					flow1 += Length(w.FilmFlow());
 				if (f == 2 * 144)
 				{
 					beadsAt2 += (int)w.Drops().size();
-					for (const Drop &d : w.Drops()) peripheral += Length(d.pos) > 0.2f;
+					for (const Drop &d : w.Drops())
+					{
+						peripheral += Length(d.pos) > 0.2f;
+						rimAt2 += d.pos.y < -0.36f;
+					}
 				}
+				if (f == 5 * 144)
+					flowEnd += Length(w.FilmFlow());
 				if (f == 8 * 144)
-					late += (int)w.Drops().size();
+					flow8 += Length(w.FilmFlow());
 			}
-			++seedsOk;
+			late += (int)w.Drops().size();
 		}
-		printf("     film-first emerge (4 seeds): %d drops at 0.1 s, %d at 2 s (%d peripheral), %d at 8 s; thin top %.2f bottom %.2f (sum of 4) at 0.6 s; residual max age %.1f s\n",
-			early, beadsAt2, peripheral, late, topFilm, bottomFilm, maxResidualAge);
+		printf("     film-first emerge (%d seeds): %d drops at 0.1 s; bottom/top film %.1fx at 0.5 s; %d at 2 s (%d rim, %d peripheral), %d at 10 s\n",
+			seeds, early, ratio05 / seeds, beadsAt2, rimAt2, peripheral, late);
+		printf("     born top half %.2f s r %.4f (%d), bottom half %.2f s r %.4f (%d); flow %.3f -> %.3f -> %.3f / %.3f\n",
+			bornTopTime / std::max(bornTop, 1), bornTopSize / std::max(bornTop, 1), bornTop,
+			bornBottomTime / std::max(bornBottom, 1), bornBottomSize / std::max(bornBottom, 1), bornBottom,
+			flow03 / seeds, flow1 / seeds, flowEnd / seeds, flow8 / seeds);
+		CHECK(sheetsSeen == 0, "B emerge: no sheets (%d sheet frames)", sheetsSeen);
 		CHECK(early == 0, "B emerge: no drops at 0.1 s (%d)", early);
-		CHECK(beadsAt2 >= 8 * seedsOk && beadsAt2 <= 25 * seedsOk, "B emerge: 8..25 beads per emerge at 2 s (%.1f)", beadsAt2 / (float)seedsOk);
+		CHECK(ratio05 >= 1.5f * seeds, "B emerge: thicker at the bottom (%.1fx at 0.5 s)", ratio05 / seeds);
+		CHECK(monotonic == 3 * seeds, "B emerge: top < middle < bottom at 0.5 / 1 / 2 s (%d of %d)", monotonic, 3 * seeds);
+		CHECK(bornTop > 0 && bornBottom > 0 && bornTopTime / bornTop < bornBottomTime / bornBottom,
+			"B emerge: the top tears first (%.2f s vs %.2f s)", bornTopTime / std::max(bornTop, 1), bornBottomTime / std::max(bornBottom, 1));
+		CHECK(bornTop > 0 && bornBottom > 0 && bornTopSize / bornTop < bornBottomSize / bornBottom,
+			"B emerge: smaller beads at the top");
+		CHECK(rimAt2 >= 5 * seeds, "B emerge: a row of beads at the bottom rim (%.1f per emerge)", rimAt2 / (float)seeds);
 		CHECK(peripheral >= 0.6f * beadsAt2, "B emerge: beads mostly peripheral (%d of %d)", peripheral, beadsAt2);
-		CHECK(late <= 3 * seedsOk, "B emerge: dry by 8 s (%.1f drops left)", late / (float)seedsOk);
-		CHECK(maxResidualAge < 10.0f, "B emerge: no residual older than 10 s (%.1f)", maxResidualAge);
-		CHECK(topFilm > 4.0f * 0.5f && bottomFilm < 4.0f * 0.1f, "B emerge: drains from the top (%.0f%% thin on top, %.0f%% below at 0.6 s)", topFilm * 25.0f, bottomFilm * 25.0f);
+		CHECK(late <= 3 * seeds, "B emerge: dry by 10 s (%.1f drops left)", late / (float)seeds);
+		CHECK(flow03 > 0.0f && flow1 > flow03 && std::fabs(flowEnd - flow8) < 1e-5f,
+			"B emerge: the micro structure drifts down, then stops (%.3f, %.3f, %.3f)", flow03 / seeds, flow1 / seeds, flowEnd / seeds);
 		CHECK(formingSeen > 0 && formingSmall == formingSeen, "B emerge: beads grow out of the film (%d of %d small)", formingSmall, formingSeen);
+	}
+	// film-first rain flux: no rain onto a lens it doesn't reach
+	{
+		Params q = p; q.filmModel = 1;
+		auto rain = [&](float flux) {
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY; in.rainFlux = flux;
+			Run(w, 3.0f, in, q);
+			return (int)(w.Drops().size() + w.Micro().size() + w.Sheets().size()) + (w.Film({ 0.0f, 0.0f }) > 0.0f ? 1000 : 0);
+		};
+		const int none = rain(0.0f), some = rain(1.0f);
+		CHECK(none == 0 && some > 0, "B rain flux: 0 = no water at all (%d), 1 = rain (%d)", none, some);
 	}
 	// film-first rain: small beads, larger drops only by merging
 	{

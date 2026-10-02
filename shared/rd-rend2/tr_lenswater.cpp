@@ -122,11 +122,19 @@ constexpr float kMicroFadeStart = 0.7f;	// of the lifetime: weight / radius fade
 constexpr float kDryRate = 1.5f * kRefRadius;
 constexpr float kFormTime = 0.25f;		// a bead growing out of the film
 constexpr float kResidualFormAge = 0.1f;	// residuals pinch off: a shorter growth
-// film-first emerge: the drain front leaves a thin film behind it, film
-// islands hold a moment longer, then drain as well
-constexpr float kDrainTau = 0.15f;
-constexpr float kDrainFloor = 0.1f;
-constexpr float kIslandHold = 0.5f, kIslandRelease = 1.5f;	// seconds after the front
+// Film-first emerge: the lifted film drains under gravity like Jeffreys'
+// similarity solution h ~ sqrt(x / t) (x down the lens): thinner at the top,
+// always thickest at the bottom, no front. Normalised so the bottom starts
+// at 1; with these numbers the top tears at 0.35 s and the bottom at 3.5 s.
+constexpr float kJeffreysX0 = 0.206f;	// lens heights
+constexpr float kJeffreysT0 = 0.3f;		// seconds
+constexpr float kRupture = 0.28f;		// film thickness where it tears
+constexpr float kRuptureTrace = 0.05f, kRuptureTau = 0.2f;
+constexpr float kFollowTau = 0.1f;		// the film relaxes onto the draining profile
+constexpr float kEmergeDuration = 3.5f;
+constexpr float kRimBand = 0.93f;		// fraction down the lens where the rim collects
+constexpr float kRimBreak = 1.2f;		// seconds: the rim breaks into a row of beads
+constexpr float kFlowShift = 0.04f;		// micro structure drift, lens heights per ln(time)
 constexpr float kDewet = 0.2f;			// film left under a bead that formed
 // film-first stick-slip: sparse sticky contact line defects. A drop just
 // above its depinning size stops on one (until rain or a merge feeds it),
@@ -197,19 +205,23 @@ float SurfaceAffinity(Vec2 p)
 	return Lerp(a, b, ty);
 }
 
-// Fine static contact line defects (film-first stick-slip), 0..1.
-float DefectNoise(Vec2 p)
+// value noise at lattice coordinates (fx, fy), 0..1
+float ValueNoise(float fx, float fy, int salt)
 {
-	const float fx = p.x * kDefectFrequency + 1000.0f;
-	const float fy = p.y * kDefectFrequency + 1000.0f;
 	const int ix = (int)std::floor(fx), iy = (int)std::floor(fy);
 	float tx = fx - ix, ty = fy - iy;
 	tx = tx * tx * (3.0f - 2.0f * tx);
 	ty = ty * ty * (3.0f - 2.0f * ty);
-	auto at = [](int x, int y) { return LatticeValue(x + 5003, y + 7001); };
+	auto at = [salt](int x, int y) { return LatticeValue(x + salt, y + 7001); };
 	const float a = Lerp(at(ix, iy), at(ix + 1, iy), tx);
 	const float b = Lerp(at(ix, iy + 1), at(ix + 1, iy + 1), tx);
 	return Lerp(a, b, ty);
+}
+
+// Fine static contact line defects (film-first stick-slip), 0..1.
+float DefectNoise(Vec2 p)
+{
+	return ValueNoise(p.x * kDefectFrequency + 1000.0f, p.y * kDefectFrequency + 1000.0f, 5003);
 }
 
 // Value noise on a lattice that wraps every period cells, sampled at lattice
@@ -369,6 +381,7 @@ void LensWater::Clear()
 	emerge = {};
 	emergeSites.clear();
 	rainFilm = 0.0f;
+	filmFlow = { 0.0f, 0.0f };
 	agentAccumulator = fieldAccumulator = interpolation = 0.0f;
 	timerMicro = ExpRandom();
 	timerNormal = ExpRandom();
@@ -503,7 +516,7 @@ bool LensWater::Update(float dt, const Input &input, const Params &p)
 		const float intensityScale = std::min(std::max(in.intensity, 0.0f) / NominalIntensity(profile),
 			kMaxIntensityScale);
 		rainFilm = current.filmRain * std::max(params.density, 0.0f) * Saturate(in.exposed) * intensityScale
-			* Lerp(kFlowFacingMin, 1.0f, Saturate(in.facing));
+			* std::min(std::max(in.rainFlux, 0.0f), 2.0f);
 	}
 	ProcessEvents();
 	lap(eventMicroseconds);
@@ -1065,10 +1078,16 @@ void LensWater::Spawn(float dt, const Input &input)
 	// (see kImpactFacingMin). The intensity scales the rates relative to
 	// the particle count the profile is tuned for, so the standard weather
 	// presets are unchanged and custom rain counts.
+	// The film-first model takes the rain flux onto the lens instead: no
+	// rain looking down or level while standing, more running into it.
+	const bool filmFirst = params.filmModel == 1;
+	const float flux = std::min(std::max(input.rainFlux, 0.0f), 2.0f);
 	const float f = Saturate(input.facing);
-	const float impactFacing = Lerp(kImpactFacingMin, 1.0f, std::pow(f, 1.5f));
-	const float flowFacing = Lerp(kFlowFacingMin, 1.0f, f);
-	const float sheetFacing = Lerp(kSheetFacingMin, 1.0f, f);
+	const float impactFacing = filmFirst ? flux : Lerp(kImpactFacingMin, 1.0f, std::pow(f, 1.5f));
+	const float flowFacing = filmFirst ? flux : Lerp(kFlowFacingMin, 1.0f, f);
+	const float sheetFacing = filmFirst ? flux : Lerp(kSheetFacingMin, 1.0f, f);
+	// rain driven into the lens hits harder: slightly larger impacts
+	const float impactSize = filmFirst ? Lerp(1.0f, 1.2f, Smoothstep(0.5f, 1.5f, flux)) : 1.0f;
 	const Profile profile = profileOverride != PROFILE_AUTO ? profileOverride : input.weather;
 	const float intensityScale = std::min(std::max(input.intensity, 0.0f) / NominalIntensity(profile),
 		kMaxIntensityScale);
@@ -1102,7 +1121,7 @@ void LensWater::Spawn(float dt, const Input &input)
 		});
 		fire(timerNormal, current.normalRate * rate * impactFacing, [&]() {
 			const float rn = Lerp(current.sizeMin, current.sizeMax, std::pow(Random01(), current.sizeBeta));
-			SpawnRainDrop(rn, false, nullptr, 0.0f);
+			SpawnRainDrop(rn * impactSize, false, nullptr, 0.0f);
 		});
 		fire(timerLarge, current.largeRate * rate * impactFacing, [&]() {
 			SpawnRainDrop(Lerp(current.largeMin, current.largeMax, Random01()), true, nullptr, 0.0f);
@@ -1275,7 +1294,10 @@ void LensWater::StartEmerge(float strength)
 		StampEmergeFilm(s);
 	}
 
-	// broad sheets start high on the lens and run through the film
+	// broad sheets start high on the lens and run through the film (hybrid
+	// model only: the draining film has no fast sheets)
+	if (emerge.filmFirst)
+		return;
 	const Vec2 down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
 	const int numSheets = 2 + (int)(2.0f * std::min(s, 1.0f) + 0.5f);
 	for (int i = 0; i < numSheets; ++i)
@@ -1393,21 +1415,27 @@ void LensWater::DecayField(float dt)
 	const size_t count = film.size() / 2;
 	if (emerge.active && emerge.filmFirst)
 	{
-		// Film-first emerge: a drain front runs down the lens along gravity.
-		// Behind it the film thins to a trace; the islands hold a moment
-		// (their water forms the beads, UpdateFilmEmerge), then drain too.
-		const float drainK = std::exp(-dt / kDrainTau);
-		const float *pattern = emergePattern.data();
+		// Film-first emerge: the film drains, h = sqrt((s + x0) / (t + t0))
+		// along the drainage streaks, never thicker than it was. Where it
+		// gets thinner than its rupture thickness it tears to a trace (the
+		// sites of UpdateFilmEmerge dewet into beads); the rim at the bottom
+		// holds until it breaks into beads.
+		const float t = emerge.age;
+		const float norm = std::sqrt(kJeffreysT0 / ((1.0f + kJeffreysX0) * (t + kJeffreysT0)));
+		const float followK = std::exp(-dt / kFollowTau);
+		const float tearK = std::exp(-dt / kRuptureTau);
+		const float rim = t < kRimBreak ? 0.9f : 0.0f;
 		for (size_t i = 0; i < count; ++i, cell += 2)
 		{
-			const float d = emergeDrain[i] + 0.12f * (pattern[i] - 0.5f);
-			const float since = emerge.age - (1.0f - d) * emerge.drainTime;
-			const float behind = Smoothstep(0.0f, 0.1f, since);
-			const float hold = emergeKeep[i] * (1.0f - Smoothstep(kIslandHold, kIslandRelease, since));
+			const float s = emergeDrain[i];
+			const float h = std::sqrt(s + kJeffreysX0) * norm * (0.8f + 0.4f * emergeStreak[i]);
 			const float f0 = cell[1];
-			const float drained = f0 > kDrainFloor ? kDrainFloor + (f0 - kDrainFloor) * drainK : f0 * filmK;
+			float f = f0 > h ? h + (f0 - h) * followK : f0 * filmK;
+			if (h < emergeRupture[i] && f > kRuptureTrace)
+				f = kRuptureTrace + (f - kRuptureTrace) * tearK;
+			if (rim > 0.0f)
+				f = std::max(f, std::min(f0, rim * Smoothstep(kRimBand, kRimBand + 0.04f, s)));
 			const float w = cell[0] * wetK;
-			const float f = Lerp(f0 * filmK, drained, behind * (1.0f - hold));
 			cell[0] = w >= 1e-3f ? w : 0.0f;
 			cell[1] = f >= 1e-3f ? f : 0.0f;
 			maxWet = std::max(maxWet, w);
@@ -1558,43 +1586,67 @@ void LensWater::StampDrain(Vec2 center, float radius, float keep)
 }
 
 /*
-Film-first emerge. The lens is one sheet of water (StartEmerge stamps it);
-a drain front runs down along the gravity of the moment (DecayField), and
-where it passes, the film islands dewet: their water gathers into beads that
-grow in place (STATE_FORMING) and pull the film around them in. Large beads
-only form downstream; they depin by themselves and become the runs. No flow
-heads appear from nowhere.
+Film-first emerge, after the physics of a film lifted out of water. The
+lens leaves the water with an even sheet on it, which drains under gravity
+(Jeffreys: h ~ sqrt(x / t), DecayField): it thins everywhere, thinnest at
+the top and thickest at the bottom, where a rim collects. Streaks of the
+drainage show as thickness variation, and the micro structure drifts down
+with the water (FilmFlow). The thin top tears first: there the dewetting
+film leaves small beads, later and larger ones further down (site time from
+the analytic profile). The rim breaks into a row of beads along the bottom
+edge (Rayleigh-Plateau). No sheets, no flow heads from nowhere.
 */
 void LensWater::StartFilmEmerge(float s)
 {
 	emerge.filmFirst = true;
 	emerge.down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
-	emerge.drainTime = 1.2f / std::max(std::min(s, 1.25f), 0.6f);
+	emerge.drainTime = kEmergeDuration;
+	emerge.flowBase = filmFlow;
+	emerge.lateSheetsLeft = 0;
+
+	const Vec2 down = emerge.down;
+	const Vec2 side = { -down.y, down.x };
+	const float extentDown = std::max(0.5f * (aspect * std::fabs(down.x) + std::fabs(down.y)), 1e-3f);
+	const float extentSide = 0.5f * (aspect * std::fabs(side.x) + std::fabs(side.y));
+	const float h = (float)filmHeight;
+	const float amount = kEmergePreset.film * std::min(s, 1.0f);
+	const float streakX = Random01() * 512.0f, streakY = Random01() * 512.0f;
+	auto cellPos = [&](int x, int y) { return Vec2{ (x + 0.5f) / h - aspect * 0.5f, (y + 0.5f) / h - 0.5f }; };
 
 	const size_t count = (size_t)filmWidth * filmHeight;
 	emergeDrain.resize(count);
-	emergeKeep.resize(count);
-	const Vec2 up = emerge.down * -1.0f;
-	const float extent = std::max(0.5f * (aspect * std::fabs(up.x) + std::fabs(up.y)), 1e-3f);
-	const float h = (float)filmHeight;
-	const float amount = kEmergePreset.film * std::min(s, 1.0f);
-	auto cellPos = [&](int x, int y) { return Vec2{ (x + 0.5f) / h - aspect * 0.5f, (y + 0.5f) / h - 0.5f }; };
+	emergeStreak.resize(count);
+	emergeRupture.resize(count);
 	for (int y = 0; y < filmHeight; ++y)
 	for (int x = 0; x < filmWidth; ++x)
 	{
 		const size_t i = (size_t)y * filmWidth + x;
+		const Vec2 p = cellPos(x, y);
+		const float across = Dot(p, side), along = Dot(p, down);
 		const float pattern = emergePattern[i];
-		emergeDrain[i] = Saturate((Dot(cellPos(x, y), up) + extent) / (2.0f * extent));
-		emergeKeep[i] = Smoothstep(0.55f, 0.65f, pattern);
-		// nearly even sheet: the micro refraction makes it visible
+		emergeDrain[i] = Saturate((along + extentDown) / (2.0f * extentDown));
+		// drainage streaks: fine across the flow, long along it
+		emergeStreak[i] = 0.65f * ValueNoise(across * 18.0f + streakX, along * 3.0f + streakY, 911)
+			+ 0.35f * ValueNoise(across * 40.0f + streakY, along * 6.0f + streakX, 1777);
+		emergeRupture[i] = kRupture * (1.0f + 0.35f * (pattern - 0.5f));
+		// an even sheet: the micro refraction makes it visible
 		float *cell = &film[i * 2];
 		cell[0] = Deposit(cell[0], 0.95f);
-		cell[1] = Deposit(cell[1], amount * (0.75f + 0.25f * pattern));
+		cell[1] = Deposit(cell[1], amount * (0.85f + 0.15f * pattern));
 	}
 	filmMax = std::max(filmMax, 1.0f);
 	filmVisible = true;
 
-	// nucleation sites on the island tops, away from the screen centre
+	// when the analytic profile of a cell gets thinner than its rupture
+	// thickness (DecayField)
+	auto ruptureTime = [&](size_t i) {
+		const float m = 0.8f + 0.4f * emergeStreak[i];
+		const float r = emergeRupture[i] / m;
+		return (emergeDrain[i] + kJeffreysX0) * kJeffreysT0 / ((1.0f + kJeffreysX0) * r * r) - kJeffreysT0;
+	};
+
+	// dewetting sites on the thicker spots of the torn film, away from the
+	// screen centre and above the rim
 	emergeSites.clear();
 	const int numSites = 10 + (int)(10.0f * std::min(s, 1.0f));
 	for (int attempt = 0; attempt < numSites * 8 && (int)emergeSites.size() < numSites; ++attempt)
@@ -1623,7 +1675,10 @@ void LensWater::StartFilmEmerge(float s)
 			x = bx;
 			y = by;
 		}
+		const size_t i = (size_t)y * filmWidth + x;
 		const Vec2 p = cellPos(x, y);
+		if (emergeDrain[i] > kRimBand - 0.05f)
+			continue;
 		if (Random01() > Lerp(0.3f, 1.0f, Smoothstep(0.15f, 0.5f, Length(p))))
 			continue;
 		bool crowded = false;
@@ -1631,11 +1686,35 @@ void LensWater::StartFilmEmerge(float s)
 			crowded = crowded || Length(other.pos - p) < 0.06f;
 		if (crowded)
 			continue;
-		const float drain = emergeDrain[(size_t)y * filmWidth + x];
 		EmergeSite site;
 		site.pos = p;
-		site.rn = drain < 0.5f && Random01() < 0.15f ? Lerp(0.9f, 1.3f, Random01()) : Lerp(0.25f, 0.6f, Random01());
-		site.time = (1.0f - drain) * emerge.drainTime + Lerp(0.1f, 0.4f, Random01());
+		// the further down, the more water the torn film had gathered
+		site.rn = Lerp(0.2f, 0.45f, emergeDrain[i]) * Lerp(0.85f, 1.15f, Random01());
+		site.time = std::max(ruptureTime(i), 0.15f) + Lerp(0.05f, 0.2f, Random01());
+		site.done = false;
+		emergeSites.push_back(site);
+	}
+
+	// the rim: a row of beads along the bottom edge of the lens (the
+	// furthest point down the gravity for each position across it)
+	const float halfX = aspect * 0.5f, halfY = 0.5f;
+	for (float across = -extentSide + Lerp(0.02f, 0.06f, Random01()); across < extentSide;
+		across += Lerp(0.12f, 0.18f, Random01()))
+	{
+		float u = 1e9f;
+		if (std::fabs(down.x) > 1e-4f)
+			u = std::min(u, ((down.x > 0.0f ? halfX : -halfX) - across * side.x) / down.x);
+		if (std::fabs(down.y) > 1e-4f)
+			u = std::min(u, ((down.y > 0.0f ? halfY : -halfY) - across * side.y) / down.y);
+		if (u > 1e8f)
+			continue;
+		const Vec2 p = side * across + down * (u - Lerp(0.025f, 0.045f, Random01()));
+		if (std::fabs(p.x) > halfX || std::fabs(p.y) > halfY)
+			continue;
+		EmergeSite site;
+		site.pos = p;
+		site.rn = Lerp(0.45f, 0.9f, Random01());
+		site.time = kRimBreak + Lerp(0.0f, 0.4f, Random01());
 		site.done = false;
 		emergeSites.push_back(site);
 	}
@@ -1643,6 +1722,10 @@ void LensWater::StartFilmEmerge(float s)
 
 void LensWater::UpdateFilmEmerge()
 {
+	// the draining water carries the micro structure down, fast at first
+	// (the surface velocity goes with h^2 ~ 1 / t)
+	filmFlow = emerge.flowBase + emerge.down * (kFlowShift * std::log(1.0f + emerge.age / 0.2f));
+
 	bool spawned = false, pending = false;
 	for (EmergeSite &site : emergeSites)
 	{
@@ -1664,18 +1747,7 @@ void LensWater::UpdateFilmEmerge()
 	if (spawned)
 		Evict();
 
-	// a thin late sheet from upstream, as in the hybrid choreography
-	while (emerge.lateSheetsLeft > 0 && emerge.age >= emerge.nextSheet)
-	{
-		const Vec2 at = Vec2{ (Random01() - 0.5f) * aspect * 0.7f, (Random01() - 0.5f) * 0.3f }
-			- emerge.down * 0.3f;
-		SpawnSheet(at, 0.5f + 0.2f * Random01(), 0.8f + 0.3f * Random01(),
-			kEmergePreset.sheetSpeed * 0.8f, 0.6f * kEmergePreset.film);
-		--emerge.lateSheetsLeft;
-		emerge.nextSheet += 0.3f + 0.4f * Random01();
-	}
-
-	if (!pending && emerge.lateSheetsLeft == 0 && emerge.age > emerge.drainTime + kIslandRelease + 0.1f)
+	if (!pending && emerge.age > emerge.drainTime)
 		emerge.active = false;
 }
 

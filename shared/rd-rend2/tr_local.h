@@ -5127,6 +5127,7 @@ typedef struct rainLensInput_s {
 	float		intensity;	// rain particle count / 5000, 0 = no rain
 	float		exposed;	// 1 = new rain reaches the lens (outside)
 	float		facing;		// 0..1, lens facing into the falling rain
+	float		rainFlux;	// 0..2, rain velocity relative to the camera along the lens normal (film-first)
 	int			weather;	// rainWeather_t
 	float		windLens[2];
 	int			numEvents;

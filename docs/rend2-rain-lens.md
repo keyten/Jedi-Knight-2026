@@ -413,16 +413,18 @@ Everything below applies only to model 1, so model 0 stays as the reference.
 - **Forming.** `STATE_FORMING`: beads that dewet from the film grow over
   250 ms (radius 0.3 → 1, weight too). Residuals pinch off the same way from
   0.1 s, and rain flow heads grow in while they run.
-- **Emerge** (`StartFilmEmerge` / `UpdateFilmEmerge`):
-  - It starts as a nearly even sheet with no upstream flow heads.
-  - A drain front runs along the gravity of the moment of emerging, over
-    1.2 s / strength. Behind it the film thins to 0.1 (tau 0.15 s).
-  - Film islands (`emergePattern` > ~0.6) hold for 0.5-1.5 s.
-  - 10-20 nucleation sites sit on island tops, with peripheral rejection
-    and a 0.06 minimum spacing. As the front passes each one, it dewets
-    into a forming bead and pulls the film in (`StampDrain` ×0.2).
-  - Sites are rn 0.25-0.6. Downstream, 15 % are rn 0.9-1.3; those depin by
-    themselves and become the runs.
+- **Emerge** (`StartFilmEmerge` / `UpdateFilmEmerge`) follows a film lifted out of water. There are no sheets and no flow heads.
+  - **Drainage.** The film drains like Jeffreys' similarity solution, `h = sqrt((s + 0.206) / (t + 0.3))`. Here s runs from 0 at the top to 1 at the bottom along the gravity at the moment of emerging, and h is normalised so the bottom starts at 1. The film thins everywhere, stays thickest at the bottom and never forms a front ([Jeffreys / Reynolds thinning](https://keele-repository.worktribe.com/OutputFile/466561)).
+  - **Streaks.** Drainage streaks are noise stretched along the gravity (18 × 3 cells per height, plus a second octave). They modulate h by 0.8..1.2.
+  - **Rupture.** A cell tears to a 0.05 trace (tau 0.2 s) once h falls below `0.28 · (1 ± 0.17)`. The top tears at about 0.35 s and the bottom at about 3.5 s.
+  - **Dewetting sites.** There are 10-20, sitting on the thicker spots with peripheral rejection. Their times come from the analytic rupture time, so the top goes first. Their sizes are rn 0.2-0.45, growing down the lens.
+  - **Rim.** A rim (`s > 0.93`) holds the film until 1.2 s, then breaks into a row of beads along the bottom edge: spacing 0.12-0.18, rn 0.45-0.9, Rayleigh-Plateau style.
+  - **Drift.** The film micro structure drifts down with the water: `FilmFlow = 0.04 · ln(1 + t / 0.2)` along the gravity, frozen afterwards. It is fed to the film pass as `u_RainLensParams2.xy`.
+- **Rain flux.** `R_RainLensInput` works out the camera velocity, filtered over 0.1 s and reset on cuts. From it, the flux is `max(0, −dot(v_rain − v_cam, forward)) / 500` with `v_rain = fall · 500 u/s`, wind tilted. It is clamped to 0..2, with a 0.04 mist floor outside unless the camera looks down.
+  - Looking up into vertical rain gives 1, looking level while standing 0, running into it more, and looking down nothing.
+  - Every rain rate of the film-first model (impacts, flows, sheets, `filmRain`) scales with it, with no minimum. Impacts grow up to ×1.2 at high flux.
+  - The hybrid model keeps `facing`.
+- **Drop size.** The drawn geometry is ×0.6 by default (`p.dropSize`); `r_rainLensDropSize` multiplies on top.
 - **Rain population.** It uses the `FilmFirstTable` profiles: micro ×1.3,
   normal ×0.5, no large impacts, sizes 0.2-0.7 ref, beta 2.5.
   - Impacts feed a drop within 1.5 × its radius, so beads grow by accretion

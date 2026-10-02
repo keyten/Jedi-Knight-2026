@@ -71,6 +71,11 @@ qboolean s_emergePending;
 // and the contents test of the camera detects it too (third person, older
 // games): whichever comes first within a second wins.
 int s_lastLocalEmergeTime;
+// camera velocity for the rain flux onto the lens (front end)
+vec3_t s_fluxOrigin;
+vec3_t s_cameraVelocity;
+int s_fluxTime;
+qboolean s_fluxValid;
 
 // world space events posted since the last main view (front end)
 const int MAX_WORLD_EVENTS = 16;
@@ -111,6 +116,7 @@ qboolean s_filmFieldValid;
 float s_filmFieldAmount;
 int s_filmFieldModel;
 float s_filmFieldMicro;
+Vec2 s_filmFieldShift;
 
 const int MAX_LENS_DROPS = 128;
 const int MAX_LENS_MICRO = 256;
@@ -134,8 +140,11 @@ int DropLimit( void )
 Params CurrentParams( void )
 {
 	Params p;
+	p.filmModel = r_rainLensFilmModel->integer == 1 ? 1 : 0;
 	p.density = Com_Clamp(0.0f, 2.0f, r_rainLensDensity->value);
-	p.dropSize = Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value);
+	// the film-first model draws smaller drops: real ones on a lens are a
+	// few millimetres, not a twentieth of the view
+	p.dropSize = Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value) * (p.filmModel == 1 ? 0.6f : 1.0f);
 	p.pinning = Com_Clamp(0.1f, 4.0f, r_rainLensPinning->value);
 	p.merge = Com_Clamp(0.0f, 2.0f, r_rainLensMerge->value);
 	p.filmDecay = Com_Clamp(0.1f, 4.0f, r_rainLensFilmDecay->value);
@@ -146,8 +155,23 @@ Params CurrentParams( void )
 	p.maxDrops = DropLimit();
 	p.maxMicro = MAX_LENS_MICRO;
 	p.maxSheets = MAX_LENS_SHEETS;
-	p.filmModel = r_rainLensFilmModel->integer == 1 ? 1 : 0;
 	return p;
+}
+
+// Rain flux onto the lens: the rain velocity relative to the camera along
+// the lens normal, over the fall speed. Looking up into vertical rain is 1,
+// looking level while standing 0, running into it or a headwind more;
+// looking down nothing. A trace of spray and mist outside unless looking down.
+float RainFlux( const vec3_t fall, const vec3_t forward, qboolean outside )
+{
+	const float rainSpeed = 500.0f;	// world units / s
+	vec3_t relative;
+	VectorScale(fall, rainSpeed, relative);
+	VectorSubtract(relative, s_cameraVelocity, relative);
+	float flux = Com_Clamp(0.0f, 2.0f, -DotProduct(relative, forward) / rainSpeed);
+	if ( outside && forward[2] > -0.3f )
+		flux = Q_max(flux, 0.04f);
+	return flux;
 }
 
 Profile ProfileFromWeather( int weather, float intensity )
@@ -194,6 +218,7 @@ void ResetState( void )
 	s_motionValid = qfalse;
 	s_measureFrame = qfalse;
 	s_filmFieldValid = qfalse;
+	s_fluxValid = qfalse;
 }
 
 void DeleteGLObjects( void )
@@ -767,6 +792,27 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 
 	input->active = qtrue;
 
+	// camera velocity (rain flux), filtered; teleports and cuts restart it
+	{
+		const int dtMs = refdef->time - s_fluxTime;
+		vec3_t delta;
+		VectorSubtract(refdef->vieworg, s_fluxOrigin, delta);
+		if ( !s_fluxValid || dtMs < 0 || dtMs > 500 || VectorLength(delta) > 256.0f )
+		{
+			VectorClear(s_cameraVelocity);
+		}
+		else if ( dtMs > 0 )
+		{
+			const float dt = dtMs * 0.001f;
+			const float k = 1.0f - expf(-dt / 0.1f);
+			for ( int i = 0; i < 3; i++ )
+				s_cameraVelocity[i] += (delta[i] / dt - s_cameraVelocity[i]) * k;
+		}
+		VectorCopy(refdef->vieworg, s_fluxOrigin);
+		s_fluxTime = refdef->time;
+		s_fluxValid = qtrue;
+	}
+
 	// Leaving water seeds a lot of water at once; while submerged the lens
 	// is not drawn and entering water wipes it. Eyes bobbing at the surface
 	// must not emerge every frame: the camera has to be under for a moment,
@@ -834,6 +880,8 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		vec3_t origin;
 		VectorCopy(refdef->vieworg, origin);
 		outside = (qboolean)(tr.sunParsed && R_IsOutside(origin));
+		const vec3_t straightDown = { 0.0f, 0.0f, -1.0f };
+		input->rainFlux = RainFlux(straightDown, refdef->viewaxis[0], qtrue);
 	}
 	else if ( rain && rain->active && !inWater )
 	{
@@ -861,6 +909,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		}
 		VectorNormalize(fall);
 		input->facing = Com_Clamp(0.0f, 1.0f, -DotProduct(refdef->viewaxis[0], fall));
+		input->rainFlux = RainFlux(fall, refdef->viewaxis[0], outside);
 
 		// wind in lens space (viewaxis[1] points left), a hint for sheets
 		vec3_t wind;
@@ -997,6 +1046,7 @@ qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 	in.intensity = input->intensity;
 	in.exposed = input->exposed;
 	in.facing = input->facing;
+	in.rainFlux = input->rainFlux;
 	in.weather = ProfileFromWeather(input->weather, input->intensity);
 	// World gravity on the lens plane. viewaxis[1] points left; lens X
 	// points right and lens Y up, so looking up or down leaves little
@@ -1122,8 +1172,11 @@ void RB_RainLens( FBO_t *srcFbo )
 	const qboolean filmVisible = (qboolean)(renderFilm && tr.rainLensFilmFieldFbo);
 	const float filmAmount = Com_Clamp(0.0f, 2.0f, r_rainLensFilm->value);
 	const float filmMicro = Com_Clamp(0.0f, 4.0f, r_rainLensFilmMicro->value);
+	// film-first: the micro structure drifts with the draining water
+	const Vec2 filmShift = s_water.FilmFlow();
 	if ( filmVisible && (!s_filmFieldValid || filmAmount != s_filmFieldAmount
-		|| params.filmModel != s_filmFieldModel || filmMicro != s_filmFieldMicro) )
+		|| params.filmModel != s_filmFieldModel || filmMicro != s_filmFieldMicro
+		|| filmShift.x != s_filmFieldShift.x || filmShift.y != s_filmFieldShift.y) )
 	{
 		FBO_Bind(tr.rainLensFilmFieldFbo);
 		GL_SetViewportAndScissor(0, 0, tr.rainLensFilmFieldFbo->width, tr.rainLensFilmFieldFbo->height);
@@ -1134,7 +1187,8 @@ void RB_RainLens( FBO_t *srcFbo )
 		// z, w: film-first model, its micro refraction
 		VectorSet4(params1, aspect, filmAmount, (float)params.filmModel, filmMicro);
 		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS, params1);
-		VectorSet4(params2, 0.0f, 0.0f,
+		// xy: noise lookup offset, the pattern moves by -xy
+		VectorSet4(params2, -filmShift.x, -filmShift.y,
 			(float)tr.rainLensFilmFieldFbo->width, (float)tr.rainLensFilmFieldFbo->height);
 		GLSL_SetUniformVec4(film, UNIFORM_RAINLENSPARAMS2, params2);
 		RB_InstantTriangle();
@@ -1142,6 +1196,7 @@ void RB_RainLens( FBO_t *srcFbo )
 		s_filmFieldAmount = filmAmount;
 		s_filmFieldModel = params.filmModel;
 		s_filmFieldMicro = filmMicro;
+		s_filmFieldShift = filmShift;
 	}
 
 	// the blit is scissored too: the field's rectangle first
