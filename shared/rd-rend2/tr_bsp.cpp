@@ -2516,7 +2516,7 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 		ri.Printf(PRINT_ALL, "[map load] %-28s %6d ms (%d lookups)\n",
 			"surfaces shader lookup", (int)(s_surfaceShaderLookupUsec / 1000),
 			s_surfaceShaderLookupCount);
-	R_ShaderLoadProfileEnd();
+	R_ShaderLoadProfileEnd("BSP surface materials");
 	stageStart = ri.Milliseconds();
 
 	if (tangentSpace)
@@ -5070,6 +5070,7 @@ void RE_LoadWorldMap( const char *name ) {
 		ri.Printf(PRINT_ALL, "[map load] profile module: Rend2 DLL v%d (%s %s)\n",
 			MAP_LOAD_PROFILE_REND2_VERSION, __DATE__, __TIME__);
 	R_ModelLoadProfileCheckpoint("before world map");
+	R_ShaderLoadProfileEnd("pre-world media");
 	if (tr.worldMapLoaded)
 	{
 		ri.Error(ERR_DROP, "ERROR: attempted to redundantly load world map");
@@ -5154,5 +5155,5 @@ void RE_LoadWorldMap( const char *name ) {
 	R_LoadProfilePrint("world cubemap rendering", cubemapStart);
 	R_LoadProfilePrint("world total", loadStart);
 	R_ModelLoadProfileCheckpoint("world map");
-	if (R_LoadProfileEnabled()) R_ImageLoadProfileBegin();
+	if (R_LoadProfileEnabled()) R_ShaderLoadProfileBegin();
 }

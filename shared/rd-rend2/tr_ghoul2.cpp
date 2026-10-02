@@ -17,6 +17,7 @@
 #include "qcommon/disablewarnings.h"
 #endif // !REND2_SP
 #include "tr_cache.h"
+#include <chrono>
 
 #define	LL(x) x=LittleLong(x)
 
@@ -4438,7 +4439,10 @@ qboolean R_LoadMDXM(model_t *mod, void *buffer, const char *mod_name, qboolean &
 
 		shader_t	*sh;
 		// get the shader name
+		const auto shaderStart = std::chrono::steady_clock::now();
 		sh = R_FindShader( surfInfo->shader, lightmapsNone, stylesDefault, qtrue );
+		R_ModelProfileShaderLookup(std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - shaderStart).count());
 		// insert it in the surface list
 		if ( sh->defaultShader )
 		{

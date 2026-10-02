@@ -731,8 +731,8 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 	const int profileStart = s_profileGameMapLoad ? gi.Milliseconds() : 0;
 	int stageStart = profileStart;
 	if (s_profileGameMapLoad)
-		gi.Printf("[map load] profile module: SP game DLL v%d (%s %s), server init\n",
-			MAP_LOAD_PROFILE_GAME_DLL_VERSION, __DATE__, __TIME__);
+		gi.Printf("[map load] profile module: SP game DLL v%d, server init\n",
+			MAP_LOAD_PROFILE_GAME_DLL_VERSION);
 	//rww - default this to 0, we will auto-set it to 1 if we run into a terrain ent
 	gi.cvar_set("RMG", "0");
 

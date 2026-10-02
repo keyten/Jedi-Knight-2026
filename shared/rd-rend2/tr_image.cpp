@@ -33,7 +33,7 @@ namespace {
 using ImageProfileClock = std::chrono::steady_clock;
 struct ImageLoadProfile {
 	bool active = false;
-	int cacheHits = 0, fileLookups = 0, imagesCreated = 0;
+	int cacheHits = 0, fileLookups = 0, fileMisses = 0, imagesCreated = 0;
 	int normalLookups = 0, normalGenerated = 0, autoRoughnessGenerated = 0;
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
@@ -75,8 +75,8 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 	if (!imageLoadProfile.active) return;
 	imageLoadProfile.active = false;
 	ri.Printf(PRINT_ALL, "[map load] image profile phase: %s\n", phase);
-	ri.Printf(PRINT_ALL, "[map load] image breakdown: %d cached, %d file lookups, %d created; file/decode %lld ms, prepare %lld ms, create/upload %lld ms\n",
-		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.imagesCreated,
+	ri.Printf(PRINT_ALL, "[map load] image breakdown: %d cached, %d file lookups, %d misses, %d created; file/decode %lld ms, prepare %lld ms, create/upload %lld ms\n",
+		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.fileMisses, imageLoadProfile.imagesCreated,
 		imageLoadProfile.fileLoadUs / 1000, imageLoadProfile.imagePrepareUs / 1000,
 		imageLoadProfile.createUs / 1000);
 	ri.Printf(PRINT_ALL, "[map load] image prepare: normal generation %lld ms, emissive color %lld ms\n",
@@ -3643,6 +3643,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	if (imageLoadProfile.active) imageLoadProfile.fileLoadUs += ImageElapsedUs(fileLoadStart);
 
 	if ( pic == NULL ) {
+		if (imageLoadProfile.active) ++imageLoadProfile.fileMisses;
 		return NULL;
 	}
 	const auto prepareStart = ImageProfileClock::now();

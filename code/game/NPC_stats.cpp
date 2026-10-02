@@ -1577,6 +1577,9 @@ Precaches NPC skins, tgas and md3s.
 */
 void CG_NPC_Precache ( gentity_t *spawner )
 {
+	const bool profileMapLoad = gi.cvar("r_loadProfile", "0", 0)->integer != 0;
+	const int profileStart = profileMapLoad ? gi.Milliseconds() : 0;
+	int profileParse = 0, profileRender = 0;
 	clientInfo_t	ci={};
 	renderInfo_t	ri={};
 	team_t			playerTeam = TEAM_FREE;
@@ -1888,6 +1891,7 @@ void CG_NPC_Precache ( gentity_t *spawner )
 	}
 
 	COM_EndParseSession(  );
+	if (profileMapLoad) profileParse = gi.Milliseconds() - profileStart;
 
 	if ( md3Model )
 	{
@@ -1910,6 +1914,7 @@ void CG_NPC_Precache ( gentity_t *spawner )
 		// lets see if it's out there
 		gi.RE_RegisterSkin( skinName );
 	}
+	if (profileMapLoad) profileRender = gi.Milliseconds() - profileStart - profileParse;
 
 	//precache this NPC's possible weapons
 	NPC_PrecacheWeapons( playerTeam, spawner->spawnflags, spawner->NPC_type );
@@ -1918,6 +1923,10 @@ void CG_NPC_Precache ( gentity_t *spawner )
 	NPC_PrecacheByClassName( spawner->NPC_type );
 
 	CG_RegisterNPCCustomSounds( &ci );
+	if (profileMapLoad && gi.Milliseconds() - profileStart >= 50)
+		gi.Printf("[map load] NPC precache %s: definition/inline assets %d ms, model/skin %d ms, weapons/class/sounds %d ms\n",
+			spawner->NPC_type, profileParse, profileRender,
+			gi.Milliseconds() - profileStart - profileParse - profileRender);
 
 	//CG_RegisterNPCEffects( playerTeam );
 	//FIXME: Look for a "sounds" directory and precache death, pain, alert sounds

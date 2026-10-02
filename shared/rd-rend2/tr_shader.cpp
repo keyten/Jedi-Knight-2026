@@ -64,10 +64,11 @@ void R_ShaderLoadProfileBegin( void ) {
 	R_ImageLoadProfileBegin();
 }
 
-void R_ShaderLoadProfileEnd( void ) {
+void R_ShaderLoadProfileEnd( const char *phase ) {
 	if (!shaderLoadProfile.active) return;
 	shaderLoadProfile.active = false;
-	R_ImageLoadProfileEnd("BSP surface materials");
+	R_ImageLoadProfileEnd(phase);
+	ri.Printf(PRINT_ALL, "[map load] R_FindShader phase: %s\n", phase);
 	ri.Printf(PRINT_ALL, "[map load] R_FindShader breakdown: %d calls, %d cache hits, %d text hits, %d text misses, %d image lookups\n",
 		shaderLoadProfile.calls, shaderLoadProfile.cacheHits, shaderLoadProfile.textHits,
 		shaderLoadProfile.textMisses, shaderLoadProfile.imageLookups);

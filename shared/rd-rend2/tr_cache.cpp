@@ -1,8 +1,10 @@
 // tr_cache.cpp - Cache models, images, and more..
 
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 #include "tr_cache.h"
 #include <algorithm>
+#include <chrono>
 
 namespace
 {
@@ -63,12 +65,24 @@ static const byte FakeGLAFile[] =
 
 qboolean CModelCacheManager::LoadFile( const char *pFileName, void **ppFileBuffer, qboolean *pbAlreadyCached )
 {
+	struct FileTimer {
+		bool enabled;
+		int kind = 2; // absent; 0 = cached, 1 = read from VFS
+		std::chrono::steady_clock::time_point start;
+		FileTimer() : enabled(R_LoadProfileEnabled()),
+			start(enabled ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{}) {}
+		~FileTimer() {
+			if (enabled) R_ModelProfileFileAccess(kind,
+				std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start).count());
+		}
+	} timer;
 	char path[MAX_QPATH];
 	NormalizePath(path, pFileName, sizeof(path));
 
 	auto cacheEntry = FindFile(path);
 	if ( cacheEntry != std::end(files) )
 	{
+		timer.kind = 0;
 		*ppFileBuffer = cacheEntry->pDiskImage;
 		*pbAlreadyCached = qtrue;
 
@@ -85,6 +99,7 @@ qboolean CModelCacheManager::LoadFile( const char *pFileName, void **ppFileBuffe
 
 		memcpy(pvFakeGLAFile, &FakeGLAFile[0], sizeof (FakeGLAFile));
 		*ppFileBuffer = pvFakeGLAFile;
+		timer.kind = 1;
 
 		return qtrue;
 	}
@@ -96,6 +111,7 @@ qboolean CModelCacheManager::LoadFile( const char *pFileName, void **ppFileBuffe
 	}
 
 	ri.Printf( PRINT_DEVELOPER, "C_LoadFile(): Loaded %s from disk\n", pFileName );
+	timer.kind = 1;
 
 	return qtrue;
 }

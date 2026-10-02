@@ -1914,8 +1914,8 @@ static void CG_GameStateReceived( void ) {
 	s_profileMapLoad = profileMapLoad;
 	int stageStart = profileMapLoad ? cgi_Milliseconds() : 0;
 	if (profileMapLoad)
-		cgi_Printf(va("[map load] profile module: SP game DLL v%d (%s %s)\n",
-			MAP_LOAD_PROFILE_GAME_DLL_VERSION, __DATE__, __TIME__));
+		cgi_Printf(va("[map load] profile module: SP game DLL v%d, cgame init\n",
+			MAP_LOAD_PROFILE_GAME_DLL_VERSION));
 	// clear everything
 
 	extern void CG_ClearAnimEvtCache( void );

@@ -2650,6 +2650,8 @@ UI_Init
 */
 void _UI_Init( qboolean inGameLoad )
 {
+	const bool profileMapLoad = Cvar_VariableIntegerValue("r_loadProfile") != 0;
+	int profileStage = profileMapLoad ? Sys_Milliseconds() : 0;
 	renderSettings.clear();
 	renderSettingsInitialized = false;
 	Cvar_Set("ui_r2026_restartPending", "0");
@@ -2671,6 +2673,9 @@ void _UI_Init( qboolean inGameLoad )
 	UI_RegisterCvars();
 
 	UI_InitMemory();
+	if (profileMapLoad)
+		Com_Printf("[map load] UI language/cvars/memory %d ms\n", Sys_Milliseconds() - profileStage);
+	profileStage = profileMapLoad ? Sys_Milliseconds() : 0;
 
 	// cache redundant calulations
 	trap_GetGlconfig( &uiInfo.uiDC.glconfig );
@@ -2745,6 +2750,9 @@ void _UI_Init( qboolean inGameLoad )
 	uiInfo.uiDC.g2hilev_SetAnim = UI_G2SetAnim;
 
 	UI_BuildPlayerModel_List(inGameLoad);
+	if (profileMapLoad)
+		Com_Printf("[map load] UI player model list %d ms\n", Sys_Milliseconds() - profileStage);
+	profileStage = profileMapLoad ? Sys_Milliseconds() : 0;
 
 	String_Init();
 
@@ -2765,12 +2773,17 @@ void _UI_Init( qboolean inGameLoad )
 	{
 		UI_LoadMenus(menuSet, qtrue);
 	}
+	if (profileMapLoad)
+		Com_Printf("[map load] UI menu parse %d ms\n", Sys_Milliseconds() - profileStage);
+	profileStage = profileMapLoad ? Sys_Milliseconds() : 0;
 
 	Menus_CloseAll();
 
 	uiInfo.uiDC.whiteShader = ui.R_RegisterShaderNoMip( "white" );
 
 	AssetCache();
+	if (profileMapLoad)
+		Com_Printf("[map load] UI shader assets %d ms\n", Sys_Milliseconds() - profileStage);
 
 	uis.debugMode = qfalse;
 

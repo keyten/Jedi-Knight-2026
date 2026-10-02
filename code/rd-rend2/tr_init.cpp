@@ -3397,7 +3397,7 @@ void RE_EndRegistration( void ) {
 	const int start = ri.Milliseconds();
 	R_IssuePendingRenderCommands();
 	R_LoadProfilePrint("renderer pending uploads", start);
-	R_ImageLoadProfileEnd("post-world media");
+	R_ShaderLoadProfileEnd("post-world media");
 	R_ModelLoadProfileEnd();
 	/*
 	if (!ri.Sys_LowPhysicalMemory()) {

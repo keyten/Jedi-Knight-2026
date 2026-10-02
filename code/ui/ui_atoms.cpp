@@ -267,7 +267,11 @@ void UI_Init( int apiVersion, uiimport_t *uiimport, qboolean inGameLoad )
 	uis.scaley = uis.glconfig.vidHeight * (1.0/480.0);
 	uis.scalex = uis.glconfig.vidWidth * (1.0/640.0);
 
+	const bool profileMapLoad = Cvar_VariableIntegerValue("r_loadProfile") != 0;
+	const int menuCacheStart = profileMapLoad ? Sys_Milliseconds() : 0;
 	Menu_Cache( );
+	if (profileMapLoad)
+		Com_Printf("[map load] UI Menu_Cache %d ms\n", Sys_Milliseconds() - menuCacheStart);
 
 	ui.Cvar_Create( "cg_drawCrosshair", "1", CVAR_ARCHIVE );
 	ui.Cvar_Create( "cg_marks", "1", CVAR_ARCHIVE );

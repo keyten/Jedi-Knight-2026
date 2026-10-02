@@ -34,6 +34,8 @@ struct ModelLoadProfile {
 	bool active = false;
 	int calls = 0, cacheHits = 0;
 	long long totalUs = 0, cacheUs = 0, loadUs = 0;
+	int fileCacheHits = 0, fileReads = 0, fileMisses = 0, shaderLookups = 0;
+	long long fileCacheUs = 0, fileReadUs = 0, fileMissUs = 0, shaderUs = 0;
 	mapLoadTopEntry_t slowModels[12] = {};
 };
 ModelLoadProfile modelLoadProfile;
@@ -61,6 +63,18 @@ struct ModelCallTimer {
 };
 }
 
+void R_ModelProfileFileAccess( int kind, long long usec ) {
+	if (!modelLoadProfile.active) return;
+	if (kind == 0) { ++modelLoadProfile.fileCacheHits; modelLoadProfile.fileCacheUs += usec; }
+	else if (kind == 1) { ++modelLoadProfile.fileReads; modelLoadProfile.fileReadUs += usec; }
+	else { ++modelLoadProfile.fileMisses; modelLoadProfile.fileMissUs += usec; }
+}
+void R_ModelProfileShaderLookup( long long usec ) {
+	if (!modelLoadProfile.active) return;
+	++modelLoadProfile.shaderLookups;
+	modelLoadProfile.shaderUs += usec;
+}
+
 void R_ModelLoadProfileBegin( void ) {
 	modelLoadProfile = ModelLoadProfile{};
 	modelLoadProfile.active = R_LoadProfileEnabled();
@@ -72,6 +86,10 @@ void R_ModelLoadProfileCheckpoint( const char *phase ) {
 		phase,
 		modelLoadProfile.calls, modelLoadProfile.cacheHits, modelLoadProfile.totalUs / 1000,
 		modelLoadProfile.cacheUs / 1000, modelLoadProfile.loadUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] model file cache/read/miss: %d/%d/%d calls, %lld/%lld/%lld ms; surface shaders: %d calls, %lld ms (nested)\n",
+		modelLoadProfile.fileCacheHits, modelLoadProfile.fileReads, modelLoadProfile.fileMisses,
+		modelLoadProfile.fileCacheUs / 1000, modelLoadProfile.fileReadUs / 1000,
+		modelLoadProfile.fileMissUs / 1000, modelLoadProfile.shaderLookups, modelLoadProfile.shaderUs / 1000);
 	for (int i = 0; i < 12 && modelLoadProfile.slowModels[i].usec; ++i)
 		ri.Printf(PRINT_ALL, "[map load] slow model %d: %lld ms %s\n", i + 1,
 			modelLoadProfile.slowModels[i].usec / 1000, modelLoadProfile.slowModels[i].name);
@@ -1087,7 +1105,10 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		{
 			shader_t       *sh;
 
+			const auto shaderStart = ModelProfileClock::now();
 			sh = R_FindShader(md3Shader->name, lightmapsNone, stylesDefault, qtrue);
+			R_ModelProfileShaderLookup(std::chrono::duration_cast<std::chrono::microseconds>(
+				ModelProfileClock::now() - shaderStart).count());
 			if(sh->defaultShader)
 			{
 				*shaderIndex = 0;
@@ -1730,6 +1751,7 @@ void R_SVModelInit()
 	// R_Init now makes sure its only doing its thing once unless everything is destructed again
 	R_Init();
 	R_ModelLoadProfileBegin();
+	if (R_LoadProfileEnabled()) R_ShaderLoadProfileBegin();
 }
 
 /*
