@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_cache.h"
 #include "tr_weather.h"
+#include <chrono>
 #include <vector>
 
 #include <cmath>
@@ -851,6 +852,9 @@ static void R_LoadVisibility( world_t *worldData, lump_t *l ) {
 ShaderForShaderNum
 ===============
 */
+static long long s_surfaceShaderLookupUsec;
+static int s_surfaceShaderLookupCount;
+static bool s_profileSurfaceShaders;
 static shader_t *ShaderForShaderNum( const world_t *worldData, int shaderNum, const int *lightmapNums, const byte *lightmapStyles, const byte *vertexStyles ) {
 	shader_t	*shader;
 	dshader_t	*dsh;
@@ -875,7 +879,16 @@ static shader_t *ShaderForShaderNum( const world_t *worldData, int shaderNum, co
 		lightmapNums = lightmapsFullBright;
 	}
 
+	const bool profileLookup = s_profileSurfaceShaders;
+	const auto lookupStart = profileLookup ? std::chrono::steady_clock::now() :
+		std::chrono::steady_clock::time_point();
 	shader = R_FindShader( dsh->shader, lightmapNums, styles, qtrue );
+	if (profileLookup)
+	{
+		s_surfaceShaderLookupUsec += std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - lookupStart).count();
+		++s_surfaceShaderLookupCount;
+	}
 
 	// if the shader had errors, just use default shader
 	if ( shader->defaultShader ) {
@@ -2360,6 +2373,8 @@ R_LoadSurfaces
 ===============
 */
 static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
+	const int surfacesStart = ri.Milliseconds();
+	int stageStart = surfacesStart;
 	dsurface_t	*in;
 	msurface_t	*out;
 	drawVert_t	*dv;
@@ -2426,6 +2441,12 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 		if ((unsigned)size != sizeof(tangentSpace[0]) * verts->filelen / sizeof(*dv))
 			ri.Error(ERR_DROP, "Bad size for %s (%i, expected %i)!", filename, size, (int)(sizeof(float) * 4 * verts->filelen / sizeof(*dv)));
 	}
+	R_LoadProfilePrint("surfaces alloc/sidecar reads", stageStart);
+	stageStart = ri.Milliseconds();
+	s_profileSurfaceShaders = R_LoadProfileEnabled();
+	s_surfaceShaderLookupUsec = 0;
+	s_surfaceShaderLookupCount = 0;
+	if (s_profileSurfaceShaders) R_ShaderLoadProfileBegin();
 
 
 	// Two passes, allocate surfaces first, then load them full of data
@@ -2489,6 +2510,14 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 		}
 	}
 
+	R_LoadProfilePrint("surfaces parse/materials", stageStart);
+	if (R_LoadProfileEnabled())
+		ri.Printf(PRINT_ALL, "[map load] %-28s %6d ms (%d lookups)\n",
+			"surfaces shader lookup", (int)(s_surfaceShaderLookupUsec / 1000),
+			s_surfaceShaderLookupCount);
+	R_ShaderLoadProfileEnd();
+	stageStart = ri.Milliseconds();
+
 	if (tangentSpace)
 		ri.FS_FreeFile(tangentSpace);
 
@@ -2506,6 +2535,8 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 	if ( r_patchStitching->integer ) {
 		R_MovePatchSurfacesToHunk(worldData);
 	}
+	R_LoadProfilePrint("surfaces patch stitching/LOD", stageStart);
+	R_LoadProfilePrint("surfaces total", surfacesStart);
 
 	ri.Printf( PRINT_ALL, "...loaded %d faces, %i meshes, %i trisurfs, %i flares\n",
 		numFaces, numMeshes, numTriSurfs, numFlares );
@@ -5062,11 +5093,14 @@ void RE_LoadWorldMap( const char *name ) {
 	// LTC area lights: maps/<map>.arealights.json, else r_ltcAutoAreaLights
 	// candidates from the emissive surfaces (used with r_ltcAreaLights)
 	R_LoadAreaLights(world->baseName);
+	R_LoadProfilePrint("world area lights", postBspStart);
+	const int staticLightingStart = ri.Milliseconds();
 
 	// static lighting reconstruction (froxel fog: light grid split by the sun, the
 	// directional baked light moments, the promoted lights), anchored to the static
 	// area emitters found above
 	R_BuildStaticLighting(world);
+	R_LoadProfilePrint("world static lighting", staticLightingStart);
 	R_LoadProfilePrint("world post-BSP and lighting", postBspStart);
 
 	R_UpdateFixedExposureLevel();

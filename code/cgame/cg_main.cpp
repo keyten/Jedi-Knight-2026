@@ -1365,6 +1365,7 @@ static void CG_RegisterGraphics( void ) {
 	cgi_R_LoadWorldMap( cgs.mapname );
 	if (s_profileMapLoad)
 		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame world map", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	cg.loadLCARSStage = 4;
 	CG_LoadingString( "game media shaders" );
@@ -1600,6 +1601,9 @@ static void CG_RegisterGraphics( void ) {
 	}
 
 	cg.loadLCARSStage = 7;
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame shared media/items", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 	CG_LoadingString("map models");
 	// register all the server specified models
 	for (i=1 ; i<MAX_MODELS ; i++) {
@@ -1614,6 +1618,9 @@ static void CG_RegisterGraphics( void ) {
 	}
 
 	cg.loadLCARSStage = 8;
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame map models", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 /*
 Ghoul2 Insert Start
@@ -1639,6 +1646,9 @@ Ghoul2 Insert End
 		//feedback( va("client %i", i ) );
 		CG_NewClientinfo( i );
 	}
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame skins/clientinfo", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	for (i=0 ; i < ENTITYNUM_WORLD ; i++)
 	{
@@ -1712,6 +1722,9 @@ Ghoul2 Insert End
 
 	CG_LoadingString( "static models" );
 	CG_CreateMiscEnts();
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame NPC/static models", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	cg.loadLCARSStage = 9;
 
@@ -1785,6 +1798,8 @@ Ghoul2 Insert End
 		// Send off the terrainInfo to the renderer
 		cgi_RE_InitRendererTerrain( terrainInfo );
 	}
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame BSP instances/terrain", cgi_Milliseconds() - stageStart));
 }
 
 //===========================================================================

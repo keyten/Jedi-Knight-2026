@@ -4483,6 +4483,10 @@ extern const int lightmapsFullBright[MAXLIGHTMAPS];
 extern const byte stylesDefault[MAXLIGHTMAPS];
 
 shader_t	*R_FindShader( const char *name, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage );
+void R_ShaderLoadProfileBegin( void );
+void R_ShaderLoadProfileEnd( void );
+void R_ImageLoadProfileBegin( void );
+void R_ImageLoadProfileEnd( void );
 shader_t	*R_GetShaderByHandle( qhandle_t hShader );
 shader_t *R_FindShaderByName( const char *name );
 void		R_InitShaders( qboolean server );

@@ -334,12 +334,21 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 		sv.time += 100;
 		re.G2API_SetTime(sv.time,G2T_SV_TIME);
 	}
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server settle frames", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 #ifndef JK2_MODE
 	ge->ConnectNavs(sv_mapname->string, sv_mapChecksum->integer);
 #endif
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server connect navs", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server baseline", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	for (i=0 ; i<1 ; i++) {
 		// clear all time counters, because we have reset sv.time
@@ -363,11 +372,17 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 			}
 		}
 	}
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server reconnect client", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	// run another frame to allow things to look at all connected clients
 	ge->RunFrame( sv.time );
 	sv.time += 100;
 	re.G2API_SetTime(sv.time,G2T_SV_TIME);
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server final frame", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 
 	// save systeminfo and serverinfo strings
@@ -386,11 +401,12 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 	Z_Validate();
 	Z_Validate();
 	Z_Validate();
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server config/zone checks", Sys_Milliseconds() - stageStart);
 
 	Com_Printf ("-----------------------------------\n");
 	if (loadProfile)
 	{
-		Com_Printf("[map load] %-28s %6d ms\n", "server finalize", Sys_Milliseconds() - stageStart);
 		Com_Printf("[map load] %-28s %6d ms\n", "server phase total", Sys_Milliseconds() - loadStart);
 	}
 }

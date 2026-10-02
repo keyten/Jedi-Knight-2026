@@ -20,10 +20,55 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 #include "tr_local.h"
+#include <chrono>
 
 // tr_shader.c -- this file deals with the parsing and definition of shaders
 
 static char *s_shaderText;
+
+namespace {
+using ShaderProfileClock = std::chrono::steady_clock;
+struct ShaderLoadProfile {
+	bool active = false;
+	int calls = 0, cacheHits = 0, textHits = 0, textMisses = 0;
+	int linearScans = 0, linearHits = 0, imageLookups = 0;
+	long long totalUs = 0, hashUs = 0, linearUs = 0;
+	long long parseUs = 0, imageUs = 0, finishUs = 0;
+};
+ShaderLoadProfile shaderLoadProfile;
+long long ShaderElapsedUs(ShaderProfileClock::time_point start) {
+	return std::chrono::duration_cast<std::chrono::microseconds>(ShaderProfileClock::now() - start).count();
+}
+struct ShaderCallTimer {
+	ShaderProfileClock::time_point start;
+	ShaderCallTimer() : start(ShaderProfileClock::now()) {
+		if (shaderLoadProfile.active) ++shaderLoadProfile.calls;
+	}
+	~ShaderCallTimer() {
+		if (shaderLoadProfile.active) shaderLoadProfile.totalUs += ShaderElapsedUs(start);
+	}
+};
+}
+
+void R_ShaderLoadProfileBegin( void ) {
+	shaderLoadProfile = ShaderLoadProfile{};
+	shaderLoadProfile.active = true;
+	R_ImageLoadProfileBegin();
+}
+
+void R_ShaderLoadProfileEnd( void ) {
+	if (!shaderLoadProfile.active) return;
+	shaderLoadProfile.active = false;
+	R_ImageLoadProfileEnd();
+	ri.Printf(PRINT_ALL, "[map load] R_FindShader breakdown: %d calls, %d cache hits, %d text hits, %d text misses, %d image lookups\n",
+		shaderLoadProfile.calls, shaderLoadProfile.cacheHits, shaderLoadProfile.textHits,
+		shaderLoadProfile.textMisses, shaderLoadProfile.imageLookups);
+	ri.Printf(PRINT_ALL, "[map load] R_FindShader time: total %lld ms; script hash %lld ms, full scans %lld ms (%d scans, %d hits), parse %lld ms, image %lld ms, finish %lld ms\n",
+		shaderLoadProfile.totalUs / 1000, shaderLoadProfile.hashUs / 1000,
+		shaderLoadProfile.linearUs / 1000, shaderLoadProfile.linearScans, shaderLoadProfile.linearHits,
+		shaderLoadProfile.parseUs / 1000, shaderLoadProfile.imageUs / 1000,
+		shaderLoadProfile.finishUs / 1000);
+}
 
 // the shader is parsed into these global variables, then copied into
 // dynamically allocated memory if it is valid.
@@ -4904,6 +4949,7 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 	const char *p;
 
 	int i, hash;
+	const auto hashStart = ShaderProfileClock::now();
 
 	hash = generateHashValue(shadername, MAX_SHADERTEXT_HASH);
 
@@ -4914,33 +4960,16 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 			p = shaderTextHashTable[hash][i];
 			token = COM_ParseExt(&p, qtrue);
 
-			if(!Q_stricmp(token, shadername))
+			if(!Q_stricmp(token, shadername)) {
+				if (shaderLoadProfile.active) shaderLoadProfile.hashUs += ShaderElapsedUs(hashStart);
 				return p;
+			}
 		}
 	}
+	if (shaderLoadProfile.active) shaderLoadProfile.hashUs += ShaderElapsedUs(hashStart);
 
-	p = s_shaderText;
-
-	if ( !p ) {
-		return NULL;
-	}
-
-	// look for label
-	while ( 1 ) {
-		token = COM_ParseExt( &p, qtrue );
-		if ( token[0] == 0 ) {
-			break;
-		}
-
-		if ( !Q_stricmp( token, shadername ) ) {
-			return p;
-		}
-		else {
-			// skip the definition
-			SkipBracedSection( &p, 0 );
-		}
-	}
-
+	// ScanAndLoadShaderFiles indexes every definition in the same text with
+	// generateHashValue. A bucket miss is therefore a definitive miss.
 	return NULL;
 }
 
@@ -5060,6 +5089,7 @@ most world construction surfaces.
 ===============
 */
 shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage ) {
+	ShaderCallTimer profileCall;
 	char		strippedName[MAX_QPATH];
 	int			hash, flags;
 	const char	*shaderText;
@@ -5096,6 +5126,7 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		// with that same strippedName a new default shader is created.
 		if ( IsShader (sh, strippedName, lightmapIndexes, styles) ) {
 			// match found
+			if (shaderLoadProfile.active) ++shaderLoadProfile.cacheHits;
 			return sh;
 		}
 	}
@@ -5127,22 +5158,28 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 #endif
 	shaderText = FindShaderInShaderText( strippedName );
 	if ( shaderText ) {
+		if (shaderLoadProfile.active) ++shaderLoadProfile.textHits;
 		// enable this when building a pak file to get a global list
 		// of all explicit shaders
 		if ( r_printShaders->integer ) {
 			ri.Printf( PRINT_ALL, "*SHADER* %s\n", name );
 		}
 
+		const auto parseStart = ShaderProfileClock::now();
 		if ( !ParseShader( &shaderText ) ) {
 			// had errors, so use default shader
 			shader.defaultShader = qtrue;
 		}
+		if (shaderLoadProfile.active) shaderLoadProfile.parseUs += ShaderElapsedUs(parseStart);
+		const auto finishStart = ShaderProfileClock::now();
 		sh = FinishShader();
+		if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
 #ifdef REND2_SP
 		COM_EndParseSession();
 #endif
 		return sh;
 	}
+	if (shaderLoadProfile.active) ++shaderLoadProfile.textMisses;
 #ifdef REND2_SP
 	COM_EndParseSession();
 #endif
@@ -5170,11 +5207,17 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		flags |= IMGFLAG_CLAMPTOEDGE;
 	}
 
+	const auto imageStart = ShaderProfileClock::now();
+	if (shaderLoadProfile.active) ++shaderLoadProfile.imageLookups;
 	image = R_FindImageFile( strippedName, IMGTYPE_COLORALPHA, flags );
+	if (shaderLoadProfile.active) shaderLoadProfile.imageUs += ShaderElapsedUs(imageStart);
 	if ( !image ) {
 		ri.Printf( PRINT_DEVELOPER, "Couldn't find image file for shader %s\n", name );
 		shader.defaultShader = qtrue;
-		return FinishShader();
+		const auto finishStart = ShaderProfileClock::now();
+		sh = FinishShader();
+		if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
+		return sh;
 	}
 
 	//
@@ -5230,7 +5273,10 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	}
 
-	return FinishShader();
+	const auto finishStart = ShaderProfileClock::now();
+	sh = FinishShader();
+	if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
+	return sh;
 }
 
 shader_t *R_FindServerShader( const char *name, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage )

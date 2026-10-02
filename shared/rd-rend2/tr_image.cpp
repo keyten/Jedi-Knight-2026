@@ -26,6 +26,43 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_smaa.h"
 
 #include <algorithm>
+#include <chrono>
+
+namespace {
+using ImageProfileClock = std::chrono::steady_clock;
+struct ImageLoadProfile {
+	bool active = false;
+	int cacheHits = 0, fileLookups = 0, imagesCreated = 0;
+	long long fileLoadUs = 0, imagePrepareUs = 0, createUs = 0;
+};
+ImageLoadProfile imageLoadProfile;
+long long ImageElapsedUs(ImageProfileClock::time_point start) {
+	return std::chrono::duration_cast<std::chrono::microseconds>(ImageProfileClock::now() - start).count();
+}
+struct ImageCreateTimer {
+	ImageProfileClock::time_point start;
+	ImageCreateTimer() : start(ImageProfileClock::now()) {
+		if (imageLoadProfile.active) ++imageLoadProfile.imagesCreated;
+	}
+	~ImageCreateTimer() {
+		if (imageLoadProfile.active) imageLoadProfile.createUs += ImageElapsedUs(start);
+	}
+};
+}
+
+void R_ImageLoadProfileBegin( void ) {
+	imageLoadProfile = ImageLoadProfile{};
+	imageLoadProfile.active = true;
+}
+
+void R_ImageLoadProfileEnd( void ) {
+	if (!imageLoadProfile.active) return;
+	imageLoadProfile.active = false;
+	ri.Printf(PRINT_ALL, "[map load] image breakdown: %d cached, %d file lookups, %d created; file/decode %lld ms, prepare %lld ms, create/upload %lld ms\n",
+		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.imagesCreated,
+		imageLoadProfile.fileLoadUs / 1000, imageLoadProfile.imagePrepareUs / 1000,
+		imageLoadProfile.createUs / 1000);
+}
 
 static byte			 s_intensitytable[256];
 static unsigned char s_gammatable[256];
@@ -2345,6 +2382,7 @@ This is the only way any 2d image_t are created
 ================
 */
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, int flags, int internalFormat ) {
+	ImageCreateTimer profileCreate;
 	image_t		*image;
 	qboolean	isLightmap = qfalse;
 	long		hash;
@@ -3507,8 +3545,12 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		return NULL;
 	}
 
-	if ((image = R_GetLoadedImage(name, flags)) != NULL)
+	if ((image = R_GetLoadedImage(name, flags)) != NULL) {
+		if (imageLoadProfile.active) ++imageLoadProfile.cacheHits;
 		return image;
+	}
+	if (imageLoadProfile.active) ++imageLoadProfile.fileLookups;
+	const auto fileLoadStart = ImageProfileClock::now();
 
 	//
 	// load the pic from disk
@@ -3542,10 +3584,12 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	{
 		R_LoadImage(name, &pic, &width, &height);
 	}
+	if (imageLoadProfile.active) imageLoadProfile.fileLoadUs += ImageElapsedUs(fileLoadStart);
 
 	if ( pic == NULL ) {
 		return NULL;
 	}
+	const auto prepareStart = ImageProfileClock::now();
 
 	if (r_normalMapping->integer && !(type == IMGTYPE_NORMAL) &&
 		(flags & IMGFLAG_PICMIP) && (flags & IMGFLAG_MIPMAP) && (flags & IMGFLAG_GENNORMALMAP))
@@ -3587,6 +3631,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	vec4_t emissiveColor = { 0.5f, 0.5f, 0.5f, 1.0f };
 	if ( internalFormat == 0 && type == IMGTYPE_COLORALPHA )
 		R_ComputeEmissiveColor( pic, width, height, loadFlags, emissiveColor );
+	if (imageLoadProfile.active) imageLoadProfile.imagePrepareUs += ImageElapsedUs(prepareStart);
 
 	image = R_CreateImage( name, pic, width, height, type, loadFlags, internalFormat);
 	if ( image )
