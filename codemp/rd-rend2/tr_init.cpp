@@ -102,6 +102,23 @@ cvar_t	*r_volumetricFogQuality;
 cvar_t	*r_volumetricFogGridScale;
 cvar_t	*r_volumetricFogSlices;
 cvar_t	*r_volumetricFogFar;
+cvar_t	*r_atmosphere;
+cvar_t	*r_atmosphereSky;
+cvar_t	*r_atmosphereSkyBlend;
+cvar_t	*r_atmosphereUnitScale;
+cvar_t	*r_atmosphereAerialScale;
+cvar_t	*r_atmosphereAltitude;
+cvar_t	*r_atmosphereGroundZ;
+cvar_t	*r_atmosphereRayleigh;
+cvar_t	*r_atmosphereMie;
+cvar_t	*r_atmosphereMieG;
+cvar_t	*r_atmosphereOzone;
+cvar_t	*r_atmosphereSunColor;
+cvar_t	*r_atmosphereSunIntensity;
+cvar_t	*r_atmosphereSunSize;
+cvar_t	*r_atmosphereSunGlow;
+cvar_t	*r_atmosphereStart;
+cvar_t	*r_atmosphereDebug;
 cvar_t	*r_volumetricFogAnisotropy;
 cvar_t	*r_volumetricFogTemporal;
 cvar_t	*r_volumetricFogHistoryWeight;
@@ -1815,6 +1832,7 @@ static consoleCommand_t	commands[] = {
 	{ "gfxmeminfo",			GfxMemInfo_f },
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
+	{ "r_atmosphereInfo",	R_AtmosphereInfo_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
@@ -2397,6 +2415,40 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogSlices, 0, 128, qtrue);
 	r_volumetricFogFar = ri.Cvar_Get("r_volumetricFogFar", "0", CVAR_ARCHIVE, "Froxel fog: distance covered by the froxel slices, 0 = automatic (4096). Beyond it the medium of the last slice is extrapolated");
 	ri.Cvar_CheckRange(r_volumetricFogFar, 0, 65536, qfalse);
+
+	// long range atmosphere and aerial perspective (tr_atmosphere.cpp, docs/rend2-atmosphere.md)
+	r_atmosphere = ri.Cvar_Get("r_atmosphere", "0", CVAR_ARCHIVE, "Long range atmosphere: aerial perspective of distant surfaces and the sky (Rayleigh / Mie), composited before the froxel fog. Needs a map sun (or r_forceSun)");
+	r_atmosphereSky = ri.Cvar_Get("r_atmosphereSky", "0", CVAR_ARCHIVE, "Atmosphere sky: 0 overlay (skybox kept, horizon haze and sun glow), 1 blend skybox and analytic sky, 2 analytic sky (with the sun disc unless r_drawSun 1). Sky portal maps always use 0");
+	ri.Cvar_CheckRange(r_atmosphereSky, 0, 2, qtrue);
+	r_atmosphereSkyBlend = ri.Cvar_Get("r_atmosphereSkyBlend", "0.5", CVAR_ARCHIVE, "Atmosphere sky 1: share of the analytic sky");
+	ri.Cvar_CheckRange(r_atmosphereSkyBlend, 0, 1, qfalse);
+	r_atmosphereUnitScale = ri.Cvar_Get("r_atmosphereUnitScale", "0.03", CVAR_ARCHIVE, "Atmosphere: metres per world unit (0.03: the 64 unit player box is ~1.8 m)");
+	ri.Cvar_CheckRange(r_atmosphereUnitScale, 0.001f, 10.0f, qfalse);
+	r_atmosphereAerialScale = ri.Cvar_Get("r_atmosphereAerialScale", "1", CVAR_ARCHIVE, "Atmosphere: multiplier of the aerial perspective path length only (1 = physical; JA views are a few hundred metres of air, 8-30 makes the haze visible)");
+	ri.Cvar_CheckRange(r_atmosphereAerialScale, 0.01f, 1000.0f, qfalse);
+	r_atmosphereAltitude = ri.Cvar_Get("r_atmosphereAltitude", "0", CVAR_ARCHIVE, "Atmosphere: altitude of the ground in metres above sea level");
+	ri.Cvar_CheckRange(r_atmosphereAltitude, 0, 20000, qfalse);
+	r_atmosphereGroundZ = ri.Cvar_Get("r_atmosphereGroundZ", "auto", CVAR_ARCHIVE, "Atmosphere: world z of the ground (altitude 0 + r_atmosphereAltitude), auto = lowest floor of the map");
+	r_atmosphereRayleigh = ri.Cvar_Get("r_atmosphereRayleigh", "1", CVAR_ARCHIVE, "Atmosphere: Rayleigh (air molecules) density multiplier");
+	ri.Cvar_CheckRange(r_atmosphereRayleigh, 0, 100, qfalse);
+	r_atmosphereMie = ri.Cvar_Get("r_atmosphereMie", "1", CVAR_ARCHIVE, "Atmosphere: Mie (aerosol, haze) density multiplier");
+	ri.Cvar_CheckRange(r_atmosphereMie, 0, 100, qfalse);
+	r_atmosphereMieG = ri.Cvar_Get("r_atmosphereMieG", "0.8", CVAR_ARCHIVE, "Atmosphere: Mie anisotropy g (Cornette-Shanks)");
+	ri.Cvar_CheckRange(r_atmosphereMieG, -0.95f, 0.95f, qfalse);
+	r_atmosphereOzone = ri.Cvar_Get("r_atmosphereOzone", "1", CVAR_ARCHIVE, "Atmosphere: ozone density multiplier (sky colour only)");
+	ri.Cvar_CheckRange(r_atmosphereOzone, 0, 100, qfalse);
+	r_atmosphereSunColor = ri.Cvar_Get("r_atmosphereSunColor", "1", CVAR_ARCHIVE, "Atmosphere sun illuminance: 0 map sun at the top of the atmosphere, 1 map sun at the ground (the air above the camera is undone), 2 white");
+	ri.Cvar_CheckRange(r_atmosphereSunColor, 0, 2, qtrue);
+	r_atmosphereSunIntensity = ri.Cvar_Get("r_atmosphereSunIntensity", "1", CVAR_ARCHIVE, "Atmosphere: sun illuminance multiplier");
+	ri.Cvar_CheckRange(r_atmosphereSunIntensity, 0, 100, qfalse);
+	r_atmosphereSunSize = ri.Cvar_Get("r_atmosphereSunSize", "0.53", CVAR_ARCHIVE, "Atmosphere: angular diameter of the sun disc in degrees");
+	ri.Cvar_CheckRange(r_atmosphereSunSize, 0.05f, 10.0f, qfalse);
+	r_atmosphereSunGlow = ri.Cvar_Get("r_atmosphereSunGlow", "1", CVAR_ARCHIVE, "Atmosphere sky 0: scale of the Mie sun glow over the skybox (lower it when the painted sun is elsewhere)");
+	ri.Cvar_CheckRange(r_atmosphereSunGlow, 0, 10, qfalse);
+	r_atmosphereStart = ri.Cvar_Get("r_atmosphereStart", "0", CVAR_ARCHIVE, "Atmosphere: distance in world units before which there is no aerial perspective");
+	ri.Cvar_CheckRange(r_atmosphereStart, 0, 1000000, qfalse);
+	r_atmosphereDebug = ri.Cvar_Get("r_atmosphereDebug", "0", CVAR_CHEAT, "Atmosphere debug view: 1 Rayleigh in-scattering, 2 Mie in-scattering, 3 transmittance, 4 aerial in-scattering, 5 atmosphere-only sky, 6 froxel (red) + atmosphere (green) opacity, 7 LUTs, 8 aerial distance bands (1, 2, 5, 10, 20 km)");
+	ri.Cvar_CheckRange(r_atmosphereDebug, 0, 8, qtrue);
 	r_volumetricFogAnisotropy = ri.Cvar_Get("r_volumetricFogAnisotropy", "0.2", CVAR_ARCHIVE, "Froxel fog: Henyey-Greenstein g of the sun and dynamic light scattering, 0 = isotropic, > 0 forward, < 0 backward; the default of the media without their own g (fogAnisotropy, local volume and FX anisotropy)");
 	ri.Cvar_CheckRange(r_volumetricFogAnisotropy, -0.9f, 0.9f, qfalse);
 	r_volumetricFogTemporal = ri.Cvar_Get("r_volumetricFogTemporal", "1", CVAR_ARCHIVE, "Froxel fog: temporal reprojection and jittered sampling");

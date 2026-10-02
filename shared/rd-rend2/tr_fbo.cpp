@@ -587,6 +587,9 @@ void FBO_Init(void)
 	// froxel volumetric fog (tr_volumetric.cpp)
 	R_CreateVolumetricFBOs();
 
+	// long range atmosphere: LUT passes and composite (tr_atmosphere.cpp)
+	R_CreateAtmosphereFBOs();
+
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldFBOs();
 

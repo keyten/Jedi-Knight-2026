@@ -1497,6 +1497,9 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
   hack range; the sky (depth 1) is at `max(zFar, depthForOpaque of the global fog)` like the legacy fog cap.
   Their per-surface fog passes, in-shader fog, the global fog cap and the inverted fog plane passes are skipped
   in the froxel view: the volume contains every fog along the ray, nothing is fogged twice.
+- **Long range atmosphere** (`r_atmosphere`, [rend2-atmosphere.md](rend2-atmosphere.md)): its composite runs
+  just before this one on the same layers, so a pixel is `S_froxel + T_froxel * (S_atm + T_atm * surface)`. The
+  froxel media and tail contain no atmosphere, the atmosphere no froxel media.
 - **Transparent layers** (`sort > SS_FOG`) keep the existing mechanism (fog pass with its blend, `u_FogColorMask`
   of generic stages, surface sprites) with `(S, 1 - T)` looked up at the fragment instead of the ray march.
   Additive surfaces are only attenuated, as before.

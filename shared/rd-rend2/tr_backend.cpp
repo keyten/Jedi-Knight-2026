@@ -648,6 +648,8 @@ void RB_BeginDrawingView (void) {
 
 	// froxel volumetric fog of this view (tr_volumetric.cpp)
 	RB_VolumetricBeginView();
+	// long range atmosphere (tr_atmosphere.cpp)
+	backEnd.atmosphereComposited = qfalse;
 
 	if ( ( backEnd.refdef.rdflags & RDF_HYPERSPACE ) )
 	{
@@ -1517,7 +1519,8 @@ static void RB_SubmitRenderPass(
 
 	const qboolean ssr = RB_ScreenSpaceActive();
 	const qboolean froxelFog = RB_VolumetricCompositeActive();
-	if (!ssr && !froxelFog)
+	const qboolean atmosphere = RB_AtmosphereActive();
+	if (!ssr && !froxelFog && !atmosphere)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
 		return;
@@ -1546,9 +1549,11 @@ static void RB_SubmitRenderPass(
 
 	// The froxel fog composite (tr_volumetric.cpp) fogs everything up to the
 	// SS_FOG layer from the depth buffer, the transparent layers after it
-	// look up the volume themselves (RB_VolumetricFogMode).
+	// look up the volume themselves (RB_VolumetricFogMode). The atmosphere
+	// composite (tr_atmosphere.cpp) covers the same layers and runs first:
+	// camera -> local media -> atmosphere -> surface.
 	uint32_t numFoggedItems = numOpaqueItems;
-	if (froxelFog)
+	if (froxelFog || atmosphere)
 	{
 		numFoggedItems = numDrawItems;
 		for ( uint32_t i = numOpaqueItems; i < numDrawItems; ++i )
@@ -1566,6 +1571,8 @@ static void RB_SubmitRenderPass(
 	if (ssr)
 		RB_RenderScreenSpaceOpaque();
 	RB_DrawItems(numFoggedItems - numOpaqueItems, renderPass.drawItems, drawOrder + numOpaqueItems);
+	if (atmosphere)
+		RB_AtmosphereComposite();
 	if (froxelFog)
 		RB_VolumetricComposite();
 	RB_DrawItems(numDrawItems - numFoggedItems, renderPass.drawItems, drawOrder + numFoggedItems);

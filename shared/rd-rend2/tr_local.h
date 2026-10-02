@@ -195,6 +195,23 @@ extern cvar_t	*r_volumetricFogQuality;
 extern cvar_t	*r_volumetricFogGridScale;
 extern cvar_t	*r_volumetricFogSlices;
 extern cvar_t	*r_volumetricFogFar;
+extern cvar_t	*r_atmosphere;
+extern cvar_t	*r_atmosphereSky;
+extern cvar_t	*r_atmosphereSkyBlend;
+extern cvar_t	*r_atmosphereUnitScale;
+extern cvar_t	*r_atmosphereAerialScale;
+extern cvar_t	*r_atmosphereAltitude;
+extern cvar_t	*r_atmosphereGroundZ;
+extern cvar_t	*r_atmosphereRayleigh;
+extern cvar_t	*r_atmosphereMie;
+extern cvar_t	*r_atmosphereMieG;
+extern cvar_t	*r_atmosphereOzone;
+extern cvar_t	*r_atmosphereSunColor;
+extern cvar_t	*r_atmosphereSunIntensity;
+extern cvar_t	*r_atmosphereSunSize;
+extern cvar_t	*r_atmosphereSunGlow;
+extern cvar_t	*r_atmosphereStart;
+extern cvar_t	*r_atmosphereDebug;
 extern cvar_t	*r_volumetricFogAnisotropy;
 extern cvar_t	*r_volumetricFogTemporal;
 extern cvar_t	*r_volumetricFogHistoryWeight;
@@ -2608,6 +2625,12 @@ typedef enum
 	UNIFORM_LIGHTCOOKIEMAP,		// spot light cookies: tr.lightCookieArray (TB_LIGHTCOOKIES)
 	UNIFORM_LIGHTCOOKIEPARAMS,	// enabled (0/1), rgb (0/1), world size of a pixel / froxel at distance 1, debug mode
 
+	UNIFORM_ATMOSPHERE,			// vec4[8] r_atmosphere parameters, see atmosphere_common.glsl
+	UNIFORM_ATMOSPHEREINVVIEWPROJECTION,	// r_atmosphere composite: clip -> world of the view
+	UNIFORM_ATMOSPHERETRANSMITTANCEMAP,	// r_atmosphere transmittance LUT (TB_LIGHTMAP)
+	UNIFORM_ATMOSPHEREMULTISCATTERMAP,	// r_atmosphere multiple scattering LUT (TB_NORMALMAP)
+	UNIFORM_ATMOSPHERESKYVIEWMAP,		// r_atmosphere sky-view LUT (TB_DELUXEMAP)
+
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -3736,6 +3759,7 @@ typedef struct {
 	qboolean    screenAuxView;	// opaque lightall stages write the screen-space attachments
 	qboolean    volumetricView;	// this view uses the froxel volume, see RB_VolumetricBeginView
 	qboolean    volumetricComposited;	// the froxel fog composite of this view ran
+	qboolean    atmosphereComposited;	// the atmosphere composite of this view ran (tr_atmosphere.cpp)
 } backEndState_t;
 
 /*
@@ -3849,6 +3873,9 @@ typedef struct trGlobals_s {
 	image_t					*froxelIntegratedImage;	// froxel fog: integrated in-scattering (rgb), transmittance (a)
 	image_t					*froxelCarryImage[2];	// froxel fog: integration state between slices
 	image_t					*froxelTailImage;	// froxel fog: last slice radiance (rgb) and extinction (a)
+	image_t					*atmosphereTransmittanceImage;	// r_atmosphere LUTs (tr_atmosphere.cpp)
+	image_t					*atmosphereMultiScatterImage;
+	image_t					*atmosphereSkyViewImage;
 	image_t					*froxelNoiseImage;
 	image_t					*froxelExtinctionImage[2];	// froxel fog (r_volumetricFogRGBExtinction): injected sigma_t.rgb, history ping-pong with froxelInjectImage
 	image_t					*froxelTransmittanceImage;	// froxel fog (r_volumetricFogRGBExtinction): integrated T.rgb
@@ -3916,6 +3943,7 @@ typedef struct trGlobals_s {
 	FBO_t					*froxelInjectFbo;		// layers attached per slice
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth
+	FBO_t					*atmosphereCompositeFbo;	// color + glow of renderFbo, no depth (tr_atmosphere.cpp)
 	FBO_t					*ssrColorFbo[SSR_COLOR_MIPS];
 	FBO_t					*ltcSaberTraceFbo;
 	FBO_t					*ltcSaberHistoryFbo[2];
@@ -4019,6 +4047,10 @@ typedef struct trGlobals_s {
 	shaderProgram_t volumetricIntegrateComputeShader;
 	shaderProgram_t volumetricCompositeShader;
 	shaderProgram_t volumetricDebugShader;
+	shaderProgram_t atmosphereTransmittanceShader;
+	shaderProgram_t atmosphereMultiScatterShader;
+	shaderProgram_t atmosphereSkyViewShader;
+	shaderProgram_t atmosphereCompositeShader;
 	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
@@ -5613,6 +5645,17 @@ void R_VolumetricExtinctionColor(const float *in, vec3_t out);	// relative sigma
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
 void R_ShutdownVolumetric(void);
+qboolean R_VolumetricInvertMatrix(const float *m, float *out);
+int RB_VolumetricBeginTimer(const char *name);
+void RB_VolumetricEndTimer(int handle);
+qboolean RB_VolumetricBindLookup(void);
+
+// tr_atmosphere.cpp
+void R_CreateAtmosphereImages(void);
+void R_CreateAtmosphereFBOs(void);
+qboolean RB_AtmosphereActive(void);
+void RB_AtmosphereComposite(void);
+void R_AtmosphereInfo_f(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
 // tr_staticlighting.cpp: Static Lighting Reconstruction, once per map load (the light

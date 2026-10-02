@@ -417,6 +417,12 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_LightCookieMap",		GLSL_INT, 1 },
 	{ "u_LightCookieParams",	GLSL_VEC4, 1 },
+
+	{ "u_Atmosphere",			GLSL_VEC4, 8 },
+	{ "u_AtmosphereInvViewProjection", GLSL_MAT4x4, 1 },
+	{ "u_AtmosphereTransmittanceMap", GLSL_INT, 1 },
+	{ "u_AtmosphereMultiScatterMap", GLSL_INT, 1 },
+	{ "u_AtmosphereSkyViewMap",	GLSL_INT, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -4110,6 +4116,71 @@ static int GLSL_LoadGPUProgramVolumetric(
 	return numPrograms;
 }
 
+// Long range atmosphere (r_atmosphere, tr_atmosphere.cpp): the LUT passes
+// and the composite, all with the fragment block of atmosphere_common.glsl.
+// Always built (4 small programs): r_atmosphere is not latched. The
+// composite also gets the froxel functions with r_volumetricFog 2, for the
+// composition debug view.
+static int GLSL_LoadGPUProgramAtmosphere(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+
+	const GPUProgramDesc *commonDesc =
+		LoadProgramSource("atmosphere_common", allocator, fallback_atmosphere_commonProgram);
+	const GPUShaderDesc *common = nullptr;
+	for ( size_t i = 0; i < commonDesc->numShaders; ++i )
+	{
+		if ( commonDesc->shaders[i].type == GPUSHADER_FRAGMENT )
+			common = &commonDesc->shaders[i];
+	}
+	if ( !common )
+		ri.Error(ERR_FATAL, "Could not load atmosphere_common shader library!");
+
+	const GPUShaderDesc *froxel = GLSL_CombineLibraries(allocator,
+		LoadVolumetricLibrary(allocator), LoadLiquidLibrary(allocator));
+	const GPUShaderDesc *compositeLibrary = GLSL_CombineLibraries(allocator, froxel, common);
+
+	struct
+	{
+		shaderProgram_t *sp;
+		const char *name;
+		const GPUProgramDesc *fallback;
+		const GPUShaderDesc *library;
+	} programs[] =
+	{
+		{ &tr.atmosphereTransmittanceShader, "atmosphere_transmittance", &fallback_atmosphere_transmittanceProgram, common },
+		{ &tr.atmosphereMultiScatterShader, "atmosphere_multiscatter", &fallback_atmosphere_multiscatterProgram, common },
+		{ &tr.atmosphereSkyViewShader, "atmosphere_skyview", &fallback_atmosphere_skyviewProgram, common },
+		{ &tr.atmosphereCompositeShader, "atmosphere_composite", &fallback_atmosphere_compositeProgram, compositeLibrary },
+	};
+
+	int numPrograms = 0;
+	for ( size_t i = 0; i < ARRAY_LEN(programs); i++ )
+	{
+		shaderProgram_t *sp = programs[i].sp;
+		const GPUProgramDesc *programDesc =
+			LoadProgramSource(programs[i].name, allocator, *programs[i].fallback);
+		if ( !GLSL_LoadGPUShader(builder, sp, programs[i].name, ATTR_POSITION | ATTR_TEXCOORD0,
+				NO_XFB_VARS, nullptr, *programDesc, programs[i].library) )
+			ri.Error(ERR_FATAL, "Could not load %s shader!", programs[i].name);
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERETRANSMITTANCEMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHEREMULTISCATTERMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERESKYVIEWMAP, TB_DELUXEMAP);
+		if ( sp == &tr.atmosphereCompositeShader && froxel )
+			GLSL_SetFroxelLookupUnits(sp);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	}
+
+	return numPrograms;
+}
+
 static int GLSL_LoadGPUProgramPrefilterEnvMap(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc)
@@ -4627,6 +4698,8 @@ static int GLSL_CountStartupPrograms()
 		++count;
 	}
 	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
+	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
+	count += 4;
 	if (pom)
 		count += POMSDEF_DEPTH_COUNT + 2;
 	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
@@ -4749,6 +4822,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramRainLens(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramVolumetric(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
@@ -4861,6 +4935,10 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateComputeShader);
 	GLSL_DeleteGPUShader(&tr.volumetricCompositeShader);
 	GLSL_DeleteGPUShader(&tr.volumetricDebugShader);
+	GLSL_DeleteGPUShader(&tr.atmosphereTransmittanceShader);
+	GLSL_DeleteGPUShader(&tr.atmosphereMultiScatterShader);
+	GLSL_DeleteGPUShader(&tr.atmosphereSkyViewShader);
+	GLSL_DeleteGPUShader(&tr.atmosphereCompositeShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
 

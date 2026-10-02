@@ -1009,7 +1009,7 @@ Per frame constants (front end, RB_UpdateConstants)
 */
 
 // generic 4x4 inverse (column major), false if singular
-static qboolean R_VolumetricInvertMatrix( const float *m, float *out )
+qboolean R_VolumetricInvertMatrix( const float *m, float *out )
 {
 	float inv[16];
 	inv[0] = m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15] + m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
@@ -2727,7 +2727,7 @@ GPU passes
 */
 
 // GPU timers (r_speeds 100), same bookkeeping as RB_BeginTimedBlock
-static int RB_VolumetricBeginTimer( const char *name )
+int RB_VolumetricBeginTimer( const char *name )
 {
 	if ( !glRefConfig.timerQuery || r_speeds->integer != 100 )
 		return -1;
@@ -2747,7 +2747,7 @@ static int RB_VolumetricBeginTimer( const char *name )
 	return handle;
 }
 
-static void RB_VolumetricEndTimer( int handle )
+void RB_VolumetricEndTimer( int handle )
 {
 	if ( handle < 0 )
 		return;
@@ -3055,6 +3055,28 @@ qboolean RB_VolumetricCompositeActive( void )
 		!backEnd.depthFill &&
 		!backEnd.refractionFill &&
 		(s_vf.built || s_vf.frozen));
+}
+
+/*
+=================
+RB_VolumetricBindLookup
+
+Binds the blocks and the volume textures of a froxel lookup (FroxelFog,
+units of GLSL_SetFroxelLookupUnits) for another program of this view, e.g.
+the atmosphere composition debug view. qfalse without a usable volume.
+=================
+*/
+qboolean RB_VolumetricBindLookup( void )
+{
+	if ( !backEnd.volumetricView || !(s_vf.built || s_vf.frozen) )
+		return qfalse;
+
+	RB_VolumetricBindBlocks();
+	GL_BindToTMU(tr.froxelIntegratedImage, TB_CUBEMAP);
+	GL_BindToTMU(tr.froxelTailImage, TB_ENVBRDFMAP);
+	if ( s_vf.rgb )
+		GL_BindToTMU(tr.froxelTransmittanceImage, TB_FROXELTRANSMITTANCE);
+	return qtrue;
 }
 
 /*

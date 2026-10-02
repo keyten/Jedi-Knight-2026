@@ -4182,6 +4182,9 @@ void R_CreateBuiltinImages( void ) {
 	// froxel volumetric fog volumes (tr_volumetric.cpp)
 	R_CreateVolumetricImages(width, height);
 
+	// long range atmosphere LUTs (tr_atmosphere.cpp)
+	R_CreateAtmosphereImages();
+
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldImages();
 
