@@ -124,6 +124,10 @@ struct Params
 	float heavyFlow = 1.0f;
 	float peripheralBias = 1.0f;
 	float inertia = 0.0f;		// camera acceleration response, 0 = off
+	// film-first emerge: water left on the lens (drop count / size), and
+	// its time scale (draining, tearing, the rim breaking up)
+	float emergeWater = 1.0f;
+	float emergeTime = 1.0f;
 	int maxDrops = 96;
 	int maxMicro = 256;
 	int maxSheets = 8;
@@ -359,6 +363,7 @@ private:
 		bool filmFirst;
 		Vec2 down;
 		float drainTime;	// until the film has torn down to the rim
+		float timeScale;	// Params::emergeTime at the start
 		Vec2 flowBase;		// filmFlow at the start
 	};
 	EmergeState emerge = {};

@@ -141,7 +141,7 @@ Params CurrentParams( void )
 {
 	Params p;
 	p.filmModel = r_rainLensFilmModel->integer == 1 ? 1 : 0;
-	p.density = Com_Clamp(0.0f, 2.0f, r_rainLensDensity->value);
+	p.density = Com_Clamp(0.0f, 4.0f, r_rainLensDensity->value);
 	// the film-first model draws smaller drops: real ones on a lens are a
 	// few millimetres, not a twentieth of the view
 	p.dropSize = Com_Clamp(0.25f, 4.0f, r_rainLensDropSize->value) * (p.filmModel == 1 ? 0.6f : 1.0f);
@@ -151,6 +151,8 @@ Params CurrentParams( void )
 	p.wetDecay = Com_Clamp(0.1f, 4.0f, r_rainLensWetDecay->value);
 	p.heavyFlow = Com_Clamp(0.0f, 4.0f, r_rainLensHeavyFlow->value);
 	p.peripheralBias = Com_Clamp(0.0f, 2.0f, r_rainLensPeripheralBias->value);
+	p.emergeWater = Com_Clamp(0.25f, 3.0f, r_rainLensEmergeWater->value);
+	p.emergeTime = Com_Clamp(0.25f, 4.0f, r_rainLensEmergeTime->value);
 	p.inertia = Com_Clamp(0.0f, 2.0f, r_rainLensInertia->value);
 	p.maxDrops = DropLimit();
 	p.maxMicro = MAX_LENS_MICRO;
@@ -170,7 +172,7 @@ float RainFlux( const vec3_t fall, const vec3_t forward, qboolean outside )
 	VectorSubtract(relative, s_cameraVelocity, relative);
 	float flux = Com_Clamp(0.0f, 2.0f, -DotProduct(relative, forward) / rainSpeed);
 	if ( outside && forward[2] > -0.3f )
-		flux = Q_max(flux, 0.04f);
+		flux = Q_max(flux, Com_Clamp(0.0f, 1.0f, r_rainLensMist->value));
 	return flux;
 }
 

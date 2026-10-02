@@ -361,7 +361,7 @@ deduplicated and replayed on load.
 |---|---|---|
 | `r_rainLens` | 0 | latched, needs `r_hdr`; off = no targets, no simulation |
 | `r_rainLensQuality` | 1 | latched: field 256/360/540, drops 48/96/128, samples 1/3/5 |
-| `r_rainLensDensity` | 1.0 | rain input 0..2 |
+| `r_rainLensDensity` | 1.0 | rain input 0..4 |
 | `r_rainLensDropSize` | 1.0 | geometry only (render, merge contact, trail width); rain amount unchanged |
 | `r_rainLensRefraction` | 1.0 | UV distortion 0..4 |
 | `r_rainLensFilm` | 1.0 | thin film / trail visibility 0..2. The film weight is capped at 0.25, so above 1 only the refraction grows (the composite treats weight > 0.25 as a compact drop with rim and glint) |
@@ -369,6 +369,11 @@ deduplicated and replayed on load.
 | `r_rainLensReflection` | 1.0 | reflection + glints 0..2, 0 = refraction only |
 | `r_rainLensInertia` | 0 | camera acceleration response 0..2 |
 | `r_rainLensFilmModel` | 0 | A/B: 0 = hybrid drops (A), 1 = film-first (B), see "Film-first model" below |
+| `r_rainLensEmergeWater` | 1.0 | film-first: water left after leaving water, 0.25..3 (bead count ×, size ×cbrt, rim spacing /sqrt) |
+| `r_rainLensEmergeTime` | 1.0 | film-first: time scale of draining, tearing and the rim breaking up, 0.25..4 (below 1 = drops sooner) |
+| `r_rainLensMist` | 0.04 | film-first: rain flux floor outside when not looking down (spray, mist), 0..1 |
+| `r_rainLensFilmMicro` | 1.0 | film-first: film micro refraction, 0..4 |
+| `r_rainLensPeripheralBias` | 1.0 | keep large drops (and film-first emerge beads) away from the centre, 0..2 |
 | `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, forming green, merge lobe cyan, sheet magenta), 9 controller panel |
 
 Debug view 9 draws bars in the top-left corner:
@@ -384,8 +389,6 @@ Developer cvars (cheat):
 - `r_rainLensPinning`, `r_rainLensMerge`
 - `r_rainLensFilmDecay`, `r_rainLensWetDecay`
 - `r_rainLensHeavyFlow`
-- `r_rainLensPeripheralBias`
-- `r_rainLensFilmMicro` (0..4): film-first micro refraction multiplier
 - `r_rainLensPBO`: film and instance uploads through a 3-slot pixel buffer ring.
 - `r_rainLensMipBlur` (latched): drop defocus from a mipped half-resolution scene
   copy (a blit plus `glGenerateMipmap`) instead of the 3/5 taps.

@@ -1420,7 +1420,7 @@ void LensWater::DecayField(float dt)
 		// gets thinner than its rupture thickness it tears to a trace (the
 		// sites of UpdateFilmEmerge dewet into beads); the rim at the bottom
 		// holds until it breaks into beads.
-		const float t = emerge.age;
+		const float t = emerge.age / emerge.timeScale;	// r_rainLensEmergeTime
 		const float norm = std::sqrt(kJeffreysT0 / ((1.0f + kJeffreysX0) * (t + kJeffreysT0)));
 		const float followK = std::exp(-dt / kFollowTau);
 		const float tearK = std::exp(-dt / kRuptureTau);
@@ -1600,7 +1600,12 @@ void LensWater::StartFilmEmerge(float s)
 {
 	emerge.filmFirst = true;
 	emerge.down = Normalize(lastInput.gravity, { 0.0f, -1.0f });
-	emerge.drainTime = kEmergeDuration;
+	// r_rainLensEmergeWater / Time: how much water, how fast it goes
+	const float water = std::min(std::max(params.emergeWater, 0.25f), 3.0f);
+	const float timeScale = std::min(std::max(params.emergeTime, 0.25f), 4.0f);
+	const float sizeScale = std::cbrt(water);
+	emerge.timeScale = timeScale;
+	emerge.drainTime = kEmergeDuration * timeScale;
 	emerge.flowBase = filmFlow;
 	emerge.lateSheetsLeft = 0;
 
@@ -1609,7 +1614,7 @@ void LensWater::StartFilmEmerge(float s)
 	const float extentDown = std::max(0.5f * (aspect * std::fabs(down.x) + std::fabs(down.y)), 1e-3f);
 	const float extentSide = 0.5f * (aspect * std::fabs(side.x) + std::fabs(side.y));
 	const float h = (float)filmHeight;
-	const float amount = kEmergePreset.film * std::min(s, 1.0f);
+	const float amount = kEmergePreset.film * std::min(s, 1.0f) * std::min(water, 1.0f);
 	const float streakX = Random01() * 512.0f, streakY = Random01() * 512.0f;
 	auto cellPos = [&](int x, int y) { return Vec2{ (x + 0.5f) / h - aspect * 0.5f, (y + 0.5f) / h - 0.5f }; };
 
@@ -1648,7 +1653,10 @@ void LensWater::StartFilmEmerge(float s)
 	// dewetting sites on the thicker spots of the torn film, away from the
 	// screen centre and above the rim
 	emergeSites.clear();
-	const int numSites = 10 + (int)(10.0f * std::min(s, 1.0f));
+	const int numSites = std::max(1, (int)((10.0f + 10.0f * std::min(s, 1.0f)) * water + 0.5f));
+	// r_rainLensPeripheralBias: 0 = anywhere, 1 = 30 % at the centre
+	const float centre = std::max(1.0f - 0.7f * std::max(params.peripheralBias, 0.0f), 0.05f);
+	const float spacing = 0.06f / std::sqrt(std::max(water, 1.0f));
 	for (int attempt = 0; attempt < numSites * 8 && (int)emergeSites.size() < numSites; ++attempt)
 	{
 		int x = std::min((int)(Random01() * filmWidth), filmWidth - 1);
@@ -1679,18 +1687,18 @@ void LensWater::StartFilmEmerge(float s)
 		const Vec2 p = cellPos(x, y);
 		if (emergeDrain[i] > kRimBand - 0.05f)
 			continue;
-		if (Random01() > Lerp(0.3f, 1.0f, Smoothstep(0.15f, 0.5f, Length(p))))
+		if (Random01() > Lerp(centre, 1.0f, Smoothstep(0.15f, 0.5f, Length(p))))
 			continue;
 		bool crowded = false;
 		for (const EmergeSite &other : emergeSites)
-			crowded = crowded || Length(other.pos - p) < 0.06f;
+			crowded = crowded || Length(other.pos - p) < spacing;
 		if (crowded)
 			continue;
 		EmergeSite site;
 		site.pos = p;
 		// the further down, the more water the torn film had gathered
-		site.rn = Lerp(0.2f, 0.45f, emergeDrain[i]) * Lerp(0.85f, 1.15f, Random01());
-		site.time = std::max(ruptureTime(i), 0.15f) + Lerp(0.05f, 0.2f, Random01());
+		site.rn = Lerp(0.2f, 0.45f, emergeDrain[i]) * Lerp(0.85f, 1.15f, Random01()) * sizeScale;
+		site.time = (std::max(ruptureTime(i), 0.15f) + Lerp(0.05f, 0.2f, Random01())) * timeScale;
 		site.done = false;
 		emergeSites.push_back(site);
 	}
@@ -1699,7 +1707,7 @@ void LensWater::StartFilmEmerge(float s)
 	// furthest point down the gravity for each position across it)
 	const float halfX = aspect * 0.5f, halfY = 0.5f;
 	for (float across = -extentSide + Lerp(0.02f, 0.06f, Random01()); across < extentSide;
-		across += Lerp(0.12f, 0.18f, Random01()))
+		across += Lerp(0.12f, 0.18f, Random01()) / std::sqrt(water))
 	{
 		float u = 1e9f;
 		if (std::fabs(down.x) > 1e-4f)
@@ -1713,8 +1721,8 @@ void LensWater::StartFilmEmerge(float s)
 			continue;
 		EmergeSite site;
 		site.pos = p;
-		site.rn = Lerp(0.45f, 0.9f, Random01());
-		site.time = kRimBreak + Lerp(0.0f, 0.4f, Random01());
+		site.rn = Lerp(0.45f, 0.9f, Random01()) * sizeScale;
+		site.time = (kRimBreak + Lerp(0.0f, 0.4f, Random01())) * timeScale;
 		site.done = false;
 		emergeSites.push_back(site);
 	}
@@ -1724,7 +1732,8 @@ void LensWater::UpdateFilmEmerge()
 {
 	// the draining water carries the micro structure down, fast at first
 	// (the surface velocity goes with h^2 ~ 1 / t)
-	filmFlow = emerge.flowBase + emerge.down * (kFlowShift * std::log(1.0f + emerge.age / 0.2f));
+	filmFlow = emerge.flowBase + emerge.down
+		* (kFlowShift * std::log(1.0f + emerge.age / (0.2f * emerge.timeScale)));
 
 	bool spawned = false, pending = false;
 	for (EmergeSite &site : emergeSites)

@@ -547,6 +547,22 @@ int main()
 			"B emerge: the micro structure drifts down, then stops (%.3f, %.3f, %.3f)", flow03 / seeds, flow1 / seeds, flowEnd / seeds);
 		CHECK(formingSeen > 0 && formingSmall == formingSeen, "B emerge: beads grow out of the film (%d of %d small)", formingSmall, formingSeen);
 	}
+	// film-first emerge controls: more water, more beads; a shorter time
+	// scale, beads sooner
+	{
+		auto emergeBeads = [&](float water, float timeScale, float at) {
+			Params q = p; q.filmModel = 1; q.emergeWater = water; q.emergeTime = timeScale;
+			LensWater w; w.Init(455, 256);
+			Event e = {}; e.type = EVENT_EMERGE; e.strength = 1.0f;
+			w.QueueEvent(e);
+			Run(w, at, Dry(), q);
+			return (int)w.Drops().size();
+		};
+		const int base = emergeBeads(1.0f, 1.0f, 2.0f), more = emergeBeads(2.0f, 1.0f, 2.0f);
+		const int slow = emergeBeads(1.0f, 1.0f, 0.8f), fast = emergeBeads(1.0f, 0.5f, 0.8f);
+		CHECK(more > base * 1.4f, "B emerge water: more beads (%d -> %d)", base, more);
+		CHECK(fast > slow, "B emerge time: beads sooner (%d -> %d at 0.8 s)", slow, fast);
+	}
 	// film-first rain flux: no rain onto a lens it doesn't reach
 	{
 		Params q = p; q.filmModel = 1;
