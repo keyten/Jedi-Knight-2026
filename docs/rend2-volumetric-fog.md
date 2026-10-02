@@ -2147,6 +2147,284 @@ In game (not run yet):
 - Dual-source blending (a single-draw composite) is not used. It would need GL 3.3 /
   `ARB_blend_func_extended`.
 
+## Underwater medium (`r_volumetricWater`)
+
+The water, slime and lava brushes of a map become participating media of the froxel volume.
+Nothing is rebaked and no asset changes: the BSP already keeps every brush with its side planes,
+and the contents of a brush are the `contentFlags` of its BSP shader.
+
+Off by default. `r_volumetricWater` is a latched class mask: 1 water, 2 slime, 4 lava. It needs
+`r_volumetricFog 2` and 31 texture units (fragment, and compute with `r_gl43`). With the mask 0
+every program is unchanged. The preprocessed lightall, composite and integrate sources are
+identical to before; inject and debug differ only by the new debug view 59-64 tests.
+
+### Brush extraction (`tr_liquid.cpp`, map load)
+
+`R_LoadLiquidBrushes` runs inside `R_LoadBSP`, next to `R_LoadWeatherZones`, while the lumps are
+loaded:
+
+- Only the brushes of the world model (`dmodel_t` 0) are read. Brushes of the inline models
+  (`*N`: func_door water, moving platforms) are counted and skipped, because they move and the
+  renderer has no transform for them.
+- The class comes from the BSP shader of the brush (`dbrush_t.shaderNum`): lava over slime over
+  water, as cgame orders its tints.
+- Brushes that also have `CONTENTS_FOG` are skipped: they are already a BSP fog volume of the
+  froxel fog (murky water such as `textures/bespin/water2` with `fogparms`).
+- A brush must have 6..32 sides, and its first six sides must be the axial bounds (q3map sorts
+  them first, as `R_LoadFogs` assumes).
+- Each brush keeps its bounds and all of its side planes (bevels are harmless). At most 256
+  brushes and 4096 planes per map.
+
+The planes go to a static RGBA32F buffer texture (`TB_LIQUIDPLANES` 29), uploaded on map load and
+again whenever `tr.world` changes. `r_liquids` lists the brushes, the skipped ones with their
+reason, the load time, the last frame's visible count and the camera contents.
+
+Stock maps (scanned from the PK3s, then run through the real loader in a CPU harness):
+
+| Map | Liquid brushes | Notes |
+|---|---|---|
+| **t3_hevil** | 11 water | Main test map: a large lake 368 units deep, side pools, sun |
+| yavin1b | 8 water | Outdoor sun, shallow streams |
+| t2_port | 27 water (+11 water+fog skipped) | Many brushes |
+| t2_rancor / yavin1 | 6 / 4 water | |
+| kor1, taspir2 | 2 / 8 lava (taspir2: +4 water+fog skipped) | Lava stays off by default |
+| vjun2 | 0 (1 water brush in a brush model) | The moving-liquid limitation |
+
+### Per frame (`R_LiquidsBuild`, `Liquids` block)
+
+Each scene appends a `Liquids` uniform block (std140, binding slot 14, 1680 B). It stays empty
+unless the scene builds the froxel volume. The block holds:
+
+- the visible brushes: bounds against the four frustum sides and the depth range against far,
+  those around the camera first, then by distance to their bounds, at most 32;
+- per slice, a 32-bit mask of the brushes whose depth range touches the slice, one slice wider
+  on each side;
+- the three media;
+- caustic parameters;
+- a fade over the last fifth before far. Liquids are not in the analytic tail; like local fog
+  volumes, they end with the volume.
+
+A liquid in the frustum also makes the volume build on maps without any other medium, and
+transparent surfaces such as the water surface look the volume up (`frameHeightFog`).
+
+### Medium in the froxels (`FroxelMedium`, `liquid_common.glsl`)
+
+A brush is convex, so its inside is `dot(n, p) <= d` for all its planes. For each froxel,
+`LiquidCoverage` clips the froxel's own ray segment, from the slice's near side to its far
+side along the jittered ray direction, against every brush in the slice mask:
+
+- The axial slab test comes first, then the remaining planes.
+- The intervals of a class are united, not summed, because the mapper's brushes overlap.
+
+The extinction is σ × the covered fraction of the segment. A froxel cut by the water surface
+therefore integrates its exact share of water, not a step at the jittered sample point. Slice 0
+covers [0, B(1)], so a camera just above or below the surface also gets the partial slice.
+
+Each class is added like every other medium:
+
+- `extinction += e`
+- `extinctionRGB += e·c` (RGB mode)
+- `FroxelAddScattering(e, albedo·c, g)`
+
+As a result, all of these apply to water without a separate light list: sun and CSM, the split
+static grid, Forward+ dlights, sabers, spots, light portals, phase lobes, temporal history,
+self-shadow and multiple scattering. Liquids are static, so they never reduce the history
+weight. Crossing the surface with the camera is a history cut (see below).
+
+### Sun under a liquid (`LiquidSunTransmittance`, `r_volumetricWaterSunPath`)
+
+Sunlight reaching a point inside a liquid has passed the liquid above it:
+
+- The ray from p towards the sun is clipped against all visible brushes.
+- The connected run of liquid that starts at p (gaps up to 1 unit) gives the path length per class.
+- The transmittance is `T = exp(-Σ σ_c c_c L_c)`, in RGB in both modes, because light is RGB.
+- Air beyond the run is left to the cascade shadow (for example a lake above a cave).
+
+The same function is used in two places:
+
+- **Volume:** inside `BakedAndSunLight` it scales the realtime and the baked sun part. The media
+  pass of `r_volumetricSelfShadow` leaves liquids out while the sun path is on; otherwise the sun
+  would be attenuated twice.
+- **Surfaces:** in lightall (`USE_LIQUID_SUN`, latched `r_volumetricWaterSurfaces`), lit permutations
+  with a sun. It scales the direct sun of `r_sunlightMode 2`, and the sunlit part of the lightmap
+  modulation of `r_sunlightMode 1` (`mix(ambient, lit, shadow·T)`). The pixel only takes it where
+  the draw is in the froxel main view and the point is inside a liquid brush. Other points cost
+  one bounds test per visible brush.
+
+Stock water shaders are blended (not `SS_OPAQUE`, no `alphaShadow`), so they are not cascade
+shadow casters, and nothing underwater is shadowed by the surface itself.
+
+### Caustics (`r_volumetricWaterCaustics`, light modulation only)
+
+Caustics are only a light modulation; they never change the density.
+
+The pattern is a tiling 256² R16F texture (`TB_LIQUIDCAUSTICS` 30), generated once:
+
+- Photons are refracted by a tiling 12-wave height field (integer wave vectors) and splatted
+  bilinearly onto the floor.
+- The result is blurred once, and peaks are clamped at 6.
+- It is normalized to mean 1 (sd 0.64), with box mips.
+
+It is sampled at the point where the sun ray left the water, twice:
+
+- two copies at different scales drift at `r_volumetricWaterCausticSpeed`, and are averaged so
+  the mean stays 1;
+- `1 + s·(pattern − 1)` with `s = strength · smoothstep(0, focus, depth) / (1 + depth/1024)`.
+
+The average sunlight is therefore unchanged for any strength. It applies to water only, and only
+when the sun is above the horizon. The volume samples the pattern at the mip of the froxel size
+(strongly blurred); surfaces use the pixel footprint. The default strength is 0.35.
+
+### Camera contents and the legacy tint
+
+Once per view, `ri.CM_PointContents(vieworg, 0)` gives the camera's liquid class. This is the
+existing renderer import, so there is no ABI change. Model 0 is the world model, the same brushes
+as the GPU media. It is used for:
+
+- the history cut when the camera crosses a surface;
+- debug view 61.
+
+There is no per-froxel CPU query.
+
+cgame keeps its FOV warp. Its full-screen tint (`CG_Draw2DScreenTints`, a 2D `CG_FillRect` drawn
+after `RenderScene`) would color the medium a second time, so it is skipped only when all of
+these hold:
+
+- `cg_underwaterTint` is 1 (the default; 0 always draws the legacy tint);
+- the renderer reports that class in the read-only `r_volumetricWaterActive` (1 water, 2 slime,
+  4 lava). The renderer refreshes it every frame and sets it only on change, from `r_volumetricWater`,
+  the classes present on the map, the resources, and the runtime `r_drawfog` / `r_depthPrepass`;
+- the world model contents at the camera have that liquid. Water of a moving brush model keeps
+  the tint.
+
+With the renderer cvar at 0 (vanilla renderer, or the feature off), the code path is the same as
+before, with no extra collision query. The SP cgame lives in `jagamex86_64.dll`, so deploy it
+together with the MP `cgamex86_64.dll`.
+
+### Materials (defaults)
+
+| Class | Extinction / unit | Relative extinction rgb | Albedo rgb | g |
+|---|---|---|---|---|
+| water | 0.0014 (1/e after ~700 units) | 2.0 0.75 0.25 | 0.10 0.45 0.75 | 0.75 |
+| slime | 0.005 | 1.6 0.5 0.9 | 0.25 0.7 0.2 | 0.4 |
+| lava | 0.02 | 0.6 1.2 1.2 | 0.6 0.15 0.02 | 0.3 |
+
+The relative extinction is normalized to mean 1, as for every medium:
+
+- With `r_volumetricFogRGBExtinction 1` it gives the RGB transmittance; in scalar mode the view
+  transmittance is grey.
+- In-scattering is albedo × relative extinction in both modes: water scatters a desaturated
+  green-blue while red is absorbed first.
+- The sun path is colored in both modes.
+
+Lava has no emission term (absorption and scattering only). Cvars:
+`r_volumetric{Water,Slime,Lava}{Extinction,Color,Albedo,Anisotropy}`.
+
+### Cvars
+
+| Cvar | Default | Meaning |
+|---|---|---|
+| `r_volumetricWater` | 0 | Latched class mask (1 water, 2 slime, 4 lava) |
+| `r_volumetricWaterSurfaces` | 1 | Latched: underwater sun on lightall surfaces |
+| `r_volumetricWaterSunPath` | 1 | Exact sun path through the liquid (volume and surfaces) |
+| `r_volumetricWaterCaustics` | 0.35 | Caustic strength (0 = off) |
+| `r_volumetricWaterCausticScale` | 160 | Pattern period in world units |
+| `r_volumetricWaterCausticSpeed` | 0.06 | Drift in periods per second |
+| `r_volumetricWaterCausticFocus` | 48 | Depth of full caustic contrast |
+| `r_volumetricWaterActive` | (ROM) | Set by the renderer for cgame |
+| `cg_underwaterTint` | 1 | cgame: 1 = skip the tint of liquids the renderer draws, 0 = legacy |
+
+### Debug views (`r_volumetricFogDebug`)
+
+- 59: density of the liquids only (the injection drops every other medium).
+- 60: liquid brushes over the frame: blue water, green slime, orange lava, edges bright, dimmed
+  behind the scene.
+- 61: camera contents: the CPU class (collision) as the screen hue, the GPU brushes at the camera
+  in the bottom bar, red stripes where they disagree.
+- 62: liquid boundary: froxels along the ray cut by a liquid surface (yellow) over the fully
+  covered ones (blue).
+- 63: exact transmittance of the liquids alone between the camera and the scene (RGB with
+  `r_volumetricFogRGBExtinction`).
+- 64: sun under the liquids at the scene surface: transmittance × caustics (grey 0.75 = none,
+  dark grey = not in a liquid).
+- Also useful: 3 (the sun term, which includes the liquid sun path), 52 (T.rgb).
+
+### Validation (run)
+
+- MSVC: both renderers, `cgamex86_64`, `jagamex86_64`.
+- Offline GLSL, Intel UHD and RTX 2060, GL 3.2 core: volumetric inject / debug / composite /
+  integrate and lightall (lightmap, grid, vertex, parallax × sun modulate / primary light /
+  shadows2 / SSAO), with and without liquids. 104 cases, 0 failures, no new warnings.
+- GL 4.3 compute inject and media kernel with liquids, scalar / RGB, both shadow modes:
+  - Compiled on Intel and NVIDIA.
+  - On NVIDIA the compute injection fails to compile even without liquids. The tail pass gives a
+    constant `var_Slice` of −1 to two existing slice-mask lookups. The liquid lookup clamps its
+    index; the two existing lookups are a separate fix.
+- Preprocessor diff against HEAD with liquids off: see the top of this section.
+- CPU harness: the real `tr_liquid.cpp` with a stub header, on 8 stock BSPs:
+  - class counts, fog / brush-model skips;
+  - the polytope vertices of every brush span exactly its axial bounds;
+  - culling and slice masks;
+  - caustic mean 1.00000, min 0.33, max 6.0, tiling seam below the inner step.
+- GPU probes (Intel, GL 4.3, real shader sources, real t3_hevil / t2_port / yavin1b brushes):
+  - `LiquidCoverage` against a double-precision clip and union, 15 440 rays (random, grazing at
+    ±0.01 and ±3 units from the surface, vertical through it). Max error 0.003 units, except
+    0.059 units for a ray 0.01 below the surface and nearly parallel to it. That is fp32
+    cancellation on near-parallel planes, 0.2% of that segment.
+  - `LiquidSunTransmittance` on 2 965 sun paths (inside, on the bed, near the surface): T error
+    ≤ 1e-3.
+  - `FroxelMedium`: the liquid extinction of 512 froxels around the t3_hevil lake surface (22
+    cut by it), scalar and RGB. Relative error ≤ 4.4e-4.
+- `tools/rend2/test_volumetric_compute.py` (the existing raster / compute regression) passes.
+
+### Validation in game (not run yet)
+
+Use t3_hevil for the lake and yavin1b for sun on shallow water: `r_volumetricFog 2`,
+`r_volumetricWater 1`, `vid_restart`, then `r_liquids`.
+
+1. Camera above the surface: no haze in the air, and the lake bed seen through the surface gets
+   the water's color with depth (debug 63). The surface itself is not hazed.
+2. Camera below: haze in every direction, the surface seen from below, and the sky through it.
+3. Crossing quickly: no smear or lag of the history (one cut per crossing). Debug 61 has no red
+   stripes, and debug 62 shows the boundary slices near the surface.
+4. Saber underwater: its in-scattering is attenuated by the water between it and the camera.
+   (The light path from the saber to the froxel is not attenuated; see the limitations.)
+5. Sun from outside: shafts under the surface fade with depth and get bluer, with caustics on the
+   bed and in the shafts (debug 64, debug 3). Rocks and walls keep their cascade shadows.
+6. Legacy tint: gone under water with the feature on; with `cg_underwaterTint 0` or
+   `r_volumetricWater 0` it is back. The FOV warp is always kept.
+7. Lava / slime (kor1): unchanged with the default mask 1.
+8. vjun2 (brush-model water): legacy tint, no medium.
+9. Timings: GPU timers "Froxel fog inject" (and media with self-shadow) with liquids off / on in
+   the t3_hevil lake, and the lightall cost on the bed (frame time A/B with
+   `r_volumetricWaterSurfaces`).
+
+| Measure | Liquids off | Liquids on |
+|---|---|---|
+| Froxel fog inject (Q1, 1080p) | | |
+| Frame, camera in the lake | | |
+| Frame, looking at the lake from the shore | | |
+
+Measured on the CPU (harness, Release x64):
+
+- brush load: 0.03–0.14 ms per map;
+- per-frame culling: 3–6 µs;
+- caustic pattern generation: 30 ms, once per renderer start (on the first map with liquids).
+
+### Limitations
+
+- Brush-model liquids (moving water, `*N` models) are not media; cgame keeps their tint.
+- Liquids end at the froxel far (fade over the last fifth); they are not in the analytic tail.
+- Only the 32 nearest visible brushes per view are used. Beyond 8 overlapping intervals on one
+  segment, extra lengths are summed (can count twice; not seen on the stock maps).
+- The sun path is the unrefracted straight ray. The light path of dynamic lights inside water is
+  not attenuated (only the path to the camera is); sabers and blaster bolts are short-range.
+- The baked (non-sun) grid light under water is used as baked; q3map did not attenuate it by the
+  water.
+- Caustics are a static procedural pattern (not derived from the water surface waves) and only
+  modulate the sun.
+- Lava has no emission term.
+
 ## Known limitations
 
 - Only the main view of the first world scene has a volume; portals, mirrors, the sky portal and the LA goggles

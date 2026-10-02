@@ -570,6 +570,8 @@ extern	vmCvar_t		cg_bobroll;
 extern	vmCvar_t		cg_shadows;
 extern	vmCvar_t		r_ltcSaberAreaLights;
 extern	vmCvar_t		r_foliageInteraction;
+extern	vmCvar_t		r_volumetricWaterActive;
+extern	vmCvar_t		cg_underwaterTint;
 extern	vmCvar_t		r_volumetricParticles;
 extern	vmCvar_t		cl_rendererSpotLights;
 extern	vmCvar_t		cl_rendererLensWater;

@@ -67,6 +67,18 @@ void main()
 //  57-58 directional baked light (r_volumetricFogStaticDirectional, black without it), as views 20-25:
 //     57 the baked light after the L1 phase B + 3 g (M.v) with the global g, 58 B * |M_c| / B_c (the
 //     directional fraction per channel)
+//  59-64 liquid media (r_volumetricWater, glsl/liquid_common.glsl; dark magenta when off):
+//     59 density of the liquids only            (the injection drops every other medium)
+//     60 liquid brushes over the frame: fill and edges, blue water, green slime, orange lava, dimmed
+//        behind the scene
+//     61 camera contents: the hue of the CPU class (collision, once per view), bottom bar the GPU
+//        brushes at the camera, red stripes where they disagree
+//     62 liquid boundary: froxels along the ray to the scene cut by a liquid surface (yellow, 2 =
+//        full) over the fully covered ones (blue, 8 = full)
+//     63 transmittance of the liquids alone between the camera and the scene, exact (rgb with
+//        r_volumetricFogRGBExtinction, else the scalar extinction)
+//     64 sun under the liquids at the scene surface: transmittance * caustics (grey 0.75 = no
+//        attenuation, dark grey: not in a liquid)
 //
 // r_particleLightingDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -202,7 +214,7 @@ void main()
 		return;
 	}
 
-	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26)
+	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26 || view == 59)
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
@@ -413,6 +425,91 @@ void main()
 				FroxelTailMediumRGB(a, toPos / max(length(toPos), 1e-6), len, tau);
 				color = exp(-tau);
 			}
+		}
+#else
+		color = vec3(0.3, 0.0, 0.3);
+#endif
+	}
+	else if (view >= 60 && view <= 64)
+	{
+#if defined(USE_LIQUIDS)
+		vec3 origin = u_FroxelViewOrigin.xyz;
+		vec3 toScene = worldPos - origin;
+		float sceneDistance = length(toScene);
+		vec3 dir = toScene / max(sceneDistance, 1e-4);
+		int n = LiquidCount();
+		if (view == 60)
+		{
+			// drawn blended over the frame (RB_VolumetricDebugOverlay)
+			vec4 outline = vec4(0.0);
+			for (int i = 0; i < n; i++)
+			{
+				vec2 interval = LiquidClip(i, origin, dir, 0.0, 1e6);
+				if (interval.x >= interval.y)
+					continue;
+				float visible = (interval.x < sceneDistance) ? 1.0 : 0.35;
+				float width = 0.75 + 0.003 * interval.x;
+				float edge = (LiquidNearPlanes(i, origin + dir * interval.x, width) >= 2) ? 1.0 : 0.0;
+				float a = max(0.18, edge) * visible;
+				if (a > outline.a)
+					outline = vec4(LiquidClassHue(LiquidClassOf(i)), a);
+			}
+			out_Color = outline;
+			return;
+		}
+		else if (view == 61)
+		{
+			int cpuClass = int(u_LiquidParams.y);
+			int gpuClass = LiquidPointClass(origin);
+			color = LiquidClassHue(cpuClass) * ((cpuClass >= 0) ? 0.6 : 1.0);
+			if (tc.y < 0.06)
+				color = LiquidClassHue(gpuClass);
+			else if (cpuClass != gpuClass && fract((gl_FragCoord.x + gl_FragCoord.y) / 24.0) < 0.5)
+				color = vec3(1.0, 0.0, 0.0);
+		}
+		else if (view == 62)
+		{
+			float sceneDepth = dot(toScene, u_FroxelViewForward.xyz);
+			float cosView = max(dot(dir, u_FroxelViewForward.xyz), 1e-3);
+			int numSlices = int(u_FroxelGridSize.z);
+			float partial = 0.0;
+			float full = 0.0;
+			for (int k = 0; k < numSlices; k++)
+			{
+				float d0 = FroxelWToDepth(float(k) / float(numSlices));
+				if (d0 > sceneDepth)
+					break;
+				int mask = u_LiquidSlices[k >> 2][k & 3];
+				if (mask == 0)
+					continue;
+				float d1 = min(FroxelWToDepth(float(k + 1) / float(numSlices)), sceneDepth);
+				vec3 covered = LiquidCoverage(origin, dir, d0 / cosView, d1 / cosView, mask);
+				float f = (covered.x + covered.y + covered.z) * cosView / max(d1 - d0, 1e-4);
+				if (f > 0.98)
+					full += 1.0;
+				else if (f > 0.02)
+					partial += 1.0;
+			}
+			color = vec3(0.08) + vec3(0.0, 0.2, 0.6) * min(full / 8.0, 1.0) + vec3(1.0, 0.85, 0.0) * min(partial / 2.0, 1.0);
+		}
+		else if (view == 63)
+		{
+			vec3 covered = LiquidCoverage(origin, dir, 0.0, sceneDistance, -1);
+#if defined(USE_FROXEL_RGB)
+			color = exp(-LiquidOpticalDepth(covered));
+#else
+			float tau = covered.x * u_LiquidMaterial[0].a + covered.y * u_LiquidMaterial[2].a +
+				covered.z * u_LiquidMaterial[4].a;
+			color = vec3(exp(-tau));
+#endif
+		}
+		else
+		{
+			// a little in front of the surface (a lake bed lies on its brush boundary)
+			float pathLength;
+			vec3 T = LiquidSunTransmittance(worldPos - dir * 0.5, u_FroxelSunDirection.xyz,
+				max(dot(toScene, u_FroxelViewForward.xyz), 1.0) * u_LiquidView.z / 8.0, pathLength);
+			color = (pathLength > 0.0) ? T * 0.75 : vec3(0.1);
 		}
 #else
 		color = vec3(0.3, 0.0, 0.3);

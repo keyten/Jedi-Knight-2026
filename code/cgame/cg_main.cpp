@@ -244,6 +244,8 @@ vmCvar_t	cg_bobroll;
 vmCvar_t	cg_shadows;
 vmCvar_t	r_ltcSaberAreaLights;	// renderer cvar (rend2 LTC area lights), mirrored
 vmCvar_t	r_foliageInteraction;	// renderer cvar (rend2 foliage interaction), mirrored
+vmCvar_t	r_volumetricWaterActive;	// set by rend2: liquids drawn as a medium (1 water, 2 slime, 4 lava)
+vmCvar_t	cg_underwaterTint;
 vmCvar_t	r_volumetricParticles;		// renderer cvar (rend2 volumetric FX particles), mirrored
 vmCvar_t fx_physicalization, fx_physicalizationDebug;
 vmCvar_t fx_physicalizationStrength;
@@ -365,6 +367,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_shadows, "cg_shadows", "1", CVAR_ARCHIVE  },
 	{ &r_ltcSaberAreaLights, "r_ltcSaberAreaLights", "0", CVAR_ARCHIVE },
 	{ &r_foliageInteraction, "r_foliageInteraction", "0", CVAR_ARCHIVE },
+	{ &r_volumetricWaterActive, "r_volumetricWaterActive", "0", CVAR_ROM },
+	{ &cg_underwaterTint, "cg_underwaterTint", "1", CVAR_ARCHIVE },
 	{ &r_volumetricParticles, "r_volumetricParticles", "0", CVAR_ARCHIVE },
 	{ &fx_physicalization, "fx_physicalization", "0", CVAR_ARCHIVE },
 	{ NULL, "fx_physicalizationOptIn", "", CVAR_ARCHIVE },

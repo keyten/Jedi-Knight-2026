@@ -145,6 +145,26 @@ cvar_t	*r_volumetricEmission;
 cvar_t	*r_volumetricFogReset;
 cvar_t	*r_volumetricFogDebug;
 cvar_t	*r_volumetricParticles;
+cvar_t	*r_volumetricWater;
+cvar_t	*r_volumetricWaterActive;
+cvar_t	*r_volumetricWaterSurfaces;
+cvar_t	*r_volumetricWaterSunPath;
+cvar_t	*r_volumetricWaterCaustics;
+cvar_t	*r_volumetricWaterCausticScale;
+cvar_t	*r_volumetricWaterCausticSpeed;
+cvar_t	*r_volumetricWaterCausticFocus;
+cvar_t	*r_volumetricWaterExtinction;
+cvar_t	*r_volumetricWaterColor;
+cvar_t	*r_volumetricWaterAlbedo;
+cvar_t	*r_volumetricWaterAnisotropy;
+cvar_t	*r_volumetricSlimeExtinction;
+cvar_t	*r_volumetricSlimeColor;
+cvar_t	*r_volumetricSlimeAlbedo;
+cvar_t	*r_volumetricSlimeAnisotropy;
+cvar_t	*r_volumetricLavaExtinction;
+cvar_t	*r_volumetricLavaColor;
+cvar_t	*r_volumetricLavaAlbedo;
+cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t *fx_physicalizationAggregate;
 cvar_t	*r_spotLights;
 cvar_t	*r_spotLightShadows;
@@ -1836,6 +1856,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
+	{ "r_liquids",			R_Liquids_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
 	{ "rainlens_event",		R_RainLensEvent_f },
@@ -2488,9 +2509,44 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogBloom, 0.0f, 4.0f, qfalse);
 	r_volumetricEmission = ri_Cvar_Get_NoComm("r_volumetricEmission", "1", CVAR_ARCHIVE, "Froxel fog: scale of the emission of local fog volumes and FX particle media (glowing gas), 0 = off");
 	ri.Cvar_CheckRange(r_volumetricEmission, 0.0f, 16.0f, qfalse);
+	// liquid media (tr_liquid.cpp): the water / slime / lava brushes of the world model
+	// become media of the froxel fog, docs/rend2-volumetric-fog.md "Underwater medium"
+	r_volumetricWater = ri_Cvar_Get_NoComm("r_volumetricWater", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog (r_volumetricFog 2): liquid brushes of the map are participating media, mask: 1 water, 2 slime, 4 lava (0 = off, the legacy look). cgame then skips the full screen tint of those liquids (r_volumetricWaterActive, cg_underwaterTint)");
+	ri.Cvar_CheckRange(r_volumetricWater, 0, 7, qtrue);
+	r_volumetricWaterActive = ri_Cvar_Get_NoComm("r_volumetricWaterActive", "0", CVAR_ROM, "Set by the renderer: liquid classes drawn as a medium on this map (1 water, 2 slime, 4 lava), read by cgame");
+	r_volumetricWaterSurfaces = ri_Cvar_Get_NoComm("r_volumetricWaterSurfaces", "1", CVAR_ARCHIVE | CVAR_LATCH, "r_volumetricWater: the sun on surfaces inside a liquid passes the liquid above them (transmittance, caustics); needs r_sunlightMode");
+	ri.Cvar_CheckRange(r_volumetricWaterSurfaces, 0, 1, qtrue);
+	r_volumetricWaterSunPath = ri_Cvar_Get_NoComm("r_volumetricWaterSunPath", "1", CVAR_ARCHIVE, "r_volumetricWater: exact path of the sunlight through the liquid to the surface (deep water is darker and bluer); 0 = sunlight unattenuated");
+	ri.Cvar_CheckRange(r_volumetricWaterSunPath, 0, 1, qtrue);
+	r_volumetricWaterCaustics = ri_Cvar_Get_NoComm("r_volumetricWaterCaustics", "0.35", CVAR_ARCHIVE, "r_volumetricWater: strength of the sun caustics under water (0 = off, 1 = full pattern contrast); the average sunlight is kept");
+	ri.Cvar_CheckRange(r_volumetricWaterCaustics, 0.0f, 1.0f, qfalse);
+	r_volumetricWaterCausticScale = ri_Cvar_Get_NoComm("r_volumetricWaterCausticScale", "160", CVAR_ARCHIVE, "r_volumetricWater: caustic pattern period in world units");
+	ri.Cvar_CheckRange(r_volumetricWaterCausticScale, 8.0f, 4096.0f, qfalse);
+	r_volumetricWaterCausticSpeed = ri_Cvar_Get_NoComm("r_volumetricWaterCausticSpeed", "0.06", CVAR_ARCHIVE, "r_volumetricWater: caustic drift in pattern periods per second");
+	ri.Cvar_CheckRange(r_volumetricWaterCausticSpeed, 0.0f, 4.0f, qfalse);
+	r_volumetricWaterCausticFocus = ri_Cvar_Get_NoComm("r_volumetricWaterCausticFocus", "48", CVAR_ARCHIVE, "r_volumetricWater: depth below the surface where the caustics reach full contrast (world units)");
+	ri.Cvar_CheckRange(r_volumetricWaterCausticFocus, 1.0f, 4096.0f, qfalse);
+	r_volumetricWaterExtinction = ri_Cvar_Get_NoComm("r_volumetricWaterExtinction", "0.0014", CVAR_ARCHIVE, "r_volumetricWater: water extinction per world unit (mean of the channels; 0.0014 = 1/e after ~700 units)");
+	ri.Cvar_CheckRange(r_volumetricWaterExtinction, 0.0f, 1.0f, qfalse);
+	r_volumetricWaterColor = ri_Cvar_Get_NoComm("r_volumetricWaterColor", "2.0 0.75 0.25", CVAR_ARCHIVE, "r_volumetricWater: water relative extinction \"r g b\" (normalized to mean 1; red is absorbed first): RGB transmittance with r_volumetricFogRGBExtinction, the sun path color in both modes");
+	r_volumetricWaterAlbedo = ri_Cvar_Get_NoComm("r_volumetricWaterAlbedo", "0.10 0.45 0.75", CVAR_ARCHIVE, "r_volumetricWater: water single scattering albedo \"r g b\" (in-scattering color = albedo * relative extinction)");
+	r_volumetricWaterAnisotropy = ri_Cvar_Get_NoComm("r_volumetricWaterAnisotropy", "0.75", CVAR_ARCHIVE, "r_volumetricWater: water Henyey-Greenstein g (forward scattering)");
+	ri.Cvar_CheckRange(r_volumetricWaterAnisotropy, -0.9f, 0.9f, qfalse);
+	r_volumetricSlimeExtinction = ri_Cvar_Get_NoComm("r_volumetricSlimeExtinction", "0.005", CVAR_ARCHIVE, "r_volumetricWater 2: slime extinction per world unit");
+	ri.Cvar_CheckRange(r_volumetricSlimeExtinction, 0.0f, 1.0f, qfalse);
+	r_volumetricSlimeColor = ri_Cvar_Get_NoComm("r_volumetricSlimeColor", "1.6 0.5 0.9", CVAR_ARCHIVE, "r_volumetricWater 2: slime relative extinction \"r g b\"");
+	r_volumetricSlimeAlbedo = ri_Cvar_Get_NoComm("r_volumetricSlimeAlbedo", "0.25 0.7 0.2", CVAR_ARCHIVE, "r_volumetricWater 2: slime single scattering albedo \"r g b\"");
+	r_volumetricSlimeAnisotropy = ri_Cvar_Get_NoComm("r_volumetricSlimeAnisotropy", "0.4", CVAR_ARCHIVE, "r_volumetricWater 2: slime Henyey-Greenstein g");
+	ri.Cvar_CheckRange(r_volumetricSlimeAnisotropy, -0.9f, 0.9f, qfalse);
+	r_volumetricLavaExtinction = ri_Cvar_Get_NoComm("r_volumetricLavaExtinction", "0.02", CVAR_ARCHIVE, "r_volumetricWater 4: lava extinction per world unit");
+	ri.Cvar_CheckRange(r_volumetricLavaExtinction, 0.0f, 1.0f, qfalse);
+	r_volumetricLavaColor = ri_Cvar_Get_NoComm("r_volumetricLavaColor", "0.6 1.2 1.2", CVAR_ARCHIVE, "r_volumetricWater 4: lava relative extinction \"r g b\"");
+	r_volumetricLavaAlbedo = ri_Cvar_Get_NoComm("r_volumetricLavaAlbedo", "0.6 0.15 0.02", CVAR_ARCHIVE, "r_volumetricWater 4: lava single scattering albedo \"r g b\" (no emission: absorption and scattering only)");
+	r_volumetricLavaAnisotropy = ri_Cvar_Get_NoComm("r_volumetricLavaAnisotropy", "0.3", CVAR_ARCHIVE, "r_volumetricWater 4: lava Henyey-Greenstein g");
+	ri.Cvar_CheckRange(r_volumetricLavaAnisotropy, -0.9f, 0.9f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 58, qtrue);
+	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B, r_volumetricWater: 59 density of the liquids, 60 liquid brushes, 61 camera contents (CPU) vs GPU membership, 62 liquid boundary froxels, 63 liquid transmittance along the ray, 64 sun under water (transmittance * caustics)");
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 64, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volumetricParticles = ri_Cvar_Get_NoComm("r_volumetricParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");

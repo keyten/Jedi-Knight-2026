@@ -149,6 +149,7 @@ const uniformBlockInfo_t uniformBlocksInfo[UNIFORM_BLOCK_COUNT] = {
 	{ 11, "VolumetricFog", sizeof(VolumetricFogBlock) },
 	{ 12, "FoliageInteraction", sizeof(FoliageInteractionBlock) },
 	{ 13, "VolumetricParticles", sizeof(VolumetricParticlesBlock) },
+	{ 14, "Liquids", sizeof(LiquidsBlock) },
 };
 
 typedef struct uniformInfo_s
@@ -351,6 +352,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FroxelTransmittance",	GLSL_INT, 1 },
 	{ "u_FroxelExtinction",		GLSL_INT, 1 },
 	{ "u_FroxelCarryT",			GLSL_INT, 1 },
+	{ "u_LiquidPlanes",			GLSL_INT, 1 },
+	{ "u_LiquidCausticMap",		GLSL_INT, 1 },
+	{ "u_LiquidSurface",		GLSL_VEC4, 1 },
 
 	{ "u_FPlusLights",			GLSL_INT, 1 },
 	{ "u_FPlusGridMap",			GLSL_INT, 1 },
@@ -681,6 +685,9 @@ static size_t GLSL_GetShaderHeader(
 		// RGB extinction (r_volumetricFogRGBExtinction, latched): transmittance per channel
 		if (R_VolumetricFroxelRGB())
 			Q_strcat(dest, size, "#define USE_FROXEL_RGB\n");
+		// liquid media (r_volumetricWater, latched): size of the Liquids block
+		if (R_LiquidsAvailable())
+			Q_strcat(dest, size, va("#define MAX_GPU_LIQUIDS %i\n", MAX_GPU_LIQUIDS));
 	}
 
 	if (r_cubeMapping->integer)
@@ -2397,6 +2404,28 @@ static const GPUShaderDesc *LoadVolumetricLibrary( Allocator& allocator )
 static const GPUShaderDesc *GLSL_CombineLibraries(
 	Allocator& allocator, const GPUShaderDesc *a, const GPUShaderDesc *b );
 
+// Liquid media (glsl/liquid_common.glsl, tr_liquid.cpp): the Liquids block,
+// the brush clipping and the underwater sun, for the volumetric programs and
+// lightall. nullptr unless r_volumetricWater (latched) is available.
+static const GPUShaderDesc *LoadLiquidLibrary( Allocator& allocator )
+{
+	if ( !R_LiquidsAvailable() )
+		return nullptr;
+
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("liquid_common", allocator, fallback_liquid_commonProgram);
+	for ( size_t i = 0; i < programDesc->numShaders; ++i )
+	{
+		if ( programDesc->shaders[i].type == GPUSHADER_FRAGMENT )
+		{
+			return &programDesc->shaders[i];
+		}
+	}
+
+	ri.Error(ERR_FATAL, "Could not load liquid_common shader library!");
+	return nullptr;
+}
+
 static const GPUShaderDesc *LoadVertexLibrary(
 	Allocator& allocator, const char *name, const GPUProgramDesc& fallback )
 {
@@ -2913,6 +2942,9 @@ static int GLSL_LoadGPUProgramLightAll(
 		LoadProgramSource("lightall", allocator, fallback_lightallProgram);
 	const GPUShaderDesc *pomLibrary = nullptr;
 	const GPUShaderDesc *leafFlutterLibrary = LoadLeafFlutterLibrary(allocator);
+	// underwater sun (r_volumetricWater, r_volumetricWaterSurfaces, latched): the
+	// lit permutations with a sun take the liquid library (USE_LIQUID_SUN)
+	const GPUShaderDesc *liquidLibrary = R_LiquidSurfacesEnabled() ? LoadLiquidLibrary(allocator) : nullptr;
 	const bool useFastLight =
 		(!r_normalMapping->integer && !r_specularMapping->integer);
 	GLint maxFragmentSamplers = 0;
@@ -3078,6 +3110,9 @@ static int GLSL_LoadGPUProgramLightAll(
 			Q_strcat(
 				extradefines, sizeof(extradefines),
 				va("#define r_shadowCascadeZFar %f\n", r_shadowCascadeZFar->value));
+
+			if (liquidLibrary && lightType)
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUIDS\n#define USE_LIQUID_SUN\n");
 		}
 
 		if (i & LIGHTDEF_USE_TCGEN_AND_TCMOD)
@@ -3117,8 +3152,9 @@ static int GLSL_LoadGPUProgramLightAll(
 		/*if (i & LIGHTDEF_USE_GLOW_BUFFER)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_GLOW_BUFFER\n");*/
 
+		const bool liquidSun = liquidLibrary && lightType && r_sunlightMode->integer;
 		if (!GLSL_LoadGPUShader(builder, &tr.lightallShader[i], name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, nullptr, leafFlutterLibrary))
+				extradefines, *programDesc, liquidSun ? liquidLibrary : nullptr, leafFlutterLibrary))
 		{
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
@@ -3138,8 +3174,10 @@ static int GLSL_LoadGPUProgramLightAll(
 				program = &tr.lightallSilhouetteShader[pomIndex];
 				Q_strcat(name, sizeof(name), "_SPOM");
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_SILHOUETTE_POM\n");
+				const GPUShaderDesc *fragmentLibrary = liquidSun ?
+					GLSL_CombineLibraries(allocator, pomLibrary, liquidLibrary) : pomLibrary;
 				if (!GLSL_LoadGPUShader(builder, program, name, attribs | ATTR_POSITION2 | ATTR_TANGENT,
-						NO_XFB_VARS, extradefines, *programDesc, pomLibrary, leafFlutterLibrary))
+						NO_XFB_VARS, extradefines, *programDesc, fragmentLibrary, leafFlutterLibrary))
 				{
 					ri.Error(ERR_FATAL, "Could not load lightall silhouette POM shader!");
 				}
@@ -3175,6 +3213,8 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_LTCSABERSCREENMAP, TB_LTC_SABER_SCREEN);
 			GLSL_SetUniformInt(program, UNIFORM_SKINMASKMAP, TB_SKINMASK);
 			GLSL_SetUniformInt(program, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
+			GLSL_SetUniformInt(program, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
+			GLSL_SetUniformInt(program, UNIFORM_LIQUIDCAUSTICMAP, TB_LIQUIDCAUSTICS);
 			if ( variant == 1 )
 				GLSL_SetPomSilhouetteUnits(program);
 			qglUseProgram(0);
@@ -3935,7 +3975,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		return 0;
 
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
-	const GPUShaderDesc *common = LoadVolumetricLibrary(allocator);
+	// the liquid media (r_volumetricWater) follow the froxel functions
+	const GPUShaderDesc *liquidLibrary = LoadLiquidLibrary(allocator);
+	const GPUShaderDesc *common = GLSL_CombineLibraries(allocator, LoadVolumetricLibrary(allocator), liquidLibrary);
 	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	int numPrograms = 0;
 
@@ -3966,6 +4008,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
 		GLSL_SetUniformInt(sp, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 		GLSL_SetUniformInt(sp, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
+		// liquid media (r_volumetricWater): plane buffer, caustic pattern
+		GLSL_SetUniformInt(sp, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
+		GLSL_SetUniformInt(sp, UNIFORM_LIQUIDCAUSTICMAP, TB_LIQUIDCAUSTICS);
 		GLSL_SetFroxelLookupUnits(sp);
 		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here
 		GLSL_SetUniformInt(sp, UNIFORM_PARTICLELIGHTVOLUME, TB_ENTITYGRID_AMBIENT);
@@ -3978,13 +4023,16 @@ static int GLSL_LoadGPUProgramVolumetric(
 	// are read by the injection and the debug views only
 	// The directional baked light moments (r_volumetricFogStaticDirectional,
 	// latched) are a permutation: without it no moment sampler, fetch or ALU.
-	char particleDefines[320];
+	// The liquid media (r_volumetricWater, latched) are read by the injection and
+	// the debug views.
+	char particleDefines[400];
 	Com_sprintf(particleDefines, sizeof(particleDefines),
 		"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
 		"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
-		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s",
+		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s%s",
 		MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES,
-		R_VolumetricStaticDirectional() ? "#define USE_FROXEL_STATIC_RECONSTRUCTION\n" : "");
+		R_VolumetricStaticDirectional() ? "#define USE_FROXEL_STATIC_RECONSTRUCTION\n" : "",
+		liquidLibrary ? "#define USE_LIQUIDS\n" : "");
 
 	auto load = [&]( shaderProgram_t *sp, const char *name, const GPUProgramDesc *programDesc, const char *defines )
 	{

@@ -97,6 +97,7 @@ struct froxelState_t
 	float nearZ, farZ;
 	int debug;
 	unsigned int mediumKey;
+	int cameraLiquid;			// LIQUID_* class at the camera (r_volumetricWater), -1 = none
 	unsigned int frameIndex;
 
 	// frozen froxel camera (r_volumetricFogFreeze)
@@ -975,6 +976,7 @@ void R_CreateVolumetricFBOs( void )
 void R_ShutdownVolumetric( void )
 {
 	R_FogVolumesShutdown();
+	R_LiquidsShutdown();
 	if ( s_vfl.lightBuffers[0] )
 	{
 		for ( int f = 0; f < MAX_FRAMES; f++ )
@@ -2061,8 +2063,20 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 {
 	tr.volumetricFogUboOffset = -1;
 	tr.volParticlesUboOffset = -1;
+	tr.liquidsUboOffset = -1;
 	if ( !s_vf.resources )
 		return;
+
+	// liquid media (r_volumetricWater, tr_liquid.cpp): every scene gets a Liquids
+	// block, lightall reads it too; empty unless this scene builds the volume
+	static LiquidsBlock liquids;
+	const qboolean liquidsAvailable = R_LiquidsAvailable();
+	if ( liquidsAvailable )
+	{
+		static const LiquidsBlock noLiquids = {};
+		tr.liquidsUboOffset = RB_AppendConstantsData(frame, &noLiquids, sizeof(noLiquids));
+		R_LiquidsUpdateActive();
+	}
 
 	VolumetricFogBlock block = {};
 	const int frameNumber = backEndData->realFrameNumber;
@@ -2096,7 +2110,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		// no fog volume, no height fog, no local fog volume, no FX particle medium: nothing to do
 		// the sprite particle light field (r_particleLighting) needs the injection even without media
 		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ) ||
-			R_VolParticlesInFrustum(view, refdef, farZ) || tr.froxelParticleLightImage != NULL) &&
+			R_VolParticlesInFrustum(view, refdef, farZ) || tr.froxelParticleLightImage != NULL ||
+			R_LiquidsInFrustum(view, view->ori.axis[0], farZ)) &&
 		tr.renderFbo != NULL &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) &&
 		!refdef->doLAGoggles &&
@@ -2180,7 +2195,12 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// history
 	const int debug = r_volumetricFogDebug->integer;
-	const unsigned int mediumKey = R_VolumetricMediumKey();
+	unsigned int mediumKey = R_VolumetricMediumKey();
+	if ( liquidsAvailable )
+		mediumKey = R_LiquidsMediumKey(mediumKey);
+	// the liquid around the camera, once per view (collision of the world model,
+	// the same brushes as the GPU media). Crossing the surface cuts the history.
+	const int cameraLiquid = (liquidsAvailable && R_LiquidClassMask()) ? R_LiquidPointClass(view->ori.origin) : -1;
 	const qboolean temporal = (qboolean)(r_volumetricFogTemporal->integer != 0);
 	qboolean historyValid = (qboolean)(
 		temporal &&
@@ -2193,6 +2213,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		s_vf.farZ == farZ &&
 		s_vf.debug == debug &&
 		s_vf.mediumKey == mediumKey &&
+		s_vf.cameraLiquid == cameraLiquid &&
 		!r_volumetricFogReset->integer &&
 		tr.temporalHistoryValid);
 	if ( historyValid )
@@ -2225,6 +2246,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	s_vf.farZ = farZ;
 	s_vf.debug = debug;
 	s_vf.mediumKey = mediumKey;
+	s_vf.cameraLiquid = cameraLiquid;
 	s_vf.frameIndex++;
 
 	R_VolumetricBuildLightLists(&block, view, refdef, froxelProjection);
@@ -2446,7 +2468,19 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	const int numParticles = R_VolParticlesBuild(&particles, view, refdef, forward, nearZ, farZ, s_vf.depth);
 	tr.volParticlesUboOffset = RB_AppendConstantsData(frame, &particles, sizeof(particles));
 
-	s_vf.frameHeightFog = (qboolean)(heightFogOn || numLocalVolumes > 0 || numParticles > 0);
+	// liquid media: the nearest liquid brushes, per slice masks (tr_liquid.cpp)
+	int numLiquids = 0;
+	if ( liquidsAvailable )
+	{
+		numLiquids = R_LiquidsBuild(&liquids, view, forward, farZ, s_vf.depth, R_VolumetricDepthSlice,
+			cameraLiquid, refdef->floatTime);
+		// world size of a froxel per unit of view depth: lod of the caustics in the volume
+		liquids.view[2] = 2.0f * tanf(DEG2RAD(view->fovY * 0.5f)) / (float)MAX(1, s_vf.height);
+		tr.liquidsUboOffset = RB_AppendConstantsData(frame, &liquids, sizeof(liquids));
+	}
+
+	// transparent surfaces without a BSP fog (a water surface) look the volume up
+	s_vf.frameHeightFog = (qboolean)(heightFogOn || numLocalVolumes > 0 || numParticles > 0 || numLiquids > 0);
 
 	s_vf.frozenBlock = block;
 	tr.volumetricFogUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
@@ -2751,6 +2785,13 @@ static void RB_VolumetricBindBlocks( void )
 	// FX particle media, read by the injection and the debug views
 	if ( tr.volParticlesUboOffset != -1 )
 		RB_BindUniformBlock(frameUbo, UNIFORM_BLOCK_VOLUMETRIC_PARTICLES, tr.volParticlesUboOffset);
+
+	// liquid media (r_volumetricWater): block, plane buffer, caustic pattern
+	if ( tr.liquidsUboOffset != -1 )
+	{
+		RB_BindUniformBlock(frameUbo, UNIFORM_BLOCK_LIQUIDS, tr.liquidsUboOffset);
+		R_LiquidsBindTextures();
+	}
 }
 
 /*
@@ -3105,8 +3146,10 @@ void RB_VolumetricDebugOverlay( void )
 	FBO_Bind(NULL);
 	GL_SetViewportAndScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	GL_Cull(CT_TWO_SIDED);
-	// views 18 (local fog volume bounds) and 28 (FX particle proxies) are drawn over the frame
-	if ( !particleLightView && (r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28) )
+	// views 18 (local fog volume bounds), 28 (FX particle proxies) and 60 (liquid
+	// brushes) are drawn over the frame
+	if ( !particleLightView && (r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28 ||
+		r_volumetricFogDebug->integer == 60) )
 		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 	else
 		GL_State(GLS_DEPTHTEST_DISABLE);

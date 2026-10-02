@@ -47,6 +47,12 @@ void main()
 // them there is no medium. The selected media (r_volumetricFogNoise) are multiplied by the world space
 // density noise m(p) (mean 1): only the extinction changes, the light does not.
 //
+// Liquids (r_volumetricWater, USE_LIQUIDS, glsl/liquid_common.glsl): the water / slime / lava brushes of
+// the map listed for this slice. Their extinction is the covered fraction of the froxel's depth along
+// its ray (exact clip of the convex brushes), so the froxel cut by a water surface integrates its
+// share of the water. The sun under a liquid passes the liquid above the froxel (exact path length to
+// the surface, rgb transmittance, caustics: LiquidSunTransmittance), every other light is unchanged.
+//
 // Light (the phase function is 4 pi HG, 1 = isotropic, per lobe of the medium):
 //   baked   light grid without the sun (isotropic, legacy brightness)
 //   sun     inside the cascaded shadow maps: realtime sun radiance * shadow * phase, beyond them (and
@@ -69,6 +75,12 @@ void main()
 uniform sampler3D u_FroxelHistory;
 #if defined(USE_FROXEL_RGB)
 uniform sampler3D u_FroxelExtinction;	// history of out_Extinction
+#endif
+
+#if defined(USE_LIQUIDS)
+// the media pass (r_volumetricSelfShadow) is evaluating FroxelMedium: liquids stay out of it while
+// the analytic sun path attenuates the sun under them (the self-shadow would count them twice)
+bool froxelMediaPass = false;
 #endif
 uniform sampler3D u_VolumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f (a)
 uniform sampler3D u_VolumetricSunGrid;
@@ -392,7 +404,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float localExtinction = 0.0;
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
-	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 && debugView != 59) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
 	{
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -451,7 +463,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float particlePrevious = 0.0;
 	float particleDelta = 0.0;
 	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 11 && debugView != 12 &&
-		debugView != 16) ? FroxelParticleSliceHeader(var_Slice) : 0;
+		debugView != 16 && debugView != 59) ? FroxelParticleSliceHeader(var_Slice) : 0;
 	int particleCount = particleHeader >> 16;
 	if (particleCount > 0)
 	{
@@ -493,7 +505,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	particleChange = particleDelta / max(max(particleExtinction, particlePrevious), 1e-12);
 
 	// the height fog has no metadata: the global g
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26)
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 && debugView != 59)
 	{
 		float e = heightSample.x;
 		float plain = e;
@@ -532,7 +544,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	}
 
 	// the fog volumes that may touch this slice (CPU culled)
-	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26) ? 0 :
+	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || debugView == 59) ? 0 :
 		u_FroxelFogSlices[var_Slice >> 2][var_Slice & 3];
 	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
@@ -570,6 +582,43 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 		FroxelAddScattering(lobes, e, fog.rgb, u_FroxelFogMedium[i].x);
 #endif
 	}
+
+#if defined(USE_LIQUIDS)
+	// the liquid brushes that may touch this slice (CPU culled, tr_liquid.cpp): the covered fraction
+	// of the froxel's depth along its ray, from the slice near to the slice far side (union of the
+	// overlapping brushes of a class). Static media without noise: no history reduction.
+	// (max: the compute tail pass runs this function's caller with var_Slice -1, and a constant
+	// negative index is a compile error on some drivers even in a branch never taken)
+	int liquidSlice = max(var_Slice, 0);
+	int liquidMask = (u_LiquidParams.x > 0.5 && !(froxelMediaPass && u_LiquidParams.z > 0.5) &&
+		debugView != 11 && debugView != 12 && debugView != 16 && debugView != 26) ?
+		u_LiquidSlices[liquidSlice >> 2][liquidSlice & 3] : 0;
+	if (liquidMask != 0)
+	{
+		vec3 toP = p - u_FroxelViewOrigin.xyz;
+		vec3 dir = toP / max(length(toP), 1e-4);
+		float cosView = max(dot(dir, u_FroxelViewForward.xyz), 1e-3);
+		float sliceNear = FroxelWToDepth(float(var_Slice) / u_FroxelGridSize.z);
+		float sliceFar = FroxelWToDepth(float(var_Slice + 1) / u_FroxelGridSize.z);
+		vec3 covered = LiquidCoverage(u_FroxelViewOrigin.xyz, dir, sliceNear / cosView, sliceFar / cosView, liquidMask);
+		vec3 fraction = covered * (cosView / max(sliceFar - sliceNear, 1e-4)) *
+			LiquidFade(dot(toP, u_FroxelViewForward.xyz));
+		for (int c = 0; c < 3; c++)
+		{
+			vec4 liquid = u_LiquidMaterial[c * 2];
+			float e = liquid.a * fraction[c];
+			if (e <= 0.0)
+				continue;
+			plainExtinction += e;
+			extinction += e;
+			// in-scattering albedo * extinction color in both modes (sigma_s = sigma_t.rgb * albedo)
+#if defined(USE_FROXEL_RGB)
+			extinctionRGB += e * liquid.rgb;
+#endif
+			FroxelAddScattering(lobes, e, u_LiquidMaterial[c * 2 + 1].rgb * liquid.rgb, u_LiquidMaterial[c * 2 + 1].a);
+		}
+	}
+#endif
 
 	localFraction = localExtinction / max(plainExtinction, 1e-12);
 	particleFraction = particleExtinction / max(plainExtinction, 1e-12);
@@ -1230,6 +1279,19 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 		}
 		l.sun *= u_FroxelLightParams.y;
 		l.sunUnshadowed *= u_FroxelLightParams.y;
+
+#if defined(USE_LIQUIDS)
+		// under a liquid surface: the sun passed the liquid above p (r_volumetricWaterSunPath), with
+		// caustics blurred to the froxel size
+		if (u_LiquidParams.x > 0.5)
+		{
+			float pathLength;
+			float viewDepth = max(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz), 1.0);
+			vec3 liquidSun = LiquidSunTransmittance(p, u_FroxelSunDirection.xyz, viewDepth * u_LiquidView.z, pathLength);
+			l.sun *= liquidSun;
+			l.sunUnshadowed *= liquidSun;
+		}
+#endif
 	}
 
 	return l;
@@ -1239,6 +1301,9 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 float FroxelMediaExtinction(in ivec2 cell, in int slice, in int debugView)
 {
 	float unused0, unused1, unused2, unused3, unused4;
+#if defined(USE_LIQUIDS)
+	froxelMediaPass = true;
+#endif
 	vec3 center = FroxelWorldPosition(vec3(vec2(cell) + 0.5, float(slice) + 0.5));
 	// Self-shadow rays are not camera rays: retain point density here.
 	float extinction = FroxelMedium(center, vec2(FroxelHeightExtinction(center), 0.0), debugView, false, unused0, unused1, unused2, unused3,

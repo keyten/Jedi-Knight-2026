@@ -120,6 +120,9 @@ XCVAR_DEF( cg_saberTrail,						"1",					NULL,					CVAR_ARCHIVE )
 // renderer cvar (rend2 LTC area lights), mirrored: sabers light as lines
 XCVAR_DEF( r_ltcSaberAreaLights,					"0",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( r_foliageInteraction,				"0",					NULL,					CVAR_ARCHIVE )
+// set by rend2 (r_volumetricWater): liquids drawn as a medium, their screen tint is skipped
+XCVAR_DEF( r_volumetricWaterActive,				"0",					NULL,					CVAR_ROM )
+XCVAR_DEF( cg_underwaterTint,					"1",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_scoreboardBots,					"1",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_scorePlums,						"1",					NULL,					CVAR_ARCHIVE )
 XCVAR_DEF( cg_stereoSeparation,					"0.4",					NULL,					CVAR_ARCHIVE )

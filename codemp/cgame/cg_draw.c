@@ -7526,6 +7526,33 @@ static QINLINE void CG_ChatBox_DrawStrings(void)
 	}
 }
 
+/*
+=================
+CG_LiquidTintReplaced
+
+The renderer draws this liquid (CONTENTS_LAVA / SLIME / WATER) as a
+participating medium of its volumetric fog (rend2 r_volumetricWater, which
+sets r_volumetricWaterActive: 1 water, 2 slime, 4 lava): the full screen tint
+on top of it would color the view twice. Only for the liquids of the world
+model, the ones the renderer has: water of a moving brush model keeps the
+tint. cg_underwaterTint 0 always draws the legacy tint.
+=================
+*/
+static qboolean CG_LiquidTintReplaced( int contents )
+{
+	int bit;
+	if ( cg_underwaterTint.integer != 1 )
+	{
+		return qfalse;
+	}
+	bit = (contents & CONTENTS_LAVA) ? 4 : (contents & CONTENTS_SLIME) ? 2 : 1;
+	if ( !(r_volumetricWaterActive.integer & bit) )
+	{
+		return qfalse;
+	}
+	return (qboolean)((trap->CM_PointContents( cg.refdef.vieworg, 0 ) & contents) != 0);
+}
+
 static void CG_Draw2DScreenTints( void )
 {
 	float			rageTime, rageRecTime, absorbTime, protectTime, ysalTime;
@@ -7919,7 +7946,8 @@ static void CG_Draw2DScreenTints( void )
 		hcolor[1] = 0;
 		hcolor[2] = 0;
 
-		CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
+		if ( !CG_LiquidTintReplaced( CONTENTS_LAVA ) )
+			CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
 	}
 	else if ( (cg.refdef.viewContents&CONTENTS_SLIME) )
 	{//tint screen green
@@ -7929,7 +7957,8 @@ static void CG_Draw2DScreenTints( void )
 		hcolor[1] = 0.7f;
 		hcolor[2] = 0;
 
-		CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
+		if ( !CG_LiquidTintReplaced( CONTENTS_SLIME ) )
+			CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
 	}
 	else if ( (cg.refdef.viewContents&CONTENTS_WATER) )
 	{//tint screen light blue -- FIXME: don't do this if CONTENTS_FOG? (in case someone *does* make a water shader with fog in it?)
@@ -7939,7 +7968,8 @@ static void CG_Draw2DScreenTints( void )
 		hcolor[1] = 0.2f;
 		hcolor[2] = 0.8f;
 
-		CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
+		if ( !CG_LiquidTintReplaced( CONTENTS_WATER ) )
+			CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, hcolor );
 	}
 }
 

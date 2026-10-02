@@ -4923,6 +4923,16 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 			&header->lumps[LUMP_BRUSHES],
 			&header->lumps[LUMP_BRUSHSIDES]);
 
+	// liquid media of the froxel fog (r_volumetricWater, tr_liquid.cpp): the
+	// water / slime / lava brushes of the world model, kept for every map
+	if (bspIndex == nullptr)
+		R_LoadLiquidBrushes(
+			worldData,
+			fileBase,
+			&header->lumps[LUMP_MODELS],
+			&header->lumps[LUMP_BRUSHES],
+			&header->lumps[LUMP_BRUSHSIDES]);
+
 	R_LoadWeatherImages();
 	R_GenerateSurfaceSprites(worldData, worldIndex + 1);
 	R_BuildLightGridTexture(worldData);
@@ -5089,6 +5099,10 @@ void RE_LoadWorldMap( const char *name ) {
 
 	// no colliders or persistent foliage bend of the previous map
 	R_FoliageInteractionReset();
+
+	// liquid media of this map: tells cgame which underwater tints the
+	// renderer replaces (r_volumetricWaterActive)
+	R_LiquidsWorldLoaded();
 
 	// LTC area lights: maps/<map>.arealights.json, else r_ltcAutoAreaLights
 	// candidates from the emissive surfaces (used with r_ltcAreaLights)

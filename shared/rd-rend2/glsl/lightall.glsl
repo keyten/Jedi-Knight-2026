@@ -776,6 +776,11 @@ uniform vec4 u_SpecularScale;
 uniform vec4 u_MaterialDebug;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 
+#if defined(USE_LIQUID_SUN)
+// underwater sun (r_volumetricWater, tr_liquid.cpp RB_LiquidSurfaceSetupDraw): x 1 = this draw takes it
+uniform vec4 u_LiquidSurface;
+#endif
+
 #if defined(USE_WETNESS) && defined(PER_PIXEL_LIGHTING)
 // rain wetness, tr_weather.cpp RB_WeatherWetnessBind
 uniform sampler2D u_WeatherDepthMap; // static top-down rain occlusion depth (D16)
@@ -3889,9 +3894,30 @@ void main()
 	shadowValue *= pomSunShadow;
 	#endif
 
+	#if defined(USE_LIQUID_SUN)
+	// inside a liquid (r_volumetricWater): the sun passed the liquid above the surface, rgb
+	// transmittance and caustics (glsl/liquid_common.glsl). The pixel footprint is taken here, in
+	// uniform control flow, for the caustic lod.
+	vec3 liquidSun = vec3(1.0);
+	{
+		vec3 liquidPosition = u_ViewOrigin - viewDir;
+		float liquidFootprint = length(fwidth(liquidPosition));
+		if (u_LiquidSurface.x > 0.5)
+		{
+			float liquidPath;
+			liquidSun = LiquidSunTransmittance(liquidPosition, primaryLightDir, liquidFootprint, liquidPath);
+		}
+	}
+	#endif
+
     #if defined(SHADOWMAP_MODULATE)
 	vec3 ambientScale = mix(vec3(1.0), u_PrimaryLightAmbient, u_EnableTextures.z);
+	#if defined(USE_LIQUID_SUN)
+	// the sunlit part of the lightmap passed the liquid too
+	lightColor = mix(ambientScale * lightColor, lightColor, shadowValue * liquidSun);
+	#else
 	lightColor = mix(ambientScale * lightColor, lightColor, shadowValue);
+	#endif
     #endif
   #endif
 
@@ -4131,6 +4157,9 @@ void main()
 	lightColor = u_PrimaryLightColor;
     #if defined(USE_SHADOWMAP)
 	lightColor *= shadowValue;
+    #endif
+    #if defined(USE_LIQUID_SUN)
+	lightColor *= liquidSun;
     #endif
 
     #if defined(USE_SKIN_SSS)

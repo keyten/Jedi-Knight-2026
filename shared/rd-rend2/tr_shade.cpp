@@ -2287,6 +2287,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			// carries over to a dry stage
 			if (R_WeatherWetnessEnabled())
 				RB_WeatherWetnessBind(tess.shader, pStage, uniformDataWriter, samplerBindingsWriter);
+			// underwater sun (r_volumetricWater): the lit permutations with a sun
+			// have USE_LIQUID_SUN; set for every such draw (no stale state)
+			if (R_LiquidSurfacesEnabled() && (pStage->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK))
+				RB_LiquidSurfaceSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
 
 			int i;
 			vec4_t enableTextures = {};
@@ -2521,7 +2525,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			GetPreviousBonesBlockUniformBinding(),
 			GetTemporalBlockUniformBinding(),
 			RB_GetVolumetricFogBlockUniformBinding(),
-			RB_GetFoliageInteractionBlockUniformBinding()
+			RB_GetFoliageInteractionBlockUniformBinding(),
+			RB_GetLiquidsBlockUniformBinding()
 		};
 
 		DrawItem item = {};

@@ -84,6 +84,16 @@ typedef unsigned int glIndex_t;
 #define FROXEL_LOCAL_POOL     8192	// CPU-only slice diagnostics: 64 volumes x 128 slices
 #define FROXEL_EXTINCTION_PALETTE 16	// distinct local volume extinction colors per frame (UBO budget)
 
+// Liquid media (r_volumetricWater, tr_liquid.cpp): the convex BSP brushes of
+// the world model with water / slime / lava contents, read at map load. The
+// MAX_GPU_LIQUIDS nearest in the froxel frustum reach the Liquids block each
+// frame (per slice 32-bit masks), their planes are in a static buffer texture.
+#define MAX_LIQUID_BRUSHES    256
+#define MAX_LIQUID_PLANES     4096
+#define MAX_LIQUID_SIDES      32		// planes per brush (6 bits of the GPU count)
+#define MAX_GPU_LIQUIDS       32		// slice masks are 32 bit
+enum { LIQUID_WATER, LIQUID_SLIME, LIQUID_LAVA, LIQUID_CLASSES };
+
 // Volumetric FX particles (tr_volparticle.cpp): the scene takes up to
 // MAX_REF_VOL_PARTICLES per frame, the MAX_GPU_VOL_PARTICLES most important in
 // the froxel frustum reach the VolumetricParticles block, listed per slice in
@@ -223,6 +233,26 @@ extern cvar_t	*r_volumetricEmission;
 extern cvar_t	*r_volumetricFogReset;
 extern cvar_t	*r_volumetricFogDebug;
 extern cvar_t	*r_volumetricParticles;
+extern cvar_t	*r_volumetricWater;
+extern cvar_t	*r_volumetricWaterActive;
+extern cvar_t	*r_volumetricWaterSurfaces;
+extern cvar_t	*r_volumetricWaterSunPath;
+extern cvar_t	*r_volumetricWaterCaustics;
+extern cvar_t	*r_volumetricWaterCausticScale;
+extern cvar_t	*r_volumetricWaterCausticSpeed;
+extern cvar_t	*r_volumetricWaterCausticFocus;
+extern cvar_t	*r_volumetricWaterExtinction;
+extern cvar_t	*r_volumetricWaterColor;
+extern cvar_t	*r_volumetricWaterAlbedo;
+extern cvar_t	*r_volumetricWaterAnisotropy;
+extern cvar_t	*r_volumetricSlimeExtinction;
+extern cvar_t	*r_volumetricSlimeColor;
+extern cvar_t	*r_volumetricSlimeAlbedo;
+extern cvar_t	*r_volumetricSlimeAnisotropy;
+extern cvar_t	*r_volumetricLavaExtinction;
+extern cvar_t	*r_volumetricLavaColor;
+extern cvar_t	*r_volumetricLavaAlbedo;
+extern cvar_t	*r_volumetricLavaAnisotropy;
 extern cvar_t *fx_physicalizationAggregate;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotLightShadows;
@@ -1430,6 +1460,22 @@ struct VolumetricParticlesBlock
 // 16 272 bytes: below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2
 static_assert(sizeof(VolumetricParticlesBlock) <= 16384, "VolumetricParticles block above the GL 3.2 minimum UBO size");
 
+// Liquid media of the froxel fog and the underwater sun of lightall
+// (r_volumetricWater, tr_liquid.cpp). Same layout as the Liquids block of
+// glsl/liquid_common.glsl (std140).
+struct LiquidsBlock
+{
+	vec4_t params;							// visible brushes, camera liquid class (-1 none), sun path on, class mask (1 water, 2 slime, 4 lava)
+	vec4_t caustics;						// 1 / period (world units), animation phase, focus depth, strength (0 = off)
+	vec4_t view;							// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
+	vec4_t material[LIQUID_CLASSES * 2];	// per class: (extinction color rgb, mean 1; a: extinction per unit), (albedo rgb, a: anisotropy g)
+	vec4_t mins[MAX_GPU_LIQUIDS];			// brush bounds, w: first plane in the plane buffer
+	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * liquid class
+	int slices[FROXEL_MAX_SLICES];			// visible brushes that may touch a slice, bit i = brush i (ivec4[32])
+};
+
+static_assert(sizeof(LiquidsBlock) <= 16384, "Liquids block above the GL 3.2 minimum UBO size");
+
 struct surfaceSprite_t
 {
 	surfaceSpriteType_t type;
@@ -1562,6 +1608,13 @@ enum
 	TB_FROXELTRANSMITTANCE = 26,
 	TB_FROXELEXTINCTION    = 27,
 	TB_FROXELCARRYT        = 28,
+
+	// liquid media (r_volumetricWater, tr_liquid.cpp): the plane buffer of the
+	// liquid brushes and the sun caustic pattern, of volumetric_inject,
+	// volumetric_debug and lightall. Needs GL_MAX_TEXTURE_IMAGE_UNITS > 30,
+	// else r_volumetricWater stays off.
+	TB_LIQUIDPLANES        = 29,
+	TB_LIQUIDCAUSTICS      = 30,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -2248,6 +2301,7 @@ enum uniformBlock_t
 	UNIFORM_BLOCK_VOLUMETRIC_FOG,
 	UNIFORM_BLOCK_FOLIAGE_INTERACTION,
 	UNIFORM_BLOCK_VOLUMETRIC_PARTICLES,
+	UNIFORM_BLOCK_LIQUIDS,
 	UNIFORM_BLOCK_COUNT
 };
 
@@ -2488,6 +2542,9 @@ typedef enum
 	UNIFORM_FROXELTRANSMITTANCE,	// integrated RGB transmittance (r_volumetricFogRGBExtinction)
 	UNIFORM_FROXELEXTINCTION,		// injected RGB extinction (history / source)
 	UNIFORM_FROXELCARRYT,			// RGB transmittance of the previous slice
+	UNIFORM_LIQUIDPLANES,			// planes of the liquid brushes (buffer texture, tr_liquid.cpp)
+	UNIFORM_LIQUIDCAUSTICMAP,		// tiling sun caustic pattern, mean 1
+	UNIFORM_LIQUIDSURFACE,			// lightall: x 1 = this draw takes the underwater sun
 
 	UNIFORM_FPLUSLIGHTS,	// Forward+ light data (buffer texture)
 	UNIFORM_FPLUSGRID,		// Forward+ cluster offset / count (buffer texture)
@@ -3255,6 +3312,15 @@ typedef struct {
 	image_t		*pomGroupsImage;		// RGBA32F buffer texture: group headers + boundary edges
 	GLuint		pomGroupsBuffer;
 	int			pomGroupsTexels;
+
+	// liquid brushes of the world model (r_volumetricWater, tr_liquid.cpp)
+	int			numLiquids;
+	struct liquidBrush_s	*liquids;
+	int			numLiquidPlanes;
+	vec4_t		*liquidPlanes;			// normal, dist: inside is dot(n, p) - dist <= 0
+	int			liquidClassMask;		// 1 << LIQUID_* of the brushes
+	int			liquidSkipped[4];		// fog contents, too many sides / not axial, capacity, outside model 0
+	float		liquidLoadMsec;
 } world_t;
 
 
@@ -3992,6 +4058,7 @@ typedef struct trGlobals_s {
 	long fogsUboOffset;
 	long volumetricFogUboOffset;
 	long volParticlesUboOffset;
+	long liquidsUboOffset;
 	long foliageInteractionUboOffset;
 	long skyEntityUboOffset;
 	long entityUboOffsets[REFENTITYNUM_WORLD + 1];
@@ -5577,6 +5644,44 @@ void RB_VolumetricBuild(void);
 qboolean RB_VolumetricCompositeActive(void);
 void RB_VolumetricComposite(void);
 void RB_VolumetricDebugOverlay(void);
+
+/*
+============================================================
+
+LIQUID MEDIA, tr_liquid.cpp
+
+============================================================
+*/
+
+// a convex liquid brush of the world model: the inside of all its planes
+typedef struct liquidBrush_s
+{
+	vec3_t	bounds[2];		// axial sides
+	int		firstPlane;		// into world_t::liquidPlanes
+	int		numPlanes;
+	int		liquidClass;	// LIQUID_*
+	int		brushNum;		// BSP brush
+	int		shaderNum;		// BSP shader of the brush contents
+} liquidBrush_t;
+
+void R_LoadLiquidBrushes(world_t *world, const byte *fileBase, const lump_t *modelsLump,
+	const lump_t *brushesLump, const lump_t *sidesLump);
+void R_LiquidsWorldLoaded(void);			// after tr.world is set: planes, caustics, r_volumetricWaterActive
+void R_LiquidsUpdateActive(void);			// r_volumetricWaterActive for cgame (set on change)
+void R_LiquidsShutdown(void);
+int R_LiquidClassMask(void);				// LIQUID_* classes handled this map (r_volumetricWater, brushes, resources)
+qboolean R_LiquidsAvailable(void);		// latched r_volumetricWater with the texture units for it
+qboolean R_LiquidSurfacesEnabled(void);	// USE_LIQUID_SUN in lightall
+int R_LiquidPointClass(const vec3_t p);	// collision contents at p as LIQUID_* (world model), -1 = none
+qboolean R_LiquidsInFrustum(const viewParms_t *view, const vec3_t forward, float farZ);
+int R_LiquidsBuild(LiquidsBlock *block, const viewParms_t *view, const vec3_t forward, float farZ,
+	int numSlices, int (*depthSlice)(float depth), int cameraClass, float time);
+void R_LiquidsMaterial(int liquidClass, vec4_t extinction, vec4_t albedo);
+unsigned int R_LiquidsMediumKey(unsigned int key);
+void R_LiquidsBindTextures(void);			// plane buffer and caustic pattern on their units (GL_BindToTMU)
+void RB_LiquidSurfaceSetupDraw(const shaderStage_t *pStage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
+UniformBlockBinding RB_GetLiquidsBlockUniformBinding(void);
+void R_Liquids_f(void);
 
 /*
 ============================================================
