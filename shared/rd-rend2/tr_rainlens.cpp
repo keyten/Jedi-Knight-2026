@@ -153,6 +153,7 @@ Params CurrentParams( void )
 	p.peripheralBias = Com_Clamp(0.0f, 2.0f, r_rainLensPeripheralBias->value);
 	p.emergeWater = Com_Clamp(0.25f, 3.0f, r_rainLensEmergeWater->value);
 	p.emergeTime = Com_Clamp(0.25f, 4.0f, r_rainLensEmergeTime->value);
+	p.impactSplat = Com_Clamp(0.0f, 2.0f, r_rainLensImpactSplat->value);
 	p.inertia = Com_Clamp(0.0f, 2.0f, r_rainLensInertia->value);
 	p.maxDrops = DropLimit();
 	p.maxMicro = MAX_LENS_MICRO;
@@ -164,12 +165,20 @@ Params CurrentParams( void )
 // the lens normal, over the fall speed. Looking up into vertical rain is 1,
 // looking level while standing 0, running into it or a headwind more;
 // looking down nothing. A trace of spray and mist outside unless looking down.
-float RainFlux( const vec3_t fall, const vec3_t forward, qboolean outside )
+// slant: the relative velocity across the lens plane, lens space (oblique
+// impacts).
+float RainFlux( const vec3_t fall, const vec3_t axis[3], qboolean outside, float slant[2] )
 {
 	const float rainSpeed = 500.0f;	// world units / s
+	const float *forward = axis[0];
 	vec3_t relative;
 	VectorScale(fall, rainSpeed, relative);
 	VectorSubtract(relative, s_cameraVelocity, relative);
+	vec3_t tangent;
+	VectorMA(relative, -DotProduct(relative, forward), forward, tangent);
+	// viewaxis[1] points left; lens x right, y up
+	slant[0] = -DotProduct(tangent, axis[1]) / rainSpeed;
+	slant[1] = DotProduct(tangent, axis[2]) / rainSpeed;
 	float flux = Com_Clamp(0.0f, 2.0f, -DotProduct(relative, forward) / rainSpeed);
 	if ( outside && forward[2] > -0.3f )
 		flux = Q_max(flux, Com_Clamp(0.0f, 1.0f, r_rainLensMist->value));
@@ -883,7 +892,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		VectorCopy(refdef->vieworg, origin);
 		outside = (qboolean)(tr.sunParsed && R_IsOutside(origin));
 		const vec3_t straightDown = { 0.0f, 0.0f, -1.0f };
-		input->rainFlux = RainFlux(straightDown, refdef->viewaxis[0], qtrue);
+		input->rainFlux = RainFlux(straightDown, refdef->viewaxis, qtrue, input->rainSlant);
 	}
 	else if ( rain && rain->active && !inWater )
 	{
@@ -911,7 +920,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		}
 		VectorNormalize(fall);
 		input->facing = Com_Clamp(0.0f, 1.0f, -DotProduct(refdef->viewaxis[0], fall));
-		input->rainFlux = RainFlux(fall, refdef->viewaxis[0], outside);
+		input->rainFlux = RainFlux(fall, refdef->viewaxis, outside, input->rainSlant);
 
 		// wind in lens space (viewaxis[1] points left), a hint for sheets
 		vec3_t wind;
@@ -1049,6 +1058,8 @@ qboolean RB_RainLensUpdate( const rainLensInput_t *input )
 	in.exposed = input->exposed;
 	in.facing = input->facing;
 	in.rainFlux = input->rainFlux;
+	in.rainSlant.x = input->rainSlant[0];
+	in.rainSlant.y = input->rainSlant[1];
 	in.weather = ProfileFromWeather(input->weather, input->intensity);
 	// World gravity on the lens plane. viewaxis[1] points left; lens X
 	// points right and lens Y up, so looking up or down leaves little

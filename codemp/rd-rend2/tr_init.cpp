@@ -257,6 +257,7 @@ cvar_t  *r_rainLensFilmMicro;
 cvar_t  *r_rainLensEmergeWater;
 cvar_t  *r_rainLensEmergeTime;
 cvar_t  *r_rainLensMist;
+cvar_t  *r_rainLensImpactSplat;
 cvar_t  *r_rainLensBlur;
 cvar_t  *r_rainLensReflection;
 cvar_t  *r_rainLensInertia;
@@ -2014,6 +2015,7 @@ void R_Register( void )
 	r_rainLensEmergeWater = ri.Cvar_Get( "r_rainLensEmergeWater", "1.0", CVAR_ARCHIVE, "Lens water film-first model: water left on the lens leaving water (drop count and size), 0.25..3" );
 	r_rainLensEmergeTime = ri.Cvar_Get( "r_rainLensEmergeTime", "1.0", CVAR_ARCHIVE, "Lens water film-first model: how long the film takes to drain and break into drops leaving water, 0.25..4 (below 1: sooner)" );
 	r_rainLensMist = ri.Cvar_Get( "r_rainLensMist", "0.04", CVAR_ARCHIVE, "Lens water film-first model: rain reaching the lens when not looking into it (spray, mist), 0..1" );
+	r_rainLensImpactSplat = ri.Cvar_Get( "r_rainLensImpactSplat", "0", CVAR_ARCHIVE, "Lens water film-first model: oblique rain impacts splat along their direction, throw spray and leave a smear, 0..2 (0 = off)" );
 	r_rainLensBlur = ri.Cvar_Get( "r_rainLensBlur", "1.0", CVAR_ARCHIVE, "Lens water drop defocus, 0..2" );
 	r_rainLensReflection = ri.Cvar_Get( "r_rainLensReflection", "1.0", CVAR_ARCHIVE, "Lens water reflection (environment cubemap / light grid) and light glints, 0..2; 0 = refraction only" );
 	r_rainLensInertia = ri.Cvar_Get( "r_rainLensInertia", "0", CVAR_ARCHIVE, "Lens water reacts to strong camera acceleration, 0..2 (0 = off)" );

@@ -169,6 +169,11 @@ inline float Smoothstep(float e0, float e1, float x)
 	const float t = Saturate((x - e0) / (e1 - e0));
 	return t * t * (3.0f - 2.0f * t);
 }
+inline Vec2 Rotate(Vec2 a, float angle)
+{
+	const float c = std::cos(angle), s = std::sin(angle);
+	return { a.x * c - a.y * s, a.x * s + a.y * c };
+}
 inline Vec2 Normalize(Vec2 a, Vec2 fallback)
 {
 	const float l = Length(a);
@@ -932,7 +937,7 @@ Vec2 LensWater::SideBiasedPosition(Vec2 dir, float spread)
 
 // impact: a direct rain hit spreads, recoils and settles (satellites of a
 // larger impact are thrown droplets and land settled)
-void LensWater::SpawnMicro(Vec2 pos, float radius, bool impact)
+Drop *LensWater::SpawnMicro(Vec2 pos, float radius, bool impact)
 {
 	// an impact on an existing drop feeds it (film-first: a wider catch, the
 	// beads grow by accretion)
@@ -946,13 +951,13 @@ void LensWater::SpawnMicro(Vec2 pos, float radius, bool impact)
 			const float mr = radius / kRefRadius;
 			drop.mass += mr * mr * mr;
 			drop.radius = kRefRadius * std::cbrt(drop.mass);
-			return;
+			return nullptr;
 		}
 	}
 	if ((int)micro.size() >= std::max(params.maxMicro, 0))
 	{
 		if (micro.empty())
-			return;
+			return nullptr;
 		// replace the oldest
 		size_t oldest = 0;
 		for (size_t i = 1; i < micro.size(); ++i)
@@ -970,9 +975,32 @@ void LensWater::SpawnMicro(Vec2 pos, float radius, bool impact)
 	m.stateAge = impact ? 0.0f : 1.0f;
 	m.mergeAge = 1.0f;
 	micro.push_back(m);
+	return &micro.back();
 }
 
-void LensWater::SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread)
+/*
+Film-first oblique impact (r_rainLensImpactSplat). A rain drop hits the
+glass within a millisecond, far below a frame: what the eye gets is the
+result, a splat stretched along the direction it travelled, a fan of spray
+thrown forward and a wet smear. The obliquity is the tangential over the
+normal rain velocity relative to the camera: looking straight up into
+vertical rain gives round impacts, running or a slanting rain stretched ones.
+*/
+LensWater::Splat LensWater::ImpactSplat(const Input &input, float flux)
+{
+	Splat splat = { { 0.0f, -1.0f }, 0.0f, 0.0f };
+	const float slant = Length(input.rainSlant);
+	if (params.filmModel != 1 || params.impactSplat <= 0.0f || slant < 0.05f)
+		return splat;
+	const float obliquity = slant / (slant + std::max(flux, 1e-3f));
+	// a little scatter: the splats agree on a side, they are not copies
+	splat.dir = Rotate(input.rainSlant * (1.0f / slant), (Random01() - 0.5f) * 0.7f);
+	splat.amount = Saturate(obliquity * params.impactSplat);
+	splat.spray = params.impactSplat * Saturate(flux) * 2.0f;
+	return splat;
+}
+
+void LensWater::SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread, const Splat *splat)
 {
 	Vec2 pos;
 	if (center)
@@ -990,6 +1018,24 @@ void LensWater::SpawnRainDrop(float rn, bool large, const Vec2 *center, float sp
 	drop.stateAge = 0.0f;
 	const float radius = drop.radius;
 	++spawnCount;
+
+	if (splat && splat->amount > 0.0f)
+	{
+		drop.splat = splat->amount;
+		drop.splatDir = splat->dir;
+		const Vec2 dir = splat->dir;
+		// wet smear along the travel, then spray thrown forward (beyond the
+		// catch radius of the drop, or it would feed it again)
+		StampCapsule(pos, pos + dir * (radius * params.dropSize * 2.0f * splat->amount),
+			radius * params.dropSize * 0.6f, 0.3f, kMicroFilm, 1.0f);
+		const int spray = (int)(splat->spray + Random01());
+		for (int i = 0; i < spray; ++i)
+		{
+			const Vec2 d = Rotate(dir, (Random01() - 0.5f) * 1.22f);
+			const float dist = radius * params.dropSize * (1.7f + 1.2f * Random01());
+			SpawnMicro(pos + d * dist, kRefRadius * (0.08f + 0.07f * Random01()), false);
+		}
+	}
 
 	// large impacts throw a few satellites
 	if (large || rn > 1.1f)
@@ -1114,14 +1160,31 @@ void LensWater::Spawn(float dt, const Input &input)
 			const Vec2 pos = RandomPosition(false);
 			const float size = Random01();
 			const float radius = kRefRadius * (0.1f + 0.2f * size);
-			SpawnMicro(pos, radius, true);
+			const Splat splat = ImpactSplat(input, flux);
+			if (Drop *m = SpawnMicro(pos, radius, true))
+			{
+				m->splat = splat.amount;
+				m->splatDir = splat.dir;
+			}
 			// each hit leaves a trace of film, more for a bigger one: a
 			// downpour wets the lens over time through the bounded accumulation
-			StampDisc(pos, radius * params.dropSize * 2.5f, 0.2f, kMicroFilm * (0.5f + size), false);
+			const float stampRadius = radius * params.dropSize * 2.5f;
+			if (splat.amount > 0.0f)
+			{
+				// oblique: a smear of about the same area along the travel
+				const float width = stampRadius * (1.0f - 0.35f * splat.amount);
+				StampCapsule(pos, pos + splat.dir * (stampRadius * 1.5f * splat.amount), width, 0.2f,
+					kMicroFilm * (0.5f + size), 1.0f);
+			}
+			else
+			{
+				StampDisc(pos, stampRadius, 0.2f, kMicroFilm * (0.5f + size), false);
+			}
 		});
 		fire(timerNormal, current.normalRate * rate * impactFacing, [&]() {
 			const float rn = Lerp(current.sizeMin, current.sizeMax, std::pow(Random01(), current.sizeBeta));
-			SpawnRainDrop(rn * impactSize, false, nullptr, 0.0f);
+			const Splat splat = ImpactSplat(input, flux);
+			SpawnRainDrop(rn * impactSize, false, nullptr, 0.0f, &splat);
 		});
 		fire(timerLarge, current.largeRate * rate * impactFacing, [&]() {
 			SpawnRainDrop(Lerp(current.largeMin, current.largeMax, Random01()), true, nullptr, 0.0f);
@@ -1867,12 +1930,21 @@ int LensWater::BuildInstances(float *out, int maxInstances, float dropSize) cons
 		ImpactShape(drop, scale, irregularity);
 		const float progress = Smoothstep(0.0f, kMergeRelax, drop.mergeAge);
 		const Vec2 base = Lerp(drop.prevPos, drop.pos, t);
-		const Vec2 p = base + drop.mainOffset * (1.0f - progress);
+		Vec2 p = base + drop.mainOffset * (1.0f - progress);
 		const float radius = drop.radius * dropSize * scale * Lerp(0.8f, 1.0f, progress);
 		const float speed = Length(drop.vel);
-		const Vec2 axis = speed > 1e-3f ? drop.vel * (1.0f / speed) : Vec2{ 0.0f, -1.0f };
-		const float tail = drop.moving ? std::min(1.0f + 3.0f * speed,
+		Vec2 axis = speed > 1e-3f ? drop.vel * (1.0f / speed) : Vec2{ 0.0f, -1.0f };
+		float tail = drop.moving ? std::min(1.0f + 3.0f * speed,
 			drop.type == DROP_FLOW ? 2.4f : 1.6f) : 1.0f;
+		if (drop.splat > 0.0f && !drop.moving && drop.stateAge < 0.3f)
+		{
+			// oblique impact: stretched forward along the travel (the cap's
+			// tail stretches against its axis), relaxing within 0.3 s
+			const float k = drop.splat * (1.0f - Smoothstep(0.05f, 0.3f, drop.stateAge));
+			axis = drop.splatDir * -1.0f;
+			tail = 1.0f + 1.5f * k;
+			p = p + drop.splatDir * (drop.radius * dropSize * 0.3f * k);
+		}
 		// lobe relative to the rendered main cap; both converge on pos
 		const Vec2 lobe = (drop.lobeOffset - drop.mainOffset) * (1.0f - progress);
 		const float lobeRadius = drop.lobeRadius * dropSize * (1.0f - progress * progress);
@@ -1903,8 +1975,17 @@ int LensWater::BuildInstances(float *out, int maxInstances, float dropSize) cons
 			weight *= 1.0f - fade;
 			scale *= 1.0f - 0.2f * fade;
 		}
-		write(0, m.pos.x, m.pos.y, m.radius * dropSize * scale, weight);
-		write(1, 0.0f, -1.0f, 1.0f, (float)DROP_MICRO);
+		Vec2 p = m.pos, axis = { 0.0f, -1.0f };
+		float tail = 1.0f;
+		if (m.splat > 0.0f && m.stateAge < 0.3f)
+		{
+			const float k = m.splat * (1.0f - Smoothstep(0.05f, 0.3f, m.stateAge));
+			axis = m.splatDir * -1.0f;
+			tail = 1.0f + 1.5f * k;
+			p = p + m.splatDir * (m.radius * dropSize * 0.3f * k);
+		}
+		write(0, p.x, p.y, m.radius * dropSize * scale, weight);
+		write(1, axis.x, axis.y, tail, (float)DROP_MICRO);
 		write(2, 0.0f, 0.0f, 0.0f, (m.seed & 0xffffu) / 65535.0f);
 		write(3, 0.0f, (float)m.state, 0.0f, irregularity * 1.4f);
 		++index;

@@ -331,6 +331,7 @@ extern cvar_t  *r_rainLensFilmMicro;
 extern cvar_t  *r_rainLensEmergeWater;
 extern cvar_t  *r_rainLensEmergeTime;
 extern cvar_t  *r_rainLensMist;
+extern cvar_t  *r_rainLensImpactSplat;
 extern cvar_t  *r_rainLensBlur;
 extern cvar_t  *r_rainLensReflection;
 extern cvar_t  *r_rainLensInertia;
@@ -5131,6 +5132,7 @@ typedef struct rainLensInput_s {
 	float		exposed;	// 1 = new rain reaches the lens (outside)
 	float		facing;		// 0..1, lens facing into the falling rain
 	float		rainFlux;	// 0..2, rain velocity relative to the camera along the lens normal (film-first)
+	float		rainSlant[2];	// the same across the lens plane, lens space (film-first oblique impacts)
 	int			weather;	// rainWeather_t
 	float		windLens[2];
 	int			numEvents;

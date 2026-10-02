@@ -86,6 +86,8 @@ struct Drop
 	float mergeAge;		// since the last merge
 	float restAge;		// at rest since (film-first model: dries after its lifetime)
 	Vec2 lobeOffset;	// absorbed drop relative to pos, relaxes after a merge
+	Vec2 splatDir;		// film-first oblique impact: direction the rain drop travelled
+	float splat;		// its splat stretch 0..1 (0 = a round impact)
 	Vec2 mainOffset;	// surviving drop's pre-merge position relative to pos
 	float lobeRadius;
 	float pinRatio;		// Fdrive / Fpin at the last step (debug)
@@ -128,6 +130,9 @@ struct Params
 	// its time scale (draining, tearing, the rim breaking up)
 	float emergeWater = 1.0f;
 	float emergeTime = 1.0f;
+	// film-first: oblique impacts splat along their direction, throw spray
+	// forward and leave a smear (0 = round impacts)
+	float impactSplat = 0.0f;
 	int maxDrops = 96;
 	int maxMicro = 256;
 	int maxSheets = 8;
@@ -153,6 +158,9 @@ struct Input
 	// to the camera along the lens normal, over the fall speed (1 = looking
 	// straight up into vertical rain, 0 = looking down or level and still)
 	float rainFlux = 1.0f;
+	// film-first: the rain velocity relative to the camera across the lens
+	// plane (lens space, over the fall speed): oblique impacts
+	Vec2 rainSlant = { 0.0f, 0.0f };
 };
 
 // A world space water event seen from the camera: strength after distance
@@ -273,8 +281,15 @@ private:
 	void Spawn(float dt, const Input &input);
 	void SpraySpawn(float strength, Vec2 dir, float dt);
 	void ProcessEvents();
-	void SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread);
-	void SpawnMicro(Vec2 pos, float radius, bool impact);
+	struct Splat
+	{
+		Vec2 dir;
+		float amount;	// stretch 0..1
+		float spray;	// expected spray droplets of a drop impact
+	};
+	Splat ImpactSplat(const Input &input, float flux);
+	void SpawnRainDrop(float rn, bool large, const Vec2 *center, float spread, const Splat *splat = nullptr);
+	Drop *SpawnMicro(Vec2 pos, float radius, bool impact);	// nullptr: it fed a drop
 	void SpawnFlow(Vec2 pos, float rn, Vec2 vel, float filmAmount);
 	void SpawnSheet(Vec2 pos, float strength, float scale, float speed, float filmAmount);
 	void StartEmerge(float strength);

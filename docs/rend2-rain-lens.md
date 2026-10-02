@@ -372,6 +372,7 @@ deduplicated and replayed on load.
 | `r_rainLensEmergeWater` | 1.0 | film-first: water left after leaving water, 0.25..3 (bead count ×, size ×cbrt, rim spacing /sqrt) |
 | `r_rainLensEmergeTime` | 1.0 | film-first: time scale of draining, tearing and the rim breaking up, 0.25..4 (below 1 = drops sooner) |
 | `r_rainLensMist` | 0.04 | film-first: rain flux floor outside when not looking down (spray, mist), 0..1 |
+| `r_rainLensImpactSplat` | 0 | film-first: oblique rain impacts splat along their travel, throw spray forward and leave a smear, 0..2 (0 = round impacts) |
 | `r_rainLensFilmMicro` | 1.0 | film-first: film micro refraction, 0..4 |
 | `r_rainLensPeripheralBias` | 1.0 | keep large drops (and film-first emerge beads) away from the centre, 0..2 |
 | `r_rainLensDebug` | 0 | cheat, forces the pass on: 1 weight/blur, 2 normal, 3 offset ×40, 4 scene/final split, 5 agents (pinned blue, moving green, flow red, residual yellow, micro grey, sheet magenta), 6 film green / wetness blue, 7 pin ratio (blue pinned → red depinning), 8 transient (impact yellow, settling orange, forming green, merge lobe cyan, sheet magenta), 9 controller panel |
@@ -427,6 +428,12 @@ Everything below applies only to model 1, so model 0 stays as the reference.
   - Looking up into vertical rain gives 1, looking level while standing 0, running into it more, and looking down nothing.
   - Every rain rate of the film-first model (impacts, flows, sheets, `filmRain`) scales with it, with no minimum. Impacts grow up to ×1.2 at high flux.
   - The hybrid model keeps `facing`.
+- **Oblique impacts** (`r_rainLensImpactSplat`). An impact takes milliseconds, far less than a frame, so what shows is its result:
+  - The obliquity is `|slant| / (|slant| + flux)`. `slant` is the relative rain velocity across the lens plane, in lens space and over 500 u/s (`RainFlux`).
+  - Splat = obliquity · cvar. Within 0.3 s it stretches the impact (tail up to 2.5×) and shifts it forward along the travel; the direction is scattered by ±20°.
+  - Drop impacts throw `cvar · flux · 2` spray micro drops in a ±35° fan ahead, plus a smear capsule of film.
+  - Micro impacts stamp a stretched capsule of about the same area.
+  - Head-on impacts (looking up into vertical rain) stay round.
 - **Drop size.** The drawn geometry is ×0.6 by default (`p.dropSize`); `r_rainLensDropSize` multiplies on top.
 - **Rain population.** It uses the `FilmFirstTable` profiles: micro ×1.3,
   normal ×0.5, no large impacts, sizes 0.2-0.7 ref, beta 2.5.

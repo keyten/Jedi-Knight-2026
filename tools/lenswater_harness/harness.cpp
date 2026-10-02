@@ -563,6 +563,55 @@ int main()
 		CHECK(more > base * 1.4f, "B emerge water: more beads (%d -> %d)", base, more);
 		CHECK(fast > slow, "B emerge time: beads sooner (%d -> %d at 0.8 s)", slow, fast);
 	}
+	// film-first oblique impacts: splats stretched along the travel, spray
+	// thrown forward; head-on impacts stay round
+	{
+		struct Result { int impacts, stretched, sprays; float axisX, sprayX; };
+		auto impacts = [&](Vec2 slant, float splat) {
+			Params q = p; q.filmModel = 1; q.impactSplat = splat; q.heavyFlow = 0.0f;
+			LensWater w; w.Init(455, 256);
+			Input in; in.intensity = 1.0f; in.exposed = 1.0f; in.facing = 1.0f; in.weather = PROFILE_HEAVY;
+			in.rainFlux = 1.0f; in.rainSlant = slant;
+			std::vector<float> inst((size_t)w.MaxInstances(q) * INSTANCE_FLOATS);
+			Result r = {};
+			for (int f = 0; f < 144 * 3; ++f)
+			{
+				w.Update(1.0f / 144.0f, in, q);
+				w.ClearFilmDirty();
+				const int n = w.BuildInstances(inst.data(), w.MaxInstances(q), 1.0f);
+				const size_t first = w.Sheets().size();
+				for (size_t i = 0; i < w.Drops().size() && (int)(first + i) < n; ++i)
+				{
+					const Drop &d = w.Drops()[i];
+					if (d.state != STATE_IMPACT || d.stateAge > 0.05f)
+						continue;
+					const float *t1 = &inst[((size_t)n + first + i) * 4];	// row 1
+					++r.impacts;
+					r.axisX += t1[0];
+					r.stretched += t1[2] > 1.3f;
+					// spray thrown by this impact: settled micro drops born now
+					for (const Drop &m : w.Micro())
+						if (m.state == STATE_SETTLED && m.age < kAgentStep + 1e-4f && d.stateAge < kAgentStep + 1e-4f
+							&& Length({ m.pos.x - d.pos.x, m.pos.y - d.pos.y }) < 0.05f)
+						{
+							++r.sprays;
+							r.sprayX += m.pos.x - d.pos.x;
+						}
+				}
+			}
+			return r;
+		};
+		const Result oblique = impacts({ 1.0f, 0.0f }, 1.0f), headOn = impacts({ 0.0f, 0.0f }, 1.0f), off = impacts({ 1.0f, 0.0f }, 0.0f);
+		printf("     impacts oblique: %d (%d stretched, axis x %.2f), %d sprays (mean dx %.4f); head-on %d (%d stretched, %d sprays); off %d (%d stretched, %d sprays)\n",
+			oblique.impacts, oblique.stretched, oblique.axisX / std::max(oblique.impacts, 1), oblique.sprays,
+			oblique.sprayX / std::max(oblique.sprays, 1), headOn.impacts, headOn.stretched, headOn.sprays,
+			off.impacts, off.stretched, off.sprays);
+		CHECK(oblique.impacts > 0 && oblique.stretched == oblique.impacts && oblique.axisX / oblique.impacts < -0.8f,
+			"B splat: oblique impacts stretched along the travel (%d of %d)", oblique.stretched, oblique.impacts);
+		CHECK(oblique.sprays > 0 && oblique.sprayX > 0.0f, "B splat: spray thrown forward (%d)", oblique.sprays);
+		CHECK(headOn.impacts > 0 && headOn.stretched == 0 && headOn.sprays == 0, "B splat: head-on impacts stay round");
+		CHECK(off.impacts > 0 && off.stretched == 0 && off.sprays == 0, "B splat: off by default");
+	}
 	// film-first rain flux: no rain onto a lens it doesn't reach
 	{
 		Params q = p; q.filmModel = 1;
