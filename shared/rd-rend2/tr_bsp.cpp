@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_map.c
 
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 
 #define JSON_IMPLEMENTATION
 #include "json.h"
@@ -2488,6 +2489,9 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 		}
 	}
 
+	if (tangentSpace)
+		ri.FS_FreeFile(tangentSpace);
+
 	if (hdrVertColors)
 	{
 		ri.FS_FreeFile(hdrVertColors);
@@ -4746,6 +4750,8 @@ static void R_BuildLightGridTexture(world_t *world)
 
 world_t *R_LoadBSP(const char *name, int *bspIndex)
 {
+	const int loadStart = ri.Milliseconds();
+	int stageStart = loadStart;
 	union {
 		byte *b;
 		void *v;
@@ -4772,8 +4778,26 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		++tr.numBspModels;
 	}
 
-	// load it
-    ri.FS_ReadFile(name, &buffer.v);
+	// The collision loader retains the main BSP for the renderer. Sub-BSPs
+	// must still be read independently, even if they happen to share a name.
+	buffer.v = nullptr;
+	bool usingCachedBsp = false;
+#ifdef REND2_SP
+	usingCachedBsp = bspIndex == nullptr &&
+		ri.gpvCachedMapDiskImage() &&
+		!strcmp(name, ri.gsCachedMapDiskImage());
+	if (usingCachedBsp)
+	{
+		*ri.gbUsingCachedMapDataRightNow() = qtrue;
+		buffer.v = ri.gpvCachedMapDiskImage();
+	}
+#endif
+	if (!usingCachedBsp)
+	{
+		ri.FS_ReadFile(name, &buffer.v);
+	}
+	R_LoadProfilePrint(usingCachedBsp ? "BSP cached handoff" : "BSP file read", stageStart);
+	stageStart = ri.Milliseconds();
 	if (!buffer.b)
 	{
 		if (bspIndex == nullptr)
@@ -4820,6 +4844,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		worldData,
 		&header->lumps[LUMP_LIGHTMAPS],
 		&header->lumps[LUMP_SURFACES]);
+	R_LoadProfilePrint("BSP entities/shaders/lightmaps", stageStart);
+	stageStart = ri.Milliseconds();
 	R_LoadPlanes(worldData, &header->lumps[LUMP_PLANES]);
 	R_LoadFogs(
 		worldData,
@@ -4831,6 +4857,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		&header->lumps[LUMP_SURFACES],
 		&header->lumps[LUMP_DRAWVERTS],
 		&header->lumps[LUMP_DRAWINDEXES]);
+	R_LoadProfilePrint("BSP surfaces and patches", stageStart);
+	stageStart = ri.Milliseconds();
 	R_LoadMarksurfaces(worldData, &header->lumps[LUMP_LEAFSURFACES]);
 	R_LoadNodesAndLeafs(worldData, &header->lumps[LUMP_NODES], &header->lumps[LUMP_LEAFS]);
 	R_LoadSubmodels(worldData, worldIndex, &header->lumps[LUMP_MODELS]);
@@ -4855,6 +4883,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 
 	// determine vertex light directions
 	R_CalcVertexLightDirs(worldData);
+	R_LoadProfilePrint("BSP remaining lumps/light dirs", stageStart);
+	stageStart = ri.Milliseconds();
 
 	if (bspIndex == nullptr)
 		R_LoadWeatherZones(
@@ -4912,13 +4942,18 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 			R_AssignCubemapsToWorldSurfaces(worldData);
 		}
 	}
+	R_LoadProfilePrint("BSP environment/material setup", stageStart);
+	stageStart = ri.Milliseconds();
 
 	// create static VBOS from the world
 	R_CreateWorldVBOs(worldData);
+	R_LoadProfilePrint("BSP world VBO and tangents", stageStart);
+	stageStart = ri.Milliseconds();
 	if (r_mergeLeafSurfaces->integer)
 	{
 		R_MergeLeafSurfaces(worldData);
 	}
+	R_LoadProfilePrint("BSP leaf surface merging", stageStart);
 
 	worldData->dataSize = (const byte *)Hunk_Alloc(0, h_low) - startMarker;
 
@@ -4926,7 +4961,15 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	R_BindNullVBO();
 	R_BindNullIBO();
 
-	ri.FS_FreeFile(buffer.v);
+	if (usingCachedBsp)
+	{
+#ifdef REND2_SP
+		*ri.gbUsingCachedMapDataRightNow() = qfalse;
+#endif
+	}
+	else
+		ri.FS_FreeFile(buffer.v);
+	R_LoadProfilePrint("BSP total", loadStart);
 
 	return worldData;
 }
@@ -4964,6 +5007,7 @@ Called directly from cgame
 =================
 */
 void RE_LoadWorldMap( const char *name ) {
+	const int loadStart = ri.Milliseconds();
 	if (tr.worldMapLoaded)
 	{
 		ri.Error(ERR_DROP, "ERROR: attempted to redundantly load world map");
@@ -5010,6 +5054,7 @@ void RE_LoadWorldMap( const char *name ) {
 
 	tr.worldMapLoaded = qtrue;
 	tr.world = world;
+	const int postBspStart = ri.Milliseconds();
 
 	// no colliders or persistent foliage bend of the previous map
 	R_FoliageInteractionReset();
@@ -5022,6 +5067,7 @@ void RE_LoadWorldMap( const char *name ) {
 	// directional baked light moments, the promoted lights), anchored to the static
 	// area emitters found above
 	R_BuildStaticLighting(world);
+	R_LoadProfilePrint("world post-BSP and lighting", postBspStart);
 
 	R_UpdateFixedExposureLevel();
 	R_SetMapColorGrading(tr.worldName);
@@ -5031,8 +5077,11 @@ void RE_LoadWorldMap( const char *name ) {
 	R_InitWeatherForMap();
 
 	// Render all cubemaps
+	const int cubemapStart = ri.Milliseconds();
 	if ((r_cubeMapping->integer || r_diffuseIBL->integer) && tr.numCubemaps)
 	{
 		R_RenderAllCubemaps();
 	}
+	R_LoadProfilePrint("world cubemap rendering", cubemapStart);
+	R_LoadProfilePrint("world total", loadStart);
 }

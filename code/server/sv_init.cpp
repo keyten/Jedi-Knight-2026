@@ -34,6 +34,8 @@ void CM_CleanLeafCache(void);
 extern void SV_FreeClient(client_t*);
 
 CMiniHeap *G2VertSpaceServer = NULL;
+// Local map transition starts here and completes when CL_InitCGame returns.
+int com_mapLoadStartTime = 0;
 /*
 Ghoul2 Insert End
 */
@@ -198,6 +200,10 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 {
 	int			i;
 	int			checksum;
+	const bool loadProfile = Cvar_VariableIntegerValue("r_loadProfile") != 0;
+	const int loadStart = loadProfile ? Sys_Milliseconds() : 0;
+	int stageStart = loadStart;
+	com_mapLoadStartTime = loadStart;
 
 	re.RegisterMedia_LevelLoadBegin( server, eForceReload, bAllowScreenDissolve );
 
@@ -220,6 +226,9 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 
 	// don't let sound stutter and dump all stuff on the hunk
 	CL_MapLoading();
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "client flush", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	if (!CM_SameMap(server))
 	{ //rww - only clear if not loading the same map
@@ -288,7 +297,13 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 	sv.time = 1000;
 	re.G2API_SetTime(sv.time,G2T_SV_TIME);
 
+	const int collisionStart = loadProfile ? Sys_Milliseconds() : 0;
 	CM_LoadMap( va("maps/%s.bsp", server), qfalse, &checksum, qfalse );
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server collision", Sys_Milliseconds() - collisionStart);
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "server setup/collision", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	// set serverinfo visible name
 	Cvar_Set( "mapname", server );
@@ -309,6 +324,9 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 
 	// load and spawn all other entities
 	SV_InitGameProgs();
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "game init/spawn", Sys_Milliseconds() - stageStart);
+	stageStart = Sys_Milliseconds();
 
 	// run a few frames to allow everything to settle
 	for ( i = 0 ;i < 4 ; i++ ) {
@@ -370,6 +388,11 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 	Z_Validate();
 
 	Com_Printf ("-----------------------------------\n");
+	if (loadProfile)
+	{
+		Com_Printf("[map load] %-28s %6d ms\n", "server finalize", Sys_Milliseconds() - stageStart);
+		Com_Printf("[map load] %-28s %6d ms\n", "server phase total", Sys_Milliseconds() - loadStart);
+	}
 }
 
 #define G2_VERT_SPACE_SIZE 256
@@ -384,6 +407,7 @@ Only called at main exe startup, not for each game
 */
 void SV_Init (void) {
 	SV_AddOperatorCommands ();
+	Cvar_Get("r_loadProfile", "0", 0);
 
 	// serverinfo vars
 	Cvar_Get ("protocol", va("%i", PROTOCOL_VERSION), CVAR_SERVERINFO | CVAR_ROM);

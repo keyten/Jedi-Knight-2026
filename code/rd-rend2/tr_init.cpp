@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 //#include "tr_stl.h"
 //#include "ghoul2/g2_local.h"
 #include "tr_cache.h"
@@ -1857,6 +1858,7 @@ R_Register
 */
 void R_Register( void ) 
 {
+	ri.Cvar_Get("r_loadProfile", "0", 0);
 	//
 	// latched and archived variables
 	//
@@ -3124,6 +3126,7 @@ R_Init
 void R_Init( void ) {
 	byte *ptr;
 	int i;
+	const int loadStart = ri.Milliseconds();
 
 	if (r_inited)
 		return;
@@ -3201,20 +3204,31 @@ void R_Init( void ) {
 	R_InitImagesPool();
 
 	InitOpenGL();
+	int stageStart = ri.Milliseconds();
 
 	R_InitGPUBuffers();
 
 	R_InitStaticConstants();
 	R_InitBackEndFrameData();
+	R_LoadProfilePrint("renderer GPU/frame buffers", stageStart);
+	stageStart = ri.Milliseconds();
 	R_InitImages();
+	R_LoadProfilePrint("renderer built-in images", stageStart);
+	stageStart = ri.Milliseconds();
 
 	FBO_Init();
+	R_LoadProfilePrint("renderer FBOs", stageStart);
+	stageStart = ri.Milliseconds();
 
 	if (!r_cacheGPUShaders)
 		GLSL_LoadGPUShaders();
 	r_cacheGPUShaders = false;
+	R_LoadProfilePrint("renderer GLSL programs", stageStart);
+	stageStart = ri.Milliseconds();
 
 	R_InitShaders(qfalse);
+	R_LoadProfilePrint("renderer shader scripts", stageStart);
+	stageStart = ri.Milliseconds();
 
 	R_InitSkins();
 
@@ -3227,6 +3241,7 @@ void R_Init( void ) {
 	R_InitQueries();
 
 	R_InitWeatherSystem();
+	R_LoadProfilePrint("renderer skins/fonts/weather", stageStart);
 
 #if defined(_DEBUG)
 	GLenum err = qglGetError();
@@ -3239,6 +3254,7 @@ void R_Init( void ) {
 	// print info
 	GfxInfo_f();
 	r_inited = true;
+	R_LoadProfilePrint("renderer init total", loadStart);
 	ri.Printf( PRINT_ALL, "----- finished R_Init -----\n" );
 }
 
@@ -3248,6 +3264,7 @@ RE_Shutdown
 ===============
 */
 void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
+	const int loadStart = ri.Milliseconds();
 
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow );
 
@@ -3307,6 +3324,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 	tr.registered = qfalse;
 	r_inited = false;
 	backEndData = NULL;
+	R_LoadProfilePrint("renderer shutdown total", loadStart);
 }
 
 /*

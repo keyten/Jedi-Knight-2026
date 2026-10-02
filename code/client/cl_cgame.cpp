@@ -1412,9 +1412,12 @@ Should only be called by CL_StartHunkUsers
 ====================
 */
 extern qboolean Sys_LowPhysicalMemory();
+extern int com_mapLoadStartTime;
 void CL_InitCGame( void ) {
 	const char			*info;
 	const char			*mapname;
+	const bool loadProfile = Cvar_VariableIntegerValue("r_loadProfile") != 0;
+	const int loadStart = loadProfile ? Sys_Milliseconds() : 0;
 	//int		t1, t2;
 
 	//t1 = Sys_Milliseconds();
@@ -1449,9 +1452,17 @@ void CL_InitCGame( void ) {
 
 	// make sure everything is paged in
 //	if (!Sys_LowPhysicalMemory())
-	{
+	const int touchStart = loadProfile ? Sys_Milliseconds() : 0;
+	if (Cvar_Get("com_touchMemoryOnLoad", "1", 0)->integer) {
 		Com_TouchMemory();
 	}
+	if (loadProfile) {
+		Com_Printf("[map load] %-28s %6d ms\n", "Com_TouchMemory", Sys_Milliseconds() - touchStart);
+		Com_Printf("[map load] %-28s %6d ms\n", "client cgame phase total", Sys_Milliseconds() - loadStart);
+		if (com_mapLoadStartTime)
+			Com_Printf("[map load] %-28s %6d ms\n", "local map total", Sys_Milliseconds() - com_mapLoadStartTime);
+	}
+	com_mapLoadStartTime = 0;
 
 	// clear anything that got printed
 	Con_ClearNotify ();
@@ -1684,4 +1695,3 @@ void CL_SetCGameTime( void ) {
 		CL_AdjustTimeDelta();
 	}
 }
-

@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_image.c
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 #include "glext.h"
 #include "tr_smaa.h"
 
@@ -3747,6 +3748,7 @@ based on https://github.com/knarkowicz/IntegrateDFG
 ================
 */
 static void R_CreateEnvBrdfLUT(void) {
+	const int loadStart = ri.Milliseconds();
 
 	static const int LUT_WIDTH = 128;
 	static const int LUT_HEIGHT = 128;
@@ -3754,10 +3756,15 @@ static void R_CreateEnvBrdfLUT(void) {
 	if (!r_cubeMapping->integer)
 		return;
 
-	uint16_t data[LUT_WIDTH][LUT_HEIGHT][3];
+	// Keep the map-independent integration result across soft renderer restarts.
+	// The GL texture itself is recreated with the rest of the image pool.
+	static uint16_t data[LUT_WIDTH][LUT_HEIGHT][3];
+	static bool dataReady = false;
 
 	unsigned const numSamples = 1024;
 
+	if (!dataReady)
+	{
 	for (unsigned y = 0; y < LUT_HEIGHT; ++y)
 	{
 		float const NdotV = (y + 0.5f) / LUT_HEIGHT;
@@ -3842,6 +3849,9 @@ static void R_CreateEnvBrdfLUT(void) {
 			data[y][x][2] = FloatToHalf(velvet);
 		}
 	}
+	dataReady = true;
+	R_LoadProfilePrint("BRDF LUT integration", loadStart);
+	}
 
 	tr.envBrdfImage = R_CreateImage(
 		"*envBrdfLUT",
@@ -3851,6 +3861,7 @@ static void R_CreateEnvBrdfLUT(void) {
 		IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE,
 		GL_RGB16F);
+	R_LoadProfilePrint("BRDF LUT total", loadStart);
 }
 
 /*

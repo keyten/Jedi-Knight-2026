@@ -84,6 +84,7 @@ set(SPRend2Files
 	"${SPDir}/rd-rend2/tr_init.cpp"
 	"${SharedDir}/rd-rend2/tr_light.cpp"
 	"${SharedDir}/rd-rend2/tr_local.h"
+	"${SharedDir}/rd-rend2/tr_loadprofile.h"
 	"${SharedDir}/rd-rend2/tr_main.cpp"
 	"${SharedDir}/rd-rend2/tr_marks.cpp"
 	"${SharedDir}/rd-rend2/tr_mesh.cpp"

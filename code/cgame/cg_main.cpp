@@ -1299,7 +1299,9 @@ This function may execute for a couple of minutes with a slow disk.
 =================
 */
 void CG_CreateMiscEnts(void);
+static bool s_profileMapLoad = false;
 static void CG_RegisterGraphics( void ) {
+	int stageStart = s_profileMapLoad ? cgi_Milliseconds() : 0;
 	int			i;
 	char		items[MAX_ITEMS+1];
 	int			breakPoint = 0;
@@ -1349,6 +1351,9 @@ static void CG_RegisterGraphics( void ) {
 	CG_LoadingString( "effects" );
 	FX_Init();
 	CG_RegisterEffects();
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame effects", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	// clear any references to old media
 	memset( &cg.refdef, 0, sizeof( cg.refdef ) );
@@ -1358,6 +1363,8 @@ static void CG_RegisterGraphics( void ) {
 	CG_LoadingString( cgs.mapname );
 
 	cgi_R_LoadWorldMap( cgs.mapname );
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame world map", cgi_Milliseconds() - stageStart));
 
 	cg.loadLCARSStage = 4;
 	CG_LoadingString( "game media shaders" );
@@ -1845,6 +1852,11 @@ int gi_cg_inventorySelect;
 
 
 static void CG_GameStateReceived( void ) {
+	vmCvar_t loadProfile;
+	cgi_Cvar_Register(&loadProfile, "r_loadProfile", "0", 0);
+	const bool profileMapLoad = loadProfile.integer != 0;
+	s_profileMapLoad = profileMapLoad;
+	int stageStart = profileMapLoad ? cgi_Milliseconds() : 0;
 	// clear everything
 
 	extern void CG_ClearAnimEvtCache( void );
@@ -1900,10 +1912,18 @@ static void CG_GameStateReceived( void ) {
 	CG_LoadingString( "collision map" );
 
 	cgi_CM_LoadMap( cgs.mapname, qfalse );
+	if (profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "client collision/early media", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	CG_RegisterSounds();
+	if (profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame sounds", cgi_Milliseconds() - stageStart));
+	stageStart = cgi_Milliseconds();
 
 	CG_RegisterGraphics();
+	if (profileMapLoad)
+		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame graphics/media", cgi_Milliseconds() - stageStart));
 
 	//jfm: moved down to preinit
 //	CG_InitLocalEntities();

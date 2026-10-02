@@ -975,11 +975,16 @@ void CL_StartHunkUsers( void ) {
 	if ( !com_cl_running->integer ) {
 		return;
 	}
+	const bool loadProfile = Cvar_VariableIntegerValue("r_loadProfile") != 0;
+	int stageStart = loadProfile ? Sys_Milliseconds() : 0;
 
 	if ( !cls.rendererStarted ) {
 		cls.rendererStarted = qtrue;
 		CL_InitRenderer();
+		if (loadProfile)
+			Com_Printf("[map load] %-28s %6d ms\n", "client renderer registration", Sys_Milliseconds() - stageStart);
 	}
+	stageStart = Sys_Milliseconds();
 
 	if ( !cls.soundStarted ) {
 		cls.soundStarted = qtrue;
@@ -990,6 +995,8 @@ void CL_StartHunkUsers( void ) {
 		cls.soundRegistered = qtrue;
 		S_BeginRegistration();
 	}
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "client sound startup", Sys_Milliseconds() - stageStart);
 
 	//we require the ui to be loaded here or else it crashes trying to access the ui on command line map loads
 	if ( !cls.uiStarted ) {
