@@ -290,7 +290,9 @@ float FroxelParticleDensity(in vec3 center, in vec4 invExtent, in vec3 p)
 
 int FroxelParticleSliceHeader(in int slice)
 {
-	return u_FroxelParticleSlices[slice >> 2][slice & 3];
+	// max: the compute tail pass calls the inject with slice -1 (see liquidSlice in FroxelMedium)
+	int s = max(slice, 0);
+	return u_FroxelParticleSlices[s >> 2][s & 3];
 }
 
 int FroxelParticlePoolIndex(in int entry)

@@ -4726,6 +4726,8 @@ static int GLSL_CountStartupPrograms()
 
 void GLSL_LoadGPUShaders()
 {
+	// liquid media (r_volumetricWater): fixed for the lifetime of these programs
+	R_LiquidsLatchPrograms();
 #if 0
 	// vertex size = 48 bytes
 	VertexFormat bspVertexFormat = {
@@ -4861,6 +4863,8 @@ void GLSL_LoadGPUShaders()
 void GLSL_ShutdownGPUShaders(void)
 {
 	int i;
+
+	R_LiquidsUnlatchPrograms();
 
 	ri.Printf(PRINT_ALL, "------- GLSL_ShutdownGPUShaders -------\n");
 

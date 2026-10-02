@@ -543,9 +543,10 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 #endif
 	}
 
-	// the fog volumes that may touch this slice (CPU culled)
+	// the fog volumes that may touch this slice (CPU culled); max: see liquidSlice below
+	int fogSlice = max(var_Slice, 0);
 	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || debugView == 59) ? 0 :
-		u_FroxelFogSlices[var_Slice >> 2][var_Slice & 3];
+		u_FroxelFogSlices[fogSlice >> 2][fogSlice & 3];
 	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
 	{

@@ -246,7 +246,15 @@ Availability
 ============================================================
 */
 
-qboolean R_LiquidsAvailable( void )
+// What the compiled GLSL programs were built with (-1: not decided yet). SP
+// keeps its programs over map loads (R_Init with cached GPU shaders) while the
+// latched cvars take their new values there: the liquid code must follow the
+// programs, not the cvar, or the renderer would drop cgame's tint for a medium
+// the shaders do not have (or feed liquid shaders no Liquids block).
+static int s_liquidsProgramState = -1;
+static int s_liquidSurfacesProgramState = -1;
+
+static qboolean R_LiquidsAvailableNow( void )
 {
 	static int checkedUnits = -1;
 	if ( !r_volumetricWater || !r_volumetricWater->integer || !R_VolumetricFroxelEnabled() )
@@ -273,11 +281,54 @@ qboolean R_LiquidsAvailable( void )
 	return (qboolean)(checkedUnits > TB_LIQUIDCAUSTICS);
 }
 
-qboolean R_LiquidSurfacesEnabled( void )
+/*
+=================
+R_LiquidsLatchPrograms / R_LiquidsUnlatchPrograms
+
+Called when the GLSL programs are compiled (GLSL_LoadGPUShaders) and deleted
+(GLSL_ShutdownGPUShaders): the liquid state is decided once per program set.
+=================
+*/
+void R_LiquidsLatchPrograms( void )
 {
-	return (qboolean)(R_LiquidsAvailable() && r_volumetricWaterSurfaces->integer && r_sunlightMode->integer);
+	s_liquidsProgramState = -1;
+	s_liquidSurfacesProgramState = -1;
+	const qboolean liquids = R_LiquidsAvailableNow();
+	s_liquidsProgramState = liquids ? 1 : 0;
+	s_liquidSurfacesProgramState =
+		(liquids && r_volumetricWaterSurfaces->integer && r_sunlightMode->integer) ? 1 : 0;
 }
 
+void R_LiquidsUnlatchPrograms( void )
+{
+	s_liquidsProgramState = -1;
+	s_liquidSurfacesProgramState = -1;
+}
+
+qboolean R_LiquidsAvailable( void )
+{
+	if ( s_liquidsProgramState < 0 )
+		return R_LiquidsAvailableNow();
+	return (qboolean)(s_liquidsProgramState && R_VolumetricFroxelEnabled());
+}
+
+qboolean R_LiquidSurfacesEnabled( void )
+{
+	if ( s_liquidSurfacesProgramState < 0 )
+		return (qboolean)(R_LiquidsAvailableNow() && r_volumetricWaterSurfaces->integer && r_sunlightMode->integer);
+	return (qboolean)(s_liquidSurfacesProgramState && R_LiquidsAvailable());
+}
+
+/*
+=================
+R_LiquidClassMask
+
+The liquid classes drawn as media on this map. With programs built without
+liquids the mask is 0 whatever r_volumetricWater says (vid_restart needed);
+with liquid programs, r_volumetricWater 0 on a later map gives 0 too (the
+programs then see an empty Liquids block).
+=================
+*/
 int R_LiquidClassMask( void )
 {
 	if ( !R_LiquidsAvailable() || !tr.world )
@@ -524,6 +575,8 @@ and r_volumetricWaterActive follows the new map.
 */
 void R_LiquidsWorldLoaded( void )
 {
+	if ( s_liquidsProgramState == 0 && R_LiquidsAvailableNow() )
+		ri.Printf(PRINT_ALL, "r_volumetricWater: the shaders were built without liquids, vid_restart to use them\n");
 	if ( R_LiquidsAvailable() )
 	{
 		R_LiquidsUploadPlanes();

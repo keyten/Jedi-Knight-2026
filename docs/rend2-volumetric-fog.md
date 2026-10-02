@@ -145,6 +145,18 @@ size), and renders the raster injection (layered draws, tail draw) with the same
 temporal history, jitter, reprojection between froxel centers, a varying light grid — and compares all
 outputs.
 
+NVIDIA (2026-10-02): the compute injection used to fail to compile on the NVIDIA driver (RTX 2060,
+`error C1068: array index out of bounds`), so the game fell back to "Froxel volumetric fog: raster path".
+The tail pass runs the injection with `var_Slice = -1`; NVIDIA inlines it and constant-folds the
+per-slice mask lookups `[slice >> 2]` to index -1, even though the tail returns before reaching them.
+The slice is now clamped with `max(slice, 0)` in `FroxelParticleSliceHeader` (volumetric_common) and for
+the fog volume mask in `FroxelMedium` (volumetric_inject), as was already done for the liquid mask. Raster
+slices are never negative, so the raster output is unchanged. All 16 compute injection variants (scalar/RGB,
+`USE_SHADOWS2`, media pass, with/without `USE_LIQUIDS`) now compile and link on the RTX 2060 (offline GL 4.3
+compute checker), and `test_volumetric_compute.py` still passes on Intel UHD. The compute path has **not
+been run in game on NVIDIA**: A/B `r_gl43 0` / `r_gl43 1` (with `vid_restart`) and check that startup
+reports the compute path.
+
 ### Pipeline without compute shaders
 
 The GL 3.2 fallback has no compute shaders or image load/store. The injection renders every slice
@@ -2156,7 +2168,10 @@ The water, slime and lava brushes of a map become participating media of the fro
 Nothing is rebaked and no asset changes: the BSP already keeps every brush with its side planes,
 and the contents of a brush are the `contentFlags` of its BSP shader.
 
-Off by default. `r_volumetricWater` is a latched class mask: 1 water, 2 slime, 4 lava. It needs
+Off by default. `r_volumetricWater` is a latched class mask: 1 water, 2 slime, 4 lava. Changing it needs
+`vid_restart`: SP keeps its compiled programs over map loads, so liquids follow the program set
+(decided in `GLSL_LoadGPUShaders`); a later map load only can turn the media off (mask 0), and the
+console says when a `vid_restart` is missing. It needs
 `r_volumetricFog 2` and 31 texture units (fragment, and compute with `r_gl43`). With the mask 0
 every program is unchanged. The preprocessed lightall, composite and integrate sources are
 identical to before; inject and debug differ only by the new debug view 59-64 tests.

@@ -5720,6 +5720,8 @@ void R_LiquidsShutdown(void);
 int R_LiquidClassMask(void);				// LIQUID_* classes handled this map (r_volumetricWater, brushes, resources)
 qboolean R_LiquidsAvailable(void);		// latched r_volumetricWater with the texture units for it
 qboolean R_LiquidSurfacesEnabled(void);	// USE_LIQUID_SUN in lightall
+void R_LiquidsLatchPrograms(void);		// GLSL_LoadGPUShaders: decide liquids for this program set
+void R_LiquidsUnlatchPrograms(void);	// GLSL_ShutdownGPUShaders
 int R_LiquidPointClass(const vec3_t p);	// collision contents at p as LIQUID_* (world model), -1 = none
 qboolean R_LiquidsInFrustum(const viewParms_t *view, const vec3_t forward, float farZ);
 int R_LiquidsBuild(LiquidsBlock *block, const viewParms_t *view, const vec3_t forward, float farZ,
