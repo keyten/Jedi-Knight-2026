@@ -34,7 +34,9 @@ using ImageProfileClock = std::chrono::steady_clock;
 struct ImageLoadProfile {
 	bool active = false;
 	int cacheHits = 0, fileLookups = 0, imagesCreated = 0;
+	int normalLookups = 0, normalGenerated = 0, autoRoughnessGenerated = 0;
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
+	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
 };
 ImageLoadProfile imageLoadProfile;
 long long ImageElapsedUs(ImageProfileClock::time_point start) {
@@ -65,6 +67,10 @@ void R_ImageLoadProfileEnd( void ) {
 		imageLoadProfile.createUs / 1000);
 	ri.Printf(PRINT_ALL, "[map load] image prepare: normal generation %lld ms, emissive color %lld ms\n",
 		imageLoadProfile.normalUs / 1000, imageLoadProfile.emissiveUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] normal maps: %d lookups, %d generated; lookup %lld ms, build %lld ms; auto roughness %d maps, %lld ms\n",
+		imageLoadProfile.normalLookups, imageLoadProfile.normalGenerated,
+		imageLoadProfile.normalLookupUs / 1000, imageLoadProfile.normalBuildUs / 1000,
+		imageLoadProfile.autoRoughnessGenerated, imageLoadProfile.autoRoughnessUs / 1000);
 }
 
 static byte			 s_intensitytable[256];
@@ -3234,10 +3240,14 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	image_t *image = R_GetLoadedImage( ormsName, flags );
 	if ( image != NULL )
 		return image;
+	const auto profileStart = ImageProfileClock::now();
+	if (imageLoadProfile.active) ++imageLoadProfile.autoRoughnessGenerated;
 
 	R_LoadImage( diffuseName, &pic, &width, &height );
-	if ( pic == NULL )
+	if ( pic == NULL ) {
+		if (imageLoadProfile.active) imageLoadProfile.autoRoughnessUs += ImageElapsedUs(profileStart);
 		return NULL;
+	}
 
 	const int startMsec = ri.Milliseconds();
 
@@ -3365,6 +3375,7 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	autoRoughnessMsec += msec;
 	ri.Printf( PRINT_DEVELOPER, "auto roughness %s: %dx%d, mean %.3f sigma %.3f, %d ms\n",
 		ormsName, w, h, mean, sigma, msec );
+	if (imageLoadProfile.active) imageLoadProfile.autoRoughnessUs += ImageElapsedUs(profileStart);
 
 	return image;
 }
@@ -3382,11 +3393,16 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 	Q_strcat(normalName, sizeof(normalName), "_n");
 
 	// find normalmap in case it's there
+	const auto lookupStart = ImageProfileClock::now();
+	if (imageLoadProfile.active) ++imageLoadProfile.normalLookups;
 	normalImage = R_FindImageFile(normalName, IMGTYPE_NORMAL, normalFlags);
+	if (imageLoadProfile.active) imageLoadProfile.normalLookupUs += ImageElapsedUs(lookupStart);
 
 	// if not, generate it
 	if (normalImage == NULL)
 	{
+		const auto buildStart = ImageProfileClock::now();
+		if (imageLoadProfile.active) ++imageLoadProfile.normalGenerated;
 		byte *normalPic;
 		int x, y;
 
@@ -3469,6 +3485,7 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 
 		R_CreateImage( normalName, normalPic, normalWidth, normalHeight, IMGTYPE_NORMAL, normalFlags, 0 );
 		Z_Free( normalPic );
+		if (imageLoadProfile.active) imageLoadProfile.normalBuildUs += ImageElapsedUs(buildStart);
 	}
 }
 
