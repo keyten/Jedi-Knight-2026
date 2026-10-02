@@ -1418,6 +1418,9 @@ void CL_InitCGame( void ) {
 	const char			*mapname;
 	const bool loadProfile = Cvar_VariableIntegerValue("r_loadProfile") != 0;
 	const int loadStart = loadProfile ? Sys_Milliseconds() : 0;
+	if (loadProfile && com_mapLoadStartTime)
+		Com_Printf("[map load] client cgame dispatch at %d ms from map start\n",
+			loadStart - com_mapLoadStartTime);
 	//int		t1, t2;
 
 	//t1 = Sys_Milliseconds();
@@ -1433,7 +1436,10 @@ void CL_InitCGame( void ) {
 	cls.state = CA_LOADING;
 
 	// init for this gamestate
+	const int vmStart = loadProfile ? Sys_Milliseconds() : 0;
 	VM_Call( CG_INIT, clc.serverCommandSequence );
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "client CG_INIT call", Sys_Milliseconds() - vmStart);
 
 	// reset any CVAR_CHEAT cvars registered by cgame
 	if ( !cl_connectedToCheatServer )
@@ -1448,7 +1454,10 @@ void CL_InitCGame( void ) {
 	//Com_Printf( "CL_InitCGame: %5.2f seconds\n", (t2-t1)/1000.0 );
 	// have the renderer touch all its images, so they are present
 	// on the card even if the driver does deferred loading
+	const int endRegistrationStart = loadProfile ? Sys_Milliseconds() : 0;
 	re.EndRegistration();
+	if (loadProfile)
+		Com_Printf("[map load] %-28s %6d ms\n", "client end registration", Sys_Milliseconds() - endRegistrationStart);
 
 	// make sure everything is paged in
 //	if (!Sys_LowPhysicalMemory())

@@ -471,6 +471,11 @@ void R_BuildStaticLighting( world_t *world )
 	s_sl.stats = out.stats;
 	s_sl.proxies = out.proxies;
 	s_sl.msecTotal = ri.Milliseconds() - startTime;
+	if (ri.Cvar_VariableIntegerValue("r_loadProfile"))
+		ri.Printf(PRINT_ALL, "[map load] static lighting detail: %d cells, trace %d ms (%d rays), area sources %d ms, reconstruct %d ms, other %d ms\n",
+			numCells, s_sl.msecTrace, s_sl.numRays, s_sl.msecAreaSources,
+			s_sl.msecReconstruct,
+			s_sl.msecTotal - s_sl.msecTrace - s_sl.msecAreaSources - s_sl.msecReconstruct);
 
 	ri.Printf(PRINT_DEVELOPER, "Static lighting: %d cells, sun visibility %d traced (%d refined, %d rays), %d see the sky, %d msec\n",
 		numCells, s_sl.numTraced, s_sl.numRefined, s_sl.numRays, s_sl.numSeeSky, s_sl.msecTrace);

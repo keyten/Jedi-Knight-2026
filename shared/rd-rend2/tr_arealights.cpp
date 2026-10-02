@@ -40,6 +40,7 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 */
 
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 #include "json.h"
 #include "tr_ltc_data.h"
 #include "tr_volrecon.h"
@@ -396,12 +397,18 @@ static void R_LoadAreaLightFile( void )
 
 void R_LoadAreaLights( const char *mapName )
 {
+	const int loadStart = ri.Milliseconds();
 	R_LtcShadowInvalidate();
 	Q_strncpyz(s_al.mapName, mapName ? mapName : "", sizeof(s_al.mapName));
 	R_ClearAreaCandidates();
 	s_al.calibrated = 0;
+	R_LoadProfilePrint("area lights reset", loadStart);
+	const int fileStart = ri.Milliseconds();
 	R_LoadAreaLightFile();
+	R_LoadProfilePrint("area lights file/parse", fileStart);
+	const int metricsStart = ri.Milliseconds();
 	R_CacheMapAreaLightMetrics();
+	R_LoadProfilePrint("area lights image metrics", metricsStart);
 }
 
 void R_ClearAreaLights( void )

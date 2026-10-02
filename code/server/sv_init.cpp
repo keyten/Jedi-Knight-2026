@@ -25,6 +25,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "../client/snd_music.h"	// didn't want to put this in snd_local because of rebuild times etc.
 #include "server.h"
+#include "../../shared/map_load_profile_version.h"
 
 #if !defined (MINIHEAP_H_INC)
 	#include "../qcommon/MiniHeap.h"
@@ -204,6 +205,9 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 	const int loadStart = loadProfile ? Sys_Milliseconds() : 0;
 	int stageStart = loadStart;
 	com_mapLoadStartTime = loadStart;
+	if (loadProfile)
+		Com_Printf("[map load] profile module: SP engine EXE v%d (%s %s)\n",
+			MAP_LOAD_PROFILE_EXE_VERSION, __DATE__, __TIME__);
 
 	re.RegisterMedia_LevelLoadBegin( server, eForceReload, bAllowScreenDissolve );
 

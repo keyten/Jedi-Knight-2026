@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "tr_loadprofile.h"
+#include "../map_load_profile_version.h"
 
 #define JSON_IMPLEMENTATION
 #include "json.h"
@@ -3496,6 +3497,9 @@ static void R_AssignCubemapsToWorldSurfaces(world_t *worldData)
 
 static void R_RenderAllCubemaps()
 {
+	const bool profile = R_LoadProfileEnabled();
+	long long facesUs = 0, convolveUs = 0;
+	int renderedProbes = 0;
 	R_IssuePendingRenderCommands();
 	R_InitNextFrame();
 
@@ -3507,17 +3511,30 @@ static void R_RenderAllCubemaps()
 		int maxCubemaps = MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS);
 		for (int i = 0; i < maxCubemaps; i++)
 		{
+			const auto facesStart = std::chrono::steady_clock::now();
 			for (int j = 0; j < 6; j++)
 			{
 				R_RenderCubemapSide(i, j, bounce);
 			}
+			if (profile) facesUs += std::chrono::duration_cast<std::chrono::microseconds>(
+				std::chrono::steady_clock::now() - facesStart).count();
 
+			const auto convolveStart = std::chrono::steady_clock::now();
 			R_AddConvolveCubemapCmd(&tr.cubemaps[i], i,
 				r_cubeMapping->integer ? qtrue : qfalse,
 				(r_diffuseIBL->integer && k == lastBounce) ? qtrue : qfalse);
 			R_IssuePendingRenderCommands();
+			if (profile) {
+				convolveUs += std::chrono::duration_cast<std::chrono::microseconds>(
+					std::chrono::steady_clock::now() - convolveStart).count();
+				++renderedProbes;
+			}
 		}
 	}
+	if (profile)
+		ri.Printf(PRINT_ALL, "[map load] cubemap probes: %d probes x %d passes (%d renders), faces %lld ms, convolve/flush %lld ms\n",
+			MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS), lastBounce + 1,
+			renderedProbes, facesUs / 1000, convolveUs / 1000);
 }
 
 
@@ -5049,6 +5066,10 @@ Called directly from cgame
 */
 void RE_LoadWorldMap( const char *name ) {
 	const int loadStart = ri.Milliseconds();
+	if (R_LoadProfileEnabled())
+		ri.Printf(PRINT_ALL, "[map load] profile module: Rend2 DLL v%d (%s %s)\n",
+			MAP_LOAD_PROFILE_REND2_VERSION, __DATE__, __TIME__);
+	R_ModelLoadProfileCheckpoint("before world map");
 	if (tr.worldMapLoaded)
 	{
 		ri.Error(ERR_DROP, "ERROR: attempted to redundantly load world map");
@@ -5132,4 +5153,6 @@ void RE_LoadWorldMap( const char *name ) {
 	}
 	R_LoadProfilePrint("world cubemap rendering", cubemapStart);
 	R_LoadProfilePrint("world total", loadStart);
+	R_ModelLoadProfileCheckpoint("world map");
+	if (R_LoadProfileEnabled()) R_ImageLoadProfileBegin();
 }

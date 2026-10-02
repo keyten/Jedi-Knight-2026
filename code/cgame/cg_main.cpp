@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "../qcommon/sstring.h"
 #include "qcommon/ojk_saved_game_helper.h"
+#include "../../shared/map_load_profile_version.h"
 
 //NOTENOTE: Be sure to change the mirrored code in g_shared.h
 typedef	std::map< sstring_t, unsigned char  >	namePrecache_m;
@@ -1304,6 +1305,17 @@ This function may execute for a couple of minutes with a slow disk.
 */
 void CG_CreateMiscEnts(void);
 static bool s_profileMapLoad = false;
+struct cgSlowPrecache_t { int msec = 0; char name[64] = {}; };
+static void CG_ProfileSlowPrecache(cgSlowPrecache_t *top, int count, const char *name, int msec) {
+	if (!name || msec <= 0) return;
+	for (int i = 0; i < count; ++i) {
+		if (msec <= top[i].msec) continue;
+		for (int j = count - 1; j > i; --j) top[j] = top[j - 1];
+		top[i].msec = msec;
+		Q_strncpyz(top[i].name, name, sizeof(top[i].name));
+		break;
+	}
+}
 static void CG_RegisterGraphics( void ) {
 	int stageStart = s_profileMapLoad ? cgi_Milliseconds() : 0;
 	int			i;
@@ -1653,6 +1665,9 @@ Ghoul2 Insert End
 	if (s_profileMapLoad)
 		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame skins/clientinfo", cgi_Milliseconds() - stageStart));
 	stageStart = cgi_Milliseconds();
+	int npcCount = 0, clientCount = 0;
+	cgSlowPrecache_t slowNpc[8] = {};
+	cgSlowPrecache_t slowClients[8] = {};
 
 	for (i=0 ; i < ENTITYNUM_WORLD ; i++)
 	{
@@ -1664,7 +1679,13 @@ Ghoul2 Insert End
 				//We presume this
 				{
 					CG_LoadingString( va("client %s", g_entities[i].client->clientInfo.name ) );
+					const int clientStart = s_profileMapLoad ? cgi_Milliseconds() : 0;
 					CG_RegisterClientModels(i);
+					if (s_profileMapLoad) {
+						++clientCount;
+						CG_ProfileSlowPrecache(slowClients, 8, g_entities[i].client->clientInfo.name,
+							cgi_Milliseconds() - clientStart);
+					}
 					if ( i != 0 )
 					{//Client weapons already precached
 						CG_RegisterWeapon( g_entities[i].client->ps.weapon );
@@ -1718,13 +1739,26 @@ Ghoul2 Insert End
 				else
 				*/
 				{
+					const int npcStart = s_profileMapLoad ? cgi_Milliseconds() : 0;
 					CG_NPC_Precache( &g_entities[i] );
+					if (s_profileMapLoad) {
+						++npcCount;
+						CG_ProfileSlowPrecache(slowNpc, 8, g_entities[i].NPC_type,
+							cgi_Milliseconds() - npcStart);
+					}
 				}
 			}
 		}
 	}
 	if (s_profileMapLoad)
 		cgi_Printf(va("[map load] %-28s %6d ms\n", "cgame clients/NPC precache", cgi_Milliseconds() - stageStart));
+	if (s_profileMapLoad) {
+		cgi_Printf(va("[map load] cgame precache: %d clients, %d NPCs\n", clientCount, npcCount));
+		for (int j = 0; j < 8 && slowClients[j].msec; ++j)
+			cgi_Printf(va("[map load] slow client %d: %d ms %s\n", j + 1, slowClients[j].msec, slowClients[j].name));
+		for (int j = 0; j < 8 && slowNpc[j].msec; ++j)
+			cgi_Printf(va("[map load] slow NPC %d: %d ms %s\n", j + 1, slowNpc[j].msec, slowNpc[j].name));
+	}
 	stageStart = cgi_Milliseconds();
 
 	CG_LoadingString( "static models" );
@@ -1879,6 +1913,9 @@ static void CG_GameStateReceived( void ) {
 	const bool profileMapLoad = loadProfile.integer != 0;
 	s_profileMapLoad = profileMapLoad;
 	int stageStart = profileMapLoad ? cgi_Milliseconds() : 0;
+	if (profileMapLoad)
+		cgi_Printf(va("[map load] profile module: SP game DLL v%d (%s %s)\n",
+			MAP_LOAD_PROFILE_GAME_DLL_VERSION, __DATE__, __TIME__));
 	// clear everything
 
 	extern void CG_ClearAnimEvtCache( void );
@@ -2060,6 +2097,8 @@ void CG_CreateMiscEntFromGent(gentity_t *ent, const vec3_t scale, float zOff)
 void CG_CreateMiscEnts(void)
 {
 	vec3_t		mins, maxs;
+	if (s_profileMapLoad)
+		cgi_Printf(va("[map load] cgame static model instances: %d\n", NumMiscEnts));
 
 	int i;
 	for (i=0; i < NumMiscEnts; i++)

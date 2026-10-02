@@ -3312,6 +3312,7 @@ void R_Init( void ) {
 	// print info
 	GfxInfo_f();
 	r_inited = true;
+	R_ModelLoadProfileBegin();
 	R_LoadProfilePrint("renderer init total", loadStart);
 	ri.Printf( PRINT_ALL, "----- finished R_Init -----\n" );
 }
@@ -3393,7 +3394,11 @@ Touch all images to make sure they are resident
 =============
 */
 void RE_EndRegistration( void ) {
+	const int start = ri.Milliseconds();
 	R_IssuePendingRenderCommands();
+	R_LoadProfilePrint("renderer pending uploads", start);
+	R_ImageLoadProfileEnd("post-world media");
+	R_ModelLoadProfileEnd();
 	/*
 	if (!ri.Sys_LowPhysicalMemory()) {
 		RB_ShowImages();

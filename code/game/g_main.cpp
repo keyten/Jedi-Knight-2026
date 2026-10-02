@@ -38,6 +38,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "qcommon/ojk_saved_game_helper.h"
 #include "qcommon/game_version.h"
+#include "../../shared/map_load_profile_version.h"
+#include <chrono>
 
 extern void WP_SaberLoadParms( void );
 extern qboolean G_PlayerSpawned( void );
@@ -720,10 +722,17 @@ InitGame
 //	data is valid, and this saves changing the proto of G_SpawnEntitiesFromString() to include a checksum param which
 //	may get changed anyway if a new nav system is ever used. This way saves messing with g_local.h each time -slc
 int giMapChecksum;
+static bool s_profileGameMapLoad = false;
 SavedGameJustLoaded_e g_eSavedGameJustLoaded;
 qboolean g_qbLoadTransition = qfalse;
 void InitGame(  const char *mapname, const char *spawntarget, int checkSum, const char *entities, int levelTime, int randomSeed, int globalTime, SavedGameJustLoaded_e eSavedGameJustLoaded, qboolean qbLoadTransition )
 {
+	s_profileGameMapLoad = gi.cvar("r_loadProfile", "0", 0)->integer != 0;
+	const int profileStart = s_profileGameMapLoad ? gi.Milliseconds() : 0;
+	int stageStart = profileStart;
+	if (s_profileGameMapLoad)
+		gi.Printf("[map load] profile module: SP game DLL v%d (%s %s), server init\n",
+			MAP_LOAD_PROFILE_GAME_DLL_VERSION, __DATE__, __TIME__);
 	//rww - default this to 0, we will auto-set it to 1 if we run into a terrain ent
 	gi.cvar_set("RMG", "0");
 
@@ -742,6 +751,9 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 	G_InitCvars();
 
 	G_InitMemory();
+	if (s_profileGameMapLoad)
+		gi.Printf("[map load] %-28s %6d ms\n", "game cvars/memory", gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 
 	// set some level globals
 	memset( &level, 0, sizeof( level ) );
@@ -790,12 +802,21 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 	IT_LoadItemParms ();
 
 	ClearRegisteredItems();
+	if (s_profileGameMapLoad)
+		gi.Printf("[map load] %-28s %6d ms\n", "game saber/NPC/item defs", gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 
 	// clear out old nav info, attempt to load from file
 	NAV::LoadFromFile(level.mapname, giMapChecksum);
+	if (s_profileGameMapLoad)
+		gi.Printf("[map load] %-28s %6d ms\n", "game nav file", gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString( entities );
+	if (s_profileGameMapLoad)
+		gi.Printf("[map load] %-28s %6d ms\n", "game spawn entities", gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 
 	// general initialization
 	G_FindTeams();
@@ -817,6 +838,10 @@ void InitGame(  const char *mapname, const char *spawntarget, int checkSum, cons
 
 	level.curAlertID = 1;//0 is default for lastAlertEvent, so...
 	eventClearTime = 0;
+	if (s_profileGameMapLoad) {
+		gi.Printf("[map load] %-28s %6d ms\n", "game init final setup", gi.Milliseconds() - stageStart);
+		gi.Printf("[map load] %-28s %6d ms\n", "game InitGame total", gi.Milliseconds() - profileStart);
+	}
 }
 
 /*
@@ -1897,10 +1922,46 @@ int navTime = 0;
 #endif//	AI_TIMERS
 
 
+namespace {
+struct SlowMapEntity {
+	long long usec = 0;
+	int number = 0;
+	char name[64] = {};
+};
+SlowMapEntity slowMapEntities[5];
+struct MapEntityTimer {
+	bool active;
+	std::chrono::steady_clock::time_point start;
+	int number;
+	char name[64] = {};
+	MapEntityTimer(bool enabled, int entityNumber, const char *classname)
+		: active(enabled), start(enabled ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{}), number(entityNumber) {
+		if (active) Q_strncpyz(name, classname ? classname : "<unnamed>", sizeof(name));
+	}
+	~MapEntityTimer() {
+		if (!active) return;
+		const long long usec = std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - start).count();
+		for (int i = 0; i < 5; ++i) {
+			if (usec <= slowMapEntities[i].usec) continue;
+			for (int j = 4; j > i; --j) slowMapEntities[j] = slowMapEntities[j - 1];
+			slowMapEntities[i].usec = usec;
+			slowMapEntities[i].number = number;
+			Q_strncpyz(slowMapEntities[i].name, name, sizeof(slowMapEntities[i].name));
+			break;
+		}
+	}
+};
+}
+
 void G_RunFrame( int levelTime ) {
 	int			i;
 	gentity_t	*ent;
 	int			ents_inuse=0; // someone's gonna be pissed I put this here...
+	const bool profileFrame = s_profileGameMapLoad && level.framenum < 5;
+	const int frameStart = profileFrame ? gi.Milliseconds() : 0;
+	int stageStart = frameStart;
+	if (profileFrame) memset(slowMapEntities, 0, sizeof(slowMapEntities));
 #if	AI_TIMERS
 	AITime = 0;
 	navTime = 0;
@@ -1930,6 +1991,9 @@ void G_RunFrame( int levelTime ) {
 
 	//Look to clear out old events
 	ClearPlayerAlertEvents();
+	if (profileFrame)
+		gi.Printf("[map load] game frame %d prep %d ms\n", level.framenum, gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 
 	//Run the frame for all entities
 //	for ( i = 0, ent = &g_entities[0]; i < globals.num_entities ; i++, ent++)
@@ -1942,6 +2006,7 @@ void G_RunFrame( int levelTime ) {
 			continue;
 		ents_inuse++;
 		ent = &g_entities[i];
+		MapEntityTimer profileEntity(profileFrame, i, ent->classname);
 
 		// clear events that are too old
 		if ( level.time - ent->eventTime > EVENT_VALID_MSEC ) {
@@ -2057,12 +2122,25 @@ void G_RunFrame( int levelTime ) {
 		//UpdateTeamCounters( ent );	//	   to call anyway on a freed ent.
 	}
 
+	if (profileFrame) {
+		gi.Printf("[map load] game frame %d entities %d ms (%d in use)\n",
+			level.framenum, gi.Milliseconds() - stageStart, ents_inuse);
+		for (int j = 0; j < 5 && slowMapEntities[j].usec; ++j)
+			gi.Printf("[map load] game frame %d slow entity %d: %lld ms #%d %s\n",
+				level.framenum, j + 1, slowMapEntities[j].usec / 1000,
+				slowMapEntities[j].number, slowMapEntities[j].name);
+	}
+	stageStart = gi.Milliseconds();
+
 	// perform final fixups on the player
 	ent = &g_entities[0];
 	if ( ent->inuse )
 	{
 		ClientEndFrame( ent );
 	}
+	if (profileFrame)
+		gi.Printf("[map load] game frame %d player end %d ms\n", level.framenum, gi.Milliseconds() - stageStart);
+	stageStart = gi.Milliseconds();
 	if( g_numEntities->integer )
 	{
 		gi.Printf( S_COLOR_WHITE"Number of Entities in use : %d\n", ents_inuse );
@@ -2114,6 +2192,10 @@ extern int delayedShutDown;
 		ValidateInUseBits();
 	}
 #endif
+	if (profileFrame) {
+		gi.Printf("[map load] game frame %d tail %d ms\n", level.framenum, gi.Milliseconds() - stageStart);
+		gi.Printf("[map load] game frame %d total %d ms\n", level.framenum, gi.Milliseconds() - frameStart);
+	}
 }
 
 

@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 #include <chrono>
 
 // tr_shader.c -- this file deals with the parsing and definition of shaders
@@ -34,6 +35,7 @@ struct ShaderLoadProfile {
 	int linearScans = 0, linearHits = 0, imageLookups = 0;
 	long long totalUs = 0, hashUs = 0, linearUs = 0;
 	long long parseUs = 0, imageUs = 0, finishUs = 0;
+	mapLoadTopEntry_t slowShaders[8] = {};
 };
 ShaderLoadProfile shaderLoadProfile;
 long long ShaderElapsedUs(ShaderProfileClock::time_point start) {
@@ -41,11 +43,17 @@ long long ShaderElapsedUs(ShaderProfileClock::time_point start) {
 }
 struct ShaderCallTimer {
 	ShaderProfileClock::time_point start;
-	ShaderCallTimer() : start(ShaderProfileClock::now()) {
+	const char *name;
+	ShaderCallTimer(const char *shaderName)
+		: start(shaderLoadProfile.active ? ShaderProfileClock::now() : ShaderProfileClock::time_point{}), name(shaderName) {
 		if (shaderLoadProfile.active) ++shaderLoadProfile.calls;
 	}
 	~ShaderCallTimer() {
-		if (shaderLoadProfile.active) shaderLoadProfile.totalUs += ShaderElapsedUs(start);
+		if (shaderLoadProfile.active) {
+			const long long elapsed = ShaderElapsedUs(start);
+			shaderLoadProfile.totalUs += elapsed;
+			R_LoadProfileTopAdd(shaderLoadProfile.slowShaders, 8, name, elapsed);
+		}
 	}
 };
 }
@@ -59,7 +67,7 @@ void R_ShaderLoadProfileBegin( void ) {
 void R_ShaderLoadProfileEnd( void ) {
 	if (!shaderLoadProfile.active) return;
 	shaderLoadProfile.active = false;
-	R_ImageLoadProfileEnd();
+	R_ImageLoadProfileEnd("BSP surface materials");
 	ri.Printf(PRINT_ALL, "[map load] R_FindShader breakdown: %d calls, %d cache hits, %d text hits, %d text misses, %d image lookups\n",
 		shaderLoadProfile.calls, shaderLoadProfile.cacheHits, shaderLoadProfile.textHits,
 		shaderLoadProfile.textMisses, shaderLoadProfile.imageLookups);
@@ -68,6 +76,9 @@ void R_ShaderLoadProfileEnd( void ) {
 		shaderLoadProfile.linearUs / 1000, shaderLoadProfile.linearScans, shaderLoadProfile.linearHits,
 		shaderLoadProfile.parseUs / 1000, shaderLoadProfile.imageUs / 1000,
 		shaderLoadProfile.finishUs / 1000);
+	for (int i = 0; i < 8 && shaderLoadProfile.slowShaders[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] slow shader %d: %lld ms %s\n", i + 1,
+			shaderLoadProfile.slowShaders[i].usec / 1000, shaderLoadProfile.slowShaders[i].name);
 }
 
 // the shader is parsed into these global variables, then copied into
@@ -5089,7 +5100,7 @@ most world construction surfaces.
 ===============
 */
 shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte *styles, qboolean mipRawImage ) {
-	ShaderCallTimer profileCall;
+	ShaderCallTimer profileCall(name);
 	char		strippedName[MAX_QPATH];
 	int			hash, flags;
 	const char	*shaderText;

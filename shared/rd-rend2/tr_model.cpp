@@ -22,9 +22,68 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_models.c -- model loading and caching
 
 #include "tr_local.h"
+#include "tr_loadprofile.h"
 #include "tr_cache.h"
 #include <qcommon/sstring.h>
 #include <qcommon/matcomp.h>
+#include <chrono>
+
+namespace {
+using ModelProfileClock = std::chrono::steady_clock;
+struct ModelLoadProfile {
+	bool active = false;
+	int calls = 0, cacheHits = 0;
+	long long totalUs = 0, cacheUs = 0, loadUs = 0;
+	mapLoadTopEntry_t slowModels[12] = {};
+};
+ModelLoadProfile modelLoadProfile;
+struct ModelCallTimer {
+	ModelProfileClock::time_point start;
+	const char *name;
+	bool cacheHit = false;
+	ModelCallTimer(const char *modelName)
+		: start(modelLoadProfile.active ? ModelProfileClock::now() : ModelProfileClock::time_point{}), name(modelName) {
+		if (modelLoadProfile.active) ++modelLoadProfile.calls;
+	}
+	~ModelCallTimer() {
+		if (!modelLoadProfile.active) return;
+		const long long elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+			ModelProfileClock::now() - start).count();
+		modelLoadProfile.totalUs += elapsed;
+		if (cacheHit) {
+			++modelLoadProfile.cacheHits;
+			modelLoadProfile.cacheUs += elapsed;
+		} else {
+			modelLoadProfile.loadUs += elapsed;
+		}
+		R_LoadProfileTopAdd(modelLoadProfile.slowModels, 12, name, elapsed);
+	}
+};
+}
+
+void R_ModelLoadProfileBegin( void ) {
+	modelLoadProfile = ModelLoadProfile{};
+	modelLoadProfile.active = R_LoadProfileEnabled();
+}
+
+void R_ModelLoadProfileCheckpoint( const char *phase ) {
+	if (!modelLoadProfile.active) return;
+	ri.Printf(PRINT_ALL, "[map load] renderer models (%s): %d calls, %d cache hits; total %lld ms, cached %lld ms, load %lld ms (nested calls included)\n",
+		phase,
+		modelLoadProfile.calls, modelLoadProfile.cacheHits, modelLoadProfile.totalUs / 1000,
+		modelLoadProfile.cacheUs / 1000, modelLoadProfile.loadUs / 1000);
+	for (int i = 0; i < 12 && modelLoadProfile.slowModels[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] slow model %d: %lld ms %s\n", i + 1,
+			modelLoadProfile.slowModels[i].usec / 1000, modelLoadProfile.slowModels[i].name);
+	modelLoadProfile = ModelLoadProfile{};
+	modelLoadProfile.active = true;
+}
+
+void R_ModelLoadProfileEnd( void ) {
+	if (!modelLoadProfile.active) return;
+	R_ModelLoadProfileCheckpoint("post-world media");
+	modelLoadProfile.active = false;
+}
 
 #define	LL(x) x=LittleLong(x)
 
@@ -293,6 +352,7 @@ asked for again.
 ====================
 */
 qhandle_t RE_RegisterModel( const char *name ) {
+	ModelCallTimer profileCall(name);
 	model_t		*mod;
 	qhandle_t	hModel;
 	qboolean	orgNameFailed = qfalse;
@@ -313,8 +373,10 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	}
 
 	// search the currently loaded models
-	if( ( hModel = CModelCache->GetModelHandle( name ) ) != -1 )
+	if( ( hModel = CModelCache->GetModelHandle( name ) ) != -1 ) {
+		profileCall.cacheHit = true;
 		return hModel;
+	}
 
 #ifndef REND2_SP
 	if ( name[0] == '*' )
@@ -1667,6 +1729,7 @@ void R_SVModelInit()
 	// Shouldn't hurt to do so in MP too
 	// R_Init now makes sure its only doing its thing once unless everything is destructed again
 	R_Init();
+	R_ModelLoadProfileBegin();
 }
 
 /*

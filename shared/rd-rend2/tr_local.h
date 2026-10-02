@@ -4553,7 +4553,10 @@ shader_t	*R_FindShader( const char *name, const int *lightmapIndexes, const byte
 void R_ShaderLoadProfileBegin( void );
 void R_ShaderLoadProfileEnd( void );
 void R_ImageLoadProfileBegin( void );
-void R_ImageLoadProfileEnd( void );
+void R_ImageLoadProfileEnd( const char *phase );
+void R_ModelLoadProfileBegin( void );
+void R_ModelLoadProfileCheckpoint( const char *phase );
+void R_ModelLoadProfileEnd( void );
 shader_t	*R_GetShaderByHandle( qhandle_t hShader );
 shader_t *R_FindShaderByName( const char *name );
 void		R_InitShaders( qboolean server );

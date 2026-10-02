@@ -1001,8 +1001,11 @@ void CL_StartHunkUsers( void ) {
 
 	//we require the ui to be loaded here or else it crashes trying to access the ui on command line map loads
 	if ( !cls.uiStarted ) {
+		stageStart = Sys_Milliseconds();
 		cls.uiStarted = qtrue;
 		CL_InitUI();
+		if (loadProfile)
+			Com_Printf("[map load] %-28s %6d ms\n", "client UI startup", Sys_Milliseconds() - stageStart);
 	}
 
 //	if ( !cls.cgameStarted && cls.state > CA_CONNECTED && cls.state != CA_CINEMATIC ) {

@@ -37,6 +37,9 @@ struct ImageLoadProfile {
 	int normalLookups = 0, normalGenerated = 0, autoRoughnessGenerated = 0;
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
+	mapLoadTopEntry_t slowImages[8] = {};
+	mapLoadTopEntry_t slowNormals[8] = {};
+	mapLoadTopEntry_t slowAutoRoughness[8] = {};
 };
 ImageLoadProfile imageLoadProfile;
 long long ImageElapsedUs(ImageProfileClock::time_point start) {
@@ -44,11 +47,21 @@ long long ImageElapsedUs(ImageProfileClock::time_point start) {
 }
 struct ImageCreateTimer {
 	ImageProfileClock::time_point start;
-	ImageCreateTimer() : start(ImageProfileClock::now()) {
+	ImageCreateTimer() : start(imageLoadProfile.active ? ImageProfileClock::now() : ImageProfileClock::time_point{}) {
 		if (imageLoadProfile.active) ++imageLoadProfile.imagesCreated;
 	}
 	~ImageCreateTimer() {
 		if (imageLoadProfile.active) imageLoadProfile.createUs += ImageElapsedUs(start);
+	}
+};
+struct ImageFindTimer {
+	ImageProfileClock::time_point start;
+	const char *name;
+	ImageFindTimer(const char *imageName)
+		: start(imageLoadProfile.active ? ImageProfileClock::now() : ImageProfileClock::time_point{}), name(imageName) {}
+	~ImageFindTimer() {
+		if (imageLoadProfile.active)
+			R_LoadProfileTopAdd(imageLoadProfile.slowImages, 8, name, ImageElapsedUs(start));
 	}
 };
 }
@@ -58,9 +71,10 @@ void R_ImageLoadProfileBegin( void ) {
 	imageLoadProfile.active = true;
 }
 
-void R_ImageLoadProfileEnd( void ) {
+void R_ImageLoadProfileEnd( const char *phase ) {
 	if (!imageLoadProfile.active) return;
 	imageLoadProfile.active = false;
+	ri.Printf(PRINT_ALL, "[map load] image profile phase: %s\n", phase);
 	ri.Printf(PRINT_ALL, "[map load] image breakdown: %d cached, %d file lookups, %d created; file/decode %lld ms, prepare %lld ms, create/upload %lld ms\n",
 		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.imagesCreated,
 		imageLoadProfile.fileLoadUs / 1000, imageLoadProfile.imagePrepareUs / 1000,
@@ -71,6 +85,15 @@ void R_ImageLoadProfileEnd( void ) {
 		imageLoadProfile.normalLookups, imageLoadProfile.normalGenerated,
 		imageLoadProfile.normalLookupUs / 1000, imageLoadProfile.normalBuildUs / 1000,
 		imageLoadProfile.autoRoughnessGenerated, imageLoadProfile.autoRoughnessUs / 1000);
+	for (int i = 0; i < 8 && imageLoadProfile.slowImages[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] slow image %d: %lld ms %s\n", i + 1,
+			imageLoadProfile.slowImages[i].usec / 1000, imageLoadProfile.slowImages[i].name);
+	for (int i = 0; i < 8 && imageLoadProfile.slowNormals[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] slow normal %d: %lld ms %s\n", i + 1,
+			imageLoadProfile.slowNormals[i].usec / 1000, imageLoadProfile.slowNormals[i].name);
+	for (int i = 0; i < 8 && imageLoadProfile.slowAutoRoughness[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] slow roughness %d: %lld ms %s\n", i + 1,
+			imageLoadProfile.slowAutoRoughness[i].usec / 1000, imageLoadProfile.slowAutoRoughness[i].name);
 }
 
 static byte			 s_intensitytable[256];
@@ -3375,7 +3398,11 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	autoRoughnessMsec += msec;
 	ri.Printf( PRINT_DEVELOPER, "auto roughness %s: %dx%d, mean %.3f sigma %.3f, %d ms\n",
 		ormsName, w, h, mean, sigma, msec );
-	if (imageLoadProfile.active) imageLoadProfile.autoRoughnessUs += ImageElapsedUs(profileStart);
+	if (imageLoadProfile.active) {
+		const long long elapsed = ImageElapsedUs(profileStart);
+		imageLoadProfile.autoRoughnessUs += elapsed;
+		R_LoadProfileTopAdd(imageLoadProfile.slowAutoRoughness, 8, diffuseName, elapsed);
+	}
 
 	return image;
 }
@@ -3485,7 +3512,11 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 
 		R_CreateImage( normalName, normalPic, normalWidth, normalHeight, IMGTYPE_NORMAL, normalFlags, 0 );
 		Z_Free( normalPic );
-		if (imageLoadProfile.active) imageLoadProfile.normalBuildUs += ImageElapsedUs(buildStart);
+		if (imageLoadProfile.active) {
+			const long long elapsed = ImageElapsedUs(buildStart);
+			imageLoadProfile.normalBuildUs += elapsed;
+			R_LoadProfileTopAdd(imageLoadProfile.slowNormals, 8, name, elapsed);
+		}
 	}
 }
 
@@ -3559,6 +3590,7 @@ Returns NULL if it fails, not a default image.
 */
 image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 {
+	ImageFindTimer profileFind(name);
 	image_t	*image;
 	int		width, height;
 	byte	*pic;
