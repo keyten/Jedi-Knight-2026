@@ -100,6 +100,10 @@ static struct
 	int previousFrame;
 	const world_t *previousWorld;
 
+	// automatic glows holding an emission slot last frame (hysteresis)
+	int autoGlowIds[4];
+	int numAutoGlowIds;
+
 	// statistics of the last froxel frame (r_volparticles, r_volumetricParticlesDebug)
 	int statFrame;
 	int statSubmitted;
@@ -290,6 +294,12 @@ static float R_VolParticleSliceDistance( int k, float nearZ, float farZ, int num
 	return nearZ * powf(farZ / nearZ, (float)k / (float)numSlices);
 }
 
+// upload priority: authored media, automatic density, automatic glows
+static int R_VolParticleRank( const volParticleEval_t& e )
+{
+	return e.automaticGlow ? 2 : e.automaticDensity ? 1 : 0;
+}
+
 static qboolean R_VolParticlesPreviousValid( void )
 {
 	return (qboolean)(s_vp.previousWorld == tr.world && s_vp.previousFrame + 1 == backEndData->realFrameNumber);
@@ -370,7 +380,10 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	Com_Memset(block, 0, sizeof(*block));
 
 	if ( !R_VolParticlesPreviousValid() )
+	{
 		s_vp.numPrevious = 0;
+		s_vp.numAutoGlowIds = 0;
+	}
 
 	s_vp.statFrame = backEndData->realFrameNumber;
 	s_vp.statSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
@@ -397,7 +410,6 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	int numCurrent = 0;
 	int numCandidates = 0;
 	const bool aggregate = fx_physicalizationAggregate->integer == 1;
-	bool automaticGlows = false;
 	const auto pair = [&](volParticleEval_t* e) {
 		volParticleCandidate_t *c = &candidates[numCandidates++];
 		c->current = *e;
@@ -413,7 +425,6 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		volParticleEval_t* e = &current[numCurrent];
 		if (R_VolParticleEvaluate(&refdef->volParticles[i], e)) {
 			++numCurrent;
-			automaticGlows = automaticGlows || e->automaticGlow;
 			if (!aggregate) pair(e);
 		} else ++s_vp.statRejected;
 	}
@@ -464,8 +475,10 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	std::sort(order, order + numVisible, [&]( int a, int b ) {
 		const volParticleCandidate_t *ca = &candidates[a];
 		const volParticleCandidate_t *cb = &candidates[b];
-		// New automatic glows cannot displace existing authored/density media.
-		if (ca->current.automaticGlow != cb->current.automaticGlow) return !ca->current.automaticGlow;
+		// Automatic media never displace authored media: authored, then
+		// automatic density, then automatic glows.
+		const int ra = R_VolParticleRank(ca->current), rb = R_VolParticleRank(cb->current);
+		if (ra != rb) return ra < rb;
 		if ( ca->importance != cb->importance )
 			return ca->importance > cb->importance;
 		if ( ca->current.id != cb->current.id )
@@ -475,24 +488,51 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	});
 
 	const int maxUploaded = Com_Clampi(0, MAX_GPU_VOL_PARTICLES, r_volumetricParticlesMax->integer);
-	const int numUploaded = MIN(numVisible, maxUploaded);
-	s_vp.statUploaded = numUploaded;
-	s_vp.statCapped = numVisible - numUploaded;
 
-	// Authored glows first; automatic glows use at most four spare slots.
-	int emissionSlots[MAX_GPU_VOL_PARTICLES];
-	if (automaticGlows) std::fill(emissionSlots, emissionSlots + numUploaded, -1);
-	int autoSlots = 0;
-	for (int pass = 0; automaticGlows && pass < 2; ++pass) {
-		for (int n = 0; n < numUploaded; ++n) {
+	// Automatic glows rank last. They are uploaded only while they hold one of
+	// at most four spare emission slots (an empty record only costs slots and
+	// slice entries), plus one frame after losing it so its history is dropped.
+	// Last frame's holders keep their slots first: no flicker between fires.
+	int firstGlow = numVisible;
+	for (int n = 0; n < numVisible; ++n)
+		if (candidates[order[n]].current.automaticGlow) { firstGlow = n; break; }
+	int numUploaded = MIN(firstGlow, maxUploaded);
+	s_vp.statCapped = firstGlow - numUploaded;
+	int authoredEmitters = 0;
+	for (int n = 0; n < numUploaded; ++n)
+		if (!VectorCompare(candidates[order[n]].current.emission, vec3_origin)) ++authoredEmitters;
+	const auto heldGlow = [&](int id) {
+		for (int i = 0; i < s_vp.numAutoGlowIds; ++i) if (s_vp.autoGlowIds[i] == id) return true;
+		return false;
+	};
+	int autoGlowIds[4], numAutoGlowIds = 0;
+	const int autoSlots = MIN(4, MAX(0, MAX_GPU_EMISSIVE_PARTICLES - authoredEmitters));
+	for (int pass = 0; pass < 2; ++pass) {
+		for (int n = firstGlow; n < numVisible && numAutoGlowIds < autoSlots && numUploaded + numAutoGlowIds < maxUploaded; ++n) {
 			const volParticleEval_t& e = candidates[order[n]].current;
-			if (int(e.automaticGlow) != pass || VectorCompare(e.emission, vec3_origin)) continue;
-			if (s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES && (!e.automaticGlow || autoSlots < 4)) {
-				emissionSlots[n] = s_vp.statEmissive++;
-				if (e.automaticGlow) ++autoSlots;
-			} else ++s_vp.statEmissiveDropped;
+			if (VectorCompare(e.emission, vec3_origin) || heldGlow(e.id) != (pass == 0)) continue;
+			bool taken = false;
+			for (int i = 0; i < numAutoGlowIds; ++i) taken = taken || autoGlowIds[i] == e.id;
+			if (!taken) autoGlowIds[numAutoGlowIds++] = e.id;
 		}
 	}
+	const auto slotted = [&](int id) {
+		for (int i = 0; i < numAutoGlowIds; ++i) if (autoGlowIds[i] == id) return true;
+		return false;
+	};
+	for (int n = firstGlow; n < numVisible; ++n) {
+		volParticleCandidate_t *c = &candidates[order[n]];
+		const bool slot = !VectorCompare(c->current.emission, vec3_origin) && slotted(c->current.id);
+		const bool held = heldGlow(c->current.id);
+		if (!slot && !held) { if (!VectorCompare(c->current.emission, vec3_origin)) ++s_vp.statEmissiveDropped; continue; }
+		if (numUploaded >= maxUploaded) { ++s_vp.statCapped; continue; }
+		if (!slot) VectorClear(c->current.emission);	// lost its slot: clear its glow once
+		if (slot != held) c->changed = qtrue;
+		order[numUploaded++] = order[n];
+	}
+	Com_Memcpy(s_vp.autoGlowIds, autoGlowIds, sizeof(autoGlowIds));
+	s_vp.numAutoGlowIds = numAutoGlowIds;
+	s_vp.statUploaded = numUploaded;
 
 	// particle data
 	for ( int n = 0; n < numUploaded; n++ )
@@ -508,11 +548,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 			c->previous ? c->previous->extinction : 0.0f);
 		// w: changed (0/1) + 2 * (emission slot + 1), the slots to the most important emitters
 		float slotCode = 0.0f;
-		if (automaticGlows && emissionSlots[n] >= 0) {
-			const int slot = emissionSlots[n];
-			VectorSet4(block->emission[slot], e->emission[0], e->emission[1], e->emission[2], 0.0f);
-			slotCode = 2.0f * float(slot + 1);
-		} else if (!automaticGlows && !VectorCompare(e->emission, vec3_origin)) {
+		if ( !VectorCompare(e->emission, vec3_origin) ) {
 			if (s_vp.statEmissive < MAX_GPU_EMISSIVE_PARTICLES) {
 				const int slot = s_vp.statEmissive++;
 				VectorSet4(block->emission[slot], e->emission[0], e->emission[1], e->emission[2], 0.0f);

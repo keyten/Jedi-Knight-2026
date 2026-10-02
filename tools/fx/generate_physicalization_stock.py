@@ -10,11 +10,16 @@ from audit_stock_fx import Corpus, effects_inventory
 
 
 # Supported primitive ordinal: exclude ForceFeedback groups ignored by JA.
-# Every unspecified primitive/media alternative remains legacy.
+# Every unspecified primitive/media alternative remains legacy. A material may
+# be a {shader: material} map when alternatives of one primitive differ.
 REVIEWED = {
     'volumetric/black_smoke': {0: 'DarkSmoke'},
     'volumetric/droid_smoke': {0: 'DarkSmoke'},
-    'volumetric/black_smoke2': {0: 'DarkSmoke'},
+    # Light alpha_smoke masks tinted dark->white over life read as grey smoke;
+    # only the black_smoke2 mask is a dark absorber.
+    'volumetric/black_smoke2': {0: {'gfx/effects/alpha_smoke': 'LightSmoke',
+                                    'gfx/effects/alpha_smoke2': 'LightSmoke',
+                                    'gfx/misc/black_smoke2': 'DarkSmoke'}},
     'rocket/explosion': {1: 'LightSmoke'},
     'thermal/explosion': {1: 'LightSmoke'},
     'explosions/explosion1': {1: 'LightSmoke'},
@@ -24,9 +29,11 @@ REVIEWED = {
     'env/fire': {1: 'LightSmoke'},
     'env/fire_wall': {1: 'DarkSmoke'},
     'chunks/dustfall': {0: 'DustCloud'},
-    'env/impact_dust': {0: 'DustCloud', 1: 'DustCloud', 2: 'DustCloud'},
-    'env/impact_dustonly': {0: 'DustCloud', 1: 'DustCloud', 2: 'DustCloud'},
-    'env/slide_dust': {0: 'DustCloud', 1: 'DustCloud', 2: 'DustCloud'},
+    # Impact bursts: only the slow 3 s cloud. The 1 s radial puffs and the whole
+    # env/slide_dust (spawned every pmove frame, 0.2-0.3 s life) cost proxy
+    # budget without visible medium.
+    'env/impact_dust': {1: 'DustCloud'},
+    'env/impact_dustonly': {1: 'DustCloud'},
     'env/waterfall_mist': {0: 'Mist'},
     'volumetric/large_steam': {0: 'Mist'},
     'volumetric/pressurized_steam': {0: 'Mist'},
@@ -72,8 +79,11 @@ def main():
             for ordinal, material in sorted(selectors.items()):
                 primitive = ps[ordinal]
                 assert primitive['type'] in ('particle', 'orientedparticle'), (name, ordinal)
-                assert primitive['shaders'] and set(primitive['shaders']) <= ALLOWED[material], (name, ordinal, primitive['shaders'])
+                materials = material if isinstance(material, dict) else {s: material for s in primitive['shaders']}
+                assert primitive['shaders'] and set(primitive['shaders']) == set(materials), (name, ordinal, primitive['shaders'])
                 for shader in primitive['shaders']:
+                    material = materials[shader]
+                    assert shader in ALLOWED[material], (name, ordinal, shader, material)
                     lines.append('    {"%s", 0x%016xULL, %d, "%s", %s},' % (name, checksum, ordinal, shader, material))
                     count += 1
         lines += ['};', '']

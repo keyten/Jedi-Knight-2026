@@ -48,6 +48,8 @@ def main():
                     inputs.append('%s %d %d %s' % (e['file'], checksum, ordinal, shader))
                     labels.append((e['file'], ordinal, shader))
                     material = REVIEWED.get(short, {}).get(ordinal)
+                    if isinstance(material, dict):
+                        material = material.get(shader)
                     positive = material is not None
                     expected.append((['None', 'DarkSmoke', 'LightSmoke', 'Mist', 'DustCloud', 'Gas'].index(material) if positive else 0,
                                      1 if positive else 0))

@@ -55,7 +55,8 @@ set fx_physicalizationOptOut ""
 
 ## Классификация
 
-Точная таблица содержит 31 проверенный вариант shader в 20 штатных EFX:
+Точная таблица содержит 24 проверенных варианта shader в 19 штатных EFX
+(до ревью 2026-10-02 — 31 в 20, см. раздел в конце):
 дым, пар/туман, пылевые облака и газ. Ключ состоит из полного пути EFX,
 FNV-1a checksum исходных байтов, номера поддерживаемого primitive и имени shader.
 Изменение файла снимает точное совпадение; checksum проверяет версию ассета,
@@ -138,7 +139,7 @@ Debug view 26 помогает увидеть собственно среду п
 
 Общий C++11 harness проверяет режимы, смену списков, fingerprints, альтернативы,
 отсутствие RNG-вызовов и optical depth. Corpus replay проверяет все 1375
-штатных media alternatives: 31 точное совпадение и 1344 legacy. Этот replay
+штатных media alternatives: 24 точных совпадения и 1351 legacy (до ревью 31/1344). Этот replay
 проверяет таблицу; runtime дополнительно применяет ограничения flags/authoring.
 Команды генерации и тестирования описаны в [tools/fx](../tools/fx/README.md).
 
@@ -334,7 +335,8 @@ debug-33 кадры off/on показали появление glow. Повто�
 
 Под «подхватывает EFX» здесь понимается хотя бы одна часть, разрешённая для
 автоматического medium/emission. Это не полная замена EFX и не процент вызовов
-во время прохождения. Измерено реальным SP parser и shared classifier через
+во время прохождения. Таблица ниже измерена до ревью 2026-10-02 (без env/slide_dust и двух
+impact-ordinal значения medium станут немного меньше). Измерено реальным SP parser и shared classifier через
 `fxaudit`, включая flags, fingerprints, фактические shader handles и authoring
 priority. Все запрошенные файлы зарегистрировались; master/opt lists при
 подсчёте eligibility игнорируются. Собственные тестовые EFX исключены.
@@ -429,3 +431,37 @@ installed** из предыдущего измерения: правила eligi
 подэтапа прежняя; проверять нужно ID и domain в консоли. Вернуть время:
 `set fx_freeze 0`. Default новых флагов — 0; archive сохраняет выбранные значения после тестового
 запуска. Для отключения этого подэтапа: `set fx_physicalizationSources 0`.
+
+
+## Ревью 2026-10-02: исправления по сверке с ассетами
+
+Сверка реализации с EFX/shader-скриптами установленной base (все fingerprints
+таблиц совпали, кроме трёх EFX с ручной средой из `zz_volumetric_media_test.pk3`).
+Изменено:
+
+- **Emission**: fire-спрайты без `useAlpha` несут alpha в byte RGB, а glow
+  дополнительно затухал по своему envelope — двойное затухание, glow жил первые
+  ~30% life. `FxPhysical::EmissionTint` один раз делит RGB на alpha; затухание
+  задаёт только `EmissionEnvelope`. Для `useAlpha` спрайтов цвет не меняется.
+- **Renderer budget** (`tr_volparticle.cpp`): порядок загрузки теперь authored →
+  automatic density → automatic glow, автоматика не вытесняет ручные среды из
+  `r_volumetricParticlesMax`. Automatic glow загружается только пока держит один из
+  четырёх spare emission slots (пустые записи больше не занимают upload и slice pool),
+  плюс один кадр после потери слота со сбросом history. Прошлые владельцы слотов
+  сохраняют их первыми, поэтому glow не перескакивает между кострами.
+- **Exact-таблица**: убран `env/slide_dust` (вызывается каждый pmove-кадр
+  force-long-leap landing, life 0.2–0.3 s — бюджет без видимой среды); у
+  `env/impact_dust*` оставлен только медленный 3-секундный ordinal 1. В
+  `volumetric/black_smoke2` alternatives `alpha_smoke/alpha_smoke2` теперь
+  LightSmoke (светлая маска, tint от тёмного к белому), DarkSmoke — только `black_smoke2`.
+  Генератор принимает `{shader: material}` для одной primitive.
+
+Не изменено и вынесено на решение после A/B кадров: расширение exact-профилей
+(hugeexplosion1 и семейство LingeringSmoke на steam, steam_jet, spout, water_mist,
+small_fire_blue/green/red), смягчение composite veto на `nonlinear/clamp`,
+sRGB-калибровка albedo архетипов (на linear-картах LightSmoke 0.45 → 0.17),
+нормировка adaptive `fill` и то, что exact aggregate на штатных EFX не срабатывает.
+
+Проверено: 301 shared check (меньше из-за меньшей таблицы), 1375 stock alternatives
+(24 reviewed / 1351 legacy), сборки SP game DLL, MP engine и обоих rend2. В игре
+не запускалось.

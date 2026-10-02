@@ -26,5 +26,13 @@ inline float LinearTint(unsigned char value) {
     const float v = value / 255.0f;
     return v <= .04045f ? v / 12.92f : std::pow((v + .055f) / 1.055f, 2.4f);
 }
+// Sprite colour without the legacy fade. Additive (no useAlpha) sprites carry
+// alpha in their byte RGB; the glow has its own envelope, so divide it out once.
+inline float EmissionTint(unsigned char value, float alpha, bool rgbCarriesAlpha) {
+    if (!rgbCarriesAlpha) return LinearTint(value);
+    if (!std::isfinite(alpha) || alpha * 255.0f < 1.0f) return 0;
+    const float v = std::min(1.0f, value / (255.0f * std::min(1.0f, alpha)));
+    return LinearTint((unsigned char)(v * 255.0f + .5f));
+}
 }
 #endif

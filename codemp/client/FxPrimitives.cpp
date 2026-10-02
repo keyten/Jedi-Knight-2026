@@ -231,7 +231,8 @@ void CParticle::DrawVolumetricMedia(void)
 		const float envelope = FxPhysical::EmissionEnvelope(float(theFxHelper.mTime - mTimeStart), float(mTimeEnd - mTimeStart));
 		const float radiance = FxPhysical::Extinction(mVolume.autoEmissionRadiance, particle.radius, softness, envelope);
 		const float tint[] = {1.0f, 0.35f, 0.08f};
-		for (int i = 0; i < 3; ++i) particle.emission[i] = radiance * tint[i] * FxPhysical::LinearTint(mRefEnt.shaderRGBA[i]);
+		for (int i = 0; i < 3; ++i) particle.emission[i] = radiance * tint[i] *
+			FxPhysical::EmissionTint(mRefEnt.shaderRGBA[i], mAlphaFade, !(mFlags & FX_USE_ALPHA));
 	}
 
 	if ( particle.radius > 0.0f && ( particle.extinction > 0.0f || particle.emission[0] > 0.0f ||

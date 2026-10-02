@@ -194,6 +194,11 @@ int main(int argc, char** argv) {
     Check(EmissionEnvelope(100, 1000) > EmissionEnvelope(800, 1000), "glow drains conservatively");
     Check(EmissionEnvelope(100, 0) == 0 && EmissionEnvelope(100, std::numeric_limits<float>::quiet_NaN()) == 0, "nonfinite glow time fails closed");
     Check(LinearTint(0) == 0 && LinearTint(255) == 1 && LinearTint(128) < .3f, "bounded linear RGB tint");
+    Check(EmissionTint(128, .5f, true) == LinearTint(255) && EmissionTint(64, .5f, true) == LinearTint(128),
+          "additive glow tint removes the legacy alpha fade once");
+    Check(EmissionTint(128, .5f, false) == LinearTint(128), "useAlpha sprite tint is not rescaled");
+    Check(EmissionTint(10, 0, true) == 0 && EmissionTint(10, std::numeric_limits<float>::quiet_NaN(), true) == 0 &&
+          EmissionTint(255, .25f, true) == 1, "invisible/invalid alpha fails closed; tint stays bounded");
     struct Eval {
         int id; bool automaticDensity;
         float center[3], invExtent[3], radius, extinction, inner, albedo[3], emission[3], anisotropy;
