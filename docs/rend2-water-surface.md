@@ -119,6 +119,57 @@ the scene right behind it (bottom / side against the floor or a wall) is passed 
 - Linear light: a legacy (display encoded) HDR scene, cubemaps, SSR samples and light colors are decoded, the result
   encoded again (`tr.linearLight`).
 
+## Snell's window and total internal reflection (r_waterSnell)
+
+The prompt-1 view from inside already refracted with `eta = ior` and its exact Fresnel was 1 beyond the critical angle,
+but the reflected light was a constant liquid color, the window sample a fixed 256-unit guess and the Fresnel of one
+wave normal per pixel. `r_waterSnell 1` replaces that inside view; above the water nothing changes (air -> water,
+`eta = 1 / ior`, no TIR possible: the same code, identical output in the tests).
+
+Physics (dielectric interface, unpolarized): `eta = n_incident / n_transmitted`: from air `1 / ior`, from the liquid
+`ior` (`r_waterSurfaceIOR`, no separate IOR cvar). Snell: `sin(theta_t) = eta sin(theta_i)`; from the liquid
+`sin(theta_t) >= 1` beyond the critical angle `theta_c = asin(1 / ior)` (48.6 degrees at 1.333): total internal
+reflection, the exact Fresnel is 1 and nothing is transmitted. Inside the critical angle the whole sky (180 degrees) is
+compressed into a cone of 2 theta_c (~97 degrees), Snell's window; Sea of Thieves shows the scene above the same way
+from below (SIGGRAPH 2018, "The Technical Art of Sea of Thieves"). Here the window is not a mask: it is where
+`refract()` exists, and its edge is the Fresnel rising continuously to 1.
+
+- Side: per fragment, `dot(V, Ng) < 0` against the outward normal of the liquid brush face (the deformed surface,
+  not the static brush planes the camera contents use). The camera contents (`R_LiquidPointClass`) are only shown by
+  debug view 1, where they disagree (camera within a deformed wave).
+- Fresnel from inside: the exact `FresnelDielectric(cos, ior)` averaged over the centre wave normal and +- one deviation
+  of each unresolved slope (the LEAN variance of the mips): the critical angle widens with the waves of a pixel instead
+  of aliasing; TIR in all five: `W = 1` exactly. From inside the EnvBRDF LUT is not used (it is an air-side, F0 fit
+  without TIR).
+- Refraction water -> air: `refract(-V, N, ior)` (the most transmissive of the five normals where the centre one is in
+  TIR); bounded first guess from the scene straight behind, two fixed point steps on the height of the sample above the
+  surface plane, depth rejection of samples in the liquid in front of the surface, sky: 256 units. Weight `1 - W`.
+- Reflection under the surface, weight `W` (1 in TIR, no `r_waterSurfaceReflection` boost): the scene in the liquid.
+  SSR (the same `ssr_common` march, started into the liquid) -> the parallax cubemap of the surface only when its probe
+  is in the liquid (a probe above captured the air side), path = its parallax radius -> the liquid itself. Each through
+  the analytic medium along the reflected path of length d: `L = L_hit T + S`, `T = exp(-sigma d)`,
+  `S = albedo ambient_up / 2 (1 - T) + albedo pi sun HG(g) / (1 + k) (1 - exp(-sigma (1 + k) d))`, k = depth gained
+  per unit / cos of the refracted sun (the exact integral for a sun attenuated down to each point). Without SSR and
+  cubemap d is endless: the reflection is the liquid's in-scattering (dark in clear water, its color in murky water).
+- The face of a liquid brush against a wall / floor seen from inside (scene < 4 units behind) stays transparent.
+- Composite unchanged: `(1 - W) transmitted + W reflection`; the camera -> surface segment is fogged by the froxel
+  composite (r_volumetricWater) as before.
+- A permutation (`USE_WATER_SNELL`, `WATERDEF_USE_SNELL`), not a uniform branch: a uniform branch moved Intel's code
+  generation by 1 ulp with the feature off; with the permutation `r_waterSnell 0` is the prompt-1 program, bit
+  identical on Intel and NVIDIA (captured before / after), and the cvar still toggles live (8 water programs instead
+  of 4 at load).
+
+Not done: the n^2 radiance law across the interface (rend2 does not scale radiance on refraction either way); fog of
+the air seen through the window; the sun's transmitted glint seen from below (the sky in the scene copy is refracted,
+no BTDF lobe); the legacy `refraction.glsl` (`etaG = 1 / 1.30`, refractive shaders, both sides) is untouched: water in a
+water view never goes through it (`RB_WaterSurfaceDistortion`).
+
+Debug `r_waterSnellDebug` (cheat, needs `r_waterSnell 1`, wins over `r_waterSurfaceDebug`): 1 crossing (blue air ->
+water `eta = 1 / ior`, orange water -> air `eta = ior`, magenta stripes: camera contents disagree) - 2 TIR share of
+the wave normals (red) / transmits (green), yellow line at the critical angle, dark blue from air - 3 exact Fresnel of
+the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 5 reflection (red) / transmission
+(green) weights - 6 reflection source (red SSR, green cubemap, blue liquid / fallback).
+
 ## Cvars
 
 | cvar | default | |
@@ -136,6 +187,8 @@ the scene right behind it (bottom / side against the floor or a wall) is passed 
 | `r_waterSurfaceExperimental` | 0 | name based classification |
 | `r_waterSurfaceDebug` | 0 | cheat, views below |
 | `r_waterSurfaceSplit` | 0.5 | split position of debug view 9 |
+| `r_waterSnell` | 0 | Snell's window / TIR from inside (archive, live) |
+| `r_waterSnellDebug` | 0 | cheat, views 1-6 of the Snell section |
 
 Commands: `r_waterInfo [surfaces]`, `r_waterOverride`.
 
@@ -183,6 +236,17 @@ Done (no game launch):
   p95 26%); Fresnel weight (< 0.001); sky; rejection (0 px with, 156 px without); shallow T 0.975 vs deep 0.54; waves
   raise roughness with distance; SSR (linear and Hi-Z) finds the reflected object; inside view TIR / Snell's window.
 - Classification coverage: `water_audit.py` (the same rule).
+- r_waterSnell (2026-10-04), same tests, 144 permutations: TIR exactly beyond the critical angle at IOR 1.333 and 2.0
+  (0 misclassified pixels outside a 0.002 cos band), weight = exact water -> air Fresnel (< 3e-4), rising continuously
+  to 1; the roof refracted into the window; TIR without SSR / cubemap = the analytic endless-path in-scattering
+  (< 1e-4); SSR from below reflects the pillar in the liquid, attenuated; above the water identical to the prompt-1
+  program; camera at z = +-1, +-0.01 (flat / waves) finite with consistent sides; steep ripples (normal 4) break the
+  window up with partial TIR shares; IOR 1: no TIR, no offset; debug views. `r_waterSnell 0` images bit identical to
+  captures of the prompt-1 shader (above, grazing, below; flat / waves; SSR; debug views) on both GPUs.
+
+In game (user, r_waterSnell): t2_rancor / t3_hevil from below (window, TIR of the pool walls / floor), shallow grazing
+view from below, diving through the surface (debug 1), ripples (`r_waterSurfaceNormal 2-4`), `r_ssr 0`,
+`r_cubeMapping 0`, `r_waterSnellDebug 1-6`, toggling `r_waterSnell` 0 / 1 against the prompt-1 view.
 
 In game (user): t2_rancor (indoor pool, dark), t3_hevil / yavin1 (outdoor lake + waterfall, sun), t2_trip, vjun1
 (slime), t2_port (fog water); shallow edge, deep part, grazing view, camera above, camera close / crossing the surface,
@@ -197,6 +261,14 @@ saber next to water (light glint; the blade is blended and not reflected), SSR o
 | water pass, no SSR | 0.68 ms | 14 ms |
 | water pass, SSR linear 40 steps | 3.7 ms | 56 ms |
 | water pass, SSR Hi-Z 24 / 40 steps | 2.7 / 2.6 ms | 30 ms |
+
+From below (camera under the surface looking up, the surface over the whole view, waves):
+
+| | RTX 2060 | Intel UHD |
+|---|---|---|
+| prompt-1 inside view | 0.31 ms | 6.3 ms |
+| r_waterSnell, no SSR | 0.47 ms | 10.3 ms |
+| r_waterSnell, SSR Hi-Z 24 steps | 1.8 ms | 25 ms |
 
 In game the pass costs in proportion to the water on screen; the copy runs once per view with water.
 

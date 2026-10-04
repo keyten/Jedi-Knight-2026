@@ -243,8 +243,15 @@ void main()
 //   [7] view right (world), froxel liquid fade start (view depth)
 //   [8] view up (world), 1 / froxel liquid fade length
 //   [9] fallback environment radiance rgb, sun specular (0 / 1)
-//   [10] flow layer scale, 1 / world wave size, unused, unused
+//   [10] flow layer scale, 1 / world wave size, unused, Snell debug view (USE_WATER_SNELL)
 //   [11] drift of the two world wave layers (texture units, wrapped)
+//
+// USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
+// the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
+// and total internal reflection beyond the critical angle comes out of the exact Fresnel (F = 1, nothing
+// transmitted), averaged over the unresolved wave slopes; no window mask. The reflected light under the
+// surface is the scene in the liquid: SSR -> a cubemap captured in the liquid -> the liquid itself,
+// through the medium along the reflected path.
 
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 
@@ -327,6 +334,7 @@ out vec4 out_Glow;
 #define WATER_FLAG_OVERRIDE	128
 #define WATER_FLAG_EXPERIMENTAL	256
 #define WATER_FLAG_ENVBRDF	512
+#define WATER_FLAG_CAMERA_LIQUID	1024	// the view origin is in a liquid brush (R_LiquidPointClass)
 
 int g_flags;
 
@@ -411,6 +419,12 @@ float FresnelDielectric(float cosi, float eta)
 	return 0.5 * (rs * rs + rp * rp);
 }
 
+// beyond the critical angle (eta > 1 only): total internal reflection
+float WaterTIR(float cosi, float eta)
+{
+	return eta * eta * max(1.0 - cosi * cosi, 0.0) >= 1.0 ? 1.0 : 0.0;
+}
+
 float D_GGX(float NH, float a)
 {
 	float a2 = a * a;
@@ -444,6 +458,22 @@ float WaterPhase(float g, float cosTheta)
 {
 	float g2 = g * g;
 	return (1.0 - g2) / (4.0 * M_PI * pow(max(1.0 + g2 - 2.0 * g * cosTheta, 1e-4), 1.5));
+}
+
+// The homogeneous liquid along a ray leaving the surface downwards in direction dir, d units long:
+// returns the in-scattered radiance towards the surface, T its transmittance. Half the ambient from
+// above, and the sun (sunLight = pi * color * shadow, 0 without) refracted into the liquid
+// (sunInLiquid, cosine sunCos), attenuated down to the depth of each point:
+//   sun: integral of sigma albedo L p exp(-sigma t (1 + k)), k = depth gained per unit / sunCos
+vec3 WaterLiquidPath(vec3 dir, float d, vec3 Ng, vec3 sigma, vec3 albedo, float g, vec3 ambientUp,
+	vec3 sunLight, vec3 sunInLiquid, float sunCos, out vec3 T)
+{
+	T = exp(-sigma * d);
+	vec3 S = albedo * (0.5 * ambientUp) * (vec3(1.0) - T);
+	float k = max(-dot(dir, Ng), 0.0) / sunCos;
+	S += albedo * sunLight * (WaterPhase(g, dot(dir, -sunInLiquid)) / (1.0 + k)) *
+		(vec3(1.0) - exp(-sigma * ((1.0 + k) * d)));
+	return S;
 }
 
 float WaterShadowTap(vec3 s, float layer)
@@ -516,8 +546,10 @@ vec3 WaterEnvironment(vec3 P, vec3 R, float lod)
 //   u_SSRSettings  steps, refine steps, max distance, thickness
 //   u_SSRSettings2 max roughness, edge fade, coarsest color mip
 //   u_SSRSettings3 coarsest Hi-Z level, unused, near plane, Hi-Z iterations (USE_HIZ)
-vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness)
+// Ngeo: the geometric normal on the side the ray leaves from; hitDistance: world units to the hit
+vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDistance)
 {
+	hitDistance = 0.0;
 	vec3 right = u_Water[7].xyz;
 	vec3 up = u_Water[8].xyz;
 	vec3 forward = normalize(u_ViewForward);
@@ -554,7 +586,7 @@ vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness)
 		return vec4(0.0);
 	vec3 Q = mix(O * g_k0, E * g_k1, sHit) * zRay;
 	vec2 hitUV = hitPixel * u_SSRTexelSize.xy;
-	float hitDistance = length(Q - O);
+	hitDistance = length(Q - O);
 	if (hitDistance < 2.0 * startOffset)
 		return vec4(0.0);
 
@@ -581,6 +613,12 @@ vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness)
 		c = mix(vec4(textureLod(u_SSRSceneMap, hitUV, 0.0).rgb, 1.0), c, mip);
 	confidence *= smoothstep(0.2, 0.6, c.a);
 	return vec4(SceneToLinear(c.rgb / max(c.a, 1.0e-3)), confidence);
+}
+
+vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness)
+{
+	float hitDistance;
+	return WaterSSRTrace(Pw, Rw, Ngeo, roughness, hitDistance);
 }
 #endif
 
@@ -669,6 +707,43 @@ void main()
 		W = clamp(F0 * envBrdf.x + envBrdf.y, 0.0, 1.0);
 	}
 
+	// Snell's window (r_waterSnell): from inside, the exact water -> air Fresnel averaged over the
+	// unresolved wave slopes (the centre and +- one deviation of each slope), so the critical angle
+	// broadens with the waves of a pixel instead of aliasing; TIR in all of them: W = 1 exactly. The
+	// refracted direction follows the centre normal, or the most transmissive one when it reflects totally.
+#if defined(USE_WATER_SNELL)
+	int snellDebug = int(u_Water[10].w + 0.5);
+	float tirFraction = 0.0;
+	vec3 Nrefract = N;
+	if (inside)
+	{
+		vec2 deviation = sqrt(variance);
+		float Fsum = F;
+		float Fmin = 2.0;
+		vec3 Nmin = N;
+		tirFraction = WaterTIR(NV, ior);
+		for (int k = 0; k < 4; k++)
+		{
+			vec2 o = k == 0 ? vec2(deviation.x, 0.0) : k == 1 ? vec2(-deviation.x, 0.0) :
+				k == 2 ? vec2(0.0, deviation.y) : vec2(0.0, -deviation.y);
+			vec3 Nk = -normalize(Ng - (slope.x + o.x) * Tw - (slope.y + o.y) * Bw);
+			float cosk = max(dot(Nk, V), 1e-4);
+			float Fk = FresnelDielectric(cosk, ior);
+			Fsum += Fk;
+			tirFraction += WaterTIR(cosk, ior);
+			if (Fk < Fmin)
+			{
+				Fmin = Fk;
+				Nmin = Nk;
+			}
+		}
+		W = Fsum * 0.2;
+		tirFraction *= 0.2;
+		if (WaterTIR(NV, ior) > 0.5)
+			Nrefract = Nmin;
+	}
+#endif
+
 	// view depths: the surface and the scene behind it
 	float zSurface = 1.0 / gl_FragCoord.w;
 	float depthHere = texture(u_WaterDepthMap, uv).r;
@@ -703,6 +778,9 @@ void main()
 	vec3 transmittance = vec3(1.0);
 	float pathLength = 0.0;
 	float rejected = 0.0;
+#if defined(USE_WATER_SNELL)
+	vec3 snellRt = vec3(0.0);
+#endif
 
 	if (!inside)
 	{
@@ -828,6 +906,102 @@ void main()
 		rawRefracted = transmitted;
 		W = 0.0;
 	}
+#if defined(USE_WATER_SNELL)
+	else
+	{
+		// ---- seen from inside the liquid, r_waterSnell: the water -> air interface (eta = ior)
+		// Snell's window: the refracted ray up to the scene above, as from above (bounded first guess from
+		// the scene straight behind, two fixed point steps on its height above the surface plane). The air
+		// above holds no medium here.
+		vec3 Rt = refract(-V, Nrefract, ior);
+		snellRt = Rt;
+		if (dot(Rt, Rt) > 0.0)
+		{
+			float cosT = max(dot(Rt, Ng), 0.05);
+			float pathStraight = skyHere ? maxPath : (zHere - zSurface) * cameraDistance / zSurface;
+			float heightGuess = skyHere ? 256.0 : min(pathStraight * max(-dot(V, Ng), 0.0), 2048.0);
+			vec2 uvR = WaterRefractedUV(P, Rt, heightGuess / cosT, uv);
+			float depthR = texture(u_WaterDepthMap, uvR).r;
+			for (int i = 0; i < 2; i++)
+			{
+				if (WaterIsSky(depthR))
+					break;
+				float h = -WaterDepthBelow(P, Ng, uvR, depthR);
+				if (h <= 0.0)
+					break;
+				uvR = WaterRefractedUV(P, Rt, h / cosT, uv);
+				depthR = texture(u_WaterDepthMap, uvR).r;
+			}
+
+			// a sample in front of the surface is in the liquid between the camera and the surface
+			if (WaterFlag(WATER_FLAG_REJECT))
+			{
+				vec2 offset = uvR - uv;
+				float k = 1.0;
+				for (int i = 0; i < 3; i++)
+				{
+					if (WaterIsSky(depthR) || WaterLinearDepth(depthR) > zSurface + 0.5)
+						break;
+					k *= 0.5;
+					uvR = clamp(uv + offset * k, vec2(0.0), vec2(1.0));
+					depthR = texture(u_WaterDepthMap, uvR).r;
+				}
+				if (!WaterIsSky(depthR) && WaterLinearDepth(depthR) <= zSurface + 0.5)
+				{
+					uvR = uv;
+					rejected = 1.0;
+				}
+				else if (k < 1.0)
+					rejected = 0.5;
+			}
+			rawRefracted = SceneToLinear(texture(u_WaterSceneMap, uvR).rgb);
+			transmitted = rawRefracted;
+		}
+
+		// ---- reflection under the surface (total beyond the critical angle): the scene in the liquid,
+		// SSR -> a cubemap captured in the liquid -> the liquid itself (the in-scattering of an endless
+		// path), each through the medium along the reflected path. No reflection scale: W is the physical
+		// reflectance (1 in total internal reflection).
+		vec3 R = reflect(-V, N);
+		float into = dot(R, Ng);
+		if (into > -0.02)
+			R = normalize(R - Ng * (into + 0.02));
+		vec3 ambientUp = WaterEnvironment(P, Ng, ROUGHNESS_MIPS);
+		vec3 sunLight = sun ? M_PI * sunColor * sunShadow : vec3(0.0);
+		float pathScale = u_Water[1].w;
+		vec3 Tr;
+		reflection = WaterLiquidPath(R, maxPath, Ng, sigma, albedo, g, ambientUp, sunLight, sunInLiquid, sunCos, Tr);
+		debugSource = vec3(0.0, 0.0, 1.0);
+		if (WaterFlag(WATER_FLAG_CUBEMAP) && u_CubeMapInfo.w > 0.0)
+		{
+			// a probe above the surface captured the air side: only a probe in the liquid
+			vec3 probe = u_ViewOrigin + u_CubeMapInfo.xyz / u_CubeMapInfo.w;
+			if (dot(probe - P, Ng) < 0.0)
+			{
+				float d = min(1.0 / u_CubeMapInfo.w, maxPath) * pathScale;
+				vec3 S = WaterLiquidPath(R, d, Ng, sigma, albedo, g, ambientUp, sunLight, sunInLiquid, sunCos, Tr);
+				reflection = WaterEnvironment(P, R, roughness * ROUGHNESS_MIPS) * Tr + S;
+				debugSource = vec3(0.0, 1.0, 0.0);
+			}
+		}
+#if defined(USE_SSR)
+		if (WaterFlag(WATER_FLAG_SSR) && u_Water[1].y > 0.0)
+		{
+			float hitDistance;
+			vec4 ssr = WaterSSRTrace(P, R, Nside, roughness, hitDistance);
+			float c = ssr.a * u_Water[1].y;
+			if (c > 0.0)
+			{
+				vec3 S = WaterLiquidPath(R, hitDistance * pathScale, Ng, sigma, albedo, g, ambientUp, sunLight,
+					sunInLiquid, sunCos, Tr);
+				reflection = mix(reflection, ssr.rgb * Tr + S, c);
+				debugSource = mix(debugSource, vec3(1.0, 0.0, 0.0), c);
+			}
+			ssrDebug = vec4(ssr.a > 0.0 ? vec3(0.0, ssr.a, 0.0) : vec3(0.35, 0.0, 0.0), 1.0);
+		}
+#endif
+	}
+#else
 	else
 	{
 		// seen from inside the liquid: Snell's window (the scene above, refracted) and total internal
@@ -856,8 +1030,54 @@ void main()
 		}
 		debugSource = vec3(0.0, 0.0, 1.0);
 	}
+#endif
 
 	vec3 color = (1.0 - W) * transmitted + W * reflection + glint;
+
+#if defined(USE_WATER_SNELL)
+	if (snellDebug != 0)
+	{
+		vec3 d = vec3(0.0);
+		if (snellDebug == 1)
+		{
+			// direction of the crossing: blue air -> water (eta 1 / ior), orange water -> air (eta ior);
+			// magenta stripes: the camera contents disagree with the side of this fragment
+			d = inside ? vec3(1.0, 0.5, 0.1) : vec3(0.1, 0.45, 1.0);
+			bool cameraLiquid = WaterFlag(WATER_FLAG_CAMERA_LIQUID);
+			if (cameraLiquid != inside && mod(gl_FragCoord.x + gl_FragCoord.y, 16.0) < 6.0)
+				d = vec3(1.0, 0.0, 1.0);
+		}
+		else if (snellDebug == 2)
+		{
+			// red: total internal reflection (share of the wave slopes), green: transmits; yellow line:
+			// the critical angle of the centre normal; dark blue: from air (no total internal reflection)
+			if (inside)
+			{
+				d = vec3(tirFraction, 1.0 - tirFraction, 0.0);
+				float sinI = sqrt(max(1.0 - NV * NV, 0.0));
+				if (abs(sinI * ior - 1.0) < 0.012)
+					d = vec3(1.0, 1.0, 0.0);
+			}
+			else
+				d = vec3(0.0, 0.0, 0.3);
+		}
+		else if (snellDebug == 3)
+			d = vec3(FresnelDielectric(NV, inside ? ior : 1.0 / ior));
+		else if (snellDebug == 4)
+		{
+			// refracted direction (world, * 0.5 + 0.5); black: total internal reflection
+			vec3 Rt = inside ? snellRt : refract(-V, N, 1.0 / ior);
+			d = dot(Rt, Rt) > 0.0 ? Rt * 0.5 + 0.5 : vec3(0.0);
+		}
+		else if (snellDebug == 5)
+			d = vec3(W, 1.0 - W, 0.0);	// red: reflection weight, green: transmission weight
+		else if (snellDebug == 6)
+			d = debugSource;	// red SSR, green cubemap, blue liquid (from inside) / fallback (from air)
+		out_Color = vec4(LinearToScene(d), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+#endif
 
 	if (debugView != 0)
 	{

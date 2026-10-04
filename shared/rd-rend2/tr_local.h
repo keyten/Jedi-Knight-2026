@@ -311,6 +311,8 @@ extern cvar_t	*r_waterSurfaceDepthScale;
 extern cvar_t	*r_waterSurfaceExperimental;
 extern cvar_t	*r_waterSurfaceDebug;
 extern cvar_t	*r_waterSurfaceSplit;
+extern cvar_t	*r_waterSnell;
+extern cvar_t	*r_waterSnellDebug;
 extern cvar_t *fx_physicalizationAggregate;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotLightShadows;
@@ -2283,7 +2285,8 @@ enum
 {
 	WATERDEF_USE_DEFORM_VERTEXES	= 0x0001,
 	WATERDEF_USE_HIZ				= 0x0002,	// SSR reflections walk the closest depth mips (r_ssrHiZ)
-	WATERDEF_ALL					= 0x0003,
+	WATERDEF_USE_SNELL				= 0x0004,	// Snell's window, total internal reflection from inside (r_waterSnell)
+	WATERDEF_ALL					= 0x0007,
 	WATERDEF_COUNT					= WATERDEF_ALL + 1,
 };
 

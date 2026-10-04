@@ -1042,6 +1042,8 @@ shaderProgram_t *RB_WaterSurfaceProgram( const shader_t *shader )
 	int index = 0;
 	if ( shader->numDeforms && !ShaderRequiresCPUDeforms(shader) )
 		index |= WATERDEF_USE_DEFORM_VERTEXES;
+	if ( r_waterSnell->integer )
+		index |= WATERDEF_USE_SNELL;
 	// the SSR of the view walks the closest depth mips: so does the water
 	if ( backEnd.waterSurfaceSSR && RB_SSRDepthLevels() > 1 && tr.waterSurfaceShader[index | WATERDEF_USE_HIZ].program )
 		index |= WATERDEF_USE_HIZ;
@@ -1135,6 +1137,10 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	// it the reflection weight is the exact Fresnel of the smooth surface
 	if ( tr.envBrdfImage )
 		flags |= 512;
+	// the camera contents (r_waterSnellDebug 1 shows where they disagree with the
+	// side of a fragment, e.g. a deformed surface above a static brush plane)
+	if ( r_waterSnell->integer && r_waterSnellDebug->integer == 1 && tr.world && R_LiquidPointClass(viewParms.ori.origin) >= 0 )
+		flags |= 1024;
 
 	VectorSet4(water[6], (float)debugView, splitX, (float)flags, 8192.0f);
 
@@ -1161,7 +1167,9 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 
 	// waves: the flow layer repeats once per first stage texture tile, the world layers every 192 units
 	const float waveSize = 192.0f;
-	VectorSet4(water[10], 1.0f, 1.0f / waveSize, 0.0f, 0.0f);
+	// w: the Snell debug view (the USE_WATER_SNELL permutation only)
+	VectorSet4(water[10], 1.0f, 1.0f / waveSize, 0.0f,
+		r_waterSnell->integer ? (float)r_waterSnellDebug->integer : 0.0f);
 	// drift of the world layers, wrapped at whole tiles (the pattern tiles)
 	const float t = backEnd.refdef.floatTime;
 	const float wind[2] = { 0.8f, 0.6f };

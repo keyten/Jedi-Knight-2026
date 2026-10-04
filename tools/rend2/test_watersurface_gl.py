@@ -16,6 +16,10 @@ GPU timings at 1920x1080: python tools/rend2/test_watersurface_gl.py --bench
 - waves: the unresolved slope variance of the mips raises the roughness with distance, no NaN / Inf
 - SSR (ssr_common.glsl ray march): the reflection rays find the pillar above the water, in its screen columns
 - from inside the liquid: total internal reflection outside Snell's window, the scene above inside it
+- r_waterSnell (USE_WATER_SNELL): TIR exactly beyond the critical angle (IOR 1.333 / 2), reflection weight = exact
+  water -> air Fresnel (continuous, no mask), the scene above refracted into the window, TIR reflection of the liquid
+  without SSR / cubemap and of the pillar with SSR (attenuated), unchanged from above, camera crossing the plane,
+  steep ripples, IOR 1, the debug views
 """
 import ctypes as C
 import itertools
@@ -71,6 +75,7 @@ UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_E
 
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
+FLAG_CAMERA_LIQUID = 1024
 
 
 def read(name):
@@ -95,8 +100,11 @@ def header(defines, size):
     return text + f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'
 
 
-def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None):
+def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
+                  snell=False):
     defines = ['USE_HIZ'] if hiz else []
+    if snell:
+        defines.append('USE_WATER_SNELL')
     if cubemap:
         defines += ['CUBEMAP_RESOLUTION=float(256)', 'ROUGHNESS_MIPS=float(6)']
     if froxel:
@@ -509,14 +517,15 @@ def probe_program(expression, extra=None, **kw):
 
 def check_permutations():
     count = 0
-    for deform, shadows2, ssr, froxel, cubemap, hiz in itertools.product([0, 1], [0, 1], [0, 1], [0, 1, 2], [0, 1], [0, 1]):
+    for deform, shadows2, ssr, froxel, cubemap, hiz, snell in itertools.product(
+            [0, 1], [0, 1], [0, 1], [0, 1, 2], [0, 1], [0, 1], [0, 1]):
         if hiz and not ssr:
             continue  # GLSL_LoadGPUProgramWaterSurface: the Hi-Z walk only with the SSR inputs
         prog = water_program(deform=bool(deform), shadows2=bool(shadows2), ssr=bool(ssr), froxel=froxel,
-                             cubemap=bool(cubemap), hiz=bool(hiz))
+                             cubemap=bool(cubemap), hiz=bool(hiz), snell=bool(snell))
         gl('glDeleteProgram', None, U)(prog)
         count += 1
-    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap)', True)
+    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell)', True)
 
 
 def above_geometry(cam):
@@ -618,6 +627,139 @@ def check_inside():
     return ok
 
 
+def fresnel_dielectric(cos_i, eta):
+    """float64 reference of FresnelDielectric (unpolarized, smooth), 1 in total internal reflection"""
+    sin_t2 = eta * eta * np.maximum(1 - cos_i ** 2, 0)
+    cos_t = np.sqrt(np.maximum(1 - sin_t2, 0))
+    rs = (eta * cos_i - cos_t) / (eta * cos_i + cos_t)
+    rp = (cos_i - eta * cos_t) / (cos_i + eta * cos_t)
+    return np.where(sin_t2 >= 1, 1.0, 0.5 * (rs * rs + rp * rp))
+
+
+def check_snell():
+    """r_waterSnell (USE_WATER_SNELL): water -> air refraction, total internal reflection, the reflection sources"""
+    ok = True
+    cam = Camera((0.0, 0.0, -60.0), (400.0, 0.0, 120.0))
+    rig = Rig(cam, underwater=True)
+    d = cam.rays()
+    cos_i = d[..., 2]                                  # N . V from inside, flat surface
+    img = rig.draw_water(probe_program('vec4(tirFraction, W, float(inside), 0.0)', snell=True), rig.params())
+    water = (img[..., 3] > -0.5) & (cos_i > 0.02)
+    for n in (N_WATER, 2.0):
+        # IOR 2: a 30 degree window, the steeper camera sees into it
+        r = rig if n == N_WATER else Rig(Camera((0.0, 0.0, -60.0), (200.0, 0.0, 300.0)), underwater=True)
+        u = r.params()
+        u[0][0] = n
+        im = img if n == N_WATER else r.draw_water(
+            probe_program('vec4(tirFraction, W, float(inside), 0.0)', snell=True), u)
+        ci = r.cam.rays()[..., 2]
+        crit = math.sqrt(1 - 1 / n ** 2)                # cos of the critical angle
+        band = np.abs(ci - crit) < 0.002                # pixels straddling the critical angle (float32)
+        tir_ref = ci < crit
+        m = (im[..., 3] > -0.5) & (ci > 0.02) & ~band
+        wrong = (im[..., 0][m] > 0.5) != tir_ref[m]
+        err = np.abs(im[..., 1] - fresnel_dielectric(ci, n))[m]
+        ok = check(f'IOR {n}: TIR exactly beyond the critical angle ({math.degrees(math.acos(crit)):.1f} deg), '
+                   'no window mask', m.any() and wrong.sum() == 0 and tir_ref[m].any() and (~tir_ref[m]).any(),
+                   f'{m.sum()} px, {wrong.sum()} misclassified, {tir_ref[m].sum()} TIR') and ok
+        tir = m & tir_ref
+        ok = check(f'IOR {n}: reflection weight = exact water -> air Fresnel, 1 in TIR',
+                   err.max() < 2e-3 and im[..., 1][tir].min() == 1.0,
+                   f'max abs error {err.max():.2e}, TIR min {im[..., 1][tir].min()}') and ok
+    # continuity: along the critical angle the weight rises to 1 without a step (Fresnel, not a mask)
+    near = water & (cos_i > crit_w(N_WATER)) & (cos_i < crit_w(N_WATER) + 0.03)
+    ok = check('Fresnel rises continuously to 1 at the critical angle', near.any() and img[..., 1][near].max() > 0.6
+               and img[..., 1][near].min() < img[..., 1][near].max(),
+               f'{near.sum()} px within 0.03 of cos(theta_c): W {img[..., 1][near].min():.3f}..{img[..., 1][near].max():.3f}') and ok
+
+    # the scene above, refracted (water -> air) into the window
+    col = rig.draw_water(probe_program('vec4(transmitted, W)', snell=True), rig.params())
+    window = water & (cos_i > crit_w(N_WATER) + 0.02)
+    roof = window & (col[..., 0] > 0.8) & (col[..., 1] > 0.8) & (col[..., 2] < 0.3)
+    ok = check('Snell\'s window refracts the scene above', roof.sum() > 0.2 * window.sum(),
+               f'{roof.sum()} of {window.sum()} px see the roof') and ok
+
+    # TIR without SSR / cubemap: the liquid along an endless reflected path (no sun in the rig)
+    refl = rig.draw_water(probe_program('vec4(reflection, debugSource.b)', snell=True), rig.params())
+    u = rig.params()
+    sigma, albedo, env = np.array(u[2][:3]), np.array(u[3][:3]), np.array(u[9][:3])
+    expected = albedo * 0.5 * env * (1 - np.exp(-sigma * MAX_PATH))
+    tir = water & (cos_i < crit_w(N_WATER) - 0.02)
+    err = np.abs(refl[..., :3][tir] - expected).max()
+    ok = check('TIR without SSR or cubemap reflects the liquid (endless path in-scattering)',
+               tir.any() and err < 1e-4 and refl[..., 3][tir].min() == 1.0,
+               f'{tir.sum()} px, expected {np.round(expected, 4)}, max abs error {err:.2e}') and ok
+
+    # SSR under the surface: the reflection rays find the red pillar in the liquid, attenuated by the medium
+    for label, hiz, steps in [('linear march', False, 48), ('Hi-Z walk', True, 24)]:
+        rig.ssr_steps = steps
+        s = rig.draw_water(probe_program('vec4(reflection, ssrDebug.g)', ssr=True, hiz=hiz, snell=True),
+                           rig.params(flags=FLAG_REJECT | FLAG_ENVBRDF | FLAG_SSR, ssr=1.0), ssr=True)
+        hit = tir & (s[..., 3] > 0.5) & (s[..., 0] > 0.5) & (s[..., 1] < 0.3)
+        red_max = s[..., 0][hit].max() if hit.any() else 0.0
+        ok = check(f'SSR from below ({label}): TIR reflects the pillar in the liquid, through the medium',
+                   hit.sum() >= 10 and red_max < 1.0 and bool(np.isfinite(s[water]).all()),
+                   f'{hit.sum()} px, red {s[..., 0][hit].min() if hit.any() else 0:.3f}..{red_max:.3f} (< 1: absorbed)') and ok
+    rig.ssr_steps = 48
+
+    # above the water the Snell program is the prompt-1 surface
+    for eye, target in [((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)), ((0.0, 0.0, 6.0), (800.0, 0.0, 0.0))]:
+        r = Rig(Camera(eye, target))
+        a = r.draw_water(water_program(), r.params(), waves=True)
+        b = r.draw_water(water_program(snell=True), r.params(), waves=True)
+        wm = a[..., 3] > -0.5
+        diff = np.abs(a - b)[wm].max()
+        ok = check(f'from above (eye z = {eye[2]:.0f}): same as without Snell', diff < 1e-5, f'max abs diff {diff:.2e}') and ok
+
+    # camera crossing the plane: the side of each fragment follows the eye, finite everywhere
+    prog = probe_program('vec4(color, float(inside))', snell=True)
+    for z in (1.0, 0.01, -0.01, -1.0):
+        r = Rig(Camera((0.0, 0.0, z), (400.0, 0.0, 30.0 if z < 0 else -30.0)), underwater=z < 0)
+        for waves in (False, True):
+            c = r.draw_water(prog, r.params(), waves=waves)
+            wm = c[..., 3] > -0.5
+            ok = check(f'camera at z = {z:+.2f} ({"waves" if waves else "flat"}): finite, side consistent',
+                       wm.any() and bool(np.isfinite(c[wm]).all()) and
+                       bool(((c[..., 3][wm] > 0.5) == (z < 0)).all()), f'{wm.sum()} px') and ok
+
+    # steep ripples: the window breaks up (partial TIR shares), everything finite
+    u = rig.params()
+    u[0][2] = 4.0
+    rip = rig.draw_water(probe_program('vec4(tirFraction, W, color.r + color.g + color.b, 0.0)', snell=True), u,
+                         waves=True)
+    partial = water & (rip[..., 0] > 0.0) & (rip[..., 0] < 1.0)
+    ok = check('steep ripples: partial TIR shares break the window up, finite, weights in [0, 1]',
+               partial.sum() > 0 and bool(np.isfinite(rip[water]).all()) and rip[..., 1][water].min() >= 0.0 and
+               rip[..., 1][water].max() <= 1.0, f'{partial.sum()} px with a partial share') and ok
+
+    # IOR 1: no interface, no TIR, the scene straight through
+    u = rig.params()
+    u[0][0] = 1.0
+    one = rig.draw_water(probe_program('vec4(rawRefracted - SceneToLinear(sceneHere.rgb), tirFraction)', snell=True), u)
+    ok = check('IOR 1: no total internal reflection, no refraction offset',
+               one[..., 3][water].max() == 0.0 and np.abs(one[..., :3][water]).max() < 1e-3,
+               f'max colour difference {np.abs(one[..., :3][water]).max():.2e}') and ok
+
+    # debug views: finite; view 1 orange from inside with the camera in the liquid, striped magenta without
+    for view in range(1, 7):
+        for camera_liquid in ((True, False) if view == 1 else (True,)):
+            u = rig.params(flags=FLAG_REJECT | FLAG_ENVBRDF | (FLAG_CAMERA_LIQUID if camera_liquid else 0))
+            u[10][3] = view
+            dbg = rig.draw_water(water_program(snell=True), u)
+            good = bool(np.isfinite(dbg[water]).all())
+            if view == 1:
+                orange = (np.abs(dbg[..., :3][water] - [1.0, 0.5, 0.1]).max(axis=-1) < 1e-3).mean()
+                magenta = (np.abs(dbg[..., :3][water] - [1.0, 0.0, 1.0]).max(axis=-1) < 1e-3).mean()
+                good = good and (orange == 1.0 and magenta == 0.0 if camera_liquid else 0.2 < magenta < 0.5)
+            ok = check(f'r_waterSnellDebug {view}{"" if view != 1 else " (camera contents " + ("liquid)" if camera_liquid else "air: mismatch stripes)")}',
+                       good) and ok
+    return ok
+
+
+def crit_w(n):
+    return math.sqrt(1 - 1 / n ** 2)
+
+
 def context(title):
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 3)
@@ -639,6 +781,7 @@ def main():
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
         ok = check_above(rig) and ok
         ok = check_inside() and ok
+        ok = check_snell() and ok
         err = gl('glGetError', U)()
         ok = check('no GL error', err == 0, hex(err)) and ok
     finally:
@@ -706,6 +849,25 @@ def bench():
                 gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
             gl('glDepthFunc', None, U)(0x0207)  # always: every water pixel shades
             print(f'  water pass {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_only):.3f} ms')
+            gl('glDepthFunc', None, U)(0x0203)
+            gl('glDeleteProgram', None, U)(prog)
+
+        # from below: the prompt-1 inside view against r_waterSnell (the window, TIR reflection sources)
+        under = Rig(Camera((0.0, 0.0, -300.0), (300.0, 0.0, 0.0), size=size), underwater=True, size=size)
+        coverage = (under.cam.rays()[..., 2] > 0).mean()
+        for label, snell, ssr, hiz, steps in [('prompt-1', False, False, False, 0), ('Snell, no SSR', True, False, False, 0),
+                                              ('Snell, SSR Hi-Z 24 steps', True, True, True, 24)]:
+            under.ssr_steps = steps
+            prog = water_program(ssr=ssr, hiz=hiz, size=size, snell=snell)
+            u = under.params(flags=FLAG_REJECT | FLAG_ENVBRDF | (FLAG_SSR if ssr else 0), ssr=1.0 if ssr else 0.0)
+            under.draw_water(prog, u, waves=True, ssr=ssr)
+
+            def draw_under():
+                gl('glBindFramebuffer', None, U, U)(FB, under.water_fbo)
+                gl('glBindVertexArray', None, U)(under.water_vao)
+                gl('glDrawArrays', None, U, I, I)(4, 0, under.water_count)
+            gl('glDepthFunc', None, U)(0x0207)
+            print(f'  water pass from below {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_under):.3f} ms')
             gl('glDepthFunc', None, U)(0x0203)
             gl('glDeleteProgram', None, U)(prog)
     finally:

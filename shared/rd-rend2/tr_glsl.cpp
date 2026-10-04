@@ -2917,6 +2917,13 @@ static int GLSL_LoadGPUProgramWaterSurface(
 			Q_strcat(name, sizeof(name), "_DEFORM");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_DEFORM_VERTEXES\n");
 		}
+		// a permutation, not a uniform branch: r_waterSnell 0 runs the prompt-1
+		// program unchanged (bit identical) and the cvar still toggles live
+		if (i & WATERDEF_USE_SNELL)
+		{
+			Q_strcat(name, sizeof(name), "_SNELL");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_SNELL\n");
+		}
 
 		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
 		if (!GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
