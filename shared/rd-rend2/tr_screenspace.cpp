@@ -514,6 +514,11 @@ static void RB_ScreenBuildViewInfo( screenViewInfo_t& info )
 	Matrix16Multiply(proj, viewParms.world.modelViewMatrix, info.viewProjection);
 }
 
+void RB_ScreenGetViewInfo( screenViewInfo_t& info )
+{
+	RB_ScreenBuildViewInfo(info);
+}
+
 // MSAA: resolve depth and the screen attachments. Color is resolved by the
 // consumers' own copies.
 static void RB_ScreenResolveInputs( void )

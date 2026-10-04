@@ -3052,6 +3052,16 @@ void RB_VolumetricBuild( void )
 	FBO_Bind(oldFbo);
 }
 
+float R_VolumetricFarZ( void )
+{
+	return (s_vf.built || s_vf.frozen) ? s_vf.farZ : 0.0f;
+}
+
+qboolean RB_VolumetricLookupReady( void )
+{
+	return (qboolean)(s_vf.resources && backEnd.volumetricView && (s_vf.built || s_vf.frozen));
+}
+
 qboolean RB_VolumetricCompositeActive( void )
 {
 	return (qboolean)(

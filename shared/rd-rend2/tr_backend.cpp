@@ -645,6 +645,8 @@ void RB_BeginDrawingView (void) {
 
 	// screen-space reflections / GI of this view: clears their attachments
 	RB_ScreenSpaceBeginView();
+	// modern water surface of this view (tr_watersurface.cpp), after the SSR decision
+	RB_WaterSurfaceBeginView();
 
 	// froxel volumetric fog of this view (tr_volumetric.cpp)
 	RB_VolumetricBeginView();
@@ -1175,6 +1177,8 @@ static void RB_DrawItems(
 		GLSL_SetUniforms(drawItem.program, drawItem.uniformData);
 
 		RB_SetRenderState(drawItem.renderState);
+		if (drawItem.renderState.waterLegacyClip)
+			RB_WaterSurfaceLegacyScissor(qtrue);
 
 		switch ( drawItem.draw.type )
 		{
@@ -1220,6 +1224,8 @@ static void RB_DrawItems(
 			qglEndTransformFeedback();
 			qglDisable(GL_RASTERIZER_DISCARD);
 		}
+		if (drawItem.renderState.waterLegacyClip)
+			RB_WaterSurfaceLegacyScissor(qfalse);
 	}
 	RB_ScreenEndTimer(weatherTimer);
 	if (timedWeatherProgram == &tr.weatherSplashShader)
@@ -1240,7 +1246,13 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 		}
 
 		pass->sortKeys[pass->numDrawItems] = sortKey;
-		pass->drawItems[pass->numDrawItems++] = drawItem;
+		DrawItem& added = pass->drawItems[pass->numDrawItems++];
+		added = drawItem;
+		// modern water surface: its slot of the main pass / the split view clip
+		if ( backEnd.waterItemTag )
+			added.renderState.waterSurface = true;
+		if ( backEnd.waterLegacyClipTag )
+			added.renderState.waterLegacyClip = true;
 	}
 	else
 	{
@@ -1309,8 +1321,11 @@ static void RB_SubmitDrawSurfsForDepthFill(
 			(!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) ||
 			 (backEnd.viewParms.flags & VPF_SHADOWCASCADES));
 
+		// a water surface drawn by the water program must stay out of the depth
+		// it reads (an opaque sorted water shader would have no depth behind it)
 		if ((shader->sort != SS_OPAQUE && !alphaShadowDepth) ||
 			shader->useDistortion ||
+			(shader->waterSurface && backEnd.waterSurfaceView) ||
 			(shader->depthPrepass == DEPTHPREPASS_SKIP && !alphaShadowDepth))
 		{
 			// Don't draw yet, let's see what's to come
@@ -1441,7 +1456,7 @@ static void RB_SubmitDrawSurfs(
 				dlighted == oldDlighted &&
 				foliageDebugClass == oldFoliageDebugClass &&
 				foliageMotion == oldFoliageMotion &&
-				backEnd.refractionFill == shader->useDistortion )
+				backEnd.refractionFill == RB_WaterSurfaceDistortion(shader) )
 		{
 			// fast path, same as previous sort
 			rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
@@ -1487,7 +1502,7 @@ static void RB_SubmitDrawSurfs(
 		}
 
 		qboolean isDistortionShader = (qboolean)
-			((shader->useDistortion == qtrue) || (backEnd.currentEntity && backEnd.currentEntity->e.renderfx & RF_DISTORTION));
+			(RB_WaterSurfaceDistortion(shader) || (backEnd.currentEntity && backEnd.currentEntity->e.renderfx & RF_DISTORTION));
 
 		if (backEnd.refractionFill != isDistortionShader)
 			continue;
@@ -1520,11 +1535,37 @@ static void RB_SubmitRenderPass(
 		return sortKeys[a] < sortKeys[b];
 	});
 
+	// modern water surface (tr_watersurface.cpp): its items leave the sorted
+	// order (kept in it) and get their own slot below
+	uint32_t *waterOrder = nullptr;
+	uint32_t numWaterItems = 0;
+	if (backEnd.waterSurfaceView)
+	{
+		for ( uint32_t i = 0; i < numDrawItems; ++i )
+			numWaterItems += renderPass.drawItems[drawOrder[i]].renderState.waterSurface ? 1 : 0;
+		if (numWaterItems)
+		{
+			waterOrder = ojkAllocArray<uint32_t>(allocator, numWaterItems);
+			uint32_t numOthers = 0;
+			uint32_t numWater = 0;
+			for ( uint32_t i = 0; i < numDrawItems; ++i )
+			{
+				const uint32_t item = drawOrder[i];
+				if (renderPass.drawItems[item].renderState.waterSurface)
+					waterOrder[numWater++] = item;
+				else
+					drawOrder[numOthers++] = item;
+			}
+			numDrawItems = numOthers;
+		}
+	}
+	const qboolean water = (qboolean)(numWaterItems > 0);
+
 	const qboolean ssr = RB_ScreenSpaceActive();
 	const qboolean froxelFog = RB_VolumetricCompositeActive();
 	const qboolean atmosphere = RB_AtmosphereActive();
 	const qboolean clouds = RB_CloudsActive();
-	if (!ssr && !froxelFog && !atmosphere && !clouds)
+	if (!ssr && !froxelFog && !atmosphere && !clouds && !water)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
 		return;
@@ -1558,8 +1599,10 @@ static void RB_SubmitRenderPass(
 	// camera -> local media -> atmosphere -> surface. The clouds
 	// (tr_clouds.cpp) go between the atmosphere and the froxel fog, over the
 	// sun, which is drawn before them when they are on.
+	// The water slot follows the same layers: the water reads the opaque scene,
+	// decals and fog volume passes, and writes depth before the composites.
 	uint32_t numFoggedItems = numOpaqueItems;
-	if (froxelFog || atmosphere || clouds)
+	if (froxelFog || atmosphere || clouds || water)
 	{
 		numFoggedItems = numDrawItems;
 		for ( uint32_t i = numOpaqueItems; i < numDrawItems; ++i )
@@ -1577,6 +1620,12 @@ static void RB_SubmitRenderPass(
 	if (ssr)
 		RB_RenderScreenSpaceOpaque();
 	RB_DrawItems(numFoggedItems - numOpaqueItems, renderPass.drawItems, drawOrder + numOpaqueItems);
+	if (water)
+	{
+		RB_WaterSurfacePrepare();
+		RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder);
+		RB_WaterSurfaceFinish();
+	}
 	if (atmosphere)
 		RB_AtmosphereComposite();
 	if (clouds)

@@ -584,6 +584,9 @@ void FBO_Init(void)
 	// screen-space reflection / GI targets (tr_screenspace.cpp)
 	R_CreateScreenSpaceFBOs();
 
+	// modern water surface: copy of the scene under the water (tr_watersurface.cpp)
+	R_CreateWaterSurfaceFBOs();
+
 	// froxel volumetric fog (tr_volumetric.cpp)
 	R_CreateVolumetricFBOs();
 

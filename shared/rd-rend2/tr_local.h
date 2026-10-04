@@ -297,6 +297,20 @@ extern cvar_t	*r_volumetricLavaExtinction;
 extern cvar_t	*r_volumetricLavaColor;
 extern cvar_t	*r_volumetricLavaAlbedo;
 extern cvar_t	*r_volumetricLavaAnisotropy;
+// modern water surface (tr_watersurface.cpp)
+extern cvar_t	*r_waterSurface;
+extern cvar_t	*r_waterSurfaceIOR;
+extern cvar_t	*r_waterSurfaceRoughness;
+extern cvar_t	*r_waterSurfaceNormal;
+extern cvar_t	*r_waterSurfaceRefraction;
+extern cvar_t	*r_waterSurfaceDepthReject;
+extern cvar_t	*r_waterSurfaceReflection;
+extern cvar_t	*r_waterSurfaceSSR;
+extern cvar_t	*r_waterSurfaceAbsorption;
+extern cvar_t	*r_waterSurfaceDepthScale;
+extern cvar_t	*r_waterSurfaceExperimental;
+extern cvar_t	*r_waterSurfaceDebug;
+extern cvar_t	*r_waterSurfaceSplit;
 extern cvar_t *fx_physicalizationAggregate;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotLightShadows;
@@ -1962,6 +1976,12 @@ typedef struct shader_s {
 	depthPrepass_t	depthPrepass;
 	qboolean	useDistortion;
 
+	// modern water surface (r_waterSurface, tr_watersurface.cpp), set per map
+	// by R_WaterClassifySurfaces / r_waterOverride
+	uint8_t		waterSurface;		// 1: drawn by the water surface program
+	int8_t		waterClass;			// LIQUID_* optics (water or slime)
+	uint8_t		waterFlags;			// WATERSURF_*
+
 	float clampTime;                                  // time this shader is clamped to
 	float timeOffset;                                 // current time offset for this shader
 
@@ -2256,6 +2276,15 @@ enum
 #endif // REND2_SP
 
 	REFRACTIONDEF_COUNT						= REFRACTIONDEF_ALL + 1,
+};
+
+// modern water surface programs (glsl/watersurface.glsl, tr_watersurface.cpp)
+enum
+{
+	WATERDEF_USE_DEFORM_VERTEXES	= 0x0001,
+	WATERDEF_USE_HIZ				= 0x0002,	// SSR reflections walk the closest depth mips (r_ssrHiZ)
+	WATERDEF_ALL					= 0x0003,
+	WATERDEF_COUNT					= WATERDEF_ALL + 1,
 };
 
 enum
@@ -2675,6 +2704,11 @@ typedef enum
 	UNIFORM_CLOUDHISTORYDEPTHMAP,	// r_clouds resolve: previous cloud distance (TB_EMISSIVEMAP)
 	UNIFORM_CLOUDSHADOW,		// vec4[2] r_cloudShadows lookup: centre, 1 / extent, ground z; sun xy / z, strength, enabled
 	UNIFORM_CLOUDSHADOWMAP,		// r_cloudShadows: sun transmittance of the clouds (TB_CLOUDSHADOW)
+
+	UNIFORM_WATER,				// vec4[WATER_UNIFORM_VEC4S] water surface parameters, see watersurface.glsl
+	UNIFORM_WATERSCENEMAP,		// water surface: HDR scene copy (unit 0)
+	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
+	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -3807,6 +3841,10 @@ typedef struct {
 	qboolean    atmosphereComposited;	// the atmosphere composite of this view ran (tr_atmosphere.cpp)
 	qboolean    cloudsComposited;	// the cloud composite of this view ran (tr_clouds.cpp)
 	qboolean    cloudSunDrawn;		// RB_DrawSun already ran under the clouds (RB_CloudsDrawSunEarly)
+	qboolean    waterSurfaceView;	// this view draws classified water with the water program (tr_watersurface.cpp)
+	qboolean    waterSurfaceSSR;	// ... and traces its reflections in the SSR inputs of the view
+	qboolean    waterItemTag;		// draw items being added belong to a water surface
+	qboolean    waterLegacyClipTag;	// draw items being added are legacy water stages of the split view
 } backEndState_t;
 
 /*
@@ -3943,6 +3981,11 @@ typedef struct trGlobals_s {
 	image_t					*ssrSpecularImage;	// rgb = sqrt(specular IBL weight)
 	image_t					*ssrCubemapImage;	// rgb = cubemap specular added by lightall, a = view depth
 	image_t					*ssrColorImage;		// opaque HDR scene, SSR_COLOR_MIPS levels
+	// modern water surface (tr_watersurface.cpp, r_waterSurface)
+	image_t					*waterSceneImage;	// HDR scene under the water, copied at the water slot
+	image_t					*waterDepthImage;	// its depth (same format as renderDepthImage)
+	image_t					*waterNormalImage;	// tiling wave slopes (x, y, x^2, y^2), mips
+	FBO_t					*waterCopyFbo;
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
 	image_t					*ssrHistoryImage[2];
@@ -4058,6 +4101,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t splashScreenShader;
 	shaderProgram_t genericShader[GENERICDEF_COUNT];
 	shaderProgram_t refractionShader[REFRACTIONDEF_COUNT];
+	shaderProgram_t waterSurfaceShader[WATERDEF_COUNT];	// tr_watersurface.cpp
 	shaderProgram_t textureColorShader[TEXCOLORDEF_COUNT];
 	shaderProgram_t fogShader[FOGDEF_COUNT];
 	shaderProgram_t velocityShader[VELOCITYDEF_COUNT];
@@ -5706,6 +5750,8 @@ struct UniformBlockBinding;
 
 qboolean R_VolumetricFroxelEnabled(void);
 qboolean R_VolumetricFroxelRGB(void);	// r_volumetricFogRGBExtinction active (latched, resources created)
+float R_VolumetricFarZ(void);			// far distance of the froxel volume of the last built view (0: none)
+qboolean RB_VolumetricLookupReady(void);	// this view has a froxel volume to look up
 void R_VolumetricExtinctionColor(const float *in, vec3_t out);	// relative sigma_t.rgb, mean 1 (NULL: neutral)
 void R_CreateVolumetricImages(int width, int height);
 void R_CreateVolumetricFBOs(void);
@@ -5821,6 +5867,39 @@ void R_LiquidsBindTextures(void);			// plane buffer and caustic pattern on their
 void RB_LiquidSurfaceSetupDraw(const shaderStage_t *pStage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 UniformBlockBinding RB_GetLiquidsBlockUniformBinding(void);
 void R_Liquids_f(void);
+
+/*
+============================================================
+
+MODERN WATER SURFACE, tr_watersurface.cpp
+
+============================================================
+*/
+
+#define WATER_UNIFORM_VEC4S 12
+
+// shader_t::waterFlags
+#define WATERSURF_FOG_MEDIUM	0x01	// the liquid brush is also a BSP fog volume (its fog is the medium)
+#define WATERSURF_OVERRIDE		0x02	// decided by r_waterOverride
+#define WATERSURF_EXPERIMENTAL	0x04	// decided by the name heuristic (r_waterSurfaceExperimental)
+
+void R_WaterClassifySurfaces(world_t *world, const byte *fileBase, const lump_t *surfacesLump,
+	const lump_t *modelsLump, const lump_t *brushesLump, const lump_t *sidesLump);
+qboolean R_WaterSurfaceResourcesEnabled(void);	// latched r_waterSurface: copy targets and programs exist
+void R_CreateWaterSurfaceImages(int width, int height, int hdrFormat);
+void R_CreateWaterSurfaceFBOs(void);
+void R_WaterSurfaceShutdown(void);
+void RB_WaterSurfaceBeginView(void);
+qboolean RB_WaterSurfaceDraws(const shader_t *shader);	// this draw uses the water program in this view
+shaderProgram_t *RB_WaterSurfaceProgram(const shader_t *shader);
+void RB_WaterSurfaceSetupDraw(const shaderCommands_t *input, UniformDataWriter& uniforms,
+	SamplerBindingsWriter& samplers);
+void RB_WaterSurfacePrepare(void);			// copies the scene under the water (RB_SubmitRenderPass)
+void RB_WaterSurfaceFinish(void);
+void RB_WaterSurfaceLegacyScissor(qboolean enable);	// r_waterSurfaceDebug 9: legacy stages left of the split
+qboolean RB_WaterSurfaceDistortion(const shader_t *shader);	// useDistortion unless the water program replaces it
+void R_WaterInfo_f(void);
+void R_WaterOverride_f(void);
 
 /*
 ============================================================
@@ -6077,6 +6156,7 @@ int RB_ScreenBeginTimer(const char *name);
 void RB_ScreenEndTimer(int handle);
 void RB_RainSplashQuery(bool begin);	// r_rainSplashDebug splash counter (tr_weather.cpp)
 void RB_ScreenSetViewUniforms(shaderProgram_t *sp, const screenViewInfo_t& info);
+void RB_ScreenGetViewInfo(screenViewInfo_t& info);	// view reconstruction of the current view
 void RB_ScreenBeginPass(FBO_t *fbo, shaderProgram_t *sp, int width, int height, uint32_t stateBits = GLS_DEPTHTEST_DISABLE);
 void RB_ScreenTexelSize(vec4_t out, int srcWidth, int srcHeight, int dstWidth, int dstHeight);
 void RB_ScreenSetLevelRange(image_t *image, int tmu, int baseLevel, int maxLevel);
@@ -6105,6 +6185,7 @@ void R_CreateSSRImages(int width, int height, int hdrFormat);
 void R_CreateSSRFBOs(void);
 qboolean RB_SSRWantsView(void);
 int RB_SSRDepthLevels(void);
+void RB_SSRTraceParams(int *steps, int *refineSteps, qboolean *hiZ);	// the trace settings of r_ssrQuality / r_ssr* cvars
 void RB_RenderSSR(const screenViewInfo_t& info);
 void RB_SSRDebugOverlay(void);
 
@@ -6231,6 +6312,12 @@ struct RenderState
 
 	// also write the screen-space attachments of renderFbo (tr_screenspace.cpp)
 	bool screenAux;
+
+	// modern water surface (tr_watersurface.cpp): drawn in the water slot of
+	// the main pass (RB_SubmitRenderPass), or a legacy water stage clipped to
+	// the left of the r_waterSurfaceDebug split
+	bool waterSurface;
+	bool waterLegacyClip;
 };
 
 struct DrawItem

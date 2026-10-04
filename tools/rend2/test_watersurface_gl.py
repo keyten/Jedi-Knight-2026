@@ -1,0 +1,719 @@
+"""GPU checks of the modern water surface (glsl/watersurface.glsl, r_waterSurface) on a hidden SDL GL core context.
+
+Run from any directory: python tools/rend2/test_watersurface_gl.py   (NVIDIA Optimus: set SHIM_MCCOMPAT=0x800000001)
+GPU timings at 1920x1080: python tools/rend2/test_watersurface_gl.py --bench
+
+- compiles and links every permutation as GLSL_LoadGPUProgramWaterSurface builds it: deform, USE_SHADOWS2, the SSR ray
+  march library (USE_SSR), the froxel lookup library (scalar / RGB), cubemaps
+- a synthetic opaque scene (shallow floor z = -16 for y < 0, deep floor z = -400 for y > 0 with a far shore wall, a
+  pillar through the surface: red below, magenta above, sky beyond the shallow floor) is rendered into color + depth,
+  the water program draws the plane z = 0 over it from those copies, as RB_WaterSurfacePrepare provides them
+- refracted path length under the surface against the float64 reference H / cos(theta_t) (Snell, n = 1.333), shallow
+  and deep; grazing views (< 7 degrees) are reported, not judged (the screen-space search is approximate there)
+- reflection weight of the smooth surface (test LUT: F0 + (1 - F0) (1 - NV)^5, F0 of n = 1.333)
+- sky behind the water: the longest path; transmittance: the shallow part much clearer than the deep part
+- depth rejection: the part of the pillar above the water is never sampled under it (and is without the rejection)
+- waves: the unresolved slope variance of the mips raises the roughness with distance, no NaN / Inf
+- SSR (ssr_common.glsl ray march): the reflection rays find the pillar above the water, in its screen columns
+- from inside the liquid: total internal reflection outside Snell's window, the scene above inside it
+"""
+import ctypes as C
+import itertools
+import math
+from pathlib import Path
+import sys
+import time
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[2]
+U, I, F, P = C.c_uint, C.c_int, C.c_float, C.c_void_p
+SDL = C.CDLL(str(ROOT / 'lib/SDL2/bin/x64/SDL2.dll'))
+for _name, _args, _result in [
+    ('SDL_CreateWindow', [C.c_char_p, I, I, I, I, U], P),
+    ('SDL_GL_CreateContext', [P], P),
+    ('SDL_GL_GetProcAddress', [C.c_char_p], P),
+    ('SDL_GL_DeleteContext', [P], None),
+    ('SDL_DestroyWindow', [P], None),
+    ('SDL_GetError', [], C.c_char_p),
+]:
+    _fn = getattr(SDL, _name)
+    _fn.argtypes, _fn.restype = _args, _result
+
+_gl_cache = {}
+
+
+def gl(name, result, *args):
+    key = (name, result, args)
+    if key not in _gl_cache:
+        address = SDL.SDL_GL_GetProcAddress(name.encode())
+        assert address, name
+        _gl_cache[key] = C.WINFUNCTYPE(result, *args)(address)
+    return _gl_cache[key]
+
+
+GLSL = ROOT / 'shared/rd-rend2/glsl'
+GL_VERTEX, GL_FRAGMENT = 0x8B31, 0x8B30
+TEX2D, TEX2D_ARRAY = 0x0DE1, 0x8C1A
+RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
+RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
+DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
+FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
+WATER_VEC4S = 12
+N_WATER = 1.333
+MAX_PATH = 8192.0
+W, H = 320, 240
+
+# units of GLSL_LoadGPUProgramWaterSurface
+UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_EnvBrdfMap': 3, 'u_CubeMap': 4,
+         'u_ShadowMap': 5, 'u_FroxelVolume': 6, 'u_FroxelTail': 7, 'u_SSRHiZMap': 10, 'u_SSRSceneMap': 11,
+         'u_FroxelTransmittance': 26}
+
+# u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
+FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
+
+
+def read(name):
+    return (GLSL / f'{name}.glsl').read_text().replace('\r\n', '\n')
+
+
+def fragment(name):
+    return read(name).split('/*[Fragment]*/')[1]
+
+
+def header(defines, size):
+    """the parts of GLSL_GetShaderHeader the water program uses"""
+    text = ('#version 150 core\n#define M_PI 3.14159265358979323846\n'
+            '#define DEFORM_NONE 0\n#define DEFORM_WAVE 1\n#define DEFORM_NORMALS 2\n#define DEFORM_BULGE 3\n'
+            '#define DEFORM_BULGE_UNIFORM 4\n#define DEFORM_MOVE 5\n#define DEFORM_PROJECTION_SHADOW 6\n'
+            '#define DEFORM_DISINTEGRATION 7\n#define WF_NONE 0\n#define WF_SIN 1\n#define WF_SQUARE 2\n'
+            '#define WF_TRIANGLE 3\n#define WF_SAWTOOTH 4\n#define WF_INVERSE_SAWTOOTH 5\n'
+            '#define MAX_G2_BONES 72\n#define MAX_GPU_FOGS 16\n#define MAX_DLIGHTS 32\n'
+            f'#define r_FBufScale vec2({size[0]}.0, {size[1]}.0)\n#define USE_ALPHA_TEST\n')
+    for d in defines:
+        text += '#define ' + d.replace('=', ' ') + '\n'
+    return text + f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'
+
+
+def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None):
+    defines = ['USE_HIZ'] if hiz else []
+    if cubemap:
+        defines += ['CUBEMAP_RESOLUTION=float(256)', 'ROUGHNESS_MIPS=float(6)']
+    if froxel:
+        defines += ['USE_FROXEL_FOG', 'MAX_GPU_FOG_VOLUMES=64', 'FROXEL_MAX_SLICES=128', 'FROXEL_LOCAL_POOL=2048',
+                    'FROXEL_EXTINCTION_PALETTE=16', 'MAX_GPU_LIQUIDS=32']
+        if froxel == 2:
+            defines.append('USE_FROXEL_RGB')
+    if ssr:
+        defines.append('USE_SSR')
+    if shadows2:
+        defines.append('USE_SHADOWS2')
+    if deform:
+        defines.append('USE_DEFORM_VERTEXES')
+    library = (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
+    src = read('watersurface')
+    vs, fs = src.split('/*[Fragment]*/')
+    vs = vs.split('/*[Vertex]*/')[1]
+    if body is not None:
+        fs = body(fs)
+    h = header(defines, size)
+    return h + vs, h + library + fs
+
+
+def compile_program(sources, label, attributes=(), outputs=('out_Color', 'out_Glow')):
+    prog = gl('glCreateProgram', U)()
+    for kind, text in sources:
+        shader = gl('glCreateShader', U, U)(kind)
+        source = C.c_char_p(text.encode())
+        gl('glShaderSource', None, U, I, C.POINTER(C.c_char_p), P)(shader, 1, C.byref(source), None)
+        gl('glCompileShader', None, U)(shader)
+        ok, log = I(), C.create_string_buffer(65536)
+        gl('glGetShaderiv', None, U, U, C.POINTER(I))(shader, 0x8B81, C.byref(ok))
+        gl('glGetShaderInfoLog', None, U, I, P, P)(shader, len(log), None, log)
+        assert ok.value, (label, hex(kind), log.value.decode(errors='replace')[:4000])
+        gl('glAttachShader', None, U, U)(prog, shader)
+        gl('glDeleteShader', None, U)(shader)
+    for index, name in enumerate(attributes):
+        gl('glBindAttribLocation', None, U, U, C.c_char_p)(prog, index, name.encode())
+    for index, output in enumerate(outputs):
+        gl('glBindFragDataLocation', None, U, U, C.c_char_p)(prog, index, output.encode())
+    gl('glLinkProgram', None, U)(prog)
+    ok, log = I(), C.create_string_buffer(65536)
+    gl('glGetProgramiv', None, U, U, C.POINTER(I))(prog, 0x8B82, C.byref(ok))
+    gl('glGetProgramInfoLog', None, U, I, P, P)(prog, len(log), None, log)
+    assert ok.value, (label, log.value.decode(errors='replace')[:4000])
+    return prog
+
+
+def uloc(prog, name):
+    return gl('glGetUniformLocation', I, U, C.c_char_p)(prog, name.encode())
+
+
+def water_program(**kw):
+    vs, fs = water_sources(**kw)
+    prog = compile_program([(GL_VERTEX, vs), (GL_FRAGMENT, fs)], 'watersurface ' + repr(kw),
+                           attributes=('attr_Position', 'attr_Normal', 'attr_TexCoord0'))
+    gl('glUseProgram', None, U)(prog)
+    for sampler, unit in UNITS.items():
+        loc = uloc(prog, sampler)
+        if loc >= 0:
+            gl('glUniform1i', None, I, I)(loc, unit)
+    return prog
+
+
+def check(name, ok, detail=''):
+    print(f'{"PASS" if ok else "FAIL"}: {name}{(" - " + detail) if detail else ""}')
+    return ok
+
+
+# --- GL objects ---------------------------------------------------------------------------------------------------
+
+def tex2d(w, h, internal=RGBA32F, fmt=RGBA, kind=FLOAT, data=None, linear=False, repeat=False):
+    tex = U()
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(tex))
+    gl('glBindTexture', None, U, U)(TEX2D, tex)
+    raw = np.ascontiguousarray(data, dtype=np.float32).ctypes.data_as(P) if data is not None else None
+    gl('glPixelStorei', None, U, I)(0x0CF5, 1)
+    gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(TEX2D, 0, internal, w, h, 0, fmt, kind, raw)
+    filt = 0x2601 if linear else 0x2600
+    wrap = 0x2901 if repeat else 0x812F
+    for parameter, value in [(0x2800, filt), (0x2801, filt), (0x2802, wrap), (0x2803, wrap)]:
+        gl('glTexParameteri', None, U, U, I)(TEX2D, parameter, value)
+    return tex.value
+
+
+def mipmaps(tex):
+    gl('glBindTexture', None, U, U)(TEX2D, tex)
+    gl('glGenerateMipmap', None, U)(TEX2D)
+    gl('glTexParameteri', None, U, U, I)(TEX2D, 0x2801, 0x2703)
+
+
+def fbo(colors, depth=None):
+    f = U()
+    gl('glGenFramebuffers', None, I, C.POINTER(U))(1, C.byref(f))
+    gl('glBindFramebuffer', None, U, U)(FB, f)
+    for i, tex in enumerate(colors):
+        gl('glFramebufferTexture2D', None, U, U, U, U, I)(FB, 0x8CE0 + i, TEX2D, tex, 0)
+    if depth is not None:
+        gl('glFramebufferTexture2D', None, U, U, U, U, I)(FB, 0x821A, TEX2D, depth, 0)
+    bufs = (U * len(colors))(*[0x8CE0 + i for i in range(len(colors))])
+    gl('glDrawBuffers', None, I, P)(len(colors), bufs)
+    assert gl('glCheckFramebufferStatus', U, U)(FB) == 0x8CD5
+    return f.value
+
+
+def read_color(framebuffer, w, h):
+    gl('glBindFramebuffer', None, U, U)(FB, framebuffer)
+    gl('glReadBuffer', None, U)(0x8CE0)
+    data = np.zeros((h, w, 4), dtype=np.float32)
+    gl('glPixelStorei', None, U, I)(0x0D05, 4)
+    gl('glReadPixels', None, I, I, I, I, U, U, P)(0, 0, w, h, RGBA, FLOAT, data.ctypes.data_as(P))
+    return data.astype(np.float64)
+
+
+def read_depth(framebuffer, w, h):
+    gl('glBindFramebuffer', None, U, U)(FB, framebuffer)
+    data = np.zeros((h, w), dtype=np.float32)
+    gl('glPixelStorei', None, U, I)(0x0D05, 4)
+    gl('glReadPixels', None, I, I, I, I, U, U, P)(0, 0, w, h, 0x1902, FLOAT, data.ctypes.data_as(P))
+    return data.astype(np.float64)
+
+
+def bind(unit, tex, target=TEX2D):
+    gl('glActiveTexture', None, U)(0x84C0 + unit)
+    gl('glBindTexture', None, U, U)(target, tex)
+    gl('glActiveTexture', None, U)(0x84C0)
+
+
+def vertex_buffer(data, layout):
+    vao, vbo = U(), U()
+    gl('glGenVertexArrays', None, I, C.POINTER(U))(1, C.byref(vao))
+    gl('glBindVertexArray', None, U)(vao)
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(vbo))
+    gl('glBindBuffer', None, U, U)(0x8892, vbo)
+    arr = np.ascontiguousarray(data, dtype=np.float32)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8892, arr.nbytes, arr.ctypes.data_as(P), 0x88E4)
+    stride = sum(layout) * 4
+    offset = 0
+    for index, count in enumerate(layout):
+        gl('glEnableVertexAttribArray', None, U)(index)
+        gl('glVertexAttribPointer', None, U, I, U, U, I, P)(index, count, FLOAT, 0, stride, P(offset))
+        offset += count * 4
+    return vao.value, arr.size // sum(layout)
+
+
+def uniform_block(prog, name, binding, data):
+    index = gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, name.encode())
+    if index == 0xFFFFFFFF:
+        return
+    gl('glUniformBlockBinding', None, U, U, U)(prog, index, binding)
+    buf = U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(buf))
+    gl('glBindBuffer', None, U, U)(0x8A11, buf)
+    arr = np.ascontiguousarray(data, dtype=np.float32)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8A11, arr.nbytes, arr.ctypes.data_as(P), 0x88E4)
+    gl('glBindBufferBase', None, U, U, U)(0x8A11, binding, buf)
+
+
+def set_vec4s(prog, name, rows):
+    loc = uloc(prog, name)
+    if loc < 0:
+        return
+    flat = np.ascontiguousarray(np.asarray(rows, dtype=np.float32).reshape(-1))
+    gl('glUniform4fv', None, I, I, P)(loc, len(flat) // 4, flat.ctypes.data_as(P))
+
+
+def set_matrix(prog, name, m):
+    loc = uloc(prog, name)
+    if loc < 0:
+        return
+    flat = np.ascontiguousarray(np.asarray(m, dtype=np.float32).T.reshape(-1))  # column major
+    gl('glUniformMatrix4fv', None, I, I, U, P)(loc, 1, 0, flat.ctypes.data_as(P))
+
+
+# --- camera, scene ------------------------------------------------------------------------------------------------
+
+NEAR, FAR = 4.0, 8192.0
+
+
+class Camera:
+    def __init__(self, eye, target, size=(W, H), fov_y=70.0):
+        self.eye = np.asarray(eye, dtype=np.float64)
+        self.size = size
+        f = np.asarray(target, dtype=np.float64) - self.eye
+        self.forward = f / np.linalg.norm(f)
+        r = np.cross(self.forward, [0.0, 0.0, 1.0])
+        self.right = r / np.linalg.norm(r)
+        self.up = np.cross(self.right, self.forward)
+        self.t = math.tan(math.radians(fov_y) * 0.5)
+        self.aspect = size[0] / size[1]
+        p = np.zeros((4, 4))
+        p[0, 0] = 1.0 / (self.t * self.aspect)
+        p[1, 1] = 1.0 / self.t
+        p[2, 2] = -(FAR + NEAR) / (FAR - NEAR)
+        p[2, 3] = -2.0 * FAR * NEAR / (FAR - NEAR)
+        p[3, 2] = -1.0
+        self.proj = p
+        v = np.eye(4)
+        v[0, :3], v[1, :3], v[2, :3] = self.right, self.up, -self.forward
+        v[:3, 3] = -v[:3, :3] @ self.eye
+        self.vp = p @ v
+
+    def rays(self):
+        w, h = self.size
+        x = ((np.arange(w) + 0.5) / w * 2 - 1) * self.t * self.aspect
+        y = ((np.arange(h) + 0.5) / h * 2 - 1) * self.t
+        X, Y = np.meshgrid(x, y)
+        d = self.forward[None, None] + self.right[None, None] * X[..., None] + self.up[None, None] * Y[..., None]
+        return d / np.linalg.norm(d, axis=-1, keepdims=True)
+
+
+def box(lo, hi, color):
+    p = [np.array([hi[0] if i & 1 else lo[0], hi[1] if i & 2 else lo[1], hi[2] if i & 4 else lo[2]]) for i in range(8)]
+    out = []
+    for a, b, c, d in [(0, 2, 6, 4), (1, 5, 7, 3), (0, 4, 5, 1), (2, 3, 7, 6), (0, 1, 3, 2), (4, 6, 7, 5)]:
+        for k in (a, b, c, a, c, d):
+            out.append(list(p[k]) + list(color))
+    return out
+
+
+def scene_triangles(underwater_camera):
+    tris = []
+    tris += box((-500, -3000, -17), (2000, 0, -16), (0.8, 0.7, 0.5))         # shallow floor, top z = -16
+    tris += box((-500, 0, -401), (2000, 3000, -400), (0.2, 0.5, 0.9))        # deep floor, top z = -400
+    tris += box((2000, 0, -400), (2040, 3000, 200), (0.4, 0.4, 0.4))         # far shore wall of the deep part
+    tris += box((300, -20, -400), (340, 20, 0), (1.0, 0.0, 0.0))             # pillar under the surface
+    tris += box((300, -20, 0), (340, 20, 60), (1.0, 0.0, 1.0))               # its part above the water
+    if underwater_camera:
+        tris += box((200, -3000, 150), (3000, 3000, 160), (0.9, 0.9, 0.2))  # a roof above the water
+    return np.array(tris, dtype=np.float32)
+
+
+def wave_slopes(waves, size=256):
+    slopes = np.zeros((size, size, 4), dtype=np.float32)
+    if waves:
+        y, x = np.mgrid[0:size, 0:size]
+        sx = 1.4 * np.cos(2 * np.pi * (3 * x + 2 * y) / size)
+        sy = 1.4 * np.cos(2 * np.pi * (x - 4 * y) / size)
+        slopes[..., 0], slopes[..., 1], slopes[..., 2], slopes[..., 3] = sx, sy, sx * sx, sy * sy
+    return slopes
+
+
+class Rig:
+    """scene copies and the water pass of one camera"""
+
+    def __init__(self, cam, underwater=False, size=(W, H)):
+        w, h = size
+        self.cam, self.size = cam, size
+        self.ssr_steps = 48
+        self.scene_prog = compile_program(
+            [(GL_VERTEX, '#version 150 core\nin vec3 pos; in vec3 col; uniform mat4 vp; out vec3 c;\n'
+                         'void main(){ c = col; gl_Position = vp * vec4(pos, 1.0); }\n'),
+             (GL_FRAGMENT, '#version 150 core\nin vec3 c; out vec4 o; void main(){ o = vec4(c, 1.0); }\n')],
+            'scene', attributes=('pos', 'col'), outputs=('o',))
+        self.scene_vao, self.scene_count = vertex_buffer(scene_triangles(underwater), (3, 3))
+        self.color = tex2d(w, h, RGBA16F, linear=True)
+        self.depth = tex2d(w, h, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+        self.scene_fbo = fbo([self.color], self.depth)
+        self.out = tex2d(w, h, RGBA32F)
+        self.glow = tex2d(w, h, RGBA16F)
+        self.out_depth = tex2d(w, h, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+        self.water_fbo = fbo([self.out, self.glow], self.out_depth)
+        # the water plane z = 0, normal up packed as rend2 (n * 0.5 + 0.5)
+        quad = []
+        for x, y in [(-200, -3000), (3000, -3000), (3000, 3000), (-200, -3000), (3000, 3000), (-200, 3000)]:
+            quad.append([x, y, 0.0, 0.5, 0.5, 1.0, x / 256.0, y / 256.0])
+        self.water_vao, self.water_count = vertex_buffer(quad, (3, 3, 2))
+        lut = np.zeros((64, 64, 4), dtype=np.float32)
+        nv = (np.arange(64) + 0.5) / 64.0
+        fc = (1 - nv) ** 5
+        lut[..., 0], lut[..., 1] = (1 - fc)[:, None], fc[:, None]
+        self.lut = tex2d(64, 64, RGBA16F, data=lut, linear=True)
+        self.waves = {}
+        for waves in (False, True):
+            t = tex2d(256, 256, RGBA16F, data=wave_slopes(waves), linear=True, repeat=True)
+            mipmaps(t)
+            self.waves[waves] = t
+        self.render_scene()
+
+    def render_scene(self):
+        w, h = self.size
+        gl('glBindFramebuffer', None, U, U)(FB, self.scene_fbo)
+        gl('glViewport', None, I, I, I, I)(0, 0, w, h)
+        gl('glClearColor', None, F, F, F, F)(0.5, 0.7, 1.0, 1.0)  # sky
+        gl('glClear', None, U)(0x4100)
+        gl('glEnable', None, U)(0x0B71)
+        gl('glDepthFunc', None, U)(0x0203)
+        gl('glDisable', None, U)(0x0B44)
+        gl('glUseProgram', None, U)(self.scene_prog)
+        set_matrix(self.scene_prog, 'vp', self.cam.vp)
+        gl('glBindVertexArray', None, U)(self.scene_vao)
+        gl('glDrawArrays', None, U, I, I)(4, 0, self.scene_count)
+        # SSR inputs: linear view depth (sky 1e20) and the opaque color pyramid
+        d = read_depth(self.scene_fbo, w, h)
+        p = self.cam.proj
+        z = np.where(d >= 0.999999, 1.0e20, p[2, 3] / (d * 2.0 - 1.0 + p[2, 2]))
+        self.hiz = tex2d(w, h, R32F, RED, data=z.astype(np.float32))
+        # closest depth of the 2x2 texels below (RB_ScreenBuildDepth), SCREEN_HIZ_MIPS levels
+        level = z.astype(np.float32)
+        for k in range(1, 7):
+            hh, ww = max(1, level.shape[0] // 2), max(1, level.shape[1] // 2)
+            padded = np.full((hh * 2, ww * 2), 1.0e20, dtype=np.float32)
+            padded[:level.shape[0], :level.shape[1]] = level[:hh * 2, :ww * 2]
+            level = padded.reshape(hh, 2, ww, 2).min(axis=(1, 3))
+            gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(TEX2D, k, R32F, ww, hh, 0, RED, FLOAT,
+                                                              np.ascontiguousarray(level).ctypes.data_as(P))
+        gl('glTexParameteri', None, U, U, I)(TEX2D, 0x813D, 6)       # max level
+        gl('glTexParameteri', None, U, U, I)(TEX2D, 0x2801, 0x2700)  # nearest mipmap nearest
+        self.pyramid = tex2d(w, h, RGBA16F, linear=True)
+        gl('glBindFramebuffer', None, U, U)(READ_FB, self.scene_fbo)
+        pyramid_fbo = fbo([self.pyramid])
+        gl('glBindFramebuffer', None, U, U)(READ_FB, self.scene_fbo)
+        gl('glBindFramebuffer', None, U, U)(DRAW_FB, pyramid_fbo)
+        gl('glBlitFramebuffer', None, I, I, I, I, I, I, I, I, U, U)(0, 0, w, h, 0, 0, w, h, 0x4000, 0x2600)
+        mipmaps(self.pyramid)
+
+    def params(self, flags=FLAG_REJECT | FLAG_ENVBRDF, ssr=0.0):
+        c = self.cam
+        mean = (2.0 + 0.75 + 0.25) / 3.0
+        u = np.zeros((WATER_VEC4S, 4))
+        u[0] = [N_WATER, 0.06, 1.0, 1.0]
+        u[1] = [1.0, ssr, 1.0, 1.0]
+        # r_volumetricWater defaults: extinction 0.0014 * (2.0 0.75 0.25) / mean, albedo (0.10 0.45 0.75), g 0.6
+        u[2] = [0.0014 * 2.0 / mean, 0.0014 * 0.75 / mean, 0.0014 * 0.25 / mean, 0.0]
+        u[3] = [0.10, 0.45, 0.75, 0.6]
+        u[4] = [c.proj[0, 0], c.proj[1, 1], c.proj[0, 2], c.proj[1, 2]]
+        u[5] = [c.proj[2, 3], c.proj[2, 2], 0.0, 1.0]
+        u[6] = [0.0, -1.0, flags, MAX_PATH]
+        u[7] = list(c.right) + [0.0]
+        u[8] = list(c.up) + [1.0]
+        u[9] = [0.3, 0.35, 0.4, 0.0]
+        u[10] = [1.0, 1.0 / 192.0, 0.0, 0.0]
+        u[11] = [0.0, 0.0, 0.37, 0.71]
+        return u
+
+    def draw_water(self, prog, u, waves=False, ssr=False):
+        w, h = self.size
+        c = self.cam
+        gl('glUseProgram', None, U)(prog)
+        scene = np.zeros(16)
+        scene[0:3] = [0.3, 0.2, 0.9]
+        scene[8:11] = [1.0, 0.95, 0.9]
+        uniform_block(prog, 'Scene', 0, scene)
+        cam = np.zeros(36)
+        cam[0:16] = c.vp.T.reshape(-1)
+        cam[16:18] = [FAR / NEAR, FAR]
+        cam[20:23] = c.eye
+        cam[24:27] = c.forward * FAR
+        uniform_block(prog, 'Camera', 1, cam)
+        uniform_block(prog, 'Entity', 2, np.concatenate([np.eye(4).reshape(-1), np.zeros(16)]))
+        uniform_block(prog, 'Lights', 3, np.zeros(1024))
+        set_vec4s(prog, 'u_DiffuseTexMatrix', [[1, 0, 0, 1]])
+        set_vec4s(prog, 'u_DiffuseTexOffTurb', [[0, 0, 0, 0]])
+        set_vec4s(prog, 'u_Water', u)
+        if ssr:
+            p = c.proj
+            set_vec4s(prog, 'u_SSRProjection', [[p[0, 0], p[1, 1], p[0, 2], p[1, 2]]])
+            set_vec4s(prog, 'u_SSRDepthParams', [[p[2, 3], p[2, 2], FAR, 2.0 / (p[0, 0] * w)]])
+            set_vec4s(prog, 'u_SSRViewport', [[0, 0, 1, 1]])
+            set_vec4s(prog, 'u_SSRTexelSize', [[1 / w, 1 / h, 1 / w, 1 / h]])
+            set_vec4s(prog, 'u_SSRSettings', [[self.ssr_steps, 6, 2000, 24]])
+            set_vec4s(prog, 'u_SSRSettings2', [[0.6, 0.1, 6, 0]])
+            set_vec4s(prog, 'u_SSRSettings3', [[6, 0, NEAR, self.ssr_steps * 3]])
+            bind(10, self.hiz)
+            bind(11, self.pyramid)
+        bind(0, self.color)
+        bind(1, self.depth)
+        bind(2, self.waves[waves])
+        bind(3, self.lut)
+        # the water is depth tested against the scene (RB_WaterSurfacePrepare keeps renderFbo's depth)
+        gl('glBindFramebuffer', None, U, U)(READ_FB, self.scene_fbo)
+        gl('glBindFramebuffer', None, U, U)(DRAW_FB, self.water_fbo)
+        gl('glBlitFramebuffer', None, I, I, I, I, I, I, I, I, U, U)(0, 0, w, h, 0, 0, w, h, 0x100, 0x2600)
+        gl('glBindFramebuffer', None, U, U)(FB, self.water_fbo)
+        gl('glViewport', None, I, I, I, I)(0, 0, w, h)
+        gl('glClearColor', None, F, F, F, F)(0.0, 0.0, 0.0, -1.0)
+        gl('glClear', None, U)(0x4000)
+        gl('glEnable', None, U)(0x0B71)
+        gl('glDepthFunc', None, U)(0x0203)
+        gl('glDisable', None, U)(0x0B44)
+        gl('glBindVertexArray', None, U)(self.water_vao)
+        gl('glDrawArrays', None, U, I, I)(4, 0, self.water_count)
+        gl('glFinish', None)()
+        return read_color(self.water_fbo, w, h)
+
+
+FINAL = '\tout_Color = vec4(LinearToScene(color), sceneHere.a);'
+
+
+def probe(expression):
+    """the final output replaced by a probe expression of main()'s locals"""
+    def body(fs):
+        assert fs.count(FINAL) == 1
+        return fs.replace(FINAL, f'\tout_Color = {expression};')
+    return body
+
+
+def no_reject(fs):
+    return fs.replace('g_flags = int(u_Water[6].z + 0.5);', 'g_flags = int(u_Water[6].z + 0.5) & ~8;')
+
+
+def probe_program(expression, extra=None, **kw):
+    def body(fs):
+        fs = probe(expression)(fs)
+        return extra(fs) if extra else fs
+    return water_program(body=body, **kw)
+
+
+# --- checks -------------------------------------------------------------------------------------------------------
+
+def check_permutations():
+    count = 0
+    for deform, shadows2, ssr, froxel, cubemap, hiz in itertools.product([0, 1], [0, 1], [0, 1], [0, 1, 2], [0, 1], [0, 1]):
+        if hiz and not ssr:
+            continue  # GLSL_LoadGPUProgramWaterSurface: the Hi-Z walk only with the SSR inputs
+        prog = water_program(deform=bool(deform), shadows2=bool(shadows2), ssr=bool(ssr), froxel=froxel,
+                             cubemap=bool(cubemap), hiz=bool(hiz))
+        gl('glDeleteProgram', None, U)(prog)
+        count += 1
+    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap)', True)
+
+
+def above_geometry(cam):
+    d = cam.rays()
+    s = -cam.eye[2] / d[..., 2]
+    Pw = cam.eye[None, None] + d * s[..., None]
+    cos_i = -d[..., 2]
+    sin_t = np.sqrt(np.maximum(1 - cos_i ** 2, 0)) / N_WATER
+    cos_t = np.sqrt(1 - sin_t ** 2)
+    return d, s, Pw, cos_i, cos_t
+
+
+def check_above(rig):
+    ok = True
+    cam = rig.cam
+    d, s, Pw, cos_i, cos_t = above_geometry(cam)
+    img = rig.draw_water(probe_program('vec4(pathLength, W, rejected, inside ? 1.0 : 0.0)'), rig.params())
+    water = img[..., 3] > -0.5
+    depth = np.where(Pw[..., 1] < 0, 16.0, 400.0)
+    expected = depth / np.maximum(cos_t, 0.05)
+    safe = water & (Pw[..., 0] > 60) & (Pw[..., 0] < 1400) & (np.abs(Pw[..., 1]) > 250) & \
+        ((np.abs(Pw[..., 0] - 320) > 260) | (np.abs(Pw[..., 1]) > 400))
+    grazing = cos_i < 0.12
+    for name, m, judged in [('shallow (16 units)', safe & (Pw[..., 1] < 0), True),
+                            ('deep (400 units)', safe & (Pw[..., 1] > 0) & ~grazing, True),
+                            ('deep, grazing (< 7 degrees)', safe & (Pw[..., 1] > 0) & grazing, False)]:
+        err = np.abs(img[..., 0][m] / expected[m] - 1)
+        detail = (f'{m.sum()} px, mean {img[..., 0][m].mean():.1f} (reference {expected[m].mean():.1f}), '
+                  f'relative error p95 {np.percentile(err, 95):.4f} max {err.max():.4f}')
+        if judged:
+            ok = check(f'refracted path length, {name}', np.percentile(err, 95) < 0.02, detail) and ok
+        else:
+            print(f'INFO: refracted path length, {name} - {detail}')
+    f0 = ((N_WATER - 1) / (N_WATER + 1)) ** 2
+    expected_w = f0 * (1 - (1 - cos_i) ** 5) + (1 - cos_i) ** 5
+    err = np.abs(img[..., 1] - expected_w)[safe]
+    ok = check('reflection weight of the smooth surface', err.max() < 0.01,
+               f'max abs error {err.max():.4f}, range {img[..., 1][safe].min():.3f}..{img[..., 1][safe].max():.3f}') and ok
+    sky = water & (Pw[..., 0] > 2600) & (Pw[..., 1] < -200)
+    ok = check('sky behind the water: the longest path', sky.any() and img[..., 0][sky].min() >= MAX_PATH - 1,
+               f'{sky.sum()} px') and ok
+    ok = check('camera above the water is outside the liquid', img[..., 3][water].max() < 0.5) and ok
+    rej = img[..., 2][water]
+    print(f'INFO: depth rejection - {(rej == 0.5).sum()} px with a shrunk offset, {(rej == 1.0).sum()} px without refraction')
+
+    on = rig.draw_water(probe_program('vec4(rawRefracted, transmittance.g)'), rig.params())
+    off = rig.draw_water(probe_program('vec4(rawRefracted, transmittance.g)', extra=no_reject), rig.params())
+
+    def magenta(im):
+        c = im[..., :3]
+        return water & (c[..., 0] > 0.9) & (c[..., 2] > 0.9) & (c[..., 1] < 0.1)
+    ok = check('depth rejection: the pillar above the water is never refracted under it',
+               magenta(on).sum() == 0 and magenta(off).sum() > 0,
+               f'with rejection {magenta(on).sum()} px, without {magenta(off).sum()} px') and ok
+    t_shallow = on[..., 3][safe & (Pw[..., 1] < 0)].mean()
+    t_deep = on[..., 3][safe & (Pw[..., 1] > 0)].mean()
+    ok = check('transmittance: shallow water much clearer than deep water', t_shallow > 0.95 and t_deep < t_shallow - 0.1,
+               f'green: shallow {t_shallow:.3f}, deep {t_deep:.3f}') and ok
+
+    rough = rig.draw_water(probe_program('vec4(roughness, transmitted.r, reflection.r, F)'), rig.params(), waves=True)
+    near, far = water & (s < 200), water & (s > 1500)
+    finite = bool(np.isfinite(rough[water]).all())
+    ok = check('waves: unresolved slopes raise the roughness with distance, finite',
+               rough[..., 0][far].mean() > rough[..., 0][near].mean() and finite,
+               f'roughness near {rough[..., 0][near].mean():.3f}, far {rough[..., 0][far].mean():.3f}') and ok
+
+    for label, hiz, steps in [('linear march', False, 48), ('Hi-Z walk', True, 24)]:
+        rig.ssr_steps = steps
+        ssr = rig.draw_water(probe_program('vec4(reflection, ssrDebug.g)', ssr=True, hiz=hiz),
+                             rig.params(flags=FLAG_REJECT | FLAG_ENVBRDF | FLAG_SSR, ssr=1.0), ssr=True)
+        hit = water & (ssr[..., 0] > 0.7) & (ssr[..., 2] > 0.7) & (ssr[..., 1] < 0.3)
+        cols = np.nonzero(hit)[1]
+        detail = f'{(ssr[..., 3][water] > 0).sum()} px hit, {hit.sum()} reflect the pillar'
+        if hit.any():
+            detail += f' (columns {cols.min()}..{cols.max()}, screen center {W // 2})'
+        ok = check(f'SSR ({label}, {steps} steps): the reflection rays find the pillar above the water', hit.sum() >= 10 and
+                   abs(int(np.median(cols)) - W // 2) < 20 and bool(np.isfinite(ssr[water]).all()), detail) and ok
+    rig.ssr_steps = 48
+    return ok
+
+
+def check_inside():
+    cam = Camera((0.0, 0.0, -60.0), (400.0, 0.0, 120.0))
+    rig = Rig(cam, underwater=True)
+    img = rig.draw_water(probe_program('vec4(pathLength, W, rejected, inside ? 1.0 : 0.0)'), rig.params())
+    d = cam.rays()
+    water = (img[..., 3] > -0.5) & (d[..., 2] > 0.02)
+    crit = math.sqrt(1 - (1 / N_WATER) ** 2)
+    tir, window = water & (d[..., 2] < crit - 0.02), water & (d[..., 2] > crit + 0.02)
+    ok = check('camera below the water is inside the liquid', img[..., 3][water].min() > 0.5)
+    ok = check('total internal reflection outside Snell\'s window', tir.any() and img[..., 1][tir].min() > 0.999,
+               f'{tir.sum()} px, min weight {img[..., 1][tir].min():.4f}') and ok
+    ok = check('Snell\'s window transmits', window.any() and img[..., 1][window].max() < 0.9,
+               f'{window.sum()} px, max weight {img[..., 1][window].max():.3f}') and ok
+    col = rig.draw_water(probe_program('vec4(transmitted, W)'), rig.params())
+    roof = window & (col[..., 0] > 0.8) & (col[..., 1] > 0.8) & (col[..., 2] < 0.3)
+    ok = check('the scene above is refracted into the window', roof.sum() > 0.2 * window.sum(),
+               f'{roof.sum()} of {window.sum()} px see the roof') and ok
+    return ok
+
+
+def context(title):
+    assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
+    SDL.SDL_GL_SetAttribute(17, 3)
+    SDL.SDL_GL_SetAttribute(18, 3)
+    SDL.SDL_GL_SetAttribute(21, 1)
+    window = SDL.SDL_CreateWindow(title, 0, 0, 32, 32, 10)
+    assert window, SDL.SDL_GetError()
+    ctx = SDL.SDL_GL_CreateContext(window)
+    assert ctx, SDL.SDL_GetError()
+    print(gl('glGetString', C.c_char_p, U)(0x1F01).decode(), '/', gl('glGetString', C.c_char_p, U)(0x1F02).decode())
+    return window, ctx
+
+
+def main():
+    window, ctx = context(b'Water surface test')
+    ok = True
+    try:
+        ok = check_permutations() and ok
+        rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+        ok = check_above(rig) and ok
+        ok = check_inside() and ok
+        err = gl('glGetError', U)()
+        ok = check('no GL error', err == 0, hex(err)) and ok
+    finally:
+        SDL.SDL_GL_DeleteContext(ctx)
+        SDL.SDL_DestroyWindow(window)
+        SDL.SDL_Quit()
+    print('OK' if ok else 'FAILED')
+    return 0 if ok else 1
+
+
+# --- GPU timings ----------------------------------------------------------------------------------------------------
+
+def bench():
+    """GL_TIME_ELAPSED at 1920x1080: the scene copy (color + depth blit) and the water pass covering the whole view
+    (camera looking down at the plane), without and with SSR (48 steps), with waves"""
+    window, ctx = context(b'Water surface bench')
+    try:
+        size = (1920, 1080)
+        cam = Camera((0.0, 0.0, 300.0), (300.0, 0.0, 0.0), size=size)
+        rig = Rig(cam, size=size)
+        query = U()
+        gl('glGenQueries', None, I, C.POINTER(U))(1, C.byref(query))
+
+        def timed(fn, repeat=20):
+            fn()
+            gl('glFinish', None)()
+            total = 0
+            for _ in range(repeat):
+                gl('glBeginQuery', None, U, U)(0x88BF, query)
+                fn()
+                gl('glEndQuery', None, U)(0x88BF)
+                value = C.c_uint64()
+                gl('glGetQueryObjectui64v', None, U, U, C.POINTER(C.c_uint64))(query, 0x8866, C.byref(value))
+                total += value.value
+            return total / repeat * 1e-6
+
+        copy_color = tex2d(*size, RGBA16F)
+        copy_depth = tex2d(*size, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+        copy_fbo = fbo([copy_color], copy_depth)
+
+        def copy():
+            gl('glBindFramebuffer', None, U, U)(READ_FB, rig.scene_fbo)
+            gl('glBindFramebuffer', None, U, U)(DRAW_FB, copy_fbo)
+            gl('glBlitFramebuffer', None, I, I, I, I, I, I, I, I, U, U)(0, 0, *size, 0, 0, *size, 0x4100, 0x2600)
+        print(f'  scene copy (RGBA16F color + D24S8 depth) {size[0]}x{size[1]}: {timed(copy):.3f} ms')
+
+        d = cam.rays()
+        coverage = (d[..., 2] < 0).mean()
+        for label, ssr, hiz, steps in [('no SSR', False, False, 0), ('SSR linear, 40 steps', True, False, 40),
+                                       ('SSR Hi-Z, 24 steps (r_ssrQuality 1)', True, True, 24),
+                                       ('SSR Hi-Z, 40 steps (r_ssrQuality 2)', True, True, 40)]:
+            rig.ssr_steps = steps
+            prog = water_program(ssr=ssr, hiz=hiz, size=size)
+            flags = FLAG_REJECT | FLAG_ENVBRDF | (FLAG_SSR if ssr else 0)
+            u = rig.params(flags=flags, ssr=1.0 if ssr else 0.0)
+
+            def water():
+                rig.draw_water(prog, u, waves=True, ssr=ssr)
+            # draw_water reads back: time the draw only
+            rig.draw_water(prog, u, waves=True, ssr=ssr)
+
+            def draw_only():
+                gl('glBindFramebuffer', None, U, U)(FB, rig.water_fbo)
+                gl('glBindVertexArray', None, U)(rig.water_vao)
+                gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
+            gl('glDepthFunc', None, U)(0x0207)  # always: every water pixel shades
+            print(f'  water pass {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_only):.3f} ms')
+            gl('glDepthFunc', None, U)(0x0203)
+            gl('glDeleteProgram', None, U)(prog)
+    finally:
+        SDL.SDL_GL_DeleteContext(ctx)
+        SDL.SDL_DestroyWindow(window)
+        SDL.SDL_Quit()
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(bench() if '--bench' in sys.argv else main())

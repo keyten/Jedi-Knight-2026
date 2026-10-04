@@ -436,6 +436,11 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_CloudHistoryDepthMap",	GLSL_INT, 1 },
 	{ "u_CloudShadow",			GLSL_VEC4, 2 },
 	{ "u_CloudShadowMap",		GLSL_INT, 1 },
+
+	{ "u_Water",				GLSL_VEC4, WATER_UNIFORM_VEC4S },
+	{ "u_WaterSceneMap",		GLSL_INT, 1 },
+	{ "u_WaterDepthMap",		GLSL_INT, 1 },
+	{ "u_WaterNormalMap",		GLSL_INT, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -2861,6 +2866,84 @@ static int GLSL_LoadGPUProgramRefraction(
 	return numPrograms;
 }
 
+// Modern water surface (glsl/watersurface.glsl, tr_watersurface.cpp), only
+// with the latched r_waterSurface. The fragment shader gets the froxel lookup
+// (volumetric_common.glsl, the medium behind the surface) and the SSR ray
+// march (ssr_common.glsl, its reflections) when those exist.
+static int GLSL_LoadGPUProgramWaterSurface(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc)
+{
+	if (!R_WaterSurfaceResourcesEnabled())
+		return 0;
+
+	int numPrograms = 0;
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("watersurface", allocator, fallback_watersurfaceProgram);
+	const GPUShaderDesc *library = LoadVolumetricLibrary(allocator);
+	if (R_SSRResourcesEnabled())
+	{
+		const GPUProgramDesc *commonDesc =
+			LoadProgramSource("ssr_common", allocator, fallback_ssr_commonProgram);
+		for ( size_t i = 0; i < commonDesc->numShaders; ++i )
+		{
+			if ( commonDesc->shaders[i].type == GPUSHADER_FRAGMENT )
+				library = GLSL_CombineLibraries(allocator, library, &commonDesc->shaders[i]);
+		}
+	}
+
+	for (int i = 0; i < WATERDEF_COUNT; i++)
+	{
+		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+		char name[64];
+		char extradefines[256];
+		Q_strncpyz(name, "watersurface", sizeof(name));
+		Com_sprintf(extradefines, sizeof(extradefines), "#define WATER_UNIFORM_VEC4S %d\n", WATER_UNIFORM_VEC4S);
+		if (i & WATERDEF_USE_HIZ)
+		{
+			// the Hi-Z walk only exists with the SSR inputs
+			if (!R_SSRResourcesEnabled())
+				continue;
+			Q_strcat(name, sizeof(name), "_HIZ");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_HIZ\n");
+		}
+		if (i & WATERDEF_USE_DEFORM_VERTEXES)
+		{
+			Q_strcat(name, sizeof(name), "_DEFORM");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_DEFORM_VERTEXES\n");
+		}
+
+		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
+		if (!GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
+			extradefines, *programDesc, library))
+		{
+			ri.Error(ERR_FATAL, "Could not load watersurface shader!");
+		}
+
+		GLSL_InitUniforms(sp);
+
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERSCENEMAP, 0);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
+		GLSL_SetUniformInt(sp, UNIFORM_ENVBRDFMAP, 3);
+		GLSL_SetUniformInt(sp, UNIFORM_CUBEMAP, 4);
+		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHIZMAP, 10);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRSCENEMAP, 11);
+		GLSL_SetFroxelLookupUnits(sp);
+		qglUseProgram(0);
+
+		GLSL_FinishGPUShader(sp);
+
+		++numPrograms;
+	}
+
+	return numPrograms;
+}
+
 // Silhouette POM (tr_pom_silhouette.cpp, r_pomSilhouette 1 at load): the
 // fragment functions of glsl/pom_silhouette.glsl
 static const GPUShaderDesc *LoadPomSilhouetteLibrary( Allocator& allocator )
@@ -4795,6 +4878,8 @@ static int GLSL_CountStartupPrograms()
 		++count;
 	}
 	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
+	if (R_WaterSurfaceResourcesEnabled())
+		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
 	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
 	count += 4;
 	// noise, march, resolve, composite, shadow map (GLSL_LoadGPUProgramClouds)
@@ -4910,6 +4995,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramVelocityPass(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramPomSilhouette(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramRefraction(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWaterSurface(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramTextureColor(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramPShadow(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramVShadow(builder, allocator);
@@ -4981,6 +5067,9 @@ void GLSL_ShutdownGPUShaders(void)
 
 	for (i = 0; i < REFRACTIONDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.refractionShader[i]);
+
+	for (i = 0; i < WATERDEF_COUNT; i++)
+		GLSL_DeleteGPUShader(&tr.waterSurfaceShader[i]);
 
 	for (i = 0; i < TEXCOLORDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.textureColorShader[i]);

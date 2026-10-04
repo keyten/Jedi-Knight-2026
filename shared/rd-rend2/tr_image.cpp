@@ -4438,6 +4438,9 @@ void R_CreateBuiltinImages( void ) {
 	// screen-space reflection / GI targets (tr_screenspace.cpp)
 	R_CreateScreenSpaceImages(width, height, hdrFormat);
 
+	// modern water surface: scene / depth copies, wave slopes (tr_watersurface.cpp)
+	R_CreateWaterSurfaceImages(width, height, hdrFormat);
+
 	// froxel volumetric fog volumes (tr_volumetric.cpp)
 	R_CreateVolumetricImages(width, height);
 

@@ -250,6 +250,15 @@ static const ssrQualityPreset_t& RB_SSRQuality( void )
 	return ssrQualityPresets[Com_Clampi(0, ARRAY_LEN(ssrQualityPresets) - 1, r_ssrQuality->integer)];
 }
 
+// the march settings of the SSR trace (the water surface traces with them too)
+void RB_SSRTraceParams( int *steps, int *refineSteps, qboolean *hiZ )
+{
+	const ssrQualityPreset_t& quality = RB_SSRQuality();
+	*steps = r_ssrSteps->integer > 0 ? r_ssrSteps->integer : quality.steps;
+	*refineSteps = r_ssrRefineSteps->integer > 0 ? r_ssrRefineSteps->integer : quality.refineSteps;
+	*hiZ = (qboolean)(r_ssrHiZ->integer >= 0 ? r_ssrHiZ->integer : quality.hiZ);
+}
+
 // levels of the shared depth pyramid the SSR of this view traces
 int RB_SSRDepthLevels( void )
 {

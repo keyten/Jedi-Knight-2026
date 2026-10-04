@@ -2572,6 +2572,79 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 }
 
 /*
+** RB_IterateStagesWater
+**
+** A classified water surface of a view with the modern water surface
+** (tr_watersurface.cpp): one draw of the water program instead of the
+** legacy stages, in the water slot of the main pass (the items are tagged
+** by the caller, see RB_SubmitRenderPass). The texture animation of the
+** first textured stage (its tcMod scroll / turb) drives one wave layer.
+*/
+static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysProperties *vertexArrays )
+{
+	Allocator& frameAllocator = *backEndData->perFrameMemory;
+
+	shaderStage_t *flowStage = nullptr;
+	for ( int stage = 0; stage < MAX_SHADER_STAGES && input->xstages[stage]; stage++ )
+	{
+		shaderStage_t *pStage = input->xstages[stage];
+		if ( pStage->ss || pStage->bundle[0].isLightmap )
+			continue;
+		if ( !flowStage || (!flowStage->bundle[0].numTexMods && pStage->bundle[0].numTexMods) )
+			flowStage = pStage;
+	}
+
+	const cullType_t cullType = RB_GetCullType(&backEnd.viewParms, backEnd.currentEntity, input->shader->cullType);
+
+	vertexAttribute_t attribs[ATTR_INDEX_MAX] = {};
+	GL_VertexArraysToAttribs(attribs, ARRAY_LEN(attribs), vertexArrays);
+
+	shaderProgram_t *sp = RB_WaterSurfaceProgram(input->shader);
+	UniformDataWriter uniformDataWriter;
+	SamplerBindingsWriter samplerBindingsWriter;
+	uniformDataWriter.Start(sp);
+
+	vec4_t texMatrix = { 1.0f, 0.0f, 0.0f, 1.0f };
+	vec4_t texOffTurb = { 0.0f, 0.0f, 0.0f, 0.0f };
+	if ( flowStage )
+		ComputeTexMods(flowStage, TB_DIFFUSEMAP, texMatrix, texOffTurb);
+	uniformDataWriter.SetUniformVec4(UNIFORM_DIFFUSETEXMATRIX, texMatrix);
+	uniformDataWriter.SetUniformVec4(UNIFORM_DIFFUSETEXOFFTURB, texOffTurb);
+	RB_WaterSurfaceSetupDraw(input, uniformDataWriter, samplerBindingsWriter);
+
+	const UniformBlockBinding uniformBlockBindings[] = {
+		GetCameraBlockUniformBinding(backEnd.currentEntity),
+		GetLightsBlockUniformBinding(),
+		GetSceneBlockUniformBinding(),
+		GetEntityBlockUniformBinding(backEnd.currentEntity),
+		GetShaderInstanceBlockUniformBinding(backEnd.currentEntity, input->shader),
+		RB_GetVolumetricFogBlockUniformBinding()
+	};
+
+	DrawItem item = {};
+	// replaces the scene (it was copied) and writes depth: the composites after
+	// the water slot fog the camera -> surface segment
+	item.renderState.stateBits = GLS_DEPTHMASK_TRUE;
+	item.renderState.cullType = cullType;
+	item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, input->shader);
+	item.program = sp;
+	item.ibo = input->externalIBO ? input->externalIBO : backEndData->currentFrame->dynamicIbo;
+	item.uniformData = uniformDataWriter.Finish(frameAllocator);
+	item.samplerBindings = samplerBindingsWriter.Finish(
+		frameAllocator, &item.numSamplerBindings);
+
+	DrawItemSetVertexAttributes(
+		item, attribs, vertexArrays->numVertexArrays, frameAllocator);
+	DrawItemSetUniformBlockBindings(
+		item, uniformBlockBindings, frameAllocator);
+
+	RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
+
+	const uint32_t key = RB_CreateSortKey(item, 0, input->shader->sort);
+	RB_AddDrawItem(backEndData->currentPass, key, item);
+}
+
+/*
 ** RB_StageIteratorGeneric
 */
 void RB_StageIteratorGeneric( void )
@@ -2581,6 +2654,9 @@ void RB_StageIteratorGeneric( void )
 	{
 		return;
 	}
+
+	// modern water surface: drawn by the water program in this view
+	const bool waterDraw = RB_WaterSurfaceDraws(input->shader) != qfalse;
 
 	//
 	// log this call
@@ -2596,6 +2672,8 @@ void RB_StageIteratorGeneric( void )
 	// update vertex buffer data
 	//
 	uint32_t vertexAttribs = RB_CalcShaderVertexAttribs( input->shader );
+	if (waterDraw)
+		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0;
 	if (tess.useInternalVBO)
 	{
 		RB_DeformTessGeometry();
@@ -2630,7 +2708,21 @@ void RB_StageIteratorGeneric( void )
 	}
 	else
 	{
-		if (input->shader != tr.volumetricFogCapShader)
+		if (waterDraw)
+		{
+			backEnd.waterItemTag = qtrue;
+			RB_IterateStagesWater(input, &vertexArrays);
+			backEnd.waterItemTag = qfalse;
+
+			// r_waterSurfaceDebug 9: the legacy stages left of the split
+			if (r_waterSurfaceDebug->integer == 9)
+			{
+				backEnd.waterLegacyClipTag = qtrue;
+				RB_IterateStagesGeneric(input, &vertexArrays);
+				backEnd.waterLegacyClipTag = qfalse;
+			}
+		}
+		else if (input->shader != tr.volumetricFogCapShader)
 		{
 			RB_IterateStagesGeneric(input, &vertexArrays);
 		}
@@ -2665,7 +2757,18 @@ void RB_StageIteratorGeneric( void )
 		}
 		// froxel height fog: also outside the fog volumes
 		if ((fog || RB_VolumetricHeightFogSurface(input->shader->sort)) && tess.shader->fogPass && r_drawfog->integer)
-			RB_FogPass(input, &vertexArrays);
+		{
+			if (!waterDraw)
+				RB_FogPass(input, &vertexArrays);
+			else if (RB_VolumetricFogMode(input->shader->sort) == 0)
+			{
+				// the water writes depth before the composites, which fog it with
+				// the froxel volume; the legacy fog pass follows it in its slot
+				backEnd.waterItemTag = qtrue;
+				RB_FogPass(input, &vertexArrays);
+				backEnd.waterItemTag = qfalse;
+			}
+		}
 
 		//
 		// draw debugging stuff

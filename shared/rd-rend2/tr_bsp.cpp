@@ -4953,6 +4953,17 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 			&header->lumps[LUMP_BRUSHES],
 			&header->lumps[LUMP_BRUSHSIDES]);
 
+	// modern water surface (r_waterSurface, tr_watersurface.cpp): which drawn
+	// surfaces are water, from the BSP contents and the liquid brushes
+	if (bspIndex == nullptr)
+		R_WaterClassifySurfaces(
+			worldData,
+			fileBase,
+			&header->lumps[LUMP_SURFACES],
+			&header->lumps[LUMP_MODELS],
+			&header->lumps[LUMP_BRUSHES],
+			&header->lumps[LUMP_BRUSHSIDES]);
+
 	R_LoadWeatherImages();
 	R_GenerateSurfaceSprites(worldData, worldIndex + 1);
 	R_BuildLightGridTexture(worldData);

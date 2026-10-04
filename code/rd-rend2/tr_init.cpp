@@ -208,6 +208,19 @@ cvar_t	*r_volumetricLavaExtinction;
 cvar_t	*r_volumetricLavaColor;
 cvar_t	*r_volumetricLavaAlbedo;
 cvar_t	*r_volumetricLavaAnisotropy;
+cvar_t	*r_waterSurface;
+cvar_t	*r_waterSurfaceIOR;
+cvar_t	*r_waterSurfaceRoughness;
+cvar_t	*r_waterSurfaceNormal;
+cvar_t	*r_waterSurfaceRefraction;
+cvar_t	*r_waterSurfaceDepthReject;
+cvar_t	*r_waterSurfaceReflection;
+cvar_t	*r_waterSurfaceSSR;
+cvar_t	*r_waterSurfaceAbsorption;
+cvar_t	*r_waterSurfaceDepthScale;
+cvar_t	*r_waterSurfaceExperimental;
+cvar_t	*r_waterSurfaceDebug;
+cvar_t	*r_waterSurfaceSplit;
 cvar_t *fx_physicalizationAggregate;
 cvar_t	*r_spotLights;
 cvar_t	*r_spotLightShadows;
@@ -1903,6 +1916,8 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_liquids",			R_Liquids_f },
+	{ "r_waterInfo",		R_WaterInfo_f },
+	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
 	{ "rainlens_event",		R_RainLensEvent_f },
@@ -2677,6 +2692,33 @@ void R_Register( void )
 	r_volumetricLavaAlbedo = ri_Cvar_Get_NoComm("r_volumetricLavaAlbedo", "0.6 0.15 0.02", CVAR_ARCHIVE, "r_volumetricWater 4: lava single scattering albedo \"r g b\" (no emission: absorption and scattering only)");
 	r_volumetricLavaAnisotropy = ri_Cvar_Get_NoComm("r_volumetricLavaAnisotropy", "0.3", CVAR_ARCHIVE, "r_volumetricWater 4: lava Henyey-Greenstein g");
 	ri.Cvar_CheckRange(r_volumetricLavaAnisotropy, -0.9f, 0.9f, qfalse);
+	// modern water surface (tr_watersurface.cpp, docs/rend2-water-surface.md)
+	r_waterSurface = ri_Cvar_Get_NoComm("r_waterSurface", "0", CVAR_ARCHIVE | CVAR_LATCH, "Modern water surface for the stock water (CONTENTS_WATER surfaces): Fresnel reflection (SSR -> cubemap), depth aware refraction, liquid absorption, before tone mapping. 0 = legacy water stages (no extra targets or passes); vid_restart");
+	ri.Cvar_CheckRange(r_waterSurface, 0, 1, qtrue);
+	r_waterSurfaceIOR = ri_Cvar_Get_NoComm("r_waterSurfaceIOR", "1.333", CVAR_ARCHIVE, "r_waterSurface: index of refraction of the liquid (Fresnel and refraction)");
+	ri.Cvar_CheckRange(r_waterSurfaceIOR, 1.0f, 2.0f, qfalse);
+	r_waterSurfaceRoughness = ri_Cvar_Get_NoComm("r_waterSurfaceRoughness", "0.06", CVAR_ARCHIVE, "r_waterSurface: base roughness (perceptual); the unresolved waves add to it");
+	ri.Cvar_CheckRange(r_waterSurfaceRoughness, 0.0f, 1.0f, qfalse);
+	r_waterSurfaceNormal = ri_Cvar_Get_NoComm("r_waterSurfaceNormal", "1.0", CVAR_ARCHIVE, "r_waterSurface: wave normal strength (0 = flat)");
+	ri.Cvar_CheckRange(r_waterSurfaceNormal, 0.0f, 4.0f, qfalse);
+	r_waterSurfaceRefraction = ri_Cvar_Get_NoComm("r_waterSurfaceRefraction", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the screen-space refraction offset (1 = physical for the depth behind the water)");
+	ri.Cvar_CheckRange(r_waterSurfaceRefraction, 0.0f, 4.0f, qfalse);
+	r_waterSurfaceDepthReject = ri_Cvar_Get_NoComm("r_waterSurfaceDepthReject", "1", CVAR_ARCHIVE, "r_waterSurface: refraction never samples objects in front of the water (shrinks the offset, else none)");
+	ri.Cvar_CheckRange(r_waterSurfaceDepthReject, 0, 1, qtrue);
+	r_waterSurfaceReflection = ri_Cvar_Get_NoComm("r_waterSurfaceReflection", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the reflection (1 = physical)");
+	ri.Cvar_CheckRange(r_waterSurfaceReflection, 0.0f, 4.0f, qfalse);
+	r_waterSurfaceSSR = ri_Cvar_Get_NoComm("r_waterSurfaceSSR", "1.0", CVAR_ARCHIVE, "r_waterSurface: weight of the screen-space reflections over the cubemap (needs r_ssr; 0 = cubemap only)");
+	ri.Cvar_CheckRange(r_waterSurfaceSSR, 0.0f, 1.0f, qfalse);
+	r_waterSurfaceAbsorption = ri_Cvar_Get_NoComm("r_waterSurfaceAbsorption", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the liquid extinction (r_volumetricWaterExtinction / Color, Slime) on the refracted path");
+	ri.Cvar_CheckRange(r_waterSurfaceAbsorption, 0.0f, 16.0f, qfalse);
+	r_waterSurfaceDepthScale = ri_Cvar_Get_NoComm("r_waterSurfaceDepthScale", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the path length under the surface (water thickness from the depth buffer)");
+	ri.Cvar_CheckRange(r_waterSurfaceDepthScale, 0.0f, 16.0f, qfalse);
+	r_waterSurfaceExperimental = ri_Cvar_Get_NoComm("r_waterSurfaceExperimental", "0", CVAR_ARCHIVE, "r_waterSurface: also classify surfaces by a water-like shader name (pool, lake, river, water...) when they face up and have no water contents; experimental");
+	ri.Cvar_CheckRange(r_waterSurfaceExperimental, 0, 1, qtrue);
+	r_waterSurfaceDebug = ri_Cvar_Get_NoComm("r_waterSurfaceDebug", "0", CVAR_CHEAT, "r_waterSurface debug view: 1 = classified surfaces (blue water, green slime, violet fog volume medium, yellow override, magenta experimental), 2 = normal, 3 = Fresnel / reflection weight, 4 = path length under the surface, 5 = raw refracted color, 6 = SSR hit (green) / miss (red), 7 = reflection source (red SSR, green cubemap, blue fallback), 8 = transmittance, 9 = split old (left) / new (right), 10 = refraction depth rejection, 11 = roughness");
+	ri.Cvar_CheckRange(r_waterSurfaceDebug, 0, 11, qtrue);
+	r_waterSurfaceSplit = ri_Cvar_Get_NoComm("r_waterSurfaceSplit", "0.5", CVAR_ARCHIVE, "r_waterSurfaceDebug 9: position of the split (0-1 of the view width)");
+	ri.Cvar_CheckRange(r_waterSurfaceSplit, 0.0f, 1.0f, qfalse);
 	r_volumetricFogReset = ri_Cvar_Get_NoComm("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
 	r_volumetricFogDebug = ri_Cvar_Get_NoComm("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B, r_volumetricWater: 59 density of the liquids, 60 liquid brushes, 61 camera contents (CPU) vs GPU membership, 62 liquid boundary froxels, 63 liquid transmittance along the ray, 64 sun under water (transmittance * caustics)");
 	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 64, qtrue);
@@ -3488,6 +3530,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();
 		R_ShutdownRainLens();
+		R_WaterSurfaceShutdown();
 
 		if (!destroyWindow && !restarting)
 		{
