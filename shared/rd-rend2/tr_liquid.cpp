@@ -77,6 +77,9 @@ static struct
 	qboolean		causticImageValid;
 
 	int				activeMask;		// last r_volumetricWaterActive value
+	int				activeReason[LIQUID_CLASSES];	// why a class bit is (not) set, s_liquidActiveReasons
+	int				liquidFrame;	// realFrameNumber of the last froxel view with liquids in its block
+	int				blockBrush[MAX_GPU_LIQUIDS];	// world_t::liquids index of each brush of the last block
 	int				lastVisible;	// diagnostics: brushes of the last build
 	int				lastCandidates;
 	float			lastBuildUsec;
@@ -522,6 +525,39 @@ int R_LiquidPointClass( const vec3_t p )
 }
 
 /*
+=================
+R_LiquidPointBrush
+
+The first kept liquid brush of a class drawn this map (R_LiquidClassMask)
+that holds p, -1 none: the planes the GPU clips with. A small tolerance
+(half a unit) puts the surface itself inside, so the collision test and this
+one never leave a camera on the surface without a medium.
+=================
+*/
+int R_LiquidPointBrush( const vec3_t p, int liquidClass )
+{
+	const int mask = R_LiquidClassMask();
+	if ( liquidClass < 0 || !(mask & (1 << liquidClass)) )
+		return -1;
+	for ( int i = 0; i < tr.world->numLiquids; i++ )
+	{
+		const liquidBrush_t *brush = &tr.world->liquids[i];
+		if ( brush->liquidClass != liquidClass )
+			continue;
+		qboolean inside = qtrue;
+		for ( int k = 0; k < brush->numPlanes && inside; k++ )
+		{
+			const float *plane = tr.world->liquidPlanes[brush->firstPlane + k];
+			if ( DotProduct(plane, p) - plane[3] > 0.5f )
+				inside = qfalse;
+		}
+		if ( inside )
+			return i;
+	}
+	return -1;
+}
+
+/*
 ============================================================
 
 GPU resources
@@ -731,19 +767,47 @@ R_LiquidsUpdateActive
 r_volumetricWaterActive tells cgame which liquid classes the renderer draws as
 a medium (it then skips their legacy full screen tint): the classes of this
 map in r_volumetricWater, while the froxel volume can be built at all (the
-runtime switches of its world view test). Camera independent; set only when
-it changes, cgame sees it one frame later.
+runtime switches and scene conditions of its world view test), less the class
+of a camera standing in a liquid the medium does not have (a brush skipped
+for shape / capacity, a water + fog brush: BSP fog plus the legacy tint, as
+before). cgame tests the same world model contents at the same origin.
+
+Outside any liquid the value does not depend on the camera or the frustum,
+so entering water from the air never changes it (cgame sees a change one
+frame later). Set only when it changes.
 =================
 */
-void R_LiquidsUpdateActive( const trRefdef_t *refdef )
+static const char *s_liquidActiveReasons[] = {
+	"drawn", "class off (r_volumetricWater / map)", "no froxel volume for this scene", "camera in a liquid the medium lacks"
+};
+
+void R_LiquidsUpdateActive( const trRefdef_t *refdef, const viewParms_t *view )
 {
 	// scenes without a world view (menus, portraits) say nothing about the camera
 	if ( refdef && (refdef->rdflags & RDF_NOWORLDMODEL) )
 		return;
 	// the scene conditions under which the froxel volume is never built
 	// (RB_UpdateVolumetricConstants): no medium, cgame keeps its tint
-	const qboolean noVolume = (qboolean)(refdef && (refdef->doLAGoggles || (refdef->rdflags & RDF_HYPERSPACE)));
-	const int mask = (r_drawfog->integer && r_depthPrepass->integer && !noVolume) ? R_LiquidClassMask() : 0;
+	const qboolean noVolume = (qboolean)(
+		(refdef && (refdef->doLAGoggles || (refdef->rdflags & RDF_HYPERSPACE))) ||
+		!r_drawfog->integer || !r_depthPrepass->integer || tr.renderFbo == NULL ||
+		(refdef && view == NULL));
+	int mask = noVolume ? 0 : R_LiquidClassMask();
+	for ( int c = 0; c < LIQUID_CLASSES; c++ )
+		s_liq.activeReason[c] = (mask & (1 << c)) ? 0 : (R_LiquidClassMask() & (1 << c)) ? 2 : 1;
+
+	// the camera in a liquid the medium does not have: that class keeps the tint
+	if ( mask && refdef )
+	{
+		const float *origin = view ? view->ori.origin : refdef->vieworg;
+		const int cameraClass = R_LiquidPointClass(origin);
+		if ( cameraClass >= 0 && (mask & (1 << cameraClass)) && R_LiquidPointBrush(origin, cameraClass) < 0 )
+		{
+			mask &= ~(1 << cameraClass);
+			s_liq.activeReason[cameraClass] = 3;
+		}
+	}
+
 	if ( mask != s_liq.activeMask || (r_volumetricWaterActive && r_volumetricWaterActive->integer != mask) )
 	{
 		ri.Cvar_Set("r_volumetricWaterActive", va("%i", mask));
@@ -768,7 +832,7 @@ void R_LiquidsWorldLoaded( void )
 		R_LiquidsUploadPlanes();
 		R_LiquidsCreateCausticImage();
 	}
-	R_LiquidsUpdateActive(NULL);
+	R_LiquidsUpdateActive(NULL, NULL);
 }
 
 /*
@@ -942,6 +1006,7 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 	{
 		const candidate_t& candidate = candidates[n];
 		const liquidBrush_t *brush = &tr.world->liquids[candidate.index];
+		s_liq.blockBrush[n] = candidate.index;
 		VectorSet4(block->mins[n], brush->bounds[0][0], brush->bounds[0][1], brush->bounds[0][2],
 			(float)brush->firstPlane);
 		VectorSet4(block->maxs[n], brush->bounds[1][0], brush->bounds[1][1], brush->bounds[1][2],
@@ -953,6 +1018,8 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 			block->slices[k] |= 1 << n;
 	}
 	s_liq.lastVisible = count;
+	if ( count )
+		s_liq.liquidFrame = backEndData->realFrameNumber;
 
 	block->params[0] = (float)count;
 	block->params[2] = r_volumetricWaterSunPath->integer ? 1.0f : 0.0f;
@@ -1006,6 +1073,179 @@ void RB_LiquidSurfaceSetupDraw( const shaderStage_t *pStage, UniformDataWriter& 
 		samplers.AddStaticImage(&s_liq.causticImage, TB_LIQUIDCAUSTICS);
 }
 
+/*
+=================
+RB_LiquidFogBlendMask
+
+The froxel fog of a generic stage whose blend the legacy fog leaves out
+(ACFF_NONE: GL_SRC_ALPHA GL_ONE, filters, ...): without it such a sprite is
+drawn unfogged under water, where cgame no longer tints the view. Only in a
+froxel view with liquids (the programs have USE_LIQUID_FOG_BLENDS then), so
+the legacy and the plain froxel fog are unchanged. u_FogColorMask:
+  (1 1 1 0)    the color scales with T (anything adding to the frame)
+  (0 0 0 -n)   filter: color -> mix(color, n, 1 - T), alpha *= T (n = the
+               neutral color of the blend: 1 modulate, 0.5 2x modulate)
+=================
+*/
+qboolean RB_LiquidFogBlendMask( const shaderStage_t *stage, const shader_t *shader, vec4_t mask )
+{
+	if ( stage->adjustColorsForFog != ACFF_NONE || shader->isSky || backEnd.depthFill ||
+		!R_LiquidClassMask() || RB_VolumetricFogMode(shader->sort) != 1 )
+		return qfalse;
+	const uint32_t src = stage->stateBits & GLS_SRCBLEND_BITS;
+	const uint32_t dst = stage->stateBits & GLS_DSTBLEND_BITS;
+	if ( !src && !dst )
+		return qfalse;
+
+	if ( dst == GLS_DSTBLEND_ONE )
+		VectorSet4(mask, 1.0f, 1.0f, 1.0f, 0.0f);
+	else if ( (src == GLS_SRCBLEND_DST_COLOR && dst == GLS_DSTBLEND_ZERO) ||
+		(src == GLS_SRCBLEND_ZERO && dst == GLS_DSTBLEND_SRC_COLOR) ||
+		(src == GLS_SRCBLEND_ZERO && dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) )
+		VectorSet4(mask, 0.0f, 0.0f, 0.0f, -1.0f);
+	else if ( src == GLS_SRCBLEND_DST_COLOR && dst == GLS_DSTBLEND_SRC_COLOR )
+		VectorSet4(mask, 0.0f, 0.0f, 0.0f, -0.5f);
+	else
+		VectorSet4(mask, 1.0f, 1.0f, 1.0f, 0.0f);
+	return qtrue;
+}
+
+/*
+=================
+Liquid fog bypass (r_volumetricFogDebug 69, r_liquids bypass)
+
+The draws of a froxel view with liquids that get no froxel fog: the water
+between them and the camera is missing on them. Counted per frame with the
+first shaders of each reason.
+=================
+*/
+enum { LIQUIDBYPASS_NONE, LIQUIDBYPASS_LIGHTALL, LIQUIDBYPASS_BLEND, LIQUIDBYPASS_IMMEDIATE,
+	LIQUIDBYPASS_REFRACTION, LIQUIDBYPASS_COUNT };
+static const char *s_liquidBypassNames[LIQUIDBYPASS_COUNT] = {
+	"none", "lightall blended (no fog pass)", "generic blend without fog", "immediate draw (beam)",
+	"refraction / distortion pass" };
+static const float s_liquidBypassColors[LIQUIDBYPASS_COUNT][3] = {
+	{ 0, 0, 0 }, { 1.0f, 0.0f, 1.0f }, { 1.0f, 0.9f, 0.0f }, { 0.0f, 1.0f, 1.0f }, { 1.0f, 0.4f, 0.0f } };
+
+#define MAX_LIQUID_BYPASS_SHADERS 16
+static struct
+{
+	int				frame;
+	int				counts[LIQUIDBYPASS_COUNT];
+	int				numShaders;
+	const shader_t	*shaders[MAX_LIQUID_BYPASS_SHADERS];
+	int				shaderReason[MAX_LIQUID_BYPASS_SHADERS];
+	int				shaderCount[MAX_LIQUID_BYPASS_SHADERS];
+	int				weatherFrame;		// realFrameNumber of the last weather draw with the liquid cull
+	int				weatherDraws;
+} s_liqBypass;
+
+static qboolean RB_LiquidFrameHasLiquids( void )
+{
+	return (qboolean)(backEndData && s_liq.liquidFrame == backEndData->realFrameNumber);
+}
+
+static void RB_LiquidBypassCount( int reason, const shader_t *shader )
+{
+	if ( s_liqBypass.frame != backEndData->realFrameNumber )
+	{
+		const int weatherFrame = s_liqBypass.weatherFrame, weatherDraws = s_liqBypass.weatherDraws;
+		Com_Memset(&s_liqBypass, 0, sizeof(s_liqBypass));
+		s_liqBypass.frame = backEndData->realFrameNumber;
+		s_liqBypass.weatherFrame = weatherFrame;
+		s_liqBypass.weatherDraws = weatherDraws;
+	}
+	s_liqBypass.counts[reason]++;
+	for ( int i = 0; i < s_liqBypass.numShaders; i++ )
+	{
+		if ( s_liqBypass.shaders[i] == shader && s_liqBypass.shaderReason[i] == reason )
+		{
+			s_liqBypass.shaderCount[i]++;
+			return;
+		}
+	}
+	if ( s_liqBypass.numShaders < MAX_LIQUID_BYPASS_SHADERS )
+	{
+		const int n = s_liqBypass.numShaders++;
+		s_liqBypass.shaders[n] = shader;
+		s_liqBypass.shaderReason[n] = reason;
+		s_liqBypass.shaderCount[n] = 1;
+	}
+}
+
+int RB_LiquidBypassReason( const shader_t *shader, const shaderStage_t *stage, qboolean lightall, qboolean fogged )
+{
+	(void)stage;
+	if ( !RB_LiquidFrameHasLiquids() || backEnd.depthFill || backEnd.projection2D || shader->isSky ||
+		(backEnd.viewParms.flags & VPF_DEPTHSHADOW) )
+		return LIQUIDBYPASS_NONE;
+
+	int reason = LIQUIDBYPASS_NONE;
+	if ( backEnd.refractionFill )
+		reason = LIQUIDBYPASS_REFRACTION;
+	else if ( RB_VolumetricFogMode(shader->sort) != 1 )
+		return LIQUIDBYPASS_NONE;	// the composite fogs it, or not the froxel view
+	else if ( lightall )
+		reason = (shader->fogPass != FP_NONE) ? LIQUIDBYPASS_NONE : LIQUIDBYPASS_LIGHTALL;
+	else if ( !fogged && shader->fogPass == FP_NONE )
+		reason = LIQUIDBYPASS_BLEND;
+
+	if ( reason != LIQUIDBYPASS_NONE )
+		RB_LiquidBypassCount(reason, shader);
+	return reason;
+}
+
+void RB_LiquidBypassImmediate( const shader_t *shader )
+{
+	if ( RB_LiquidFrameHasLiquids() && backEnd.volumetricView && !backEnd.depthFill )
+		RB_LiquidBypassCount(LIQUIDBYPASS_IMMEDIATE, shader);
+}
+
+void RB_LiquidBypassDebugColor( int reason, vec4_t materialDebug )
+{
+	if ( reason <= LIQUIDBYPASS_NONE || reason >= LIQUIDBYPASS_COUNT || r_volumetricFogDebug->integer != 69 )
+		return;
+	VectorSet4(materialDebug, s_liquidBypassColors[reason][0], s_liquidBypassColors[reason][1],
+		s_liquidBypassColors[reason][2], 1.0f);
+}
+
+void RB_LiquidWeatherCulled( void )
+{
+	if ( s_liqBypass.weatherFrame != backEndData->realFrameNumber )
+	{
+		s_liqBypass.weatherFrame = backEndData->realFrameNumber;
+		s_liqBypass.weatherDraws = 0;
+	}
+	s_liqBypass.weatherDraws++;
+}
+
+/*
+=================
+RB_LiquidWeatherSetupDraw
+
+Rain, snow and splashes inside a liquid brush are dropped (weather.glsl,
+weatherSplash.glsl, USE_LIQUIDS): the weather occlusion map holds the opaque
+world only, so without this the rain falls through the water surface and
+splashes on the bed. Uses the brushes of the froxel view (the Liquids block):
+u_LiquidSurface.x 1 = test. Either writer may be NULL.
+=================
+*/
+qboolean RB_LiquidWeatherSetupDraw( UniformDataWriter *uniforms, SamplerBindingsWriter *samplers )
+{
+	const qboolean cull = (qboolean)(R_LiquidsAvailable() && s_liq.planeImageValid && tr.liquidsUboOffset != -1 &&
+		RB_LiquidFrameHasLiquids() && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW));
+	if ( uniforms )
+	{
+		vec4_t params = { cull ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
+		uniforms->SetUniformVec4(UNIFORM_LIQUIDSURFACE, params);
+		if ( cull )
+			RB_LiquidWeatherCulled();
+	}
+	if ( samplers && s_liq.planeImageValid )
+		samplers->AddStaticImage(&s_liq.planeImage, TB_LIQUIDPLANES);
+	return cull;
+}
+
 UniformBlockBinding RB_GetLiquidsBlockUniformBinding( void )
 {
 	const byte currentFrameScene = backEndData->currentFrame->currentScene;
@@ -1026,11 +1266,170 @@ r_liquids dump: the same as one JSON object per map (tools/rend2/liquid_audit.py
 prints the same fields for every BSP without the game).
 =================
 */
+// covered length per medium of the ray o + t dir, t in [0, maxT], inside the
+// kept brushes of the drawn classes: the CPU copy of LiquidCoverage (exact
+// clip, union of the intervals of a medium)
+static void R_LiquidRayCoverage( const vec3_t o, const vec3_t dir, float maxT, vec3_t covered )
+{
+	VectorClear(covered);
+	const int mask = R_LiquidClassMask();
+	struct interval_t { float enter, exit; int medium; };
+	std::vector<interval_t> hits;
+	for ( int i = 0; mask && i < tr.world->numLiquids; i++ )
+	{
+		const liquidBrush_t *brush = &tr.world->liquids[i];
+		if ( !(mask & (1 << brush->liquidClass)) )
+			continue;
+		float enter = 0.0f, exit = maxT;
+		for ( int k = 0; k < brush->numPlanes && enter < exit; k++ )
+		{
+			const float *plane = tr.world->liquidPlanes[brush->firstPlane + k];
+			const float denom = DotProduct(plane, dir);
+			const float dist = DotProduct(plane, o) - plane[3];
+			if ( fabsf(denom) < 1e-8f )
+			{
+				if ( dist > 0.0f )
+					exit = -1.0f;
+				continue;
+			}
+			const float t = -dist / denom;
+			if ( denom < 0.0f )
+				enter = MAX(enter, t);
+			else
+				exit = MIN(exit, t);
+		}
+		if ( enter < exit )
+			hits.push_back({ enter, exit, brush->mediumSlot });
+	}
+	std::sort(hits.begin(), hits.end(), []( const interval_t& a, const interval_t& b ) { return a.enter < b.enter; });
+	float end[LIQUID_CLASSES] = { -1e30f, -1e30f, -1e30f };
+	for ( const interval_t& h : hits )
+	{
+		if ( h.exit > end[h.medium] )
+		{
+			covered[h.medium] += h.exit - MAX(h.enter, end[h.medium]);
+			end[h.medium] = h.exit;
+		}
+	}
+}
+
+/*
+=================
+R_LiquidsCamera_f
+
+r_liquids camera: the liquid at the camera as gameplay (collision), the
+medium (kept brushes) and the GPU block see it, the tint decision for cgame,
+the medium, and the liquid along the view forward / up: segment length and
+its transmittance (the CPU copy of the clip the volume uses).
+=================
+*/
+static void R_LiquidsCamera_f( void )
+{
+	const float *origin = tr.refdef.vieworg;
+	const int cameraClass = R_LiquidPointClass(origin);
+	const int brush = (cameraClass >= 0) ? R_LiquidPointBrush(origin, cameraClass) : -1;
+	int gpuSlot = -1;
+	for ( int n = 0; brush >= 0 && n < s_liq.lastVisible; n++ )
+	{
+		if ( s_liq.blockBrush[n] == brush )
+			gpuSlot = n;
+	}
+
+	ri.Printf(PRINT_ALL, "camera (%.0f %.0f %.0f): collision class %s, medium brush %d", origin[0], origin[1], origin[2],
+		cameraClass < 0 ? "none" : s_liquidClassNames[cameraClass], brush);
+	if ( brush >= 0 )
+	{
+		const liquidBrush_t *b = &tr.world->liquids[brush];
+		ri.Printf(PRINT_ALL, " (BSP brush %d, medium %s), GPU block slot %d of %d\n", b->brushNum,
+			s_liquidClassNames[b->mediumSlot], gpuSlot, s_liq.lastVisible);
+	}
+	else
+		ri.Printf(PRINT_ALL, "%s\n", cameraClass >= 0 ? " -- gameplay liquid the medium does not have" : "");
+
+	for ( int c = 0; c < LIQUID_CLASSES; c++ )
+	{
+		ri.Printf(PRINT_ALL, "  r_volumetricWaterActive %s bit %d: %s -> cgame %s\n", s_liquidClassNames[c],
+			(s_liq.activeMask >> c) & 1, s_liquidActiveReasons[s_liq.activeReason[c]],
+			((s_liq.activeMask >> c) & 1) ? "skips its tint (the medium colors the view)" : "draws its legacy tint");
+	}
+
+	const int mediumSlot = (brush >= 0) ? tr.world->liquids[brush].mediumSlot : -1;
+	vec3_t sigma[LIQUID_CLASSES];
+	for ( int c = 0; c < LIQUID_CLASSES; c++ )
+	{
+		vec4_t extinction, albedo;
+		R_LiquidsMaterial(c, extinction, albedo);
+		VectorScale(extinction, extinction[3], sigma[c]);
+		if ( c == mediumSlot )
+		{
+			ri.Printf(PRINT_ALL, "  medium %s: sigma_t %.5f (rgb %.5f %.5f %.5f, 1/e after %.0f units), albedo %.2f %.2f %.2f, "
+				"sigma_s rgb %.5f %.5f %.5f, g %.2f\n", s_liquidClassNames[c], extinction[3], sigma[c][0], sigma[c][1],
+				sigma[c][2], extinction[3] > 0.0f ? 1.0f / extinction[3] : 0.0f, albedo[0], albedo[1], albedo[2],
+				sigma[c][0] * albedo[0], sigma[c][1] * albedo[1], sigma[c][2] * albedo[2], albedo[3]);
+		}
+	}
+
+	const char *names[2] = { "forward", "up" };
+	const vec3_t up = { 0.0f, 0.0f, 1.0f };
+	const float *dirs[2] = { tr.refdef.viewaxis[0], up };
+	const float farZ = R_VolumetricFarZ();
+	for ( int d = 0; d < 2; d++ )
+	{
+		vec3_t covered, tau = { 0.0f, 0.0f, 0.0f };
+		R_LiquidRayCoverage(origin, dirs[d], 65536.0f, covered);
+		for ( int c = 0; c < LIQUID_CLASSES; c++ )
+			VectorMA(tau, covered[c], sigma[c], tau);
+		ri.Printf(PRINT_ALL, "  %-7s liquid segment %.1f units (water %.1f slime %.1f lava %.1f), T rgb %.3f %.3f %.3f%s\n",
+			names[d], covered[0] + covered[1] + covered[2], covered[0], covered[1], covered[2],
+			expf(-tau[0]), expf(-tau[1]), expf(-tau[2]),
+			(d == 0 && farZ > 0.0f && covered[0] + covered[1] + covered[2] > farZ * 0.8f) ?
+				" (longer than the medium: it fades out before the froxel far)" : "");
+	}
+	ri.Printf(PRINT_ALL, "  in-scattering and the integrated transmittance per pixel: r_volumetricFogDebug 66 / 67 (63 exact, 65 length)\n");
+}
+
+/*
+=================
+R_LiquidsBypass_f
+
+r_liquids bypass: the draws of the last frame with liquids in its froxel view
+that got no froxel fog (r_volumetricFogDebug 69 tints them), and the weather
+draws that took the under-liquid cull.
+=================
+*/
+static void R_LiquidsBypass_f( void )
+{
+	const qboolean current = (qboolean)(s_liqBypass.frame == s_liq.liquidFrame && s_liq.liquidFrame != 0);
+	ri.Printf(PRINT_ALL, "liquid fog bypass, frame %d (last frame with liquids in the froxel view: %d)%s\n",
+		s_liqBypass.frame, s_liq.liquidFrame, current ? "" : " -- no bypass recorded in that frame");
+	for ( int r = LIQUIDBYPASS_NONE + 1; r < LIQUIDBYPASS_COUNT; r++ )
+		ri.Printf(PRINT_ALL, "  %-34s %d draws\n", s_liquidBypassNames[r], current ? s_liqBypass.counts[r] : 0);
+	for ( int i = 0; current && i < s_liqBypass.numShaders; i++ )
+	{
+		ri.Printf(PRINT_ALL, "    %4d x %-30s %s\n", s_liqBypass.shaderCount[i], s_liquidBypassNames[s_liqBypass.shaderReason[i]],
+			s_liqBypass.shaders[i] ? s_liqBypass.shaders[i]->name : "-");
+	}
+	ri.Printf(PRINT_ALL, "  weather draws with the under-liquid cull: %d (frame %d)\n",
+		s_liqBypass.weatherFrame == s_liq.liquidFrame ? s_liqBypass.weatherDraws : 0, s_liqBypass.weatherFrame);
+	ri.Printf(PRINT_ALL, "  not counted here (see docs, \"Render classes under water\"): mirrors / portals, the sun disc and\n"
+		"  sun rays through a legacy water surface, the r_waterSurface Snell window, flares through legacy water\n");
+}
+
 void R_Liquids_f( void )
 {
 	if ( !tr.world )
 	{
 		ri.Printf(PRINT_ALL, "r_liquids: no map\n");
+		return;
+	}
+	if ( ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "camera") )
+	{
+		R_LiquidsCamera_f();
+		return;
+	}
+	if ( ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "bypass") )
+	{
+		R_LiquidsBypass_f();
 		return;
 	}
 	const world_t *w = tr.world;

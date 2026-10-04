@@ -395,6 +395,12 @@ float FroxelLobeMean(in FroxelMediumSample m, in vec3 value)
 // frame, relative to it (moving, appearing and vanishing volumes; 0 when they are static).
 // particleChange: the same for the FX particle media (their own history reduction), particleFraction:
 // their share of the extinction (before the noise).
+// r_volumetricFogDebug 59 / 66 / 67: the liquids alone (every other medium and emission dropped)
+bool FroxelLiquidOnlyView(in int debugView)
+{
+	return debugView == 59 || debugView == 66 || debugView == 67;
+}
+
 FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugView, in bool wantChange, out float noisyFraction,
 	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
@@ -425,7 +431,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float localExtinction = 0.0;
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
-	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 && debugView != 59) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 && !FroxelLiquidOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
 	{
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -484,7 +490,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float particlePrevious = 0.0;
 	float particleDelta = 0.0;
 	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 11 && debugView != 12 &&
-		debugView != 16 && debugView != 59) ? FroxelParticleSliceHeader(var_Slice) : 0;
+		debugView != 16 && !FroxelLiquidOnlyView(debugView)) ? FroxelParticleSliceHeader(var_Slice) : 0;
 	int particleCount = particleHeader >> 16;
 	if (particleCount > 0)
 	{
@@ -526,7 +532,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	particleChange = particleDelta / max(max(particleExtinction, particlePrevious), 1e-12);
 
 	// the height fog has no metadata: the global g
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 && debugView != 59)
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 && !FroxelLiquidOnlyView(debugView))
 	{
 		float e = heightSample.x;
 		float plain = e;
@@ -566,7 +572,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 
 	// the fog volumes that may touch this slice (CPU culled); max: see liquidSlice below
 	int fogSlice = max(var_Slice, 0);
-	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || debugView == 59) ? 0 :
+	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || FroxelLiquidOnlyView(debugView)) ? 0 :
 		u_FroxelFogSlices[fogSlice >> 2][fogSlice & 3];
 	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
@@ -680,7 +686,7 @@ vec3 FroxelEmission(in vec3 p, in int debugView)
 {
 	vec3 emission = vec3(0.0);
 
-	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26 && !FroxelLiquidOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
 	{
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -696,7 +702,7 @@ vec3 FroxelEmission(in vec3 p, in int debugView)
 		}
 	}
 
-	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 16) ?
+	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 16 && !FroxelLiquidOnlyView(debugView)) ?
 		FroxelParticleSliceHeader(var_Slice) : 0;
 	int particleCount = particleHeader >> 16;
 	if (particleCount > 0)

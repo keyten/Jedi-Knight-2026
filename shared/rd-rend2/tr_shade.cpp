@@ -2017,10 +2017,19 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		// generic programs, set for every stage (the value stays in the program).
 		// The height fog also fogs surfaces outside the fog volumes.
 		const bool heightFog = RB_VolumetricHeightFogSurface(input->shader->sort) != qfalse;
-		const bool stageFog = (input->fogNum || heightFog)
+		bool stageFog = (input->fogNum || heightFog)
 			&& pStage->glslShaderGroup != tr.lightallShader
 			&& !backEnd.depthFill
 			&& !input->shader->fogPass;
+		// r_volumetricWater: the froxel lookup also for the blends the legacy
+		// fog leaves out (ACFF_NONE), so they are not clear under water
+		vec4_t liquidFogMask;
+		const bool liquidBlendFog = stageFog && pStage->adjustColorsForFog == ACFF_NONE &&
+			RB_LiquidFogBlendMask(pStage, input->shader, liquidFogMask);
+		// what the froxel view with liquids leaves unfogged (r_volumetricFogDebug 69, r_liquids bypass)
+		const int liquidBypass = RB_LiquidBypassReason(input->shader, pStage,
+			(qboolean)(pStage->glslShaderGroup == tr.lightallShader),
+			(qboolean)(stageFog && (liquidBlendFog || pStage->adjustColorsForFog != ACFF_NONE)));
 		{
 			const int froxelFogMode = RB_VolumetricFogMode(input->shader->sort);
 			RB_VolumetricSetupFogDraw(
@@ -2034,7 +2043,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 		if ( stageFog ) {
 			vec4_t fogColorMask;
-			ComputeFogColorMask(pStage, fogColorMask);
+			if (liquidBlendFog)
+				VectorCopy4(liquidFogMask, fogColorMask);
+			else
+				ComputeFogColorMask(pStage, fogColorMask);
 			uniformDataWriter.SetUniformVec4(UNIFORM_FOGCOLORMASK, fogColorMask);
 			// no fog volume (height fog only): the index is unused by the froxel lookup
 			uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, MAX(input->fogNum - 1, 0));
@@ -2205,6 +2217,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			else if (!R_SkinSSSDebugColor(pStage, materialDebug))
 				R_AutoPBRDebugColor(pStage, materialDebug);
 		}
+		// r_volumetricFogDebug 69: draws the liquid medium does not fog
+		RB_LiquidBypassDebugColor(liquidBypass, materialDebug);
 		uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
 		if (!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
 			pStage->pbrDrawn = qtrue;

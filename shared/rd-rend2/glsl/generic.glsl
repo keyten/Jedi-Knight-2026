@@ -776,6 +776,36 @@ void main()
 	Fog fog = u_Fogs[u_FogIndex];
 	vec4 fogColorOpacity = CalcFog(u_ViewOrigin, var_WSPosition, fog);
 #endif
+#if defined(USE_LIQUID_FOG_BLENDS) && defined(USE_FROXEL_FOG)
+	// r_volumetricWater (tr_liquid.cpp RB_LiquidFogBlendMask): the froxel fog
+	// of the blends the legacy masks get wrong or leave out
+	//   mask (0 0 0 -n)  filter: color -> mix(n, color, T), alpha *= T
+	//   mask (1 1 1 1)   premultiplied (ONE, ONE_MINUS_SRC_ALPHA): color * T + S * alpha
+	bool liquidBlendFog = false;
+	if (u_FroxelFogMode == 1 || u_FroxelFogMode == 3)
+	{
+		vec3 fogT = vec3(1.0 - fogColorOpacity.a);
+#if defined(USE_FROXEL_RGB)
+		if (u_FroxelFogMode == 3)
+			fogT = vec3(1.0) - fogOpacityRGB;
+#endif
+		if (u_FogColorMask.a < 0.0)
+		{
+			color.rgb = mix(vec3(-u_FogColorMask.a), color.rgb, fogT);
+			color.a *= dot(fogT, vec3(1.0 / 3.0));
+			emissive *= fogT;
+			liquidBlendFog = true;
+		}
+		else if (all(greaterThan(u_FogColorMask, vec4(0.5))))
+		{
+			color.rgb = color.rgb * fogT + fogColorOpacity.rgb * color.a;
+			emissive *= fogT;
+			liquidBlendFog = true;
+		}
+	}
+	if (!liquidBlendFog)
+	{
+#endif
 #if defined(USE_VOLUMETRIC_FOG)
 #if defined(USE_FROXEL_RGB)
 	if (u_FroxelFogMode == 3)
@@ -806,6 +836,9 @@ void main()
 #endif
 	color *= vec4(1.0) - u_FogColorMask * fogColorOpacity.a;
 	emissive *= vec3(1.0) - u_FogColorMask.rgb * fogColorOpacity.a;
+#endif
+#if defined(USE_LIQUID_FOG_BLENDS) && defined(USE_FROXEL_FOG)
+	}
 #endif
 #endif
 

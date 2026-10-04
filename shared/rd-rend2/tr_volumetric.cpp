@@ -2079,12 +2079,16 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	{
 		static const LiquidsBlock noLiquids = {};
 		tr.liquidsUboOffset = RB_AppendConstantsData(frame, &noLiquids, sizeof(noLiquids));
-		R_LiquidsUpdateActive(refdef);
 	}
 
 	VolumetricFogBlock block = {};
 	const int frameNumber = backEndData->realFrameNumber;
 	const viewParms_t *view = R_VolumetricMainView();
+
+	// the tint state for cgame from the camera of the scene that owns the
+	// volume (a later scene of the same frame does not override it)
+	if ( liquidsAvailable && s_vf.builtFrameNumber != frameNumber )
+		R_LiquidsUpdateActive(refdef, view);
 
 	if ( s_vf.builtFrameNumber != frameNumber )
 	{
@@ -3184,10 +3188,10 @@ void RB_VolumetricDebugOverlay( void )
 	FBO_Bind(NULL);
 	GL_SetViewportAndScissor(0, 0, glConfig.vidWidth, glConfig.vidHeight);
 	GL_Cull(CT_TWO_SIDED);
-	// views 18 (local fog volume bounds), 28 (FX particle proxies) and 60 (liquid
-	// brushes) are drawn over the frame
+	// views 18 (local fog volume bounds), 28 (FX particle proxies), 60 (liquid
+	// brushes) and 69 (liquid fog bypass legend) are drawn over the frame
 	if ( !particleLightView && (r_volumetricFogDebug->integer == 18 || r_volumetricFogDebug->integer == 28 ||
-		r_volumetricFogDebug->integer == 60) )
+		r_volumetricFogDebug->integer == 60 || r_volumetricFogDebug->integer == 69) )
 		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
 	else
 		GL_State(GLS_DEPTHTEST_DISABLE);

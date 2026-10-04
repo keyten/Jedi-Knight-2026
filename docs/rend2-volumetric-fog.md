@@ -2321,7 +2321,10 @@ these hold:
 - `cg_underwaterTint` is 1 (the default; 0 always draws the legacy tint);
 - the renderer reports that class in the read-only `r_volumetricWaterActive` (1 water, 2 slime,
   4 lava). The renderer refreshes it every frame and sets it only on change, from `r_volumetricWater`,
-  the classes present on the map, the resources, and the runtime `r_drawfog` / `r_depthPrepass`;
+  the classes present on the map, the resources, and the runtime `r_drawfog` / `r_depthPrepass`.
+  Since the integration review (see "Render classes under water") it also clears the camera's class
+  while the camera stands in a liquid the medium does not have (a skipped brush, a water+fog brush),
+  so that liquid keeps the legacy tint instead of turning clear;
 - the world model contents at the camera have that liquid. Water of a moving brush model keeps
   the tint.
 
@@ -2407,6 +2410,8 @@ holds this liquid" uses the media of the drawn brushes (`R_LiquidMediumSlotMask`
   `r_volumetricFogRGBExtinction`).
 - 64: sun under the liquids at the scene surface: transmittance × caustics (grey 0.75 = none,
   dark grey = not in a liquid).
+- 65-69: see "Render classes under water" below (segment length, liquid-only S and T, medium
+  sigma, fog bypass).
 - Also useful: 3 (the sun term, which includes the liquid sun path), 52 (T.rgb).
 
 ### Validation (run)
@@ -2588,6 +2593,154 @@ only slices that touch a liquid run the function.
 There is still a single underwater medium: `tr_liquid.cpp`, `liquid_common.glsl` and their call
 sites (inject, debug, lightall `USE_LIQUID_SUN`, r_waterSurface optics). No other code reads liquid
 brushes for media.
+
+### Render classes under water (integration review, 2026-10-04)
+
+This review checked the path camera above water -> through the surface -> under water against every
+render class. The point: once cgame drops its full-screen tint, nothing may stay clear (unfogged) under
+water. There is no fullscreen overlay on top of the medium; where a path cannot read the volume, the
+legacy tint stays.
+
+Where the fog comes from in the main froxel view (`RB_SubmitRenderPass`):
+
+1. Layers up to SS_FOG: the opaque surfaces, then SSR/SSGI, decals, the BSP fog passes, the water slot,
+   the atmosphere and the clouds.
+2. The froxel composite fogs all of them from the depth buffer. This includes the sky (at the sky
+   distance) and the first-person weapon (its 0..0.3 depth range is undone).
+3. Layers above SS_FOG look the volume up themselves (`RB_VolumetricFogMode` 1). A visible liquid sets
+   `frameHeightFog`, so surfaces outside BSP fog volumes take that lookup too.
+
+| Render class | Under water, after this review | Status |
+|---|---|---|
+| Opaque world and models, decals, Forward+ / legacy dynamic lights (inside lightall), viewmodel | composite, from depth | OK |
+| Sky, skybox, sky portal content, atmosphere, clouds | composite at the sky distance, after the atmosphere | OK |
+| Sabers: glow, blade, line, cylinder, electricity, trails (`ONE ONE`) | generic lookup, rgb and glow x T | OK |
+| FX sprites / polys: `ONE ONE`, `blend`, `ZERO ONE_MINUS_SRC_COLOR` | generic lookup | OK |
+| FX stages whose blend the legacy fog leaves out: `SRC_ALPHA ONE`, `DST_COLOR ZERO`, `ZERO SRC_COLOR`, `DST_COLOR SRC_COLOR`, `ZERO ONE_MINUS_SRC_ALPHA`, ... | **fixed**: generic lookup with a blend-derived mask (`RB_LiquidFogBlendMask`) | fixed |
+| Premultiplied `ONE ONE_MINUS_SRC_ALPHA` sprites | **fixed**: `c * T + S * alpha` (was `(c * T + S) * T`: a fog-colored quad where alpha is 0, T twice) | fixed |
+| Rain, snow, rain streaks, splashes | **fixed**: dropped inside liquid brushes (`WeatherInLiquid`, weather / weatherSplash vertex stage) | fixed |
+| Blended lightall stages above SS_FOG (no fog pass) | no fog | unsupported (1) |
+| Mirrors, portals (`isPortal`) | legacy fog in the portal view; only camera -> portal plane is fogged | unsupported (2) |
+| r_waterSurface seen from below, Snell window | reads the copy taken before the composites: no air fog inside the window | unsupported (3) |
+| Sun disc, sun rays, sun flare with a legacy (non r_waterSurface) water surface | drawn after the composite, unfogged | unsupported (4) |
+| Distortion pass (`refractionFill`, after tone mapping) | legacy fog only | unsupported (5) |
+| Geometry past the froxel far (4096) with the camera in liquid | the liquid ends at far (no tail term): with RGB extinction about 27% blue T beyond it | unsupported (6) |
+| Brush-model liquids (vjun2 sheet) | no medium, cgame keeps the tint | unsupported (7) |
+| Flares through legacy water | attenuated by the lookup, not occluded (water writes no depth) | unsupported (8) |
+| `RT_BEAM` (Q3 debug beam: constant red, drawn at once outside the pass system) | no fog of any kind | unsupported (9), counted |
+| UI, 2D, HUD models (`projection2D`, `RDF_NOWORLDMODEL`) | not fogged, as intended | OK |
+
+#### Tint decision per camera
+
+`R_LiquidsUpdateActive` (tr_liquid.cpp) runs once per frame, for the scene that owns the volume. A
+class bit of `r_volumetricWaterActive` is set only when all of these hold:
+
+- the class is drawn: `r_volumetricWater`, a brush of that class on the map, the program set has liquids;
+- the volume can be built for this scene: not LA goggles or hyperspace, `r_drawfog`, `r_depthPrepass`,
+  `tr.renderFbo`, a main view;
+- the camera is not in a liquid of that class that the medium does not have. The camera's collision class
+  (`CM_PointContents`, world model, the same test as cgame) has no kept brush holding the camera
+  (`R_LiquidPointBrush`, the GPU planes, 0.5 unit tolerance).
+
+The third rule is new. It covers a brush skipped for shape or capacity, and a water+fog brush (the BSP fog
+medium): those keep the legacy tint, so they look as they did before the feature, instead of turning clear.
+Outside liquid the value does not depend on the camera or the frustum, so entering water from the air
+never changes it. Only a step between a kept and a skipped brush shows the one-frame cvar lag.
+
+#### Debug
+
+`r_volumetricFogDebug` (range now 0-69):
+
+| View | Shows |
+|---|---|
+| 65 | Liquid segment length camera -> scene (heat, 1024 units = red). Red stripes where liquid continues past the froxel far (the medium ends there). |
+| 66 | In-scattering S of the liquids alone. The injection drops every other medium and the emission, like 59. |
+| 67 | Transmittance T of the liquids alone, from the integrated volume (rgb with RGB extinction). Compare with the exact 63: differences come from the far fade, the 32-brush cap or the jitter. |
+| 68 | Medium along the ray: hue of the medium with the longest segment, over its sigma_t rgb as the opacity of 512 units. Use it to spot a wrong slot or profile. |
+| 69 | Fog bypass: the normal frame, with the draws a froxel view with liquids leaves unfogged tinted through the `u_MaterialDebug` chain. Magenta: lightall blended. Yellow: a generic blend without fog. Legend at the bottom. |
+
+The analytic tail (height fog and BSP fogs past far) is not dropped in 66 / 67.
+
+Console:
+
+- `r_liquids camera` prints:
+  - the collision class at the camera, the kept brush (BSP brush, medium) and its GPU block slot;
+  - each class bit of `r_volumetricWaterActive`, with its reason and what cgame does with it;
+  - the medium's sigma_t (scalar, rgb, 1/e length), albedo, sigma_s rgb and g;
+  - the liquid segment length along the view forward and straight up, per medium (exact CPU clip, the
+    copy of `LiquidCoverage`), with its rgb transmittance.
+- `r_liquids bypass` prints, for the last frame with liquids in the froxel view:
+  - the draws without froxel fog, by reason (lightall blended, generic blend without fog, immediate
+    draw, refraction / distortion pass);
+  - the first 16 shaders, with counts;
+  - the weather draws that took the under-liquid cull.
+
+#### Implementation notes
+
+- **ACFF_NONE blends.** The froxel mask is derived only in a froxel view with liquids
+  (`R_LiquidClassMask`), so it never reaches the legacy fog.
+  - The program gets `USE_FOG` from the same helper in `GLSL_GetGenericShaderProgram`.
+  - `USE_LIQUID_FOG_BLENDS` exists only when the program set has liquids.
+  - Masks:
+    - `(1 1 1 0)`: anything that adds to the frame (`c *= T`).
+    - `(0 0 0 -n)`: a filter. `c = mix(n, c, T)` and `alpha *= T`, where n is the neutral color of the
+      blend (1 for modulate, 0.5 for 2x modulate).
+- **Premultiplied fix.** It is under the same define, in froxel modes only. The plain froxel fog without
+  liquids is unchanged.
+- **Weather.** The weather programs read the Liquids block of the froxel view, so they only see the 32
+  visible brushes there. `WeatherInLiquid` is a vertex-stage copy of `LiquidInside` (a test checks the two
+  copies are identical).
+  - Streaks are dropped when their center is under the surface.
+  - Splashes are dropped when the point 2 units above the impact is inside a liquid: the bed is under
+    water.
+  - The rain lens already turns off under water (`tr_rainlens.cpp`, water and slime).
+- **Byte-identical with `r_volumetricWater 0`.** Every new GLSL line is under `USE_LIQUIDS` or
+  `USE_LIQUID_FOG_BLENDS`, and every CPU path checks `R_LiquidClassMask` or the liquid frame. Weather
+  draws bind the Liquids block range as lightall does, which is harmless without it. Views 65-69 were out
+  of range before.
+
+#### Unsupported, with the concrete fix
+
+1. **Blended lightall stages.** Add a `USE_FROXEL_FOG` lightall permutation for blended stages:
+   - lightall uses `TB_CUBEMAP` / `TB_ENVBRDFMAP`, which are the froxel lookup's units, so it needs two
+     free sampler units remapped through `GLSL_SetFroxelLookupUnits`;
+   - then apply the generic mask math in the lightall output.
+
+   `r_liquids bypass` lists the affected shaders.
+2. **Mirrors / portals.** Build a second Liquids block for the portal view (`R_LiquidsBuild` with the
+   portal `viewParms`), plus a mode-0 composite in that view. The composite runs `LiquidCoverage` over
+   camera -> depth with homogeneous light (ambient x albedo) and the liquid T.
+3. **Snell window.** Copy the color after the froxel composite for the above-water branch, or apply
+   `FroxelFog` at the refracted world point.
+4. **Sun through legacy water.** Do a CPU clip from the camera along the sun direction against the kept
+   brushes (`R_LiquidRayCoverage`), then scale the sun disc, sun rays and sun flare color by
+   `exp(-sigma c L)`.
+5. **Distortion pass.** Look up the froxel transmittance at the distorted surface. That needs the lookup
+   with the exposure, because the pass runs after tone mapping.
+6. **Liquid tail.** In the tail pass, add `LiquidCoverage(farZ..d)` for the brushes of the camera medium,
+   or skip the far fade while the camera is in liquid.
+7. **Brush-model liquids.** Transformed brushes. No stock map needs them (see the limitations).
+8. **Flares.** Occlusion by water only through the r_waterSurface depth. A legacy-water fix would test the
+   liquid planes between the camera and the flare.
+9. **`RT_BEAM`.** Route it through `tess` and the pass system (the existing TODO in `RB_SurfaceEntity`).
+   cgame's `CG_Beam` (ET_BEAM) is a Q3 leftover.
+
+#### Validation
+
+- **Build.** MSVC: rd-rend2 and rdsp-rend2 build clean. cgame is unchanged.
+- **GPU tests.** `tools/rend2/test_liquids_gl.py`, on Intel UHD and RTX 2060 (GL 4.3), adds:
+  - generic (froxel fog, scalar / RGB, liquids off / on, rgbagen / tcgen permutations), weather and
+    weatherSplash (liquids off / on): 12 programs compile and link;
+  - `WeatherInLiquid` on the GPU against the exact point test: 1007 points, a sloped bank, and the cull off;
+  - a CPU check of the over-blend algebra of the premultiplied / filter / additive masks.
+- **Regressions.** `test_volumetric_compute.py` and `test_watersurface_gl.py` pass.
+- **Not run in game.** Checklist:
+  - t3_hevil lake crossing, with debug 61, 65, 66, 67 and 69;
+  - blaster, explosion and saber FX under water: debug 69 shows no yellow, magenta only on lightall
+    blended shaders (see `r_liquids bypass`);
+  - yavin1b rain over a stream: no drops or splashes under the surface;
+  - a water+fog pool (t2_port, taspir2): BSP fog plus the legacy tint;
+  - `r_liquids camera` in and out of the water.
 
 ### Limitations
 

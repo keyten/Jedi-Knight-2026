@@ -5856,7 +5856,7 @@ enum { LIQUIDSLOT_CONTENTS, LIQUIDSLOT_TOP_SLIME, LIQUIDSLOT_ENV_JSON };
 void R_LoadLiquidBrushes(world_t *world, const byte *fileBase, const lump_t *modelsLump,
 	const lump_t *brushesLump, const lump_t *sidesLump);
 void R_LiquidsWorldLoaded(void);			// after tr.world is set: planes, caustics, r_volumetricWaterActive
-void R_LiquidsUpdateActive(const trRefdef_t *refdef);	// r_volumetricWaterActive for cgame (set on change)
+void R_LiquidsUpdateActive(const trRefdef_t *refdef, const viewParms_t *view);	// r_volumetricWaterActive for cgame (set on change)
 void R_LiquidsShutdown(void);
 int R_LiquidClassMask(void);				// LIQUID_* classes handled this map (r_volumetricWater, brushes, resources)
 int R_LiquidMediumSlotMask(void);		// LIQUID_* media (optics) of the brushes drawn this map
@@ -5866,6 +5866,7 @@ qboolean R_LiquidSurfacesEnabled(void);	// USE_LIQUID_SUN in lightall
 void R_LiquidsLatchPrograms(void);		// GLSL_LoadGPUShaders: decide liquids for this program set
 void R_LiquidsUnlatchPrograms(void);	// GLSL_ShutdownGPUShaders
 int R_LiquidPointClass(const vec3_t p);	// collision contents at p as LIQUID_* (world model), -1 = none
+int R_LiquidPointBrush(const vec3_t p, int liquidClass);	// kept brush of a drawn class holding p, -1 none
 qboolean R_LiquidsInFrustum(const viewParms_t *view, const vec3_t forward, float farZ);
 int R_LiquidsBuild(LiquidsBlock *block, const viewParms_t *view, const vec3_t forward, float farZ,
 	int numSlices, int (*depthSlice)(float depth), int cameraClass, float time);
@@ -5874,6 +5875,12 @@ unsigned int R_LiquidsMediumKey(unsigned int key);
 void R_LiquidsBindTextures(void);			// plane buffer and caustic pattern on their units (GL_BindToTMU)
 void RB_LiquidSurfaceSetupDraw(const shaderStage_t *pStage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 UniformBlockBinding RB_GetLiquidsBlockUniformBinding(void);
+qboolean RB_LiquidFogBlendMask(const shaderStage_t *stage, const shader_t *shader, vec4_t mask);	// froxel fog of ACFF_NONE blends
+int RB_LiquidBypassReason(const shader_t *shader, const shaderStage_t *stage, qboolean lightall, qboolean fogged);
+void RB_LiquidBypassImmediate(const shader_t *shader);	// an immediate draw without fog in a liquid frame
+void RB_LiquidBypassDebugColor(int reason, vec4_t materialDebug);	// r_volumetricFogDebug 69
+void RB_LiquidWeatherCulled(void);		// a weather draw took the under-liquid cull
+qboolean RB_LiquidWeatherSetupDraw(UniformDataWriter *uniforms, SamplerBindingsWriter *samplers);	// weather.glsl / weatherSplash.glsl: no weather inside liquids
 void R_Liquids_f(void);
 
 /*

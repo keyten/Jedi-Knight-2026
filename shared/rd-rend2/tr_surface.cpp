@@ -721,6 +721,10 @@ static void RB_SurfaceBeam( void )
 		VectorAdd( start_points[i], direction, end_points[i] );
 	}
 
+	// a constant red debug beam drawn at once, outside the pass system: no
+	// fog of any kind (r_liquids bypass counts it in a froxel view with liquids)
+	RB_LiquidBypassImmediate(tess.shader);
+
 	GL_Bind( tr.whiteImage );
 
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );

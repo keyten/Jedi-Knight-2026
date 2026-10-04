@@ -79,6 +79,16 @@ void main()
 //        r_volumetricFogRGBExtinction, else the scalar extinction)
 //     64 sun under the liquids at the scene surface: transmittance * caustics (grey 0.75 = no
 //        attenuation, dark grey: not in a liquid)
+//     65 liquid segment length between the camera and the scene (heat, 1024 units = red); red
+//        stripes where liquid lies beyond the froxel far (the medium ends there, no tail term)
+//     66 in-scattering S of the liquids alone (the injection drops every other medium and emission)
+//     67 transmittance T of the liquids alone from the integrated volume (rgb with RGB extinction):
+//        compare with the exact 63 (differences: the far fade, the 32 brush cap, the froxel jitter)
+//     68 medium along the ray: hue of the medium with the longest segment (blue water, green slime,
+//        orange lava) over its sigma_t rgb as the opacity of 512 units, dark grey without liquid
+//     69 liquid fog bypass: the frame with the draws a froxel view with liquids leaves unfogged
+//        tinted (tr_liquid.cpp RB_LiquidBypassReason): magenta lightall blended, yellow a generic
+//        blend without fog, cyan immediate draws; this pass only adds the legend at the bottom
 //
 // r_particleLightingDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -218,7 +228,7 @@ void main()
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || view == 57 || view == 58 || (view >= 30 && view <= 34) || (view >= 43 && view <= 48))
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || view == 57 || view == 58 || (view >= 30 && view <= 34) || (view >= 43 && view <= 48) || view == 66)
 	{
 		color = Display(fog.rgb);
 	}
@@ -510,6 +520,63 @@ void main()
 			vec3 T = LiquidSunTransmittance(worldPos - dir * 0.5, u_FroxelSunDirection.xyz,
 				max(dot(toScene, u_FroxelViewForward.xyz), 1.0) * u_LiquidView.z / 8.0, pathLength);
 			color = (pathLength > 0.0) ? T * 0.75 : vec3(0.1);
+		}
+#else
+		color = vec3(0.3, 0.0, 0.3);
+#endif
+	}
+	else if (view == 67)
+	{
+#if defined(USE_FROXEL_RGB)
+		vec3 T;
+		FroxelFogRGB(worldPos, T);
+		color = T;
+#else
+		color = vec3(fog.a);
+#endif
+	}
+	else if (view >= 65 && view <= 69)
+	{
+#if defined(USE_LIQUIDS)
+		vec3 origin = u_FroxelViewOrigin.xyz;
+		vec3 toScene = worldPos - origin;
+		float sceneDistance = length(toScene);
+		vec3 dir = toScene / max(sceneDistance, 1e-4);
+		if (view == 69)
+		{
+			// drawn blended over the frame (RB_VolumetricDebugOverlay): the legend only
+			out_Color = vec4(0.0);
+			if (tc.y < 0.03)
+			{
+				int box = int(tc.x * 8.0);
+				vec3 legend[3] = vec3[3](vec3(1.0, 0.0, 1.0), vec3(1.0, 0.9, 0.0), vec3(0.0, 1.0, 1.0));
+				if (box < 3)
+					out_Color = vec4(legend[box], 1.0);
+			}
+			return;
+		}
+		if (view == 65)
+		{
+			float cosView = max(dot(dir, u_FroxelViewForward.xyz), 1e-3);
+			float farDistance = u_FroxelSliceParams.y / cosView;
+			vec3 covered = LiquidCoverage(origin, dir, 0.0, sceneDistance, -1);
+			float total = covered.x + covered.y + covered.z;
+			vec3 inside = LiquidCoverage(origin, dir, 0.0, min(sceneDistance, farDistance), -1);
+			color = (total > 0.0) ? Heat(total / 1024.0) : vec3(0.08);
+			if (total - (inside.x + inside.y + inside.z) > 1.0 && fract((gl_FragCoord.x - gl_FragCoord.y) / 16.0) < 0.3)
+				color = vec3(1.0, 0.0, 0.0);
+		}
+		else
+		{
+			vec3 covered = LiquidCoverage(origin, dir, 0.0, sceneDistance, -1);
+			int c = (covered.y > covered.x) ? ((covered.z > covered.y) ? 2 : 1) : ((covered.z > covered.x) ? 2 : 0);
+			if (covered[c] <= 0.0)
+				color = vec3(0.08);
+			else
+			{
+				vec4 medium = u_LiquidMaterial[c * 2];
+				color = mix(LiquidClassHue(c), vec3(1.0) - exp(-medium.a * medium.rgb * 512.0), 0.6);
+			}
 		}
 #else
 		color = vec3(0.3, 0.0, 0.3);

@@ -869,9 +869,11 @@ namespace
 
 		const byte currentFrameScene = backEndData->currentFrame->currentScene;
 		const GLuint currentFrameUbo = backEndData->currentFrame->ubo[currentFrameScene];
+		// r_volumetricWater: no splash inside a liquid (RB_LiquidWeatherSetupDraw)
 		const UniformBlockBinding uniformBlockBindings[] = {
 			{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
-			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE }
+			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
+			RB_GetLiquidsBlockUniformBinding()
 		};
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
 
@@ -890,6 +892,7 @@ namespace
 		SamplerBindingsWriter samplerBindingsWriter;
 		samplerBindingsWriter.AddStaticImage(tr.weatherDepthImage, TB_SHADOWMAP);
 		samplerBindingsWriter.AddStaticImage(grid ? grid : tr.whiteImage3D, TB_LIGHTMAP);
+		RB_LiquidWeatherSetupDraw(nullptr, &samplerBindingsWriter);
 		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
 
@@ -960,6 +963,7 @@ namespace
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS, params);
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS2, params2);
 			uniformDataWriter.SetUniformVec4(UNIFORM_RAINLIGHT, light);
+			RB_LiquidWeatherSetupDraw(&uniformDataWriter, nullptr);
 			if (grid)
 			{
 				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, tr.world->lightGridOrigin);
@@ -1856,9 +1860,11 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 
 		const byte currentFrameScene = backEndData->currentFrame->currentScene;
 		const GLuint currentFrameUbo = backEndData->currentFrame->ubo[currentFrameScene];
+		// r_volumetricWater: no weather inside a liquid (RB_LiquidWeatherSetupDraw)
 		const UniformBlockBinding uniformBlockBindings[] = {
 			{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
-			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE }
+			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
+			RB_GetLiquidsBlockUniformBinding()
 		};
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
 
@@ -1882,6 +1888,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			TB_DIFFUSEMAP);
 		// always a 3D texture on the sampler3D unit, read only with a grid
 		samplerBindingsWriter.AddStaticImage(rainGrid ? rainGrid : tr.whiteImage3D, TB_LIGHTMAP);
+		RB_LiquidWeatherSetupDraw(nullptr, &samplerBindingsWriter);
 		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
 
@@ -2001,6 +2008,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 				// set for every draw: a uniform left out keeps the value of
 				// the previous weather type's draw
 				uniformDataWriter.SetUniformInt(UNIFORM_WEATHERTYPE, rainStreaks ? 1 : 0);
+				RB_LiquidWeatherSetupDraw(&uniformDataWriter, nullptr);
 				if (rainStreaks)
 				{
 					uniformDataWriter.SetUniformVec4(UNIFORM_RAINSTREAK, rainStreak);

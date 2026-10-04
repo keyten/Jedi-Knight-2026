@@ -18,6 +18,47 @@ out int var_Culled;
 out float var_DepthSample;
 out vec4 var_Rand;
 
+#if defined(USE_LIQUIDS)
+// r_volumetricWater (tr_liquid.cpp RB_LiquidWeatherSetupDraw): no weather inside a liquid brush.
+// The Liquids block of liquid_common.glsl (the same layout, a fragment library there); only the
+// brush count, bounds and planes are read here.
+layout(std140) uniform Liquids
+{
+	vec4 u_LiquidParams;		// x: brushes in the block
+	vec4 u_LiquidCaustics;
+	vec4 u_LiquidView;
+	vec4 u_LiquidMaterial[6];
+	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
+	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
+	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];
+};
+uniform samplerBuffer u_LiquidPlanes;
+uniform vec4 u_LiquidSurface;	// x 1 = drop weather inside the liquids of the block
+
+bool WeatherInLiquid(in vec3 p)
+{
+	if (u_LiquidSurface.x < 0.5)
+		return false;
+	int n = int(u_LiquidParams.x);
+	for (int i = 0; i < n; i++)
+	{
+		if (any(lessThan(p, u_LiquidMins[i].xyz)) || any(greaterThan(p, u_LiquidMaxs[i].xyz)))
+			continue;
+		int first = int(u_LiquidMins[i].w);
+		int count = int(u_LiquidMaxs[i].w) & 63;
+		bool inside = true;
+		for (int k = 6; k < count && inside; k++)
+		{
+			vec4 plane = texelFetch(u_LiquidPlanes, first + k);
+			inside = dot(plane.xyz, p) - plane.w <= 0.0;
+		}
+		if (inside)
+			return true;
+	}
+	return false;
+}
+#endif
+
 // Per particle variation. The seed is the VBO slot (gl_VertexID includes the
 // chunk's first vertex): transform feedback keeps the slot order, so a
 // particle keeps its look while it falls and moves.
@@ -68,6 +109,11 @@ void main()
 		var_DepthSample = texture(u_ShadowMap, depthPosition.xy / depthPosition.w * 0.5 + 0.5).r;
 		depthPosition = u_ShadowMvp * vec4(top, 1.0);
 		var_Culled = int((depthPosition.z / depthPosition.w * 0.5 + 0.5) > var_DepthSample);
+#if defined(USE_LIQUIDS)
+		// the streak's center under a liquid surface: under water, not drawn
+		if (WeatherInLiquid(gl_Position.xyz))
+			var_Culled = 1;
+#endif
 		return;
 	}
 
@@ -91,6 +137,10 @@ void main()
 		depthPosition = u_ShadowMvp * (gl_Position + velocitiyOffset -(vec4(0.0, 0.0, u_ViewInfo.y, 0.0)));
 		var_Culled -= int((depthPosition.z / depthPosition.w * 0.5 + 0.5) > depthSample);
 	}
+#if defined(USE_LIQUIDS)
+	if (WeatherInLiquid(gl_Position.xyz))
+		var_Culled = 1;
+#endif
 }
 
 /*[Geometry]*/

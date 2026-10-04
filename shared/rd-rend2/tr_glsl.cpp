@@ -2563,6 +2563,9 @@ static int GLSL_LoadGPUProgramGeneric(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_FOG\n");
 			if (r_volumetricFog->integer)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_VOLUMETRIC_FOG\n");
+			// r_volumetricWater: froxel fog of every blend (RB_LiquidFogBlendMask)
+			if (R_LiquidsAvailable())
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUID_FOG_BLENDS\n");
 		}
 
 		if (i & GENERICDEF_USE_RGBAGEN)
@@ -4645,12 +4648,17 @@ static int GLSL_LoadGPUProgramWeather(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
 {
-	GLSL_LoadGPUProgramBasic(
+	// r_volumetricWater: rain, snow and splashes are dropped inside liquids
+	// (RB_LiquidWeatherSetupDraw); the define only with the liquid programs
+	const char *liquidDefines = R_LiquidsAvailable() ? "#define USE_LIQUIDS\n" : nullptr;
+
+	GLSL_LoadGPUProgramBasicWithDefinitions(
 		builder,
 		scratchAlloc,
 		&tr.weatherShader,
 		"weather",
 		fallback_weatherProgram,
+		liquidDefines,
 		ATTR_POSITION | ATTR_COLOR);
 
 	GLSL_InitUniforms(&tr.weatherShader);
@@ -4659,6 +4667,8 @@ static int GLSL_LoadGPUProgramWeather(
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 	// r_rainStreakLighting: merged light grid, read in the vertex shader
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	if (liquidDefines)
+		GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherShader);
 
@@ -4694,18 +4704,21 @@ static int GLSL_LoadGPUProgramWeather(
 	GLSL_FinishGPUShader(&tr.weatherUpdateSplashShader);
 
 	// r_rainSplashes: splashes drawn from the impact state of the rain VBO
-	GLSL_LoadGPUProgramBasic(
+	GLSL_LoadGPUProgramBasicWithDefinitions(
 		builder,
 		scratchAlloc,
 		&tr.weatherSplashShader,
 		"weatherSplash",
 		fallback_weatherSplashProgram,
+		liquidDefines,
 		ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0);
 
 	GLSL_InitUniforms(&tr.weatherSplashShader);
 	qglUseProgram(tr.weatherSplashShader.program);
 	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	if (liquidDefines)
+		GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherSplashShader);
 
@@ -5360,6 +5373,16 @@ shaderProgram_t *GLSL_GetGenericShaderProgram(int stage)
 		pStage->adjustColorsForFog != ACFF_NONE &&
 		r_drawfog->integer &&
 		!tess.shader->isSky)
+		shaderAttribs |= GENERICDEF_USE_FOG;
+
+	// r_volumetricWater: the froxel fog of the blends the legacy fog leaves out
+	// (RB_LiquidFogBlendMask, the same test as RB_IterateStagesGeneric)
+	vec4_t liquidFogMask;
+	if (!(shaderAttribs & GENERICDEF_USE_FOG) &&
+		(tess.fogNum || RB_VolumetricHeightFogSurface(tess.shader->sort)) &&
+		!tess.shader->fogPass &&
+		r_drawfog->integer &&
+		RB_LiquidFogBlendMask(pStage, tess.shader, liquidFogMask))
 		shaderAttribs |= GENERICDEF_USE_FOG;
 
 	// sprite particle lighting (r_particleLighting): the field lookup is part of

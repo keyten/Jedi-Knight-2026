@@ -12,10 +12,15 @@ Hidden SDL GL 4.3 context (bundled SDL2), the real sources:
   sloped (non axial) side clips exactly, more than LIQUID_MAX_HITS intervals keep the earliest (the sun path from a
   point under them still starts there), and the medium slot (optics) is independent of the gameplay class
   (u_LiquidMaxs.w = planes + 64 * medium + 256 * class)
+- the render classes under water (docs "Render classes under water"): generic with the froxel fog of every blend
+  (USE_LIQUID_FOG_BLENDS), weather / weatherSplash with the liquid cull (USE_LIQUIDS) compile and link, with
+  and without the defines; the cull test of weather.glsl (WeatherInLiquid) runs on the GPU against the exact
+  point test; the blend algebra of the premultiplied / filter / additive froxel fog is checked on the CPU
 """
 import ctypes as C
 import math
 import random
+import re
 import struct
 import sys
 
@@ -359,6 +364,158 @@ def compile_programs():
     return count
 
 
+def stage(name, kind):
+    text = (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().replace('\r\n', '\n')
+    return text.split(f'/*[{kind}]*/')[1].split('/*[')[0]
+
+
+def render_header(defines):
+    """the parts of GLSL_GetShaderHeader the generic and weather programs use (enum values only need to differ)"""
+    text = '#version 150 core\n#define M_PI 3.14159265358979323846\n'
+    for i, name in enumerate(['DEFORM_NONE', 'DEFORM_WAVE', 'DEFORM_NORMALS', 'DEFORM_BULGE', 'DEFORM_BULGE_UNIFORM',
+                              'DEFORM_MOVE', 'DEFORM_PROJECTION_SHADOW', 'DEFORM_DISINTEGRATION']):
+        text += f'#define {name} {i}\n'
+    for i, name in enumerate(['WF_NONE', 'WF_SIN', 'WF_SQUARE', 'WF_TRIANGLE', 'WF_SAWTOOTH', 'WF_INVERSE_SAWTOOTH']):
+        text += f'#define {name} {i}\n'
+    for i, name in enumerate(['TCGEN_LIGHTMAP', 'TCGEN_LIGHTMAP1', 'TCGEN_LIGHTMAP2', 'TCGEN_LIGHTMAP3', 'TCGEN_TEXTURE',
+                              'TCGEN_ENVIRONMENT_MAPPED', 'TCGEN_ENVIRONMENT_MAPPED_SP', 'TCGEN_ENVIRONMENT_MAPPED_SP_FP',
+                              'TCGEN_FOG', 'TCGEN_VECTOR']):
+        text += f'#define {name} {i + 1}\n'
+    for i, name in enumerate(['CGEN_LIGHTING_DIFFUSE', 'CGEN_DISINTEGRATION_1', 'CGEN_DISINTEGRATION_2',
+                              'AGEN_LIGHTING_SPECULAR', 'AGEN_LIGHTING_SPECULAR_STATIC', 'AGEN_PORTAL']):
+        text += f'#define {name} {i + 10}\n'
+    for i, name in enumerate(['ALPHA_TEST_GT0', 'ALPHA_TEST_LT128', 'ALPHA_TEST_GE128', 'ALPHA_TEST_GE192', 'ALPHA_TEST_E255']):
+        text += f'#define {name} {i + 1}\n'
+    text += ('#define MAX_G2_BONES 72\n#define MAX_GPU_FOGS 16\n#define MAX_DLIGHTS 32\n#define DSHADOW_MAP_SIZE 512\n'
+             '#define r_FBufScale vec2(1.0 / 640.0, 1.0 / 480.0)\n#define USE_ALPHA_TEST\n')
+    froxel = re.findall(r'^#define\s+(MAX_GPU_FOG_VOLUMES|FROXEL_MAX_SLICES|FROXEL_LOCAL_POOL|FROXEL_EXTINCTION_PALETTE|'
+                        r'MAX_GPU_LIQUIDS)\s+(\d+)\b', CONSTANTS, re.M)
+    if 'USE_FROXEL_FOG' in defines:
+        text += ''.join(f'#define {k} {v}\n' for k, v in froxel)
+    return text + ''.join(f'#define {d}\n' for d in defines)
+
+
+def compile_render_programs():
+    """the programs this review changed outside the froxel passes, with and without the liquid defines:
+    generic (USE_FOG + the froxel fog, USE_LIQUID_FOG_BLENDS), weather and weatherSplash (USE_LIQUIDS)"""
+    from test_watersurface_gl import compile_program
+    count = 0
+    vertex_library = stage('leaf_flutter', 'Vertex') + stage('foliage_interact', 'Vertex') + stage('plant_bend', 'Vertex')
+    for rgb in (False, True):
+        for liquids in (False, True):
+            for extra in ([], ['USE_RGBAGEN', 'USE_TCGEN', 'USE_TCMOD']):
+                defines = ['USE_FROXEL_FOG', 'r_volumetricFogSamples 4', 'USE_FOG', 'USE_VOLUMETRIC_FOG'] + extra
+                defines += ['USE_FROXEL_RGB'] if rgb else []
+                defines += ['USE_LIQUID_FOG_BLENDS'] if liquids else []
+                h = render_header(defines)
+                prog = compile_program([(0x8B31, h + vertex_library + stage('generic', 'Vertex')),
+                                        (0x8B30, h + fragment('volumetric_common') + stage('generic', 'Fragment'))],
+                                       f'generic rgb={rgb} liquids={liquids} {extra}')
+                gl('glDeleteProgram', None, U)(prog)
+                count += 1
+    for liquids in (False, True):
+        defines = ['USE_FROXEL_FOG'] + (['USE_LIQUIDS'] if liquids else [])
+        h = render_header(defines)
+        for name in ('weather', 'weatherSplash'):
+            prog = compile_program([(0x8B31, h + stage(name, 'Vertex')), (0x8DD9, h + stage(name, 'Geometry')),
+                                    (0x8B30, h + stage(name, 'Fragment'))], f'{name} liquids={liquids}')
+            if liquids:
+                assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Liquids') != 0xFFFFFFFF, name
+            gl('glDeleteProgram', None, U)(prog)
+            count += 1
+    return count
+
+
+WEATHER_PROBE = '''
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) readonly buffer Cases { vec4 cases[]; };
+layout(std430, binding = 1) writeonly buffer Results { vec4 results[]; };
+uniform int u_NumCases;
+void main()
+{
+	int i = int(gl_GlobalInvocationID.x);
+	if (i >= u_NumCases)
+		return;
+	results[i] = vec4(WeatherInLiquid(cases[i * 3].xyz) ? 1.0 : 0.0);
+}
+'''
+
+
+def weather_cases():
+    """WeatherInLiquid of weather.glsl (the rain / snow / splash cull) against the exact point test: inside a
+    sloped bank, at the surface, above, beside, and off with u_LiquidSurface.x 0"""
+    text = stage('weather', 'Vertex')
+    library = text[text.index('#if defined(USE_LIQUIDS)'):text.index('#endif', text.index('bool WeatherInLiquid')) + 6]
+    assert library == (lambda t: t[t.index('#if defined(USE_LIQUIDS)'):t.index('#endif', t.index('bool WeatherInLiquid')) + 6])(
+        stage('weatherSplash', 'Vertex')), 'the liquid test of weather.glsl and weatherSplash.glsl differ'
+    defines = (f'#define MAX_GPU_LIQUIDS {MAX_GPU_LIQUIDS}\n#define FROXEL_MAX_SLICES {FROXEL_MAX_SLICES}\n'
+               '#define USE_LIQUIDS\n')
+    prog = gl('glCreateProgram', U)()
+    shader = gl('glCreateShader', U, U)(0x91B9)
+    source = C.c_char_p(('#version 430 core\n' + defines + library + WEATHER_PROBE).encode())
+    gl('glShaderSource', None, U, I, C.POINTER(C.c_char_p), P)(shader, 1, C.byref(source), None)
+    gl('glCompileShader', None, U)(shader)
+    ok, log = I(), C.create_string_buffer(16384)
+    gl('glGetShaderiv', None, U, U, C.POINTER(I))(shader, 0x8B81, C.byref(ok))
+    gl('glGetShaderInfoLog', None, U, I, P, P)(shader, len(log), None, log)
+    assert ok.value, log.value.decode()
+    gl('glAttachShader', None, U, U)(prog, shader)
+    gl('glLinkProgram', None, U)(prog)
+
+    brushes = [Brush([0.0, 0.0, -200.0], [600.0, 400.0, 0.0], extra=[((1.0, 0.0, 1.0), 400.0)]),
+               Brush([700.0, 0.0, -50.0], [900.0, 400.0, 0.0])]
+    scene = Scene(prog, brushes, MATERIALS)
+    rng = random.Random(11)
+    points = [[100.0, 100.0, -1.0], [100.0, 100.0, 1.0], [500.0, 100.0, -50.0], [500.0, 100.0, -150.0],
+              [650.0, 100.0, -10.0], [800.0, 200.0, -10.0], [800.0, 200.0, 10.0]]
+    points += [[rng.uniform(-100, 1000), rng.uniform(-100, 500), rng.uniform(-250, 50)] for _ in range(1000)]
+    location = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_LiquidSurface')
+    checks = 0
+    for enabled in (1.0, 0.0):
+        gl('glUseProgram', None, U)(prog)
+        gl('glUniform4f', None, I, F, F, F, F)(location, enabled, 0.0, 0.0, 0.0)
+        got = scene.run([(0, p, [0.0, 0.0, 1.0], 0.0, 0.0, -1) for p in points])
+        for p, g in zip(points, got):
+            # points within 0.01 of a plane may go either way in fp32
+            margin = min(abs(sum(n[i] * p[i] for i in range(3)) - d) for b in brushes for n, d in b.planes)
+            if margin < 0.01:
+                continue
+            expected = enabled > 0.5 and any(b.inside(p) for b in brushes)
+            assert (g[0] > 0.5) == expected, ('weather in liquid', p, g[0], enabled)
+        checks += 1
+    assert sum(1 for p in points if any(b.inside(p) for b in brushes)) > 200
+    scene.delete()
+    gl('glDeleteProgram', None, U)(prog)
+    return checks
+
+
+def fog_blend_cases():
+    """the over-blend algebra of the generic froxel fog (generic.glsl USE_LIQUID_FOG_BLENDS) on the CPU: what each
+    blend leaves in the frame against the reference (the surface seen through the medium S, T: the background
+    is already fogged, so the surface contribution becomes c * T and the medium in front of it adds S once,
+    weighted by the coverage of the surface)"""
+    checks = 0
+    rng = random.Random(3)
+    for _ in range(200):
+        T, S = rng.uniform(0.0, 1.0), rng.uniform(0.0, 0.5)
+        c, a, dst = rng.uniform(0.0, 1.0), rng.uniform(0.0, 1.0), rng.uniform(0.0, 1.0)
+        # premultiplied ONE, ONE_MINUS_SRC_ALPHA: the surface c (premultiplied by a) covers a of the background;
+        # the fogged background behind it is dst. Reference: (c + dst * (1 - a)) seen through T, S gives
+        # T * c + a * S + dst * (1 - a) (the background part already holds its own fog)
+        shader = c * T + S * a
+        result = shader + dst * (1.0 - a)
+        reference = c * T + S * a + dst * (1.0 - a)
+        assert abs(result - reference) < 1e-6
+        assert abs((c * T + S * a) - c * T) <= S * a + 1e-9  # a = 0: nothing added (no halo)
+        # filter DST_COLOR, ZERO: the background times c; through the medium the filter fades to neutral 1
+        filt = 1.0 + (c - 1.0) * T
+        assert abs(dst * filt - dst * (T * c + (1.0 - T))) < 1e-6
+        # additive SRC_ALPHA, ONE: the glow attenuated by the medium in front of it
+        assert abs((c * T) * a - c * a * T) < 1e-9
+        checks += 1
+    return 1 if checks == 200 else 0
+
+
 def context(title):
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 4)
@@ -385,7 +542,10 @@ def main():
         prog = compile_probe(PROBE)
         checks = coverage_cases(prog) + sun_cases(prog)
         gl('glDeleteProgram', None, U)(prog)
-        print(f'PASS: {permutations} liquid shader permutations compiled and linked, {checks} GPU checks')
+        render = compile_render_programs()
+        checks += weather_cases() + fog_blend_cases()
+        print(f'PASS: {permutations} liquid shader permutations + {render} generic / weather programs compiled and '
+              f'linked, {checks} GPU / CPU checks')
     finally:
         close_context(window, ctx)
     return 0

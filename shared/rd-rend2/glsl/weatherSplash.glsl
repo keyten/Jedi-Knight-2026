@@ -12,6 +12,47 @@ out vec4 var_Impact;
 out vec3 var_Velocity;
 out int var_Id;
 
+#if defined(USE_LIQUIDS)
+// r_volumetricWater (tr_liquid.cpp RB_LiquidWeatherSetupDraw): no weather inside a liquid brush.
+// The Liquids block of liquid_common.glsl (the same layout, a fragment library there); only the
+// brush count, bounds and planes are read here.
+layout(std140) uniform Liquids
+{
+	vec4 u_LiquidParams;		// x: brushes in the block
+	vec4 u_LiquidCaustics;
+	vec4 u_LiquidView;
+	vec4 u_LiquidMaterial[6];
+	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
+	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
+	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];
+};
+uniform samplerBuffer u_LiquidPlanes;
+uniform vec4 u_LiquidSurface;	// x 1 = drop weather inside the liquids of the block
+
+bool WeatherInLiquid(in vec3 p)
+{
+	if (u_LiquidSurface.x < 0.5)
+		return false;
+	int n = int(u_LiquidParams.x);
+	for (int i = 0; i < n; i++)
+	{
+		if (any(lessThan(p, u_LiquidMins[i].xyz)) || any(greaterThan(p, u_LiquidMaxs[i].xyz)))
+			continue;
+		int first = int(u_LiquidMins[i].w);
+		int count = int(u_LiquidMaxs[i].w) & 63;
+		bool inside = true;
+		for (int k = 6; k < count && inside; k++)
+		{
+			vec4 plane = texelFetch(u_LiquidPlanes, first + k);
+			inside = dot(plane.xyz, p) - plane.w <= 0.0;
+		}
+		if (inside)
+			return true;
+	}
+	return false;
+}
+#endif
+
 void main()
 {
 	// the particle itself, only read by the debug views
@@ -19,6 +60,12 @@ void main()
 	var_Velocity = attr_Color;
 	var_Impact = attr_TexCoord0;
 	var_Id = gl_VertexID;
+#if defined(USE_LIQUIDS)
+	// an impact under a liquid surface (on the bed: the weather occlusion map has
+	// no water) is spent; the point just above the hit tests the water over it
+	if (var_Impact.w > -1.5 && WeatherInLiquid(var_Impact.xyz + vec3(0.0, 0.0, 2.0)))
+		var_Impact.w = -2.0;
+#endif
 }
 
 /*[Geometry]*/
