@@ -2037,6 +2037,10 @@ static unsigned int R_VolumetricMediumKey( void )
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightExtinction->string, strlen(r_volumetricFogHeightExtinction->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogNoiseWind->string, strlen(r_volumetricFogNoiseWind->string));
+	// the cloud shadows change the injected sun (not hashed without them: the key stays as before)
+	const int cloudShadows = R_CloudShadowKey();
+	if ( cloudShadows )
+		key = R_VolumetricHashBytes(key, &cloudShadows, sizeof(cloudShadows));
 	return key;
 }
 
@@ -2953,6 +2957,8 @@ void RB_VolumetricBuild( void )
 			if ( cookie[0] > 0.0f )
 				GL_BindToTMU(R_LightCookieImage(), TB_LIGHTCOOKIES);
 		}
+		// cloud shadows on the sun (r_cloudShadows, tr_clouds.cpp)
+		RB_CloudShadowBindDirect(sp);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELSLICE, 0);
 		if ( compute )
 		{

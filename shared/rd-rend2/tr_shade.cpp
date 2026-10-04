@@ -2326,6 +2326,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 				{
 					enableTextures[2] = 1.0f;
 				}
+				// cloud shadows on the sun (r_cloudShadows, tr_clouds.cpp)
+				RB_CloudShadowBind(uniformDataWriter, samplerBindingsWriter);
 			}
 
 			if (pStage->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK &&

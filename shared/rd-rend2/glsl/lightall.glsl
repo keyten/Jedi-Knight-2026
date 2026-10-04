@@ -741,6 +741,26 @@ uniform sampler2DArray u_ShadowMap;
 #else
 uniform sampler2DArrayShadow u_ShadowMap;
 #endif
+
+#if defined(USE_CLOUD_SHADOWS)
+// cloud shadows (r_cloudShadows, tr_clouds.cpp): the clouds' sun transmittance on a ground plane around the
+// camera; a point below the clouds slides along the sun onto that plane. u_CloudShadow[0]: centre xy, 1 / extent
+// (world units), plane z; [1]: sun xy / sun z, strength, enabled
+uniform sampler2D u_CloudShadowMap;
+uniform vec4 u_CloudShadow[2];
+
+float CloudShadow(in vec3 position)
+{
+	if (u_CloudShadow[1].w < 0.5)
+		return 1.0;
+	vec2 q = position.xy - u_CloudShadow[1].xy * (position.z - u_CloudShadow[0].w);
+	vec2 uv = (q - u_CloudShadow[0].xy) * u_CloudShadow[0].z + 0.5;
+	float T = textureLod(u_CloudShadowMap, uv, 0.0).r;
+	vec2 edge = abs(uv - 0.5);
+	float inside = 1.0 - smoothstep(0.42, 0.5, max(edge.x, edge.y));
+	return mix(1.0, T, inside * u_CloudShadow[1].z);
+}
+#endif
 #endif
 
 #if defined(USE_SSAO)
@@ -3884,6 +3904,11 @@ void main()
 	#else
 	cascadeShadow = sunShadow(u_ViewOrigin, viewDir, normalBias, u_ShadowMap);
 	#endif
+	#endif
+	// clouds between the surface and the sun (r_cloudShadows): part of the sun visibility, so it applies
+	// wherever the sun shadow does (r_sunlightMode 1 lightmap modulation, 2 direct sun)
+	#if defined(USE_CLOUD_SHADOWS)
+	cascadeShadow *= CloudShadow(u_ViewOrigin - viewDir);
 	#endif
 	// contact shadows only refine the near field of the cascaded shadow map
 	float shadowValue = cascadeShadow * contactShadow * NPL;

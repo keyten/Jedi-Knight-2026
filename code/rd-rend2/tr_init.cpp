@@ -124,6 +124,32 @@ cvar_t	*r_atmosphereSunSize;
 cvar_t	*r_atmosphereSunGlow;
 cvar_t	*r_atmosphereStart;
 cvar_t	*r_atmosphereDebug;
+cvar_t	*r_clouds;
+cvar_t	*r_cloudScale;
+cvar_t	*r_cloudBase;
+cvar_t	*r_cloudTop;
+cvar_t	*r_cloudCoverage;
+cvar_t	*r_cloudDensity;
+cvar_t	*r_cloudAnisotropy;
+cvar_t	*r_cloudWindSpeed;
+cvar_t	*r_cloudWindDir;
+cvar_t	*r_cloudSteps;
+cvar_t	*r_cloudStepLength;
+cvar_t	*r_cloudShadowSteps;
+cvar_t	*r_cloudMSOctaves;
+cvar_t	*r_cloudDetail;
+cvar_t	*r_cloudAmbient;
+cvar_t	*r_cloudTemporal;
+cvar_t	*r_cloudMaxDistance;
+cvar_t	*r_cloudShapeScale;
+cvar_t	*r_cloudDetailScale;
+cvar_t	*r_cloudWeatherScale;
+cvar_t	*r_cloudLegacy;
+cvar_t	*r_cloudSkyPortal;
+cvar_t	*r_cloudShadows;
+cvar_t	*r_cloudShadowExtent;
+cvar_t	*r_cloudShadowInterval;
+cvar_t	*r_cloudDebug;
 cvar_t	*r_volumetricFogAnisotropy;
 cvar_t	*r_volumetricFogTemporal;
 cvar_t	*r_volumetricFogHistoryWeight;
@@ -1871,6 +1897,8 @@ static consoleCommand_t	commands[] = {
 	{ "r_we",				R_WorldEffect_f },
 	{ "r_vfog",				R_VolumetricFog_f },
 	{ "r_atmosphereInfo",	R_AtmosphereInfo_f },
+	{ "r_cloudInfo",		R_CloudInfo_f },
+	{ "r_cloudLayerTest",	R_CloudLayerTest_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_fogvol",			R_FogVolume_f },
@@ -2489,6 +2517,59 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_atmosphereStart, 0, 1000000, qfalse);
 	r_atmosphereDebug = ri_Cvar_Get_NoComm("r_atmosphereDebug", "0", CVAR_CHEAT, "Atmosphere debug view: 1 Rayleigh in-scattering, 2 Mie in-scattering, 3 transmittance, 4 aerial in-scattering, 5 atmosphere-only sky, 6 froxel (red) + atmosphere (green) opacity, 7 LUTs, 8 aerial distance bands (1, 2, 5, 10, 20 km)");
 	ri.Cvar_CheckRange(r_atmosphereDebug, 0, 8, qtrue);
+	// volumetric clouds (tr_clouds.cpp, docs/rend2-volumetric-clouds.md)
+	r_clouds = ri_Cvar_Get_NoComm("r_clouds", "0", CVAR_ARCHIVE | CVAR_LATCH, "Volumetric clouds: a ray marched cloud shell above the map (sun, self shadow, sky ambient), composited between the atmosphere and the froxel fog. Needs a map sun (or r_forceSun); vid_restart");
+	ri.Cvar_CheckRange(r_clouds, 0, 1, qtrue);
+	r_cloudScale = ri_Cvar_Get_NoComm("r_cloudScale", "2", CVAR_ARCHIVE | CVAR_LATCH, "Clouds: march resolution divisor per axis (1, 2, 4), vid_restart");
+	ri.Cvar_CheckRange(r_cloudScale, 1, 4, qtrue);
+	r_cloudBase = ri_Cvar_Get_NoComm("r_cloudBase", "1500", CVAR_ARCHIVE, "Clouds: altitude of the cloud base in metres above the ground (r_atmosphereGroundZ, r_atmosphereUnitScale)");
+	ri.Cvar_CheckRange(r_cloudBase, 0, 20000, qfalse);
+	r_cloudTop = ri_Cvar_Get_NoComm("r_cloudTop", "4000", CVAR_ARCHIVE, "Clouds: altitude of the cloud tops in metres above the ground");
+	ri.Cvar_CheckRange(r_cloudTop, 10, 30000, qfalse);
+	r_cloudCoverage = ri_Cvar_Get_NoComm("r_cloudCoverage", "0.5", CVAR_ARCHIVE, "Clouds: 0 clear, 0.5 the weather map, 1 overcast");
+	ri.Cvar_CheckRange(r_cloudCoverage, 0, 1, qfalse);
+	r_cloudDensity = ri_Cvar_Get_NoComm("r_cloudDensity", "1", CVAR_ARCHIVE, "Clouds: extinction multiplier (1 = 60 per km in a full cloud)");
+	ri.Cvar_CheckRange(r_cloudDensity, 0, 20, qfalse);
+	r_cloudAnisotropy = ri_Cvar_Get_NoComm("r_cloudAnisotropy", "0.6", CVAR_ARCHIVE, "Clouds: Henyey-Greenstein g of the forward lobe (silver lining towards the sun)");
+	ri.Cvar_CheckRange(r_cloudAnisotropy, -0.9f, 0.95f, qfalse);
+	r_cloudWindSpeed = ri_Cvar_Get_NoComm("r_cloudWindSpeed", "10", CVAR_ARCHIVE, "Clouds: wind speed in metres per second");
+	ri.Cvar_CheckRange(r_cloudWindSpeed, 0, 200, qfalse);
+	r_cloudWindDir = ri_Cvar_Get_NoComm("r_cloudWindDir", "45", CVAR_ARCHIVE, "Clouds: wind direction in degrees (world x axis = 0, y = 90)");
+	ri.Cvar_CheckRange(r_cloudWindDir, -360, 360, qfalse);
+	r_cloudSteps = ri_Cvar_Get_NoComm("r_cloudSteps", "64", CVAR_ARCHIVE, "Clouds: max march steps per ray");
+	ri.Cvar_CheckRange(r_cloudSteps, 8, 256, qtrue);
+	r_cloudStepLength = ri_Cvar_Get_NoComm("r_cloudStepLength", "150", CVAR_ARCHIVE, "Clouds: march step length in metres (the step count adapts to the path through the layer, at least 16, at most r_cloudSteps)");
+	ri.Cvar_CheckRange(r_cloudStepLength, 5, 5000, qfalse);
+	r_cloudShadowSteps = ri_Cvar_Get_NoComm("r_cloudShadowSteps", "5", CVAR_ARCHIVE, "Clouds: light march steps towards the sun (self shadow); the shadow map uses twice as many");
+	ri.Cvar_CheckRange(r_cloudShadowSteps, 1, 16, qtrue);
+	r_cloudMSOctaves = ri_Cvar_Get_NoComm("r_cloudMSOctaves", "3", CVAR_ARCHIVE, "Clouds: multiple scattering octaves (1 = single scattering)");
+	ri.Cvar_CheckRange(r_cloudMSOctaves, 1, 4, qtrue);
+	r_cloudDetail = ri_Cvar_Get_NoComm("r_cloudDetail", "1", CVAR_ARCHIVE, "Clouds: erosion by the detail noise (0 = off, cheaper)");
+	ri.Cvar_CheckRange(r_cloudDetail, 0, 2, qfalse);
+	r_cloudAmbient = ri_Cvar_Get_NoComm("r_cloudAmbient", "1", CVAR_ARCHIVE, "Clouds: sky ambient multiplier");
+	ri.Cvar_CheckRange(r_cloudAmbient, 0, 10, qfalse);
+	r_cloudTemporal = ri_Cvar_Get_NoComm("r_cloudTemporal", "0.9", CVAR_ARCHIVE, "Clouds: weight of the reprojected history (0 = no temporal filter)");
+	ri.Cvar_CheckRange(r_cloudTemporal, 0, 0.98f, qfalse);
+	r_cloudMaxDistance = ri_Cvar_Get_NoComm("r_cloudMaxDistance", "60", CVAR_ARCHIVE, "Clouds: march distance limit in km (faded out towards it)");
+	ri.Cvar_CheckRange(r_cloudMaxDistance, 1, 500, qfalse);
+	r_cloudShapeScale = ri_Cvar_Get_NoComm("r_cloudShapeScale", "12", CVAR_ARCHIVE, "Clouds: size in km of one tile of the shape noise");
+	ri.Cvar_CheckRange(r_cloudShapeScale, 0.05f, 1000, qfalse);
+	r_cloudDetailScale = ri_Cvar_Get_NoComm("r_cloudDetailScale", "1.5", CVAR_ARCHIVE, "Clouds: size in km of one tile of the detail (erosion) noise");
+	ri.Cvar_CheckRange(r_cloudDetailScale, 0.01f, 100, qfalse);
+	r_cloudWeatherScale = ri_Cvar_Get_NoComm("r_cloudWeatherScale", "40", CVAR_ARCHIVE, "Clouds: size in km of one tile of the weather (coverage) map");
+	ri.Cvar_CheckRange(r_cloudWeatherScale, 0.5f, 5000, qfalse);
+	r_cloudLegacy = ri_Cvar_Get_NoComm("r_cloudLegacy", "1", CVAR_ARCHIVE, "Clouds: SP fx_cloudlayer entities: 0 ignored (legacy haze drawn), 1 style hint (tube: open sky overhead, alt: thin haze), 2 literal disc / ring at the entity height (debug)");
+	ri.Cvar_CheckRange(r_cloudLegacy, 0, 2, qtrue);
+	r_cloudSkyPortal = ri_Cvar_Get_NoComm("r_cloudSkyPortal", "0", CVAR_ARCHIVE, "Clouds on sky portal maps: 0 off, 1 composited over the portal scene (approximate)");
+	ri.Cvar_CheckRange(r_cloudSkyPortal, 0, 1, qtrue);
+	r_cloudShadows = ri_Cvar_Get_NoComm("r_cloudShadows", "0", CVAR_ARCHIVE, "Clouds: shadows of the clouds on the world (sun of lightall, froxel fog sun)");
+	ri.Cvar_CheckRange(r_cloudShadows, 0, 1, qtrue);
+	r_cloudShadowExtent = ri_Cvar_Get_NoComm("r_cloudShadowExtent", "8", CVAR_ARCHIVE, "Clouds: size in km of the cloud shadow map around the camera");
+	ri.Cvar_CheckRange(r_cloudShadowExtent, 0.5f, 100, qfalse);
+	r_cloudShadowInterval = ri_Cvar_Get_NoComm("r_cloudShadowInterval", "1", CVAR_ARCHIVE, "Clouds: frames between cloud shadow map updates");
+	ri.Cvar_CheckRange(r_cloudShadowInterval, 1, 60, qtrue);
+	r_cloudDebug = ri_Cvar_Get_NoComm("r_cloudDebug", "0", CVAR_CHEAT, "Clouds debug view: 1 interval, 2 max density, 3 shape noise, 4 detail noise, 5 sun transmittance, 6 phase, 7 temporal weight, 8 cloud radiance, 9 legacy mask (r) / coverage (g) / mode (b), 10 weather map, 11 cloud shadow map");
+	ri.Cvar_CheckRange(r_cloudDebug, 0, 11, qtrue);
 	r_volumetricFogAnisotropy = ri_Cvar_Get_NoComm("r_volumetricFogAnisotropy", "0.2", CVAR_ARCHIVE, "Froxel fog: Henyey-Greenstein g of the sun and dynamic light scattering, 0 = isotropic, > 0 forward, < 0 backward; the default of the media without their own g (fogAnisotropy, local volume and FX anisotropy)");
 	ri.Cvar_CheckRange(r_volumetricFogAnisotropy, -0.9f, 0.9f, qfalse);
 	r_volumetricFogTemporal = ri_Cvar_Get_NoComm("r_volumetricFogTemporal", "1", CVAR_ARCHIVE, "Froxel fog: temporal reprojection and jittered sampling");

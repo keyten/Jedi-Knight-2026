@@ -99,6 +99,27 @@ uniform sampler2DArrayShadow u_ShadowMap;	// legacy sun cascades
 #endif
 uniform sampler2DArrayShadow u_ShadowMap2;	// dynamic light cube faces, 6 layers per light
 
+#if defined(USE_CLOUD_SHADOWS)
+// cloud shadows (r_cloudShadows, tr_clouds.cpp): the clouds' sun transmittance on a ground plane around the
+// camera; a point below the clouds slides along the sun onto that plane. u_CloudShadow[0]: centre xy, 1 / extent
+// (world units), plane z; [1]: sun xy / sun z, strength, enabled
+uniform sampler2D u_CloudShadowMap;
+uniform vec4 u_CloudShadow[2];
+
+float CloudShadow(in vec3 position)
+{
+	if (u_CloudShadow[1].w < 0.5)
+		return 1.0;
+	vec2 q = position.xy - u_CloudShadow[1].xy * (position.z - u_CloudShadow[0].w);
+	vec2 uv = (q - u_CloudShadow[0].xy) * u_CloudShadow[0].z + 0.5;
+	float T = textureLod(u_CloudShadowMap, uv, 0.0).r;
+	vec2 edge = abs(uv - 0.5);
+	float inside = 1.0 - smoothstep(0.42, 0.5, max(edge.x, edge.y));
+	return mix(1.0, T, inside * u_CloudShadow[1].z);
+}
+#endif
+
+
 #if defined(USE_FROXEL_COMPUTE)
 int var_Slice;
 #else
@@ -1280,6 +1301,15 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 		}
 		l.sun *= u_FroxelLightParams.y;
 		l.sunUnshadowed *= u_FroxelLightParams.y;
+#if defined(USE_CLOUD_SHADOWS)
+		// clouds between the medium and the sun (r_cloudShadows): an attenuation of the sun itself, so the
+		// "unshadowed" sun of the self-shadow / particle light terms gets it too
+		{
+			float cloudShadow = CloudShadow(p);
+			l.sun *= cloudShadow;
+			l.sunUnshadowed *= cloudShadow;
+		}
+#endif
 
 #if defined(USE_LIQUIDS)
 		// under a liquid surface: the sun passed the liquid above p (r_volumetricWaterSunPath), with

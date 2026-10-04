@@ -265,11 +265,17 @@ static void R_AtmosphereSunColor( const trRefdef_t *refdef, vec3_t out )
 	VectorScale(tr.sunLight, scale, out);
 }
 
-static float R_AtmosphereGroundZ( void )
+float R_AtmosphereGroundZ( void )
 {
 	if ( !Q_stricmp(r_atmosphereGroundZ->string, "auto") || !r_atmosphereGroundZ->string[0] )
 		return tr.world ? tr.world->heightFogAutoBase : 0.0f;
 	return r_atmosphereGroundZ->value;
+}
+
+// the map's sun in buffer units, for the clouds without the atmosphere (tr_clouds.cpp)
+void R_AtmosphereSunGround( const trRefdef_t *refdef, vec3_t out )
+{
+	R_AtmosphereSunColor(refdef, out);
 }
 
 static uint32_t R_AtmosphereHash( uint32_t h, float v )
@@ -536,8 +542,9 @@ void RB_AtmosphereComposite( void )
 
 	FBO_t *oldFbo = glState.currentFBO;
 
+	// the clouds' ambient light reads the sky-view LUT too (tr_clouds.cpp)
 	const qboolean needSkyView = (qboolean)(params.skyMode > 0 ||
-		params.debug == 5 || params.debug == 7);
+		params.debug == 5 || params.debug == 7 || RB_CloudsWantSkyView());
 	RB_AtmosphereUpdateLuts(&params, view, needSkyView);
 
 	const int timer = RB_VolumetricBeginTimer("Atmosphere composite");
@@ -593,6 +600,33 @@ void RB_AtmosphereComposite( void )
 
 	FBO_Bind(oldFbo);
 	GL_SetViewportAndScissor(view->viewportX, view->viewportY, view->viewportWidth, view->viewportHeight);
+}
+
+/*
+=================
+RB_AtmosphereCloudUniforms
+
+The cloud programs (tr_clouds.cpp) light and fog the clouds with this view's
+atmosphere: u_Atmosphere of the last composite, with the aerial distance
+scale at 1 (the clouds are at their physical distance), and the LUTs on the
+units of the atmosphere programs. False when the atmosphere did not composite
+this view.
+=================
+*/
+qboolean RB_AtmosphereCloudUniforms( shaderProgram_t *sp )
+{
+	if ( !backEnd.atmosphereComposited || !s_atmo.hasLast || !s_atmo.lutValid )
+		return qfalse;
+
+	atmosphereParams_t params = s_atmo.last;
+	params.aerialScale = 1.0f;
+	vec4_t u[ATMO_UNIFORM_VEC4S];
+	RB_AtmosphereUniforms(&params, &backEnd.viewParms, 1.0f, qfalse, u);
+	GLSL_SetUniformVec4N(sp, UNIFORM_ATMOSPHERE, &u[0][0], ATMO_UNIFORM_VEC4S);
+	GL_BindToTMU(tr.atmosphereTransmittanceImage, TB_LIGHTMAP);
+	GL_BindToTMU(tr.atmosphereMultiScatterImage, TB_NORMALMAP);
+	GL_BindToTMU(tr.atmosphereSkyViewImage, TB_DELUXEMAP);
+	return (qboolean)s_atmo.skyViewValid;
 }
 
 /*

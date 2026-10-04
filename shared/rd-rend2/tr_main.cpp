@@ -1946,6 +1946,10 @@ static void R_AddEntitySurface(const trRefdef_t *refdef, trRefEntity_t *ent, int
 		if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
 			return;
 		}
+		// SP fx_cloudlayer: the volumetric clouds take it over (r_clouds + r_cloudLegacy)
+		if ( ent->e.reType == RT_CLOUDS && R_CloudsCaptureLegacy(ent) ) {
+			return;
+		}
 		shader = R_GetShaderByHandle( ent->e.customShader );
 		R_AddDrawSurf(
 			&entitySurface,

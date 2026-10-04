@@ -650,6 +650,9 @@ void RB_BeginDrawingView (void) {
 	RB_VolumetricBeginView();
 	// long range atmosphere (tr_atmosphere.cpp)
 	backEnd.atmosphereComposited = qfalse;
+	// volumetric clouds (tr_clouds.cpp)
+	backEnd.cloudsComposited = qfalse;
+	backEnd.cloudSunDrawn = qfalse;
 
 	if ( ( backEnd.refdef.rdflags & RDF_HYPERSPACE ) )
 	{
@@ -1520,7 +1523,8 @@ static void RB_SubmitRenderPass(
 	const qboolean ssr = RB_ScreenSpaceActive();
 	const qboolean froxelFog = RB_VolumetricCompositeActive();
 	const qboolean atmosphere = RB_AtmosphereActive();
-	if (!ssr && !froxelFog && !atmosphere)
+	const qboolean clouds = RB_CloudsActive();
+	if (!ssr && !froxelFog && !atmosphere && !clouds)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
 		return;
@@ -1551,9 +1555,11 @@ static void RB_SubmitRenderPass(
 	// SS_FOG layer from the depth buffer, the transparent layers after it
 	// look up the volume themselves (RB_VolumetricFogMode). The atmosphere
 	// composite (tr_atmosphere.cpp) covers the same layers and runs first:
-	// camera -> local media -> atmosphere -> surface.
+	// camera -> local media -> atmosphere -> surface. The clouds
+	// (tr_clouds.cpp) go between the atmosphere and the froxel fog, over the
+	// sun, which is drawn before them when they are on.
 	uint32_t numFoggedItems = numOpaqueItems;
-	if (froxelFog || atmosphere)
+	if (froxelFog || atmosphere || clouds)
 	{
 		numFoggedItems = numDrawItems;
 		for ( uint32_t i = numOpaqueItems; i < numDrawItems; ++i )
@@ -1573,6 +1579,11 @@ static void RB_SubmitRenderPass(
 	RB_DrawItems(numFoggedItems - numOpaqueItems, renderPass.drawItems, drawOrder + numOpaqueItems);
 	if (atmosphere)
 		RB_AtmosphereComposite();
+	if (clouds)
+	{
+		RB_CloudsDrawSunEarly();
+		RB_CloudsComposite();
+	}
 	if (froxelFog)
 		RB_VolumetricComposite();
 	RB_DrawItems(numDrawItems - numFoggedItems, renderPass.drawItems, drawOrder + numFoggedItems);
@@ -2351,7 +2362,8 @@ static void RB_RenderMainPass( drawSurf_t *drawSurfs, int numDrawSurfs )
 
 	RB_RenderDrawSurfList(drawSurfs, numDrawSurfs);
 
-	if (r_drawSun->integer)
+	// under clouds the sun was drawn before their composite (RB_CloudsDrawSunEarly)
+	if (r_drawSun->integer && !backEnd.cloudSunDrawn)
 	{
 		RB_DrawSun(0.1f, tr.sunShader);
 	}
@@ -2370,6 +2382,9 @@ static void RB_RenderMainPass( drawSurf_t *drawSurfs, int numDrawSurfs )
 		RB_DrawSun(0.3f, tr.sunFlareShader);
 
 		qglEndQuery(GL_SAMPLES_PASSED);
+
+		// the rays start from what the clouds let through
+		RB_CloudsSunRaysMask();
 
 		FBO_Bind(oldFbo);
 	}
@@ -3817,6 +3832,14 @@ static const void *RB_DrawSurfs(const void *data) {
 
 	if (cmd->numDrawSurfs > 0)
 	{
+		// cloud shadow map of the main view, before the froxel injection and
+		// the surfaces sample it (tr_clouds.cpp)
+		if (r_clouds->integer)
+		{
+			RB_CloudsBeginView();
+			SetViewportAndScissor();
+		}
+
 		RB_RenderAllDepthRelatedPasses(cmd->drawSurfs, cmd->numDrawSurfs);
 
 		RB_RenderMainPass(cmd->drawSurfs, cmd->numDrawSurfs);

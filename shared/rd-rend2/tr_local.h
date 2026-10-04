@@ -212,6 +212,33 @@ extern cvar_t	*r_atmosphereSunSize;
 extern cvar_t	*r_atmosphereSunGlow;
 extern cvar_t	*r_atmosphereStart;
 extern cvar_t	*r_atmosphereDebug;
+
+extern cvar_t	*r_clouds;
+extern cvar_t	*r_cloudScale;
+extern cvar_t	*r_cloudBase;
+extern cvar_t	*r_cloudTop;
+extern cvar_t	*r_cloudCoverage;
+extern cvar_t	*r_cloudDensity;
+extern cvar_t	*r_cloudAnisotropy;
+extern cvar_t	*r_cloudWindSpeed;
+extern cvar_t	*r_cloudWindDir;
+extern cvar_t	*r_cloudSteps;
+extern cvar_t	*r_cloudStepLength;
+extern cvar_t	*r_cloudShadowSteps;
+extern cvar_t	*r_cloudMSOctaves;
+extern cvar_t	*r_cloudDetail;
+extern cvar_t	*r_cloudAmbient;
+extern cvar_t	*r_cloudTemporal;
+extern cvar_t	*r_cloudMaxDistance;
+extern cvar_t	*r_cloudShapeScale;
+extern cvar_t	*r_cloudDetailScale;
+extern cvar_t	*r_cloudWeatherScale;
+extern cvar_t	*r_cloudLegacy;
+extern cvar_t	*r_cloudSkyPortal;
+extern cvar_t	*r_cloudShadows;
+extern cvar_t	*r_cloudShadowExtent;
+extern cvar_t	*r_cloudShadowInterval;
+extern cvar_t	*r_cloudDebug;
 extern cvar_t	*r_volumetricFogAnisotropy;
 extern cvar_t	*r_volumetricFogTemporal;
 extern cvar_t	*r_volumetricFogHistoryWeight;
@@ -1632,6 +1659,11 @@ enum
 	// else r_volumetricWater stays off.
 	TB_LIQUIDPLANES        = 29,
 	TB_LIQUIDCAUSTICS      = 30,
+
+	// cloud shadows (r_cloudShadows, tr_clouds.cpp): the sun transmittance map
+	// of the clouds, of lightall and volumetric_inject. Needs
+	// GL_MAX_TEXTURE_IMAGE_UNITS > 31, else r_cloudShadows stays off.
+	TB_CLOUDSHADOW         = 31,
 	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
@@ -2630,6 +2662,19 @@ typedef enum
 	UNIFORM_ATMOSPHERETRANSMITTANCEMAP,	// r_atmosphere transmittance LUT (TB_LIGHTMAP)
 	UNIFORM_ATMOSPHEREMULTISCATTERMAP,	// r_atmosphere multiple scattering LUT (TB_NORMALMAP)
 	UNIFORM_ATMOSPHERESKYVIEWMAP,		// r_atmosphere sky-view LUT (TB_DELUXEMAP)
+
+	UNIFORM_CLOUD,				// vec4[CLOUD_UNIFORM_VEC4S] r_clouds parameters, see clouds_common.glsl
+	UNIFORM_CLOUDINVVIEWPROJECTION,	// r_clouds: clip -> world offset from the camera (no translation, no SMAA T2x jitter)
+	UNIFORM_CLOUDPREVVIEWPROJECTION,	// r_clouds resolve: world -> clip of the previous frame
+	UNIFORM_CLOUDSHAPEMAP,		// r_clouds: 3D shape noise (TB_SPECULARMAP)
+	UNIFORM_CLOUDDETAILMAP,		// r_clouds: 3D erosion noise (TB_SHADOWMAP)
+	UNIFORM_CLOUDWEATHERMAP,	// r_clouds: coverage / cloud type map (TB_CUBEMAP)
+	UNIFORM_CLOUDCURRENTMAP,	// r_clouds: march or resolved scattering + transmittance (TB_ENVBRDFMAP)
+	UNIFORM_CLOUDCURRENTDEPTHMAP,	// r_clouds: its cloud distance (TB_SHADOWMAPARRAY)
+	UNIFORM_CLOUDHISTORYMAP,	// r_clouds resolve: previous frame (TB_SSAOMAP)
+	UNIFORM_CLOUDHISTORYDEPTHMAP,	// r_clouds resolve: previous cloud distance (TB_EMISSIVEMAP)
+	UNIFORM_CLOUDSHADOW,		// vec4[2] r_cloudShadows lookup: centre, 1 / extent, ground z; sun xy / z, strength, enabled
+	UNIFORM_CLOUDSHADOWMAP,		// r_cloudShadows: sun transmittance of the clouds (TB_CLOUDSHADOW)
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -3760,6 +3805,8 @@ typedef struct {
 	qboolean    volumetricView;	// this view uses the froxel volume, see RB_VolumetricBeginView
 	qboolean    volumetricComposited;	// the froxel fog composite of this view ran
 	qboolean    atmosphereComposited;	// the atmosphere composite of this view ran (tr_atmosphere.cpp)
+	qboolean    cloudsComposited;	// the cloud composite of this view ran (tr_clouds.cpp)
+	qboolean    cloudSunDrawn;		// RB_DrawSun already ran under the clouds (RB_CloudsDrawSunEarly)
 } backEndState_t;
 
 /*
@@ -3876,6 +3923,14 @@ typedef struct trGlobals_s {
 	image_t					*atmosphereTransmittanceImage;	// r_atmosphere LUTs (tr_atmosphere.cpp)
 	image_t					*atmosphereMultiScatterImage;
 	image_t					*atmosphereSkyViewImage;
+	image_t					*cloudShapeImage;		// r_clouds (tr_clouds.cpp): 3D noise, generated on the GPU
+	image_t					*cloudDetailImage;
+	image_t					*cloudWeatherImage;		// coverage + type, 3D with one layer (mips, repeat)
+	image_t					*cloudMarchImage;		// reduced resolution march: scattering rgb, transmittance a
+	image_t					*cloudMarchDepthImage;	// its cloud distance (km), < 0 = not sky
+	image_t					*cloudHistoryImage[2];	// temporally resolved march, ping-pong
+	image_t					*cloudHistoryDepthImage[2];
+	image_t					*cloudShadowImage;		// r_cloudShadows: sun transmittance on the ground plane
 	image_t					*froxelNoiseImage;
 	image_t					*froxelExtinctionImage[2];	// froxel fog (r_volumetricFogRGBExtinction): injected sigma_t.rgb, history ping-pong with froxelInjectImage
 	image_t					*froxelTransmittanceImage;	// froxel fog (r_volumetricFogRGBExtinction): integrated T.rgb
@@ -3944,6 +3999,10 @@ typedef struct trGlobals_s {
 	FBO_t					*froxelIntegrateFbo;	// layers attached per slice
 	FBO_t					*froxelCompositeFbo;	// color + glow of renderFbo, no depth
 	FBO_t					*atmosphereCompositeFbo;	// color + glow of renderFbo, no depth (tr_atmosphere.cpp)
+	FBO_t					*cloudNoiseFbo;			// r_clouds noise slices (attachment set per slice)
+	FBO_t					*cloudMarchFbo;
+	FBO_t					*cloudHistoryFbo[2];
+	FBO_t					*cloudShadowFbo;
 	FBO_t					*ssrColorFbo[SSR_COLOR_MIPS];
 	FBO_t					*ltcSaberTraceFbo;
 	FBO_t					*ltcSaberHistoryFbo[2];
@@ -4051,6 +4110,11 @@ typedef struct trGlobals_s {
 	shaderProgram_t atmosphereMultiScatterShader;
 	shaderProgram_t atmosphereSkyViewShader;
 	shaderProgram_t atmosphereCompositeShader;
+	shaderProgram_t cloudNoiseShader;		// r_clouds (tr_clouds.cpp)
+	shaderProgram_t cloudMarchShader;
+	shaderProgram_t cloudResolveShader;
+	shaderProgram_t cloudCompositeShader;
+	shaderProgram_t cloudShadowShader;
 	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
@@ -5657,6 +5721,30 @@ void R_CreateAtmosphereFBOs(void);
 qboolean RB_AtmosphereActive(void);
 void RB_AtmosphereComposite(void);
 void R_AtmosphereInfo_f(void);
+// for tr_clouds.cpp
+float R_AtmosphereGroundZ(void);
+void R_AtmosphereSunGround(const trRefdef_t *refdef, vec3_t out);
+qboolean RB_AtmosphereCloudUniforms(shaderProgram_t *sp);
+
+// tr_clouds.cpp
+#define CLOUD_UNIFORM_VEC4S 20
+qboolean R_CloudsEnabled(void);
+qboolean R_CloudShadowsAvailable(void);
+void R_CreateCloudImages(void);
+void R_CreateCloudFBOs(void);
+const char *R_CloudsOffReason(void);
+qboolean R_CloudsCaptureLegacy(const trRefEntity_t *ent);
+qboolean RB_CloudsWantSkyView(void);
+void RB_CloudsBeginView(void);
+qboolean RB_CloudsActive(void);
+void RB_CloudsDrawSunEarly(void);
+void RB_CloudsComposite(void);
+void RB_CloudsSunRaysMask(void);
+void RB_CloudShadowBind(class UniformDataWriter &uniformDataWriter, class SamplerBindingsWriter &samplerBindingsWriter);
+qboolean RB_CloudShadowBindDirect(shaderProgram_t *sp);
+int R_CloudShadowKey(void);
+void R_CloudInfo_f(void);
+void R_CloudLayerTest_f(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
 // tr_staticlighting.cpp: Static Lighting Reconstruction, once per map load (the light

@@ -423,6 +423,19 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_AtmosphereTransmittanceMap", GLSL_INT, 1 },
 	{ "u_AtmosphereMultiScatterMap", GLSL_INT, 1 },
 	{ "u_AtmosphereSkyViewMap",	GLSL_INT, 1 },
+
+	{ "u_Cloud",				GLSL_VEC4, CLOUD_UNIFORM_VEC4S },
+	{ "u_CloudInvViewProjection", GLSL_MAT4x4, 1 },
+	{ "u_CloudPrevViewProjection", GLSL_MAT4x4, 1 },
+	{ "u_CloudShapeMap",		GLSL_INT, 1 },
+	{ "u_CloudDetailMap",		GLSL_INT, 1 },
+	{ "u_CloudWeatherMap",		GLSL_INT, 1 },
+	{ "u_CloudCurrentMap",		GLSL_INT, 1 },
+	{ "u_CloudCurrentDepthMap",	GLSL_INT, 1 },
+	{ "u_CloudHistoryMap",		GLSL_INT, 1 },
+	{ "u_CloudHistoryDepthMap",	GLSL_INT, 1 },
+	{ "u_CloudShadow",			GLSL_VEC4, 2 },
+	{ "u_CloudShadowMap",		GLSL_INT, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -734,6 +747,11 @@ static size_t GLSL_GetShaderHeader(
 
 	if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
 		Q_strcat(dest, size, "#define USE_TONEMAPPING\n");
+
+	// cloud shadow lookup of lightall and the froxel injection (r_clouds is
+	// latched, r_cloudShadows switches it per frame), tr_clouds.cpp
+	if (R_CloudsEnabled() && R_CloudShadowsAvailable())
+		Q_strcat(dest, size, "#define USE_CLOUD_SHADOWS\n");
 
 	if (extra)
 	{
@@ -3221,6 +3239,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_LIGHTCOOKIEMAP, TB_LIGHTCOOKIES);
 			GLSL_SetUniformInt(program, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 			GLSL_SetUniformInt(program, UNIFORM_LIQUIDCAUSTICMAP, TB_LIQUIDCAUSTICS);
+			GLSL_SetUniformInt(program, UNIFORM_CLOUDSHADOWMAP, TB_CLOUDSHADOW);
 			if ( variant == 1 )
 				GLSL_SetPomSilhouetteUnits(program);
 			qglUseProgram(0);
@@ -4017,6 +4036,8 @@ static int GLSL_LoadGPUProgramVolumetric(
 		// liquid media (r_volumetricWater): plane buffer, caustic pattern
 		GLSL_SetUniformInt(sp, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 		GLSL_SetUniformInt(sp, UNIFORM_LIQUIDCAUSTICMAP, TB_LIQUIDCAUSTICS);
+		// cloud shadows (r_cloudShadows) of the sun injection
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDSHADOWMAP, TB_CLOUDSHADOW);
 		GLSL_SetFroxelLookupUnits(sp);
 		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here
 		GLSL_SetUniformInt(sp, UNIFORM_PARTICLELIGHTVOLUME, TB_ENTITYGRID_AMBIENT);
@@ -4173,6 +4194,82 @@ static int GLSL_LoadGPUProgramAtmosphere(
 		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERESKYVIEWMAP, TB_DELUXEMAP);
 		if ( sp == &tr.atmosphereCompositeShader && froxel )
 			GLSL_SetFroxelLookupUnits(sp);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	}
+
+	return numPrograms;
+}
+
+// Volumetric clouds (r_clouds, tr_clouds.cpp): noise generator, march,
+// temporal resolve, composite, shadow map. Only with r_clouds (latched).
+// The march and the composite also get the atmosphere functions (sun
+// transmittance, sky-view ambient, aerial perspective).
+static int GLSL_LoadGPUProgramClouds(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	if ( !R_CloudsEnabled() )
+		return 0;
+
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+
+	auto fragmentOf = [&]( const char *name, const GPUProgramDesc& fallback ) -> const GPUShaderDesc *
+	{
+		const GPUProgramDesc *desc = LoadProgramSource(name, allocator, fallback);
+		for ( size_t i = 0; i < desc->numShaders; ++i )
+		{
+			if ( desc->shaders[i].type == GPUSHADER_FRAGMENT )
+				return &desc->shaders[i];
+		}
+		ri.Error(ERR_FATAL, "Could not load %s shader library!", name);
+		return nullptr;
+	};
+	const GPUShaderDesc *atmosphere = fragmentOf("atmosphere_common", fallback_atmosphere_commonProgram);
+	const GPUShaderDesc *clouds = fragmentOf("clouds_common", fallback_clouds_commonProgram);
+	const GPUShaderDesc *lit = GLSL_CombineLibraries(allocator, atmosphere, clouds);
+
+	struct
+	{
+		shaderProgram_t *sp;
+		const char *name;
+		const GPUProgramDesc *fallback;
+		const GPUShaderDesc *library;
+	} programs[] =
+	{
+		{ &tr.cloudNoiseShader, "clouds_noise", &fallback_clouds_noiseProgram, nullptr },
+		{ &tr.cloudMarchShader, "clouds_march", &fallback_clouds_marchProgram, lit },
+		{ &tr.cloudResolveShader, "clouds_resolve", &fallback_clouds_resolveProgram, clouds },
+		{ &tr.cloudCompositeShader, "clouds_composite", &fallback_clouds_compositeProgram, lit },
+		{ &tr.cloudShadowShader, "clouds_shadow", &fallback_clouds_shadowProgram, clouds },
+	};
+
+	int numPrograms = 0;
+	for ( size_t i = 0; i < ARRAY_LEN(programs); i++ )
+	{
+		shaderProgram_t *sp = programs[i].sp;
+		const GPUProgramDesc *programDesc =
+			LoadProgramSource(programs[i].name, allocator, *programs[i].fallback);
+		if ( !GLSL_LoadGPUShader(builder, sp, programs[i].name, ATTR_POSITION | ATTR_TEXCOORD0,
+				NO_XFB_VARS, nullptr, *programDesc, programs[i].library) )
+			ri.Error(ERR_FATAL, "Could not load %s shader!", programs[i].name);
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		// units: see RB_CloudsComposite (the atmosphere LUTs on the atmosphere programs' units)
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERETRANSMITTANCEMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHEREMULTISCATTERMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERESKYVIEWMAP, TB_DELUXEMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDSHAPEMAP, TB_SPECULARMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDDETAILMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDWEATHERMAP, TB_CUBEMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDCURRENTMAP, TB_ENVBRDFMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDCURRENTDEPTHMAP, TB_SHADOWMAPARRAY);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDHISTORYMAP, TB_SSAOMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDHISTORYDEPTHMAP, TB_EMISSIVEMAP);
+		// the composite's debug view of the shadow map
+		GLSL_SetUniformInt(sp, UNIFORM_CLOUDSHADOWMAP, TB_SSAOMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -4700,6 +4797,9 @@ static int GLSL_CountStartupPrograms()
 	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
 	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
 	count += 4;
+	// noise, march, resolve, composite, shadow map (GLSL_LoadGPUProgramClouds)
+	if (R_CloudsEnabled())
+		count += 5;
 	if (pom)
 		count += POMSDEF_DEPTH_COUNT + 2;
 	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
@@ -4825,6 +4925,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramVolumetric(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramClouds(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
@@ -4943,6 +5044,11 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.atmosphereMultiScatterShader);
 	GLSL_DeleteGPUShader(&tr.atmosphereSkyViewShader);
 	GLSL_DeleteGPUShader(&tr.atmosphereCompositeShader);
+	GLSL_DeleteGPUShader(&tr.cloudNoiseShader);
+	GLSL_DeleteGPUShader(&tr.cloudMarchShader);
+	GLSL_DeleteGPUShader(&tr.cloudResolveShader);
+	GLSL_DeleteGPUShader(&tr.cloudCompositeShader);
+	GLSL_DeleteGPUShader(&tr.cloudShadowShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
 

@@ -4444,6 +4444,9 @@ void R_CreateBuiltinImages( void ) {
 	// long range atmosphere LUTs (tr_atmosphere.cpp)
 	R_CreateAtmosphereImages();
 
+	// volumetric clouds, r_clouds (tr_clouds.cpp)
+	R_CreateCloudImages();
+
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldImages();
 

@@ -54,6 +54,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_ssr.cpp"
 	"${SharedDir}/rd-rend2/tr_volumetric.cpp"
 	"${SharedDir}/rd-rend2/tr_atmosphere.cpp"
+	"${SharedDir}/rd-rend2/tr_clouds.cpp"
 	"${SharedDir}/rd-rend2/tr_volumetric_reconstruct.cpp"
 	"${SharedDir}/rd-rend2/tr_volrecon.cpp"
 	"${SharedDir}/rd-rend2/tr_volrecon.h"

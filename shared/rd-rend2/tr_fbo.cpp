@@ -590,6 +590,9 @@ void FBO_Init(void)
 	// long range atmosphere: LUT passes and composite (tr_atmosphere.cpp)
 	R_CreateAtmosphereFBOs();
 
+	// volumetric clouds: march, history, shadow map (tr_clouds.cpp)
+	R_CreateCloudFBOs();
+
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldFBOs();
 
