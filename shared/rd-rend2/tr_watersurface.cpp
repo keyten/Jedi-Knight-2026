@@ -36,7 +36,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // volume medium. A shader is drawn as water when at least half of its area on
 // the map faces up (its bottom faces left out): waterfalls and streams (steep
 // patches with the same contents) keep their legacy stages. An existing refractive shader lying on a
-// water brush is water too. Then r_waterOverride (name or prefix*), last the
+// water brush is water too. The env.json "Liquids" profile of a shader
+// (tr_liquid.cpp) sets its optics, as it sets the medium of the liquid brushes
+// it lies on. Then r_waterOverride (name or prefix*), last the
 // experimental name rule (r_waterSurfaceExperimental, off by default).
 //
 // Pipeline: the stage iterator draws a classified surface once with the water
@@ -361,6 +363,11 @@ static void R_WaterDecideShaders( void )
 		}
 		if ( s.contents & CONTENTS_FOG )
 			s.flags |= WATERSURF_FOG_MEDIUM;
+		// the env.json "Liquids" profile of this shader, the medium the
+		// liquid brushes under it get too (tr_liquid.cpp); lava has no water optics
+		const int profile = R_LiquidProfileForShader(s.shader->name);
+		if ( profile == LIQUID_WATER || profile == LIQUID_SLIME )
+			s.liquidClass = profile;
 
 		if ( s.reason == WREASON_UNSUPPORTED )
 			continue;
@@ -1079,9 +1086,10 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	R_LiquidsMaterial(liquidClass, extinction, albedo);
 	const qboolean froxel = RB_VolumetricLookupReady();
 	// the froxel volume holds this liquid: a world brush of an enabled class
-	// (r_volumetricWater mask) or a fog volume (the BSP fog medium)
+	// (r_volumetricWater mask) whose medium is these optics (vjun1: water
+	// brushes with the slime medium under a slime surface)
 	const qboolean froxelLiquid = (qboolean)(froxel && backEnd.currentEntity == &tr.worldEntity &&
-		(R_LiquidClassMask() & (1 << liquidClass)) != 0);
+		(R_LiquidMediumSlotMask() & (1 << liquidClass)) != 0);
 	VectorSet4(water[2], extinction[0] * extinction[3], extinction[1] * extinction[3], extinction[2] * extinction[3],
 		froxelLiquid ? 1.0f : 0.0f);
 	VectorSet4(water[3], albedo[0], albedo[1], albedo[2], albedo[3]);

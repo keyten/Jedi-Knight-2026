@@ -608,7 +608,8 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 #if defined(USE_LIQUIDS)
 	// the liquid brushes that may touch this slice (CPU culled, tr_liquid.cpp): the covered fraction
 	// of the froxel's depth along its ray, from the slice near to the slice far side (union of the
-	// overlapping brushes of a class). Static media without noise: no history reduction.
+	// overlapping brushes of a medium, c below is the medium slot). Static media without noise: no history
+	// reduction; the lateral fraction of a froxel cut by a brush side comes from the XY jitter + history.
 	// (max: the compute tail pass runs this function's caller with var_Slice -1, and a constant
 	// negative index is a compile error on some drivers even in a branch never taken)
 	int liquidSlice = max(var_Slice, 0);

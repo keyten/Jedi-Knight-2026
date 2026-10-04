@@ -40,15 +40,28 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // the sun reaching a point inside a liquid brush passes the liquid above it
 // (exact path length to the surface, transmittance and caustics).
 //
+// Class and medium: the class of a brush (its contents) is what gameplay sees,
+// it selects the brush with the r_volumetricWater mask and tells cgame which
+// tint to drop. The medium slot is the optics it gets (one of the three
+// profiles): its class, except a water brush whose upward side (the drawn
+// surface) has CONTENTS_SLIME, the semantics r_waterSurface reads too
+// (vjun1: caulk_water brushes under the green water2_water1_vjun1), and the
+// optional env.json "Liquids" rules (brush or top side shader name).
+//
 // Brush models (func_door water, inline *N models) are not media: they move,
 // and their brushes have no transform here. cgame keeps its legacy tint for
 // them (it asks the world model contents only, see r_volumetricWaterActive).
+// The stock maps have one: the 16 unit thick func_static water sheet of vjun2,
+// drained by a script, negligible as a medium.
 //
 // docs/rend2-volumetric-fog.md, "Underwater medium".
 
 #include "tr_local.h"
+#include "json.h"
 
 #include <algorithm>
+#include <chrono>
+#include <string>
 #include <vector>
 
 static struct
@@ -66,9 +79,30 @@ static struct
 	int				activeMask;		// last r_volumetricWaterActive value
 	int				lastVisible;	// diagnostics: brushes of the last build
 	int				lastCandidates;
+	float			lastBuildUsec;
 } s_liq;
 
 static const char *s_liquidClassNames[LIQUID_CLASSES] = { "water", "slime", "lava" };
+static const char *s_liquidSlotSources[] = { "contents", "top side slime", "env.json" };
+
+// env.json "Liquids" rules of the current map
+struct liquidRule_t
+{
+	std::string	pattern;	// lower case, trailing '*' = prefix
+	int			profile;	// LIQUID_*
+};
+static std::vector<liquidRule_t> s_liquidRules;
+
+// liquid brushes of the map the medium leaves out (gameplay still sees them)
+struct liquidSkip_t
+{
+	int		brushNum;
+	int		reason;		// world_t::liquidSkipped index
+	int		shaderNum;
+	int		model;		// BSP model of the brush (0 world, N inline *N)
+};
+static std::vector<liquidSkip_t> s_liquidSkips;
+static const char *s_liquidSkipNames[4] = { "fog contents (BSP fog medium)", "shape", "capacity", "brush model (moving)" };
 
 /*
 ============================================================
@@ -88,6 +122,92 @@ static int R_LiquidClassOfContents( int contents )
 		return LIQUID_SLIME;
 	if ( contents & CONTENTS_WATER )
 		return LIQUID_WATER;
+	return -1;
+}
+
+/*
+=================
+R_LoadLiquidRules
+
+env.json "Liquids" of the map (cubemaps/<map>/env.json, optional):
+
+	"Liquids": [ { "Shader": "textures/common/water_1", "Profile": "slime" },
+	             { "Shader": "textures/h_evil/*", "Profile": "water" } ]
+
+A rule matches the BSP shader of a liquid brush (its contents) or the shader
+of its upward side (the drawn liquid surface); a trailing '*' is a prefix.
+Profile water | slime | lava: the medium (optics) the brush gets, the
+r_volumetricWater* / Slime* / Lava* cvars. The gameplay class (the mask, the
+cgame tint) stays the contents. The first matching rule wins. r_waterSurface
+takes the same profile for a matching surface shader.
+=================
+*/
+static void R_LoadLiquidRules( const char *baseName )
+{
+	s_liquidRules.clear();
+
+	char filename[MAX_QPATH];
+	Com_sprintf(filename, sizeof(filename), "cubemaps/%s/env.json", baseName);
+	union { char *c; void *v; } buffer;
+	const int filelen = ri.FS_ReadFile(filename, &buffer.v);
+	if ( !buffer.c )
+		return;
+	const char *jsonEnd = buffer.c + filelen;
+	const char *array = (JSON_ValueGetType(buffer.c, jsonEnd) == JSONTYPE_OBJECT) ?
+		JSON_ObjectGetNamedValue(buffer.c, jsonEnd, "Liquids") : NULL;
+	if ( array && JSON_ValueGetType(array, jsonEnd) != JSONTYPE_ARRAY )
+	{
+		ri.Printf(PRINT_WARNING, "%s: Liquids is not an array\n", filename);
+		array = NULL;
+	}
+
+	const int count = array ? (int)JSON_ArrayGetIndex(array, jsonEnd, NULL, 0) : 0;
+	for ( int i = 0; i < count; i++ )
+	{
+		const char *entry = JSON_ArrayGetValue(array, jsonEnd, i);
+		const char *shaderValue = entry ? JSON_ObjectGetNamedValue(entry, jsonEnd, "Shader") : NULL;
+		const char *profileValue = entry ? JSON_ObjectGetNamedValue(entry, jsonEnd, "Profile") : NULL;
+		char shader[MAX_QPATH] = "", profile[16] = "";
+		if ( shaderValue )
+			JSON_ValueGetString(shaderValue, jsonEnd, shader, sizeof(shader));
+		if ( profileValue )
+			JSON_ValueGetString(profileValue, jsonEnd, profile, sizeof(profile));
+
+		int liquidProfile = -1;
+		for ( int c = 0; c < LIQUID_CLASSES; c++ )
+		{
+			if ( !Q_stricmp(profile, s_liquidClassNames[c]) )
+				liquidProfile = c;
+		}
+		if ( !shader[0] || liquidProfile < 0 )
+		{
+			ri.Printf(PRINT_WARNING, "%s: Liquids[%d] needs a \"Shader\" and a \"Profile\" (water, slime, lava)\n",
+				filename, i);
+			continue;
+		}
+		Q_strlwr(shader);
+		s_liquidRules.push_back({ shader, liquidProfile });
+	}
+	if ( !s_liquidRules.empty() )
+		ri.Printf(PRINT_ALL, "%s: %d liquid profile rule%s\n", filename, (int)s_liquidRules.size(),
+			(s_liquidRules.size() == 1) ? "" : "s");
+	ri.FS_FreeFile(buffer.v);
+}
+
+int R_LiquidProfileForShader( const char *name )
+{
+	// the rules of the last loaded world map (R_LoadLiquidBrushes, before tr.world is set)
+	if ( !name || !name[0] || s_liquidRules.empty() )
+		return -1;
+	char lower[MAX_QPATH];
+	Q_strncpyz(lower, name, sizeof(lower));
+	Q_strlwr(lower);
+	for ( const liquidRule_t& rule : s_liquidRules )
+	{
+		const size_t n = rule.pattern.size();
+		if ( n && rule.pattern[n - 1] == '*' ? !strncmp(lower, rule.pattern.c_str(), n - 1) : rule.pattern == lower )
+			return rule.profile;
+	}
 	return -1;
 }
 
@@ -113,6 +233,7 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 	world->liquidClassMask = 0;
 	Com_Memset(world->liquidSkipped, 0, sizeof(world->liquidSkipped));
 	world->liquidLoadMsec = 0.0f;
+	R_LoadLiquidRules(world->baseName);
 
 	if ( modelsLump->filelen < (int)sizeof(dmodel_t) ||
 		brushesLump->filelen % sizeof(dbrush_t) ||
@@ -125,6 +246,7 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 	const dbrush_t *brushes = (const dbrush_t *)(fileBase + brushesLump->fileofs);
 	const dbrushside_t *sides = (const dbrushside_t *)(fileBase + sidesLump->fileofs);
 	const int numBrushes = brushesLump->filelen / sizeof(dbrush_t);
+	const int numModels = modelsLump->filelen / sizeof(dmodel_t);
 	const int numSides = sidesLump->filelen / sizeof(dbrushside_t);
 	const int firstBrush = LittleLong(model->firstBrush);
 	const int modelBrushes = LittleLong(model->numBrushes);
@@ -133,6 +255,19 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 
 	std::vector<liquidBrush_t> liquids;
 	std::vector<float> planes;
+	s_liquidSkips.clear();
+	auto skip = [&]( int reason, int brushNum, int shaderNum )
+	{
+		world->liquidSkipped[reason]++;
+		liquidSkip_t record = { brushNum, reason, shaderNum, -1 };
+		for ( int m = 0; m < numModels; m++ )
+		{
+			const int fb = LittleLong(model[m].firstBrush);
+			if ( brushNum >= fb && brushNum < fb + LittleLong(model[m].numBrushes) )
+				record.model = m;
+		}
+		s_liquidSkips.push_back(record);
+	};
 
 	for ( int i = 0; i < numBrushes; i++ )
 	{
@@ -147,13 +282,13 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 		// liquids of the moving brush models: not supported (no transform)
 		if ( i < firstBrush || i >= firstBrush + modelBrushes )
 		{
-			world->liquidSkipped[3]++;
+			skip(3, i, shaderNum);
 			continue;
 		}
 		// a fog volume brush already is a medium of the froxel fog (R_LoadFogs)
 		if ( contents & CONTENTS_FOG )
 		{
-			world->liquidSkipped[0]++;
+			skip(0, i, shaderNum);
 			continue;
 		}
 
@@ -161,7 +296,7 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 		const int brushSides = LittleLong(brushes[i].numSides);
 		if ( brushSides < 6 || brushSides > MAX_LIQUID_SIDES || firstSide < 0 || firstSide + brushSides > numSides )
 		{
-			world->liquidSkipped[1]++;
+			skip(1, i, shaderNum);
 			continue;
 		}
 
@@ -187,32 +322,63 @@ void R_LoadLiquidBrushes( world_t *world, const byte *fileBase, const lump_t *mo
 		if ( !axial || brush.bounds[0][0] >= brush.bounds[1][0] ||
 			brush.bounds[0][1] >= brush.bounds[1][1] || brush.bounds[0][2] >= brush.bounds[1][2] )
 		{
-			world->liquidSkipped[1]++;
+			skip(1, i, shaderNum);
 			continue;
 		}
 
 		if ( (int)liquids.size() >= MAX_LIQUID_BRUSHES ||
 			(int)(planes.size() / 4) + brushSides > MAX_LIQUID_PLANES )
 		{
-			world->liquidSkipped[2]++;
+			skip(2, i, shaderNum);
 			continue;
 		}
 
 		brush.firstPlane = (int)(planes.size() / 4);
 		brush.liquidClass = liquidClass;
+		brush.mediumSlot = liquidClass;
+		brush.slotSource = LIQUIDSLOT_CONTENTS;
 		brush.brushNum = i;
 		brush.shaderNum = shaderNum;
+		brush.topShaderNum = -1;
 		for ( int k = 0; k < brushSides; k++ )
 		{
 			const int planeNum = LittleLong(sides[firstSide + k].planeNum);
 			if ( planeNum < 0 || planeNum >= world->numplanes )
 				continue;
 			const cplane_t *plane = &world->planes[planeNum];
+			// the upward side: the drawn surface of the liquid (a liquid shader
+			// before caulk / nodraw when there are several)
+			const int sideShader = LittleLong(sides[firstSide + k].shaderNum);
+			if ( plane->normal[2] > 0.7f && sideShader >= 0 && sideShader < world->numShaders &&
+				(brush.topShaderNum < 0 ||
+				(R_LiquidClassOfContents(world->shaders[sideShader].contentFlags) >= 0 &&
+				!(world->shaders[sideShader].surfaceFlags & SURF_NODRAW) &&
+				(world->shaders[brush.topShaderNum].surfaceFlags & SURF_NODRAW))) )
+			{
+				brush.topShaderNum = sideShader;
+			}
 			planes.push_back(plane->normal[0]);
 			planes.push_back(plane->normal[1]);
 			planes.push_back(plane->normal[2]);
 			planes.push_back(plane->dist);
 			brush.numPlanes++;
+		}
+
+		// the medium: env.json rule (brush shader, then top side shader), else a
+		// water brush under a slime-flagged surface is slime, else the class
+		const int topContents = (brush.topShaderNum >= 0) ? world->shaders[brush.topShaderNum].contentFlags : 0;
+		int profile = R_LiquidProfileForShader(world->shaders[shaderNum].shader);
+		if ( profile < 0 && brush.topShaderNum >= 0 )
+			profile = R_LiquidProfileForShader(world->shaders[brush.topShaderNum].shader);
+		if ( profile >= 0 )
+		{
+			brush.mediumSlot = profile;
+			brush.slotSource = LIQUIDSLOT_ENV_JSON;
+		}
+		else if ( liquidClass == LIQUID_WATER && (topContents & CONTENTS_SLIME) )
+		{
+			brush.mediumSlot = LIQUID_SLIME;
+			brush.slotSource = LIQUIDSLOT_TOP_SLIME;
 		}
 		liquids.push_back(brush);
 		world->liquidClassMask |= 1 << liquidClass;
@@ -334,6 +500,20 @@ int R_LiquidClassMask( void )
 	if ( !R_LiquidsAvailable() || !tr.world )
 		return 0;
 	return r_volumetricWater->integer & tr.world->liquidClassMask & ((1 << LIQUID_CLASSES) - 1);
+}
+
+// the media (optics slots) of the brushes R_LiquidClassMask draws
+int R_LiquidMediumSlotMask( void )
+{
+	const int mask = R_LiquidClassMask();
+	int slots = 0;
+	for ( int i = 0; mask && i < tr.world->numLiquids; i++ )
+	{
+		const liquidBrush_t *brush = &tr.world->liquids[i];
+		if ( mask & (1 << brush->liquidClass) )
+			slots |= 1 << brush->mediumSlot;
+	}
+	return slots;
 }
 
 int R_LiquidPointClass( const vec3_t p )
@@ -555,9 +735,15 @@ runtime switches of its world view test). Camera independent; set only when
 it changes, cgame sees it one frame later.
 =================
 */
-void R_LiquidsUpdateActive( void )
+void R_LiquidsUpdateActive( const trRefdef_t *refdef )
 {
-	const int mask = (r_drawfog->integer && r_depthPrepass->integer) ? R_LiquidClassMask() : 0;
+	// scenes without a world view (menus, portraits) say nothing about the camera
+	if ( refdef && (refdef->rdflags & RDF_NOWORLDMODEL) )
+		return;
+	// the scene conditions under which the froxel volume is never built
+	// (RB_UpdateVolumetricConstants): no medium, cgame keeps its tint
+	const qboolean noVolume = (qboolean)(refdef && (refdef->doLAGoggles || (refdef->rdflags & RDF_HYPERSPACE)));
+	const int mask = (r_drawfog->integer && r_depthPrepass->integer && !noVolume) ? R_LiquidClassMask() : 0;
 	if ( mask != s_liq.activeMask || (r_volumetricWaterActive && r_volumetricWaterActive->integer != mask) )
 	{
 		ri.Cvar_Set("r_volumetricWaterActive", va("%i", mask));
@@ -582,7 +768,7 @@ void R_LiquidsWorldLoaded( void )
 		R_LiquidsUploadPlanes();
 		R_LiquidsCreateCausticImage();
 	}
-	R_LiquidsUpdateActive();
+	R_LiquidsUpdateActive(NULL);
 }
 
 /*
@@ -649,6 +835,9 @@ unsigned int R_LiquidsMediumKey( unsigned int key )
 	const int mask = R_LiquidClassMask();
 	key = (key ^ (unsigned int)mask) * 16777619u;
 	key = (key ^ (unsigned int)(tr.world ? tr.world->numLiquids : 0)) * 16777619u;
+	// the media of the brushes (env.json rules are per map, but keep the key exact)
+	for ( int i = 0; tr.world && i < tr.world->numLiquids; i++ )
+		key = (key ^ (unsigned int)tr.world->liquids[i].mediumSlot) * 16777619u;
 	return key;
 }
 
@@ -714,6 +903,7 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 	int numSlices, int (*depthSlice)(float depth), int cameraClass, float time )
 {
 	Com_Memset(block, 0, sizeof(*block));
+	const auto buildStart = std::chrono::steady_clock::now();
 	const int mask = R_LiquidClassMask();
 	block->params[1] = (float)cameraClass;
 	block->params[3] = (float)mask;
@@ -755,7 +945,7 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 		VectorSet4(block->mins[n], brush->bounds[0][0], brush->bounds[0][1], brush->bounds[0][2],
 			(float)brush->firstPlane);
 		VectorSet4(block->maxs[n], brush->bounds[1][0], brush->bounds[1][1], brush->bounds[1][2],
-			(float)(brush->numPlanes + 64 * brush->liquidClass));
+			(float)(brush->numPlanes + 64 * brush->mediumSlot + 256 * brush->liquidClass));
 
 		const int z0 = Q_max(0, depthSlice(MAX(candidate.minDepth, 0.0f)) - 1);
 		const int z1 = Q_min(numSlices - 1, depthSlice(MIN(candidate.maxDepth, farZ)) + 1);
@@ -767,10 +957,13 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 	block->params[0] = (float)count;
 	block->params[2] = r_volumetricWaterSunPath->integer ? 1.0f : 0.0f;
 
+	// the media in use: the profile of every slot a drawn brush has (a water
+	// brush may take the slime profile), the others zero
+	const int slots = R_LiquidMediumSlotMask();
 	for ( int c = 0; c < LIQUID_CLASSES; c++ )
 	{
 		R_LiquidsMaterial(c, block->material[c * 2], block->material[c * 2 + 1]);
-		if ( !(mask & (1 << c)) )
+		if ( !(slots & (1 << c)) )
 			block->material[c * 2][3] = 0.0f;
 	}
 
@@ -785,6 +978,7 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 	// lod) is set by the caller, which knows the froxel grid
 	const float fadeStart = farZ * 0.8f;
 	VectorSet4(block->view, fadeStart, 1.0f / MAX(farZ - fadeStart, 1.0f), 0.0f, 0.0f);
+	s_liq.lastBuildUsec = std::chrono::duration<float, std::micro>(std::chrono::steady_clock::now() - buildStart).count();
 	return count;
 }
 
@@ -826,7 +1020,10 @@ UniformBlockBinding RB_GetLiquidsBlockUniformBinding( void )
 =================
 R_Liquids_f
 
-r_liquids: the liquid brushes of the map and of the last froxel frame
+r_liquids: the liquid brushes of the map, their media, what gameplay sees that
+the medium does not, the last froxel frame, memory and timings.
+r_liquids dump: the same as one JSON object per map (tools/rend2/liquid_audit.py
+prints the same fields for every BSP without the game).
 =================
 */
 void R_Liquids_f( void )
@@ -837,24 +1034,86 @@ void R_Liquids_f( void )
 		return;
 	}
 	const world_t *w = tr.world;
-	ri.Printf(PRINT_ALL, "Liquid brushes of %s: %d (%d planes), load %.2f ms\n", w->baseName,
-		w->numLiquids, w->numLiquidPlanes, w->liquidLoadMsec);
+	const qboolean dump = (qboolean)(ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "dump"));
+	auto shaderName = [w]( int n ) { return (n >= 0 && n < w->numShaders) ? w->shaders[n].shader : "-"; };
+
+	int classCount[LIQUID_CLASSES] = {}, slotCount[LIQUID_CLASSES] = {}, sourceCount[3] = {};
+	for ( int i = 0; i < w->numLiquids; i++ )
+	{
+		classCount[w->liquids[i].liquidClass]++;
+		slotCount[w->liquids[i].mediumSlot]++;
+		sourceCount[w->liquids[i].slotSource]++;
+	}
+
+	// memory: the static plane buffer (at least one texel), the caustic pattern
+	// with its mips, the block of every scene, the hunk of the map
+	const int planeBytes = MAX(w->numLiquidPlanes, 1) * (int)sizeof(vec4_t);
+	const int causticBytes = s_liq.causticImageValid ? 256 * 256 * 2 * 4 / 3 : 0;
+	const int hunkBytes = w->numLiquids * (int)sizeof(liquidBrush_t) + w->numLiquidPlanes * (int)sizeof(vec4_t);
+
+	if ( dump )
+	{
+		ri.Printf(PRINT_ALL, "{ \"map\": \"%s\", \"brushes\": %d, \"planes\": %d, \"water\": %d, \"slime\": %d, \"lava\": %d,\n",
+			w->baseName, w->numLiquids, w->numLiquidPlanes, classCount[0], classCount[1], classCount[2]);
+		ri.Printf(PRINT_ALL, "  \"media\": { \"water\": %d, \"slime\": %d, \"lava\": %d }, \"slotSources\": { \"contents\": %d, \"topSlime\": %d, \"envJson\": %d },\n",
+			slotCount[0], slotCount[1], slotCount[2], sourceCount[0], sourceCount[1], sourceCount[2]);
+		ri.Printf(PRINT_ALL, "  \"skipped\": { \"fog\": %d, \"shape\": %d, \"capacity\": %d, \"brushModel\": %d },\n",
+			w->liquidSkipped[0], w->liquidSkipped[1], w->liquidSkipped[2], w->liquidSkipped[3]);
+		ri.Printf(PRINT_ALL, "  \"lastFrame\": { \"visible\": %d, \"candidates\": %d, \"gpuMax\": %d, \"buildUsec\": %.1f },\n",
+			s_liq.lastVisible, s_liq.lastCandidates, MAX_GPU_LIQUIDS, s_liq.lastBuildUsec);
+		ri.Printf(PRINT_ALL, "  \"memory\": { \"planeBuffer\": %d, \"caustics\": %d, \"blockPerScene\": %d, \"hunk\": %d }, \"loadMsec\": %.2f,\n",
+			planeBytes, causticBytes, (int)sizeof(LiquidsBlock), hunkBytes, w->liquidLoadMsec);
+		ri.Printf(PRINT_ALL, "  \"liquids\": [\n");
+		for ( int i = 0; i < w->numLiquids; i++ )
+		{
+			const liquidBrush_t *b = &w->liquids[i];
+			ri.Printf(PRINT_ALL, "    { \"brush\": %d, \"class\": \"%s\", \"medium\": \"%s\", \"source\": \"%s\", \"sides\": %d, \"shader\": \"%s\", \"top\": \"%s\", \"mins\": [%g, %g, %g], \"maxs\": [%g, %g, %g] }%s\n",
+				b->brushNum, s_liquidClassNames[b->liquidClass], s_liquidClassNames[b->mediumSlot],
+				s_liquidSlotSources[b->slotSource], b->numPlanes, shaderName(b->shaderNum), shaderName(b->topShaderNum),
+				b->bounds[0][0], b->bounds[0][1], b->bounds[0][2], b->bounds[1][0], b->bounds[1][1], b->bounds[1][2],
+				(i + 1 < w->numLiquids) ? "," : "");
+		}
+		ri.Printf(PRINT_ALL, "  ],\n  \"gameplayOnly\": [\n");
+		for ( size_t i = 0; i < s_liquidSkips.size(); i++ )
+		{
+			const liquidSkip_t& k = s_liquidSkips[i];
+			ri.Printf(PRINT_ALL, "    { \"brush\": %d, \"model\": %d, \"reason\": \"%s\", \"shader\": \"%s\" }%s\n",
+				k.brushNum, k.model, s_liquidSkipNames[k.reason], shaderName(k.shaderNum),
+				(i + 1 < s_liquidSkips.size()) ? "," : "");
+		}
+		ri.Printf(PRINT_ALL, "  ] }\n");
+		return;
+	}
+
+	ri.Printf(PRINT_ALL, "Liquid brushes of %s: %d (%d planes): %d water, %d slime, %d lava; load %.2f ms\n", w->baseName,
+		w->numLiquids, w->numLiquidPlanes, classCount[0], classCount[1], classCount[2], w->liquidLoadMsec);
+	ri.Printf(PRINT_ALL, "  media: %d water, %d slime, %d lava profile (%d by contents, %d slime top side, %d env.json; %d rule%s)\n",
+		slotCount[0], slotCount[1], slotCount[2], sourceCount[0], sourceCount[1], sourceCount[2],
+		(int)s_liquidRules.size(), (s_liquidRules.size() == 1) ? "" : "s");
 	ri.Printf(PRINT_ALL, "  skipped: %d fog contents, %d shape (sides / not axial), %d capacity, %d brush model (moving, unsupported)\n",
 		w->liquidSkipped[0], w->liquidSkipped[1], w->liquidSkipped[2], w->liquidSkipped[3]);
-	ri.Printf(PRINT_ALL, "  r_volumetricWater %d (latched), available %s, classes drawn %d (r_volumetricWaterActive %d), surfaces %s\n",
+	for ( const liquidSkip_t& k : s_liquidSkips )
+	{
+		ri.Printf(PRINT_ALL, "    gameplay only: brush %5d model %3d %-30s %s\n", k.brushNum, k.model,
+			s_liquidSkipNames[k.reason], shaderName(k.shaderNum));
+	}
+	ri.Printf(PRINT_ALL, "  r_volumetricWater %d (latched), available %s, classes drawn %d (r_volumetricWaterActive %d), media %d, surfaces %s\n",
 		r_volumetricWater->integer, R_LiquidsAvailable() ? "yes" : "no", R_LiquidClassMask(),
-		r_volumetricWaterActive->integer, R_LiquidSurfacesEnabled() ? "yes" : "no");
-	ri.Printf(PRINT_ALL, "  last froxel frame: %d visible of %d candidates (GPU max %d)\n",
-		s_liq.lastVisible, s_liq.lastCandidates, MAX_GPU_LIQUIDS);
+		r_volumetricWaterActive->integer, R_LiquidMediumSlotMask(), R_LiquidSurfacesEnabled() ? "yes" : "no");
+	ri.Printf(PRINT_ALL, "  last froxel frame: %d visible of %d candidates (GPU max %d, %d dropped), build %.1f us\n",
+		s_liq.lastVisible, s_liq.lastCandidates, MAX_GPU_LIQUIDS, s_liq.lastCandidates - s_liq.lastVisible,
+		s_liq.lastBuildUsec);
+	ri.Printf(PRINT_ALL, "  memory: plane buffer %d B, caustics %d B, Liquids block %d B per scene, hunk %d B\n",
+		planeBytes, causticBytes, (int)sizeof(LiquidsBlock), hunkBytes);
 
 	for ( int i = 0; i < w->numLiquids; i++ )
 	{
 		const liquidBrush_t *b = &w->liquids[i];
-		const char *shader = (b->shaderNum >= 0 && b->shaderNum < w->numShaders) ? w->shaders[b->shaderNum].shader : "?";
-		ri.Printf(PRINT_ALL, "  %3d %-5s brush %5d sides %2d (%5.0f %5.0f %5.0f)-(%5.0f %5.0f %5.0f) %s\n",
-			i, s_liquidClassNames[b->liquidClass], b->brushNum, b->numPlanes,
+		ri.Printf(PRINT_ALL, "  %3d %-5s medium %-5s (%s) brush %5d sides %2d (%5.0f %5.0f %5.0f)-(%5.0f %5.0f %5.0f) %s top %s\n",
+			i, s_liquidClassNames[b->liquidClass], s_liquidClassNames[b->mediumSlot], s_liquidSlotSources[b->slotSource],
+			b->brushNum, b->numPlanes,
 			b->bounds[0][0], b->bounds[0][1], b->bounds[0][2],
-			b->bounds[1][0], b->bounds[1][1], b->bounds[1][2], shader);
+			b->bounds[1][0], b->bounds[1][1], b->bounds[1][2], shaderName(b->shaderNum), shaderName(b->topShaderNum));
 	}
 
 	const int cameraClass = w->numLiquids ? R_LiquidPointClass(tr.refdef.vieworg) : -1;

@@ -1528,7 +1528,7 @@ struct LiquidsBlock
 	vec4_t view;							// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
 	vec4_t material[LIQUID_CLASSES * 2];	// per class: (extinction color rgb, mean 1; a: extinction per unit), (albedo rgb, a: anisotropy g)
 	vec4_t mins[MAX_GPU_LIQUIDS];			// brush bounds, w: first plane in the plane buffer
-	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * liquid class
+	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * medium slot + 256 * liquid class
 	int slices[FROXEL_MAX_SLICES];			// visible brushes that may touch a slice, bit i = brush i (ivec4[32])
 };
 
@@ -5842,17 +5842,25 @@ typedef struct liquidBrush_s
 	vec3_t	bounds[2];		// axial sides
 	int		firstPlane;		// into world_t::liquidPlanes
 	int		numPlanes;
-	int		liquidClass;	// LIQUID_*
+	int		liquidClass;	// LIQUID_* of the contents: gameplay class (r_volumetricWater mask, cgame tint)
+	int		mediumSlot;		// LIQUID_* whose medium (optics) it gets, see liquidSlotSource_t
+	int		slotSource;		// LIQUIDSLOT_*
 	int		brushNum;		// BSP brush
 	int		shaderNum;		// BSP shader of the brush contents
+	int		topShaderNum;	// BSP shader of its upward side (the drawn liquid surface), -1 none
 } liquidBrush_t;
+
+// where liquidBrush_t::mediumSlot comes from
+enum { LIQUIDSLOT_CONTENTS, LIQUIDSLOT_TOP_SLIME, LIQUIDSLOT_ENV_JSON };
 
 void R_LoadLiquidBrushes(world_t *world, const byte *fileBase, const lump_t *modelsLump,
 	const lump_t *brushesLump, const lump_t *sidesLump);
 void R_LiquidsWorldLoaded(void);			// after tr.world is set: planes, caustics, r_volumetricWaterActive
-void R_LiquidsUpdateActive(void);			// r_volumetricWaterActive for cgame (set on change)
+void R_LiquidsUpdateActive(const trRefdef_t *refdef);	// r_volumetricWaterActive for cgame (set on change)
 void R_LiquidsShutdown(void);
 int R_LiquidClassMask(void);				// LIQUID_* classes handled this map (r_volumetricWater, brushes, resources)
+int R_LiquidMediumSlotMask(void);		// LIQUID_* media (optics) of the brushes drawn this map
+int R_LiquidProfileForShader(const char *name);	// env.json "Liquids" profile of a shader name, -1 none
 qboolean R_LiquidsAvailable(void);		// latched r_volumetricWater with the texture units for it
 qboolean R_LiquidSurfacesEnabled(void);	// USE_LIQUID_SUN in lightall
 void R_LiquidsLatchPrograms(void);		// GLSL_LoadGPUShaders: decide liquids for this program set

@@ -2079,7 +2079,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	{
 		static const LiquidsBlock noLiquids = {};
 		tr.liquidsUboOffset = RB_AppendConstantsData(frame, &noLiquids, sizeof(noLiquids));
-		R_LiquidsUpdateActive();
+		R_LiquidsUpdateActive(refdef);
 	}
 
 	VolumetricFogBlock block = {};

@@ -2194,8 +2194,11 @@ loaded:
   brushes and 4096 planes per map.
 
 The planes go to a static RGBA32F buffer texture (`TB_LIQUIDPLANES` 29), uploaded on map load and
-again whenever `tr.world` changes. `r_liquids` lists the brushes, the skipped ones with their
-reason, the load time, the last frame's visible count and the camera contents.
+again whenever `tr.world` changes. `r_liquids` lists the brushes with their class and medium, the
+skipped ones (gameplay liquid the medium leaves out) with their reason, shader and model, the load
+time, the last frame's visible count, GPU cap drops and build time, the memory and the camera
+contents; `r_liquids dump` prints the same as JSON. `tools/rend2/liquid_audit.py` prints the same
+fields for every BSP without the game (see "Production review").
 
 Stock maps (scanned from the PK3s, then run through the real loader in a CPU harness):
 
@@ -2203,10 +2206,13 @@ Stock maps (scanned from the PK3s, then run through the real loader in a CPU har
 |---|---|---|
 | **t3_hevil** | 11 water | Main test map: a large lake 368 units deep, side pools, sun |
 | yavin1b | 8 water | Outdoor sun, shallow streams |
-| t2_port | 27 water (+11 water+fog skipped) | Many brushes |
+| vjun1 | 5 water, slime medium | 352 deep, green `water2_water1_vjun1` surface (see "Class and medium") |
+| t2_port (mod pk3) | 27 water (+11 water+fog skipped) | Many brushes |
 | t2_rancor / yavin1 | 6 / 4 water | |
 | kor1, taspir2 | 2 / 8 lava (taspir2: +4 water+fog skipped) | Lava stays off by default |
 | vjun2 | 0 (1 water brush in a brush model) | The moving-liquid limitation |
+
+The full per-map audit is in "Production review" below.
 
 ### Per frame (`R_LiquidsBuild`, `Liquids` block)
 
@@ -2232,7 +2238,11 @@ A brush is convex, so its inside is `dot(n, p) <= d` for all its planes. For eac
 side along the jittered ray direction, against every brush in the slice mask:
 
 - The axial slab test comes first, then the remaining planes.
-- The intervals of a class are united, not summed, because the mapper's brushes overlap.
+- The intervals of a medium are united, not summed, because the mapper's brushes overlap.
+- While no medium has more than two intervals on the segment (nearly every froxel: one brush, or
+  the seam of two touching or doubled brushes) the union is computed in registers; only otherwise
+  does the sorted hit list (8 entries, the earliest kept) run. The list is dynamically indexed and
+  costs scratch memory on some GPUs (Intel UHD: 59 ms -> 2.3 ms for a full 1080p grid with one brush).
 
 The extinction is σ × the covered fraction of the segment. A froxel cut by the water surface
 therefore integrates its exact share of water, not a step at the jittered sample point. Slice 0
@@ -2323,7 +2333,7 @@ together with the MP `cgamex86_64.dll`.
 
 | Class | Extinction / unit | Relative extinction rgb | Albedo rgb | g |
 |---|---|---|---|---|
-| water | 0.0014 (1/e after ~700 units) | 2.0 0.75 0.25 | 0.10 0.45 0.75 | 0.75 |
+| water | 0.0014 (1/e after ~714 units, fogparms D ~3670) | 2.0 0.75 0.25 | 0.10 0.45 0.75 | 0.75 |
 | slime | 0.005 | 1.6 0.5 0.9 | 0.25 0.7 0.2 | 0.4 |
 | lava | 0.02 | 0.6 1.2 1.2 | 0.6 0.15 0.02 | 0.3 |
 
@@ -2337,6 +2347,38 @@ The relative extinction is normalized to mean 1, as for every medium:
 
 Lava has no emission term (absorption and scattering only). Cvars:
 `r_volumetric{Water,Slime,Lava}{Extinction,Color,Albedo,Anisotropy}`.
+
+Units: extinction is per world unit, and the 1/e distance is 1/σ. A fogparms `depthForOpaque` D
+(BSP and local fog volumes) converts as σ = −ln(1.5/255)/D = 5.14/D. So water 0.0014 ≈ D 3670,
+slime 0.005 ≈ D 1030 (close to the fogparms 1024 of `bespin/water2`), and lava 0.02 ≈ D 257.
+With RGB extinction the channels are σ·c, with c normalized to mean 1, so the mean opacity stays σ.
+The single-scattering albedo is per channel (σ_s = σ·c·albedo). g is clamped to ±0.9 and goes to
+the three phase lobes like any other medium.
+
+### Class and medium (per-body looks)
+
+Each kept brush has two values:
+
+- **Class**: the liquid class of its contents, which is what gameplay sees. It decides whether the
+  `r_volumetricWater` mask selects the brush, it sets `r_volumetricWaterActive` and the cgame tint,
+  and it drives debug view 61.
+- **Medium**: the optics the brush gets, one of the three profiles above. By default it is the
+  class, with two exceptions:
+  1. An env.json rule (optional) in `cubemaps/<map>/env.json`:
+     `"Liquids": [ { "Shader": "textures/common/water_1", "Profile": "slime" }, { "Shader": "textures/h_evil/*", "Profile": "water" } ]`.
+     A rule matches the brush shader or the shader of the brush's upward side (the drawn surface).
+     A trailing `*` makes it a prefix, and the first match wins. r_waterSurface uses the same
+     profile for a matching surface shader, so the surface and the medium below it agree.
+  2. Automatic: a water brush whose upward side shader has `CONTENTS_SLIME` takes the slime medium.
+     r_waterSurface already reads the surface optics this way. The only stock case is vjun1:
+     `caulk_water` brushes under `water2_water1_vjun1` (a green texture with
+     `surfaceparm slime water`). Before this change the surface was drawn with slime optics while
+     the medium under it was clear blue water.
+
+The GPU stores both values (`u_LiquidMaxs.w = planes + 64·medium + 256·class`). Coverage, unions
+and the sun path all work per medium, and the material is filled for every medium a drawn brush
+uses. The block layout is unchanged (still three media). r_waterSurface's test for "the volume
+holds this liquid" uses the media of the drawn brushes (`R_LiquidMediumSlotMask`).
 
 ### Cvars
 
@@ -2355,8 +2397,8 @@ Lava has no emission term (absorption and scattering only). Cvars:
 ### Debug views (`r_volumetricFogDebug`)
 
 - 59: density of the liquids only (the injection drops every other medium).
-- 60: liquid brushes over the frame: blue water, green slime, orange lava, edges bright, dimmed
-  behind the scene.
+- 60: liquid brushes over the frame, colored by medium: blue water, green slime, orange lava.
+  Edges are bright, and brushes behind the scene are dimmed. vjun1 shows green.
 - 61: camera contents: the CPU class (collision) as the screen hue, the GPU brushes at the camera
   in the bottom bar, red stripes where they disagree.
 - 62: liquid boundary: froxels along the ray cut by a liquid surface (yellow) over the fully
@@ -2412,7 +2454,11 @@ Use t3_hevil for the lake and yavin1b for sun on shallow water: `r_volumetricFog
 6. Legacy tint: gone under water with the feature on; with `cg_underwaterTint 0` or
    `r_volumetricWater 0` it is back. The FOV warp is always kept.
 7. Lava / slime (kor1): unchanged with the default mask 1.
-8. vjun2 (brush-model water): legacy tint, no medium.
+8. vjun2 (brush-model water): legacy tint, no medium; also through the drain cutscene.
+   taspir2 water+fog pools: BSP fog plus the legacy water tint.
+8a. vjun1: green from above (r_waterSurface) and from below (the slime medium). `r_liquids` shows
+   "medium slime (top side slime)" for the 5 brushes; debug 60 is green.
+8b. SP, LA goggles on while underwater: the legacy tint is back (no volume is built there).
 9. Timings: GPU timers "Froxel fog inject" (and media with self-shadow) with liquids off / on in
    the t3_hevil lake, and the lightall cost on the bed (frame time A/B with
    `r_volumetricWaterSurfaces`).
@@ -2429,12 +2475,140 @@ Measured on the CPU (harness, Release x64):
 - per-frame culling: 3–6 µs;
 - caustic pattern generation: 30 ms, once per renderer start (on the first map with liquids).
 
+### Production review (2026-10-04)
+
+Two tools back this review:
+
+- `python tools/rend2/liquid_audit.py [--json out.json]` is read-only. It scans the 59 BSPs of the
+  installed pk3s in 19 s and mirrors `R_LoadLiquidBrushes`, the medium rule and the env.json rules.
+- `python tools/rend2/test_liquids_gl.py [--bench]` checks the GLSL on the GPU.
+
+Stock audit. No slime brush exists anywhere, and nothing is dropped for shape or capacity. The
+largest brush has 10 sides and the largest map has 258 planes, against limits of 32 and 4096.
+W/S/L = water / slime / lava.
+
+| Map | Kept W/S/L | Media W/S/L | Gameplay only | Same-medium overlaps | Touching | Within 4k | Max sun hits | Plane bytes |
+|---|---|---|---|---|---|---|---|---|
+| kor1 | 0/0/2 | 0/0/2 | - | 0 | 0 | 2 | 1 | 192 |
+| kor2 | 0/0/3 | 0/0/3 | - | 0 | 2 | 3 | 2 | 320 |
+| mp/siege_korriban | 0/0/43 | 0/0/43 | - | 0 | 59 | 18 | 6 | 4128 |
+| t2_rancor | 6/0/0 | 6/0/0 | - | 0 | 0 | 6 | 1 | 576 |
+| t2_trip | 2/0/0 | 2/0/0 | - | 0 | 0 | 1 | 1 | 192 |
+| t3_bounty | 2/0/0 | 2/0/0 | - | 0 | 0 | 2 | 1 | 192 |
+| t3_hevil | 11/0/0 | 11/0/0 | - | 0 | 14 | 11 | 4 | 1184 |
+| taspir1 | 0/0/2 | 0/0/2 | - | 0 | 0 | 2 | 2 | 192 |
+| taspir2 | 0/0/8 | 0/0/8 | 4 water+fog (`bespin/water2`, BSP fog) | 0 | 0 | 7 | 2 | 1088 |
+| vjun1 | 5/0/0 | 0/5/0 | - | 0 | 4 | 4 | 2 | 512 |
+| vjun2 | 0 | 0 | 1 brush model (`*72` func_static) | - | - | 0 | - | 16 |
+| yavin1 | 4/0/0 | 4/0/0 | - | 0 | 2 | 3 | 2 | 480 |
+| yavin1b | 8/0/0 | 8/0/0 | - | 0 | 5 | 7 | 2 | 928 |
+| yavin2 | 3/0/0 | 3/0/0 | - | 1 | 0 | 2 | 2 | 288 |
+| t2_port (mod pk3) | 27/0/0 | 27/0/0 | 11 water+fog | 17 | 6 | 27 | 3 | 3952 |
+
+- There are no cross-medium overlaps. Froxel segments with three or more intervals of one medium
+  (the sorted path): 0 of 20 736 sampled covered segments, across all maps (t2_port included).
+- Drawn liquid surfaces facing up were checked against the brushes under them, with exact point
+  tests at the triangle centroids and solid world brushes excluded. Every stock surface lies on its
+  brush top, with these exceptions:
+  - the two sloped yavin stream patches above (9 units or less);
+  - the surfaces of the water+fog brushes (BSP fog, by design);
+  - one decorative `lakewater` surface on yavin1b at z −168 with no liquid brush under it.
+    Gameplay sees no water there either.
+- Places where gameplay sees water but the medium does not: the taspir2 water+fog brushes and the
+  vjun2 sheet. cgame keeps its tint in both. taspir2 has no drawn water brush, so the water bit of
+  `r_volumetricWaterActive` is never set there.
+- Moving liquids: only vjun2 (see the limitations). It is not visible as a medium.
+- Per-body looks. The shaders on the stock bodies are:
+  - `water_1`: the t2_rancor puddles (8–28 deep) and the vjun2 sheet;
+  - `water2_still`: t3_bounty (12 deep);
+  - `water_quicktrip`: t2_trip (24–32 deep);
+  - `h_evil/lakewater` and `water_yavin2`: natural lakes and rivers;
+  - `water2_water1_vjun1`: the green water of vjun1.
+
+  Only vjun1 is deep enough to show a medium and calls for a different look, and it gets that look
+  from its own slime flag. The stock maps need no env.json rule, and none is shipped.
+
+Physical checks, run on the GPU by `test_liquids_gl.py` on Intel UHD and RTX 2060 against an exact
+double-precision reference:
+
+- A doubled brush covers its length once.
+- Overlapping and touching brushes give the union with no seam: 64 short segments sliding over the
+  shared plane, error under 0.01 units.
+- A froxel segment crossed by the surface gets the exact fraction, at 32 view angles.
+- A sloped side clips exactly on 512 random rays.
+- A water brush with the slime medium puts its length into the slime medium and keeps class water.
+- The sun path is correct over two touching brushes (both the register path and the hit-list path,
+  with a second body above air correctly left out).
+- The sun path is correct over 12 layers, which is more than 8 intervals: the earliest are kept.
+  The old code lost the run there and gave full sun.
+- The lateral fraction of a froxel cut by a vertical side comes from the XY jitter and the history,
+  which liquids never reduce, so there is no one-froxel hard band.
+
+Fixes made in this review:
+
+1. The vjun1 mismatch between surface and medium (see "Class and medium" above).
+2. `LiquidAddHit` kept the first 8 intervals in brush order (camera distance), not the 8 earliest
+   along the ray. With more than 8 hits, the sun path from a point under them could lose its run
+   and give full sunlight.
+3. Register paths for `LiquidCoverage` and `LiquidSunTransmittance` (cost below).
+4. `r_volumetricWaterActive` is now 0 for scenes that never build the volume (SP LA goggles,
+   hyperspace). `RDF_NOWORLDMODEL` scenes (menus, HUD models) leave it alone. Before, cgame dropped
+   the underwater tint while the LA goggles were on, even though no medium was drawn.
+5. New diagnostics and tools: `r_liquids`, `liquid_audit.py`, `test_liquids_gl.py`. The cvar help
+   now gives the fogparms equivalence.
+
+Cost and memory:
+
+| | Intel UHD | RTX 2060 |
+|---|---|---|
+| `LiquidCoverage`, 160×90×128 grid, 1 brush in every slice, before -> after | 58.9 -> 2.3 ms (empty kernel 2.3) | 0.85 -> 0.17 ms |
+| same, 8 brushes in every slice (after) | - | 0.46 ms |
+| same, 32 brushes in every slice, before -> after | 57.0 -> 21.9 ms | 4.97 -> 1.42 ms |
+
+The bench is a worst case. In game, the slice masks keep only the brushes near each slice, and
+only slices that touch a liquid run the function.
+
+- CPU: brush load takes 0.03–0.14 ms per map, and `R_LiquidsBuild` 3–6 µs (printed by `r_liquids`).
+- Memory:
+  - plane buffer: 16 B per plane (stock maximum 4128 B);
+  - caustic pattern: 256² R16F with mips, about 171 KB, once per renderer;
+  - `Liquids` block: 1680 B per scene (unchanged);
+  - hunk: 52 B per brush plus 16 B per plane.
+
+`r_volumetricWater 0` stays the legacy path:
+
+- There is no Liquids block and no `R_LiquidsUpdateActive` call, cgame is unchanged, and
+  `r_volumetricWaterActive` stays 0.
+- The liquid library is not loaded, so every program is unchanged. The only GLSL code line this
+  review changed outside `liquid_common.glsl` is inside `#if defined(USE_LIQUIDS)`, in debug view 60.
+- The env.json `Liquids` rules are only read into `tr_liquid.cpp`. They are used by brushes that
+  exist only when the feature is on, and by r_waterSurface's optics when a map ships a rule (none
+  in stock).
+
+There is still a single underwater medium: `tr_liquid.cpp`, `liquid_common.glsl` and their call
+sites (inject, debug, lightall `USE_LIQUID_SUN`, r_waterSurface optics). No other code reads liquid
+brushes for media.
+
 ### Limitations
 
-- Brush-model liquids (moving water, `*N` models) are not media; cgame keeps their tint.
+- Brush-model liquids (moving water, `*N` models) are not media; cgame keeps their tint. The stock
+  maps have exactly one: the `func_static` "Waterbrush" on vjun2 (`*72`, `water_1`, 512×1088×16
+  units at z 160..176), drained by the script `water/water_remove_dan`. A 16-unit sheet has
+  τ ≈ 0.02 at the default water, and the camera is never inside it, so transformed liquid brushes
+  are not implemented.
 - Liquids end at the froxel far (fade over the last fifth); they are not in the analytic tail.
-- Only the 32 nearest visible brushes per view are used. Beyond 8 overlapping intervals on one
-  segment, extra lengths are summed (can count twice; not seen on the stock maps).
+- Only the 32 nearest visible brushes per view are used. The stock maximum within 4096 units is
+  18, on siege_korriban, and the far lava dropped there is under an opaque surface anyway.
+- Beyond 8 intervals on one froxel segment, the 8 earliest are kept and the later lengths are
+  summed (overlaps may count twice). A sun path longer than 8 intervals ends after the 8th; the
+  rest is left to the shadow. The stock maximum is 6 intervals on a sun ray (siege_korriban); no
+  stock ray goes above 8.
+- Overlapping brushes of different media add up, where gameplay would pick lava over slime over
+  water. No stock map has a cross-medium overlap.
+- Water+fog brushes (`bespin/water2` on taspir2) are BSP fog volumes, not the water medium. cgame
+  keeps the water tint there unless the map also has drawn water brushes.
+- Sloped stream patches can sit up to 8–9 units off their stepped brush tops (2 patches, on yavin1
+  and yavin1b). An 8-unit layer of water medium has τ ≈ 0.01, which is invisible.
 - The sun path is the unrefracted straight ray. The light path of dynamic lights inside water is
   not attenuated (only the path to the camera is); sabers and blaster bolts are short-range.
 - The baked (non-sun) grid light under water is used as baked; q3map did not attenuate it by the

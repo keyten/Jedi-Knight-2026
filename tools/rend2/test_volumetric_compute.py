@@ -37,7 +37,7 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False, static_recon=False):
+def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False, static_recon=False, liquids=False):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
@@ -50,7 +50,9 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
     defines += '#define USE_FROXEL_COMPUTE\n' if compute else ''
     defines += '#define USE_FROXEL_MEDIA_PASS\n' if media else ''
     defines += '#define USE_FROXEL_STATIC_RECONSTRUCTION\n' if static_recon else ''
-    body = fragment('volumetric_common') + fragment(name)
+    # the liquid library follows the froxel functions (GLSL_InitVolumetricShaders, r_volumetricWater)
+    defines += '#define USE_LIQUIDS\n' if liquids else ''
+    body = fragment('volumetric_common') + (fragment('liquid_common') if liquids else '') + fragment(name)
     if legacy_bits:
         body = body.replace('#if defined(USE_FROXEL_COMPUTE)\n\tint bit = findLSB(bits);',
                             '#if 0\n\tint bit = findLSB(bits);')
@@ -72,7 +74,7 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
         ok, log = I(), C.create_string_buffer(16384)
         gl('glGetShaderiv', None, U, U, C.POINTER(I))(shader, 0x8B81, C.byref(ok))
         gl('glGetShaderInfoLog', None, U, I, P, P)(shader, len(log), None, log)
-        assert ok.value, (name, compute, rgb, shadows, media, log.value.decode())
+        assert ok.value, (name, compute, rgb, shadows, media, liquids, log.value.decode())
         gl('glAttachShader', None, U, U)(result, shader)
         gl('glDeleteShader', None, U)(shader)
     for index, output in enumerate(['out_Color', 'out_Glow', 'out_SSRNormal', 'out_SSRSpecular']):

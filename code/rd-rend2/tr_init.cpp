@@ -2674,13 +2674,13 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricWaterCausticSpeed, 0.0f, 4.0f, qfalse);
 	r_volumetricWaterCausticFocus = ri_Cvar_Get_NoComm("r_volumetricWaterCausticFocus", "48", CVAR_ARCHIVE, "r_volumetricWater: depth below the surface where the caustics reach full contrast (world units)");
 	ri.Cvar_CheckRange(r_volumetricWaterCausticFocus, 1.0f, 4096.0f, qfalse);
-	r_volumetricWaterExtinction = ri_Cvar_Get_NoComm("r_volumetricWaterExtinction", "0.0014", CVAR_ARCHIVE, "r_volumetricWater: water extinction per world unit (mean of the channels; 0.0014 = 1/e after ~700 units)");
+	r_volumetricWaterExtinction = ri_Cvar_Get_NoComm("r_volumetricWaterExtinction", "0.0014", CVAR_ARCHIVE, "r_volumetricWater: water extinction per world unit (mean of the channels; 0.0014 = 1/e after ~700 units; as fogparms depthForOpaque D: extinction = 5.14 / D)");
 	ri.Cvar_CheckRange(r_volumetricWaterExtinction, 0.0f, 1.0f, qfalse);
 	r_volumetricWaterColor = ri_Cvar_Get_NoComm("r_volumetricWaterColor", "2.0 0.75 0.25", CVAR_ARCHIVE, "r_volumetricWater: water relative extinction \"r g b\" (normalized to mean 1; red is absorbed first): RGB transmittance with r_volumetricFogRGBExtinction, the sun path color in both modes");
 	r_volumetricWaterAlbedo = ri_Cvar_Get_NoComm("r_volumetricWaterAlbedo", "0.10 0.45 0.75", CVAR_ARCHIVE, "r_volumetricWater: water single scattering albedo \"r g b\" (in-scattering color = albedo * relative extinction)");
 	r_volumetricWaterAnisotropy = ri_Cvar_Get_NoComm("r_volumetricWaterAnisotropy", "0.75", CVAR_ARCHIVE, "r_volumetricWater: water Henyey-Greenstein g (forward scattering)");
 	ri.Cvar_CheckRange(r_volumetricWaterAnisotropy, -0.9f, 0.9f, qfalse);
-	r_volumetricSlimeExtinction = ri_Cvar_Get_NoComm("r_volumetricSlimeExtinction", "0.005", CVAR_ARCHIVE, "r_volumetricWater 2: slime extinction per world unit");
+	r_volumetricSlimeExtinction = ri_Cvar_Get_NoComm("r_volumetricSlimeExtinction", "0.005", CVAR_ARCHIVE, "r_volumetricWater 2: slime extinction per world unit; the slime profile is also the medium of water brushes under a slime-flagged surface (vjun1) and of env.json \"Liquids\" rules");
 	ri.Cvar_CheckRange(r_volumetricSlimeExtinction, 0.0f, 1.0f, qfalse);
 	r_volumetricSlimeColor = ri_Cvar_Get_NoComm("r_volumetricSlimeColor", "1.6 0.5 0.9", CVAR_ARCHIVE, "r_volumetricWater 2: slime relative extinction \"r g b\"");
 	r_volumetricSlimeAlbedo = ri_Cvar_Get_NoComm("r_volumetricSlimeAlbedo", "0.25 0.7 0.2", CVAR_ARCHIVE, "r_volumetricWater 2: slime single scattering albedo \"r g b\"");

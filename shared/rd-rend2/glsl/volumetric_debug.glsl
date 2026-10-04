@@ -69,7 +69,7 @@ void main()
 //     directional fraction per channel)
 //  59-64 liquid media (r_volumetricWater, glsl/liquid_common.glsl; dark magenta when off):
 //     59 density of the liquids only            (the injection drops every other medium)
-//     60 liquid brushes over the frame: fill and edges, blue water, green slime, orange lava, dimmed
+//     60 liquid brushes over the frame: fill and edges by medium, blue water, green slime, orange lava, dimmed
 //        behind the scene
 //     61 camera contents: the hue of the CPU class (collision, once per view), bottom bar the GPU
 //        brushes at the camera, red stripes where they disagree
@@ -452,7 +452,7 @@ void main()
 				float edge = (LiquidNearPlanes(i, origin + dir * interval.x, width) >= 2) ? 1.0 : 0.0;
 				float a = max(0.18, edge) * visible;
 				if (a > outline.a)
-					outline = vec4(LiquidClassHue(LiquidClassOf(i)), a);
+					outline = vec4(LiquidClassHue(LiquidMediumOf(i)), a);
 			}
 			out_Color = outline;
 			return;

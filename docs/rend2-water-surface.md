@@ -73,6 +73,9 @@ Per map (`R_WaterClassifySurfaces`, after the surfaces are loaded):
 3. A shader is drawn as water when at least half of its area faces up, its downward faces left out (a liquid
    brush draws its bottom and sides too): waterfalls and streams face up nowhere and keep their stages.
 4. An existing `refractive` shader lying on a liquid brush is water too; other refractive shaders stay generic.
+   The optics then follow an env.json `"Liquids"` profile (water / slime) matching the shader name, the same rule
+   that gives the liquid brushes under it their froxel medium (docs/rend2-volumetric-fog.md, "Class and medium").
+   The froxel segment ratio is used when the volume holds a brush of that medium (vjun1: slime).
 5. `r_waterOverride <shader | prefix*> on [water | slime] | off | clear` (cfg friendly, the last matching line wins,
    applied to the current and later maps).
 6. Last, `r_waterSurfaceExperimental 1`: water-like name (whole words: water, pool, lake, river, pond, ocean,
