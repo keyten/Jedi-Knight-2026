@@ -35,9 +35,15 @@ struct ShaderLoadProfile {
 	int linearScans = 0, linearHits = 0, imageLookups = 0;
 	long long totalUs = 0, hashUs = 0, linearUs = 0;
 	long long parseUs = 0, imageUs = 0, finishUs = 0;
+	long long parseImageUs = 0, finishImageUs = 0;
+	long long collapseUs = 0, permanentUs = 0, sortUs = 0;
+	int callDepth = 0, imageDepth = 0;
+	ShaderProfileClock::time_point imageStart;
+	int imageSection = 0;
 	mapLoadTopEntry_t slowShaders[8] = {};
 };
 ShaderLoadProfile shaderLoadProfile;
+int shaderProfileSection = 0; // 1=parse, 2=direct image lookup, 3=finish
 long long ShaderElapsedUs(ShaderProfileClock::time_point start) {
 	return std::chrono::duration_cast<std::chrono::microseconds>(ShaderProfileClock::now() - start).count();
 }
@@ -46,20 +52,58 @@ struct ShaderCallTimer {
 	const char *name;
 	ShaderCallTimer(const char *shaderName)
 		: start(shaderLoadProfile.active ? ShaderProfileClock::now() : ShaderProfileClock::time_point{}), name(shaderName) {
-		if (shaderLoadProfile.active) ++shaderLoadProfile.calls;
+		if (shaderLoadProfile.active) { ++shaderLoadProfile.calls; ++shaderLoadProfile.callDepth; }
 	}
 	~ShaderCallTimer() {
 		if (shaderLoadProfile.active) {
 			const long long elapsed = ShaderElapsedUs(start);
 			shaderLoadProfile.totalUs += elapsed;
 			R_LoadProfileTopAdd(shaderLoadProfile.slowShaders, 8, name, elapsed);
+			--shaderLoadProfile.callDepth;
 		}
 	}
 };
+struct ShaderSectionTimer {
+	ShaderProfileClock::time_point start;
+	int previous, section;
+	ShaderSectionTimer(int value) : start(shaderLoadProfile.active ? ShaderProfileClock::now() : ShaderProfileClock::time_point{}), previous(shaderProfileSection), section(value) { shaderProfileSection = value; }
+	~ShaderSectionTimer() {
+		shaderProfileSection = previous;
+		if (!shaderLoadProfile.active) return;
+		const long long elapsed = ShaderElapsedUs(start);
+		if (section == 1) shaderLoadProfile.parseUs += elapsed;
+		else if (section == 2) shaderLoadProfile.imageUs += elapsed;
+		else if (section == 3) shaderLoadProfile.finishUs += elapsed;
+	}
+};
+struct ShaderNestedTimer {
+	ShaderProfileClock::time_point start;
+	long long &total;
+	ShaderNestedTimer(long long &counter) : start(shaderLoadProfile.active ? ShaderProfileClock::now() : ShaderProfileClock::time_point{}), total(counter) {}
+	~ShaderNestedTimer() { if (shaderLoadProfile.active && shaderLoadProfile.callDepth && shaderProfileSection == 3) total += ShaderElapsedUs(start); }
+};
+}
+
+void R_ShaderProfileImageWorkBegin( void ) {
+	if (!shaderLoadProfile.active || !shaderLoadProfile.callDepth) return;
+	if (shaderLoadProfile.imageDepth++ == 0) {
+		shaderLoadProfile.imageStart = ShaderProfileClock::now();
+		shaderLoadProfile.imageSection = shaderProfileSection;
+	}
+}
+
+void R_ShaderProfileImageWorkEnd( void ) {
+	if (!shaderLoadProfile.active || !shaderLoadProfile.imageDepth) return;
+	if (--shaderLoadProfile.imageDepth == 0) {
+		const long long elapsed = ShaderElapsedUs(shaderLoadProfile.imageStart);
+		if (shaderLoadProfile.imageSection == 1) shaderLoadProfile.parseImageUs += elapsed;
+		else if (shaderLoadProfile.imageSection == 3) shaderLoadProfile.finishImageUs += elapsed;
+	}
 }
 
 void R_ShaderLoadProfileBegin( void ) {
 	shaderLoadProfile = ShaderLoadProfile{};
+	shaderProfileSection = 0;
 	shaderLoadProfile.active = true;
 	R_ImageLoadProfileBegin();
 }
@@ -77,6 +121,12 @@ void R_ShaderLoadProfileEnd( const char *phase ) {
 		shaderLoadProfile.linearUs / 1000, shaderLoadProfile.linearScans, shaderLoadProfile.linearHits,
 		shaderLoadProfile.parseUs / 1000, shaderLoadProfile.imageUs / 1000,
 		shaderLoadProfile.finishUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] R_FindShader exclusive: parse CPU %lld ms (image work %lld ms), finish CPU %lld ms (image work %lld ms), direct image %lld ms; totals above are inclusive\n",
+		(shaderLoadProfile.parseUs - shaderLoadProfile.parseImageUs) / 1000, shaderLoadProfile.parseImageUs / 1000,
+		(shaderLoadProfile.finishUs - shaderLoadProfile.finishImageUs) / 1000, shaderLoadProfile.finishImageUs / 1000,
+		shaderLoadProfile.imageUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] FinishShader nested: collapse stages %lld ms, permanent shader %lld ms (sort %lld ms); these are included in finish\n",
+		shaderLoadProfile.collapseUs / 1000, shaderLoadProfile.permanentUs / 1000, shaderLoadProfile.sortUs / 1000);
 	for (int i = 0; i < 8 && shaderLoadProfile.slowShaders[i].usec; ++i)
 		ri.Printf(PRINT_ALL, "[map load] slow shader %d: %lld ms %s\n", i + 1,
 			shaderLoadProfile.slowShaders[i].usec / 1000, shaderLoadProfile.slowShaders[i].name);
@@ -4338,6 +4388,7 @@ Sets shader->sortedIndex
 ==============
 */
 static void SortNewShader( void ) {
+	ShaderNestedTimer profileSort(shaderLoadProfile.sortUs);
 	int		i;
 	float	sort;
 	shader_t	*newShader;
@@ -4385,6 +4436,7 @@ GeneratePermanentShader
 ====================
 */
 static shader_t *GeneratePermanentShader( void ) {
+	ShaderNestedTimer profilePermanent(shaderLoadProfile.permanentUs);
 	shader_t	*newShader;
 	int			i, b;
 	int			size, hash;
@@ -4891,7 +4943,10 @@ static shader_t *FinishShader( void ) {
 	// look for multitexture potential
 	//
 	R_ClassifyFoliageShader(&shader, stages);
-	stage = CollapseStagesToGLSL();
+	{
+		ShaderNestedTimer profileCollapse(shaderLoadProfile.collapseUs);
+		stage = CollapseStagesToGLSL();
+	}
 	R_SkinSSSClassifyShader(&shader, stages, MAX_SHADER_STAGES);
 
 	if ( shader.lightmapIndex[0] >= 0 && !hasLightmapStage ) {
@@ -5177,15 +5232,17 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 			ri.Printf( PRINT_ALL, "*SHADER* %s\n", name );
 		}
 
-		const auto parseStart = ShaderProfileClock::now();
-		if ( !ParseShader( &shaderText ) ) {
-			// had errors, so use default shader
-			shader.defaultShader = qtrue;
+		{
+			ShaderSectionTimer timer(1);
+			if ( !ParseShader( &shaderText ) ) {
+				// had errors, so use default shader
+				shader.defaultShader = qtrue;
+			}
 		}
-		if (shaderLoadProfile.active) shaderLoadProfile.parseUs += ShaderElapsedUs(parseStart);
-		const auto finishStart = ShaderProfileClock::now();
-		sh = FinishShader();
-		if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
+		{
+			ShaderSectionTimer timer(3);
+			sh = FinishShader();
+		}
 #ifdef REND2_SP
 		COM_EndParseSession();
 #endif
@@ -5219,16 +5276,18 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		flags |= IMGFLAG_CLAMPTOEDGE;
 	}
 
-	const auto imageStart = ShaderProfileClock::now();
 	if (shaderLoadProfile.active) ++shaderLoadProfile.imageLookups;
-	image = R_FindImageFile( strippedName, IMGTYPE_COLORALPHA, flags );
-	if (shaderLoadProfile.active) shaderLoadProfile.imageUs += ShaderElapsedUs(imageStart);
+	{
+		ShaderSectionTimer timer(2);
+		image = R_FindImageFile( strippedName, IMGTYPE_COLORALPHA, flags );
+	}
 	if ( !image ) {
 		ri.Printf( PRINT_DEVELOPER, "Couldn't find image file for shader %s\n", name );
 		shader.defaultShader = qtrue;
-		const auto finishStart = ShaderProfileClock::now();
-		sh = FinishShader();
-		if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
+		{
+			ShaderSectionTimer timer(3);
+			sh = FinishShader();
+		}
 		return sh;
 	}
 
@@ -5285,9 +5344,10 @@ shader_t *R_FindShader( const char *name, const int *lightmapIndexes, const byte
 		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
 	}
 
-	const auto finishStart = ShaderProfileClock::now();
-	sh = FinishShader();
-	if (shaderLoadProfile.active) shaderLoadProfile.finishUs += ShaderElapsedUs(finishStart);
+	{
+		ShaderSectionTimer timer(3);
+		sh = FinishShader();
+	}
 	return sh;
 }
 

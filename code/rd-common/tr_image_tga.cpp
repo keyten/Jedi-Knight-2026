@@ -76,7 +76,11 @@ void LoadTGA ( const char *name, byte **pic, int *width, int *height)
 	// load the file
 	//
 	byte *pTempLoadedBuffer = 0;
+#ifdef REND2_LOAD_PROFILE
+	R_ImageProfileReadFile(name, (void **)&pTempLoadedBuffer);
+#else
 	ri.FS_ReadFile ( ( char * ) name, (void **)&pTempLoadedBuffer);
+#endif
 	if (!pTempLoadedBuffer) {
 		return;
 	}

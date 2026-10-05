@@ -25,6 +25,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../server/exe_headers.h"
 
 #include "../rd-common/tr_common.h"
+#ifdef REND2_LOAD_PROFILE
+#include <chrono>
+#endif
 
 const int MAX_IMAGE_LOADERS = 10;
 struct ImageLoaderMap
@@ -113,7 +116,15 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 	const ImageLoaderMap *imageLoader = FindImageLoader (extension);
 	if ( imageLoader != NULL )
 	{
+#ifdef REND2_LOAD_PROFILE
+		const auto attemptStart = std::chrono::steady_clock::now();
+#endif
 		imageLoader->loader (shortname, pic, width, height);
+#ifdef REND2_LOAD_PROFILE
+		R_ImageProfileLoaderAttempt(imageLoader->extension,
+			std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - attemptStart).count(),
+			*pic != NULL ? qtrue : qfalse);
+#endif
 		if ( *pic )
 		{
 			return;
@@ -133,7 +144,15 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 		}
 
 		const char *name = va ("%s.%s", extensionlessName, tryLoader->extension);
+#ifdef REND2_LOAD_PROFILE
+		const auto attemptStart = std::chrono::steady_clock::now();
+#endif
 		tryLoader->loader (name, pic, width, height);
+#ifdef REND2_LOAD_PROFILE
+		R_ImageProfileLoaderAttempt(tryLoader->extension,
+			std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - attemptStart).count(),
+			*pic != NULL ? qtrue : qfalse);
+#endif
 		if ( *pic )
 		{
 			return;

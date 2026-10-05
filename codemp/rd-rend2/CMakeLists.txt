@@ -215,7 +215,7 @@ else(WIN32)
 	endif()
 endif()
 
-set_target_properties(${MPRend2} PROPERTIES COMPILE_DEFINITIONS "${SharedDefines}")
+set_target_properties(${MPRend2} PROPERTIES COMPILE_DEFINITIONS "${SharedDefines};REND2_LOAD_PROFILE")
 
 # Hide symbols not explicitly marked public.
 set_property(TARGET ${MPRend2} APPEND PROPERTY COMPILE_OPTIONS ${OPENJK_VISIBILITY_FLAGS})

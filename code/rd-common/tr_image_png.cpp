@@ -303,7 +303,11 @@ void user_read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
 void LoadPNG ( const char *filename, byte **data, int *width, int *height )
 {
 	char *buf = NULL;
+#ifdef REND2_LOAD_PROFILE
+	int len = R_ImageProfileReadFile(filename, (void **)&buf);
+#else
 	int len = ri.FS_ReadFile (filename, (void **)&buf);
+#endif
 	if ( len < 0 || buf == NULL )
 	{
 		return;

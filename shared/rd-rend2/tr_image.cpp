@@ -39,6 +39,11 @@ struct ImageLoadProfile {
 	int normalLookups = 0, normalGenerated = 0, autoRoughnessGenerated = 0;
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
+	int sourceReadCalls = 0, sourceReadHits = 0;
+	long long sourceReadBytes = 0, sourceReadUs = 0;
+	int loaderCalls[3] = {}, loaderHits[3] = {};
+	long long loaderUs[3] = {}, loaderReadUs[3] = {};
+	long long rawUploadUs = 0, textureApiUs = 0;
 	int ddcHits = 0, ddcMisses = 0, ddcInvalid = 0, ddcWrites = 0;
 	long long ddcHashUs = 0, ddcReadUs = 0, ddcWriteUs = 0;
 	mapLoadTopEntry_t slowImages[8] = {};
@@ -68,6 +73,59 @@ struct ImageFindTimer {
 			R_LoadProfileTopAdd(imageLoadProfile.slowImages, 8, name, ImageElapsedUs(start));
 	}
 };
+struct ImageWorkTimer {
+	bool active;
+	ImageWorkTimer() : active(imageLoadProfile.active) {
+		if (active) R_ShaderProfileImageWorkBegin();
+	}
+	~ImageWorkTimer() {
+		if (active) R_ShaderProfileImageWorkEnd();
+	}
+};
+struct ImageTextureApiTimer {
+	ImageProfileClock::time_point start;
+	ImageTextureApiTimer() : start(imageLoadProfile.active ? ImageProfileClock::now() : ImageProfileClock::time_point{}) {}
+	~ImageTextureApiTimer() {
+		if (imageLoadProfile.active) imageLoadProfile.textureApiUs += ImageElapsedUs(start);
+	}
+};
+struct ImageRawUploadTimer {
+	ImageProfileClock::time_point start;
+	ImageRawUploadTimer() : start(imageLoadProfile.active ? ImageProfileClock::now() : ImageProfileClock::time_point{}) {}
+	~ImageRawUploadTimer() { if (imageLoadProfile.active) imageLoadProfile.rawUploadUs += ImageElapsedUs(start); }
+};
+int ImageLoaderIndex(const char *extension) {
+	if (!extension) return -1;
+	if (!Q_stricmp(extension, "jpg")) return 0;
+	if (!Q_stricmp(extension, "png")) return 1;
+	if (!Q_stricmp(extension, "tga")) return 2;
+	return -1;
+}
+}
+
+long R_ImageProfileReadFile(const char *qpath, void **buffer) {
+	if (!imageLoadProfile.active) return ri.FS_ReadFile(qpath, buffer);
+	const auto start = ImageProfileClock::now();
+	const long length = ri.FS_ReadFile(qpath, buffer);
+	const long long elapsed = ImageElapsedUs(start);
+	++imageLoadProfile.sourceReadCalls;
+	imageLoadProfile.sourceReadUs += elapsed;
+	if (length >= 0 && buffer && *buffer) {
+		++imageLoadProfile.sourceReadHits;
+		imageLoadProfile.sourceReadBytes += length;
+	}
+	const int loader = ImageLoaderIndex(COM_GetExtension(qpath));
+	if (loader >= 0) imageLoadProfile.loaderReadUs[loader] += elapsed;
+	return length;
+}
+
+void R_ImageProfileLoaderAttempt(const char *extension, long long usec, qboolean success) {
+	if (!imageLoadProfile.active) return;
+	const int loader = ImageLoaderIndex(extension);
+	if (loader < 0) return;
+	++imageLoadProfile.loaderCalls[loader];
+	if (success) ++imageLoadProfile.loaderHits[loader];
+	imageLoadProfile.loaderUs[loader] += usec;
 }
 
 void R_ImageLoadProfileBegin( void ) {
@@ -85,6 +143,19 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 		imageLoadProfile.createUs / 1000);
 	ri.Printf(PRINT_ALL, "[map load] image prepare: normal generation %lld ms, emissive color %lld ms\n",
 		imageLoadProfile.normalUs / 1000, imageLoadProfile.emissiveUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] source VFS: %d reads, %d hits, %lld MiB; read/decompress %lld ms (includes failed candidates)\n",
+		imageLoadProfile.sourceReadCalls, imageLoadProfile.sourceReadHits,
+		imageLoadProfile.sourceReadBytes / (1024 * 1024), imageLoadProfile.sourceReadUs / 1000);
+	static const char *loaderNames[3] = {"JPG", "PNG", "TGA"};
+	for (int i = 0; i < 3; ++i)
+		if (imageLoadProfile.loaderCalls[i])
+			ri.Printf(PRINT_ALL, "[map load] %s loader: %d attempts, %d decoded; total %lld ms, VFS %lld ms, decode/alloc %lld ms\n",
+				loaderNames[i], imageLoadProfile.loaderCalls[i], imageLoadProfile.loaderHits[i],
+				imageLoadProfile.loaderUs[i] / 1000, imageLoadProfile.loaderReadUs[i] / 1000,
+				Q_max(0LL, imageLoadProfile.loaderUs[i] - imageLoadProfile.loaderReadUs[i]) / 1000);
+	ri.Printf(PRINT_ALL, "[map load] texture creation: %lld ms total; RawImage_UploadTexture %lld ms, measured 2D GL texture calls %lld ms (nested, CPU wall)\n",
+		imageLoadProfile.createUs / 1000, imageLoadProfile.rawUploadUs / 1000,
+		imageLoadProfile.textureApiUs / 1000);
 	ri.Printf(PRINT_ALL, "[map load] normal maps: %d lookups, %d generated; lookup %lld ms, build %lld ms; auto roughness %d maps, %lld ms\n",
 		imageLoadProfile.normalLookups, imageLoadProfile.normalGenerated,
 		imageLoadProfile.normalLookupUs / 1000, imageLoadProfile.normalBuildUs / 1000,
@@ -2165,6 +2236,7 @@ static qboolean ShouldUseImmutableTextures(int imageFlags, GLenum internalformat
 
 static void RawImage_UploadTexture( byte *data, int x, int y, int width, int height, GLenum internalFormat, imgType_t type, int flags, qboolean subtexture )
 {
+	ImageRawUploadTimer profileUpload;
 	int dataFormat, dataType;
 
 	switch (internalFormat)
@@ -2212,6 +2284,7 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 
 	if ( subtexture )
 	{
+		ImageTextureApiTimer profileApi;
 		qglTexSubImage2D (GL_TEXTURE_2D, 0, x, y, width, height, dataFormat, dataType, data);
 	}
 	else
@@ -2220,16 +2293,16 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 		{
 			int numLevels = (flags & IMGFLAG_MIPMAP) ? CalcNumMipmapLevels (width, height) : 1;
 
-			qglTexStorage2D (GL_TEXTURE_2D, numLevels, internalFormat, width, height);
+			{ ImageTextureApiTimer profileApi; qglTexStorage2D (GL_TEXTURE_2D, numLevels, internalFormat, width, height); }
 
 			if ( data != NULL )
 			{
-				qglTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, dataFormat, dataType, data);
+				{ ImageTextureApiTimer profileApi; qglTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, dataFormat, dataType, data); }
 			}
 		}
 		else
 		{
-			qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, dataType, data );
+			{ ImageTextureApiTimer profileApi; qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, dataType, data ); }
 		}
 	}
 
@@ -2281,17 +2354,17 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 			{
 				x >>= 1;
 				y >>= 1;
-				qglTexSubImage2D( GL_TEXTURE_2D, miplevel, x, y, width, height, dataFormat, dataType, data );
+				{ ImageTextureApiTimer profileApi; qglTexSubImage2D( GL_TEXTURE_2D, miplevel, x, y, width, height, dataFormat, dataType, data ); }
 			}
 			else
 			{
 				if ( ShouldUseImmutableTextures(flags, internalFormat) )
 				{
-					qglTexSubImage2D (GL_TEXTURE_2D, miplevel, 0, 0, width, height, dataFormat, dataType, data );
+					{ ImageTextureApiTimer profileApi; qglTexSubImage2D (GL_TEXTURE_2D, miplevel, 0, 0, width, height, dataFormat, dataType, data ); }
 				}
 				else
 				{
-					qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, width, height, 0, dataFormat, dataType, data );
+					{ ImageTextureApiTimer profileApi; qglTexImage2D (GL_TEXTURE_2D, miplevel, internalFormat, width, height, 0, dataFormat, dataType, data ); }
 				}
 			}
 		}
@@ -2594,6 +2667,7 @@ This is the only way any 2d image_t are created
 ================
 */
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, int flags, int internalFormat ) {
+	ImageWorkTimer profileWork;
 	ImageCreateTimer profileCreate;
 	image_t		*image;
 	qboolean	isLightmap = qfalse;
@@ -3060,6 +3134,7 @@ image_t* R_GetLoadedImage(const char *name, int flags) {
 
 void R_LoadPackedMaterialImage(shaderStage_t *stage, const char *packedImageName, int flags)
 {
+	ImageWorkTimer profileWork;
 	char	packedName[MAX_QPATH];
 	int		packedWidth, packedHeight;
 	byte	*packedPic;
@@ -3166,6 +3241,7 @@ map size.
 */
 image_t *R_BuildNormalHeightImage(const char *normalName, const char *heightName, int flags)
 {
+	ImageWorkTimer profileWork;
 	char packedName[MAX_QPATH];
 	char baseName[MAX_QPATH];
 	unsigned hash = 2166136261u;
@@ -3241,6 +3317,7 @@ image_t *R_BuildNormalHeightImage(const char *normalName, const char *heightName
 
 image_t *R_BuildSDRSpecGlossImage(shaderStage_t *stage, const char *specImageName, int flags)
 {
+	ImageWorkTimer profileWork;
 	char	sdrName[MAX_QPATH];
 	int		specWidth, specHeight;
 	byte	*specPic;
@@ -3309,6 +3386,7 @@ l = linear luminance of the mask. Cached as <mask>_lORMS.
 */
 image_t *R_BuildLegacySpecORMSImage(const char *specImageName, int flags)
 {
+	ImageWorkTimer profileWork;
 	char	ormsName[MAX_QPATH];
 	int		width, height;
 	byte	*pic;
@@ -3427,6 +3505,7 @@ static float R_AutoRoughPercentile( const float *data, float *scratch, int count
 
 image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 {
+	ImageWorkTimer profileWork;
 	char	ormsName[MAX_QPATH];
 	int		width, height;
 	byte	*pic;
@@ -3802,6 +3881,7 @@ Returns NULL if it fails, not a default image.
 */
 image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 {
+	ImageWorkTimer profileWork;
 	ImageFindTimer profileFind(name);
 	image_t	*image;
 	int		width, height;
