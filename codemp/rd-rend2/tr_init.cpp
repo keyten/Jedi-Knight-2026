@@ -2669,9 +2669,9 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterSurfaceDepthReject, 0, 1, qtrue);
 	r_waterSurfaceReflection = ri.Cvar_Get("r_waterSurfaceReflection", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the reflection (1 = physical)");
 	ri.Cvar_CheckRange(r_waterSurfaceReflection, 0.0f, 4.0f, qfalse);
-	r_waterSurfaceSSR = ri.Cvar_Get("r_waterSurfaceSSR", "1.0", CVAR_ARCHIVE, "r_waterSurface: weight of the screen-space reflections over the cubemap (needs r_ssr; 0 = cubemap only)");
+	r_waterSurfaceSSR = ri.Cvar_Get("r_waterSurfaceSSR", "1.0", CVAR_ARCHIVE, "r_waterSurface: weight of the screen-space reflections over the cubemap (independent of opaque r_ssr; 0 = cubemap only)");
 	ri.Cvar_CheckRange(r_waterSurfaceSSR, 0.0f, 1.0f, qfalse);
-	r_waterSurfaceAbsorption = ri.Cvar_Get("r_waterSurfaceAbsorption", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the liquid extinction (r_volumetricWaterExtinction / Color, Slime) on the refracted path");
+	r_waterSurfaceAbsorption = ri.Cvar_Get("r_waterSurfaceAbsorption", "1.0", CVAR_ARCHIVE, "r_waterSurface: shared liquid extinction scale for surface and volume (r_volumetricWaterExtinction / Color, Slime)");
 	ri.Cvar_CheckRange(r_waterSurfaceAbsorption, 0.0f, 16.0f, qfalse);
 	r_waterSurfaceDepthScale = ri.Cvar_Get("r_waterSurfaceDepthScale", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the path length under the surface (water thickness from the depth buffer)");
 	ri.Cvar_CheckRange(r_waterSurfaceDepthScale, 0.0f, 16.0f, qfalse);

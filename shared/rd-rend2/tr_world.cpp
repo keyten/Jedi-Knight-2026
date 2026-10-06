@@ -61,7 +61,9 @@ static qboolean	R_CullSurface( msurface_t *surf, int entityNum ) {
 			return qfalse;
 		}
 
-		ct = surf->shader->cullType;
+		ct = (r_waterSurface->integer && R_WaterSurfaceResourcesEnabled() &&
+			(surf->waterKey & WATERKEY_INTERFACE) && tr.viewParms.viewParmType == VPT_MAIN &&
+			!tr.viewParms.isPortal && !tr.viewParms.isSkyPortal) ? CT_TWO_SIDED : surf->shader->cullType;
 
 		if (ct == CT_TWO_SIDED)
 		{
@@ -384,7 +386,7 @@ static void R_AddWorldSurface(
 
 	if ( pomMode & POM_SURF_ORDINARY ) {
 		R_AddDrawSurf( surf->data, entityNum, surf->shader, surf->fogIndex,
-				dlightBits, isPostRenderEntity, surf->cubemapIndex );
+				dlightBits, isPostRenderEntity, surf->cubemapIndex, {}, surf->waterKey );
 	}
 	if ( pomMode & (POM_SURF_SHELL | POM_SURF_FADEBASE) ) {
 		R_PomSilhouetteAddDrawSurfs( surf, pomMode, entityNum, surf->fogIndex,

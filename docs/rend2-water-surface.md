@@ -48,19 +48,20 @@ the water program instead of their stages, and those items are moved to their ow
 depth prepass (water excluded) -> shadows / AO / froxel build
 main pass:  opaque sort -> screen space (SSGI, SSR: Hi-Z + opaque color pyramid)
             -> decals .. SS_FOG layers
-            -> WATER SLOT: copy renderFbo color + depth (MSAA resolved) -> water draws (replace, write depth)
+            -> WATER SLOT: copy renderFbo color + glow + depth (MSAA resolved)
+                          -> reduced water SSR + temporal history -> water draws (replace, write depth)
             -> atmosphere -> clouds -> froxel fog composite   (fog camera -> water surface)
             -> SS_UNDERWATER, blended layers                  (depth tested against the water)
 post: bloom (sees the glints), tone map, refraction pass of the refractive shaders (unchanged)
 ```
 
-- The water program is drawn once per surface (`RB_IterateStagesWater`), its items tagged
+- The final water program is drawn once per interface surface (`RB_IterateStagesWater`), its items tagged
   (`RenderState::waterSurface`); `RB_SubmitRenderPass` takes them out of the sorted order and draws them in the slot.
   A legacy fog pass of a water surface follows it in the slot (froxel views: the composite fogs it instead).
 - A refractive shader classified as water (on a liquid brush) is drawn in the main pass by the water program,
   not by the refraction pass (`RB_WaterSurfaceDistortion`).
 - `r_waterSurface 0` (default, latched): no targets, no programs, no extra pass, `RB_SubmitRenderPass` and the
-  stage iterator take their old branches; only the per map classification (CPU, < 1 ms) runs, for `r_waterInfo`.
+  stage iterator take their old branches; only the cached per map classification runs, for `r_waterInfo`.
 
 ## Classification
 
@@ -68,14 +69,15 @@ Per map (`R_WaterClassifySurfaces`, after the surfaces are loaded):
 
 1. BSP semantics: a drawn surface whose BSP shader has `CONTENTS_WATER` (`surfaceparm water`) is a candidate;
    lava contents never are; `CONTENTS_SLIME` gives slime optics.
-2. The liquid brush it lies on: every vertex inside the brush and on one of its planes (all liquid brushes of all
-   models, fog volumes included). A fog volume brush marks the shader `fog-medium` (its fog is the medium).
-3. A shader is drawn as water when at least half of its area faces up, its downward faces left out (a liquid
-   brush draws its bottom and sides too): waterfalls and streams face up nowhere and keep their stages.
-4. An existing `refractive` shader lying on a liquid brush is water too; other refractive shaders stay generic.
-   The optics then follow an env.json `"Liquids"` profile (water / slime) matching the shader name, the same rule
-   that gives the liquid brushes under it their froxel medium (docs/rend2-volumetric-fog.md, "Class and medium").
-   The froxel segment ratio is used when the volume holds a brush of that medium (vjun1: slime).
+2. The liquid brush it lies on: all vertices must be inside a brush of the **same BSP model** and on
+   **one common plane**. Model indices and brush bounds reject unrelated brushes before plane tests.
+   Fog-medium and optics are attached to each surface, rather than every use of its shader.
+3. Each upward surface is classified independently. Only pool/lake interfaces use the new program, with
+   two-sided culling so the same interface remains visible underwater. Bottoms, sides and waterfalls retain
+   their stages even when they share a shader with the top. The surface key is part of draw/merge batching.
+4. An upward boundary linked to a water/slime brush is an interface, including refractive materials.
+   Other refractive surfaces keep generic refraction. Optics follow a matching env.json `"Liquids"` profile
+   and explicit overrides. Froxel coverage is used only for a linked, supported world brush of this surface.
 5. `r_waterOverride <shader | prefix*> on [water | slime] | off | clear` (cfg friendly, the last matching line wins,
    applied to the current and later maps).
 6. Last, `r_waterSurfaceExperimental 1`: water-like name (whole words: water, pool, lake, river, pond, ocean,
@@ -100,7 +102,12 @@ the scene right behind it (bottom / side against the floor or a wall) is passed 
 - Reflection: SSR first (the `ssr_common.glsl` march over the view's Hi-Z / opaque color pyramid, the trace settings of
   `r_ssrQuality` / `r_ssr*`, Hi-Z walk when the SSR uses it, the confidence terms of `ssr_trace.glsl`, the cone mip of
   `ssr_resolve.glsl`), blended with `r_waterSurfaceSSR` over the parallax corrected cubemap of the surface, else the sky
-  ambient (`sunAmbCol`). No separate tracer. Without `r_ssr` the water uses cubemap / fallback only.
+  ambient (`sunAmbCol`). Water shares `SSRHitRadiance` and the march library. Water requests the Hi-Z and
+  color pyramid independently of opaque-material `r_ssr`; with `r_ssr 0` the opaque trace/composite is skipped.
+  Rays use `r_ssrHalfRes` / the quality preset (medium: half resolution), then temporal history validated against
+  receiver depth, normal, roughness and world hit position. A four-tap bilateral resolve reconstructs the final
+  reflection. Missing surface probes use the nearest valid camera cubemap before the ambient fallback.
+  Views with no submitted interfaces do not request water SSR work. With opaque SSR disabled, its material attachments, trace/resolve/history targets and GPU programs are not allocated.
 - Refraction: the refracted ray down to the depth of the scene behind the water: first guess from the depth straight
   behind the pixel (bounded), two fixed point steps with the depth found at the sample; the offset scaled by
   `r_waterSurfaceRefraction`, bounded to 12% of the screen. Depth rejection (`r_waterSurfaceDepthReject`): a sample in
@@ -113,6 +120,7 @@ the scene right behind it (bottom / side against the floor or a wall) is passed 
   fading to the analytic medium over its last fifth; elsewhere analytic: `T = exp(-sigma L)`,
   `S = albedo (ambient / 2 + pi sun HG(g) T_sun) (1 - T)`. Fog volume water with the legacy fog: the fog passes already
   fogged the scene under it, no analytic medium.
+- Glow: the copied glow attachment is refracted and attenuated with the scene; direct glints also feed glow, so bloom works with `r_bloomSceneIntensity 0`.
 - Glints: GGX (`D_GGX`, `V_SmithJointApprox`, exact Fresnel at VH) of the sun (cascaded shadow map lookup, needs
   `r_sunlightMode` and a sun view) and of the view's dynamic lights (saber / bolt / explosion lights, lightall's
   attenuation and spot cone).
@@ -181,8 +189,8 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceRefraction` | 1.0 | screen-space refraction offset scale |
 | `r_waterSurfaceDepthReject` | 1 | foreground depth rejection of the refraction |
 | `r_waterSurfaceReflection` | 1.0 | reflection scale |
-| `r_waterSurfaceSSR` | 1.0 | SSR weight over the cubemap (needs `r_ssr`) |
-| `r_waterSurfaceAbsorption` | 1.0 | extinction scale of the liquid optics |
+| `r_waterSurfaceSSR` | 1.0 | Water SSR weight over the cubemap; independent of opaque `r_ssr` |
+| `r_waterSurfaceAbsorption` | 1.0 | shared extinction scale of the surface and volume |
 | `r_waterSurfaceDepthScale` | 1.0 | path length scale |
 | `r_waterSurfaceExperimental` | 0 | name based classification |
 | `r_waterSurfaceDebug` | 0 | cheat, views below |
@@ -245,12 +253,12 @@ Done (no game launch):
   captures of the prompt-1 shader (above, grazing, below; flat / waves; SSR; debug views) on both GPUs.
 
 In game (user, r_waterSnell): t2_rancor / t3_hevil from below (window, TIR of the pool walls / floor), shallow grazing
-view from below, diving through the surface (debug 1), ripples (`r_waterSurfaceNormal 2-4`), `r_ssr 0`,
+view from below, diving through the surface (debug 1), ripples (`r_waterSurfaceNormal 2-4`), `r_waterSurfaceSSR 0`,
 `r_cubeMapping 0`, `r_waterSnellDebug 1-6`, toggling `r_waterSnell` 0 / 1 against the prompt-1 view.
 
 In game (user): t2_rancor (indoor pool, dark), t3_hevil / yavin1 (outdoor lake + waterfall, sun), t2_trip, vjun1
 (slime), t2_port (fog water); shallow edge, deep part, grazing view, camera above, camera close / crossing the surface,
-saber next to water (light glint; the blade is blended and not reflected), SSR object leaving the screen, `r_ssr 0`,
+saber next to water (light glint; the blade is blended and not reflected), SSR object leaving the screen, `r_waterSurfaceSSR 0`,
 `r_volumetricWater` 0 / 1, generic refractive effects (force push) unchanged, `r_waterSurfaceDebug 9`.
 
 ## GPU timings (test_watersurface_gl.py --bench, 1920x1080, water over the whole view, waves)
@@ -284,4 +292,30 @@ In game the pass costs in proportion to the water on screen; the copy runs once 
   from the froxel composite (r_volumetricWater) or cgame's tint.
 - The analytic in-scattering uses a constant light estimate (ambient + sun at half depth); froxel media in the volume
   are straight-ray segments, not refracted.
-- Glow attachment: water pixels write 0 (glowing things under water lose their legacy glow; modern bloom reads the scene).
+
+## Caches and verification
+
+Geometry, model/brush links and per-shader flow-stage selection are retained for the map. Overrides update
+classification and original/merged surface selection without rescanning vertices. The fixed wave spectrum is
+retained on the CPU across map loads and vid_restart. View constants, medium optics, SSR settings and fallback
+probe selection are computed once per view. Reflection history and copied scene textures remain view-dependent;
+they cannot be cached across arbitrary camera changes. `r_waterInfo surfaces` reports actual interface decisions.
+
+`test_watersurface_gl.py` checks all 144 shader permutations, exact depth sampling even with a changed filter,
+reflection prepass/resolve, history acceptance/rejection, whole-segment fade and transmitted glow, in addition to
+refraction, Fresnel and Snell tests. The color-pyramid coverage weighting is shared with opaque SSR.
+
+The optional Windows integration test `test_watersurface_runtime.py --installation <game directory>` uses
+private stock assets without modifying the installation. It checks six t2_rancor interfaces against their
+actual brush planes, water-only SSR above/below, runtime overrides, and writes screenshots and a log under build/.
+`--map t3_hevil` checks the nine lake interfaces instead; `--half-res 1` exercises the reduced reflection target.
+Both fixtures compare the classification and normal debug images on water pixels, and check the water-to-air
+debug color from below, exercising the actual queued uniform upload. The standalone GLSL harness uploads
+uniforms directly and cannot catch a broken `GLSL_SetUniforms` dispatcher. Vec4 arrays must be uploaded with
+their full element count: uploading only `u_Water[0]` leaves reflections, depth, wave coordinates and debug
+controls zero and produces a flat colored surface despite a successful water draw.
+
+A new Intel UHD 1080p synthetic comparison (water over the entire view, waves, Hi-Z 24 steps, cold history)
+measured 38.676 ms for direct full-resolution water SSR and 33.610 ms for the reduced reflection pass plus
+full-resolution bilateral resolve/shading. This excludes the shared pyramid and scene copy and is not an
+in-game frame-rate estimate. The older table above describes the original implementation.

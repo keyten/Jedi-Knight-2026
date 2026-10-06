@@ -62,6 +62,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 /*
 ============================================================
@@ -75,7 +76,7 @@ enum waterReason_t
 {
 	WREASON_NONE,
 	WREASON_CONTENTS,			// CONTENTS_WATER (surfaceparm water) of the BSP shader
-	WREASON_REFRACTIVE_BRUSH,	// refractive shader on a water brush side
+	WREASON_BRUSH_TOP,	// upward boundary of a water/slime brush
 	WREASON_OVERRIDE_ON,		// r_waterOverride on
 	WREASON_EXPERIMENTAL,		// r_waterSurfaceExperimental name rule
 	// legacy
@@ -92,12 +93,12 @@ enum waterReason_t
 static const char *s_reasonNames[WREASON_COUNT] = {
 	"-",
 	"CONTENTS_WATER",
-	"refractive on a water brush",
+	"top of a water brush",
 	"r_waterOverride on",
 	"experimental name rule",
 	"lava",
 	"slime without water contents",
-	"mostly not facing up (waterfall / stream)",
+	"not an upward interface (side / bottom / waterfall)",
 	"refractive, no water semantics (generic refraction)",
 	"water-like name / material only, no water semantics",
 	"r_waterOverride off",
@@ -136,6 +137,10 @@ struct waterSurfaceRecord_t
 	vec3_t		brushSide;		// normal of the side it lies on
 	qboolean	refractive;
 	qboolean	nameLike;
+	qboolean modern;
+	int reason;
+	int liquidClass;
+	int flags;
 };
 
 struct waterShaderRecord_t
@@ -188,6 +193,7 @@ static struct
 	std::vector<waterSurfaceRecord_t>	surfaces;
 	std::vector<waterShaderRecord_t>	shaders;
 	float		classifyMsec;
+	std::vector<int> mergedViewSurfaces;
 
 	std::vector<waterOverride_t>		overrides;
 
@@ -196,6 +202,18 @@ static struct
 	int			lastDraws;
 	int			drawsThisFrame;
 	unsigned	statsFrame;
+	screenHistory_t history;
+	qboolean reflectionReady;
+	qboolean reflectionHistoryValid;
+	int reflectionCurrent;
+	float reflectionScale;
+	vec4_t viewWater[WATER_UNIFORM_VEC4S];
+	qboolean viewWaterReady;
+	vec4_t extinction[LIQUID_CLASSES], albedo[LIQUID_CLASSES];
+	screenViewInfo_t viewInfo;
+	vec4_t ssrSettings[3];
+	int viewFlags;
+	int fallbackCubemap;
 } s_water;
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
@@ -284,45 +302,36 @@ static qboolean R_WaterInsideBrush( const waterBrushRecord_t& b, const vec3_t p,
 	return qtrue;
 }
 
-// the side plane of brush b that p lies on, -1: none
-static int R_WaterOnSide( const waterBrushRecord_t& b, const vec3_t p, float eps )
-{
-	for ( int k = 0; k < b.numPlanes; k++ )
-	{
-		const waterPlane_t& plane = s_water.planes[b.firstPlane + k];
-		if ( fabsf(DotProduct(plane.normal, p) - plane.dist) < eps )
-			return k;
-	}
-	return -1;
-}
-
-// At least half of the shader's area on the map faces up, its downward faces
-// left out: a liquid brush draws its bottom (the area of its top) and its
-// sides too. Waterfalls and streams (steep sheets) face up nowhere.
-static qboolean R_WaterMostlyUp( const waterShaderRecord_t& s )
-{
-	const float area = s.area - s.downArea;
-	return (qboolean)(s.upArea > 0.0f && s.upArea >= 0.5f * area);
-}
-
 /*
 =================
 R_WaterDecideShaders
 
 Per shader decision from the surface records, then r_waterOverride and the
-experimental rule; writes shader_t::waterSurface / waterClass / waterFlags.
+experimental rule; writes per-surface waterKey and shader candidate flags.
 Runs at map load and again when r_waterOverride or r_waterSurfaceExperimental
 change.
 =================
 */
+static qboolean R_WaterMostlyUp( const waterShaderRecord_t& s )
+{
+	return (qboolean)(s.upArea > 0.0f && s.upArea >= 0.5f * (s.area - s.downArea));
+}
+
 static void R_WaterDecideShaders( void )
 {
 	// reset every shader of the records (a previous decision may be undone)
 	for ( waterShaderRecord_t& s : s_water.shaders )
 	{
 		s.shader->waterSurface = 0;
-		s.shader->waterClass = LIQUID_WATER;
-		s.shader->waterFlags = 0;
+		s.shader->waterFlowStage = nullptr;
+		for (int stage = 0; stage < MAX_SHADER_STAGES && s.shader->stages[stage]; stage++)
+		{
+			shaderStage_t *candidate = s.shader->stages[stage];
+			shaderStage_t *flow = s.shader->waterFlowStage;
+			if (!candidate->ss && !candidate->bundle[0].isLightmap &&
+				(!flow || (!flow->bundle[0].numTexMods && candidate->bundle[0].numTexMods)))
+				s.shader->waterFlowStage = candidate;
+		}
 	}
 
 	for ( waterShaderRecord_t& s : s_water.shaders )
@@ -338,36 +347,17 @@ static void R_WaterDecideShaders( void )
 		else if ( liquidClass == LIQUID_LAVA )
 			s.reason = WREASON_LAVA;
 		else if ( s.contents & CONTENTS_WATER )
-			s.reason = R_WaterMostlyUp(s) ? WREASON_CONTENTS : WREASON_NOT_HORIZONTAL;
+			s.reason = s.upArea > 0.0f ? WREASON_CONTENTS : WREASON_NOT_HORIZONTAL;
 		else if ( liquidClass == LIQUID_SLIME )
 			s.reason = WREASON_SLIME_ONLY;
-		else if ( refractive && s.linked > 0 )
-			s.reason = WREASON_REFRACTIVE_BRUSH;
+		else if ( s.linked > 0 && s.upArea > 0.0f )
+			s.reason = WREASON_BRUSH_TOP;
 		else if ( refractive )
 			s.reason = WREASON_REFRACTIVE_ONLY;
 		else
 			s.reason = WREASON_NO_SEMANTICS;
 
-		s.modern = (qboolean)(s.reason == WREASON_CONTENTS || s.reason == WREASON_REFRACTIVE_BRUSH);
-
-		// the optics and the medium of the brush the surfaces lie on
-		for ( const waterSurfaceRecord_t& r : s_water.surfaces )
-		{
-			if ( r.shader != s.shader || r.brush < 0 )
-				continue;
-			const waterBrushRecord_t& b = s_water.brushes[r.brush];
-			if ( b.contents & CONTENTS_FOG )
-				s.flags |= WATERSURF_FOG_MEDIUM;
-			if ( b.liquidClass == LIQUID_SLIME )
-				s.liquidClass = LIQUID_SLIME;
-		}
-		if ( s.contents & CONTENTS_FOG )
-			s.flags |= WATERSURF_FOG_MEDIUM;
-		// the env.json "Liquids" profile of this shader, the medium the
-		// liquid brushes under it get too (tr_liquid.cpp); lava has no water optics
-		const int profile = R_LiquidProfileForShader(s.shader->name);
-		if ( profile == LIQUID_WATER || profile == LIQUID_SLIME )
-			s.liquidClass = profile;
+		s.modern = (qboolean)(s.reason == WREASON_CONTENTS || s.reason == WREASON_BRUSH_TOP);
 
 		if ( s.reason == WREASON_UNSUPPORTED )
 			continue;
@@ -390,13 +380,67 @@ static void R_WaterDecideShaders( void )
 		}
 	}
 
+	std::unordered_map<const shader_t *, const waterShaderRecord_t *> decisions;
 	for ( waterShaderRecord_t& s : s_water.shaders )
 	{
-		if ( !s.modern )
-			continue;
-		s.shader->waterSurface = 1;
-		s.shader->waterClass = (int8_t)s.liquidClass;
-		s.shader->waterFlags = (uint8_t)s.flags;
+		decisions[s.shader] = &s;
+		if ( s.modern )
+			s.shader->waterSurface = 1; // candidate only; draws use the surface key
+	}
+	for ( waterSurfaceRecord_t& r : s_water.surfaces )
+	{
+		const waterShaderRecord_t& d = *decisions[r.shader];
+		r.reason = d.reason;
+		r.flags = d.flags;
+		r.liquidClass = R_WaterLiquidClass(r.contents) == LIQUID_SLIME ? LIQUID_SLIME : LIQUID_WATER;
+		const waterBrushRecord_t *brush = r.brush >= 0 ? &s_water.brushes[r.brush] : nullptr;
+		if ( brush && brush->liquidClass == LIQUID_SLIME )
+			r.liquidClass = LIQUID_SLIME;
+		if ( (r.contents & CONTENTS_FOG) || (brush && (brush->contents & CONTENTS_FOG)) )
+			r.flags |= WATERSURF_FOG_MEDIUM;
+		const int profile = R_LiquidProfileForShader(r.shader->name);
+		if ( profile == LIQUID_WATER || profile == LIQUID_SLIME )
+			r.liquidClass = profile;
+		const waterOverride_t *override = R_WaterFindOverride(r.shader->name);
+		if ( override && override->liquidClass >= 0 )
+			r.liquidClass = override->liquidClass;
+		// Only an upward boundary is the pool/lake interface. Sides and bottoms
+		// retain their legacy material; a shared shader must not turn them into air.
+		const bool boundary = r.orient == WORIENT_UP;
+		const bool linkedTop = brush && brush->liquidClass != LIQUID_LAVA &&
+			r.brushSide[2] > 0.7f && DotProduct(r.normal, r.brushSide) > 0.7f;
+		const bool semantics = (r.contents & CONTENTS_WATER) || linkedTop;
+		r.modern = (qboolean)(d.modern && boundary && (semantics || override ||
+			(d.flags & WATERSURF_EXPERIMENTAL)) && !(r.contents & CONTENTS_LAVA));
+		if ( d.modern && !boundary )
+			r.reason = WREASON_NOT_HORIZONTAL;
+		uint32_t key = 0;
+		if ( r.modern )
+		{
+			key = WATERKEY_INTERFACE | ((uint32_t)r.liquidClass << 4) | ((uint32_t)r.flags << 8);
+			if ( linkedTop && brush->model == 0 )
+				key |= WATERKEY_WORLD_BRUSH | (1u << (16 + brush->liquidClass));
+		}
+		s_water.world->surfaces[r.surfaceNum].waterKey = key;
+	}
+
+	R_WaterUpdateMergedSurfaces(const_cast<world_t *>(s_water.world));
+}
+
+void R_WaterUpdateMergedSurfaces(world_t *world)
+{
+	if (!world || s_water.world != world || !world->viewSurfaces || !world->numMergedSurfaces)
+		return;
+	if (s_water.mergedViewSurfaces.empty())
+		s_water.mergedViewSurfaces.assign(world->viewSurfaces, world->viewSurfaces + world->nummarksurfaces);
+	for (int i = 0; i < world->nummarksurfaces; i++)
+	{
+		const int original = world->marksurfaces[i];
+		const shader_t *shader = world->surfaces[original].shader;
+		// Keep original surfaces for water/overrides: their classification may
+		// differ within a merged mesh. They still batch via the shared static VBO.
+		world->viewSurfaces[i] = shader && (shader->waterSurface || R_WaterFindOverride(shader->name)) ?
+			original : s_water.mergedViewSurfaces[i];
 	}
 }
 
@@ -416,6 +460,8 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	const int start = ri.Milliseconds();
 	// the shaders of the previous map are gone with it
 	s_water.world = world;
+	s_water.mergedViewSurfaces.clear();
+	s_water.history.valid = qfalse;
 	s_water.brushes.clear();
 	s_water.planes.clear();
 	s_water.sources.clear();
@@ -511,7 +557,7 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	for ( const waterShaderRecord_t& s : s_water.shaders )
 		modern += s.modern ? 1 : 0;
 	if ( !s_water.shaders.empty() )
-		ri.Printf(PRINT_DEVELOPER, "Water surfaces: %d shaders drawn as water of %d candidates (%d surfaces, %d liquid brushes), %.1f ms\n",
+		ri.Printf(PRINT_DEVELOPER, "Water surfaces: %d candidate shaders of %d cached (%d surfaces, %d liquid brushes), %.1f ms\n",
 			modern, (int)s_water.shaders.size(), (int)s_water.surfaces.size(), (int)s_water.brushes.size(),
 			s_water.classifyMsec);
 }
@@ -532,13 +578,15 @@ static void R_WaterCollectCandidates( void )
 	for ( waterShaderRecord_t& s : s_water.shaders )
 	{
 		s.shader->waterSurface = 0;
-		s.shader->waterFlags = 0;
 	}
 	s_water.surfaces.clear();
 	s_water.shaders.clear();
 	if ( !world )
 		return;
 
+	std::unordered_map<int, std::vector<size_t>> modelBrushes;
+	for (size_t i = 0; i < s_water.brushes.size(); i++)
+		modelBrushes[s_water.brushes[i].model].push_back(i);
 	for ( int i = 0; i < world->numsurfaces && i < (int)s_water.sources.size(); i++ )
 	{
 		const int bspShader = s_water.sources[i].bspShader;
@@ -551,12 +599,8 @@ static void R_WaterCollectCandidates( void )
 		if ( !shader )
 			continue;
 
-		const qboolean liquid = (qboolean)(R_WaterLiquidClass(contents) >= 0);
 		const qboolean refractive = shader->useDistortion;
 		const qboolean nameLike = R_WaterNameLike(shader->name);
-		const qboolean material = (qboolean)((surfaceFlags & MATERIAL_MASK) == MATERIAL_WATER);
-		if ( !liquid && !refractive && !nameLike && !material && !R_WaterFindOverride(shader->name) )
-			continue;
 
 		waterSurfaceRecord_t r = {};
 		r.surfaceNum = i;
@@ -592,8 +636,14 @@ static void R_WaterCollectCandidates( void )
 				VectorAdd(sum, n, sum);
 			}
 			vec3_t vnormal = { 0.0f, 0.0f, 0.0f };
+			vec3_t surfaceBounds[2];
+			ClearBounds(surfaceBounds[0], surfaceBounds[1]);
 			for ( int v = 0; v < bsp->numVerts; v++ )
+			{
 				VectorAdd(vnormal, bsp->verts[v].normal, vnormal);
+				// Renderer cullBounds are built later by the VBO pass.
+				AddPointToBounds(bsp->verts[v].xyz, surfaceBounds[0], surfaceBounds[1]);
+			}
 			if ( DotProduct(sum, vnormal) < 0.0f )
 				VectorNegate(sum, sum);
 			if ( VectorNormalize(sum) < 1e-6f )
@@ -602,20 +652,41 @@ static void R_WaterCollectCandidates( void )
 			r.area = area;
 
 			// the liquid brush it lies on: every vertex inside the brush and on one of its sides
-			for ( size_t bi = 0; bi < s_water.brushes.size() && bsp->numVerts > 0; bi++ )
+			for ( size_t bi : modelBrushes[r.model] )
 			{
+				if (bsp->numVerts <= 0)
+					break;
 				const waterBrushRecord_t& b = s_water.brushes[bi];
-				qboolean all = qtrue;
-				for ( int v = 0; v < bsp->numVerts && all; v++ )
+				if ( b.model != r.model )
+					continue;
+				bool bounded = true;
+				for ( int axis = 0; axis < 3; axis++ )
+					if ( b.bounds[0][axis] <= b.bounds[1][axis] )
+						bounded &= surfaceBounds[1][axis] >= b.bounds[0][axis] - 2.0f &&
+							surfaceBounds[0][axis] <= b.bounds[1][axis] + 2.0f;
+				if ( !bounded )
+					continue;
+				bool inside = true;
+				for (int v = 0; v < bsp->numVerts && inside; v++)
+					inside = R_WaterInsideBrush(b, bsp->verts[v].xyz, 2.0f) != qfalse;
+				if (!inside)
+					continue;
+				int commonSide = -1;
+				// A corner vertex lies on several planes. Try all of them rather
+				// than choosing the first plane, which may be a vertical side.
+				for (int side = 0; side < b.numPlanes && commonSide < 0; side++)
 				{
-					if ( !R_WaterInsideBrush(b, bsp->verts[v].xyz, 2.0f) || R_WaterOnSide(b, bsp->verts[v].xyz, 1.5f) < 0 )
-						all = qfalse;
+					const waterPlane_t& plane = s_water.planes[b.firstPlane + side];
+					bool coplanar = true;
+					for (int v = 0; v < bsp->numVerts && coplanar; v++)
+						coplanar = fabsf(DotProduct(plane.normal, bsp->verts[v].xyz) - plane.dist) < 1.5f;
+					if (coplanar)
+						commonSide = side;
 				}
-				if ( all )
+				if (commonSide >= 0)
 				{
 					r.brush = (int)bi;
-					const int side = R_WaterOnSide(b, bsp->verts[0].xyz, 1.5f);
-					VectorCopy(s_water.planes[b.firstPlane + side].normal, r.brushSide);
+					VectorCopy(s_water.planes[b.firstPlane + commonSide].normal, r.brushSide);
 					break;
 				}
 			}
@@ -624,24 +695,21 @@ static void R_WaterCollectCandidates( void )
 		s_water.surfaces.push_back(r);
 	}
 
-	// per shader
+	// Indexed aggregation: linear in the number of surfaces, including custom overrides.
+	std::unordered_map<shader_t *, size_t> shaderIndexes;
 	for ( const waterSurfaceRecord_t& r : s_water.surfaces )
 	{
-		waterShaderRecord_t *s = NULL;
-		for ( waterShaderRecord_t& e : s_water.shaders )
-		{
-			if ( e.shader == r.shader )
-			{
-				s = &e;
-				break;
-			}
-		}
+		waterShaderRecord_t *s = nullptr;
+		const auto found = shaderIndexes.find(r.shader);
+		if ( found != shaderIndexes.end() )
+			s = &s_water.shaders[found->second];
 		if ( !s )
 		{
 			waterShaderRecord_t e = {};
 			e.shader = r.shader;
 			e.bspShader = r.bspShader;
 			e.reason = WREASON_NONE;
+			shaderIndexes[r.shader] = s_water.shaders.size();
 			s_water.shaders.push_back(e);
 			s = &s_water.shaders.back();
 		}
@@ -670,9 +738,12 @@ Commands
 
 static void R_WaterPrintShaders( void )
 {
-	ri.Printf(PRINT_ALL, "  shaders (decision per shader, surfaces up/down/vertical/sloped, up share of the area without the bottoms, linked to a liquid brush):\n");
+	ri.Printf(PRINT_ALL, "  candidate shaders (final decisions are per surface; up/down/vertical/sloped, up share, brush links):\n");
 	for ( const waterShaderRecord_t& s : s_water.shaders )
 	{
+		if (!s.modern && !R_WaterNameLike(s.shader->name) && !s.shader->useDistortion &&
+			R_WaterLiquidClass(s.contents) < 0 && !s.linked && !R_WaterFindOverride(s.shader->name))
+			continue;
 		ri.Printf(PRINT_ALL, "  %-6s %-44s %-5s %3d (%d/%d/%d/%d) up %3.0f%% linked %3d contents 0x%08x%s%s  %s\n",
 			s.modern ? "WATER" : "legacy", s.shader->name, s_liquidNames[s.liquidClass], s.surfaces,
 			s.orientCount[0], s.orientCount[1], s.orientCount[2], s.orientCount[3],
@@ -727,13 +798,16 @@ void R_WaterInfo_f( void )
 
 	if ( !listSurfaces )
 	{
-		ri.Printf(PRINT_ALL, "  %d candidate surfaces (r_waterInfo surfaces lists them)\n", (int)s_water.surfaces.size());
+		ri.Printf(PRINT_ALL, "  %d cached surfaces (r_waterInfo surfaces lists water candidates)\n", (int)s_water.surfaces.size());
 		return;
 	}
 	ri.Printf(PRINT_ALL, "  surfaces:\n");
 	for ( const waterSurfaceRecord_t& r : s_water.surfaces )
 	{
-		const qboolean modern = (qboolean)(r.shader->waterSurface != 0);
+		if (!r.modern && !R_WaterNameLike(r.shader->name) && !r.refractive &&
+			R_WaterLiquidClass(r.contents) < 0 && r.brush < 0 && !R_WaterFindOverride(r.shader->name))
+			continue;
+		const qboolean modern = r.modern;
 		char link[64] = "-";
 		if ( r.brush >= 0 )
 			Com_sprintf(link, sizeof(link), "brush %d side (%.2f %.2f %.2f)", s_water.brushes[r.brush].brushNum,
@@ -821,8 +895,8 @@ void R_WaterOverride_f( void )
 
 	if ( tr.world && s_water.world == tr.world )
 	{
-		// an overridden shader may not have been a candidate: collect again
-		R_WaterCollectCandidates();
+		// Geometry and brush associations are immutable and were cached at load.
+		R_WaterDecideShaders();
 		ri.Printf(PRINT_ALL, "r_waterOverride: reapplied to %s\n", tr.world->baseName);
 	}
 }
@@ -915,17 +989,41 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 	tr.waterSceneImage = NULL;
 	tr.waterDepthImage = NULL;
 	tr.waterNormalImage = NULL;
+	tr.waterGlowImage = NULL;
+	tr.waterReflectionDepthImage = NULL;
+	for (int i = 0; i < 2; i++)
+	{
+		tr.waterReflectionImage[i] = nullptr;
+		tr.waterReflectionGeomImage[i] = nullptr;
+		tr.waterReflectionHitImage[i] = nullptr;
+	}
+	s_water.history.valid = qfalse;
 	if ( !s_water.resources )
 		return;
 
 	tr.waterSceneImage = R_CreateImage("*waterScene", NULL, width, height, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, hdrFormat);
-	tr.waterDepthImage = R_CreateImage("*waterDepth", NULL, width, height, IMGTYPE_COLORALPHA,
-		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_DEPTH24_STENCIL8);
+	tr.waterDepthImage = R_ScreenCreateImage("*waterDepth", width, height, GL_DEPTH24_STENCIL8, qfalse);
 
+	tr.waterGlowImage = R_ScreenCreateImage("*waterGlow", width, height, hdrFormat, qtrue);
+	if (R_SSRResourcesEnabled())
+	{
+		s_water.reflectionScale = R_SSRTraceScale();
+		const int rw = Q_max(1, (int)ceilf(width / s_water.reflectionScale));
+		const int rh = Q_max(1, (int)ceilf(height / s_water.reflectionScale));
+		for (int i = 0; i < 2; i++)
+		{
+			tr.waterReflectionImage[i] = R_ScreenCreateImage(va("*waterReflection%d", i), rw, rh, GL_RGBA16F, qfalse);
+			tr.waterReflectionGeomImage[i] = R_ScreenCreateImage(va("*waterReflectionGeom%d", i), rw, rh, GL_RGBA32F, qfalse);
+			tr.waterReflectionHitImage[i] = R_ScreenCreateImage(va("*waterReflectionHit%d", i), rw, rh, GL_RGBA32F, qfalse);
+		}
+		tr.waterReflectionDepthImage = R_ScreenCreateImage("*waterReflectionDepth", rw, rh, GL_DEPTH24_STENCIL8, qfalse);
+	}
 	const int size = 256;
-	std::vector<float> slopes;
-	R_WaterBuildWaveSlopes(size, slopes);
+	// Fixed spectrum: retain the CPU result over map loads and vid_restart.
+	static std::vector<float> slopes;
+	if ( slopes.empty() )
+		R_WaterBuildWaveSlopes(size, slopes);
 	tr.waterNormalImage = R_CreateImage("*waterWaves", NULL, size, size, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_MUTABLE, GL_RGBA16F);
 	GL_Bind(tr.waterNormalImage);
@@ -942,15 +1040,31 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 void R_CreateWaterSurfaceFBOs( void )
 {
 	tr.waterCopyFbo = NULL;
+	tr.waterReflectionFbo[0] = tr.waterReflectionFbo[1] = nullptr;
 	if ( !s_water.resources || !tr.waterSceneImage || !tr.waterDepthImage )
 		return;
 
 	tr.waterCopyFbo = FBO_Create("_waterCopy", tr.waterSceneImage->width, tr.waterSceneImage->height);
 	FBO_Bind(tr.waterCopyFbo);
 	FBO_AttachTextureImage(tr.waterSceneImage, 0);
+	FBO_AttachTextureImage(tr.waterGlowImage, 1);
 	qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, tr.waterDepthImage->texnum, 0);
 	qglDrawBuffer(GL_COLOR_ATTACHMENT0);
 	R_CheckFBO(tr.waterCopyFbo);
+	for (int i = 0; i < 2 && tr.waterReflectionImage[i]; i++)
+	{
+		image_t *image = tr.waterReflectionImage[i];
+		tr.waterReflectionFbo[i] = FBO_Create(va("_waterReflection%d", i), image->width, image->height);
+		FBO_Bind(tr.waterReflectionFbo[i]);
+		FBO_AttachTextureImage(image, 0);
+		FBO_AttachTextureImage(tr.waterReflectionGeomImage[i], 1);
+		FBO_AttachTextureImage(tr.waterReflectionHitImage[i], 2);
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+			tr.waterReflectionDepthImage->texnum, 0);
+		const GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+		qglDrawBuffers(3, buffers);
+		R_CheckFBO(tr.waterReflectionFbo[i]);
+	}
 }
 
 void R_WaterSurfaceShutdown( void )
@@ -958,6 +1072,8 @@ void R_WaterSurfaceShutdown( void )
 	// images and FBOs belong to the renderer lists; the resource decision
 	// follows the programs (R_CreateWaterSurfaceImages)
 	s_water.world = NULL;
+	s_water.mergedViewSurfaces.clear();
+	s_water.history.valid = qfalse;
 	s_water.brushes.clear();
 	s_water.planes.clear();
 	s_water.sources.clear();
@@ -987,6 +1103,8 @@ void RB_WaterSurfaceBeginView( void )
 	backEnd.waterSurfaceSSR = qfalse;
 	backEnd.waterItemTag = qfalse;
 	backEnd.waterLegacyClipTag = qfalse;
+	s_water.reflectionReady = qfalse;
+	s_water.viewWaterReady = qfalse;
 
 	if ( s_water.statsFrame != backEndData->realFrameNumber )
 	{
@@ -1003,7 +1121,7 @@ void RB_WaterSurfaceBeginView( void )
 			R_WaterDecideShaders();
 	}
 
-	if ( !s_water.resources || !r_waterSurface->integer || !tr.waterCopyFbo )
+	if ( !s_water.resources || !r_waterSurface->integer || !tr.waterCopyFbo || !backEnd.waterInterfacesVisible )
 		return;
 	const viewParms_t& viewParms = backEnd.viewParms;
 	if ( viewParms.viewParmType != VPT_MAIN || viewParms.isPortal || viewParms.isSkyPortal )
@@ -1026,7 +1144,7 @@ void RB_WaterSurfaceBeginView( void )
 
 qboolean RB_WaterSurfaceDraws( const shader_t *shader )
 {
-	if ( !backEnd.waterSurfaceView || !shader || !shader->waterSurface )
+	if ( !backEnd.waterSurfaceView || !shader || !(tess.waterKey & WATERKEY_INTERFACE) )
 		return qfalse;
 	if ( backEnd.depthFill || backEnd.refractionFill || backEnd.projection2D )
 		return qfalse;
@@ -1059,174 +1177,131 @@ The water specific uniforms and textures of a draw (the uniform blocks, the
 vertex data and the stage's tcMod are set by the stage iterator).
 =================
 */
-void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter& uniforms,
-	SamplerBindingsWriter& samplers )
+static void RB_WaterSurfaceCacheView( void )
 {
-	const shader_t *shader = input->shader;
-	const viewParms_t& viewParms = backEnd.viewParms;
-	const float *proj = viewParms.projectionMatrix;
-	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, shader->waterClass);
-
-	vec4_t water[WATER_UNIFORM_VEC4S];
-	Com_Memset(water, 0, sizeof(water));
-
-	VectorSet4(water[0],
-		Com_Clamp(1.0f, 2.0f, r_waterSurfaceIOR->value),
+	if (s_water.viewWaterReady)
+		return;
+	s_water.viewWaterReady = qtrue;
+	const viewParms_t& v = backEnd.viewParms;
+	vec4_t *water = s_water.viewWater;
+	Com_Memset(water, 0, sizeof(s_water.viewWater));
+	VectorSet4(water[0], Com_Clamp(1.0f, 2.0f, r_waterSurfaceIOR->value),
 		Com_Clamp(0.0f, 1.0f, r_waterSurfaceRoughness->value),
-		Com_Clamp(0.0f, 4.0f, r_waterSurfaceNormal->value),
-		Com_Clamp(0.0f, 4.0f, r_waterSurfaceRefraction->value));
-	VectorSet4(water[1],
-		Com_Clamp(0.0f, 4.0f, r_waterSurfaceReflection->value),
+		Com_Clamp(0.0f, 4.0f, r_waterSurfaceNormal->value), Com_Clamp(0.0f, 4.0f, r_waterSurfaceRefraction->value));
+	VectorSet4(water[1], Com_Clamp(0.0f, 4.0f, r_waterSurfaceReflection->value),
 		backEnd.waterSurfaceSSR ? Com_Clamp(0.0f, 1.0f, r_waterSurfaceSSR->value) : 0.0f,
-		Com_Clamp(0.0f, 16.0f, r_waterSurfaceAbsorption->value),
-		Com_Clamp(0.0f, 16.0f, r_waterSurfaceDepthScale->value));
-
-	// the optics of the liquid: the r_volumetricWater / Slime parameters (the
-	// same values as the froxel medium, R_LiquidsMaterial), used whether the
-	// volumetric water is on or not
-	vec4_t extinction, albedo;
-	R_LiquidsMaterial(liquidClass, extinction, albedo);
-	const qboolean froxel = RB_VolumetricLookupReady();
-	// the froxel volume holds this liquid: a world brush of an enabled class
-	// (r_volumetricWater mask) whose medium is these optics (vjun1: water
-	// brushes with the slime medium under a slime surface)
-	const qboolean froxelLiquid = (qboolean)(froxel && backEnd.currentEntity == &tr.worldEntity &&
-		(R_LiquidMediumSlotMask() & (1 << liquidClass)) != 0);
-	VectorSet4(water[2], extinction[0] * extinction[3], extinction[1] * extinction[3], extinction[2] * extinction[3],
-		froxelLiquid ? 1.0f : 0.0f);
-	VectorSet4(water[3], albedo[0], albedo[1], albedo[2], albedo[3]);
-
+		1.0f, Com_Clamp(0.0f, 16.0f, r_waterSurfaceDepthScale->value));
+	for (int c = 0; c < LIQUID_CLASSES; c++)
+		R_LiquidsMaterial(c, s_water.extinction[c], s_water.albedo[c]);
+	const float *proj = v.projectionMatrix;
 	VectorSet4(water[4], proj[0], proj[5], proj[8], proj[9]);
-	VectorSet4(water[5], proj[14], proj[10], fmodf(backEnd.refdef.floatTime, 3600.0f), tr.linearLight ? 1.0f : 0.0f);
-
-	// debug view and split
-	int debugView = r_waterSurfaceDebug->integer;
-	float splitX = -1.0f;
-	if ( debugView == 9 )
-	{
-		splitX = (float)viewParms.viewportX + Com_Clamp(0.0f, 1.0f, r_waterSurfaceSplit->value) * (float)viewParms.viewportWidth;
-		debugView = 0;
-	}
-
-	const qboolean cubemap = (qboolean)(r_cubeMapping->integer && !(viewParms.flags & VPF_NOCUBEMAPS) &&
-		input->cubemapIndex > 0 && input->cubemapIndex <= tr.numCubemaps && tr.cubemaps[input->cubemapIndex - 1].image);
-	const qboolean sun = (qboolean)(r_sunlightMode->integer && (viewParms.flags & VPF_USESUNLIGHT) && tr.sunShadowArrayImage);
-
-	int flags = 0;
-	if ( cubemap )
-		flags |= 1;
-	if ( sun )
-		flags |= 2;
-	if ( froxel )
-		flags |= 4;
-	if ( r_waterSurfaceDepthReject->integer )
-		flags |= 8;
-	if ( backEnd.waterSurfaceSSR )
-		flags |= 16;
-	// a fog volume brush: its froxel medium is the liquid (froxel fog), or the legacy
-	// fog passes already fogged the scene under it
-	if ( shader->waterFlags & WATERSURF_FOG_MEDIUM )
-		flags |= 32;
-	if ( liquidClass == LIQUID_SLIME )
-		flags |= 64;
-	if ( shader->waterFlags & WATERSURF_OVERRIDE )
-		flags |= 128;
-	if ( shader->waterFlags & WATERSURF_EXPERIMENTAL )
-		flags |= 256;
-	// the split sum of the specular IBL (only created with r_cubeMapping): without
-	// it the reflection weight is the exact Fresnel of the smooth surface
-	if ( tr.envBrdfImage )
-		flags |= 512;
-	// the camera contents (r_waterSnellDebug 1 shows where they disagree with the
-	// side of a fragment, e.g. a deformed surface above a static brush plane)
-	if ( r_waterSnell->integer && r_waterSnellDebug->integer == 1 && tr.world && R_LiquidPointClass(viewParms.ori.origin) >= 0 )
-		flags |= 1024;
-
-	VectorSet4(water[6], (float)debugView, splitX, (float)flags, 8192.0f);
-
-	// view basis of the reconstruction (x right, y up)
+	VectorSet4(water[5], proj[14], proj[10], 0.0f, tr.linearLight ? 1.0f : 0.0f);
+	const int debug = r_waterSurfaceDebug->integer;
+	VectorSet4(water[6], debug == 9 ? 0.0f : (float)debug,
+		debug == 9 ? v.viewportX + Com_Clamp(0.0f, 1.0f, r_waterSurfaceSplit->value) * v.viewportWidth : -1.0f,
+		0.0f, 8192.0f);
 	vec3_t right, up;
-	VectorScale(viewParms.ori.axis[1], -1.0f, right);
-	VectorCopy(viewParms.ori.axis[2], up);
+	VectorScale(v.ori.axis[1], -1.0f, right);
+	VectorCopy(v.ori.axis[2], up);
 	VectorNormalize(right);
 	VectorNormalize(up);
-	// the liquid of the froxel volume fades out over its last fifth (R_LiquidsBuild):
-	// the analytic medium takes over there
 	const float farZ = R_VolumetricFarZ();
-	const float fadeStart = farZ > 0.0f ? farZ * 0.8f : 0.0f;
-	const float fadeLength = farZ > 0.0f ? farZ * 0.2f : 1.0f;
-	VectorSet4(water[7], right[0], right[1], right[2], fadeStart);
-	VectorSet4(water[8], up[0], up[1], up[2], 1.0f / MAX(fadeLength, 1.0f));
-
-	// without a cubemap: the ambient of the sky (or a dim grey)
+	VectorSet4(water[7], right[0], right[1], right[2], farZ * 0.8f);
+	VectorSet4(water[8], up[0], up[1], up[2], 1.0f / MAX(farZ * 0.2f, 1.0f));
 	vec3_t env;
 	VectorCopy(backEnd.refdef.sunAmbCol, env);
-	if ( VectorLength(env) < 0.02f )
+	if (VectorLength(env) < 0.02f)
 		VectorSet(env, 0.08f, 0.09f, 0.1f);
+	const bool sun = r_sunlightMode->integer && (v.flags & VPF_USESUNLIGHT) && tr.sunShadowArrayImage;
 	VectorSet4(water[9], env[0], env[1], env[2], sun ? 1.0f : 0.0f);
-
-	// waves: the flow layer repeats once per first stage texture tile, the world layers every 192 units
-	const float waveSize = 192.0f;
-	// w: the Snell debug view (the USE_WATER_SNELL permutation only)
-	VectorSet4(water[10], 1.0f, 1.0f / waveSize, 0.0f,
+	VectorSet4(water[10], 1.0f, 1.0f / 192.0f, 0.0f,
 		r_waterSnell->integer ? (float)r_waterSnellDebug->integer : 0.0f);
-	// drift of the world layers, wrapped at whole tiles (the pattern tiles)
-	const float t = backEnd.refdef.floatTime;
-	const float wind[2] = { 0.8f, 0.6f };
-	const float wind2[2] = { -0.6f * 0.6f + 0.8f * 0.8f, 0.8f * 0.6f + 0.6f * 0.8f };
-	auto wrap = []( double v ) -> float { return (float)(v - floor(v)); };
-	VectorSet4(water[11], wrap(wind[0] * 0.020 * t), wrap(wind[1] * 0.020 * t),
-		wrap(wind2[0] * 0.034 * t + 0.37), wrap(wind2[1] * 0.034 * t + 0.71));
-
-	uniforms.SetUniformVec4(UNIFORM_WATER, water[0], WATER_UNIFORM_VEC4S);
-
-	samplers.AddStaticImage(tr.waterSceneImage, 0);
-	samplers.AddStaticImage(tr.waterDepthImage, 1);
-	samplers.AddStaticImage(tr.waterNormalImage, 2);
-	if ( tr.envBrdfImage )
-		samplers.AddStaticImage(tr.envBrdfImage, 3);
-	if ( cubemap )
+	const double t = backEnd.refdef.floatTime;
+	auto wrap = [](double value) -> float { return (float)(value - floor(value)); };
+	VectorSet4(water[11], wrap(0.8 * 0.020 * t), wrap(0.6 * 0.020 * t),
+		wrap(0.28 * 0.034 * t + 0.37), wrap(0.96 * 0.034 * t + 0.71));
+	VectorSet4(water[12], (float)v.viewportX / tr.waterSceneImage->width,
+		(float)v.viewportY / tr.waterSceneImage->height,
+		(float)v.viewportWidth / tr.waterSceneImage->width,
+		(float)v.viewportHeight / tr.waterSceneImage->height);
+	s_water.viewFlags = (sun ? 2 : 0) | (RB_VolumetricLookupReady() ? 4 : 0) |
+		(r_waterSurfaceDepthReject->integer ? 8 : 0) | (backEnd.waterSurfaceSSR ? 16 : 0) |
+		(tr.envBrdfImage ? 512 : 0);
+	if (r_waterSnell->integer && r_waterSnellDebug->integer == 1 && R_LiquidPointClass(v.ori.origin) >= 0)
+		s_water.viewFlags |= 1024;
+	s_water.fallbackCubemap = r_cubeMapping->integer && !(v.flags & VPF_NOCUBEMAPS) ? R_CubemapForPoint(v.ori.origin) : 0;
+	if (backEnd.waterSurfaceSSR)
 	{
-		const cubemap_t *cm = &tr.cubemaps[input->cubemapIndex - 1];
-		samplers.AddStaticImage(cm->image, 4);
-		vec4_t info;
-		VectorSubtract(cm->origin, viewParms.ori.origin, info);
-		info[3] = 1.0f;
-		VectorScale4(info, 1.0f / cm->parallaxRadius, info);
-		uniforms.SetUniformVec4(UNIFORM_CUBEMAPINFO, info);
-	}
-	if ( sun )
-		samplers.AddStaticImage(tr.sunShadowArrayImage, TB_SHADOWMAP);
-
-	if ( backEnd.waterSurfaceSSR )
-	{
-		screenViewInfo_t info;
-		RB_ScreenGetViewInfo(info);
-		uniforms.SetUniformVec4(UNIFORM_SSRPROJECTION, info.projection);
-		uniforms.SetUniformVec4(UNIFORM_SSRDEPTHPARAMS, info.depthParams);
-		uniforms.SetUniformVec4(UNIFORM_SSRVIEWPORT, info.viewport);
-		vec4_t texelSize;
-		RB_ScreenTexelSize(texelSize, tr.renderFbo->width, tr.renderFbo->height, tr.renderFbo->width, tr.renderFbo->height);
-		uniforms.SetUniformVec4(UNIFORM_SSRTEXELSIZE, texelSize);
-		// the trace settings of the SSR (r_ssrQuality, r_ssrSteps, ...)
+		RB_ScreenGetViewInfo(s_water.viewInfo);
 		int steps, refine;
 		qboolean hiZ;
 		RB_SSRTraceParams(&steps, &refine, &hiZ);
-		vec4_t settings, settings2, settings3;
-		VectorSet4(settings, (float)Com_Clampi(1, 256, steps), (float)Com_Clampi(0, 16, refine),
+		VectorSet4(s_water.ssrSettings[0], (float)Com_Clampi(1, 256, steps), (float)Com_Clampi(0, 16, refine),
 			r_ssrMaxDistance->value, r_ssrThickness->value);
-		VectorSet4(settings2, MAX(r_ssrMaxRoughness->value, 0.05f), r_ssrEdgeFade->value, (float)(SSR_COLOR_MIPS - 1), 0.0f);
-		VectorSet4(settings3, (float)(SCREEN_HIZ_MIPS - 1), 0.0f, r_znear->value, (float)Com_Clampi(8, 1024, steps * 3));
-		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS, settings);
-		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS2, settings2);
-		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS3, settings3);
+		VectorSet4(s_water.ssrSettings[1], MAX(r_ssrMaxRoughness->value, 0.05f), r_ssrEdgeFade->value, SSR_COLOR_MIPS - 1, 0.0f);
+		VectorSet4(s_water.ssrSettings[2], SCREEN_HIZ_MIPS - 1, 0.0f, r_znear->value, (float)Com_Clampi(8, 1024, steps * 3));
+	}
+}
+
+void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter& uniforms,
+	SamplerBindingsWriter& samplers )
+{
+	RB_WaterSurfaceCacheView();
+	vec4_t water[WATER_UNIFORM_VEC4S];
+	Com_Memcpy(water, s_water.viewWater, sizeof(water));
+	const uint32_t key = input->waterKey;
+	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
+	const float *extinction = s_water.extinction[liquidClass];
+	const bool froxel = (s_water.viewFlags & 4) != 0;
+	const bool froxelLiquid = froxel && backEnd.currentEntity == &tr.worldEntity &&
+		(key & WATERKEY_WORLD_BRUSH) && (R_LiquidClassMask() & (key >> 16)) != 0;
+	VectorSet4(water[2], extinction[0] * extinction[3], extinction[1] * extinction[3], extinction[2] * extinction[3],
+		froxelLiquid ? 1.0f : 0.0f);
+	VectorCopy4(s_water.albedo[liquidClass], water[3]);
+	int flags = s_water.viewFlags;
+	int cubemapIndex = input->cubemapIndex;
+	if (cubemapIndex <= 0 || cubemapIndex > tr.numCubemaps || !tr.cubemaps[cubemapIndex - 1].image)
+		cubemapIndex = s_water.fallbackCubemap;
+	const bool cubemap = r_cubeMapping->integer && !(backEnd.viewParms.flags & VPF_NOCUBEMAPS) &&
+		cubemapIndex > 0 && cubemapIndex <= tr.numCubemaps && tr.cubemaps[cubemapIndex - 1].image;
+	if (cubemap) flags |= 1;
+	if ((key >> 8) & WATERSURF_FOG_MEDIUM) flags |= 32;
+	if (liquidClass == LIQUID_SLIME) flags |= 64;
+	if ((key >> 8) & WATERSURF_OVERRIDE) flags |= 128;
+	if ((key >> 8) & WATERSURF_EXPERIMENTAL) flags |= 256;
+	water[6][2] = (float)flags;
+	uniforms.SetUniformVec4(UNIFORM_WATER, water[0], WATER_UNIFORM_VEC4S);
+	samplers.AddStaticImage(tr.waterSceneImage, 0);
+	samplers.AddStaticImage(tr.waterDepthImage, 1);
+	samplers.AddStaticImage(tr.waterNormalImage, 2);
+	samplers.AddStaticImage(tr.waterGlowImage, 9);
+	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);
+	if (cubemap)
+	{
+		const cubemap_t *cm = &tr.cubemaps[cubemapIndex - 1];
+		samplers.AddStaticImage(cm->image, 4);
+		vec4_t info;
+		VectorSubtract(cm->origin, backEnd.viewParms.ori.origin, info);
+		info[3] = 1.0f;
+		VectorScale4(info, 1.0f / MAX(cm->parallaxRadius, 1.0f), info);
+		uniforms.SetUniformVec4(UNIFORM_CUBEMAPINFO, info);
+	}
+	if (flags & 2) samplers.AddStaticImage(tr.sunShadowArrayImage, TB_SHADOWMAP);
+	if (backEnd.waterSurfaceSSR)
+	{
+		uniforms.SetUniformVec4(UNIFORM_SSRPROJECTION, s_water.viewInfo.projection);
+		uniforms.SetUniformVec4(UNIFORM_SSRDEPTHPARAMS, s_water.viewInfo.depthParams);
+		uniforms.SetUniformVec4(UNIFORM_SSRVIEWPORT, s_water.viewInfo.viewport);
+		vec4_t texelSize;
+		RB_ScreenTexelSize(texelSize, tr.renderFbo->width, tr.renderFbo->height, tr.renderFbo->width, tr.renderFbo->height);
+		uniforms.SetUniformVec4(UNIFORM_SSRTEXELSIZE, texelSize);
+		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS, s_water.ssrSettings[0]);
+		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS2, s_water.ssrSettings[1]);
+		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS3, s_water.ssrSettings[2]);
 		samplers.AddStaticImage(tr.screenHiZImage, 10);
 		samplers.AddStaticImage(tr.ssrColorImage, 11);
 	}
-
-	// the froxel volume between the surface and the scene behind it
-	if ( froxel )
-		RB_VolumetricSetupFogDraw(1, uniforms, samplers);
+	if (froxel) RB_VolumetricSetupFogDraw(1, uniforms, samplers);
 }
 
 /*
@@ -1247,11 +1322,64 @@ void RB_WaterSurfacePrepare( void )
 
 	// blits are clipped by the scissor rectangle
 	GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
-	FBO_FastBlit(tr.renderFbo, NULL, tr.waterCopyFbo, NULL, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 0, 0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 	FBO_Bind(oldFbo);
 	GL_SetViewportAndScissor(viewParms.viewportX, viewParms.viewportY,
 		viewParms.viewportWidth, viewParms.viewportHeight);
+}
+
+qboolean RB_WaterSurfaceReflectionBegin( void )
+{
+	if (!backEnd.waterSurfaceSSR || !tr.waterReflectionFbo[0])
+		return qfalse;
+	s_water.reflectionHistoryValid = (qboolean)(r_ssrTemporal->integer &&
+		RB_ScreenHistoryValid(s_water.history, s_water.reflectionScale));
+	s_water.reflectionCurrent = s_water.history.valid ? 1 - s_water.history.current : 0;
+	FBO_t *fbo = tr.waterReflectionFbo[s_water.reflectionCurrent];
+	FBO_Bind(fbo);
+	GL_SetViewportAndScissor(0, 0, fbo->width, fbo->height);
+	GL_State(GLS_DEPTHMASK_TRUE);
+	GL_SetScreenAuxWrite(true);
+	qglClearBufferfv(GL_COLOR, 0, colorBlack);
+	qglClearBufferfv(GL_COLOR, 1, colorBlack);
+	qglClearBufferfv(GL_COLOR, 2, colorBlack);
+	qglClear(GL_DEPTH_BUFFER_BIT);
+	const viewParms_t& v = backEnd.viewParms;
+	const int x = (int)floorf(v.viewportX / s_water.reflectionScale);
+	const int y = (int)floorf(v.viewportY / s_water.reflectionScale);
+	const int x1 = (int)ceilf((v.viewportX + v.viewportWidth) / s_water.reflectionScale);
+	const int y1 = (int)ceilf((v.viewportY + v.viewportHeight) / s_water.reflectionScale);
+	GL_SetViewportAndScissor(x, y, x1 - x, y1 - y);
+	return qtrue;
+}
+
+void RB_WaterSurfaceReflectionEnd( void )
+{
+	screenViewInfo_t info;
+	RB_ScreenGetViewInfo(info);
+	RB_ScreenStoreHistory(s_water.history, info, s_water.reflectionScale, s_water.reflectionCurrent);
+	s_water.reflectionReady = qtrue;
+	FBO_Bind(tr.renderFbo);
+	const viewParms_t& v = backEnd.viewParms;
+	GL_SetViewportAndScissor(v.viewportX, v.viewportY, v.viewportWidth, v.viewportHeight);
+}
+
+void RB_WaterSurfaceBindReflection( shaderProgram_t *program, qboolean trace )
+{
+	vec4_t pass = {trace ? 1.0f : 0.0f,
+		trace ? (s_water.reflectionHistoryValid ? 1.0f : 0.0f) : (s_water.reflectionReady ? 1.0f : 0.0f),
+		Com_Clamp(0.0f, 0.95f, r_ssrTemporalWeight->value), s_water.reflectionScale};
+	GLSL_SetUniformVec4(program, UNIFORM_WATERPASS, pass);
+	if (!backEnd.waterSurfaceSSR || !tr.waterReflectionImage[0])
+		return;
+	const int index = trace ? 1 - s_water.reflectionCurrent : s_water.reflectionCurrent;
+	GL_BindToTMU(tr.waterReflectionImage[index], 12);
+	GL_BindToTMU(tr.waterReflectionGeomImage[index], 14);
+	GL_BindToTMU(tr.waterReflectionHitImage[index], 15);
+	if (trace && s_water.reflectionHistoryValid)
+		GLSL_SetUniformMatrix4x4(program, UNIFORM_SSRREPROJECT, s_water.history.viewProjection);
 }
 
 void RB_WaterSurfaceFinish( void )
@@ -1292,11 +1420,11 @@ the refractive shaders: not a refractive shader classified as water in a view
 with the water program, which draws it in the main pass instead.
 =================
 */
-qboolean RB_WaterSurfaceDistortion( const shader_t *shader )
+qboolean RB_WaterSurfaceDistortion( const shader_t *shader, uint32_t waterKey )
 {
 	if ( !shader->useDistortion )
 		return qfalse;
-	if ( shader->waterSurface && backEnd.waterSurfaceView && tr.waterSurfaceShader[0].program )
+	if ( (waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView && tr.waterSurfaceShader[0].program )
 		return qfalse;
 	return qtrue;
 }

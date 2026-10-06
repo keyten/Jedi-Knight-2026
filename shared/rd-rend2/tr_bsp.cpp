@@ -3691,7 +3691,7 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 
 				shader2 = surf2->shader;
 
-				if (shader1 != shader2)
+				if (shader1 != shader2 || surf1->waterKey != surf2->waterKey)
 					continue;
 
 				if (surf2->pomShell)
@@ -3891,6 +3891,7 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 		mergedSurf->fogIndex      = surf1->fogIndex;
 		mergedSurf->cubemapIndex  = surf1->cubemapIndex;
 		mergedSurf->shader        = surf1->shader;
+		mergedSurf->waterKey      = surf1->waterKey;
 
 		vboSurf->ibo = R_CreateIBO(
 			(byte *)iboIndexes,
@@ -3930,6 +3931,7 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 	{
 		worldData->surfacesViewCount[i] = -1;
 	}
+	R_WaterUpdateMergedSurfaces(worldData);
 }
 
 

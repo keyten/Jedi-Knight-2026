@@ -406,3 +406,18 @@ bool SSRMarchRay(
 	sHit = hi;
 	return true;
 }
+
+// Shared cone-footprint radiance resolve. Mip 0 has unit coverage; coarser
+// mips contain premultiplied coverage (view model / outside-view rejection).
+vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip)
+{
+	vec3 Q = SSRHitPosition(hit);
+	float footprint = 2.0 * length(Q - P) * coneTangent /
+		(max(Q.z, 1.0) * u_SSRDepthParams.w);
+	float mip = clamp(log2(max(footprint, 1.0)), 0.0, maxMip);
+	vec4 c = textureLod(u_SSRSceneMap, hit.xy, max(mip, 1.0));
+	if (mip < 1.0)
+		c = mix(vec4(textureLod(u_SSRSceneMap, hit.xy, 0.0).rgb, 1.0), c, mip);
+	float confidence = hit.w * smoothstep(0.2, 0.6, c.a);
+	return vec4(c.rgb / max(c.a, 1e-3) * confidence, confidence);
+}

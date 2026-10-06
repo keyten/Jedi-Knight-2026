@@ -9,8 +9,9 @@ Read only: opens the installed pk3 files as ZIP archives, never writes them.
 - scans every BSP: liquid brushes of all models (fog volumes included), the drawn surfaces whose BSP shader has liquid
   contents, refractive shaders, water-like names or MATERIAL_WATER; orientation and area from the triangles; the liquid
   brush side a surface lies on (all vertices inside the brush and on one of its planes)
-- applies the decision of R_WaterDecideShaders: CONTENTS_WATER and not lava, at least half of the shader's area on the
-  map facing up, its downward faces (brush bottoms) left out -> drawn as water (optics: slime with CONTENTS_SLIME); a refractive shader on a liquid brush -> water;
+- applies the decision of R_WaterDecideShaders per surface: CONTENTS_WATER and not lava, an upward interface;
+  bottoms and sides retain their stages even with the same shader; linked brush tops are interfaces too.
+  Brush association requires the same BSP model and one common plane for every vertex;
   everything else keeps its legacy stages, with the reason
 Patches are measured on their control points here (the renderer tessellates them first): the up facing area of a
 patch is approximate, the decision of the stock maps is the same.
@@ -262,18 +263,21 @@ def scan_bsp(data, defs):
 
         link = None
         for b in liquids:
+            if b['model'] != surf_model.get(si, -1):
+                continue
             def inside(p):
                 return all(pl[0] * p[0] + pl[1] * p[1] + pl[2] * p[2] - pl[3] <= 2.0 for pl in b['planes'])
 
-            def on_side(p):
-                return any(abs(pl[0] * p[0] + pl[1] * p[1] + pl[2] * p[2] - pl[3]) < 1.5 for pl in b['planes'])
-            if all(inside(v[0]) and on_side(v[0]) for v in vs):
+            side = next((pl for pl in b['planes']
+                         if all(abs(sum(pl[i]*v[0][i] for i in range(3))-pl[3]) < 1.5 for v in vs)), None)
+            if side and all(inside(v[0]) for v in vs):
                 link = b
+                link_side = side[:3]
                 break
         surfaces.append(dict(index=si, shader=name, contents=cf, flags=sf, type=stype, normal=normal, area=area,
                              orient=orientation(normal[2]), model=surf_model.get(si, -1), refractive=refractive,
                              link=link['brush'] if link else None, link_cls=link['cls'] if link else None,
-                             link_fog=link['fog'] if link else False))
+                             link_fog=link['fog'] if link else False, link_side=link_side if link else None))
     return liquids, surfaces
 
 
@@ -299,26 +303,35 @@ def decide(surfaces, defs):
             e['slime'] |= s['link_cls'] == 'slime'
     for e in per.values():
         c = e['contents']
-        if c & SURF_NODRAW:
-            pass
         cls = liquid_class(c)
         e['optics'] = 'slime' if (cls == 'slime' or e['slime']) else 'water'
         e['fog'] |= bool(c & CONTENTS_FOG)
         if cls == 'lava':
             reason = 'lava'
         elif c & CONTENTS_WATER:
-            reason = 'CONTENTS_WATER' if e['up_area'] > 0 and e['up_area'] >= 0.5 * (e['area'] - e['down_area']) else \
+            reason = 'CONTENTS_WATER' if e['up_area'] > 0 else \
                 'mostly not facing up (waterfall / stream)'
         elif cls == 'slime':
             reason = 'slime without water contents'
-        elif e['refractive'] and e['linked']:
-            reason = 'refractive on a water brush'
+        elif e['linked'] and e['up_area'] > 0:
+            reason = 'top of a water brush'
         elif e['refractive']:
             reason = 'refractive, no water semantics (generic refraction)'
         else:
             reason = 'water-like name / material only, no water semantics'
         e['reason'] = reason
-        e['modern'] = reason in ('CONTENTS_WATER', 'refractive on a water brush')
+        e['modern'] = reason in ('CONTENTS_WATER', 'top of a water brush')
+    for e in per.values():
+        e['modern_surfaces'] = 0
+    for surface in surfaces:
+        e = per[surface['shader']]
+        side = surface['link_side']
+        linked_top = side and surface['link_cls'] != 'lava' and side[2] > .7 and sum(
+            side[i]*surface['normal'][i] for i in range(3)) > .7
+        surface['modern'] = bool(e['modern'] and surface['orient'] == 'up' and
+                                 (surface['contents'] & CONTENTS_WATER or linked_top) and
+                                 not surface['contents'] & CONTENTS_LAVA)
+        e['modern_surfaces'] += int(surface['modern'])
     return per
 
 

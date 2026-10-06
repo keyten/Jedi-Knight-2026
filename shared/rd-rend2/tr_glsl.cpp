@@ -441,6 +441,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterSceneMap",		GLSL_INT, 1 },
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
+	{ "u_WaterPass", GLSL_VEC4, 1 },
+	{ "u_GlowMap", GLSL_INT, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -732,7 +734,7 @@ static size_t GLSL_GetShaderHeader(
 		Q_strcat(dest, size, "#define USE_SSAO\n");
 
 	// lightall writes the SSR material attachments of renderFbo, tr_ssr.cpp
-	if (R_SSRResourcesEnabled())
+	if (R_SSROpaqueResourcesEnabled())
 		Q_strcat(dest, size, "#define USE_SSR\n");
 
 	// lightall writes the SSGI source / receiver attachments, tr_ssgi.cpp
@@ -1817,9 +1819,10 @@ void GLSL_SetUniforms( shaderProgram_t *program, UniformData *uniformData )
 
 			case GLSL_VEC4:
 			{
-				assert(data->numElements == 1);
 				GLfloat *value = (GLfloat *)(data + 1);
-				GLSL_SetUniformVec4(program, data->index, value);
+				// The command writer supports vec4 arrays (water optics, cloud
+				// shadows). Upload every element, just as for vec2/float arrays.
+				GLSL_SetUniformVec4N(program, data->index, value, data->numElements);
 				data = reinterpret_cast<UniformData *>(value + data->numElements*4);
 				break;
 			}
@@ -2904,6 +2907,8 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		char extradefines[256];
 		Q_strncpyz(name, "watersurface", sizeof(name));
 		Com_sprintf(extradefines, sizeof(extradefines), "#define WATER_UNIFORM_VEC4S %d\n", WATER_UNIFORM_VEC4S);
+		if (R_SSRResourcesEnabled() && !R_SSROpaqueResourcesEnabled())
+            Q_strcat(extradefines, sizeof(extradefines), "#define USE_SSR\n");
 		if (i & WATERDEF_USE_HIZ)
 		{
 			// the Hi-Z walk only exists with the SSR inputs
@@ -2938,6 +2943,10 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERSCENEMAP, 0);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERGLOWMAP, 9);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, 12);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, 14);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRPREVHITMAP, 15);
 		GLSL_SetUniformInt(sp, UNIFORM_ENVBRDFMAP, 3);
 		GLSL_SetUniformInt(sp, UNIFORM_CUBEMAP, 4);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
@@ -4021,6 +4030,9 @@ static int GLSL_LoadGPUProgramScreenSpace(
 	{
 		load(&tr.ssrDownsampleShader[0], "ssr_downsample", "ssr_downsample", fallback_ssr_downsampleProgram, nullptr);
 		load(&tr.ssrDownsampleShader[1], "ssr_downsample_first", "ssr_downsample", fallback_ssr_downsampleProgram, "#define FIRST_LEVEL\n");
+	}
+	if (R_SSROpaqueResourcesEnabled())
+	{
 		load(&tr.ssrTraceShader[SSRDEF_TRACE], "ssr_trace", "ssr_trace", fallback_ssr_traceProgram, nullptr);
 		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ], "ssr_trace_hiz", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n");
 		load(&tr.ssrTraceShader[SSRDEF_CLASSIFY], "ssr_classify", "ssr_trace", fallback_ssr_traceProgram, "#define CLASSIFY\n");
@@ -4915,7 +4927,7 @@ static int GLSL_CountStartupPrograms()
 	if (R_ScreenSpaceResourcesEnabled())
 	{
 		count += 2;
-		if (R_SSRResourcesEnabled()) count += 9;
+		if (R_SSRResourcesEnabled()) count += R_SSROpaqueResourcesEnabled() ? 9 : 2;
 		if (R_SSGIResourcesEnabled()) count += 7;
 		if (R_SkinSSSResourcesEnabled()) count += 3;
 	}

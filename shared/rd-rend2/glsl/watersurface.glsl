@@ -254,6 +254,8 @@ void main()
 // through the medium along the reflected path.
 
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
+uniform vec4 u_WaterPass; // x: reflection prepass, y: history / resolved reflection valid, z: history weight
+uniform sampler2D u_GlowMap;
 
 layout(std140) uniform Scene
 {
@@ -319,6 +321,9 @@ in vec2 var_FlowTex;
 
 out vec4 out_Color;
 out vec4 out_Glow;
+#if defined(USE_SSR)
+out vec4 out_SSRNormal; // reflection prepass: world hit position and validity
+#endif
 
 #ifndef ROUGHNESS_MIPS
 #define ROUGHNESS_MIPS 6.0
@@ -377,7 +382,7 @@ bool WaterIsSky(float d)
 // world position of render target uv at view depth z
 vec3 WaterWorldPosition(vec2 uv, float z)
 {
-	vec2 ndc = uv * 2.0 - 1.0;
+	vec2 ndc = (uv - u_Water[12].xy) / u_Water[12].zw * 2.0 - 1.0;
 	vec2 xy = (ndc + u_Water[4].zw) * z / u_Water[4].xy;
 	return u_ViewOrigin + u_Water[7].xyz * xy.x + u_Water[8].xyz * xy.y + normalize(u_ViewForward) * z;
 }
@@ -385,7 +390,7 @@ vec3 WaterWorldPosition(vec2 uv, float z)
 vec2 WaterProject(vec3 p)
 {
 	vec4 clip = u_viewProjectionMatrix * vec4(p, 1.0);
-	return clip.xy / max(clip.w, 1e-4) * 0.5 + 0.5;
+	return (clip.xy / max(clip.w, 1e-4) * 0.5 + 0.5) * u_Water[12].zw + u_Water[12].xy;
 }
 
 // render target uv of the point L along the refracted ray Rt from P, the offset scaled by
@@ -396,14 +401,25 @@ vec2 WaterRefractedUV(vec3 P, vec3 Rt, float L, vec2 uv)
 	float offsetLength = length(offset);
 	if (offsetLength > 0.12)
 		offset *= 0.12 / offsetLength;
-	return clamp(uv + offset, vec2(0.0), vec2(1.0));
+	vec2 halfTexel = 0.5 / vec2(textureSize(u_WaterSceneMap, 0));
+	return clamp(uv + offset, u_Water[12].xy + halfTexel,
+		u_Water[12].xy + u_Water[12].zw - halfTexel);
+}
+
+// Hardware depth describes one surface, never an interpolation between surfaces.
+float WaterSampleDepth(vec2 uv)
+{
+    ivec2 size = textureSize(u_WaterDepthMap, 0);
+    ivec2 pixel = clamp(ivec2(floor(uv * vec2(size))), ivec2(0), size - 1);
+    return texelFetch(u_WaterDepthMap, pixel, 0).r;
 }
 
 // depth below the surface plane (P, Ng) of the scene sample at uv (depth: its hardware depth), the
 // position taken at the center of the depth texel the sample came from
 float WaterDepthBelow(vec3 P, vec3 Ng, vec2 uv, float depth)
 {
-	vec2 texel = (floor(uv * r_FBufScale) + 0.5) / r_FBufScale;
+	vec2 size = vec2(textureSize(u_WaterDepthMap, 0));
+	vec2 texel = (clamp(floor(uv * size), vec2(0.0), size - 1.0) + 0.5) / size;
 	return dot(P - WaterWorldPosition(texel, WaterLinearDepth(depth)), Ng);
 }
 
@@ -605,22 +621,135 @@ vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDi
 	if (confidence <= 0.0)
 		return vec4(0.0);
 
-	// radiance: the color pyramid at the cone footprint (ssr_resolve.glsl HitRadiance)
-	float footprint = 2.0 * hitDistance * SSRConeTangent(roughness) / (max(Q.z, 1.0) * u_SSRDepthParams.w);
-	float mip = clamp(log2(max(footprint, 1.0)), 0.0, u_SSRSettings2.z);
-	vec4 c = textureLod(u_SSRSceneMap, hitUV, max(mip, 1.0));
-	if (mip < 1.0)
-		c = mix(vec4(textureLod(u_SSRSceneMap, hitUV, 0.0).rgb, 1.0), c, mip);
-	confidence *= smoothstep(0.2, 0.6, c.a);
-	return vec4(SceneToLinear(c.rgb / max(c.a, 1.0e-3)), confidence);
+	vec4 radiance = SSRHitRadiance(vec4(hitUV, SSREncodeHitDepth(zScene), confidence),
+		P, SSRConeTangent(roughness), u_SSRSettings2.z);
+	return vec4(SceneToLinear(radiance.rgb / max(radiance.a, 1e-3)), radiance.a);
 }
 
-vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness)
+
+// Match the actual rounded raster viewport, including odd target dimensions.
+vec2 WaterReflectionUV(vec2 sceneUV)
 {
-	float hitDistance;
+    vec2 fullSize = vec2(textureSize(u_WaterSceneMap, 0));
+    vec2 traceSize = vec2(textureSize(u_SSRHistoryMap, 0));
+    float scale = u_WaterPass.w > 0.0 ? u_WaterPass.w : round(fullSize.x / traceSize.x);
+    scale = max(scale, 1.0);
+    vec2 lo = floor(u_Water[12].xy * fullSize / scale);
+    vec2 hi = ceil((u_Water[12].xy + u_Water[12].zw) * fullSize / scale);
+    vec2 local = (sceneUV - u_Water[12].xy) / u_Water[12].zw;
+    return (lo + local * (hi - lo)) / traceSize;
+}
+
+// Bilateral reconstruction of the reduced-resolution water reflection.
+vec4 WaterResolvedSSR(vec3 P, vec3 N, float roughness, out float hitDistance)
+{
+	vec2 uv = WaterReflectionUV(WaterProject(P));
+	vec2 size = vec2(textureSize(u_SSRHistoryMap, 0));
+	vec2 st = uv * size - 0.5;
+	ivec2 base = ivec2(floor(st));
+	vec2 f = fract(st);
+	vec4 sum = vec4(0.0);
+	float weightSum = 0.0;
+	float distanceSum = 0.0;
+	float z = dot(P - u_ViewOrigin, normalize(u_ViewForward));
+	for (int i = 0; i < 4; i++)
+	{
+		ivec2 offset = ivec2(i & 1, i >> 1);
+		ivec2 pixel = clamp(base + offset, ivec2(0), ivec2(size) - 1);
+		vec4 geom = texelFetch(u_SSRHistoryGeomMap, pixel, 0);
+		if (geom.x <= 0.0)
+			continue;
+		vec3 normal = SSRDecodeNormal(geom.yz);
+		vec2 bilinear = mix(vec2(1.0) - f, f, vec2(offset));
+		float weight = bilinear.x * bilinear.y;
+		weight *= exp(-abs(geom.x - z) / max(0.02 * z, 0.5));
+		weight *= pow(max(dot(normal, N), 0.0), 32.0);
+		weight *= exp(-16.0 * abs(geom.w - roughness));
+		vec4 value = texelFetch(u_SSRHistoryMap, pixel, 0);
+		vec4 hit = texelFetch(u_SSRPrevHitMap, pixel, 0);
+		sum += value * weight;
+		distanceSum += length(hit.xyz - P) * hit.w * weight;
+		weightSum += weight;
+	}
+	hitDistance = distanceSum / max(weightSum, 1e-4);
+	vec4 result = sum / max(weightSum, 1e-4);
+	return vec4(result.rgb / max(result.a, 1e-3), result.a);
+}
+
+vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, vec3 Nwave, float roughness, out float hitDistance)
+{
+	if (u_WaterPass.y > 0.5 && u_WaterPass.x < 0.5)
+		return WaterResolvedSSR(Pw, Nwave, roughness, hitDistance);
 	return WaterSSRTrace(Pw, Rw, Ngeo, roughness, hitDistance);
 }
+
+void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float roughness)
+{
+	float z = dot(P - u_ViewOrigin, normalize(u_ViewForward));
+	vec2 uv = WaterProject(P);
+	float depth = WaterSampleDepth(uv);
+	if (!WaterIsSky(depth) && WaterLinearDepth(depth) < z - 0.5)
+		discard;
+	vec3 R = reflect(-V, N);
+	vec3 side = inside ? -Ng : Ng;
+	float above = dot(R, side);
+	if (above < 0.02)
+		R = normalize(R + side * (0.02 - above));
+	float distance;
+	vec4 ssr = WaterSSRTrace(P, R, side, roughness, distance);
+	vec4 current = vec4(ssr.rgb * ssr.a, ssr.a);
+	vec4 hit = vec4(P + R * distance, ssr.a > 0.0 ? 1.0 : 0.0);
+	if (u_WaterPass.y > 0.5 && hit.w > 0.0)
+	{
+		vec4 prevClip = u_SSRReproject * vec4(P, 1.0);
+		vec2 prevUV = (prevClip.xy / max(prevClip.w, 1e-4) * 0.5 + 0.5) * u_Water[12].zw + u_Water[12].xy;
+		if (prevClip.w > 0.0 && SSRInsideView(prevUV))
+		{
+            prevUV = WaterReflectionUV(prevUV);
+			vec4 geom = texture(u_SSRHistoryGeomMap, prevUV);
+			vec4 oldHit = texture(u_SSRPrevHitMap, prevUV);
+			vec4 old = texture(u_SSRHistoryMap, prevUV);
+			float tolerance = max(0.01 * z, 0.5);
+			float cone = max(2.0, distance * SSRConeTangent(roughness));
+			if (geom.x > 0.0 && abs(geom.x - prevClip.w) < tolerance &&
+				dot(SSRDecodeNormal(geom.yz), N) > 0.97 && abs(geom.w - roughness) < 0.05 &&
+				oldHit.w > 0.0 && length(oldHit.xyz - hit.xyz) < cone)
+			{
+				// A changed reflected object or wave must not leave a trail. Bound
+				// the history to current radiance and reduce its weight with motion.
+				vec3 oldRadiance = old.rgb / max(old.a, 1e-3);
+				vec3 extent = 0.05 + 0.2 * ssr.rgb;
+				oldRadiance = clamp(oldRadiance, max(ssr.rgb - extent, vec3(0.0)), ssr.rgb + extent);
+				float motion = length((prevUV - WaterReflectionUV(uv)) * vec2(textureSize(u_SSRHistoryMap, 0)));
+				float weight = u_WaterPass.z * exp(-0.15 * motion);
+				current = mix(current, vec4(oldRadiance * old.a, old.a), weight);
+			}
+		}
+	}
+	out_Color = current;
+	out_Glow = vec4(z, SSREncodeNormal(N), roughness);
+	out_SSRNormal = hit;
+}
+
 #endif
+
+
+float WaterFadeIntegral(float z)
+{
+	float length = 1.0 / u_Water[8].w;
+	float t = clamp((z - u_Water[7].w) / length, 0.0, 1.0);
+	return length * (t * t * t - 0.5 * t * t * t * t) + max(z - u_Water[7].w - length, 0.0);
+}
+
+float WaterMissingMedium(float z0, float z1)
+{
+	if (abs(z1 - z0) < 1e-3)
+	{
+		float t = clamp((z0 - u_Water[7].w) * u_Water[8].w, 0.0, 1.0);
+		return t * t * (3.0 - 2.0 * t);
+	}
+	return clamp((WaterFadeIntegral(z1) - WaterFadeIntegral(z0)) / (z1 - z0), 0.0, 1.0);
+}
 
 // medium between the surface Ps and the scene point behind it along the view ray (froxel volume),
 // linear in-scattering and transmittance
@@ -655,10 +784,11 @@ void main()
 	int debugView = int(u_Water[6].x + 0.5);
 
 	// split view: the legacy stages are drawn on the left (scissor), the water program on the right
-	if (u_Water[6].y >= 0.0 && gl_FragCoord.x < u_Water[6].y)
+	if (u_WaterPass.x < 0.5 && u_Water[6].y >= 0.0 && gl_FragCoord.x < u_Water[6].y)
 		discard;
 
-	vec2 uv = gl_FragCoord.xy / r_FBufScale;
+	vec2 uv = u_WaterPass.x > 0.5 ? WaterProject(var_Position) :
+		gl_FragCoord.xy / vec2(textureSize(u_WaterSceneMap, 0));
 	vec4 sceneHere = texture(u_WaterSceneMap, uv);
 
 	float ior = u_Water[0].x;
@@ -673,7 +803,7 @@ void main()
 	// waves: tiling slope texture, two world space layers drifting with the wind and one layer on the
 	// first stage coordinates (its tcMod scroll is the flow of the legacy water). The mips keep the
 	// slope variance: distant waves become roughness instead of aliasing (LEAN).
-	vec3 Tw = abs(Ng.z) > 0.7 ? vec3(1.0, 0.0, 0.0) : normalize(cross(vec3(0.0, 0.0, 1.0), Ng));
+	vec3 Tw = abs(Ng.z) > 0.7 ? normalize(vec3(1.0, 0.0, 0.0) - Ng * Ng.x) : normalize(cross(vec3(0.0, 0.0, 1.0), Ng));
 	vec3 Bw = normalize(cross(Ng, Tw));
 	vec2 planar = vec2(dot(P, Tw), dot(P, Bw));
 	float invSize = u_Water[10].y;
@@ -695,6 +825,15 @@ void main()
 		(variance.x + variance.y), 1.0));
 	alpha = max(alpha, 0.002);
 	float roughness = sqrt(alpha);
+
+	#if defined(USE_SSR)
+	if (u_WaterPass.x > 0.5)
+	{
+		WaterReflectionPass(P, V, N, Ng, inside, roughness);
+		return;
+	}
+#endif
+
 
 	float NV = max(dot(N, V), 1e-4);
 	float F = FresnelDielectric(NV, inside ? ior : 1.0 / ior);
@@ -746,7 +885,7 @@ void main()
 
 	// view depths: the surface and the scene behind it
 	float zSurface = 1.0 / gl_FragCoord.w;
-	float depthHere = texture(u_WaterDepthMap, uv).r;
+	float depthHere = WaterSampleDepth(uv);
 	bool skyHere = WaterIsSky(depthHere);
 	float zHere = skyHere ? 1.0e6 : max(WaterLinearDepth(depthHere), zSurface);
 	float maxPath = u_Water[6].w;
@@ -775,6 +914,7 @@ void main()
 	vec3 debugSource = vec3(0.0);
 	vec4 ssrDebug = vec4(0.0);
 	vec3 rawRefracted = vec3(0.0);
+	vec3 transmittedGlow = vec3(0.0);
 	vec3 transmittance = vec3(1.0);
 	float pathLength = 0.0;
 	float rejected = 0.0;
@@ -794,7 +934,8 @@ void main()
 #if defined(USE_SSR)
 		if (WaterFlag(WATER_FLAG_SSR) && u_Water[1].y > 0.0)
 		{
-			vec4 ssr = WaterSSR(P, R, Ng, roughness);
+			float hitDistance;
+			vec4 ssr = WaterSSR(P, R, Ng, N, roughness, hitDistance);
 			float c = ssr.a * u_Water[1].y;
 			env = mix(env, ssr.rgb, c);
 			debugSource = mix(debugSource, vec3(1.0, 0.0, 0.0), c);
@@ -812,7 +953,7 @@ void main()
 		float cosT = max(-dot(Rt, Ng), 0.05);
 		float depthGuess = skyHere ? 256.0 : min(pathStraight * max(dot(V, Ng), 0.0), 2048.0);
 		vec2 uvR = WaterRefractedUV(P, Rt, depthGuess / cosT, uv);
-		float depthR = texture(u_WaterDepthMap, uvR).r;
+		float depthR = WaterSampleDepth(uvR);
 		for (int i = 0; i < 2; i++)
 		{
 			if (WaterIsSky(depthR))
@@ -821,7 +962,7 @@ void main()
 			if (h <= 0.0)
 				break;
 			uvR = WaterRefractedUV(P, Rt, h / cosT, uv);
-			depthR = texture(u_WaterDepthMap, uvR).r;
+			depthR = WaterSampleDepth(uvR);
 		}
 		vec2 offset = uvR - uv;
 
@@ -836,7 +977,7 @@ void main()
 					break;
 				k *= 0.5;
 				uvR = clamp(uv + offset * k, vec2(0.0), vec2(1.0));
-				depthR = texture(u_WaterDepthMap, uvR).r;
+				depthR = WaterSampleDepth(uvR);
 			}
 			if (!WaterIsSky(depthR) && WaterLinearDepth(depthR) <= zSurface + 0.5)
 			{
@@ -861,15 +1002,26 @@ void main()
 		// medium of the same parameters elsewhere
 		vec3 S = vec3(0.0);
 		vec3 T = vec3(1.0);
-		float analytic = 1.0;
-		if (u_Water[2].w > 0.5)
-			analytic = clamp((zSurface - u_Water[7].w) * u_Water[8].w, 0.0, 1.0);
-		if (WaterFlag(WATER_FLAG_FOGMEDIUM))
-			analytic = 0.0;
 		vec3 Pstraight = skyHere ? P - V * maxPath : u_ViewOrigin + (P - u_ViewOrigin) * (zHere / zSurface);
 		WaterFroxelSegment(P, Pstraight, S, T);
-
-		vec3 Ta = exp(-sigma * (pathLength * analytic));
+		// Remove the liquid extinction already integrated along the straight
+		// view ray, then integrate the requested refracted path. The fade is
+		// integrated over the entire segment, including the part beyond farZ.
+		vec3 opticalDepth = sigma * pathLength;
+		if (u_Water[2].w > 0.5)
+		{
+			float straightLength = length(Pstraight - P);
+			float zEnd = dot(Pstraight - u_ViewOrigin, normalize(u_ViewForward));
+			float coveredLength = straightLength * (1.0 - WaterMissingMedium(zSurface, zEnd));
+		  #if defined(USE_FROXEL_RGB)
+			opticalDepth -= sigma * coveredLength;
+		  #else
+			opticalDepth -= vec3(dot(sigma, vec3(1.0 / 3.0)) * coveredLength);
+		  #endif
+		}
+		if (WaterFlag(WATER_FLAG_FOGMEDIUM))
+			opticalDepth = vec3(0.0); // the map's explicit fog material defines this medium
+		vec3 Ta = exp(-clamp(opticalDepth, vec3(-10.0), vec3(80.0)));
 		vec3 sunIn = vec3(0.0);
 		if (sun)
 		{
@@ -877,8 +1029,9 @@ void main()
 			sunIn = M_PI * sunColor * sunShadow * WaterPhase(g, dot(Rt, -sunInLiquid)) * sunT;
 		}
 		vec3 Sa = albedo * (0.5 * ambient + sunIn) * (vec3(1.0) - Ta);
-		transmittance = T * Ta;
-		transmitted = rawRefracted * transmittance + S + T * Sa;
+		transmittance = clamp(T * Ta, 0.0, 1.0);
+		transmitted = rawRefracted * transmittance + max(S + T * Sa, vec3(0.0));
+		transmittedGlow = SceneToLinear(texture(u_GlowMap, uvR).rgb) * transmittance;
 
 		// ---- glints: the sun and the dynamic lights (sabers, bolts, explosions)
 		float glintAlpha = max(alpha, 0.01);
@@ -904,6 +1057,7 @@ void main()
 		// against the floor or a wall, not an interface with air (no false total internal reflection)
 		transmitted = SceneToLinear(sceneHere.rgb);
 		rawRefracted = transmitted;
+		transmittedGlow = SceneToLinear(texture(u_GlowMap, uv).rgb);
 		W = 0.0;
 	}
 #if defined(USE_WATER_SNELL)
@@ -921,7 +1075,7 @@ void main()
 			float pathStraight = skyHere ? maxPath : (zHere - zSurface) * cameraDistance / zSurface;
 			float heightGuess = skyHere ? 256.0 : min(pathStraight * max(-dot(V, Ng), 0.0), 2048.0);
 			vec2 uvR = WaterRefractedUV(P, Rt, heightGuess / cosT, uv);
-			float depthR = texture(u_WaterDepthMap, uvR).r;
+			float depthR = WaterSampleDepth(uvR);
 			for (int i = 0; i < 2; i++)
 			{
 				if (WaterIsSky(depthR))
@@ -930,7 +1084,7 @@ void main()
 				if (h <= 0.0)
 					break;
 				uvR = WaterRefractedUV(P, Rt, h / cosT, uv);
-				depthR = texture(u_WaterDepthMap, uvR).r;
+				depthR = WaterSampleDepth(uvR);
 			}
 
 			// a sample in front of the surface is in the liquid between the camera and the surface
@@ -944,7 +1098,7 @@ void main()
 						break;
 					k *= 0.5;
 					uvR = clamp(uv + offset * k, vec2(0.0), vec2(1.0));
-					depthR = texture(u_WaterDepthMap, uvR).r;
+					depthR = WaterSampleDepth(uvR);
 				}
 				if (!WaterIsSky(depthR) && WaterLinearDepth(depthR) <= zSurface + 0.5)
 				{
@@ -956,6 +1110,7 @@ void main()
 			}
 			rawRefracted = SceneToLinear(texture(u_WaterSceneMap, uvR).rgb);
 			transmitted = rawRefracted;
+			transmittedGlow = SceneToLinear(texture(u_GlowMap, uvR).rgb);
 		}
 
 		// ---- reflection under the surface (total beyond the critical angle): the scene in the liquid,
@@ -988,7 +1143,7 @@ void main()
 		if (WaterFlag(WATER_FLAG_SSR) && u_Water[1].y > 0.0)
 		{
 			float hitDistance;
-			vec4 ssr = WaterSSRTrace(P, R, Nside, roughness, hitDistance);
+			vec4 ssr = WaterSSR(P, R, Nside, N, roughness, hitDistance);
 			float c = ssr.a * u_Water[1].y;
 			if (c > 0.0)
 			{
@@ -1018,7 +1173,7 @@ void main()
 			vec2 uvR = clamp(uv + offset, vec2(0.0), vec2(1.0));
 			if (WaterFlag(WATER_FLAG_REJECT))
 			{
-				float depthR = texture(u_WaterDepthMap, uvR).r;
+				float depthR = WaterSampleDepth(uvR);
 				if (!WaterIsSky(depthR) && WaterLinearDepth(depthR) <= zSurface + 0.5)
 				{
 					uvR = uv;
@@ -1027,6 +1182,7 @@ void main()
 			}
 			rawRefracted = SceneToLinear(texture(u_WaterSceneMap, uvR).rgb);
 			transmitted = rawRefracted;
+			transmittedGlow = SceneToLinear(texture(u_GlowMap, uvR).rgb);
 		}
 		debugSource = vec3(0.0, 0.0, 1.0);
 	}
@@ -1119,5 +1275,5 @@ void main()
 	}
 
 	out_Color = vec4(LinearToScene(color), sceneHere.a);
-	out_Glow = vec4(0.0);
+	out_Glow = vec4(LinearToScene((1.0 - W) * transmittedGlow + glint), 0.0);
 }

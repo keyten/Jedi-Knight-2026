@@ -1131,7 +1131,7 @@ static void RB_BindTransformFeedbackBuffer(const bufferBinding_t& binding)
 static void RB_DrawItems(
 	int numDrawItems,
 	const DrawItem *drawItems,
-	uint32_t *drawOrder)
+	uint32_t *drawOrder, bool waterReflection = false)
 {
 	// Weather update and render items are sorted into separate runs. Time the
 	// actual GPU submissions here, rather than their construction in
@@ -1141,6 +1141,10 @@ static void RB_DrawItems(
 	for ( int i = 0; i < numDrawItems; ++i )
 	{
 		const DrawItem& drawItem = drawItems[drawOrder[i]];
+		const bool waterProgram = (uintptr_t)drawItem.program >= (uintptr_t)tr.waterSurfaceShader &&
+			(uintptr_t)drawItem.program < (uintptr_t)(tr.waterSurfaceShader + WATERDEF_COUNT);
+		if (waterReflection && !waterProgram)
+			continue;
 		shaderProgram_t *weatherProgram =
 			drawItem.program == &tr.weatherUpdateSplashShader ? &tr.weatherUpdateShader :
 			(drawItem.program == &tr.weatherUpdateShader ||
@@ -1176,7 +1180,13 @@ static void RB_DrawItems(
 
 		GLSL_SetUniforms(drawItem.program, drawItem.uniformData);
 
-		RB_SetRenderState(drawItem.renderState);
+		RenderState state = drawItem.renderState;
+		if (waterProgram)
+		{
+			RB_WaterSurfaceBindReflection(drawItem.program, (qboolean)waterReflection);
+			state.screenAux = waterReflection;
+		}
+		RB_SetRenderState(state);
 		if (drawItem.renderState.waterLegacyClip)
 			RB_WaterSurfaceLegacyScissor(qtrue);
 
@@ -1325,7 +1335,7 @@ static void RB_SubmitDrawSurfsForDepthFill(
 		// it reads (an opaque sorted water shader would have no depth behind it)
 		if ((shader->sort != SS_OPAQUE && !alphaShadowDepth) ||
 			shader->useDistortion ||
-			(shader->waterSurface && backEnd.waterSurfaceView) ||
+			((drawSurf->waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView) ||
 			(shader->depthPrepass == DEPTHPREPASS_SKIP && !alphaShadowDepth))
 		{
 			// Don't draw yet, let's see what's to come
@@ -1409,6 +1419,7 @@ static void RB_SubmitDrawSurfs(
 	int oldCubemapIndex = -1;
 	int oldFoliageDebugClass = -1;
 	uint8_t oldFoliageMotion = 0;
+	uint32_t oldWaterKey = ~0u;
 	CBoneCache *oldBoneCache = nullptr;
 
 	drawSurf_t *drawSurf = drawSurfs;
@@ -1440,7 +1451,7 @@ static void RB_SubmitDrawSurfs(
 			if (((CRenderableSurface*)drawSurf->surface)->boneCache != oldBoneCache)
 			{
 				RB_EndSurface();
-				RB_BeginSurface(shader, fogNum, cubemapIndex);
+				RB_BeginSurface(shader, fogNum, cubemapIndex, drawSurf->waterKey);
 				tess.dlightBits = dlighted;
 				oldBoneCache = ((CRenderableSurface*)drawSurf->surface)->boneCache;
 				tr.animationBoneUboOffset = RB_GetBoneUboOffset((CRenderableSurface*)drawSurf->surface);
@@ -1456,7 +1467,8 @@ static void RB_SubmitDrawSurfs(
 				dlighted == oldDlighted &&
 				foliageDebugClass == oldFoliageDebugClass &&
 				foliageMotion == oldFoliageMotion &&
-				backEnd.refractionFill == RB_WaterSurfaceDistortion(shader) )
+				drawSurf->waterKey == oldWaterKey &&
+				backEnd.refractionFill == RB_WaterSurfaceDistortion(shader, drawSurf->waterKey) )
 		{
 			// fast path, same as previous sort
 			rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
@@ -1474,6 +1486,7 @@ static void RB_SubmitDrawSurfs(
 				cubemapIndex != oldCubemapIndex ||
 				foliageDebugClass != oldFoliageDebugClass ||
 				foliageMotion != oldFoliageMotion ||
+				drawSurf->waterKey != oldWaterKey ||
 				(entityNum != oldEntityNum && !tess.entityMergable)) )
 		{
 			if ( oldShader != nullptr )
@@ -1481,7 +1494,7 @@ static void RB_SubmitDrawSurfs(
 				RB_EndSurface();
 			}
 
-			RB_BeginSurface(shader, fogNum, cubemapIndex);
+			RB_BeginSurface(shader, fogNum, cubemapIndex, drawSurf->waterKey);
 			backEnd.pc.c_surfBatches++;
 			oldShader = shader;
 			oldFogNum = fogNum;
@@ -1490,6 +1503,7 @@ static void RB_SubmitDrawSurfs(
 			oldCubemapIndex = cubemapIndex;
 			oldFoliageDebugClass = foliageDebugClass;
 			oldFoliageMotion = foliageMotion;
+			oldWaterKey = drawSurf->waterKey;
 			tess.foliageDebugClass = foliageDebugClass;
 			tess.foliageMotion = foliageMotion;
 			tess.dlightBits = dlighted;
@@ -1502,7 +1516,7 @@ static void RB_SubmitDrawSurfs(
 		}
 
 		qboolean isDistortionShader = (qboolean)
-			(RB_WaterSurfaceDistortion(shader) || (backEnd.currentEntity && backEnd.currentEntity->e.renderfx & RF_DISTORTION));
+			(RB_WaterSurfaceDistortion(shader, drawSurf->waterKey) || (backEnd.currentEntity && backEnd.currentEntity->e.renderfx & RF_DISTORTION));
 
 		if (backEnd.refractionFill != isDistortionShader)
 			continue;
@@ -1623,6 +1637,11 @@ static void RB_SubmitRenderPass(
 	if (water)
 	{
 		RB_WaterSurfacePrepare();
+		if (RB_WaterSurfaceReflectionBegin())
+		{
+			RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder, true);
+			RB_WaterSurfaceReflectionEnd();
+		}
 		RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder);
 		RB_WaterSurfaceFinish();
 	}
@@ -3875,6 +3894,14 @@ static const void *RB_DrawSurfs(const void *data) {
 
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
+	backEnd.waterInterfacesVisible = qfalse;
+	if (r_waterSurface->integer)
+		for (int i = 0; i < cmd->numDrawSurfs; i++)
+			if (cmd->drawSurfs[i].waterKey & WATERKEY_INTERFACE)
+			{
+				backEnd.waterInterfacesVisible = qtrue;
+				break;
+			}
 
 	// clear the z buffer, set the modelview, etc
 	RB_BeginDrawingView();

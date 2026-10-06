@@ -1,0 +1,128 @@
+pk3: assets0.pk3, assets1.pk3, assets2.pk3, assets3.pk3, assets8_pbr1.pk3, assets8_pbr2.pk3, assets8_pbr3.pk3, GGDynamicWeapons.pk3, zz_skinsss_test.pk3, ZZ_SPMissExpansV1.pk3, zz_volumetric_media_test.pk3, zzzz_render2026_menu.pk3
+shader definitions: 3412
+
+## kor1.bsp: liquid brushes 2 (world 2, brush models 0) 2 lava/textures/korriban/kor1_lava
+   legacy textures/korriban/kor1_lava                  water n=  3 up/down/vert/sloped 2/0/1/0 up share  99.7% linked   3 models [0] | lava
+
+## kor2.bsp: liquid brushes 3 (world 3, brush models 0) 3 lava/textures/taspir/ore_lightemitting_lavapool
+   legacy textures/taspir/ore_lightemitting_lavapool   water n=  5 up/down/vert/sloped 1/0/4/0 up share  91.8% linked   4 models [0] | lava
+
+## mp/duel5.bsp: liquid brushes 0 (world 0, brush models 0) 
+   legacy textures/taspir/ore_lightemitting_lavapool   water n=  1 up/down/vert/sloped 1/0/0/0 up share 100.0% linked   0 models [0] | lava
+
+## mp/ffa5.bsp: liquid brushes 0 (world 0, brush models 0) 
+   legacy textures/taspir/ore_lightemitting_lavapool   water n=  1 up/down/vert/sloped 1/0/0/0 up share 100.0% linked   0 models [0] | lava
+   legacy textures/taspir/ore_lightemitting            water n=  3 up/down/vert/sloped 0/0/3/0 up share   0.0% linked   0 models [0] | lava
+
+## mp/siege_korriban.bsp: liquid brushes 43 (world 43, brush models 0) 43 lava/textures/system/caulk_lava
+   legacy textures/siege/korlava                       water n=  4 up/down/vert/sloped 4/0/0/0 up share 100.0% linked   0 models [0] | lava
+
+## t2_port.bsp: liquid brushes 38 (world 38, brush models 0) 27 water/textures/system/caulk_water, 11 water/textures/bespin/water2 fog
+   WATER  textures/bespin/water2                       water n= 23 up/down/vert/sloped 5/18/0/0 up share 100.0% linked  15 fog-medium models [0] | CONTENTS_WATER
+
+## t2_rancor.bsp: liquid brushes 6 (world 6, brush models 0) 6 water/textures/common/water_1
+   WATER  textures/common/water_1                      water n=  6 up/down/vert/sloped 6/0/0/0 up share 100.0% linked   6 models [0] | CONTENTS_WATER
+
+## t2_trip.bsp: liquid brushes 2 (world 2, brush models 0) 2 water/textures/common/water_quicktrip
+   WATER  textures/common/water_quicktrip              water n= 12 up/down/vert/sloped 2/2/8/0 up share  97.1% linked  12 models [0] | CONTENTS_WATER
+
+## t3_bounty.bsp: liquid brushes 2 (world 2, brush models 0) 2 water/textures/common/water2_still
+   WATER  textures/common/water2_still                 water n=  4 up/down/vert/sloped 2/0/2/0 up share  94.9% linked   4 models [0] | CONTENTS_WATER
+
+## t3_hevil.bsp: liquid brushes 11 (world 11, brush models 0) 9 water/textures/system/caulk_water, 2 water/textures/h_evil/lakewater
+   legacy textures/h_evil/wfall                        water n=  8 up/down/vert/sloped 0/0/8/0 up share   0.0% linked   0 models [0] | mostly not facing up (waterfall / stream)
+   WATER  textures/h_evil/lakewater                    water n=  9 up/down/vert/sloped 9/0/0/0 up share 100.0% linked   7 models [0] | CONTENTS_WATER
+
+## taspir1.bsp: liquid brushes 2 (world 2, brush models 0) 2 lava/textures/system/caulk_lava
+   legacy textures/taspir/ore_lightemitting            water n=  2 up/down/vert/sloped 0/0/2/0 up share   0.0% linked   0 models [0] | lava
+   legacy textures/taspir/ore_lightemitting_lavapool   water n=  2 up/down/vert/sloped 2/0/0/0 up share 100.0% linked   2 models [0] | lava
+
+## taspir2.bsp: liquid brushes 12 (world 12, brush models 0) 8 lava/textures/taspir/ore_lightemitting_lavapool, 4 water/textures/bespin/water2 fog
+   legacy textures/taspir/ore_lightemitting_lavapool   water n= 57 up/down/vert/sloped 8/5/44/0 up share  91.7% linked  57 models [0] | lava
+   WATER  textures/bespin/water2                       water n=  8 up/down/vert/sloped 4/4/0/0 up share 100.0% linked   8 fog-medium models [0] | CONTENTS_WATER
+
+## vjun1.bsp: liquid brushes 5 (world 5, brush models 0) 5 water/textures/system/caulk_water
+   WATER  textures/common/water2_water1_vjun1          slime n=  1 up/down/vert/sloped 1/0/0/0 up share 100.0% linked   0 models [0] | CONTENTS_WATER
+
+## vjun2.bsp: liquid brushes 1 (world 0, brush models 1) 1 water/textures/common/water_1
+   WATER  textures/common/water_1                      water n=  6 up/down/vert/sloped 1/1/4/0 up share  91.6% linked   6 models [72] | CONTENTS_WATER
+
+## yavin1.bsp: liquid brushes 4 (world 4, brush models 0) 1 water/textures/common/water_yavin2, 3 water/textures/system/caulk_water
+   WATER  textures/h_evil/lakewater                    water n= 11 up/down/vert/sloped 11/0/0/0 up share 100.0% linked   7 models [0] | CONTENTS_WATER
+   legacy textures/h_evil/wfall                        water n=  1 up/down/vert/sloped 0/0/0/1 up share   0.0% linked   0 models [0] | mostly not facing up (waterfall / stream)
+   WATER  textures/common/water_yavin2                 water n= 17 up/down/vert/sloped 4/5/8/0 up share  95.4% linked  17 models [0] | CONTENTS_WATER
+
+## yavin1b.bsp: liquid brushes 8 (world 8, brush models 0) 1 water/textures/common/water_yavin2, 7 water/textures/system/caulk_water
+   WATER  textures/h_evil/lakewater                    water n=  5 up/down/vert/sloped 5/0/0/0 up share 100.0% linked   1 models [0] | CONTENTS_WATER
+   legacy textures/h_evil/wfall                        water n=  2 up/down/vert/sloped 0/0/0/2 up share   0.0% linked   0 models [0] | mostly not facing up (waterfall / stream)
+   WATER  textures/common/water_yavin2                 water n= 17 up/down/vert/sloped 3/6/8/0 up share  95.4% linked  17 models [0] | CONTENTS_WATER
+
+## yavin2.bsp: liquid brushes 3 (world 3, brush models 0) 1 water/textures/system/caulk_water, 2 water/textures/common/water_yavin2
+   WATER  textures/common/water_yavin2                 water n= 15 up/down/vert/sloped 2/1/12/0 up share  54.6% linked  15 models [0] | CONTENTS_WATER
+
+## shaders without water semantics (water-like name / material / refractive) used by the maps
+   t1_fatal.bsp           textures/factory/coolant_test                 22 surfaces | water-like name / material only, no water semantics
+
+## water-like or water contents shader definitions not used by any map
+   gfx/effects/pool1                                    shaders/gfx2.shader (assets1.pk3) parms 
+   gfx/effects/pool2                                    shaders/gfx2.shader (assets1.pk3) parms 
+   gfx/effects/pool_static                              shaders/gfx2.shader (assets1.pk3) parms 
+   gfx/effects/water_splash                             shaders/effects.mtr (assets8_pbr1.pk3) parms 
+   models/map_objects/factory/s_crate_03_liquid         shaders/factory.mtr (assets8_pbr1.pk3) parms trans
+   models/map_objects/hoth/bacta_tank_liquid            shaders/hoth.mtr (assets8_pbr1.pk3) parms nomarks nonopaque trans
+   textures/common/water2                               shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/common/water2_shadow                        shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/common/water2_water                         shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/common/water2_water1                        shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/common/water2_waterfall                     shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque trans
+   textures/common/water2_waterfall_tutorial            shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque trans
+   textures/common/water_3                              shaders/common.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/common/water_vjun                           shaders/vjun.mtr (assets8_pbr1.pk3) parms 
+   textures/common/water_waterfall_2                    shaders/common.mtr (assets8_pbr1.pk3) parms 
+   textures/common/water_waterfall_3                    shaders/common.mtr (assets8_pbr1.pk3) parms 
+   textures/fogs/yavin_swamp                            shaders/fogs.shader (assets1.pk3) parms nonsolid nonopaque fog trans
+   textures/h_evil/wfall_opaque                         shaders/hiddenevil.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water
+   textures/imp_mine/slime                              shaders/imperial.mtr (assets8_pbr1.pk3) parms water fog trans
+   textures/jnegretetest/water2                         shaders/jnegretetest.shader (assets1.pk3) parms nonsolid nonopaque water trans
+   textures/jnegretetest/water3                         shaders/jnegretetest.shader (assets1.pk3) parms nonsolid nonopaque water trans
+   textures/rbettenbergtest/rbettenbergtest_water1      shaders/rbettenbergtest.shader (assets1.pk3) parms noimpact nomarks nonsolid nonopaque water
+   textures/rbettenbergtest/rbettenbergtest_waterfall1  shaders/rbettenbergtest.shader (assets1.pk3) parms noimpact nomarks nonsolid nonopaque water
+   textures/rbettenbergtest/rbettenbergtest_waterfall2  shaders/rbettenbergtest.shader (assets1.pk3) parms noimpact nomarks nonsolid nonopaque water
+   textures/rbettenbergtest/rbettenbergtest_waterfall3  shaders/rbettenbergtest.shader (assets1.pk3) parms noimpact nomarks nonsolid nonopaque water
+   textures/rbettenbergtest/rbettenbergtest_waternodraw shaders/rbettenbergtest.shader (assets1.pk3) parms noimpact nomarks nodraw nonsolid nonopaque water
+   textures/rich/crazywater                             shaders/rich_rmg.shader (assets1.pk3) parms nonsolid nonopaque water trans
+   textures/rmg/water1                                  shaders/rich_rmg.shader (assets1.pk3) parms water
+   textures/sandcrawler/ore                             shaders/smsand.shader (assets1.pk3) parms nomarks nonsolid nonopaque water trans
+   textures/stevetest/bwater                            shaders/stevetest.shader (assets1.pk3) parms nonsolid water
+   textures/system/caulk_acid                           shaders/system.shader (assets1.pk3) parms nomarks nodraw slime
+   textures/system/caulk_water                          shaders/system.shader (assets1.pk3) parms nomarks nodraw water
+   textures/water/watertest                             shaders/j.shader (assets1.pk3) parms nonopaque
+   textures/yavin/coolant_test                          shaders/test.mtr (assets8_pbr1.pk3) parms nomarks nonsolid nonopaque water trans
+   textures/yavin/mrj_water                             shaders/test.mtr (assets8_pbr1.pk3) parms nomarks nonsolid nonopaque water trans
+   textures/yavin/slime                                 shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque lava water trans
+   textures/yavin/swater1                               shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid water fog trans
+   textures/yavin/water1                                shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid water fog trans
+   textures/yavin/water1_2sided                         shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid water fog trans
+   textures/yavin/water1_2sided_redux                   shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water1_nofog                          shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water trans
+   textures/yavin/water1_temple                         shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid water fog trans
+   textures/yavin/water_test                            shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water_test2                           shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water_test3                           shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water_test4                           shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water_test5                           shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+   textures/yavin/water_yavintrail                      shaders/yavin.mtr (assets8_pbr1.pk3) parms nonsolid nonopaque water fog trans
+
+## definitions of the stock water shaders
+   textures/korriban/kor1_lava: shaders/korriban.mtr (assets8_pbr1.pk3), defined 1x; parms nomarks nonsolid lava; sort None; cull twosided; deforms []; tcMods ['scroll 0.04 0.04', 'scroll 0.05 0.05', 'turb 1 0.3 1 0.1']; blends ['gl_dst_color gl_src_alpha']; refractive False
+   textures/taspir/ore_lightemitting_lavapool: shaders/taspir.mtr (assets8_pbr1.pk3), defined 1x; parms nomarks nonsolid nonopaque lava trans; sort None; cull twosided; deforms []; tcMods ['scroll 0.04 0.04']; blends []; refractive False
+   textures/taspir/ore_lightemitting: shaders/taspir.mtr (assets8_pbr1.pk3), defined 1x; parms nomarks nonsolid nonopaque lava trans; sort None; cull twosided; deforms []; tcMods ['scroll 0.04 0.04']; blends []; refractive False
+   textures/siege/korlava: shaders/siege.shader (assets1.pk3), defined 1x; parms nonsolid nonopaque lava; sort None; cull twosided; deforms []; tcMods ['scroll 0.04 0.04', 'scroll 0.05 0.05', 'turb 1 0.3 1 0.1']; blends ['gl_one gl_src_alpha', 'gl_dst_color gl_src_alpha']; refractive False
+   textures/bespin/water2: shaders/bespin.shader (assets1.pk3), defined 1x; parms nonsolid nonopaque water fog trans; sort None; cull None; deforms []; tcMods ['scroll 0.005 0.01', 'turb 1 0.03 0 0.3', 'scroll -0.005 -0.01', 'turb 0 -0.03 0.5 -0.3']; blends ['gl_one gl_one_minus_src_alpha', 'gl_one gl_src_alpha']; refractive False
+   textures/common/water_1: shaders/common.mtr (assets8_pbr1.pk3), defined 1x; parms nomarks nonsolid nonopaque water trans; sort None; cull None; deforms ['wave 100 sin 1 2 2 0.6']; tcMods ['turb 0.01 0.03 5 0.1', 'stretch noise 1 0.01 1 1', 'turb 0.02 -0.06 0 0.1', 'stretch noise 4 1 0 0.01']; blends ['gl_dst_color gl_zero', 'gl_dst_color gl_zero', 'gl_one gl_one', 'gl_one gl_one']; refractive False
+   textures/common/water_quicktrip: shaders/common.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque water trans; sort seethrough; cull None; deforms []; tcMods ['turb 0.5 0.03 0 0.3']; blends ['gl_one_minus_dst_color gl_one']; refractive False
+   textures/common/water2_still: shaders/common.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque water trans; sort None; cull None; deforms []; tcMods ['turb 0.5 0.03 0 0.3', 'scroll 0 -1']; blends ['gl_one gl_src_alpha', 'gl_dst_color gl_zero', 'gl_one gl_one']; refractive False
+   textures/h_evil/wfall: shaders/hiddenevil.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque water trans; sort None; cull twosided; deforms []; tcMods ['scroll 0.02 -0.27', 'scroll -0.02 -0.2', 'scroll 0 -0.45']; blends ['gl_src_alpha gl_one_minus_src_alpha', 'gl_src_alpha gl_one_minus_src_alpha', 'gl_src_alpha gl_one_minus_src_alpha', 'gl_dst_color gl_zero']; refractive False
+   textures/h_evil/lakewater: shaders/hiddenevil.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque water trans; sort None; cull twosided; deforms []; tcMods ['scroll 0.03 -0.13', 'stretch sin 1 0.02 0 0.1', 'turb 1 0.02 0 0.15', 'scroll -0.03 -0.1', 'turb 1 0.03 0 0.12', 'scroll 0 -0.17']; blends ['gl_src_alpha gl_one_minus_src_alpha', 'gl_src_alpha gl_one_minus_src_alpha', 'gl_src_alpha gl_one_minus_src_alpha', 'gl_dst_color gl_zero']; refractive False
+   textures/common/water2_water1_vjun1: shaders/common.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque slime water trans; sort decal; cull twosided; deforms []; tcMods ['turb 2 0.05 0 0.1', 'turb 0.5 0.03 0 0.3', 'scroll 0 -0.25', 'scroll 0 -1']; blends ['gl_dst_color gl_zero', 'gl_one gl_src_alpha', 'gl_one gl_one']; refractive False
+   textures/common/water_yavin2: shaders/common.mtr (assets8_pbr1.pk3), defined 1x; parms nonsolid nonopaque water trans; sort None; cull twosided; deforms []; tcMods ['scroll 0 -0.1', 'scroll 0 -0.15']; blends ['gl_one gl_src_alpha', 'gl_dst_color gl_zero', 'gl_one gl_one']; refractive False

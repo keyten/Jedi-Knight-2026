@@ -1980,9 +1980,8 @@ typedef struct shader_s {
 
 	// modern water surface (r_waterSurface, tr_watersurface.cpp), set per map
 	// by R_WaterClassifySurfaces / r_waterOverride
-	uint8_t		waterSurface;		// 1: drawn by the water surface program
-	int8_t		waterClass;			// LIQUID_* optics (water or slime)
-	uint8_t		waterFlags;			// WATERSURF_*
+	uint8_t		waterSurface;		// 1: has candidate interfaces; each draw uses waterKey
+	shaderStage_t *waterFlowStage;		// immutable stage selection, cached at map classification
 
 	float clampTime;                                  // time this shader is clamped to
 	float timeOffset;                                 // current time offset for this shader
@@ -2712,6 +2711,8 @@ typedef enum
 	UNIFORM_WATERSCENEMAP,		// water surface: HDR scene copy (unit 0)
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
+	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
+	UNIFORM_WATERGLOWMAP,
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -2956,6 +2957,7 @@ typedef struct drawSurf_s {
 	surfaceType_t *surface; // any of surface*_t
 	int fogIndex;
 	foliageResult_t foliage;
+	uint32_t waterKey; // per BSP surface: interface, medium and classification flags
 } drawSurf_t;
 
 #define	MAX_FACE_POINTS		64
@@ -3263,6 +3265,7 @@ typedef struct msurface_s {
 	struct shader_s		*shader;
 	int					fogIndex;
 	int                 cubemapIndex;
+	uint32_t waterKey;
 	cullinfo_t          cullinfo;
 
 	int					numSurfaceSprites;
@@ -3845,6 +3848,7 @@ typedef struct {
 	qboolean    cloudsComposited;	// the cloud composite of this view ran (tr_clouds.cpp)
 	qboolean    cloudSunDrawn;		// RB_DrawSun already ran under the clouds (RB_CloudsDrawSunEarly)
 	qboolean    waterSurfaceView;	// this view draws classified water with the water program (tr_watersurface.cpp)
+	qboolean    waterInterfacesVisible;	// populated from the submitted view's draw surfaces
 	qboolean    waterSurfaceSSR;	// ... and traces its reflections in the SSR inputs of the view
 	qboolean    waterItemTag;		// draw items being added belong to a water surface
 	qboolean    waterLegacyClipTag;	// draw items being added are legacy water stages of the split view
@@ -3989,6 +3993,12 @@ typedef struct trGlobals_s {
 	image_t					*waterDepthImage;	// its depth (same format as renderDepthImage)
 	image_t					*waterNormalImage;	// tiling wave slopes (x, y, x^2, y^2), mips
 	FBO_t					*waterCopyFbo;
+	image_t *waterGlowImage;
+	image_t *waterReflectionImage[2];
+	image_t *waterReflectionGeomImage[2];
+	image_t *waterReflectionHitImage[2];
+	image_t *waterReflectionDepthImage;
+	FBO_t *waterReflectionFbo[2];
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
 	image_t					*ssrHistoryImage[2];
@@ -4562,7 +4572,7 @@ void R_DecomposeSort( uint32_t sort, int *entityNum, shader_t **shader, int *cub
 uint32_t R_CreateSortKey(int entityNum, int sortedShaderIndex, int cubemapIndex, int postRender);
 void R_AddDrawSurf( surfaceType_t *surface, int entityNum, shader_t *shader,
 				   int fogIndex, int dlightMap, int postRender, int cubemap,
-				   foliageResult_t foliage = {} );
+				   foliageResult_t foliage = {}, uint32_t waterKey = 0 );
 bool R_IsPostRenderEntity ( const trRefEntity_t *refEntity );
 
 void R_CalcMikkTSpaceBSPSurface(int numSurfaces, packedVertex_t *vertices, glIndex_t *indices);
@@ -4770,6 +4780,7 @@ struct shaderCommands_s
 	float		shaderTime;
 	int			fogNum;
 	int         cubemapIndex;
+	uint32_t waterKey;
 	bool		entityMergable;
 #ifdef REND2_SP_GORE
 	bool		scale;		// uses texCoords[input->firstIndex] for storage
@@ -4812,7 +4823,7 @@ struct drawState_t
 extern	shaderCommands_t	tess;
 extern	color4ub_t	styleColors[MAX_LIGHT_STYLES];
 
-void RB_BeginSurface(shader_t *shader, int fogNum, int cubemapIndex );
+void RB_BeginSurface(shader_t *shader, int fogNum, int cubemapIndex, uint32_t waterKey = 0 );
 void RB_EndSurface(void);
 void RB_CheckOverflow( int verts, int indexes );
 #define RB_CHECKOVERFLOW(v,i) if (tess.numVertexes + (v) >= SHADER_MAX_VERTEXES || tess.numIndexes + (i) >= SHADER_MAX_INDEXES ) {RB_CheckOverflow(v,i);}
@@ -5896,15 +5907,18 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 12
+#define WATER_UNIFORM_VEC4S 13
+#define WATERKEY_INTERFACE 1u
+#define WATERKEY_WORLD_BRUSH 2u
 
-// shader_t::waterFlags
+// Per-surface flags, packed into waterKey at bits 8..15.
 #define WATERSURF_FOG_MEDIUM	0x01	// the liquid brush is also a BSP fog volume (its fog is the medium)
 #define WATERSURF_OVERRIDE		0x02	// decided by r_waterOverride
 #define WATERSURF_EXPERIMENTAL	0x04	// decided by the name heuristic (r_waterSurfaceExperimental)
 
 void R_WaterClassifySurfaces(world_t *world, const byte *fileBase, const lump_t *surfacesLump,
 	const lump_t *modelsLump, const lump_t *brushesLump, const lump_t *sidesLump);
+void R_WaterUpdateMergedSurfaces(world_t *world);
 qboolean R_WaterSurfaceResourcesEnabled(void);	// latched r_waterSurface: copy targets and programs exist
 void R_CreateWaterSurfaceImages(int width, int height, int hdrFormat);
 void R_CreateWaterSurfaceFBOs(void);
@@ -5915,9 +5929,12 @@ shaderProgram_t *RB_WaterSurfaceProgram(const shader_t *shader);
 void RB_WaterSurfaceSetupDraw(const shaderCommands_t *input, UniformDataWriter& uniforms,
 	SamplerBindingsWriter& samplers);
 void RB_WaterSurfacePrepare(void);			// copies the scene under the water (RB_SubmitRenderPass)
+qboolean RB_WaterSurfaceReflectionBegin(void);
+void RB_WaterSurfaceReflectionEnd(void);
+void RB_WaterSurfaceBindReflection(shaderProgram_t *program, qboolean trace);
 void RB_WaterSurfaceFinish(void);
 void RB_WaterSurfaceLegacyScissor(qboolean enable);	// r_waterSurfaceDebug 9: legacy stages left of the split
-qboolean RB_WaterSurfaceDistortion(const shader_t *shader);	// useDistortion unless the water program replaces it
+qboolean RB_WaterSurfaceDistortion(const shader_t *shader, uint32_t waterKey);
 void R_WaterInfo_f(void);
 void R_WaterOverride_f(void);
 
@@ -6194,6 +6211,8 @@ SCREEN-SPACE REFLECTIONS, tr_ssr.cpp
 */
 
 qboolean R_SSRResourcesEnabled(void);
+qboolean R_SSROpaqueResourcesEnabled(void);
+float R_SSRTraceScale(void);
 
 // rain wetness of lightall (tr_weather.cpp)
 qboolean R_WeatherWetnessEnabled(void);

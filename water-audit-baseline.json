@@ -1,0 +1,1709 @@
+{
+ "base": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build-rend2\\base",
+ "pk3s": [
+  "assets0.pk3",
+  "assets1.pk3",
+  "assets2.pk3",
+  "assets3.pk3",
+  "assets8_pbr1.pk3",
+  "assets8_pbr2.pk3",
+  "assets8_pbr3.pk3",
+  "GGDynamicWeapons.pk3",
+  "zz_skinsss_test.pk3",
+  "ZZ_SPMissExpansV1.pk3",
+  "zz_volumetric_media_test.pk3",
+  "zzzz_render2026_menu.pk3"
+ ],
+ "maps": {
+  "kor1.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 5410,
+     "cls": "lava",
+     "shader": "textures/korriban/kor1_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5455,
+     "cls": "lava",
+     "shader": "textures/korriban/kor1_lava",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/korriban/kor1_lava",
+     "contents": 32770,
+     "surfaces": 3,
+     "area": 771584.0,
+     "up_area": 769024.0,
+     "down_area": 0.0,
+     "linked": 3,
+     "orient": {
+      "up": 2,
+      "vertical": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "kor2.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 2792,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 2793,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 2794,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "contents": 2147483650,
+     "surfaces": 5,
+     "area": 2582528.0,
+     "up_area": 2369536.0,
+     "down_area": 0.0,
+     "linked": 4,
+     "orient": {
+      "vertical": 4,
+      "up": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "mp/duel5.bsp": {
+   "liquid_brushes": [],
+   "shaders": [
+    {
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "contents": 2147483650,
+     "surfaces": 1,
+     "area": 15413248.0,
+     "up_area": 15413248.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "up": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "mp/ffa5.bsp": {
+   "liquid_brushes": [],
+   "shaders": [
+    {
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "contents": 2147483650,
+     "surfaces": 1,
+     "area": 14796928.0,
+     "up_area": 14796928.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "up": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/taspir/ore_lightemitting",
+     "contents": 2147483650,
+     "surfaces": 3,
+     "area": 5150595.340364566,
+     "up_area": 0.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "vertical": 3
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "mp/siege_korriban.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 7872,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7873,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7874,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7875,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7876,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7877,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7878,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7879,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7880,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7881,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7882,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7883,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7884,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7885,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7886,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7887,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7888,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7889,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7890,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7891,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7892,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7893,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7894,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7895,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7896,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7897,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7898,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7899,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7900,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7901,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7902,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7903,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7904,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7905,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7906,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7907,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7908,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7909,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7910,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7911,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7912,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7913,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7914,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/siege/korlava",
+     "contents": 2,
+     "surfaces": 4,
+     "area": 16175104.0,
+     "up_area": 16175104.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "up": 4
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "t1_fatal.bsp": {
+   "liquid_brushes": [],
+   "shaders": [
+    {
+     "shader": "textures/factory/coolant_test",
+     "contents": 1,
+     "surfaces": 22,
+     "area": 773856.1862636404,
+     "up_area": 265216.0,
+     "down_area": 40160.18626364034,
+     "linked": 0,
+     "orient": {
+      "vertical": 13,
+      "up": 7,
+      "down": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "water-like name / material only, no water semantics",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "t2_port.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 8269,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8270,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8271,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8272,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8273,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8274,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8275,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8276,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8277,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8278,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8279,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8280,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8293,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8294,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8295,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8296,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8297,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8300,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8301,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8648,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8649,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8650,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8651,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8652,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8653,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8654,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8655,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8656,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8694,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8696,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8697,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8701,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8702,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 8703,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8704,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 9149,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 9164,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 9175,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/bespin/water2",
+     "contents": 2147483660,
+     "surfaces": 23,
+     "area": 2240281.0,
+     "up_area": 1120140.5,
+     "down_area": 1120140.5,
+     "linked": 15,
+     "orient": {
+      "down": 18,
+      "up": 5
+     },
+     "fog": true,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 5
+    }
+   ]
+  },
+  "t2_rancor.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 7840,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7841,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7842,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7843,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7844,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7845,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water_1",
+     "contents": 2147483652,
+     "surfaces": 6,
+     "area": 24576.0,
+     "up_area": 24576.0,
+     "down_area": 0.0,
+     "linked": 6,
+     "orient": {
+      "up": 6
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 6
+    }
+   ]
+  },
+  "t2_trip.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 8521,
+     "cls": "water",
+     "shader": "textures/common/water_quicktrip",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 8522,
+     "cls": "water",
+     "shader": "textures/common/water_quicktrip",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water_quicktrip",
+     "contents": 2147483652,
+     "surfaces": 12,
+     "area": 51717376.0,
+     "up_area": 25472256.0,
+     "down_area": 25472256.0,
+     "linked": 12,
+     "orient": {
+      "vertical": 8,
+      "up": 2,
+      "down": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 2
+    }
+   ]
+  },
+  "t3_bounty.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 7180,
+     "cls": "water",
+     "shader": "textures/common/water2_still",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7181,
+     "cls": "water",
+     "shader": "textures/common/water2_still",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water2_still",
+     "contents": 2147483652,
+     "surfaces": 4,
+     "area": 271872.0,
+     "up_area": 258048.0,
+     "down_area": 0.0,
+     "linked": 4,
+     "orient": {
+      "vertical": 2,
+      "up": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 2
+    }
+   ]
+  },
+  "t3_hevil.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 4912,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 4931,
+     "cls": "water",
+     "shader": "textures/h_evil/lakewater",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5977,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5978,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5979,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5980,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5981,
+     "cls": "water",
+     "shader": "textures/h_evil/lakewater",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5982,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5983,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5984,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5985,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/h_evil/wfall",
+     "contents": 2147483652,
+     "surfaces": 8,
+     "area": 1747754.467503695,
+     "up_area": 0.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "vertical": 8
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "mostly not facing up (waterfall / stream)",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/h_evil/lakewater",
+     "contents": 2147483652,
+     "surfaces": 9,
+     "area": 23349248.0,
+     "up_area": 23349248.0,
+     "down_area": 0.0,
+     "linked": 7,
+     "orient": {
+      "up": 9
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 9
+    }
+   ]
+  },
+  "taspir1.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 10552,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 10671,
+     "cls": "lava",
+     "shader": "textures/system/caulk_lava",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/taspir/ore_lightemitting",
+     "contents": 2147483650,
+     "surfaces": 2,
+     "area": 2750373.3661886733,
+     "up_area": 0.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "vertical": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "contents": 2147483650,
+     "surfaces": 2,
+     "area": 150217232.0,
+     "up_area": 150217232.0,
+     "down_area": 0.0,
+     "linked": 2,
+     "orient": {
+      "up": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    }
+   ]
+  },
+  "taspir2.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 6351,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6389,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 6390,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 6391,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 6392,
+     "cls": "water",
+     "shader": "textures/bespin/water2",
+     "model": 0,
+     "fog": true
+    },
+    {
+     "brush": 6445,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6446,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6447,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6448,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6449,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6492,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6493,
+     "cls": "lava",
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/taspir/ore_lightemitting_lavapool",
+     "contents": 2147483650,
+     "surfaces": 57,
+     "area": 16050241.107553704,
+     "up_area": 14288712.0,
+     "down_area": 467320.0,
+     "linked": 57,
+     "orient": {
+      "up": 8,
+      "vertical": 44,
+      "down": 5
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "lava",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/bespin/water2",
+     "contents": 2147483660,
+     "surfaces": 8,
+     "area": 1536000.0,
+     "up_area": 768000.0,
+     "down_area": 768000.0,
+     "linked": 8,
+     "orient": {
+      "down": 4,
+      "up": 4
+     },
+     "fog": true,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 4
+    }
+   ]
+  },
+  "vjun1.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 7464,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7465,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7466,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7467,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 7468,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water2_water1_vjun1",
+     "contents": 2147614724,
+     "surfaces": 1,
+     "area": 19724800.0,
+     "up_area": 19724800.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "up": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "slime",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 1
+    }
+   ]
+  },
+  "vjun2.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 6409,
+     "cls": "water",
+     "shader": "textures/common/water_1",
+     "model": 72,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water_1",
+     "contents": 2147483652,
+     "surfaces": 6,
+     "area": 1165312.0,
+     "up_area": 557056.0,
+     "down_area": 557056.0,
+     "linked": 6,
+     "orient": {
+      "vertical": 4,
+      "up": 1,
+      "down": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      72
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 1
+    }
+   ]
+  },
+  "yavin1.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 5704,
+     "cls": "water",
+     "shader": "textures/common/water_yavin2",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5785,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5786,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 5791,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/h_evil/lakewater",
+     "contents": 2147483652,
+     "surfaces": 11,
+     "area": 1650766.8254926554,
+     "up_area": 1650766.8254926554,
+     "down_area": 0.0,
+     "linked": 7,
+     "orient": {
+      "up": 11
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 11
+    },
+    {
+     "shader": "textures/h_evil/wfall",
+     "contents": 2147483652,
+     "surfaces": 1,
+     "area": 238030.99089294177,
+     "up_area": 0.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "sloped": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "mostly not facing up (waterfall / stream)",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/common/water_yavin2",
+     "contents": 2147483652,
+     "surfaces": 17,
+     "area": 36647798.46631502,
+     "up_area": 17889052.0,
+     "down_area": 17889052.0,
+     "linked": 17,
+     "orient": {
+      "vertical": 8,
+      "down": 5,
+      "up": 4
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 4
+    }
+   ]
+  },
+  "yavin1b.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 11211,
+     "cls": "water",
+     "shader": "textures/common/water_yavin2",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11362,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11390,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11391,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11392,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11393,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11394,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 11406,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/h_evil/lakewater",
+     "contents": 2147483652,
+     "surfaces": 5,
+     "area": 5011712.346061784,
+     "up_area": 5011712.346061784,
+     "down_area": 0.0,
+     "linked": 1,
+     "orient": {
+      "up": 5
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 5
+    },
+    {
+     "shader": "textures/h_evil/wfall",
+     "contents": 2147483652,
+     "surfaces": 2,
+     "area": 453673.6597688597,
+     "up_area": 0.0,
+     "down_area": 0.0,
+     "linked": 0,
+     "orient": {
+      "sloped": 2
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "mostly not facing up (waterfall / stream)",
+     "modern": false,
+     "modern_surfaces": 0
+    },
+    {
+     "shader": "textures/common/water_yavin2",
+     "contents": 2147483652,
+     "surfaces": 17,
+     "area": 36647798.46631502,
+     "up_area": 17889052.0,
+     "down_area": 17889052.0,
+     "linked": 17,
+     "orient": {
+      "vertical": 8,
+      "down": 6,
+      "up": 3
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 3
+    }
+   ]
+  },
+  "yavin2.bsp": {
+   "liquid_brushes": [
+    {
+     "brush": 6380,
+     "cls": "water",
+     "shader": "textures/system/caulk_water",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6404,
+     "cls": "water",
+     "shader": "textures/common/water_yavin2",
+     "model": 0,
+     "fog": false
+    },
+    {
+     "brush": 6624,
+     "cls": "water",
+     "shader": "textures/common/water_yavin2",
+     "model": 0,
+     "fog": false
+    }
+   ],
+   "shaders": [
+    {
+     "shader": "textures/common/water_yavin2",
+     "contents": 2147483652,
+     "surfaces": 15,
+     "area": 11145528.0,
+     "up_area": 5481856.0,
+     "down_area": 1105792.0,
+     "linked": 15,
+     "orient": {
+      "vertical": 12,
+      "up": 2,
+      "down": 1
+     },
+     "fog": false,
+     "slime": false,
+     "refractive": false,
+     "models": [
+      0
+     ],
+     "optics": "water",
+     "reason": "CONTENTS_WATER",
+     "modern": true,
+     "modern_surfaces": 2
+    }
+   ]
+  }
+ }
+}

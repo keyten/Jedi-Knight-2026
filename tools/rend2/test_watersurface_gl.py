@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 12
+WATER_VEC4S = 13
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -71,7 +71,8 @@ W, H = 320, 240
 # units of GLSL_LoadGPUProgramWaterSurface
 UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_EnvBrdfMap': 3, 'u_CubeMap': 4,
          'u_ShadowMap': 5, 'u_FroxelVolume': 6, 'u_FroxelTail': 7, 'u_SSRHiZMap': 10, 'u_SSRSceneMap': 11,
-         'u_FroxelTransmittance': 26}
+         'u_FroxelTransmittance': 26, 'u_GlowMap': 9, 'u_SSRHistoryMap': 12,
+         'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15}
 
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
@@ -128,7 +129,7 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
     return h + vs, h + library + fs
 
 
-def compile_program(sources, label, attributes=(), outputs=('out_Color', 'out_Glow')):
+def compile_program(sources, label, attributes=(), outputs=('out_Color', 'out_Glow', 'out_SSRNormal')):
     prog = gl('glCreateProgram', U)()
     for kind, text in sources:
         shader = gl('glCreateShader', U, U)(kind)
@@ -210,9 +211,9 @@ def fbo(colors, depth=None):
     return f.value
 
 
-def read_color(framebuffer, w, h):
+def read_color(framebuffer, w, h, attachment=0):
     gl('glBindFramebuffer', None, U, U)(FB, framebuffer)
-    gl('glReadBuffer', None, U)(0x8CE0)
+    gl('glReadBuffer', None, U)(0x8CE0 + attachment)
     data = np.zeros((h, w, 4), dtype=np.float32)
     gl('glPixelStorei', None, U, I)(0x0D05, 4)
     gl('glReadPixels', None, I, I, I, I, U, U, P)(0, 0, w, h, RGBA, FLOAT, data.ctypes.data_as(P))
@@ -367,6 +368,7 @@ class Rig:
         self.glow = tex2d(w, h, RGBA16F)
         self.out_depth = tex2d(w, h, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
         self.water_fbo = fbo([self.out, self.glow], self.out_depth)
+        self.input_glow = tex2d(w, h, data=np.zeros((h, w, 4), dtype=np.float32), linear=True)
         # the water plane z = 0, normal up packed as rend2 (n * 0.5 + 0.5)
         quad = []
         for x, y in [(-200, -3000), (3000, -3000), (3000, 3000), (-200, -3000), (3000, 3000), (-200, 3000)]:
@@ -438,9 +440,10 @@ class Rig:
         u[9] = [0.3, 0.35, 0.4, 0.0]
         u[10] = [1.0, 1.0 / 192.0, 0.0, 0.0]
         u[11] = [0.0, 0.0, 0.37, 0.71]
+        u[12] = [0.0, 0.0, 1.0, 1.0]
         return u
 
-    def draw_water(self, prog, u, waves=False, ssr=False):
+    def draw_water(self, prog, u, waves=False, ssr=False, reflection=None):
         w, h = self.size
         c = self.cam
         gl('glUseProgram', None, U)(prog)
@@ -459,6 +462,12 @@ class Rig:
         set_vec4s(prog, 'u_DiffuseTexMatrix', [[1, 0, 0, 1]])
         set_vec4s(prog, 'u_DiffuseTexOffTurb', [[0, 0, 0, 0]])
         set_vec4s(prog, 'u_Water', u)
+        set_vec4s(prog, 'u_WaterPass', [reflection['pass'] if reflection else [0, 0, 0, 0]])
+        if reflection:
+            for unit, texture in zip((12, 14, 15), reflection['history']):
+                bind(unit, texture)
+            gl('glUniformMatrix4fv', None, I, I, U, P)(uloc(prog, 'u_SSRReproject'), 1, 0,
+                np.ascontiguousarray(c.vp.T, dtype=np.float32).ctypes.data_as(P))
         if ssr:
             p = c.proj
             set_vec4s(prog, 'u_SSRProjection', [[p[0, 0], p[1, 1], p[0, 2], p[1, 2]]])
@@ -474,12 +483,21 @@ class Rig:
         bind(1, self.depth)
         bind(2, self.waves[waves])
         bind(3, self.lut)
+        bind(9, self.input_glow)
         # the water is depth tested against the scene (RB_WaterSurfacePrepare keeps renderFbo's depth)
         gl('glBindFramebuffer', None, U, U)(READ_FB, self.scene_fbo)
         gl('glBindFramebuffer', None, U, U)(DRAW_FB, self.water_fbo)
         gl('glBlitFramebuffer', None, I, I, I, I, I, I, I, I, U, U)(0, 0, w, h, 0, 0, w, h, 0x100, 0x2600)
-        gl('glBindFramebuffer', None, U, U)(FB, self.water_fbo)
-        gl('glViewport', None, I, I, I, I)(0, 0, w, h)
+        target = reflection['fbo'] if reflection and reflection['pass'][0] else self.water_fbo
+        out_size = reflection['size'] if reflection and reflection['pass'][0] else (w, h)
+        gl('glBindFramebuffer', None, U, U)(FB, target)
+        gl('glViewport', None, I, I, I, I)(0, 0, *out_size)
+        if reflection and reflection['pass'][0]:
+            gl('glDepthMask', None, U)(1)
+            gl('glClear', None, U)(0x100)
+            zero = np.zeros(4, dtype=np.float32)
+            for i in range(3):
+                gl('glClearBufferfv', None, U, I, P)(0x1800, i, zero.ctypes.data_as(P))
         gl('glClearColor', None, F, F, F, F)(0.0, 0.0, 0.0, -1.0)
         gl('glClear', None, U)(0x4000)
         gl('glEnable', None, U)(0x0B71)
@@ -488,7 +506,7 @@ class Rig:
         gl('glBindVertexArray', None, U)(self.water_vao)
         gl('glDrawArrays', None, U, I, I)(4, 0, self.water_count)
         gl('glFinish', None)()
-        return read_color(self.water_fbo, w, h)
+        return read_color(target, *out_size)
 
 
 FINAL = '\tout_Color = vec4(LinearToScene(color), sceneHere.a);'
@@ -756,6 +774,91 @@ def check_snell():
     return ok
 
 
+def check_integration():
+    ok = True
+    rig = Rig(Camera((0., 0., 100.), (400., 0., 0.)))
+    flags = FLAG_REJECT | FLAG_ENVBRDF | FLAG_SSR
+    program = water_program(ssr=True, hiz=True)
+    size = (W // 2, H // 2)
+    buffers = []
+    for _ in range(2):
+        textures = [tex2d(*size, RGBA16F), tex2d(*size, RGBA32F), tex2d(*size, RGBA32F)]
+        depth = tex2d(*size, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+        buffers.append((fbo(textures, depth), textures))
+    u = rig.params(flags=flags, ssr=1.)
+    trace = dict(fbo=buffers[0][0], size=size, history=buffers[1][1], **{'pass': [1, 0, .8, 0]})
+    raw = rig.draw_water(program, u, ssr=True, reflection=trace)
+    hit_count = (raw[..., 3] > 0).sum()
+    ok = check('reduced water reflection pass produces finite radiance and confidence',
+               np.isfinite(raw).all() and hit_count > 300, f'{hit_count} hit pixels at {size}') and ok
+    geom = read_color(buffers[0][0], *size, attachment=1)
+    hit = read_color(buffers[0][0], *size, attachment=2)
+    active = geom[..., 0] > 0
+    ok = check('water reflection history stores surface depth, normals and hit positions',
+               active.any() and np.isfinite(geom[active]).all() and np.isfinite(hit[active]).all()
+               and (hit[..., 3] > .5).sum() == hit_count) and ok
+    resolve = dict(fbo=rig.water_fbo, size=rig.size, history=buffers[0][1], **{'pass': [0, 1, .8, 0]})
+    image = rig.draw_water(probe_program('vec4(reflection, ssrDebug.g)', ssr=True, hiz=True),
+                           u, ssr=True, reflection=resolve)
+    reflected = (image[..., 0] > .7) & (image[..., 2] > .7) & (image[..., 1] < .3)
+    ok = check('bilateral water reflection resolve preserves the reflected pillar',
+               np.isfinite(image).all() and reflected.sum() > 150, f'{reflected.sum()} pixels') and ok
+    trace.update(fbo=buffers[1][0], history=buffers[0][1], **{'pass': [1, 1, .8, 0]})
+    second = rig.draw_water(program, u, ssr=True, reflection=trace)
+    ok = check('static water reflection temporal history remains stable',
+               np.isfinite(second).all() and np.max(np.abs(second - raw)) < .02) and ok
+    # A different receiver depth must reject history rather than smearing it.
+    changed_geom = geom.copy(); changed_geom[..., 0] += 1000.
+    bind(14, buffers[0][1][1])
+    gl('glActiveTexture', None, U)(0x84CE)
+    gl('glTexSubImage2D', None, U, I, I, I, I, I, U, U, P)(TEX2D, 0, 0, 0, *size,
+        RGBA, FLOAT, np.ascontiguousarray(changed_geom, dtype=np.float32).ctypes.data_as(P))
+    gl('glActiveTexture', None, U)(0x84C0)
+    rejected = rig.draw_water(program, u, ssr=True, reflection=trace)
+    ok = check('water temporal history rejects a different receiver depth',
+               np.max(np.abs(rejected - raw)) < .005) and ok
+    # Smooth fade complement must cover a segment crossing the volume boundary,
+    # even when its surface is before the fade start (the old code returned zero).
+    fade_probe = probe_program('vec4(WaterMissingMedium(100., 2000.), WaterMissingMedium(850., 900.), WaterMissingMedium(1200., 2000.), 1.)')
+    optical = rig.params(); optical[7, 3] = 800.; optical[8, 3] = 1. / 200.
+    result = rig.draw_water(fade_probe, optical)
+    valid = result[..., 3] > .5
+    reference = []
+    for z0, z1 in ((100., 2000.), (850., 900.), (1200., 2000.)):
+        z = np.linspace(z0, z1, 20001)
+        t = np.clip((z - 800.) / 200., 0., 1.)
+        reference.append(np.trapezoid(t*t*(3.-2.*t), z)/(z1-z0))
+    ok = check('whole-segment froxel fade agrees with independent numerical integration',
+               np.max(np.abs(result[valid, :3] - reference)) < 2e-5, str(reference)) and ok
+    # Dedicated glow must transmit through water even when scene bloom is disabled.
+    glow = np.zeros((H, W, 4), dtype=np.float32); glow[..., :3] = [.5, .2, .1]
+    rig.input_glow = tex2d(W, H, data=glow, linear=True)
+    rig.draw_water(water_program(), rig.params())
+    transmitted_glow = read_color(rig.water_fbo, W, H, attachment=1)
+    ok = check('water preserves underwater glow with medium attenuation',
+               np.isfinite(transmitted_glow).all() and (transmitted_glow[..., 0] > .01).sum() > 1000) and ok
+    # Production depth sampling must be exact for the selected texel; changing
+    # the texture filter should not affect thickness (texelFetch protects it).
+    depth_probe = probe_program('vec4(pathLength, rejected, roughness, 1.)')
+    nearest = rig.draw_water(depth_probe, rig.params(), waves=True)
+    gl('glActiveTexture', None, U)(0x84C1)
+    gl('glBindTexture', None, U, U)(TEX2D, rig.depth)
+    for param in (0x2800, 0x2801):
+        gl('glTexParameteri', None, U, U, I)(TEX2D, param, 0x2601)
+    gl('glActiveTexture', None, U)(0x84C0)
+    linear = rig.draw_water(depth_probe, rig.params(), waves=True)
+    ok = check('water thickness is independent of accidental depth filtering',
+               np.max(np.abs(nearest - linear)) < 1e-5) and ok
+    viewport = rig.params(); viewport[12] = [.125, 1./6., .625, 2./3.]
+    projected = rig.draw_water(probe_program('vec4(WaterProject(P), 0., 1.)'), viewport)
+    mask = projected[..., 3] > .5
+    yy, xx = np.mgrid[:H, :W]
+    expected = np.stack(((xx+.5)/W, (yy+.5)/H), axis=-1) * viewport[12, 2:] + viewport[12, :2]
+    ok = check('water projection respects an offset, reduced viewport',
+               np.max(np.abs(projected[mask, :2] - expected[mask])) < 1e-5) and ok
+    return ok
+
+
 def crit_w(n):
     return math.sqrt(1 - 1 / n ** 2)
 
@@ -782,6 +885,7 @@ def main():
         ok = check_above(rig) and ok
         ok = check_inside() and ok
         ok = check_snell() and ok
+        ok = check_integration() and ok
         err = gl('glGetError', U)()
         ok = check('no GL error', err == 0, hex(err)) and ok
     finally:
@@ -849,6 +953,28 @@ def bench():
                 gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
             gl('glDepthFunc', None, U)(0x0207)  # always: every water pixel shades
             print(f'  water pass {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_only):.3f} ms')
+            if ssr and hiz and steps == 24:
+                reduced = tuple((n+1)//2 for n in size)
+                maps = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA32F), tex2d(*reduced, RGBA32F)]
+                depth = tex2d(*reduced, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+                target = fbo(maps, depth)
+                previous = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA32F), tex2d(*reduced, RGBA32F)]
+                rig.draw_water(prog, u, waves=True, ssr=True,
+                    reflection=dict(fbo=target, size=reduced, history=previous, **{'pass': [1, 0, .8, 2]}))
+                gl('glDepthFunc', None, U)(0x0207)
+
+                def reduced_pipeline():
+                    for unit, texture in zip((12, 14, 15), previous): bind(unit, texture)
+                    set_vec4s(prog, 'u_WaterPass', [[1, 0, .8, 2]])
+                    gl('glBindFramebuffer', None, U, U)(FB, target)
+                    gl('glViewport', None, I, I, I, I)(0, 0, *reduced)
+                    gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
+                    for unit, texture in zip((12, 14, 15), maps): bind(unit, texture)
+                    set_vec4s(prog, 'u_WaterPass', [[0, 1, .8, 2]])
+                    gl('glBindFramebuffer', None, U, U)(FB, rig.water_fbo)
+                    gl('glViewport', None, I, I, I, I)(0, 0, *size)
+                    gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
+                print(f'  water half-resolution SSR + full-resolution shading/resolve (cold history): {timed(reduced_pipeline):.3f} ms')
             gl('glDepthFunc', None, U)(0x0203)
             gl('glDeleteProgram', None, U)(prog)
 

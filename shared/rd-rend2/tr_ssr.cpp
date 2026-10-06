@@ -117,6 +117,16 @@ qboolean R_SSRResourcesEnabled( void )
 	return s_ssrResources;
 }
 
+qboolean R_SSROpaqueResourcesEnabled( void )
+{
+	return (qboolean)(s_ssrResources && r_ssr->integer);
+}
+
+float R_SSRTraceScale( void )
+{
+	return (float)s_gridScale;
+}
+
 qboolean R_SSRWantsVelocity( void )
 {
 	return s_ssrTemporalResources;
@@ -133,10 +143,12 @@ Resources
 // called by R_CreateScreenSpaceImages when the GPU shaders are (re)built
 void R_SSRSelectResources( void )
 {
-	s_ssrResources = (qboolean)(r_ssr->integer != 0);
-	if ( s_ssrResources && !r_specularMapping->integer )
+	// Water has its own reflection switch. Reuse the opaque inputs even when
+	// material SSR is disabled; do not run the opaque trace/composite in that case.
+	s_ssrResources = (qboolean)(r_ssr->integer != 0 || r_waterSurface->integer != 0);
+	if ( r_ssr->integer && !r_specularMapping->integer )
 		ri.Printf(PRINT_WARNING, "r_ssr: r_specularMapping is off, no material has specular reflections\n");
-	s_ssrTemporalResources = (qboolean)(s_ssrResources && r_ssrTemporal->integer);
+	s_ssrTemporalResources = (qboolean)(r_ssr->integer && r_ssrTemporal->integer);
 
 	const int halfRes = r_ssrHalfRes->integer >= 0 ? r_ssrHalfRes->integer : RB_SSRQuality().halfRes;
 	s_gridScale = halfRes ? 2 : 1;
@@ -161,17 +173,21 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 	if ( !s_ssrResources )
 		return;
 
-	// material attachments of renderFbo (MSAA: resolve targets), the normal
-	// attachment is shared (tr_screenspace.cpp)
-	tr.ssrSpecularImage = R_ScreenCreateImage("*ssrSpecular", width, height, GL_RGB10_A2, qfalse);
-	tr.ssrCubemapImage = R_ScreenCreateImage("*ssrCubemap", width, height, GL_RGBA16F, qfalse);
-
 	// opaque scene color pyramid, same format as renderFbo color 0 (the MSAA
 	// resolve blit needs identical formats)
 	const qboolean floatColor = (qboolean)(hdrFormat == GL_RGBA16F);
 	tr.ssrColorImage = R_ScreenCreateMipImage(
 		"*ssrColor", width, height, hdrFormat,
 		GL_RGBA, floatColor ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE, SSR_COLOR_MIPS, qtrue);
+
+	if (!R_SSROpaqueResourcesEnabled())
+		return;
+
+	// material attachments of renderFbo (MSAA: resolve targets), the normal
+	// attachment is shared (tr_screenspace.cpp)
+	tr.ssrSpecularImage = R_ScreenCreateImage("*ssrSpecular", width, height, GL_RGB10_A2, qfalse);
+	tr.ssrCubemapImage = R_ScreenCreateImage("*ssrCubemap", width, height, GL_RGBA16F, qfalse);
+
 
 	// trace resolution; this frame's hits and the previous frame's (hit cache)
 	const int traceWidth = (width + s_gridScale - 1) / s_gridScale;
@@ -205,6 +221,9 @@ void R_CreateSSRFBOs( void )
 
 	for ( int i = 0; i < SSR_COLOR_MIPS; i++ )
 		tr.ssrColorFbo[i] = R_ScreenCreateLevelFBO(va("_ssrColor%d", i), tr.ssrColorImage, i);
+
+	if (!R_SSROpaqueResourcesEnabled())
+		return;
 
 	for ( int i = 0; i < 2; i++ )
 	{
@@ -242,7 +261,8 @@ qboolean RB_SSRWantsView( void )
 
 	// SSR at zero strength without debug views is the legacy look: skip
 	// the work (the split screen compare still needs it)
-	return (qboolean)(r_ssrBlendStrength->value > 0.0f || r_ssrDebug->integer || r_ssrCompare->integer);
+	return (qboolean)((r_ssr->integer && (r_ssrBlendStrength->value > 0.0f || r_ssrDebug->integer || r_ssrCompare->integer)) ||
+		(R_WaterSurfaceResourcesEnabled() && r_waterSurface->integer && backEnd.waterInterfacesVisible && r_waterSurfaceSSR->value > 0.0f));
 }
 
 static const ssrQualityPreset_t& RB_SSRQuality( void )
@@ -461,6 +481,18 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	const viewParms_t& viewParms = backEnd.viewParms;
 
 	R_PushDebugGroup(AL_STAGE, "SSR");
+
+	if (!r_ssr->integer || (r_ssrBlendStrength->value <= 0.0f && !r_ssrDebug->integer && !r_ssrCompare->integer))
+	{
+		int timer = RB_ScreenBeginTimer("SSR inputs");
+		RB_SSRBuildColorPyramid(info);
+		RB_ScreenEndTimer(timer);
+		FBO_Bind(tr.renderFbo);
+		GL_SetViewportAndScissor(viewParms.viewportX, viewParms.viewportY,
+			viewParms.viewportWidth, viewParms.viewportHeight);
+		R_PushDebugGroup(AL_STAGE, "Mainpass");
+		return;
+	}
 
 	const ssrQualityPreset_t& quality = RB_SSRQuality();
 	const int steps = r_ssrSteps->integer > 0 ? r_ssrSteps->integer : quality.steps;

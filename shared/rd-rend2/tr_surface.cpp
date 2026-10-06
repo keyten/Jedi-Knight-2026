@@ -64,7 +64,7 @@ void RB_CheckOverflow( int verts, int indexes ) {
 		ri.Error(ERR_DROP, "RB_CheckOverflow: indices > MAX (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex );
+	RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex, tess.waterKey );
 	tess.foliageDebugClass = foliageDebugClass;
 	tess.foliageMotion = foliageMotion;
 }
@@ -79,7 +79,7 @@ void RB_CheckVBOandIBO(VBO_t *vbo, IBO_t *ibo)
 		const uint8_t foliageDebugClass = tess.foliageDebugClass;
 		const uint8_t foliageMotion = tess.foliageMotion;
 		RB_EndSurface();
-		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex );
+		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex, tess.waterKey );
 		tess.dlightBits = dlightBits;
 		tess.foliageDebugClass = foliageDebugClass;
 		tess.foliageMotion = foliageMotion;
@@ -636,7 +636,7 @@ void RB_SetPomMode( int mode )
 		const uint8_t foliageDebugClass = tess.foliageDebugClass;
 		const uint8_t foliageMotion = tess.foliageMotion;
 		RB_EndSurface();
-		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex);
+		RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex, tess.waterKey);
 		tess.dlightBits = dlightBits;
 		tess.foliageDebugClass = foliageDebugClass;
 		tess.foliageMotion = foliageMotion;
@@ -1975,7 +1975,7 @@ static void RB_SurfaceBSPGrid( srfBspSurface_t *srf ) {
 				const uint8_t foliageDebugClass = tess.foliageDebugClass;
 				const uint8_t foliageMotion = tess.foliageMotion;
 				RB_EndSurface();
-				RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex );
+				RB_BeginSurface(tess.shader, tess.fogNum, tess.cubemapIndex, tess.waterKey );
 				tess.foliageDebugClass = foliageDebugClass;
 				tess.foliageMotion = foliageMotion;
 			} else {

@@ -139,7 +139,7 @@ because a surface may be forced to perform a RB_End due
 to overflow.
 ==============
 */
-void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex ) 
+void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex, uint32_t waterKey )
 {
 	tess.numIndexes = 0;
 	tess.firstIndex = 0;
@@ -150,6 +150,7 @@ void RB_BeginSurface( shader_t *shader, int fogNum, int cubemapIndex )
 	tess.foliageMotion = 0;
 	tess.fogNum = fogNum;
 	tess.cubemapIndex = cubemapIndex;
+	tess.waterKey = waterKey;
 	tess.dlightBits = 0;		// will be OR'd in by surface functions
 	tess.pshadowBits = 0;       // will be OR'd in by surface functions
 	tess.xstages = shader->stages;
@@ -2598,17 +2599,9 @@ static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysPr
 {
 	Allocator& frameAllocator = *backEndData->perFrameMemory;
 
-	shaderStage_t *flowStage = nullptr;
-	for ( int stage = 0; stage < MAX_SHADER_STAGES && input->xstages[stage]; stage++ )
-	{
-		shaderStage_t *pStage = input->xstages[stage];
-		if ( pStage->ss || pStage->bundle[0].isLightmap )
-			continue;
-		if ( !flowStage || (!flowStage->bundle[0].numTexMods && pStage->bundle[0].numTexMods) )
-			flowStage = pStage;
-	}
+	shaderStage_t *flowStage = input->shader->waterFlowStage;
 
-	const cullType_t cullType = RB_GetCullType(&backEnd.viewParms, backEnd.currentEntity, input->shader->cullType);
+	const cullType_t cullType = CT_TWO_SIDED;
 
 	vertexAttribute_t attribs[ATTR_INDEX_MAX] = {};
 	GL_VertexArraysToAttribs(attribs, ARRAY_LEN(attribs), vertexArrays);

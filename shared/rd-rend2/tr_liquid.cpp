@@ -874,6 +874,8 @@ void R_LiquidsMaterial( int liquidClass, vec4_t extinction, vec4_t albedo )
 	R_LiquidsParseVec3(c[1]->string, one, color);
 	R_VolumetricExtinctionColor(color, relative);
 	VectorSet4(extinction, relative[0], relative[1], relative[2], Com_Clamp(0.0f, 1.0f, c[0]->value));
+	if (liquidClass != LIQUID_LAVA && R_WaterSurfaceResourcesEnabled() && r_waterSurface->integer)
+		extinction[3] *= Com_Clamp(0.0f, 16.0f, r_waterSurfaceAbsorption->value);
 
 	const vec3_t grey = { 0.5f, 0.5f, 0.5f };
 	R_LiquidsParseVec3(c[2]->string, grey, rgb);
@@ -889,6 +891,7 @@ unsigned int R_LiquidsMediumKey( unsigned int key )
 		r_volumetricSlimeExtinction, r_volumetricSlimeColor, r_volumetricSlimeAlbedo, r_volumetricSlimeAnisotropy,
 		r_volumetricLavaExtinction, r_volumetricLavaColor, r_volumetricLavaAlbedo, r_volumetricLavaAnisotropy,
 		r_volumetricWaterSunPath, r_volumetricWaterCaustics, r_volumetricWaterCausticScale, r_volumetricWaterCausticFocus,
+		r_waterSurface, r_waterSurfaceAbsorption,
 	};
 	for ( cvar_t *cv : cvars )
 	{

@@ -176,7 +176,7 @@ void R_AttachScreenSpaceRenderTargets( FBO_t *fbo, int multisample )
 	if ( !s_screenResources || !fbo )
 		return;
 
-	const bool ssr = R_SSRResourcesEnabled() != qfalse;
+	const bool ssr = R_SSROpaqueResourcesEnabled() != qfalse;
 	const bool ssgi = R_SSGIResourcesEnabled() != qfalse;
 	const bool skin = R_SkinSSSResourcesEnabled() != qfalse;
 
@@ -413,7 +413,7 @@ void RB_ScreenSpaceBeginView( void )
 	const vec4_t clearZero = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GL_SetScreenAuxWrite(true);
 	qglClearBufferfv(GL_COLOR, SCREEN_ATTACHMENT_NORMAL, clearNormal);
-	if ( R_SSRResourcesEnabled() )
+	if ( R_SSROpaqueResourcesEnabled() )
 	{
 		qglClearBufferfv(GL_COLOR, SCREEN_ATTACHMENT_SSR_SPECULAR, colorBlack);
 		qglClearBufferfv(GL_COLOR, SCREEN_ATTACHMENT_SSR_CUBEMAP, clearZero);
@@ -593,7 +593,7 @@ void RB_ScreenBindGeometry( void )
 {
 	GL_BindToTMU(tr.screenNormalImage, TB_LIGHTMAP);
 	GL_BindToTMU(tr.screenHiZImage, TB_SHADOWMAPARRAY);
-	if ( R_SSRResourcesEnabled() )
+	if ( R_SSROpaqueResourcesEnabled() )
 	{
 		GL_BindToTMU(tr.ssrSpecularImage, TB_NORMALMAP);
 		GL_BindToTMU(tr.ssrCubemapImage, TB_DELUXEMAP);

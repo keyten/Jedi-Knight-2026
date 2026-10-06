@@ -29,26 +29,6 @@ void main()
 
 out vec4 out_Color;
 
-// rgb = radiance * confidence of a hit seen from the receiver P, a = confidence
-vec4 HitRadiance(vec4 hit, vec3 P, float coneTangent)
-{
-	vec3 Q = SSRHitPosition(hit);
-	float hitDistance = length(Q - P);
-	float hitZ = max(Q.z, 1.0);
-
-	// cone diameter at the hit, in pixels
-	float footprint = 2.0 * hitDistance * coneTangent / (hitZ * u_SSRDepthParams.w);
-	float mip = clamp(log2(max(footprint, 1.0)), 0.0, u_SSRSettings.z);
-
-	// mip 0 is the plain scene copy (coverage 1), the others are premultiplied
-	vec4 c = textureLod(u_SSRSceneMap, hit.xy, max(mip, 1.0));
-	if (mip < 1.0)
-		c = mix(vec4(textureLod(u_SSRSceneMap, hit.xy, 0.0).rgb, 1.0), c, mip);
-
-	float confidence = hit.w * smoothstep(0.2, 0.6, c.a);
-	return vec4(c.rgb / max(c.a, 1.0e-3) * confidence, confidence);
-}
-
 void main()
 {
 	out_Color = vec4(0.0);
@@ -70,7 +50,7 @@ void main()
 	{
 		vec4 hit = texelFetch(u_SSRTraceMap, pix, 0);
 		if (hit.w > 0.0)
-			out_Color = HitRadiance(hit, P, coneTangent);
+			out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
 		return;
 	}
 
@@ -106,7 +86,7 @@ void main()
 		vec4 hit = texelFetch(u_SSRTraceMap, q, 0);
 		if (hit.w > 0.0)
 		{
-			vec4 h = HitRadiance(hit, P, coneTangent);
+			vec4 h = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
 			radiance += w * h.rgb;
 			confidenceSum += w * h.a;
 		}
