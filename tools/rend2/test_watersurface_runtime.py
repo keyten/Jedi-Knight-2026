@@ -50,9 +50,12 @@ def main():
     parser.add_argument('--installation', type=Path, required=True)
     parser.add_argument('--renderer', type=Path,
                         default=repo/'build/msvc/RelWithDebInfo/rdsp-rend2_x86_64.dll')
+    parser.add_argument('--engine', type=Path, help='OpenJK executable when assets are in a separate directory')
+    parser.add_argument('--sdl', type=Path, help='SDL2.dll when assets are in a separate directory')
     parser.add_argument('--game', type=Path)
     parser.add_argument('--map', choices=('t2_rancor', 't3_hevil'), default='t2_rancor')
     parser.add_argument('--half-res', choices=('0', '1'), default='0')
+    parser.add_argument('--ambient-waves', action='store_true', help='Enable per-body ambient waves and capture their debug views')
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('Windows SP runtime required')
@@ -61,10 +64,16 @@ def main():
     home = root/'home'
     base = home/'OpenJK'
     base.mkdir(parents=True, exist_ok=True)
-    for name in ('openjk_sp.x86_64.exe', 'SDL2.dll'):
-        shutil.copy2(installation/name, root/name)
+    for name, source in (('openjk_sp.x86_64.exe', args.engine), ('SDL2.dll', args.sdl)):
+        src = (source or installation/name).resolve()
+        dst = (root/name).resolve()
+        if src != dst:
+            shutil.copy2(src, dst)
     shutil.copy2(args.renderer, root/'rdsp-rend2_x86_64.dll')
-    shutil.copy2(args.game or installation/'jagamex86_64.dll', base/'jagamex86_64.dll')
+    game_src = (args.game or installation/'jagamex86_64.dll').resolve()
+    game_dst = (base/'jagamex86_64.dll').resolve()
+    if game_src != game_dst:
+        shutil.copy2(game_src, game_dst)
 
     lake = args.map == 't3_hevil'
     above = 'setviewpos 512 1152 -60 90' if lake else 'setviewpos -2520 5536 1480 0'
@@ -92,13 +101,21 @@ def main():
                 'r_waterOverride ' + shader + ' off', 'wait 10',
                 'echo WATER_OVERRIDE_OFF', 'r_waterInfo', 'r_waterOverride clear',
                 'wait 10', 'echo WATER_OVERRIDE_CLEAR', 'r_waterInfo',
-                'echo WATER_FIX_DONE', 'quit']
+                'r_waterBodies dump', 'echo WATER_FIX_DONE', 'quit']
+    if args.ambient_waves:
+        captures = ['r_waterWaveTime 4', 'r_waterWaveDebug 1', 'wait 8',
+                    'screenshot_tga water-wave-height', 'r_waterWaveDebug 4', 'wait 8',
+                    'screenshot_tga water-wave-combined', 'r_waterWaveDebug 5', 'wait 8',
+                    'screenshot_tga water-wave-profile', 'r_waterWaveDebug 8', 'wait 8',
+                    'screenshot_tga water-wave-split', 'r_waterWaveDebug 0', 'r_waterWaveTime -1']
+        commands[commands.index('r_waterSurfaceDebug 0')] += '\n' + '\n'.join(captures)
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
                     r_glslCache='1', r_normalMapping='0', r_parallaxMapping='0',
                     r_specularMapping='0', r_pomSilhouette='0', r_diffuseIBL='0',
                     r_waterSurface='1', r_waterSnell='1', r_waterSurfaceDebug='0',
+                    r_waterWaves='1' if args.ambient_waves else '0',
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
                     r_volumetricFog='2', r_volumetricWater='1',
                     developer='0', logfile='2', com_maxfps='60')

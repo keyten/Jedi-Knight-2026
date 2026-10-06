@@ -245,6 +245,11 @@ void main()
 //   [9] fallback environment radiance rgb, sun specular (0 / 1)
 //   [10] flow layer scale, 1 / world wave size, unused, Snell debug view (USE_WATER_SNELL)
 //   [11] drift of the two world wave layers (texture units, wrapped)
+//   [13] waves enabled, amplitude scale, wavelength scale, speed scale
+//   [14] future choppiness, quality, micro scale, shallow attenuation enabled
+//   [15] body amplitude, wavelength, speed, micro strength
+//   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
+//   [18] debug, body ID, choppiness, wave multiplier; [19] legacy deform amplitude
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -346,6 +351,85 @@ int g_flags;
 bool WaterFlag(int f)
 {
 	return (g_flags & f) != 0;
+}
+
+// Analytic portion of EvaluateWaterSurface. The returned height, displacement,
+// slope and velocity all derive from the same phases. Micro slopes are added by
+// the caller from *waterWaves, whose squared moments survive mip filtering.
+struct WaterWaveState
+{
+	vec3 displacement;
+	vec2 slope;
+	vec3 velocity;
+	float height;
+	float attenuation;
+	float curvature;
+};
+
+WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
+{
+	WaterWaveState w;
+	w.displacement = vec3(0.0);
+	w.slope = vec2(0.0);
+	w.velocity = vec3(0.0);
+	w.height = 0.0;
+	w.curvature = 0.0;
+	w.attenuation = 1.0;
+	if (u_Water[13].x < 0.5)
+		return w;
+
+	float wavelength = max(u_Water[15].y * u_Water[13].z, 8.0);
+	float amplitude = u_Water[15].x * u_Water[13].y;
+	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
+	float speed = u_Water[15].z * u_Water[13].w * 16.0;
+	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
+	{
+		// Stable body-average depth. A true per-edge mask requires boundary geometry.
+		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
+	}
+	vec2 flow = u_Water[17].xy;
+	float flowLength = length(flow);
+	vec2 mainDirection = flowLength > 0.001 ? flow / flowLength : vec2(0.8, 0.6);
+	// The eight deterministic components contain four macro and four medium
+	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
+	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
+	float qualityAmplitude = count == 2 ? 1.86 : (count == 8 ? 0.59 : 1.0);
+	float j00 = 1.0, j01 = 0.0, j11 = 1.0;
+	for (int i = 0; i < 8; ++i)
+	{
+		if (i >= count) break;
+		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
+		float fi = float(component);
+		float angle = fi * 2.3999632;
+		vec2 spread = vec2(cos(angle), sin(angle));
+		vec2 direction = normalize(mix(spread, mainDirection, flowLength > 0.001 ? 0.72 : 0.22));
+		float scale = component < 4 ? (1.0 - 0.15 * fi) : (0.34 - 0.035 * (fi - 4.0));
+		float lambda = wavelength * (component < 4 ? (1.0 - 0.13 * fi) : (0.28 - 0.025 * (fi - 4.0)));
+		float a = amplitude * scale * (component < 4 ? 0.28 : 0.10) * w.attenuation * qualityAmplitude;
+		float k = 6.2831853 / max(lambda, 4.0);
+		float omega = 6.2831853 * speed / max(lambda, 4.0);
+		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
+		float sn = sin(phase), cs = cos(phase);
+		w.height += a * sn;
+		w.slope += a * k * cs * direction;
+		w.velocity.z -= a * omega * cs;
+		w.curvature -= a * k * k * sn;
+		// Reserved for the silhouette displacement path: bounded Gerstner drift.
+		float horizontal = min(u_Water[14].x * u_Water[18].z * 0.12, 0.2) * a;
+		w.displacement.xy += horizontal * cs * direction;
+		w.velocity.xy += horizontal * omega * sn * direction;
+		float jacobian = horizontal * k * sn;
+		j00 -= jacobian * direction.x * direction.x;
+		j01 -= jacobian * direction.x * direction.y;
+		j11 -= jacobian * direction.y * direction.y;
+	}
+	// Convert parametric height derivatives to the normal of the displaced XY
+	// surface. The horizontal drift is bounded, keeping this Jacobian invertible.
+	float det = max(j00 * j11 - j01 * j01, 0.5);
+	w.slope = vec2(j11 * w.slope.x - j01 * w.slope.y,
+		j00 * w.slope.y - j01 * w.slope.x) / det;
+	w.displacement.z = w.height;
+	return w;
 }
 
 vec3 SceneToLinear(vec3 c)
@@ -810,8 +894,23 @@ void main()
 	vec4 l0 = texture(u_WaterNormalMap, planar * invSize + u_Water[11].xy);
 	vec4 l1 = texture(u_WaterNormalMap, planar * (invSize * 2.37) + u_Water[11].zw);
 	vec4 l2 = texture(u_WaterNormalMap, var_FlowTex * u_Water[10].x);
-	float strength = u_Water[0].z * 0.18;
+	float oldStrength = u_Water[0].z * 0.18;
+	float strength = oldStrength * (u_Water[13].x > 0.5 ? u_Water[14].z * u_Water[15].w : 1.0);
 	vec2 slope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * strength;
+	vec3 microNormal = normalize(Ng - slope.x * Tw - slope.y * Bw);
+	WaterWaveState waves = EvaluateWaterSurface(P, u_Water[5].z);
+	vec3 macroGradient = vec3(waves.slope, 0.0);
+	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
+	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
+	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
+	if (int(u_Water[18].x + 0.5) == 8 && gl_FragCoord.x <
+		(u_Water[12].x + u_Water[12].z * 0.5) * float(textureSize(u_WaterSceneMap, 0).x))
+	{
+		macroSlope = vec2(0.0);
+		slope = oldSlope;
+		strength = oldStrength;
+	}
+	slope += macroSlope;
 	vec2 variance = (max(l0.zw - l0.xy * l0.xy, vec2(0.0)) +
 		0.36 * max(l1.zw - l1.xy * l1.xy, vec2(0.0)) +
 		0.25 * max(l2.zw - l2.xy * l2.xy, vec2(0.0))) * (strength * strength);
@@ -1269,6 +1368,23 @@ void main()
 			d = vec3(rejected, 1.0 - rejected, 0.0) * (rejected > 0.0 ? 1.0 : 0.25);
 		else if (debugView == 11)
 			d = vec3(roughness);
+		out_Color = vec4(LinearToScene(d), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+	int waveDebug = int(u_Water[18].x + 0.5);
+	if (u_Water[13].x > 0.5 && waveDebug > 0 && waveDebug != 8)
+	{
+		vec3 d = vec3(0.0);
+		if (waveDebug == 1) d = vec3(0.5 + waves.height * 0.1);
+		else if (waveDebug == 2) d = normalize(Ng - macroSlope.x * Tw - macroSlope.y * Bw) * 0.5 + 0.5;
+		else if (waveDebug == 3) d = microNormal * 0.5 + 0.5;
+		else if (waveDebug == 4) d = Nwater * 0.5 + 0.5;
+		else if (waveDebug == 5) d = vec3(fract(u_Water[17].w * 0.17), fract(u_Water[18].y * 0.37), 0.5);
+		else if (waveDebug == 6) d = vec3(waves.attenuation);
+		else if (waveDebug == 7) d = vec3(min(length(waves.displacement) * 2.0, 1.0));
+		else if (waveDebug == 9) d = vec3(clamp(u_Water[18].w * 0.5, 0.0, 1.0));
+		else if (waveDebug == 10) d = vec3(clamp(u_Water[19].x * 0.1, 0.0, 1.0));
 		out_Color = vec4(LinearToScene(d), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;

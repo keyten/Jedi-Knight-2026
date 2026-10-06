@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 13
+WATER_VEC4S = 20
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -546,6 +546,53 @@ def check_permutations():
     return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell)', True)
 
 
+def check_ambient_waves(rig):
+    prog = water_program()
+    try:
+        u = rig.params()
+        u[13] = [1.0, 1.0, 1.0, 1.0]
+        u[14] = [1.0, 2.0, 1.0, 1.0]
+        u[15] = [2.4, 192.0, 1.0, 1.0]
+        u[16] = [-1000.0, -1000.0, 1000.0, 1000.0]
+        u[17] = [0.0, 0.0, 80.0, 3.0]
+        u[18] = [1.0, 1.0, 0.2, 1.0]
+        a = rig.draw_water(prog, u, waves=True)
+        u[5, 2] = 3.0
+        b = rig.draw_water(prog, u, waves=True)
+        moving = np.max(np.abs(a - b)) > 0.001
+        ok = check('ambient analytical height changes with time', moving)
+        u[15, 0] = 0.0
+        flat = rig.draw_water(prog, u, waves=True)
+        water_pixels = (flat[..., 0] > 0.49) & (flat[..., 0] < 0.51)
+        ok = check('zero body amplitude removes analytical height',
+                   water_pixels.sum() > 1000 and np.max(np.abs(flat[water_pixels, :3] - 0.5)) < 1e-4) and ok
+        u[15, 0] = 2.4
+        deep = rig.draw_water(prog, u, waves=True)
+        u[17, 2] = 8.0
+        shallow = rig.draw_water(prog, u, waves=True)
+        deep_energy = np.mean(np.abs(deep[water_pixels, 0] - 0.5))
+        shallow_energy = np.mean(np.abs(shallow[water_pixels, 0] - 0.5))
+        ok = check('stable body depth attenuates analytical height',
+                   deep_energy > shallow_energy * 2.0) and ok
+        u[17, 2] = 80.0
+        u[15, 0] = 0.2
+        pool = rig.draw_water(prog, u, waves=True)
+        pool_energy = np.mean(np.abs(pool[water_pixels, 0] - 0.5))
+        ok = check('body amplitude changes visible ambient energy',
+                   deep_energy > pool_energy * 2.0) and ok
+        u[15, 0] = 0.0
+        u[18, 0] = 0.0
+        u[13, 0] = 0.0
+        old = rig.draw_water(prog, u, waves=True)
+        u[13, 0] = 1.0
+        zero = rig.draw_water(prog, u, waves=True)
+        ok = check('enabled zero-amplitude model preserves previous micro shading',
+                   np.max(np.abs(old - zero)) < 1e-5) and ok
+        return ok
+    finally:
+        gl('glDeleteProgram', None, U)(prog)
+
+
 def above_geometry(cam):
     d = cam.rays()
     s = -cam.eye[2] / d[..., 2]
@@ -866,7 +913,7 @@ def crit_w(n):
 def context(title):
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 3)
-    SDL.SDL_GL_SetAttribute(18, 3)
+    SDL.SDL_GL_SetAttribute(18, 2)
     SDL.SDL_GL_SetAttribute(21, 1)
     window = SDL.SDL_CreateWindow(title, 0, 0, 32, 32, 10)
     assert window, SDL.SDL_GetError()
@@ -882,6 +929,7 @@ def main():
     try:
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+        ok = check_ambient_waves(rig) and ok
         ok = check_above(rig) and ok
         ok = check_inside() and ok
         ok = check_snell() and ok
@@ -953,6 +1001,47 @@ def bench():
                 gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
             gl('glDepthFunc', None, U)(0x0207)  # always: every water pixel shades
             print(f'  water pass {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_only):.3f} ms')
+            if not ssr:
+                u[13] = [1, 1, 1, 1]
+                u[15] = [2.4, 192, 1, 1]
+                u[17] = [0, 0, 80, 3]
+                for quality in (0, 1, 2):
+                    u[14] = [1, quality, 1, 1]
+                    set_vec4s(prog, 'u_Water', u)
+                    print(f'  ambient quality {quality}, fullscreen: {timed(draw_only):.3f} ms')
+                gl('glEnable', None, U)(0x0C11)  # SCISSOR_TEST: quarter-screen water
+                gl('glScissor', None, I, I, I, I)(size[0]//4, size[1]//4, size[0]//2, size[1]//2)
+                u[13, 0] = 0
+                set_vec4s(prog, 'u_Water', u)
+                print(f'  existing micro, quarter-screen: {timed(draw_only):.3f} ms')
+                u[13, 0] = 1
+                u[14, 1] = 1
+                set_vec4s(prog, 'u_Water', u)
+                print(f'  ambient quality 1, quarter-screen: {timed(draw_only):.3f} ms')
+                gl('glDisable', None, U)(0x0C11)
+                alternating = []
+                for _ in range(4):
+                    u[13, 0] = 0
+                    set_vec4s(prog, 'u_Water', u)
+                    old_ms = timed(draw_only, repeat=10)
+                    u[13, 0] = 1
+                    set_vec4s(prog, 'u_Water', u)
+                    new_ms = timed(draw_only, repeat=10)
+                    alternating.append((old_ms, new_ms))
+                old_mean = sum(pair[0] for pair in alternating) / len(alternating)
+                new_mean = sum(pair[1] for pair in alternating) / len(alternating)
+                print(f'  interleaved full-screen micro {old_mean:.3f} ms, ambient quality 1 {new_mean:.3f} ms, delta {new_mean-old_mean:+.3f} ms')
+                def two_bodies():
+                    gl('glBindFramebuffer', None, U, U)(FB, rig.water_fbo)
+                    gl('glBindVertexArray', None, U)(rig.water_vao)
+                    gl('glEnable', None, U)(0x0C11)
+                    for half, amplitude in ((0, 0.2), (1, 2.4)):
+                        gl('glScissor', None, I, I, I, I)(half * size[0]//2, 0, size[0]//2, size[1])
+                        u[15, 0] = amplitude
+                        set_vec4s(prog, 'u_Water', u)
+                        gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
+                    gl('glDisable', None, U)(0x0C11)
+                print(f'  two visible synthetic bodies, half-screen each: {timed(two_bodies):.3f} ms')
             if ssr and hiz and steps == 24:
                 reduced = tuple((n+1)//2 for n in size)
                 maps = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA32F), tex2d(*reduced, RGBA32F)]
@@ -1004,4 +1093,13 @@ def bench():
 
 
 if __name__ == '__main__':
+    if '--ambient-only' in sys.argv:
+        window, ctx = context(b'Water ambient waves')
+        try:
+            rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+            sys.exit(0 if check_ambient_waves(rig) else 1)
+        finally:
+            SDL.SDL_GL_DeleteContext(ctx)
+            SDL.SDL_DestroyWindow(window)
+            SDL.SDL_Quit()
     sys.exit(bench() if '--bench' in sys.argv else main())

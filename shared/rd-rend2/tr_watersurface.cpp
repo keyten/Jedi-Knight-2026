@@ -979,6 +979,10 @@ static void R_WaterBuildBodies( void )
 		body.depthAverage = body.brushes.empty() ? 0 : depthSum / body.brushes.size();
 		R_WaterBodyMotion(body);
 		R_WaterResolveBody(body);
+		// Reserve bits 20..31 for a map-local body ID. Zero means no matched body.
+		if ( body.id < 4096 )
+			for ( int surfaceNum : body.surfaces )
+				const_cast<world_t *>(s_water.world)->surfaces[surfaceNum].waterKey |= (uint32_t)body.id << 20;
 	}
 	s_water.bodyMsec = (float)(ri.Milliseconds() - start);
 }
@@ -988,6 +992,9 @@ static void R_WaterRefreshBodies( void )
 	if ( s_water.bodies.empty() ) return;
 	for ( waterBody_t& body : s_water.bodies )
 	{
+		if ( body.id < 4096 )
+			for ( int surfaceNum : body.surfaces )
+				const_cast<world_t *>(s_water.world)->surfaces[surfaceNum].waterKey |= (uint32_t)body.id << 20;
 		if ( body.liquidClass != LIQUID_LAVA && !body.surfaces.empty() )
 		{
 			for ( const waterSurfaceRecord_t& surface : s_water.surfaces )
@@ -1719,7 +1726,9 @@ static void RB_WaterSurfaceCacheView( void )
 		R_LiquidsMaterial(c, s_water.extinction[c], s_water.albedo[c]);
 	const float *proj = v.projectionMatrix;
 	VectorSet4(water[4], proj[0], proj[5], proj[8], proj[9]);
-	VectorSet4(water[5], proj[14], proj[10], 0.0f, tr.linearLight ? 1.0f : 0.0f);
+	VectorSet4(water[5], proj[14], proj[10],
+		r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : backEnd.refdef.floatTime,
+		tr.linearLight ? 1.0f : 0.0f);
 	const int debug = r_waterSurfaceDebug->integer;
 	VectorSet4(water[6], debug == 9 ? 0.0f : (float)debug,
 		debug == 9 ? v.viewportX + Com_Clamp(0.0f, 1.0f, r_waterSurfaceSplit->value) * v.viewportWidth : -1.0f,
@@ -1740,7 +1749,7 @@ static void RB_WaterSurfaceCacheView( void )
 	VectorSet4(water[9], env[0], env[1], env[2], sun ? 1.0f : 0.0f);
 	VectorSet4(water[10], 1.0f, 1.0f / 192.0f, 0.0f,
 		r_waterSnell->integer ? (float)r_waterSnellDebug->integer : 0.0f);
-	const double t = backEnd.refdef.floatTime;
+	const double t = r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : backEnd.refdef.floatTime;
 	auto wrap = [](double value) -> float { return (float)(value - floor(value)); };
 	VectorSet4(water[11], wrap(0.8 * 0.020 * t), wrap(0.6 * 0.020 * t),
 		wrap(0.28 * 0.034 * t + 0.37), wrap(0.96 * 0.034 * t + 0.71));
@@ -1748,6 +1757,14 @@ static void RB_WaterSurfaceCacheView( void )
 		(float)v.viewportY / tr.waterSceneImage->height,
 		(float)v.viewportWidth / tr.waterSceneImage->width,
 		(float)v.viewportHeight / tr.waterSceneImage->height);
+	VectorSet4(water[13], r_waterWaves->integer ? 1.0f : 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value),
+		Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value),
+		Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value));
+	VectorSet4(water[14], Com_Clamp(0.0f, 2.0f, r_waterWaveChoppiness->value),
+		(float)Com_Clampi(0, 2, r_waterWaveQuality->integer),
+		Com_Clamp(0.0f, 4.0f, r_waterWaveMicro->value),
+		r_waterWaveShallow->integer ? 1.0f : 0.0f);
 	s_water.viewFlags = (sun ? 2 : 0) | (RB_VolumetricLookupReady() ? 4 : 0) |
 		(r_waterSurfaceDepthReject->integer ? 8 : 0) | (backEnd.waterSurfaceSSR ? 16 : 0) |
 		(tr.envBrdfImage ? 512 : 0);
@@ -1774,6 +1791,23 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	vec4_t water[WATER_UNIFORM_VEC4S];
 	Com_Memcpy(water, s_water.viewWater, sizeof(water));
 	const uint32_t key = input->waterKey;
+	const int bodyId = (int)(key >> 20);
+	const waterBody_t *body = bodyId > 0 && bodyId <= (int)s_water.bodies.size() ? &s_water.bodies[bodyId - 1] : nullptr;
+	const waterDynamics_t& dynamics = s_dynamics[body ? body->dynamics : 0];
+	const float legacyWaveScale = body && body->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
+	const float bodyWaveMultiplier = body ? body->waveMultiplier : 1.0f;
+	VectorSet4(water[15], dynamics.amplitude * 8.0f * legacyWaveScale * bodyWaveMultiplier,
+		dynamics.wavelength, dynamics.speed,
+		Com_Clamp(0.0f, 2.0f, dynamics.microNormal * bodyWaveMultiplier));
+	VectorSet4(water[16], body ? body->bounds[0][0] : -1.0e6f,
+		body ? body->bounds[0][1] : -1.0e6f,
+		body ? body->bounds[1][0] : 1.0e6f,
+		body ? body->bounds[1][1] : 1.0e6f);
+	VectorSet4(water[17], body ? body->flow[0] : 0.0f, body ? body->flow[1] : 0.0f,
+		body ? body->depthAverage : 0.0f, body ? (float)body->dynamics : 0.0f);
+	VectorSet4(water[18], (float)r_waterWaveDebug->integer, (float)bodyId,
+		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
+	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f, 0.0f, 0.0f, 0.0f);
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];
 	const bool froxel = (s_water.viewFlags & 4) != 0;

@@ -1,8 +1,8 @@
 # Modern water surface (r_waterSurface)
 
-Water-body identity and future dynamics metadata are documented in
-[`rend2-water-bodies.md`](rend2-water-bodies.md). They do not affect this
-surface path while dynamics features are off.
+Water-body identity and dynamics metadata are documented in
+[`rend2-water-bodies.md`](rend2-water-bodies.md). The optional per-body
+ambient-wave layer is documented in [`rend2-water-waves.md`](rend2-water-waves.md).
 
 A physically based surface for the stock water of the maps: dielectric Fresnel reflection (SSR -> cubemap ->
 fallback), depth aware screen-space refraction, absorption / scattering of the liquid along the refracted path,

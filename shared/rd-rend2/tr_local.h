@@ -302,6 +302,9 @@ extern cvar_t	*r_waterSurface;
 extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
+extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
+extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
+extern cvar_t *r_waterWaveTime;
 extern cvar_t	*r_waterSurfaceRefraction;
 extern cvar_t	*r_waterSurfaceDepthReject;
 extern cvar_t	*r_waterSurfaceReflection;
@@ -5907,7 +5910,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 13
+#define WATER_UNIFORM_VEC4S 20
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 

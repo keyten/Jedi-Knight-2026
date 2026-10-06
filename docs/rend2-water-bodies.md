@@ -1,7 +1,9 @@
 # Water bodies and dynamics metadata
 
 `WaterBody` is renderer metadata built during BSP loading. It does not add a
-gameplay volume and does not feed the current water shader. The optical medium
+gameplay volume. With `r_waterWaves 1` it supplies per-body ambient wave
+parameters to the modern water shader; see [ambient water waves](rend2-water-waves.md).
+The optical medium
 still comes from `Liquids` and the existing water/slime/lava settings.
 
 ## Identity and grouping
@@ -30,7 +32,8 @@ The independent dynamics set is `generic_water`, `still_pool`, `calm_water`,
 `heavy_waterfall`, and `no_water_dynamics` for lava. Each carries ambient
 wave amplitude, wavelength, choppiness, speed, micro normal, flow,
 interaction damping, wake, foam, shoreline, and rain response parameters.
-They are metadata for future dynamics work and currently do not affect pixels.
+With `r_waterWaves 1`, amplitude, wavelength, choppiness, speed, micro-normal
+strength, flow and wave multiplier affect the visible ambient surface.
 
 Resolution is deliberately conservative: a matching map `WaterBodies` rule
 wins; slime or lava semantics, the stock `water2_still` definition, or a

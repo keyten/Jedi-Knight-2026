@@ -22,6 +22,10 @@ def main():
     parser.add_argument('--timeout', type=int, default=600)
     parser.add_argument('--maps', nargs='+', choices=MAPS, default=MAPS)
     parser.add_argument('--debug-draw', action='store_true')
+    parser.add_argument('--ambient-waves', action='store_true', help='Initialize modern water with ambient waves on each map')
+    parser.add_argument('--engine', type=Path)
+    parser.add_argument('--sdl', type=Path)
+    parser.add_argument('--game', type=Path)
     args = parser.parse_args()
     maps = tuple(args.maps)
     if os.name != 'nt':
@@ -34,10 +38,16 @@ def main():
     if (base/'qconsole.log').exists():
         (base/'qconsole.log').unlink()
     installation = args.installation.resolve()
-    for name in ('openjk_sp.x86_64.exe', 'SDL2.dll'):
-        shutil.copy2(installation/name, root/name)
+    for name, source in (('openjk_sp.x86_64.exe', args.engine), ('SDL2.dll', args.sdl)):
+        src = (source or installation/name).resolve()
+        dst = (root/name).resolve()
+        if src != dst:
+            shutil.copy2(src, dst)
     shutil.copy2(repo/'build/msvc/RelWithDebInfo/rdsp-rend2_x86_64.dll', root/'rdsp-rend2_x86_64.dll')
-    shutil.copy2(installation/'jagamex86_64.dll', base/'jagamex86_64.dll')
+    game_src = (args.game or installation/'jagamex86_64.dll').resolve()
+    game_dst = (base/'jagamex86_64.dll').resolve()
+    if game_src != game_dst:
+        shutil.copy2(game_src, game_dst)
     shutil.copy2(repo/'build/rend2/water-body-overlay.pk3', base/'zzzz_rend2_water_bodies.pk3')
     commands = ['wait 90']
     for i, map_name in enumerate(maps):
@@ -54,7 +64,9 @@ def main():
     settings = dict(fs_basepath=str(installation), fs_homepath=str(root/'home'),
                     fs_game='OpenJK', cl_renderer='rdsp-rend2', r_fullscreen='0',
                     r_mode='3', s_initsound='0', r_glslCache='1',
-                    r_waterSurface='0', r_volumetricWater='0',
+                    r_waterSurface='1' if args.ambient_waves else '0',
+                    r_waterWaves='1' if args.ambient_waves else '0',
+                    r_volumetricWater='0',
                     r_cubeMapping='0', r_diffuseIBL='0', developer='0',
                     logfile='2', com_maxfps='120')
     command = [str(root/'openjk_sp.x86_64.exe')]
@@ -88,8 +100,13 @@ def main():
         assert dump, f'{map_name}: no dump'
         records = [json.loads(line[line.index('{'):]) for line in dump.group(1).splitlines()
                    if '{' in line and line.rstrip().endswith('}')]
-        assert len([record for record in records if record.get('type') == 'body']) == count, \
+        body_records = [record for record in records if record.get('type') == 'body']
+        assert len(body_records) == count, \
             f'{map_name}: invalid JSON Lines dump'
+        expected_profiles = {body['id']: body['dynamics_profile'] for body in audit['maps'][map_name+'.bsp']['bodies']}
+        for record in body_records:
+            assert record['dynamicsProfile'] == expected_profiles[record['id']], \
+                f'{map_name} body {record["id"]}: unexpected dynamics profile'
         print(f'PASS {map_name}: {count} bodies')
     if any(any(body['decision_source'].startswith('explicit') for body in
                audit['maps'][map_name+'.bsp']['bodies']) for map_name in maps):
