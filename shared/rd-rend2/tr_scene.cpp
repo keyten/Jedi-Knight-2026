@@ -601,6 +601,7 @@ void RE_BeginScene(const refdef_t *fd)
 	// r_foliageInteraction: the character colliders of this scene (and the
 	// r_foliageInteractionDebug 1 capsules)
 	R_FoliageInteractionBeginScene(fd);
+	R_WaterBodiesDebugDraw(fd);
 
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];

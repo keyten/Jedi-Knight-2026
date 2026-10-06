@@ -5936,6 +5936,9 @@ void RB_WaterSurfaceFinish(void);
 void RB_WaterSurfaceLegacyScissor(qboolean enable);	// r_waterSurfaceDebug 9: legacy stages left of the split
 qboolean RB_WaterSurfaceDistortion(const shader_t *shader, uint32_t waterKey);
 void R_WaterInfo_f(void);
+void R_WaterBodies_f(void);
+void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
+void R_WaterBodiesDebugDraw(const refdef_t *fd);
 void R_WaterOverride_f(void);
 
 /*

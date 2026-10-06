@@ -1881,6 +1881,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
+	{ "r_waterBodies",	R_WaterBodies_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },

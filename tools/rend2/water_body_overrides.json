@@ -1,0 +1,21 @@
+{
+  "t2_rancor": {
+    "WaterBodies": [
+      {
+        "Selector": { "Shader": "textures/common/water_1" },
+        "DynamicsProfile": "still_pool"
+      }
+    ]
+  },
+  "t3_hevil": {
+    "WaterBodies": [
+      {
+        "Selector": {
+          "Shader": "textures/h_evil/lakewater",
+          "Point": [512, 1152, -144]
+        },
+        "DynamicsProfile": "lake"
+      }
+    ]
+  }
+}

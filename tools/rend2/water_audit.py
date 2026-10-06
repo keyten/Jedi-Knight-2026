@@ -1,4 +1,4 @@
-"""Water asset audit and classification coverage of the modern water surface (r_waterSurface, tr_watersurface.cpp).
+"""Installed PK3 water asset, connected-body and legacy-stage audit.
 
 Read only: opens the installed pk3 files as ZIP archives, never writes them.
 
@@ -13,12 +13,15 @@ Read only: opens the installed pk3 files as ZIP archives, never writes them.
   bottoms and sides retain their stages even with the same shader; linked brush tops are interfaces too.
   Brush association requires the same BSP model and one common plane for every vertex;
   everything else keeps its legacy stages, with the reason
+- builds conservative connected bodies, records every winning shader stage,
+  and applies the project overlay manifest without modifying installed assets
 Patches are measured on their control points here (the renderer tessellates them first): the up facing area of a
 patch is approximate, the decision of the stock maps is the same.
 """
 import collections
 import json
 import os
+from pathlib import Path
 import re
 import struct
 import sys
@@ -96,21 +99,24 @@ def parse_shaders(text):
 
 
 def summarize(body):
-    info = dict(surfaceparms=[], sort=None, refractive=False, deforms=[], tcmods=[], maps=[], blends=[], cull=None)
-    line, line_depth = [], 1
+    info = dict(surfaceparms=[], sort=None, refractive=False, deforms=[], tcmods=[], maps=[], blends=[], cull=None,
+                stages=[], fogparms=None)
+    line, line_depth, stage_id = [], 1, -1
     lines = []
     for d, t in body:
+        if t == '{' and d == 2:
+            stage_id += 1
         if t == '\n' or t in '{}':
             if line:
-                lines.append((line_depth, line))
+                lines.append((line_depth, line, stage_id))
             line = []
             continue
         if not line:
             line_depth = d
         line.append(t.strip('"').lower())
     if line:
-        lines.append((line_depth, line))
-    for d, l in lines:
+        lines.append((line_depth, line, stage_id))
+    for d, l, stage_id in lines:
         k = l[0]
         if k == 'refractive':
             info['refractive'] = True
@@ -123,7 +129,12 @@ def summarize(body):
                 info['deforms'].append(' '.join(l[1:]))
             elif k == 'cull' and len(l) > 1:
                 info['cull'] = l[1]
+            elif k == 'fogparms':
+                info['fogparms'] = ' '.join(l[1:])
         else:
+            while len(info['stages']) <= stage_id:
+                info['stages'].append(dict(directives=[]))
+            info['stages'][stage_id]['directives'].append(' '.join(l))
             if k in ('map', 'clampmap', 'animmap', 'videomap'):
                 info['maps'].append(' '.join(l[1:]))
             elif k == 'tcmod':
@@ -186,6 +197,12 @@ def scan_bsp(data, defs):
     brushes = [struct.unpack_from('<3i', br, o) for o in range(0, len(br), 12)]
     bs = lump(data, 9)
     sides = [struct.unpack_from('<3i', bs, o) for o in range(0, len(bs), 12)]
+    fg = lump(data, 12)
+    fogs = []
+    for o in range(0, len(fg), 72):
+        fog_shader = fg[o:o + 64].split(b'\0')[0].decode('latin-1').lower()
+        fogs.append(dict(shader=fog_shader, brush=struct.unpack_from('<i', fg, o + 64)[0],
+                         definition=defs[fog_shader][0]['fogparms'] if fog_shader in defs else None))
     dv = lump(data, 10)
     nverts = len(dv) // 80
     di = lump(data, 11)
@@ -210,7 +227,9 @@ def scan_bsp(data, defs):
             continue
         bp = [planes[sides[s][0]] for s in range(fside, fside + nside) if 0 <= sides[s][0] < len(planes)]
         liquids.append(dict(brush=bi, cls=cls, shader=shaders[shn][0], fog=bool(cf & CONTENTS_FOG),
-                            model=brush_model.get(bi, -1), planes=bp))
+                            model=brush_model.get(bi, -1), planes=bp,
+                            bounds=[[next((-p[3] for p in bp if p[i] < -.999), 0) for i in range(3)],
+                                    [next((p[3] for p in bp if p[i] > .999), 0) for i in range(3)]]))
 
     def vert(v):
         return struct.unpack_from('<3f', dv, v * 80), struct.unpack_from('<3f', dv, v * 80 + 52)
@@ -225,8 +244,6 @@ def scan_bsp(data, defs):
         refractive = bool(d and d[0]['refractive'])
         liquid = liquid_class(cf) is not None
         material = (sf & 0x1f) == MATERIAL_WATER
-        if not (liquid or refractive or name_like(name) or material):
-            continue
         vs = [vert(v) for v in range(first_vert, first_vert + num_verts) if 0 <= v < nverts]
         if not vs:
             continue
@@ -260,10 +277,15 @@ def scan_bsp(data, defs):
             sx, sy, sz = vn
             ln = (sx * sx + sy * sy + sz * sz) ** 0.5 or 1.0
         normal = (sx / ln, sy / ln, sz / ln)
+        bounds = [[min(v[0][i] for v in vs) for i in range(3)],
+                  [max(v[0][i] for v in vs) for i in range(3)]]
 
         link = None
         for b in liquids:
             if b['model'] != surf_model.get(si, -1):
+                continue
+            if any(bounds[1][k] < b['bounds'][0][k] - 2 or
+                   bounds[0][k] > b['bounds'][1][k] + 2 for k in range(3)):
                 continue
             def inside(p):
                 return all(pl[0] * p[0] + pl[1] * p[1] + pl[2] * p[2] - pl[3] <= 2.0 for pl in b['planes'])
@@ -274,7 +296,13 @@ def scan_bsp(data, defs):
                 link = b
                 link_side = side[:3]
                 break
+        linked_top = link and link_side[2] > .7 and orientation(normal[2]) == 'up'
+        if not (liquid or refractive or name_like(name) or material or linked_top):
+            continue
         surfaces.append(dict(index=si, shader=name, contents=cf, flags=sf, type=stype, normal=normal, area=area,
+                             fog_num=fog_num, fog=fogs[fog_num] if 0 <= fog_num < len(fogs) else None,
+                             bounds=bounds, aspect=max(bounds[1][i] - bounds[0][i] for i in range(3)) /
+                             max(sorted((bounds[1][i] - bounds[0][i] for i in range(3)), reverse=True)[1], 1e-6),
                              orient=orientation(normal[2]), model=surf_model.get(si, -1), refractive=refractive,
                              link=link['brush'] if link else None, link_cls=link['cls'] if link else None,
                              link_fog=link['fog'] if link else False, link_side=link_side if link else None))
@@ -335,6 +363,92 @@ def decide(surfaces, defs):
     return per
 
 
+def build_bodies(liquids, surfaces, defs):
+    """Match renderer's conservative coplanar connected-component grouping."""
+    candidates = [s for s in surfaces if liquid_class(s['contents']) or
+                  (s['link'] is not None and s['link_side'][2] > .7 and s['orient'] == 'up')]
+    parents = list(range(len(candidates)))
+
+    def root(i):
+        while parents[i] != i:
+            i = parents[i]
+        return i
+
+    def touch(a, b, eps=2):
+        return all(a[0][k] <= b[1][k] + eps and b[0][k] <= a[1][k] + eps for k in range(3))
+
+    brush_lookup = {b['brush']: b for b in liquids}
+    for i, a in enumerate(candidates):
+        ac = brush_lookup[a['link']]['cls'] if a['link'] is not None else liquid_class(a['contents'])
+        for j in range(i + 1, len(candidates)):
+            b = candidates[j]
+            bc = brush_lookup[b['link']]['cls'] if b['link'] is not None else liquid_class(b['contents'])
+            if a['model'] != b['model'] or ac != bc or a['orient'] != b['orient'] or not touch(a['bounds'], b['bounds']):
+                if a['model'] != b['model'] or ac != bc or a['link'] is None or b['link'] is None or not touch(brush_lookup[a['link']]['bounds'], brush_lookup[b['link']]['bounds'], .5):
+                    continue
+            if a['link'] is not None and b['link'] is not None and (a['link'] == b['link'] or touch(brush_lookup[a['link']]['bounds'], brush_lookup[b['link']]['bounds'], .5)):
+                parents[root(j)] = root(i)
+                continue
+            if sum(a['normal'][k] * b['normal'][k] for k in range(3)) < .94:
+                continue
+            if abs(sum(a['normal'][k] * (a['bounds'][0][k] - b['bounds'][0][k]) for k in range(3))) > 4:
+                continue
+            parents[root(j)] = root(i)
+    grouped = collections.OrderedDict()
+    for i, s in enumerate(candidates):
+        grouped.setdefault(root(i), []).append(s)
+    bodies = []
+    for group in grouped.values():
+        ids = sorted({s['link'] for s in group if s['link'] is not None})
+        brush_depths = [max(0, brush_lookup[b]['bounds'][1][2] - brush_lookup[b]['bounds'][0][2]) for b in ids]
+        names = sorted({s['shader'] for s in group})
+        motion_names = {s['shader'] for s in group if liquid_class(s['contents']) or
+                        (s['link'] is not None and s['link_side'] and s['link_side'][2] > .7)}
+        cls = brush_lookup[ids[0]]['cls'] if ids else liquid_class(group[0]['contents'])
+        profile, source = 'generic_water', 'fallback'
+        if cls == 'lava':
+            profile, source = 'no_water_dynamics', 'auto: lava contents'
+        elif cls == 'slime' or 'textures/common/water2_water1_vjun1' in names:
+            profile, source = 'slime', 'auto: slime contents/optics'
+        elif 'textures/common/water2_still' in names:
+            profile, source = 'still_pool', 'stock: still shader'
+        elif 'textures/h_evil/wfall' in names and group[0]['normal'][2] < .7:
+            profile, source = 'waterfall', 'stock: waterfall shader and orientation'
+        stages = {n: defs[n][0]['stages'] if n in defs else [] for n in names}
+        scrolls = []
+        for name, shader_stages in stages.items():
+            if name not in motion_names:
+                continue
+            for stage_index, stage in enumerate(shader_stages):
+                for directive in stage['directives']:
+                    parts = directive.split()
+                    if len(parts) >= 4 and parts[:2] == ['tcmod', 'scroll']:
+                        try:
+                            scrolls.append(dict(shader=name, stage=stage_index, vector=[float(parts[2]), float(parts[3])]))
+                        except ValueError:
+                            pass
+        bounds = [[min(s['bounds'][0][k] for s in group) for k in range(3)],
+                  [max(s['bounds'][1][k] for s in group) for k in range(3)]]
+        bodies.append(dict(id=len(bodies) + 1, model=group[0]['model'], liquid_class=cls,
+                           optics_profile=cls,
+                           dynamics_profile=profile, decision_source=source,
+                           surface_ids=[s['index'] for s in group], brush_ids=ids,
+                           area=sum(s['area'] for s in group), bounds=bounds,
+                           shape_aspect=max(bounds[1][k] - bounds[0][k] for k in range(3)) /
+                           max(sorted((bounds[1][k] - bounds[0][k] for k in range(3)), reverse=True)[1], 1e-6),
+                           orientation=collections.Counter(s['orient'] for s in group),
+                           mean_brush_depth=sum(brush_depths) / len(brush_depths) if brush_depths else None,
+                           deepest_brush_depth=max(brush_depths) if brush_depths else None,
+                           shaders=names, stages=stages, legacy_scrolls=scrolls,
+                           surface_flags=sorted({s['flags'] for s in group}),
+                           content_flags=sorted({s['contents'] for s in group}),
+                           fog=any(s['link_fog'] for s in group),
+                           fog_parameters=[f for f in {json.dumps(s['fog'], sort_keys=True) for s in group if s['fog']}
+                                           for f in [json.loads(f)]],
+                           outdoor_indoor='unknown: no reliable BSP exposure evidence'))
+    return bodies
+
+
 def main(argv):
     base = DEFAULT_BASE
     out_json = None
@@ -347,10 +461,12 @@ def main(argv):
         base = args[0]
     files = Pk3Files(base)
     defs, all_defs = load_shader_definitions(files)
+    override_file = Path(__file__).with_name('water_body_overrides.json')
+    overrides = json.loads(override_file.read_text(encoding='utf-8')) if override_file.exists() else {}
     print(f'pk3: {", ".join(files.pk3s)}')
     print(f'shader definitions: {len(defs)}')
 
-    report = dict(base=base, pk3s=files.pk3s, maps={})
+    report = dict(base=base, pk3s=files.pk3s, maps={}, shader_usage={})
     candidates = collections.OrderedDict()
     for key in sorted(k for k in files.files if k.endswith('.bsp')):
         liquids, surfaces = scan_bsp(files.read(key), defs)
@@ -358,9 +474,27 @@ def main(argv):
         if not liquids and not per:
             continue
         name = key.replace('maps/', '')
+        bodies = build_bodies(liquids, surfaces, defs)
+        for rule in overrides.get(name[:-4] if name.endswith('.bsp') else name, {}).get('WaterBodies', []):
+            selector = rule.get('Selector', {})
+            pattern = selector.get('Shader')
+            prefix = selector.get('ShaderPrefix')
+            for body in bodies:
+                if pattern and pattern not in body['shaders']:
+                    continue
+                if prefix and not any(shader.startswith(prefix) for shader in body['shaders']):
+                    continue
+                if 'BodyId' in selector and selector['BodyId'] != body['id']:
+                    continue
+                if 'Point' in selector and not all(body['bounds'][0][k] <= selector['Point'][k] <= body['bounds'][1][k] for k in range(3)):
+                    continue
+                body['dynamics_profile'] = rule['DynamicsProfile']
+                body['decision_source'] = 'explicit project overlay'
         report['maps'][name] = dict(
-            liquid_brushes=[dict(brush=b['brush'], cls=b['cls'], shader=b['shader'], model=b['model'], fog=b['fog'])
+            liquid_brushes=[dict(brush=b['brush'], cls=b['cls'], shader=b['shader'], model=b['model'], fog=b['fog'], bounds=b['bounds'])
                             for b in liquids],
+            surfaces=surfaces,
+            bodies=bodies,
             shaders=[dict((k, (sorted(v) if isinstance(v, set) else dict(v) if isinstance(v, collections.Counter) else v))
                           for k, v in e.items()) for e in per.values()])
         if not any(b['cls'] for b in liquids) and not any(e['modern'] for e in per.values()) and \
@@ -381,6 +515,18 @@ def main(argv):
             candidates.setdefault(e['shader'], set()).add(name)
 
     print('\n## shaders without water semantics (water-like name / material / refractive) used by the maps')
+    for name, map_data in report['maps'].items():
+        for body in map_data['bodies']:
+            for shader in body['shaders']:
+                usage = report['shader_usage'].setdefault(shader, dict(maps=[], body_count=0, shared_by_distinct_bodies=False,
+                    definition=None, definition_file=None, pk3=None))
+                if name not in usage['maps']:
+                    usage['maps'].append(name)
+                usage['body_count'] += 1
+    for shader, usage in report['shader_usage'].items():
+        usage['shared_by_distinct_bodies'] = usage['body_count'] > 1
+        if shader in defs:
+            usage['definition'], usage['definition_file'], usage['pk3'] = defs[shader]
     for name, m in report['maps'].items():
         for e in m['shaders']:
             if e['contents'] & (CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA):
@@ -408,7 +554,11 @@ def main(argv):
               f'sort {info["sort"]}; cull {info["cull"]}; deforms {info["deforms"]}; tcMods {info["tcmods"]}; '
               f'blends {info["blends"]}; refractive {info["refractive"]}')
     if out_json:
-        json.dump(report, open(out_json, 'w'), indent=1, default=list)
+        for map_data in report['maps'].values():
+            for surface in map_data['surfaces']:
+                surface.pop('link_side', None)
+        with open(out_json, 'w', encoding='utf-8') as output:
+            json.dump(report, output, indent=1, default=list)
     return 0
 
 

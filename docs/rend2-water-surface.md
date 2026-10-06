@@ -1,5 +1,9 @@
 # Modern water surface (r_waterSurface)
 
+Water-body identity and future dynamics metadata are documented in
+[`rend2-water-bodies.md`](rend2-water-bodies.md). They do not affect this
+surface path while dynamics features are off.
+
 A physically based surface for the stock water of the maps: dielectric Fresnel reflection (SSR -> cubemap ->
 fallback), depth aware screen-space refraction, absorption / scattering of the liquid along the refracted path,
 GGX glints of the sun and the dynamic lights. No map is rebuilt, no asset changes: the water is found from the
