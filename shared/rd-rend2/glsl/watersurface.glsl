@@ -10,6 +10,7 @@
 in vec3 attr_Position;
 in vec3 attr_Normal;
 in vec2 attr_TexCoord0;
+in vec2 attr_TexCoord1; // render mesh: 1 at the surface, 0 at skirt foot
 
 layout(std140) uniform Scene
 {
@@ -62,6 +63,87 @@ uniform vec4 u_DiffuseTexOffTurb;
 out vec3 var_Position;	// world
 out vec3 var_Normal;	// world, geometric (out of the liquid for the faces of a liquid brush)
 out vec2 var_FlowTex;	// first stage texture coordinates with its tcMods
+out vec3 var_BasePosition;
+out vec3 var_GeometryDisplacement;
+out float var_GeometrySkirt;
+uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
+
+struct WaterWaveState
+{
+	vec3 displacement;
+	vec2 slope;
+	vec3 velocity;
+	float height;
+	float attenuation;
+	float curvature;
+};
+
+WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
+{
+	WaterWaveState w;
+	w.displacement = vec3(0.0);
+	w.slope = vec2(0.0);
+	w.velocity = vec3(0.0);
+	w.height = 0.0;
+	w.curvature = 0.0;
+	w.attenuation = 1.0;
+	if (u_Water[13].x < 0.5)
+		return w;
+
+	float wavelength = max(u_Water[15].y * u_Water[13].z, 8.0);
+	float amplitude = u_Water[15].x * u_Water[13].y;
+	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
+	float speed = u_Water[15].z * u_Water[13].w * 16.0;
+	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
+	{
+		// Stable body-average depth. A true per-edge mask requires boundary geometry.
+		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
+	}
+	vec2 flow = u_Water[17].xy;
+	float flowLength = length(flow);
+	vec2 mainDirection = flowLength > 0.001 ? flow / flowLength : vec2(0.8, 0.6);
+	// The eight deterministic components contain four macro and four medium
+	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
+	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
+	float qualityAmplitude = count == 2 ? 1.86 : (count == 8 ? 0.59 : 1.0);
+	float j00 = 1.0, j01 = 0.0, j11 = 1.0;
+	for (int i = 0; i < 8; ++i)
+	{
+		if (i >= count) break;
+		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
+		float fi = float(component);
+		float angle = fi * 2.3999632;
+		vec2 spread = vec2(cos(angle), sin(angle));
+		vec2 direction = normalize(mix(spread, mainDirection, flowLength > 0.001 ? 0.72 : 0.22));
+		float scale = component < 4 ? (1.0 - 0.15 * fi) : (0.34 - 0.035 * (fi - 4.0));
+		float lambda = wavelength * (component < 4 ? (1.0 - 0.13 * fi) : (0.28 - 0.025 * (fi - 4.0)));
+		float a = amplitude * scale * (component < 4 ? 0.28 : 0.10) * w.attenuation * qualityAmplitude;
+		float k = 6.2831853 / max(lambda, 4.0);
+		float omega = 6.2831853 * speed / max(lambda, 4.0);
+		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
+		float sn = sin(phase), cs = cos(phase);
+		w.height += a * sn;
+		w.slope += a * k * cs * direction;
+		w.velocity.z -= a * omega * cs;
+		w.curvature -= a * k * k * sn;
+		// Bounded horizontal crest drift used by the optional render mesh.
+		float horizontal = min(u_Water[14].x * u_Water[18].z * 0.12, 0.2) * a;
+		w.displacement.xy += horizontal * cs * direction;
+		w.velocity.xy += horizontal * omega * sn * direction;
+		float jacobian = horizontal * k * sn;
+		j00 -= jacobian * direction.x * direction.x;
+		j01 -= jacobian * direction.x * direction.y;
+		j11 -= jacobian * direction.y * direction.y;
+	}
+	// Convert parametric height derivatives to the normal of the displaced XY
+	// surface. The horizontal drift is bounded, keeping this Jacobian invertible.
+	float det = max(j00 * j11 - j01 * j01, 0.5);
+	w.slope = vec2(j11 * w.slope.x - j01 * w.slope.y,
+		j00 * w.slope.y - j01 * w.slope.x) / det;
+	w.displacement.z = w.height;
+	return w;
+}
+
 
 #if defined(USE_DEFORM_VERTEXES)
 float GetNoiseValue( float x, float y, float z, float t )
@@ -210,6 +292,17 @@ void main()
 #endif
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
+	var_BasePosition = wsPosition.xyz;
+	var_GeometryDisplacement = vec3(0.0);
+	var_GeometrySkirt = 0.0;
+	if (u_Water[19].y > 0.5)
+	{
+		var_GeometrySkirt = 1.0 - attr_TexCoord1.x;
+		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
+		var_GeometryDisplacement = geometryWave.displacement *
+			(u_Water[19].z > 2.5 && u_Water[19].z < 3.5 ? 1.0 : attr_TexCoord1.x);
+		wsPosition.xyz += var_GeometryDisplacement;
+	}
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
 	var_Position = wsPosition.xyz;
@@ -246,10 +339,11 @@ void main()
 //   [10] flow layer scale, 1 / world wave size, unused, Snell debug view (USE_WATER_SNELL)
 //   [11] drift of the two world wave layers (texture units, wrapped)
 //   [13] waves enabled, amplitude scale, wavelength scale, speed scale
-//   [14] future choppiness, quality, micro scale, shallow attenuation enabled
+//   [14] choppiness, quality, micro scale, shallow attenuation enabled
 //   [15] body amplitude, wavelength, speed, micro strength
 //   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
-//   [18] debug, body ID, choppiness, wave multiplier; [19] legacy deform amplitude
+//   [18] debug, body ID, choppiness, wave multiplier;
+//   [19] legacy deform amplitude, geometry enabled, geometry debug, unused
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -320,6 +414,9 @@ uniform sampler2DArray u_ShadowMap;
 uniform sampler2DArrayShadow u_ShadowMap;
 #endif
 
+in vec3 var_BasePosition;
+in vec3 var_GeometryDisplacement;
+in float var_GeometrySkirt;
 in vec3 var_Position;
 in vec3 var_Normal;
 in vec2 var_FlowTex;
@@ -414,7 +511,7 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		w.slope += a * k * cs * direction;
 		w.velocity.z -= a * omega * cs;
 		w.curvature -= a * k * k * sn;
-		// Reserved for the silhouette displacement path: bounded Gerstner drift.
+		// Bounded horizontal crest drift used by the optional render mesh.
 		float horizontal = min(u_Water[14].x * u_Water[18].z * 0.12, 0.2) * a;
 		w.displacement.xy += horizontal * cs * direction;
 		w.velocity.xy += horizontal * omega * sn * direction;
@@ -898,7 +995,7 @@ void main()
 	float strength = oldStrength * (u_Water[13].x > 0.5 ? u_Water[14].z * u_Water[15].w : 1.0);
 	vec2 slope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * strength;
 	vec3 microNormal = normalize(Ng - slope.x * Tw - slope.y * Bw);
-	WaterWaveState waves = EvaluateWaterSurface(P, u_Water[5].z);
+	WaterWaveState waves = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
 	vec3 macroGradient = vec3(waves.slope, 0.0);
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
@@ -1373,6 +1470,22 @@ void main()
 		return;
 	}
 	int waveDebug = int(u_Water[18].x + 0.5);
+	int geometryDebug = int(u_Water[19].z + 0.5);
+	if (geometryDebug == 2)
+	{
+		out_Color = vec4(LinearToScene(vec3(min(length(var_GeometryDisplacement) * 0.25, 1.0))), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+	if (geometryDebug == 4)
+	{
+		vec3 bodyColor = vec3(fract(u_Water[18].y * 0.37),
+			fract(u_Water[18].y * 0.61), fract(u_Water[18].y * 0.83));
+		out_Color = vec4(LinearToScene(mix(bodyColor, vec3(1.0, 0.0, 0.0),
+			step(0.02, var_GeometrySkirt))), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
 	if (u_Water[13].x > 0.5 && waveDebug > 0 && waveDebug != 8)
 	{
 		vec3 d = vec3(0.0);

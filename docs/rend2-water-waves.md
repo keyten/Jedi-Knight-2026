@@ -25,9 +25,9 @@ attenuation factor. The geometric normal is reconstructed from that slope and
 the base surface frame; the shader adds the existing micro slope before final
 normalization. Reflection, refraction and Snell use this combined normal.
 
-Sine components were chosen because the current mesh is not subdivided. A
-Gerstner crest offers little benefit until that mesh can show a silhouette;
-the returned horizontal drift is deliberately small. The evaluator transforms
+Sine components retain a bounded horizontal drift. With `r_waterGeometry 1`,
+the same evaluator displaces the subdivided render mesh; see
+[render-only water geometry](rend2-water-geometry.md). The evaluator transforms
 the height derivative through the horizontal displacement Jacobian so its
 geometric slope remains consistent with that drift. Macro components 0–3
 use the body wavelength times 1, .87, .74 and .61. Medium components 4–7 use
@@ -47,8 +47,8 @@ choppiness and micro-normal strength. `waterBody_t` supplies the resolved
 profile, world XY flow, mean brush depth and wave multiplier. Amplitude is
 mapped to world units by a fixed factor of eight; profile speed maps to 16
 world units per second at a value of one. `r_waterWaveAmplitude`,
-`r_waterWaveLength` and `r_waterWaveSpeed` are global scales. Choppiness only
-affects the horizontal displacement returned for future geometry; it does not
+`r_waterWaveLength` and `r_waterWaveSpeed` are global scales. Choppiness
+affects the optional mesh's horizontal displacement; it does not
 alter the current shading normal. The body ID travels in unused upper bits of
 the existing surface key, so separate bodies sharing a shader remain distinct
 without a shader permutation or a global profile selection.
@@ -62,8 +62,7 @@ evaluator. Screen depth remains for optical path length, never for wave shape.
 
 Authored `deformVertexes` remains active. When its recorded wave amplitude is
 over 0.5 world units, the new analytical amplitude is reduced to 20% for the
-body, avoiding a large second wave system. There is no new vertex displacement
-in this task. When `r_waterWaves 0`, legacy deforms and all existing detail
+body, avoiding a large second wave system. When `r_waterWaves 0`, legacy deforms and all existing detail
 wave samples are unchanged. The first-stage `tcMod` remains the third detail
 sample. It does not determine macro wave flow. The six stock `t2_rancor`
 `water_1` pools have a recorded legacy deform amplitude of 2 and exercise
@@ -90,10 +89,8 @@ micro strength and unresolved variance on its left side. Existing
 
 ## Scope and verification
 
-The new height is mathematical state for future subdivided render geometry,
-interactive disturbance composition, caustic input and camera-waterline
-queries. Current optical path length still uses the undisplaced mesh plane;
-large-wave parallax and silhouette are deferred to the geometry task. The
+The new height also drives optional subdivided render geometry. Interactive
+disturbances, caustic input and camera-waterline queries remain future work. The
 existing wave texture and mip roughness are unchanged. Profiles are uniform
 data; no extra shader permutations, targets, textures or persistent wave
 buffers were added. Per-draw data grows by seven vec4s (112 bytes).
@@ -124,8 +121,8 @@ micro-only and 4.252 ms quality 1. Sequential full-screen measurements were
 16.612/16.968/18.925 ms at quality 0/1/2; clock drift makes them less useful
 for a direct baseline comparison. Two synthetic visible bodies covering half
 the screen each in separate draws took 16.747 ms at quality 1. An RTX/AMD-class
-result and per-draw CPU timing were not available. No geometry displacement is
-enabled, so these are shading-only costs.
+result and per-draw CPU timing were not available. Those measurements used
+the original mesh, so they describe shading-only costs.
 
 The design follows Unreal's per-WaterBody Gerstner asset and depth attenuation
 interfaces ([Water Waves Asset](https://dev.epicgames.com/documentation/en-us/unreal-engine/simulating-waves-using-the-water-waves-asset?application_version=4.27),

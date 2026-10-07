@@ -63,6 +63,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <set>
 #include "json.h"
 
@@ -190,6 +191,7 @@ struct waterBody_t
 	legacyWaterMotion_t legacy;
 	vec2_t flow;
 	float waveMultiplier, foamMultiplier, interactionMultiplier;
+	int geometryVerts, geometryTriangles, geometryLevel;
 };
 
 struct waterBodyRule_t
@@ -254,6 +256,8 @@ static struct
 	std::vector<waterBody_t>			bodies;
 	std::vector<waterBodyRule_t>		bodyRules;
 	float		bodyMsec;
+	float		geometryMsec;
+	size_t		geometryBytes;
 	qboolean	bodyDebug;
 	qhandle_t	bodyDebugShader;
 	float		classifyMsec;
@@ -1213,7 +1217,8 @@ static void R_WaterBodyDigit( const refdef_t *fd, qhandle_t shader, const vec3_t
 
 void R_WaterBodiesDebugDraw( const refdef_t *fd )
 {
-	if ( !s_water.bodyDebug || !tr.world || s_water.world != tr.world || (fd->rdflags & RDF_NOWORLDMODEL) ) return;
+	if ( !(s_water.bodyDebug || (r_waterGeometry->integer && r_waterGeometryDebug->integer == 5)) ||
+		!tr.world || s_water.world != tr.world || (fd->rdflags & RDF_NOWORLDMODEL) ) return;
 	if ( !s_water.bodyDebugShader )
 		s_water.bodyDebugShader = RE_RegisterShaderFromImage("*waterBodyDebug", lightmaps2d, stylesDefault, tr.whiteImage, qfalse);
 	for ( const waterBody_t& body : s_water.bodies )
@@ -1221,6 +1226,23 @@ void R_WaterBodiesDebugDraw( const refdef_t *fd )
 		const unsigned h = (unsigned)body.id * 2654435761u;
 		const byte color[4] = { (byte)(64 + (h & 127)), (byte)(64 + ((h >> 8) & 127)),
 			(byte)(64 + ((h >> 16) & 127)), 255 };
+		if (r_waterGeometry->integer && r_waterGeometryDebug->integer == 5)
+		{
+			for (int surfaceNum : body.surfaces)
+			{
+				const msurface_t& ms = tr.world->surfaces[surfaceNum];
+				if (!(ms.cullinfo.type & CULLINFO_BOX)) continue;
+				vec3_t box[8];
+				for (int i = 0; i < 8; ++i)
+					VectorSet(box[i], ms.cullinfo.bounds[(i & 1) != 0][0],
+						ms.cullinfo.bounds[(i & 2) != 0][1], ms.cullinfo.bounds[(i & 4) != 0][2]);
+				for (int i = 0; i < 8; ++i)
+					for (int bit = 0; bit < 3; ++bit)
+						if (!(i & (1 << bit))) R_WaterBodySegment(fd, s_water.bodyDebugShader,
+							box[i], box[i | (1 << bit)], color);
+			}
+			continue;
+		}
 		vec3_t p[8];
 		for ( int i = 0; i < 8; i++ )
 			VectorSet(p[i], body.bounds[(i & 1) != 0][0], body.bounds[(i & 2) != 0][1], body.bounds[(i & 4) != 0][2]);
@@ -1595,6 +1617,229 @@ void R_CreateWaterSurfaceFBOs( void )
 	}
 }
 
+// Subdivide the BSP triangles once. A single dyadic level for every surface in
+// a body gives identical sample points on matching shared edges. Midpoints are
+// cached per surface so the two triangles of a BSP face cannot form a T-junction.
+static glIndex_t R_WaterMidpoint(std::vector<packedVertex_t>& verts,
+	std::map<uint64_t, glIndex_t>& edges, glIndex_t a, glIndex_t b)
+{
+	const glIndex_t lo = MIN(a, b), hi = MAX(a, b);
+	const uint64_t key = ((uint64_t)lo << 32) | hi;
+	auto found = edges.find(key);
+	if (found != edges.end()) return found->second;
+	packedVertex_t v = {};
+	for (int i = 0; i < 3; ++i)
+		v.position[i] = 0.5f * (verts[a].position[i] + verts[b].position[i]);
+	// Packed normals interpolate poorly; use the original float normals at the
+	// first level where possible and otherwise decode the packed endpoints.
+	vec3_t n;
+	R_VboUnpackNormal(n, verts[a].normal);
+	vec3_t nb;
+	R_VboUnpackNormal(nb, verts[b].normal);
+	VectorAdd(n, nb, n);
+	VectorNormalize(n);
+	v.normal = R_VboPackNormal(n);
+	for (int i = 0; i < 2; ++i)
+	{
+		v.texcoords[0][i] = 0.5f * (verts[a].texcoords[0][i] + verts[b].texcoords[0][i]);
+		v.texcoords[1][i] = 0.5f * (verts[a].texcoords[1][i] + verts[b].texcoords[1][i]);
+	}
+	const glIndex_t result = (glIndex_t)verts.size();
+	verts.push_back(v);
+	edges[key] = result;
+	return result;
+}
+
+void R_WaterBuildGeometry(world_t *world)
+{
+	s_water.geometryMsec = 0;
+	s_water.geometryBytes = 0;
+	if (!r_waterSurface->integer || !r_waterGeometry->integer || s_water.world != world) return;
+	const int start = ri.Milliseconds();
+	const float target = Com_Clamp(16.0f, 512.0f, r_waterGeometryEdge->value);
+	const int bodyCap = Com_Clampi(1024, 1000000, r_waterGeometryBodyVerts->integer);
+	const int mapCap = Com_Clampi(1024, 4000000, r_waterGeometryMapVerts->integer);
+	int mapVerts = 0;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		std::vector<srfBspSurface_t *> surfaces;
+		int sourceVerts = 0, sourceTriangles = 0;
+		float longest = 0;
+		for (int surfaceNum : body.surfaces)
+		{
+			msurface_t& ms = world->surfaces[surfaceNum];
+			if (!(ms.waterKey & WATERKEY_INTERFACE) ||
+				!(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+			srfBspSurface_t *s = (srfBspSurface_t *)ms.data;
+			if (!s->verts || s->numIndexes < 3 || !s->numVerts) continue;
+			surfaces.push_back(s);
+			sourceVerts += s->numVerts;
+			sourceTriangles += s->numIndexes / 3;
+			for (int i = 0; i + 2 < s->numIndexes; i += 3)
+				for (int e = 0; e < 3; ++e)
+				{
+					const int a = s->indexes[i + e], b = s->indexes[i + (e + 1) % 3];
+					if (a < 0 || b < 0 || a >= s->numVerts || b >= s->numVerts) continue;
+					vec3_t d; VectorSubtract(s->verts[a].xyz, s->verts[b].xyz, d);
+					longest = MAX(longest, VectorLength(d));
+				}
+		}
+		if (surfaces.empty()) continue;
+		int level = 0;
+		while (level < 8 && longest > target * (1 << level)) ++level;
+		const int requested = level;
+		// A triangle subdivided n times along each edge has at most
+		// (n+1)(n+2)/2 unique top vertices, plus 3n boundary feet.
+		auto estimatedVerts = [sourceVerts, sourceTriangles](int l) -> int64_t {
+			const int64_t n = 1LL << l;
+			return sourceVerts + (int64_t)sourceTriangles * ((n + 1) * (n + 2) / 2 + 3 * n);
+		};
+		while (level > 0 && estimatedVerts(level) > MIN(bodyCap, mapCap - mapVerts)) --level;
+		if (estimatedVerts(0) > MIN(bodyCap, mapCap - mapVerts))
+		{
+			ri.Printf(PRINT_WARNING, "water geometry body %d: vertex budget exhausted, using BSP mesh\n", body.id);
+			continue;
+		}
+		if (level != requested)
+			ri.Printf(PRINT_WARNING, "water geometry body %d: subdivision %d -> %d (budget)\n", body.id, requested, level);
+		std::vector<packedVertex_t> verts;
+		std::vector<glIndex_t> indices;
+		struct range_t { srfBspSurface_t *s; int first, count, verts; glIndex_t min, max; };
+		std::vector<range_t> ranges;
+		for (srfBspSurface_t *s : surfaces)
+		{
+			const int firstVert = (int)verts.size(), firstIndex = (int)indices.size();
+			for (int i = 0; i < s->numVerts; ++i)
+			{
+				packedVertex_t v = {};
+				VectorCopy(s->verts[i].xyz, v.position);
+				v.normal = R_VboPackNormal(s->verts[i].normal);
+				VectorCopy2(s->verts[i].st, v.texcoords[0]);
+				v.texcoords[1][0] = 1.0f;
+				verts.push_back(v);
+			}
+			std::vector<glIndex_t> tris;
+			for (int i = 0; i < s->numIndexes; ++i)
+				tris.push_back((glIndex_t)(firstVert + s->indexes[i]));
+			std::map<uint64_t, glIndex_t> edges;
+			for (int pass = 0; pass < level; ++pass)
+			{
+				std::vector<glIndex_t> next;
+				next.reserve(tris.size() * 4);
+				for (size_t i = 0; i < tris.size(); i += 3)
+				{
+					const glIndex_t a = tris[i], b = tris[i + 1], c = tris[i + 2];
+					const glIndex_t ab = R_WaterMidpoint(verts, edges, a, b);
+					const glIndex_t bc = R_WaterMidpoint(verts, edges, b, c);
+					const glIndex_t ca = R_WaterMidpoint(verts, edges, c, a);
+					const glIndex_t child[] = { a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca };
+					next.insert(next.end(), child, child + 12);
+				}
+				tris.swap(next);
+			}
+			indices.insert(indices.end(), tris.begin(), tris.end());
+			// A short downward skirt closes the wall gap when an edge rises and
+			// covers mismatched BSP boundary segmentation between touching faces.
+			std::map<uint64_t, int> edgeCount;
+			std::map<uint64_t, std::pair<glIndex_t, glIndex_t>> oriented;
+			for (size_t i = 0; i < tris.size(); i += 3)
+				for (int e = 0; e < 3; ++e)
+				{
+					glIndex_t a = tris[i + e], b = tris[i + (e + 1) % 3];
+					uint64_t key = ((uint64_t)MIN(a, b) << 32) | MAX(a, b);
+					++edgeCount[key]; oriented[key] = std::make_pair(a, b);
+				}
+			std::map<glIndex_t, glIndex_t> feet;
+			for (const auto& edge : edgeCount)
+			{
+				if (edge.second != 1) continue;
+				glIndex_t top[2] = { oriented[edge.first].first, oriented[edge.first].second };
+				glIndex_t foot[2];
+				for (int j = 0; j < 2; ++j)
+				{
+					auto found = feet.find(top[j]);
+					if (found != feet.end()) foot[j] = found->second;
+					else
+					{
+						packedVertex_t v = verts[top[j]];
+						v.position[2] -= 64.0f;
+						v.texcoords[1][0] = 0.0f;
+						foot[j] = (glIndex_t)verts.size();
+						verts.push_back(v);
+						feet[top[j]] = foot[j];
+					}
+				}
+				const glIndex_t skirt[] = { top[0], foot[0], top[1], top[1], foot[0], foot[1] };
+				indices.insert(indices.end(), skirt, skirt + 6);
+			}
+			if (!tris.empty())
+			{
+				glIndex_t lo = indices[firstIndex], hi = indices[firstIndex];
+				for (size_t i = firstIndex; i < indices.size(); ++i) { lo = MIN(lo, indices[i]); hi = MAX(hi, indices[i]); }
+				ranges.push_back({ s, firstIndex, (int)indices.size() - firstIndex, (int)verts.size() - firstVert, lo, hi });
+			}
+		}
+		if (verts.size() > (size_t)MIN(bodyCap, mapCap - mapVerts) || indices.empty())
+		{
+			ri.Printf(PRINT_WARNING, "water geometry body %d: actual vertex budget exceeded, using BSP mesh\n", body.id);
+			continue;
+		}
+		VBO_t *vbo = R_CreateVBO((byte *)verts.data(), verts.size() * sizeof(packedVertex_t),
+			VBO_USAGE_STATIC, va("WaterBody_%d", body.id));
+		IBO_t *ibo = R_CreateIBO((byte *)indices.data(), indices.size() * sizeof(glIndex_t),
+			VBO_USAGE_STATIC, va("WaterBody_%d", body.id));
+		vbo->offsets[ATTR_INDEX_POSITION] = offsetof(packedVertex_t, position);
+		vbo->offsets[ATTR_INDEX_NORMAL] = offsetof(packedVertex_t, normal);
+		vbo->offsets[ATTR_INDEX_TEXCOORD0] = offsetof(packedVertex_t, texcoords[0]);
+		vbo->offsets[ATTR_INDEX_TEXCOORD1] = offsetof(packedVertex_t, texcoords[1]);
+		vbo->strides[ATTR_INDEX_POSITION] = sizeof(packedVertex_t);
+		vbo->strides[ATTR_INDEX_NORMAL] = sizeof(packedVertex_t);
+		vbo->strides[ATTR_INDEX_TEXCOORD0] = sizeof(packedVertex_t);
+		vbo->strides[ATTR_INDEX_TEXCOORD1] = sizeof(packedVertex_t);
+		vbo->sizes[ATTR_INDEX_POSITION] = sizeof(verts[0].position);
+		vbo->sizes[ATTR_INDEX_NORMAL] = sizeof(verts[0].normal);
+		vbo->sizes[ATTR_INDEX_TEXCOORD0] = sizeof(verts[0].texcoords[0]);
+		vbo->sizes[ATTR_INDEX_TEXCOORD1] = sizeof(verts[0].texcoords[1]);
+		for (const range_t& r : ranges)
+		{
+			r.s->waterVbo = vbo; r.s->waterIbo = ibo;
+			r.s->waterFirstIndex = r.first; r.s->waterNumIndexes = r.count;
+			r.s->waterNumVerts = r.verts; r.s->waterMinIndex = r.min; r.s->waterMaxIndex = r.max;
+		}
+		// The render mesh may move outside the BSP's flat bounds. Preserve its
+		// original plane for grouping/reflection; use expanded bounds for culling.
+		const float extent = 4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f *
+			MAX(body.waveMultiplier, 1.0f) * 2.0f;
+		for (int surfaceNum : body.surfaces)
+		{
+			msurface_t& ms = world->surfaces[surfaceNum];
+			if (!(ms.cullinfo.type & CULLINFO_BOX)) continue;
+			for (int axis = 0; axis < 3; ++axis)
+			{
+				ms.cullinfo.bounds[0][axis] -= extent + (axis == 2 ? 64.0f : 0.0f);
+				ms.cullinfo.bounds[1][axis] += extent;
+			}
+			ms.cullinfo.type &= ~CULLINFO_PLANE;
+			ms.cullinfo.type &= ~CULLINFO_SPHERE;
+		}
+		body.geometryVerts = (int)verts.size();
+		body.geometryTriangles = (int)indices.size() / 3;
+		body.geometryLevel = level;
+		mapVerts += body.geometryVerts;
+		s_water.geometryBytes += verts.size() * sizeof(packedVertex_t) + indices.size() * sizeof(glIndex_t);
+	}
+	s_water.geometryMsec = (float)(ri.Milliseconds() - start);
+}
+
+void R_WaterGeometryInfo_f(void)
+{
+	ri.Printf(PRINT_ALL, "water geometry: %d bodies, %.1f ms, %u bytes GPU mesh\n",
+		(int)s_water.bodies.size(), s_water.geometryMsec, (unsigned)s_water.geometryBytes);
+	for (const waterBody_t& body : s_water.bodies)
+		ri.Printf(PRINT_ALL, "  body %d: %d vertices, %d triangles, level %d\n",
+			body.id, body.geometryVerts, body.geometryTriangles, body.geometryLevel);
+}
+
 void R_WaterSurfaceShutdown( void )
 {
 	// images and FBOs belong to the renderer lists; the resource decision
@@ -1610,6 +1855,8 @@ void R_WaterSurfaceShutdown( void )
 	s_water.bodies.clear();
 	s_water.bodyRules.clear();
 	s_water.bodyDebugShader = 0;
+	s_water.geometryBytes = 0;
+	s_water.geometryMsec = 0;
 }
 
 /*
@@ -1807,7 +2054,9 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		body ? body->depthAverage : 0.0f, body ? (float)body->dynamics : 0.0f);
 	VectorSet4(water[18], (float)r_waterWaveDebug->integer, (float)bodyId,
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
-	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f, 0.0f, 0.0f, 0.0f);
+	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
+		body && body->geometryVerts > 0 && r_waterGeometry->integer ? 1.0f : 0.0f,
+		(float)r_waterGeometryDebug->integer, 0.0f);
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];
 	const bool froxel = (s_water.viewFlags & 4) != 0;

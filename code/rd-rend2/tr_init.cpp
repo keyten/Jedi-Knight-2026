@@ -209,6 +209,7 @@ cvar_t	*r_volumetricLavaColor;
 cvar_t	*r_volumetricLavaAlbedo;
 cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t	*r_waterSurface;
+cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 cvar_t	*r_waterSurfaceIOR;
 cvar_t	*r_waterSurfaceRoughness;
 cvar_t	*r_waterSurfaceNormal;
@@ -1923,6 +1924,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
 	{ "r_waterBodies",	R_WaterBodies_f },
+	{ "r_waterGeometryInfo", R_WaterGeometryInfo_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
@@ -2708,6 +2710,12 @@ void R_Register( void )
 	r_waterSurfaceNormal = ri_Cvar_Get_NoComm("r_waterSurfaceNormal", "1.0", CVAR_ARCHIVE, "r_waterSurface: detail wave normal strength (0 removes micro detail; ambient macro is separate)");
 	ri.Cvar_CheckRange(r_waterSurfaceNormal, 0.0f, 4.0f, qfalse);
 	r_waterWaves = ri_Cvar_Get_NoComm("r_waterWaves", "0", CVAR_ARCHIVE, "Ambient multi-scale water waves (requires r_waterSurface); 0 retains current water");
+	r_waterGeometry = ri_Cvar_Get_NoComm("r_waterGeometry", "0", CVAR_ARCHIVE | CVAR_LATCH, "Subdivided render-only water mesh; requires r_waterSurface and vid_restart");
+	ri.Cvar_CheckRange(r_waterGeometry, 0, 1, qtrue);
+	r_waterGeometryEdge = ri_Cvar_Get_NoComm("r_waterGeometryEdge", "64", CVAR_ARCHIVE | CVAR_LATCH, "Target maximum water mesh edge length in world units");
+	r_waterGeometryBodyVerts = ri_Cvar_Get_NoComm("r_waterGeometryBodyVerts", "250000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per water body");
+	r_waterGeometryMapVerts = ri_Cvar_Get_NoComm("r_waterGeometryMapVerts", "1000000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per map");
+	r_waterGeometryDebug = ri_Cvar_Get_NoComm("r_waterGeometryDebug", "0", CVAR_ARCHIVE, "Water geometry debug view");
 	ri.Cvar_CheckRange(r_waterWaves, 0, 1, qtrue);
 	r_waterWaveAmplitude = ri_Cvar_Get_NoComm("r_waterWaveAmplitude", "1", CVAR_ARCHIVE, "Ambient macro and medium wave amplitude scale");
 	ri.Cvar_CheckRange(r_waterWaveAmplitude, 0.0f, 4.0f, qfalse);

@@ -161,7 +161,7 @@ def uloc(prog, name):
 def water_program(**kw):
     vs, fs = water_sources(**kw)
     prog = compile_program([(GL_VERTEX, vs), (GL_FRAGMENT, fs)], 'watersurface ' + repr(kw),
-                           attributes=('attr_Position', 'attr_Normal', 'attr_TexCoord0'))
+                           attributes=('attr_Position', 'attr_Normal', 'attr_TexCoord0', 'attr_TexCoord1'))
     gl('glUseProgram', None, U)(prog)
     for sampler, unit in UNITS.items():
         loc = uloc(prog, sampler)
@@ -372,8 +372,8 @@ class Rig:
         # the water plane z = 0, normal up packed as rend2 (n * 0.5 + 0.5)
         quad = []
         for x, y in [(-200, -3000), (3000, -3000), (3000, 3000), (-200, -3000), (3000, 3000), (-200, 3000)]:
-            quad.append([x, y, 0.0, 0.5, 0.5, 1.0, x / 256.0, y / 256.0])
-        self.water_vao, self.water_count = vertex_buffer(quad, (3, 3, 2))
+            quad.append([x, y, 0.0, 0.5, 0.5, 1.0, x / 256.0, y / 256.0, 1.0, 0.0])
+        self.water_vao, self.water_count = vertex_buffer(quad, (3, 3, 2, 2))
         lut = np.zeros((64, 64, 4), dtype=np.float32)
         nv = (np.arange(64) + 0.5) / 64.0
         fc = (1 - nv) ** 5
@@ -544,6 +544,25 @@ def check_permutations():
         gl('glDeleteProgram', None, U)(prog)
         count += 1
     return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell)', True)
+
+
+def check_geometry_depth(rig):
+    """The vertex wave must move raster depth, not merely fragment shading."""
+    prog = water_program()
+    u = rig.params()
+    u[13] = [1.0, 1.0, 1.0, 1.0]
+    u[14] = [1.0, 1.0, 1.0, 0.0]
+    u[15] = [20.0, 192.0, 1.0, 1.0]
+    u[18] = [0.0, 1.0, 0.2, 1.0]
+    u[19, 1] = 0.0
+    rig.draw_water(prog, u, waves=True)
+    flat = read_depth(rig.water_fbo, *rig.size)
+    u[19, 1] = 1.0
+    rig.draw_water(prog, u, waves=True)
+    displaced = read_depth(rig.water_fbo, *rig.size)
+    visible = (flat < 0.9999) & (displaced < 0.9999)
+    return check('vertex displacement changes real water depth',
+                 visible.sum() > 100 and np.max(np.abs(flat[visible] - displaced[visible])) > 1e-6)
 
 
 def check_ambient_waves(rig):
@@ -929,6 +948,7 @@ def main():
     try:
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+        ok = check_geometry_depth(rig) and ok
         ok = check_ambient_waves(rig) and ok
         ok = check_above(rig) and ok
         ok = check_inside() and ok

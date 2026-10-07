@@ -2632,6 +2632,8 @@ static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysPr
 	// replaces the scene (it was copied) and writes depth: the composites after
 	// the water slot fog the camera -> surface segment
 	item.renderState.stateBits = GLS_DEPTHMASK_TRUE;
+	if (r_waterGeometry->integer && r_waterGeometryDebug->integer == 1)
+		item.renderState.stateBits |= GLS_POLYMODE_LINE;
 	item.renderState.cullType = cullType;
 	item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, input->shader);
 	item.program = sp;
@@ -2680,7 +2682,7 @@ void RB_StageIteratorGeneric( void )
 	//
 	uint32_t vertexAttribs = RB_CalcShaderVertexAttribs( input->shader );
 	if (waterDraw)
-		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0;
+		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1;
 	if (tess.useInternalVBO)
 	{
 		RB_DeformTessGeometry();

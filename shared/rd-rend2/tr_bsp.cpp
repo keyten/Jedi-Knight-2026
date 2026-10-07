@@ -3664,6 +3664,8 @@ static void R_MergeLeafSurfaces(world_t *worldData)
 
 			if(ShaderRequiresCPUDeforms(shader1))
 				continue;
+			if (r_waterGeometry->integer && (surf1->waterKey & WATERKEY_INTERFACE))
+				continue;
 
 			fogIndex1 = surf1->fogIndex;
 			cubemapIndex1 = surf1->cubemapIndex;
@@ -5022,6 +5024,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 
 	// create static VBOS from the world
 	R_CreateWorldVBOs(worldData);
+	if (bspIndex == nullptr)
+		R_WaterBuildGeometry(worldData);
 	R_LoadProfilePrint("BSP world VBO and tangents", stageStart);
 	stageStart = ri.Milliseconds();
 	if (r_mergeLeafSurfaces->integer)

@@ -303,6 +303,7 @@ extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
 extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
+extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
 extern cvar_t	*r_waterSurfaceRefraction;
@@ -3097,6 +3098,11 @@ typedef struct srfBspSurface_s
 	// static render data
 	VBO_t          *vbo;
 	IBO_t          *ibo;
+	// Optional render-only modern water mesh. BSP vertices and collision stay intact.
+	VBO_t          *waterVbo;
+	IBO_t          *waterIbo;
+	int             waterFirstIndex, waterNumIndexes, waterNumVerts;
+	glIndex_t       waterMinIndex, waterMaxIndex;
 
 	// SF_GRID specific variables after here
 
@@ -5926,6 +5932,8 @@ qboolean R_WaterSurfaceResourcesEnabled(void);	// latched r_waterSurface: copy t
 void R_CreateWaterSurfaceImages(int width, int height, int hdrFormat);
 void R_CreateWaterSurfaceFBOs(void);
 void R_WaterSurfaceShutdown(void);
+void R_WaterBuildGeometry(world_t *world);
+void R_WaterGeometryInfo_f(void);
 void RB_WaterSurfaceBeginView(void);
 qboolean RB_WaterSurfaceDraws(const shader_t *shader);	// this draw uses the water program in this view
 shaderProgram_t *RB_WaterSurfaceProgram(const shader_t *shader);

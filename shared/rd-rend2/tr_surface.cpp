@@ -604,6 +604,10 @@ RB_SurfaceBSPTriangles
 */
 static void RB_SurfaceBSPTriangles( srfBspSurface_t *srf ) {
 	RB_SetPomMode(POM_MODE_NONE);
+	if (srf->waterVbo && r_waterGeometryDebug->integer != 3 && RB_WaterSurfaceDraws(tess.shader) &&
+		RB_SurfaceVbo(srf->waterVbo, srf->waterIbo, srf->waterNumVerts, srf->waterNumIndexes,
+			srf->waterFirstIndex, srf->waterMinIndex, srf->waterMaxIndex,
+			srf->dlightBits, srf->pshadowBits, qfalse)) return;
 	if( RB_SurfaceVbo (srf->vbo, srf->ibo, srf->numVerts, srf->numIndexes,
 				srf->firstIndex, srf->minIndex, srf->maxIndex, srf->dlightBits, srf->pshadowBits, qtrue ) )
 	{
@@ -1850,6 +1854,10 @@ RB_SurfaceFace
 */
 static void RB_SurfaceBSPFace( srfBspSurface_t *srf ) {
 	RB_SetPomMode(POM_MODE_NONE);
+	if (srf->waterVbo && r_waterGeometryDebug->integer != 3 && RB_WaterSurfaceDraws(tess.shader) &&
+		RB_SurfaceVbo(srf->waterVbo, srf->waterIbo, srf->waterNumVerts, srf->waterNumIndexes,
+			srf->waterFirstIndex, srf->waterMinIndex, srf->waterMaxIndex,
+			srf->dlightBits, srf->pshadowBits, qfalse)) return;
 	if( RB_SurfaceVbo(srf->vbo, srf->ibo, srf->numVerts, srf->numIndexes,
 				srf->firstIndex, srf->minIndex, srf->maxIndex, srf->dlightBits, srf->pshadowBits, qtrue ) )
 	{
@@ -1900,6 +1908,10 @@ Just copy the grid of points and triangulate
 */
 static void RB_SurfaceBSPGrid( srfBspSurface_t *srf ) {
 	RB_SetPomMode(POM_MODE_NONE);
+	if (srf->waterVbo && r_waterGeometryDebug->integer != 3 && RB_WaterSurfaceDraws(tess.shader) &&
+		RB_SurfaceVbo(srf->waterVbo, srf->waterIbo, srf->waterNumVerts, srf->waterNumIndexes,
+			srf->waterFirstIndex, srf->waterMinIndex, srf->waterMaxIndex,
+			srf->dlightBits, srf->pshadowBits, qfalse)) return;
 
 	int		i, j;
 	float	*xyz;

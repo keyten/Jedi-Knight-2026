@@ -2902,7 +2902,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 
 	for (int i = 0; i < WATERDEF_COUNT; i++)
 	{
-		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL;
+		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
 		char name[64];
 		char extradefines[256];
 		Q_strncpyz(name, "watersurface", sizeof(name));

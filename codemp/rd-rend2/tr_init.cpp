@@ -204,6 +204,7 @@ cvar_t	*r_volumetricLavaColor;
 cvar_t	*r_volumetricLavaAlbedo;
 cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t	*r_waterSurface;
+cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 cvar_t	*r_waterSurfaceIOR;
 cvar_t	*r_waterSurfaceRoughness;
 cvar_t	*r_waterSurfaceNormal;
@@ -1884,6 +1885,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
 	{ "r_waterBodies",	R_WaterBodies_f },
+	{ "r_waterGeometryInfo", R_WaterGeometryInfo_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
@@ -2667,6 +2669,12 @@ void R_Register( void )
 	r_waterSurfaceNormal = ri.Cvar_Get("r_waterSurfaceNormal", "1.0", CVAR_ARCHIVE, "r_waterSurface: detail wave normal strength (0 removes micro detail; ambient macro is separate)");
 	ri.Cvar_CheckRange(r_waterSurfaceNormal, 0.0f, 4.0f, qfalse);
 	r_waterWaves = ri.Cvar_Get("r_waterWaves", "0", CVAR_ARCHIVE, "Ambient macro/medium water waves; 0 keeps existing water");
+	r_waterGeometry = ri.Cvar_Get("r_waterGeometry", "0", CVAR_ARCHIVE | CVAR_LATCH, "Subdivided render-only water mesh; requires r_waterSurface and vid_restart");
+	ri.Cvar_CheckRange(r_waterGeometry, 0, 1, qtrue);
+	r_waterGeometryEdge = ri.Cvar_Get("r_waterGeometryEdge", "64", CVAR_ARCHIVE | CVAR_LATCH, "Target maximum water mesh edge length in world units");
+	r_waterGeometryBodyVerts = ri.Cvar_Get("r_waterGeometryBodyVerts", "250000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per water body");
+	r_waterGeometryMapVerts = ri.Cvar_Get("r_waterGeometryMapVerts", "1000000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per map");
+	r_waterGeometryDebug = ri.Cvar_Get("r_waterGeometryDebug", "0", CVAR_ARCHIVE, "Water geometry debug view");
 	ri.Cvar_CheckRange(r_waterWaves, 0, 1, qtrue);
 	r_waterWaveAmplitude = ri.Cvar_Get("r_waterWaveAmplitude", "1", CVAR_ARCHIVE, "Ambient wave amplitude scale");
 	ri.Cvar_CheckRange(r_waterWaveAmplitude, 0.0f, 4.0f, qfalse);
