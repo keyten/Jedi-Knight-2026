@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 28
+WATER_VEC4S = 30
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -709,6 +709,28 @@ def check_above(rig):
     return ok
 
 
+def check_directional_flow(rig):
+    """Master-off is bit-identical; enabled velocity advects the existing two-scale detail."""
+    prog = water_program()
+    try:
+        u = rig.params()
+        u[5, 2] = 2.0
+        u[28] = [32.0, 0.0, 0.0, 0.0]
+        u[29] = [32.0, 1.0, 4.0, 10.0]
+        disabled_with_state = rig.draw_water(prog, u, waves=True)
+        u[28, :3] = 0.0
+        disabled_zero = rig.draw_water(prog, u, waves=True)
+        ok = check('r_waterFlow 0 preserves the prior detail result',
+                   np.array_equal(disabled_with_state, disabled_zero))
+        u[28] = [32.0, 0.0, 0.0, 1.0]
+        enabled = rig.draw_water(prog, u, waves=True)
+        ok = check('resolved flow advects two-scale micro detail',
+                   np.max(np.abs(enabled - disabled_zero)) > 0.01) and ok
+    finally:
+        gl('glDeleteProgram', None, U)(prog)
+    return ok
+
+
 def check_inside():
     cam = Camera((0.0, 0.0, -60.0), (400.0, 0.0, 120.0))
     rig = Rig(cam, underwater=True)
@@ -968,6 +990,7 @@ def main():
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
         ok = check_geometry_depth(rig) and ok
         ok = check_ambient_waves(rig) and ok
+        ok = check_directional_flow(rig) and ok
         ok = check_above(rig) and ok
         ok = check_inside() and ok
         ok = check_snell() and ok
@@ -1069,6 +1092,22 @@ def bench():
                 old_mean = sum(pair[0] for pair in alternating) / len(alternating)
                 new_mean = sum(pair[1] for pair in alternating) / len(alternating)
                 print(f'  interleaved full-screen micro {old_mean:.3f} ms, ambient quality 1 {new_mean:.3f} ms, delta {new_mean-old_mean:+.3f} ms')
+                flow_pairs = []
+                u[13, 0] = 1
+                u[14, 1] = 1
+                u[28] = [32, 8, 0, 0]
+                u[29] = [33, 1, 0, 10]
+                for _ in range(4):
+                    u[28, 3] = 0
+                    set_vec4s(prog, 'u_Water', u)
+                    flow_off = timed(draw_only, repeat=10)
+                    u[28, 3] = 1
+                    set_vec4s(prog, 'u_Water', u)
+                    flow_on = timed(draw_only, repeat=10)
+                    flow_pairs.append((flow_off, flow_on))
+                flow_off = sum(pair[0] for pair in flow_pairs) / len(flow_pairs)
+                flow_on = sum(pair[1] for pair in flow_pairs) / len(flow_pairs)
+                print(f'  interleaved directional flow off {flow_off:.3f} ms, on {flow_on:.3f} ms, delta {flow_on-flow_off:+.3f} ms')
                 def two_bodies():
                     gl('glBindFramebuffer', None, U, U)(FB, rig.water_fbo)
                     gl('glBindVertexArray', None, U)(rig.water_vao)

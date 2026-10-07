@@ -6,7 +6,7 @@
 // screen-space passes and the layers up to SS_FOG, before the atmosphere / froxel fog composites and
 // the blended layers. The scene under the water was copied there (color + depth, RB_WaterSurfacePrepare).
 // The surface keeps the vertex deforms of its shader and the texture coordinate animation (tcMod) of its
-// first stage: the flow of the legacy water drives one wave layer.
+// first stage. Resolved per-body flow separately advects the world-space detail.
 in vec3 attr_Position;
 in vec3 attr_Normal;
 in vec2 attr_TexCoord0;
@@ -112,7 +112,12 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		float a = term.z * w.attenuation * qualityAmplitude;
 		float k = term.w;
 		float omega = speed * k;
-		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
+		vec2 phasePosition = worldPosition.xy;
+		// Flow advects only the medium band. Broad body shape remains bounded
+		// and propagates under the ambient-wave profile rather than translating.
+		if (u_Water[28].w > 0.5 && component >= 4)
+			phasePosition -= u_Water[28].xy * time * u_Water[29].y * 0.35;
+		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
 		w.slope += a * k * cs * direction;
@@ -337,6 +342,8 @@ void main()
 //   [18] debug, body ID, choppiness, wave multiplier;
 //   [19] legacy deform amplitude, geometry enabled, geometry debug, unused
 //   [20..27] precomputed analytic wave direction.xy, amplitude, wave number
+//   [28] resolved world flow velocity xyz, enabled
+//   [29] resolved speed, detail-advection scale, flow debug, packed source/confidence
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -490,7 +497,10 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		float a = term.z * w.attenuation * qualityAmplitude;
 		float k = term.w;
 		float omega = speed * k;
-		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
+		vec2 phasePosition = worldPosition.xy;
+		if (u_Water[28].w > 0.5 && component >= 4)
+			phasePosition -= u_Water[28].xy * time * u_Water[29].y * 0.35;
+		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
 		w.slope += a * k * cs * direction;
@@ -994,8 +1004,20 @@ void main()
 	vec3 Bw = normalize(cross(Ng, Tw));
 	vec2 planar = vec2(dot(P, Tw), dot(P, Bw));
 	float invSize = u_Water[10].y;
-	vec4 l0 = texture(u_WaterNormalMap, planar * invSize + u_Water[11].xy);
-	vec4 l1 = texture(u_WaterNormalMap, planar * (invSize * 2.37) + u_Water[11].zw);
+	vec2 flowPlanar = vec2(0.0);
+	if (u_Water[28].w > 0.5)
+	{
+		vec2 baseFlow = vec2(dot(u_Water[28].xyz, Tw), dot(u_Water[28].xyz, Bw)) *
+			u_Water[5].z * u_Water[29].y;
+		// Two close but distinct directions/speeds avoid a single conveyor belt.
+		flowPlanar = baseFlow;
+	}
+	vec2 flow0 = vec2(0.996 * flowPlanar.x - 0.087 * flowPlanar.y,
+		0.087 * flowPlanar.x + 0.996 * flowPlanar.y) * 0.82;
+	vec2 flow1 = vec2(0.994 * flowPlanar.x + 0.105 * flowPlanar.y,
+		-0.105 * flowPlanar.x + 0.994 * flowPlanar.y) * 1.19;
+	vec4 l0 = texture(u_WaterNormalMap, (planar - flow0) * invSize + u_Water[11].xy);
+	vec4 l1 = texture(u_WaterNormalMap, (planar - flow1) * (invSize * 2.37) + u_Water[11].zw);
 	vec4 l2 = texture(u_WaterNormalMap, var_FlowTex * u_Water[10].x);
 	float oldStrength = u_Water[0].z * 0.18;
 	float strength = oldStrength * (u_Water[13].x > 0.5 ? u_Water[14].z * u_Water[15].w : 1.0);
@@ -1027,6 +1049,35 @@ void main()
 		(variance.x + variance.y), 1.0));
 	alpha = max(alpha, 0.002);
 	float roughness = sqrt(alpha);
+	int flowDebug = int(u_Water[29].z + 0.5);
+	if (flowDebug > 0)
+	{
+		vec3 d = vec3(0.0);
+		if (flowDebug == 1)
+		{
+			vec3 direction = length(u_Water[28].xyz) > 1e-5 ? normalize(u_Water[28].xyz) : vec3(0.0);
+			d = direction * 0.5 + 0.5;
+		}
+		else if (flowDebug == 2)
+		{
+			float magnitude = clamp(u_Water[29].x / 32.0, 0.0, 1.0);
+			d = vec3(magnitude, magnitude * magnitude, 1.0 - magnitude);
+		}
+		else if (flowDebug == 3)
+		{
+			int flowCode = int(u_Water[29].w + 0.5);
+			int source = flowCode / 4, confidence = flowCode - source * 4;
+			d = source == 3 ? vec3(1.0, 0.8, 0.1) :
+				(source == 2 ? vec3(0.1, 0.9, 1.0) :
+				(source == 1 ? vec3(0.7, 0.3, 1.0) : vec3(0.08)));
+			if (confidence == 1) d = mix(d, vec3(1.0, 0.2, 0.0), 0.65);
+		}
+		else if (flowDebug == 4)
+			d = normalize(Ng - (l0.xy + 0.6 * l1.xy).x * Tw - (l0.xy + 0.6 * l1.xy).y * Bw) * 0.5 + 0.5;
+		out_Color = vec4(LinearToScene(d), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
 
 	#if defined(USE_SSR)
 	if (u_WaterPass.x > 0.5)

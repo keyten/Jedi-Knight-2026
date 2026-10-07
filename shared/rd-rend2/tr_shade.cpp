@@ -2593,7 +2593,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 ** (tr_watersurface.cpp): one draw of the water program instead of the
 ** legacy stages, in the water slot of the main pass (the items are tagged
 ** by the caller, see RB_SubmitRenderPass). The texture animation of the
-** first textured stage (its tcMod scroll / turb) drives one wave layer.
+** first textured stage remains one detail layer; per-body flow is supplied
+** separately by RB_WaterSurfaceSetupDraw.
 */
 static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysProperties *vertexArrays )
 {

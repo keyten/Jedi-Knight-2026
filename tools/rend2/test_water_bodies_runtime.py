@@ -23,6 +23,9 @@ def main():
     parser.add_argument('--maps', nargs='+', choices=MAPS, default=MAPS)
     parser.add_argument('--debug-draw', action='store_true')
     parser.add_argument('--ambient-waves', action='store_true', help='Initialize modern water with ambient waves on each map')
+    parser.add_argument('--flow-override-check', action='store_true', help='Exercise a runtime body override on yavin2')
+    parser.add_argument('--renderer', type=Path,
+                        default=Path(__file__).resolve().parents[2]/'build/msvc/RelWithDebInfo/rdsp-rend2_x86_64.dll')
     parser.add_argument('--engine', type=Path)
     parser.add_argument('--sdl', type=Path)
     parser.add_argument('--game', type=Path)
@@ -43,7 +46,7 @@ def main():
         dst = (root/name).resolve()
         if src != dst:
             shutil.copy2(src, dst)
-    shutil.copy2(repo/'build/msvc/RelWithDebInfo/rdsp-rend2_x86_64.dll', root/'rdsp-rend2_x86_64.dll')
+    shutil.copy2(args.renderer, root/'rdsp-rend2_x86_64.dll')
     game_src = (args.game or installation/'jagamex86_64.dll').resolve()
     game_dst = (base/'jagamex86_64.dll').resolve()
     if game_src != game_dst:
@@ -57,6 +60,12 @@ def main():
                      'echo WATER_BODY_END_'+map_name,
                      'echo WATER_BODY_DUMP_'+map_name, 'r_waterBodies dump',
                      'echo WATER_BODY_DUMP_END_'+map_name]
+        if args.flow_override_check and map_name == 'yavin2':
+            commands += ['echo WATER_FLOW_OVERRIDE_BEGIN',
+                         'r_waterFlowOverride body 1 1 0 0 12',
+                         'r_waterFlowOverride list',
+                         'r_waterFlowOverride clear',
+                         'echo WATER_FLOW_OVERRIDE_END']
         if args.debug_draw:
             commands += ['r_waterBodies draw', 'wait 5', 'r_waterBodies draw']
     commands += ['echo WATER_BODY_TEST_DONE', 'quit']
@@ -113,6 +122,12 @@ def main():
         assert 'explicit env.json' in log, 'project overlay was not applied'
     if args.debug_draw:
         assert 'r_waterBodies draw on' in log and 'r_waterBodies draw off' in log
+    if args.flow_override_check:
+        flow = re.search(r'WATER_FLOW_OVERRIDE_BEGIN(.*?)WATER_FLOW_OVERRIDE_END', log, re.S)
+        assert flow and re.search(r'body 1 flow direction \(1 0 0\) speed 12 .*source explicit confidence high', flow.group(1)), \
+            flow.group(1) if flow else 'missing flow markers'
+        assert 'runtime overrides cleared' in flow.group(1)
+        print('PASS: explicit per-body flow overrides an ambiguous body and clears cleanly')
     assert not re.search(r'GL_INVALID|GLSL shader compile error', log), log[-2000:]
     print('Log:', base/'qconsole.log')
 

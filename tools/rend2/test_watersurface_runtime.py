@@ -56,6 +56,7 @@ def main():
     parser.add_argument('--map', choices=('t2_rancor', 't3_hevil', 'yavin1', 'vjun1'), default='t2_rancor')
     parser.add_argument('--half-res', choices=('0', '1'), default='0')
     parser.add_argument('--ambient-waves', action='store_true', help='Enable per-body ambient waves and capture their debug views')
+    parser.add_argument('--flow', action='store_true', help='Enable directional flow and capture off/on and debug comparisons')
     parser.add_argument('--geometry', action='store_true', help='Enable render-only subdivision and print its map-load budget')
     args = parser.parse_args()
     if os.name != 'nt':
@@ -118,6 +119,15 @@ def main():
                     'screenshot_tga water-wave-profile', 'r_waterWaveDebug 8', 'wait 8',
                     'screenshot_tga water-wave-split', 'r_waterWaveDebug 0', 'r_waterWaveTime -1']
         commands[commands.index('r_waterSurfaceDebug 0')] += '\n' + '\n'.join(captures)
+    if args.flow:
+        flow_captures = ['r_waterWaveTime 4', 'r_waterFlow 0', 'wait 8', 'screenshot_tga water-flow-off',
+                         'r_waterFlow 1', 'wait 8', 'screenshot_tga water-flow-on',
+                         'r_waterFlowDebug 1', 'wait 8', 'screenshot_tga water-flow-direction',
+                         'r_waterFlowDebug 3', 'wait 8', 'screenshot_tga water-flow-source',
+                         'r_waterFlowDebug 4', 'wait 8', 'screenshot_tga water-flow-detail',
+                         'r_waterFlowDebug 0', 'r_waterWaveTime -1']
+        flow_reset = next(i for i, command in enumerate(commands) if command.startswith('r_waterSurfaceDebug 0'))
+        commands[flow_reset] += '\n' + '\n'.join(flow_captures)
     if args.geometry:
         commands.insert(commands.index('r_waterBodies dump'), 'r_waterGeometryInfo')
         debug_reset = next(i for i, command in enumerate(commands)
@@ -138,6 +148,7 @@ def main():
                     r_specularMapping='0', r_pomSilhouette='0', r_diffuseIBL='0',
                     r_waterSurface='1', r_waterSnell='1', r_waterSurfaceDebug='0',
                     r_waterWaves='1' if args.ambient_waves else '0',
+                    r_waterFlow='1' if args.flow else '0',
                     r_waterGeometry='1' if args.geometry else '0',
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
                     r_volumetricFog='2', r_volumetricWater='1',
@@ -178,6 +189,10 @@ def main():
         assert any(int(n) > 0 for n in re.findall(r'body \d+: (\d+) vertices', log)), 'No water mesh uploaded'
         for name in ('water-geometry-grazing.tga', 'water-geometry-wire.tga',
                      'water-geometry-magnitude.tga', 'water-geometry-original.tga'):
+            assert (base/'screenshots'/name).stat().st_size > 1000, name
+    if args.flow:
+        for name in ('water-flow-off.tga', 'water-flow-on.tga', 'water-flow-direction.tga',
+                     'water-flow-source.tga', 'water-flow-detail.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.map in ('t2_rancor', 't3_hevil'):
         print('PASS:', args.map, 'stock interface classification; water-only SSR above/below; overrides off/clear')

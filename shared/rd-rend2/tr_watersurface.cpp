@@ -139,6 +139,9 @@ struct waterSurfaceRecord_t
 	vec3_t		bounds[2];
 	int			brush;			// index in s_water.brushes, -1: none
 	vec3_t		brushSide;		// normal of the side it lies on
+	vec3_t		uvTangentU, uvTangentV; // world displacement for +1 base texture U/V
+	float		uvArea, uvTotalArea;
+	int			uvMirrorSign; // -1 mirrored, +1 ordinary, 0 mixed/unknown
 	qboolean	refractive;
 	qboolean	nameLike;
 	qboolean modern;
@@ -147,18 +150,33 @@ struct waterSurfaceRecord_t
 	int flags;
 };
 
-// Metadata only. No field here is consumed by the existing water draw path.
+// Authored legacy motion retained for diagnostics and conservative body-flow resolution.
 struct legacyWaterMotion_t
 {
-	struct scroll_t { int stage; float x, y; };
+	struct scroll_t {
+		std::string shader;
+		int stage;
+		float x, y;
+		vec3_t worldVelocity;
+		float surfaceArea, basisAgreement;
+		qboolean reliable;
+	};
 	struct wave_t { int stage; float base, amplitude, phase, frequency; };
 	std::vector<scroll_t> scrolls;
 	std::vector<wave_t> turb, stretch;
 	float weightedScroll[2];
 	float disagreement;
+	vec3_t worldVelocity;
+	float worldSpeed, worldAgreement, uvCoverage;
+	int confidence;
 	float turbAmplitude, turbFrequency;
 	float deformAmplitude, deformFrequency;
 };
+
+enum waterFlowSource_t { WFLOW_NONE, WFLOW_PROFILE, WFLOW_LEGACY, WFLOW_EXPLICIT };
+enum waterFlowConfidence_t { WFLOW_CONFIDENCE_NONE, WFLOW_CONFIDENCE_AMBIGUOUS, WFLOW_CONFIDENCE_HIGH };
+static const char *s_flowSources[] = { "none", "profile default", "legacy-derived", "explicit" };
+static const char *s_flowConfidence[] = { "none", "ambiguous", "high" };
 
 struct waterDynamics_t
 {
@@ -189,7 +207,9 @@ struct waterBody_t
 	std::vector<int> surfaces, brushes;
 	std::set<std::string> shaders;
 	legacyWaterMotion_t legacy;
-	vec2_t flow;
+	vec3_t flowDirection, flowVelocity;
+	float flowSpeed;
+	int flowSource, flowConfidence;
 	float waveMultiplier, foamMultiplier, interactionMultiplier;
 	int geometryVerts, geometryTriangles, geometryLevel;
 };
@@ -198,9 +218,10 @@ struct waterBodyRule_t
 {
 	std::string shader;
 	int id, dynamics;
-	bool hasPoint, hasBounds, hasFlow;
+	bool hasPoint, hasBounds, hasFlow, hasDynamics, flowUsesProfileSpeed, runtime;
 	vec3_t point, bounds[2];
-	vec2_t flow;
+	vec3_t flowDirection;
+	float flowSpeed;
 	float wave, foam, interaction;
 };
 
@@ -788,7 +809,9 @@ static void R_WaterCollectCandidates( void )
 		{
 			const srfBspSurface_t *bsp = (const srfBspSurface_t *)surf->data;
 			vec3_t sum = { 0.0f, 0.0f, 0.0f };
+			vec3_t tangentUSum = { 0.0f, 0.0f, 0.0f }, tangentVSum = { 0.0f, 0.0f, 0.0f };
 			float area = 0.0f;
+			float uvArea = 0.0f, mirrorArea = 0.0f;
 			for ( int t = 0; t + 2 < bsp->numIndexes; t += 3 )
 			{
 				const int a = bsp->indexes[t], b = bsp->indexes[t + 1], c = bsp->indexes[t + 2];
@@ -798,7 +821,26 @@ static void R_WaterCollectCandidates( void )
 				VectorSubtract(bsp->verts[b].xyz, bsp->verts[a].xyz, e1);
 				VectorSubtract(bsp->verts[c].xyz, bsp->verts[a].xyz, e2);
 				CrossProduct(e2, e1, n);
-				area += 0.5f * VectorLength(n);
+				const float triangleArea = 0.5f * VectorLength(n);
+				area += triangleArea;
+				const float du1 = bsp->verts[b].st[0] - bsp->verts[a].st[0];
+				const float dv1 = bsp->verts[b].st[1] - bsp->verts[a].st[1];
+				const float du2 = bsp->verts[c].st[0] - bsp->verts[a].st[0];
+				const float dv2 = bsp->verts[c].st[1] - bsp->verts[a].st[1];
+				const float determinant = du1 * dv2 - du2 * dv1;
+				if ( triangleArea > 1.0e-6f && fabsf(determinant) > 1.0e-8f )
+				{
+					vec3_t tu, tv;
+					for ( int axis = 0; axis < 3; axis++ )
+					{
+						tu[axis] = (e1[axis] * dv2 - e2[axis] * dv1) / determinant;
+						tv[axis] = (e2[axis] * du1 - e1[axis] * du2) / determinant;
+						tangentUSum[axis] += tu[axis] * triangleArea;
+						tangentVSum[axis] += tv[axis] * triangleArea;
+					}
+					uvArea += triangleArea;
+					mirrorArea += (determinant < 0.0f ? -1.0f : 1.0f) * triangleArea;
+				}
 				// the winding of the BSP triangles is clockwise seen from the front: compare with the
 				// vertex normals and keep their side
 				VectorAdd(sum, n, sum);
@@ -818,6 +860,14 @@ static void R_WaterCollectCandidates( void )
 				VectorNormalize2(vnormal, sum);
 			VectorCopy(sum, r.normal);
 			r.area = area;
+			r.uvArea = uvArea;
+			r.uvTotalArea = area;
+			if ( uvArea > 0.0f )
+			{
+				VectorScale(tangentUSum, 1.0f / uvArea, r.uvTangentU);
+				VectorScale(tangentVSum, 1.0f / uvArea, r.uvTangentV);
+				r.uvMirrorSign = fabsf(mirrorArea) >= 0.8f * uvArea ? (mirrorArea < 0.0f ? -1 : 1) : 0;
+			}
 			VectorCopy(surfaceBounds[0], r.bounds[0]);
 			VectorCopy(surfaceBounds[1], r.bounds[1]);
 
@@ -919,11 +969,54 @@ static void R_WaterBodyMotion( waterBody_t& body )
 		for ( int stage = 0; stage < MAX_SHADER_STAGES && shader->stages[stage]; stage++ )
 		{
 			const textureBundle_t& bundle = shader->stages[stage]->bundle[0];
+			bool stableStageBasis = true;
+			for ( int t = 0; t < bundle.numTexMods; t++ )
+				if ( bundle.texMods[t].type == TMOD_TRANSFORM || bundle.texMods[t].type == TMOD_SCALE ||
+					bundle.texMods[t].type == TMOD_ROTATE || bundle.texMods[t].type == TMOD_ENTITY_TRANSLATE )
+					stableStageBasis = false;
 			for ( int t = 0; t < bundle.numTexMods; t++ )
 			{
 				const texModInfo_t& mod = bundle.texMods[t];
 				if ( mod.type == TMOD_SCROLL )
-					body.legacy.scrolls.push_back({ stage, mod.scroll[0], mod.scroll[1] });
+				{
+					legacyWaterMotion_t::scroll_t scroll = {};
+					scroll.shader = name;
+					scroll.stage = stage;
+					scroll.x = mod.scroll[0];
+					scroll.y = mod.scroll[1];
+					float candidateArea = 0.0f, reliableArea = 0.0f, velocityMagnitudeArea = 0.0f;
+					vec3_t velocitySum = { 0.0f, 0.0f, 0.0f };
+					for ( const waterSurfaceRecord_t& surface : s_water.surfaces )
+					{
+						if ( name != surface.shader->name ||
+							std::find(body.surfaces.begin(), body.surfaces.end(), surface.surfaceNum) == body.surfaces.end() )
+							continue;
+						candidateArea += surface.area;
+						const float coverage = surface.uvTotalArea > 0.0f ? surface.uvArea / surface.uvTotalArea : 0.0f;
+						vec3_t cross;
+						CrossProduct(surface.uvTangentU, surface.uvTangentV, cross);
+						if ( coverage < 0.8f || surface.uvMirrorSign == 0 || VectorLength(cross) < 1.0e-4f )
+							continue;
+						vec3_t velocity;
+						// A positive tcMod offset makes a fixed texture feature move in the
+						// negative base-UV direction. dp/du and dp/dv preserve rotation,
+						// anisotropic scale, mirroring and surface slope.
+						for ( int axis = 0; axis < 3; axis++ )
+							velocity[axis] = -mod.scroll[0] * surface.uvTangentU[axis] -
+								mod.scroll[1] * surface.uvTangentV[axis];
+						VectorMA(velocitySum, surface.area, velocity, velocitySum);
+						velocityMagnitudeArea += VectorLength(velocity) * surface.area;
+						reliableArea += surface.area;
+					}
+					if ( reliableArea > 0.0f )
+						VectorScale(velocitySum, 1.0f / reliableArea, scroll.worldVelocity);
+					scroll.surfaceArea = reliableArea;
+					scroll.basisAgreement = velocityMagnitudeArea > 0.0f ?
+						Q_min(1.0f, VectorLength(velocitySum) / velocityMagnitudeArea) : 0.0f;
+					scroll.reliable = (qboolean)(stableStageBasis && candidateArea > 0.0f && reliableArea >= 0.8f * candidateArea &&
+						scroll.basisAgreement >= 0.8f && VectorLength(scroll.worldVelocity) > 1.0e-4f);
+					body.legacy.scrolls.push_back(scroll);
+				}
 				else if ( mod.type == TMOD_TURBULENT )
 				{
 					body.legacy.turb.push_back({ stage, mod.wave.base, mod.wave.amplitude, mod.wave.phase, mod.wave.frequency });
@@ -953,12 +1046,64 @@ static void R_WaterBodyMotion( waterBody_t& body )
 		body.legacy.weightedScroll[1] = sy / weight;
 		body.legacy.disagreement = 1.0f - Q_min(1.0f, sqrtf(sx * sx + sy * sy) / weight);
 	}
+	vec3_t worldSum = { 0.0f, 0.0f, 0.0f };
+	float worldMagnitudeSum = 0.0f;
+	int reliableScrolls = 0;
+	for ( const legacyWaterMotion_t::scroll_t& scroll : body.legacy.scrolls )
+	{
+		if ( !scroll.reliable ) continue;
+		VectorAdd(worldSum, scroll.worldVelocity, worldSum);
+		worldMagnitudeSum += VectorLength(scroll.worldVelocity);
+		reliableScrolls++;
+	}
+	float bodyArea = 0.0f, uvArea = 0.0f;
+	for ( const waterSurfaceRecord_t& surface : s_water.surfaces )
+		if ( std::find(body.surfaces.begin(), body.surfaces.end(), surface.surfaceNum) != body.surfaces.end() )
+		{
+			bodyArea += surface.area;
+			uvArea += surface.uvArea;
+		}
+	body.legacy.uvCoverage = bodyArea > 0.0f ? Q_min(1.0f, uvArea / bodyArea) : 0.0f;
+	if ( reliableScrolls > 0 && worldMagnitudeSum > 1.0e-4f )
+	{
+		body.legacy.worldAgreement = Q_min(1.0f, VectorLength(worldSum) / worldMagnitudeSum);
+		VectorScale(worldSum, 1.0f / reliableScrolls, body.legacy.worldVelocity);
+		body.legacy.worldSpeed = VectorLength(body.legacy.worldVelocity);
+		body.legacy.confidence = body.legacy.uvCoverage >= 0.8f &&
+			body.legacy.worldAgreement >= 0.72f && reliableScrolls == (int)body.legacy.scrolls.size() ?
+			WFLOW_CONFIDENCE_HIGH : WFLOW_CONFIDENCE_AMBIGUOUS;
+	}
+	else if ( !body.legacy.scrolls.empty() )
+		body.legacy.confidence = WFLOW_CONFIDENCE_AMBIGUOUS;
+}
+
+static bool R_WaterRuleMatches( const waterBodyRule_t& rule, const waterBody_t& body )
+{
+	if ( rule.id >= 0 && rule.id != body.id ) return false;
+	if ( !rule.shader.empty() )
+	{
+		bool matched = false;
+		for ( const std::string& shader : body.shaders )
+			if ( R_WaterPatternMatches(rule.shader, shader.c_str()) ) matched = true;
+		if ( !matched ) return false;
+	}
+	if ( rule.hasPoint )
+		for ( int k = 0; k < 3; k++ )
+			if ( rule.point[k] < body.bounds[0][k] || rule.point[k] > body.bounds[1][k] ) return false;
+	if ( rule.hasBounds && !R_WaterBoundsTouch(body.bounds, rule.bounds, 0) ) return false;
+	return true;
 }
 
 static void R_WaterResolveBody( waterBody_t& body )
 {
 	body.dynamics = 0;
 	body.decision = "fallback";
+	body.waveMultiplier = body.foamMultiplier = body.interactionMultiplier = 1.0f;
+	VectorClear(body.flowDirection);
+	VectorClear(body.flowVelocity);
+	body.flowSpeed = 0.0f;
+	body.flowSource = WFLOW_NONE;
+	body.flowConfidence = body.legacy.confidence;
 	if ( body.liquidClass == LIQUID_LAVA )
 		body.dynamics = 9, body.decision = "auto: lava contents";
 	else if ( body.liquidClass == LIQUID_SLIME || body.opticsClass == LIQUID_SLIME )
@@ -967,31 +1112,50 @@ static void R_WaterResolveBody( waterBody_t& body )
 		body.dynamics = 1, body.decision = "stock: still shader";
 	else if ( body.shaders.count("textures/h_evil/wfall") && body.planeNormal[2] < .7f )
 		body.dynamics = 7, body.decision = "stock: waterfall shader and orientation";
-	// Scroll lives in texture coordinates. It is evidence, not a world-space flow vector.
+	// Resolve the body profile and its non-flow multipliers first. A rule may
+	// intentionally turn an otherwise moving stock material into a still pool.
 	for ( const waterBodyRule_t& rule : s_water.bodyRules )
 	{
-		if ( rule.id >= 0 && rule.id != body.id ) continue;
-		if ( !rule.shader.empty() )
+		if ( !R_WaterRuleMatches(rule, body) ) continue;
+		if ( rule.hasDynamics )
 		{
-			bool matched = false;
-			for ( const std::string& shader : body.shaders )
-				if ( R_WaterPatternMatches(rule.shader, shader.c_str()) ) matched = true;
-			if ( !matched ) continue;
+			body.dynamics = rule.dynamics;
+			body.decision = rule.runtime ? "runtime override" : "explicit env.json";
 		}
-		if ( rule.hasPoint )
+		if ( !rule.runtime )
 		{
-			bool inside = true;
-			for ( int k = 0; k < 3; k++ )
-				inside &= rule.point[k] >= body.bounds[0][k] && rule.point[k] <= body.bounds[1][k];
-			if ( !inside ) continue;
+			body.waveMultiplier = rule.wave;
+			body.foamMultiplier = rule.foam;
+			body.interactionMultiplier = rule.interaction;
 		}
-		if ( rule.hasBounds && !R_WaterBoundsTouch(body.bounds, rule.bounds, 0) ) continue;
-		body.dynamics = rule.dynamics;
-		body.decision = "explicit env.json";
-		body.waveMultiplier = rule.wave;
-		body.foamMultiplier = rule.foam;
-		body.interactionMultiplier = rule.interaction;
-		if ( rule.hasFlow ) { body.flow[0] = rule.flow[0]; body.flow[1] = rule.flow[1]; }
+	}
+
+	const bool suppressAutomatic = body.dynamics == 1 || body.dynamics == 2 || body.dynamics == 3 ||
+		body.dynamics == 6 || body.dynamics == 9;
+	if ( !suppressAutomatic && body.legacy.confidence == WFLOW_CONFIDENCE_HIGH && body.legacy.worldSpeed > 0.0f )
+	{
+		VectorCopy(body.legacy.worldVelocity, body.flowDirection);
+		body.flowSpeed = VectorNormalize(body.flowDirection);
+		body.flowSpeed = Q_min(body.flowSpeed * (s_dynamics[body.dynamics].flow > 0.0f ?
+			s_dynamics[body.dynamics].flow : 1.0f), 256.0f);
+		VectorScale(body.flowDirection, body.flowSpeed, body.flowVelocity);
+		body.flowSource = WFLOW_LEGACY;
+		body.flowConfidence = WFLOW_CONFIDENCE_HIGH;
+	}
+
+	// Explicit rules always win, including an explicit speed of zero.
+	for ( const waterBodyRule_t& rule : s_water.bodyRules )
+	{
+		if ( !rule.hasFlow || !R_WaterRuleMatches(rule, body) ) continue;
+		VectorCopy(rule.flowDirection, body.flowDirection);
+		const bool hasDirection = VectorNormalize(body.flowDirection) >= 1.0e-6f;
+		if ( !hasDirection ) VectorClear(body.flowDirection);
+		body.flowSpeed = rule.flowUsesProfileSpeed ? Q_max(0.0f, s_dynamics[body.dynamics].flow * 32.0f) :
+			Q_max(0.0f, rule.flowSpeed);
+		if ( !hasDirection ) body.flowSpeed = 0.0f;
+		VectorScale(body.flowDirection, body.flowSpeed, body.flowVelocity);
+		body.flowSource = rule.flowUsesProfileSpeed ? WFLOW_PROFILE : WFLOW_EXPLICIT;
+		body.flowConfidence = WFLOW_CONFIDENCE_HIGH;
 	}
 }
 
@@ -1161,12 +1325,38 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 		rule.dynamics = -1;
 		for ( int d = 0; d < (int)(sizeof(s_dynamics) / sizeof(s_dynamics[0])); d++ )
 			if ( !Q_stricmp(profile, s_dynamics[d].name) ) rule.dynamics = d;
-		if ( rule.dynamics < 0 || (rule.shader.empty() && rule.id < 0 && !rule.hasPoint && !rule.hasBounds) )
+		rule.hasDynamics = rule.dynamics >= 0;
+		const char *flowValue = JSON_ObjectGetNamedValue(entry, end, "Flow");
+		if ( flowValue && JSON_ValueGetType(flowValue, end) == JSONTYPE_OBJECT )
 		{
-			ri.Printf(PRINT_WARNING, "%s: WaterBodies[%d] needs a selector and valid DynamicsProfile\n", filename, i);
+			rule.hasFlow = R_WaterJsonVec(flowValue, end, "Direction", rule.flowDirection, 3);
+			value = JSON_ObjectGetNamedValue(flowValue, end, "Speed");
+			rule.flowUsesProfileSpeed = value == nullptr;
+			rule.flowSpeed = value ? Q_max(0.0f, JSON_ValueGetFloat(value, end)) : 0.0f;
+		}
+		else
+		{
+			float oldFlow[2] = {};
+			rule.hasFlow = R_WaterJsonVec(entry, end, "Flow", oldFlow, 2);
+			if ( rule.hasFlow )
+			{
+				VectorSet(rule.flowDirection, oldFlow[0], oldFlow[1], 0.0f);
+				rule.flowSpeed = VectorLength(rule.flowDirection);
+			}
+		}
+		value = JSON_ObjectGetNamedValue(entry, end, "FlowSpeed");
+		if ( value && rule.hasFlow )
+		{
+			rule.flowSpeed = Q_max(0.0f, JSON_ValueGetFloat(value, end));
+			rule.flowUsesProfileSpeed = false;
+		}
+		if ( rule.hasFlow && VectorNormalize(rule.flowDirection) < 1.0e-6f ) VectorClear(rule.flowDirection);
+		if ( (!rule.hasDynamics && !rule.hasFlow) ||
+			(rule.shader.empty() && rule.id < 0 && !rule.hasPoint && !rule.hasBounds) )
+		{
+			ri.Printf(PRINT_WARNING, "%s: WaterBodies[%d] needs a selector and DynamicsProfile and/or Flow\n", filename, i);
 			continue;
 		}
-		rule.hasFlow = R_WaterJsonVec(entry, end, "Flow", rule.flow, 2);
 		value = JSON_ObjectGetNamedValue(entry, end, "WaveMultiplier");
 		if ( value ) rule.wave = Q_max(0.0f, JSON_ValueGetFloat(value, end));
 		value = JSON_ObjectGetNamedValue(entry, end, "FoamMultiplier");
@@ -1216,19 +1406,31 @@ void R_WaterBodies_f( void )
 			tr.world->baseName, (int)s_water.bodies.size(), s_water.bodyMsec, (unsigned)memoryBytes);
 		for ( const waterBody_t& b : s_water.bodies )
 		{
-			ri.Printf(PRINT_ALL, "{\"type\":\"body\",\"id\":%d,\"model\":%d,\"bounds\":[[%g,%g,%g],[%g,%g,%g]],\"area\":%g,\"depthAverage\":%g,\"depthDeepest\":%g,\"class\":\"%s\",\"opticsProfile\":\"%s\",\"dynamicsProfile\":\"%s\",\"source\":\"%s\",\"plane\":[%g,%g,%g,%g],\"flow\":[%g,%g],\"multipliers\":[%g,%g,%g],\"weightedScroll\":[%g,%g],\"scrollDisagreement\":%g,\"deformAmplitude\":%g,\"deformFrequency\":%g}\n",
+			ri.Printf(PRINT_ALL, "{\"type\":\"body\",\"id\":%d,\"model\":%d,\"bounds\":[[%g,%g,%g],[%g,%g,%g]],\"area\":%g,\"depthAverage\":%g,\"depthDeepest\":%g,\"class\":\"%s\",\"opticsProfile\":\"%s\",\"dynamicsProfile\":\"%s\",\"source\":\"%s\",\"plane\":[%g,%g,%g,%g],\"flowDirection\":[%g,%g,%g],\"flowVelocity\":[%g,%g,%g],\"flowSpeed\":%g,\"flowSource\":\"%s\",\"flowConfidence\":\"%s\",\"multipliers\":[%g,%g,%g],\"weightedScroll\":[%g,%g],\"scrollDisagreement\":%g,\"legacyWorldVelocity\":[%g,%g,%g],\"legacyWorldAgreement\":%g,\"uvCoverage\":%g,\"deformAmplitude\":%g,\"deformFrequency\":%g}\n",
 				b.id, b.model, b.bounds[0][0], b.bounds[0][1], b.bounds[0][2],
 				b.bounds[1][0], b.bounds[1][1], b.bounds[1][2], b.area, b.depthAverage, b.depthDeepest,
 				s_liquidNames[b.liquidClass], s_liquidNames[b.opticsClass], s_dynamics[b.dynamics].name, b.decision,
 				b.planeNormal[0], b.planeNormal[1], b.planeNormal[2], b.planeDist,
-				b.flow[0], b.flow[1], b.waveMultiplier, b.foamMultiplier, b.interactionMultiplier,
+				b.flowDirection[0], b.flowDirection[1], b.flowDirection[2],
+				b.flowVelocity[0], b.flowVelocity[1], b.flowVelocity[2], b.flowSpeed,
+				s_flowSources[b.flowSource], s_flowConfidence[b.flowConfidence],
+				b.waveMultiplier, b.foamMultiplier, b.interactionMultiplier,
 				b.legacy.weightedScroll[0], b.legacy.weightedScroll[1], b.legacy.disagreement,
+				b.legacy.worldVelocity[0], b.legacy.worldVelocity[1], b.legacy.worldVelocity[2],
+				b.legacy.worldAgreement, b.legacy.uvCoverage,
 				b.legacy.deformAmplitude, b.legacy.deformFrequency);
-			for ( int id : b.surfaces ) ri.Printf(PRINT_ALL, "{\"type\":\"surface\",\"body\":%d,\"id\":%d}\n", b.id, id);
+			for ( int id : b.surfaces )
+				for ( const waterSurfaceRecord_t& surface : s_water.surfaces ) if ( surface.surfaceNum == id )
+					ri.Printf(PRINT_ALL, "{\"type\":\"surface\",\"body\":%d,\"id\":%d,\"normal\":[%g,%g,%g],\"uvTangentU\":[%g,%g,%g],\"uvTangentV\":[%g,%g,%g],\"uvCoverage\":%g,\"uvMirrorSign\":%d}\n",
+						b.id, id, surface.normal[0], surface.normal[1], surface.normal[2],
+						surface.uvTangentU[0], surface.uvTangentU[1], surface.uvTangentU[2],
+						surface.uvTangentV[0], surface.uvTangentV[1], surface.uvTangentV[2],
+						surface.uvTotalArea > 0.0f ? surface.uvArea / surface.uvTotalArea : 0.0f, surface.uvMirrorSign);
 			for ( int id : b.brushes ) ri.Printf(PRINT_ALL, "{\"type\":\"brush\",\"body\":%d,\"id\":%d}\n", b.id, s_water.brushes[id].brushNum);
 			for ( const std::string& shader : b.shaders ) ri.Printf(PRINT_ALL, "{\"type\":\"shader\",\"body\":%d,\"name\":\"%s\"}\n", b.id, shader.c_str());
 			for ( const legacyWaterMotion_t::scroll_t& s : b.legacy.scrolls )
-				ri.Printf(PRINT_ALL, "{\"type\":\"scroll\",\"body\":%d,\"stage\":%d,\"vector\":[%g,%g]}\n", b.id, s.stage, s.x, s.y);
+				ri.Printf(PRINT_ALL, "{\"type\":\"scroll\",\"body\":%d,\"shader\":\"%s\",\"stage\":%d,\"vector\":[%g,%g],\"worldVelocity\":[%g,%g,%g],\"basisAgreement\":%g,\"basisReliable\":%s}\n",
+					b.id, s.shader.c_str(), s.stage, s.x, s.y, s.worldVelocity[0], s.worldVelocity[1], s.worldVelocity[2], s.basisAgreement, s.reliable ? "true" : "false");
 			for ( const legacyWaterMotion_t::wave_t& w : b.legacy.turb )
 				ri.Printf(PRINT_ALL, "{\"type\":\"turb\",\"body\":%d,\"stage\":%d,\"wave\":[%g,%g,%g,%g]}\n", b.id, w.stage, w.base, w.amplitude, w.phase, w.frequency);
 			for ( const legacyWaterMotion_t::wave_t& w : b.legacy.stretch )
@@ -1246,23 +1448,115 @@ void R_WaterBodies_f( void )
 	for ( const waterBody_t& b : s_water.bodies )
 	{
 		const unsigned h = (unsigned)b.id * 2654435761u;
-		ri.Printf(PRINT_ALL, "  #%d color #%02x%02x%02x model %d (%g %g %g)-(%g %g %g) area %.0f depth %.0f/%.0f %s optics %s dynamics %d:%s [%s] surfaces %d brushes %d flow (%g %g)\n",
+		ri.Printf(PRINT_ALL, "  #%d color #%02x%02x%02x model %d (%g %g %g)-(%g %g %g) area %.0f depth %.0f/%.0f %s optics %s dynamics %d:%s [%s] surfaces %d brushes %d flow dir (%g %g %g) speed %.2f velocity (%g %g %g) %s/%s\n",
 			b.id, 64 + (h & 127), 64 + ((h >> 8) & 127), 64 + ((h >> 16) & 127),
 			b.model, b.bounds[0][0], b.bounds[0][1], b.bounds[0][2], b.bounds[1][0], b.bounds[1][1], b.bounds[1][2],
 			b.area, b.depthAverage, b.depthDeepest, s_liquidNames[b.liquidClass], s_liquidNames[b.opticsClass],
-			b.dynamics, s_dynamics[b.dynamics].name, b.decision, (int)b.surfaces.size(), (int)b.brushes.size(), b.flow[0], b.flow[1]);
+			b.dynamics, s_dynamics[b.dynamics].name, b.decision, (int)b.surfaces.size(), (int)b.brushes.size(),
+			b.flowDirection[0], b.flowDirection[1], b.flowDirection[2], b.flowSpeed,
+			b.flowVelocity[0], b.flowVelocity[1], b.flowVelocity[2],
+			s_flowSources[b.flowSource], s_flowConfidence[b.flowConfidence]);
 		for ( const std::string& shader : b.shaders ) ri.Printf(PRINT_ALL, "    %s\n", shader.c_str());
-		ri.Printf(PRINT_ALL, "    legacy scrolls %d weighted (%g %g) disagreement %.2f turb %d %.3f/%.3f stretch %d deform %.3f/%.3f\n",
+		ri.Printf(PRINT_ALL, "    legacy scrolls %d weighted (%g %g) disagreement %.2f world (%g %g %g) agreement %.2f UV coverage %.2f confidence %s; stage importance unknown/equal; turb %d %.3f/%.3f stretch %d deform %.3f/%.3f\n",
 			(int)b.legacy.scrolls.size(), b.legacy.weightedScroll[0], b.legacy.weightedScroll[1], b.legacy.disagreement,
+			b.legacy.worldVelocity[0], b.legacy.worldVelocity[1], b.legacy.worldVelocity[2],
+			b.legacy.worldAgreement, b.legacy.uvCoverage, s_flowConfidence[b.legacy.confidence],
 			(int)b.legacy.turb.size(), b.legacy.turbAmplitude, b.legacy.turbFrequency, (int)b.legacy.stretch.size(),
 			b.legacy.deformAmplitude, b.legacy.deformFrequency);
 		for ( const legacyWaterMotion_t::scroll_t& s : b.legacy.scrolls )
-			ri.Printf(PRINT_ALL, "      stage %d scroll (%g %g)\n", s.stage, s.x, s.y);
+			ri.Printf(PRINT_ALL, "      %s stage %d scroll (%g %g) -> world velocity (%g %g %g), basis agreement %.2f, UV basis %s\n",
+				s.shader.c_str(), s.stage, s.x, s.y, s.worldVelocity[0], s.worldVelocity[1], s.worldVelocity[2],
+				s.basisAgreement, s.reliable ? "reliable" : "unreliable");
 		for ( const legacyWaterMotion_t::wave_t& w : b.legacy.turb )
 			ri.Printf(PRINT_ALL, "      stage %d turb (%g %g %g %g)\n", w.stage, w.base, w.amplitude, w.phase, w.frequency);
 		for ( const legacyWaterMotion_t::wave_t& w : b.legacy.stretch )
 			ri.Printf(PRINT_ALL, "      stage %d stretch (%g %g %g %g)\n", w.stage, w.base, w.amplitude, w.phase, w.frequency);
 	}
+}
+
+void R_WaterFlowOverride_f( void )
+{
+	if ( !tr.world || s_water.world != tr.world )
+	{
+		ri.Printf(PRINT_ALL, "r_waterFlowOverride: no map\n");
+		return;
+	}
+	const char *action = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : "list";
+	if ( !Q_stricmp(action, "clear") )
+	{
+		s_water.bodyRules.erase(std::remove_if(s_water.bodyRules.begin(), s_water.bodyRules.end(),
+			[](const waterBodyRule_t& rule) { return rule.runtime; }), s_water.bodyRules.end());
+		for ( waterBody_t& body : s_water.bodies ) R_WaterResolveBody(body);
+		ri.Printf(PRINT_ALL, "r_waterFlowOverride: runtime overrides cleared (env.json rules retained)\n");
+		return;
+	}
+	if ( !Q_stricmp(action, "list") || !Q_stricmp(action, "dump") )
+	{
+		for ( const waterBody_t& body : s_water.bodies )
+			ri.Printf(PRINT_ALL, "body %d flow direction (%g %g %g) speed %g velocity (%g %g %g) source %s confidence %s legacy agreement %.2f UV coverage %.2f\n",
+				body.id, body.flowDirection[0], body.flowDirection[1], body.flowDirection[2], body.flowSpeed,
+				body.flowVelocity[0], body.flowVelocity[1], body.flowVelocity[2],
+				s_flowSources[body.flowSource], s_flowConfidence[body.flowConfidence],
+				body.legacy.worldAgreement, body.legacy.uvCoverage);
+		return;
+	}
+	if ( ri.Cmd_Argc() != 7 || (Q_stricmp(action, "body") && Q_stricmp(action, "shader") && Q_stricmp(action, "prefix")) )
+	{
+		ri.Printf(PRINT_ALL, "usage: r_waterFlowOverride body <id> <x> <y> <z> <speed>\n");
+		ri.Printf(PRINT_ALL, "       r_waterFlowOverride shader|prefix <name> <x> <y> <z> <speed>\n");
+		ri.Printf(PRINT_ALL, "       r_waterFlowOverride list|dump|clear\n");
+		return;
+	}
+	waterBodyRule_t rule = {};
+	rule.id = -1;
+	rule.wave = rule.foam = rule.interaction = 1.0f;
+	rule.runtime = true;
+	rule.hasFlow = true;
+	if ( !Q_stricmp(action, "body") ) rule.id = atoi(ri.Cmd_Argv(2));
+	else
+	{
+		char selector[MAX_QPATH];
+		Q_strncpyz(selector, ri.Cmd_Argv(2), sizeof(selector));
+		Q_strlwr(selector);
+		rule.shader = selector;
+		if ( !Q_stricmp(action, "prefix") ) rule.shader += "*";
+	}
+	VectorSet(rule.flowDirection, (float)atof(ri.Cmd_Argv(3)), (float)atof(ri.Cmd_Argv(4)),
+		(float)atof(ri.Cmd_Argv(5)));
+	if ( VectorNormalize(rule.flowDirection) < 1.0e-6f ) VectorClear(rule.flowDirection);
+	rule.flowSpeed = Q_max(0.0f, (float)atof(ri.Cmd_Argv(6)));
+	s_water.bodyRules.push_back(rule);
+	for ( waterBody_t& body : s_water.bodies ) R_WaterResolveBody(body);
+	ri.Printf(PRINT_ALL, "r_waterFlowOverride: applied runtime uniform-flow rule; use list to inspect\n");
+}
+
+qboolean R_WaterFlowForBody( int bodyId, const vec2_t simulationCoordinate, vec3_t velocity )
+{
+	(void)simulationCoordinate; // uniform baseline; retained for a future body-space field
+	VectorClear(velocity);
+	if ( bodyId <= 0 || bodyId > (int)s_water.bodies.size() ) return qfalse;
+	const waterBody_t& body = s_water.bodies[bodyId - 1];
+	VectorCopy(body.flowVelocity, velocity);
+	return (qboolean)(body.flowSource != WFLOW_NONE);
+}
+
+qboolean R_WaterFlowAtWorldPosition( const vec3_t position, vec3_t velocity, int *bodyId )
+{
+	VectorClear(velocity);
+	if ( bodyId ) *bodyId = 0;
+	const waterBody_t *best = nullptr;
+	float bestDistance = 1.0e30f;
+	for ( const waterBody_t& body : s_water.bodies )
+	{
+		if ( position[0] < body.bounds[0][0] || position[0] > body.bounds[1][0] ||
+			position[1] < body.bounds[0][1] || position[1] > body.bounds[1][1] ) continue;
+		const float distance = fabsf(DotProduct(body.planeNormal, position) - body.planeDist);
+		if ( distance < bestDistance ) { bestDistance = distance; best = &body; }
+	}
+	if ( !best ) return qfalse;
+	VectorCopy(best->flowVelocity, velocity);
+	if ( bodyId ) *bodyId = best->id;
+	return (qboolean)(best->flowSource != WFLOW_NONE);
 }
 
 qhandle_t RE_RegisterShaderFromImage( const char *name, const int *lightmapIndexes, const byte *styles, image_t *image, qboolean mipRawImage );
@@ -1310,7 +1604,8 @@ static void R_WaterBodyDigit( const refdef_t *fd, qhandle_t shader, const vec3_t
 
 void R_WaterBodiesDebugDraw( const refdef_t *fd )
 {
-	if ( !(s_water.bodyDebug || (r_waterGeometry->integer && r_waterGeometryDebug->integer == 5)) ||
+	if ( !(s_water.bodyDebug || r_waterFlowDebug->integer ||
+		(r_waterGeometry->integer && r_waterGeometryDebug->integer == 5)) ||
 		!tr.world || s_water.world != tr.world || (fd->rdflags & RDF_NOWORLDMODEL) ) return;
 	if ( !s_water.bodyDebugShader )
 		s_water.bodyDebugShader = RE_RegisterShaderFromImage("*waterBodyDebug", lightmaps2d, stylesDefault, tr.whiteImage, qfalse);
@@ -1371,10 +1666,33 @@ void R_WaterBodiesDebugDraw( const refdef_t *fd )
 		const int outline[4] = { 0, 1, 3, 2 };
 		for ( int edge = 0; edge < 4; edge++ )
 			R_WaterBodySegment(fd, s_water.bodyDebugShader, plane[outline[edge]], plane[outline[(edge + 1) & 3]], color);
-		if ( body.flow[0] || body.flow[1] )
+		if ( r_waterFlowDebug->integer == 3 )
 		{
-			VectorSet(end, center[0] + body.flow[0] * 64, center[1] + body.flow[1] * 64, center[2]);
-			R_WaterBodySegment(fd, s_water.bodyDebugShader, center, end, color);
+			const byte uColor[4] = { 255, 64, 64, 255 }, vColor[4] = { 64, 255, 64, 255 };
+			for ( const waterSurfaceRecord_t& surface : s_water.surfaces )
+			{
+				if ( std::find(body.surfaces.begin(), body.surfaces.end(), surface.surfaceNum) == body.surfaces.end() ) continue;
+				vec3_t sc, direction;
+				VectorAdd(surface.bounds[0], surface.bounds[1], sc);
+				VectorScale(sc, 0.5f, sc);
+				VectorCopy(surface.uvTangentU, direction);
+				if ( VectorNormalize(direction) > 0.0f ) { VectorMA(sc, 48.0f, direction, end); R_WaterBodySegment(fd, s_water.bodyDebugShader, sc, end, uColor); }
+				VectorCopy(surface.uvTangentV, direction);
+				if ( VectorNormalize(direction) > 0.0f ) { VectorMA(sc, 48.0f, direction, end); R_WaterBodySegment(fd, s_water.bodyDebugShader, sc, end, vColor); }
+			}
+		}
+		const vec3_t *arrow = nullptr;
+		if ( r_waterFlowDebug->integer == 2 ) arrow = &body.legacy.worldVelocity;
+		else if ( r_waterFlowDebug->integer == 1 || r_waterFlowDebug->integer == 4 || s_water.bodyDebug ) arrow = &body.flowVelocity;
+		if ( arrow && VectorLength(*arrow) > 1.0e-4f )
+		{
+			vec3_t direction;
+			VectorCopy(*arrow, direction);
+			const float magnitude = VectorNormalize(direction);
+			VectorMA(center, Q_min(192.0f, 32.0f + magnitude * 4.0f), direction, end);
+			const byte high[4] = { 32, 255, 96, 255 }, ambiguous[4] = { 255, 160, 32, 255 };
+			const byte *arrowColor = body.flowConfidence == WFLOW_CONFIDENCE_HIGH ? high : ambiguous;
+			R_WaterBodySegment(fd, s_water.bodyDebugShader, center, end, arrowColor);
 		}
 	}
 }
@@ -2147,13 +2465,21 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		body ? body->bounds[0][1] : -1.0e6f,
 		body ? body->bounds[1][0] : 1.0e6f,
 		body ? body->bounds[1][1] : 1.0e6f);
-	VectorSet4(water[17], body ? body->flow[0] : 0.0f, body ? body->flow[1] : 0.0f,
+	VectorSet4(water[17], body ? body->flowDirection[0] : 0.0f, body ? body->flowDirection[1] : 0.0f,
 		body ? body->depthAverage : 0.0f, body ? (float)body->dynamics : 0.0f);
 	VectorSet4(water[18], (float)r_waterWaveDebug->integer, (float)bodyId,
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
 	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
 		body && body->geometryVerts > 0 && r_waterGeometry->integer ? 1.0f : 0.0f,
 		(float)r_waterGeometryDebug->integer, 0.0f);
+	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
+	VectorSet4(water[28], body ? body->flowVelocity[0] * flowScale : 0.0f,
+		body ? body->flowVelocity[1] * flowScale : 0.0f,
+		body ? body->flowVelocity[2] * flowScale : 0.0f,
+		r_waterFlow->integer && body && body->flowSpeed > 0.0f ? 1.0f : 0.0f);
+	VectorSet4(water[29], body ? body->flowSpeed * flowScale : 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value), (float)r_waterFlowDebug->integer,
+		body ? (float)(body->flowSource * 4 + body->flowConfidence) : 0.0f);
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and

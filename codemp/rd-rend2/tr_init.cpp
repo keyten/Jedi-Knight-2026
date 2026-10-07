@@ -209,6 +209,7 @@ cvar_t	*r_waterSurfaceIOR;
 cvar_t	*r_waterSurfaceRoughness;
 cvar_t	*r_waterSurfaceNormal;
 cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
+cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
 cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug, *r_waterWaveTime;
 cvar_t	*r_waterSurfaceRefraction;
 cvar_t	*r_waterSurfaceDepthReject;
@@ -1885,6 +1886,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
 	{ "r_waterBodies",	R_WaterBodies_f },
+	{ "r_waterFlowOverride", R_WaterFlowOverride_f },
 	{ "r_waterGeometryInfo", R_WaterGeometryInfo_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
@@ -2669,6 +2671,14 @@ void R_Register( void )
 	r_waterSurfaceNormal = ri.Cvar_Get("r_waterSurfaceNormal", "1.0", CVAR_ARCHIVE, "r_waterSurface: detail wave normal strength (0 removes micro detail; ambient macro is separate)");
 	ri.Cvar_CheckRange(r_waterSurfaceNormal, 0.0f, 4.0f, qfalse);
 	r_waterWaves = ri.Cvar_Get("r_waterWaves", "0", CVAR_ARCHIVE, "Ambient macro/medium water waves; 0 keeps existing water");
+	r_waterFlow = ri.Cvar_Get("r_waterFlow", "0", CVAR_ARCHIVE, "Directional per-body water flow; 0 preserves the pre-flow water result");
+	ri.Cvar_CheckRange(r_waterFlow, 0, 1, qtrue);
+	r_waterFlowSpeed = ri.Cvar_Get("r_waterFlowSpeed", "1", CVAR_ARCHIVE, "Global multiplier for resolved per-body flow velocity");
+	ri.Cvar_CheckRange(r_waterFlowSpeed, 0.0f, 4.0f, qfalse);
+	r_waterFlowDetail = ri.Cvar_Get("r_waterFlowDetail", "1", CVAR_ARCHIVE, "Directional advection scale for medium and micro water detail");
+	ri.Cvar_CheckRange(r_waterFlowDetail, 0.0f, 4.0f, qfalse);
+	r_waterFlowDebug = ri.Cvar_Get("r_waterFlowDebug", "0", CVAR_CHEAT, "Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail");
+	ri.Cvar_CheckRange(r_waterFlowDebug, 0, 4, qtrue);
 	r_waterGeometry = ri.Cvar_Get("r_waterGeometry", "0", CVAR_ARCHIVE | CVAR_LATCH, "Subdivided render-only water mesh; requires r_waterSurface and vid_restart");
 	ri.Cvar_CheckRange(r_waterGeometry, 0, 1, qtrue);
 	r_waterGeometryEdge = ri.Cvar_Get("r_waterGeometryEdge", "64", CVAR_ARCHIVE | CVAR_LATCH, "Target maximum water mesh edge length in world units");

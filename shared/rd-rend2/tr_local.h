@@ -303,6 +303,7 @@ extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
 extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
+extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
@@ -5916,7 +5917,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 28
+#define WATER_UNIFORM_VEC4S 30
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 
@@ -5949,8 +5950,11 @@ void RB_WaterSurfaceLegacyScissor(qboolean enable);	// r_waterSurfaceDebug 9: le
 qboolean RB_WaterSurfaceDistortion(const shader_t *shader, uint32_t waterKey);
 void R_WaterInfo_f(void);
 void R_WaterBodies_f(void);
+void R_WaterFlowOverride_f(void);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
+qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);
+qboolean R_WaterFlowForBody(int bodyId, const vec2_t simulationCoordinate, vec3_t velocity);
 void R_WaterOverride_f(void);
 
 /*

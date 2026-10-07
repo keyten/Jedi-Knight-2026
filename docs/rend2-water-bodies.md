@@ -39,9 +39,10 @@ Resolution is deliberately conservative: a matching map `WaterBodies` rule
 wins; slime or lava semantics, the stock `water2_still` definition, or a
 vertical `h_evil/wfall` patch provide trustworthy stock decisions; everything
 else falls back to `generic_water`. Legacy `tcMod scroll` vectors, turb and
-stretch waveforms, and vertex wave deforms are retained for diagnostics and
-future profile resolution. Texture scroll direction is not treated as a world
-space flow direction. In particular `h_evil/lakewater` has three scroll stages
+stretch waveforms, and vertex wave deforms are retained for diagnostics.
+Directional flow conservatively converts scrolls through the actual surface
+UV bases; see [directional water flow](rend2-water-flow.md). A scroll is never
+treated directly as a world-space vector. In particular `h_evil/lakewater` has three scroll stages
 with `(0.03,-0.13)`, `(-0.03,-0.1)`, and `(0,-0.17)`; all three remain visible
 in the audit and command output.
 
@@ -59,7 +60,7 @@ Add an optional `WaterBodies` array to `cubemaps/<map>/env.json`, alongside
         "Point": [128, 256, -64]
       },
       "DynamicsProfile": "lake",
-      "Flow": [0.1, 0],
+      "Flow": { "Direction": [1, 0, 0], "Speed": 18 },
       "WaveMultiplier": 1.2,
       "FoamMultiplier": 0.8,
       "InteractionMultiplier": 1
@@ -71,9 +72,10 @@ Add an optional `WaterBodies` array to `cubemaps/<map>/env.json`, alongside
 Selectors may contain `Shader`, `ShaderPrefix`, `BodyId`, `Point` or `Origin`,
 and `Bounds` with `Mins` and `Maxs`. Fields in one selector are combined.
 `BodyId` is best used for a diagnostic session; prefer a point or bounds for
-shipped data. Later matching rules win. Flow is a world XY direction. The
-three multipliers default to 1. The fields are parsed at map load and do not
-alter the optics profile or current rendering.
+shipped data. Later matching rules win. Flow is a world-space direction and
+speed; omitting speed uses the dynamics profile default. The legacy two-value
+array remains an explicit XY velocity. The three multipliers default to 1.
+The fields are parsed at map load and do not alter the optics profile.
 
 The project stock overrides are
 [`water_body_overrides.json`](../tools/rend2/water_body_overrides.json). They

@@ -35,6 +35,11 @@ MST_PLANAR, MST_PATCH, MST_TRISOUP, MST_FLARE = 1, 2, 3, 4
 WATER_WORDS = ('water', 'pool', 'lake', 'river', 'pond', 'ocean', 'swamp', 'liquid')
 
 
+def scroll_to_world(vector, tangent_u, tangent_v):
+    """Velocity of a fixed texture feature, not the direction of increasing tcMod offset."""
+    return [-vector[0] * tangent_u[axis] - vector[1] * tangent_v[axis] for axis in range(3)]
+
+
 def name_like(name):
     """R_WaterNameLike: whole words of the path"""
     lower = name.lower()
@@ -232,7 +237,9 @@ def scan_bsp(data, defs):
                                     [next((p[3] for p in bp if p[i] > .999), 0) for i in range(3)]]))
 
     def vert(v):
-        return struct.unpack_from('<3f', dv, v * 80), struct.unpack_from('<3f', dv, v * 80 + 52)
+        return (struct.unpack_from('<3f', dv, v * 80),
+                struct.unpack_from('<2f', dv, v * 80 + 12),
+                struct.unpack_from('<3f', dv, v * 80 + 52))
 
     surfaces = []
     for si, o in enumerate(range(0, len(su), 148)):
@@ -258,7 +265,8 @@ def scan_bsp(data, defs):
         else:
             idx = indexes[first_index:first_index + num_indexes]
             tris = [tuple(idx[t:t + 3]) for t in range(0, len(idx) - 2, 3)]
-        sx = sy = sz = area = 0.0
+        sx = sy = sz = area = uv_area = mirror_area = 0.0
+        tangent_u_sum, tangent_v_sum = [0.0] * 3, [0.0] * 3
         for a, b, c in tris:
             if max(a, b, c) >= len(vs):
                 continue
@@ -267,9 +275,20 @@ def scan_bsp(data, defs):
             e2 = [pc[i] - pa[i] for i in range(3)]
             n = (e2[1] * e1[2] - e2[2] * e1[1], e2[2] * e1[0] - e2[0] * e1[2], e2[0] * e1[1] - e2[1] * e1[0])
             ln = (n[0] ** 2 + n[1] ** 2 + n[2] ** 2) ** 0.5
-            area += 0.5 * ln
+            triangle_area = 0.5 * ln
+            area += triangle_area
             sx, sy, sz = sx + n[0], sy + n[1], sz + n[2]
-        vn = [sum(v[1][i] for v in vs) for i in range(3)]
+            du1, dv1 = vs[b][1][0] - vs[a][1][0], vs[b][1][1] - vs[a][1][1]
+            du2, dv2 = vs[c][1][0] - vs[a][1][0], vs[c][1][1] - vs[a][1][1]
+            determinant = du1 * dv2 - du2 * dv1
+            if triangle_area > 1e-6 and abs(determinant) > 1e-8:
+                tu = [(e1[i] * dv2 - e2[i] * dv1) / determinant for i in range(3)]
+                tv = [(e2[i] * du1 - e1[i] * du2) / determinant for i in range(3)]
+                tangent_u_sum = [tangent_u_sum[i] + tu[i] * triangle_area for i in range(3)]
+                tangent_v_sum = [tangent_v_sum[i] + tv[i] * triangle_area for i in range(3)]
+                uv_area += triangle_area
+                mirror_area += (-1 if determinant < 0 else 1) * triangle_area
+        vn = [sum(v[2][i] for v in vs) for i in range(3)]
         if sx * vn[0] + sy * vn[1] + sz * vn[2] < 0:
             sx, sy, sz = -sx, -sy, -sz
         ln = (sx * sx + sy * sy + sz * sz) ** 0.5
@@ -277,6 +296,9 @@ def scan_bsp(data, defs):
             sx, sy, sz = vn
             ln = (sx * sx + sy * sy + sz * sz) ** 0.5 or 1.0
         normal = (sx / ln, sy / ln, sz / ln)
+        tangent_u = [x / uv_area for x in tangent_u_sum] if uv_area else [0.0] * 3
+        tangent_v = [x / uv_area for x in tangent_v_sum] if uv_area else [0.0] * 3
+        mirror_sign = (-1 if mirror_area < 0 else 1) if uv_area and abs(mirror_area) >= .8 * uv_area else 0
         bounds = [[min(v[0][i] for v in vs) for i in range(3)],
                   [max(v[0][i] for v in vs) for i in range(3)]]
 
@@ -304,6 +326,8 @@ def scan_bsp(data, defs):
                              bounds=bounds, aspect=max(bounds[1][i] - bounds[0][i] for i in range(3)) /
                              max(sorted((bounds[1][i] - bounds[0][i] for i in range(3)), reverse=True)[1], 1e-6),
                              orient=orientation(normal[2]), model=surf_model.get(si, -1), refractive=refractive,
+                             uv_tangent_u=tangent_u, uv_tangent_v=tangent_v,
+                             uv_coverage=min(1.0, uv_area / area) if area else 0.0, uv_mirror_sign=mirror_sign,
                              link=link['brush'] if link else None, link_cls=link['cls'] if link else None,
                              link_fog=link['fog'] if link else False, link_side=link_side if link else None))
     return liquids, surfaces
@@ -416,17 +440,66 @@ def build_bodies(liquids, surfaces, defs):
             profile, source = 'waterfall', 'stock: waterfall shader and orientation'
         stages = {n: defs[n][0]['stages'] if n in defs else [] for n in names}
         scrolls = []
+        turbs, stretches = [], []
         for name, shader_stages in stages.items():
             if name not in motion_names:
                 continue
             for stage_index, stage in enumerate(shader_stages):
+                stage_tcmods = [d.split() for d in stage['directives'] if d.startswith('tcmod ')]
+                stable_stage_basis = not any(len(parts) > 1 and parts[1] in
+                                             ('scale', 'transform', 'rotate', 'entitytranslate')
+                                             for parts in stage_tcmods)
                 for directive in stage['directives']:
                     parts = directive.split()
                     if len(parts) >= 4 and parts[:2] == ['tcmod', 'scroll']:
                         try:
-                            scrolls.append(dict(shader=name, stage=stage_index, vector=[float(parts[2]), float(parts[3])]))
+                            vector = [float(parts[2]), float(parts[3])]
+                            matching = [s for s in group if s['shader'] == name]
+                            candidate_area = sum(s['area'] for s in matching)
+                            reliable = [s for s in matching if s['uv_coverage'] >= .8 and s['uv_mirror_sign']]
+                            reliable_area = sum(s['area'] for s in reliable)
+                            surface_velocities = [(s, scroll_to_world(vector, s['uv_tangent_u'], s['uv_tangent_v'])) for s in reliable]
+                            world_sum = [sum(v[axis] * s['area'] for s, v in surface_velocities) for axis in range(3)]
+                            world = [world_sum[axis] /
+                                     reliable_area if reliable_area else 0.0 for axis in range(3)]
+                            world_speed = sum(x*x for x in world) ** .5
+                            magnitude_area = sum(sum(x*x for x in v) ** .5 * s['area'] for s, v in surface_velocities)
+                            basis_agreement = min(1.0, sum(x*x for x in world_sum) ** .5 / magnitude_area) if magnitude_area else 0.0
+                            scrolls.append(dict(shader=name, stage=stage_index, vector=vector,
+                                                stage_importance='unknown; equal weight in automatic analysis',
+                                                stage_mapping='base UV basis' if stable_stage_basis else
+                                                              'unsupported stage scale/transform/rotation; override required',
+                                                world_velocity=world, world_speed=world_speed,
+                                                basis_agreement=basis_agreement,
+                                                uv_basis_reliable=bool(stable_stage_basis and candidate_area and reliable_area >= .8 * candidate_area and
+                                                                       basis_agreement >= .8 and world_speed > 1e-4),
+                                                reliable_surface_area=reliable_area,
+                                                candidate_surface_area=candidate_area))
                         except ValueError:
                             pass
+                    elif len(parts) >= 3 and parts[:2] == ['tcmod', 'turb']:
+                        turbs.append(dict(shader=name, stage=stage_index, parameters=parts[2:]))
+                    elif len(parts) >= 3 and parts[:2] == ['tcmod', 'stretch']:
+                        stretches.append(dict(shader=name, stage=stage_index, parameters=parts[2:]))
+        reliable_scrolls = [s for s in scrolls if s['uv_basis_reliable']]
+        world_sum = [sum(s['world_velocity'][axis] for s in reliable_scrolls) for axis in range(3)]
+        magnitude_sum = sum(s['world_speed'] for s in reliable_scrolls)
+        agreement = min(1.0, sum(x*x for x in world_sum) ** .5 / magnitude_sum) if magnitude_sum else 0.0
+        world_velocity = [x / len(reliable_scrolls) for x in world_sum] if reliable_scrolls else [0.0] * 3
+        world_speed = sum(x*x for x in world_velocity) ** .5
+        uv_coverage = min(1.0, sum(s['area'] * s['uv_coverage'] for s in group) /
+                          max(sum(s['area'] for s in group), 1e-6))
+        confidence = ('high' if reliable_scrolls and len(reliable_scrolls) == len(scrolls) and
+                      agreement >= .72 and uv_coverage >= .8 else
+                      ('ambiguous' if scrolls else 'none'))
+        legacy_analysis = dict(dominant_texture_space_motion=[
+                                   sum(s['vector'][axis] for s in scrolls) / len(scrolls) if scrolls else 0.0
+                                   for axis in range(2)],
+                               stage_importance='not determinable from blend state; stages weighted equally',
+                               world_velocity=world_velocity, world_speed=world_speed,
+                               stage_agreement=agreement, uv_coverage=uv_coverage,
+                               confidence=confidence,
+                               automatic_eligible=confidence == 'high')
         bounds = [[min(s['bounds'][0][k] for s in group) for k in range(3)],
                   [max(s['bounds'][1][k] for s in group) for k in range(3)]]
         bodies.append(dict(id=len(bodies) + 1, model=group[0]['model'], liquid_class=cls,
@@ -440,6 +513,8 @@ def build_bodies(liquids, surfaces, defs):
                            mean_brush_depth=sum(brush_depths) / len(brush_depths) if brush_depths else None,
                            deepest_brush_depth=max(brush_depths) if brush_depths else None,
                            shaders=names, stages=stages, legacy_scrolls=scrolls,
+                           legacy_turb=turbs, legacy_stretch=stretches,
+                           legacy_motion_analysis=legacy_analysis,
                            surface_flags=sorted({s['flags'] for s in group}),
                            content_flags=sorted({s['contents'] for s in group}),
                            fog=any(s['link_fog'] for s in group),
@@ -447,6 +522,36 @@ def build_bodies(liquids, surfaces, defs):
                                            for f in [json.loads(f)]],
                            outdoor_indoor='unknown: no reliable BSP exposure evidence'))
     return bodies
+
+
+def resolve_flow(body, explicit=None):
+    analysis = body['legacy_motion_analysis']
+    result = dict(direction=[0.0, 0.0, 0.0], speed=0.0, velocity=[0.0, 0.0, 0.0],
+                  source='none', confidence=analysis['confidence'], decision='no usable authored direction')
+    suppressed = body['dynamics_profile'] in ('still_pool', 'calm_water', 'lake', 'slime', 'no_water_dynamics')
+    if analysis['confidence'] == 'high' and not suppressed and analysis['world_speed'] > 0:
+        speed = min(analysis['world_speed'], 256.0)
+        direction = [x / analysis['world_speed'] for x in analysis['world_velocity']]
+        result = dict(direction=direction, speed=speed,
+                      velocity=[x * speed for x in direction], source='legacy-derived',
+                      confidence='high', decision='reliable UV basis and agreeing authored scroll stages')
+    elif suppressed and analysis['confidence'] == 'high':
+        result['decision'] = f'suppressed by {body["dynamics_profile"]} dynamics profile'
+    elif analysis['confidence'] == 'ambiguous':
+        result['decision'] = 'ambiguous stage directions or unreliable/mixed UV mapping; explicit override required'
+    if explicit is not None:
+        if isinstance(explicit, dict):
+            vector = list(explicit.get('Direction', [0, 0, 0]))
+            speed = float(explicit.get('Speed', sum(x*x for x in vector) ** .5))
+        else:
+            vector = list(explicit) + [0] * (3 - len(explicit))
+            speed = sum(x*x for x in vector) ** .5
+        length = sum(x*x for x in vector) ** .5
+        direction = [x / length for x in vector] if length else [0.0, 0.0, 0.0]
+        result = dict(direction=direction, speed=max(0.0, speed),
+                      velocity=[x * max(0.0, speed) for x in direction], source='explicit',
+                      confidence='high', decision='explicit project overlay')
+    return result
 
 
 def main(argv):
@@ -488,8 +593,13 @@ def main(argv):
                     continue
                 if 'Point' in selector and not all(body['bounds'][0][k] <= selector['Point'][k] <= body['bounds'][1][k] for k in range(3)):
                     continue
-                body['dynamics_profile'] = rule['DynamicsProfile']
-                body['decision_source'] = 'explicit project overlay'
+                if 'DynamicsProfile' in rule:
+                    body['dynamics_profile'] = rule['DynamicsProfile']
+                    body['decision_source'] = 'explicit project overlay'
+                if 'Flow' in rule:
+                    body['explicit_flow'] = rule['Flow']
+        for body in bodies:
+            body['resolved_flow'] = resolve_flow(body, body.pop('explicit_flow', None))
         report['maps'][name] = dict(
             liquid_brushes=[dict(brush=b['brush'], cls=b['cls'], shader=b['shader'], model=b['model'], fog=b['fog'], bounds=b['bounds'])
                             for b in liquids],
@@ -513,6 +623,18 @@ def main(argv):
                   f'up share {100 * e["up_area"] / max(e["area"] - e["down_area"], 1e-6):5.1f}% linked {e["linked"]:3d}'
                   f'{" fog-medium" if e["fog"] else ""} models {sorted(e["models"])} | {e["reason"]}')
             candidates.setdefault(e['shader'], set()).add(name)
+        for body in bodies:
+            flow = body['resolved_flow']
+            motion = body['legacy_motion_analysis']
+            print(f'   body {body["id"]:2d} {body["dynamics_profile"]:<13} shaders {", ".join(body["shaders"])}; '
+                  f'legacy {motion["confidence"]} agreement {motion["stage_agreement"]:.2f} UV {motion["uv_coverage"]:.2f}; '
+                  f'flow {flow["source"]}/{flow["confidence"]} velocity {tuple(round(x, 3) for x in flow["velocity"])}; '
+                  f'{flow["decision"]}')
+            for scroll in body['legacy_scrolls']:
+                print(f'      stage {scroll["stage"]} {scroll["shader"]} scroll {tuple(scroll["vector"])} -> '
+                      f'world {tuple(round(x, 3) for x in scroll["world_velocity"])} '
+                      f'basis agreement {scroll["basis_agreement"]:.2f} '
+                      f'{"reliable" if scroll["uv_basis_reliable"] else "unreliable"}')
 
     print('\n## shaders without water semantics (water-like name / material / refractive) used by the maps')
     for name, map_data in report['maps'].items():

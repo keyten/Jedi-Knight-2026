@@ -33,9 +33,10 @@ geometric slope remains consistent with that drift. Macro components 0–3
 use the body wavelength times 1, .87, .74 and .61. Medium components 4–7 use
 .28, .255, .23 and .205. Quality 0/1/2 evaluates 1+1, 2+2 or 4+4
 macro+medium components. A quality normalization keeps overall height similar.
-Directions have angular
-spread; an authored world XY `Flow` biases them without treating a legacy
-texture scroll as physical flow. Terms and phases are fixed, with no runtime
+Directions have angular spread. Resolved per-body flow biases them and, with
+`r_waterFlow 1`, advects medium phases and existing multi-scale detail. Legacy
+scroll contributes only after the UV-to-world confidence checks in
+[directional flow](rend2-water-flow.md). Terms and phases are fixed, with no runtime
 random state. The CPU resolves the body profile and precomputes each term's
 direction, amplitude and wave number once per draw; the GPU only evaluates the
 time-varying phases per vertex/fragment. The mathematical evaluator is
@@ -45,7 +46,7 @@ same constants and phase order; no independent wave equation should be added.
 
 Existing `waterDynamics_t` values supply amplitude, wavelength, speed,
 choppiness and micro-normal strength. `waterBody_t` supplies the resolved
-profile, world XY flow, mean brush depth and wave multiplier. Amplitude is
+profile, world-space flow, mean brush depth and wave multiplier. Amplitude is
 mapped to world units by a fixed factor of eight; profile speed maps to 16
 world units per second at a value of one. `r_waterWaveAmplitude`,
 `r_waterWaveLength` and `r_waterWaveSpeed` are global scales. Choppiness
