@@ -388,6 +388,16 @@ static void CL_R_AddLensWaterEvent( const refLensWaterEvent_t *event ) {
 		reLensWater->AddLensWaterEvent( event );
 }
 
+static void CL_R_AddWaterImpulse( const refWaterImpulse_t *impulse ) {
+	if ( reWaterInteraction && reWaterInteraction->AddWaterImpulse )
+		reWaterInteraction->AddWaterImpulse( impulse );
+}
+
+static void CL_R_SetWaterSources( const refWaterSource_t *sources, int count ) {
+	if ( reWaterInteraction && reWaterInteraction->SetWaterSources )
+		reWaterInteraction->SetWaterSources( sources, count );
+}
+
 static void CGFX_AddLine( vec3_t start, vec3_t end, float size1, float size2, float sizeParm, float alpha1, float alpha2, float alphaParm, vec3_t sRGB, vec3_t eRGB, float rgbParm, int killTime, qhandle_t shader, int flags ) {
 	FX_AddLine( start, end, size1, size2, sizeParm, alpha1, alpha2, alphaParm, sRGB, eRGB, rgbParm, killTime, shader, flags );
 }
@@ -1933,6 +1943,8 @@ void CL_BindCGame( void ) {
 		cgi.ext.R_AddLineLightToScene			= CL_R_AddLineLightToScene;
 		cgi.ext.R_SetFoliageInteractors			= CL_R_SetFoliageInteractors;
 		cgi.ext.R_AddLensWaterEvent				= CL_R_AddLensWaterEvent;
+		cgi.ext.R_AddWaterImpulse				= CL_R_AddWaterImpulse;
+		cgi.ext.R_SetWaterSources				= CL_R_SetWaterSources;
 
 		GetCGameAPI = (GetCGameAPI_t)cgvm->GetModuleAPI;
 		ret = GetCGameAPI( CGAME_API_VERSION, &cgi );

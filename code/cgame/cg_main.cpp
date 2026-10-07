@@ -253,6 +253,7 @@ vmCvar_t fx_physicalizationStrength;
 vmCvar_t fx_physicalizationComposite, fx_physicalizationAdaptive, fx_physicalizationEmission, fx_physicalizationSources;
 vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cl_rendererLensWater;	// engine: the renderer has lens water (CG_R_ADDLENSWATEREVENT)
+vmCvar_t	cl_rendererWaterInteraction;	// engine: modern-water interaction syscalls are available
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
 vmCvar_t	cg_footsteps;
@@ -382,6 +383,7 @@ static cvarTable_t cvarTable[] = {
 	{ &fx_physicalizationSources, "fx_physicalizationSources", "0", CVAR_ARCHIVE },
 	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cl_rendererLensWater, "cl_rendererLensWater", "0", 0 },
+	{ &cl_rendererWaterInteraction, "cl_rendererWaterInteraction", "0", 0 },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },
 	{ &cg_footsteps, "cg_footsteps", "3", CVAR_ARCHIVE  },//1 = sounds, 2 = sounds & effects, 3 = sounds, effects & marks, 4 = always

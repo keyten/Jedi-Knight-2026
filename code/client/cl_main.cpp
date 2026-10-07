@@ -91,6 +91,7 @@ const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
+const refWaterInteractionExport_t *reWaterInteraction = NULL;
 static void *rendererLib = NULL;
 
 //RAZFIXME: BAD BAD, maybe? had to move it out of ghoul2_shared.h -> CGhoul2Info_v at the least..
@@ -917,6 +918,8 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reSpotLights = NULL;
 	Cvar_Set2( "cl_rendererSpotLights", "0", qtrue );
 	reLensWater = NULL;
+	reWaterInteraction = NULL;
+	Cvar_Set2( "cl_rendererWaterInteraction", "0", qtrue );
 	Cvar_Set2( "cl_rendererLensWater", "0", qtrue );
 
 	if ( rendererLib != NULL ) {
@@ -1241,6 +1244,10 @@ void CL_InitRef( void ) {
 	// the cgame calls CG_R_ADDLENSWATEREVENT only when set (lens water events)
 	Cvar_Get( "cl_rendererLensWater", "0", CVAR_ROM );
 	Cvar_Set2( "cl_rendererLensWater", reLensWater ? "1" : "0", qtrue );
+	GetRefWaterInteractionAPI_t GetRefWaterInteractionAPI = (GetRefWaterInteractionAPI_t)Sys_LoadFunction( rendererLib, "GetRefWaterInteractionAPI" );
+	reWaterInteraction = GetRefWaterInteractionAPI ? GetRefWaterInteractionAPI() : NULL;
+	Cvar_Get( "cl_rendererWaterInteraction", "0", CVAR_ROM );
+	Cvar_Set2( "cl_rendererWaterInteraction", reWaterInteraction ? "1" : "0", qtrue );
 
 	Com_Printf( "-------------------------------\n");
 

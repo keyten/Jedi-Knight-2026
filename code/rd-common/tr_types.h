@@ -435,6 +435,29 @@ typedef struct {
 	float		duration;		// seconds, LENSWATER_SPRAY only (0 = default)
 } refLensWaterEvent_t;
 
+// World-space disturbances for the modern water surface.  A strength of one
+// is the nominal gameplay impulse; radius is in world units.  Direction is an
+// optional tangent-plane bias, not a second simulation.
+#define WATERINTERACT_DIRECTIONAL 1
+typedef struct {
+	vec3_t		position;
+	vec3_t		direction;
+	float		radius;
+	float		strength;
+	int			flags;
+	int			type;		// caller-defined diagnostic tag
+} refWaterImpulse_t;
+
+typedef struct {
+	int			id;			// stable caller ID for a continuous source
+	vec3_t		position;
+	vec3_t		direction;
+	float		radius;
+	float		strength;	// nominal impulses per second
+	int			flags;
+	int			type;
+} refWaterSource_t;
+
 
 typedef enum {
 	STEREO_CENTER,

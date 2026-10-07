@@ -59,6 +59,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -185,6 +186,23 @@ struct waterDynamics_t
 	float flow, damping, wake, foam, shoreline, rain;
 };
 
+// One body-local rectangular grid.  The byte mask is rasterised from the
+// body's actual BSP triangles; cells outside it never participate, so nearby
+// disconnected water cannot communicate through the rectangle.
+struct waterInteractionState_t
+{
+	int width = 0, height = 0;
+	float texelX = 0.0f, texelY = 0.0f;
+	std::vector<byte> mask;
+	std::vector<float> state; // interleaved height, velocity
+	std::vector<float> next;
+	std::vector<float> upload; // RGBA: height, velocity, energy, mask
+	image_t *image = nullptr;
+	bool active = false, dirty = false;
+	float energy = 0.0f, quietTime = 0.0f;
+	float lastSource[4] = { 0, 0, 0, 0 }; // body UV, radius in UV, strength
+};
+
 static const waterDynamics_t s_dynamics[] = {
 	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1 },
 	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f },
@@ -212,6 +230,7 @@ struct waterBody_t
 	int flowSource, flowConfidence;
 	float waveMultiplier, foamMultiplier, interactionMultiplier;
 	int geometryVerts, geometryTriangles, geometryLevel;
+	waterInteractionState_t interaction;
 };
 
 struct waterBodyRule_t
@@ -304,11 +323,393 @@ static struct
 	int viewFlags;
 	int fallbackCubemap;
 	int copyRect[4];		// conservative visible-water rect, render-target pixels
+	std::vector<refWaterImpulse_t> pendingImpulses;
+	std::vector<refWaterSource_t> continuousSources;
+	unsigned interactionFrame;
+	int interactionTime;
+	float interactionAccumulator;
+	int interactionSteps;
+	float interactionSourceMsec;
+	float interactionStepMsec;
+	float interactionUploadMsec;
+	double interactionSubmitUsec;
+	unsigned interactionSubmissions;
+	size_t interactionGpuBytes;
 } s_water;
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
 {
 	return s_water.resources;
+}
+
+/*
+============================================================
+
+Body-local interactive disturbance field (r_waterInteraction)
+
+The CPU reference solver deliberately uses the GL 3.2 baseline: its RGBA16F
+texture is sampled by the existing water program.  Keeping the integrator
+independent of a render pass also makes one update per real frame explicit;
+portal/reflection views only sample the latest upload.
+
+============================================================
+*/
+
+static bool R_WaterInteractionPointInTriangle(float px, float py,
+	const vec3_t a, const vec3_t b, const vec3_t c)
+{
+	const float e0 = (b[0] - a[0]) * (py - a[1]) - (b[1] - a[1]) * (px - a[0]);
+	const float e1 = (c[0] - b[0]) * (py - b[1]) - (c[1] - b[1]) * (px - b[0]);
+	const float e2 = (a[0] - c[0]) * (py - c[1]) - (a[1] - c[1]) * (px - c[0]);
+	return (e0 >= 0 && e1 >= 0 && e2 >= 0) || (e0 <= 0 && e1 <= 0 && e2 <= 0);
+}
+
+static void R_WaterInteractionBuild(void)
+{
+	s_water.interactionGpuBytes = 0;
+	s_water.interactionAccumulator = 0.0f;
+	s_water.interactionTime = -1;
+	s_water.interactionFrame = ~0u;
+	if (!r_waterInteraction || !r_waterInteraction->integer || !r_waterSurface->integer || !s_water.world)
+		return;
+
+	const float worldPerTexel = r_waterInteractionQuality->integer <= 0 ? 32.0f :
+		(r_waterInteractionQuality->integer == 1 ? 16.0f : 8.0f);
+	const int maxBodies = Com_Clampi(1, 32, r_waterInteractionMaxBodies->integer);
+	const size_t texelBudget = (size_t)Q_min(r_waterInteractionMaxTexels->integer,
+		(r_waterInteractionMemoryMB->integer * 1024 * 1024) / 8);
+	size_t used = 0;
+	int allocated = 0;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		bool eligible = false;
+		for (int surfaceNum : body.surfaces)
+			if (s_water.world->surfaces[surfaceNum].waterKey & WATERKEY_INTERFACE) { eligible = true; break; }
+		if (!eligible || allocated >= maxBodies || body.liquidClass == LIQUID_LAVA || body.surfaces.empty())
+			continue;
+		waterInteractionState_t& sim = body.interaction;
+		const float extentX = MAX(body.bounds[1][0] - body.bounds[0][0], worldPerTexel);
+		const float extentY = MAX(body.bounds[1][1] - body.bounds[0][1], worldPerTexel);
+		int w = Com_Clampi(16, 512, (int)ceilf(extentX / worldPerTexel));
+		int h = Com_Clampi(16, 512, (int)ceilf(extentY / worldPerTexel));
+		w = (w + 7) & ~7; h = (h + 7) & ~7;
+		while (used + (size_t)w * h > texelBudget && (w > 16 || h > 16))
+		{
+			if (w >= h && w > 16) w = MAX(16, w / 2);
+			else if (h > 16) h = MAX(16, h / 2);
+		}
+		if (used + (size_t)w * h > texelBudget) continue;
+		sim.width = w; sim.height = h;
+		sim.texelX = extentX / w; sim.texelY = extentY / h;
+		const size_t cells = (size_t)w * h;
+		sim.mask.assign(cells, 0);
+		sim.state.assign(cells * 2, 0.0f);
+		sim.next.assign(cells * 2, 0.0f);
+		sim.upload.assign(cells * 4, 0.0f);
+
+		// Rasterise actual usable top triangles. Five sub-cell samples make thin
+		// boundary triangles conservative without filling rectangular voids.
+		for (int surfaceNum : body.surfaces)
+		{
+			const msurface_t& ms = s_water.world->surfaces[surfaceNum];
+			if (!(ms.waterKey & WATERKEY_INTERFACE) || !ms.data ||
+				!(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+			const srfBspSurface_t *surface = (const srfBspSurface_t *)ms.data;
+			for (int ti = 0; ti + 2 < surface->numIndexes; ti += 3)
+			{
+				const int ia = surface->indexes[ti], ib = surface->indexes[ti + 1], ic = surface->indexes[ti + 2];
+				if (ia < 0 || ib < 0 || ic < 0 || ia >= surface->numVerts || ib >= surface->numVerts || ic >= surface->numVerts) continue;
+				const vec3_t& a = surface->verts[ia].xyz; const vec3_t& b = surface->verts[ib].xyz; const vec3_t& c = surface->verts[ic].xyz;
+				const int x0 = Com_Clampi(0, w - 1, (int)floorf((MIN(a[0], MIN(b[0], c[0])) - body.bounds[0][0]) / sim.texelX));
+				const int x1 = Com_Clampi(0, w - 1, (int)floorf((MAX(a[0], MAX(b[0], c[0])) - body.bounds[0][0]) / sim.texelX));
+				const int y0 = Com_Clampi(0, h - 1, (int)floorf((MIN(a[1], MIN(b[1], c[1])) - body.bounds[0][1]) / sim.texelY));
+				const int y1 = Com_Clampi(0, h - 1, (int)floorf((MAX(a[1], MAX(b[1], c[1])) - body.bounds[0][1]) / sim.texelY));
+				for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x)
+				{
+					static const float offsets[5][2] = {{.5f,.5f},{.08f,.08f},{.92f,.08f},{.08f,.92f},{.92f,.92f}};
+					for (int sample = 0; sample < 5; ++sample)
+					{
+						const float px = body.bounds[0][0] + (x + offsets[sample][0]) * sim.texelX;
+						const float py = body.bounds[0][1] + (y + offsets[sample][1]) * sim.texelY;
+						if (R_WaterInteractionPointInTriangle(px, py, a, b, c)) { sim.mask[(size_t)y * w + x] = 255; break; }
+					}
+				}
+			}
+		}
+		for (size_t i = 0; i < cells; ++i) sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
+		sim.image = R_CreateImage(va("*waterInteract%03d", body.id), NULL, w, h, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+		GL_BindToTMU(sim.image, 19);
+		GL_SelectTexture(19); // GL_BindToTMU may be a cache hit; TexSubImage uses the active unit.
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_FLOAT, sim.upload.data());
+		used += cells; ++allocated;
+	}
+	s_water.interactionGpuBytes = used * 8;
+	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u texels, %.2f MiB GPU\n",
+		allocated, (unsigned)used, s_water.interactionGpuBytes / (1024.0f * 1024.0f));
+}
+
+static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
+{
+	waterBody_t *best = nullptr;
+	float bestPlane = 1.0e30f;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterInteractionState_t& sim = body.interaction;
+		if (!sim.image || position[0] < body.bounds[0][0] || position[0] > body.bounds[1][0] ||
+			position[1] < body.bounds[0][1] || position[1] > body.bounds[1][1]) continue;
+		const int x = Com_Clampi(0, sim.width - 1, (int)((position[0] - body.bounds[0][0]) / sim.texelX));
+		const int y = Com_Clampi(0, sim.height - 1, (int)((position[1] - body.bounds[0][1]) / sim.texelY));
+		if (!sim.mask[(size_t)y * sim.width + x]) continue;
+		const float plane = fabsf(DotProduct(body.planeNormal, position) - body.planeDist);
+		if (plane < bestPlane) { best = &body; bestPlane = plane; }
+	}
+	return best;
+}
+
+static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, float radius,
+	float strength, const vec3_t direction, bool continuous)
+{
+	waterInteractionState_t& sim = body.interaction;
+	if (!sim.image) return;
+	const float minRadius = 1.5f * MAX(sim.texelX, sim.texelY);
+	radius = Com_Clamp(minRadius, 1024.0f, radius);
+	strength = Com_Clamp(-8.0f, 8.0f, strength) * r_waterInteractionStrength->value * body.interactionMultiplier;
+	const float cx = (position[0] - body.bounds[0][0]) / sim.texelX - 0.5f;
+	const float cy = (position[1] - body.bounds[0][1]) / sim.texelY - 0.5f;
+	const int rx = (int)ceilf(radius / sim.texelX), ry = (int)ceilf(radius / sim.texelY);
+	vec2_t dir = { direction ? direction[0] : 0.0f, direction ? direction[1] : 0.0f };
+	const float dl = sqrtf(dir[0] * dir[0] + dir[1] * dir[1]);
+	if (dl > 1.0e-5f) { dir[0] /= dl; dir[1] /= dl; }
+	std::vector<std::pair<size_t, float>> stamp;
+	float stampSum = 0.0f;
+	for (int y = MAX(0, (int)cy - ry); y <= MIN(sim.height - 1, (int)cy + ry); ++y)
+		for (int x = MAX(0, (int)cx - rx); x <= MIN(sim.width - 1, (int)cx + rx); ++x)
+		{
+			const size_t i = (size_t)y * sim.width + x;
+			if (!sim.mask[i]) continue;
+			const float wx = (x - cx) * sim.texelX, wy = (y - cy) * sim.texelY;
+			const float d2 = (wx * wx + wy * wy) / (radius * radius);
+			if (d2 >= 1.0f) continue;
+			// Compact Mexican-hat kernel: a positive impact core and a small
+			// compensating trough. The discrete mean below removes the residual
+			// introduced by mask clipping, so closed bodies cannot retain a DC
+			// height offset after all motion has damped.
+			float kernel = (1.0f - d2); kernel = kernel * kernel * (1.0f - 4.0f * d2);
+			if (dl > 1.0e-5f)
+			{
+				const float wl = sqrtf(wx * wx + wy * wy);
+				if (wl > 1.0e-4f) kernel *= Com_Clamp(0.35f, 1.65f, 1.0f + 0.5f * (wx * dir[0] + wy * dir[1]) / wl);
+			}
+			// One-shot strength is a velocity kick. Continuous strength is an
+			// acceleration integrated by the fixed step by the caller.
+			const float delta = strength * 48.0f * kernel;
+			stamp.push_back(std::make_pair(i, delta)); stampSum += delta;
+		}
+	if (!stamp.empty())
+	{
+		const float mean = stampSum / stamp.size();
+		for (const auto& sample : stamp) sim.state[sample.first * 2 + 1] += sample.second - mean;
+	}
+	sim.active = sim.dirty = true; sim.quietTime = 0.0f;
+	sim.lastSource[0] = (position[0] - body.bounds[0][0]) / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
+	sim.lastSource[1] = (position[1] - body.bounds[0][1]) / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f);
+	sim.lastSource[2] = radius / MAX(MAX(body.bounds[1][0] - body.bounds[0][0], body.bounds[1][1] - body.bounds[0][1]), 1.0f);
+	sim.lastSource[3] = strength * (continuous ? 0.5f : 1.0f);
+}
+
+void RE_AddWaterImpulse(const refWaterImpulse_t *impulse)
+{
+	const auto start = std::chrono::high_resolution_clock::now();
+	if (!impulse || !r_waterInteraction || !r_waterInteraction->integer) return;
+	if (s_water.pendingImpulses.size() < 128) s_water.pendingImpulses.push_back(*impulse);
+	s_water.interactionSubmitUsec += std::chrono::duration<double, std::micro>(
+		std::chrono::high_resolution_clock::now() - start).count();
+	++s_water.interactionSubmissions;
+}
+
+void RE_SetWaterSources(const refWaterSource_t *sources, int count)
+{
+	const auto start = std::chrono::high_resolution_clock::now();
+	s_water.continuousSources.clear();
+	if (!sources || count <= 0 || !r_waterInteraction || !r_waterInteraction->integer) return;
+	count = Com_Clampi(0, 64, count);
+	s_water.continuousSources.assign(sources, sources + count);
+	s_water.interactionSubmitUsec += std::chrono::duration<double, std::micro>(
+		std::chrono::high_resolution_clock::now() - start).count();
+	++s_water.interactionSubmissions;
+}
+
+static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
+{
+	waterInteractionState_t& sim = body.interaction;
+	if (!sim.active) return;
+	const int w = sim.width, h = sim.height;
+	const float profileSpeed = 32.0f + s_dynamics[body.dynamics].speed * 32.0f;
+	// CFL guard is part of the physical contract: extreme cvar/profile values
+	// cannot destabilise the explicit five-point stencil.
+	const float cLimit = 0.68f / (dt * sqrtf(1.0f / (sim.texelX * sim.texelX) + 1.0f / (sim.texelY * sim.texelY)));
+	const float c = MIN(profileSpeed * r_waterInteractionSpeed->value, cLimit);
+	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
+	const float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
+	const float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
+	double energy = 0.0; int wet = 0;
+	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+	{
+		const size_t i = (size_t)y * w + x;
+		if (!sim.mask[i]) { sim.next[i * 2] = sim.next[i * 2 + 1] = 0.0f; continue; }
+		const float hc = sim.state[i * 2], vc = sim.state[i * 2 + 1];
+		auto height = [&](int sx, int sy) -> float {
+			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return hc;
+			const size_t n = (size_t)sy * w + sx;
+			return sim.mask[n] ? sim.state[n * 2] : hc; // reflecting Neumann wall
+		};
+		const float hl = height(x - 1, y), hr = height(x + 1, y);
+		const float hd = height(x, y - 1), hu = height(x, y + 1);
+		const float lap = (hl - 2.0f * hc + hr) / (sim.texelX * sim.texelX) +
+			(hd - 2.0f * hc + hu) / (sim.texelY * sim.texelY);
+		float v = vc + dt * (c * c * lap - 2.0f * damping * vc);
+		// First-order upwind advection only for profiles with resolved flow.
+		const float dhdx = flowX >= 0.0f ? (hc - hl) / sim.texelX : (hr - hc) / sim.texelX;
+		const float dhdy = flowY >= 0.0f ? (hc - hd) / sim.texelY : (hu - hc) / sim.texelY;
+		float nh = hc + dt * (v - flowX * dhdx - flowY * dhdy);
+		v = Com_Clamp(-512.0f, 512.0f, v); nh = Com_Clamp(-64.0f, 64.0f, nh);
+		sim.next[i * 2] = nh; sim.next[i * 2 + 1] = v;
+		energy += nh * nh + (v * v) / MAX(c * c, 1.0f); ++wet;
+	}
+	sim.state.swap(sim.next);
+	sim.energy = wet ? (float)(energy / wet) : 0.0f;
+	if (sim.energy < 1.0e-5f) sim.quietTime += dt; else sim.quietTime = 0.0f;
+	if (sim.quietTime > 1.0f)
+	{
+		std::fill(sim.state.begin(), sim.state.end(), 0.0f);
+		sim.active = false; sim.energy = 0.0f;
+	}
+	sim.dirty = true;
+}
+
+static void RB_WaterInteractionUpdate(void)
+{
+	if (!r_waterInteraction->integer || s_water.interactionFrame == backEndData->realFrameNumber) return;
+	s_water.interactionFrame = backEndData->realFrameNumber;
+	const auto sourceStart = std::chrono::high_resolution_clock::now();
+	const int now = backEnd.refdef.time;
+	float elapsed = s_water.interactionTime < 0 ? 0.0f : (now - s_water.interactionTime) * 0.001f;
+	s_water.interactionTime = now;
+	elapsed = Com_Clamp(0.0f, 0.25f, elapsed);
+	s_water.interactionAccumulator = MIN(s_water.interactionAccumulator + elapsed, 4.0f / 60.0f);
+
+	for (const refWaterImpulse_t& impulse : s_water.pendingImpulses)
+	{
+		waterBody_t *body = R_WaterInteractionBodyAt(impulse.position);
+		if (body) R_WaterInteractionStamp(*body, impulse.position, impulse.radius, impulse.strength,
+			(impulse.flags & WATERINTERACT_DIRECTIONAL) ? impulse.direction : NULL, false);
+	}
+	s_water.pendingImpulses.clear();
+	const auto stepStart = std::chrono::high_resolution_clock::now();
+
+	const float fixedDt = 1.0f / 60.0f;
+	int steps = 0;
+	while (s_water.interactionAccumulator + 1.0e-6f >= fixedDt && steps < 4)
+	{
+		for (const refWaterSource_t& source : s_water.continuousSources)
+		{
+			waterBody_t *body = R_WaterInteractionBodyAt(source.position);
+			if (body) R_WaterInteractionStamp(*body, source.position, source.radius,
+				source.strength * fixedDt, (source.flags & WATERINTERACT_DIRECTIONAL) ? source.direction : NULL, true);
+		}
+		for (waterBody_t& body : s_water.bodies) R_WaterInteractionStepBody(body, fixedDt);
+		s_water.interactionAccumulator -= fixedDt; ++steps;
+	}
+	s_water.interactionSteps = steps;
+	const auto uploadStart = std::chrono::high_resolution_clock::now();
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterInteractionState_t& sim = body.interaction;
+		if (!sim.image || !sim.dirty) continue;
+		for (size_t i = 0; i < sim.mask.size(); ++i)
+		{
+			sim.upload[i * 4] = sim.state[i * 2];
+			sim.upload[i * 4 + 1] = sim.state[i * 2 + 1];
+			sim.upload[i * 4 + 2] = sim.energy;
+			sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
+		}
+		GL_BindToTMU(sim.image, 19);
+		GL_SelectTexture(19); // See allocation upload above.
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height, GL_RGBA, GL_FLOAT, sim.upload.data());
+		sim.dirty = false;
+	}
+	const auto end = std::chrono::high_resolution_clock::now();
+	s_water.interactionSourceMsec = (float)std::chrono::duration<double, std::milli>(stepStart - sourceStart).count();
+	s_water.interactionStepMsec = (float)std::chrono::duration<double, std::milli>(uploadStart - stepStart).count();
+	s_water.interactionUploadMsec = (float)std::chrono::duration<double, std::milli>(end - uploadStart).count();
+}
+
+void R_WaterInteractionInfo_f(void)
+{
+	const double submitAverage = s_water.interactionSubmissions ?
+		s_water.interactionSubmitUsec / s_water.interactionSubmissions : 0.0;
+	ri.Printf(PRINT_ALL, "water interaction: %u GPU bytes, last %d fixed steps, source %.3f ms, solver %.3f ms, upload %.3f ms, API submit %.3f us avg (%u)\n",
+		(unsigned)s_water.interactionGpuBytes, s_water.interactionSteps, s_water.interactionSourceMsec,
+		s_water.interactionStepMsec, s_water.interactionUploadMsec, submitAverage,
+		s_water.interactionSubmissions);
+	for (const waterBody_t& body : s_water.bodies)
+	{
+		const waterInteractionState_t& sim = body.interaction;
+		if (!sim.image) continue;
+		int maskCells = 0; for (byte m : sim.mask) maskCells += m != 0;
+		ri.Printf(PRINT_ALL, "  body %d: %dx%d, %.1fx%.1f wu/texel, mask %d/%d, %s, energy %.7g, GPU %u bytes\n",
+			body.id, sim.width, sim.height, sim.texelX, sim.texelY, maskCells, sim.width * sim.height,
+			sim.active ? "active" : "sleeping", sim.energy, (unsigned)((size_t)sim.width * sim.height * 8));
+	}
+}
+
+void R_WaterImpulse_f(void)
+{
+	if (!r_waterInteraction->integer) { ri.Printf(PRINT_ALL, "r_waterInteraction is disabled (latched; set 1 and vid_restart)\n"); return; }
+	const float strength = ri.Cmd_Argc() > 1 ? (float)atof(ri.Cmd_Argv(1)) : 1.0f;
+	const float radius = ri.Cmd_Argc() > 2 ? (float)atof(ri.Cmd_Argv(2)) : 48.0f;
+	waterBody_t *best = nullptr; vec3_t hit = {}; float bestT = 1.0e30f;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		const float denom = DotProduct(body.planeNormal, tr.refdef.viewaxis[0]);
+		if (fabsf(denom) < 1.0e-5f) continue;
+		const float t = (body.planeDist - DotProduct(body.planeNormal, tr.refdef.vieworg)) / denom;
+		if (t <= 0.0f || t >= bestT) continue;
+		vec3_t p; VectorMA(tr.refdef.vieworg, t, tr.refdef.viewaxis[0], p);
+		if (R_WaterInteractionBodyAt(p) == &body) { best = &body; bestT = t; VectorCopy(p, hit); }
+	}
+	// The simulation mask is discrete and a console command can run between
+	// scene submissions. Fall back to the closest masked texel centre along the
+	// last rendered crosshair ray; this also makes thin/triangular shores usable.
+	if (!best)
+	{
+		float bestAngle = 1.0e30f;
+		for (waterBody_t& body : s_water.bodies)
+		{
+			waterInteractionState_t& sim = body.interaction;
+			if (!sim.image || fabsf(body.planeNormal[2]) < 1.0e-4f) continue;
+			for (int y = 0; y < sim.height; ++y) for (int x = 0; x < sim.width; ++x)
+			{
+				if (!sim.mask[(size_t)y * sim.width + x]) continue;
+				vec3_t p = { body.bounds[0][0] + (x + 0.5f) * sim.texelX,
+					body.bounds[0][1] + (y + 0.5f) * sim.texelY, 0.0f };
+				p[2] = (body.planeDist - body.planeNormal[0] * p[0] - body.planeNormal[1] * p[1]) / body.planeNormal[2];
+				vec3_t delta, lateral; VectorSubtract(p, tr.refdef.vieworg, delta);
+				const float t = DotProduct(delta, tr.refdef.viewaxis[0]);
+				if (t <= 0.0f) continue;
+				VectorMA(delta, -t, tr.refdef.viewaxis[0], lateral);
+				const float angle = DotProduct(lateral, lateral) / (t * t);
+				if (angle < bestAngle) { bestAngle = angle; best = &body; bestT = t; VectorCopy(p, hit); }
+			}
+		}
+		if (bestAngle > 0.0311f) best = nullptr; // farther than ten degrees from the crosshair
+	}
+	if (!best) { ri.Printf(PRINT_ALL, "r_waterImpulse: crosshair does not hit an allocated water-body domain\n"); return; }
+	refWaterImpulse_t impulse = {}; VectorCopy(hit, impulse.position); impulse.radius = radius; impulse.strength = strength;
+	RE_AddWaterImpulse(&impulse);
+	ri.Printf(PRINT_ALL, "water impulse: body %d at (%.1f %.1f %.1f), radius %.1f, strength %.2f\n",
+		best->id, hit[0], hit[1], hit[2], radius, strength);
 }
 
 /*
@@ -655,6 +1056,13 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	s_water.shaders.clear();
 	s_water.bodies.clear();
 	s_water.bodyRules.clear();
+	s_water.pendingImpulses.clear();
+	s_water.continuousSources.clear();
+	s_water.interactionGpuBytes = 0;
+	s_water.interactionTime = -1;
+	s_water.interactionSourceMsec = s_water.interactionStepMsec = s_water.interactionUploadMsec = 0.0f;
+	s_water.interactionSubmitUsec = 0.0;
+	s_water.interactionSubmissions = 0;
 
 	if ( surfacesLump->filelen % sizeof(dsurface_t) || modelsLump->filelen % sizeof(dmodel_t) ||
 		brushesLump->filelen % sizeof(dbrush_t) || sidesLump->filelen % sizeof(dbrushside_t) )
@@ -740,6 +1148,7 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 
 	R_WaterCollectCandidates();
 	R_WaterBuildBodies();
+	R_WaterInteractionBuild();
 	s_water.classifyMsec = (float)(ri.Milliseconds() - start);
 
 	int modern = 0;
@@ -2269,6 +2678,13 @@ void R_WaterSurfaceShutdown( void )
 	s_water.shaders.clear();
 	s_water.bodies.clear();
 	s_water.bodyRules.clear();
+	s_water.pendingImpulses.clear();
+	s_water.continuousSources.clear();
+	s_water.interactionGpuBytes = 0;
+	s_water.interactionTime = -1;
+	s_water.interactionSourceMsec = s_water.interactionStepMsec = s_water.interactionUploadMsec = 0.0f;
+	s_water.interactionSubmitUsec = 0.0;
+	s_water.interactionSubmissions = 0;
 	s_water.bodyDebugShader = 0;
 	s_water.geometryBytes = 0;
 	s_water.geometryMsec = 0;
@@ -2313,6 +2729,13 @@ void RB_WaterSurfaceBeginView( void )
 		if ( tr.world && s_water.world == tr.world )
 			R_WaterDecideShaders();
 	}
+
+	// Advance once for the real main frame. Portal, mirror and reflection views
+	// sample the same uploaded state and can never consume another time step.
+	if (backEnd.viewParms.viewParmType == VPT_MAIN && !backEnd.viewParms.isPortal &&
+		!backEnd.viewParms.isSkyPortal && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
+		tr.world && !(backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)))
+		RB_WaterInteractionUpdate();
 
 	if ( !s_water.resources || !r_waterSurface->integer || !tr.waterCopyFbo || !backEnd.waterInterfacesVisible )
 		return;
@@ -2480,6 +2903,14 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[29], body ? body->flowSpeed * flowScale : 0.0f,
 		Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value), (float)r_waterFlowDebug->integer,
 		body ? (float)(body->flowSource * 4 + body->flowConfidence) : 0.0f);
+	const waterInteractionState_t *interaction = body && body->interaction.image ? &body->interaction : nullptr;
+	const float extentX = body ? MAX(body->bounds[1][0] - body->bounds[0][0], 1.0f) : 1.0f;
+	const float extentY = body ? MAX(body->bounds[1][1] - body->bounds[0][1], 1.0f) : 1.0f;
+	VectorSet4(water[30], body ? body->bounds[0][0] : 0.0f, body ? body->bounds[0][1] : 0.0f,
+		1.0f / extentX, 1.0f / extentY);
+	VectorSet4(water[31], interaction ? interaction->texelX : 1.0f, interaction ? interaction->texelY : 1.0f,
+		interaction && r_waterInteraction->integer ? 1.0f : 0.0f, (float)r_waterInteractionDebug->integer);
+	if (interaction) VectorCopy4(interaction->lastSource, water[32]); else VectorClear4(water[32]);
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
@@ -2529,6 +2960,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterSceneImage, 0);
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
+	samplers.AddStaticImage(interaction ? interaction->image : tr.whiteImage, 19);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);
 	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);
 	if (cubemap)

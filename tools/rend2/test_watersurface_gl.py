@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 30
+WATER_VEC4S = 33
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -72,7 +72,7 @@ W, H = 320, 240
 UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_EnvBrdfMap': 3, 'u_CubeMap': 4,
          'u_ShadowMap': 5, 'u_FroxelVolume': 6, 'u_FroxelTail': 7, 'u_SSRHiZMap': 10, 'u_SSRSceneMap': 11,
          'u_FroxelTransmittance': 26, 'u_GlowMap': 9, 'u_SSRHistoryMap': 12,
-         'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15}
+         'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15, 'u_WaterInteractionMap': 19}
 
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
@@ -579,8 +579,36 @@ def check_geometry_depth(rig):
     rig.draw_water(prog, u, waves=True)
     displaced = read_depth(rig.water_fbo, *rig.size)
     visible = (flat < 0.9999) & (displaced < 0.9999)
-    return check('vertex displacement changes real water depth',
-                 visible.sum() > 100 and np.max(np.abs(flat[visible] - displaced[visible])) > 1e-6)
+    ok = check('vertex displacement changes real water depth',
+               visible.sum() > 100 and np.max(np.abs(flat[visible] - displaced[visible])) > 1e-6)
+
+    field = np.zeros((64, 64, 4), dtype=np.float32)
+    field[..., 0] = 8.0
+    field[..., 3] = 1.0
+    bind(19, tex2d(64, 64, RGBA16F, data=field, linear=True))
+    u[15, 0] = 0.0
+    u[19, 1] = 1.0
+    u[30] = [-200, -3000, 1 / 3200, 1 / 6000]
+    u[31] = [50, 93.75, 0, 0]
+    rig.draw_water(prog, u, waves=True)
+    interaction_flat = read_depth(rig.water_fbo, *rig.size)
+    u[31, 2] = 1.0
+    rig.draw_water(prog, u, waves=True)
+    interaction_displaced = read_depth(rig.water_fbo, *rig.size)
+    visible = (interaction_flat < 0.9999) & (interaction_displaced < 0.9999)
+    ok = check('interactive height changes real water depth', visible.sum() > 100 and
+               np.max(np.abs(interaction_flat[visible] - interaction_displaced[visible])) > 1e-6) and ok
+
+    field[..., 0] = np.sin(np.arange(64, dtype=np.float32)[None, :] * np.pi / 4.0) * 8.0
+    bind(19, tex2d(64, 64, RGBA16F, data=field, linear=True))
+    u[19, 1] = 0.0
+    u[31, 2] = 0.0
+    optics_flat = rig.draw_water(prog, u, waves=True)
+    u[31, 2] = 1.0
+    optics_disturbed = rig.draw_water(prog, u, waves=True)
+    ok = check('interactive slope changes the shared reflection/refraction normal',
+               np.max(np.abs(optics_flat - optics_disturbed)) > 0.001) and ok
+    return ok
 
 
 def check_ambient_waves(rig):
@@ -1108,6 +1136,29 @@ def bench():
                 flow_off = sum(pair[0] for pair in flow_pairs) / len(flow_pairs)
                 flow_on = sum(pair[1] for pair in flow_pairs) / len(flow_pairs)
                 print(f'  interleaved directional flow off {flow_off:.3f} ms, on {flow_on:.3f} ms, delta {flow_on-flow_off:+.3f} ms')
+                iy, ix = np.mgrid[0:64, 0:64]
+                ir = np.sqrt(((ix - 31.5) / 31.5) ** 2 + ((iy - 31.5) / 31.5) ** 2)
+                interaction_data = np.zeros((64, 64, 4), dtype=np.float32)
+                interaction_data[..., 0] = np.sin(ir * 20.0) * np.maximum(1.0 - ir, 0.0)
+                interaction_data[..., 1] = np.cos(ir * 20.0) * np.maximum(1.0 - ir, 0.0)
+                interaction_data[..., 2] = 0.1
+                interaction_data[..., 3] = 1.0
+                interaction_tex = tex2d(64, 64, RGBA16F, data=interaction_data, linear=True)
+                bind(19, interaction_tex)
+                u[30] = [-200, -3000, 1 / 3200, 1 / 6000]
+                u[31] = [50, 93.75, 0, 0]
+                interaction_pairs = []
+                for _ in range(4):
+                    u[31, 2] = 0
+                    set_vec4s(prog, 'u_Water', u)
+                    interaction_off = timed(draw_only, repeat=10)
+                    u[31, 2] = 1
+                    set_vec4s(prog, 'u_Water', u)
+                    interaction_on = timed(draw_only, repeat=10)
+                    interaction_pairs.append((interaction_off, interaction_on))
+                interaction_off = sum(pair[0] for pair in interaction_pairs) / len(interaction_pairs)
+                interaction_on = sum(pair[1] for pair in interaction_pairs) / len(interaction_pairs)
+                print(f'  interleaved interaction off {interaction_off:.3f} ms, on {interaction_on:.3f} ms, delta {interaction_on-interaction_off:+.3f} ms')
                 def two_bodies():
                     gl('glBindFramebuffer', None, U, U)(FB, rig.water_fbo)
                     gl('glBindVertexArray', None, U)(rig.water_vao)

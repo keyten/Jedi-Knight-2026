@@ -287,6 +287,15 @@ static int cg_lensWaterUnderTime = -1;
 static void CG_LensWaterSurfaceEvent( int event, const entityState_t *es, const vec3_t position )
 {
 	const qboolean viewer = (qboolean)( es->number == cg.snap->ps.clientNum );
+	if ( cl_rendererWaterInteraction.integer && (event == EV_WATER_TOUCH || event == EV_WATER_LEAVE) )
+	{
+		refWaterImpulse_t impulse = {};
+		VectorCopy(position, impulse.position);
+		impulse.radius = event == EV_WATER_TOUCH ? 48.0f : 36.0f;
+		impulse.strength = event == EV_WATER_TOUCH ? 0.7f : -0.35f;
+		impulse.type = event;
+		cgi_R_AddWaterImpulse(&impulse);
+	}
 	switch ( event )
 	{
 	case EV_WATER_TOUCH:

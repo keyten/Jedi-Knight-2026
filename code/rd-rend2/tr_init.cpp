@@ -215,6 +215,9 @@ cvar_t	*r_waterSurfaceRoughness;
 cvar_t	*r_waterSurfaceNormal;
 cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
 cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
+cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
+cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
+cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
 cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 cvar_t *r_waterWaveTime;
 cvar_t	*r_waterSurfaceRefraction;
@@ -1927,6 +1930,8 @@ static consoleCommand_t	commands[] = {
 	{ "r_waterBodies",	R_WaterBodies_f },
 	{ "r_waterFlowOverride", R_WaterFlowOverride_f },
 	{ "r_waterGeometryInfo", R_WaterGeometryInfo_f },
+	{ "r_waterInteractionInfo", R_WaterInteractionInfo_f },
+	{ "r_waterImpulse", R_WaterImpulse_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
@@ -2720,6 +2725,24 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterFlowDetail, 0.0f, 4.0f, qfalse);
 	r_waterFlowDebug = ri_Cvar_Get_NoComm("r_waterFlowDebug", "0", CVAR_CHEAT, "Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail");
 	ri.Cvar_CheckRange(r_waterFlowDebug, 0, 4, qtrue);
+	r_waterInteraction = ri_Cvar_Get_NoComm("r_waterInteraction", "0", CVAR_ARCHIVE | CVAR_LATCH, "Per-body interactive water disturbances; requires r_waterSurface and vid_restart");
+	ri.Cvar_CheckRange(r_waterInteraction, 0, 1, qtrue);
+	r_waterInteractionQuality = ri_Cvar_Get_NoComm("r_waterInteractionQuality", "1", CVAR_ARCHIVE | CVAR_LATCH, "Interaction density: 0=32, 1=16, 2=8 world units per texel");
+	ri.Cvar_CheckRange(r_waterInteractionQuality, 0, 2, qtrue);
+	r_waterInteractionStrength = ri_Cvar_Get_NoComm("r_waterInteractionStrength", "1", CVAR_ARCHIVE, "Global water interaction strength multiplier");
+	ri.Cvar_CheckRange(r_waterInteractionStrength, 0.0f, 4.0f, qfalse);
+	r_waterInteractionDamping = ri_Cvar_Get_NoComm("r_waterInteractionDamping", "1", CVAR_ARCHIVE, "Profile disturbance damping multiplier");
+	ri.Cvar_CheckRange(r_waterInteractionDamping, 0.25f, 4.0f, qfalse);
+	r_waterInteractionSpeed = ri_Cvar_Get_NoComm("r_waterInteractionSpeed", "1", CVAR_ARCHIVE, "Profile disturbance propagation-speed multiplier");
+	ri.Cvar_CheckRange(r_waterInteractionSpeed, 0.25f, 4.0f, qfalse);
+	r_waterInteractionMaxBodies = ri_Cvar_Get_NoComm("r_waterInteractionMaxBodies", "8", CVAR_ARCHIVE | CVAR_LATCH, "Maximum bodies with interaction fields");
+	ri.Cvar_CheckRange(r_waterInteractionMaxBodies, 1, 32, qtrue);
+	r_waterInteractionMaxTexels = ri_Cvar_Get_NoComm("r_waterInteractionMaxTexels", "524288", CVAR_ARCHIVE | CVAR_LATCH, "Total interaction texel budget");
+	ri.Cvar_CheckRange(r_waterInteractionMaxTexels, 4096, 4194304, qtrue);
+	r_waterInteractionMemoryMB = ri_Cvar_Get_NoComm("r_waterInteractionMemoryMB", "16", CVAR_ARCHIVE | CVAR_LATCH, "GPU interaction-field memory budget in MiB");
+	ri.Cvar_CheckRange(r_waterInteractionMemoryMB, 1, 128, qtrue);
+	r_waterInteractionDebug = ri_Cvar_Get_NoComm("r_waterInteractionDebug", "0", CVAR_CHEAT, "Interaction debug: 1 domain, 2 mask, 3 height, 4 velocity, 5 slope, 6 source, 7 energy, 8 active/sleep, 9 mapping");
+	ri.Cvar_CheckRange(r_waterInteractionDebug, 0, 9, qtrue);
 	r_waterGeometry = ri_Cvar_Get_NoComm("r_waterGeometry", "0", CVAR_ARCHIVE | CVAR_LATCH, "Subdivided render-only water mesh; requires r_waterSurface and vid_restart");
 	ri.Cvar_CheckRange(r_waterGeometry, 0, 1, qtrue);
 	r_waterGeometryEdge = ri_Cvar_Get_NoComm("r_waterGeometryEdge", "64", CVAR_ARCHIVE | CVAR_LATCH, "Target maximum water mesh edge length in world units");
@@ -3821,6 +3844,11 @@ Optional extension (tr_public.h): lens water events, tr_rainlens.cpp
 extern "C" Q_EXPORT const refLensWaterExport_t* QDECL GetRefLensWaterAPI ( void ) {
 	static const refLensWaterExport_t lensWater = { RE_AddLensWaterEvent };
 	return &lensWater;
+}
+
+extern "C" Q_EXPORT const refWaterInteractionExport_t* QDECL GetRefWaterInteractionAPI ( void ) {
+	static const refWaterInteractionExport_t waterInteraction = { RE_AddWaterImpulse, RE_SetWaterSources };
+	return &waterInteraction;
 }
 
 /*

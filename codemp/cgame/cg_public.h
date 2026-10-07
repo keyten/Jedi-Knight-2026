@@ -725,6 +725,8 @@ typedef struct cgameImport_s {
 		// water onto the camera lens (rend2 lens water extension); a no-op
 		// without it (older engines, other renderers, legacy VM)
 		void			(*R_AddLensWaterEvent)					( const refLensWaterEvent_t *event );
+		void			(*R_AddWaterImpulse)					( const refWaterImpulse_t *impulse );
+		void			(*R_SetWaterSources)					( const refWaterSource_t *sources, int count );
 	} ext;
 } cgameImport_t;
 

@@ -304,6 +304,9 @@ extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
 extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
 extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
+extern cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
+extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
+extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
@@ -2716,6 +2719,7 @@ typedef enum
 	UNIFORM_WATERSCENEMAP,		// water surface: HDR scene copy (unit 0)
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
+	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATERGLOWMAP,
 
@@ -5917,7 +5921,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 30
+#define WATER_UNIFORM_VEC4S 33
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 
@@ -5951,6 +5955,10 @@ qboolean RB_WaterSurfaceDistortion(const shader_t *shader, uint32_t waterKey);
 void R_WaterInfo_f(void);
 void R_WaterBodies_f(void);
 void R_WaterFlowOverride_f(void);
+void R_WaterInteractionInfo_f(void);
+void R_WaterImpulse_f(void);
+void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
+void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);

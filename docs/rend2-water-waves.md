@@ -92,7 +92,9 @@ micro strength and unresolved variance on its left side. Existing
 ## Scope and verification
 
 The new height also drives optional subdivided render geometry. Interactive
-disturbances, caustic input and camera-waterline queries remain future work. The
+disturbances are supplied by the body-local solver in
+[`rend2-water-interaction.md`](rend2-water-interaction.md); caustic input and
+camera-waterline queries remain future work. The
 existing wave texture and mip roughness are unchanged. Profiles are uniform
 data; no extra shader permutations, targets, textures or persistent wave
 buffers were added. Per-draw data grows by seven vec4s (112 bytes).

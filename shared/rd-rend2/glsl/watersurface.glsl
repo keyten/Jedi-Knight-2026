@@ -67,6 +67,16 @@ out vec3 var_BasePosition;
 out vec3 var_GeometryDisplacement;
 out float var_GeometrySkirt;
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
+uniform sampler2D u_WaterInteractionMap;
+
+float WaterInteractionHeight(vec3 worldPosition)
+{
+	if (u_Water[31].z < 0.5) return 0.0;
+	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 0.0;
+	vec4 field = texture(u_WaterInteractionMap, uv);
+	return field.a > 0.5 ? field.r : 0.0;
+}
 
 struct WaterWaveState
 {
@@ -296,6 +306,7 @@ void main()
 	{
 		var_GeometrySkirt = 1.0 - attr_TexCoord1.x;
 		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
+		geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition);
 		var_GeometryDisplacement = geometryWave.displacement *
 			(u_Water[19].z > 2.5 && u_Water[19].z < 3.5 ? 1.0 : attr_TexCoord1.x);
 		wsPosition.xyz += var_GeometryDisplacement;
@@ -405,6 +416,7 @@ layout(std140) uniform Lights
 uniform sampler2D u_WaterSceneMap;		// HDR scene under the water (copy)
 uniform sampler2D u_WaterDepthMap;		// its hardware depth (copy)
 uniform sampler2D u_WaterNormalMap;		// wave slopes (x, y, x^2, y^2), mips keep the variance
+uniform sampler2D u_WaterInteractionMap; // RG height/velocity, B energy, A body mask
 uniform sampler2D u_EnvBrdfMap;
 uniform samplerCube u_CubeMap;
 uniform vec4 u_CubeMapInfo;
@@ -931,6 +943,27 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 #endif
 
 
+vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
+{
+	worldSlope = vec2(0.0);
+	if (u_Water[31].z < 0.5) return vec4(0.0);
+	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
+	vec4 center = texture(u_WaterInteractionMap, uv);
+	if (center.a < 0.5) return center;
+	ivec2 size = textureSize(u_WaterInteractionMap, 0);
+	vec2 duv = 1.0 / vec2(size);
+	vec4 l = texture(u_WaterInteractionMap, uv - vec2(duv.x, 0.0));
+	vec4 r = texture(u_WaterInteractionMap, uv + vec2(duv.x, 0.0));
+	vec4 d = texture(u_WaterInteractionMap, uv - vec2(0.0, duv.y));
+	vec4 u = texture(u_WaterInteractionMap, uv + vec2(0.0, duv.y));
+	// A missing neighbour is a reflecting solid wall (zero normal derivative).
+	float hl = l.a > 0.5 ? l.r : center.r, hr = r.a > 0.5 ? r.r : center.r;
+	float hd = d.a > 0.5 ? d.r : center.r, hu = u.a > 0.5 ? u.r : center.r;
+	worldSlope = vec2((hr - hl) / (2.0 * u_Water[31].x), (hu - hd) / (2.0 * u_Water[31].y));
+	return center;
+}
+
 float WaterFadeIntegral(float z)
 {
 	float length = 1.0 / u_Water[8].w;
@@ -1026,6 +1059,10 @@ void main()
 	WaterWaveState waves = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
 	vec3 macroGradient = vec3(waves.slope, 0.0);
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
+	vec2 interactionWorldSlope;
+	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
+	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
+	vec2 interactionSlope = vec2(dot(interactionGradient, Tw), dot(interactionGradient, Bw));
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
 	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
 	if (int(u_Water[18].x + 0.5) == 8 && gl_FragCoord.x <
@@ -1035,13 +1072,36 @@ void main()
 		slope = oldSlope;
 		strength = oldStrength;
 	}
-	slope += macroSlope;
+	slope += macroSlope + interactionSlope;
 	vec2 variance = (max(l0.zw - l0.xy * l0.xy, vec2(0.0)) +
 		0.36 * max(l1.zw - l1.xy * l1.xy, vec2(0.0)) +
 		0.25 * max(l2.zw - l2.xy * l2.xy, vec2(0.0))) * (strength * strength);
 	vec3 Nwater = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
+
+	int interactionDebug = int(u_Water[31].w + 0.5);
+	if (interactionDebug > 0 && u_WaterPass.x < 0.5)
+	{
+		vec2 bodyUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
+		vec3 debugColor = vec3(0.0);
+		if (interactionDebug == 1) debugColor = interactionField.a > 0.5 ? vec3(bodyUV, 0.25) : vec3(0.15, 0.0, 0.0);
+		else if (interactionDebug == 2) debugColor = vec3(interactionField.a);
+		else if (interactionDebug == 3) debugColor = vec3(0.5 + interactionField.r / 16.0, 0.5 - abs(interactionField.r) / 16.0, 0.5 - interactionField.r / 16.0);
+		else if (interactionDebug == 4) debugColor = vec3(0.5 + interactionField.g / 256.0, 0.2, 0.5 - interactionField.g / 256.0);
+		else if (interactionDebug == 5) debugColor = normalize(vec3(-interactionWorldSlope, 1.0)) * 0.5 + 0.5;
+		else if (interactionDebug == 6)
+		{
+			float ring = abs(length((bodyUV - u_Water[32].xy) / max(u_Water[32].z, 1e-4)) - 1.0);
+			debugColor = ring < 0.08 ? vec3(1.0, 0.1, 0.0) : vec3(0.05);
+		}
+		else if (interactionDebug == 7) debugColor = vec3(clamp(log2(1.0 + interactionField.b * 64.0) / 8.0, 0.0, 1.0), 0.1, 0.0);
+		else if (interactionDebug == 8) debugColor = interactionField.b > 0.0 ? vec3(0.1, 1.0, 0.2) : vec3(0.08, 0.12, 0.3);
+		else if (interactionDebug == 9) debugColor = vec3(fract(bodyUV * 16.0), 0.25 + 0.75 * interactionField.a);
+		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
 
 	// roughness: the artistic base plus the unresolved wave slopes (GGX alpha^2 ~ 2 variance)
 	float baseRoughness = u_Water[0].y;

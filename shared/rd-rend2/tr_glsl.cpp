@@ -441,6 +441,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterSceneMap",		GLSL_INT, 1 },
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
+	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
 };
@@ -2943,6 +2944,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERSCENEMAP, 0);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERINTERACTIONMAP, 19);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERGLOWMAP, 9);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, 12);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, 14);

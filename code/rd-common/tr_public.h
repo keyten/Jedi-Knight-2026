@@ -445,3 +445,12 @@ typedef struct refLensWaterExport_s {
 } refLensWaterExport_t;
 
 typedef	const refLensWaterExport_t* (QDECL *GetRefLensWaterAPI_t) ( void );
+
+// Optional modern-water interaction extension.  SetWaterSources replaces the
+// complete continuous-source list for the next rendered frame; count zero
+// clears it.  This keeps continuous injection deterministic across frame rates.
+typedef struct refWaterInteractionExport_s {
+	void (*AddWaterImpulse)( const refWaterImpulse_t *impulse );
+	void (*SetWaterSources)( const refWaterSource_t *sources, int count );
+} refWaterInteractionExport_t;
+typedef const refWaterInteractionExport_t* (QDECL *GetRefWaterInteractionAPI_t) ( void );

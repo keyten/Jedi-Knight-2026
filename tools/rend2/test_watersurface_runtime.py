@@ -58,6 +58,9 @@ def main():
     parser.add_argument('--ambient-waves', action='store_true', help='Enable per-body ambient waves and capture their debug views')
     parser.add_argument('--flow', action='store_true', help='Enable directional flow and capture off/on and debug comparisons')
     parser.add_argument('--geometry', action='store_true', help='Enable render-only subdivision and print its map-load budget')
+    parser.add_argument('--interaction', action='store_true', help='Inject a body-local disturbance and capture its debug views')
+    parser.add_argument('--interaction-quality', choices=('0', '1', '2'), default='1',
+                        help='Interactive field density used by --interaction (default: 1)')
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('Windows SP runtime required')
@@ -89,6 +92,10 @@ def main():
                   'setviewpos 4000 1800 346 90', 'textures/common/water2_water1_vjun1'),
     }
     above, below, grazing, shader = viewpoints[args.map]
+    # Put the interaction probe vertically over a known wet point. The normal
+    # beauty view for t2_rancor deliberately sits outside its tiny 64-unit pool.
+    interaction_above = ('setviewpos -2464 5536 1500 0'
+                         if args.map == 't2_rancor' else above)
     # SP setviewpos subtracts 25 but the player's eye height is 36. Leave
     # enough margin to put the actual camera below the deformed interface.
     commands = ['wait 90', 'cam_disable', 'wait 10', 'noclip', 'god',
@@ -141,6 +148,22 @@ def main():
             'r_waterGeometryDebug 3', 'wait 8', 'screenshot_tga water-geometry-original',
             'r_waterGeometryDebug 4', 'wait 8', 'screenshot_tga water-geometry-seams',
             'r_waterGeometryDebug 0', 'r_waterWaveAmplitude 1', 'r_waterWaveTime -1'])
+    if args.interaction:
+        debug_reset = next(i for i, command in enumerate(commands)
+                           if command.startswith('r_waterSurfaceDebug 0'))
+        commands[debug_reset] += '\n' + '\n'.join([
+            interaction_above, 'centerview', '+lookdown', 'wait 45', '-lookdown', 'wait 4',
+            'r_waterImpulse 1 24', 'wait 8',
+            'r_waterInteractionDebug 1', 'wait 3', 'screenshot_tga water-interaction-domain',
+            'r_waterInteractionDebug 2', 'wait 3', 'screenshot_tga water-interaction-mask',
+            'r_waterInteractionDebug 3', 'wait 3', 'screenshot_tga water-interaction-height',
+            'r_waterInteractionDebug 4', 'wait 3', 'screenshot_tga water-interaction-velocity',
+            'r_waterInteractionDebug 5', 'wait 3', 'screenshot_tga water-interaction-slope',
+            'r_waterInteractionDebug 6', 'wait 3', 'screenshot_tga water-interaction-source',
+            'r_waterInteractionDebug 7', 'wait 3', 'screenshot_tga water-interaction-energy',
+            'r_waterInteractionDebug 8', 'wait 3', 'screenshot_tga water-interaction-active',
+            'r_waterInteractionDebug 9', 'wait 3', 'screenshot_tga water-interaction-mapping',
+            'r_waterInteractionDebug 0', 'r_waterInteractionInfo'])
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
@@ -150,6 +173,8 @@ def main():
                     r_waterWaves='1' if args.ambient_waves else '0',
                     r_waterFlow='1' if args.flow else '0',
                     r_waterGeometry='1' if args.geometry else '0',
+                    r_waterInteraction='1' if args.interaction else '0',
+                    r_waterInteractionQuality=args.interaction_quality,
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
                     r_volumetricFog='2', r_volumetricWater='1',
                     developer='0', logfile='2', com_maxfps='60')
@@ -193,6 +218,15 @@ def main():
     if args.flow:
         for name in ('water-flow-off.tga', 'water-flow-on.tga', 'water-flow-direction.tga',
                      'water-flow-source.tga', 'water-flow-detail.tga'):
+            assert (base/'screenshots'/name).stat().st_size > 1000, name
+    if args.interaction:
+        assert 'water impulse: body' in log, 'Crosshair impulse did not resolve a body'
+        assert re.search(r'water interaction: \d+ GPU bytes, last \d+ fixed steps', log), 'Missing interaction statistics'
+        for name in ('water-interaction-domain.tga', 'water-interaction-mask.tga',
+                     'water-interaction-height.tga', 'water-interaction-velocity.tga',
+                     'water-interaction-slope.tga', 'water-interaction-source.tga',
+                     'water-interaction-energy.tga', 'water-interaction-active.tga',
+                     'water-interaction-mapping.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.map in ('t2_rancor', 't3_hevil'):
         print('PASS:', args.map, 'stock interface classification; water-only SSR above/below; overrides off/clear')

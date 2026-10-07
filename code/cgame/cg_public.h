@@ -245,6 +245,8 @@ Ghoul2 Insert End
 	// water onto the camera lens (rend2 r_rainLens); only called with
 	// cl_rendererLensWater set by the engine (older engines lack it)
 	CG_R_ADDLENSWATEREVENT,
+	CG_R_ADDWATERIMPULSE,
+	CG_R_SETWATERSOURCES,
 } cgameImport_t;
 
 #ifdef JK2_MODE

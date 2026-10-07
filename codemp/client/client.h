@@ -389,6 +389,7 @@ extern	const refFoliageExport_t	*reFoliage;		// optional renderer extension, may
 extern	const refVolParticleExport_t	*reVolParticles;	// optional renderer extension, may be NULL
 extern	const refSpotLightExport_t	*reSpotLights;	// optional renderer extension, may be NULL
 extern	const refLensWaterExport_t	*reLensWater;	// optional renderer extension, may be NULL
+extern	const refWaterInteractionExport_t *reWaterInteraction; // optional modern-water interaction
 
 //
 // cvars

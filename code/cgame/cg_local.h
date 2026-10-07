@@ -575,6 +575,7 @@ extern	vmCvar_t		cg_underwaterTint;
 extern	vmCvar_t		r_volumetricParticles;
 extern	vmCvar_t		cl_rendererSpotLights;
 extern	vmCvar_t		cl_rendererLensWater;
+extern	vmCvar_t		cl_rendererWaterInteraction;
 void CG_LensWaterEvent( int type, const vec3_t origin, int flags, float radius, float strength, float duration );
 extern	vmCvar_t		cg_renderToTextureFX;
 extern	vmCvar_t		cg_shadowCullDistance;
@@ -1049,6 +1050,8 @@ void	cgi_R_AddVolumetricParticle( const refVolParticle_t *particle );
 void	cgi_R_AddSpotLight( const refSpotLight_t *light );
 int		cgi_R_RegisterLightCookie( const char *name );
 void	cgi_R_AddLensWaterEvent( const refLensWaterEvent_t *event );
+void	cgi_R_AddWaterImpulse( const refWaterImpulse_t *impulse );
+void	cgi_R_SetWaterSources( const refWaterSource_t *sources, int count );
 void	cgi_R_RenderScene( const refdef_t *fd );
 void	cgi_R_SetColor( const float *rgba );	// NULL = 1,1,1,1
 void	cgi_R_DrawStretchPic( float x, float y, float w, float h,

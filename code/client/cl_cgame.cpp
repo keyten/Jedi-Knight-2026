@@ -1033,6 +1033,14 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reLensWater && reLensWater->AddLensWaterEvent )
 			reLensWater->AddLensWaterEvent( (const refLensWaterEvent_t *) VMA(1) );
 		return 0;
+	case CG_R_ADDWATERIMPULSE:
+		if ( reWaterInteraction && reWaterInteraction->AddWaterImpulse )
+			reWaterInteraction->AddWaterImpulse( (const refWaterImpulse_t *) VMA(1) );
+		return 0;
+	case CG_R_SETWATERSOURCES:
+		if ( reWaterInteraction && reWaterInteraction->SetWaterSources )
+			reWaterInteraction->SetWaterSources( (const refWaterSource_t *) VMA(1), args[2] );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;
