@@ -60,10 +60,10 @@ The uploaded resource is one clamped `RGBA16F` texture per allocated body:
 
 - R: disturbance height;
 - G: vertical velocity;
-- B: current total energy (diagnostic);
+- B: transient splash foam;
 - A: physical body mask.
 
-GPU memory is exactly 8 bytes per allocated texel. The reference implementation integrates on the CPU and uploads only dirty active fields; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 33 bytes per texel (mask, current/next RG float state, RGBA upload staging), plus vector overhead. `r_waterInteractionInfo` reports actual resolution and GPU bytes per body.
+GPU memory is exactly 8 bytes per allocated texel. The reference implementation integrates on the CPU and uploads only dirty active fields; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 41 bytes per texel (mask, current/next height/velocity/foam float state, RGBA upload staging), plus vector overhead. `r_waterInteractionInfo` reports actual resolution and GPU bytes per body.
 
 ## Event/source API
 
@@ -103,7 +103,7 @@ Commands:
 - `r_waterImpulse [strength=1] [radius=48]`: inject at the water point under the crosshair. A nearest masked-texel fallback covers thin discretised shores, limited to ten degrees from the ray.
 - `r_waterInteractionInfo`: print resolutions, physical texel sizes, mask coverage, active/sleeping state, energy, fixed steps, source-processing/solver/upload time, average API submission cost, and GPU memory.
 
-Debug modes: 1 domain/UV, 2 mask, 3 height, 4 velocity, 5 actual central-difference slope, 6 latest source, 7 energy, 8 active/sleeping, 9 world-to-body mapping grid. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).
+Debug modes: 1 domain/UV, 2 mask, 3 height, 4 velocity, 5 actual central-difference slope, 6 latest source, 7 transient foam, 8 active/sleeping, 9 world-to-body mapping grid. The numeric body energy remains available through `r_waterInteractionInfo`. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).
 
 ## Validation and measured data
 
@@ -133,5 +133,5 @@ Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surfac
 - Body coordinates are world XY and currently target the existing mostly-horizontal modern-water eligibility. Vertical waterfall faces remain legacy; their impact basin should feed a horizontal body's source.
 - Allocation is per map and bounded, but body fields are image-manager resources until renderer restart, like other renderer-created images.
 - Mask resolution cannot preserve a channel narrower than one texel. Quality/budget controls determine that physical limit.
-- Gameplay water entry/leave is wired. Projectile, rain, wake, and waterfall producers are explicit extension points rather than guessed from shader names.
+- Gameplay water entry/leave and missile/thrown-saber crossings are wired. Rain, wake, and waterfall producers remain explicit extension points rather than guessed from shader names.
 - Texture upload is asynchronous on the tested driver; its reported number is CPU/driver wall time, not completion time on the GPU.

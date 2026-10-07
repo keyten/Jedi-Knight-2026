@@ -194,7 +194,7 @@ struct waterInteractionState_t
 	int width = 0, height = 0;
 	float texelX = 0.0f, texelY = 0.0f;
 	std::vector<byte> mask;
-	std::vector<float> state; // interleaved height, velocity
+	std::vector<float> state; // interleaved height, velocity, transient foam
 	std::vector<float> next;
 	std::vector<float> upload; // RGBA: height, velocity, energy, mask
 	image_t *image = nullptr;
@@ -403,8 +403,8 @@ static void R_WaterInteractionBuild(void)
 		sim.texelX = extentX / w; sim.texelY = extentY / h;
 		const size_t cells = (size_t)w * h;
 		sim.mask.assign(cells, 0);
-		sim.state.assign(cells * 2, 0.0f);
-		sim.next.assign(cells * 2, 0.0f);
+		sim.state.assign(cells * 3, 0.0f);
+		sim.next.assign(cells * 3, 0.0f);
 		sim.upload.assign(cells * 4, 0.0f);
 
 		// Rasterise actual usable top triangles. Five sub-cell samples make thin
@@ -468,7 +468,7 @@ static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
 }
 
 static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, float radius,
-	float strength, const vec3_t direction, bool continuous)
+	float strength, float foam, const vec3_t direction, bool continuous)
 {
 	waterInteractionState_t& sim = body.interaction;
 	if (!sim.image) return;
@@ -509,7 +509,13 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 	if (!stamp.empty())
 	{
 		const float mean = stampSum / stamp.size();
-		for (const auto& sample : stamp) sim.state[sample.first * 2 + 1] += sample.second - mean;
+		for (const auto& sample : stamp)
+		{
+			sim.state[sample.first * 3 + 1] += sample.second - mean;
+			if (foam > 0.0f)
+				sim.state[sample.first * 3 + 2] = Com_Clamp(0.0f, 1.0f,
+					sim.state[sample.first * 3 + 2] + foam * fabsf(sample.second) / MAX(fabsf(strength) * 48.0f, 0.001f));
+		}
 	}
 	sim.active = sim.dirty = true; sim.quietTime = 0.0f;
 	sim.lastSource[0] = (position[0] - body.bounds[0][0]) / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
@@ -557,12 +563,12 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
 	{
 		const size_t i = (size_t)y * w + x;
-		if (!sim.mask[i]) { sim.next[i * 2] = sim.next[i * 2 + 1] = 0.0f; continue; }
-		const float hc = sim.state[i * 2], vc = sim.state[i * 2 + 1];
+		if (!sim.mask[i]) { sim.next[i * 3] = sim.next[i * 3 + 1] = sim.next[i * 3 + 2] = 0.0f; continue; }
+		const float hc = sim.state[i * 3], vc = sim.state[i * 3 + 1], fc = sim.state[i * 3 + 2];
 		auto height = [&](int sx, int sy) -> float {
 			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return hc;
 			const size_t n = (size_t)sy * w + sx;
-			return sim.mask[n] ? sim.state[n * 2] : hc; // reflecting Neumann wall
+			return sim.mask[n] ? sim.state[n * 3] : hc; // reflecting Neumann wall
 		};
 		const float hl = height(x - 1, y), hr = height(x + 1, y);
 		const float hd = height(x, y - 1), hu = height(x, y + 1);
@@ -574,7 +580,20 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 		const float dhdy = flowY >= 0.0f ? (hc - hd) / sim.texelY : (hu - hc) / sim.texelY;
 		float nh = hc + dt * (v - flowX * dhdx - flowY * dhdy);
 		v = Com_Clamp(-512.0f, 512.0f, v); nh = Com_Clamp(-64.0f, 64.0f, nh);
-		sim.next[i * 2] = nh; sim.next[i * 2 + 1] = v;
+		// Foam is a short-lived surface tracer.  Advect it with resolved flow;
+		// numerical diffusion plus exponential decay keeps the patch soft.
+		auto foamAt = [&](int sx, int sy) -> float {
+			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return fc;
+			const size_t n = (size_t)sy * w + sx;
+			return sim.mask[n] ? sim.state[n * 3 + 2] : fc;
+		};
+		const float fl = foamAt(x - 1, y), fr = foamAt(x + 1, y);
+		const float fd = foamAt(x, y - 1), fu = foamAt(x, y + 1);
+		const float dfdx = flowX >= 0.0f ? (fc - fl) / sim.texelX : (fr - fc) / sim.texelX;
+		const float dfdy = flowY >= 0.0f ? (fc - fd) / sim.texelY : (fu - fc) / sim.texelY;
+		const float diffusion = 0.3f * ((fl - 2.0f * fc + fr) + (fd - 2.0f * fc + fu));
+		const float nf = Com_Clamp(0.0f, 1.0f, (fc - dt * (flowX * dfdx + flowY * dfdy) + dt * diffusion) * expf(-dt * 0.85f));
+		sim.next[i * 3] = nh; sim.next[i * 3 + 1] = v; sim.next[i * 3 + 2] = nf;
 		energy += nh * nh + (v * v) / MAX(c * c, 1.0f); ++wet;
 	}
 	sim.state.swap(sim.next);
@@ -601,9 +620,25 @@ static void RB_WaterInteractionUpdate(void)
 
 	for (const refWaterImpulse_t& impulse : s_water.pendingImpulses)
 	{
-		waterBody_t *body = R_WaterInteractionBodyAt(impulse.position);
-		if (body) R_WaterInteractionStamp(*body, impulse.position, impulse.radius, impulse.strength,
+		if (impulse.energy > 0.0f && (!r_waterSplashes || !r_waterSplashes->integer))
+			continue;
+		waterBody_t *body = nullptr;
+		if (impulse.bodyId > 0 && impulse.bodyId <= (int)s_water.bodies.size())
+		{
+			waterBody_t& hinted = s_water.bodies[impulse.bodyId - 1];
+			if (hinted.interaction.image) body = &hinted;
+		}
+		if (!body) body = R_WaterInteractionBodyAt(impulse.position);
+		const float splashStrength = impulse.energy > 0.0f ? r_waterSplashStrength->value : 1.0f;
+		const float splashFoam = impulse.energy > 0.0f ? r_waterSplashFoam->value : 1.0f;
+		if (body) R_WaterInteractionStamp(*body, impulse.position, impulse.radius, impulse.strength * splashStrength,
+			impulse.foam * splashFoam,
 			(impulse.flags & WATERINTERACT_DIRECTIONAL) ? impulse.direction : NULL, false);
+		if (r_waterSplashDebug && r_waterSplashDebug->integer && impulse.energy > 0.0f)
+			ri.Printf(PRINT_ALL, "water splash: type %d pos %.1f %.1f %.1f radius %.1f velocity %.1f %.1f %.1f body %d energy %.3f impulse %.3f spray %d foam %.3f\n",
+				impulse.type, impulse.position[0], impulse.position[1], impulse.position[2], impulse.radius,
+				impulse.velocity[0], impulse.velocity[1], impulse.velocity[2], body ? body->id : 0,
+				impulse.energy, impulse.strength, impulse.sprayCount, impulse.foam);
 	}
 	s_water.pendingImpulses.clear();
 	const auto stepStart = std::chrono::high_resolution_clock::now();
@@ -616,7 +651,7 @@ static void RB_WaterInteractionUpdate(void)
 		{
 			waterBody_t *body = R_WaterInteractionBodyAt(source.position);
 			if (body) R_WaterInteractionStamp(*body, source.position, source.radius,
-				source.strength * fixedDt, (source.flags & WATERINTERACT_DIRECTIONAL) ? source.direction : NULL, true);
+				source.strength * fixedDt, 0.0f, (source.flags & WATERINTERACT_DIRECTIONAL) ? source.direction : NULL, true);
 		}
 		for (waterBody_t& body : s_water.bodies) R_WaterInteractionStepBody(body, fixedDt);
 		s_water.interactionAccumulator -= fixedDt; ++steps;
@@ -629,9 +664,9 @@ static void RB_WaterInteractionUpdate(void)
 		if (!sim.image || !sim.dirty) continue;
 		for (size_t i = 0; i < sim.mask.size(); ++i)
 		{
-			sim.upload[i * 4] = sim.state[i * 2];
-			sim.upload[i * 4 + 1] = sim.state[i * 2 + 1];
-			sim.upload[i * 4 + 2] = sim.energy;
+			sim.upload[i * 4] = sim.state[i * 3];
+			sim.upload[i * 4 + 1] = sim.state[i * 3 + 1];
+			sim.upload[i * 4 + 2] = sim.state[i * 3 + 2];
 			sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
 		}
 		GL_BindToTMU(sim.image, 19);
@@ -2894,7 +2929,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
 	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
 		body && body->geometryVerts > 0 && r_waterGeometry->integer ? 1.0f : 0.0f,
-		(float)r_waterGeometryDebug->integer, 0.0f);
+		(float)r_waterGeometryDebug->integer, body ? body->foamMultiplier : 1.0f);
 	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
 	VectorSet4(water[28], body ? body->flowVelocity[0] * flowScale : 0.0f,
 		body ? body->flowVelocity[1] * flowScale : 0.0f,

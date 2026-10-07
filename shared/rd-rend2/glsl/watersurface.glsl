@@ -1095,7 +1095,7 @@ void main()
 			float ring = abs(length((bodyUV - u_Water[32].xy) / max(u_Water[32].z, 1e-4)) - 1.0);
 			debugColor = ring < 0.08 ? vec3(1.0, 0.1, 0.0) : vec3(0.05);
 		}
-		else if (interactionDebug == 7) debugColor = vec3(clamp(log2(1.0 + interactionField.b * 64.0) / 8.0, 0.0, 1.0), 0.1, 0.0);
+		else if (interactionDebug == 7) debugColor = vec3(interactionField.b, 0.1 * interactionField.b, 0.0);
 		else if (interactionDebug == 8) debugColor = interactionField.b > 0.0 ? vec3(0.1, 1.0, 0.2) : vec3(0.08, 0.12, 0.3);
 		else if (interactionDebug == 9) debugColor = vec3(fract(bodyUV * 16.0), 0.25 + 0.75 * interactionField.a);
 		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
@@ -1508,6 +1508,16 @@ void main()
 #endif
 
 	vec3 color = (1.0 - W) * transmitted + W * reflection + glint;
+	// Channel B of the body-local interaction field is short-lived foam laid
+	// down by energetic physical splash events.  It remains surface-local,
+	// follows resolved body flow and fades without a separate fluid mesh.
+	float splashFoam = clamp(interactionField.b * u_Water[19].w, 0.0, 1.0);
+	if (!inside && splashFoam > 0.0)
+	{
+		float grazing = 0.65 + 0.35 * clamp(dot(Nwater, V), 0.0, 1.0);
+		vec3 foamColor = vec3(0.72, 0.78, 0.80) * (0.65 + 0.35 * grazing);
+		color = mix(color, foamColor, splashFoam * 0.8);
+	}
 
 #if defined(USE_WATER_SNELL)
 	if (snellDebug != 0)

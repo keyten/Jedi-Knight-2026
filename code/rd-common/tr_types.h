@@ -435,17 +435,33 @@ typedef struct {
 	float		duration;		// seconds, LENSWATER_SPRAY only (0 = default)
 } refLensWaterEvent_t;
 
-// World-space disturbances for the modern water surface.  A strength of one
-// is the nominal gameplay impulse; radius is in world units.  Direction is an
-// optional tangent-plane bias, not a second simulation.
+// World-space disturbances for the modern water surface.  The leading fields
+// retain the original interaction API layout; the remaining fields describe a
+// physical splash event.  A zero bodyId asks the renderer to resolve the water
+// body from position.
 #define WATERINTERACT_DIRECTIONAL 1
+enum {
+	WATERSPLASH_ENTRY,
+	WATERSPLASH_EXIT,
+	WATERSPLASH_PROJECTILE,
+	WATERSPLASH_HEAVY,
+	WATERSPLASH_FOOT
+};
 typedef struct {
 	vec3_t		position;
 	vec3_t		direction;
 	float		radius;
 	float		strength;
 	int			flags;
-	int			type;		// caller-defined diagnostic tag
+	int			type;		// WATERSPLASH_* (or a caller-defined diagnostic tag)
+	int			bodyId;		// 0 = resolve by position
+	vec3_t		surfaceNormal;
+	vec3_t		velocity;
+	float		normalVelocity;
+	vec3_t		tangentVelocity;
+	float		energy;		// saturated 0..1 response used by visual outputs
+	float		foam;		// foam amount injected into the body-local field
+	int			sprayCount;	// diagnostic output count requested by the caller
 } refWaterImpulse_t;
 
 typedef struct {

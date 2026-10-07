@@ -163,6 +163,9 @@ struct centity_s
 
 //	int				trailTime;		// so missile trails can handle dropped initial packets
 	int				miscTime;
+	qboolean		waterSplashInitialized;
+	int				waterSplashContents;
+	vec3_t			waterSplashOrigin;
 
 	playerEntity_t	pe;
 
@@ -576,6 +579,12 @@ extern	vmCvar_t		r_volumetricParticles;
 extern	vmCvar_t		cl_rendererSpotLights;
 extern	vmCvar_t		cl_rendererLensWater;
 extern	vmCvar_t		cl_rendererWaterInteraction;
+extern	vmCvar_t		r_waterSplashes;
+extern	vmCvar_t		r_waterSplashQuality;
+extern	vmCvar_t		r_waterSplashStrength;
+extern	vmCvar_t		r_waterSplashFoam;
+extern	vmCvar_t		r_waterSplashProjectiles;
+extern	vmCvar_t		r_waterSplashDebug;
 void CG_LensWaterEvent( int type, const vec3_t origin, int flags, float radius, float strength, float duration );
 extern	vmCvar_t		cg_renderToTextureFX;
 extern	vmCvar_t		cg_shadowCullDistance;
@@ -792,6 +801,8 @@ void CG_PredictPlayerState( void );
 void CG_CheckEvents( centity_t *cent );
 const char	*CG_PlaceString( int rank );
 void CG_EntityEvent( centity_t *cent, vec3_t position );
+void CG_WaterSplashEvent( centity_t *cent, const vec3_t position, int type );
+void CG_CheckProjectileWaterSplash( centity_t *cent );
 
 
 //

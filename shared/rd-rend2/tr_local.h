@@ -307,6 +307,8 @@ extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowD
 extern cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
 extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
 extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
+extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
+extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;

@@ -350,6 +350,9 @@ typedef struct centity_s {
 	int				trailTime;		// so missile trails can handle dropped initial packets
 	int				dustTrailTime;
 	int				miscTime;
+	qboolean		waterSplashInitialized;
+	int				waterSplashContents;
+	vec3_t			waterSplashOrigin;
 
 	vec3_t			damageAngles;
 	int				damageTime;
@@ -1817,6 +1820,8 @@ void CG_LoadDeferredPlayers( void );
 void CG_CheckEvents( centity_t *cent );
 const char	*CG_PlaceString( int rank );
 void CG_EntityEvent( centity_t *cent, vec3_t position );
+void CG_WaterSplashEvent( centity_t *cent, const vec3_t position, int type );
+void CG_CheckProjectileWaterSplash( centity_t *cent );
 void CG_LensWaterEvent( int type, const vec3_t origin, int flags, float radius, float strength, float duration );
 void CG_PainEvent( centity_t *cent, int health );
 void CG_ReattachLimb(centity_t *source);

@@ -254,6 +254,12 @@ vmCvar_t fx_physicalizationComposite, fx_physicalizationAdaptive, fx_physicaliza
 vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cl_rendererLensWater;	// engine: the renderer has lens water (CG_R_ADDLENSWATEREVENT)
 vmCvar_t	cl_rendererWaterInteraction;	// engine: modern-water interaction syscalls are available
+vmCvar_t	r_waterSplashes;
+vmCvar_t	r_waterSplashQuality;
+vmCvar_t	r_waterSplashStrength;
+vmCvar_t	r_waterSplashFoam;
+vmCvar_t	r_waterSplashProjectiles;
+vmCvar_t	r_waterSplashDebug;
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
 vmCvar_t	cg_footsteps;
@@ -384,6 +390,12 @@ static cvarTable_t cvarTable[] = {
 	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cl_rendererLensWater, "cl_rendererLensWater", "0", 0 },
 	{ &cl_rendererWaterInteraction, "cl_rendererWaterInteraction", "0", 0 },
+	{ &r_waterSplashes, "r_waterSplashes", "0", CVAR_ARCHIVE },
+	{ &r_waterSplashQuality, "r_waterSplashQuality", "1", CVAR_ARCHIVE },
+	{ &r_waterSplashStrength, "r_waterSplashStrength", "1", CVAR_ARCHIVE },
+	{ &r_waterSplashFoam, "r_waterSplashFoam", "1", CVAR_ARCHIVE },
+	{ &r_waterSplashProjectiles, "r_waterSplashProjectiles", "1", CVAR_ARCHIVE },
+	{ &r_waterSplashDebug, "r_waterSplashDebug", "0", CVAR_CHEAT },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },
 	{ &cg_footsteps, "cg_footsteps", "3", CVAR_ARCHIVE  },//1 = sounds, 2 = sounds & effects, 3 = sounds, effects & marks, 4 = always

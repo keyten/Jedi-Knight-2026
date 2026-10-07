@@ -1110,6 +1110,7 @@ static void CG_Missile( centity_t *cent ) {
 
 	if ( !cent->gent->inuse )
 		return;
+	CG_CheckProjectileWaterSplash( cent );
 
 	s1 = &cent->currentState;
 	if ( s1->weapon >= WP_NUM_WEAPONS ) {

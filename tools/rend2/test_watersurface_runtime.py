@@ -160,7 +160,7 @@ def main():
             'r_waterInteractionDebug 4', 'wait 3', 'screenshot_tga water-interaction-velocity',
             'r_waterInteractionDebug 5', 'wait 3', 'screenshot_tga water-interaction-slope',
             'r_waterInteractionDebug 6', 'wait 3', 'screenshot_tga water-interaction-source',
-            'r_waterInteractionDebug 7', 'wait 3', 'screenshot_tga water-interaction-energy',
+            'r_waterInteractionDebug 7', 'wait 3', 'screenshot_tga water-interaction-foam',
             'r_waterInteractionDebug 8', 'wait 3', 'screenshot_tga water-interaction-active',
             'r_waterInteractionDebug 9', 'wait 3', 'screenshot_tga water-interaction-mapping',
             'r_waterInteractionDebug 0', 'r_waterInteractionInfo'])
@@ -225,7 +225,7 @@ def main():
         for name in ('water-interaction-domain.tga', 'water-interaction-mask.tga',
                      'water-interaction-height.tga', 'water-interaction-velocity.tga',
                      'water-interaction-slope.tga', 'water-interaction-source.tga',
-                     'water-interaction-energy.tga', 'water-interaction-active.tga',
+                     'water-interaction-foam.tga', 'water-interaction-active.tga',
                      'water-interaction-mapping.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.map in ('t2_rancor', 't3_hevil'):

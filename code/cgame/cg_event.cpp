@@ -284,25 +284,144 @@ void CG_LensWaterEvent( int type, const vec3_t origin, int flags, float radius, 
 // game's waterlevel, pmove), so the lens gets the emerge burst.
 static int cg_lensWaterUnderTime = -1;
 
+/*
+===================
+CG_WaterSplashEvent
+
+Turns an authoritative water transition (or a projectile crossing) into one
+physical event.  Water-body ownership is deliberately left to rend2: cgame's
+collision model can find the interface, but does not share the renderer's
+merged-body IDs.
+===================
+*/
+void CG_WaterSplashEvent( centity_t *cent, const vec3_t eventPosition, int type )
+{
+	if ( !r_waterSplashes.integer || !cent )
+		return;
+
+	refWaterImpulse_t impulse = {};
+	trace_t tr;
+	vec3_t start, end, velocity = {}, tangent, fxPosition;
+	VectorCopy( eventPosition, start ); start[2] += 80.0f;
+	VectorCopy( eventPosition, end ); end[2] -= 96.0f;
+	CG_Trace( &tr, start, vec3_origin, vec3_origin, end, cent->currentState.number, MASK_WATER );
+	if ( tr.fraction < 1.0f )
+	{
+		VectorCopy( tr.endpos, impulse.position );
+		VectorCopy( tr.plane.normal, impulse.surfaceNormal );
+	}
+	else
+	{
+		VectorCopy( eventPosition, impulse.position );
+		VectorSet( impulse.surfaceNormal, 0.0f, 0.0f, 1.0f );
+	}
+	if ( impulse.surfaceNormal[2] < 0.0f ) VectorScale( impulse.surfaceNormal, -1.0f, impulse.surfaceNormal );
+	if ( cent->gent && cent->gent->client )
+		VectorCopy( cent->gent->client->ps.velocity, velocity );
+	else
+		EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
+
+	float radius = 18.0f;
+	if ( cent->gent )
+		radius = Com_Clamp( 4.0f, 72.0f, 0.25f * (fabsf(cent->gent->maxs[0] - cent->gent->mins[0]) + fabsf(cent->gent->maxs[1] - cent->gent->mins[1])) );
+	if ( type == WATERSPLASH_PROJECTILE ) radius = cent->currentState.weapon == WP_SABER ? 10.0f : 5.0f;
+	if ( type == WATERSPLASH_FOOT ) radius = 7.0f;
+
+	impulse.normalVelocity = DotProduct( velocity, impulse.surfaceNormal );
+	VectorMA( velocity, -impulse.normalVelocity, impulse.surfaceNormal, tangent );
+	VectorCopy( velocity, impulse.velocity );
+	VectorCopy( tangent, impulse.tangentVelocity );
+	VectorCopy( tangent, impulse.direction );
+	if ( VectorNormalize( impulse.direction ) > 1.0f ) impulse.flags |= WATERINTERACT_DIRECTIONAL;
+	const float normalSpeed = fabsf( impulse.normalVelocity );
+	const float speedResponse = 1.0f - expf( -normalSpeed / 230.0f );
+	const float sizeResponse = sqrtf( Com_Clamp( 0.15f, 3.0f, radius / 18.0f ) );
+	impulse.energy = Com_Clamp( 0.04f, 1.0f, speedResponse * sizeResponse );
+	if ( type == WATERSPLASH_FOOT ) impulse.energy = Com_Clamp( 0.05f, 0.18f, impulse.energy );
+	if ( type == WATERSPLASH_PROJECTILE ) impulse.energy = Com_Clamp( 0.12f, 0.34f, impulse.energy );
+	if ( radius > 38.0f && type == WATERSPLASH_ENTRY ) type = WATERSPLASH_HEAVY;
+	impulse.type = type;
+	impulse.radius = Com_Clamp( 8.0f, 112.0f, radius * (1.2f + 1.5f * impulse.energy) );
+	impulse.strength = (type == WATERSPLASH_EXIT ? -0.35f : 1.0f) *
+		Com_Clamp( 0.08f, 1.65f, impulse.energy * (0.75f + radius / 28.0f) );
+	impulse.foam = (type == WATERSPLASH_ENTRY || type == WATERSPLASH_HEAVY) ?
+		Com_Clamp( 0.0f, 1.0f, (impulse.energy - 0.38f) * 1.6f ) : 0.0f;
+	impulse.sprayCount = impulse.energy < 0.13f ? 0 : (impulse.energy > 0.7f && r_waterSplashQuality.integer > 0 ? 2 : 1);
+	impulse.bodyId = 0;
+	vec3_t toCamera;
+	VectorSubtract( cg.refdef.vieworg, impulse.position, toCamera );
+	const float cameraDistanceSquared = VectorLengthSquared( toCamera );
+	if ( cameraDistanceSquared > 2048.0f * 2048.0f ) impulse.sprayCount = 0;
+	else if ( cameraDistanceSquared > 768.0f * 768.0f ) impulse.sprayCount = Q_min( impulse.sprayCount, 1 );
+	static int sprayBudgetTime = 0, sprayBudgetUsed = 0;
+	if ( cg.time - sprayBudgetTime >= 100 ) { sprayBudgetTime = cg.time; sprayBudgetUsed = 0; }
+	const int sprayBudget = r_waterSplashQuality.integer <= 0 ? 4 : (r_waterSplashQuality.integer == 1 ? 8 : 12);
+	impulse.sprayCount = Com_Clampi( 0, Q_max( 0, sprayBudget - sprayBudgetUsed ), impulse.sprayCount );
+	sprayBudgetUsed += impulse.sprayCount;
+
+	if ( cl_rendererWaterInteraction.integer )
+		cgi_R_AddWaterImpulse( &impulse );
+
+	// Reuse Raven's stock ballistic water crown/spray.  Fast character entries
+	// already emit this exact EFX in PM_WaterEvents, so do not double it here.
+	if ( impulse.sprayCount > 0 && (type == WATERSPLASH_PROJECTILE || VectorLengthSquared( velocity ) <= 40000.0f) )
+	{
+		VectorCopy( impulse.position, fxPosition );
+		for ( int i = 0; i < impulse.sprayCount; ++i )
+			CG_PlayEffect( "env/water_impact", fxPosition, impulse.surfaceNormal );
+	}
+
+	// A world splash wets the lens only inside its actual near-camera reach.
+	const float lensReach = 72.0f + impulse.radius;
+	if ( VectorLengthSquared( toCamera ) < lensReach * lensReach )
+		CG_LensWaterEvent( LENSWATER_SPLASH, impulse.position, LENSWATER_F_ORIGIN,
+			lensReach, Com_Clamp( 0.15f, 0.8f, impulse.energy ), 0.0f );
+
+	if ( r_waterSplashDebug.integer )
+	{
+		vec3_t arrowEnd, normalEnd;
+		VectorMA( impulse.position, 0.18f, impulse.velocity, arrowEnd );
+		VectorMA( impulse.position, 32.0f, impulse.surfaceNormal, normalEnd );
+		CG_TestLine( impulse.position, arrowEnd, 1200, 0x0000ffff, 2 );
+		CG_TestLine( impulse.position, normalEnd, 1200, 0x0000ff00, 2 );
+		CG_Printf( "water splash event type %d pos %.1f %.1f %.1f radius %.1f normalVel %.1f energy %.3f impulse %.3f spray %d foam %.3f\n",
+			type, impulse.position[0], impulse.position[1], impulse.position[2], impulse.radius,
+			impulse.normalVelocity, impulse.energy, impulse.strength, impulse.sprayCount, impulse.foam );
+	}
+}
+
+void CG_CheckProjectileWaterSplash( centity_t *cent )
+{
+	if ( !r_waterSplashes.integer || !r_waterSplashProjectiles.integer ) return;
+	const int contents = CG_PointContents( cent->lerpOrigin, cent->currentState.number ) & CONTENTS_WATER;
+	if ( !cent->waterSplashInitialized )
+	{
+		cent->waterSplashInitialized = qtrue;
+		cent->waterSplashContents = contents;
+		VectorCopy( cent->lerpOrigin, cent->waterSplashOrigin );
+		return;
+	}
+	trace_t tr;
+	CG_Trace( &tr, cent->waterSplashOrigin, vec3_origin, vec3_origin, cent->lerpOrigin,
+		cent->currentState.number, MASK_WATER );
+	if ( contents != cent->waterSplashContents || (!contents && !cent->waterSplashContents && tr.fraction < 1.0f) )
+		CG_WaterSplashEvent( cent, tr.fraction < 1.0f ? tr.endpos : cent->lerpOrigin, WATERSPLASH_PROJECTILE );
+	cent->waterSplashContents = contents;
+	VectorCopy( cent->lerpOrigin, cent->waterSplashOrigin );
+}
+
 static void CG_LensWaterSurfaceEvent( int event, const entityState_t *es, const vec3_t position )
 {
 	const qboolean viewer = (qboolean)( es->number == cg.snap->ps.clientNum );
-	if ( cl_rendererWaterInteraction.integer && (event == EV_WATER_TOUCH || event == EV_WATER_LEAVE) )
-	{
-		refWaterImpulse_t impulse = {};
-		VectorCopy(position, impulse.position);
-		impulse.radius = event == EV_WATER_TOUCH ? 48.0f : 36.0f;
-		impulse.strength = event == EV_WATER_TOUCH ? 0.7f : -0.35f;
-		impulse.type = event;
-		cgi_R_AddWaterImpulse(&impulse);
-	}
 	switch ( event )
 	{
 	case EV_WATER_TOUCH:
-		CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 200.0f, viewer ? 0.5f : 0.7f, 0.0f );
+		if ( r_waterSplashes.integer ) CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_ENTRY );
+		else CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 200.0f, viewer ? 0.5f : 0.7f, 0.0f );
 		break;
 	case EV_WATER_LEAVE:
-		CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 160.0f, viewer ? 0.3f : 0.45f, 0.0f );
+		if ( r_waterSplashes.integer ) CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_EXIT );
+		else CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 160.0f, viewer ? 0.3f : 0.45f, 0.0f );
 		break;
 	case EV_WATER_UNDER:
 		if ( viewer )
@@ -366,6 +485,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		if (cg_footsteps.integer) {
 			cgi_S_StartSound (NULL, es->number, CHAN_BODY, cgs.media.footsteps[ FOOTSTEP_SPLASH ][rand()&3] );
 		}
+		CG_WaterSplashEvent( cent, position, WATERSPLASH_FOOT );
 		break;
 	case EV_FOOTWADE:
 		DEBUGNAME("EV_FOOTWADE");
