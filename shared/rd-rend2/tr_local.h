@@ -5916,7 +5916,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 20
+#define WATER_UNIFORM_VEC4S 28
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 
@@ -5935,6 +5935,7 @@ void R_WaterSurfaceShutdown(void);
 void R_WaterBuildGeometry(world_t *world);
 void R_WaterGeometryInfo_f(void);
 void RB_WaterSurfaceBeginView(void);
+void RB_WaterSurfaceSetCoverage(const drawSurf_t *drawSurfs, int numDrawSurfs);
 qboolean RB_WaterSurfaceDraws(const shader_t *shader);	// this draw uses the water program in this view
 shaderProgram_t *RB_WaterSurfaceProgram(const shader_t *shader);
 void RB_WaterSurfaceSetupDraw(const shaderCommands_t *input, UniformDataWriter& uniforms,

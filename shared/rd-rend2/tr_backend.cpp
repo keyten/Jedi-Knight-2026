@@ -3894,14 +3894,7 @@ static const void *RB_DrawSurfs(const void *data) {
 
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
-	backEnd.waterInterfacesVisible = qfalse;
-	if (r_waterSurface->integer)
-		for (int i = 0; i < cmd->numDrawSurfs; i++)
-			if (cmd->drawSurfs[i].waterKey & WATERKEY_INTERFACE)
-			{
-				backEnd.waterInterfacesVisible = qtrue;
-				break;
-			}
+	RB_WaterSurfaceSetCoverage(cmd->drawSurfs, cmd->numDrawSurfs);
 
 	// clear the z buffer, set the modelview, etc
 	RB_BeginDrawingView();

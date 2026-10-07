@@ -52,7 +52,8 @@ the water program instead of their stages, and those items are moved to their ow
 depth prepass (water excluded) -> shadows / AO / froxel build
 main pass:  opaque sort -> screen space (SSGI, SSR: Hi-Z + opaque color pyramid)
             -> decals .. SS_FOG layers
-            -> WATER SLOT: copy renderFbo color + glow + depth (MSAA resolved)
+            -> WATER SLOT: copy the conservative visible-water union rect of
+               renderFbo color + glow + depth (MSAA resolved; full-view fallback)
                           -> reduced water SSR + temporal history -> water draws (replace, write depth)
             -> atmosphere -> clouds -> froxel fog composite   (fog camera -> water surface)
             -> SS_UNDERWATER, blended layers                  (depth tested against the water)
@@ -282,7 +283,9 @@ From below (camera under the surface looking up, the surface over the whole view
 | r_waterSnell, no SSR | 0.47 ms | 10.3 ms |
 | r_waterSnell, SSR Hi-Z 24 steps | 1.8 ms | 25 ms |
 
-In game the pass costs in proportion to the water on screen; the copy runs once per view with water.
+In game the pass costs in proportion to the water on screen; the copy runs once per view with water and is
+scissored to the projected union of visible world-water bodies plus the maximum refraction halo. Dynamic or
+ambiguous bodies, and bounds crossing the eye plane, conservatively fall back to the complete view.
 
 ## Known screen-space limitations
 
@@ -323,3 +326,9 @@ A new Intel UHD 1080p synthetic comparison (water over the entire view, waves, H
 measured 38.676 ms for direct full-resolution water SSR and 33.610 ms for the reduced reflection pass plus
 full-resolution bilateral resolve/shading. This excludes the shared pyramid and scene copy and is not an
 in-game frame-rate estimate. The older table above describes the original implementation.
+
+The reduced water-reflection history uses three `RGBA16F` targets: premultiplied
+radiance/confidence, receiver depth/normal/roughness, and a receiver-relative hit
+vector/validity. Relative hit vectors avoid the precision loss that absolute world
+coordinates would have in half floats. This is 24 bytes per history pixel instead
+of the former 40 bytes, before read/write traffic and double buffering.

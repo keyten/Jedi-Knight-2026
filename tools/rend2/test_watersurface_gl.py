@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 20
+WATER_VEC4S = 28
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -268,7 +268,25 @@ def set_vec4s(prog, name, rows):
     loc = uloc(prog, name)
     if loc < 0:
         return
-    flat = np.ascontiguousarray(np.asarray(rows, dtype=np.float32).reshape(-1))
+    values = np.asarray(rows, dtype=np.float32)
+    if name == 'u_Water' and values.shape == (WATER_VEC4S, 4):
+        # Mirror RB_WaterSurfaceSetupDraw's per-body analytic wave constants.
+        wavelength = max(float(values[15, 1] * values[13, 2]), 8.0)
+        amplitude = float(values[15, 0] * values[13, 1])
+        flow = values[17, :2].astype(np.float64)
+        flow_length = float(np.linalg.norm(flow))
+        main = flow / flow_length if flow_length > 0.001 else np.array([0.8, 0.6])
+        direction_mix = 0.72 if flow_length > 0.001 else 0.22
+        for i in range(8):
+            angle = i * 2.3999632
+            direction = (1.0 - direction_mix) * np.array([math.cos(angle), math.sin(angle)]) + direction_mix * main
+            direction /= max(float(np.linalg.norm(direction)), 1.0e-8)
+            scale = 1.0 - 0.15 * i if i < 4 else 0.34 - 0.035 * (i - 4)
+            lambda_scale = 1.0 - 0.13 * i if i < 4 else 0.28 - 0.025 * (i - 4)
+            values[20 + i] = [direction[0], direction[1],
+                              amplitude * scale * (0.28 if i < 4 else 0.10),
+                              2.0 * math.pi / max(wavelength * lambda_scale, 4.0)]
+    flat = np.ascontiguousarray(values.reshape(-1))
     gl('glUniform4fv', None, I, I, P)(loc, len(flat) // 4, flat.ctypes.data_as(P))
 
 
@@ -848,7 +866,7 @@ def check_integration():
     size = (W // 2, H // 2)
     buffers = []
     for _ in range(2):
-        textures = [tex2d(*size, RGBA16F), tex2d(*size, RGBA32F), tex2d(*size, RGBA32F)]
+        textures = [tex2d(*size, RGBA16F), tex2d(*size, RGBA16F), tex2d(*size, RGBA16F)]
         depth = tex2d(*size, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
         buffers.append((fbo(textures, depth), textures))
     u = rig.params(flags=flags, ssr=1.)
@@ -860,7 +878,7 @@ def check_integration():
     geom = read_color(buffers[0][0], *size, attachment=1)
     hit = read_color(buffers[0][0], *size, attachment=2)
     active = geom[..., 0] > 0
-    ok = check('water reflection history stores surface depth, normals and hit positions',
+    ok = check('water reflection history stores surface depth, normals and receiver-relative hits',
                active.any() and np.isfinite(geom[active]).all() and np.isfinite(hit[active]).all()
                and (hit[..., 3] > .5).sum() == hit_count) and ok
     resolve = dict(fbo=rig.water_fbo, size=rig.size, history=buffers[0][1], **{'pass': [0, 1, .8, 0]})
@@ -1064,10 +1082,10 @@ def bench():
                 print(f'  two visible synthetic bodies, half-screen each: {timed(two_bodies):.3f} ms')
             if ssr and hiz and steps == 24:
                 reduced = tuple((n+1)//2 for n in size)
-                maps = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA32F), tex2d(*reduced, RGBA32F)]
+                maps = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA16F)]
                 depth = tex2d(*reduced, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
                 target = fbo(maps, depth)
-                previous = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA32F), tex2d(*reduced, RGBA32F)]
+                previous = [tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA16F), tex2d(*reduced, RGBA16F)]
                 rig.draw_water(prog, u, waves=True, ssr=True,
                     reflection=dict(fbo=target, size=reduced, history=previous, **{'pass': [1, 0, .8, 2]}))
                 gl('glDepthFunc', None, U)(0x0207)

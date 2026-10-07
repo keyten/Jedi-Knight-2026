@@ -36,8 +36,9 @@ macro+medium components. A quality normalization keeps overall height similar.
 Directions have angular
 spread; an authored world XY `Flow` biases them without treating a legacy
 texture scroll as physical flow. Terms and phases are fixed, with no runtime
-random state. The CPU resolves the body profile and uploads compact parameters;
-the GPU evaluates the phases per fragment. The mathematical evaluator is
+random state. The CPU resolves the body profile and precomputes each term's
+direction, amplitude and wave number once per draw; the GPU only evaluates the
+time-varying phases per vertex/fragment. The mathematical evaluator is
 independent of screen coordinates and can be moved into a shared GLSL source
 for a future vertex mesh. A CPU waterline implementation must reproduce these
 same constants and phase order; no independent wave equation should be added.

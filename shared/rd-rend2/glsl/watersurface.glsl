@@ -90,8 +90,6 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	if (u_Water[13].x < 0.5)
 		return w;
 
-	float wavelength = max(u_Water[15].y * u_Water[13].z, 8.0);
-	float amplitude = u_Water[15].x * u_Water[13].y;
 	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
 	float speed = u_Water[15].z * u_Water[13].w * 16.0;
 	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
@@ -99,9 +97,6 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		// Stable body-average depth. A true per-edge mask requires boundary geometry.
 		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
 	}
-	vec2 flow = u_Water[17].xy;
-	float flowLength = length(flow);
-	vec2 mainDirection = flowLength > 0.001 ? flow / flowLength : vec2(0.8, 0.6);
 	// The eight deterministic components contain four macro and four medium
 	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
 	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
@@ -112,14 +107,11 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		if (i >= count) break;
 		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 		float fi = float(component);
-		float angle = fi * 2.3999632;
-		vec2 spread = vec2(cos(angle), sin(angle));
-		vec2 direction = normalize(mix(spread, mainDirection, flowLength > 0.001 ? 0.72 : 0.22));
-		float scale = component < 4 ? (1.0 - 0.15 * fi) : (0.34 - 0.035 * (fi - 4.0));
-		float lambda = wavelength * (component < 4 ? (1.0 - 0.13 * fi) : (0.28 - 0.025 * (fi - 4.0)));
-		float a = amplitude * scale * (component < 4 ? 0.28 : 0.10) * w.attenuation * qualityAmplitude;
-		float k = 6.2831853 / max(lambda, 4.0);
-		float omega = 6.2831853 * speed / max(lambda, 4.0);
+		vec4 term = u_Water[20 + component]; // direction.xy, amplitude, wave number
+		vec2 direction = term.xy;
+		float a = term.z * w.attenuation * qualityAmplitude;
+		float k = term.w;
+		float omega = speed * k;
 		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
@@ -344,6 +336,7 @@ void main()
 //   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
 //   [18] debug, body ID, choppiness, wave multiplier;
 //   [19] legacy deform amplitude, geometry enabled, geometry debug, unused
+//   [20..27] precomputed analytic wave direction.xy, amplitude, wave number
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -424,7 +417,7 @@ in vec2 var_FlowTex;
 out vec4 out_Color;
 out vec4 out_Glow;
 #if defined(USE_SSR)
-out vec4 out_SSRNormal; // reflection prepass: world hit position and validity
+out vec4 out_SSRNormal; // reflection prepass: receiver-to-hit vector and validity
 #endif
 
 #ifndef ROUGHNESS_MIPS
@@ -475,8 +468,6 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	if (u_Water[13].x < 0.5)
 		return w;
 
-	float wavelength = max(u_Water[15].y * u_Water[13].z, 8.0);
-	float amplitude = u_Water[15].x * u_Water[13].y;
 	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
 	float speed = u_Water[15].z * u_Water[13].w * 16.0;
 	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
@@ -484,9 +475,6 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		// Stable body-average depth. A true per-edge mask requires boundary geometry.
 		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
 	}
-	vec2 flow = u_Water[17].xy;
-	float flowLength = length(flow);
-	vec2 mainDirection = flowLength > 0.001 ? flow / flowLength : vec2(0.8, 0.6);
 	// The eight deterministic components contain four macro and four medium
 	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
 	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
@@ -497,14 +485,11 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		if (i >= count) break;
 		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 		float fi = float(component);
-		float angle = fi * 2.3999632;
-		vec2 spread = vec2(cos(angle), sin(angle));
-		vec2 direction = normalize(mix(spread, mainDirection, flowLength > 0.001 ? 0.72 : 0.22));
-		float scale = component < 4 ? (1.0 - 0.15 * fi) : (0.34 - 0.035 * (fi - 4.0));
-		float lambda = wavelength * (component < 4 ? (1.0 - 0.13 * fi) : (0.28 - 0.025 * (fi - 4.0)));
-		float a = amplitude * scale * (component < 4 ? 0.28 : 0.10) * w.attenuation * qualityAmplitude;
-		float k = 6.2831853 / max(lambda, 4.0);
-		float omega = 6.2831853 * speed / max(lambda, 4.0);
+		vec4 term = u_Water[20 + component]; // direction.xy, amplitude, wave number
+		vec2 direction = term.xy;
+		float a = term.z * w.attenuation * qualityAmplitude;
+		float k = term.w;
+		float omega = speed * k;
 		float phase = k * dot(direction, worldPosition.xy) - omega * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
@@ -583,8 +568,17 @@ vec2 WaterRefractedUV(vec3 P, vec3 Rt, float L, vec2 uv)
 	if (offsetLength > 0.12)
 		offset *= 0.12 / offsetLength;
 	vec2 halfTexel = 0.5 / vec2(textureSize(u_WaterSceneMap, 0));
-	return clamp(uv + offset, u_Water[12].xy + halfTexel,
-		u_Water[12].xy + u_Water[12].zw - halfTexel);
+	vec2 lo = u_Water[12].xy + halfTexel;
+	vec2 hi = u_Water[12].xy + u_Water[12].zw - halfTexel;
+	// Clamping a displaced lookup repeats the last row/column into a visible
+	// streak.  Fade only the unavailable part of the displacement instead;
+	// samples that remain on-screen are unchanged.
+	vec2 available = vec2(offset.x < 0.0 ? uv.x - lo.x : hi.x - uv.x,
+		offset.y < 0.0 ? uv.y - lo.y : hi.y - uv.y);
+	vec2 ratio = available / max(abs(offset), vec2(1.0e-6));
+	float edgeScale = clamp(min(ratio.x, ratio.y), 0.0, 1.0);
+	edgeScale *= edgeScale;
+	return clamp(uv + offset * edgeScale, lo, hi);
 }
 
 // Hardware depth describes one surface, never an interpolation between surfaces.
@@ -747,6 +741,10 @@ vec3 WaterEnvironment(vec3 P, vec3 R, float lod)
 vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDistance)
 {
 	hitDistance = 0.0;
+	// This is also the exact upper edge of the roughness confidence ramp, so
+	// tracing cannot contribute anything at or above it.
+	if (roughness >= u_SSRSettings2.x)
+		return vec4(0.0);
 	vec3 right = u_Water[7].xyz;
 	vec3 up = u_Water[8].xyz;
 	vec3 forward = normalize(u_ViewForward);
@@ -844,12 +842,18 @@ vec4 WaterResolvedSSR(vec3 P, vec3 N, float roughness, out float hitDistance)
 		vec2 bilinear = mix(vec2(1.0) - f, f, vec2(offset));
 		float weight = bilinear.x * bilinear.y;
 		weight *= exp(-abs(geom.x - z) / max(0.02 * z, 0.5));
-		weight *= pow(max(dot(normal, N), 0.0), 32.0);
+		float normalWeight = max(dot(normal, N), 0.0);
+		normalWeight *= normalWeight;
+		normalWeight *= normalWeight;
+		normalWeight *= normalWeight;
+		normalWeight *= normalWeight;
+		normalWeight *= normalWeight;
+		weight *= normalWeight;
 		weight *= exp(-16.0 * abs(geom.w - roughness));
 		vec4 value = texelFetch(u_SSRHistoryMap, pixel, 0);
 		vec4 hit = texelFetch(u_SSRPrevHitMap, pixel, 0);
 		sum += value * weight;
-		distanceSum += length(hit.xyz - P) * hit.w * weight;
+		distanceSum += length(hit.xyz) * hit.w * weight;
 		weightSum += weight;
 	}
 	hitDistance = distanceSum / max(weightSum, 1e-4);
@@ -879,7 +883,9 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 	float distance;
 	vec4 ssr = WaterSSRTrace(P, R, side, roughness, distance);
 	vec4 current = vec4(ssr.rgb * ssr.a, ssr.a);
-	vec4 hit = vec4(P + R * distance, ssr.a > 0.0 ? 1.0 : 0.0);
+	// Receiver-relative vectors retain useful precision in RGBA16F regardless
+	// of the map's absolute world coordinates.
+	vec4 hit = vec4(R * distance, ssr.a > 0.0 ? 1.0 : 0.0);
 	if (u_WaterPass.y > 0.5 && hit.w > 0.0)
 	{
 		vec4 prevClip = u_SSRReproject * vec4(P, 1.0);
@@ -1032,14 +1038,20 @@ void main()
 
 
 	float NV = max(dot(N, V), 1e-4);
-	float F = FresnelDielectric(NV, inside ? ior : 1.0 / ior);
-	float W = F;
+	float F;
+	float W;
 	if (!inside && WaterFlag(WATER_FLAG_ENVBRDF))
 	{
 		float F0 = (ior - 1.0) / (ior + 1.0);
 		F0 *= F0;
 		vec2 envBrdf = texture(u_EnvBrdfMap, vec2(roughness, NV)).rg;
 		W = clamp(F0 * envBrdf.x + envBrdf.y, 0.0, 1.0);
+		F = W;
+	}
+	else
+	{
+		F = FresnelDielectric(NV, inside ? ior : 1.0 / ior);
+		W = F;
 	}
 
 	// Snell's window (r_waterSnell): from inside, the exact water -> air Fresnel averaged over the

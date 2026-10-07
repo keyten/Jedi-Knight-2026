@@ -282,11 +282,104 @@ static struct
 	vec4_t ssrSettings[3];
 	int viewFlags;
 	int fallbackCubemap;
+	int copyRect[4];		// conservative visible-water rect, render-target pixels
 } s_water;
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
 {
 	return s_water.resources;
+}
+
+/*
+=================
+RB_WaterSurfaceSetCoverage
+
+Conservative screen rectangle of submitted world-water bodies. Refraction can
+sample up to 12% of the view away from a fragment, so the rectangle includes
+that halo. Unreliable bounds or an AABB crossing the eye plane fall back to the
+complete viewport.
+=================
+*/
+void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
+{
+	backEnd.waterInterfacesVisible = qfalse;
+	const viewParms_t& v = backEnd.viewParms;
+	s_water.copyRect[0] = v.viewportX;
+	s_water.copyRect[1] = v.viewportY;
+	s_water.copyRect[2] = v.viewportWidth;
+	s_water.copyRect[3] = v.viewportHeight;
+	if (!r_waterSurface->integer || !drawSurfs || numDrawSurfs <= 0)
+		return;
+
+	int minX = v.viewportX + v.viewportWidth;
+	int minY = v.viewportY + v.viewportHeight;
+	int maxX = v.viewportX;
+	int maxY = v.viewportY;
+	bool full = false;
+	std::set<int> projectedBodies;
+	const float *m = v.world.modelViewMatrix;
+	const float *p = v.projectionMatrix;
+	for (int i = 0; i < numDrawSurfs && !full; ++i)
+	{
+		const uint32_t key = drawSurfs[i].waterKey;
+		if (!(key & WATERKEY_INTERFACE))
+			continue;
+		backEnd.waterInterfacesVisible = qtrue;
+		const int bodyId = (int)(key >> 20);
+		if (!(key & WATERKEY_WORLD_BRUSH) || bodyId <= 0 || bodyId > (int)s_water.bodies.size())
+		{
+			full = true;
+			break;
+		}
+		if (!projectedBodies.insert(bodyId).second)
+			continue;
+		const waterBody_t& body = s_water.bodies[bodyId - 1];
+		// Match the deliberately conservative render-mesh cull expansion: live
+		// amplitude controls and horizontal crest drift can move the interface
+		// outside the static BSP/body bounds.
+		const float waveExtent = 4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f *
+			MAX(body.waveMultiplier, 1.0f) * 2.0f;
+		for (int corner = 0; corner < 8; ++corner)
+		{
+			const float x = body.bounds[(corner >> 0) & 1][0] + (((corner >> 0) & 1) ? waveExtent : -waveExtent);
+			const float y = body.bounds[(corner >> 1) & 1][1] + (((corner >> 1) & 1) ? waveExtent : -waveExtent);
+			const float z = body.bounds[(corner >> 2) & 1][2] + (((corner >> 2) & 1) ? waveExtent : -waveExtent);
+			const float ex = m[0] * x + m[4] * y + m[8] * z + m[12];
+			const float ey = m[1] * x + m[5] * y + m[9] * z + m[13];
+			const float ez = m[2] * x + m[6] * y + m[10] * z + m[14];
+			const float ew = m[3] * x + m[7] * y + m[11] * z + m[15];
+			const float cx = p[0] * ex + p[4] * ey + p[8] * ez + p[12] * ew;
+			const float cy = p[1] * ex + p[5] * ey + p[9] * ez + p[13] * ew;
+			const float cw = p[3] * ex + p[7] * ey + p[11] * ez + p[15] * ew;
+			if (cw <= 1.0e-4f)
+			{
+				full = true;
+				break;
+			}
+			const float sx = v.viewportX + (cx / cw * 0.5f + 0.5f) * v.viewportWidth;
+			const float sy = v.viewportY + (cy / cw * 0.5f + 0.5f) * v.viewportHeight;
+			minX = MIN(minX, (int)floorf(sx));
+			minY = MIN(minY, (int)floorf(sy));
+			maxX = MAX(maxX, (int)ceilf(sx));
+			maxY = MAX(maxY, (int)ceilf(sy));
+		}
+	}
+	if (!backEnd.waterInterfacesVisible || full)
+		return;
+
+	const int haloX = (int)ceilf(0.12f * v.viewportWidth) + 2;
+	const int haloY = (int)ceilf(0.12f * v.viewportHeight) + 2;
+	minX = Com_Clampi(v.viewportX, v.viewportX + v.viewportWidth, minX - haloX);
+	minY = Com_Clampi(v.viewportY, v.viewportY + v.viewportHeight, minY - haloY);
+	maxX = Com_Clampi(v.viewportX, v.viewportX + v.viewportWidth, maxX + haloX);
+	maxY = Com_Clampi(v.viewportY, v.viewportY + v.viewportHeight, maxY + haloY);
+	if (maxX > minX && maxY > minY)
+	{
+		s_water.copyRect[0] = minX;
+		s_water.copyRect[1] = minY;
+		s_water.copyRect[2] = maxX - minX;
+		s_water.copyRect[3] = maxY - minY;
+	}
 }
 
 static int R_WaterLiquidClass( int contents )
@@ -1564,8 +1657,12 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 		for (int i = 0; i < 2; i++)
 		{
 			tr.waterReflectionImage[i] = R_ScreenCreateImage(va("*waterReflection%d", i), rw, rh, GL_RGBA16F, qfalse);
-			tr.waterReflectionGeomImage[i] = R_ScreenCreateImage(va("*waterReflectionGeom%d", i), rw, rh, GL_RGBA32F, qfalse);
-			tr.waterReflectionHitImage[i] = R_ScreenCreateImage(va("*waterReflectionHit%d", i), rw, rh, GL_RGBA32F, qfalse);
+			// View depth, octahedral normals and roughness all have ample precision
+			// in half floats.  The hit target stores a receiver-relative vector,
+			// rather than an absolute world position, so it is half-float safe even
+			// on maps far from the world origin.
+			tr.waterReflectionGeomImage[i] = R_ScreenCreateImage(va("*waterReflectionGeom%d", i), rw, rh, GL_RGBA16F, qfalse);
+			tr.waterReflectionHitImage[i] = R_ScreenCreateImage(va("*waterReflectionHit%d", i), rw, rh, GL_RGBA16F, qfalse);
 		}
 		tr.waterReflectionDepthImage = R_ScreenCreateImage("*waterReflectionDepth", rw, rh, GL_DEPTH24_STENCIL8, qfalse);
 	}
@@ -2057,6 +2154,31 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
 		body && body->geometryVerts > 0 && r_waterGeometry->integer ? 1.0f : 0.0f,
 		(float)r_waterGeometryDebug->integer, 0.0f);
+	// The analytic spectrum is shared by the vertex displacement and fragment
+	// normal.  Direction, amplitude and wave number are constant for this body
+	// and draw; computing them here avoids normalization, trigonometry and
+	// divisions for every component of every covered fragment.
+	const float wavelength = MAX(water[15][1] * water[13][2], 8.0f);
+	const float amplitude = water[15][0] * water[13][1];
+	const float flowLength = sqrtf(water[17][0] * water[17][0] + water[17][1] * water[17][1]);
+	const float mainX = flowLength > 0.001f ? water[17][0] / flowLength : 0.8f;
+	const float mainY = flowLength > 0.001f ? water[17][1] / flowLength : 0.6f;
+	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
+	for (int i = 0; i < 8; ++i)
+	{
+		const float fi = (float)i;
+		const float angle = fi * 2.3999632f;
+		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
+		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
+		const float invDirectionLength = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f));
+		dx *= invDirectionLength;
+		dy *= invDirectionLength;
+		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
+		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
+		const float a = amplitude * scale * (i < 4 ? 0.28f : 0.10f);
+		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
+		VectorSet4(water[20 + i], dx, dy, a, k);
+	}
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];
 	const bool froxel = (s_water.viewFlags & 4) != 0;
@@ -2127,8 +2249,12 @@ void RB_WaterSurfacePrepare( void )
 	R_PushDebugGroup(AL_STAGE, "Water surface");
 	s_water.timer = RB_ScreenBeginTimer("Water surface");
 
-	// blits are clipped by the scissor rectangle
-	GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
+	// Blits honor the scissor.  Only the submitted main-view rectangle can be
+	// sampled by this water pass; avoid copying unused render-target pixels
+	// (notably split-screen / oversized render targets) without changing any
+	// sample visible to the shader.
+	GL_SetViewportAndScissor(s_water.copyRect[0], s_water.copyRect[1],
+		s_water.copyRect[2], s_water.copyRect[3]);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 0, 0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
