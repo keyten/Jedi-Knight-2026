@@ -1,6 +1,6 @@
 # Body-local interactive water disturbances
 
-`r_waterInteraction 1` adds transient, world-caused disturbances to the existing modern water surface. It is off by default and requires `r_waterSurface 1`; enabling it is latched and therefore requires `vid_restart` or a map restart. Ambient waves, authored deformation, optics, flow, and legacy water are not replaced.
+`r_waterInteraction 1` adds transient, world-caused disturbances to the existing modern water surface. It is off by default and requires `r_waterSurface 1`; enabling it is latched and therefore requires `vid_restart`. Ambient waves, authored deformation, optics, flow, and legacy water are not replaced.
 
 The final modern-water evaluator is:
 
@@ -10,6 +10,21 @@ normal  = geometric normal - ambient slope - interactive central-difference slop
 ```
 
 The combined position and normal remain in `watersurface.glsl`, so the displaced render mesh, waterline/silhouette, depth, refraction, SSR/cubemap reflection, Fresnel/Snell/TIR tests, lighting, and debug views consume one surface definition. If `r_waterGeometry 0`, the interaction still contributes its real height-field slope to shading but cannot change the flat BSP geometry. No normal-map-only ripple path exists.
+
+## Quick visual check
+
+Run these commands before judging the feature. Both allocation controls are latched:
+
+```
+r_waterSurface 1
+r_waterInteraction 1
+r_waterGeometry 1
+vid_restart
+```
+
+Load a map, stand above a modern water surface, aim the crosshair at it, and run `r_waterInteractionInfo`. It must say `enabled`, list at least one body field, and report either `geometry displacement+optics` or `geometry optics-only`. Then run `r_waterImpulse`; the no-argument test impulse is deliberately strong. The console must say `queued for body N`. If it instead reports that the crosshair missed, aim directly at an allocated surface or use `r_waterInteractionDebug 1` to display its domain.
+
+Use `r_waterInteractionDebug 3` for an unmistakable height-field view, `5` for the actual slope, and `8` for active/sleeping state. Return to the normal result with `r_waterInteractionDebug 0`. For an exaggerated beauty-view check, use `r_waterImpulse 6 48`; this is a diagnostic value, not the recommended gameplay calibration.
 
 ## Domain, mapping, and mask
 
@@ -100,7 +115,7 @@ Extension points require no solver changes:
 
 Commands:
 
-- `r_waterImpulse [strength=1] [radius=48]`: inject at the water point under the crosshair. A nearest masked-texel fallback covers thin discretised shores, limited to ten degrees from the ray.
+- `r_waterImpulse [strength=3] [radius=32]`: inject an intentionally obvious test impulse at the water point under the crosshair. Pass explicit lower values when tuning gameplay. A nearest masked-texel fallback covers thin discretised shores, limited to ten degrees from the ray.
 - `r_waterInteractionInfo`: print resolutions, physical texel sizes, mask coverage, active/sleeping state, energy, fixed steps, source-processing/solver/upload time, average API submission cost, and GPU memory.
 
 Debug modes: 1 domain/UV, 2 mask, 3 height, 4 velocity, 5 actual central-difference slope, 6 latest source, 7 transient foam, 8 active/sleeping, 9 world-to-body mapping grid. The numeric body energy remains available through `r_waterInteractionInfo`. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).

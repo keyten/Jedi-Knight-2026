@@ -682,10 +682,26 @@ static void RB_WaterInteractionUpdate(void)
 
 void R_WaterInteractionInfo_f(void)
 {
+	if (!r_waterSurface || !r_waterSurface->integer)
+	{
+		ri.Printf(PRINT_ALL, "water interaction: unavailable because r_waterSurface is disabled (set r_waterSurface 1; vid_restart)\n");
+		return;
+	}
+	if (!r_waterInteraction || !r_waterInteraction->integer)
+	{
+		ri.Printf(PRINT_ALL, "water interaction: disabled (set r_waterInteraction 1; vid_restart)\n");
+		return;
+	}
+	if (!s_water.interactionGpuBytes)
+	{
+		ri.Printf(PRINT_ALL, "water interaction: enabled, but this map has no allocated modern-water domains; check r_waterInteractionMaxBodies/MaxTexels/MemoryMB\n");
+		return;
+	}
 	const double submitAverage = s_water.interactionSubmissions ?
 		s_water.interactionSubmitUsec / s_water.interactionSubmissions : 0.0;
-	ri.Printf(PRINT_ALL, "water interaction: %u GPU bytes, last %d fixed steps, source %.3f ms, solver %.3f ms, upload %.3f ms, API submit %.3f us avg (%u)\n",
-		(unsigned)s_water.interactionGpuBytes, s_water.interactionSteps, s_water.interactionSourceMsec,
+	ri.Printf(PRINT_ALL, "water interaction: enabled, %u GPU bytes, geometry %s, last %d fixed steps, source %.3f ms, solver %.3f ms, upload %.3f ms, API submit %.3f us avg (%u)\n",
+		(unsigned)s_water.interactionGpuBytes, r_waterGeometry && r_waterGeometry->integer ? "displacement+optics" : "optics-only",
+		s_water.interactionSteps, s_water.interactionSourceMsec,
 		s_water.interactionStepMsec, s_water.interactionUploadMsec, submitAverage,
 		s_water.interactionSubmissions);
 	for (const waterBody_t& body : s_water.bodies)
@@ -702,8 +718,8 @@ void R_WaterInteractionInfo_f(void)
 void R_WaterImpulse_f(void)
 {
 	if (!r_waterInteraction->integer) { ri.Printf(PRINT_ALL, "r_waterInteraction is disabled (latched; set 1 and vid_restart)\n"); return; }
-	const float strength = ri.Cmd_Argc() > 1 ? (float)atof(ri.Cmd_Argv(1)) : 1.0f;
-	const float radius = ri.Cmd_Argc() > 2 ? (float)atof(ri.Cmd_Argv(2)) : 48.0f;
+	const float strength = ri.Cmd_Argc() > 1 ? (float)atof(ri.Cmd_Argv(1)) : 3.0f;
+	const float radius = ri.Cmd_Argc() > 2 ? (float)atof(ri.Cmd_Argv(2)) : 32.0f;
 	waterBody_t *best = nullptr; vec3_t hit = {}; float bestT = 1.0e30f;
 	for (waterBody_t& body : s_water.bodies)
 	{
@@ -743,7 +759,7 @@ void R_WaterImpulse_f(void)
 	if (!best) { ri.Printf(PRINT_ALL, "r_waterImpulse: crosshair does not hit an allocated water-body domain\n"); return; }
 	refWaterImpulse_t impulse = {}; VectorCopy(hit, impulse.position); impulse.radius = radius; impulse.strength = strength;
 	RE_AddWaterImpulse(&impulse);
-	ri.Printf(PRINT_ALL, "water impulse: body %d at (%.1f %.1f %.1f), radius %.1f, strength %.2f\n",
+	ri.Printf(PRINT_ALL, "water impulse: queued for body %d at (%.1f %.1f %.1f), radius %.1f, strength %.2f; use r_waterInteractionDebug 3 to inspect height\n",
 		best->id, hit[0], hit[1], hit[2], radius, strength);
 }
 

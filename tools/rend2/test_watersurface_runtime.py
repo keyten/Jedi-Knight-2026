@@ -44,6 +44,22 @@ def check_debug_images(directory):
     print('PASS: underside of interface visible at', orange, 'pixels')
 
 
+def check_interaction_beauty(directory):
+    """Verify the ordinary water result changes, independently of debug colours."""
+    before = read_tga(directory/'water-interaction-before.tga')
+    after = read_tga(directory/'water-interaction-after.tga')
+    assert before[:2] == after[:2]
+    changed = 0
+    peak = 0
+    for i in range(0, len(before[2]), 3):
+        delta = max(abs(before[2][i+j] - after[2][i+j]) for j in range(3))
+        changed += delta > 2
+        peak = max(peak, delta)
+    assert changed >= 100 and peak >= 4, (changed, peak)
+    print('PASS: ordinary water visibly responds to the impulse at', changed,
+          'pixels; peak 8-bit delta', peak)
+
+
 def main():
     repo = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -153,7 +169,9 @@ def main():
                            if command.startswith('r_waterSurfaceDebug 0'))
         commands[debug_reset] += '\n' + '\n'.join([
             interaction_above, 'centerview', '+lookdown', 'wait 45', '-lookdown', 'wait 4',
-            'r_waterImpulse 1 24', 'wait 8',
+            'r_waterWaveTime 4', 'r_waterInteractionDebug 0', 'wait 4',
+            'screenshot_tga water-interaction-before',
+            'r_waterImpulse', 'wait 2', 'screenshot_tga water-interaction-after', 'wait 6',
             'r_waterInteractionDebug 1', 'wait 3', 'screenshot_tga water-interaction-domain',
             'r_waterInteractionDebug 2', 'wait 3', 'screenshot_tga water-interaction-mask',
             'r_waterInteractionDebug 3', 'wait 3', 'screenshot_tga water-interaction-height',
@@ -163,7 +181,7 @@ def main():
             'r_waterInteractionDebug 7', 'wait 3', 'screenshot_tga water-interaction-foam',
             'r_waterInteractionDebug 8', 'wait 3', 'screenshot_tga water-interaction-active',
             'r_waterInteractionDebug 9', 'wait 3', 'screenshot_tga water-interaction-mapping',
-            'r_waterInteractionDebug 0', 'r_waterInteractionInfo'])
+            'r_waterInteractionDebug 0', 'r_waterWaveTime -1', 'r_waterInteractionInfo'])
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
@@ -220,8 +238,9 @@ def main():
                      'water-flow-source.tga', 'water-flow-detail.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.interaction:
-        assert 'water impulse: body' in log, 'Crosshair impulse did not resolve a body'
-        assert re.search(r'water interaction: \d+ GPU bytes, last \d+ fixed steps', log), 'Missing interaction statistics'
+        assert 'water impulse: queued for body' in log, 'Crosshair impulse did not resolve a body'
+        assert re.search(r'water interaction: enabled, \d+ GPU bytes, geometry', log), 'Missing interaction statistics'
+        check_interaction_beauty(base/'screenshots')
         for name in ('water-interaction-domain.tga', 'water-interaction-mask.tga',
                      'water-interaction-height.tga', 'water-interaction-velocity.tga',
                      'water-interaction-slope.tga', 'water-interaction-source.tga',
