@@ -55,7 +55,7 @@ Frame time enters an accumulator, is clamped to 250 ms after a hitch, and at mos
 
 An impulse adds a compact, smooth Mexican-hat velocity kernel. Its positive core and compensating trough are mean-corrected after mask clipping, conserving volume in a closed body and preventing a permanent DC water-height offset. Radius is clamped to at least 1.5 texels and at most 1024 world units; strength is clamped to `[-8, 8]`. An optional tangent direction biases the kernel without introducing a single-texel spike.
 
-Continuous sources use the same stamp, scaled by the fixed `dt`, so injection is deterministic rather than render-frame dependent. Multiple sources and impulses superpose in the shared field and interfere naturally.
+Moving sources are tracked by stable entity ID. Their horizontal path is sampled at a physical spacing derived from body width; the leftover distance carries into the next frame. Injection density therefore depends on distance travelled rather than render frames or solver steps. Wake samples use an elongated bow/stern height-velocity dipole, and multiple samples, sources, and impulses superpose in the shared field and interfere naturally.
 
 Energy is the masked mean of `h^2 + v^2/c^2`. A body with energy below `1e-5` for one second is zeroed and put to sleep. A new impulse/source wakes it. Sleeping bodies execute no stencil and make no texture upload. Ambient analytic waves continue normally during sleep.
 
@@ -89,11 +89,10 @@ void AddWaterImpulse(const refWaterImpulse_t *impulse);
 void SetWaterSources(const refWaterSource_t *sources, int count);
 ```
 
-Both structures take world position, radius, strength, optional directional flag/vector, and a caller-defined diagnostic type. Continuous sources also have a stable caller ID. SP exposes matching cgame syscalls guarded by `cl_rendererWaterInteraction`; MP appends matching optional import callbacks. Existing `EV_WATER_TOUCH` and `EV_WATER_LEAVE` events submit nominal positive/negative impulses. Older engines/renderers remain safe because the capability/export is optional.
+Both structures take world position, radius, strength, optional directional flag/vector, and a caller-defined diagnostic type. Moving sources also carry a stable caller ID, velocity, waterline width, vertical bounds, and foam amount. The renderer tests those bounds against the body-local displaced surface, rejecting fully submerged and airborne objects while retaining swimmers, floating vehicles, and shallow-water walkers. SP exposes matching cgame syscalls guarded by `cl_rendererWaterInteraction`; MP appends matching optional import callbacks. Existing `EV_WATER_TOUCH` and `EV_WATER_LEAVE` events submit nominal positive/negative impulses.
 
 Extension points require no solver changes:
 
-- wakes: submit a moving capsule as a short sequence/list of directional continuous sources;
 - rain: batch visible impact points as small one-shot impulses;
 - waterfall impact: keep a stable continuous source ID at the impact basin;
 - scripted effects/projectiles: call `AddWaterImpulse` with their world hit position, radius, energy, and direction;
@@ -112,6 +111,12 @@ Extension points require no solver changes:
 | `r_waterInteractionMaxTexels` | 524288 | total texel limit, latched |
 | `r_waterInteractionMemoryMB` | 16 | GPU field memory limit, latched |
 | `r_waterInteractionDebug` | 0 | debug modes below |
+| `r_waterWakes` | 1 | moving player/NPC/vehicle/mover sources |
+| `r_waterWakeStrength` | 1 | wake source-strength multiplier |
+| `r_waterWakeMinSpeed` | 35 | minimum horizontal source speed |
+| `r_waterWakeFoamSpeed` | 260 | speed at which low wake foam begins |
+| `r_waterWakeMaxEntities` | 16 | nearest tracked entities, player first |
+| `r_waterWakeDebug` | 0 | tracked bounds, waterline/shape, direction/strength |
 
 Commands:
 
@@ -148,5 +153,5 @@ Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surfac
 - Body coordinates are world XY and currently target the existing mostly-horizontal modern-water eligibility. Vertical waterfall faces remain legacy; their impact basin should feed a horizontal body's source.
 - Allocation is per map and bounded, but body fields are image-manager resources until renderer restart, like other renderer-created images.
 - Mask resolution cannot preserve a channel narrower than one texel. Quality/budget controls determine that physical limit.
-- Gameplay water entry/leave and missile/thrown-saber crossings are wired. Rain, wake, and waterfall producers remain explicit extension points rather than guessed from shader names.
+- Gameplay water entry/leave, missile/thrown-saber crossings, and bounded moving-object wakes are wired. Rain and waterfall producers remain explicit extension points rather than guessed from shader names.
 - Texture upload is asynchronous on the tested driver; its reported number is CPU/driver wall time, not completion time on the GPU.

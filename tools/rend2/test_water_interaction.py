@@ -3,7 +3,7 @@
 This mirrors the finite-difference update in tr_watersurface.cpp without an
 OpenGL dependency.  It checks the invariants that are easiest to regress:
 fixed-timestep independence, mask isolation, expanding finite waves,
-interference, and eventual sleep.
+interference, eventual sleep, and distance-sampled wake density.
 """
 from __future__ import annotations
 
@@ -99,8 +99,33 @@ def run_fps(fps, seconds=2.0):
     return f
 
 
+def wake_samples(fps, seconds=2.0, speed=180.0, spacing=12.0):
+    """Mirror the renderer's carried-distance sampler for straight motion."""
+    last = 0.0
+    carry = 0.0
+    samples = []
+    for frame in range(1, round(seconds * fps) + 1):
+        position = speed * frame / fps
+        distance = position - last
+        first = spacing - carry
+        count = 1 + math.floor((distance - first) / spacing) if first <= distance else 0
+        samples.extend(last + first + n * spacing for n in range(count))
+        carry = carry + distance - count * spacing
+        if carry >= spacing:
+            carry = math.fmod(carry, spacing)
+        last = position
+    return samples
+
+
 def main():
     results = []
+    # Source stamps are spatial, not one-per-render-frame.
+    wake_30, wake_60, wake_144 = wake_samples(30), wake_samples(60), wake_samples(144)
+    wake_error = max(abs(x - y) for a, b in ((wake_30, wake_60), (wake_60, wake_144))
+                     for x, y in zip(a, b))
+    results.append((len(wake_30) == len(wake_60) == len(wake_144) and wake_error < 1e-5,
+                    f"wake distance sampling: {len(wake_60)} stamps, max FPS error {wake_error:.3g}"))
+
     a, b, c = run_fps(30), run_fps(60), run_fps(144)
     for name, other in (("30", a), ("144", c)):
         err = max(abs(x - y) for x, y in zip(b.heights(), other.heights()))

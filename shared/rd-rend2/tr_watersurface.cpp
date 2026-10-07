@@ -203,6 +203,14 @@ struct waterInteractionState_t
 	float lastSource[4] = { 0, 0, 0, 0 }; // body UV, radius in UV, strength
 };
 
+struct waterWakeTrack_t
+{
+	vec3_t position = { 0, 0, 0 };
+	float carry = 0.0f;
+	int lastTime = 0;
+	bool initialized = false;
+};
+
 static const waterDynamics_t s_dynamics[] = {
 	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1 },
 	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f },
@@ -325,6 +333,7 @@ static struct
 	int copyRect[4];		// conservative visible-water rect, render-target pixels
 	std::vector<refWaterImpulse_t> pendingImpulses;
 	std::vector<refWaterSource_t> continuousSources;
+	std::unordered_map<int, waterWakeTrack_t> wakeTracks;
 	unsigned interactionFrame;
 	int interactionTime;
 	float interactionAccumulator;
@@ -467,8 +476,31 @@ static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
 	return best;
 }
 
+static float R_WaterInteractionSurfaceHeight(const waterBody_t& body, const vec3_t position)
+{
+	const float nz = fabsf(body.planeNormal[2]) > 1.0e-4f ? body.planeNormal[2] : 1.0f;
+	float height = (body.planeDist - body.planeNormal[0] * position[0] -
+		body.planeNormal[1] * position[1]) / nz;
+	const waterInteractionState_t& sim = body.interaction;
+	if (!sim.image || sim.width < 1 || sim.height < 1)
+		return height;
+	const float fx = (position[0] - body.bounds[0][0]) / sim.texelX - 0.5f;
+	const float fy = (position[1] - body.bounds[0][1]) / sim.texelY - 0.5f;
+	const int x0 = Com_Clampi(0, sim.width - 1, (int)floorf(fx));
+	const int y0 = Com_Clampi(0, sim.height - 1, (int)floorf(fy));
+	const int x1 = MIN(x0 + 1, sim.width - 1), y1 = MIN(y0 + 1, sim.height - 1);
+	const float tx = Com_Clamp(0.0f, 1.0f, fx - floorf(fx));
+	const float ty = Com_Clamp(0.0f, 1.0f, fy - floorf(fy));
+	const float h00 = sim.state[((size_t)y0 * sim.width + x0) * 3];
+	const float h10 = sim.state[((size_t)y0 * sim.width + x1) * 3];
+	const float h01 = sim.state[((size_t)y1 * sim.width + x0) * 3];
+	const float h11 = sim.state[((size_t)y1 * sim.width + x1) * 3];
+	return height + (h00 + (h10 - h00) * tx) +
+		((h01 + (h11 - h01) * tx) - (h00 + (h10 - h00) * tx)) * ty;
+}
+
 static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, float radius,
-	float strength, float foam, const vec3_t direction, bool continuous)
+	float strength, float foam, const vec3_t direction, bool wake)
 {
 	waterInteractionState_t& sim = body.interaction;
 	if (!sim.image) return;
@@ -477,7 +509,8 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 	strength = Com_Clamp(-8.0f, 8.0f, strength) * r_waterInteractionStrength->value * body.interactionMultiplier;
 	const float cx = (position[0] - body.bounds[0][0]) / sim.texelX - 0.5f;
 	const float cy = (position[1] - body.bounds[0][1]) / sim.texelY - 0.5f;
-	const int rx = (int)ceilf(radius / sim.texelX), ry = (int)ceilf(radius / sim.texelY);
+	const float stampExtent = radius * (wake ? 1.5f : 1.0f);
+	const int rx = (int)ceilf(stampExtent / sim.texelX), ry = (int)ceilf(stampExtent / sim.texelY);
 	vec2_t dir = { direction ? direction[0] : 0.0f, direction ? direction[1] : 0.0f };
 	const float dl = sqrtf(dir[0] * dir[0] + dir[1] * dir[1]);
 	if (dl > 1.0e-5f) { dir[0] /= dl; dir[1] /= dl; }
@@ -489,13 +522,31 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 			const size_t i = (size_t)y * sim.width + x;
 			if (!sim.mask[i]) continue;
 			const float wx = (x - cx) * sim.texelX, wy = (y - cy) * sim.texelY;
-			const float d2 = (wx * wx + wy * wy) / (radius * radius);
+			float d2 = (wx * wx + wy * wy) / (radius * radius);
+			if (wake && dl > 1.0e-5f)
+			{
+				const float along = wx * dir[0] + wy * dir[1];
+				const float across = -wx * dir[1] + wy * dir[0];
+				d2 = across * across / (radius * radius) +
+					along * along / (radius * radius * 2.25f);
+			}
 			if (d2 >= 1.0f) continue;
 			// Compact Mexican-hat kernel: a positive impact core and a small
 			// compensating trough. The discrete mean below removes the residual
 			// introduced by mask clipping, so closed bodies cannot retain a DC
 			// height offset after all motion has damped.
-			float kernel = (1.0f - d2); kernel = kernel * kernel * (1.0f - 4.0f * d2);
+			float kernel = (1.0f - d2);
+			if (wake && dl > 1.0e-5f)
+			{
+				// An elongated, zero-mean bow/stern dipole. Repeated distance
+				// samples form a short strip; the field creates the trailing waves.
+				const float along = (wx * dir[0] + wy * dir[1]) / radius;
+				kernel = kernel * kernel * (-along + 0.18f * (1.0f - 4.0f * d2));
+			}
+			else
+			{
+				kernel = kernel * kernel * (1.0f - 4.0f * d2);
+			}
 			if (dl > 1.0e-5f)
 			{
 				const float wl = sqrtf(wx * wx + wy * wy);
@@ -521,7 +572,7 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 	sim.lastSource[0] = (position[0] - body.bounds[0][0]) / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
 	sim.lastSource[1] = (position[1] - body.bounds[0][1]) / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f);
 	sim.lastSource[2] = radius / MAX(MAX(body.bounds[1][0] - body.bounds[0][0], body.bounds[1][1] - body.bounds[0][1]), 1.0f);
-	sim.lastSource[3] = strength * (continuous ? 0.5f : 1.0f);
+	sim.lastSource[3] = strength * (wake ? 0.5f : 1.0f);
 }
 
 void RE_AddWaterImpulse(const refWaterImpulse_t *impulse)
@@ -544,6 +595,76 @@ void RE_SetWaterSources(const refWaterSource_t *sources, int count)
 	s_water.interactionSubmitUsec += std::chrono::duration<double, std::micro>(
 		std::chrono::high_resolution_clock::now() - start).count();
 	++s_water.interactionSubmissions;
+}
+
+static void R_WaterInteractionWakes(int now)
+{
+	for (auto it = s_water.wakeTracks.begin(); it != s_water.wakeTracks.end(); )
+	{
+		if (now - it->second.lastTime > 1000) it = s_water.wakeTracks.erase(it);
+		else ++it;
+	}
+
+	for (const refWaterSource_t& source : s_water.continuousSources)
+	{
+		waterWakeTrack_t& track = s_water.wakeTracks[source.id];
+		vec3_t delta;
+		VectorSubtract(source.position, track.position, delta);
+		const float distance = sqrtf(delta[0] * delta[0] + delta[1] * delta[1]);
+		const bool discontinuity = !track.initialized || now - track.lastTime > 250 || distance > 512.0f;
+		track.lastTime = now;
+		if (discontinuity)
+		{
+			VectorCopy(source.position, track.position);
+			track.carry = 0.0f;
+			track.initialized = true;
+			continue;
+		}
+
+		const float speed = sqrtf(source.velocity[0] * source.velocity[0] +
+			source.velocity[1] * source.velocity[1]);
+		const float baseRadius = MAX(source.radius, source.width * 0.5f);
+		const float narrow = Com_Clamp(0.55f, 1.15f, 1.15f - speed / 900.0f);
+		const float radius = baseRadius * narrow;
+		const float spacing = Com_Clamp(6.0f, 64.0f, radius * 0.65f);
+		if (source.strength > 0.0f && distance > 1.0e-4f)
+		{
+			const float first = spacing - track.carry;
+			int samples = first <= distance ? 1 + (int)floorf((distance - first) / spacing) : 0;
+			samples = MIN(samples, 24);
+			for (int n = 0; n < samples; ++n)
+			{
+				const float travelled = first + n * spacing;
+				const float f = Com_Clamp(0.0f, 1.0f, travelled / distance);
+				vec3_t position;
+				VectorMA(track.position, f, delta, position);
+				waterBody_t *body = R_WaterInteractionBodyAt(position);
+				if (!body) continue;
+				const float surface = R_WaterInteractionSurfaceHeight(*body, position);
+				const float bottom = position[2] + source.boundsMinZ;
+				const float top = position[2] + source.boundsMaxZ;
+				// Only a body crossing the displaced waterline makes a surface wake:
+				// fully submerged and airborne objects are deliberately excluded.
+				if (surface < bottom - 2.0f || surface > top + 2.0f) continue;
+				const float immersion = Com_Clamp(0.0f, 1.0f,
+					(surface - bottom) / MAX(top - bottom, 1.0f));
+				const float speedScale = Com_Clamp(0.45f, 2.5f, speed / 160.0f);
+				position[2] = surface;
+				R_WaterInteractionStamp(*body, position, radius,
+					source.strength * (0.35f + 0.65f * sqrtf(immersion)) * speedScale,
+					source.foam * immersion, source.direction, true);
+			}
+			const int uncappedSamples = first <= distance ? 1 + (int)floorf((distance - first) / spacing) : 0;
+			track.carry = track.carry + distance - uncappedSamples * spacing;
+			if (track.carry < 0.0f) track.carry = 0.0f;
+			if (track.carry >= spacing) track.carry = fmodf(track.carry, spacing);
+		}
+		else
+		{
+			track.carry = 0.0f;
+		}
+		VectorCopy(source.position, track.position);
+	}
 }
 
 static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
@@ -641,18 +762,13 @@ static void RB_WaterInteractionUpdate(void)
 				impulse.energy, impulse.strength, impulse.sprayCount, impulse.foam);
 	}
 	s_water.pendingImpulses.clear();
+	R_WaterInteractionWakes(now);
 	const auto stepStart = std::chrono::high_resolution_clock::now();
 
 	const float fixedDt = 1.0f / 60.0f;
 	int steps = 0;
 	while (s_water.interactionAccumulator + 1.0e-6f >= fixedDt && steps < 4)
 	{
-		for (const refWaterSource_t& source : s_water.continuousSources)
-		{
-			waterBody_t *body = R_WaterInteractionBodyAt(source.position);
-			if (body) R_WaterInteractionStamp(*body, source.position, source.radius,
-				source.strength * fixedDt, 0.0f, (source.flags & WATERINTERACT_DIRECTIONAL) ? source.direction : NULL, true);
-		}
 		for (waterBody_t& body : s_water.bodies) R_WaterInteractionStepBody(body, fixedDt);
 		s_water.interactionAccumulator -= fixedDt; ++steps;
 	}
@@ -1109,6 +1225,7 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	s_water.bodyRules.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
+	s_water.wakeTracks.clear();
 	s_water.interactionGpuBytes = 0;
 	s_water.interactionTime = -1;
 	s_water.interactionSourceMsec = s_water.interactionStepMsec = s_water.interactionUploadMsec = 0.0f;
@@ -2731,6 +2848,7 @@ void R_WaterSurfaceShutdown( void )
 	s_water.bodyRules.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
+	s_water.wakeTracks.clear();
 	s_water.interactionGpuBytes = 0;
 	s_water.interactionTime = -1;
 	s_water.interactionSourceMsec = s_water.interactionStepMsec = s_water.interactionUploadMsec = 0.0f;

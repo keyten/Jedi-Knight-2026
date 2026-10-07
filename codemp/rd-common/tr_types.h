@@ -479,9 +479,14 @@ typedef struct {
 	vec3_t		position;
 	vec3_t		direction;
 	float		radius;
-	float		strength;	// nominal impulses per second
+	float		strength;	// wake impulse per distance sample (zero still updates tracking)
 	int			flags;
 	int			type;
+	vec3_t		velocity;	// world velocity; horizontal component drives the wake
+	float		boundsMinZ;	// vertical bounds relative to position
+	float		boundsMaxZ;
+	float		width;		// waterline intersection width
+	float		foam;		// foam deposited by each sample
 } refWaterSource_t;
 
 

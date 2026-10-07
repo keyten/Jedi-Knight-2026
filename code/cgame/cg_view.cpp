@@ -2072,6 +2072,150 @@ static void CG_AddFoliageInteractors( void )
 	cgi_R_SetFoliageInteractors( list, count );
 }
 
+/*
+=====================
+CG_AddWaterWakeSources
+
+Sends physical bodies, not cameras or frame-timed ripple events. The renderer
+owns water-body/displacement intersection and distance-based source sampling.
+=====================
+*/
+#define WATER_WAKE_RANGE 2048.0f
+#define MAX_WATER_WAKE_SOURCES 64
+
+typedef struct
+{
+	refWaterSource_t source;
+	float distance2;
+	float surfaceHint;
+	qboolean hasSurfaceHint;
+} waterWakeCandidate_t;
+
+static void CG_InsertWaterWake( waterWakeCandidate_t *list, int *count, int limit,
+	int id, const vec3_t origin, const vec3_t mins, const vec3_t maxs,
+	const vec3_t velocity, float distance2, const playerState_t *ps )
+{
+	const float width = Q_max( maxs[0] - mins[0], maxs[1] - mins[1] );
+	if ( width < 8.0f || maxs[2] - mins[2] < 8.0f || distance2 > WATER_WAKE_RANGE * WATER_WAKE_RANGE )
+		return;
+	waterWakeCandidate_t item = {};
+	item.source.id = id;
+	VectorCopy( origin, item.source.position );
+	VectorCopy( velocity, item.source.velocity );
+	VectorCopy( velocity, item.source.direction ); item.source.direction[2] = 0.0f;
+	const float speed = VectorNormalize( item.source.direction );
+	item.source.flags = speed > 0.0f ? WATERINTERACT_DIRECTIONAL : 0;
+	item.source.radius = width * 0.5f;
+	item.source.width = width;
+	item.source.boundsMinZ = mins[2];
+	item.source.boundsMaxZ = maxs[2];
+	item.source.strength = speed >= r_waterWakeMinSpeed.value ? Q_max( 0.0f, r_waterWakeStrength.value ) : 0.0f;
+	const float foamThreshold = Q_max( r_waterWakeFoamSpeed.value, r_waterWakeMinSpeed.value + 1.0f );
+	item.source.foam = speed > foamThreshold ?
+		0.05f * Com_Clamp( 0.0f, 1.0f, (speed - foamThreshold) / foamThreshold ) : 0.0f;
+	item.distance2 = distance2;
+	if ( ps && ps->waterHeightLevel != WHL_NONE && ps->waterheight >= origin[2] + mins[2] - 2.0f &&
+		ps->waterheight <= origin[2] + maxs[2] + 2.0f )
+	{
+		item.hasSurfaceHint = qtrue;
+		item.surfaceHint = ps->waterheight;
+	}
+
+	int slot = *count;
+	if ( slot == limit )
+	{
+		if ( distance2 >= list[slot - 1].distance2 ) return;
+		slot--;
+	}
+	else (*count)++;
+	while ( slot > 0 && list[slot - 1].distance2 > distance2 )
+	{
+		list[slot] = list[slot - 1];
+		slot--;
+	}
+	list[slot] = item;
+}
+
+static void CG_AddWaterWakeSources( void )
+{
+	if ( !cl_rendererWaterInteraction.integer || !cg.snap ) return;
+	if ( !r_waterWakes.integer || cg.hyperspace )
+	{
+		cgi_R_SetWaterSources( NULL, 0 );
+		return;
+	}
+	waterWakeCandidate_t list[MAX_WATER_WAKE_SOURCES];
+	const int limit = Com_Clampi( 1, MAX_WATER_WAKE_SOURCES, r_waterWakeMaxEntities.integer );
+	int count = 0;
+	const playerState_t *ps = &cg.predicted_player_state;
+	const centity_t *player = &cg_entities[ps->clientNum];
+	vec3_t center;
+	VectorCopy( ps->origin, center );
+	if ( player->gent && player->gent->client && ps->pm_type != PM_INTERMISSION &&
+		!(player->currentState.eFlags & EF_NODRAW) && !G_IsRidingVehicle( player->gent ) )
+	{
+		CG_InsertWaterWake( list, &count, limit, ps->clientNum, ps->origin,
+			player->gent->mins, player->gent->maxs, ps->velocity, 0.0f, ps );
+	}
+
+	for ( int n = 0; n < cg.snap->numEntities; ++n )
+	{
+		const int number = cg.snap->entities[n].number;
+		if ( number == ps->clientNum ) continue;
+		const centity_t *cent = &cg_entities[number];
+		const gentity_t *gent = cent->gent;
+		if ( !gent || (cent->currentState.eFlags & EF_NODRAW) ) continue;
+		const qboolean character = gent->client != NULL ? qtrue : qfalse;
+		const qboolean mover = cent->currentState.eType == ET_MOVER ? qtrue : qfalse;
+		if ( !character && !mover ) continue;
+		vec3_t velocity;
+		const playerState_t *entityPs = NULL;
+		if ( character )
+		{
+			if ( gent->health <= 0 ) continue;
+			entityPs = &gent->client->ps;
+			VectorCopy( entityPs->velocity, velocity );
+		}
+		else EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
+		const float dx = cent->lerpOrigin[0] - center[0], dy = cent->lerpOrigin[1] - center[1];
+		CG_InsertWaterWake( list, &count, limit, number, cent->lerpOrigin,
+			gent->mins, gent->maxs, velocity, dx * dx + dy * dy, entityPs );
+	}
+
+	refWaterSource_t sources[MAX_WATER_WAKE_SOURCES];
+	for ( int n = 0; n < count; ++n )
+	{
+		sources[n] = list[n].source;
+		if ( r_waterWakeDebug.integer )
+		{
+			vec3_t bottom, top, left, right, fore, aft, strengthEnd;
+			VectorCopy( sources[n].position, bottom ); bottom[2] += sources[n].boundsMinZ;
+			VectorCopy( sources[n].position, top ); top[2] += sources[n].boundsMaxZ;
+			CG_TestLine( bottom, top, 80, 0x00ffffff, 1 );
+			if ( list[n].hasSurfaceHint )
+			{
+				VectorCopy( sources[n].position, left ); VectorCopy( sources[n].position, right );
+				left[2] = right[2] = list[n].surfaceHint;
+				left[0] -= sources[n].direction[1] * sources[n].radius;
+				left[1] += sources[n].direction[0] * sources[n].radius;
+				right[0] += sources[n].direction[1] * sources[n].radius;
+				right[1] -= sources[n].direction[0] * sources[n].radius;
+				VectorCopy( sources[n].position, fore ); VectorCopy( sources[n].position, aft );
+				fore[2] = aft[2] = list[n].surfaceHint;
+				VectorMA( fore, sources[n].radius * 1.5f, sources[n].direction, fore );
+				VectorMA( aft, -sources[n].radius * 1.5f, sources[n].direction, aft );
+				CG_TestLine( fore, left, 80, 0x0000ffff, 2 );
+				CG_TestLine( left, aft, 80, 0x0000ffff, 2 );
+				CG_TestLine( aft, right, 80, 0x0000ffff, 2 );
+				CG_TestLine( right, fore, 80, 0x0000ffff, 2 );
+			}
+			VectorMA( sources[n].position, 24.0f * sources[n].strength, sources[n].direction, strengthEnd );
+			CG_TestLine( sources[n].position, strengthEnd, 80, 0x00ff00ff, 2 );
+		}
+	}
+	cgi_R_SetWaterSources( sources, count );
+}
+
 //=========================================================================
 
 /*
@@ -2240,6 +2384,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		CG_AddMarks();
 		CG_DrawMiscEnts();
 		CG_AddFoliageInteractors();
+		CG_AddWaterWakeSources();
 	}
 
 	//check for opaque water

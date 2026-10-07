@@ -2501,6 +2501,166 @@ static void CG_AddFoliageInteractors( void )
 	trap->ext.R_SetFoliageInteractors( list, count );
 }
 
+/* Moving bodies for the renderer's body-local shallow-water wake solver. */
+#define WATER_WAKE_RANGE 2048.0f
+#define MAX_WATER_WAKE_SOURCES 64
+
+typedef struct waterWakeCandidate_s
+{
+	refWaterSource_t source;
+	float distance2;
+	float surfaceHint;
+	qboolean hasSurfaceHint;
+} waterWakeCandidate_t;
+
+static qboolean CG_WakeSurfaceHint( const vec3_t origin, const vec3_t mins, const vec3_t maxs, float *height )
+{
+	vec3_t low, high, mid;
+	VectorCopy( origin, low ); low[2] += mins[2] + 1.0f;
+	VectorCopy( origin, high ); high[2] += maxs[2] - 1.0f;
+	if ( !(CG_PointContents( low, ENTITYNUM_NONE ) & CONTENTS_WATER) ||
+		(CG_PointContents( high, ENTITYNUM_NONE ) & CONTENTS_WATER) ) return qfalse;
+	for ( int n = 0; n < 8; ++n )
+	{
+		VectorAdd( low, high, mid ); VectorScale( mid, 0.5f, mid );
+		if ( CG_PointContents( mid, ENTITYNUM_NONE ) & CONTENTS_WATER ) VectorCopy( mid, low );
+		else VectorCopy( mid, high );
+	}
+	*height = (low[2] + high[2]) * 0.5f;
+	return qtrue;
+}
+
+static void CG_InsertWaterWake( waterWakeCandidate_t *list, int *count, int limit,
+	int id, const vec3_t origin, const vec3_t mins, const vec3_t maxs,
+	const vec3_t velocity, float distance2 )
+{
+	const float width = MAX( maxs[0] - mins[0], maxs[1] - mins[1] );
+	waterWakeCandidate_t item;
+	int slot;
+	float speed, foamThreshold;
+	if ( width < 8.0f || maxs[2] - mins[2] < 8.0f || distance2 > WATER_WAKE_RANGE * WATER_WAKE_RANGE ) return;
+	memset( &item, 0, sizeof( item ) );
+	item.source.id = id;
+	VectorCopy( origin, item.source.position );
+	VectorCopy( velocity, item.source.velocity );
+	VectorCopy( velocity, item.source.direction ); item.source.direction[2] = 0.0f;
+	speed = VectorNormalize( item.source.direction );
+	item.source.flags = speed > 0.0f ? WATERINTERACT_DIRECTIONAL : 0;
+	item.source.radius = width * 0.5f;
+	item.source.width = width;
+	item.source.boundsMinZ = mins[2]; item.source.boundsMaxZ = maxs[2];
+	item.source.strength = speed >= r_waterWakeMinSpeed.value ? MAX( 0.0f, r_waterWakeStrength.value ) : 0.0f;
+	foamThreshold = MAX( r_waterWakeFoamSpeed.value, r_waterWakeMinSpeed.value + 1.0f );
+	item.source.foam = speed > foamThreshold ?
+		0.05f * Com_Clamp( 0.0f, 1.0f, (speed - foamThreshold) / foamThreshold ) : 0.0f;
+	item.distance2 = distance2;
+	item.hasSurfaceHint = r_waterWakeDebug.integer ?
+		CG_WakeSurfaceHint( origin, mins, maxs, &item.surfaceHint ) : qfalse;
+
+	slot = *count;
+	if ( slot == limit )
+	{
+		if ( distance2 >= list[slot - 1].distance2 ) return;
+		slot--;
+	}
+	else (*count)++;
+	while ( slot > 0 && list[slot - 1].distance2 > distance2 )
+	{
+		list[slot] = list[slot - 1]; slot--;
+	}
+	list[slot] = item;
+}
+
+static void CG_WakeBounds( const centity_t *cent, vec3_t mins, vec3_t maxs )
+{
+	const entityState_t *es = &cent->currentState;
+	if ( es->solid == SOLID_BMODEL && es->modelindex > 0 )
+	{
+		trap->R_ModelBounds( cgs.inlineDrawModel[es->modelindex], mins, maxs );
+	}
+	else if ( es->solid )
+	{
+		const int x = es->solid & 255, zd = (es->solid >> 8) & 255;
+		const int zu = ((es->solid >> 16) & 255) - 32;
+		VectorSet( mins, -x, -x, -zd ); VectorSet( maxs, x, x, zu );
+	}
+	else
+	{
+		const float radius = es->g2radius > 0 ? es->g2radius : 16.0f;
+		VectorSet( mins, -radius, -radius, -radius ); VectorSet( maxs, radius, radius, radius );
+	}
+}
+
+static void CG_AddWaterWakeSources( void )
+{
+	waterWakeCandidate_t list[MAX_WATER_WAKE_SOURCES];
+	refWaterSource_t sources[MAX_WATER_WAKE_SOURCES];
+	const playerState_t *ps;
+	vec3_t center, mins, maxs;
+	int count = 0, limit, n;
+	if ( !trap->ext.R_SetWaterSources || !cg.snap ) return;
+	if ( !r_waterWakes.integer || cg.hyperspace )
+	{
+		trap->ext.R_SetWaterSources( NULL, 0 ); return;
+	}
+	limit = Com_Clampi( 1, MAX_WATER_WAKE_SOURCES, r_waterWakeMaxEntities.integer );
+	ps = &cg.predictedPlayerState;
+	VectorCopy( ps->origin, center );
+	if ( ps->pm_type != PM_SPECTATOR && ps->pm_type != PM_INTERMISSION && ps->pm_type != PM_DEAD && !ps->m_iVehicleNum )
+	{
+		const int stand = ps->standheight ? ps->standheight : DEFAULT_MAXS_2;
+		const int crouch = ps->crouchheight ? ps->crouchheight : CROUCH_MAXS_2;
+		VectorSet( mins, -15.0f, -15.0f, DEFAULT_MINS_2 );
+		VectorSet( maxs, 15.0f, 15.0f, (ps->pm_flags & PMF_DUCKED) ? crouch : stand );
+		CG_InsertWaterWake( list, &count, limit, ps->clientNum, ps->origin, mins, maxs, ps->velocity, 0.0f );
+	}
+	for ( n = 0; n < cg.snap->numEntities; ++n )
+	{
+		const entityState_t *es = &cg.snap->entities[n];
+		const centity_t *cent = &cg_entities[es->number];
+		vec3_t velocity;
+		float dx, dy;
+		if ( es->number == ps->clientNum || (es->eType != ET_PLAYER && es->eType != ET_NPC && es->eType != ET_MOVER) ) continue;
+		if ( es->eFlags & (EF_DEAD | EF_NODRAW) ) continue;
+		CG_WakeBounds( cent, mins, maxs );
+		if ( cent->playerState ) VectorCopy( cent->playerState->velocity, velocity );
+		else if ( es->eType == ET_PLAYER || es->eType == ET_NPC ) VectorCopy( es->pos.trDelta, velocity );
+		else BG_EvaluateTrajectoryDelta( &es->pos, cg.time, velocity );
+		dx = cent->lerpOrigin[0] - center[0]; dy = cent->lerpOrigin[1] - center[1];
+		CG_InsertWaterWake( list, &count, limit, es->number, cent->lerpOrigin,
+			mins, maxs, velocity, dx * dx + dy * dy );
+	}
+	for ( n = 0; n < count; ++n )
+	{
+		vec3_t bottom, top, left, right, fore, aft, strengthEnd;
+		sources[n] = list[n].source;
+		if ( !r_waterWakeDebug.integer ) continue;
+		VectorCopy( sources[n].position, bottom ); bottom[2] += sources[n].boundsMinZ;
+		VectorCopy( sources[n].position, top ); top[2] += sources[n].boundsMaxZ;
+		CG_TestLine( bottom, top, 80, 0x00ffffff, 1 );
+		if ( list[n].hasSurfaceHint )
+		{
+			VectorCopy( sources[n].position, left ); VectorCopy( sources[n].position, right );
+			left[2] = right[2] = list[n].surfaceHint;
+			left[0] -= sources[n].direction[1] * sources[n].radius;
+			left[1] += sources[n].direction[0] * sources[n].radius;
+			right[0] += sources[n].direction[1] * sources[n].radius;
+			right[1] -= sources[n].direction[0] * sources[n].radius;
+			VectorCopy( sources[n].position, fore ); VectorCopy( sources[n].position, aft );
+			fore[2] = aft[2] = list[n].surfaceHint;
+			VectorMA( fore, sources[n].radius * 1.5f, sources[n].direction, fore );
+			VectorMA( aft, -sources[n].radius * 1.5f, sources[n].direction, aft );
+			CG_TestLine( fore, left, 80, 0x0000ffff, 2 );
+			CG_TestLine( left, aft, 80, 0x0000ffff, 2 );
+			CG_TestLine( aft, right, 80, 0x0000ffff, 2 );
+			CG_TestLine( right, fore, 80, 0x0000ffff, 2 );
+		}
+		VectorMA( sources[n].position, 24.0f * sources[n].strength, sources[n].direction, strengthEnd );
+		CG_TestLine( sources[n].position, strengthEnd, 80, 0x00ff00ff, 2 );
+	}
+	trap->ext.R_SetWaterSources( sources, count );
+}
+
 /*
 =================
 CG_DrawActiveFrame
@@ -2754,6 +2914,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 		CG_AddPacketEntities(qfalse);			// adter calcViewValues, so predicted player state is correct
 		CG_AddMarks();
 		CG_AddFoliageInteractors();
+		CG_AddWaterWakeSources();
 	}
 	CG_AddViewWeapon( &cg.predictedPlayerState );
 

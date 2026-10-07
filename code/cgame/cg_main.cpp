@@ -260,6 +260,12 @@ vmCvar_t	r_waterSplashStrength;
 vmCvar_t	r_waterSplashFoam;
 vmCvar_t	r_waterSplashProjectiles;
 vmCvar_t	r_waterSplashDebug;
+vmCvar_t	r_waterWakes;
+vmCvar_t	r_waterWakeStrength;
+vmCvar_t	r_waterWakeMinSpeed;
+vmCvar_t	r_waterWakeFoamSpeed;
+vmCvar_t	r_waterWakeMaxEntities;
+vmCvar_t	r_waterWakeDebug;
 vmCvar_t	cg_renderToTextureFX;
 vmCvar_t	cg_shadowCullDistance;
 vmCvar_t	cg_footsteps;
@@ -396,6 +402,12 @@ static cvarTable_t cvarTable[] = {
 	{ &r_waterSplashFoam, "r_waterSplashFoam", "1", CVAR_ARCHIVE },
 	{ &r_waterSplashProjectiles, "r_waterSplashProjectiles", "1", CVAR_ARCHIVE },
 	{ &r_waterSplashDebug, "r_waterSplashDebug", "0", CVAR_CHEAT },
+	{ &r_waterWakes, "r_waterWakes", "1", CVAR_ARCHIVE },
+	{ &r_waterWakeStrength, "r_waterWakeStrength", "1", CVAR_ARCHIVE },
+	{ &r_waterWakeMinSpeed, "r_waterWakeMinSpeed", "35", CVAR_ARCHIVE },
+	{ &r_waterWakeFoamSpeed, "r_waterWakeFoamSpeed", "260", CVAR_ARCHIVE },
+	{ &r_waterWakeMaxEntities, "r_waterWakeMaxEntities", "16", CVAR_ARCHIVE },
+	{ &r_waterWakeDebug, "r_waterWakeDebug", "0", CVAR_CHEAT },
 	{ &cg_renderToTextureFX, "cg_renderToTextureFX", "1", CVAR_ARCHIVE  },
 	{ &cg_shadowCullDistance, "r_shadowRange", "1000", CVAR_ARCHIVE },
 	{ &cg_footsteps, "cg_footsteps", "3", CVAR_ARCHIVE  },//1 = sounds, 2 = sounds & effects, 3 = sounds, effects & marks, 4 = always
