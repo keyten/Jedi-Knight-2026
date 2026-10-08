@@ -2437,6 +2437,17 @@ static const GPUShaderDesc *LoadVolumetricLibrary( Allocator& allocator )
 static const GPUShaderDesc *GLSL_CombineLibraries(
 	Allocator& allocator, const GPUShaderDesc *a, const GPUShaderDesc *b );
 
+static const GPUShaderDesc *LoadWaterSurfaceCommonLibrary( Allocator& allocator, GPUShaderType type )
+{
+	const GPUProgramDesc *programDesc = LoadProgramSource("water_surface_common", allocator,
+		fallback_water_surface_commonProgram);
+	for ( size_t i = 0; i < programDesc->numShaders; ++i )
+		if ( programDesc->shaders[i].type == type )
+			return &programDesc->shaders[i];
+	ri.Error(ERR_FATAL, "Could not load water_surface_common shader library!");
+	return nullptr;
+}
+
 // Liquid media (glsl/liquid_common.glsl, tr_liquid.cpp): the Liquids block,
 // the brush clipping and the underwater sun, for the volumetric programs and
 // lightall. nullptr unless r_volumetricWater (latched) is available.
@@ -2451,7 +2462,8 @@ static const GPUShaderDesc *LoadLiquidLibrary( Allocator& allocator )
 	{
 		if ( programDesc->shaders[i].type == GPUSHADER_FRAGMENT )
 		{
-			return &programDesc->shaders[i];
+			return GLSL_CombineLibraries(allocator,
+				LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_FRAGMENT), &programDesc->shaders[i]);
 		}
 	}
 
@@ -2889,7 +2901,9 @@ static int GLSL_LoadGPUProgramWaterSurface(
 
 	const GPUProgramDesc *programDesc =
 		LoadProgramSource("watersurface", allocator, fallback_watersurfaceProgram);
-	const GPUShaderDesc *library = LoadVolumetricLibrary(allocator);
+	const GPUShaderDesc *vertexLibrary = LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_VERTEX);
+	const GPUShaderDesc *library = GLSL_CombineLibraries(allocator,
+		LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_FRAGMENT), LoadVolumetricLibrary(allocator));
 	if (R_SSRResourcesEnabled())
 	{
 		const GPUProgramDesc *commonDesc =
@@ -2932,8 +2946,15 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		}
 
 		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
+		GPUProgramDesc waterProgram = *programDesc;
+		GPUShaderDesc stages[2];
+		Com_Memcpy(stages, programDesc->shaders, sizeof(stages));
+		for (int stage = 0; stage < 2; ++stage)
+			if (stages[stage].type == GPUSHADER_VERTEX)
+				stages[stage] = *GLSL_CombineLibraries(allocator, vertexLibrary, &stages[stage]);
+		waterProgram.shaders = stages;
 		if (!GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-			extradefines, *programDesc, library))
+			extradefines, waterProgram, library))
 		{
 			ri.Error(ERR_FATAL, "Could not load watersurface shader!");
 		}

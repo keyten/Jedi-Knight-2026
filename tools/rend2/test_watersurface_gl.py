@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 33
+WATER_VEC4S = 34
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -126,7 +126,10 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
     if body is not None:
         fs = body(fs)
     h = header(defines, size)
-    return h + vs, h + library + fs
+    common = read('water_surface_common')
+    common_vs, common_fs = common.split('/*[Fragment]*/')
+    common_vs = common_vs.split('/*[Vertex]*/')[1]
+    return h + common_vs + vs, h + common_fs + library + fs
 
 
 def compile_program(sources, label, attributes=(), outputs=('out_Color', 'out_Glow', 'out_SSRNormal')):
@@ -459,6 +462,7 @@ class Rig:
         u[10] = [1.0, 1.0 / 192.0, 0.0, 0.0]
         u[11] = [0.0, 0.0, 0.37, 0.71]
         u[12] = [0.0, 0.0, 1.0, 1.0]
+        u[33] = [0.0, 0.0, 1.0, 1.0]  # one-tile interaction atlas in the harness
         return u
 
     def draw_water(self, prog, u, waves=False, ssr=False, reflection=None):

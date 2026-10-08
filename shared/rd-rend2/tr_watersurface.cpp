@@ -198,6 +198,7 @@ struct waterInteractionState_t
 	std::vector<float> next;
 	std::vector<float> upload; // RGBA: height, velocity, energy, mask
 	image_t *image = nullptr;
+	int atlasX = 0, atlasY = 0;
 	bool active = false, dirty = false;
 	float energy = 0.0f, quietTime = 0.0f;
 	float lastSource[4] = { 0, 0, 0, 0 }; // body UV, radius in UV, strength
@@ -344,6 +345,8 @@ static struct
 	double interactionSubmitUsec;
 	unsigned interactionSubmissions;
 	size_t interactionGpuBytes;
+	image_t *interactionAtlas;
+	int interactionAtlasWidth, interactionAtlasHeight;
 } s_water;
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
@@ -379,14 +382,18 @@ static void R_WaterInteractionBuild(void)
 	s_water.interactionAccumulator = 0.0f;
 	s_water.interactionTime = -1;
 	s_water.interactionFrame = ~0u;
+	s_water.interactionAtlas = nullptr;
+	s_water.interactionAtlasWidth = s_water.interactionAtlasHeight = 0;
 	if (!r_waterInteraction || !r_waterInteraction->integer || !r_waterSurface->integer || !s_water.world)
 		return;
 
 	const float worldPerTexel = r_waterInteractionQuality->integer <= 0 ? 32.0f :
 		(r_waterInteractionQuality->integer == 1 ? 16.0f : 8.0f);
 	const int maxBodies = Com_Clampi(1, 32, r_waterInteractionMaxBodies->integer);
-	const size_t texelBudget = (size_t)Q_min(r_waterInteractionMaxTexels->integer,
+	const size_t requestedTexels = (size_t)Q_min(r_waterInteractionMaxTexels->integer,
 		(r_waterInteractionMemoryMB->integer * 1024 * 1024) / 8);
+	const size_t atlasLimit = (size_t)glConfig.maxTextureSize * glConfig.maxTextureSize / 2;
+	const size_t texelBudget = MIN(requestedTexels, atlasLimit);
 	size_t used = 0;
 	int allocated = 0;
 	for (waterBody_t& body : s_water.bodies)
@@ -446,16 +453,60 @@ static void R_WaterInteractionBuild(void)
 			}
 		}
 		for (size_t i = 0; i < cells; ++i) sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
-		sim.image = R_CreateImage(va("*waterInteract%03d", body.id), NULL, w, h, IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
-		GL_BindToTMU(sim.image, 19);
-		GL_SelectTexture(19); // GL_BindToTMU may be a cache hit; TexSubImage uses the active unit.
-		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_FLOAT, sim.upload.data());
 		used += cells; ++allocated;
 	}
-	s_water.interactionGpuBytes = used * 8;
-	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u texels, %.2f MiB GPU\n",
-		allocated, (unsigned)used, s_water.interactionGpuBytes / (1024.0f * 1024.0f));
+	if (allocated)
+	{
+		int minimumWidth = 16;
+		for (const waterBody_t& body : s_water.bodies)
+			minimumWidth = MAX(minimumWidth, body.interaction.width);
+		int firstWidth = 16; while (firstWidth < minimumWidth) firstWidth <<= 1;
+		int atlasWidth = firstWidth, atlasHeight = glConfig.maxTextureSize;
+		size_t bestArea = ~(size_t)0;
+		// Try every power-of-two shelf width and keep the smallest real texture.
+		// This avoids paying for a fixed wide atlas when a map has one tiny pool.
+		for (int candidateWidth = firstWidth; candidateWidth <= glConfig.maxTextureSize; candidateWidth <<= 1)
+		{
+			int x = 0, y = 0, rowHeight = 0;
+			for (const waterBody_t& body : s_water.bodies)
+			{
+				const waterInteractionState_t& sim = body.interaction;
+				if (!sim.width) continue;
+				if (x + sim.width > candidateWidth) { x = 0; y += rowHeight; rowHeight = 0; }
+				x += sim.width; rowHeight = MAX(rowHeight, sim.height);
+			}
+			int candidateHeight = 16; while (candidateHeight < y + rowHeight) candidateHeight <<= 1;
+			const size_t area = (size_t)candidateWidth * candidateHeight;
+			if (candidateHeight <= glConfig.maxTextureSize && area < bestArea)
+			{ bestArea = area; atlasWidth = candidateWidth; atlasHeight = candidateHeight; }
+			if (candidateWidth > glConfig.maxTextureSize / 2) break;
+		}
+		int x = 0, y = 0, rowHeight = 0;
+		for (waterBody_t& body : s_water.bodies)
+		{
+			waterInteractionState_t& sim = body.interaction;
+			if (!sim.width) continue;
+			if (x + sim.width > atlasWidth) { x = 0; y += rowHeight; rowHeight = 0; }
+			sim.atlasX = x; sim.atlasY = y; x += sim.width; rowHeight = MAX(rowHeight, sim.height);
+		}
+		s_water.interactionAtlasWidth = atlasWidth; s_water.interactionAtlasHeight = atlasHeight;
+		s_water.interactionAtlas = R_CreateImage("*waterInteractionAtlas", NULL, atlasWidth, atlasHeight,
+			IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+		GL_BindToTMU(s_water.interactionAtlas, 19); GL_SelectTexture(19);
+		for (waterBody_t& body : s_water.bodies)
+		{
+			waterInteractionState_t& sim = body.interaction;
+			if (!sim.width) continue;
+			sim.image = s_water.interactionAtlas;
+			qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
+				GL_RGBA, GL_FLOAT, sim.upload.data());
+		}
+	}
+	s_water.interactionGpuBytes = s_water.interactionAtlas ?
+		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 : 0;
+	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u active texels, %dx%d atlas, %.2f MiB GPU\n",
+		allocated, (unsigned)used, s_water.interactionAtlasWidth, s_water.interactionAtlasHeight,
+		s_water.interactionGpuBytes / (1024.0f * 1024.0f));
 }
 
 static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
@@ -785,9 +836,10 @@ static void RB_WaterInteractionUpdate(void)
 			sim.upload[i * 4 + 2] = sim.state[i * 3 + 2];
 			sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
 		}
-		GL_BindToTMU(sim.image, 19);
+		GL_BindToTMU(s_water.interactionAtlas, 19);
 		GL_SelectTexture(19); // See allocation upload above.
-		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height, GL_RGBA, GL_FLOAT, sim.upload.data());
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
+			GL_RGBA, GL_FLOAT, sim.upload.data());
 		sim.dirty = false;
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
@@ -2117,6 +2169,73 @@ qboolean R_WaterFlowForBody( int bodyId, const vec2_t simulationCoordinate, vec3
 	return (qboolean)(body.flowSource != WFLOW_NONE);
 }
 
+image_t *R_WaterCausticsInteractionAtlas(void)
+{
+	return s_water.interactionAtlas;
+}
+
+qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8], vec4_t terms[8])
+{
+	time = r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : time;
+	Com_Memset(params, 0, sizeof(vec4_t) * 8);
+	Com_Memset(terms, 0, sizeof(vec4_t) * 8);
+	const waterBody_t *body = nullptr;
+	for (const waterBody_t& candidate : s_water.bodies)
+	{
+		for (int brushIndex : candidate.brushes)
+			if (brushIndex >= 0 && brushIndex < (int)s_water.brushes.size() &&
+				s_water.brushes[brushIndex].brushNum == bspBrushNum) { body = &candidate; break; }
+		if (body) break;
+	}
+	if (!body || !r_waterSurface->integer) return qfalse;
+	const waterDynamics_t& dynamics = s_dynamics[body->dynamics];
+	const float legacyWaveScale = body->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
+	const float multiplier = body->waveMultiplier;
+	VectorSet4(params[0], r_waterWaves->integer ? 1.0f : 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value), Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value),
+		Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value));
+	VectorSet4(params[1], dynamics.amplitude * 8.0f * legacyWaveScale * multiplier,
+		dynamics.wavelength, dynamics.speed, Com_Clamp(0.0f, 2.0f, dynamics.microNormal * multiplier));
+	VectorSet4(params[2], Com_Clamp(0.0f, 2.0f, r_waterWaveChoppiness->value),
+		(float)Com_Clampi(0, 2, r_waterWaveQuality->integer), body->depthAverage, dynamics.choppiness);
+	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
+	VectorSet4(params[3], body->flowVelocity[0] * flowScale, body->flowVelocity[1] * flowScale,
+		body->flowVelocity[2] * flowScale, r_waterFlow->integer && body->flowSpeed > 0.0f ? 1.0f : 0.0f);
+	VectorSet4(params[4], body->flowSpeed * flowScale, Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value),
+		r_waterWaveShallow->integer ? 1.0f : 0.0f, multiplier);
+	const waterInteractionState_t& interaction = body->interaction;
+	const float extentX = MAX(body->bounds[1][0] - body->bounds[0][0], 1.0f);
+	const float extentY = MAX(body->bounds[1][1] - body->bounds[0][1], 1.0f);
+	VectorSet4(params[5], body->bounds[0][0], body->bounds[0][1], 1.0f / extentX, 1.0f / extentY);
+	if (interaction.image && s_water.interactionAtlas)
+	{
+		VectorSet4(params[6], (interaction.atlasX + 0.5f) / s_water.interactionAtlasWidth,
+			(interaction.atlasY + 0.5f) / s_water.interactionAtlasHeight,
+			(interaction.width - 1.0f) / s_water.interactionAtlasWidth,
+			(interaction.height - 1.0f) / s_water.interactionAtlasHeight);
+		VectorSet4(params[7], interaction.texelX, interaction.texelY, r_waterInteraction->integer ? 1.0f : 0.0f, time);
+	}
+	else params[7][3] = time;
+	const float wavelength = MAX(params[1][1] * params[0][2], 8.0f);
+	const float amplitude = params[1][0] * params[0][1];
+	const float flowLength = sqrtf(body->flowDirection[0] * body->flowDirection[0] + body->flowDirection[1] * body->flowDirection[1]);
+	const float mainX = flowLength > 0.001f ? body->flowDirection[0] / flowLength : 0.8f;
+	const float mainY = flowLength > 0.001f ? body->flowDirection[1] / flowLength : 0.6f;
+	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
+	for (int i = 0; i < 8; ++i)
+	{
+		const float fi = (float)i, angle = fi * 2.3999632f;
+		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
+		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
+		const float inv = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f)); dx *= inv; dy *= inv;
+		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
+		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
+		VectorSet4(terms[i], dx, dy, amplitude * scale * (i < 4 ? 0.28f : 0.10f),
+			6.2831853f / MAX(wavelength * lambdaScale, 4.0f));
+	}
+	return qtrue;
+}
+
 qboolean R_WaterFlowAtWorldPosition( const vec3_t position, vec3_t velocity, int *bodyId )
 {
 	VectorClear(velocity);
@@ -3080,6 +3199,12 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[31], interaction ? interaction->texelX : 1.0f, interaction ? interaction->texelY : 1.0f,
 		interaction && r_waterInteraction->integer ? 1.0f : 0.0f, (float)r_waterInteractionDebug->integer);
 	if (interaction) VectorCopy4(interaction->lastSource, water[32]); else VectorClear4(water[32]);
+	if (interaction && s_water.interactionAtlas)
+		VectorSet4(water[33], (interaction->atlasX + 0.5f) / s_water.interactionAtlasWidth,
+			(interaction->atlasY + 0.5f) / s_water.interactionAtlasHeight,
+			(interaction->width - 1.0f) / s_water.interactionAtlasWidth,
+			(interaction->height - 1.0f) / s_water.interactionAtlasHeight);
+	else VectorSet4(water[33], 0, 0, 1, 1);
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
@@ -3129,7 +3254,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterSceneImage, 0);
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
-	samplers.AddStaticImage(interaction ? interaction->image : tr.whiteImage, 19);
+	samplers.AddStaticImage(interaction ? s_water.interactionAtlas : tr.whiteImage, 19);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);
 	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);
 	if (cubemap)

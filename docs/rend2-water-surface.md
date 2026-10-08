@@ -5,6 +5,8 @@ Water-body identity and dynamics metadata are documented in
 ambient-wave layer is documented in [`rend2-water-waves.md`](rend2-water-waves.md).
 World-caused body-local disturbances are documented in
 [`rend2-water-interaction.md`](rend2-water-interaction.md).
+Optional direct-sun caustics driven by this same surface state are documented
+in [`rend2-surface-caustics.md`](rend2-surface-caustics.md).
 
 A physically based surface for the stock water of the maps: dielectric Fresnel reflection (SSR -> cubemap ->
 fallback), depth aware screen-space refraction, absorption / scattering of the liquid along the refracted path,

@@ -52,7 +52,7 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
     defines += '#define USE_FROXEL_STATIC_RECONSTRUCTION\n' if static_recon else ''
     # the liquid library follows the froxel functions (GLSL_InitVolumetricShaders, r_volumetricWater)
     defines += '#define USE_LIQUIDS\n' if liquids else ''
-    body = fragment('volumetric_common') + (fragment('liquid_common') if liquids else '') + fragment(name)
+    body = fragment('volumetric_common') + ((fragment('water_surface_common') + fragment('liquid_common')) if liquids else '') + fragment(name)
     if legacy_bits:
         body = body.replace('#if defined(USE_FROXEL_COMPUTE)\n\tint bit = findLSB(bits);',
                             '#if 0\n\tint bit = findLSB(bits);')

@@ -2,6 +2,10 @@
 
 `r_waterInteraction 1` adds transient, world-caused disturbances to the existing modern water surface. It is off by default and requires `r_waterSurface 1`; enabling it is latched and therefore requires `vid_restart`. Ambient waves, authored deformation, optics, flow, and legacy water are not replaced.
 
+When `r_waterCausticsMode 2` is selected, the same field also drives the
+underwater direct-sun caustic; see
+[`rend2-surface-caustics.md`](rend2-surface-caustics.md).
+
 The final modern-water evaluator is:
 
 ```
@@ -78,7 +82,7 @@ The uploaded resource is one clamped `RGBA16F` texture per allocated body:
 - B: transient splash foam;
 - A: physical body mask.
 
-GPU memory is exactly 8 bytes per allocated texel. The reference implementation integrates on the CPU and uploads only dirty active fields; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 41 bytes per texel (mask, current/next height/velocity/foam float state, RGBA upload staging), plus vector overhead. `r_waterInteractionInfo` reports actual resolution and GPU bytes per body.
+GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 41 bytes per active field texel (mask, current/next height/velocity/foam float state, RGBA upload staging), plus vector overhead.
 
 ## Event/source API
 

@@ -21,9 +21,13 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidParams;		// x: brushes in the block
 	vec4 u_LiquidCaustics;
 	vec4 u_LiquidView;
+	vec4 u_LiquidCausticSurface;
+	vec4 u_LiquidCausticDebug;
 	vec4 u_LiquidMaterial[6];
 	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
+	vec4 u_LiquidWaveParams[MAX_GPU_LIQUIDS * 8];
+	vec4 u_LiquidWaveTerms[MAX_GPU_LIQUIDS * 8];
 	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];
 };
 uniform samplerBuffer u_LiquidPlanes;

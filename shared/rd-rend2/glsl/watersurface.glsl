@@ -74,7 +74,7 @@ float WaterInteractionHeight(vec3 worldPosition)
 	if (u_Water[31].z < 0.5) return 0.0;
 	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 0.0;
-	vec4 field = texture(u_WaterInteractionMap, uv);
+	vec4 field = texture(u_WaterInteractionMap, u_Water[33].xy + uv * u_Water[33].zw);
 	return field.a > 0.5 ? field.r : 0.0;
 }
 
@@ -97,6 +97,15 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.height = 0.0;
 	w.curvature = 0.0;
 	w.attenuation = 1.0;
+	vec4 commonTerms[8];
+	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
+	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
+		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
+	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
+	return w;
+	/* Kept below as historical source for external shader comparisons; unreachable.
 	if (u_Water[13].x < 0.5)
 		return w;
 
@@ -149,6 +158,7 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		j00 * w.slope.y - j01 * w.slope.x) / det;
 	w.displacement.z = w.height;
 	return w;
+	*/
 }
 
 
@@ -484,6 +494,15 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.height = 0.0;
 	w.curvature = 0.0;
 	w.attenuation = 1.0;
+	vec4 commonTerms[8];
+	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
+	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
+		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
+	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
+	return w;
+	/* Historical in-file evaluator retained for source comparison; unreachable.
 	if (u_Water[13].x < 0.5)
 		return w;
 
@@ -534,6 +553,7 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		j00 * w.slope.y - j01 * w.slope.x) / det;
 	w.displacement.z = w.height;
 	return w;
+	*/
 }
 
 vec3 SceneToLinear(vec3 c)
@@ -949,14 +969,16 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 	if (u_Water[31].z < 0.5) return vec4(0.0);
 	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
-	vec4 center = texture(u_WaterInteractionMap, uv);
+	vec2 atlasUV = u_Water[33].xy + uv * u_Water[33].zw;
+	vec4 center = texture(u_WaterInteractionMap, atlasUV);
 	if (center.a < 0.5) return center;
 	ivec2 size = textureSize(u_WaterInteractionMap, 0);
 	vec2 duv = 1.0 / vec2(size);
-	vec4 l = texture(u_WaterInteractionMap, uv - vec2(duv.x, 0.0));
-	vec4 r = texture(u_WaterInteractionMap, uv + vec2(duv.x, 0.0));
-	vec4 d = texture(u_WaterInteractionMap, uv - vec2(0.0, duv.y));
-	vec4 u = texture(u_WaterInteractionMap, uv + vec2(0.0, duv.y));
+	vec2 atlasMin = u_Water[33].xy, atlasMax = u_Water[33].xy + u_Water[33].zw;
+	vec4 l = texture(u_WaterInteractionMap, clamp(atlasUV - vec2(duv.x, 0.0), atlasMin, atlasMax));
+	vec4 r = texture(u_WaterInteractionMap, clamp(atlasUV + vec2(duv.x, 0.0), atlasMin, atlasMax));
+	vec4 d = texture(u_WaterInteractionMap, clamp(atlasUV - vec2(0.0, duv.y), atlasMin, atlasMax));
+	vec4 u = texture(u_WaterInteractionMap, clamp(atlasUV + vec2(0.0, duv.y), atlasMin, atlasMax));
 	// A missing neighbour is a reflecting solid wall (zero normal derivative).
 	float hl = l.a > 0.5 ? l.r : center.r, hr = r.a > 0.5 ? r.r : center.r;
 	float hd = d.a > 0.5 ? d.r : center.r, hu = u.a > 0.5 ? u.r : center.r;

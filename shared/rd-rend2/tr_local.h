@@ -285,6 +285,12 @@ extern cvar_t	*r_volumetricWaterCaustics;
 extern cvar_t	*r_volumetricWaterCausticScale;
 extern cvar_t	*r_volumetricWaterCausticSpeed;
 extern cvar_t	*r_volumetricWaterCausticFocus;
+extern cvar_t	*r_waterCausticsMode;
+extern cvar_t	*r_waterCausticsQuality;
+extern cvar_t	*r_waterCausticsMaxDepth;
+extern cvar_t	*r_waterCausticsSlope;
+extern cvar_t	*r_waterCausticsFilter;
+extern cvar_t	*r_waterCausticsDebug;
 extern cvar_t	*r_volumetricWaterExtinction;
 extern cvar_t	*r_volumetricWaterColor;
 extern cvar_t	*r_volumetricWaterAlbedo;
@@ -1538,9 +1544,16 @@ struct LiquidsBlock
 	vec4_t params;							// visible brushes, camera liquid class (-1 none), sun path on, class mask (1 water, 2 slime, 4 lava)
 	vec4_t caustics;						// 1 / period (world units), animation phase, focus depth, strength (0 = off)
 	vec4_t view;							// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
+	vec4_t causticSurface;				// mode, derivative spacing, max depth, slope scale
+	vec4_t causticDebug;					// depth filter, debug view, IOR, surface data available
 	vec4_t material[LIQUID_CLASSES * 2];	// per class: (extinction color rgb, mean 1; a: extinction per unit), (albedo rgb, a: anisotropy g)
 	vec4_t mins[MAX_GPU_LIQUIDS];			// brush bounds, w: first plane in the plane buffer
 	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * medium slot + 256 * liquid class
+	// Surface-driven caustics, per visible brush. waveParams: controls, profile,
+	// body, flow, flowDetail, atlas transform; waveTerms: the exact eight terms
+	// consumed by water_surface_common.glsl.
+	vec4_t waveParams[MAX_GPU_LIQUIDS][8];
+	vec4_t waveTerms[MAX_GPU_LIQUIDS][8];
 	int slices[FROXEL_MAX_SLICES];			// visible brushes that may touch a slice, bit i = brush i (ivec4[32])
 };
 
@@ -5923,7 +5936,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 33
+#define WATER_UNIFORM_VEC4S 34
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 
@@ -5965,6 +5978,8 @@ void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, co
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);
 qboolean R_WaterFlowForBody(int bodyId, const vec2_t simulationCoordinate, vec3_t velocity);
+qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8], vec4_t terms[8]);
+image_t *R_WaterCausticsInteractionAtlas(void);
 void R_WaterOverride_f(void);
 
 /*

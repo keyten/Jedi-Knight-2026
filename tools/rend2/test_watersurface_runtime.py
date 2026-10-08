@@ -75,6 +75,8 @@ def main():
     parser.add_argument('--flow', action='store_true', help='Enable directional flow and capture off/on and debug comparisons')
     parser.add_argument('--geometry', action='store_true', help='Enable render-only subdivision and print its map-load budget')
     parser.add_argument('--interaction', action='store_true', help='Inject a body-local disturbance and capture its debug views')
+    parser.add_argument('--caustics', action='store_true', help='Capture procedural/surface-driven caustics and all mode-2 debug views')
+    parser.add_argument('--timeout', type=int, default=600, help='Maximum runtime seconds (first Intel shader-cache build can be slow)')
     parser.add_argument('--interaction-quality', choices=('0', '1', '2'), default='1',
                         help='Interactive field density used by --interaction (default: 1)')
     args = parser.parse_args()
@@ -182,6 +184,20 @@ def main():
             'r_waterInteractionDebug 8', 'wait 3', 'screenshot_tga water-interaction-active',
             'r_waterInteractionDebug 9', 'wait 3', 'screenshot_tga water-interaction-mapping',
             'r_waterInteractionDebug 0', 'r_waterWaveTime -1', 'r_waterInteractionInfo'])
+    if args.caustics:
+        caustic_reset = commands.index('r_waterSnellDebug 0')
+        commands[caustic_reset] += '\n' + '\n'.join([
+            'r_waterWaveTime 4', 'r_volumetricWaterCaustics 1',
+            'r_waterCausticsMode 1', 'wait 12', 'screenshot_tga water-caustics-procedural',
+            'r_waterCausticsMode 2', 'wait 12', 'screenshot_tga water-caustics-surface',
+            'r_waterCausticsDebug 1', 'wait 6', 'screenshot_tga water-caustics-slope',
+            'r_waterCausticsDebug 2', 'wait 6', 'screenshot_tga water-caustics-ray',
+            'r_waterCausticsDebug 3', 'wait 6', 'screenshot_tga water-caustics-focus',
+            'r_waterCausticsDebug 4', 'wait 6', 'screenshot_tga water-caustics-result',
+            'r_waterCausticsDebug 5', 'wait 6', 'screenshot_tga water-caustics-projection',
+            'r_waterCausticsDebug 6', 'wait 6', 'screenshot_tga water-caustics-attenuation',
+            'r_waterCausticsDebug 7', 'wait 6', 'screenshot_tga water-caustics-interaction',
+            'r_waterCausticsDebug 0', 'r_volumetricWaterCaustics 0.35', 'r_waterWaveTime -1'])
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
@@ -192,6 +208,7 @@ def main():
                     r_waterFlow='1' if args.flow else '0',
                     r_waterGeometry='1' if args.geometry else '0',
                     r_waterInteraction='1' if args.interaction else '0',
+                    r_waterCausticsMode='2' if args.caustics else '1',
                     r_waterInteractionQuality=args.interaction_quality,
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
                     r_volumetricFog='2', r_volumetricWater='1',
@@ -207,7 +224,7 @@ def main():
         process = subprocess.Popen(command, cwd=root, startupinfo=startup,
                                    stdout=stream, stderr=subprocess.STDOUT)
         try:
-            code = process.wait(timeout=300)
+            code = process.wait(timeout=args.timeout)
         except subprocess.TimeoutExpired:
             process.terminate()
             process.wait()
@@ -246,6 +263,12 @@ def main():
                      'water-interaction-slope.tga', 'water-interaction-source.tga',
                      'water-interaction-foam.tga', 'water-interaction-active.tga',
                      'water-interaction-mapping.tga'):
+            assert (base/'screenshots'/name).stat().st_size > 1000, name
+    if args.caustics:
+        for name in ('water-caustics-procedural.tga', 'water-caustics-surface.tga',
+                     'water-caustics-slope.tga', 'water-caustics-ray.tga', 'water-caustics-focus.tga',
+                     'water-caustics-result.tga', 'water-caustics-projection.tga',
+                     'water-caustics-attenuation.tga', 'water-caustics-interaction.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.map in ('t2_rancor', 't3_hevil'):
         print('PASS:', args.map, 'stock interface classification; water-only SSR above/below; overrides off/clear')

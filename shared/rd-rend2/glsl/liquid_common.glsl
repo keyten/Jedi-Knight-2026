@@ -23,9 +23,13 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidParams;		// visible brushes, camera liquid class (-1 none), sun path on, class mask
 	vec4 u_LiquidCaustics;		// 1 / period (world units), animation phase, focus depth, strength (0 = off)
 	vec4 u_LiquidView;			// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
+	vec4 u_LiquidCausticSurface;	// mode, derivative spacing, max depth, slope scale
+	vec4 u_LiquidCausticDebug;	// depth filter, debug view, IOR, surface data available
 	vec4 u_LiquidMaterial[6];	// per medium: (extinction color rgb (mean 1), a: extinction per unit), (albedo rgb, a: g)
 	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
+	vec4 u_LiquidWaveParams[MAX_GPU_LIQUIDS * 8];
+	vec4 u_LiquidWaveTerms[MAX_GPU_LIQUIDS * 8];
 	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];	// per froxel slice: bit i = brush i may touch it
 };
 
@@ -277,6 +281,8 @@ float LiquidFade(in float viewDepth)
 // at the focus depth and slowly decays deeper. Box mips: big footprints see the mean.
 float LiquidCaustic(in vec2 xy, in float depth, in float footprint)
 {
+	if (u_LiquidCausticSurface.x < 0.5)
+		return 1.0;
 	float strength = u_LiquidCaustics.w;
 	if (strength <= 0.0)
 		return 1.0;
@@ -287,6 +293,85 @@ float LiquidCaustic(in vec2 xy, in float depth, in float footprint)
 	float b = textureLod(u_LiquidCausticMap, uv * 1.37 + vec2(-0.43, 0.61) * phase + vec2(0.5), lod).r;
 	float contrast = strength * smoothstep(0.0, u_LiquidCaustics.z, depth) / (1.0 + depth / 1024.0);
 	return max(1.0 + contrast * (0.5 * (a + b) - 1.0), 0.0);
+}
+
+float LiquidInteractionHeight(in int brush, in vec2 xy, out float fieldActive)
+{
+	int base = brush * 8;
+	vec4 domain = u_LiquidWaveParams[base + 5];
+	vec4 atlas = u_LiquidWaveParams[base + 6];
+	vec4 info = u_LiquidWaveParams[base + 7];
+	fieldActive = info.z;
+	if (fieldActive < 0.5) return 0.0;
+	vec2 uv = (xy - domain.xy) * domain.zw;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) { fieldActive = 0.0; return 0.0; }
+	vec4 field = texture(u_LiquidCausticMap, atlas.xy + uv * atlas.zw);
+	fieldActive *= step(0.5, field.a);
+	return field.r * fieldActive;
+}
+
+vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out float interactionAmount)
+{
+	int base = brush * 8;
+	vec4 terms[8];
+	for (int i = 0; i < 8; ++i) terms[i] = u_LiquidWaveTerms[base + i];
+	WaterSurfaceCommonState state = EvaluateWaterSurfaceCommon(p, u_LiquidWaveParams[base + 7].w,
+		u_LiquidWaveParams[base], u_LiquidWaveParams[base + 1], u_LiquidWaveParams[base + 2],
+		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms);
+	float a0, ax0, ax1, ay0, ay1;
+	float hc = LiquidInteractionHeight(brush, p.xy, a0);
+	float hx0 = LiquidInteractionHeight(brush, p.xy - vec2(derivativeStep, 0.0), ax0);
+	float hx1 = LiquidInteractionHeight(brush, p.xy + vec2(derivativeStep, 0.0), ax1);
+	float hy0 = LiquidInteractionHeight(brush, p.xy - vec2(0.0, derivativeStep), ay0);
+	float hy1 = LiquidInteractionHeight(brush, p.xy + vec2(0.0, derivativeStep), ay1);
+	if (ax0 < 0.5) hx0 = hc; if (ax1 < 0.5) hx1 = hc;
+	if (ay0 < 0.5) hy0 = hc; if (ay1 < 0.5) hy1 = hc;
+	vec2 interactionSlope = vec2(hx1 - hx0, hy1 - hy0) / (2.0 * derivativeStep);
+	float coverage = max(a0, max(max(ax0, ax1), max(ay0, ay1)));
+	interactionAmount = coverage * clamp(max(abs(hc), length(interactionSlope) * derivativeStep) / 8.0, 0.0, 1.0);
+	return (state.slope + interactionSlope) * u_LiquidCausticSurface.w;
+}
+
+vec2 LiquidRefractedFootprint(in int brush, in vec2 surfaceXY, in float surfaceZ,
+	in float depth, in vec3 L, in float derivativeStep, out vec2 slope, out vec3 ray, out float interactionAmount)
+{
+	vec3 p = vec3(surfaceXY, surfaceZ);
+	slope = LiquidSurfaceSlope(brush, p, derivativeStep, interactionAmount);
+	vec3 N = normalize(vec3(-slope, 1.0));
+	ray = refract(-normalize(L), N, 1.0 / clamp(u_LiquidCausticDebug.z, 1.0, 2.0));
+	float travel = depth / max(-ray.z, 0.05);
+	return surfaceXY + ray.xy * travel;
+}
+
+float LiquidSurfaceDrivenCaustic(in int brush, in vec3 entry, in float depth, in float footprint,
+	in vec3 L, out vec3 diagnostic)
+{
+	diagnostic = vec3(0.0);
+	if (brush < 0 || u_LiquidCausticDebug.w < 0.5 || depth > u_LiquidCausticSurface.z) return 1.0;
+	float spacing = max(u_LiquidCausticSurface.y,
+		max(footprint, sqrt(max(depth, 0.0))) * u_LiquidCausticDebug.x);
+	vec2 slope; vec3 ray; float interaction;
+	vec2 firstHit = LiquidRefractedFootprint(brush, entry.xy, entry.z, depth, L, spacing, slope, ray, interaction);
+	vec2 source = entry.xy - (firstHit - entry.xy);
+	vec2 q0 = LiquidRefractedFootprint(brush, source, entry.z, depth, L, spacing, slope, ray, interaction);
+	vec2 unusedSlope; vec3 unusedRay; float ix, iy;
+	vec2 qx = LiquidRefractedFootprint(brush, source + vec2(spacing, 0.0), entry.z, depth, L, spacing, unusedSlope, unusedRay, ix);
+	vec2 qy = LiquidRefractedFootprint(brush, source + vec2(0.0, spacing), entry.z, depth, L, spacing, unusedSlope, unusedRay, iy);
+	vec2 dx = (qx - q0) / spacing, dy = (qy - q0) / spacing;
+	float determinant = abs(dx.x * dy.y - dx.y * dy.x);
+	float raw = min(1.0 / max(determinant, 1.0 / 6.0), 6.0);
+	float depthWeight = smoothstep(0.0, u_LiquidCaustics.z, depth) *
+		(1.0 - smoothstep(0.65 * u_LiquidCausticSurface.z, u_LiquidCausticSurface.z, depth));
+	float result = max(1.0 + u_LiquidCaustics.w * depthWeight * (raw - 1.0), 0.0);
+	int debugView = int(u_LiquidCausticDebug.y + 0.5);
+	if (debugView == 1) diagnostic = vec3(slope * 0.5 + 0.5, 0.5);
+	else if (debugView == 2) diagnostic = ray * 0.5 + 0.5;
+	else if (debugView == 3) diagnostic = vec3(clamp(raw / 6.0, 0.0, 1.0));
+	else if (debugView == 4) diagnostic = vec3(clamp(result / 3.0, 0.0, 1.0));
+	else if (debugView == 5) diagnostic = vec3(fract(q0 / 128.0), 0.25);
+	else if (debugView == 6) diagnostic = vec3(depthWeight);
+	else if (debugView == 7) diagnostic = vec3(max(interaction, max(ix, iy)), 0.0, 1.0 - max(interaction, max(ix, iy)));
+	return result;
 }
 
 // The run of liquid that starts at p along a ray, from its intervals in enter order (enter, exit,
@@ -406,7 +491,28 @@ vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float 
 	pathLength = len.x + len.y + len.z;
 	vec3 T = exp(-LiquidOpticalDepth(len));
 	if (topMedium == LIQUID_WATER && L.z > 0.05)
-		T *= LiquidCaustic((p + L * runEnd).xy, pathLength, footprint);
+	{
+		vec3 entry = p + L * runEnd;
+		if (u_LiquidCausticSurface.x > 1.5)
+		{
+			vec3 opticalTransmittance = T;
+			float receiverDepth = max(entry.z - p.z, 0.0);
+			int topBrush = -1;
+			float bestExit = -1e30;
+			for (int i = 0; i < n; ++i)
+			{
+				if (LiquidMediumOf(i) != LIQUID_WATER) continue;
+				vec2 interval = LiquidClip(i, p, L, -1.0, 65536.0);
+				if (interval.x <= runEnd + 1.0 && interval.y >= runEnd - 1.0 && interval.y > bestExit)
+				{ bestExit = interval.y; topBrush = i; }
+			}
+			vec3 diagnostic;
+			T *= LiquidSurfaceDrivenCaustic(topBrush, entry, receiverDepth, footprint, L, diagnostic);
+			if (int(u_LiquidCausticDebug.y + 0.5) == 6) return opticalTransmittance;
+			if (u_LiquidCausticDebug.y > 0.5) return diagnostic;
+		}
+		else T *= LiquidCaustic(entry.xy, pathLength, footprint);
+	}
 	return T;
 }
 

@@ -75,11 +75,26 @@ void main()
 }
 '''
 
+CAUSTIC_BENCH = '''
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(std430, binding = 1) writeonly buffer Results { vec4 results[]; };
+uniform ivec2 u_Grid;
+void main()
+{
+	ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+	if (any(greaterThanEqual(cell, u_Grid))) return;
+	vec2 xy = (vec2(cell) + 0.5) / vec2(u_Grid) * 512.0 - 256.0;
+	float pathLength;
+	vec3 T = LiquidSunTransmittance(vec3(xy, -96.0), normalize(vec3(0.22, 0.08, 0.972)), 1.0, pathLength);
+	results[cell.y * u_Grid.x + cell.x] = vec4(T, pathLength);
+}
+'''
+
 
 def compile_probe(main_source):
     defines = (f'#define MAX_GPU_LIQUIDS {MAX_GPU_LIQUIDS}\n#define FROXEL_MAX_SLICES {FROXEL_MAX_SLICES}\n'
                '#define USE_LIQUIDS\n#define M_PI 3.14159265358979323846\n')
-    text = '#version 430 core\n' + defines + fragment('liquid_common') + main_source
+    text = '#version 430 core\n' + defines + fragment('water_surface_common') + fragment('liquid_common') + main_source
     prog = gl('glCreateProgram', U)()
     shader = gl('glCreateShader', U, U)(0x91B9)
     source = C.c_char_p(text.encode())
@@ -155,7 +170,7 @@ def cpu_coverage(brushes, o, d, t0, t1, mask=-1):
 class Scene:
     """the Liquids block, the plane buffer texture and a probe program"""
 
-    def __init__(self, prog, brushes, materials, sun_path=True):
+    def __init__(self, prog, brushes, materials, sun_path=True, surface_caustics=None, ambient_waves=False):
         assert len(brushes) <= MAX_GPU_LIQUIDS
         self.prog, self.brushes = prog, brushes
         planes, values = [], {}
@@ -167,6 +182,27 @@ class Scene:
         values['u_LiquidParams'] = (float(len(brushes)), -1.0, 1.0 if sun_path else 0.0, 7.0)
         values['u_LiquidCaustics'] = (1.0 / 160.0, 0.0, 48.0, 0.0)   # strength 0: no caustic texture needed
         values['u_LiquidView'] = (1e6, 1.0, 0.0, 0.0)
+        values['u_LiquidCausticSurface'] = (0.0, 16.0, 2048.0, 1.0)
+        values['u_LiquidCausticDebug'] = (1.0, 0.0, 1.333, 0.0)
+        if surface_caustics is not None:
+            values['u_LiquidCaustics'] = (1.0 / 160.0, 0.0, 48.0, 1.0)
+            values['u_LiquidCausticSurface'] = (2.0, 8.0, 2048.0, 1.0)
+            values['u_LiquidCausticDebug'] = (1.0, 0.0, 1.333, 1.0)
+            values['u_LiquidWaveParams[0]'] = (1.0 if ambient_waves else 0.0, 1.0, 1.0, 1.0)
+            values['u_LiquidWaveParams[1]'] = (8.0, 160.0, 1.0, 0.3)
+            values['u_LiquidWaveParams[2]'] = (1.0, 2.0, 96.0, 1.0)
+            values['u_LiquidWaveParams[4]'] = (0.0, 1.0, 0.0, 1.0)
+            values['u_LiquidWaveParams[5]'] = (-256.0, -256.0, 1.0 / 512.0, 1.0 / 512.0)
+            values['u_LiquidWaveParams[6]'] = (0.5 / 16.0, 0.5 / 16.0, 15.0 / 16.0, 15.0 / 16.0)
+            values['u_LiquidWaveParams[7]'] = (32.0, 32.0, 1.0, 0.0)
+            for i in range(8):
+                angle = i * 2.3999632
+                direction = normalize([math.cos(angle) * 0.78 + 0.8 * 0.22,
+                                       math.sin(angle) * 0.78 + 0.6 * 0.22])
+                scale = 1.0 - 0.15 * i if i < 4 else 0.34 - 0.035 * (i - 4)
+                wavelength_scale = 1.0 - 0.13 * i if i < 4 else 0.28 - 0.025 * (i - 4)
+                values[f'u_LiquidWaveTerms[{i}]'] = (*direction, 8.0 * scale * (0.28 if i < 4 else 0.10),
+                                                     2.0 * math.pi / max(160.0 * wavelength_scale, 4.0))
         for c, (sigma, color, albedo, g) in enumerate(materials):
             values[f'u_LiquidMaterial[{2 * c}]'] = (*color, sigma)
             values[f'u_LiquidMaterial[{2 * c + 1}]'] = (*albedo, g)
@@ -186,6 +222,27 @@ class Scene:
         gl('glActiveTexture', None, U)(0x84C0)
         location = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_LiquidPlanes')
         gl('glUniform1i', None, I, I)(location, 3)
+
+        self.caustic_tex = U()
+        if surface_caustics is not None:
+            texels = []
+            for y in range(16):
+                for x in range(16):
+                    dx, dy = x - 7.5, y - 7.5
+                    height = 40.0 * math.exp(-(dx * dx + dy * dy) / 10.0) if surface_caustics else 0.0
+                    texels += [height, 0.0, abs(height), 1.0]
+            raw = (F * len(texels))(*texels)
+            gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(self.caustic_tex))
+            gl('glActiveTexture', None, U)(0x84C0 + 4)
+            gl('glBindTexture', None, U, U)(0x0DE1, self.caustic_tex)
+            gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(0x0DE1, 0, 0x881A, 16, 16, 0, 0x1908, 0x1406, raw)
+            for parameter in (0x2800, 0x2801):
+                gl('glTexParameteri', None, U, U, I)(0x0DE1, parameter, 0x2601)
+            for parameter in (0x2802, 0x2803):
+                gl('glTexParameteri', None, U, U, I)(0x0DE1, parameter, 0x812F)
+            gl('glActiveTexture', None, U)(0x84C0)
+            location = gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_LiquidCausticMap')
+            gl('glUniform1i', None, I, I)(location, 4)
 
     def run(self, cases):
         """cases: (mode, o, dir, t0, t1, mask)"""
@@ -216,6 +273,8 @@ class Scene:
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(self.ubo))
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(self.tbo))
         gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(self.tex))
+        if self.caustic_tex.value:
+            gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(self.caustic_tex))
 
 
 WATER = (0.0014, (2.0, 0.75, 0.25), (0.10, 0.45, 0.75), 0.75)
@@ -347,6 +406,20 @@ def sun_cases(prog):
     close(got[1][:3], [120.0, 0.0, 0.0], 'coverage over 8 hits')
     scene.delete()
     checks += 2
+
+    # 8 The exact interaction height field consumed by the visible surface changes the
+    # refracted-ray Jacobian.  A flat field and an injected Gaussian ripple use otherwise
+    # identical body, optics and receiver state.
+    lake = [Brush([-256.0, -256.0, -256.0], [256.0, 256.0, 0.0])]
+    flat = Scene(prog, lake, MATERIALS, surface_caustics=False)
+    flat_result = flat.run([(1, [48.0, 0.0, -96.0], [0.22, 0.0, math.sqrt(1.0 - 0.22 ** 2)], 0.0, 0.0, -1)])[0]
+    flat.delete()
+    ripple = Scene(prog, lake, MATERIALS, surface_caustics=True)
+    ripple_result = ripple.run([(1, [48.0, 0.0, -96.0], [0.22, 0.0, math.sqrt(1.0 - 0.22 ** 2)], 0.0, 0.0, -1)])[0]
+    ripple.delete()
+    assert max(abs(a - b) for a, b in zip(flat_result[:3], ripple_result[:3])) > 0.01, \
+        ('surface-driven interaction did not alter focusing', flat_result, ripple_result)
+    checks += 1
     return checks
 
 
@@ -586,6 +659,35 @@ def bench():
                     times.append(ns.value / 1e6)
             times.sort()
             print(f'{count:2d} brushes in every slice: LiquidCoverage {times[len(times) // 2]:.3f} ms (median of 6)')
+            scene.delete()
+        gl('glDeleteQueries', None, I, C.POINTER(U))(1, C.byref(query))
+        gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(results))
+        gl('glDeleteProgram', None, U)(prog)
+
+        # Receiver-side mode-2 cost.  There is intentionally no caustic-map
+        # generation pass; this isolates the added direct-sun application work.
+        prog = compile_probe(CAUSTIC_BENCH)
+        grid = (128, 128)
+        gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(results))
+        gl('glBindBuffer', None, U, U)(0x90D2, results)
+        gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x90D2, grid[0] * grid[1] * 16, None, 0x88E4)
+        gl('glBindBufferBase', None, U, U, U)(0x90D2, 1, results)
+        gl('glGenQueries', None, I, C.POINTER(U))(1, C.byref(query))
+        lake = [Brush([-256.0, -256.0, -256.0], [256.0, 256.0, 0.0])]
+        for label, surface in [('off', None), ('surface-driven', True)]:
+            scene = Scene(prog, lake, MATERIALS, surface_caustics=surface, ambient_waves=surface is not None)
+            gl('glUseProgram', None, U)(prog)
+            gl('glUniform2i', None, I, I, I)(gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_Grid'), *grid)
+            times = []
+            for run in range(8):
+                gl('glBeginQuery', None, U, U)(0x88BF, query)
+                gl('glDispatchCompute', None, U, U, U)(grid[0] // 8, grid[1] // 8, 1)
+                gl('glEndQuery', None, U)(0x88BF)
+                ns = C.c_uint64()
+                gl('glGetQueryObjectui64v', None, U, U, C.POINTER(C.c_uint64))(query, 0x8866, C.byref(ns))
+                if run >= 2: times.append(ns.value / 1e6)
+            times.sort()
+            print(f'{label:14s} liquid sun over {grid[0] * grid[1]} receivers: {times[len(times) // 2]:.3f} ms (median of 6)')
             scene.delete()
         gl('glDeleteQueries', None, I, C.POINTER(U))(1, C.byref(query))
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(results))
