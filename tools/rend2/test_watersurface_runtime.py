@@ -74,6 +74,7 @@ def main():
     parser.add_argument('--ambient-waves', action='store_true', help='Enable per-body ambient waves and capture their debug views')
     parser.add_argument('--flow', action='store_true', help='Enable directional flow and capture off/on and debug comparisons')
     parser.add_argument('--geometry', action='store_true', help='Enable render-only subdivision and print its map-load budget')
+    parser.add_argument('--shoreline', action='store_true', help='Enable shoreline/contact treatment and capture all debug views')
     parser.add_argument('--interaction', action='store_true', help='Inject a body-local disturbance and capture its debug views')
     parser.add_argument('--caustics', action='store_true', help='Capture procedural/surface-driven caustics and all mode-2 debug views')
     parser.add_argument('--timeout', type=int, default=600, help='Maximum runtime seconds (first Intel shader-cache build can be slow)')
@@ -166,6 +167,17 @@ def main():
             'r_waterGeometryDebug 3', 'wait 8', 'screenshot_tga water-geometry-original',
             'r_waterGeometryDebug 4', 'wait 8', 'screenshot_tga water-geometry-seams',
             'r_waterGeometryDebug 0', 'r_waterWaveAmplitude 1', 'r_waterWaveTime -1'])
+    if args.shoreline:
+        debug_reset = next(i for i, command in enumerate(commands)
+                           if command.startswith('r_waterSurfaceDebug 0'))
+        shore_commands = [grazing, 'centerview', 'r_waterWaveAmplitude 4', 'r_waterWaveTime 4', 'wait 30',
+                          'screenshot_tga water-shore-grazing']
+        names = ('depth', 'boundary', 'attenuation', 'height', 'classification',
+                 'contact', 'wetness', 'foam', 'cracks')
+        for mode, name in enumerate(names, 1):
+            shore_commands += [f'r_waterShoreDebug {mode}', 'wait 8', f'screenshot_tga water-shore-{name}']
+        shore_commands += ['r_waterShoreDebug 0', 'r_waterWaveAmplitude 1', 'r_waterWaveTime -1']
+        commands[debug_reset] += '\n' + '\n'.join(shore_commands)
     if args.interaction:
         debug_reset = next(i for i, command in enumerate(commands)
                            if command.startswith('r_waterSurfaceDebug 0'))
@@ -199,6 +211,11 @@ def main():
             'r_waterCausticsDebug 7', 'wait 6', 'screenshot_tga water-caustics-interaction',
             'r_waterCausticsDebug 0', 'r_volumetricWaterCaustics 0.35', 'r_waterWaveTime -1'])
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
+    # SP reads autoexec_sp.cfg before the server commands are registered. Delay
+    # the map command until normal frames are running; this also survives local
+    # Windows launchers which drop trailing +devmap/+exec arguments on restart.
+    (base/'autoexec_sp.cfg').write_text(
+        f'wait 300\ndevmap {args.map}\nwait 60\nexec waterfix.cfg\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
                     r_glslCache='1', r_normalMapping='0', r_parallaxMapping='0',
@@ -206,7 +223,9 @@ def main():
                     r_waterSurface='1', r_waterSnell='1', r_waterSurfaceDebug='0',
                     r_waterWaves='1' if args.ambient_waves else '0',
                     r_waterFlow='1' if args.flow else '0',
-                    r_waterGeometry='1' if args.geometry else '0',
+                    r_waterGeometry='1' if (args.geometry or args.shoreline) else '0',
+                    r_waterShoreline='1' if args.shoreline else '0',
+                    r_weatherWetness='0',
                     r_waterInteraction='1' if args.interaction else '0',
                     r_waterCausticsMode='2' if args.caustics else '1',
                     r_waterInteractionQuality=args.interaction_quality,
@@ -216,7 +235,6 @@ def main():
     command = [str(root/'openjk_sp.x86_64.exe')]
     for key, value in settings.items():
         command += ['+set', key, value]
-    command += ['+devmap', args.map, '+exec', 'waterfix.cfg']
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup.wShowWindow = 0
@@ -249,6 +267,12 @@ def main():
         assert any(int(n) > 0 for n in re.findall(r'body \d+: (\d+) vertices', log)), 'No water mesh uploaded'
         for name in ('water-geometry-grazing.tga', 'water-geometry-wire.tga',
                      'water-geometry-magnitude.tga', 'water-geometry-original.tga'):
+            assert (base/'screenshots'/name).stat().st_size > 1000, name
+    if args.shoreline:
+        for name in ('water-shore-grazing.tga', 'water-shore-depth.tga', 'water-shore-boundary.tga',
+                     'water-shore-attenuation.tga', 'water-shore-height.tga',
+                     'water-shore-classification.tga', 'water-shore-contact.tga',
+                     'water-shore-wetness.tga', 'water-shore-foam.tga', 'water-shore-cracks.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.flow:
         for name in ('water-flow-off.tga', 'water-flow-on.tga', 'water-flow-direction.tga',

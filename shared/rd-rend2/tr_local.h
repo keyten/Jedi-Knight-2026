@@ -316,6 +316,8 @@ extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_wate
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
+extern cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactSoftness;
+extern cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
 extern cvar_t	*r_waterSurfaceRefraction;
@@ -2686,6 +2688,7 @@ typedef enum
 	UNIFORM_RUNOFFPARAMS2,		// wind shear x, y (per unit of fall), windward amount, frame origin z
 	UNIFORM_RUNOFFFRAME,		// pattern frame: horizontal axis a1 (world xy), origin xy
 	UNIFORM_WEATHERMATERIAL,	// debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
+	UNIFORM_WATERCONTACT,		// shoreline: parameters + nearest displaced boundary segments
 
 	UNIFORM_SKINPARAMS,		// skin SSS of this draw: scatter (0 = not skin), has mask, compare split x (< 0 off), unused
 	UNIFORM_SKINWRAP,		// skin SSS: rgb = wrap widths (r_skinSSS 1), w = transmission strength
@@ -5936,7 +5939,9 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 34
+#define WATER_UNIFORM_VEC4S 35
+#define WATER_CONTACT_SEGMENTS 12
+#define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
 
@@ -6262,6 +6267,7 @@ float R_SSRTraceScale(void);
 qboolean R_WeatherWetnessEnabled(void);
 void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	class UniformDataWriter &uniformDataWriter, class SamplerBindingsWriter &samplerBindingsWriter);
+void RB_WaterContactUniforms(vec4_t *contact, int vec4Count);
 qboolean R_SSRWantsVelocity(void);
 void R_SSRSelectResources(void);
 void R_CreateSSRImages(int width, int height, int hdrFormat);

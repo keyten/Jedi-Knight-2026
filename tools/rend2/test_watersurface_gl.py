@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 34
+WATER_VEC4S = 35
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -1124,6 +1124,19 @@ def bench():
                 old_mean = sum(pair[0] for pair in alternating) / len(alternating)
                 new_mean = sum(pair[1] for pair in alternating) / len(alternating)
                 print(f'  interleaved full-screen micro {old_mean:.3f} ms, ambient quality 1 {new_mean:.3f} ms, delta {new_mean-old_mean:+.3f} ms')
+                shoreline_pairs = []
+                for _ in range(4):
+                    u[34] = [0, 96, 6, 0]
+                    set_vec4s(prog, 'u_Water', u)
+                    shoreline_off = timed(draw_only, repeat=10)
+                    u[34, 0] = 1
+                    set_vec4s(prog, 'u_Water', u)
+                    shoreline_on = timed(draw_only, repeat=10)
+                    shoreline_pairs.append((shoreline_off, shoreline_on))
+                shoreline_off = sum(pair[0] for pair in shoreline_pairs) / len(shoreline_pairs)
+                shoreline_on = sum(pair[1] for pair in shoreline_pairs) / len(shoreline_pairs)
+                print(f'  interleaved shoreline off {shoreline_off:.3f} ms, on {shoreline_on:.3f} ms, delta {shoreline_on-shoreline_off:+.3f} ms')
+                u[34] = [0, 0, 0, 0]
                 flow_pairs = []
                 u[13, 0] = 1
                 u[14, 1] = 1

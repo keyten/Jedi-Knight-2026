@@ -816,6 +816,7 @@ uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / sca
 uniform vec4 u_RunoffParams2;  // wind shear x, y (per unit of fall), windward amount, pattern origin z
 uniform vec4 u_RunoffFrame;    // pattern frame: horizontal axis a1 (world xy), origin xy
 uniform vec4 u_WeatherMaterial; // debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
+uniform vec4 u_WaterContact[25]; // params + 12 displaced boundary segment endpoint pairs
 #endif
 // Runtime A/B for the standard PBR diffuse model: 0 = Lambert, 1 = Burley/Disney
 uniform int u_DiffuseBRDF;
@@ -3174,6 +3175,29 @@ float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal, in flo
 	return mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
 }
 
+float ComputeWaterContact(in vec3 worldPosition)
+{
+	float width = max(u_WaterContact[0].y, 0.25);
+	float result = 0.0;
+	int count = int(u_WaterContact[0].w + 0.5);
+	for (int i = 0; i < 12; ++i)
+	{
+		if (i >= count) break;
+		vec4 a = u_WaterContact[1 + i * 2];
+		vec4 b = u_WaterContact[2 + i * 2];
+		vec2 ab = b.xy - a.xy;
+		float t = clamp(dot(worldPosition.xy - a.xy, ab) / max(dot(ab, ab), 1e-5), 0.0, 1.0);
+		float horizontal = length(worldPosition.xy - mix(a.xy, b.xy, t));
+		float currentHeight = mix(a.z, b.z, t);
+		float wetHeight = max(currentHeight, mix(a.w, b.w, t));
+		float vertical = max(max(currentHeight - worldPosition.z, worldPosition.z - wetHeight), 0.0);
+		float h = 1.0 - smoothstep(width * 0.25, width, horizontal);
+		float v = 1.0 - smoothstep(width * 0.25, width, vertical);
+		result = max(result, h * v);
+	}
+	return result;
+}
+
 // Procedural puddles: world anchored low frequency value noise, one domain
 // warp and two octaves (3 noise evaluations, 12 hashes), 0..1.
 float PuddleHash(vec2 p)
@@ -3735,6 +3759,7 @@ void main()
 	// cubemap IBL, SSR and SSGI all see the same wet material.
 	float rainExposure = 0.0;
 	float wetness = 0.0;
+	float waterContact = 0.0;
 	float puddleSlope = 0.0;
 	float puddleField = 0.0;
 	float puddle = 0.0;
@@ -3753,7 +3778,7 @@ void main()
 	vec2 runoffField = vec2(0.0);	// ungated pattern (debug 25)
 	// pixel footprint of the undisplaced surface, taken in uniform control flow
 	float rippleFootprint = length(fwidth((u_ViewOrigin - var_ViewDir.xyz).xy));
-	if (u_WetnessParams.x > 0.0 || u_WetnessParams2.z > 0.0)
+	if (u_WetnessParams.x > 0.0 || u_WetnessParams2.z > 0.0 || u_WaterContact[0].x > 0.0)
 	{
 		vec3 wetGeoNormal = normalize(vertexNormal);
 		if (u_WetnessParams.x > 0.0 || u_WetnessParams2.z == 1.0)
@@ -3762,6 +3787,11 @@ void main()
 		// (entities: most of the side, u_WetnessParams3.x)
 		float facing = mix(u_WetnessParams3.x, 1.0, clamp(wetGeoNormal.z, 0.0, 1.0)) * step(-0.2, wetGeoNormal.z);
 		wetness = rainExposure * max(u_WetnessParams.x, 0.0) * facing;
+		if (u_WaterContact[0].x > 0.0)
+		{
+			waterContact = ComputeWaterContact(u_ViewOrigin - viewDir);
+			wetness = max(wetness, waterContact * u_WaterContact[0].x);
+		}
 		if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
 			wetness = 0.0;	// dry / wet split
 		N = normalize(mix(N, wetGeoNormal, wetness * u_WetnessParams.w));
@@ -4372,6 +4402,16 @@ void main()
   #endif
 
   #if defined(USE_WETNESS)
+	if (u_WaterContact[0].z == 7.0)
+	{
+		out_Color = vec4(vec3(0.05, waterContact, waterContact), diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
 	// r_weatherSurfaceDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
 	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 31.0 && u_WetnessParams2.z != 4.0)
 	{

@@ -66,8 +66,24 @@ out vec2 var_FlowTex;	// first stage texture coordinates with its tcMods
 out vec3 var_BasePosition;
 out vec3 var_GeometryDisplacement;
 out float var_GeometrySkirt;
+out vec3 var_ShoreData;
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform sampler2D u_WaterInteractionMap;
+
+vec3 WaterShoreData(float encodedDistance)
+{
+	if (u_Water[34].x < 0.5 || u_Water[19].y < 0.5)
+		return vec3(65504.0, 1.0, 0.0);
+	float distance = max(abs(encodedDistance) - 0.25, 0.0);
+	float rigid = step(encodedDistance, 0.0);
+	float width = max(u_Water[34].y, 1.0);
+	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
+	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, distance));
+	float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance));
+	return vec3(distance, mix(naturalAttenuation, rigidAttenuation, rigid), rigid);
+}
 
 float WaterInteractionHeight(vec3 worldPosition)
 {
@@ -312,11 +328,17 @@ void main()
 	var_BasePosition = wsPosition.xyz;
 	var_GeometryDisplacement = vec3(0.0);
 	var_GeometrySkirt = 0.0;
+	var_ShoreData = WaterShoreData(attr_TexCoord1.y);
 	if (u_Water[19].y > 0.5)
 	{
 		var_GeometrySkirt = 1.0 - attr_TexCoord1.x;
 		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
-		geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition);
+		geometryWave.displacement *= var_ShoreData.y;
+		float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+		float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
+			clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
+		geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition) *
+			max(var_ShoreData.y, interactionEdge);
 		var_GeometryDisplacement = geometryWave.displacement *
 			(u_Water[19].z > 2.5 && u_Water[19].z < 3.5 ? 1.0 : attr_TexCoord1.x);
 		wsPosition.xyz += var_GeometryDisplacement;
@@ -439,6 +461,7 @@ uniform sampler2DArrayShadow u_ShadowMap;
 in vec3 var_BasePosition;
 in vec3 var_GeometryDisplacement;
 in float var_GeometrySkirt;
+in vec3 var_ShoreData;
 in vec3 var_Position;
 in vec3 var_Normal;
 in vec2 var_FlowTex;
@@ -1079,12 +1102,22 @@ void main()
 	vec2 slope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * strength;
 	vec3 microNormal = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	WaterWaveState waves = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
+	waves.displacement *= var_ShoreData.y;
+	waves.slope *= var_ShoreData.y;
+	waves.velocity *= var_ShoreData.y;
+	waves.height *= var_ShoreData.y;
+	waves.curvature *= var_ShoreData.y;
+	waves.attenuation *= var_ShoreData.y;
 	vec3 macroGradient = vec3(waves.slope, 0.0);
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
 	vec2 interactionWorldSlope;
 	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
 	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
-	vec2 interactionSlope = vec2(dot(interactionGradient, Tw), dot(interactionGradient, Bw));
+	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+	float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
+		clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
+	vec2 interactionSlope = vec2(dot(interactionGradient, Tw), dot(interactionGradient, Bw)) *
+		max(var_ShoreData.y, interactionEdge);
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
 	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
 	if (int(u_Water[18].x + 0.5) == 8 && gl_FragCoord.x <
@@ -1120,6 +1153,24 @@ void main()
 		else if (interactionDebug == 7) debugColor = vec3(interactionField.b, 0.1 * interactionField.b, 0.0);
 		else if (interactionDebug == 8) debugColor = interactionField.b > 0.0 ? vec3(0.1, 1.0, 0.2) : vec3(0.08, 0.12, 0.3);
 		else if (interactionDebug == 9) debugColor = vec3(fract(bodyUV * 16.0), 0.25 + 0.75 * interactionField.a);
+		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+	int shoreDebug = int(u_Water[34].w + 0.5);
+	if (shoreDebug > 0 && u_WaterPass.x < 0.5)
+	{
+		float contact = 1.0 - smoothstep(0.0, max(u_Water[34].z, 0.25), var_ShoreData.x);
+		vec3 debugColor = vec3(0.0);
+		if (shoreDebug == 1) debugColor = vec3(clamp(u_Water[17].z / 128.0, 0.0, 1.0));
+		else if (shoreDebug == 2) debugColor = vec3(clamp(var_ShoreData.x / max(u_Water[34].y, 1.0), 0.0, 1.0));
+		else if (shoreDebug == 3) debugColor = vec3(var_ShoreData.y, var_ShoreData.y, 1.0 - var_ShoreData.y);
+		else if (shoreDebug == 4) debugColor = vec3(0.5 + 0.1 * (waves.height + interactionField.r));
+		else if (shoreDebug == 5) debugColor = mix(vec3(0.1, 0.75, 0.25), vec3(1.0, 0.2, 0.05), var_ShoreData.z);
+		else if (shoreDebug == 6) debugColor = vec3(contact);
+		else if (shoreDebug == 7) debugColor = vec3(0.05, contact, contact);
+		else if (shoreDebug == 8) debugColor = vec3(interactionField.b, 0.15 * interactionField.b, 0.0);
+		else debugColor = mix(vec3(0.04), vec3(1.0, 0.0, 1.0), max(contact, var_GeometrySkirt));
 		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;

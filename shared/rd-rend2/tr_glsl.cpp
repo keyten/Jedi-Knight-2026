@@ -393,6 +393,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_RunoffParams2",		GLSL_VEC4, 1 },
 	{ "u_RunoffFrame",		GLSL_VEC4, 1 },
 	{ "u_WeatherMaterial",	GLSL_VEC4, 1 },
+	{ "u_WaterContact",		GLSL_VEC4, WATER_CONTACT_VEC4S },
 
 	{ "u_SkinParams",			GLSL_VEC4, 1 },
 	{ "u_SkinWrap",				GLSL_VEC4, 1 },

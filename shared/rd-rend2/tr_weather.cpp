@@ -2181,8 +2181,12 @@ is static per map, so there is no accumulation or drying over time.
 
 qboolean R_WeatherWetnessEnabled(void)
 {
-	if (!r_weatherWetness || !r_weatherWetness->integer)
+	const bool weather = r_weatherWetness && r_weatherWetness->integer;
+	const bool shore = r_waterShoreline && r_waterShoreline->integer;
+	if (!weather && !shore)
 		return qfalse;
+	if (!weather)
+		return qtrue;
 
 	// queried once: called for every lightall draw, the GPU does not change
 	static GLint maxFragmentSamplers = -1;
@@ -2297,16 +2301,6 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	const weatherSystem_t *ws = tr.weatherSystem;
 	const bool raining = ws && ws->depthMapValid && tr.weatherDepthImage &&
 		ws->weatherSlots[WEATHER_RAIN].active;
-	if (!raining)
-	{
-		// strength 0: the shader never samples u_WeatherDepthMap
-		const vec4_t off = {};
-		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, off);
-		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS2, off);
-		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEPARAMS, off);
-		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS, off);
-		return;
-	}
 
 	wetExclusion_t exclusion = R_WetnessStageExclusion(shader, pStage);
 	if (exclusion == WETEXCLUDE_NONE && (backEnd.depthFill ||
@@ -2326,9 +2320,13 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	R_WeatherMaterialPrint(shader, scale, exclusion);
 	const vec4_t material = { scale[0], scale[1], scale[2], (float)exclusion };
 	uniformDataWriter.SetUniformVec4(UNIFORM_WEATHERMATERIAL, material);
+	vec4_t waterContact[WATER_CONTACT_VEC4S];
+	RB_WaterContactUniforms(waterContact, WATER_CONTACT_VEC4S);
+	waterContact[0][0] *= eligible ? scale[0] : 0.0f;
+	uniformDataWriter.SetUniformVec4(UNIFORM_WATERCONTACT, waterContact[0], WATER_CONTACT_VEC4S);
 
 	// strength < 0 marks an ineligible draw for r_weatherSurfaceDebug 2
-	const float strength = eligible ?
+	const float strength = eligible && raining ?
 		Com_Clamp(0.0f, 1.0f, r_weatherWetnessStrength->value * scale[0]) : -1.0f;
 	// per material class response (tr_autopbr.cpp): cloth only darkens,
 	// armor / metal get glossier
@@ -2345,6 +2343,21 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		0.0f
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS3, params3);
+	if (!raining)
+	{
+		const vec4_t off = {};
+		const vec4_t shoreParams = { 0.0f, response[1], response[0], response[2] };
+		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, shoreParams);
+		uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS2, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEPARAMS, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEPARAMS2, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLEHEIGHT, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_PUDDLERIPPLE, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS2, off);
+		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFFRAME, off);
+		return;
+	}
 	const vec4_t params2 = {
 		MAX(r_weatherWetnessBias->value, 0.0f) / ws->depthRangeWorld,	// world units -> depth
 		0.5f * ws->texelSizeWorld,
