@@ -317,6 +317,8 @@ extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowD
 extern cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
 extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
 extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
+extern cvar_t *r_waterIntersectionFoam, *r_waterIntersectionFoamWidth, *r_waterIntersectionFoamStrength;
+extern cvar_t *r_waterIntersectionFoamPersistence, *r_waterIntersectionFoamDebug;
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
@@ -5944,7 +5946,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 35
+#define WATER_UNIFORM_VEC4S 36
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u

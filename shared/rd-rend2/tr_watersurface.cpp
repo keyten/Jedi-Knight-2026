@@ -197,6 +197,10 @@ struct waterInteractionState_t
 	std::vector<byte> mask;
 	std::vector<float> state; // interleaved height, velocity, transient foam
 	std::vector<float> next;
+	// Depth-derived object contact is kept separate from event splash foam so
+	// its persistence can be tuned without changing weapon/entry splashes.
+	std::vector<float> intersectionFoam;
+	std::vector<float> intersectionNext;
 	std::vector<float> upload; // RGBA: height, velocity, energy, mask
 	image_t *image = nullptr;
 	int atlasX = 0, atlasY = 0;
@@ -441,6 +445,8 @@ static void R_WaterInteractionBuild(void)
 		sim.mask.assign(cells, 0);
 		sim.state.assign(cells * 3, 0.0f);
 		sim.next.assign(cells * 3, 0.0f);
+		sim.intersectionFoam.assign(cells, 0.0f);
+		sim.intersectionNext.assign(cells, 0.0f);
 		sim.upload.assign(cells * 4, 0.0f);
 
 		// Rasterise actual usable top triangles. Five sub-cell samples make thin
@@ -881,7 +887,12 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
 	{
 		const size_t i = (size_t)y * w + x;
-		if (!sim.mask[i]) { sim.next[i * 3] = sim.next[i * 3 + 1] = sim.next[i * 3 + 2] = 0.0f; continue; }
+		if (!sim.mask[i])
+		{
+			sim.next[i * 3] = sim.next[i * 3 + 1] = sim.next[i * 3 + 2] = 0.0f;
+			sim.intersectionNext[i] = 0.0f;
+			continue;
+		}
 		const float hc = sim.state[i * 3], vc = sim.state[i * 3 + 1], fc = sim.state[i * 3 + 2];
 		auto height = [&](int sx, int sy) -> float {
 			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return hc;
@@ -911,6 +922,20 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 		const float dfdy = flowY >= 0.0f ? (fc - fd) / sim.texelY : (fu - fc) / sim.texelY;
 		const float diffusion = 0.3f * ((fl - 2.0f * fc + fr) + (fd - 2.0f * fc + fu));
 		float nf = Com_Clamp(0.0f, 1.0f, (fc - dt * (flowX * dfdx + flowY * dfdy) + dt * diffusion) * expf(-dt * 0.85f));
+		const float ic = sim.intersectionFoam[i];
+		auto intersectionAt = [&](int sx, int sy) -> float {
+			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return ic;
+			const size_t n = (size_t)sy * w + sx;
+			return sim.mask[n] ? sim.intersectionFoam[n] : ic;
+		};
+		const float il = intersectionAt(x - 1, y), ir = intersectionAt(x + 1, y);
+		const float id = intersectionAt(x, y - 1), iu = intersectionAt(x, y + 1);
+		const float didx = flowX >= 0.0f ? (ic - il) / sim.texelX : (ir - ic) / sim.texelX;
+		const float didy = flowY >= 0.0f ? (ic - id) / sim.texelY : (iu - ic) / sim.texelY;
+		const float iDiffusion = 0.3f * ((il - 2.0f * ic + ir) + (id - 2.0f * ic + iu));
+		const float persistence = MAX(r_waterIntersectionFoamPersistence->value, 0.001f);
+		sim.intersectionNext[i] = Com_Clamp(0.0f, 1.0f,
+			(ic - dt * (flowX * didx + flowY * didy) + dt * iDiffusion) * expf(-dt / persistence));
 		if (r_waterShoreline->integer && r_waterShoreFoam->value > 0.0f)
 		{
 			const bool boundary = x == 0 || y == 0 || x + 1 == w || y + 1 == h ||
@@ -928,11 +953,16 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 		energy += nh * nh + (v * v) / MAX(c * c, 1.0f); ++wet;
 	}
 	sim.state.swap(sim.next);
+	sim.intersectionFoam.swap(sim.intersectionNext);
 	sim.energy = wet ? (float)(energy / wet) : 0.0f;
-	if (sim.energy < 1.0e-5f) sim.quietTime += dt; else sim.quietTime = 0.0f;
+	float foamPeak = 0.0f;
+	for (size_t i = 0; i < sim.mask.size(); ++i)
+		foamPeak = MAX(foamPeak, MAX(sim.state[i * 3 + 2], sim.intersectionFoam[i]));
+	if (sim.energy < 1.0e-5f && foamPeak < 1.0e-3f) sim.quietTime += dt; else sim.quietTime = 0.0f;
 	if (sim.quietTime > 1.0f)
 	{
 		std::fill(sim.state.begin(), sim.state.end(), 0.0f);
+		std::fill(sim.intersectionFoam.begin(), sim.intersectionFoam.end(), 0.0f);
 		sim.active = false; sim.energy = 0.0f;
 	}
 	sim.dirty = true;
@@ -992,7 +1022,8 @@ static void RB_WaterInteractionUpdate(void)
 		{
 			sim.upload[i * 4] = sim.state[i * 3];
 			sim.upload[i * 4 + 1] = sim.state[i * 3 + 1];
-			sim.upload[i * 4 + 2] = sim.state[i * 3 + 2];
+			sim.upload[i * 4 + 2] = Com_Clamp(0.0f, 1.0f,
+				sim.state[i * 3 + 2] + sim.intersectionFoam[i]);
 			sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
 		}
 		GL_BindToTMU(s_water.interactionAtlas, 19);
@@ -3478,6 +3509,10 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[34], r_waterShoreline->integer ? 1.0f : 0.0f,
 		MAX(r_waterShoreAttenuation->value, 1.0f), MAX(r_waterShoreContactSoftness->value, 0.25f),
 		(float)r_waterShoreDebug->integer);
+	VectorSet4(water[35], r_waterIntersectionFoam->integer ? 1.0f : 0.0f,
+		MAX(r_waterIntersectionFoamWidth->value, 0.5f),
+		Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value),
+		(float)r_waterIntersectionFoamDebug->integer);
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
@@ -3566,6 +3601,116 @@ Around the water slot of the main pass (RB_SubmitRenderPass), renderFbo bound:
 the scene under the water and its depth are copied (MSAA: resolved) once.
 =================
 */
+
+static float RB_WaterIntersectionLinearDepth(float depth, const viewParms_t& view)
+{
+	return view.projectionMatrix[14] /
+		(depth * 2.0f - 1.0f + view.projectionMatrix[10]);
+}
+
+static void RB_WaterIntersectionWorldPosition(int x, int y, float depth,
+	const viewParms_t& view, int targetWidth, int targetHeight, vec3_t out)
+{
+	const float u = (x + 0.5f) / targetWidth;
+	const float v = (y + 0.5f) / targetHeight;
+	const float vx = (float)view.viewportX / targetWidth;
+	const float vy = (float)view.viewportY / targetHeight;
+	const float vw = (float)view.viewportWidth / targetWidth;
+	const float vh = (float)view.viewportHeight / targetHeight;
+	const float ndcX = (u - vx) / vw * 2.0f - 1.0f;
+	const float ndcY = (v - vy) / vh * 2.0f - 1.0f;
+	const float z = RB_WaterIntersectionLinearDepth(depth, view);
+	const float side = (ndcX + view.projectionMatrix[8]) * z / view.projectionMatrix[0];
+	const float up = (ndcY + view.projectionMatrix[9]) * z / view.projectionMatrix[5];
+	vec3_t right;
+	VectorScale(view.ori.axis[1], -1.0f, right);
+	VectorCopy(view.ori.origin, out);
+	VectorMA(out, side, right, out);
+	VectorMA(out, up, view.ori.axis[2], out);
+	VectorMA(out, z, view.ori.axis[0], out);
+}
+
+// Project the body-local simulation cells through the same opaque depth copy
+// sampled by the water shader.  Only a narrow, locally coherent, near-vertical
+// contact survives; floors just under shallow water and arbitrary silhouettes
+// therefore do not turn into white outlines.  The one-frame delayed result is
+// a source for the persistent field, while the shader supplies the current
+// frame's immediate response.
+static void RB_WaterIntersectionInject(void)
+{
+	if (!r_waterIntersectionFoam->integer || !r_waterInteraction->integer ||
+		r_waterIntersectionFoamStrength->value <= 0.0f ||
+		r_waterIntersectionFoamPersistence->value <= 0.0f || !s_water.interactionAtlas)
+		return;
+	const viewParms_t& view = backEnd.viewParms;
+	const int x0 = s_water.copyRect[0], y0 = s_water.copyRect[1];
+	const int width = s_water.copyRect[2], height = s_water.copyRect[3];
+	if (width < 3 || height < 3) return;
+	static std::vector<float> depth;
+	depth.resize((size_t)width * height);
+	qglReadPixels(x0, y0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+	const float band = MAX(r_waterIntersectionFoamWidth->value, 0.5f);
+	const float strength = Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value);
+	matrix_t viewProjection;
+	Matrix16Multiply(view.projectionMatrix, view.world.modelViewMatrix, viewProjection);
+	auto sampleDepth = [&](int x, int y) -> float {
+		x = Com_Clampi(x0, x0 + width - 1, x);
+		y = Com_Clampi(y0, y0 + height - 1, y);
+		return depth[(size_t)(y - y0) * width + x - x0];
+	};
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterInteractionState_t& sim = body.interaction;
+		if (!sim.image || fabsf(body.planeNormal[2]) < 0.35f) continue;
+		for (int gy = 0; gy < sim.height; ++gy) for (int gx = 0; gx < sim.width; ++gx)
+		{
+			const size_t i = (size_t)gy * sim.width + gx;
+			if (!sim.mask[i]) continue;
+			vec3_t waterPoint = {
+				body.bounds[0][0] + (gx + 0.5f) * sim.texelX,
+				body.bounds[0][1] + (gy + 0.5f) * sim.texelY, 0.0f };
+			waterPoint[2] = (body.planeDist - body.planeNormal[0] * waterPoint[0] -
+				body.planeNormal[1] * waterPoint[1]) / body.planeNormal[2];
+			vec4_t clip;
+			for (int row = 0; row < 4; ++row)
+				clip[row] = viewProjection[row] * waterPoint[0] + viewProjection[4 + row] * waterPoint[1] +
+					viewProjection[8 + row] * waterPoint[2] + viewProjection[12 + row];
+			if (clip[3] <= 0.001f) continue;
+			const float ndcX = clip[0] / clip[3], ndcY = clip[1] / clip[3];
+			const int sx = (int)floorf(view.viewportX + (ndcX * 0.5f + 0.5f) * view.viewportWidth);
+			const int sy = (int)floorf(view.viewportY + (ndcY * 0.5f + 0.5f) * view.viewportHeight);
+			if (sx <= x0 || sy <= y0 || sx >= x0 + width - 1 || sy >= y0 + height - 1) continue;
+			const float dc = sampleDepth(sx, sy);
+			if (dc >= 0.999999f) continue;
+			vec3_t scene, px0, px1, py0, py1, dx, dy, sceneNormal;
+			RB_WaterIntersectionWorldPosition(sx, sy, dc, view, tr.waterDepthImage->width, tr.waterDepthImage->height, scene);
+			const float signedDistance = DotProduct(scene, body.planeNormal) - body.planeDist;
+			if (fabsf(signedDistance) >= band) continue;
+			const float dl = sampleDepth(sx - 1, sy), dr = sampleDepth(sx + 1, sy);
+			const float dd = sampleDepth(sx, sy - 1), du = sampleDepth(sx, sy + 1);
+			if (dl >= 0.999999f || dr >= 0.999999f || dd >= 0.999999f || du >= 0.999999f) continue;
+			RB_WaterIntersectionWorldPosition(sx - 1, sy, dl, view, tr.waterDepthImage->width, tr.waterDepthImage->height, px0);
+			RB_WaterIntersectionWorldPosition(sx + 1, sy, dr, view, tr.waterDepthImage->width, tr.waterDepthImage->height, px1);
+			RB_WaterIntersectionWorldPosition(sx, sy - 1, dd, view, tr.waterDepthImage->width, tr.waterDepthImage->height, py0);
+			RB_WaterIntersectionWorldPosition(sx, sy + 1, du, view, tr.waterDepthImage->width, tr.waterDepthImage->height, py1);
+			VectorSubtract(px1, px0, dx); VectorSubtract(py1, py0, dy);
+			CrossProduct(dx, dy, sceneNormal);
+			const float normalLength = VectorNormalize(sceneNormal);
+			if (normalLength < 1.0e-4f) continue;
+			const float vertical = 1.0f - fabsf(DotProduct(sceneNormal, body.planeNormal));
+			const float normalConfidence = Com_Clamp(0.0f, 1.0f, (vertical - 0.15f) / 0.55f);
+			const float derivative = MAX(VectorLength(dx), VectorLength(dy));
+			const float depthConfidence = 1.0f - Com_Clamp(0.0f, 1.0f, derivative / (band * 8.0f));
+			const float bandConfidence = 1.0f - Com_Clamp(0.0f, 1.0f, fabsf(signedDistance) / band);
+			const float source = bandConfidence * normalConfidence * depthConfidence * strength;
+			if (source <= 0.01f) continue;
+			sim.intersectionFoam[i] = MAX(sim.intersectionFoam[i], Com_Clamp(0.0f, 1.0f, source));
+			sim.active = sim.dirty = true;
+			sim.quietTime = 0.0f;
+		}
+	}
+}
+
 void RB_WaterSurfacePrepare( void )
 {
 	FBO_t *oldFbo = glState.currentFBO;
@@ -3582,6 +3727,8 @@ void RB_WaterSurfacePrepare( void )
 		s_water.copyRect[2], s_water.copyRect[3]);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 0, 0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	FBO_Bind(tr.waterCopyFbo);
+	RB_WaterIntersectionInject();
 
 	FBO_Bind(oldFbo);
 	GL_SetViewportAndScissor(viewParms.viewportX, viewParms.viewportY,

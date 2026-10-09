@@ -383,10 +383,11 @@ void main()
 //   [15] body amplitude, wavelength, speed, micro strength
 //   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
 //   [18] debug, body ID, choppiness, wave multiplier;
-//   [19] legacy deform amplitude, geometry enabled, geometry debug, unused
+//   [19] legacy deform amplitude, geometry enabled, geometry debug, foam multiplier
 //   [20..27] precomputed analytic wave direction.xy, amplitude, wave number
 //   [28] resolved world flow velocity xyz, enabled
 //   [29] resolved speed, detail-advection scale, flow debug, packed source/confidence
+//   [35] intersection foam enabled, world width, strength, debug mask
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -1009,6 +1010,53 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 	return center;
 }
 
+// Depth discontinuities alone are not contacts: require an opaque sample in a
+// narrow world-space slab around the water and a locally coherent surface
+// whose normal crosses the water plane. This rejects shallow floors, distant
+// silhouettes and the usual screen-space halo around every object.
+float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
+{
+	if (u_Water[35].x < 0.5 || u_WaterPass.x > 0.5)
+		return 0.0;
+	float width = max(u_Water[35].y, 0.5);
+	vec2 targetSize = vec2(textureSize(u_WaterDepthMap, 0));
+	vec2 radiusUV = max(abs(WaterProject(P + Tw * width) - uv),
+		abs(WaterProject(P + Bw * width) - uv));
+	vec2 texel = 1.0 / targetSize;
+	radiusUV = clamp(radiusUV, texel, texel * 8.0);
+	float result = 0.0;
+	for (int tap = 0; tap < 9; ++tap)
+	{
+		float angle = 6.2831853 * float(tap) / 8.0;
+		vec2 sampleUV = tap == 8 ? uv : uv + vec2(cos(angle), sin(angle)) * radiusUV;
+		vec2 lo = u_Water[12].xy + texel * 1.5;
+		vec2 hi = u_Water[12].xy + u_Water[12].zw - texel * 1.5;
+		if (any(lessThan(sampleUV, lo)) || any(greaterThan(sampleUV, hi))) continue;
+		float depth = WaterSampleDepth(sampleUV);
+		if (WaterIsSky(depth)) continue;
+		vec3 scene = WaterWorldPosition(sampleUV, WaterLinearDepth(depth));
+		float planeDistance = dot(scene - P, Ng);
+		float bandConfidence = 1.0 - smoothstep(width * 0.25, width, abs(planeDistance));
+		if (bandConfidence <= 0.0) continue;
+		float depthX = WaterSampleDepth(sampleUV + vec2(texel.x, 0.0));
+		float depthY = WaterSampleDepth(sampleUV + vec2(0.0, texel.y));
+		if (WaterIsSky(depthX) || WaterIsSky(depthY)) continue;
+		vec3 sceneX = WaterWorldPosition(sampleUV + vec2(texel.x, 0.0), WaterLinearDepth(depthX));
+		vec3 sceneY = WaterWorldPosition(sampleUV + vec2(0.0, texel.y), WaterLinearDepth(depthY));
+		vec3 dx = sceneX - scene, dy = sceneY - scene;
+		vec3 opaqueNormal = cross(dx, dy);
+		float normalLength = length(opaqueNormal);
+		if (normalLength < 1e-4) continue;
+		opaqueNormal /= normalLength;
+		float crossing = 1.0 - abs(dot(opaqueNormal, Ng));
+		float normalConfidence = smoothstep(0.15, 0.70, crossing);
+		float depthConfidence = 1.0 - smoothstep(width * 2.0, width * 8.0,
+			max(length(dx), length(dy)));
+		result = max(result, bandConfidence * normalConfidence * depthConfidence);
+	}
+	return clamp(result, 0.0, 1.0);
+}
+
 float WaterFadeIntegral(float z)
 {
 	float length = 1.0 / u_Water[8].w;
@@ -1134,6 +1182,14 @@ void main()
 	vec3 Nwater = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
+	float intersectionMask = !inside ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv) : 0.0;
+	float intersectionFoam = clamp(intersectionMask * u_Water[35].z * u_Water[19].w, 0.0, 1.0);
+	if (u_Water[35].w > 0.5 && u_WaterPass.x < 0.5)
+	{
+		out_Color = vec4(LinearToScene(vec3(intersectionMask, intersectionMask * 0.35, 0.0)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
 
 	int interactionDebug = int(u_Water[31].w + 0.5);
 	if (interactionDebug > 0 && u_WaterPass.x < 0.5)
@@ -1584,7 +1640,7 @@ void main()
 	// Channel B of the body-local interaction field is short-lived foam laid
 	// down by energetic physical splash events.  It remains surface-local,
 	// follows resolved body flow and fades without a separate fluid mesh.
-	float splashFoam = clamp(interactionField.b * u_Water[19].w, 0.0, 1.0);
+	float splashFoam = clamp(interactionField.b * u_Water[19].w + intersectionFoam, 0.0, 1.0);
 	if (!inside && splashFoam > 0.0)
 	{
 		float grazing = 0.65 + 0.35 * clamp(dot(Nwater, V), 0.0, 1.0);

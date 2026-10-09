@@ -79,7 +79,7 @@ The uploaded resource is one clamped `RGBA16F` texture per allocated body:
 
 - R: disturbance height;
 - G: vertical velocity;
-- B: transient splash foam;
+- B: transient splash foam plus the composited persistent object-intersection tracer;
 - A: physical body mask.
 
 GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 41 bytes per active field texel (mask, current/next height/velocity/foam float state, RGBA upload staging), plus vector overhead.
@@ -101,6 +101,11 @@ Extension points require no solver changes:
 - waterfall impact: keep a stable continuous source ID at the impact basin;
 - scripted effects/projectiles: call `AddWaterImpulse` with their world hit position, radius, energy, and direction;
 - spatial stream flow: replace the existing uniform `R_WaterFlowForBody` lookup with its planned body-local flow texture; the solver already consumes body-space flow advection.
+
+Opaque-depth object contacts can also feed the foam channel when
+`r_waterIntersectionFoam` is enabled; see
+[`object/intersection foam`](rend2-water-intersection-foam.md). Its tracer has
+independent persistence but shares this field's mask, upload and flow.
 
 ## Controls and commands
 
