@@ -319,6 +319,21 @@ struct waterfallRule_t
 	waterfallProfile_t values = s_waterfallProfiles[WFPROFILE_MEDIUM];
 };
 
+// A waterfall base source is either an acknowledgement that the BSP already
+// owns an FX runner (the preferred source), or an authored/inferred froxel
+// medium plus LensWater SPRAY source. It never owns arbitrary renderer-world
+// coordinates: inferred origins come only from a classified sheet impact edge.
+struct waterfallEmitterRule_t
+{
+	waterfallRule_t selector;
+	bool existingFx = false;
+	bool hasOrigin = false;
+	vec3_t origin = {};
+	float radius = 0.0f;
+	float density = 1.0f;
+	float lens = 1.0f;
+};
+
 struct waterShaderRecord_t
 {
 	shader_t	*shader;
@@ -376,6 +391,7 @@ static struct
 	vec4_t contactUniform[WATER_CONTACT_VEC4S];
 	std::vector<waterBodyRule_t>		bodyRules;
 	std::vector<waterfallRule_t>		waterfallRules;
+	std::vector<waterfallEmitterRule_t>	waterfallEmitterRules;
 	float		bodyMsec;
 	float		geometryMsec;
 	size_t		geometryBytes;
@@ -2581,11 +2597,57 @@ static bool R_WaterJsonVec( const char *object, const char *end, const char *nam
 	return true;
 }
 
+static void R_WaterfallEmittersParseJson( const char *json, const char *end, const char *filename )
+{
+	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterfallEmitters");
+	if (!array) return;
+	if (JSON_ValueGetType(array, end) != JSONTYPE_ARRAY)
+	{
+		ri.Printf(PRINT_WARNING, "%s: WaterfallEmitters is not an array\n", filename);
+		return;
+	}
+	const int count = Q_min((int)JSON_ArrayGetIndex(array, end, NULL, 0), 256);
+	for (int i = 0; i < count; ++i)
+	{
+		const char *entry = JSON_ArrayGetValue(array, end, i);
+		if (!entry || JSON_ValueGetType(entry, end) != JSONTYPE_OBJECT) continue;
+		waterfallEmitterRule_t rule;
+		const char *selector = JSON_ObjectGetNamedValue(entry, end, "Selector");
+		if (!selector || JSON_ValueGetType(selector, end) != JSONTYPE_OBJECT) selector = entry;
+		const char *value = JSON_ObjectGetNamedValue(selector, end, "Shader");
+		char shader[MAX_QPATH] = "";
+		if (value) JSON_ValueGetString(value, end, shader, sizeof(shader));
+		value = JSON_ObjectGetNamedValue(selector, end, "ShaderPrefix");
+		if (value && !shader[0]) { JSON_ValueGetString(value, end, shader, sizeof(shader) - 1); Q_strcat(shader, sizeof(shader), "*"); }
+		Q_strlwr(shader); rule.selector.shader = shader;
+		value = JSON_ObjectGetNamedValue(selector, end, "BodyId");
+		if (value) rule.selector.id = (int)JSON_ValueGetFloat(value, end);
+		rule.selector.hasPoint = R_WaterJsonVec(selector, end, "Point", rule.selector.point, 3);
+		const char *bounds = JSON_ObjectGetNamedValue(selector, end, "Bounds");
+		if (bounds && JSON_ValueGetType(bounds, end) == JSONTYPE_OBJECT)
+			rule.selector.hasBounds = R_WaterJsonVec(bounds, end, "Mins", rule.selector.bounds[0], 3) &&
+				R_WaterJsonVec(bounds, end, "Maxs", rule.selector.bounds[1], 3);
+		value = JSON_ObjectGetNamedValue(entry, end, "ExistingFx");
+		rule.existingFx = value && JSON_ValueGetFloat(value, end) != 0.0f;
+		rule.hasOrigin = R_WaterJsonVec(entry, end, "Origin", rule.origin, 3);
+		value = JSON_ObjectGetNamedValue(entry, end, "Radius"); if (value) rule.radius = Q_max(0.0f, JSON_ValueGetFloat(value, end));
+		value = JSON_ObjectGetNamedValue(entry, end, "Density"); if (value) rule.density = Q_max(0.0f, JSON_ValueGetFloat(value, end));
+		value = JSON_ObjectGetNamedValue(entry, end, "LensStrength"); if (value) rule.lens = Q_max(0.0f, JSON_ValueGetFloat(value, end));
+		if (rule.selector.shader.empty() && rule.selector.id < 0 && !rule.selector.hasPoint && !rule.selector.hasBounds)
+		{
+			ri.Printf(PRINT_WARNING, "%s: WaterfallEmitters[%d] needs a classified-waterfall selector\n", filename, i);
+			continue;
+		}
+		s_water.waterfallEmitterRules.push_back(rule);
+	}
+}
+
 void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, const char *filename )
 {
 	if ( world != s_water.world ) return;
 	s_water.bodyRules.clear();
 	s_water.waterfallRules.clear();
+	s_water.waterfallEmitterRules.clear();
 	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterBodies");
 	if ( array && JSON_ValueGetType(array, end) != JSONTYPE_ARRAY )
 	{
@@ -2712,11 +2774,118 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 			s_water.waterfallRules.push_back(rule);
 		}
 	}
+	R_WaterfallEmittersParseJson(json, end, filename);
 	for ( waterBody_t& body : s_water.bodies ) { R_WaterResolveBody(body); R_WaterResolveWaterfall(body); R_WaterApplyWaterfallBodyKeys(body); }
 	ri.Printf(PRINT_DEVELOPER, "%s: %d water dynamics rule%s\n", filename,
 		(int)s_water.bodyRules.size(), s_water.bodyRules.size() == 1 ? "" : "s");
 	ri.Printf(PRINT_DEVELOPER, "%s: %d waterfall rule%s\n", filename,
 		(int)s_water.waterfallRules.size(), s_water.waterfallRules.size() == 1 ? "" : "s");
+}
+
+void R_WaterfallEmittersFinalize(world_t *world)
+{
+	if (!world || world != s_water.world) return;
+	world->numWaterfallFogVolumes = 0;
+	world->waterfallFogVolumes = NULL;
+	world->numWaterfallLensEmitters = 0;
+	world->waterfallLensEmitters = NULL;
+
+	// A dedicated sidecar is additive. It is deliberately loaded after env.json
+	// so a project PK3 need not copy and replace Cubemaps/FogVolumes.
+	char filename[MAX_QPATH];
+	Com_sprintf(filename, sizeof(filename), "cubemaps/%s/waterfalls.json", world->baseName);
+	void *file = NULL;
+	const int length = ri.FS_ReadFile(filename, &file);
+	const bool sidecarLoaded = file != NULL;
+	if (file)
+	{
+		const char *json = (const char *)file;
+		const char *end = json + length;
+		if (JSON_ValueGetType(json, end) == JSONTYPE_OBJECT)
+			R_WaterfallEmittersParseJson(json, end, filename);
+		else
+			ri.Printf(PRINT_WARNING, "%s: root must be an object\n", filename);
+		ri.FS_FreeFile(file);
+	}
+
+	std::vector<refFogVolume_t> fog;
+	std::vector<lensWaterEmitter_t> lens;
+	for (const waterBody_t& body : s_water.bodies)
+	{
+		if (!body.waterfall) continue;
+		bool matched = false, existingFx = false;
+		for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
+			if (R_WaterfallRuleMatches(rule.selector, body)) { matched = true; existingFx |= rule.existingFx; }
+		if (existingFx)
+		{
+			// The FX runner owns spray particles and its physicalized medium. Only
+			// add the optional camera coupling; this is still the existing SPRAY input.
+			const waterfallEmitterRule_t *owner = NULL;
+			for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
+				if (rule.existingFx && R_WaterfallRuleMatches(rule.selector, body)) { owner = &rule; break; }
+			const float radius = owner && owner->radius > 0.0f ? owner->radius :
+				Com_Clamp(72.0f, 384.0f, body.impactWidth * 0.45f);
+			lensWaterEmitter_t emitter = {};
+			if (owner && owner->hasOrigin) VectorCopy(owner->origin, emitter.origin); else VectorCopy(body.impactCenter, emitter.origin);
+			emitter.radius = radius * 2.0f;
+			emitter.strength = body.waterfallValues.spray * (owner ? owner->lens : 1.0f);
+			emitter.type = LENSWATER_SPRAY;
+			lens.push_back(emitter);
+			continue;
+		}
+
+		auto add = [&](const waterfallEmitterRule_t *rule)
+		{
+			const float radius = rule && rule->radius > 0.0f ? rule->radius : Com_Clamp(72.0f, 384.0f, body.impactWidth * 0.45f);
+			const float density = rule ? rule->density : 1.0f;
+			const float lensStrength = rule ? rule->lens : 1.0f;
+			refFogVolume_t volume = {};
+			volume.id = 0x50000000 | (int)fog.size();
+			volume.shape = FOGVOLUME_ELLIPSOID;
+			if (rule && rule->hasOrigin) VectorCopy(rule->origin, volume.origin); else VectorCopy(body.impactCenter, volume.origin);
+			VectorSet(volume.extents, radius, radius, radius * 0.55f);
+			AxisClear(volume.axis);
+			volume.depthForOpaque = density > 0.0f ? 720.0f / density : 1.0e9f;
+			VectorSet(volume.color, 0.94f, 0.97f, 1.0f);
+			volume.softness = 0.78f;
+			volume.anisotropy = 0.62f;
+			volume.flags = FOGVOLUME_ANISOTROPY;
+			fog.push_back(volume);
+
+			lensWaterEmitter_t emitter = {};
+			VectorCopy(volume.origin, emitter.origin);
+			emitter.radius = radius * 2.0f;
+			emitter.strength = body.waterfallValues.spray * lensStrength;
+			emitter.type = LENSWATER_SPRAY;
+			lens.push_back(emitter);
+		};
+
+		if (matched)
+		{
+			for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
+				if (!rule.existingFx && R_WaterfallRuleMatches(rule.selector, body)) add(&rule);
+		}
+		else add(NULL); // classified bottom-edge fallback, never an arbitrary point
+	}
+
+	if (!fog.empty())
+	{
+		world->waterfallFogVolumes = (refFogVolume_t *)Hunk_Alloc(fog.size() * sizeof(refFogVolume_t), h_low);
+		memcpy(world->waterfallFogVolumes, fog.data(), fog.size() * sizeof(refFogVolume_t));
+		world->numWaterfallFogVolumes = (int)fog.size();
+	}
+	if (!lens.empty())
+	{
+		world->waterfallLensEmitters = (lensWaterEmitter_t *)Hunk_Alloc(lens.size() * sizeof(lensWaterEmitter_t), h_low);
+		memcpy(world->waterfallLensEmitters, lens.data(), lens.size() * sizeof(lensWaterEmitter_t));
+		world->numWaterfallLensEmitters = (int)lens.size();
+	}
+	int existingFxOwners = 0;
+	for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules) if (rule.existingFx) ++existingFxOwners;
+	if (r_waterfallMistDebug->integer || sidecarLoaded)
+		ri.Printf(PRINT_ALL, "%s: %d waterfall mist emitter%s (%d existing FX owner%s)\n", filename,
+			world->numWaterfallFogVolumes, world->numWaterfallFogVolumes == 1 ? "" : "s",
+			existingFxOwners, existingFxOwners == 1 ? "" : "s");
 }
 
 /*
@@ -3046,11 +3215,43 @@ static void R_WaterBodyDigit( const refdef_t *fd, qhandle_t shader, const vec3_t
 
 void R_WaterBodiesDebugDraw( const refdef_t *fd )
 {
-	if ( !(s_water.bodyDebug || r_waterFlowDebug->integer ||
-		(r_waterGeometry->integer && r_waterGeometryDebug->integer == 5)) ||
+	const qboolean bodyDebug = (qboolean)(s_water.bodyDebug || r_waterFlowDebug->integer ||
+		(r_waterGeometry->integer && r_waterGeometryDebug->integer == 5));
+	if ( !(bodyDebug || r_waterfallMistDebug->integer) ||
 		!tr.world || s_water.world != tr.world || (fd->rdflags & RDF_NOWORLDMODEL) ) return;
 	if ( !s_water.bodyDebugShader )
 		s_water.bodyDebugShader = RE_RegisterShaderFromImage("*waterBodyDebug", lightmaps2d, stylesDefault, tr.whiteImage, qfalse);
+	if (r_waterfallMistDebug->integer)
+	{
+		const byte mistColor[4] = { 80, 220, 255, 255 };
+		for (int v = 0; v < tr.world->numWaterfallFogVolumes; ++v)
+		{
+			const refFogVolume_t& volume = tr.world->waterfallFogVolumes[v];
+			vec3_t p[8];
+			for (int i = 0; i < 8; ++i)
+				for (int axis = 0; axis < 3; ++axis)
+					p[i][axis] = volume.origin[axis] + ((i & (1 << axis)) ? 1.0f : -1.0f) *
+						volume.extents[axis] * r_waterfallMistRadius->value;
+			for (int i = 0; i < 8; ++i)
+				for (int bit = 0; bit < 3; ++bit)
+					if (!(i & (1 << bit))) R_WaterBodySegment(fd, s_water.bodyDebugShader,
+						p[i], p[i | (1 << bit)], mistColor);
+		}
+		const byte lensColor[4] = { 80, 255, 140, 255 };
+		for (int v = 0; v < tr.world->numWaterfallLensEmitters; ++v)
+		{
+			const lensWaterEmitter_t& emitter = tr.world->waterfallLensEmitters[v];
+			vec3_t a, b;
+			for (int axis = 0; axis < 3; ++axis)
+			{
+				VectorCopy(emitter.origin, a); VectorCopy(emitter.origin, b);
+				a[axis] -= emitter.radius * 0.5f * r_waterfallMistRadius->value;
+				b[axis] += emitter.radius * 0.5f * r_waterfallMistRadius->value;
+				R_WaterBodySegment(fd, s_water.bodyDebugShader, a, b, lensColor);
+			}
+		}
+	}
+	if (!bodyDebug) return;
 	for ( const waterBody_t& body : s_water.bodies )
 	{
 		const unsigned h = (unsigned)body.id * 2654435761u;
@@ -3829,6 +4030,7 @@ void R_WaterSurfaceShutdown( void )
 	s_water.contactUniformTime = -1;
 	s_water.bodyRules.clear();
 	s_water.waterfallRules.clear();
+	s_water.waterfallEmitterRules.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();

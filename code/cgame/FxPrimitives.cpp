@@ -196,9 +196,10 @@ void CParticle::DrawVolumetricMedia()
 	if (mVolume.autoEffect[0] && mVolume.autoCompositeOnly && !theFxHelper.PhysicalizationComposite()) return;
 	if (mVolume.autoEffect[0] && mVolume.autoEmissionRadiance > 0 && mVolume.opticalDepth <= 0 && !theFxHelper.PhysicalizationEmission()) return;
 	const bool adaptive = mVolume.autoEffect[0] && mVolume.adaptiveOpticalDepth > 0.0f && theFxHelper.PhysicalizationAdaptive();
-	const float radiusScale = adaptive ? mVolume.adaptiveRadiusScale : mVolume.radiusScale;
+	float radiusScale = adaptive ? mVolume.adaptiveRadiusScale : mVolume.radiusScale;
 	const float softness = adaptive ? mVolume.adaptiveSoftness : mVolume.softness;
-	const float opticalDepth = adaptive ? mVolume.adaptiveOpticalDepth : mVolume.opticalDepth;
+	float opticalDepth = adaptive ? mVolume.adaptiveOpticalDepth : mVolume.opticalDepth;
+	theFxHelper.WaterfallMistScales(mVolume.autoEffect, radiusScale, opticalDepth);
 
 	refVolParticle_t particle;
 	particle.id = mVolId;

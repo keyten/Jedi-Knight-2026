@@ -233,6 +233,13 @@ void fx_runner_link( gentity_t *ent )
 //----------------------------------------------------------
 void SP_fx_runner( gentity_t *ent )
 {
+	// Overlay-authored waterfall spray uses the ordinary FX runner, but remains
+	// completely opt-in. The reserved bit is not used by stock maps.
+	if ( (ent->spawnflags & FX_RUNNER_RESERVED) && !gi.cvar("r_waterfallMist", "0", CVAR_ARCHIVE)->integer )
+	{
+		G_FreeEntity(ent);
+		return;
+	}
 	// Get our defaults
 	G_SpawnInt( "delay", "200", &ent->delay );
 	G_SpawnFloat( "random", "0", &ent->random );

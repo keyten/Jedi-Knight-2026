@@ -391,17 +391,24 @@ feeds a continuous spray input; splash emitters fire at random intervals.
 void EvaluateEmitters( const trRefdef_t *refdef, rainLensInput_t *input )
 {
 	world_t *world = tr.world;
-	if ( !world || !world->numLensWaterEmitters )
+	if ( !world || (!world->numLensWaterEmitters && !world->numWaterfallLensEmitters) )
 		return;
 
 	vec3_t right;
 	VectorScale(refdef->viewaxis[1], -1.0f, right);
 
-	for ( int i = 0; i < world->numLensWaterEmitters; i++ )
+	const int authoredCount = world->numLensWaterEmitters;
+	const int waterfallCount = r_waterfallMist->integer && r_waterfallMistLens->value > 0.0f ?
+		world->numWaterfallLensEmitters : 0;
+	for ( int i = 0; i < authoredCount + waterfallCount; i++ )
 	{
-		lensWaterEmitter_t &emitter = world->lensWaterEmitters[i];
+		lensWaterEmitter_t &emitter = i < authoredCount ? world->lensWaterEmitters[i] :
+			world->waterfallLensEmitters[i - authoredCount];
 		Vec2 side;
-		float strength = emitter.strength * ResolveWorldEvent(emitter.origin, emitter.radius,
+		const qboolean waterfall = (qboolean)(i >= authoredCount);
+		const float radiusScale = waterfall ? r_waterfallMistRadius->value : 1.0f;
+		const float strengthScale = waterfall ? r_waterfallMistLens->value : 1.0f;
+		float strength = emitter.strength * strengthScale * ResolveWorldEvent(emitter.origin, emitter.radius * radiusScale,
 			refdef->vieworg, refdef->viewaxis[0], right, refdef->viewaxis[2], side);
 		if ( VectorLengthSquared(emitter.dir) > 0.0f )
 		{

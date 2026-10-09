@@ -1,0 +1,38 @@
+{
+  "t3_hevil": {
+    "WaterfallEmitters": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "ExistingFx": true,
+        "Radius": 176.0,
+        "LensStrength": 1.0
+      }
+    ],
+    "FxEmitters": [
+      [-800, -1096, -2048],
+      [-608, -1096, -2048],
+      [-416, -1096, -2048],
+      [-224, -1096, -2048],
+      [1120, -1096, -2048],
+      [1312, -1096, -2048],
+      [1504, -1096, -2048],
+      [1696, -1096, -2048]
+    ]
+  },
+  "yavin1": {
+    "WaterfallEmitters": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "ExistingFx": true
+      }
+    ]
+  },
+  "yavin1b": {
+    "WaterfallEmitters": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "ExistingFx": true
+      }
+    ]
+  }
+}

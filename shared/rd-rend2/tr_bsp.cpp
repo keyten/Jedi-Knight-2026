@@ -4981,6 +4981,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	if (bspIndex == nullptr)
 		R_LoadEnvironmentJson(worldData,
 			(r_cubeMapping->integer || r_diffuseIBL->integer) ? qtrue : qfalse);
+	if (bspIndex == nullptr)
+		R_WaterfallEmittersFinalize(worldData);
 
 	// load cubemaps
 	if ((r_cubeMapping->integer || r_diffuseIBL->integer) && bspIndex == nullptr)

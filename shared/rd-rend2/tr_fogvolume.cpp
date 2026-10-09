@@ -844,6 +844,19 @@ void R_FogVolumesBeginScene( const refdef_t *fd )
 
 	for ( int i = 0; i < tr.world->numFogVolumes; i++ )
 		RE_AddFogVolumeToScene(&tr.world->fogVolumes[i]);
+	if ( r_waterfallMist->integer && r_waterfallMistDensity->value > 0.0f &&
+		r_waterfallMistBalance->value > 0.0f )
+	{
+		for ( int i = 0; i < tr.world->numWaterfallFogVolumes; i++ )
+		{
+			refFogVolume_t volume = tr.world->waterfallFogVolumes[i];
+			const float radiusScale = r_waterfallMistRadius->value;
+			VectorScale(volume.extents, radiusScale, volume.extents);
+			const float densityScale = r_waterfallMistDensity->value * r_waterfallMistBalance->value;
+			volume.depthForOpaque /= Q_max(0.001f, densityScale);
+			RE_AddFogVolumeToScene(&volume);
+		}
+	}
 
 	const float seconds = fd->time * 0.001f;
 	for ( int i = 0; i < s_fv.numDebug; i++ )

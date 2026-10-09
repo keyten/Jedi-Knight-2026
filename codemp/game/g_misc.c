@@ -2504,7 +2504,13 @@ void fx_runner_link( gentity_t *ent )
 void SP_fx_runner( gentity_t *ent )
 {
 	char *fxFile;
-
+	// Reserved-bit runners are additive rend2 waterfall spray sources. Keep
+	// them absent unless the server/map owner explicitly enables the feature.
+	if ( (ent->spawnflags & 0x800000) && !trap_Cvar_VariableIntegerValue("r_waterfallMist") )
+	{
+		G_FreeEntity(ent);
+		return;
+	}
 	G_SpawnString( "fxFile", "", &fxFile );
 	// Get our defaults
 	G_SpawnInt( "delay", "200", &ent->delay );

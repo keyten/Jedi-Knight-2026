@@ -33,6 +33,25 @@ extern vmCvar_t	fx_freeze;
 extern vmCvar_t fx_physicalization, fx_physicalizationDebug, fx_physicalizationStrength;
 extern vmCvar_t fx_physicalizationComposite, fx_physicalizationAdaptive, fx_physicalizationEmission, fx_physicalizationSources;
 static cvar_t *physicalOptIn, *physicalOptOut;
+static cvar_t *waterfallMist, *waterfallMistDensity, *waterfallMistRadius, *waterfallMistBalance;
+
+static bool FX_IsWaterfallMist(const char *effect)
+{
+	return effect && !Q_stricmp(effect, "effects/env/waterfall_mist.efx");
+}
+
+bool SFxHelper::PhysicalizationEnabled(const char* effect) const
+{
+	return (FX_IsWaterfallMist(effect) && waterfallMist && waterfallMist->integer) || mPhysicalPolicy.Enabled(effect);
+}
+
+void SFxHelper::WaterfallMistScales(const char* effect, float& radius, float& density) const
+{
+	if (!FX_IsWaterfallMist(effect) || !waterfallMist || !waterfallMist->integer) return;
+	radius *= waterfallMistRadius ? waterfallMistRadius->value : 1.0f;
+	density *= (waterfallMistDensity ? waterfallMistDensity->value : 1.0f) *
+		(waterfallMistBalance ? waterfallMistBalance->value : 0.65f);
+}
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug.integer != 0; }
 bool SFxHelper::PhysicalizationComposite() const { return fx_physicalizationComposite.integer == 1; }
@@ -60,6 +79,10 @@ void SFxHelper::Init()
 	// Lists are not VM mirrors: Cvar_Update rejects strings over 255 bytes.
 	physicalOptIn = gi.cvar("fx_physicalizationOptIn", "", CVAR_ARCHIVE);
 	physicalOptOut = gi.cvar("fx_physicalizationOptOut", "", CVAR_ARCHIVE);
+	waterfallMist = gi.cvar("r_waterfallMist", "0", CVAR_ARCHIVE);
+	waterfallMistDensity = gi.cvar("r_waterfallMistDensity", "1", CVAR_ARCHIVE);
+	waterfallMistRadius = gi.cvar("r_waterfallMistRadius", "1", CVAR_ARCHIVE);
+	waterfallMistBalance = gi.cvar("r_waterfallMistBalance", "0.65", CVAR_ARCHIVE);
 }
 
 //------------------------------------------------------

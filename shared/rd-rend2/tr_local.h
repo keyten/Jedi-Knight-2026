@@ -311,6 +311,8 @@ extern cvar_t	*r_volumetricLavaAnisotropy;
 extern cvar_t	*r_waterSurface;
 extern cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 extern cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
+extern cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
+extern cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
 extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
@@ -3417,6 +3419,14 @@ typedef struct {
 	int			numLensWaterEmitters;
 	struct lensWaterEmitter_s	*lensWaterEmitters;
 
+	// Waterfall impact media generated from explicitly classified sheets or
+	// WaterfallEmitters metadata. Kept separate so env.json FogVolumes and
+	// LensWaterEmitters are never replaced or retuned by this optional path.
+	int			numWaterfallFogVolumes;
+	refFogVolume_t	*waterfallFogVolumes;
+	int			numWaterfallLensEmitters;
+	struct lensWaterEmitter_s	*waterfallLensEmitters;
+
 	// Optional env.json HeightFog: base, opaqueDistance, falloff, top. Missing
 	// components use cvars; an automatic base is kept out of archived cvars.
 	vec4_t heightFogSettings;
@@ -6005,6 +6015,7 @@ void R_WaterImpulse_f(void);
 void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
+void R_WaterfallEmittersFinalize(world_t *world);
 void R_Waterfalls_f(void);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);

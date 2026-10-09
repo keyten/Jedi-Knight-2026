@@ -177,6 +177,10 @@ project object depth into the texture space of a shallow-water simulation,
 rather than drawing a screen-space contact outline. This is the main known
 integration limitation.
 
+Waterfall-base spray, froxel mist, LensWater coupling, authored sidecars and
+the stock-map overlay are described in
+[`rend2-waterfall-mist.md`](rend2-waterfall-mist.md).
+
 Validation commands:
 
 ```text

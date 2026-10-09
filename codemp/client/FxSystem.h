@@ -64,7 +64,8 @@ public:
 	FxPhysical::SourceLedger* mPhysicalSourceFrame = nullptr;
 	void ReportPhysicalSources();
 	float mPhysicalizationStrength = 1.0f;
-	bool PhysicalizationEnabled(const char* effect) const { return mPhysicalPolicy.Enabled(effect); }
+	bool PhysicalizationEnabled(const char* effect) const;
+	void WaterfallMistScales(const char* effect, float& radius, float& density) const;
 	bool PhysicalizationDebug() const;
 	bool PhysicalizationComposite() const;
 	bool PhysicalizationAdaptive() const;
