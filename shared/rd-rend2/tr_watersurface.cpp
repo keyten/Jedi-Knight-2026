@@ -246,6 +246,19 @@ static const waterDynamics_t s_dynamics[] = {
 	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
+enum waterfallProfileId_t { WFPROFILE_SMALL, WFPROFILE_MEDIUM, WFPROFILE_HEAVY, WFPROFILE_COUNT };
+struct waterfallProfile_t
+{
+	const char *name;
+	float flowSpeed, thickness, breakup, normalScale, aeration;
+	float opacity, spray, impact;
+};
+static const waterfallProfile_t s_waterfallProfiles[WFPROFILE_COUNT] = {
+	{ "small", 72.0f, 2.5f, 0.45f, 0.75f, 0.45f, 0.75f, 0.35f, 0.45f },
+	{ "medium", 120.0f, 5.0f, 0.75f, 1.0f, 0.75f, 1.0f, 0.75f, 0.85f },
+	{ "heavy", 168.0f, 9.0f, 1.0f, 1.3f, 1.0f, 1.25f, 1.25f, 1.35f }
+};
+
 struct waterBody_t
 {
 	int id, model, liquidClass, opticsClass, dynamics;
@@ -262,6 +275,13 @@ struct waterBody_t
 	int geometryVerts, geometryTriangles, geometryLevel;
 	waterInteractionState_t interaction;
 	waterFoamState_t foam;
+	bool waterfall = false;
+	int waterfallProfile = WFPROFILE_MEDIUM;
+	const char *waterfallDecision = "legacy fallback";
+	waterfallProfile_t waterfallValues = s_waterfallProfiles[WFPROFILE_MEDIUM];
+	float fallMin = 0.0f, fallMax = 1.0f;
+	vec3_t fallDirection = { 0, 0, -1 }, impactCenter = {};
+	float impactWidth = 0.0f;
 };
 
 // Map-load boundary segments are also the persistent wet-contact carriers.
@@ -287,6 +307,16 @@ struct waterBodyRule_t
 	vec3_t flowDirection;
 	float flowSpeed;
 	float wave, foam, interaction;
+};
+
+struct waterfallRule_t
+{
+	std::string shader;
+	int id = -1, profile = WFPROFILE_MEDIUM;
+	bool hasPoint = false, hasBounds = false, hasProfile = false, enabled = true;
+	vec3_t point = {}, bounds[2] = {};
+	unsigned authored = 0;
+	waterfallProfile_t values = s_waterfallProfiles[WFPROFILE_MEDIUM];
 };
 
 struct waterShaderRecord_t
@@ -345,6 +375,7 @@ static struct
 	vec3_t contactUniformEye;
 	vec4_t contactUniform[WATER_CONTACT_VEC4S];
 	std::vector<waterBodyRule_t>		bodyRules;
+	std::vector<waterfallRule_t>		waterfallRules;
 	float		bodyMsec;
 	float		geometryMsec;
 	size_t		geometryBytes;
@@ -464,7 +495,10 @@ static bool R_WaterFoamAllocate(waterBody_t& body)
 {
 	waterFoamState_t& foam = body.foam;
 	if (foam.active) return true;
-	if (!R_WaterFoamResourcesEnabled() || body.liquidClass == LIQUID_LAVA) return false;
+	// The current persistent field is an XY projection for horizontal bodies.
+	// Waterfalls expose sheet-local sources in their shader/profile data until
+	// that field gains an across/fall coordinate domain.
+	if (!R_WaterFoamResourcesEnabled() || body.liquidClass == LIQUID_LAVA || body.waterfall) return false;
 	bool modern = false;
 	for (int surfaceNum : body.surfaces)
 		if (s_water.world->surfaces[surfaceNum].waterKey & WATERKEY_INTERFACE) { modern = true; break; }
@@ -544,6 +578,7 @@ static void R_WaterInteractionBuild(void)
 	int allocated = 0;
 	for (waterBody_t& body : s_water.bodies)
 	{
+		if (body.waterfall) continue;
 		bool eligible = false;
 		for (int surfaceNum : body.surfaces)
 			if (s_water.world->surfaces[surfaceNum].waterKey & WATERKEY_INTERFACE) { eligible = true; break; }
@@ -785,6 +820,7 @@ static waterBody_t *R_WaterFoamBodyAt(const vec3_t position)
 	float bestPlane = 1.0e30f;
 	for (waterBody_t& body : s_water.bodies)
 	{
+		if (body.waterfall) continue;
 		if (position[0] < body.bounds[0][0] || position[0] > body.bounds[1][0] ||
 			position[1] < body.bounds[0][1] || position[1] > body.bounds[1][1]) continue;
 		const float plane = fabsf(DotProduct(body.planeNormal, position) - body.planeDist);
@@ -1454,7 +1490,7 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 	s_water.copyRect[1] = v.viewportY;
 	s_water.copyRect[2] = v.viewportWidth;
 	s_water.copyRect[3] = v.viewportHeight;
-	if (!r_waterSurface->integer || !drawSurfs || numDrawSurfs <= 0)
+	if ((!r_waterSurface->integer && (!r_waterfall || !r_waterfall->integer)) || !drawSurfs || numDrawSurfs <= 0)
 		return;
 
 	int minX = v.viewportX + v.viewportWidth;
@@ -1469,6 +1505,8 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 	{
 		const uint32_t key = drawSurfs[i].waterKey;
 		if (!(key & WATERKEY_INTERFACE))
+			continue;
+		if ((key & WATERKEY_WATERFALL) ? (!r_waterfall || !r_waterfall->integer) : !r_waterSurface->integer)
 			continue;
 		backEnd.waterInterfacesVisible = qtrue;
 		const int bodyId = (int)(key >> 20);
@@ -1783,6 +1821,7 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	s_water.contactTime = 0;
 	s_water.contactUniformTime = -1;
 	s_water.bodyRules.clear();
+	s_water.waterfallRules.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -2297,6 +2336,112 @@ static void R_WaterResolveBody( waterBody_t& body )
 	}
 }
 
+static bool R_WaterfallRuleMatches(const waterfallRule_t& rule, const waterBody_t& body)
+{
+	if (rule.id >= 0 && rule.id != body.id) return false;
+	if (!rule.shader.empty())
+	{
+		bool matched = false;
+		for (const std::string& shader : body.shaders)
+			if (R_WaterPatternMatches(rule.shader, shader.c_str())) matched = true;
+		if (!matched) return false;
+	}
+	if (rule.hasPoint)
+		for (int axis = 0; axis < 3; ++axis)
+			if (rule.point[axis] < body.bounds[0][axis] || rule.point[axis] > body.bounds[1][axis]) return false;
+	if (rule.hasBounds && !R_WaterBoundsTouch(body.bounds, rule.bounds, 0.0f)) return false;
+	return true;
+}
+
+static void R_WaterResolveWaterfall(waterBody_t& body)
+{
+	body.waterfall = false;
+	body.waterfallProfile = WFPROFILE_MEDIUM;
+	body.waterfallDecision = "legacy fallback";
+	const bool steep = fabsf(body.planeNormal[2]) < 0.7f;
+	// Exact mapping is intentionally narrow and comes from the installed stock
+	// asset audit. It is not a filename-substring classifier.
+	if (steep && body.shaders.count("textures/h_evil/wfall"))
+	{
+		body.waterfall = true;
+		body.waterfallProfile = (body.bounds[1][2] - body.bounds[0][2] > 1024.0f) ? WFPROFILE_HEAVY : WFPROFILE_MEDIUM;
+		body.waterfallDecision = "audited stock mapping";
+	}
+	for (const waterfallRule_t& rule : s_water.waterfallRules)
+	{
+		if (!R_WaterfallRuleMatches(rule, body)) continue;
+		body.waterfall = rule.enabled && steep;
+		if (rule.hasProfile) body.waterfallProfile = rule.profile;
+		body.waterfallValues = rule.values;
+		body.waterfallDecision = steep ? "explicit env.json" : "rejected: surface is not steep";
+	}
+	if (!body.waterfall) return;
+	body.waterfallValues = s_waterfallProfiles[body.waterfallProfile];
+	for (const waterfallRule_t& rule : s_water.waterfallRules)
+	{
+		if (!R_WaterfallRuleMatches(rule, body) || !rule.enabled) continue;
+		if (rule.authored & (1u << 0)) body.waterfallValues.flowSpeed = rule.values.flowSpeed;
+		if (rule.authored & (1u << 1)) body.waterfallValues.thickness = rule.values.thickness;
+		if (rule.authored & (1u << 2)) body.waterfallValues.breakup = rule.values.breakup;
+		if (rule.authored & (1u << 3)) body.waterfallValues.normalScale = rule.values.normalScale;
+		if (rule.authored & (1u << 4)) body.waterfallValues.aeration = rule.values.aeration;
+		if (rule.authored & (1u << 5)) body.waterfallValues.opacity = rule.values.opacity;
+		if (rule.authored & (1u << 6)) body.waterfallValues.spray = rule.values.spray;
+		if (rule.authored & (1u << 7)) body.waterfallValues.impact = rule.values.impact;
+	}
+	vec3_t gravity = { 0, 0, -1 };
+	VectorMA(gravity, -DotProduct(gravity, body.planeNormal), body.planeNormal, gravity);
+	VectorNormalize(gravity);
+	if (body.flowSpeed > 0.0f && DotProduct(body.flowDirection, gravity) > 0.35f)
+	{
+		VectorScale(body.flowDirection, 0.7f, body.fallDirection);
+		VectorMA(body.fallDirection, 0.3f, gravity, body.fallDirection);
+		VectorNormalize(body.fallDirection);
+	}
+	else VectorCopy(gravity, body.fallDirection);
+	body.flowSpeed = body.waterfallValues.flowSpeed;
+	VectorCopy(body.fallDirection, body.flowDirection);
+	VectorScale(body.flowDirection, body.flowSpeed, body.flowVelocity);
+	body.flowSource = body.flowSource == WFLOW_EXPLICIT ? WFLOW_EXPLICIT : WFLOW_PROFILE;
+	body.flowConfidence = WFLOW_CONFIDENCE_HIGH;
+	vec3_t across; CrossProduct(body.planeNormal, body.fallDirection, across); VectorNormalize(across);
+	body.fallMin = 1.0e30f; body.fallMax = -1.0e30f;
+	float acrossMin = 1.0e30f, acrossMax = -1.0e30f;
+	for (int corner = 0; corner < 8; ++corner)
+	{
+		vec3_t p = { body.bounds[(corner >> 0) & 1][0], body.bounds[(corner >> 1) & 1][1], body.bounds[(corner >> 2) & 1][2] };
+		const float along = DotProduct(p, body.fallDirection), side = DotProduct(p, across);
+		body.fallMin = MIN(body.fallMin, along); body.fallMax = MAX(body.fallMax, along);
+		acrossMin = MIN(acrossMin, side); acrossMax = MAX(acrossMax, side);
+	}
+	VectorAdd(body.bounds[0], body.bounds[1], body.impactCenter); VectorScale(body.impactCenter, 0.5f, body.impactCenter);
+	VectorMA(body.impactCenter, body.fallMax - DotProduct(body.impactCenter, body.fallDirection), body.fallDirection, body.impactCenter);
+	body.impactWidth = acrossMax - acrossMin;
+}
+
+static void R_WaterApplyWaterfallBodyKeys(waterBody_t& body)
+{
+	if (!s_water.world || body.id >= 4096) return;
+	for (int surfaceNum : body.surfaces)
+	{
+		msurface_t& surface = const_cast<world_t *>(s_water.world)->surfaces[surfaceNum];
+		const bool wasWaterfall = (surface.waterKey & WATERKEY_WATERFALL) != 0;
+		surface.waterKey &= ~WATERKEY_WATERFALL;
+		if (wasWaterfall)
+		{
+			bool horizontal = false;
+			for (const waterSurfaceRecord_t& record : s_water.surfaces)
+				if (record.surfaceNum == surfaceNum) { horizontal = record.modern != qfalse; break; }
+			if (!horizontal) surface.waterKey &= ~WATERKEY_INTERFACE;
+		}
+		if (body.waterfall && r_waterfall && r_waterfall->integer)
+		{
+			surface.waterKey |= WATERKEY_INTERFACE | WATERKEY_WATERFALL | ((uint32_t)body.opticsClass << 4);
+			if (surface.shader) surface.shader->waterSurface = 1;
+		}
+	}
+}
+
 static void R_WaterBuildBodies( void )
 {
 	const int start = ri.Milliseconds();
@@ -2378,10 +2523,20 @@ static void R_WaterBuildBodies( void )
 		body.depthAverage = body.brushes.empty() ? 0 : depthSum / body.brushes.size();
 		R_WaterBodyMotion(body);
 		R_WaterResolveBody(body);
+		R_WaterResolveWaterfall(body);
 		// Reserve bits 20..31 for a map-local body ID. Zero means no matched body.
 		if ( body.id < 4096 )
 			for ( int surfaceNum : body.surfaces )
-				const_cast<world_t *>(s_water.world)->surfaces[surfaceNum].waterKey |= (uint32_t)body.id << 20;
+			{
+				msurface_t& surface = const_cast<world_t *>(s_water.world)->surfaces[surfaceNum];
+				surface.waterKey |= (uint32_t)body.id << 20;
+				if (body.waterfall && r_waterfall && r_waterfall->integer)
+				{
+					surface.waterKey |= WATERKEY_INTERFACE | WATERKEY_WATERFALL | ((uint32_t)body.opticsClass << 4);
+					if (surface.shader) surface.shader->waterSurface = 1;
+				}
+			}
+		R_WaterApplyWaterfallBodyKeys(body);
 	}
 	s_water.bodyMsec = (float)(ri.Milliseconds() - start);
 }
@@ -2404,6 +2559,15 @@ static void R_WaterRefreshBodies( void )
 				}
 		}
 		R_WaterResolveBody(body);
+		R_WaterResolveWaterfall(body);
+		if (body.id < 4096 && body.waterfall && r_waterfall && r_waterfall->integer)
+			for (int surfaceNum : body.surfaces)
+			{
+				msurface_t& surface = const_cast<world_t *>(s_water.world)->surfaces[surfaceNum];
+				surface.waterKey |= WATERKEY_INTERFACE | WATERKEY_WATERFALL | ((uint32_t)body.opticsClass << 4);
+				if (surface.shader) surface.shader->waterSurface = 1;
+			}
+		R_WaterApplyWaterfallBodyKeys(body);
 	}
 }
 
@@ -2421,16 +2585,17 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 {
 	if ( world != s_water.world ) return;
 	s_water.bodyRules.clear();
+	s_water.waterfallRules.clear();
 	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterBodies");
-	if ( !array ) return;
-	if ( JSON_ValueGetType(array, end) != JSONTYPE_ARRAY )
+	if ( array && JSON_ValueGetType(array, end) != JSONTYPE_ARRAY )
 	{
 		ri.Printf(PRINT_WARNING, "%s: WaterBodies is not an array\n", filename);
-		return;
 	}
-	const int count = Q_min((int)JSON_ArrayGetIndex(array, end, NULL, 0), 256);
-	for ( int i = 0; i < count; i++ )
+	if ( array && JSON_ValueGetType(array, end) == JSONTYPE_ARRAY )
 	{
+	 const int count = Q_min((int)JSON_ArrayGetIndex(array, end, NULL, 0), 256);
+	 for ( int i = 0; i < count; i++ )
+	 {
 		const char *entry = JSON_ArrayGetValue(array, end, i);
 		if ( !entry || JSON_ValueGetType(entry, end) != JSONTYPE_OBJECT ) continue;
 		waterBodyRule_t rule = {};
@@ -2502,10 +2667,56 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 		value = JSON_ObjectGetNamedValue(entry, end, "InteractionMultiplier");
 		if ( value ) rule.interaction = Q_max(0.0f, JSON_ValueGetFloat(value, end));
 		s_water.bodyRules.push_back(rule);
+	 }
 	}
-	for ( waterBody_t& body : s_water.bodies ) R_WaterResolveBody(body);
+
+	array = JSON_ObjectGetNamedValue(json, end, "Waterfalls");
+	if (array && JSON_ValueGetType(array, end) != JSONTYPE_ARRAY)
+		ri.Printf(PRINT_WARNING, "%s: Waterfalls is not an array\n", filename);
+	if (array && JSON_ValueGetType(array, end) == JSONTYPE_ARRAY)
+	{
+		const int count = Q_min((int)JSON_ArrayGetIndex(array, end, NULL, 0), 256);
+		for (int i = 0; i < count; ++i)
+		{
+			const char *entry = JSON_ArrayGetValue(array, end, i);
+			if (!entry || JSON_ValueGetType(entry, end) != JSONTYPE_OBJECT) continue;
+			waterfallRule_t rule;
+			const char *selector = JSON_ObjectGetNamedValue(entry, end, "Selector");
+			if (!selector || JSON_ValueGetType(selector, end) != JSONTYPE_OBJECT) selector = entry;
+			const char *value = JSON_ObjectGetNamedValue(selector, end, "Shader");
+			char shader[MAX_QPATH] = "";
+			if (value) JSON_ValueGetString(value, end, shader, sizeof(shader));
+			value = JSON_ObjectGetNamedValue(selector, end, "ShaderPrefix");
+			if (value && !shader[0]) { JSON_ValueGetString(value, end, shader, sizeof(shader) - 1); Q_strcat(shader, sizeof(shader), "*"); }
+			Q_strlwr(shader); rule.shader = shader;
+			value = JSON_ObjectGetNamedValue(selector, end, "BodyId");
+			if (value) rule.id = (int)JSON_ValueGetFloat(value, end);
+			rule.hasPoint = R_WaterJsonVec(selector, end, "Point", rule.point, 3) || R_WaterJsonVec(selector, end, "Origin", rule.point, 3);
+			const char *bounds = JSON_ObjectGetNamedValue(selector, end, "Bounds");
+			if (bounds && JSON_ValueGetType(bounds, end) == JSONTYPE_OBJECT)
+				rule.hasBounds = R_WaterJsonVec(bounds, end, "Mins", rule.bounds[0], 3) && R_WaterJsonVec(bounds, end, "Maxs", rule.bounds[1], 3);
+			char profile[32] = "";
+			value = JSON_ObjectGetNamedValue(entry, end, "Profile");
+			if (value) JSON_ValueGetString(value, end, profile, sizeof(profile));
+			for (int p = 0; p < WFPROFILE_COUNT; ++p) if (!Q_stricmp(profile, s_waterfallProfiles[p].name)) { rule.profile = p; rule.hasProfile = true; }
+			rule.values = s_waterfallProfiles[rule.profile];
+			value = JSON_ObjectGetNamedValue(entry, end, "Enabled"); if (value) rule.enabled = JSON_ValueGetFloat(value, end) != 0.0f;
+			const char *names[] = { "FlowSpeed", "SheetThickness", "Breakup", "NormalScale", "Aeration", "Opacity", "SprayStrength", "ImpactStrength" };
+			float *fields[] = { &rule.values.flowSpeed, &rule.values.thickness, &rule.values.breakup, &rule.values.normalScale, &rule.values.aeration, &rule.values.opacity, &rule.values.spray, &rule.values.impact };
+			for (int f = 0; f < 8; ++f) if ((value = JSON_ObjectGetNamedValue(entry, end, names[f])) != NULL) { *fields[f] = Q_max(0.0f, JSON_ValueGetFloat(value, end)); rule.authored |= 1u << f; }
+			if (rule.shader.empty() && rule.id < 0 && !rule.hasPoint && !rule.hasBounds)
+			{
+				ri.Printf(PRINT_WARNING, "%s: Waterfalls[%d] needs a selector\n", filename, i);
+				continue;
+			}
+			s_water.waterfallRules.push_back(rule);
+		}
+	}
+	for ( waterBody_t& body : s_water.bodies ) { R_WaterResolveBody(body); R_WaterResolveWaterfall(body); R_WaterApplyWaterfallBodyKeys(body); }
 	ri.Printf(PRINT_DEVELOPER, "%s: %d water dynamics rule%s\n", filename,
 		(int)s_water.bodyRules.size(), s_water.bodyRules.size() == 1 ? "" : "s");
+	ri.Printf(PRINT_DEVELOPER, "%s: %d waterfall rule%s\n", filename,
+		(int)s_water.waterfallRules.size(), s_water.waterfallRules.size() == 1 ? "" : "s");
 }
 
 /*
@@ -2609,6 +2820,32 @@ void R_WaterBodies_f( void )
 			ri.Printf(PRINT_ALL, "      stage %d turb (%g %g %g %g)\n", w.stage, w.base, w.amplitude, w.phase, w.frequency);
 		for ( const legacyWaterMotion_t::wave_t& w : b.legacy.stretch )
 			ri.Printf(PRINT_ALL, "      stage %d stretch (%g %g %g %g)\n", w.stage, w.base, w.amplitude, w.phase, w.frequency);
+	}
+}
+
+void R_Waterfalls_f(void)
+{
+	if (!s_water.world || s_water.world != tr.world)
+	{
+		ri.Printf(PRINT_ALL, "r_waterfalls: no map\n");
+		return;
+	}
+	int count = 0;
+	for (const waterBody_t& body : s_water.bodies) if (body.waterfall) ++count;
+	ri.Printf(PRINT_ALL, "%s: %d waterfall sheet%s; renderer %s; quality %d; geometry %s; rules %d\n",
+		tr.world->baseName, count, count == 1 ? "" : "s", r_waterfall->integer ? "on" : "legacy",
+		r_waterfallQuality->integer, r_waterfallGeometry->integer ? "on" : "BSP mesh", (int)s_water.waterfallRules.size());
+	for (const waterBody_t& body : s_water.bodies)
+	{
+		if (!body.waterfall) continue;
+		const waterfallProfile_t& p = body.waterfallValues;
+		ri.Printf(PRINT_ALL, "  body %d profile %s [%s] surfaces", body.id, p.name, body.waterfallDecision);
+		for (int surface : body.surfaces) ri.Printf(PRINT_ALL, " %d", surface);
+		ri.Printf(PRINT_ALL, "; flow (%g %g %g) %.1f; thickness %.2f; breakup %.2f; normal %.2f; aeration %.2f; spray %.2f; impact %.2f\n",
+			body.fallDirection[0], body.fallDirection[1], body.fallDirection[2], p.flowSpeed, p.thickness,
+			p.breakup, p.normalScale, p.aeration, p.spray, p.impact);
+		ri.Printf(PRINT_ALL, "    top %.2f bottom %.2f impact center (%g %g %g), width %.1f; foam/spray/impact source metadata available\n",
+			body.fallMin, body.fallMax, body.impactCenter[0], body.impactCenter[1], body.impactCenter[2], body.impactWidth);
 	}
 }
 
@@ -3150,7 +3387,7 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 	// the GPU programs are kept over a map change (only a vid_restart rebuilds
 	// them): keep the decision they were built with
 	if ( !tr.textureColorShader[0].program )
-		s_water.resources = (qboolean)(r_waterSurface->integer != 0);
+		s_water.resources = (qboolean)(r_waterSurface->integer != 0 || (r_waterfall && r_waterfall->integer != 0));
 
 	tr.waterSceneImage = NULL;
 	tr.waterDepthImage = NULL;
@@ -3319,14 +3556,18 @@ void R_WaterBuildGeometry(world_t *world)
 	s_water.contacts.clear();
 	s_water.contactTime = 0;
 	s_water.contactUniformTime = -1;
-	if (!r_waterSurface->integer || !r_waterGeometry->integer || s_water.world != world) return;
+	if (s_water.world != world || (!r_waterGeometry->integer && (!r_waterfallGeometry || !r_waterfallGeometry->integer))) return;
 	const int start = ri.Milliseconds();
-	const float target = Com_Clamp(16.0f, 512.0f, r_waterGeometryEdge->value);
 	const int bodyCap = Com_Clampi(1024, 1000000, r_waterGeometryBodyVerts->integer);
 	const int mapCap = Com_Clampi(1024, 4000000, r_waterGeometryMapVerts->integer);
 	int mapVerts = 0;
 	for (waterBody_t& body : s_water.bodies)
 	{
+		if ((body.waterfall && (!r_waterfallGeometry || !r_waterfallGeometry->integer)) ||
+			(!body.waterfall && !r_waterGeometry->integer)) continue;
+		const float target = body.waterfall ? (r_waterfallQuality->integer <= 0 ? 128.0f :
+			(r_waterfallQuality->integer >= 2 ? 32.0f : 64.0f)) :
+			Com_Clamp(16.0f, 512.0f, r_waterGeometryEdge->value);
 		std::vector<srfBspSurface_t *> surfaces;
 		int sourceVerts = 0, sourceTriangles = 0;
 		float longest = 0;
@@ -3370,6 +3611,7 @@ void R_WaterBuildGeometry(world_t *world)
 			boundary_t boundary = {};
 			VectorCopy(item.second.a, boundary.a); VectorCopy(item.second.b, boundary.b);
 			boundary.rigid = R_WaterBoundaryRigid(body, boundary.a, boundary.b);
+			if (body.waterfall) continue;
 			boundaries.push_back(boundary);
 			vec3_t delta; VectorSubtract(boundary.b, boundary.a, delta);
 			const int pieces = MAX(1, (int)ceilf(VectorLength(delta) / 64.0f));
@@ -3450,6 +3692,8 @@ void R_WaterBuildGeometry(world_t *world)
 			// A short downward skirt closes the wall gap when an edge rises and
 			// covers mismatched BSP boundary segmentation between touching faces.
 			std::map<uint64_t, int> edgeCount;
+			if (!body.waterfall)
+			{
 			std::map<uint64_t, std::pair<glIndex_t, glIndex_t>> oriented;
 			for (size_t i = 0; i < tris.size(); i += 3)
 				for (int e = 0; e < 3; ++e)
@@ -3497,6 +3741,7 @@ void R_WaterBuildGeometry(world_t *world)
 				const glIndex_t skirt[] = { top[0], foot[0], top[1], top[1], foot[0], foot[1] };
 				indices.insert(indices.end(), skirt, skirt + 6);
 			}
+			}
 			if (!tris.empty())
 			{
 				glIndex_t lo = indices[firstIndex], hi = indices[firstIndex];
@@ -3533,15 +3778,15 @@ void R_WaterBuildGeometry(world_t *world)
 		}
 		// The render mesh may move outside the BSP's flat bounds. Preserve its
 		// original plane for grouping/reflection; use expanded bounds for culling.
-		const float extent = 4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f *
-			MAX(body.waveMultiplier, 1.0f) * 2.0f;
+		const float extent = body.waterfall ? 4.0f + 10.0f * body.waterfallValues.breakup :
+			4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f * MAX(body.waveMultiplier, 1.0f) * 2.0f;
 		for (int surfaceNum : body.surfaces)
 		{
 			msurface_t& ms = world->surfaces[surfaceNum];
 			if (!(ms.cullinfo.type & CULLINFO_BOX)) continue;
 			for (int axis = 0; axis < 3; ++axis)
 			{
-				ms.cullinfo.bounds[0][axis] -= extent + (axis == 2 ? 64.0f : 0.0f);
+				ms.cullinfo.bounds[0][axis] -= extent + (!body.waterfall && axis == 2 ? 64.0f : 0.0f);
 				ms.cullinfo.bounds[1][axis] += extent;
 			}
 			ms.cullinfo.type &= ~CULLINFO_PLANE;
@@ -3583,6 +3828,7 @@ void R_WaterSurfaceShutdown( void )
 	s_water.contactTime = 0;
 	s_water.contactUniformTime = -1;
 	s_water.bodyRules.clear();
+	s_water.waterfallRules.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -3647,7 +3893,7 @@ void RB_WaterSurfaceBeginView( void )
 		RB_WaterContactUpdate();
 	}
 
-	if ( !s_water.resources || !r_waterSurface->integer || !tr.waterCopyFbo || !backEnd.waterInterfacesVisible )
+	if ( !s_water.resources || (!r_waterSurface->integer && (!r_waterfall || !r_waterfall->integer)) || !tr.waterCopyFbo || !backEnd.waterInterfacesVisible )
 		return;
 	const viewParms_t& viewParms = backEnd.viewParms;
 	if ( viewParms.viewParmType != VPT_MAIN || viewParms.isPortal || viewParms.isSkyPortal )
@@ -3671,6 +3917,8 @@ void RB_WaterSurfaceBeginView( void )
 qboolean RB_WaterSurfaceDraws( const shader_t *shader )
 {
 	if ( !backEnd.waterSurfaceView || !shader || !(tess.waterKey & WATERKEY_INTERFACE) )
+		return qfalse;
+	if ((tess.waterKey & WATERKEY_WATERFALL) ? (!r_waterfall || !r_waterfall->integer) : !r_waterSurface->integer)
 		return qfalse;
 	if ( backEnd.depthFill || backEnd.refractionFill || backEnd.projection2D )
 		return qfalse;
@@ -3803,7 +4051,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[18], (float)r_waterWaveDebug->integer, (float)bodyId,
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
 	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
-		body && body->geometryVerts > 0 && r_waterGeometry->integer ? 1.0f : 0.0f,
+		body && body->geometryVerts > 0 && ((body->waterfall && r_waterfallGeometry->integer) || (!body->waterfall && r_waterGeometry->integer)) ? 1.0f : 0.0f,
 		(float)r_waterGeometryDebug->integer, body ? body->foamMultiplier : 1.0f);
 	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
 	VectorSet4(water[28], body ? body->flowVelocity[0] * flowScale : 0.0f,
@@ -3841,6 +4089,31 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterStrength->value),
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
 		(float)r_waterWhitewaterDebug->integer);
+	const bool waterfall = body && body->waterfall && (key & WATERKEY_WATERFALL);
+	const waterfallProfile_t& waterfallProfile = body ? body->waterfallValues : s_waterfallProfiles[WFPROFILE_MEDIUM];
+	VectorSet4(water[38], waterfall ? 1.0f : 0.0f, (float)r_waterfallQuality->integer,
+		(float)r_waterfallDebug->integer, waterfallProfile.thickness);
+	VectorSet4(water[39], body ? body->fallDirection[0] : 0.0f, body ? body->fallDirection[1] : 0.0f,
+		body ? body->fallDirection[2] : -1.0f, waterfallProfile.flowSpeed);
+	VectorSet4(water[40], body ? body->planeNormal[0] : 0.0f, body ? body->planeNormal[1] : 0.0f,
+		body ? body->planeNormal[2] : 1.0f, body ? 1.0f / MAX(body->fallMax - body->fallMin, 1.0f) : 1.0f);
+	VectorSet4(water[41], body ? body->fallMin : 0.0f, waterfallProfile.breakup, waterfallProfile.normalScale,
+		waterfallProfile.aeration * Com_Clamp(0.0f, 4.0f, r_waterfallWhitewater->value));
+	VectorSet4(water[42], waterfallProfile.opacity, waterfallProfile.spray, waterfallProfile.impact,
+		body ? (float)body->waterfallProfile : 0.0f);
+	if (waterfall)
+	{
+		// Falling-sheet motion is intrinsic to the dedicated waterfall path.  It
+		// must not depend on the optional horizontal-water flow visualization.
+		VectorSet4(water[28], body->fallDirection[0] * waterfallProfile.flowSpeed,
+			body->fallDirection[1] * waterfallProfile.flowSpeed,
+			body->fallDirection[2] * waterfallProfile.flowSpeed, 1.0f);
+		water[29][0] = waterfallProfile.flowSpeed;
+		water[0][1] = MAX(water[0][1], 0.34f);
+		water[0][3] = Com_Clamp(0.0f, 4.0f, r_waterfallRefraction->value);
+		water[1][0] *= 0.28f;
+		water[1][1] *= 0.35f;
+	}
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
@@ -4159,7 +4432,9 @@ qboolean RB_WaterSurfaceDistortion( const shader_t *shader, uint32_t waterKey )
 {
 	if ( !shader->useDistortion )
 		return qfalse;
-	if ( (waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView && tr.waterSurfaceShader[0].program )
+	const qboolean enabled = (waterKey & WATERKEY_WATERFALL) ?
+		(qboolean)(r_waterfall && r_waterfall->integer) : (qboolean)r_waterSurface->integer;
+	if ( enabled && (waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView && tr.waterSurfaceShader[0].program )
 		return qfalse;
 	return qtrue;
 }

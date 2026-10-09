@@ -23,9 +23,10 @@ def main(argv):
         for map_name, block in sorted(manifest.items()):
             path = f'cubemaps/{map_name}/env.json'
             environment = json.loads(files.read(path).decode('utf-8-sig')) if path in files.files else {}
-            if 'WaterBodies' in environment:
-                raise ValueError(f'{path} already defines WaterBodies; merge manually')
-            environment['WaterBodies'] = block['WaterBodies']
+            for key, value in block.items():
+                if key in environment:
+                    raise ValueError(f'{path} already defines {key}; merge manually')
+                environment[key] = value
             output.writestr(path, json.dumps(environment, indent=2) + '\n')
     print(f'{destination}: {len(manifest)} map env.json overlays')
 

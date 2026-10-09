@@ -187,7 +187,7 @@ def orientation(nz):
     return 'sloped'
 
 
-def scan_bsp(data, defs):
+def scan_bsp(data, defs, all_surfaces=False):
     sh = lump(data, 1)
     shaders = []
     for o in range(0, len(sh), 72):
@@ -319,9 +319,11 @@ def scan_bsp(data, defs):
                 link_side = side[:3]
                 break
         linked_top = link and link_side[2] > .7 and orientation(normal[2]) == 'up'
-        if not (liquid or refractive or name_like(name) or material or linked_top):
+        if not all_surfaces and not (liquid or refractive or name_like(name) or material or linked_top):
             continue
         surfaces.append(dict(index=si, shader=name, contents=cf, flags=sf, type=stype, normal=normal, area=area,
+                             vertex_count=num_verts, triangle_count=len(tris),
+                             patch_dimensions=list(struct.unpack_from('<2i', su, o + 140)) if stype == MST_PATCH else None,
                              fog_num=fog_num, fog=fogs[fog_num] if 0 <= fog_num < len(fogs) else None,
                              bounds=bounds, aspect=max(bounds[1][i] - bounds[0][i] for i in range(3)) /
                              max(sorted((bounds[1][i] - bounds[0][i] for i in range(3)), reverse=True)[1], 1e-6),

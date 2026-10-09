@@ -309,6 +309,8 @@ extern cvar_t	*r_volumetricLavaAlbedo;
 extern cvar_t	*r_volumetricLavaAnisotropy;
 // modern water surface (tr_watersurface.cpp)
 extern cvar_t	*r_waterSurface;
+extern cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
+extern cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
 extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
@@ -5960,11 +5962,12 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 38
+#define WATER_UNIFORM_VEC4S 43
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
 #define WATERKEY_WORLD_BRUSH 2u
+#define WATERKEY_WATERFALL 4u
 
 // Per-surface flags, packed into waterKey at bits 8..15.
 #define WATERSURF_FOG_MEDIUM	0x01	// the liquid brush is also a BSP fog volume (its fog is the medium)
@@ -6002,6 +6005,7 @@ void R_WaterImpulse_f(void);
 void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
+void R_Waterfalls_f(void);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);
 qboolean R_WaterFlowForBody(int bodyId, const vec2_t simulationCoordinate, vec3_t velocity);

@@ -16,6 +16,43 @@
         },
         "DynamicsProfile": "lake"
       }
+    ],
+    "Waterfalls": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "Profile": "heavy",
+        "SheetThickness": 8.0,
+        "Breakup": 0.9,
+        "Aeration": 1.0,
+        "SprayStrength": 1.2,
+        "ImpactStrength": 1.35
+      }
+    ]
+  },
+  "yavin1": {
+    "Waterfalls": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "Profile": "medium",
+        "SheetThickness": 4.0,
+        "Breakup": 0.7,
+        "Aeration": 0.8,
+        "SprayStrength": 0.85,
+        "ImpactStrength": 1.0
+      }
+    ]
+  },
+  "yavin1b": {
+    "Waterfalls": [
+      {
+        "Selector": { "Shader": "textures/h_evil/wfall" },
+        "Profile": "medium",
+        "SheetThickness": 4.0,
+        "Breakup": 0.7,
+        "Aeration": 0.8,
+        "SprayStrength": 0.85,
+        "ImpactStrength": 1.0
+      }
     ]
   }
 }

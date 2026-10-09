@@ -213,6 +213,8 @@ cvar_t	*r_volumetricLavaColor;
 cvar_t	*r_volumetricLavaAlbedo;
 cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t	*r_waterSurface;
+cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
+cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
 cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactSoftness;
 cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
@@ -1943,6 +1945,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
 	{ "r_waterBodies",	R_WaterBodies_f },
+	{ "r_waterfalls",	R_Waterfalls_f },
 	{ "r_waterFlowOverride", R_WaterFlowOverride_f },
 	{ "r_waterGeometryInfo", R_WaterGeometryInfo_f },
 	{ "r_waterInteractionInfo", R_WaterInteractionInfo_f },
@@ -2745,6 +2748,18 @@ void R_Register( void )
 	// modern water surface (tr_watersurface.cpp, docs/rend2-water-surface.md)
 	r_waterSurface = ri_Cvar_Get_NoComm("r_waterSurface", "0", CVAR_ARCHIVE | CVAR_LATCH, "Modern water surface for the stock water (CONTENTS_WATER surfaces): Fresnel reflection (SSR -> cubemap), depth aware refraction, liquid absorption, before tone mapping. 0 = legacy water stages (no extra targets or passes); vid_restart");
 	ri.Cvar_CheckRange(r_waterSurface, 0, 1, qtrue);
+	r_waterfall = ri_Cvar_Get_NoComm("r_waterfall", "0", CVAR_ARCHIVE | CVAR_LATCH, "Dedicated modern waterfall sheets selected by env.json Waterfalls metadata or the audited stock mapping; 0 restores exact legacy stages; vid_restart");
+	r_waterfallQuality = ri_Cvar_Get_NoComm("r_waterfallQuality", "1", CVAR_ARCHIVE, "Waterfall coherent breakup quality: 0 low, 1 medium, 2 high");
+	r_waterfallGeometry = ri_Cvar_Get_NoComm("r_waterfallGeometry", "1", CVAR_ARCHIVE | CVAR_LATCH, "Render-only waterfall subdivision; BSP collision is unchanged; vid_restart");
+	r_waterfallRefraction = ri_Cvar_Get_NoComm("r_waterfallRefraction", "1", CVAR_ARCHIVE, "Waterfall thin-sheet refraction strength");
+	r_waterfallWhitewater = ri_Cvar_Get_NoComm("r_waterfallWhitewater", "1", CVAR_ARCHIVE, "Waterfall aeration and lit whitewater scale");
+	r_waterfallDebug = ri_Cvar_Get_NoComm("r_waterfallDebug", "0", CVAR_CHEAT, "Waterfall debug: 1 classified, 2 flow, 3 along-fall, 4 displacement, 5 thickness, 6 raw refraction, 7 turbulence, 8 aeration, 9 foam source, 10 spray source, 11 impact region, 12 subdivided wireframe");
+	ri.Cvar_CheckRange(r_waterfall, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_waterfallQuality, 0, 2, qtrue);
+	ri.Cvar_CheckRange(r_waterfallGeometry, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_waterfallRefraction, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterfallWhitewater, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterfallDebug, 0, 12, qtrue);
 	r_waterSurfaceIOR = ri_Cvar_Get_NoComm("r_waterSurfaceIOR", "1.333", CVAR_ARCHIVE, "r_waterSurface: index of refraction of the liquid (Fresnel and refraction)");
 	ri.Cvar_CheckRange(r_waterSurfaceIOR, 1.0f, 2.0f, qfalse);
 	r_waterSurfaceRoughness = ri_Cvar_Get_NoComm("r_waterSurfaceRoughness", "0.06", CVAR_ARCHIVE, "r_waterSurface: base roughness (perceptual); the unresolved waves add to it");

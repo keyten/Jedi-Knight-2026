@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 36
+WATER_VEC4S = 43
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -1094,7 +1094,40 @@ def bench():
                 gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
             gl('glDepthFunc', None, U)(0x0207)  # always: every water pixel shades
             print(f'  water pass {size[0]}x{size[1]}, {coverage * 100:.0f}% of the view, waves, {label}: {timed(draw_only):.3f} ms')
+            if not ssr or (hiz and steps == 24):
+                # Synthetic waterfall fragment-cost cases. The harness plane is
+                # horizontal, so use its in-plane -Y direction as gravity; the
+                # production renderer derives this basis from the real sheet.
+                u[28] = [0, -120, 0, 1]
+                u[29] = [120, 1, 0, 0]
+                u[38] = [1, 1, 0, 5]
+                u[39] = [0, -1, 0, 120]
+                u[40] = [0, 0, 1, 1 / 6000]
+                u[41] = [-3000, .75, 1, .75]
+                u[42] = [1, .75, .85, 1]
+                set_vec4s(prog, 'u_Water', u)
+                gl('glEnable', None, U)(0x0C11)
+                cases = [('small waterfall (10% view)', .10, [72, 2.5, .45, .75, .45, .75, .35, .45]),
+                         ('large waterfall (50% view)', .50, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35]),
+                         ('close waterfall (fullscreen)', 1.0, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35])]
+                for case_label, fraction, p in cases:
+                    side = math.sqrt(fraction)
+                    sw, sh = int(size[0] * side), int(size[1] * side)
+                    gl('glScissor', None, I, I, I, I)((size[0] - sw)//2, (size[1] - sh)//2, sw, sh)
+                    u[28, :3] = [0, -p[0], 0]
+                    u[29, 0] = p[0]
+                    u[38, 3] = p[1]
+                    u[39, 3] = p[0]
+                    u[41, 1:4] = [p[2], p[3], p[4]]
+                    u[42] = [p[5], p[6], p[7], 2]
+                    set_vec4s(prog, 'u_Water', u)
+                    print(f'  {case_label}, waterfall, {label}: {timed(draw_only):.3f} ms')
+                gl('glDisable', None, U)(0x0C11)
+                u[38, 0] = 0
+                set_vec4s(prog, 'u_Water', u)
             if not ssr:
+                u = rig.params(flags=flags, ssr=0.0)
+                set_vec4s(prog, 'u_Water', u)
                 u[13] = [1, 1, 1, 1]
                 u[15] = [2.4, 192, 1, 1]
                 u[17] = [0, 0, 80, 3]

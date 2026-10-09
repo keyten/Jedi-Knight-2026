@@ -1,0 +1,2155 @@
+{
+  "base": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build-rend2\\base",
+  "pk3s": [
+    "assets0.pk3",
+    "assets1.pk3",
+    "assets2.pk3",
+    "assets3.pk3",
+    "assets8_pbr1.pk3",
+    "assets8_pbr2.pk3",
+    "assets8_pbr3.pk3",
+    "GGDynamicWeapons.pk3",
+    "zz_skinsss_test.pk3",
+    "ZZ_SPMissExpansV1.pk3",
+    "zz_volumetric_media_test.pk3",
+    "zzzz_render2026_menu.pk3"
+  ],
+  "method": "all installed shader packs and BSP draw surfaces; names used for discovery only",
+  "runtime_exact_mapping": [
+    "textures/h_evil/wfall"
+  ],
+  "maps": {
+    "t3_hevil": {
+      "surfaces": [
+        {
+          "surface_id": 317,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              -800.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              -672.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            -800.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            -800.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 318,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              -608.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              -480.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            -608.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            -608.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 319,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              -416.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              -288.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            -416.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            -416.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 320,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              -224.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              -96.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            -224.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            -224.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 321,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              1120.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              1248.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            1120.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            1120.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 322,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              1312.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              1440.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            1312.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            1312.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 323,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              1504.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              1632.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            1504.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            1504.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 324,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            3,
+            5
+          ],
+          "orientation": "vertical",
+          "normal": [
+            0.0,
+            -0.9593655015712707,
+            0.28216632399155017
+          ],
+          "bounds": [
+            [
+              1696.0,
+              -1096.0,
+              -2048.0
+            ],
+            [
+              1824.0,
+              -616.0,
+              -416.0
+            ]
+          ],
+          "approximate_width": 480.0,
+          "approximate_height": 1632.0,
+          "area": 218469.30843796188,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06865952983166744,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.0,
+            -0.2821663239915502,
+            -0.9593655015712707
+          ],
+          "approximate_top_edge_point": [
+            1696.0,
+            -616.0,
+            -416.0
+          ],
+          "approximate_bottom_impact_point": [
+            1696.0,
+            -1096.0,
+            -2048.0
+          ],
+          "associated_efx": [],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        }
+      ],
+      "waterfall_named_efx": []
+    },
+    "vjun1": {
+      "surfaces": [],
+      "waterfall_named_efx": [
+        {
+          "entity_id": 1485,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            5436.0,
+            1632.0,
+            1476.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 1486,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            4608.0,
+            3932.0,
+            1540.0
+          ],
+          "target": null,
+          "angle": null
+        }
+      ]
+    },
+    "yavin1": {
+      "surfaces": [
+        {
+          "surface_id": 57,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            5,
+            3
+          ],
+          "orientation": "sloped",
+          "normal": [
+            0.7554760955310267,
+            0.327655924578625,
+            0.5673600833418946
+          ],
+          "bounds": [
+            [
+              -744.0,
+              -4736.0,
+              136.0
+            ],
+            [
+              -328.0,
+              -4400.0,
+              824.0
+            ]
+          ],
+          "approximate_width": 416.0,
+          "approximate_height": 688.0,
+          "area": 238030.99089294177,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06301700439816464,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.5205132876002767,
+            0.22575070675697395,
+            -0.8234698147657133
+          ],
+          "approximate_top_edge_point": [
+            -744.0,
+            -4736.0,
+            824.0
+          ],
+          "approximate_bottom_impact_point": [
+            -328.0,
+            -4400.0,
+            136.0
+          ],
+          "associated_efx": [
+            {
+              "entity_id": 23,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -384.0,
+                -4588.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 24,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -344.0,
+                -4676.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 25,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -336.0,
+                -4600.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 275,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -376.0,
+                -4440.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 301,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -448.0,
+                -4560.0,
+                728.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 308,
+              "effect": "env/waterfall_splash",
+              "origin": [
+                -408.0,
+                -4544.0,
+                136.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 322,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -376.0,
+                -4544.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            }
+          ],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        }
+      ],
+      "waterfall_named_efx": [
+        {
+          "entity_id": 3,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            1090.0,
+            -4098.0,
+            146.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 4,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            942.0,
+            -4078.0,
+            146.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 14,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            1045.0,
+            -3954.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 15,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            960.0,
+            -3943.0,
+            152.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 16,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            876.0,
+            -3939.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 23,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -384.0,
+            -4588.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 24,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -344.0,
+            -4676.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 25,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -336.0,
+            -4600.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 275,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -376.0,
+            -4440.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 301,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -448.0,
+            -4560.0,
+            728.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 308,
+          "effect": "env/waterfall_splash",
+          "origin": [
+            -408.0,
+            -4544.0,
+            136.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 322,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -376.0,
+            -4544.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        }
+      ]
+    },
+    "yavin1b": {
+      "surfaces": [
+        {
+          "surface_id": 1,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            5,
+            3
+          ],
+          "orientation": "sloped",
+          "normal": [
+            0.2518328817412721,
+            -0.7505928098652201,
+            0.6108933077490043
+          ],
+          "bounds": [
+            [
+              -1360.0,
+              2944.0,
+              308.0
+            ],
+            [
+              -1092.0,
+              3408.0,
+              1020.0
+            ]
+          ],
+          "approximate_width": 464.0,
+          "approximate_height": 712.0,
+          "area": 215642.6688759179,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06955951750268445,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.19431667202465283,
+            -0.5791646263591925,
+            -0.7917129319061805
+          ],
+          "approximate_top_edge_point": [
+            -1360.0,
+            3408.0,
+            1020.0
+          ],
+          "approximate_bottom_impact_point": [
+            -1092.0,
+            2944.0,
+            308.0
+          ],
+          "associated_efx": [
+            {
+              "entity_id": 116,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1124.0,
+                3012.0,
+                576.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 117,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1312.0,
+                2948.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 118,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1096.0,
+                2968.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 119,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1232.0,
+                2928.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 16.0
+            },
+            {
+              "entity_id": 522,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1136.0,
+                2920.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 24.0
+            },
+            {
+              "entity_id": 523,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1268.0,
+                2920.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 24.0
+            },
+            {
+              "entity_id": 524,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1272.0,
+                3016.0,
+                728.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 525,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -1184.0,
+                2968.0,
+                352.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            }
+          ],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        },
+        {
+          "surface_id": 2,
+          "shader": "textures/h_evil/wfall",
+          "geometry_type": "patch",
+          "patch_dimensions": [
+            5,
+            3
+          ],
+          "orientation": "sloped",
+          "normal": [
+            0.7554760955310267,
+            0.327655924578625,
+            0.5673600833418946
+          ],
+          "bounds": [
+            [
+              -744.0,
+              -4736.0,
+              136.0
+            ],
+            [
+              -328.0,
+              -4400.0,
+              824.0
+            ]
+          ],
+          "approximate_width": 416.0,
+          "approximate_height": 688.0,
+          "area": 238030.99089294177,
+          "vertices": 15,
+          "triangles_or_patch_quads": 16,
+          "vertices_per_1000_area": 0.06301700439816464,
+          "liquid_brush_relation": null,
+          "contents_flags": 2147483652,
+          "surface_flags": 13,
+          "shader_source": "shaders/hiddenevil.mtr",
+          "shader_pk3": "assets8_pbr1.pk3",
+          "surfaceparms": [
+            "nonsolid",
+            "nonopaque",
+            "water",
+            "trans"
+          ],
+          "stages": [
+            {
+              "directives": [
+                "map textures/h_evil/wf3",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0.02 -0.27"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/wfn2",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll -0.02 -0.2"
+              ]
+            },
+            {
+              "directives": [
+                "map textures/h_evil/waterf1",
+                "blendfunc gl_src_alpha gl_one_minus_src_alpha",
+                "tcmod scroll 0 -0.45"
+              ]
+            },
+            {
+              "directives": [
+                "map $lightmap",
+                "blendfunc gl_dst_color gl_zero"
+              ]
+            }
+          ],
+          "textures": [
+            "textures/h_evil/wf3",
+            "textures/h_evil/wfn2",
+            "textures/h_evil/waterf1",
+            "$lightmap"
+          ],
+          "blend_functions": [
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_src_alpha gl_one_minus_src_alpha",
+            "gl_dst_color gl_zero"
+          ],
+          "tcmods": [
+            "scroll 0.02 -0.27",
+            "scroll -0.02 -0.2",
+            "scroll 0 -0.45"
+          ],
+          "deform_vertexes": [],
+          "fall_direction_world": [
+            0.5205132876002767,
+            0.22575070675697395,
+            -0.8234698147657133
+          ],
+          "approximate_top_edge_point": [
+            -744.0,
+            -4736.0,
+            824.0
+          ],
+          "approximate_bottom_impact_point": [
+            -328.0,
+            -4400.0,
+            136.0
+          ],
+          "associated_efx": [
+            {
+              "entity_id": 124,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -384.0,
+                -4588.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 125,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -344.0,
+                -4676.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 126,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -336.0,
+                -4600.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 554,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -376.0,
+                -4440.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 585,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -448.0,
+                -4560.0,
+                728.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 591,
+              "effect": "env/waterfall_splash",
+              "origin": [
+                -408.0,
+                -4544.0,
+                136.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            },
+            {
+              "entity_id": 605,
+              "effect": "env/waterfall_mist.efx",
+              "origin": [
+                -376.0,
+                -4544.0,
+                160.0
+              ],
+              "target": null,
+              "angle": null,
+              "distance_to_bounds": 0.0
+            }
+          ],
+          "classification": "water sheet",
+          "classification_evidence": "exact audited stock mapping"
+        }
+      ],
+      "waterfall_named_efx": [
+        {
+          "entity_id": 10,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            1090.0,
+            -4098.0,
+            146.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 11,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            942.0,
+            -4078.0,
+            146.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 52,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            622.0,
+            -2713.0,
+            152.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 53,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            1046.0,
+            -2829.0,
+            152.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 54,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            1045.0,
+            -3954.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 55,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            960.0,
+            -3943.0,
+            152.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 56,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            876.0,
+            -3939.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 116,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1124.0,
+            3012.0,
+            576.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 117,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1312.0,
+            2948.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 118,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1096.0,
+            2968.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 119,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1232.0,
+            2928.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 121,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1164.0,
+            -2736.0,
+            96.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 122,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1144.0,
+            -2776.0,
+            96.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 124,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -384.0,
+            -4588.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 125,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -344.0,
+            -4676.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 126,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -336.0,
+            -4600.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 522,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1136.0,
+            2920.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 523,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1268.0,
+            2920.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 524,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1272.0,
+            3016.0,
+            728.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 525,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -1184.0,
+            2968.0,
+            352.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 554,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -376.0,
+            -4440.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 585,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -448.0,
+            -4560.0,
+            728.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 591,
+          "effect": "env/waterfall_splash",
+          "origin": [
+            -408.0,
+            -4544.0,
+            136.0
+          ],
+          "target": null,
+          "angle": null
+        },
+        {
+          "entity_id": 605,
+          "effect": "env/waterfall_mist.efx",
+          "origin": [
+            -376.0,
+            -4544.0,
+            160.0
+          ],
+          "target": null,
+          "angle": null
+        }
+      ]
+    },
+    "yavin2": {
+      "surfaces": [],
+      "waterfall_named_efx": [
+        {
+          "entity_id": 8,
+          "effect": "world/waterfall3.efx",
+          "origin": [
+            104.0,
+            1376.0,
+            1680.0
+          ],
+          "target": "fall1",
+          "angle": "180"
+        },
+        {
+          "entity_id": 568,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -220.0,
+            1464.0,
+            -504.0
+          ],
+          "target": "t425",
+          "angle": null
+        },
+        {
+          "entity_id": 570,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -224.0,
+            1496.0,
+            -504.0
+          ],
+          "target": "t424",
+          "angle": null
+        },
+        {
+          "entity_id": 571,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -316.0,
+            1416.0,
+            -504.0
+          ],
+          "target": "t418",
+          "angle": null
+        },
+        {
+          "entity_id": 572,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -316.0,
+            1488.0,
+            -504.0
+          ],
+          "target": "t419",
+          "angle": null
+        },
+        {
+          "entity_id": 577,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -320.0,
+            1528.0,
+            -504.0
+          ],
+          "target": "t423",
+          "angle": null
+        },
+        {
+          "entity_id": 579,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -216.0,
+            1480.0,
+            -504.0
+          ],
+          "target": "t422",
+          "angle": null
+        },
+        {
+          "entity_id": 583,
+          "effect": "env/waterfall_mist",
+          "origin": [
+            -308.0,
+            1448.0,
+            -504.0
+          ],
+          "target": "t421",
+          "angle": null
+        }
+      ]
+    }
+  },
+  "decorative_effect_only": [
+    {
+      "map": "vjun1",
+      "entity_id": 1485,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        5436.0,
+        1632.0,
+        1476.0
+      ],
+      "target": null,
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "vjun1",
+      "entity_id": 1486,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        4608.0,
+        3932.0,
+        1540.0
+      ],
+      "target": null,
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 8,
+      "effect": "world/waterfall3.efx",
+      "origin": [
+        104.0,
+        1376.0,
+        1680.0
+      ],
+      "target": "fall1",
+      "angle": "180",
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 568,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -220.0,
+        1464.0,
+        -504.0
+      ],
+      "target": "t425",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 570,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -224.0,
+        1496.0,
+        -504.0
+      ],
+      "target": "t424",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 571,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -316.0,
+        1416.0,
+        -504.0
+      ],
+      "target": "t418",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 572,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -316.0,
+        1488.0,
+        -504.0
+      ],
+      "target": "t419",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 577,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -320.0,
+        1528.0,
+        -504.0
+      ],
+      "target": "t423",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 579,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -216.0,
+        1480.0,
+        -504.0
+      ],
+      "target": "t422",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    },
+    {
+      "map": "yavin2",
+      "entity_id": 583,
+      "effect": "env/waterfall_mist",
+      "origin": [
+        -308.0,
+        1448.0,
+        -504.0
+      ],
+      "target": "t421",
+      "angle": null,
+      "classification": "decorative/particle effect; no audited waterfall sheet"
+    }
+  ],
+  "rejected_vertical_liquid_sides": []
+}
