@@ -401,7 +401,8 @@ qboolean R_WaterSurfaceResourcesEnabled( void )
 qboolean R_WaterFoamResourcesEnabled( void )
 {
 	return (r_waterSurface && r_waterSurface->integer &&
-		r_waterFoamField && r_waterFoamField->integer) ? qtrue : qfalse;
+		((r_waterFoamField && r_waterFoamField->integer) ||
+		 (r_waterWhitewater && r_waterWhitewater->integer))) ? qtrue : qfalse;
 }
 
 /*
@@ -476,21 +477,21 @@ static bool R_WaterFoamAllocate(waterBody_t& body)
 	foam.texelX = extentX / foam.width; foam.texelY = extentY / foam.height;
 	R_WaterRasterBodyMask(body, foam.width, foam.height, foam.texelX, foam.texelY, foam.mask);
 	foam.source.assign((size_t)foam.width * foam.height * 4, 0);
-	foam.initial.assign((size_t)foam.width * foam.height * 2, 0.0f);
-	for (size_t i = 0; i < foam.mask.size(); ++i) foam.initial[i * 2 + 1] = foam.mask[i] ? 1.0f : 0.0f;
+	foam.initial.assign((size_t)foam.width * foam.height * 4, 0.0f);
+	for (size_t i = 0; i < foam.mask.size(); ++i) foam.initial[i * 4 + 1] = foam.mask[i] ? 1.0f : 0.0f;
 	for (int i = 0; i < 2; ++i)
 	{
 		foam.image[i] = R_CreateImage(va("*waterFoam%d_%d", body.id, i), NULL,
 			foam.width, foam.height, IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RG16F);
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RGBA16F);
 		GL_Bind(foam.image[i]);
-		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, foam.width, foam.height, GL_RG, GL_FLOAT, foam.initial.data());
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, foam.width, foam.height, GL_RGBA, GL_FLOAT, foam.initial.data());
 	}
 	foam.sourceImage = R_CreateImage(va("*waterFoamSource%d", body.id), NULL,
 		foam.width, foam.height, IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RGBA8);
 	foam.active = true;
-	s_water.foamGpuBytes += (size_t)foam.width * foam.height * 6;
+	s_water.foamGpuBytes += (size_t)foam.width * foam.height * 20;
 	return true;
 }
 
@@ -510,9 +511,9 @@ static void R_WaterFoamBuild(void)
 		const bool turbulent = body.dynamics == 5 || body.dynamics == 7 || body.dynamics == 8;
 		const bool interactionSource = body.interaction.image &&
 			(r_waterFoamImpact->value > 0.0f || r_waterFoamIntersection->value > 0.0f);
-		const bool needed = (turbulent && r_waterFoamWaterfall->value > 0.0f) || interactionSource ||
+		const bool needed = (turbulent && (r_waterFoamWaterfall->value > 0.0f || r_waterWhitewater->integer)) || interactionSource ||
 			(r_waterShoreline->integer && r_waterFoamShoreline->value > 0.0f) ||
-			r_waterFoamSteepness->value > 0.0f;
+			r_waterFoamSteepness->value > 0.0f || (r_waterWhitewater->integer && body.interaction.image);
 		if (!modern || !needed || body.liquidClass == LIQUID_LAVA)
 			continue;
 		if (R_WaterFoamAllocate(body)) ++allocated;
@@ -1261,15 +1262,18 @@ static void RB_WaterFoamUpdate(void)
 			const bool turbulentCandidate = body.dynamics == 5 || body.dynamics == 7 || body.dynamics == 8;
 			const bool interactionCandidate = body.interaction.image &&
 				(r_waterFoamImpact->value > 0.0f || r_waterFoamIntersection->value > 0.0f);
-			const bool enabledSource = (turbulentCandidate && r_waterFoamWaterfall->value > 0.0f) ||
+			const bool enabledSource = (turbulentCandidate && (r_waterFoamWaterfall->value > 0.0f || r_waterWhitewater->integer)) ||
 				interactionCandidate || (r_waterShoreline->integer && r_waterFoamShoreline->value > 0.0f) ||
-				r_waterFoamSteepness->value > 0.0f;
+				r_waterFoamSteepness->value > 0.0f || (r_waterWhitewater->integer && body.interaction.image);
 			if (enabledSource) R_WaterFoamAllocate(body);
 		}
 		if (!foam.active) continue;
 		const int w = foam.width, h = foam.height;
 		const waterInteractionState_t& interaction = body.interaction;
-		const bool turbulent = body.dynamics == 5 || body.dynamics == 7 || body.dynamics == 8;
+		// Only authored waterfall profiles may continuously seed surface foam.
+		// Fast streams form bulk whitewater from the thresholded profile/flow
+		// heuristic below and need a local obstacle/impact source to make foam.
+		const bool turbulent = body.dynamics == 7 || body.dynamics == 8;
 		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
 		{
 			const size_t i = (size_t)y * w + x;
@@ -1311,8 +1315,32 @@ static void RB_WaterFoamUpdate(void)
 		vec4_t flow = { body.flowVelocity[0] * flowScale / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f),
 			body.flowVelocity[1] * flowScale / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f),
 			backEnd.refdef.floatTime, (float)r_waterFoamDebug->integer };
+		float profileSource = 0.0f;
+		if (r_waterWhitewater->integer)
+		{
+			const float profile = body.dynamics == 5 ? 0.58f :
+				(body.dynamics == 7 ? 0.82f : (body.dynamics == 8 ? 1.0f :
+				(body.dynamics == 4 ? 0.025f : 0.0f)));
+			const float speed = Com_Clamp(0.0f, 1.0f, body.flowSpeed * flowScale / 32.0f);
+			const float shallow = body.depthAverage > 0.0f ?
+				1.0f - Com_Clamp(0.0f, 1.0f, body.depthAverage / 64.0f) : 0.0f;
+			const float slope = 1.0f - Com_Clamp(0.0f, 1.0f, fabsf(body.planeNormal[2]));
+			profileSource = profile * Com_Clamp(0.25f, 1.5f,
+				0.35f + 0.45f * speed + 0.35f * shallow + 0.65f * slope);
+			// The CPU disturbance solver exposes a body energy scalar. Local
+			// impacts/intersections also arrive in the source texture; this small
+			// term keeps energetic unresolved disturbance eligible without making
+			// calm bodies permanently aerated.
+			if (body.interaction.image)
+				profileSource = MAX(profileSource, Com_Clamp(0.0f, 0.8f,
+					sqrtf(MAX(body.interaction.energy, 0.0f)) * 0.12f));
+		}
+		vec4_t whitewater = { Com_Clamp(0.0f, 1.0f, r_waterWhitewaterThreshold->value),
+			MAX(r_waterWhitewaterDecay->value, 0.0f),
+			Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value), profileSource };
 		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMPARAMS, params);
 		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMFLOW, flow);
+		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERWHITEWATERPARAMS, whitewater);
 		RB_InstantTriangle();
 		foam.current = target;
 		// Keep the uploaded texture for source debug; CPU channels are rebuilt.
@@ -3809,6 +3837,10 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const waterFoamState_t *foam = body && body->foam.active ? &body->foam : nullptr;
 	VectorSet4(water[36], foam && r_waterFoamField->integer ? 1.0f : 0.0f,
 		(float)r_waterFoamDebug->integer, foam ? foam->texelX : 1.0f, foam ? foam->texelY : 1.0f);
+	VectorSet4(water[37], foam && r_waterWhitewater->integer ? 1.0f : 0.0f,
+		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterStrength->value),
+		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
+		(float)r_waterWhitewaterDebug->integer);
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
@@ -3859,7 +3891,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
 	samplers.AddStaticImage(interaction ? s_water.interactionAtlas : tr.whiteImage, 19);
-	samplers.AddStaticImage(foam ? (r_waterFoamDebug->integer == 3 ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
+	samplers.AddStaticImage(foam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
 		TB_WATERFOAM);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);
 	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);

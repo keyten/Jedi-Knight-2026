@@ -322,6 +322,8 @@ extern cvar_t *r_waterIntersectionFoamPersistence, *r_waterIntersectionFoamDebug
 extern cvar_t *r_waterFoamField, *r_waterFoamResolution, *r_waterFoamDecay, *r_waterFoamAdvection;
 extern cvar_t *r_waterFoamDiffusion, *r_waterFoamWaterfall, *r_waterFoamIntersection;
 extern cvar_t *r_waterFoamImpact, *r_waterFoamShoreline, *r_waterFoamSteepness, *r_waterFoamDebug;
+extern cvar_t *r_waterWhitewater, *r_waterWhitewaterThreshold, *r_waterWhitewaterStrength;
+extern cvar_t *r_waterWhitewaterFoam, *r_waterWhitewaterDecay, *r_waterWhitewaterDebug;
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
@@ -2754,6 +2756,7 @@ typedef enum
 	UNIFORM_WATERFOAMSOURCEMAP,	// foam update: independent source channels
 	UNIFORM_WATERFOAMPARAMS,	// foam update: dt, decay, diffusion, advection
 	UNIFORM_WATERFOAMFLOW,		// foam update: body-UV velocity, time, debug
+	UNIFORM_WATERWHITEWATERPARAMS,	// foam update: source threshold, decay, foam injection, static source
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATERGLOWMAP,
 
@@ -5957,7 +5960,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 37
+#define WATER_UNIFORM_VEC4S 38
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u

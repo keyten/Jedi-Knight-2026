@@ -389,6 +389,7 @@ void main()
 //   [29] resolved speed, detail-advection scale, flow debug, packed source/confidence
 //   [35] intersection foam enabled, world width, strength, debug mask
 //   [36] persistent foam field enabled, debug (1 concentration, 2 velocity, 3 sources), texel world size xy
+//   [37] whitewater enabled, optical strength, foam injection, debug (1 flow, 2 source, 3 result, 4 foam source)
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -1162,6 +1163,10 @@ void main()
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
 	vec2 interactionWorldSlope;
 	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
+	vec2 foamUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	vec4 foamSample = texture(u_WaterFoamMap, clamp(foamUV, vec2(0.0), vec2(1.0)));
+	float persistentFoam = u_Water[36].x > 0.5 ? clamp(foamSample.r * u_Water[19].w, 0.0, 1.0) : 0.0;
+	float whitewater = u_Water[37].x > 0.5 ? clamp(foamSample.b * u_Water[37].y, 0.0, 1.0) : 0.0;
 	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
 	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
 	float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
@@ -1177,24 +1182,42 @@ void main()
 		slope = oldSlope;
 		strength = oldStrength;
 	}
-	slope += macroSlope + interactionSlope;
+	// Aerated flow has unresolved, rapidly changing surface directions. Reuse
+	// the procedural slope bands at different phases so it stays body/world
+	// local and follows the resolved flow instead of scrolling in screen space.
+	vec2 whitewaterSlope = (l0.xy - l1.xy) * (0.38 * whitewater);
+	slope += macroSlope + interactionSlope + whitewaterSlope;
 	vec2 variance = (max(l0.zw - l0.xy * l0.xy, vec2(0.0)) +
 		0.36 * max(l1.zw - l1.xy * l1.xy, vec2(0.0)) +
 		0.25 * max(l2.zw - l2.xy * l2.xy, vec2(0.0))) * (strength * strength);
+	variance += vec2(0.08 * whitewater);
 	vec3 Nwater = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
 	float intersectionMask = !inside ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv) : 0.0;
 	float intersectionFoam = clamp(intersectionMask * u_Water[35].z * u_Water[19].w, 0.0, 1.0);
-	vec2 foamUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
-	vec4 foamSample = texture(u_WaterFoamMap, clamp(foamUV, vec2(0.0), vec2(1.0)));
-	float persistentFoam = u_Water[36].x > 0.5 ? clamp(foamSample.r * u_Water[19].w, 0.0, 1.0) : 0.0;
 	int foamDebug = int(u_Water[36].y + 0.5);
 	if (foamDebug > 0 && u_WaterPass.x < 0.5)
 	{
 		vec3 debugColor = foamDebug == 1 ? vec3(persistentFoam) :
 			(foamDebug == 2 ? vec3(0.5 + 0.5 * normalize(vec3(u_Water[28].xy, 0.001)).xy, 0.15) :
 			clamp(foamSample.rgb + vec3(foamSample.a, 0.5 * foamSample.a, 0.0), 0.0, 1.0));
+		out_Color = vec4(LinearToScene(debugColor), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+	int whitewaterDebug = int(u_Water[37].w + 0.5);
+	if (whitewaterDebug > 0 && u_WaterPass.x < 0.5)
+	{
+		vec3 debugColor = vec3(0.0);
+		if (whitewaterDebug == 1)
+		{
+			vec2 flow = length(u_Water[28].xy) > 1e-5 ? normalize(u_Water[28].xy) : vec2(0.0);
+			debugColor = vec3(flow * 0.5 + 0.5, clamp(u_Water[29].x / 32.0, 0.0, 1.0));
+		}
+		else if (whitewaterDebug == 2) debugColor = vec3(foamSample.a, foamSample.a * 0.35, 0.0);
+		else if (whitewaterDebug == 3) debugColor = vec3(whitewater);
+		else debugColor = clamp(foamSample.rgb + vec3(foamSample.a, 0.5 * foamSample.a, 0.0), 0.0, 1.0);
 		out_Color = vec4(LinearToScene(debugColor), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;
@@ -1254,6 +1277,7 @@ void main()
 	alpha = max(alpha, 0.002);
 	float roughness = sqrt(alpha);
 	roughness = mix(roughness, 0.88, persistentFoam);
+	roughness = mix(roughness, 0.78, whitewater);
 	alpha = roughness * roughness;
 	int flowDebug = int(u_Water[29].z + 0.5);
 	if (flowDebug > 0)
@@ -1659,6 +1683,11 @@ void main()
 	if (sun) foamLight += 0.28 * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
 	vec3 foamColor = vec3(0.72, 0.78, 0.80) * foamLight;
 	vec3 color = (1.0 - W) * transmitted + W * reflection + glint;
+	// Bulk whitewater is lit scattering inside aerated water, not emissive
+	// surface paint. It suppresses clear refraction while retaining some of
+	// the underlying water and reflection; persistent foam is layered later.
+	vec3 whitewaterColor = vec3(0.52, 0.61, 0.64) * foamLight;
+	color = mix(color, whitewaterColor, whitewater * 0.72);
 	color = mix(color, foamColor, persistentFoam * 0.88);
 	// Channel B of the body-local interaction field is short-lived foam laid
 	// down by energetic physical splash events.  It remains surface-local,
@@ -1789,5 +1818,6 @@ void main()
 	}
 
 	out_Color = vec4(LinearToScene(color), sceneHere.a);
-	out_Glow = vec4(LinearToScene(((1.0 - W) * transmittedGlow + glint) * (1.0 - persistentFoam)), 0.0);
+	out_Glow = vec4(LinearToScene(((1.0 - W) * transmittedGlow + glint) *
+		(1.0 - persistentFoam) * (1.0 - 0.8 * whitewater)), 0.0);
 }
