@@ -3092,8 +3092,9 @@ static int GLSL_LoadGPUProgramLightAll(
 		LoadProgramSource("lightall", allocator, fallback_lightallProgram);
 	const GPUShaderDesc *pomLibrary = nullptr;
 	const GPUShaderDesc *leafFlutterLibrary = LoadLeafFlutterLibrary(allocator);
-	// underwater sun (r_volumetricWater, r_volumetricWaterSurfaces, latched): the
-	// lit permutations with a sun take the liquid library (USE_LIQUID_SUN)
+	// Underwater direct light (r_volumetricWaterSurfaces, latched). Sun, local
+	// point/spot and directional baked-light permutations share one liquid
+	// library and the exact same resolved water-surface evaluator.
 	const GPUShaderDesc *liquidLibrary = R_LiquidSurfacesEnabled() ? LoadLiquidLibrary(allocator) : nullptr;
 	const bool useFastLight =
 		(!r_normalMapping->integer && !r_specularMapping->integer);
@@ -3149,6 +3150,12 @@ static int GLSL_LoadGPUProgramLightAll(
 		if (lightType)
 		{
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIGHT\n");
+			if (liquidLibrary)
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUIDS\n");
+			if (liquidLibrary && (r_waterCausticsLightMask->integer & 2))
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUID_LOCAL\n");
+			if (liquidLibrary && (r_waterCausticsLightMask->integer & 4))
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUID_BAKED\n");
 
 			if (useFastLight && !(lightType == LIGHTDEF_USE_LIGHT_VECTOR && useEntityGrid))
 			{
@@ -3261,8 +3268,11 @@ static int GLSL_LoadGPUProgramLightAll(
 				extradefines, sizeof(extradefines),
 				va("#define r_shadowCascadeZFar %f\n", r_shadowCascadeZFar->value));
 
+			// Keep the established RGB sun-path attenuation whenever sunlight is
+			// present. The source mask is read inside LiquidSunTransmittance and
+			// disables only caustic focusing, not absorption by the liquid.
 			if (liquidLibrary && lightType)
-				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUIDS\n#define USE_LIQUID_SUN\n");
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUID_SUN\n");
 		}
 
 		if (i & LIGHTDEF_USE_TCGEN_AND_TCMOD)

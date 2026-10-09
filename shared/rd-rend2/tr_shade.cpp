@@ -2302,8 +2302,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			// carries over to a dry stage
 			if (R_WeatherWetnessEnabled())
 				RB_WeatherWetnessBind(tess.shader, pStage, uniformDataWriter, samplerBindingsWriter);
-			// underwater sun (r_volumetricWater): the lit permutations with a sun
-			// have USE_LIQUID_SUN; set for every such draw (no stale state)
+			// Underwater direct light (sun/local/baked): set every lit draw whose
+			// permutation may consume the liquid block, so state never goes stale.
 			if (R_LiquidSurfacesEnabled() && (pStage->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK))
 				RB_LiquidSurfaceSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
 

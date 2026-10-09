@@ -29,6 +29,7 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidView;
 	vec4 u_LiquidCausticSurface;
 	vec4 u_LiquidCausticDebug;
+	vec4 u_LiquidCausticLights;
 	vec4 u_LiquidMaterial[6];
 	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class

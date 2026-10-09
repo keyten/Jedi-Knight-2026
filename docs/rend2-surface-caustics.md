@@ -1,6 +1,6 @@
 # Surface-driven underwater caustics
 
-`r_waterCausticsMode 2` makes direct-sun caustics consume the same resolved
+`r_waterCausticsMode 2` makes direct-light caustics consume the same resolved
 water-body surface state as the modern visible-water pass.  Mode 1 is the
 previous procedural caustic unchanged, and mode 0 disables caustic modulation.
 The default remains mode 1, so existing archived configurations and legacy
@@ -46,6 +46,28 @@ fullscreen overlay and no second application to the same direct-light term.
 Existing CSM/geometric sun shadowing remains outside this function, so a
 blocked sun does not reveal caustics.
 
+Point and spot lights use the same function with a finite source distance.
+Their direction varies at every neighbouring surface sample, so the Jacobian
+is a point-source footprint rather than a directional-light approximation.
+Only the first `r_waterCausticsLocalMaxLights` candidates in the already
+importance-ordered Forward+/legacy list are evaluated. Area/line lights
+(including the LTC saber emitter) are intentionally excluded: reducing an
+extended emitter to a point produces the wrong sharp caustic.
+
+For baked light, the caustic multiplies only the directed lobe already
+separated by a deluxemap or an entity L1/dominant-light vector. In the
+volumetric path the per-channel directional fraction is `|M| / B`; the
+isotropic remainder of the static grid is unchanged. This avoids adding a
+recovered lamp on top of its lightmap. Old BSP lightmaps without direction may
+opt into the original procedural filter, but cannot claim a surface-driven
+baked result.
+
+Ambient light, diffuse IBL and emissive material output are not modulated.
+They have no single incident ray bundle for a water interface to focus.
+Emissive lamps still contribute when represented by a dynamic light, baked
+directional lobe or volumetric reconstruction; the glowing texel itself is
+not a light receiver.
+
 ## Technique decision
 
 The selected method is the refracted-ray footprint Jacobian.  A dependency-free
@@ -80,6 +102,10 @@ uses those physical ideas, not their data structures or assets.
 | `r_waterCausticsSlope` | 1 | macro/interaction slope multiplier |
 | `r_waterCausticsFilter` | 1 | receiver-depth footprint broadening |
 | `r_waterCausticsDebug` | 0 | diagnostic view listed below; cheat-protected |
+| `r_waterCausticsLightMask` | 1 | latched source bits: 1 sun, 2 dynamic point/spot, 4 directed baked; combine bits to enable sources independently |
+| `r_waterCausticsLocalMaxLights` | 1 | maximum point/spot caustic evaluations per surface receiver, 0..4 |
+| `r_waterCausticsBakedMode` | 0 | 0 off, 1 surface-driven when a direction exists, 2 original procedural fallback (also works on directionless lightmaps) |
+| `r_waterCausticsBakedStrength` | 0.35 | blend of liquid attenuation/caustic modulation into the directed baked lobe |
 
 Body wave/profile/flow tuning remains in the existing water-body system.
 Interaction resolution and memory remain controlled by the existing
@@ -91,16 +117,22 @@ Interaction resolution and memory remain controlled by the existing
 | ---: | --- |
 | 0 | normal lighting result |
 | 1 | sampled surface slope used by caustics |
-| 2 | refracted sun direction |
+| 2 | refracted direction of the selected direct-light source |
 | 3 | raw Jacobian focusing field (0..6 mapped to 0..1) |
 | 4 | strength/focus/depth-weighted result |
 | 5 | projected receiver coordinate grid |
 | 6 | existing RGB optical attenuation only |
 | 7 | interactive-field contribution/coverage |
 
-Views are returned at the real liquid-sun receiver integration point.  This
+Views are returned at the real liquid direct-light receiver integration point. This
 separates surface input, refraction/focusing, projection, optical attenuation
 and interaction without adding a debug-only rendering path.
+
+Examples: sun only (the backward-compatible default) is mask `1`; dynamic only
+is `2`; baked only is `4`; all supported sources is `7`. Changing the mask
+needs `vid_restart`, because unused source paths are removed from shader
+permutations. The local-light limit and baked mode/strength are runtime
+controls.
 
 ## Validation and cost
 
@@ -110,7 +142,9 @@ Automated checks:
   shared normal, optics, SSR/Snell/TIR and interaction checks;
 - `test_liquids_gl.py`: 14 liquid permutations, 12 receiver/weather programs,
   exact brush/optical checks, and a GPU comparison proving an injected
-  interaction field changes the surface-driven focusing result;
+  interaction field changes the surface-driven focusing result. Its
+  `--compile-caustic-lights` mode additionally compiles GL 3.2 fast-light,
+  lightmap+deluxemap and entity-L1 local/baked permutations;
 - `test_water_caustics.py`: Jacobian/curvature comparison, stability and
   injected-interaction sensitivity;
 - `test_water_interaction.py`: deterministic propagation and isolation.
@@ -123,9 +157,18 @@ an interactive game session, so those rows are map-data coverage targets, not
 claims of completed visual sign-off.  The deterministic GPU comparison is the
 explicit before/after evidence supplied with the change.
 
+The installed stock-asset audit found no cubemap-probe assets feeding diffuse
+IBL on these maps and no deluxemaps in the audited BSPs. It did find many glow
+surfaces near water (`t2_port` 302 candidates, `t3_hevil` 200, `taspir2` 112,
+`vjun1` 112, `vjun2` 42, `t2_rancor` 25, `yavin1`/`yavin1b` 6; these are broad
+spatial/facing candidates, not guaranteed emitters). This supports routing
+their light through dynamic lights or baked directional reconstruction rather
+than caustic-modulating emissive pixels or diffuse IBL directly.
+
 There is no caustic-map generation pass in mode 2: generation GPU time and
-new caustic-map memory are both zero.  Application cost is paid only where the
-existing direct-sun liquid function is evaluated.  The shared interaction
+new caustic-map memory are both zero. Application cost is paid only where a
+selected direct-light liquid function is evaluated; dynamic lights have an
+independent per-receiver cap. The shared interaction
 atlas uses RGBA16F (8 bytes per atlas texel); the existing interaction info
 command reports the actual allocation including packing padding.  It does not
 create per-brush textures.  Mode 0 and mode 1
@@ -134,21 +177,32 @@ do not execute the Jacobian path.  Use the synthetic `test_liquids_gl.py
 be recorded with the engine GPU timers on the target hardware.
 
 Measured on the available Intel UHD (OpenGL 4.3 driver 27.20.100.8280), the
-128x128 synthetic receiver benchmark was 0.135 ms with caustics off and 1.585
-ms with the full shared eight-wave spectrum plus interaction samples: +1.450
-ms for 16,384 direct-sun receivers.  This is a deliberately dense compute
+128x128 synthetic receiver benchmark was 0.162 ms with sun caustics off and
+1.793 ms with the full shared eight-wave spectrum plus interaction samples
+(+1.631 ms); the finite point-light path was 0.165 vs 1.953 ms (+1.788 ms).
+These are 16,384 direct-light receivers and a deliberately dense compute
 microbenchmark, not a whole-frame or stock-map timing.  Maps with no visible
-liquid build zero receivers; indoor/shadowed receivers skip the direct-sun
-consumer through the existing lighting path.  The Liquids UBO is 9,904 bytes,
-an 8,224-byte increase that remains below OpenGL 3.2's 16 KiB minimum uniform
+liquid build zero receivers; indoor/shadowed receivers skip unavailable
+sources through the existing lighting path. The Liquids UBO is 9,920 bytes,
+an 8,240-byte increase that remains below OpenGL 3.2's 16 KiB minimum uniform
 block size.  The unchanged procedural 256x256 R16F mip chain remains about 171
 KiB because mode 1 must stay available.
 
 ## Known limitations and future work
 
-- Only the primary directional light is supported.  Point/saber/explosion
-  caustics need a local-light projection domain and light-specific occlusion;
-  evaluating this Jacobian per dynamic light is not free.
+- Dynamic point/spot caustics affect opaque/model receivers but are not traced
+  per froxel. Putting the full brush clip and Jacobian inside every
+  light/froxel iteration caused unacceptable shader compile/runtime scaling on
+  the GL 3.2 baseline. A future volume path should use a cached low-resolution
+  light/body projection. Saber/LTC area lights need an extended-source model.
+- Surface dynamic lights reuse their normal receiver shadow/cookie. There is
+  no second shadow ray from the light to the water entry point, so a small
+  occluder between lamp and interface can leave a caustic where the receiver's
+  ordinary shadow map does not see it.
+- Surface-driven baked mode needs a deluxemap or entity dominant direction.
+  Stock BSPs audited for this change have no deluxemaps; their world lightmaps
+  therefore need the explicitly approximate baked mode 2, while entity L1 and
+  volumetric directional moments can use mode 1.
 - The receiver uses the resolved horizontal water-body interface.  Overhangs,
   waterfalls and strongly non-horizontal interfaces are outside the current
   modern-water body model.

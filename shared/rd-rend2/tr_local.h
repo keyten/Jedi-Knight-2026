@@ -291,6 +291,10 @@ extern cvar_t	*r_waterCausticsMaxDepth;
 extern cvar_t	*r_waterCausticsSlope;
 extern cvar_t	*r_waterCausticsFilter;
 extern cvar_t	*r_waterCausticsDebug;
+extern cvar_t	*r_waterCausticsLightMask;
+extern cvar_t	*r_waterCausticsLocalMaxLights;
+extern cvar_t	*r_waterCausticsBakedMode;
+extern cvar_t	*r_waterCausticsBakedStrength;
 extern cvar_t	*r_volumetricWaterExtinction;
 extern cvar_t	*r_volumetricWaterColor;
 extern cvar_t	*r_volumetricWaterAlbedo;
@@ -1548,6 +1552,7 @@ struct LiquidsBlock
 	vec4_t view;							// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
 	vec4_t causticSurface;				// mode, derivative spacing, max depth, slope scale
 	vec4_t causticDebug;					// depth filter, debug view, IOR, surface data available
+	vec4_t causticLights;				// source mask, max local lights, baked mode, baked strength
 	vec4_t material[LIQUID_CLASSES * 2];	// per class: (extinction color rgb, mean 1; a: extinction per unit), (albedo rgb, a: anisotropy g)
 	vec4_t mins[MAX_GPU_LIQUIDS];			// brush bounds, w: first plane in the plane buffer
 	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * medium slot + 256 * liquid class
@@ -2649,7 +2654,7 @@ typedef enum
 	UNIFORM_FROXELCARRYT,			// RGB transmittance of the previous slice
 	UNIFORM_LIQUIDPLANES,			// planes of the liquid brushes (buffer texture, tr_liquid.cpp)
 	UNIFORM_LIQUIDCAUSTICMAP,		// tiling sun caustic pattern, mean 1
-	UNIFORM_LIQUIDSURFACE,			// lightall: x 1 = this draw takes the underwater sun
+	UNIFORM_LIQUIDSURFACE,			// lightall: x 1 = this draw takes underwater direct-light liquid modulation
 
 	UNIFORM_FPLUSLIGHTS,	// Forward+ light data (buffer texture)
 	UNIFORM_FPLUSGRID,		// Forward+ cluster offset / count (buffer texture)

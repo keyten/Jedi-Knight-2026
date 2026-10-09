@@ -2286,6 +2286,12 @@ shadow casters, and nothing underwater is shadowed by the surface itself.
 
 Caustics are only a light modulation; they never change the density.
 
+The source is selected independently by `r_waterCausticsLightMask`: bit 1 is
+sunlight, bit 2 dynamic point/spot lights on opaque/model receivers, and bit 4
+the directional baked share. The default is 1, preserving the previous
+sun-only result. The exact source/receiver integration and surface-driven mode
+are documented in `rend2-surface-caustics.md`.
+
 The pattern is a tiling 256² R16F texture (`TB_LIQUIDCAUSTICS` 30), generated once:
 
 - Photons are refracted by a tiling 12-wave height field (integer wave vectors) and splatted
@@ -2302,6 +2308,13 @@ It is sampled at the point where the sun ray left the water, twice:
 The average sunlight is therefore unchanged for any strength. It applies to water only, and only
 when the sun is above the horizon. The volume samples the pattern at the mip of the froxel size
 (strongly blurred); surfaces use the pixel footprint. The default strength is 0.35.
+
+Surface-driven mode replaces that arbitrary pattern with the shared modern
+water evaluator and refracted-ray footprint Jacobian. Sun and reconstructed
+directional baked light use it in both surface and froxel lighting. Dynamic
+point/spot lights use it on opaque/model receivers only; a full Jacobian per
+light per froxel is intentionally excluded from the GL 3.2 baseline. Ambient,
+diffuse IBL and emissive output are never caustic-modulated.
 
 ### Camera contents and the legacy tint
 
@@ -2388,12 +2401,16 @@ holds this liquid" uses the media of the drawn brushes (`R_LiquidMediumSlotMask`
 | Cvar | Default | Meaning |
 |---|---|---|
 | `r_volumetricWater` | 0 | Latched class mask (1 water, 2 slime, 4 lava) |
-| `r_volumetricWaterSurfaces` | 1 | Latched: underwater sun on lightall surfaces |
+| `r_volumetricWaterSurfaces` | 1 | Latched: underwater direct-light liquid path on lightall surfaces |
 | `r_volumetricWaterSunPath` | 1 | Exact sun path through the liquid (volume and surfaces) |
 | `r_volumetricWaterCaustics` | 0.35 | Caustic strength (0 = off) |
 | `r_volumetricWaterCausticScale` | 160 | Pattern period in world units |
 | `r_volumetricWaterCausticSpeed` | 0.06 | Drift in periods per second |
 | `r_volumetricWaterCausticFocus` | 48 | Depth of full caustic contrast |
+| `r_waterCausticsLightMask` | 1 | Latched source bits: 1 sun, 2 dynamic point/spot, 4 directional baked |
+| `r_waterCausticsLocalMaxLights` | 1 | Dynamic caustic lights per surface receiver, 0..4 |
+| `r_waterCausticsBakedMode` | 0 | 0 off, 1 surface-driven with direction, 2 procedural fallback |
+| `r_waterCausticsBakedStrength` | 0.35 | Strength on the directed baked-light share |
 | `r_volumetricWaterActive` | (ROM) | Set by the renderer for cgame |
 | `cg_underwaterTint` | 1 | cgame: 1 = skip the tint of liquids the renderer draws, 0 = legacy |
 

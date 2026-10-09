@@ -51,7 +51,9 @@ void main()
 // the map listed for this slice. Their extinction is the covered fraction of the froxel's depth along
 // its ray (exact clip of the convex brushes), so the froxel cut by a water surface integrates its
 // share of the water. The sun under a liquid passes the liquid above the froxel (exact path length to
-// the surface, rgb transmittance, caustics: LiquidSunTransmittance), every other light is unchanged.
+// the surface, rgb transmittance and caustics). Sun and the directional share of reconstructed baked
+// light can be enabled independently. Local-light caustics stay receiver-side: tracing every point
+// light through every froxel would multiply the already expensive liquid brush/Jacobian loop.
 //
 // Light (the phase function is 4 pi HG, 1 = isotropic, per lobe of the medium):
 //   baked   light grid without the sun (isotropic, legacy brightness)
@@ -1283,6 +1285,41 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 		l.momentDot = vec3(0.0);
 		return l;
 	}
+
+#if defined(USE_LIQUIDS)
+	// The static grid is B plus first angular moments M. Only the directional
+	// fraction |M|/B is eligible for a surface-driven caustic; the isotropic
+	// remainder is ambient and stays unchanged. Mode 2 explicitly allows the
+	// legacy procedural filter when old maps have no reconstructed direction.
+	if ((int(u_LiquidCausticLights.x + 0.5) & 4) != 0 &&
+		u_LiquidCausticLights.z > 0.5 && LiquidPointClass(pc) >= 0)
+	{
+		bool bakedDirectionValid = false;
+		vec3 bakedDirection = vec3(0.0, 0.0, 1.0);
+		vec3 directionalFraction = vec3(1.0);
+#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
+		vec3 momentLength = vec3(length(momentR), length(momentG), length(momentB));
+		vec3 momentLuma = momentR * 0.2126 + momentG * 0.7152 + momentB * 0.0722;
+		float momentLumaLength = length(momentLuma);
+		bakedDirectionValid = momentLumaLength > 1e-8;
+		if (bakedDirectionValid)
+			bakedDirection = momentLuma / momentLumaLength;
+		directionalFraction = clamp(momentLength / max(staticGrid.rgb, vec3(1e-8)),
+			vec3(0.0), vec3(1.0));
+#else
+		// No direction means mode 1 is a no-op. Mode 2 is explicitly the
+		// procedural approximation and may affect the whole baked baseline.
+		directionalFraction = vec3(1.0);
+#endif
+		float viewDepth = max(dot(pc - u_FroxelViewOrigin.xyz,
+			u_FroxelViewForward.xyz), 1.0);
+		vec3 bakedLiquid = LiquidBakedLightTransmittance(pc, bakedDirection,
+			bakedDirectionValid, viewDepth * u_LiquidView.z);
+		vec3 bakedModulation = mix(vec3(1.0), bakedLiquid, directionalFraction);
+		l.baseline *= bakedModulation;
+		l.momentDot *= bakedModulation;
+	}
+#endif
 
 	if (u_FroxelSunDirection.w > 0.5)
 	{

@@ -3,8 +3,8 @@
 //
 // This file is not a program on its own: its fragment block follows volumetric_common.glsl in
 // volumetric_inject / volumetric_debug (the medium, debug views 59-64) and is the fragment library
-// of the lit lightall permutations with a sun (USE_LIQUID_SUN: the underwater sun). It does not
-// use the froxel functions. Everything is inside USE_LIQUIDS.
+// of lit lightall permutations (USE_LIQUID_SUN / LOCAL / BAKED). It does not use the froxel
+// functions. Everything is inside USE_LIQUIDS.
 //
 // A liquid brush is convex: its inside is dot(n, p) - d <= 0 for all its planes (u_LiquidPlanes,
 // first plane u_LiquidMins[i].w, int(u_LiquidMaxs[i].w) & 63 planes; the first six are the axial
@@ -25,6 +25,7 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidView;			// fade out start (view depth), 1 / fade length, froxel size per unit of view depth, unused
 	vec4 u_LiquidCausticSurface;	// mode, derivative spacing, max depth, slope scale
 	vec4 u_LiquidCausticDebug;	// depth filter, debug view, IOR, surface data available
+	vec4 u_LiquidCausticLights;	// source mask, max local lights, baked mode, baked strength
 	vec4 u_LiquidMaterial[6];	// per medium: (extinction color rgb (mean 1), a: extinction per unit), (albedo rgb, a: g)
 	vec4 u_LiquidMins[MAX_GPU_LIQUIDS];	// bounds, w: first plane
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
@@ -333,30 +334,36 @@ vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out fl
 }
 
 vec2 LiquidRefractedFootprint(in int brush, in vec2 surfaceXY, in float surfaceZ,
-	in float depth, in vec3 L, in float derivativeStep, out vec2 slope, out vec3 ray, out float interactionAmount)
+	in float depth, in vec3 lightVector, in bool localLight, in float derivativeStep,
+	out vec2 slope, out vec3 ray, out float interactionAmount)
 {
 	vec3 p = vec3(surfaceXY, surfaceZ);
 	slope = LiquidSurfaceSlope(brush, p, derivativeStep, interactionAmount);
 	vec3 N = normalize(vec3(-slope, 1.0));
+	vec3 L = localLight ? normalize(lightVector - p) : normalize(lightVector);
 	ray = refract(-normalize(L), N, 1.0 / clamp(u_LiquidCausticDebug.z, 1.0, 2.0));
 	float travel = depth / max(-ray.z, 0.05);
 	return surfaceXY + ray.xy * travel;
 }
 
 float LiquidSurfaceDrivenCaustic(in int brush, in vec3 entry, in float depth, in float footprint,
-	in vec3 L, out vec3 diagnostic)
+	in vec3 lightVector, in bool localLight, out vec3 diagnostic)
 {
 	diagnostic = vec3(0.0);
 	if (brush < 0 || u_LiquidCausticDebug.w < 0.5 || depth > u_LiquidCausticSurface.z) return 1.0;
 	float spacing = max(u_LiquidCausticSurface.y,
 		max(footprint, sqrt(max(depth, 0.0))) * u_LiquidCausticDebug.x);
 	vec2 slope; vec3 ray; float interaction;
-	vec2 firstHit = LiquidRefractedFootprint(brush, entry.xy, entry.z, depth, L, spacing, slope, ray, interaction);
+	vec2 firstHit = LiquidRefractedFootprint(brush, entry.xy, entry.z, depth,
+		lightVector, localLight, spacing, slope, ray, interaction);
 	vec2 source = entry.xy - (firstHit - entry.xy);
-	vec2 q0 = LiquidRefractedFootprint(brush, source, entry.z, depth, L, spacing, slope, ray, interaction);
+	vec2 q0 = LiquidRefractedFootprint(brush, source, entry.z, depth,
+		lightVector, localLight, spacing, slope, ray, interaction);
 	vec2 unusedSlope; vec3 unusedRay; float ix, iy;
-	vec2 qx = LiquidRefractedFootprint(brush, source + vec2(spacing, 0.0), entry.z, depth, L, spacing, unusedSlope, unusedRay, ix);
-	vec2 qy = LiquidRefractedFootprint(brush, source + vec2(0.0, spacing), entry.z, depth, L, spacing, unusedSlope, unusedRay, iy);
+	vec2 qx = LiquidRefractedFootprint(brush, source + vec2(spacing, 0.0), entry.z, depth,
+		lightVector, localLight, spacing, unusedSlope, unusedRay, ix);
+	vec2 qy = LiquidRefractedFootprint(brush, source + vec2(0.0, spacing), entry.z, depth,
+		lightVector, localLight, spacing, unusedSlope, unusedRay, iy);
 	vec2 dx = (qx - q0) / spacing, dy = (qy - q0) / spacing;
 	float determinant = abs(dx.x * dy.y - dx.y * dy.x);
 	float raw = min(1.0 / max(determinant, 1.0 / 6.0), 6.0);
@@ -420,15 +427,17 @@ void LiquidRunAdd(inout LiquidRun r, in vec3 s)
 	}
 }
 
-// Sunlight reaching p inside a liquid (r_volumetricWaterSunPath): the rgb transmittance of the
-// liquid between p and the surface along L (towards the sun, the unrefracted path), times the
-// caustics where water is on top. The path is the connected run of liquid intervals that starts at
-// p (brushes touching each other, within 1 unit); liquid beyond air above it is left to the
-// geometry shadow, and so is a run longer than LIQUID_MAX_HITS intervals (the earliest are kept).
-// pathLength: the liquid length of the run. 1 where p is in no liquid.
-vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float pathLength)
+// Direct light reaching p through a liquid. Directional lights use a very long
+// ray; local lights stop at the source and only form a surface caustic when the
+// source lies beyond the connected liquid run, on the air side. causticMode is
+// 0 off, 1 the original procedural pattern, 2 the shared surface Jacobian.
+vec3 LiquidDirectTransmittance(in vec3 p, in vec3 L, in float maxDistance,
+	in float footprint, in float causticMode, in vec3 lightVector, in bool localLight,
+	out float pathLength, out float crossedSurface, out vec3 diagnostic)
 {
 	pathLength = 0.0;
+	crossedSurface = 0.0;
+	diagnostic = vec3(0.0);
 	int n = LiquidCount();
 	if (n == 0 || u_LiquidParams.z < 0.5)
 		return vec3(1.0);
@@ -446,7 +455,7 @@ vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float 
 	int count = 0;
 	for (int i = 0; i < n && count <= 2; i++)
 	{
-		vec2 interval = LiquidClip(i, p, L, -1.0, 65536.0);
+		vec2 interval = LiquidClip(i, p, L, -1.0, maxDistance);
 		if (interval.x >= interval.y)
 			continue;
 		vec3 s = vec3(interval, float(LiquidMediumOf(i)));
@@ -475,7 +484,7 @@ vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float 
 		LiquidHitsInit(h);
 		for (int i = 0; i < n; i++)
 		{
-			vec2 interval = LiquidClip(i, p, L, -1.0, 65536.0);
+			vec2 interval = LiquidClip(i, p, L, -1.0, maxDistance);
 			if (interval.x < interval.y)
 				LiquidAddHit(h, interval, LiquidMediumOf(i));
 		}
@@ -490,10 +499,14 @@ vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float 
 
 	pathLength = len.x + len.y + len.z;
 	vec3 T = exp(-LiquidOpticalDepth(len));
-	if (topMedium == LIQUID_WATER && L.z > 0.05)
+	// A local source reached before the run exits is submerged: attenuate it,
+	// but there is no air/water refraction and therefore no surface caustic.
+	bool exitsBeforeSource = !localLight || runEnd < maxDistance - 1.0;
+	if (topMedium == LIQUID_WATER && L.z > 0.05 && exitsBeforeSource)
 	{
+		crossedSurface = 1.0;
 		vec3 entry = p + L * runEnd;
-		if (u_LiquidCausticSurface.x > 1.5)
+		if (causticMode > 1.5)
 		{
 			vec3 opticalTransmittance = T;
 			float receiverDepth = max(entry.z - p.z, 0.0);
@@ -502,18 +515,71 @@ vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float 
 			for (int i = 0; i < n; ++i)
 			{
 				if (LiquidMediumOf(i) != LIQUID_WATER) continue;
-				vec2 interval = LiquidClip(i, p, L, -1.0, 65536.0);
+				vec2 interval = LiquidClip(i, p, L, -1.0, maxDistance);
 				if (interval.x <= runEnd + 1.0 && interval.y >= runEnd - 1.0 && interval.y > bestExit)
 				{ bestExit = interval.y; topBrush = i; }
 			}
-			vec3 diagnostic;
-			T *= LiquidSurfaceDrivenCaustic(topBrush, entry, receiverDepth, footprint, L, diagnostic);
+			T *= LiquidSurfaceDrivenCaustic(topBrush, entry, receiverDepth, footprint,
+				lightVector, localLight, diagnostic);
 			if (int(u_LiquidCausticDebug.y + 0.5) == 6) return opticalTransmittance;
 			if (u_LiquidCausticDebug.y > 0.5) return diagnostic;
 		}
-		else T *= LiquidCaustic(entry.xy, pathLength, footprint);
+		else if (causticMode > 0.5)
+			T *= LiquidCaustic(entry.xy, pathLength, footprint);
 	}
 	return T;
+}
+
+// Sunlight is the directional specialization. The source mask leaves the old
+// result bit-for-bit when bit 1 is enabled and skips only the caustic contrast
+// when it is disabled; the established liquid optical path remains intact.
+vec3 LiquidSunTransmittance(in vec3 p, in vec3 L, in float footprint, out float pathLength)
+{
+	float crossed;
+	vec3 diagnostic;
+	float mode = (int(u_LiquidCausticLights.x + 0.5) & 1) != 0 ? u_LiquidCausticSurface.x : 0.0;
+	// Both callers already provide a unit sun vector. Keep it untouched so the
+	// default procedural path retains its established sampling/clip arithmetic.
+	return LiquidDirectTransmittance(p, L, 65536.0, footprint, mode,
+		L, false, pathLength, crossed, diagnostic);
+}
+
+// Point/spot specialization. The caller limits how many lights reach this
+// function; lights are already in Forward+/legacy importance order.
+vec3 LiquidLocalLightTransmittance(in vec3 p, in vec3 lightOrigin, in float footprint,
+	out float crossedSurface, out vec3 diagnostic)
+{
+	vec3 toLight = lightOrigin - p;
+	float distanceToLight = length(toLight);
+	float pathLength;
+	if (distanceToLight <= 1.0)
+	{
+		crossedSurface = 0.0;
+		diagnostic = vec3(0.0);
+		return vec3(1.0);
+	}
+	return LiquidDirectTransmittance(p, toLight / distanceToLight, distanceToLight,
+		footprint, u_LiquidCausticSurface.x, lightOrigin, true,
+		pathLength, crossedSurface, diagnostic);
+}
+
+// Dominant baked direction. Only the already separated directed lobe is
+// multiplied by this result; ambient/IBL/emissive remain untouched.
+vec3 LiquidBakedLightTransmittance(in vec3 p, in vec3 L, in bool directionValid,
+	in float footprint)
+{
+	float pathLength, crossed;
+	vec3 diagnostic;
+	float bakedMode = u_LiquidCausticLights.z;
+	if (bakedMode < 0.5 || (bakedMode < 1.5 && !directionValid))
+		return vec3(1.0);
+	// CVar mode 1 follows the real surface; mode 2 deliberately uses the old
+	// procedural pattern as a fallback for lightmaps without a direction.
+	float causticMode = bakedMode < 1.5 ? 2.0 : 1.0;
+	vec3 lightDirection = directionValid ? normalize(L) : vec3(0.0, 0.0, 1.0);
+	vec3 T = LiquidDirectTransmittance(p, lightDirection, 65536.0, footprint,
+		causticMode, lightDirection, false, pathLength, crossed, diagnostic);
+	return mix(vec3(1.0), T, clamp(u_LiquidCausticLights.w, 0.0, 1.0));
 }
 
 vec3 LiquidClassHue(in int liquidClass)

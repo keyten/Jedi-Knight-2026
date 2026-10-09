@@ -796,8 +796,8 @@ uniform vec4 u_SpecularScale;
 uniform vec4 u_MaterialDebug;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 
-#if defined(USE_LIQUID_SUN)
-// underwater sun (r_volumetricWater, tr_liquid.cpp RB_LiquidSurfaceSetupDraw): x 1 = this draw takes it
+#if defined(USE_LIQUID_SUN) || defined(USE_LIQUID_LOCAL) || defined(USE_LIQUID_BAKED)
+// underwater direct light (tr_liquid.cpp RB_LiquidSurfaceSetupDraw): x 1 = this draw takes it
 uniform vec4 u_LiquidSurface;
 #endif
 
@@ -2129,6 +2129,10 @@ struct DLightSurface
 	vec3  specular;
 	float roughness;
 	vec3  vertexNormal;
+#if defined(USE_LIQUID_LOCAL)
+	float liquidFootprint;
+	int liquidClass;
+#endif
 };
 
 // receiver side visibility of one light, 1 = not occluded: POM self
@@ -2264,7 +2268,8 @@ vec3 EvaluateDynamicLight(
 	in float lightRadius,
 	in int shadowLayer,
 	in vec4 spot,
-	in vec4 spot2)
+	in vec4 spot2,
+	in float liquidLocal)
 {
 	vec3  L  = lightOrigin - s.position;
 	float sqrLightDist = dot(L, L);
@@ -2330,6 +2335,17 @@ vec3 EvaluateDynamicLight(
 		}
 	}
 	attenuation *= DynamicLightReceiverVisibility(s, L);
+	#if defined(USE_LIQUID_LOCAL)
+	// Only direct light that actually crosses an air/water boundary is focused.
+	// Absorption and liquid colour come from the same optical profiles as the sun.
+	if (liquidLocal > 0.5)
+	{
+		float crossedSurface;
+		vec3 diagnostic;
+		lightColor *= LiquidLocalLightTransmittance(s.position, lightOrigin,
+			s.liquidFootprint, crossedSurface, diagnostic);
+	}
+	#endif
 
 	float NL = clamp(dot(s.N, L), 0.0, 1.0);
 	#if defined(USE_SPECULARMAP)
@@ -2821,6 +2837,12 @@ vec3 CalcDynamicLightContribution(
 	s.specular = specular;
 	s.roughness = roughness;
 	s.vertexNormal = vertexNormal;
+#if defined(USE_LIQUID_LOCAL)
+	s.liquidFootprint = length(fwidth(s.position));
+	s.liquidClass = u_LiquidSurface.x > 0.5 ? LiquidPointClass(s.position) : -1;
+	int liquidLights = 0;
+	int liquidLightLimit = int(u_LiquidCausticLights.y + 0.5);
+#endif
 #if defined(USE_LTC)
 	LtcSurfaceCache ltcCache;
 	ltcCache.ready = false;
@@ -2885,7 +2907,19 @@ vec3 CalcDynamicLightContribution(
 #if defined(USE_PARALLAXMAP)
 		g_pomLightWeight = PomLocalLightWeight(pomCut, lightOrigin - s.position, lightColor, lightRadius);
 #endif
-		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius, shadowLayer, spot, spot2);
+		float liquidLocal = 0.0;
+#if defined(USE_LIQUID_LOCAL)
+		// The Forward+ list is already importance ordered. Bound the expensive
+		// liquid clipping/Jacobian work independently of the normal light count.
+		if (s.liquidClass >= 0 && liquidLights < liquidLightLimit &&
+			lightOrigin.z > s.position.z + 1.0)
+		{
+			liquidLocal = 1.0;
+			liquidLights++;
+		}
+#endif
+		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius,
+			shadowLayer, spot, spot2, liquidLocal);
 	}
 	return outColor;
 }
@@ -2897,7 +2931,9 @@ vec3 EvaluateDynamicLightSimple(
 	in vec3 lightColor,
 	in float lightRadius,
 	in vec4 spot,
-	in vec4 spot2)
+	in vec4 spot2,
+	in float liquidLocal,
+	in float liquidFootprint)
 {
 	vec3 L = lightOrigin - position;
 	float sqrLightDist = dot(L, L);
@@ -2905,6 +2941,15 @@ vec3 EvaluateDynamicLightSimple(
 	L /= sqrt(sqrLightDist);
 	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
 	vec3 cookie = SpotCookie(-L, spot, spot2, length(position - u_ViewOrigin));
+	#if defined(USE_LIQUID_LOCAL)
+	if (liquidLocal > 0.5)
+	{
+		float crossedSurface;
+		vec3 diagnostic;
+		lightColor *= LiquidLocalLightTransmittance(position, lightOrigin,
+			liquidFootprint, crossedSurface, diagnostic);
+	}
+	#endif
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	return lightColor * cookie * attenuation * NL;
 }
@@ -2919,6 +2964,14 @@ vec3 CalcDynamicLightContribution(
 
 	bool fplus = FPlusEnabled();
 	ivec2 list = fplus ? FPlusClusterLights(position) : ivec2(0, min(u_NumLights, MAX_DLIGHTS));
+#if defined(USE_LIQUID_LOCAL)
+	float liquidFootprint = length(fwidth(position));
+	int liquidClass = u_LiquidSurface.x > 0.5 ? LiquidPointClass(position) : -1;
+	int liquidLights = 0;
+	int liquidLightLimit = int(u_LiquidCausticLights.y + 0.5);
+#else
+	float liquidFootprint = 0.0;
+#endif
 	for (int k = 0; k < list.y; k++)
 	{
 		vec3 lightOrigin, lightColor;
@@ -2948,7 +3001,17 @@ vec3 CalcDynamicLightContribution(
 		}
 		if (SpotDebugSkipLight(spot2.x))
 			continue;
-		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor, lightRadius, spot, spot2);
+		float liquidLocal = 0.0;
+#if defined(USE_LIQUID_LOCAL)
+		if (liquidClass >= 0 && liquidLights < liquidLightLimit &&
+			lightOrigin.z > position.z + 1.0)
+		{
+			liquidLocal = 1.0;
+			liquidLights++;
+		}
+#endif
+		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor,
+			lightRadius, spot, spot2, liquidLocal, liquidFootprint);
 	}
 	return outLight;
 }
@@ -3987,6 +4050,26 @@ void main()
 	// Recover any unused light as ambient, in case attenuation is over 4x or
 	// light is below the surface
 	ambientColor = max(ambientColor - lightColor * surfNL, 0.0);
+  #endif
+
+  #if defined(USE_LIQUID_BAKED)
+	// Modulate only the separated directed baked lobe. Ambient/IBL and emissive
+	// are not focused. A real surface-driven result requires an actual dominant
+	// direction (entity light vector/L1 probe or enabled deluxe map); baked mode
+	// 2 may use the procedural vertical fallback for old lightmaps.
+	if (u_LiquidSurface.x > 0.5 && u_LiquidCausticLights.z > 0.5)
+	{
+		bool liquidBakedDirection = false;
+	#if defined(USE_LIGHT_VECTOR)
+		liquidBakedDirection = true;
+	#elif defined(USE_LIGHTMAP) && defined(USE_DELUXEMAP)
+		liquidBakedDirection = u_EnableTextures.y > 0.5;
+	#endif
+		vec3 liquidPosition = u_ViewOrigin - viewDir;
+		float liquidFootprint = length(fwidth(liquidPosition));
+		lightColor *= LiquidBakedLightTransmittance(liquidPosition, L,
+			liquidBakedDirection, liquidFootprint);
+	}
   #endif
 
 	// Lambert and Burley diffuse both contain 1 / PI. Compensate it here to

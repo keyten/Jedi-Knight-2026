@@ -465,7 +465,8 @@ void R_LiquidsLatchPrograms( void )
 	const qboolean liquids = R_LiquidsAvailableNow();
 	s_liquidsProgramState = liquids ? 1 : 0;
 	s_liquidSurfacesProgramState =
-		(liquids && r_volumetricWaterSurfaces->integer && r_sunlightMode->integer) ? 1 : 0;
+		(liquids && r_volumetricWaterSurfaces->integer &&
+		(r_sunlightMode->integer || (r_waterCausticsLightMask->integer & 6))) ? 1 : 0;
 }
 
 void R_LiquidsUnlatchPrograms( void )
@@ -484,7 +485,8 @@ qboolean R_LiquidsAvailable( void )
 qboolean R_LiquidSurfacesEnabled( void )
 {
 	if ( s_liquidSurfacesProgramState < 0 )
-		return (qboolean)(R_LiquidsAvailableNow() && r_volumetricWaterSurfaces->integer && r_sunlightMode->integer);
+		return (qboolean)(R_LiquidsAvailableNow() && r_volumetricWaterSurfaces->integer &&
+			(r_sunlightMode->integer || (r_waterCausticsLightMask->integer & 6)));
 	return (qboolean)(s_liquidSurfacesProgramState && R_LiquidsAvailable());
 }
 
@@ -752,6 +754,16 @@ static void R_LiquidsCreateCausticImage( void )
 	s_liq.causticImageValid = qtrue;
 }
 
+static image_t *R_LiquidsCausticSamplerImage( void )
+{
+	const int sources = r_waterCausticsLightMask->integer;
+	const bool surfaceDriven =
+		((sources & 3) && r_waterCausticsMode->integer == 2) ||
+		((sources & 4) && r_waterCausticsBakedMode->integer == 1);
+	image_t *surfaceAtlas = surfaceDriven ? R_WaterCausticsInteractionAtlas() : nullptr;
+	return surfaceAtlas ? surfaceAtlas : &s_liq.causticImage;
+}
+
 void R_LiquidsBindTextures( void )
 {
 	if ( !R_LiquidsAvailable() )
@@ -759,8 +771,7 @@ void R_LiquidsBindTextures( void )
 	R_LiquidsUploadPlanes();
 	R_LiquidsCreateCausticImage();
 	GL_BindToTMU(&s_liq.planeImage, TB_LIQUIDPLANES);
-	image_t *surfaceAtlas = r_waterCausticsMode->integer == 2 ? R_WaterCausticsInteractionAtlas() : nullptr;
-	GL_BindToTMU(surfaceAtlas ? surfaceAtlas : &s_liq.causticImage, TB_LIQUIDCAUSTICS);
+	GL_BindToTMU(R_LiquidsCausticSamplerImage(), TB_LIQUIDCAUSTICS);
 }
 
 /*
@@ -895,7 +906,8 @@ unsigned int R_LiquidsMediumKey( unsigned int key )
 		r_volumetricLavaExtinction, r_volumetricLavaColor, r_volumetricLavaAlbedo, r_volumetricLavaAnisotropy,
 		r_volumetricWaterSunPath, r_volumetricWaterCaustics, r_volumetricWaterCausticScale, r_volumetricWaterCausticFocus,
 		r_waterCausticsMode, r_waterCausticsQuality, r_waterCausticsMaxDepth, r_waterCausticsSlope,
-		r_waterCausticsFilter, r_waterCausticsDebug,
+		r_waterCausticsFilter, r_waterCausticsDebug, r_waterCausticsLightMask,
+		r_waterCausticsLocalMaxLights, r_waterCausticsBakedMode, r_waterCausticsBakedStrength,
 		r_waterSurface, r_waterSurfaceAbsorption,
 	};
 	for ( cvar_t *cv : cvars )
@@ -1055,6 +1067,9 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 		r_waterCausticsMaxDepth->value, r_waterCausticsSlope->value);
 	VectorSet4(block->causticDebug, r_waterCausticsFilter->value, (float)r_waterCausticsDebug->integer,
 		r_waterSurfaceIOR->value, r_waterSurface->integer ? 1.0f : 0.0f);
+	VectorSet4(block->causticLights, (float)r_waterCausticsLightMask->integer,
+		(float)r_waterCausticsLocalMaxLights->integer, (float)r_waterCausticsBakedMode->integer,
+		r_waterCausticsBakedStrength->value);
 
 	// fade before far; the world size of a froxel per unit of view depth (caustic
 	// lod) is set by the caller, which knows the froxel grid
@@ -1085,10 +1100,7 @@ void RB_LiquidSurfaceSetupDraw( const shaderStage_t *pStage, UniformDataWriter& 
 	if ( s_liq.planeImageValid )
 		samplers.AddStaticImage(&s_liq.planeImage, TB_LIQUIDPLANES);
 	if ( s_liq.causticImageValid )
-	{
-		image_t *surfaceAtlas = r_waterCausticsMode->integer == 2 ? R_WaterCausticsInteractionAtlas() : nullptr;
-		samplers.AddStaticImage(surfaceAtlas ? surfaceAtlas : &s_liq.causticImage, TB_LIQUIDCAUSTICS);
-	}
+		samplers.AddStaticImage(R_LiquidsCausticSamplerImage(), TB_LIQUIDCAUSTICS);
 }
 
 /*

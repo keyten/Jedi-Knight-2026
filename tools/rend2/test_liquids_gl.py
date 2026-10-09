@@ -51,6 +51,14 @@ void main()
 		vec3 T = LiquidSunTransmittance(a.xyz, b.xyz, 1.0, pathLength);
 		results[i] = vec4(T, pathLength);
 	}
+	else if (mode == 3)
+	{
+		float crossedSurface;
+		vec3 diagnostic;
+		vec3 T = LiquidLocalLightTransmittance(a.xyz, b.xyz, max(c.x, 1.0),
+			crossedSurface, diagnostic);
+		results[i] = vec4(T, crossedSurface);
+	}
 	else
 		results[i] = vec4(float(LiquidPointClass(a.xyz)), 0.0, 0.0, 0.0);
 }
@@ -87,6 +95,23 @@ void main()
 	float pathLength;
 	vec3 T = LiquidSunTransmittance(vec3(xy, -96.0), normalize(vec3(0.22, 0.08, 0.972)), 1.0, pathLength);
 	results[cell.y * u_Grid.x + cell.x] = vec4(T, pathLength);
+}
+'''
+
+LOCAL_CAUSTIC_BENCH = '''
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(std430, binding = 1) writeonly buffer Results { vec4 results[]; };
+uniform ivec2 u_Grid;
+void main()
+{
+	ivec2 cell = ivec2(gl_GlobalInvocationID.xy);
+	if (any(greaterThanEqual(cell, u_Grid))) return;
+	vec2 xy = (vec2(cell) + 0.5) / vec2(u_Grid) * 512.0 - 256.0;
+	float crossedSurface;
+	vec3 diagnostic;
+	vec3 T = LiquidLocalLightTransmittance(vec3(xy, -96.0), vec3(64.0, 32.0, 192.0),
+		1.0, crossedSurface, diagnostic);
+	results[cell.y * u_Grid.x + cell.x] = vec4(T, crossedSurface);
 }
 '''
 
@@ -170,7 +195,8 @@ def cpu_coverage(brushes, o, d, t0, t1, mask=-1):
 class Scene:
     """the Liquids block, the plane buffer texture and a probe program"""
 
-    def __init__(self, prog, brushes, materials, sun_path=True, surface_caustics=None, ambient_waves=False):
+    def __init__(self, prog, brushes, materials, sun_path=True, surface_caustics=None, ambient_waves=False,
+                 light_mask=1, baked_mode=0, baked_strength=0.35):
         assert len(brushes) <= MAX_GPU_LIQUIDS
         self.prog, self.brushes = prog, brushes
         planes, values = [], {}
@@ -184,6 +210,7 @@ class Scene:
         values['u_LiquidView'] = (1e6, 1.0, 0.0, 0.0)
         values['u_LiquidCausticSurface'] = (0.0, 16.0, 2048.0, 1.0)
         values['u_LiquidCausticDebug'] = (1.0, 0.0, 1.333, 0.0)
+        values['u_LiquidCausticLights'] = (float(light_mask), 1.0, float(baked_mode), baked_strength)
         if surface_caustics is not None:
             values['u_LiquidCaustics'] = (1.0 / 160.0, 0.0, 48.0, 1.0)
             values['u_LiquidCausticSurface'] = (2.0, 8.0, 2048.0, 1.0)
@@ -423,6 +450,35 @@ def sun_cases(prog):
     return checks
 
 
+def caustic_source_cases(prog):
+    """Finite local-light path, air/water crossing and shared interaction response."""
+    lake = [Brush([-256.0, -256.0, -256.0], [256.0, 256.0, 0.0])]
+    scene = Scene(prog, lake, MATERIALS, surface_caustics=None, light_mask=3)
+    outside, submerged = scene.run([
+        (3, [0.0, 0.0, -100.0], [0.0, 0.0, 100.0], 0.0, 1.0, -1),
+        (3, [0.0, 0.0, -100.0], [0.0, 0.0, -50.0], 0.0, 1.0, -1),
+    ])
+    sigma, color = WATER[0], WATER[1]
+    close(outside[:3], [math.exp(-sigma * c * 100.0) for c in color],
+          'local light through the surface', 1e-3)
+    close(submerged[:3], [math.exp(-sigma * c * 50.0) for c in color],
+          'submerged local light path', 1e-3)
+    assert outside[3] == 1.0 and submerged[3] == 0.0, (outside, submerged)
+    scene.delete()
+
+    receiver = [48.0, 0.0, -96.0]
+    source = [64.0, 0.0, 96.0]
+    flat = Scene(prog, lake, MATERIALS, surface_caustics=False, light_mask=3)
+    flat_result = flat.run([(3, receiver, source, 0.0, 1.0, -1)])[0]
+    flat.delete()
+    ripple = Scene(prog, lake, MATERIALS, surface_caustics=True, light_mask=3)
+    ripple_result = ripple.run([(3, receiver, source, 0.0, 1.0, -1)])[0]
+    ripple.delete()
+    assert max(abs(a - b) for a, b in zip(flat_result[:3], ripple_result[:3])) > 0.01, \
+        ('surface-driven interaction did not alter local-light focusing', flat_result, ripple_result)
+    return 3
+
+
 def compile_programs():
     count = 0
     for rgb in (False, True):
@@ -463,9 +519,34 @@ def render_header(defines):
              '#define r_FBufScale vec2(1.0 / 640.0, 1.0 / 480.0)\n#define USE_ALPHA_TEST\n')
     froxel = re.findall(r'^#define\s+(MAX_GPU_FOG_VOLUMES|FROXEL_MAX_SLICES|FROXEL_LOCAL_POOL|FROXEL_EXTINCTION_PALETTE|'
                         r'MAX_GPU_LIQUIDS)\s+(\d+)\b', CONSTANTS, re.M)
-    if 'USE_FROXEL_FOG' in defines:
+    if 'USE_FROXEL_FOG' in defines or 'USE_LIQUIDS' in defines:
         text += ''.join(f'#define {k} {v}\n' for k, v in froxel)
     return text + ''.join(f'#define {d}\n' for d in defines)
+
+
+def compile_caustic_light_programs():
+    """The new independently enabled local/baked lightall paths, including GL 3.2 fast light."""
+    from test_watersurface_gl import compile_program
+    vertex_library = stage('leaf_flutter', 'Vertex') + stage('foliage_interact', 'Vertex') + stage('plant_bend', 'Vertex')
+    water_fragment = stage('water_surface_common', 'Fragment') + stage('liquid_common', 'Fragment')
+    source = (ROOT / 'shared/rd-rend2/glsl/lightall.glsl').read_text().replace('\r\n', '\n')
+    vertex, fragment_source = source.split('/*[Fragment]*/', 1)
+    vertex = vertex.split('/*[Vertex]*/', 1)[1]
+    variants = [
+        ['USE_LIGHT', 'USE_FAST_LIGHT', 'USE_LIGHTMAP', 'USE_LIQUIDS', 'USE_LIQUID_LOCAL'],
+        ['USE_LIGHT', 'USE_LIGHTMAP', 'USE_NORMALMAP', 'USE_SPECULARMAP', 'USE_DELUXEMAP',
+         'USE_LIQUIDS', 'USE_LIQUID_LOCAL', 'USE_LIQUID_BAKED'],
+        ['USE_LIGHT', 'USE_LIGHT_VECTOR', 'USE_NORMALMAP', 'USE_SPECULARMAP', 'USE_ENTITY_GRID',
+         'USE_ENTITY_GPU_GRID', 'USE_ENTITY_GRID_L1', 'ENTITY_GRID_LDR_RANGE 4.0',
+         'USE_LIQUIDS', 'USE_LIQUID_BAKED'],
+    ]
+    for defines in variants:
+        h = render_header(defines)
+        prog = compile_program([(0x8B31, h + vertex_library + vertex),
+                                (0x8B30, h + water_fragment + fragment_source)],
+                               'lightall liquid ' + ' '.join(defines))
+        gl('glDeleteProgram', None, U)(prog)
+    return len(variants)
 
 
 def compile_render_programs():
@@ -697,5 +778,64 @@ def bench():
     return 0
 
 
+def bench_caustic_sources():
+    window, ctx = context(b'Liquid caustic source bench')
+    try:
+        grid = (128, 128)
+        lake = [Brush([-256.0, -256.0, -256.0], [256.0, 256.0, 0.0])]
+        for source_label, source in [('sun', CAUSTIC_BENCH), ('local', LOCAL_CAUSTIC_BENCH)]:
+            prog = compile_probe(source)
+            results, query = U(), U()
+            gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(results))
+            gl('glBindBuffer', None, U, U)(0x90D2, results)
+            gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x90D2, grid[0] * grid[1] * 16, None, 0x88E4)
+            gl('glBindBufferBase', None, U, U, U)(0x90D2, 1, results)
+            gl('glGenQueries', None, I, C.POINTER(U))(1, C.byref(query))
+            for label, surface in [('off', None), ('surface-driven', True)]:
+                scene = Scene(prog, lake, MATERIALS, surface_caustics=surface,
+                              ambient_waves=surface is not None, light_mask=3)
+                gl('glUseProgram', None, U)(prog)
+                gl('glUniform2i', None, I, I, I)(gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_Grid'), *grid)
+                times = []
+                for run in range(8):
+                    gl('glBeginQuery', None, U, U)(0x88BF, query)
+                    gl('glDispatchCompute', None, U, U, U)(grid[0] // 8, grid[1] // 8, 1)
+                    gl('glEndQuery', None, U)(0x88BF)
+                    ns = C.c_uint64()
+                    gl('glGetQueryObjectui64v', None, U, U, C.POINTER(C.c_uint64))(query, 0x8866, C.byref(ns))
+                    if run >= 2:
+                        times.append(ns.value / 1e6)
+                times.sort()
+                print(f'{source_label:5s} {label:14s} over {grid[0] * grid[1]} receivers: '
+                      f'{times[len(times) // 2]:.3f} ms (median of 6)')
+                scene.delete()
+            gl('glDeleteQueries', None, I, C.POINTER(U))(1, C.byref(query))
+            gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(results))
+            gl('glDeleteProgram', None, U)(prog)
+    finally:
+        close_context(window, ctx)
+    return 0
+
+
 if __name__ == '__main__':
+    if '--compile-caustic-lights' in sys.argv:
+        window, ctx = context(b'Liquid caustic light compile')
+        try:
+            count = compile_caustic_light_programs()
+            print(f'PASS: {count} local/baked liquid lightall programs compiled and linked')
+        finally:
+            close_context(window, ctx)
+        sys.exit(0)
+    if '--bench-caustic-sources' in sys.argv:
+        sys.exit(bench_caustic_sources())
+    if '--test-caustic-sources' in sys.argv:
+        window, ctx = context(b'Liquid caustic source test')
+        try:
+            prog = compile_probe(PROBE)
+            checks = caustic_source_cases(prog)
+            gl('glDeleteProgram', None, U)(prog)
+            print(f'PASS: {checks} finite local-light liquid/caustic checks')
+        finally:
+            close_context(window, ctx)
+        sys.exit(0)
     sys.exit(bench() if '--bench' in sys.argv else main())
