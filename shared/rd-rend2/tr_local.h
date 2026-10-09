@@ -319,6 +319,9 @@ extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInte
 extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
 extern cvar_t *r_waterIntersectionFoam, *r_waterIntersectionFoamWidth, *r_waterIntersectionFoamStrength;
 extern cvar_t *r_waterIntersectionFoamPersistence, *r_waterIntersectionFoamDebug;
+extern cvar_t *r_waterFoamField, *r_waterFoamResolution, *r_waterFoamDecay, *r_waterFoamAdvection;
+extern cvar_t *r_waterFoamDiffusion, *r_waterFoamWaterfall, *r_waterFoamIntersection;
+extern cvar_t *r_waterFoamImpact, *r_waterFoamShoreline, *r_waterFoamSteepness, *r_waterFoamDebug;
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
@@ -1679,6 +1682,8 @@ enum
 	// program uses these units.
 	TB_FOLIAGEFIELD      = 23,
 	TB_FOLIAGEFIELD_PREV = 24,
+	TB_WATERFOAM         = 18,
+	TB_WATERFOAMSOURCE   = 19,
 
 	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
 	// cookie, of lightall and volumetric_inject. Needs
@@ -2745,6 +2750,10 @@ typedef enum
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
 	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
+	UNIFORM_WATERFOAMMAP,		// persistent body-local foam concentration
+	UNIFORM_WATERFOAMSOURCEMAP,	// foam update: independent source channels
+	UNIFORM_WATERFOAMPARAMS,	// foam update: dt, decay, diffusion, advection
+	UNIFORM_WATERFOAMFLOW,		// foam update: body-UV velocity, time, debug
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATERGLOWMAP,
 
@@ -4038,6 +4047,7 @@ typedef struct trGlobals_s {
 	image_t *waterReflectionHitImage[2];
 	image_t *waterReflectionDepthImage;
 	FBO_t *waterReflectionFbo[2];
+	FBO_t *waterFoamFbo;				// scratch attachment, selected body texture
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
 	image_t					*ssrHistoryImage[2];
@@ -4213,6 +4223,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t cloudShadowShader;
 	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
+	shaderProgram_t waterFoamFieldShader;		// GL3.2 fragment/FBO foam advection
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
@@ -5946,7 +5957,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 36
+#define WATER_UNIFORM_VEC4S 37
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
@@ -5961,6 +5972,7 @@ void R_WaterClassifySurfaces(world_t *world, const byte *fileBase, const lump_t 
 	const lump_t *modelsLump, const lump_t *brushesLump, const lump_t *sidesLump);
 void R_WaterUpdateMergedSurfaces(world_t *world);
 qboolean R_WaterSurfaceResourcesEnabled(void);	// latched r_waterSurface: copy targets and programs exist
+qboolean R_WaterFoamResourcesEnabled(void);	// latched body-local persistent foam field
 void R_CreateWaterSurfaceImages(int width, int height, int hdrFormat);
 void R_CreateWaterSurfaceFBOs(void);
 void R_WaterSurfaceShutdown(void);

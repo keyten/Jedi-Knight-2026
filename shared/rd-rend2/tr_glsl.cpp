@@ -443,6 +443,10 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
 	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
+	{ "u_WaterFoamMap",		GLSL_INT, 1 },
+	{ "u_WaterFoamSourceMap",	GLSL_INT, 1 },
+	{ "u_WaterFoamParams",		GLSL_VEC4, 1 },
+	{ "u_WaterFoamFlow",		GLSL_VEC4, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
 };
@@ -1650,6 +1654,15 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 		qglUseProgram(program->program);
 		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDMAP, TB_FOLIAGEFIELD);
 		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDPREVMAP, TB_FOLIAGEFIELD_PREV);
+		qglUseProgram(previousProgram);
+	}
+	if (uniforms[UNIFORM_WATERFOAMMAP] != -1 || uniforms[UNIFORM_WATERFOAMSOURCEMAP] != -1)
+	{
+		GLint previousProgram = 0;
+		qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+		qglUseProgram(program->program);
+		GLSL_SetUniformInt(program, UNIFORM_WATERFOAMMAP, TB_WATERFOAM);
+		GLSL_SetUniformInt(program, UNIFORM_WATERFOAMSOURCEMAP, TB_WATERFOAMSOURCE);
 		qglUseProgram(previousProgram);
 	}
 
@@ -4131,6 +4144,23 @@ static int GLSL_LoadGPUProgramFoliageField(
 	return 2;
 }
 
+static int GLSL_LoadGPUProgramWaterFoamField(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	if (!R_WaterFoamResourcesEnabled())
+		return 0;
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("water_foam_field", allocator, fallback_water_foam_fieldProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.waterFoamFieldShader, "water_foam_field",
+			ATTR_POSITION | ATTR_TEXCOORD0, NO_XFB_VARS, "", *programDesc))
+		ri.Error(ERR_FATAL, "Could not load water foam field shader!");
+	GLSL_InitUniforms(&tr.waterFoamFieldShader);
+	GLSL_FinishGPUShader(&tr.waterFoamFieldShader);
+	return 1;
+}
+
 static int GLSL_LoadGPUProgramVolumetric(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -4946,6 +4976,8 @@ static int GLSL_CountStartupPrograms()
 	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
 	if (R_WaterSurfaceResourcesEnabled())
 		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
+	if (R_WaterFoamResourcesEnabled())
+		++count;
 	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
 	count += 4;
 	// noise, march, resolve, composite, shadow map (GLSL_LoadGPUProgramClouds)
@@ -5079,6 +5111,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramClouds(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
 	if (r_diffuseIBL->integer)
@@ -5206,6 +5239,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.cloudShadowShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
+	GLSL_DeleteGPUShader(&tr.waterFoamFieldShader);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

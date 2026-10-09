@@ -464,6 +464,16 @@ typedef struct {
 	int			sprayCount;	// diagnostic output count requested by the caller
 } refWaterImpulse_t;
 
+// refWaterSource_t.type.  Wakes remain zero for ABI-compatible callers.
+enum {
+	WATERFOAMSOURCE_WAKE = 0,
+	WATERFOAMSOURCE_WATERFALL,
+	WATERFOAMSOURCE_INTERSECTION,
+	WATERFOAMSOURCE_IMPACT_POOL,
+	WATERFOAMSOURCE_SHORELINE,
+	WATERFOAMSOURCE_WAVE_STEEPNESS
+};
+
 typedef struct {
 	int			id;			// stable caller ID for a continuous source
 	vec3_t		position;
