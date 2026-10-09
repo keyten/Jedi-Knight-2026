@@ -313,6 +313,8 @@ extern cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 extern cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
 extern cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
 extern cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
+extern cvar_t *r_waterfallImpact, *r_waterfallImpactRadius, *r_waterfallImpactImpulse;
+extern cvar_t *r_waterfallImpactTurbulence, *r_waterfallImpactFoam, *r_waterfallImpactDebug;
 extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;

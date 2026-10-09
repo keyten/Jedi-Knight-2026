@@ -334,6 +334,29 @@ struct waterfallEmitterRule_t
 	float lens = 1.0f;
 };
 
+enum waterfallImpactOrigin_t
+{
+	WFIMPACT_CLASSIFIED_BOTTOM,
+	WFIMPACT_AUTHORED_EMITTER,
+	WFIMPACT_EXISTING_FX
+};
+static const char *s_waterfallImpactOrigins[] = { "classified bottom", "authored emitter", "existing FX origin" };
+
+// A resolved waterfall-to-horizontal-water connection.  It deliberately
+// references an existing body-local field: no map-wide liquid disturbance and
+// no second fluid solver are introduced.
+struct waterfallImpactSource_t
+{
+	int waterfallBodyId = 0;
+	int poolBodyId = 0;
+	vec3_t origin = {};
+	float radius = 0.0f;
+	float strength = 1.0f;
+	int originType = WFIMPACT_CLASSIFIED_BOTTOM;
+	unsigned randomState = 1;
+	int nextSecondaryTime = 0;
+};
+
 struct waterShaderRecord_t
 {
 	shader_t	*shader;
@@ -392,6 +415,7 @@ static struct
 	std::vector<waterBodyRule_t>		bodyRules;
 	std::vector<waterfallRule_t>		waterfallRules;
 	std::vector<waterfallEmitterRule_t>	waterfallEmitterRules;
+	std::vector<waterfallImpactSource_t>	waterfallImpacts;
 	float		bodyMsec;
 	float		geometryMsec;
 	size_t		geometryBytes;
@@ -1001,6 +1025,56 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 			WATERFOAMSOURCE_IMPACT_POOL);
 }
 
+static float R_WaterfallImpactRandom(waterfallImpactSource_t& source)
+{
+	source.randomState = source.randomState * 1664525u + 1013904223u;
+	return (float)(source.randomState & 0x00ffffffu) / 16777216.0f;
+}
+
+static bool R_WaterfallImpactTargetsBody(const waterBody_t *body)
+{
+	if (!body || !r_waterfallImpact || !r_waterfallImpact->integer) return false;
+	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+		if (source.poolBodyId == body->id) return true;
+	return false;
+}
+
+// Feed the existing shallow-water field.  The steady negative kick is the
+// falling column; sparse offset kicks break its symmetry without turning the
+// entire receiving brush turbulent.
+static void R_WaterfallImpactInteraction(int now, float dt)
+{
+	if (!r_waterfallImpact || !r_waterfallImpact->integer ||
+		!r_waterInteraction || !r_waterInteraction->integer) return;
+	for (waterfallImpactSource_t& source : s_water.waterfallImpacts)
+	{
+		if (source.poolBodyId <= 0 || source.poolBodyId > (int)s_water.bodies.size()) continue;
+		waterBody_t& pool = s_water.bodies[source.poolBodyId - 1];
+		if (!pool.interaction.image) continue;
+		const float radius = source.radius * r_waterfallImpactRadius->value;
+		const float impulse = source.strength * r_waterfallImpactImpulse->value;
+		if (impulse > 0.0f)
+			R_WaterInteractionStamp(pool, source.origin, radius, -impulse * dt,
+				0.0f, NULL, false);
+
+		const float turbulence = source.strength * r_waterfallImpactTurbulence->value;
+		if (turbulence <= 0.0f) continue;
+		if (!source.nextSecondaryTime)
+			source.nextSecondaryTime = now + 50 + (int)(R_WaterfallImpactRandom(source) * 120.0f);
+		if (now < source.nextSecondaryTime) continue;
+		const float angle = R_WaterfallImpactRandom(source) * 6.2831853f;
+		const float reach = sqrtf(R_WaterfallImpactRandom(source)) * radius * 0.78f;
+		vec3_t position, direction = { cosf(angle), sinf(angle), 0.0f };
+		VectorMA(source.origin, reach, direction, position);
+		position[2] = source.origin[2];
+		const float secondaryRadius = radius * (0.16f + 0.24f * R_WaterfallImpactRandom(source));
+		const float secondary = turbulence * (0.06f + 0.16f * R_WaterfallImpactRandom(source));
+		R_WaterInteractionStamp(pool, position, secondaryRadius, -secondary,
+			0.12f * r_waterfallImpactFoam->value, direction, false);
+		source.nextSecondaryTime = now + 70 + (int)(R_WaterfallImpactRandom(source) * 180.0f);
+	}
+}
+
 void RE_AddWaterImpulse(const refWaterImpulse_t *impulse)
 {
 	const auto start = std::chrono::high_resolution_clock::now();
@@ -1233,6 +1307,7 @@ static void RB_WaterInteractionUpdate(void)
 	int steps = 0;
 	while (s_water.interactionAccumulator + 1.0e-6f >= fixedDt && steps < 4)
 	{
+		R_WaterfallImpactInteraction(now, fixedDt);
 		for (waterBody_t& body : s_water.bodies) R_WaterInteractionStepBody(body, fixedDt);
 		s_water.interactionAccumulator -= fixedDt; ++steps;
 	}
@@ -1282,6 +1357,19 @@ static void RB_WaterFoamUpdate(void)
 				impulse.foam * r_waterFoamImpact->value, WATERFOAMSOURCE_IMPACT_POOL);
 		}
 		s_water.pendingImpulses.clear();
+	}
+	if (r_waterfallImpact && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f)
+	{
+		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+		{
+			if (source.poolBodyId <= 0 || source.poolBodyId > (int)s_water.bodies.size()) continue;
+			waterBody_t& pool = s_water.bodies[source.poolBodyId - 1];
+			if (!R_WaterFoamAllocate(pool)) continue;
+			R_WaterFoamInject(pool, source.origin,
+				source.radius * r_waterfallImpactRadius->value,
+				0.9f * source.strength * r_waterfallImpactFoam->value,
+				WATERFOAMSOURCE_WATERFALL);
+		}
 	}
 
 	// Authored/API local sources are continuous. Ordinary type-zero sources
@@ -1838,6 +1926,8 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	s_water.contactUniformTime = -1;
 	s_water.bodyRules.clear();
 	s_water.waterfallRules.clear();
+	s_water.waterfallEmitterRules.clear();
+	s_water.waterfallImpacts.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -2648,6 +2738,7 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 	s_water.bodyRules.clear();
 	s_water.waterfallRules.clear();
 	s_water.waterfallEmitterRules.clear();
+	s_water.waterfallImpacts.clear();
 	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterBodies");
 	if ( array && JSON_ValueGetType(array, end) != JSONTYPE_ARRAY )
 	{
@@ -2808,6 +2899,167 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		ri.FS_FreeFile(file);
 	}
 
+	// Resolve each sheet base onto one horizontal modern-water body.  A source
+	// outside every local surface is rejected instead of perturbing the whole
+	// liquid brush; maps with an ambiguous base can provide an explicit Origin.
+	s_water.waterfallImpacts.clear();
+	std::vector<std::array<float, 3>> existingFxOrigins;
+	if (world->entityString)
+	{
+		const char *cursor = world->entityString;
+		while (cursor)
+		{
+			const char *token = COM_ParseExt(&cursor, qtrue);
+			if (!token[0]) break;
+			if (token[0] != '{') continue;
+			char classname[MAX_QPATH] = "", effect[MAX_QPATH] = "", origin[128] = "";
+			while (cursor)
+			{
+				token = COM_ParseExt(&cursor, qtrue);
+				if (!token[0] || token[0] == '}') break;
+				char key[MAX_TOKEN_CHARS]; Q_strncpyz(key, token, sizeof(key));
+				token = COM_ParseExt(&cursor, qtrue);
+				if (!token[0]) break;
+				if (!Q_stricmp(key, "classname")) Q_strncpyz(classname, token, sizeof(classname));
+				else if (!Q_stricmp(key, "fxFile")) Q_strncpyz(effect, token, sizeof(effect));
+				else if (!Q_stricmp(key, "origin")) Q_strncpyz(origin, token, sizeof(origin));
+			}
+			const bool waterfallFx = !Q_stricmp(effect, "effects/env/waterfall_mist.efx") ||
+				!Q_stricmp(effect, "effects/env/waterfall_mist") ||
+				!Q_stricmp(effect, "env/waterfall_mist.efx") || !Q_stricmp(effect, "env/waterfall_mist");
+			std::array<float, 3> parsed = {};
+			if (!Q_stricmp(classname, "fx_runner") && waterfallFx &&
+				sscanf(origin, "%f %f %f", &parsed[0], &parsed[1], &parsed[2]) == 3)
+				existingFxOrigins.push_back(parsed);
+		}
+	}
+	auto closestOnBody = [&](const waterBody_t& pool, const vec3_t point, float radius,
+		vec3_t resolved) -> bool
+	{
+		float bestDistance2 = 1.0e30f;
+		vec2_t best = { point[0], point[1] };
+		for (int surfaceNum : pool.surfaces)
+		{
+			const msurface_t& ms = world->surfaces[surfaceNum];
+			if (!(ms.waterKey & WATERKEY_INTERFACE) || !ms.data ||
+				!(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+			const srfBspSurface_t *surface = (const srfBspSurface_t *)ms.data;
+			for (int ti = 0; ti + 2 < surface->numIndexes; ti += 3)
+			{
+				const int indices[3] = { (int)surface->indexes[ti], (int)surface->indexes[ti + 1], (int)surface->indexes[ti + 2] };
+				if (indices[0] < 0 || indices[1] < 0 || indices[2] < 0 ||
+					indices[0] >= surface->numVerts || indices[1] >= surface->numVerts || indices[2] >= surface->numVerts) continue;
+				const vec3_t& a = surface->verts[indices[0]].xyz;
+				const vec3_t& b = surface->verts[indices[1]].xyz;
+				const vec3_t& c = surface->verts[indices[2]].xyz;
+				if (R_WaterInteractionPointInTriangle(point[0], point[1], a, b, c))
+				{
+					best[0] = point[0]; best[1] = point[1]; bestDistance2 = 0.0f;
+				}
+				if (bestDistance2 == 0.0f) break;
+				const vec3_t *edge[3][2] = { { &a, &b }, { &b, &c }, { &c, &a } };
+				for (int e = 0; e < 3; ++e)
+				{
+					const float ex = (*edge[e][1])[0] - (*edge[e][0])[0];
+					const float ey = (*edge[e][1])[1] - (*edge[e][0])[1];
+					const float length2 = ex * ex + ey * ey;
+					const float t = length2 > 1.0e-6f ? Com_Clamp(0.0f, 1.0f,
+						((point[0] - (*edge[e][0])[0]) * ex + (point[1] - (*edge[e][0])[1]) * ey) / length2) : 0.0f;
+					const float x = (*edge[e][0])[0] + ex * t, y = (*edge[e][0])[1] + ey * t;
+					const float dx = x - point[0], dy = y - point[1], distance2 = dx * dx + dy * dy;
+					if (distance2 < bestDistance2) { bestDistance2 = distance2; best[0] = x; best[1] = y; }
+				}
+			}
+			if (bestDistance2 == 0.0f) break;
+		}
+		if (bestDistance2 > radius * radius) return false;
+		resolved[0] = best[0]; resolved[1] = best[1];
+		resolved[2] = (pool.planeDist - pool.planeNormal[0] * best[0] -
+			pool.planeNormal[1] * best[1]) / pool.planeNormal[2];
+		return fabsf(resolved[2] - point[2]) <= MAX(radius * 1.5f, 128.0f);
+	};
+	auto addImpact = [&](const waterBody_t& fall, const waterfallEmitterRule_t *rule)
+	{
+		waterfallImpactSource_t source;
+		source.waterfallBodyId = fall.id;
+		source.radius = rule && rule->radius > 0.0f ? rule->radius :
+			Com_Clamp(72.0f, 384.0f, fall.impactWidth * 0.45f);
+		source.strength = fall.waterfallValues.impact;
+		if (rule && rule->hasOrigin)
+		{
+			VectorCopy(rule->origin, source.origin);
+			source.originType = rule->existingFx ? WFIMPACT_EXISTING_FX : WFIMPACT_AUTHORED_EMITTER;
+		}
+		else
+		{
+			VectorCopy(fall.impactCenter, source.origin);
+			if (rule && rule->existingFx && !existingFxOrigins.empty())
+			{
+				float bestFxDistance2 = 1.0e30f;
+				for (const std::array<float, 3>& fxOrigin : existingFxOrigins)
+				{
+					vec3_t delta; VectorSubtract(fxOrigin.data(), fall.impactCenter, delta);
+					const float distance2 = DotProduct(delta, delta);
+					if (distance2 < bestFxDistance2)
+					{
+						bestFxDistance2 = distance2;
+						VectorCopy(fxOrigin.data(), source.origin);
+					}
+				}
+				const float maximumFxDistance = MAX(512.0f, source.radius * 4.0f);
+				if (bestFxDistance2 <= maximumFxDistance * maximumFxDistance)
+					source.originType = WFIMPACT_EXISTING_FX;
+				else VectorCopy(fall.impactCenter, source.origin);
+			}
+		}
+
+		waterBody_t *bestPool = nullptr;
+		vec3_t bestOrigin = {};
+		float bestDistance = 1.0e30f;
+		for (waterBody_t& pool : s_water.bodies)
+		{
+			if (pool.waterfall || pool.liquidClass == LIQUID_LAVA || fabsf(pool.planeNormal[2]) < 0.7f) continue;
+			vec3_t candidate;
+			if (!closestOnBody(pool, source.origin, source.radius, candidate)) continue;
+			const float dz = fabsf(candidate[2] - source.origin[2]);
+			const float dx = candidate[0] - source.origin[0], dy = candidate[1] - source.origin[1];
+			const float score = dz + sqrtf(dx * dx + dy * dy) * 2.0f;
+			if (score < bestDistance) { bestDistance = score; bestPool = &pool; VectorCopy(candidate, bestOrigin); }
+		}
+		if (!bestPool)
+		{
+			source.poolBodyId = 0;
+			source.randomState = (unsigned)fall.id * 747796405u + 1u;
+			s_water.waterfallImpacts.push_back(source);
+			if (r_waterfallImpactDebug->integer)
+				ri.Printf(PRINT_ALL, "waterfall impact: sheet body %d at (%.1f %.1f %.1f) has no reliable pool; add WaterfallEmitters Origin\n",
+					fall.id, source.origin[0], source.origin[1], source.origin[2]);
+			return;
+		}
+		source.poolBodyId = bestPool->id;
+		VectorCopy(bestOrigin, source.origin);
+		source.randomState = (unsigned)fall.id * 747796405u + (unsigned)bestPool->id * 2891336453u + 1u;
+		s_water.waterfallImpacts.push_back(source);
+	};
+	for (const waterBody_t& body : s_water.bodies)
+	{
+		if (!body.waterfall) continue;
+		bool explicitOrigins = false;
+		for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
+			if (rule.hasOrigin && R_WaterfallRuleMatches(rule.selector, body))
+			{
+				addImpact(body, &rule);
+				explicitOrigins = true;
+			}
+		if (!explicitOrigins)
+		{
+			const waterfallEmitterRule_t *matched = nullptr;
+			for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
+				if (R_WaterfallRuleMatches(rule.selector, body)) { matched = &rule; break; }
+			addImpact(body, matched);
+		}
+	}
+
 	std::vector<refFogVolume_t> fog;
 	std::vector<lensWaterEmitter_t> lens;
 	for (const waterBody_t& body : s_water.bodies)
@@ -2886,6 +3138,13 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		ri.Printf(PRINT_ALL, "%s: %d waterfall mist emitter%s (%d existing FX owner%s)\n", filename,
 			world->numWaterfallFogVolumes, world->numWaterfallFogVolumes == 1 ? "" : "s",
 			existingFxOwners, existingFxOwners == 1 ? "" : "s");
+	if (r_waterfallImpactDebug->integer)
+	{
+		int resolved = 0;
+		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts) resolved += source.poolBodyId > 0;
+		ri.Printf(PRINT_ALL, "%s: %d/%d resolved waterfall impact pool%s\n", filename,
+			resolved, (int)s_water.waterfallImpacts.size(), s_water.waterfallImpacts.size() == 1 ? "" : "s");
+	}
 }
 
 /*
@@ -3016,6 +3275,11 @@ void R_Waterfalls_f(void)
 		ri.Printf(PRINT_ALL, "    top %.2f bottom %.2f impact center (%g %g %g), width %.1f; foam/spray/impact source metadata available\n",
 			body.fallMin, body.fallMax, body.impactCenter[0], body.impactCenter[1], body.impactCenter[2], body.impactWidth);
 	}
+	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+		ri.Printf(PRINT_ALL, "  impact sheet %d -> pool %d at (%g %g %g), radius %.1f, strength %.2f [%s]%s\n",
+			source.waterfallBodyId, source.poolBodyId, source.origin[0], source.origin[1], source.origin[2],
+			source.radius, source.strength, s_waterfallImpactOrigins[source.originType],
+			source.poolBodyId ? "" : " UNRESOLVED: explicit WaterfallEmitter required");
 }
 
 void R_WaterFlowOverride_f( void )
@@ -3217,7 +3481,7 @@ void R_WaterBodiesDebugDraw( const refdef_t *fd )
 {
 	const qboolean bodyDebug = (qboolean)(s_water.bodyDebug || r_waterFlowDebug->integer ||
 		(r_waterGeometry->integer && r_waterGeometryDebug->integer == 5));
-	if ( !(bodyDebug || r_waterfallMistDebug->integer) ||
+	if ( !(bodyDebug || r_waterfallMistDebug->integer || r_waterfallImpactDebug->integer) ||
 		!tr.world || s_water.world != tr.world || (fd->rdflags & RDF_NOWORLDMODEL) ) return;
 	if ( !s_water.bodyDebugShader )
 		s_water.bodyDebugShader = RE_RegisterShaderFromImage("*waterBodyDebug", lightmaps2d, stylesDefault, tr.whiteImage, qfalse);
@@ -3249,6 +3513,31 @@ void R_WaterBodiesDebugDraw( const refdef_t *fd )
 				b[axis] += emitter.radius * 0.5f * r_waterfallMistRadius->value;
 				R_WaterBodySegment(fd, s_water.bodyDebugShader, a, b, lensColor);
 			}
+		}
+	}
+	if (r_waterfallImpactDebug->integer)
+	{
+		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+		{
+			const byte resolvedColor[4] = { 40, 235, 210, 255 };
+			const byte authoredColor[4] = { 255, 190, 50, 255 };
+			const byte unresolvedColor[4] = { 255, 45, 70, 255 };
+			const byte *color = !source.poolBodyId ? unresolvedColor :
+				(source.originType == WFIMPACT_CLASSIFIED_BOTTOM ? resolvedColor : authoredColor);
+			const float radius = source.radius * r_waterfallImpactRadius->value;
+			vec3_t previous = { source.origin[0] + radius, source.origin[1], source.origin[2] + 2.0f };
+			for (int segment = 1; segment <= 24; ++segment)
+			{
+				const float angle = segment * (6.2831853f / 24.0f);
+				vec3_t next = { source.origin[0] + cosf(angle) * radius,
+					source.origin[1] + sinf(angle) * radius, source.origin[2] + 2.0f };
+				R_WaterBodySegment(fd, s_water.bodyDebugShader, previous, next, color);
+				VectorCopy(next, previous);
+			}
+			vec3_t a, b;
+			VectorCopy(source.origin, a); VectorCopy(source.origin, b);
+			a[2] -= 24.0f; b[2] += 48.0f;
+			R_WaterBodySegment(fd, s_water.bodyDebugShader, a, b, color);
 		}
 	}
 	if (!bodyDebug) return;
@@ -4031,6 +4320,7 @@ void R_WaterSurfaceShutdown( void )
 	s_water.bodyRules.clear();
 	s_water.waterfallRules.clear();
 	s_water.waterfallEmitterRules.clear();
+	s_water.waterfallImpacts.clear();
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -4287,8 +4577,12 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const waterFoamState_t *foam = body && body->foam.active ? &body->foam : nullptr;
 	VectorSet4(water[36], foam && r_waterFoamField->integer ? 1.0f : 0.0f,
 		(float)r_waterFoamDebug->integer, foam ? foam->texelX : 1.0f, foam ? foam->texelY : 1.0f);
-	VectorSet4(water[37], foam && r_waterWhitewater->integer ? 1.0f : 0.0f,
-		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterStrength->value),
+	const bool waterfallImpact = foam && R_WaterfallImpactTargetsBody(body);
+	const bool impactTurbulence = waterfallImpact && r_waterfallImpactTurbulence->value > 0.0f;
+	const float whitewaterStrength = r_waterWhitewater->integer ? r_waterWhitewaterStrength->value : 0.0f;
+	VectorSet4(water[37], foam && (r_waterWhitewater->integer || impactTurbulence) ? 1.0f : 0.0f,
+		Com_Clamp(0.0f, 4.0f, impactTurbulence ? MAX(whitewaterStrength,
+			r_waterfallImpactTurbulence->value) : whitewaterStrength),
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
 		(float)r_waterWhitewaterDebug->integer);
 	const bool waterfall = body && body->waterfall && (key & WATERKEY_WATERFALL);

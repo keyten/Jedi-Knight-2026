@@ -162,20 +162,19 @@ The renderer exposes body-local top/bottom projections, impact center/width,
 flow/energy, foam/spray/impact scalar sources, and profile identity. Existing
 stock mist/splash EFX continue through volumetric particles. Existing
 `LensWaterEmitters` and lens-water event APIs remain the consumers for camera
-wetness. The general `RE_AddWaterImpulse`/continuous water-source APIs remain
-the impact-pool route; no second ripple simulation was added.
+wetness. The optional localized impact-pool path feeds the existing ripple and
+persistent-foam fields; no second ripple simulation was added. It is described
+in [`rend2-waterfall-impact.md`](rend2-waterfall-impact.md).
 
-Current persistent foam and object-intersection fields are top-down XY fields
-for horizontal water. The waterfall shader exposes their future inputs but
-does not incorrectly project a vertical sheet into those fields. A future
-sheet-local field should use the supplied across/fall basis to stamp object
-depth/projection contacts, feed local breakup, and submit foam/spray plus a
-continuous impact-pool impulse through the general APIs. This follows the
+Persistent foam and object-intersection fields remain top-down XY fields for
+horizontal water. A waterfall sheet is never projected into those fields;
+instead its resolved base is connected to one receiving horizontal body and
+stamped locally. A future sheet-local field could still use the supplied
+across/fall basis for object contacts on the falling sheet itself. This follows the
 conceptual architecture in Rare's
 [The Technical Art of Sea of Thieves](https://history.siggraph.org/wp-content/uploads/2022/09/2018-Talks-Ang_The-Technical-Art-of-Sea-of-Thieves.pdf):
 project object depth into the texture space of a shallow-water simulation,
-rather than drawing a screen-space contact outline. This is the main known
-integration limitation.
+rather than drawing a screen-space contact outline.
 
 Waterfall-base spray, froxel mist, LensWater coupling, authored sidecars and
 the stock-map overlay are described in

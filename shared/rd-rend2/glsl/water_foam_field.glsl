@@ -37,7 +37,17 @@ void main()
 	}
 
 	float dt = u_WaterFoamParams.x;
-	vec2 previousUV = clamp(uv - u_WaterFoamFlow.xy * dt * u_WaterFoamParams.w,
+	// A localized waterfall source has no useful authored body flow on many
+	// pools.  The negative gradient of its R-channel footprint is a cheap radial
+	// outflow approximation; it vanishes smoothly outside the impact region.
+	float sourceLeft = texture(u_WaterFoamSourceMap, uv - vec2(texel.x, 0.0)).r;
+	float sourceRight = texture(u_WaterFoamSourceMap, uv + vec2(texel.x, 0.0)).r;
+	float sourceDown = texture(u_WaterFoamSourceMap, uv - vec2(0.0, texel.y)).r;
+	float sourceUp = texture(u_WaterFoamSourceMap, uv + vec2(0.0, texel.y)).r;
+	vec2 sourceGradient = vec2(sourceRight - sourceLeft, sourceUp - sourceDown);
+	vec2 radialFlow = length(sourceGradient) > 1e-5 ?
+		-normalize(sourceGradient) * texel * 6.0 * source.r : vec2(0.0);
+	vec2 previousUV = clamp(uv - (u_WaterFoamFlow.xy * u_WaterFoamParams.w + radialFlow) * dt,
 		0.5 * texel, vec2(1.0) - 0.5 * texel);
 	float center = texture(u_WaterFoamMap, previousUV).r;
 	float left = texture(u_WaterFoamMap, previousUV - vec2(texel.x, 0.0)).r;
