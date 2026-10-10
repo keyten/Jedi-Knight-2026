@@ -97,6 +97,16 @@ Rend2 profile version 6 adds the counters the non-cache load plan (design doc of
 - **Unused generated normals.** At `RE_EndRegistration`, `generated normals` lists how many `_n` maps from `R_CreateNormalMap` were never bound as the normal map of a lit stage in `CollapseStagesToLightall`. It also reports how many of those sit beside an authored `_nh`. Their diffuse was still brightened. Shaders registered later during play are not included.
 - **Texture checksums.** `r_imageChecksums 1` (not archived) or the `imagechecksums` command reads back level 0 of every texture uploaded from pixel data and writes a 64-bit hash per texture, sorted by name, to `imagechecksums/<map>.txt` in the home path. Pixel data includes files, generated maps and lightmap atlases. Render targets, cubemap probes, arrays and 3D textures are skipped. Diff two files to prove that a load-time change leaves every texture bit-identical. The readback takes seconds and should not be enabled while measuring load time.
 
+### Stage 2: worker threads and faster kernels (Rend2 profile v8)
+
+`shared/rd-rend2/tr_jobs.cpp` adds `R_ParallelFor` / `R_ParallelForEach`. Each call splits a range into chunks that run on the main thread and a pool of workers. `r_loadThreads` sets the pool size: -1 (default) = logical processors − 1, at most 8; 0 = serial, as before; N = N workers, at most 16. The pool follows the cvar at the next call and is joined in `RE_Shutdown` when the window is destroyed. A chunk may not touch GL, the filesystem, zone memory, cvars or `ri.Printf`. Every kernel produces the same bytes however it is split.
+
+- **`RGBAtoNormal`.** The height pass, levelling and the Sobel pass run per row. Wrap/clamp is only applied on edge rows and columns; it used to cost two modulos per tap. The per-pixel arithmetic is unchanged. An offline test compared old and new kernels with eight threads: sizes 1×1 to 2048×1024, wrap and clamp, random/gradient/flat inputs, plus the diffuse brightening. It found 0 mismatches in 108 cases. A 2048² map took 175 ms before and 18 ms after on the i7-10750H.
+- **Diffuse brightening.** The YCoCg conversion, luma adjustment and conversion back run per row slice.
+- **Auto roughness.** The downsample, both box-blur passes and the 3×3 std-dev run per row or column. `R_AutoRoughIndex` returns in-range indices without modulo. The percentiles and the mean/sigma sums stay serial, so the double results do not depend on the split.
+
+The image profile phase line prints the number of live worker threads.
+
 ### Stage 1: bit-identical load savings (Rend2 profile v7, SP EXE v3)
 
 Every change below is meant to leave each uploaded texture bit-identical. Check this with `r_imageChecksums 1` on the previous and the new build.

@@ -3691,6 +3691,10 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		SaveGhoul2InfoArray();
 	}
 
+	// the DLL may be unloaded after this: no worker thread may outlive it
+	if ( destroyWindow )
+		R_JobsShutdown();
+
 	// shut down platform specific OpenGL stuff
 	if ( destroyWindow ) {
 		ri.WIN_Shutdown();

@@ -266,7 +266,7 @@ void R_ImageLoadProfileBegin( void ) {
 void R_ImageLoadProfileEnd( const char *phase ) {
 	if (!imageLoadProfile.active) return;
 	imageLoadProfile.active = false;
-	ri.Printf(PRINT_ALL, "[map load] image profile phase: %s\n", phase);
+	ri.Printf(PRINT_ALL, "[map load] image profile phase: %s (%d load worker threads, r_loadThreads)\n", phase, R_JobWorkers());
 	ri.Printf(PRINT_ALL, "[map load] image breakdown: %d cached, %d file lookups, %d misses, %d created; file/decode %lld ms, prepare %lld ms, create/upload %lld ms\n",
 		imageLoadProfile.cacheHits, imageLoadProfile.fileLookups, imageLoadProfile.fileMisses, imageLoadProfile.imagesCreated,
 		imageLoadProfile.fileLoadUs / 1000, imageLoadProfile.imagePrepareUs / 1000,
@@ -890,114 +890,127 @@ static void YCoCgAtoRGBA(const byte *in, byte *out, int width, int height)
 
 
 // uses a sobel filter to change a texture to a normal map
+//
+// Rows run in parallel (R_ParallelFor). The per-pixel arithmetic is the one of
+// the original serial loop, which used two modulos per tap for the wrap: only
+// the edge rows and columns need the wrap or clamp, so the bytes are the same.
+namespace {
+struct NormalKernel {
+	const byte *in;
+	byte *out;
+	int width, height;
+	qboolean clampToEdge;
+};
+
+inline int NormalEdgeIndex( int i, int n, qboolean clampToEdge )
+{
+	if ( i >= 0 && i < n )
+		return i;
+	return clampToEdge ? CLAMP(i, 0, n - 1) : (i + n) % n;
+}
+}
+
 static void RGBAtoNormal(const byte *in, byte *out, int width, int height, qboolean clampToEdge)
 {
-	int x, y, max;
+	NormalKernel k = { in, out, width, height, clampToEdge };
+	const int grain = MAX(1, 16384 / MAX(width, 1));
 
 	// convert to heightmap, storing in alpha
 	// same as converting to Y in YCoCg
-	max = 1;
-	for (y = 0; y < height; y++)
-	{
-		const byte *inbyte  = in  + y * width * 4;
-		byte       *outbyte = out + y * width * 4 + 3;
-
-		for (x = 0; x < width; x++)
+	std::vector<int> rowMax(height, 1);
+	R_ParallelForEach(height, grain, [&k, &rowMax](int y0, int y1) {
+		for (int y = y0; y < y1; y++)
 		{
-			byte result = (inbyte[0] >> 2) + (inbyte[1] >> 1) + (inbyte[2] >> 2);
-			result = result * result / 255; // Make linear
-			*outbyte = result;
-			max = MAX(max, *outbyte);
-			outbyte += 4;
-			inbyte  += 4;
+			const byte *inbyte  = k.in  + y * k.width * 4;
+			byte       *outbyte = k.out + y * k.width * 4 + 3;
+			int max = 1;
+
+			for (int x = 0; x < k.width; x++)
+			{
+				byte result = (inbyte[0] >> 2) + (inbyte[1] >> 1) + (inbyte[2] >> 2);
+				result = result * result / 255; // Make linear
+				*outbyte = result;
+				max = MAX(max, *outbyte);
+				outbyte += 4;
+				inbyte  += 4;
+			}
+			rowMax[y] = max;
 		}
-	}
+	});
+	int max = 1;
+	for (int y = 0; y < height; y++)
+		max = MAX(max, rowMax[y]);
 
 	// level out heights
 	if (max < 255)
 	{
-		for (y = 0; y < height; y++)
-		{
-			byte *outbyte = out + y * width * 4 + 3;
-
-			for (x = 0; x < width; x++)
+		const int add = 255 - max;
+		R_ParallelForEach(height, grain, [&k, add](int y0, int y1) {
+			for (int y = y0; y < y1; y++)
 			{
-				*outbyte = *outbyte + (255 - max);
-				outbyte += 4;
+				byte *outbyte = k.out + y * k.width * 4 + 3;
+
+				for (int x = 0; x < k.width; x++)
+				{
+					*outbyte = *outbyte + add;
+					outbyte += 4;
+				}
 			}
-		}
+		});
 	}
 
-
 	// now run sobel filter over height values to generate X and Y
-	// then normalize
-	for (y = 0; y < height; y++)
-	{
-		byte *outbyte = out + y * width * 4;
-
-		for (x = 0; x < width; x++)
+	// then normalize. Reads only alpha, writes only RGB.
+	R_ParallelForEach(height, grain, [&k](int y0, int y1) {
+		const int w = k.width;
+		for (int y = y0; y < y1; y++)
 		{
 			// 0 1 2
 			// 3 4 5
 			// 6 7 8
+			const byte *rowA = k.out + NormalEdgeIndex(y - 1, k.height, k.clampToEdge) * w * 4 + 3;
+			const byte *rowB = k.out + y * w * 4 + 3;
+			const byte *rowC = k.out + NormalEdgeIndex(y + 1, k.height, k.clampToEdge) * w * 4 + 3;
+			byte *outbyte = k.out + y * w * 4;
 
-			byte s[9];
-			int x2, y2, i;
-			vec3_t normal;
-
-			i = 0;
-			for (y2 = -1; y2 <= 1; y2++)
+			for (int x = 0; x < w; x++)
 			{
-				int src_y = y + y2;
-
-				if (clampToEdge)
+				int xm = x - 1, xp = x + 1;
+				if (xm < 0 || xp >= w)
 				{
-					src_y = CLAMP(src_y, 0, height - 1);
+					xm = NormalEdgeIndex(xm, w, k.clampToEdge);
+					xp = NormalEdgeIndex(xp, w, k.clampToEdge);
 				}
-				else
+				xm *= 4;
+				xp *= 4;
+				const int x4 = x * 4;
+				const byte s0 = rowA[xm], s1 = rowA[x4], s2 = rowA[xp];
+				const byte s3 = rowB[xm], s4 = rowB[x4], s5 = rowB[xp];
+				const byte s6 = rowC[xm], s7 = rowC[x4], s8 = rowC[xp];
+				vec3_t normal;
+
+				normal[0] =        s0            -     s2
+						 + 2 * s3            - 2 * s5
+						 +     s6            -     s8;
+
+				normal[1] =        s0 + 2 * s1 +     s2
+
+						 -     s6 - 2 * s7 -     s8;
+
+				normal[2] = s4 * 4;
+
+				if (!VectorNormalize2(normal, normal))
 				{
-					src_y = (src_y + height) % height;
+					VectorSet(normal, 0, 0, 1);
 				}
 
-
-				for (x2 = -1; x2 <= 1; x2++)
-				{
-					int src_x = x + x2;
-
-					if (clampToEdge)
-					{
-						src_x = CLAMP(src_x, 0, width - 1);
-					}
-					else
-					{
-						src_x = (src_x + width) % width;
-					}
-
-					s[i++] = *(out + (src_y * width + src_x) * 4 + 3);
-				}
+				*outbyte++ = FloatToOffsetByte(normal[0]);
+				*outbyte++ = FloatToOffsetByte(normal[1]);
+				*outbyte++ = FloatToOffsetByte(normal[2]);
+				outbyte++;
 			}
-
-			normal[0] =        s[0]            -     s[2]
-						 + 2 * s[3]            - 2 * s[5]
-						 +     s[6]            -     s[8];
-
-			normal[1] =        s[0] + 2 * s[1] +     s[2]
-
-						 -     s[6] - 2 * s[7] -     s[8];
-
-			normal[2] = s[4] * 4;
-
-			if (!VectorNormalize2(normal, normal))
-			{
-				VectorSet(normal, 0, 0, 1);
-			}
-
-			*outbyte++ = FloatToOffsetByte(normal[0]);
-			*outbyte++ = FloatToOffsetByte(normal[1]);
-			*outbyte++ = FloatToOffsetByte(normal[2]);
-			outbyte++;
 		}
-	}
+	});
 }
 
 #define COPYSAMPLE(a,b) *(unsigned int *)(a) = *(unsigned int *)(b)
@@ -3677,6 +3690,9 @@ int		autoRoughnessMsec;
 
 static inline int R_AutoRoughIndex( int i, int n, qboolean wrap )
 {
+	// inside the picture both wrap and clamp give i: skip the two modulos
+	if ( i >= 0 && i < n )
+		return i;
 	return wrap ? ((i % n) + n) % n : Com_Clampi( 0, n - 1, i );
 }
 
@@ -3695,15 +3711,20 @@ static void R_AutoRoughBox1D( const float *src, float *dst, int n, int stride, i
 	}
 }
 
-// separable box blur, run twice (close to a gaussian), wrapping or clamped
+// separable box blur, run twice (close to a gaussian), wrapping or clamped;
+// rows, then columns, in parallel (each line is summed in the same order)
 static void R_AutoRoughBlur( float *data, float *tmp, int w, int h, int radius, qboolean wrap )
 {
 	for ( int pass = 0; pass < 2; pass++ )
 	{
-		for ( int y = 0; y < h; y++ )
-			R_AutoRoughBox1D( data + y * w, tmp + y * w, w, 1, radius, wrap );
-		for ( int x = 0; x < w; x++ )
-			R_AutoRoughBox1D( tmp + x, data + x, h, w, radius, wrap );
+		R_ParallelForEach( h, MAX( 1, 8192 / MAX( w, 1 ) ), [=]( int y0, int y1 ) {
+			for ( int y = y0; y < y1; y++ )
+				R_AutoRoughBox1D( data + y * w, tmp + y * w, w, 1, radius, wrap );
+		} );
+		R_ParallelForEach( w, MAX( 1, 8192 / MAX( h, 1 ) ), [=]( int x0, int x1 ) {
+			for ( int x = x0; x < x1; x++ )
+				R_AutoRoughBox1D( tmp + x, data + x, h, w, radius, wrap );
+		} );
 	}
 }
 
@@ -3780,20 +3801,23 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	float *tmp   = (float *)R_Malloc( count * sizeof( float ), TAG_TEMP_WORKSPACE );
 
 	// 1. log luminance of the box downsampled picture
-	for ( int y = 0; y < h; y++ )
-	{
-		for ( int x = 0; x < w; x++ )
+	const int rowGrain = MAX( 1, 8192 / w );
+	R_ParallelForEach( h, rowGrain, [&]( int y0, int y1 ) {
+		for ( int y = y0; y < y1; y++ )
 		{
-			float sum = 0.0f;
-			for ( int sy = 0; sy < step; sy++ )
+			for ( int x = 0; x < w; x++ )
 			{
-				const byte *p = pic + 4 * ((y * step + sy) * width + x * step);
-				for ( int sx = 0; sx < step; sx++, p += 4 )
-					sum += 0.2126f * linear[p[0]] + 0.7152f * linear[p[1]] + 0.0722f * linear[p[2]];
+				float sum = 0.0f;
+				for ( int sy = 0; sy < step; sy++ )
+				{
+					const byte *p = pic + 4 * ((y * step + sy) * width + x * step);
+					for ( int sx = 0; sx < step; sx++, p += 4 )
+						sum += 0.2126f * linear[p[0]] + 0.7152f * linear[p[1]] + 0.0722f * linear[p[2]];
+				}
+				logL[y * w + x] = logf( sum / (float)(step * step) + 0.02f );
 			}
-			logL[y * w + x] = logf( sum / (float)(step * step) + 0.02f );
 		}
-	}
+	} );
 	Z_Free( pic );
 
 	// 2. illumination = low pass of log luminance, removed as a ratio
@@ -3803,28 +3827,28 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 		logL[i] -= low[i];	// logL is the detail d from here on
 
 	// 3. local std-dev of the detail
-	for ( int y = 0; y < h; y++ )
-	{
-		for ( int x = 0; x < w; x++ )
+	R_ParallelForEach( h, rowGrain, [&]( int y0, int y1 ) {
+		for ( int y = y0; y < y1; y++ )
 		{
-			float s = 0.0f, s2 = 0.0f;
-			for ( int ky = -1; ky <= 1; ky++ )
+			for ( int x = 0; x < w; x++ )
 			{
-				int yy = y + ky;
-				yy = wrap ? ((yy % h) + h) % h : Com_Clampi( 0, h - 1, yy );
-				for ( int kx = -1; kx <= 1; kx++ )
+				float s = 0.0f, s2 = 0.0f;
+				for ( int ky = -1; ky <= 1; ky++ )
 				{
-					int xx = x + kx;
-					xx = wrap ? ((xx % w) + w) % w : Com_Clampi( 0, w - 1, xx );
-					const float d = logL[yy * w + xx];
-					s += d;
-					s2 += d * d;
+					const int yy = R_AutoRoughIndex( y + ky, h, wrap );
+					for ( int kx = -1; kx <= 1; kx++ )
+					{
+						const int xx = R_AutoRoughIndex( x + kx, w, wrap );
+						const float d = logL[yy * w + xx];
+						s += d;
+						s2 += d * d;
+					}
 				}
+				s *= 1.0f / 9.0f;
+				v[y * w + x] = sqrtf( MAX( s2 * (1.0f / 9.0f) - s * s, 0.0f ) );
 			}
-			s *= 1.0f / 9.0f;
-			v[y * w + x] = sqrtf( MAX( s2 * (1.0f / 9.0f) - s * s, 0.0f ) );
 		}
-	}
+	} );
 
 	// 4. relative to the texture's own detail, soft clipped
 	const float p90 = R_AutoRoughPercentile( v, tmp, count, 0.90f );
@@ -3950,20 +3974,25 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 			brightened = (byte *)R_Malloc(width * height * 4, TAG_TEMP_WORKSPACE, qfalse);
 			*brightenedPic = brightened;
 		}
-		RGBAtoYCoCgA(pic, brightened, width, height);
-		for (y = 0; y < height; y++)
-		{
-			byte *picbyte  = brightened + y * width * 4;
-			byte *normbyte = normalPic + y * width * 4;
-			for (x = 0; x < width; x++)
+		// rows are independent: each runs the three passes on its own pixels
+		R_ParallelForEach(height, MAX(1, 16384 / MAX(width, 1)),
+			[pic, brightened, normalPic, width](int y0, int y1) {
+			const int offset = y0 * width * 4;
+			RGBAtoYCoCgA(pic + offset, brightened + offset, width, y1 - y0);
+			for (int y = y0; y < y1; y++)
 			{
-				int div = MAX(normbyte[2] - 127, 16);
-				picbyte[0] = CLAMP(picbyte[0] * 128 / div, 0, 255);
-				picbyte  += 4;
-				normbyte += 4;
+				byte *picbyte  = brightened + y * width * 4;
+				const byte *normbyte = normalPic + y * width * 4;
+				for (int x = 0; x < width; x++)
+				{
+					int div = MAX(normbyte[2] - 127, 16);
+					picbyte[0] = CLAMP(picbyte[0] * 128 / div, 0, 255);
+					picbyte  += 4;
+					normbyte += 4;
+				}
 			}
-		}
-		YCoCgAtoRGBA(brightened, brightened, width, height);
+			YCoCgAtoRGBA(brightened + offset, brightened + offset, width, y1 - y0);
+		});
 #else
 		// Blur original image's luma to work with the normal map
 		{

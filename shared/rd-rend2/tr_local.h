@@ -4744,6 +4744,23 @@ qboolean R_ImageChecksumsEnabled( void );
 void	R_WriteImageChecksums( const char *reason );
 void	R_ReportGeneratedNormalUse( void );
 void	R_SourceScratchFlush( void );
+
+//
+// tr_jobs.cpp: worker threads for data-parallel load-time kernels
+//
+typedef void (*R_ParallelForFn)( void *user, int begin, int end );
+void	R_ParallelFor( int count, int grain, R_ParallelForFn fn, void *user );
+void	R_JobsShutdown( void );
+int		R_JobWorkers( void );
+
+// runs f(begin, end) over chunks of [0, count); see tr_jobs.cpp for what f may do
+template<typename F>
+void R_ParallelForEach( int count, int grain, const F &f )
+{
+	R_ParallelFor( count, grain,
+		[]( void *user, int begin, int end ) { (*static_cast<const F *>(user))( begin, end ); },
+		const_cast<F *>( &f ) );
+}
 void	R_SkinList_f( void );
 void	R_FontList_f( void );
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516

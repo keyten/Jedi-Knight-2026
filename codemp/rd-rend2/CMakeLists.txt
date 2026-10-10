@@ -84,6 +84,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_glsl_parse.cpp"
 	"${SharedDir}/rd-rend2/tr_image.cpp"
 	"${SharedDir}/rd-rend2/tr_image_stb.cpp"
+	"${SharedDir}/rd-rend2/tr_jobs.cpp"
 	"${MPDir}/rd-rend2/tr_init.cpp"
 	"${SharedDir}/rd-rend2/tr_light.cpp"
 	"${SharedDir}/rd-rend2/tr_local.h"
