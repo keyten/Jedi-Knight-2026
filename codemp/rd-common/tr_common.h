@@ -62,7 +62,7 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height );
 
 #ifdef REND2_LOAD_PROFILE
 long R_ImageProfileReadFile( const char *qpath, void **buffer );
-void R_ImageProfileLoaderAttempt( const char *extension, long long usec, qboolean success );
+void R_ImageProfileLoaderAttempt( const char *name, const char *extension, long long usec, qboolean success, int width, int height );
 #endif
 
 // Load raw image data from TGA image.

@@ -1874,6 +1874,7 @@ typedef struct consoleCommand_s {
 
 static consoleCommand_t	commands[] = {
 	{ "imagelist",			R_ImageList_f },
+	{ "imagechecksums",		R_ImageChecksums_f },
 	{ "shaderlist",			R_ShaderList_f },
 	{ "r_pbrDumpMaterials",	R_PBRDumpMaterials_f },
 	{ "r_skinSSSKernel",	R_SkinSSSKernel_f },
@@ -3709,6 +3710,8 @@ Touch all images to make sure they are resident
 */
 void RE_EndRegistration( void ) {
 	R_IssuePendingRenderCommands();
+	if (R_ImageChecksumsEnabled())
+		R_WriteImageChecksums("end of registration");
 	if (!ri.Sys_LowPhysicalMemory()) {
 		RB_ShowImages();
 	}

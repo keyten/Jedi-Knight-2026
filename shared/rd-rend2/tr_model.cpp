@@ -1723,6 +1723,13 @@ void RE_BeginRegistration( glconfig_t *glconfigOut ) {
 
 	R_Init();
 
+	// the server spawned its entities (NPC and other Ghoul2 models) before the
+	// client registers anything: report that work as its own phase
+	if (R_LoadProfileEnabled()) {
+		R_ShaderLoadProfileEnd("server and game media");
+		R_ShaderLoadProfileBegin();
+	}
+
 	*glconfigOut = glConfig;
 
 	R_IssuePendingRenderCommands();

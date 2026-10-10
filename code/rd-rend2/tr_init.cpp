@@ -1913,6 +1913,7 @@ typedef struct consoleCommand_s {
 
 static consoleCommand_t	commands[] = {
 	{ "imagelist",			R_ImageList_f },
+	{ "imagechecksums",		R_ImageChecksums_f },
 	{ "shaderlist",			R_ShaderList_f },
 	{ "r_pbrDumpMaterials",	R_PBRDumpMaterials_f },
 	{ "r_skinSSSKernel",	R_SkinSSSKernel_f },
@@ -3793,6 +3794,10 @@ void RE_EndRegistration( void ) {
 	R_LoadProfilePrint("renderer pending uploads", start);
 	R_ShaderLoadProfileEnd("post-world media");
 	R_ModelLoadProfileEnd();
+	if (R_LoadProfileEnabled())
+		R_ReportGeneratedNormalUse();
+	if (R_ImageChecksumsEnabled())
+		R_WriteImageChecksums("end of registration");
 	/*
 	if (!ri.Sys_LowPhysicalMemory()) {
 		RB_ShowImages();

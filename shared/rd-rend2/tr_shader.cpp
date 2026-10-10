@@ -3602,6 +3602,7 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 		image_t *diffuseImg;
 		if (stage->bundle[TB_NORMALMAP].image[0])
 		{
+			stage->bundle[TB_NORMALMAP].image[0]->usedByLitStage = qtrue;
 			if (stage->bundle[TB_NORMALMAP].image[0]->type == IMGTYPE_NORMALHEIGHT &&
 				defs & LIGHTDEF_LIGHTTYPE_MASK)
 			{
@@ -3632,6 +3633,7 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 				stage->bundle[TB_NORMALMAP] = stage->bundle[0];
 				stage->bundle[TB_NORMALMAP].numImageAnimations = 0;
 				stage->bundle[TB_NORMALMAP].image[0] = normalImg;
+				normalImg->usedByLitStage = qtrue;
 
 				if (normalImg->type == IMGTYPE_NORMALHEIGHT)
 					defs |= LIGHTDEF_USE_PARALLAXMAP;

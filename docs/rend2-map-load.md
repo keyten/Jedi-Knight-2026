@@ -86,6 +86,17 @@ The post-world `RE_RegisterModel` timer was **2.319/6.058/3.791 s**, with **2.23
 
 Across all three renderer image-profile phases, generated-normal build timers total **4.621/6.644/3.643 s** and auto-roughness timers **3.731/3.210/2.512 s**. They include creation/upload and overlap higher-level shader/image timers, so their sum is not a guaranteed DDC saving. They establish a substantial repeated-computation target. The safest first prototype is a versioned DDC entry containing the prepared diffuse pixels, generated normal pixels and auto-roughness pixels plus metadata, keyed by resolved source content and settings. Measure cold misses, warm hits, bytes read and visual equivalence before adding persistent GPU textures. UI and model gains may arise automatically because they use the same material path.
 
+### Profiler bundle v6: stage 0 of the non-cache plan
+
+Rend2 profile version 6 adds the counters the non-cache load plan (design doc of 2026-10-09: parallel decode, demand-driven normals, name index) needs before any behaviour changes. Nothing in it changes loading.
+
+- **Server phase.** `RE_BeginRegistration` closes the R_FindShader/image phase opened by `R_SVModelInit` as `server and game media` and opens `pre-world media` for the client. Ghoul2/NPC registration during the server spawn is therefore separated from UI and cgame work.
+- **VFS hit/miss split.** `source VFS split` reports hit and miss counts and times and the mean cost of one miss. Use it to size the image-name index before building it.
+- **Decoded bytes per format.** Each JPG/PNG/TGA loader line now includes the RGBA MiB it decoded.
+- **Repeated decodes.** `repeated source decodes` counts files decoded more than once in one renderer session, with the slowest eight. Auto roughness, legacy-spec ORMS and SDR specGloss re-decode their source. Disable `r_materialDDCWorld` and `r_materialDDCObjects` for this measurement, since DDC hits skip decoding.
+- **Unused generated normals.** At `RE_EndRegistration`, `generated normals` lists how many `_n` maps from `R_CreateNormalMap` were never bound as the normal map of a lit stage in `CollapseStagesToLightall`. It also reports how many of those sit beside an authored `_nh`. Their diffuse was still brightened. Shaders registered later during play are not included.
+- **Texture checksums.** `r_imageChecksums 1` (not archived) or the `imagechecksums` command reads back level 0 of every texture uploaded from pixel data and writes a 64-bit hash per texture, sorted by name, to `imagechecksums/<map>.txt` in the home path. Pixel data includes files, generated maps and lightmap atlases. Render targets, cubemap probes, arrays and 3D textures are skipped. Diff two files to prove that a load-time change leaves every texture bit-identical. The readback takes seconds and should not be enabled while measuring load time.
+
 ## Review verification and immediate changes
 
 | Claim | Result in this tree | Action |

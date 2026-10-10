@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace {
@@ -40,9 +42,12 @@ struct ImageLoadProfile {
 	long long fileLoadUs = 0, imagePrepareUs = 0, normalUs = 0, emissiveUs = 0, createUs = 0;
 	long long normalLookupUs = 0, normalBuildUs = 0, autoRoughnessUs = 0;
 	int sourceReadCalls = 0, sourceReadHits = 0;
-	long long sourceReadBytes = 0, sourceReadUs = 0;
+	long long sourceReadBytes = 0, sourceReadUs = 0, sourceMissUs = 0;
 	int loaderCalls[3] = {}, loaderHits[3] = {};
-	long long loaderUs[3] = {}, loaderReadUs[3] = {};
+	long long loaderUs[3] = {}, loaderReadUs[3] = {}, loaderDecodedBytes[3] = {};
+	int repeatDecodes = 0;
+	long long repeatDecodeUs = 0;
+	mapLoadTopEntry_t repeatedSources[8] = {};
 	long long rawUploadUs = 0, textureApiUs = 0;
 	int ddcHits = 0, ddcMisses = 0, ddcInvalid = 0, ddcWrites = 0;
 	long long ddcHashUs = 0, ddcReadUs = 0, ddcWriteUs = 0;
@@ -113,19 +118,38 @@ long R_ImageProfileReadFile(const char *qpath, void **buffer) {
 	if (length >= 0 && buffer && *buffer) {
 		++imageLoadProfile.sourceReadHits;
 		imageLoadProfile.sourceReadBytes += length;
+	} else {
+		imageLoadProfile.sourceMissUs += elapsed;
 	}
 	const int loader = ImageLoaderIndex(COM_GetExtension(qpath));
 	if (loader >= 0) imageLoadProfile.loaderReadUs[loader] += elapsed;
 	return length;
 }
 
-void R_ImageProfileLoaderAttempt(const char *extension, long long usec, qboolean success) {
+// Every source file decoded since the textures were last deleted. A second
+// decode of the same file in one renderer session is redundant work (derived
+// maps re-reading their source); it is only counted, never prevented.
+static std::unordered_set<std::string> s_decodedSources;
+
+void R_ImageProfileLoaderAttempt(const char *name, const char *extension, long long usec, qboolean success,
+	int width, int height) {
 	if (!imageLoadProfile.active) return;
 	const int loader = ImageLoaderIndex(extension);
 	if (loader < 0) return;
 	++imageLoadProfile.loaderCalls[loader];
-	if (success) ++imageLoadProfile.loaderHits[loader];
 	imageLoadProfile.loaderUs[loader] += usec;
+	if (!success) return;
+	++imageLoadProfile.loaderHits[loader];
+	imageLoadProfile.loaderDecodedBytes[loader] += (long long)width * height * 4;
+	if (!name) return;
+	char key[MAX_QPATH];
+	Q_strncpyz(key, name, sizeof(key));
+	Q_strlwr(key);
+	if (!s_decodedSources.insert(key).second) {
+		++imageLoadProfile.repeatDecodes;
+		imageLoadProfile.repeatDecodeUs += usec;
+		R_LoadProfileTopAdd(imageLoadProfile.repeatedSources, 8, name, usec);
+	}
 }
 
 void R_ImageLoadProfileBegin( void ) {
@@ -146,13 +170,24 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 	ri.Printf(PRINT_ALL, "[map load] source VFS: %d reads, %d hits, %lld MiB; read/decompress %lld ms (includes failed candidates)\n",
 		imageLoadProfile.sourceReadCalls, imageLoadProfile.sourceReadHits,
 		imageLoadProfile.sourceReadBytes / (1024 * 1024), imageLoadProfile.sourceReadUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] source VFS split: %d hits %lld ms, %d misses %lld ms (%.1f us per miss)\n",
+		imageLoadProfile.sourceReadHits, (imageLoadProfile.sourceReadUs - imageLoadProfile.sourceMissUs) / 1000,
+		imageLoadProfile.sourceReadCalls - imageLoadProfile.sourceReadHits, imageLoadProfile.sourceMissUs / 1000,
+		imageLoadProfile.sourceReadCalls > imageLoadProfile.sourceReadHits ?
+			(double)imageLoadProfile.sourceMissUs / (imageLoadProfile.sourceReadCalls - imageLoadProfile.sourceReadHits) : 0.0);
 	static const char *loaderNames[3] = {"JPG", "PNG", "TGA"};
 	for (int i = 0; i < 3; ++i)
 		if (imageLoadProfile.loaderCalls[i])
-			ri.Printf(PRINT_ALL, "[map load] %s loader: %d attempts, %d decoded; total %lld ms, VFS %lld ms, decode/alloc %lld ms\n",
+			ri.Printf(PRINT_ALL, "[map load] %s loader: %d attempts, %d decoded (%lld MiB RGBA); total %lld ms, VFS %lld ms, decode/alloc %lld ms\n",
 				loaderNames[i], imageLoadProfile.loaderCalls[i], imageLoadProfile.loaderHits[i],
+				imageLoadProfile.loaderDecodedBytes[i] / (1024 * 1024),
 				imageLoadProfile.loaderUs[i] / 1000, imageLoadProfile.loaderReadUs[i] / 1000,
 				Q_max(0LL, imageLoadProfile.loaderUs[i] - imageLoadProfile.loaderReadUs[i]) / 1000);
+	ri.Printf(PRINT_ALL, "[map load] repeated source decodes: %d, %lld ms (same file decoded again in this renderer session)\n",
+		imageLoadProfile.repeatDecodes, imageLoadProfile.repeatDecodeUs / 1000);
+	for (int i = 0; i < 8 && imageLoadProfile.repeatedSources[i].usec; ++i)
+		ri.Printf(PRINT_ALL, "[map load] repeated decode %d: %lld ms %s\n", i + 1,
+			imageLoadProfile.repeatedSources[i].usec / 1000, imageLoadProfile.repeatedSources[i].name);
 	ri.Printf(PRINT_ALL, "[map load] texture creation: %lld ms total; RawImage_UploadTexture %lld ms, measured 2D GL texture calls %lld ms (nested, CPU wall)\n",
 		imageLoadProfile.createUs / 1000, imageLoadProfile.rawUploadUs / 1000,
 		imageLoadProfile.textureApiUs / 1000);
@@ -2693,6 +2728,9 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 	image->height = height;
 	VectorSet4(image->emissiveColor, 0.5f, 0.5f, 0.5f, 1.0f);
 	image->heightRange[0] = image->heightRange[1] = 0.0f;
+	image->generatedNormal = qfalse;
+	image->usedByLitStage = qfalse;
+	image->hasSourceData = (pic && !(flags & IMGFLAG_CUBEMAP)) ? qtrue : qfalse;
 	if (flags & IMGFLAG_CLAMPTOEDGE)
 		glWrapClampMode = GL_CLAMP_TO_EDGE;
 	else
@@ -3019,6 +3057,9 @@ image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, in
 
 void R_UpdateSubImage( image_t *image, byte *pic, int x, int y, int width, int height )
 {
+	// lightmap atlases are created empty and filled here: still file data
+	image->hasSourceData = qtrue;
+
 	byte *scaledBuffer = NULL;
 	byte *resampledBuffer = NULL;
 	int	 scaled_width, scaled_height, scaled_x, scaled_y;
@@ -3801,7 +3842,9 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 
 		if (generatedPixels)
 			generatedPixels->assign(normalPic, normalPic + (std::size_t)normalWidth * normalHeight * 4);
-		R_CreateImage( normalName, normalPic, normalWidth, normalHeight, IMGTYPE_NORMAL, normalFlags, 0 );
+		normalImage = R_CreateImage( normalName, normalPic, normalWidth, normalHeight, IMGTYPE_NORMAL, normalFlags, 0 );
+		if (normalImage)
+			normalImage->generatedNormal = qtrue;
 		Z_Free( normalPic );
 		if (imageLoadProfile.active) {
 			const long long elapsed = ImageElapsedUs(buildStart);
@@ -3915,9 +3958,12 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 			COM_StripExtension(name, normalName, sizeof(normalName));
 			Q_strcat(normalName, sizeof(normalName), "_n");
 			const int normalFlags = (flags & ~(IMGFLAG_GENNORMALMAP | IMGFLAG_SRGB)) | IMGFLAG_NOLIGHTSCALE;
-			if (!R_GetLoadedImage(normalName, normalFlags))
-				R_CreateImage(normalName, pixels.data() + cached.pixelBytes,
+			if (!R_GetLoadedImage(normalName, normalFlags)) {
+				image_t *normalImage = R_CreateImage(normalName, pixels.data() + cached.pixelBytes,
 					(int)cached.width, (int)cached.height, IMGTYPE_NORMAL, normalFlags, 0);
+				if (normalImage)
+					normalImage->generatedNormal = qtrue;
+			}
 			image = R_CreateImage(name, pixels.data(), (int)cached.width, (int)cached.height,
 				type, flags, 0);
 			if (image) {
@@ -4796,6 +4842,8 @@ R_DeleteTextures
 ===============
 */
 void R_DeleteTextures( void ) {
+	s_decodedSources.clear();
+
 	image_t *image = tr.images;
 	while ( image )
 	{
@@ -4821,4 +4869,177 @@ void R_DeleteTextures( void ) {
 	qglBindTexture( GL_TEXTURE_2D, 0 );
 	GL_SelectTexture( 0 );
 	qglBindTexture( GL_TEXTURE_2D, 0 );
+}
+
+/*
+===============
+R_ReportGeneratedNormalUse
+
+r_loadProfile: how many normal maps R_CreateNormalMap built (r_genNormalMaps)
+were never bound as the normal map of a lit stage by the end of registration.
+Their diffuse was brightened for them all the same.
+===============
+*/
+void R_ReportGeneratedNormalUse( void ) {
+	int generated = 0, unused = 0, unusedWithAuthoredNh = 0;
+	long long unusedBytes = 0;
+	const char *examples[8] = {};
+	for (image_t *image = tr.images; image; image = image->poolNext) {
+		if (!image->generatedNormal)
+			continue;
+		++generated;
+		if (image->usedByLitStage)
+			continue;
+		if (unused < 8)
+			examples[unused] = image->imgName;
+		++unused;
+		unusedBytes += (long long)image->uploadWidth * image->uploadHeight * 4;
+		char nhName[MAX_QPATH];
+		Q_strncpyz(nhName, image->imgName, sizeof(nhName));
+		Q_strcat(nhName, sizeof(nhName), "h");	// <diffuse>_n -> <diffuse>_nh
+		image_t *nh = R_GetLoadedImage(nhName, image->flags);
+		if (nh && !nh->generatedNormal)
+			++unusedWithAuthoredNh;
+	}
+	ri.Printf(PRINT_ALL, "[map load] generated normals: %d built, %d not bound to a lit stage (%lld MiB level 0), %d of them beside an authored _nh\n",
+		generated, unused, unusedBytes / (1024 * 1024), unusedWithAuthoredNh);
+	for (int i = 0; i < 8 && examples[i]; ++i)
+		ri.Printf(PRINT_ALL, "[map load] unused generated normal %d: %s\n", i + 1, examples[i]);
+}
+
+/*
+===============
+R_WriteImageChecksums
+
+r_imageChecksums 1 / imagechecksums: a 64 bit hash of level 0 of every texture
+uploaded from pixel data (files, generated maps, lightmaps), read back from GL
+and written sorted by name to imagechecksums/<map>.txt. Two runs of the same
+map can be diffed to prove a load-time change left the textures bit-identical.
+Render targets, cubemap probes, arrays and 3D textures are skipped.
+===============
+*/
+namespace {
+struct ImageChecksum {
+	const image_t *image;
+	std::uint64_t hash;
+	int width, height, bytes;
+};
+
+std::uint64_t ImageChecksumHash(const byte *data, std::size_t size) {
+	std::uint64_t h = 14695981039346656037ull;
+	std::size_t i = 0;
+	for (; i + 8 <= size; i += 8) {
+		std::uint64_t word;
+		memcpy(&word, data + i, 8);
+		h = (h ^ word) * 1099511628211ull;
+		h ^= h >> 29;
+	}
+	for (; i < size; ++i)
+		h = (h ^ data[i]) * 1099511628211ull;
+	return h ^ (std::uint64_t)size;
+}
+}
+
+qboolean R_ImageChecksumsEnabled( void ) {
+#ifdef REND2_SP
+	static cvar_t *checksums = ri.Cvar_Get("r_imageChecksums", "0", 0);
+#else
+	static cvar_t *checksums = ri.Cvar_Get("r_imageChecksums", "0", 0, "Write a hash of every loaded texture to imagechecksums/<map>.txt after registration");
+#endif
+	return (qboolean)(checksums && checksums->integer != 0);
+}
+
+void R_WriteImageChecksums( const char *reason ) {
+	const int start = ri.Milliseconds();
+	R_IssuePendingRenderCommands();
+
+	std::vector<ImageChecksum> sums;
+	std::vector<byte> pixels;
+	int skipped = 0;
+	GL_SelectTexture(0);
+	qglPixelStorei(GL_PACK_ALIGNMENT, 1);
+	for (image_t *image = tr.images; image; image = image->poolNext) {
+		if (!image->hasSourceData || !image->texnum || (image->flags & IMGFLAG_CUBEMAP)) {
+			++skipped;
+			continue;
+		}
+		GL_Bind(image);
+		GLint width = 0, height = 0, compressed = 0;
+		qglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+		qglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+		qglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &compressed);
+		if (width <= 0 || height <= 0) {
+			++skipped;
+			continue;
+		}
+		std::size_t size;
+		if (compressed) {
+			GLint compressedSize = 0;
+			qglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressedSize);
+			if (compressedSize <= 0) {
+				++skipped;
+				continue;
+			}
+			size = (std::size_t)compressedSize;
+			pixels.resize(size);
+			qglGetCompressedTexImage(GL_TEXTURE_2D, 0, pixels.data());
+		} else {
+			GLenum type = GL_UNSIGNED_BYTE;
+			int texelBytes = 4;
+			switch (image->internalFormat) {
+			case GL_DEPTH_COMPONENT:
+			case GL_DEPTH_COMPONENT16:
+			case GL_DEPTH_COMPONENT24:
+			case GL_DEPTH_COMPONENT32:
+				type = 0;
+				break;
+			case GL_R16F: case GL_RG16F: case GL_RGB16F: case GL_RGBA16F:
+				type = GL_HALF_FLOAT; texelBytes = 8;
+				break;
+			case GL_R32F: case GL_RG32F: case GL_RGB32F: case GL_RGBA32F:
+				type = GL_FLOAT; texelBytes = 16;
+				break;
+			default:
+				break;
+			}
+			if (!type) {
+				++skipped;
+				continue;
+			}
+			size = (std::size_t)width * height * texelBytes;
+			pixels.resize(size);
+			qglGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, type, pixels.data());
+		}
+		sums.push_back({ image, ImageChecksumHash(pixels.data(), size), width, height, (int)size });
+	}
+	qglPixelStorei(GL_PACK_ALIGNMENT, 4);
+	GL_SelectTexture(0);
+	qglBindTexture(GL_TEXTURE_2D, 0);
+	Com_Memset(glState.currenttextures, 0, sizeof(glState.currenttextures));
+
+	std::sort(sums.begin(), sums.end(), [](const ImageChecksum &a, const ImageChecksum &b) {
+		const int order = Q_stricmp(a.image->imgName, b.image->imgName);
+		if (order) return order < 0;
+		if (a.image->flags != b.image->flags) return a.image->flags < b.image->flags;
+		return a.hash < b.hash;
+	});
+
+	const char *mapName = tr.world ? tr.world->baseName : "noworld";
+	std::string text = va("# rend2 image checksums: map %s, %s, %d images, %d skipped\n",
+		mapName, reason, (int)sums.size(), skipped);
+	text += "# hash width height internalFormat flags type generatedNormal name\n";
+	for (const ImageChecksum &sum : sums) {
+		text += va("%016llx %5d %5d 0x%04x 0x%04x %d %d %s\n",
+			(unsigned long long)sum.hash, sum.width, sum.height, sum.image->internalFormat,
+			sum.image->flags, (int)sum.image->type, sum.image->generatedNormal ? 1 : 0,
+			sum.image->imgName);
+	}
+	const char *path = va("imagechecksums/%s.txt", mapName);
+	ri.FS_WriteFile(path, text.data(), (int)text.size());
+	ri.Printf(PRINT_ALL, "Image checksums: %d textures written to %s (%d skipped), %d ms\n",
+		(int)sums.size(), path, skipped, ri.Milliseconds() - start);
+}
+
+void R_ImageChecksums_f( void ) {
+	R_WriteImageChecksums("console command");
 }

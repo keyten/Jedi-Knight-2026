@@ -923,6 +923,11 @@ typedef struct image_s {
 	// r_autoPBRRoughness map (<diffuse>_aORMS): mean and std-dev of the
 	// roughness multiplier; 0 0 for every other image
 	float		autoRoughness[2];
+
+	// map-load diagnostics (r_loadProfile, r_imageChecksums)
+	qboolean	generatedNormal;		// <diffuse>_n built by R_CreateNormalMap
+	qboolean	usedByLitStage;			// bound as the normal map of a lit stage
+	qboolean	hasSourceData;			// level 0 uploaded from pixels, not rendered or streamed
 } image_t;
 
 typedef struct cubemap_s {
@@ -4734,6 +4739,10 @@ void		R_SetColorMappings( void );
 void		R_GammaCorrect( byte *buffer, int bufSize );
 
 void	R_ImageList_f( void );
+void	R_ImageChecksums_f( void );
+qboolean R_ImageChecksumsEnabled( void );
+void	R_WriteImageChecksums( const char *reason );
+void	R_ReportGeneratedNormalUse( void );
 void	R_SkinList_f( void );
 void	R_FontList_f( void );
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516

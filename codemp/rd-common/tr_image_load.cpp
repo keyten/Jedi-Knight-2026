@@ -119,9 +119,9 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 #endif
 		imageLoader->loader (shortname, pic, width, height);
 #ifdef REND2_LOAD_PROFILE
-		R_ImageProfileLoaderAttempt(imageLoader->extension,
+		R_ImageProfileLoaderAttempt(shortname, imageLoader->extension,
 			std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - attemptStart).count(),
-			*pic != NULL ? qtrue : qfalse);
+			*pic != NULL ? qtrue : qfalse, *width, *height);
 #endif
 		if ( *pic )
 		{
@@ -147,9 +147,9 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 #endif
 		tryLoader->loader (name, pic, width, height);
 #ifdef REND2_LOAD_PROFILE
-		R_ImageProfileLoaderAttempt(tryLoader->extension,
+		R_ImageProfileLoaderAttempt(name, tryLoader->extension,
 			std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - attemptStart).count(),
-			*pic != NULL ? qtrue : qfalse);
+			*pic != NULL ? qtrue : qfalse, *width, *height);
 #endif
 		if ( *pic )
 		{
