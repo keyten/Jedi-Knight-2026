@@ -3796,6 +3796,7 @@ void RE_EndRegistration( void ) {
 	R_ModelLoadProfileEnd();
 	if (R_LoadProfileEnabled())
 		R_ReportGeneratedNormalUse();
+	R_SourceScratchFlush();
 	if (R_ImageChecksumsEnabled())
 		R_WriteImageChecksums("end of registration");
 	/*

@@ -3710,6 +3710,7 @@ Touch all images to make sure they are resident
 */
 void RE_EndRegistration( void ) {
 	R_IssuePendingRenderCommands();
+	R_SourceScratchFlush();
 	if (R_ImageChecksumsEnabled())
 		R_WriteImageChecksums("end of registration");
 	if (!ri.Sys_LowPhysicalMemory()) {

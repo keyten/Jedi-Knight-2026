@@ -4743,6 +4743,7 @@ void	R_ImageChecksums_f( void );
 qboolean R_ImageChecksumsEnabled( void );
 void	R_WriteImageChecksums( const char *reason );
 void	R_ReportGeneratedNormalUse( void );
+void	R_SourceScratchFlush( void );
 void	R_SkinList_f( void );
 void	R_FontList_f( void );
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516

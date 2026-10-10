@@ -47,6 +47,7 @@ struct ImageLoadProfile {
 	long long loaderUs[3] = {}, loaderReadUs[3] = {}, loaderDecodedBytes[3] = {};
 	int repeatDecodes = 0;
 	long long repeatDecodeUs = 0;
+	int sourceReuseHits = 0, probeMemoHits = 0;
 	mapLoadTopEntry_t repeatedSources[8] = {};
 	long long rawUploadUs = 0, textureApiUs = 0;
 	int ddcHits = 0, ddcMisses = 0, ddcInvalid = 0, ddcWrites = 0;
@@ -131,6 +132,111 @@ long R_ImageProfileReadFile(const char *qpath, void **buffer) {
 // maps re-reading their source); it is only counted, never prevented.
 static std::unordered_set<std::string> s_decodedSources;
 
+/*
+Image names R_LoadImage failed to load in this renderer session. Shaders that
+share a diffuse probe the same companions (_nh, _specGloss, _rmo, _orm) again;
+each probe costs a read attempt per extension and search path. The VFS cannot
+change before the textures are deleted (map change, vid_restart), which clears
+the memo. A loose file added during play is seen from the next map on.
+*/
+static std::unordered_set<std::string> s_missingImages;
+
+static void R_LoadImageProbe( const char *name, byte **pic, int *width, int *height ) {
+	char key[MAX_QPATH];
+	Q_strncpyz(key, name, sizeof(key));
+	Q_strlwr(key);
+	if (s_missingImages.count(key)) {
+		*pic = NULL;
+		*width = *height = 0;
+		if (imageLoadProfile.active) ++imageLoadProfile.probeMemoHits;
+		return;
+	}
+	R_LoadImage(name, pic, width, height);
+	if (!*pic)
+		s_missingImages.insert(key);
+}
+
+/*
+Source scratch: the unmodified pixels of the last few colour images
+R_FindImageFile decoded, kept while FinishShader may build a derived map from
+the same file (r_autoPBRRoughness _aORMS, r_autoPBRConvert _lORMS). Those
+builders used to read and decode the file a second time. The buffers are the
+loaders' own allocations: putting one here only postpones its Z_Free.
+*/
+namespace {
+struct SourceScratchEntry {
+	char name[MAX_QPATH];
+	byte *pic;
+	int width, height;
+	std::size_t bytes;
+};
+constexpr std::size_t SOURCE_SCRATCH_ENTRIES = 8;
+constexpr std::size_t SOURCE_SCRATCH_BYTES = 96u * 1024u * 1024u;
+std::vector<SourceScratchEntry> s_sourceScratch;	// oldest first
+std::size_t s_sourceScratchBytes = 0;
+}
+
+void R_SourceScratchFlush( void ) {
+	for (SourceScratchEntry &entry : s_sourceScratch)
+		Z_Free(entry.pic);
+	s_sourceScratch.clear();
+	s_sourceScratchBytes = 0;
+}
+
+static qboolean R_SourceScratchWanted( imgType_t type ) {
+	return (qboolean)(type == IMGTYPE_COLORALPHA && r_specularMapping->integer &&
+		(r_autoPBRRoughness->integer || r_autoPBRConvert->integer));
+}
+
+static void R_SourceScratchErase( std::size_t index ) {
+	s_sourceScratchBytes -= s_sourceScratch[index].bytes;
+	s_sourceScratch.erase(s_sourceScratch.begin() + index);
+}
+
+// takes ownership of pic
+static void R_SourceScratchPut( const char *name, byte *pic, int width, int height ) {
+	const std::size_t bytes = (std::size_t)width * height * 4;
+	if (bytes > SOURCE_SCRATCH_BYTES) {
+		Z_Free(pic);
+		return;
+	}
+	for (std::size_t i = 0; i < s_sourceScratch.size(); ++i) {
+		if (!Q_stricmp(s_sourceScratch[i].name, name)) {
+			Z_Free(s_sourceScratch[i].pic);
+			R_SourceScratchErase(i);
+			break;
+		}
+	}
+	while (!s_sourceScratch.empty() && (s_sourceScratch.size() >= SOURCE_SCRATCH_ENTRIES ||
+		s_sourceScratchBytes + bytes > SOURCE_SCRATCH_BYTES)) {
+		Z_Free(s_sourceScratch.front().pic);
+		R_SourceScratchErase(0);
+	}
+	SourceScratchEntry entry;
+	Q_strncpyz(entry.name, name, sizeof(entry.name));
+	entry.pic = pic;
+	entry.width = width;
+	entry.height = height;
+	entry.bytes = bytes;
+	s_sourceScratch.push_back(entry);
+	s_sourceScratchBytes += bytes;
+}
+
+// what R_LoadImage( name ) returns, taken from the scratch when it is there
+static void R_LoadSourceImage( const char *name, byte **pic, int *width, int *height ) {
+	for (std::size_t i = s_sourceScratch.size(); i-- > 0; ) {
+		if (Q_stricmp(s_sourceScratch[i].name, name))
+			continue;
+		*pic = s_sourceScratch[i].pic;
+		*width = s_sourceScratch[i].width;
+		*height = s_sourceScratch[i].height;
+		R_SourceScratchErase(i);
+		if (imageLoadProfile.active) ++imageLoadProfile.sourceReuseHits;
+		return;
+	}
+	R_LoadImageProbe(name, pic, width, height);
+}
+
 void R_ImageProfileLoaderAttempt(const char *name, const char *extension, long long usec, qboolean success,
 	int width, int height) {
 	if (!imageLoadProfile.active) return;
@@ -185,6 +291,8 @@ void R_ImageLoadProfileEnd( const char *phase ) {
 				Q_max(0LL, imageLoadProfile.loaderUs[i] - imageLoadProfile.loaderReadUs[i]) / 1000);
 	ri.Printf(PRINT_ALL, "[map load] repeated source decodes: %d, %lld ms (same file decoded again in this renderer session)\n",
 		imageLoadProfile.repeatDecodes, imageLoadProfile.repeatDecodeUs / 1000);
+	ri.Printf(PRINT_ALL, "[map load] decode avoided: %d sources reused from the scratch, %d probes answered by the missing-image memo\n",
+		imageLoadProfile.sourceReuseHits, imageLoadProfile.probeMemoHits);
 	for (int i = 0; i < 8 && imageLoadProfile.repeatedSources[i].usec; ++i)
 		ri.Printf(PRINT_ALL, "[map load] repeated decode %d: %lld ms %s\n", i + 1,
 			imageLoadProfile.repeatedSources[i].usec / 1000, imageLoadProfile.repeatedSources[i].name);
@@ -1663,6 +1771,30 @@ void R_LightScaleTexture (byte *in, int inwidth, int inheight, qboolean only_gam
 
 /*
 ================
+R_LightScaleIsIdentity
+
+True when R_LightScaleTexture with these arguments leaves every byte as it is
+(r_intensity 1, and hardware gamma or an identity gamma table).
+================
+*/
+static qboolean R_LightScaleIsIdentity( qboolean only_gamma )
+{
+	qboolean gammaIdentity = qtrue, intensityIdentity = qtrue;
+	for ( int i = 0; i < 256; i++ )
+	{
+		if ( s_gammatable[i] != i )
+			gammaIdentity = qfalse;
+		if ( s_intensitytable[i] != i )
+			intensityIdentity = qfalse;
+	}
+	const qboolean gammaDone = (qboolean)(glConfig.deviceSupportsGamma || gammaIdentity);
+	if ( only_gamma )
+		return gammaDone;
+	return (qboolean)(gammaDone && intensityIdentity);
+}
+
+/*
+================
 R_MipMap2
 
 Operates in place, quartering the size of the texture
@@ -1724,6 +1856,16 @@ static void R_MipMapsRGB( byte *in, int inWidth, int inHeight)
 	int			outWidth, outHeight;
 	byte		*temp;
 
+	// the exact values of sRGBtoRGB((double)ByteToFloat(b)) the loop used to compute
+	static const std::array<double, 256> linearByte = [] {
+		std::array<double, 256> result{};
+		for (int b = 0; b < 256; b++) {
+			const float current = ByteToFloat(b);
+			result[b] = sRGBtoRGB((double)current);
+		}
+		return result;
+	}();
+
 	outWidth = inWidth >> 1;
 	outHeight = inHeight >> 1;
 	temp = (byte *)Hunk_AllocateTempMemory( outWidth * outHeight * 4 );
@@ -1736,10 +1878,10 @@ static void R_MipMapsRGB( byte *in, int inWidth, int inHeight)
 			for ( k = 0 ; k < 3 ; k++ ) {
 				float total, current;
 
-				current = ByteToFloat(inbyte1[0]); total  = sRGBtoRGB((double)current);
-				current = ByteToFloat(inbyte1[4]); total += sRGBtoRGB((double)current);
-				current = ByteToFloat(inbyte2[0]); total += sRGBtoRGB((double)current);
-				current = ByteToFloat(inbyte2[4]); total += sRGBtoRGB((double)current);
+				total  = linearByte[inbyte1[0]];
+				total += linearByte[inbyte1[4]];
+				total += linearByte[inbyte2[0]];
+				total += linearByte[inbyte2[4]];
 
 				total *= 0.25f;
 
@@ -2462,8 +2604,6 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 		scaled_height >>= 1;
 	}
 
-	scaledBuffer = (byte *)Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
-
 	//
 	// scan the texture for each channel's max values
 	// and verify if the alpha channel is being used or not
@@ -2523,6 +2663,18 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 
 			goto done;
 		}
+		if ( r_simpleMipMaps->integer &&
+			( ( flags & IMGFLAG_NOLIGHTSCALE ) || R_LightScaleIsIdentity( qfalse ) ) )
+		{
+			// the copy below would be uploaded unchanged, and with GPU mipmaps
+			// nothing writes to the pixels: upload them as they are
+			RawImage_UploadTexture( data, 0, 0, scaled_width, scaled_height, internalFormat, type, flags, qfalse );
+			*pUploadWidth = scaled_width;
+			*pUploadHeight = scaled_height;
+
+			goto done;
+		}
+		scaledBuffer = (byte *)Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
 		Com_Memcpy (scaledBuffer, data, width*height*4);
 	}
 	else
@@ -2548,6 +2700,7 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 				height = 1;
 			}
 		}
+		scaledBuffer = (byte *)Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
 		Com_Memcpy( scaledBuffer, data, width * height * 4 );
 	}
 
@@ -3217,7 +3370,7 @@ void R_LoadPackedMaterialImage(shaderStage_t *stage, const char *packedImageName
 		return;
 	}
 
-	R_LoadImage(packedImageName, &packedPic, &packedWidth, &packedHeight);
+	R_LoadImageProbe(packedImageName, &packedPic, &packedWidth, &packedHeight);
 	if (packedPic == NULL) {
 		return;
 	}
@@ -3298,7 +3451,7 @@ image_t *R_BuildNormalHeightImage(const char *normalName, const char *heightName
 
 	byte *heightPic = NULL;
 	int heightWidth = 0, heightHeight = 0;
-	R_LoadImage(heightName, &heightPic, &heightWidth, &heightHeight);
+	R_LoadImageProbe(heightName, &heightPic, &heightWidth, &heightHeight);
 	if (!heightPic)
 		return NULL;
 
@@ -3306,7 +3459,7 @@ image_t *R_BuildNormalHeightImage(const char *normalName, const char *heightName
 	int width = 0, height = 0;
 	if (normalName)
 	{
-		R_LoadImage(normalName, &pic, &width, &height);
+		R_LoadImageProbe(normalName, &pic, &width, &height);
 		if (!pic)
 		{
 			Z_Free(heightPic);
@@ -3377,9 +3530,19 @@ image_t *R_BuildSDRSpecGlossImage(shaderStage_t *stage, const char *specImageNam
 	if (image != NULL)
 		return image;
 
-	R_LoadImage(specImageName, &specPic, &specWidth, &specHeight);
+	R_LoadImageProbe(specImageName, &specPic, &specWidth, &specHeight);
 	if (specPic == NULL)
 		return NULL;
+
+	// the exact values of sRGBtoRGB(float) the loop used to compute per channel
+	static const std::array<double, 256> linearByte = [] {
+		std::array<double, 256> result{};
+		for (int b = 0; b < 256; b++) {
+			const float current = ByteToFloat(b);
+			result[b] = sRGBtoRGB(current);
+		}
+		return result;
+	}();
 
 	byte *sdrSpecPic = (byte *)Hunk_AllocateTempMemory(sizeof(unsigned) * specWidth * specHeight);
 	vec3_t currentColor;
@@ -3389,8 +3552,9 @@ image_t *R_BuildSDRSpecGlossImage(shaderStage_t *stage, const char *specImageNam
 		currentColor[1] = ByteToFloat(specPic[i + 1]);
 		currentColor[2] = ByteToFloat(specPic[i + 2]);
 
+		// green counted twice, as before
 		float ratio =
-			(sRGBtoRGB(currentColor[0]) + sRGBtoRGB(currentColor[1]) + sRGBtoRGB(currentColor[1])) /
+			(linearByte[specPic[i + 0]] + linearByte[specPic[i + 1]] + linearByte[specPic[i + 1]]) /
 			(currentColor[0] + currentColor[1] + currentColor[2]);
 
 		sdrSpecPic[i + 0] = FloatToByte(currentColor[0] * ratio);
@@ -3445,15 +3609,22 @@ image_t *R_BuildLegacySpecORMSImage(const char *specImageName, int flags)
 	if (image != NULL)
 		return image;
 
-	R_LoadImage(specImageName, &pic, &width, &height);
+	R_LoadSourceImage(specImageName, &pic, &width, &height);
 	if (pic == NULL)
 		return NULL;
 
+	static const std::array<float, 256> linearByte = [] {
+		std::array<float, 256> result{};
+		for (int v = 0; v < 256; v++)
+			result[v] = (float)sRGBtoRGB(ByteToFloat((byte)v));
+		return result;
+	}();
+
 	for (int i = 0; i < width * height * 4; i += 4)
 	{
-		const float r = (float)sRGBtoRGB(ByteToFloat(pic[i + 0]));
-		const float g = (float)sRGBtoRGB(ByteToFloat(pic[i + 1]));
-		const float b = (float)sRGBtoRGB(ByteToFloat(pic[i + 2]));
+		const float r = linearByte[pic[i + 0]];
+		const float g = linearByte[pic[i + 1]];
+		const float b = linearByte[pic[i + 2]];
 		const float l = Com_Clamp(0.0f, 1.0f, 0.2126f * r + 0.7152f * g + 0.0722f * b);
 
 		const float rough = 1.0f - 0.55f * sqrtf(l);
@@ -3583,7 +3754,7 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	}
 	if (imageLoadProfile.active) ++imageLoadProfile.autoRoughnessGenerated;
 
-	R_LoadImage( diffuseName, &pic, &width, &height );
+	R_LoadSourceImage( diffuseName, &pic, &width, &height );
 	if ( pic == NULL ) {
 		if (imageLoadProfile.active) imageLoadProfile.autoRoughnessUs += ImageElapsedUs(profileStart);
 		return NULL;
@@ -3736,8 +3907,11 @@ image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 	return image;
 }
 
+// brightenedPic NULL: the brightening for a generated normal map is applied to
+// pic in place. Otherwise pic is left untouched and, when a normal map is
+// generated, *brightenedPic receives a new buffer with the brightened copy.
 static void R_CreateNormalMap ( const char *name, byte *pic, int width, int height, int flags,
-	std::vector<byte> *generatedPixels )
+	std::vector<byte> *generatedPixels, byte **brightenedPic )
 {
 	char normalName[MAX_QPATH];
 	image_t *normalImage;
@@ -3770,10 +3944,16 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 
 #if 1
 		// Brighten up the original image to work with the normal map
-		RGBAtoYCoCgA(pic, pic, width, height);
+		byte *brightened = pic;
+		if (brightenedPic)
+		{
+			brightened = (byte *)R_Malloc(width * height * 4, TAG_TEMP_WORKSPACE, qfalse);
+			*brightenedPic = brightened;
+		}
+		RGBAtoYCoCgA(pic, brightened, width, height);
 		for (y = 0; y < height; y++)
 		{
-			byte *picbyte  = pic       + y * width * 4;
+			byte *picbyte  = brightened + y * width * 4;
 			byte *normbyte = normalPic + y * width * 4;
 			for (x = 0; x < width; x++)
 			{
@@ -3783,7 +3963,7 @@ static void R_CreateNormalMap ( const char *name, byte *pic, int width, int heig
 				normbyte += 4;
 			}
 		}
-		YCoCgAtoRGBA(pic, pic, width, height);
+		YCoCgAtoRGBA(brightened, brightened, width, height);
 #else
 		// Blur original image's luma to work with the normal map
 		{
@@ -3987,7 +4167,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		R_LoadHDRImage(filename, &pic, &width, &height);
 		if (pic == NULL)
 		{
-			R_LoadImage(name, &pic, &width, &height);
+			R_LoadImageProbe(name, &pic, &width, &height);
 		}
 		else
 		{
@@ -4006,7 +4186,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	}
 	else
 	{
-		R_LoadImage(name, &pic, &width, &height);
+		R_LoadImageProbe(name, &pic, &width, &height);
 	}
 	if (imageLoadProfile.active) imageLoadProfile.fileLoadUs += ImageElapsedUs(fileLoadStart);
 
@@ -4017,12 +4197,18 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	const auto prepareStart = ImageProfileClock::now();
 	std::vector<byte> generatedNormal;
 
+	// keep the decoded source for a derived map FinishShader may build from it
+	// (R_LoadSourceImage). The brightening then goes to a copy, and the source is
+	// only kept when the upload below cannot change it in place either.
+	const qboolean keepSource = (qboolean)(internalFormat == 0 && R_SourceScratchWanted(type));
+	byte *uploadPic = pic;
+
 	if (r_normalMapping->integer && !(type == IMGTYPE_NORMAL) &&
 		(flags & IMGFLAG_PICMIP) && (flags & IMGFLAG_MIPMAP) && (flags & IMGFLAG_GENNORMALMAP))
 	{
 		const auto normalStart = ImageProfileClock::now();
 		R_CreateNormalMap( name, pic, width, height, flags,
-			ddcSourceFound ? &generatedNormal : nullptr );
+			ddcSourceFound ? &generatedNormal : nullptr, keepSource ? &uploadPic : nullptr );
 		if (imageLoadProfile.active) imageLoadProfile.normalUs += ImageElapsedUs(normalStart);
 	}
 
@@ -4033,8 +4219,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		int histogram[256] = {};
 		for (int i = 0; i < width*height; i++)
 		{
-			pic[4 * i + 3] = 255 - pic[4 * i + 3];
-			histogram[pic[4 * i + 3]]++;
+			uploadPic[4 * i + 3] = 255 - uploadPic[4 * i + 3];
+			histogram[uploadPic[4 * i + 3]]++;
 		}
 
 		// the relief actually used: most height maps span a small part of
@@ -4060,7 +4246,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 	vec4_t emissiveColor = { 0.5f, 0.5f, 0.5f, 1.0f };
 	if ( internalFormat == 0 && type == IMGTYPE_COLORALPHA ) {
 		const auto emissiveStart = ImageProfileClock::now();
-		R_ComputeEmissiveColor( pic, width, height, loadFlags, emissiveColor );
+		R_ComputeEmissiveColor( uploadPic, width, height, loadFlags, emissiveColor );
 		if (imageLoadProfile.active) imageLoadProfile.emissiveUs += ImageElapsedUs(emissiveStart);
 	}
 	if (imageLoadProfile.active) imageLoadProfile.imagePrepareUs += ImageElapsedUs(prepareStart);
@@ -4077,17 +4263,27 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, int flags )
 		VectorCopy4(emissiveColor, record.emissive);
 		record.heightRange[0] = heightRange[0];
 		record.heightRange[1] = heightRange[1];
-		MaterialDdcWrite(ddcKey, record, pic, generatedNormal.data());
+		MaterialDdcWrite(ddcKey, record, uploadPic, generatedNormal.data());
 	}
 
-	image = R_CreateImage( name, pic, width, height, type, loadFlags, internalFormat);
+	// Upload32 shrinks (picmip, maximum texture size) and greys the picture in place
+	const qboolean uploadChangesPic = (qboolean)(uploadPic == pic && (r_greyscale->value != 0.0f ||
+		((loadFlags & IMGFLAG_PICMIP) && r_picmip->integer > 0) ||
+		width > glConfig.maxTextureSize || height > glConfig.maxTextureSize));
+
+	image = R_CreateImage( name, uploadPic, width, height, type, loadFlags, internalFormat);
 	if ( image )
 	{
 		VectorCopy4( emissiveColor, image->emissiveColor );
 		image->heightRange[0] = heightRange[0];
 		image->heightRange[1] = heightRange[1];
 	}
-	Z_Free( pic );
+	if ( uploadPic != pic )
+		Z_Free( uploadPic );
+	if ( keepSource && !uploadChangesPic )
+		R_SourceScratchPut( name, pic, width, height );
+	else
+		Z_Free( pic );
 
 	return image;
 }
@@ -4843,6 +5039,8 @@ R_DeleteTextures
 */
 void R_DeleteTextures( void ) {
 	s_decodedSources.clear();
+	s_missingImages.clear();
+	R_SourceScratchFlush();
 
 	image_t *image = tr.images;
 	while ( image )

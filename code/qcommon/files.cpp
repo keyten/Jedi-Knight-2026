@@ -1758,8 +1758,14 @@ long FS_ReadFile( const char *qpath, void **buffer ) {
 		Com_Error( ERR_FATAL, "FS_ReadFile with empty name\n" );
 	}
 
-	// stop sounds from repeating
-	S_ClearSoundBuffer();
+	// stop sounds from repeating. A load reads thousands of files (most image
+	// probes miss); clearing the DMA buffer every 100 ms is enough to keep it quiet
+	static int lastSoundClear = 0;
+	const int now = Sys_Milliseconds();
+	if ( now - lastSoundClear >= 100 || now < lastSoundClear ) {
+		S_ClearSoundBuffer();
+		lastSoundClear = now;
+	}
 
 	buf = NULL;	// quiet compiler warning
 

@@ -97,6 +97,18 @@ Rend2 profile version 6 adds the counters the non-cache load plan (design doc of
 - **Unused generated normals.** At `RE_EndRegistration`, `generated normals` lists how many `_n` maps from `R_CreateNormalMap` were never bound as the normal map of a lit stage in `CollapseStagesToLightall`. It also reports how many of those sit beside an authored `_nh`. Their diffuse was still brightened. Shaders registered later during play are not included.
 - **Texture checksums.** `r_imageChecksums 1` (not archived) or the `imagechecksums` command reads back level 0 of every texture uploaded from pixel data and writes a 64-bit hash per texture, sorted by name, to `imagechecksums/<map>.txt` in the home path. Pixel data includes files, generated maps and lightmap atlases. Render targets, cubemap probes, arrays and 3D textures are skipped. Diff two files to prove that a load-time change leaves every texture bit-identical. The readback takes seconds and should not be enabled while measuring load time.
 
+### Stage 1: bit-identical load savings (Rend2 profile v7, SP EXE v3)
+
+Every change below is meant to leave each uploaded texture bit-identical. Check this with `r_imageChecksums 1` on the previous and the new build.
+
+- **Source reuse.** `R_FindImageFile` keeps the unmodified pixels of the last eight colour images (at most 96 MiB) when `r_specularMapping` and `r_autoPBRRoughness` or `r_autoPBRConvert` are on. To leave the source intact, the brightening for a generated normal now writes to a new buffer. The auto roughness `_aORMS` and legacy spec `_lORMS` builders take the source from there instead of decoding the file again. A source is not kept when the upload would change it in place: picmip, maximum texture size, or `r_greyscale`. The scratch is emptied at `RE_EndRegistration` and when the textures are deleted.
+- **Missing-image memo.** Image names that failed to load are remembered until the textures are deleted. A loose file added during play is therefore found only from the next map on. Repeated `_nh`, `_specGloss`, `_rmo`, `_orm` and height/normal probes for a shared diffuse no longer touch the VFS.
+- **Lookup tables.** `R_MipMapsRGB` (used with `r_simpleMipMaps 0` or picmip), the SDR specGloss converter and the legacy spec ORMS converter read 256-entry tables. Each table is built with the expression its loop used before. An offline test found no differences: all 16.7 million SDR colour triples, all 256 legacy values and 20 million random 2×2 mip blocks.
+- **Upload without a copy.** When `r_simpleMipMaps` is 1 and light scaling would not change any byte (`IMGFLAG_NOLIGHTSCALE`, or `r_intensity` 1 with hardware or identity gamma), `Upload32` uploads the caller's pixels instead of copying them into a temporary buffer first.
+- **Sound buffer.** `FS_ReadFile` now clears the sound DMA buffer at most every 100 ms instead of once per read (`code/qcommon/files.cpp`). This needs the new SP EXE.
+
+`[map load] decode avoided` reports how many sources came from the scratch and how many probes the memo answered.
+
 ## Review verification and immediate changes
 
 | Claim | Result in this tree | Action |
