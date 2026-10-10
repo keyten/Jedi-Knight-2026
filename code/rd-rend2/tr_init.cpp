@@ -3772,7 +3772,10 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 
 	// the DLL may be unloaded after this: no worker thread may outlive it
 	if ( destroyWindow )
+	{
+		R_PrefetchReset();
 		R_JobsShutdown();
+	}
 
 	// shut down platform specific OpenGL stuff
 	if ( destroyWindow ) {
@@ -3801,6 +3804,7 @@ void RE_EndRegistration( void ) {
 	if (R_LoadProfileEnabled())
 		R_ReportGeneratedNormalUse();
 	R_SourceScratchFlush();
+	R_PrefetchFlush();
 	if (R_ImageChecksumsEnabled())
 		R_WriteImageChecksums("end of registration");
 	/*

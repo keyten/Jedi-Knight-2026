@@ -97,6 +97,28 @@ Rend2 profile version 6 adds the counters the non-cache load plan (design doc of
 - **Unused generated normals.** At `RE_EndRegistration`, `generated normals` lists how many `_n` maps from `R_CreateNormalMap` were never bound as the normal map of a lit stage in `CollapseStagesToLightall`. It also reports how many of those sit beside an authored `_nh`. Their diffuse was still brightened. Shaders registered later during play are not included.
 - **Texture checksums.** `r_imageChecksums 1` (not archived) or the `imagechecksums` command reads back level 0 of every texture uploaded from pixel data and writes a 64-bit hash per texture, sorted by name, to `imagechecksums/<map>.txt` in the home path. Pixel data includes files, generated maps and lightmap atlases. Render targets, cubemap probes, arrays and 3D textures are skipped. Diff two files to prove that a load-time change leaves every texture bit-identical. The readback takes seconds and should not be enabled while measuring load time.
 
+### Stages 3–4: on-demand normals, prefetch decode, loose image index (Rend2 v9, SP EXE v4)
+
+**Stage 3: `r_genNormalMapsLazy` (experimental, default 0).** With `r_genNormalMaps 1`, `R_FindImageFile` normally builds `<diffuse>_n` and brightens the diffuse for every mipmapped `map` image. In lazy mode it only marks the image `normalDeferred` and keeps the decoded source in the scratch. When `CollapseStagesToLightall` processes a lit stage whose diffuse has no authored `_nh` or `_n`, it calls `R_GenerateDeferredNormalMap`. That function runs the same `R_CreateNormalMap` on the source, recomputes `emissiveColor` and re-uploads the brightened diffuse into the same `image_t` with a new texture name, through the same `Upload32` path. For those images the textures are the same as in eager mode. Diffuse maps that never feed a lit stage stay unbrightened, and authored `_n` maps of unlit stages are no longer loaded. The material DDC kind-1 record (brightened diffuse + normal) is not used in lazy mode. `[map load] r_genNormalMapsLazy` lines count the normals generated on demand and the diffuse maps left unbrightened.
+
+**Stage 4: `r_loadPrefetch` (default 1), `r_loadPrefetchMB` (default 512).** `tr_prefetch.cpp` predicts the images shaders are about to load and decodes them on the worker threads. `R_PrefetchShader` reads them from the script text: every `map`/`clampMap`/`animMap`/`normalMap`/`specMap`/`rmoMap`/… argument, plus `_n`, `_nh`, `_rmo`, `_orm` and `_specGloss` for the first plain map stage or for a shader without a script. Prediction happens when:
+- the BSP shader lump is read, unless `r_materialDDCWorld` is on;
+- a `.skin` file is registered;
+- the surfaces of an MD3 are registered.
+
+The skin and MD3 cases are skipped while `r_materialDDCObjects` is on, because a DDC hit never decodes. The main thread resolves the file as `R_LoadImage` would (given extension, then jpg, png, tga), reads it, parses the JPEG/PNG header and allocates the output with `R_Malloc`. A worker runs the libjpeg/libpng decode with the calls and transforms of `LoadJPG`/`LoadPNG`. `R_LoadImageProbe` takes finished pixels. A name with no file goes straight into the missing-image memo.
+
+TGA, a failed decode and any header `LoadJPG`/`LoadPNG` would reject are left to the normal path, so its messages are unchanged. Leftovers are freed at the end of the world load and of registration. An offline test ran the header phase on one thread and the decode on eight. It compared the result with the `LoadJPG`/`LoadPNG` logic on 70 textures from `assets1` and `assets8_pbr1/2`, including 2048² RGB and RGBA PNG: all 70 were identical. On 8 truncated files there were no mismatches: 2 decoded identically and 6 were rejected by both. Menus (UI) and Ghoul2 GLM default shaders register one by one and are not predicted. `[map load] prefetch` reports submitted, used, waited (with wait time), unused and failed decodes, the TGA left to the normal path, and the main-thread read/header time.
+
+`tr_jobs.cpp` now also has an asynchronous queue (`R_JobSubmit` / `R_JobWait`). `R_ParallelFor` no longer waits for workers that are busy with a decode.
+
+**Loose image index: `fs_looseImageIndex` (SP engine, default 1, Windows).** `FS_FOpenFileRead` used to `fopen` a missing `.jpg`/`.png`/`.tga` once per directory search path. It now consults a listing of that directory's image files and skips the `fopen` when the name is absent. A listed name still goes through `fopen`, so the index can only save a miss, never invent a file. Pak files are not affected. The index is built lazily per directory. It is dropped:
+- when a server spawns (every map load);
+- in `FS_Shutdown`;
+- when an image file is opened for writing.
+
+A loose image added during play is therefore found from the next map on. Unusual spellings (`//`, `./`, `:`) bypass the index.
+
 ### Stage 2: worker threads and faster kernels (Rend2 profile v8)
 
 `shared/rd-rend2/tr_jobs.cpp` adds `R_ParallelFor` / `R_ParallelForEach`. Each call splits a range into chunks that run on the main thread and a pool of workers. `r_loadThreads` sets the pool size: -1 (default) = logical processors − 1, at most 8; 0 = serial, as before; N = N workers, at most 16. The pool follows the cvar at the next call and is joined in `RE_Shutdown` when the window is destroyed. A chunk may not touch GL, the filesystem, zone memory, cvars or `ri.Printf`. Every kernel produces the same bytes however it is split.

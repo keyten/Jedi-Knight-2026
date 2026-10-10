@@ -448,6 +448,7 @@ void	FS_InitFilesystem (void);
 void	FS_Shutdown( qboolean inPlace = qfalse );
 
 void	FS_Restart( qboolean inPlace = qfalse );
+void	FS_InvalidateLooseImageIndex( void );	// at every map load
 
 qboolean FS_ConditionalRestart( void );
 

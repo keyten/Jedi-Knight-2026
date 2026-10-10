@@ -3693,7 +3693,10 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 
 	// the DLL may be unloaded after this: no worker thread may outlive it
 	if ( destroyWindow )
+	{
+		R_PrefetchReset();
 		R_JobsShutdown();
+	}
 
 	// shut down platform specific OpenGL stuff
 	if ( destroyWindow ) {
@@ -3715,6 +3718,7 @@ Touch all images to make sure they are resident
 void RE_EndRegistration( void ) {
 	R_IssuePendingRenderCommands();
 	R_SourceScratchFlush();
+	R_PrefetchFlush();
 	if (R_ImageChecksumsEnabled())
 		R_WriteImageChecksums("end of registration");
 	if (!ri.Sys_LowPhysicalMemory()) {

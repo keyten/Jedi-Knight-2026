@@ -928,6 +928,7 @@ typedef struct image_s {
 	qboolean	generatedNormal;		// <diffuse>_n built by R_CreateNormalMap
 	qboolean	usedByLitStage;			// bound as the normal map of a lit stage
 	qboolean	hasSourceData;			// level 0 uploaded from pixels, not rendered or streamed
+	qboolean	normalDeferred;			// r_genNormalMapsLazy: _n not generated yet, not brightened
 } image_t;
 
 typedef struct cubemap_s {
@@ -4744,6 +4745,24 @@ qboolean R_ImageChecksumsEnabled( void );
 void	R_WriteImageChecksums( const char *reason );
 void	R_ReportGeneratedNormalUse( void );
 void	R_SourceScratchFlush( void );
+qboolean R_LazyNormalsEnabled( void );
+image_t	*R_GenerateDeferredNormalMap( image_t *diffuse );
+qboolean R_ImageKnownMissing( const char *lowerName );
+qboolean R_ImageLoadedByName( const char *name );
+void	R_ImageMarkMissing( const char *lowerName );
+
+//
+// tr_prefetch.cpp: r_loadPrefetch, predicted images decoded on worker threads
+//
+void	R_PrefetchShader( const char *name );	// tr_shader.cpp: queues its images
+void	R_PrefetchImage( const char *name );
+void	R_PrefetchPump( void );
+qboolean R_PrefetchTake( const char *name, byte **pic, int *width, int *height );
+qboolean R_PrefetchWorldEnabled( void );
+qboolean R_PrefetchModelsEnabled( void );
+void	R_PrefetchFlush( void );
+void	R_PrefetchReset( void );
+void	R_PrefetchReport( void );
 
 //
 // tr_jobs.cpp: worker threads for data-parallel load-time kernels
@@ -4752,6 +4771,12 @@ typedef void (*R_ParallelForFn)( void *user, int begin, int end );
 void	R_ParallelFor( int count, int grain, R_ParallelForFn fn, void *user );
 void	R_JobsShutdown( void );
 int		R_JobWorkers( void );
+
+// one asynchronous task; R_JobWait returns when it is done and frees the handle
+struct R_Job;
+R_Job	*R_JobSubmit( void (*fn)( void *user ), void *user );
+qboolean R_JobDone( R_Job *job );
+void	R_JobWait( R_Job *job );
 
 // runs f(begin, end) over chunks of [0, count); see tr_jobs.cpp for what f may do
 template<typename F>

@@ -210,6 +210,7 @@ void SV_SpawnServer( const char *server, ForceReload_e eForceReload, qboolean bA
 			MAP_LOAD_PROFILE_EXE_VERSION, __DATE__, __TIME__);
 
 	re.RegisterMedia_LevelLoadBegin( server, eForceReload, bAllowScreenDissolve );
+	FS_InvalidateLooseImageIndex();
 
 
 	Cvar_SetValue( "cl_paused", 0 );

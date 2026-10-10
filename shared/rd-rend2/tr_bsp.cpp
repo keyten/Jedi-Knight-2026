@@ -4893,6 +4893,13 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	// load into heap
 	R_LoadEntities(worldData, &header->lumps[LUMP_ENTITIES]);
 	R_LoadShaders(worldData, &header->lumps[LUMP_SHADERS]);
+	// r_loadPrefetch: start decoding the surface materials' images now
+	if ( R_PrefetchWorldEnabled() )
+	{
+		for ( int s = 0; s < worldData->numShaders; s++ )
+			R_PrefetchShader( worldData->shaders[s].shader );
+		R_PrefetchPump();
+	}
 	R_LoadLightmaps(
 		worldData,
 		&header->lumps[LUMP_LIGHTMAPS],
@@ -5177,6 +5184,7 @@ void RE_LoadWorldMap( const char *name ) {
 		R_RenderAllCubemaps();
 	}
 	R_LoadProfilePrint("world cubemap rendering", cubemapStart);
+	R_PrefetchFlush();
 	R_LoadProfilePrint("world total", loadStart);
 	R_ModelLoadProfileCheckpoint("world map");
 	if (R_LoadProfileEnabled()) R_ShaderLoadProfileBegin();

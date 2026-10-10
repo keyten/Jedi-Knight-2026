@@ -36,6 +36,12 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "../client/client.h"
 #endif
 #include <minizip/unzip.h>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#ifdef _WIN32
+#include <io.h>
+#endif
 
 // for rmdir
 #if defined (_MSC_VER)
@@ -229,6 +235,99 @@ typedef struct searchpath_s {
 	pack_t		*pack;		// only one of pack / dir will be non NULL
 	directory_t	*dir;
 } searchpath_t;
+
+/*
+=================
+Loose image index (fs_looseImageIndex)
+
+A map load probes thousands of image names that do not exist (companion maps
+such as _nh / _rmo / _specGloss, other extensions). Each miss used to cost one
+fopen per directory search path. Instead, the .jpg/.png/.tga files of every
+directory search path are listed once (lazily, per directory) and a missing
+name skips the fopen. Pak files are unaffected: they have their own hash.
+
+The index never claims a file is there: a listed name still goes through
+fopen. It is dropped when a server spawns (every map load), when the search
+paths are rebuilt, and when an image file is written, so a loose image added
+during play is seen from the next map on. Windows only; elsewhere every
+directory is probed as before.
+=================
+*/
+static cvar_t *fs_looseImageIndex;
+struct looseImageIndex_t {
+	std::unordered_set<std::string> names;	// lower case, '/' separated, relative to fullpath
+};
+static std::unordered_map<const directory_t *, looseImageIndex_t> fs_looseImages;
+
+static qboolean FS_IsLooseImageName( const char *name ) {
+	const char *ext = COM_GetExtension( name );
+	return (qboolean)( !Q_stricmp( ext, "jpg" ) || !Q_stricmp( ext, "png" ) || !Q_stricmp( ext, "tga" ) );
+}
+
+void FS_InvalidateLooseImageIndex( void ) {
+	fs_looseImages.clear();
+}
+
+#ifdef _WIN32
+static void FS_IndexLooseImages( const char *base, const char *sub, std::unordered_set<std::string> &names, int depth ) {
+	char search[MAX_OSPATH];
+	struct _finddata_t info;
+
+	if ( depth > 32 )
+		return;
+	if ( sub[0] )
+		Com_sprintf( search, sizeof( search ), "%s\\%s\\*", base, sub );
+	else
+		Com_sprintf( search, sizeof( search ), "%s\\*", base );
+	const intptr_t handle = _findfirst( search, &info );
+	if ( handle == -1 )
+		return;
+	do {
+		if ( !strcmp( info.name, "." ) || !strcmp( info.name, ".." ) )
+			continue;
+		char rel[MAX_OSPATH];
+		if ( sub[0] )
+			Com_sprintf( rel, sizeof( rel ), "%s/%s", sub, info.name );
+		else
+			Q_strncpyz( rel, info.name, sizeof( rel ) );
+		if ( info.attrib & _A_SUBDIR )
+			FS_IndexLooseImages( base, rel, names, depth + 1 );
+		else if ( FS_IsLooseImageName( info.name ) ) {
+			Q_strlwr( rel );
+			names.insert( rel );
+		}
+	} while ( _findnext( handle, &info ) == 0 );
+	_findclose( handle );
+}
+#endif
+
+// qtrue only when the directory certainly has no such image file
+static qboolean FS_LooseImageMissing( const directory_t *dir, const char *filename ) {
+#ifdef _WIN32
+	if ( !fs_looseImageIndex || !fs_looseImageIndex->integer || !FS_IsLooseImageName( filename ) )
+		return qfalse;
+	// unusual spellings go to fopen as they always did
+	if ( strstr( filename, "//" ) || strstr( filename, "\\\\" ) || strstr( filename, "./" ) || strchr( filename, ':' ) )
+		return qfalse;
+
+	char key[MAX_QPATH];
+	Q_strncpyz( key, filename, sizeof( key ) );
+	for ( char *c = key; *c; c++ ) {
+		if ( *c == '\\' )
+			*c = '/';
+	}
+	Q_strlwr( key );
+
+	auto found = fs_looseImages.find( dir );
+	if ( found == fs_looseImages.end() ) {
+		found = fs_looseImages.emplace( dir, looseImageIndex_t() ).first;
+		FS_IndexLooseImages( dir->fullpath, "", found->second.names, 0 );
+	}
+	return (qboolean)( found->second.names.find( key ) == found->second.names.end() );
+#else
+	return qfalse;
+#endif
+}
 
 static char		fs_gamedir[MAX_OSPATH];	// this will be a single file name with no separators
 static cvar_t		*fs_debug;
@@ -1005,6 +1104,9 @@ fileHandle_t FS_FOpenFileWrite( const char *filename, qboolean safe ) {
 
 	FS_AssertInitialised();
 
+	if ( FS_IsLooseImageName( filename ) )
+		FS_InvalidateLooseImageIndex();
+
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
 
@@ -1047,6 +1149,9 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	fileHandle_t	f;
 
 	FS_AssertInitialised();
+
+	if ( FS_IsLooseImageName( filename ) )
+		FS_InvalidateLooseImageIndex();
 
 	f = FS_HandleForFile();
 	fsh[f].zipFile = qfalse;
@@ -1378,6 +1483,9 @@ long FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean unique
 				// check a file in the directory tree
 
 				dir = search->dir;
+				if ( FS_LooseImageMissing( dir, filename ) ) {
+					continue;
+				}
 
 				netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
 				fsh[*file].handleFiles.file.o = fopen (netpath, "rb");
@@ -2850,6 +2958,9 @@ void FS_Shutdown( qboolean keepModuleFiles ) {
 		}
 	}
 
+	// the index is keyed by the directories freed below
+	FS_InvalidateLooseImageIndex();
+
 	// free everything
 	for ( p = fs_searchpaths ; p ; p = next ) {
 		next = p->next;
@@ -2887,6 +2998,7 @@ void FS_Startup( const char *gameName ) {
 	fs_packFiles = 0;
 
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
+	fs_looseImageIndex = Cvar_Get( "fs_looseImageIndex", "1", CVAR_ARCHIVE );
 	fs_copyfiles = Cvar_Get( "fs_copyfiles", "0", CVAR_INIT );
 	fs_cdpath = Cvar_Get ("fs_cdpath", "", CVAR_INIT|CVAR_PROTECTED );
 	fs_basepath = Cvar_Get ("fs_basepath", Sys_DefaultInstallPath(), CVAR_INIT|CVAR_PROTECTED );

@@ -1046,6 +1046,22 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 	mdvModel->numSurfaces = md3Model->numSurfaces;
 	mdvModel->surfaces = surf = (mdvSurface_t *)Hunk_Alloc(sizeof(*surf) * md3Model->numSurfaces, h_low);
 
+	// r_loadPrefetch: decode the images of every surface shader ahead
+	if (R_PrefetchModelsEnabled())
+	{
+		const byte *scan = (const byte *) md3Model + md3Model->ofsSurfaces;
+		for (int s = 0; s < md3Model->numSurfaces; s++)
+		{
+			const md3Surface_t *scanSurf = (const md3Surface_t *) scan;
+			const int numShaders = LittleLong(scanSurf->numShaders);
+			const md3Shader_t *scanShader = (const md3Shader_t *) (scan + LittleLong(scanSurf->ofsShaders));
+			for (int k = 0; k < numShaders && k < MD3_MAX_SHADERS; k++)
+				R_PrefetchShader(scanShader[k].name);
+			scan += LittleLong(scanSurf->ofsEnd);
+		}
+		R_PrefetchPump();
+	}
+
 	md3Surf = (md3Surface_t *) ((byte *) md3Model + md3Model->ofsSurfaces);
 	for(i = 0; i < md3Model->numSurfaces; i++)
 	{

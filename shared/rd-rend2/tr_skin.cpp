@@ -105,6 +105,22 @@ qhandle_t RE_RegisterIndividualSkin( const char *name , qhandle_t hSkin)
 
 	skin = tr.skins[hSkin];
 
+	// r_loadPrefetch: decode the images of every surface shader ahead
+	if ( R_PrefetchModelsEnabled() ) {
+		char *scan = text;
+		while ( scan && *scan ) {
+			token = CommaParse( &scan );	// surface name
+			if ( !token[0] )
+				break;
+			if ( *scan == ',' )
+				scan++;
+			token = CommaParse( &scan );	// shader
+			if ( strcmp( token, "*off" ) )
+				R_PrefetchShader( token );
+		}
+		R_PrefetchPump();
+	}
+
 	text_p = text;
 	while ( text_p && *text_p ) {
 		// get surface name

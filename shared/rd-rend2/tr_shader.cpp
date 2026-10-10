@@ -3628,6 +3628,10 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 				normalImg = R_FindImageFile(normalName, IMGTYPE_NORMAL, normalFlags);
 			}
 
+			// r_genNormalMapsLazy: the generated normal map is built only here
+			if (!normalImg)
+				normalImg = R_GenerateDeferredNormalMap(diffuseImg);
+
 			if (normalImg)
 			{
 				stage->bundle[TB_NORMALMAP] = stage->bundle[0];
@@ -5040,6 +5044,110 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 	// ScanAndLoadShaderFiles indexes every definition in the same text with
 	// generateHashValue. A bucket miss is therefore a definitive miss.
 	return NULL;
+}
+
+/*
+===============
+R_PrefetchShader
+
+r_loadPrefetch (tr_prefetch.cpp): queues the images R_FindShader( name ) is
+about to load. From the script text: the image of every stage keyword that
+loads one; for the first plain map stage and for a shader without script also
+the companions FinishShader probes (_n, _nh, _rmo, _orm, _specGloss). A
+prediction that turns out wrong only costs memory until the next flush.
+===============
+*/
+static void R_PrefetchDiffuse( const char *token )
+{
+	char base[MAX_QPATH];
+	R_PrefetchImage( token );
+	COM_StripExtension( token, base, sizeof( base ) );
+	R_PrefetchImage( va( "%s_n", base ) );
+	R_PrefetchImage( va( "%s_nh", base ) );
+	R_PrefetchImage( va( "%s_rmo", base ) );
+	R_PrefetchImage( va( "%s_orm", base ) );
+	R_PrefetchImage( va( "%s_specGloss", base ) );
+}
+
+void R_PrefetchShader( const char *name )
+{
+	char strippedName[MAX_QPATH];
+
+	if ( !name || !name[0] )
+		return;
+	COM_StripExtension( name, strippedName, sizeof( strippedName ) );
+
+	// a shader of this name is registered: its images are loaded
+	const int hash = generateHashValue( strippedName, FILE_HASH_SIZE );
+	for ( shader_t *sh = hashTable[hash]; sh; sh = sh->next )
+		if ( !Q_stricmp( sh->name, strippedName ) )
+			return;
+
+	const char *text = FindShaderInShaderText( strippedName );
+	if ( !text )
+	{
+		R_PrefetchDiffuse( strippedName );
+		return;
+	}
+
+	const char *p = text;
+	int depth = 0;
+	qboolean diffuseSeen = qfalse;
+	for ( ;; )
+	{
+		const char *token = COM_ParseExt( &p, qtrue );
+		if ( !token[0] )
+			break;
+		if ( token[0] == '{' )
+		{
+			++depth;
+			continue;
+		}
+		if ( token[0] == '}' )
+		{
+			if ( --depth <= 0 )
+				break;
+			continue;
+		}
+		if ( depth != 2 )
+			continue;
+
+		if ( !Q_stricmp( token, "map" ) || !Q_stricmp( token, "clampmap" ) )
+		{
+			token = COM_ParseExt( &p, qfalse );
+			if ( token[0] && token[0] != '$' && token[0] != '*' )
+			{
+				if ( !diffuseSeen )
+					R_PrefetchDiffuse( token );
+				else
+					R_PrefetchImage( token );
+				diffuseSeen = qtrue;
+			}
+		}
+		else if ( !Q_stricmp( token, "normalMap" ) || !Q_stricmp( token, "normalHeightMap" ) ||
+			!Q_stricmp( token, "emissiveMap" ) || !Q_stricmp( token, "specMap" ) ||
+			!Q_stricmp( token, "specularMap" ) || !Q_stricmp( token, "rmoMap" ) ||
+			!Q_stricmp( token, "rmosMap" ) || !Q_stricmp( token, "moxrMap" ) ||
+			!Q_stricmp( token, "mosrMap" ) || !Q_stricmp( token, "ormMap" ) ||
+			!Q_stricmp( token, "ormsMap" ) || !Q_stricmp( token, "heightMap" ) ||
+			!Q_stricmp( token, "skinMask" ) )
+		{
+			token = COM_ParseExt( &p, qfalse );
+			R_PrefetchImage( token );
+		}
+		else if ( !Q_stricmp( token, "animMap" ) || !Q_stricmp( token, "clampanimMap" ) ||
+			!Q_stricmp( token, "oneshotanimMap" ) )
+		{
+			COM_ParseExt( &p, qfalse );	// frequency
+			for ( ;; )
+			{
+				token = COM_ParseExt( &p, qfalse );
+				if ( !token[0] )
+					break;
+				R_PrefetchImage( token );
+			}
+		}
+	}
 }
 
 
