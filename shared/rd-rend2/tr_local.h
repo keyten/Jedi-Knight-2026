@@ -567,6 +567,7 @@ extern cvar_t  *r_skinSSSDebug;
 
 extern cvar_t  *r_autoPBR;
 extern cvar_t  *r_autoPBRDebug;
+extern cvar_t  *r_materialModelDebug;
 extern cvar_t  *r_autoFoliage;
 extern cvar_t  *r_autoFoliageDebug;
 extern cvar_t  *r_grassCardMode;
@@ -1705,7 +1706,6 @@ enum
 	// cookie, of lightall and volumetric_inject. Needs
 	// GL_MAX_TEXTURE_IMAGE_UNITS > 25, else r_spotLightCookies stays off.
 	TB_LIGHTCOOKIES      = 25,
-
 	// froxel fog extinction of this frame (r_volumetricSelfShadow), in
 	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
 	TB_FROXELMEDIA       = 13,
@@ -1812,6 +1812,17 @@ typedef enum
 	MATCLASS_COUNT
 } materialClass_t;
 
+// Explicit per-stage shading model.  STANDARD preserves the existing lightall
+// response; HAIR and EYE are opt-in shader annotations.  Hair has a deliberately
+// narrow fallback in R_ResolvedMaterialType for exact "hair" name tokens.
+typedef enum
+{
+	MATERIAL_TYPE_STANDARD,
+	MATERIAL_TYPE_HAIR,
+	MATERIAL_TYPE_EYE,
+	MATERIAL_TYPE_COUNT
+} materialType_t;
+
 enum AlphaTestType
 {
 	ALPHA_TEST_NONE,
@@ -1862,6 +1873,8 @@ typedef struct {
 	specularType_t  specularType;
 	pbrSource_t     pbrSource;
 	materialClass_t materialClass;
+	materialType_t  materialType;
+	qboolean        materialTypeSet;
 	const char     *materialReason;	// static string: rule that picked materialClass
 	const char     *materialToken;	// static string: token that matched, or NULL
 	qboolean        pbrDrawn;		// drawn since registration, for r_pbrDumpMaterials
@@ -1885,6 +1898,7 @@ typedef struct {
 	qboolean skinScatterSet;		// skinScatter <0..1> keyword
 	const char *skinReason;			// static string: why skinScatter is what it is
 	image_t *skinMaskImage;			// skinMask keyword: R = scatter per texel
+	image_t *materialMapImage;		// materialMap: RG tangent direction, B model mask
 
 	surfaceSprite_t	*ss;
 
@@ -2562,6 +2576,7 @@ typedef enum
 	UNIFORM_NORMALSCALE,
 	UNIFORM_SPECULARSCALE,
 	UNIFORM_MATERIALDEBUG,	// r_autoPBRDebug: rgb = color, a = 1 when on (tr_autopbr.cpp)
+	UNIFORM_MATERIALMODEL,	// type, has materialMap, anisotropy, debug view
 	UNIFORM_FOLIAGEDEBUG,
 	UNIFORM_AUTOGRASS,		// r_grassCardMode: cards, lod distance, debug mode, width scale
 	UNIFORM_FOLIAGEWIND,	// r_foliageWind: wind dir x, y, amplitude, speed
@@ -2720,7 +2735,7 @@ typedef enum
 
 	UNIFORM_SKINPARAMS,		// skin SSS of this draw: scatter (0 = not skin), has mask, compare split x (< 0 off), unused
 	UNIFORM_SKINWRAP,		// skin SSS: rgb = wrap widths (r_skinSSS 1), w = transmission strength
-	UNIFORM_SKINMASKMAP,	// skin SSS: skinMask image (TB_SKINMASK)
+	UNIFORM_SKINMASKMAP,	// skin SSS or hair/eye material map (TB_SKINMASK)
 	UNIFORM_SKINKERNEL,		// skin SSS blur: SKIN_SSS_MAX_TAPS vec4 (rgb weight, offset)
 	UNIFORM_SKINSETTINGS,	// skin SSS blur / composite, pass specific
 	UNIFORM_SKINSETTINGS2,	// skin SSS blur / composite, pass specific
@@ -5797,6 +5812,7 @@ qboolean R_AutoPBRSpecularScale(const shaderStage_t *stage, vec4_t out);
 qboolean R_AutoPBRDebugColor(const shaderStage_t *stage, vec4_t out);
 image_t *R_AutoPBRRoughnessImage(const shaderStage_t *stage);
 const char *R_MaterialClassName(materialClass_t cls);
+materialType_t R_ResolvedMaterialType(const shaderStage_t *stage);
 // r_weatherWetness response of the stage class: darkening, wet roughness scale, normal flattening
 void R_WetnessResponse(const shaderStage_t *stage, vec3_t out);
 qboolean R_IsAutoPBRSource(pbrSource_t source);
@@ -6409,6 +6425,7 @@ void R_CreateSkinSSSImages(int width, int height);
 void R_CreateSkinSSSFBOs(void);
 void R_SkinSSSClassifyShader(const shader_t *sh, shaderStage_t *stages, int numStages);
 void R_SkinSSSSetupDraw(const shaderStage_t *stage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
+void R_MaterialModelSetupDraw(const shaderStage_t *stage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 qboolean R_SkinSSSDebugColor(const shaderStage_t *stage, vec4_t out);
 const char *R_SkinSSSStageInfo(const shaderStage_t *stage);
 qboolean RB_SkinSSSWantsView(void);

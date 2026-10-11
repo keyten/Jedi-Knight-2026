@@ -2227,6 +2227,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		if (pStage->glslShaderGroup == tr.lightallShader)
 		{
 			uniformDataWriter.SetUniformInt(UNIFORM_DIFFUSEBRDF, r_diffuseBRDF->integer);
+			R_MaterialModelSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
 			// skin scattering (tr_skinsss.cpp): scatter, mask, wrap
 			R_SkinSSSSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
 		}

@@ -734,6 +734,9 @@ uniform sampler2D u_DeluxeMap;
 #if defined(USE_SPECULARMAP)
 uniform sampler2D u_SpecularMap;
 #endif
+// Shared by skinMask and materialMap. Mixed skin/eye stages pack skin
+// scatter in R and material coverage in B of the same image.
+uniform sampler2D u_SkinMaskMap;
 
 #if defined(USE_SHADOWMAP)
 #if defined(USE_SHADOWS2)
@@ -794,6 +797,9 @@ uniform vec4 u_NormalScale;
 uniform vec4 u_SpecularScale;
 // r_autoPBRDebug (tr_autopbr.cpp): rgb = material class / source color, a = 1 when on
 uniform vec4 u_MaterialDebug;
+// x: materialType (0 standard, 1 hair, 2 eye), y: materialMap present,
+// z: hair anisotropy, w: r_materialModelDebug
+uniform vec4 u_MaterialModel;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 
 #if defined(USE_LIQUID_SUN) || defined(USE_LIQUID_LOCAL) || defined(USE_LIQUID_BAKED)
@@ -927,6 +933,11 @@ void SSRWriteNone(in vec3 worldPosition)
 }
 #endif
 
+#if defined(PER_PIXEL_LIGHTING)
+// Scene-space specular-only accumulator for hair/eye debug views.
+vec3 g_materialSpecular = vec3(0.0);
+#endif
+
 #if defined(USE_SKIN_SSS) && defined(PER_PIXEL_LIGHTING)
 // Skin scattering of the stages classified as skin (tr_skinsss.cpp).
 // r_skinSSS 1: per channel wrapped diffuse lobe, red widest. A cheap
@@ -936,7 +947,6 @@ void SSRWriteNone(in vec3 worldPosition)
 // goes to out_SkinDiffuse and is diffused in screen space (skin_sss.glsl).
 uniform vec4 u_SkinParams; // x = scatter of this stage (0 = not skin), y = has skin mask, z = compare split x (< 0 off)
 uniform vec4 u_SkinWrap;   // rgb = wrap widths (r_skinSSS 1, else 0), w = transmission strength
-uniform sampler2D u_SkinMaskMap;
 
 float g_skinScatter = 0.0;			// scatter of this fragment (stage x mask)
 vec3  g_skinWrap = vec3(0.0);		// wrap widths of this fragment, 0 = Lambert
@@ -1770,6 +1780,55 @@ vec3 CalcSpecular(
 	return D * F * V;
 }
 
+// Practical anisotropic GGX for hair cards/shells.  The mesh UV tangent is
+// the strand direction unless materialMap RG rotates it in the tangent frame.
+// This remains a dielectric lobe: no metallic tint or diffuse removal.
+vec3 CalcHairSpecular(
+	in vec3 specular,
+	in vec3 N,
+	in vec3 T,
+	in vec3 H,
+	in float NL,
+	in float NE,
+	in float VH,
+	in float roughness,
+	in float anisotropy)
+{
+	vec3 B = normalize(cross(N, T));
+	float a = clamp(roughness, 0.04, 1.0);
+	float at = clamp(a * (1.0 + anisotropy), 0.04, 1.0);
+	float ab = clamp(a * (1.0 - anisotropy), 0.04, 1.0);
+	float HT = dot(H, T) / at;
+	float HB = dot(H, B) / ab;
+	float HN = max(dot(H, N), 0.0);
+	float denom = HT * HT + HB * HB + HN * HN;
+	float D = 1.0 / max(M_PI * at * ab * denom * denom, 1e-5);
+	vec3 F = F_Schlick(specular, VH);
+	float V = V_SmithJointApprox(a, NE, NL);
+	return D * F * V;
+}
+
+vec3 CalcMaterialSpecular(
+	in vec3 specular,
+	in vec3 N,
+	in vec3 T,
+	in vec3 H,
+	in float NH,
+	in float NL,
+	in float NE,
+	in float LH,
+	in float VH,
+	in float roughness,
+	in float materialMask)
+{
+	vec3 isotropic = CalcSpecular(specular, NH, NL, NE, LH, VH, roughness);
+	if (int(u_MaterialModel.x + 0.5) != 1 || materialMask <= 0.0)
+		return isotropic;
+	vec3 hair = CalcHairSpecular(specular, N, T, H, NL, NE, VH,
+		roughness, u_MaterialModel.z);
+	return mix(isotropic, hair, materialMask);
+}
+
 //Energy conserving wrap term.
 float WrapLambert(in float NL, in float w)
 {
@@ -2128,6 +2187,8 @@ struct DLightSurface
 	vec3  diffuse;
 	vec3  specular;
 	float roughness;
+	vec3  materialT;
+	float materialMask;
 	vec3  vertexNormal;
 #if defined(USE_LIQUID_LOCAL)
 	float liquidFootprint;
@@ -2377,14 +2438,22 @@ vec3 EvaluateDynamicLight(
 	  #if defined(USE_SPECULARMAP)
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
-	lit += lightColor * CalcSpecular(s.specular, NH, NL, s.NE, LH, VH, s.roughness) * attenuation * NL;
+	vec3 specularLight = lightColor * CalcMaterialSpecular(s.specular, s.N, s.materialT,
+		H, NH, NL, s.NE, LH, VH, s.roughness, s.materialMask) * attenuation * NL;
+	lit += specularLight;
+	if (int(u_MaterialModel.x + 0.5) != 0)
+		g_materialSpecular += specularLight;
 	  #endif
 	return lit;
 	#else
 	#if defined(USE_SPECULARMAP)
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
-	reflectance += CalcSpecular(s.specular, NH, NL, s.NE, LH, VH, s.roughness);
+	vec3 specularBrdf = CalcMaterialSpecular(s.specular, s.N, s.materialT,
+		H, NH, NL, s.NE, LH, VH, s.roughness, s.materialMask);
+	reflectance += specularBrdf;
+	if (int(u_MaterialModel.x + 0.5) != 0)
+		g_materialSpecular += lightColor * specularBrdf * attenuation * NL;
 	#endif
 	return lightColor * reflectance * attenuation * NL;
 	#endif
@@ -2744,8 +2813,26 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 	#if defined(USE_SPECULARMAP)
 	#if !defined(USE_CLOTH_BRDF)
-	float specFF = LtcQuadFormFactorSpec(cache.Minv, q0, q1, q2, q3, twoSided);
-	specularOut = radiance * specFF * cache.fresnel;
+	if (int(u_MaterialModel.x + 0.5) == 1 && s.materialMask > 0.0)
+	{
+		// The isotropic LTC table cannot represent an elongated lobe.  For
+		// hair use the closest point of the rectangle/saber as a stable
+		// representative direction and retain the exact diffuse form factor.
+		vec3 L = normalize(closest - s.position);
+		vec3 H = normalize(L + s.E);
+		float NL = clamp(dot(N, L), 0.0, 1.0);
+		float NH = clamp(dot(N, H), 0.0, 1.0);
+		float LH = clamp(dot(L, H), 0.0, 1.0);
+		float VH = clamp(dot(s.E, H), 0.0, 1.0);
+		specularOut = radiance * M_PI * formFactor * CalcMaterialSpecular(
+			s.specular, N, s.materialT, H, NH, NL, s.NE, LH, VH,
+			s.roughness, s.materialMask);
+	}
+	else
+	{
+		float specFF = LtcQuadFormFactorSpec(cache.Minv, q0, q1, q2, q3, twoSided);
+		specularOut = radiance * specFF * cache.fresnel;
+	}
 	#else
 	// cloth (Charlie) lobe: wide, a representative point is enough
 	vec3 L = normalize(closest - s.position);
@@ -2789,6 +2876,10 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	}
 	#endif
 	#endif
+	#if defined(USE_SPECULARMAP)
+	if (int(u_MaterialModel.x + 0.5) != 0)
+		g_materialSpecular += specularOut;
+	#endif
 	#if defined(USE_SKIN_SSS)
 	g_skinDiffuse += diffuseOut;
 	#endif
@@ -2824,6 +2915,8 @@ vec3 CalcDynamicLightContribution(
 	in float NE,
 	in vec3 diffuse,
 	in vec3 specular,
+	in vec3 materialT,
+	in float materialMask,
 	in vec3 vertexNormal)
 {
 	vec3 outColor = vec3(0.0);
@@ -2836,6 +2929,8 @@ vec3 CalcDynamicLightContribution(
 	s.diffuse = diffuse;
 	s.specular = specular;
 	s.roughness = roughness;
+	s.materialT = materialT;
+	s.materialMask = materialMask;
 	s.vertexNormal = vertexNormal;
 #if defined(USE_LIQUID_LOCAL)
 	s.liquidFootprint = length(fwidth(s.position));
@@ -3789,6 +3884,23 @@ void main()
 	vec3 vertexNormal = mix(var_Normal.xyz, -var_Normal.xyz, float(gl_FrontFacing)) * u_NormalScale.z;
   #endif
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
+	int materialType = int(u_MaterialModel.x + 0.5);
+	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);
+	if (dot(materialT, materialT) < 1e-8)
+		materialT = abs(N.z) < 0.999 ? cross(vec3(0.0, 0.0, 1.0), N) : vec3(1.0, 0.0, 0.0);
+	materialT = normalize(materialT);
+	float tangentSign = var_Tangent.w < 0.0 ? -1.0 : 1.0;
+	vec3 materialB = normalize(cross(N, materialT)) * tangentSign;
+	float materialMask = materialType == 0 ? 0.0 : 1.0;
+	if (u_MaterialModel.y > 0.5)
+	{
+		vec3 materialMap = texture(u_SkinMaskMap, texCoords).rgb;
+		vec2 direction = materialMap.rg * 2.0 - 1.0;
+		if (dot(direction, direction) > 1e-4)
+			materialT = normalize(materialT * direction.x + materialB * direction.y);
+		materialMask = materialMap.b;
+		materialB = normalize(cross(N, materialT)) * tangentSign;
+	}
 	L /= sqrt(sqrLightDist);
   #if defined(USE_ENTITY_GRID) && defined(USE_ENTITY_GRID_L1)
 	if (useProbe)
@@ -4081,6 +4193,7 @@ void main()
 	// We dont compute it because cloth diffuse is dependent on NL
 	// So we just skip this. Reconsider this again when more BRDFS are added
 
+	vec3 materialDiffuse = diffuse.rgb;
 	vec4 specular = vec4(1.0);
 	float roughness = 0.99;
   #if defined(USE_SPECULARMAP)
@@ -4108,6 +4221,13 @@ void main()
 	roughness = mix(1.0, 0.01, specular.a * (1.0 - u_SpecularScale.w));
   #endif
   #endif
+	if (materialType != 0 && materialMask > 0.0)
+	{
+		// Both models are dielectrics.  Restore diffuse energy if an authored
+		// packed map accidentally marked the covered texels as metallic.
+		diffuse.rgb = mix(diffuse.rgb, materialDiffuse, materialMask);
+		specular.rgb = mix(specular.rgb, vec3(0.04), materialMask);
+	}
 
   #if defined(USE_WETNESS)
 	if (wetness > 0.0)
@@ -4146,6 +4266,10 @@ void main()
 		diffuse.rgb *= 1.0 - 0.25 * puddle * (1.0 - metal);
 	}
   #endif
+	if (materialType == 1)
+		roughness = mix(roughness, clamp(roughness, 0.25, 0.65), materialMask);
+	else if (materialType == 2)
+		roughness = mix(roughness, 0.08, materialMask);
 
 	// Environment reflections. Legacy application: the F0 term is scaled by AO
 	// and the cubemap brightness follows the AO'd lighting (kept bit exact for
@@ -4232,13 +4356,15 @@ void main()
   #if defined(USE_LIGHT_VECTOR)
 	float NH = clamp(dot(N, H), 0.0, 1.0);
 	float VH = clamp(dot(E, H), 0.0, 1.0);
-	Fs = CalcSpecular(specular.rgb, NH, NL, NE, LH, VH, roughness);
+	Fs = CalcMaterialSpecular(specular.rgb, N, materialT, H, NH, NL, NE,
+		LH, VH, roughness, materialMask);
   #endif
 
   #if ((defined(USE_LIGHTMAP) && defined(USE_DELUXEMAP)) || defined(USE_LIGHT_VERTEX)) && defined(r_deluxeSpecular)
 	float NH = clamp(dot(N, H), 0.0, 1.0);
 	float VH = clamp(dot(E, H), 0.0, 1.0);
-	Fs = CalcSpecular(specular.rgb, NH, NL, NE, LH, VH, roughness) * r_deluxeSpecular;
+	Fs = CalcMaterialSpecular(specular.rgb, N, materialT, H, NH, NL, NE,
+		LH, VH, roughness, materialMask) * r_deluxeSpecular;
   #endif
   #endif
 
@@ -4253,15 +4379,20 @@ void main()
 	out_Color.rgb  = lightColor * reflectance * (attenuation * NL);
 #endif
 	out_Color.rgb += diffuseAmbientColor * diffuse.rgb;
+	if (materialType != 0)
+		g_materialSpecular += lightColor * Fs * (attenuation * NL);
 
 	// kept separately: r_forwardPlusDebug, later SSGI style consumers
-	vec3 dynamicLight = CalcDynamicLightContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, diffuse.rgb, specular.rgb, vertexNormal);
+	vec3 dynamicLight = CalcDynamicLightContribution(roughness, N, E, u_ViewOrigin,
+		viewDir, NE, diffuse.rgb, specular.rgb, materialT, materialMask, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
 	// one EnvBRDF lookup for the cubemap and the SSR weight
 	vec3 iblWeight = SpecularIBLWeight(roughness, NE, specularAO);
 	vec3 cubemapReflection = CalcIBLRadiance(roughness, N, E, u_ViewOrigin, viewDir, iblLighting) * iblWeight * specOcclusion;
 	out_Color.rgb += cubemapReflection;
+	if (materialType != 0)
+		g_materialSpecular += cubemapReflection;
   #if defined(USE_SPECULARMAP)
 	out_SSRNormal = vec4(SSREncodeNormal(N), roughness, 1.0);
 	// SSR hits are traced geometry, not occluded again (indirect-only: the
@@ -4271,7 +4402,11 @@ void main()
 	out_SSRCubemap.rgb = cubemapReflection;
   #endif
 #else
-	out_Color.rgb += CalcIBLContribution(roughness, N, E, u_ViewOrigin, viewDir, NE, specularAO, iblLighting) * specOcclusion;
+	vec3 iblSpecular = CalcIBLContribution(roughness, N, E, u_ViewOrigin,
+		viewDir, NE, specularAO, iblLighting) * specOcclusion;
+	out_Color.rgb += iblSpecular;
+	if (materialType != 0)
+		g_materialSpecular += iblSpecular;
 #endif
 #if defined(USE_SSGI)
 	SSGIWriteReceiver(N, roughness, diffuse.rgb);
@@ -4283,13 +4418,15 @@ void main()
 	float NL2  = clamp(dot(N,  L2), 0.0, 1.0);
 	float L2H2 = clamp(dot(L2, H2), 0.0, 1.0);
 	float NH2  = clamp(dot(N,  H2), 0.0, 1.0);
-	float VH2  = clamp(dot(E, H), 0.0, 1.0);
+	float VH2  = clamp(dot(E, H2), 0.0, 1.0);
+	vec3 sunSpecular = CalcMaterialSpecular(specular.rgb, N, materialT, H2, NH2,
+		NL2, NE, L2H2, VH2, roughness, materialMask);
     #if defined(USE_SKIN_SSS)
 	vec3 sunDiffuse = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
-	reflectance = CalcSpecular(specular.rgb, NH2, NL2, NE, L2H2, VH2, roughness);
+	reflectance = sunSpecular;
     #else
 	reflectance  = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
-	reflectance += CalcSpecular(specular.rgb, NH2, NL2, NE, L2H2, VH2, roughness);
+	reflectance += sunSpecular;
     #endif
 
 	lightColor = u_PrimaryLightColor;
@@ -4307,6 +4444,8 @@ void main()
     #else
 	out_Color.rgb += lightColor * reflectance * NL2;
     #endif
+	if (materialType != 0)
+		g_materialSpecular += lightColor * sunSpecular * NL2;
   #endif
 
   #if defined(USE_SHADOWMAP) && defined(USE_SHADOWS2)
@@ -4632,6 +4771,36 @@ void main()
 		return;
 	}
   #endif
+
+	int materialDebugView = int(u_MaterialModel.w + 0.5);
+	if (materialDebugView > 0)
+	{
+		vec3 debugColor = vec3(0.0);
+		if (materialDebugView == 1)
+			debugColor = materialType == 1 ? vec3(0.85, 0.12, 0.9) :
+				(materialType == 2 ? vec3(0.1, 0.85, 1.0) : vec3(0.22));
+		else if (materialDebugView == 2)
+			debugColor = materialT * 0.5 + 0.5;
+		else if (materialDebugView == 3)
+			debugColor = materialB * 0.5 + 0.5;
+		else if (materialDebugView == 4)
+			debugColor = materialType == 1 ? materialT * 0.5 + 0.5 : vec3(0.0);
+		else if (materialDebugView == 5)
+			debugColor = materialType == 1 ? g_materialSpecular : vec3(0.0);
+		else if (materialDebugView == 6)
+			debugColor = materialType == 2 ? g_materialSpecular : vec3(0.0);
+		else if (materialDebugView == 7)
+			debugColor = vec3(materialMask);
+		if (materialDebugView == 1)
+			debugColor *= 0.35 + 0.65 * NE;
+		out_Color = vec4(debugColor, diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
 
 	// r_autoPBRDebug 1-2, flat color with a little view facing shading so the
 	// shape stays readable; written unlit (tone mapping is bypassed)

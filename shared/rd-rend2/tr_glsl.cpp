@@ -240,6 +240,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_NormalScale",   GLSL_VEC4, 1 },
 	{ "u_SpecularScale", GLSL_VEC4, 1 },
 	{ "u_MaterialDebug",  GLSL_VEC4, 1 },
+	{ "u_MaterialModel",  GLSL_VEC4, 1 },
 	{ "u_FoliageDebug",   GLSL_VEC4, 1 },
 	{ "u_AutoGrass",      GLSL_VEC4, 1 },
 	{ "u_FoliageWind",    GLSL_VEC4, 1 },

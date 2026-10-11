@@ -472,6 +472,7 @@ cvar_t  *r_skinSSSDebug;
 
 cvar_t  *r_autoPBR;
 cvar_t  *r_autoPBRDebug;
+cvar_t  *r_materialModelDebug;
 cvar_t  *r_autoFoliage;
 cvar_t  *r_autoFoliageDebug;
 cvar_t  *r_grassCardMode;
@@ -2306,6 +2307,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_autoPBR, 0, 2, qtrue );
 	r_autoPBRDebug = ri.Cvar_Get( "r_autoPBRDebug", "0", CVAR_CHEAT, "Auto PBR debug view: 1 = material class, 2 = parameter source (authored / auto), 3 = roughness (generated variation in grey, blue = not auto PBR)" );
 	ri.Cvar_CheckRange( r_autoPBRDebug, 0, 3, qtrue );
+	r_materialModelDebug = ri.Cvar_Get( "r_materialModelDebug", "0", CVAR_CHEAT, "Hair/eye debug: 1 = type, 2 = tangent, 3 = bitangent, 4 = anisotropy direction, 5 = hair specular, 6 = eye specular, 7 = mask" );
+	ri.Cvar_CheckRange( r_materialModelDebug, 0, 7, qtrue );
 	r_autoFoliage = ri.Cvar_Get( "r_autoFoliage", "0", CVAR_ARCHIVE,
 		"MD3 foliage semantics: 0 = off, 1 = conservative stock-safe, 2 = broader experimental" );
 	ri.Cvar_CheckRange( r_autoFoliage, 0, 2, qtrue );

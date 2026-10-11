@@ -2018,6 +2018,55 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				ri.Printf(PRINT_WARNING, "WARNING: R_FindImageFile could not find skinMask '%s' in shader '%s'\n", token, shader.name);
 		}
 		//
+		// materialType <standard|hair|eye>: explicit shading model.  Explicit
+		// annotations always win over the conservative name fallback.
+		//
+		else if (!Q_stricmp(token, "materialType"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri.Printf(PRINT_WARNING, "WARNING: missing parameter for materialType in shader '%s'\n", shader.name);
+				continue;
+			}
+			if (!Q_stricmp(token, "standard"))
+				stage->materialType = MATERIAL_TYPE_STANDARD;
+			else if (!Q_stricmp(token, "hair"))
+				stage->materialType = MATERIAL_TYPE_HAIR;
+			else if (!Q_stricmp(token, "eye"))
+				stage->materialType = MATERIAL_TYPE_EYE;
+			else
+			{
+				ri.Printf(PRINT_WARNING, "WARNING: unknown materialType '%s' in shader '%s'\n", token, shader.name);
+				continue;
+			}
+			stage->materialTypeSet = qtrue;
+		}
+		// materialMap <image>: RG is a signed direction in the mesh tangent
+		// frame and B is the coverage mask.  It is optional for separate hair
+		// or eye surfaces and intended for small targeted overrides only.
+		else if (!Q_stricmp(token, "materialMap"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri.Printf(PRINT_WARNING, "WARNING: missing parameter for materialMap in shader '%s'\n", shader.name);
+				continue;
+			}
+
+			int flags = IMGFLAG_NOLIGHTSCALE;
+			if (!shader.noMipMaps)
+				flags |= IMGFLAG_MIPMAP;
+			if (!shader.noPicMip)
+				flags |= IMGFLAG_PICMIP;
+			if (shader.noTC)
+				flags |= IMGFLAG_NO_COMPRESSION;
+
+			stage->materialMapImage = R_FindImageFile(token, IMGTYPE_COLORALPHA, flags);
+			if (!stage->materialMapImage)
+				ri.Printf(PRINT_WARNING, "WARNING: R_FindImageFile could not find materialMap '%s' in shader '%s'\n", token, shader.name);
+		}
+		//
 		// normalScale <xy>
 		// or normalScale <x> <y>
 		// or normalScale <x> <y> <height>
@@ -3481,6 +3530,8 @@ static void ComputeVertexAttribs(void)
 		if (pStage->glslShaderGroup == tr.lightallShader)
 		{
 			shader.vertexAttribs |= ATTR_NORMAL;
+			if (R_ResolvedMaterialType(pStage) == MATERIAL_TYPE_HAIR)
+				shader.vertexAttribs |= ATTR_TANGENT;
 
 			if ((pStage->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK) &&
 					(r_normalMapping->integer != 0 ||
@@ -3736,10 +3787,13 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 					stage->pbrSource = PBR_SOURCE_DISCOVERED;
 			}
 
-			// classified once here, the class is only picked at draw time
-			R_ClassifyMaterial(stage, shader.name, diffuseImg->imgName);
 		}
 	}
+
+	// Material model resolution also needs the conservative name class when
+	// specular mapping is disabled or an authored packed map was found.
+	if ( stage->bundle[TB_DIFFUSEMAP].image[0] )
+		R_ClassifyMaterial(stage, shader.name, stage->bundle[TB_DIFFUSEMAP].image[0]->imgName);
 
 	if (tcgen || stage->bundle[0].numTexMods)
 	{
@@ -5136,7 +5190,8 @@ void R_PrefetchShader( const char *name )
 			!Q_stricmp( token, "rmosMap" ) || !Q_stricmp( token, "moxrMap" ) ||
 			!Q_stricmp( token, "mosrMap" ) || !Q_stricmp( token, "ormMap" ) ||
 			!Q_stricmp( token, "ormsMap" ) || !Q_stricmp( token, "heightMap" ) ||
-			!Q_stricmp( token, "skinMask" ) )
+			!Q_stricmp( token, "skinMask" ) ||
+			!Q_stricmp( token, "materialMap" ) )
 		{
 			token = COM_ParseExt( &p, qfalse );
 			R_PrefetchImage( token );

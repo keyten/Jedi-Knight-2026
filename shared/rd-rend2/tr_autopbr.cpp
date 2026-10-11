@@ -141,6 +141,55 @@ const char *R_MaterialClassName( materialClass_t cls )
 	return materialDefaults[cls].name;
 }
 
+materialType_t R_ResolvedMaterialType( const shaderStage_t *stage )
+{
+	if ( stage->materialTypeSet )
+		return stage->materialType;
+
+	// Code-only fallback is intentionally much narrower than MATCLASS_HAIR:
+	// it accepts only an exact hair/hairs file-name token.  Fur creatures,
+	// beards, player directories and generic alpha cards require annotation.
+	if ( stage->materialClass == MATCLASS_HAIR && stage->materialReason &&
+		!Q_stricmp(stage->materialReason, "name") && stage->materialToken &&
+		(!Q_stricmp(stage->materialToken, "hair") || !Q_stricmp(stage->materialToken, "hairs")) )
+	{
+		return MATERIAL_TYPE_HAIR;
+	}
+
+	return MATERIAL_TYPE_STANDARD;
+}
+
+void R_MaterialModelSetupDraw( const shaderStage_t *stage, UniformDataWriter& uniforms, SamplerBindingsWriter& samplers )
+{
+	static int materialMapUnitsOk = -1;
+	if ( materialMapUnitsOk < 0 )
+	{
+		GLint units = 0;
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
+		materialMapUnitsOk = units > TB_SKINMASK;
+	}
+
+	materialType_t type = R_ResolvedMaterialType(stage);
+	const qboolean compatibleSkinMap = (qboolean)(!stage->skinMaskImage ||
+		stage->skinMaskImage == stage->materialMapImage);
+	const qboolean hasMap = (qboolean)(type != MATERIAL_TYPE_STANDARD &&
+		stage->materialMapImage && materialMapUnitsOk && compatibleSkinMap);
+	// A declared per-pixel mask must never degrade to applying the model to
+	// the whole atlas (eyes -> mouth/skin) when the unit is unavailable or a
+	// different skin mask already occupies the shared sampler.
+	if ( stage->materialMapImage && !hasMap )
+		type = MATERIAL_TYPE_STANDARD;
+	vec4_t params = {
+		(float)type,
+		hasMap ? 1.0f : 0.0f,
+		0.75f, // practical anisotropy, deliberately below the singular limit
+		(float)r_materialModelDebug->integer
+	};
+	uniforms.SetUniformVec4(UNIFORM_MATERIALMODEL, params);
+	if ( hasMap )
+		samplers.AddStaticImage(stage->materialMapImage, TB_SKINMASK);
+}
+
 static const materialDefaults_t *R_AutoPBRDefaults( const shaderStage_t *stage )
 {
 	switch ( r_autoPBR->integer )
