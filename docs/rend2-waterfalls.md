@@ -122,6 +122,38 @@ When `r_waterfall 0`, no surface gets the waterfall key, the dedicated draw is
 not queued, and the original four shader stages execute unchanged. Modern
 horizontal water and generic distortion selection are separate.
 
+## Large-dam high-volume profile
+
+The stock large dam is `t3_hevil`, surfaces 317--324. They are eight separate
+3x5 patch strips with real gaps, all using `textures/h_evil/wfall` and the one
+`heavy` rule in `water_body_overrides.json`. The renderer keeps the authored
+surfaces separate but groups their quality decision by waterfall profile. It
+does not stack duplicate transparent meshes and does not replace the shader or
+BSP.
+
+The heavy path divides the body's normalized top-to-impact projection into
+continuous regimes inside the existing pass:
+
+- the top retains a coherent, mostly clear sheet and low displacement;
+- the middle ramps turbulence and partial lit bulk whitewater;
+- the lower sheet increases breakup, rough scattering and a broken foam mask;
+- the impact band feeds the existing impact-pool persistent foam, spray and
+  mist paths.
+
+The masks use `dot(worldPosition, fallDirection)` normalized by each body's
+audited top/bottom projections; they do not assume world Z. Whitewater is
+bounded below full coverage and remains non-emissive, so the dam never becomes
+one opaque white card. Persistent foam stays in its body-local field on the
+receiving horizontal pool. The falling sheet uses an advected broken source
+mask rather than allocating another large simulation texture.
+
+Fragment quality is selected from both camera distance and the aggregate
+screen coverage of visible strips sharing the profile. Low uses one normal
+octave, disables waterfall SSR and uses straight scene refraction; medium uses
+two octaves, half refraction quality and simplified foam/spray breakup; high
+uses all three detail samples and full rejection/refraction.
+`r_waterfallQuality` caps the automatic result.
+
 ## Controls and diagnostics
 
 | CVar / command | Meaning |
@@ -131,6 +163,9 @@ horizontal water and generic distortion selection are separate.
 | `r_waterfallGeometry 0/1` | render-only subdivision; latched |
 | `r_waterfallRefraction 0..4` | sheet refraction scale |
 | `r_waterfallWhitewater 0..4` | aeration/whitewater scale |
+| `r_waterfallSmallStrength 0..4` | small-profile breakup, whitewater and spray strength |
+| `r_waterfallMediumStrength 0..4` | medium-profile breakup, whitewater and spray strength |
+| `r_waterfallHeavyStrength 0..4` | heavy/high-volume breakup, whitewater and spray strength |
 | `r_waterfallDebug 0..12` | debug view |
 | `r_waterfalls` | list every resolved sheet, surfaces, profile/source, flow, thickness, top/bottom and impact region |
 | `r_waterGeometryInfo` | vertices, triangles, level, map-load time, and GPU mesh bytes |
@@ -155,8 +190,20 @@ strips to 2,145 vertices / 4,096 triangles (level 5): 2,589,696 GPU bytes total
 (2.47 MiB) in 6.0 ms at map load. The legacy-off run built no waterfall mesh.
 `yavin1b` built its two medium sheets to 561 vertices / 1,024 triangles each,
 168,192 GPU bytes total in 1.0 ms.
-The test writes old/new and all diagnostic captures beneath
-`build/waterfall-runtime/{legacy,modern}/home/OpenJK/screenshots`.
+The test writes old/new, a same-frame `r_waterSurfaceDebug 9` split, and all
+diagnostic captures beneath
+`build/waterfall-runtime/{legacy,modern}/home/OpenJK/screenshots`. It also
+enables `r_speeds 100` for a bounded sample window and reports median GPU
+timestamp time for the complete main view in the actual map. Comparing the
+legacy and modern medians measures the dam in scene; the synthetic harness
+remains useful for isolated shader coverage scaling.
+
+On the same Intel UHD test machine, the final eight-sample `t3_hevil` captures
+reported a 91.948 ms legacy and 130.069 ms profiled main-view median. The
+independently timed water slot was 2.715 ms and 31.890 ms respectively. The
+complete-view numbers include the map's unusually expensive froxel fog and are
+noisy enough that the dedicated water-slot delta is the useful waterfall cost;
+these measurements are a regression baseline, not a discrete-GPU target.
 
 The renderer exposes body-local top/bottom projections, impact center/width,
 flow/energy, foam/spray/impact scalar sources, and profile identity. Existing

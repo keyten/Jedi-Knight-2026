@@ -282,6 +282,7 @@ struct waterBody_t
 	float fallMin = 0.0f, fallMax = 1.0f;
 	vec3_t fallDirection = { 0, 0, -1 }, impactCenter = {};
 	float impactWidth = 0.0f;
+	float viewCoverage = 1.0f, viewDistance = 0.0f;
 };
 
 // Map-load boundary segments are also the persistent wet-contact carriers.
@@ -444,6 +445,7 @@ static struct
 	int viewFlags;
 	int fallbackCubemap;
 	int copyRect[4];		// conservative visible-water rect, render-target pixels
+	float waterfallProfileCoverage[WFPROFILE_COUNT]; // aggregate disconnected sheets sharing one profile
 	std::vector<refWaterImpulse_t> pendingImpulses;
 	std::vector<refWaterSource_t> continuousSources;
 	std::unordered_map<int, waterWakeTrack_t> wakeTracks;
@@ -1590,6 +1592,13 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 {
 	backEnd.waterInterfacesVisible = qfalse;
 	const viewParms_t& v = backEnd.viewParms;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		body.viewCoverage = 0.0f;
+		body.viewDistance = 0.0f;
+	}
+	for (int profile = 0; profile < WFPROFILE_COUNT; ++profile)
+		s_water.waterfallProfileCoverage[profile] = 0.0f;
 	s_water.copyRect[0] = v.viewportX;
 	s_water.copyRect[1] = v.viewportY;
 	s_water.copyRect[2] = v.viewportWidth;
@@ -1621,7 +1630,16 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 		}
 		if (!projectedBodies.insert(bodyId).second)
 			continue;
-		const waterBody_t& body = s_water.bodies[bodyId - 1];
+		waterBody_t& body = s_water.bodies[bodyId - 1];
+		int bodyMinX = v.viewportX + v.viewportWidth;
+		int bodyMinY = v.viewportY + v.viewportHeight;
+		int bodyMaxX = v.viewportX;
+		int bodyMaxY = v.viewportY;
+		vec3_t bodyCenter, bodyDelta;
+		VectorAdd(body.bounds[0], body.bounds[1], bodyCenter);
+		VectorScale(bodyCenter, 0.5f, bodyCenter);
+		VectorSubtract(bodyCenter, v.ori.origin, bodyDelta);
+		body.viewDistance = VectorLength(bodyDelta);
 		// Match the deliberately conservative render-mesh cull expansion: live
 		// amplitude controls and horizontal crest drift can move the interface
 		// outside the static BSP/body bounds.
@@ -1641,6 +1659,9 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 			const float cw = p[3] * ex + p[7] * ey + p[11] * ez + p[15] * ew;
 			if (cw <= 1.0e-4f)
 			{
+				body.viewCoverage = 1.0f;
+				if (body.waterfall)
+					s_water.waterfallProfileCoverage[body.waterfallProfile] = 1.0f;
 				full = true;
 				break;
 			}
@@ -1650,6 +1671,22 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 			minY = MIN(minY, (int)floorf(sy));
 			maxX = MAX(maxX, (int)ceilf(sx));
 			maxY = MAX(maxY, (int)ceilf(sy));
+			bodyMinX = MIN(bodyMinX, (int)floorf(sx));
+			bodyMinY = MIN(bodyMinY, (int)floorf(sy));
+			bodyMaxX = MAX(bodyMaxX, (int)ceilf(sx));
+			bodyMaxY = MAX(bodyMaxY, (int)ceilf(sy));
+		}
+		if (!full && bodyMaxX > bodyMinX && bodyMaxY > bodyMinY)
+		{
+			const int clippedWidth = MAX(0, MIN(bodyMaxX, v.viewportX + v.viewportWidth) - MAX(bodyMinX, v.viewportX));
+			const int clippedHeight = MAX(0, MIN(bodyMaxY, v.viewportY + v.viewportHeight) - MAX(bodyMinY, v.viewportY));
+			body.viewCoverage = (float)(clippedWidth * clippedHeight) /
+				MAX((float)(v.viewportWidth * v.viewportHeight), 1.0f);
+			if (body.waterfall)
+			{
+				float& profileCoverage = s_water.waterfallProfileCoverage[body.waterfallProfile];
+				profileCoverage = MIN(profileCoverage + body.viewCoverage, 1.0f);
+			}
 		}
 	}
 	if (!backEnd.waterInterfacesVisible || full)
@@ -2906,6 +2943,12 @@ void R_WaterfallEmittersFinalize(world_t *world)
 	std::vector<std::array<float, 3>> existingFxOrigins;
 	if (world->entityString)
 	{
+#ifdef REND2_SP
+		// COM_ParseExt uses the shared parse-session stack even for an in-memory
+		// entity lump.  Keep it balanced on normal, missing-sidecar and early map
+		// shutdown paths.
+		COM_ParseSession parseSession;
+#endif
 		const char *cursor = world->entityString;
 		while (cursor)
 		{
@@ -4146,6 +4189,15 @@ void R_WaterBuildGeometry(world_t *world)
 				VectorCopy(s->verts[i].xyz, v.position);
 				v.normal = R_VboPackNormal(s->verts[i].normal);
 				VectorCopy2(s->verts[i].st, v.texcoords[0]);
+				if (body.waterfall)
+				{
+					// Falling sheets do not use shoreline/skirt metadata. Preserve the
+					// stock lightmap UV so r_waterSurfaceDebug 9 can render the true
+					// authored stages on the refined geometry.
+					VectorCopy2(s->verts[i].lightmap[0], v.texcoords[1]);
+					verts.push_back(v);
+					continue;
+				}
 				v.texcoords[1][0] = 1.0f;
 				float boundaryDistance = 65504.0f;
 				bool rigidBoundary = false;
@@ -4587,16 +4639,35 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		(float)r_waterWhitewaterDebug->integer);
 	const bool waterfall = body && body->waterfall && (key & WATERKEY_WATERFALL);
 	const waterfallProfile_t& waterfallProfile = body ? body->waterfallValues : s_waterfallProfiles[WFPROFILE_MEDIUM];
+	const float waterfallProfileStrength = !body ? 1.0f : Com_Clamp(0.0f, 4.0f,
+		body->waterfallProfile == WFPROFILE_SMALL ? r_waterfallSmallStrength->value :
+		(body->waterfallProfile == WFPROFILE_HEAVY ? r_waterfallHeavyStrength->value : r_waterfallMediumStrength->value));
+	const float profileCoverage = body && body->waterfall ?
+		s_water.waterfallProfileCoverage[body->waterfallProfile] : 0.0f;
+	const float distanceLod = body ? 1.0f - Com_Clamp(0.0f, 1.0f, (body->viewDistance - 1200.0f) / 3600.0f) : 1.0f;
+	const float coverageLod = Com_Clamp(0.0f, 1.0f, (profileCoverage - 0.008f) / 0.16f);
+	const float requestedLod = r_waterfallQuality->integer <= 0 ? 0.32f :
+		(r_waterfallQuality->integer >= 2 ? 1.0f : 0.68f);
+	const float waterfallLod = MIN(requestedLod, MAX(distanceLod, coverageLod));
 	VectorSet4(water[38], waterfall ? 1.0f : 0.0f, (float)r_waterfallQuality->integer,
 		(float)r_waterfallDebug->integer, waterfallProfile.thickness);
 	VectorSet4(water[39], body ? body->fallDirection[0] : 0.0f, body ? body->fallDirection[1] : 0.0f,
 		body ? body->fallDirection[2] : -1.0f, waterfallProfile.flowSpeed);
 	VectorSet4(water[40], body ? body->planeNormal[0] : 0.0f, body ? body->planeNormal[1] : 0.0f,
 		body ? body->planeNormal[2] : 1.0f, body ? 1.0f / MAX(body->fallMax - body->fallMin, 1.0f) : 1.0f);
-	VectorSet4(water[41], body ? body->fallMin : 0.0f, waterfallProfile.breakup, waterfallProfile.normalScale,
-		waterfallProfile.aeration * Com_Clamp(0.0f, 4.0f, r_waterfallWhitewater->value));
-	VectorSet4(water[42], waterfallProfile.opacity, waterfallProfile.spray, waterfallProfile.impact,
+	VectorSet4(water[41], body ? body->fallMin : 0.0f, waterfallProfile.breakup * waterfallProfileStrength,
+		waterfallProfile.normalScale * waterfallProfileStrength,
+		waterfallProfile.aeration * waterfallProfileStrength * Com_Clamp(0.0f, 4.0f, r_waterfallWhitewater->value));
+	VectorSet4(water[42], waterfallProfile.opacity, waterfallProfile.spray * waterfallProfileStrength,
+		waterfallProfile.impact * waterfallProfileStrength,
 		body ? (float)body->waterfallProfile : 0.0f);
+	// Per-profile coverage is shared by disconnected stock strips (the dam has
+	// eight real BSP gaps), so they retain one coherent quality decision without
+	// merging geometry or adding transparent passes.  z gates refraction/SSR;
+	// w simplifies high-frequency foam/spray breakup at distance.
+	VectorSet4(water[43], waterfallProfileStrength, waterfallLod,
+		waterfallLod < 0.34f ? 0.0f : (waterfallLod < 0.67f ? 0.5f : 1.0f),
+		waterfallLod < 0.34f ? 0.35f : (waterfallLod < 0.67f ? 0.7f : 1.0f));
 	if (waterfall)
 	{
 		// Falling-sheet motion is intrinsic to the dedicated waterfall path.  It
@@ -4608,7 +4679,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		water[0][1] = MAX(water[0][1], 0.34f);
 		water[0][3] = Com_Clamp(0.0f, 4.0f, r_waterfallRefraction->value);
 		water[1][0] *= 0.28f;
-		water[1][1] *= 0.35f;
+		water[1][1] *= 0.35f * water[43][2];
 	}
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body

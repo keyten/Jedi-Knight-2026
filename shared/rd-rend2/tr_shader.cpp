@@ -5083,6 +5083,12 @@ void R_PrefetchShader( const char *name )
 		if ( !Q_stricmp( sh->name, strippedName ) )
 			return;
 
+#ifdef REND2_SP
+	// The SP parser requires every COM_ParseExt sequence to own a session.
+	// Keep it alive through both the hash lookup and the script walk below.
+	COM_ParseSession parseSession;
+#endif
+
 	const char *text = FindShaderInShaderText( strippedName );
 	if ( !text )
 	{

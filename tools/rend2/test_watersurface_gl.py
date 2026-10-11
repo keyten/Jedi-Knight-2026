@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 43
+WATER_VEC4S = 44
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -463,6 +463,7 @@ class Rig:
         u[11] = [0.0, 0.0, 0.37, 0.71]
         u[12] = [0.0, 0.0, 1.0, 1.0]
         u[33] = [0.0, 0.0, 1.0, 1.0]  # one-tile interaction atlas in the harness
+        u[43] = [1.0, 1.0, 1.0, 1.0]  # waterfall profile strength and automatic LOD
         return u
 
     def draw_water(self, prog, u, waves=False, ssr=False, reflection=None):
@@ -1107,9 +1108,9 @@ def bench():
                 u[42] = [1, .75, .85, 1]
                 set_vec4s(prog, 'u_Water', u)
                 gl('glEnable', None, U)(0x0C11)
-                cases = [('small waterfall (10% view)', .10, [72, 2.5, .45, .75, .45, .75, .35, .45]),
-                         ('large waterfall (50% view)', .50, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35]),
-                         ('close waterfall (fullscreen)', 1.0, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35])]
+                cases = [('small/distant waterfall (10% view)', .10, [72, 2.5, .45, .75, .45, .75, .35, .45, .32]),
+                         ('large dam (50% view)', .50, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35, .68]),
+                         ('close dam (fullscreen)', 1.0, [168, 9, 1, 1.3, 1, 1.25, 1.25, 1.35, 1.0])]
                 for case_label, fraction, p in cases:
                     side = math.sqrt(fraction)
                     sw, sh = int(size[0] * side), int(size[1] * side)
@@ -1120,6 +1121,8 @@ def bench():
                     u[39, 3] = p[0]
                     u[41, 1:4] = [p[2], p[3], p[4]]
                     u[42] = [p[5], p[6], p[7], 2]
+                    u[43] = [1, p[8], 0 if p[8] < .34 else (.5 if p[8] < .67 else 1),
+                             .35 if p[8] < .34 else (.7 if p[8] < .67 else 1)]
                     set_vec4s(prog, 'u_Water', u)
                     print(f'  {case_label}, waterfall, {label}: {timed(draw_only):.3f} ms')
                 gl('glDisable', None, U)(0x0C11)

@@ -215,6 +215,7 @@ cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t	*r_waterSurface;
 cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
+cvar_t *r_waterfallSmallStrength, *r_waterfallMediumStrength, *r_waterfallHeavyStrength;
 cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
 cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
 cvar_t *r_waterfallImpact, *r_waterfallImpactRadius, *r_waterfallImpactImpulse;
@@ -2758,6 +2759,9 @@ void R_Register( void )
 	r_waterfallGeometry = ri_Cvar_Get_NoComm("r_waterfallGeometry", "1", CVAR_ARCHIVE | CVAR_LATCH, "Render-only waterfall subdivision; BSP collision is unchanged; vid_restart");
 	r_waterfallRefraction = ri_Cvar_Get_NoComm("r_waterfallRefraction", "1", CVAR_ARCHIVE, "Waterfall thin-sheet refraction strength");
 	r_waterfallWhitewater = ri_Cvar_Get_NoComm("r_waterfallWhitewater", "1", CVAR_ARCHIVE, "Waterfall aeration and lit whitewater scale");
+	r_waterfallSmallStrength = ri_Cvar_Get_NoComm("r_waterfallSmallStrength", "1", CVAR_ARCHIVE, "Small waterfall profile breakup, whitewater and spray strength");
+	r_waterfallMediumStrength = ri_Cvar_Get_NoComm("r_waterfallMediumStrength", "1", CVAR_ARCHIVE, "Medium waterfall profile breakup, whitewater and spray strength");
+	r_waterfallHeavyStrength = ri_Cvar_Get_NoComm("r_waterfallHeavyStrength", "1", CVAR_ARCHIVE, "Heavy/high-volume waterfall profile breakup, whitewater and spray strength");
 	r_waterfallDebug = ri_Cvar_Get_NoComm("r_waterfallDebug", "0", CVAR_CHEAT, "Waterfall debug: 1 classified, 2 flow, 3 along-fall, 4 displacement, 5 thickness, 6 raw refraction, 7 turbulence, 8 aeration, 9 foam source, 10 spray source, 11 impact region, 12 subdivided wireframe");
 	r_waterfallMist = ri_Cvar_Get_NoComm("r_waterfallMist", "0", CVAR_ARCHIVE, "Waterfall base spray/mist generated from authored emitters or classified sheet impact edges");
 	r_waterfallMistDensity = ri_Cvar_Get_NoComm("r_waterfallMistDensity", "1", CVAR_ARCHIVE, "Waterfall suspended mist density scale");
@@ -2776,6 +2780,9 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterfallGeometry, 0, 1, qtrue);
 	ri.Cvar_CheckRange(r_waterfallRefraction, 0.0f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_waterfallWhitewater, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterfallSmallStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterfallMediumStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterfallHeavyStrength, 0.0f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_waterfallDebug, 0, 12, qtrue);
 	ri.Cvar_CheckRange(r_waterfallMist, 0, 1, qtrue);
 	ri.Cvar_CheckRange(r_waterfallMistDensity, 0.0f, 8.0f, qfalse);

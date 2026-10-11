@@ -1553,20 +1553,29 @@ static void RB_SubmitRenderPass(
 	// order (kept in it) and get their own slot below
 	uint32_t *waterOrder = nullptr;
 	uint32_t numWaterItems = 0;
+	uint32_t *waterLegacyOrder = nullptr;
+	uint32_t numWaterLegacyItems = 0;
 	if (backEnd.waterSurfaceView)
 	{
 		for ( uint32_t i = 0; i < numDrawItems; ++i )
+		{
 			numWaterItems += renderPass.drawItems[drawOrder[i]].renderState.waterSurface ? 1 : 0;
-		if (numWaterItems)
+			numWaterLegacyItems += renderPass.drawItems[drawOrder[i]].renderState.waterLegacyClip ? 1 : 0;
+		}
+		if (numWaterItems || numWaterLegacyItems)
 		{
 			waterOrder = ojkAllocArray<uint32_t>(allocator, numWaterItems);
+			waterLegacyOrder = ojkAllocArray<uint32_t>(allocator, numWaterLegacyItems);
 			uint32_t numOthers = 0;
 			uint32_t numWater = 0;
+			uint32_t numWaterLegacy = 0;
 			for ( uint32_t i = 0; i < numDrawItems; ++i )
 			{
 				const uint32_t item = drawOrder[i];
 				if (renderPass.drawItems[item].renderState.waterSurface)
 					waterOrder[numWater++] = item;
+				else if (renderPass.drawItems[item].renderState.waterLegacyClip)
+					waterLegacyOrder[numWaterLegacy++] = item;
 				else
 					drawOrder[numOthers++] = item;
 			}
@@ -1643,6 +1652,10 @@ static void RB_SubmitRenderPass(
 			RB_WaterSurfaceReflectionEnd();
 		}
 		RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder);
+		// Compose the true stock stages after the dedicated program.  The scissor
+		// keeps them on the left and avoids feeding them into the scene copy that
+		// the modern half samples.
+		RB_DrawItems(numWaterLegacyItems, renderPass.drawItems, waterLegacyOrder);
 		RB_WaterSurfaceFinish();
 	}
 	if (atmosphere)
@@ -1695,6 +1708,12 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	*/
 
 	int estimatedNumShaderStages = (backEnd.viewParms.flags & VPF_DEPTHSHADOW) ? 1 : 4;
+	// The water A/B view submits the dedicated program plus every stock stage.
+	// Four-stage waterfall shaders therefore need one extra item per surface;
+	// without this debug-only reserve the late legacy half can be dropped when
+	// the pass reaches its release-build capacity.
+	if (!backEnd.depthFill && r_waterSurfaceDebug->integer == 9)
+		++estimatedNumShaderStages;
 
 	// Prepare memory for the current render pass
 	void *allocMark = backEndData->perFrameMemory->Mark();

@@ -311,6 +311,7 @@ extern cvar_t	*r_volumetricLavaAnisotropy;
 extern cvar_t	*r_waterSurface;
 extern cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 extern cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
+extern cvar_t *r_waterfallSmallStrength, *r_waterfallMediumStrength, *r_waterfallHeavyStrength;
 extern cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
 extern cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
 extern cvar_t *r_waterfallImpact, *r_waterfallImpactRadius, *r_waterfallImpactImpulse;
@@ -6027,7 +6028,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 43
+#define WATER_UNIFORM_VEC4S 44
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
