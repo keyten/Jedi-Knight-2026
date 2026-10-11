@@ -61,6 +61,7 @@ Add an optional `WaterBodies` array to `cubemaps/<map>/env.json`, alongside
       },
       "DynamicsProfile": "lake",
       "Flow": { "Direction": [1, 0, 0], "Speed": 18 },
+      "Wind": { "Direction": [0, 1, 0], "Strength": 0.8 },
       "WaveMultiplier": 1.2,
       "FoamMultiplier": 0.8,
       "InteractionMultiplier": 1
@@ -76,6 +77,14 @@ shipped data. Later matching rules win. Flow is a world-space direction and
 speed; omitting speed uses the dynamics profile default. The legacy two-value
 array remains an explicit XY velocity. The three multipliers default to 1.
 The fields are parsed at map load and do not alter the optics profile.
+
+`Wind` is optional, world-space, and may contain `Direction` plus normalized
+`Strength`, or a physical-ish `Velocity` vector (three weather-wind units map
+to full strength). The same object may be placed at the env.json root as
+`Wind` or `WaterWind` to cover all bodies. A body-level value wins over the
+map value. Both win over global world-effect wind; a profile default is used
+only when none of those exists. Exposure still gates the visual coupling, so
+an indoor `still_pool` remains almost calm even when a map-wide wind exists.
 
 The project stock overrides are
 [`water_body_overrides.json`](../tools/rend2/water_body_overrides.json). They

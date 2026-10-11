@@ -90,6 +90,8 @@ namespace
 		VectorAdd(wo->currentVelocity, deltaVelocity, wo->currentVelocity);
 	}
 
+	unsigned s_windUpdateFrame = ~0u;
+
 	// Fresh particles, resting, at random heights, in the slot's layout.
 	std::vector<byte> RainParticles(const weatherObject_t& ws, size_t bufferSize)
 	{
@@ -1060,6 +1062,7 @@ void R_InitWeatherSystem()
 	tr.weatherSystem->activeWeatherTypes = 0;
 	tr.weatherSystem->constWindDirection[0] = .0f;
 	tr.weatherSystem->constWindDirection[1] = .0f;
+	s_windUpdateFrame = ~0u;
 
 	CurrentWeatherBrushIndex = -1;
 	tr.weatherSystem->depthMapValid = false;
@@ -1076,6 +1079,7 @@ void R_ShutdownWeatherSystem()
 
 		Z_Free(tr.weatherSystem);
 		tr.weatherSystem = nullptr;
+		s_windUpdateFrame = ~0u;
 	}
 	else
 	{
@@ -1780,14 +1784,9 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 	RB_TrackSplashSlots(slotZones);
 	rainSplashStats_t splashStats = {};
 
-	// Get current global wind vector
-	VectorCopy(tr.weatherSystem->constWindDirection, tr.weatherSystem->windDirection);
-	for (int i = 0; i < tr.weatherSystem->activeWindObjects; i++)
-	{
-		windObject_t *windObject = &tr.weatherSystem->windSlots[i];
-		RB_UpdateWindObject(windObject);
-		VectorAdd(windObject->currentVelocity, tr.weatherSystem->windDirection, tr.weatherSystem->windDirection);
-	}
+	// Get current global wind vector. This update is shared with water, so wind
+	// remains an environment property even on a map with no active rain slot.
+	RB_UpdateWeatherWind();
 
 	Allocator& frameAllocator = *backEndData->perFrameMemory;
 
@@ -2117,6 +2116,36 @@ bool R_GetWindVector(vec3_t windVector, vec3_t atPoint)
 	VectorNormalize(windVector);
 	// everything is processed in RB_SurfaceWeather, no need to add something here
 	return (VectorLength(windVector) > 0.0f);
+}
+
+void RB_UpdateWeatherWind(void)
+{
+	if (!tr.weatherSystem || s_windUpdateFrame == backEndData->realFrameNumber)
+		return;
+	s_windUpdateFrame = backEndData->realFrameNumber;
+	VectorCopy(tr.weatherSystem->constWindDirection, tr.weatherSystem->windDirection);
+	for (int i = 0; i < tr.weatherSystem->activeWindObjects; ++i)
+	{
+		windObject_t *windObject = &tr.weatherSystem->windSlots[i];
+		RB_UpdateWindObject(windObject);
+		VectorAdd(windObject->currentVelocity, tr.weatherSystem->windDirection,
+			tr.weatherSystem->windDirection);
+	}
+	tr.weatherSystem->windSpeed = VectorLength(tr.weatherSystem->windDirection);
+}
+
+bool R_GetWeatherWindState(weatherWindState_t *state, const vec3_t atPoint)
+{
+	(void)atPoint; // wind zones are not implemented; the current field is global
+	if (!state) return false;
+	Com_Memset(state, 0, sizeof(*state));
+	if (!tr.weatherSystem) return false;
+	VectorCopy(tr.weatherSystem->windDirection, state->direction);
+	state->strength = VectorNormalize(state->direction);
+	state->valid = state->strength > 1.0e-4f;
+	state->source = !state->valid ? WEATHER_WIND_NONE :
+		(tr.weatherSystem->activeWindObjects > 0 ? WEATHER_WIND_DYNAMIC : WEATHER_WIND_CONSTANT);
+	return state->valid;
 }
 
 bool R_GetWindGusting(vec3_t atPoint)

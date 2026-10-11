@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 44
+WATER_VEC4S = 55
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -464,6 +464,7 @@ class Rig:
         u[12] = [0.0, 0.0, 1.0, 1.0]
         u[33] = [0.0, 0.0, 1.0, 1.0]  # one-tile interaction atlas in the harness
         u[43] = [1.0, 1.0, 1.0, 1.0]  # waterfall profile strength and automatic LOD
+        u[54, 0] = 1.0  # settled wind-wave set: skip the old-set evaluator
         return u
 
     def draw_water(self, prog, u, waves=False, ssr=False, reflection=None):
@@ -659,6 +660,38 @@ def check_ambient_waves(rig):
         ok = check('enabled zero-amplitude model preserves previous micro shading',
                    np.max(np.abs(old - zero)) < 1e-5) and ok
         return ok
+    finally:
+        gl('glDeleteProgram', None, U)(prog)
+
+
+def check_wind_wave_crossfade(rig):
+    """Old and target spectra are evaluated independently, then blended; changing direction cannot jump phase."""
+    prog = probe_program('vec4(waves.height, waves.slope, 1.0)')
+    try:
+        u = rig.params()
+        u[13] = [1.0, 1.0, 1.0, 1.0]
+        u[14] = [1.0, 0.0, 1.0, 1.0]
+        u[15] = [2.4, 192.0, 1.0, 1.0]
+        u[17] = [0.0, 0.0, 80.0, 3.0]
+        u[18] = [0.0, 1.0, 0.2, 1.0]
+        # Quality 0 selects terms 0 and 4. Old travels +X; target has turned +Y
+        # and gained energy. Their sine phases remain continuous in both sets.
+        u[44] = [1.0, 0.0, 0.70, 0.045]
+        u[48] = [0.92, -0.39, 0.25, 0.11]
+        u[20] = [0.0, 1.0, 1.20, 0.045]
+        u[24] = [0.39, 0.92, 0.42, 0.11]
+        u[54, 0] = 0.0
+        old = rig.draw_water(prog, u, waves=True)
+        u[54, 0] = 1.0
+        target = rig.draw_water(prog, u, waves=True)
+        u[54, 0] = 0.5
+        middle = rig.draw_water(prog, u, waves=True)
+        mask = (old[..., 3] > 0.5) & (target[..., 3] > 0.5) & (middle[..., 3] > 0.5)
+        difference = np.max(np.abs(old[mask, :3] - target[mask, :3]))
+        interpolation_error = np.max(np.abs(middle[mask, :3] - 0.5 * (old[mask, :3] + target[mask, :3])))
+        return check('wind turn crossfades phase-continuous old/target wave sets',
+                     mask.sum() > 1000 and difference > 0.02 and interpolation_error < 0.003,
+                     f'{mask.sum()} px, endpoint delta {difference:.4f}, midpoint error {interpolation_error:.5f}')
     finally:
         gl('glDeleteProgram', None, U)(prog)
 
@@ -1023,6 +1056,7 @@ def main():
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
         ok = check_geometry_depth(rig) and ok
         ok = check_ambient_waves(rig) and ok
+        ok = check_wind_wave_crossfade(rig) and ok
         ok = check_directional_flow(rig) and ok
         ok = check_above(rig) and ok
         ok = check_inside() and ok
@@ -1279,6 +1313,15 @@ if __name__ == '__main__':
         try:
             rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
             sys.exit(0 if check_ambient_waves(rig) else 1)
+        finally:
+            SDL.SDL_GL_DeleteContext(ctx)
+            SDL.SDL_DestroyWindow(window)
+            SDL.SDL_Quit()
+    if '--wind-only' in sys.argv:
+        window, ctx = context(b'Water wind waves')
+        try:
+            rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+            sys.exit(0 if check_wind_wave_crossfade(rig) else 1)
         finally:
             SDL.SDL_GL_DeleteContext(ctx)
             SDL.SDL_DestroyWindow(window)

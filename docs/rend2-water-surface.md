@@ -197,6 +197,10 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceIOR` | 1.333 | Fresnel and refraction |
 | `r_waterSurfaceRoughness` | 0.06 | base perceptual roughness; unresolved waves add to it |
 | `r_waterSurfaceNormal` | 1.0 | wave normal strength |
+| `r_waterWind` | 0 | wind/weather response master; requires ambient waves |
+| `r_waterWindScale` | 1.0 | global wind response scale |
+| `r_waterWindTransition` | 4.0 | old/target wave-set crossfade in seconds |
+| `r_waterWindDebug` | 0 | resolved/current/target/blend-source debug views |
 | `r_waterSurfaceRefraction` | 1.0 | screen-space refraction offset scale |
 | `r_waterSurfaceDepthReject` | 1 | foreground depth rejection of the refraction |
 | `r_waterSurfaceReflection` | 1.0 | reflection scale |

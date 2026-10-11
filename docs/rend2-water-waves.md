@@ -44,6 +44,25 @@ independent of screen coordinates and can be moved into a shared GLSL source
 for a future vertex mesh. A CPU waterline implementation must reproduce these
 same constants and phase order; no independent wave equation should be added.
 
+With `r_waterWind 1`, the renderer resolves one world-space wind for each body.
+Priority is an explicit `WaterBodies[].Wind`, the map-level `Wind` (or
+`WaterWind`) object, the existing world-effect weather wind, then the dynamics
+profile default. The weather source is the same `constantwind` / `gustingwind`
+field used by weather particles and is updated even when no rain particles are
+active. Rain therefore is not required for wind. The existing rain subtype only
+adds a small amount of medium/high-frequency noise; rain impact ripples remain
+a separate effect.
+
+The resolved wind biases macro directions and increases amplitude, horizontal
+choppiness and micro roughness according to the profile coupling. `lake` has a
+strong response, `slow_stream` retains flow as its main direction and adds wind
+as a secondary disturbance, `fast_stream` is flow-dominated, and `still_pool`
+has near-zero coupling. Weather-brush exposure further reduces the response to
+5% indoors. Direction and energy changes never rewrite a live sine term: the
+CPU retains an old and target eight-term set and the shader evaluates both at
+their continuous phases, crossfading their results over
+`r_waterWindTransition` seconds.
+
 Existing `waterDynamics_t` values supply amplitude, wavelength, speed,
 choppiness and micro-normal strength. `waterBody_t` supplies the resolved
 profile, world-space flow, mean brush depth and wave multiplier. Amplitude is
@@ -82,6 +101,14 @@ freezes analytical waves and both world-space detail drifts for A/B captures;
 reset it to -1 to resume. The third detail layer still follows the authored
 stage `tcMod` clock.
 
+`r_waterWind 0|1` is the default-off master. `r_waterWindScale` scales all
+profile responses and `r_waterWindTransition` defaults to four seconds.
+`r_waterWindDebug` shows: 1 resolved direction/strength, 2 current wave
+direction, 3 target direction, 4 blend/source (yellow map, cyan weather, blue
+rain-derived if introduced by a precipitation provider, violet profile;
+indoor bodies are dimmed). `r_waterBodies` and its `dump` form print the same
+vector, strength, validity, source, current/target directions and blend.
+
 `r_waterWaveDebug` modes: 1 height, 2 analytical geometric normal, 3 original
 micro normal after profile scaling, 4 combined normal, 5 body/profile color, 6 depth attenuation,
 7 displacement magnitude, 8 old/new half-screen comparison, 9 body wave
@@ -96,8 +123,9 @@ disturbances are supplied by the body-local solver in
 [`rend2-water-interaction.md`](rend2-water-interaction.md); caustic input and
 camera-waterline queries remain future work. The
 existing wave texture and mip roughness are unchanged. Profiles are uniform
-data; no extra shader permutations, targets, textures or persistent wave
-buffers were added. Per-draw data grows by seven vec4s (112 bytes).
+data; no extra shader permutations, targets, textures or persistent GPU wave
+buffers were added. The wind crossfade adds eleven vec4s to the per-draw water
+uniform (eight old terms and three resolve/debug records).
 
 The stock audit contains six separate `t2_rancor` pool bodies using one shader,
 two `t3_bounty` still-pool bodies, a large `t3_hevil` lake selected by the

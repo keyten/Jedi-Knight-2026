@@ -114,10 +114,25 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.curvature = 0.0;
 	w.attenuation = 1.0;
 	vec4 commonTerms[8];
+	vec4 oldTerms[8];
 	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
+	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
 		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
+	if (windBlend < 0.999)
+	{
+		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
+			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms);
+		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
+		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
+		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
+		commonState.height = mix(oldState.height, commonState.height, windBlend);
+		commonState.attenuation = mix(oldState.attenuation, commonState.attenuation, windBlend);
+		commonState.curvature = mix(oldState.curvature, commonState.curvature, windBlend);
+	}
 	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
 	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
 	return w;
@@ -547,10 +562,25 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.curvature = 0.0;
 	w.attenuation = 1.0;
 	vec4 commonTerms[8];
+	vec4 oldTerms[8];
 	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
+	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
 		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
+	if (windBlend < 0.999)
+	{
+		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
+			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms);
+		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
+		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
+		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
+		commonState.height = mix(oldState.height, commonState.height, windBlend);
+		commonState.attenuation = mix(oldState.attenuation, commonState.attenuation, windBlend);
+		commonState.curvature = mix(oldState.curvature, commonState.curvature, windBlend);
+	}
 	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
 	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
 	return w;
@@ -1350,6 +1380,30 @@ void main()
 	roughness = mix(roughness, 0.88, persistentFoam);
 	roughness = mix(roughness, 0.78, whitewater);
 	alpha = roughness * roughness;
+	int windDebug = int(u_Water[54].y + 0.5);
+	if (windDebug > 0)
+	{
+		vec3 d = vec3(0.0);
+		if (windDebug == 1)
+			d = vec3(u_Water[52].xy * 0.5 + 0.5, clamp(u_Water[52].z, 0.0, 1.0));
+		else if (windDebug == 2)
+			d = vec3(u_Water[53].xy * 0.5 + 0.5, 0.25);
+		else if (windDebug == 3)
+			d = vec3(u_Water[53].zw * 0.5 + 0.5, 0.75);
+		else
+		{
+			int source = int(u_Water[52].w + 0.5);
+			d = source == 1 ? vec3(1.0, 0.75, 0.08) :
+				(source == 2 ? vec3(0.1, 0.85, 1.0) :
+				(source == 3 ? vec3(0.2, 0.45, 1.0) :
+				(source == 4 ? vec3(0.65, 0.3, 1.0) : vec3(0.06))));
+			d *= 0.2 + 0.8 * u_Water[54].x;
+			if (u_Water[54].z < 0.5) d = mix(d, vec3(0.08), 0.75);
+		}
+		out_Color = vec4(LinearToScene(clamp(d, 0.0, 1.0)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
 	int flowDebug = int(u_Water[29].z + 0.5);
 	if (flowDebug > 0)
 	{

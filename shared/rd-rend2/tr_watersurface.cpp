@@ -57,6 +57,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // docs/rend2-water-surface.md
 
 #include "tr_local.h"
+#include "tr_weather.h"
 
 #include <algorithm>
 #include <array>
@@ -185,6 +186,32 @@ struct waterDynamics_t
 	const char *name;
 	float amplitude, wavelength, choppiness, speed, microNormal;
 	float flow, damping, wake, foam, shoreline, rain;
+	float windCoupling, defaultWind;
+};
+
+enum waterWindSource_t { WWIND_NONE, WWIND_MAP, WWIND_WEATHER, WWIND_RAIN, WWIND_PROFILE };
+static const char *s_waterWindSources[] = { "none", "map/environment", "global weather", "rain velocity", "profile default" };
+
+struct waterWaveSet_t
+{
+	vec4_t terms[8];
+	vec2_t direction = { 0.8f, 0.6f };
+	float strength = 0.0f;
+	float choppiness = 0.0f;
+	float micro = 0.0f;
+};
+
+struct waterWindState_t
+{
+	waterWaveSet_t oldSet, targetSet;
+	vec3_t resolved = { 0, 0, 0 };
+	float strength = 0.0f;
+	float blendStart = 0.0f;
+	float blend = 1.0f;
+	int source = WWIND_NONE;
+	bool valid = false;
+	bool outdoor = false;
+	bool initialized = false;
 };
 
 // One body-local rectangular grid.  The byte mask is rasterised from the
@@ -234,16 +261,16 @@ struct waterWakeTrack_t
 };
 
 static const waterDynamics_t s_dynamics[] = {
-	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1 },
-	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f },
-	{ "calm_water", .08f, 80, .05f, .7f, .8f, 0, 1, .7f, .1f, .4f, .8f },
-	{ "lake", .3f, 192, .2f, 1, 1, 0, .8f, 1, .3f, .7f, 1 },
-	{ "slow_stream", .12f, 64, .08f, 1.1f, 1, .4f, 1.2f, .8f, .3f, .7f, 1 },
-	{ "fast_stream", .2f, 48, .2f, 1.8f, 1.2f, 1, 1.8f, 1, .7f, 1, 1.2f },
-	{ "slime", .04f, 64, .02f, .3f, .4f, 0, 2, .2f, .1f, .3f, .3f },
-	{ "waterfall", .2f, 40, .1f, 2, 1, 1, 1.5f, 1, .8f, 1, 1 },
-	{ "heavy_waterfall", .4f, 64, .2f, 2.5f, 1.2f, 1, 2, 1.5f, 1, 1, 1.2f },
-	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1, .45f, .08f },
+	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f, .02f, .01f },
+	{ "calm_water", .08f, 80, .05f, .7f, .8f, 0, 1, .7f, .1f, .4f, .8f, .20f, .04f },
+	{ "lake", .3f, 192, .2f, 1, 1, 0, .8f, 1, .3f, .7f, 1, .90f, .16f },
+	{ "slow_stream", .12f, 64, .08f, 1.1f, 1, .4f, 1.2f, .8f, .3f, .7f, 1, .35f, .06f },
+	{ "fast_stream", .2f, 48, .2f, 1.8f, 1.2f, 1, 1.8f, 1, .7f, 1, 1.2f, .12f, .04f },
+	{ "slime", .04f, 64, .02f, .3f, .4f, 0, 2, .2f, .1f, .3f, .3f, .02f, 0 },
+	{ "waterfall", .2f, 40, .1f, 2, 1, 1, 1.5f, 1, .8f, 1, 1, 0, 0 },
+	{ "heavy_waterfall", .4f, 64, .2f, 2.5f, 1.2f, 1, 2, 1.5f, 1, 1, 1.2f, 0, 0 },
+	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
 enum waterfallProfileId_t { WFPROFILE_SMALL, WFPROFILE_MEDIUM, WFPROFILE_HEAVY, WFPROFILE_COUNT };
@@ -272,6 +299,10 @@ struct waterBody_t
 	float flowSpeed;
 	int flowSource, flowConfidence;
 	float waveMultiplier, foamMultiplier, interactionMultiplier;
+	bool hasExplicitWind = false;
+	vec3_t explicitWindDirection = { 0, 0, 0 };
+	float explicitWindStrength = 0.0f;
+	waterWindState_t wind;
 	int geometryVerts, geometryTriangles, geometryLevel;
 	waterInteractionState_t interaction;
 	waterFoamState_t foam;
@@ -308,6 +339,9 @@ struct waterBodyRule_t
 	vec3_t flowDirection;
 	float flowSpeed;
 	float wave, foam, interaction;
+	bool hasWind;
+	vec3_t windDirection;
+	float windStrength;
 };
 
 struct waterfallRule_t
@@ -417,6 +451,9 @@ static struct
 	std::vector<waterfallRule_t>		waterfallRules;
 	std::vector<waterfallEmitterRule_t>	waterfallEmitterRules;
 	std::vector<waterfallImpactSource_t>	waterfallImpacts;
+	bool mapWindValid;
+	vec3_t mapWindDirection;
+	float mapWindStrength;
 	float		bodyMsec;
 	float		geometryMsec;
 	size_t		geometryBytes;
@@ -1965,6 +2002,9 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	s_water.waterfallRules.clear();
 	s_water.waterfallEmitterRules.clear();
 	s_water.waterfallImpacts.clear();
+	s_water.mapWindValid = false;
+	VectorClear(s_water.mapWindDirection);
+	s_water.mapWindStrength = 0.0f;
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -2424,6 +2464,10 @@ static void R_WaterResolveBody( waterBody_t& body )
 	body.flowSpeed = 0.0f;
 	body.flowSource = WFLOW_NONE;
 	body.flowConfidence = body.legacy.confidence;
+	body.hasExplicitWind = false;
+	VectorClear(body.explicitWindDirection);
+	body.explicitWindStrength = 0.0f;
+	body.wind.initialized = false;
 	if ( body.liquidClass == LIQUID_LAVA )
 		body.dynamics = 9, body.decision = "auto: lava contents";
 	else if ( body.liquidClass == LIQUID_SLIME || body.opticsClass == LIQUID_SLIME )
@@ -2447,6 +2491,12 @@ static void R_WaterResolveBody( waterBody_t& body )
 			body.waveMultiplier = rule.wave;
 			body.foamMultiplier = rule.foam;
 			body.interactionMultiplier = rule.interaction;
+		}
+		if ( rule.hasWind )
+		{
+			body.hasExplicitWind = true;
+			VectorCopy(rule.windDirection, body.explicitWindDirection);
+			body.explicitWindStrength = rule.windStrength;
 		}
 	}
 
@@ -2724,6 +2774,21 @@ static bool R_WaterJsonVec( const char *object, const char *end, const char *nam
 	return true;
 }
 
+static bool R_WaterParseWindJson(const char *object, const char *end, vec3_t direction, float& strength)
+{
+	if (!object || JSON_ValueGetType(object, end) != JSONTYPE_OBJECT) return false;
+	vec3_t value = {};
+	bool velocity = R_WaterJsonVec(object, end, "Velocity", value, 3);
+	if (!velocity && !R_WaterJsonVec(object, end, "Direction", value, 3)) return false;
+	const float length = VectorNormalize(value);
+	if (length < 1.0e-5f) return false;
+	VectorCopy(value, direction);
+	const char *strengthValue = JSON_ObjectGetNamedValue(object, end, "Strength");
+	strength = strengthValue ? Com_Clamp(0.0f, 1.0f, JSON_ValueGetFloat(strengthValue, end)) :
+		Com_Clamp(0.0f, 1.0f, velocity ? length / 3.0f : length);
+	return strength > 0.0f;
+}
+
 static void R_WaterfallEmittersParseJson( const char *json, const char *end, const char *filename )
 {
 	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterfallEmitters");
@@ -2776,6 +2841,13 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 	s_water.waterfallRules.clear();
 	s_water.waterfallEmitterRules.clear();
 	s_water.waterfallImpacts.clear();
+	s_water.mapWindValid = false;
+	VectorClear(s_water.mapWindDirection);
+	s_water.mapWindStrength = 0.0f;
+	const char *mapWind = JSON_ObjectGetNamedValue(json, end, "Wind");
+	if (!mapWind) mapWind = JSON_ObjectGetNamedValue(json, end, "WaterWind");
+	s_water.mapWindValid = R_WaterParseWindJson(mapWind, end,
+		s_water.mapWindDirection, s_water.mapWindStrength);
 	const char *array = JSON_ObjectGetNamedValue(json, end, "WaterBodies");
 	if ( array && JSON_ValueGetType(array, end) != JSONTYPE_ARRAY )
 	{
@@ -2819,6 +2891,8 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 		for ( int d = 0; d < (int)(sizeof(s_dynamics) / sizeof(s_dynamics[0])); d++ )
 			if ( !Q_stricmp(profile, s_dynamics[d].name) ) rule.dynamics = d;
 		rule.hasDynamics = rule.dynamics >= 0;
+		const char *windValue = JSON_ObjectGetNamedValue(entry, end, "Wind");
+		rule.hasWind = R_WaterParseWindJson(windValue, end, rule.windDirection, rule.windStrength);
 		const char *flowValue = JSON_ObjectGetNamedValue(entry, end, "Flow");
 		if ( flowValue && JSON_ValueGetType(flowValue, end) == JSONTYPE_OBJECT )
 		{
@@ -2844,10 +2918,10 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 			rule.flowUsesProfileSpeed = false;
 		}
 		if ( rule.hasFlow && VectorNormalize(rule.flowDirection) < 1.0e-6f ) VectorClear(rule.flowDirection);
-		if ( (!rule.hasDynamics && !rule.hasFlow) ||
+		if ( (!rule.hasDynamics && !rule.hasFlow && !rule.hasWind) ||
 			(rule.shader.empty() && rule.id < 0 && !rule.hasPoint && !rule.hasBounds) )
 		{
-			ri.Printf(PRINT_WARNING, "%s: WaterBodies[%d] needs a selector and DynamicsProfile and/or Flow\n", filename, i);
+			ri.Printf(PRINT_WARNING, "%s: WaterBodies[%d] needs a selector and DynamicsProfile, Flow and/or Wind\n", filename, i);
 			continue;
 		}
 		value = JSON_ObjectGetNamedValue(entry, end, "WaveMultiplier");
@@ -3239,6 +3313,12 @@ void R_WaterBodies_f( void )
 				b.legacy.worldVelocity[0], b.legacy.worldVelocity[1], b.legacy.worldVelocity[2],
 				b.legacy.worldAgreement, b.legacy.uvCoverage,
 				b.legacy.deformAmplitude, b.legacy.deformFrequency);
+			ri.Printf(PRINT_ALL, "{\"type\":\"bodyWind\",\"body\":%d,\"valid\":%s,\"outdoor\":%s,\"source\":\"%s\",\"resolved\":[%g,%g,%g],\"strength\":%g,\"currentDirection\":[%g,%g],\"targetDirection\":[%g,%g],\"blend\":%g}\n",
+				b.id, b.wind.valid ? "true" : "false", b.wind.outdoor ? "true" : "false",
+				s_waterWindSources[b.wind.source], b.wind.resolved[0], b.wind.resolved[1], b.wind.resolved[2],
+				b.wind.strength, b.wind.oldSet.direction[0] + (b.wind.targetSet.direction[0] - b.wind.oldSet.direction[0]) * b.wind.blend,
+				b.wind.oldSet.direction[1] + (b.wind.targetSet.direction[1] - b.wind.oldSet.direction[1]) * b.wind.blend,
+				b.wind.targetSet.direction[0], b.wind.targetSet.direction[1], b.wind.blend);
 			for ( int id : b.surfaces )
 				for ( const waterSurfaceRecord_t& surface : s_water.surfaces ) if ( surface.surfaceNum == id )
 					ri.Printf(PRINT_ALL, "{\"type\":\"surface\",\"body\":%d,\"id\":%d,\"normal\":[%g,%g,%g],\"uvTangentU\":[%g,%g,%g],\"uvTangentV\":[%g,%g,%g],\"uvCoverage\":%g,\"uvMirrorSign\":%d}\n",
@@ -3283,6 +3363,12 @@ void R_WaterBodies_f( void )
 			b.legacy.worldAgreement, b.legacy.uvCoverage, s_flowConfidence[b.legacy.confidence],
 			(int)b.legacy.turb.size(), b.legacy.turbAmplitude, b.legacy.turbFrequency, (int)b.legacy.stretch.size(),
 			b.legacy.deformAmplitude, b.legacy.deformFrequency);
+		ri.Printf(PRINT_ALL, "    wind %s %s source %s vector (%g %g %g) strength %.2f current (%g %g) target (%g %g) blend %.2f\n",
+			b.wind.valid ? "valid" : "invalid", b.wind.outdoor ? "outdoor" : "indoor",
+			s_waterWindSources[b.wind.source], b.wind.resolved[0], b.wind.resolved[1], b.wind.resolved[2], b.wind.strength,
+			b.wind.oldSet.direction[0] + (b.wind.targetSet.direction[0] - b.wind.oldSet.direction[0]) * b.wind.blend,
+			b.wind.oldSet.direction[1] + (b.wind.targetSet.direction[1] - b.wind.oldSet.direction[1]) * b.wind.blend,
+			b.wind.targetSet.direction[0], b.wind.targetSet.direction[1], b.wind.blend);
 		for ( const legacyWaterMotion_t::scroll_t& s : b.legacy.scrolls )
 			ri.Printf(PRINT_ALL, "      %s stage %d scroll (%g %g) -> world velocity (%g %g %g), basis agreement %.2f, UV basis %s\n",
 				s.shader.c_str(), s.stage, s.x, s.y, s.worldVelocity[0], s.worldVelocity[1], s.worldVelocity[2],
@@ -4373,6 +4459,9 @@ void R_WaterSurfaceShutdown( void )
 	s_water.waterfallRules.clear();
 	s_water.waterfallEmitterRules.clear();
 	s_water.waterfallImpacts.clear();
+	s_water.mapWindValid = false;
+	VectorClear(s_water.mapWindDirection);
+	s_water.mapWindStrength = 0.0f;
 	s_water.pendingImpulses.clear();
 	s_water.continuousSources.clear();
 	s_water.wakeTracks.clear();
@@ -4432,6 +4521,7 @@ void RB_WaterSurfaceBeginView( void )
 		!backEnd.viewParms.isSkyPortal && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
 		tr.world && !(backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)))
 	{
+		RB_UpdateWeatherWind();
 		RB_WaterInteractionUpdate();
 		RB_WaterFoamUpdate();
 		RB_WaterContactUpdate();
@@ -4571,6 +4661,152 @@ static void RB_WaterSurfaceCacheView( void )
 	}
 }
 
+static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics_t& dynamics,
+	float amplitude, float wavelength, float response, float rainNoise, const vec2_t windDirection,
+	waterWaveSet_t& set)
+{
+	vec2_t mainDirection = { 0.8f, 0.6f };
+	if (body.flowSpeed > 0.001f)
+	{
+		mainDirection[0] = body.flowDirection[0];
+		mainDirection[1] = body.flowDirection[1];
+		const float length = sqrtf(mainDirection[0] * mainDirection[0] + mainDirection[1] * mainDirection[1]);
+		if (length < 1.0e-5f) { mainDirection[0] = 0.8f; mainDirection[1] = 0.6f; }
+		else { mainDirection[0] /= length; mainDirection[1] /= length; }
+	}
+	const float directionBias = Com_Clamp(0.0f, 0.88f, response * 0.88f);
+	mainDirection[0] = mainDirection[0] * (1.0f - directionBias) + windDirection[0] * directionBias;
+	mainDirection[1] = mainDirection[1] * (1.0f - directionBias) + windDirection[1] * directionBias;
+	const float mainLength = sqrtf(mainDirection[0] * mainDirection[0] + mainDirection[1] * mainDirection[1]);
+	if (mainLength < 1.0e-5f) { mainDirection[0] = 0.8f; mainDirection[1] = 0.6f; }
+	else { mainDirection[0] /= mainLength; mainDirection[1] /= mainLength; }
+	VectorCopy2(mainDirection, set.direction);
+	set.strength = response;
+	set.choppiness = dynamics.choppiness * (1.0f + 1.4f * response);
+	set.micro = dynamics.microNormal * body.waveMultiplier * (1.0f + 1.6f * response + rainNoise);
+	const float directionMix = body.flowSpeed > 0.001f ? 0.72f : (0.22f + 0.58f * response);
+	for (int i = 0; i < 8; ++i)
+	{
+		const float fi = (float)i;
+		const float angle = fi * 2.3999632f;
+		float dx = cosf(angle) * (1.0f - directionMix) + mainDirection[0] * directionMix;
+		float dy = sinf(angle) * (1.0f - directionMix) + mainDirection[1] * directionMix;
+		const float invLength = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f));
+		dx *= invLength; dy *= invLength;
+		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
+		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
+		const float bandEnergy = 1.0f + response * (i < 4 ? 1.35f : 0.85f) + (i >= 4 ? rainNoise : 0.0f);
+		const float a = amplitude * scale * (i < 4 ? 0.28f : 0.10f) * bandEnergy;
+		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
+		VectorSet4(set.terms[i], dx, dy, a, k);
+	}
+}
+
+static float R_WaterResolveWind(waterBody_t& body, vec2_t direction, float& rainNoise)
+{
+	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
+	vec3_t center = {
+		0.5f * (body.bounds[0][0] + body.bounds[1][0]),
+		0.5f * (body.bounds[0][1] + body.bounds[1][1]),
+		body.bounds[1][2] + 4.0f
+	};
+	body.wind.outdoor = R_IsOutside(center);
+	vec3_t resolved = { 0.8f, 0.6f, 0.0f };
+	float strength = 0.0f;
+	int source = WWIND_NONE;
+	bool valid = false;
+	if (body.hasExplicitWind)
+	{
+		VectorCopy(body.explicitWindDirection, resolved);
+		strength = body.explicitWindStrength; source = WWIND_MAP; valid = true;
+	}
+	else if (s_water.mapWindValid)
+	{
+		VectorCopy(s_water.mapWindDirection, resolved);
+		strength = s_water.mapWindStrength; source = WWIND_MAP; valid = true;
+	}
+	else
+	{
+		weatherWindState_t weather = {};
+		// Rain particles get their lateral force from this same weather field.
+		// Rain presence alone is deliberately not a wind source.
+		if (R_GetWeatherWindState(&weather, center))
+		{
+			VectorCopy(weather.direction, resolved);
+			strength = Com_Clamp(0.0f, 1.0f, weather.strength / 3.0f);
+			source = WWIND_WEATHER; valid = true;
+		}
+	}
+	if (!valid && dynamics.defaultWind > 0.0f)
+	{
+		if (body.flowSpeed > 0.001f) VectorCopy(body.flowDirection, resolved);
+		strength = dynamics.defaultWind; source = WWIND_PROFILE; valid = true;
+	}
+	float horizontal = sqrtf(resolved[0] * resolved[0] + resolved[1] * resolved[1]);
+	if (horizontal < 1.0e-5f) { resolved[0] = 0.8f; resolved[1] = 0.6f; horizontal = 1.0f; }
+	direction[0] = resolved[0] / horizontal; direction[1] = resolved[1] / horizontal;
+	body.wind.resolved[0] = direction[0]; body.wind.resolved[1] = direction[1]; body.wind.resolved[2] = 0.0f;
+	body.wind.strength = strength; body.wind.source = source; body.wind.valid = valid;
+	const float exposure = body.wind.outdoor ? 1.0f : 0.05f;
+	rainNoise = 0.0f;
+	if (tr.weatherSystem && body.wind.outdoor)
+		rainNoise = tr.weatherSystem->rainSubtype == RAIN_WEATHER_HEAVY ? 0.16f :
+			(tr.weatherSystem->rainSubtype == RAIN_WEATHER_NORMAL || tr.weatherSystem->rainSubtype == RAIN_WEATHER_ACID ? 0.06f :
+			(tr.weatherSystem->rainSubtype == RAIN_WEATHER_LIGHT ? 0.025f : 0.0f));
+	return r_waterWind->integer && valid ? Com_Clamp(0.0f, 1.5f,
+		strength * dynamics.windCoupling * exposure * r_waterWindScale->value) : 0.0f;
+}
+
+static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wavelength,
+	vec4_t *water)
+{
+	vec2_t windDirection;
+	float rainNoise;
+	const float response = R_WaterResolveWind(body, windDirection, rainNoise);
+	waterWaveSet_t desired;
+	R_WaterBuildWindWaveSet(body, s_dynamics[body.dynamics], amplitude, wavelength,
+		response, r_waterWind->integer ? rainNoise : 0.0f, windDirection, desired);
+	const float now = backEnd.refdef.floatTime;
+	if (!body.wind.initialized)
+	{
+		body.wind.oldSet = body.wind.targetSet = desired;
+		body.wind.blendStart = now;
+		body.wind.blend = 1.0f;
+		body.wind.initialized = true;
+	}
+	const float transition = MAX(r_waterWindTransition->value, 0.25f);
+	body.wind.blend = Com_Clamp(0.0f, 1.0f, (now - body.wind.blendStart) / transition);
+	const float directionDelta = body.wind.targetSet.direction[0] * desired.direction[0] +
+		body.wind.targetSet.direction[1] * desired.direction[1];
+	if (body.wind.blend >= 1.0f && (directionDelta < 0.985f ||
+		fabsf(body.wind.targetSet.strength - desired.strength) > 0.04f ||
+		fabsf(body.wind.targetSet.micro - desired.micro) > 0.04f))
+	{
+		body.wind.oldSet = body.wind.targetSet;
+		body.wind.targetSet = desired;
+		body.wind.blendStart = now;
+		body.wind.blend = 0.0f;
+	}
+	for (int i = 0; i < 8; ++i)
+	{
+		VectorCopy4(body.wind.targetSet.terms[i], water[20 + i]);
+		VectorCopy4(body.wind.oldSet.terms[i], water[44 + i]);
+	}
+	water[18][2] = body.wind.oldSet.choppiness +
+		(body.wind.targetSet.choppiness - body.wind.oldSet.choppiness) * body.wind.blend;
+	water[15][3] = body.wind.oldSet.micro +
+		(body.wind.targetSet.micro - body.wind.oldSet.micro) * body.wind.blend;
+	vec2_t current = {
+		body.wind.oldSet.direction[0] + (body.wind.targetSet.direction[0] - body.wind.oldSet.direction[0]) * body.wind.blend,
+		body.wind.oldSet.direction[1] + (body.wind.targetSet.direction[1] - body.wind.oldSet.direction[1]) * body.wind.blend
+	};
+	const float currentLength = sqrtf(current[0] * current[0] + current[1] * current[1]);
+	if (currentLength > 1.0e-5f) { current[0] /= currentLength; current[1] /= currentLength; }
+	VectorSet4(water[52], body.wind.resolved[0], body.wind.resolved[1], body.wind.strength, (float)body.wind.source);
+	VectorSet4(water[53], current[0], current[1], body.wind.targetSet.direction[0], body.wind.targetSet.direction[1]);
+	VectorSet4(water[54], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, rainNoise);
+}
+
 void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter& uniforms,
 	SamplerBindingsWriter& samplers )
 {
@@ -4579,7 +4815,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	Com_Memcpy(water, s_water.viewWater, sizeof(water));
 	const uint32_t key = input->waterKey;
 	const int bodyId = (int)(key >> 20);
-	const waterBody_t *body = bodyId > 0 && bodyId <= (int)s_water.bodies.size() ? &s_water.bodies[bodyId - 1] : nullptr;
+	waterBody_t *body = bodyId > 0 && bodyId <= (int)s_water.bodies.size() ? &s_water.bodies[bodyId - 1] : nullptr;
 	const waterDynamics_t& dynamics = s_dynamics[body ? body->dynamics : 0];
 	const float legacyWaveScale = body && body->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
 	const float bodyWaveMultiplier = body ? body->waveMultiplier : 1.0f;
@@ -4687,24 +4923,19 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	// divisions for every component of every covered fragment.
 	const float wavelength = MAX(water[15][1] * water[13][2], 8.0f);
 	const float amplitude = water[15][0] * water[13][1];
-	const float flowLength = sqrtf(water[17][0] * water[17][0] + water[17][1] * water[17][1]);
-	const float mainX = flowLength > 0.001f ? water[17][0] / flowLength : 0.8f;
-	const float mainY = flowLength > 0.001f ? water[17][1] / flowLength : 0.6f;
-	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
-	for (int i = 0; i < 8; ++i)
+	if (body)
+		R_WaterUpdateWindWaves(*body, amplitude, wavelength, water);
+	else
 	{
-		const float fi = (float)i;
-		const float angle = fi * 2.3999632f;
-		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
-		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
-		const float invDirectionLength = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f));
-		dx *= invDirectionLength;
-		dy *= invDirectionLength;
-		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
-		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
-		const float a = amplitude * scale * (i < 4 ? 0.28f : 0.10f);
-		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
-		VectorSet4(water[20 + i], dx, dy, a, k);
+		waterBody_t fallback = {};
+		fallback.waveMultiplier = 1.0f;
+		fallback.dynamics = 0;
+		waterWaveSet_t set;
+		vec2_t direction = { 0.8f, 0.6f };
+		R_WaterBuildWindWaveSet(fallback, dynamics, amplitude, wavelength, 0.0f, 0.0f, direction, set);
+		for (int i = 0; i < 8; ++i) VectorCopy4(set.terms[i], water[20 + i]), VectorCopy4(set.terms[i], water[44 + i]);
+		VectorSet4(water[53], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
+		water[54][0] = 1.0f;
 	}
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];

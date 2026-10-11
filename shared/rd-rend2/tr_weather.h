@@ -107,6 +107,21 @@ enum rainWeather_t
 	RAIN_WEATHER_ACID
 };
 
+enum weatherWindSource_t
+{
+	WEATHER_WIND_NONE,
+	WEATHER_WIND_CONSTANT,
+	WEATHER_WIND_DYNAMIC
+};
+
+struct weatherWindState_t
+{
+	vec3_t direction;
+	float strength;
+	int source;
+	bool valid;
+};
+
 struct weatherSystem_t
 {
 	weatherObject_t weatherSlots[NUM_WEATHER_TYPES];
@@ -168,8 +183,10 @@ bool R_IsOutside(vec3_t pos);
 bool R_IsShaking(vec3_t pos);
 float R_IsOutsideCausingPain(vec3_t pos);
 float R_GetChanceOfSaberFizz();
-bool R_GetWindVector(vec3_t windVector, vec3_t atPoint); // doesn't work?
-bool R_GetWindGusting(vec3_t atPoint); // doesn't work
+bool R_GetWindVector(vec3_t windVector, vec3_t atPoint);
+bool R_GetWindGusting(vec3_t atPoint);
+void RB_UpdateWeatherWind(void);
+bool R_GetWeatherWindState(weatherWindState_t *state, const vec3_t atPoint);
 
 void RE_WorldEffectCommand(const char *cmd);
 void R_WorldEffect_f(void);
