@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -2452,6 +2453,116 @@ static qboolean ShouldUseImmutableTextures(int imageFlags, GLenum internalformat
 	return glRefConfig.immutableTextures;
 }
 
+/*
+================
+Upload ring (r_uploadPBO)
+
+Level 0 of an 8-bit RGBA texture is copied into a persistently mapped pixel
+unpack buffer and uploaded from there, so glTexSubImage2D / glTexImage2D
+return without the driver copying or waiting on the client memory, and the
+transfer overlaps the next texture's CPU work. The bytes are the same. A fence
+per upload guards the ring: a range is only rewritten once the GL has read it.
+Needs buffer storage (glRefConfig.immutableBuffers); freed with the textures.
+================
+*/
+namespace {
+constexpr std::size_t UPLOAD_RING_BYTES = 64u * 1024u * 1024u;
+struct UploadFence {
+	GLsync sync;
+	std::size_t begin, end;
+};
+struct UploadRing {
+	GLuint buffer = 0;
+	byte *mapped = nullptr;
+	std::size_t head = 0;
+	std::deque<UploadFence> fences;
+	bool failed = false;
+};
+UploadRing s_uploadRing;
+
+bool UploadRingEnabled() {
+#ifdef REND2_SP
+	static cvar_t *cvar = ri.Cvar_Get("r_uploadPBO", "1", CVAR_ARCHIVE);
+#else
+	static cvar_t *cvar = ri.Cvar_Get("r_uploadPBO", "1", CVAR_ARCHIVE, "Upload textures through a persistently mapped pixel buffer");
+#endif
+	return cvar && cvar->integer && glRefConfig.immutableBuffers && !s_uploadRing.failed;
+}
+
+bool UploadRingCreate() {
+	if (s_uploadRing.mapped)
+		return true;
+	qglGenBuffers(1, &s_uploadRing.buffer);
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, s_uploadRing.buffer);
+	const GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+	qglBufferStorage(GL_PIXEL_UNPACK_BUFFER, UPLOAD_RING_BYTES, NULL, flags);
+	s_uploadRing.mapped = (byte *)qglMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, UPLOAD_RING_BYTES, flags);
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	if (!s_uploadRing.mapped) {
+		ri.Printf(PRINT_WARNING, "WARNING: r_uploadPBO: could not map the upload buffer, uploading directly\n");
+		qglDeleteBuffers(1, &s_uploadRing.buffer);
+		s_uploadRing.buffer = 0;
+		s_uploadRing.failed = true;
+		return false;
+	}
+	return true;
+}
+
+// waits for every upload still reading [begin, end)
+void UploadRingWait(std::size_t begin, std::size_t end) {
+	for (auto it = s_uploadRing.fences.begin(); it != s_uploadRing.fences.end(); ) {
+		if (it->begin < end && begin < it->end) {
+			qglClientWaitSync(it->sync, GL_SYNC_FLUSH_COMMANDS_BIT, 1000000000ull);
+			qglDeleteSync(it->sync);
+			it = s_uploadRing.fences.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
+}
+
+void R_UploadRingFree( void ) {
+	for (const UploadFence &fence : s_uploadRing.fences)
+		qglDeleteSync(fence.sync);
+	s_uploadRing.fences.clear();
+	if (s_uploadRing.buffer) {
+		qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, s_uploadRing.buffer);
+		qglUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+		qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		qglDeleteBuffers(1, &s_uploadRing.buffer);
+	}
+	s_uploadRing.buffer = 0;
+	s_uploadRing.mapped = nullptr;
+	s_uploadRing.head = 0;
+}
+
+// the pointer to pass to the GL upload call: data itself, or its offset in the
+// bound ring. Every call returning an offset must be followed by R_UploadRingDone.
+static const void *R_UploadRingStage( const byte *data, std::size_t bytes, std::size_t *begin )
+{
+	if (!data || bytes == 0 || bytes > UPLOAD_RING_BYTES / 2 || !UploadRingEnabled() || !UploadRingCreate())
+		return data;
+	std::size_t start = (s_uploadRing.head + 255) & ~(std::size_t)255;
+	if (start + bytes > UPLOAD_RING_BYTES)
+		start = 0;
+	UploadRingWait(start, start + bytes);
+	memcpy(s_uploadRing.mapped + start, data, bytes);
+	s_uploadRing.head = start + bytes;
+	*begin = start;
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, s_uploadRing.buffer);
+	return (const void *)(std::uintptr_t)start;
+}
+
+static void R_UploadRingDone( const void *staged, const byte *data, std::size_t begin, std::size_t bytes )
+{
+	if (staged == data)
+		return;
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	UploadFence fence = { qglFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0), begin, begin + bytes };
+	s_uploadRing.fences.push_back(fence);
+}
+
 static void RawImage_UploadTexture( byte *data, int x, int y, int width, int height, GLenum internalFormat, imgType_t type, int flags, qboolean subtexture )
 {
 	ImageRawUploadTimer profileUpload;
@@ -2507,6 +2618,12 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 	}
 	else
 	{
+		// level 0 of 8-bit RGBA pictures goes through the upload ring
+		const bool ringable = dataFormat == GL_RGBA && dataType == GL_UNSIGNED_BYTE;
+		const std::size_t bytes = ringable ? (std::size_t)width * height * 4 : 0;
+		std::size_t ringBegin = 0;
+		const void *pixels = ringable ? R_UploadRingStage( data, bytes, &ringBegin ) : data;
+
 		if ( ShouldUseImmutableTextures( flags, internalFormat ) )
 		{
 			int numLevels = (flags & IMGFLAG_MIPMAP) ? CalcNumMipmapLevels (width, height) : 1;
@@ -2515,13 +2632,16 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 
 			if ( data != NULL )
 			{
-				{ ImageTextureApiTimer profileApi; qglTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, dataFormat, dataType, data); }
+				{ ImageTextureApiTimer profileApi; qglTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, width, height, dataFormat, dataType, pixels); }
 			}
 		}
 		else
 		{
-			{ ImageTextureApiTimer profileApi; qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, dataType, data ); }
+			{ ImageTextureApiTimer profileApi; qglTexImage2D (GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, dataType, pixels ); }
 		}
+
+		if ( ringable )
+			R_UploadRingDone( pixels, data, ringBegin, bytes );
 	}
 
 	if ((flags & IMGFLAG_MIPMAP) && (!r_simpleMipMaps->integer) &&
@@ -5199,6 +5319,7 @@ void R_DeleteTextures( void ) {
 	s_missingImages.clear();
 	R_SourceScratchFlush();
 	R_PrefetchReset();
+	R_UploadRingFree();
 
 	image_t *image = tr.images;
 	while ( image )

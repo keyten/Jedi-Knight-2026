@@ -871,6 +871,45 @@ qboolean MenuParse_outlinecolor( itemDef_t *item)
 MenuParse_background
 =================
 */
+/*
+=================
+ui_lazyMenuAssets
+
+The in-game menus (ui/ingame.txt) are parsed again at every map load, and
+parsing registered every background and asset_shader picture right away. With
+ui_lazyMenuAssets 1 the parser only keeps the names; Menu_ResolveAssets
+registers them the first time the menu is looked up, opened or painted (before
+its onOpen script runs). The cost moves from the map load to the first opening
+of each menu.
+=================
+*/
+static qboolean UI_LazyMenuAssets( void )
+{
+	static cvar_t *lazy = NULL;
+	if ( !lazy )
+		lazy = Cvar_Get( "ui_lazyMenuAssets", "1", CVAR_ARCHIVE );
+	return (qboolean)( lazy->integer != 0 );
+}
+
+void Menu_ResolveAssets( menuDef_t *menu )
+{
+	if ( !menu || !menu->assetsDeferred )
+		return;
+	menu->assetsDeferred = qfalse;
+	if ( menu->window.backgroundName && !menu->window.background )
+		menu->window.background = ui.R_RegisterShaderNoMip( menu->window.backgroundName );
+	for ( int i = 0; i < menu->itemCount; i++ )
+	{
+		itemDef_t *item = menu->items[i];
+		if ( !item )
+			continue;
+		if ( item->window.backgroundName && !item->window.background )
+			item->window.background = ui.R_RegisterShaderNoMip( item->window.backgroundName );
+		if ( item->assetShaderName && !item->asset )
+			item->asset = DC->registerShaderNoMip( item->assetShaderName );
+	}
+}
+
 qboolean MenuParse_background( itemDef_t *item)
 {
 	const char *buff;
@@ -881,6 +920,12 @@ qboolean MenuParse_background( itemDef_t *item)
 		return qfalse;
 	}
 
+	if ( UI_LazyMenuAssets() )
+	{
+		menu->window.backgroundName = String_Alloc( buff );
+		menu->assetsDeferred = qtrue;
+		return qtrue;
+	}
 	menu->window.background = ui.R_RegisterShaderNoMip(buff);
 	return qtrue;
 }
@@ -1613,6 +1658,7 @@ menuDef_t *Menus_FindByName(const char *p)
 	{
 		if (Q_stricmp(Menus[i].window.name, p) == 0)
 		{
+			Menu_ResolveAssets(&Menus[i]);
 			return &Menus[i];
 		}
 	}
@@ -1707,6 +1753,7 @@ itemDef_t *Menu_FindItemByName(menuDef_t *menu, const char *p)
 	{
 		return NULL;
 	}
+	Menu_ResolveAssets(menu);
 
 	for (i = 0; i < menu->itemCount; i++)
 	{
@@ -3273,6 +3320,11 @@ qboolean ItemParse_asset_shader( itemDef_t *item)
 	{
 		return qfalse;
 	}
+	if ( UI_LazyMenuAssets() )
+	{
+		item->assetShaderName = String_Alloc( temp );
+		return qtrue;
+	}
 	item->asset = DC->registerShaderNoMip(temp);
 	return qtrue;
 }
@@ -4165,6 +4217,11 @@ qboolean ItemParse_background( itemDef_t *item)
 	if (PC_ParseString(&temp))
 	{
 		return qfalse;
+	}
+	if ( UI_LazyMenuAssets() )
+	{
+		item->window.backgroundName = String_Alloc( temp );
+		return qtrue;
 	}
 	item->window.background = ui.R_RegisterShaderNoMip(temp);
 	return qtrue;
@@ -5458,6 +5515,7 @@ Menus_Activate
 */
 void  Menus_Activate(menuDef_t *menu)
 {
+	Menu_ResolveAssets(menu);
 	menu->window.flags |= (WINDOW_HASFOCUS | WINDOW_VISIBLE);
 
 	if (menu->onOpen)
@@ -5730,6 +5788,12 @@ void Menu_PostParse(menuDef_t *menu)
 	if (menu == NULL)
 	{
 		return;
+	}
+
+	// items may have deferred names even when the menu has no background
+	if ( UI_LazyMenuAssets() )
+	{
+		menu->assetsDeferred = qtrue;
 	}
 
 	if (menu->fullScreen)
@@ -6012,6 +6076,7 @@ void Menu_Paint(menuDef_t *menu, qboolean forcePaint)
 	{
 		return;
 	}
+	Menu_ResolveAssets(menu);
 
 	if (menu->window.flags & WINDOW_SCRIPTWAITING)
 	{

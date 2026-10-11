@@ -24,7 +24,14 @@
 # This only has effect in this directory (lib/png).
 include_directories(include/)
 if(WIN32)
-	include_directories(../zlib/include/)
+	# the zlib this build links (lib/zlib or lib/zlib-ng)
+	include_directories(${ZLIB_INCLUDE_DIR})
+endif()
+
+# SSE2 row filters (intel/, from libpng 1.6.53): same output, faster unfiltering
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|i.86|x86")
+	add_definitions(-DPNG_INTEL_SSE)
+	set(PNG_INTEL_SOURCES intel/intel_init.c intel/filter_sse2_intrinsics.c)
 endif()
 
 if(MSVC)
@@ -52,7 +59,8 @@ add_library(bundled_libpng STATIC include/png.h
                                   pngwio.c
                                   pngwrite.c
                                   pngwtran.c
-                                  pngwutil.c)
+                                  pngwutil.c
+                                  ${PNG_INTEL_SOURCES})
 
 # Let consumers get at our bundled library in the standard CMake way.  These
 # variables are not set in the cache, but instead shadow the variables in the

@@ -4745,6 +4745,7 @@ qboolean R_ImageChecksumsEnabled( void );
 void	R_WriteImageChecksums( const char *reason );
 void	R_ReportGeneratedNormalUse( void );
 void	R_SourceScratchFlush( void );
+void	R_UploadRingFree( void );
 qboolean R_LazyNormalsEnabled( void );
 image_t	*R_GenerateDeferredNormalMap( image_t *diffuse );
 qboolean R_ImageKnownMissing( const char *lowerName );

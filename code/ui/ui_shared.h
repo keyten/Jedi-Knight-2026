@@ -322,6 +322,7 @@ typedef struct {
 	vec4_t		borderColor;				// border color
 	vec4_t		outlineColor;				// border color
 	qhandle_t	background;					// background asset
+	const char	*backgroundName;			// ui_lazyMenuAssets: registered when the menu is first used
 } windowDef_t;
 
 typedef windowDef_t Window;
@@ -405,6 +406,7 @@ typedef struct itemDef_s {
 	int			xoffset;
 	qboolean	disabled;					// Does this item ignore mouse and keyboard focus
 	qboolean	disabledHidden;				// hide the item when 'disabled' is true (for generic image items)
+	const char	*assetShaderName;			// ui_lazyMenuAssets: asset_shader registered when the menu is first used
 } itemDef_t;
 
 typedef struct {
@@ -438,7 +440,7 @@ typedef struct {
 	float		descScale;					// Description scale
 	int			descTextStyle;					// ( optional ) style, normal and shadowed are it for now
 
-
+	qboolean	assetsDeferred;				// ui_lazyMenuAssets: background / asset_shader names not registered yet
 } menuDef_t;
 
 typedef struct textScrollDef_s
@@ -475,6 +477,7 @@ int			Display_VisibleMenuCount(void);
 qboolean	Int_Parse(const char **p, int *i);
 void		Init_Display(displayContextDef_t *dc);
 void		Menus_Activate(menuDef_t *menu);
+void		Menu_ResolveAssets(menuDef_t *menu);
 menuDef_t	*Menus_ActivateByName(const char *p);
 qboolean	Menus_AnyFullScreenVisible(void);
 void		Menus_CloseAll(void);

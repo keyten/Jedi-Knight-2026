@@ -89,6 +89,8 @@ option(UseInternalOpenAL "If set, use bundled OpenAL."  ${UseInternalOpenALDefau
 option(UseInternalZlib   "If set, use bundled zlib."    ${UseInternalZlibDefault})
 option(UseInternalPNG    "If set, use bundled libpng."  ${UseInternalPNGDefault})
 option(UseInternalJPEG   "If set, use bundled libjpeg." ${UseInternalJPEGDefault})
+option(UseZlibNg         "With UseInternalZlib: build the bundled zlib-ng (zlib API, faster inflate) instead of zlib 1.2.8." ON)
+option(UseLibjpegTurbo   "With UseInternalJPEG: link the prebuilt libjpeg-turbo (x64 MSVC, SIMD; JPEG pixels differ slightly) instead of libjpeg 9a." OFF)
 option(UseInternalSDL2   "If set, use bundled SDL2."    ${UseInternalSDL2Default})
 
 # This option won't appear on non-Apple platforms.
@@ -395,13 +397,21 @@ set(SharedCommonSafeFiles
 #
 #=============================================================================
 if(UseInternalJPEG)
-  add_subdirectory(lib/jpeg-9a)
+  if(UseLibjpegTurbo)
+    add_subdirectory(lib/libjpeg-turbo)
+  else()
+    add_subdirectory(lib/jpeg-9a)
+  endif()
 else()
   find_package(JPEG REQUIRED)
 endif()
 
 if(UseInternalZlib)
-  add_subdirectory(lib/zlib)
+  if(UseZlibNg)
+    add_subdirectory(lib/zlib-ng)
+  else()
+    add_subdirectory(lib/zlib)
+  endif()
 else()
   find_package(ZLIB REQUIRED)
 endif()
