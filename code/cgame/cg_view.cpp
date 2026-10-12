@@ -1289,7 +1289,17 @@ qboolean CG_CalcFOVFromX( float fov_x )
 	{
 		cg.refdef.viewContents = CG_PointContents( cg.refdef.vieworg, -1 );
 	}
-	if ( cg.refdef.viewContents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) )
+	// The legacy whole-view FOV wobble is tied to the flat BSP boundary. When
+	// rend2 owns a liquid as a volumetric medium its displaced surface and
+	// per-pixel optics provide the transition; retaining this binary wobble
+	// would visibly switch at the wrong plane. Keep it for the legacy/fallback
+	// classes (including moving brush-model liquids not handled by rend2).
+	int modernLiquid = 0;
+	const int worldContents = cgi_CM_PointContents( cg.refdef.vieworg, 0 );
+	if ( (worldContents & CONTENTS_WATER) && (r_volumetricWaterActive.integer & 1) ) modernLiquid = CONTENTS_WATER;
+	else if ( (worldContents & CONTENTS_SLIME) && (r_volumetricWaterActive.integer & 2) ) modernLiquid = CONTENTS_SLIME;
+	else if ( (worldContents & CONTENTS_LAVA) && (r_volumetricWaterActive.integer & 4) ) modernLiquid = CONTENTS_LAVA;
+	if ( (cg.refdef.viewContents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA )) && !modernLiquid )
 	{
 		phase = cg.time / 1000.0 * WAVE_FREQUENCY * M_PI * 2;
 		v = WAVE_AMPLITUDE * sin( phase );

@@ -339,6 +339,7 @@ extern cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactS
 extern cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
+extern cvar_t *r_waterlineHysteresis, *r_waterlineDebug;
 extern cvar_t	*r_waterSurfaceRefraction;
 extern cvar_t	*r_waterSurfaceDepthReject;
 extern cvar_t	*r_waterSurfaceReflection;
@@ -6108,6 +6109,23 @@ void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
 void R_WaterfallEmittersFinalize(world_t *world);
+
+// Render-only camera relationship to a horizontal modern water body. Gameplay
+// contents remains authoritative and is reported separately; micro normals are
+// deliberately absent from this query.
+typedef struct waterlineQuery_s
+{
+	qboolean valid;
+	int gameplayClass;
+	int bodyId;
+	int liquidClass;
+	float baseHeight;
+	float surfaceHeight;
+	float relativeHeight;
+	float shoreAttenuation;
+	float queryUsec;
+} waterlineQuery_t;
+qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *query);
 void R_Waterfalls_f(void);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);

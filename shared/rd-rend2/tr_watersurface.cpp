@@ -4758,7 +4758,7 @@ static float R_WaterResolveWind(waterBody_t& body, vec2_t direction, float& rain
 }
 
 static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wavelength,
-	vec4_t *water)
+	float now, vec4_t *water)
 {
 	vec2_t windDirection;
 	float rainNoise;
@@ -4766,7 +4766,6 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	waterWaveSet_t desired;
 	R_WaterBuildWindWaveSet(body, s_dynamics[body.dynamics], amplitude, wavelength,
 		response, r_waterWind->integer ? rainNoise : 0.0f, windDirection, desired);
-	const float now = backEnd.refdef.floatTime;
 	if (!body.wind.initialized)
 	{
 		body.wind.oldSet = body.wind.targetSet = desired;
@@ -4805,6 +4804,175 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	VectorSet4(water[52], body.wind.resolved[0], body.wind.resolved[1], body.wind.strength, (float)body.wind.source);
 	VectorSet4(water[53], current[0], current[1], body.wind.targetSet.direction[0], body.wind.targetSet.direction[1]);
 	VectorSet4(water[54], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, rainNoise);
+}
+
+static bool R_WaterBodyCoversXY(const waterBody_t& body, const vec3_t position)
+{
+	// Use the submitted interface triangles rather than an AABB. This keeps
+	// disconnected pools and holes in a concave body from stealing the camera.
+	for (int surfaceNum : body.surfaces)
+	{
+		const msurface_t& ms = s_water.world->surfaces[surfaceNum];
+		if (!(ms.waterKey & WATERKEY_INTERFACE) || !ms.data ||
+			!(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES))
+			continue;
+		const srfBspSurface_t *surface = (const srfBspSurface_t *)ms.data;
+		for (int i = 0; i + 2 < surface->numIndexes; i += 3)
+		{
+			const int ia = surface->indexes[i], ib = surface->indexes[i + 1], ic = surface->indexes[i + 2];
+			if (ia < 0 || ib < 0 || ic < 0 || ia >= surface->numVerts || ib >= surface->numVerts || ic >= surface->numVerts)
+				continue;
+			if (R_WaterInteractionPointInTriangle(position[0], position[1],
+				surface->verts[ia].xyz, surface->verts[ib].xyz, surface->verts[ic].xyz))
+				return true;
+		}
+	}
+	return false;
+}
+
+static float R_WaterlineShoreAttenuation(const waterBody_t& body, const vec3_t position,
+	float *interactionAttenuation)
+{
+	*interactionAttenuation = 1.0f;
+	if (!r_waterShoreline->integer || !r_waterGeometry->integer)
+		return 1.0f;
+	float distance = 65504.0f;
+	bool rigid = false;
+	for (const waterContactSegment_t& contact : s_water.contacts)
+	{
+		if (contact.bodyId != body.id) continue;
+		const float d = R_WaterPointSegmentDistance2D(position, contact.a, contact.b);
+		if (d < distance) { distance = d; rigid = contact.rigid; }
+	}
+	if (distance >= 65000.0f) return 1.0f;
+	const float profile = Com_Clamp(0.0f, 1.5f, s_dynamics[body.dynamics].shoreline);
+	const float edge = rigid ? Com_Clamp(0.03f, 0.08f, 0.03f + profile * 0.033333f) :
+		Com_Clamp(0.15f, 0.40f, 0.15f + profile * 0.25f);
+	const float interactionEdge = rigid ? Com_Clamp(0.05f, 0.125f, 0.05f + profile * 0.05f) :
+		Com_Clamp(0.20f, 0.50f, 0.20f + profile * 0.20f);
+	const float width = MAX(r_waterShoreAttenuation->value * (rigid ? 1.0f : 0.35f), 1.0f);
+	const float x = Com_Clamp(0.0f, 1.0f, distance / width);
+	const float smooth = x * x * (3.0f - 2.0f * x);
+	const float attenuation = edge + (1.0f - edge) * smooth;
+	*interactionAttenuation = MAX(attenuation, interactionEdge);
+	return attenuation;
+}
+
+static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t position,
+	float time, float shoreAttenuation, vec4_t *water)
+{
+	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.geometryVerts <= 0)
+		return 0.0f;
+	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
+	const int count = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
+	const float qualityAmplitude = count == 2 ? 1.86f : (count == 8 ? 0.59f : 1.0f);
+	float shallow = 1.0f;
+	if (r_waterWaveShallow->integer && body.depthAverage > 0.0f)
+	{
+		const float x = Com_Clamp(0.0f, 1.0f, body.depthAverage / 32.0f);
+		shallow = x * x * (3.0f - 2.0f * x);
+	}
+	const float speed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
+	const float flowDetail = Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value);
+	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
+	const bool flow = r_waterFlow->integer && body.flowSpeed > 0.0f;
+	auto evaluate = [&](int firstTerm) -> float {
+		float height = 0.0f;
+		for (int i = 0; i < count; ++i)
+		{
+			const int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
+			const vec4_t& term = water[firstTerm + component];
+			float x = position[0], y = position[1];
+			if (flow && component >= 4)
+			{
+				x -= body.flowVelocity[0] * flowScale * time * flowDetail * 0.35f;
+				y -= body.flowVelocity[1] * flowScale * time * flowDetail * 0.35f;
+			}
+			const float phase = term[3] * (term[0] * x + term[1] * y) -
+				speed * term[3] * time + component * 1.37f;
+			height += term[2] * shallow * qualityAmplitude * sinf(phase);
+		}
+		return height;
+	};
+	const float blend = Com_Clamp(0.0f, 1.0f, water[54][0]);
+	return (evaluate(44) + (evaluate(20) - evaluate(44)) * blend) * shoreAttenuation;
+}
+
+qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *query)
+{
+	static int cachedFrame = -1;
+	static const world_t *cachedWorld = nullptr;
+	static float cachedTime = 0.0f;
+	static vec3_t cachedPosition = {};
+	static waterlineQuery_t cachedQuery = {};
+	if (cachedFrame == tr.frameCount && cachedWorld == tr.world && cachedTime == time &&
+		VectorCompare(cachedPosition, position))
+	{
+		*query = cachedQuery;
+		return query->valid;
+	}
+	const auto start = std::chrono::steady_clock::now();
+	Com_Memset(query, 0, sizeof(*query));
+	query->gameplayClass = R_LiquidPointClass(position);
+	query->bodyId = 0;
+	query->liquidClass = -1;
+	if (!s_water.world || s_water.world != tr.world || !r_waterSurface->integer)
+		return qfalse;
+	const float stateTime = time;
+	time = r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : time;
+	const waterBody_t *best = nullptr;
+	float bestDistance = 1.0e30f;
+	bool bestContainsCamera = false;
+	for (const waterBody_t& body : s_water.bodies)
+	{
+		if (body.waterfall || body.model != 0 || body.planeNormal[2] < 0.7f ||
+			position[0] < body.bounds[0][0] - 1.0f || position[0] > body.bounds[1][0] + 1.0f ||
+			position[1] < body.bounds[0][1] - 1.0f || position[1] > body.bounds[1][1] + 1.0f ||
+			!R_WaterBodyCoversXY(body, position))
+			continue;
+		const float base = (body.planeDist - body.planeNormal[0] * position[0] -
+			body.planeNormal[1] * position[1]) / body.planeNormal[2];
+		bool containsCamera = false;
+		for (int brushIndex : body.brushes)
+			if (brushIndex >= 0 && brushIndex < (int)s_water.brushes.size() &&
+				R_WaterInsideBrush(s_water.brushes[brushIndex], position, 0.5f))
+			{ containsCamera = true; break; }
+		const float distance = fabsf(position[2] - base);
+		if ((containsCamera && !bestContainsCamera) || (containsCamera == bestContainsCamera && distance < bestDistance))
+		{
+			bestDistance = distance;
+			bestContainsCamera = containsCamera;
+			best = &body;
+		}
+	}
+	if (!best) return qfalse;
+
+	query->valid = qtrue;
+	query->bodyId = best->id;
+	query->liquidClass = best->liquidClass;
+	query->baseHeight = (best->planeDist - best->planeNormal[0] * position[0] -
+		best->planeNormal[1] * position[1]) / best->planeNormal[2];
+	float interactionAttenuation = 1.0f;
+	query->shoreAttenuation = R_WaterlineShoreAttenuation(*best, position, &interactionAttenuation);
+	vec4_t water[WATER_UNIFORM_VEC4S] = {};
+	const waterDynamics_t& dynamics = s_dynamics[best->dynamics];
+	const float legacyScale = best->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
+	const float amplitude = dynamics.amplitude * 8.0f * legacyScale * best->waveMultiplier *
+		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value);
+	const float wavelength = MAX(dynamics.wavelength * Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value), 8.0f);
+	R_WaterUpdateWindWaves(const_cast<waterBody_t&>(*best), amplitude, wavelength, stateTime, water);
+	const float macro = R_WaterlineWaveHeight(*best, position, time, query->shoreAttenuation, water);
+	const float interaction = (r_waterGeometry->integer && best->geometryVerts > 0 && r_waterInteraction->integer) ?
+		(R_WaterInteractionSurfaceHeight(*best, position) - query->baseHeight) * interactionAttenuation : 0.0f;
+	query->surfaceHeight = query->baseHeight + macro + interaction;
+	query->relativeHeight = position[2] - query->surfaceHeight;
+	query->queryUsec = std::chrono::duration<float, std::micro>(std::chrono::steady_clock::now() - start).count();
+	cachedFrame = tr.frameCount;
+	cachedWorld = tr.world;
+	cachedTime = stateTime;
+	VectorCopy(position, cachedPosition);
+	cachedQuery = *query;
+	return qtrue;
 }
 
 void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter& uniforms,
@@ -4924,7 +5092,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const float wavelength = MAX(water[15][1] * water[13][2], 8.0f);
 	const float amplitude = water[15][0] * water[13][1];
 	if (body)
-		R_WaterUpdateWindWaves(*body, amplitude, wavelength, water);
+		R_WaterUpdateWindWaves(*body, amplitude, wavelength, backEnd.refdef.floatTime, water);
 	else
 	{
 		waterBody_t fallback = {};

@@ -67,10 +67,11 @@ int s_waterEnterTime;
 int s_lastEmergeTime;
 qboolean s_submergePending;
 qboolean s_emergePending;
-// The game reports the player emerging (LENSWATER_F_LOCAL, first person)
-// and the contents test of the camera detects it too (third person, older
-// games): whichever comes first within a second wins.
-int s_lastLocalEmergeTime;
+int s_lastWaterTransitionTime;
+const char *s_lastWaterTransition;
+float s_waterlineHistory[64];
+int s_waterlineHistoryHead;
+int s_waterlineDebugTime;
 // camera velocity for the rain flux onto the lens (front end)
 vec3_t s_fluxOrigin;
 vec3_t s_cameraVelocity;
@@ -224,7 +225,11 @@ void ResetState( void )
 	s_lastEmergeTime = -100000;
 	s_submergePending = qfalse;
 	s_emergePending = qfalse;
-	s_lastLocalEmergeTime = -100000;
+	s_lastWaterTransitionTime = 0;
+	s_lastWaterTransition = "none";
+	s_waterlineHistoryHead = 0;
+	s_waterlineDebugTime = 0;
+	Com_Memset(s_waterlineHistory, 0, sizeof(s_waterlineHistory));
 	s_numWorldEvents = 0;
 	s_motionValid = qfalse;
 	s_measureFrame = qfalse;
@@ -344,11 +349,11 @@ void ResolveWorldEvents( const trRefdef_t *refdef, qboolean submerged, rainLensI
 		const refLensWaterEvent_t &event = s_worldEvents[i];
 		if ( event.type == LENSWATER_EMERGE && (event.flags & LENSWATER_F_LOCAL) )
 		{
-			// the contents test already emerged the camera: one burst only
-			if ( refdef->time - s_lastEmergeTime >= 0 && refdef->time - s_lastEmergeTime < 1000 )
-				continue;
-			s_lastLocalEmergeTime = refdef->time;
-			s_emergePending = qfalse;
+			// Camera entry/exit belongs to the active primary render view. Cgame's
+			// authoritative player waterlevel event is intentionally not a second
+			// lens transition source (it can disagree with a third-person camera or
+			// a displaced crest); world splash events remain valid below.
+			continue;
 		}
 		if ( submerged || input->numEvents >= RAINLENS_MAX_EVENTS )
 			continue;
@@ -831,19 +836,33 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		s_fluxValid = qtrue;
 	}
 
-	// Leaving water seeds a lot of water at once; while submerged the lens
-	// is not drawn and entering water wipes it. Eyes bobbing at the surface
-	// must not emerge every frame: the camera has to be under for a moment,
-	// and emerging repeats at most once a second.
-	const qboolean inWater = (qboolean)((ri.CM_PointContents(refdef->vieworg, 0)
-		& (CONTENTS_WATER | CONTENTS_SLIME)) != 0);
-	if ( refdef->time < s_lastEmergeTime || refdef->time < s_waterEnterTime
-		|| refdef->time < s_lastLocalEmergeTime )
+	// BSP contents remains gameplay-authoritative. The lens instead follows
+	// the macroscopic rendered boundary (analytic geometry waves plus the
+	// body-local interaction field), with a small Schmitt-trigger band. Micro
+	// normal maps never participate in this decision.
+	waterlineQuery_t waterline = {};
+	const qboolean visualQuery = R_WaterlineQuery(refdef->vieworg, refdef->floatTime, &waterline);
+	const qboolean gameplayInWater = (qboolean)(waterline.gameplayClass == LIQUID_WATER ||
+		waterline.gameplayClass == LIQUID_SLIME);
+	qboolean inWater = gameplayInWater;
+	const float verticalSpeed = s_cameraVelocity[2];
+	const float speedFactor = Com_Clamp(0.0f, 1.0f, (fabsf(verticalSpeed) - 24.0f) / 176.0f);
+	const float baseBand = r_waterlineHysteresis->value;
+	const float band = MAX(baseBand * (1.0f - 0.75f * speedFactor), baseBand > 0.0f ? 0.25f : 0.0f);
+	if (visualQuery && (waterline.liquidClass == LIQUID_WATER || waterline.liquidClass == LIQUID_SLIME))
+	{
+		if (!s_inWaterValid)
+			inWater = (qboolean)(waterline.relativeHeight < 0.0f);
+		else if (s_inWater)
+			inWater = (qboolean)(waterline.relativeHeight <= band);
+		else
+			inWater = (qboolean)(waterline.relativeHeight < -band);
+	}
+	if ( refdef->time < s_lastEmergeTime || refdef->time < s_waterEnterTime )
 	{
 		// game time restarted (map change)
 		s_waterEnterTime = 0;
 		s_lastEmergeTime = -100000;
-		s_lastLocalEmergeTime = -100000;
 	}
 	if ( s_inWaterValid && inWater != s_inWater )
 	{
@@ -851,17 +870,47 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		{
 			s_submergePending = qtrue;
 			s_waterEnterTime = refdef->time;
+			s_lastWaterTransition = "SUBMERGE";
+			s_lastWaterTransitionTime = refdef->time;
 		}
-		else if ( refdef->time - s_waterEnterTime >= 250 && refdef->time - s_lastEmergeTime >= 1000
-			&& refdef->time - s_lastLocalEmergeTime >= 1000 )
+		else if ( refdef->time - s_waterEnterTime >= 100 && refdef->time - s_lastEmergeTime >= 250 )
 		{
 			s_emergePending = qtrue;
 			s_lastEmergeTime = refdef->time;
+			s_lastWaterTransition = "EMERGE";
+			s_lastWaterTransitionTime = refdef->time;
 		}
 	}
 	s_inWater = inWater;
 	s_inWaterValid = qtrue;
 	input->submerged = inWater;
+
+	if (r_waterlineDebug->integer)
+	{
+		s_waterlineHistory[s_waterlineHistoryHead++ & 63] = visualQuery ? waterline.relativeHeight : 999.0f;
+		if (refdef->time - s_waterlineDebugTime >= 1000)
+		{
+			s_waterlineDebugTime = refdef->time;
+			ri.Printf(PRINT_ALL, "waterline: bsp=%s class=%d body=%d base=%.2f surface=%.2f relative=%.2f visual=%s band=%.2f transition=%s %dms ago lens=%s snell=%s query=%.2fus\n",
+				gameplayInWater ? "in" : "out", waterline.gameplayClass, waterline.bodyId,
+				waterline.baseHeight, waterline.surfaceHeight, waterline.relativeHeight,
+				inWater ? "in" : "out", band, s_lastWaterTransition,
+				refdef->time - s_lastWaterTransitionTime,
+				s_submergePending ? "SUBMERGE pending" : (s_emergePending ? "EMERGE pending" : "idle"),
+				inWater ? "water->air" : "air->water", waterline.queryUsec);
+			if (r_waterlineDebug->integer >= 2)
+			{
+				char graph[65];
+				for (int i = 0; i < 64; ++i)
+				{
+					const float h = s_waterlineHistory[(s_waterlineHistoryHead + i) & 63];
+					graph[i] = h > 900.0f ? '?' : (h < -band ? '#' : (h > band ? '.' : '|'));
+				}
+				graph[64] = '\0';
+				ri.Printf(PRINT_ALL, "waterline history (old->new; # submerged, | band, . air): %s\n", graph);
+			}
+		}
+	}
 
 	ResolveWorldEvents(refdef, inWater, input);
 	if ( s_submergePending )

@@ -621,14 +621,28 @@ static void WP_Simulate( const trRefdef_t *refdef, const viewParms_t *view )
 	const auto cpuStart = std::chrono::steady_clock::now();
 	const float *camera = view->ori.origin;
 
-	// the camera must be in a liquid brush of a water or slime body
-	const int cameraClass = R_LiquidPointClass(camera);
+	// Particles are a visual medium cue, so suppress them in a displaced trough
+	// and allow them in a crest above the flat BSP top. Body/brush selection is
+	// still anchored to BSP geometry by projecting only the membership sample;
+	// gameplay contents itself is never changed.
+	waterlineQuery_t waterline = {};
+	const qboolean visualWaterline = R_WaterlineQuery(camera, refdef->floatTime, &waterline);
+	if (visualWaterline && waterline.relativeHeight > 0.0f)
+	{
+		WP_Deactivate("camera above displaced waterline");
+		return;
+	}
+	vec3_t membershipPoint;
+	VectorCopy(camera, membershipPoint);
+	if (visualWaterline)
+		membershipPoint[2] = MIN(membershipPoint[2], waterline.baseHeight - 0.25f);
+	const int cameraClass = R_LiquidPointClass(membershipPoint);
 	if ( cameraClass != LIQUID_WATER && cameraClass != LIQUID_SLIME )
 	{
 		WP_Deactivate("camera not in water / slime");
 		return;
 	}
-	const int cameraBrush = WP_PointBrush(camera, cameraClass);
+	const int cameraBrush = WP_PointBrush(membershipPoint, cameraClass);
 	if ( cameraBrush < 0 )
 	{
 		WP_Deactivate("camera liquid has no kept brush (BSP fog water, brush model, shape)");

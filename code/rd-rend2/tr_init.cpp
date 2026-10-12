@@ -243,6 +243,7 @@ cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 cvar_t *r_waterWaveTime;
+cvar_t *r_waterlineHysteresis, *r_waterlineDebug;
 cvar_t	*r_waterSurfaceRefraction;
 cvar_t	*r_waterSurfaceDepthReject;
 cvar_t	*r_waterSurfaceReflection;
@@ -2963,6 +2964,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterWaveDebug, 0, 10, qtrue);
 	r_waterWaveTime = ri_Cvar_Get_NoComm("r_waterWaveTime", "-1", CVAR_CHEAT, "Ambient wave time in seconds; -1 follows game time, nonnegative value freezes at that time");
 	ri.Cvar_CheckRange(r_waterWaveTime, -1.0f, 100000.0f, qfalse);
+	r_waterlineHysteresis = ri_Cvar_Get_NoComm("r_waterlineHysteresis", "1.5", CVAR_ARCHIVE, "Visual camera waterline enter/exit band in world units; fast crossings reduce the band");
+	ri.Cvar_CheckRange(r_waterlineHysteresis, 0.0f, 16.0f, qfalse);
+	r_waterlineDebug = ri_Cvar_Get_NoComm("r_waterlineDebug", "0", CVAR_CHEAT, "Visual waterline diagnostics: 1 = once-per-second state, 2 = state plus recent camera-relative-height graph");
+	ri.Cvar_CheckRange(r_waterlineDebug, 0, 2, qtrue);
 	r_waterSurfaceRefraction = ri_Cvar_Get_NoComm("r_waterSurfaceRefraction", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the screen-space refraction offset (1 = physical for the depth behind the water)");
 	ri.Cvar_CheckRange(r_waterSurfaceRefraction, 0.0f, 4.0f, qfalse);
 	r_waterSurfaceDepthReject = ri_Cvar_Get_NoComm("r_waterSurfaceDepthReject", "1", CVAR_ARCHIVE, "r_waterSurface: refraction never samples objects in front of the water (shrinks the offset, else none)");
