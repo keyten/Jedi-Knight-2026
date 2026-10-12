@@ -1935,6 +1935,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_skinSSSKernel",	R_SkinSSSKernel_f },
 	{ "r_skinSSSList",	R_SkinSSSList_f },
 	{ "r_weatherMaterialList", R_WeatherMaterialList_f },
+	{ "r_precipitationInfo", R_PrecipitationInfo_f },
 	{ "r_autoFoliageList", R_PrintAutoFoliage_f },
 	{ "r_foliageInteractionList", R_FoliageInteractionList_f },
 	{ "r_foliageBendFieldClear", R_FoliageFieldClear_f },

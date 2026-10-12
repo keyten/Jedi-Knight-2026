@@ -4702,7 +4702,8 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 	}
 }
 
-static float R_WaterResolveWind(waterBody_t& body, vec2_t direction, float& rainNoise)
+static float R_WaterResolveWind(waterBody_t& body, const precipitationState_t& precipitation,
+	vec2_t direction, float& rainNoise)
 {
 	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
 	vec3_t center = {
@@ -4727,13 +4728,15 @@ static float R_WaterResolveWind(waterBody_t& body, vec2_t direction, float& rain
 	}
 	else
 	{
-		weatherWindState_t weather = {};
-		// Rain particles get their lateral force from this same weather field.
+		vec3_t weatherWind;
+		VectorCopy(precipitation.wind, weatherWind);
+		const float weatherStrength = VectorNormalize(weatherWind);
+		// Rain particles get their lateral force from this same resolved field.
 		// Rain presence alone is deliberately not a wind source.
-		if (R_GetWeatherWindState(&weather, center))
+		if (weatherStrength > 1.0e-4f)
 		{
-			VectorCopy(weather.direction, resolved);
-			strength = Com_Clamp(0.0f, 1.0f, weather.strength / 3.0f);
+			VectorCopy(weatherWind, resolved);
+			strength = Com_Clamp(0.0f, 1.0f, weatherStrength / 3.0f);
 			source = WWIND_WEATHER; valid = true;
 		}
 	}
@@ -4749,20 +4752,20 @@ static float R_WaterResolveWind(waterBody_t& body, vec2_t direction, float& rain
 	body.wind.strength = strength; body.wind.source = source; body.wind.valid = valid;
 	const float exposure = body.wind.outdoor ? 1.0f : 0.05f;
 	rainNoise = 0.0f;
-	if (tr.weatherSystem && body.wind.outdoor)
-		rainNoise = tr.weatherSystem->rainSubtype == RAIN_WEATHER_HEAVY ? 0.16f :
-			(tr.weatherSystem->rainSubtype == RAIN_WEATHER_NORMAL || tr.weatherSystem->rainSubtype == RAIN_WEATHER_ACID ? 0.06f :
-			(tr.weatherSystem->rainSubtype == RAIN_WEATHER_LIGHT ? 0.025f : 0.0f));
+	if (precipitation.current && body.wind.outdoor)
+		rainNoise = precipitation.subtype == RAIN_WEATHER_HEAVY ? 0.16f :
+			(precipitation.subtype == RAIN_WEATHER_NORMAL || precipitation.subtype == RAIN_WEATHER_ACID ? 0.06f :
+			(precipitation.subtype == RAIN_WEATHER_LIGHT ? 0.025f : 0.0f));
 	return r_waterWind->integer && valid ? Com_Clamp(0.0f, 1.5f,
 		strength * dynamics.windCoupling * exposure * r_waterWindScale->value) : 0.0f;
 }
 
 static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wavelength,
-	float now, vec4_t *water)
+	float now, const precipitationState_t& precipitation, vec4_t *water)
 {
 	vec2_t windDirection;
 	float rainNoise;
-	const float response = R_WaterResolveWind(body, windDirection, rainNoise);
+	const float response = R_WaterResolveWind(body, precipitation, windDirection, rainNoise);
 	waterWaveSet_t desired;
 	R_WaterBuildWindWaveSet(body, s_dynamics[body.dynamics], amplitude, wavelength,
 		response, r_waterWind->integer ? rainNoise : 0.0f, windDirection, desired);
@@ -4960,7 +4963,8 @@ qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *q
 	const float amplitude = dynamics.amplitude * 8.0f * legacyScale * best->waveMultiplier *
 		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value);
 	const float wavelength = MAX(dynamics.wavelength * Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value), 8.0f);
-	R_WaterUpdateWindWaves(const_cast<waterBody_t&>(*best), amplitude, wavelength, stateTime, water);
+	R_WaterUpdateWindWaves(const_cast<waterBody_t&>(*best), amplitude, wavelength, stateTime,
+		tr.refdef.precipitation, water);
 	const float macro = R_WaterlineWaveHeight(*best, position, time, query->shoreAttenuation, water);
 	const float interaction = (r_waterGeometry->integer && best->geometryVerts > 0 && r_waterInteraction->integer) ?
 		(R_WaterInteractionSurfaceHeight(*best, position) - query->baseHeight) * interactionAttenuation : 0.0f;
@@ -5092,7 +5096,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const float wavelength = MAX(water[15][1] * water[13][2], 8.0f);
 	const float amplitude = water[15][0] * water[13][1];
 	if (body)
-		R_WaterUpdateWindWaves(*body, amplitude, wavelength, backEnd.refdef.floatTime, water);
+		R_WaterUpdateWindWaves(*body, amplitude, wavelength, backEnd.refdef.floatTime,
+			backEnd.refdef.precipitation, water);
 	else
 	{
 		waterBody_t fallback = {};

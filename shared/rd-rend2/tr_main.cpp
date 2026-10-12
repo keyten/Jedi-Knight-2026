@@ -2082,6 +2082,11 @@ R_GenerateDrawSurfs
 ====================
 */
 void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
+	// One immutable precipitation interpretation for every scene. Main, portal
+	// and shadow commands copy their own refdef, so no view borrows another
+	// view's exposure decision.
+	R_ResolvePrecipitationState(refdef, viewParms, &refdef->precipitation);
+
 	if (viewParms->flags & VPF_LTC_STATIC_SHADOW)
 	{
 		R_AddWorldSurfaces(viewParms, refdef);

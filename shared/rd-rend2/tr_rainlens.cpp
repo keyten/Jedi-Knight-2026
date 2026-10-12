@@ -935,38 +935,32 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	if ( !inWater )
 		EvaluateEmitters(refdef, input);
 
-	const weatherObject_t *rain = tr.weatherSystem ? &tr.weatherSystem->weatherSlots[WEATHER_RAIN] : NULL;
+	const precipitationState_t& precipitation = refdef->precipitation;
 	const Profile forced = s_water.GetProfileOverride();
 	qboolean outside = qfalse;
-	if ( forced != PROFILE_AUTO && !(rain && rain->active) )
+	if ( forced != PROFILE_AUTO && !precipitation.current )
 	{
 		// rainlens_profile forces rain for testing on dry maps
 		input->intensity = LensWater::NominalIntensity(forced);
 		input->exposed = 1.0f;
 		input->facing = Com_Clamp(0.0f, 1.0f, refdef->viewaxis[0][2]);
-		vec3_t origin;
-		VectorCopy(refdef->vieworg, origin);
-		outside = (qboolean)(tr.sunParsed && R_IsOutside(origin));
+		outside = (qboolean)(tr.sunParsed && precipitation.outside);
 		const vec3_t straightDown = { 0.0f, 0.0f, -1.0f };
 		input->rainFlux = RainFlux(straightDown, refdef->viewaxis, qtrue, input->rainSlant);
 	}
-	else if ( rain && rain->active && !inWater )
+	else if ( precipitation.current && !inWater )
 	{
 		// "lightrain" 1000, "rain" / "acidrain" 2000, "heavyrain" 5000 particles;
 		// custom counts above that rain harder on the lens, up to twice
-		input->intensity = Com_Clamp(0.0f, 2.0f, rain->particleCount / 5000.0f);
-		input->weather = tr.weatherSystem->rainSubtype;
-
-		vec3_t origin;
-		VectorCopy(refdef->vieworg, origin);
-		outside = (qboolean)R_IsOutside(origin);
+		input->intensity = precipitation.normalizedIntensity;
+		input->weather = precipitation.opticalProfile;
+		outside = precipitation.outside;
 		input->exposed = outside ? 1.0f : 0.0f;
 
 		// Rain travels down, tilted by the wind; the lens gets more of it when
 		// it faces into the rain.
 		vec3_t fall;
-		VectorSet(fall, tr.weatherSystem->windDirection[0], tr.weatherSystem->windDirection[1],
-			-Q_max(rain->gravity, 0.1f) * 100.0f);
+		VectorCopy(precipitation.worldRainVelocity, fall);
 		const float horizontal = sqrtf(fall[0] * fall[0] + fall[1] * fall[1]);
 		const float maxHorizontal = -fall[2];	// at most 45 degrees
 		if ( horizontal > maxHorizontal )
@@ -980,7 +974,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 
 		// wind in lens space (viewaxis[1] points left), a hint for sheets
 		vec3_t wind;
-		VectorCopy(tr.weatherSystem->windDirection, wind);
+		VectorCopy(precipitation.wind, wind);
 		wind[2] = 0.0f;
 		const float windSpeed = VectorNormalize(wind);
 		const float windAmount = Com_Clamp(0.0f, 1.0f, windSpeed / 100.0f);
@@ -1001,12 +995,10 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	if ( r_rainLensReflection->value <= 0.0f )
 		return;
 
-	if ( !(rain && rain->active) && forced == PROFILE_AUTO && tr.sunParsed )
+	if ( !precipitation.current && forced == PROFILE_AUTO && tr.sunParsed )
 	{
 		// no rain: the sun glint still needs to know whether the sky is open
-		vec3_t origin;
-		VectorCopy(refdef->vieworg, origin);
-		outside = (qboolean)R_IsOutside(origin);
+		outside = precipitation.outside;
 	}
 
 	GatherOptics(refdef, outside, input);

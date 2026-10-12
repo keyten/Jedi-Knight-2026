@@ -2828,6 +2828,37 @@ typedef struct shaderProgram_s
 	uint32_t uniformBlocks;
 } shaderProgram_t;
 
+// Resolved once for a render scene. Weather commands remain authoritative;
+// consumers use this value snapshot instead of independently interpreting the
+// mutable weather system. Exposure is camera/scene exposure, not the per-pixel
+// weather depth lookup used by material shaders.
+enum precipitationConsumer_t {
+	PRECIP_CONSUMER_PARTICLES = 1 << 0,
+	PRECIP_CONSUMER_WETNESS = 1 << 1,
+	PRECIP_CONSUMER_PUDDLES = 1 << 2,
+	PRECIP_CONSUMER_RUNOFF = 1 << 3,
+	PRECIP_CONSUMER_SPLASHES = 1 << 4,
+	PRECIP_CONSUMER_LENS = 1 << 5,
+	PRECIP_CONSUMER_VOLUME = 1 << 6,
+	PRECIP_CONSUMER_ACID = 1 << 7
+};
+
+typedef struct precipitationState_s {
+	qboolean	valid;
+	qboolean	primaryView;
+	qboolean	current;
+	qboolean	outside;
+	qboolean	exposed;
+	int		subtype;			// rainWeather_t
+	int		opticalProfile;		// rainWeather_t; stable lens profile mapping
+	int		rawParticleCount;
+	float		normalizedIntensity;	// legacy lens mapping: particleCount / 5000, clamped 0..2
+	vec3_t		wind;				// resolved world-space weather wind
+	vec3_t		worldRainVelocity;	// wind plus the stock rain fall speed
+	vec4_t		tint;
+	uint32_t	consumerMask;
+} precipitationState_t;
+
 // trRefdef_t holds everything that comes in refdef_t,
 // as well as the locally generated scene information
 typedef struct {
@@ -2889,6 +2920,7 @@ typedef struct {
 	float       toneMinAvgMaxLinear[3];
 	bool		doLAGoggles;
 	bool		doFullbright;
+	precipitationState_t precipitation;
 } trRefdef_t;
 
 
@@ -5908,6 +5940,9 @@ void R_LoadLensWaterEmittersJson(world_t *world, const char *json, const char *j
 void R_RainLensEvent_f(void);
 void R_RainLensProfile_f(void);
 void R_RainLensStats_f(void);
+void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *view,
+	precipitationState_t *state);
+void R_PrecipitationInfo_f(void);
 
 /*
 ============================================================

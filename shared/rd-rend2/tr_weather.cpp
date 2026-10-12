@@ -25,9 +25,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <chrono>
 #include <algorithm>
 
-// Cached to save test tume
-int CurrentWeatherBrushIndex;
-
 namespace
 {
 	const int CHUNK_COUNT = 9;  // in 3x3 arrangement
@@ -1064,7 +1061,6 @@ void R_InitWeatherSystem()
 	tr.weatherSystem->constWindDirection[1] = .0f;
 	s_windUpdateFrame = ~0u;
 
-	CurrentWeatherBrushIndex = -1;
 	tr.weatherSystem->depthMapValid = false;
 
 	for (int i = 0; i < NUM_WEATHER_TYPES; i++)
@@ -1787,6 +1783,10 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 	// Get current global wind vector. This update is shared with water, so wind
 	// remains an environment property even on a map with no active rain slot.
 	RB_UpdateWeatherWind();
+	precipitationState_t& precipitation = backEnd.refdef.precipitation;
+	VectorCopy(ws.windDirection, precipitation.wind);
+	VectorSet(precipitation.worldRainVelocity, precipitation.wind[0], precipitation.wind[1],
+		-Q_max(ws.weatherSlots[WEATHER_RAIN].gravity, 0.1f) * 100.0f);
 
 	Allocator& frameAllocator = *backEndData->perFrameMemory;
 
@@ -1794,12 +1794,14 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 	for (int weatherType = 0; weatherType < NUM_WEATHER_TYPES; weatherType++)
 	{
 		weatherObject_t *weatherObject = &ws.weatherSlots[weatherType];
-		if (!weatherObject->active)
+		const bool rainSlot = weatherType == WEATHER_RAIN;
+		if (!(rainSlot ? precipitation.current : weatherObject->active))
 			continue;
 
 		// r_rainSplashes switches the rain records to the impact layout; only
 		// at the frame's simulation, not between the views of a frame
-		const bool splashes = RainSplashesEnabled(weatherType);
+		const bool splashes = rainSlot &&
+			(precipitation.consumerMask & PRECIP_CONSUMER_SPLASHES);
 		if (weatherObject->vbo == nullptr)
 			GenerateRainModel(
 				tr.weatherSystem->weatherSlots[weatherType],
@@ -1824,8 +1826,8 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 
 		// r_rainStreaks: the rain slot alone switches to lit, premultiplied
 		// streaks; snow, spacedust, sand and fog keep the legacy path
-		const bool rainStreaks = weatherType == WEATHER_RAIN &&
-			r_rainStreaks->integer != 0 && tr.weatherSystem->depthMapValid;
+		const bool rainStreaks = rainSlot &&
+			(precipitation.consumerMask & PRECIP_CONSUMER_VOLUME);
 
 		int stateBits = weatherType == WEATHER_SAND ?
 			GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA :
@@ -2001,7 +2003,8 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 				uniformDataWriter.SetUniformVec2(
 					UNIFORM_ZONEOFFSET,
 					zoneX, zoneY);
-				uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, weatherObject->color);
+				uniformDataWriter.SetUniformVec4(UNIFORM_COLOR,
+					rainSlot ? precipitation.tint : weatherObject->color);
 				uniformDataWriter.SetUniformVec4(UNIFORM_VIEWINFO, viewInfo);
 				uniformDataWriter.SetUniformMatrix4x4(UNIFORM_SHADOWMVP, tr.weatherSystem->weatherMVP);
 				// set for every draw: a uniform left out keeps the value of
@@ -2071,29 +2074,116 @@ bool R_IsOutside(vec3_t pos)
 		return false;
 	}
 
-	// check cashed brush first
-	if (CurrentWeatherBrushIndex >= 0 && CurrentWeatherBrushIndex < tr.weatherSystem->numWeatherBrushes)
-	{
-		if (IsInsideBrush(&tr.weatherSystem->weatherBrushes[CurrentWeatherBrushIndex], pos))
-		{
-			return (tr.weatherSystem->weatherBrushType == WEATHER_BRUSHES_OUTSIDE);
-		}
-	}
-
-	// check all weather brushes
+	// Deliberately stateless. A shared last-brush cache lets a portal query
+	// affect the following main-view query and obscures ownership of exposure.
 	for (int i = 0; i < tr.weatherSystem->numWeatherBrushes; i++)
 	{
 		const weatherBrushes_t* WeatherBrush = &tr.weatherSystem->weatherBrushes[i];
 
 		if (IsInsideBrush(WeatherBrush, pos))
 		{
-			CurrentWeatherBrushIndex = i;
 			return (tr.weatherSystem->weatherBrushType == WEATHER_BRUSHES_OUTSIDE);
 		}
 	}
 
-	CurrentWeatherBrushIndex = -1;
 	return (tr.weatherSystem->weatherBrushType != WEATHER_BRUSHES_OUTSIDE);
+}
+
+void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *view,
+	precipitationState_t *state)
+{
+	if (!state)
+		return;
+	Com_Memset(state, 0, sizeof(*state));
+	if (!tr.weatherSystem)
+		return;
+
+	const weatherSystem_t& ws = *tr.weatherSystem;
+	const weatherObject_t& rain = ws.weatherSlots[WEATHER_RAIN];
+	state->valid = qtrue;
+	state->primaryView = (qboolean)(view && view->viewParmType == VPT_MAIN &&
+		!view->isPortal && !view->isMirror && !(view->flags & VPF_DEPTHSHADOW));
+	state->current = (qboolean)rain.active;
+	state->subtype = rain.active ? ws.rainSubtype : RAIN_WEATHER_NONE;
+	state->opticalProfile = state->subtype;
+	state->rawParticleCount = rain.active ? rain.particleCount : 0;
+	state->normalizedIntensity = rain.active ?
+		Com_Clamp(0.0f, 2.0f, rain.particleCount / 5000.0f) : 0.0f;
+	VectorCopy(ws.windDirection, state->wind);
+	if (rain.active)
+	{
+		VectorSet(state->worldRainVelocity, state->wind[0], state->wind[1],
+			-Q_max(rain.gravity, 0.1f) * 100.0f);
+		VectorCopy4(rain.color, state->tint);
+	}
+
+	if (refdef && state->primaryView &&
+		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)))
+	{
+		vec3_t origin;
+		VectorCopy(refdef->vieworg, origin);
+		state->outside = (qboolean)R_IsOutside(origin);
+	}
+	state->exposed = (qboolean)(state->current && state->outside);
+
+	if (state->current)
+		state->consumerMask |= PRECIP_CONSUMER_PARTICLES;
+	const bool wetness = state->current && ws.depthMapValid &&
+		r_weatherWetness && r_weatherWetness->integer;
+	if (wetness)
+		state->consumerMask |= PRECIP_CONSUMER_WETNESS;
+	if (wetness && r_weatherPuddles && r_weatherPuddles->integer)
+		state->consumerMask |= PRECIP_CONSUMER_PUDDLES;
+	if (wetness && r_weatherRunoff && r_weatherRunoff->integer)
+		state->consumerMask |= PRECIP_CONSUMER_RUNOFF;
+	if (state->current && r_rainSplashes && r_rainSplashes->integer && ws.depthMapValid)
+		state->consumerMask |= PRECIP_CONSUMER_SPLASHES;
+	if (state->current && r_rainLens && r_rainLens->integer && tr.rainLensImage)
+		state->consumerMask |= PRECIP_CONSUMER_LENS;
+	if (state->current && r_rainStreaks && r_rainStreaks->integer && ws.depthMapValid)
+		state->consumerMask |= PRECIP_CONSUMER_VOLUME;
+	if (state->current && state->subtype == RAIN_WEATHER_ACID)
+		state->consumerMask |= PRECIP_CONSUMER_ACID;
+
+	if (state->primaryView)
+	{
+		tr.weatherSystem->mainPrecipitation = *state;
+		tr.weatherSystem->mainPrecipitationFrame = tr.frameCount;
+	}
+}
+
+void R_PrecipitationInfo_f(void)
+{
+	if (!tr.weatherSystem || !tr.weatherSystem->mainPrecipitation.valid)
+	{
+		ri.Printf(PRINT_ALL, "Precipitation: no resolved main scene yet\n");
+		return;
+	}
+	const precipitationState_t& s = tr.weatherSystem->mainPrecipitation;
+	static const char *const subtypeNames[] = { "none", "light", "normal", "heavy", "acid" };
+	const char *subtype = s.subtype >= RAIN_WEATHER_NONE && s.subtype <= RAIN_WEATHER_ACID ?
+		subtypeNames[s.subtype] : "unknown";
+	char consumers[160] = "";
+	auto append = [&](uint32_t bit, const char *name) {
+		if (!(s.consumerMask & bit)) return;
+		Q_strcat(consumers, sizeof(consumers), consumers[0] ? ", " : "");
+		Q_strcat(consumers, sizeof(consumers), name);
+	};
+	append(PRECIP_CONSUMER_PARTICLES, "particles");
+	append(PRECIP_CONSUMER_WETNESS, "wetness");
+	append(PRECIP_CONSUMER_PUDDLES, "puddles");
+	append(PRECIP_CONSUMER_RUNOFF, "runoff");
+	append(PRECIP_CONSUMER_SPLASHES, "splashes");
+	append(PRECIP_CONSUMER_LENS, "lens-water");
+	append(PRECIP_CONSUMER_VOLUME, "rain-volume");
+	append(PRECIP_CONSUMER_ACID, "acid-profile");
+	ri.Printf(PRINT_ALL,
+		"Precipitation: subtype=%s rawParticles=%d intensity=%.3f wind=(%.2f %.2f %.2f) "
+		"tint=(%.3f %.3f %.3f %.3f) current=%s outside=%s exposed=%s consumers=%s\n",
+		subtype, s.rawParticleCount, s.normalizedIntensity,
+		s.wind[0], s.wind[1], s.wind[2], s.tint[0], s.tint[1], s.tint[2], s.tint[3],
+		s.current ? "yes" : "no", s.outside ? "yes" : "no", s.exposed ? "yes" : "no",
+		consumers[0] ? consumers : "none");
 }
 
 bool R_IsShaking(vec3_t pos)
@@ -2328,8 +2418,13 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	UniformDataWriter &uniformDataWriter, SamplerBindingsWriter &samplerBindingsWriter)
 {
 	const weatherSystem_t *ws = tr.weatherSystem;
+	const precipitationState_t& precipitation = backEnd.refdef.precipitation;
+	// Keep the legacy shoreline-only path: when the combined weather/shoreline
+	// shader is active it historically receives rain even if the wetness cvar
+	// itself is off. The consumer mask is diagnostic; current comes from the
+	// resolved scene state.
 	const bool raining = ws && ws->depthMapValid && tr.weatherDepthImage &&
-		ws->weatherSlots[WEATHER_RAIN].active;
+		precipitation.current;
 
 	wetExclusion_t exclusion = R_WetnessStageExclusion(shader, pStage);
 	if (exclusion == WETEXCLUDE_NONE && (backEnd.depthFill ||
@@ -2455,7 +2550,8 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	}
 	// share of the cells that ring each cycle: light rain fewer than a
 	// downpour (1000 / 2000 particles); the shader skips 1 cycle in 4 more
-	const float rainAmount = Com_Clamp(0.3f, 1.0f, (float)ws->weatherSlots[WEATHER_RAIN].particleCount / 2000.0f);
+	const float rainAmount = Com_Clamp(0.3f, 1.0f,
+		precipitation.normalizedIntensity * 2.5f);
 	const vec4_t ripple = {
 		(r_weatherPuddleRipples->integer && coverage > 0.0f) ? Com_Clamp(0.0f, 2.0f, r_weatherPuddleRippleStrength->value) : 0.0f,
 		1.0f / Com_Clamp(4.0f, 256.0f, r_weatherPuddleRippleScale->value),
@@ -2497,7 +2593,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	};
 	// wind leans the streaks downwind (never upward: the shear is per unit of
 	// fall), at most about 20 degrees; windward faces run a little more
-	const float windX = ws->windDirection[0], windY = ws->windDirection[1];
+	const float windX = precipitation.wind[0], windY = precipitation.wind[1];
 	const float windLength = sqrtf(windX * windX + windY * windY);
 	const float lean = MIN(windLength / 400.0f, 0.35f);
 	vec2_t windDir = { 0.0f, 0.0f };

@@ -144,6 +144,11 @@ struct weatherSystem_t
 	vec3_t		windDirection;
 	float		windSpeed;
 
+	// Explicitly owned diagnostic snapshot. Only the primary main view writes
+	// it; render consumers use trRefdef_t::precipitation instead.
+	precipitationState_t mainPrecipitation;
+	unsigned mainPrecipitationFrame = 0;
+
 	float		weatherMVP[16];
 
 	// r_weatherWetness: weatherMVP / weatherDepthImage are valid for this map,
