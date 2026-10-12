@@ -495,6 +495,13 @@ extern cvar_t  *r_weatherWetnessRoughness;
 extern cvar_t  *r_weatherWetnessDarkening;
 extern cvar_t  *r_weatherWetnessNormal;
 extern cvar_t  *r_weatherWetnessBias;
+extern cvar_t  *r_weatherWetnessPersistence;
+extern cvar_t  *r_weatherWetnessAccumulationRate;
+extern cvar_t  *r_weatherWetnessDryRate;
+extern cvar_t  *r_weatherWetnessUpdateHz;
+extern cvar_t  *r_weatherWetnessResolution;
+extern cvar_t  *r_weatherWetnessSteepDryScale;
+extern cvar_t  *r_weatherWetnessPersistenceDebug;
 extern cvar_t  *r_weatherSurfaceDebug;
 void R_WeatherMaterialList_f(void);
 extern cvar_t  *r_weatherWetnessEntityFacing;
@@ -2726,6 +2733,7 @@ typedef enum
 
 	UNIFORM_WEATHERDEPTHMAP,	// r_weatherWetness: tr.weatherDepthImage
 	UNIFORM_WEATHERMVP,			// world -> weather depth clip space
+	UNIFORM_WETNESSUPDATE,		// persistent world wetness: dt/deposit/dry/steep drying
 	UNIFORM_WETNESSPARAMS,		// strength, roughness scale, darkening, normal flattening
 	UNIFORM_WETNESSPARAMS2,		// depth bias, normal offset, debug mode, split x
 	UNIFORM_WETNESSPARAMS3,		// facing floor, physical porosity (0/1), material class, unused
@@ -4076,6 +4084,7 @@ typedef struct trGlobals_s {
 	image_t					*textureDepthImage;
 	image_t					*weatherDepthImage;
 	image_t					*weatherSurfaceImage;	// world geometry only, maps with weather brushes (r_rainSplashes)
+	image_t					*weatherWetnessImage[2]; // persistent world water amount + copied weather depth
 	image_t					*smaaSearchImage;
 	image_t					*smaaAreaImage;
 	image_t					*smaaEdgeImage;
@@ -4170,6 +4179,7 @@ typedef struct trGlobals_s {
 	FBO_t                   *filterCubeFbo;
 	FBO_t					*weatherDepthFbo;
 	FBO_t					*weatherSurfaceFbo;
+	FBO_t					*weatherWetnessFbo[2];
 	FBO_t					*smaaEdgeFbo;
 	FBO_t					*smaaBlendFbo;
 	FBO_t					*smaaResolveFbo;
@@ -4275,6 +4285,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t weatherShader;
 	shaderProgram_t weatherSplashShader;
 	shaderProgram_t weatherUpdateSplashShader;	// weatherUpdate + impact state (r_rainSplashes)
+	shaderProgram_t weatherWetnessShader;		// low-frequency persistent world water update
 	shaderProgram_t waterParticleShader;		// underwater motes / micro-bubbles (r_waterParticles)
 	shaderProgram_t smaaEdgeShader;
 	shaderProgram_t smaaBlendShader;
@@ -6452,6 +6463,11 @@ float R_SSRTraceScale(void);
 
 // rain wetness of lightall (tr_weather.cpp)
 qboolean R_WeatherWetnessEnabled(void);
+qboolean R_WeatherWetnessPersistenceEnabled(void);
+void R_CreateWeatherWetnessImages(void);
+void R_CreateWeatherWetnessFBOs(void);
+void R_WeatherWetnessReset(void);
+void RB_WeatherWetnessUpdate(void);
 void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	class UniformDataWriter &uniformDataWriter, class SamplerBindingsWriter &samplerBindingsWriter);
 void RB_WaterContactUniforms(vec4_t *contact, int vec4Count);

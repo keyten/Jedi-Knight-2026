@@ -5052,6 +5052,9 @@ void R_CreateBuiltinImages( void ) {
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldImages();
 
+	// low-frequency persistent world wetness (tr_weather.cpp)
+	R_CreateWeatherWetnessImages();
+
 	bool needVelocityBuffer = (
 		r_smaa->integer == 2
 		// || r_smaa->integer == 4

@@ -599,6 +599,9 @@ void FBO_Init(void)
 	// persistent foliage bend field (tr_foliagefield.cpp)
 	R_CreateFoliageFieldFBOs();
 
+	// low-frequency persistent world wetness (tr_weather.cpp)
+	R_CreateWeatherWetnessFBOs();
+
 	// motion blur output (tr_motionblur.cpp)
 	tr.motionBlurFbo = NULL;
 	if (tr.motionBlurImage != NULL)

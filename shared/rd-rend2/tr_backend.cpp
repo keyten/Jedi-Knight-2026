@@ -3914,6 +3914,7 @@ static const void *RB_DrawSurfs(const void *data) {
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
 	RB_WaterSurfaceSetCoverage(cmd->drawSurfs, cmd->numDrawSurfs);
+	RB_WeatherWetnessUpdate();
 
 	// clear the z buffer, set the modelview, etc
 	RB_BeginDrawingView();

@@ -89,6 +89,16 @@ namespace
 
 	unsigned s_windUpdateFrame = ~0u;
 
+	struct persistentWetnessState_t
+	{
+		bool resources = false;
+		bool valid = false;
+		int current = 0;
+		int lastTime = 0;
+		unsigned lastFrame = ~0u;
+		const world_t *world = nullptr;
+	} s_persistentWetness;
+
 	// Fresh particles, resting, at random heights, in the slot's layout.
 	std::vector<byte> RainParticles(const weatherObject_t& ws, size_t bufferSize)
 	{
@@ -1039,6 +1049,7 @@ void RB_RainSplashQuery(bool begin)
 
 void R_InitWeatherForMap()
 {
+	R_WeatherWetnessReset();
 	tr.weatherSystem->splashSlotsValid = false;
 	for (int i = 0; i < NUM_WEATHER_TYPES; i++)
 		if (tr.weatherSystem->weatherSlots[i].active)
@@ -2288,13 +2299,131 @@ bool R_IsPuffing()
 
 /*
 ==============================================================================
+Persistent world wetness (r_weatherWetnessPersistence)
+
+Two low-frequency RG16F textures are ping-ponged by a fixed-rate fullscreen
+pass. R stores water amount; G mirrors the static weather depth, allowing
+lightall to retain its normal roof/exposure test without another sampler.
+==============================================================================
+*/
+
+qboolean R_WeatherWetnessPersistenceEnabled(void)
+{
+	return (qboolean)(r_weatherWetness && r_weatherWetness->integer &&
+		r_weatherWetnessPersistence && r_weatherWetnessPersistence->integer);
+}
+
+void R_CreateWeatherWetnessImages(void)
+{
+	s_persistentWetness = {};
+	tr.weatherWetnessImage[0] = tr.weatherWetnessImage[1] = nullptr;
+	if (!R_WeatherWetnessPersistenceEnabled())
+		return;
+	int size = r_weatherWetnessResolution ? r_weatherWetnessResolution->integer : 256;
+	size = Com_Clamp(64, 1024, size);
+	for (int i = 0; i < 2; ++i)
+		tr.weatherWetnessImage[i] = R_ScreenCreateImage(
+			va("*weatherWetness%d", i), size, size, GL_RG32F, qtrue);
+}
+
+void R_CreateWeatherWetnessFBOs(void)
+{
+	tr.weatherWetnessFbo[0] = tr.weatherWetnessFbo[1] = nullptr;
+	if (!R_WeatherWetnessPersistenceEnabled())
+		return;
+	for (int i = 0; i < 2; ++i)
+		tr.weatherWetnessFbo[i] = tr.weatherWetnessImage[i] ?
+			R_ScreenCreateLevelFBO(va("_weatherWetness%d", i), tr.weatherWetnessImage[i], 0) : nullptr;
+	s_persistentWetness.resources = tr.weatherWetnessFbo[0] && tr.weatherWetnessFbo[1];
+}
+
+void R_WeatherWetnessReset(void)
+{
+	s_persistentWetness.valid = false;
+	s_persistentWetness.lastTime = 0;
+	s_persistentWetness.lastFrame = ~0u;
+	s_persistentWetness.world = nullptr;
+}
+
+static void RB_ClearWeatherWetness(int index)
+{
+	FBO_Bind(tr.weatherWetnessFbo[index]);
+	GL_SetViewportAndScissor(0, 0, tr.weatherWetnessFbo[index]->width,
+		tr.weatherWetnessFbo[index]->height);
+	const GLfloat clear[4] = {};
+	qglClearBufferfv(GL_COLOR, 0, clear);
+}
+
+void RB_WeatherWetnessUpdate(void)
+{
+	persistentWetnessState_t& state = s_persistentWetness;
+	if (!state.resources || !tr.weatherSystem || !tr.weatherSystem->depthMapValid ||
+		!tr.weatherDepthImage || !backEnd.refdef.precipitation.primaryView ||
+		state.lastFrame == backEndData->realFrameNumber)
+		return;
+	state.lastFrame = backEndData->realFrameNumber;
+
+	const int now = backEnd.refdef.time;
+	const bool reset = !state.valid || state.world != tr.world || now < state.lastTime ||
+		(now - state.lastTime) > 5000;
+	const float hz = Com_Clamp(1.0f, 60.0f, r_weatherWetnessUpdateHz->value);
+	const int interval = MAX(1, (int)floorf(1000.0f / hz + 0.5f));
+	if (!reset && now - state.lastTime < interval)
+		return;
+
+	FBO_t *oldFbo = glState.currentFBO;
+	if (reset)
+	{
+		RB_ClearWeatherWetness(0);
+		RB_ClearWeatherWetness(1);
+		state.current = 0;
+		state.lastTime = now;
+	}
+
+	// Integrate whole fixed ticks, so the simulation rate is independent of
+	// rendered FPS. A long pause/cut resets above instead of depositing a jump.
+	const int elapsed = MAX(0, now - state.lastTime);
+	const int ticks = reset ? 0 : elapsed / interval;
+	const float dt = ticks * interval * 0.001f;
+	const int target = 1 - state.current;
+	const float intensity = backEnd.refdef.precipitation.current ?
+		Com_Clamp(0.0f, 1.0f, backEnd.refdef.precipitation.normalizedIntensity) : 0.0f;
+	const vec4_t update = {
+		dt,
+		MAX(0.0f, r_weatherWetnessAccumulationRate->value) * intensity,
+		MAX(0.0f, r_weatherWetnessDryRate->value),
+		MAX(1.0f, r_weatherWetnessSteepDryScale->value)
+	};
+
+	GL_State(GLS_DEPTHTEST_DISABLE);
+	GL_Cull(CT_TWO_SIDED);
+	FBO_Bind(tr.weatherWetnessFbo[target]);
+	GL_SetViewportAndScissor(0, 0, tr.weatherWetnessFbo[target]->width,
+		tr.weatherWetnessFbo[target]->height);
+	GLSL_BindProgram(&tr.weatherWetnessShader);
+	GLSL_SetUniformVec4(&tr.weatherWetnessShader, UNIFORM_WETNESSUPDATE, update);
+	GL_BindToTMU(tr.weatherWetnessImage[state.current], TB_COLORMAP);
+	GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
+	RB_InstantTriangle();
+	FBO_Bind(oldFbo);
+	GL_SelectTexture(0);
+
+	state.current = target;
+	state.lastTime += ticks * interval;
+	state.valid = true;
+	state.world = tr.world;
+}
+
+/*
+==============================================================================
 Rain wetness (r_weatherWetness)
 
 lightall reuses the static rain occlusion map of GenerateDepthMap: a surface
 point is rain exposed where the rain particle test of weather.glsl would keep
 a particle. The wet surface only changes the PBR inputs (roughness, diffuse,
 normal) before any lighting, see ComputeRainExposure in lightall.glsl. Rain
-is static per map, so there is no accumulation or drying over time.
+is static per map. Optional persistence replaces the instantaneous world water
+amount while preserving this material response and exposure model.
 ==============================================================================
 */
 
@@ -2419,12 +2548,17 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 {
 	const weatherSystem_t *ws = tr.weatherSystem;
 	const precipitationState_t& precipitation = backEnd.refdef.precipitation;
+	const bool entity = backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity;
 	// Keep the legacy shoreline-only path: when the combined weather/shoreline
 	// shader is active it historically receives rain even if the wetness cvar
 	// itself is off. The consumer mask is diagnostic; current comes from the
 	// resolved scene state.
 	const bool raining = ws && ws->depthMapValid && tr.weatherDepthImage &&
 		precipitation.current;
+	const bool persistentMap = R_WeatherWetnessPersistenceEnabled() &&
+		s_persistentWetness.resources && s_persistentWetness.valid;
+	const bool persistentWorld = !entity && persistentMap;
+	const bool wetnessActive = raining || persistentWorld;
 
 	wetExclusion_t exclusion = R_WetnessStageExclusion(shader, pStage);
 	if (exclusion == WETEXCLUDE_NONE && (backEnd.depthFill ||
@@ -2450,7 +2584,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	uniformDataWriter.SetUniformVec4(UNIFORM_WATERCONTACT, waterContact[0], WATER_CONTACT_VEC4S);
 
 	// strength < 0 marks an ineligible draw for r_weatherSurfaceDebug 2
-	const float strength = eligible && raining ?
+	const float strength = eligible && wetnessActive ?
 		Com_Clamp(0.0f, 1.0f, r_weatherWetnessStrength->value * scale[0]) : -1.0f;
 	// per material class response (tr_autopbr.cpp): cloth only darkens,
 	// armor / metal get glossier
@@ -2459,15 +2593,14 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	const vec4_t params = { strength, response[1], response[0], response[2] };
 	// characters and props stand in the rain: their sides get almost as wet
 	// as their tops, world walls about half
-	const bool entity = backEnd.currentEntity && backEnd.currentEntity != &tr.worldEntity;
 	const vec4_t params3 = {
 		entity ? Com_Clamp(0.0f, 1.0f, r_weatherWetnessEntityFacing->value) : 0.5f,
 		pStage->materialClass == MATCLASS_GENERIC ? 1.0f : 0.0f,
 		(float)pStage->materialClass,
-		0.0f
+		persistentWorld ? 1.0f : 0.0f
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS3, params3);
-	if (!raining)
+	if (!wetnessActive)
 	{
 		const vec4_t off = {};
 		const vec4_t shoreParams = { 0.0f, response[1], response[0], response[2] };
@@ -2482,10 +2615,13 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFFRAME, off);
 		return;
 	}
+	const float wetnessTexelScale = persistentMap ?
+		(float)tr.weatherDepthImage->width / (float)tr.weatherWetnessImage[s_persistentWetness.current]->width : 1.0f;
 	const vec4_t params2 = {
 		MAX(r_weatherWetnessBias->value, 0.0f) / ws->depthRangeWorld,	// world units -> depth
-		0.5f * ws->texelSizeWorld,
-		(float)r_weatherSurfaceDebug->integer,
+		0.5f * ws->texelSizeWorld * wetnessTexelScale,
+		(float)((persistentWorld && r_weatherWetnessPersistenceDebug->integer) ?
+			32 : r_weatherSurfaceDebug->integer),
 		0.5f * (float)glConfig.vidWidth
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, params);
@@ -2553,7 +2689,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	const float rainAmount = Com_Clamp(0.3f, 1.0f,
 		precipitation.normalizedIntensity * 2.5f);
 	const vec4_t ripple = {
-		(r_weatherPuddleRipples->integer && coverage > 0.0f) ? Com_Clamp(0.0f, 2.0f, r_weatherPuddleRippleStrength->value) : 0.0f,
+		(r_weatherPuddleRipples->integer && precipitation.current && coverage > 0.0f) ? Com_Clamp(0.0f, 2.0f, r_weatherPuddleRippleStrength->value) : 0.0f,
 		1.0f / Com_Clamp(4.0f, 256.0f, r_weatherPuddleRippleScale->value),
 		(float)rippleClock,
 		rainAmount
@@ -2635,5 +2771,6 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFPARAMS2, runoff2);
 	uniformDataWriter.SetUniformVec4(UNIFORM_RUNOFFFRAME, frame);
 	uniformDataWriter.SetUniformMatrix4x4(UNIFORM_WEATHERMVP, ws->weatherMVP);
-	samplerBindingsWriter.AddStaticImage(tr.weatherDepthImage, TB_WEATHERDEPTH);
+	samplerBindingsWriter.AddStaticImage(persistentMap ?
+		tr.weatherWetnessImage[s_persistentWetness.current] : tr.weatherDepthImage, TB_WEATHERDEPTH);
 }

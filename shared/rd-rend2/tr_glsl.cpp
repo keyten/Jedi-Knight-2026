@@ -384,6 +384,7 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_WeatherDepthMap",		GLSL_INT, 1 },
 	{ "u_WeatherMvp",			GLSL_MAT4x4, 1 },
+	{ "u_WetnessUpdate",		GLSL_VEC4, 1 },
 	{ "u_WetnessParams",		GLSL_VEC4, 1 },
 	{ "u_WetnessParams2",		GLSL_VEC4, 1 },
 	{ "u_WetnessParams3",		GLSL_VEC4, 1 },
@@ -762,6 +763,8 @@ static size_t GLSL_GetShaderHeader(
 	// lightall wets rain exposed surfaces, tr_weather.cpp
 	if (R_WeatherWetnessEnabled())
 		Q_strcat(dest, size, "#define USE_WETNESS\n");
+	if (R_WeatherWetnessPersistenceEnabled())
+		Q_strcat(dest, size, "#define USE_WETNESS_PERSISTENCE\n");
 
 	if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
 		Q_strcat(dest, size, "#define USE_TONEMAPPING\n");
@@ -4154,6 +4157,23 @@ static int GLSL_LoadGPUProgramFoliageField(
 	return 2;
 }
 
+static int GLSL_LoadGPUProgramWeatherWetness(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	if (!R_WeatherWetnessPersistenceEnabled())
+		return 0;
+	GLSL_LoadGPUProgramBasic(builder, scratchAlloc, &tr.weatherWetnessShader,
+		"weather_wetness", fallback_weather_wetnessProgram);
+	GLSL_InitUniforms(&tr.weatherWetnessShader);
+	qglUseProgram(tr.weatherWetnessShader.program);
+	GLSL_SetUniformInt(&tr.weatherWetnessShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.weatherWetnessShader, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.weatherWetnessShader);
+	return 1;
+}
+
 static int GLSL_LoadGPUProgramWaterFoamField(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -5024,6 +5044,8 @@ static int GLSL_CountStartupPrograms()
 	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
 	// highpass/SSAO (2), foliage field (2), depth/gaussian blur (4), glow/bloom (3), weather (4).
 	count += 25;
+	if (R_WeatherWetnessPersistenceEnabled())
+		++count;
 	if (R_AOResourcesEnabled())
 		count += 8;
 	if (R_ScreenSpaceResourcesEnabled())
@@ -5147,6 +5169,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramClouds(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWeatherWetness(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
@@ -5276,6 +5299,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.cloudShadowShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldShader);
 	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
+	GLSL_DeleteGPUShader(&tr.weatherWetnessShader);
 	GLSL_DeleteGPUShader(&tr.waterFoamFieldShader);
 
 	for ( i = 0; i < 2; i++)

@@ -815,11 +815,11 @@ uniform vec4 u_LiquidSurface;
 
 #if defined(USE_WETNESS) && defined(PER_PIXEL_LIGHTING)
 // rain wetness, tr_weather.cpp RB_WeatherWetnessBind
-uniform sampler2D u_WeatherDepthMap; // static top-down rain occlusion depth (D16)
+uniform sampler2D u_WeatherDepthMap; // static depth, or persistent water/depth (rg)
 uniform mat4 u_WeatherMvp;
 uniform vec4 u_WetnessParams;  // strength (< 0: excluded draw), roughness scale, darkening, normal flattening
 uniform vec4 u_WetnessParams2; // depth bias, normal offset (world), debug view, split x
-uniform vec4 u_WetnessParams3; // facing floor, physical porosity (0/1), material class, unused
+uniform vec4 u_WetnessParams3; // facing floor, physical porosity (0/1), material class, persistent world (0/1)
 uniform vec4 u_PuddleParams;   // coverage (0: off, < 0: excluded draw), roughness, slope min, slope max
 uniform vec4 u_PuddleParams2;  // 1 / pattern scale (world)
 uniform vec4 u_PuddleHeight;   // relief depth low, 1 / (high - low) (0: no usable height), softness, fill bias
@@ -3345,12 +3345,31 @@ float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal, in flo
 	ivec2 base = ivec2(floor(texel));
 	vec2 f = texel - vec2(base);
 	ivec2 maxTexel = size - 1;
+	#if defined(USE_WETNESS_PERSISTENCE)
+	vec4 d00 = texelFetch(u_WeatherDepthMap, clamp(base,               ivec2(0), maxTexel), 0);
+	vec4 d10 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 0), ivec2(0), maxTexel), 0);
+	vec4 d01 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(0, 1), ivec2(0), maxTexel), 0);
+	vec4 d11 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 1), ivec2(0), maxTexel), 0);
+	float e00 = step(z, d00.g), e10 = step(z, d10.g), e01 = step(z, d01.g), e11 = step(z, d11.g);
+	#else
 	float e00 = step(z, texelFetch(u_WeatherDepthMap, clamp(base,               ivec2(0), maxTexel), 0).r);
 	float e10 = step(z, texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 0), ivec2(0), maxTexel), 0).r);
 	float e01 = step(z, texelFetch(u_WeatherDepthMap, clamp(base + ivec2(0, 1), ivec2(0), maxTexel), 0).r);
 	float e11 = step(z, texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 1), ivec2(0), maxTexel), 0).r);
+	#endif
 	return mix(mix(e00, e10, f.x), mix(e01, e11, f.x), f.y);
 }
+
+#if defined(USE_WETNESS_PERSISTENCE)
+float ComputePersistentWater(in vec3 worldPosition)
+{
+	vec4 p = u_WeatherMvp * vec4(worldPosition, 1.0);
+	vec2 uv = p.xy / p.w * 0.5 + 0.5;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))))
+		return 0.0;
+	return texture(u_WeatherDepthMap, uv).r;
+}
+#endif
 
 float ComputeWaterContact(in vec3 worldPosition)
 {
@@ -3952,6 +3971,9 @@ void main()
 	// roughness below), before any lighting, so direct light, dynamic lights,
 	// cubemap IBL, SSR and SSGI all see the same wet material.
 	float rainExposure = 0.0;
+	#if defined(USE_WETNESS_PERSISTENCE)
+	float waterAmount = 0.0;
+	#endif
 	float wetness = 0.0;
 	float waterContact = 0.0;
 	float puddleSlope = 0.0;
@@ -3980,7 +4002,13 @@ void main()
 		// walls get about half the rain, faces pointing down none
 		// (entities: most of the side, u_WetnessParams3.x)
 		float facing = mix(u_WetnessParams3.x, 1.0, clamp(wetGeoNormal.z, 0.0, 1.0)) * step(-0.2, wetGeoNormal.z);
+    #if defined(USE_WETNESS_PERSISTENCE)
+		waterAmount = rainExposure * (u_WetnessParams3.w > 0.5 ?
+			ComputePersistentWater(u_ViewOrigin - viewDir) : 1.0);
+		wetness = waterAmount * max(u_WetnessParams.x, 0.0) * facing;
+    #else
 		wetness = rainExposure * max(u_WetnessParams.x, 0.0) * facing;
+    #endif
 		if (u_WaterContact[0].x > 0.0)
 		{
 			waterContact = ComputeWaterContact(u_ViewOrigin - viewDir);
@@ -3993,7 +4021,11 @@ void main()
 		// Puddles: rain exposure x flat geometric normal x world noise x
 		// world-only eligibility. The normal map is not used for the slope.
 		puddleSlope = smoothstep(u_PuddleParams.z, u_PuddleParams.w, wetGeoNormal.z);
+    #if defined(USE_WETNESS_PERSISTENCE)
+		float exposureP = smoothstep(0.05, 0.65, waterAmount);
+    #else
 		float exposureP = smoothstep(0.5, 1.0, rainExposure);
+    #endif
 		bool puddleDebug = u_WetnessParams2.z >= 5.0 && u_WetnessParams2.z <= 20.0;
 		if (u_PuddleParams.x > 0.0 && ((wetness > 0.0 && puddleSlope * exposureP > 0.0) || puddleDebug))
 		{
@@ -4054,11 +4086,21 @@ void main()
 			// surfaces. A steep face also tests a column a little further out
 			// (r_weatherRunoffProbe, <= 32 units): an exterior wall next to open sky
 			// counts as exposed, a wall under a deeper roof stays dry.
+    #if defined(USE_WETNESS_PERSISTENCE)
+			runoffExposure = waterAmount;
+    #else
 			runoffExposure = rainExposure;
+    #endif
 			float steep = 1.0 - smoothstep(0.35, 0.7, wetGeoNormal.z);
 			if (u_RunoffParams.w > 0.0 && steep > 0.0 && runoffExposure < 1.0)
-				runoffExposure = max(runoffExposure,
-					steep * ComputeRainExposure(worldPosition, wetGeoNormal, u_RunoffParams.w));
+			{
+				float probeExposure = ComputeRainExposure(worldPosition, wetGeoNormal, u_RunoffParams.w);
+			#if defined(USE_WETNESS_PERSISTENCE)
+				if (u_WetnessParams3.w > 0.5)
+					probeExposure *= ComputePersistentWater(worldPosition + wetGeoNormal * u_RunoffParams.w);
+			#endif
+				runoffExposure = max(runoffExposure, steep * probeExposure);
+			}
 			// windward faces run a little more, leeward ones less
 			vec2 windDir = u_RunoffParams2.xy / max(length(u_RunoffParams2.xy), 1e-6);
 			float windward = 1.0 + u_RunoffParams2.z * dot(-windDir, wetGeoNormal.xy);
@@ -4697,6 +4739,18 @@ void main()
     #endif
 		return;
 	}
+	#if defined(USE_WETNESS_PERSISTENCE)
+	if (u_WetnessParams2.z == 32.0)
+	{
+		out_Color = vec4(mix(vec3(0.08), vec3(0.05, 0.35, 1.0), waterAmount), diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
+	#endif
 	// r_weatherSurfaceDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
 	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 31.0 && u_WetnessParams2.z != 4.0)
 	{
