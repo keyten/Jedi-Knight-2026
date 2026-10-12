@@ -501,6 +501,8 @@ extern cvar_t  *r_weatherWetnessDryRate;
 extern cvar_t  *r_weatherWetnessUpdateHz;
 extern cvar_t  *r_weatherWetnessResolution;
 extern cvar_t  *r_weatherWetnessSteepDryScale;
+extern cvar_t  *r_weatherWetnessAcidAccumulationScale;
+extern cvar_t  *r_weatherWetnessAcidDryScale;
 extern cvar_t  *r_weatherWetnessPersistenceDebug;
 extern cvar_t  *r_weatherSurfaceDebug;
 void R_WeatherMaterialList_f(void);
@@ -4084,7 +4086,7 @@ typedef struct trGlobals_s {
 	image_t					*textureDepthImage;
 	image_t					*weatherDepthImage;
 	image_t					*weatherSurfaceImage;	// world geometry only, maps with weather brushes (r_rainSplashes)
-	image_t					*weatherWetnessImage[2]; // persistent world water amount + copied weather depth
+	image_t					*weatherWetnessImage[2]; // flat/steep water amounts + copied weather depth
 	image_t					*smaaSearchImage;
 	image_t					*smaaAreaImage;
 	image_t					*smaaEdgeImage;

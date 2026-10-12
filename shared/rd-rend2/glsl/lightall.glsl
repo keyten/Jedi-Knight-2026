@@ -3350,7 +3350,7 @@ float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal, in flo
 	vec4 d10 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 0), ivec2(0), maxTexel), 0);
 	vec4 d01 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(0, 1), ivec2(0), maxTexel), 0);
 	vec4 d11 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 1), ivec2(0), maxTexel), 0);
-	float e00 = step(z, d00.g), e10 = step(z, d10.g), e01 = step(z, d01.g), e11 = step(z, d11.g);
+	float e00 = step(z, d00.b), e10 = step(z, d10.b), e01 = step(z, d01.b), e11 = step(z, d11.b);
 	#else
 	float e00 = step(z, texelFetch(u_WeatherDepthMap, clamp(base,               ivec2(0), maxTexel), 0).r);
 	float e10 = step(z, texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 0), ivec2(0), maxTexel), 0).r);
@@ -3361,13 +3361,15 @@ float ComputeRainExposure(in vec3 worldPosition, in vec3 geometricNormal, in flo
 }
 
 #if defined(USE_WETNESS_PERSISTENCE)
-float ComputePersistentWater(in vec3 worldPosition)
+float ComputePersistentWater(in vec3 worldPosition, in vec3 geometricNormal)
 {
 	vec4 p = u_WeatherMvp * vec4(worldPosition, 1.0);
 	vec2 uv = p.xy / p.w * 0.5 + 0.5;
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))))
 		return 0.0;
-	return texture(u_WeatherDepthMap, uv).r;
+	vec2 water = texture(u_WeatherDepthMap, uv).rg;
+	float steep = smoothstep(0.15, 0.85, 1.0 - abs(geometricNormal.z));
+	return mix(water.x, water.y, steep);
 }
 #endif
 
@@ -4004,7 +4006,7 @@ void main()
 		float facing = mix(u_WetnessParams3.x, 1.0, clamp(wetGeoNormal.z, 0.0, 1.0)) * step(-0.2, wetGeoNormal.z);
     #if defined(USE_WETNESS_PERSISTENCE)
 		waterAmount = rainExposure * (u_WetnessParams3.w > 0.5 ?
-			ComputePersistentWater(u_ViewOrigin - viewDir) : 1.0);
+			ComputePersistentWater(u_ViewOrigin - viewDir, wetGeoNormal) : 1.0);
 		wetness = waterAmount * max(u_WetnessParams.x, 0.0) * facing;
     #else
 		wetness = rainExposure * max(u_WetnessParams.x, 0.0) * facing;
@@ -4097,7 +4099,7 @@ void main()
 				float probeExposure = ComputeRainExposure(worldPosition, wetGeoNormal, u_RunoffParams.w);
 			#if defined(USE_WETNESS_PERSISTENCE)
 				if (u_WetnessParams3.w > 0.5)
-					probeExposure *= ComputePersistentWater(worldPosition + wetGeoNormal * u_RunoffParams.w);
+					probeExposure *= ComputePersistentWater(worldPosition + wetGeoNormal * u_RunoffParams.w, wetGeoNormal);
 			#endif
 				runoffExposure = max(runoffExposure, steep * probeExposure);
 			}

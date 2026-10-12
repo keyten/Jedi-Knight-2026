@@ -97,6 +97,7 @@ namespace
 		int lastTime = 0;
 		unsigned lastFrame = ~0u;
 		const world_t *world = nullptr;
+		bool acidProfile = false;
 	} s_persistentWetness;
 
 	// Fresh particles, resting, at random heights, in the slot's layout.
@@ -2301,9 +2302,9 @@ bool R_IsPuffing()
 ==============================================================================
 Persistent world wetness (r_weatherWetnessPersistence)
 
-Two low-frequency RG16F textures are ping-ponged by a fixed-rate fullscreen
-pass. R stores water amount; G mirrors the static weather depth, allowing
-lightall to retain its normal roof/exposure test without another sampler.
+Two low-frequency RGBA32F textures are ping-ponged by a fixed-rate fullscreen
+pass. R/G store flat/steep retained water amounts; B mirrors the static
+weather depth. lightall blends R/G using each surface's geometric normal.
 ==============================================================================
 */
 
@@ -2323,7 +2324,7 @@ void R_CreateWeatherWetnessImages(void)
 	size = Com_Clamp(64, 1024, size);
 	for (int i = 0; i < 2; ++i)
 		tr.weatherWetnessImage[i] = R_ScreenCreateImage(
-			va("*weatherWetness%d", i), size, size, GL_RG32F, qtrue);
+			va("*weatherWetness%d", i), size, size, GL_RGBA32F, qtrue);
 }
 
 void R_CreateWeatherWetnessFBOs(void)
@@ -2343,6 +2344,7 @@ void R_WeatherWetnessReset(void)
 	s_persistentWetness.lastTime = 0;
 	s_persistentWetness.lastFrame = ~0u;
 	s_persistentWetness.world = nullptr;
+	s_persistentWetness.acidProfile = false;
 }
 
 static void RB_ClearWeatherWetness(int index)
@@ -2388,15 +2390,21 @@ void RB_WeatherWetnessUpdate(void)
 	const int target = 1 - state.current;
 	const float intensity = backEnd.refdef.precipitation.current ?
 		Com_Clamp(0.0f, 1.0f, backEnd.refdef.precipitation.normalizedIntensity) : 0.0f;
+	if (intensity > 0.0f)
+		state.acidProfile = backEnd.refdef.precipitation.subtype == RAIN_WEATHER_ACID;
+	const bool acid = state.acidProfile;
+	const float acidAccumulation = acid ? MAX(0.0f, r_weatherWetnessAcidAccumulationScale->value) : 1.0f;
+	const float acidDrying = acid ? MAX(0.0f, r_weatherWetnessAcidDryScale->value) : 1.0f;
 	const vec4_t update = {
 		dt,
-		MAX(0.0f, r_weatherWetnessAccumulationRate->value) * intensity,
-		MAX(0.0f, r_weatherWetnessDryRate->value),
+		MAX(0.0f, r_weatherWetnessAccumulationRate->value) * intensity * acidAccumulation,
+		MAX(0.0f, r_weatherWetnessDryRate->value) * acidDrying,
 		MAX(1.0f, r_weatherWetnessSteepDryScale->value)
 	};
 
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	GL_Cull(CT_TWO_SIDED);
+	const int timer = RB_ScreenBeginTimer("Weather wetness persistence");
 	FBO_Bind(tr.weatherWetnessFbo[target]);
 	GL_SetViewportAndScissor(0, 0, tr.weatherWetnessFbo[target]->width,
 		tr.weatherWetnessFbo[target]->height);
@@ -2405,6 +2413,7 @@ void RB_WeatherWetnessUpdate(void)
 	GL_BindToTMU(tr.weatherWetnessImage[state.current], TB_COLORMAP);
 	GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
 	RB_InstantTriangle();
+	RB_ScreenEndTimer(timer);
 	FBO_Bind(oldFbo);
 	GL_SelectTexture(0);
 
