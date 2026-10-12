@@ -2227,6 +2227,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		if (pStage->glslShaderGroup == tr.lightallShader)
 		{
 			uniformDataWriter.SetUniformInt(UNIFORM_DIFFUSEBRDF, r_diffuseBRDF->integer);
+			if (r_specularAA->integer)
+			{
+				vec4_t specularAAParams = { r_specularAAStrength->value,
+					r_specularAAMaxAdded->value, (float)r_specularAADebug->integer, 0.0f };
+				uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARAAPARAMS, specularAAParams);
+			}
 			R_MaterialModelSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
 			// skin scattering (tr_skinsss.cpp): scatter, mask, wrap
 			R_SkinSSSSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);

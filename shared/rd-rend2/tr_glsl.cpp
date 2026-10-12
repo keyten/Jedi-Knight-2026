@@ -253,6 +253,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_PlantBendTime",     GLSL_VEC4, 1 },
 	{ "u_FoliageInteract",   GLSL_VEC4, 1 },
 	{ "u_DiffuseBRDF",    GLSL_INT,  1 },
+	{ "u_SpecularAAParams", GLSL_VEC4, 1 },
 	{ "u_ParallaxBias",  GLSL_FLOAT, 1 },
 
 	{ "u_ViewInfo",				GLSL_VEC4, 1 },
@@ -3140,6 +3141,11 @@ static int GLSL_LoadGPUProgramLightAll(
 		// r_forwardPlusDebug views (latched): only compiled when asked for
 		if (r_forwardPlusDebug->integer)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_FPLUS_DEBUG\n");
+
+		// Normal-variance specular AA is a latched opt-in.  With it off the
+		// derivative path and its uniform are absent from the compiled shader.
+		if (r_specularAA->integer)
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SPECULAR_AA\n");
 
 		// LTC area lights (latched, tr_arealights.cpp): the rectangle
 		// integration is only compiled in when enabled, off costs nothing

@@ -801,6 +801,12 @@ uniform vec4 u_MaterialDebug;
 // z: hair anisotropy, w: r_materialModelDebug
 uniform vec4 u_MaterialModel;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
+#if defined(USE_SPECULAR_AA) && defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+#define USE_GGX_SPECULAR_AA
+// Screen-space normal-variance filtering: strength, max added roughness,
+// debug view (1 material, 2 filtered, 3 delta), unused.
+uniform vec4 u_SpecularAAParams;
+#endif
 
 #if defined(USE_LIQUID_SUN) || defined(USE_LIQUID_LOCAL) || defined(USE_LIQUID_BAKED)
 // underwater direct light (tr_liquid.cpp RB_LiquidSurfaceSetupDraw): x 1 = this draw takes it
@@ -2186,6 +2192,9 @@ struct DLightSurface
 	float NE;
 	vec3  diffuse;
 	vec3  specular;
+	#if defined(USE_GGX_SPECULAR_AA)
+	float materialRoughness;
+	#endif
 	float roughness;
 	vec3  materialT;
 	float materialMask;
@@ -2421,7 +2430,11 @@ vec3 EvaluateDynamicLight(
 	}
 	#endif
 	#if !defined(USE_CLOTH_BRDF)
+	#if defined(USE_GGX_SPECULAR_AA)
+	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.materialRoughness);
+	#else
 	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.roughness);
+	#endif
 	#else
 	vec3 reflectance = s.diffuse;
 	#endif
@@ -2907,6 +2920,9 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 #endif
 
 vec3 CalcDynamicLightContribution(
+	#if defined(USE_GGX_SPECULAR_AA)
+	in float materialRoughness,
+	#endif
 	in float roughness,
 	in vec3 N,
 	in vec3 E,
@@ -2928,6 +2944,9 @@ vec3 CalcDynamicLightContribution(
 	s.NE = NE;
 	s.diffuse = diffuse;
 	s.specular = specular;
+	#if defined(USE_GGX_SPECULAR_AA)
+	s.materialRoughness = materialRoughness;
+	#endif
 	s.roughness = roughness;
 	s.materialT = materialT;
 	s.materialMask = materialMask;
@@ -4271,6 +4290,34 @@ void main()
 	else if (materialType == 2)
 		roughness = mix(roughness, 0.08, materialMask);
 
+	// Keep authored/material roughness for the Burley diffuse lobe.  Specular
+	// AA filters only the GGX-family lobes and every downstream specular
+	// consumer receives the same value (direct, sun, local/LTC, IBL and SSR).
+  #if defined(USE_GGX_SPECULAR_AA)
+	float materialRoughness = roughness;
+	vec3 normalDx = dFdx(N);
+	vec3 normalDy = dFdy(N);
+	float normalVariance = u_SpecularAAParams.x *
+		(dot(normalDx, normalDx) + dot(normalDy, normalDy));
+	float varianceRoughness = sqrt(clamp(roughness * roughness +
+		2.0 * normalVariance, 0.0, 1.0));
+	roughness = max(roughness, min(varianceRoughness,
+		min(1.0, roughness + u_SpecularAAParams.y)));
+
+	int specularAADebug = int(u_SpecularAAParams.z + 0.5);
+	if (specularAADebug > 0)
+	{
+		float debugRoughness = specularAADebug == 1 ? materialRoughness :
+			specularAADebug == 2 ? roughness : roughness - materialRoughness;
+		out_Color = vec4(vec3(debugRoughness), diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) || defined(USE_SSGI) || defined(USE_SKIN_SSS_BUFFER)
+		SSRWriteNone(u_ViewOrigin - viewDir);
+    #endif
+		return;
+	}
+  #endif
+
 	// Environment reflections. Legacy application: the F0 term is scaled by AO
 	// and the cubemap brightness follows the AO'd lighting (kept bit exact for
 	// A/B). Indirect-only: the whole IBL result is scaled by the specular
@@ -4349,7 +4396,11 @@ void main()
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	float LH = clamp(dot(L, H), 0.0, 1.0);
 
+  #if defined(USE_GGX_SPECULAR_AA)
+	vec3  Fd = CalcDiffuse(diffuse.rgb, NE, NL, LH, materialRoughness);
+  #else
 	vec3  Fd = CalcDiffuse(diffuse.rgb, NE, NL, LH, roughness);
+  #endif
 	vec3  Fs = vec3(0.0);
 
   #if defined(USE_SPECULARMAP)
@@ -4383,7 +4434,11 @@ void main()
 		g_materialSpecular += lightColor * Fs * (attenuation * NL);
 
 	// kept separately: r_forwardPlusDebug, later SSGI style consumers
-	vec3 dynamicLight = CalcDynamicLightContribution(roughness, N, E, u_ViewOrigin,
+	vec3 dynamicLight = CalcDynamicLightContribution(
+  #if defined(USE_GGX_SPECULAR_AA)
+		materialRoughness,
+  #endif
+		roughness, N, E, u_ViewOrigin,
 		viewDir, NE, diffuse.rgb, specular.rgb, materialT, materialMask, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
@@ -4422,10 +4477,18 @@ void main()
 	vec3 sunSpecular = CalcMaterialSpecular(specular.rgb, N, materialT, H2, NH2,
 		NL2, NE, L2H2, VH2, roughness, materialMask);
     #if defined(USE_SKIN_SSS)
+    #if defined(USE_GGX_SPECULAR_AA)
+	vec3 sunDiffuse = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, materialRoughness);
+    #else
 	vec3 sunDiffuse = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
+    #endif
 	reflectance = sunSpecular;
     #else
+    #if defined(USE_GGX_SPECULAR_AA)
+	reflectance  = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, materialRoughness);
+    #else
 	reflectance  = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
+    #endif
 	reflectance += sunSpecular;
     #endif
 

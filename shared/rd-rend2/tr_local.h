@@ -604,6 +604,10 @@ extern cvar_t  *r_plantWindStrength;
 extern cvar_t  *r_autoPBRConvert;
 extern cvar_t  *r_autoPBRRoughness;
 extern cvar_t  *r_diffuseBRDF;
+extern cvar_t  *r_specularAA;
+extern cvar_t  *r_specularAAStrength;
+extern cvar_t  *r_specularAAMaxAdded;
+extern cvar_t  *r_specularAADebug;
 extern cvar_t  *r_diffuseIBL;
 extern cvar_t  *r_diffuseIBLStrength;
 extern cvar_t  *r_diffuseIBLDebug;
@@ -2590,6 +2594,7 @@ typedef enum
 	UNIFORM_PLANTBENDTIME,		// FOLIAGE_PLANT: time, previous time, wind speed, unused
 	UNIFORM_FOLIAGEINTERACT,	// surface sprites: interaction (0 / 1), contact heat debug (0 / 1)
 	UNIFORM_DIFFUSEBRDF,	// r_diffuseBRDF: 0 = Lambert, 1 = Burley/Disney
+	UNIFORM_SPECULARAAPARAMS,	// strength, max added roughness, debug view, unused
 	UNIFORM_PARALLAXBIAS,
 
 	UNIFORM_VIEWINFO, // znear, zfar, width/2, height/2
