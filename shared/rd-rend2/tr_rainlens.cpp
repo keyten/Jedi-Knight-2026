@@ -1510,6 +1510,9 @@ void R_RainLensStats_f( void )
 	static const char *names[PROFILE_COUNT] = { "auto", "light", "rain", "heavy", "acid" };
 	const Stats s = s_water.GetStats();
 	const LensWater::ProfileParams &p = s_water.Current();
+	int mapEmitters = tr.world ? tr.world->numLensWaterEmitters : 0;
+	if ( tr.world && r_waterfallMist->integer && r_waterfallMistLens->value > 0.0f )
+		mapEmitters += tr.world->numWaterfallLensEmitters;
 	ri.Printf(PRINT_ALL, "Lens water (%s profile%s):\n", names[s.profile],
 		s_water.GetProfileOverride() != PROFILE_AUTO ? ", forced" : "");
 	ri.Printf(PRINT_ALL, "  drops %d / %d (beads %d, residual %d, moving %d, flow heads %d)\n",
@@ -1518,7 +1521,7 @@ void R_RainLensStats_f( void )
 	ri.Printf(PRINT_ALL, "  rates/s micro %.1f normal %.2f large %.2f flow %.2f sheet %.2f\n",
 		p.microRate, p.normalRate, p.largeRate, p.flowRate, p.sheetRate);
 	ri.Printf(PRINT_ALL, "  sprays %d, emitter spray %.2f, last event %.1f s ago, map emitters %d\n",
-		s.sprays, s.continuousSpray, s.sinceEvent, tr.world ? tr.world->numLensWaterEmitters : 0);
+		s.sprays, s.continuousSpray, s.sinceEvent, mapEmitters);
 	ri.Printf(PRINT_ALL, "  lens field %dx%d, film %dx%d (%s, %s)%s\n",
 		tr.rainLensFieldImage ? tr.rainLensFieldImage->width : 0,
 		tr.rainLensFieldImage ? tr.rainLensFieldImage->height : 0,
