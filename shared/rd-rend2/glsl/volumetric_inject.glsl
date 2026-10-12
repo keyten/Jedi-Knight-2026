@@ -52,8 +52,9 @@ void main()
 // its ray (exact clip of the convex brushes), so the froxel cut by a water surface integrates its
 // share of the water. The sun under a liquid passes the liquid above the froxel (exact path length to
 // the surface, rgb transmittance and caustics). Sun and the directional share of reconstructed baked
-// light can be enabled independently. Local-light caustics stay receiver-side: tracing every point
-// light through every froxel would multiply the already expensive liquid brush/Jacobian loop.
+// light can be enabled independently. Dynamic lights reaching a froxel in a liquid are absorbed by the
+// liquid between them (same switch as the sun path, no caustic). Local-light caustics stay
+// receiver-side: a Jacobian per light per froxel would multiply the liquid brush loop.
 //
 // Light (the phase function is 4 pi HG, 1 = isotropic, per lobe of the medium):
 //   baked   light grid without the sun (isotropic, legacy brightness)
@@ -1048,6 +1049,13 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 	lightGlobal = vec3(0.0);
 	int first = int(cluster & 0xffffffu);
 	int count = int(cluster >> 24);
+#if defined(USE_LIQUIDS)
+	// p in a liquid: the light reaches it through the liquid between them (r_volumetricWaterSunPath,
+	// the same switch as the sun path: with it on the media pass leaves liquids out, so a
+	// self-shadowed light is not attenuated twice). Debug view 70 drops it (A/B with view 4).
+	bool liquidPath = u_LiquidParams.x > 0.5 && u_LiquidParams.z > 0.5 &&
+		int(u_FroxelDebugParams.x) != 70 && LiquidAnyInside(p, 1.0);
+#endif
 	for (int j = 0; j < count; j++)
 	{
 		int i = int(texelFetch(u_FPlusGridMap, first + j).r);
@@ -1158,8 +1166,13 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		// cookie (tr_lightcookie.cpp): the radiance leaving the lamp towards p
 		vec3 cookie = SpotCookie(-L / dist, spot, spot2, length(p - u_FroxelViewOrigin.xyz));
 
-		// pointAtten * coneAtten * cookie * shadow * phase
+		// pointAtten * coneAtten * cookie * liquid * shadow * phase
 		vec3 unshadowed = colorLayer.rgb * cookie * attenuation;
+#if defined(USE_LIQUIDS)
+		// an attenuation of the light itself (as the clouds for the sun): the octaves' "unshadowed" too
+		if (liquidPath)
+			unshadowed *= LiquidLocalLightAbsorption(p, L / dist, dist);
+#endif
 		vec3 light = unshadowed * shadow;
 		vec3 add0 = light * phase.x;
 		vec3 add1 = light * phase.y;
@@ -1427,7 +1440,7 @@ void main()
 		vec3 light = FroxelStaticLobe(tail, 3) + sunTail;
 		if (debugView == 3)
 			light = sunTail;
-		else if (debugView == 4)
+		else if (debugView == 4 || debugView == 70)
 			light = vec3(0.0);
 		else if (debugView == 5)
 			light -= sunTail;
@@ -1629,7 +1642,7 @@ void main()
 		static0 = static1 = static2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);
 	}
-	else if (debugView == 4)
+	else if (debugView == 4 || debugView == 70)
 	{
 		static0 = static1 = static2 = vec3(0.0);
 		sun0 = sun1 = sun2 = vec3(0.0);

@@ -427,27 +427,20 @@ void LiquidRunAdd(inout LiquidRun r, in vec3 s)
 	}
 }
 
-// Direct light reaching p through a liquid. Directional lights use a very long
-// ray; local lights stop at the source and only form a surface caustic when the
-// source lies beyond the connected liquid run, on the air side. causticMode is
-// 0 off, 1 the original procedural pattern, 2 the shared surface Jacobian.
-vec3 LiquidDirectTransmittance(in vec3 p, in vec3 L, in float maxDistance,
-	in float footprint, in float causticMode, in vec3 lightVector, in bool localLight,
-	out float pathLength, out float crossedSurface, out vec3 diagnostic)
+// p inside any visible liquid brush, grown by eps world units
+bool LiquidAnyInside(in vec3 p, in float eps)
 {
-	pathLength = 0.0;
-	crossedSurface = 0.0;
-	diagnostic = vec3(0.0);
 	int n = LiquidCount();
-	if (n == 0 || u_LiquidParams.z < 0.5)
-		return vec3(1.0);
-
 	bool inside = false;
 	for (int i = 0; i < n && !inside; i++)
-		inside = LiquidInside(i, p, 1.0);
-	if (!inside)
-		return vec3(1.0);
+		inside = LiquidInside(i, p, eps);
+	return inside;
+}
 
+// the run of liquid from p along L up to maxDistance (LiquidRun; top < 0: none)
+LiquidRun LiquidRunAlong(in vec3 p, in vec3 L, in float maxDistance)
+{
+	int n = LiquidCount();
 	// the intervals along L: up to two in registers, more in the sorted hit list (see LiquidCoverage)
 	LiquidRun run;
 	LiquidRunInit(run);
@@ -491,6 +484,40 @@ vec3 LiquidDirectTransmittance(in vec3 p, in vec3 L, in float maxDistance,
 		for (int k = 0; k < h.count; k++)
 			LiquidRunAdd(run, h.seg[k]);
 	}
+	return run;
+}
+
+// Absorption of a local light's path to p (exp of the liquid optical depth of the run from p
+// towards the light, stopping at the light): no surface caustic. The caller has checked that p
+// is in a liquid (LiquidAnyInside); a light in the air beyond the run is attenuated only by the
+// liquid between p and the surface. Froxel injection (DynamicLights in volumetric_inject).
+vec3 LiquidLocalLightAbsorption(in vec3 p, in vec3 L, in float distanceToLight)
+{
+	LiquidRun run = LiquidRunAlong(p, L, distanceToLight);
+	if (run.top < 0)
+		return vec3(1.0);
+	return exp(-LiquidOpticalDepth(run.len));
+}
+
+// Direct light reaching p through a liquid. Directional lights use a very long
+// ray; local lights stop at the source and only form a surface caustic when the
+// source lies beyond the connected liquid run, on the air side. causticMode is
+// 0 off, 1 the original procedural pattern, 2 the shared surface Jacobian.
+vec3 LiquidDirectTransmittance(in vec3 p, in vec3 L, in float maxDistance,
+	in float footprint, in float causticMode, in vec3 lightVector, in bool localLight,
+	out float pathLength, out float crossedSurface, out vec3 diagnostic)
+{
+	pathLength = 0.0;
+	crossedSurface = 0.0;
+	diagnostic = vec3(0.0);
+	int n = LiquidCount();
+	if (n == 0 || u_LiquidParams.z < 0.5)
+		return vec3(1.0);
+
+	if (!LiquidAnyInside(p, 1.0))
+		return vec3(1.0);
+
+	LiquidRun run = LiquidRunAlong(p, L, maxDistance);
 	vec3 len = run.len;
 	float runEnd = run.runEnd;
 	int topMedium = run.top;

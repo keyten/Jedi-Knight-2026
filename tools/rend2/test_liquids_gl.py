@@ -59,6 +59,13 @@ void main()
 			crossedSurface, diagnostic);
 		results[i] = vec4(T, crossedSurface);
 	}
+	else if (mode == 4)
+	{
+		// froxel dynamic light path (DynamicLights): b.xyz = light origin
+		vec3 toLight = b.xyz - a.xyz;
+		float d = length(toLight);
+		results[i] = vec4(LiquidLocalLightAbsorption(a.xyz, toLight / d, d), float(LiquidAnyInside(a.xyz, 1.0)));
+	}
 	else
 		results[i] = vec4(float(LiquidPointClass(a.xyz)), 0.0, 0.0, 0.0);
 }
@@ -446,6 +453,26 @@ def sun_cases(prog):
     ripple.delete()
     assert max(abs(a - b) for a, b in zip(flat_result[:3], ripple_result[:3])) > 0.01, \
         ('surface-driven interaction did not alter focusing', flat_result, ripple_result)
+    checks += 1
+
+    # 9 froxel dynamic light path (LiquidLocalLightAbsorption): light in the air above the lake (only the
+    # water up to the surface), submerged light (stops at the light), a horizontal path in the water, and a
+    # light above a second body beyond an air gap (the run ends at the first surface: the geometry shadow's)
+    bodies = [Brush([-1024.0, -1024.0, -368.0], [1024.0, 1024.0, 0.0]),
+              Brush([-1024.0, -1024.0, 64.0], [1024.0, 1024.0, 128.0])]
+    scene = Scene(prog, bodies, MATERIALS)
+    p = [0.0, 0.0, -100.0]
+    got = scene.run([(4, p, [0.0, 0.0, 40.0], 0.0, 0.0, -1), (4, p, [0.0, 0.0, -50.0], 0.0, 0.0, -1),
+                     (4, p, [300.0, 0.0, -100.0], 0.0, 0.0, -1), (4, p, [0.0, 0.0, 400.0], 0.0, 0.0, -1),
+                     (4, [0.0, 0.0, 30.0], [0.0, 0.0, -200.0], 0.0, 0.0, -1)])
+    sigma, color = WATER[0], WATER[1]
+    for result, length, label in [(got[0], 100.0, 'light in the air above'), (got[1], 50.0, 'submerged light'),
+                                  (got[2], 300.0, 'horizontal path in the water'),
+                                  (got[3], 100.0, 'light above a second body (air gap)')]:
+        close(result[:3], [math.exp(-sigma * c * length) for c in color], f'dynamic light path: {label}', 1e-3)
+        assert result[3] == 1.0, (label, result)
+    assert got[4][3] == 0.0, ('froxel in the air reported inside a liquid', got[4])
+    scene.delete()
     checks += 1
     return checks
 

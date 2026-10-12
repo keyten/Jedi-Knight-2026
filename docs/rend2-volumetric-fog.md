@@ -2402,7 +2402,7 @@ holds this liquid" uses the media of the drawn brushes (`R_LiquidMediumSlotMask`
 |---|---|---|
 | `r_volumetricWater` | 0 | Latched class mask (1 water, 2 slime, 4 lava) |
 | `r_volumetricWaterSurfaces` | 1 | Latched: underwater direct-light liquid path on lightall surfaces |
-| `r_volumetricWaterSunPath` | 1 | Exact sun path through the liquid (volume and surfaces) |
+| `r_volumetricWaterSunPath` | 1 | Exact sun path through the liquid (volume and surfaces), and the path of the dynamic lights through it in the volume ("Underwater light shafts") |
 | `r_volumetricWaterCaustics` | 0.35 | Caustic strength (0 = off) |
 | `r_volumetricWaterCausticScale` | 160 | Pattern period in world units |
 | `r_volumetricWaterCausticSpeed` | 0.06 | Drift in periods per second |
@@ -2427,6 +2427,7 @@ holds this liquid" uses the media of the drawn brushes (`R_LiquidMediumSlotMask`
   `r_volumetricFogRGBExtinction`).
 - 64: sun under the liquids at the scene surface: transmittance × caustics (grey 0.75 = none,
   dark grey = not in a liquid).
+- 70: dynamic lights without the liquid light path (as 4; A/B with 4, see "Underwater light shafts").
 - 65-69: see "Render classes under water" below (segment length, liquid-only S and T, medium
   sigma, fog bypass).
 - Also useful: 3 (the sun term, which includes the liquid sun path), 52 (T.rgb).
@@ -2469,8 +2470,8 @@ Use t3_hevil for the lake and yavin1b for sun on shallow water: `r_volumetricFog
 2. Camera below: haze in every direction, the surface seen from below, and the sky through it.
 3. Crossing quickly: no smear or lag of the history (one cut per crossing). Debug 61 has no red
    stripes, and debug 62 shows the boundary slices near the surface.
-4. Saber underwater: its in-scattering is attenuated by the water between it and the camera.
-   (The light path from the saber to the froxel is not attenuated; see the limitations.)
+4. Saber underwater: its in-scattering is attenuated by the water between it and the camera and
+   by the water between it and the froxel (debug 4 vs 70; "Underwater light shafts").
 5. Sun from outside: shafts under the surface fade with depth and get bluer, with caustics on the
    bed and in the shafts (debug 64, debug 3). Rocks and walls keep their cascade shadows.
 6. Legacy tint: gone under water with the feature on; with `cg_underwaterTint 0` or
@@ -2666,7 +2667,7 @@ never changes it. Only a step between a kept and a skipped brush shows the one-f
 
 #### Debug
 
-`r_volumetricFogDebug` (range now 0-69):
+`r_volumetricFogDebug` (range 0-69 then; 70 was added by the shaft review):
 
 | View | Shows |
 |---|---|
@@ -2759,6 +2760,113 @@ Console:
   - a water+fog pool (t2_port, taspir2): BSP fog plus the legacy tint;
   - `r_liquids camera` in and out of the water.
 
+### Underwater light shafts (review, 2026-10-12)
+
+Question: does the liquid medium already give physically coherent underwater shafts, with no separate
+godray pass? Mostly yes. The shafts are single scattering in the froxels: water is a medium like any
+other, so the sun cascades, phase, self-shadow and history all apply to it with no special case. One gap
+was fixed in the injection: dynamic, spot and saber lights in the volume were not absorbed by the water
+between the light and the froxel. Nothing else changed, there is no post-process radial blur, and no new
+cvar was added.
+
+#### Light path of a froxel p in a liquid
+
+| Term | Source → p | p → camera |
+|---|---|---|
+| Sun, in the cascades | `sun · f · CSM(p) · clouds(p) · T_liq(p → surface) · T_media(p → sun) · HG(g_w, cos)` | integrate, σ_t of the water in the froxel |
+| Sun, beyond the cascades | baked sun part S of the grid · `T_liq(p → surface)` · HG | same |
+| Baked (non-sun) | B, isotropic (or L1 with `StaticDirectional`); q3map did not attenuate it by the water | same |
+| Dynamic / spot / saber | `I · atten · cone · cookie · T_liq(p → light) · cube/spot shadow · T_media · HG` (**fixed**) | same; the dynamic volume has no history |
+
+- `T_liq(p → surface)`: `LiquidSunTransmittance`, the connected liquid run from p towards the sun, RGB.
+- `T_liq(p → light)`: `LiquidLocalLightAbsorption`, the same run from p towards the light. It stops at
+  the light, has no caustic, and uses `LiquidRunAlong`, shared with the sun path. For a saber the source
+  is the closest point on the blade (the line light proxy).
+- The water medium comes from `FroxelMedium`: σ_t × the covered fraction of the froxel segment,
+  σ_s = σ_t·c·albedo, with the water's own g (default 0.75) in its own phase slot.
+
+#### Double attenuation
+
+One switch, `r_volumetricWaterSunPath`, decides which code path carries the liquid on the light's way
+to p, for the sun and the dynamic lights alike:
+
+| `SunPath` | Sun | Dynamic lights | Media pass (`r_volumetricSelfShadow`) |
+|---|---|---|---|
+| 1 (default) | analytic `T_liq` | analytic `T_liq` | liquids left out, so they are never counted twice |
+| 0 | self-shadow march only (inside the frustum), else none | self-shadow march only (top-N lights, `r_volumetricSelfShadow 2`), else none | liquids included |
+
+- Camera ray: the integrate pass counts the water once. The `r_waterSurface` shader removes the liquid
+  extinction already integrated along the straight path before it applies its refracted one
+  (`watersurface.glsl`, `WaterFroxelSegment`).
+- Surfaces under water (lightall `USE_LIQUID_SUN`) take `T_liq` towards the sun, and the composite adds
+  the camera path. These are two different segments, so nothing is counted twice.
+- Water surfaces are blended, so they are not cascade casters (`R_AddDrawSurf`: only `SS_OPAQUE` or
+  `alphaShadow` cast). The load-time sun trust trace (`R_StaticTrace`) uses `CONTENTS_SOLID`, so water
+  does not hide the sky from underwater grid cells.
+
+#### Test cases (by code reading; not run in game)
+
+| Case | Verdict |
+|---|---|
+| Sunlight through an opening | Coherent. The cascade gives the shaft's shape, water σ_s with HG 0.75 gives the forward glow, and `T_liq` darkens and blues it with depth. |
+| Shadowed water | Coherent. A froxel in the cascade shadow keeps only B, which is not attenuated (it is baked ambient). Beyond the cascades the baked S has the grid's visibility. |
+| Pool roof / skylight | Coherent, with a generic risk (not liquid-specific): inside the cascades the realtime sun is scaled by the grid cell's sun weight f (5 load-time rays per cell). A skylight smaller than a light grid cell can leave f ≈ 0 in the cells below it, and the shaft then fades. Check with debug 3 and 23. |
+| Spot light underwater | **Was wrong**: the cone stayed white and full length. With the default water the red channel keeps 25% after 500 units (mean 56%). Fixed. Cone, cookie and projected shadow are unchanged. |
+| Saber underwater | Fixed the same way. The effect is small (≈ 0.76 red, 0.87 mean at 100 units). |
+| Moving occluder | Cascades are rendered every frame. The sun term is in the history (`r_volumetricFogHistoryWeight`, radiance clamped to ×4 of the current): a short lag, as in air. Dynamic lights have no history. |
+
+Anisotropy: the phase of each light uses its own direction and the water's g. RGB: the light paths
+(`T_liq`) are always RGB. The camera ray is scalar unless `r_volumetricFogRGBExtinction 1`; in scalar
+mode the in-scattering colour still uses albedo × extinction colour. For blue-green shafts that fade
+correctly with distance, test with RGB extinction on.
+
+#### Approximations (documented, not changed)
+
+- **Unrefracted sun.** The sun path, the cascades and the phase all use the air direction. At 45°
+  elevation the true underwater shaft is 32° from vertical, not 45°. Surfaces use the same direction,
+  so shafts and floor light patches line up. A refracted lookup would need both changed together.
+- **No surface Fresnel transmission** for the sun or the lights. It is about 2% at a high sun and grows
+  below about 20° elevation. Surfaces leave it out too.
+- **Caustics in the volume** are sampled at the froxel's mip (`LiquidCaustic` lod), which is nearly the
+  mean. The shafts carry the average light, not caustic filaments. Filaments are finer than a froxel, so
+  they would need a separate feature.
+- **Froxel resolution** blurs thin shafts. That is the generic froxel limit.
+- **Asymmetric light path.** A froxel in the air with a light under water is not attenuated, because
+  only froxels inside a liquid run the path. Portal light shafts (`tr_volrecon.cpp`) are not attenuated
+  either.
+- **Surface vs volume, local lights.** lightall attenuates a local light only with
+  `r_waterCausticsLightMask` bit 2, and only for lights above the receiver; that path exists for the
+  caustic. With the default mask 1, a saber lights the floor unattenuated while its in-water glow is
+  absorbed.
+
+#### Debug recipe (`r_volumetricFogDebug`)
+
+| Wanted | View |
+|---|---|
+| Liquid density | 59 (liquids alone, heat), 68 (medium and σ_t along the ray), 62 (cut froxels) |
+| Sun injection | 2 (unshadowed sun, includes `T_liq`), 64 (`T_liq` × caustics at the scene surface) |
+| Shadowed sun | 3 (cascade × media × `T_liq`), 43 (cascade only), 44 (media only) |
+| Dynamic injection | 4 (with the liquid light path), **70** (the same without it: A/B with 4), 29 (lights per cluster) |
+| Phase term | 39 (sun phase towards the camera, lobe mixture), 38 (mixed g), 37 (lobe slots) |
+| Integrated scattering | 66 (liquid in-scattering alone), 67 (liquid T, volume), 63 (exact liquid T), 9 (everything) |
+
+The liquid-only views (59, 66, 67) drop the other media but keep every light. Combine them with the
+light scales (`r_volumetricFogSunScale 0`, `r_volumetricFogDlightScale 0`, `r_volumetricFogStaticScale 0`)
+to isolate one light in the water alone.
+
+#### Validation
+
+- Builds: MSVC rd-rend2 and rdsp-rend2.
+- `tools/rend2/test_liquids_gl.py` on Intel UHD and RTX 2060: 16 checks, 14 inject/debug permutations
+  compiled. The new check 9 compares `LiquidLocalLightAbsorption` against the exact length for a light in
+  the air above a lake, a submerged light, a horizontal 300-unit path, and a light above a second body
+  beyond an air gap (only the lower body counts). `LiquidSunTransmittance` is unchanged after moving
+  the run to `LiquidRunAlong`: checks 6–7 still match to 1e-3.
+- `--compile-caustic-lights` (lightall with the liquid library) and `--test-caustic-sources` pass.
+  `test_volumetric_compute.py` and `test_clouds_gl.py` pass.
+- Not run in game. The cost of the new term (an inside test per lit froxel, plus one brush clip loop per
+  light) is not measured.
+
 ### Limitations
 
 - Brush-model liquids (moving water, `*N` models) are not media; cgame keeps their tint. The stock
@@ -2779,8 +2887,9 @@ Console:
   keeps the water tint there unless the map also has drawn water brushes.
 - Sloped stream patches can sit up to 8–9 units off their stepped brush tops (2 patches, on yavin1
   and yavin1b). An 8-unit layer of water medium has τ ≈ 0.01, which is invisible.
-- The sun path is the unrefracted straight ray. The light path of dynamic lights inside water is
-  not attenuated (only the path to the camera is); sabers and blaster bolts are short-range.
+- The sun path is the unrefracted straight ray. Dynamic lights reaching a froxel in water are
+  absorbed along their path since 2026-10-12, without caustics; a froxel in the air with a light
+  under water is not (see "Underwater light shafts").
 - The baked (non-sun) grid light under water is used as baked; q3map did not attenuate it by the
   water.
 - Caustics are a static procedural pattern (not derived from the water surface waves) and only
