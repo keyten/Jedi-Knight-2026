@@ -288,6 +288,18 @@ namespace
 			tr.viewParms.world.modelViewMatrix,
 			tr.weatherSystem->weatherMVP);
 
+		if (tr.weatherImpactClassImage)
+		{
+			FBO_Bind(tr.weatherDepthFbo);
+			GL_SetViewportAndScissor(0, 0, tr.weatherDepthFbo->width, tr.weatherDepthFbo->height);
+			qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			qglClearColor(0.0f, 0.0f, 0.0f, 0.0f); // hard dry / empty
+			qglClear(GL_COLOR_BUFFER_BIT);
+			// Synthetic weather-brush caps carry no material. Their depth is still
+			// drawn below, but the world-only depth check rejects their impacts.
+			qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		}
+
 		if (tr.weatherSystem->numWeatherBrushes > 0)
 		{
 			FBO_Bind(tr.weatherDepthFbo);
@@ -494,6 +506,8 @@ namespace
 			qglDisable(GL_DEPTH_CLAMP);
 		}
 
+		if (tr.weatherImpactClassImage)
+			qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		RenderWeatherWorldDepth(tr.weatherDepthFbo, tr.weatherSystem->numWeatherBrushes > 0);
 
 		// r_rainSplashes: weather brushes are invisible, a splash must not
@@ -862,7 +876,11 @@ namespace
 			debugMode == 1 ? GLS_DEPTHTEST_DISABLE : GLS_DEPTHFUNC_LESS;
 		item.renderState.cullType = CT_TWO_SIDED;
 		item.renderState.depthRange = { 0.0f, 1.0f };
-		item.program = &tr.weatherSplashShader;
+		const bool surfaceResponse = r_rainSplashSurfaceResponse->integer != 0 &&
+			tr.weatherImpactClassImage != nullptr;
+		shaderProgram_t *splashProgram = surfaceResponse ?
+			&tr.weatherSplashSurfaceShader : &tr.weatherSplashShader;
+		item.program = splashProgram;
 
 		const size_t numAttribs = weatherObject->numAttribs;
 		item.numAttributes = numAttribs;
@@ -902,6 +920,8 @@ namespace
 		SamplerBindingsWriter samplerBindingsWriter;
 		samplerBindingsWriter.AddStaticImage(tr.weatherDepthImage, TB_SHADOWMAP);
 		samplerBindingsWriter.AddStaticImage(grid ? grid : tr.whiteImage3D, TB_LIGHTMAP);
+		if (surfaceResponse)
+			samplerBindingsWriter.AddStaticImage(tr.weatherImpactClassImage, TB_NORMALMAP);
 		RB_LiquidWeatherSetupDraw(nullptr, &samplerBindingsWriter);
 		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
@@ -910,6 +930,17 @@ namespace
 			fadeDistance, (float)debugMode };
 		const vec4_t params2 = { weather.texelSizeWorld, weather.depthRangeWorld,
 			backEnd.refdef.frameTime, 1.0f / lifetime };
+		const vec4_t classParams = {
+			Com_Clamp(0.0f, 4.0f, r_rainSplashHardDryStrength->value),
+			Com_Clamp(0.0f, 4.0f, r_rainSplashHardWetStrength->value),
+			Com_Clamp(0.0f, 4.0f, r_rainSplashPuddleStrength->value),
+			Com_Clamp(0.0f, 4.0f, r_rainSplashWaterStrength->value)
+		};
+		const vec4_t classParams2 = {
+			Com_Clamp(0.0f, 4.0f, r_rainSplashSoilStrength->value),
+			Com_Clamp(0.0f, 4.0f, r_rainSplashVegetationStrength->value),
+			Com_Clamp(0.0f, 4.0f, r_rainSplashMetalStrength->value), 0.0f
+		};
 
 		// an upper bound for r_rainSplashDebug: every drop hits once per fall
 		// through the map height (the respawn lifts it by exactly that)
@@ -965,7 +996,7 @@ namespace
 			}
 
 			UniformDataWriter uniformDataWriter;
-			uniformDataWriter.Start(&tr.weatherSplashShader);
+			uniformDataWriter.Start(splashProgram);
 			// the particle positions of the debug views follow this view
 			uniformDataWriter.SetUniformVec2(UNIFORM_ZONEOFFSET, viewSlotZones[slot][0], viewSlotZones[slot][1]);
 			uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, weatherObject->color);
@@ -973,6 +1004,11 @@ namespace
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS, params);
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS2, params2);
 			uniformDataWriter.SetUniformVec4(UNIFORM_RAINLIGHT, light);
+			if (surfaceResponse)
+			{
+				uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHCLASSPARAMS, classParams);
+				uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHCLASSPARAMS2, classParams2);
+			}
 			RB_LiquidWeatherSetupDraw(&uniformDataWriter, nullptr);
 			if (grid)
 			{

@@ -5215,6 +5215,17 @@ void R_CreateBuiltinImages( void ) {
 		IMGTYPE_COLORALPHA,
 		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE,
 		GL_DEPTH_COMPONENT16);
+
+	// Normalized R8 is color-renderable in core GL 3.2.  Classes are encoded
+	// as class / (WEATHER_IMPACT_COUNT - 1) and read with texelFetch, so no
+	// integer render-target or filtering extension is required.
+	tr.weatherImpactClassImage = nullptr;
+	if (r_rainSplashSurfaceResponse && r_rainSplashSurfaceResponse->integer)
+	{
+		tr.weatherImpactClassImage = R_CreateImage(
+			"*weatherImpactClass", nullptr, 1024, 1024, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_R8);
+	}
 }
 
 

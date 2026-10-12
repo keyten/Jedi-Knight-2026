@@ -833,6 +833,7 @@ uniform vec4 u_WaterContact[25]; // params + 12 displaced boundary segment endpo
 // Runtime A/B for the standard PBR diffuse model: 0 = Lambert, 1 = Burley/Disney
 uniform int u_DiffuseBRDF;
 uniform float u_ParallaxBias;
+uniform float u_WeatherImpactClass; // >= 0 only while filling the R8 weather class attachment
 #if defined(USE_PARALLAXMAP)
 // tr_pom.cpp R_PomSetUniforms, docs/rend2-pom.md
 uniform vec4 u_PomShadow;		// self shadow strength (0 = off), steps, start bias (depth), softness
@@ -3836,6 +3837,12 @@ void main()
 			discard;
 	}
 #endif
+	if (u_WeatherImpactClass >= 0.0)
+	{
+		out_Color = vec4(u_WeatherImpactClass);
+		out_Glow = vec4(0.0);
+		return;
+	}
 
 #if defined(PER_PIXEL_LIGHTING)
   #if defined(USE_SILHOUETTE_POM)

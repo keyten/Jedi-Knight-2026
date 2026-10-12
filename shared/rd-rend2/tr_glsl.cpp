@@ -412,8 +412,12 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_CameraVelocity",		GLSL_VEC3, 1 },
 
 	{ "u_WeatherSurfaceMap",	GLSL_INT, 1 },
+	{ "u_WeatherImpactClass",	GLSL_FLOAT, 1 },
+	{ "u_WeatherImpactMap",	GLSL_INT, 1 },
 	{ "u_SplashParams",			GLSL_VEC4, 1 },
 	{ "u_SplashParams2",		GLSL_VEC4, 1 },
+	{ "u_SplashClassParams",	GLSL_VEC4, 1 },
+	{ "u_SplashClassParams2",	GLSL_VEC4, 1 },
 
 	{ "u_FoliageFieldMap",		GLSL_INT, 1 },
 	{ "u_FoliageFieldPrevMap",	GLSL_INT, 1 },
@@ -4835,7 +4839,29 @@ static int GLSL_LoadGPUProgramWeather(
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherSplashShader);
 
-	return 4;
+	// Kept separate so mode 0 links and executes the original splash shader
+	// without a class texture, branch, or changed response.
+	GLSL_LoadGPUProgramBasicWithDefinitions(
+		builder,
+		scratchAlloc,
+		&tr.weatherSplashSurfaceShader,
+		"weatherSplashSurface",
+		fallback_weatherSplashProgram,
+		liquidDefines ? "#define USE_LIQUIDS\n#define USE_SURFACE_RESPONSE\n" :
+			"#define USE_SURFACE_RESPONSE\n",
+		ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0);
+
+	GLSL_InitUniforms(&tr.weatherSplashSurfaceShader);
+	qglUseProgram(tr.weatherSplashSurfaceShader.program);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_WEATHERIMPACTMAP, TB_NORMALMAP);
+	if (liquidDefines)
+		GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.weatherSplashSurfaceShader);
+
+	return 5;
 }
 
 // underwater motes and micro-bubbles (r_waterParticles, tr_waterparticles.cpp):
@@ -5343,6 +5369,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.weatherUpdateSplashShader);
 	GLSL_DeleteGPUShader(&tr.weatherShader);
 	GLSL_DeleteGPUShader(&tr.weatherSplashShader);
+	GLSL_DeleteGPUShader(&tr.weatherSplashSurfaceShader);
 	GLSL_DeleteGPUShader(&tr.waterParticleShader);
 
 	GLSL_DeleteGPUShader(&tr.smaaEdgeShader);

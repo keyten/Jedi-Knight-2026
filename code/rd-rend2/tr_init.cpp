@@ -769,6 +769,15 @@ cvar_t *r_rainSplashSize;
 cvar_t *r_rainSplashLifetime;
 cvar_t *r_rainSplashOpacity;
 cvar_t *r_rainSplashDebug;
+cvar_t *r_rainSplashSurfaceResponse;
+cvar_t *r_rainSplashSurfaceDebug;
+cvar_t *r_rainSplashHardDryStrength;
+cvar_t *r_rainSplashHardWetStrength;
+cvar_t *r_rainSplashPuddleStrength;
+cvar_t *r_rainSplashWaterStrength;
+cvar_t *r_rainSplashSoilStrength;
+cvar_t *r_rainSplashVegetationStrength;
+cvar_t *r_rainSplashMetalStrength;
 
 cvar_t	*r_aspectCorrectFonts;
 
@@ -2109,10 +2118,30 @@ void R_Register( void )
 		"r_rainSplashes: splash opacity");
 	r_rainSplashDebug = ri_Cvar_Get_NoComm("r_rainSplashDebug", "0", CVAR_CHEAT,
 		"r_rainSplashes debug: 1 impact points (yellow new, red old, through walls), 2 crossing test (green above, red under, cyan accepted, magenta rejected), 3 trajectories; prints the live splash count");
+	r_rainSplashSurfaceResponse = ri_Cvar_Get_NoComm("r_rainSplashSurfaceResponse", "0", CVAR_ARCHIVE | CVAR_LATCH,
+		"Surface-dependent rain impacts: 0 exact legacy splash, 1 class response (vid_restart)");
+	r_rainSplashSurfaceDebug = ri_Cvar_Get_NoComm("r_rainSplashSurfaceDebug", "0", CVAR_CHEAT,
+		"Show the top-down R8 weather impact class map");
+	r_rainSplashHardDryStrength = ri_Cvar_Get_NoComm("r_rainSplashHardDryStrength", "1", CVAR_ARCHIVE, "Hard dry rain impact response scale");
+	r_rainSplashHardWetStrength = ri_Cvar_Get_NoComm("r_rainSplashHardWetStrength", "1", CVAR_ARCHIVE, "Hard wet rain impact response scale");
+	r_rainSplashPuddleStrength = ri_Cvar_Get_NoComm("r_rainSplashPuddleStrength", "1", CVAR_ARCHIVE, "Puddle rain impact response scale");
+	r_rainSplashWaterStrength = ri_Cvar_Get_NoComm("r_rainSplashWaterStrength", "1", CVAR_ARCHIVE, "Real water rain impact response scale");
+	r_rainSplashSoilStrength = ri_Cvar_Get_NoComm("r_rainSplashSoilStrength", "1", CVAR_ARCHIVE, "Soft soil rain impact response scale");
+	r_rainSplashVegetationStrength = ri_Cvar_Get_NoComm("r_rainSplashVegetationStrength", "1", CVAR_ARCHIVE, "Vegetation rain impact response scale");
+	r_rainSplashMetalStrength = ri_Cvar_Get_NoComm("r_rainSplashMetalStrength", "1", CVAR_ARCHIVE, "Metal rain impact response scale");
 	ri.Cvar_CheckRange(r_rainSplashSize, 1.0f, 64.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainSplashLifetime, 50.0f, 2000.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainSplashOpacity, 0.0f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainSplashDebug, 0, 3, qtrue);
+	ri.Cvar_CheckRange(r_rainSplashSurfaceResponse, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_rainSplashSurfaceDebug, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_rainSplashHardDryStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashHardWetStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashPuddleStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashWaterStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashSoilStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashVegetationStrength, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainSplashMetalStrength, 0.0f, 4.0f, qfalse);
 
 	r_picmip = ri_Cvar_Get_NoComm ("r_picmip", "0", CVAR_ARCHIVE | CVAR_LATCH, "" );
 	ri.Cvar_CheckRange( r_picmip, 0, 16, qtrue );

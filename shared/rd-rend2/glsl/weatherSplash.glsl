@@ -107,6 +107,11 @@ uniform vec4 u_RainLight;		// rgb = light without a grid, w = light grid valid
 uniform sampler3D u_VolumetricLightMap;
 uniform vec3 u_LightGridOrigin;
 uniform vec3 u_LightGridCellInverseSize;
+#if defined(USE_SURFACE_RESPONSE)
+uniform sampler2D u_WeatherImpactMap;
+uniform vec4 u_SplashClassParams;	// hard dry, hard wet, puddle, water
+uniform vec4 u_SplashClassParams2;	// soil, vegetation, metal, unused
+#endif
 
 in vec4 var_Impact[];
 in vec3 var_Velocity[];
@@ -116,6 +121,10 @@ out vec2 var_Local;
 flat out vec4 var_Shape;	// kind (0 crown, 1 spray, 2 debug), age, alpha, seed
 flat out vec3 var_Light;	// premultiplied colour scale (debug: the colour)
 flat out vec2 var_Extent;	// spray: world width, height
+#if defined(USE_SURFACE_RESPONSE)
+flat out float var_SurfaceClass;
+int g_SurfaceClass;
+#endif
 
 const float PI = 3.14159265;
 
@@ -139,6 +148,23 @@ float SurfaceDepth(vec3 position)
 	vec2 uv = (u_WeatherMvp * vec4(position, 1.0)).xy * 0.5 + 0.5;
 	return textureLod(u_ShadowMap, uv, 0.0).r;
 }
+
+#if defined(USE_SURFACE_RESPONSE)
+int SurfaceClass(vec3 position)
+{
+	vec2 uv = (u_WeatherMvp * vec4(position, 1.0)).xy * 0.5 + 0.5;
+	ivec2 size = textureSize(u_WeatherImpactMap, 0);
+	ivec2 texel = clamp(ivec2(uv * vec2(size)), ivec2(0), size - ivec2(1));
+	return int(floor(texelFetch(u_WeatherImpactMap, texel, 0).r * 6.0 + 0.5));
+}
+
+float SurfaceStrength(int cls)
+{
+	if (cls < 4)
+		return u_SplashClassParams[cls];
+	return u_SplashClassParams2[cls - 4];
+}
+#endif
 
 // Upward normal from the height gradient of the weather depth. The D16 map
 // is coarse: the tilt is limited to 45 degrees.
@@ -181,6 +207,9 @@ void EmitQuad(vec3 origin, vec3 axisX, vec3 axisY, vec2 lo, vec2 hi,
 		var_Shape = shape;
 		var_Light = light;
 		var_Extent = extent;
+#if defined(USE_SURFACE_RESPONSE)
+		var_SurfaceClass = float(g_SurfaceClass);
+#endif
 		EmitVertex();
 	}
 	EndPrimitive();
@@ -237,6 +266,9 @@ void EmitDebugParticle(int debugMode)
 
 void main()
 {
+#if defined(USE_SURFACE_RESPONSE)
+	g_SurfaceClass = -1;
+#endif
 	int debugMode = int(u_SplashParams.w + 0.5);
 	if (debugMode >= 2)
 	{
@@ -272,11 +304,36 @@ void main()
 	float age = 1.0 - life;
 	float size = u_SplashParams.x * mix(0.75, 1.25, rand.x);
 	vec3 n = SurfaceNormal(hit);
+#if defined(USE_SURFACE_RESPONSE)
+	float sprayScale = 1.0;
+	g_SurfaceClass = SurfaceClass(hit);
+	float classStrength = SurfaceStrength(g_SurfaceClass);
+	if (classStrength <= 0.0)
+		return;
+	float sizeScale = 1.0;
+	if (g_SurfaceClass == 0) { sizeScale = 0.55; sprayScale = 0.55; }
+	else if (g_SurfaceClass == 1) { sizeScale = 0.80; sprayScale = 0.75; }
+	else if (g_SurfaceClass == 2) { sizeScale = 1.35; sprayScale = 0.25; }
+	else if (g_SurfaceClass == 3) { sizeScale = 1.55; sprayScale = 0.40; }
+	else if (g_SurfaceClass == 4) { sizeScale = 0.45; sprayScale = 0.18; }
+	else if (g_SurfaceClass == 5) { sizeScale = 0.28; sprayScale = 0.0; }
+	else if (g_SurfaceClass == 6) { sizeScale = 0.70; sprayScale = 0.90; }
+	size *= sizeScale;
+#endif
 
 	// water takes the light around it; the weather tint keeps acid rain green
 	vec3 tint = u_Color.rgb / max(u_Color.a, 1e-4);
 	vec3 light = SplashLight(hit + n * 4.0) * tint * 0.8;
 	float opacity = u_SplashParams.y * fade;
+#if defined(USE_SURFACE_RESPONSE)
+	opacity *= classStrength;
+	if (g_SurfaceClass == 4)
+		light *= vec3(0.30, 0.22, 0.15); // dark soil micro-splash
+	else if (g_SurfaceClass == 5)
+		light *= 0.45;
+	else if (g_SurfaceClass == 6)
+		light *= vec3(0.85, 0.92, 1.0);
+#endif
 
 	// crown: a ring spreading in the surface plane
 	vec3 axis = abs(n.z) < 0.9 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
@@ -292,7 +349,11 @@ void main()
 	// spray: a short camera facing sheet along the normal, up and down again;
 	// a few pixels at most beyond half the fade distance, the crown alone
 	// carries the splash there
+	#if defined(USE_SURFACE_RESPONSE)
+	float height = size * 1.4 * sprayScale * sin(PI * sqrt(age)) * mix(0.6, 1.4, rand.w);
+	#else
 	float height = size * 1.4 * sin(PI * sqrt(age)) * mix(0.6, 1.4, rand.w);
+	#endif
 	if (height > 0.3 && viewDistance < 0.5 * fadeDistance)
 	{
 		vec3 toCamera = u_ViewOrigin - hit;
@@ -310,6 +371,9 @@ in vec2 var_Local;
 flat in vec4 var_Shape;
 flat in vec3 var_Light;
 flat in vec2 var_Extent;
+#if defined(USE_SURFACE_RESPONSE)
+flat in float var_SurfaceClass;
+#endif
 
 out vec4 out_Color;
 out vec4 out_Glow;
@@ -336,6 +400,26 @@ void main()
 		float ring = 1.0 - smoothstep(0.0, width, abs(r - 0.8));
 		float disc = (1.0 - smoothstep(0.0, 0.8, r)) * (1.0 - age) * 0.3;
 		alpha = max(ring, disc) * (1.0 - smoothstep(0.95, 1.0, r)) * (1.0 - age);
+#if defined(USE_SURFACE_RESPONSE)
+		int cls = int(var_SurfaceClass + 0.5);
+		if (cls == 2) // standing water: low crown, dominant ripple
+		{
+			float ripple = 1.0 - smoothstep(0.0, mix(0.045, 0.16, age), abs(r - mix(0.25, 0.88, sqrt(age))));
+			alpha = max(alpha * 0.35, ripple * 1.35) * (1.0 - age);
+		}
+		else if (cls == 3) // real water: paired ripple plus broken foam rim
+		{
+			float a = atan(var_Local.y, var_Local.x);
+			float foam = 0.65 + 0.35 * sin(a * 11.0 + seed * 19.0);
+			float r0 = 1.0 - smoothstep(0.0, 0.10 + age * 0.08, abs(r - mix(0.20, 0.82, sqrt(age))));
+			float r1 = 1.0 - smoothstep(0.0, 0.08 + age * 0.05, abs(r - mix(0.08, 0.58, sqrt(age))));
+			alpha = max(r0 * foam, r1 * 0.55) * (1.0 - age);
+		}
+		else if (cls == 4)
+			alpha = max(ring * 0.18, disc * 1.25) * (1.0 - age);
+		else if (cls == 5)
+			alpha *= 0.22;
+#endif
 	}
 	else
 	{

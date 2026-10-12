@@ -141,6 +141,44 @@ splash-like geometry shader into a camera-centred ripple height map that lightal
 simulation. The procedural rings of `r_weatherPuddleRipples` are unchanged. The splash crown already reads as a ring on
 wet ground and puddles.
 
+## Surface-dependent response
+
+`r_rainSplashSurfaceResponse 1` enables a second splash program and a compact top-down class attachment beside
+the weather depth. The attachment is normalized `GL_R8`, so it remains color-renderable on GL 3.2; the seven
+classes are stored as `class / 6` and fetched without filtering. With the cvar at its default `0`, the image is
+not allocated and the original `tr.weatherSplashShader` path is used unchanged.
+
+The BSP weather-depth draw still knows its resolved shader and stage. During that draw it writes one of these
+classes after the normal alpha test:
+
+| value | class | automatic sources | response |
+|---:|---|---|---|
+| 0 | hard dry | `weatherResponse` wetness 0, or explicit override | tiny crown and spray |
+| 1 | hard wet | conservative fallback | small wet crown and spray |
+| 2 | puddle | `MATERIAL_WATER` without water contents | low crown, strong expanding ripple |
+| 3 | real water | `CONTENTS_WATER` | paired water ripple and broken foam rim |
+| 4 | soil / soft | dirt, sand, gravel, snow, mud | dark micro-splash, almost no crown |
+| 5 | vegetation | grass/leaves material or foliage classification | strongly reduced crown, no spray |
+| 6 | metal | metal/armor/computer material, metal footsteps, auto-PBR metal | crisp small response |
+
+Classification priority is an explicit shader override, water contents, BSP material / existing foliage and
+auto-PBR classification, then the conservative hard fallback. The splash GLSL only consumes the numeric class;
+it never examines shader or texture names. Real water and authored non-opaque exceptions are admitted to this
+weather-depth draw, and the original shader is retained instead of being replaced by the simple depth shader.
+
+Use the shader-level keyword only for exceptions that cannot be represented by existing BSP/material data:
+
+```c
+textures/example/painted_puddle
+{
+    weatherImpact puddle
+    // existing shader directives and stages
+}
+```
+
+Accepted values are `auto`, `hardDry`, `hardWet`, `puddle`, `water`, `soil`, `vegetation`, and `metal`.
+No stock PK3 shader changes are required.
+
 ## Cvars
 
 | cvar | default | |
@@ -150,6 +188,15 @@ wet ground and puddles.
 | `r_rainSplashLifetime` | 350 | ms (50–2000) |
 | `r_rainSplashOpacity` | 0.5 | 0–4 |
 | `r_rainSplashDebug` | 0 | cheat: 1 impact points, 2 crossing test, 3 trajectories |
+| `r_rainSplashSurfaceResponse` | 0 | latched: 1 allocates the R8 class map and enables class response |
+| `r_rainSplashSurfaceDebug` | 0 | cheat: show the class map, black hard-dry through white metal |
+| `r_rainSplashHardDryStrength` | 1 | hard-dry opacity scale, 0–4 |
+| `r_rainSplashHardWetStrength` | 1 | hard-wet opacity scale, 0–4 |
+| `r_rainSplashPuddleStrength` | 1 | puddle opacity scale, 0–4 |
+| `r_rainSplashWaterStrength` | 1 | real-water opacity scale, 0–4 |
+| `r_rainSplashSoilStrength` | 1 | soil opacity scale, 0–4 |
+| `r_rainSplashVegetationStrength` | 1 | vegetation opacity scale, 0–4 |
+| `r_rainSplashMetalStrength` | 1 | metal opacity scale, 0–4 |
 
 Debug views:
 
@@ -160,6 +207,8 @@ Debug views:
 | 3 | the last 50 ms of each drop's trajectory, green above, red under the occluder |
 
 - The weather depth itself is shown by `r_debugWeather 1` (the existing blit).
+- The surface-class attachment is shown by `r_rainSplashSurfaceDebug 1`. Enable
+  `r_rainSplashSurfaceResponse 1` and run `vid_restart` first.
 - `r_weatherDebugChunks 1` also draws the splash slot boxes: blue drawn, purple culled. It prints
   `splash slot N zone (x y) [+ previous zone] drawn|culled`.
 - In any debug mode, an async `GL_PRIMITIVES_GENERATED` query on the first splash batch of a frame is read back
@@ -245,3 +294,7 @@ Use `docs/samples/rain-splashes.cfg`, on a rain map and with `rain` / `heavyrain
 7. Look at distant impacts: they fade out by 1500 units.
 8. `r_speeds 100`: "Weather simulation", "Weather draw" and "Weather splashes" GPU times, with
    `r_rainSplashes 0` / `1`.
+9. Set `r_rainSplashSurfaceResponse 1`, run `vid_restart`, then inspect
+   `r_rainSplashSurfaceDebug 1`: soil, foliage, puddle/water and metal surfaces should have distinct levels.
+10. Return `r_rainSplashSurfaceResponse 0`, run `vid_restart`, and verify the splash appearance and allocation
+    return to the original path.

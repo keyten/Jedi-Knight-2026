@@ -1829,6 +1829,22 @@ typedef enum
 	MATCLASS_COUNT
 } materialClass_t;
 
+// Compact top-down classification used by rain impacts.  AUTO is an authored
+// sentinel only; the R8 weather map always contains one of the seven concrete
+// classes below.
+typedef enum
+{
+	WEATHER_IMPACT_AUTO = -1,
+	WEATHER_IMPACT_HARD_DRY,
+	WEATHER_IMPACT_HARD_WET,
+	WEATHER_IMPACT_PUDDLE,
+	WEATHER_IMPACT_WATER,
+	WEATHER_IMPACT_SOIL,
+	WEATHER_IMPACT_VEGETATION,
+	WEATHER_IMPACT_METAL,
+	WEATHER_IMPACT_COUNT
+} weatherImpactClass_t;
+
 // Explicit per-stage shading model.  STANDARD preserves the existing lightall
 // response; HAIR and EYE are opt-in shader annotations.  Hair has a deliberately
 // narrow fallback in R_ResolvedMaterialType for exact "hair" name tokens.
@@ -2035,6 +2051,7 @@ typedef struct shader_s {
 	qboolean	isPortal;
 
 	vec3_t		weatherScale;			// shader level weatherResponse, default of every stage
+	weatherImpactClass_t weatherImpactClass; // explicit weatherImpact override, AUTO by default
 
 	cullType_t	cullType;				// CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 	qboolean	polygonOffset;			// set for decals and other items that must be offset
@@ -2766,8 +2783,12 @@ typedef enum
 	UNIFORM_CAMERAVELOCITY,		// smoothed view origin velocity, world units per ms
 
 	UNIFORM_WEATHERSURFACEMAP,	// r_rainSplashes: world-only weather depth (tr.weatherSurfaceImage)
+	UNIFORM_WEATHERIMPACTCLASS,	// weather depth draw: normalized R8 class, -1 outside that pass
+	UNIFORM_WEATHERIMPACTMAP,	// surface-dependent splash class attachment
 	UNIFORM_SPLASHPARAMS,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
 	UNIFORM_SPLASHPARAMS2,		// r_rainSplashes, program specific (weatherUpdate / weatherSplash)
+	UNIFORM_SPLASHCLASSPARAMS,	// hard dry, hard wet, puddle, water strength
+	UNIFORM_SPLASHCLASSPARAMS2,	// soil, vegetation, metal strength, unused
 
 	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageBendField: this frame's bend field (TB_FOLIAGEFIELD)
 	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageBendField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
@@ -4089,6 +4110,7 @@ typedef struct trGlobals_s {
 	image_t					*textureDepthImage;
 	image_t					*weatherDepthImage;
 	image_t					*weatherSurfaceImage;	// world geometry only, maps with weather brushes (r_rainSplashes)
+	image_t					*weatherImpactClassImage; // R8 top-down surface class beside weather depth
 	image_t					*weatherWetnessImage[2]; // flat/steep water amounts + copied weather depth
 	image_t					*smaaSearchImage;
 	image_t					*smaaAreaImage;
@@ -4289,6 +4311,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t weatherUpdateShader;
 	shaderProgram_t weatherShader;
 	shaderProgram_t weatherSplashShader;
+	shaderProgram_t weatherSplashSurfaceShader; // USE_SURFACE_RESPONSE permutation
 	shaderProgram_t weatherUpdateSplashShader;	// weatherUpdate + impact state (r_rainSplashes)
 	shaderProgram_t weatherWetnessShader;		// low-frequency persistent world water update
 	shaderProgram_t waterParticleShader;		// underwater motes / micro-bubbles (r_waterParticles)
@@ -4686,6 +4709,15 @@ extern cvar_t	*r_rainSplashSize;
 extern cvar_t	*r_rainSplashLifetime;
 extern cvar_t	*r_rainSplashOpacity;
 extern cvar_t	*r_rainSplashDebug;
+extern cvar_t	*r_rainSplashSurfaceResponse;
+extern cvar_t	*r_rainSplashSurfaceDebug;
+extern cvar_t	*r_rainSplashHardDryStrength;
+extern cvar_t	*r_rainSplashHardWetStrength;
+extern cvar_t	*r_rainSplashPuddleStrength;
+extern cvar_t	*r_rainSplashWaterStrength;
+extern cvar_t	*r_rainSplashSoilStrength;
+extern cvar_t	*r_rainSplashVegetationStrength;
+extern cvar_t	*r_rainSplashMetalStrength;
 
 //====================================================================
 
@@ -6444,6 +6476,9 @@ void GL_ResetScreenAuxWrite(void);
 int RB_ScreenBeginTimer(const char *name);
 void RB_ScreenEndTimer(int handle);
 void RB_RainSplashQuery(bool begin);	// r_rainSplashDebug splash counter (tr_weather.cpp)
+qboolean RB_WeatherImpactPass(void);
+weatherImpactClass_t RB_WeatherImpactClass(const shader_t *shader,
+	const shaderStage_t *stage, int foliageClass);
 void RB_ScreenSetViewUniforms(shaderProgram_t *sp, const screenViewInfo_t& info);
 void RB_ScreenGetViewInfo(screenViewInfo_t& info);	// view reconstruction of the current view
 void RB_ScreenBeginPass(FBO_t *fbo, shaderProgram_t *sp, int width, int height, uint32_t stateBits = GLS_DEPTHTEST_DISABLE);

@@ -1147,6 +1147,7 @@ static void RB_DrawItems(
 			continue;
 		shaderProgram_t *weatherProgram =
 			drawItem.program == &tr.weatherUpdateSplashShader ? &tr.weatherUpdateShader :
+			drawItem.program == &tr.weatherSplashSurfaceShader ? &tr.weatherSplashShader :
 			(drawItem.program == &tr.weatherUpdateShader ||
 			 drawItem.program == &tr.weatherShader ||
 			 drawItem.program == &tr.weatherSplashShader) ? drawItem.program : nullptr;
@@ -1330,13 +1331,23 @@ static void RB_SubmitDrawSurfsForDepthFill(
 			shader->alphaShadow &&
 			(!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) ||
 			 (backEnd.viewParms.flags & VPF_SHADOWCASCADES));
+		const int weatherMaterial = shader->surfaceFlags & MATERIAL_MASK;
+		const bool weatherImpactSurface = RB_WeatherImpactPass() &&
+			((shader->contentFlags & CONTENTS_WATER) ||
+			 shader->weatherImpactClass != WEATHER_IMPACT_AUTO ||
+			 weatherMaterial == MATERIAL_WATER ||
+			 weatherMaterial == MATERIAL_SHORTGRASS ||
+			 weatherMaterial == MATERIAL_LONGGRASS ||
+			 weatherMaterial == MATERIAL_DRYLEAVES ||
+			 weatherMaterial == MATERIAL_GREENLEAVES ||
+			 shader->foliageHint != FOLIAGE_NONE);
 
 		// a water surface drawn by the water program must stay out of the depth
 		// it reads (an opaque sorted water shader would have no depth behind it)
-		if ((shader->sort != SS_OPAQUE && !alphaShadowDepth) ||
-			shader->useDistortion ||
-			((drawSurf->waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView) ||
-			(shader->depthPrepass == DEPTHPREPASS_SKIP && !alphaShadowDepth))
+		if ((shader->sort != SS_OPAQUE && !alphaShadowDepth && !weatherImpactSurface) ||
+			(shader->useDistortion && !weatherImpactSurface) ||
+			((drawSurf->waterKey & WATERKEY_INTERFACE) && backEnd.waterSurfaceView && !weatherImpactSurface) ||
+			(shader->depthPrepass == DEPTHPREPASS_SKIP && !alphaShadowDepth && !weatherImpactSurface))
 		{
 			// Don't draw yet, let's see what's to come
 			continue;
@@ -1345,6 +1356,7 @@ static void RB_SubmitDrawSurfsForDepthFill(
 		// silhouette POM shells / crossfade base surfaces keep their shader:
 		// their depth is traced (tr_pom_silhouette.cpp)
 		if (shader->depthPrepass == DEPTHPREPASS_SIMPLE && !alphaShadowDepth &&
+			!RB_WeatherImpactPass() &&
 			*drawSurf->surface != SF_POM_SHELL && *drawSurf->surface != SF_POM_FADEBASE)
 			shader = tr.defaultShader;
 
@@ -2394,7 +2406,11 @@ static void RB_RenderDepthOnly( drawSurf_t *drawSurfs, int numDrawSurfs )
 	{
 		FBO_Bind(tr.depthVelocityFbo);
 	}
-	else 
+	else if (RB_WeatherImpactPass())
+	{
+		qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	}
+	else
 	{
 		qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	}
@@ -3769,6 +3785,12 @@ const void *RB_PostProcess(const void *data)
 	if (r_debugWeather->integer == 2)
 	{
 		FBO_BlitFromTexture(tr.weatherDepthImage, NULL, NULL, NULL, nullptr, NULL, NULL, 0);
+	}
+	if (r_rainSplashSurfaceDebug->integer && tr.weatherImpactClassImage)
+	{
+		// R8 levels are class / 6: black hard-dry, then hard-wet, puddle,
+		// water, soil, vegetation, and white metal.
+		FBO_BlitFromTexture(tr.weatherImpactClassImage, NULL, NULL, NULL, nullptr, NULL, NULL, 0);
 	}
 
 	if (r_ssao->integer == 2 && tr.screenSsaoImage)

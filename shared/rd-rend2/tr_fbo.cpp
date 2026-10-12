@@ -885,6 +885,8 @@ void FBO_Init(void)
 
 		FBO_Bind(tr.weatherDepthFbo);
 		R_AttachFBOTextureDepth(tr.weatherDepthImage->texnum);
+		if (tr.weatherImpactClassImage)
+			FBO_AttachTextureImage(tr.weatherImpactClassImage, 0);
 		FBO_SetupDrawBuffers();
 
 		R_CheckFBO(tr.weatherDepthFbo);

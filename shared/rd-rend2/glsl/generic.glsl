@@ -584,6 +584,7 @@ uniform vec4 u_EmissiveParams;
 // vertex lit here instead of lightall, drawn as a flat rgb color
 uniform vec4 u_MaterialDebug;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
+uniform float u_WeatherImpactClass; // >= 0 only while filling the R8 weather class attachment
 
 in vec2 var_DiffuseTex;
 in vec4 var_Color;
@@ -709,6 +710,12 @@ void main()
 			discard;
 	}
 #endif
+	if (u_WeatherImpactClass >= 0.0)
+	{
+		out_Color = vec4(u_WeatherImpactClass);
+		out_Glow = vec4(0.0);
+		return;
+	}
 
 	if (abs(u_EmissiveParams.w) == 1.0)
 	{

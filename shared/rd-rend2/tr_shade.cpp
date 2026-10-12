@@ -35,6 +35,55 @@ color4ub_t	styleColors[MAX_LIGHT_STYLES];
 
 void RB_BinTriangleCounts( void );
 
+qboolean RB_WeatherImpactPass(void)
+{
+	return (qboolean)(tr.weatherImpactClassImage &&
+		backEnd.viewParms.targetFbo == tr.weatherDepthFbo);
+}
+
+weatherImpactClass_t RB_WeatherImpactClass(const shader_t *shader,
+	const shaderStage_t *stage, int foliageClass)
+{
+	if (shader->weatherImpactClass != WEATHER_IMPACT_AUTO)
+		return shader->weatherImpactClass;
+	if (shader->contentFlags & CONTENTS_WATER)
+		return WEATHER_IMPACT_WATER;
+
+	const int material = shader->surfaceFlags & MATERIAL_MASK;
+	switch (material)
+	{
+	case MATERIAL_WATER:
+		return WEATHER_IMPACT_PUDDLE;
+	case MATERIAL_DIRT:
+	case MATERIAL_SAND:
+	case MATERIAL_GRAVEL:
+	case MATERIAL_SNOW:
+	case MATERIAL_MUD:
+		return WEATHER_IMPACT_SOIL;
+	case MATERIAL_SHORTGRASS:
+	case MATERIAL_LONGGRASS:
+	case MATERIAL_DRYLEAVES:
+	case MATERIAL_GREENLEAVES:
+		return WEATHER_IMPACT_VEGETATION;
+	case MATERIAL_SOLIDMETAL:
+	case MATERIAL_HOLLOWMETAL:
+	case MATERIAL_ARMOR:
+	case MATERIAL_COMPUTER:
+		return WEATHER_IMPACT_METAL;
+	default:
+		break;
+	}
+	if (foliageClass != FOLIAGE_NONE || shader->foliageHint != FOLIAGE_NONE)
+		return WEATHER_IMPACT_VEGETATION;
+	if ((shader->surfaceFlags & SURF_METALSTEPS) || stage->materialClass == MATCLASS_METAL)
+		return WEATHER_IMPACT_METAL;
+	// Stage weatherResponse already contains the inherited shader-level value,
+	// while preserving a more specific stage override.
+	if (stage->weatherScale[0] <= 0.0f)
+		return WEATHER_IMPACT_HARD_DRY;
+	return WEATHER_IMPACT_HARD_WET;
+}
+
 
 /*
 ==================
@@ -1905,6 +1954,11 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		}
 
 		stateBits = pStage->stateBits;
+		if (RB_WeatherImpactPass())
+		{
+			stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+			stateBits |= GLS_DEPTHMASK_TRUE;
+		}
 
 		const bool alphaShadowDepth =
 			backEnd.depthFill &&
@@ -2009,6 +2063,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			stateBits = RB_PomSilhouetteStateBits(stateBits, qfalse);
 
 		uniformDataWriter.Start(sp);
+		const float impactClass = RB_WeatherImpactPass() ?
+			(float)RB_WeatherImpactClass(input->shader, pStage, input->foliageMotion) /
+			(float)(WEATHER_IMPACT_COUNT - 1) : -1.0f;
+		uniformDataWriter.SetUniformFloat(UNIFORM_WEATHERIMPACTCLASS, impactClass);
 		// r_leafFlutter (tr_leafflutter.cpp) and the plant root bend
 		// (tr_foliageinteract.cpp): main, depth prepass, velocity and shadow
 		// maps all draw through here

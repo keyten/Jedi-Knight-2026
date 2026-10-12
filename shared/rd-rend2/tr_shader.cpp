@@ -234,6 +234,7 @@ static void ClearGlobalShader(void)
 	}
 
 	VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
+	shader.weatherImpactClass = WEATHER_IMPACT_AUTO;
 	shader.contentFlags = CONTENTS_SOLID | CONTENTS_OPAQUE;
 }
 
@@ -1334,6 +1335,32 @@ static qboolean ParseWeatherResponse( const char **text, vec3_t out )
 	for ( int i = count; i < 3; i++ )
 		out[i] = (count == 1 && out[0] == 0.0f) ? 0.0f : 1.0f;
 	return qtrue;
+}
+
+static qboolean ParseWeatherImpact( const char **text )
+{
+	const char *token = COM_ParseExt( text, qfalse );
+	struct weatherImpactName_t { const char *name; weatherImpactClass_t cls; };
+	static const weatherImpactName_t names[] = {
+		{ "auto", WEATHER_IMPACT_AUTO },
+		{ "hardDry", WEATHER_IMPACT_HARD_DRY },
+		{ "hardWet", WEATHER_IMPACT_HARD_WET },
+		{ "puddle", WEATHER_IMPACT_PUDDLE },
+		{ "water", WEATHER_IMPACT_WATER },
+		{ "soil", WEATHER_IMPACT_SOIL },
+		{ "vegetation", WEATHER_IMPACT_VEGETATION },
+		{ "metal", WEATHER_IMPACT_METAL }
+	};
+	for ( const weatherImpactName_t& entry : names )
+	{
+		if ( !Q_stricmp(token, entry.name) )
+		{
+			shader.weatherImpactClass = entry.cls;
+			return qtrue;
+		}
+	}
+	ri.Printf( PRINT_WARNING, "WARNING: invalid weatherImpact '%s' in shader '%s'\n", token, shader.name );
+	return qfalse;
 }
 
 /*
@@ -3039,6 +3066,12 @@ static qboolean ParseShader( const char **text )
 		else if ( !Q_stricmp( token, "weatherResponse" ) )
 		{
 			ParseWeatherResponse( text, shader.weatherScale );
+			continue;
+		}
+		// Explicit exception to automatic rain-impact material classification.
+		else if ( !Q_stricmp( token, "weatherImpact" ) )
+		{
+			ParseWeatherImpact( text );
 			continue;
 		}
 		// sun parms
@@ -6040,6 +6073,7 @@ shader_t *R_CreateShaderFromTextureBundle(
 		Com_Memset(&shader, 0, sizeof(shader));
 		Com_Memset(&stages, 0, sizeof(stages));
 		VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
+		shader.weatherImpactClass = WEATHER_IMPACT_AUTO;
 
 		Q_strncpyz(shader.name, name, sizeof(shader.name));
 
@@ -6063,6 +6097,7 @@ static void CreateInternalShaders( void ) {
 	Com_Memset( &shader, 0, sizeof( shader ) );
 	Com_Memset( &stages, 0, sizeof( stages ) );
 	VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
+	shader.weatherImpactClass = WEATHER_IMPACT_AUTO;
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
@@ -6134,6 +6169,7 @@ static void CreateExternalShaders( void ) {
 		Com_Memset( &shader, 0, sizeof( shader ) );
 		Com_Memset( &stages, 0, sizeof( stages ) );
 		VectorSet(shader.weatherScale, 1.0f, 1.0f, 1.0f);
+		shader.weatherImpactClass = WEATHER_IMPACT_AUTO;
 
 		Q_strncpyz( shader.name, "gfx/2d/sunflare", sizeof( shader.name ) );
 
