@@ -1066,9 +1066,18 @@ Creates standing water on flat rain-exposed world surfaces without editing the B
 - `r_weatherPuddleSlope "min max"` — geometric-normal range where puddles can form.
 - `r_weatherPuddleScale <units>` — macro puddle pattern size.
 
+**Layered edge response (opt-in)**
+- `r_weatherPuddleEdgeModel 0 | 1` — legacy response / continuous dry, damp fringe, thin film and standing-water response. Default `0` preserves the existing puddle shader.
+- `r_weatherPuddleFringeDarkening 0..1` — additional albedo darkening at the damp fringe (default `0.18`).
+- `r_weatherPuddleFilmRoughness 0.02..1` — target roughness of the thin film (default `0.18`); standing water continues to use `r_weatherPuddleRoughness`.
+
+This model only splits the existing `puddleEdge` and `puddle` masks; it does not create or expand puddle placement. The damp fringe keeps the underlying normal and receives only a mild roughness reduction. The thin film progressively smooths roughness and partially flattens the normal, allowing the existing dielectric Fresnel, cubemap and SSR response to appear. The standing-water core reaches the geometric macro normal and retains rain-ripple perturbation. Existing per-material `weatherResponse` scaling still gates the whole response.
+
 **Debug**
 - `r_weatherSurfaceDebug 5..10` — slope, noise, exposure, mask, roughness and eligibility.
 - `r_weatherSurfaceDebug 13..15` — macro, micro and combined puddle masks.
+- `r_weatherSurfaceDebug 33` — four continuous region weights: dry grey, damp brown, thin film cyan, standing water blue.
+- `r_weatherSurfaceDebug 34..36` — final roughness, added puddle darkening and final normal for the layered edge model.
 
 May slightly affect performance.
 

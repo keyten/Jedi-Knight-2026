@@ -512,6 +512,9 @@ extern cvar_t  *r_weatherPuddleCoverage;
 extern cvar_t  *r_weatherPuddleRoughness;
 extern cvar_t  *r_weatherPuddleSlope;
 extern cvar_t  *r_weatherPuddleScale;
+extern cvar_t  *r_weatherPuddleEdgeModel;
+extern cvar_t  *r_weatherPuddleFringeDarkening;
+extern cvar_t  *r_weatherPuddleFilmRoughness;
 extern cvar_t  *r_weatherPuddleUseHeightMap;
 extern cvar_t  *r_weatherPuddleHeightSoftness;
 extern cvar_t  *r_weatherPuddleWaterLevelBias;
@@ -2740,7 +2743,7 @@ typedef enum
 	UNIFORM_WETNESSPARAMS2,		// depth bias, normal offset, debug mode, split x
 	UNIFORM_WETNESSPARAMS3,		// facing floor, physical porosity (0/1), material class, unused
 	UNIFORM_PUDDLEPARAMS,		// coverage (<= 0 off, < 0 ineligible), roughness, slope min, slope max
-	UNIFORM_PUDDLEPARAMS2,		// 1 / scale
+	UNIFORM_PUDDLEPARAMS2,		// 1 / scale, edge model on, fringe darkening, film roughness
 	UNIFORM_PUDDLEHEIGHT,		// relief depth low, 1 / (high - low) (0: no height), softness, fill bias
 	UNIFORM_PUDDLERIPPLE,		// slope strength (0 off), 1 / cell size, ring clock (cycles mod 256), density
 	UNIFORM_RUNOFFPARAMS,		// strength (0 off, < 0 ineligible), 1 / scale, flow clock (cells mod 256), probe offset (world)

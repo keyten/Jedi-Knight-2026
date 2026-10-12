@@ -2656,7 +2656,12 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		slopeMin,
 		slopeMax
 	};
-	const vec4_t puddle2 = { 1.0f / MAX(r_weatherPuddleScale->value, 8.0f), 0.0f, 0.0f, 0.0f };
+	const vec4_t puddle2 = {
+		1.0f / MAX(r_weatherPuddleScale->value, 8.0f),
+		r_weatherPuddleEdgeModel->integer ? 1.0f : 0.0f,
+		Com_Clamp(0.0f, 1.0f, r_weatherPuddleFringeDarkening->value),
+		Com_Clamp(0.02f, 1.0f, r_weatherPuddleFilmRoughness->value)
+	};
 
 	// height aware puddles: only materials with a normalHeightMap (the
 	// USE_PARALLAXMAP shaders) and a relief of at least a few steps, the

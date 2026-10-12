@@ -821,7 +821,7 @@ uniform vec4 u_WetnessParams;  // strength (< 0: excluded draw), roughness scale
 uniform vec4 u_WetnessParams2; // depth bias, normal offset (world), debug view, split x
 uniform vec4 u_WetnessParams3; // facing floor, physical porosity (0/1), material class, persistent world (0/1)
 uniform vec4 u_PuddleParams;   // coverage (0: off, < 0: excluded draw), roughness, slope min, slope max
-uniform vec4 u_PuddleParams2;  // 1 / pattern scale (world)
+uniform vec4 u_PuddleParams2;  // 1 / pattern scale, edge model on, fringe darkening, film roughness
 uniform vec4 u_PuddleHeight;   // relief depth low, 1 / (high - low) (0: no usable height), softness, fill bias
 uniform vec4 u_PuddleRipple;   // slope strength (0: off), 1 / cell size (world), ring clock (cycles, mod 256), density
 uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / scale (world), flow clock (cells, mod 256), probe offset (world)
@@ -3985,6 +3985,8 @@ void main()
 	float puddleMacro = 0.0;
 	float puddleMacroEdge = 0.0;
 	float puddleDepth = -1.0;	// material depth of the height aware path, < 0: none
+	vec4 puddleRegions = vec4(1.0, 0.0, 0.0, 0.0); // dry, damp fringe, thin film, standing water
+	float puddleDarkening = 0.0;
 	vec3 ripple = vec3(0.0);	// ungated rings: height, world slope
 	float rippleMask = 0.0;
 	vec2 rippleSlope = vec2(0.0);	// the slope applied to N
@@ -4028,7 +4030,8 @@ void main()
     #else
 		float exposureP = smoothstep(0.5, 1.0, rainExposure);
     #endif
-		bool puddleDebug = u_WetnessParams2.z >= 5.0 && u_WetnessParams2.z <= 20.0;
+		bool puddleDebug = (u_WetnessParams2.z >= 5.0 && u_WetnessParams2.z <= 20.0) ||
+			(u_WetnessParams2.z >= 33.0 && u_WetnessParams2.z <= 36.0);
 		if (u_PuddleParams.x > 0.0 && ((wetness > 0.0 && puddleSlope * exposureP > 0.0) || puddleDebug))
 		{
 			puddleField = PuddleField((u_ViewOrigin - viewDir).xy * u_PuddleParams2.x);
@@ -4055,6 +4058,21 @@ void main()
     #endif
 			if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
 				puddle = puddleEdge = flatten = 0.0;
+			if (u_PuddleParams2.y > 0.5)
+			{
+				// The existing masks still own placement.  Split only their
+				// response: the cumulative edge becomes damp on the outside and
+				// thin film toward the core; the inner mask remains standing water.
+				float standing = clamp(puddle, 0.0, 1.0);
+				float fringe = max(clamp(puddleEdge, 0.0, 1.0) - standing, 0.0);
+				float filmShare = smoothstep(0.25, 0.80, clamp(puddleEdge, 0.0, 1.0));
+				float film = fringe * filmShare;
+				float damp = fringe - film;
+				puddleRegions = vec4(max(1.0 - damp - film - standing, 0.0), damp, film, standing);
+				// Damp material keeps its relief.  A shallow film only partly
+				// levels it; the water core reaches the geometric macro normal.
+				flatten = clamp(0.35 * film + standing, 0.0, 1.0);
+			}
 			N = normalize(mix(N, wetGeoNormal, flatten));
 
 			// rain ripples: only on the submerged core, fading out before its
@@ -4317,16 +4335,33 @@ void main()
 	}
 	if (puddleEdge > 0.0)
 	{
-		// standing water: fringe intermediate, core near mirror; F0 kept
-		// (no metal, no tint), the dielectric Fresnel / IBL / SSR reflect it
 		float metal = 0.0;
     #if defined(USE_SPECULARMAP) && !defined(USE_SPECGLOSS)
 		metal = ORMS.z;
     #endif
-		float fringeRough = min(roughness, mix(roughness, u_PuddleParams.y, 0.5));
-		roughness = mix(roughness, fringeRough, puddleEdge);
-		roughness = mix(roughness, u_PuddleParams.y, puddle);
-		diffuse.rgb *= 1.0 - 0.25 * puddle * (1.0 - metal);
+		if (u_PuddleParams2.y > 0.5)
+		{
+			// Four continuous material responses.  The damp fringe is kept
+			// safely rough, while the film is smooth enough for the existing
+			// dielectric Fresnel/IBL/SSR path without becoming a mirror edge.
+			float dryRough = roughness;
+			float dampRough = min(dryRough, max(dryRough * 0.82, 0.18));
+			float filmRough = min(dryRough, max(u_PuddleParams2.w, u_PuddleParams.y));
+			roughness = puddleRegions.x * dryRough + puddleRegions.y * dampRough +
+				puddleRegions.z * filmRough + puddleRegions.w * u_PuddleParams.y;
+			puddleDarkening = clamp((u_PuddleParams2.z * (puddleRegions.y + 0.65 * puddleRegions.z) +
+				0.25 * puddleRegions.w) * (1.0 - metal), 0.0, 1.0);
+			diffuse.rgb *= 1.0 - puddleDarkening;
+		}
+		else
+		{
+			// Legacy model.  Keep this branch unchanged when the master cvar is off.
+			float fringeRough = min(roughness, mix(roughness, u_PuddleParams.y, 0.5));
+			roughness = mix(roughness, fringeRough, puddleEdge);
+			roughness = mix(roughness, u_PuddleParams.y, puddle);
+			puddleDarkening = 0.25 * puddle * (1.0 - metal);
+			diffuse.rgb *= 1.0 - 0.25 * puddle * (1.0 - metal);
+		}
 	}
   #endif
 	if (materialType == 1)
@@ -4753,8 +4788,9 @@ void main()
 		return;
 	}
 	#endif
-	// r_weatherSurfaceDebug 1-31 (not 4), written unlit (tone mapping is bypassed)
-	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 31.0 && u_WetnessParams2.z != 4.0)
+	// r_weatherSurfaceDebug 1-36 (not 4 or persistence view 32), written unlit
+	if (u_WetnessParams2.z >= 1.0 && u_WetnessParams2.z <= 36.0 &&
+		u_WetnessParams2.z != 4.0 && u_WetnessParams2.z != 32.0)
 	{
 		float shade = 0.35 + 0.65 * NE;
 		vec3 debugColor;
@@ -4770,7 +4806,22 @@ void main()
 			debugDepth = PuddleRelief(debugRawDepth);
 		}
     #endif
-		if (u_WetnessParams2.z >= 27.0)
+		if (u_WetnessParams2.z == 33.0) // dry / damp / film / standing region weights
+		{
+			const vec3 dryColor = vec3(0.32);
+			const vec3 dampColor = vec3(0.45, 0.20, 0.06);
+			const vec3 filmColor = vec3(0.05, 0.85, 0.85);
+			const vec3 waterColor = vec3(0.05, 0.20, 1.0);
+			debugColor = (puddleRegions.x * dryColor + puddleRegions.y * dampColor +
+				puddleRegions.z * filmColor + puddleRegions.w * waterColor) * shade;
+		}
+		else if (u_WetnessParams2.z == 34.0) // final edge-model roughness
+			debugColor = vec3(roughness);
+		else if (u_WetnessParams2.z == 35.0) // added puddle darkening amount
+			debugColor = vec3(puddleDarkening);
+		else if (u_WetnessParams2.z == 36.0) // final edge-model normal
+			debugColor = N * 0.5 + 0.5;
+		else if (u_WetnessParams2.z >= 27.0 && u_WetnessParams2.z <= 31.0)
 		{
 			// material weather controls: 27 on (green) / excluded (red),
 			// 28-30 weatherResponse wetness / puddle / runoff scale
