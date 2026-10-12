@@ -522,6 +522,13 @@ extern cvar_t  *r_weatherPuddleRipples;
 extern cvar_t  *r_weatherPuddleRippleStrength;
 extern cvar_t  *r_weatherPuddleRippleScale;
 extern cvar_t  *r_weatherPuddleRippleRate;
+extern cvar_t  *r_weatherPuddleRippleImpulse;
+extern cvar_t  *r_weatherPuddleRippleDamping;
+extern cvar_t  *r_weatherPuddleRipplePropagation;
+extern cvar_t  *r_weatherPuddleRippleResolution;
+extern cvar_t  *r_weatherPuddleRippleFieldScale;
+extern cvar_t  *r_weatherPuddleRippleDistance;
+extern cvar_t  *r_weatherPuddleRippleDebug;
 extern cvar_t  *r_weatherRunoff;
 extern cvar_t  *r_weatherRunoffStrength;
 extern cvar_t  *r_weatherRunoffSpeed;
@@ -1697,6 +1704,9 @@ enum
 	// static rain occlusion depth map (tr.weatherDepthImage) of lightall,
 	// r_weatherWetness (tr_weather.cpp). Needs GL_MAX_TEXTURE_IMAGE_UNITS > 19.
 	TB_WEATHERDEPTH  = 19,
+	// Real rain ripple field. This aliases the foliage field unit deliberately:
+	// puddles are static opaque world draws; foliage draws are never eligible.
+	TB_PUDDLERIPPLE  = 23,
 
 	// LTC area light lookup tables of lightall (tr_arealights.cpp, USE_LTC).
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 21, else r_ltcAreaLights stays off.
@@ -2763,6 +2773,8 @@ typedef enum
 	UNIFORM_PUDDLEPARAMS2,		// 1 / scale, edge model on, fringe darkening, film roughness
 	UNIFORM_PUDDLEHEIGHT,		// relief depth low, 1 / (high - low) (0: no height), softness, fill bias
 	UNIFORM_PUDDLERIPPLE,		// slope strength (0 off), 1 / cell size, ring clock (cycles mod 256), density
+	UNIFORM_PUDDLERIPPLEMAP,	// real impact height/velocity field
+	UNIFORM_PUDDLERIPPLEFIELD,	// real field/update/injection parameters
 	UNIFORM_RUNOFFPARAMS,		// strength (0 off, < 0 ineligible), 1 / scale, flow clock (cells mod 256), probe offset (world)
 	UNIFORM_RUNOFFPARAMS2,		// wind shear x, y (per unit of fall), windward amount, frame origin z
 	UNIFORM_RUNOFFFRAME,		// pattern frame: horizontal axis a1 (world xy), origin xy
@@ -4112,6 +4124,8 @@ typedef struct trGlobals_s {
 	image_t					*weatherSurfaceImage;	// world geometry only, maps with weather brushes (r_rainSplashes)
 	image_t					*weatherImpactClassImage; // R8 top-down surface class beside weather depth
 	image_t					*weatherWetnessImage[2]; // flat/steep water amounts + copied weather depth
+	image_t					*weatherRippleImpulseImage;
+	image_t					*weatherRippleFieldImage[2]; // RG16F height + velocity
 	image_t					*smaaSearchImage;
 	image_t					*smaaAreaImage;
 	image_t					*smaaEdgeImage;
@@ -4207,6 +4221,8 @@ typedef struct trGlobals_s {
 	FBO_t					*weatherDepthFbo;
 	FBO_t					*weatherSurfaceFbo;
 	FBO_t					*weatherWetnessFbo[2];
+	FBO_t					*weatherRippleImpulseFbo;
+	FBO_t					*weatherRippleFieldFbo[2];
 	FBO_t					*smaaEdgeFbo;
 	FBO_t					*smaaBlendFbo;
 	FBO_t					*smaaResolveFbo;
@@ -4313,6 +4329,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t weatherSplashShader;
 	shaderProgram_t weatherSplashSurfaceShader; // USE_SURFACE_RESPONSE permutation
 	shaderProgram_t weatherUpdateSplashShader;	// weatherUpdate + impact state (r_rainSplashes)
+	shaderProgram_t weatherRippleImpulseShader;
+	shaderProgram_t weatherRippleUpdateShader;
 	shaderProgram_t weatherWetnessShader;		// low-frequency persistent world water update
 	shaderProgram_t waterParticleShader;		// underwater motes / micro-bubbles (r_waterParticles)
 	shaderProgram_t smaaEdgeShader;
@@ -6506,7 +6524,11 @@ qboolean R_WeatherWetnessEnabled(void);
 qboolean R_WeatherWetnessPersistenceEnabled(void);
 void R_CreateWeatherWetnessImages(void);
 void R_CreateWeatherWetnessFBOs(void);
+void R_CreateWeatherRippleImages(void);
+void R_CreateWeatherRippleFBOs(void);
 void R_WeatherWetnessReset(void);
+void R_WeatherRippleReset(void);
+void RB_WeatherRippleUpdate(void);
 void RB_WeatherWetnessUpdate(void);
 void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	class UniformDataWriter &uniformDataWriter, class SamplerBindingsWriter &samplerBindingsWriter);

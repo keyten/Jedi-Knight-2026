@@ -824,6 +824,8 @@ uniform vec4 u_PuddleParams;   // coverage (0: off, < 0: excluded draw), roughne
 uniform vec4 u_PuddleParams2;  // 1 / pattern scale, edge model on, fringe darkening, film roughness
 uniform vec4 u_PuddleHeight;   // relief depth low, 1 / (high - low) (0: no usable height), softness, fill bias
 uniform vec4 u_PuddleRipple;   // slope strength (0: off), 1 / cell size (world), ring clock (cycles, mod 256), density
+uniform sampler2D u_PuddleRippleMap; // real impact field: height + velocity (debug 1: impulses)
+uniform vec4 u_PuddleRippleField; // mode, weather-map coverage scale, real distance, field valid
 uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / scale (world), flow clock (cells, mod 256), probe offset (world)
 uniform vec4 u_RunoffParams2;  // wind shear x, y (per unit of fall), windward amount, pattern origin z
 uniform vec4 u_RunoffFrame;    // pattern frame: horizontal axis a1 (world xy), origin xy
@@ -3573,13 +3575,35 @@ vec3 RippleLayer(vec2 worldXY, mat2 rot, float scale, float seed, float clockOff
 }
 
 // Procedural rings: 3 layers at different angles and scales hide the grids.
-// Real impact events could later add their rings here or replace these.
+// Modes 2/3 replace or complement these with the real field below.
 vec3 PuddleRipples(vec2 worldXY, float footprint)
 {
 	vec3 sum = RippleLayer(worldXY, mat2(1.0, 0.0, 0.0, 1.0), 1.0, 0.0, 0.0, footprint);
 	sum += RippleLayer(worldXY, mat2(0.7986, 0.6018, -0.6018, 0.7986), 0.79, 3.3, 4.0 / 3.0, footprint);
 	sum += RippleLayer(worldXY, mat2(0.3256, -0.9455, 0.9455, 0.3256), 1.27, 7.7, 8.0 / 3.0, footprint);
 	return sum;
+}
+
+// Persistent field generated from the exact rain impact xyz. Coordinates use
+// the weather projection on both injection and lookup, avoiding camera-relative
+// swimming and keeping splash/ripple centers identical.
+vec3 RealPuddleRipples(vec2 worldXY)
+{
+	vec2 weatherUV = (u_WeatherMvp * vec4(worldXY, 0.0, 1.0)).xy * 0.5 + 0.5;
+	vec2 uv = (weatherUV - 0.5) / max(u_PuddleRippleField.y, 0.125) + 0.5;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0))))
+		return vec3(0.0);
+	vec2 texel = 1.0 / vec2(textureSize(u_PuddleRippleMap, 0));
+	float h = texture(u_PuddleRippleMap, uv).r;
+	float hx = texture(u_PuddleRippleMap, uv + vec2(texel.x, 0.0)).r -
+		texture(u_PuddleRippleMap, uv - vec2(texel.x, 0.0)).r;
+	float hy = texture(u_PuddleRippleMap, uv + vec2(0.0, texel.y)).r -
+		texture(u_PuddleRippleMap, uv - vec2(0.0, texel.y)).r;
+	// d(field uv)/d(world xy), including the configurable coverage scale.
+	vec2 uvPerWorld = vec2(length(u_WeatherMvp[0].xy), length(u_WeatherMvp[1].xy)) *
+		(0.5 / max(u_PuddleRippleField.y, 0.125));
+	vec2 slope = vec2(hx, hy) * 0.5 / texel * uvPerWorld;
+	return vec3(h, slope);
 }
 
 #if defined(USE_PARALLAXMAP)
@@ -4084,9 +4108,23 @@ void main()
 
 			// rain ripples: only on the submerged core, fading out before its
 			// edge, so no ring reaches the fringe film or dry stone
-			if (u_PuddleRipple.x > 0.0 && (puddle > 0.35 || (u_WetnessParams2.z >= 17.0 && u_WetnessParams2.z <= 20.0)))
+			if (u_PuddleRipple.x > 0.0 && (puddle > 0.35 ||
+				(u_WetnessParams2.z >= 17.0 && u_WetnessParams2.z <= 20.0) ||
+				(u_WetnessParams2.z >= 37.0 && u_WetnessParams2.z <= 40.0)))
 			{
-				ripple = PuddleRipples((u_ViewOrigin - viewDir).xy, rippleFootprint);
+				vec2 rippleWorldXY = (u_ViewOrigin - viewDir).xy;
+				float rippleMode = u_PuddleRippleField.x;
+				vec3 proceduralRipple = rippleMode != 2.0 ?
+					PuddleRipples(rippleWorldXY, rippleFootprint) : vec3(0.0);
+				vec3 realRipple = (rippleMode >= 2.0 && u_PuddleRippleField.w > 0.5) ?
+					RealPuddleRipples(rippleWorldXY) : vec3(0.0);
+				float realWeight = 1.0 - smoothstep(0.75 * u_PuddleRippleField.z,
+					u_PuddleRippleField.z, length((u_ViewOrigin - viewDir).xy - u_ViewOrigin.xy));
+				ripple = rippleMode == 1.0 ? proceduralRipple :
+					rippleMode == 2.0 ? realRipple * realWeight :
+					mix(proceduralRipple, realRipple, realWeight);
+				if (u_WetnessParams2.z >= 37.0 && u_WetnessParams2.z <= 39.0)
+					ripple = realRipple;
 				rippleMask = smoothstep(0.35, 0.9, puddle);
 				rippleSlope = ripple.yz * (u_PuddleRipple.x * rippleMask);
 				// height field normal (-dh/dx, -dh/dy, 1), kept in the water plane
@@ -4827,6 +4865,17 @@ void main()
 		else if (u_WetnessParams2.z == 35.0) // added puddle darkening amount
 			debugColor = vec3(puddleDarkening);
 		else if (u_WetnessParams2.z == 36.0) // final edge-model normal
+			debugColor = N * 0.5 + 0.5;
+		else if (u_WetnessParams2.z == 37.0) // exact impact impulse target
+			debugColor = mix(vec3(0.02, 0.02, 0.08), vec3(1.0, 0.35, 0.05),
+				clamp(abs(ripple.x) * 2.0, 0.0, 1.0));
+		else if (u_WetnessParams2.z == 38.0) // persistent real ripple height
+			debugColor = vec3(0.5 + clamp(ripple.x * 0.5, -0.5, 0.5));
+		else if (u_WetnessParams2.z == 39.0) // persistent real ripple velocity
+			debugColor = vec3(0.5 + clamp(texture(u_PuddleRippleMap,
+				((u_WeatherMvp * vec4((u_ViewOrigin - viewDir).xy, 0.0, 1.0)).xy * 0.5) /
+				max(u_PuddleRippleField.y, 0.125) + 0.5).g * 0.1, -0.5, 0.5));
+		else if (u_WetnessParams2.z == 40.0) // final normal with real field applied
 			debugColor = N * 0.5 + 0.5;
 		else if (u_WetnessParams2.z >= 27.0 && u_WetnessParams2.z <= 31.0)
 		{

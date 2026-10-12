@@ -54,6 +54,16 @@ def write_cfg(base: Path, visual):
             "screenshot_tga wetness-raining-debug",
             "r_weatherWetnessPersistenceDebug 0", "wait 8",
             "screenshot_tga wetness-raining-shaded",
+            "setviewpos -80 -4240 900 205", "centerview", "+lookdown", "wait 12", "-lookdown",
+            "r_weatherPuddleRippleDebug 1", "wait 8",
+            "screenshot_tga ripple-impact-impulses",
+            "r_weatherPuddleRippleDebug 2", "wait 8",
+            "screenshot_tga ripple-height",
+            "r_weatherPuddleRippleDebug 3", "wait 8",
+            "screenshot_tga ripple-velocity",
+            "r_weatherPuddleRippleDebug 4", "wait 8",
+            "screenshot_tga ripple-final-normal",
+            "r_weatherPuddleRippleDebug 0", "wait 8",
             "r_we clear", "wait 30",
             "screenshot_tga wetness-rain-stopped",
             "r_weatherWetnessPersistenceDebug 1", "wait 8",
@@ -109,7 +119,8 @@ def run(repo: Path, installation: Path, label: str, resolution: int, hz: int,
         r_weatherWetnessResolution=str(resolution), r_weatherWetnessUpdateHz=str(hz),
         r_weatherWetnessAccumulationRate="0.20", r_weatherWetnessDryRate="0.02",
         r_weatherWetnessSteepDryScale="2", r_weatherPuddles="1",
-        r_weatherRunoff="1",
+        r_weatherRunoff="1", r_weatherPuddleRipples="2",
+        r_weatherPuddleRippleResolution=str(resolution), r_rainSplashes="0",
     )
     command = [str(root / "openjk_sp.x86_64.exe")]
     for key, value in settings.items():
@@ -143,10 +154,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--installation", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--visual-only", action="store_true",
+                        help="run the screenshot/GL-error pass without the performance matrix")
     args = parser.parse_args()
     installation = args.installation.resolve()
 
     visual_root, _ = run(repo, installation, "visual-256-10", 256, 10, True, args.timeout)
+    if args.visual_only:
+        print("PASS: yavin1b ripple debug sequence completed")
+        print("Screenshots:", visual_root / "home/OpenJK/screenshots")
+        print("Visual log:", visual_root / "home/OpenJK/qconsole.log")
+        return
     results = []
     for resolution, hz in ((128, 5), (256, 10), (512, 15)):
         root, log = run(repo, installation, f"perf-{resolution}-{hz}", resolution, hz,

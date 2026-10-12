@@ -5054,6 +5054,8 @@ void R_CreateBuiltinImages( void ) {
 
 	// low-frequency persistent world wetness (tr_weather.cpp)
 	R_CreateWeatherWetnessImages();
+	// rain-impact driven puddle wave field (tr_weather.cpp)
+	R_CreateWeatherRippleImages();
 
 	bool needVelocityBuffer = (
 		r_smaa->integer == 2
@@ -5219,13 +5221,11 @@ void R_CreateBuiltinImages( void ) {
 	// Normalized R8 is color-renderable in core GL 3.2.  Classes are encoded
 	// as class / (WEATHER_IMPACT_COUNT - 1) and read with texelFetch, so no
 	// integer render-target or filtering extension is required.
-	tr.weatherImpactClassImage = nullptr;
-	if (r_rainSplashSurfaceResponse && r_rainSplashSurfaceResponse->integer)
-	{
-		tr.weatherImpactClassImage = R_CreateImage(
-			"*weatherImpactClass", nullptr, 1024, 1024, IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_R8);
-	}
+	// Also consumed by real puddle-ripple injection. Keep it resident so modes
+	// 1 -> 2/3 can be switched live without a vid_restart.
+	tr.weatherImpactClassImage = R_CreateImage(
+		"*weatherImpactClass", nullptr, 1024, 1024, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_R8);
 }
 
 

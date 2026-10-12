@@ -75,6 +75,8 @@ struct rainSplashVertex_t      // 40 bytes, interleaved XFB order
 
 | w | meaning |
 |---|---|
+| 2 | fresh one-frame GPU event; displayed immediately and injected into the ripple target on the next render frame |
+| −3 | fresh event whose particle also respawned in that update; preserves the event and marks the new fall |
 | (0, 1] | life of this fall's splash, 1 → 0 over `r_rainSplashLifetime` |
 | [-1, 0) | −life of a splash from an earlier fall that is still running (the drop respawned) |
 | −2 | this fall's splash is over; no more impacts until the respawn |
@@ -134,19 +136,47 @@ with no depth write. Glow alpha is 0, so bloom behind it is untouched.
 the zone the slot had before. The CPU keeps each slot's zone at simulation time, its previous zone and the remap
 time (`RB_TrackSplashSlots`). For `lifetime + 100 ms` after a remap, the slot's box is the union of both zones.
 
-## Ripple hook
+## Real impact ripple field
 
-`rainSplashVertex_t::impact` is the hook. A later event-driven ripple pass can draw the same VBO through a
-splash-like geometry shader into a camera-centred ripple height map that lightall samples, without touching the
-simulation. The procedural rings of `r_weatherPuddleRipples` are unchanged. The splash crown already reads as a ring on
-wet ground and puddles.
+Modes 2 and 3 of `r_weatherPuddleRipples` consume
+`rainSplashVertex_t::impact` without a readback. A fresh impact has state 2 for
+exactly one transform-feedback generation. Before the following main pass
+updates it to the ordinary splash lifetime, `weatherRippleImpulse.glsl` draws
+the VBO as points into an additive R16F weather-space target. Non-fresh records
+are clipped in the vertex shader, so light and very heavy rain use the same
+constant number of draws and need no CPU event list.
+
+`weatherRippleUpdate.glsl` advances a persistent RG16F ping-pong field (`R =
+height`, `G = velocity`) with a damped discrete wave equation. Propagation is
+disconnected across large differences in the static weather-depth map, so a
+roof-edge impact cannot travel into a lower adjacent puddle. The field covers
+fixed world/weather space and therefore does not move with the camera.
+
+Injection admits only hard-wet and explicitly puddle surface classes.
+`lightall.glsl` applies the slope only after calculating its final macro plus
+height-map submerged mask. Vertical surfaces, entities/cloth, dry authored
+materials, puddle fringes and nearby dry stone consequently receive no ripple
+normal. Mode 3 cross-fades from real waves near the camera to the original
+procedural rings in the distance.
+
+| cvar | default | meaning |
+|---|---:|---|
+| `r_weatherPuddleRipples` | 1 | 0 off, 1 original procedural, 2 real impacts, 3 hybrid |
+| `r_weatherPuddleRippleImpulse` | 0.45 | velocity deposited per real impact |
+| `r_weatherPuddleRippleDamping` | 2.5 | wave damping per second |
+| `r_weatherPuddleRipplePropagation` | 10 | propagation speed in field texels/s (clamped to 20 for stability) |
+| `r_weatherPuddleRippleResolution` | 256 | square impulse/field resolution, 64–1024; latched |
+| `r_weatherPuddleRippleFieldScale` | 1 | coverage relative to the weather map, 0.25–4 |
+| `r_weatherPuddleRippleDistance` | 1500 | real-field fade distance; hybrid uses procedural beyond it |
+| `r_weatherPuddleRippleDebug` | 0 | 1 impulse target, 2 height, 3 velocity, 4 final normal |
 
 ## Surface-dependent response
 
 `r_rainSplashSurfaceResponse 1` enables a second splash program and a compact top-down class attachment beside
 the weather depth. The attachment is normalized `GL_R8`, so it remains color-renderable on GL 3.2; the seven
-classes are stored as `class / 6` and fetched without filtering. With the cvar at its default `0`, the image is
-not allocated and the original `tr.weatherSplashShader` path is used unchanged.
+classes are stored as `class / 6` and fetched without filtering. It is always resident because the real ripple
+injection also consumes it. With the cvar at its default `0`, the original `tr.weatherSplashShader` path is still
+selected unchanged.
 
 The BSP weather-depth draw still knows its resolved shader and stage. During that draw it writes one of these
 classes after the normal alpha test:
@@ -207,8 +237,7 @@ Debug views:
 | 3 | the last 50 ms of each drop's trajectory, green above, red under the occluder |
 
 - The weather depth itself is shown by `r_debugWeather 1` (the existing blit).
-- The surface-class attachment is shown by `r_rainSplashSurfaceDebug 1`. Enable
-  `r_rainSplashSurfaceResponse 1` and run `vid_restart` first.
+- The surface-class attachment is shown by `r_rainSplashSurfaceDebug 1`.
 - `r_weatherDebugChunks 1` also draws the splash slot boxes: blue drawn, purple culled. It prints
   `splash slot N zone (x y) [+ previous zone] drawn|culled`.
 - In any debug mode, an async `GL_PRIMITIVES_GENERATED` query on the first splash batch of a frame is read back

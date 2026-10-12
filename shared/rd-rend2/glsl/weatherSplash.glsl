@@ -278,7 +278,8 @@ void main()
 
 	// impact state of weatherUpdate.glsl: |w| is the life, w < -1.5 a spent splash
 	vec4 impact = var_Impact[0];
-	float life = impact.w > -1.5 ? abs(impact.w) : 0.0;
+	float life = impact.w > 1.5 || impact.w < -2.5 ? 1.0 :
+		impact.w > -1.5 ? abs(impact.w) : 0.0;
 	if (life <= 0.0 || life > 1.0)
 		return;
 

@@ -392,6 +392,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_PuddleParams2",		GLSL_VEC4, 1 },
 	{ "u_PuddleHeight",		GLSL_VEC4, 1 },
 	{ "u_PuddleRipple",		GLSL_VEC4, 1 },
+	{ "u_PuddleRippleMap",	GLSL_INT, 1 },
+	{ "u_PuddleRippleField", GLSL_VEC4, 1 },
 	{ "u_RunoffParams",		GLSL_VEC4, 1 },
 	{ "u_RunoffParams2",		GLSL_VEC4, 1 },
 	{ "u_RunoffFrame",		GLSL_VEC4, 1 },
@@ -3397,6 +3399,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_FPLUSGRID,    TB_FPLUS_GRID);
 			GLSL_SetUniformInt(program, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 			GLSL_SetUniformInt(program, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
+			GLSL_SetUniformInt(program, UNIFORM_PUDDLERIPPLEMAP, TB_PUDDLERIPPLE);
 			GLSL_SetUniformInt(program, UNIFORM_LTCMATRIXMAP, TB_LTC_MATRIX);
 			GLSL_SetUniformInt(program, UNIFORM_LTCAMPLITUDEMAP, TB_LTC_AMPLITUDE);
 			GLSL_SetUniformInt(program, UNIFORM_LTCSHADOWMAP, TB_LTC_SHADOW);
@@ -4176,6 +4179,30 @@ static int GLSL_LoadGPUProgramWeatherWetness(
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherWetnessShader);
 	return 1;
+}
+
+static int GLSL_LoadGPUProgramWeatherRipple(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	GLSL_LoadGPUProgramBasic(builder, scratchAlloc, &tr.weatherRippleImpulseShader,
+		"weatherRippleImpulse", fallback_weatherRippleImpulseProgram, ATTR_TEXCOORD0);
+	GLSL_InitUniforms(&tr.weatherRippleImpulseShader);
+	qglUseProgram(tr.weatherRippleImpulseShader.program);
+	GLSL_SetUniformInt(&tr.weatherRippleImpulseShader, UNIFORM_WEATHERIMPACTMAP, TB_NORMALMAP);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.weatherRippleImpulseShader);
+
+	GLSL_LoadGPUProgramBasic(builder, scratchAlloc, &tr.weatherRippleUpdateShader,
+		"weatherRippleUpdate", fallback_weatherRippleUpdateProgram);
+	GLSL_InitUniforms(&tr.weatherRippleUpdateShader);
+	qglUseProgram(tr.weatherRippleUpdateShader.program);
+	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
+	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.weatherRippleUpdateShader);
+	return 2;
 }
 
 static int GLSL_LoadGPUProgramWaterFoamField(
@@ -5068,8 +5095,9 @@ static int GLSL_CountStartupPrograms()
 	if (pom)
 		count += POMSDEF_DEPTH_COUNT + 2;
 	// Texture color (2), shadows (2), downscale/bokeh (2), tonemap/luminance (4),
-	// highpass/SSAO (2), foliage field (2), depth/gaussian blur (4), glow/bloom (3), weather (4).
-	count += 25;
+	// highpass/SSAO (2), foliage field (2), depth/gaussian blur (4), glow/bloom (3),
+	// weather (4), real weather ripple injection/update (2).
+	count += 27;
 	if (R_WeatherWetnessPersistenceEnabled())
 		++count;
 	if (R_AOResourcesEnabled())
@@ -5196,6 +5224,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramClouds(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWeatherWetness(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWeatherRipple(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
@@ -5370,6 +5399,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.weatherShader);
 	GLSL_DeleteGPUShader(&tr.weatherSplashShader);
 	GLSL_DeleteGPUShader(&tr.weatherSplashSurfaceShader);
+	GLSL_DeleteGPUShader(&tr.weatherRippleImpulseShader);
+	GLSL_DeleteGPUShader(&tr.weatherRippleUpdateShader);
 	GLSL_DeleteGPUShader(&tr.waterParticleShader);
 
 	GLSL_DeleteGPUShader(&tr.smaaEdgeShader);

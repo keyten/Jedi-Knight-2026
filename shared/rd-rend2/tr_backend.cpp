@@ -3792,6 +3792,13 @@ const void *RB_PostProcess(const void *data)
 		// water, soil, vegetation, and white metal.
 		FBO_BlitFromTexture(tr.weatherImpactClassImage, NULL, NULL, NULL, nullptr, NULL, NULL, 0);
 	}
+	if (r_weatherPuddleRippleDebug->integer == 1 && tr.weatherRippleImpulseImage)
+	{
+		// Raw full-screen event target: exact world-space impacts after the
+		// top-down material gate, before height/velocity integration.
+		FBO_BlitFromTexture(tr.weatherRippleImpulseImage, NULL, NULL, NULL,
+			nullptr, NULL, NULL, 0);
+	}
 
 	if (r_ssao->integer == 2 && tr.screenSsaoImage)
 	{
@@ -3936,6 +3943,7 @@ static const void *RB_DrawSurfs(const void *data) {
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
 	RB_WaterSurfaceSetCoverage(cmd->drawSurfs, cmd->numDrawSurfs);
+	RB_WeatherRippleUpdate();
 	RB_WeatherWetnessUpdate();
 
 	// clear the z buffer, set the modelview, etc

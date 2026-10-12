@@ -601,6 +601,8 @@ void FBO_Init(void)
 
 	// low-frequency persistent world wetness (tr_weather.cpp)
 	R_CreateWeatherWetnessFBOs();
+	// rain-impact driven puddle wave field (tr_weather.cpp)
+	R_CreateWeatherRippleFBOs();
 
 	// motion blur output (tr_motionblur.cpp)
 	tr.motionBlurFbo = NULL;

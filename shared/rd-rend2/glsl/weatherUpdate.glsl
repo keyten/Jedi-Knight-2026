@@ -34,12 +34,16 @@ in vec4 attr_TexCoord0;	// impact: world xyz, state (below)
 out vec4 var_Impact;
 
 // impact.w, at most one impact per fall of a drop:
+//   2         fresh impact event in this fall (consumed once by weatherRippleImpulse)
+//   -3        fresh event whose drop respawned in the same update
 //   (0, 1]   life of this fall's splash (1 -> 0)
 //   [-1, 0)  -life of a splash from an earlier fall, still running
 //   SPENT    this fall's splash is over
 //   0        no splash; the drop has not hit anything in this fall
-// weatherSplash.glsl draws |w| when w > -1.5.
+// weatherSplash.glsl draws the fresh markers plus the decaying +/- life states.
 const float IMPACT_SPENT = -2.0;
+const float IMPACT_FRESH = 2.0;
+const float IMPACT_FRESH_OLD_FALL = -3.0;
 #endif
 
 const float CHUNK_EXTENDS = 2000.0;
@@ -145,7 +149,11 @@ void main()
 #if defined(USE_RAIN_SPLASHES)
 	float state = attr_TexCoord0.w;
 	float decay = u_deltaTime * u_SplashParams.x;
-	if (state > 0.0)
+	if (state > 1.5)
+		state = max(1.0 - decay, 0.0);
+	else if (state < -2.5)
+		state = -max(1.0 - decay, 0.0);
+	else if (state > 0.0)
 		state = state - decay > 0.0 ? state - decay : IMPACT_SPENT;
 	else if (state < 0.0 && state > -1.5)
 		state = min(state + decay, 0.0);
@@ -154,7 +162,7 @@ void main()
 	// before the respawn and the XY wrap, which both teleport the drop
 	vec3 impact = vec3(0.0);
 	if (state <= 0.0 && state > -1.5 && DetectImpact(attr_Position, var_Position, impact))
-		var_Impact = vec4(impact, 1.0);
+		var_Impact = vec4(impact, IMPACT_FRESH);
 #endif
 
 	if (var_Position.z < u_MapZExtents.x)
@@ -163,7 +171,8 @@ void main()
 		var_Velocity.xy = u_EnvForce.xy;
 #if defined(USE_RAIN_SPLASHES)
 		// a new fall: a running splash keeps its life, the drop may hit again
-		var_Impact.w = var_Impact.w > 0.0 ? -var_Impact.w :
+		var_Impact.w = var_Impact.w > 1.5 ? IMPACT_FRESH_OLD_FALL :
+			var_Impact.w > 0.0 ? -var_Impact.w :
 			var_Impact.w < -1.5 ? 0.0 : var_Impact.w;
 #endif
 	}
