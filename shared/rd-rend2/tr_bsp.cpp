@@ -5156,6 +5156,8 @@ void RE_LoadWorldMap( const char *name ) {
 	// liquid media of this map: tells cgame which underwater tints the
 	// renderer replaces (r_volumetricWaterActive)
 	R_LiquidsWorldLoaded();
+	// underwater particles: water bodies of the liquid brushes, env.json profiles
+	R_WaterParticlesWorldLoaded();
 
 	// LTC area lights: maps/<map>.arealights.json, else r_ltcAutoAreaLights
 	// candidates from the emissive surfaces (used with r_ltcAreaLights)

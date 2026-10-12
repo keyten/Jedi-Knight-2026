@@ -2983,4 +2983,5 @@ void (*rb_surfaceTable[SF_NUM_SURFACE_TYPES])( void *) = {
 	(void(*)(void*))RB_SurfaceWeather,      // SF_WEATHER
 	(void(*)(void*))RB_SurfacePomShell,     // SF_POM_SHELL
 	(void(*)(void*))RB_SurfacePomFadeBase,  // SF_POM_FADEBASE
+	(void(*)(void*))RB_SurfaceWaterParticles,	// SF_WATER_PARTICLES
 };

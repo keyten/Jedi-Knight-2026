@@ -6094,6 +6094,13 @@ static void CreateInternalShaders( void ) {
 	shader.sort = SS_SEE_THROUGH;
 	tr.weatherInternalShader = FinishShader();
 
+	// underwater particles placeholder (tr_waterparticles.cpp): a layer
+	// after the froxel composite (they look the fog up); the draw item goes
+	// after the blended layers (RB_SurfaceWaterParticles)
+	Q_strncpyz(shader.name, "<water particles>", sizeof(shader.name));
+	shader.sort = SS_UNDERWATER;
+	tr.waterParticleInternalShader = FinishShader();
+
 	// volumetric fog cap shader
 	Q_strncpyz(shader.name, "<volumetric fog cap>", sizeof(shader.name));
 	shader.sort = SS_ENVIRONMENT;

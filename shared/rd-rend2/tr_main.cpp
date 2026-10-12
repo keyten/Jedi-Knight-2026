@@ -2124,6 +2124,9 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	{
 		R_AddWeatherSurfaces();
 	}
+
+	// underwater motes and micro-bubbles (main view of the world scene only)
+	R_AddWaterParticleSurfaces(refdef, viewParms);
 }
 
 /*

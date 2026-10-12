@@ -451,6 +451,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterWhitewaterParams",	GLSL_VEC4, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
+
+	{ "u_WaterParticles",		GLSL_VEC4, 2 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -4810,6 +4812,32 @@ static int GLSL_LoadGPUProgramWeather(
 	return 4;
 }
 
+// underwater motes and micro-bubbles (r_waterParticles, tr_waterparticles.cpp):
+// small, always built; the froxel lookup of the transparent layers
+// (volumetric_common.glsl) when the froxel fog exists
+static int GLSL_LoadGPUProgramWaterParticles(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("waterparticles", allocator, fallback_waterparticlesProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.waterParticleShader, "waterparticles",
+			ATTR_POSITION | ATTR_COLOR, NO_XFB_VARS, nullptr, *programDesc,
+			LoadVolumetricLibrary(allocator)))
+	{
+		ri.Error(ERR_FATAL, "Could not load waterparticles shader!");
+	}
+
+	GLSL_InitUniforms(&tr.waterParticleShader);
+	qglUseProgram(tr.waterParticleShader.program);
+	GLSL_SetUniformInt(&tr.waterParticleShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+	GLSL_SetFroxelLookupUnits(&tr.waterParticleShader);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.waterParticleShader);
+	return 1;
+}
+
 static int GLSL_LoadGPUProgramSMAA(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc)
@@ -5125,6 +5153,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramBloomPrefilter(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramSurfaceSprites(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWeather(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWaterParticles(builder, allocator);
 	if (r_smaa->integer)
 		numEtcShaders += GLSL_LoadGPUProgramSMAA(builder, allocator);
 
@@ -5284,6 +5313,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.weatherUpdateSplashShader);
 	GLSL_DeleteGPUShader(&tr.weatherShader);
 	GLSL_DeleteGPUShader(&tr.weatherSplashShader);
+	GLSL_DeleteGPUShader(&tr.waterParticleShader);
 
 	GLSL_DeleteGPUShader(&tr.smaaEdgeShader);
 	GLSL_DeleteGPUShader(&tr.smaaBlendShader);

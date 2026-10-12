@@ -2789,6 +2789,8 @@ typedef enum
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATERGLOWMAP,
 
+	UNIFORM_WATERPARTICLES,		// vec4[2] r_waterParticles draw parameters, see waterparticles.glsl
+
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -2997,6 +2999,7 @@ typedef enum surfaceType_e
 	SF_WEATHER,
 	SF_POM_SHELL,			// silhouette POM shell of a world surface (srfPomShell_t)
 	SF_POM_FADEBASE,		// base surface of a shell in the crossfade band (srfPomShell_t::fadeBaseType)
+	SF_WATER_PARTICLES,		// underwater motes and micro-bubbles (tr_waterparticles.cpp)
 
 	SF_NUM_SURFACE_TYPES,
 	SF_MAX = 0x7fffffff			// ensures that sizeof( surfaceType_t ) == sizeof( int )
@@ -4170,6 +4173,7 @@ typedef struct trGlobals_s {
 	shader_t				*distortionShader;
 	shader_t				*projectionShadowShader;
 	shader_t				*weatherInternalShader;
+	shader_t				*waterParticleInternalShader;	// SS_UNDERWATER placeholder (tr_waterparticles.cpp)
 
 	shader_t				*flareShader;
 	shader_t				*sunShader;
@@ -4233,6 +4237,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t weatherShader;
 	shaderProgram_t weatherSplashShader;
 	shaderProgram_t weatherUpdateSplashShader;	// weatherUpdate + impact state (r_rainSplashes)
+	shaderProgram_t waterParticleShader;		// underwater motes / micro-bubbles (r_waterParticles)
 	shaderProgram_t smaaEdgeShader;
 	shaderProgram_t smaaBlendShader;
 	shaderProgram_t smaaResolveShader;
@@ -4609,6 +4614,14 @@ extern cvar_t	*r_debugWeather;
 extern cvar_t	*r_weatherCull;
 extern cvar_t	*r_weatherDebugChunks;
 extern cvar_t	*r_rainStreaks;
+extern cvar_t	*r_waterParticles;
+extern cvar_t	*r_waterParticlesDensity;
+extern cvar_t	*r_waterParticlesSize;
+extern cvar_t	*r_waterParticlesSpeed;
+extern cvar_t	*r_waterParticlesBubbles;
+extern cvar_t	*r_waterParticlesDistance;
+extern cvar_t	*r_waterParticlesProfile;
+extern cvar_t	*r_waterParticlesDebug;
 extern cvar_t	*r_rainStreakWidth;
 extern cvar_t	*r_rainStreakLength;
 extern cvar_t	*r_rainStreakOpacity;
@@ -6036,6 +6049,12 @@ void RB_LiquidBypassDebugColor(int reason, vec4_t materialDebug);	// r_volumetri
 void RB_LiquidWeatherCulled(void);		// a weather draw took the under-liquid cull
 qboolean RB_LiquidWeatherSetupDraw(UniformDataWriter *uniforms, SamplerBindingsWriter *samplers);	// weather.glsl / weatherSplash.glsl: no weather inside liquids
 void R_Liquids_f(void);
+
+// underwater suspended particles and micro-bubbles (r_waterParticles, tr_waterparticles.cpp)
+void R_WaterParticlesWorldLoaded(void);	// water bodies and env.json profiles of tr.world
+void R_WaterParticlesShutdown(void);
+void R_AddWaterParticleSurfaces(const trRefdef_t *refdef, const viewParms_t *view);
+void RB_SurfaceWaterParticles(surfaceType_t *surface);
 
 /*
 ============================================================

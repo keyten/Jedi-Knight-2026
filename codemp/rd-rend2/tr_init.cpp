@@ -726,6 +726,14 @@ cvar_t *r_debugWeather;
 cvar_t *r_weatherCull;
 cvar_t *r_weatherDebugChunks;
 cvar_t *r_rainStreaks;
+cvar_t *r_waterParticles;
+cvar_t *r_waterParticlesDensity;
+cvar_t *r_waterParticlesSize;
+cvar_t *r_waterParticlesSpeed;
+cvar_t *r_waterParticlesBubbles;
+cvar_t *r_waterParticlesDistance;
+cvar_t *r_waterParticlesProfile;
+cvar_t *r_waterParticlesDebug;
 cvar_t *r_rainStreakWidth;
 cvar_t *r_rainStreakLength;
 cvar_t *r_rainStreakOpacity;
@@ -2013,6 +2021,26 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_rainStreakWidth, 0.25f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainStreakLength, 0.25f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainStreakOpacity, 0.0f, 4.0f, qfalse);
+	r_waterParticles = ri.Cvar_Get("r_waterParticles", "0", CVAR_ARCHIVE,
+		"Underwater suspended particles and micro-bubbles around the camera (0 off, 1 on)");
+	r_waterParticlesDensity = ri.Cvar_Get("r_waterParticlesDensity", "1", CVAR_ARCHIVE,
+		"r_waterParticles: density scale of the body profile");
+	r_waterParticlesSize = ri.Cvar_Get("r_waterParticlesSize", "1", CVAR_ARCHIVE,
+		"r_waterParticles: particle size scale");
+	r_waterParticlesSpeed = ri.Cvar_Get("r_waterParticlesSpeed", "1", CVAR_ARCHIVE,
+		"r_waterParticles: drift and bubble rise speed scale");
+	r_waterParticlesBubbles = ri.Cvar_Get("r_waterParticlesBubbles", "-1", CVAR_ARCHIVE,
+		"r_waterParticles: share of micro-bubbles 0..1, -1 = the body profile's");
+	r_waterParticlesDistance = ri.Cvar_Get("r_waterParticlesDistance", "160", CVAR_ARCHIVE,
+		"r_waterParticles: radius of the particle volume around the camera (world units)");
+	r_waterParticlesProfile = ri.Cvar_Get("r_waterParticlesProfile", "0", 0,
+		"r_waterParticles: body profile, 0 auto (env.json WaterParticles, else clean), 1 clean, 2 murky, 3 dirty, -1 none");
+	r_waterParticlesDebug = ri.Cvar_Get("r_waterParticlesDebug", "0", CVAR_CHEAT,
+		"r_waterParticles debug: 1 placement (opaque, cyan motes, yellow bubbles), 2 no fog in front, 3 print stats every second");
+	ri.Cvar_CheckRange(r_waterParticlesDensity, 0.0f, 8.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterParticlesSize, 0.25f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterParticlesSpeed, 0.0f, 4.0f, qfalse);
+	ri.Cvar_CheckRange(r_waterParticlesDistance, 32.0f, 512.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainStreakLighting, 0.0f, 1.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainStreakDebug, 0, 5, qtrue);
 	r_rainSplashes = ri.Cvar_Get("r_rainSplashes", "0", CVAR_ARCHIVE,
@@ -3690,6 +3718,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ShutdownVolumetric();
 		R_ShutdownRainLens();
 		R_WaterSurfaceShutdown();
+		R_WaterParticlesShutdown();
 
 		if (!destroyWindow && !restarting)
 		{
