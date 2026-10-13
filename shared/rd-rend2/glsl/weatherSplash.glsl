@@ -88,16 +88,6 @@ layout(std140) uniform Scene
 	float u_deltaTime;
 };
 
-layout(std140) uniform Camera
-{
-	mat4 u_viewProjectionMatrix;
-	vec4 _u_ViewInfo;
-	vec3 u_ViewOrigin;
-	vec3 u_ViewForward;
-	vec3 u_ViewLeft;
-	vec3 u_ViewUp;
-};
-
 uniform vec4 u_Color;			// weather tint (legacy color, rgb * a)
 uniform mat4 u_WeatherMvp;
 uniform sampler2D u_ShadowMap;	// weather depth
@@ -182,7 +172,7 @@ vec3 SurfaceNormal(vec3 position)
 	return normalize(vec3(-slope, 1.0));
 }
 
-vec3 SplashLight(vec3 position)
+vec3 SplashLight(vec3 position, vec3 normal)
 {
 	vec3 light = u_RainLight.rgb;
 	if (u_RainLight.w > 0.5)
@@ -191,7 +181,7 @@ vec3 SplashLight(vec3 position)
 		vec3 cell = (position - u_LightGridOrigin) * u_LightGridCellInverseSize;
 		light = texture(u_VolumetricLightMap, (cell + 0.5) / gridSize).rgb;
 	}
-	return light;
+	return WeatherApplyDynamicLight(light, position, normal, 1.0);
 }
 
 void EmitQuad(vec3 origin, vec3 axisX, vec3 axisY, vec2 lo, vec2 hi,
@@ -324,7 +314,7 @@ void main()
 
 	// water takes the light around it; the weather tint keeps acid rain green
 	vec3 tint = u_Color.rgb / max(u_Color.a, 1e-4);
-	vec3 light = SplashLight(hit + n * 4.0) * tint * 0.8;
+	vec3 light = SplashLight(hit + n * 4.0, n) * tint * 0.8;
 	float opacity = u_SplashParams.y * fade;
 #if defined(USE_SURFACE_RESPONSE)
 	opacity *= classStrength;

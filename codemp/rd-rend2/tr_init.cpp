@@ -777,6 +777,9 @@ cvar_t *r_rainStreakWidth;
 cvar_t *r_rainStreakLength;
 cvar_t *r_rainStreakOpacity;
 cvar_t *r_rainStreakLighting;
+cvar_t *r_rainDynamicLighting;
+cvar_t *r_rainDynamicMaxLights;
+cvar_t *r_rainDynamicDebug;
 cvar_t *r_rainStreakDebug;
 cvar_t *r_rainSplashes;
 cvar_t *r_rainSplashSize;
@@ -2087,6 +2090,12 @@ void R_Register( void )
 		"r_rainStreaks: rain opacity scale");
 	r_rainStreakLighting = ri.Cvar_Get("r_rainStreakLighting", "1", CVAR_ARCHIVE,
 		"r_rainStreaks: 0 fixed tint (legacy brightness), 1 lit by the light grid and the sun");
+	r_rainDynamicLighting = ri.Cvar_Get("r_rainDynamicLighting", "1", CVAR_ARCHIVE,
+		"Rain streak/splash dynamic lights: 0 current grid/sun only, 1 strongest nearby, 2 limited Forward+/UBO lights");
+	r_rainDynamicMaxLights = ri.Cvar_Get("r_rainDynamicMaxLights", "4", CVAR_ARCHIVE,
+		"Maximum nearby dynamic lights per rain streak or splash in r_rainDynamicLighting 2");
+	r_rainDynamicDebug = ri.Cvar_Get("r_rainDynamicDebug", "0", CVAR_CHEAT,
+		"Rain dynamic-light debug: 0 final, 1 static/grid, 2 dynamic, 3 selected light count");
 	r_rainStreakDebug = ri.Cvar_Get("r_rainStreakDebug", "0", CVAR_CHEAT,
 		"r_rainStreaks debug: 1 coverage, 2 distance fade (red near, blue far), 3 lighting factor, 4 weather depth contact, 5 particle variation");
 	ri.Cvar_CheckRange(r_rainStreakWidth, 0.25f, 4.0f, qfalse);
@@ -2113,6 +2122,9 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterParticlesSpeed, 0.0f, 4.0f, qfalse);
 	ri.Cvar_CheckRange(r_waterParticlesDistance, 32.0f, 512.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainStreakLighting, 0.0f, 1.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainDynamicLighting, 0, 2, qtrue);
+	ri.Cvar_CheckRange(r_rainDynamicMaxLights, 1, 8, qtrue);
+	ri.Cvar_CheckRange(r_rainDynamicDebug, 0, 3, qtrue);
 	ri.Cvar_CheckRange(r_rainStreakDebug, 0, 5, qtrue);
 	r_rainSplashes = ri.Cvar_Get("r_rainSplashes", "0", CVAR_ARCHIVE,
 		"Rain impact splashes: drops crossing the rain occlusion map on the GPU make short-lived splashes (0 off)");

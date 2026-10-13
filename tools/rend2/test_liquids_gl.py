@@ -598,8 +598,12 @@ def compile_render_programs():
         defines = ['USE_FROXEL_FOG'] + (['USE_LIQUIDS'] if liquids else [])
         h = render_header(defines)
         for name in ('weather', 'weatherSplash'):
-            prog = compile_program([(0x8B31, h + stage(name, 'Vertex')), (0x8DD9, h + stage(name, 'Geometry')),
+            prog = compile_program([(0x8B31, h + stage(name, 'Vertex')),
+                                    (0x8DD9, h + stage('weather_lighting', 'Geometry') + stage(name, 'Geometry')),
                                     (0x8B30, h + stage(name, 'Fragment'))], f'{name} liquids={liquids}')
+            assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Camera') != 0xFFFFFFFF, name
+            assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Lights') != 0xFFFFFFFF, name
+            assert gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_RainDynamic') >= 0, name
             if liquids:
                 assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Liquids') != 0xFFFFFFFF, name
             gl('glDeleteProgram', None, U)(prog)

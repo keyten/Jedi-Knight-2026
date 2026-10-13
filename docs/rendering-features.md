@@ -1001,11 +1001,16 @@ Replaces simple additive rain particles with lit, premultiplied streaks whose le
 - `r_rainStreakLength <value>` — length multiplier.
 - `r_rainStreakOpacity <value>` — opacity.
 - `r_rainStreakLighting 0 | 1` — fixed brightness / light-grid + sun lighting.
+- `r_rainDynamicLighting 0 | 1 | 2` — current grid/sun only / strongest nearby dynamic light / up to the limited nearby Forward+ cluster lights. This also lights impact splashes and keeps `r_rainStreakLighting`'s existing meaning.
+- `r_rainDynamicMaxLights 1..8` — accepted dynamic lights per streak or splash in mode 2 (default 4). At most eight importance-ordered cluster/UBO candidates are examined; finite-radius attenuation and a contribution cutoff reject distant or negligible lights.
 
 **Debug**
 - `r_rainStreakDebug 1..5` — coverage, distance, lighting, contact and variation views.
+- `r_rainDynamicDebug 1 | 2 | 3` — show the static/grid contribution, dynamic contribution, or normalized selected-light count.
 
-May slightly affect performance.
+Forward+ point/spot lights, saber line lights, blaster lights and explosion lights are read directly from the current renderer light data; rain has no separate light submission. Without an available cluster list, the same bounded loop reads the `Lights` UBO. Mode 0 returns the previous static result before evaluating any light. Use `r_speeds 100` and compare the existing **Weather draw** and **Weather splashes** GPU timers with mode 0/1/2 on both a light-rain and a heavy-rain map.
+
+Mode 1 is intended for heavy rain. Mode 2 costs more per visible streak/splash but remains bounded independently of total scene-light count.
 
 ## Wet surfaces
 

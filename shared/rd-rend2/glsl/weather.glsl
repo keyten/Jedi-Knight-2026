@@ -163,16 +163,6 @@ layout(std140) uniform Scene
 	float u_deltaTime;
 };
 
-layout(std140) uniform Camera
-{
-	mat4 u_viewProjectionMatrix;
-	vec4 _u_ViewInfo;
-	vec3 u_ViewOrigin;
-	vec3 u_ViewForward;
-	vec3 u_ViewLeft;
-	vec3 u_ViewUp;
-};
-
 uniform vec4 u_ViewInfo;
 uniform vec4 u_Color;
 uniform mat4 u_ShadowMvp;
@@ -222,7 +212,8 @@ vec3 RainLight(vec3 position)
 		float forward = pow(max(dot(viewDir, u_PrimaryLightOrigin.xyz), 0.0), 8.0);
 		light += u_PrimaryLightColor * (0.6 * sunVisibility * forward);
 	}
-	return mix(vec3(1.0), light, u_RainShade.y);
+	light = mix(vec3(1.0), light, u_RainShade.y);
+	return WeatherApplyDynamicLight(light, position, vec3(0.0, 0.0, 1.0), 0.0);
 }
 
 float WeatherDepth(vec3 position)

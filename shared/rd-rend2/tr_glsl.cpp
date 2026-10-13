@@ -411,6 +411,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_RainStreak",			GLSL_VEC4, 1 },
 	{ "u_RainShade",			GLSL_VEC4, 1 },
 	{ "u_RainLight",			GLSL_VEC4, 1 },
+	{ "u_RainDynamic",			GLSL_VEC4, 1 },
 	{ "u_CameraVelocity",		GLSL_VEC3, 1 },
 
 	{ "u_WeatherSurfaceMap",	GLSL_INT, 1 },
@@ -1581,10 +1582,8 @@ void ShaderProgramBuilder::ReleaseShaders()
 	numShaderNames = 0;
 }
 
-// fragmentLibrary: optional block of shared GLSL functions (e.g. the fragment
-// block of output_transform.glsl) inserted into the fragment shader after the
-// defines, so several programs can use the same code. vertexLibrary does the
-// same for the vertex shader (e.g. the vertex block of leaf_flutter.glsl).
+// Optional blocks of shared GLSL functions inserted into the matching shader
+// stage after the defines, so several programs can use the same code.
 static bool GLSL_LoadGPUShader(
 	ShaderProgramBuilder& builder,
 	shaderProgram_t *program,
@@ -1594,7 +1593,8 @@ static bool GLSL_LoadGPUShader(
 	const GLcharARB *extra,
 	const GPUProgramDesc& programDesc,
 	const GPUShaderDesc *fragmentLibrary = nullptr,
-	const GPUShaderDesc *vertexLibrary = nullptr)
+	const GPUShaderDesc *vertexLibrary = nullptr,
+	const GPUShaderDesc *geometryLibrary = nullptr)
 {
 	builder.Start(name, attribs, xfbVariables);
 	for ( size_t i = 0; i < programDesc.numShaders; ++i )
@@ -1605,6 +1605,8 @@ static bool GLSL_LoadGPUShader(
 			library = fragmentLibrary;
 		else if ( shaderDesc.type == GPUSHADER_VERTEX )
 			library = vertexLibrary;
+		else if ( shaderDesc.type == GPUSHADER_GEOMETRY )
+			library = geometryLibrary;
 		if ( !builder.AddShader(shaderDesc, extra, library) )
 		{
 			return false;
@@ -2518,6 +2520,20 @@ static const GPUShaderDesc *LoadVertexLibrary(
 		{
 			return &programDesc->shaders[i];
 		}
+	}
+
+	ri.Error(ERR_FATAL, "Could not load %s shader library!", name);
+	return nullptr;
+}
+
+static const GPUShaderDesc *LoadGeometryLibrary(
+	Allocator& allocator, const char *name, const GPUProgramDesc& fallback )
+{
+	const GPUProgramDesc *programDesc = LoadProgramSource(name, allocator, fallback);
+	for ( size_t i = 0; i < programDesc->numShaders; ++i )
+	{
+		if ( programDesc->shaders[i].type == GPUSHADER_GEOMETRY )
+			return &programDesc->shaders[i];
 	}
 
 	ri.Error(ERR_FATAL, "Could not load %s shader library!", name);
@@ -4819,18 +4835,19 @@ static int GLSL_LoadGPUProgramWeather(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
 {
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
 	// r_volumetricWater: rain, snow and splashes are dropped inside liquids
 	// (RB_LiquidWeatherSetupDraw); the define only with the liquid programs
 	const char *liquidDefines = R_LiquidsAvailable() ? "#define USE_LIQUIDS\n" : nullptr;
+	const GPUShaderDesc *weatherLightingLibrary = LoadGeometryLibrary(allocator,
+		"weather_lighting", fallback_weather_lightingProgram);
 
-	GLSL_LoadGPUProgramBasicWithDefinitions(
-		builder,
-		scratchAlloc,
-		&tr.weatherShader,
-		"weather",
-		fallback_weatherProgram,
-		liquidDefines,
-		ATTR_POSITION | ATTR_COLOR);
+	const GPUProgramDesc *weatherDesc = LoadProgramSource("weather", allocator,
+		fallback_weatherProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.weatherShader, "weather",
+			ATTR_POSITION | ATTR_COLOR, NO_XFB_VARS, liquidDefines, *weatherDesc,
+			nullptr, nullptr, weatherLightingLibrary))
+		ri.Error(ERR_FATAL, "Could not load weather shader!");
 
 	GLSL_InitUniforms(&tr.weatherShader);
 	qglUseProgram(tr.weatherShader.program);
@@ -4838,6 +4855,9 @@ static int GLSL_LoadGPUProgramWeather(
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 	// r_rainStreakLighting: merged light grid, read in the vertex shader
 	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
+	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
+	GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 	if (liquidDefines)
 		GLSL_SetUniformInt(&tr.weatherShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 	qglUseProgram(0);
@@ -4875,19 +4895,25 @@ static int GLSL_LoadGPUProgramWeather(
 	GLSL_FinishGPUShader(&tr.weatherUpdateSplashShader);
 
 	// r_rainSplashes: splashes drawn from the impact state of the rain VBO
-	GLSL_LoadGPUProgramBasicWithDefinitions(
-		builder,
-		scratchAlloc,
-		&tr.weatherSplashShader,
-		"weatherSplash",
-		fallback_weatherSplashProgram,
-		liquidDefines,
-		ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0);
+	// The basic-program helpers reuse the scratch arena, so reload an external
+	// library after compiling the two update programs above.
+	allocator.Reset();
+	weatherLightingLibrary = LoadGeometryLibrary(allocator,
+		"weather_lighting", fallback_weather_lightingProgram);
+	const GPUProgramDesc *splashDesc = LoadProgramSource("weatherSplash", allocator,
+		fallback_weatherSplashProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.weatherSplashShader, "weatherSplash",
+			ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0, NO_XFB_VARS, liquidDefines,
+			*splashDesc, nullptr, nullptr, weatherLightingLibrary))
+		ri.Error(ERR_FATAL, "Could not load weatherSplash shader!");
 
 	GLSL_InitUniforms(&tr.weatherSplashShader);
 	qglUseProgram(tr.weatherSplashShader.program);
 	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
+	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
+	GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 	if (liquidDefines)
 		GLSL_SetUniformInt(&tr.weatherSplashShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);
 	qglUseProgram(0);
@@ -4895,20 +4921,21 @@ static int GLSL_LoadGPUProgramWeather(
 
 	// Kept separate so mode 0 links and executes the original splash shader
 	// without a class texture, branch, or changed response.
-	GLSL_LoadGPUProgramBasicWithDefinitions(
-		builder,
-		scratchAlloc,
-		&tr.weatherSplashSurfaceShader,
-		"weatherSplashSurface",
-		fallback_weatherSplashProgram,
-		liquidDefines ? "#define USE_LIQUIDS\n#define USE_SURFACE_RESPONSE\n" :
-			"#define USE_SURFACE_RESPONSE\n",
-		ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0);
+	if (!GLSL_LoadGPUShader(builder, &tr.weatherSplashSurfaceShader,
+			"weatherSplashSurface", ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD0,
+			NO_XFB_VARS,
+			liquidDefines ? "#define USE_LIQUIDS\n#define USE_SURFACE_RESPONSE\n" :
+				"#define USE_SURFACE_RESPONSE\n",
+			*splashDesc, nullptr, nullptr, weatherLightingLibrary))
+		ri.Error(ERR_FATAL, "Could not load weatherSplashSurface shader!");
 
 	GLSL_InitUniforms(&tr.weatherSplashSurfaceShader);
 	qglUseProgram(tr.weatherSplashSurfaceShader.program);
 	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_VOLUMETRICLIGHTMAP, TB_LIGHTMAP);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_FPLUSLIGHTS, TB_FPLUS_LIGHTS);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_FPLUSGRID, TB_FPLUS_GRID);
+	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_FPLUSINDICES, TB_FPLUS_INDICES);
 	GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_WEATHERIMPACTMAP, TB_NORMALMAP);
 	if (liquidDefines)
 		GLSL_SetUniformInt(&tr.weatherSplashSurfaceShader, UNIFORM_LIQUIDPLANES, TB_LIQUIDPLANES);

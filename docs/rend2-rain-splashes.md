@@ -121,8 +121,11 @@ with no depth write. Glow alpha is 0, so bloom behind it is untouched.
     fetch.
   - Beyond the fade distance (1500, or the rain's own if shorter) it also emits nothing.
   - For a live splash it takes the normal from 4 weather-depth neighbours around the impact, tilt-limited to 45°
-    because the D16 map is coarse. The light is the rain's (`r_rainStreakLighting`: the merged light grid, else sun
-    ambient + half the sun, else 1) × the weather tint (acid rain stays green) × 0.8. It then emits:
+    because the D16 map is coarse. The static light is the rain's (`r_rainStreakLighting`: the merged light grid,
+    else sun ambient + half the sun, else 1). `r_rainDynamicLighting` then adds either the strongest nearby light
+    or a bounded set from the same Forward+ cluster used by surfaces, with the `Lights` UBO as fallback. Point,
+    spot and saber line lights use their renderer-owned color/range/cone data; no splash-only lights exist. The
+    result is multiplied by the weather tint (acid rain stays green) × 0.8. It then emits:
     - **crown**: a quad in the surface plane, lifted 0.5 units, randomly rotated, radius
       `size · (0.35 + 0.65 √age)`;
     - **spray**: a camera-facing sheet along the normal, height `1.4 size · sin(π √age)`. Only within half the

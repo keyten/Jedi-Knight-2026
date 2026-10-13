@@ -2809,6 +2809,7 @@ typedef enum
 	UNIFORM_RAINSTREAK,			// width scale, length scale, depth range of the weather map (world units), sRGB coverage (0/1)
 	UNIFORM_RAINSHADE,			// opacity, lighting mix, world size of a pixel at distance 1, debug mode
 	UNIFORM_RAINLIGHT,			// rgb = light without a grid, w = light grid valid (0/1)
+	UNIFORM_RAINDYNAMIC,			// dynamic mode, light limit, debug mode, candidate cap
 	UNIFORM_CAMERAVELOCITY,		// smoothed view origin velocity, world units per ms
 
 	UNIFORM_WEATHERSURFACEMAP,	// r_rainSplashes: world-only weather depth (tr.weatherSurfaceImage)
@@ -4775,6 +4776,9 @@ extern cvar_t	*r_rainStreakWidth;
 extern cvar_t	*r_rainStreakLength;
 extern cvar_t	*r_rainStreakOpacity;
 extern cvar_t	*r_rainStreakLighting;
+extern cvar_t	*r_rainDynamicLighting;
+extern cvar_t	*r_rainDynamicMaxLights;
+extern cvar_t	*r_rainDynamicDebug;
 extern cvar_t	*r_rainStreakDebug;
 extern cvar_t	*r_rainSplashes;
 extern cvar_t	*r_rainSplashSize;

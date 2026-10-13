@@ -30,6 +30,36 @@ namespace
 	const int CHUNK_COUNT = 9;  // in 3x3 arrangement
 	const float CHUNK_EXTENDS = 2000.f;
 	const float HALF_CHUNK_EXTENDS = CHUNK_EXTENDS * 0.5f;
+	const int WEATHER_DYNAMIC_CANDIDATES = 8; // as weather_lighting.glsl
+
+	UniformBlockBinding RB_WeatherLightsBlock()
+	{
+		const byte scene = backEndData->currentFrame->currentScene;
+		const GLuint frameUbo = backEndData->currentFrame->ubo[scene];
+		return tr.lightsUboOffset == -1 ?
+			UniformBlockBinding{ tr.staticUbo, tr.defaultLightsUboOffset, UNIFORM_BLOCK_LIGHTS } :
+			UniformBlockBinding{ frameUbo, (size_t)tr.lightsUboOffset, UNIFORM_BLOCK_LIGHTS };
+	}
+
+	void RB_WeatherDynamicSamplers(SamplerBindingsWriter& samplers)
+	{
+		if (r_rainDynamicLighting->integer > 0 &&
+			RB_ForwardPlusViewEnabled(backEnd.viewParms.currentViewParm))
+		{
+			RB_ForwardPlusBindTextures(samplers);
+		}
+	}
+
+	void RB_WeatherDynamicUniform(UniformDataWriter& uniforms, bool active)
+	{
+		const vec4_t params = {
+			active ? (float)Com_Clampi(0, 2, r_rainDynamicLighting->integer) : 0.0f,
+			(float)Com_Clampi(1, WEATHER_DYNAMIC_CANDIDATES, r_rainDynamicMaxLights->integer),
+			active ? (float)Com_Clampi(0, 3, r_rainDynamicDebug->integer) : 0.0f,
+			(float)WEATHER_DYNAMIC_CANDIDATES
+		};
+		uniforms.SetUniformVec4(UNIFORM_RAINDYNAMIC, params);
+	}
 
 	// Interleaved transform feedback records, in the order of the XFB
 	// varyings (var_Position, var_Velocity[, var_Impact]); position is chunk
@@ -911,6 +941,7 @@ namespace
 		const UniformBlockBinding uniformBlockBindings[] = {
 			{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
 			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
+			RB_WeatherLightsBlock(),
 			RB_GetLiquidsBlockUniformBinding()
 		};
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
@@ -932,6 +963,7 @@ namespace
 		samplerBindingsWriter.AddStaticImage(grid ? grid : tr.whiteImage3D, TB_LIGHTMAP);
 		if (surfaceResponse)
 			samplerBindingsWriter.AddStaticImage(tr.weatherImpactClassImage, TB_NORMALMAP);
+		RB_WeatherDynamicSamplers(samplerBindingsWriter);
 		RB_LiquidWeatherSetupDraw(nullptr, &samplerBindingsWriter);
 		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
@@ -1014,6 +1046,7 @@ namespace
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS, params);
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS2, params2);
 			uniformDataWriter.SetUniformVec4(UNIFORM_RAINLIGHT, light);
+			RB_WeatherDynamicUniform(uniformDataWriter, true);
 			if (surfaceResponse)
 			{
 				uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHCLASSPARAMS, classParams);
@@ -1928,6 +1961,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 		const UniformBlockBinding uniformBlockBindings[] = {
 			{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
 			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
+			RB_WeatherLightsBlock(),
 			RB_GetLiquidsBlockUniformBinding()
 		};
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
@@ -1952,6 +1986,8 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			TB_DIFFUSEMAP);
 		// always a 3D texture on the sampler3D unit, read only with a grid
 		samplerBindingsWriter.AddStaticImage(rainGrid ? rainGrid : tr.whiteImage3D, TB_LIGHTMAP);
+		if (rainStreaks)
+			RB_WeatherDynamicSamplers(samplerBindingsWriter);
 		RB_LiquidWeatherSetupDraw(nullptr, &samplerBindingsWriter);
 		item.samplerBindings = samplerBindingsWriter.Finish(
 			frameAllocator, &item.numSamplerBindings);
@@ -2073,6 +2109,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 				// set for every draw: a uniform left out keeps the value of
 				// the previous weather type's draw
 				uniformDataWriter.SetUniformInt(UNIFORM_WEATHERTYPE, rainStreaks ? 1 : 0);
+				RB_WeatherDynamicUniform(uniformDataWriter, rainStreaks);
 				RB_LiquidWeatherSetupDraw(&uniformDataWriter, nullptr);
 				if (rainStreaks)
 				{
