@@ -122,23 +122,28 @@ character left). XPBD (Macklin et al. 2016), fixed 120 Hz sub steps (at most 8 p
 - damping: ratio ~0.3 at the tip frequency (one visible swing back).
 
 LOD: plants within `r_plantSimDistance` (1500) or near a character get the full step; up to `r_plantWindDistance`
-(3000) one coarse step per frame (1/30 s, 2 iterations); farther ones are drawn at rest. At most
-`r_plantSimMaxPlants` (96) plants are stepped per frame (touched plants always). A plant with no wind, no character
-near and at rest sleeps (no work, drawn without skinning).
+(3000) one coarse step per frame (1/30 s, 2 iterations); farther instances keep their last pose. At most
+`r_plantSimMaxPlants` (96) plants are stepped per frame (touched plants always). A moving plant outside that budget
+or beyond `r_plantWindDistance` keeps its last rendered pose instead of popping to rest. A plant with no wind, no
+character near and at rest sleeps (no work, drawn without skinning).
 
 Bones: per segment a rotation q (rest → current, transported along the chain) and t = x_j − q X_j; with the previous
 frame's bones, into this frame's bone arena (≤ 64 K texels), uploaded per view in front of its draws (`RC_PLANT_BONES`,
 a `GL_TEXTURE_BUFFER` RGBA32F per frame in flight). Draws bind it per draw on `TB_PLANTBONES` (24: the MD3 programs
 have no bend field any more).
 
+The detailed 120 Hz simulation keeps the state before its latest fixed step and render-interpolates by the remaining
+accumulator fraction. Displays above 120 Hz therefore see a changing pose on every render frame instead of repeated
+fixed-step poses; motion vectors use the previous rendered pose.
+
 ### Drawing (`glsl/plant_skin.glsl`)
 
 `ws' = mix(qA ws + tA, qB ws + tB, w)`, normal and tangent rotated by `nlerp(qA, qB, w)`. lightall, generic,
-fogpass, velocity (previous bones), so the depth prepass, shadows, fog and motion vectors follow. Cull bounds grow
-by ¾ of the longest frond.
+fogpass, velocity (previous rendered bones), so the depth prepass, shadows, fog and motion vectors follow. Cull
+bounds grow by ¾ of the longest frond.
 
 GPU test (yavin/plant_b frond, a leg through its middle): GPU skinning = float64 reference to 1e-5, rest pose exact,
-chain length error 0.06 %, the whole frond on one side of the leg, mesh edges elongated ≤ 4.8 % (the old root bend at
+chain length error 0.04 %, the whole frond on one side of the leg, mesh edges elongated ≤ 4.8 % (the old root bend at
 the same tip displacement: 16 %).
 
 ## Grass sprites: inextensible blades on a bend field

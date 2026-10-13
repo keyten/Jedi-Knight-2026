@@ -162,6 +162,7 @@ struct FrondSim
 	float invMass[PLANTSKEL_MAX_NODES];
 	float margin[PLANTSKEL_MAX_NODES - 1];	// contact margin of each segment (lamina)
 	Vec3 x[PLANTSKEL_MAX_NODES];
+	Vec3 prevX[PLANTSKEL_MAX_NODES];		// state before the latest fixed step
 	Vec3 v[PLANTSKEL_MAX_NODES];
 	Vec3 side;							// horizontal across the frond (rest)
 	float damping;						// internal, 1/s
@@ -353,6 +354,7 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 		{
 			fr.X[k] = LocalToWorld(inst, src.nodes[k]);
 			fr.x[k] = fr.X[k];
+			fr.prevX[k] = fr.X[k];
 			fr.v[k] = V3(0.0f, 0.0f, 0.0f);
 		}
 
@@ -432,6 +434,7 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 	inst.prevBones.assign(skel->numBones * 8, 0.0f);
 	SetRestBones(inst.bones);
 	SetRestBones(inst.prevBones);
+	inst.seenFrame = -1;
 	inst.simFrame = -1;
 	inst.lastTime = 0;
 	inst.accumulator = 0.0f;
@@ -459,6 +462,23 @@ static PlantInstance *FindInstance(const trRefEntity_t *ent, const mdvModel_t *m
 	}
 	if (!inst->valid)
 		InitInstance(*inst, ent, mdv);
+	return inst;
+}
+
+// Do not create a far-away instance merely to draw a rest plant.  An existing
+// moving instance is useful, though: keeping its last pose avoids a bent ->
+// rest -> bent pop while it is outside the simulation range.
+static PlantInstance *FindExistingInstance(const trRefEntity_t *ent, const mdvModel_t *mdv)
+{
+	const uint64_t key = PlantKey(ent->e.hModel, ent->e.origin);
+	auto it = s_ps.lookup.find(key);
+	if (it == s_ps.lookup.end())
+		return NULL;
+	PlantInstance *inst = it->second;
+	if (!inst->valid || inst->skel != mdv->plantSkel || inst->hModel != ent->e.hModel ||
+		fabsf(inst->axis[0].x - ent->e.axis[0][0]) > 1e-3f || fabsf(inst->axis[0].y - ent->e.axis[0][1]) > 1e-3f ||
+		fabsf(inst->axis[2].z - ent->e.axis[2][2]) > 1e-3f)
+		return NULL;
 	return inst;
 }
 
@@ -585,6 +605,72 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 		lambda[j][0] = lambda[j][1] = lambda[j][2] = 0.0f;
 
 	bool contact = false;
+	auto solveContact = [&]() {
+		// Character contact: one side for the whole frond.
+		for (int ci = 0; ci < numCapsules; ++ci)
+		{
+			const Capsule &cap = capsules[ci];
+			for (int j = 0; j < K; ++j)
+			{
+				float s;
+				Vec3 c, a;
+				ClosestSegmentSegment(p[j], p[j + 1], cap.a0, cap.a1, s, c, a);
+				const float reach = cap.radius + fr.margin[j];
+				const Vec3 d = c - a;
+				if (Dot(d, d) >= reach * reach)
+					continue;
+				contact = true;
+				if (fr.contactSide == 0)
+				{
+					const float g = Dot(V3(d.x, d.y, 0.0f), fr.side);
+					if (fabsf(g) > 0.3f * cap.radius)
+						fr.contactSide = g > 0.0f ? 1 : -1;
+					else
+						fr.contactSide = Dot(cap.velocity, fr.side) >= 0.0f ? 1 : -1;
+				}
+				const Vec3 sideDir = fr.side * (float)fr.contactSide;
+				Vec3 n;
+				const float horizontal = sqrtf(d.x * d.x + d.y * d.y);
+				if (horizontal < 1e-3f * reach && fabsf(d.z) < 1e-3f * reach)
+					n = sideDir;
+				else
+				{
+					n = Normalized(d, sideDir);
+					const float wrong = Dot(n, sideDir);
+					if (wrong < 0.0f)
+						n = Normalized(n - sideDir * (2.0f * wrong), sideDir);
+				}
+				const float penetration = reach - Dot(d, n);
+				if (penetration <= 0.0f)
+					continue;
+				const float w0 = fr.invMass[j] * (1.0f - s);
+				const float w1 = fr.invMass[j + 1] * s;
+				const float wsum = w0 * (1.0f - s) + w1 * s;
+				if (wsum <= 1e-9f)
+					continue;
+				const float scale = penetration / wsum;
+				p[j] += n * (scale * w0);
+				p[j + 1] += n * (scale * w1);
+			}
+		}
+	};
+	auto solveGround = [&]() {
+		for (int k = 1; k <= K; ++k)
+			p[k].z = MAX(p[k].z, inst.groundZ);
+	};
+	auto solveLengths = [&]() {
+		for (int j = 0; j < K; ++j)
+		{
+			const Vec3 d = p[j + 1] - p[j];
+			const float len = Length(d);
+			const float wsum = fr.invMass[j] + fr.invMass[j + 1];
+			if (len < 1e-6f || wsum <= 0.0f)
+				continue;
+			const Vec3 corr = d * ((len - fr.L[j]) / (wsum * len));
+			p[j] += corr * fr.invMass[j];
+			p[j + 1] -= corr * fr.invMass[j + 1];
+		}
+	};
 	for (int it = 0; it < iterations; ++it)
 	{
 		// bending: the next node towards the rest direction in the frame of
@@ -624,72 +710,19 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 			frame = Mul(Between(Rotate(frame, fr.D[j]), p[j + 1] - p[j]), frame);
 		}
 
-		// character contact: one side for the whole frond
-		for (int ci = 0; ci < numCapsules; ++ci)
-		{
-			const Capsule &cap = capsules[ci];
-			for (int j = 0; j < K; ++j)
-			{
-				float s;
-				Vec3 c, a;
-				ClosestSegmentSegment(p[j], p[j + 1], cap.a0, cap.a1, s, c, a);
-				const float reach = cap.radius + fr.margin[j];
-				const Vec3 d = c - a;
-				if (Dot(d, d) >= reach * reach)
-					continue;
-				contact = true;
-				if (fr.contactSide == 0)
-				{
-					// the side of the body the frond is on; right across the
-					// body: pushed ahead of the walk
-					const float g = Dot(V3(d.x, d.y, 0.0f), fr.side);
-					if (fabsf(g) > 0.3f * cap.radius)
-						fr.contactSide = g > 0.0f ? 1 : -1;
-					else
-						fr.contactSide = Dot(cap.velocity, fr.side) >= 0.0f ? 1 : -1;
-				}
-				const Vec3 sideDir = fr.side * (float)fr.contactSide;
-				Vec3 n;
-				const float horizontal = sqrtf(d.x * d.x + d.y * d.y);
-				if (horizontal < 1e-3f * reach && fabsf(d.z) < 1e-3f * reach)
-					n = sideDir;
-				else
-				{
-					n = Normalized(d, sideDir);
-					const float wrong = Dot(n, sideDir);
-					if (wrong < 0.0f)
-						n = Normalized(n - sideDir * (2.0f * wrong), sideDir);
-				}
-				const float penetration = reach - Dot(d, n);
-				if (penetration <= 0.0f)
-					continue;
-				const float w0 = fr.invMass[j] * (1.0f - s);
-				const float w1 = fr.invMass[j + 1] * s;
-				const float wsum = w0 * (1.0f - s) + w1 * s;
-				if (wsum <= 1e-9f)
-					continue;
-				const float scale = penetration / wsum;
-				p[j] += n * (scale * w0);
-				p[j + 1] += n * (scale * w1);
-			}
-		}
+		solveContact();
+		solveGround();
+		solveLengths();
+	}
 
-		// ground under the plant
-		for (int k = 1; k <= K; ++k)
-			p[k].z = MAX(p[k].z, inst.groundZ);
-
-		// inextensible: exact segment lengths, base pinned
-		for (int j = 0; j < K; ++j)
-		{
-			const Vec3 d = p[j + 1] - p[j];
-			const float len = Length(d);
-			const float wsum = fr.invMass[j] + fr.invMass[j + 1];
-			if (len < 1e-6f || wsum <= 0.0f)
-				continue;
-			const Vec3 corr = d * ((len - fr.L[j]) / (wsum * len));
-			p[j] += corr * fr.invMass[j];
-			p[j + 1] -= corr * fr.invMass[j + 1];
-		}
+	// A hard length projection can pull a just-separated segment back into a
+	// capsule (or below the ground).  End on the visually important unilateral
+	// constraints; this pass only runs for plants near an interactor.
+	if (numCapsules > 0)
+	{
+		solveLengths();
+		solveContact();
+		solveGround();
 	}
 
 	for (int k = 1; k <= K; ++k)
@@ -714,17 +747,20 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 }
 
 // bones of the current state; true when the plant is at rest
-static bool WriteBones(PlantInstance &inst)
+static bool WriteBones(PlantInstance &inst, float renderAlpha)
 {
 	bool rest = true;
 	float *bones = inst.bones.data();
 	for (const FrondSim &fr : inst.fronds)
 	{
+		Vec3 renderX[PLANTSKEL_MAX_NODES];
+		for (int k = 0; k <= fr.segments; ++k)
+			renderX[k] = fr.prevX[k] + (fr.x[k] - fr.prevX[k]) * renderAlpha;
 		Quat frame = QUAT_IDENTITY;
 		for (int j = 0; j < fr.segments; ++j)
 		{
-			frame = Mul(Between(Rotate(frame, fr.D[j]), fr.x[j + 1] - fr.x[j]), frame);
-			const Vec3 t = fr.x[j] - Rotate(frame, fr.X[j]);
+			frame = Mul(Between(Rotate(frame, fr.D[j]), renderX[j + 1] - renderX[j]), frame);
+			const Vec3 t = renderX[j] - Rotate(frame, fr.X[j]);
 			float *b = bones + (fr.firstBone + j) * 8;
 			b[0] = frame.x; b[1] = frame.y; b[2] = frame.z; b[3] = frame.w;
 			b[4] = t.x; b[5] = t.y; b[6] = t.z; b[7] = 0.0f;
@@ -783,6 +819,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 		int steps;
 		float h;
 		int iterations;
+		float renderAlpha;
 		if (detailed)
 		{
 			inst.accumulator += dt;
@@ -795,6 +832,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 			}
 			h = PLANTSIM_STEP;
 			iterations = PLANTSIM_ITERATIONS;
+			renderAlpha = inst.accumulator / PLANTSIM_STEP;
 		}
 		else
 		{
@@ -802,6 +840,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 			h = MIN(dt, PLANTSIM_COARSE_STEP);
 			iterations = PLANTSIM_COARSE_ITERATIONS;
 			inst.accumulator = 0.0f;
+			renderAlpha = 1.0f;
 		}
 
 		const float yaw = DEG2RAD(r_foliageWindDirection->value);
@@ -812,6 +851,8 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 			const float t = tr.refdef.floatTime - (steps - 1 - step) * h;
 			for (FrondSim &fr : inst.fronds)
 			{
+				for (int k = 0; k <= fr.segments; ++k)
+					fr.prevX[k] = fr.x[k];
 				Vec3 windAccel = V3(0.0f, 0.0f, 0.0f);
 				if (strength > 0.0f)
 				{
@@ -824,9 +865,10 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 				StepFrond(fr, inst, h, iterations, nearCapsules, numNear, windAccel);
 			}
 		}
+		inst.atRest = WriteBones(inst, renderAlpha) && !wind;
 	}
-
-	inst.atRest = WriteBones(inst) && !wind;
+	else
+		inst.atRest = WriteBones(inst, 1.0f) && !wind;
 	if (inst.atRest)
 	{
 		// snap exactly to rest (no creeping)
@@ -835,6 +877,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 			for (int k = 0; k <= fr.segments; ++k)
 			{
 				fr.x[k] = fr.X[k];
+				fr.prevX[k] = fr.X[k];
 				fr.v[k] = V3(0.0f, 0.0f, 0.0f);
 			}
 		}
@@ -865,10 +908,11 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 	LatchCapsules();
 
 	const float distance = Distance(tr.refdef.vieworg, ent->e.origin);
-	if (distance > r_plantWindDistance->value && s_ps.numCapsules == 0)
+	const bool beyondWind = distance > r_plantWindDistance->value;
+	PlantInstance *inst = beyondWind && s_ps.numCapsules == 0 ?
+		FindExistingInstance(ent, mdv) : FindInstance(ent, mdv);
+	if (!inst)
 		return;
-
-	PlantInstance *inst = FindInstance(ent, mdv);
 	if (inst->seenFrame != tr.frameCount)
 	{
 		inst->seenFrame = tr.frameCount;
@@ -879,15 +923,21 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 					return true;
 			return false;
 		}();
-		if (distance > r_plantWindDistance->value && !nearCharacter)
-			return;
-		if (s_ps.simulated >= MAX(r_plantSimMaxPlants->integer, 0) && !nearCharacter)
-			return;
-
-		const auto start = std::chrono::steady_clock::now();
-		SimulateInstance(*inst, distance);
-		s_ps.lastMicroseconds += (int)std::chrono::duration_cast<std::chrono::microseconds>(
-			std::chrono::steady_clock::now() - start).count();
+		const bool simulate = nearCharacter || (!beyondWind &&
+			s_ps.simulated < MAX(r_plantSimMaxPlants->integer, 0));
+		if (simulate)
+		{
+			const auto start = std::chrono::steady_clock::now();
+			SimulateInstance(*inst, distance);
+			s_ps.lastMicroseconds += (int)std::chrono::duration_cast<std::chrono::microseconds>(
+				std::chrono::steady_clock::now() - start).count();
+		}
+		else
+		{
+			// The current pose was also the pose rendered last frame.  Reusing an
+			// older prevBones block would manufacture motion on every skipped frame.
+			inst->prevBones = inst->bones;
+		}
 
 		// at rest in both poses: drawn without skinning
 		bool still = inst->atRest;

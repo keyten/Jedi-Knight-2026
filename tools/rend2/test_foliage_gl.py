@@ -428,6 +428,32 @@ def bend_chain(X, lateral, capsule, steps=120, h=1.0 / 120.0):
     a0, a1, radius, velocity = capsule
     contact_side = 0
     damping = 2.0 * 0.3 * 2.0 * math.pi * 1.6 + 2.0
+
+    def project_contact(p):
+        nonlocal contact_side
+        for j in range(K):
+            sp, cpt, apt = closest_segments(p[j], p[j + 1], a0, a1)
+            reach = radius + 6.0
+            d = cpt - apt
+            if d @ d >= reach * reach:
+                continue
+            if contact_side == 0:
+                g = np.array([d[0], d[1], 0.0]) @ side_dir
+                contact_side = (1 if g > 0 else -1) if abs(g) > 0.3 * radius else (1 if velocity @ side_dir >= 0 else -1)
+            sd = side_dir * contact_side
+            n = d / np.linalg.norm(d) if np.linalg.norm(d) > 1e-6 else sd
+            if n @ sd < 0:
+                n = n - sd * (2 * (n @ sd))
+                n /= np.linalg.norm(n)
+            pen = reach - d @ n
+            if pen <= 0:
+                continue
+            w0, w1 = w[j] * (1 - sp), w[j + 1] * sp
+            ws = w0 * (1 - sp) + w1 * sp
+            if ws > 1e-9:
+                p[j] += n * (pen / ws * w0)
+                p[j + 1] += n * (pen / ws * w1)
+
     for _ in range(steps):
         v[1:] *= math.exp(-damping * h)
         p = x + v * h
@@ -456,34 +482,21 @@ def bend_chain(X, lateral, capsule, steps=120, h=1.0 / 120.0):
                     ortho /= np.linalg.norm(ortho)
                     p[j + 1] = p[j] + (rest_dir * maxcos[j] + ortho * math.sqrt(1 - maxcos[j] ** 2)) * np.linalg.norm(cur)
                 q = qmul(qbetween(qrot(q, D[j]), p[j + 1] - p[j]), q)
-            for j in range(K):
-                sp, cpt, apt = closest_segments(p[j], p[j + 1], a0, a1)
-                reach = radius + 6.0
-                d = cpt - apt
-                if d @ d >= reach * reach:
-                    continue
-                if contact_side == 0:
-                    g = np.array([d[0], d[1], 0.0]) @ side_dir
-                    contact_side = (1 if g > 0 else -1) if abs(g) > 0.3 * radius else (1 if velocity @ side_dir >= 0 else -1)
-                sd = side_dir * contact_side
-                n = d / np.linalg.norm(d) if np.linalg.norm(d) > 1e-6 else sd
-                if n @ sd < 0:
-                    n = n - sd * (2 * (n @ sd))
-                    n /= np.linalg.norm(n)
-                pen = reach - d @ n
-                if pen <= 0:
-                    continue
-                w0, w1 = w[j] * (1 - sp), w[j + 1] * sp
-                ws = w0 * (1 - sp) + w1 * sp
-                if ws > 1e-9:
-                    p[j] += n * (pen / ws * w0)
-                    p[j + 1] += n * (pen / ws * w1)
+            project_contact(p)
             for j in range(K):
                 d = p[j + 1] - p[j]
                 ln = np.linalg.norm(d)
                 corr = d * ((ln - L[j]) / ((w[j] + w[j + 1]) * ln))
                 p[j] += corr * w[j]
                 p[j + 1] -= corr * w[j + 1]
+        # final production polishing pass: hard length, then unilateral contact
+        for j in range(K):
+            d = p[j + 1] - p[j]
+            ln = np.linalg.norm(d)
+            corr = d * ((ln - L[j]) / ((w[j] + w[j + 1]) * ln))
+            p[j] += corr * w[j]
+            p[j + 1] -= corr * w[j + 1]
+        project_contact(p)
         v = (p - x) / h
         x = p
         x[0] = X[0]
