@@ -248,10 +248,10 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_LeafFlutter",       GLSL_VEC4, 1 },
 	{ "u_LeafFlutterParams", GLSL_VEC4, 1 },
 	{ "u_LeafFlutterDebug",  GLSL_FLOAT, 1 },
-	{ "u_PlantBend",         GLSL_VEC4, 1 },
-	{ "u_PlantBendParams",   GLSL_VEC4, 1 },
-	{ "u_PlantBendTime",     GLSL_VEC4, 1 },
+	{ "u_PlantSkin",         GLSL_VEC4, 1 },
+	{ "u_PlantBones",        GLSL_INT,  1 },
 	{ "u_FoliageInteract",   GLSL_VEC4, 1 },
+	{ "u_GrassStrip",        GLSL_VEC4, 1 },
 	{ "u_DiffuseBRDF",    GLSL_INT,  1 },
 	{ "u_SpecularAAParams", GLSL_VEC4, 1 },
 	{ "u_ParallaxBias",  GLSL_FLOAT, 1 },
@@ -1659,7 +1659,7 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 
 	program->uniformBuffer = (char *)R_Malloc(size, TAG_SHADERTEXT, qtrue);
 
-	// r_foliageBendField: every program with the foliage interaction library
+	// grass bend field: every program with the foliage interaction library
 	// samples the bend field on its own fixed units (tr_foliagefield.cpp)
 	if (uniforms[UNIFORM_FOLIAGEFIELDMAP] != -1 || uniforms[UNIFORM_FOLIAGEFIELDPREVMAP] != -1)
 	{
@@ -1668,6 +1668,15 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 		qglUseProgram(program->program);
 		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDMAP, TB_FOLIAGEFIELD);
 		GLSL_SetUniformInt(program, UNIFORM_FOLIAGEFIELDPREVMAP, TB_FOLIAGEFIELD_PREV);
+		qglUseProgram(previousProgram);
+	}
+	// MD3 plant bones (tr_plantsim.cpp), every program with the foliage library
+	if (uniforms[UNIFORM_PLANTBONES] != -1)
+	{
+		GLint previousProgram = 0;
+		qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+		qglUseProgram(program->program);
+		GLSL_SetUniformInt(program, UNIFORM_PLANTBONES, TB_PLANTBONES);
 		qglUseProgram(previousProgram);
 	}
 	if (uniforms[UNIFORM_WATERFOAMMAP] != -1 || uniforms[UNIFORM_WATERFOAMSOURCEMAP] != -1)
@@ -2526,16 +2535,16 @@ static const GPUShaderDesc *LoadFoliageInteractLibrary( Allocator& allocator )
 // MD3 foliage motion, vertex functions shared by every program that draws a
 // FOLIAGE_LEAF or FOLIAGE_PLANT surface (lightall, generic, fogpass,
 // velocity), so all passes move it the same way: leaf flutter
-// (glsl/leaf_flutter.glsl, tr_leafflutter.cpp), the character colliders and
-// the plant root bend (glsl/foliage_interact.glsl + plant_bend.glsl)
+// (glsl/leaf_flutter.glsl, tr_leafflutter.cpp) and the plant frond skinning
+// (glsl/plant_skin.glsl, tr_plantsim.cpp). The programs that use it bind
+// attr_BoneWeights also without skeletal animation: the plant skin.
 static const GPUShaderDesc *LoadLeafFlutterLibrary( Allocator& allocator )
 {
 	const GPUShaderDesc *leaf =
 		LoadVertexLibrary(allocator, "leaf_flutter", fallback_leaf_flutterProgram);
 	const GPUShaderDesc *plant =
-		LoadVertexLibrary(allocator, "plant_bend", fallback_plant_bendProgram);
-	return GLSL_CombineLibraries(allocator,
-		GLSL_CombineLibraries(allocator, leaf, LoadFoliageInteractLibrary(allocator)), plant);
+		LoadVertexLibrary(allocator, "plant_skin", fallback_plant_skinProgram);
+	return GLSL_CombineLibraries(allocator, leaf, plant);
 }
 
 // texture units of the froxel volume lookup (FroxelFog)
@@ -2600,6 +2609,9 @@ static int GLSL_LoadGPUProgramGeneric(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SKELETAL_ANIMATION\n");
 			attribs |= ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
 		}
+		// MD3 plant skin (glsl/plant_skin.glsl) in the bone weight slot
+		if (!(i & GENERICDEF_USE_SKELETAL_ANIMATION))
+			attribs |= ATTR_BONE_WEIGHTS;
 
 		if (i & GENERICDEF_USE_FOG)
 		{
@@ -2700,6 +2712,9 @@ static int GLSL_LoadGPUProgramFogPass(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SKELETAL_ANIMATION\n");
 			attribs |= ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
 		}
+		// MD3 plant skin (glsl/plant_skin.glsl) in the bone weight slot
+		if (!(i & FOGDEF_USE_SKELETAL_ANIMATION))
+			attribs |= ATTR_BONE_WEIGHTS;
 
 		if (i & FOGDEF_USE_FALLBACK_GLOBAL_FOG)
 		{
@@ -2797,6 +2812,9 @@ static int GLSL_LoadGPUProgramVelocityPass(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SKELETAL_ANIMATION\n");
 			attribs |= ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
 		}
+		// MD3 plant skin (glsl/plant_skin.glsl) in the bone weight slot
+		if (!(i & VELOCITYDEF_USE_SKELETAL_ANIMATION))
+			attribs |= ATTR_BONE_WEIGHTS;
 
 		if (i & VELOCITYDEF_USE_PARALLAXMAP)
 		{
@@ -3337,6 +3355,9 @@ static int GLSL_LoadGPUProgramLightAll(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SKELETAL_ANIMATION\n");
 			attribs |= ATTR_BONE_INDEXES | ATTR_BONE_WEIGHTS;
 		}
+		// MD3 plant skin (glsl/plant_skin.glsl) in the bone weight slot
+		if (!(i & LIGHTDEF_USE_SKELETAL_ANIMATION))
+			attribs |= ATTR_BONE_WEIGHTS;
 
 		/*if (i & LIGHTDEF_USE_ALPHA_TEST)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_ALPHA_TEST\n");*/
@@ -3482,7 +3503,7 @@ static int GLSL_LoadGPUProgramPomSilhouette(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_VOLUMETRIC_FOG\n");
 		}
 
-		if (!GLSL_LoadGPUShader(builder, &tr.fogSilhouetteShader[i], name, attribs, NO_XFB_VARS,
+		if (!GLSL_LoadGPUShader(builder, &tr.fogSilhouetteShader[i], name, attribs | ATTR_BONE_WEIGHTS, NO_XFB_VARS,
 				extradefines, *fogDesc, fogLibrary, LoadLeafFlutterLibrary(allocator)))
 		{
 			ri.Error(ERR_FATAL, "Could not load fogpass silhouette POM shader!");

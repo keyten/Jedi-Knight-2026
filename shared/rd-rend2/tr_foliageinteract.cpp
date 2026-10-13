@@ -1,18 +1,19 @@
 /*
- * Foliage character interaction (r_foliageInteraction) and the MD3 plant root
- * bend (FOLIAGE_PLANT: wind r_plantWind + interaction).
+ * Foliage character interaction (r_foliageInteraction).
  *
  * cgame sends the real character bodies once per frame (the predicted player
  * first, then the nearest NPCs) as vertical capsules through the optional
- * renderer extension GetRefFoliageAPI; never the camera. The vertex shaders
- * (glsl/foliage_interact.glsl for grass sprites, + glsl/plant_bend.glsl for
- * MD3 plants) bend the plants away from them. Stateless: nothing is stored
- * per plant, a plant goes back to its wind pose when the character leaves.
+ * renderer extension GetRefFoliageAPI; never the camera. Two consumers:
+ *   - the grass sprites: the bend field (tr_foliagefield.cpp) turns the
+ *     capsules into a per patch grass state, which glsl/surface_sprites.glsl
+ *     bends as an inextensible blade;
+ *   - the MD3 plants: the frond chains of tr_plantsim.cpp collide with them on
+ *     the CPU; glsl/plant_skin.glsl draws the result.
  *
  * Per scene the FoliageInteraction uniform block carries the colliders of this
- * frame and of the previous frame (motion vectors). Every view of the scene
- * (main, mirrors / portals, sun and point shadows) uses the same world space
- * colliders; the sky portal view and non world scenes get none.
+ * frame and of the previous frame and the bend field parameters. Every view
+ * of the scene (main, mirrors / portals, sun and point shadows) uses the same
+ * world space state; the sky portal view and non world scenes get none.
  */
 #include "tr_local.h"
 
@@ -26,10 +27,6 @@ enum
 	FOLIAGEINTERACT_DEBUG_FREEZE     = 16,	// keep the colliders of one frame
 	FOLIAGEINTERACT_DEBUG_PLAYER     = 32	// player only
 };
-
-// plant wind bend at r_plantWind 1 (tip displacement per stem length, ~14
-// degrees at the strongest gust)
-static const float PLANTWIND_BASE_BEND = 0.25f;
 
 static struct
 {
@@ -49,8 +46,6 @@ static struct
 	// the scene being drawn
 	int sceneCount;				// colliders of the current scene (0: none)
 	bool sceneField;			// the current scene samples the persistent field
-	float time;
-	float previousTime;
 } s_fi = {};
 
 static int FoliageInteractionDebug(void)
@@ -63,20 +58,24 @@ bool R_FoliageInteractionActive(void)
 	return r_foliageInteraction->integer && r_foliageInteractionStrength->value > 0.0f;
 }
 
-// MD3 plants bend with wind and / or interaction; both need the automatic
-// foliage classification
-bool R_PlantBendActive(void)
-{
-	return r_autoFoliage->integer && (R_FoliageInteractionActive() || (r_plantWind->integer && r_plantWindStrength->value > 0.0f));
-}
-
+// FOLIAGE_PLANT motion: the skinned MD3 plants and grass cards (tr_plantsim.cpp)
 uint8_t R_FoliageMotionClass(const drawSurf_t *drawSurf)
 {
 	if (R_LeafFlutterSurface(drawSurf))
 		return FOLIAGE_LEAF;
-	if (drawSurf->foliage.cls == FOLIAGE_PLANT && R_PlantBendActive())
+	if ((drawSurf->foliage.cls == FOLIAGE_PLANT || drawSurf->foliage.cls == FOLIAGE_GRASS) && R_PlantSimActive())
 		return FOLIAGE_PLANT;
 	return FOLIAGE_NONE;
+}
+
+// this frame's colliders (2 vec4 each, the FoliageInteraction layout), for
+// the plant simulation; 0 when the interaction is off or none were latched
+int R_FoliageInteractionColliders(const vec4_t **colliders)
+{
+	*colliders = s_fi.current;
+	if (!R_FoliageInteractionActive() || s_fi.latchedFrame != tr.frameCount)
+		return 0;
+	return s_fi.currentCount;
 }
 
 /*
@@ -112,7 +111,7 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 	const bool consecutive = s_fi.latchedFrame == tr.frameCount - 1 &&
 		fd->time >= s_fi.latchedTime && fd->time - s_fi.latchedTime <= 250;
 
-	// the persistent field (r_foliageBendField) follows this frame's player body
+	// the grass bend field follows this frame's player body
 	const foliageInteractor_t *player = NULL;
 	if (s_fi.submittedFrame == tr.frameCount)
 	{
@@ -183,6 +182,7 @@ static void R_FoliageInteractionLatch(const refdef_t *fd)
 
 static void R_FoliageInteractionDebugCapsules(const refdef_t *fd);
 static void R_FoliageFieldDebugBounds(const refdef_t *fd);
+static void R_PlantDebugScene(const refdef_t *fd);
 
 /*
 =============
@@ -197,6 +197,7 @@ void R_FoliageInteractionBeginScene(const refdef_t *fd)
 {
 	s_fi.sceneCount = 0;
 	s_fi.sceneField = false;
+	R_PlantDebugScene(fd);
 	if (!R_FoliageInteractionActive() || (fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) || !tr.world)
 		return;
 
@@ -211,6 +212,13 @@ void R_FoliageInteractionBeginScene(const refdef_t *fd)
 	R_FoliageFieldDebugBounds(fd);
 }
 
+// r_plantDebug lines: also without character interaction (wind only)
+static void R_PlantDebugScene(const refdef_t *fd)
+{
+	if (!(fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) && tr.world)
+		R_PlantSimDebugDraw(fd);
+}
+
 void R_FoliageInteractionReset(void)
 {
 	s_fi.submittedCount = 0;
@@ -220,6 +228,8 @@ void R_FoliageInteractionReset(void)
 	s_fi.sceneCount = 0;
 	s_fi.sceneField = false;
 	R_FoliageFieldReset();
+	// the plant instances point into the models of the previous map
+	R_PlantSimReset();
 }
 
 /*
@@ -232,12 +242,8 @@ of a scene without colliders are told so by their per draw uniforms).
 */
 void RB_UpdateFoliageInteractionConstants(gpuFrame_t *frame, const trRefdef_t *refdef, float previousTime)
 {
-	// the times of the plant wind (current, previous frame)
-	s_fi.time = refdef->floatTime;
-	s_fi.previousTime = previousTime;
-	if (s_fi.previousTime > s_fi.time || s_fi.time - s_fi.previousTime > 0.25f)
-		s_fi.previousTime = s_fi.time;
-
+	(void)refdef;
+	(void)previousTime;
 	tr.foliageInteractionUboOffset = -1;
 	if (!R_FoliageInteractionActive())
 		return;
@@ -296,37 +302,12 @@ void RB_SetSpriteInteractionUniforms(UniformDataWriter& writer)
 	writer.SetUniformVec4(UNIFORM_FOLIAGEINTERACT, on ? 1.0f : 0.0f, heat ? 1.0f : 0.0f, 0.0f, 0.0f);
 }
 
-// Root (bottom center of the model bounds, object space) and 1 / size of the
-// current MD3 plant; false when the entity is no MD3 model
-static bool RB_PlantBendShape(vec3_t root, float *invSize)
-{
-	const trRefEntity_t *ent = backEnd.currentEntity;
-	if (!ent || ent == &tr.worldEntity)
-		return false;
-
-	const model_t *model = R_GetModelByHandle(ent->e.hModel);
-	if (!model || model->type != MOD_MESH || !model->data.mdv[0])
-		return false;
-
-	const mdvModel_t *mdv = model->data.mdv[0];
-	VectorSet(root,
-		(mdv->foliageMins[0] + mdv->foliageMaxs[0]) * 0.5f,
-		(mdv->foliageMins[1] + mdv->foliageMaxs[1]) * 0.5f,
-		mdv->foliageMins[2]);
-	const float height = mdv->foliageMaxs[2] - mdv->foliageMins[2];
-	const float halfX = (mdv->foliageMaxs[0] - mdv->foliageMins[0]) * 0.5f;
-	const float halfY = (mdv->foliageMaxs[1] - mdv->foliageMins[1]) * 0.5f;
-	const float size = MAX(MAX(height, sqrtf(halfX * halfX + halfY * halfY)), 1.0f);
-	*invSize = 1.0f / size;
-	return true;
-}
-
 /*
 =============
 RB_SetFoliageMotionUniforms
 
 Every draw with a program that contains the foliage vertex library (leaf
-flutter + plant bend): the values stick per program, so draws that must stay
+flutter + plant skin): the values stick per program, so draws that must stay
 still write zeros too. cls: tess.foliageMotion (FOLIAGE_LEAF, FOLIAGE_PLANT or
 FOLIAGE_NONE).
 =============
@@ -335,53 +316,10 @@ void RB_SetFoliageMotionUniforms(UniformDataWriter& writer, uint8_t cls)
 {
 	RB_SetLeafFlutterUniforms(writer, cls == FOLIAGE_LEAF);
 
-	vec3_t root;
-	float invSize = 0.0f;
-	if (cls != FOLIAGE_PLANT || !R_PlantBendActive() || !RB_PlantBendShape(root, &invSize))
-	{
-		writer.SetUniformVec4(UNIFORM_PLANTBEND, 0.0f, 0.0f, 0.0f, 0.0f);
-		writer.SetUniformVec4(UNIFORM_PLANTBENDPARAMS, 0.0f, 0.0f, 0.0f, 0.0f);
-		writer.SetUniformVec4(UNIFORM_PLANTBENDTIME, 0.0f, 0.0f, 0.0f, 0.0f);
-		return;
-	}
-
-	const float yaw = DEG2RAD(r_foliageWindDirection->value);
-	const float windBend = PLANTWIND_BASE_BEND * (r_plantWind->integer ? r_plantWindStrength->value : 0.0f);
-	const bool interaction = RB_FoliageInteractionInView();
-
-	writer.SetUniformVec4(UNIFORM_PLANTBEND, root[0], root[1], root[2], invSize);
-	writer.SetUniformVec4(UNIFORM_PLANTBENDPARAMS, cosf(yaw), sinf(yaw), windBend,
-		interaction ? 1.0f : 0.0f);
-	writer.SetUniformVec4(UNIFORM_PLANTBENDTIME, s_fi.time, s_fi.previousTime,
-		r_foliageWindSpeed->value, 0.0f);
-
-	// r_foliageInteractionDebug 8: the leaf flutter magnitude view shows the
-	// contact heat of the plant (var_LeafFlutter, u_LeafFlutterDebug 8)
-	if (interaction && (FoliageInteractionDebug() & FOLIAGEINTERACT_DEBUG_HEAT) && RB_FoliageDebugView())
-		writer.SetUniformFloat(UNIFORM_LEAFFLUTTERDEBUG, 8.0f);
-}
-
-// r_foliageInteractionDebug 8: flat u_MaterialDebug view for the plants
-bool RB_FoliageInteractionDebugColor(uint8_t cls, vec4_t color)
-{
-	if (cls != FOLIAGE_PLANT || !RB_FoliageInteractionInView() ||
-		!(FoliageInteractionDebug() & FOLIAGEINTERACT_DEBUG_HEAT))
-		return false;
-	VectorSet4(color, 1.0f, 1.0f, 1.0f, 1.0f);
-	return true;
-}
-
-// Model bounds stay static; map object models grow their cull bounds by the
-// largest bend instead: a stem turns at most 65 degrees around the root, so
-// no vertex leaves the model size around it.
-float R_PlantBendCullMargin(const mdvModel_t *model)
-{
-	if (!model || !(model->foliageSignals & FOLIAGE_MODEL_OBJECT) || !R_PlantBendActive())
-		return 0.0f;
-	const float height = model->foliageMaxs[2] - model->foliageMins[2];
-	const float halfX = (model->foliageMaxs[0] - model->foliageMins[0]) * 0.5f;
-	const float halfY = (model->foliageMaxs[1] - model->foliageMins[1]) * 0.5f;
-	return MAX(height, sqrtf(halfX * halfX + halfY * halfY)) * 0.5f;
+	vec4_t skin;
+	if (cls != FOLIAGE_PLANT || !RB_PlantSkinUniforms(skin))
+		VectorSet4(skin, 0.0f, 0.0f, 0.0f, 0.0f);
+	writer.SetUniformVec4(UNIFORM_PLANTSKIN, skin);
 }
 
 /*
@@ -392,7 +330,7 @@ yellow = player, cyan = NPC, to compare with the character bodies
 */
 qhandle_t RE_RegisterShaderFromImage(const char *name, const int *lightmapIndexes, const byte *styles, image_t *image, qboolean mipRawImage);
 
-static void R_FoliageDebugSegment(qhandle_t shader, const refdef_t *fd, const vec3_t a, const vec3_t b, const byte *rgba)
+static void R_FoliageDebugSegmentShader(qhandle_t shader, const refdef_t *fd, const vec3_t a, const vec3_t b, const byte *rgba)
 {
 	vec3_t dir, toEye, side;
 	VectorSubtract(b, a, dir);
@@ -413,6 +351,14 @@ static void R_FoliageDebugSegment(qhandle_t shader, const refdef_t *fd, const ve
 		Com_Memcpy(verts[i].modulate, rgba, 4);
 	}
 	RE_AddPolyToScene(shader, 4, verts, 1);
+}
+
+// a debug line (camera facing quad), for r_plantDebug too
+void R_FoliageDebugSegment(const refdef_t *fd, const vec3_t a, const vec3_t b, const byte *rgba)
+{
+	const qhandle_t shader = RE_RegisterShaderFromImage("*foliageInteractDebug", lightmaps2d,
+		stylesDefault, tr.whiteImage, qfalse);
+	R_FoliageDebugSegmentShader(shader, fd, a, b, rgba);
 }
 
 static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
@@ -445,7 +391,7 @@ static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
 				vec3_t p0, p1;
 				VectorSet(p0, axis[0] + cosf(a0) * radii[l], axis[1] + sinf(a0) * radii[l], levels[l]);
 				VectorSet(p1, axis[0] + cosf(a1) * radii[l], axis[1] + sinf(a1) * radii[l], levels[l]);
-				R_FoliageDebugSegment(shader, fd, p0, p1, rgba);
+				R_FoliageDebugSegmentShader(shader, fd, p0, p1, rgba);
 			}
 		}
 		for (int s = 0; s < 4; ++s)
@@ -454,14 +400,14 @@ static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
 			vec3_t p0, p1;
 			VectorSet(p0, axis[0] + cosf(a) * r, axis[1] + sinf(a) * r, z0);
 			VectorSet(p1, axis[0] + cosf(a) * r, axis[1] + sinf(a) * r, z1);
-			R_FoliageDebugSegment(shader, fd, p0, p1, rgba);
+			R_FoliageDebugSegmentShader(shader, fd, p0, p1, rgba);
 		}
 		// velocity, 0.25 s ahead
 		vec3_t foot, tip;
 		VectorSet(foot, axis[0], axis[1], axis[2] + 2.0f);
 		VectorSet(tip, axis[0] + body[1] * 0.25f, axis[1] + body[2] * 0.25f, axis[2] + 2.0f);
 		if (DistanceSquared(foot, tip) > 1.0f)
-			R_FoliageDebugSegment(shader, fd, foot, tip, rgba);
+			R_FoliageDebugSegmentShader(shader, fd, foot, tip, rgba);
 	}
 }
 
@@ -489,7 +435,7 @@ static void R_FoliageFieldDebugBounds(const refdef_t *fd)
 		vec3_t a, b;
 		VectorSet(a, xs[i], ys[i], z);
 		VectorSet(b, xs[(i + 1) & 3], ys[(i + 1) & 3], z);
-		R_FoliageDebugSegment(shader, fd, a, b, green);
+		R_FoliageDebugSegmentShader(shader, fd, a, b, green);
 	}
 }
 

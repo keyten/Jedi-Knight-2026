@@ -610,7 +610,6 @@ extern cvar_t  *r_foliageInteractionRadius;
 extern cvar_t  *r_foliageInteractionMaxInteractors;
 extern cvar_t  *r_foliageInteractionNPCs;
 extern cvar_t  *r_foliageInteractionDebug;
-extern cvar_t  *r_foliageBendField;
 extern cvar_t  *r_foliageBendFieldSize;
 extern cvar_t  *r_foliageBendFieldExtent;
 extern cvar_t  *r_foliageBendFieldStrength;
@@ -620,6 +619,15 @@ extern cvar_t  *r_foliageBendFieldImpulse;
 extern cvar_t  *r_foliageBendFieldDebug;
 extern cvar_t  *r_plantWind;
 extern cvar_t  *r_plantWindStrength;
+extern cvar_t  *r_plantSimDistance;
+extern cvar_t  *r_plantWindDistance;
+extern cvar_t  *r_plantSimMaxPlants;
+extern cvar_t  *r_plantStiffness;
+extern cvar_t  *r_plantDebug;
+extern cvar_t  *r_grassBendSegments;
+extern cvar_t  *r_grassBendLodDist;
+extern cvar_t  *r_grassTrample;
+extern cvar_t  *r_grassTrampleRecovery;
 extern cvar_t  *r_autoPBRConvert;
 extern cvar_t  *r_autoPBRRoughness;
 extern cvar_t  *r_diffuseBRDF;
@@ -1040,6 +1048,8 @@ typedef struct trRefEntity_s {
 	vec3_t		ambientLight;	// color normalized to 0-255
 	int			ambientLightInt;	// 32 bit rgba packed
 	vec3_t		directedLight;
+	int			plantBoneOffset;	// MD3 plant: first bone texel of this frame (tr_plantsim.cpp), -1 at rest
+	int			plantBoneTexels;	// texels of one pose (2 per bone)
 } trRefEntity_t;
 
 
@@ -1486,11 +1496,12 @@ struct FoliageInteractionBlock
 	vec4_t params;		// current count, previous count, strength, 1 = no wind (debug)
 	vec4_t current[MAX_FOLIAGE_INTERACTORS * 2];
 	vec4_t previous[MAX_FOLIAGE_INTERACTORS * 2];
-	// persistent bend field (r_foliageBendField, tr_foliagefield.cpp)
+	// grass bend field (r_foliageInteraction, tr_foliagefield.cpp)
 	vec4_t field;			// center x, y (world), 1 / extent, scale (0 = no field)
 	vec4_t fieldPrevious;	// the same for the previous frame's field
 	vec4_t fieldUpdate;		// update pass: time step, spring k, damping c, impulse
-	vec4_t fieldShift;		// update pass: texel shift x, y, clear; draws: w 1 = no direct term
+	vec4_t fieldShift;		// update pass: texel shift x, y, clear, unused
+	vec4_t fieldTrample;	// update pass: trample strength, 1 / recovery time, unused, unused
 };
 
 // Froxel volumetric fog (r_volumetricFog 2, tr_volumetric.cpp). Same layout
@@ -1729,6 +1740,9 @@ enum
 	// program uses these units.
 	TB_FOLIAGEFIELD      = 23,
 	TB_FOLIAGEFIELD_PREV = 24,
+	// MD3 plant bones (tr_plantsim.cpp), buffer texture of lightall, generic,
+	// fogpass and velocity, bound per draw; those programs have no bend field
+	TB_PLANTBONES        = 24,
 	TB_WATERFOAM         = 18,
 	TB_WATERFOAMSOURCE   = 19,
 
@@ -2631,10 +2645,10 @@ typedef enum
 	UNIFORM_LEAFFLUTTER,		// r_leafFlutter: wind dir x, y, amplitude (0 = off), speed
 	UNIFORM_LEAFFLUTTERPARAMS,	// r_leafFlutter: time, previous time, 1 / model xy radius, normal amount
 	UNIFORM_LEAFFLUTTERDEBUG,	// r_leafFlutterDebug: 0, 4 = highlight, 8 = magnitude colour
-	UNIFORM_PLANTBEND,			// FOLIAGE_PLANT: root (object space) xyz, 1 / plant size (0 = off)
-	UNIFORM_PLANTBENDPARAMS,	// FOLIAGE_PLANT: wind dir x, y, wind bend, interaction (0 / 1)
-	UNIFORM_PLANTBENDTIME,		// FOLIAGE_PLANT: time, previous time, wind speed, unused
+	UNIFORM_PLANTSKIN,			// FOLIAGE_PLANT: first bone texel, texels per pose, 1 = skinned, debug
+	UNIFORM_PLANTBONES,			// FOLIAGE_PLANT: bone buffer texture (TB_PLANTBONES)
 	UNIFORM_FOLIAGEINTERACT,	// surface sprites: interaction (0 / 1), contact heat debug (0 / 1)
+	UNIFORM_GRASSSTRIP,		// surface sprites: strip segments (0 = quads), cards per sprite
 	UNIFORM_DIFFUSEBRDF,	// r_diffuseBRDF: 0 = Lambert, 1 = Burley/Disney
 	UNIFORM_SPECULARAAPARAMS,	// strength, max added roughness, debug view, unused
 	UNIFORM_PARALLAXBIAS,
@@ -2805,8 +2819,8 @@ typedef enum
 	UNIFORM_SPLASHCLASSPARAMS,	// hard dry, hard wet, puddle, water strength
 	UNIFORM_SPLASHCLASSPARAMS2,	// soil, vegetation, metal strength, unused
 
-	UNIFORM_FOLIAGEFIELDMAP,	// r_foliageBendField: this frame's bend field (TB_FOLIAGEFIELD)
-	UNIFORM_FOLIAGEFIELDPREVMAP,	// r_foliageBendField: previous frame's bend field (TB_FOLIAGEFIELD_PREV)
+	UNIFORM_FOLIAGEFIELDMAP,	// grass bend field of this frame (TB_FOLIAGEFIELD)
+	UNIFORM_FOLIAGEFIELDPREVMAP,	// grass bend field of the previous frame (TB_FOLIAGEFIELD_PREV)
 	UNIFORM_FOLIAGEFIELDDEBUG,	// r_foliageBendFieldDebug 1 overlay: corner x, y, square size, bend of full heat
 
 	UNIFORM_LIGHTCOOKIEMAP,		// spot light cookies: tr.lightCookieArray (TB_LIGHTCOOKIES)
@@ -3666,15 +3680,49 @@ typedef struct mdvSurface_s
 	vec3_t          foliageMaxs;
 	vec3_t          foliageRoot;    // candidate base in local MD3 coordinates
 	float           foliageXYRadius;
+	uint32_t       *plantSkin;      // per vertex bone A, B, weight of B, 255 (tr_plantskel.cpp), NULL none
 
 	struct mdvModel_s *model;
 } mdvSurface_t;
+
+// Frond skeleton of an MD3 plant (tr_plantskel.cpp): every frond (leaf, card)
+// is a chain of rigid segments along its centerline; segment j of a frond is
+// bone firstBone + j. Bone 0 is the rest pose (hubs, stems, other surfaces).
+#define PLANTSKEL_MAX_FRONDS	32
+#define PLANTSKEL_MAX_NODES		8		// per frond, 7 segments
+#define PLANTSKEL_MAX_BONES		(1 + PLANTSKEL_MAX_FRONDS * (PLANTSKEL_MAX_NODES - 1))
+
+typedef enum
+{
+	PLANTFROND_LEAF,	// fern frond, leaf: stiff petiole, soft tip
+	PLANTFROND_GRASS	// grass card / blade: uniformly soft
+} plantFrondClass_t;
+
+typedef struct plantFrond_s
+{
+	int		numNodes;							// segments + 1, node 0 = attachment
+	int		firstBone;
+	int		frondClass;							// plantFrondClass_t
+	vec3_t	nodes[PLANTSKEL_MAX_NODES];			// rest centerline, object space
+	vec3_t	lateral[PLANTSKEL_MAX_NODES];		// across the lamina, per segment (unit, object space)
+	float	halfWidth[PLANTSKEL_MAX_NODES];		// lamina half width around each node
+	float	length;
+} plantFrond_t;
+
+typedef struct plantSkeleton_s
+{
+	int				numFronds;
+	int				numBones;		// including bone 0
+	float			maxLength;		// longest frond (cull margin)
+	plantFrond_t	*fronds;
+} plantSkeleton_t;
 
 typedef struct mdvModel_s
 {
 	uint16_t        foliageSignals; // cached model path evidence
 	vec3_t          foliageMins;    // union of frame bounds
 	vec3_t          foliageMaxs;
+	plantSkeleton_t *plantSkel;     // FOLIAGE_PLANT / GRASS frond skeleton, NULL none
 	int             numFrames;
 	mdvFrame_t     *frames;
 
@@ -4364,7 +4412,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t cloudResolveShader;
 	shaderProgram_t cloudCompositeShader;
 	shaderProgram_t cloudShadowShader;
-	shaderProgram_t foliageFieldShader;			// r_foliageBendField update pass
+	shaderProgram_t foliageFieldShader;			// grass bend field update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t waterFoamFieldShader;		// GL3.2 fragment/FBO foam advection
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
@@ -5660,7 +5708,7 @@ typedef struct endTimedBlockCommand_s {
 	qhandle_t timerHandle;
 } endTimedBlockCommand_t;
 
-// r_foliageBendField (tr_foliagefield.cpp): the bend field of this frame, before
+// grass bend field (tr_foliagefield.cpp): the update of this frame, before
 // the draws of the first world scene
 typedef struct foliageFieldCommand_s {
 	int		commandId;
@@ -5691,7 +5739,8 @@ typedef enum {
 	RC_POSTPROCESS,
 	RC_BEGIN_TIMED_BLOCK,
 	RC_END_TIMED_BLOCK,
-	RC_FOLIAGE_FIELD
+	RC_FOLIAGE_FIELD,
+	RC_PLANT_BONES
 } renderCommand_t;
 
 struct gpuTimer_t
@@ -5961,19 +6010,36 @@ bool RB_LeafFlutterDebugColor(vec4_t color);
 
 // tr_foliageinteract.cpp: character colliders bending grass and MD3 plants
 struct UniformBlockBinding;
+class SamplerBindingsWriter;
 bool R_FoliageInteractionActive(void);
-bool R_PlantBendActive(void);
 uint8_t R_FoliageMotionClass(const drawSurf_t *drawSurf);
-float R_PlantBendCullMargin(const mdvModel_t *model);
 void RE_SetFoliageInteractors(const foliageInteractor_t *interactors, int count);
 void R_FoliageInteractionBeginScene(const refdef_t *fd);
 void R_FoliageInteractionReset(void);
 void R_FoliageInteractionList_f(void);
+int R_FoliageInteractionColliders(const vec4_t **colliders);
+void R_FoliageDebugSegment(const refdef_t *fd, const vec3_t a, const vec3_t b, const byte *rgba);
 void RB_UpdateFoliageInteractionConstants(struct gpuFrame_t *frame, const trRefdef_t *refdef, float previousTime);
 UniformBlockBinding RB_GetFoliageInteractionBlockUniformBinding(void);
 void RB_SetFoliageMotionUniforms(UniformDataWriter& writer, uint8_t cls);
 void RB_SetSpriteInteractionUniforms(UniformDataWriter& writer);
-bool RB_FoliageInteractionDebugColor(uint8_t cls, vec4_t color);
+
+// tr_plantskel.cpp: frond skeletons of MD3 plants
+void R_BuildPlantSkeleton(mdvModel_t *model);
+void R_PrintPlantSkeleton(const mdvModel_t *model);
+
+// tr_plantsim.cpp: frond chains of the MD3 plants (wind, character contact)
+bool R_PlantSimActive(void);
+void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv);
+void R_PlantSimQueueUpload(void);
+void R_PlantSimReset(void);
+void R_ShutdownPlantSim(void);
+float R_PlantSimCullMargin(const mdvModel_t *model);
+void R_PlantSimDebugDraw(const refdef_t *fd);
+void R_PlantSimInfo_f(void);
+const void *RB_PlantBonesCommand(const void *data);
+bool RB_PlantSkinUniforms(vec4_t out);
+void RB_AddPlantSkinSampler(SamplerBindingsWriter &writer, uint8_t foliageMotion);
 
 // tr_foliagefield.cpp: persistent bend field of the character interaction
 bool R_FoliageFieldActive(void);

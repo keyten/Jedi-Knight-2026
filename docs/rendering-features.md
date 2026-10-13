@@ -1279,66 +1279,73 @@ Adds small high-frequency rustling to surfaces classified as leaves while leavin
 
 May slightly affect performance; it is small vertex work.
 
-## Plant root wind
+## Plant fronds (wind and contact)
 
-Adds gentle root-anchored bending to larger plant/fern models that previously remained completely static.
+Fern, bush and grass-card models bend frond by frond. Each frond (found automatically from the model) is a chain of
+rigid segments that keeps its length: stiff at the base, soft at the tip, and much stiffer across the leaf than out of
+its plane, so a frond pushed sideways swings around its base instead of stretching. Wind bends every frond, and a
+character pushes a frond to one side as a whole (it never wraps around a leg). The fronds swing back with one small
+overshoot after a character leaves. The simulation runs on the CPU for the nearby plants, and every pass (shadows,
+fog, motion vectors) draws the same pose.
 
-**Requirements.** Requires automatic foliage classification. Direction and speed come from the foliage wind controls.
+**Requirements.** Requires automatic foliage classification. Wind direction and speed come from the foliage wind
+controls; contact needs `r_foliageInteraction 1`.
 
 **Main controls**
-- `r_plantWind 0 | 1` — disable / enable plant root wind.
+- `r_plantWind 0 | 1` — disable / enable the breeze on the fronds.
 
 **Other controls**
-- `r_plantWindStrength 0..4` — root-bend strength.
+- `r_plantWindStrength 0..4` — breeze strength.
+- `r_plantStiffness <value>` — frond stiffness (1 = default).
+- `r_plantSimDistance <units>` / `r_plantWindDistance <units>` — full simulation / coarse simulation / at rest.
+- `r_plantSimMaxPlants <count>` — plants simulated per frame.
 
-May slightly affect performance.
+**Debug**
+- `r_plantDebug <bits>` — frond centerlines, segment or bone colors, contact sides, CPU cost.
+- `r_plantSimInfo` — print the simulated plants; `r_autoFoliageList` also prints the frond skeletons.
+
+Small CPU cost for the plants near the camera; the skinning is cheap vertex work.
 
 ## Character / foliage interaction
 
-Characters push grass and ferns away as they move through them. The renderer receives a few vertical body capsules and bends nearby vegetation around those capsules rather than around the camera.
+Characters push grass and ferns away as they move through them. The renderer receives a few vertical body capsules.
+Only what a body actually touches moves: grass at the legs is pushed exactly out of the body, ferns are pushed frond
+by frond (see Plant fronds). Grass blades curve from the root (a stiff base, a soft tip) instead of tilting as flat
+cards, spring back after the character left, and keep a faint trampled trail for a few seconds.
 
-**Requirements.** Fern interaction requires automatic foliage classification; grass interaction works on supported grass surfaces.
+**Requirements.** Fern interaction requires automatic foliage classification; grass interaction works on supported
+grass surfaces.
 
 **Main controls**
 - `r_foliageInteraction 0 | 1` — disable / enable character interaction.
 
 **Other controls**
-- `r_foliageInteractionStrength <value>` — bend strength.
+- `r_foliageInteractionStrength <value>` — contact depth scale.
 - `r_foliageInteractionRadius <value>` — character capsule radius scale.
 - `r_foliageInteractionMaxInteractors <count>` — uploaded character limit.
 - `r_foliageInteractionNPCs 0 | 1` — player only / player + nearby NPCs and players.
+- `r_grassTrample 0..1` — how much of the bend trampled grass keeps; `r_grassTrampleRecovery <seconds>` — its recovery.
+- `r_grassBendSegments 1..8` — segments of a near grass sprite (1 = flat cards); `r_grassBendLodDist <units>` — how
+  far the curved strips are used.
+- `r_foliageBendFieldSize 64 | 128 | 256` — grass state texture size. Requires `vid_restart`.
+- `r_foliageBendFieldExtent <units>` — world size of the grass state around the player.
+- `r_foliageBendFieldStrength <value>` — grass displacement scale.
+- `r_foliageBendFieldRecoveryTime <seconds>` / `r_foliageBendFieldDamping <value>` / `r_foliageBendFieldImpulse
+  <value>` — grass spring back.
 
 **Debug**
-- `r_foliageInteractionDebug <bits>` — capsules, exaggerated interaction, interaction-only view, contact heat, freeze and player-only modes.
-- `r_foliageInteractionList` — print submitted/uploaded interactors.
+- `r_foliageInteractionDebug <bits>` — capsules, exaggerated interaction, interaction-only view, grass contact heat,
+  freeze and player-only modes.
+- `r_foliageBendFieldDebug <bits>` — grass state overlay, covered square, freeze, exaggeration.
+- `r_foliageBendFieldClear` — clear the grass state.
+- `r_foliageInteractionList` — print submitted/uploaded interactors and the grass state.
 
-**Binary note.** This is not renderer-only: cgame supplies character capsules through a new optional renderer interface. SP needs the updated `openjk_sp` executable and game/cgame module; MP needs the matching updated client/cgame path.
+**Binary note.** This is not renderer-only: cgame supplies character capsules through a new optional renderer
+interface. SP needs the updated `openjk_sp` executable and game/cgame module; MP needs the matching updated
+client/cgame path.
 
-Moderate vertex cost in dense foliage, increasing with the number of nearby interactors.
-
-## Persistent foliage bend field
-
-Adds short physical-looking recovery after a character leaves a plant. Instead of snapping immediately back to the wind pose, recently touched vegetation springs toward rest with configurable damping and momentum.
-
-**Requirements.** Requires `r_foliageInteraction 1` and therefore the same updated engine/game-module path.
-
-**Main controls**
-- `r_foliageBendField 0 | 1` — disable / enable persistent recovery.
-
-**Other controls**
-- `r_foliageBendFieldSize 64 | 128 | 256` — bend-field texture size. Requires `vid_restart`.
-- `r_foliageBendFieldExtent <units>` — world size covered around the player.
-- `r_foliageBendFieldStrength <value>` — field contribution.
-- `r_foliageBendFieldRecoveryTime <seconds>` — approximate time back to rest.
-- `r_foliageBendFieldDamping <value>` — spring damping; 1 avoids overshoot.
-- `r_foliageBendFieldImpulse <value>` — extra momentum from moving through plants.
-
-**Debug**
-- `r_foliageBendFieldDebug <bits>` — field overlay, covered square, freeze, exaggeration and direct-vs-field isolation.
-- `r_foliageBendFieldClear` — clear persistent bend state.
-- `r_foliageInteractionList` — also prints current field state.
-
-The default field uses about 256 KB for two 128×128 RGBA16F textures and one small update pass; expected frame cost is very small.
+Small vertex cost in dense grass (one texture fetch per vertex and a short curve), the near grass strips add
+vertices; the grass state is one small pass per frame (256x256 texels, 1.5 MB).
 
 # Performance & loading
 

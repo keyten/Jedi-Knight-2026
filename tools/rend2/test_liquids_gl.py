@@ -554,7 +554,7 @@ def render_header(defines):
 def compile_caustic_light_programs():
     """The new independently enabled local/baked lightall paths, including GL 3.2 fast light."""
     from test_watersurface_gl import compile_program
-    vertex_library = stage('leaf_flutter', 'Vertex') + stage('foliage_interact', 'Vertex') + stage('plant_bend', 'Vertex')
+    vertex_library = stage('leaf_flutter', 'Vertex') + stage('plant_skin', 'Vertex')
     water_fragment = stage('water_surface_common', 'Fragment') + stage('liquid_common', 'Fragment')
     source = (ROOT / 'shared/rd-rend2/glsl/lightall.glsl').read_text().replace('\r\n', '\n')
     vertex, fragment_source = source.split('/*[Fragment]*/', 1)
@@ -581,7 +581,7 @@ def compile_render_programs():
     generic (USE_FOG + the froxel fog, USE_LIQUID_FOG_BLENDS), weather and weatherSplash (USE_LIQUIDS)"""
     from test_watersurface_gl import compile_program
     count = 0
-    vertex_library = stage('leaf_flutter', 'Vertex') + stage('foliage_interact', 'Vertex') + stage('plant_bend', 'Vertex')
+    vertex_library = stage('leaf_flutter', 'Vertex') + stage('plant_skin', 'Vertex')
     for rgb in (False, True):
         for liquids in (False, True):
             for extra in ([], ['USE_RGBAGEN', 'USE_TCGEN', 'USE_TCMOD']):

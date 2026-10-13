@@ -1014,7 +1014,7 @@ def check_lit_programs():
               '#define ALPHA_TEST_E255 5\n#define MAX_G2_BONES 72\n#define MAX_DLIGHTS 32\n'
               '#define DSHADOW_MAP_SIZE 512\n#define r_FBufScale vec2(1920.0, 1080.0)\n#define USE_ALPHA_TEST\n'
               '#define USE_FROXEL_FOG\n#define USE_CLOUD_SHADOWS\n#define CUBEMAP_RESOLUTION float(256)\n#define ROUGHNESS_MIPS float(6)\n' + sizes)
-    vertex_lib = ''.join(vertex(n) + '\n' for n in ['leaf_flutter', 'foliage_interact', 'plant_bend'])
+    vertex_lib = ''.join(vertex(n) + '\n' for n in ['leaf_flutter', 'plant_skin'])
     vs, fs = read('lightall').split('/*[Fragment]*/', 1)
     vs = vs.split('/*[Vertex]*/', 1)[1]
     sun = '#define USE_SHADOWMAP\n#define r_shadowMapSize 1024\n#define r_shadowCascadeZFar 4096.0\n'

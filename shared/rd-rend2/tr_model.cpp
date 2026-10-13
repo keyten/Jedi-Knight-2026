@@ -1194,6 +1194,10 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		surf++;
 	}
 
+	// FOLIAGE_PLANT / GRASS map objects: fronds and per vertex skin
+	// (tr_plantskel.cpp), before the VBO that carries the skin
+	R_BuildPlantSkeleton(mdvModel);
+
 	{
 		srfVBOMDVMesh_t *vboSurf;
 
@@ -1207,10 +1211,13 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		uint32_t *normals;
 		vec2_t *texcoords;
 		uint32_t *tangents;
+		uint32_t *plantSkin = NULL;
+		const bool hasPlantSkin = mdvModel->plantSkel != NULL;
 
 		byte *data;
 		int dataSize = 0;
 		int ofsPosition, ofsNormals, ofsTexcoords, ofsTangents, ofsColor, ofsLMCoords, ofsLightDir;
+		int ofsPlantSkin = 0;
 		int stride = 0;
 		uint32_t numVerts = 0;
 		uint32_t numIndexes = 0;
@@ -1234,6 +1241,8 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		dataSize += numVerts * sizeof(*normals);
 		dataSize += numVerts * sizeof(*texcoords);
 		dataSize += numVerts * sizeof(*tangents);
+		if (hasPlantSkin)
+			dataSize += numVerts * sizeof(uint32_t);
 		dataSize += sizeof(vec4_t) + sizeof(vec2_t) + sizeof(uint32_t);
 
 		// Allocate and write to memory
@@ -1254,6 +1263,14 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		ofsTangents = stride;
 		tangents = (uint32_t *)(data + ofsTangents);
 		stride += sizeof(*tangents);
+
+		// plant skin in the bone weight slot (glsl/plant_skin.glsl)
+		if (hasPlantSkin)
+		{
+			ofsPlantSkin = stride;
+			plantSkin = (uint32_t *)(data + ofsPlantSkin);
+			stride += sizeof(uint32_t);
+		}
 
 		ofsColor = dataSize - (sizeof(vec4_t) + sizeof(vec2_t) + sizeof(uint32_t));
 		float *color = (float *)(data + ofsColor);
@@ -1299,6 +1316,13 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 				verts = (vec3_t *)((byte *)verts + stride);
 				normals = (uint32_t *)((byte *)normals + stride);
 				tangents = (uint32_t *)((byte *)tangents + stride);
+
+				if (plantSkin)
+				{
+					// bone 0 (rest) for the surfaces that are no plant
+					*plantSkin = surf->plantSkin ? surf->plantSkin[j] : LittleLong(255u << 24);
+					plantSkin = (uint32_t *)((byte *)plantSkin + stride);
+				}
 			}
 			Hunk_FreeTempMemory(tangentsf);
 
@@ -1324,6 +1348,12 @@ static qboolean R_LoadMD3(model_t * mod, int lod, void *buffer, const char *modN
 		vbo->offsets[ATTR_INDEX_NORMAL] = ofsNormals;
 		vbo->offsets[ATTR_INDEX_TEXCOORD0] = ofsTexcoords;
 		vbo->offsets[ATTR_INDEX_TANGENT] = ofsTangents;
+		if (hasPlantSkin)
+		{
+			vbo->offsets[ATTR_INDEX_BONE_WEIGHTS] = ofsPlantSkin;
+			vbo->strides[ATTR_INDEX_BONE_WEIGHTS] = stride;
+			vbo->sizes[ATTR_INDEX_BONE_WEIGHTS] = sizeof(uint32_t);
+		}
 
 		vbo->offsets[ATTR_INDEX_COLOR] = ofsColor;
 		vbo->offsets[ATTR_INDEX_TEXCOORD1] = ofsLMCoords;

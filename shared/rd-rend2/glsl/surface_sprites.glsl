@@ -61,6 +61,17 @@ uniform vec4 u_FoliageWindParams;
 // colliders bend these sprites, y = 1 for the contact heat debug color
 uniform vec4 u_FoliageInteract;
 
+// r_grassBendSegments: x = segments of the strip of a sprite (0 = quads),
+// y = cards (instances) per sprite of the strip draw
+uniform vec4 u_GrassStrip;
+
+// card of the tuft: the instance (quads) or the instance within the sprite
+// (strips, one instance per card and sprite)
+int SpriteCardIndex()
+{
+	return u_GrassStrip.x > 0.5 ? gl_InstanceID % max(int(u_GrassStrip.y + 0.5), 1) : gl_InstanceID;
+}
+
 #if defined(VELOCITY_PASS)
 layout(std140) uniform TemporalInfo
 {
@@ -92,7 +103,7 @@ out vec3 var_WSPosition;
 vec2 AutoGrassCardDir()
 {
 	vec2 base = normalize(attr_Normal.xy);
-	float angle = float(gl_InstanceID) * (3.14159265 / max(u_AutoGrass.x, 1.0));
+	float angle = float(SpriteCardIndex()) * (3.14159265 / max(u_AutoGrass.x, 1.0));
 	float c = cos(angle);
 	float s = sin(angle);
 	return vec2(base.x * c - base.y * s, base.x * s + base.y * c);
@@ -129,7 +140,7 @@ float WindNoise(in vec2 x)
 float g_WindGust = 0.0;
 vec2 g_WindBend = vec2(0.0);
 
-// r_foliageInteraction: which collider set CalculateVertexOffset uses (the
+// r_foliageInteraction: which bend field CalculateVertexOffset samples (the
 // velocity pass evaluates the previous frame too) and the contact it found
 bool g_FoliagePrevious = false;
 float g_FoliageHeat = 0.0;
@@ -137,7 +148,7 @@ float g_FoliageHeat = 0.0;
 // r_foliageWind 1: coherent breeze.  A pure function of the sprite anchor, its
 // stable random seed and time; no camera or instance input, so all cards of a
 // tuft, the shadow views and both velocity frames get the same displacement.
-// Returns the offset of the upper vertices.
+// Returns the horizontal tip displacement (xy) the blade bends to.
 vec3 FoliageWind(in vec2 anchor, in float seed, in float t, in float height)
 {
 	vec2 dir = u_FoliageWind.xy;
@@ -165,26 +176,44 @@ vec3 FoliageWind(in vec2 anchor, in float seed, in float t, in float height)
 	float h = abs(height);
 	vec2 disp = (dir * lean + side * flutter) * (h * 0.12 * u_FoliageWind.z * u_WindIdle);
 
-	// keep extreme ssWind values sane, then bend instead of stretching: pull
-	// the tip back towards the anchor height
+	// keep extreme ssWind values sane (FoliageBladeBend keeps the length)
 	float len2 = dot(disp, disp);
 	float maxLen = 0.5 * h;
 	if (len2 > maxLen * maxLen)
-	{
 		disp *= maxLen * inversesqrt(len2);
-		len2 = maxLen * maxLen;
-	}
-	float drop = len2 / (2.0 * max(h, 1.0));
-	return vec3(disp, -drop * sign(height));
+	return vec3(disp, 0.0);
 }
 #endif
 
-vec3 CalculateVertexOffset( in int vertex_id, in float sprite_time, in float wind_time, in float fadeScale)
+// The vertex of the sprite: card edge side (+1 / -1), s along the height (0
+// bottom .. 1 top) and the corner of the legacy quad (FACE_UP sprites).
+// Quads: 4 vertices per sprite (gl_VertexID % 4). Strips (r_grassBendSegments,
+// near surfaces): a triangle strip of u_GrassStrip.x segments per instance,
+// the sprite data stepping per instance.
+void SpriteVertex(out int vertex_id, out float side, out float s)
+{
+	if (u_GrassStrip.x > 0.5)
+	{
+		int column = gl_VertexID & 1;
+		int row = gl_VertexID >> 1;
+		side = column == 0 ? 1.0 : -1.0;
+		s = float(row) / u_GrassStrip.x;
+		vertex_id = column == 0 ? (row == 0 ? 0 : 1) : (row == 0 ? 3 : 2);
+	}
+	else
+	{
+		vertex_id = gl_VertexID % 4;
+		side = vertex_id < 2 ? 1.0 : -1.0;
+		s = (vertex_id == 1 || vertex_id == 2) ? 1.0 : 0.0;
+	}
+}
+
+vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in float sprite_time, in float wind_time, in float fadeScale)
 {
 	float width = attr_Position2.x;
 	float height = attr_Position2.y;
 	vec2 skew = attr_Position2.zw;
-	
+
 	width += u_FadeScale * fadeScale * width;
 
 #if defined(FX_SPRITE)
@@ -193,32 +222,23 @@ vec3 CalculateVertexOffset( in int vertex_id, in float sprite_time, in float win
 	height += var_Effectpos * height * u_FxGrow.y;
 #endif
 
-#if !defined(FACE_FLATTENED)
+#if defined(FACE_UP)
 	float halfWidth = width * 0.5;
 	vec3 offsets[] = vec3[](
-#if defined(FACE_UP)
 		vec3( halfWidth, -halfWidth, 0.0),
 		vec3( halfWidth,  halfWidth, 0.0),
 		vec3(-halfWidth,  halfWidth, 0.0),
 		vec3(-halfWidth, -halfWidth, 0.0)
-#else
-		vec3( halfWidth, 0.0, 0.0),
-		vec3( halfWidth, 0.0, height),
-		vec3(-halfWidth, 0.2, height), // Offset this upper vertex to make sprite visable from above
-		vec3(-halfWidth, 0.0, 0.0)
-#endif
 	);
+	vec3 offset = offsets[vertex_id];
+#elif !defined(FACE_FLATTENED)
+	// the upper left vertex is offset to make the sprite visible from above
+	float halfWidth = width * 0.5;
+	vec3 offset = vec3(side * halfWidth, side < 0.0 ? 0.2 * s : 0.0, height * s);
 #else
 	float offsetValue = mix(width, height, attr_Position.w);
-	vec3 offsets[] = vec3[](
-		vec3( offsetValue, 0.0, 0.0),
-		vec3( offsetValue, 0.0, height),
-		vec3(-offsetValue, 0.2, height), // Offset this upper vertex to make sprite visable from above
-		vec3(-offsetValue, 0.0, 0.0)
-	);
+	vec3 offset = vec3(side * offsetValue, side < 0.0 ? 0.2 * s : 0.0, height * s);
 #endif
-
-	vec3 offset = offsets[vertex_id];
 
 #if defined(FACE_CAMERA)
 	offset = (offset.x * normalize(u_SpriteViewLeft)) + (offset.z * normalize(u_SpriteViewUp));
@@ -239,11 +259,11 @@ vec3 CalculateVertexOffset( in int vertex_id, in float sprite_time, in float win
 #endif
 
 #if !defined(FACE_UP) && !defined(FX_SPRITE)
-	float isLowerVertex = float(offset.z == 0.0);
-	offset.xy += mix(skew, vec2(0.0), isLowerVertex);
+	// the rest stem leans along the skew
+	offset.xy += skew * s;
 	bool interaction = u_FoliageInteract.x > 0.5;
-	// the tip offset of the wind, the stem the colliders bend further
-	vec3 windTip = vec3(0.0);
+	// horizontal tip displacement of the wind; the blade bends to it as a beam
+	vec2 windTip = vec2(0.0);
 	if (interaction && FoliageInteractionNoWind())
 	{
 		// r_foliageInteractionDebug 4: interaction only
@@ -251,29 +271,25 @@ vec3 CalculateVertexOffset( in int vertex_id, in float sprite_time, in float win
 	else if (u_FoliageWindParams.x < 0.5)
 	{
 		float angle = (attr_Position.x + attr_Position.y) * 0.02 + (sprite_time * 0.0015);
-		float windsway = mix(height* u_WindIdle * 0.075, 0.0, isLowerVertex);
-		offset.xy += vec2(cos(angle), sin(angle)) * windsway;
-		windTip.xy = vec2(cos(angle), sin(angle)) * (height * u_WindIdle * 0.075);
+		windTip = vec2(cos(angle), sin(angle)) * (height * u_WindIdle * 0.075);
 	}
 	else if (u_WindIdle > 0.0)
 	{
-		vec3 wind = FoliageWind(attr_Position.xy, attr_Position.w, wind_time, height);
-		offset += wind * (1.0 - isLowerVertex);
-		windTip = wind;
+		windTip = FoliageWind(attr_Position.xy, attr_Position.w, wind_time, height).xy;
 	}
 
-	// r_foliageInteraction: the character colliders bend the stem (anchor to
-	// tip, skew and wind included) further. Everything here depends on the
-	// anchor only, so all cards of a tuft move the top edge by the same
-	// vector; the bottom vertices stay on the ground. Near the ground (40 % of
-	// the height) is what the colliders test, so the feet part the grass.
+	// r_foliageInteraction: the grass state of the bend field at the tuft
+	// anchor (all cards of a tuft bend the same way), a hard contact of the
+	// legs at the probe height (foliage_interact.glsl)
+	vec2 delta = vec2(0.0);
 	if (interaction)
 	{
-		vec3 stem = vec3(skew, height) + windTip;
-		vec3 q = attr_Position.xyz + vec3(0.0, 0.0, 0.4 * height);
-		vec2 bend = FoliageCharacterBend(q, attr_Position.xy, g_FoliagePrevious, g_FoliageHeat);
-		offset += (FoliageApplyBend(stem, bend, 1.0) - stem) * (1.0 - isLowerVertex);
+		delta = FoliageFieldDisplacement(attr_Position.xy, g_FoliagePrevious);
+		g_FoliageHeat = clamp(length(delta) * (1.0 / 16.0), 0.0, 1.0);
 	}
+
+	// an inextensible blade: the point s of the stem moves along the curve
+	offset += FoliageBladeBend(vec3(skew, height), s, windTip, delta);
 #endif
 	return offset;
 }
@@ -295,7 +311,7 @@ void main()
 	// adaptive lod: the third card erodes like the distance fade, then
 	// collapses to a zero area primitive
 	float cardFade = 0.0;
-	if (gl_InstanceID >= 2 && u_AutoGrass.y > 0.0)
+	if (SpriteCardIndex() >= 2 && u_AutoGrass.y > 0.0)
 	{
 		cardFade = smoothstep(u_AutoGrass.y, u_AutoGrass.y * 1.33, distanceToCamera);
 		if (cardFade >= 1.0)
@@ -310,8 +326,10 @@ void main()
 	// r_foliageWindDebug 3 freezes the breeze in both frames
 	bool windFrozen = u_FoliageWindParams.w > 0.5;
 	float wind_time = windFrozen ? u_FoliageWindParams.z : u_frameTime;
-	int vertex_id = gl_VertexID % 4;
-	vec3 offset = CalculateVertexOffset(vertex_id, sprite_time, wind_time, fadeScale);
+	int vertex_id;
+	float side, s;
+	SpriteVertex(vertex_id, side, s);
+	vec3 offset = CalculateVertexOffset(vertex_id, side, s, sprite_time, wind_time, fadeScale);
 #if !defined(FACE_UP) && !defined(FX_SPRITE)
 	float windGust = g_WindGust;
 	vec2 windBend = g_WindBend;
@@ -334,11 +352,12 @@ void main()
 #if !defined(FACE_UP) && !defined(FX_SPRITE)
 	g_FoliagePrevious = true;
 #endif
-	offset = CalculateVertexOffset(vertex_id, sprite_time, wind_time, fadeScale);
+	offset = CalculateVertexOffset(vertex_id, side, s, sprite_time, wind_time, fadeScale);
 	worldPos = vec4(attr_Position.xyz + offset, 1.0);
 	var_prevPosition = u_previousViewProjectionMatrix * worldPos;
 #endif
 
+#if defined(FACE_UP)
 	const vec2 texcoords[] = vec2[](
 		vec2(1.0, 1.0),
 		vec2(1.0, 0.0),
@@ -346,6 +365,10 @@ void main()
 		vec2(0.0, 1.0)
 	);
 	var_TexCoords = texcoords[vertex_id];
+#else
+	// along the blade: v from the bottom (1) to the top (0)
+	var_TexCoords = vec2(side > 0.0 ? 1.0 : 0.0, 1.0 - s);
+#endif
 	var_Color = attr_Color;
 	var_Alpha = 1.0 - fadeScale;
 
@@ -379,7 +402,7 @@ void main()
 		// card index
 		const vec3 cardColors[] = vec3[](
 			vec3(1.0, 0.15, 0.1), vec3(0.1, 1.0, 0.15), vec3(0.15, 0.3, 1.0));
-		var_Color = cardColors[min(gl_InstanceID, 2)];
+		var_Color = cardColors[min(SpriteCardIndex(), 2)];
 	}
 	else if (debugMode == 2)
 	{

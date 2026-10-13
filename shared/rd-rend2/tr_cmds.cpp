@@ -236,6 +236,8 @@ void	R_AddDrawSurfCmd( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	if (!tr.registered) {
 		return;
 	}
+	// the MD3 plant bones this view added, in front of its draws
+	R_PlantSimQueueUpload();
 	cmd = (drawSurfsCommand_t *)R_GetCommandBuffer( sizeof( *cmd ) );
 	if ( !cmd ) {
 		return;

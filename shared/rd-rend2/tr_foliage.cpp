@@ -311,5 +311,7 @@ void R_PrintAutoFoliage_f(void)
 				mod->name, surf->name, sh->name, R_FoliageClassName(safe.cls),
 				R_FoliageClassName(broad.cls), broad.score, why[0] ? why : "no-signal");
 		}
+		// the frond skeleton of the plant models (tr_plantskel.cpp)
+		R_PrintPlantSkeleton(mdv);
 	}
 }

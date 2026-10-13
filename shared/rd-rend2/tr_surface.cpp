@@ -2797,6 +2797,28 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	}
 	backEnd.pc.c_spriteCards += surf->numSprites * numInstances;
 
+	// r_grassBendSegments: near vegetation is drawn as strips, so the blades
+	// show their curve (glsl/foliage_interact.glsl FoliageBladeBend); one
+	// instance per card and sprite, the sprite data stepping per instance.
+	// The far quads lie on the same curve (its chord).
+	int stripSegments = 0;
+	if (r_grassBendSegments->integer > 1 &&
+		(ss->type == SURFSPRITE_VERTICAL || ss->type == SURFSPRITE_ORIENTED || ss->type == SURFSPRITE_FLATTENED) &&
+		ss->facing != SURFSPRITE_FACING_UP && !(shaderFlags & SSDEF_ADDITIVE) &&
+		(ss->windIdle > 0.0f || R_FoliageInteractionActive()))
+	{
+		const float lodDist = r_grassBendLodDist->value;
+		float dist2 = 0.0f;
+		for (int i = 0; i < 3; ++i)
+		{
+			const float o = (*spriteViewOrigin)[i];
+			const float d = MAX(MAX(surf->spriteMins[i] - o, o - surf->spriteMaxs[i]), 0.0f);
+			dist2 += d * d;
+		}
+		if (dist2 < lodDist * lodDist)
+			stripSegments = Com_Clampi(2, 8, r_grassBendSegments->integer);
+	}
+
 	shaderProgram_t *program = programGroup + shaderFlags;
 	assert(program->uniformBlocks & (1 << UNIFORM_BLOCK_SURFACESPRITE));
 
@@ -2837,6 +2859,7 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	// r_foliageInteraction: the character colliders bend the tufts (every
 	// sprite draw writes it, the value sticks per program)
 	RB_SetSpriteInteractionUniforms(uniformDataWriter);
+	uniformDataWriter.SetUniformVec4(UNIFORM_GRASSSTRIP, (float)stripSegments, (float)numInstances, 0.0f, 0.0f);
 	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWORIGIN, *spriteViewOrigin);
 	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWLEFT, *spriteViewLeft);
 	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWUP, *spriteViewUp);
@@ -2913,6 +2936,53 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	UniformData *spriteUniformData = uniformDataWriter.Finish(frameAllocator);
 	SamplerBinding *spriteSamplerBinding = samplerBindingsWriter.Finish(
 		frameAllocator, &numBindings);
+
+	if (stripSegments > 0)
+	{
+		// every sprite is stored 4 times (one per quad corner): read the first
+		// one per instance
+		vertexAttribute_t stripAttributes[8];
+		const int numStripAttributes = MIN(surf->numAttributes, (int)ARRAY_LEN(stripAttributes));
+		for (int i = 0; i < numStripAttributes; ++i)
+		{
+			stripAttributes[i] = surf->attributes[i];
+			stripAttributes[i].offset += (size_t)surf->baseVertex * surf->attributes[i].stride;
+			stripAttributes[i].stride *= 4;
+			stripAttributes[i].stepRate = numInstances;
+		}
+
+		DrawItem item = {};
+		item.renderState.stateBits = firstStage->stateBits;
+		if (modernSunShadow)
+		{
+			item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+			item.renderState.stateBits |= GLS_DEPTHMASK_TRUE;
+		}
+		item.renderState.cullType = CT_TWO_SIDED;
+		item.renderState.depthRange = DepthRange{ 0.0f, 1.0f };
+		item.program = program;
+		item.ibo = NULL;
+		item.uniformData = spriteUniformData;
+		item.samplerBindings = spriteSamplerBinding;
+		item.numSamplerBindings = numBindings;
+
+		DrawItemSetVertexAttributes(
+			item, stripAttributes, numStripAttributes, frameAllocator);
+		DrawItemSetUniformBlockBindings(
+			item, uniformBlockBindings, frameAllocator);
+
+		item.draw.type = DRAW_COMMAND_ARRAYS;
+		item.draw.primitiveType = GL_TRIANGLE_STRIP;
+		item.draw.numInstances = surf->numSprites * numInstances;
+		item.draw.params.arrays.firstVertex = 0;
+		item.draw.params.arrays.numVertices = 2 * (stripSegments + 1);
+
+		uint32_t RB_CreateSortKey(const DrawItem& item, int stage, int layer);
+		uint32_t key = RB_CreateSortKey(item, 0, surf->shader->sort);
+		RB_AddDrawItem(backEndData->currentPass, key, item);
+		backEnd.pc.c_spriteDraws++;
+		return;
+	}
 
 	int numDrawIndicesUndrawn = surf->numIndices;
 	int baseVertex = surf->baseVertex;

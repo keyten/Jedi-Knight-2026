@@ -515,7 +515,6 @@ cvar_t  *r_foliageInteractionRadius;
 cvar_t  *r_foliageInteractionMaxInteractors;
 cvar_t  *r_foliageInteractionNPCs;
 cvar_t  *r_foliageInteractionDebug;
-cvar_t  *r_foliageBendField;
 cvar_t  *r_foliageBendFieldSize;
 cvar_t  *r_foliageBendFieldExtent;
 cvar_t  *r_foliageBendFieldStrength;
@@ -525,6 +524,15 @@ cvar_t  *r_foliageBendFieldImpulse;
 cvar_t  *r_foliageBendFieldDebug;
 cvar_t  *r_plantWind;
 cvar_t  *r_plantWindStrength;
+cvar_t  *r_plantSimDistance;
+cvar_t  *r_plantWindDistance;
+cvar_t  *r_plantSimMaxPlants;
+cvar_t  *r_plantStiffness;
+cvar_t  *r_plantDebug;
+cvar_t  *r_grassBendSegments;
+cvar_t  *r_grassBendLodDist;
+cvar_t  *r_grassTrample;
+cvar_t  *r_grassTrampleRecovery;
 cvar_t  *r_autoPBRConvert;
 cvar_t  *r_autoPBRRoughness;
 cvar_t  *r_diffuseBRDF;
@@ -1935,6 +1943,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_autoFoliageList", R_PrintAutoFoliage_f },
 	{ "r_foliageInteractionList", R_FoliageInteractionList_f },
 	{ "r_foliageBendFieldClear", R_FoliageFieldClear_f },
+	{ "r_plantSimInfo", R_PlantSimInfo_f },
 	{ "r_forwardPlusStats",	R_ForwardPlusStats_f },
 	{ "r_pomSilhouetteInfo",	R_PomSilhouetteInfo_f },
 	{ "r_autoPOMSilhouette",	R_AutoPomSilhouette_f },
@@ -2503,37 +2512,61 @@ void R_Register( void )
 		"r_foliageInteraction: 0 = player only, 1 = also the nearest NPCs / other players" );
 	ri.Cvar_CheckRange( r_foliageInteractionNPCs, 0, 1, qtrue );
 	r_foliageInteractionDebug = ri.Cvar_Get( "r_foliageInteractionDebug", "0", CVAR_CHEAT,
-		"Foliage interaction debug bits: 1 = draw colliders, 2 = x2 radius and strength, 4 = interaction only (no wind), 8 = contact heat color, 16 = freeze colliders, 32 = player only" );
+		"Foliage interaction debug bits: 1 = draw colliders, 2 = x2 radius and strength, 4 = interaction only (no wind), 8 = grass contact heat color (plants: r_plantDebug 8), 16 = freeze colliders, 32 = player only" );
 	ri.Cvar_CheckRange( r_foliageInteractionDebug, 0, 63, qtrue );
-	r_foliageBendField = ri.Cvar_Get( "r_foliageBendField", "0", CVAR_ARCHIVE,
-		"r_foliageInteraction: plants the characters leave spring back instead of snapping to rest (persistent bend field around the player)" );
-	ri.Cvar_CheckRange( r_foliageBendField, 0, 1, qtrue );
-	r_foliageBendFieldSize = ri.Cvar_Get( "r_foliageBendFieldSize", "128", CVAR_ARCHIVE | CVAR_LATCH,
-		"r_foliageBendField: texels per side of the bend field (64, 128 or 256)" );
+	r_foliageBendFieldSize = ri.Cvar_Get( "r_foliageBendFieldSize", "256", CVAR_ARCHIVE | CVAR_LATCH,
+		"r_foliageInteraction: texels per side of the grass bend field (64, 128 or 256)" );
 	ri.Cvar_CheckRange( r_foliageBendFieldSize, 64, 256, qtrue );
 	r_foliageBendFieldExtent = ri.Cvar_Get( "r_foliageBendFieldExtent", "1024", CVAR_ARCHIVE,
-		"r_foliageBendField: world size of the square around the player the field covers" );
+		"Grass bend field: world size of the square around the player it covers" );
 	ri.Cvar_CheckRange( r_foliageBendFieldExtent, 256.0f, 8192.0f, qfalse );
 	r_foliageBendFieldStrength = ri.Cvar_Get( "r_foliageBendFieldStrength", "1", CVAR_ARCHIVE,
-		"r_foliageBendField: scale of the persistent bend (0 = the field has no effect)" );
+		"Grass bend field: scale of the displacement the characters push the grass by (0 = no grass interaction)" );
 	ri.Cvar_CheckRange( r_foliageBendFieldStrength, 0.0f, 4.0f, qfalse );
 	r_foliageBendFieldRecoveryTime = ri.Cvar_Get( "r_foliageBendFieldRecoveryTime", "0.8", CVAR_ARCHIVE,
-		"r_foliageBendField: seconds until a plant the characters left is back to rest (swing down to ~5 %)" );
+		"Grass bend field: seconds until grass the characters left is back to rest (swing down to ~5 %)" );
 	ri.Cvar_CheckRange( r_foliageBendFieldRecoveryTime, 0.1f, 10.0f, qfalse );
 	r_foliageBendFieldDamping = ri.Cvar_Get( "r_foliageBendFieldDamping", "0.6", CVAR_ARCHIVE,
-		"r_foliageBendField: spring damping ratio, 1 = no swing past rest, lower = more sway" );
+		"Grass bend field: spring damping ratio, 1 = no swing past rest, lower = more sway" );
 	ri.Cvar_CheckRange( r_foliageBendFieldDamping, 0.2f, 1.0f, qfalse );
 	r_foliageBendFieldImpulse = ri.Cvar_Get( "r_foliageBendFieldImpulse", "1", CVAR_ARCHIVE,
-		"r_foliageBendField: extra momentum along the walk that running through adds" );
+		"Grass bend field: drag along the walk that running through adds" );
 	ri.Cvar_CheckRange( r_foliageBendFieldImpulse, 0.0f, 4.0f, qfalse );
 	r_foliageBendFieldDebug = ri.Cvar_Get( "r_foliageBendFieldDebug", "0", CVAR_CHEAT,
-		"Foliage field debug bits: 1 = field overlay (vectors, magnitude), 2 = covered square, 4 = freeze, 8 = x3 strength, 16 = field only (no direct push), 32 = direct push only" );
-	ri.Cvar_CheckRange( r_foliageBendFieldDebug, 0, 63, qtrue );
+		"Grass bend field debug bits: 1 = field overlay (displacement, magnitude), 2 = covered square, 4 = freeze, 8 = x3 strength" );
+	ri.Cvar_CheckRange( r_foliageBendFieldDebug, 0, 15, qtrue );
 	r_plantWind = ri.Cvar_Get( "r_plantWind", "0", CVAR_ARCHIVE,
-		"Breeze bend of FOLIAGE_PLANT models (ferns) around their root, 0 = none; direction and speed from r_foliageWindDirection / r_foliageWindSpeed (needs r_autoFoliage)" );
+		"Breeze on the fronds of FOLIAGE_PLANT / GRASS models (ferns, grass cards), 0 = none; direction and speed from r_foliageWindDirection / r_foliageWindSpeed (needs r_autoFoliage)" );
 	ri.Cvar_CheckRange( r_plantWind, 0, 1, qtrue );
-	r_plantWindStrength = ri.Cvar_Get( "r_plantWindStrength", "1", CVAR_ARCHIVE, "Plant root wind bend strength, 0-4 (needs r_plantWind 1)" );
+	r_plantWindStrength = ri.Cvar_Get( "r_plantWindStrength", "1", CVAR_ARCHIVE, "Plant frond wind strength, 0-4 (needs r_plantWind 1)" );
 	ri.Cvar_CheckRange( r_plantWindStrength, 0.0f, 4.0f, qfalse );
+	r_plantSimDistance = ri.Cvar_Get( "r_plantSimDistance", "1500", CVAR_ARCHIVE,
+		"Plants closer than this (or touched by a character) get the full frond simulation (120 Hz sub steps), farther ones one coarse step per frame" );
+	ri.Cvar_CheckRange( r_plantSimDistance, 0.0f, 16384.0f, qfalse );
+	r_plantWindDistance = ri.Cvar_Get( "r_plantWindDistance", "3000", CVAR_ARCHIVE,
+		"Plants farther than this stay at rest (no wind)" );
+	ri.Cvar_CheckRange( r_plantWindDistance, 0.0f, 32768.0f, qfalse );
+	r_plantSimMaxPlants = ri.Cvar_Get( "r_plantSimMaxPlants", "96", CVAR_ARCHIVE,
+		"Plants simulated per frame at most (the ones a character touches always are)" );
+	ri.Cvar_CheckRange( r_plantSimMaxPlants, 0, 1024, qtrue );
+	r_plantStiffness = ri.Cvar_Get( "r_plantStiffness", "1", CVAR_ARCHIVE,
+		"Bending stiffness of the plant fronds (1 = default, higher = stiffer and faster swing); applies to plants seen after a change" );
+	ri.Cvar_CheckRange( r_plantStiffness, 0.1f, 8.0f, qfalse );
+	r_plantDebug = ri.Cvar_Get( "r_plantDebug", "0", CVAR_CHEAT,
+		"Plant frond debug bits: 1 = centerlines and nodes, 2 = color by segment, 4 = color by bone, 8 = centerlines colored by contact side, 16 = print the simulation cost" );
+	ri.Cvar_CheckRange( r_plantDebug, 0, 31, qtrue );
+	r_grassBendSegments = ri.Cvar_Get( "r_grassBendSegments", "4", CVAR_ARCHIVE,
+		"Segments of a near grass sprite (curved blade), 1 = flat card everywhere" );
+	ri.Cvar_CheckRange( r_grassBendSegments, 1, 8, qtrue );
+	r_grassBendLodDist = ri.Cvar_Get( "r_grassBendLodDist", "800", CVAR_ARCHIVE,
+		"Grass sprite surfaces closer than this are drawn as curved strips (r_grassBendSegments), farther ones as cards on the same curve" );
+	ri.Cvar_CheckRange( r_grassBendLodDist, 0.0f, 8192.0f, qfalse );
+	r_grassTrample = ri.Cvar_Get( "r_grassTrample", "0.25", CVAR_ARCHIVE,
+		"r_foliageInteraction: part of the bend grass keeps after a character stood on it (slow recovery, r_grassTrampleRecovery), 0 = none" );
+	ri.Cvar_CheckRange( r_grassTrample, 0.0f, 1.0f, qfalse );
+	r_grassTrampleRecovery = ri.Cvar_Get( "r_grassTrampleRecovery", "6", CVAR_ARCHIVE,
+		"Seconds trampled grass needs to stand up again" );
+	ri.Cvar_CheckRange( r_grassTrampleRecovery, 0.5f, 60.0f, qfalse );
 	r_autoPBRConvert = ri.Cvar_Get( "r_autoPBRConvert", "0", CVAR_ARCHIVE | CVAR_LATCH, "Convert legacy shaders with alphaGen lightingSpecular / tcGen environment stages (vertex lit in rend2) to per pixel lightall materials; the specular mask becomes spatial roughness / metalness" );
 	ri.Cvar_CheckRange( r_autoPBRConvert, 0, 1, qtrue );
 	r_autoPBRRoughness = ri.Cvar_Get( "r_autoPBRRoughness", "0", CVAR_ARCHIVE, "Auto PBR roughness of legacy diffuse-only materials: 0 = constant class roughness, 1 = subtle variation generated from the diffuse detail (maps are built at load, turning it on needs vid_restart)" );
@@ -3825,6 +3858,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_LightCookiesShutdown();
 		R_DestroyGPUBuffers();
 		R_ShutdownForwardPlus();
+		R_ShutdownPlantSim();
 		R_ClearAreaLights();
 		R_ClearStaticLighting();
 		R_FoliageInteractionReset();

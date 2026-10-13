@@ -1088,6 +1088,7 @@ static void DrawTris(shaderCommands_t *input, const VertexArraysProperties *vert
 		};
 
 		samplerBindingsWriter.AddStaticImage(tr.whiteImage, TB_DIFFUSEMAP);
+		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
 		const vec4_t baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		const vec4_t vertColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		uniformDataWriter.SetUniformVec4(UNIFORM_BASECOLOR, baseColor);
@@ -1450,6 +1451,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		SamplerBindingsWriter samplerBindingsWriter;
 		RB_VolumetricSetupFogDraw(froxelFogMode, uniformDataWriter, samplerBindingsWriter);
 		RB_VolumetricSetupFogPassDraw(rgbPass, uniformDataWriter, samplerBindingsWriter);
+		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
 		if (pomFog)
 			RB_PomSilhouetteSetupDraw(input->xstages[0], uniformDataWriter, samplerBindingsWriter, qtrue);
 		if (input->numPasses > 0)
@@ -1575,6 +1577,9 @@ static unsigned int RB_CalcShaderVertexAttribs( const shader_t *shader )
 		vertexAttribs |= ATTR_BONE_WEIGHTS;
 		vertexAttribs |= ATTR_BONE_INDEXES;
 	}
+	// MD3 plants keep their skin in the bone weight slot (tr_plantskel.cpp)
+	else if (tess.foliageMotion == FOLIAGE_PLANT)
+		vertexAttribs |= ATTR_BONE_WEIGHTS;
 
 	// silhouette POM: base frame, foot point coordinates and shell data
 	// (attr_Position2) for the depth / fog programs too
@@ -2266,10 +2271,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		// r_autoPBRDebug: lightall stages show their material, lit stages still
 		// on the vertex lit generic path show up red (generic.glsl)
 		vec4_t materialDebug = {};
-		// r_leafFlutterDebug 4 / 8 color the fluttering leaves first,
-		// r_foliageInteractionDebug 8 the bending plants
-		if ((input->foliageMotion != FOLIAGE_LEAF || !RB_LeafFlutterDebugColor(materialDebug)) &&
-			!RB_FoliageInteractionDebugColor(input->foliageMotion, materialDebug))
+		// r_leafFlutterDebug 4 / 8 color the fluttering leaves first
+		if (input->foliageMotion != FOLIAGE_LEAF || !RB_LeafFlutterDebugColor(materialDebug))
 		{
 			if (r_autoFoliageDebug->integer && r_autoFoliage->integer)
 				R_FoliageDebugColor(tess.foliageDebugClass, materialDebug);
@@ -2591,6 +2594,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 		if (input->pomMode != POM_MODE_NONE && pStage->glslShaderGroup == tr.lightallShader)
 			RB_PomSilhouetteSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter, qfalse);
+		// MD3 plant bones (tr_plantsim.cpp), every pass
+		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
 
 		CaptureDrawData(input, pStage, index, stage);
 

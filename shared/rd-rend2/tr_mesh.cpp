@@ -85,9 +85,9 @@ static int R_CullModel( mdvModel_t *model, trRefEntity_t *ent ) {
 	oldFrame = model->frames + ent->e.oldframe;
 
 	// r_leafFlutter moves leaf vertices a little past the static bounds, the
-	// plant root bend (r_plantWind, r_foliageInteraction) further: grow them
-	// by the largest offset (world units) instead of recomputing them
-	const float flutterMargin = MAX( R_LeafFlutterCullMargin( model ), R_PlantBendCullMargin( model ) );
+	// plant fronds (tr_plantsim.cpp) further: grow them by the largest offset
+	// (world units) instead of recomputing them
+	const float flutterMargin = MAX( R_LeafFlutterCullMargin( model ), R_PlantSimCullMargin( model ) );
 
 	// cull bounding sphere ONLY if this is not an upscaled entity
 	if ( !ent->e.nonNormalizedAxes )
@@ -426,6 +426,11 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 	cubemapIndex = R_CubemapForPoint(origin);
 	
 	dlightBits = R_DLightsForPoint(origin, model->frames[ent->e.frame].radius * maxScale);
+
+	// plants with a frond skeleton: this frame's bones (tr_plantsim.cpp)
+	ent->plantBoneOffset = -1;
+	if ( model->plantSkel )
+		R_PlantSimAcquire( ent, model );
 
 	//
 	// draw all surfaces

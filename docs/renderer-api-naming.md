@@ -42,8 +42,8 @@ Modern rain streaks use `r_rainStreakOpacity`, `r_rainStreakLighting`, and
 `r_rainStreakDebug`; lens droplets use `r_rainLensDensity` and `r_rainLensDropSize`.
 
 Grass geometry uses `r_grassCardMode`, `r_grassCardLodDist`, `r_grassCardWidth`,
-and `r_grassCardDebug`. Persistent bends use `r_foliageBendField*`, including
-`RecoveryTime` and the `Clear` command. Interaction limits use
+and `r_grassCardDebug`. The grass state uses `r_foliageBendField*` (no on / off switch),
+including `RecoveryTime` and the `Clear` command; plant fronds use `r_plant*`. Interaction limits use
 `r_foliageInteractionMaxInteractors` and `r_foliageInteractionNPCs`.
 
 Other clarified names include `r_aoDebug`, `r_ssgiHalfRes`,

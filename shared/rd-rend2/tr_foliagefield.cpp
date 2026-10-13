@@ -1,17 +1,17 @@
 /*
- * Persistent foliage bend field (r_foliageBendField) of the character interaction
- * (tr_foliageinteract.cpp).
+ * Grass bend field of the character interaction (r_foliageInteraction,
+ * tr_foliageinteract.cpp): the state of the grass sprites.
  *
- * The direct push of the colliders is stateless: a plant snaps back to its
- * wind pose the frame a character leaves it. The field adds a short history
- * without any per plant state: one world XY texture around the player, each
- * texel a patch of ground holding the bend of the plants on it and its
- * velocity (RGBA16F: rg = bend, ba = velocity). Once per frame a fullscreen
- * fragment pass (glsl/foliage_field.glsl, two ping-pong textures, no compute:
- * rend2 runs on GL 3.2) moves every patch with a damped spring towards the
- * push of the characters standing on it, or back to rest. The grass sprites
- * sample it at their tuft anchor, the MD3 plants at their root; the leaf
- * flutter of the trees never does.
+ * One world XY texture around the player, each texel a patch of grass: the
+ * displacement the characters pushed it by at the probe height (world units)
+ * and its velocity (RGBA16F), plus the trampled part it keeps for a while
+ * (RG16F, second attachment). Once per frame a fullscreen fragment pass
+ * (glsl/foliage_field.glsl, ping-pong textures, no compute: rend2 runs on GL
+ * 3.2) springs every patch back towards its trampled pose and pushes the
+ * patches inside a character exactly out of the capsule (a hard contact, not a
+ * force field). The grass sprites sample it at their tuft anchor and bend as
+ * inextensible blades (glsl/foliage_interact.glsl FoliageBladeBend). The MD3
+ * plants have their own frond simulation (tr_plantsim.cpp).
  *
  * The field is gameplay state, not camera state: it follows the player
  * collider (never the view origin, so cinematics and third person don't move
@@ -30,16 +30,15 @@ enum
 	FOLIAGEFIELD_DEBUG_OVERLAY    = 1,	// the field in a corner of the screen
 	FOLIAGEFIELD_DEBUG_BOUNDS     = 2,	// outline of the covered square
 	FOLIAGEFIELD_DEBUG_FREEZE     = 4,	// no update
-	FOLIAGEFIELD_DEBUG_EXAGGERATE = 8,	// x3 field strength
-	FOLIAGEFIELD_DEBUG_NO_DIRECT  = 16,	// the field alone, no direct push
-	FOLIAGEFIELD_DEBUG_NO_FIELD   = 32	// the direct push alone (the field still updates)
+	FOLIAGEFIELD_DEBUG_EXAGGERATE = 8	// x3 field strength
 };
 
 static struct
 {
 	bool resources;
 	int size;						// texels per side
-	image_t *image[2];
+	image_t *image[2];				// displacement, velocity
+	image_t *trample[2];			// trampled displacement
 	FBO_t *fbo[2];
 
 	// state of the textures
@@ -70,14 +69,15 @@ static int FoliageFieldDebug(void)
 
 bool R_FoliageFieldActive(void)
 {
-	return s_ff.resources && r_foliageBendField->integer && R_FoliageInteractionActive();
+	return s_ff.resources && R_FoliageInteractionActive();
 }
 
 /*
 =============
-Resources: two RGBA16F squares, sampled with linear filtering (the plants sit
-between texel centers), always created (256 KB at 128 x 128) so r_foliageBendField
-toggles without vid_restart; r_foliageBendFieldSize is latched.
+Resources: two RGBA16F + two RG16F squares, sampled with linear filtering (the
+tufts sit between texel centers), always created (1.5 MB at 256 x 256) so
+r_foliageInteraction toggles without vid_restart; r_foliageBendFieldSize is
+latched.
 =============
 */
 void R_CreateFoliageFieldImages(void)
@@ -89,13 +89,27 @@ void R_CreateFoliageFieldImages(void)
 	{
 		s_ff.image[i] = R_ScreenCreateImage(va("*foliageField%d", i), s_ff.size, s_ff.size,
 			GL_RGBA16F, qtrue);
+		s_ff.trample[i] = R_ScreenCreateImage(va("*foliageTrample%d", i), s_ff.size, s_ff.size,
+			GL_RG16F, qfalse);
 	}
 }
 
 void R_CreateFoliageFieldFBOs(void)
 {
 	for (int i = 0; i < 2; i++)
-		s_ff.fbo[i] = s_ff.image[i] ? R_ScreenCreateLevelFBO(va("_foliageField%d", i), s_ff.image[i], 0) : NULL;
+	{
+		s_ff.fbo[i] = NULL;
+		if (!s_ff.image[i] || !s_ff.trample[i])
+			continue;
+		s_ff.fbo[i] = FBO_Create(va("_foliageField%d", i), s_ff.size, s_ff.size);
+		FBO_Bind(s_ff.fbo[i]);
+		FBO_AttachTextureImage(s_ff.image[i], 0);
+		FBO_AttachTextureImage(s_ff.trample[i], 1);
+		const GLenum buffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		qglDrawBuffers(2, buffers);
+		R_CheckFBO(s_ff.fbo[i]);
+	}
+	FBO_Bind(NULL);
 	s_ff.resources = s_ff.fbo[0] && s_ff.fbo[1];
 	s_ff.valid = false;
 }
@@ -212,6 +226,7 @@ void R_FoliageFieldBlock(FoliageInteractionBlock *block, int interactionDebugBit
 	VectorSet4(block->fieldPrevious, 0.0f, 0.0f, 0.0f, 0.0f);
 	VectorSet4(block->fieldUpdate, 0.0f, 0.0f, 0.0f, 0.0f);
 	VectorSet4(block->fieldShift, 0.0f, 0.0f, 0.0f, 0.0f);
+	VectorSet4(block->fieldTrample, 0.0f, 0.0f, 0.0f, 0.0f);
 	if (!s_ff.frameActive)
 		return;
 
@@ -219,8 +234,6 @@ void R_FoliageFieldBlock(FoliageInteractionBlock *block, int interactionDebugBit
 	float scale = r_foliageBendFieldStrength->value;
 	if (debug & FOLIAGEFIELD_DEBUG_EXAGGERATE)
 		scale *= 3.0f;
-	if (debug & FOLIAGEFIELD_DEBUG_NO_FIELD)
-		scale = 0.0f;
 
 	const float texel = s_ff.extent / s_ff.size;
 	const float invExtent = 1.0f / s_ff.extent;
@@ -234,8 +247,9 @@ void R_FoliageFieldBlock(FoliageInteractionBlock *block, int interactionDebugBit
 	const float omega = 3.0f / (zeta * recovery);
 	VectorSet4(block->fieldUpdate, s_ff.dt, omega * omega, 2.0f * zeta * omega,
 		MAX(r_foliageBendFieldImpulse->value, 0.0f));
-	VectorSet4(block->fieldShift, (float)s_ff.shiftX, (float)s_ff.shiftY, s_ff.clear ? 1.0f : 0.0f,
-		(debug & FOLIAGEFIELD_DEBUG_NO_DIRECT) ? 1.0f : 0.0f);
+	VectorSet4(block->fieldShift, (float)s_ff.shiftX, (float)s_ff.shiftY, s_ff.clear ? 1.0f : 0.0f, 0.0f);
+	VectorSet4(block->fieldTrample, MAX(r_grassTrample->value, 0.0f),
+		1.0f / MAX(r_grassTrampleRecovery->value, 0.1f), 0.0f, 0.0f);
 	(void)interactionDebugBits;
 }
 
@@ -302,9 +316,10 @@ const void *RB_FoliageFieldCommand(const void *data)
 		GL_Cull(CT_TWO_SIDED);
 		GLSL_BindProgram(sp);
 		RB_BindUniformBlock(cmd->ubo, UNIFORM_BLOCK_FOLIAGE_INTERACTION, cmd->uboOffset);
-		// nothing samples the target while it is written
+		// nothing samples the target while it is written; the second unit
+		// carries the trampled state in this pass
 		GL_BindToTMU(s_ff.image[cmd->source], TB_FOLIAGEFIELD);
-		GL_BindToTMU(s_ff.image[cmd->source], TB_FOLIAGEFIELD_PREV);
+		GL_BindToTMU(s_ff.trample[cmd->source], TB_FOLIAGEFIELD_PREV);
 		RB_InstantTriangle();
 
 		FBO_Bind(oldFbo);
@@ -347,7 +362,8 @@ void RB_FoliageFieldDebugOverlay(void)
 
 	const float square = (float)MIN(256, glConfig.vidHeight / 3);
 	vec4_t rect;
-	VectorSet4(rect, 16.0f, 16.0f, square, 1.0f);
+	// full heat at 24 units of displacement
+	VectorSet4(rect, 16.0f, 16.0f, square, 24.0f);
 	GLSL_SetUniformVec4(sp, UNIFORM_FOLIAGEFIELDDEBUG, rect);
 	RB_InstantTriangle();
 	GL_SelectTexture(0);
@@ -370,9 +386,9 @@ bool R_FoliageFieldBounds(vec2_t mins, vec2_t maxs)
 void R_FoliageFieldInfo(void)
 {
 	const float texel = s_ff.size ? s_ff.extent / s_ff.size : 0.0f;
-	ri.Printf(PRINT_ALL, "foliage field: %s, %dx%d RGBA16F (%d KB), extent %.0f (%.1f units / texel), "
+	ri.Printf(PRINT_ALL, "foliage field: %s, %dx%d RGBA16F + RG16F (%d KB), extent %.0f (%.1f units / texel), "
 		"center (%.0f %.0f), state %d, previous %d, last dt %.3f\n",
 		R_FoliageFieldActive() ? (s_ff.frameActive ? "on" : "on, idle") : "off",
-		s_ff.size, s_ff.size, s_ff.size * s_ff.size * 8 * 2 / 1024, s_ff.extent, texel,
+		s_ff.size, s_ff.size, s_ff.size * s_ff.size * 12 * 2 / 1024, s_ff.extent, texel,
 		s_ff.originX * texel, s_ff.originY * texel, s_ff.current, s_ff.previous, s_ff.dt);
 }

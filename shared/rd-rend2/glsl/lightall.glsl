@@ -298,18 +298,11 @@ void main()
 		var_LeafFlutter = LeafFlutterMagnitude(leafOffset);
 	}
 
-	// FOLIAGE_PLANT root bend: wind + character colliders (plant_bend.glsl).
-	// The normal and tangent turn with the stem below.
-	vec3 plantRest = wsPosition.xyz;
-	vec3 plantRoot = vec3(0.0);
-	if (PlantBendEnabled())
-	{
-		float plantHeat;
-		plantRoot = PlantBendRoot(u_ModelMatrix);
-		wsPosition.xyz = PlantBendPosition(plantRest, plantRoot, PlantBendWeight(position),
-			u_PlantBendTime.x, false, plantHeat);
-		var_LeafFlutter = plantHeat;
-	}
+	// FOLIAGE_PLANT frond skinning (plant_skin.glsl): the normal and tangent
+	// turn with their section below
+	vec4 plantRotation = vec4(0.0, 0.0, 0.0, 1.0);
+	if (PlantSkinEnabled())
+		wsPosition.xyz = PlantSkinPosition(wsPosition.xyz, false, plantRotation);
 
 #if defined(USE_TCGEN)
 	vec2 texCoords = GenTexCoords(u_TCGen0, position.xyz, normal, u_TCGen0Vector0, u_TCGen0Vector1);
@@ -334,11 +327,11 @@ void main()
   #endif
 	if (LeafFlutterEnabled())
 		normal = LeafFlutterNormal(normal, leafBands, leafWeight);
-	if (PlantBendEnabled())
+	if (PlantSkinEnabled())
 	{
-		normal = FoliageRotateNormal(normal, plantRest - plantRoot, position - plantRoot);
+		normal = PlantSkinDirection(plantRotation, normal);
   #if defined(PER_PIXEL_LIGHTING)
-		tangent = FoliageRotateNormal(tangent, plantRest - plantRoot, position - plantRoot);
+		tangent = PlantSkinDirection(plantRotation, tangent);
   #endif
 	}
 
@@ -374,6 +367,13 @@ void main()
 		#endif
 	}
 	var_Color *= disintegration;
+	// r_plantDebug 2 / 4: segments / bones of the plant fronds
+	if (PlantSkinEnabled())
+	{
+		vec4 plantDebug = PlantSkinDebugColor();
+		if (plantDebug.a > 0.0)
+			var_Color = plantDebug;
+	}
 
 #if defined(PER_PIXEL_LIGHTING)
   var_LightDir = vec4(L, 0.0);

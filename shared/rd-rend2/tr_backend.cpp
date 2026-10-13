@@ -4035,6 +4035,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_FOLIAGE_FIELD:
 			data = RB_FoliageFieldCommand(data);
 			break;
+		case RC_PLANT_BONES:
+			data = RB_PlantBonesCommand(data);
+			break;
 		case RC_END_OF_LIST:
 		default:
 			// finish any 2D drawing if needed

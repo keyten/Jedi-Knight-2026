@@ -467,13 +467,12 @@ void main()
 		var_LeafFlutter = LeafFlutterMagnitude(leafOffset);
 	}
 
-	// FOLIAGE_PLANT root bend: wind + character colliders (plant_bend.glsl)
-	if (PlantBendEnabled())
+	// FOLIAGE_PLANT frond skinning (plant_skin.glsl). Vertex lit, so only the
+	// position moves.
+	if (PlantSkinEnabled())
 	{
-		float plantHeat;
-		wsPosition.xyz = PlantBendPosition(wsPosition.xyz, PlantBendRoot(u_ModelMatrix),
-			PlantBendWeight(position), u_PlantBendTime.x, false, plantHeat);
-		var_LeafFlutter = plantHeat;
+		vec4 plantRotation;
+		wsPosition.xyz = PlantSkinPosition(wsPosition.xyz, false, plantRotation);
 	}
 
 	gl_Position = u_viewProjectionMatrix * wsPosition;

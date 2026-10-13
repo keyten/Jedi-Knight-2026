@@ -1,18 +1,32 @@
-# rend2 foliage character interaction (`r_foliageInteraction`)
+# rend2 vegetation deformation and character interaction
 
-Characters push grass and ferns aside as they walk through them. The player and the nearest NPCs are sent from cgame to
-the renderer as a few vertical capsules. The vertex shaders bend the plants away from them.
-- There is no per plant physics, no Verlet and no stored state.
-- When a character leaves, the plant goes back to its wind pose on the same frame.
-- A persistent spring back is left for a separate task.
+Grass and plants bend with the wind and when characters walk through them. Two models, one for each kind of
+vegetation, both inextensible:
 
-`r_foliageInteraction 0` (the default) runs none of this code. cgame sends nothing, and the shaders take a uniform
-branch.
+| | MD3 plants (ferns, bushes, grass cards) | surface sprite grass |
+|---|---|---|
+| state | per frond, on the CPU (`tr_plantsim.cpp`) | per patch of ground, on the GPU (`tr_foliagefield.cpp`) |
+| model | chain of rigid segments along the frond centerline (XPBD) | analytic beam (moment / stiffness, integrated tilt) |
+| drawn by | 2-bone skinning in every vertex program (`glsl/plant_skin.glsl`) | `FoliageBladeBend` in `glsl/surface_sprites.glsl` |
+| character | hard one-sided contact of the capsules with the segments | hard one-sided contact of the capsules in the field |
+| wind | drag towards the coherent breeze (`r_plantWind`) | tip displacement of the breeze (`r_foliageWind`) |
 
-This task also adds the root bend of `FOLIAGE_PLANT` MD3 models, such as ferns (`r_plantWind`). The interaction on
-ferns is added on top of that bend. Before this task, ferns had no wind motion at all.
+`r_foliageInteraction 0`, `r_plantWind 0`, `r_foliageWind 0` (the defaults) leave all of it off.
 
-**Status: built and compiled offline only, never run in game.**
+**Status: built, GLSL compiled and GPU-tested offline (`tools/rend2/test_foliage_gl.py`, Intel + NVIDIA), the frond
+analysis run on the stock models; never run in game.**
+
+## Why it was rewritten (2026-10-13)
+
+The previous version turned every vertex of an MD3 plant around one root of the whole model, by an amount that grew
+with its distance to that root (`t^1.5`), pushed away from the capsule axis *at that vertex*. Three defects followed
+directly:
+- only `|vertex - root|` was kept, not the distance between neighbouring vertices: fronds stretched and shrank;
+- every vertex fled the leg on its own side: a frond around a leg wrapped around it;
+- stiffness depended on the distance to the model center, not on the position along a frond.
+
+Grass sprites were quads whose top edge moved: a tilted straight card, never a curved blade. The contact was a
+force field starting at 1.75 × the body radius.
 
 ## Data flow: cgame → renderer
 
@@ -45,322 +59,181 @@ The renderer never reads game globals, and it never uses the camera position.
    - A stale list is never drawn.
    - HUD and menu scenes (`RDF_NOWORLDMODEL`) and the sky portal scene get no colliders.
 
-## Collider representation
 
-The capsule is the vertical axis through the centre of the bounding box. The data is `(axis x, y, feet z, head z)` +
-`(radius, velocity x, velocity y)`, where radius = the half width of the box (15 for a humanoid) ×
-`r_foliageInteractionRadius`.
+## Colliders
 
-Distance is measured to the segment `feet + r .. head − r`, so both ends are round.
-- At the feet, grass (tested at 40 % of its height) is reached by the lower legs.
-- In a jump, the contact lifts off the grass (CPU mirror: a 40 unit jump gives contact 0 on grass).
-- A tall fern frond is still reached higher up the body.
-- Crouching shortens the capsule. A frond at z 50 drops from contact 1.00 to 0.01.
+A character is the vertical capsule through the centre of its box: `(axis x, y, feet z, head z)` + `(radius, velocity
+x, velocity y, airborne)`, radius = half the box width (15 for a humanoid) × `r_foliageInteractionRadius`. Both ends
+are round (segment `feet + r .. head − r`), so a crouch shortens it and a jump lifts it.
 
-A sphere around the origin would have bent grass near the head and missed the feet.
+`MAX_FOLIAGE_INTERACTORS` = 16; `r_foliageInteractionMaxInteractors` (8) uploads the player and the nearest NPCs;
+`r_foliageInteractionNPCs 0` keeps the player only.
 
-## Max interactors and overflow
+The `FoliageInteraction` UBO (slot 12) carries this frame's colliders, the previous frame's (exactly the previous
+upload) and the grass field parameters. The history is reset (previous = current) on a time gap, a pause, a cut or a
+map load.
 
-| | |
-|---|---|
-| `MAX_FOLIAGE_INTERACTORS` | 16 (UBO array size, shader loop bound) |
-| `r_foliageInteractionMaxInteractors` | 8 by default, 1–16. The first N of the list are uploaded: the player, then the nearest NPCs |
-| `r_foliageInteractionNPCs 0` | player only |
+## MD3 plants: fronds as inextensible chains
 
-The vertex loop runs `count` times, where count is a uniform. Each collider first does an early out on horizontal
-distance (`reach = 1.75 r`). There is no spatial acceleration, since the count is small and fixed.
+### Frond skeleton (`tr_plantskel.cpp`, at model load)
 
-## Current / previous state (motion vectors)
+For map objects whose surfaces classify as `FOLIAGE_PLANT` / `FOLIAGE_GRASS` (the broad `r_autoFoliage` mode, so
+either mode finds a skeleton), single frame MD3 only:
+1. vertices welded by position (0.05 u grid);
+2. fronds = triangle groups connected through vertices that are not near the model root (8 % of its size); a near
+   vertex that joins two groups is a **hub** (yavin/fern3_b: all fronds meet in one vertex); separate surfaces
+   (nar_shaddar/plant) and separate pieces (yavin/plant_b) are separate fronds;
+3. attachment: the hub, else the base band of the frond (bottom edge of a standing card, inner end of a radial leaf);
+4. centerline: kernel regression of the vertex positions over their distance to the attachment, extended to the
+   tip, resampled into equal segments of ~16 u (1–7, at most vertices − 1);
+5. each vertex is projected on it: two neighbouring segments and a weight, blended from the middle of one segment to
+   the middle of the next; the base half of the first segment follows it fully;
+6. lamina direction: the principal direction of the vertex offsets across the centerline (power iteration over the
+   whole frond), made perpendicular to every segment; lamina half widths per node.
 
-The `FoliageInteraction` UBO (slot 12) is appended once per scene in `RB_UpdateConstants`:
-- `params`: current count, previous count, strength, debug no-wind
-- `current[16×2]`
-- `previous[16×2]`
+Bone `firstBone + j` = segment j of a frond, bone 0 = rest (hubs, other surfaces). At most 32 fronds (the longest
+kept) and 7 segments: ≤ 225 bones. The skin (bone A, bone B, weight of B, 255) goes into the MD3 VBO in the
+`attr_BoneWeights` slot, which MD3 draws never used (G2 programs never draw plants).
 
-"Previous" is **exactly the list uploaded last frame**. It is not matched by id, so a character that just joined or
-left the set gives the true geometry change.
+Stock results (C++ harness): fern3_b 16 fronds / 69 bones, plant_b 8 / 55, nar_shaddar/plant 21 / 100,
+grass_b and grass_tall_b 6 cards / 19.
 
-The history is reset to "previous = current" (no motion) when:
-- frames are not consecutive,
-- the time gap is over 250 ms or negative (cut, pause, map load),
-- `tr.temporalHistoryValid` is false,
-- or the colliders are frozen (debug).
+`r_autoFoliageList <filter>` prints the skeleton of each model.
 
-The velocity pass evaluates the bend twice:
-- grass: `surface_sprites` with `VELOCITY_PASS`
-- MD3: `velocity.glsl`
+### Simulation (`tr_plantsim.cpp`, once per frame)
 
-The previous evaluation uses the previous colliders, the previous time and the previous model matrix. So TAA and
-motion blur get the plant's real motion, including the snap when a character steps in.
+Instances are keyed by model and origin; their state persists across frames (a frond swings back after a
+character left). XPBD (Macklin et al. 2016), fixed 120 Hz sub steps (at most 8 per frame), 4 iterations:
+- node 0 pinned; **segment lengths hard** (no stretching);
+- **bending**: the next node towards its rest direction in the parallel transported frame of the previous segment,
+  per axis of that frame: compliance `1 / (m_carried (2πf)²)` from a frequency profile (fern: 4 Hz at the base to
+  1.6 Hz at the tip, grass card 2.6 → 1.8 Hz, × √`r_plantStiffness`); **across the lamina 25 × stiffer** than out of
+  its plane, from 30 % of the length on (a leaf bends out of its plane, its width forbids bending within it; the
+  round petiole turns either way). Without this a sideways push bends the wide lamina in its plane and stretches its
+  outer edge;
+- joint limits: 75° at the base, 55° along the frond;
+- **contact**: each segment against each capsule near the plant, reach = radius + ¼ of the lamina width (≤ 12 u),
+  pushed out exactly to that distance. The whole frond uses one side of the body (the side its centerline is on
+  when the contact starts, the walk direction when it is right across), kept until 0.3 s after the last contact:
+  the frond swings aside around its base instead of wrapping around the leg;
+- ground: no node below the bottom of the model;
+- wind: acceleration across the segments towards the coherent breeze (same gust field as the grass,
+  `PLANTSIM_WIND_ACCEL` 450 u/s² × `r_plantWindStrength`, ~14° at the tip in the strongest gust), air drag 2/s;
+- damping: ratio ~0.3 at the tip frequency (one visible swing back).
 
-## Views
+LOD: plants within `r_plantSimDistance` (1500) or near a character get the full step; up to `r_plantWindDistance`
+(3000) one coarse step per frame (1/30 s, 2 iterations); farther ones are drawn at rest. At most
+`r_plantSimMaxPlants` (96) plants are stepped per frame (touched plants always). A plant with no wind, no character
+near and at rest sleeps (no work, drawn without skinning).
 
-The block is per scene and in world space. The main view, mirrors / portals, sun cascades and point shadow cubes all
-draw with the same colliders.
-- **Shadows** show the same deformation as the lit surface, because the same programs draw them with the same values.
-- **Mirrors and portals** show the same world, so the world space colliders are correct there too.
-- **The sky portal view** lives at other coordinates. Its draws get interaction 0 through the per-draw uniforms
-  (`VPT_SKYPORTAL`).
-- **Cubemap capture frames** never have a stamped list.
+Bones: per segment a rotation q (rest → current, transported along the chain) and t = x_j − q X_j; with the previous
+frame's bones, into this frame's bone arena (≤ 64 K texels), uploaded per view in front of its draws (`RC_PLANT_BONES`,
+a `GL_TEXTURE_BUFFER` RGBA32F per frame in flight). Draws bind it per draw on `TB_PLANTBONES` (24: the MD3 programs
+have no bend field any more).
 
-## Shader response (`glsl/foliage_interact.glsl`)
+### Drawing (`glsl/plant_skin.glsl`)
 
-For each collider, with `q` the reference point:
+`ws' = mix(qA ws + tA, qB ws + tB, w)`, normal and tangent rotated by `nlerp(qA, qB, w)`. lightall, generic,
+fogpass, velocity (previous bones), so the depth prepass, shadows, fog and motion vectors follow. Cull bounds grow
+by ¾ of the longest frond.
 
-```
-contact = 1 − smoothstep(0.6 r, 1.75 r, distance(q, capsule segment))
-n       = normalize(q.xy − axis.xy)        on the axis: move direction, else a hash direction
-s       = clamp(|v.xy| / 320, 0, 1)
-dir     = normalize(n + 0.6 s v̂)           walking: biased along the walk
-mag     = contact · (1 + 0.35 s max(n·v̂, 0))
-bend   += dir · mag                        × r_foliageInteractionStrength
-```
+GPU test (yavin/plant_b frond, a leg through its middle): GPU skinning = float64 reference to 1e-5, rest pose exact,
+chain length error 0.06 %, the whole frond on one side of the leg, mesh edges elongated ≤ 4.8 % (the old root bend at
+the same tip displacement: 16 %).
 
-- Contact is the primary term. A player standing still keeps the plant parted: a tuft 10 units from the axis gets
-  contact 0.98 and leans 44°. Velocity only biases the direction and adds up to 35 % in front of the body.
-- Contact by distance for r = 15, from the CPU mirror:
+## Grass sprites: inextensible blades on a bend field
 
-  | distance | 0 | 6 | 9 | 12 | 15 | 18 | 21 | 24 | 26 |
-  |---|---|---|---|---|---|---|---|---|---|
-  | contact | 1.00 | 1.00 | 1.00 | 0.90 | 0.70 | 0.45 | 0.21 | 0.04 | 0 |
+### Bend field (`tr_foliagefield.cpp`, `glsl/foliage_field.glsl`)
 
-### Combining with wind: one bend, applied once
+A player centred world XY square (`r_foliageBendFieldExtent` 1024, `r_foliageBendFieldSize` 256 texels, latched),
+updated once per frame by a fragment pass into two ping-pong MRT pairs:
+- RGBA16F: displacement δ of the grass at the probe height (16 u above the feet, the shins), world units, and its
+  velocity;
+- RG16F: the trampled part.
 
-`bend` is a horizontal **bend vector**: tip displacement per unit of stem length.
-`FoliageApplyBend(v, bend, weight)` turns the stem vector `v` (vertex − root):
+Per frame: a damped spring (`r_foliageBendFieldRecoveryTime` 0.8 s, `r_foliageBendFieldDamping` 0.6) pulls δ
+towards the trampled part, then each standing character is a **hard one-sided contact**: δ is pushed out of the
+capsule along the direction away from its axis (`δ += max(0, penetration − δ·n) n`), the inward velocity is
+removed, the sideways part of δ is kept (no flipping, no splitting). Nothing outside the capsule moves. On the axis:
+the way the grass already leans, else the walk, else a stable random way. Running adds a drag along the walk
+(`r_foliageBendFieldImpulse`). While a character stands on a patch, its trampled part goes towards `r_grassTrample`
+(0.25) × δ in ~1.5 s, and fades with `r_grassTrampleRecovery` (6 s) after. Airborne characters leave the field alone.
 
-```
-bent = normalize(v/|v| + (bend·weight, 0)) · |v|        length kept: bends, never stretches
-angle(v, bent) ≤ 65°                                    clamped by a slerp limit: never folds over
-```
+The field scrolls with the player body in whole texels, clears on map load, teleports, pauses and
+`r_foliageBendFieldClear`. It is on whenever `r_foliageInteraction` is (the former `r_foliageBendField` switch is
+gone: the field is the grass state).
 
-The limit holds for every stem direction and every strength. The CPU mirror checked 20000 random stems and pushes:
-the maximum turn is 65.00° and the length is kept.
+GPU test: contact displacement error 0.008 u, displacement outside the body exactly 0, 18 % trampled after 2 s, 14 %
+of the push left 1.5 s after leaving.
 
-- **Ferns**: `finalBend = windBend + interactionBend`, summed and applied once.
-- **Grass**: the existing wind code (legacy sway or `r_foliageWind` breeze) is unchanged. The interaction then bends
-  the stem, which already includes skew and wind, further. That is the same composition applied in sequence.
-- There is no world space translation after the wind in either case.
+### Blade (`FoliageBladeBend`, `glsl/foliage_interact.glsl`)
 
-## Grass vs fern
+Stiffness `EI(s) = (1 − 0.7 s)³` (thinner towards the tip). Moment of the leg at `s_c` = probe height / blade length:
+`(s_c − s)` below it, 0 above (the blade above the shins stays straight); moment of the wind `(1 − s)²`. Tilt =
+∫ moment / EI (closed forms), scaled so the contact point moves by δ (mean tilt below it = asin(δ / (L s_c))) and the
+tip by the wind displacement; at most 80°. The position integrates the tangent over 6 straight pieces: every point
+of the blade lies on one polyline whose length is exactly the blade length. Skewed rest stems keep their lean.
 
-| | grass (SurfaceSprites) | fern (`FOLIAGE_PLANT` MD3) |
-|---|---|---|
-| shaders | `surface_sprites` (all non FX / FACE_UP permutations) | lightall (+SPOM), generic, fogpass (+SPOM), velocity |
-| root | the sprite anchor | the bottom centre of the model bounds (`foliageMins/Maxs`) |
-| weight | bottom vertices 0, top vertices 1 | `t^1.5`, t = distance from root / plant size (object space) |
-| reference point q | anchor + 40 % of the height: the feet part it | the vertex rest position: tall fronds are pushed higher up |
-| bend per | **tuft**: everything depends on the anchor only, so all cross / tri cards move their top edge by the same vector (mirror: identical deltas) | vertex: fronds near the body bend more, the whole plant parts |
-| normals | unchanged (billboards) | normal and tangent rotated with the stem (Rodrigues), lightall |
-| wind | existing `r_foliageWind` | new `r_plantWind`: a per plant breeze lean + sway in the `r_foliageWindDirection` basis |
+Both wind modes bend this way: the legacy sway (`r_foliageWind 0`) and the breeze (`r_foliageWind 1`) give a tip
+displacement, the blade curves to it.
 
-- **Culling.** Grass: the sprite lod bounds are already padded by the largest card (height + skew), which covers any
-  turn of the stem. MD3 plants: `R_PlantBendCullMargin` grows the cull bounds of map object models by half the plant
-  size while plant bend is active.
-- **Batching.** `tess.leafFlutter` became `tess.foliageMotion` (`FOLIAGE_LEAF` / `FOLIAGE_PLANT` / none). It is a batch
-  key in both submit loops, and the per-draw uniforms are written at every draw site, since the values stick per
-  program.
+GPU test: rest exact; length kept to 0.13 %; contact point and wind tip within a few % of the target; straight
+above the contact.
+
+### Strips (`r_grassBendSegments`, `r_grassBendLodDist`)
+
+A quad can only show a tilted card. Sprite surfaces nearer than `r_grassBendLodDist` (800) with wind or interaction
+are drawn as triangle strips of `r_grassBendSegments` (4) segments: one instance per card and sprite
+(`DRAW_COMMAND_ARRAYS`, `GL_TRIANGLE_STRIP`), the sprite data read per instance (stride × 4, divisor = cards per
+sprite), so the sprite VBO is unchanged. The far quads lie on the same curve (their top edge is the tip). The shader
+branches on `u_GrassStrip`, no permutation.
 
 ## Cvars
 
 | cvar | default | |
 |---|---|---|
-| `r_foliageInteraction` | 0 | 1 = characters bend grass and `FOLIAGE_PLANT` models (plants need `r_autoFoliage ≥ 1`) |
-| `r_foliageInteractionStrength` | 1 | 0–4 (1 = a stem in full contact leans ~45°, never more than 65°) |
-| `r_foliageInteractionRadius` | 1 | capsule radius scale, 0.5–3 |
-| `r_foliageInteractionMaxInteractors` | 8 | 1–16 colliders, player first |
-| `r_foliageInteractionNPCs` | 1 | 0 = player only |
-| `r_plantWind` | 0 | Enable fern root-bend breeze (0/1); direction / speed from `r_foliageWindDirection` / `r_foliageWindSpeed` |
-| `r_plantWindStrength` | 1 | Root-bend strength, 0–4 (1 ≈ 14° at the strongest gust) |
-| `r_foliageInteractionDebug` (cheat) | 0 | bits: 1 draw colliders (yellow player, cyan NPC, + velocity line), 2 ×2 radius and strength, 4 interaction only (no wind), 8 contact heat (blue 0 → yellow 1), 16 freeze colliders, 32 player only |
-| `r_foliageInteractionList` (command) | | prints the submitted and uploaded colliders |
+| `r_foliageInteraction` | 0 | characters push grass and plants |
+| `r_foliageInteractionStrength` / `Radius` | 1 / 1 | contact depth / capsule radius scale |
+| `r_foliageInteractionMaxInteractors` | 8 | colliders uploaded |
+| `r_foliageInteractionNPCs` | 1 | NPCs too |
+| `r_foliageInteractionDebug` | 0 | 1 colliders, 2 x2 radius and strength, 4 interaction only, 8 grass contact heat, 16 freeze, 32 player only |
+| `r_plantWind` / `r_plantWindStrength` | 0 / 1 | breeze on the MD3 fronds |
+| `r_plantSimDistance` / `r_plantWindDistance` | 1500 / 3000 | full step / coarse step / rest |
+| `r_plantSimMaxPlants` | 96 | plants stepped per frame |
+| `r_plantStiffness` | 1 | frond stiffness (new instances) |
+| `r_plantDebug` | 0 | 1 centerlines, 2 segment colors, 4 bone colors, 8 contact side colors, 16 print CPU cost |
+| `r_foliageBendFieldExtent` / `Size` | 1024 / 256 | grass field square |
+| `r_foliageBendFieldStrength` | 1 | grass displacement scale |
+| `r_foliageBendFieldRecoveryTime` / `Damping` / `Impulse` | 0.8 / 0.6 / 1 | grass spring back |
+| `r_foliageBendFieldDebug` | 0 | 1 overlay, 2 covered square, 4 freeze, 8 x3 strength |
+| `r_grassTrample` / `r_grassTrampleRecovery` | 0.25 / 6 | trampled part and its recovery (s) |
+| `r_grassBendSegments` / `r_grassBendLodDist` | 4 / 800 | grass strips |
 
-`tools/foliageinteract_ab.cfg` binds the A/B screenshots, the debug toggles and a timing run.
+Commands: `r_autoFoliageList`, `r_plantSimInfo`, `r_foliageInteractionList`, `r_foliageBendFieldClear`.
+A/B config: `tools/vegetation_ab.cfg`.
 
-## Cost
+## Cost (estimated; not measured in game)
 
-These are static NVIDIA vertex program sizes (`!!NVvp5.0` instructions, RTX 2060 driver).
+- Plants: per frond and sub step ~K × (3 constraint axes + contact + length) × 4 iterations; a plant_b (8 fronds × 7
+  segments) at 120 Hz ≈ 2 × 8 × 7 × 4 constraint groups per frame — a few µs. 96 plants: ~0.3 ms. `r_plantDebug 16`
+  prints the real time. Skinning: 4 buffer fetches per vertex, cheaper than the former 8–16 capsule loop.
+- Grass: one field fetch and 6 beam pieces (log + sincos) per vertex instead of the capsule loop; strips multiply the
+  near vertex count by `r_grassBendSegments` + 1 / 2 (×2.5 at 4). Field: one fragment pass over 256² texels.
 
-| program | HEAD | now |
-|---|---|---|
-| sprite AUTO_GRASS | 337 | 527 |
-| sprite AUTO_GRASS + velocity | 505 | 868 |
-| sprite legacy vertical | 252 | 442 |
-| lightall LIGHT_VECTOR | 213 | 505 |
-| velocity (alpha test) | 143 | 570 |
+## Limits
 
-- The growth is the collider loop plus the plant and interaction code.
-- When the interaction is off, and for every non plant MD3 draw, all of it is skipped by uniform branches.
-- The per collider body runs only for colliders inside the horizontal reach. Its cost is about one capsule distance,
-  one smoothstep and two normalizes.
-- **Frame timings for 0 / 1 / 4 / 8 / 16 colliders have not been measured.** Run F3 in the cfg in game.
+- MD3 only, single frame map objects; misc_models baked into the BSP are not plants.
+- Fronds are found from the topology; a frond whose base is not near the model root and not a separate piece falls
+  into the group it is welded to (it then bends as one frond).
+- The lamina follows the centerline rigidly per segment (no leaflet flutter, no twist DOF beyond the transport).
+- The grass field covers the square around the player; NPCs farther away don't touch grass.
+- Grass taller than the legs is pushed at the shins only.
 
-## Validation done
+## Validation
 
-- MSVC Release x64 builds, no new warnings: `rd-rend2`, `rdsp-rend2`, `openjk.x86_64`, `openjk_sp.x86_64`,
-  `jagamex86_64`, `cgamex86_64`.
-- Offline GLSL compile and link on Intel UHD and NVIDIA RTX 2060, with the libraries spliced as at run time. There are
-  22 cases, all OK:
-  - lightall × 5
-  - generic × 3
-  - fogpass × 2
-  - velocity × 3
-  - surface_sprites × 9 (legacy, AUTO_GRASS, ±VELOCITY_PASS, USE_FOG, FACE_CAMERA, FACE_UP, FX, FLATTENED)
-- CPU mirror (python) of the falloff and bend. It checks:
-  - the length is kept and the turn stays ≤ 65°
-  - the root stays fixed
-  - a standing player keeps the push
-  - a jump lifts it off the grass
-  - crouching lowers the reach
-  - contact falls monotonically with distance
-  - the velocity bias works
-  - all cards of a tuft move the same
-
-## Not validated (in game, by the user)
-
-- **Third person**: stand in a fern, walk slowly, run, strafe, jump, crouch.
-- **Camera independence**: orbit the camera around a still player (the plants must not follow), move the camera while
-  the player stands, and a cinematic camera.
-- **NPCs**: one NPC walking through grass, then several.
-- **Plants**: cross card grass, ferns.
-- **Temporal and shadows**: TAA (`r_smaa 2`) / motion blur ghosting, sun shadows.
-- **Debug overlay (bit 1)**: compare the capsule with the body.
-- **Timings and debug video.**
-- **Which stock models are `FOLIAGE_PLANT`** (`r_autoFoliageList`): the fern side needs map models whose names contain
-  "fern" / "plant".
-
-## Persistent bend field (`r_foliageBendField`)
-
-Without it, a plant goes back to its wind pose the frame the character leaves it. The field adds a short spring-back.
-There is no per plant state and no CPU physics. Code: `tr_foliagefield.cpp`, `glsl/foliage_field.glsl`, and
-`FoliageFieldBend` / `FoliageCharacterBend` in `glsl/foliage_interact.glsl`.
-
-### Representation and world mapping
-
-- Two `RGBA16F` square textures, ping-pong. Size is `r_foliageBendFieldSize` (64 / 128 / 256, latched, default 128).
-- Per texel: `rg` = bend vector d (same units as the direct push, tip offset per stem length), `ba` = its velocity v.
-- The square is `r_foliageBendFieldExtent` world units wide (default 1024, so 8 units per texel at 128), centered on the
-  **player collider**, never the view origin. Z is ignored: it is a 2D ground map.
-- `uv = (worldXY − center) / extent + 0.5`. The border fades out over the outer 3 %; outside the square the term is 0.
-- Memory: 2 × 128² × 8 B = 256 KB (64: 64 KB, 256: 1 MB). The textures always exist, so the cvar toggles without
-  `vid_restart`.
-
-### Update (once per frame, fragment pass; rend2's GL 3.2 baseline has no compute)
-
-The first world scene of the frame queues `RC_FOLIAGE_FIELD` right after its constants. It runs before that scene's
-draws and reads the colliders from the scene's `FoliageInteraction` block. Per texel:
-
-```
-prev    = texelFetch(previous, pix + shift)            // 0 outside: newly exposed strip
-target  = Σ colliders on the ground: push(texel center, feet + 10) × strength
-v      += Σ contact × speed factor × walk dir × 12 × r_foliageBendFieldImpulse × dt
-repeat ceil(dt·60) (≤ 6) times, h = dt / n:            // semi-implicit Euler
-    v += (k (target − d) − c v) h ;  d += v h
-clamp |d| ≤ 1.5, |v| ≤ 24; snap tiny values to exactly 0
-```
-
-- `k = ω²`, `c = 2ζω`, with `ω = 3 / (ζ T)`. T is `r_foliageBendFieldRecoveryTime` (default 0.8 s) and ζ is
-  `r_foliageBendFieldDamping` (default 0.6).
-- There is no blur. The state of a patch never spreads to other patches.
-- **Airborne colliders** write nothing. cgame sets the new `FOLIAGE_INTERACTOR_AIRBORNE` flag from `groundEntityNum`.
-  The direct push still uses the capsule height, so jumping over grass leaves no trail.
-- CPU mirror (`ff_sim.py`, 0.3 s of contact at 200 u/s):
-
-  | Settings | Back to 5 % after leaving | Overshoot | Frame-rate independent |
-  |---|---|---|---|
-  | defaults | 0.83–0.88 s | 8 % | yes: 30 / 60 / 144 fps |
-  | ζ = 1 | 1.4 s | none | — |
-  | T = 0.5, ζ = 0.4 | 0.3 s | 22 % | — |
-
-### Scrolling and reset
-
-- The center snaps to whole texels. When the player moves, the update reads the previous state at the integer texel
-  shift. Stored bends stay on their world patches, with no resampling blur, and the newly exposed strips start at rest.
-- A frozen or paused frame (dt = 0) keeps the old center, and the next update applies the whole shift.
-- **Clear** happens on:
-  - the first use or re-enabling
-  - map load (`RE_LoadWorldMap` → `R_FoliageInteractionReset`, which was never called before) and `vid_restart`
-  - a non-consecutive frame (menu, pause, time jump > 250 ms)
-  - a shift of more than half the field (teleport)
-  - an `r_foliageBendFieldExtent` change, or `r_foliageBendFieldClear`
-- **Camera cuts do not clear it**: the field is gameplay state.
-
-### Views and temporal
-
-- Only the first world scene of the frame writes the field. Every view of the frame samples the same textures on
-  `TB_FOLIAGEFIELD` (23) and `TB_FOLIAGEFIELD_PREV` (24), bound once per frame: main view, mirrors, portals, sun and
-  point shadows, depth prepass, velocity.
-- The sky portal is excluded, as for the colliders.
-- The velocity pass samples the previous frame's state at the previous center. The motion vectors of the swinging
-  grass are therefore exact. This is the field's own history, not the screen TAA history.
-
-### Combination
-
-```
-final bend = wind + direct + field × (1 − heat)      // heat = direct contact of this vertex / tuft
-```
-
-- While a character stands in the plant, the direct push leads, and the field has followed the same push.
-- As the character leaves, the direct term fades out and the field takes over without a jump, then springs back.
-- **Grass** samples the field once at the tuft anchor, so all cards of a tuft stay coherent.
-- **MD3 plants (ferns)** sample it at the root. Every vertex gets root field × its `PlantBendWeight`. This keeps the
-  fronds rigid; with 8-unit texels, per vertex sampling would shear them.
-- **Leaf flutter (trees)** never samples the field.
-
-### Cvars
-
-| Cvar | Default | Meaning |
-|---|---|---|
-| `r_foliageBendField` | 0 | on / off (needs `r_foliageInteraction`) |
-| `r_foliageBendFieldSize` | 128 | texels per side (latched) |
-| `r_foliageBendFieldExtent` | 1024 | world size of the square |
-| `r_foliageBendFieldStrength` | 1 | scale of the field term |
-| `r_foliageBendFieldRecoveryTime` | 0.8 | seconds to rest |
-| `r_foliageBendFieldDamping` | 0.6 | ζ; 1 = no swing past rest |
-| `r_foliageBendFieldImpulse` | 1 | extra momentum along the walk |
-| `r_foliageBendFieldDebug` | 0 | bits, see below |
-
-`r_foliageBendFieldDebug` bits:
-- 1: overlay in the lower left corner. Left: vectors (red / green = +x / +y). Right: magnitude heat. The player is the
-  cross.
-- 2: outline of the covered square.
-- 4: freeze.
-- 8: ×3 strength.
-- 16: field only (no direct push).
-- 32: direct push only.
-
-Commands: `r_foliageBendFieldClear`; `r_foliageInteractionList` also prints the field state. A/B config:
-`tools/foliagefield_ab.cfg`.
-
-### Cost (estimated, not measured)
-
-- One 128² fragment pass looping over ≤ 16 colliders, expected well under 0.05 ms. It shows as "Foliage field" under
-  `r_speeds 100`.
-- Per vertex: +1 bilinear fetch in every grass / plant pass; +2 in the velocity pass.
-
-### Failure cases and limits
-
-- 2D: grass under a bridge the player crosses gets bent too.
-- The field is also active indoors.
-- 8-unit texels cannot draw single-blade trails.
-- The field covers ±512 units at the defaults. Beyond that, plants have only the direct push; they fade in over the
-  border.
-- A save / load or `map_restart` starts from rest.
-- A very fast move of more than half the extent per frame clears the field.
-- NPC trails are kept only while the NPC is within the player-centered square.
-- The spring pulls toward the push of all colliders summed. Two characters in one patch add up, clamped at 65° by
-  `FoliageApplyBend`.
-
-### Validation of the field
-
-- Done: both renderers, SP game and MP cgame build (MSVC). 24 GLSL cases compile and link on Intel and NVIDIA,
-  including `foliage_field` (update and `DEBUG_VIEW`). CPU mirror of the spring.
-- Not done (in game, by the user):
-  - walk through / stop / turn / circle / sprint
-  - NPC crossing
-  - teleport, `map_restart`
-  - cinematic camera, mirror
-  - TAA ghosting
-  - dense grass
-  - GPU timings
-  - debug captures
+- MSVC builds of both renderers.
+- `tools/rend2/test_foliage_gl.py` (Intel UHD and NVIDIA RTX 2060): 88 programs compiled and linked (lightall,
+  generic, fogpass, velocity with the plant skin, every structural surface sprite permutation, the field passes),
+  the plant skin, blade and field checks above.
+- `R_BuildPlantSkeleton` run on the five stock plant models (bones in range, fronds as expected).
+- Not run in game: frame cost, look, TAA, shadows — `tools/vegetation_ab.cfg`.

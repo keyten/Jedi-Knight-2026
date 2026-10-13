@@ -268,12 +268,11 @@ void main()
 		wsPosition.xyz += LeafFlutterOffset(wsPosition.xyz, LeafFlutterSeed(u_ModelMatrix[3].xyz),
 			u_LeafFlutterParams.x, LeafFlutterWeight(position), leafBands);
 	}
-	// FOLIAGE_PLANT root bend, same as lightall (plant_bend.glsl)
-	if (PlantBendEnabled())
+	// FOLIAGE_PLANT frond skinning, same as lightall (plant_skin.glsl)
+	if (PlantSkinEnabled())
 	{
-		float plantHeat;
-		wsPosition.xyz = PlantBendPosition(wsPosition.xyz, PlantBendRoot(u_ModelMatrix),
-			PlantBendWeight(position), u_PlantBendTime.x, false, plantHeat);
+		vec4 plantRotation;
+		wsPosition.xyz = PlantSkinPosition(wsPosition.xyz, false, plantRotation);
 	}
 
 	gl_Position = u_viewProjectionMatrix * wsPosition;
