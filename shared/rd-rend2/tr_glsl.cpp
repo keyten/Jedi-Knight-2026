@@ -456,6 +456,11 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
 	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
+	{ "u_WaterInteractionState",	GLSL_INT, 1 },
+	{ "u_WaterInteractionSource",	GLSL_INT, 1 },
+	{ "u_WaterInteractionSim0",	GLSL_VEC4, 1 },
+	{ "u_WaterInteractionSim1",	GLSL_VEC4, 1 },
+	{ "u_WaterInteractionDomain",	GLSL_VEC4, 1 },
 	{ "u_WaterRainMap",		GLSL_INT, 1 },
 	{ "u_WaterRainParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFoamMap",		GLSL_INT, 1 },
@@ -4266,6 +4271,27 @@ static int GLSL_LoadGPUProgramWaterFoamField(
 	return 1;
 }
 
+static int GLSL_LoadGPUProgramWaterInteractionField(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	if (!r_waterInteraction || !r_waterInteraction->integer)
+		return 0;
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUProgramDesc *programDesc = LoadProgramSource("water_interaction_field", allocator,
+		fallback_water_interaction_fieldProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.waterInteractionFieldShader, "water_interaction_field",
+			ATTR_POSITION | ATTR_TEXCOORD0, NO_XFB_VARS, "", *programDesc))
+		ri.Error(ERR_FATAL, "Could not load water interaction field shader!");
+	GLSL_InitUniforms(&tr.waterInteractionFieldShader);
+	qglUseProgram(tr.waterInteractionFieldShader.program);
+	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSTATE, TB_COLORMAP);
+	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSOURCE, TB_NORMALMAP);
+	qglUseProgram(0);
+	GLSL_FinishGPUShader(&tr.waterInteractionFieldShader);
+	return 1;
+}
+
 static int GLSL_LoadGPUProgramVolumetric(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -5287,6 +5313,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramWeatherWetness(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWeatherRipple(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramWaterInteractionField(builder, allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
 	if (r_diffuseIBL->integer)
@@ -5417,6 +5444,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.foliageFieldDebugShader);
 	GLSL_DeleteGPUShader(&tr.weatherWetnessShader);
 	GLSL_DeleteGPUShader(&tr.waterFoamFieldShader);
+	GLSL_DeleteGPUShader(&tr.waterInteractionFieldShader);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

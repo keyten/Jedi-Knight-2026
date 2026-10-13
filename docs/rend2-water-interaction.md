@@ -55,7 +55,7 @@ h[n+1] = clamp(h[n] + dt * (v[n+1] - flow dot upwindGradient(h[n])))
 
 `c = (32 + 32 * profile.speed) * r_waterInteractionSpeed`, clamped to the explicit solver's two-dimensional CFL limit. Damping is `0.32 * profile.damping * r_waterInteractionDamping`. Existing resolved world-space flow is applied only when `r_waterFlow 1`; still pools remain isotropic. Flow is independently scaled when necessary so `dt * (abs(vx)/dx + abs(vy)/dy) <= 0.95`, protecting the first-order upwind advection at high flow scales and fine grid resolutions.
 
-At map load the byte mask is compacted into a dense wet-cell list. Each wet cell caches its four neighbour indices with solid boundaries already replaced by self. A simulation step therefore visits only physical water cells and performs no per-neighbour bounds or mask tests; sparse irregular bodies no longer pay solver cost for the empty part of their rectangular allocation. Upload staging likewise updates only wet cells and resolves the two height derivatives there. The atlas upload remains one contiguous dirty body rectangle.
+The primary GL 3.2 path stores each body in two ping-pong `RGBA16F` state images. A fragment pass applies the same five-point stencil; dry neighbours are replaced by the centre sample, preserving the CPU boundary condition. A second fragment pass resolves height, world-space slope and foam directly into the body's shared-atlas rectangle. There is no simulation readback and no per-frame full-body CPU repack/upload. The compact wet-cell topology remains available to the CPU fallback.
 
 Frame time enters an accumulator, is clamped to 250 ms after a hitch, and at most four steps are consumed per real frame. `backEndData->realFrameNumber` guards the update. Portal, mirror, sky-portal, and reflection views only sample the state produced by the main view.
 
@@ -63,7 +63,7 @@ An impulse adds a compact, smooth Mexican-hat velocity kernel. Its positive core
 
 Moving sources are tracked by stable entity ID. Their horizontal path is sampled at a physical spacing derived from body width; the leftover distance carries into the next frame. Injection density therefore depends on distance travelled rather than render frames or solver steps. Wake samples use an elongated bow/stern height-velocity dipole, and multiple samples, sources, and impulses superpose in the shared field and interfere naturally.
 
-Energy is the masked mean of `h^2 + v^2/c^2`. A body with energy below `1e-5` for one second is zeroed and put to sleep. A new impulse/source wakes it. Sleeping bodies execute no stencil and make no texture upload. Ambient analytic waves continue normally during sleep.
+The GPU path avoids a synchronising energy readback. It keeps an active body alive for a conservative damping-scaled interval after its last source, then performs one rare clear and puts it to sleep. The CPU fallback retains the exact masked-energy sleep test. A new impulse/source wakes either path. Sleeping bodies execute no stencil or resolve. Ambient analytic waves continue normally during sleep.
 
 ## Resolution and memory
 
@@ -83,9 +83,9 @@ The uploaded resource is one region of a clamped `RGBA16F` atlas per allocated b
 - G/B: resolved world-space height slope X/Y;
 - A: zero for a dry cell, `1 + foam` for a wet cell (foam is the transient splash plus persistent object-intersection tracer).
 
-The visible-water and surface-caustics shaders recover height, both slope components, occupancy and foam from one bilinear fetch. Vertical velocity remains CPU simulation state and is no longer uploaded merely for a diagnostic view.
+The visible-water and surface-caustics shaders recover height, both slope components, occupancy and foam from one bilinear fetch. Vertical velocity stays in the body-local GPU state and is not copied into the render atlas merely for a diagnostic view.
 
-GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory includes the rectangular state/upload arrays plus a compact wet-cell topology (one cell index and four cached neighbours per wet texel).
+GPU storage is the RGBA16F render atlas plus two RGBA16F state images and one RGBA16F source image per body: 32 bytes per allocated cell before atlas shelf padding. A power-of-two shelf search chooses the smallest practical atlas; `r_waterInteractionInfo` reports the actual total. The implementation requires only GL 3.2 fragment shaders/FBOs, not compute shaders. CPU source staging is uploaded only when impulses or contacts occur and only for their accumulated dirty rectangle; a local splash never uploads the full body. The CPU arrays and compact wet-cell topology are retained as a fallback, not stepped in the normal GPU path.
 
 ## Event/source API
 
@@ -133,7 +133,7 @@ independent persistence but shares this field's mask, upload and flow.
 Commands:
 
 - `r_waterImpulse [strength=3] [radius=32]`: inject an intentionally obvious test impulse at the water point under the crosshair. Pass explicit lower values when tuning gameplay. A nearest masked-texel fallback covers thin discretised shores, limited to ten degrees from the ray.
-- `r_waterInteractionInfo`: print resolutions, physical texel sizes, mask coverage, active/sleeping state, energy, fixed steps, source-processing/solver/upload time, average API submission cost, and GPU memory.
+- `r_waterInteractionInfo`: print path, resolutions, physical texel sizes, mask coverage, active/sleeping state, estimated energy, fixed steps, CPU submission time, average API submission cost, and GPU memory. Actual GPU pass time is exposed by the `Water interaction fields` screen timer.
 
 Debug modes: 1 domain/UV, 2 mask, 3 height, 4 encoded slope X/Y, 5 the same resolved slope in the final surface frame, 6 latest source, 7 transient foam, 8 active/sleeping, 9 world-to-body mapping grid. The numeric body energy remains available through `r_waterInteractionInfo`. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).
 
@@ -142,7 +142,7 @@ Debug modes: 1 domain/UV, 2 mask, 3 height, 4 encoded slope X/Y, 5 the same reso
 Automated checks:
 
 - `tools/rend2/test_water_interaction.py`: stable expansion, exact 30/60/144 FPS agreement, disconnected-mask isolation, signed multi-impulse interference, and sleep;
-- `tools/rend2/test_watersurface_gl.py`: all 144 OpenGL 3.2 water permutations, direct interactive-height depth displacement and interactive-slope optics checks, plus the existing geometry, ambient, flow, refraction, SSR, Snell/TIR, and underwater regressions;
+- `tools/rend2/test_watersurface_gl.py`: all 144 OpenGL 3.2 water permutations, a 30-step GPU-vs-CPU interaction-stencil comparison (irregular mask, source, advection, foam), direct interactive-height depth displacement and interactive-slope optics checks, plus the existing geometry, ambient, flow, refraction, SSR, Snell/TIR, and underwater regressions;
 - `tools/rend2/test_watersurface_runtime.py --interaction`: real map load, crosshair injection, all nine debug captures, stats, and GL error scan.
 
 Historical measurements on Intel UHD / OpenGL 3.2 at 60 FPS (high-resolution CPU timer), taken before wet-cell topology compaction and one-fetch slope resolve:
@@ -174,22 +174,35 @@ The corresponding solver p95 values were 0.076/0.069/0.056 ms for
 well for sparse `yavin1` and tiny pools, but does not remove the CPU bottleneck
 for dense large bodies: default quality regularly costs about 9.5–11.0 ms per
 active fixed step on `t3_hevil`/`vjun1`, before a 2.4–2.8 ms upload. Quality 2
-is not viable for those bodies on this CPU/iGPU. The result clears the
-previously stated 5–10 ms threshold: a GL 3.2 fragment-pass ping-pong solver is
-justified as a separate performance project. It should retain the current CPU
-path as fallback and target both simulation state and render-field resolve;
-moving only the stencil while preserving full CPU readback would not remove
-the upload/synchronization cost.
+is not viable for those bodies on this CPU/iGPU. The result cleared the
+previously stated 5–10 ms threshold and motivated the implemented GL 3.2
+fragment-pass ping-pong path. It retains the CPU path as fallback and moves
+both simulation state and render-field resolve, with no full-state readback.
 
-Sleeping bodies perform no solver work and no upload. The GL 3.2 baseline has no GPU simulation draw/compute pass, so GPU simulation-step time is zero; upload timing above is CPU/driver wall time. The old synthetic 1920x1080 benchmark's +1.280 ms interaction delta included five atlas reads per water fragment and is retained only as a pre-change baseline. One post-change run on the same Intel UHD measured +0.615 ms with the one-fetch field, but repeated runs under concurrent load were too noisy for a stable timing comparison. The structural reduction from five atlas reads to one is deterministic; the measured delta is directional rather than a whole-game FPS claim. This deliberately pessimistic full-screen result is not a whole-game frame time.
+On the same Intel UHD / OpenGL 3.2 driver, direct `GL_TIME_ELAPSED`
+measurements of the production RGBA16F fragment path were:
+
+| Dense field | GPU update / fixed step | GPU atlas resolve |
+| --- | ---: | ---: |
+| 256x256 | 0.220 ms | 0.153 ms |
+| 512x256 | 0.373 ms | 0.299 ms |
+| 512x512 | 0.753 ms | 0.597 ms |
+
+Thus a dense 512x512 body costs about 1.35 ms for the common one-step frame,
+versus 15–33 ms CPU solver plus 3–6 ms upload in the measured worst cases. A
+four-step hitch recovery is about 3.61 ms GPU for that body. These are isolated
+field-pass timings, not whole-game FPS claims. Sleeping bodies perform no
+simulation or resolve. The visible shader's older synthetic full-screen result
+remains +0.615 ms for the one-fetch render field versus +1.280 ms for the
+former five-fetch slope reconstruction.
 
 Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surface lake; `yavin1` shallow/multi-surface water with the flow path enabled; and `vjun1` slime, including the 512x512 maximum per-body resolution. Checked-in screenshots cover `t2_rancor`. `t3_bounty` still pools and `yavin2` ambiguous curved-flow bodies remain operator test candidates.
 
 ## Known limitations
 
-- The GL 3.2 reference is CPU finite differences plus dirty texture upload, not a ping-pong FBO. This keeps correctness and fallback simple, but the worst 524k-texel active budget is CPU-heavy; a future GL 3.2 raster ping-pong path should retain the same equation, mask, mapping, API, and sleep policy.
+- CPU waterline/contact queries intentionally use the analytic ambient surface while the GPU interaction path is active; the visual disturbance state is not synchronously read back. Wake eligibility therefore remains stable but does not follow a local interaction crest exactly. The CPU fallback retains exact interaction-height queries.
 - Body coordinates are world XY and currently target the existing mostly-horizontal modern-water eligibility. Vertical waterfall faces remain legacy; their impact basin should feed a horizontal body's source.
 - Allocation is per map and bounded, but body fields are image-manager resources until renderer restart, like other renderer-created images.
 - Mask resolution cannot preserve a channel narrower than one texel. Quality/budget controls determine that physical limit.
 - Gameplay water entry/leave, missile/thrown-saber crossings, and bounded moving-object wakes are wired. Rain and waterfall producers remain explicit extension points rather than guessed from shader names.
-- Texture upload is asynchronous on the tested driver; its reported number is CPU/driver wall time, not completion time on the GPU.
+- Source texture upload is asynchronous on the tested driver and occurs only for dirty sources; `Water interaction fields` is the authoritative GPU timer for update/resolve work.

@@ -317,7 +317,8 @@ def main():
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.interaction:
         assert 'water impulse: queued for body' in log, 'Crosshair impulse did not resolve a body'
-        assert re.search(r'water interaction: enabled, \d+ GPU bytes, geometry', log), 'Missing interaction statistics'
+        assert re.search(r'water interaction: enabled \(GL3\.2 ping-pong\), \d+ GPU bytes, geometry', log), \
+            'Missing GPU interaction statistics'
         check_interaction_beauty(base/'screenshots')
         for name in ('water-interaction-domain.tga', 'water-interaction-mask.tga',
                      'water-interaction-height.tga', 'water-interaction-encoded-slope.tga',

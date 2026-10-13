@@ -241,6 +241,13 @@ struct waterInteractionState_t
 	// dry-cell mask, so the visible-water shader needs one filtered fetch.
 	std::vector<float> upload;
 	image_t *image = nullptr;
+	image_t *gpuState[2] = { nullptr, nullptr };
+	image_t *gpuSource = nullptr;
+	std::vector<float> gpuInitial;
+	std::vector<float> gpuSourceData;
+	int gpuCurrent = 0;
+	bool gpuSourceDirty = false;
+	int gpuSourceMinX = 0, gpuSourceMinY = 0, gpuSourceMaxX = 0, gpuSourceMaxY = 0;
 	int atlasX = 0, atlasY = 0;
 	bool active = false, dirty = false;
 	float energy = 0.0f, quietTime = 0.0f;
@@ -536,15 +543,20 @@ qboolean R_WaterFoamResourcesEnabled( void )
 		 (r_waterWhitewater && r_waterWhitewater->integer))) ? qtrue : qfalse;
 }
 
+static bool R_WaterInteractionGpuEnabled(void)
+{
+	return tr.waterInteractionFbo && tr.waterInteractionFieldShader.program;
+}
+
 /*
 ============================================================
 
 Body-local interactive disturbance field (r_waterInteraction)
 
-The CPU reference solver deliberately uses the GL 3.2 baseline: its RGBA16F
-texture is sampled by the existing water program.  Keeping the integrator
-independent of a render pass also makes one update per real frame explicit;
-portal/reflection views only sample the latest upload.
+The GL 3.2 path integrates per-body RGBA16F state with fragment/FBO ping-pong
+passes and resolves height/slope/foam directly into the shared render atlas.
+The CPU integrator remains a no-FBO fallback. One update per real frame is
+explicit; portal/reflection views only sample the latest resolved atlas.
 
 ============================================================
 */
@@ -670,8 +682,9 @@ static void R_WaterInteractionBuild(void)
 	const float worldPerTexel = r_waterInteractionQuality->integer <= 0 ? 32.0f :
 		(r_waterInteractionQuality->integer == 1 ? 16.0f : 8.0f);
 	const int maxBodies = Com_Clampi(1, 32, r_waterInteractionMaxBodies->integer);
+	// Atlas + two RGBA16F state images + one RGBA16F source image = 32 B/cell.
 	const size_t requestedTexels = (size_t)Q_min(r_waterInteractionMaxTexels->integer,
-		(r_waterInteractionMemoryMB->integer * 1024 * 1024) / 8);
+		(r_waterInteractionMemoryMB->integer * 1024 * 1024) / 32);
 	const size_t atlasLimit = (size_t)glConfig.maxTextureSize * glConfig.maxTextureSize / 2;
 	const size_t texelBudget = MIN(requestedTexels, atlasLimit);
 	size_t used = 0;
@@ -705,6 +718,9 @@ static void R_WaterInteractionBuild(void)
 		sim.intersectionFoam.assign(cells, 0.0f);
 		sim.intersectionNext.assign(cells, 0.0f);
 		sim.upload.assign(cells * 4, 0.0f);
+		sim.gpuInitial.assign(cells * 4, 0.0f);
+		sim.gpuSourceData.assign(cells * 4, 0.0f);
+		for (size_t i = 0; i < cells; ++i) sim.gpuInitial[i * 4 + 3] = -1.0f;
 
 		// Rasterise actual usable top triangles. Five sub-cell samples make thin
 		// boundary triangles conservative without filling rectangular voids.
@@ -754,6 +770,7 @@ static void R_WaterInteractionBuild(void)
 			// [1,2].  This survives bilinear filtering while leaving RGB for
 			// height and the pre-resolved world-space slope.
 			sim.upload[(size_t)i * 4 + 3] = 1.0f;
+			sim.gpuInitial[(size_t)i * 4 + 3] = 0.0f;
 		}
 		used += cells; ++allocated;
 	}
@@ -802,10 +819,25 @@ static void R_WaterInteractionBuild(void)
 			sim.image = s_water.interactionAtlas;
 			qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
 				GL_RGBA, GL_FLOAT, sim.upload.data());
+			for (int state = 0; state < 2; ++state)
+			{
+				sim.gpuState[state] = R_CreateImage(va("*waterInteractionState%d_%d", body.id, state), NULL,
+					sim.width, sim.height, IMGTYPE_COLORALPHA,
+					IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RGBA16F);
+				GL_Bind(sim.gpuState[state]);
+				qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
+					GL_RGBA, GL_FLOAT, sim.gpuInitial.data());
+			}
+			sim.gpuSource = R_CreateImage(va("*waterInteractionSource%d", body.id), NULL,
+				sim.width, sim.height, IMGTYPE_COLORALPHA,
+				IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RGBA16F);
+			GL_Bind(sim.gpuSource);
+			qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
+				GL_RGBA, GL_FLOAT, sim.gpuSourceData.data());
 		}
 	}
 	s_water.interactionGpuBytes = s_water.interactionAtlas ?
-		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 : 0;
+		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 + used * 24 : 0;
 	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u active texels, %dx%d atlas, %.2f MiB GPU\n",
 		allocated, (unsigned)used, s_water.interactionAtlasWidth, s_water.interactionAtlasHeight,
 		s_water.interactionGpuBytes / (1024.0f * 1024.0f));
@@ -1080,13 +1112,42 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 		const float mean = stampSum / stamp.size();
 		for (const auto& sample : stamp)
 		{
-			sim.state[sample.first * 3 + 1] += sample.second - mean;
-			if (foam > 0.0f)
-				sim.state[sample.first * 3 + 2] = Com_Clamp(0.0f, 1.0f,
-					sim.state[sample.first * 3 + 2] + foam * fabsf(sample.second) / MAX(fabsf(strength) * 48.0f, 0.001f));
+			if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
+			{
+				const size_t base = sample.first * 4;
+				const int sx = (int)(sample.first % sim.width), sy = (int)(sample.first / sim.width);
+				if (!sim.gpuSourceDirty)
+				{
+					sim.gpuSourceMinX = sim.gpuSourceMaxX = sx;
+					sim.gpuSourceMinY = sim.gpuSourceMaxY = sy;
+				}
+				else
+				{
+					sim.gpuSourceMinX = MIN(sim.gpuSourceMinX, sx);
+					sim.gpuSourceMinY = MIN(sim.gpuSourceMinY, sy);
+					sim.gpuSourceMaxX = MAX(sim.gpuSourceMaxX, sx);
+					sim.gpuSourceMaxY = MAX(sim.gpuSourceMaxY, sy);
+				}
+				sim.gpuSourceData[base + 1] += sample.second - mean;
+				if (foam > 0.0f)
+					sim.gpuSourceData[base + 2] = Com_Clamp(0.0f, 1.0f,
+						sim.gpuSourceData[base + 2] + foam * fabsf(sample.second) /
+						MAX(fabsf(strength) * 48.0f, 0.001f));
+				sim.gpuSourceDirty = true;
+			}
+			else
+			{
+				sim.state[sample.first * 3 + 1] += sample.second - mean;
+				if (foam > 0.0f)
+					sim.state[sample.first * 3 + 2] = Com_Clamp(0.0f, 1.0f,
+						sim.state[sample.first * 3 + 2] + foam * fabsf(sample.second) /
+						MAX(fabsf(strength) * 48.0f, 0.001f));
+			}
 		}
 	}
 	sim.active = sim.dirty = true; sim.quietTime = 0.0f;
+	if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
+		sim.energy = MAX(sim.energy, strength * strength);
 	sim.lastSource[0] = (position[0] - body.bounds[0][0]) / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
 	sim.lastSource[1] = (position[1] - body.bounds[0][1]) / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f);
 	sim.lastSource[2] = radius / MAX(MAX(body.bounds[1][0] - body.bounds[0][0], body.bounds[1][1] - body.bounds[0][1]), 1.0f);
@@ -1333,6 +1394,92 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	sim.dirty = true;
 }
 
+static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
+{
+	waterInteractionState_t& sim = body.interaction;
+	if (!sim.active || !sim.gpuState[0] || !sim.gpuSource) return;
+	const bool applySource = sim.gpuSourceDirty;
+	if (applySource)
+	{
+		GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+		const int sourceWidth = sim.gpuSourceMaxX - sim.gpuSourceMinX + 1;
+		const int sourceHeight = sim.gpuSourceMaxY - sim.gpuSourceMinY + 1;
+		qglPixelStorei(GL_UNPACK_ROW_LENGTH, sim.width);
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.gpuSourceMinX, sim.gpuSourceMinY,
+			sourceWidth, sourceHeight, GL_RGBA, GL_FLOAT,
+			&sim.gpuSourceData[((size_t)sim.gpuSourceMinY * sim.width + sim.gpuSourceMinX) * 4]);
+		qglPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	}
+	const float profileSpeed = 32.0f + s_dynamics[body.dynamics].speed * 32.0f;
+	const float cLimit = 0.68f / (dt * sqrtf(1.0f / (sim.texelX * sim.texelX) +
+		1.0f / (sim.texelY * sim.texelY)));
+	const float c = MIN(profileSpeed * r_waterInteractionSpeed->value, cLimit);
+	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
+	float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
+	float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
+	const float flowCourant = dt * (fabsf(flowX) / sim.texelX + fabsf(flowY) / sim.texelY);
+	if (flowCourant > 0.95f) { const float scale = 0.95f / flowCourant; flowX *= scale; flowY *= scale; }
+	const float shore = r_waterShoreline->integer && r_waterShoreFoam->value > 0.0f ?
+		s_dynamics[body.dynamics].foam * body.foamMultiplier * r_waterShoreFoam->value : 0.0f;
+	const int target = sim.gpuCurrent ^ 1;
+	FBO_Bind(tr.waterInteractionFbo);
+	qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+		sim.gpuState[target]->texnum, 0);
+	qglDrawBuffer(GL_COLOR_ATTACHMENT0);
+	GL_SetViewportAndScissor(0, 0, sim.width, sim.height);
+	GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
+	GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+	vec4_t sim0 = { dt, c, damping, -shore };
+	vec4_t sim1 = { sim.texelX, sim.texelY, flowX, flowY };
+	vec4_t domain = { 0.0f, 0.0f, MAX(r_waterIntersectionFoamPersistence->value, 0.001f), applySource ? 1.0f : 0.0f };
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM1, sim1);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONDOMAIN, domain);
+	RB_InstantTriangle();
+	sim.gpuCurrent = target;
+	if (applySource)
+	{
+		for (int y = sim.gpuSourceMinY; y <= sim.gpuSourceMaxY; ++y)
+			std::fill(sim.gpuSourceData.begin() + ((size_t)y * sim.width + sim.gpuSourceMinX) * 4,
+				sim.gpuSourceData.begin() + ((size_t)y * sim.width + sim.gpuSourceMaxX + 1) * 4, 0.0f);
+		// The draw above has consumed the source. Clear exactly the same small
+		// texture rectangle so a later, unrelated source cannot reapply it.
+		GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+		qglPixelStorei(GL_UNPACK_ROW_LENGTH, sim.width);
+		qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.gpuSourceMinX, sim.gpuSourceMinY,
+			sim.gpuSourceMaxX - sim.gpuSourceMinX + 1,
+			sim.gpuSourceMaxY - sim.gpuSourceMinY + 1, GL_RGBA, GL_FLOAT,
+			&sim.gpuSourceData[((size_t)sim.gpuSourceMinY * sim.width + sim.gpuSourceMinX) * 4]);
+		qglPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		sim.gpuSourceDirty = false;
+		sim.quietTime = 0.0f;
+	}
+	else sim.quietTime += dt;
+	sim.energy *= expf(-2.0f * damping * dt);
+	sim.dirty = true;
+}
+
+static void RB_WaterInteractionGpuResolveBody(waterBody_t& body)
+{
+	waterInteractionState_t& sim = body.interaction;
+	if (!sim.dirty || !sim.gpuState[0]) return;
+	FBO_Bind(tr.waterInteractionFbo);
+	qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+		s_water.interactionAtlas->texnum, 0);
+	qglDrawBuffer(GL_COLOR_ATTACHMENT0);
+	GL_SetViewportAndScissor(sim.atlasX, sim.atlasY, sim.width, sim.height);
+	GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
+	GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+	vec4_t sim0 = { 0.0f, 0.0f, 0.0f, 1.0f };
+	vec4_t sim1 = { sim.texelX, sim.texelY, 0.0f, 0.0f };
+	vec4_t domain = { (float)sim.atlasX, (float)sim.atlasY, 1.0f, 0.0f };
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM1, sim1);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONDOMAIN, domain);
+	RB_InstantTriangle();
+	sim.dirty = false;
+}
+
 static void RB_WaterInteractionUpdate(void)
 {
 	if (!r_waterInteraction->integer || s_water.interactionFrame == backEndData->realFrameNumber) return;
@@ -1371,11 +1518,23 @@ static void RB_WaterInteractionUpdate(void)
 	const auto stepStart = std::chrono::high_resolution_clock::now();
 
 	const float fixedDt = 1.0f / 60.0f;
+	const bool gpu = R_WaterInteractionGpuEnabled();
+	FBO_t *oldFbo = glState.currentFBO;
+	int gpuTimer = -1;
+	if (gpu)
+	{
+		gpuTimer = RB_ScreenBeginTimer("Water interaction fields");
+		GL_State(GLS_DEPTHTEST_DISABLE);
+		GL_Cull(CT_TWO_SIDED);
+		GLSL_BindProgram(&tr.waterInteractionFieldShader);
+	}
 	int steps = 0;
 	while (s_water.interactionAccumulator + 1.0e-6f >= fixedDt && steps < 4)
 	{
 		R_WaterfallImpactInteraction(now, fixedDt);
-		for (waterBody_t& body : s_water.bodies) R_WaterInteractionStepBody(body, fixedDt);
+		for (waterBody_t& body : s_water.bodies)
+			if (gpu && body.interaction.gpuState[0]) RB_WaterInteractionGpuStepBody(body, fixedDt);
+			else R_WaterInteractionStepBody(body, fixedDt);
 		s_water.interactionAccumulator -= fixedDt; ++steps;
 	}
 	s_water.interactionSteps = steps;
@@ -1384,6 +1543,26 @@ static void RB_WaterInteractionUpdate(void)
 	{
 		waterInteractionState_t& sim = body.interaction;
 		if (!sim.image || !sim.dirty) continue;
+		if (gpu && sim.gpuState[0])
+		{
+			// Without a GPU readback, use a conservative finite lifetime. A rare
+			// full clear on sleep is far cheaper than uploading every active frame.
+			if (sim.quietTime > 12.0f / MAX(r_waterInteractionDamping->value, 0.25f))
+			{
+				for (int state = 0; state < 2; ++state)
+				{
+					GL_BindToTMU(sim.gpuState[state], TB_COLORMAP);
+					qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
+						GL_RGBA, GL_FLOAT, sim.gpuInitial.data());
+				}
+				GL_BindToTMU(s_water.interactionAtlas, TB_COLORMAP);
+				qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
+					GL_RGBA, GL_FLOAT, sim.upload.data());
+				sim.active = sim.dirty = false; sim.energy = sim.quietTime = 0.0f;
+			}
+			else RB_WaterInteractionGpuResolveBody(body);
+			continue;
+		}
 		for (size_t wetIndex = 0; wetIndex < sim.wetCells.size(); ++wetIndex)
 		{
 			const size_t i = (size_t)sim.wetCells[wetIndex];
@@ -1403,6 +1582,14 @@ static void RB_WaterInteractionUpdate(void)
 		qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
 			GL_RGBA, GL_FLOAT, sim.upload.data());
 		sim.dirty = false;
+	}
+	if (gpu)
+	{
+		RB_ScreenEndTimer(gpuTimer);
+		FBO_Bind(oldFbo);
+		GL_SetViewportAndScissor(backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+			backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight);
+		GLSL_BindNullProgram();
 	}
 	const auto end = std::chrono::high_resolution_clock::now();
 	s_water.interactionSourceMsec = (float)std::chrono::duration<double, std::milli>(stepStart - sourceStart).count();
@@ -1558,6 +1745,9 @@ static void RB_WaterFoamUpdate(void)
 		foam.current = target;
 		// Keep the uploaded texture for source debug; CPU channels are rebuilt.
 		std::fill(foam.source.begin(), foam.source.end(), 0);
+		if (R_WaterInteractionGpuEnabled() && interaction.gpuState[0])
+			std::fill(body.interaction.intersectionFoam.begin(),
+				body.interaction.intersectionFoam.end(), 0.0f);
 	}
 	FBO_Bind(oldFbo);
 	GL_SetViewportAndScissor(backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
@@ -1585,7 +1775,9 @@ void R_WaterInteractionInfo_f(void)
 	}
 	const double submitAverage = s_water.interactionSubmissions ?
 		s_water.interactionSubmitUsec / s_water.interactionSubmissions : 0.0;
-	ri.Printf(PRINT_ALL, "water interaction: enabled, %u GPU bytes, geometry %s, last %d fixed steps, source %.3f ms, solver %.3f ms, upload %.3f ms, API submit %.3f us avg (%u)\n",
+	const bool gpu = R_WaterInteractionGpuEnabled();
+	ri.Printf(PRINT_ALL, "water interaction: enabled (%s), %u GPU bytes, geometry %s, last %d fixed steps, source %.3f ms, step dispatch %.3f ms, resolve submit %.3f ms, API submit %.3f us avg (%u)\n",
+		gpu ? "GL3.2 ping-pong" : "CPU fallback",
 		(unsigned)s_water.interactionGpuBytes, r_waterGeometry && r_waterGeometry->integer ? "displacement+optics" : "optics-only",
 		s_water.interactionSteps, s_water.interactionSourceMsec,
 		s_water.interactionStepMsec, s_water.interactionUploadMsec, submitAverage,
@@ -1595,9 +1787,9 @@ void R_WaterInteractionInfo_f(void)
 		const waterInteractionState_t& sim = body.interaction;
 		if (!sim.image) continue;
 		int maskCells = 0; for (byte m : sim.mask) maskCells += m != 0;
-		ri.Printf(PRINT_ALL, "  body %d: %dx%d, %.1fx%.1f wu/texel, mask %d/%d, %s, energy %.7g, GPU %u bytes\n",
+		ri.Printf(PRINT_ALL, "  body %d: %dx%d, %.1fx%.1f wu/texel, mask %d/%d, %s, energy estimate %.7g, GPU %u bytes\n",
 			body.id, sim.width, sim.height, sim.texelX, sim.texelY, maskCells, sim.width * sim.height,
-			sim.active ? "active" : "sleeping", sim.energy, (unsigned)((size_t)sim.width * sim.height * 8));
+			sim.active ? "active" : "sleeping", sim.energy, (unsigned)((size_t)sim.width * sim.height * 32));
 	}
 }
 
@@ -4116,6 +4308,7 @@ void R_CreateWaterSurfaceFBOs( void )
 	tr.waterCopyFbo = NULL;
 	tr.waterReflectionFbo[0] = tr.waterReflectionFbo[1] = nullptr;
 	tr.waterFoamFbo = nullptr;
+	tr.waterInteractionFbo = nullptr;
 	if ( !s_water.resources || !tr.waterSceneImage || !tr.waterDepthImage )
 		return;
 
@@ -4143,6 +4336,8 @@ void R_CreateWaterSurfaceFBOs( void )
 	if (R_WaterFoamResourcesEnabled())
 		tr.waterFoamFbo = FBO_Create("_waterFoamScratch", r_waterFoamResolution->integer,
 			r_waterFoamResolution->integer);
+	if (r_waterInteraction && r_waterInteraction->integer)
+		tr.waterInteractionFbo = FBO_Create("_waterInteractionScratch", 16, 16);
 }
 
 // Subdivide the BSP triangles once. A single dyadic level for every surface in
@@ -5404,7 +5599,25 @@ static void RB_WaterIntersectionInject(void)
 			const float bandConfidence = 1.0f - Com_Clamp(0.0f, 1.0f, fabsf(signedDistance) / band);
 			const float source = bandConfidence * normalConfidence * depthConfidence * strength;
 			if (source <= 0.01f) continue;
-			sim.intersectionFoam[i] = MAX(sim.intersectionFoam[i], Com_Clamp(0.0f, 1.0f, source));
+			const float clampedSource = Com_Clamp(0.0f, 1.0f, source);
+			sim.intersectionFoam[i] = MAX(sim.intersectionFoam[i], clampedSource);
+			if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
+			{
+				if (!sim.gpuSourceDirty)
+				{
+					sim.gpuSourceMinX = sim.gpuSourceMaxX = gx;
+					sim.gpuSourceMinY = sim.gpuSourceMaxY = gy;
+				}
+				else
+				{
+					sim.gpuSourceMinX = MIN(sim.gpuSourceMinX, gx);
+					sim.gpuSourceMinY = MIN(sim.gpuSourceMinY, gy);
+					sim.gpuSourceMaxX = MAX(sim.gpuSourceMaxX, gx);
+					sim.gpuSourceMaxY = MAX(sim.gpuSourceMaxY, gy);
+				}
+				sim.gpuSourceData[i * 4 + 3] = MAX(sim.gpuSourceData[i * 4 + 3], clampedSource);
+				sim.gpuSourceDirty = true;
+			}
 			sim.active = sim.dirty = true;
 			sim.quietTime = 0.0f;
 		}

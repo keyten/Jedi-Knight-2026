@@ -2869,6 +2869,11 @@ typedef enum
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
 	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
+	UNIFORM_WATERINTERACTIONSTATE,
+	UNIFORM_WATERINTERACTIONSOURCE,
+	UNIFORM_WATERINTERACTIONSIM0,
+	UNIFORM_WATERINTERACTIONSIM1,
+	UNIFORM_WATERINTERACTIONDOMAIN,
 	UNIFORM_WATERRAINMAP,		// water surface: rain-driven real-water disturbance field
 	UNIFORM_WATERRAINPARAMS,	// explicit slope, aggregate micro energy, coverage, debug
 	UNIFORM_WATERFOAMMAP,		// persistent body-local foam concentration
@@ -4268,6 +4273,7 @@ typedef struct trGlobals_s {
 	image_t *waterReflectionDepthImage;
 	FBO_t *waterReflectionFbo[2];
 	FBO_t *waterFoamFbo;				// scratch attachment, selected body texture
+	FBO_t *waterInteractionFbo;		// scratch attachment for interaction ping-pong/resolve
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
 	image_t					*ssrHistoryImage[2];
@@ -4455,6 +4461,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t foliageFieldShader;			// grass bend field update pass
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t waterFoamFieldShader;		// GL3.2 fragment/FBO foam advection
+	shaderProgram_t waterInteractionFieldShader;	// GL3.2 shallow-water ping-pong/resolve
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];

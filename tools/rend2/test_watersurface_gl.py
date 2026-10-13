@@ -1080,6 +1080,124 @@ def context(title):
     return window, ctx
 
 
+def check_interaction_field(bench=False):
+	"""Compile the GL3.2 field shader and compare its stencil with a CPU reference."""
+	src = read('water_interaction_field')
+	vs, fs = src.split('/*[Fragment]*/')
+	vs = vs.split('/*[Vertex]*/')[1]
+	prog = compile_program([(GL_VERTEX, '#version 150 core\n' + vs),
+		(GL_FRAGMENT, '#version 150 core\n' + fs)], 'water interaction field', outputs=('out_Color',))
+	gl('glUseProgram', None, U)(prog)
+	for name, unit in [('u_WaterInteractionState', 0), ('u_WaterInteractionSource', 1)]:
+		gl('glUniform1i', None, I, I)(uloc(prog, name), unit)
+	vao = U()
+	gl('glGenVertexArrays', None, I, C.POINTER(U))(1, C.byref(vao))
+	gl('glBindVertexArray', None, U)(vao)
+	w, h = 37, 29
+	y, x = np.mgrid[0:h, 0:w]
+	mask = ((x - 18) ** 2 / 260 + (y - 14) ** 2 / 145 < 1.0) & ~((x > 18) & (x < 23) & (y > 11) & (y < 17))
+	rng = np.random.default_rng(71231)
+	state = np.zeros((h, w, 4), np.float32)
+	state[..., 3] = -1.0
+	state[mask, 0] = rng.normal(0, .03, mask.sum())
+	state[mask, 1] = rng.normal(0, .08, mask.sum())
+	state[mask, 2] = rng.uniform(0, .1, mask.sum())
+	state[mask, 3] = rng.uniform(0, .04, mask.sum())
+	source = np.zeros_like(state)
+	source[14, 11, 1] = 5.5
+	source[14, 11, 2] = .7
+	source[15, 11, 3] = .6
+	dt, c, damping, tx, ty, fx, fy, persistence = 1/60, 46.0, .42, 16.0, 19.0, 13.0, -7.0, 1.8
+
+	def cpu_step(a, apply):
+		cur = a.copy()
+		if apply:
+			cur[..., :3] += source[..., :3]
+			cur[..., 3] = np.maximum(cur[..., 3], source[..., 3])
+		out = cur.copy()
+		for py, px in zip(*np.nonzero(mask)):
+			def cell(nx, ny):
+				return cur[ny, nx] if 0 <= nx < w and 0 <= ny < h and mask[ny, nx] else cur[py, px]
+			cc, l, r, d, u = cur[py, px], cell(px-1, py), cell(px+1, py), cell(px, py-1), cell(px, py+1)
+			lap = (l[0]-2*cc[0]+r[0])/(tx*tx) + (d[0]-2*cc[0]+u[0])/(ty*ty)
+			v = np.clip(cc[1] + dt*(c*c*lap - 2*damping*cc[1]), -512, 512)
+			dhx = (cc[0]-l[0])/tx if fx >= 0 else (r[0]-cc[0])/tx
+			dhy = (cc[0]-d[0])/ty if fy >= 0 else (u[0]-cc[0])/ty
+			nh = np.clip(cc[0] + dt*(v-fx*dhx-fy*dhy), -64, 64)
+			dfx = (cc[2]-l[2])/tx if fx >= 0 else (r[2]-cc[2])/tx
+			dfy = (cc[2]-d[2])/ty if fy >= 0 else (u[2]-cc[2])/ty
+			foam = (cc[2]-dt*(fx*dfx+fy*dfy)+dt*.3*((l[2]-2*cc[2]+r[2])+(d[2]-2*cc[2]+u[2])))*math.exp(-dt*.85)
+			dix = (cc[3]-l[3])/tx if fx >= 0 else (r[3]-cc[3])/tx
+			diy = (cc[3]-d[3])/ty if fy >= 0 else (u[3]-cc[3])/ty
+			inter = (cc[3]-dt*(fx*dix+fy*diy)+dt*.3*((l[3]-2*cc[3]+r[3])+(d[3]-2*cc[3]+u[3])))*math.exp(-dt/persistence)
+			out[py, px] = [nh, v, np.clip(foam, 0, 1), np.clip(inter, 0, 1)]
+		return out
+
+	textures = [tex2d(w, h, RGBA16F, data=state), tex2d(w, h, RGBA16F, data=state)]
+	frames = [fbo([textures[0]]), fbo([textures[1]])]
+	source_tex = tex2d(w, h, RGBA16F, data=source)
+	set_vec4s(prog, 'u_WaterInteractionSim1', [[tx, ty, fx, fy]])
+	ref, current = state.copy(), 0
+	for step in range(30):
+		apply = step == 0
+		ref = cpu_step(ref, apply)
+		set_vec4s(prog, 'u_WaterInteractionSim0', [[dt, c, damping, 0]])
+		set_vec4s(prog, 'u_WaterInteractionDomain', [[0, 0, persistence, 1 if apply else 0]])
+		bind(0, textures[current]); bind(1, source_tex)
+		gl('glBindFramebuffer', None, U, U)(FB, frames[current ^ 1])
+		gl('glViewport', None, I, I, I, I)(0, 0, w, h)
+		gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+		current ^= 1
+	gpu = read_color(frames[current], w, h)
+	errors = np.max(np.abs(gpu[mask] - ref[mask]), axis=0)
+	ok = check('GPU interaction stencil matches CPU reference',
+		np.all(errors < [5e-3, 2e-2, 3e-3, 2e-3]),
+		'max h/v/foam/intersection ' + '/'.join(f'{value:.3g}' for value in errors))
+	ok = check('GPU interaction preserves dry-cell sentinel', np.all(gpu[~mask, 3] < -.5)) and ok
+	if bench:
+		query = U()
+		gl('glGenQueries', None, I, C.POINTER(U))(1, C.byref(query))
+		def timed(fn, repeat=80):
+			fn(); gl('glFinish', None)()
+			total = 0
+			for _ in range(repeat):
+				gl('glBeginQuery', None, U, U)(0x88BF, query)
+				fn()
+				gl('glEndQuery', None, U)(0x88BF)
+				value = C.c_uint64()
+				gl('glGetQueryObjectui64v', None, U, U, C.POINTER(C.c_uint64))(query, 0x8866, C.byref(value))
+				total += value.value
+			return total / repeat * 1e-6
+		for bw, bh in ((256, 256), (512, 256), (512, 512)):
+			initial = np.zeros((bh, bw, 4), np.float32)
+			bt = [tex2d(bw, bh, RGBA16F, data=initial), tex2d(bw, bh, RGBA16F, data=initial)]
+			bf = [fbo([bt[0]]), fbo([bt[1]])]
+			bs = tex2d(bw, bh, RGBA16F, data=initial)
+			resolve_tex = tex2d(bw, bh, RGBA16F, data=initial)
+			resolve_fbo = fbo([resolve_tex])
+			bc = [0]
+			def update_draw():
+				bind(0, bt[bc[0]]); bind(1, bs)
+				gl('glBindFramebuffer', None, U, U)(FB, bf[bc[0] ^ 1])
+				gl('glViewport', None, I, I, I, I)(0, 0, bw, bh)
+				set_vec4s(prog, 'u_WaterInteractionSim0', [[dt, c, damping, 0]])
+				set_vec4s(prog, 'u_WaterInteractionDomain', [[0, 0, persistence, 0]])
+				gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+				bc[0] ^= 1
+			def resolve_draw():
+				bind(0, bt[bc[0]]); bind(1, bs)
+				gl('glBindFramebuffer', None, U, U)(FB, resolve_fbo)
+				gl('glViewport', None, I, I, I, I)(0, 0, bw, bh)
+				set_vec4s(prog, 'u_WaterInteractionSim0', [[0, 0, 0, 1]])
+				set_vec4s(prog, 'u_WaterInteractionDomain', [[0, 0, 1, 0]])
+				gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+			update_ms, resolve_ms = timed(update_draw), timed(resolve_draw)
+			print(f'  interaction {bw}x{bh}: update {update_ms:.3f} ms/step, resolve {resolve_ms:.3f} ms')
+	gl('glDeleteProgram', None, U)(prog)
+	return ok
+
+
+
 def main():
     window, ctx = context(b'Water surface test')
     ok = True
@@ -1095,6 +1213,7 @@ def main():
         shallow_limit = abs(omega(shallow_k, 1e-5) / (speed * shallow_k) - 1.0) < 1e-5
         ok = check('finite-depth dispersion preserves primary speed and shallow-water limit',
                    normalized and shallow_limit) and ok
+        ok = check_interaction_field() and ok
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
         ok = check_geometry_depth(rig) and ok
@@ -1368,6 +1487,22 @@ def bench():
 
 
 if __name__ == '__main__':
+    if '--interaction-bench' in sys.argv:
+        window, ctx = context(b'Water interaction benchmark')
+        try:
+            sys.exit(0 if check_interaction_field(bench=True) else 1)
+        finally:
+            SDL.SDL_GL_DeleteContext(ctx)
+            SDL.SDL_DestroyWindow(window)
+            SDL.SDL_Quit()
+    if '--interaction-only' in sys.argv:
+        window, ctx = context(b'Water interaction field')
+        try:
+            sys.exit(0 if check_interaction_field() else 1)
+        finally:
+            SDL.SDL_GL_DeleteContext(ctx)
+            SDL.SDL_DestroyWindow(window)
+            SDL.SDL_Quit()
     if '--ambient-only' in sys.argv:
         window, ctx = context(b'Water ambient waves')
         try:
