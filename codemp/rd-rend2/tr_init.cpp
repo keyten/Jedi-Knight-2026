@@ -750,6 +750,13 @@ cvar_t *r_debugWeather;
 cvar_t *r_weatherCull;
 cvar_t *r_weatherDebugChunks;
 cvar_t *r_rainStreaks;
+cvar_t *r_rainVolume;
+cvar_t *r_rainVolumeStrength;
+cvar_t *r_rainVolumeHeavyMultiplier;
+cvar_t *r_rainVolumeAnisotropy;
+cvar_t *r_rainVolumeGroundStrength;
+cvar_t *r_rainVolumeGroundHeight;
+cvar_t *r_rainVolumeMaxDistance;
 cvar_t *r_waterParticles;
 cvar_t *r_waterParticlesDensity;
 cvar_t *r_waterParticlesSize;
@@ -2042,6 +2049,27 @@ void R_Register( void )
 		"Draw weather chunk bounds and print mapping, visibility and particle counts (2 prints AABBs)");
 	r_rainStreaks = ri.Cvar_Get("r_rainStreaks", "0", CVAR_ARCHIVE,
 		"Rain streak rendering: 0 legacy additive, 1 lit premultiplied streaks sized by velocity with contact / near / sub-pixel fades");
+	r_rainVolume = ri.Cvar_Get("r_rainVolume", "0", CVAR_ARCHIVE,
+		"Add rain suspension as a weather-occluded froxel medium (requires r_volumetricFog 2)");
+	r_rainVolumeStrength = ri.Cvar_Get("r_rainVolumeStrength", "0.00018", CVAR_ARCHIVE,
+		"Normal-rain froxel extinction per world unit at full intensity");
+	r_rainVolumeHeavyMultiplier = ri.Cvar_Get("r_rainVolumeHeavyMultiplier", "4", CVAR_ARCHIVE,
+		"Heavy-rain multiplier for the froxel rain medium");
+	r_rainVolumeAnisotropy = ri.Cvar_Get("r_rainVolumeAnisotropy", "0.72", CVAR_ARCHIVE,
+		"Henyey-Greenstein anisotropy of the rain medium");
+	r_rainVolumeGroundStrength = ri.Cvar_Get("r_rainVolumeGroundStrength", "0", CVAR_ARCHIVE,
+		"Optional heavy-rain near-ground splash-mist extinction (0 disables it)");
+	r_rainVolumeGroundHeight = ri.Cvar_Get("r_rainVolumeGroundHeight", "96", CVAR_ARCHIVE,
+		"Height in world units of the heavy-rain splash-mist layer");
+	r_rainVolumeMaxDistance = ri.Cvar_Get("r_rainVolumeMaxDistance", "6000", CVAR_ARCHIVE,
+		"Maximum camera distance of the rain medium, with a soft outer fade");
+	ri.Cvar_CheckRange(r_rainVolume, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_rainVolumeStrength, 0.0f, 0.01f, qfalse);
+	ri.Cvar_CheckRange(r_rainVolumeHeavyMultiplier, 0.0f, 16.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainVolumeAnisotropy, -0.9f, 0.9f, qfalse);
+	ri.Cvar_CheckRange(r_rainVolumeGroundStrength, 0.0f, 0.01f, qfalse);
+	ri.Cvar_CheckRange(r_rainVolumeGroundHeight, 1.0f, 1024.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainVolumeMaxDistance, 64.0f, 32768.0f, qfalse);
 	r_rainStreakWidth = ri.Cvar_Get("r_rainStreakWidth", "1", CVAR_ARCHIVE,
 		"r_rainStreaks: streak width scale");
 	r_rainStreakLength = ri.Cvar_Get("r_rainStreakLength", "1", CVAR_ARCHIVE,
@@ -3032,7 +3060,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterSnellDebug, 0, 6, qtrue);
 	r_volumetricFogReset = ri.Cvar_Get("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
 	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B, r_volumetricWater: 59 density of the liquids, 60 liquid brushes, 61 camera contents (CPU) vs GPU membership, 62 liquid boundary froxels, 63 liquid transmittance along the ray, 64 sun under water (transmittance * caustics), 65 liquid segment length, 66 liquid in-scattering only, 67 liquid transmittance (volume), 68 liquid medium sigma along the ray, 69 surfaces that bypass the liquid fog (magenta lightall blended, yellow generic blend, cyan immediate), 70 dynamic lights without the liquid light path (A/B with 4)");
-	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 70, qtrue);
+	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 74, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
 	r_volumetricParticles = ri.Cvar_Get("r_volumetricParticles", "0", CVAR_ARCHIVE, "FX particles with a volumetricMedia block add participating media to the froxel fog (r_volumetricFog 2)");

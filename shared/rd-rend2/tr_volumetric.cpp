@@ -46,6 +46,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "tr_local.h"
 #include "tr_staticlighting.h"
+#include "tr_weather.h"
 
 #include <algorithm>
 #include <chrono>
@@ -2000,7 +2001,35 @@ static unsigned int R_VolumetricHashBytes( unsigned int key, const void *data, s
 // The medium and light settings the history was built with (a change resets
 // it): the radiance clamp cannot repair a history whose extinction or noise
 // coordinates are different. Wind changes also reset its temporal response.
-static unsigned int R_VolumetricMediumKey( void )
+static qboolean R_VolumetricRainSupported( void )
+{
+	static GLint textureUnits = -1;
+	if ( textureUnits < 0 )
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &textureUnits);
+	return (qboolean)(textureUnits > TB_WEATHERDEPTH);
+}
+
+static float R_VolumetricRainProfile( const precipitationState_t& rain )
+{
+	switch ( rain.subtype )
+	{
+	case RAIN_WEATHER_LIGHT:  return 0.02f;
+	case RAIN_WEATHER_NORMAL: return 1.0f;
+	case RAIN_WEATHER_HEAVY:  return MAX(0.0f, r_rainVolumeHeavyMultiplier->value);
+	// Acid rain deliberately waits for its own optical profile.
+	default: return 0.0f;
+	}
+}
+
+static qboolean R_VolumetricRainActive( const trRefdef_t *refdef )
+{
+	return (qboolean)(refdef && r_rainVolume && r_rainVolume->integer &&
+		refdef->precipitation.current && R_VolumetricRainProfile(refdef->precipitation) > 0.0f &&
+		tr.weatherSystem && tr.weatherSystem->depthMapValid && tr.weatherDepthImage &&
+		R_VolumetricRainSupported());
+}
+
+static unsigned int R_VolumetricMediumKey( const trRefdef_t *refdef, qboolean rainActive )
 {
 	const float values[] = {
 		(float)r_volumetricFogNoise->integer,
@@ -2032,7 +2061,16 @@ static unsigned int R_VolumetricMediumKey( void )
 		r_volumetricMultiScatterContribution->value,
 		r_volumetricMultiScatterPhase->value,
 		r_volumetricMultiScatterLength->value,
-		r_volumetricMultiScatterShadowFill->value };
+		r_volumetricMultiScatterShadowFill->value,
+		(float)(r_rainVolume ? r_rainVolume->integer : 0),
+		r_rainVolumeStrength ? r_rainVolumeStrength->value : 0.0f,
+		r_rainVolumeHeavyMultiplier ? r_rainVolumeHeavyMultiplier->value : 0.0f,
+		r_rainVolumeAnisotropy ? r_rainVolumeAnisotropy->value : 0.0f,
+		r_rainVolumeGroundStrength ? r_rainVolumeGroundStrength->value : 0.0f,
+		r_rainVolumeGroundHeight ? r_rainVolumeGroundHeight->value : 0.0f,
+		r_rainVolumeMaxDistance ? r_rainVolumeMaxDistance->value : 0.0f,
+		rainActive && refdef ? (float)refdef->precipitation.subtype : 0.0f,
+		rainActive && refdef ? refdef->precipitation.normalizedIntensity : 0.0f };
 	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightExtinction->string, strlen(r_volumetricFogHeightExtinction->string));
@@ -2084,6 +2122,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VolumetricFogBlock block = {};
 	const int frameNumber = backEndData->realFrameNumber;
 	const viewParms_t *view = R_VolumetricMainView();
+	const qboolean rainActive = R_VolumetricRainActive(refdef);
 
 	// the tint state for cgame from the camera of the scene that owns the
 	// volume (a later scene of the same frame does not override it)
@@ -2115,9 +2154,9 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	const qboolean worldView = (qboolean)(
 		view != NULL &&
 		tr.world != NULL &&
-		// no fog volume, no height fog, no local fog volume, no FX particle medium: nothing to do
+		// no fog, rain, local or FX particle medium: nothing to do
 		// the sprite particle light field (r_particleLighting) needs the injection even without media
-		(tr.world->numfogs > 1 || heightFogOn || R_FogVolumesInFrustum(view, refdef, farZ) ||
+		(tr.world->numfogs > 1 || heightFogOn || rainActive || R_FogVolumesInFrustum(view, refdef, farZ) ||
 			R_VolParticlesInFrustum(view, refdef, farZ) || tr.froxelParticleLightImage != NULL ||
 			R_LiquidsInFrustum(view, view->ori.axis[0], farZ)) &&
 		tr.renderFbo != NULL &&
@@ -2203,7 +2242,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// history
 	const int debug = r_volumetricFogDebug->integer;
-	unsigned int mediumKey = R_VolumetricMediumKey();
+	unsigned int mediumKey = R_VolumetricMediumKey(refdef, rainActive);
 	if ( liquidsAvailable )
 		mediumKey = R_LiquidsMediumKey(mediumKey);
 	// the liquid around the camera, once per view (collision of the world model,
@@ -2379,6 +2418,27 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorCopy4(heightFog, block.heightFog);
 	VectorCopy4(heightFogColor, block.heightFogColor);
 	VectorCopy4(heightFogTop, block.heightFogTop);
+
+	// Optional rain suspension: one more FroxelMedium term. Point exposure is
+	// resolved on the GPU from the top-down weather depth, so a camera in a
+	// doorway can still see the outdoor curtain while roofed froxels stay dry.
+	if ( rainActive )
+	{
+		const precipitationState_t& rain = refdef->precipitation;
+		const float intensity = Com_Clamp(0.0f, 2.0f, rain.normalizedIntensity);
+		const float extinction = MAX(0.0f, r_rainVolumeStrength->value) * intensity *
+			R_VolumetricRainProfile(rain);
+		VectorSet4(block.rainParams, extinction,
+			Com_Clamp(-0.9f, 0.9f, r_rainVolumeAnisotropy->value),
+			MAX(1.0f, MIN(farZ, r_rainVolumeMaxDistance->value)), 1.0f);
+		const qboolean ground = (qboolean)(rain.subtype == RAIN_WEATHER_HEAVY &&
+			r_rainVolumeGroundStrength->value > 0.0f);
+		VectorSet4(block.rainGround,
+			ground ? r_rainVolumeGroundStrength->value * intensity : 0.0f,
+			Com_Clamp(1.0f, 1024.0f, r_rainVolumeGroundHeight->value),
+			MAX(tr.weatherSystem->depthRangeWorld, 1.0f), ground ? 1.0f : 0.0f);
+		VectorSet4(block.rainColor, 0.92f, 0.95f, 1.0f, intensity);
+	}
 
 	// density noise of the selected media
 	const qboolean noise = R_VolumetricNoise(&block, refdef, block.temporalParams[0]);
@@ -2868,6 +2928,11 @@ void RB_VolumetricBuild( void )
 		GL_SetViewportAndScissor(0, 0, s_vf.width, s_vf.height);
 		GLSL_BindProgram(sp);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		if ( tr.weatherSystem && tr.weatherDepthImage && R_VolumetricRainSupported() )
+		{
+			GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
+			GLSL_SetUniformMatrix4x4(sp, UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
+		}
 		R_FogVolumesBindClusters();
 		const vec4_t mediaMode = { 0.0f, 0.0f, 1.0f, 0.0f };
 		GLSL_SetUniformVec4(sp, UNIFORM_PARTICLELIGHT, mediaMode);
@@ -2901,6 +2966,11 @@ void RB_VolumetricBuild( void )
 
 		GL_BindToTMU(tr.froxelInjectImage[previous], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
+		if ( tr.weatherSystem && tr.weatherDepthImage && R_VolumetricRainSupported() )
+		{
+			GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
+			GLSL_SetUniformMatrix4x4(sp, UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
+		}
 		R_FogVolumesBindClusters();
 		GL_BindToTMU(staticGrid, TB_LIGHTMAP);
 		GL_BindToTMU(sunGrid, TB_NORMALMAP);
@@ -3205,7 +3275,12 @@ void RB_VolumetricDebugOverlay( void )
 	GL_BindToTMU(tr.froxelIntegratedImage, TB_CUBEMAP);
 	GL_BindToTMU(tr.froxelTailImage, TB_ENVBRDFMAP);
 	GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
-		R_FogVolumesBindClusters();
+	if ( tr.weatherSystem && tr.weatherDepthImage && R_VolumetricRainSupported() )
+	{
+		GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
+		GLSL_SetUniformMatrix4x4(sp, UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
+	}
+	R_FogVolumesBindClusters();
 	if ( tr.froxelParticleLightImage )
 		GL_BindToTMU(tr.froxelParticleLightImage, TB_ENTITYGRID_AMBIENT);
 	// view 40: the extinction of this frame (r_volumetricSelfShadow)

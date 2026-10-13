@@ -2203,7 +2203,8 @@ void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *vi
 		state->consumerMask |= PRECIP_CONSUMER_SPLASHES;
 	if (state->current && r_rainLens && r_rainLens->integer && tr.rainLensImage)
 		state->consumerMask |= PRECIP_CONSUMER_LENS;
-	if (state->current && r_rainStreaks && r_rainStreaks->integer && ws.depthMapValid)
+	if (state->current && state->subtype != RAIN_WEATHER_ACID &&
+		r_rainVolume && r_rainVolume->integer && ws.depthMapValid)
 		state->consumerMask |= PRECIP_CONSUMER_VOLUME;
 	if (state->current && state->subtype == RAIN_WEATHER_ACID)
 		state->consumerMask |= PRECIP_CONSUMER_ACID;

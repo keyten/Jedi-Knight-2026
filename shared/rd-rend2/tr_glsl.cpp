@@ -4268,6 +4268,8 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_LIQUIDCAUSTICMAP, TB_LIQUIDCAUSTICS);
 		// cloud shadows (r_cloudShadows) of the sun injection
 		GLSL_SetUniformInt(sp, UNIFORM_CLOUDSHADOWMAP, TB_CLOUDSHADOW);
+		// Top-down rain exposure map used by the optional FroxelMedium term.
+		GLSL_SetUniformInt(sp, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
 		GLSL_SetFroxelLookupUnits(sp);
 		// the debug view of the particle light field: TB_SHADOWMAPARRAY is u_ShadowMap2 here
 		GLSL_SetUniformInt(sp, UNIFORM_PARTICLELIGHTVOLUME, TB_ENTITYGRID_AMBIENT);
@@ -4282,14 +4284,18 @@ static int GLSL_LoadGPUProgramVolumetric(
 	// latched) are a permutation: without it no moment sampler, fetch or ALU.
 	// The liquid media (r_volumetricWater, latched) are read by the injection and
 	// the debug views.
-	char particleDefines[400];
+	GLint rainTextureUnits = 0;
+	qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &rainTextureUnits);
+	const bool rainVolumeShaders = rainTextureUnits > TB_WEATHERDEPTH;
+	char particleDefines[440];
 	Com_sprintf(particleDefines, sizeof(particleDefines),
 		"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
 		"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
-		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s%s",
+		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s%s%s",
 		MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES,
 		R_VolumetricStaticDirectional() ? "#define USE_FROXEL_STATIC_RECONSTRUCTION\n" : "",
-		liquidLibrary ? "#define USE_LIQUIDS\n" : "");
+		liquidLibrary ? "#define USE_LIQUIDS\n" : "",
+		rainVolumeShaders ? "#define USE_RAIN_VOLUME\n" : "");
 
 	auto load = [&]( shaderProgram_t *sp, const char *name, const GPUProgramDesc *programDesc, const char *defines )
 	{

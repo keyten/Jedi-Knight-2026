@@ -48,6 +48,9 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelHeightFog;				// height fog: base extinction (0 = off), base z, 1 / falloff, log(max scale)
 	vec4 u_FroxelHeightFogColor;		// rgb albedo, w: fade out start above the base
 	vec4 u_FroxelHeightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color
+	vec4 u_FroxelRainParams;			// rain medium: extinction, anisotropy, max distance, enabled
+	vec4 u_FroxelRainGround;			// near-ground extinction, height, weather depth range, active
+	vec4 u_FroxelRainColor;				// rgb scattering albedo, w: normalized intensity (debug)
 	vec4 u_FroxelNoiseParams;			// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4 u_FroxelNoiseMacroOffset;		// wind offset (tile units), w: 1 = height fog is noisy
 	vec4 u_FroxelNoiseDetailOffset;		// wind offset (tile units), w: history weight of the noisy media
@@ -91,6 +94,40 @@ layout(std140) uniform VolumetricFog
 	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), entry 0 = neutral
 	vec4 u_FroxelExtinctionPalette[FROXEL_EXTINCTION_PALETTE];
 };
+
+#if defined(USE_RAIN_VOLUME)
+uniform sampler2D u_WeatherDepthMap;
+uniform mat4 u_WeatherMvp;
+
+// Top-down weather occlusion. The stored depth is the first roof/surface hit
+// by vertical rain and grows downward. Four binary comparisons retain a hard
+// roof decision while bilinearly softening only the one-texel XY boundary.
+float FroxelRainExposure(in vec3 p, out float clearance)
+{
+	vec4 clip = u_WeatherMvp * vec4(p, 1.0);
+	vec3 uvz = clip.xyz / max(clip.w, 1e-6) * 0.5 + 0.5;
+	clearance = 0.0;
+	if (any(lessThan(uvz.xy, vec2(0.0))) || any(greaterThan(uvz.xy, vec2(1.0))))
+		return 0.0;
+
+	ivec2 size = textureSize(u_WeatherDepthMap, 0);
+	vec2 texel = uvz.xy * vec2(size) - 0.5;
+	ivec2 base = ivec2(floor(texel));
+	vec2 f = fract(texel);
+	ivec2 hi = size - 1;
+	float bias = 1.0 / max(u_FroxelRainGround.z, 1.0); // one world unit
+	float z = uvz.z - bias;
+	float d00 = texelFetch(u_WeatherDepthMap, clamp(base, ivec2(0), hi), 0).r;
+	float d10 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 0), ivec2(0), hi), 0).r;
+	float d01 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(0, 1), ivec2(0), hi), 0).r;
+	float d11 = texelFetch(u_WeatherDepthMap, clamp(base + ivec2(1, 1), ivec2(0), hi), 0).r;
+	float exposure = mix(mix(step(z, d00), step(z, d10), f.x),
+		mix(step(z, d01), step(z, d11), f.x), f.y);
+	float surface = mix(mix(d00, d10, f.x), mix(d01, d11, f.x), f.y);
+	clearance = max((surface - uvz.z) * u_FroxelRainGround.z, 0.0);
+	return exposure;
+}
+#endif
 
 // below this transmittance at far the tail is not evaluated (at most this fraction of its light
 // could still reach the camera)
@@ -474,14 +511,15 @@ vec4 FroxelTailMedium(in vec3 a, in vec3 dir, in float len)
 	int debugView = int(u_FroxelDebugParams.x);
 	vec4 result = vec4(0.0);
 
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16)
+	bool rainDebug = debugView >= 71 && debugView <= 74;
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && !rainDebug)
 	{
 		float tau = FroxelHeightOpticalDepth(a, a + dir * len, len);
 		result += vec4(u_FroxelHeightFogColor.rgb * tau, tau);
 	}
 
 	// only the fogs that reach beyond far (CPU culled, u_FroxelTailFogs)
-	int numFogs = (debugView == 12 || debugView == 16) ? 0 : u_FroxelTailFogs.y;
+	int numFogs = (debugView == 12 || debugView == 16 || rainDebug) ? 0 : u_FroxelTailFogs.y;
 	vec3 invDir = 1.0 / mix(dir, vec3(1e-8), lessThan(abs(dir), vec3(1e-8)));
 	for (int i = 0; i < numFogs; i++)
 	{
@@ -573,14 +611,15 @@ vec3 FroxelTailMediumRGB(in vec3 a, in vec3 dir, in float len, out vec3 tau)
 	vec3 scatter = vec3(0.0);
 	tau = vec3(0.0);
 
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16)
+	bool rainDebug = debugView >= 71 && debugView <= 74;
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && !rainDebug)
 	{
 		vec3 t = FroxelHeightOpticalDepth(a, a + dir * len, len) * u_FroxelHeightFogTop.yzw;
 		scatter += u_FroxelHeightFogColor.rgb * t;
 		tau += t;
 	}
 
-	int numFogs = (debugView == 12 || debugView == 16) ? 0 : u_FroxelTailFogs.y;
+	int numFogs = (debugView == 12 || debugView == 16 || rainDebug) ? 0 : u_FroxelTailFogs.y;
 	vec3 invDir = 1.0 / mix(dir, vec3(1e-8), lessThan(abs(dir), vec3(1e-8)));
 	for (int i = 0; i < numFogs; i++)
 	{

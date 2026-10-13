@@ -404,6 +404,17 @@ bool FroxelLiquidOnlyView(in int debugView)
 	return debugView == 59 || debugView == 66 || debugView == 67;
 }
 
+bool FroxelRainOnlyView(in int debugView)
+{
+	return debugView == 71 || debugView == 73 || debugView == 74;
+}
+
+bool FroxelRainVisibleInView(in int debugView)
+{
+	return debugView != 11 && debugView != 12 && debugView != 16 && debugView != 26 &&
+		!FroxelLiquidOnlyView(debugView);
+}
+
 FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugView, in bool wantChange, out float noisyFraction,
 	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
@@ -434,7 +445,8 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float localExtinction = 0.0;
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
-	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 && !FroxelLiquidOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 &&
+		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
 	{
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -493,7 +505,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float particlePrevious = 0.0;
 	float particleDelta = 0.0;
 	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 11 && debugView != 12 &&
-		debugView != 16 && !FroxelLiquidOnlyView(debugView)) ? FroxelParticleSliceHeader(var_Slice) : 0;
+		debugView != 16 && !FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView)) ? FroxelParticleSliceHeader(var_Slice) : 0;
 	int particleCount = particleHeader >> 16;
 	if (particleCount > 0)
 	{
@@ -534,8 +546,35 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	}
 	particleChange = particleDelta / max(max(particleExtinction, particlePrevious), 1e-12);
 
+#if defined(USE_RAIN_VOLUME)
+	// Rain suspension is spatially bounded by the same top-down occlusion as
+	// the drops. It is a normal FroxelMedium term, so all existing sun,
+	// dynamic-light, shadow, HG and temporal code below applies unchanged.
+	if (u_FroxelRainParams.w > 0.5 && FroxelRainVisibleInView(debugView))
+	{
+		float clearance;
+		float exposure = FroxelRainExposure(p, clearance);
+		float distanceToCamera = length(p - u_FroxelViewOrigin.xyz);
+		float distanceFade = 1.0 - smoothstep(u_FroxelRainParams.z * 0.85,
+			u_FroxelRainParams.z, distanceToCamera);
+		float e = u_FroxelRainParams.x * exposure * distanceFade;
+		if (u_FroxelRainGround.w > 0.5)
+		{
+			float ground = 1.0 - smoothstep(0.0, u_FroxelRainGround.y, clearance);
+			e += u_FroxelRainGround.x * exposure * distanceFade * ground;
+		}
+		plainExtinction += e;
+		extinction += e;
+#if defined(USE_FROXEL_RGB)
+		extinctionRGB += vec3(e); // neutral extinction; scattering is slightly cool
+#endif
+		FroxelAddScattering(lobes, e, u_FroxelRainColor.rgb, u_FroxelRainParams.y);
+	}
+#endif
+
 	// the height fog has no metadata: the global g
-	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 && !FroxelLiquidOnlyView(debugView))
+	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 &&
+		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView))
 	{
 		float e = heightSample.x;
 		float plain = e;
@@ -575,7 +614,8 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 
 	// the fog volumes that may touch this slice (CPU culled); max: see liquidSlice below
 	int fogSlice = max(var_Slice, 0);
-	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || FroxelLiquidOnlyView(debugView)) ? 0 :
+	int fogMask = (debugView == 12 || debugView == 16 || debugView == 26 || FroxelLiquidOnlyView(debugView) ||
+		FroxelRainOnlyView(debugView)) ? 0 :
 		u_FroxelFogSlices[fogSlice >> 2][fogSlice & 3];
 	int numFogs = (fogMask != 0) ? u_FroxelNumFogs : 0;
 	for (int i = 0; i < numFogs; i++)
@@ -623,7 +663,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	// negative index is a compile error on some drivers even in a branch never taken)
 	int liquidSlice = max(var_Slice, 0);
 	int liquidMask = (u_LiquidParams.x > 0.5 && !(froxelMediaPass && u_LiquidParams.z > 0.5) &&
-		debugView != 11 && debugView != 12 && debugView != 16 && debugView != 26) ?
+		debugView != 11 && debugView != 12 && debugView != 16 && debugView != 26 && !FroxelRainOnlyView(debugView)) ?
 		u_LiquidSlices[liquidSlice >> 2][liquidSlice & 3] : 0;
 	if (liquidMask != 0)
 	{
@@ -1662,6 +1702,8 @@ void main()
 	// emission j_e at the froxel center: no jitter and no history (it goes to the dynamic volume), so
 	// a fast fire or explosion leaves no after-image and the history clamp sees scattering only
 	vec3 emission = FroxelEmission(pc, debugView);
+	if (FroxelRainOnlyView(debugView))
+		emission = vec3(0.0);
 
 	// debug view 17: share of the local volumes (red) and of the other media (green), integrated
 	// like an emission: the integrated rg is each medium's share of the opacity along the ray

@@ -1520,6 +1520,9 @@ struct VolumetricFogBlock
 	vec4_t heightFog;				// height fog: base extinction per unit (0 = off), base z, 1 / falloff, log(max scale)
 	vec4_t heightFogColor;			// rgb albedo, w: fade out start above the base (top - fade)
 	vec4_t heightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color (r_volumetricFogRGBExtinction, 1 1 1)
+	vec4_t rainParams;				// rain medium: extinction, anisotropy, max distance, enabled
+	vec4_t rainGround;				// near-ground extinction, height, weather depth range, active
+	vec4_t rainColor;				// rgb scattering albedo, w: normalized intensity (debug)
 	vec4_t noiseParams;				// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4_t noiseMacroOffset;		// wind offset of the macro noise (tile units), w: 1 = height fog is noisy
 	vec4_t noiseDetailOffset;		// wind offset of the detail noise (tile units), w: history weight of noisy media
@@ -4709,6 +4712,9 @@ extern cvar_t	*r_debugWeather;
 extern cvar_t	*r_weatherCull;
 extern cvar_t	*r_weatherDebugChunks;
 extern cvar_t	*r_rainStreaks;
+extern cvar_t	*r_rainVolume, *r_rainVolumeStrength, *r_rainVolumeHeavyMultiplier;
+extern cvar_t	*r_rainVolumeAnisotropy, *r_rainVolumeGroundStrength, *r_rainVolumeGroundHeight;
+extern cvar_t	*r_rainVolumeMaxDistance;
 extern cvar_t	*r_waterParticles;
 extern cvar_t	*r_waterParticlesDensity;
 extern cvar_t	*r_waterParticlesSize;

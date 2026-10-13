@@ -89,6 +89,10 @@ void main()
 //     69 liquid fog bypass: the frame with the draws a froxel view with liquids leaves unfogged
 //        tinted (tr_liquid.cpp RB_LiquidBypassReason): magenta lightall blended, yellow a generic
 //        blend without fog, cyan immediate draws; this pass only adds the legend at the bottom
+//  70 dynamic lights without liquid absorption (A/B with view 4)
+//  71-74 rain medium (r_rainVolume): 71 density only, 72 top-down exposure at the scene,
+//        73 unattenuated in-scattering source integrated along the ray, 74 final integrated
+//        rain in-scattering contribution. 71, 73 and 74 isolate rain from all other media.
 //
 // r_particleLightingDebug 1-4 (u_ParticleLight.x = 1): the sprite particle light field just in front of
 // the scene (all lights, or the term the injection kept: 2 baked, 3 sun, 4 dynamic), tone mapped
@@ -224,13 +228,23 @@ void main()
 		return;
 	}
 
-	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26 || view == 59)
+	if (view == 1 || view == 11 || view == 12 || view == 16 || view == 26 || view == 59 || view == 71)
 	{
 		color = Heat(-log(max(fog.a, 1e-4)) / 4.0);
 	}
-	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || view == 57 || view == 58 || (view >= 30 && view <= 34) || (view >= 43 && view <= 48) || view == 66 || view == 70)
+	else if ((view >= 2 && view <= 6) || (view >= 20 && view <= 25) || view == 57 || view == 58 || (view >= 30 && view <= 34) || (view >= 43 && view <= 48) || view == 66 || view == 70 || view == 73 || view == 74)
 	{
 		color = Display(fog.rgb);
+	}
+	else if (view == 72)
+	{
+#if defined(USE_RAIN_VOLUME)
+		float clearance;
+		float exposure = u_FroxelRainParams.w > 0.5 ? FroxelRainExposure(worldPos, clearance) : 0.0;
+		color = mix(vec3(0.08, 0.02, 0.02), vec3(0.1, 0.65, 1.0), exposure);
+#else
+		color = vec3(0.3, 0.0, 0.3);
+#endif
 	}
 	else if (view == 7)
 	{

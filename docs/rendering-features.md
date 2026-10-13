@@ -702,6 +702,21 @@ Replaces the old light-grid ray march with a camera-aligned 3D volume. Sunlight,
 
 Can significantly affect performance. Cost scales with froxel resolution, slice count, active lights and the optional effects below.
 
+## Rain suspension in froxel fog
+
+Adds rain haze as another participating medium of the existing froxel volume. It uses the resolved rain subtype and intensity, and samples the top-down weather depth for every froxel: outdoor courtyards receive haze while rooms and the air below roofs do not. Sun, baked and dynamic lights (including saber, flashlight-like spot lights and explosions), shadows, HG phase and temporal reprojection are the normal froxel paths; there is no separate rain lighting pass. Acid rain is reserved for a later optical profile.
+
+**Requirements.** Requires active rain, its weather depth map and froxel fog (`r_volumetricFog 2`). The feature is off by default.
+
+- `r_rainVolume 0 | 1` — disable / enable the rain medium.
+- `r_rainVolumeStrength <value>` — normal-rain extinction per world unit at full normalized intensity.
+- `r_rainVolumeHeavyMultiplier <value>` — additional heavy-rain density multiplier.
+- `r_rainVolumeAnisotropy <g>` — rain medium HG anisotropy; default `0.72`.
+- `r_rainVolumeGroundStrength <value>` — optional heavy-rain splash-mist extinction; `0` disables it.
+- `r_rainVolumeGroundHeight <units>` — height of that layer above the exposed surface.
+- `r_rainVolumeMaxDistance <units>` — camera range with a soft fade over the outer 15%.
+- `r_volumetricFogDebug 71..74` — rain-only density, weather exposure, unattenuated in-scattering source and final integrated rain contribution.
+
 ## Directional baked light in volumetrics
 
 Recovers where the baked (non-sun) light of the BSP light grid appears to come from, once at map load, so fog subtly brightens towards the lamps it is lit by instead of glowing uniformly. Red and blue lamps keep their own directions; where the light grid gives no confident answer the fog stays isotropic. It only redistributes the existing baked light over view directions, never adds light, and never changes the fog density. Stock maps need no changes; static emissive surfaces and `maps/<map>.arealights.json` lamps help it.

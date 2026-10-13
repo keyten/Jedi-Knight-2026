@@ -108,12 +108,12 @@ void FroxelIntegrate(in FroxelSliceInput i, in float pathLength, in int debugVie
 	float extinction = i.source.a;
 
 	// debug views 30-32 (volumetric_inject.glsl): the source alone, without extinction
-	if (debugView >= 30 && debugView <= 32)
+	if ((debugView >= 30 && debugView <= 32) || debugView == 73)
 		extinction = 0.0;
 
 #if defined(USE_FROXEL_RGB)
 	vec3 extinctionRGB = i.extinctionRGB;
-	if (debugView >= 30 && debugView <= 32)
+	if ((debugView >= 30 && debugView <= 32) || debugView == 73)
 		extinctionRGB = vec3(0.0);
 	vec3 xRGB = max(extinctionRGB, vec3(0.0)) * pathLength;
 	vec3 sliceT = exp(-xRGB);

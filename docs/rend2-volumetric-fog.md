@@ -1560,6 +1560,13 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_volumetricParticlesScale` | 1 | extinction multiplier of the particle media |
 | `r_volumetricParticlesHistory` | 0.3 | share of the history weight kept where the particle density changed |
 | `r_volumetricParticlesDebug` | 0 | cheat, 1 = culling statistics every 60 frames |
+| `r_rainVolume` | 0 | add active rain as a weather-depth-occluded froxel medium |
+| `r_rainVolumeStrength` | 0.00018 | normal-rain extinction per world unit at full normalized intensity |
+| `r_rainVolumeHeavyMultiplier` | 4 | density multiplier of the heavy-rain subtype; light rain uses 0.02 and is near-zero |
+| `r_rainVolumeAnisotropy` | 0.72 | HG g of the rain medium, -0.9..0.9 |
+| `r_rainVolumeGroundStrength` | 0 | heavy-only near-ground splash-mist extinction; 0 disables the layer |
+| `r_rainVolumeGroundHeight` | 96 | height of the splash-mist layer above the exposed weather surface |
+| `r_rainVolumeMaxDistance` | 6000 | maximum range, clamped to froxel far and faded over the outer 15% |
 
 The existing `r_volumetricFogScale`, `r_volumetricFogDefaultScale` and the `volumetricFogScale` worldspawn key
 scale the extinction in both modes; `r_volumetricFogSamples` only concerns the legacy ray march. Mode 2 needs
@@ -1609,6 +1616,10 @@ mode 2 shows the legacy in-scattering of the baked light (static + baked sun == 
 | 35-39 | per-medium albedo and anisotropy: extinction, albedo, lobe slots, mixed g, sun phase (see "Per-medium albedo and anisotropy") |
 | 57 | baked light after the L1 phase with the global g, `B + 3 g (M.v)` (as 20: no sun, no dynamic lights) |
 | 58 | directional fraction per channel: B * |M_c| / B_c |
+| 71 | rain-medium density only; every other medium is removed |
+| 72 | point exposure from the top-down weather depth at the visible scene surface (cyan exposed, near-black roofed) |
+| 73 | rain-only in-scattering source integrated without extinction |
+| 74 | final integrated rain-only in-scattering contribution with its real extinction |
 
 Views 2 to 5 keep only that light term in the injection, so the scene behind the overlay also shows it. Changing
 the view resets the history. `r_volumetricFogFreeze 1` keeps the froxel volume and its camera: move away to see
