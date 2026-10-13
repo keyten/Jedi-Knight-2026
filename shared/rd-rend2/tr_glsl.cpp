@@ -410,6 +410,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WeatherType",			GLSL_INT, 1 },
 	{ "u_RainStreak",			GLSL_VEC4, 1 },
 	{ "u_RainShade",			GLSL_VEC4, 1 },
+	{ "u_RainLod",			GLSL_VEC4, 1 },
 	{ "u_RainLight",			GLSL_VEC4, 1 },
 	{ "u_RainDynamic",			GLSL_VEC4, 1 },
 	{ "u_CameraVelocity",		GLSL_VEC3, 1 },

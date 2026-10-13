@@ -2971,6 +2971,72 @@
     ]
   },
   {
+    "var": "r_rainLOD",
+    "default": "1",
+    "restart": false,
+    "description": "hand distant streaks to the volumetric rain medium; safely falls back when unavailable.",
+    "name": "r_rainLOD",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "0 | 1",
+    "range": [0.0, 1.0, true]
+  },
+  {
+    "var": "r_rainLODNear",
+    "default": "1200",
+    "restart": false,
+    "description": "full-density streak radius in world units.",
+    "name": "r_rainLODNear",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "<units>",
+    "range": [0.0, 32767.0, false]
+  },
+  {
+    "var": "r_rainLODMid",
+    "default": "3600",
+    "restart": false,
+    "description": "end of the reduced streak band; only volumetric rain remains beyond it.",
+    "name": "r_rainLODMid",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "<units>",
+    "range": [1.0, 32768.0, false]
+  },
+  {
+    "var": "r_rainLODDensityFloor",
+    "default": "0.25",
+    "restart": false,
+    "description": "minimum stable stochastic streak density in the middle band.",
+    "name": "r_rainLODDensityFloor",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "<fraction>",
+    "range": [0.05, 1.0, false]
+  },
+  {
+    "var": "r_rainLODFarVolumeCoupling",
+    "default": "1",
+    "restart": false,
+    "description": "couple the rain medium fade-in to the streak handoff.",
+    "name": "r_rainLODFarVolumeCoupling",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "<fraction>",
+    "range": [0.0, 1.0, false]
+  },
+  {
+    "var": "r_rainLODDebug",
+    "default": "0",
+    "restart": false,
+    "description": "show green near, yellow middle and blue far distance bands.",
+    "name": "r_rainLODDebug",
+    "category": "Rain & wet surfaces",
+    "section": "Rain distance LOD",
+    "spec": "0 | 1",
+    "range": [0.0, 1.0, true]
+  },
+  {
     "var": "r_weatherWetness",
     "default": "0",
     "restart": true,

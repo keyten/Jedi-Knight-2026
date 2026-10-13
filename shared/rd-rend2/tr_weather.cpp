@@ -1922,8 +1922,12 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 
 		// r_rainStreaks: the rain slot alone switches to lit, premultiplied
 		// streaks; snow, spacedust, sand and fog keep the legacy path
+		// LOD is allowed only when the far medium will actually render. If the
+		// volume is disabled/unsupported, every existing streak is retained.
+		const bool rainLod = rainSlot && r_rainLOD->integer != 0 &&
+			R_VolumetricRainActive(&backEnd.refdef);
 		const bool rainStreaks = rainSlot &&
-			(precipitation.consumerMask & PRECIP_CONSUMER_VOLUME);
+			(r_rainStreaks->integer != 0 || rainLod);
 
 		int stateBits = weatherType == WEATHER_SAND ?
 			GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA :
@@ -1993,7 +1997,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			frameAllocator, &item.numSamplerBindings);
 
 		vec3_t cameraVelocity = {};
-		vec4_t rainStreak = {}, rainShade = {};
+		vec4_t rainStreak = {}, rainShade = {}, rainLodParams = {};
 		if (rainStreaks)
 		{
 			RB_RainCameraVelocity(cameraVelocity);
@@ -2007,7 +2011,16 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			// world size of one pixel at distance 1
 			rainShade[2] = 2.0f * tanf(DEG2RAD(backEnd.viewParms.fovY) * 0.5f) /
 				(float)MAX(backEnd.viewParms.viewportHeight, 1);
-			rainShade[3] = (float)r_rainStreakDebug->integer;
+			rainShade[3] = r_rainLODDebug->integer && rainLod ? 6.0f :
+				(float)r_rainStreakDebug->integer;
+			if (rainLod)
+			{
+				const float nearDistance = MAX(0.0f, r_rainLODNear->value);
+				rainLodParams[0] = nearDistance;
+				rainLodParams[1] = MAX(nearDistance + 1.0f, r_rainLODMid->value);
+				rainLodParams[2] = Com_Clamp(0.05f, 1.0f, r_rainLODDensityFloor->value);
+				rainLodParams[3] = r_rainLODDebug->integer ? 2.0f : 1.0f;
+			}
 		}
 
 		// The update shader now wraps local XY at +/-1000, so every VBO slot
@@ -2115,6 +2128,7 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 				{
 					uniformDataWriter.SetUniformVec4(UNIFORM_RAINSTREAK, rainStreak);
 					uniformDataWriter.SetUniformVec4(UNIFORM_RAINSHADE, rainShade);
+					uniformDataWriter.SetUniformVec4(UNIFORM_RAINLOD, rainLodParams);
 					uniformDataWriter.SetUniformVec4(UNIFORM_RAINLIGHT, rainLight);
 					uniformDataWriter.SetUniformVec3(UNIFORM_CAMERAVELOCITY, cameraVelocity);
 					if (rainGrid)
@@ -2146,6 +2160,17 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 			"%d splash draws, %d culled splash slots, RB_SurfaceWeather %.3f ms CPU\n",
 			weatherDrawCalls, culledChunks, renderedVertices, simulationVertices,
 			splashStats.draws, splashStats.culled, cpuMs);
+		if (r_rainLOD->integer)
+		{
+			const bool active = R_VolumetricRainActive(&backEnd.refdef) != qfalse;
+			ri.Printf(PRINT_ALL,
+				"Rain LOD: %s, near %.0f, mid/far %.0f, density floor %.2f, "
+				"volume coupling %.2f%s\n",
+				active ? "active" : "fallback (all streaks)",
+				r_rainLODNear->value, r_rainLODMid->value,
+				r_rainLODDensityFloor->value, r_rainLODFarVolumeCoupling->value,
+				active ? "" : " -- rain volume unavailable");
+		}
 	}
 }
 

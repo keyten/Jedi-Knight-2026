@@ -773,6 +773,12 @@ cvar_t *r_rainVolumeAnisotropy;
 cvar_t *r_rainVolumeGroundStrength;
 cvar_t *r_rainVolumeGroundHeight;
 cvar_t *r_rainVolumeMaxDistance;
+cvar_t *r_rainLOD;
+cvar_t *r_rainLODNear;
+cvar_t *r_rainLODMid;
+cvar_t *r_rainLODDensityFloor;
+cvar_t *r_rainLODFarVolumeCoupling;
+cvar_t *r_rainLODDebug;
 cvar_t *r_waterParticles;
 cvar_t *r_waterParticlesDensity;
 cvar_t *r_waterParticlesSize;
@@ -2113,6 +2119,18 @@ void R_Register( void )
 		"Height in world units of the heavy-rain splash-mist layer");
 	r_rainVolumeMaxDistance = ri_Cvar_Get_NoComm("r_rainVolumeMaxDistance", "6000", CVAR_ARCHIVE,
 		"Maximum camera distance of the rain medium, with a soft outer fade");
+	r_rainLOD = ri_Cvar_Get_NoComm("r_rainLOD", "1", CVAR_ARCHIVE,
+		"Distance LOD from real rain streaks to the far volumetric rain medium");
+	r_rainLODNear = ri_Cvar_Get_NoComm("r_rainLODNear", "1200", CVAR_ARCHIVE,
+		"Distance through which rain keeps full streak density");
+	r_rainLODMid = ri_Cvar_Get_NoComm("r_rainLODMid", "3600", CVAR_ARCHIVE,
+		"End of the reduced-density streak band; beyond this only the rain medium remains");
+	r_rainLODDensityFloor = ri_Cvar_Get_NoComm("r_rainLODDensityFloor", "0.25", CVAR_ARCHIVE,
+		"Minimum stochastic streak density in the middle LOD band");
+	r_rainLODFarVolumeCoupling = ri_Cvar_Get_NoComm("r_rainLODFarVolumeCoupling", "1", CVAR_ARCHIVE,
+		"Blend the rain medium from legacy all-distance (0) to the streak LOD handoff (1)");
+	r_rainLODDebug = ri_Cvar_Get_NoComm("r_rainLODDebug", "0", CVAR_CHEAT,
+		"Show rain LOD distance bands: green near, yellow mid, blue far");
 	ri.Cvar_CheckRange(r_rainVolume, 0, 1, qtrue);
 	ri.Cvar_CheckRange(r_rainVolumeStrength, 0.0f, 0.01f, qfalse);
 	ri.Cvar_CheckRange(r_rainVolumeHeavyMultiplier, 0.0f, 16.0f, qfalse);
@@ -2120,6 +2138,11 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_rainVolumeGroundStrength, 0.0f, 0.01f, qfalse);
 	ri.Cvar_CheckRange(r_rainVolumeGroundHeight, 1.0f, 1024.0f, qfalse);
 	ri.Cvar_CheckRange(r_rainVolumeMaxDistance, 64.0f, 32768.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainLOD, 0, 1, qtrue);
+	ri.Cvar_CheckRange(r_rainLODNear, 0.0f, 32767.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainLODMid, 1.0f, 32768.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainLODDensityFloor, 0.05f, 1.0f, qfalse);
+	ri.Cvar_CheckRange(r_rainLODFarVolumeCoupling, 0.0f, 1.0f, qfalse);
 	r_rainStreakWidth = ri_Cvar_Get_NoComm("r_rainStreakWidth", "1", CVAR_ARCHIVE,
 		"r_rainStreaks: streak width scale");
 	r_rainStreakLength = ri_Cvar_Get_NoComm("r_rainStreakLength", "1", CVAR_ARCHIVE,

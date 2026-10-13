@@ -2021,9 +2021,14 @@ static float R_VolumetricRainProfile( const precipitationState_t& rain )
 	}
 }
 
-static qboolean R_VolumetricRainActive( const trRefdef_t *refdef )
+qboolean R_VolumetricRainActive( const trRefdef_t *refdef )
 {
-	return (qboolean)(refdef && r_rainVolume && r_rainVolume->integer &&
+	return (qboolean)(refdef && r_volumetricFog && r_volumetricFog->integer == 2 &&
+		s_vf.resources && r_depthPrepass && r_depthPrepass->integer &&
+		r_drawfog && r_drawfog->integer && tr.renderFbo &&
+		(!r_volumetricFogFreeze || !r_volumetricFogFreeze->integer) &&
+		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) && !refdef->doLAGoggles &&
+		r_rainVolume && r_rainVolume->integer && refdef->precipitation.primaryView &&
 		refdef->precipitation.current && R_VolumetricRainProfile(refdef->precipitation) > 0.0f &&
 		tr.weatherSystem && tr.weatherSystem->depthMapValid && tr.weatherDepthImage &&
 		R_VolumetricRainSupported());
@@ -2069,6 +2074,10 @@ static unsigned int R_VolumetricMediumKey( const trRefdef_t *refdef, qboolean ra
 		r_rainVolumeGroundStrength ? r_rainVolumeGroundStrength->value : 0.0f,
 		r_rainVolumeGroundHeight ? r_rainVolumeGroundHeight->value : 0.0f,
 		r_rainVolumeMaxDistance ? r_rainVolumeMaxDistance->value : 0.0f,
+		(float)(r_rainLOD ? r_rainLOD->integer : 0),
+		r_rainLODNear ? r_rainLODNear->value : 0.0f,
+		r_rainLODMid ? r_rainLODMid->value : 0.0f,
+		r_rainLODFarVolumeCoupling ? r_rainLODFarVolumeCoupling->value : 0.0f,
 		rainActive && refdef ? (float)refdef->precipitation.subtype : 0.0f,
 		rainActive && refdef ? refdef->precipitation.normalizedIntensity : 0.0f };
 	unsigned int key = R_VolumetricHashBytes(2166136261u, values, sizeof(values));
@@ -2438,6 +2447,11 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			Com_Clamp(1.0f, 1024.0f, r_rainVolumeGroundHeight->value),
 			MAX(tr.weatherSystem->depthRangeWorld, 1.0f), ground ? 1.0f : 0.0f);
 		VectorSet4(block.rainColor, 0.92f, 0.95f, 1.0f, intensity);
+		const float lodNear = MAX(0.0f, r_rainLODNear->value);
+		const float lodMid = MAX(lodNear + 1.0f, r_rainLODMid->value);
+		const qboolean lodActive = (qboolean)(r_rainLOD->integer != 0);
+		VectorSet4(block.rainLod, lodNear, lodMid,
+			Com_Clamp(0.0f, 1.0f, r_rainLODFarVolumeCoupling->value), lodActive ? 1.0f : 0.0f);
 	}
 
 	// density noise of the selected media

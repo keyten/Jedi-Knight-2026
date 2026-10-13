@@ -557,11 +557,20 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 		float distanceToCamera = length(p - u_FroxelViewOrigin.xyz);
 		float distanceFade = 1.0 - smoothstep(u_FroxelRainParams.z * 0.85,
 			u_FroxelRainParams.z, distanceToCamera);
-		float e = u_FroxelRainParams.x * exposure * distanceFade;
+		// With streak LOD the medium fades in over the same wide handoff. The
+		// coupling blends from the old all-distance medium (0) to far-only (1).
+		float lodWeight = 1.0;
+		if (u_FroxelRainLod.w > 0.5)
+		{
+			float farWeight = smoothstep(u_FroxelRainLod.x, u_FroxelRainLod.y,
+				distanceToCamera);
+			lodWeight = mix(1.0, farWeight, u_FroxelRainLod.z);
+		}
+		float e = u_FroxelRainParams.x * exposure * distanceFade * lodWeight;
 		if (u_FroxelRainGround.w > 0.5)
 		{
 			float ground = 1.0 - smoothstep(0.0, u_FroxelRainGround.y, clearance);
-			e += u_FroxelRainGround.x * exposure * distanceFade * ground;
+			e += u_FroxelRainGround.x * exposure * distanceFade * ground * lodWeight;
 		}
 		plainExtinction += e;
 		extinction += e;

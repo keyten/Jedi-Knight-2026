@@ -51,6 +51,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelRainParams;			// rain medium: extinction, anisotropy, max distance, enabled
 	vec4 u_FroxelRainGround;			// near-ground extinction, height, weather depth range, active
 	vec4 u_FroxelRainColor;				// rgb scattering albedo, w: normalized intensity (debug)
+	vec4 u_FroxelRainLod;				// streak handoff: near distance, mid/far distance, volume coupling, active
 	vec4 u_FroxelNoiseParams;			// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4 u_FroxelNoiseMacroOffset;		// wind offset (tile units), w: 1 = height fog is noisy
 	vec4 u_FroxelNoiseDetailOffset;		// wind offset (tile units), w: history weight of the noisy media

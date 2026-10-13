@@ -1534,6 +1534,7 @@ struct VolumetricFogBlock
 	vec4_t rainParams;				// rain medium: extinction, anisotropy, max distance, enabled
 	vec4_t rainGround;				// near-ground extinction, height, weather depth range, active
 	vec4_t rainColor;				// rgb scattering albedo, w: normalized intensity (debug)
+	vec4_t rainLod;					// streak handoff: near distance, mid/far distance, volume coupling, active
 	vec4_t noiseParams;				// density noise: 1 / macro period, 1 / detail period, macro contrast, detail contrast
 	vec4_t noiseMacroOffset;		// wind offset of the macro noise (tile units), w: 1 = height fog is noisy
 	vec4_t noiseDetailOffset;		// wind offset of the detail noise (tile units), w: history weight of noisy media
@@ -2808,6 +2809,7 @@ typedef enum
 	UNIFORM_WEATHERTYPE,		// weather.glsl: 0 legacy particle (snow, dust, sand, fog), 1 rain streak (r_rainStreaks)
 	UNIFORM_RAINSTREAK,			// width scale, length scale, depth range of the weather map (world units), sRGB coverage (0/1)
 	UNIFORM_RAINSHADE,			// opacity, lighting mix, world size of a pixel at distance 1, debug mode
+	UNIFORM_RAINLOD,				// near distance, mid/far distance, density floor, LOD active
 	UNIFORM_RAINLIGHT,			// rgb = light without a grid, w = light grid valid (0/1)
 	UNIFORM_RAINDYNAMIC,			// dynamic mode, light limit, debug mode, candidate cap
 	UNIFORM_CAMERAVELOCITY,		// smoothed view origin velocity, world units per ms
@@ -4764,6 +4766,8 @@ extern cvar_t	*r_rainStreaks;
 extern cvar_t	*r_rainVolume, *r_rainVolumeStrength, *r_rainVolumeHeavyMultiplier;
 extern cvar_t	*r_rainVolumeAnisotropy, *r_rainVolumeGroundStrength, *r_rainVolumeGroundHeight;
 extern cvar_t	*r_rainVolumeMaxDistance;
+extern cvar_t	*r_rainLOD, *r_rainLODNear, *r_rainLODMid, *r_rainLODDensityFloor;
+extern cvar_t	*r_rainLODFarVolumeCoupling, *r_rainLODDebug;
 extern cvar_t	*r_waterParticles;
 extern cvar_t	*r_waterParticlesDensity;
 extern cvar_t	*r_waterParticlesSize;
@@ -6085,6 +6089,7 @@ void R_RainLensStats_f(void);
 void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *view,
 	precipitationState_t *state);
 void R_PrecipitationInfo_f(void);
+qboolean R_VolumetricRainActive(const trRefdef_t *refdef);
 
 /*
 ============================================================

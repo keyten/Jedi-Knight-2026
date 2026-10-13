@@ -170,6 +170,7 @@ uniform mat4 u_ShadowMvp;
 uniform int u_WeatherType;
 uniform vec4 u_RainStreak;	// width scale, length scale, weather depth range, sRGB coverage
 uniform vec4 u_RainShade;	// opacity, lighting mix, world size of a pixel at distance 1, debug
+uniform vec4 u_RainLod;		// near distance, mid/far distance, density floor, active/debug
 uniform vec4 u_RainLight;	// light without a grid, light grid valid
 uniform sampler3D u_VolumetricLightMap;
 uniform vec3 u_LightGridOrigin;
@@ -242,6 +243,21 @@ void EmitRain()
 	vec2 toCamera = normalize(vec2(V.y, -V.x));
 	float viewDistance = length(V);
 	vec4 rand = var_Rand[0];
+	float lodAlpha = 1.0;
+	bool lodDebug = u_RainLod.w > 1.5;
+	if (u_RainLod.w > 0.5)
+	{
+		// Thin stable particle IDs rather than contiguous draw ranges. The
+		// retained streaks compensate opacity up to 4x; below that AA-safe cap
+		// density, rather than a few saturated lines, carries the transition.
+		float density = mix(1.0, u_RainLod.z,
+			smoothstep(u_RainLod.x, u_RainLod.y, viewDistance));
+		float handoff = 1.0 - smoothstep(u_RainLod.x, u_RainLod.y, viewDistance);
+		float lodRand = fract(dot(rand, vec4(1.0, 57.0, 113.0, 241.0)));
+		if (!lodDebug && (viewDistance >= u_RainLod.y || lodRand > density))
+			return;
+		lodAlpha = handoff * min(4.0, 1.0 / max(density, 1e-4));
+	}
 
 	// drops next to the camera must not become screen tall bars
 	vec2 tilt = var_Velocity[0].xy;
@@ -259,13 +275,21 @@ void EmitRain()
 	}
 
 	float brightness = mix(0.85, 1.05, rand.z);
-	float opacity = u_Color.a * u_RainShade.x * mix(0.8, 1.0, rand.w) * subPixel;
+	float opacity = u_Color.a * u_RainShade.x * mix(0.8, 1.0, rand.w) * subPixel * lodAlpha;
 	vec3 light = RainLight(P);
 	vec3 tint = u_Color.rgb / max(u_Color.a, 1e-4);
 	var_RainColor = vec4(tint * light * brightness, min(8.0, halfLength));
 	var_RainDebug = vec4(light, subPixel);
 	if (u_RainShade.w == 5.0)
 		var_RainDebug = vec4(rand.xyz, 1.0);
+	else if (lodDebug)
+	{
+		float middle = smoothstep(u_RainLod.x, u_RainLod.y, viewDistance);
+		vec3 band = viewDistance <= u_RainLod.x ? vec3(0.1, 1.0, 0.2) :
+			viewDistance < u_RainLod.y ? mix(vec3(1.0, 0.8, 0.05), vec3(0.2, 0.5, 1.0), middle) :
+			vec3(0.1, 0.35, 1.0);
+		var_RainDebug = vec4(band, 1.0);
+	}
 
 	float fadeDistance = u_ViewInfo.w;
 	for (int i = 0; i < 4; ++i)
@@ -391,6 +415,8 @@ void main()
 			else if (debugMode == 4)
 				debugColor = clearance < 0.0 ? vec3(1.0, 0.0, 1.0) : mix(vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), contact);
 			else if (debugMode == 5)
+				debugColor = var_RainDebug.rgb;
+			else if (debugMode == 6)
 				debugColor = var_RainDebug.rgb;
 			// opaque over the streak so the value is readable; contact keeps
 			// its hidden part (magenta) visible

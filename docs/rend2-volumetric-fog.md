@@ -1567,6 +1567,12 @@ homogeneous solution: the largest absolute error of S or T after the trilinear l
 | `r_rainVolumeGroundStrength` | 0 | heavy-only near-ground splash-mist extinction; 0 disables the layer |
 | `r_rainVolumeGroundHeight` | 96 | height of the splash-mist layer above the exposed weather surface |
 | `r_rainVolumeMaxDistance` | 6000 | maximum range, clamped to froxel far and faded over the outer 15% |
+| `r_rainLOD` | 1 | hand distant streaks to the rain medium; safely retains all streaks when the medium is unavailable |
+| `r_rainLODNear` | 1200 | radius of full streak density |
+| `r_rainLODMid` | 3600 | end of the stochastic streak / volume crossfade |
+| `r_rainLODDensityFloor` | 0.25 | minimum middle-band streak probability; opacity compensation is capped at 4x |
+| `r_rainLODFarVolumeCoupling` | 1 | 0 keeps all-distance rain medium, 1 couples its fade-in to the streak handoff |
+| `r_rainLODDebug` | 0 | green / yellow / blue distance-band streak markers |
 
 The existing `r_volumetricFogScale`, `r_volumetricFogDefaultScale` and the `volumetricFogScale` worldspawn key
 scale the extinction in both modes; `r_volumetricFogSamples` only concerns the legacy ray march. Mode 2 needs

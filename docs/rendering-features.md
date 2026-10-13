@@ -1012,6 +1012,22 @@ Forward+ point/spot lights, saber line lights, blaster lights and explosion ligh
 
 Mode 1 is intended for heavy rain. Mode 2 costs more per visible streak/splash but remains bounded independently of total scene-light count.
 
+## Rain streak distance LOD
+
+Hands distant rain from real streak geometry to the weather-occluded froxel medium. The stock distribution is nine 2000-unit square chunks around the camera: light, normal and heavy rain simulate 9,000, 18,000 and 45,000 drops respectively. Before this LOD, every visible chunk submitted its full count and streaks faded from 900 to 6000 units.
+
+The near band keeps every streak. Across the middle band a stable per-particle hash reduces density to the configured floor and retained streaks receive inverse-density opacity compensation, capped at 4x to avoid saturated, aliased lines. Across that same wide band the streak contribution crossfades out while the rain medium reaches full weight. Beyond the middle distance no streak geometry is emitted.
+
+**Requirements.** Requires an actually active rain volume (`r_rainVolume 1`, `r_volumetricFog 2`, weather depth and supported texture-unit budget). If the volume cannot render, LOD automatically falls back to all existing streaks so distant rain never disappears.
+
+- `r_rainLOD 0 | 1` — master switch; default `1`.
+- `r_rainLODNear <units>` — full-density radius; default `1200`.
+- `r_rainLODMid <units>` — end of the streak/volume handoff; default `3600`.
+- `r_rainLODDensityFloor 0.05..1` — lowest stochastic density in the middle band; default `0.25`.
+- `r_rainLODFarVolumeCoupling 0..1` — `0` keeps the original all-distance medium, `1` fades the medium in across the LOD handoff.
+- `r_rainLODDebug 0 | 1` — show green near, yellow-to-blue middle and blue far bands. Debug deliberately restores far streak markers.
+- `r_speeds 100` — prints the current LOD/fallback state and the existing weather submission counts.
+
 ## Wet surfaces
 
 Makes rain-exposed PBR surfaces darker, smoother and more reflective while roofs and other occluders remain dry. The response is material-aware: cloth mainly darkens, while armor and metal can become substantially glossier.
