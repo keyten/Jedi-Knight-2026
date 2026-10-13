@@ -385,6 +385,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WeatherDepthMap",		GLSL_INT, 1 },
 	{ "u_WeatherMvp",			GLSL_MAT4x4, 1 },
 	{ "u_WetnessUpdate",		GLSL_VEC4, 1 },
+	{ "u_RunoffTrailUpdate",	GLSL_VEC4, 1 },
 	{ "u_WetnessParams",		GLSL_VEC4, 1 },
 	{ "u_WetnessParams2",		GLSL_VEC4, 1 },
 	{ "u_WetnessParams3",		GLSL_VEC4, 1 },

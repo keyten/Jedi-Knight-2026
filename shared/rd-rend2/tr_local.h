@@ -535,6 +535,8 @@ extern cvar_t  *r_weatherRunoffSpeed;
 extern cvar_t  *r_weatherRunoffScale;
 extern cvar_t  *r_weatherRunoffProbe;
 extern cvar_t  *r_weatherRunoffEntities;
+extern cvar_t  *r_weatherRunoffTrailPersistence;
+extern cvar_t  *r_weatherRunoffTrailDebug;
 extern cvar_t  *r_ssrQuality;
 extern cvar_t  *r_ssrSteps;
 extern cvar_t  *r_ssrRefineSteps;
@@ -2784,6 +2786,7 @@ typedef enum
 	UNIFORM_WEATHERDEPTHMAP,	// r_weatherWetness: tr.weatherDepthImage
 	UNIFORM_WEATHERMVP,			// world -> weather depth clip space
 	UNIFORM_WETNESSUPDATE,		// persistent world wetness: dt/deposit/dry/steep drying
+	UNIFORM_RUNOFFTRAILUPDATE,	// persistent runoff trails: lifetime, current rain, enabled, unused
 	UNIFORM_WETNESSPARAMS,		// strength, roughness scale, darkening, normal flattening
 	UNIFORM_WETNESSPARAMS2,		// depth bias, normal offset, debug mode, split x
 	UNIFORM_WETNESSPARAMS3,		// facing floor, physical porosity (0/1), material class, unused
@@ -4177,7 +4180,7 @@ typedef struct trGlobals_s {
 	image_t					*weatherDepthImage;
 	image_t					*weatherSurfaceImage;	// world geometry only, maps with weather brushes (r_rainSplashes)
 	image_t					*weatherImpactClassImage; // R8 top-down surface class beside weather depth
-	image_t					*weatherWetnessImage[2]; // flat/steep water amounts + copied weather depth
+	image_t					*weatherWetnessImage[2]; // RG flat/steep water, B weather depth, A runoff trail history
 	image_t					*weatherRippleImpulseImage;
 	image_t					*weatherRippleFieldImage[2]; // RG16F height + velocity
 	image_t					*smaaSearchImage;

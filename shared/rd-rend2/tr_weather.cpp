@@ -2564,7 +2564,8 @@ Persistent world wetness (r_weatherWetnessPersistence)
 
 Two low-frequency RGBA32F textures are ping-ponged by a fixed-rate fullscreen
 pass. R/G store flat/steep retained water amounts; B mirrors the static
-weather depth. lightall blends R/G using each surface's geometric normal.
+weather depth; A retains recent world runoff activity. lightall blends R/G
+using each surface's geometric normal.
 ==============================================================================
 */
 
@@ -2661,6 +2662,14 @@ void RB_WeatherWetnessUpdate(void)
 		MAX(0.0f, r_weatherWetnessDryRate->value) * acidDrying,
 		MAX(1.0f, r_weatherWetnessSteepDryScale->value)
 	};
+	const bool runoffTrails = r_weatherRunoff && r_weatherRunoff->integer &&
+		r_weatherRunoffTrailPersistence && r_weatherRunoffTrailPersistence->value > 0.0f;
+	const vec4_t trailUpdate = {
+		runoffTrails ? Com_Clamp(0.1f, 600.0f, r_weatherRunoffTrailPersistence->value) : 0.0f,
+		runoffTrails ? intensity : 0.0f,
+		runoffTrails ? 1.0f : 0.0f,
+		0.0f
+	};
 
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	GL_Cull(CT_TWO_SIDED);
@@ -2670,6 +2679,7 @@ void RB_WeatherWetnessUpdate(void)
 		tr.weatherWetnessFbo[target]->height);
 	GLSL_BindProgram(&tr.weatherWetnessShader);
 	GLSL_SetUniformVec4(&tr.weatherWetnessShader, UNIFORM_WETNESSUPDATE, update);
+	GLSL_SetUniformVec4(&tr.weatherWetnessShader, UNIFORM_RUNOFFTRAILUPDATE, trailUpdate);
 	GL_BindToTMU(tr.weatherWetnessImage[state.current], TB_COLORMAP);
 	GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
 	RB_InstantTriangle();
@@ -2692,7 +2702,9 @@ point is rain exposed where the rain particle test of weather.glsl would keep
 a particle. The wet surface only changes the PBR inputs (roughness, diffuse,
 normal) before any lighting, see ComputeRainExposure in lightall.glsl. Rain
 is static per map. Optional persistence replaces the instantaneous world water
-amount while preserving this material response and exposure model.
+amount while preserving this material response and exposure model. Its alpha
+channel can retain recent world runoff while lightall supplies the surface
+geometry and world-anchored stream channels.
 ==============================================================================
 */
 
@@ -2890,10 +2902,12 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	const vec4_t params2 = {
 		MAX(r_weatherWetnessBias->value, 0.0f) / ws->depthRangeWorld,	// world units -> depth
 		0.5f * ws->texelSizeWorld * wetnessTexelScale,
-		(float)(r_weatherPuddleRippleDebug->integer ?
+		(float)(r_weatherRunoffTrailDebug && r_weatherRunoffTrailDebug->integer ?
+			40 + Com_Clampi(1, 2, r_weatherRunoffTrailDebug->integer) :
+			(r_weatherPuddleRippleDebug->integer ?
 			36 + Com_Clampi(1, 4, r_weatherPuddleRippleDebug->integer) :
 			((persistentWorld && r_weatherWetnessPersistenceDebug->integer) ?
-				32 : r_weatherSurfaceDebug->integer)),
+				32 : r_weatherSurfaceDebug->integer))),
 		0.5f * (float)glConfig.vidWidth
 	};
 	uniformDataWriter.SetUniformVec4(UNIFORM_WETNESSPARAMS, params);

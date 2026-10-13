@@ -13,11 +13,12 @@ The first milestone has no moving-character atlas or entity history.
 
 Two `RGBA32F` textures are aligned with the existing weather projection and
 ping-ponged by a GL 3.2 fullscreen pass. `R/G` store retained water for flat
-and steep surfaces and `B` stores a copy of weather depth. Packing depth with
-state lets `lightall` preserve the existing roof/exposure test without
-consuming another texture unit. The real geometric normal of each shaded
-surface blends the flat/steep histories, so drainage is not inferred from a
-weather-depth gradient.
+and steep surfaces, `B` stores a copy of weather depth, and `A` optionally
+retains recent world runoff activity. Packing depth and runoff history with
+state lets `lightall` preserve the existing roof/exposure test and persistent
+trails without consuming another texture unit. The real geometric normal of
+each shaded surface blends the flat/steep histories, so drainage is not
+inferred from a weather-depth gradient.
 
 The update uses fixed simulation ticks derived from renderer time, not one step
 per rendered frame:
@@ -50,6 +51,8 @@ stop with current rain while the puddle itself persists until its water dries.
 | `r_weatherWetnessAcidAccumulationScale` | `1` | Acid-rain accumulation multiplier. |
 | `r_weatherWetnessAcidDryScale` | `1` | Acid-rain drying multiplier. |
 | `r_weatherWetnessPersistenceDebug` | `0` | `1` shows stored/exposed water amount in blue. |
+| `r_weatherRunoffTrailPersistence` | `0` | Seconds world runoff trails remain after water passes; `0` disables them. |
+| `r_weatherRunoffTrailDebug` | `0` | `1` shows retained history; `2` shows the final geometry-gated trail mask. |
 
 ## Manual validation
 
