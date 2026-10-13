@@ -26,23 +26,28 @@ the base surface frame; the shader adds the existing micro slope before final
 normalization. Reflection, refraction and Snell use this combined normal.
 
 Sine components retain a bounded horizontal drift. With `r_waterGeometry 1`,
-the subdivided render mesh uses only the one or two longest macro components;
-the complete spectrum remains in fragment shading. This keeps wavelengths far
-below the mesh edge length from aliasing into the silhouette; see
+the subdivided render mesh considers only the one or two longest macro
+components and rejects any whose wavelength is less than four times the
+measured final top-edge length. Rejected terms remain in fragment shading.
+Resolved macro slope is passed from vertex to fragment, which evaluates only
+the complementary terms. This keeps wavelengths below the mesh resolution
+from aliasing into the silhouette and avoids duplicate per-pixel trigonometry; see
 [render-only water geometry](rend2-water-geometry.md). The evaluator transforms
 the height derivative through the horizontal displacement Jacobian so its
 geometric slope remains consistent with that drift. Macro components 0–3
 use the body wavelength times 1, .87, .74 and .61. Medium components 4–7 use
 .28, .255, .23 and .205. Quality 0/1/2 evaluates 1+1, 2+2 or 4+4
-macro+medium shading components. Geometry quality 0 uses macro component 0;
-qualities 1 and 2 use macro components 0 and 1. A quality normalization keeps overall height similar.
+macro+medium shading components. Geometry quality 0 permits macro component 0;
+qualities 1 and 2 permit macro components 0 and 1, subject to the body-specific
+spatial band-limit. A quality normalization keeps overall height similar.
 Directions have angular spread. Resolved per-body flow biases them and, with
 `r_waterFlow 1`, advects medium phases and existing multi-scale detail. Legacy
 scroll contributes only after the UV-to-world confidence checks in
 [directional flow](rend2-water-flow.md). Terms and phases are fixed, with no runtime
 random state. The CPU resolves the body profile and precomputes each term's
-direction, amplitude and wave number once per draw; the GPU only evaluates the
-time-varying phases per vertex/fragment. The mathematical evaluator is
+direction, amplitude and wave number once per body and renderer time; all
+ranges drawn for that body reuse the cached old/target term sets. The GPU only
+evaluates the time-varying phases per vertex/fragment. The mathematical evaluator is
 independent of screen coordinates and can be moved into a shared GLSL source
 for a future vertex mesh. A CPU waterline implementation must reproduce these
 same constants and phase order; no independent wave equation should be added.
@@ -80,9 +85,10 @@ without a shader permutation or a global profile selection.
 The body-average brush depth gives stable whole-body macro attenuation for
 shallow water. A body without linked brush depth stays unattenuated. Brush
 bounds are not a valid distance-to-wall field for irregular lakes or several
-joined brushes, so this version does not fake per-edge attenuation. Future
-shoreline geometry can provide an attenuation multiplier to the same
-evaluator. Screen depth remains for optical path length, never for wave shape.
+joined brushes. Generated geometry supplies the shoreline attenuation described
+in `rend2-water-shoreline.md`. Screen depth remains for optical path length,
+never for wave shape. CPU waterline and shoreline-contact heights use the same
+cached old/target wind terms and transition blend as the GPU mesh.
 
 Authored `deformVertexes` remains active. When its recorded wave amplitude is
 over 0.5 world units, the new analytical amplitude is reduced to 20% for the
@@ -124,7 +130,7 @@ micro strength and unresolved variance on its left side. Existing
 The new height also drives optional subdivided render geometry. Interactive
 disturbances are supplied by the body-local solver in
 [`rend2-water-interaction.md`](rend2-water-interaction.md); caustic input and
-camera-waterline queries remain future work. The
+camera-waterline and shoreline-contact queries share the geometry spectrum. The
 existing wave texture and mip roughness are unchanged. Profiles are uniform
 data; no extra shader permutations, targets, textures or persistent GPU wave
 buffers were added. The wind crossfade adds eleven vec4s to the per-draw water

@@ -6287,7 +6287,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 55
+#define WATER_UNIFORM_VEC4S 56
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u

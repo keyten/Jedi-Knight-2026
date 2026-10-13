@@ -296,19 +296,19 @@ float LiquidCaustic(in vec2 xy, in float depth, in float footprint)
 	return max(1.0 + contrast * (0.5 * (a + b) - 1.0), 0.0);
 }
 
-float LiquidInteractionHeight(in int brush, in vec2 xy, out float fieldActive)
+vec3 LiquidInteractionField(in int brush, in vec2 xy, out float fieldActive)
 {
 	int base = brush * 8;
 	vec4 domain = u_LiquidWaveParams[base + 5];
 	vec4 atlas = u_LiquidWaveParams[base + 6];
 	vec4 info = u_LiquidWaveParams[base + 7];
 	fieldActive = info.z;
-	if (fieldActive < 0.5) return 0.0;
+	if (fieldActive < 0.5) return vec3(0.0);
 	vec2 uv = (xy - domain.xy) * domain.zw;
-	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) { fieldActive = 0.0; return 0.0; }
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) { fieldActive = 0.0; return vec3(0.0); }
 	vec4 field = texture(u_LiquidCausticMap, atlas.xy + uv * atlas.zw);
 	fieldActive *= step(0.5, field.a);
-	return field.r * fieldActive;
+	return field.rgb * fieldActive;
 }
 
 vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out float interactionAmount)
@@ -318,18 +318,11 @@ vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out fl
 	for (int i = 0; i < 8; ++i) terms[i] = u_LiquidWaveTerms[base + i];
 	WaterSurfaceCommonState state = EvaluateWaterSurfaceCommon(p, u_LiquidWaveParams[base + 7].w,
 		u_LiquidWaveParams[base], u_LiquidWaveParams[base + 1], u_LiquidWaveParams[base + 2],
-		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms, 0.0);
-	float a0, ax0, ax1, ay0, ay1;
-	float hc = LiquidInteractionHeight(brush, p.xy, a0);
-	float hx0 = LiquidInteractionHeight(brush, p.xy - vec2(derivativeStep, 0.0), ax0);
-	float hx1 = LiquidInteractionHeight(brush, p.xy + vec2(derivativeStep, 0.0), ax1);
-	float hy0 = LiquidInteractionHeight(brush, p.xy - vec2(0.0, derivativeStep), ay0);
-	float hy1 = LiquidInteractionHeight(brush, p.xy + vec2(0.0, derivativeStep), ay1);
-	if (ax0 < 0.5) hx0 = hc; if (ax1 < 0.5) hx1 = hc;
-	if (ay0 < 0.5) hy0 = hc; if (ay1 < 0.5) hy1 = hc;
-	vec2 interactionSlope = vec2(hx1 - hx0, hy1 - hy0) / (2.0 * derivativeStep);
-	float coverage = max(a0, max(max(ax0, ax1), max(ay0, ay1)));
-	interactionAmount = coverage * clamp(max(abs(hc), length(interactionSlope) * derivativeStep) / 8.0, 0.0, 1.0);
+		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms, 0.0, 0.0);
+	float coverage;
+	vec3 interaction = LiquidInteractionField(brush, p.xy, coverage);
+	vec2 interactionSlope = interaction.gb;
+	interactionAmount = coverage * clamp(max(abs(interaction.r), length(interactionSlope) * derivativeStep) / 8.0, 0.0, 1.0);
 	return (state.slope + interactionSlope) * u_LiquidCausticSurface.w;
 }
 

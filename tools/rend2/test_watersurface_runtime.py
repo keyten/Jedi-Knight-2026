@@ -189,7 +189,7 @@ def main():
             'r_waterInteractionDebug 1', 'wait 3', 'screenshot_tga water-interaction-domain',
             'r_waterInteractionDebug 2', 'wait 3', 'screenshot_tga water-interaction-mask',
             'r_waterInteractionDebug 3', 'wait 3', 'screenshot_tga water-interaction-height',
-            'r_waterInteractionDebug 4', 'wait 3', 'screenshot_tga water-interaction-velocity',
+            'r_waterInteractionDebug 4', 'wait 3', 'screenshot_tga water-interaction-encoded-slope',
             'r_waterInteractionDebug 5', 'wait 3', 'screenshot_tga water-interaction-slope',
             'r_waterInteractionDebug 6', 'wait 3', 'screenshot_tga water-interaction-source',
             'r_waterInteractionDebug 7', 'wait 3', 'screenshot_tga water-interaction-foam',
@@ -283,7 +283,7 @@ def main():
         assert re.search(r'water interaction: enabled, \d+ GPU bytes, geometry', log), 'Missing interaction statistics'
         check_interaction_beauty(base/'screenshots')
         for name in ('water-interaction-domain.tga', 'water-interaction-mask.tga',
-                     'water-interaction-height.tga', 'water-interaction-velocity.tga',
+                     'water-interaction-height.tga', 'water-interaction-encoded-slope.tga',
                      'water-interaction-slope.tga', 'water-interaction-source.tga',
                      'water-interaction-foam.tga', 'water-interaction-active.tga',
                      'water-interaction-mapping.tga'):

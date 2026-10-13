@@ -14,7 +14,7 @@ The existing SP cached BSP handoff and optional `.tspace` sidecar supply source 
 
 The longest original triangle edge in a body sets a common dyadic subdivision level. An edge midpoint cache shares vertices between triangles of the same BSP surface. Matching edge segments on touching surfaces therefore get identical positions and wave phases. With `r_waterShoreline 0`, different original BSP surfaces with unmatched edge partitioning retain the compatible downward 64-unit render skirts. With `r_waterShoreline 1`, map-load boundary classification replaces that blanket treatment with attenuated rigid-wall overlap skirts and short outward natural-bank wedges; see `rend2-water-shoreline.md`.
 
-The vertex shader evaluates only the one or two longest macro components. Medium components stay in the fragment shading spectrum, where the generated mesh cannot spatially alias them into false low-frequency travelling shapes. The original world position is retained as `basePosition`; the displaced world position drives projection, depth writing, refraction, view vectors, SSR, and Snell tests. The fragment evaluates the complete macro + medium spectrum at `basePosition` for its analytic slope. The body plane remains available for grouping and planar reflection capture. Bounds expand conservatively for vertical motion, horizontal drift, the full interactive-height clamp and skirts; the flat face plane is no longer used to cull these meshes.
+The builder records the largest final top-surface edge after subdivision. At draw time a candidate macro component enters geometry only when its wavelength is at least four times that measured edge. Quality still caps the candidate set at one or two longest terms, but budget-reduced or intrinsically coarse bodies can resolve fewer (including zero). Rejected terms remain in fragment shading and therefore never alias into false low-frequency silhouette motion. The resolved vertex slope is interpolated to the fragment; only the complementary analytic terms are evaluated per pixel. The original world position is retained as `basePosition`; the displaced world position drives projection, depth writing, refraction, view vectors, SSR, and Snell tests. The body plane remains available for grouping and planar reflection capture. Bounds expand conservatively for vertical motion, horizontal drift, the full interactive-height clamp and skirts; the flat face plane is no longer used to cull these meshes.
 
 ## Budgets and diagnostics
 
@@ -22,7 +22,7 @@ The vertex shader evaluates only the one or two longest macro components. Medium
 - `r_waterGeometryBodyVerts 250000`: per-body vertex cap.
 - `r_waterGeometryMapVerts 1000000`: whole-map vertex cap.
 - `r_waterGeometryDebug`: 1 wireframe, 2 displacement magnitude, 3 original triangulation with the same wave, 4 body colors with skirts in red, 5 expanded surface culling bounds.
-- `r_waterGeometryInfo`: per-body vertices, triangles (including skirts), subdivision level, build time and estimated VBO/IBO bytes.
+- `r_waterGeometryInfo`: per-body vertices, triangles (including skirts), subdivision level, measured maximum top edge, build time and estimated VBO/IBO bytes.
 
 Budget pressure lowers the body-wide level; if even the source mesh exceeds the remaining budget, the body uses its original BSP draw and logs the fallback. Level is fixed for a map load, so there are no distance-dependent LOD seams. With `r_waterGeometry 0`, no extra mesh is uploaded and the regular modern-water/legacy paths continue.
 

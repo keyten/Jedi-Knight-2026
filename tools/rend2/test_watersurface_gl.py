@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 55
+WATER_VEC4S = 56
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -572,6 +572,7 @@ def check_permutations():
 
 def check_geometry_depth(rig):
     """The vertex wave must move raster depth, not merely fragment shading."""
+    ok = True
     prog = water_program()
     u = rig.params()
     u[13] = [1.0, 1.0, 1.0, 1.0]
@@ -582,11 +583,19 @@ def check_geometry_depth(rig):
     rig.draw_water(prog, u, waves=True)
     flat = read_depth(rig.water_fbo, *rig.size)
     u[19, 1] = 1.0
+    # A body whose measured top edges cannot resolve either macro component
+    # must remain geometrically flat; the same terms still shade per fragment.
+    u[55, 0] = 0.0
+    rig.draw_water(prog, u, waves=True)
+    band_limited = read_depth(rig.water_fbo, *rig.size)
+    ok = check('unresolved analytic waves are band-limited out of geometry',
+               np.max(np.abs(flat - band_limited)) < 1e-7) and ok
+    u[55, 0] = 2.0  # both synthetic macro terms are resolved by this mesh
     rig.draw_water(prog, u, waves=True)
     displaced = read_depth(rig.water_fbo, *rig.size)
     visible = (flat < 0.9999) & (displaced < 0.9999)
     ok = check('vertex displacement changes real water depth',
-               visible.sum() > 100 and np.max(np.abs(flat[visible] - displaced[visible])) > 1e-6)
+               visible.sum() > 100 and np.max(np.abs(flat[visible] - displaced[visible])) > 1e-6) and ok
 
     field = np.zeros((64, 64, 4), dtype=np.float32)
     field[..., 0] = 8.0
@@ -606,6 +615,7 @@ def check_geometry_depth(rig):
                np.max(np.abs(interaction_flat[visible] - interaction_displaced[visible])) > 1e-6) and ok
 
     field[..., 0] = np.sin(np.arange(64, dtype=np.float32)[None, :] * np.pi / 4.0) * 8.0
+    field[..., 1] = np.gradient(field[..., 0], 50.0, axis=1)
     bind(19, tex2d(64, 64, RGBA16F, data=field, linear=True))
     u[19, 1] = 0.0
     u[31, 2] = 0.0
@@ -1194,6 +1204,23 @@ def bench():
                 old_mean = sum(pair[0] for pair in alternating) / len(alternating)
                 new_mean = sum(pair[1] for pair in alternating) / len(alternating)
                 print(f'  interleaved full-screen micro {old_mean:.3f} ms, ambient quality 1 {new_mean:.3f} ms, delta {new_mean-old_mean:+.3f} ms')
+                macro_pairs = []
+                u[13, 0] = 1
+                u[14, 1] = 1
+                u[19, 1] = 1
+                for _ in range(4):
+                    u[55, 0] = 0  # all four analytic terms in the fragment
+                    set_vec4s(prog, 'u_Water', u)
+                    fragment_all = timed(draw_only, repeat=10)
+                    u[55, 0] = 2  # two resolved macros in the vertex, two medium terms in the fragment
+                    set_vec4s(prog, 'u_Water', u)
+                    split_spectrum = timed(draw_only, repeat=10)
+                    macro_pairs.append((fragment_all, split_spectrum))
+                fragment_all = sum(pair[0] for pair in macro_pairs) / len(macro_pairs)
+                split_spectrum = sum(pair[1] for pair in macro_pairs) / len(macro_pairs)
+                print(f'  interleaved analytic all-fragment {fragment_all:.3f} ms, resolved macro split {split_spectrum:.3f} ms, delta {split_spectrum-fragment_all:+.3f} ms')
+                u[19, 1] = 0
+                u[55, 0] = 0
                 shoreline_pairs = []
                 for _ in range(4):
                     u[34] = [0, 96, 6, 0]
@@ -1227,9 +1254,9 @@ def bench():
                 ir = np.sqrt(((ix - 31.5) / 31.5) ** 2 + ((iy - 31.5) / 31.5) ** 2)
                 interaction_data = np.zeros((64, 64, 4), dtype=np.float32)
                 interaction_data[..., 0] = np.sin(ir * 20.0) * np.maximum(1.0 - ir, 0.0)
-                interaction_data[..., 1] = np.cos(ir * 20.0) * np.maximum(1.0 - ir, 0.0)
-                interaction_data[..., 2] = 0.1
-                interaction_data[..., 3] = 1.0
+                interaction_data[..., 1] = np.gradient(interaction_data[..., 0], 50.0, axis=1)
+                interaction_data[..., 2] = np.gradient(interaction_data[..., 0], 93.75, axis=0)
+                interaction_data[..., 3] = 1.1
                 interaction_tex = tex2d(64, 64, RGBA16F, data=interaction_data, linear=True)
                 bind(19, interaction_tex)
                 u[30] = [-200, -3000, 1 / 3200, 1 / 6000]

@@ -260,11 +260,17 @@ class Scene:
         self.caustic_tex = U()
         if surface_caustics is not None:
             texels = []
+            def interaction_height(x, y):
+                dx, dy = x - 7.5, y - 7.5
+                return 40.0 * math.exp(-(dx * dx + dy * dy) / 10.0) if surface_caustics else 0.0
             for y in range(16):
                 for x in range(16):
-                    dx, dy = x - 7.5, y - 7.5
-                    height = 40.0 * math.exp(-(dx * dx + dy * dy) / 10.0) if surface_caustics else 0.0
-                    texels += [height, 0.0, abs(height), 1.0]
+                    height = interaction_height(x, y)
+                    slope_x = (interaction_height(min(x + 1, 15), y) -
+                               interaction_height(max(x - 1, 0), y)) / 64.0
+                    slope_y = (interaction_height(x, min(y + 1, 15)) -
+                               interaction_height(x, max(y - 1, 0))) / 64.0
+                    texels += [height, slope_x, slope_y, 1.0]
             raw = (F * len(texels))(*texels)
             gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(self.caustic_tex))
             gl('glActiveTexture', None, U)(0x84C0 + 4)

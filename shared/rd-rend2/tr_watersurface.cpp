@@ -208,6 +208,8 @@ struct waterWindState_t
 	float strength = 0.0f;
 	float blendStart = 0.0f;
 	float blend = 1.0f;
+	float updateTime = -1.0e30f;
+	float rainNoise = 0.0f;
 	int source = WWIND_NONE;
 	bool valid = false;
 	bool outdoor = false;
@@ -234,7 +236,9 @@ struct waterInteractionState_t
 	// its persistence can be tuned without changing weapon/entry splashes.
 	std::vector<float> intersectionFoam;
 	std::vector<float> intersectionNext;
-	std::vector<float> upload; // RGBA: height, velocity, energy, mask
+	// Render field: height, world slope X/Y, 1 + foam. Alpha zero remains the
+	// dry-cell mask, so the visible-water shader needs one filtered fetch.
+	std::vector<float> upload;
 	image_t *image = nullptr;
 	int atlasX = 0, atlasY = 0;
 	bool active = false, dirty = false;
@@ -279,6 +283,15 @@ static const waterDynamics_t s_dynamics[] = {
 	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
+// cos/sin(i * golden angle), shared by every body and draw.  Keeping this
+// literal table avoids rebuilding an invariant basis for each wave set.
+static constexpr float s_waterWaveDirectionBasis[8][2] = {
+	{ 1.000000000f, 0.000000000f }, { -0.737368858f, 0.675490316f },
+	{ 0.087425665f, -0.996171046f }, { 0.608438932f, 0.793600697f },
+	{ -0.984713506f, -0.174181833f }, { 0.843755215f, -0.536728178f },
+	{ -0.259604133f, 0.965715121f }, { -0.460907209f, -0.887448333f }
+};
+
 enum waterfallProfileId_t { WFPROFILE_SMALL, WFPROFILE_MEDIUM, WFPROFILE_HEAVY, WFPROFILE_COUNT };
 struct waterfallProfile_t
 {
@@ -310,6 +323,7 @@ struct waterBody_t
 	float explicitWindStrength = 0.0f;
 	waterWindState_t wind;
 	int geometryVerts, geometryTriangles, geometryLevel;
+	float geometryMaxEdge = 0.0f;
 	waterInteractionState_t interaction;
 	waterFoamState_t foam;
 	bool waterfall = false;
@@ -735,6 +749,9 @@ static void R_WaterInteractionBuild(void)
 			sim.wetCells.push_back(i);
 			sim.wetNeighbours.push_back({{ neighbour(x - 1, y), neighbour(x + 1, y),
 				neighbour(x, y - 1), neighbour(x, y + 1) }});
+			// Alpha encodes both occupancy and foam: dry is zero, wet is
+			// [1,2].  This survives bilinear filtering while leaving RGB for
+			// height and the pre-resolved world-space slope.
 			sim.upload[(size_t)i * 4 + 3] = 1.0f;
 		}
 		used += cells; ++allocated;
@@ -834,42 +851,26 @@ static float R_WaterInteractionSurfaceHeight(const waterBody_t& body, const vec3
 		((h01 + (h11 - h01) * tx) - (h00 + (h10 - h00) * tx)) * ty;
 }
 
-static float R_WaterMacroHeight(const waterBody_t& body, const vec3_t position, float time, float shoreAttenuation)
+static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wavelength,
+	float now, const precipitationState_t& precipitation, vec4_t *water);
+static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t position,
+	float time, float shoreAttenuation, vec4_t *water);
+
+static int R_WaterGeometryComponentCount(const waterBody_t& body, const vec4_t *terms)
 {
-	if (!r_waterWaves->integer) return 0.0f;
-	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
-	const float legacyScale = body.legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
-	const float amplitude = dynamics.amplitude * 8.0f * legacyScale * body.waveMultiplier *
-		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value);
-	const float wavelength = MAX(dynamics.wavelength * Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value), 8.0f);
-	const float speed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
-	float attenuation = shoreAttenuation;
-	if (r_waterWaveShallow->integer && body.depthAverage > 0.0f)
+	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.waterfall ||
+		body.geometryVerts <= 0 || body.geometryMaxEdge <= 0.0f)
+		return 0;
+	const int requested = r_waterWaveQuality->integer <= 0 ? 1 : 2;
+	const float minimumWavelength = body.geometryMaxEdge * 4.0f;
+	int resolved = 0;
+	for (; resolved < requested; ++resolved)
 	{
-		const float d = Com_Clamp(0.0f, 1.0f, body.depthAverage / 32.0f);
-		attenuation *= d * d * (3.0f - 2.0f * d);
+		const float k = terms[resolved][3];
+		const float wavelength = k > 1.0e-6f ? 6.2831853f / k : 0.0f;
+		if (wavelength + 1.0e-3f < minimumWavelength) break;
 	}
-	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
-	const int geometryCount = r_waterWaveQuality->integer <= 0 ? 1 : 2;
-	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
-	const float flowLength = sqrtf(body.flowDirection[0] * body.flowDirection[0] + body.flowDirection[1] * body.flowDirection[1]);
-	const float mainX = flowLength > 0.001f ? body.flowDirection[0] / flowLength : 0.8f;
-	const float mainY = flowLength > 0.001f ? body.flowDirection[1] / flowLength : 0.6f;
-	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
-	float height = 0.0f;
-	for (int component = 0; component < geometryCount; ++component)
-	{
-		const float fi = (float)component, angle = fi * 2.3999632f;
-		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
-		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
-		const float inv = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f)); dx *= inv; dy *= inv;
-		const float scale = component < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
-		const float lambdaScale = component < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
-		const float a = amplitude * scale * (component < 4 ? 0.28f : 0.10f) * attenuation * qualityAmplitude;
-		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
-		height += a * sinf(k * (dx * position[0] + dy * position[1]) - speed * k * time + fi * 1.37f);
-	}
-	return height;
+	return resolved;
 }
 
 static void RB_WaterContactUpdate(void)
@@ -881,10 +882,25 @@ static void RB_WaterContactUpdate(void)
 	s_water.contactUniformTime = -1;
 	const float time = r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : backEnd.refdef.floatTime;
 	const float persistence = MAX(r_waterShoreWetPersistence->value, 0.0f);
+	int preparedBodyId = -1;
+	vec4_t contactWater[WATER_UNIFORM_VEC4S] = {};
 	for (waterContactSegment_t& contact : s_water.contacts)
 	{
 		if (contact.bodyId <= 0 || contact.bodyId > (int)s_water.bodies.size()) continue;
-		const waterBody_t& body = s_water.bodies[contact.bodyId - 1];
+		waterBody_t& body = s_water.bodies[contact.bodyId - 1];
+		if (preparedBodyId != body.id)
+		{
+			Com_Memset(contactWater, 0, sizeof(contactWater));
+			const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
+			const float legacyScale = body.legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
+			const float amplitude = dynamics.amplitude * 8.0f * legacyScale * body.waveMultiplier *
+				Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value);
+			const float wavelength = MAX(dynamics.wavelength *
+				Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value), 8.0f);
+			R_WaterUpdateWindWaves(body, amplitude, wavelength, backEnd.refdef.floatTime,
+				backEnd.refdef.precipitation, contactWater);
+			preparedBodyId = body.id;
+		}
 		const float profileShore = Com_Clamp(0.0f, 1.5f, s_dynamics[body.dynamics].shoreline);
 		auto height = [&](const vec3_t p) -> float {
 			const float shore = contact.rigid ?
@@ -896,7 +912,7 @@ static void RB_WaterContactUpdate(void)
 			const float base = (body.planeDist - body.planeNormal[0] * p[0] - body.planeNormal[1] * p[1]) /
 				MAX(fabsf(body.planeNormal[2]), 1.0e-4f);
 			const float interaction = R_WaterInteractionSurfaceHeight(body, p) - base;
-			return base + R_WaterMacroHeight(body, p, time, shore) + interaction * interactionShore;
+			return base + R_WaterlineWaveHeight(body, p, time, shore, contactWater) + interaction * interactionShore;
 		};
 		contact.currentA = height(contact.a); contact.currentB = height(contact.b);
 		auto dry = [dt, persistence](float wet, float current) -> float {
@@ -1367,12 +1383,18 @@ static void RB_WaterInteractionUpdate(void)
 	{
 		waterInteractionState_t& sim = body.interaction;
 		if (!sim.image || !sim.dirty) continue;
-		for (int cell : sim.wetCells)
+		for (size_t wetIndex = 0; wetIndex < sim.wetCells.size(); ++wetIndex)
 		{
-			const size_t i = (size_t)cell;
+			const size_t i = (size_t)sim.wetCells[wetIndex];
+			const std::array<int, 4>& neighbours = sim.wetNeighbours[wetIndex];
+			const float hl = sim.state[(size_t)neighbours[0] * 3];
+			const float hr = sim.state[(size_t)neighbours[1] * 3];
+			const float hd = sim.state[(size_t)neighbours[2] * 3];
+			const float hu = sim.state[(size_t)neighbours[3] * 3];
 			sim.upload[i * 4] = sim.state[i * 3];
-			sim.upload[i * 4 + 1] = sim.state[i * 3 + 1];
-			sim.upload[i * 4 + 2] = Com_Clamp(0.0f, 1.0f,
+			sim.upload[i * 4 + 1] = (hr - hl) / (2.0f * sim.texelX);
+			sim.upload[i * 4 + 2] = (hu - hd) / (2.0f * sim.texelY);
+			sim.upload[i * 4 + 3] = 1.0f + Com_Clamp(0.0f, 1.0f,
 				sim.state[i * 3 + 2] + sim.intersectionFoam[i]);
 		}
 		GL_BindToTMU(s_water.interactionAtlas, 19);
@@ -3545,9 +3567,9 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
 	for (int i = 0; i < 8; ++i)
 	{
-		const float fi = (float)i, angle = fi * 2.3999632f;
-		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
-		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
+		const float fi = (float)i;
+		float dx = s_waterWaveDirectionBasis[i][0] * (1.0f - directionMix) + mainX * directionMix;
+		float dy = s_waterWaveDirectionBasis[i][1] * (1.0f - directionMix) + mainY * directionMix;
 		const float inv = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f)); dx *= inv; dy *= inv;
 		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
 		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
@@ -4114,7 +4136,7 @@ void R_CreateWaterSurfaceFBOs( void )
 // a body gives identical sample points on matching shared edges. Midpoints are
 // cached per surface so the two triangles of a BSP face cannot form a T-junction.
 static glIndex_t R_WaterMidpoint(std::vector<packedVertex_t>& verts,
-	std::map<uint64_t, glIndex_t>& edges, glIndex_t a, glIndex_t b)
+	std::unordered_map<uint64_t, glIndex_t>& edges, glIndex_t a, glIndex_t b)
 {
 	const glIndex_t lo = MIN(a, b), hi = MAX(a, b);
 	const uint64_t key = ((uint64_t)lo << 32) | hi;
@@ -4277,6 +4299,7 @@ void R_WaterBuildGeometry(world_t *world)
 			ri.Printf(PRINT_WARNING, "water geometry body %d: subdivision %d -> %d (budget)\n", body.id, requested, level);
 		std::vector<packedVertex_t> verts;
 		std::vector<glIndex_t> indices;
+		float maxTopEdge = 0.0f;
 		struct range_t { srfBspSurface_t *s; int first, count, verts; glIndex_t min, max; };
 		std::vector<range_t> ranges;
 		for (srfBspSurface_t *s : surfaces)
@@ -4313,7 +4336,11 @@ void R_WaterBuildGeometry(world_t *world)
 			std::vector<glIndex_t> tris;
 			for (int i = 0; i < s->numIndexes; ++i)
 				tris.push_back((glIndex_t)(firstVert + s->indexes[i]));
-			std::map<uint64_t, glIndex_t> edges;
+			std::unordered_map<uint64_t, glIndex_t> edges;
+			const int64_t subdivisionSegments = 1LL << level;
+			const int64_t estimatedSurfaceVerts = s->numVerts + (int64_t)(s->numIndexes / 3) *
+				((subdivisionSegments + 1) * (subdivisionSegments + 2) / 2);
+			edges.reserve((size_t)MIN(estimatedSurfaceVerts, (int64_t)bodyCap));
 			for (int pass = 0; pass < level; ++pass)
 			{
 				std::vector<glIndex_t> next;
@@ -4329,13 +4356,23 @@ void R_WaterBuildGeometry(world_t *world)
 				}
 				tris.swap(next);
 			}
+			for (size_t i = 0; i < tris.size(); i += 3)
+				for (int edge = 0; edge < 3; ++edge)
+				{
+					const glIndex_t a = tris[i + edge], b = tris[i + (edge + 1) % 3];
+					const float dx = verts[a].position[0] - verts[b].position[0];
+					const float dy = verts[a].position[1] - verts[b].position[1];
+					maxTopEdge = MAX(maxTopEdge, sqrtf(dx * dx + dy * dy));
+				}
 			indices.insert(indices.end(), tris.begin(), tris.end());
 			// A short downward skirt closes the wall gap when an edge rises and
 			// covers mismatched BSP boundary segmentation between touching faces.
-			std::map<uint64_t, int> edgeCount;
+			std::unordered_map<uint64_t, int> edgeCount;
 			if (!body.waterfall)
 			{
-			std::map<uint64_t, std::pair<glIndex_t, glIndex_t>> oriented;
+			edgeCount.reserve(tris.size());
+			std::unordered_map<uint64_t, std::pair<glIndex_t, glIndex_t>> oriented;
+			oriented.reserve(tris.size());
 			for (size_t i = 0; i < tris.size(); i += 3)
 				for (int e = 0; e < 3; ++e)
 				{
@@ -4343,7 +4380,8 @@ void R_WaterBuildGeometry(world_t *world)
 					uint64_t key = ((uint64_t)MIN(a, b) << 32) | MAX(a, b);
 					++edgeCount[key]; oriented[key] = std::make_pair(a, b);
 				}
-			std::map<glIndex_t, glIndex_t> feet;
+			std::unordered_map<glIndex_t, glIndex_t> feet;
+			feet.reserve(edgeCount.size());
 			for (const auto& edge : edgeCount)
 			{
 				if (edge.second != 1) continue;
@@ -4453,6 +4491,7 @@ void R_WaterBuildGeometry(world_t *world)
 		body.geometryVerts = (int)verts.size();
 		body.geometryTriangles = (int)indices.size() / 3;
 		body.geometryLevel = level;
+		body.geometryMaxEdge = maxTopEdge;
 		mapVerts += body.geometryVerts;
 		s_water.geometryBytes += verts.size() * sizeof(packedVertex_t) + indices.size() * sizeof(glIndex_t);
 	}
@@ -4465,8 +4504,8 @@ void R_WaterGeometryInfo_f(void)
 		(int)s_water.bodies.size(), s_water.geometryMsec, (unsigned)s_water.geometryBytes,
 		(int)s_water.contacts.size(), (unsigned)(s_water.contacts.capacity() * sizeof(waterContactSegment_t)));
 	for (const waterBody_t& body : s_water.bodies)
-		ri.Printf(PRINT_ALL, "  body %d: %d vertices, %d triangles, level %d\n",
-			body.id, body.geometryVerts, body.geometryTriangles, body.geometryLevel);
+		ri.Printf(PRINT_ALL, "  body %d: %d vertices, %d triangles, level %d, max top edge %.1f\n",
+			body.id, body.geometryVerts, body.geometryTriangles, body.geometryLevel, body.geometryMaxEdge);
 }
 
 void R_WaterSurfaceShutdown( void )
@@ -4718,9 +4757,8 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 	for (int i = 0; i < 8; ++i)
 	{
 		const float fi = (float)i;
-		const float angle = fi * 2.3999632f;
-		float dx = cosf(angle) * (1.0f - directionMix) + mainDirection[0] * directionMix;
-		float dy = sinf(angle) * (1.0f - directionMix) + mainDirection[1] * directionMix;
+		float dx = s_waterWaveDirectionBasis[i][0] * (1.0f - directionMix) + mainDirection[0] * directionMix;
+		float dy = s_waterWaveDirectionBasis[i][1] * (1.0f - directionMix) + mainDirection[1] * directionMix;
 		const float invLength = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f));
 		dx *= invLength; dy *= invLength;
 		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
@@ -4793,31 +4831,39 @@ static float R_WaterResolveWind(waterBody_t& body, const precipitationState_t& p
 static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wavelength,
 	float now, const precipitationState_t& precipitation, vec4_t *water)
 {
-	vec2_t windDirection;
-	float rainNoise;
-	const float response = R_WaterResolveWind(body, precipitation, windDirection, rainNoise);
-	waterWaveSet_t desired;
-	R_WaterBuildWindWaveSet(body, s_dynamics[body.dynamics], amplitude, wavelength,
-		response, r_waterWind->integer ? rainNoise : 0.0f, windDirection, desired);
-	if (!body.wind.initialized)
+	// A body can have several BSP ranges and can be queried by shoreline/gameplay
+	// before it is drawn. Resolve its invariant terms once for a renderer time,
+	// then only copy the cached old/target sets for subsequent draws/queries.
+	if (body.wind.updateTime != now)
 	{
-		body.wind.oldSet = body.wind.targetSet = desired;
-		body.wind.blendStart = now;
-		body.wind.blend = 1.0f;
-		body.wind.initialized = true;
-	}
-	const float transition = MAX(r_waterWindTransition->value, 0.25f);
-	body.wind.blend = Com_Clamp(0.0f, 1.0f, (now - body.wind.blendStart) / transition);
-	const float directionDelta = body.wind.targetSet.direction[0] * desired.direction[0] +
-		body.wind.targetSet.direction[1] * desired.direction[1];
-	if (body.wind.blend >= 1.0f && (directionDelta < 0.985f ||
-		fabsf(body.wind.targetSet.strength - desired.strength) > 0.04f ||
-		fabsf(body.wind.targetSet.micro - desired.micro) > 0.04f))
-	{
-		body.wind.oldSet = body.wind.targetSet;
-		body.wind.targetSet = desired;
-		body.wind.blendStart = now;
-		body.wind.blend = 0.0f;
+		vec2_t windDirection;
+		float rainNoise;
+		const float response = R_WaterResolveWind(body, precipitation, windDirection, rainNoise);
+		waterWaveSet_t desired;
+		R_WaterBuildWindWaveSet(body, s_dynamics[body.dynamics], amplitude, wavelength,
+			response, r_waterWind->integer ? rainNoise : 0.0f, windDirection, desired);
+		if (!body.wind.initialized)
+		{
+			body.wind.oldSet = body.wind.targetSet = desired;
+			body.wind.blendStart = now;
+			body.wind.blend = 1.0f;
+			body.wind.initialized = true;
+		}
+		const float transition = MAX(r_waterWindTransition->value, 0.25f);
+		body.wind.blend = Com_Clamp(0.0f, 1.0f, (now - body.wind.blendStart) / transition);
+		const float directionDelta = body.wind.targetSet.direction[0] * desired.direction[0] +
+			body.wind.targetSet.direction[1] * desired.direction[1];
+		if (body.wind.blend >= 1.0f && (directionDelta < 0.985f ||
+			fabsf(body.wind.targetSet.strength - desired.strength) > 0.04f ||
+			fabsf(body.wind.targetSet.micro - desired.micro) > 0.04f))
+		{
+			body.wind.oldSet = body.wind.targetSet;
+			body.wind.targetSet = desired;
+			body.wind.blendStart = now;
+			body.wind.blend = 0.0f;
+		}
+		body.wind.rainNoise = rainNoise;
+		body.wind.updateTime = now;
 	}
 	for (int i = 0; i < 8; ++i)
 	{
@@ -4836,7 +4882,7 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	if (currentLength > 1.0e-5f) { current[0] /= currentLength; current[1] /= currentLength; }
 	VectorSet4(water[52], body.wind.resolved[0], body.wind.resolved[1], body.wind.strength, (float)body.wind.source);
 	VectorSet4(water[53], current[0], current[1], body.wind.targetSet.direction[0], body.wind.targetSet.direction[1]);
-	VectorSet4(water[54], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, rainNoise);
+	VectorSet4(water[54], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, body.wind.rainNoise);
 }
 
 static bool R_WaterBodyCoversXY(const waterBody_t& body, const vec3_t position)
@@ -4898,7 +4944,7 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 		return 0.0f;
 	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
 	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
-	const int geometryCount = r_waterWaveQuality->integer <= 0 ? 1 : 2;
+	const int geometryCount = R_WaterGeometryComponentCount(body, &water[20]);
 	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
 	float shallow = 1.0f;
 	if (r_waterWaveShallow->integer && body.depthAverage > 0.0f)
@@ -5131,6 +5177,9 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		VectorSet4(water[53], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
 		water[54][0] = 1.0f;
 	}
+	const int geometryComponents = body ? R_WaterGeometryComponentCount(*body, &water[20]) : 0;
+	VectorSet4(water[55], (float)geometryComponents, body ? body->geometryMaxEdge : 0.0f,
+		body ? body->geometryMaxEdge * 4.0f : 0.0f, 0.0f);
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];
 	const bool froxel = (s_water.viewFlags & 4) != 0;

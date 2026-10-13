@@ -65,6 +65,7 @@ out vec3 var_Normal;	// world, geometric (out of the liquid for the faces of a l
 out vec2 var_FlowTex;	// first stage texture coordinates with its tcMods
 out vec3 var_BasePosition;
 out vec3 var_GeometryDisplacement;
+out vec2 var_GeometrySlope;
 out float var_GeometrySkirt;
 out vec3 var_ShoreData;
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
@@ -119,13 +120,13 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 1.0);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 1.0, u_Water[55].x);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 1.0);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 1.0, u_Water[55].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -361,6 +362,7 @@ void main()
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
 	var_BasePosition = wsPosition.xyz;
 	var_GeometryDisplacement = vec3(0.0);
+	var_GeometrySlope = vec2(0.0);
 	bool waterfallGeometry = u_Water[38].x > 0.5;
 	var_GeometrySkirt = waterfallGeometry ? 0.0 : 1.0 - attr_TexCoord1.x;
 	var_ShoreData = waterfallGeometry ? vec3(65000.0, 1.0, 0.0) : WaterShoreData(attr_TexCoord1.y);
@@ -370,7 +372,10 @@ void main()
 		if (waterfallGeometry)
 			geometryWave.displacement = EvaluateWaterfallSheet(var_BasePosition, u_Water[5].z);
 		else
+		{
 			geometryWave.displacement *= var_ShoreData.y;
+			geometryWave.slope *= var_ShoreData.y;
+		}
 		float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
 		float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
 			clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
@@ -378,6 +383,7 @@ void main()
 			geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition) * max(var_ShoreData.y, interactionEdge);
 		var_GeometryDisplacement = geometryWave.displacement *
 			(waterfallGeometry || (u_Water[19].z > 2.5 && u_Water[19].z < 3.5) ? 1.0 : attr_TexCoord1.x);
+		var_GeometrySlope = waterfallGeometry ? vec2(0.0) : geometryWave.slope * attr_TexCoord1.x;
 		wsPosition.xyz += var_GeometryDisplacement;
 	}
 	gl_Position = u_viewProjectionMatrix * wsPosition;
@@ -430,6 +436,7 @@ void main()
 //   [38] waterfall enabled, quality, debug, mean sheet thickness
 //   [39] fall direction xyz, flow speed; [40] sheet normal xyz, inverse fall length
 //   [41] top coordinate, breakup, normal scale, aeration; [42] opacity/scattering, spray, impact, profile
+//   [55] resolved geometry-wave count, measured max top edge, 4x edge threshold, reserved
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -491,7 +498,7 @@ layout(std140) uniform Lights
 uniform sampler2D u_WaterSceneMap;		// HDR scene under the water (copy)
 uniform sampler2D u_WaterDepthMap;		// its hardware depth (copy)
 uniform sampler2D u_WaterNormalMap;		// wave slopes (x, y, x^2, y^2), mips keep the variance
-uniform sampler2D u_WaterInteractionMap; // RG height/velocity, B energy, A body mask
+uniform sampler2D u_WaterInteractionMap; // R height, GB world slope, A zero=dry / 1+foam=wet
 uniform sampler2D u_WaterRainMap;        // global classified-water rain height/velocity field
 uniform mat4 u_WeatherMvp;
 uniform vec4 u_WaterRainParams;          // explicit slope, aggregate micro, coverage, debug
@@ -507,6 +514,7 @@ uniform sampler2DArrayShadow u_ShadowMap;
 
 in vec3 var_BasePosition;
 in vec3 var_GeometryDisplacement;
+in vec2 var_GeometrySlope;
 in float var_GeometrySkirt;
 in vec3 var_ShoreData;
 in vec3 var_Position;
@@ -570,13 +578,13 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 0.0);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 2.0, u_Water[55].x);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 0.0);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 2.0, u_Water[55].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -1086,19 +1094,11 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
 	vec2 atlasUV = u_Water[33].xy + uv * u_Water[33].zw;
 	vec4 center = texture(u_WaterInteractionMap, atlasUV);
-	if (center.a < 0.5) return center;
-	ivec2 size = textureSize(u_WaterInteractionMap, 0);
-	vec2 duv = 1.0 / vec2(size);
-	vec2 atlasMin = u_Water[33].xy, atlasMax = u_Water[33].xy + u_Water[33].zw;
-	vec4 l = texture(u_WaterInteractionMap, clamp(atlasUV - vec2(duv.x, 0.0), atlasMin, atlasMax));
-	vec4 r = texture(u_WaterInteractionMap, clamp(atlasUV + vec2(duv.x, 0.0), atlasMin, atlasMax));
-	vec4 d = texture(u_WaterInteractionMap, clamp(atlasUV - vec2(0.0, duv.y), atlasMin, atlasMax));
-	vec4 u = texture(u_WaterInteractionMap, clamp(atlasUV + vec2(0.0, duv.y), atlasMin, atlasMax));
-	// A missing neighbour is a reflecting solid wall (zero normal derivative).
-	float hl = l.a > 0.5 ? l.r : center.r, hr = r.a > 0.5 ? r.r : center.r;
-	float hd = d.a > 0.5 ? d.r : center.r, hu = u.a > 0.5 ? u.r : center.r;
-	worldSlope = vec2((hr - hl) / (2.0 * u_Water[31].x), (hu - hd) / (2.0 * u_Water[31].y));
-	return center;
+	float wet = step(0.5, center.a);
+	worldSlope = center.gb * wet;
+	// Preserve the public/debug field convention (height, slope X, foam, mask)
+	// while the atlas keeps both slope components in GB.
+	return vec4(center.r * wet, center.g * wet, max(center.a - 1.0, 0.0) * wet, wet);
 }
 
 // Depth discontinuities alone are not contacts: require an opaque sample in a
@@ -1264,7 +1264,7 @@ void main()
 	waves.height *= var_ShoreData.y;
 	waves.curvature *= var_ShoreData.y;
 	waves.attenuation *= var_ShoreData.y;
-	vec3 macroGradient = vec3(waves.slope, 0.0);
+	vec3 macroGradient = vec3(waves.slope + var_GeometrySlope, 0.0);
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
 	vec2 interactionWorldSlope;
 	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
@@ -1379,7 +1379,7 @@ void main()
 		if (interactionDebug == 1) debugColor = interactionField.a > 0.5 ? vec3(bodyUV, 0.25) : vec3(0.15, 0.0, 0.0);
 		else if (interactionDebug == 2) debugColor = vec3(interactionField.a);
 		else if (interactionDebug == 3) debugColor = vec3(0.5 + interactionField.r / 16.0, 0.5 - abs(interactionField.r) / 16.0, 0.5 - interactionField.r / 16.0);
-		else if (interactionDebug == 4) debugColor = vec3(0.5 + interactionField.g / 256.0, 0.2, 0.5 - interactionField.g / 256.0);
+		else if (interactionDebug == 4) debugColor = vec3(0.5 + interactionWorldSlope * 4.0, 0.5);
 		else if (interactionDebug == 5) debugColor = normalize(vec3(-interactionWorldSlope, 1.0)) * 0.5 + 0.5;
 		else if (interactionDebug == 6)
 		{

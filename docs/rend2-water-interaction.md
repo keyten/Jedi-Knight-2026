@@ -10,7 +10,7 @@ The final modern-water evaluator is:
 
 ```
 surface = ambient analytic displacement + interactive field displacement
-normal  = geometric normal - ambient slope - interactive central-difference slope - micro slope
+normal  = geometric normal - ambient slope - interactive resolved slope - micro slope
 ```
 
 The combined position and normal remain in `watersurface.glsl`, so the displaced render mesh, waterline/silhouette, depth, refraction, SSR/cubemap reflection, Fresnel/Snell/TIR tests, lighting, and debug views consume one surface definition. If `r_waterGeometry 0`, the interaction still contributes its real height-field slope to shading but cannot change the flat BSP geometry. No normal-map-only ripple path exists.
@@ -41,7 +41,7 @@ uv = (world.xy - body.bounds.min.xy) /
 
 The mapping parameters travel with the body draw in `u_Water[30]`; future sources submit world positions and never see texture/FBO coordinates. Mostly-horizontal interfaces are the current eligibility rule, matching the existing modern-water renderer.
 
-At map load the renderer rasterises every classified interface triangle of that body into a byte mask. Five sub-cell coverage samples retain thin edge triangles. Solver cells outside the triangle union are inert. A neighbour outside the mask is replaced with the centre height (zero normal derivative), producing a stable reflecting solid boundary. Disconnected triangle islands inside one bounding rectangle therefore cannot exchange waves. The same mask is uploaded in the field's alpha channel for rendering and diagnostics.
+At map load the renderer rasterises every classified interface triangle of that body into a byte mask. Five sub-cell coverage samples retain thin edge triangles. Solver cells outside the triangle union are inert. A neighbour outside the mask is replaced with the centre height (zero normal derivative), producing a stable reflecting solid boundary. Disconnected triangle islands inside one bounding rectangle therefore cannot exchange waves. The same mask is encoded in the field's alpha channel for rendering and diagnostics.
 
 ## Solver
 
@@ -55,7 +55,7 @@ h[n+1] = clamp(h[n] + dt * (v[n+1] - flow dot upwindGradient(h[n])))
 
 `c = (32 + 32 * profile.speed) * r_waterInteractionSpeed`, clamped to the explicit solver's two-dimensional CFL limit. Damping is `0.32 * profile.damping * r_waterInteractionDamping`. Existing resolved world-space flow is applied only when `r_waterFlow 1`; still pools remain isotropic. Flow is independently scaled when necessary so `dt * (abs(vx)/dx + abs(vy)/dy) <= 0.95`, protecting the first-order upwind advection at high flow scales and fine grid resolutions.
 
-At map load the byte mask is compacted into a dense wet-cell list. Each wet cell caches its four neighbour indices with solid boundaries already replaced by self. A simulation step therefore visits only physical water cells and performs no per-neighbour bounds or mask tests; sparse irregular bodies no longer pay solver cost for the empty part of their rectangular allocation. Upload staging likewise updates only wet cells, while the atlas upload remains one contiguous dirty body rectangle.
+At map load the byte mask is compacted into a dense wet-cell list. Each wet cell caches its four neighbour indices with solid boundaries already replaced by self. A simulation step therefore visits only physical water cells and performs no per-neighbour bounds or mask tests; sparse irregular bodies no longer pay solver cost for the empty part of their rectangular allocation. Upload staging likewise updates only wet cells and resolves the two height derivatives there. The atlas upload remains one contiguous dirty body rectangle.
 
 Frame time enters an accumulator, is clamped to 250 ms after a hitch, and at most four steps are consumed per real frame. `backEndData->realFrameNumber` guards the update. Portal, mirror, sky-portal, and reflection views only sample the state produced by the main view.
 
@@ -80,9 +80,10 @@ Each dimension is rounded up to eight texels and clamped to 16–512. Tiny pools
 The uploaded resource is one region of a clamped `RGBA16F` atlas per allocated body:
 
 - R: disturbance height;
-- G: vertical velocity;
-- B: transient splash foam plus the composited persistent object-intersection tracer;
-- A: physical body mask.
+- G/B: resolved world-space height slope X/Y;
+- A: zero for a dry cell, `1 + foam` for a wet cell (foam is the transient splash plus persistent object-intersection tracer).
+
+The visible-water and surface-caustics shaders recover height, both slope components, occupancy and foam from one bilinear fetch. Vertical velocity remains CPU simulation state and is no longer uploaded merely for a diagnostic view.
 
 GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory includes the rectangular state/upload arrays plus a compact wet-cell topology (one cell index and four cached neighbours per wet texel).
 
@@ -134,7 +135,7 @@ Commands:
 - `r_waterImpulse [strength=3] [radius=32]`: inject an intentionally obvious test impulse at the water point under the crosshair. Pass explicit lower values when tuning gameplay. A nearest masked-texel fallback covers thin discretised shores, limited to ten degrees from the ray.
 - `r_waterInteractionInfo`: print resolutions, physical texel sizes, mask coverage, active/sleeping state, energy, fixed steps, source-processing/solver/upload time, average API submission cost, and GPU memory.
 
-Debug modes: 1 domain/UV, 2 mask, 3 height, 4 velocity, 5 actual central-difference slope, 6 latest source, 7 transient foam, 8 active/sleeping, 9 world-to-body mapping grid. The numeric body energy remains available through `r_waterInteractionInfo`. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).
+Debug modes: 1 domain/UV, 2 mask, 3 height, 4 encoded slope X/Y, 5 the same resolved slope in the final surface frame, 6 latest source, 7 transient foam, 8 active/sleeping, 9 world-to-body mapping grid. The numeric body energy remains available through `r_waterInteractionInfo`. Captures from stock `t2_rancor` are in [`water-interaction-debug`](water-interaction-debug/).
 
 ## Validation and measured data
 
@@ -144,7 +145,7 @@ Automated checks:
 - `tools/rend2/test_watersurface_gl.py`: all 144 OpenGL 3.2 water permutations, direct interactive-height depth displacement and interactive-slope optics checks, plus the existing geometry, ambient, flow, refraction, SSR, Snell/TIR, and underwater regressions;
 - `tools/rend2/test_watersurface_runtime.py --interaction`: real map load, crosshair injection, all nine debug captures, stats, and GL error scan.
 
-Measured on Intel UHD / OpenGL 3.2 at 60 FPS (high-resolution CPU timer):
+Historical measurements on Intel UHD / OpenGL 3.2 at 60 FPS (high-resolution CPU timer), taken before wet-cell topology compaction and one-fetch slope resolve:
 
 | Case | Allocated fields | Active field | Last fixed work | Solver | Upload | API submit |
 | --- | --- | --- | --- | ---: | ---: | ---: |
@@ -154,7 +155,7 @@ Measured on Intel UHD / OpenGL 3.2 at 60 FPS (high-resolution CPU timer):
 | `vjun1`, slime | 328x512; 1,343,488 bytes | 328x512 | 4 steps | 13.401 ms | 0.819 ms | 1.7 us |
 | `vjun1`, quality 2 maximum body | 512x512; 2,097,152 bytes | 512x512, mask 98,733/262,144 | 4 steps | 10.462 ms | 1.436 ms | 2.0 us |
 
-Sleeping bodies perform no solver work and no upload. The GL 3.2 baseline has no GPU simulation draw/compute pass, so GPU simulation-step time is zero; upload timing above is CPU/driver wall time. The synthetic 1920x1080 GPU benchmark measured the no-SSR water pass at 18.732 ms with interaction disabled and 20.012 ms with a live 64x64 field (+1.280 ms); scene copy was 2.671 ms, for 21.403/22.683 ms total water-path GPU time. This deliberately pessimistic full-screen Intel-UHD result is not a whole-game frame time.
+Sleeping bodies perform no solver work and no upload. The GL 3.2 baseline has no GPU simulation draw/compute pass, so GPU simulation-step time is zero; upload timing above is CPU/driver wall time. The old synthetic 1920x1080 benchmark's +1.280 ms interaction delta included five atlas reads per water fragment and is retained only as a pre-change baseline. One post-change run on the same Intel UHD measured +0.615 ms with the one-fetch field, but repeated runs under concurrent load were too noisy for a stable timing comparison. The structural reduction from five atlas reads to one is deterministic; the measured delta is directional rather than a whole-game FPS claim. This deliberately pessimistic full-screen result is not a whole-game frame time.
 
 Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surface lake; `yavin1` shallow/multi-surface water with the flow path enabled; and `vjun1` slime, including the 512x512 maximum per-body resolution. Checked-in screenshots cover `t2_rancor`. `t3_bounty` still pools and `yavin2` ambiguous curved-flow bodies remain operator test candidates.
 
