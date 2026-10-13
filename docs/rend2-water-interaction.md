@@ -155,6 +155,32 @@ Historical measurements on Intel UHD / OpenGL 3.2 at 60 FPS (high-resolution CPU
 | `vjun1`, slime | 328x512; 1,343,488 bytes | 328x512 | 4 steps | 13.401 ms | 0.819 ms | 1.7 us |
 | `vjun1`, quality 2 maximum body | 512x512; 2,097,152 bytes | 512x512, mask 98,733/262,144 | 4 steps | 10.462 ms | 1.436 ms | 2.0 us |
 
+Post-compaction measurements used the actual SP renderer on the same Intel UHD,
+one strong impulse, 120 active samples per case, and report time per fixed step
+so a delayed frame cannot inflate the solver number merely by executing several
+catch-up steps. Source processing stayed at or below 0.002 ms median in every
+case. Values below are `solver median / upload median` milliseconds:
+
+| Map/body | Quality 0 | Quality 1 | Quality 2 |
+| --- | ---: | ---: | ---: |
+| `t2_rancor`, 16x16 pool | 0.041 / 0.137 | 0.040 / 0.120 | 0.030 / 0.101 |
+| `t3_hevil`, body 9 | 2.988 / 1.143 | 9.538 / 2.838 | 33.093 / 5.584 |
+| `yavin1`, active body | 0.498 / 0.409 | 1.454 / 0.526 | 5.467 / 1.577 |
+| `vjun1`, body 1 | 3.827 / 0.991 | 10.963 / 2.432 | 15.184 / 3.357 |
+
+The corresponding solver p95 values were 0.076/0.069/0.056 ms for
+`t2_rancor`, 4.026/11.954/39.090 ms for `t3_hevil`, 0.688/2.063/7.137 ms for
+`yavin1`, and 5.248/13.959/20.103 ms for `vjun1`. Wet-cell compaction works
+well for sparse `yavin1` and tiny pools, but does not remove the CPU bottleneck
+for dense large bodies: default quality regularly costs about 9.5–11.0 ms per
+active fixed step on `t3_hevil`/`vjun1`, before a 2.4–2.8 ms upload. Quality 2
+is not viable for those bodies on this CPU/iGPU. The result clears the
+previously stated 5–10 ms threshold: a GL 3.2 fragment-pass ping-pong solver is
+justified as a separate performance project. It should retain the current CPU
+path as fallback and target both simulation state and render-field resolve;
+moving only the stencil while preserving full CPU readback would not remove
+the upload/synchronization cost.
+
 Sleeping bodies perform no solver work and no upload. The GL 3.2 baseline has no GPU simulation draw/compute pass, so GPU simulation-step time is zero; upload timing above is CPU/driver wall time. The old synthetic 1920x1080 benchmark's +1.280 ms interaction delta included five atlas reads per water fragment and is retained only as a pre-change baseline. One post-change run on the same Intel UHD measured +0.615 ms with the one-fetch field, but repeated runs under concurrent load were too noisy for a stable timing comparison. The structural reduction from five atlas reads to one is deterministic; the measured delta is directional rather than a whole-game FPS claim. This deliberately pessimistic full-screen result is not a whole-game frame time.
 
 Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surface lake; `yavin1` shallow/multi-surface water with the flow path enabled; and `vjun1` slime, including the 512x512 maximum per-body resolution. Checked-in screenshots cover `t2_rancor`. `t3_bounty` still pools and `yavin2` ambiguous curved-flow bodies remain operator test candidates.

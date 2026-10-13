@@ -229,14 +229,18 @@ class Scene:
             values['u_LiquidWaveParams[5]'] = (-256.0, -256.0, 1.0 / 512.0, 1.0 / 512.0)
             values['u_LiquidWaveParams[6]'] = (0.5 / 16.0, 0.5 / 16.0, 15.0 / 16.0, 15.0 / 16.0)
             values['u_LiquidWaveParams[7]'] = (32.0, 32.0, 1.0, 0.0)
+            omega = []
             for i in range(8):
                 angle = i * 2.3999632
                 direction = normalize([math.cos(angle) * 0.78 + 0.8 * 0.22,
                                        math.sin(angle) * 0.78 + 0.6 * 0.22])
                 scale = 1.0 - 0.15 * i if i < 4 else 0.34 - 0.035 * (i - 4)
                 wavelength_scale = 1.0 - 0.13 * i if i < 4 else 0.28 - 0.025 * (i - 4)
-                values[f'u_LiquidWaveTerms[{i}]'] = (*direction, 8.0 * scale * (0.28 if i < 4 else 0.10),
-                                                     2.0 * math.pi / max(160.0 * wavelength_scale, 4.0))
+                k = 2.0 * math.pi / max(160.0 * wavelength_scale, 4.0)
+                values[f'u_LiquidWaveTerms[{i}]'] = (*direction, 8.0 * scale * (0.28 if i < 4 else 0.10), k)
+                omega.append(16.0 * k)
+            values['u_LiquidWaveOmega[0]'] = tuple(omega[:4])
+            values['u_LiquidWaveOmega[1]'] = tuple(omega[4:])
         for c, (sigma, color, albedo, g) in enumerate(materials):
             values[f'u_LiquidMaterial[{2 * c}]'] = (*color, sigma)
             values[f'u_LiquidMaterial[{2 * c + 1}]'] = (*albedo, g)

@@ -1031,7 +1031,8 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 			(float)brush->firstPlane);
 		VectorSet4(block->maxs[n], brush->bounds[1][0], brush->bounds[1][1], brush->bounds[1][2],
 			(float)(brush->numPlanes + 64 * brush->mediumSlot + 256 * brush->liquidClass));
-		R_WaterCausticsBrushParams(brush->brushNum, time, block->waveParams[n], block->waveTerms[n]);
+		R_WaterCausticsBrushParams(brush->brushNum, time, block->waveParams[n],
+			block->waveTerms[n], block->waveOmega[n]);
 
 		const int z0 = Q_max(0, depthSlice(MAX(candidate.minDepth, 0.0f)) - 1);
 		const int z1 = Q_min(numSlices - 1, depthSlice(MIN(candidate.maxDepth, farZ)) + 1);

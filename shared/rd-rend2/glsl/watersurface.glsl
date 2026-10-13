@@ -116,17 +116,21 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.attenuation = 1.0;
 	vec4 commonTerms[8];
 	vec4 oldTerms[8];
+	vec4 commonOmega[2];
+	vec4 oldOmega[2];
 	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
+	commonOmega[0] = u_Water[56]; commonOmega[1] = u_Water[57];
+	oldOmega[0] = u_Water[58]; oldOmega[1] = u_Water[59];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 1.0, u_Water[55].x);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, commonOmega, 1.0, u_Water[55].x);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 1.0, u_Water[55].x);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, oldOmega, 1.0, u_Water[55].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -437,6 +441,8 @@ void main()
 //   [39] fall direction xyz, flow speed; [40] sheet normal xyz, inverse fall length
 //   [41] top coordinate, breakup, normal scale, aeration; [42] opacity/scattering, spray, impact, profile
 //   [55] resolved geometry-wave count, measured max top edge, 4x edge threshold, reserved
+//   [56..57] target wave temporal frequencies (components 0..7, four per vec4)
+//   [58..59] old wave temporal frequencies for wind crossfade
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -574,17 +580,21 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.attenuation = 1.0;
 	vec4 commonTerms[8];
 	vec4 oldTerms[8];
+	vec4 commonOmega[2];
+	vec4 oldOmega[2];
 	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
+	commonOmega[0] = u_Water[56]; commonOmega[1] = u_Water[57];
+	oldOmega[0] = u_Water[58]; oldOmega[1] = u_Water[59];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 2.0, u_Water[55].x);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, commonOmega, 2.0, u_Water[55].x);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 2.0, u_Water[55].x);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, oldOmega, 2.0, u_Water[55].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);

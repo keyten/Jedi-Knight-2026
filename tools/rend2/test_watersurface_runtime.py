@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import statistics
 import struct
 import subprocess
 
@@ -76,6 +77,8 @@ def main():
     parser.add_argument('--geometry', action='store_true', help='Enable render-only subdivision and print its map-load budget')
     parser.add_argument('--shoreline', action='store_true', help='Enable shoreline/contact treatment and capture all debug views')
     parser.add_argument('--interaction', action='store_true', help='Inject a body-local disturbance and capture its debug views')
+    parser.add_argument('--interaction-benchmark', action='store_true',
+                        help='Run a short active-solver CPU timing sample instead of screenshot checks')
     parser.add_argument('--caustics', action='store_true', help='Capture procedural/surface-driven caustics and all mode-2 debug views')
     parser.add_argument('--timeout', type=int, default=600, help='Maximum runtime seconds (first Intel shader-cache build can be slow)')
     parser.add_argument('--interaction-quality', choices=('0', '1', '2'), default='1',
@@ -138,6 +141,15 @@ def main():
                 'echo WATER_OVERRIDE_OFF', 'r_waterInfo', 'r_waterOverride clear',
                 'wait 10', 'echo WATER_OVERRIDE_CLEAR', 'r_waterInfo',
                 'r_waterBodies dump', 'echo WATER_FIX_DONE', 'quit']
+    if args.interaction_benchmark:
+        samples = []
+        for _ in range(120):
+            samples += ['wait 1', 'r_waterInteractionInfo']
+        commands = ['wait 90', 'cam_disable', 'wait 10', 'noclip', 'god',
+                    'set cg_draw2D 0', 'set cg_drawGun 0', 'set r_drawentities 0',
+                    interaction_above, 'centerview', '+lookdown', 'wait 45', '-lookdown',
+                    'wait 20', 'echo WATER_BENCH_BEGIN', 'r_waterImpulse 8 96'] + samples + [
+                    'echo WATER_BENCH_DONE', 'quit']
     if args.ambient_waves:
         captures = ['r_waterWaveTime 4', 'r_waterWaveDebug 1', 'wait 8',
                     'screenshot_tga water-wave-height', 'r_waterWaveDebug 4', 'wait 8',
@@ -226,7 +238,7 @@ def main():
                     r_waterGeometry='1' if (args.geometry or args.shoreline) else '0',
                     r_waterShoreline='1' if args.shoreline else '0',
                     r_weatherWetness='0',
-                    r_waterInteraction='1' if args.interaction else '0',
+                    r_waterInteraction='1' if (args.interaction or args.interaction_benchmark) else '0',
                     r_waterCausticsMode='2' if args.caustics else '1',
                     r_waterInteractionQuality=args.interaction_quality,
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
@@ -248,6 +260,31 @@ def main():
             process.wait()
             raise
     log = (base/'qconsole.log').read_text(errors='replace')
+    if args.interaction_benchmark:
+        assert code == 0 and 'WATER_BENCH_DONE' in log, f'exit code {code}: {log[-3000:]}'
+        section = log.split('WATER_BENCH_BEGIN', 1)[-1].split('WATER_BENCH_DONE', 1)[0]
+        rows = [(int(step), float(source), float(solver), float(upload))
+                for step, source, solver, upload in re.findall(
+                    r'last (\d+) fixed steps, source ([0-9.]+) ms, solver ([0-9.]+) ms, upload ([0-9.]+) ms', section)]
+        active = [row for row in rows if row[0] > 0]
+        assert len(active) >= 30, f'Only {len(active)} active samples: {section[-3000:]}'
+        def stats(values):
+            ordered = sorted(values)
+            p95 = ordered[min(len(ordered) - 1, int(len(ordered) * .95))]
+            return statistics.mean(values), statistics.median(values), p95, max(values)
+        source_stats = stats([row[1] for row in active])
+        solver_stats = stats([row[2] / row[0] for row in active])
+        upload_stats = stats([row[3] for row in active])
+        body_lines = re.findall(r'body \d+: \d+x\d+, [^\n]+?mask \d+/\d+', section)
+        print(f'WATER_INTERACTION_BENCH map={args.map} quality={args.interaction_quality} '
+              f'samples={len(active)} (mean/median/p95/max ms)')
+        print('  source:', ' '.join(f'{v:.3f}' for v in source_stats))
+        print('  solver/step:', ' '.join(f'{v:.3f}' for v in solver_stats))
+        print('  upload:', ' '.join(f'{v:.3f}' for v in upload_stats))
+        body_domains = dict.fromkeys(re.sub(r', (?:active|sleeping),.*$', '', line) for line in body_lines)
+        for line in body_domains:
+            print(' ', line)
+        return
     assert code == 0 and 'WATER_FIX_DONE' in log, f'exit code {code}: {log[-3000:]}'
     if args.map in ('t2_rancor', 't3_hevil'):
         expected = r'lakewater\s+water\s+9.*linked\s+7' if lake else r'water_1\s+water\s+6.*linked\s+6'

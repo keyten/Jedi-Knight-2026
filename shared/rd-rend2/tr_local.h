@@ -1629,10 +1629,12 @@ struct LiquidsBlock
 	vec4_t mins[MAX_GPU_LIQUIDS];			// brush bounds, w: first plane in the plane buffer
 	vec4_t maxs[MAX_GPU_LIQUIDS];			// w: planes + 64 * medium slot + 256 * liquid class
 	// Surface-driven caustics, per visible brush. waveParams: controls, profile,
-	// body, flow, flowDetail, atlas transform; waveTerms: the exact eight terms
-	// consumed by water_surface_common.glsl.
+	// body, flow, flowDetail, atlas transform; waveTerms: the exact eight spatial
+	// terms consumed by water_surface_common.glsl; waveOmega: their CPU-resolved
+	// finite-depth temporal frequencies, packed four per vec4.
 	vec4_t waveParams[MAX_GPU_LIQUIDS][8];
 	vec4_t waveTerms[MAX_GPU_LIQUIDS][8];
+	vec4_t waveOmega[MAX_GPU_LIQUIDS][2];
 	int slices[FROXEL_MAX_SLICES];			// visible brushes that may touch a slice, bit i = brush i (ivec4[32])
 };
 
@@ -6287,7 +6289,7 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 56
+#define WATER_UNIFORM_VEC4S 60
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
@@ -6352,7 +6354,8 @@ void R_Waterfalls_f(void);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);
 qboolean R_WaterFlowForBody(int bodyId, const vec2_t simulationCoordinate, vec3_t velocity);
-qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8], vec4_t terms[8]);
+qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8],
+	vec4_t terms[8], vec4_t omega[2]);
 image_t *R_WaterCausticsInteractionAtlas(void);
 void R_WaterOverride_f(void);
 

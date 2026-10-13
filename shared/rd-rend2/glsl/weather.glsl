@@ -35,6 +35,7 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
 	vec4 u_LiquidWaveParams[MAX_GPU_LIQUIDS * 8];
 	vec4 u_LiquidWaveTerms[MAX_GPU_LIQUIDS * 8];
+	vec4 u_LiquidWaveOmega[MAX_GPU_LIQUIDS * 2];
 	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];
 };
 uniform samplerBuffer u_LiquidPlanes;

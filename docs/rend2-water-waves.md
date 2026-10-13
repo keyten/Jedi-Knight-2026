@@ -45,7 +45,7 @@ Directions have angular spread. Resolved per-body flow biases them and, with
 scroll contributes only after the UV-to-world confidence checks in
 [directional flow](rend2-water-flow.md). Terms and phases are fixed, with no runtime
 random state. The CPU resolves the body profile and precomputes each term's
-direction, amplitude and wave number once per body and renderer time; all
+direction, amplitude, wave number and temporal frequency once per body and renderer time; all
 ranges drawn for that body reuse the cached old/target term sets. The GPU only
 evaluates the time-varying phases per vertex/fragment. The mathematical evaluator is
 independent of screen coordinates and can be moved into a shared GLSL source
@@ -75,7 +75,22 @@ Existing `waterDynamics_t` values supply amplitude, wavelength, speed,
 choppiness and micro-normal strength. `waterBody_t` supplies the resolved
 profile, world-space flow, mean brush depth and wave multiplier. Amplitude is
 mapped to world units by a fixed factor of eight; profile speed maps to 16
-world units per second at a value of one. `r_waterWaveAmplitude`,
+world units per second at a value of one. Lake and generic-water components
+use normalized finite-depth gravity-wave dispersion:
+
+`omega(k) = speed * k0 * sqrt(k*tanh(k*h) / (k0*tanh(k0*h)))`.
+
+Here `k0` is the profile's primary wave number and `h` is the body-average
+brush depth. Component zero therefore retains its authored speed exactly,
+while shorter waves move relatively more slowly in deep water. As depth tends
+to zero the equation converges to the previous `omega = speed*k`, so shallow
+water is naturally non-dispersive. Bodies without linked depth use the
+deep-water limit. Calm water blends 65% toward this result; still pools,
+streams, slime and waterfalls retain the previous non-dispersive motion.
+Both current and old wind sets cache their own eight frequencies, keeping wind
+crossfades and CPU waterline/contact queries phase-consistent without
+`sqrt`/`tanh` work in shaders. Surface-driven caustics receive the same
+profile/depth dispersion. `r_waterWaveAmplitude`,
 `r_waterWaveLength` and `r_waterWaveSpeed` are global scales. Choppiness
 affects the optional mesh's horizontal displacement; it does not
 alter the current shading normal. The body ID travels in unused upper bits of
@@ -133,8 +148,10 @@ disturbances are supplied by the body-local solver in
 camera-waterline and shoreline-contact queries share the geometry spectrum. The
 existing wave texture and mip roughness are unchanged. Profiles are uniform
 data; no extra shader permutations, targets, textures or persistent GPU wave
-buffers were added. The wind crossfade adds eleven vec4s to the per-draw water
-uniform (eight old terms and three resolve/debug records).
+buffers were added. The wind crossfade and dispersion add fifteen vec4s to the
+per-draw water uniform (eight old terms, three resolve/debug records and four
+packed temporal-frequency records). The liquid UBO stores two packed frequency
+records per visible brush for surface-driven caustics.
 
 The stock audit contains six separate `t2_rancor` pool bodies using one shader,
 two `t3_bounty` still-pool bodies, a large `t3_hevil` lake selected by the

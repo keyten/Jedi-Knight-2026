@@ -15,13 +15,12 @@ struct WaterSurfaceCommonState
 
 WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float time,
 	vec4 controls, vec4 profile, vec4 body, vec4 flow, vec4 flowDetail, vec4 terms[8],
-	float evaluationMode, float geometryCount)
+	vec4 omega[2], float evaluationMode, float geometryCount)
 {
 	WaterSurfaceCommonState w;
 	w.displacement = vec3(0.0); w.slope = vec2(0.0); w.velocity = vec3(0.0);
 	w.height = 0.0; w.curvature = 0.0; w.attenuation = 1.0;
 	if (controls.x < 0.5) return w;
-	float speed = profile.z * controls.w * 16.0;
 	if (flowDetail.z > 0.5 && body.z > 0.0) w.attenuation = smoothstep(0.0, 32.0, body.z);
 	int shadingCount = body.y < 0.5 ? 2 : (body.y < 1.5 ? 4 : 8);
 	// Mode 1 evaluates only the macro components that the actual generated mesh
@@ -42,16 +41,17 @@ WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float tim
 		if (shadingRemainder && component < geometryComponents) continue;
 		float fi = float(component); vec4 term = terms[component]; vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude; float k = term.w;
-		float omega = speed * k; vec2 phasePosition = worldPosition.xy;
+		float temporalFrequency = omega[component / 4][component - (component / 4) * 4];
+		vec2 phasePosition = worldPosition.xy;
 		if (flow.w > 0.5 && component >= 4) phasePosition -= flow.xy * time * flowDetail.y * 0.35;
-		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
+		float phase = k * dot(direction, phasePosition) - temporalFrequency * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
 		w.slope += a * k * cs * direction;
-		if (!geometryPass) { w.velocity.z -= a * omega * cs; w.curvature -= a * k * k * sn; }
+		if (!geometryPass) { w.velocity.z -= a * temporalFrequency * cs; w.curvature -= a * k * k * sn; }
 		float horizontal = min(body.x * body.w * 0.12, 0.2) * a;
 		w.displacement.xy += horizontal * cs * direction;
-		if (!geometryPass) w.velocity.xy += horizontal * omega * sn * direction;
+		if (!geometryPass) w.velocity.xy += horizontal * temporalFrequency * sn * direction;
 		float jacobian = horizontal * k * sn;
 		j00 -= jacobian * direction.x * direction.x; j01 -= jacobian * direction.x * direction.y;
 		j11 -= jacobian * direction.y * direction.y;
@@ -77,13 +77,12 @@ struct WaterSurfaceCommonState
 
 WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float time,
 	vec4 controls, vec4 profile, vec4 body, vec4 flow, vec4 flowDetail, vec4 terms[8],
-	float evaluationMode, float geometryCount)
+	vec4 omega[2], float evaluationMode, float geometryCount)
 {
 	WaterSurfaceCommonState w;
 	w.displacement = vec3(0.0); w.slope = vec2(0.0); w.velocity = vec3(0.0);
 	w.height = 0.0; w.curvature = 0.0; w.attenuation = 1.0;
 	if (controls.x < 0.5) return w;
-	float speed = profile.z * controls.w * 16.0;
 	if (flowDetail.z > 0.5 && body.z > 0.0) w.attenuation = smoothstep(0.0, 32.0, body.z);
 	int shadingCount = body.y < 0.5 ? 2 : (body.y < 1.5 ? 4 : 8);
 	// Geometry and shading use complementary spectra; see the vertex copy.
@@ -101,16 +100,17 @@ WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float tim
 		if (shadingRemainder && component < geometryComponents) continue;
 		float fi = float(component); vec4 term = terms[component]; vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude; float k = term.w;
-		float omega = speed * k; vec2 phasePosition = worldPosition.xy;
+		float temporalFrequency = omega[component / 4][component - (component / 4) * 4];
+		vec2 phasePosition = worldPosition.xy;
 		if (flow.w > 0.5 && component >= 4) phasePosition -= flow.xy * time * flowDetail.y * 0.35;
-		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
+		float phase = k * dot(direction, phasePosition) - temporalFrequency * time + fi * 1.37;
 		float sn = sin(phase), cs = cos(phase);
 		w.height += a * sn;
 		w.slope += a * k * cs * direction;
-		if (!geometryPass) { w.velocity.z -= a * omega * cs; w.curvature -= a * k * k * sn; }
+		if (!geometryPass) { w.velocity.z -= a * temporalFrequency * cs; w.curvature -= a * k * k * sn; }
 		float horizontal = min(body.x * body.w * 0.12, 0.2) * a;
 		w.displacement.xy += horizontal * cs * direction;
-		if (!geometryPass) w.velocity.xy += horizontal * omega * sn * direction;
+		if (!geometryPass) w.velocity.xy += horizontal * temporalFrequency * sn * direction;
 		float jacobian = horizontal * k * sn;
 		j00 -= jacobian * direction.x * direction.x; j01 -= jacobian * direction.x * direction.y;
 		j11 -= jacobian * direction.y * direction.y;

@@ -31,6 +31,7 @@ layout(std140) uniform Liquids
 	vec4 u_LiquidMaxs[MAX_GPU_LIQUIDS];	// w: planes + 64 * medium + 256 * class
 	vec4 u_LiquidWaveParams[MAX_GPU_LIQUIDS * 8];
 	vec4 u_LiquidWaveTerms[MAX_GPU_LIQUIDS * 8];
+	vec4 u_LiquidWaveOmega[MAX_GPU_LIQUIDS * 2];
 	ivec4 u_LiquidSlices[FROXEL_MAX_SLICES / 4];	// per froxel slice: bit i = brush i may touch it
 };
 
@@ -315,10 +316,13 @@ vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out fl
 {
 	int base = brush * 8;
 	vec4 terms[8];
+	vec4 omega[2];
 	for (int i = 0; i < 8; ++i) terms[i] = u_LiquidWaveTerms[base + i];
+	omega[0] = u_LiquidWaveOmega[brush * 2];
+	omega[1] = u_LiquidWaveOmega[brush * 2 + 1];
 	WaterSurfaceCommonState state = EvaluateWaterSurfaceCommon(p, u_LiquidWaveParams[base + 7].w,
 		u_LiquidWaveParams[base], u_LiquidWaveParams[base + 1], u_LiquidWaveParams[base + 2],
-		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms, 0.0, 0.0);
+		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms, omega, 0.0, 0.0);
 	float coverage;
 	vec3 interaction = LiquidInteractionField(brush, p.xy, coverage);
 	vec2 interactionSlope = interaction.gb;

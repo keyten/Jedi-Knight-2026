@@ -186,7 +186,7 @@ struct waterDynamics_t
 	const char *name;
 	float amplitude, wavelength, choppiness, speed, microNormal;
 	float flow, damping, wake, foam, shoreline, rain;
-	float windCoupling, defaultWind;
+	float windCoupling, defaultWind, dispersion;
 };
 
 enum waterWindSource_t { WWIND_NONE, WWIND_MAP, WWIND_WEATHER, WWIND_RAIN, WWIND_PROFILE };
@@ -195,6 +195,7 @@ static const char *s_waterWindSources[] = { "none", "map/environment", "global w
 struct waterWaveSet_t
 {
 	vec4_t terms[8];
+	float omega[8] = {};
 	vec2_t direction = { 0.8f, 0.6f };
 	float strength = 0.0f;
 	float choppiness = 0.0f;
@@ -271,16 +272,16 @@ struct waterWakeTrack_t
 };
 
 static const waterDynamics_t s_dynamics[] = {
-	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1, .45f, .08f },
-	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f, .02f, .01f },
-	{ "calm_water", .08f, 80, .05f, .7f, .8f, 0, 1, .7f, .1f, .4f, .8f, .20f, .04f },
-	{ "lake", .3f, 192, .2f, 1, 1, 0, .8f, 1, .3f, .7f, 1, .90f, .16f },
-	{ "slow_stream", .12f, 64, .08f, 1.1f, 1, .4f, 1.2f, .8f, .3f, .7f, 1, .35f, .06f },
-	{ "fast_stream", .2f, 48, .2f, 1.8f, 1.2f, 1, 1.8f, 1, .7f, 1, 1.2f, .12f, .04f },
-	{ "slime", .04f, 64, .02f, .3f, .4f, 0, 2, .2f, .1f, .3f, .3f, .02f, 0 },
-	{ "waterfall", .2f, 40, .1f, 2, 1, 1, 1.5f, 1, .8f, 1, 1, 0, 0 },
-	{ "heavy_waterfall", .4f, 64, .2f, 2.5f, 1.2f, 1, 2, 1.5f, 1, 1, 1.2f, 0, 0 },
-	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ "generic_water", .15f, 96, .1f, 1, 1, 0, .8f, 1, .2f, .5f, 1, .45f, .08f, 1.0f },
+	{ "still_pool", .025f, 48, .02f, .4f, .5f, 0, 1.3f, .4f, .05f, .2f, .6f, .02f, .01f, 0.0f },
+	{ "calm_water", .08f, 80, .05f, .7f, .8f, 0, 1, .7f, .1f, .4f, .8f, .20f, .04f, 0.65f },
+	{ "lake", .3f, 192, .2f, 1, 1, 0, .8f, 1, .3f, .7f, 1, .90f, .16f, 1.0f },
+	{ "slow_stream", .12f, 64, .08f, 1.1f, 1, .4f, 1.2f, .8f, .3f, .7f, 1, .35f, .06f, 0.0f },
+	{ "fast_stream", .2f, 48, .2f, 1.8f, 1.2f, 1, 1.8f, 1, .7f, 1, 1.2f, .12f, .04f, 0.0f },
+	{ "slime", .04f, 64, .02f, .3f, .4f, 0, 2, .2f, .1f, .3f, .3f, .02f, 0, 0.0f },
+	{ "waterfall", .2f, 40, .1f, 2, 1, 1, 1.5f, 1, .8f, 1, 1, 0, 0, 0.0f },
+	{ "heavy_waterfall", .4f, 64, .2f, 2.5f, 1.2f, 1, 2, 1.5f, 1, 1, 1.2f, 0, 0, 0.0f },
+	{ "no_water_dynamics", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.0f },
 };
 
 // cos/sin(i * golden angle), shared by every body and draw.  Keeping this
@@ -3517,11 +3518,13 @@ image_t *R_WaterCausticsInteractionAtlas(void)
 	return s_water.interactionAtlas;
 }
 
-qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8], vec4_t terms[8])
+qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8],
+	vec4_t terms[8], vec4_t omega[2])
 {
 	time = r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : time;
 	Com_Memset(params, 0, sizeof(vec4_t) * 8);
 	Com_Memset(terms, 0, sizeof(vec4_t) * 8);
+	Com_Memset(omega, 0, sizeof(vec4_t) * 2);
 	const waterBody_t *body = nullptr;
 	for (const waterBody_t& candidate : s_water.bodies)
 	{
@@ -3565,6 +3568,10 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 	const float mainX = flowLength > 0.001f ? body->flowDirection[0] / flowLength : 0.8f;
 	const float mainY = flowLength > 0.001f ? body->flowDirection[1] / flowLength : 0.6f;
 	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
+	const float baseK = 6.2831853f / MAX(wavelength, 4.0f);
+	const float waveSpeed = dynamics.speed * params[0][3] * 16.0f;
+	const float depth = body->depthAverage;
+	const float baseDepthTerm = depth > 0.0f ? tanhf(baseK * depth) : 1.0f;
 	for (int i = 0; i < 8; ++i)
 	{
 		const float fi = (float)i;
@@ -3573,8 +3580,14 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 		const float inv = 1.0f / sqrtf(MAX(dx * dx + dy * dy, 1.0e-8f)); dx *= inv; dy *= inv;
 		const float scale = i < 4 ? (1.0f - 0.15f * fi) : (0.34f - 0.035f * (fi - 4.0f));
 		const float lambdaScale = i < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
-		VectorSet4(terms[i], dx, dy, amplitude * scale * (i < 4 ? 0.28f : 0.10f),
-			6.2831853f / MAX(wavelength * lambdaScale, 4.0f));
+		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
+		VectorSet4(terms[i], dx, dy, amplitude * scale * (i < 4 ? 0.28f : 0.10f), k);
+		const float depthTerm = depth > 0.0f ? tanhf(k * depth) : 1.0f;
+		const float dispersiveOmega = waveSpeed * baseK *
+			sqrtf(MAX(k * depthTerm / MAX(baseK * baseDepthTerm, 1.0e-8f), 0.0f));
+		const float linearOmega = waveSpeed * k;
+		omega[i / 4][i & 3] = linearOmega +
+			(dispersiveOmega - linearOmega) * dynamics.dispersion;
 	}
 	return qtrue;
 }
@@ -4754,6 +4767,15 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 	set.choppiness = dynamics.choppiness * (1.0f + 1.4f * response);
 	set.micro = dynamics.microNormal * body.waveMultiplier * (1.0f + 1.6f * response + rainNoise);
 	const float directionMix = body.flowSpeed > 0.001f ? 0.72f : (0.22f + 0.58f * response);
+	const float baseK = 6.2831853f / MAX(wavelength, 4.0f);
+	const float waveSpeed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
+	// Normalized finite-depth dispersion preserves the authored temporal
+	// frequency of the primary wavelength exactly. In shallow water tanh(kh)
+	// approaches kh, naturally converging back to the old non-dispersive
+	// omega=speed*k relation. Unknown depth is treated as deep water, but only
+	// profiles with a non-zero dispersion weight opt into that behaviour.
+	const float depth = body.depthAverage;
+	const float baseDepthTerm = depth > 0.0f ? tanhf(baseK * depth) : 1.0f;
 	for (int i = 0; i < 8; ++i)
 	{
 		const float fi = (float)i;
@@ -4767,6 +4789,11 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 		const float a = amplitude * scale * (i < 4 ? 0.28f : 0.10f) * bandEnergy;
 		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
 		VectorSet4(set.terms[i], dx, dy, a, k);
+		const float depthTerm = depth > 0.0f ? tanhf(k * depth) : 1.0f;
+		const float dispersiveOmega = waveSpeed * baseK *
+			sqrtf(MAX(k * depthTerm / MAX(baseK * baseDepthTerm, 1.0e-8f), 0.0f));
+		const float linearOmega = waveSpeed * k;
+		set.omega[i] = linearOmega + (dispersiveOmega - linearOmega) * dynamics.dispersion;
 	}
 }
 
@@ -4853,9 +4880,16 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 		body.wind.blend = Com_Clamp(0.0f, 1.0f, (now - body.wind.blendStart) / transition);
 		const float directionDelta = body.wind.targetSet.direction[0] * desired.direction[0] +
 			body.wind.targetSet.direction[1] * desired.direction[1];
+		bool spectrumChanged = false;
+		for (int i = 0; i < 8 && !spectrumChanged; ++i)
+		{
+			spectrumChanged = fabsf(body.wind.targetSet.terms[i][2] - desired.terms[i][2]) > 1.0e-4f ||
+				fabsf(body.wind.targetSet.terms[i][3] - desired.terms[i][3]) > 1.0e-6f ||
+				fabsf(body.wind.targetSet.omega[i] - desired.omega[i]) > 1.0e-5f;
+		}
 		if (body.wind.blend >= 1.0f && (directionDelta < 0.985f ||
 			fabsf(body.wind.targetSet.strength - desired.strength) > 0.04f ||
-			fabsf(body.wind.targetSet.micro - desired.micro) > 0.04f))
+			fabsf(body.wind.targetSet.micro - desired.micro) > 0.04f || spectrumChanged))
 		{
 			body.wind.oldSet = body.wind.targetSet;
 			body.wind.targetSet = desired;
@@ -4869,6 +4903,8 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	{
 		VectorCopy4(body.wind.targetSet.terms[i], water[20 + i]);
 		VectorCopy4(body.wind.oldSet.terms[i], water[44 + i]);
+		water[56 + i / 4][i & 3] = body.wind.targetSet.omega[i];
+		water[58 + i / 4][i & 3] = body.wind.oldSet.omega[i];
 	}
 	water[18][2] = body.wind.oldSet.choppiness +
 		(body.wind.targetSet.choppiness - body.wind.oldSet.choppiness) * body.wind.blend;
@@ -4942,7 +4978,6 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 {
 	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.geometryVerts <= 0)
 		return 0.0f;
-	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
 	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
 	const int geometryCount = R_WaterGeometryComponentCount(body, &water[20]);
 	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
@@ -4952,14 +4987,14 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 		const float x = Com_Clamp(0.0f, 1.0f, body.depthAverage / 32.0f);
 		shallow = x * x * (3.0f - 2.0f * x);
 	}
-	const float speed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
 	auto evaluate = [&](int firstTerm) -> float {
+		const int omegaBase = firstTerm == 20 ? 56 : 58;
 		float height = 0.0f;
 		for (int component = 0; component < geometryCount; ++component)
 		{
 			const vec4_t& term = water[firstTerm + component];
 			const float phase = term[3] * (term[0] * position[0] + term[1] * position[1]) -
-				speed * term[3] * time + component * 1.37f;
+				water[omegaBase + component / 4][component & 3] * time + component * 1.37f;
 			height += term[2] * shallow * qualityAmplitude * sinf(phase);
 		}
 		return height;
@@ -5173,7 +5208,13 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		waterWaveSet_t set;
 		vec2_t direction = { 0.8f, 0.6f };
 		R_WaterBuildWindWaveSet(fallback, dynamics, amplitude, wavelength, 0.0f, 0.0f, direction, set);
-		for (int i = 0; i < 8; ++i) VectorCopy4(set.terms[i], water[20 + i]), VectorCopy4(set.terms[i], water[44 + i]);
+		for (int i = 0; i < 8; ++i)
+		{
+			VectorCopy4(set.terms[i], water[20 + i]);
+			VectorCopy4(set.terms[i], water[44 + i]);
+			water[56 + i / 4][i & 3] = set.omega[i];
+			water[58 + i / 4][i & 3] = set.omega[i];
+		}
 		VectorSet4(water[53], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
 		water[54][0] = 1.0f;
 	}

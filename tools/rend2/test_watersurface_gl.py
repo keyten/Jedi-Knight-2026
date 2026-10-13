@@ -63,7 +63,7 @@ RGBA, RED, FLOAT = 0x1908, 0x1903, 0x1406
 RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
-WATER_VEC4S = 56
+WATER_VEC4S = 60
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -465,6 +465,17 @@ class Rig:
         u[33] = [0.0, 0.0, 1.0, 1.0]  # one-tile interaction atlas in the harness
         u[43] = [1.0, 1.0, 1.0, 1.0]  # waterfall profile strength and automatic LOD
         u[54, 0] = 1.0  # settled wind-wave set: skip the old-set evaluator
+        # Temporal frequencies are CPU-resolved. The harness uses the legacy
+        # linear relation unless a test explicitly supplies dispersion.
+        u[56] = [2.0 * math.pi / 96.0 * 16.0,
+                 2.0 * math.pi / (96.0 * .87) * 16.0,
+                 2.0 * math.pi / (96.0 * .74) * 16.0,
+                 2.0 * math.pi / (96.0 * .61) * 16.0]
+        u[57] = [2.0 * math.pi / (96.0 * .28) * 16.0,
+                 2.0 * math.pi / (96.0 * .255) * 16.0,
+                 2.0 * math.pi / (96.0 * .23) * 16.0,
+                 2.0 * math.pi / (96.0 * .205) * 16.0]
+        u[58:60] = u[56:58]
         return u
 
     def draw_water(self, prog, u, waves=False, ssr=False, reflection=None):
@@ -661,6 +672,17 @@ def check_ambient_waves(rig):
         pool_energy = np.mean(np.abs(pool[water_pixels, 0] - 0.5))
         ok = check('body amplitude changes visible ambient energy',
                    deep_energy > pool_energy * 2.0) and ok
+        # Temporal frequency is explicit CPU data now. Changing omega while
+        # leaving the spatial term untouched must move the same wave to a
+        # different phase; this catches an accidental return to speed*k.
+        u[15, 0] = 2.4
+        u[17, 2] = 80.0
+        u[5, 2] = 2.0
+        baseline = rig.draw_water(prog, u, waves=True)
+        u[56:60] *= 0.5
+        dispersed = rig.draw_water(prog, u, waves=True)
+        ok = check('CPU-resolved temporal frequencies drive analytic phase',
+                   np.max(np.abs(baseline - dispersed)) > 0.001) and ok
         u[15, 0] = 0.0
         u[18, 0] = 0.0
         u[13, 0] = 0.0
@@ -1062,6 +1084,17 @@ def main():
     window, ctx = context(b'Water surface test')
     ok = True
     try:
+        # Normalized finite-depth dispersion preserves component zero exactly
+        # and converges to omega=speed*k as h approaches zero.
+        k0, speed = 2.0 * math.pi / 192.0, 16.0
+        def omega(k, depth):
+            return speed * k0 * math.sqrt(k * math.tanh(k * depth) /
+                                          (k0 * math.tanh(k0 * depth)))
+        normalized = abs(omega(k0, 96.0) - speed * k0) < 1e-12
+        shallow_k = k0 / .255
+        shallow_limit = abs(omega(shallow_k, 1e-5) / (speed * shallow_k) - 1.0) < 1e-5
+        ok = check('finite-depth dispersion preserves primary speed and shallow-water limit',
+                   normalized and shallow_limit) and ok
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
         ok = check_geometry_depth(rig) and ok
