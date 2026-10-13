@@ -139,6 +139,7 @@ namespace
 		unsigned lastFrame = ~0u;
 		const world_t *world = nullptr;
 	} s_persistentRipple;
+	persistentRippleState_t s_persistentWaterRipple;
 
 	// Fresh particles, resting, at random heights, in the slot's layout.
 	std::vector<byte> RainParticles(const weatherObject_t& ws, size_t bufferSize)
@@ -1897,7 +1898,9 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 		const bool realRipples = rainSlot &&
 			(precipitation.consumerMask & PRECIP_CONSUMER_PUDDLES) &&
 			r_weatherPuddleRipples->integer >= 2;
-		const bool impacts = splashes || realRipples;
+		const bool waterRain = rainSlot &&
+			(precipitation.consumerMask & PRECIP_CONSUMER_WATER_RAIN);
+		const bool impacts = splashes || realRipples || waterRain;
 		if (weatherObject->vbo == nullptr)
 			GenerateRainModel(
 				tr.weatherSystem->weatherSlots[weatherType],
@@ -2332,6 +2335,9 @@ void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *vi
 		state->consumerMask |= PRECIP_CONSUMER_VOLUME;
 	if (state->current && state->optical.active)
 		state->consumerMask |= PRECIP_CONSUMER_ACID;
+	if (state->current && ws.depthMapValid && r_waterRainRipples &&
+		r_waterRainRipples->integer && r_waterSurface && r_waterSurface->integer)
+		state->consumerMask |= PRECIP_CONSUMER_WATER_RAIN;
 
 	if (state->primaryView)
 	{
@@ -2365,6 +2371,7 @@ void R_PrecipitationInfo_f(void)
 	append(PRECIP_CONSUMER_LENS, "lens-water");
 	append(PRECIP_CONSUMER_VOLUME, "rain-volume");
 	append(PRECIP_CONSUMER_ACID, "acid-profile");
+	append(PRECIP_CONSUMER_WATER_RAIN, "water-rain");
 	ri.Printf(PRINT_ALL,
 		"Precipitation: subtype=%s rawParticles=%d intensity=%.3f wind=(%.2f %.2f %.2f) "
 		"tint=(%.3f %.3f %.3f %.3f) current=%s outside=%s exposed=%s consumers=%s\n",
@@ -2499,6 +2506,7 @@ then integrates an RG height/velocity wave field. No event crosses the CPU.
 void R_CreateWeatherRippleImages(void)
 {
 	s_persistentRipple = {};
+	s_persistentWaterRipple = {};
 	const int size = Com_Clamp(64, 1024,
 		r_weatherPuddleRippleResolution ? r_weatherPuddleRippleResolution->integer : 256);
 	tr.weatherRippleImpulseImage = R_ScreenCreateImage(
@@ -2506,6 +2514,13 @@ void R_CreateWeatherRippleImages(void)
 	for (int i = 0; i < 2; ++i)
 		tr.weatherRippleFieldImage[i] = R_ScreenCreateImage(
 			va("*weatherRippleField%d", i), size, size, GL_RG16F, qtrue);
+	const int waterSize = 128 << Com_Clampi(0, 2,
+		r_waterRainRippleQuality ? r_waterRainRippleQuality->integer : 1);
+	tr.weatherWaterRippleImpulseImage = R_ScreenCreateImage(
+		"*weatherWaterRippleImpulse", waterSize, waterSize, GL_R16F, qfalse);
+	for (int i = 0; i < 2; ++i)
+		tr.weatherWaterRippleFieldImage[i] = R_ScreenCreateImage(
+			va("*weatherWaterRippleField%d", i), waterSize, waterSize, GL_RGBA16F, qtrue);
 }
 
 void R_CreateWeatherRippleFBOs(void)
@@ -2518,6 +2533,14 @@ void R_CreateWeatherRippleFBOs(void)
 				tr.weatherRippleFieldImage[i], 0) : nullptr;
 	s_persistentRipple.resources = tr.weatherRippleImpulseFbo &&
 		tr.weatherRippleFieldFbo[0] && tr.weatherRippleFieldFbo[1];
+	tr.weatherWaterRippleImpulseFbo = tr.weatherWaterRippleImpulseImage ?
+		R_ScreenCreateLevelFBO("_weatherWaterRippleImpulse", tr.weatherWaterRippleImpulseImage, 0) : nullptr;
+	for (int i = 0; i < 2; ++i)
+		tr.weatherWaterRippleFieldFbo[i] = tr.weatherWaterRippleFieldImage[i] ?
+			R_ScreenCreateLevelFBO(va("_weatherWaterRippleField%d", i),
+				tr.weatherWaterRippleFieldImage[i], 0) : nullptr;
+	s_persistentWaterRipple.resources = tr.weatherWaterRippleImpulseFbo &&
+		tr.weatherWaterRippleFieldFbo[0] && tr.weatherWaterRippleFieldFbo[1];
 }
 
 void R_WeatherRippleReset(void)
@@ -2527,6 +2550,11 @@ void R_WeatherRippleReset(void)
 	s_persistentRipple.lastTime = 0;
 	s_persistentRipple.lastFrame = ~0u;
 	s_persistentRipple.world = nullptr;
+	s_persistentWaterRipple.valid = false;
+	s_persistentWaterRipple.current = 0;
+	s_persistentWaterRipple.lastTime = 0;
+	s_persistentWaterRipple.lastFrame = ~0u;
+	s_persistentWaterRipple.world = nullptr;
 }
 
 static void RB_ClearWeatherRippleFbo(FBO_t *fbo)
@@ -2537,15 +2565,15 @@ static void RB_ClearWeatherRippleFbo(FBO_t *fbo)
 	qglClearBufferfv(GL_COLOR, 0, clear);
 }
 
-void RB_WeatherRippleUpdate(void)
+static void RB_WeatherRippleChannel(persistentRippleState_t& state, bool waterPass,
+	image_t *impulseImage, image_t *fieldImage[2], FBO_t *impulseFbo, FBO_t *fieldFbo[2])
 {
-	persistentRippleState_t& state = s_persistentRipple;
 	const int mode = Com_Clampi(0, 3, r_weatherPuddleRipples->integer);
 	if (!state.resources || !tr.weatherSystem ||
 		!tr.weatherSystem->depthMapValid || !tr.weatherImpactClassImage ||
 		!backEnd.refdef.precipitation.primaryView)
 		return;
-	if (mode < 2)
+	if ((!waterPass && mode < 2) || (waterPass && !r_waterRainRipples->integer))
 	{
 		state.valid = false;
 		return;
@@ -2564,20 +2592,20 @@ void RB_WeatherRippleUpdate(void)
 	FBO_t *oldFbo = glState.currentFBO;
 	if (reset)
 	{
-		RB_ClearWeatherRippleFbo(tr.weatherRippleFieldFbo[0]);
-		RB_ClearWeatherRippleFbo(tr.weatherRippleFieldFbo[1]);
+		RB_ClearWeatherRippleFbo(fieldFbo[0]);
+		RB_ClearWeatherRippleFbo(fieldFbo[1]);
 		state.current = 0;
 		state.lastTime = now;
 	}
 
 	// 1. Build this frame's event texture. The fresh marker in impact.w makes
 	// every transform-feedback event contribute exactly once.
-	RB_ClearWeatherRippleFbo(tr.weatherRippleImpulseFbo);
+	RB_ClearWeatherRippleFbo(impulseFbo);
 	const float coverageScale = Com_Clamp(0.25f, 4.0f,
 		r_weatherPuddleRippleFieldScale->value);
 	const float worldPerFieldTexel = tr.weatherSystem->texelSizeWorld *
 		(float)tr.weatherDepthImage->width * coverageScale /
-		(float)tr.weatherRippleImpulseImage->width;
+		(float)impulseImage->width;
 	const float diameter = Com_Clamp(1.0f, 16.0f,
 		2.0f * MAX(2.0f, r_rainSplashSize->value) / MAX(worldPerFieldTexel, 0.01f));
 	if (injectEvents)
@@ -2588,7 +2616,9 @@ void RB_WeatherRippleUpdate(void)
 		GLSL_SetUniformMatrix4x4(&tr.weatherRippleImpulseShader,
 			UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
 		const vec4_t inject = { diameter,
-			Com_Clamp(0.0f, 8.0f, r_weatherPuddleRippleImpulse->value), coverageScale, 0.0f };
+			Com_Clamp(0.0f, 8.0f, waterPass ? r_waterRainRippleImpulse->value :
+				r_weatherPuddleRippleImpulse->value), coverageScale,
+			waterPass ? 1.0f + Com_Clamp(0.0f, 1.0f, r_waterRainRippleDensity->value) : 0.0f };
 		GLSL_SetUniformVec4(&tr.weatherRippleImpulseShader, UNIFORM_PUDDLERIPPLEFIELD, inject);
 		GL_BindToTMU(tr.weatherImpactClassImage, TB_NORMALMAP);
 		vertexAttribute_t impactAttrib = rain.attribsTemplate[2];
@@ -2607,9 +2637,8 @@ void RB_WeatherRippleUpdate(void)
 	const float elapsed = reset ? 0.0f : MAX(0, now - state.lastTime) * 0.001f;
 	const float dt = Com_Clamp(0.0f, 1.0f / 30.0f, elapsed);
 	const int target = 1 - state.current;
-	FBO_Bind(tr.weatherRippleFieldFbo[target]);
-	GL_SetViewportAndScissor(0, 0, tr.weatherRippleFieldFbo[target]->width,
-		tr.weatherRippleFieldFbo[target]->height);
+	FBO_Bind(fieldFbo[target]);
+	GL_SetViewportAndScissor(0, 0, fieldFbo[target]->width, fieldFbo[target]->height);
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	GLSL_BindProgram(&tr.weatherRippleUpdateShader);
 	const vec4_t update = { dt,
@@ -2617,11 +2646,12 @@ void RB_WeatherRippleUpdate(void)
 		Com_Clamp(0.0f, 20.0f, r_weatherPuddleRipplePropagation->value), 4.0f };
 	GLSL_SetUniformVec4(&tr.weatherRippleUpdateShader, UNIFORM_PUDDLERIPPLEFIELD, update);
 	const vec4_t edge = { tr.weatherSystem->depthRangeWorld,
-		MAX(8.0f, 2.0f * worldPerFieldTexel), coverageScale, 0.0f };
+		MAX(8.0f, 2.0f * worldPerFieldTexel), coverageScale, waterPass ? 1.0f : 0.0f };
 	GLSL_SetUniformVec4(&tr.weatherRippleUpdateShader, UNIFORM_SPLASHPARAMS, edge);
-	GL_BindToTMU(tr.weatherRippleFieldImage[state.current], TB_COLORMAP);
-	GL_BindToTMU(tr.weatherRippleImpulseImage, TB_NORMALMAP);
+	GL_BindToTMU(fieldImage[state.current], TB_COLORMAP);
+	GL_BindToTMU(impulseImage, TB_NORMALMAP);
 	GL_BindToTMU(tr.weatherDepthImage, TB_WEATHERDEPTH);
+	GL_BindToTMU(tr.weatherImpactClassImage, TB_DELUXEMAP);
 	RB_InstantTriangle();
 
 	FBO_Bind(oldFbo);
@@ -2630,6 +2660,22 @@ void RB_WeatherRippleUpdate(void)
 	state.lastTime = now;
 	state.valid = true;
 	state.world = tr.world;
+}
+
+void RB_WeatherRippleUpdate(void)
+{
+	RB_WeatherRippleChannel(s_persistentRipple, false, tr.weatherRippleImpulseImage,
+		tr.weatherRippleFieldImage, tr.weatherRippleImpulseFbo, tr.weatherRippleFieldFbo);
+	RB_WeatherRippleChannel(s_persistentWaterRipple, true, tr.weatherWaterRippleImpulseImage,
+		tr.weatherWaterRippleFieldImage, tr.weatherWaterRippleImpulseFbo,
+		tr.weatherWaterRippleFieldFbo);
+}
+
+image_t *R_WeatherWaterRippleImage(qboolean source)
+{
+	if (source) return tr.weatherWaterRippleImpulseImage;
+	return s_persistentWaterRipple.valid ?
+		tr.weatherWaterRippleFieldImage[s_persistentWaterRipple.current] : nullptr;
 }
 
 /*

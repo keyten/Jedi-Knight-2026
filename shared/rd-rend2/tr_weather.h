@@ -192,6 +192,7 @@ bool R_GetWindVector(vec3_t windVector, vec3_t atPoint);
 bool R_GetWindGusting(vec3_t atPoint);
 void RB_UpdateWeatherWind(void);
 bool R_GetWeatherWindState(weatherWindState_t *state, const vec3_t atPoint);
+image_t *R_WeatherWaterRippleImage(qboolean source);
 
 void RE_WorldEffectCommand(const char *cmd);
 void R_WorldEffect_f(void);

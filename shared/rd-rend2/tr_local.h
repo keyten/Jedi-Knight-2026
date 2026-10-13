@@ -532,6 +532,12 @@ extern cvar_t  *r_weatherPuddleRippleResolution;
 extern cvar_t  *r_weatherPuddleRippleFieldScale;
 extern cvar_t  *r_weatherPuddleRippleDistance;
 extern cvar_t  *r_weatherPuddleRippleDebug;
+extern cvar_t  *r_waterRainRipples;
+extern cvar_t  *r_waterRainRippleDensity;
+extern cvar_t  *r_waterRainRippleImpulse;
+extern cvar_t  *r_waterRainRippleMicro;
+extern cvar_t  *r_waterRainRippleQuality;
+extern cvar_t  *r_waterRainRippleDebug;
 extern cvar_t  *r_weatherRunoff;
 extern cvar_t  *r_weatherRunoffStrength;
 extern cvar_t  *r_weatherRunoffSpeed;
@@ -1751,6 +1757,7 @@ enum
 	TB_PLANTBONES        = 24,
 	TB_WATERFOAM         = 18,
 	TB_WATERFOAMSOURCE   = 19,
+	TB_WATERRAIN         = 20,
 
 	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
 	// cookie, of lightall and volumetric_inject. Needs
@@ -2860,6 +2867,8 @@ typedef enum
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
 	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
+	UNIFORM_WATERRAINMAP,		// water surface: rain-driven real-water disturbance field
+	UNIFORM_WATERRAINPARAMS,	// explicit slope, aggregate micro energy, coverage, debug
 	UNIFORM_WATERFOAMMAP,		// persistent body-local foam concentration
 	UNIFORM_WATERFOAMSOURCEMAP,	// foam update: independent source channels
 	UNIFORM_WATERFOAMPARAMS,	// foam update: dt, decay, diffusion, advection
@@ -2913,7 +2922,8 @@ enum precipitationConsumer_t {
 	PRECIP_CONSUMER_SPLASHES = 1 << 4,
 	PRECIP_CONSUMER_LENS = 1 << 5,
 	PRECIP_CONSUMER_VOLUME = 1 << 6,
-	PRECIP_CONSUMER_ACID = 1 << 7
+	PRECIP_CONSUMER_ACID = 1 << 7,
+	PRECIP_CONSUMER_WATER_RAIN = 1 << 8
 };
 
 typedef struct precipitationOpticalProfile_s {
@@ -4201,6 +4211,8 @@ typedef struct trGlobals_s {
 	image_t					*weatherWetnessImage[2]; // RG flat/steep water, B weather depth, A runoff trail history
 	image_t					*weatherRippleImpulseImage;
 	image_t					*weatherRippleFieldImage[2]; // RG16F height + velocity
+	image_t					*weatherWaterRippleImpulseImage; // classified real-water source only
+	image_t					*weatherWaterRippleFieldImage[2]; // RG16F height + velocity
 	image_t					*smaaSearchImage;
 	image_t					*smaaAreaImage;
 	image_t					*smaaEdgeImage;
@@ -4298,6 +4310,8 @@ typedef struct trGlobals_s {
 	FBO_t					*weatherWetnessFbo[2];
 	FBO_t					*weatherRippleImpulseFbo;
 	FBO_t					*weatherRippleFieldFbo[2];
+	FBO_t					*weatherWaterRippleImpulseFbo;
+	FBO_t					*weatherWaterRippleFieldFbo[2];
 	FBO_t					*smaaEdgeFbo;
 	FBO_t					*smaaBlendFbo;
 	FBO_t					*smaaResolveFbo;

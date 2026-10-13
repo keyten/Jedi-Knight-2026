@@ -492,6 +492,9 @@ uniform sampler2D u_WaterSceneMap;		// HDR scene under the water (copy)
 uniform sampler2D u_WaterDepthMap;		// its hardware depth (copy)
 uniform sampler2D u_WaterNormalMap;		// wave slopes (x, y, x^2, y^2), mips keep the variance
 uniform sampler2D u_WaterInteractionMap; // RG height/velocity, B energy, A body mask
+uniform sampler2D u_WaterRainMap;        // global classified-water rain height/velocity field
+uniform mat4 u_WeatherMvp;
+uniform vec4 u_WaterRainParams;          // explicit slope, aggregate micro, coverage, debug
 uniform sampler2D u_WaterFoamMap;        // R concentration, or RGBA sources in debug 3
 uniform sampler2D u_EnvBrdfMap;
 uniform samplerCube u_CubeMap;
@@ -1044,6 +1047,36 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 
 #endif
 
+vec4 WaterRainSample(vec3 worldPosition, out vec2 worldSlope)
+{
+	worldSlope = vec2(0.0);
+	if (u_WaterRainParams.x <= 0.0) return vec4(0.0);
+	vec2 weatherUV = (u_WeatherMvp * vec4(worldPosition, 1.0)).xy * 0.5 + 0.5;
+	vec2 uv = (weatherUV - 0.5) / max(u_WaterRainParams.z, 0.125) + 0.5;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
+	// Two wrapped parcels make body-resolved stream flow continuous while the
+	// global GL3.2 field remains camera/map space and needs no per-drop readback.
+	float phase = fract(u_Water[5].z * 0.5);
+	vec2 extent = vec2(textureSize(u_WaterRainMap, 0));
+	vec2 weatherWorld = max(vec2(1.0), 2.0 / vec2(length(u_WeatherMvp[0].xy), length(u_WeatherMvp[1].xy)));
+	vec2 drift = u_Water[28].xy * 2.0 / weatherWorld / max(u_WaterRainParams.z, 0.125);
+	vec2 uv0 = uv - drift * phase;
+	vec2 uv1 = uv - drift * (phase - 1.0);
+	vec4 center = mix(texture(u_WaterRainMap, uv0), texture(u_WaterRainMap, uv1), phase);
+	vec2 duv = 1.0 / extent;
+	float l = mix(texture(u_WaterRainMap, uv0 - vec2(duv.x, 0.0)).r,
+		texture(u_WaterRainMap, uv1 - vec2(duv.x, 0.0)).r, phase);
+	float r = mix(texture(u_WaterRainMap, uv0 + vec2(duv.x, 0.0)).r,
+		texture(u_WaterRainMap, uv1 + vec2(duv.x, 0.0)).r, phase);
+	float d = mix(texture(u_WaterRainMap, uv0 - vec2(0.0, duv.y)).r,
+		texture(u_WaterRainMap, uv1 - vec2(0.0, duv.y)).r, phase);
+	float u = mix(texture(u_WaterRainMap, uv0 + vec2(0.0, duv.y)).r,
+		texture(u_WaterRainMap, uv1 + vec2(0.0, duv.y)).r, phase);
+	vec2 worldTexel = weatherWorld * max(u_WaterRainParams.z, 0.125) / extent;
+	worldSlope = vec2((r - l) / (2.0 * worldTexel.x), (u - d) / (2.0 * worldTexel.y));
+	return center;
+}
+
 
 vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 {
@@ -1235,6 +1268,8 @@ void main()
 	vec2 macroSlope = vec2(dot(macroGradient, Tw), dot(macroGradient, Bw));
 	vec2 interactionWorldSlope;
 	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
+	vec2 rainWorldSlope;
+	vec4 rainField = WaterRainSample(var_BasePosition, rainWorldSlope);
 	vec2 foamUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
 	vec4 foamSample = texture(u_WaterFoamMap, clamp(foamUV, vec2(0.0), vec2(1.0)));
 	float persistentFoam = u_Water[36].x > 0.5 ? clamp(foamSample.r * u_Water[19].w, 0.0, 1.0) : 0.0;
@@ -1272,6 +1307,9 @@ void main()
 		clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
 	vec2 interactionSlope = vec2(dot(interactionGradient, Tw), dot(interactionGradient, Bw)) *
 		max(var_ShoreData.y, interactionEdge);
+	vec3 rainGradient = vec3(rainWorldSlope, 0.0);
+	vec2 rainSlope = vec2(dot(rainGradient, Tw), dot(rainGradient, Bw)) *
+		u_WaterRainParams.x * var_ShoreData.y;
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
 	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
 	if (int(u_Water[18].x + 0.5) == 8 && gl_FragCoord.x <
@@ -1287,11 +1325,14 @@ void main()
 	vec2 waterfallSlope = waterfall ? vec2((l0.x + 0.45 * l2.x) * u_Water[41].z,
 		(l1.y - l0.y) * u_Water[41].z * (0.35 + 0.65 * waterfallAlong)) : vec2(0.0);
 	vec2 whitewaterSlope = (l0.xy - l1.xy) * (0.38 * whitewater);
-	slope += macroSlope + interactionSlope + whitewaterSlope + waterfallSlope;
+	slope += macroSlope + interactionSlope + rainSlope + whitewaterSlope + waterfallSlope;
 	vec2 variance = (max(l0.zw - l0.xy * l0.xy, vec2(0.0)) +
 		0.36 * max(l1.zw - l1.xy * l1.xy, vec2(0.0)) +
 		0.25 * max(l2.zw - l2.xy * l2.xy, vec2(0.0))) * (strength * strength);
 	variance += vec2(0.08 * whitewater);
+	float rainActivity = clamp(rainField.b, 0.0, 1.0);
+	variance += vec2(u_WaterRainParams.y * rainActivity *
+		(0.018 + 0.012 * clamp(abs(rainField.g), 0.0, 4.0)));
 	vec3 Nwater = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
@@ -1348,6 +1389,17 @@ void main()
 		else if (interactionDebug == 7) debugColor = vec3(interactionField.b, 0.1 * interactionField.b, 0.0);
 		else if (interactionDebug == 8) debugColor = interactionField.b > 0.0 ? vec3(0.1, 1.0, 0.2) : vec3(0.08, 0.12, 0.3);
 		else if (interactionDebug == 9) debugColor = vec3(fract(bodyUV * 16.0), 0.25 + 0.75 * interactionField.a);
+		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+	int rainDebug = int(u_WaterRainParams.w + 0.5);
+	if (rainDebug > 0 && u_WaterPass.x < 0.5)
+	{
+		vec3 debugColor = rainDebug == 1 ? vec3(0.0, 0.25 + 0.75 * step(0.001, u_WaterRainParams.x), 1.0) :
+			(rainDebug == 2 ? vec3(clamp(rainField.g * 0.12 + 0.5, 0.0, 1.0), 0.15, 0.85) :
+			(rainDebug == 3 ? vec3(0.5 + rainField.r * 0.12, 0.5 - abs(rainField.r) * 0.12, 0.5 - rainField.r * 0.12) :
+			vec3(clamp(rainField.b, 0.0, 1.0), 0.15, 1.0 - clamp(rainField.b, 0.0, 1.0))));
 		out_Color = vec4(LinearToScene(clamp(debugColor, 0.0, 1.0)), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;

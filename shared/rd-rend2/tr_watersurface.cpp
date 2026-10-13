@@ -5130,11 +5130,26 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	if ((key >> 8) & WATERSURF_OVERRIDE) flags |= 128;
 	if ((key >> 8) & WATERSURF_EXPERIMENTAL) flags |= 256;
 	water[6][2] = (float)flags;
+	image_t *waterRainImage = R_WeatherWaterRippleImage(qfalse);
+	const precipitationState_t& precipitation = backEnd.refdef.precipitation;
+	const bool waterRain = waterRainImage && body && !body->waterfall &&
+		r_waterRainRipples->integer;
+	const vec4_t waterRainParams = {
+		waterRain ? Com_Clamp(0.0f, 4.0f, r_waterRainRippleImpulse->value) : 0.0f,
+		waterRain ? Com_Clamp(0.0f, 4.0f, r_waterRainRippleMicro->value) *
+			Com_Clamp(0.0f, 2.0f, precipitation.normalizedIntensity) : 0.0f,
+		Com_Clamp(0.25f, 4.0f, r_weatherPuddleRippleFieldScale->value),
+		(float)Com_Clampi(0, 4, r_waterRainRippleDebug->integer)
+	};
+	uniforms.SetUniformVec4(UNIFORM_WATERRAINPARAMS, waterRainParams);
+	if (tr.weatherSystem)
+		uniforms.SetUniformMatrix4x4(UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
 	uniforms.SetUniformVec4(UNIFORM_WATER, water[0], WATER_UNIFORM_VEC4S);
 	samplers.AddStaticImage(tr.waterSceneImage, 0);
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
 	samplers.AddStaticImage(interaction ? s_water.interactionAtlas : tr.whiteImage, 19);
+	samplers.AddStaticImage(waterRain ? waterRainImage : tr.whiteImage, TB_WATERRAIN);
 	samplers.AddStaticImage(foam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
 		TB_WATERFOAM);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);

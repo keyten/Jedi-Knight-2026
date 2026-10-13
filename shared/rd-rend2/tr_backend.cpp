@@ -3799,6 +3799,16 @@ const void *RB_PostProcess(const void *data)
 		FBO_BlitFromTexture(tr.weatherRippleImpulseImage, NULL, NULL, NULL,
 			nullptr, NULL, NULL, 0);
 	}
+	if (r_waterRainRippleDebug->integer == 1 && tr.weatherImpactClassImage)
+	{
+		FBO_BlitFromTexture(tr.weatherImpactClassImage, NULL, NULL, NULL,
+			nullptr, NULL, NULL, 0);
+	}
+	else if (r_waterRainRippleDebug->integer == 2 && tr.weatherWaterRippleImpulseImage)
+	{
+		FBO_BlitFromTexture(tr.weatherWaterRippleImpulseImage, NULL, NULL, NULL,
+			nullptr, NULL, NULL, 0);
+	}
 
 	if (r_ssao->integer == 2 && tr.screenSsaoImage)
 	{

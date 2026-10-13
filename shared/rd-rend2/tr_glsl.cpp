@@ -456,6 +456,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
 	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
+	{ "u_WaterRainMap",		GLSL_INT, 1 },
+	{ "u_WaterRainParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFoamMap",		GLSL_INT, 1 },
 	{ "u_WaterFoamSourceMap",	GLSL_INT, 1 },
 	{ "u_WaterFoamParams",		GLSL_VEC4, 1 },
@@ -3031,6 +3033,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERINTERACTIONMAP, 19);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERRAINMAP, TB_WATERRAIN);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERGLOWMAP, 9);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, 12);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, 14);
@@ -4240,6 +4243,7 @@ static int GLSL_LoadGPUProgramWeatherRipple(
 	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_TEXTUREMAP, TB_COLORMAP);
 	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_NORMALMAP, TB_NORMALMAP);
 	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_WEATHERDEPTHMAP, TB_WEATHERDEPTH);
+	GLSL_SetUniformInt(&tr.weatherRippleUpdateShader, UNIFORM_WEATHERIMPACTMAP, TB_DELUXEMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.weatherRippleUpdateShader);
 	return 2;
