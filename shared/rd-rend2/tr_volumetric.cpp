@@ -2016,7 +2016,7 @@ static float R_VolumetricRainProfile( const precipitationState_t& rain )
 	case RAIN_WEATHER_LIGHT:  return 0.02f;
 	case RAIN_WEATHER_NORMAL: return 1.0f;
 	case RAIN_WEATHER_HEAVY:  return MAX(0.0f, r_rainVolumeHeavyMultiplier->value);
-	// Acid rain deliberately waits for its own optical profile.
+	case RAIN_WEATHER_ACID:   return rain.optical.active ? 1.0f : 0.0f;
 	default: return 0.0f;
 	}
 }
@@ -2446,7 +2446,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			ground ? r_rainVolumeGroundStrength->value * intensity : 0.0f,
 			Com_Clamp(1.0f, 1024.0f, r_rainVolumeGroundHeight->value),
 			MAX(tr.weatherSystem->depthRangeWorld, 1.0f), ground ? 1.0f : 0.0f);
-		VectorSet4(block.rainColor, 0.92f, 0.95f, 1.0f, intensity);
+		VectorSet4(block.rainColor, rain.optical.atmosphericMediumTint[0],
+			rain.optical.atmosphericMediumTint[1], rain.optical.atmosphericMediumTint[2], intensity);
 		const float lodNear = MAX(0.0f, r_rainLODNear->value);
 		const float lodMid = MAX(lodNear + 1.0f, r_rainLODMid->value);
 		const qboolean lodActive = (qboolean)(r_rainLOD->integer != 0);

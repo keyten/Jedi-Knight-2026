@@ -504,6 +504,9 @@ extern cvar_t  *r_weatherWetnessSteepDryScale;
 extern cvar_t  *r_weatherWetnessAcidAccumulationScale;
 extern cvar_t  *r_weatherWetnessAcidDryScale;
 extern cvar_t  *r_weatherWetnessPersistenceDebug;
+extern cvar_t  *r_acidRainVisuals;
+extern cvar_t  *r_acidRainTint;
+extern cvar_t  *r_acidRainStrength;
 extern cvar_t  *r_weatherSurfaceDebug;
 void R_WeatherMaterialList_f(void);
 extern cvar_t  *r_weatherWetnessEntityFacing;
@@ -2800,6 +2803,7 @@ typedef enum
 	UNIFORM_RUNOFFPARAMS2,		// wind shear x, y (per unit of fall), windward amount, frame origin z
 	UNIFORM_RUNOFFFRAME,		// pattern frame: horizontal axis a1 (world xy), origin xy
 	UNIFORM_WEATHERMATERIAL,	// debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
+	UNIFORM_PRECIPITATIONOPTICS,	// vec4[3]: wet film/strength, puddle/persistence, runoff/profile active
 	UNIFORM_WATERCONTACT,		// shoreline: parameters + nearest displaced boundary segments
 
 	UNIFORM_SKINPARAMS,		// skin SSS of this draw: scatter (0 = not skin), has mask, compare split x (< 0 off), unused
@@ -2912,6 +2916,17 @@ enum precipitationConsumer_t {
 	PRECIP_CONSUMER_ACID = 1 << 7
 };
 
+typedef struct precipitationOpticalProfile_s {
+	qboolean active;
+	float strength;
+	vec3_t absorptionScatteringTint;
+	vec3_t wetFilmTint;
+	vec3_t puddleOpticalTint;
+	vec3_t runoffTint;
+	vec3_t atmosphericMediumTint;
+	float persistenceMultiplier;
+} precipitationOpticalProfile_t;
+
 typedef struct precipitationState_s {
 	qboolean	valid;
 	qboolean	primaryView;
@@ -2925,6 +2940,9 @@ typedef struct precipitationState_s {
 	vec3_t		wind;				// resolved world-space weather wind
 	vec3_t		worldRainVelocity;	// wind plus the stock rain fall speed
 	vec4_t		tint;
+	// Resolved once from the subtype, legacy weather tint and renderer cvars.
+	// Individual consumers must not reinterpret "acid" independently.
+	precipitationOpticalProfile_t optical;
 	uint32_t	consumerMask;
 } precipitationState_t;
 

@@ -1345,6 +1345,9 @@ void RB_RainLens( FBO_t *srcFbo )
 
 	// optics, lens space: x right, y up, z toward the viewer
 	const LensWater::ProfileParams &profile = s_water.Current();
+	const precipitationState_t& precipitation = backEnd.refdef.precipitation;
+	const float *transmissionTint = precipitation.optical.active ?
+		precipitation.optical.absorptionScatteringTint : profile.tint;
 	const float *right = backEnd.viewParms.ori.axis[1];
 	const float *up = backEnd.viewParms.ori.axis[2];
 	const float *forward = backEnd.viewParms.ori.axis[0];
@@ -1355,7 +1358,7 @@ void RB_RainLens( FBO_t *srcFbo )
 		{ in.pointColor[0], in.pointColor[1], in.pointColor[2], mipBlur ? 1.0f : 0.0f },
 		{ in.ambient[0], in.ambient[1], in.ambient[2],
 			mipBlur ? (float)tr.rainLensMipImage->height : 0.0f },
-		{ profile.tint[0], profile.tint[1], profile.tint[2], 0.0f },
+		{ transmissionTint[0], transmissionTint[1], transmissionTint[2], 0.0f },
 		// lens to world: columns right, up, toward the viewer
 		{ -right[0], -right[1], -right[2], 0.0f },
 		{ up[0], up[1], up[2], 0.0f },

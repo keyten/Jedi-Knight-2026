@@ -127,7 +127,7 @@ namespace
 		int lastTime = 0;
 		unsigned lastFrame = ~0u;
 		const world_t *world = nullptr;
-		bool acidProfile = false;
+		precipitationState_t precipitation = {};
 	} s_persistentWetness;
 
 	struct persistentRippleState_t
@@ -1041,7 +1041,7 @@ namespace
 			uniformDataWriter.Start(splashProgram);
 			// the particle positions of the debug views follow this view
 			uniformDataWriter.SetUniformVec2(UNIFORM_ZONEOFFSET, viewSlotZones[slot][0], viewSlotZones[slot][1]);
-			uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, weatherObject->color);
+			uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, backEnd.refdef.precipitation.tint);
 			uniformDataWriter.SetUniformMatrix4x4(UNIFORM_WEATHERMVP, weather.weatherMVP);
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS, params);
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS2, params2);
@@ -2214,6 +2214,67 @@ bool R_IsOutside(vec3_t pos)
 	return (tr.weatherSystem->weatherBrushType != WEATHER_BRUSHES_OUTSIDE);
 }
 
+static void R_ResolvePrecipitationOptics(precipitationState_t *state)
+{
+	// Neutral profile and the established normal-rain haze are the fallback.
+	// The legacy command colour remains authoritative for particles/splashes.
+	state->optical.active = qfalse;
+	state->optical.strength = 0.0f;
+	VectorSet(state->optical.absorptionScatteringTint, 1.0f, 1.0f, 1.0f);
+	VectorSet(state->optical.wetFilmTint, 1.0f, 1.0f, 1.0f);
+	VectorSet(state->optical.puddleOpticalTint, 1.0f, 1.0f, 1.0f);
+	VectorSet(state->optical.runoffTint, 1.0f, 1.0f, 1.0f);
+	VectorSet(state->optical.atmosphericMediumTint, 0.92f, 0.95f, 1.0f);
+	state->optical.persistenceMultiplier = 1.0f;
+
+	if (state->subtype != RAIN_WEATHER_ACID || !r_acidRainVisuals ||
+		!r_acidRainVisuals->integer)
+		return;
+
+	vec3_t target;
+	const float legacyMax = MAX(state->tint[0], MAX(state->tint[1], state->tint[2]));
+	if (!r_acidRainTint || sscanf(r_acidRainTint->string, "%f %f %f",
+		&target[0], &target[1], &target[2]) != 3)
+	{
+		const float inverse = legacyMax > 1e-4f ? 1.0f / legacyMax : 1.0f;
+		VectorScale(state->tint, inverse, target);
+	}
+	for (int i = 0; i < 3; ++i)
+		target[i] = Com_Clamp(0.0f, 1.5f, target[i]);
+
+	const float strength = Com_Clamp(0.0f, 2.0f,
+		r_acidRainStrength ? r_acidRainStrength->value : 1.0f);
+	state->optical.active = qtrue;
+	state->optical.strength = strength;
+	state->optical.persistenceMultiplier = 1.0f + 0.5f * strength;
+	const float channelWeights[5] = { 0.28f, 0.08f, 0.14f, 0.11f, 0.25f };
+	vec3_t *channels[5] = {
+		&state->optical.absorptionScatteringTint,
+		&state->optical.wetFilmTint,
+		&state->optical.puddleOpticalTint,
+		&state->optical.runoffTint,
+		&state->optical.atmosphericMediumTint
+	};
+	for (int channel = 0; channel < 5; ++channel)
+	{
+		const float amount = Com_Clamp(0.0f, 1.0f, channelWeights[channel] * strength);
+		for (int i = 0; i < 3; ++i)
+		{
+			const float base = channel == 4 ? state->optical.atmosphericMediumTint[i] : 1.0f;
+			(*channels[channel])[i] = base + (target[i] - base) * amount;
+		}
+	}
+
+	// Preserve the legacy particle alpha/energy while resolving its chroma
+	// through the same user tint as every other optical channel.
+	const float chromaMix = Com_Clamp(0.0f, 1.0f, strength);
+	for (int i = 0; i < 3; ++i)
+	{
+		const float legacyChroma = legacyMax > 1e-4f ? state->tint[i] / legacyMax : 1.0f;
+		state->tint[i] = (legacyChroma + (target[i] - legacyChroma) * chromaMix) * legacyMax;
+	}
+}
+
 void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *view,
 	precipitationState_t *state)
 {
@@ -2241,6 +2302,7 @@ void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *vi
 			-Q_max(rain.gravity, 0.1f) * 100.0f);
 		VectorCopy4(rain.color, state->tint);
 	}
+	R_ResolvePrecipitationOptics(state);
 
 	if (refdef && state->primaryView &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)))
@@ -2265,10 +2327,10 @@ void R_ResolvePrecipitationState(const trRefdef_t *refdef, const viewParms_t *vi
 		state->consumerMask |= PRECIP_CONSUMER_SPLASHES;
 	if (state->current && r_rainLens && r_rainLens->integer && tr.rainLensImage)
 		state->consumerMask |= PRECIP_CONSUMER_LENS;
-	if (state->current && state->subtype != RAIN_WEATHER_ACID &&
+	if (state->current && (state->subtype != RAIN_WEATHER_ACID || state->optical.active) &&
 		r_rainVolume && r_rainVolume->integer && ws.depthMapValid)
 		state->consumerMask |= PRECIP_CONSUMER_VOLUME;
-	if (state->current && state->subtype == RAIN_WEATHER_ACID)
+	if (state->current && state->optical.active)
 		state->consumerMask |= PRECIP_CONSUMER_ACID;
 
 	if (state->primaryView)
@@ -2310,6 +2372,18 @@ void R_PrecipitationInfo_f(void)
 		s.wind[0], s.wind[1], s.wind[2], s.tint[0], s.tint[1], s.tint[2], s.tint[3],
 		s.current ? "yes" : "no", s.outside ? "yes" : "no", s.exposed ? "yes" : "no",
 		consumers[0] ? consumers : "none");
+	ri.Printf(PRINT_ALL,
+		"  optical active=%s strength=%.2f persistence=%.2f absorption/scatter=(%.3f %.3f %.3f)\n"
+		"  channels wet-film=(%.3f %.3f %.3f) puddle=(%.3f %.3f %.3f) "
+		"runoff=(%.3f %.3f %.3f) medium=(%.3f %.3f %.3f)\n",
+		s.optical.active ? "yes" : "no", s.optical.strength, s.optical.persistenceMultiplier,
+		s.optical.absorptionScatteringTint[0], s.optical.absorptionScatteringTint[1],
+		s.optical.absorptionScatteringTint[2], s.optical.wetFilmTint[0],
+		s.optical.wetFilmTint[1], s.optical.wetFilmTint[2],
+		s.optical.puddleOpticalTint[0], s.optical.puddleOpticalTint[1],
+		s.optical.puddleOpticalTint[2], s.optical.runoffTint[0], s.optical.runoffTint[1],
+		s.optical.runoffTint[2], s.optical.atmosphericMediumTint[0],
+		s.optical.atmosphericMediumTint[1], s.optical.atmosphericMediumTint[2]);
 }
 
 bool R_IsShaking(vec3_t pos)
@@ -2605,7 +2679,8 @@ void R_WeatherWetnessReset(void)
 	s_persistentWetness.lastTime = 0;
 	s_persistentWetness.lastFrame = ~0u;
 	s_persistentWetness.world = nullptr;
-	s_persistentWetness.acidProfile = false;
+	Com_Memset(&s_persistentWetness.precipitation, 0,
+		sizeof(s_persistentWetness.precipitation));
 }
 
 static void RB_ClearWeatherWetness(int index)
@@ -2641,6 +2716,7 @@ void RB_WeatherWetnessUpdate(void)
 		RB_ClearWeatherWetness(1);
 		state.current = 0;
 		state.lastTime = now;
+		Com_Memset(&state.precipitation, 0, sizeof(state.precipitation));
 	}
 
 	// Integrate whole fixed ticks, so the simulation rate is independent of
@@ -2652,10 +2728,12 @@ void RB_WeatherWetnessUpdate(void)
 	const float intensity = backEnd.refdef.precipitation.current ?
 		Com_Clamp(0.0f, 1.0f, backEnd.refdef.precipitation.normalizedIntensity) : 0.0f;
 	if (intensity > 0.0f)
-		state.acidProfile = backEnd.refdef.precipitation.subtype == RAIN_WEATHER_ACID;
-	const bool acid = state.acidProfile;
+		state.precipitation = backEnd.refdef.precipitation;
+	const bool acid = state.precipitation.subtype == RAIN_WEATHER_ACID;
 	const float acidAccumulation = acid ? MAX(0.0f, r_weatherWetnessAcidAccumulationScale->value) : 1.0f;
-	const float acidDrying = acid ? MAX(0.0f, r_weatherWetnessAcidDryScale->value) : 1.0f;
+	const float persistence = acid ? MAX(1.0f,
+		state.precipitation.optical.persistenceMultiplier) : 1.0f;
+	const float acidDrying = acid ? MAX(0.0f, r_weatherWetnessAcidDryScale->value) / persistence : 1.0f;
 	const vec4_t update = {
 		dt,
 		MAX(0.0f, r_weatherWetnessAccumulationRate->value) * intensity * acidAccumulation,
@@ -2867,6 +2945,19 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// strength < 0 marks an ineligible draw for r_weatherSurfaceDebug 2
 	const float strength = eligible && wetnessActive ?
 		Com_Clamp(0.0f, 1.0f, r_weatherWetnessStrength->value * scale[0]) : -1.0f;
+	const precipitationState_t& opticalSource =
+		(persistentWorld && !precipitation.current && s_persistentWetness.precipitation.valid) ?
+			s_persistentWetness.precipitation : precipitation;
+	const vec4_t precipitationOptics[3] = {
+		{ opticalSource.optical.wetFilmTint[0], opticalSource.optical.wetFilmTint[1],
+		  opticalSource.optical.wetFilmTint[2], opticalSource.optical.strength },
+		{ opticalSource.optical.puddleOpticalTint[0], opticalSource.optical.puddleOpticalTint[1],
+		  opticalSource.optical.puddleOpticalTint[2], opticalSource.optical.persistenceMultiplier },
+		{ opticalSource.optical.runoffTint[0], opticalSource.optical.runoffTint[1],
+		  opticalSource.optical.runoffTint[2], opticalSource.optical.active ? 1.0f : 0.0f }
+	};
+	uniformDataWriter.SetUniformVec4(UNIFORM_PRECIPITATIONOPTICS,
+		precipitationOptics[0], ARRAY_LEN(precipitationOptics));
 	// per material class response (tr_autopbr.cpp): cloth only darkens,
 	// armor / metal get glossier
 	vec3_t response;

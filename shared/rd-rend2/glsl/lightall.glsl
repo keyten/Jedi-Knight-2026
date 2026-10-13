@@ -830,6 +830,7 @@ uniform vec4 u_RunoffParams;   // strength (0: off, < 0: excluded draw), 1 / sca
 uniform vec4 u_RunoffParams2;  // wind shear x, y (per unit of fall), windward amount, pattern origin z
 uniform vec4 u_RunoffFrame;    // pattern frame: horizontal axis a1 (world xy), origin xy
 uniform vec4 u_WeatherMaterial; // debug: weatherResponse wetness, puddle, runoff scale, exclusion reason
+uniform vec4 u_PrecipitationOptics[3]; // wet film/strength, puddle/persistence, runoff/profile active
 uniform vec4 u_WaterContact[25]; // params + 12 displaced boundary segment endpoint pairs
 #endif
 // Runtime A/B for the standard PBR diffuse model: 0 = Lambert, 1 = Burley/Disney
@@ -4395,6 +4396,13 @@ void main()
 		porosity = mix(1.0, porosity, u_WetnessParams3.y);
 		diffuse.rgb *= 1.0 - wetness * u_WetnessParams.z * porosity;
 		roughness = mix(roughness, max(roughness * u_WetnessParams.y, 0.08), wetness);
+		if (u_PrecipitationOptics[2].w > 0.5)
+		{
+			// Thin liquid transmission: deliberately close to neutral so the
+			// substrate remains visible instead of becoming coloured paint.
+			diffuse.rgb *= mix(vec3(1.0), u_PrecipitationOptics[0].rgb, wetness);
+			specular.rgb *= mix(vec3(1.0), u_PrecipitationOptics[0].rgb, 0.12 * wetness);
+		}
 	}
 	if (runoffCore > 0.0)
 	{
@@ -4402,6 +4410,8 @@ void main()
 		// around them (F0 kept, no tint, no emission)
 		roughness = mix(roughness, max(roughness * 0.5, 0.06), runoffCore);
 		diffuse.rgb *= 1.0 - 0.08 * runoffCore;
+		if (u_PrecipitationOptics[2].w > 0.5)
+			diffuse.rgb *= mix(vec3(1.0), u_PrecipitationOptics[2].rgb, runoffCore);
 	}
 	if (puddleEdge > 0.0)
 	{
@@ -4422,6 +4432,12 @@ void main()
 			puddleDarkening = clamp((u_PuddleParams2.z * (puddleRegions.y + 0.65 * puddleRegions.z) +
 				0.25 * puddleRegions.w) * (1.0 - metal), 0.0, 1.0);
 			diffuse.rgb *= 1.0 - puddleDarkening;
+			if (u_PrecipitationOptics[2].w > 0.5)
+			{
+				float liquid = puddleRegions.z + puddleRegions.w;
+				diffuse.rgb *= mix(vec3(1.0), u_PrecipitationOptics[1].rgb, liquid);
+				specular.rgb *= mix(vec3(1.0), u_PrecipitationOptics[1].rgb, 0.10 * liquid);
+			}
 		}
 		else
 		{
@@ -4431,6 +4447,8 @@ void main()
 			roughness = mix(roughness, u_PuddleParams.y, puddle);
 			puddleDarkening = 0.25 * puddle * (1.0 - metal);
 			diffuse.rgb *= 1.0 - 0.25 * puddle * (1.0 - metal);
+			if (u_PrecipitationOptics[2].w > 0.5)
+				diffuse.rgb *= mix(vec3(1.0), u_PrecipitationOptics[1].rgb, 0.35 * puddle);
 		}
 	}
   #endif

@@ -704,7 +704,7 @@ Can significantly affect performance. Cost scales with froxel resolution, slice 
 
 ## Rain suspension in froxel fog
 
-Adds rain haze as another participating medium of the existing froxel volume. It uses the resolved rain subtype and intensity, and samples the top-down weather depth for every froxel: outdoor courtyards receive haze while rooms and the air below roofs do not. Sun, baked and dynamic lights (including saber, flashlight-like spot lights and explosions), shadows, HG phase and temporal reprojection are the normal froxel paths; there is no separate rain lighting pass. Acid rain is reserved for a later optical profile.
+Adds rain haze as another participating medium of the existing froxel volume. It uses the resolved rain subtype and intensity, and samples the top-down weather depth for every froxel: outdoor courtyards receive haze while rooms and the air below roofs do not. Sun, baked and dynamic lights (including saber, flashlight-like spot lights and explosions), shadows, HG phase and temporal reprojection are the normal froxel paths; there is no separate rain lighting pass. Acid rain uses the opt-in coherent renderer profile described in `docs/rend2-acid-rain-profile.md`.
 
 **Requirements.** Requires active rain, its weather depth map and froxel fog (`r_volumetricFog 2`). The feature is off by default.
 
