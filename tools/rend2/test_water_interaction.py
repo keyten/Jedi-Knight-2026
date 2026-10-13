@@ -15,9 +15,12 @@ DT = 1.0 / 60.0
 
 
 class Field:
-    def __init__(self, w=40, h=32, dx=16.0, speed=64.0, damping=0.5):
+    def __init__(self, w=40, h=32, dx=16.0, speed=64.0, damping=0.5,
+                 flow_x=0.0, flow_y=0.0):
         self.w, self.h, self.dx = w, h, dx
         self.speed, self.damping = speed, damping
+        self.flow_x, self.flow_y = flow_x, flow_y
+        self.last_flow_courant = 0.0
         self.mask = [1] * (w * h)
         self.state = [0.0] * (w * h * 2)
         self.next = self.state.copy()
@@ -50,6 +53,12 @@ class Field:
         inv = 1.0 / (self.dx * self.dx)
         cmax = 0.68 / (DT * math.sqrt(2.0 * inv))
         c = min(self.speed, cmax)
+        flow_x, flow_y = self.flow_x, self.flow_y
+        courant = DT * (abs(flow_x) / self.dx + abs(flow_y) / self.dx)
+        if courant > 0.95:
+            scale = 0.95 / courant
+            flow_x, flow_y = flow_x * scale, flow_y * scale
+        self.last_flow_courant = DT * (abs(flow_x) / self.dx + abs(flow_y) / self.dx)
         energy, wet = 0.0, 0
         for y in range(self.h):
             for x in range(self.w):
@@ -65,10 +74,14 @@ class Field:
                     n = sy * self.w + sx
                     return self.state[n * 2] if self.mask[n] else hc
 
-                lap = (height(x - 1, y) - 2 * hc + height(x + 1, y)) * inv
-                lap += (height(x, y - 1) - 2 * hc + height(x, y + 1)) * inv
+                hl, hr = height(x - 1, y), height(x + 1, y)
+                hd, hu = height(x, y - 1), height(x, y + 1)
+                lap = (hl - 2 * hc + hr) * inv
+                lap += (hd - 2 * hc + hu) * inv
                 v = max(-512.0, min(512.0, vc + DT * (c * c * lap - 2 * self.damping * vc)))
-                nh = max(-64.0, min(64.0, hc + DT * v))
+                dhdx = (hc - hl) / self.dx if flow_x >= 0.0 else (hr - hc) / self.dx
+                dhdy = (hc - hd) / self.dx if flow_y >= 0.0 else (hu - hc) / self.dx
+                nh = max(-64.0, min(64.0, hc + DT * (v - flow_x * dhdx - flow_y * dhdy)))
                 self.next[i * 2:i * 2 + 2] = nh, v
                 energy += nh * nh + v * v / max(c * c, 1.0)
                 wet += 1
@@ -153,6 +166,14 @@ def main():
         pair.step()
     signs = any(x > 1e-4 for x in pair.heights()) and any(x < -1e-4 for x in pair.heights())
     results.append((signs, "multiple signed impulses interfere naturally"))
+
+    extreme_flow = Field(dx=8.0, flow_x=10000.0, flow_y=-8000.0)
+    extreme_flow.impulse(20 * extreme_flow.dx, 16 * extreme_flow.dx, 32.0, 1.0)
+    for _ in range(240):
+        extreme_flow.step()
+    flow_finite = all(math.isfinite(x) for x in extreme_flow.state)
+    results.append((flow_finite and extreme_flow.last_flow_courant <= 0.950001,
+                    f"flow CFL guard: Courant {extreme_flow.last_flow_courant:.6f}, finite={flow_finite}"))
 
     sleeper = Field(damping=1.2)
     sleeper.impulse(20 * sleeper.dx, 16 * sleeper.dx, 48.0, 0.25)

@@ -119,13 +119,13 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 1.0);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 1.0);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -570,13 +570,13 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms);
+		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, 0.0);
 	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms);
+			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, 0.0);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);

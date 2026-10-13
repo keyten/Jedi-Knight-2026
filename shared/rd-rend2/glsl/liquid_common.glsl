@@ -318,7 +318,7 @@ vec2 LiquidSurfaceSlope(in int brush, in vec3 p, in float derivativeStep, out fl
 	for (int i = 0; i < 8; ++i) terms[i] = u_LiquidWaveTerms[base + i];
 	WaterSurfaceCommonState state = EvaluateWaterSurfaceCommon(p, u_LiquidWaveParams[base + 7].w,
 		u_LiquidWaveParams[base], u_LiquidWaveParams[base + 1], u_LiquidWaveParams[base + 2],
-		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms);
+		u_LiquidWaveParams[base + 3], u_LiquidWaveParams[base + 4], terms, 0.0);
 	float a0, ax0, ax1, ay0, ay1;
 	float hc = LiquidInteractionHeight(brush, p.xy, a0);
 	float hx0 = LiquidInteractionHeight(brush, p.xy - vec2(derivativeStep, 0.0), ax0);

@@ -26,13 +26,16 @@ the base surface frame; the shader adds the existing micro slope before final
 normalization. Reflection, refraction and Snell use this combined normal.
 
 Sine components retain a bounded horizontal drift. With `r_waterGeometry 1`,
-the same evaluator displaces the subdivided render mesh; see
+the subdivided render mesh uses only the one or two longest macro components;
+the complete spectrum remains in fragment shading. This keeps wavelengths far
+below the mesh edge length from aliasing into the silhouette; see
 [render-only water geometry](rend2-water-geometry.md). The evaluator transforms
 the height derivative through the horizontal displacement Jacobian so its
 geometric slope remains consistent with that drift. Macro components 0–3
 use the body wavelength times 1, .87, .74 and .61. Medium components 4–7 use
 .28, .255, .23 and .205. Quality 0/1/2 evaluates 1+1, 2+2 or 4+4
-macro+medium components. A quality normalization keeps overall height similar.
+macro+medium shading components. Geometry quality 0 uses macro component 0;
+qualities 1 and 2 use macro components 0 and 1. A quality normalization keeps overall height similar.
 Directions have angular spread. Resolved per-body flow biases them and, with
 `r_waterFlow 1`, advects medium phases and existing multi-scale detail. Legacy
 scroll contributes only after the UV-to-world confidence checks in

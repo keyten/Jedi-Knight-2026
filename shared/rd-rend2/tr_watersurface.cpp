@@ -222,6 +222,12 @@ struct waterInteractionState_t
 	int width = 0, height = 0;
 	float texelX = 0.0f, texelY = 0.0f;
 	std::vector<byte> mask;
+	// Dense topology for the actual triangle union.  Each entry names a wet
+	// cell and its L/R/D/U neighbours; a solid boundary is pre-resolved to the
+	// cell itself.  Large irregular bodies therefore never run the stencil or
+	// repeat mask/bounds tests for empty rectangle cells.
+	std::vector<int> wetCells;
+	std::vector<std::array<int, 4>> wetNeighbours;
 	std::vector<float> state; // interleaved height, velocity, transient foam
 	std::vector<float> next;
 	// Depth-derived object contact is kept separate from event splash foam so
@@ -714,7 +720,23 @@ static void R_WaterInteractionBuild(void)
 				}
 			}
 		}
-		for (size_t i = 0; i < cells; ++i) sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
+		const size_t wetCount = (size_t)std::count_if(sim.mask.begin(), sim.mask.end(), [](byte value) { return value != 0; });
+		sim.wetCells.reserve(wetCount);
+		sim.wetNeighbours.reserve(wetCount);
+		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+		{
+			const int i = y * w + x;
+			if (!sim.mask[i]) continue;
+			auto neighbour = [&](int nx, int ny) -> int {
+				if (nx < 0 || ny < 0 || nx >= w || ny >= h) return i;
+				const int n = ny * w + nx;
+				return sim.mask[n] ? n : i;
+			};
+			sim.wetCells.push_back(i);
+			sim.wetNeighbours.push_back({{ neighbour(x - 1, y), neighbour(x + 1, y),
+				neighbour(x, y - 1), neighbour(x, y + 1) }});
+			sim.upload[(size_t)i * 4 + 3] = 1.0f;
+		}
 		used += cells; ++allocated;
 	}
 	if (allocated)
@@ -827,16 +849,16 @@ static float R_WaterMacroHeight(const waterBody_t& body, const vec3_t position, 
 		const float d = Com_Clamp(0.0f, 1.0f, body.depthAverage / 32.0f);
 		attenuation *= d * d * (3.0f - 2.0f * d);
 	}
-	const int count = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
-	const float qualityAmplitude = count == 2 ? 1.86f : (count == 8 ? 0.59f : 1.0f);
+	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
+	const int geometryCount = r_waterWaveQuality->integer <= 0 ? 1 : 2;
+	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
 	const float flowLength = sqrtf(body.flowDirection[0] * body.flowDirection[0] + body.flowDirection[1] * body.flowDirection[1]);
 	const float mainX = flowLength > 0.001f ? body.flowDirection[0] / flowLength : 0.8f;
 	const float mainY = flowLength > 0.001f ? body.flowDirection[1] / flowLength : 0.6f;
 	const float directionMix = flowLength > 0.001f ? 0.72f : 0.22f;
 	float height = 0.0f;
-	for (int i = 0; i < count; ++i)
+	for (int component = 0; component < geometryCount; ++component)
 	{
-		const int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 		const float fi = (float)component, angle = fi * 2.3999632f;
 		float dx = cosf(angle) * (1.0f - directionMix) + mainX * directionMix;
 		float dy = sinf(angle) * (1.0f - directionMix) + mainY * directionMix;
@@ -845,14 +867,7 @@ static float R_WaterMacroHeight(const waterBody_t& body, const vec3_t position, 
 		const float lambdaScale = component < 4 ? (1.0f - 0.13f * fi) : (0.28f - 0.025f * (fi - 4.0f));
 		const float a = amplitude * scale * (component < 4 ? 0.28f : 0.10f) * attenuation * qualityAmplitude;
 		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
-		float px = position[0], py = position[1];
-		if (r_waterFlow->integer && body.flowSpeed > 0.0f && component >= 4)
-		{
-			const float flow = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value) *
-				Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value) * time * 0.35f;
-			px -= body.flowVelocity[0] * flow; py -= body.flowVelocity[1] * flow;
-		}
-		height += a * sinf(k * (dx * px + dy * py) - speed * k * time + fi * 1.37f);
+		height += a * sinf(k * (dx * position[0] + dy * position[1]) - speed * k * time + fi * 1.37f);
 	}
 	return height;
 }
@@ -1211,33 +1226,34 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 {
 	waterInteractionState_t& sim = body.interaction;
 	if (!sim.active) return;
-	const int w = sim.width, h = sim.height;
 	const float profileSpeed = 32.0f + s_dynamics[body.dynamics].speed * 32.0f;
 	// CFL guard is part of the physical contract: extreme cvar/profile values
 	// cannot destabilise the explicit five-point stencil.
 	const float cLimit = 0.68f / (dt * sqrtf(1.0f / (sim.texelX * sim.texelX) + 1.0f / (sim.texelY * sim.texelY)));
 	const float c = MIN(profileSpeed * r_waterInteractionSpeed->value, cLimit);
 	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
-	const float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
-	const float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
-	double energy = 0.0; int wet = 0;
-	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+	float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
+	float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
+	// The wave-equation CFL limit above does not protect the following upwind
+	// advection.  Preserve direction while keeping its 2-D Courant number below
+	// one; extreme flow CVars then slow down instead of saturating the height
+	// clamp and poisoning the field.
+	const float flowCourant = dt * (fabsf(flowX) / sim.texelX + fabsf(flowY) / sim.texelY);
+	if (flowCourant > 0.95f)
 	{
-		const size_t i = (size_t)y * w + x;
-		if (!sim.mask[i])
-		{
-			sim.next[i * 3] = sim.next[i * 3 + 1] = sim.next[i * 3 + 2] = 0.0f;
-			sim.intersectionNext[i] = 0.0f;
-			continue;
-		}
+		const float scale = 0.95f / flowCourant;
+		flowX *= scale; flowY *= scale;
+	}
+	double energy = 0.0; int wet = 0;
+	for (size_t wetIndex = 0; wetIndex < sim.wetCells.size(); ++wetIndex)
+	{
+		const size_t i = (size_t)sim.wetCells[wetIndex];
+		const std::array<int, 4>& neighbours = sim.wetNeighbours[wetIndex];
 		const float hc = sim.state[i * 3], vc = sim.state[i * 3 + 1], fc = sim.state[i * 3 + 2];
-		auto height = [&](int sx, int sy) -> float {
-			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return hc;
-			const size_t n = (size_t)sy * w + sx;
-			return sim.mask[n] ? sim.state[n * 3] : hc; // reflecting Neumann wall
-		};
-		const float hl = height(x - 1, y), hr = height(x + 1, y);
-		const float hd = height(x, y - 1), hu = height(x, y + 1);
+		const float hl = sim.state[(size_t)neighbours[0] * 3];
+		const float hr = sim.state[(size_t)neighbours[1] * 3];
+		const float hd = sim.state[(size_t)neighbours[2] * 3];
+		const float hu = sim.state[(size_t)neighbours[3] * 3];
 		const float lap = (hl - 2.0f * hc + hr) / (sim.texelX * sim.texelX) +
 			(hd - 2.0f * hc + hu) / (sim.texelY * sim.texelY);
 		float v = vc + dt * (c * c * lap - 2.0f * damping * vc);
@@ -1248,25 +1264,17 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 		v = Com_Clamp(-512.0f, 512.0f, v); nh = Com_Clamp(-64.0f, 64.0f, nh);
 		// Foam is a short-lived surface tracer.  Advect it with resolved flow;
 		// numerical diffusion plus exponential decay keeps the patch soft.
-		auto foamAt = [&](int sx, int sy) -> float {
-			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return fc;
-			const size_t n = (size_t)sy * w + sx;
-			return sim.mask[n] ? sim.state[n * 3 + 2] : fc;
-		};
-		const float fl = foamAt(x - 1, y), fr = foamAt(x + 1, y);
-		const float fd = foamAt(x, y - 1), fu = foamAt(x, y + 1);
+		const float fl = sim.state[(size_t)neighbours[0] * 3 + 2];
+		const float fr = sim.state[(size_t)neighbours[1] * 3 + 2];
+		const float fd = sim.state[(size_t)neighbours[2] * 3 + 2];
+		const float fu = sim.state[(size_t)neighbours[3] * 3 + 2];
 		const float dfdx = flowX >= 0.0f ? (fc - fl) / sim.texelX : (fr - fc) / sim.texelX;
 		const float dfdy = flowY >= 0.0f ? (fc - fd) / sim.texelY : (fu - fc) / sim.texelY;
 		const float diffusion = 0.3f * ((fl - 2.0f * fc + fr) + (fd - 2.0f * fc + fu));
 		float nf = Com_Clamp(0.0f, 1.0f, (fc - dt * (flowX * dfdx + flowY * dfdy) + dt * diffusion) * expf(-dt * 0.85f));
 		const float ic = sim.intersectionFoam[i];
-		auto intersectionAt = [&](int sx, int sy) -> float {
-			if (sx < 0 || sy < 0 || sx >= w || sy >= h) return ic;
-			const size_t n = (size_t)sy * w + sx;
-			return sim.mask[n] ? sim.intersectionFoam[n] : ic;
-		};
-		const float il = intersectionAt(x - 1, y), ir = intersectionAt(x + 1, y);
-		const float id = intersectionAt(x, y - 1), iu = intersectionAt(x, y + 1);
+		const float il = sim.intersectionFoam[neighbours[0]], ir = sim.intersectionFoam[neighbours[1]];
+		const float id = sim.intersectionFoam[neighbours[2]], iu = sim.intersectionFoam[neighbours[3]];
 		const float didx = flowX >= 0.0f ? (ic - il) / sim.texelX : (ir - ic) / sim.texelX;
 		const float didy = flowY >= 0.0f ? (ic - id) / sim.texelY : (iu - ic) / sim.texelY;
 		const float iDiffusion = 0.3f * ((il - 2.0f * ic + ir) + (id - 2.0f * ic + iu));
@@ -1275,8 +1283,8 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 			(ic - dt * (flowX * didx + flowY * didy) + dt * iDiffusion) * expf(-dt / persistence));
 		if (r_waterShoreline->integer && r_waterShoreFoam->value > 0.0f)
 		{
-			const bool boundary = x == 0 || y == 0 || x + 1 == w || y + 1 == h ||
-				!sim.mask[i - 1] || !sim.mask[i + 1] || !sim.mask[i - w] || !sim.mask[i + w];
+			const bool boundary = neighbours[0] == (int)i || neighbours[1] == (int)i ||
+				neighbours[2] == (int)i || neighbours[3] == (int)i;
 			if (boundary)
 			{
 				const float agitation = MAX(fabsf(v) / 96.0f,
@@ -1293,8 +1301,11 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	sim.intersectionFoam.swap(sim.intersectionNext);
 	sim.energy = wet ? (float)(energy / wet) : 0.0f;
 	float foamPeak = 0.0f;
-	for (size_t i = 0; i < sim.mask.size(); ++i)
+	for (int cell : sim.wetCells)
+	{
+		const size_t i = (size_t)cell;
 		foamPeak = MAX(foamPeak, MAX(sim.state[i * 3 + 2], sim.intersectionFoam[i]));
+	}
 	if (sim.energy < 1.0e-5f && foamPeak < 1.0e-3f) sim.quietTime += dt; else sim.quietTime = 0.0f;
 	if (sim.quietTime > 1.0f)
 	{
@@ -1356,13 +1367,13 @@ static void RB_WaterInteractionUpdate(void)
 	{
 		waterInteractionState_t& sim = body.interaction;
 		if (!sim.image || !sim.dirty) continue;
-		for (size_t i = 0; i < sim.mask.size(); ++i)
+		for (int cell : sim.wetCells)
 		{
+			const size_t i = (size_t)cell;
 			sim.upload[i * 4] = sim.state[i * 3];
 			sim.upload[i * 4 + 1] = sim.state[i * 3 + 1];
 			sim.upload[i * 4 + 2] = Com_Clamp(0.0f, 1.0f,
 				sim.state[i * 3 + 2] + sim.intersectionFoam[i]);
-			sim.upload[i * 4 + 3] = sim.mask[i] ? 1.0f : 0.0f;
 		}
 		GL_BindToTMU(s_water.interactionAtlas, 19);
 		GL_SelectTexture(19); // See allocation upload above.
@@ -1682,11 +1693,13 @@ void RB_WaterSurfaceSetCoverage( const drawSurf_t *drawSurfs, int numDrawSurfs )
 		// outside the static BSP/body bounds.
 		const float waveExtent = 4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f *
 			MAX(body.waveMultiplier, 1.0f) * 2.0f;
+		const float interactionExtent = body.interaction.image && r_waterInteraction->integer ? 64.0f : 0.0f;
 		for (int corner = 0; corner < 8; ++corner)
 		{
 			const float x = body.bounds[(corner >> 0) & 1][0] + (((corner >> 0) & 1) ? waveExtent : -waveExtent);
 			const float y = body.bounds[(corner >> 1) & 1][1] + (((corner >> 1) & 1) ? waveExtent : -waveExtent);
-			const float z = body.bounds[(corner >> 2) & 1][2] + (((corner >> 2) & 1) ? waveExtent : -waveExtent);
+			const float zExtent = waveExtent + interactionExtent;
+			const float z = body.bounds[(corner >> 2) & 1][2] + (((corner >> 2) & 1) ? zExtent : -zExtent);
 			const float ex = m[0] * x + m[4] * y + m[8] * z + m[12];
 			const float ey = m[1] * x + m[5] * y + m[9] * z + m[13];
 			const float ez = m[2] * x + m[6] * y + m[10] * z + m[14];
@@ -4335,6 +4348,22 @@ void R_WaterBuildGeometry(world_t *world)
 			{
 				if (edge.second != 1) continue;
 				glIndex_t top[2] = { oriented[edge.first].first, oriented[edge.first].second };
+				if (r_waterShoreline->integer)
+				{
+					bool bodyBoundary = false;
+					for (const boundary_t& boundary : boundaries)
+					{
+						if (R_WaterPointSegmentDistance2D(verts[top[0]].position, boundary.a, boundary.b) <= 0.125f &&
+							R_WaterPointSegmentDistance2D(verts[top[1]].position, boundary.a, boundary.b) <= 0.125f)
+						{
+							bodyBoundary = true;
+							break;
+						}
+					}
+					// This is only a local surface boundary.  A matching edge on another
+					// BSP surface makes it internal to the body and it needs no skirt.
+					if (!bodyBoundary) continue;
+				}
 				glIndex_t foot[2];
 				const float edgeX = verts[top[1]].position[0] - verts[top[0]].position[0];
 				const float edgeY = verts[top[1]].position[1] - verts[top[0]].position[1];
@@ -4408,6 +4437,7 @@ void R_WaterBuildGeometry(world_t *world)
 		// original plane for grouping/reflection; use expanded bounds for culling.
 		const float extent = body.waterfall ? 4.0f + 10.0f * body.waterfallValues.breakup :
 			4.0f + s_dynamics[body.dynamics].amplitude * 8.0f * 4.0f * MAX(body.waveMultiplier, 1.0f) * 2.0f;
+		const float interactionExtent = !body.waterfall && body.interaction.image && r_waterInteraction->integer ? 64.0f : 0.0f;
 		for (int surfaceNum : body.surfaces)
 		{
 			msurface_t& ms = world->surfaces[surfaceNum];
@@ -4415,7 +4445,7 @@ void R_WaterBuildGeometry(world_t *world)
 			for (int axis = 0; axis < 3; ++axis)
 			{
 				ms.cullinfo.bounds[0][axis] -= extent + (!body.waterfall && axis == 2 ? 64.0f : 0.0f);
-				ms.cullinfo.bounds[1][axis] += extent;
+				ms.cullinfo.bounds[1][axis] += extent + (axis == 2 ? interactionExtent : 0.0f);
 			}
 			ms.cullinfo.type &= ~CULLINFO_PLANE;
 			ms.cullinfo.type &= ~CULLINFO_SPHERE;
@@ -4867,8 +4897,9 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.geometryVerts <= 0)
 		return 0.0f;
 	const waterDynamics_t& dynamics = s_dynamics[body.dynamics];
-	const int count = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
-	const float qualityAmplitude = count == 2 ? 1.86f : (count == 8 ? 0.59f : 1.0f);
+	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
+	const int geometryCount = r_waterWaveQuality->integer <= 0 ? 1 : 2;
+	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
 	float shallow = 1.0f;
 	if (r_waterWaveShallow->integer && body.depthAverage > 0.0f)
 	{
@@ -4876,22 +4907,12 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 		shallow = x * x * (3.0f - 2.0f * x);
 	}
 	const float speed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
-	const float flowDetail = Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value);
-	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
-	const bool flow = r_waterFlow->integer && body.flowSpeed > 0.0f;
 	auto evaluate = [&](int firstTerm) -> float {
 		float height = 0.0f;
-		for (int i = 0; i < count; ++i)
+		for (int component = 0; component < geometryCount; ++component)
 		{
-			const int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 			const vec4_t& term = water[firstTerm + component];
-			float x = position[0], y = position[1];
-			if (flow && component >= 4)
-			{
-				x -= body.flowVelocity[0] * flowScale * time * flowDetail * 0.35f;
-				y -= body.flowVelocity[1] * flowScale * time * flowDetail * 0.35f;
-			}
-			const float phase = term[3] * (term[0] * x + term[1] * y) -
+			const float phase = term[3] * (term[0] * position[0] + term[1] * position[1]) -
 				speed * term[3] * time + component * 1.37f;
 			height += term[2] * shallow * qualityAmplitude * sinf(phase);
 		}

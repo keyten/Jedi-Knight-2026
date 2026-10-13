@@ -53,7 +53,9 @@ v[n+1] = clamp(v[n] + dt * (c^2 laplacian(h[n]) - 2 damping v[n]))
 h[n+1] = clamp(h[n] + dt * (v[n+1] - flow dot upwindGradient(h[n])))
 ```
 
-`c = (32 + 32 * profile.speed) * r_waterInteractionSpeed`, clamped to the explicit solver's two-dimensional CFL limit. Damping is `0.32 * profile.damping * r_waterInteractionDamping`. Existing resolved world-space flow is applied only when `r_waterFlow 1`; still pools remain isotropic.
+`c = (32 + 32 * profile.speed) * r_waterInteractionSpeed`, clamped to the explicit solver's two-dimensional CFL limit. Damping is `0.32 * profile.damping * r_waterInteractionDamping`. Existing resolved world-space flow is applied only when `r_waterFlow 1`; still pools remain isotropic. Flow is independently scaled when necessary so `dt * (abs(vx)/dx + abs(vy)/dy) <= 0.95`, protecting the first-order upwind advection at high flow scales and fine grid resolutions.
+
+At map load the byte mask is compacted into a dense wet-cell list. Each wet cell caches its four neighbour indices with solid boundaries already replaced by self. A simulation step therefore visits only physical water cells and performs no per-neighbour bounds or mask tests; sparse irregular bodies no longer pay solver cost for the empty part of their rectangular allocation. Upload staging likewise updates only wet cells, while the atlas upload remains one contiguous dirty body rectangle.
 
 Frame time enters an accumulator, is clamped to 250 ms after a hitch, and at most four steps are consumed per real frame. `backEndData->realFrameNumber` guards the update. Portal, mirror, sky-portal, and reflection views only sample the state produced by the main view.
 
@@ -75,14 +77,14 @@ The requested density is physical:
 
 Each dimension is rounded up to eight texels and clamped to 16–512. Tiny pools can therefore be finer than the target; huge lakes are capped rather than allocated at one texel per world unit. Under total-budget pressure the longer dimension is halved until the body fits. Bodies beyond the body/texel/memory limits receive no field and render exactly as before.
 
-The uploaded resource is one clamped `RGBA16F` texture per allocated body:
+The uploaded resource is one region of a clamped `RGBA16F` atlas per allocated body:
 
 - R: disturbance height;
 - G: vertical velocity;
 - B: transient splash foam plus the composited persistent object-intersection tracer;
 - A: physical body mask.
 
-GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory is approximately 41 bytes per active field texel (mask, current/next height/velocity/foam float state, RGBA upload staging), plus vector overhead.
+GPU storage is an RGBA16F atlas (8 bytes per atlas texel). A power-of-two shelf search chooses the smallest practical atlas for the allocated bodies; `r_waterInteractionInfo` reports its actual byte cost, including row/power-of-two padding. The reference implementation integrates on the CPU and uploads only dirty body rectangles; there is no compute-shader requirement and no simulation draw pass. CPU working memory includes the rectangular state/upload arrays plus a compact wet-cell topology (one cell index and four cached neighbours per wet texel).
 
 ## Event/source API
 
