@@ -170,10 +170,12 @@ an appearance jump for stock assets without changing modern packed maps.
 `r_pbrLegacyRoughness 0|1` disables/enables only that input migration for A/B
 comparison; all downstream BRDF code remains on the canonical convention.
 
-`emissiveLuminance <cd/m2>` opts a glow/emissive stage into physical authoring.
+`emissiveNits <value>` and `emissiveLuminance <cd/m2>` are aliases that opt a
+stage into physical authoring.
 A white texel has that luminance and RGB provides relative variation. Old glow
-stages are multiplied only by the named legacy-reference calibration in
-physical mode.
+stages are classified to conservative stock defaults. Old `emissiveScale`
+values remain engine units and convert through `r_emissiveLegacyNits` (1000
+nits per unit by default); they are never interpreted literally as nits.
 
 ## Baked and reconstructed lighting
 

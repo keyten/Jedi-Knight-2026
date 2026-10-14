@@ -1858,7 +1858,8 @@ void RB_ShadowTessEnd(shaderCommands_t *input, const VertexArraysProperties *ver
 
 static bool IsAutoEmissiveStage( const shaderStage_t *stage )
 {
-	if (!r_autoEmissive->integer)
+	if (!r_autoEmissive->integer && !(r_pbrPhysical->integer &&
+		stage->emissiveProvenance == EMISSIVE_AUTO_INFERRED))
 		return false;
 
 	// The legacy keyword is already an explicit authoring hint. Its complete
@@ -1903,19 +1904,7 @@ static void BindEmissiveStage( shaderStage_t *stage, UniformDataWriter& uniforms
 	vec4_t params = {};
 	if (stage->emissive)
 	{
-		if (stage->emissivePhysical)
-		{
-			float chroma[3];
-			if (Rend2PBR::NormalizeChromaticity(stage->emissiveColor, chroma))
-				VectorScale(chroma, Rend2PBR::PhysicalToScene(stage->emissiveIntensity,
-					R_PBRPhysicalToScene()), params);
-		}
-		else
-		{
-			VectorScale(stage->emissiveColor, stage->emissiveIntensity, params);
-			if (r_pbrPhysical->integer)
-				VectorScale(params, r_pbrLegacyReference->value, params);
-		}
+		R_EmissiveStageCanonicalScale(stage, params);
 		// The emission itself is linear. A negative marker tells the shader to
 		// encode it into the legacy display-encoded scene buffer before adding.
 		params[3] = tr.linearLight ? 1.0f : -1.0f;
@@ -1925,7 +1914,11 @@ static void BindEmissiveStage( shaderStage_t *stage, UniformDataWriter& uniforms
 	{
 		// Magnitude 2 selects the source-only compatibility path in GLSL. The
 		// already rendered stage color is exported without adding it a second time.
-		params[3] = tr.linearLight ? 2.0f : -2.0f;
+		R_EmissiveStageCanonicalScale(stage, params);
+		// Physical auto emission is a calibrated visible/GI source (3); strict
+		// legacy remains the source-only compatibility path (2).
+		params[3] = tr.linearLight ? (r_pbrPhysical->integer ? 3.0f : 2.0f) :
+			(r_pbrPhysical->integer ? -3.0f : -2.0f);
 	}
 	uniforms.SetUniformVec4(UNIFORM_EMISSIVEPARAMS, params);
 }
@@ -2297,7 +2290,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		{
 			if (r_autoFoliageDebug->integer && r_autoFoliage->integer)
 				R_FoliageDebugColor(tess.foliageDebugClass, materialDebug);
-			else if (!R_SkinSSSDebugColor(pStage, materialDebug))
+			else if (!R_EmissiveDebugColor(pStage, materialDebug) &&
+				!R_SkinSSSDebugColor(pStage, materialDebug))
 				R_AutoPBRDebugColor(pStage, materialDebug);
 		}
 		// r_volumetricFogDebug 69: draws the liquid medium does not fog

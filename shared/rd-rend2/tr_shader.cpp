@@ -1387,6 +1387,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->specularType = SPEC_NONE;
 	VectorSet(stage->emissiveColor, 1.0f, 1.0f, 1.0f);
 	stage->emissiveIntensity = 1.0f;
+	stage->emissiveLuminance = 0.0f;
 	// Zero means unspecified until FinishShader knows whether the source is a
 	// modern packed metal/rough map or legacy/spec-gloss/scalar authoring.
 	stage->pbrMaterialVersion = 0;
@@ -1615,17 +1616,17 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				stage->bundle[TB_EMISSIVEMAP].image[0] = tr.whiteImage;
 			stage->emissive = qtrue;
 		}
-		// emissiveLuminance <cd/m^2>. Texture RGB is relative spatial/color
+		// emissiveNits/emissiveLuminance <cd/m^2>. Texture RGB is relative spatial/color
 		// variation; a white texel has this photometric Y luminance.
-		else if (!Q_stricmp(token, "emissiveLuminance"))
+		else if (!Q_stricmp(token, "emissiveLuminance") || !Q_stricmp(token, "emissiveNits"))
 		{
 			token = COM_ParseExt(text, qfalse);
 			if (!token[0])
 			{
-				ri.Printf(PRINT_WARNING, "WARNING: missing emissiveLuminance in shader '%s'\n", shader.name);
+				ri.Printf(PRINT_WARNING, "WARNING: missing emissiveNits/emissiveLuminance in shader '%s'\n", shader.name);
 				return qfalse;
 			}
-			stage->emissiveIntensity = Q_max((float)atof(token), 0.0f);
+			stage->emissiveLuminance = Q_max((float)atof(token), 0.0f);
 			stage->emissivePhysical = qtrue;
 			if (!stage->bundle[TB_EMISSIVEMAP].image[0])
 				stage->bundle[TB_EMISSIVEMAP].image[0] = tr.whiteImage;
@@ -5088,6 +5089,15 @@ static shader_t *FinishShader( void ) {
 	{
 		ShaderNestedTimer profileCollapse(shaderLoadProfile.collapseUs);
 		stage = CollapseStagesToGLSL();
+	}
+	for (int es = 0; es < MAX_SHADER_STAGES && stages[es].active; ++es)
+	{
+		R_ClassifyEmissiveStage(&shader, &stages[es]);
+		if (r_pbrPhysical->integer && stages[es].emissiveProvenance == EMISSIVE_AUTO_INFERRED)
+			ri.Printf(PRINT_DEVELOPER,
+				"emissive physicalization: %s stage %d class %d %.0f nits confidence %.2f (%s)\n",
+				shader.name, es, (int)stages[es].emissiveClass, stages[es].emissiveLuminance,
+				stages[es].emissiveConfidence, stages[es].emissiveReason);
 	}
 	R_SkinSSSClassifyShader(&shader, stages, MAX_SHADER_STAGES);
 

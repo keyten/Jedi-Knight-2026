@@ -60,6 +60,13 @@ inline float SceneToPhysical(float value, float scale)
 	return value / FinitePositive(scale, kDefaultPhysicalToScene);
 }
 
+inline float LegacyEmissiveToNits(float legacyScale, float referenceNits)
+{
+	if (!std::isfinite(legacyScale) || legacyScale <= 0.0f)
+		return 0.0f;
+	return legacyScale * FinitePositive(referenceNits, 1000.0f);
+}
+
 inline float Luminance(const float rgb[3])
 {
 	if (!rgb)

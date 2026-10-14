@@ -1028,7 +1028,12 @@ void SSGIWriteRadiance(in vec3 litColor, in vec3 emissiveLinear, in vec3 stageCo
 	}
 	if ((bits & 2) != 0)
 		radiance += emissiveLinear * u_SSGIParams.z;
-	if ((bits & 4) != 0 && (u_EnableTextures.x > 0.5 || abs(u_EmissiveParams.w) == 2.0))
+	if ((bits & 2) != 0 && abs(u_EmissiveParams.w) == 3.0)
+		// stageColor is already the same canonical radiance written visibly.
+		radiance += (linearScene ? max(stageColor, vec3(0.0)) :
+			EmissiveLegacySceneToLinear(stageColor)) * u_SSGIParams.z;
+	if ((bits & 4) != 0 && abs(u_EmissiveParams.w) != 3.0 &&
+		(u_EnableTextures.x > 0.5 || abs(u_EmissiveParams.w) == 2.0))
 	{
 		// legacy glow / auto emissive: the whole stage color, no physical intensity
 		radiance += (linearScene ? max(stageColor, vec3(0.0)) : EmissiveLegacySceneToLinear(stageColor)) *
@@ -5544,6 +5549,12 @@ void main()
 			out_Color.rgb = EmissiveLinearToLegacyScene(
 				EmissiveLegacySceneToLinear(out_Color.rgb) + emissiveLinear);
 		}
+	}
+	else if (abs(u_EmissiveParams.w) == 3.0)
+	{
+		out_Color.rgb = u_EmissiveParams.w > 0.0 ? out_Color.rgb * u_EmissiveParams.rgb :
+			EmissiveLinearToLegacyScene(EmissiveLegacySceneToLinear(out_Color.rgb) * u_EmissiveParams.rgb);
+		emissive = out_Color.rgb;
 	}
 	else if (abs(u_EmissiveParams.w) == 2.0)
 	{

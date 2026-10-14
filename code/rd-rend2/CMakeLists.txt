@@ -76,6 +76,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_decals.cpp"
 	"${SPDir}/rd-rend2/tr_draw.cpp"
 	"${SharedDir}/rd-rend2/tr_extensions.cpp"
+	"${SharedDir}/rd-rend2/tr_emissive.cpp"
 	"${SharedDir}/rd-rend2/tr_context.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.cpp"
 	"${SharedDir}/rd-rend2/tr_extramath.h"

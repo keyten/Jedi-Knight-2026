@@ -848,7 +848,15 @@ void main()
 #endif
 #endif
 
-	if (abs(u_EmissiveParams.w) == 2.0)
+	if (abs(u_EmissiveParams.w) == 3.0)
+	{
+		// CPU-classified physical legacy stage: replace its arbitrary engine
+		// amplitude with the canonical scene-radiance scale once.
+		color.rgb = u_EmissiveParams.w > 0.0 ? color.rgb * u_EmissiveParams.rgb :
+			EmissiveLinearToLegacyScene(EmissiveLegacySceneToLinear(color.rgb) * u_EmissiveParams.rgb);
+		emissive = color.rgb;
+	}
+	else if (abs(u_EmissiveParams.w) == 2.0)
 		emissive = color.rgb;
 
 	if (u_MaterialDebug.a > 0.0)

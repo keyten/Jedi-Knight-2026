@@ -76,6 +76,7 @@ struct mapAreaLight_t
 	qboolean twoSided;
 	int mode;					// AREAMODE_*
 	qboolean automatic;			// r_ltcAutoAreaLights, not from a file
+	qboolean authoredEmitter;	// source material explicitly authored physical luminance
 	char name[64];
 };
 
@@ -1036,6 +1037,7 @@ struct emitterStage_t
 	vec3_t scale;
 	qboolean animated;
 	qboolean staticCoords;	// plain texture coordinates: the mask can be sampled
+	qboolean physical;		// scale is already canonical physical scene radiance
 };
 
 static qboolean R_ShaderEmitterStage( const shader_t *sh, emitterStage_t *out )
@@ -1066,9 +1068,13 @@ static qboolean R_ShaderEmitterStage( const shader_t *sh, emitterStage_t *out )
 	const textureBundle_t *b = &st->bundle[out->bundle];
 	VectorSet(out->scale, 1.0f, 1.0f, 1.0f);
 	if ( out->bundle == TB_EMISSIVEMAP )
-		VectorScale(st->emissiveColor, st->emissiveIntensity, out->scale);
+		R_EmissiveStageCanonicalScale(st, out->scale);
+	else if ( r_pbrPhysical->integer && st->emissiveProvenance == EMISSIVE_AUTO_INFERRED )
+		R_EmissiveStageCanonicalScale(st, out->scale);
 	else if ( st->rgbGen == CGEN_CONST )
 		VectorCopy(st->constantColor, out->scale);
+	out->physical = (qboolean)(r_pbrPhysical->integer &&
+		(st->emissivePhysical || st->emissive || st->emissiveProvenance == EMISSIVE_AUTO_INFERRED));
 
 	out->animated = (qboolean)(st->rgbGen == CGEN_WAVEFORM || b->numImageAnimations > 1 || sh->numDeforms > 0);
 	out->staticCoords = (qboolean)(b->tcGen == TCGEN_TEXTURE && b->numTexMods == 0);
@@ -1176,6 +1182,8 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 	if ( !R_ShaderEmitterStage(sh, &emitter) )
 		return;
 	c.animated = emitter.animated;
+	l->physical = emitter.physical;
+	l->authoredEmitter = emitter.stage->emissivePhysical;
 	image_t *image = emitter.stage->bundle[emitter.bundle].image[0];
 	const imageMask_t *mask = image == tr.whiteImage ? nullptr : R_ImageMask(image);
 
@@ -1437,6 +1445,16 @@ static void R_AutoAreaLights( void )
 			continue;
 		}
 		s_al.lights.push_back(c.light);
+		if ( r_pbrPhysical->integer )
+		{
+			emitterStage_t emitter;
+			if ( R_ShaderEmitterStage(c.shader, &emitter) )
+				ri.Printf(PRINT_DEVELOPER,
+					"emissive physicalization: %s class %d %.0f nits confidence %.2f (%s), LTC linked\n",
+					c.shader->name, (int)emitter.stage->emissiveClass,
+					emitter.stage->emissiveLuminance, emitter.stage->emissiveConfidence,
+					emitter.stage->emissiveReason ? emitter.stage->emissiveReason : "authored");
+		}
 	}
 	ri.Printf(PRINT_ALL, "r_ltcAutoAreaLights %d: %d area lights from %d emissive surfaces (%d skipped)\n",
 		mode, (int)s_al.lights.size(), (int)candidates.size(), skipped);
@@ -1608,7 +1626,7 @@ void R_CalibrateAreaLight( int index, const vec3_t radiance, float confidence )
 	const float current = l->intensity * (0.2126f * l->color[0] + 0.7152f * l->color[1] + 0.0722f * l->color[2]);
 	if ( !(measured > 0.0f) )
 		return;
-	if ( !l->automatic )
+	if ( !l->automatic || l->authoredEmitter )
 	{
 		ri.Printf(PRINT_DEVELOPER, "r_ltcAreaCalibration: area light %d (%s) authored radiance %.3f, grid %.3f (kept)\n",
 			index, l->name, current, measured);

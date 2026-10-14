@@ -418,6 +418,8 @@ extern cvar_t  *r_pbrPhysical;
 extern cvar_t  *r_pbrWorldUnitsPerMeter;
 extern cvar_t  *r_pbrPhysicalToScene;
 extern cvar_t  *r_pbrLegacyReference;
+extern cvar_t  *r_emissiveLegacyNits;
+extern cvar_t  *r_emissiveDebug;
 extern cvar_t  *r_pbrSunIlluminance;
 
 extern cvar_t  *r_toneMap;
@@ -1927,6 +1929,17 @@ typedef enum
 	MATERIAL_TYPE_COUNT
 } materialType_t;
 
+typedef enum {
+	EMISSIVE_CLASS_NONE, EMISSIVE_CLASS_INDICATOR, EMISSIVE_CLASS_SCREEN,
+	EMISSIVE_CLASS_LIGHT_PANEL, EMISSIVE_CLASS_DECORATIVE, EMISSIVE_CLASS_LAMP,
+	EMISSIVE_CLASS_ENERGY, EMISSIVE_CLASS_HOT, EMISSIVE_CLASS_UNKNOWN
+} emissiveClass_t;
+
+typedef enum {
+	EMISSIVE_NONE, EMISSIVE_EXPLICIT_PHYSICAL, EMISSIVE_LEGACY_CONVERTED,
+	EMISSIVE_AUTO_INFERRED
+} emissiveProvenance_t;
+
 enum AlphaTestType
 {
 	ALPHA_TEST_NONE,
@@ -1950,7 +1963,12 @@ typedef struct {
 	qboolean		isDetail;
 	qboolean		glow;
 	qboolean		emissive;
-	qboolean		emissivePhysical;	// emissiveIntensity is authored cd/m^2
+	qboolean		emissivePhysical;	// emissiveLuminance is authored cd/m^2
+	emissiveClass_t emissiveClass;
+	emissiveProvenance_t emissiveProvenance;
+	float emissiveLuminance;		// reference-white cd/m^2
+	float emissiveConfidence;
+	const char *emissiveReason;
 	qboolean		cloth;
 	qboolean		specularScaleAuthored;	// specularScale / roughness / gloss ... keywords
 	qboolean		packedSpecularScaleAuthored; // full specularScale tuple, preserve all channels
@@ -6260,6 +6278,9 @@ void R_PBRCalibrateLegacyMap(world_t *world);
 float R_PBRMetersPerWorldUnit(void);
 float R_PBRPhysicalToScene(void);
 void R_PBRCanonicalColor(const vec3_t rgb, float photometricY, vec3_t out);
+void R_ClassifyEmissiveStage(const shader_t *shader, shaderStage_t *stage);
+void R_EmissiveStageCanonicalScale(const shaderStage_t *stage, vec3_t out);
+qboolean R_EmissiveDebugColor(const shaderStage_t *stage, vec4_t out);
 void R_StaticLightsBeginScene(const refdef_t *fd);
 qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_STATIC_RECONSTRUCTION
 void R_SetHeightFogBase(world_t *worldData);

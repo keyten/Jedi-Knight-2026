@@ -503,3 +503,11 @@ BOOST_AUTO_TEST_CASE(rend2_pbr_map_calibration_is_deterministic)
 	BOOST_CHECK_CLOSE(a, 1.25f, 1e-4f);
 	BOOST_CHECK_EQUAL(LegacyMapCalibration(0.0f, 0.0f), 1.0f);
 }
+
+BOOST_AUTO_TEST_CASE(rend2_emissive_legacy_units_are_not_nits)
+{
+	BOOST_CHECK_CLOSE(LegacyEmissiveToNits(4.0f, 1000.0f), 4000.0f, 1e-4f);
+	BOOST_CHECK_EQUAL(LegacyEmissiveToNits(-1.0f, 1000.0f), 0.0f);
+	BOOST_CHECK_CLOSE(PhysicalToScene(LegacyEmissiveToNits(1.0f, 1000.0f),
+		kDefaultPhysicalToScene), 0.1f, 1e-4f);
+}

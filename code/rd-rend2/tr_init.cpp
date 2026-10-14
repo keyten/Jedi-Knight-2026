@@ -332,6 +332,8 @@ cvar_t  *r_pbrPhysical;
 cvar_t  *r_pbrWorldUnitsPerMeter;
 cvar_t  *r_pbrPhysicalToScene;
 cvar_t  *r_pbrLegacyReference;
+cvar_t  *r_emissiveLegacyNits;
+cvar_t  *r_emissiveDebug;
 cvar_t  *r_pbrSunIlluminance;
 cvar_t  *r_floatLightmap;
 
@@ -2279,6 +2281,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_pbrPhysicalToScene, 0.000001f, 1.0f, qfalse);
 	r_pbrLegacyReference = ri_Cvar_Get_NoComm("r_pbrLegacyReference", "1", CVAR_ARCHIVE | CVAR_LATCH, "Legacy light reference in canonical scene units at the migration anchor");
 	ri.Cvar_CheckRange(r_pbrLegacyReference, 0.001f, 100.0f, qfalse);
+	r_emissiveLegacyNits = ri_Cvar_Get_NoComm("r_emissiveLegacyNits", "1000", CVAR_ARCHIVE | CVAR_LATCH, "Reference-white nits represented by legacy emissiveScale 1 in physical mode");
+	ri.Cvar_CheckRange(r_emissiveLegacyNits, 1.0f, 100000.0f, qfalse);
+	r_emissiveDebug = ri_Cvar_Get_NoComm("r_emissiveDebug", "0", CVAR_CHEAT, "Emissive debug: 1 provenance, 2 false-color nits, 3 confidence");
+	ri.Cvar_CheckRange(r_emissiveDebug, 0, 3, qtrue);
 	r_pbrSunIlluminance = ri_Cvar_Get_NoComm("r_pbrSunIlluminance", "0", CVAR_ARCHIVE, "Physical sun illuminance in lux; 0 migrates the map sun");
 	ri.Cvar_CheckRange(r_pbrSunIlluminance, 0.0f, 200000.0f, qfalse);
 	r_floatLightmap = ri_Cvar_Get_NoComm( "r_floatLightmap", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable HDR lightmap support" );
