@@ -75,8 +75,9 @@ Existing `waterDynamics_t` values supply amplitude, wavelength, speed,
 choppiness and micro-normal strength. `waterBody_t` supplies the resolved
 profile, world-space flow, mean brush depth and wave multiplier. Amplitude is
 mapped to world units by a fixed factor of eight; profile speed maps to 16
-world units per second at a value of one. Lake and generic-water components
-use normalized finite-depth gravity-wave dispersion:
+world units per second at a value of one. By default
+(`r_waterWaveDispersion 1`), lake and generic-water components use normalized
+finite-depth gravity-wave dispersion:
 
 `omega(k) = speed * k0 * sqrt(k*tanh(k*h) / (k0*tanh(k0*h)))`.
 
@@ -90,7 +91,14 @@ streams, slime and waterfalls retain the previous non-dispersive motion.
 Both current and old wind sets cache their own eight frequencies, keeping wind
 crossfades and CPU waterline/contact queries phase-consistent without
 `sqrt`/`tanh` work in shaders. Surface-driven caustics receive the same
-profile/depth dispersion. `r_waterWaveAmplitude`,
+profile/depth dispersion. `r_waterWaveDispersion 0` restores the legacy
+non-dispersive `omega = speed*k` motion. The opt-in mode 2 instead evaluates
+`omega = sqrt(g_water*k*tanh(k*h))` for non-flowing profiles. Its independent
+`r_waterWaveGravity` defaults to 313.6 world units/s^2 (9.8 m/s^2 at an
+explicit 32 world-units-per-metre calibration); it never reads gameplay
+gravity. Flowing streams deliberately retain normalized/authored motion in
+mode 2. This mode changes authored timing substantially and is therefore not
+the default. `r_waterWaveAmplitude`,
 `r_waterWaveLength` and `r_waterWaveSpeed` are global scales. Choppiness
 affects the optional mesh's horizontal displacement; it does not
 alter the current shading normal. The body ID travels in unused upper bits of
@@ -124,6 +132,13 @@ detail-normal control. `r_waterWaveTime -1` runs normally; a nonnegative time
 freezes analytical waves and both world-space detail drifts for A/B captures;
 reset it to -1 to resume. The third detail layer still follows the authored
 stage `tcMod` clock.
+
+`r_waterWaveDispersion` defaults to 1: 0 is legacy nondispersive, 1 preserves
+the authored primary-wave speed while giving the other components relative
+finite-depth dispersion, and 2 is calibrated physical dispersion for
+non-flowing bodies. `r_waterWaveGravity` controls mode 2 and the opt-in
+variable-depth interaction solver; it deliberately remains independent of
+gameplay gravity.
 
 `r_waterWind 0|1` is the default-off master. `r_waterWindScale` scales all
 profile responses and `r_waterWindTransition` defaults to four seconds.

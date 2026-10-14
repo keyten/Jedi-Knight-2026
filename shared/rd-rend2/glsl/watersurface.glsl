@@ -73,12 +73,12 @@ uniform sampler2D u_WaterInteractionMap;
 
 vec3 WaterShoreData(float encodedDistance)
 {
-	if (u_Water[WATER_U_SHORELINE].x < 0.5 || u_Water[19].y < 0.5)
+	if (u_Water[WATER_U_SHORELINE].x < 0.5 || u_Water[WATER_U_GEOMETRY_FOAM].y < 0.5)
 		return vec3(65504.0, 1.0, 0.0);
 	float distance = max(abs(encodedDistance) - 0.25, 0.0);
 	float rigid = step(encodedDistance, 0.0);
 	float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
-	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
 	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
 	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
 	float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, distance));
@@ -122,15 +122,15 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[WATER_U_OLD_TERMS + oldIndex];
 	commonOmega[0] = u_Water[WATER_U_TARGET_OMEGA]; commonOmega[1] = u_Water[WATER_U_TARGET_OMEGA + 1];
 	oldOmega[0] = u_Water[WATER_U_OLD_OMEGA]; oldOmega[1] = u_Water[WATER_U_OLD_OMEGA + 1];
-	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
-		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
+	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[WATER_U_WAVE_CONTROL], u_Water[WATER_U_BODY_WAVES],
+		vec4(u_Water[WATER_U_WAVE_QUALITY].x, u_Water[WATER_U_WAVE_QUALITY].y, u_Water[WATER_U_BODY_FLOW_DEPTH].z, u_Water[WATER_U_WAVE_DEBUG].z), u_Water[WATER_U_FLOW],
+		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[WATER_U_WAVE_QUALITY].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
 	float windBlend = clamp(u_Water[WATER_U_WIND + 2].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
-		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
-			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
+		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[WATER_U_WAVE_CONTROL], u_Water[WATER_U_BODY_WAVES],
+			vec4(u_Water[WATER_U_WAVE_QUALITY].x, u_Water[WATER_U_WAVE_QUALITY].y, u_Water[WATER_U_BODY_FLOW_DEPTH].z, u_Water[WATER_U_WAVE_DEBUG].z), u_Water[WATER_U_FLOW],
+			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[WATER_U_WAVE_QUALITY].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -141,60 +141,6 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
 	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
 	return w;
-	/* Kept below as historical source for external shader comparisons; unreachable.
-	if (u_Water[13].x < 0.5)
-		return w;
-
-	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
-	float speed = u_Water[15].z * u_Water[13].w * 16.0;
-	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
-	{
-		// Stable body-average depth. A true per-edge mask requires boundary geometry.
-		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
-	}
-	// The eight deterministic components contain four macro and four medium
-	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
-	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
-	float qualityAmplitude = count == 2 ? 1.86 : (count == 8 ? 0.59 : 1.0);
-	float j00 = 1.0, j01 = 0.0, j11 = 1.0;
-	for (int i = 0; i < 8; ++i)
-	{
-		if (i >= count) break;
-		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
-		float fi = float(component);
-		vec4 term = u_Water[WATER_U_TARGET_TERMS + component]; // direction.xy, amplitude, wave number
-		vec2 direction = term.xy;
-		float a = term.z * w.attenuation * qualityAmplitude;
-		float k = term.w;
-		float omega = speed * k;
-		vec2 phasePosition = worldPosition.xy;
-		// Flow advects only the medium band. Broad body shape remains bounded
-		// and propagates under the ambient-wave profile rather than translating.
-		if (u_Water[28].w > 0.5 && component >= 4)
-			phasePosition -= u_Water[28].xy * time * u_Water[29].y * 0.35;
-		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
-		float sn = sin(phase), cs = cos(phase);
-		w.height += a * sn;
-		w.slope += a * k * cs * direction;
-		w.velocity.z -= a * omega * cs;
-		w.curvature -= a * k * k * sn;
-		// Bounded horizontal crest drift used by the optional render mesh.
-		float horizontal = min(u_Water[14].x * u_Water[18].z * 0.12, 0.2) * a;
-		w.displacement.xy += horizontal * cs * direction;
-		w.velocity.xy += horizontal * omega * sn * direction;
-		float jacobian = horizontal * k * sn;
-		j00 -= jacobian * direction.x * direction.x;
-		j01 -= jacobian * direction.x * direction.y;
-		j11 -= jacobian * direction.y * direction.y;
-	}
-	// Convert parametric height derivatives to the normal of the displaced XY
-	// surface. The horizontal drift is bounded, keeping this Jacobian invertible.
-	float det = max(j00 * j11 - j01 * j01, 0.5);
-	w.slope = vec2(j11 * w.slope.x - j01 * w.slope.y,
-		j00 * w.slope.y - j01 * w.slope.x) / det;
-	w.displacement.z = w.height;
-	return w;
-	*/
 }
 
 
@@ -336,13 +282,13 @@ vec2 ModTexCoords(vec2 st, vec3 position, vec4 texMatrix, vec4 offTurb)
 
 vec3 EvaluateWaterfallSheet(vec3 worldPosition, float time)
 {
-	vec3 fall = normalize(u_Water[39].xyz);
-	vec3 sheetNormal = normalize(u_Water[40].xyz);
+	vec3 fall = normalize(u_Water[WATER_U_WATERFALL + 1].xyz);
+	vec3 sheetNormal = normalize(u_Water[WATER_U_WATERFALL + 2].xyz);
 	vec3 across = normalize(cross(sheetNormal, fall));
-	float along = clamp((dot(worldPosition, fall) - u_Water[41].x) * u_Water[40].w, 0.0, 1.0);
+	float along = clamp((dot(worldPosition, fall) - u_Water[WATER_U_WATERFALL + 3].x) * u_Water[WATER_U_WATERFALL + 2].w, 0.0, 1.0);
 	float side = dot(worldPosition, across);
-	float advected = dot(worldPosition, fall) - time * u_Water[39].w;
-	float breakup = u_Water[41].y;
+	float advected = dot(worldPosition, fall) - time * u_Water[WATER_U_WATERFALL + 1].w;
+	float breakup = u_Water[WATER_U_WATERFALL + 3].y;
 	float sheetWave = sin(side * 0.0107 + advected * 0.0027) +
 		0.55 * sin(side * -0.023 + advected * 0.0061 + 1.7);
 	float medium = sin(side * 0.061 + advected * 0.018 + 0.7) * (0.25 + 0.75 * along);
@@ -367,26 +313,26 @@ void main()
 	var_BasePosition = wsPosition.xyz;
 	var_GeometryDisplacement = vec3(0.0);
 	var_GeometrySlope = vec2(0.0);
-	bool waterfallGeometry = u_Water[38].x > 0.5;
+	bool waterfallGeometry = u_Water[WATER_U_WATERFALL].x > 0.5;
 	var_GeometrySkirt = waterfallGeometry ? 0.0 : 1.0 - attr_TexCoord1.x;
 	var_ShoreData = waterfallGeometry ? vec3(65000.0, 1.0, 0.0) : WaterShoreData(attr_TexCoord1.y);
-	if (u_Water[19].y > 0.5)
+	if (u_Water[WATER_U_GEOMETRY_FOAM].y > 0.5)
 	{
-		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
+		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[WATER_U_FRAME].z);
 		if (waterfallGeometry)
-			geometryWave.displacement = EvaluateWaterfallSheet(var_BasePosition, u_Water[5].z);
+			geometryWave.displacement = EvaluateWaterfallSheet(var_BasePosition, u_Water[WATER_U_FRAME].z);
 		else
 		{
 			geometryWave.displacement *= var_ShoreData.y;
 			geometryWave.slope *= var_ShoreData.y;
 		}
-		float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+		float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
 		float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
 			clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
-		if (u_Water[38].x < 0.5)
+		if (u_Water[WATER_U_WATERFALL].x < 0.5)
 			geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition) * max(var_ShoreData.y, interactionEdge);
 		var_GeometryDisplacement = geometryWave.displacement *
-			(waterfallGeometry || (u_Water[19].z > 2.5 && u_Water[19].z < 3.5) ? 1.0 : attr_TexCoord1.x);
+			(waterfallGeometry || (u_Water[WATER_U_GEOMETRY_FOAM].z > 2.5 && u_Water[WATER_U_GEOMETRY_FOAM].z < 3.5) ? 1.0 : attr_TexCoord1.x);
 		var_GeometrySlope = waterfallGeometry ? vec2(0.0) : geometryWave.slope * attr_TexCoord1.x;
 		wsPosition.xyz += var_GeometryDisplacement;
 	}
@@ -410,37 +356,33 @@ void main()
 // analytic from the same optical parameters (R_LiquidsMaterial).
 //
 // Everything is computed in linear light; a legacy (display encoded) HDR scene is decoded and the
-// result encoded again (u_Water[5].w).
+// result encoded again (u_Water[WATER_U_FRAME].w).
 //
 // u_Water: see RB_WaterSurfaceSetupDraw
-//   [0] IOR, roughness (perceptual), normal strength, refraction scale
-//   [1] reflection scale, SSR scale (0: no SSR), absorption scale, path length scale
-//   [2] extinction per unit rgb, froxel volume holds this liquid (0 / 1)
-//   [3] single scattering albedo rgb, phase g
-//   [4] P[0], P[5], P[8], P[9]
-//   [5] P[14], P[10], time (s), linear scene (0 / 1)
-//   [6] debug view, split x (window pixels, < 0: none), flags, longest path
-//   [7] view right (world), froxel liquid fade start (view depth)
-//   [8] view up (world), 1 / froxel liquid fade length
-//   [9] fallback environment radiance rgb, sun specular (0 / 1)
-//   [10] flow layer scale, 1 / world wave size, unused, Snell debug view (USE_WATER_SNELL)
-//   [11] drift of the two world wave layers (texture units, wrapped)
-//   [13] waves enabled, amplitude scale, wavelength scale, speed scale
-//   [14] choppiness, quality, micro scale, shallow attenuation enabled
-//   [15] body amplitude, wavelength, speed, micro strength
-//   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
-//   [18] debug, body ID, choppiness, wave multiplier;
-//   [19] legacy deform amplitude, geometry enabled, geometry debug, foam multiplier
+//   [WATER_U_SURFACE] IOR, roughness (perceptual), normal strength, refraction scale
+//   [WATER_U_OPTICS] reflection scale, SSR scale, absorption scale, path length scale
+//   [WATER_U_EXTINCTION] extinction per unit rgb, froxel volume holds this liquid
+//   [WATER_U_SCATTER] single scattering albedo rgb, phase g
+//   [WATER_U_PROJECTION] P[0], P[5], P[8], P[9]
+//   [WATER_U_FRAME] P[14], P[10], time (s), linear scene
+//   [WATER_U_DEBUG] debug view, split x, flags, longest path
+//   [WATER_U_VIEW_RIGHT/VIEW_UP] world view basis and froxel fade
+//   [WATER_U_ENVIRONMENT] fallback environment radiance rgb, sun specular
+//   [WATER_U_DETAIL/DRIFT] detail scale and wrapped world-wave drift
+//   [WATER_U_WAVE_CONTROL/QUALITY] analytic-wave controls and quality
+//   [WATER_U_BODY_WAVES] body amplitude, wavelength, speed, micro strength
+//   [WATER_U_BODY_BOUNDS/BODY_FLOW_DEPTH] bounds, flow, mean depth and profile
+//   [WATER_U_WAVE_DEBUG] debug, body ID, choppiness, wave multiplier
+//   [WATER_U_GEOMETRY_FOAM] legacy deform, geometry controls, foam multiplier
 //   [WATER_U_TARGET_TERMS..+7] target analytic wave direction.xy, amplitude, wave number
 //   [WATER_U_FLOW] resolved world flow velocity xyz, enabled
 //   [WATER_U_FLOW+1] resolved speed, detail-advection scale, flow debug, packed source/confidence
 //   [WATER_U_BODY_MAPPING..+3] body UV mapping, interaction state/source and atlas rectangle
-//   [35] intersection foam enabled, world width, strength, debug mask
-//   [36] persistent foam field enabled, debug (1 concentration, 2 velocity, 3 sources), texel world size xy
-//   [37] whitewater enabled, optical strength, foam injection, debug (1 flow, 2 source, 3 result, 4 foam source)
+//   [WATER_U_INTERSECTION_FOAM] intersection foam enabled, world width, strength, debug mask
+//   [WATER_U_FOAM] persistent foam enabled, debug mode, texel world size xy
+//   [WATER_U_WHITEWATER] whitewater enabled, optical strength, foam injection, debug mode
 //   [WATER_U_WATERFALL] waterfall enabled, quality, debug, mean sheet thickness
-//   [39] fall direction xyz, flow speed; [40] sheet normal xyz, inverse fall length
-//   [41] top coordinate, breakup, normal scale, aeration; [42] opacity/scattering, spray, impact, profile
+//   [WATER_U_WATERFALL+1..+4] direction, sheet geometry, breakup/aeration and profile optics
 //   [WATER_U_OLD_TERMS..+7] old analytic spectrum during a wind crossfade
 //   [WATER_U_WIND..+2] resolved/current/target wind and transition state
 //   [WATER_U_GEOMETRY] resolved geometry-wave count, measured max top edge, 4x edge threshold, reserved
@@ -456,6 +398,7 @@ void main()
 
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform vec4 u_WaterPass; // x: reflection prepass, y: history / resolved reflection valid, z: history weight
+uniform vec4 u_WaterOptics2; // x: opt-in rough dielectric transmission / eta transport
 uniform sampler2D u_GlowMap;
 
 layout(std140) uniform Scene
@@ -589,15 +532,15 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[WATER_U_OLD_TERMS + oldIndex];
 	commonOmega[0] = u_Water[WATER_U_TARGET_OMEGA]; commonOmega[1] = u_Water[WATER_U_TARGET_OMEGA + 1];
 	oldOmega[0] = u_Water[WATER_U_OLD_OMEGA]; oldOmega[1] = u_Water[WATER_U_OLD_OMEGA + 1];
-	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
-		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
+	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[WATER_U_WAVE_CONTROL], u_Water[WATER_U_BODY_WAVES],
+		vec4(u_Water[WATER_U_WAVE_QUALITY].x, u_Water[WATER_U_WAVE_QUALITY].y, u_Water[WATER_U_BODY_FLOW_DEPTH].z, u_Water[WATER_U_WAVE_DEBUG].z), u_Water[WATER_U_FLOW],
+		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[WATER_U_WAVE_QUALITY].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
 	float windBlend = clamp(u_Water[WATER_U_WIND + 2].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
-		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
-			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
+		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[WATER_U_WAVE_CONTROL], u_Water[WATER_U_BODY_WAVES],
+			vec4(u_Water[WATER_U_WAVE_QUALITY].x, u_Water[WATER_U_WAVE_QUALITY].y, u_Water[WATER_U_BODY_FLOW_DEPTH].z, u_Water[WATER_U_WAVE_DEBUG].z), u_Water[WATER_U_FLOW],
+			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[WATER_U_WAVE_QUALITY].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -608,63 +551,11 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	w.displacement = commonState.displacement; w.slope = commonState.slope; w.velocity = commonState.velocity;
 	w.height = commonState.height; w.attenuation = commonState.attenuation; w.curvature = commonState.curvature;
 	return w;
-	/* Historical in-file evaluator retained for source comparison; unreachable.
-	if (u_Water[13].x < 0.5)
-		return w;
-
-	// Profile speed is a character scale; one unit corresponds to 16 world units/s.
-	float speed = u_Water[15].z * u_Water[13].w * 16.0;
-	if (u_Water[14].w > 0.5 && u_Water[17].z > 0.0)
-	{
-		// Stable body-average depth. A true per-edge mask requires boundary geometry.
-		w.attenuation = smoothstep(0.0, 32.0, u_Water[17].z);
-	}
-	// The eight deterministic components contain four macro and four medium
-	// terms. Quality 0/1/2 selects 1+1, 2+2, or 4+4 of them.
-	int count = u_Water[14].y < 0.5 ? 2 : (u_Water[14].y < 1.5 ? 4 : 8);
-	float qualityAmplitude = count == 2 ? 1.86 : (count == 8 ? 0.59 : 1.0);
-	float j00 = 1.0, j01 = 0.0, j11 = 1.0;
-	for (int i = 0; i < 8; ++i)
-	{
-		if (i >= count) break;
-		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
-		float fi = float(component);
-		vec4 term = u_Water[WATER_U_TARGET_TERMS + component]; // direction.xy, amplitude, wave number
-		vec2 direction = term.xy;
-		float a = term.z * w.attenuation * qualityAmplitude;
-		float k = term.w;
-		float omega = speed * k;
-		vec2 phasePosition = worldPosition.xy;
-		if (u_Water[28].w > 0.5 && component >= 4)
-			phasePosition -= u_Water[28].xy * time * u_Water[29].y * 0.35;
-		float phase = k * dot(direction, phasePosition) - omega * time + fi * 1.37;
-		float sn = sin(phase), cs = cos(phase);
-		w.height += a * sn;
-		w.slope += a * k * cs * direction;
-		w.velocity.z -= a * omega * cs;
-		w.curvature -= a * k * k * sn;
-		// Bounded horizontal crest drift used by the optional render mesh.
-		float horizontal = min(u_Water[14].x * u_Water[18].z * 0.12, 0.2) * a;
-		w.displacement.xy += horizontal * cs * direction;
-		w.velocity.xy += horizontal * omega * sn * direction;
-		float jacobian = horizontal * k * sn;
-		j00 -= jacobian * direction.x * direction.x;
-		j01 -= jacobian * direction.x * direction.y;
-		j11 -= jacobian * direction.y * direction.y;
-	}
-	// Convert parametric height derivatives to the normal of the displaced XY
-	// surface. The horizontal drift is bounded, keeping this Jacobian invertible.
-	float det = max(j00 * j11 - j01 * j01, 0.5);
-	w.slope = vec2(j11 * w.slope.x - j01 * w.slope.y,
-		j00 * w.slope.y - j01 * w.slope.x) / det;
-	w.displacement.z = w.height;
-	return w;
-	*/
 }
 
 vec3 SceneToLinear(vec3 c)
 {
-	if (u_Water[5].w > 0.5)
+	if (u_Water[WATER_U_FRAME].w > 0.5)
 		return c;
 	c = max(c, vec3(0.0));
 	vec3 lo = c * (1.0 / 12.92);
@@ -674,7 +565,7 @@ vec3 SceneToLinear(vec3 c)
 
 vec3 LinearToScene(vec3 c)
 {
-	if (u_Water[5].w > 0.5)
+	if (u_Water[WATER_U_FRAME].w > 0.5)
 		return c;
 	c = max(c, vec3(0.0));
 	vec3 lo = 12.92 * c;
@@ -685,7 +576,7 @@ vec3 LinearToScene(vec3 c)
 // linear view depth of a hardware depth value
 float WaterLinearDepth(float d)
 {
-	return u_Water[5].x / (d * 2.0 - 1.0 + u_Water[5].y);
+	return u_Water[WATER_U_FRAME].x / (d * 2.0 - 1.0 + u_Water[WATER_U_FRAME].y);
 }
 
 bool WaterIsSky(float d)
@@ -696,28 +587,28 @@ bool WaterIsSky(float d)
 // world position of render target uv at view depth z
 vec3 WaterWorldPosition(vec2 uv, float z)
 {
-	vec2 ndc = (uv - u_Water[12].xy) / u_Water[12].zw * 2.0 - 1.0;
-	vec2 xy = (ndc + u_Water[4].zw) * z / u_Water[4].xy;
-	return u_ViewOrigin + u_Water[7].xyz * xy.x + u_Water[8].xyz * xy.y + normalize(u_ViewForward) * z;
+	vec2 ndc = (uv - u_Water[WATER_U_VIEWPORT].xy) / u_Water[WATER_U_VIEWPORT].zw * 2.0 - 1.0;
+	vec2 xy = (ndc + u_Water[WATER_U_PROJECTION].zw) * z / u_Water[WATER_U_PROJECTION].xy;
+	return u_ViewOrigin + u_Water[WATER_U_VIEW_RIGHT].xyz * xy.x + u_Water[WATER_U_VIEW_UP].xyz * xy.y + normalize(u_ViewForward) * z;
 }
 
 vec2 WaterProject(vec3 p)
 {
 	vec4 clip = u_viewProjectionMatrix * vec4(p, 1.0);
-	return (clip.xy / max(clip.w, 1e-4) * 0.5 + 0.5) * u_Water[12].zw + u_Water[12].xy;
+	return (clip.xy / max(clip.w, 1e-4) * 0.5 + 0.5) * u_Water[WATER_U_VIEWPORT].zw + u_Water[WATER_U_VIEWPORT].xy;
 }
 
 // render target uv of the point L along the refracted ray Rt from P, the offset scaled by
 // r_waterSurfaceRefraction and bounded
 vec2 WaterRefractedUV(vec3 P, vec3 Rt, float L, vec2 uv)
 {
-	vec2 offset = (WaterProject(P + Rt * L) - uv) * u_Water[0].w;
+	vec2 offset = (WaterProject(P + Rt * L) - uv) * u_Water[WATER_U_SURFACE].w;
 	float offsetLength = length(offset);
 	if (offsetLength > 0.12)
 		offset *= 0.12 / offsetLength;
 	vec2 halfTexel = 0.5 / vec2(textureSize(u_WaterSceneMap, 0));
-	vec2 lo = u_Water[12].xy + halfTexel;
-	vec2 hi = u_Water[12].xy + u_Water[12].zw - halfTexel;
+	vec2 lo = u_Water[WATER_U_VIEWPORT].xy + halfTexel;
+	vec2 hi = u_Water[WATER_U_VIEWPORT].xy + u_Water[WATER_U_VIEWPORT].zw - halfTexel;
 	// Clamping a displaced lookup repeats the last row/column into a visible
 	// streak.  Fade only the unavailable part of the displacement instead;
 	// samples that remain on-screen are unchanged.
@@ -790,6 +681,29 @@ vec3 WaterGlint(vec3 N, vec3 V, vec3 L, vec3 c, float alpha, float ior)
 	float NV = max(dot(N, V), 1e-4);
 	float F = FresnelDielectric(VH, 1.0 / ior);
 	return c * (D_GGX(NH, alpha) * V_SmithJointApprox(alpha, NV, NL) * F * NL);
+}
+
+// Rough dielectric transmission from an air-side sun to an underwater
+// observer. The refractive half-vector, Jacobian and radiance-mode eta scale
+// are evaluated together; this intentionally is not a post-hoc ior^2 tint.
+vec3 WaterSunTransmission(vec3 N, vec3 V, vec3 L, vec3 c, float alpha, float ior)
+{
+	float NV = max(dot(N, V), 1e-4);
+	float NL = max(-dot(N, L), 0.0);
+	if (NL <= 0.0)
+		return vec3(0.0);
+	vec3 H = normalize(ior * V + L);
+	if (dot(H, N) < 0.0) H = -H;
+	float NH = clamp(dot(N, H), 0.0, 1.0);
+	float VH = max(abs(dot(V, H)), 1e-4);
+	float LH = max(abs(dot(L, H)), 1e-4);
+	float F = FresnelDielectric(VH, 1.0 / ior);
+	float denominator = max(abs(ior * VH - LH), 1e-3);
+	float jacobian = (VH * LH) / (NV * NL * denominator * denominator);
+	float transport = 1.0 / (ior * ior);
+	float lobe = (1.0 - F) * D_GGX(NH, alpha) *
+		V_SmithJointApprox(alpha, NV, NL) * jacobian * transport * NL;
+	return c * min(lobe, 32.0);
 }
 
 // Henyey-Greenstein, normalized over the sphere (1 / 4 pi when isotropic)
@@ -876,7 +790,7 @@ vec3 WaterEnvironment(vec3 P, vec3 R, float lod)
 		return SceneToLinear(textureLod(u_CubeMap, R - parallax, lod).rgb);
 	}
 	// no cubemap: the ambient of the sky, brighter towards the zenith
-	return SceneToLinear(u_Water[9].rgb) * mix(0.55, 1.0, clamp(R.z * 0.5 + 0.5, 0.0, 1.0));
+	return SceneToLinear(u_Water[WATER_U_ENVIRONMENT].rgb) * mix(0.55, 1.0, clamp(R.z * 0.5 + 0.5, 0.0, 1.0));
 }
 
 #if defined(USE_SSR)
@@ -893,8 +807,8 @@ vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDi
 	// tracing cannot contribute anything at or above it.
 	if (roughness >= u_SSRSettings2.x)
 		return vec4(0.0);
-	vec3 right = u_Water[7].xyz;
-	vec3 up = u_Water[8].xyz;
+	vec3 right = u_Water[WATER_U_VIEW_RIGHT].xyz;
+	vec3 up = u_Water[WATER_U_VIEW_UP].xyz;
 	vec3 forward = normalize(u_ViewForward);
 	vec3 rel = Pw - u_ViewOrigin;
 	vec3 P = vec3(dot(rel, right), dot(rel, up), dot(rel, forward));
@@ -961,9 +875,9 @@ vec2 WaterReflectionUV(vec2 sceneUV)
     vec2 traceSize = vec2(textureSize(u_SSRHistoryMap, 0));
     float scale = u_WaterPass.w > 0.0 ? u_WaterPass.w : round(fullSize.x / traceSize.x);
     scale = max(scale, 1.0);
-    vec2 lo = floor(u_Water[12].xy * fullSize / scale);
-    vec2 hi = ceil((u_Water[12].xy + u_Water[12].zw) * fullSize / scale);
-    vec2 local = (sceneUV - u_Water[12].xy) / u_Water[12].zw;
+    vec2 lo = floor(u_Water[WATER_U_VIEWPORT].xy * fullSize / scale);
+    vec2 hi = ceil((u_Water[WATER_U_VIEWPORT].xy + u_Water[WATER_U_VIEWPORT].zw) * fullSize / scale);
+    vec2 local = (sceneUV - u_Water[WATER_U_VIEWPORT].xy) / u_Water[WATER_U_VIEWPORT].zw;
     return (lo + local * (hi - lo)) / traceSize;
 }
 
@@ -1037,7 +951,7 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 	if (u_WaterPass.y > 0.5 && hit.w > 0.0)
 	{
 		vec4 prevClip = u_SSRReproject * vec4(P, 1.0);
-		vec2 prevUV = (prevClip.xy / max(prevClip.w, 1e-4) * 0.5 + 0.5) * u_Water[12].zw + u_Water[12].xy;
+		vec2 prevUV = (prevClip.xy / max(prevClip.w, 1e-4) * 0.5 + 0.5) * u_Water[WATER_U_VIEWPORT].zw + u_Water[WATER_U_VIEWPORT].xy;
 		if (prevClip.w > 0.0 && SSRInsideView(prevUV))
 		{
             prevUV = WaterReflectionUV(prevUV);
@@ -1077,10 +991,10 @@ vec4 WaterRainSample(vec3 worldPosition, out vec2 worldSlope)
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
 	// Two wrapped parcels make body-resolved stream flow continuous while the
 	// global GL3.2 field remains camera/map space and needs no per-drop readback.
-	float phase = fract(u_Water[5].z * 0.5);
+	float phase = fract(u_Water[WATER_U_FRAME].z * 0.5);
 	vec2 extent = vec2(textureSize(u_WaterRainMap, 0));
 	vec2 weatherWorld = max(vec2(1.0), 2.0 / vec2(length(u_WeatherMvp[0].xy), length(u_WeatherMvp[1].xy)));
-	vec2 drift = u_Water[28].xy * 2.0 / weatherWorld / max(u_WaterRainParams.z, 0.125);
+	vec2 drift = u_Water[WATER_U_FLOW].xy * 2.0 / weatherWorld / max(u_WaterRainParams.z, 0.125);
 	vec2 uv0 = uv - drift * phase;
 	vec2 uv1 = uv - drift * (phase - 1.0);
 	vec4 center = mix(texture(u_WaterRainMap, uv0), texture(u_WaterRainMap, uv1), phase);
@@ -1102,10 +1016,10 @@ vec4 WaterRainSample(vec3 worldPosition, out vec2 worldSlope)
 vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 {
 	worldSlope = vec2(0.0);
-	if (u_Water[31].z < 0.5) return vec4(0.0);
-	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	if (u_Water[WATER_U_BODY_MAPPING + 1].z < 0.5) return vec4(0.0);
+	vec2 uv = (worldPosition.xy - u_Water[WATER_U_BODY_MAPPING].xy) * u_Water[WATER_U_BODY_MAPPING].zw;
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
-	vec2 atlasUV = u_Water[33].xy + uv * u_Water[33].zw;
+	vec2 atlasUV = u_Water[WATER_U_BODY_MAPPING + 3].xy + uv * u_Water[WATER_U_BODY_MAPPING + 3].zw;
 	vec4 center = texture(u_WaterInteractionMap, atlasUV);
 	float wet = step(0.5, center.a);
 	worldSlope = center.gb * wet;
@@ -1120,9 +1034,9 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 // silhouettes and the usual screen-space halo around every object.
 float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 {
-	if (u_Water[35].x < 0.5 || u_WaterPass.x > 0.5)
+	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || u_WaterPass.x > 0.5)
 		return 0.0;
-	float width = max(u_Water[35].y, 0.5);
+	float width = max(u_Water[WATER_U_INTERSECTION_FOAM].y, 0.5);
 	vec2 targetSize = vec2(textureSize(u_WaterDepthMap, 0));
 	vec2 radiusUV = max(abs(WaterProject(P + Tw * width) - uv),
 		abs(WaterProject(P + Bw * width) - uv));
@@ -1133,8 +1047,8 @@ float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 	{
 		float angle = 6.2831853 * float(tap) / 8.0;
 		vec2 sampleUV = tap == 8 ? uv : uv + vec2(cos(angle), sin(angle)) * radiusUV;
-		vec2 lo = u_Water[12].xy + texel * 1.5;
-		vec2 hi = u_Water[12].xy + u_Water[12].zw - texel * 1.5;
+		vec2 lo = u_Water[WATER_U_VIEWPORT].xy + texel * 1.5;
+		vec2 hi = u_Water[WATER_U_VIEWPORT].xy + u_Water[WATER_U_VIEWPORT].zw - texel * 1.5;
 		if (any(lessThan(sampleUV, lo)) || any(greaterThan(sampleUV, hi))) continue;
 		float depth = WaterSampleDepth(sampleUV);
 		if (WaterIsSky(depth)) continue;
@@ -1163,16 +1077,16 @@ float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 
 float WaterFadeIntegral(float z)
 {
-	float length = 1.0 / u_Water[8].w;
-	float t = clamp((z - u_Water[7].w) / length, 0.0, 1.0);
-	return length * (t * t * t - 0.5 * t * t * t * t) + max(z - u_Water[7].w - length, 0.0);
+	float length = 1.0 / u_Water[WATER_U_VIEW_UP].w;
+	float t = clamp((z - u_Water[WATER_U_VIEW_RIGHT].w) / length, 0.0, 1.0);
+	return length * (t * t * t - 0.5 * t * t * t * t) + max(z - u_Water[WATER_U_VIEW_RIGHT].w - length, 0.0);
 }
 
 float WaterMissingMedium(float z0, float z1)
 {
 	if (abs(z1 - z0) < 1e-3)
 	{
-		float t = clamp((z0 - u_Water[7].w) * u_Water[8].w, 0.0, 1.0);
+		float t = clamp((z0 - u_Water[WATER_U_VIEW_RIGHT].w) * u_Water[WATER_U_VIEW_UP].w, 0.0, 1.0);
 		return t * t * (3.0 - 2.0 * t);
 	}
 	return clamp((WaterFadeIntegral(z1) - WaterFadeIntegral(z0)) / (z1 - z0), 0.0, 1.0);
@@ -1207,24 +1121,24 @@ void WaterFroxelSegment(vec3 Ps, vec3 Pb, out vec3 S, out vec3 T)
 
 void main()
 {
-	g_flags = int(u_Water[6].z + 0.5);
-	int debugView = int(u_Water[6].x + 0.5);
+	g_flags = int(u_Water[WATER_U_DEBUG].z + 0.5);
+	int debugView = int(u_Water[WATER_U_DEBUG].x + 0.5);
 
 	// split view: the legacy stages are drawn on the left (scissor), the water program on the right
-	if (u_WaterPass.x < 0.5 && u_Water[6].y >= 0.0 && gl_FragCoord.x < u_Water[6].y)
+	if (u_WaterPass.x < 0.5 && u_Water[WATER_U_DEBUG].y >= 0.0 && gl_FragCoord.x < u_Water[WATER_U_DEBUG].y)
 		discard;
 
 	vec2 uv = u_WaterPass.x > 0.5 ? WaterProject(var_Position) :
 		gl_FragCoord.xy / vec2(textureSize(u_WaterSceneMap, 0));
 	vec4 sceneHere = texture(u_WaterSceneMap, uv);
 
-	float ior = u_Water[0].x;
+	float ior = u_Water[WATER_U_SURFACE].x;
 	vec3 P = var_Position;
 	vec3 toCamera = u_ViewOrigin - P;
 	float cameraDistance = max(length(toCamera), 1e-3);
 	vec3 V = toCamera / cameraDistance;
 	vec3 Ng = normalize(var_Normal);
-	bool waterfall = u_Water[38].x > 0.5;
+	bool waterfall = u_Water[WATER_U_WATERFALL].x > 0.5;
 	// A waterfall is a thin two-sided sheet, not a solid liquid half-space.
 	// Face its geometric normal toward the camera so either authored winding
 	// gets the same air -> sheet -> air optics.
@@ -1236,16 +1150,16 @@ void main()
 	// waves: tiling slope texture, two world space layers drifting with the wind and one layer on the
 	// first stage coordinates (its tcMod scroll is the flow of the legacy water). The mips keep the
 	// slope variance: distant waves become roughness instead of aliasing (LEAN).
-	vec3 Tw = waterfall ? normalize(cross(Ng, normalize(u_Water[39].xyz))) :
+	vec3 Tw = waterfall ? normalize(cross(Ng, normalize(u_Water[WATER_U_WATERFALL + 1].xyz))) :
 		(abs(Ng.z) > 0.7 ? normalize(vec3(1.0, 0.0, 0.0) - Ng * Ng.x) : normalize(cross(vec3(0.0, 0.0, 1.0), Ng)));
-	vec3 Bw = waterfall ? normalize(u_Water[39].xyz) : normalize(cross(Ng, Tw));
+	vec3 Bw = waterfall ? normalize(u_Water[WATER_U_WATERFALL + 1].xyz) : normalize(cross(Ng, Tw));
 	vec2 planar = vec2(dot(P, Tw), dot(P, Bw));
-	float invSize = u_Water[10].y;
+	float invSize = u_Water[WATER_U_DETAIL].y;
 	vec2 flowPlanar = vec2(0.0);
-	if (u_Water[28].w > 0.5)
+	if (u_Water[WATER_U_FLOW].w > 0.5)
 	{
-		vec2 baseFlow = vec2(dot(u_Water[28].xyz, Tw), dot(u_Water[28].xyz, Bw)) *
-			u_Water[5].z * u_Water[29].y;
+		vec2 baseFlow = vec2(dot(u_Water[WATER_U_FLOW].xyz, Tw), dot(u_Water[WATER_U_FLOW].xyz, Bw)) *
+			u_Water[WATER_U_FRAME].z * u_Water[WATER_U_FLOW + 1].y;
 		// Two close but distinct directions/speeds avoid a single conveyor belt.
 		flowPlanar = baseFlow;
 	}
@@ -1253,19 +1167,19 @@ void main()
 		0.087 * flowPlanar.x + 0.996 * flowPlanar.y) * 0.82;
 	vec2 flow1 = vec2(0.994 * flowPlanar.x + 0.105 * flowPlanar.y,
 		-0.105 * flowPlanar.x + 0.994 * flowPlanar.y) * 1.19;
-	float waterfallDetailLod = waterfall ? u_Water[43].y : 1.0;
-	vec4 l0 = texture(u_WaterNormalMap, (planar - flow0) * invSize + u_Water[11].xy);
+	float waterfallDetailLod = waterfall ? u_Water[WATER_U_WATERFALL + 5].y : 1.0;
+	vec4 l0 = texture(u_WaterNormalMap, (planar - flow0) * invSize + u_Water[WATER_U_DRIFT].xy);
 	// Low: coherent world-space band only. Medium: retain the authored legacy
 	// detail as the second band. High: add the extra procedural octave.
 	vec4 l1 = (!waterfall || waterfallDetailLod > 0.85) ?
-		texture(u_WaterNormalMap, (planar - flow1) * (invSize * 2.37) + u_Water[11].zw) : l0;
+		texture(u_WaterNormalMap, (planar - flow1) * (invSize * 2.37) + u_Water[WATER_U_DRIFT].zw) : l0;
 	vec4 l2 = (!waterfall || waterfallDetailLod > 0.34) ?
-		texture(u_WaterNormalMap, var_FlowTex * u_Water[10].x) : vec4(0.0);
-	float oldStrength = u_Water[0].z * 0.18;
-	float strength = oldStrength * (u_Water[13].x > 0.5 ? u_Water[14].z * u_Water[15].w : 1.0);
+		texture(u_WaterNormalMap, var_FlowTex * u_Water[WATER_U_DETAIL].x) : vec4(0.0);
+	float oldStrength = u_Water[WATER_U_SURFACE].z * 0.18;
+	float strength = oldStrength * (u_Water[WATER_U_WAVE_CONTROL].x > 0.5 ? u_Water[WATER_U_WAVE_QUALITY].z * u_Water[WATER_U_BODY_WAVES].w : 1.0);
 	vec2 slope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * strength;
 	vec3 microNormal = normalize(Ng - slope.x * Tw - slope.y * Bw);
-	WaterWaveState waves = EvaluateWaterSurface(var_BasePosition, u_Water[5].z);
+	WaterWaveState waves = EvaluateWaterSurface(var_BasePosition, u_Water[WATER_U_FRAME].z);
 	if (waterfall)
 	{
 		waves.displacement = vec3(0.0); waves.slope = vec2(0.0); waves.velocity = vec3(0.0);
@@ -1283,11 +1197,11 @@ void main()
 	vec4 interactionField = WaterInteractionSample(var_BasePosition, interactionWorldSlope);
 	vec2 rainWorldSlope;
 	vec4 rainField = WaterRainSample(var_BasePosition, rainWorldSlope);
-	vec2 foamUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	vec2 foamUV = (var_BasePosition.xy - u_Water[WATER_U_BODY_MAPPING].xy) * u_Water[WATER_U_BODY_MAPPING].zw;
 	vec4 foamSample = texture(u_WaterFoamMap, clamp(foamUV, vec2(0.0), vec2(1.0)));
-	float persistentFoam = u_Water[36].x > 0.5 ? clamp(foamSample.r * u_Water[19].w, 0.0, 1.0) : 0.0;
-	float whitewater = u_Water[37].x > 0.5 ? clamp(foamSample.b * u_Water[37].y, 0.0, 1.0) : 0.0;
-	float waterfallAlong = waterfall ? clamp((dot(var_BasePosition, normalize(u_Water[39].xyz)) - u_Water[41].x) * u_Water[40].w, 0.0, 1.0) : 0.0;
+	float persistentFoam = u_Water[WATER_U_FOAM].x > 0.5 ? clamp(foamSample.r * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0) : 0.0;
+	float whitewater = u_Water[WATER_U_WHITEWATER].x > 0.5 ? clamp(foamSample.b * u_Water[WATER_U_WHITEWATER].y, 0.0, 1.0) : 0.0;
+	float waterfallAlong = waterfall ? clamp((dot(var_BasePosition, normalize(u_Water[WATER_U_WATERFALL + 1].xyz)) - u_Water[WATER_U_WATERFALL + 3].x) * u_Water[WATER_U_WATERFALL + 2].w, 0.0, 1.0) : 0.0;
 	float waterfallMiddle = waterfall ? smoothstep(0.16, 0.48, waterfallAlong) *
 		(1.0 - smoothstep(0.66, 0.86, waterfallAlong)) : 0.0;
 	float waterfallBottom = waterfall ? smoothstep(0.56, 0.90, waterfallAlong) : 0.0;
@@ -1295,27 +1209,27 @@ void main()
 		0.18 * l2.x, 0.0, 1.0) : 0.0;
 	float waterfallTurbulence = waterfall ? waterfallNoise *
 		mix(0.16, 1.0, smoothstep(0.14, 0.88, waterfallAlong)) : 0.0;
-	float waterfallThickness = waterfall ? u_Water[38].w * mix(1.0, 0.72, waterfallAlong) *
+	float waterfallThickness = waterfall ? u_Water[WATER_U_WATERFALL].w * mix(1.0, 0.72, waterfallAlong) *
 		mix(0.78, 1.22, waterfallTurbulence) : 0.0;
 	float waterfallAerationBreakup = mix(0.24, 1.0,
 		smoothstep(0.28, 0.78, waterfallNoise));
-	float waterfallAeration = waterfall ? clamp(u_Water[41].w *
+	float waterfallAeration = waterfall ? clamp(u_Water[WATER_U_WATERFALL + 3].w *
 		(0.24 * waterfallMiddle + 0.66 * waterfallBottom) *
 		waterfallAerationBreakup + 0.10 * waterfallTurbulence, 0.0, 0.86) : 0.0;
 	float waterfallFoamBreakup = mix(waterfallAeration,
-		waterfallAeration * smoothstep(0.34, 0.72, waterfallNoise), u_Water[43].w);
+		waterfallAeration * smoothstep(0.34, 0.72, waterfallNoise), u_Water[WATER_U_WATERFALL + 5].w);
 	float waterfallFoamSource = waterfall ? clamp(waterfallFoamBreakup *
 		(0.28 * waterfallMiddle + waterfallBottom), 0.0, 0.72) : 0.0;
-	float waterfallSpraySource = waterfall ? waterfallFoamBreakup * u_Water[42].y *
-		mix(0.45, 1.0, u_Water[43].w) : 0.0;
-	float waterfallImpact = waterfall ? smoothstep(0.86, 1.0, waterfallAlong) * u_Water[42].z : 0.0;
+	float waterfallSpraySource = waterfall ? waterfallFoamBreakup * u_Water[WATER_U_WATERFALL + 4].y *
+		mix(0.45, 1.0, u_Water[WATER_U_WATERFALL + 5].w) : 0.0;
+	float waterfallImpact = waterfall ? smoothstep(0.86, 1.0, waterfallAlong) * u_Water[WATER_U_WATERFALL + 4].z : 0.0;
 	whitewater = max(whitewater, waterfallAeration);
 	// The falling face uses a broken lit foam mask.  At the impact, the same
 	// source continues into the existing persistent body-local foam field on
 	// the receiving pool; no second transparent waterfall mesh is introduced.
 	persistentFoam = max(persistentFoam, waterfallFoamSource);
 	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
-	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
+	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
 	float interactionEdge = mix(clamp(0.20 + profileShore * 0.20, 0.20, 0.50),
 		clamp(0.05 + profileShore * 0.05, 0.05, 0.125), var_ShoreData.z);
 	vec2 interactionSlope = vec2(dot(interactionGradient, Tw), dot(interactionGradient, Bw)) *
@@ -1325,8 +1239,8 @@ void main()
 		u_WaterRainParams.x * var_ShoreData.y;
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
 	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
-	if (int(u_Water[18].x + 0.5) == 8 && gl_FragCoord.x <
-		(u_Water[12].x + u_Water[12].z * 0.5) * float(textureSize(u_WaterSceneMap, 0).x))
+	if (int(u_Water[WATER_U_WAVE_DEBUG].x + 0.5) == 8 && gl_FragCoord.x <
+		(u_Water[WATER_U_VIEWPORT].x + u_Water[WATER_U_VIEWPORT].z * 0.5) * float(textureSize(u_WaterSceneMap, 0).x))
 	{
 		macroSlope = vec2(0.0);
 		slope = oldSlope;
@@ -1335,8 +1249,8 @@ void main()
 	// Aerated flow has unresolved, rapidly changing surface directions. Reuse
 	// the procedural slope bands at different phases so it stays body/world
 	// local and follows the resolved flow instead of scrolling in screen space.
-	vec2 waterfallSlope = waterfall ? vec2((l0.x + 0.45 * l2.x) * u_Water[41].z,
-		(l1.y - l0.y) * u_Water[41].z * (0.35 + 0.65 * waterfallAlong)) : vec2(0.0);
+	vec2 waterfallSlope = waterfall ? vec2((l0.x + 0.45 * l2.x) * u_Water[WATER_U_WATERFALL + 3].z,
+		(l1.y - l0.y) * u_Water[WATER_U_WATERFALL + 3].z * (0.35 + 0.65 * waterfallAlong)) : vec2(0.0);
 	vec2 whitewaterSlope = (l0.xy - l1.xy) * (0.38 * whitewater);
 	slope += macroSlope + interactionSlope + rainSlope + whitewaterSlope + waterfallSlope;
 	vec2 variance = (max(l0.zw - l0.xy * l0.xy, vec2(0.0)) +
@@ -1350,25 +1264,25 @@ void main()
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
 	float intersectionMask = !inside ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv) : 0.0;
-	float intersectionFoam = clamp(intersectionMask * u_Water[35].z * u_Water[19].w, 0.0, 1.0);
-	int foamDebug = int(u_Water[36].y + 0.5);
+	float intersectionFoam = clamp(intersectionMask * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0);
+	int foamDebug = int(u_Water[WATER_U_FOAM].y + 0.5);
 	if (foamDebug > 0 && u_WaterPass.x < 0.5)
 	{
 		vec3 debugColor = foamDebug == 1 ? vec3(persistentFoam) :
-			(foamDebug == 2 ? vec3(0.5 + 0.5 * normalize(vec3(u_Water[28].xy, 0.001)).xy, 0.15) :
+			(foamDebug == 2 ? vec3(0.5 + 0.5 * normalize(vec3(u_Water[WATER_U_FLOW].xy, 0.001)).xy, 0.15) :
 			clamp(foamSample.rgb + vec3(foamSample.a, 0.5 * foamSample.a, 0.0), 0.0, 1.0));
 		out_Color = vec4(LinearToScene(debugColor), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;
 	}
-	int whitewaterDebug = int(u_Water[37].w + 0.5);
+	int whitewaterDebug = int(u_Water[WATER_U_WHITEWATER].w + 0.5);
 	if (whitewaterDebug > 0 && u_WaterPass.x < 0.5)
 	{
 		vec3 debugColor = vec3(0.0);
 		if (whitewaterDebug == 1)
 		{
-			vec2 flow = length(u_Water[28].xy) > 1e-5 ? normalize(u_Water[28].xy) : vec2(0.0);
-			debugColor = vec3(flow * 0.5 + 0.5, clamp(u_Water[29].x / 32.0, 0.0, 1.0));
+			vec2 flow = length(u_Water[WATER_U_FLOW].xy) > 1e-5 ? normalize(u_Water[WATER_U_FLOW].xy) : vec2(0.0);
+			debugColor = vec3(flow * 0.5 + 0.5, clamp(u_Water[WATER_U_FLOW + 1].x / 32.0, 0.0, 1.0));
 		}
 		else if (whitewaterDebug == 2) debugColor = vec3(foamSample.a, foamSample.a * 0.35, 0.0);
 		else if (whitewaterDebug == 3) debugColor = vec3(whitewater);
@@ -1377,17 +1291,17 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
-	if (u_Water[35].w > 0.5 && u_WaterPass.x < 0.5)
+	if (u_Water[WATER_U_INTERSECTION_FOAM].w > 0.5 && u_WaterPass.x < 0.5)
 	{
 		out_Color = vec4(LinearToScene(vec3(intersectionMask, intersectionMask * 0.35, 0.0)), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;
 	}
 
-	int interactionDebug = int(u_Water[31].w + 0.5);
+	int interactionDebug = int(u_Water[WATER_U_BODY_MAPPING + 1].w + 0.5);
 	if (interactionDebug > 0 && u_WaterPass.x < 0.5)
 	{
-		vec2 bodyUV = (var_BasePosition.xy - u_Water[30].xy) * u_Water[30].zw;
+		vec2 bodyUV = (var_BasePosition.xy - u_Water[WATER_U_BODY_MAPPING].xy) * u_Water[WATER_U_BODY_MAPPING].zw;
 		vec3 debugColor = vec3(0.0);
 		if (interactionDebug == 1) debugColor = interactionField.a > 0.5 ? vec3(bodyUV, 0.25) : vec3(0.15, 0.0, 0.0);
 		else if (interactionDebug == 2) debugColor = vec3(interactionField.a);
@@ -1396,7 +1310,7 @@ void main()
 		else if (interactionDebug == 5) debugColor = normalize(vec3(-interactionWorldSlope, 1.0)) * 0.5 + 0.5;
 		else if (interactionDebug == 6)
 		{
-			float ring = abs(length((bodyUV - u_Water[32].xy) / max(u_Water[32].z, 1e-4)) - 1.0);
+			float ring = abs(length((bodyUV - u_Water[WATER_U_BODY_MAPPING + 2].xy) / max(u_Water[WATER_U_BODY_MAPPING + 2].z, 1e-4)) - 1.0);
 			debugColor = ring < 0.08 ? vec3(1.0, 0.1, 0.0) : vec3(0.05);
 		}
 		else if (interactionDebug == 7) debugColor = vec3(interactionField.b, 0.1 * interactionField.b, 0.0);
@@ -1417,13 +1331,13 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
-	int shoreDebug = int(u_Water[34].w + 0.5);
+	int shoreDebug = int(u_Water[WATER_U_SHORELINE].w + 0.5);
 	if (shoreDebug > 0 && u_WaterPass.x < 0.5)
 	{
-		float contact = 1.0 - smoothstep(0.0, max(u_Water[34].z, 0.25), var_ShoreData.x);
+		float contact = 1.0 - smoothstep(0.0, max(u_Water[WATER_U_SHORELINE].z, 0.25), var_ShoreData.x);
 		vec3 debugColor = vec3(0.0);
-		if (shoreDebug == 1) debugColor = vec3(clamp(u_Water[17].z / 128.0, 0.0, 1.0));
-		else if (shoreDebug == 2) debugColor = vec3(clamp(var_ShoreData.x / max(u_Water[34].y, 1.0), 0.0, 1.0));
+		if (shoreDebug == 1) debugColor = vec3(clamp(u_Water[WATER_U_BODY_FLOW_DEPTH].z / 128.0, 0.0, 1.0));
+		else if (shoreDebug == 2) debugColor = vec3(clamp(var_ShoreData.x / max(u_Water[WATER_U_SHORELINE].y, 1.0), 0.0, 1.0));
 		else if (shoreDebug == 3) debugColor = vec3(var_ShoreData.y, var_ShoreData.y, 1.0 - var_ShoreData.y);
 		else if (shoreDebug == 4) debugColor = vec3(0.5 + 0.1 * (waves.height + interactionField.r));
 		else if (shoreDebug == 5) debugColor = mix(vec3(0.1, 0.75, 0.25), vec3(1.0, 0.2, 0.05), var_ShoreData.z);
@@ -1437,7 +1351,7 @@ void main()
 	}
 
 	// roughness: the artistic base plus the unresolved wave slopes (GGX alpha^2 ~ 2 variance)
-	float baseRoughness = u_Water[0].y;
+	float baseRoughness = u_Water[WATER_U_SURFACE].y;
 	float alpha = sqrt(min(baseRoughness * baseRoughness * baseRoughness * baseRoughness +
 		(variance.x + variance.y), 1.0));
 	alpha = max(alpha, 0.002);
@@ -1469,23 +1383,23 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
-	int flowDebug = int(u_Water[29].z + 0.5);
+	int flowDebug = int(u_Water[WATER_U_FLOW + 1].z + 0.5);
 	if (flowDebug > 0)
 	{
 		vec3 d = vec3(0.0);
 		if (flowDebug == 1)
 		{
-			vec3 direction = length(u_Water[28].xyz) > 1e-5 ? normalize(u_Water[28].xyz) : vec3(0.0);
+			vec3 direction = length(u_Water[WATER_U_FLOW].xyz) > 1e-5 ? normalize(u_Water[WATER_U_FLOW].xyz) : vec3(0.0);
 			d = direction * 0.5 + 0.5;
 		}
 		else if (flowDebug == 2)
 		{
-			float magnitude = clamp(u_Water[29].x / 32.0, 0.0, 1.0);
+			float magnitude = clamp(u_Water[WATER_U_FLOW + 1].x / 32.0, 0.0, 1.0);
 			d = vec3(magnitude, magnitude * magnitude, 1.0 - magnitude);
 		}
 		else if (flowDebug == 3)
 		{
-			int flowCode = int(u_Water[29].w + 0.5);
+			int flowCode = int(u_Water[WATER_U_FLOW + 1].w + 0.5);
 			int source = flowCode / 4, confidence = flowCode - source * 4;
 			d = source == 3 ? vec3(1.0, 0.8, 0.1) :
 				(source == 2 ? vec3(0.1, 0.9, 1.0) :
@@ -1530,7 +1444,7 @@ void main()
 	// broadens with the waves of a pixel instead of aliasing; TIR in all of them: W = 1 exactly. The
 	// refracted direction follows the centre normal, or the most transmissive one when it reflects totally.
 #if defined(USE_WATER_SNELL)
-	int snellDebug = int(u_Water[10].w + 0.5);
+	int snellDebug = int(u_Water[WATER_U_DETAIL].w + 0.5);
 	float tirFraction = 0.0;
 	vec3 Nrefract = N;
 	if (inside)
@@ -1567,16 +1481,16 @@ void main()
 	float depthHere = WaterSampleDepth(uv);
 	bool skyHere = WaterIsSky(depthHere);
 	float zHere = skyHere ? 1.0e6 : max(WaterLinearDepth(depthHere), zSurface);
-	float maxPath = u_Water[6].w;
+	float maxPath = u_Water[WATER_U_DEBUG].w;
 
 	// liquid optics
-	vec3 sigma = u_Water[2].rgb * u_Water[1].z;
-	vec3 albedo = u_Water[3].rgb;
-	float g = u_Water[3].a;
+	vec3 sigma = u_Water[WATER_U_EXTINCTION].rgb * u_Water[WATER_U_OPTICS].z;
+	vec3 albedo = u_Water[WATER_U_SCATTER].rgb;
+	float g = u_Water[WATER_U_SCATTER].a;
 	vec3 sunDir = normalize(u_PrimaryLightOrigin.xyz);
 	vec3 sunColor = SceneToLinear(u_PrimaryLightColor);
 	float sunShadow = 1.0;
-	bool sun = u_Water[9].w > 0.5;
+	bool sun = u_Water[WATER_U_ENVIRONMENT].w > 0.5;
 	if (sun)
 		sunShadow = WaterSunShadow(P);
 	vec3 ambient = WaterEnvironment(P, Nside, ROUGHNESS_MIPS);
@@ -1611,17 +1525,17 @@ void main()
 		vec3 env = WaterEnvironment(P, R, roughness * ROUGHNESS_MIPS);
 		debugSource = WaterFlag(WATER_FLAG_CUBEMAP) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
 #if defined(USE_SSR)
-		if (WaterFlag(WATER_FLAG_SSR) && u_Water[1].y > 0.0)
+		if (WaterFlag(WATER_FLAG_SSR) && u_Water[WATER_U_OPTICS].y > 0.0)
 		{
 			float hitDistance;
 			vec4 ssr = WaterSSR(P, R, Ng, N, roughness, hitDistance);
-			float c = ssr.a * u_Water[1].y;
+			float c = ssr.a * u_Water[WATER_U_OPTICS].y;
 			env = mix(env, ssr.rgb, c);
 			debugSource = mix(debugSource, vec3(1.0, 0.0, 0.0), c);
 			ssrDebug = vec4(ssr.a > 0.0 ? vec3(0.0, ssr.a, 0.0) : vec3(0.35, 0.0, 0.0), 1.0);
 		}
 #endif
-		reflection = env * u_Water[1].x;
+		reflection = env * u_Water[WATER_U_OPTICS].x;
 
 		// ---- refraction: the refracted ray down to the scene behind the water. The first guess of its
 		// length is the depth below the surface of the scene straight behind the pixel (bounded: behind
@@ -1632,7 +1546,7 @@ void main()
 		float cosT = max(-dot(Rt, Ng), 0.05);
 		float depthGuess = waterfall ? waterfallThickness :
 			(skyHere ? 256.0 : min(pathStraight * max(dot(V, Ng), 0.0), 2048.0));
-		float waterfallRefractionLod = waterfall ? u_Water[43].z : 1.0;
+		float waterfallRefractionLod = waterfall ? u_Water[WATER_U_WATERFALL + 5].z : 1.0;
 		vec2 uvR = waterfall && waterfallRefractionLod < 0.25 ? uv :
 			WaterRefractedUV(P, Rt, depthGuess / cosT, uv);
 		float depthR = WaterSampleDepth(uvR);
@@ -1674,12 +1588,12 @@ void main()
 
 		// path inside the liquid: the depth of the refracted scene point below the surface plane
 		if (waterfall)
-			pathLength = waterfallThickness * u_Water[42].x / cosT;
+			pathLength = waterfallThickness * u_Water[WATER_U_WATERFALL + 4].x / cosT;
 		else if (WaterIsSky(depthR))
 			pathLength = maxPath;
 		else
 			pathLength = clamp(max(WaterDepthBelow(P, Ng, uvR, depthR), 0.0) / cosT, 0.0, maxPath);
-		pathLength *= u_Water[1].w;
+		pathLength *= u_Water[WATER_U_OPTICS].w;
 
 		rawRefracted = SceneToLinear(texture(u_WaterSceneMap, uvR).rgb);
 
@@ -1694,7 +1608,7 @@ void main()
 		// view ray, then integrate the requested refracted path. The fade is
 		// integrated over the entire segment, including the part beyond farZ.
 		vec3 opticalDepth = sigma * pathLength;
-		if (!waterfall && u_Water[2].w > 0.5)
+		if (!waterfall && u_Water[WATER_U_EXTINCTION].w > 0.5)
 		{
 			float straightLength = length(Pstraight - P);
 			float zEnd = dot(Pstraight - u_ViewOrigin, normalize(u_ViewForward));
@@ -1760,6 +1674,7 @@ void main()
 			float cosT = max(dot(Rt, Ng), 0.05);
 			float pathStraight = skyHere ? maxPath : (zHere - zSurface) * cameraDistance / zSurface;
 			float heightGuess = skyHere ? 256.0 : min(pathStraight * max(-dot(V, Ng), 0.0), 2048.0);
+			float airDistance = heightGuess / cosT;
 			vec2 uvR = WaterRefractedUV(P, Rt, heightGuess / cosT, uv);
 			float depthR = WaterSampleDepth(uvR);
 			for (int i = 0; i < 2; i++)
@@ -1769,6 +1684,7 @@ void main()
 				float h = -WaterDepthBelow(P, Ng, uvR, depthR);
 				if (h <= 0.0)
 					break;
+				airDistance = h / cosT;
 				uvR = WaterRefractedUV(P, Rt, h / cosT, uv);
 				depthR = WaterSampleDepth(uvR);
 			}
@@ -1795,6 +1711,22 @@ void main()
 					rejected = 0.5;
 			}
 			rawRefracted = SceneToLinear(texture(u_WaterSceneMap, uvR).rgb);
+			#if defined(USE_WATER_ATMOSPHERE)
+			if (u_WaterOptics2.y > 0.5)
+			{
+				if (WaterIsSky(depthR))
+					rawRefracted = AtmoSkyView(Rt) * u_Atmosphere[3].rgb * M_PI;
+				else
+				{
+					float len = airDistance * u_Atmosphere[1].x * 0.001 * u_Atmosphere[1].y;
+					vec3 sR, sM, airT;
+					AtmosphereAerial(max(AtmoAltitude(P.z), -0.5), Rt.z, len,
+						dot(Rt, u_Atmosphere[2].xyz), 1.0, sR, sM, airT);
+					vec3 airS = (sR + sM) * u_Atmosphere[3].rgb * M_PI;
+					rawRefracted = rawRefracted * airT + airS;
+				}
+			}
+			#endif
 			transmitted = rawRefracted;
 			transmittedGlow = SceneToLinear(texture(u_GlowMap, uvR).rgb);
 		}
@@ -1809,7 +1741,7 @@ void main()
 			R = normalize(R - Ng * (into + 0.02));
 		vec3 ambientUp = WaterEnvironment(P, Ng, ROUGHNESS_MIPS);
 		vec3 sunLight = sun ? M_PI * sunColor * sunShadow : vec3(0.0);
-		float pathScale = u_Water[1].w;
+		float pathScale = u_Water[WATER_U_OPTICS].w;
 		vec3 Tr;
 		reflection = WaterLiquidPath(R, maxPath, Ng, sigma, albedo, g, ambientUp, sunLight, sunInLiquid, sunCos, Tr);
 		debugSource = vec3(0.0, 0.0, 1.0);
@@ -1826,11 +1758,11 @@ void main()
 			}
 		}
 #if defined(USE_SSR)
-		if (WaterFlag(WATER_FLAG_SSR) && u_Water[1].y > 0.0)
+		if (WaterFlag(WATER_FLAG_SSR) && u_Water[WATER_U_OPTICS].y > 0.0)
 		{
 			float hitDistance;
 			vec4 ssr = WaterSSR(P, R, Nside, N, roughness, hitDistance);
-			float c = ssr.a * u_Water[1].y;
+			float c = ssr.a * u_Water[WATER_U_OPTICS].y;
 			if (c > 0.0)
 			{
 				vec3 S = WaterLiquidPath(R, hitDistance * pathScale, Ng, sigma, albedo, g, ambientUp, sunLight,
@@ -1852,7 +1784,7 @@ void main()
 		vec3 Rt = refract(-V, N, ior);
 		if (dot(Rt, Rt) > 0.0)
 		{
-			vec2 offset = (WaterProject(P + Rt * 256.0) - uv) * u_Water[0].w;
+			vec2 offset = (WaterProject(P + Rt * 256.0) - uv) * u_Water[WATER_U_SURFACE].w;
 			float offsetLength = length(offset);
 			if (offsetLength > 0.12)
 				offset *= 0.12 / offsetLength;
@@ -1874,6 +1806,15 @@ void main()
 	}
 #endif
 
+	if (inside && sun && u_WaterOptics2.x > 0.5 && W < 0.999)
+	{
+		float transmissionAlpha = max(alpha, 0.015);
+		// The microfacet BTDF already contains its Fresnel transmission term;
+		// multiplying by the macro Fresnel weight here would count it twice.
+		glint += WaterSunTransmission(N, V, sunDir,
+			sunColor * sunShadow, transmissionAlpha, ior);
+	}
+
 	// Foam is a lit, rough scattering layer, never emission: it replaces clear
 	// transmission with diffuse ambient/direct response and broadens reflection.
 	float foamLight = 0.28 + 0.45 * clamp(dot(ambient, vec3(0.2126, 0.7152, 0.0722)), 0.0, 2.0);
@@ -1889,7 +1830,7 @@ void main()
 	// Channel B of the body-local interaction field is short-lived foam laid
 	// down by energetic physical splash events.  It remains surface-local,
 	// follows resolved body flow and fades without a separate fluid mesh.
-	float splashFoam = clamp(interactionField.b * u_Water[19].w + intersectionFoam, 0.0, 1.0);
+	float splashFoam = clamp(interactionField.b * u_Water[WATER_U_GEOMETRY_FOAM].w + intersectionFoam, 0.0, 1.0);
 	if (!inside && splashFoam > 0.0)
 	{
 		float grazing = 0.65 + 0.35 * clamp(dot(Nwater, V), 0.0, 1.0);
@@ -1897,15 +1838,15 @@ void main()
 		color = mix(color, transientFoamColor, splashFoam * 0.8);
 	}
 
-	int waterfallDebug = int(u_Water[38].z + 0.5);
+	int waterfallDebug = int(u_Water[WATER_U_WATERFALL].z + 0.5);
 	if (waterfall && waterfallDebug > 0 && u_WaterPass.x < 0.5)
 	{
 		vec3 d = vec3(0.0);
 		if (waterfallDebug == 1) d = vec3(0.05, 0.85, 1.0);
-		else if (waterfallDebug == 2) d = normalize(u_Water[39].xyz) * 0.5 + 0.5;
+		else if (waterfallDebug == 2) d = normalize(u_Water[WATER_U_WATERFALL + 1].xyz) * 0.5 + 0.5;
 		else if (waterfallDebug == 3) d = vec3(waterfallAlong, 1.0 - waterfallAlong, 0.15);
 		else if (waterfallDebug == 4) d = normalize(var_GeometryDisplacement + vec3(1e-5)) * 0.5 + 0.5;
-		else if (waterfallDebug == 5) d = vec3(clamp(waterfallThickness / max(u_Water[38].w * 1.25, 1e-3), 0.0, 1.0));
+		else if (waterfallDebug == 5) d = vec3(clamp(waterfallThickness / max(u_Water[WATER_U_WATERFALL].w * 1.25, 1e-3), 0.0, 1.0));
 		else if (waterfallDebug == 6) d = rawRefracted;
 		else if (waterfallDebug == 7) d = vec3(waterfallTurbulence, 0.2 * waterfallTurbulence, 1.0 - waterfallTurbulence);
 		else if (waterfallDebug == 8) d = vec3(waterfallAeration);
@@ -1914,7 +1855,7 @@ void main()
 		else if (waterfallDebug == 11) d = vec3(waterfallImpact, 0.0, 0.8 * waterfallImpact);
 		else
 		{
-			float spacing = u_Water[38].y < 0.5 ? 128.0 : (u_Water[38].y > 1.5 ? 32.0 : 64.0);
+			float spacing = u_Water[WATER_U_WATERFALL].y < 0.5 ? 128.0 : (u_Water[WATER_U_WATERFALL].y > 1.5 ? 32.0 : 64.0);
 			vec2 grid = abs(fract(planar / spacing) - 0.5) / max(fwidth(planar / spacing), vec2(1e-4));
 			float line = 1.0 - smoothstep(0.0, 1.0, min(grid.x, grid.y));
 			d = mix(vec3(0.025), vec3(0.1, 1.0, 0.8), line);
@@ -2009,8 +1950,8 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
-	int waveDebug = int(u_Water[18].x + 0.5);
-	int geometryDebug = int(u_Water[19].z + 0.5);
+	int waveDebug = int(u_Water[WATER_U_WAVE_DEBUG].x + 0.5);
+	int geometryDebug = int(u_Water[WATER_U_GEOMETRY_FOAM].z + 0.5);
 	if (geometryDebug == 2)
 	{
 		out_Color = vec4(LinearToScene(vec3(min(length(var_GeometryDisplacement) * 0.25, 1.0))), sceneHere.a);
@@ -2019,25 +1960,25 @@ void main()
 	}
 	if (geometryDebug == 4)
 	{
-		vec3 bodyColor = vec3(fract(u_Water[18].y * 0.37),
-			fract(u_Water[18].y * 0.61), fract(u_Water[18].y * 0.83));
+		vec3 bodyColor = vec3(fract(u_Water[WATER_U_WAVE_DEBUG].y * 0.37),
+			fract(u_Water[WATER_U_WAVE_DEBUG].y * 0.61), fract(u_Water[WATER_U_WAVE_DEBUG].y * 0.83));
 		out_Color = vec4(LinearToScene(mix(bodyColor, vec3(1.0, 0.0, 0.0),
 			step(0.02, var_GeometrySkirt))), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;
 	}
-	if (u_Water[13].x > 0.5 && waveDebug > 0 && waveDebug != 8)
+	if (u_Water[WATER_U_WAVE_CONTROL].x > 0.5 && waveDebug > 0 && waveDebug != 8)
 	{
 		vec3 d = vec3(0.0);
 		if (waveDebug == 1) d = vec3(0.5 + waves.height * 0.1);
 		else if (waveDebug == 2) d = normalize(Ng - macroSlope.x * Tw - macroSlope.y * Bw) * 0.5 + 0.5;
 		else if (waveDebug == 3) d = microNormal * 0.5 + 0.5;
 		else if (waveDebug == 4) d = Nwater * 0.5 + 0.5;
-		else if (waveDebug == 5) d = vec3(fract(u_Water[17].w * 0.17), fract(u_Water[18].y * 0.37), 0.5);
+		else if (waveDebug == 5) d = vec3(fract(u_Water[WATER_U_BODY_FLOW_DEPTH].w * 0.17), fract(u_Water[WATER_U_WAVE_DEBUG].y * 0.37), 0.5);
 		else if (waveDebug == 6) d = vec3(waves.attenuation);
 		else if (waveDebug == 7) d = vec3(min(length(waves.displacement) * 2.0, 1.0));
-		else if (waveDebug == 9) d = vec3(clamp(u_Water[18].w * 0.5, 0.0, 1.0));
-		else if (waveDebug == 10) d = vec3(clamp(u_Water[19].x * 0.1, 0.0, 1.0));
+		else if (waveDebug == 9) d = vec3(clamp(u_Water[WATER_U_WAVE_DEBUG].w * 0.5, 0.0, 1.0));
+		else if (waveDebug == 10) d = vec3(clamp(u_Water[WATER_U_GEOMETRY_FOAM].x * 0.1, 0.0, 1.0));
 		out_Color = vec4(LinearToScene(d), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;

@@ -130,8 +130,29 @@ def wake_samples(fps, seconds=2.0, speed=180.0, spacing=12.0):
     return samples
 
 
+def flux_acceleration(hc, neighbours, depths, dx=16.0, gravity=313.6):
+    """CPU/GL variable-depth face-flux stencil used by the renderer."""
+    hl, hr, hd, hu = neighbours
+    dc, dl, dr, dd, du = depths
+    face_l, face_r = 0.5 * (dc + dl), 0.5 * (dc + dr)
+    face_d, face_u = 0.5 * (dc + dd), 0.5 * (dc + du)
+    return gravity * ((face_r * (hr - hc) - face_l * (hc - hl)) / (dx * dx) +
+                      (face_u * (hu - hc) - face_d * (hc - hd)) / (dx * dx))
+
+
 def main():
     results = []
+    neighbours = (0.2, -0.1, 0.05, -0.2)
+    constant_depth = 24.0
+    flux = flux_acceleration(0.4, neighbours, (constant_depth,) * 5)
+    lap = sum(neighbours) - 4.0 * 0.4
+    reference = 313.6 * constant_depth * lap / (16.0 * 16.0)
+    results.append((abs(flux - reference) < 1e-7,
+                    f"variable-depth flux reduces exactly to constant-depth Laplacian ({abs(flux-reference):.3g})"))
+    deep = abs(flux_acceleration(0.4, neighbours, (48.0,) * 5))
+    shallow = abs(flux_acceleration(0.4, neighbours, (6.0,) * 5))
+    results.append((abs(deep / shallow - 8.0) < 1e-6,
+                    f"bathymetry scales local acceleration with depth ({deep/shallow:.3g}x)"))
     # Source stamps are spatial, not one-per-render-frame.
     wake_30, wake_60, wake_144 = wake_samples(30), wake_samples(60), wake_samples(144)
     wake_error = max(abs(x - y) for a, b in ((wake_30, wake_60), (wake_60, wake_144))

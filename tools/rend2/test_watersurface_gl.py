@@ -65,8 +65,16 @@ DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
 WATER_VEC4S = 60
 WATER_SLOTS = {
+    'WATER_U_SURFACE': 0, 'WATER_U_OPTICS': 1, 'WATER_U_EXTINCTION': 2, 'WATER_U_SCATTER': 3,
+    'WATER_U_PROJECTION': 4, 'WATER_U_FRAME': 5, 'WATER_U_DEBUG': 6,
+    'WATER_U_VIEW_RIGHT': 7, 'WATER_U_VIEW_UP': 8, 'WATER_U_ENVIRONMENT': 9,
+    'WATER_U_DETAIL': 10, 'WATER_U_DRIFT': 11, 'WATER_U_VIEWPORT': 12,
+    'WATER_U_WAVE_CONTROL': 13, 'WATER_U_WAVE_QUALITY': 14, 'WATER_U_BODY_WAVES': 15,
+    'WATER_U_BODY_BOUNDS': 16, 'WATER_U_BODY_FLOW_DEPTH': 17, 'WATER_U_WAVE_DEBUG': 18,
+    'WATER_U_GEOMETRY_FOAM': 19,
     'WATER_U_TARGET_TERMS': 20, 'WATER_U_FLOW': 28,
     'WATER_U_BODY_MAPPING': 30, 'WATER_U_SHORELINE': 34,
+    'WATER_U_INTERSECTION_FOAM': 35, 'WATER_U_FOAM': 36, 'WATER_U_WHITEWATER': 37,
     'WATER_U_WATERFALL': 38, 'WATER_U_OLD_TERMS': 44,
     'WATER_U_WIND': 52, 'WATER_U_GEOMETRY': 55,
     'WATER_U_TARGET_OMEGA': 56, 'WATER_U_OLD_OMEGA': 58,
@@ -80,6 +88,8 @@ UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_E
          'u_ShadowMap': 5, 'u_FroxelVolume': 6, 'u_FroxelTail': 7, 'u_SSRHiZMap': 10, 'u_SSRSceneMap': 11,
          'u_FroxelTransmittance': 26, 'u_GlowMap': 9, 'u_SSRHistoryMap': 12,
          'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15, 'u_WaterInteractionMap': 19}
+UNITS.update({'u_AtmosphereTransmittanceMap': 21, 'u_AtmosphereMultiScatterMap': 22,
+              'u_AtmosphereSkyViewMap': 23})
 
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
@@ -113,7 +123,9 @@ def header(defines, size):
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
                   snell=False):
-    defines = ['USE_HIZ'] if hiz else []
+    defines = ['USE_WATER_ATMOSPHERE']
+    if hiz:
+        defines.append('USE_HIZ')
     if snell:
         defines.append('USE_WATER_SNELL')
     if cubemap:
@@ -129,7 +141,8 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
         defines.append('USE_SHADOWS2')
     if deform:
         defines.append('USE_DEFORM_VERTEXES')
-    library = (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
+    library = fragment('atmosphere_common') + '\n'
+    library += (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
     src = read('watersurface')
     vs, fs = src.split('/*[Fragment]*/')
     vs = vs.split('/*[Vertex]*/')[1]
@@ -566,7 +579,9 @@ def probe(expression):
 
 
 def no_reject(fs):
-    return fs.replace('g_flags = int(u_Water[6].z + 0.5);', 'g_flags = int(u_Water[6].z + 0.5) & ~8;')
+    source = 'g_flags = int(u_Water[WATER_U_DEBUG].z + 0.5);'
+    assert fs.count(source) == 1
+    return fs.replace(source, 'g_flags = int(u_Water[WATER_U_DEBUG].z + 0.5) & ~8;')
 
 
 def probe_program(expression, extra=None, **kw):
@@ -1223,6 +1238,14 @@ def main():
         shallow_limit = abs(omega(shallow_k, 1e-5) / (speed * shallow_k) - 1.0) < 1e-5
         ok = check('finite-depth dispersion preserves primary speed and shallow-water limit',
                    normalized and shallow_limit) and ok
+        # Calibrated mode deliberately stops preserving authored phase speed:
+        # renderer gravity and actual component k/depth fully determine omega.
+        gravity, depth = 313.6, 96.0
+        physical = math.sqrt(gravity * shallow_k * math.tanh(shallow_k * depth))
+        ok = check('physical dispersion uses calibrated renderer gravity',
+                   abs(physical * physical - gravity * shallow_k *
+                       math.tanh(shallow_k * depth)) < 1e-12 and
+                   abs(physical - speed * shallow_k) > 1e-3) and ok
         ok = check_interaction_field() and ok
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))

@@ -178,10 +178,19 @@ from below (SIGGRAPH 2018, "The Technical Art of Sea of Thieves"). Here the wind
   identical on Intel and NVIDIA (captured before / after), and the cvar still toggles live (8 water programs instead
   of 4 at load).
 
-Not done: the n^2 radiance law across the interface (rend2 does not scale radiance on refraction either way); fog of
-the air seen through the window; the sun's transmitted glint seen from below (the sky in the scene copy is refracted,
-no BTDF lobe); the legacy `refraction.glsl` (`etaG = 1 / 1.30`, refractive shaders, both sides) is untouched: water in a
-water view never goes through it (`RB_WaterSurfaceDistortion`).
+`r_waterSnellOptics 1` (latched, default 0) adds the transmitted solar highlight seen
+from below. It is a rough GGX dielectric BTDF: Fresnel, refractive half-vector,
+Jacobian and radiance-mode eta correction are evaluated as one lobe, rather
+than multiplying the sampled scene by `ior*ior`. It is opt-in because it can
+materially brighten and sharpen the Snell window around the refracted solar
+direction. The legacy `refraction.glsl` (`etaG = 1 / 1.30`, refractive shaders,
+both sides) remains untouched. Mode 2 additionally updates and binds the
+atmosphere LUTs before the water slot. A sky miss evaluates `AtmoSkyView` in
+the refracted direction; a geometry hit applies `AtmosphereAerial` only to the
+surface-to-hit air segment (`L_scene*T_air + S_air`). Dedicated sampler units
+avoid aliasing the water scene/depth/normal inputs. This path is opt-in because
+it adds atmosphere LUT work when stale and an aerial integration for
+transmitting underwater pixels.
 
 Debug `r_waterSnellDebug` (cheat, needs `r_waterSnell 1`, wins over `r_waterSurfaceDebug`): 1 crossing (blue air ->
 water `eta = 1 / ior`, orange water -> air `eta = ior`, magenta stripes: camera contents disagree) - 2 TIR share of
@@ -212,6 +221,7 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceSplit` | 0.5 | split position of debug view 9 |
 | `r_waterSnell` | 0 | Snell's window / TIR from inside (archive, live) |
 | `r_waterSnellDebug` | 0 | cheat, views 1-6 of the Snell section |
+| `r_waterSnellOptics` | 0 | 1 solar BTDF/eta transport; 2 also atmosphere through Snell window |
 
 Commands: `r_waterInfo [surfaces]`, `r_waterOverride`.
 

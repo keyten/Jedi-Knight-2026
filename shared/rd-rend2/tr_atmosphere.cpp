@@ -517,6 +517,33 @@ static void RB_AtmosphereUpdateLuts( const atmosphereParams_t *p, const viewParm
 	RB_VolumetricEndTimer(timer);
 }
 
+qboolean RB_AtmosphereWaterSetup(UniformDataWriter& uniforms, SamplerBindingsWriter& samplers)
+{
+	if (!r_atmosphere->integer || !r_waterSnell->integer || !tr.world || r_waterSnellOptics->integer < 2 ||
+		backEnd.viewParms.viewParmType != VPT_MAIN || backEnd.viewParms.isPortal || backEnd.viewParms.isSkyPortal)
+		return qfalse;
+	atmosphereParams_t params;
+	R_AtmosphereBuildParams(&backEnd.refdef, &backEnd.viewParms, &params);
+	FBO_t *oldFbo = glState.currentFBO;
+	const uint32_t oldStateBits = glState.glStateBits;
+	const int oldCull = glState.faceCulling;
+	RB_AtmosphereUpdateLuts(&params, &backEnd.viewParms, qtrue);
+	FBO_Bind(oldFbo);
+	GL_SetViewportAndScissor(backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight);
+	GL_State(oldStateBits);
+	GL_Cull(oldCull);
+	if (!s_atmo.lutValid || !s_atmo.skyViewValid)
+		return qfalse;
+	vec4_t u[ATMO_UNIFORM_VEC4S];
+	RB_AtmosphereUniforms(&params, &backEnd.viewParms, 1.0f, qfalse, u);
+	uniforms.SetUniformVec4(UNIFORM_ATMOSPHERE, u[0], ATMO_UNIFORM_VEC4S);
+	samplers.AddStaticImage(tr.atmosphereTransmittanceImage, 21);
+	samplers.AddStaticImage(tr.atmosphereMultiScatterImage, 22);
+	samplers.AddStaticImage(tr.atmosphereSkyViewImage, 23);
+	return qtrue;
+}
+
 /*
 =================
 RB_AtmosphereComposite

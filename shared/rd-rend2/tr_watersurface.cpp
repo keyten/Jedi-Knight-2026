@@ -202,6 +202,15 @@ struct waterWaveSet_t
 	float micro = 0.0f;
 };
 
+struct waterDrawUniforms_t
+{
+	vec4_t slots[WATER_UNIFORM_VEC4S];
+	explicit waterDrawUniforms_t(const vec4_t *source) { Com_Memcpy(slots, source, sizeof(slots)); }
+	float *operator[](int slot) { return slots[slot]; }
+	const float *operator[](int slot) const { return slots[slot]; }
+	vec4_t *Data() { return slots; }
+};
+
 struct waterWindState_t
 {
 	waterWaveSet_t oldSet, targetSet;
@@ -245,6 +254,12 @@ struct waterInteractionState_t
 	image_t *gpuSource = nullptr;
 	std::vector<float> gpuInitial;
 	std::vector<float> gpuSourceData;
+	// Static body-local bathymetry: R=depth below this surface, G=confidence.
+	// It is derived from exact convex liquid intervals plus a solid-world trace;
+	// consumers fall back to body.depthAverage whenever confidence is low.
+	std::vector<float> bathymetry;
+	image_t *bathymetryImage = nullptr;
+	float bathymetryMaxDepth = 0.0f;
 	int gpuCurrent = 0;
 	bool gpuSourceDirty = false;
 	int gpuSourceMinX = 0, gpuSourceMinY = 0, gpuSourceMaxX = 0, gpuSourceMaxY = 0;
@@ -603,6 +618,95 @@ static void R_WaterRasterBodyMask(const waterBody_t& body, int w, int h,
 	}
 }
 
+static bool R_WaterBrushVerticalInterval(const waterBrushRecord_t& brush,
+	float x, float y, float& bottom, float& top)
+{
+	bottom = -1.0e30f; top = 1.0e30f;
+	for (int k = 0; k < brush.numPlanes; ++k)
+	{
+		const waterPlane_t& plane = s_water.planes[brush.firstPlane + k];
+		const float rhs = plane.dist - plane.normal[0] * x - plane.normal[1] * y;
+		if (fabsf(plane.normal[2]) < 1.0e-6f)
+		{
+			if (rhs < -0.5f) return false;
+			continue;
+		}
+		const float z = rhs / plane.normal[2];
+		if (plane.normal[2] > 0.0f) top = MIN(top, z);
+		else bottom = MAX(bottom, z);
+		if (bottom > top + 0.5f) return false;
+	}
+	return bottom > -1.0e29f && top < 1.0e29f;
+}
+
+static void R_WaterBuildBathymetry(waterBody_t& body)
+{
+	waterInteractionState_t& sim = body.interaction;
+	const size_t cells = (size_t)sim.width * sim.height;
+	sim.bathymetry.assign(cells * 4, 0.0f);
+	sim.bathymetryMaxDepth = 0.0f;
+	if (!r_waterBathymetry->integer || fabsf(body.planeNormal[2]) < 0.9f)
+		return;
+
+	int exact = 0, intervalOnly = 0, invalid = 0;
+	for (int y = 0; y < sim.height; ++y) for (int x = 0; x < sim.width; ++x)
+	{
+		const size_t i = (size_t)y * sim.width + x;
+		if (!sim.mask[i]) continue;
+		const float wx = body.bounds[0][0] + (x + 0.5f) * sim.texelX;
+		const float wy = body.bounds[0][1] + (y + 0.5f) * sim.texelY;
+		const float surface = (body.planeDist - body.planeNormal[0] * wx -
+			body.planeNormal[1] * wy) / body.planeNormal[2];
+		float liquidBottom = 1.0e30f;
+		bool interval = false;
+		for (int brushIndex : body.brushes)
+		{
+			if (brushIndex < 0 || brushIndex >= (int)s_water.brushes.size()) continue;
+			float bottom, top;
+			if (!R_WaterBrushVerticalInterval(s_water.brushes[brushIndex], wx, wy, bottom, top)) continue;
+			// Only the contiguous liquid volume touching this body's surface is
+			// eligible. A lower floor/brush on another storey cannot participate.
+			if (surface < bottom - 0.5f || surface > top + 1.0f) continue;
+			liquidBottom = MIN(liquidBottom, bottom);
+			interval = true;
+		}
+		float depth = body.depthAverage;
+		float confidence = 0.0f;
+		if (interval && liquidBottom < surface - 0.25f)
+		{
+			depth = surface - liquidBottom;
+			confidence = 0.5f; // exact liquid interval, no confirmed solid floor
+			vec3_t start = { wx, wy, surface - 0.25f };
+			vec3_t end = { wx, wy, liquidBottom - 1.0f };
+			trace_t trace;
+			Com_Memset(&trace, 0, sizeof(trace));
+#ifdef REND2_SP
+			ri.SV_Trace(&trace, start, vec3_origin, vec3_origin, end,
+				ENTITYNUM_NONE, CONTENTS_SOLID, G2_NOCOLLIDE, 0);
+#else
+			ri.CM_BoxTrace(&trace, start, end, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, 0);
+#endif
+			if (!trace.startsolid && !trace.allsolid && trace.fraction < 1.0f &&
+				trace.endpos[2] >= liquidBottom - 0.75f && trace.endpos[2] <= surface)
+			{
+				depth = surface - trace.endpos[2];
+				confidence = 1.0f;
+				++exact;
+			}
+			else ++intervalOnly;
+		}
+		else ++invalid;
+		depth = MAX(depth, 0.5f);
+		sim.bathymetry[i * 4] = depth;
+		sim.bathymetry[i * 4 + 1] = confidence;
+		sim.bathymetry[i * 4 + 3] = 1.0f;
+		if (confidence >= 0.75f) sim.bathymetryMaxDepth = MAX(sim.bathymetryMaxDepth, depth);
+	}
+	if (r_waterBathymetryDebug->integer)
+		ri.Printf(PRINT_ALL, "water bathymetry body %d: exact %d, interval-only %d, invalid %d, max %.1f\n",
+			body.id, exact, intervalOnly, invalid, sim.bathymetryMaxDepth);
+}
+
 static bool R_WaterFoamAllocate(waterBody_t& body)
 {
 	waterFoamState_t& foam = body.foam;
@@ -751,6 +855,7 @@ static void R_WaterInteractionBuild(void)
 				}
 			}
 		}
+		R_WaterBuildBathymetry(body);
 		const size_t wetCount = (size_t)std::count_if(sim.mask.begin(), sim.mask.end(), [](byte value) { return value != 0; });
 		sim.wetCells.reserve(wetCount);
 		sim.wetNeighbours.reserve(wetCount);
@@ -834,10 +939,20 @@ static void R_WaterInteractionBuild(void)
 			GL_Bind(sim.gpuSource);
 			qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
 				GL_RGBA, GL_FLOAT, sim.gpuSourceData.data());
+			if (r_waterBathymetry->integer && !sim.bathymetry.empty())
+			{
+				sim.bathymetryImage = R_CreateImage(va("*waterBathymetry%d", body.id), NULL,
+					sim.width, sim.height, IMGTYPE_COLORALPHA,
+					IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+				GL_Bind(sim.bathymetryImage);
+				qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
+					GL_RGBA, GL_FLOAT, sim.bathymetry.data());
+			}
 		}
 	}
 	s_water.interactionGpuBytes = s_water.interactionAtlas ?
-		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 + used * 24 : 0;
+		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 +
+		used * (r_waterBathymetry->integer ? 32 : 24) : 0;
 	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u active texels, %dx%d atlas, %.2f MiB GPU\n",
 		allocated, (unsigned)used, s_water.interactionAtlasWidth, s_water.interactionAtlasHeight,
 		s_water.interactionGpuBytes / (1024.0f * 1024.0f));
@@ -1309,6 +1424,12 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	// cannot destabilise the explicit five-point stencil.
 	const float cLimit = 0.68f / (dt * sqrtf(1.0f / (sim.texelX * sim.texelX) + 1.0f / (sim.texelY * sim.texelY)));
 	const float c = MIN(profileSpeed * r_waterInteractionSpeed->value, cLimit);
+	const bool variableDepth = r_waterInteractionVariableDepth->integer &&
+		!sim.bathymetry.empty() && sim.bathymetryMaxDepth > 0.0f;
+	const float fallbackDepth = body.depthAverage > 0.5f ? body.depthAverage :
+		MAX(c * c / MAX(r_waterWaveGravity->value, 1.0f), 0.5f);
+	const float effectiveGravity = variableDepth ? MIN(r_waterWaveGravity->value,
+		(cLimit * cLimit) / MAX(MAX(sim.bathymetryMaxDepth, fallbackDepth), 0.5f)) : 0.0f;
 	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
 	float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
 	float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
@@ -1332,9 +1453,29 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 		const float hr = sim.state[(size_t)neighbours[1] * 3];
 		const float hd = sim.state[(size_t)neighbours[2] * 3];
 		const float hu = sim.state[(size_t)neighbours[3] * 3];
-		const float lap = (hl - 2.0f * hc + hr) / (sim.texelX * sim.texelX) +
-			(hd - 2.0f * hc + hu) / (sim.texelY * sim.texelY);
-		float v = vc + dt * (c * c * lap - 2.0f * damping * vc);
+		float acceleration;
+		if (variableDepth)
+		{
+			auto depth = [&](size_t cell) -> float {
+				const float *sample = &sim.bathymetry[cell * 4];
+				return sample[1] >= 0.75f ? MAX(sample[0], 0.5f) : fallbackDepth;
+			};
+			const float hcDepth = depth(i);
+			const float hLeft = 0.5f * (hcDepth + depth((size_t)neighbours[0]));
+			const float hRight = 0.5f * (hcDepth + depth((size_t)neighbours[1]));
+			const float hDown = 0.5f * (hcDepth + depth((size_t)neighbours[2]));
+			const float hUp = 0.5f * (hcDepth + depth((size_t)neighbours[3]));
+			acceleration = effectiveGravity *
+				((hRight * (hr - hc) - hLeft * (hc - hl)) / (sim.texelX * sim.texelX) +
+				 (hUp * (hu - hc) - hDown * (hc - hd)) / (sim.texelY * sim.texelY));
+		}
+		else
+		{
+			const float lap = (hl - 2.0f * hc + hr) / (sim.texelX * sim.texelX) +
+				(hd - 2.0f * hc + hu) / (sim.texelY * sim.texelY);
+			acceleration = c * c * lap;
+		}
+		float v = vc + dt * (acceleration - 2.0f * damping * vc);
 		// First-order upwind advection only for profiles with resolved flow.
 		const float dhdx = flowX >= 0.0f ? (hc - hl) / sim.texelX : (hr - hc) / sim.texelX;
 		const float dhdy = flowY >= 0.0f ? (hc - hd) / sim.texelY : (hu - hc) / sim.texelY;
@@ -1414,6 +1555,10 @@ static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
 	const float cLimit = 0.68f / (dt * sqrtf(1.0f / (sim.texelX * sim.texelX) +
 		1.0f / (sim.texelY * sim.texelY)));
 	const float c = MIN(profileSpeed * r_waterInteractionSpeed->value, cLimit);
+	const float fallbackDepth = body.depthAverage > 0.5f ? body.depthAverage :
+		MAX(c * c / MAX(r_waterWaveGravity->value, 1.0f), 0.5f);
+	const float effectiveGravity = MIN(r_waterWaveGravity->value,
+		(cLimit * cLimit) / MAX(MAX(sim.bathymetryMaxDepth, fallbackDepth), 0.5f));
 	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
 	float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
 	float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
@@ -1429,12 +1574,16 @@ static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
 	GL_SetViewportAndScissor(0, 0, sim.width, sim.height);
 	GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
 	GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+	GL_BindToTMU(sim.bathymetryImage ? sim.bathymetryImage : tr.whiteImage, TB_DELUXEMAP);
 	vec4_t sim0 = { dt, c, damping, -shore };
 	vec4_t sim1 = { sim.texelX, sim.texelY, flowX, flowY };
 	vec4_t domain = { 0.0f, 0.0f, MAX(r_waterIntersectionFoamPersistence->value, 0.001f), applySource ? 1.0f : 0.0f };
+	vec4_t bathymetry = { r_waterInteractionVariableDepth->integer && sim.bathymetryImage ? 1.0f : 0.0f,
+		fallbackDepth, effectiveGravity, 0.0f };
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM1, sim1);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONDOMAIN, domain);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYPARAMS, bathymetry);
 	RB_InstantTriangle();
 	sim.gpuCurrent = target;
 	if (applySource)
@@ -1470,12 +1619,15 @@ static void RB_WaterInteractionGpuResolveBody(waterBody_t& body)
 	GL_SetViewportAndScissor(sim.atlasX, sim.atlasY, sim.width, sim.height);
 	GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
 	GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
+	GL_BindToTMU(sim.bathymetryImage ? sim.bathymetryImage : tr.whiteImage, TB_DELUXEMAP);
 	vec4_t sim0 = { 0.0f, 0.0f, 0.0f, 1.0f };
 	vec4_t sim1 = { sim.texelX, sim.texelY, 0.0f, 0.0f };
 	vec4_t domain = { (float)sim.atlasX, (float)sim.atlasY, 1.0f, 0.0f };
+	vec4_t bathymetry = { 0.0f, MAX(body.depthAverage, 0.5f), r_waterWaveGravity->value, 0.0f };
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM1, sim1);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONDOMAIN, domain);
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYPARAMS, bathymetry);
 	RB_InstantTriangle();
 	sim.dirty = false;
 }
@@ -3764,6 +3916,8 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 	const float waveSpeed = dynamics.speed * params[0][3] * 16.0f;
 	const float depth = body->depthAverage;
 	const float baseDepthTerm = depth > 0.0f ? tanhf(baseK * depth) : 1.0f;
+	const int dispersionMode = Com_Clampi(0, 2, r_waterWaveDispersion->integer);
+	const bool physicalDispersion = dispersionMode == 2 && body->flowSpeed <= 0.001f;
 	for (int i = 0; i < 8; ++i)
 	{
 		const float fi = (float)i;
@@ -3775,11 +3929,16 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
 		VectorSet4(terms[i], dx, dy, amplitude * scale * (i < 4 ? 0.28f : 0.10f), k);
 		const float depthTerm = depth > 0.0f ? tanhf(k * depth) : 1.0f;
-		const float dispersiveOmega = waveSpeed * baseK *
+		const float normalizedOmega = waveSpeed * baseK *
 			sqrtf(MAX(k * depthTerm / MAX(baseK * baseDepthTerm, 1.0e-8f), 0.0f));
 		const float linearOmega = waveSpeed * k;
-		omega[i / 4][i & 3] = linearOmega +
-			(dispersiveOmega - linearOmega) * dynamics.dispersion;
+		if (dispersionMode == 0)
+			omega[i / 4][i & 3] = linearOmega;
+		else if (physicalDispersion)
+			omega[i / 4][i & 3] = sqrtf(MAX(r_waterWaveGravity->value * k * depthTerm, 0.0f));
+		else
+			omega[i / 4][i & 3] = linearOmega +
+				(normalizedOmega - linearOmega) * dynamics.dispersion;
 	}
 	return qtrue;
 }
@@ -4964,13 +5123,14 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 	const float directionMix = body.flowSpeed > 0.001f ? 0.72f : (0.22f + 0.58f * response);
 	const float baseK = 6.2831853f / MAX(wavelength, 4.0f);
 	const float waveSpeed = dynamics.speed * Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value) * 16.0f;
-	// Normalized finite-depth dispersion preserves the authored temporal
-	// frequency of the primary wavelength exactly. In shallow water tanh(kh)
-	// approaches kh, naturally converging back to the old non-dispersive
-	// omega=speed*k relation. Unknown depth is treated as deep water, but only
-	// profiles with a non-zero dispersion weight opt into that behaviour.
+	// Mode 1 normalizes finite-depth dispersion around the authored primary
+	// wave, preserving compatibility. Mode 2 uses an independent renderer
+	// gravity calibration for still/outdoor bodies; flow-dominated profiles
+	// deliberately retain mode 1 because authored flow controls their motion.
 	const float depth = body.depthAverage;
 	const float baseDepthTerm = depth > 0.0f ? tanhf(baseK * depth) : 1.0f;
+	const int dispersionMode = Com_Clampi(0, 2, r_waterWaveDispersion->integer);
+	const bool physicalDispersion = dispersionMode == 2 && body.flowSpeed <= 0.001f;
 	for (int i = 0; i < 8; ++i)
 	{
 		const float fi = (float)i;
@@ -4985,10 +5145,15 @@ static void R_WaterBuildWindWaveSet(const waterBody_t& body, const waterDynamics
 		const float k = 6.2831853f / MAX(wavelength * lambdaScale, 4.0f);
 		VectorSet4(set.terms[i], dx, dy, a, k);
 		const float depthTerm = depth > 0.0f ? tanhf(k * depth) : 1.0f;
-		const float dispersiveOmega = waveSpeed * baseK *
+		const float normalizedOmega = waveSpeed * baseK *
 			sqrtf(MAX(k * depthTerm / MAX(baseK * baseDepthTerm, 1.0e-8f), 0.0f));
 		const float linearOmega = waveSpeed * k;
-		set.omega[i] = linearOmega + (dispersiveOmega - linearOmega) * dynamics.dispersion;
+		if (dispersionMode == 0)
+			set.omega[i] = linearOmega;
+		else if (physicalDispersion)
+			set.omega[i] = sqrtf(MAX(r_waterWaveGravity->value * k * depthTerm, 0.0f));
+		else
+			set.omega[i] = linearOmega + (normalizedOmega - linearOmega) * dynamics.dispersion;
 	}
 }
 
@@ -5281,64 +5446,63 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	SamplerBindingsWriter& samplers )
 {
 	RB_WaterSurfaceCacheView();
-	vec4_t water[WATER_UNIFORM_VEC4S];
-	Com_Memcpy(water, s_water.viewWater, sizeof(water));
+	waterDrawUniforms_t water(s_water.viewWater);
 	const uint32_t key = input->waterKey;
 	const int bodyId = (int)(key >> 20);
 	waterBody_t *body = bodyId > 0 && bodyId <= (int)s_water.bodies.size() ? &s_water.bodies[bodyId - 1] : nullptr;
 	const waterDynamics_t& dynamics = s_dynamics[body ? body->dynamics : 0];
 	const float legacyWaveScale = body && body->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
 	const float bodyWaveMultiplier = body ? body->waveMultiplier : 1.0f;
-	VectorSet4(water[15], dynamics.amplitude * 8.0f * legacyWaveScale * bodyWaveMultiplier,
+	VectorSet4(water[WATER_U_BODY_WAVES], dynamics.amplitude * 8.0f * legacyWaveScale * bodyWaveMultiplier,
 		dynamics.wavelength, dynamics.speed,
 		Com_Clamp(0.0f, 2.0f, dynamics.microNormal * bodyWaveMultiplier));
-	VectorSet4(water[16], body ? body->bounds[0][0] : -1.0e6f,
+	VectorSet4(water[WATER_U_BODY_BOUNDS], body ? body->bounds[0][0] : -1.0e6f,
 		body ? body->bounds[0][1] : -1.0e6f,
 		body ? body->bounds[1][0] : 1.0e6f,
 		dynamics.shoreline);
-	VectorSet4(water[17], body ? body->flowDirection[0] : 0.0f, body ? body->flowDirection[1] : 0.0f,
+	VectorSet4(water[WATER_U_BODY_FLOW_DEPTH], body ? body->flowDirection[0] : 0.0f, body ? body->flowDirection[1] : 0.0f,
 		body ? body->depthAverage : 0.0f, body ? (float)body->dynamics : 0.0f);
-	VectorSet4(water[18], (float)r_waterWaveDebug->integer, (float)bodyId,
+	VectorSet4(water[WATER_U_WAVE_DEBUG], (float)r_waterWaveDebug->integer, (float)bodyId,
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
-	VectorSet4(water[19], body ? body->legacy.deformAmplitude : 0.0f,
+	VectorSet4(water[WATER_U_GEOMETRY_FOAM], body ? body->legacy.deformAmplitude : 0.0f,
 		body && body->geometryVerts > 0 && ((body->waterfall && r_waterfallGeometry->integer) || (!body->waterfall && r_waterGeometry->integer)) ? 1.0f : 0.0f,
 		(float)r_waterGeometryDebug->integer, body ? body->foamMultiplier : 1.0f);
 	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
-	VectorSet4(water[28], body ? body->flowVelocity[0] * flowScale : 0.0f,
+	VectorSet4(water[WATER_U_FLOW], body ? body->flowVelocity[0] * flowScale : 0.0f,
 		body ? body->flowVelocity[1] * flowScale : 0.0f,
 		body ? body->flowVelocity[2] * flowScale : 0.0f,
 		r_waterFlow->integer && body && body->flowSpeed > 0.0f ? 1.0f : 0.0f);
-	VectorSet4(water[29], body ? body->flowSpeed * flowScale : 0.0f,
+	VectorSet4(water[WATER_U_FLOW + 1], body ? body->flowSpeed * flowScale : 0.0f,
 		Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value), (float)r_waterFlowDebug->integer,
 		body ? (float)(body->flowSource * 4 + body->flowConfidence) : 0.0f);
 	const waterInteractionState_t *interaction = body && body->interaction.image ? &body->interaction : nullptr;
 	const float extentX = body ? MAX(body->bounds[1][0] - body->bounds[0][0], 1.0f) : 1.0f;
 	const float extentY = body ? MAX(body->bounds[1][1] - body->bounds[0][1], 1.0f) : 1.0f;
-	VectorSet4(water[30], body ? body->bounds[0][0] : 0.0f, body ? body->bounds[0][1] : 0.0f,
+	VectorSet4(water[WATER_U_BODY_MAPPING], body ? body->bounds[0][0] : 0.0f, body ? body->bounds[0][1] : 0.0f,
 		1.0f / extentX, 1.0f / extentY);
-	VectorSet4(water[31], interaction ? interaction->texelX : 1.0f, interaction ? interaction->texelY : 1.0f,
+	VectorSet4(water[WATER_U_BODY_MAPPING + 1], interaction ? interaction->texelX : 1.0f, interaction ? interaction->texelY : 1.0f,
 		interaction && r_waterInteraction->integer ? 1.0f : 0.0f, (float)r_waterInteractionDebug->integer);
-	if (interaction) VectorCopy4(interaction->lastSource, water[32]); else VectorClear4(water[32]);
+	if (interaction) VectorCopy4(interaction->lastSource, water[WATER_U_BODY_MAPPING + 2]); else VectorClear4(water[WATER_U_BODY_MAPPING + 2]);
 	if (interaction && s_water.interactionAtlas)
-		VectorSet4(water[33], (interaction->atlasX + 0.5f) / s_water.interactionAtlasWidth,
+		VectorSet4(water[WATER_U_BODY_MAPPING + 3], (interaction->atlasX + 0.5f) / s_water.interactionAtlasWidth,
 			(interaction->atlasY + 0.5f) / s_water.interactionAtlasHeight,
 			(interaction->width - 1.0f) / s_water.interactionAtlasWidth,
 			(interaction->height - 1.0f) / s_water.interactionAtlasHeight);
-	else VectorSet4(water[33], 0, 0, 1, 1);
-	VectorSet4(water[34], r_waterShoreline->integer ? 1.0f : 0.0f,
+	else VectorSet4(water[WATER_U_BODY_MAPPING + 3], 0, 0, 1, 1);
+	VectorSet4(water[WATER_U_SHORELINE], r_waterShoreline->integer ? 1.0f : 0.0f,
 		MAX(r_waterShoreAttenuation->value, 1.0f), MAX(r_waterShoreContactSoftness->value, 0.25f),
 		(float)r_waterShoreDebug->integer);
-	VectorSet4(water[35], r_waterIntersectionFoam->integer ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_INTERSECTION_FOAM], r_waterIntersectionFoam->integer ? 1.0f : 0.0f,
 		MAX(r_waterIntersectionFoamWidth->value, 0.5f),
 		Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value),
 		(float)r_waterIntersectionFoamDebug->integer);
 	const waterFoamState_t *foam = body && body->foam.active ? &body->foam : nullptr;
-	VectorSet4(water[36], foam && r_waterFoamField->integer ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_FOAM], foam && r_waterFoamField->integer ? 1.0f : 0.0f,
 		(float)r_waterFoamDebug->integer, foam ? foam->texelX : 1.0f, foam ? foam->texelY : 1.0f);
 	const bool waterfallImpact = foam && R_WaterfallImpactTargetsBody(body);
 	const bool impactTurbulence = waterfallImpact && r_waterfallImpactTurbulence->value > 0.0f;
 	const float whitewaterStrength = r_waterWhitewater->integer ? r_waterWhitewaterStrength->value : 0.0f;
-	VectorSet4(water[37], foam && (r_waterWhitewater->integer || impactTurbulence) ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_WHITEWATER], foam && (r_waterWhitewater->integer || impactTurbulence) ? 1.0f : 0.0f,
 		Com_Clamp(0.0f, 4.0f, impactTurbulence ? MAX(whitewaterStrength,
 			r_waterfallImpactTurbulence->value) : whitewaterStrength),
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
@@ -5355,47 +5519,47 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const float requestedLod = r_waterfallQuality->integer <= 0 ? 0.32f :
 		(r_waterfallQuality->integer >= 2 ? 1.0f : 0.68f);
 	const float waterfallLod = MIN(requestedLod, MAX(distanceLod, coverageLod));
-	VectorSet4(water[38], waterfall ? 1.0f : 0.0f, (float)r_waterfallQuality->integer,
+	VectorSet4(water[WATER_U_WATERFALL], waterfall ? 1.0f : 0.0f, (float)r_waterfallQuality->integer,
 		(float)r_waterfallDebug->integer, waterfallProfile.thickness);
-	VectorSet4(water[39], body ? body->fallDirection[0] : 0.0f, body ? body->fallDirection[1] : 0.0f,
+	VectorSet4(water[WATER_U_WATERFALL + 1], body ? body->fallDirection[0] : 0.0f, body ? body->fallDirection[1] : 0.0f,
 		body ? body->fallDirection[2] : -1.0f, waterfallProfile.flowSpeed);
-	VectorSet4(water[40], body ? body->planeNormal[0] : 0.0f, body ? body->planeNormal[1] : 0.0f,
+	VectorSet4(water[WATER_U_WATERFALL + 2], body ? body->planeNormal[0] : 0.0f, body ? body->planeNormal[1] : 0.0f,
 		body ? body->planeNormal[2] : 1.0f, body ? 1.0f / MAX(body->fallMax - body->fallMin, 1.0f) : 1.0f);
-	VectorSet4(water[41], body ? body->fallMin : 0.0f, waterfallProfile.breakup * waterfallProfileStrength,
+	VectorSet4(water[WATER_U_WATERFALL + 3], body ? body->fallMin : 0.0f, waterfallProfile.breakup * waterfallProfileStrength,
 		waterfallProfile.normalScale * waterfallProfileStrength,
 		waterfallProfile.aeration * waterfallProfileStrength * Com_Clamp(0.0f, 4.0f, r_waterfallWhitewater->value));
-	VectorSet4(water[42], waterfallProfile.opacity, waterfallProfile.spray * waterfallProfileStrength,
+	VectorSet4(water[WATER_U_WATERFALL + 4], waterfallProfile.opacity, waterfallProfile.spray * waterfallProfileStrength,
 		waterfallProfile.impact * waterfallProfileStrength,
 		body ? (float)body->waterfallProfile : 0.0f);
 	// Per-profile coverage is shared by disconnected stock strips (the dam has
 	// eight real BSP gaps), so they retain one coherent quality decision without
 	// merging geometry or adding transparent passes.  z gates refraction/SSR;
 	// w simplifies high-frequency foam/spray breakup at distance.
-	VectorSet4(water[43], waterfallProfileStrength, waterfallLod,
+	VectorSet4(water[WATER_U_WATERFALL + 5], waterfallProfileStrength, waterfallLod,
 		waterfallLod < 0.34f ? 0.0f : (waterfallLod < 0.67f ? 0.5f : 1.0f),
 		waterfallLod < 0.34f ? 0.35f : (waterfallLod < 0.67f ? 0.7f : 1.0f));
 	if (waterfall)
 	{
 		// Falling-sheet motion is intrinsic to the dedicated waterfall path.  It
 		// must not depend on the optional horizontal-water flow visualization.
-		VectorSet4(water[28], body->fallDirection[0] * waterfallProfile.flowSpeed,
+		VectorSet4(water[WATER_U_FLOW], body->fallDirection[0] * waterfallProfile.flowSpeed,
 			body->fallDirection[1] * waterfallProfile.flowSpeed,
 			body->fallDirection[2] * waterfallProfile.flowSpeed, 1.0f);
-		water[29][0] = waterfallProfile.flowSpeed;
-		water[0][1] = MAX(water[0][1], 0.34f);
-		water[0][3] = Com_Clamp(0.0f, 4.0f, r_waterfallRefraction->value);
-		water[1][0] *= 0.28f;
-		water[1][1] *= 0.35f * water[43][2];
+		water[WATER_U_FLOW + 1][0] = waterfallProfile.flowSpeed;
+		water[WATER_U_SURFACE][1] = MAX(water[WATER_U_SURFACE][1], 0.34f);
+		water[WATER_U_SURFACE][3] = Com_Clamp(0.0f, 4.0f, r_waterfallRefraction->value);
+		water[WATER_U_OPTICS][0] *= 0.28f;
+		water[WATER_U_OPTICS][1] *= 0.35f * water[WATER_U_WATERFALL + 5][2];
 	}
 	// The analytic spectrum is shared by the vertex displacement and fragment
 	// normal.  Direction, amplitude and wave number are constant for this body
 	// and draw; computing them here avoids normalization, trigonometry and
 	// divisions for every component of every covered fragment.
-	const float wavelength = MAX(water[15][1] * water[13][2], 8.0f);
-	const float amplitude = water[15][0] * water[13][1];
+	const float wavelength = MAX(water[WATER_U_BODY_WAVES][1] * water[WATER_U_WAVE_CONTROL][2], 8.0f);
+	const float amplitude = water[WATER_U_BODY_WAVES][0] * water[WATER_U_WAVE_CONTROL][1];
 	if (body)
 		R_WaterUpdateWindWaves(*body, amplitude, wavelength, backEnd.refdef.floatTime,
-			backEnd.refdef.precipitation, water);
+			backEnd.refdef.precipitation, water.Data());
 	else
 	{
 		waterBody_t fallback = {};
@@ -5414,7 +5578,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		VectorSet4(water[WATER_U_WIND + 1], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
 		water[WATER_U_WIND + 2][0] = 1.0f;
 	}
-	const int geometryComponents = body ? R_WaterGeometryComponentCount(*body, &water[WATER_U_TARGET_TERMS]) : 0;
+	const int geometryComponents = body ? R_WaterGeometryComponentCount(*body,
+		water.Data() + WATER_U_TARGET_TERMS) : 0;
 	VectorSet4(water[WATER_U_GEOMETRY], (float)geometryComponents, body ? body->geometryMaxEdge : 0.0f,
 		body ? body->geometryMaxEdge * 4.0f : 0.0f, 0.0f);
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
@@ -5422,9 +5587,9 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const bool froxel = (s_water.viewFlags & 4) != 0;
 	const bool froxelLiquid = froxel && backEnd.currentEntity == &tr.worldEntity &&
 		(key & WATERKEY_WORLD_BRUSH) && (R_LiquidClassMask() & (key >> 16)) != 0;
-	VectorSet4(water[2], extinction[0] * extinction[3], extinction[1] * extinction[3], extinction[2] * extinction[3],
+	VectorSet4(water[WATER_U_EXTINCTION], extinction[0] * extinction[3], extinction[1] * extinction[3], extinction[2] * extinction[3],
 		froxelLiquid ? 1.0f : 0.0f);
-	VectorCopy4(s_water.albedo[liquidClass], water[3]);
+	VectorCopy4(s_water.albedo[liquidClass], water[WATER_U_SCATTER]);
 	int flags = s_water.viewFlags;
 	int cubemapIndex = input->cubemapIndex;
 	if (cubemapIndex <= 0 || cubemapIndex > tr.numCubemaps || !tr.cubemaps[cubemapIndex - 1].image)
@@ -5436,7 +5601,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	if (liquidClass == LIQUID_SLIME) flags |= 64;
 	if ((key >> 8) & WATERSURF_OVERRIDE) flags |= 128;
 	if ((key >> 8) & WATERSURF_EXPERIMENTAL) flags |= 256;
-	water[6][2] = (float)flags;
+	water[WATER_U_DEBUG][2] = (float)flags;
 	image_t *waterRainImage = R_WeatherWaterRippleImage(qfalse);
 	const precipitationState_t& precipitation = backEnd.refdef.precipitation;
 	const bool waterRain = waterRainImage && body && !body->waterfall &&
@@ -5449,9 +5614,13 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		(float)Com_Clampi(0, 4, r_waterRainRippleDebug->integer)
 	};
 	uniforms.SetUniformVec4(UNIFORM_WATERRAINPARAMS, waterRainParams);
+	const qboolean atmosphereOptics = RB_AtmosphereWaterSetup(uniforms, samplers);
+	const vec4_t optics2 = { r_waterSnell->integer ? (float)r_waterSnellOptics->integer : 0.0f,
+		atmosphereOptics ? 1.0f : 0.0f, 0.0f, 0.0f };
+	uniforms.SetUniformVec4(UNIFORM_WATEROPTICS2, optics2);
 	if (tr.weatherSystem)
 		uniforms.SetUniformMatrix4x4(UNIFORM_WEATHERMVP, tr.weatherSystem->weatherMVP);
-	uniforms.SetUniformVec4(UNIFORM_WATER, water[0], WATER_UNIFORM_VEC4S);
+	uniforms.SetUniformVec4(UNIFORM_WATER, water[WATER_U_SURFACE], WATER_UNIFORM_VEC4S);
 	samplers.AddStaticImage(tr.waterSceneImage, 0);
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);

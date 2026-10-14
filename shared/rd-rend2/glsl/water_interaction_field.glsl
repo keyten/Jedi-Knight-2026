@@ -12,9 +12,11 @@ void main()
 // negative for dry cells, which lets all four physical channels use one image.
 uniform sampler2D u_WaterInteractionState;
 uniform sampler2D u_WaterInteractionSource;
+uniform sampler2D u_WaterBathymetryMap;
 uniform vec4 u_WaterInteractionSim0; // dt, c, damping, resolve mode
 uniform vec4 u_WaterInteractionSim1; // texel world X/Y, flow world X/Y
 uniform vec4 u_WaterInteractionDomain; // viewport origin, intersection persistence, apply source
+uniform vec4 u_WaterBathymetryParams; // enabled, fallback depth, effective gravity, unused
 out vec4 out_Color;
 
 vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
@@ -30,6 +32,13 @@ vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
 		value.a = max(value.a, source.a);
 	}
 	return value;
+}
+
+float WaterDepth(ivec2 p, ivec2 size)
+{
+	p = clamp(p, ivec2(0), size - 1);
+	vec2 sampleValue = texelFetch(u_WaterBathymetryMap, p, 0).rg;
+	return sampleValue.y >= 0.75 ? max(sampleValue.x, 0.5) : u_WaterBathymetryParams.y;
 }
 
 void main()
@@ -65,9 +74,27 @@ void main()
 	float damping = u_WaterInteractionSim0.z;
 	vec2 worldTexel = u_WaterInteractionSim1.xy;
 	vec2 flow = u_WaterInteractionSim1.zw;
-	float lap = (left.r - 2.0 * center.r + right.r) / (worldTexel.x * worldTexel.x) +
-		(down.r - 2.0 * center.r + up.r) / (worldTexel.y * worldTexel.y);
-	float velocity = center.g + dt * (c * c * lap - 2.0 * damping * center.g);
+	float acceleration;
+	if (u_WaterBathymetryParams.x > 0.5)
+	{
+		float centerDepth = WaterDepth(p, size);
+		float depthLeft = 0.5 * (centerDepth + WaterDepth(p + ivec2(-1, 0), size));
+		float depthRight = 0.5 * (centerDepth + WaterDepth(p + ivec2(1, 0), size));
+		float depthDown = 0.5 * (centerDepth + WaterDepth(p + ivec2(0, -1), size));
+		float depthUp = 0.5 * (centerDepth + WaterDepth(p + ivec2(0, 1), size));
+		acceleration = u_WaterBathymetryParams.z *
+			((depthRight * (right.r - center.r) - depthLeft * (center.r - left.r)) /
+				(worldTexel.x * worldTexel.x) +
+			 (depthUp * (up.r - center.r) - depthDown * (center.r - down.r)) /
+				(worldTexel.y * worldTexel.y));
+	}
+	else
+	{
+		float lap = (left.r - 2.0 * center.r + right.r) / (worldTexel.x * worldTexel.x) +
+			(down.r - 2.0 * center.r + up.r) / (worldTexel.y * worldTexel.y);
+		acceleration = c * c * lap;
+	}
+	float velocity = center.g + dt * (acceleration - 2.0 * damping * center.g);
 	float dhdx = flow.x >= 0.0 ? (center.r - left.r) / worldTexel.x : (right.r - center.r) / worldTexel.x;
 	float dhdy = flow.y >= 0.0 ? (center.r - down.r) / worldTexel.y : (up.r - center.r) / worldTexel.y;
 	float height = center.r + dt * (velocity - flow.x * dhdx - flow.y * dhdy);

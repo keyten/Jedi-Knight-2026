@@ -112,6 +112,28 @@ Opaque-depth object contacts can also feed the foam channel when
 [`object/intersection foam`](rend2-water-intersection-foam.md). Its tracer has
 independent persistence but shares this field's mask, upload and flow.
 
+## Optional bathymetry and variable depth
+
+`r_waterBathymetry 1` (latched, default 0) builds a static field alongside
+each allocated horizontal interaction domain. It does not infer depth from a
+brush AABB or a global top-down map. For every wet cell it clips a vertical
+line against only the exact convex liquid brushes assigned to that body, keeps
+only the contiguous interval touching the rendered surface, and traces the
+solid world inside that interval. The field stores local depth in R and
+confidence in G. A confirmed solid hit has confidence 1; an interval without a
+confirmed floor has confidence 0.5; ambiguous cells have confidence 0.
+`r_waterBathymetryDebug 1` prints the per-body audit at map load.
+
+`r_waterInteractionVariableDepth 1` (default 0) switches both CPU and GL 3.2
+solvers from the constant-speed Laplacian to the conservative flux stencil
+`g div(H grad(eta))`. Face depth is the average of adjacent cells. Only
+confidence >= 0.75 consumes local depth; every other face automatically falls
+back to the stable body mean. The same explicit-step CFL bound limits effective
+gravity for unusually deep/coarse fields. The feature is opt-in because it can
+visibly refract wave fronts and can add one RGBA16F field plus one texture fetch
+per active solver cell. `r_waterWaveGravity` is the independent renderer
+gravity used by this mode; gameplay gravity is never queried.
+
 ## Controls and commands
 
 | cvar | default | purpose |

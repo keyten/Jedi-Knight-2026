@@ -458,9 +458,11 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
 	{ "u_WaterInteractionState",	GLSL_INT, 1 },
 	{ "u_WaterInteractionSource",	GLSL_INT, 1 },
+	{ "u_WaterBathymetryMap",	GLSL_INT, 1 },
 	{ "u_WaterInteractionSim0",	GLSL_VEC4, 1 },
 	{ "u_WaterInteractionSim1",	GLSL_VEC4, 1 },
 	{ "u_WaterInteractionDomain",	GLSL_VEC4, 1 },
+	{ "u_WaterBathymetryParams",	GLSL_VEC4, 1 },
 	{ "u_WaterRainMap",		GLSL_INT, 1 },
 	{ "u_WaterRainParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFoamMap",		GLSL_INT, 1 },
@@ -469,6 +471,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFoamFlow",		GLSL_VEC4, 1 },
 	{ "u_WaterWhitewaterParams",	GLSL_VEC4, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
+	{ "u_WaterOptics2", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
 
 	{ "u_WaterParticles",		GLSL_VEC4, 2 },
@@ -2976,6 +2979,14 @@ static int GLSL_LoadGPUProgramWaterSurface(
 	const GPUShaderDesc *vertexLibrary = LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_VERTEX);
 	const GPUShaderDesc *library = GLSL_CombineLibraries(allocator,
 		LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_FRAGMENT), LoadVolumetricLibrary(allocator));
+	if (r_waterSnellOptics->integer >= 2)
+	{
+		const GPUProgramDesc *atmosphereDesc =
+			LoadProgramSource("atmosphere_common", allocator, fallback_atmosphere_commonProgram);
+		for (size_t atmosphereStage = 0; atmosphereStage < atmosphereDesc->numShaders; ++atmosphereStage)
+			if (atmosphereDesc->shaders[atmosphereStage].type == GPUSHADER_FRAGMENT)
+				library = GLSL_CombineLibraries(allocator, library, &atmosphereDesc->shaders[atmosphereStage]);
+	}
 	if (R_SSRResourcesEnabled())
 	{
 		const GPUProgramDesc *commonDesc =
@@ -2991,17 +3002,30 @@ static int GLSL_LoadGPUProgramWaterSurface(
 	{
 		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
 		char name[64];
-		char extradefines[1024];
+		char extradefines[2048];
 		Q_strncpyz(name, "watersurface", sizeof(name));
 		Com_sprintf(extradefines, sizeof(extradefines),
 			"#define WATER_UNIFORM_VEC4S %d\n"
+			"#define WATER_U_SURFACE %d\n#define WATER_U_OPTICS %d\n#define WATER_U_EXTINCTION %d\n#define WATER_U_SCATTER %d\n"
+			"#define WATER_U_PROJECTION %d\n#define WATER_U_FRAME %d\n#define WATER_U_DEBUG %d\n"
+			"#define WATER_U_VIEW_RIGHT %d\n#define WATER_U_VIEW_UP %d\n#define WATER_U_ENVIRONMENT %d\n"
+			"#define WATER_U_DETAIL %d\n#define WATER_U_DRIFT %d\n#define WATER_U_VIEWPORT %d\n"
+			"#define WATER_U_WAVE_CONTROL %d\n#define WATER_U_WAVE_QUALITY %d\n#define WATER_U_BODY_WAVES %d\n"
+			"#define WATER_U_BODY_BOUNDS %d\n#define WATER_U_BODY_FLOW_DEPTH %d\n#define WATER_U_WAVE_DEBUG %d\n#define WATER_U_GEOMETRY_FOAM %d\n"
 			"#define WATER_U_TARGET_TERMS %d\n#define WATER_U_FLOW %d\n"
 			"#define WATER_U_BODY_MAPPING %d\n#define WATER_U_SHORELINE %d\n"
+			"#define WATER_U_INTERSECTION_FOAM %d\n#define WATER_U_FOAM %d\n#define WATER_U_WHITEWATER %d\n"
 			"#define WATER_U_WATERFALL %d\n#define WATER_U_OLD_TERMS %d\n"
 			"#define WATER_U_WIND %d\n#define WATER_U_GEOMETRY %d\n"
 			"#define WATER_U_TARGET_OMEGA %d\n#define WATER_U_OLD_OMEGA %d\n",
-			WATER_UNIFORM_VEC4S, WATER_U_TARGET_TERMS, WATER_U_FLOW,
-			WATER_U_BODY_MAPPING, WATER_U_SHORELINE, WATER_U_WATERFALL,
+			WATER_UNIFORM_VEC4S, WATER_U_SURFACE, WATER_U_OPTICS, WATER_U_EXTINCTION,
+			WATER_U_SCATTER, WATER_U_PROJECTION, WATER_U_FRAME, WATER_U_DEBUG,
+			WATER_U_VIEW_RIGHT, WATER_U_VIEW_UP, WATER_U_ENVIRONMENT, WATER_U_DETAIL,
+			WATER_U_DRIFT, WATER_U_VIEWPORT, WATER_U_WAVE_CONTROL, WATER_U_WAVE_QUALITY,
+			WATER_U_BODY_WAVES, WATER_U_BODY_BOUNDS, WATER_U_BODY_FLOW_DEPTH,
+			WATER_U_WAVE_DEBUG, WATER_U_GEOMETRY_FOAM, WATER_U_TARGET_TERMS, WATER_U_FLOW,
+			WATER_U_BODY_MAPPING, WATER_U_SHORELINE, WATER_U_INTERSECTION_FOAM,
+			WATER_U_FOAM, WATER_U_WHITEWATER, WATER_U_WATERFALL,
 			WATER_U_OLD_TERMS, WATER_U_WIND, WATER_U_GEOMETRY,
 			WATER_U_TARGET_OMEGA, WATER_U_OLD_OMEGA);
 		if (R_SSRResourcesEnabled() && !R_SSROpaqueResourcesEnabled())
@@ -3026,6 +3050,8 @@ static int GLSL_LoadGPUProgramWaterSurface(
 			Q_strcat(name, sizeof(name), "_SNELL");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_SNELL\n");
 		}
+		if (r_waterSnellOptics->integer >= 2)
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_ATMOSPHERE\n");
 
 		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
 		GPUProgramDesc waterProgram = *programDesc;
@@ -3054,6 +3080,9 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, 14);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRPREVHITMAP, 15);
 		GLSL_SetUniformInt(sp, UNIFORM_ENVBRDFMAP, 3);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERETRANSMITTANCEMAP, 21);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHEREMULTISCATTERMAP, 22);
+		GLSL_SetUniformInt(sp, UNIFORM_ATMOSPHERESKYVIEWMAP, 23);
 		GLSL_SetUniformInt(sp, UNIFORM_CUBEMAP, 4);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHIZMAP, 10);
@@ -4297,6 +4326,7 @@ static int GLSL_LoadGPUProgramWaterInteractionField(
 	qglUseProgram(tr.waterInteractionFieldShader.program);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSTATE, TB_COLORMAP);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSOURCE, TB_NORMALMAP);
+	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYMAP, TB_DELUXEMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.waterInteractionFieldShader);
 	return 1;

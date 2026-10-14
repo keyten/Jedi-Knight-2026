@@ -320,11 +320,13 @@ extern cvar_t	*r_waterSurfaceIOR;
 extern cvar_t	*r_waterSurfaceRoughness;
 extern cvar_t	*r_waterSurfaceNormal;
 extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpeed;
+extern cvar_t *r_waterWaveDispersion, *r_waterWaveGravity;
 extern cvar_t *r_waterWind, *r_waterWindScale, *r_waterWindTransition, *r_waterWindDebug;
 extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
 extern cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
 extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
 extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
+extern cvar_t *r_waterBathymetry, *r_waterBathymetryDebug, *r_waterInteractionVariableDepth;
 extern cvar_t *r_waterIntersectionFoam, *r_waterIntersectionFoamWidth, *r_waterIntersectionFoamStrength;
 extern cvar_t *r_waterIntersectionFoamPersistence, *r_waterIntersectionFoamDebug;
 extern cvar_t *r_waterFoamField, *r_waterFoamResolution, *r_waterFoamDecay, *r_waterFoamAdvection;
@@ -351,6 +353,7 @@ extern cvar_t	*r_waterSurfaceDebug;
 extern cvar_t	*r_waterSurfaceSplit;
 extern cvar_t	*r_waterSnell;
 extern cvar_t	*r_waterSnellDebug;
+extern cvar_t	*r_waterSnellOptics;
 extern cvar_t *fx_physicalizationAggregate;
 extern cvar_t	*r_spotLights;
 extern cvar_t	*r_spotLightShadows;
@@ -2871,9 +2874,11 @@ typedef enum
 	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
 	UNIFORM_WATERINTERACTIONSTATE,
 	UNIFORM_WATERINTERACTIONSOURCE,
+	UNIFORM_WATERBATHYMETRYMAP,
 	UNIFORM_WATERINTERACTIONSIM0,
 	UNIFORM_WATERINTERACTIONSIM1,
 	UNIFORM_WATERINTERACTIONDOMAIN,
+	UNIFORM_WATERBATHYMETRYPARAMS,
 	UNIFORM_WATERRAINMAP,		// water surface: rain-driven real-water disturbance field
 	UNIFORM_WATERRAINPARAMS,	// explicit slope, aggregate micro energy, coverage, debug
 	UNIFORM_WATERFOAMMAP,		// persistent body-local foam concentration
@@ -2882,6 +2887,7 @@ typedef enum
 	UNIFORM_WATERFOAMFLOW,		// foam update: body-UV velocity, time, debug
 	UNIFORM_WATERWHITEWATERPARAMS,	// foam update: source threshold, decay, foam injection, static source
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
+	UNIFORM_WATEROPTICS2,         // opt-in underwater BTDF / radiance transport
 	UNIFORM_WATERGLOWMAP,
 
 	UNIFORM_WATERPARTICLES,		// vec4[2] r_waterParticles draw parameters, see waterparticles.glsl
@@ -6170,6 +6176,7 @@ void R_AtmosphereInfo_f(void);
 float R_AtmosphereGroundZ(void);
 void R_AtmosphereSunGround(const trRefdef_t *refdef, vec3_t out);
 qboolean RB_AtmosphereCloudUniforms(shaderProgram_t *sp);
+qboolean RB_AtmosphereWaterSetup(UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 
 // tr_clouds.cpp
 #define CLOUD_UNIFORM_VEC4S 20
@@ -6302,10 +6309,33 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 // to GLSL from this source of truth.
 enum waterUniformSlot_t
 {
+	WATER_U_SURFACE = 0,
+	WATER_U_OPTICS = 1,
+	WATER_U_EXTINCTION = 2,
+	WATER_U_SCATTER = 3,
+	WATER_U_PROJECTION = 4,
+	WATER_U_FRAME = 5,
+	WATER_U_DEBUG = 6,
+	WATER_U_VIEW_RIGHT = 7,
+	WATER_U_VIEW_UP = 8,
+	WATER_U_ENVIRONMENT = 9,
+	WATER_U_DETAIL = 10,
+	WATER_U_DRIFT = 11,
+	WATER_U_VIEWPORT = 12,
+	WATER_U_WAVE_CONTROL = 13,
+	WATER_U_WAVE_QUALITY = 14,
+	WATER_U_BODY_WAVES = 15,
+	WATER_U_BODY_BOUNDS = 16,
+	WATER_U_BODY_FLOW_DEPTH = 17,
+	WATER_U_WAVE_DEBUG = 18,
+	WATER_U_GEOMETRY_FOAM = 19,
 	WATER_U_TARGET_TERMS = 20,
 	WATER_U_FLOW = 28,
 	WATER_U_BODY_MAPPING = 30,
 	WATER_U_SHORELINE = 34,
+	WATER_U_INTERSECTION_FOAM = 35,
+	WATER_U_FOAM = 36,
+	WATER_U_WHITEWATER = 37,
 	WATER_U_WATERFALL = 38,
 	WATER_U_OLD_TERMS = 44,
 	WATER_U_WIND = 52,
