@@ -83,7 +83,8 @@ void R_PBRInfo_f(void)
 		"  baked legacy calibration %.6g (grid median %.6g, p95 %.6g)\n"
 		"  dielectric F0 %.3f; roughness is perceptual, alpha = max(r^2, %.4g)\n"
 		"  legacy roughness migration %s (r_pbrLegacyRoughness)\n"
-		"  standard GGX multiple-scattering compensation %s (r_brdfEnergyCompensation)\n",
+		"  standard GGX multiple-scattering compensation %s (r_brdfEnergyCompensation)\n"
+		"  standard diffuse/specular energy partition on; debug %d (r_pbrEnergyDebug)\n",
 		r_pbrPhysical->integer ? "physical" : "strict legacy",
 		unitsPerMeter, R_PBRMetersPerWorldUnit(), physicalToScene,
 		1.0f / physicalToScene, calibration,
@@ -91,7 +92,8 @@ void R_PBRInfo_f(void)
 		tr.world ? tr.world->pbrLegacyP95 : 0.0f,
 		Rend2PBR::kDielectricF0, Rend2PBR::kMinGgxAlpha,
 		r_pbrLegacyRoughness->integer ? "on" : "off",
-		r_brdfEnergyCompensation->integer ? "on" : "off");
+		r_brdfEnergyCompensation->integer ? "on" : "off",
+		r_pbrEnergyDebug->integer);
 	if (tr.refdef.num_dlights > 0)
 	{
 		const dlight_t *light = &tr.refdef.dlights[0];

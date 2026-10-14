@@ -2282,7 +2282,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARSCALE, specularScale);
 		uniformDataWriter.SetUniformVec4(UNIFORM_PBRMATERIAL,
 			(float)pStage->pbrMaterialVersion, (float)r_pbrLegacyRoughness->integer,
-			(float)r_brdfEnergyCompensation->integer, 0.0f);
+			(float)r_brdfEnergyCompensation->integer, (float)r_pbrEnergyDebug->integer);
 
 		// r_autoPBRDebug: lightall stages show their material, lit stages still
 		// on the vertex lit generic path show up red (generic.glsl)

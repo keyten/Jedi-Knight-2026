@@ -164,6 +164,30 @@ inline float GgxEnergyCompensation(float F0, float r)
 	return 1.0f + F0 * (1.0f / r - 1.0f);
 }
 
+// Cosine-weighted hemispherical mean of Schlick Fresnel. This is the shader's
+// energy split for already-integrated diffuse irradiance (probes, lightmaps
+// and diffuse GI), which has no individual incoming direction.
+inline float SchlickAverageFresnel(float F0)
+{
+	F0 = std::max(0.0f, std::min(1.0f, F0));
+	return F0 + (1.0f - F0) / 21.0f;
+}
+
+inline float AverageDiffuseTransmission(float F0)
+{
+	return 1.0f - SchlickAverageFresnel(F0);
+}
+
+inline float EffectiveDiffuseReflectance(float baseColor, float metallic,
+	float interfaceTransmission)
+{
+	baseColor = std::max(0.0f, std::min(1.0f, baseColor));
+	metallic = std::max(0.0f, std::min(1.0f, metallic));
+	interfaceTransmission = std::max(0.0f,
+		std::min(1.0f, interfaceTransmission));
+	return baseColor * (1.0f - metallic) * interfaceTransmission;
+}
+
 // Converts the old radius-driven point light once at ingestion.  At half the
 // old radius its unoccluded irradiance equals legacyReferenceScene.
 inline float LegacyRadiusToSceneCandela(float radiusWorld, float worldUnitsPerMeter,

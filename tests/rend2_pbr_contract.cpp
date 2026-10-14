@@ -132,6 +132,28 @@ static double KullaContyReference(double singleScatter, double directionalAlbedo
 	return singleScatter + multipleScatter;
 }
 
+static double CompensatedDirectionalAlbedo(double NoV,
+	double perceptualRoughness, double F0)
+{
+	const DfgReference dfg = WhiteFurnaceDfg(NoV, perceptualRoughness);
+	const double single = F0 * dfg.scale + dfg.bias;
+	return std::min(std::max(single * GgxEnergyCompensation((float)F0,
+		(float)(dfg.scale + dfg.bias)), 0.0), 1.0);
+}
+
+static double GgxAverageAlbedoQuadrature(double perceptualRoughness, double F0)
+{
+	const double mu[] = { 0.0694318442, 0.3300094782,
+		0.6699905218, 0.9305681558 };
+	const double weight[] = { 0.1739274226, 0.3260725774,
+		0.3260725774, 0.1739274226 };
+	double average = 0.0;
+	for (int i = 0; i < 4; ++i)
+		average += weight[i] * 2.0 * mu[i] *
+			CompensatedDirectionalAlbedo(mu[i], perceptualRoughness, F0);
+	return average;
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(rend2_pbr_unit_round_trips)
@@ -316,6 +338,100 @@ BOOST_AUTO_TEST_CASE(rend2_ggx_multiscatter_white_furnace)
 	const DfgReference rough = WhiteFurnaceDfg(1.0, 1.0);
 	BOOST_CHECK_GT(GgxEnergyCompensation(0.95f,
 		(float)(rough.scale + rough.bias)), 1.2f);
+}
+
+BOOST_AUTO_TEST_CASE(rend2_standard_lobe_energy_partition)
+{
+	const double f0s[] = { 0.0, 0.04, 0.25, 0.5, 1.0 };
+	double previousDiffuse = 2.0;
+	for (double f0 : f0s)
+	{
+		const double specular = SchlickAverageFresnel((float)f0);
+		const double transmission = AverageDiffuseTransmission((float)f0);
+		const double diffuse = EffectiveDiffuseReflectance(1.0f, 0.0f,
+			(float)transmission);
+		BOOST_CHECK_CLOSE(specular + transmission, 1.0, 1e-4);
+		BOOST_CHECK_LE(diffuse, previousDiffuse);
+		BOOST_CHECK_LE(specular + diffuse, 1.000001);
+		previousDiffuse = diffuse;
+	}
+
+	const double metallics[] = { 0.0, 0.25, 0.5, 0.75, 1.0 };
+	double previous = 2.0;
+	for (double metallic : metallics)
+	{
+		const double diffuse = EffectiveDiffuseReflectance(1.0f,
+			(float)metallic, AverageDiffuseTransmission(0.04f));
+		BOOST_CHECK_LE(diffuse, previous);
+		previous = diffuse;
+	}
+	BOOST_CHECK_SMALL((double)EffectiveDiffuseReflectance(1.0f, 1.0f,
+		AverageDiffuseTransmission(0.04f)), 1e-7);
+
+	// Colored conductors retain their per-channel interface response while the
+	// normal diffuse substrate is exactly absent.
+	const float goldF0[] = { 1.0f, 0.71f, 0.29f };
+	for (float channel : goldF0)
+	{
+		BOOST_CHECK_GE(SchlickAverageFresnel(channel), channel);
+		BOOST_CHECK_SMALL((double)EffectiveDiffuseReflectance(1.0f, 1.0f,
+			AverageDiffuseTransmission(channel)), 1e-7);
+	}
+}
+
+BOOST_AUTO_TEST_CASE(rend2_layered_ggx_partition_white_furnace)
+{
+	const double roughnesses[] = { 0.05, 0.25, 0.5, 0.75, 1.0 };
+	const double f0s[] = { 0.04, 0.5, 0.95 };
+	const double views[] = { 0.1, 0.3, 0.6, 1.0 };
+	for (double roughness : roughnesses)
+		for (double f0 : f0s)
+		{
+			const double averageSpecular = GgxAverageAlbedoQuadrature(
+				roughness, f0);
+			const double averageTransmission = 1.0 - averageSpecular;
+			BOOST_REQUIRE_GT(averageTransmission, 0.0);
+			BOOST_REQUIRE_LE(averageTransmission, 1.0);
+			for (double NoV : views)
+			{
+				const double specular = CompensatedDirectionalAlbedo(NoV,
+					roughness, f0);
+				const double exitTransmission = 1.0 - specular;
+				// The quadrature average of Tin cancels the layered denominator.
+				const double diffuse = exitTransmission / averageTransmission *
+					averageTransmission;
+				BOOST_CHECK_CLOSE(specular + diffuse, 1.0, 1e-4);
+			}
+		}
+}
+
+BOOST_AUTO_TEST_CASE(rend2_lambert_and_burley_share_the_same_energy_budget)
+{
+	const int steps = 4096;
+	const double f0 = 0.04;
+	const double diffuseBudget = AverageDiffuseTransmission((float)f0);
+	for (double roughness : { 0.0, 0.25, 0.5, 0.75, 1.0 })
+	{
+		double lambert = 0.0;
+		double burley = 0.0;
+		for (int i = 0; i < steps; ++i)
+		{
+			const double NoL = (i + 0.5) / steps;
+			const double LoH = std::sqrt((1.0 + NoL) * 0.5);
+			const double f90 = 0.5 + 2.0 * roughness * LoH * LoH;
+			const double lightScatter = 1.0 + (f90 - 1.0) *
+				std::pow(1.0 - NoL, 5.0);
+			// NoV=1, so the Burley view-scatter factor is exactly one.
+			lambert += 2.0 * NoL / steps;
+			burley += 2.0 * NoL * std::min(lightScatter, 1.0) / steps;
+		}
+		lambert *= diffuseBudget;
+		burley *= diffuseBudget;
+		BOOST_CHECK_LE(lambert + SchlickAverageFresnel((float)f0), 1.00001);
+		BOOST_CHECK_LE(burley + SchlickAverageFresnel((float)f0), 1.00001);
+		BOOST_CHECK_LE(burley, lambert + 1.0e-6);
+		BOOST_CHECK_LT(std::abs(burley - lambert), 0.08);
+	}
 }
 
 BOOST_AUTO_TEST_CASE(rend2_pbr_legacy_transport_equivalence)

@@ -803,7 +803,7 @@ uniform vec4 u_MaterialDebug;
 // z: hair anisotropy, w: r_materialModelDebug
 uniform vec4 u_MaterialModel;
 // x: material semantic version, y: legacy roughness migration,
-// z: r_brdfEnergyCompensation (runtime A/B), w: unused
+// z: r_brdfEnergyCompensation, w: r_pbrEnergyDebug
 uniform vec4 u_PBRMaterial;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 #if defined(USE_SPECULAR_AA) && defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
@@ -911,7 +911,7 @@ out vec4 out_SSRSpecular; // rgb = sqrt(specular IBL weight)
 out vec4 out_SSRCubemap;  // rgb = cubemap reflection added to out_Color, a = view depth
 #endif
 #if defined(USE_SSGI)
-out vec4 out_SSGIAlbedo;   // rgb = sRGB encoded diffuse albedo, a = GI receiver
+out vec4 out_SSGIAlbedo;   // rgb = sRGB encoded effective diffuse reflectance, a = GI receiver
 out vec4 out_SSGIRadiance; // rgb = linear GI source radiance, a = view depth
 
 // diffuse lobe of the dynamic lights of this fragment (scene space), the
@@ -952,6 +952,10 @@ void SSRWriteNone(in vec3 worldPosition)
 #if defined(PER_PIXEL_LIGHTING)
 // Scene-space specular-only accumulator for hair/eye debug views.
 vec3 g_materialSpecular = vec3(0.0);
+// Standard-lobe contributions after visibility. These are diagnostics only;
+// they never feed lighting and therefore cannot apply the partition twice.
+vec3 g_energyDiffuse = vec3(0.0);
+vec3 g_energySpecular = vec3(0.0);
 #endif
 
 #if defined(USE_SKIN_SSS) && defined(PER_PIXEL_LIGHTING)
@@ -992,8 +996,10 @@ vec3 SkinTransmission(in vec3 N, in vec3 E, in vec3 L, in vec3 light, in vec3 al
 #endif
 
 #if defined(USE_SSGI)
-// GI receiver: normal and diffuse albedo (after the metalness split: metals
-// have no diffuse lobe), stored sRGB encoded for 8 bit precision
+// GI receiver: normal and effective diffuse reflectance. Standard PBR callers
+// include metalness and average interface transmission; legacy vertex-lit
+// callers have no interface metadata and retain their base diffuse semantics.
+// Stored sRGB encoded for 8 bit precision.
 void SSGIWriteReceiver(in vec3 N, in float roughness, in vec3 albedo)
 {
   #if !(defined(USE_SSR) && defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP))
@@ -1730,13 +1736,15 @@ vec3 Diff_Burley(float roughness, float NoV, float NoL, float LoH)
 	float f90 = 0.5 + 2.0 * roughness * LoH * LoH;
 	vec3 lightScatter = Fresnel_Schlick(vec3(1.0), f90, NoL);
 	vec3 viewScatter = Fresnel_Schlick(vec3(1.0), f90, NoV);
-	return lightScatter * viewScatter * (1.0 / M_PI);
+	// Disney's retroreflection fit can integrate above a unit diffuse albedo.
+	// Keep its angular softening, but cap the modulation at Lambert so the
+	// interface partition remains a real energy budget.
+	return min(lightScatter * viewScatter, vec3(1.0)) * (1.0 / M_PI);
 }
 
-// Lagarde/Turquin scaled-lobe approximation as used by Filament.  This LUT
+// Lagarde/Turquin scaled-lobe approximation as used by Filament. This LUT
 // stores the classic Schlick scale/bias decomposition, so scale + bias is the
-// directional albedo r of an F0=1 single-scatter GGX lobe.  The RGB factor is
-// evaluated once per surface and reused by every direct and indirect source.
+// directional albedo r of an F0=1 single-scatter GGX lobe.
 vec3 GgxEnergyCompensation(in vec3 F0, in vec2 dfg, in float enabled)
 {
 	float r = clamp(dfg.x + dfg.y, 1e-4, 1.0);
@@ -1744,12 +1752,73 @@ vec3 GgxEnergyCompensation(in vec3 F0, in vec2 dfg, in float enabled)
 	return mix(vec3(1.0), compensation, clamp(enabled, 0.0, 1.0));
 }
 
-vec3 GgxDiffuseTransmission(in vec3 F0, in vec2 dfg,
-	in vec3 compensation, in float enabled)
+vec3 GgxDirectionalDiffuseTransmission(in vec3 F0, in vec2 dfg,
+	in vec3 compensation, in float standardMaterial)
 {
 	vec3 singleScatterAlbedo = clamp(F0, 0.0, 1.0) * dfg.x + dfg.y;
 	vec3 remaining = vec3(1.0) - clamp(singleScatterAlbedo * compensation, 0.0, 1.0);
-	return mix(vec3(1.0), remaining, clamp(enabled, 0.0, 1.0));
+	return mix(vec3(1.0), remaining, clamp(standardMaterial, 0.0, 1.0));
+}
+
+vec3 GgxDirectionalSpecularAlbedo(in vec3 F0, in vec2 dfg,
+	in float compensationEnabled)
+{
+	vec3 compensation = GgxEnergyCompensation(F0, dfg,
+		compensationEnabled);
+	return clamp((clamp(F0, 0.0, 1.0) * dfg.x + dfg.y) *
+		compensation, 0.0, 1.0);
+}
+
+// Cosine-weighted hemispherical mean of the chosen compensated GGX model.
+// Four-point Gauss-Legendre quadrature makes irradiance/lightmap/SSGI
+// semantics agree with the directional partition without another LUT.
+vec3 GgxAverageDiffuseTransmission(in vec3 F0, in float perceptualRoughness,
+	in float compensationEnabled, in float standardMaterial)
+{
+	#if defined(USE_SPECULARMAP)
+	if (standardMaterial <= 0.0)
+		return vec3(1.0);
+	const vec4 mu = vec4(0.0694318442, 0.3300094782,
+		0.6699905218, 0.9305681558);
+	const vec4 weight = vec4(0.1739274226, 0.3260725774,
+		0.3260725774, 0.1739274226);
+	vec3 averageSpecular = vec3(0.0);
+	for (int i = 0; i < 4; ++i)
+	{
+		vec2 dfg = texture(u_EnvBrdfMap,
+			vec2(perceptualRoughness, mu[i])).rg;
+		averageSpecular += weight[i] * (2.0 * mu[i]) *
+			GgxDirectionalSpecularAlbedo(F0, dfg,
+				compensationEnabled);
+	}
+	return vec3(1.0) - clamp(averageSpecular, 0.0, 1.0);
+	#else
+	return vec3(1.0);
+	#endif
+}
+
+vec3 GgxDirectDiffuseTransmission(in vec3 F0, in float perceptualRoughness,
+	in float NoL, in float compensationEnabled, in float standardMaterial,
+	in vec3 viewTransmission, in vec3 averageTransmission)
+{
+	#if defined(USE_SPECULARMAP)
+	if (standardMaterial <= 0.0)
+		return vec3(1.0);
+	vec2 incomingDfg = texture(u_EnvBrdfMap,
+		vec2(perceptualRoughness, clamp(NoL, 1e-5, 1.0))).rg;
+	vec3 incomingCompensation = GgxEnergyCompensation(F0, incomingDfg,
+		compensationEnabled);
+	vec3 incomingTransmission = GgxDirectionalDiffuseTransmission(F0,
+		incomingDfg, incomingCompensation, standardMaterial);
+	// Cheap layered-substrate form: transmit through the rough interface on
+	// entry and exit, with the hemispherical mean in the denominator accounting
+	// for repeated interface/substrate exchange. This is one coherent split,
+	// not two unrelated (1-F) darkening operations.
+	return clamp(incomingTransmission * viewTransmission /
+		max(averageTransmission, vec3(1e-4)), 0.0, 1.0);
+	#else
+	return vec3(1.0);
+	#endif
 }
 
 // http://www.frostbite.com/2014/11/moving-frostbite-to-pbr/
@@ -2198,6 +2267,10 @@ struct DLightSurface
 	vec3  diffuse;
 	vec3  specular;
 	vec3  energyCompensation;
+	float energyCompensationEnabled;
+	float standardEnergyPartition;
+	vec3  viewDiffuseTransmission;
+	vec3  averageDiffuseTransmission;
 	#if defined(USE_GGX_SPECULAR_AA)
 	float materialPerceptualRoughness;
 	#endif
@@ -2436,10 +2509,18 @@ vec3 EvaluateDynamicLight(
 	}
 	#endif
 	#if !defined(USE_CLOTH_BRDF)
-	#if defined(USE_GGX_SPECULAR_AA)
-	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.materialPerceptualRoughness);
+	#if defined(USE_SPECULARMAP)
+	vec3 directDiffuse = s.diffuse * GgxDirectDiffuseTransmission(s.specular,
+		s.perceptualRoughness, NL, s.energyCompensationEnabled,
+		s.standardEnergyPartition, s.viewDiffuseTransmission,
+		s.averageDiffuseTransmission);
 	#else
-	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.perceptualRoughness);
+	vec3 directDiffuse = s.diffuse;
+	#endif
+	#if defined(USE_GGX_SPECULAR_AA)
+	vec3 reflectance = M_PI * CalcDiffuse(directDiffuse, s.NE, NL, LH, s.materialPerceptualRoughness);
+	#else
+	vec3 reflectance = M_PI * CalcDiffuse(directDiffuse, s.NE, NL, LH, s.perceptualRoughness);
 	#endif
 	#else
 	vec3 reflectance = s.diffuse;
@@ -2449,10 +2530,12 @@ vec3 EvaluateDynamicLight(
 	// visibility: the source of the screen-space GI
 	g_ssgiDynamicDiffuse += lightColor * reflectance * attenuation * NL;
 	#endif
+	vec3 diffuseLight = lightColor * reflectance * attenuation * NL;
+	g_energyDiffuse += diffuseLight;
 	#if defined(USE_SKIN_SSS)
 	// skin: wrapped diffuse lobe (r_skinSSS 1), kept apart for the diffusion
 	vec3 lit = lightColor * reflectance * attenuation * SkinDiffuseNL(dot(s.N, L), NL) +
-		SkinTransmission(s.N, s.E, L, lightColor * attenuation, s.diffuse);
+		SkinTransmission(s.N, s.E, L, lightColor * attenuation, directDiffuse);
 	g_skinDiffuse += lit;
 	  #if defined(USE_SPECULARMAP)
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
@@ -2460,6 +2543,7 @@ vec3 EvaluateDynamicLight(
 	vec3 specularLight = lightColor * CalcMaterialSpecular(s.specular, s.energyCompensation, s.N, s.materialT,
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask) * attenuation * NL;
 	lit += specularLight;
+	g_energySpecular += specularLight;
 	if (int(u_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += specularLight;
 	  #endif
@@ -2471,6 +2555,7 @@ vec3 EvaluateDynamicLight(
 	vec3 specularBrdf = CalcMaterialSpecular(s.specular, s.energyCompensation, s.N, s.materialT,
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask);
 	reflectance += specularBrdf;
+	g_energySpecular += lightColor * specularBrdf * attenuation * NL;
 	if (int(u_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += lightColor * specularBrdf * attenuation * NL;
 	#endif
@@ -2828,7 +2913,19 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		#if !defined(USE_CLOTH_BRDF)
 		formFactor = LtcQuadFormFactor(mat3(1.0), q0, q1, q2, q3, twoSided);
 		#endif
-		diffuseOut = radiance * s.diffuse * formFactor;
+		vec3 areaDiffuse = s.diffuse;
+		#if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
+		// The cosine form factor is already integrated over the emitter. Use
+		// its closest representative direction only for the interface share;
+		// this avoids pretending the view direction describes incoming energy.
+		vec3 areaL = normalize(closest - s.position);
+		float areaNL = clamp(dot(N, areaL), 0.0, 1.0);
+		areaDiffuse *= GgxDirectDiffuseTransmission(s.specular,
+			s.perceptualRoughness, areaNL, s.energyCompensationEnabled,
+			s.standardEnergyPartition, s.viewDiffuseTransmission,
+			s.averageDiffuseTransmission);
+		#endif
+		diffuseOut = radiance * areaDiffuse * formFactor;
 	}
 
 	#if defined(USE_SPECULARMAP)
@@ -2907,6 +3004,8 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	// View independent diffuse is the screen-space GI source.
 	g_ssgiDynamicDiffuse += diffuseOut;
 	#endif
+	g_energyDiffuse += diffuseOut;
+	g_energySpecular += specularOut;
 
 	#if defined(USE_LTC_DEBUG)
 	g_ltcSpecular += specularOut;
@@ -2939,6 +3038,9 @@ vec3 CalcDynamicLightContribution(
 	in vec3 diffuse,
 	in vec3 specular,
 	in vec3 energyCompensation,
+	in float standardEnergyPartition,
+	in vec3 viewDiffuseTransmission,
+	in vec3 averageDiffuseTransmission,
 	in vec3 materialT,
 	in float materialMask,
 	in vec3 vertexNormal)
@@ -2953,6 +3055,10 @@ vec3 CalcDynamicLightContribution(
 	s.diffuse = diffuse;
 	s.specular = specular;
 	s.energyCompensation = energyCompensation;
+	s.energyCompensationEnabled = u_PBRMaterial.z;
+	s.standardEnergyPartition = standardEnergyPartition;
+	s.viewDiffuseTransmission = viewDiffuseTransmission;
+	s.averageDiffuseTransmission = averageDiffuseTransmission;
 	#if defined(USE_GGX_SPECULAR_AA)
 	s.materialPerceptualRoughness = materialPerceptualRoughness;
 	#endif
@@ -4571,14 +4677,30 @@ void main()
   #if defined(USE_SPECULARMAP)
 	envBrdf = texture(u_EnvBrdfMap, vec2(roughness, NE)).rgb;
     #if !defined(USE_CLOTH_BRDF)
-	float standardEnergy = u_PBRMaterial.z *
-		(int(u_MaterialModel.x + 0.5) == 0 ? 1.0 : 0.0);
+	float standardMaterial = int(u_MaterialModel.x + 0.5) == 0 ? 1.0 : 0.0;
+	// Debug 5 is a true old/new A/B: legacy unpartitioned diffuse on the
+	// left, conserved standard lobes on the right. It does not alter specular.
+	float standardEnergyPartition = standardMaterial;
+	if (int(u_PBRMaterial.w + 0.5) == 5 && gl_FragCoord.x < r_FBufScale.x * 0.5)
+		standardEnergyPartition = 0.0;
+	float standardCompensation = u_PBRMaterial.z * standardMaterial;
 	energyCompensation = GgxEnergyCompensation(specular.rgb, envBrdf.rg,
-		standardEnergy);
-	diffuse.rgb *= GgxDiffuseTransmission(specular.rgb, envBrdf.rg,
-		energyCompensation, standardEnergy);
+		standardCompensation);
+	vec3 viewDiffuseTransmission = GgxDirectionalDiffuseTransmission(
+		specular.rgb, envBrdf.rg, energyCompensation, standardEnergyPartition);
+	vec3 averageDiffuseTransmission = GgxAverageDiffuseTransmission(
+		specular.rgb, roughness, u_PBRMaterial.z, standardEnergyPartition);
+	vec3 indirectDiffuse = diffuse.rgb * viewDiffuseTransmission;
+	vec3 transportDiffuse = diffuse.rgb * averageDiffuseTransmission;
     #endif
   #endif
+	#if !defined(USE_SPECULARMAP) || defined(USE_CLOTH_BRDF)
+	vec3 indirectDiffuse = diffuse.rgb;
+	vec3 transportDiffuse = diffuse.rgb;
+	vec3 viewDiffuseTransmission = vec3(1.0);
+	vec3 averageDiffuseTransmission = vec3(1.0);
+	float standardEnergyPartition = 0.0;
+	#endif
 
 	// Environment reflections. Legacy application: the F0 term is scaled by AO
 	// and the cubemap brightness follows the AO'd lighting (kept bit exact for
@@ -4658,9 +4780,15 @@ void main()
 	float LH = clamp(dot(L, H), 0.0, 1.0);
 
   #if defined(USE_GGX_SPECULAR_AA)
-	vec3  Fd = CalcDiffuse(diffuse.rgb, NE, NL, LH, materialRoughness);
+	vec3 directDiffuse = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	vec3  Fd = CalcDiffuse(directDiffuse, NE, NL, LH, materialRoughness);
   #else
-	vec3  Fd = CalcDiffuse(diffuse.rgb, NE, NL, LH, roughness);
+	vec3 directDiffuse = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	vec3  Fd = CalcDiffuse(directDiffuse, NE, NL, LH, roughness);
   #endif
 	vec3  Fs = vec3(0.0);
 
@@ -4684,13 +4812,16 @@ void main()
 
 #if defined(USE_SKIN_SSS)
 	vec3 skinDirect = lightColor * Fd * (attenuation * SkinDiffuseNL(dot(N, L), NL)) +
-		SkinTransmission(N, E, L, lightColor * attenuation, diffuse.rgb);
-	g_skinDiffuse += skinDirect + diffuseAmbientColor * diffuse.rgb;
+		SkinTransmission(N, E, L, lightColor * attenuation, directDiffuse);
+	g_skinDiffuse += skinDirect + diffuseAmbientColor * indirectDiffuse;
 	out_Color.rgb  = skinDirect + lightColor * Fs * (attenuation * NL);
 #else
 	out_Color.rgb  = lightColor * reflectance * (attenuation * NL);
 #endif
-	out_Color.rgb += diffuseAmbientColor * diffuse.rgb;
+	vec3 ambientDiffuse = diffuseAmbientColor * indirectDiffuse;
+	out_Color.rgb += ambientDiffuse;
+	g_energyDiffuse += lightColor * Fd * (attenuation * NL) + ambientDiffuse;
+	g_energySpecular += lightColor * Fs * (attenuation * NL);
 	if (materialType != 0)
 		g_materialSpecular += lightColor * Fs * (attenuation * NL);
 
@@ -4701,13 +4832,15 @@ void main()
   #endif
 		roughness, N, E, u_ViewOrigin,
 		viewDir, NE, diffuse.rgb, specular.rgb, energyCompensation,
-		materialT, materialMask, vertexNormal);
+		standardEnergyPartition, viewDiffuseTransmission,
+		averageDiffuseTransmission, materialT, materialMask, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
 	// one EnvBRDF lookup for the cubemap and the SSR weight
 	vec3 iblWeight = SpecularIBLWeight(envBrdf, specularAO, energyCompensation);
 	vec3 cubemapReflection = CalcIBLRadiance(roughness, N, E, u_ViewOrigin, viewDir, iblLighting) * iblWeight * specOcclusion;
 	out_Color.rgb += cubemapReflection;
+	g_energySpecular += cubemapReflection;
 	if (materialType != 0)
 		g_materialSpecular += cubemapReflection;
   #if defined(USE_SPECULARMAP)
@@ -4722,11 +4855,14 @@ void main()
 	vec3 iblSpecular = CalcIBLContribution(roughness, N, E, u_ViewOrigin,
 		viewDir, NE, specularAO, envBrdf, energyCompensation, iblLighting) * specOcclusion;
 	out_Color.rgb += iblSpecular;
+	g_energySpecular += iblSpecular;
 	if (materialType != 0)
 		g_materialSpecular += iblSpecular;
 #endif
 #if defined(USE_SSGI)
-	SSGIWriteReceiver(N, roughness, diffuse.rgb);
+	// The transport consumes effective diffuse reflectance: base color after
+	// metalness, weather/substrate attenuation and average interface Fresnel.
+	SSGIWriteReceiver(N, roughness, transportDiffuse);
 #endif
 
   #if defined(USE_PRIMARY_LIGHT)
@@ -4740,16 +4876,28 @@ void main()
 		NL2, NE, L2H2, VH2, roughness, materialMask);
     #if defined(USE_SKIN_SSS)
     #if defined(USE_GGX_SPECULAR_AA)
-	vec3 sunDiffuse = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, materialRoughness);
+	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	vec3 sunDiffuse = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, materialRoughness);
     #else
-	vec3 sunDiffuse = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
+	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	vec3 sunDiffuse = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, roughness);
     #endif
 	reflectance = sunSpecular;
     #else
     #if defined(USE_GGX_SPECULAR_AA)
-	reflectance  = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, materialRoughness);
+	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	reflectance  = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, materialRoughness);
     #else
-	reflectance  = CalcDiffuse(diffuse.rgb, NE, NL2, L2H2, roughness);
+	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
+		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		viewDiffuseTransmission, averageDiffuseTransmission);
+	reflectance  = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, roughness);
     #endif
 	reflectance += sunSpecular;
     #endif
@@ -4771,6 +4919,13 @@ void main()
     #endif
 	if (materialType != 0)
 		g_materialSpecular += lightColor * sunSpecular * NL2;
+	g_energyDiffuse += lightColor *
+	#if defined(USE_SKIN_SSS)
+		sunDiffuse * SkinDiffuseNL(dot(N, L2), NL2);
+	#else
+		(reflectance - sunSpecular) * NL2;
+	#endif
+	g_energySpecular += lightColor * sunSpecular * NL2;
   #endif
 
   #if defined(USE_SHADOWMAP) && defined(USE_SHADOWS2)
@@ -5146,6 +5301,24 @@ void main()
 		return;
 	}
   #endif
+
+	int energyDebugView = int(u_PBRMaterial.w + 0.5);
+	if (energyDebugView >= 1 && energyDebugView <= 4)
+	{
+		vec3 debugColor = energyDebugView == 1 ? g_energyDiffuse :
+			energyDebugView == 2 ? g_energySpecular :
+			energyDebugView == 3 ? g_energyDiffuse + g_energySpecular :
+			max(vec3(1.0) - (transportDiffuse +
+				(vec3(1.0) - GgxAverageDiffuseTransmission(specular.rgb,
+				roughness, u_PBRMaterial.z, standardEnergyPartition))), vec3(0.0));
+		out_Color = vec4(debugColor, diffuse.a);
+		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
+    #if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+    #endif
+		return;
+	}
 
 	int materialDebugView = int(u_MaterialModel.w + 0.5);
 	if (materialDebugView > 0)
