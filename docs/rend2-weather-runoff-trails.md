@@ -43,10 +43,12 @@ move or resurrect a trail, because the temporal state lives in weather/world
 projection and the visible mask is reconstructed from world position and the
 surface geometric normal.
 
-## Phase 2 status: deliberately deferred
+## Visible runoff drips: deliberately not planned
 
-Phase 2 visible drip particles have **not been implemented**. This is a
-deliberate scope decision rather than unfinished Phase 1 work.
+Visible drip particles have **not been implemented and are not on the current
+roadmap**. This is a deliberate scope decision rather than unfinished Phase 1
+work: they are expensive to make temporally robust and are rarely noticeable
+outside close-up captures.
 
 For the current world-weather presentation, the expected improvement is
 modest: small beads and short strings would only be clearly visible at close
@@ -57,7 +59,7 @@ testing for that comparatively small visual gain. An unstable approximation
 would be worse than no particles: drops would float, jump between objects,
 survive camera cuts or detach from the wrong silhouette.
 
-Phase 2 should therefore be reconsidered only if close-up visual captures show
+They should therefore be reconsidered only if close-up visual captures show
 that discrete drops are a material improvement over Phase 1. It must remain an
 optional, default-off layer and must not hold the world trail implementation
 hostage. No inactive drip/rate/lifetime cvars are registered yet; they should

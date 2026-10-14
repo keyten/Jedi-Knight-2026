@@ -107,17 +107,18 @@ stage's live `tcMod`. Optional geometric displacement uses the advected phase
 but remains bounded around the base surface—vertices never translate
 downstream.
 
-There is no interactive body-space disturbance solver, persistent foam, or
-object-wake solver in the current code. Flow is exposed without inventing
-parallel systems:
+The body-local interaction solver, persistent foam and object wakes consume
+this resolved flow. They deliberately share the same body lookup instead of
+reconstructing motion from shader `tcMod`s:
 
 - `R_WaterFlowAtWorldPosition(position, velocity, bodyId)`;
 - `R_WaterFlowForBody(bodyId, simulationCoordinate, velocity)`.
 
 The second API currently returns uniform flow and deliberately accepts a
-body-space coordinate. A future disturbance, foam or wake field can consume it
-without changing the representation. The curved `yavin2` bodies show why an
-optional spatial form is needed: the planned lightweight extension is a short
+body-space coordinate. The existing disturbance and foam fields therefore do
+not need an API change if a spatial form is added later. The curved `yavin2`
+bodies show why an optional spatial form may be useful: a suitable lightweight
+extension is a short
 body-space polyline/spline of direction-speed control points, baked at map load
 to a small two-channel body-local texture. Uniform bodies keep zero texture
 memory and zero extra samples. No general fluid solver or mandatory flow map
@@ -152,7 +153,8 @@ KiB of body metadata; `yavin2` reported 3 ms and approximately 1.2 KiB.
 The baseline is one uniform vector per body. Curved streams whose surface bases
 do not agree are reported ambiguous and require explicit/spatial authoring.
 Stage opacity is not reliably recoverable as physical importance, so stages
-are reported equal/unknown rather than assigned invented weights. Flow does
-not yet advect interactions because there is no current interactive-water
-solver. No overlay PK3 is required; renderer metadata and existing env
-configuration suffice, and no stock archive was changed.
+are reported equal/unknown rather than assigned invented weights. Flow advects
+the current interaction solver, transient/persistent foam and whitewater; rain
+also has a separate high-density statistical field rather than submitting every
+drop to the body solver. No overlay PK3 is required; renderer metadata and
+existing env configuration suffice, and no stock archive was changed.

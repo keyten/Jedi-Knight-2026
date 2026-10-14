@@ -2991,9 +2991,19 @@ static int GLSL_LoadGPUProgramWaterSurface(
 	{
 		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
 		char name[64];
-		char extradefines[256];
+		char extradefines[1024];
 		Q_strncpyz(name, "watersurface", sizeof(name));
-		Com_sprintf(extradefines, sizeof(extradefines), "#define WATER_UNIFORM_VEC4S %d\n", WATER_UNIFORM_VEC4S);
+		Com_sprintf(extradefines, sizeof(extradefines),
+			"#define WATER_UNIFORM_VEC4S %d\n"
+			"#define WATER_U_TARGET_TERMS %d\n#define WATER_U_FLOW %d\n"
+			"#define WATER_U_BODY_MAPPING %d\n#define WATER_U_SHORELINE %d\n"
+			"#define WATER_U_WATERFALL %d\n#define WATER_U_OLD_TERMS %d\n"
+			"#define WATER_U_WIND %d\n#define WATER_U_GEOMETRY %d\n"
+			"#define WATER_U_TARGET_OMEGA %d\n#define WATER_U_OLD_OMEGA %d\n",
+			WATER_UNIFORM_VEC4S, WATER_U_TARGET_TERMS, WATER_U_FLOW,
+			WATER_U_BODY_MAPPING, WATER_U_SHORELINE, WATER_U_WATERFALL,
+			WATER_U_OLD_TERMS, WATER_U_WIND, WATER_U_GEOMETRY,
+			WATER_U_TARGET_OMEGA, WATER_U_OLD_OMEGA);
 		if (R_SSRResourcesEnabled() && !R_SSROpaqueResourcesEnabled())
             Q_strcat(extradefines, sizeof(extradefines), "#define USE_SSR\n");
 		if (i & WATERDEF_USE_HIZ)

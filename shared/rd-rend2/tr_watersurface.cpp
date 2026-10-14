@@ -5096,10 +5096,10 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	}
 	for (int i = 0; i < 8; ++i)
 	{
-		VectorCopy4(body.wind.targetSet.terms[i], water[20 + i]);
-		VectorCopy4(body.wind.oldSet.terms[i], water[44 + i]);
-		water[56 + i / 4][i & 3] = body.wind.targetSet.omega[i];
-		water[58 + i / 4][i & 3] = body.wind.oldSet.omega[i];
+		VectorCopy4(body.wind.targetSet.terms[i], water[WATER_U_TARGET_TERMS + i]);
+		VectorCopy4(body.wind.oldSet.terms[i], water[WATER_U_OLD_TERMS + i]);
+		water[WATER_U_TARGET_OMEGA + i / 4][i & 3] = body.wind.targetSet.omega[i];
+		water[WATER_U_OLD_OMEGA + i / 4][i & 3] = body.wind.oldSet.omega[i];
 	}
 	water[18][2] = body.wind.oldSet.choppiness +
 		(body.wind.targetSet.choppiness - body.wind.oldSet.choppiness) * body.wind.blend;
@@ -5111,9 +5111,9 @@ static void R_WaterUpdateWindWaves(waterBody_t& body, float amplitude, float wav
 	};
 	const float currentLength = sqrtf(current[0] * current[0] + current[1] * current[1]);
 	if (currentLength > 1.0e-5f) { current[0] /= currentLength; current[1] /= currentLength; }
-	VectorSet4(water[52], body.wind.resolved[0], body.wind.resolved[1], body.wind.strength, (float)body.wind.source);
-	VectorSet4(water[53], current[0], current[1], body.wind.targetSet.direction[0], body.wind.targetSet.direction[1]);
-	VectorSet4(water[54], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, body.wind.rainNoise);
+	VectorSet4(water[WATER_U_WIND], body.wind.resolved[0], body.wind.resolved[1], body.wind.strength, (float)body.wind.source);
+	VectorSet4(water[WATER_U_WIND + 1], current[0], current[1], body.wind.targetSet.direction[0], body.wind.targetSet.direction[1]);
+	VectorSet4(water[WATER_U_WIND + 2], body.wind.blend, (float)r_waterWindDebug->integer, body.wind.outdoor ? 1.0f : 0.0f, body.wind.rainNoise);
 }
 
 static bool R_WaterBodyCoversXY(const waterBody_t& body, const vec3_t position)
@@ -5174,7 +5174,7 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.geometryVerts <= 0)
 		return 0.0f;
 	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
-	const int geometryCount = R_WaterGeometryComponentCount(body, &water[20]);
+	const int geometryCount = R_WaterGeometryComponentCount(body, &water[WATER_U_TARGET_TERMS]);
 	const float qualityAmplitude = shadingCount == 2 ? 1.86f : (shadingCount == 8 ? 0.59f : 1.0f);
 	float shallow = 1.0f;
 	if (r_waterWaveShallow->integer && body.depthAverage > 0.0f)
@@ -5183,7 +5183,7 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 		shallow = x * x * (3.0f - 2.0f * x);
 	}
 	auto evaluate = [&](int firstTerm) -> float {
-		const int omegaBase = firstTerm == 20 ? 56 : 58;
+		const int omegaBase = firstTerm == WATER_U_TARGET_TERMS ? WATER_U_TARGET_OMEGA : WATER_U_OLD_OMEGA;
 		float height = 0.0f;
 		for (int component = 0; component < geometryCount; ++component)
 		{
@@ -5194,8 +5194,9 @@ static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t positio
 		}
 		return height;
 	};
-	const float blend = Com_Clamp(0.0f, 1.0f, water[54][0]);
-	return (evaluate(44) + (evaluate(20) - evaluate(44)) * blend) * shoreAttenuation;
+	const float blend = Com_Clamp(0.0f, 1.0f, water[WATER_U_WIND + 2][0]);
+	return (evaluate(WATER_U_OLD_TERMS) +
+		(evaluate(WATER_U_TARGET_TERMS) - evaluate(WATER_U_OLD_TERMS)) * blend) * shoreAttenuation;
 }
 
 qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *query)
@@ -5405,16 +5406,16 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		R_WaterBuildWindWaveSet(fallback, dynamics, amplitude, wavelength, 0.0f, 0.0f, direction, set);
 		for (int i = 0; i < 8; ++i)
 		{
-			VectorCopy4(set.terms[i], water[20 + i]);
-			VectorCopy4(set.terms[i], water[44 + i]);
-			water[56 + i / 4][i & 3] = set.omega[i];
-			water[58 + i / 4][i & 3] = set.omega[i];
+			VectorCopy4(set.terms[i], water[WATER_U_TARGET_TERMS + i]);
+			VectorCopy4(set.terms[i], water[WATER_U_OLD_TERMS + i]);
+			water[WATER_U_TARGET_OMEGA + i / 4][i & 3] = set.omega[i];
+			water[WATER_U_OLD_OMEGA + i / 4][i & 3] = set.omega[i];
 		}
-		VectorSet4(water[53], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
-		water[54][0] = 1.0f;
+		VectorSet4(water[WATER_U_WIND + 1], set.direction[0], set.direction[1], set.direction[0], set.direction[1]);
+		water[WATER_U_WIND + 2][0] = 1.0f;
 	}
-	const int geometryComponents = body ? R_WaterGeometryComponentCount(*body, &water[20]) : 0;
-	VectorSet4(water[55], (float)geometryComponents, body ? body->geometryMaxEdge : 0.0f,
+	const int geometryComponents = body ? R_WaterGeometryComponentCount(*body, &water[WATER_U_TARGET_TERMS]) : 0;
+	VectorSet4(water[WATER_U_GEOMETRY], (float)geometryComponents, body ? body->geometryMaxEdge : 0.0f,
 		body ? body->geometryMaxEdge * 4.0f : 0.0f, 0.0f);
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];

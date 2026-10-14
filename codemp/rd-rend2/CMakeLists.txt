@@ -119,7 +119,9 @@ source_group("renderer" FILES ${MPRend2Files})
 file(GLOB MPRend2GLSLFiles "${SharedDir}/rd-rend2/glsl/*.glsl")
 # Keep newly added shader libraries visible to already-configured build trees;
 # the glob alone does not make CMake watch for new files.
-list(APPEND MPRend2GLSLFiles "${SharedDir}/rd-rend2/glsl/weather_lighting.glsl")
+list(APPEND MPRend2GLSLFiles
+	"${SharedDir}/rd-rend2/glsl/weather_lighting.glsl"
+	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl")
 list(REMOVE_DUPLICATES MPRend2GLSLFiles)
 source_group("renderer\\glsl" FILES ${MPRend2GLSLFiles})
 set(MPRend2Files ${MPRend2Files} ${MPRend2GLSLFiles})

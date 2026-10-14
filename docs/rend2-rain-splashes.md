@@ -306,7 +306,13 @@ Not measured: in-game GPU timings, screenshots, real maps.
 - Stair and step edges: up to half a weather texel of overhang at the upper step's height (see above). The real
   maps' texels are larger than the harness's (map size / 1024).
 - Only the rain slot splashes. Snow, sand and the rest keep the 24-byte path.
-- Moving geometry (movers, doors, entities) is not in the static occlusion map, the same as for the rain.
+- Moving geometry (movers, doors, entities) is not in the static occlusion map,
+  the same as for the rain. A dynamic-occluder overlay is deliberately not
+  planned: stock maps almost never put large moving roofs/doors in rain-critical
+  spaces, while maintaining a second depth overlay for particles, impacts,
+  wetness and the rain volume would add ongoing render and validation cost. If
+  a custom map makes this important, prefer explicit map authoring before a
+  renderer-wide dynamic path.
 - With portals or mirrors, the frame's first view sets the chunk slots, as for the simulation itself.
 - Toggling `r_rainSplashes` restarts the rain particles once (both layouts share the buffers).
 

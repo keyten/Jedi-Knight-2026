@@ -310,6 +310,13 @@ ambiguous bodies, and bounds crossing the eye plane, conservatively fall back to
 - The analytic in-scattering uses a constant light estimate (ambient + sun at half depth); froxel media in the volume
   are straight-ray segments, not refracted.
 
+Planar reflections are deliberately deferred rather than treated as a missing
+baseline feature. They require another scene render and are only clearly better
+for unusually calm, mirror-like water; current SSR history plus parallax-corrected
+cubemap fallback covers the normal game cases at much lower cost. Revisit them
+only as an optional Ultra/capture feature after profiling demonstrates a visible
+gap on target scenes.
+
 ## Caches and verification
 
 Geometry, model/brush links and per-shader flow-stage selection are retained for the map. Overrides update

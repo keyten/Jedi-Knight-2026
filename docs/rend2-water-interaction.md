@@ -98,9 +98,11 @@ void SetWaterSources(const refWaterSource_t *sources, int count);
 
 Both structures take world position, radius, strength, optional directional flag/vector, and a caller-defined diagnostic type. Moving sources also carry a stable caller ID, velocity, waterline width, vertical bounds, and foam amount. The renderer tests those bounds against the body-local displaced surface, rejecting fully submerged and airborne objects while retaining swimmers, floating vehicles, and shallow-water walkers. SP exposes matching cgame syscalls guarded by `cl_rendererWaterInteraction`; MP appends matching optional import callbacks. Existing `EV_WATER_TOUCH` and `EV_WATER_LEAVE` events submit nominal positive/negative impulses.
 
-Extension points require no solver changes:
+Event producers use the same world-space interface and require no solver changes:
 
-- rain: batch visible impact points as small one-shot impulses;
+- rain: real-water impacts currently use their own high-density GPU field. A
+  future sparse selection can use one-shot body impulses without changing the
+  API, but submitting every drop to this solver is intentionally avoided;
 - waterfall impact: keep a stable continuous source ID at the impact basin;
 - scripted effects/projectiles: call `AddWaterImpulse` with their world hit position, radius, energy, and direction;
 - spatial stream flow: replace the existing uniform `R_WaterFlowForBody` lookup with its planned body-local flow texture; the solver already consumes body-space flow advection.
@@ -204,5 +206,5 @@ Validated stock cases: `t2_rancor` indoor pools; `t3_hevil` outdoor multi-surfac
 - Body coordinates are world XY and currently target the existing mostly-horizontal modern-water eligibility. Vertical waterfall faces remain legacy; their impact basin should feed a horizontal body's source.
 - Allocation is per map and bounded, but body fields are image-manager resources until renderer restart, like other renderer-created images.
 - Mask resolution cannot preserve a channel narrower than one texel. Quality/budget controls determine that physical limit.
-- Gameplay water entry/leave, missile/thrown-saber crossings, and bounded moving-object wakes are wired. Rain and waterfall producers remain explicit extension points rather than guessed from shader names.
+- Gameplay water entry/leave, missile/thrown-saber crossings, bounded moving-object wakes, real-water rain and waterfall impacts are wired. High-density rain remains a separate statistical field by design; feeding every drop through the shallow-water solver would waste work without visible benefit.
 - Source texture upload is asynchronous on the tested driver and occurs only for dirty sources; `Water interaction fields` is the authoritative GPU timer for update/resolve work.

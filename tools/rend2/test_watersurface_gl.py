@@ -64,6 +64,13 @@ RGBA32F, RGBA16F, R32F = 0x8814, 0x881A, 0x822E
 DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8 = 0x88F0, 0x84F9, 0x84FA
 FB, READ_FB, DRAW_FB = 0x8D40, 0x8CA8, 0x8CA9
 WATER_VEC4S = 60
+WATER_SLOTS = {
+    'WATER_U_TARGET_TERMS': 20, 'WATER_U_FLOW': 28,
+    'WATER_U_BODY_MAPPING': 30, 'WATER_U_SHORELINE': 34,
+    'WATER_U_WATERFALL': 38, 'WATER_U_OLD_TERMS': 44,
+    'WATER_U_WIND': 52, 'WATER_U_GEOMETRY': 55,
+    'WATER_U_TARGET_OMEGA': 56, 'WATER_U_OLD_OMEGA': 58,
+}
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -98,7 +105,10 @@ def header(defines, size):
             f'#define r_FBufScale vec2({size[0]}.0, {size[1]}.0)\n#define USE_ALPHA_TEST\n')
     for d in defines:
         text += '#define ' + d.replace('=', ' ') + '\n'
-    return text + f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'
+    text += f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'
+    for name, slot in WATER_SLOTS.items():
+        text += f'#define {name} {slot}\n'
+    return text
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,

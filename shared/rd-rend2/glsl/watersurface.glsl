@@ -73,11 +73,11 @@ uniform sampler2D u_WaterInteractionMap;
 
 vec3 WaterShoreData(float encodedDistance)
 {
-	if (u_Water[34].x < 0.5 || u_Water[19].y < 0.5)
+	if (u_Water[WATER_U_SHORELINE].x < 0.5 || u_Water[19].y < 0.5)
 		return vec3(65504.0, 1.0, 0.0);
 	float distance = max(abs(encodedDistance) - 0.25, 0.0);
 	float rigid = step(encodedDistance, 0.0);
-	float width = max(u_Water[34].y, 1.0);
+	float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
 	float profileShore = clamp(u_Water[16].w, 0.0, 1.5);
 	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
 	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
@@ -88,10 +88,10 @@ vec3 WaterShoreData(float encodedDistance)
 
 float WaterInteractionHeight(vec3 worldPosition)
 {
-	if (u_Water[31].z < 0.5) return 0.0;
-	vec2 uv = (worldPosition.xy - u_Water[30].xy) * u_Water[30].zw;
+	if (u_Water[WATER_U_BODY_MAPPING + 1].z < 0.5) return 0.0;
+	vec2 uv = (worldPosition.xy - u_Water[WATER_U_BODY_MAPPING].xy) * u_Water[WATER_U_BODY_MAPPING].zw;
 	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 0.0;
-	vec4 field = texture(u_WaterInteractionMap, u_Water[33].xy + uv * u_Water[33].zw);
+	vec4 field = texture(u_WaterInteractionMap, u_Water[WATER_U_BODY_MAPPING + 3].xy + uv * u_Water[WATER_U_BODY_MAPPING + 3].zw);
 	return field.a > 0.5 ? field.r : 0.0;
 }
 
@@ -118,19 +118,19 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	vec4 oldTerms[8];
 	vec4 commonOmega[2];
 	vec4 oldOmega[2];
-	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
-	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
-	commonOmega[0] = u_Water[56]; commonOmega[1] = u_Water[57];
-	oldOmega[0] = u_Water[58]; oldOmega[1] = u_Water[59];
+	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[WATER_U_TARGET_TERMS + commonIndex];
+	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[WATER_U_OLD_TERMS + oldIndex];
+	commonOmega[0] = u_Water[WATER_U_TARGET_OMEGA]; commonOmega[1] = u_Water[WATER_U_TARGET_OMEGA + 1];
+	oldOmega[0] = u_Water[WATER_U_OLD_OMEGA]; oldOmega[1] = u_Water[WATER_U_OLD_OMEGA + 1];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, commonOmega, 1.0, u_Water[55].x);
-	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
+		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
+	float windBlend = clamp(u_Water[WATER_U_WIND + 2].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, oldOmega, 1.0, u_Water[55].x);
+			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 1.0, u_Water[WATER_U_GEOMETRY].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -162,7 +162,7 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		if (i >= count) break;
 		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 		float fi = float(component);
-		vec4 term = u_Water[20 + component]; // direction.xy, amplitude, wave number
+		vec4 term = u_Water[WATER_U_TARGET_TERMS + component]; // direction.xy, amplitude, wave number
 		vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude;
 		float k = term.w;
@@ -431,18 +431,21 @@ void main()
 //   [16] reserved XY bounds; [17] flow XY, mean brush depth, profile ID
 //   [18] debug, body ID, choppiness, wave multiplier;
 //   [19] legacy deform amplitude, geometry enabled, geometry debug, foam multiplier
-//   [20..27] precomputed analytic wave direction.xy, amplitude, wave number
-//   [28] resolved world flow velocity xyz, enabled
-//   [29] resolved speed, detail-advection scale, flow debug, packed source/confidence
+//   [WATER_U_TARGET_TERMS..+7] target analytic wave direction.xy, amplitude, wave number
+//   [WATER_U_FLOW] resolved world flow velocity xyz, enabled
+//   [WATER_U_FLOW+1] resolved speed, detail-advection scale, flow debug, packed source/confidence
+//   [WATER_U_BODY_MAPPING..+3] body UV mapping, interaction state/source and atlas rectangle
 //   [35] intersection foam enabled, world width, strength, debug mask
 //   [36] persistent foam field enabled, debug (1 concentration, 2 velocity, 3 sources), texel world size xy
 //   [37] whitewater enabled, optical strength, foam injection, debug (1 flow, 2 source, 3 result, 4 foam source)
-//   [38] waterfall enabled, quality, debug, mean sheet thickness
+//   [WATER_U_WATERFALL] waterfall enabled, quality, debug, mean sheet thickness
 //   [39] fall direction xyz, flow speed; [40] sheet normal xyz, inverse fall length
 //   [41] top coordinate, breakup, normal scale, aeration; [42] opacity/scattering, spray, impact, profile
-//   [55] resolved geometry-wave count, measured max top edge, 4x edge threshold, reserved
-//   [56..57] target wave temporal frequencies (components 0..7, four per vec4)
-//   [58..59] old wave temporal frequencies for wind crossfade
+//   [WATER_U_OLD_TERMS..+7] old analytic spectrum during a wind crossfade
+//   [WATER_U_WIND..+2] resolved/current/target wind and transition state
+//   [WATER_U_GEOMETRY] resolved geometry-wave count, measured max top edge, 4x edge threshold, reserved
+//   [WATER_U_TARGET_OMEGA..+1] target temporal frequencies (components 0..7)
+//   [WATER_U_OLD_OMEGA..+1] old temporal frequencies for wind crossfade
 //
 // USE_WATER_SNELL (r_waterSnell 1, a permutation: without it the prompt-1 program is unchanged): seen from inside the liquid, the surface is
 // the water -> air interface (eta = ior): Snell's window is the refraction of the scene above through it
@@ -582,19 +585,19 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 	vec4 oldTerms[8];
 	vec4 commonOmega[2];
 	vec4 oldOmega[2];
-	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[20 + commonIndex];
-	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[44 + oldIndex];
-	commonOmega[0] = u_Water[56]; commonOmega[1] = u_Water[57];
-	oldOmega[0] = u_Water[58]; oldOmega[1] = u_Water[59];
+	for (int commonIndex = 0; commonIndex < 8; ++commonIndex) commonTerms[commonIndex] = u_Water[WATER_U_TARGET_TERMS + commonIndex];
+	for (int oldIndex = 0; oldIndex < 8; ++oldIndex) oldTerms[oldIndex] = u_Water[WATER_U_OLD_TERMS + oldIndex];
+	commonOmega[0] = u_Water[WATER_U_TARGET_OMEGA]; commonOmega[1] = u_Water[WATER_U_TARGET_OMEGA + 1];
+	oldOmega[0] = u_Water[WATER_U_OLD_OMEGA]; oldOmega[1] = u_Water[WATER_U_OLD_OMEGA + 1];
 	WaterSurfaceCommonState commonState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 		vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-		vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), commonTerms, commonOmega, 2.0, u_Water[55].x);
-	float windBlend = clamp(u_Water[54].x, 0.0, 1.0);
+		vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), commonTerms, commonOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
+	float windBlend = clamp(u_Water[WATER_U_WIND + 2].x, 0.0, 1.0);
 	if (windBlend < 0.999)
 	{
 		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition, time, u_Water[13], u_Water[15],
 			vec4(u_Water[14].x, u_Water[14].y, u_Water[17].z, u_Water[18].z), u_Water[28],
-			vec4(u_Water[29].xy, u_Water[14].w, u_Water[29].w), oldTerms, oldOmega, 2.0, u_Water[55].x);
+			vec4(u_Water[WATER_U_FLOW + 1].xy, u_Water[14].w, u_Water[WATER_U_FLOW + 1].w), oldTerms, oldOmega, 2.0, u_Water[WATER_U_GEOMETRY].x);
 		commonState.displacement = mix(oldState.displacement, commonState.displacement, windBlend);
 		commonState.slope = mix(oldState.slope, commonState.slope, windBlend);
 		commonState.velocity = mix(oldState.velocity, commonState.velocity, windBlend);
@@ -626,7 +629,7 @@ WaterWaveState EvaluateWaterSurface(vec3 worldPosition, float time)
 		if (i >= count) break;
 		int component = count == 8 ? i : (i < count / 2 ? i : 4 + i - count / 2);
 		float fi = float(component);
-		vec4 term = u_Water[20 + component]; // direction.xy, amplitude, wave number
+		vec4 term = u_Water[WATER_U_TARGET_TERMS + component]; // direction.xy, amplitude, wave number
 		vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude;
 		float k = term.w;
@@ -1442,25 +1445,25 @@ void main()
 	roughness = mix(roughness, 0.88, persistentFoam);
 	roughness = mix(roughness, 0.78, whitewater);
 	alpha = roughness * roughness;
-	int windDebug = int(u_Water[54].y + 0.5);
+	int windDebug = int(u_Water[WATER_U_WIND + 2].y + 0.5);
 	if (windDebug > 0)
 	{
 		vec3 d = vec3(0.0);
 		if (windDebug == 1)
-			d = vec3(u_Water[52].xy * 0.5 + 0.5, clamp(u_Water[52].z, 0.0, 1.0));
+			d = vec3(u_Water[WATER_U_WIND].xy * 0.5 + 0.5, clamp(u_Water[WATER_U_WIND].z, 0.0, 1.0));
 		else if (windDebug == 2)
-			d = vec3(u_Water[53].xy * 0.5 + 0.5, 0.25);
+			d = vec3(u_Water[WATER_U_WIND + 1].xy * 0.5 + 0.5, 0.25);
 		else if (windDebug == 3)
-			d = vec3(u_Water[53].zw * 0.5 + 0.5, 0.75);
+			d = vec3(u_Water[WATER_U_WIND + 1].zw * 0.5 + 0.5, 0.75);
 		else
 		{
-			int source = int(u_Water[52].w + 0.5);
+			int source = int(u_Water[WATER_U_WIND].w + 0.5);
 			d = source == 1 ? vec3(1.0, 0.75, 0.08) :
 				(source == 2 ? vec3(0.1, 0.85, 1.0) :
 				(source == 3 ? vec3(0.2, 0.45, 1.0) :
 				(source == 4 ? vec3(0.65, 0.3, 1.0) : vec3(0.06))));
-			d *= 0.2 + 0.8 * u_Water[54].x;
-			if (u_Water[54].z < 0.5) d = mix(d, vec3(0.08), 0.75);
+		d *= 0.2 + 0.8 * u_Water[WATER_U_WIND + 2].x;
+		if (u_Water[WATER_U_WIND + 2].z < 0.5) d = mix(d, vec3(0.08), 0.75);
 		}
 		out_Color = vec4(LinearToScene(clamp(d, 0.0, 1.0)), sceneHere.a);
 		out_Glow = vec4(0.0);

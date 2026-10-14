@@ -6296,7 +6296,27 @@ MODERN WATER SURFACE, tr_watersurface.cpp
 ============================================================
 */
 
-#define WATER_UNIFORM_VEC4S 60
+// Stable u_Water[] ABI shared with watersurface.glsl. Keep the broad legacy
+// layout intact for GL 3.2, but name extensible ranges so new spectrum data
+// cannot silently overlap another feature. tr_glsl.cpp exports these values
+// to GLSL from this source of truth.
+enum waterUniformSlot_t
+{
+	WATER_U_TARGET_TERMS = 20,
+	WATER_U_FLOW = 28,
+	WATER_U_BODY_MAPPING = 30,
+	WATER_U_SHORELINE = 34,
+	WATER_U_WATERFALL = 38,
+	WATER_U_OLD_TERMS = 44,
+	WATER_U_WIND = 52,
+	WATER_U_GEOMETRY = 55,
+	WATER_U_TARGET_OMEGA = 56,
+	WATER_U_OLD_OMEGA = 58,
+	WATER_UNIFORM_VEC4S = 60
+};
+static_assert(WATER_U_TARGET_TERMS + 8 <= WATER_U_FLOW, "target water spectrum overlaps flow data");
+static_assert(WATER_U_OLD_TERMS + 8 <= WATER_U_WIND, "old water spectrum overlaps wind data");
+static_assert(WATER_U_OLD_OMEGA + 2 == WATER_UNIFORM_VEC4S, "water frequencies must end the ABI");
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u
