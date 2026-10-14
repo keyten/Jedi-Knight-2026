@@ -2281,7 +2281,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			VectorCopy4(pStage->specularScale, specularScale);
 		uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARSCALE, specularScale);
 		uniformDataWriter.SetUniformVec4(UNIFORM_PBRMATERIAL,
-			(float)pStage->pbrMaterialVersion, (float)r_pbrLegacyRoughness->integer, 0.0f, 0.0f);
+			(float)pStage->pbrMaterialVersion, (float)r_pbrLegacyRoughness->integer,
+			(float)r_brdfEnergyCompensation->integer, 0.0f);
 
 		// r_autoPBRDebug: lightall stages show their material, lit stages still
 		// on the vertex lit generic path show up red (generic.glsl)
@@ -2545,6 +2546,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 						image_t *orms = R_AutoPBRRoughnessImage(pStage);
 						samplerBindingsWriter.AddStaticImage(orms ? orms : tr.whiteImage, TB_SPECULARMAP);
 					}
+					// The standard GGX energy term is shared by direct, LTC, cubemap
+					// and SSR paths, including draws which have no environment source.
+					if (r_specularMapping->integer)
+						samplerBindingsWriter.AddStaticImage(tr.envBrdfImage, TB_ENVBRDFMAP);
 
 					if (enableCubeMaps)
 					{
@@ -2552,7 +2557,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 						cubemap_t *cubemap = &tr.cubemaps[input->cubemapIndex - 1];
 
 						samplerBindingsWriter.AddStaticImage(cubemap->image, TB_CUBEMAP);
-						samplerBindingsWriter.AddStaticImage(tr.envBrdfImage, TB_ENVBRDFMAP);
 						enableTextures[3] = 1.0f;
 
 						VectorSubtract(cubemap->origin, backEnd.viewParms.ori.origin, vec);
@@ -2562,13 +2566,6 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 						uniformDataWriter.SetUniformVec4(UNIFORM_CUBEMAPINFO, vec);
 					}
-					else if (R_SSRResourcesEnabled())
-					{
-						// lightall computes the specular reflectance for SSR
-						// even without a cubemap
-						samplerBindingsWriter.AddStaticImage(tr.envBrdfImage, TB_ENVBRDFMAP);
-					}
-
 					// screen-space AO (r) and sun contact shadow (g) of this
 					// view, see RB_RenderScreenSpaceLighting
 					if (R_AOResourcesEnabled())

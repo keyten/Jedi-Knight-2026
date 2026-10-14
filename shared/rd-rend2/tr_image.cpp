@@ -4747,6 +4747,10 @@ static void R_CreateFogImage( void ) {
 ================
 R_CreateEnvBrdfLUT
 based on https://github.com/knarkowicz/IntegrateDFG
+
+x = perceptual roughness, y = NoV. RGB = Schlick scale, Schlick bias,
+Charlie/Neubelt cloth. For GGX, scale + bias is the F0=1 directional albedo
+used by the multiple-scattering compensation in lightall.glsl.
 ================
 */
 static void R_CreateEnvBrdfLUT(void) {
@@ -4754,9 +4758,6 @@ static void R_CreateEnvBrdfLUT(void) {
 
 	static const int LUT_WIDTH = 128;
 	static const int LUT_HEIGHT = 128;
-
-	if (!r_cubeMapping->integer)
-		return;
 
 	// Keep the map-independent integration result across soft renderer restarts.
 	// The GL texture itself is recreated with the rest of the image pool.
@@ -4856,7 +4857,7 @@ static void R_CreateEnvBrdfLUT(void) {
 	}
 
 	tr.envBrdfImage = R_CreateImage(
-		"*envBrdfLUT_GGX2",
+		"*envBrdfLUT_GGX_MS1",
 		(byte*)data,
 		LUT_WIDTH,
 		LUT_HEIGHT,

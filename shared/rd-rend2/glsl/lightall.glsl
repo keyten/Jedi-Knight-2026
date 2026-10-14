@@ -776,11 +776,11 @@ uniform sampler2D u_SSAOMap;
 uniform sampler2DArrayShadow u_ShadowMap2;
 #endif
 
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP)
+uniform sampler2D u_EnvBrdfMap;
+#endif
 #if defined(USE_CUBEMAP)
 uniform samplerCube u_CubeMap;
-uniform sampler2D u_EnvBrdfMap;
-#elif defined(USE_SSR)
-uniform sampler2D u_EnvBrdfMap;
 #endif
 #if defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
 uniform samplerCube u_DiffuseIrradianceMap;
@@ -802,6 +802,8 @@ uniform vec4 u_MaterialDebug;
 // x: materialType (0 standard, 1 hair, 2 eye), y: materialMap present,
 // z: hair anisotropy, w: r_materialModelDebug
 uniform vec4 u_MaterialModel;
+// x: material semantic version, y: legacy roughness migration,
+// z: r_brdfEnergyCompensation (runtime A/B), w: unused
 uniform vec4 u_PBRMaterial;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 #if defined(USE_SPECULAR_AA) && defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
@@ -1731,9 +1733,29 @@ vec3 Diff_Burley(float roughness, float NoV, float NoL, float LoH)
 	return lightScatter * viewScatter * (1.0 / M_PI);
 }
 
+// Lagarde/Turquin scaled-lobe approximation as used by Filament.  This LUT
+// stores the classic Schlick scale/bias decomposition, so scale + bias is the
+// directional albedo r of an F0=1 single-scatter GGX lobe.  The RGB factor is
+// evaluated once per surface and reused by every direct and indirect source.
+vec3 GgxEnergyCompensation(in vec3 F0, in vec2 dfg, in float enabled)
+{
+	float r = clamp(dfg.x + dfg.y, 1e-4, 1.0);
+	vec3 compensation = vec3(1.0) + clamp(F0, 0.0, 1.0) * (1.0 / r - 1.0);
+	return mix(vec3(1.0), compensation, clamp(enabled, 0.0, 1.0));
+}
+
+vec3 GgxDiffuseTransmission(in vec3 F0, in vec2 dfg,
+	in vec3 compensation, in float enabled)
+{
+	vec3 singleScatterAlbedo = clamp(F0, 0.0, 1.0) * dfg.x + dfg.y;
+	vec3 remaining = vec3(1.0) - clamp(singleScatterAlbedo * compensation, 0.0, 1.0);
+	return mix(vec3(1.0), remaining, clamp(enabled, 0.0, 1.0));
+}
+
 // http://www.frostbite.com/2014/11/moving-frostbite-to-pbr/
 vec3 CalcSpecular(
 	in vec3 specular,
+	in vec3 energyCompensation,
 	in float NH,
 	in float NL,
 	in float NE,
@@ -1756,7 +1778,7 @@ vec3 CalcSpecular(
 	float V = V_Neubelt(NE, NL);
 #endif
 
-	return D * F * V;
+	return D * F * V * energyCompensation;
 }
 
 // Practical anisotropic GGX for hair cards/shells.  The mesh UV tangent is
@@ -1789,6 +1811,7 @@ vec3 CalcHairSpecular(
 
 vec3 CalcMaterialSpecular(
 	in vec3 specular,
+	in vec3 energyCompensation,
 	in vec3 N,
 	in vec3 T,
 	in vec3 H,
@@ -1800,7 +1823,7 @@ vec3 CalcMaterialSpecular(
 	in float perceptualRoughness,
 	in float materialMask)
 {
-	vec3 isotropic = CalcSpecular(specular, NH, NL, NE, LH, VH, perceptualRoughness);
+	vec3 isotropic = CalcSpecular(specular, energyCompensation, NH, NL, NE, LH, VH, perceptualRoughness);
 	if (int(u_MaterialModel.x + 0.5) != 1 || materialMask <= 0.0)
 		return isotropic;
 	vec3 hair = CalcHairSpecular(specular, N, T, H, NL, NE, VH,
@@ -2174,6 +2197,7 @@ struct DLightSurface
 	float NE;
 	vec3  diffuse;
 	vec3  specular;
+	vec3  energyCompensation;
 	#if defined(USE_GGX_SPECULAR_AA)
 	float materialPerceptualRoughness;
 	#endif
@@ -2433,7 +2457,7 @@ vec3 EvaluateDynamicLight(
 	  #if defined(USE_SPECULARMAP)
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
-	vec3 specularLight = lightColor * CalcMaterialSpecular(s.specular, s.N, s.materialT,
+	vec3 specularLight = lightColor * CalcMaterialSpecular(s.specular, s.energyCompensation, s.N, s.materialT,
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask) * attenuation * NL;
 	lit += specularLight;
 	if (int(u_MaterialModel.x + 0.5) != 0)
@@ -2444,7 +2468,7 @@ vec3 EvaluateDynamicLight(
 	#if defined(USE_SPECULARMAP)
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
-	vec3 specularBrdf = CalcMaterialSpecular(s.specular, s.N, s.materialT,
+	vec3 specularBrdf = CalcMaterialSpecular(s.specular, s.energyCompensation, s.N, s.materialT,
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask);
 	reflectance += specularBrdf;
 	if (int(u_MaterialModel.x + 0.5) != 0)
@@ -2773,8 +2797,8 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		vec4 t1 = texture(u_LtcMatrixMap, uv);
 		vec4 t2 = texture(u_LtcAmplitudeMap, uv);
 		cache.Minv = t1;
-		cache.fresnel = s.specular * t2.x + (1.0 - s.specular) * t2.y *
-			clamp(50.0 * s.specular.g, 0.0, 1.0);
+		cache.fresnel = (s.specular * t2.x + (1.0 - s.specular) * t2.y *
+			clamp(50.0 * s.specular.g, 0.0, 1.0)) * s.energyCompensation;
 #endif
 		cache.ready = true;
 	}
@@ -2821,7 +2845,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		float LH = clamp(dot(L, H), 0.0, 1.0);
 		float VH = clamp(dot(s.E, H), 0.0, 1.0);
 		specularOut = radiance * M_PI * formFactor * CalcMaterialSpecular(
-			s.specular, N, s.materialT, H, NH, NL, s.NE, LH, VH,
+			s.specular, s.energyCompensation, N, s.materialT, H, NH, NL, s.NE, LH, VH,
 			s.perceptualRoughness, s.materialMask);
 	}
 	else
@@ -2834,7 +2858,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	vec3 L = normalize(closest - s.position);
 	vec3 H = normalize(L + s.E);
 	float NL = clamp(dot(N, L), 0.0, 1.0);
-	specularOut = radiance * M_PI * formFactor * CalcSpecular(s.specular,
+	specularOut = radiance * M_PI * formFactor * CalcSpecular(s.specular, vec3(1.0),
 		clamp(dot(N, H), 0.0, 1.0), NL, s.NE, clamp(dot(L, H), 0.0, 1.0),
 		clamp(dot(s.E, H), 0.0, 1.0), s.perceptualRoughness);
 	#endif
@@ -2914,6 +2938,7 @@ vec3 CalcDynamicLightContribution(
 	in float NE,
 	in vec3 diffuse,
 	in vec3 specular,
+	in vec3 energyCompensation,
 	in vec3 materialT,
 	in float materialMask,
 	in vec3 vertexNormal)
@@ -2927,6 +2952,7 @@ vec3 CalcDynamicLightContribution(
 	s.NE = NE;
 	s.diffuse = diffuse;
 	s.specular = specular;
+	s.energyCompensation = energyCompensation;
 	#if defined(USE_GGX_SPECULAR_AA)
 	s.materialPerceptualRoughness = materialPerceptualRoughness;
 	#endif
@@ -3243,19 +3269,19 @@ float luma(vec3 color)
 	return dot(color, weight);
 }
 
-// Specular IBL weight W: the factor applied to the cubemap radiance
-// (F0 * EnvBRDF.x + EnvBRDF.y). SSR replaces cubemap radiance with
-// screen-space radiance under the same W, so it is computed once.
-vec3 SpecularIBLWeight(in float perceptualRoughness, in float NE, in vec3 specular)
+// Specular IBL weight W: the factor applied to the cubemap radiance,
+// (F0 * EnvBRDF.x + EnvBRDF.y) * energyCompensation. SSR replaces cubemap
+// radiance with screen-space radiance under the same W, so it is computed once.
+vec3 SpecularIBLWeight(in vec3 envBrdf, in vec3 specular,
+	in vec3 energyCompensation)
 {
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP) && (defined(USE_CUBEMAP) || defined(USE_SSR))
 	// Base BRDF
 	#if !defined(USE_CLOTH_BRDF)
-		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(perceptualRoughness, NE)).rg;
-		return specular.rgb * EnvBRDF.x + EnvBRDF.y;
+		return (specular.rgb * envBrdf.x + envBrdf.y) * energyCompensation;
 	// Cloth BRDF
 	#else
-		return vec3(texture(u_EnvBrdfMap, vec2(perceptualRoughness, NE)).b);
+		return vec3(envBrdf.b);
 	#endif
 #else
 	return vec3(0.0);
@@ -3296,12 +3322,14 @@ vec3 CalcIBLContribution(
 	in vec3 viewDir,
 	in float NE,
 	in vec3 specular,
+	in vec3 envBrdf,
+	in vec3 energyCompensation,
 	in vec3 lighting
 )
 {
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_CUBEMAP) && defined(USE_SPECULARMAP)
 	return CalcIBLRadiance(perceptualRoughness, N, E, viewOrigin, viewDir, lighting) *
-		SpecularIBLWeight(perceptualRoughness, NE, specular);
+		SpecularIBLWeight(envBrdf, specular, energyCompensation);
 #else
 	return vec3(0.0);
 #endif
@@ -4533,6 +4561,25 @@ void main()
 	}
   #endif
 
+	// The DFG fetch is material/view state, not light state.  Reuse it for the
+	// direct scaled lobe, LTC, cubemap and SSR.  Hair and eye are deliberately
+	// excluded even though they reuse parts of the GGX implementation; cloth is
+	// a separate Charlie lobe and water is a separate shader.
+	float NE = abs(dot(N, E)) + 1e-5;
+	vec3 envBrdf = vec3(0.0);
+	vec3 energyCompensation = vec3(1.0);
+  #if defined(USE_SPECULARMAP)
+	envBrdf = texture(u_EnvBrdfMap, vec2(roughness, NE)).rgb;
+    #if !defined(USE_CLOTH_BRDF)
+	float standardEnergy = u_PBRMaterial.z *
+		(int(u_MaterialModel.x + 0.5) == 0 ? 1.0 : 0.0);
+	energyCompensation = GgxEnergyCompensation(specular.rgb, envBrdf.rg,
+		standardEnergy);
+	diffuse.rgb *= GgxDiffuseTransmission(specular.rgb, envBrdf.rg,
+		energyCompensation, standardEnergy);
+    #endif
+  #endif
+
 	// Environment reflections. Legacy application: the F0 term is scaled by AO
 	// and the cubemap brightness follows the AO'd lighting (kept bit exact for
 	// A/B). Indirect-only: the whole IBL result is scaled by the specular
@@ -4607,7 +4654,6 @@ void main()
 #endif
 
 	vec3  H  = normalize(L + E);
-	float NE = abs(dot(N, E)) + 1e-5;
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	float LH = clamp(dot(L, H), 0.0, 1.0);
 
@@ -4622,14 +4668,14 @@ void main()
   #if defined(USE_LIGHT_VECTOR)
 	float NH = clamp(dot(N, H), 0.0, 1.0);
 	float VH = clamp(dot(E, H), 0.0, 1.0);
-	Fs = CalcMaterialSpecular(specular.rgb, N, materialT, H, NH, NL, NE,
+	Fs = CalcMaterialSpecular(specular.rgb, energyCompensation, N, materialT, H, NH, NL, NE,
 		LH, VH, roughness, materialMask);
   #endif
 
   #if ((defined(USE_LIGHTMAP) && defined(USE_DELUXEMAP)) || defined(USE_LIGHT_VERTEX)) && defined(r_deluxeSpecular)
 	float NH = clamp(dot(N, H), 0.0, 1.0);
 	float VH = clamp(dot(E, H), 0.0, 1.0);
-	Fs = CalcMaterialSpecular(specular.rgb, N, materialT, H, NH, NL, NE,
+	Fs = CalcMaterialSpecular(specular.rgb, energyCompensation, N, materialT, H, NH, NL, NE,
 		LH, VH, roughness, materialMask) * r_deluxeSpecular;
   #endif
   #endif
@@ -4654,11 +4700,12 @@ void main()
 		materialRoughness,
   #endif
 		roughness, N, E, u_ViewOrigin,
-		viewDir, NE, diffuse.rgb, specular.rgb, materialT, materialMask, vertexNormal);
+		viewDir, NE, diffuse.rgb, specular.rgb, energyCompensation,
+		materialT, materialMask, vertexNormal);
 	out_Color.rgb += dynamicLight;
 #if defined(USE_SSR)
 	// one EnvBRDF lookup for the cubemap and the SSR weight
-	vec3 iblWeight = SpecularIBLWeight(roughness, NE, specularAO);
+	vec3 iblWeight = SpecularIBLWeight(envBrdf, specularAO, energyCompensation);
 	vec3 cubemapReflection = CalcIBLRadiance(roughness, N, E, u_ViewOrigin, viewDir, iblLighting) * iblWeight * specOcclusion;
 	out_Color.rgb += cubemapReflection;
 	if (materialType != 0)
@@ -4673,7 +4720,7 @@ void main()
   #endif
 #else
 	vec3 iblSpecular = CalcIBLContribution(roughness, N, E, u_ViewOrigin,
-		viewDir, NE, specularAO, iblLighting) * specOcclusion;
+		viewDir, NE, specularAO, envBrdf, energyCompensation, iblLighting) * specOcclusion;
 	out_Color.rgb += iblSpecular;
 	if (materialType != 0)
 		g_materialSpecular += iblSpecular;
@@ -4689,7 +4736,7 @@ void main()
 	float L2H2 = clamp(dot(L2, H2), 0.0, 1.0);
 	float NH2  = clamp(dot(N,  H2), 0.0, 1.0);
 	float VH2  = clamp(dot(E, H2), 0.0, 1.0);
-	vec3 sunSpecular = CalcMaterialSpecular(specular.rgb, N, materialT, H2, NH2,
+	vec3 sunSpecular = CalcMaterialSpecular(specular.rgb, energyCompensation, N, materialT, H2, NH2,
 		NL2, NE, L2H2, VH2, roughness, materialMask);
     #if defined(USE_SKIN_SSS)
     #if defined(USE_GGX_SPECULAR_AA)

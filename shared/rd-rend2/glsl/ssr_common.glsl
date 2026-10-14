@@ -10,7 +10,7 @@
 // Attachments of renderFbo, written by the opaque lightall stages:
 //   u_SSRNormalMap    RGB10_A2  rg = octahedral world normal, b = roughness, a = SSR receiver (shared:
 //                               with USE_SSGI every lit opaque lightall fragment writes its normal)
-//   u_SSRSpecularMap  RGB10_A2  rgb = sqrt(W), W = specular IBL weight (F0 * EnvBRDF.x + EnvBRDF.y), SSR
+//   u_SSRSpecularMap  RGB10_A2  rgb = sqrt(W), W = compensated specular IBL weight, SSR
 //   u_SSRCubemapMap   RGBA16F   rgb = cubemap reflection C that lightall added, a = view depth, SSR
 //   u_SSGIAlbedoMap   RGBA8     rgb = sRGB encoded diffuse albedo (no diffuse lobe of metals), a = GI receiver
 //   u_SSGIRadianceMap RGBA16F   rgb = linear GI source radiance (dynamic diffuse / emissive), a = view depth

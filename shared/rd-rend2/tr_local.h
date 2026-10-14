@@ -650,6 +650,7 @@ extern cvar_t  *r_grassTrampleRecovery;
 extern cvar_t  *r_autoPBRConvert;
 extern cvar_t  *r_autoPBRRoughness;
 extern cvar_t  *r_diffuseBRDF;
+extern cvar_t  *r_brdfEnergyCompensation;
 extern cvar_t  *r_specularAA;
 extern cvar_t  *r_specularAAStrength;
 extern cvar_t  *r_specularAAMaxAdded;
@@ -2634,7 +2635,7 @@ typedef enum
 
 	UNIFORM_ENABLETEXTURES,
 	UNIFORM_EMISSIVEPARAMS, // rgb = scale; |w| = 0 off, 1 explicit, 2 auto source; sign = legacy/linear scene
-	UNIFORM_PBRMATERIAL, // x = semantic version (1 legacy, 2 perceptual), y = migrate legacy
+	UNIFORM_PBRMATERIAL, // x = semantic version, y = migrate legacy roughness, z = GGX energy compensation
 
 	UNIFORM_DIFFUSETEXMATRIX,
 	UNIFORM_DIFFUSETEXOFFTURB,

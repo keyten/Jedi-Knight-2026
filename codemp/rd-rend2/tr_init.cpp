@@ -551,6 +551,7 @@ cvar_t  *r_grassTrampleRecovery;
 cvar_t  *r_autoPBRConvert;
 cvar_t  *r_autoPBRRoughness;
 cvar_t  *r_diffuseBRDF;
+cvar_t  *r_brdfEnergyCompensation;
 cvar_t  *r_specularAA;
 cvar_t  *r_specularAAStrength;
 cvar_t  *r_specularAAMaxAdded;
@@ -2656,6 +2657,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_autoPBRRoughness, 0, 1, qtrue );
 	r_diffuseBRDF = ri.Cvar_Get( "r_diffuseBRDF", "0", CVAR_ARCHIVE, "Standard PBR diffuse BRDF: 0 = Lambert, 1 = Burley/Disney" );
 	ri.Cvar_CheckRange( r_diffuseBRDF, 0, 1, qtrue );
+	r_brdfEnergyCompensation = ri.Cvar_Get( "r_brdfEnergyCompensation", "1", CVAR_ARCHIVE, "Multiple-scattering energy compensation for the standard GGX BRDF; 0 restores legacy single scattering" );
+	ri.Cvar_CheckRange( r_brdfEnergyCompensation, 0, 1, qtrue );
 	r_specularAA = ri.Cvar_Get( "r_specularAA", "1", CVAR_ARCHIVE | CVAR_LATCH, "Derivative and normal-mip variance filtering for GGX specular; vid_restart to compile it in" );
 	ri.Cvar_CheckRange( r_specularAA, 0, 1, qtrue );
 	r_specularAAStrength = ri.Cvar_Get( "r_specularAAStrength", "0.15", CVAR_ARCHIVE, "Specular AA normal variance scale (0..0.25)" );

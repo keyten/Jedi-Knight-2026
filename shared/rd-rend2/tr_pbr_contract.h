@@ -155,6 +155,15 @@ inline float FresnelSchlick(float F0, float F90, float VoH)
 	return F0 + (F90 - F0) * x2 * x2 * x;
 }
 
+// Practical multiple-scattering compensation used by lightall.glsl.  r is
+// the directional albedo of the F0=1 single-scatter GGX lobe (DFG scale+bias).
+inline float GgxEnergyCompensation(float F0, float r)
+{
+	F0 = std::max(0.0f, std::min(1.0f, F0));
+	r = std::max(1.0e-4f, std::min(std::isfinite(r) ? r : 1.0f, 1.0f));
+	return 1.0f + F0 * (1.0f / r - 1.0f);
+}
+
 // Converts the old radius-driven point light once at ingestion.  At half the
 // old radius its unoccluded irradiance equals legacyReferenceScene.
 inline float LegacyRadiusToSceneCandela(float radiusWorld, float worldUnitsPerMeter,
