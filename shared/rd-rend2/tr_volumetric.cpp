@@ -2346,11 +2346,14 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		4.0f);	// history radiance clamped to [current / 4, current * 4]
 
 	const float globalAnisotropy = Com_Clamp(-0.9f, 0.9f, r_volumetricFogAnisotropy->value);
+	// r_staticLightDebug 4 / r_lightPortalDebug 3: only the recovered lights / only the portal shafts,
+	// so the baked field and the sun go (their colours are scaled on the CPU, not by these)
+	const qboolean exactOnly = (qboolean)(r_staticLightDebug->integer == 4 || r_lightPortalDebug->integer == 3);
 	VectorSet4(block.lightParams,
 		globalAnisotropy,
-		r_volumetricFogSunScale->value,
+		exactOnly ? 0.0f : r_volumetricFogSunScale->value,
 		r_volumetricFogDlightScale->value,
-		r_volumetricFogStaticScale->value);
+		exactOnly ? 0.0f : r_volumetricFogStaticScale->value);
 
 	// sun: realtime with the cascaded shadow maps rendered for this view,
 	// otherwise the baked sun part of the light grid

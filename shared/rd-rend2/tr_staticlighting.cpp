@@ -540,6 +540,10 @@ Debug: r_staticLightDebug
 */
 
 qhandle_t RE_RegisterShaderFromImage(const char *name, const int *lightmapIndexes, const byte *styles, image_t *image, qboolean mipRawImage);
+extern int r_numpolys;	// tr_scene.cpp
+
+// scene polys left to the game (marks, effects) when the debug markers stop
+#define STATIC_DEBUG_POLY_RESERVE 64
 
 // a camera facing line quad (as R_SpotDebugSegment)
 static void R_StaticDebugSegment( qhandle_t shader, const refdef_t *fd, const vec3_t a, const vec3_t b, const byte *rgba )
@@ -598,12 +602,33 @@ void R_StaticLightsBeginScene( const refdef_t *fd )
 	static const vec3_t axes[3] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 	const int level = r_staticLightDebug->integer;
 
-	for ( const staticLight_t& sl : s_sl.lights )
+	// the scene poly budget is small (max_polys, at most DEFAULT_MAX_POLYS) and a marker takes up to
+	// ~125 quads: nearest lights in front of the view first, stop before the budget runs out
+	std::vector<std::pair<float, int>> order;
+	order.reserve(s_sl.lights.size());
+	for ( size_t k = 0; k < s_sl.lights.size(); k++ )
 	{
+		const vrStaticLight& l = s_sl.lights[k].light;
+		if ( level == 3 && !(l.flags & VR_LIGHT_PROMOTED) )
+			continue;
+		vec3_t d;
+		VectorSubtract(l.origin, fd->vieworg, d);
+		const float extent = l.kind == VR_LIGHT_RECT ? Q_max(l.halfWidth, l.halfHeight) : (level == 2 ? l.radius : 16.0f);
+		if ( DotProduct(d, fd->viewaxis[0]) < -extent )
+			continue;
+		order.push_back(std::make_pair(VectorLength(d), (int)k));
+	}
+	std::sort(order.begin(), order.end());
+
+	for ( const std::pair<float, int>& entry : order )
+	{
+		const staticLight_t& sl = s_sl.lights[entry.second];
 		const vrStaticLight& l = sl.light;
 		const qboolean promoted = (qboolean)((l.flags & VR_LIGHT_PROMOTED) != 0);
-		if ( level == 3 && !promoted )
-			continue;
+		const int cost = l.kind == VR_LIGHT_RECT ? 4 : 3 + (l.kind != VR_LIGHT_TRANSPORT ? 72 : 0) +
+			(l.kind == VR_LIGHT_SPOT ? 29 : 0) + (level == 2 ? 48 : 0);
+		if ( r_numpolys + cost > max_polys - STATIC_DEBUG_POLY_RESERVE )
+			break;
 		const byte *color = l.kind == VR_LIGHT_RECT ? areaColor : l.kind == VR_LIGHT_TRANSPORT ? transportColor :
 			promoted ? promotedColor : (l.flags & VR_LIGHT_PHYSICAL) ? physicalColor : uncertainColor;
 		const float size = 12.0f;
@@ -681,6 +706,8 @@ void R_StaticLightPortalsBeginScene( const refdef_t *fd )
 	for ( const staticLightPortal_t& sp : s_sl.portals )
 	{
 		const vrLightPortal& p = sp.portal;
+		if ( r_numpolys + 7 > max_polys - STATIC_DEBUG_POLY_RESERVE )
+			break;
 		const byte *color = (p.flags & VR_PORTAL_SKY) ? skyColor : (p.flags & VR_PORTAL_PROMOTED) ? promotedColor : plainColor;
 		vec3_t c[4];
 		for ( int k = 0; k < 4; k++ )

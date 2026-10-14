@@ -2534,7 +2534,7 @@ static void CG_InsertWaterWake( waterWakeCandidate_t *list, int *count, int limi
 	int id, const vec3_t origin, const vec3_t mins, const vec3_t maxs,
 	const vec3_t velocity, float distance2 )
 {
-	const float width = MAX( maxs[0] - mins[0], maxs[1] - mins[1] );
+	const float width = Q_max( maxs[0] - mins[0], maxs[1] - mins[1] );
 	waterWakeCandidate_t item;
 	int slot;
 	float speed, foamThreshold;
@@ -2549,8 +2549,8 @@ static void CG_InsertWaterWake( waterWakeCandidate_t *list, int *count, int limi
 	item.source.radius = width * 0.5f;
 	item.source.width = width;
 	item.source.boundsMinZ = mins[2]; item.source.boundsMaxZ = maxs[2];
-	item.source.strength = speed >= r_waterWakeMinSpeed.value ? MAX( 0.0f, r_waterWakeStrength.value ) : 0.0f;
-	foamThreshold = MAX( r_waterWakeFoamSpeed.value, r_waterWakeMinSpeed.value + 1.0f );
+	item.source.strength = speed >= r_waterWakeMinSpeed.value ? Q_max( 0.0f, r_waterWakeStrength.value ) : 0.0f;
+	foamThreshold = Q_max( r_waterWakeFoamSpeed.value, r_waterWakeMinSpeed.value + 1.0f );
 	item.source.foam = speed > foamThreshold ?
 		0.05f * Com_Clamp( 0.0f, 1.0f, (speed - foamThreshold) / foamThreshold ) : 0.0f;
 	item.distance2 = distance2;
