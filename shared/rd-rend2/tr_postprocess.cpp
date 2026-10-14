@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "tr_local.h"
+#include "tr_camera.h"
 
 /*
 =============
@@ -44,6 +45,69 @@ void RB_GetToneMapParams(vec4_t params)
 
 	// Gain in scene-linear light for the scene-referred operators
 	params[3] = powf(2.0f, ev);
+}
+
+/*
+=============
+RB_GetCameraParams
+
+Physical camera state for the shared output transform.  overbrightBits is
+represented only as a scene-buffer decoding correction; it is not part of
+EV100 and does not alter the photographic camera settings.
+=============
+*/
+void RB_GetCameraParams(vec4_t params, vec4_t autoParams)
+{
+	const int mode = Com_Clampi(Rend2Camera::CAMERA_LEGACY,
+		Rend2Camera::CAMERA_PHYSICAL_AUTO, r_cameraMode->integer);
+	params[0] = (float)mode;
+	params[1] = Rend2Camera::EV100(r_cameraISO->value,
+		r_cameraAperture->value, r_cameraShutterSeconds->value);
+	params[2] = r_pbrPhysicalToScene->value;
+	params[3] = tr.linearLight ? (float)tr.overbrightBits :
+		2.2f * (float)tr.overbrightBits;
+
+	autoParams[0] = r_cameraAutoEVMin->value;
+	autoParams[1] = r_cameraAutoEVMax->value;
+	autoParams[2] = Rend2Camera::kSaturationCalibration;
+	autoParams[3] = Rend2Camera::kReflectedLightMeterK;
+}
+
+float RB_GetCameraBufferGain(void)
+{
+	const float legacyCameraEV = r_cameraMode->integer == Rend2Camera::CAMERA_LEGACY ?
+		r_cameraExposure->value : 0.0f;
+	return powf(2.0f, legacyCameraEV + tr.overbrightBits);
+}
+
+static void RB_CameraDebug(const float encodedLevels[4])
+{
+	static int lastPrintTime;
+	const int now = ri.Milliseconds();
+	if (!r_cameraDebug->integer || now - lastPrintTime < 1000)
+		return;
+	lastPrintTime = now;
+
+	const float logBufferLum = encodedLevels[1] * 48.0f - 24.0f;
+	const float logSceneLum = (tr.linearLight ? logBufferLum : 2.2f * logBufferLum) +
+		(tr.linearLight ? (float)tr.overbrightBits : 2.2f * (float)tr.overbrightBits);
+	const float sceneLum = exp2f(logSceneLum);
+	const float physicalLum = sceneLum / r_pbrPhysicalToScene->value;
+	const float manualEV = Rend2Camera::EV100(r_cameraISO->value,
+		r_cameraAperture->value, r_cameraShutterSeconds->value);
+	const float targetEV = r_cameraMode->integer == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
+		Rend2Camera::AutoEV100(physicalLum, r_cameraAutoEVMin->value,
+			r_cameraAutoEVMax->value) : manualEV;
+	const float finalExposure = Rend2Camera::SceneExposure(targetEV,
+		r_pbrPhysicalToScene->value, r_exposureCompensation->value);
+	const char *modeName = r_cameraMode->integer == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
+		"physical-auto" : "physical-manual";
+
+	ri.Printf(PRINT_ALL,
+		"camera: %s ISO %.0f f/%.2f %.6fs EV100 %.2f comp %+.2f EV | meter %.4f cd/m^2 auto-target %.2f EV100 exposure %.8g\n",
+		modeName, r_cameraISO->value, r_cameraAperture->value,
+		r_cameraShutterSeconds->value, manualEV, r_exposureCompensation->value,
+		physicalLum, targetEV, finalExposure);
 }
 
 /*
@@ -78,8 +142,21 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	vec4i_t srcBox, dstBox;
 	vec4_t color;
 	static int lastFrameCount = 0;
+	static int lastMeterCameraMode = -1;
+	static qboolean warnedCameraExposure = qfalse;
+	const qboolean physicalCamera = (qboolean)(r_cameraMode->integer !=
+		Rend2Camera::CAMERA_LEGACY);
+	const qboolean meterScene = (qboolean)(autoExposure ||
+		(physicalCamera && r_cameraDebug->integer));
 
-	if (autoExposure)
+	if (physicalCamera && r_cameraExposure->value != 0.0f && !warnedCameraExposure)
+	{
+		ri.Printf(PRINT_WARNING,
+			"r_cameraExposure is legacy-only and is ignored in physical camera modes; use r_exposureCompensation for an artistic EV bias\n");
+		warnedCameraExposure = qtrue;
+	}
+
+	if (meterScene)
 	{
 		if (lastFrameCount == 0 || tr.frameCount < lastFrameCount || tr.frameCount - lastFrameCount > 5)
 		{
@@ -91,7 +168,9 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 
 			VectorSet4(dstBox, 0, 0, size, size);
 
-			FBO_Blit(hdrFbo, hdrBox, NULL, tr.textureScratchFbo[0], dstBox, &tr.calclevels4xShader[0], NULL, 0);
+			vec4_t meterParams = {physicalCamera ? 24.0f : 10.0f, 1.0f, 1.0f, 1.0f};
+			FBO_Blit(hdrFbo, hdrBox, NULL, tr.textureScratchFbo[0], dstBox,
+				&tr.calclevels4xShader[0], meterParams, 0);
 
 			srcFbo = tr.textureScratchFbo[0];
 			dstFbo = tr.textureScratchFbo[1];
@@ -121,14 +200,30 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 		color[1] =
 		color[2] = 1.0f;
 
-		color[3] = Com_Clamp(0.0f, 1.0f, 0.001f * backEnd.refdef.frameTime);
+		// The two modes deliberately use different levels encodings (+/-10 for
+		// exact legacy behavior, +/-24 for the physical meter). Do not blend
+		// incompatible encodings across a live mode switch.
+		const qboolean resetMeter = (qboolean)(
+			(lastMeterCameraMode >= 0 && lastMeterCameraMode != r_cameraMode->integer) ||
+			(lastMeterCameraMode < 0 && physicalCamera));
+		color[3] = resetMeter ? 1.0f :
+			Com_Clamp(0.0f, 1.0f, 0.001f * backEnd.refdef.frameTime);
 		FBO_Blit(tr.targetLevelsFbo, srcBox, NULL, tr.calcLevelsFbo, NULL,  NULL, color, GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+		lastMeterCameraMode = r_cameraMode->integer;
+
+		if (physicalCamera && r_cameraDebug->integer)
+		{
+			float encodedLevels[4];
+			FBO_Bind(tr.calcLevelsFbo);
+			qglReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, encodedLevels);
+			RB_CameraDebug(encodedLevels);
+		}
 	}
 
 	// tonemap
 	color[0] =
 	color[1] =
-	color[2] = powf(2.0f, r_cameraExposure->value + tr.overbrightBits); //exp2(r_cameraExposure->value);
+	color[2] = RB_GetCameraBufferGain();
 	color[3] = 1.0f;
 
 	if (autoExposure)
@@ -138,6 +233,8 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 
 	vec4_t toneMapParams;
 	RB_GetToneMapParams(toneMapParams);
+	vec4_t cameraParams, cameraAutoParams;
+	RB_GetCameraParams(cameraParams, cameraAutoParams);
 
 	image_t *colorGradingLut;
 	vec4_t colorGradingParams;
@@ -167,6 +264,8 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	GLSL_SetUniformVec2(shader, UNIFORM_AUTOEXPOSUREMINMAX, tr.refdef.autoExposureMinMax);
 	GLSL_SetUniformVec3(shader, UNIFORM_TONEMINAVGMAXLINEAR, tr.refdef.toneMinAvgMaxLinear);
 	GLSL_SetUniformVec4(shader, UNIFORM_TONEMAPPARAMS, toneMapParams);
+	GLSL_SetUniformVec4(shader, UNIFORM_CAMERAPARAMS, cameraParams);
+	GLSL_SetUniformVec4(shader, UNIFORM_CAMERAAUTOPARAMS, cameraAutoParams);
 	GLSL_SetUniformVec4(shader, UNIFORM_COLORGRADINGPARAMS, colorGradingParams);
 	RB_InstantTriangle();
 }

@@ -2212,7 +2212,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			vec4_t color;
 			color[0] =
 			color[1] =
-			color[2] = powf(2.0f, r_cameraExposure->value);
+			color[2] = r_cameraMode->integer == 0 ?
+				powf(2.0f, r_cameraExposure->value) : powf(2.0f, (float)tr.overbrightBits);
 			color[3] = 10.0f;
 			uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, color);
 			uniformDataWriter.SetUniformVec2(UNIFORM_AUTOEXPOSUREMINMAX, tr.refdef.autoExposureMinMax);
@@ -2221,6 +2222,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			vec4_t toneMapParams;
 			RB_GetToneMapParams(toneMapParams);
 			uniformDataWriter.SetUniformVec4(UNIFORM_TONEMAPPARAMS, toneMapParams);
+			vec4_t cameraParams, cameraAutoParams;
+			RB_GetCameraParams(cameraParams, cameraAutoParams);
+			uniformDataWriter.SetUniformVec4(UNIFORM_CAMERAPARAMS, cameraParams);
+			uniformDataWriter.SetUniformVec4(UNIFORM_CAMERAAUTOPARAMS, cameraAutoParams);
 
 			image_t *colorGradingLut;
 			vec4_t colorGradingParams;
@@ -2337,7 +2342,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 			samplerBindingsWriter.AddStaticImage(srcFbo->colorImage[0], TB_COLORMAP);
 			samplerBindingsWriter.AddStaticImage(tr.renderDepthImage, TB_SHADOWMAP);
-			qboolean autoExposure = (qboolean)(r_autoExposure->integer || r_forceAutoExposure->integer);
+			qboolean autoExposure = (qboolean)(r_cameraMode->integer == 2 ||
+				(r_cameraMode->integer == 0 &&
+					(r_autoExposure->integer || r_forceAutoExposure->integer)));
 			uniformDataWriter.SetUniformFloat(UNIFORM_CHROMATICABERRATIONDELTA, r_refractionChromaticAberration->value);
 
 			if (autoExposure)

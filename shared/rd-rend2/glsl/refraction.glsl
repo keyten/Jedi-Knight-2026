@@ -451,6 +451,8 @@ uniform vec4 u_Color;
 uniform vec2 u_AutoExposureMinMax;
 uniform vec3 u_ToneMinAvgMaxLinear;
 uniform vec4 u_ToneMapParams;
+uniform vec4 u_CameraParams;
+uniform vec4 u_CameraAutoParams;
 uniform sampler3D u_ColorGradingLut;
 uniform vec4 u_ColorGradingParams;
 uniform sampler2D u_BloomMap;
@@ -522,7 +524,8 @@ void main()
 	// Same output transform as the main view, see output_transform.glsl
 	vec3 minAvgMax = texture(u_LevelsMap, texG).rgb;
 	color.rgb = OutputTransform(color.rgb, minAvgMax, u_AutoExposureMinMax,
-		u_ToneMinAvgMaxLinear, u_ToneMapParams, u_ColorGradingLut, u_ColorGradingParams,
+		u_ToneMinAvgMaxLinear, u_ToneMapParams, u_CameraParams, u_CameraAutoParams,
+		u_ColorGradingLut, u_ColorGradingParams,
 		gl_FragCoord.x);
 #endif
 

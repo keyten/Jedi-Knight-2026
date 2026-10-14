@@ -26,10 +26,14 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // RB_PostProcess, after the SMAA T2x temporal resolve (its history stays
 // sharp) and before bloom, tone mapping and the UI (glsl/motionblur.glsl).
 //
-// Shutter: the exposure time is r_motionBlurShutterAngle / 360 of a frame
-// at r_motionBlurReferenceFps, so the blur length only depends on the screen
-// speed, not on the frame rate. The velocity buffer holds the motion over
-// the real frame interval, the pass scales it by exposure / frame interval.
+// Shutter: normally the exposure time is r_motionBlurShutterAngle / 360 of a
+// frame at r_motionBlurReferenceFps.  With r_motionBlurPhysicalShutter and a
+// physical camera mode it is r_cameraShutterSeconds.  In either case the
+// velocity buffer holds motion over the real frame interval and the pass
+// scales by exposure duration / frame interval, keeping blur independent of
+// render frame rate. Durations longer than a frame remain an approximation
+// from the available one-frame velocity and are capped by the existing 4x
+// safety limit.
 //
 // History: the previous frame data is ignored (no blur, no object motion,
 // the previous view projection is the current one) on the first frame after
@@ -218,6 +222,14 @@ static void RB_MotionBlurEndTimer( int handle )
 // motion during the exposure
 static float RB_MotionBlurExposureScale( void )
 {
+	if ( r_motionBlurPhysicalShutter->integer && r_cameraMode->integer != 0 )
+	{
+		const double interval = s_frameInterval > 0.0 ? s_frameInterval : 1.0 / 60.0;
+		const float scale = (float)(r_cameraShutterSeconds->value / interval) *
+			r_motionBlurShutterScale->value;
+		return Com_Clamp(0.0f, 4.0f, scale);
+	}
+
 	const float shutter = r_motionBlurShutterAngle->value / 360.0f;
 	const float referenceFps = r_motionBlurReferenceFps->value;
 

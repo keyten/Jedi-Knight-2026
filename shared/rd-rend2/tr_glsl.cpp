@@ -263,6 +263,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_AutoExposureMinMax",  GLSL_VEC2, 1 },
 	{ "u_ToneMinAvgMaxLinear", GLSL_VEC3, 1 },
 	{ "u_ToneMapParams",       GLSL_VEC4, 1 },
+	{ "u_CameraParams",        GLSL_VEC4, 1 },
+	{ "u_CameraAutoParams",    GLSL_VEC4, 1 },
 	{ "u_ColorGradingLut",     GLSL_INT,  1 },
 	{ "u_ColorGradingParams",  GLSL_VEC4, 1 },
 

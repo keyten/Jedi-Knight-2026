@@ -30,8 +30,12 @@ vec3 GetValues(vec2 offset, vec3 current)
 
 #ifdef FIRST_PASS
 	float lumi = max(dot(LUMINANCE_VECTOR, minAvgMax), 0.000001);
-	float loglumi = clamp(log2(lumi), -10.0, 10.0);
-	minAvgMax = vec3(loglumi * 0.05 + 0.5);
+	// Legacy passes 10 (the historical range). Physical camera metering passes
+	// 24 so moonlight through very bright emitters fits the same RGBA16F levels
+	// texture without changing legacy exposure behaviour.
+	float logRange = max(u_Color.x, 10.0);
+	float loglumi = clamp(log2(lumi), -logRange, logRange);
+	minAvgMax = vec3(loglumi / (2.0 * logRange) + 0.5);
 #endif
 
 	return vec3(

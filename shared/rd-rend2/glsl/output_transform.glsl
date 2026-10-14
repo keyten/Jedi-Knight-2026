@@ -14,6 +14,10 @@
 #define TONEMAP_ACES   1
 #define TONEMAP_AGX    2
 
+#define CAMERA_LEGACY          0
+#define CAMERA_PHYSICAL_MANUAL 1
+#define CAMERA_PHYSICAL_AUTO   2
+
 #define TONEMAP_DEBUG_NONE        0
 #define TONEMAP_DEBUG_SPLIT       1
 #define TONEMAP_DEBUG_SPLIT3      2
@@ -23,6 +27,7 @@
 
 // Display gamma used to convert metering done on display-encoded buffers to scene-linear exposure
 #define DISPLAY_GAMMA 2.2
+#define PHYSICAL_LOG_LUMINANCE_RANGE 24.0
 
 const vec3 TONEMAP_LUMINANCE = vec3(0.2126, 0.7152, 0.0722);
 
@@ -90,6 +95,17 @@ vec3 LegacyToneMap(vec3 color, float avgLum, vec3 toneMinAvgMaxLinear)
 #endif
 
 	return color;
+}
+
+// The legacy filmic curve without its historical average-luminance exposure.
+// Physical modes feed it already-exposed scene-linear light, so this variant
+// prevents a second, arbitrary camera gain from being stacked on top.
+vec3 LegacyToneMapExposed(vec3 exposed, vec3 toneMinAvgMaxLinear)
+{
+	vec3 color = max(vec3(0.0), exposed - vec3(toneMinAvgMaxLinear.x));
+	vec3 fWhite = 1.0 / FilmicTonemap(vec3(
+		max(toneMinAvgMaxLinear.z - toneMinAvgMaxLinear.x, 1e-6)));
+	return LinearTosRGB(FilmicTonemap(color) * fWhite);
 }
 
 //
@@ -230,6 +246,40 @@ float GetSceneExposure(float logAvgLum, float toneAvgLinear, float compensationG
 	return exposure * compensationGain;
 }
 
+// The meter texture stores log2 luminance of the un-decoded HDR buffer.  The
+// final component of cameraParams is the buffer-encoding correction expressed
+// in scene-linear stops.  It is deliberately separate from camera exposure.
+float GetPhysicalLogSceneLuminance(vec3 levels, vec4 cameraParams)
+{
+	float logBufferLum = levels.y * (2.0 * PHYSICAL_LOG_LUMINANCE_RANGE) -
+		PHYSICAL_LOG_LUMINANCE_RANGE;
+#if defined(USE_LINEAR_LIGHT)
+	return logBufferLum + cameraParams.w;
+#else
+	return DISPLAY_GAMMA * logBufferLum + cameraParams.w;
+#endif
+}
+
+float GetPhysicalEV100(float logSceneLum, vec4 cameraParams, vec4 cameraAutoParams)
+{
+	if (int(cameraParams.x + 0.5) == CAMERA_PHYSICAL_MANUAL)
+		return cameraParams.y;
+
+	float meterK = max(cameraAutoParams.w, 1e-6);
+	float ev100 = logSceneLum - log2(max(cameraParams.z, 1e-12)) +
+		log2(100.0 / meterK);
+	return clamp(ev100, min(cameraAutoParams.x, cameraAutoParams.y),
+		max(cameraAutoParams.x, cameraAutoParams.y));
+}
+
+float GetPhysicalSceneExposure(float ev100, vec4 cameraParams,
+	vec4 cameraAutoParams, float compensationGain)
+{
+	float sceneScale = max(cameraParams.z, 1e-12);
+	float calibration = max(cameraAutoParams.z, 1e-6);
+	return compensationGain / (sceneScale * calibration * exp2(ev100));
+}
+
 // Exposure zones in stops relative to the exposure target. Magenta marks pixels the operator
 // maps to (or clips at) display white.
 vec3 ExposureFalseColor(vec3 exposed, float exposureTarget, vec3 display)
@@ -297,6 +347,10 @@ vec3 ApplyColorGrading(vec3 display, sampler3D lut, vec4 params, float fragX)
 // params:              u_ToneMapParams: x = operator (TONEMAP_*), y = debug view (TONEMAP_DEBUG_*),
 //                      z = exposure compensation gain for the legacy operator (buffer domain),
 //                      w = exposure compensation gain in scene-linear light
+// cameraParams:        x = camera mode, y = manual EV100, z = physical-to-scene scale,
+//                      w = buffer decoding compensation in scene-linear stops
+// cameraAutoParams:    x/y = auto EV100 bounds, z = ISO 12232 saturation calibration,
+//                      w = ISO 2720 reflected-light meter constant K
 // colorGradingLut:     3D LUT, applied after the display encoding (see ApplyColorGrading)
 // colorGradingParams:  u_ColorGradingParams
 // fragX:               gl_FragCoord.x, used by the split screen comparisons
@@ -304,7 +358,8 @@ vec3 ApplyColorGrading(vec3 display, sampler3D lut, vec4 params, float fragX)
 // Returns display-encoded values, not clamped yet.
 //
 vec3 OutputTransform(vec3 color, vec3 levels, vec2 autoExposureMinMax, vec3 toneMinAvgMaxLinear, vec4 params,
-	sampler3D colorGradingLut, vec4 colorGradingParams, float fragX)
+	vec4 cameraParams, vec4 cameraAutoParams, sampler3D colorGradingLut,
+	vec4 colorGradingParams, float fragX)
 {
 	int toneMapMode = int(params.x + 0.5);
 	int debugView = int(params.y + 0.5);
@@ -328,6 +383,40 @@ vec3 OutputTransform(vec3 color, vec3 levels, vec2 autoExposureMinMax, vec3 tone
 	}
 
 	float logAvgLum = GetLogAverageLuminance(levels, autoExposureMinMax);
+	int cameraMode = int(cameraParams.x + 0.5);
+
+	if (cameraMode != CAMERA_LEGACY)
+	{
+		vec3 sceneLinear = GetSceneLinear(color);
+		if (debugView == TONEMAP_DEBUG_RAW)
+			return LinearTosRGB(clamp(sceneLinear, 0.0, 1.0));
+
+		float logSceneLum = GetPhysicalLogSceneLuminance(levels, cameraParams);
+		float ev100 = GetPhysicalEV100(logSceneLum, cameraParams, cameraAutoParams);
+		float exposure = GetPhysicalSceneExposure(ev100, cameraParams,
+			cameraAutoParams, params.w);
+		vec3 exposed = sceneLinear * exposure;
+		if (debugView == TONEMAP_DEBUG_EXPOSED)
+			return LinearTosRGB(clamp(exposed, 0.0, 1.0));
+
+		vec3 display;
+		if (toneMapMode == TONEMAP_ACES)
+			display = LinearTosRGB(ACESFitted(exposed));
+		else if (toneMapMode == TONEMAP_AGX)
+			display = LinearTosRGB(AgXToneMap(exposed));
+		else
+			display = LegacyToneMapExposed(exposed, toneMinAvgMaxLinear);
+
+		if (debugView == TONEMAP_DEBUG_FALSE_COLOR)
+		{
+			float greyTarget = cameraAutoParams.w /
+				(100.0 * cameraAutoParams.z);
+			return ExposureFalseColor(exposed, greyTarget, display);
+		}
+
+		return ApplyColorGrading(display, colorGradingLut,
+			colorGradingParams, fragX);
+	}
 
 	if (toneMapMode != TONEMAP_ACES && toneMapMode != TONEMAP_AGX && debugView < TONEMAP_DEBUG_RAW)
 	{

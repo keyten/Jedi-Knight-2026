@@ -404,6 +404,13 @@ extern cvar_t  *r_smaa;
 extern cvar_t  *r_smaa_quality;
 
 extern cvar_t  *r_cameraExposure;
+extern cvar_t  *r_cameraMode;
+extern cvar_t  *r_cameraISO;
+extern cvar_t  *r_cameraAperture;
+extern cvar_t  *r_cameraShutterSeconds;
+extern cvar_t  *r_cameraAutoEVMin;
+extern cvar_t  *r_cameraAutoEVMax;
+extern cvar_t  *r_cameraDebug;
 
 extern cvar_t  *r_hdr;
 extern cvar_t  *r_pbrPhysical;
@@ -485,6 +492,7 @@ extern cvar_t  *r_rainLensMipBlur;
 
 extern cvar_t  *r_motionBlur;
 extern cvar_t  *r_motionBlurShutterAngle;
+extern cvar_t  *r_motionBlurPhysicalShutter;
 extern cvar_t  *r_motionBlurReferenceFps;
 extern cvar_t  *r_motionBlurShutterScale;
 extern cvar_t  *r_motionBlurMaxPixels;
@@ -2698,6 +2706,8 @@ typedef enum
 	UNIFORM_AUTOEXPOSUREMINMAX,
 	UNIFORM_TONEMINAVGMAXLINEAR,
 	UNIFORM_TONEMAPPARAMS, // operator, debug view, legacy EV gain, scene-linear EV gain
+	UNIFORM_CAMERAPARAMS, // mode, manual EV100, physical-to-scene scale, scene-domain buffer gain in stops
+	UNIFORM_CAMERAAUTOPARAMS, // min EV100, max EV100, ISO 12232 calibration, ISO 2720 meter K
 	UNIFORM_COLORGRADINGLUT,
 	UNIFORM_COLORGRADINGPARAMS, // mode, intensity, LUT size
 

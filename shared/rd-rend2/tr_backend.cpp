@@ -3732,7 +3732,8 @@ const void *RB_PostProcess(const void *data)
 	srcBox[2] = backEnd.viewParms.viewportWidth;
 	srcBox[3] = backEnd.viewParms.viewportHeight;
 
-	float exposure = r_cameraExposure->value + tr.overbrightBits;
+	float exposure = (r_cameraMode->integer == 0 ? r_cameraExposure->value : 0.0f) +
+		tr.overbrightBits;
 
 	if (srcFbo)
 	{
@@ -3743,7 +3744,9 @@ const void *RB_PostProcess(const void *data)
 		}
 		else if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
 		{
-			autoExposure = (qboolean)(r_autoExposure->integer || r_forceAutoExposure->integer);
+			autoExposure = (qboolean)(r_cameraMode->integer == 2 ||
+				(r_cameraMode->integer == 0 &&
+					(r_autoExposure->integer || r_forceAutoExposure->integer)));
 			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, autoExposure);
 		}
 		else if (r_smaa->integer == 1)

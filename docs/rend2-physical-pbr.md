@@ -198,6 +198,10 @@ scale.
 
 ## Exposure and output
 
+The complete photographic convention, camera modes, calibration constants,
+motion-blur coupling, bloom placement, and validation procedure are specified
+in [rend2-physical-camera.md](rend2-physical-camera.md).
+
 Exposure maps scene-referred values to display-referred values. Automatic
 exposure measures linear HDR luminance and adapts its multiplier toward the
 configured middle-gray/target; fixed exposure applies the corresponding EV

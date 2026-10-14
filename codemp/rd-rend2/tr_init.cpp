@@ -310,6 +310,13 @@ cvar_t  *r_smaa;
 cvar_t  *r_smaa_quality;
 
 cvar_t  *r_cameraExposure;
+cvar_t  *r_cameraMode;
+cvar_t  *r_cameraISO;
+cvar_t  *r_cameraAperture;
+cvar_t  *r_cameraShutterSeconds;
+cvar_t  *r_cameraAutoEVMin;
+cvar_t  *r_cameraAutoEVMax;
+cvar_t  *r_cameraDebug;
 
 cvar_t  *r_externalGLSL;
 
@@ -393,6 +400,7 @@ cvar_t  *r_rainLensPBO;
 cvar_t  *r_rainLensMipBlur;
 cvar_t  *r_motionBlur;
 cvar_t  *r_motionBlurShutterAngle;
+cvar_t  *r_motionBlurPhysicalShutter;
 cvar_t  *r_motionBlurReferenceFps;
 cvar_t  *r_motionBlurShutterScale;
 cvar_t  *r_motionBlurMaxPixels;
@@ -2247,7 +2255,21 @@ void R_Register( void )
 	r_forceAutoExposureMin = ri.Cvar_Get( "r_forceAutoExposureMin", "-3.0", CVAR_CHEAT, "" );
 	r_forceAutoExposureMax = ri.Cvar_Get( "r_forceAutoExposureMax", "1.0", CVAR_CHEAT, "" );
 
-	r_cameraExposure = ri.Cvar_Get( "r_cameraExposure", "0", CVAR_CHEAT, "" );
+	r_cameraExposure = ri.Cvar_Get( "r_cameraExposure", "0", CVAR_CHEAT, "Legacy-only HDR buffer gain in EV stops; ignored by physical camera modes" );
+	r_cameraMode = ri.Cvar_Get( "r_cameraMode", "0", CVAR_ARCHIVE, "Camera exposure: 0 = legacy, 1 = physical manual, 2 = physical auto" );
+	ri.Cvar_CheckRange( r_cameraMode, 0, 2, qtrue );
+	r_cameraISO = ri.Cvar_Get( "r_cameraISO", "100", CVAR_ARCHIVE, "Physical camera ISO speed (manual mode)" );
+	ri.Cvar_CheckRange( r_cameraISO, 1.0f, 204800.0f, qfalse );
+	r_cameraAperture = ri.Cvar_Get( "r_cameraAperture", "16", CVAR_ARCHIVE, "Physical camera aperture f-number N (manual mode; reserved for future physical DOF)" );
+	ri.Cvar_CheckRange( r_cameraAperture, 0.5f, 64.0f, qfalse );
+	r_cameraShutterSeconds = ri.Cvar_Get( "r_cameraShutterSeconds", "0.008", CVAR_ARCHIVE, "Physical camera shutter duration in seconds (manual mode; optional motion-blur coupling)" );
+	ri.Cvar_CheckRange( r_cameraShutterSeconds, 0.000001f, 60.0f, qfalse );
+	r_cameraAutoEVMin = ri.Cvar_Get( "r_cameraAutoEVMin", "-6", CVAR_ARCHIVE, "Minimum EV100 allowed in physical auto mode" );
+	ri.Cvar_CheckRange( r_cameraAutoEVMin, -16.0f, 32.0f, qfalse );
+	r_cameraAutoEVMax = ri.Cvar_Get( "r_cameraAutoEVMax", "20", CVAR_ARCHIVE, "Maximum EV100 allowed in physical auto mode" );
+	ri.Cvar_CheckRange( r_cameraAutoEVMax, -16.0f, 32.0f, qfalse );
+	r_cameraDebug = ri.Cvar_Get( "r_cameraDebug", "0", CVAR_CHEAT, "Print calibrated camera/meter state once per second" );
+	ri.Cvar_CheckRange( r_cameraDebug, 0, 1, qtrue );
 
 	r_toneMapMode = ri.Cvar_Get( "r_toneMapMode", "0", CVAR_ARCHIVE, "Tone mapping operator: 0 = legacy Rend2 filmic, 1 = ACES (fitted approximation), 2 = AgX-like (approximation)" );
 	ri.Cvar_CheckRange( r_toneMapMode, 0, 2, qtrue );
@@ -2343,6 +2365,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_motionBlur, 0, 1, qtrue );
 	r_motionBlurShutterAngle = ri.Cvar_Get( "r_motionBlurShutterAngle", "180", CVAR_ARCHIVE, "Motion blur shutter angle in degrees, relative to the r_motionBlurReferenceFps frame interval" );
 	ri.Cvar_CheckRange( r_motionBlurShutterAngle, 0.0f, 360.0f, qfalse );
+	r_motionBlurPhysicalShutter = ri.Cvar_Get( "r_motionBlurPhysicalShutter", "0", CVAR_ARCHIVE, "Use r_cameraShutterSeconds as motion-blur exposure duration in physical camera modes" );
+	ri.Cvar_CheckRange( r_motionBlurPhysicalShutter, 0, 1, qtrue );
 	r_motionBlurReferenceFps = ri.Cvar_Get( "r_motionBlurReferenceFps", "60", CVAR_ARCHIVE, "Frame rate the shutter angle refers to (frame rate independent exposure time), 0 = the actual frame interval" );
 	ri.Cvar_CheckRange( r_motionBlurReferenceFps, 0.0f, 1000.0f, qfalse );
 	r_motionBlurShutterScale = ri.Cvar_Get( "r_motionBlurShutterScale", "1", 0, "Motion blur exposure time multiplier for gameplay effects (e.g. Force Speed), set by game code" );

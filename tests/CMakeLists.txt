@@ -26,6 +26,7 @@ set(TestFiles
 	"safe/string.cpp"
 	"safe/limited_vector.cpp"
 	"rend2_pbr_contract.cpp"
+	"rend2_camera_tests.cpp"
 	"${SharedDir}/qcommon/safe/string.cpp"
 	)
 if(MSVC)
