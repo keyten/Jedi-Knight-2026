@@ -244,3 +244,33 @@ baked shadows), and brightness in full sun stays about the same.
 
 Not run in game yet. Builds (MSVC SP+MP) and all 12 lightall permutations (mode 1/2 × split on/off × skeletal,
 skin SSS, POM, physical PBR, cubemap, dlight shadows) link on Intel UHD and RTX 2060.
+
+## Grid ambient in the sun's shadow (`r_entityShadowAmbient`)
+
+Why models read brighter than the ground in shadow (`r_sunlightMode 1`, including `r_forceSun 1`): the world
+modulates its **whole** lightmap by the shadow, `mix(sunAmbCol · L, L, shadow)`, so ambient and baked sun drop
+together to `sunAmbCol` (0.5 by default: `q3gl2_sun` shadow scale or `r_forceSunAmbientScale`). A model only
+modulates its grid **directed** light. The grid ambient (×`r_ambientScale` 0.6, plus the LDR minimum light) stays
+at full strength. In a sunlit cell a shadowed model keeps roughly 65–75 % of its lit brightness, while the ground
+keeps 50 %.
+
+`r_entityShadowAmbient` (archived, not latched, 0..1, default 0 = legacy, bit for bit) is the share of the grid
+ambient that follows the lightmap's factor:
+
+```
+ambient *= mix(1, mix(sunAmbCol, 1, visibility), r_entityShadowAmbient)
+visibility = cascades × contact shadows (× POM self-shadow × liquid sun transmittance)
+```
+
+Ambient has no direction, so unlike the directed light it uses no sun cosine: the side of a sunlit model that faces
+away from the sun is not darkened. At 1 a model in shadow drops like the lightmap. Values in between keep part of
+the ambient as unoccluded sky light. Physically only the sun share of the ambient should drop, which is the
+argument for staying below 1.
+
+- Applies to every grid mode (legacy, `r_entityLightGrid 1/2`, L1 probes) and works with or without
+  `r_entitySunSplit`. It acts before AO, which multiplies on top.
+- `r_sunlightMode 1` only. In mode 2 `sunAmbCol` is a light colour rather than a factor, so the value is not
+  uploaded.
+- It needs no new permutation: the value rides in `u_AOParams2.w` (Scene block, previously unused).
+
+Not run in game. MSVC SP+MP build OK; 16 lightall `_GRID` permutations link on Intel UHD and RTX 2060.

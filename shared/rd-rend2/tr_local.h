@@ -764,6 +764,7 @@ extern cvar_t  *r_shadowCasterStats;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
 extern cvar_t  *r_entitySunSplit;
+extern cvar_t  *r_entityShadowAmbient;
 extern cvar_t  *r_ignoreDstAlpha;
 extern cvar_t  *r_refractionChromaticAberration;
 

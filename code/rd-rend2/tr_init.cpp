@@ -676,6 +676,7 @@ cvar_t  *r_shadowCasterStats;
 cvar_t  *r_dlightShadowBias;
 cvar_t  *r_contactShadowSoft;
 cvar_t  *r_entitySunSplit;
+cvar_t  *r_entityShadowAmbient;
 cvar_t	*r_ignoreDstAlpha;
 cvar_t	*r_refractionChromaticAberration;
 
@@ -3375,6 +3376,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_contactShadowSoft, 0, 1, qtrue );
 	r_entitySunSplit = ri_Cvar_Get_NoComm( "r_entitySunSplit", "0", CVAR_ARCHIVE | CVAR_LATCH, "Models (players, NPCs, items): take the sun out of the light grid's directed light and light it from the sun direction, shadowed per pixel by the sun cascades (0 = legacy: the grid light darkened by the sun shadow). Needs r_sunlightMode, the legacy grid (r_entityLightGrid 0) and normal or specular mapping; vid_restart" );
 	ri.Cvar_CheckRange( r_entitySunSplit, 0, 1, qtrue );
+	r_entityShadowAmbient = ri_Cvar_Get_NoComm( "r_entityShadowAmbient", "0", CVAR_ARCHIVE, "Models (players, NPCs, items): share of the light grid ambient that the sun shadow darkens like the world lightmap (0 = legacy: only the directed light is shadowed, 1 = the whole ambient, as the lightmap). r_sunlightMode 1 only" );
+	ri.Cvar_CheckRange( r_entityShadowAmbient, 0.0f, 1.0f, qfalse );
 	r_ignoreDstAlpha = ri_Cvar_Get_NoComm( "r_ignoreDstAlpha", "1", CVAR_ARCHIVE | CVAR_LATCH, "" );
 	r_refractionChromaticAberration = ri_Cvar_Get_NoComm( "r_refractionChromaticAberration", "0.05", CVAR_ARCHIVE, "" );
 	ri.Cvar_CheckRange(r_refractionChromaticAberration, 0.f, 0.3f, qfalse);

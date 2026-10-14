@@ -440,7 +440,8 @@ layout(std140) uniform Scene
 	// z = multi-bounce approximation, w = split position in window pixels
 	vec4 u_AOParams;
 	// x = r_aoDebug (lightall views), y = specular occlusion mode (0 scalar,
-	// 1 Lagarde, 2 cone), z = bent normal strength (0 = off)
+	// 1 Lagarde, 2 cone), z = bent normal strength (0 = off), w = share of a
+	// model's grid ambient darkened by the sun shadow (r_entityShadowAmbient)
 	vec4 u_AOParams2;
 	// common scene contract: metres/unit, squared, legacy map calibration, mode
 	vec4 u_PBRParams;
@@ -4508,6 +4509,25 @@ void main()
 
     #if defined(SHADOWMAP_MODULATE)
 	vec3 ambientScale = mix(vec3(1.0), u_PrimaryLightAmbient, u_EnableTextures.z);
+	#if defined(USE_LIGHT_VECTOR)
+	// r_entityShadowAmbient (u_AOParams2.w): the world darkens its whole lightmap
+	// in the sun's shadow, ambient included, while the grid ambient of a model
+	// was never touched, so models read brighter in shadow than the ground they
+	// stand on. This share of the grid ambient follows the lightmap's shadow
+	// factor. Ambient has no direction: the sun visibility without the cosine.
+	if (u_AOParams2.w > 0.0)
+	{
+		vec3 ambientSunVisibility = vec3(cascadeShadow * contactShadow);
+		#if defined(USE_PARALLAXMAP)
+		ambientSunVisibility *= pomSunShadow;
+		#endif
+		#if defined(USE_LIQUID_SUN)
+		ambientSunVisibility *= liquidSun;
+		#endif
+		ambientColor *= mix(vec3(1.0), mix(ambientScale, vec3(1.0), ambientSunVisibility),
+			u_AOParams2.w);
+	}
+	#endif
 	#if defined(USE_ENTITY_SUN_SPLIT)
 	if (entitySunSplit)
 		ambientScale = vec3(1.0);

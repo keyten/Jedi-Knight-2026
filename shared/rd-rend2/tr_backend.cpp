@@ -2636,6 +2636,10 @@ static void RB_UpdateSceneConstants(gpuFrame_t *frame, const trRefdef_t *refdef)
 	sceneBlock.currentTime = refdef->floatTime;
 	sceneBlock.frameTime = refdef->frameTime;
 	RB_AOSceneParams(sceneBlock.aoParams, sceneBlock.aoParams2);
+	// r_entityShadowAmbient: the share of a model's grid ambient that the sun
+	// shadow darkens like the world lightmap (lightall, SHADOWMAP_MODULATE only)
+	sceneBlock.aoParams2[3] = r_sunlightMode->integer == 1 ?
+		Com_Clamp(0.0f, 1.0f, r_entityShadowAmbient->value) : 0.0f;
 	const float metersPerUnit = R_PBRMetersPerWorldUnit();
 	VectorSet4(sceneBlock.pbrParams, metersPerUnit, metersPerUnit * metersPerUnit,
 		tr.world ? tr.world->pbrLegacyCalibration : 1.0f,
