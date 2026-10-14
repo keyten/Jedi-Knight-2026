@@ -3517,9 +3517,16 @@ float ComputePersistentRunoffTrail(in vec3 worldPosition)
 }
 #endif
 
+float PuddleValueNoise(vec2 p);
+
+// Wet band where water meets the opaque world (r_waterShoreline): fully wet at
+// the current waterline, a drying, streaked film up to the held run-up height
+// (splashes, wakes, waves, flow piling against walls), with a ragged upper
+// edge and a ragged reach onto flat banks.  World anchored noise only.
 float ComputeWaterContact(in vec3 worldPosition)
 {
 	float width = max(u_WaterContact[0].y, 0.25);
+	float reach = max(2.0 * width, 12.0);
 	float result = 0.0;
 	int count = int(u_WaterContact[0].w + 0.5);
 	for (int i = 0; i < 12; ++i)
@@ -3528,14 +3535,26 @@ float ComputeWaterContact(in vec3 worldPosition)
 		vec4 a = u_WaterContact[1 + i * 2];
 		vec4 b = u_WaterContact[2 + i * 2];
 		vec2 ab = b.xy - a.xy;
-		float t = clamp(dot(worldPosition.xy - a.xy, ab) / max(dot(ab, ab), 1e-5), 0.0, 1.0);
+		float abLength2 = max(dot(ab, ab), 1e-5);
+		float t = clamp(dot(worldPosition.xy - a.xy, ab) / abLength2, 0.0, 1.0);
 		float horizontal = length(worldPosition.xy - mix(a.xy, b.xy, t));
+		if (horizontal > reach * 1.4)
+			continue;
+		float along = dot(worldPosition.xy, ab) * inversesqrt(abLength2);
 		float currentHeight = mix(a.z, b.z, t);
-		float wetHeight = max(currentHeight, mix(a.w, b.w, t));
-		float vertical = max(max(currentHeight - worldPosition.z, worldPosition.z - wetHeight), 0.0);
-		float h = 1.0 - smoothstep(width * 0.25, width, horizontal);
-		float v = 1.0 - smoothstep(width * 0.25, width, vertical);
-		result = max(result, h * v);
+		float held = max(mix(a.w, b.w, t) - currentHeight, 0.0);
+		float ragged = PuddleValueNoise(vec2(along * 0.11, worldPosition.z * 0.07) + 3.7);
+		float streak = PuddleValueNoise(vec2(along * 0.45, worldPosition.z * 0.015) + 11.1);
+		float above = worldPosition.z - currentHeight;
+		float top = width * (0.6 + 0.8 * ragged) + held * (0.45 + 0.75 * ragged) +
+			held * 0.6 * smoothstep(0.55, 0.85, streak);
+		float v = (1.0 - smoothstep(0.0, width * 0.75, -above)) *
+			(1.0 - smoothstep(top - width * 0.5, top, above));
+		// fresh water at the line, a thinner streaked film where it is drying
+		float film = mix(0.6 + 0.4 * streak, 1.0, 1.0 - smoothstep(0.0, width, above));
+		float edgeNoise = PuddleValueNoise(worldPosition.xy * 0.09 + 7.3);
+		float h = 1.0 - smoothstep(reach * 0.35, reach, horizontal + (edgeNoise - 0.5) * reach * 0.7);
+		result = max(result, h * v * film);
 	}
 	return result;
 }

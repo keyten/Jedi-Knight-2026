@@ -210,7 +210,7 @@ void EmitQuad(vec3 origin, vec3 axisX, vec3 axisY, vec2 lo, vec2 hi,
 void EmitMarker(vec3 position, float pixels, vec3 color)
 {
 	float size = max(0.5, distance(u_ViewOrigin, position) * 0.0015 * pixels);
-	EmitQuad(position, u_ViewLeft * size, u_ViewUp * size, vec2(-1.0), vec2(1.0),
+	EmitQuad(position, normalize(u_ViewLeft) * size, normalize(u_ViewUp) * size, vec2(-1.0), vec2(1.0),
 		vec4(2.0, 0.0, 1.0, 0.0), color, vec2(0.0));
 }
 

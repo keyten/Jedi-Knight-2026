@@ -1,5 +1,9 @@
 # Body-local interactive water disturbances
 
+> **2026-10-15:** flow transport is now semi-Lagrangian Catmull-Rom (height, velocity, foam);
+> gameplay impulses no longer require `r_waterSplashes`; strengths, wakes and shore attenuation
+> were recalibrated. See [`rend2-water-realism-pass2.md`](rend2-water-realism-pass2.md).
+
 `r_waterInteraction 1` adds transient, world-caused disturbances to the existing modern water surface. It is off by default and requires `r_waterSurface 1`; enabling it is latched and therefore requires `vid_restart`. Ambient waves, authored deformation, optics, flow, and legacy water are not replaced.
 
 When `r_waterCausticsMode 2` is selected, the same field also drives the

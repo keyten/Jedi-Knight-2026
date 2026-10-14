@@ -225,6 +225,7 @@ cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_waterWaveSpe
 cvar_t *r_waterWaveDispersion, *r_waterWaveGravity;
 cvar_t *r_waterWind, *r_waterWindScale, *r_waterWindTransition, *r_waterWindDebug;
 cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
+cvar_t *r_waterFlowField, *r_waterFlowImpact;
 cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
 cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
 cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
@@ -3071,8 +3072,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterFlowSpeed, 0.0f, 4.0f, qfalse);
 	r_waterFlowDetail = ri.Cvar_Get("r_waterFlowDetail", "1", CVAR_ARCHIVE, "Directional advection scale for medium and micro water detail");
 	ri.Cvar_CheckRange(r_waterFlowDetail, 0.0f, 4.0f, qfalse);
-	r_waterFlowDebug = ri.Cvar_Get("r_waterFlowDebug", "0", CVAR_CHEAT, "Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail");
-	ri.Cvar_CheckRange(r_waterFlowDebug, 0, 4, qtrue);
+	r_waterFlowDebug = ri.Cvar_Get("r_waterFlowDebug", "0", CVAR_CHEAT, "Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail, 5 field speed, 6 wall impingement, 7 field shore distance");
+	ri.Cvar_CheckRange(r_waterFlowDebug, 0, 7, qtrue);
+	r_waterFlowField = ri.Cvar_Get("r_waterFlowField", "0", CVAR_ARCHIVE | CVAR_LATCH, "Spatial per-body flow field baked at map load: slower water at banks, flow turning along walls (requires r_waterFlow 1)");
+	r_waterFlowImpact = ri.Cvar_Get("r_waterFlowImpact", "0", CVAR_ARCHIVE | CVAR_LATCH, "Flow running into a wall piles up, sloshes, foams and wets the wall (requires r_waterFlowField 1)");
 	r_waterInteraction = ri.Cvar_Get("r_waterInteraction", "0", CVAR_ARCHIVE | CVAR_LATCH, "Per-body interactive water disturbances; requires r_waterSurface and vid_restart");
 	ri.Cvar_CheckRange(r_waterInteraction, 0, 1, qtrue);
 	r_waterInteractionQuality = ri.Cvar_Get("r_waterInteractionQuality", "1", CVAR_ARCHIVE | CVAR_LATCH, "Interaction density: 0=32, 1=16, 2=8 world units per texel");

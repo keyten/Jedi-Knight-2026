@@ -69,6 +69,10 @@ void main()
 	var_ParticleColor = vec4(var_PointColor[0].rgb, alpha);
 	var_ParticleCenter = vec4(P, var_PointRadius[0] < 0.0 ? 1.0 : 0.0);
 
+	// the camera block stores the view axes scaled to the far plane frustum
+	// edge (zFar * tan(fov / 2)), not as unit vectors
+	vec3 viewLeft = normalize(u_ViewLeft);
+	vec3 viewUp = normalize(u_ViewUp);
 	const vec2 corners[] = vec2[](
 		vec2(-1.0, -1.0),
 		vec2( 1.0, -1.0),
@@ -77,7 +81,7 @@ void main()
 	);
 	for (int i = 0; i < 4; ++i)
 	{
-		vec3 worldPos = P + radius * (-corners[i].x * u_ViewLeft + corners[i].y * u_ViewUp);
+		vec3 worldPos = P + radius * (-corners[i].x * viewLeft + corners[i].y * viewUp);
 		gl_Position = u_viewProjectionMatrix * vec4(worldPos, 1.0);
 		var_TexCoord = corners[i] * 0.5 + 0.5;
 		EmitVertex();

@@ -1324,7 +1324,9 @@ void CG_WaterSplashEvent( centity_t *cent, const vec3_t eventPosition, int type 
 	static int sprayBudgetTime = 0, sprayBudgetUsed = 0;
 	int sprayBudget;
 	int i;
-	if ( !r_waterSplashes.integer || !cent ) return;
+	// The field response (impulse + foam) only needs the renderer interaction
+	// extension; r_waterSplashes adds the visible spray/lens outputs on top.
+	if ( !cent || ( !r_waterSplashes.integer && !trap->ext.R_AddWaterImpulse ) ) return;
 
 	VectorCopy( eventPosition, start ); start[2] += 80.0f;
 	VectorCopy( eventPosition, end ); end[2] -= 96.0f;
@@ -1340,28 +1342,48 @@ void CG_WaterSplashEvent( centity_t *cent, const vec3_t eventPosition, int type 
 		VectorSet( impulse.surfaceNormal, 0.0f, 0.0f, 1.0f );
 	}
 	if ( impulse.surfaceNormal[2] < 0.0f ) VectorScale( impulse.surfaceNormal, -1.0f, impulse.surfaceNormal );
+	// strides and strokes only disturb a surface the body actually breaks
+	if ( (type == WATERSPLASH_WADE || type == WATERSPLASH_SWIM) &&
+		(tr.fraction >= 1.0f || tr.startsolid || tr.endpos[2] - eventPosition[2] > 56.0f) )
+		return;
 	if ( cent->playerState ) VectorCopy( cent->playerState->velocity, velocity );
 	else BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
 
 	radius = cent->currentState.g2radius > 0 ? Com_Clamp( 4.0f, 72.0f, cent->currentState.g2radius * 0.5f ) : 18.0f;
 	if ( type == WATERSPLASH_PROJECTILE ) radius = cent->currentState.weapon == WP_SABER ? 10.0f : 5.0f;
 	if ( type == WATERSPLASH_FOOT ) radius = 7.0f;
+	if ( type == WATERSPLASH_WADE ) radius = 12.0f;
+	if ( type == WATERSPLASH_SWIM ) radius = 16.0f;
 	impulse.normalVelocity = DotProduct( velocity, impulse.surfaceNormal );
 	VectorMA( velocity, -impulse.normalVelocity, impulse.surfaceNormal, tangent );
 	VectorCopy( velocity, impulse.velocity );
 	VectorCopy( tangent, impulse.tangentVelocity );
 	VectorCopy( tangent, impulse.direction );
 	if ( VectorNormalize( impulse.direction ) > 1.0f ) impulse.flags |= WATERINTERACT_DIRECTIONAL;
-	normalSpeed = fabsf( impulse.normalVelocity );
+	// A body wading or running in pushes water aside too: the tangential
+	// speed displaces water as well as the plunge, at a lower efficiency.
+	normalSpeed = sqrtf( impulse.normalVelocity * impulse.normalVelocity +
+		0.35f * DotProduct( tangent, tangent ) );
 	speedResponse = 1.0f - expf( -normalSpeed / 230.0f );
 	sizeResponse = sqrtf( Com_Clamp( 0.15f, 3.0f, radius / 18.0f ) );
 	impulse.energy = Com_Clamp( 0.04f, 1.0f, speedResponse * sizeResponse );
 	if ( type == WATERSPLASH_FOOT ) impulse.energy = Com_Clamp( 0.05f, 0.18f, impulse.energy );
+	if ( type == WATERSPLASH_WADE || type == WATERSPLASH_SWIM ) impulse.energy = Com_Clamp( 0.08f, 0.3f, impulse.energy );
 	if ( type == WATERSPLASH_PROJECTILE ) impulse.energy = Com_Clamp( 0.12f, 0.34f, impulse.energy );
 	if ( radius > 38.0f && type == WATERSPLASH_ENTRY ) type = WATERSPLASH_HEAVY;
 	impulse.type = type;
 	impulse.radius = Com_Clamp( 8.0f, 112.0f, radius * (1.2f + 1.5f * impulse.energy) );
-	impulse.strength = (type == WATERSPLASH_EXIT ? -0.35f : 1.0f) * Com_Clamp( 0.08f, 1.65f, impulse.energy * (0.75f + radius / 28.0f) );
+	// Calibrated against the 16-unit default field (peak height ~ 0.25 * 48 *
+	// strength * radius / c, c ~ 64 u/s): footstep ~0.6, wading stride ~1,
+	// walking in ~1.5-2.5, bolt ~2, jumping in 6-10 world units.  The floors
+	// keep small events above the ambient micro-normal slope (~0.1-0.2).
+	impulse.strength = Com_Clamp( 0.08f, 1.65f, impulse.energy * (0.75f + radius / 28.0f) );
+	if ( type == WATERSPLASH_ENTRY || type == WATERSPLASH_HEAVY ) impulse.strength = Q_max( impulse.strength, 0.3f );
+	if ( type == WATERSPLASH_FOOT ) impulse.strength = Com_Clamp( 0.13f, 0.22f, impulse.strength );
+	if ( type == WATERSPLASH_WADE ) impulse.strength = Com_Clamp( 0.2f, 0.35f, impulse.strength );
+	if ( type == WATERSPLASH_SWIM ) impulse.strength = Com_Clamp( 0.15f, 0.3f, impulse.strength );
+	if ( type == WATERSPLASH_PROJECTILE ) impulse.strength = Com_Clamp( 0.4f, 0.6f, impulse.strength );
+	if ( type == WATERSPLASH_EXIT ) impulse.strength = -Q_max( 0.12f, 0.35f * impulse.strength );
 	impulse.foam = (type == WATERSPLASH_ENTRY || type == WATERSPLASH_HEAVY) ?
 		Com_Clamp( 0.0f, 1.0f, (impulse.energy - 0.38f) * 1.6f ) : 0.0f;
 	impulse.sprayCount = impulse.energy < 0.13f ? 0 : (impulse.energy > 0.7f && r_waterSplashQuality.integer > 0 ? 2 : 1);
@@ -1374,6 +1396,7 @@ void CG_WaterSplashEvent( centity_t *cent, const vec3_t eventPosition, int type 
 	impulse.sprayCount = Com_Clampi( 0, Q_max( 0, sprayBudget - sprayBudgetUsed ), impulse.sprayCount );
 	sprayBudgetUsed += impulse.sprayCount;
 	if ( trap->ext.R_AddWaterImpulse ) trap->ext.R_AddWaterImpulse( &impulse );
+	if ( !r_waterSplashes.integer ) return;
 
 	if ( impulse.sprayCount > 0 && (type == WATERSPLASH_PROJECTILE || VectorLengthSquared( velocity ) <= 40000.0f) )
 		for ( i = 0; i < impulse.sprayCount; ++i )
@@ -1401,7 +1424,7 @@ void CG_CheckProjectileWaterSplash( centity_t *cent )
 {
 	int contents;
 	trace_t tr;
-	if ( !r_waterSplashes.integer || !r_waterSplashProjectiles.integer ) return;
+	if ( !r_waterSplashProjectiles.integer || ( !r_waterSplashes.integer && !trap->ext.R_AddWaterImpulse ) ) return;
 	contents = trap->CM_PointContents( cent->lerpOrigin, 0 ) & CONTENTS_WATER;
 	if ( !cent->waterSplashInitialized )
 	{
@@ -1424,12 +1447,12 @@ static void CG_LensWaterSurfaceEvent( int event, const entityState_t *es, const 
 	switch ( event )
 	{
 	case EV_WATER_TOUCH:
-		if ( r_waterSplashes.integer ) CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_ENTRY );
-		else CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 200.0f, viewer ? 0.5f : 0.7f, 0.0f );
+		CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_ENTRY );
+		if ( !r_waterSplashes.integer ) CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 200.0f, viewer ? 0.5f : 0.7f, 0.0f );
 		break;
 	case EV_WATER_LEAVE:
-		if ( r_waterSplashes.integer ) CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_EXIT );
-		else CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 160.0f, viewer ? 0.3f : 0.45f, 0.0f );
+		CG_WaterSplashEvent( &cg_entities[es->number], position, WATERSPLASH_EXIT );
+		if ( !r_waterSplashes.integer ) CG_LensWaterEvent( LENSWATER_SPLASH, position, LENSWATER_F_ORIGIN, 160.0f, viewer ? 0.3f : 0.45f, 0.0f );
 		break;
 	case EV_WATER_UNDER:
 		if ( viewer )
@@ -1613,6 +1636,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			trap->S_StartSound (NULL, es->number, CHAN_BODY,
 				cgs.media.footsteps[ FOOTSTEP_SPLASH ][rand()&3] );
 		}
+		CG_WaterSplashEvent( cent, position, WATERSPLASH_WADE );
 		break;
 	case EV_SWIM:
 		DEBUGNAME("EV_SWIM");
@@ -1620,6 +1644,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			trap->S_StartSound (NULL, es->number, CHAN_BODY,
 				cgs.media.footsteps[ FOOTSTEP_SPLASH ][rand()&3] );
 		}
+		CG_WaterSplashEvent( cent, position, WATERSPLASH_SWIM );
 		break;
 
 

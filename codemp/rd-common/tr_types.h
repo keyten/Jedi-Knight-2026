@@ -472,7 +472,9 @@ enum {
 	WATERSPLASH_EXIT,
 	WATERSPLASH_PROJECTILE,
 	WATERSPLASH_HEAVY,
-	WATERSPLASH_FOOT
+	WATERSPLASH_FOOT,
+	WATERSPLASH_WADE,	// knee-deep or deeper stride (EV_FOOTWADE)
+	WATERSPLASH_SWIM		// surface swim stroke (EV_SWIM)
 };
 typedef struct {
 	vec3_t		position;

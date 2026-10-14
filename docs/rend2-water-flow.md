@@ -1,5 +1,9 @@
 # Directional water flow
 
+> **2026-10-15:** the spatial form now exists as `r_waterFlowField 1` (latched, default 0): a
+> map-load distance-to-bank field with an open-channel speed profile, flow turning along walls and a
+> wall impingement term (`r_waterFlowImpact 1`). See [`rend2-water-realism-pass2.md`](rend2-water-realism-pass2.md).
+
 Directional flow is a cheap, per-water-body velocity used to advect medium and
 micro surface detail. It does not move the water volume or translate vertices.
 It is disabled by default with `r_waterFlow 0`; that path retains the exact

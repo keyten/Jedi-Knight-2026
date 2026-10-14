@@ -41,6 +41,8 @@ static void CG_ResetEntity( centity_t *cent ) {
 	}
 
 	cent->trailTime = cg.snap->serverTime;
+	// a reused slot must not trace a water crossing from its previous occupant
+	cent->waterSplashInitialized = qfalse;
 
 	VectorCopy (cent->currentState.origin, cent->lerpOrigin);
 	VectorCopy (cent->currentState.angles, cent->lerpAngles);

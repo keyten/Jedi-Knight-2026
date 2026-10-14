@@ -323,6 +323,7 @@ extern cvar_t *r_waterWaves, *r_waterWaveAmplitude, *r_waterWaveLength, *r_water
 extern cvar_t *r_waterWaveDispersion, *r_waterWaveGravity;
 extern cvar_t *r_waterWind, *r_waterWindScale, *r_waterWindTransition, *r_waterWindDebug;
 extern cvar_t *r_waterFlow, *r_waterFlowSpeed, *r_waterFlowDetail, *r_waterFlowDebug;
+extern cvar_t *r_waterFlowField, *r_waterFlowImpact;
 extern cvar_t *r_waterInteraction, *r_waterInteractionQuality, *r_waterInteractionStrength;
 extern cvar_t *r_waterInteractionDamping, *r_waterInteractionSpeed, *r_waterInteractionMaxBodies;
 extern cvar_t *r_waterInteractionMaxTexels, *r_waterInteractionMemoryMB, *r_waterInteractionDebug;
@@ -2917,6 +2918,13 @@ typedef enum
 	UNIFORM_WATERFOAMPARAMS,	// foam update: dt, decay, diffusion, advection
 	UNIFORM_WATERFOAMFLOW,		// foam update: body-UV velocity, time, debug
 	UNIFORM_WATERWHITEWATERPARAMS,	// foam update: source threshold, decay, foam injection, static source
+	UNIFORM_WATERFOAMSOURCES,	// foam update: waterfall rate, shore breaking, steepness, flow impact scales
+	UNIFORM_WATERFOAMINTERACTIONMAP,	// foam update: interaction render atlas (breaking-wave sources)
+	UNIFORM_WATERFOAMINTERACTIONRECT,	// foam update: body UV -> atlas offset/scale, zero scale = none
+	UNIFORM_WATERFLOWFIELDMAP,	// body-local flow field: velocity / body speed, shore distance, impingement
+	UNIFORM_WATERFLOWFIELDPARAMS,	// solver/foam: field enabled, body flow speed (u/s), unused, unused
+	UNIFORM_WATERFLOWPARAMS,	// vec4[2] water surface: flow field / wall impact / foam pattern controls
+	UNIFORM_WATERFOAMPATTERNMAP,	// water surface: procedural tiling foam structure
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATEROPTICS2,         // opt-in underwater BTDF / radiance transport
 	UNIFORM_WATERGLOWMAP,
@@ -4305,6 +4313,7 @@ typedef struct trGlobals_s {
 	image_t					*waterSceneImage;	// HDR scene under the water, copied at the water slot
 	image_t					*waterDepthImage;	// its depth (same format as renderDepthImage)
 	image_t					*waterNormalImage;	// tiling wave slopes (x, y, x^2, y^2), mips
+	image_t					*waterFoamPatternImage;	// tiling foam structure: lace, bubbles, patches, coarse lace
 	FBO_t					*waterCopyFbo;
 	image_t *waterGlowImage;
 	image_t *waterReflectionImage[2];

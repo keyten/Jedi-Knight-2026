@@ -1150,18 +1150,36 @@ def check_interaction_field(bench=False):
 				return cur[ny, nx] if 0 <= nx < w and 0 <= ny < h and mask[ny, nx] else cur[py, px]
 			cc, l, r, d, u = cur[py, px], cell(px-1, py), cell(px+1, py), cell(px, py-1), cell(px, py+1)
 			lap = (l[0]-2*cc[0]+r[0])/(tx*tx) + (d[0]-2*cc[0]+u[0])/(ty*ty)
-			v = np.clip(cc[1] + dt*(c*c*lap - 2*damping*cc[1]), -512, 512)
-			dhx = (cc[0]-l[0])/tx if fx >= 0 else (r[0]-cc[0])/tx
-			dhy = (cc[0]-d[0])/ty if fy >= 0 else (u[0]-cc[0])/ty
-			nh = np.clip(cc[0] + dt*(v-fx*dhx-fy*dhy), -64, 64)
-			dfx = (cc[2]-l[2])/tx if fx >= 0 else (r[2]-cc[2])/tx
-			dfy = (cc[2]-d[2])/ty if fy >= 0 else (u[2]-cc[2])/ty
-			foam = (cc[2]-dt*(fx*dfx+fy*dfy)+dt*.3*((l[2]-2*cc[2]+r[2])+(d[2]-2*cc[2]+u[2])))*math.exp(-dt*.85)
-			dix = (cc[3]-l[3])/tx if fx >= 0 else (r[3]-cc[3])/tx
-			diy = (cc[3]-d[3])/ty if fy >= 0 else (u[3]-cc[3])/ty
-			inter = (cc[3]-dt*(fx*dix+fy*diy)+dt*.3*((l[3]-2*cc[3]+r[3])+(d[3]-2*cc[3]+u[3])))*math.exp(-dt/persistence)
+			# semi-Lagrangian Catmull-Rom transport, upwind next to dry cells
+			moved = advect(cur, px - dt*fx/tx, py - dt*fy/ty)
+			if moved is None:
+				gx = (cc-l)/tx if fx >= 0 else (r-cc)/tx
+				gy = (cc-d)/ty if fy >= 0 else (u-cc)/ty
+				moved = cc - dt*(fx*gx + fy*gy)
+			v = np.clip(moved[1] + dt*(c*c*lap - 2*damping*moved[1]), -512, 512)
+			nh = np.clip(moved[0] + dt*v, -64, 64)
+			foam = (moved[2]+dt*.3*((l[2]-2*cc[2]+r[2])+(d[2]-2*cc[2]+u[2])))*math.exp(-dt*.85)
+			inter = (moved[3]+dt*.3*((l[3]-2*cc[3]+r[3])+(d[3]-2*cc[3]+u[3])))*math.exp(-dt/persistence)
 			out[py, px] = [nh, v, np.clip(foam, 0, 1), np.clip(inter, 0, 1)]
 		return out
+
+	def catmull_rom(t):
+		return np.array([t*(-.5+t*(1-.5*t)), 1+t*t*(-2.5+1.5*t), t*(.5+t*(2-1.5*t)), t*t*(-.5+.5*t)])
+
+	def advect(a, sx, sy):
+		bx, by = math.floor(sx), math.floor(sy)
+		wx, wy = catmull_rom(sx - bx), catmull_rom(sy - by)
+		total = np.zeros(4); inner = []
+		for j in range(4):
+			for i in range(4):
+				qx, qy = bx + i - 1, by + j - 1
+				if not (0 <= qx < w and 0 <= qy < h and mask[qy, qx]):
+					return None
+				total += wx[i]*wy[j]*a[qy, qx]
+				if i in (1, 2) and j in (1, 2):
+					inner.append(a[qy, qx])
+		inner = np.array(inner)
+		return np.clip(total, inner.min(axis=0), inner.max(axis=0))
 
 	textures = [tex2d(w, h, RGBA16F, data=state), tex2d(w, h, RGBA16F, data=state)]
 	frames = [fbo([textures[0]]), fbo([textures[1]])]
@@ -1181,7 +1199,8 @@ def check_interaction_field(bench=False):
 	gpu = read_color(frames[current], w, h)
 	errors = np.max(np.abs(gpu[mask] - ref[mask]), axis=0)
 	ok = check('GPU interaction stencil matches CPU reference',
-		np.all(errors < [5e-3, 2e-2, 3e-3, 2e-3]),
+		# RGBA16F state: the 4x4 Catmull-Rom transport re-rounds every step
+		np.all(errors < [1e-2, 4e-2, 5e-3, 5e-3]),
 		'max h/v/foam/intersection ' + '/'.join(f'{value:.3g}' for value in errors))
 	ok = check('GPU interaction preserves dry-cell sentinel', np.all(gpu[~mask, 3] < -.5)) and ok
 	if bench:

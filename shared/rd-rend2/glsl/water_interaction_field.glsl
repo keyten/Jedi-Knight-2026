@@ -17,6 +17,8 @@ uniform vec4 u_WaterInteractionSim0; // dt, c, damping, resolve mode
 uniform vec4 u_WaterInteractionSim1; // texel world X/Y, flow world X/Y
 uniform vec4 u_WaterInteractionDomain; // viewport origin, intersection persistence, apply source
 uniform vec4 u_WaterBathymetryParams; // enabled, fallback depth, effective gravity, unused
+uniform sampler2D u_WaterFlowField;     // r_waterFlowField: velocity / body speed (rg), same body UV
+uniform vec4 u_WaterFlowFieldParams;    // field enabled, body flow speed (world units/s), unused, unused
 out vec4 out_Color;
 
 vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
@@ -32,6 +34,60 @@ vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
 		value.a = max(value.a, source.a);
 	}
 	return value;
+}
+
+// Semi-Lagrangian advection by the resolved flow.  The departure point is
+// interpolated with Catmull-Rom over 4x4 wet cells and clamped to the inner
+// 2x2 range (no new extrema).  First-order upwind differencing smeared a
+// ripple of a few texels within ~0.15 s at stream speeds (numerical
+// diffusion |u| dx / 2); this keeps disturbances intact while they drift.
+// Returns false when the footprint touches a dry/outside cell, so the caller
+// keeps the bounded upwind result next to banks.
+vec4 FlowState(ivec2 p, ivec2 size)
+{
+	if (p.x < 0 || p.y < 0 || p.x >= size.x || p.y >= size.y)
+		return vec4(0.0, 0.0, 0.0, -1.0);
+	vec4 value = texelFetch(u_WaterInteractionState, p, 0);
+	if (value.a >= 0.0 && u_WaterInteractionDomain.w > 0.5)
+	{
+		vec4 source = texelFetch(u_WaterInteractionSource, p, 0);
+		value.rgb += source.rgb;
+		value.a = max(value.a, source.a);
+	}
+	return value;
+}
+
+vec4 CatmullRomWeights(float t)
+{
+	return vec4(t * (-0.5 + t * (1.0 - 0.5 * t)),
+		1.0 + t * t * (-2.5 + 1.5 * t),
+		t * (0.5 + t * (2.0 - 1.5 * t)),
+		t * t * (-0.5 + 0.5 * t));
+}
+
+bool AdvectState(vec2 departure, ivec2 size, out vec4 result)
+{
+	vec2 base = floor(departure);
+	vec2 t = departure - base;
+	ivec2 b = ivec2(base);
+	vec4 wx = CatmullRomWeights(t.x), wy = CatmullRomWeights(t.y);
+	vec4 sum = vec4(0.0);
+	vec4 lo = vec4(1.0e30), hi = vec4(-1.0e30);
+	for (int j = 0; j < 4; ++j)
+	{
+		vec4 row = vec4(0.0);
+		for (int i = 0; i < 4; ++i)
+		{
+			vec4 value = FlowState(b + ivec2(i - 1, j - 1), size);
+			if (value.a < 0.0)
+				return false;
+			row += wx[i] * value;
+			if (i == 1 || i == 2) if (j == 1 || j == 2) { lo = min(lo, value); hi = max(hi, value); }
+		}
+		sum += wy[j] * row;
+	}
+	result = clamp(sum, lo, hi);
+	return true;
 }
 
 float WaterDepth(ivec2 p, ivec2 size)
@@ -74,6 +130,14 @@ void main()
 	float damping = u_WaterInteractionSim0.z;
 	vec2 worldTexel = u_WaterInteractionSim1.xy;
 	vec2 flow = u_WaterInteractionSim1.zw;
+	if (u_WaterFlowFieldParams.x > 0.5)
+	{
+		// spatial flow: slow at banks, turning along walls; per-cell CFL guard
+		flow = texture(u_WaterFlowField, (vec2(p) + 0.5) / vec2(size)).rg * u_WaterFlowFieldParams.y;
+		float courant = dt * (abs(flow.x) / worldTexel.x + abs(flow.y) / worldTexel.y);
+		if (courant > 0.95)
+			flow *= 0.95 / courant;
+	}
 	float acceleration;
 	if (u_WaterBathymetryParams.x > 0.5)
 	{
@@ -94,15 +158,25 @@ void main()
 			(down.r - 2.0 * center.r + up.r) / (worldTexel.y * worldTexel.y);
 		acceleration = c * c * lap;
 	}
-	float velocity = center.g + dt * (acceleration - 2.0 * damping * center.g);
-	float dhdx = flow.x >= 0.0 ? (center.r - left.r) / worldTexel.x : (right.r - center.r) / worldTexel.x;
-	float dhdy = flow.y >= 0.0 ? (center.r - down.r) / worldTexel.y : (up.r - center.r) / worldTexel.y;
-	float height = center.r + dt * (velocity - flow.x * dhdx - flow.y * dhdy);
+	// Transport by the flow first (semi-Lagrangian, upwind next to banks),
+	// then integrate the local wave equation on the transported cell.
+	vec4 transported;
+	bool flowing = abs(flow.x) + abs(flow.y) > 1.0e-4;
+	if (!flowing || !AdvectState(vec2(p) - dt * flow / worldTexel, size, transported))
+	{
+		transported = center;
+		if (flowing)
+		{
+			vec4 gradX = flow.x >= 0.0 ? (center - left) / worldTexel.x : (right - center) / worldTexel.x;
+			vec4 gradY = flow.y >= 0.0 ? (center - down) / worldTexel.y : (up - center) / worldTexel.y;
+			transported = center - dt * (flow.x * gradX + flow.y * gradY);
+		}
+	}
+	float velocity = transported.g + dt * (acceleration - 2.0 * damping * transported.g);
+	float height = transported.r + dt * velocity;
 
-	float dfdx = flow.x >= 0.0 ? (center.b - left.b) / worldTexel.x : (right.b - center.b) / worldTexel.x;
-	float dfdy = flow.y >= 0.0 ? (center.b - down.b) / worldTexel.y : (up.b - center.b) / worldTexel.y;
 	float foamDiffusion = 0.3 * ((left.b - 2.0 * center.b + right.b) + (down.b - 2.0 * center.b + up.b));
-	float foam = (center.b - dt * dot(flow, vec2(dfdx, dfdy)) + dt * foamDiffusion) * exp(-dt * 0.85);
+	float foam = (transported.b + dt * foamDiffusion) * exp(-dt * 0.85);
 	bool boundary = p.x == 0 || p.y == 0 || p.x + 1 == size.x || p.y + 1 == size.y ||
 		texelFetch(u_WaterInteractionState, clamp(p + ivec2(-1, 0), ivec2(0), size - 1), 0).a < 0.0 ||
 		texelFetch(u_WaterInteractionState, clamp(p + ivec2(1, 0), ivec2(0), size - 1), 0).a < 0.0 ||
@@ -110,14 +184,16 @@ void main()
 		texelFetch(u_WaterInteractionState, clamp(p + ivec2(0, 1), ivec2(0), size - 1), 0).a < 0.0;
 	if (boundary && u_WaterInteractionSim0.w < 0.0)
 	{
-		float agitation = max(abs(velocity) / 96.0, length(flow) / 96.0);
-		foam = max(foam, -u_WaterInteractionSim0.w * clamp(agitation - 0.15, 0.0, 1.0));
+		// Only a disturbance that actually breaks on the edge foams it.  Steady
+		// flow along a bank is not agitation (it used to foam every edge cell
+		// as soon as a stream exceeded ~15 u/s).  Foam accumulates as a
+		// saturating rate instead of being forced to a constant.
+		float agitation = clamp((abs(velocity) - 40.0) / 120.0, 0.0, 1.0);
+		foam += -u_WaterInteractionSim0.w * agitation * 4.0 * dt * (1.0 - foam);
 	}
 
-	float didx = flow.x >= 0.0 ? (center.a - left.a) / worldTexel.x : (right.a - center.a) / worldTexel.x;
-	float didy = flow.y >= 0.0 ? (center.a - down.a) / worldTexel.y : (up.a - center.a) / worldTexel.y;
 	float intersectionDiffusion = 0.3 * ((left.a - 2.0 * center.a + right.a) + (down.a - 2.0 * center.a + up.a));
-	float intersection = (center.a - dt * dot(flow, vec2(didx, didy)) + dt * intersectionDiffusion) *
+	float intersection = (transported.a + dt * intersectionDiffusion) *
 		exp(-dt / max(u_WaterInteractionDomain.z, 0.001));
 	out_Color = vec4(clamp(height, -64.0, 64.0), clamp(velocity, -512.0, 512.0),
 		clamp(foam, 0.0, 1.0), clamp(intersection, 0.0, 1.0));

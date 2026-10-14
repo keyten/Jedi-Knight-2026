@@ -36,6 +36,8 @@ void CG_ResetEntity( centity_t *cent ) {
 	// if an event is set, assume it is new enough to use
 	// if the event had timed out, it would have been cleared
 	cent->previousEvent = 0;
+	// a reused slot must not trace a water crossing from its previous occupant
+	cent->waterSplashInitialized = qfalse;
 
 //	cent->trailTime = cg.snap->serverTime;
 

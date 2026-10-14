@@ -124,6 +124,7 @@ def projection():
 
 SAMPLER_UNITS = ['u_DiffuseMap', 'u_FroxelVolume', 'u_FroxelTail', 'u_FroxelTransmittance', 'u_ParticleLightVolume']
 PIXEL = 2.0 / SIZE			# world size of a pixel at distance 1 (2 tan(45) / height)
+CAMERA_FAR = 4096.0	# camera block axis length at 90 degrees FOV
 PARAMS = [PIXEL, 2.0, 10.0, 160.0, 0.2, 0.0, 0.75, 1.0]
 
 
@@ -133,7 +134,8 @@ def draw(prog, target, points, params=PARAMS, fog_mode=None, textures=None):
     gl('glUseProgram', None, U)(prog)
     buffers = [uniform_buffer(prog, 'Camera', {
         'u_viewProjectionMatrix': projection(), 'u_ViewOrigin': [0, 0, 0], 'u_ViewForward': [0, 0, 1],
-        'u_ViewLeft': [-1, 0, 0], 'u_ViewUp': [0, 1, 0]}, 0)]
+        # RB_UpdateCameraConstants scales the axes by zFar * tan(fov / 2)
+        'u_ViewLeft': [-CAMERA_FAR, 0, 0], 'u_ViewUp': [0, CAMERA_FAR, 0]}, 0)]
     if fog_mode is not None:
         # froxel camera: clip = (x, y, 0, z), forward +z; slices 8..128 over the volume
         buffers.append(uniform_buffer(prog, 'VolumetricFog', {

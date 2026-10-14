@@ -1,5 +1,13 @@
 # Displaced-water shoreline and contact
 
+> **2026-10-15:** see [`rend2-water-realism-pass2.md`](rend2-water-realism-pass2.md). In plain words:
+> `r_waterShoreline 1` (a) keeps ambient waves calmer next to walls and banks, (b) makes stone/concrete
+> at the waterline PBR-wet with a ragged, streaked band that rises with splashes, wakes and flow
+> hitting walls and dries over `r_waterShoreWetPersistence` seconds, and (c) lets breaking
+> disturbances foam along the edge. It needs `r_waterSurface 1`; `r_waterGeometry 1` only adds the
+> contact skirts. Contact segments no longer require geometry, bank segments follow the real ground line,
+> and edges no longer foam merely for being edges.
+
 `r_waterShoreline 1` closes the visual contract between the render-only water
 mesh and static world geometry. It requires `r_waterSurface 1` and
 `r_waterGeometry 1`; all three are latched. Gameplay contents, collision and

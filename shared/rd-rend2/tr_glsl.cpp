@@ -473,6 +473,13 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFoamParams",		GLSL_VEC4, 1 },
 	{ "u_WaterFoamFlow",		GLSL_VEC4, 1 },
 	{ "u_WaterWhitewaterParams",	GLSL_VEC4, 1 },
+	{ "u_WaterFoamSources",	GLSL_VEC4, 1 },
+	{ "u_WaterFoamInteraction",	GLSL_INT, 1 },
+	{ "u_WaterFoamInteractionRect",	GLSL_VEC4, 1 },
+	{ "u_WaterFlowField",		GLSL_INT, 1 },
+	{ "u_WaterFlowFieldParams",	GLSL_VEC4, 1 },
+	{ "u_WaterFlowParams",	GLSL_VEC4, 2 },
+	{ "u_WaterFoamPattern",	GLSL_INT, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
 	{ "u_WaterOptics2", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
@@ -3100,6 +3107,9 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERINTERACTIONMAP, 19);
+		// units 16/17 are free in the water program (entity grid units are lightall only)
+		GLSL_SetUniformInt(sp, UNIFORM_WATERFOAMPATTERNMAP, 16);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERFLOWFIELDMAP, 17);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERRAINMAP, TB_WATERRAIN);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERGLOWMAP, 9);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, 12);
@@ -4336,6 +4346,11 @@ static int GLSL_LoadGPUProgramWaterFoamField(
 			ATTR_POSITION | ATTR_TEXCOORD0, NO_XFB_VARS, "", *programDesc))
 		ri.Error(ERR_FATAL, "Could not load water foam field shader!");
 	GLSL_InitUniforms(&tr.waterFoamFieldShader);
+	qglUseProgram(tr.waterFoamFieldShader.program);
+	// foam map / source use TB_WATERFOAM / TB_WATERFOAMSOURCE (generic setup)
+	GLSL_SetUniformInt(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERACTIONMAP, TB_WATERRAIN);
+	GLSL_SetUniformInt(&tr.waterFoamFieldShader, UNIFORM_WATERFLOWFIELDMAP, 21);
+	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.waterFoamFieldShader);
 	return 1;
 }
@@ -4357,6 +4372,7 @@ static int GLSL_LoadGPUProgramWaterInteractionField(
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSTATE, TB_COLORMAP);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSOURCE, TB_NORMALMAP);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYMAP, TB_DELUXEMAP);
+	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERFLOWFIELDMAP, TB_SPECULARMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.waterInteractionFieldShader);
 	return 1;

@@ -267,6 +267,7 @@ struct waterInteractionState_t
 	bool active = false, dirty = false;
 	float energy = 0.0f, quietTime = 0.0f;
 	float lastSource[4] = { 0, 0, 0, 0 }; // body UV, radius in UV, strength
+	bool intersectionPending = false; // depth contacts injected since the last foam update
 };
 
 // One independently allocated low-resolution concentration field per active
@@ -283,6 +284,32 @@ struct waterFoamState_t
 	image_t *image[2] = { nullptr, nullptr };
 	image_t *sourceImage = nullptr;
 	bool active = false;
+	// localized sources are uploaded only on frames that have any (and once
+	// more to clear them); constant and breaking-wave terms are uniforms/GPU
+	bool sourceDirty = false, sourceInTexture = false;
+};
+
+// r_waterFlowField: see R_WaterFlowFieldBuildBody.
+struct waterFlowSlap_t
+{
+	vec3_t position;
+	float strength;
+	int next;
+	unsigned seed;
+};
+
+struct waterFlowFieldState_t
+{
+	int width = 0, height = 0;
+	float texelX = 0.0f, texelY = 0.0f;
+	// RGBA per texel: velocity / body speed (xy), shore distance / delta, impingement
+	std::vector<float> data;
+	image_t *image = nullptr;
+	float delta = 0.0f, maxDistance = 0.0f, meanScale = 1.0f;
+	int wallTexels = 0, openTexels = 0;
+	waterFlowSlap_t slaps[4] = {};
+	int numSlaps = 0;
+	bool valid = false;
 };
 
 struct waterWakeTrack_t
@@ -349,6 +376,7 @@ struct waterBody_t
 	float geometryMaxEdge = 0.0f;
 	waterInteractionState_t interaction;
 	waterFoamState_t foam;
+	waterFlowFieldState_t flowField;
 	bool waterfall = false;
 	int waterfallProfile = WFPROFILE_MEDIUM;
 	const char *waterfallDecision = "legacy fallback";
@@ -367,6 +395,9 @@ struct waterContactSegment_t
 	vec3_t a, b;
 	float wetA, wetB;
 	float currentA, currentB;
+	// splash / wake / wall-impact run-up above the current waterline, decays
+	// in about a second; the wet hold then keeps it for the drying time
+	float runUpA, runUpB;
 	int bodyId;
 	bool rigid;
 };
@@ -544,6 +575,7 @@ static struct
 	unsigned foamFrame;
 	int foamTime;
 	size_t foamGpuBytes;
+	size_t flowFieldGpuBytes;
 } s_water;
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
@@ -958,6 +990,22 @@ static void R_WaterInteractionBuild(void)
 		s_water.interactionGpuBytes / (1024.0f * 1024.0f));
 }
 
+// Gameplay entries happen right at the waterline, where the discrete mask
+// often misses the exact texel.  Accept the nearest wet texel within two
+// texels (the same tolerance the crosshair impulse command uses).
+static bool R_WaterInteractionMaskNear(const waterInteractionState_t& sim, int x, int y)
+{
+	for (int radius = 0; radius <= 2; ++radius)
+		for (int dy = -radius; dy <= radius; ++dy) for (int dx = -radius; dx <= radius; ++dx)
+		{
+			if (MAX(abs(dx), abs(dy)) != radius) continue;
+			const int sx = x + dx, sy = y + dy;
+			if (sx < 0 || sy < 0 || sx >= sim.width || sy >= sim.height) continue;
+			if (sim.mask[(size_t)sy * sim.width + sx]) return true;
+		}
+	return false;
+}
+
 static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
 {
 	waterBody_t *best = nullptr;
@@ -965,11 +1013,12 @@ static waterBody_t *R_WaterInteractionBodyAt(const vec3_t position)
 	for (waterBody_t& body : s_water.bodies)
 	{
 		waterInteractionState_t& sim = body.interaction;
-		if (!sim.image || position[0] < body.bounds[0][0] || position[0] > body.bounds[1][0] ||
-			position[1] < body.bounds[0][1] || position[1] > body.bounds[1][1]) continue;
-		const int x = Com_Clampi(0, sim.width - 1, (int)((position[0] - body.bounds[0][0]) / sim.texelX));
-		const int y = Com_Clampi(0, sim.height - 1, (int)((position[1] - body.bounds[0][1]) / sim.texelY));
-		if (!sim.mask[(size_t)y * sim.width + x]) continue;
+		const float marginX = 2.0f * sim.texelX, marginY = 2.0f * sim.texelY;
+		if (!sim.image || position[0] < body.bounds[0][0] - marginX || position[0] > body.bounds[1][0] + marginX ||
+			position[1] < body.bounds[0][1] - marginY || position[1] > body.bounds[1][1] + marginY) continue;
+		const int x = (int)floorf((position[0] - body.bounds[0][0]) / sim.texelX);
+		const int y = (int)floorf((position[1] - body.bounds[0][1]) / sim.texelY);
+		if (!R_WaterInteractionMaskNear(sim, x, y)) continue;
 		const float plane = fabsf(DotProduct(body.planeNormal, position) - body.planeDist);
 		if (plane < bestPlane) { best = &body; bestPlane = plane; }
 	}
@@ -1021,6 +1070,9 @@ static int R_WaterGeometryComponentCount(const waterBody_t& body, const vec4_t *
 	return resolved;
 }
 
+static bool R_WaterFlowFieldSample(const waterBody_t& body, float worldX, float worldY, float out[4]);
+static float R_WaterFlowImpactHead(const waterBody_t& body);
+
 static void RB_WaterContactUpdate(void)
 {
 	if (!r_waterShoreline->integer || s_water.contacts.empty()) return;
@@ -1055,14 +1107,26 @@ static void RB_WaterContactUpdate(void)
 				Com_Clamp(0.03f, 0.08f, 0.03f + profileShore * 0.033333f) :
 				Com_Clamp(0.15f, 0.40f, 0.15f + profileShore * 0.25f);
 			const float interactionShore = contact.rigid ?
-				Com_Clamp(0.05f, 0.125f, 0.05f + profileShore * 0.05f) :
-				Com_Clamp(0.20f, 0.50f, 0.20f + profileShore * 0.20f);
+				Com_Clamp(0.45f, 0.55f, 0.45f + profileShore * 0.05f) :
+				Com_Clamp(0.60f, 0.75f, 0.60f + profileShore * 0.10f);
 			const float base = (body.planeDist - body.planeNormal[0] * p[0] - body.planeNormal[1] * p[1]) /
 				MAX(fabsf(body.planeNormal[2]), 1.0e-4f);
 			const float interaction = R_WaterInteractionSurfaceHeight(body, p) - base;
 			return base + R_WaterlineWaveHeight(body, p, time, shore, contactWater) + interaction * interactionShore;
 		};
-		contact.currentA = height(contact.a); contact.currentB = height(contact.b);
+		// Flow running into a wall stands up against it (stagnation head).
+		float pileA = 0.0f, pileB = 0.0f;
+		if (r_waterFlowImpact && r_waterFlowImpact->integer && body.flowField.valid)
+		{
+			const float head = R_WaterFlowImpactHead(body);
+			float sample[4];
+			if (R_WaterFlowFieldSample(body, contact.a[0], contact.a[1], sample)) pileA = head * sample[3];
+			if (R_WaterFlowFieldSample(body, contact.b[0], contact.b[1], sample)) pileB = head * sample[3];
+		}
+		const float runUpDecay = expf(-dt * 1.5f);
+		contact.runUpA *= runUpDecay; contact.runUpB *= runUpDecay;
+		contact.currentA = height(contact.a) + pileA + contact.runUpA;
+		contact.currentB = height(contact.b) + pileB + contact.runUpB;
 		auto dry = [dt, persistence](float wet, float current) -> float {
 			if (current >= wet || persistence <= 0.0f) return current;
 			return wet + (current - wet) * MIN(dt / persistence, 1.0f);
@@ -1092,15 +1156,18 @@ static waterBody_t *R_WaterFoamBodyAt(const vec3_t position)
 	return best;
 }
 
+// Channels: R waterfall (rate), G intersection (rate), B continuous impact /
+// shoreline / steepness API sources (rate), A one-shot splash deposit.
 static void R_WaterFoamInject(waterBody_t& body, const vec3_t position,
-	float radius, float strength, int type)
+	float radius, float strength, int type, bool oneShot = false)
 {
 	waterFoamState_t& foam = body.foam;
 	if (!foam.active || strength <= 0.0f) return;
 	int channel = 2;
-	if (type == WATERFOAMSOURCE_WATERFALL) channel = 0;
+	if (oneShot) channel = 3;
+	else if (type == WATERFOAMSOURCE_WATERFALL) channel = 0;
 	else if (type == WATERFOAMSOURCE_INTERSECTION) channel = 1;
-	else if (type == WATERFOAMSOURCE_SHORELINE || type == WATERFOAMSOURCE_WAVE_STEEPNESS) channel = 3;
+	foam.sourceDirty = true;
 	radius = MAX(radius, 1.5f * MAX(foam.texelX, foam.texelY));
 	const int x0 = Com_Clampi(0, foam.width - 1, (int)floorf((position[0] - radius - body.bounds[0][0]) / foam.texelX));
 	const int x1 = Com_Clampi(0, foam.width - 1, (int)floorf((position[0] + radius - body.bounds[0][0]) / foam.texelX));
@@ -1164,6 +1231,25 @@ void RB_WaterContactUniforms(vec4_t *contact, int vec4Count)
 	Com_Memcpy(contact, s_water.contactUniform, sizeof(vec4_t) * copyCount);
 }
 
+// Raise the recent contact height of the body's shoreline segments near a
+// disturbance.  The GPU disturbance field is never read back, so splashes,
+// wakes and wall impacts report their estimated run-up here directly.
+static void R_WaterShoreRunUp(const waterBody_t& body, const vec3_t position, float reach, float height)
+{
+	if (!r_waterShoreline->integer || height <= 0.01f || reach <= 0.0f) return;
+	height = MIN(height, 24.0f);
+	for (waterContactSegment_t& contact : s_water.contacts)
+	{
+		if (contact.bodyId != body.id) continue;
+		const float da = sqrtf((contact.a[0] - position[0]) * (contact.a[0] - position[0]) +
+			(contact.a[1] - position[1]) * (contact.a[1] - position[1]));
+		const float db = sqrtf((contact.b[0] - position[0]) * (contact.b[0] - position[0]) +
+			(contact.b[1] - position[1]) * (contact.b[1] - position[1]));
+		if (da < reach) contact.runUpA = MAX(contact.runUpA, height * (1.0f - da / reach));
+		if (db < reach) contact.runUpB = MAX(contact.runUpB, height * (1.0f - db / reach));
+	}
+}
+
 static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, float radius,
 	float strength, float foam, const vec3_t direction, bool wake)
 {
@@ -1203,10 +1289,13 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 			float kernel = (1.0f - d2);
 			if (wake && dl > 1.0e-5f)
 			{
-				// An elongated, zero-mean bow/stern dipole. Repeated distance
-				// samples form a short strip; the field creates the trailing waves.
+				// A moving hull pushes water up ahead of it.  An odd bow/stern
+				// dipole cancels between the overlapping distance samples (the
+				// integral of an odd kernel along the path is zero), so use a
+				// forward-biased raised core; the mean correction below makes it
+				// zero-mean and the wave equation radiates the trailing V.
 				const float along = (wx * dir[0] + wy * dir[1]) / radius;
-				kernel = kernel * kernel * (-along + 0.18f * (1.0f - 4.0f * d2));
+				kernel = kernel * kernel * Com_Clamp(0.0f, 1.4f, 0.55f + 0.45f * along);
 			}
 			else
 			{
@@ -1263,13 +1352,364 @@ static void R_WaterInteractionStamp(waterBody_t& body, const vec3_t position, fl
 	sim.active = sim.dirty = true; sim.quietTime = 0.0f;
 	if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
 		sim.energy = MAX(sim.energy, strength * strength);
+	R_WaterShoreRunUp(body, position, radius * 3.0f + 32.0f, 0.35f * fabsf(strength) * radius);
 	sim.lastSource[0] = (position[0] - body.bounds[0][0]) / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
 	sim.lastSource[1] = (position[1] - body.bounds[0][1]) / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f);
 	sim.lastSource[2] = radius / MAX(MAX(body.bounds[1][0] - body.bounds[0][0], body.bounds[1][1] - body.bounds[0][1]), 1.0f);
 	sim.lastSource[3] = strength * (wake ? 0.5f : 1.0f);
 	if (foam > 0.0f && r_waterFoamImpact && r_waterFoamImpact->value > 0.0f)
 		R_WaterFoamInject(body, position, radius, foam * r_waterFoamImpact->value,
-			WATERFOAMSOURCE_IMPACT_POOL);
+			WATERFOAMSOURCE_IMPACT_POOL, true);
+}
+
+/*
+============================================================
+
+Body-local spatial flow field (r_waterFlowField)
+
+The resolved per-body flow is one uniform vector.  A real stream is slow
+next to its banks and fast in the middle, turns along a wall it runs into
+and stagnates where it meets one head on.  No fluid is simulated: at map
+load each flowing body gets a small field built from
+
+  - the rasterised body mask, with boundary texels classified by a short
+    horizontal world trace into walls/banks (solid) and open ends (the
+    liquid continues, e.g. into another brush or under a culvert);
+  - an exact Euclidean distance transform to the solid boundary;
+  - an open-channel lateral speed profile pow(d / delta, 0.35), rescaled
+    so the mean speed over the wet area keeps the resolved body speed;
+  - the approach component removed near walls (the flow turns along them)
+    and a few masked smoothing passes;
+  - a wall impingement term: how directly and how close the stream meets a
+    solid boundary (r_waterFlowImpact).
+
+RGBA16F texel: velocity / body speed (xy), shore distance / delta,
+impingement 0..1.  A CPU copy answers R_WaterFlowForBody /
+R_WaterFlowAtWorldPosition.  Uniform bodies without the field are unchanged.
+
+============================================================
+*/
+
+static bool R_WaterFlowFieldEligible(const waterBody_t& body)
+{
+	if (!r_waterFlowField || !r_waterFlowField->integer || !r_waterFlow || !r_waterFlow->integer ||
+		!r_waterSurface || !r_waterSurface->integer || !s_water.world)
+		return false;
+	if (body.waterfall || body.liquidClass == LIQUID_LAVA || body.flowSpeed <= 0.0f ||
+		fabsf(body.planeNormal[2]) < 0.9f)
+		return false;
+	for (int surfaceNum : body.surfaces)
+		if (s_water.world->surfaces[surfaceNum].waterKey & WATERKEY_INTERFACE)
+			return true;
+	return false;
+}
+
+// 1-D squared distance transform of a sampled function (Felzenszwalb and
+// Huttenlocher), with a physical sample spacing.  Doubles: the "no seed"
+// value must not swamp the squared positions.
+static void R_WaterDistance1D(const double *f, double *d, int n, double spacing,
+	std::vector<int>& v, std::vector<double>& z)
+{
+	v.resize(n); z.resize(n + 1);
+	int k = 0;
+	v[0] = 0; z[0] = -1.0e300; z[1] = 1.0e300;
+	for (int q = 1; q < n; ++q)
+	{
+		const double pq = q * spacing;
+		double s;
+		for (;;)
+		{
+			const double pv = v[k] * spacing;
+			s = ((f[q] + pq * pq) - (f[v[k]] + pv * pv)) / (2.0 * (pq - pv));
+			if (s > z[k]) break;
+			--k;
+		}
+		++k; v[k] = q; z[k] = s; z[k + 1] = 1.0e300;
+	}
+	k = 0;
+	for (int q = 0; q < n; ++q)
+	{
+		const double pq = q * spacing;
+		while (z[k + 1] < pq) ++k;
+		const double delta = pq - v[k] * spacing;
+		d[q] = delta * delta + f[v[k]];
+	}
+}
+
+static bool R_WaterFlowFieldSolid(const vec3_t start, const vec3_t end)
+{
+	trace_t trace;
+	Com_Memset(&trace, 0, sizeof(trace));
+#ifdef REND2_SP
+	ri.SV_Trace(&trace, start, vec3_origin, vec3_origin, end, ENTITYNUM_NONE, CONTENTS_SOLID, G2_NOCOLLIDE, 0);
+#else
+	ri.CM_BoxTrace(&trace, start, end, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, 0);
+#endif
+	return trace.startsolid || trace.allsolid || trace.fraction < 1.0f;
+}
+
+static void R_WaterFlowFieldBuildBody(waterBody_t& body)
+{
+	waterFlowFieldState_t& field = body.flowField;
+	field.valid = false;
+	field.numSlaps = 0;
+	if (!R_WaterFlowFieldEligible(body))
+		return;
+
+	const float extentX = MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f);
+	const float extentY = MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f);
+	const int w = Com_Clampi(16, 256, (int)ceilf(extentX / 8.0f));
+	const int h = Com_Clampi(16, 256, (int)ceilf(extentY / 8.0f));
+	if (field.image && (field.width != w || field.height != h))
+		return; // a runtime rebuild keeps its allocation; bounds never change after load
+	field.width = w; field.height = h;
+	field.texelX = extentX / w; field.texelY = extentY / h;
+	std::vector<byte> mask;
+	R_WaterRasterBodyMask(body, w, h, field.texelX, field.texelY, mask);
+
+	auto wet = [&](int x, int y) -> bool {
+		return x >= 0 && y >= 0 && x < w && y < h && mask[(size_t)y * w + x];
+	};
+	auto surfaceZ = [&](float x, float y) -> float {
+		return (body.planeDist - body.planeNormal[0] * x - body.planeNormal[1] * y) / body.planeNormal[2];
+	};
+
+	// Padded grid (one texel each side) so the outside of the bounds is a
+	// boundary too.  Seeds of the distance transform are dry texels that are
+	// not beyond an open end.
+	const int pw = w + 2, ph = h + 2;
+	std::vector<byte> open((size_t)pw * ph, 0);
+	field.wallTexels = field.openTexels = 0;
+	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+	{
+		if (!wet(x, y)) continue;
+		vec2_t outward = { 0.0f, 0.0f };
+		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx)
+			if ((dx || dy) && !wet(x + dx, y + dy)) { outward[0] += dx; outward[1] += dy; }
+		const float length = sqrtf(outward[0] * outward[0] + outward[1] * outward[1]);
+		if (length < 1.0e-3f) continue;
+		outward[0] /= length; outward[1] /= length;
+		const float wx = body.bounds[0][0] + (x + 0.5f) * field.texelX;
+		const float wy = body.bounds[0][1] + (y + 0.5f) * field.texelY;
+		const float reach = MAX(field.texelX, field.texelY) + 16.0f;
+		vec3_t start = { wx, wy, surfaceZ(wx, wy) - 4.0f };
+		vec3_t end = { wx + outward[0] * reach, wy + outward[1] * reach, start[2] };
+		if (R_WaterFlowFieldSolid(start, end)) { ++field.wallTexels; continue; }
+		++field.openTexels;
+		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx)
+			if (!wet(x + dx, y + dy)) open[(size_t)(y + dy + 1) * pw + (x + dx + 1)] = 1;
+	}
+
+	// Exact Euclidean distance (world units) to the nearest solid boundary.
+	const double inf = 1.0e12;
+	std::vector<double> grid((size_t)pw * ph), column(MAX(pw, ph)), out(MAX(pw, ph));
+	std::vector<int> v; std::vector<double> z;
+	for (int y = 0; y < ph; ++y) for (int x = 0; x < pw; ++x)
+	{
+		const bool isWet = wet(x - 1, y - 1);
+		grid[(size_t)y * pw + x] = (!isWet && !open[(size_t)y * pw + x]) ? 0.0f : inf;
+	}
+	for (int y = 0; y < ph; ++y)
+	{
+		R_WaterDistance1D(&grid[(size_t)y * pw], out.data(), pw, (double)field.texelX, v, z);
+		for (int x = 0; x < pw; ++x) grid[(size_t)y * pw + x] = out[x];
+	}
+	for (int x = 0; x < pw; ++x)
+	{
+		for (int y = 0; y < ph; ++y) column[y] = grid[(size_t)y * pw + x];
+		R_WaterDistance1D(column.data(), out.data(), ph, (double)field.texelY, v, z);
+		for (int y = 0; y < ph; ++y) grid[(size_t)y * pw + x] = out[y];
+	}
+	std::vector<float> distance((size_t)w * h, 0.0f);
+	float maxDistance = 0.0f;
+	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+	{
+		if (!wet(x, y)) continue;
+		// a body with no solid boundary at all (open on every side) keeps uniform flow
+		const double squared = grid[(size_t)(y + 1) * pw + (x + 1)];
+		const float d = squared >= inf * 0.5 ? 4096.0f : (float)sqrt(squared);
+		distance[(size_t)y * w + x] = d;
+		maxDistance = MAX(maxDistance, MIN(d, 4096.0f));
+	}
+	const float delta = Com_Clamp(16.0f, 96.0f, 0.6f * maxDistance);
+	const float turn = MAX(2.0f * MAX(field.texelX, field.texelY), 0.5f * delta);
+	field.delta = delta; field.maxDistance = maxDistance;
+
+	vec2_t flowDir = { body.flowDirection[0], body.flowDirection[1] };
+	const float flowLength = sqrtf(flowDir[0] * flowDir[0] + flowDir[1] * flowDir[1]);
+	if (flowLength < 1.0e-4f) return;
+	flowDir[0] /= flowLength; flowDir[1] /= flowLength;
+
+	auto distanceAt = [&](int x, int y) -> float {
+		return wet(x, y) ? distance[(size_t)y * w + x] : 0.0f;
+	};
+	std::vector<float> velocity((size_t)w * h * 2, 0.0f), impingement((size_t)w * h, 0.0f);
+	for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+	{
+		if (!wet(x, y)) continue;
+		const size_t i = (size_t)y * w + x;
+		const float d = distance[i];
+		// distance gradient: points away from the nearest solid boundary
+		vec2_t n = { (distanceAt(x + 1, y) - distanceAt(x - 1, y)) / (2.0f * field.texelX),
+			(distanceAt(x, y + 1) - distanceAt(x, y - 1)) / (2.0f * field.texelY) };
+		const float nl = sqrtf(n[0] * n[0] + n[1] * n[1]);
+		if (nl > 1.0e-4f) { n[0] /= nl; n[1] /= nl; } else { n[0] = n[1] = 0.0f; }
+		const float approach = MIN(flowDir[0] * n[0] + flowDir[1] * n[1], 0.0f); // < 0 runs into the boundary
+		const float x01 = Com_Clamp(0.0f, 1.0f, d / turn);
+		const float nearWall = 1.0f - x01 * x01 * (3.0f - 2.0f * x01);
+		vec2_t dir = { flowDir[0] - nearWall * approach * n[0], flowDir[1] - nearWall * approach * n[1] };
+		const float profile = MAX(powf(Com_Clamp(0.0f, 1.0f, d / delta), 0.35f), 0.05f);
+		velocity[i * 2] = dir[0] * profile;
+		velocity[i * 2 + 1] = dir[1] * profile;
+		const float i01 = Com_Clamp(0.0f, 1.0f, d / 48.0f);
+		impingement[i] = Com_Clamp(0.0f, 1.0f, -approach) * (1.0f - i01 * i01 * (3.0f - 2.0f * i01));
+	}
+	// masked 3x3 smoothing so the turn along a wall is gradual
+	std::vector<float> smooth(velocity.size());
+	for (int pass = 0; pass < 4; ++pass)
+	{
+		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+		{
+			const size_t i = (size_t)y * w + x;
+			if (!wet(x, y)) { smooth[i * 2] = smooth[i * 2 + 1] = 0.0f; continue; }
+			float sx = 0.0f, sy = 0.0f, weight = 0.0f;
+			for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx)
+			{
+				if (!wet(x + dx, y + dy)) continue;
+				const size_t j = (size_t)(y + dy) * w + (x + dx);
+				const float k = (dx || dy) ? 1.0f : 2.0f;
+				sx += k * velocity[j * 2]; sy += k * velocity[j * 2 + 1]; weight += k;
+			}
+			smooth[i * 2] = sx / weight; smooth[i * 2 + 1] = sy / weight;
+		}
+		velocity.swap(smooth);
+	}
+	// keep the mean speed (the resolved body speed) over the wet area
+	double sum = 0.0; int count = 0;
+	for (int i = 0; i < w * h; ++i)
+		if (mask[i]) { sum += sqrtf(velocity[i * 2] * velocity[i * 2] + velocity[i * 2 + 1] * velocity[i * 2 + 1]); ++count; }
+	const float mean = count ? (float)(sum / count) : 1.0f;
+	field.meanScale = Com_Clamp(1.0f, 1.4f, mean > 1.0e-3f ? 1.0f / mean : 1.0f);
+
+	field.data.assign((size_t)w * h * 4, 0.0f);
+	for (int i = 0; i < w * h; ++i)
+	{
+		if (!mask[i]) continue;
+		field.data[i * 4] = velocity[i * 2] * field.meanScale;
+		field.data[i * 4 + 1] = velocity[i * 2 + 1] * field.meanScale;
+		field.data[i * 4 + 2] = Com_Clamp(0.0f, 1.0f, distance[i] / delta);
+		field.data[i * 4 + 3] = impingement[i];
+	}
+
+	// Up to four slap points along the strongest impingement: the wall
+	// impact emits small sloshing impulses there (r_waterFlowImpact).
+	std::vector<float> remaining = impingement;
+	for (int s = 0; s < 4; ++s)
+	{
+		int best = -1; float bestValue = 0.5f;
+		for (int i = 0; i < w * h; ++i) if (remaining[i] > bestValue) { bestValue = remaining[i]; best = i; }
+		if (best < 0) break;
+		waterFlowSlap_t& slap = field.slaps[field.numSlaps++];
+		const int bx = best % w, by = best / w;
+		slap.position[0] = body.bounds[0][0] + (bx + 0.5f) * field.texelX;
+		slap.position[1] = body.bounds[0][1] + (by + 0.5f) * field.texelY;
+		slap.position[2] = surfaceZ(slap.position[0], slap.position[1]);
+		slap.strength = bestValue;
+		slap.next = 0;
+		slap.seed = 0x9e3779b9u * (unsigned)(body.id * 4 + s + 1);
+		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+		{
+			const float dx = (x - bx) * field.texelX, dy = (y - by) * field.texelY;
+			if (dx * dx + dy * dy < 96.0f * 96.0f) remaining[(size_t)y * w + x] = 0.0f;
+		}
+	}
+
+	if (!field.image)
+	{
+		field.image = R_CreateImage(va("*waterFlowField%d", body.id), NULL, w, h, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE, GL_RGBA16F);
+		s_water.flowFieldGpuBytes += (size_t)w * h * 8;
+	}
+	GL_Bind(field.image);
+	qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_FLOAT, field.data.data());
+	field.valid = true;
+}
+
+static void R_WaterFlowFieldBuild(void)
+{
+	s_water.flowFieldGpuBytes = 0;
+	int built = 0;
+	const int start = ri.Milliseconds();
+	for (waterBody_t& body : s_water.bodies)
+	{
+		body.flowField.image = nullptr;
+		R_WaterFlowFieldBuildBody(body);
+		if (body.flowField.valid) ++built;
+	}
+	if (r_waterFlowField && r_waterFlowField->integer)
+		ri.Printf(PRINT_DEVELOPER, "water flow field: %d bodies, %.2f MiB GPU, %d ms\n",
+			built, s_water.flowFieldGpuBytes / (1024.0f * 1024.0f), ri.Milliseconds() - start);
+}
+
+// Bilinear CPU lookup in body space; false when the body has no field.
+static bool R_WaterFlowFieldSample(const waterBody_t& body, float worldX, float worldY, float out[4])
+{
+	const waterFlowFieldState_t& field = body.flowField;
+	if (!field.valid) return false;
+	const float fx = (worldX - body.bounds[0][0]) / field.texelX - 0.5f;
+	const float fy = (worldY - body.bounds[0][1]) / field.texelY - 0.5f;
+	const int x0 = Com_Clampi(0, field.width - 1, (int)floorf(fx));
+	const int y0 = Com_Clampi(0, field.height - 1, (int)floorf(fy));
+	const int x1 = MIN(x0 + 1, field.width - 1), y1 = MIN(y0 + 1, field.height - 1);
+	const float tx = Com_Clamp(0.0f, 1.0f, fx - floorf(fx)), ty = Com_Clamp(0.0f, 1.0f, fy - floorf(fy));
+	for (int c = 0; c < 4; ++c)
+	{
+		const float a = field.data[((size_t)y0 * field.width + x0) * 4 + c];
+		const float b = field.data[((size_t)y0 * field.width + x1) * 4 + c];
+		const float d = field.data[((size_t)y1 * field.width + x0) * 4 + c];
+		const float e = field.data[((size_t)y1 * field.width + x1) * 4 + c];
+		out[c] = (a + (b - a) * tx) + ((d + (e - d) * tx) - (a + (b - a) * tx)) * ty;
+	}
+	return true;
+}
+
+// r_waterFlowImpact: the uniforms of the field consumers and the sloshing
+// impulses at the strongest wall impact points.
+static float R_WaterFlowImpactHead(const waterBody_t& body)
+{
+	// stagnation head U^2 / 2g, capped by depth and a visual maximum
+	const float speed = body.flowSpeed * Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
+	const float g = MAX(r_waterWaveGravity->value, 1.0f);
+	const float depthCap = body.depthAverage > 0.5f ? 0.5f * body.depthAverage : 12.0f;
+	return MIN(MIN(speed * speed / (2.0f * g), 12.0f), depthCap);
+}
+
+static void R_WaterFlowImpactSlaps(int now)
+{
+	if (!r_waterFlowImpact || !r_waterFlowImpact->integer) return;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterFlowFieldState_t& field = body.flowField;
+		if (!field.valid) continue;
+		const float head = R_WaterFlowImpactHead(body);
+		for (int s = 0; s < field.numSlaps; ++s)
+		{
+			waterFlowSlap_t& slap = field.slaps[s];
+			if (now < slap.next) continue;
+			// irregular 0.25-0.9 s rhythm, strength jittered: sloshing, not a metronome
+			slap.seed = slap.seed * 1664525u + 1013904223u;
+			const float r0 = (float)((slap.seed >> 8) & 0xffff) / 65535.0f;
+			slap.seed = slap.seed * 1664525u + 1013904223u;
+			const float r1 = (float)((slap.seed >> 8) & 0xffff) / 65535.0f;
+			slap.next = now + 250 + (int)(650.0f * r0);
+			const float strength = Com_Clamp(0.0f, 0.6f, slap.strength * head * 0.06f * (0.6f + 0.8f * r1));
+			if (strength <= 0.01f) continue;
+			if (body.interaction.image)
+				R_WaterInteractionStamp(body, slap.position, 20.0f + 16.0f * r1, strength,
+					0.25f * slap.strength, NULL, false);
+			R_WaterShoreRunUp(body, slap.position, 48.0f, head * slap.strength * (0.8f + 0.6f * r1));
+		}
+	}
 }
 
 static float R_WaterfallImpactRandom(waterfallImpactSource_t& source)
@@ -1397,9 +1837,14 @@ static void R_WaterInteractionWakes(int now)
 				const float immersion = Com_Clamp(0.0f, 1.0f,
 					(surface - bottom) / MAX(top - bottom, 1.0f));
 				const float speedScale = Com_Clamp(0.45f, 2.5f, speed / 160.0f);
+				// Stamps now superpose along the path: normalise by the number of
+				// overlapping samples (2 radius / spacing) and apply the profile's
+				// wake response (still pools damp, fast streams carry more).
+				const float overlap = Com_Clamp(0.15f, 1.0f, spacing / (2.0f * radius));
 				position[2] = surface;
 				R_WaterInteractionStamp(*body, position, radius,
-					source.strength * (0.35f + 0.65f * sqrtf(immersion)) * speedScale,
+					source.strength * (0.35f + 0.65f * sqrtf(immersion)) * speedScale *
+					overlap * 1.4f * s_dynamics[body->dynamics].wake,
 					source.foam * immersion, source.direction, true);
 			}
 			const int uncappedSamples = first <= distance ? 1 + (int)floorf((distance - first) / spacing) : 0;
@@ -1413,6 +1858,44 @@ static void R_WaterInteractionWakes(int now)
 		}
 		VectorCopy(source.position, track.position);
 	}
+}
+
+// CPU mirror of AdvectState in water_interaction_field.glsl: Catmull-Rom over
+// 4x4 wet cells at the departure point, clamped to the inner 2x2 range.
+// Channels: height, velocity, transient foam, intersection foam.
+static bool R_WaterInteractionAdvect(const waterInteractionState_t& sim, float px, float py, float out[4])
+{
+	const float bx = floorf(px), by = floorf(py);
+	const float tx = px - bx, ty = py - by;
+	auto weights = [](float t, float w[4]) {
+		w[0] = t * (-0.5f + t * (1.0f - 0.5f * t));
+		w[1] = 1.0f + t * t * (-2.5f + 1.5f * t);
+		w[2] = t * (0.5f + t * (2.0f - 1.5f * t));
+		w[3] = t * t * (-0.5f + 0.5f * t);
+	};
+	float wx[4], wy[4]; weights(tx, wx); weights(ty, wy);
+	float sum[4] = {}, lo[4], hi[4];
+	for (int c = 0; c < 4; ++c) { lo[c] = 1.0e30f; hi[c] = -1.0e30f; }
+	for (int j = 0; j < 4; ++j)
+	{
+		float row[4] = {};
+		for (int i = 0; i < 4; ++i)
+		{
+			const int x = (int)bx + i - 1, y = (int)by + j - 1;
+			if (x < 0 || y < 0 || x >= sim.width || y >= sim.height) return false;
+			const size_t cell = (size_t)y * sim.width + x;
+			if (!sim.mask[cell]) return false;
+			const float value[4] = { sim.state[cell * 3], sim.state[cell * 3 + 1], sim.state[cell * 3 + 2], sim.intersectionFoam[cell] };
+			for (int c = 0; c < 4; ++c)
+			{
+				row[c] += wx[i] * value[c];
+				if ((i == 1 || i == 2) && (j == 1 || j == 2)) { lo[c] = MIN(lo[c], value[c]); hi[c] = MAX(hi[c], value[c]); }
+			}
+		}
+		for (int c = 0; c < 4; ++c) sum[c] += wy[j] * row[c];
+	}
+	for (int c = 0; c < 4; ++c) out[c] = Com_Clamp(lo[c], hi[c], sum[c]);
+	return true;
 }
 
 static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
@@ -1431,24 +1914,37 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 	const float effectiveGravity = variableDepth ? MIN(r_waterWaveGravity->value,
 		(cLimit * cLimit) / MAX(MAX(sim.bathymetryMaxDepth, fallbackDepth), 0.5f)) : 0.0f;
 	const float damping = 0.32f * s_dynamics[body.dynamics].damping * r_waterInteractionDamping->value;
-	float flowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
-	float flowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
+	float bodyFlowX = r_waterFlow->integer ? body.flowVelocity[0] * r_waterFlowSpeed->value : 0.0f;
+	float bodyFlowY = r_waterFlow->integer ? body.flowVelocity[1] * r_waterFlowSpeed->value : 0.0f;
 	// The wave-equation CFL limit above does not protect the following upwind
 	// advection.  Preserve direction while keeping its 2-D Courant number below
 	// one; extreme flow CVars then slow down instead of saturating the height
 	// clamp and poisoning the field.
-	const float flowCourant = dt * (fabsf(flowX) / sim.texelX + fabsf(flowY) / sim.texelY);
+	const float flowCourant = dt * (fabsf(bodyFlowX) / sim.texelX + fabsf(bodyFlowY) / sim.texelY);
 	if (flowCourant > 0.95f)
 	{
 		const float scale = 0.95f / flowCourant;
-		flowX *= scale; flowY *= scale;
+		bodyFlowX *= scale; bodyFlowY *= scale;
 	}
+	const bool flowField = r_waterFlow->integer && body.flowField.valid;
+	const float fieldSpeed = body.flowSpeed * r_waterFlowSpeed->value;
 	double energy = 0.0; int wet = 0;
 	for (size_t wetIndex = 0; wetIndex < sim.wetCells.size(); ++wetIndex)
 	{
 		const size_t i = (size_t)sim.wetCells[wetIndex];
+		// spatial flow (r_waterFlowField): the same per-cell rule as the GPU pass
+		float flowX = bodyFlowX, flowY = bodyFlowY;
+		float fieldSample[4];
+		if (flowField && R_WaterFlowFieldSample(body,
+			body.bounds[0][0] + ((int)(i % sim.width) + 0.5f) * sim.texelX,
+			body.bounds[0][1] + ((int)(i / sim.width) + 0.5f) * sim.texelY, fieldSample))
+		{
+			flowX = fieldSample[0] * fieldSpeed; flowY = fieldSample[1] * fieldSpeed;
+			const float courant = dt * (fabsf(flowX) / sim.texelX + fabsf(flowY) / sim.texelY);
+			if (courant > 0.95f) { flowX *= 0.95f / courant; flowY *= 0.95f / courant; }
+		}
 		const std::array<int, 4>& neighbours = sim.wetNeighbours[wetIndex];
-		const float hc = sim.state[i * 3], vc = sim.state[i * 3 + 1], fc = sim.state[i * 3 + 2];
+		const float hc = sim.state[i * 3], vc = sim.state[i * 3 + 1];
 		const float hl = sim.state[(size_t)neighbours[0] * 3];
 		const float hr = sim.state[(size_t)neighbours[1] * 3];
 		const float hd = sim.state[(size_t)neighbours[2] * 3];
@@ -1475,42 +1971,54 @@ static void R_WaterInteractionStepBody(waterBody_t& body, float dt)
 				(hd - 2.0f * hc + hu) / (sim.texelY * sim.texelY);
 			acceleration = c * c * lap;
 		}
-		float v = vc + dt * (acceleration - 2.0f * damping * vc);
-		// First-order upwind advection only for profiles with resolved flow.
-		const float dhdx = flowX >= 0.0f ? (hc - hl) / sim.texelX : (hr - hc) / sim.texelX;
-		const float dhdy = flowY >= 0.0f ? (hc - hd) / sim.texelY : (hu - hc) / sim.texelY;
-		float nh = hc + dt * (v - flowX * dhdx - flowY * dhdy);
+		// Transport by the flow first (semi-Lagrangian Catmull-Rom, the same
+		// rule as water_interaction_field.glsl), then integrate the local wave
+		// equation on the transported cell.  Upwind is the bank fallback.
+		const float fc0 = sim.state[i * 3 + 2], ic0 = sim.intersectionFoam[i];
+		float transported[4] = { hc, vc, fc0, ic0 };
+		const bool flowing = fabsf(flowX) + fabsf(flowY) > 1.0e-4f;
+		if (flowing && !R_WaterInteractionAdvect(sim, (int)(i % sim.width) - dt * flowX / sim.texelX,
+			(int)(i / sim.width) - dt * flowY / sim.texelY, transported))
+		{
+			for (int channel = 0; channel < 4; ++channel)
+			{
+				auto value = [&](int cell) -> float {
+					return channel < 3 ? sim.state[(size_t)cell * 3 + channel] : sim.intersectionFoam[cell];
+				};
+				const float cc = value((int)i);
+				const float gx = flowX >= 0.0f ? (cc - value(neighbours[0])) / sim.texelX : (value(neighbours[1]) - cc) / sim.texelX;
+				const float gy = flowY >= 0.0f ? (cc - value(neighbours[2])) / sim.texelY : (value(neighbours[3]) - cc) / sim.texelY;
+				transported[channel] = cc - dt * (flowX * gx + flowY * gy);
+			}
+		}
+		float v = transported[1] + dt * (acceleration - 2.0f * damping * transported[1]);
+		float nh = transported[0] + dt * v;
 		v = Com_Clamp(-512.0f, 512.0f, v); nh = Com_Clamp(-64.0f, 64.0f, nh);
-		// Foam is a short-lived surface tracer.  Advect it with resolved flow;
-		// numerical diffusion plus exponential decay keeps the patch soft.
+		// Foam is a short-lived surface tracer: transported, softened and decayed.
 		const float fl = sim.state[(size_t)neighbours[0] * 3 + 2];
 		const float fr = sim.state[(size_t)neighbours[1] * 3 + 2];
 		const float fd = sim.state[(size_t)neighbours[2] * 3 + 2];
 		const float fu = sim.state[(size_t)neighbours[3] * 3 + 2];
-		const float dfdx = flowX >= 0.0f ? (fc - fl) / sim.texelX : (fr - fc) / sim.texelX;
-		const float dfdy = flowY >= 0.0f ? (fc - fd) / sim.texelY : (fu - fc) / sim.texelY;
-		const float diffusion = 0.3f * ((fl - 2.0f * fc + fr) + (fd - 2.0f * fc + fu));
-		float nf = Com_Clamp(0.0f, 1.0f, (fc - dt * (flowX * dfdx + flowY * dfdy) + dt * diffusion) * expf(-dt * 0.85f));
-		const float ic = sim.intersectionFoam[i];
+		const float diffusion = 0.3f * ((fl - 2.0f * fc0 + fr) + (fd - 2.0f * fc0 + fu));
+		float nf = Com_Clamp(0.0f, 1.0f, (transported[2] + dt * diffusion) * expf(-dt * 0.85f));
 		const float il = sim.intersectionFoam[neighbours[0]], ir = sim.intersectionFoam[neighbours[1]];
 		const float id = sim.intersectionFoam[neighbours[2]], iu = sim.intersectionFoam[neighbours[3]];
-		const float didx = flowX >= 0.0f ? (ic - il) / sim.texelX : (ir - ic) / sim.texelX;
-		const float didy = flowY >= 0.0f ? (ic - id) / sim.texelY : (iu - ic) / sim.texelY;
-		const float iDiffusion = 0.3f * ((il - 2.0f * ic + ir) + (id - 2.0f * ic + iu));
+		const float iDiffusion = 0.3f * ((il - 2.0f * ic0 + ir) + (id - 2.0f * ic0 + iu));
 		const float persistence = MAX(r_waterIntersectionFoamPersistence->value, 0.001f);
 		sim.intersectionNext[i] = Com_Clamp(0.0f, 1.0f,
-			(ic - dt * (flowX * didx + flowY * didy) + dt * iDiffusion) * expf(-dt / persistence));
+			(transported[3] + dt * iDiffusion) * expf(-dt / persistence));
 		if (r_waterShoreline->integer && r_waterShoreFoam->value > 0.0f)
 		{
 			const bool boundary = neighbours[0] == (int)i || neighbours[1] == (int)i ||
 				neighbours[2] == (int)i || neighbours[3] == (int)i;
 			if (boundary)
 			{
-				const float agitation = MAX(fabsf(v) / 96.0f,
-					body.flowSpeed > 0.0f ? body.flowSpeed / 96.0f : 0.0f);
+				// Only a disturbance breaking on the edge foams it; steady flow
+				// along a bank is not agitation.  Saturating rate, not a floor.
+				const float agitation = Com_Clamp(0.0f, 1.0f, (fabsf(v) - 40.0f) / 120.0f);
 				const float source = s_dynamics[body.dynamics].foam * body.foamMultiplier *
-					r_waterShoreFoam->value * Com_Clamp(0.0f, 1.0f, agitation - 0.15f);
-				nf = MAX(nf, source);
+					r_waterShoreFoam->value * agitation;
+				nf = Com_Clamp(0.0f, 1.0f, nf + source * 4.0f * dt * (1.0f - nf));
 			}
 		}
 		sim.next[i * 3] = nh; sim.next[i * 3 + 1] = v; sim.next[i * 3 + 2] = nf;
@@ -1575,6 +2083,10 @@ static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
 	GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
 	GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
 	GL_BindToTMU(sim.bathymetryImage ? sim.bathymetryImage : tr.whiteImage, TB_DELUXEMAP);
+	const bool flowField = r_waterFlow->integer && body.flowField.valid;
+	GL_BindToTMU(flowField ? body.flowField.image : tr.whiteImage, TB_SPECULARMAP);
+	vec4_t fieldParams = { flowField ? 1.0f : 0.0f, body.flowSpeed * r_waterFlowSpeed->value, 0.0f, 0.0f };
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERFLOWFIELDPARAMS, fieldParams);
 	vec4_t sim0 = { dt, c, damping, -shore };
 	vec4_t sim1 = { sim.texelX, sim.texelY, flowX, flowY };
 	vec4_t domain = { 0.0f, 0.0f, MAX(r_waterIntersectionFoamPersistence->value, 0.001f), applySource ? 1.0f : 0.0f };
@@ -1622,6 +2134,8 @@ static void RB_WaterInteractionGpuResolveBody(waterBody_t& body)
 	GL_BindToTMU(sim.bathymetryImage ? sim.bathymetryImage : tr.whiteImage, TB_DELUXEMAP);
 	vec4_t sim0 = { 0.0f, 0.0f, 0.0f, 1.0f };
 	vec4_t sim1 = { sim.texelX, sim.texelY, 0.0f, 0.0f };
+	vec4_t noField = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERFLOWFIELDPARAMS, noField);
 	vec4_t domain = { (float)sim.atlasX, (float)sim.atlasY, 1.0f, 0.0f };
 	vec4_t bathymetry = { 0.0f, MAX(body.depthAverage, 0.5f), r_waterWaveGravity->value, 0.0f };
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
@@ -1645,8 +2159,6 @@ static void RB_WaterInteractionUpdate(void)
 
 	for (const refWaterImpulse_t& impulse : s_water.pendingImpulses)
 	{
-		if (impulse.energy > 0.0f && (!r_waterSplashes || !r_waterSplashes->integer))
-			continue;
 		waterBody_t *body = nullptr;
 		if (impulse.bodyId > 0 && impulse.bodyId <= (int)s_water.bodies.size())
 		{
@@ -1766,7 +2278,7 @@ static void RB_WaterFoamUpdate(void)
 		{
 			waterBody_t *body = R_WaterFoamBodyAt(impulse.position);
 			if (body) R_WaterFoamInject(*body, impulse.position, impulse.radius,
-				impulse.foam * r_waterFoamImpact->value, WATERFOAMSOURCE_IMPACT_POOL);
+				impulse.foam * r_waterFoamImpact->value, WATERFOAMSOURCE_IMPACT_POOL, true);
 		}
 		s_water.pendingImpulses.clear();
 	}
@@ -1816,44 +2328,70 @@ static void RB_WaterFoamUpdate(void)
 				(r_waterFoamImpact->value > 0.0f || r_waterFoamIntersection->value > 0.0f);
 			const bool enabledSource = (turbulentCandidate && (r_waterFoamWaterfall->value > 0.0f || r_waterWhitewater->integer)) ||
 				interactionCandidate || (r_waterShoreline->integer && r_waterFoamShoreline->value > 0.0f) ||
-				r_waterFoamSteepness->value > 0.0f || (r_waterWhitewater->integer && body.interaction.image);
+				r_waterFoamSteepness->value > 0.0f || (r_waterWhitewater->integer && body.interaction.image) ||
+				(r_waterFlowImpact->integer && body.flowField.valid);
 			if (enabledSource) R_WaterFoamAllocate(body);
 		}
 		if (!foam.active) continue;
 		const int w = foam.width, h = foam.height;
-		const waterInteractionState_t& interaction = body.interaction;
-		// Only authored waterfall profiles may continuously seed surface foam.
-		// Fast streams form bulk whitewater from the thresholded profile/flow
-		// heuristic below and need a local obstacle/impact source to make foam.
-		const bool turbulent = body.dynamics == 7 || body.dynamics == 8;
-		for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
+		waterInteractionState_t& interaction = body.interaction;
+		// Depth-projected object intersections are resampled only on frames that
+		// produced any (the CPU fallback keeps its decaying tracer every frame).
+		const bool cpuInteraction = interaction.image && !(R_WaterInteractionGpuEnabled() && interaction.gpuState[0]);
+		if (interaction.image && r_waterFoamIntersection->value > 0.0f &&
+			(interaction.intersectionPending || cpuInteraction))
 		{
-			const size_t i = (size_t)y * w + x;
-			if (!foam.mask[i]) continue;
-			byte *s = &foam.source[i * 4];
-			if (turbulent && r_waterFoamWaterfall->value > 0.0f)
-				s[0] = (byte)MAX((int)s[0], (int)(255.0f * Com_Clamp(0.0f, 1.0f,
-					0.22f * s_dynamics[body.dynamics].foam * body.foamMultiplier * r_waterFoamWaterfall->value)));
-			if (interaction.image && r_waterFoamIntersection->value > 0.0f)
+			interaction.intersectionPending = false;
+			for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x)
 			{
+				const size_t i = (size_t)y * w + x;
+				if (!foam.mask[i]) continue;
 				const int ix = Com_Clampi(0, interaction.width - 1, x * interaction.width / w);
 				const int iy = Com_Clampi(0, interaction.height - 1, y * interaction.height / h);
 				const float v = interaction.intersectionFoam[(size_t)iy * interaction.width + ix] * r_waterFoamIntersection->value;
-				s[1] = (byte)MAX((int)s[1], (int)(255.0f * Com_Clamp(0.0f, 1.0f, v)));
+				if (v <= 0.004f) continue;
+				byte *source = &foam.source[i * 4];
+				source[1] = (byte)MAX((int)source[1], (int)(255.0f * Com_Clamp(0.0f, 1.0f, v)));
+				foam.sourceDirty = true;
 			}
-			const bool boundary = x == 0 || y == 0 || x + 1 == w || y + 1 == h ||
-				!foam.mask[i - 1] || !foam.mask[i + 1] || !foam.mask[i - w] || !foam.mask[i + w];
-			float edge = 0.0f;
-			if (boundary && r_waterShoreline->integer && r_waterFoamShoreline->value > 0.0f)
-				edge = 0.18f * s_dynamics[body.dynamics].shoreline * r_waterFoamShoreline->value;
-			if (r_waterFoamSteepness->value > 0.0f)
-				edge = MAX(edge, 0.08f * s_dynamics[body.dynamics].choppiness * r_waterFoamSteepness->value);
-			s[3] = (byte)MAX((int)s[3], (int)(255.0f * Com_Clamp(0.0f, 1.0f, edge)));
 		}
-
-		GL_BindToTMU(foam.sourceImage, TB_WATERFOAMSOURCE);
-		GL_SelectTexture(TB_WATERFOAMSOURCE);
-		qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, foam.source.data());
+		if (foam.sourceDirty || foam.sourceInTexture)
+		{
+			GL_BindToTMU(foam.sourceImage, TB_WATERFOAMSOURCE);
+			GL_SelectTexture(TB_WATERFOAMSOURCE);
+			qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, foam.source.data());
+			foam.sourceInTexture = foam.sourceDirty;
+		}
+		else
+			GL_BindToTMU(foam.sourceImage, TB_WATERFOAMSOURCE);
+		// Constant and GPU-evaluated sources.  Only authored waterfall profiles
+		// seed surface foam everywhere; banks foam where interaction waves break
+		// on them, crests where they steepen, walls where the flow hits them.
+		const bool turbulent = body.dynamics == 7 || body.dynamics == 8;
+		const bool atlas = interaction.image && s_water.interactionAtlas && r_waterInteraction->integer;
+		const bool impact = r_waterFlowImpact && r_waterFlowImpact->integer && body.flowField.valid && r_waterFlow->integer;
+		vec4_t sources = {
+			turbulent && r_waterFoamWaterfall->value > 0.0f ? Com_Clamp(0.0f, 1.0f,
+				0.22f * s_dynamics[body.dynamics].foam * body.foamMultiplier * r_waterFoamWaterfall->value) : 0.0f,
+			atlas && r_waterShoreline->integer ? MAX(r_waterFoamShoreline->value, 0.0f) *
+				Com_Clamp(0.0f, 1.5f, s_dynamics[body.dynamics].shoreline) * body.foamMultiplier : 0.0f,
+			atlas ? MAX(r_waterFoamSteepness->value, 0.0f) * body.foamMultiplier : 0.0f,
+			impact ? Com_Clamp(0.0f, 2.0f, R_WaterFlowImpactHead(body) / 6.0f) * body.foamMultiplier : 0.0f };
+		vec4_t rect = { 0.0f, 0.0f, 0.0f, 0.0f };
+		if (atlas)
+			VectorSet4(rect, (interaction.atlasX + 0.5f) / s_water.interactionAtlasWidth,
+				(interaction.atlasY + 0.5f) / s_water.interactionAtlasHeight,
+				(interaction.width - 1.0f) / s_water.interactionAtlasWidth,
+				(interaction.height - 1.0f) / s_water.interactionAtlasHeight);
+		GL_BindToTMU(atlas ? s_water.interactionAtlas : tr.whiteImage, TB_WATERRAIN);
+		const bool flowField = r_waterFlow->integer && body.flowField.valid;
+		GL_BindToTMU(flowField ? body.flowField.image : tr.whiteImage, 21);
+		const float bodySpeed = body.flowSpeed * (r_waterFlow->integer ? r_waterFlowSpeed->value : 0.0f);
+		vec4_t fieldParams = { flowField ? 1.0f : 0.0f, bodySpeed,
+			1.0f / MAX(body.bounds[1][0] - body.bounds[0][0], 1.0f), 1.0f / MAX(body.bounds[1][1] - body.bounds[0][1], 1.0f) };
+		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMSOURCES, sources);
+		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERACTIONRECT, rect);
+		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFLOWFIELDPARAMS, fieldParams);
 		const int target = foam.current ^ 1;
 		FBO_Bind(tr.waterFoamFbo);
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, foam.image[target]->texnum, 0);
@@ -1896,7 +2434,9 @@ static void RB_WaterFoamUpdate(void)
 		RB_InstantTriangle();
 		foam.current = target;
 		// Keep the uploaded texture for source debug; CPU channels are rebuilt.
-		std::fill(foam.source.begin(), foam.source.end(), 0);
+		if (foam.sourceDirty)
+			std::fill(foam.source.begin(), foam.source.end(), 0);
+		foam.sourceDirty = false;
 		if (R_WaterInteractionGpuEnabled() && interaction.gpuState[0])
 			std::fill(body.interaction.intersectionFoam.begin(),
 				body.interaction.intersectionFoam.end(), 0.0f);
@@ -2480,6 +3020,7 @@ void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t
 	R_WaterBuildBodies();
 	R_WaterInteractionBuild();
 	R_WaterFoamBuild();
+	R_WaterFlowFieldBuild();
 	s_water.classifyMsec = (float)(ri.Milliseconds() - start);
 
 	int modern = 0;
@@ -3844,16 +4385,24 @@ void R_WaterFlowOverride_f( void )
 	rule.flowSpeed = Q_max(0.0f, (float)atof(ri.Cmd_Argv(6)));
 	s_water.bodyRules.push_back(rule);
 	for ( waterBody_t& body : s_water.bodies ) R_WaterResolveBody(body);
+	// the spatial field encodes the direction: rebuild it for the new rule
+	for ( waterBody_t& body : s_water.bodies ) if ( body.flowField.image ) R_WaterFlowFieldBuildBody(body);
 	ri.Printf(PRINT_ALL, "r_waterFlowOverride: applied runtime uniform-flow rule; use list to inspect\n");
 }
 
+// simulationCoordinate is body UV (0..1 over the body bounds)
 qboolean R_WaterFlowForBody( int bodyId, const vec2_t simulationCoordinate, vec3_t velocity )
 {
-	(void)simulationCoordinate; // uniform baseline; retained for a future body-space field
 	VectorClear(velocity);
 	if ( bodyId <= 0 || bodyId > (int)s_water.bodies.size() ) return qfalse;
 	const waterBody_t& body = s_water.bodies[bodyId - 1];
-	VectorCopy(body.flowVelocity, velocity);
+	float sample[4];
+	if ( simulationCoordinate && R_WaterFlowFieldSample(body,
+		body.bounds[0][0] + simulationCoordinate[0] * (body.bounds[1][0] - body.bounds[0][0]),
+		body.bounds[0][1] + simulationCoordinate[1] * (body.bounds[1][1] - body.bounds[0][1]), sample) )
+		VectorSet(velocity, sample[0] * body.flowSpeed, sample[1] * body.flowSpeed, 0.0f);
+	else
+		VectorCopy(body.flowVelocity, velocity);
 	return (qboolean)(body.flowSource != WFLOW_NONE);
 }
 
@@ -3957,7 +4506,11 @@ qboolean R_WaterFlowAtWorldPosition( const vec3_t position, vec3_t velocity, int
 		if ( distance < bestDistance ) { bestDistance = distance; best = &body; }
 	}
 	if ( !best ) return qfalse;
-	VectorCopy(best->flowVelocity, velocity);
+	float sample[4];
+	if ( R_WaterFlowFieldSample(*best, position[0], position[1], sample) )
+		VectorSet(velocity, sample[0] * best->flowSpeed, sample[1] * best->flowSpeed, 0.0f);
+	else
+		VectorCopy(best->flowVelocity, velocity);
 	if ( bodyId ) *bodyId = best->id;
 	return (qboolean)(best->flowSource != WFLOW_NONE);
 }
@@ -4341,6 +4894,62 @@ the RMS slope normalized to 1: the box mips average slopes and squared slopes,
 so the shader recovers the unresolved slope variance (LEAN mapping).
 =================
 */
+// Tiling procedural foam structure (no asset), RGBA8 with mips:
+//   R  bubble membranes: Worley F2 - F1, bright on the walls between cells
+//   G  fine bubbles: Worley F1, dark centres, bright rims
+//   B  large patches: periodic fBm value noise
+//   A  coarse membranes for distance/minification
+// The surface shader thresholds a weighted sum against the local foam
+// concentration, so foam opens into lace and specks as it decays.
+static void R_WaterBuildFoamPattern( int size, std::vector<byte>& out )
+{
+	auto hash = [](int x, int y, int seed) -> float {
+		unsigned h = (unsigned)x * 374761393u + (unsigned)y * 668265263u + (unsigned)seed * 2246822519u;
+		h = (h ^ (h >> 13)) * 1274126177u;
+		h ^= h >> 16;
+		return (float)(h & 0xffffff) / 16777216.0f;
+	};
+	auto worley = [&](float u, float v, int cells, int seed, float& f1, float& f2) {
+		const float x = u * cells, y = v * cells;
+		const int cx = (int)floorf(x), cy = (int)floorf(y);
+		f1 = f2 = 1.0e9f;
+		for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx)
+		{
+			const int gx = cx + dx, gy = cy + dy;
+			const int wx = ((gx % cells) + cells) % cells, wy = ((gy % cells) + cells) % cells;
+			const float px = gx + 0.1f + 0.8f * hash(wx, wy, seed);
+			const float py = gy + 0.1f + 0.8f * hash(wx, wy, seed + 17);
+			const float d = sqrtf((px - x) * (px - x) + (py - y) * (py - y));
+			if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+		}
+	};
+	auto value = [&](float u, float v, int cells, int seed) -> float {
+		const float x = u * cells, y = v * cells;
+		const int ix = (int)floorf(x), iy = (int)floorf(y);
+		float fx = x - ix, fy = y - iy;
+		fx = fx * fx * (3.0f - 2.0f * fx); fy = fy * fy * (3.0f - 2.0f * fy);
+		auto at = [&](int gx, int gy) { return hash(((gx % cells) + cells) % cells, ((gy % cells) + cells) % cells, seed); };
+		const float a = at(ix, iy), b = at(ix + 1, iy), c = at(ix, iy + 1), d = at(ix + 1, iy + 1);
+		return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
+	};
+	out.resize((size_t)size * size * 4);
+	for (int y = 0; y < size; ++y) for (int x = 0; x < size; ++x)
+	{
+		const float u = (x + 0.5f) / size, v = (y + 0.5f) / size;
+		float f1, f2, g1, g2, c1, c2;
+		worley(u, v, 11, 3, f1, f2);
+		worley(u, v, 29, 7, g1, g2);
+		worley(u, v, 5, 11, c1, c2);
+		const float lace = 1.0f - Com_Clamp(0.0f, 1.0f, (f2 - f1) * 2.2f);
+		const float bubbles = Com_Clamp(0.0f, 1.0f, g1 * 1.35f);
+		const float patches = 0.5f * value(u, v, 4, 23) + 0.3f * value(u, v, 8, 29) + 0.2f * value(u, v, 16, 31);
+		const float coarse = 1.0f - Com_Clamp(0.0f, 1.0f, (c2 - c1) * 1.8f);
+		byte *p = &out[((size_t)y * size + x) * 4];
+		p[0] = (byte)(255.0f * lace); p[1] = (byte)(255.0f * bubbles);
+		p[2] = (byte)(255.0f * Com_Clamp(0.0f, 1.0f, patches)); p[3] = (byte)(255.0f * coarse);
+	}
+}
+
 static void R_WaterBuildWaveSlopes( int size, std::vector<float>& out )
 {
 	struct wave_t { float kx, ky, amp, phase; };
@@ -4410,6 +5019,7 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 	tr.waterSceneImage = NULL;
 	tr.waterDepthImage = NULL;
 	tr.waterNormalImage = NULL;
+	tr.waterFoamPatternImage = NULL;
 	tr.waterGlowImage = NULL;
 	tr.waterReflectionDepthImage = NULL;
 	for (int i = 0; i < 2; i++)
@@ -4456,6 +5066,19 @@ void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 	qglGenerateMipmap(GL_TEXTURE_2D);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 8);
+	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	static std::vector<byte> foamPattern;
+	if ( foamPattern.empty() )
+		R_WaterBuildFoamPattern(256, foamPattern);
+	tr.waterFoamPatternImage = R_CreateImage("*waterFoamPattern", NULL, 256, 256, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_MUTABLE, GL_RGBA8);
+	GL_Bind(tr.waterFoamPatternImage);
+	qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, foamPattern.data());
+	qglGenerateMipmap(GL_TEXTURE_2D);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -4570,6 +5193,131 @@ static bool R_WaterBoundaryRigid(const waterBody_t& body, const vec3_t a, const 
 	return !Q_stricmp(s_dynamics[body.dynamics].name, "still_pool");
 }
 
+/*
+=================
+R_WaterBuildContacts
+
+Shoreline contact segments (r_waterShoreline), independent of the render
+mesh (r_waterGeometry only adds the skirts).  Body boundary edges come from
+the interface triangles; on natural banks the brush outline is usually
+buried under the terrain, so each endpoint is moved along the edge normal to
+where the solid ground actually crosses the water plane.
+=================
+*/
+static bool R_WaterTraceDown(float x, float y, float top, float bottom, float& hitZ)
+{
+	trace_t trace;
+	Com_Memset(&trace, 0, sizeof(trace));
+	vec3_t start = { x, y, top }, end = { x, y, bottom };
+#ifdef REND2_SP
+	ri.SV_Trace(&trace, start, vec3_origin, vec3_origin, end, ENTITYNUM_NONE, CONTENTS_SOLID, G2_NOCOLLIDE, 0);
+#else
+	ri.CM_BoxTrace(&trace, start, end, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, 0);
+#endif
+	if (trace.startsolid || trace.allsolid) { hitZ = top; return true; }
+	if (trace.fraction >= 1.0f) return false;
+	hitZ = trace.endpos[2];
+	return true;
+}
+
+// Ground above the water plane at (x, y)?  (true when buried under a bank)
+static bool R_WaterGroundAbove(float x, float y, float waterZ)
+{
+	float hitZ;
+	return R_WaterTraceDown(x, y, waterZ + 64.0f, waterZ - 2.0f, hitZ) && hitZ >= waterZ - 1.0f;
+}
+
+static void R_WaterSnapContactPoint(vec3_t point, const vec2_t outward)
+{
+	const float waterZ = point[2];
+	const bool buried = R_WaterGroundAbove(point[0], point[1], waterZ);
+	// buried: march toward the water until the ground drops below the plane;
+	// clear: march outward until the ground rises to it
+	const float sign = buried ? -1.0f : 1.0f;
+	for (float step = 4.0f; step <= 64.0f; step += 4.0f)
+	{
+		const float x = point[0] + outward[0] * sign * step, y = point[1] + outward[1] * sign * step;
+		if (R_WaterGroundAbove(x, y, waterZ) != buried)
+		{
+			const float back = buried ? step : step - 2.0f;
+			point[0] += outward[0] * sign * back; point[1] += outward[1] * sign * back;
+			return;
+		}
+	}
+}
+
+static void R_WaterBuildContacts(world_t *world)
+{
+	if (!r_waterShoreline->integer || !r_waterSurface->integer) return;
+	int snapped = 0;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		if (body.waterfall) continue;
+		std::vector<srfBspSurface_t *> surfaces;
+		for (int surfaceNum : body.surfaces)
+		{
+			msurface_t& ms = world->surfaces[surfaceNum];
+			if (!(ms.waterKey & WATERKEY_INTERFACE) ||
+				!(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+			srfBspSurface_t *surface = (srfBspSurface_t *)ms.data;
+			if (surface->verts && surface->numIndexes >= 3 && surface->numVerts) surfaces.push_back(surface);
+		}
+		struct sourceEdge_t { int count = 0; vec3_t a = {}, b = {}, inside = {}; };
+		std::map<waterEdgeKey_t, sourceEdge_t> edges;
+		for (srfBspSurface_t *surface : surfaces)
+			for (int i = 0; i + 2 < surface->numIndexes; i += 3)
+				for (int e = 0; e < 3; ++e)
+				{
+					const int ia = surface->indexes[i + e], ib = surface->indexes[i + (e + 1) % 3];
+					const int ic = surface->indexes[i + (e + 2) % 3];
+					if (ia < 0 || ib < 0 || ic < 0 || ia >= surface->numVerts || ib >= surface->numVerts ||
+						ic >= surface->numVerts) continue;
+					sourceEdge_t& edge = edges[R_WaterEdgeKey(surface->verts[ia].xyz, surface->verts[ib].xyz)];
+					if (!edge.count)
+					{
+						VectorCopy(surface->verts[ia].xyz, edge.a); VectorCopy(surface->verts[ib].xyz, edge.b);
+						VectorCopy(surface->verts[ic].xyz, edge.inside);
+					}
+					edge.count++;
+				}
+		for (const auto& item : edges)
+		{
+			const sourceEdge_t& edge = item.second;
+			if (edge.count != 1) continue;
+			const bool rigid = R_WaterBoundaryRigid(body, edge.a, edge.b);
+			// outward normal in XY: away from the triangle's third vertex
+			vec2_t outward = { edge.b[1] - edge.a[1], edge.a[0] - edge.b[0] };
+			const float length = sqrtf(outward[0] * outward[0] + outward[1] * outward[1]);
+			if (length < 1.0e-3f) continue;
+			outward[0] /= length; outward[1] /= length;
+			if ((edge.inside[0] - edge.a[0]) * outward[0] + (edge.inside[1] - edge.a[1]) * outward[1] > 0.0f)
+			{
+				outward[0] = -outward[0]; outward[1] = -outward[1];
+			}
+			vec3_t delta; VectorSubtract(edge.b, edge.a, delta);
+			const int pieces = MAX(1, (int)ceilf(VectorLength(delta) / 64.0f));
+			for (int piece = 0; piece < pieces; ++piece)
+			{
+				waterContactSegment_t contact = {};
+				const float t0 = (float)piece / pieces, t1 = (float)(piece + 1) / pieces;
+				VectorMA(edge.a, t0, delta, contact.a); VectorMA(edge.a, t1, delta, contact.b);
+				if (!rigid)
+				{
+					R_WaterSnapContactPoint(contact.a, outward);
+					R_WaterSnapContactPoint(contact.b, outward);
+					++snapped;
+				}
+				contact.wetA = contact.currentA = contact.a[2];
+				contact.wetB = contact.currentB = contact.b[2];
+				contact.bodyId = body.id; contact.rigid = rigid;
+				s_water.contacts.push_back(contact);
+			}
+		}
+	}
+	ri.Printf(PRINT_DEVELOPER, "water shoreline: %d contact segments (%d bank segments snapped to the ground line), geometry skirts %s\n",
+		(int)s_water.contacts.size(), snapped, r_waterGeometry->integer ? "on" : "off");
+}
+
 void R_WaterBuildGeometry(world_t *world)
 {
 	s_water.geometryMsec = 0;
@@ -4577,6 +5325,7 @@ void R_WaterBuildGeometry(world_t *world)
 	s_water.contacts.clear();
 	s_water.contactTime = 0;
 	s_water.contactUniformTime = -1;
+	if (s_water.world == world) R_WaterBuildContacts(world);
 	if (s_water.world != world || (!r_waterGeometry->integer && (!r_waterfallGeometry || !r_waterfallGeometry->integer))) return;
 	const int start = ri.Milliseconds();
 	const int bodyCap = Com_Clampi(1024, 1000000, r_waterGeometryBodyVerts->integer);
@@ -4634,18 +5383,6 @@ void R_WaterBuildGeometry(world_t *world)
 			boundary.rigid = R_WaterBoundaryRigid(body, boundary.a, boundary.b);
 			if (body.waterfall) continue;
 			boundaries.push_back(boundary);
-			vec3_t delta; VectorSubtract(boundary.b, boundary.a, delta);
-			const int pieces = MAX(1, (int)ceilf(VectorLength(delta) / 64.0f));
-			for (int piece = 0; piece < pieces; ++piece)
-			{
-				waterContactSegment_t contact = {};
-				const float t0 = (float)piece / pieces, t1 = (float)(piece + 1) / pieces;
-				VectorMA(boundary.a, t0, delta, contact.a); VectorMA(boundary.a, t1, delta, contact.b);
-				contact.wetA = contact.currentA = contact.a[2];
-				contact.wetB = contact.currentB = contact.b[2];
-				contact.bodyId = body.id; contact.rigid = boundary.rigid;
-				s_water.contacts.push_back(contact);
-			}
 		}
 		int level = 0;
 		while (level < 8 && longest > target * (1 << level)) ++level;
@@ -4958,6 +5695,7 @@ void RB_WaterSurfaceBeginView( void )
 		tr.world && !(backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)))
 	{
 		RB_UpdateWeatherWind();
+		R_WaterFlowImpactSlaps(backEnd.refdef.time);
 		RB_WaterInteractionUpdate();
 		RB_WaterFoamUpdate();
 		RB_WaterContactUpdate();
@@ -5323,8 +6061,8 @@ static float R_WaterlineShoreAttenuation(const waterBody_t& body, const vec3_t p
 	const float profile = Com_Clamp(0.0f, 1.5f, s_dynamics[body.dynamics].shoreline);
 	const float edge = rigid ? Com_Clamp(0.03f, 0.08f, 0.03f + profile * 0.033333f) :
 		Com_Clamp(0.15f, 0.40f, 0.15f + profile * 0.25f);
-	const float interactionEdge = rigid ? Com_Clamp(0.05f, 0.125f, 0.05f + profile * 0.05f) :
-		Com_Clamp(0.20f, 0.50f, 0.20f + profile * 0.20f);
+	const float interactionEdge = rigid ? Com_Clamp(0.45f, 0.55f, 0.45f + profile * 0.05f) :
+		Com_Clamp(0.60f, 0.75f, 0.60f + profile * 0.10f);
 	const float width = MAX(r_waterShoreAttenuation->value * (rigid ? 1.0f : 0.35f), 1.0f);
 	const float x = Com_Clamp(0.0f, 1.0f, distance / width);
 	const float smooth = x * x * (3.0f - 2.0f * x);
@@ -5624,6 +6362,21 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterSceneImage, 0);
 	samplers.AddStaticImage(tr.waterDepthImage, 1);
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
+	samplers.AddStaticImage(tr.waterFoamPatternImage ? tr.waterFoamPatternImage : tr.whiteImage, 16);
+	const bool flowField = body && !body->waterfall && r_waterFlow->integer && body->flowField.valid;
+	samplers.AddStaticImage(flowField ? body->flowField.image : tr.whiteImage, 17);
+	{
+		// [0] field enabled, body flow speed (u/s), wall impact enabled, stagnation head (world units)
+		// [1] two-phase period (s), foam pattern world scale, flow debug, unused
+		const float speed = flowField ? body->flowSpeed * Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value) : 0.0f;
+		const bool impact = flowField && r_waterFlowImpact->integer;
+		vec4_t flowParams[2];
+		VectorSet4(flowParams[0], flowField ? 1.0f : 0.0f, speed, impact ? 1.0f : 0.0f,
+			impact ? R_WaterFlowImpactHead(*body) : 0.0f);
+		VectorSet4(flowParams[1], Com_Clamp(0.6f, 2.0f, 64.0f / MAX(speed, 1.0f)), 1.0f / 96.0f,
+			(float)r_waterFlowDebug->integer, 0.0f);
+		uniforms.SetUniformVec4(UNIFORM_WATERFLOWPARAMS, flowParams[0], 2);
+	}
 	samplers.AddStaticImage(interaction ? s_water.interactionAtlas : tr.whiteImage, 19);
 	samplers.AddStaticImage(waterRain ? waterRainImage : tr.whiteImage, TB_WATERRAIN);
 	samplers.AddStaticImage(foam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
@@ -5771,6 +6524,7 @@ static void RB_WaterIntersectionInject(void)
 			if (source <= 0.01f) continue;
 			const float clampedSource = Com_Clamp(0.0f, 1.0f, source);
 			sim.intersectionFoam[i] = MAX(sim.intersectionFoam[i], clampedSource);
+			sim.intersectionPending = true;
 			if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
 			{
 				if (!sim.gpuSourceDirty)

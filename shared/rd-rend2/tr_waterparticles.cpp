@@ -546,6 +546,12 @@ static void WP_SampleLight( waterParticle_t *p )
 			p->ambient[c] = a;
 			p->directed[c] = d;
 		}
+		// physical light units scale the baked legacy light like lightall does
+		if ( r_pbrPhysical->integer )
+		{
+			VectorScale(p->ambient, tr.world->pbrLegacyCalibration, p->ambient);
+			VectorScale(p->directed, tr.world->pbrLegacyCalibration, p->directed);
+		}
 		VectorNormalize2(dir, p->lightDir);
 	}
 	else
