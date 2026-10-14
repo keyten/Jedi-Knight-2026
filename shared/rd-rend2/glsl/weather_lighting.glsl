@@ -25,6 +25,7 @@ struct WeatherLight
 	float radius;
 	vec4 spot;
 	vec4 spot2;
+	vec4 physical;
 };
 
 layout(std140) uniform Lights
@@ -66,12 +67,22 @@ float WeatherLuminance(vec3 color)
 	return dot(color, vec3(0.2126, 0.7152, 0.0722));
 }
 
-// Identical Q3-style finite-radius attenuation and spot cone used by
-// lightall.glsl. A small importance threshold prevents invisible work.
-float WeatherPointAttenuation(vec3 receiverToLight, float radius, vec4 spot, float cosInner)
+// Matches lightall.glsl: inverse-square metres and an edge-only range window
+// in physical mode, exact Q3 finite-radius attenuation in compatibility mode.
+float WeatherPointAttenuation(vec3 receiverToLight, float radius, float sourceRadius,
+	vec4 spot, float cosInner)
 {
-	float distanceSq = max(dot(receiverToLight, receiverToLight), 1.0);
+	float distanceSq = max(dot(receiverToLight, receiverToLight), 1e-8);
+#if defined(USE_PHYSICAL_PBR)
+	float x = sqrt(distanceSq) / max(radius, 1e-4);
+	float edge = clamp((x - 0.8) / 0.2, 0.0, 1.0);
+	float window = 1.0 - edge * edge * (3.0 - 2.0 * edge);
+	float attenuation = window / (max(distanceSq, sourceRadius * sourceRadius) *
+		PBR_METERS_PER_WORLD_UNIT_SQUARED);
+#else
+	distanceSq = max(distanceSq, 1.0);
 	float attenuation = clamp(0.5 * radius * radius / distanceSq - 0.5, 0.0, 1.0);
+#endif
 	if (attenuation <= 0.0)
 		return 0.0;
 	vec3 L = receiverToLight * inversesqrt(distanceSq);
@@ -106,10 +117,11 @@ ivec2 WeatherFPlusList(vec3 position)
 
 vec3 WeatherLightResponse(vec3 position, vec3 normal, float surfaceResponse,
 	vec3 lightOrigin, vec3 lightColor, float radius, vec4 spot, float cosInner,
+	float sourceRadius,
 	out float importance)
 {
 	vec3 toLight = lightOrigin - position;
-	float attenuation = WeatherPointAttenuation(toLight, radius, spot, cosInner);
+	float attenuation = WeatherPointAttenuation(toLight, radius, sourceRadius, spot, cosInner);
 	vec3 L = toLight * inversesqrt(max(dot(toLight, toLight), 1.0));
 	// Streaks are tiny scattering cylinders; splashes also receive a broad
 	// diffuse response so crowns and sprays do not wink out as their cards turn.
@@ -157,7 +169,8 @@ vec3 WeatherEvaluateFPlus(vec3 position, vec3 normal, float surfaceResponse,
 		}
 	}
 	return WeatherLightResponse(position, normal, surfaceResponse, lightOrigin,
-		t1.rgb, t0.w, spot, cosInner, importance);
+		t1.rgb, t0.w, spot, cosInner,
+		t1.w == 0.0 ? texelFetch(u_FPlusLights, base + 4).y : 0.0, importance);
 }
 
 vec3 WeatherEvaluateUbo(vec3 position, vec3 normal, float surfaceResponse,
@@ -166,7 +179,7 @@ vec3 WeatherEvaluateUbo(vec3 position, vec3 normal, float surfaceResponse,
 	WeatherLight light = u_Lights[lightIndex];
 	return WeatherLightResponse(position, normal, surfaceResponse,
 		light.origin.xyz, light.color, light.radius, light.spot, light.spot2.x,
-		importance);
+		light.physical.x, importance);
 }
 
 WeatherDynamicResult WeatherDynamicLight(vec3 position, vec3 normal, float surfaceResponse)

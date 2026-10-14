@@ -16,7 +16,8 @@ launched yet**: the in-game checks, GPU timings and screenshots below are still 
 | `r_ltcDebug` | 0 | cheat, latch. 1–8 lighting views; 9 static visibility, 10 cache slot, 11 saber cube, 12 saber screen, 13 screen confidence, 14 final saber visibility |
 | `r_ltcDebugLight` | -1 | map light highlighted in modes 5–7 (-1 = the nearest) |
 | `r_ltcIntensityScale` | 1 | radiance multiplier for map and scene area lights other than sabers |
-| `r_ltcSaberIntensityScale` | 1 | separate radiance multiplier for LTC saber lines |
+| `r_ltcSaberIntensityScale` | 1 | strict-legacy radiance multiplier for LTC saber lines |
+| `r_ltcSaberLuminance` | 40000 | physical-mode artistic blade luminance in cd/m2 (nits) |
 | `r_ltcStaticDiffuse` | 0 | also add diffuse for `static_specular` lights (their diffuse is normally baked) |
 | `r_ltcMaxLights` | 64 | map lights per scene, most important first: emitted power / distance² (dynamic lights are not counted) |
 | `r_ltcAutoAreaLights` | 1 | for maps without an `.arealights.json`: 0 off, 1 confident lamp shapes, 2 also loosely fitted ones (see "Automatic conversion"). Runs at map load only while `r_ltcAreaLights` is on |
@@ -146,7 +147,11 @@ Rectangle fields:
 - `type` `"rect"`
 - `center`, `right`, `up`. `up` is re-orthogonalized, and the emitting side is `right × up`.
 - `halfWidth`, `halfHeight`
-- `color` (default 1 1 1) and `intensity` (default 1). Radiance = color × intensity.
+- `color` (default 1 1 1) is chromaticity. Preferred physical authoring is
+  `luminanceNits` in cd/m2; it is normalized to unit Rec.709 luminance and
+  converted once to canonical scene radiance. The early `luminance` spelling
+  remains an alias. Legacy `intensity` remains accepted and is mapped through
+  the common map calibration in physical mode.
 - `range` (optional)
 - `mode`:
   - `static_specular` (default): the stock lightmapped lamp gets specular only.
@@ -155,7 +160,7 @@ Rectangle fields:
 - `twoSided` (default false)
 - `name`
 
-Line fields: `type` `"line"`, `start`, `end`, `radius`, plus the same color / intensity / range /
+Line fields: `type` `"line"`, `start`, `end`, `radius`, plus the same color / luminance / range /
 mode fields.
 
 ## Automatic conversion of stock maps (`r_ltcAutoAreaLights`)
@@ -228,9 +233,11 @@ in `shader_t` as hints. Nothing renders from them, so legacy behavior is unchang
   length·1.4, rgb)` when the `r_ltcSaberAreaLights` mirror is on.
 - Each blade becomes its own line. Only if the renderer returns false is the old point light added,
   so the two are never both active.
-- Blade radiance = saber color × 4 × `r_ltcSaberIntensityScale` (`SABER_AREA_RADIANCE`).
-  In mode 2, fog uses the original saber color and the midpoint dynamic shadow cube, so changing
-  LTC saber intensity only changes surface lighting.
+- In physical mode, blade radiance is the Y-normalized saber chromaticity at
+  `r_ltcSaberLuminance` cd/m2. Its submitted blade radius gives the finite
+  cylinder a meaningful emitting area. Strict legacy mode retains saber color
+  × 4 × `r_ltcSaberIntensityScale`. In mode 2, fog uses the canonical point
+  proxy and midpoint dynamic shadow cube.
 
 API, chosen to stay compatible (`refexport_t` and `REF_API_VERSION` are **unchanged**, so the A/B
 renderer DLLs keep loading):

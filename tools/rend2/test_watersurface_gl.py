@@ -122,7 +122,7 @@ def header(defines, size):
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
-                  snell=False):
+                  snell=False, physical=False):
     defines = ['USE_WATER_ATMOSPHERE']
     if hiz:
         defines.append('USE_HIZ')
@@ -139,9 +139,11 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
         defines.append('USE_SSR')
     if shadows2:
         defines.append('USE_SHADOWS2')
+    if physical:
+        defines.append('USE_PHYSICAL_PBR')
     if deform:
         defines.append('USE_DEFORM_VERTEXES')
-    library = fragment('atmosphere_common') + '\n'
+    library = fragment('pbr_common') + '\n' + fragment('atmosphere_common') + '\n'
     library += (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
     src = read('watersurface')
     vs, fs = src.split('/*[Fragment]*/')
@@ -603,7 +605,10 @@ def check_permutations():
                              cubemap=bool(cubemap), hiz=bool(hiz), snell=bool(snell))
         gl('glDeleteProgram', None, U)(prog)
         count += 1
-    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell)', True)
+    prog = water_program(physical=True, shadows2=True, froxel=2, cubemap=True, snell=True)
+    gl('glDeleteProgram', None, U)(prog)
+    count += 1
+    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, physical lights)', True)
 
 
 def check_geometry_depth(rig):

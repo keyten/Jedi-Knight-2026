@@ -2713,6 +2713,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		VectorSet4(lightData->spot2, dlight->spotCosInner,
 			shadowLayers[i] < 0 || !R_DlightCastsShadow(dlight) ? -1.0f : (projected ? 1.0f : 0.0f),
 			cookiesActive ? (float)dlight->cookieLayer : -1.0f, dlight->cookieRoll);
+		VectorSet4(lightData->physical, dlight->emitterRadius, 0.0f, 0.0f, 0.0f);
 	}
 	// spot shadow views of this scene, by shadow slot (R_GatherFrameViews)
 	for (int i = 0; i < refdef->num_dlights; ++i)

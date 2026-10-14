@@ -25,6 +25,10 @@ static constexpr float kLumaR = 0.2126f;
 static constexpr float kLumaG = 0.7152f;
 static constexpr float kLumaB = 0.0722f;
 static constexpr float kFourPi = 12.566370614359172f;
+// Historical point-light APIs have no emitter geometry. A one-centimetre
+// luminous sphere is the documented fallback: finite, but visually point-like.
+static constexpr float kDefaultEmitterRadiusMeters = 0.01f;
+static constexpr float kRangeWindowStart = 0.8f;
 
 inline float FinitePositive(float value, float fallback)
 {
@@ -85,6 +89,36 @@ inline bool NormalizeChromaticity(const float rgb[3], float out[3])
 inline float LumensToOmniCandela(float lumens)
 {
 	return std::isfinite(lumens) ? std::max(lumens, 0.0f) / kFourPi : 0.0f;
+}
+
+// Solid-angle integral of the actual renderer profile: full strength inside
+// cosInner, smoothstep through the penumbra, zero beyond cosOuter.
+inline float SpotProfileSolidAngle(float cosInner, float cosOuter)
+{
+	if (!std::isfinite(cosInner) || !std::isfinite(cosOuter))
+		return 0.0f;
+	cosOuter = std::max(-1.0f, std::min(1.0f, cosOuter));
+	cosInner = std::max(cosOuter, std::min(1.0f, cosInner));
+	// Integral from 0..1 of smoothstep(t) is exactly one half.
+	return 2.0f * 3.14159265358979323846f *
+		std::max(1.0f - 0.5f * (cosInner + cosOuter), 0.0f);
+}
+
+inline float LumensToSpotCandela(float lumens, float cosInner, float cosOuter)
+{
+	const float omega = SpotProfileSolidAngle(cosInner, cosOuter);
+	return std::isfinite(lumens) && lumens > 0.0f && omega > 1.0e-6f ?
+		lumens / omega : 0.0f;
+}
+
+inline float RangeWindow(float distanceWorld, float rangeWorld)
+{
+	if (!std::isfinite(distanceWorld) || !std::isfinite(rangeWorld) || rangeWorld <= 0.0f)
+		return 0.0f;
+	const float x = std::max(distanceWorld, 0.0f) / rangeWorld;
+	const float t = std::max(0.0f, std::min(1.0f,
+		(x - kRangeWindowStart) / (1.0f - kRangeWindowStart)));
+	return 1.0f - t * t * (3.0f - 2.0f * t);
 }
 
 inline float PerceptualRoughnessToAlpha(float roughness)
@@ -195,22 +229,19 @@ inline float LegacyRadiusToSceneCandela(float radiusWorld, float worldUnitsPerMe
 {
 	const float d = 0.5f * WorldDistanceToMeters(radiusWorld, worldUnitsPerMeter);
 	const float reference = FinitePositive(legacyReferenceScene, 1.0f);
-	// The canonical point evaluator also applies (1 - x^4)^2. Compensating
-	// its x=0.5 value makes the migration anchor exactly equal to reference.
-	const float halfRangeWindow = 0.87890625f;
-	return d * d * reference / halfRangeWindow;
+	return d * d * reference;
 }
 
 inline float PointIrradiance(float sceneCandela, float distanceWorld,
-	float rangeWorld, float worldUnitsPerMeter)
+	float rangeWorld, float worldUnitsPerMeter,
+	float emitterRadiusMeters = kDefaultEmitterRadiusMeters)
 {
 	const float d = WorldDistanceToMeters(distanceWorld, worldUnitsPerMeter);
-	const float range = std::max(std::isfinite(rangeWorld) ? rangeWorld : 0.0f, 1.0e-3f);
-	const float x = std::max(distanceWorld, 0.0f) / range;
-	const float windowBase = std::max(1.0f - x * x * x * x, 0.0f);
-	const float window = windowBase * windowBase;
+	const float sourceRadius = FinitePositive(emitterRadiusMeters,
+		kDefaultEmitterRadiusMeters);
+	const float window = RangeWindow(distanceWorld, rangeWorld);
 	return std::max(std::isfinite(sceneCandela) ? sceneCandela : 0.0f, 0.0f) *
-		window / std::max(d * d, 1.0e-4f);
+		window / std::max(d * d, sourceRadius * sourceRadius);
 }
 
 // A stable, bounded map-load calibration.  Relative baked lighting is never

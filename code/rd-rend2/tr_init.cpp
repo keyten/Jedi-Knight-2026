@@ -584,6 +584,7 @@ cvar_t  *r_ltcDebug;
 cvar_t  *r_ltcDebugLight;
 cvar_t  *r_ltcIntensityScale;
 cvar_t  *r_ltcSaberIntensityScale;
+cvar_t  *r_ltcSaberLuminance;
 cvar_t  *r_ltcStaticDiffuse;
 cvar_t  *r_ltcMaxLights;
 cvar_t  *r_ltcAutoAreaLights;
@@ -2035,6 +2036,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_pbrInfo",		R_PBRInfo_f },
+	{ "r_pbrLight",		R_PBRLight_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
@@ -2749,6 +2751,9 @@ void R_Register( void )
 	r_ltcDebugLight = ri_Cvar_Get_NoComm( "r_ltcDebugLight", "-1", CVAR_CHEAT, "LTC area light highlighted by r_ltcDebug (map light id, -1 = nearest)" );
 	r_ltcIntensityScale = ri_Cvar_Get_NoComm( "r_ltcIntensityScale", "1", CVAR_ARCHIVE, "LTC area lights other than sabers: radiance multiplier" );
 	r_ltcSaberIntensityScale = ri_Cvar_Get_NoComm( "r_ltcSaberIntensityScale", "1", CVAR_ARCHIVE, "LTC saber surface lighting: radiance multiplier" );
+	r_ltcSaberLuminance = ri_Cvar_Get_NoComm("r_ltcSaberLuminance", "40000", CVAR_ARCHIVE,
+		"Physical mode: artistic saber blade luminance in cd/m^2 (nits)");
+	ri.Cvar_CheckRange(r_ltcSaberLuminance, 0.0f, 10000000.0f, qfalse);
 	r_ltcStaticDiffuse = ri_Cvar_Get_NoComm( "r_ltcStaticDiffuse", "0", CVAR_ARCHIVE, "LTC area lights: also diffuse for static_specular map lights (their diffuse is usually baked in the lightmap)" );
 	r_ltcMaxLights = ri_Cvar_Get_NoComm( "r_ltcMaxLights", "64", CVAR_ARCHIVE, "LTC area lights: map lights per scene, nearest first" );
 	ri.Cvar_CheckRange( r_ltcMaxLights, 0, MAX_RENDER_DLIGHTS, qtrue );

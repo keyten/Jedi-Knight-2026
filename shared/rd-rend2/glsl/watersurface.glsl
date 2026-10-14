@@ -21,6 +21,10 @@ layout(std140) uniform Scene
 	float u_PrimaryLightRadius;
 	float u_frameTime;
 	float u_deltaTime;
+	vec2 u_ScenePad0;
+	vec4 u_AOParams;
+	vec4 u_AOParams2;
+	vec4 u_PBRParams;
 };
 
 layout(std140) uniform Camera
@@ -410,6 +414,10 @@ layout(std140) uniform Scene
 	float u_PrimaryLightRadius;
 	float u_frameTime;
 	float u_deltaTime;
+	vec2 u_ScenePad0;
+	vec4 u_AOParams;
+	vec4 u_AOParams2;
+	vec4 u_PBRParams;
 };
 
 layout(std140) uniform Camera
@@ -429,6 +437,7 @@ struct Light
 	float radius;
 	vec4 spot;
 	vec4 spot2;
+	vec4 physical;
 };
 
 layout(std140) uniform Lights
@@ -1628,7 +1637,13 @@ void main()
 			vec3 L = u_Lights[i].origin.xyz - P;
 			float r = u_Lights[i].radius;
 			float d2 = max(dot(L, L), 1.0);
-			float attenuation = WaterLightAttenuation(r * r / d2);
+			float attenuation;
+#if defined(USE_PHYSICAL_PBR)
+			attenuation = PBRPointAttenuation(r, d2, u_PBRParams.y,
+				u_Lights[i].physical.x);
+#else
+			attenuation = WaterLightAttenuation(r * r / d2);
+#endif
 			if (attenuation <= 0.0)
 				continue;
 			L *= inversesqrt(d2);

@@ -53,8 +53,9 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 #include <unordered_map>
 #include <vector>
 
-// saber blade radiance per unit of saber color
-#define SABER_AREA_RADIANCE		4.0f
+// Strict-legacy scene radiance. Physical mode instead uses the authored
+// r_ltcSaberLuminance value on the common cd/m^2 scale.
+#define SABER_LEGACY_AREA_RADIANCE	4.0f
 #define AREALIGHT_MIN_RANGE		16.0f
 #define AREALIGHT_MAX_RANGE		8192.0f
 
@@ -237,7 +238,9 @@ static qboolean R_JsonBool( const char *obj, const char *end, const char *name, 
 // emitter itself
 static float R_AreaLightDefaultRange( const mapAreaLight_t *l )
 {
-	float area = 4.0f * l->halfWidth * Q_max(l->halfHeight, 1.0f);
+	float area = l->type == DLIGHT_LINE ?
+		4.0f * (float)M_PI * l->halfWidth * l->halfHeight :
+		4.0f * l->halfWidth * l->halfHeight;
 	const float peakRadiance = l->intensity * MAX(l->color[0], MAX(l->color[1], l->color[2]));
 	float range;
 	if ( r_pbrPhysical->integer && l->physical )
@@ -327,7 +330,9 @@ static qboolean R_ParseAreaLight( const char *obj, const char *end, int index, c
 
 	if ( !R_JsonVec3(obj, end, "color", l->color) )
 		VectorSet(l->color, 1.0f, 1.0f, 1.0f);
-	const char *luminanceValue = JSON_ObjectGetNamedValue(obj, end, "luminance");
+	const char *luminanceValue = JSON_ObjectGetNamedValue(obj, end, "luminanceNits");
+	if (!luminanceValue)
+		luminanceValue = JSON_ObjectGetNamedValue(obj, end, "luminance"); // early spelling
 	if (luminanceValue && JSON_ValueGetType(luminanceValue, end) == JSONTYPE_VALUE)
 	{
 		const float luminance = Q_max(JSON_ValueGetFloat(luminanceValue, end), 0.0f);
@@ -376,7 +381,10 @@ static void R_CacheMapAreaLightMetrics( void )
 	for ( mapAreaLight_t& l : s_al.lights )
 	{
 		l.halfDiagonal = sqrtf(l.halfWidth * l.halfWidth + l.halfHeight * l.halfHeight);
-		l.power = 4.0f * l.halfWidth * l.halfHeight * l.intensity *
+		const float emittingArea = l.type == DLIGHT_LINE ?
+			4.0f * (float)M_PI * l.halfWidth * l.halfHeight :
+			4.0f * l.halfWidth * l.halfHeight;
+		l.power = emittingArea * l.intensity *
 			(0.2126f * l.color[0] + 0.7152f * l.color[1] + 0.0722f * l.color[2]);
 	}
 }
@@ -482,7 +490,7 @@ Scene
 
 static dlight_t *R_AddAreaDlight( int type, const vec3_t center, const vec3_t right, const vec3_t up,
 	float halfWidth, float halfHeight, float halfDiagonal, float range,
-	const vec3_t radiance, int flags, int id )
+	const vec3_t radiance, int flags, int id, qboolean physicalSource )
 {
 	dlight_t *dl = R_AllocSceneDlight();
 	if ( !dl )
@@ -496,6 +504,7 @@ static dlight_t *R_AddAreaDlight( int type, const vec3_t center, const vec3_t ri
 	dl->areaType = type;
 	dl->areaFlags = flags;
 	dl->areaId = id;
+	dl->physicalIntensity = physicalSource;
 	dl->areaShadowSlot = -1;
 	dl->areaDynamicShadowSlot = -1;
 	VectorCopy(right, dl->areaRight);
@@ -584,12 +593,15 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 		const int i = order[k].second;
 		const mapAreaLight_t *l = &s_al.lights[i];
 		vec3_t radiance;
-		VectorScale(l->color, l->intensity * scale, radiance);
+		float compatibility = 1.0f;
+		if (r_pbrPhysical->integer && !l->physical && tr.world)
+			compatibility = tr.world->pbrLegacyCalibration;
+		VectorScale(l->color, l->intensity * scale * compatibility, radiance);
 		int flags = R_MapLightFlags(l);
 		if ( i == s_al.selected )
 			flags |= AREALIGHT_SELECTED;
 		if ( !R_AddAreaDlight(l->type, l->center, l->right, l->up, l->halfWidth, l->halfHeight,
-				l->halfDiagonal, l->range, radiance, flags, i) )
+				l->halfDiagonal, l->range, radiance, flags, i, l->physical) )
 		{
 			break;
 		}
@@ -599,8 +611,9 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 	R_AreaLightsDebugPolys(fd);
 }
 
-void RE_AddAreaLightToScene( const vec3_t center, const vec3_t right, const vec3_t up,
-	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided )
+static void R_AddRuntimeAreaLight( const vec3_t center, const vec3_t right, const vec3_t up,
+	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided,
+	qboolean physicalSource )
 {
 	if ( !tr.registered || !s_al.active || halfWidth <= 0.0f || halfHeight <= 0.0f )
 		return;
@@ -614,7 +627,19 @@ void RE_AddAreaLightToScene( const vec3_t center, const vec3_t right, const vec3
 	VectorScale(radiance, Q_max(r_ltcIntensityScale->value, 0.0f), radiance);
 	range = Com_Clamp(AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
 	R_AddAreaDlight(DLIGHT_RECT, center, axisRight, axisUp, halfWidth, halfHeight, -1.0f, range, radiance,
-		AREALIGHT_DYNAMIC | (twoSided ? AREALIGHT_TWO_SIDED : 0), -1);
+		AREALIGHT_DYNAMIC | (twoSided ? AREALIGHT_TWO_SIDED : 0), -1, physicalSource);
+}
+
+void RE_AddAreaLightToScene( const vec3_t center, const vec3_t right, const vec3_t up,
+	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided )
+{
+	R_AddRuntimeAreaLight(center, right, up, halfWidth, halfHeight, range, r, g, b, twoSided, qfalse);
+}
+
+void R_AddPhysicalAreaLightToScene( const vec3_t center, const vec3_t right, const vec3_t up,
+	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided )
+{
+	R_AddRuntimeAreaLight(center, right, up, halfWidth, halfHeight, range, r, g, b, twoSided, qtrue);
 }
 
 /*
@@ -639,25 +664,37 @@ qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float rad
 
 	vec3_t radiance;
 	VectorSet(radiance, r, g, b);
-	VectorScale(radiance, SABER_AREA_RADIANCE * Q_max(r_ltcSaberIntensityScale->value, 0.0f), radiance);
+	if (r_pbrPhysical->integer)
+	{
+		float chroma[3];
+		if (!Rend2PBR::NormalizeChromaticity(radiance, chroma))
+			return qfalse;
+		VectorScale(chroma, Rend2PBR::PhysicalToScene(
+			Q_max(r_ltcSaberLuminance->value, 0.0f), R_PBRPhysicalToScene()), radiance);
+	}
+	else
+	{
+		VectorScale(radiance, SABER_LEGACY_AREA_RADIANCE *
+			Q_max(r_ltcSaberIntensityScale->value, 0.0f), radiance);
+	}
 	range = Com_Clamp(AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
 	dlight_t *light = R_AddAreaDlight(DLIGHT_LINE, center, axis, up, halfLength,
 		Com_Clamp(0.25f, 16.0f, radius), -1.0f, range, radiance,
-		AREALIGHT_DYNAMIC | AREALIGHT_TWO_SIDED, -1);
+		AREALIGHT_DYNAMIC | AREALIGHT_TWO_SIDED, -1,
+		(qboolean)(r_pbrPhysical->integer != 0));
 	if (!light)
 		return qfalse;
 	VectorSet(light->areaFogColor, r, g, b);
 	if (r_pbrPhysical->integer)
 	{
-		const vec3_t input = { r, g, b };
-		float chroma[3];
-		if (Rend2PBR::NormalizeChromaticity(input, chroma))
-		{
-			const float sceneCandela = Rend2PBR::LegacyRadiusToSceneCandela(range,
-				r_pbrWorldUnitsPerMeter->value, r_pbrLegacyReference->value) *
-				Rend2PBR::Luminance(input);
-			VectorScale(chroma, sceneCandela, light->areaFogColor);
-		}
+		// Far-field side-on intensity of the finite Lambertian cylinder:
+		// luminance times projected rectangle (length * diameter), in m^2.
+		// Froxel fog uses this canonical candela proxy; LTC surfaces continue to
+		// integrate the actual line geometry and luminance.
+		const float metresPerUnit = R_PBRMetersPerWorldUnit();
+		const float projectedArea = 4.0f * halfLength * light->halfHeight *
+			metresPerUnit * metresPerUnit;
+		VectorScale(radiance, projectedArea, light->areaFogColor);
 	}
 	return qtrue;
 }
@@ -1497,7 +1534,9 @@ void R_CollectStaticAreaSources( const world_t *world, std::vector<vrAreaSource>
 		VectorCopy(l.up, a.up);
 		a.halfWidth = l.halfWidth;
 		a.halfHeight = l.halfHeight;
-		VectorScale(l.color, l.intensity, a.color);
+		const float compatibility = r_pbrPhysical->integer && !l.physical && tr.world ?
+			tr.world->pbrLegacyCalibration : 1.0f;
+		VectorScale(l.color, l.intensity * compatibility, a.color);
 		a.confidence = confidence;
 		a.twoSided = l.twoSided;
 		a.sourceIndex = sourceIndex;
@@ -1561,7 +1600,8 @@ void R_CalibrateAreaLight( int index, const vec3_t radiance, float confidence )
 	if ( index < 0 || index >= (int)s_al.lights.size() || confidence < AREA_CALIBRATION_MIN_CONFIDENCE )
 		return;
 	mapAreaLight_t *l = &s_al.lights[index];
-	const float scale = r_ltcAreaCalibrationScale->value;
+	const float scale = r_ltcAreaCalibrationScale->value *
+		(r_pbrPhysical->integer && tr.world ? tr.world->pbrLegacyCalibration : 1.0f);
 	vec3_t calibrated;
 	VectorScale(radiance, scale, calibrated);
 	const float measured = 0.2126f * calibrated[0] + 0.7152f * calibrated[1] + 0.0722f * calibrated[2];

@@ -55,6 +55,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // (the same rule form as "Liquids"). r_waterParticlesProfile forces one.
 
 #include "tr_local.h"
+#include "tr_pbr_contract.h"
 #include "json.h"
 
 #include <chrono>
@@ -809,11 +810,16 @@ static void WP_Simulate( const trRefdef_t *refdef, const viewParms_t *view )
 			const dlight_t *dl = &refdef->dlights[lights[l]];
 			vec3_t toLight;
 			VectorSubtract(dl->origin, p->pos, toLight);
-			const float d2 = MAX(DotProduct(toLight, toLight), 1.0f);
+			const float rawD2 = DotProduct(toLight, toLight);
+			const float d2 = r_pbrPhysical->integer ? MAX(rawD2, 1.0e-8f) : MAX(rawD2, 1.0f);
 			if ( d2 >= dl->radius * dl->radius )
 				continue;
-			float atten = Com_Clamp(0.0f, 1.0f, 0.5f * dl->radius * dl->radius / d2 - 0.5f);
 			const float d = sqrtf(d2);
+			float atten = r_pbrPhysical->integer ?
+				Rend2PBR::PointIrradiance(1.0f, d, dl->radius,
+					r_pbrWorldUnitsPerMeter->value,
+					dl->emitterRadius * R_PBRMetersPerWorldUnit()) :
+				Com_Clamp(0.0f, 1.0f, 0.5f * dl->radius * dl->radius / d2 - 0.5f);
 			VectorScale(toLight, 1.0f / d, toLight);
 			if ( dl->spot )
 			{

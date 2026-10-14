@@ -491,6 +491,7 @@ struct Light
 	float radius;
 	vec4 spot;		// cone axis, cos outer angle (-2: point light), tr_spotlight.cpp
 	vec4 spot2;		// cos inner angle (-1: point light), shadow (-1 none, 0 cube, 1 projected), unused, unused
+	vec4 physical;	// finite source radius in world units, remaining components reserved
 };
 
 layout(std140) uniform Lights
@@ -1944,10 +1945,10 @@ float CalcLightAttenuation(float normDist)
 	return clamp(attenuation, 0.0, 1.0);
 }
 
-float CalcPointLightAttenuation(float radius, float distanceSquared)
+float CalcPointLightAttenuation(float radius, float distanceSquared, float sourceRadius)
 {
 #if defined(USE_PHYSICAL_PBR)
-	return PBRPointAttenuation(radius, distanceSquared, u_PBRParams.y);
+	return PBRPointAttenuation(radius, distanceSquared, u_PBRParams.y, sourceRadius);
 #else
 	return CalcLightAttenuation(radius * radius / max(distanceSquared, 1e-6));
 #endif
@@ -2162,6 +2163,7 @@ struct FPlusLight
 	int   flags;		// area lights: AREALIGHT_*; point lights: cookie layer (-1 none)
 	float halfWidth;	// area lights: along right (line: half length)
 	float halfHeight;	// area lights: along up (line: tube radius)
+	float sourceRadius;	// point lights only, finite emitter radius in world units
 };
 
 bool FPlusEnabled()
@@ -2220,6 +2222,8 @@ FPlusLight FPlusFetchLight(in int lightIndex)
 	light.flags = int(t2.y);
 	light.halfWidth = t2.z;
 	light.halfHeight = t2.w;
+	light.sourceRadius = light.type == 0.0 ?
+		texelFetch(u_FPlusLights, base + 4).y : 0.0;
 	return light;
 }
 
@@ -2302,9 +2306,10 @@ float DynamicLightReceiverVisibility(in DLightSurface s, in vec3 L)
 
 #if defined(USE_PARALLAXMAP)
 // estimated contribution of a light at the receiver, for the self shadow budget
-float PomLightImportance(in vec3 toLight, in vec3 lightColor, in float lightRadius)
+float PomLightImportance(in vec3 toLight, in vec3 lightColor, in float lightRadius,
+	in float sourceRadius)
 {
-	float attenuation = CalcPointLightAttenuation(lightRadius, dot(toLight, toLight));
+	float attenuation = CalcPointLightAttenuation(lightRadius, dot(toLight, toLight), sourceRadius);
 	return dot(lightColor, vec3(0.2126, 0.7152, 0.0722)) * attenuation;
 }
 
@@ -2364,14 +2369,15 @@ float PomLocalLightCut(in vec3 position, in bool fplus, in ivec2 list)
 #endif
 			}
 			else
-				importance = PomLightImportance(light.origin - position, light.color, light.radius);
+				importance = PomLightImportance(light.origin - position, light.color, light.radius,
+					light.sourceRadius);
 		}
 		else
 		{
 			if ( ( u_LightMask & ( 1 << k ) ) == 0 )
 				continue;
 			importance = PomLightImportance(u_Lights[k].origin.xyz - position,
-				u_Lights[k].color, u_Lights[k].radius);
+				u_Lights[k].color, u_Lights[k].radius, u_Lights[k].physical.x);
 		}
 		// insert into the descending list of the maxLights + 1 strongest
 		for (int j = 0; j < 5; j++)
@@ -2390,13 +2396,15 @@ float PomLocalLightCut(in vec3 position, in bool fplus, in ivec2 list)
 #endif
 }
 
-float PomLocalLightWeight(in float cut, in vec3 toLight, in vec3 lightColor, in float lightRadius)
+float PomLocalLightWeight(in float cut, in vec3 toLight, in vec3 lightColor,
+	in float lightRadius, in float sourceRadius)
 {
 	if (cut < 0.0)
 		return 0.0;
 	if (cut == 0.0)
 		return 1.0;
-	return smoothstep(cut, cut * 1.5, PomLightImportance(toLight, lightColor, lightRadius));
+	return smoothstep(cut, cut * 1.5,
+		PomLightImportance(toLight, lightColor, lightRadius, sourceRadius));
 }
 #endif
 
@@ -2415,6 +2423,7 @@ vec3 EvaluateDynamicLight(
 	in vec3 lightOrigin,
 	in vec3 lightColor,
 	in float lightRadius,
+	in float sourceRadius,
 	in int shadowLayer,
 	in vec4 spot,
 	in vec4 spot2,
@@ -2423,7 +2432,7 @@ vec3 EvaluateDynamicLight(
 	vec3  L  = lightOrigin - s.position;
 	float sqrLightDist = dot(L, L);
 
-	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist);
+	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist, sourceRadius);
 
 	#if defined(USE_DSHADOWS)
 		vec3 sampleVector = L;
@@ -3091,6 +3100,7 @@ vec3 CalcDynamicLightContribution(
 	{
 		vec3 lightOrigin, lightColor;
 		float lightRadius;
+		float sourceRadius;
 		int shadowLayer;
 		vec4 spot;
 		vec4 spot2;
@@ -3116,6 +3126,7 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = light.origin;
 			lightColor = light.color;
 			lightRadius = light.radius;
+			sourceRadius = light.sourceRadius;
 			shadowLayer = light.shadowSlot;
 			spot = FPlusSpot(light, lightIndex, spot2);
 		}
@@ -3126,6 +3137,7 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = u_Lights[k].origin.xyz;
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
+			sourceRadius = u_Lights[k].physical.x;
 			spot = u_Lights[k].spot;
 			spot2 = u_Lights[k].spot2;
 			// the loop index is the cube; spot lights without shadow: none
@@ -3134,7 +3146,8 @@ vec3 CalcDynamicLightContribution(
 		if (SpotDebugSkipLight(spot2.x))
 			continue;
 #if defined(USE_PARALLAXMAP)
-		g_pomLightWeight = PomLocalLightWeight(pomCut, lightOrigin - s.position, lightColor, lightRadius);
+		g_pomLightWeight = PomLocalLightWeight(pomCut, lightOrigin - s.position,
+			lightColor, lightRadius, sourceRadius);
 #endif
 		float liquidLocal = 0.0;
 #if defined(USE_LIQUID_LOCAL)
@@ -3147,7 +3160,7 @@ vec3 CalcDynamicLightContribution(
 			liquidLights++;
 		}
 #endif
-		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius,
+		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius, sourceRadius,
 			shadowLayer, spot, spot2, liquidLocal);
 	}
 	return outColor;
@@ -3159,6 +3172,7 @@ vec3 EvaluateDynamicLightSimple(
 	in vec3 lightOrigin,
 	in vec3 lightColor,
 	in float lightRadius,
+	in float sourceRadius,
 	in vec4 spot,
 	in vec4 spot2,
 	in float liquidLocal,
@@ -3166,7 +3180,7 @@ vec3 EvaluateDynamicLightSimple(
 {
 	vec3 L = lightOrigin - position;
 	float sqrLightDist = dot(L, L);
-	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist);
+	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist, sourceRadius);
 	L /= sqrt(sqrLightDist);
 	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
 	vec3 cookie = SpotCookie(-L, spot, spot2, length(position - u_ViewOrigin));
@@ -3205,6 +3219,7 @@ vec3 CalcDynamicLightContribution(
 	{
 		vec3 lightOrigin, lightColor;
 		float lightRadius;
+		float sourceRadius;
 		vec4 spot;
 		vec4 spot2;
 		if (fplus)
@@ -3216,6 +3231,7 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = light.origin;
 			lightColor = light.color;
 			lightRadius = light.radius;
+			sourceRadius = light.sourceRadius;
 			spot = FPlusSpot(light, lightIndex, spot2);
 		}
 		else
@@ -3225,6 +3241,7 @@ vec3 CalcDynamicLightContribution(
 			lightOrigin = u_Lights[k].origin.xyz;
 			lightColor = u_Lights[k].color;
 			lightRadius = u_Lights[k].radius;
+			sourceRadius = u_Lights[k].physical.x;
 			spot = u_Lights[k].spot;
 			spot2 = u_Lights[k].spot2;
 		}
@@ -3240,7 +3257,7 @@ vec3 CalcDynamicLightContribution(
 		}
 #endif
 		outLight += EvaluateDynamicLightSimple(position, N, lightOrigin, lightColor,
-			lightRadius, spot, spot2, liquidLocal, liquidFootprint);
+			lightRadius, sourceRadius, spot, spot2, liquidLocal, liquidFootprint);
 	}
 	return outLight;
 }

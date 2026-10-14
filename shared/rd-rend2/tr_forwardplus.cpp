@@ -439,13 +439,24 @@ static float R_DlightImportance( const dlight_t *dl, const vec3_t viewOrigin )
 		if ( dl->areaType == DLIGHT_RECT )
 			VectorMA(closest, Com_Clamp(-dl->halfHeight, dl->halfHeight,
 				DotProduct(delta, dl->areaUp)), dl->areaUp, closest);
-		const float area = 4.0f * dl->halfWidth * dl->halfHeight;
+		const float area = dl->areaType == DLIGHT_LINE ?
+			4.0f * (float)M_PI * dl->halfWidth * dl->halfHeight :
+			4.0f * dl->halfWidth * dl->halfHeight;
 		const float distSq = DistanceSquared(viewOrigin, closest);
 		return Q_max(R_DlightLuminance(dl), 0.0f) * area /
 			Q_max(distSq, area);
 	}
 	const float radius = Q_max(dl->radius, 1.0f);
 	const float distSq = DistanceSquared(dl->origin, viewOrigin);
+	if (r_pbrPhysical->integer)
+	{
+		const float sourceRadius = Q_max(dl->emitterRadius, 0.001f);
+		float importance = Q_max(R_DlightLuminance(dl), 0.0f) /
+			Q_max(distSq, sourceRadius * sourceRadius);
+		if (distSq < radius * radius)
+			importance *= 4.0f;
+		return importance;
+	}
 	const float minDistSq = 0.0625f * radius * radius;
 	float importance = Q_max(R_DlightLuminance(dl), 0.01f) * radius * radius / Q_max(distSq, minDistSq);
 	if ( distSq < radius * radius )
@@ -961,7 +972,7 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		else
 		{
 			VectorSet4(t + 12, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
-			VectorSet4(t + 16, dl->cookieRoll, 0.0f, 0.0f, 0.0f);
+			VectorSet4(t + 16, dl->cookieRoll, dl->emitterRadius, 0.0f, 0.0f);
 		}
 	}
 	const int lightBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_LIGHTS, lightData,

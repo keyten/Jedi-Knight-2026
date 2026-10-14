@@ -1278,10 +1278,15 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 			// The API's range is the old single-blade point-light radius in SP.
 			VectorSet4(t + 0, dl->origin[0], dl->origin[1], dl->origin[2],
 				Q_max(dl->radius - dl->areaHalfDiagonal, 1.0f));
-			VectorSet4(t + 4, dl->color[0] * 0.25f, dl->color[1] * 0.25f,
-				dl->color[2] * 0.25f, (float)shadowLayer);
+			if (r_pbrPhysical->integer)
+				VectorSet4(t + 4, dl->areaFogColor[0], dl->areaFogColor[1],
+					dl->areaFogColor[2], (float)shadowLayer);
+			else
+				VectorSet4(t + 4, dl->color[0] * 0.25f, dl->color[1] * 0.25f,
+					dl->color[2] * 0.25f, (float)shadowLayer);
 			VectorSet4(t + 8, dl->areaRight[0], dl->areaRight[1], dl->areaRight[2], dl->radius);
 			VectorSet4(t + 12, dl->halfWidth, -1.0f, -1.0f, -1000.0f);
+			VectorSet4(t + 16, dl->halfHeight, 0.0f, 0.0f, 0.0f);
 		}
 		else if ( dl->areaType == DLIGHT_LINE )
 		{
@@ -1293,6 +1298,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				dl->areaFogColor[2], (float)shadowLayer);
 			VectorSet4(t + 8, 0.0f, 0.0f, 0.0f, -2.0f);
 			VectorSet4(t + 12, -1.0f, 0.0f, -1.0f, dl->radius);
+			VectorSet4(t + 16, dl->halfHeight, 0.0f, 0.0f, 0.0f);
 		}
 		else
 		{
@@ -1301,6 +1307,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 			VectorSet4(t + 8, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
 			VectorSet4(t + 12, dl->spotCosInner, projected,
 				cookiesActive ? (float)dl->cookieLayer : -1.0f, dl->cookieRoll);
+			VectorSet4(t + 16, dl->emitterRadius, 0.0f, 0.0f, 0.0f);
 		}
 		numLights++;
 	}
@@ -1383,6 +1390,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				VectorSet4(t + 8, 0.0f, 0.0f, 1.0f, -2.0f);
 				VectorSet4(t + 12, -1.0f, 0.0f, -1.0f, 0.0f);
 			}
+			VectorSet4(t + 16, Rend2PBR::kDefaultEmitterRadiusMeters *
+				r_pbrWorldUnitsPerMeter->value, 0.0f, 0.0f, 0.0f);
 			numLights++;
 			numRecovered++;
 		}

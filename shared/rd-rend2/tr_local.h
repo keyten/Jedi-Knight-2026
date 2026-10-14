@@ -678,6 +678,7 @@ extern cvar_t  *r_ltcDebug;
 extern cvar_t  *r_ltcDebugLight;
 extern cvar_t  *r_ltcIntensityScale;
 extern cvar_t  *r_ltcSaberIntensityScale;
+extern cvar_t  *r_ltcSaberLuminance;
 extern cvar_t  *r_ltcStaticDiffuse;
 extern cvar_t  *r_ltcMaxLights;
 extern cvar_t  *r_ltcAutoAreaLights;
@@ -1004,6 +1005,7 @@ typedef struct dlight_s {
 	// scene candela (point/spot). Legacy mode leaves it zero and is bit-exact.
 	float	canonicalIntensity;
 	qboolean physicalIntensity;
+	float	emitterRadius;		// finite source radius in world units
 
 	vec3_t	transformed;		// origin in local coordinate system
 	int		additive;			// texture detail is lost tho when the lightmap is dark
@@ -1414,6 +1416,7 @@ struct LightsBlock
 		float radius;
 		vec4_t spot;		// cone axis, cos outer angle (-2: point light)
 		vec4_t spot2;		// cos inner angle (-1: point light), projected spot shadow (1/0), cookie layer (-1 none), cookie roll
+		vec4_t physical;	// source radius in world units, remaining components reserved
 	};
 
 	matrix_t shadowVP1;
@@ -6232,6 +6235,8 @@ void R_StaticLightPortalsBeginScene(const refdef_t *fd);
 void R_ClearStaticLighting(void);
 void R_StaticLightingStats_f(void);
 void R_PBRInfo_f(void);
+void R_PBRLight_f(void);
+void R_PBRTestLightsBeginScene(const refdef_t *fd);
 void R_PBRCalibrateLegacyMap(world_t *world);
 float R_PBRMetersPerWorldUnit(void);
 float R_PBRPhysicalToScene(void);
@@ -6636,6 +6641,8 @@ void R_AreaLightsDrawDebug(void);
 void RB_AreaLightsBindTextures(SamplerBindingsWriter& samplers);
 float R_AreaLightsDebugParam(void);
 void RE_AddAreaLightToScene(const vec3_t center, const vec3_t right, const vec3_t up,
+	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided);
+void R_AddPhysicalAreaLightToScene(const vec3_t center, const vec3_t right, const vec3_t up,
 	float halfWidth, float halfHeight, float range, float r, float g, float b, int twoSided);
 qboolean RE_AddLineLightToScene(const vec3_t start, const vec3_t end, float radius,
 	float range, float r, float g, float b);

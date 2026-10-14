@@ -194,6 +194,50 @@ BOOST_AUTO_TEST_CASE(rend2_pbr_material_contract)
 	BOOST_CHECK_CLOSE(LumensToOmniCandela(1000.0f), 79.57747f, 1e-3f);
 }
 
+BOOST_AUTO_TEST_CASE(rend2_physical_point_inverse_square_and_cutoff)
+{
+	const float range = 10.0f * kDefaultWorldUnitsPerMeter;
+	const float e1 = PointIrradiance(1000.0f, 1.0f * kDefaultWorldUnitsPerMeter,
+		range, kDefaultWorldUnitsPerMeter);
+	const float e2 = PointIrradiance(1000.0f, 2.0f * kDefaultWorldUnitsPerMeter,
+		range, kDefaultWorldUnitsPerMeter);
+	const float e4 = PointIrradiance(1000.0f, 4.0f * kDefaultWorldUnitsPerMeter,
+		range, kDefaultWorldUnitsPerMeter);
+	BOOST_CHECK_CLOSE(e1 / e2, 4.0f, 1e-4f);
+	BOOST_CHECK_CLOSE(e1 / e4, 16.0f, 1e-4f);
+	BOOST_CHECK_CLOSE(RangeWindow(0.79f * range, range), 1.0f, 1e-4f);
+	BOOST_CHECK_EQUAL(RangeWindow(range, range), 0.0f);
+	BOOST_CHECK_CLOSE(PointIrradiance(1.0f, 0.0f, range,
+		kDefaultWorldUnitsPerMeter, 0.02f), 2500.0f, 1e-4f);
+}
+
+BOOST_AUTO_TEST_CASE(rend2_spot_lumens_integrate_actual_profile)
+{
+	const float cosInner = std::cos(20.0f * 3.14159265358979323846f / 180.0f);
+	const float cosOuter = std::cos(30.0f * 3.14159265358979323846f / 180.0f);
+	const float omega = SpotProfileSolidAngle(cosInner, cosOuter);
+	const int steps = 100000;
+	double integral = 0.0;
+	for (int i = 0; i < steps; ++i)
+	{
+		const double u = cosOuter + (1.0 - cosOuter) * (i + 0.5) / steps;
+		double profile = 1.0;
+		if (u < cosInner)
+		{
+			const double t = (u - cosOuter) / (cosInner - cosOuter);
+			profile = t * t * (3.0 - 2.0 * t);
+		}
+		integral += profile;
+	}
+	integral *= 2.0 * 3.14159265358979323846 * (1.0 - cosOuter) / steps;
+	BOOST_CHECK_CLOSE(omega, (float)integral, 1e-3f);
+	const float lumens = 1200.0f;
+	BOOST_CHECK_CLOSE(LumensToSpotCandela(lumens, cosInner, cosOuter) * omega,
+		lumens, 1e-4f);
+	BOOST_CHECK_GT(LumensToSpotCandela(lumens, cosInner, cosOuter),
+		lumens / (2.0f * 3.14159265358979323846f * (1.0f - cosOuter)));
+}
+
 BOOST_AUTO_TEST_CASE(rend2_specular_aa_stays_in_alpha_variance_domain)
 {
 	const float materialRoughness = 0.2f;

@@ -55,11 +55,13 @@ vec3 F_Schlick(vec3 F0, vec3 F90, float VoH)
 }
 
 float PBRPointAttenuation(float rangeWorld, float distanceSquaredWorld,
-	float metersPerWorldUnitSquared)
+	float metersPerWorldUnitSquared, float sourceRadiusWorld)
 {
 	float safeDistanceSquared = max(distanceSquaredWorld, 1e-8);
-	float x2 = safeDistanceSquared / max(rangeWorld * rangeWorld, 1e-8);
-	float window = max(1.0 - x2 * x2, 0.0);
-	window *= window;
-	return window / max(safeDistanceSquared * metersPerWorldUnitSquared, 1e-4);
+	float x = sqrt(safeDistanceSquared) / max(rangeWorld, 1e-4);
+	float edge = clamp((x - 0.8) / 0.2, 0.0, 1.0);
+	float window = 1.0 - edge * edge * (3.0 - 2.0 * edge);
+	float sourceRadiusSquared = max(sourceRadiusWorld * sourceRadiusWorld, 1e-8);
+	return window / (max(safeDistanceSquared, sourceRadiusSquared) *
+		metersPerWorldUnitSquared);
 }

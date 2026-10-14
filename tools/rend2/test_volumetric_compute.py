@@ -37,7 +37,8 @@ def fragment(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text().split('/*[Fragment]*/')[1]
 
 
-def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False, static_recon=False, liquids=False):
+def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=False, static_recon=False, liquids=False,
+            physical=False):
     constants = (ROOT / 'shared/rd-rend2/tr_local.h').read_text()
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
@@ -52,7 +53,9 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
     defines += '#define USE_FROXEL_STATIC_RECONSTRUCTION\n' if static_recon else ''
     # the liquid library follows the froxel functions (GLSL_InitVolumetricShaders, r_volumetricWater)
     defines += '#define USE_LIQUIDS\n' if liquids else ''
-    body = fragment('volumetric_common') + ((fragment('water_surface_common') + fragment('liquid_common')) if liquids else '') + fragment(name)
+    defines += ('#define USE_PHYSICAL_PBR\n'
+                '#define PBR_METERS_PER_WORLD_UNIT_SQUARED 0.0009\n') if physical else ''
+    body = fragment('pbr_common') + fragment('volumetric_common') + ((fragment('water_surface_common') + fragment('liquid_common')) if liquids else '') + fragment(name)
     if legacy_bits:
         body = body.replace('#if defined(USE_FROXEL_COMPUTE)\n\tint bit = findLSB(bits);',
                             '#if 0\n\tint bit = findLSB(bits);')

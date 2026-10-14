@@ -327,6 +327,8 @@ dlight_t *R_AddSceneDynamicLight( const vec3_t org, float intensity, float r, fl
 	dl->color[2] = b;
 	dl->canonicalIntensity = 0.0f;
 	dl->physicalIntensity = qfalse;
+	dl->emitterRadius = Rend2PBR::kDefaultEmitterRadiusMeters *
+		r_pbrWorldUnitsPerMeter->value;
 	if (r_pbrPhysical->integer)
 	{
 		dl->canonicalIntensity = Rend2PBR::LegacyRadiusToSceneCandela(intensity,
@@ -368,14 +370,16 @@ void RE_AddPhysicalLightToScene(const refPhysicalLight_t *light)
 	if (light->type != PHYSICALLIGHT_POINT && light->type != PHYSICALLIGHT_SPOT)
 		return;
 
+	const float outer = Com_Clamp(0.1f, 89.0f, light->outerAngle);
+	const float inner = Com_Clamp(0.0f, outer, light->innerAngle);
+	const float cosOuter = cosf(outer * (float)M_PI / 180.0f);
+	const float cosInner = Q_min(1.0f, Q_max(cosf(inner * (float)M_PI / 180.0f),
+		cosOuter + 0.002f));
 	float candela = light->intensity;
 	if (light->unit == PHYSICALUNIT_LUMENS)
 	{
 		if (light->type == PHYSICALLIGHT_SPOT)
-		{
-			const float outer = Com_Clamp(0.1f, 89.0f, light->outerAngle) * (float)M_PI / 180.0f;
-			candela /= Q_max(2.0f * (float)M_PI * (1.0f - cosf(outer)), 1.0e-4f);
-		}
+			candela = Rend2PBR::LumensToSpotCandela(candela, cosInner, cosOuter);
 		else
 		{
 			candela = Rend2PBR::LumensToOmniCandela(candela);
@@ -396,6 +400,8 @@ void RE_AddPhysicalLightToScene(const refPhysicalLight_t *light)
 	dl->radius = light->range;
 	dl->canonicalIntensity = Rend2PBR::PhysicalToScene(candela, R_PBRPhysicalToScene());
 	dl->physicalIntensity = qtrue;
+	dl->emitterRadius = Rend2PBR::kDefaultEmitterRadiusMeters *
+		r_pbrWorldUnitsPerMeter->value;
 	VectorScale(chroma, dl->canonicalIntensity, dl->color);
 	dl->additive = (light->flags & SPOTLIGHT_ADDITIVE) ? qtrue : qfalse;
 	if (light->type == PHYSICALLIGHT_SPOT)
@@ -405,11 +411,9 @@ void RE_AddPhysicalLightToScene(const refPhysicalLight_t *light)
 		{
 			dl->spotDir[2] = 1.0f;
 		}
-		const float outer = Com_Clamp(0.1f, 89.0f, light->outerAngle);
-		const float inner = Com_Clamp(0.0f, outer, light->innerAngle);
 		dl->spot = qtrue;
-		dl->spotCosInner = cosf(inner * (float)M_PI / 180.0f);
-		dl->spotCosOuter = cosf(outer * (float)M_PI / 180.0f);
+		dl->spotCosInner = cosInner;
+		dl->spotCosOuter = cosOuter;
 		dl->spotNoShadow = (light->flags & SPOTLIGHT_NOSHADOW) ? qtrue : qfalse;
 	}
 }
@@ -670,6 +674,7 @@ void RE_BeginScene(const refdef_t *fd)
 
 	// r_ltcAreaLights: the map's area lights (and r_ltcDebug 6 / 7 polygons)
 	R_AddAreaLightsToScene(fd);
+	R_PBRTestLightsBeginScene(fd);
 
 	// r_spot test lights, r_spotLightDebug cones of the scene's spot lights
 	R_SpotLightsBeginScene(fd, r_firstSceneDlight);

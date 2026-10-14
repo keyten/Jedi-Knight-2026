@@ -143,6 +143,7 @@ struct Light
 	float radius;
 	vec4 spot;
 	vec4 spot2;
+	vec4 physical;
 };
 
 layout(std140) uniform Lights
@@ -1112,6 +1113,7 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		vec4 colorLayer = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 1);
 		vec4 spot = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 2);
 		vec4 spot2 = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 3);
+		vec4 physical = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 4);
 		float radius = originRadius.w;
 
 		// light portal shaft (tr_volrecon.cpp, PortalShape): the light at its source (spot.xyz)
@@ -1171,7 +1173,7 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		// Same canonical point-light law as lightall.
 #if defined(USE_PHYSICAL_PBR)
 		float attenuation = PBRPointAttenuation(radius, sqrDist,
-			PBR_METERS_PER_WORLD_UNIT_SQUARED);
+			PBR_METERS_PER_WORLD_UNIT_SQUARED, physical.x);
 #else
 		float attenuation = clamp(0.5 * radius * radius / sqrDist - 0.5, 0.0, 1.0);
 #endif

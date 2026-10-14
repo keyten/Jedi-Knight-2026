@@ -558,6 +558,8 @@ def render_header(defines):
                         r'MAX_GPU_LIQUIDS)\s+(\d+)\b', CONSTANTS, re.M)
     if 'USE_FROXEL_FOG' in defines or 'USE_LIQUIDS' in defines:
         text += ''.join(f'#define {k} {v}\n' for k, v in froxel)
+    if 'USE_PHYSICAL_PBR' in defines:
+        text += '#define PBR_METERS_PER_WORLD_UNIT_SQUARED 0.0009\n'
     return text + ''.join(f'#define {d}\n' for d in defines)
 
 
@@ -565,7 +567,7 @@ def compile_caustic_light_programs():
     """The new independently enabled local/baked lightall paths, including GL 3.2 fast light."""
     from test_watersurface_gl import compile_program
     vertex_library = stage('leaf_flutter', 'Vertex') + stage('plant_skin', 'Vertex')
-    water_fragment = stage('water_surface_common', 'Fragment') + stage('liquid_common', 'Fragment')
+    water_fragment = stage('pbr_common', 'Fragment') + stage('water_surface_common', 'Fragment') + stage('liquid_common', 'Fragment')
     source = (ROOT / 'shared/rd-rend2/glsl/lightall.glsl').read_text().replace('\r\n', '\n')
     vertex, fragment_source = source.split('/*[Fragment]*/', 1)
     vertex = vertex.split('/*[Vertex]*/', 1)[1]
@@ -576,6 +578,8 @@ def compile_caustic_light_programs():
         ['USE_LIGHT', 'USE_LIGHT_VECTOR', 'USE_NORMALMAP', 'USE_SPECULARMAP', 'USE_ENTITY_GRID',
          'USE_ENTITY_GPU_GRID', 'USE_ENTITY_GRID_L1', 'ENTITY_GRID_LDR_RANGE 4.0',
          'USE_LIQUIDS', 'USE_LIQUID_BAKED'],
+        ['USE_LIGHT', 'USE_NORMALMAP', 'USE_SPECULARMAP', 'USE_DLIGHTS',
+         'USE_PHYSICAL_PBR'],
     ]
     for defines in variants:
         h = render_header(defines)
@@ -605,19 +609,20 @@ def compile_render_programs():
                 gl('glDeleteProgram', None, U)(prog)
                 count += 1
     for liquids in (False, True):
-        defines = ['USE_FROXEL_FOG'] + (['USE_LIQUIDS'] if liquids else [])
-        h = render_header(defines)
-        for name in ('weather', 'weatherSplash'):
-            prog = compile_program([(0x8B31, h + stage(name, 'Vertex')),
-                                    (0x8DD9, h + stage('weather_lighting', 'Geometry') + stage(name, 'Geometry')),
-                                    (0x8B30, h + stage(name, 'Fragment'))], f'{name} liquids={liquids}')
-            assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Camera') != 0xFFFFFFFF, name
-            assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Lights') != 0xFFFFFFFF, name
-            assert gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_RainDynamic') >= 0, name
-            if liquids:
-                assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Liquids') != 0xFFFFFFFF, name
-            gl('glDeleteProgram', None, U)(prog)
-            count += 1
+        for physical in (False, True):
+            defines = ['USE_FROXEL_FOG'] + (['USE_LIQUIDS'] if liquids else []) + (['USE_PHYSICAL_PBR'] if physical else [])
+            h = render_header(defines)
+            for name in ('weather', 'weatherSplash'):
+                prog = compile_program([(0x8B31, h + stage(name, 'Vertex')),
+                                        (0x8DD9, h + stage('weather_lighting', 'Geometry') + stage(name, 'Geometry')),
+                                        (0x8B30, h + stage(name, 'Fragment'))], f'{name} liquids={liquids} physical={physical}')
+                assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Camera') != 0xFFFFFFFF, name
+                assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Lights') != 0xFFFFFFFF, name
+                assert gl('glGetUniformLocation', I, U, C.c_char_p)(prog, b'u_RainDynamic') >= 0, name
+                if liquids:
+                    assert gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'Liquids') != 0xFFFFFFFF, name
+                gl('glDeleteProgram', None, U)(prog)
+                count += 1
     return count
 
 

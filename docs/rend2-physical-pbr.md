@@ -16,10 +16,16 @@ metersPerWorldUnit = 1 / worldUnitsPerMeter        (default 0.03)
 distanceMeters = distanceWorld * metersPerWorldUnit
 ```
 
-The default is based on engine conventions rather than the Quake-inch folk
-rule. The ordinary player collision bounds are 64 units high (`-24..40`) and
-the standing eye is 60 units above the feet. They therefore represent about
-1.92 m and 1.80 m respectively. Existing geometry is never rescaled.
+The default is based on an engine/content audit rather than the Quake-inch
+folk rule. SP and MP use a standing player box `(-16,-16,-24)..(16,16,40)`:
+64 units tall and 32 units wide. The standing eye is 36 units above the player
+origin, hence 60 units above the feet. At the default scale these are 1.92 m
+tall, 0.96 m wide, and a 1.80 m eye height. The 18-unit step height becomes
+0.54 m. The stock/default light-grid architectural module is 64x64x128 units,
+or 1.92x1.92x3.84 m. No map source geometry ships in this repository, so that
+grid/module evidence plus the independently defined SP/MP player hull and eye
+height is the reproducible representative-architecture check. Existing
+geometry is never rescaled.
 
 Inverse-square lights use squared metre distance. Physical emitter area is in
 square metres. The CPU supplies both conversion factors through the scene
@@ -81,26 +87,46 @@ canonical RGB value and a range window, without unit enums.
 | Source | Author-facing scalar | Canonical shader value |
 | --- | --- | --- |
 | Point | luminous intensity in candela; optional lumens are divided by `4*pi` | scene-scaled RGB candela |
-| Spot | on-axis candela; optional lumens assume a uniform cone and divide by `2*pi*(1-cos(outerAngle))` | scene-scaled RGB candela plus cone window |
+| Spot | on-axis candela; optional lumens integrate the actual inner/outer smooth cone profile | scene-scaled RGB candela plus cone window |
 | Directional/sun | illuminance in lux on a surface normal to the ray | scene-scaled RGB lux |
-| Rectangle/line area | luminance in cd/m2 (nits) | scene-scaled emitted RGB luminance used by LTC |
+| Rectangle/finite cylindrical line area | luminance in cd/m2 (nits) | scene-scaled emitted RGB luminance used by LTC |
 
 For point and spot lights, incident scene illuminance is canonical intensity
-divided by squared distance in metres. A smooth finite-radius range window is
-then applied. Radius is a culling and artistic influence bound, not an
-intensity unit. Zero distance is clamped to a small finite metre distance.
+divided by squared distance in metres. The range window is exactly one through
+80% of the culling range, then follows a cubic smoothstep to zero at the
+boundary. Range is therefore a culling/performance bound, not an intensity
+unit. A finite luminous-source radius bounds the inverse square. The physical
+runtime uses a documented 1 cm default for point/spot APIs that do not carry
+emitter geometry, rather than a world-unit clamp.
+
+For a spot with cosine limits `ci=cos(inner)` and `co=cos(outer)`, the renderer
+uses a full-strength core plus `smoothstep(co,ci,cos(theta))`. Its integrated
+profile solid angle is `2*pi*(1 - (ci+co)/2)`, so lumen input is converted to
+on-axis candela by dividing by that value. Changing either cone angle therefore
+does not change requested total flux. Cookies multiply this normalized base
+profile and intentionally absorb/reduce flux; they are not energy-normalized.
 
 Physical point and spot lights enter through `GetRefPhysicalLightAPI`; this
 optional API accepts candela or lumens and canonicalizes once. The historical
 `AddLightToScene` ABI remains unchanged and is converted automatically in
 physical mode. Directional physical authoring currently uses
 `r_pbrSunIlluminance`; zero selects automatic legacy migration. Area-light JSON
-uses `"luminance"`; the old `"intensity"` spelling remains legacy data.
+prefers `"luminanceNits"`; the early `"luminance"` spelling is accepted as an
+alias and old `"intensity"` remains legacy data. Legacy area brightness is
+mapped through the same per-map calibration as baked lighting.
 
 Area geometry stays in world coordinates for intersection, but physical
-default-range estimation converts its area to m2. LTC integrates emitted
+default-range/power estimation converts its rectangle or finite-cylinder area
+to m2. LTC integrates emitted
 luminance over solid angle, so its inner evaluation does not need a length-unit
 conversion.
+
+Saber lines use their submitted blade radius as finite cylinder geometry.
+`r_ltcSaberLuminance` is their single physical-mode artistic calibration in
+cd/m2 (default 40,000 nits); the historical radiance multiplier remains only
+for strict legacy mode. Their froxel approximation is canonical candela formed
+from luminance times the finite cylinder's side-on projected area; it no longer
+reuses radiance as though it were a point-light intensity.
 
 ### Legacy dynamic-light migration
 
@@ -219,6 +245,15 @@ Using the defaults:
 Skin, cloth, wetness and other BRDF variants remain lobes within this material
 and scene-light contract; they do not introduce a second light scale.
 
+Stock FX, including sabers, bolts, impacts, explosions, projectiles, force
+powers, muzzle flashes and environmental effects, may continue to submit the
+existing color-plus-radius dlight API. The renderer tags that path as legacy
+and performs the single compatibility conversion at scene submission. The
+`FxPhysicalization` classifiers continue to describe emission and volumetric
+shape; they do not apply a second photometric scale. This preserves existing
+effect definitions while allowing new renderer clients to use the explicit
+physical point and spot API.
+
 ## Compatibility, diagnostics and validation
 
 - `r_pbrPhysical 0` is the strict old path and default.
@@ -226,6 +261,12 @@ and scene-light contract; they do not introduce a second light scale.
   calibration and modern material semantics.
 - `r_pbrInfo` prints mode, spatial scale, scene calibration, map statistics and
   the first submitted light's canonical intensity.
+- `r_pbrInfo light <index>` inspects source type, legacy/physical provenance,
+  world/metre range and viewer distance, canonical value, cd/lm or nits, finite
+  source size, and estimated illuminance at the viewer.
+- `r_pbrLight point cd|lm ...`, `spot cd|lm ...`, and `area nits ...` place
+  known renderer test lights two metres in front of the next world view;
+  `r_pbrLight list|clear` manages them.
 - `r_pbrInfo 0.5` additionally prints perceptual roughness and computed alpha.
 - `r_autoPBRDebug 3` visualizes material roughness; `r_forwardPlusDebug 9`
   visualizes light selection.
