@@ -110,13 +110,13 @@ Terms:
 `tools/ltcfit/ltcfit.cpp` is our own fitter, written from Heitz et al. 2016 ("Real-Time
 Polygonal-Light Shading with LTC") and Hill & Heitz 2016. It uses no code or data from the reference
 implementation, so no third-party license applies. The papers are cited in the source.
-- Model: GGX with Rend2's joint Smith visibility approximation (`V_SmithJointApprox`),
+- Model: GGX with height-correlated Smith visibility (`V_SmithGGXCorrelated`),
   visible-normal importance sampling, and Nelder–Mead on
   (m11, m22, m13) with 2×32×32 MIS samples per texel. It runs in about 45 s on all cores.
 - Output: `shared/rd-rend2/tr_ltc_data.h`, which is compiled in and uploaded as two 64×64 RGBA16F
   textures (units 20 and 21). Nothing is fitted at startup.
-- **u axis** = `sqrt(alpha)`, where alpha is rend2's `roughness` (lightall uses it directly as the
-  GGX alpha). **v axis** = `sqrt(1 − N·V)`. The texel centers use the usual
+- **u axis** = `sqrt(alpha)`, which equals material perceptual roughness because
+  `alpha = perceptualRoughness^2`. **v axis** = `sqrt(1 − N·V)`. The texel centers use the usual
   `(size−1)/size, 0.5/size` scale and bias.
 - Table 1: M⁻¹ normalized by `M⁻¹[1][1]`, as `(m00, m02, m20, m22)`.
 - Table 2: `(norm, fresnel, 0, sphereFF/|F|)`. The `.w` channel is indexed by

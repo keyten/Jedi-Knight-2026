@@ -203,21 +203,21 @@ static void R_SetupLinearLighting(void)
 	tr.linearLight = qfalse;
 	tr.forcedLinearLight = qfalse;
 
-	if (!r_linearLighting->integer)
+	if (!r_linearLighting->integer && !r_pbrPhysical->integer)
 		return;
 
 	// Linear values need the float render target, and the sRGB encoding
 	// done by the tone map pass
 	if (!r_hdr->integer || !r_toneMap->integer)
 	{
-		ri.Printf(PRINT_WARNING, "WARNING: r_linearLighting needs r_hdr 1 and r_toneMap 1, ignored\n");
+		ri.Printf(PRINT_WARNING, "WARNING: linear/physical scene lighting needs r_hdr 1 and r_toneMap 1, ignored\n");
 		return;
 	}
 
 	// Overbright bits scale lighting in gamma space
 	if (tr.overbrightBits)
 	{
-		ri.Printf(PRINT_WARNING, "WARNING: r_linearLighting needs r_overBrightBits 0, ignored\n");
+		ri.Printf(PRINT_WARNING, "WARNING: linear/physical scene lighting needs r_overBrightBits 0, ignored\n");
 		return;
 	}
 

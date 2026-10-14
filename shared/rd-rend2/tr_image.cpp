@@ -4739,9 +4739,9 @@ static void R_CreateEnvBrdfLUT(void) {
 
 		for (unsigned x = 0; x < LUT_WIDTH; ++x)
 		{
-			float const roughness = (x + 0.5f) / LUT_WIDTH;
-			float const m = roughness * roughness;
-			float const m2 = m * m;
+			float const perceptualRoughness = (x + 0.5f) / LUT_WIDTH;
+			float const alpha = MAX(perceptualRoughness * perceptualRoughness, 0.0025f);
+			float const alpha2 = alpha * alpha;
 
 			float scale = 0.0f;
 			float bias = 0.0f;
@@ -4755,7 +4755,7 @@ static void R_CreateEnvBrdfLUT(void) {
 
 				// GGX Distribution
 				{
-					float const cosTheta = sqrtf((1.0f - e2) / (1.0f + (m2 - 1.0f) * e2));
+					float const cosTheta = sqrtf((1.0f - e2) / (1.0f + (alpha2 - 1.0f) * e2));
 					float const sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
 
 					float const hx = sinTheta * cosf(phi);
@@ -4771,7 +4771,7 @@ static void R_CreateEnvBrdfLUT(void) {
 
 					if (NdotL > 0.0f)
 					{
-						float const visibility = GSmithCorrelated(roughness, NdotV, NdotL);
+						float const visibility = VSmithGGXCorrelated(alpha, NdotV, NdotL);
 						float const NdotLVisPDF = NdotL * visibility * (4.0f * VdotH / NdotH);
 						float const fresnel = powf(1.0f - VdotH, 5.0f);
 
@@ -4782,7 +4782,7 @@ static void R_CreateEnvBrdfLUT(void) {
 
 				// Charlie Distribution
 				{
-					float const sinTheta = sqrtf(powf(e2, (2.0f * roughness) / ((2.0f * roughness) + 1.0f)));
+					float const sinTheta = sqrtf(powf(e2, (2.0f * perceptualRoughness) / ((2.0f * perceptualRoughness) + 1.0f)));
 					float const cosTheta = sqrtf(1.0f - sinTheta * sinTheta);
 
 					float const hx = sinTheta * cosf(phi);
@@ -4819,7 +4819,7 @@ static void R_CreateEnvBrdfLUT(void) {
 	}
 
 	tr.envBrdfImage = R_CreateImage(
-		"*envBrdfLUT",
+		"*envBrdfLUT_GGX2",
 		(byte*)data,
 		LUT_WIDTH,
 		LUT_HEIGHT,

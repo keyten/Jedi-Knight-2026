@@ -44,6 +44,7 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 #include "json.h"
 #include "tr_ltc_data.h"
 #include "tr_volrecon.h"
+#include "tr_pbr_contract.h"
 
 #include <algorithm>
 #include <array>
@@ -67,6 +68,7 @@ struct mapAreaLight_t
 	float halfHeight;
 	vec3_t color;				// radiance = color * intensity
 	float intensity;
+	qboolean physical;			// luminance keyword, cd/m^2 converted at load
 	float range;
 	float halfDiagonal;			// cached geometry for scene selection
 	float power;				// cached radiance * emitting area
@@ -235,9 +237,23 @@ static qboolean R_JsonBool( const char *obj, const char *end, const char *name, 
 // emitter itself
 static float R_AreaLightDefaultRange( const mapAreaLight_t *l )
 {
-	const float area = 4.0f * l->halfWidth * Q_max(l->halfHeight, 1.0f);
-	const float radiance = Q_max(l->intensity * MAX(l->color[0], MAX(l->color[1], l->color[2])), 0.05f);
-	const float range = sqrtf(area * radiance / 0.01f);
+	float area = 4.0f * l->halfWidth * Q_max(l->halfHeight, 1.0f);
+	const float peakRadiance = l->intensity * MAX(l->color[0], MAX(l->color[1], l->color[2]));
+	float range;
+	if ( r_pbrPhysical->integer && l->physical )
+	{
+		const float metresPerUnit = R_PBRMetersPerWorldUnit();
+		area *= metresPerUnit * metresPerUnit;
+		// Cull once peak face-on illuminance falls below one lux. Both terms
+		// are in the canonical scene scale, while area and range are metres.
+		const float oneLuxScene = R_PBRPhysicalToScene();
+		range = sqrtf(area * Q_max(peakRadiance, 0.0f) / oneLuxScene) / metresPerUnit;
+	}
+	else
+	{
+		const float radiance = Q_max(peakRadiance, 0.05f);
+		range = sqrtf(area * radiance / 0.01f);
+	}
 	return Com_Clamp(2.0f * Q_max(l->halfWidth, l->halfHeight) + AREALIGHT_MIN_RANGE, AREALIGHT_MAX_RANGE, range);
 }
 
@@ -311,7 +327,23 @@ static qboolean R_ParseAreaLight( const char *obj, const char *end, int index, c
 
 	if ( !R_JsonVec3(obj, end, "color", l->color) )
 		VectorSet(l->color, 1.0f, 1.0f, 1.0f);
-	l->intensity = R_JsonFloat(obj, end, "intensity", 1.0f);
+	const char *luminanceValue = JSON_ObjectGetNamedValue(obj, end, "luminance");
+	if (luminanceValue && JSON_ValueGetType(luminanceValue, end) == JSONTYPE_VALUE)
+	{
+		const float luminance = Q_max(JSON_ValueGetFloat(luminanceValue, end), 0.0f);
+		float chroma[3];
+		if (!Rend2PBR::NormalizeChromaticity(l->color, chroma))
+			return qfalse;
+		VectorCopy(chroma, l->color);
+		l->intensity = Rend2PBR::PhysicalToScene(luminance, R_PBRPhysicalToScene());
+		l->physical = qtrue;
+	}
+	else
+	{
+		l->intensity = R_JsonFloat(obj, end, "intensity", 1.0f);
+		if (r_pbrPhysical->integer)
+			l->intensity *= r_pbrLegacyReference->value;
+	}
 
 	l->mode = AREAMODE_STATIC_SPECULAR;
 	char mode[32] = "";
@@ -615,6 +647,18 @@ qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float rad
 	if (!light)
 		return qfalse;
 	VectorSet(light->areaFogColor, r, g, b);
+	if (r_pbrPhysical->integer)
+	{
+		const vec3_t input = { r, g, b };
+		float chroma[3];
+		if (Rend2PBR::NormalizeChromaticity(input, chroma))
+		{
+			const float sceneCandela = Rend2PBR::LegacyRadiusToSceneCandela(range,
+				r_pbrWorldUnitsPerMeter->value, r_pbrLegacyReference->value) *
+				Rend2PBR::Luminance(input);
+			VectorScale(chroma, sceneCandela, light->areaFogColor);
+		}
+	}
 	return qtrue;
 }
 

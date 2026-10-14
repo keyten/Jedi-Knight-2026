@@ -314,6 +314,11 @@ cvar_t  *r_cameraExposure;
 cvar_t  *r_externalGLSL;
 
 cvar_t  *r_hdr;
+cvar_t  *r_pbrPhysical;
+cvar_t  *r_pbrWorldUnitsPerMeter;
+cvar_t  *r_pbrPhysicalToScene;
+cvar_t  *r_pbrLegacyReference;
+cvar_t  *r_pbrSunIlluminance;
 cvar_t  *r_floatLightmap;
 
 cvar_t  *r_toneMap;
@@ -550,6 +555,7 @@ cvar_t  *r_specularAA;
 cvar_t  *r_specularAAStrength;
 cvar_t  *r_specularAAMaxAdded;
 cvar_t  *r_specularAADebug;
+cvar_t  *r_pbrLegacyRoughness;
 cvar_t  *r_diffuseIBL;
 cvar_t  *r_diffuseIBLStrength;
 cvar_t  *r_diffuseIBLDebug;
@@ -1987,6 +1993,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_cloudLayerTest",	R_CloudLayerTest_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
+	{ "r_pbrInfo",		R_PBRInfo_f },
 	{ "r_fogvol",			R_FogVolume_f },
 	{ "r_liquids",			R_Liquids_f },
 	{ "r_waterInfo",		R_WaterInfo_f },
@@ -2213,6 +2220,16 @@ void R_Register( void )
 	r_externalGLSL = ri.Cvar_Get( "r_externalGLSL", "0", CVAR_LATCH, "" );
 
 	r_hdr = ri.Cvar_Get( "r_hdr", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable rendering in HDR" );
+	r_pbrPhysical = ri.Cvar_Get("r_pbrPhysical", "0", CVAR_ARCHIVE | CVAR_LATCH, "0 exact Rend2 compatibility, 1 unified scene-referred physical PBR contract (vid_restart)");
+	ri.Cvar_CheckRange(r_pbrPhysical, 0, 1, qtrue);
+	r_pbrWorldUnitsPerMeter = ri.Cvar_Get("r_pbrWorldUnitsPerMeter", "33.333333", CVAR_ARCHIVE | CVAR_LATCH, "JA world units per metre for physical light distance and emitter area");
+	ri.Cvar_CheckRange(r_pbrWorldUnitsPerMeter, 1.0f, 1000.0f, qfalse);
+	r_pbrPhysicalToScene = ri.Cvar_Get("r_pbrPhysicalToScene", "0.0001", CVAR_ARCHIVE | CVAR_LATCH, "Canonical scene value per physical cd, lux or cd/m^2");
+	ri.Cvar_CheckRange(r_pbrPhysicalToScene, 0.000001f, 1.0f, qfalse);
+	r_pbrLegacyReference = ri.Cvar_Get("r_pbrLegacyReference", "1", CVAR_ARCHIVE | CVAR_LATCH, "Legacy light reference in canonical scene units at the migration anchor");
+	ri.Cvar_CheckRange(r_pbrLegacyReference, 0.001f, 100.0f, qfalse);
+	r_pbrSunIlluminance = ri.Cvar_Get("r_pbrSunIlluminance", "0", CVAR_ARCHIVE, "Physical sun illuminance in lux; 0 migrates the map sun");
+	ri.Cvar_CheckRange(r_pbrSunIlluminance, 0.0f, 200000.0f, qfalse);
 	r_floatLightmap = ri.Cvar_Get( "r_floatLightmap", "0", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable HDR lightmap support" );
 
 	r_toneMap = ri.Cvar_Get( "r_toneMap", "1", CVAR_ARCHIVE | CVAR_LATCH, "Disable/enable tonemapping" );
@@ -2645,8 +2662,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_specularAAStrength, 0.0f, 0.25f, qfalse );
 	r_specularAAMaxAdded = ri.Cvar_Get( "r_specularAAMaxAdded", "0.25", CVAR_ARCHIVE, "Maximum roughness specular AA may add (0..1)" );
 	ri.Cvar_CheckRange( r_specularAAMaxAdded, 0.0f, 1.0f, qfalse );
-	r_specularAADebug = ri.Cvar_Get( "r_specularAADebug", "0", CVAR_CHEAT, "Specular AA debug: 1 authored/final material roughness, 2 filtered roughness, 3 added roughness" );
-	ri.Cvar_CheckRange( r_specularAADebug, 0, 3, qtrue );
+	r_specularAADebug = ri.Cvar_Get( "r_specularAADebug", "0", CVAR_CHEAT, "Specular AA debug: 1 material perceptual roughness, 2 material GGX alpha, 3 effective perceptual roughness, 4 added roughness" );
+	ri.Cvar_CheckRange( r_specularAADebug, 0, 4, qtrue );
+	r_pbrLegacyRoughness = ri.Cvar_Get( "r_pbrLegacyRoughness", "1", CVAR_ARCHIVE, "Migrate legacy AutoPBR, spec-gloss and scalar alpha-like roughness to perceptual roughness; 0 provides an A/B strict interpretation" );
+	ri.Cvar_CheckRange( r_pbrLegacyRoughness, 0, 1, qtrue );
 	r_diffuseIBL = ri.Cvar_Get( "r_diffuseIBL", "0", CVAR_ARCHIVE | CVAR_LATCH, "Directional light-grid ambient from runtime cubemap probes" );
 	ri.Cvar_CheckRange( r_diffuseIBL, 0, 1, qtrue );
 	r_diffuseIBLStrength = ri.Cvar_Get( "r_diffuseIBLStrength", "1", CVAR_ARCHIVE, "Strength of probe directional ambient modulation" );
@@ -4140,6 +4159,11 @@ Optional extension (tr_public.h): spot lights, tr_spotlight.cpp
 extern "C" Q_EXPORT const refSpotLightExport_t* QDECL GetRefSpotLightAPI ( void ) {
 	static const refSpotLightExport_t spotLights = { RE_AddSpotLightToScene, RE_RegisterLightCookie };
 	return &spotLights;
+}
+
+extern "C" Q_EXPORT const refPhysicalLightExport_t* QDECL GetRefPhysicalLightAPI ( void ) {
+	static const refPhysicalLightExport_t physicalLights = { RE_AddPhysicalLightToScene };
+	return &physicalLights;
 }
 
 /*

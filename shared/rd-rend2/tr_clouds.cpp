@@ -307,7 +307,8 @@ static void R_CloudsBuildParams( const trRefdef_t *refdef, const viewParms_t *vi
 {
 	Com_Memset(p, 0, sizeof(*p));
 
-	const float unitScale = MAX(1e-4f, r_atmosphereUnitScale->value);	// metres per unit
+	const float unitScale = r_pbrPhysical->integer ? R_PBRMetersPerWorldUnit() :
+		MAX(1e-4f, r_atmosphereUnitScale->value);	// metres per unit
 	p->kmPerUnit = unitScale * 0.001f;
 	p->groundZ = R_AtmosphereGroundZ();
 	p->groundAltitude = r_atmosphereAltitude->value * 0.001f;

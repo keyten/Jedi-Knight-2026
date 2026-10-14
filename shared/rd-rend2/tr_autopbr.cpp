@@ -52,7 +52,7 @@ typedef struct
 {
 	const char	*name;
 	float		ao;
-	float		roughness;		// perceptual, lightall uses mix(0.01, 1.0, roughness)
+	float		roughness;		// legacy effective alpha; migrated to perceptual sqrt(alpha)
 	float		metalness;
 	float		specular;		// dielectric F0 = 0.08 * specular
 	vec3_t		debugColor;		// r_autoPBRDebug 1

@@ -18,8 +18,8 @@ Written from the method of
   Production", SIGGRAPH 2016 course (horizon clipped sphere form factor)
 No code or data of the authors' reference implementation is used.
 
-BRDF fitted: GGX, isotropic, alpha = rend2 "roughness" (lightall uses it as
-the GGX alpha directly), Rend2's joint Smith visibility approximation, no Fresnel
+BRDF fitted: GGX, isotropic, alpha = perceptualRoughness^2, Rend2's exact
+height-correlated Smith-GGX visibility, no Fresnel
 (the Fresnel split is in table 2).
 
 Tables: LTC_SIZE x LTC_SIZE, texel (i, j):
@@ -54,7 +54,7 @@ Usage:
 
 static const int LTC_SIZE = 64;
 static const int FIT_SAMPLES = 32;		// per axis, per sampling technique
-static const double MIN_ALPHA = 1e-4;
+static const double MIN_ALPHA = 0.0025;
 static const double PI = 3.14159265358979323846;
 
 struct vec3
@@ -151,11 +151,11 @@ static double GgxEval(const vec3& V, const vec3& L, double alpha, double& pdf)
 	const double lambdaV = GgxLambda(V.z, alpha);
 	const double G1V = 1.0 / (1.0 + lambdaV);
 	pdf = G1V * D / (4.0 * V.z);
-	// Match lightall.glsl::V_SmithJointApprox exactly. The sampler above
-	// remains valid importance sampling; only its importance distribution
-	// differs slightly from this target BRDF.
-	const double visibility = 0.5 / (L.z * (V.z * (1.0 - alpha) + alpha) +
-		V.z * (L.z * (1.0 - alpha) + alpha));
+	// Match pbr_common.glsl::V_SmithGGXCorrelated exactly.
+	const double alpha2 = alpha * alpha;
+	const double visibility = 0.5 / (
+		L.z * sqrt(V.z * V.z * (1.0 - alpha2) + alpha2) +
+		V.z * sqrt(L.z * L.z * (1.0 - alpha2) + alpha2));
 	return D * visibility * L.z;
 }
 
@@ -507,8 +507,10 @@ static int Fit(const char *outPath)
 		"// docs/rend2-ltc-area-lights.md for the parameterisation:\n"
 		"//   texel (i, j) at [(j * LTC_LUT_SIZE + i) * 4], u = i = sqrt(alpha),\n"
 		"//   v = j = sqrt(1 - cos(theta_view)); table 2 .w: u = z * 0.5 + 0.5, v = |F|\n"
-		"// GGX (Rend2 joint Smith approximation), fitted with %d x %d samples per technique.\n\n"
+		"// GGX convention v2: perceptual r, alpha=max(r^2,0.0025), height-correlated Smith.\n"
+		"// Fitted with %d x %d samples per technique.\n\n"
 		"#pragma once\n\n"
+		"#define LTC_GGX_CONVENTION_VERSION 2\n"
 		"#define LTC_LUT_SIZE %d\n\n",
 		FIT_SAMPLES, FIT_SAMPLES, LTC_SIZE);
 	WriteTable(f, "ltcTable1", table1.data());

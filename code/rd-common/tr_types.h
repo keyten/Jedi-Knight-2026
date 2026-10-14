@@ -412,6 +412,25 @@ typedef struct {
 	vec3_t		up;				// optional top of the cookie, zero = a stable default
 } refSpotLight_t;
 
+// Canonical physical point/spot authoring. RGB supplies chromaticity; intensity
+// is photometric Y. CPU ingestion converts once to Rend2 scene units.
+#define PHYSICALLIGHT_POINT 0
+#define PHYSICALLIGHT_SPOT  1
+#define PHYSICALUNIT_CANDELA 0
+#define PHYSICALUNIT_LUMENS  1
+typedef struct {
+	int type;
+	int unit;
+	vec3_t origin;
+	vec3_t dir;
+	vec3_t color;
+	float intensity;
+	float range;		// culling/window range in world units, not brightness
+	float innerAngle;
+	float outerAngle;
+	int flags;		// SPOTLIGHT_* for a spot
+} refPhysicalLight_t;
+
 // Lens water events (rend2 r_rainLens): water thrown onto the virtual camera
 // lens by the world (splashes, waterfall spray, leaving water), posted through
 // the optional renderer extension GetRefLensWaterAPI. Events are one-shot; a

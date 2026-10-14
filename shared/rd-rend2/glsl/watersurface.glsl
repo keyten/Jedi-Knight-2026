@@ -655,20 +655,6 @@ float WaterTIR(float cosi, float eta)
 	return eta * eta * max(1.0 - cosi * cosi, 0.0) >= 1.0 ? 1.0 : 0.0;
 }
 
-float D_GGX(float NH, float a)
-{
-	float a2 = a * a;
-	float d = (NH * a2 - NH) * NH + 1.0;
-	return a2 / (M_PI * d * d);
-}
-
-float V_SmithJointApprox(float a, float NV, float NL)
-{
-	float Vis_SmithV = NL * (NV * (1.0 - a) + a);
-	float Vis_SmithL = NV * (NL * (1.0 - a) + a);
-	return 0.5 / (Vis_SmithV + Vis_SmithL);
-}
-
 // GGX glint of a light of color c from direction L (alpha = GGX alpha)
 vec3 WaterGlint(vec3 N, vec3 V, vec3 L, vec3 c, float alpha, float ior)
 {
@@ -680,7 +666,7 @@ vec3 WaterGlint(vec3 N, vec3 V, vec3 L, vec3 c, float alpha, float ior)
 	float VH = clamp(dot(V, H), 0.0, 1.0);
 	float NV = max(dot(N, V), 1e-4);
 	float F = FresnelDielectric(VH, 1.0 / ior);
-	return c * (D_GGX(NH, alpha) * V_SmithJointApprox(alpha, NV, NL) * F * NL);
+	return c * (D_GGX(NH, alpha) * V_SmithGGXCorrelated(alpha, NV, NL) * F * NL);
 }
 
 // Rough dielectric transmission from an air-side sun to an underwater
@@ -702,7 +688,7 @@ vec3 WaterSunTransmission(vec3 N, vec3 V, vec3 L, vec3 c, float alpha, float ior
 	float jacobian = (VH * LH) / (NV * NL * denominator * denominator);
 	float transport = 1.0 / (ior * ior);
 	float lobe = (1.0 - F) * D_GGX(NH, alpha) *
-		V_SmithJointApprox(alpha, NV, NL) * jacobian * transport * NL;
+		V_SmithGGXCorrelated(alpha, NV, NL) * jacobian * transport * NL;
 	return c * min(lobe, 32.0);
 }
 
@@ -1354,7 +1340,7 @@ void main()
 	float baseRoughness = u_Water[WATER_U_SURFACE].y;
 	float alpha = sqrt(min(baseRoughness * baseRoughness * baseRoughness * baseRoughness +
 		(variance.x + variance.y), 1.0));
-	alpha = max(alpha, 0.002);
+	alpha = max(alpha, PBR_MIN_GGX_ALPHA);
 	float roughness = sqrt(alpha);
 	roughness = mix(roughness, 0.88, persistentFoam);
 	roughness = mix(roughness, 0.78, whitewater);

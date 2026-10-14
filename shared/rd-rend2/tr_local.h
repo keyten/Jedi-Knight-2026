@@ -406,6 +406,11 @@ extern cvar_t  *r_smaa_quality;
 extern cvar_t  *r_cameraExposure;
 
 extern cvar_t  *r_hdr;
+extern cvar_t  *r_pbrPhysical;
+extern cvar_t  *r_pbrWorldUnitsPerMeter;
+extern cvar_t  *r_pbrPhysicalToScene;
+extern cvar_t  *r_pbrLegacyReference;
+extern cvar_t  *r_pbrSunIlluminance;
 
 extern cvar_t  *r_toneMap;
 extern cvar_t  *r_forceToneMap;
@@ -649,6 +654,7 @@ extern cvar_t  *r_specularAA;
 extern cvar_t  *r_specularAAStrength;
 extern cvar_t  *r_specularAAMaxAdded;
 extern cvar_t  *r_specularAADebug;
+extern cvar_t  *r_pbrLegacyRoughness;
 extern cvar_t  *r_diffuseIBL;
 extern cvar_t  *r_diffuseIBLStrength;
 extern cvar_t  *r_diffuseIBLDebug;
@@ -992,6 +998,10 @@ typedef struct dlight_s {
 	vec3_t	origin;
 	vec3_t	color;				// range from 0.0 to 1.0, should be color normalized
 	float	radius;
+	// Physical mode: color is Y-normalized chromaticity and this is canonical
+	// scene candela (point/spot). Legacy mode leaves it zero and is bit-exact.
+	float	canonicalIntensity;
+	qboolean physicalIntensity;
 
 	vec3_t	transformed;		// origin in local coordinate system
 	int		additive;			// texture detail is lost tho when the lightmap is dark
@@ -1386,6 +1396,8 @@ struct SceneBlock
 	// screen-space AO application, see RB_AOSceneParams (tr_ao.cpp)
 	vec4_t aoParams;	// application mode, lightmap fraction, multi-bounce, split x
 	vec4_t aoParams2;	// debug view, unused, unused, unused
+	// metres/world-unit, squared conversion, baked legacy calibration, mode
+	vec4_t pbrParams;
 	// screen-space GI source, see RB_SSGISceneParams (tr_ssgi.cpp); only
 	// declared by lightall with USE_SSGI
 	vec4_t ssgiParams;	// source bits, linear scene, emissive scale, glow scale
@@ -1924,8 +1936,11 @@ typedef struct {
 	qboolean		isDetail;
 	qboolean		glow;
 	qboolean		emissive;
+	qboolean		emissivePhysical;	// emissiveIntensity is authored cd/m^2
 	qboolean		cloth;
 	qboolean		specularScaleAuthored;	// specularScale / roughness / gloss ... keywords
+	qboolean		packedSpecularScaleAuthored; // full specularScale tuple, preserve all channels
+	int				pbrMaterialVersion;	// 1 legacy alpha-like roughness, 2 perceptual roughness; 0 while parsing
 	qboolean		weatherScaleAuthored;	// stage level weatherResponse keyword
 	vec3_t			weatherScale;			// weatherResponse: wetness, puddle, runoff (1 = automatic, 0 = off)
 
@@ -2619,6 +2634,7 @@ typedef enum
 
 	UNIFORM_ENABLETEXTURES,
 	UNIFORM_EMISSIVEPARAMS, // rgb = scale; |w| = 0 off, 1 explicit, 2 auto source; sign = legacy/linear scene
+	UNIFORM_PBRMATERIAL, // x = semantic version (1 legacy, 2 perceptual), y = migrate legacy
 
 	UNIFORM_DIFFUSETEXMATRIX,
 	UNIFORM_DIFFUSETEXOFFTURB,
@@ -3639,6 +3655,9 @@ typedef struct {
 	vec3_t		volumetricSunRadiance;	// realtime sun radiance estimated from the sunlit cells
 	qboolean	volumetricHasSunCells;
 	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLighting: gain 1 there)
+	float		pbrLegacyCalibration;	// map-load legacy baked-light -> canonical scene scale
+	float		pbrLegacyMedian;
+	float		pbrLegacyP95;
 	int			volumetricReconstructedSources;
 	int			volumetricReconstructedAreaSources;
 	int			volumetricDirectionalCells;
@@ -6210,6 +6229,11 @@ void R_FinishAreaLightCalibration(void);
 void R_StaticLightPortalsBeginScene(const refdef_t *fd);
 void R_ClearStaticLighting(void);
 void R_StaticLightingStats_f(void);
+void R_PBRInfo_f(void);
+void R_PBRCalibrateLegacyMap(world_t *world);
+float R_PBRMetersPerWorldUnit(void);
+float R_PBRPhysicalToScene(void);
+void R_PBRCanonicalColor(const vec3_t rgb, float photometricY, vec3_t out);
 void R_StaticLightsBeginScene(const refdef_t *fd);
 qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_STATIC_RECONSTRUCTION
 void R_SetHeightFogBase(world_t *worldData);
@@ -6461,6 +6485,7 @@ SPOT LIGHTS, tr_spotlight.cpp
 
 dlight_t *R_AddSceneDynamicLight(const vec3_t org, float intensity, float r, float g, float b, int additive);
 void RE_AddSpotLightToScene(const refSpotLight_t *light);
+void RE_AddPhysicalLightToScene(const refPhysicalLight_t *light);
 float R_SpotConeAttenuation(const dlight_t *dl, const vec3_t point);
 void R_SpotBoundingSphere(const dlight_t *dl, vec3_t center, float *radius);
 qboolean R_SpotSphereInCone(const dlight_t *dl, const vec3_t center, float radius);

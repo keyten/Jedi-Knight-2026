@@ -13,27 +13,28 @@ specular highlights without changing geometry or requiring temporal AA.
   range is `0..0.25`.
 - `r_specularAAMaxAdded 0.25` caps how much roughness the filter may add.  Its
   supported range is `0..1`.
-- `r_specularAADebug 0..3` is a cheat-protected view: `1` is material
-  roughness after material/wetness processing, `2` is filtered roughness and
-  `3` is the added roughness.
+- `r_specularAADebug 0..4` is a cheat-protected view: `1` is material
+  perceptual roughness after material/wetness processing, `2` is its GGX
+  alpha, `3` is effective perceptual roughness and `4` is added roughness.
 
 ## Filter
 
-`lightall.glsl` treats roughness as the GGX alpha parameter: `D_GGX` squares it
-internally.  For final normalized shaded normal `N` and material roughness
-`r`, the filter is:
+Material roughness `r` is perceptual and GGX uses `alpha = r*r`. For final
+normalized shaded normal `N`, the filter is:
 
 ```glsl
 variance = strength * (dot(dFdx(N), dFdx(N)) + dot(dFdy(N), dFdy(N)));
-filtered = sqrt(clamp(r * r + 2.0 * variance, 0.0, 1.0));
+materialAlpha = max(r * r, 0.0025);
+filteredAlpha = sqrt(clamp(materialAlpha * materialAlpha + 2.0 * variance, 0.0, 1.0));
+filtered = sqrt(filteredAlpha);
 filtered = max(r, min(filtered, min(1.0, r + maxAdded)));
 ```
 
 This is the screen-space geometric-normal filtering form described by
 Kaplanyan et al., *Filtering Distributions of Normals for Shading
 Antialiasing* (2016), and used by established real-time normal-variance
-filters.  The important convention adjustment is that Rend2's `r` is already
-GGX alpha, not perceptual roughness.
+filters. Variance broadens `alpha^2`; conversion back through alpha keeps the
+stored, IBL, SSR and debug value in the perceptual domain.
 
 The result never lowers material roughness.  A single filtered value feeds
 direct/deluxe GGX, primary sun, point/spot lights, LTC area lights, cubemap mip

@@ -1168,8 +1168,13 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 			source += spot.xyz * clamp(dot(p - source, spot.xyz), -spot2.x, spot2.x);
 		vec3 L = source - p;
 		float sqrDist = max(dot(L, L), 1e-4);
-		// CalcLightAttenuation of lightall: zero at the radius
+		// Same canonical point-light law as lightall.
+#if defined(USE_PHYSICAL_PBR)
+		float attenuation = PBRPointAttenuation(radius, sqrDist,
+			PBR_METERS_PER_WORLD_UNIT_SQUARED);
+#else
 		float attenuation = clamp(0.5 * radius * radius / sqrDist - 0.5, 0.0, 1.0);
+#endif
 		if (attenuation <= 0.0)
 			continue;
 
@@ -1298,6 +1303,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 
 	vec3 gridCoordC = (pc - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
 	vec4 staticGrid = texture(u_VolumetricStaticGrid, gridCoordC);
+	staticGrid.rgb *= u_FroxelDebugParams.w;
 	l.baseline = staticGrid.rgb * u_FroxelLightParams.w;
 	float sunWeight = staticGrid.a;
 
@@ -1308,6 +1314,9 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 	vec3 momentR = texture(u_VolumetricDirMomentR, gridCoordC).rgb;
 	vec3 momentG = texture(u_VolumetricDirMomentG, gridCoordC).rgb;
 	vec3 momentB = texture(u_VolumetricDirMomentB, gridCoordC).rgb;
+	momentR *= u_FroxelDebugParams.w;
+	momentG *= u_FroxelDebugParams.w;
+	momentB *= u_FroxelDebugParams.w;
 	// the light travels along -M, towards the camera is -viewDir
 	l.momentDot = vec3(dot(momentR, viewDirC), dot(momentG, viewDirC), dot(momentB, viewDirC)) * u_FroxelLightParams.w;
 #endif
@@ -1315,7 +1324,8 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 	vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
 	if ((debugView >= 20 && debugView <= 25) || debugView == 57 || debugView == 58)
 	{
-		vec3 bakedSun = (u_FroxelSunDirection.w > 0.5) ? texture(u_VolumetricSunGrid, gridCoordC).rgb : vec3(0.0);
+		vec3 bakedSun = (u_FroxelSunDirection.w > 0.5) ?
+			texture(u_VolumetricSunGrid, gridCoordC).rgb * u_FroxelDebugParams.w : vec3(0.0);
 		vec3 reconstructed = staticGrid.rgb + bakedSun;
 #if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
 		vec3 momentLength = vec3(length(momentR), length(momentG), length(momentB));
@@ -1388,7 +1398,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 		// sunlight travels along -sunDirection, towards the camera is -viewDir
 		vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
 		l.sunPhase = FroxelPhases(g, dot(u_FroxelSunDirection.xyz, viewDir));
-		vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb;
+		vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb * u_FroxelDebugParams.w;
 		l.sunUnshadowed = bakedSun;
 		l.sun = bakedSun;
 		if (u_FroxelSunColor.w > 0.5)

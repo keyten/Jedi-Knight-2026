@@ -422,6 +422,23 @@ typedef struct {
 	vec3_t		up;				// optional top of the cookie, zero = a stable default
 } refSpotLight_t;
 
+#define PHYSICALLIGHT_POINT 0
+#define PHYSICALLIGHT_SPOT  1
+#define PHYSICALUNIT_CANDELA 0
+#define PHYSICALUNIT_LUMENS  1
+typedef struct {
+	int type;
+	int unit;
+	vec3_t origin;
+	vec3_t dir;
+	vec3_t color;
+	float intensity;
+	float range;
+	float innerAngle;
+	float outerAngle;
+	int flags;
+} refPhysicalLight_t;
+
 // Lens water events (rend2 r_rainLens): water thrown onto the virtual camera
 // lens by the world (splashes, waterfall spray, leaving water), posted through
 // the optional renderer extension GetRefLensWaterAPI. Events are one-shot; a

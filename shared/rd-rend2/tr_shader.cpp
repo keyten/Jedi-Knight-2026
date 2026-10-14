@@ -1387,6 +1387,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	stage->specularType = SPEC_NONE;
 	VectorSet(stage->emissiveColor, 1.0f, 1.0f, 1.0f);
 	stage->emissiveIntensity = 1.0f;
+	// Zero means unspecified until FinishShader knows whether the source is a
+	// modern packed metal/rough map or legacy/spec-gloss/scalar authoring.
+	stage->pbrMaterialVersion = 0;
 
 	while ( 1 )
 	{
@@ -1611,6 +1614,34 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			if (!stage->bundle[TB_EMISSIVEMAP].image[0])
 				stage->bundle[TB_EMISSIVEMAP].image[0] = tr.whiteImage;
 			stage->emissive = qtrue;
+		}
+		// emissiveLuminance <cd/m^2>. Texture RGB is relative spatial/color
+		// variation; a white texel has this photometric Y luminance.
+		else if (!Q_stricmp(token, "emissiveLuminance"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri.Printf(PRINT_WARNING, "WARNING: missing emissiveLuminance in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+			stage->emissiveIntensity = Q_max((float)atof(token), 0.0f);
+			stage->emissivePhysical = qtrue;
+			if (!stage->bundle[TB_EMISSIVEMAP].image[0])
+				stage->bundle[TB_EMISSIVEMAP].image[0] = tr.whiteImage;
+			stage->emissive = qtrue;
+		}
+		// pbrMaterialVersion 2 opts authored data into the modern contract.
+		// Missing metadata is deterministically migrated as legacy semantics.
+		else if (!Q_stricmp(token, "pbrMaterialVersion"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!token[0])
+			{
+				ri.Printf(PRINT_WARNING, "WARNING: missing pbrMaterialVersion in shader '%s'\n", shader.name);
+				return qfalse;
+			}
+			stage->pbrMaterialVersion = atoi(token) >= 2 ? 2 : 1;
 		}
 		//
 		// specMap <name> || specularMap <name>
@@ -2137,6 +2168,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		else if (!Q_stricmp(token, "specularscale"))
 		{
 			stage->specularScaleAuthored = qtrue;
+			stage->packedSpecularScaleAuthored = qtrue;
 			token = COM_ParseExt(text, qfalse);
 			if ( token[0] == 0 )
 			{
@@ -3799,14 +3831,19 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 					}
 					if (!stage->bundle[TB_ORMSMAP].image[0])
 					{
-						// constant ORMS through whiteImage: AO 1, roughness 1,
-						// metal 0, F0 0.08 * 0.5 = 0.04. Authored scalar keywords
-						// are overwritten here too (existing behaviour, kept for
-						// r_autoPBR 0); r_autoPBR only replaces the diffuse-only case
-						stage->specularScale[0] = 0.0f;
-						stage->specularScale[2] =
-						stage->specularScale[3] = 1.0f;
-						stage->specularScale[1] = 0.5f;
+						// Constant ORMS through whiteImage: AO 1, metal 0 and
+						// F0 0.08 * 0.5 = 0.04. Preserve the scalar roughness/gloss
+						// channel parsed above; the old path accidentally reset it to 1.
+						if (!stage->packedSpecularScaleAuthored)
+						{
+							const float scalarRoughness = stage->specularScale[3];
+							stage->specularScale[0] = 0.0f;
+							stage->specularScale[2] =
+							stage->specularScale[3] = 1.0f;
+							stage->specularScale[1] = 0.5f;
+							if (stage->specularScaleAuthored)
+								stage->specularScale[3] = scalarRoughness;
+						}
 						stage->pbrSource = stage->specularScaleAuthored ?
 							PBR_SOURCE_SCALAR : PBR_SOURCE_LEGACY;
 						// r_autoPBRRoughness: roughness variation from the diffuse
@@ -3821,6 +3858,18 @@ static void CollapseStagesToLightall(shaderStage_t *stage, shaderStage_t *lightm
 			}
 
 		}
+	}
+
+	// Explicit and conventionally discovered ORM/RMO maps use the standard
+	// perceptual roughness channel. Old spec-gloss, scalar and generated paths
+	// retain version 1 and are migrated at the shader input boundary. Authors
+	// can override either inference with pbrMaterialVersion.
+	if (stage->pbrMaterialVersion == 0)
+	{
+		const qboolean modernPacked = (qboolean)(
+			(stage->pbrSource == PBR_SOURCE_EXPLICIT || stage->pbrSource == PBR_SOURCE_DISCOVERED) &&
+			stage->specularType != SPEC_SPECGLOSS);
+		stage->pbrMaterialVersion = modernPacked ? 2 : 1;
 	}
 
 	// Material model resolution also needs the conservative name class when

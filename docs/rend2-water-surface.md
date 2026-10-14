@@ -132,7 +132,7 @@ the scene right behind it (bottom / side against the floor or a wall) is passed 
   `S = albedo (ambient / 2 + pi sun HG(g) T_sun) (1 - T)`. Fog volume water with the legacy fog: the fog passes already
   fogged the scene under it, no analytic medium.
 - Glow: the copied glow attachment is refracted and attenuated with the scene; direct glints also feed glow, so bloom works with `r_bloomSceneIntensity 0`.
-- Glints: GGX (`D_GGX`, `V_SmithJointApprox`, exact Fresnel at VH) of the sun (cascaded shadow map lookup, needs
+- Glints: GGX (`D_GGX`, `V_SmithGGXCorrelated`, exact Fresnel at VH) of the sun (cascaded shadow map lookup, needs
   `r_sunlightMode` and a sun view) and of the view's dynamic lights (saber / bolt / explosion lights, lightall's
   attenuation and spot cone).
 - Linear light: a legacy (display encoded) HDR scene, cubemaps, SSR samples and light colors are decoded, the result

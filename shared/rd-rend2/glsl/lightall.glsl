@@ -441,6 +441,8 @@ layout(std140) uniform Scene
 	// x = r_aoDebug (lightall views), y = specular occlusion mode (0 scalar,
 	// 1 Lagarde, 2 cone), z = bent normal strength (0 = off)
 	vec4 u_AOParams2;
+	// common scene contract: metres/unit, squared, legacy map calibration, mode
+	vec4 u_PBRParams;
 #if defined(USE_SSGI)
 	// screen-space GI source (tr_ssgi.cpp, RB_SSGISceneParams): x = source bits
 	// (1 dynamic light, 2 emissive, 4 legacy glow), y = 1 linear scene / 0 legacy
@@ -800,6 +802,7 @@ uniform vec4 u_MaterialDebug;
 // x: materialType (0 standard, 1 hair, 2 eye), y: materialMap present,
 // z: hair anisotropy, w: r_materialModelDebug
 uniform vec4 u_MaterialModel;
+uniform vec4 u_PBRMaterial;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 #if defined(USE_SPECULAR_AA) && defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
 #define USE_GGX_SPECULAR_AA
@@ -1680,10 +1683,10 @@ vec2 GetParallaxOffset(in vec2 texCoords, in vec3 tangentDir)
 #endif
 }
 
-float D_Charlie(in float a, in float NH)
+float D_Charlie(in float sheenRoughness, in float NH)
 {
 	// Estevez and Kulla 2017, "Production Friendly Microfacet Sheen BRDF"
-	float invAlpha = 1.0 / a;
+	float invAlpha = 1.0 / max(sheenRoughness, 0.01);
 	float cos2h = NH * NH;
 	float sin2h = max(1.0 - cos2h, 0.0078125); // 2^(-14/2), so sin2h^2 > 0 in fp16
 	return (2.0 + invAlpha) * pow(sin2h, invAlpha * 0.5) / (2.0 * M_PI);
@@ -1695,8 +1698,8 @@ float V_Neubelt(in float NV, in float NL)
 	return 1.0 / (4.0 * (NL + NV - NL * NV));
 }
 
-float D_Ashikhmin(float roughness, float nh){
-                float a2 = roughness * roughness;
+float D_Ashikhmin(float clothRoughness, float nh){
+                float a2 = clothRoughness * clothRoughness;
                 float cos2h = nh * nh ;
                 float sin2h = max(1.0 - cos2h, 0.0078125); // 2^(-14/2), so sin2h^2 > 0 in fp16
 	            float sin4h = sin2h * sin2h;
@@ -1705,9 +1708,9 @@ float D_Ashikhmin(float roughness, float nh){
 
             }
 
-vec3 Specular_CharlieSheen(float Roughness, float NoH, float NoV, float NoL, vec3 SpecularColor, float cloth)
+vec3 Specular_CharlieSheen(float perceptualRoughness, float NoH, float NoV, float NoL, vec3 SpecularColor, float cloth)
 {
-	float D = cloth > 0.f ? D_Ashikhmin(Roughness, NoH) : D_Charlie(Roughness, NoH);
+	float D = cloth > 0.f ? D_Ashikhmin(perceptualRoughness, NoH) : D_Charlie(perceptualRoughness, NoH);
 
 	return (D * V_Neubelt(NoV, NoL)) * SpecularColor; //No fresnel in the documentation.
 }
@@ -1727,42 +1730,6 @@ vec3 Diff_Burley(float roughness, float NoV, float NoL, float LoH)
 	return lightScatter * viewScatter * (1.0 / M_PI);
 }
 
-vec3 F_Schlick(in vec3 SpecularColor, in float VH)
-{
-	float Fc = pow(1 - VH, 5);
-	return clamp(50.0 * SpecularColor.g, 0.0, 1.0) * Fc + (1 - Fc) * SpecularColor; //hacky way to decide if reflectivity is too low (< 2%)
-}
-
-float D_GGX( in float NH, in float a )
-{
-	/*float alphaSq = roughness*roughness;
-	float f = (NH * alphaSq - NH) * NH + 1.0;
-	return alphaSq / (f * f);*/
-
-	float a2 = a * a;
-	float d = (NH * a2 - NH) * NH + 1;
-	return a2 / (M_PI * d * d);
-}
-
-// Appoximation of joint Smith term for GGX
-// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
-float V_SmithJointApprox(in float a, in float NV, in float NL)
-{
-	float Vis_SmithV = NL * (NV * (1 - a) + a);
-	float Vis_SmithL = NV * (NL * (1 - a) + a);
-	return 0.5 * (1.0 / (Vis_SmithV + Vis_SmithL));
-}
-
-float CalcVisibility(in float NL, in float NE, in float roughness)
-{
-	float alphaSq = roughness * roughness;
-
-	float lambdaE = NL * sqrt((-NE * alphaSq + NE) * NE + alphaSq);
-	float lambdaL = NE * sqrt((-NL * alphaSq + NL) * NL + alphaSq);
-
-	return 0.5 / (lambdaE + lambdaL);
-}
-
 // http://www.frostbite.com/2014/11/moving-frostbite-to-pbr/
 vec3 CalcSpecular(
 	in vec3 specular,
@@ -1771,19 +1738,20 @@ vec3 CalcSpecular(
 	in float NE,
 	in float LH,
 	in float VH,
-	in float roughness
+	in float perceptualRoughness
 )
 {
 	//Using #if to define our BRDF's is a good idea.
 #if !defined(USE_CLOTH_BRDF) //should define this as the base BRDF
-	vec3  F = F_Schlick(specular, VH);
-	float D = D_GGX(NH, roughness);
-	float V = V_SmithJointApprox(roughness, NE, NL);
+	vec3  F = F_Schlick(specular, vec3(1.0), VH);
+	float alpha = PerceptualRoughnessToAlpha(perceptualRoughness);
+	float D = D_GGX(NH, alpha);
+	float V = V_SmithGGXCorrelated(alpha, NE, NL);
 #else //and define this as the cloth BRDF
 	//this cloth model essentially uses the metallic input to help transition from isotropic to anisotropic reflections.
 	//as cloth is a microfibre structure, cloth like velevet and silk tends to have anisotropy.
 	vec3 F = specular; //this shading model omits fresnel
-	float D = D_Charlie(roughness, NH);
+	float D = D_Charlie(perceptualRoughness, NH);
 	float V = V_Neubelt(NE, NL);
 #endif
 
@@ -1801,11 +1769,11 @@ vec3 CalcHairSpecular(
 	in float NL,
 	in float NE,
 	in float VH,
-	in float roughness,
+	in float perceptualRoughness,
 	in float anisotropy)
 {
 	vec3 B = normalize(cross(N, T));
-	float a = clamp(roughness, 0.04, 1.0);
+	float a = clamp(PerceptualRoughnessToAlpha(perceptualRoughness), 0.04, 1.0);
 	float at = clamp(a * (1.0 + anisotropy), 0.04, 1.0);
 	float ab = clamp(a * (1.0 - anisotropy), 0.04, 1.0);
 	float HT = dot(H, T) / at;
@@ -1813,8 +1781,8 @@ vec3 CalcHairSpecular(
 	float HN = max(dot(H, N), 0.0);
 	float denom = HT * HT + HB * HB + HN * HN;
 	float D = 1.0 / max(M_PI * at * ab * denom * denom, 1e-5);
-	vec3 F = F_Schlick(specular, VH);
-	float V = V_SmithJointApprox(a, NE, NL);
+	vec3 F = F_Schlick(specular, vec3(1.0), VH);
+	float V = V_SmithGGXCorrelated(a, NE, NL);
 	return D * F * V;
 }
 
@@ -1828,14 +1796,14 @@ vec3 CalcMaterialSpecular(
 	in float NE,
 	in float LH,
 	in float VH,
-	in float roughness,
+	in float perceptualRoughness,
 	in float materialMask)
 {
-	vec3 isotropic = CalcSpecular(specular, NH, NL, NE, LH, VH, roughness);
+	vec3 isotropic = CalcSpecular(specular, NH, NL, NE, LH, VH, perceptualRoughness);
 	if (int(u_MaterialModel.x + 0.5) != 1 || materialMask <= 0.0)
 		return isotropic;
 	vec3 hair = CalcHairSpecular(specular, N, T, H, NL, NE, VH,
-		roughness, u_MaterialModel.z);
+		perceptualRoughness, u_MaterialModel.z);
 	return mix(isotropic, hair, materialMask);
 }
 
@@ -1855,14 +1823,14 @@ vec3 CalcDiffuse(
 	in float NE,
 	in float NL,
 	in float LH,
-	in float roughness
+	in float perceptualRoughness
 )
 {
 	//Using #if to define our diffuse's is a good idea.
 #if !defined(USE_CLOTH_BRDF) //should define this as the base BRDF
 	if (u_DiffuseBRDF == 1)
 	{
-		return diffuse * Diff_Burley(roughness, clamp(NE, 0.0, 1.0), NL, LH);
+		return diffuse * Diff_Burley(perceptualRoughness, clamp(NE, 0.0, 1.0), NL, LH);
 	}
 	return Diffuse_Lambert(diffuse);
 #else //and define this as the cloth diffuse
@@ -1881,6 +1849,15 @@ float CalcLightAttenuation(float normDist)
 	// zero light at 1.0, approximating q3 style
 	float attenuation = 0.5 * normDist - 0.5;
 	return clamp(attenuation, 0.0, 1.0);
+}
+
+float CalcPointLightAttenuation(float radius, float distanceSquared)
+{
+#if defined(USE_PHYSICAL_PBR)
+	return PBRPointAttenuation(radius, distanceSquared, u_PBRParams.y);
+#else
+	return CalcLightAttenuation(radius * radius / max(distanceSquared, 1e-6));
+#endif
 }
 
 // spot light cone (tr_spotlight.cpp, same function in volumetric_inject.glsl):
@@ -2197,9 +2174,9 @@ struct DLightSurface
 	vec3  diffuse;
 	vec3  specular;
 	#if defined(USE_GGX_SPECULAR_AA)
-	float materialRoughness;
+	float materialPerceptualRoughness;
 	#endif
-	float roughness;
+	float perceptualRoughness;
 	vec3  materialT;
 	float materialMask;
 	vec3  vertexNormal;
@@ -2229,7 +2206,7 @@ float DynamicLightReceiverVisibility(in DLightSurface s, in vec3 L)
 // estimated contribution of a light at the receiver, for the self shadow budget
 float PomLightImportance(in vec3 toLight, in vec3 lightColor, in float lightRadius)
 {
-	float attenuation = CalcLightAttenuation(lightRadius * lightRadius / max(dot(toLight, toLight), 1e-6));
+	float attenuation = CalcPointLightAttenuation(lightRadius, dot(toLight, toLight));
 	return dot(lightColor, vec3(0.2126, 0.7152, 0.0722)) * attenuation;
 }
 
@@ -2348,7 +2325,7 @@ vec3 EvaluateDynamicLight(
 	vec3  L  = lightOrigin - s.position;
 	float sqrLightDist = dot(L, L);
 
-	float attenuation = CalcLightAttenuation(lightRadius * lightRadius / sqrLightDist);
+	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist);
 
 	#if defined(USE_DSHADOWS)
 		vec3 sampleVector = L;
@@ -2435,9 +2412,9 @@ vec3 EvaluateDynamicLight(
 	#endif
 	#if !defined(USE_CLOTH_BRDF)
 	#if defined(USE_GGX_SPECULAR_AA)
-	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.materialRoughness);
+	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.materialPerceptualRoughness);
 	#else
-	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.roughness);
+	vec3 reflectance = M_PI * CalcDiffuse(s.diffuse, s.NE, NL, LH, s.perceptualRoughness);
 	#endif
 	#else
 	vec3 reflectance = s.diffuse;
@@ -2456,7 +2433,7 @@ vec3 EvaluateDynamicLight(
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
 	vec3 specularLight = lightColor * CalcMaterialSpecular(s.specular, s.N, s.materialT,
-		H, NH, NL, s.NE, LH, VH, s.roughness, s.materialMask) * attenuation * NL;
+		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask) * attenuation * NL;
 	lit += specularLight;
 	if (int(u_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += specularLight;
@@ -2467,7 +2444,7 @@ vec3 EvaluateDynamicLight(
 	float NH = clamp(dot(s.N, H), 0.0, 1.0);
 	float VH = clamp(dot(s.E, H), 0.0, 1.0);
 	vec3 specularBrdf = CalcMaterialSpecular(s.specular, s.N, s.materialT,
-		H, NH, NL, s.NE, LH, VH, s.roughness, s.materialMask);
+		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask);
 	reflectance += specularBrdf;
 	if (int(u_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += lightColor * specularBrdf * attenuation * NL;
@@ -2788,7 +2765,8 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		cache.T1 = T1;
 		cache.T2 = cross(N, T1);
 #if defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
-		vec2 uv = vec2(sqrt(clamp(s.roughness, 0.0, 1.0)),
+		// tools/ltcfit stores u = sqrt(alpha) = perceptual roughness.
+		vec2 uv = vec2(clamp(s.perceptualRoughness, 0.0, 1.0),
 			sqrt(1.0 - clamp(s.NE, 0.0, 1.0)));
 		uv = uv * LTC_LUT_SCALE + LTC_LUT_BIAS;
 		vec4 t1 = texture(u_LtcMatrixMap, uv);
@@ -2843,7 +2821,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 		float VH = clamp(dot(s.E, H), 0.0, 1.0);
 		specularOut = radiance * M_PI * formFactor * CalcMaterialSpecular(
 			s.specular, N, s.materialT, H, NH, NL, s.NE, LH, VH,
-			s.roughness, s.materialMask);
+			s.perceptualRoughness, s.materialMask);
 	}
 	else
 	{
@@ -2857,7 +2835,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	specularOut = radiance * M_PI * formFactor * CalcSpecular(s.specular,
 		clamp(dot(N, H), 0.0, 1.0), NL, s.NE, clamp(dot(L, H), 0.0, 1.0),
-		clamp(dot(s.E, H), 0.0, 1.0), s.roughness);
+		clamp(dot(s.E, H), 0.0, 1.0), s.perceptualRoughness);
 	#endif
 	#endif
 	#if defined(USE_LTC_SHADOWS)
@@ -2925,9 +2903,9 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 vec3 CalcDynamicLightContribution(
 	#if defined(USE_GGX_SPECULAR_AA)
-	in float materialRoughness,
+	in float materialPerceptualRoughness,
 	#endif
-	in float roughness,
+	in float perceptualRoughness,
 	in vec3 N,
 	in vec3 E,
 	in vec3 viewOrigin,
@@ -2949,9 +2927,9 @@ vec3 CalcDynamicLightContribution(
 	s.diffuse = diffuse;
 	s.specular = specular;
 	#if defined(USE_GGX_SPECULAR_AA)
-	s.materialRoughness = materialRoughness;
+	s.materialPerceptualRoughness = materialPerceptualRoughness;
 	#endif
-	s.roughness = roughness;
+	s.perceptualRoughness = perceptualRoughness;
 	s.materialT = materialT;
 	s.materialMask = materialMask;
 	s.vertexNormal = vertexNormal;
@@ -3055,7 +3033,7 @@ vec3 EvaluateDynamicLightSimple(
 {
 	vec3 L = lightOrigin - position;
 	float sqrLightDist = dot(L, L);
-	float attenuation = CalcLightAttenuation(lightRadius * lightRadius / sqrLightDist);
+	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist);
 	L /= sqrt(sqrLightDist);
 	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
 	vec3 cookie = SpotCookie(-L, spot, spot2, length(position - u_ViewOrigin));
@@ -3267,16 +3245,16 @@ float luma(vec3 color)
 // Specular IBL weight W: the factor applied to the cubemap radiance
 // (F0 * EnvBRDF.x + EnvBRDF.y). SSR replaces cubemap radiance with
 // screen-space radiance under the same W, so it is computed once.
-vec3 SpecularIBLWeight(in float roughness, in float NE, in vec3 specular)
+vec3 SpecularIBLWeight(in float perceptualRoughness, in float NE, in vec3 specular)
 {
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP) && (defined(USE_CUBEMAP) || defined(USE_SSR))
 	// Base BRDF
 	#if !defined(USE_CLOTH_BRDF)
-		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(roughness, NE)).rg;
+		vec2 EnvBRDF = texture(u_EnvBrdfMap, vec2(perceptualRoughness, NE)).rg;
 		return specular.rgb * EnvBRDF.x + EnvBRDF.y;
 	// Cloth BRDF
 	#else
-		return vec3(texture(u_EnvBrdfMap, vec2(roughness, NE)).b);
+		return vec3(texture(u_EnvBrdfMap, vec2(perceptualRoughness, NE)).b);
 	#endif
 #else
 	return vec3(0.0);
@@ -3285,7 +3263,7 @@ vec3 SpecularIBLWeight(in float roughness, in float NE, in vec3 specular)
 
 // Cubemap radiance of the reflection, before the specular weight
 vec3 CalcIBLRadiance(
-	in float roughness,
+	in float perceptualRoughness,
 	in vec3 N,
 	in vec3 E,
 	in vec3 viewOrigin,
@@ -3299,7 +3277,7 @@ vec3 CalcIBLRadiance(
 	vec3 parallax = u_CubeMapInfo.xyz + u_CubeMapInfo.w * viewDir;
 
 	vec3 R = reflect(-E, N) - parallax;
-	vec4 cubeLightColor = textureLod(u_CubeMap, R, roughness * ROUGHNESS_MIPS) * u_EnableTextures.w;
+	vec4 cubeLightColor = textureLod(u_CubeMap, R, perceptualRoughness * ROUGHNESS_MIPS) * u_EnableTextures.w;
 
 	// Scale reflection based on current light luminance / max luminance of the cubemap 
 	cubeLightColor.rgb *= clamp(luma(lighting) / cubeLightColor.a, 0.0, 1.0);
@@ -3310,7 +3288,7 @@ vec3 CalcIBLRadiance(
 }
 
 vec3 CalcIBLContribution(
-	in float roughness,
+	in float perceptualRoughness,
 	in vec3 N,
 	in vec3 E,
 	in vec3 viewOrigin,
@@ -3321,7 +3299,8 @@ vec3 CalcIBLContribution(
 )
 {
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_CUBEMAP) && defined(USE_SPECULARMAP)
-	return CalcIBLRadiance(roughness, N, E, viewOrigin, viewDir, lighting) * SpecularIBLWeight(roughness, NE, specular);
+	return CalcIBLRadiance(perceptualRoughness, N, E, viewOrigin, viewDir, lighting) *
+		SpecularIBLWeight(perceptualRoughness, NE, specular);
 #else
 	return vec3(0.0);
 #endif
@@ -3689,13 +3668,14 @@ float SphericalCapIntersection(float cosC1, float cosC2, float cosB)
 //      cone around R (cos = 10^-alpha^2), relative to the lobe part above the
 //      surface, so an unoccluded surface is exactly 1 at any angle and a
 //      mirror stays lit while R points into the unoccluded cone
-float AOSpecularOcclusion(vec3 N, vec3 E, vec3 B, float NE, float visibility, float roughness)
+float AOSpecularOcclusion(vec3 N, vec3 E, vec3 B, float NE, float visibility,
+	float perceptualRoughness)
 {
 	int mode = int(u_AOParams2.y);
 	if (mode == 0)
 		return visibility;
 
-	float alpha = roughness * roughness;
+	float alpha = PerceptualRoughnessToAlpha(perceptualRoughness);
 	if (mode == 1)
 		return clamp(pow(NE + visibility, exp2(-16.0 * alpha - 1.0)) - 1.0 + visibility, 0.0, 1.0);
 
@@ -4292,6 +4272,13 @@ void main()
 	}
 	#endif
 
+  #if defined(USE_PHYSICAL_PBR)
+	// Lightmaps, vertex light and entity grids are legacy measurements. They
+	// enter the canonical scene scale once, after probe selection.
+	lightColor *= u_PBRParams.z;
+	ambientColor *= u_PBRParams.z;
+  #endif
+
     #if defined(SHADOWMAP_MODULATE)
 	vec3 ambientScale = mix(vec3(1.0), u_PrimaryLightAmbient, u_EnableTextures.z);
 	#if defined(USE_LIQUID_SUN)
@@ -4347,6 +4334,8 @@ void main()
 
 	vec3 materialDiffuse = diffuse.rgb;
 	vec4 specular = vec4(1.0);
+	// Material-facing roughness is perceptual. Legacy sources are converted
+	// immediately after decode; only named BRDF helpers produce GGX alpha.
 	float roughness = 0.99;
   #if defined(USE_SPECULARMAP)
   #if !defined(USE_SPECGLOSS)
@@ -4361,7 +4350,9 @@ void main()
 	diffuse.rgb *= vec3(1.0 - ORMS.z);
 
 	// r_autoPBRRoughness scales past 1 to keep the class mean (tr_autopbr.cpp)
-	roughness = mix(0.01, 1.0, min(ORMS.y, 1.0));
+	roughness = mix(0.01, 1.0, clamp(ORMS.y, 0.0, 1.0));
+	if (u_PBRMaterial.x < 1.5 && u_PBRMaterial.y > 0.5)
+		roughness = LegacyAlphaToPerceptualRoughness(roughness);
 	AO = min(ORMS.x, AO);
   #else
     #if defined(USE_SILHOUETTE_POM)
@@ -4371,8 +4362,12 @@ void main()
     #endif
 	specular.rgb *= u_SpecularScale.xyz;
 	roughness = mix(1.0, 0.01, specular.a * (1.0 - u_SpecularScale.w));
+	if (u_PBRMaterial.x < 1.5 && u_PBRMaterial.y > 0.5)
+		roughness = LegacyAlphaToPerceptualRoughness(roughness);
   #endif
   #endif
+	// Public material domain from this point onward: perceptual roughness.
+	roughness = clamp(roughness, 0.0, 1.0);
 	if (materialType != 0 && materialMask > 0.0)
 	{
 		// Both models are dielectrics.  Restore diffuse energy if an authored
@@ -4466,8 +4461,12 @@ void main()
 	vec3 normalDy = dFdy(N);
 	float normalVariance = u_SpecularAAParams.x *
 		(dot(normalDx, normalDx) + dot(normalDy, normalDy));
-	float varianceRoughness = sqrt(clamp(roughness * roughness +
+	float materialAlpha = PerceptualRoughnessToAlpha(roughness);
+	// LEAN/Toksvig variance broadens alpha^2. Convert back through alpha to
+	// perceptual roughness; adding variance directly to r^2 would mix domains.
+	float varianceAlpha = sqrt(clamp(materialAlpha * materialAlpha +
 		2.0 * normalVariance, 0.0, 1.0));
+	float varianceRoughness = sqrt(varianceAlpha);
 	roughness = max(roughness, min(varianceRoughness,
 		min(1.0, roughness + u_SpecularAAParams.y)));
 
@@ -4475,7 +4474,8 @@ void main()
 	if (specularAADebug > 0)
 	{
 		float debugRoughness = specularAADebug == 1 ? materialRoughness :
-			specularAADebug == 2 ? roughness : roughness - materialRoughness;
+			specularAADebug == 2 ? PerceptualRoughnessToAlpha(materialRoughness) :
+			specularAADebug == 3 ? roughness : roughness - materialRoughness;
 		out_Color = vec4(vec3(debugRoughness), diffuse.a);
 		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
     #if defined(USE_SSR) || defined(USE_SSGI) || defined(USE_SKIN_SSS_BUFFER)
@@ -5090,7 +5090,11 @@ void main()
 		vec3 debugColor = u_MaterialDebug.rgb;
 		// r_autoPBRDebug 3: final perceptual roughness (ORMS.y after u_SpecularScale)
 		if (u_MaterialDebug.a > 1.5)
+		#if defined(USE_GGX_SPECULAR_AA)
+			debugColor = vec3(materialRoughness);
+		#else
 			debugColor = vec3(roughness);
+		#endif
 		if (u_LeafFlutterDebug == 8.0)
 			debugColor = mix(vec3(0.05, 0.1, 0.8), vec3(1.0, 0.85, 0.1), var_LeafFlutter);
 		out_Color = vec4(debugColor * (0.35 + 0.65 * NE), diffuse.a);

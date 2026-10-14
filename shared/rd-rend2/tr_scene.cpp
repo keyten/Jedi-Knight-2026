@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "tr_local.h"
+#include "tr_pbr_contract.h"
 
 int			r_firstSceneDrawSurf;
 
@@ -309,6 +310,12 @@ dlight_t *R_AddSceneDynamicLight( const vec3_t org, float intensity, float r, fl
 	if ( intensity <= 0 ) {
 		return NULL;
 	}
+	const vec3_t inputColor = { r, g, b };
+	float physicalChroma[3] = {};
+	if (r_pbrPhysical->integer &&
+		!Rend2PBR::NormalizeChromaticity(inputColor, physicalChroma)) {
+		return NULL;
+	}
 	dl = R_AllocSceneDlight();
 	if ( !dl ) {
 		return NULL;
@@ -318,8 +325,17 @@ dlight_t *R_AddSceneDynamicLight( const vec3_t org, float intensity, float r, fl
 	dl->color[0] = r;
 	dl->color[1] = g;
 	dl->color[2] = b;
+	dl->canonicalIntensity = 0.0f;
+	dl->physicalIntensity = qfalse;
+	if (r_pbrPhysical->integer)
+	{
+		dl->canonicalIntensity = Rend2PBR::LegacyRadiusToSceneCandela(intensity,
+			r_pbrWorldUnitsPerMeter->value, r_pbrLegacyReference->value) *
+			Rend2PBR::Luminance(inputColor);
+		VectorScale(physicalChroma, dl->canonicalIntensity, dl->color);
+	}
 
-	if (r_hdr->integer)
+	if (r_hdr->integer && !r_pbrPhysical->integer)
 	{
 		float maxValue = MAX(r, MAX(g, b));
 		if (maxValue > 1.0f)
@@ -334,6 +350,68 @@ dlight_t *R_AddSceneDynamicLight( const vec3_t org, float intensity, float r, fl
 
 	dl->additive = additive;
 	return dl;
+}
+
+/*
+========================
+RE_AddPhysicalLightToScene
+
+Optional API boundary. Physical values never leak as unit tags into shaders:
+the dlight stored below is already canonical scene candela and Y-normalized RGB.
+========================
+*/
+void RE_AddPhysicalLightToScene(const refPhysicalLight_t *light)
+{
+	if (!light || !r_pbrPhysical->integer || !tr.registered ||
+		light->intensity <= 0.0f || light->range <= 0.0f)
+		return;
+	if (light->type != PHYSICALLIGHT_POINT && light->type != PHYSICALLIGHT_SPOT)
+		return;
+
+	float candela = light->intensity;
+	if (light->unit == PHYSICALUNIT_LUMENS)
+	{
+		if (light->type == PHYSICALLIGHT_SPOT)
+		{
+			const float outer = Com_Clamp(0.1f, 89.0f, light->outerAngle) * (float)M_PI / 180.0f;
+			candela /= Q_max(2.0f * (float)M_PI * (1.0f - cosf(outer)), 1.0e-4f);
+		}
+		else
+		{
+			candela = Rend2PBR::LumensToOmniCandela(candela);
+		}
+	}
+	else if (light->unit != PHYSICALUNIT_CANDELA)
+	{
+		return;
+	}
+
+	float chroma[3];
+	if (!Rend2PBR::NormalizeChromaticity(light->color, chroma))
+		return;
+	dlight_t *dl = R_AllocSceneDlight();
+	if (!dl)
+		return;
+	VectorCopy(light->origin, dl->origin);
+	dl->radius = light->range;
+	dl->canonicalIntensity = Rend2PBR::PhysicalToScene(candela, R_PBRPhysicalToScene());
+	dl->physicalIntensity = qtrue;
+	VectorScale(chroma, dl->canonicalIntensity, dl->color);
+	dl->additive = (light->flags & SPOTLIGHT_ADDITIVE) ? qtrue : qfalse;
+	if (light->type == PHYSICALLIGHT_SPOT)
+	{
+		VectorCopy(light->dir, dl->spotDir);
+		if (VectorNormalize(dl->spotDir) <= 1.0e-6f)
+		{
+			dl->spotDir[2] = 1.0f;
+		}
+		const float outer = Com_Clamp(0.1f, 89.0f, light->outerAngle);
+		const float inner = Com_Clamp(0.0f, outer, light->innerAngle);
+		dl->spot = qtrue;
+		dl->spotCosInner = cosf(inner * (float)M_PI / 180.0f);
+		dl->spotCosOuter = cosf(outer * (float)M_PI / 180.0f);
+		dl->spotNoShadow = (light->flags & SPOTLIGHT_NOSHADOW) ? qtrue : qfalse;
+	}
 }
 
 /*

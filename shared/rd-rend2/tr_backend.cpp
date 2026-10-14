@@ -2619,6 +2619,16 @@ static void RB_UpdateSceneConstants(gpuFrame_t *frame, const trRefdef_t *refdef)
 	VectorCopy4(refdef->sunDir, sceneBlock.primaryLightOrigin);
 	VectorCopy(refdef->sunAmbCol, sceneBlock.primaryLightAmbient);
 	VectorCopy(refdef->sunCol, sceneBlock.primaryLightColor);
+	if (r_pbrPhysical->integer)
+	{
+		if (r_pbrSunIlluminance->value > 0.0f)
+			R_PBRCanonicalColor(refdef->sunCol, r_pbrSunIlluminance->value,
+				sceneBlock.primaryLightColor);
+		else
+			VectorScale(sceneBlock.primaryLightColor,
+				tr.world ? tr.world->pbrLegacyCalibration : 1.0f,
+				sceneBlock.primaryLightColor);
+	}
 	if (tr.world != nullptr)
 		sceneBlock.globalFogIndex = tr.world->globalFogIndex - 1;
 	else
@@ -2626,6 +2636,10 @@ static void RB_UpdateSceneConstants(gpuFrame_t *frame, const trRefdef_t *refdef)
 	sceneBlock.currentTime = refdef->floatTime;
 	sceneBlock.frameTime = refdef->frameTime;
 	RB_AOSceneParams(sceneBlock.aoParams, sceneBlock.aoParams2);
+	const float metersPerUnit = R_PBRMetersPerWorldUnit();
+	VectorSet4(sceneBlock.pbrParams, metersPerUnit, metersPerUnit * metersPerUnit,
+		tr.world ? tr.world->pbrLegacyCalibration : 1.0f,
+		r_pbrPhysical->integer ? 1.0f : 0.0f);
 	RB_SSGISceneParams(sceneBlock.ssgiParams);
 	frame->time = refdef->floatTime;
 

@@ -47,6 +47,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "tr_local.h"
 #include "tr_staticlighting.h"
 #include "tr_weather.h"
+#include "tr_pbr_contract.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1366,8 +1367,12 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 				continue;
 			range->light = numLights;
 			float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
+			float recoveredScale = colorScale;
+			if (r_pbrPhysical->integer)
+				recoveredScale *= Rend2PBR::LegacyRadiusToSceneCandela(l.radius,
+					r_pbrWorldUnitsPerMeter->value, r_pbrLegacyReference->value);
 			VectorSet4(t + 0, l.origin[0], l.origin[1], l.origin[2], l.radius);
-			VectorSet4(t + 4, l.color[0] * colorScale, l.color[1] * colorScale, l.color[2] * colorScale, -1.0f);
+			VectorSet4(t + 4, l.color[0] * recoveredScale, l.color[1] * recoveredScale, l.color[2] * recoveredScale, -1.0f);
 			if ( spot )
 			{
 				VectorSet4(t + 8, l.axis[0], l.axis[1], l.axis[2], cosOuter);
@@ -2356,6 +2361,13 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		VectorCopy(tr.world->volumetricSunRadiance, sunColor);
 	else
 		VectorCopy(refdef->sunCol, sunColor);
+	if (r_pbrPhysical->integer)
+	{
+		if (r_pbrSunIlluminance->value > 0.0f)
+			R_PBRCanonicalColor(refdef->sunCol, r_pbrSunIlluminance->value, sunColor);
+		else
+			VectorScale(sunColor, tr.world->pbrLegacyCalibration, sunColor);
+	}
 	VectorSet4(block.sunColor, sunColor[0], sunColor[1], sunColor[2], csm ? 1.0f : 0.0f);
 	VectorSet4(block.sunDirection, refdef->sunDir[0], refdef->sunDir[1], refdef->sunDir[2], splitGrid ? 1.0f : 0.0f);
 
@@ -2381,7 +2393,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		dlightShadows ? 1.0f : 0.0f,
 		0.0002f);	// cascade depth bias (normalized depth)
 
-	VectorSet4(block.debugParams, (float)debug, r_volumetricFogBloom->value, 0.0f, 0.0f);
+	VectorSet4(block.debugParams, (float)debug, r_volumetricFogBloom->value, 0.0f,
+		r_pbrPhysical->integer ? tr.world->pbrLegacyCalibration : 1.0f);
 
 	// media self-shadow: the media pass builds the extinction of this frame
 	// before the injection (RB_VolumetricBuild)

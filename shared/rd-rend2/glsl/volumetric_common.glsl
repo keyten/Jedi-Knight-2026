@@ -44,7 +44,7 @@ layout(std140) uniform VolumetricFog
 	vec4 u_FroxelGridOrigin;			// light grid sample origin, w: vertical cell size
 	vec4 u_FroxelGridScale;				// world to light grid texture coordinates, w: horizontal cell size
 	vec4 u_FroxelShadowParams;			// cascade far distance, shadow map size, dlight shadows, bias
-	vec4 u_FroxelDebugParams;			// debug view, bloom, frozen volume, unused
+	vec4 u_FroxelDebugParams;			// debug view, bloom, frozen volume, baked legacy calibration
 	vec4 u_FroxelHeightFog;				// height fog: base extinction (0 = off), base z, 1 / falloff, log(max scale)
 	vec4 u_FroxelHeightFogColor;		// rgb albedo, w: fade out start above the base
 	vec4 u_FroxelHeightFogTop;			// x: top above the base (0 = no cutoff), yzw: extinction color

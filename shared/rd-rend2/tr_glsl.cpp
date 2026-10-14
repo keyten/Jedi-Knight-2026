@@ -204,6 +204,7 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_EnableTextures", GLSL_VEC4, 1 },
 	{ "u_EmissiveParams", GLSL_VEC4, 1 },
+	{ "u_PBRMaterial", GLSL_VEC4, 1 },
 
 	{ "u_DiffuseTexMatrix",  GLSL_VEC4, 1 },
 	{ "u_DiffuseTexOffTurb", GLSL_VEC4, 1 },
@@ -788,6 +789,13 @@ static size_t GLSL_GetShaderHeader(
 
 	if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
 		Q_strcat(dest, size, "#define USE_TONEMAPPING\n");
+	if (r_pbrPhysical->integer)
+	{
+		Q_strcat(dest, size, "#define USE_PHYSICAL_PBR\n");
+		const float meters = R_PBRMetersPerWorldUnit();
+		Q_strcat(dest, size, va("#define PBR_METERS_PER_WORLD_UNIT_SQUARED %.12g\n",
+			meters * meters));
+	}
 
 	// cloud shadow lookup of lightall and the froxel injection (r_clouds is
 	// latched, r_cloudShadows switches it per frame), tr_clouds.cpp
@@ -2464,6 +2472,20 @@ static const GPUShaderDesc *LoadOutputTransformLibrary( Allocator& allocator )
 	return nullptr;
 }
 
+// Unit/color/roughness helpers shared by surface and volumetric lighting.
+static const GPUShaderDesc *LoadPBRCommonLibrary( Allocator& allocator )
+{
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("pbr_common", allocator, fallback_pbr_commonProgram);
+	for (size_t i = 0; i < programDesc->numShaders; ++i)
+	{
+		if (programDesc->shaders[i].type == GPUSHADER_FRAGMENT)
+			return &programDesc->shaders[i];
+	}
+	ri.Error(ERR_FATAL, "Could not load pbr_common shader library!");
+	return nullptr;
+}
+
 // Froxel volumetric fog functions (glsl/volumetric_common.glsl), inserted into
 // the volumetric programs and, with r_volumetricFog 2 only, into the programs
 // with a legacy fog path. nullptr otherwise: the other modes keep their source.
@@ -2977,8 +2999,10 @@ static int GLSL_LoadGPUProgramWaterSurface(
 	const GPUProgramDesc *programDesc =
 		LoadProgramSource("watersurface", allocator, fallback_watersurfaceProgram);
 	const GPUShaderDesc *vertexLibrary = LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_VERTEX);
-	const GPUShaderDesc *library = GLSL_CombineLibraries(allocator,
+	const GPUShaderDesc *waterAndVolumeLibrary = GLSL_CombineLibraries(allocator,
 		LoadWaterSurfaceCommonLibrary(allocator, GPUSHADER_FRAGMENT), LoadVolumetricLibrary(allocator));
+	const GPUShaderDesc *library = GLSL_CombineLibraries(allocator,
+		waterAndVolumeLibrary, LoadPBRCommonLibrary(allocator));
 	if (r_waterSnellOptics->integer >= 2)
 	{
 		const GPUProgramDesc *atmosphereDesc =
@@ -3207,6 +3231,7 @@ static int GLSL_LoadGPUProgramLightAll(
 	// point/spot and directional baked-light permutations share one liquid
 	// library and the exact same resolved water-surface evaluator.
 	const GPUShaderDesc *liquidLibrary = R_LiquidSurfacesEnabled() ? LoadLiquidLibrary(allocator) : nullptr;
+	const GPUShaderDesc *pbrLibrary = LoadPBRCommonLibrary(allocator);
 	const bool useFastLight =
 		(!r_normalMapping->integer && !r_specularMapping->integer);
 	GLint maxFragmentSamplers = 0;
@@ -3432,8 +3457,10 @@ static int GLSL_LoadGPUProgramLightAll(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_GLOW_BUFFER\n");*/
 
 		const bool liquidSun = liquidLibrary && lightType && r_sunlightMode->integer;
+		const GPUShaderDesc *lightLibrary = liquidSun ?
+			GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary) : pbrLibrary;
 		if (!GLSL_LoadGPUShader(builder, &tr.lightallShader[i], name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, liquidSun ? liquidLibrary : nullptr, leafFlutterLibrary))
+				extradefines, *programDesc, lightLibrary, leafFlutterLibrary))
 		{
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
@@ -3453,8 +3480,9 @@ static int GLSL_LoadGPUProgramLightAll(
 				program = &tr.lightallSilhouetteShader[pomIndex];
 				Q_strcat(name, sizeof(name), "_SPOM");
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_SILHOUETTE_POM\n");
+				const GPUShaderDesc *pomAndPbr = GLSL_CombineLibraries(allocator, pomLibrary, pbrLibrary);
 				const GPUShaderDesc *fragmentLibrary = liquidSun ?
-					GLSL_CombineLibraries(allocator, pomLibrary, liquidLibrary) : pomLibrary;
+					GLSL_CombineLibraries(allocator, pomAndPbr, liquidLibrary) : pomAndPbr;
 				if (!GLSL_LoadGPUShader(builder, program, name, attribs | ATTR_POSITION2 | ATTR_TANGENT,
 						NO_XFB_VARS, extradefines, *programDesc, fragmentLibrary, leafFlutterLibrary))
 				{
@@ -4342,7 +4370,9 @@ static int GLSL_LoadGPUProgramVolumetric(
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
 	// the liquid media (r_volumetricWater) follow the froxel functions
 	const GPUShaderDesc *liquidLibrary = LoadLiquidLibrary(allocator);
-	const GPUShaderDesc *common = GLSL_CombineLibraries(allocator, LoadVolumetricLibrary(allocator), liquidLibrary);
+	const GPUShaderDesc *volumetricAndPbr = GLSL_CombineLibraries(allocator,
+		LoadVolumetricLibrary(allocator), LoadPBRCommonLibrary(allocator));
+	const GPUShaderDesc *common = GLSL_CombineLibraries(allocator, volumetricAndPbr, liquidLibrary);
 	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	int numPrograms = 0;
 
@@ -4628,12 +4658,15 @@ static int GLSL_LoadGPUProgramPrefilterEnvMap(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc)
 {
-	GLSL_LoadGPUProgramBasic(
-		builder,
-		scratchAlloc,
-		&tr.prefilterEnvMapShader,
-		"prefilterEnvMap",
-		fallback_prefilterEnvMapProgram);
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUProgramDesc *programDesc = LoadProgramSource(
+		"prefilterEnvMap", allocator, fallback_prefilterEnvMapProgram);
+	if (!GLSL_LoadGPUShader(builder, &tr.prefilterEnvMapShader,
+		"prefilterEnvMap", ATTR_POSITION | ATTR_TEXCOORD0, NO_XFB_VARS,
+		nullptr, *programDesc, LoadPBRCommonLibrary(allocator)))
+	{
+		ri.Error(ERR_FATAL, "Could not load prefilterEnvMap shader!");
+	}
 
 	GLSL_InitUniforms(&tr.prefilterEnvMapShader);
 

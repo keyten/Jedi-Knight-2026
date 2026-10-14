@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_shade.c
 
 #include "tr_local.h"
+#include "tr_pbr_contract.h"
 #include "tr_allocator.h"
 
 /*
@@ -1902,7 +1903,19 @@ static void BindEmissiveStage( shaderStage_t *stage, UniformDataWriter& uniforms
 	vec4_t params = {};
 	if (stage->emissive)
 	{
-		VectorScale(stage->emissiveColor, stage->emissiveIntensity, params);
+		if (stage->emissivePhysical)
+		{
+			float chroma[3];
+			if (Rend2PBR::NormalizeChromaticity(stage->emissiveColor, chroma))
+				VectorScale(chroma, Rend2PBR::PhysicalToScene(stage->emissiveIntensity,
+					R_PBRPhysicalToScene()), params);
+		}
+		else
+		{
+			VectorScale(stage->emissiveColor, stage->emissiveIntensity, params);
+			if (r_pbrPhysical->integer)
+				VectorScale(params, r_pbrLegacyReference->value, params);
+		}
 		// The emission itself is linear. A negative marker tells the shader to
 		// encode it into the legacy display-encoded scene buffer before adding.
 		params[3] = tr.linearLight ? 1.0f : -1.0f;
@@ -2267,6 +2280,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		if (!R_AutoPBRSpecularScale(pStage, specularScale))
 			VectorCopy4(pStage->specularScale, specularScale);
 		uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARSCALE, specularScale);
+		uniformDataWriter.SetUniformVec4(UNIFORM_PBRMATERIAL,
+			(float)pStage->pbrMaterialVersion, (float)r_pbrLegacyRoughness->integer, 0.0f, 0.0f);
 
 		// r_autoPBRDebug: lightall stages show their material, lit stages still
 		// on the vertex lit generic path show up red (generic.glsl)

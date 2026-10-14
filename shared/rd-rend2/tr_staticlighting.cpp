@@ -209,6 +209,8 @@ void R_BuildStaticLighting( world_t *world )
 {
 	R_ClearStaticLighting();
 	R_ClearVolumetricStaticLighting(world);
+	// One deterministic map-load boundary for all legacy baked/grid consumers.
+	R_PBRCalibrateLegacyMap(world);
 
 	// the consumers: the froxel fog (its baked light, the recovered lights, the portal shafts),
 	// the entity L1 probes, the area light calibration. The fog needs nothing structured for its

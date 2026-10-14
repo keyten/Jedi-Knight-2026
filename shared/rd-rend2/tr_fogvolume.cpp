@@ -720,7 +720,9 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 		}
 		VectorSet4(block->localShape[n], (float)e->shape, e->inner, e->invWidth,
 			(e->noisy ? 1.0f : 0.0f) + 2.0f * (float)palette + (c->historyBreak ? 32.0f : 0.0f));
-		VectorSet4(block->localEmission[n], e->emission[0], e->emission[1], e->emission[2], e->anisotropy);
+		const float emissionScale = r_pbrPhysical->integer ? r_pbrLegacyReference->value : 1.0f;
+		VectorSet4(block->localEmission[n], e->emission[0] * emissionScale,
+			e->emission[1] * emissionScale, e->emission[2] * emissionScale, e->anisotropy);
 		if ( !VectorCompare(e->emission, vec3_origin) )
 			anyEmission = qtrue;
 		// x: 0 unchanged, else 1 + the shape of the previous state (the id may change shape)
