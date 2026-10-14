@@ -806,8 +806,9 @@ uniform vec4 u_PBRMaterial;
 uniform float u_LeafFlutterDebug;	// r_leafFlutterDebug 8: color by var_LeafFlutter
 #if defined(USE_SPECULAR_AA) && defined(USE_SPECULARMAP) && !defined(USE_CLOTH_BRDF)
 #define USE_GGX_SPECULAR_AA
-// Screen-space normal-variance filtering: strength, max added roughness,
-// debug view (1 material, 2 filtered, 3 delta), unused.
+// GGX normal-variance filtering: strength, max added perceptual roughness,
+// debug view (1 material r, 2 material alpha, 3 effective r, 4 delta,
+// 5 normal variance, 6 effective alpha), unused.
 uniform vec4 u_SpecularAAParams;
 #endif
 
@@ -3689,23 +3690,57 @@ float AOSpecularOcclusion(vec3 N, vec3 E, vec3 B, float NE, float visibility,
 }
 #endif
 
-vec3 CalcNormal( in vec3 vertexNormal, in vec4 vertexTangent, in vec2 texCoords )
+vec3 CalcNormal( in vec3 vertexNormal, in vec4 vertexTangent, in vec2 texCoords
+#if defined(USE_GGX_SPECULAR_AA)
+	, out float normalMapMipVariance
+#endif
+)
 {
 #if defined(USE_NORMALMAP)
 	vec3 biTangent = vertexTangent.w * cross(vertexNormal, vertexTangent.xyz);
 #if defined(USE_SILHOUETTE_POM)
-	vec3 N = textureGrad(u_NormalMap, texCoords, g_pomGradX, g_pomGradY).agb - vec3(0.5);
+	vec3 sampledNormal = textureGrad(u_NormalMap, texCoords, g_pomGradX, g_pomGradY).agb * 2.0 - 1.0;
 #else
-	vec3 N = texture(u_NormalMap, texCoords).agb - vec3(0.5);
+	vec3 sampledNormal = texture(u_NormalMap, texCoords).agb * 2.0 - 1.0;
 #endif
+	#if defined(USE_GGX_SPECULAR_AA)
+	// Mips contain the unnormalised mean normal.  For unit source normals,
+	// E[|n|^2] - |E[n]|^2 = 1 - |mean(n)|^2.  This recovers variance which
+	// derivatives cannot see after texture minification, with no extra fetch.
+	normalMapMipVariance = max(1.0 - dot(sampledNormal, sampledNormal), 0.0) *
+		0.5 * dot(u_NormalScale.xy, u_NormalScale.xy);
+	#endif
+	vec3 N = sampledNormal;
 	N.xy *= u_NormalScale.xy;
-	N.z = sqrt(clamp((0.25 - N.x * N.x) - N.y * N.y, 0.0, 1.0));
+	N.z = sqrt(clamp((1.0 - N.x * N.x) - N.y * N.y, 0.0, 1.0));
 	N = N.x * vertexTangent.xyz + N.y * biTangent + N.z * vertexNormal;
 	return normalize(N);
 #else
+	#if defined(USE_GGX_SPECULAR_AA)
+	normalMapMipVariance = 0.0;
+	#endif
 	return normalize(vertexNormal);
 #endif
 }
+
+#if defined(USE_GGX_SPECULAR_AA)
+float NormalDerivativeVariance(in vec3 normal)
+{
+	vec3 dx = dFdx(normal);
+	vec3 dy = dFdy(normal);
+	return dot(dx, dx) + dot(dy, dy);
+}
+
+float FilterGgxAlphaVariance(in float materialAlpha, in float slopeVariance)
+{
+	// Kaplanyan et al.'s compact isotropic approximation treats unresolved
+	// orientation as added slope variance.  GGX has no finite second moment,
+	// so alpha^2 + 2 sigma_n^2 is a bounded moment match, not an exact
+	// convolution.  Crucially, variance is never added in perceptual-r space.
+	return sqrt(clamp(materialAlpha * materialAlpha + 2.0 * slopeVariance,
+		0.0, 1.0));
+}
+#endif
 
 #if defined(USE_SILHOUETTE_POM)
 // Silhouette POM (pom_silhouette.glsl): crossfade, ordinary POM for base
@@ -3944,7 +3979,12 @@ void main()
   #else
 	vec3 vertexNormal = mix(var_Normal.xyz, -var_Normal.xyz, float(gl_FrontFacing)) * u_NormalScale.z;
   #endif
+	#if defined(USE_GGX_SPECULAR_AA)
+	float normalMapMipVariance;
+	N = CalcNormal(vertexNormal, var_Tangent, texCoords, normalMapMipVariance);
+	#else
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
+	#endif
 	int materialType = int(u_MaterialModel.x + 0.5);
 	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);
 	if (dot(materialT, materialT) < 1e-8)
@@ -4457,25 +4497,33 @@ void main()
 	// consumer receives the same value (direct, sun, local/LTC, IBL and SSR).
   #if defined(USE_GGX_SPECULAR_AA)
 	float materialRoughness = roughness;
-	vec3 normalDx = dFdx(N);
-	vec3 normalDy = dFdy(N);
-	float normalVariance = u_SpecularAAParams.x *
-		(dot(normalDx, normalDx) + dot(normalDy, normalDy));
+	float shadingDerivativeVariance = NormalDerivativeVariance(N);
+	float geometricDerivativeVariance = NormalDerivativeVariance(normalize(vertexNormal));
+	// Separate the smooth geometric field from normal-map/weather detail.
+	// Hard edges, silhouettes and invalid helper lanes can make geometric
+	// derivatives arbitrarily large, so cap that term much more tightly.  The
+	// residual still admits strongly perturbed normal maps without allowing a
+	// triangle/UV discontinuity to turn the whole highlight matte.
+	float geometricVariance = min(geometricDerivativeVariance, 0.01);
+	float detailVariance = min(max(shadingDerivativeVariance -
+		geometricDerivativeVariance, 0.0), 0.25);
+	float normalVariance = u_SpecularAAParams.x * min(geometricVariance +
+		detailVariance + min(normalMapMipVariance, 1.0), 1.0);
 	float materialAlpha = PerceptualRoughnessToAlpha(roughness);
-	// LEAN/Toksvig variance broadens alpha^2. Convert back through alpha to
-	// perceptual roughness; adding variance directly to r^2 would mix domains.
-	float varianceAlpha = sqrt(clamp(materialAlpha * materialAlpha +
-		2.0 * normalVariance, 0.0, 1.0));
-	float varianceRoughness = sqrt(varianceAlpha);
-	roughness = max(roughness, min(varianceRoughness,
+	float effectiveAlpha = FilterGgxAlphaVariance(materialAlpha, normalVariance);
+	float effectiveRoughness = sqrt(effectiveAlpha);
+	roughness = max(roughness, min(effectiveRoughness,
 		min(1.0, roughness + u_SpecularAAParams.y)));
+	effectiveAlpha = PerceptualRoughnessToAlpha(roughness);
 
 	int specularAADebug = int(u_SpecularAAParams.z + 0.5);
 	if (specularAADebug > 0)
 	{
 		float debugRoughness = specularAADebug == 1 ? materialRoughness :
 			specularAADebug == 2 ? PerceptualRoughnessToAlpha(materialRoughness) :
-			specularAADebug == 3 ? roughness : roughness - materialRoughness;
+			specularAADebug == 3 ? roughness :
+			specularAADebug == 4 ? roughness - materialRoughness :
+			specularAADebug == 5 ? normalVariance : effectiveAlpha;
 		out_Color = vec4(vec3(debugRoughness), diffuse.a);
 		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
     #if defined(USE_SSR) || defined(USE_SSGI) || defined(USE_SKIN_SSS_BUFFER)

@@ -1992,7 +1992,8 @@ static void R_MipMapLuminanceAlpha (const byte *in, byte *out, int width, int he
 }
 
 
-static void R_MipMapNormalHeight (const byte *in, byte *out, int width, int height, qboolean swizzle)
+static void R_MipMapNormalHeight (const byte *in, byte *out, int width, int height,
+	qboolean swizzle, qboolean preserveLength)
 {
 	int		i, j;
 	int		row;
@@ -2027,12 +2028,20 @@ static void R_MipMapNormalHeight (const byte *in, byte *out, int width, int heig
 			v[1] += OffsetByteToFloat(in[   row+5]);
 			v[2] += OffsetByteToFloat(in[   row+6]);
 
-			VectorNormalizeFast(v);
-
-			//v[0] *= 0.25f;
-			//v[1] *= 0.25f;
-			//v[2] = 1.0f - v[0] * v[0] - v[1] * v[1];
-			//v[2] = sqrt(MAX(v[2], 0.0f));
+			// The ordinary shading path reconstructs Z from X/Y, so preserving the
+			// length of the averaged XYZ vector in blue is free metadata.  A length
+			// below one measures normal variance lost by this mip (Toksvig).  Keep
+			// the historical normalized CPU mip path when specular AA is disabled.
+			if (preserveLength)
+			{
+				v[0] *= 0.25f;
+				v[1] *= 0.25f;
+				v[2] *= 0.25f;
+			}
+			else
+			{
+				VectorNormalizeFast(v);
+			}
 
 			out[sx] = FloatToOffsetByte(v[0]);
 			out[1 ] = FloatToOffsetByte(v[1]);
@@ -2253,7 +2262,22 @@ static GLenum RawImage_GetFormat(const byte *data, int numPixels, qboolean light
 
 	if(normalmap)
 	{
-		if ((!RawImage_HasAlpha(data, numPixels) || (type == IMGTYPE_NORMAL)) && !forceNoCompression && (glRefConfig.textureCompression & TCR_LATC))
+		// Specular AA reads the length of the filtered XYZ normal as automatic
+		// Toksvig mip variance.  LATC/BC5 keeps only X and Y, so use a format
+		// which retains blue while that path is active.  BC7/BC3 have the same
+		// block footprint as BC5; uncompressed fallback costs storage, not a
+		// second shader fetch.  Apply this to normal-height maps too: a constant
+		// height channel could otherwise make the old format chooser select LATC.
+		if (r_specularAA && r_specularAA->integer)
+		{
+			if (!forceNoCompression && (glRefConfig.textureCompression & TCR_BPTC))
+				internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+			else if (!forceNoCompression && glConfig.textureCompression == TC_S3TC_ARB)
+				internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			else
+				internalFormat = GL_RGBA8;
+		}
+		else if ((!RawImage_HasAlpha(data, numPixels) || (type == IMGTYPE_NORMAL)) && !forceNoCompression && (glRefConfig.textureCompression & TCR_LATC))
 		{
 			internalFormat = GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
 		}
@@ -2664,7 +2688,8 @@ static void RawImage_UploadTexture( byte *data, int x, int y, int width, int hei
 					}
 					else
 					{
-						R_MipMapNormalHeight( data, data, width, height, qtrue);
+						R_MipMapNormalHeight( data, data, width, height, qtrue,
+							(qboolean)(r_specularAA->integer != 0));
 					}
 				}
 				else if (flags & IMGFLAG_SRGB)
@@ -2796,6 +2821,11 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 	// normals are always swizzled
 	if (type == IMGTYPE_NORMAL || type == IMGTYPE_NORMALHEIGHT)
 	{
+		// Do not trust the blue channel of legacy normal maps: the historical
+		// shader only consumed X/Y.  Reconstruct a unit base normal so subsequent
+		// filtering makes vector shortening an unambiguous variance signal.
+		if (r_specularAA && r_specularAA->integer)
+			FillInNormalizedZ(data, data, width, height);
 		RawImage_SwizzleRA(data, width, height);
 	}
 
@@ -2843,7 +2873,12 @@ static void Upload32( byte *data, int width, int height, imgType_t type, int fla
 		// use the normal mip-mapping function to go down from here
 		while ( width > scaled_width || height > scaled_height ) {
 
-			if (flags & IMGFLAG_SRGB)
+			if (type == IMGTYPE_NORMAL || type == IMGTYPE_NORMALHEIGHT)
+			{
+				R_MipMapNormalHeight((byte *)data, (byte *)data, width, height, qtrue,
+					(qboolean)(r_specularAA->integer != 0));
+			}
+			else if (flags & IMGFLAG_SRGB)
 			{
 				R_MipMapsRGB( (byte *)data, width, height );
 			}
@@ -3383,6 +3418,8 @@ void R_UpdateSubImage( image_t *image, byte *pic, int x, int y, int width, int h
 	// normals are always swizzled
 	if (image->type == IMGTYPE_NORMAL || image->type == IMGTYPE_NORMALHEIGHT)
 	{
+		if (r_specularAA && r_specularAA->integer)
+			FillInNormalizedZ(pic, pic, width, height);
 		RawImage_SwizzleRA(pic, width, height);
 	}
 

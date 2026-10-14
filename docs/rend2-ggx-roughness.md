@@ -82,7 +82,8 @@ domain. Compatibility is an input conversion, not an alternate GGX equation.
 ## Diagnostics and tests
 
 `r_specularAADebug` displays material perceptual roughness, material alpha,
-effective perceptual roughness, or the added roughness in modes 1 through 4.
+effective perceptual roughness, added roughness, combined normal variance, or
+effective alpha in modes 1 through 6.
 `r_autoPBRDebug 3` displays pre-AA material perceptual roughness. SSR debug mode
 2 displays the transported effective perceptual roughness. `r_pbrInfo [r]`
 prints the active migration state and the conversion of an optional roughness.

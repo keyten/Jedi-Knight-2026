@@ -3260,8 +3260,8 @@ static int GLSL_LoadGPUProgramLightAll(
 		if (r_forwardPlusDebug->integer)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_FPLUS_DEBUG\n");
 
-		// Normal-variance specular AA is a latched opt-in.  With it off the
-		// derivative path and its uniform are absent from the compiled shader.
+		// Normal-variance specular AA is a latched toggle. With it off the
+		// derivative/mip-variance path and its uniform are absent.
 		if (r_specularAA->integer)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_SPECULAR_AA\n");
 

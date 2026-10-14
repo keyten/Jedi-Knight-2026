@@ -102,6 +102,21 @@ int main()
 	const double views[] = { 0.1, 0.3, 0.6, 1.0 };
 	const double f0s[] = { 0.0, 0.04, 0.5, 1.0 };
 	int failures = 0;
+	const float aaMaterialRoughness = 0.2f;
+	const float aaVariance = 0.03f;
+	const float aaMaterialAlpha = PerceptualRoughnessToAlpha(aaMaterialRoughness);
+	const float aaEffectiveAlpha = FilteredGgxAlpha(aaMaterialAlpha, aaVariance);
+	const float aaEffectiveRoughness = FilteredPerceptualRoughness(
+		aaMaterialRoughness, aaVariance, 1.0f);
+	const float aaDomainError = std::abs(aaEffectiveAlpha * aaEffectiveAlpha -
+		(aaMaterialAlpha * aaMaterialAlpha + 2.0f * aaVariance));
+	if (aaDomainError > 1.0e-6f ||
+		std::abs(aaEffectiveRoughness * aaEffectiveRoughness - aaEffectiveAlpha) > 1.0e-6f ||
+		aaEffectiveRoughness < aaMaterialRoughness)
+		++failures;
+	std::printf("specular AA r %.3f alpha %.6f variance %.6f -> alpha %.6f r %.6f\n",
+		aaMaterialRoughness, aaMaterialAlpha, aaVariance, aaEffectiveAlpha,
+		aaEffectiveRoughness);
 	float previousPeak = INFINITY;
 	for (double roughness : roughnesses)
 	{

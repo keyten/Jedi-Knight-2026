@@ -102,6 +102,31 @@ inline float LegacyAlphaToPerceptualRoughness(float legacyAlpha)
 	return std::sqrt(std::max(0.0f, std::min(1.0f, legacyAlpha)));
 }
 
+// Isotropic normal filtering used by lightall.glsl.  The compact real-time
+// approximation broadens alpha^2 by twice the unresolved unit-normal
+// variance, then returns to perceptual roughness only for transport/storage.
+inline float FilteredGgxAlpha(float materialAlpha, float normalVariance)
+{
+	materialAlpha = std::max(0.0f, std::min(1.0f, materialAlpha));
+	normalVariance = std::max(0.0f, std::min(1.0f, normalVariance));
+	return std::sqrt(std::max(0.0f, std::min(1.0f,
+		materialAlpha * materialAlpha + 2.0f * normalVariance)));
+}
+
+inline float FilteredPerceptualRoughness(float materialRoughness,
+	float normalVariance, float maxAddedRoughness)
+{
+	if (!std::isfinite(materialRoughness) || !std::isfinite(normalVariance) ||
+		!std::isfinite(maxAddedRoughness))
+		return 1.0f;
+	materialRoughness = std::max(0.0f, std::min(1.0f, materialRoughness));
+	maxAddedRoughness = std::max(0.0f, std::min(1.0f, maxAddedRoughness));
+	const float effective = std::sqrt(FilteredGgxAlpha(
+		PerceptualRoughnessToAlpha(materialRoughness), normalVariance));
+	return std::max(materialRoughness, std::min(effective,
+		std::min(1.0f, materialRoughness + maxAddedRoughness)));
+}
+
 inline float D_GGX(float NoH, float alpha)
 {
 	NoH = std::max(0.0f, std::min(1.0f, NoH));

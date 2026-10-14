@@ -97,6 +97,26 @@ BOOST_AUTO_TEST_CASE(rend2_pbr_material_contract)
 	BOOST_CHECK_CLOSE(LumensToOmniCandela(1000.0f), 79.57747f, 1e-3f);
 }
 
+BOOST_AUTO_TEST_CASE(rend2_specular_aa_stays_in_alpha_variance_domain)
+{
+	const float materialRoughness = 0.2f;
+	const float materialAlpha = PerceptualRoughnessToAlpha(materialRoughness);
+	const float variance = 0.03f;
+	const float effectiveAlpha = FilteredGgxAlpha(materialAlpha, variance);
+	const float effectiveRoughness = FilteredPerceptualRoughness(
+		materialRoughness, variance, 1.0f);
+
+	BOOST_CHECK_CLOSE(effectiveAlpha * effectiveAlpha,
+		materialAlpha * materialAlpha + 2.0f * variance, 1e-4f);
+	BOOST_CHECK_CLOSE(effectiveRoughness * effectiveRoughness,
+		effectiveAlpha, 1e-4f);
+	BOOST_CHECK_GT(effectiveRoughness, materialRoughness);
+	BOOST_CHECK_EQUAL(FilteredPerceptualRoughness(materialRoughness,
+		variance, 0.0f), materialRoughness);
+	BOOST_CHECK_LE(FilteredPerceptualRoughness(materialRoughness,
+		variance, 0.1f), materialRoughness + 0.1f);
+}
+
 BOOST_AUTO_TEST_CASE(rend2_ggx_ndf_is_normalized_and_monotonic)
 {
 	const float roughnesses[] = { 0.0f, 0.05f, 0.1f, 0.25f, 0.5f, 1.0f };

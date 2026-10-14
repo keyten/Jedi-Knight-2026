@@ -2697,14 +2697,14 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_autoPBRRoughness, 0, 1, qtrue );
 	r_diffuseBRDF = ri_Cvar_Get_NoComm( "r_diffuseBRDF", "0", CVAR_ARCHIVE, "Standard PBR diffuse BRDF: 0 = Lambert, 1 = Burley/Disney" );
 	ri.Cvar_CheckRange( r_diffuseBRDF, 0, 1, qtrue );
-	r_specularAA = ri_Cvar_Get_NoComm( "r_specularAA", "0", CVAR_ARCHIVE | CVAR_LATCH, "Screen-space normal-variance roughness filtering for GGX specular; vid_restart to compile it in" );
+	r_specularAA = ri_Cvar_Get_NoComm( "r_specularAA", "1", CVAR_ARCHIVE | CVAR_LATCH, "Derivative and normal-mip variance filtering for GGX specular; vid_restart to compile it in" );
 	ri.Cvar_CheckRange( r_specularAA, 0, 1, qtrue );
 	r_specularAAStrength = ri_Cvar_Get_NoComm( "r_specularAAStrength", "0.15", CVAR_ARCHIVE, "Specular AA normal variance scale (0..0.25)" );
 	ri.Cvar_CheckRange( r_specularAAStrength, 0.0f, 0.25f, qfalse );
 	r_specularAAMaxAdded = ri_Cvar_Get_NoComm( "r_specularAAMaxAdded", "0.25", CVAR_ARCHIVE, "Maximum roughness specular AA may add (0..1)" );
 	ri.Cvar_CheckRange( r_specularAAMaxAdded, 0.0f, 1.0f, qfalse );
-	r_specularAADebug = ri_Cvar_Get_NoComm( "r_specularAADebug", "0", CVAR_CHEAT, "Specular AA debug: 1 material perceptual roughness, 2 material GGX alpha, 3 effective perceptual roughness, 4 added roughness" );
-	ri.Cvar_CheckRange( r_specularAADebug, 0, 4, qtrue );
+	r_specularAADebug = ri_Cvar_Get_NoComm( "r_specularAADebug", "0", CVAR_CHEAT, "Specular AA debug: 1 material roughness, 2 material alpha, 3 effective roughness, 4 added roughness, 5 normal variance, 6 effective alpha" );
+	ri.Cvar_CheckRange( r_specularAADebug, 0, 6, qtrue );
 	r_pbrLegacyRoughness = ri_Cvar_Get_NoComm( "r_pbrLegacyRoughness", "1", CVAR_ARCHIVE, "Migrate legacy AutoPBR, spec-gloss and scalar alpha-like roughness to perceptual roughness; 0 provides an A/B strict interpretation" );
 	ri.Cvar_CheckRange( r_pbrLegacyRoughness, 0, 1, qtrue );
 	r_diffuseIBL = ri_Cvar_Get_NoComm( "r_diffuseIBL", "0", CVAR_ARCHIVE | CVAR_LATCH, "Directional light-grid ambient from runtime cubemap probes" );
