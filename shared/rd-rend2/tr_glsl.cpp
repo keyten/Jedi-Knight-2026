@@ -3408,6 +3408,13 @@ static int GLSL_LoadGPUProgramLightAll(
 			else if (r_sunlightMode->integer == 2)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_PRIMARY_LIGHT\n");
 
+			// r_entitySunSplit: models light the sun apart from the grid (tr_light.cpp)
+			if (lightType == LIGHTDEF_USE_LIGHT_VECTOR && R_EntitySunSplitWanted())
+			{
+				Q_strcat(name, sizeof(name), "_ESUN");
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_ENTITY_SUN_SPLIT\n");
+			}
+
 			if (r_shadowFilter->integer >= 1)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_SHADOW_FILTER\n");
 

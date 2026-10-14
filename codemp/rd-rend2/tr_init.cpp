@@ -669,6 +669,7 @@ cvar_t  *r_shadowCasterLod;
 cvar_t  *r_shadowCasterStats;
 cvar_t  *r_dlightShadowBias;
 cvar_t  *r_contactShadowSoft;
+cvar_t  *r_entitySunSplit;
 cvar_t	*r_ignoreDstAlpha;
 cvar_t	*r_refractionChromaticAberration;
 
@@ -3322,8 +3323,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_shadowSunAngularDiameter, 0.0f, 8.0f, qfalse );
 	r_shadowPCSSMaxPenumbra = ri.Cvar_Get( "r_shadowPCSSMaxPenumbra", "32", CVAR_ARCHIVE, "Maximum PCSS penumbra radius in world units" );
 	ri.Cvar_CheckRange( r_shadowPCSSMaxPenumbra, 0.0f, 256.0f, qfalse );
-	r_shadowDebug = ri.Cvar_Get( "r_shadowDebug", "0", CVAR_CHEAT, "Sun shadow debug: 1 cascades, 2 depth, 3 PCF, 4 blockers, 5 penumbra, 6 PCSS, 7 contact, 8 final, 9 bias, 10 point shadows, 11 G2 receivers" );
-	ri.Cvar_CheckRange( r_shadowDebug, 0, 11, qtrue );
+	r_shadowDebug = ri.Cvar_Get( "r_shadowDebug", "0", CVAR_CHEAT, "Sun shadow debug: 1 cascades, 2 depth, 3 PCF, 4 blockers, 5 penumbra, 6 PCSS, 7 contact, 8 final, 9 bias, 10 point shadows, 11 G2 receivers, 12 model sun split (r_entitySunSplit)" );
+	ri.Cvar_CheckRange( r_shadowDebug, 0, 12, qtrue );
 	r_shadowCasterLod = ri.Cvar_Get( "r_shadowCasterLod", "0", CVAR_ARCHIVE, "Ghoul2 models in sun cascades and dlight shadow cubes use the LOD of the camera view (0 = LOD of the shadow view)" );
 	ri.Cvar_CheckRange( r_shadowCasterLod, 0, 1, qtrue );
 	r_shadowCasterStats = ri.Cvar_Get( "r_shadowCasterStats", "0", CVAR_CHEAT, "Print Ghoul2 shadow caster counts and LODs per view type once per second" );
@@ -3331,6 +3332,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_dlightShadowBias, 0, 1, qtrue );
 	r_contactShadowSoft = ri.Cvar_Get( "r_contactShadowSoft", "0", CVAR_ARCHIVE, "Contact shadows: 0 first hit, 1 soft depth weighted hits with steps packed near the receiver" );
 	ri.Cvar_CheckRange( r_contactShadowSoft, 0, 1, qtrue );
+	r_entitySunSplit = ri.Cvar_Get( "r_entitySunSplit", "0", CVAR_ARCHIVE | CVAR_LATCH, "Models (players, NPCs, items): take the sun out of the light grid's directed light and light it from the sun direction, shadowed per pixel by the sun cascades (0 = legacy: the grid light darkened by the sun shadow). Needs r_sunlightMode, the legacy grid (r_entityLightGrid 0) and normal or specular mapping; vid_restart" );
+	ri.Cvar_CheckRange( r_entitySunSplit, 0, 1, qtrue );
 	r_ignoreDstAlpha = ri.Cvar_Get( "r_ignoreDstAlpha", "1", CVAR_ARCHIVE | CVAR_LATCH, "" );
 	r_refractionChromaticAberration = ri.Cvar_Get( "r_refractionChromaticAberration", "0.05", CVAR_ARCHIVE, "" );
 	ri.Cvar_CheckRange(r_refractionChromaticAberration, 0.f, 0.3f, qfalse);

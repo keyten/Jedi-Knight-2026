@@ -5169,6 +5169,8 @@ void RE_LoadWorldMap( const char *name ) {
 	// directional baked light moments, the promoted lights), anchored to the static
 	// area emitters found above
 	R_BuildStaticLighting(world);
+	// r_entitySunSplit: the sun of the light grid
+	R_CalibrateEntitySun(world);
 	R_LoadProfilePrint("world static lighting", staticLightingStart);
 	R_LoadProfilePrint("world post-BSP and lighting", postBspStart);
 

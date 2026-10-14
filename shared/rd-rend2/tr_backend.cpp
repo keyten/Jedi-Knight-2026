@@ -2679,7 +2679,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		r_shadowPCSS->integer ? 1.0f : 0.0f,
 		(float)Com_Clampi(0, 2, r_shadowPCSSQuality->integer));
 	VectorSet4(lightsBlock.shadowDebug,
-		(float)Com_Clampi(0, 11, r_shadowDebug->integer),
+		(float)Com_Clampi(0, 12, r_shadowDebug->integer),
 		r_dlightShadowBias->integer ? 1.0f : 0.0f,
 		(float)Com_Clampi(0, 4, r_spotLightDebug->integer),
 		(float)Com_Clampi(-1, 3, r_ltcSaberShadows->integer));
@@ -2812,6 +2812,15 @@ static void RB_UpdateEntityLightConstants(
 
 	VectorCopy(lightDir, entityBlock.modelLightDir);
 	entityBlock.lightOrigin[3] = lightRadius;
+	if (refEntity->sunSplit)
+	{
+		// r_entitySunSplit: the directed light without its sun part, along its own
+		// direction; the sun is lit per pixel (lightall USE_ENTITY_SUN_SPLIT)
+		VectorScale(refEntity->residualLight, normalizeFactor, entityBlock.directedLight);
+		VectorCopy(refEntity->residualDir, entityBlock.lightOrigin);
+		VectorScale(refEntity->sunSplitLight, normalizeFactor, entityBlock.entitySun);
+		entityBlock.entitySun[3] = 1.0f;
+	}
 	if (r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0)
 		return;
 

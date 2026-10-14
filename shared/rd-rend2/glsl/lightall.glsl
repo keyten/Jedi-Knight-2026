@@ -65,6 +65,7 @@ layout(std140) uniform Entity
 	vec4 u_GridParams;
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
+	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
 };
 
 #if defined(USE_SKELETAL_ANIMATION)
@@ -482,6 +483,7 @@ layout(std140) uniform Entity
 	vec4 u_GridParams;
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
+	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
 };
 
 struct Light
@@ -4470,6 +4472,16 @@ void main()
 	pomSunShadow = GetPomSelfShadow(PomSunDirection(primaryLightDir));
 	shadowValue *= pomSunShadow;
 	#endif
+	#if defined(USE_ENTITY_SUN_SPLIT)
+	// r_entitySunSplit: the visibility of the analytic sun, its cosine is NL2
+	// below. A view without the sun (no cascades of its own) leaves it unshadowed.
+	bool entitySunSplit = u_EntitySun.w > 0.5;
+	float entitySunVisibility = cascadeShadow * contactShadow;
+	#if defined(USE_PARALLAXMAP)
+	entitySunVisibility *= pomSunShadow;
+	#endif
+	entitySunVisibility = mix(1.0, entitySunVisibility, u_EnableTextures.z);
+	#endif
 
 	#if defined(USE_LIQUID_SUN)
 	// inside a liquid (r_volumetricWater): the sun passed the liquid above the surface, rgb
@@ -4496,6 +4508,10 @@ void main()
 
     #if defined(SHADOWMAP_MODULATE)
 	vec3 ambientScale = mix(vec3(1.0), u_PrimaryLightAmbient, u_EnableTextures.z);
+	#if defined(USE_ENTITY_SUN_SPLIT)
+	if (entitySunSplit)
+		ambientScale = vec3(1.0);
+	#endif
 	#if defined(USE_LIQUID_SUN)
 	// the sunlit part of the lightmap passed the liquid too
 	lightColor = mix(ambientScale * lightColor, lightColor, shadowValue * liquidSun);
@@ -4906,7 +4922,11 @@ void main()
 	SSGIWriteReceiver(N, roughness, transportDiffuse);
 #endif
 
-  #if defined(USE_PRIMARY_LIGHT)
+  #if defined(USE_PRIMARY_LIGHT) || defined(USE_ENTITY_SUN_SPLIT)
+  #if !defined(USE_PRIMARY_LIGHT)
+	if (entitySunSplit)
+  #endif
+	{
 	vec3  L2   = normalize(u_PrimaryLightOrigin.xyz);
 	vec3  H2   = normalize(L2 + E);
 	float NL2  = clamp(dot(N,  L2), 0.0, 1.0);
@@ -4943,10 +4963,24 @@ void main()
 	reflectance += sunSpecular;
     #endif
 
+    #if defined(USE_ENTITY_SUN_SPLIT)
+	if (entitySunSplit)
+	{
+		// the sun of the light grid: a legacy measurement like the grid light
+		// above (the scene scale, the 1 / PI compensation of the diffuse)
+		lightColor = u_EntitySun.rgb * var_Color.rgb * (M_PI * entitySunVisibility);
+		#if defined(USE_PHYSICAL_PBR)
+		lightColor *= u_PBRParams.z;
+		#endif
+	}
+	else
+    #endif
+	{
 	lightColor = u_PrimaryLightColor;
     #if defined(USE_SHADOWMAP)
 	lightColor *= shadowValue;
     #endif
+	}
     #if defined(USE_LIQUID_SUN)
 	lightColor *= liquidSun;
     #endif
@@ -4967,10 +5001,11 @@ void main()
 		(reflectance - sunSpecular) * NL2;
 	#endif
 	g_energySpecular += lightColor * sunSpecular * NL2;
+	}
   #endif
 
   #if defined(USE_SHADOWMAP) && defined(USE_SHADOWS2)
-	// r_shadowDebug 1-11. These values are deliberately written unlit; the
+	// r_shadowDebug 1-12. These values are deliberately written unlit; the
 	// post-process path bypasses tone mapping while a shadow debug view is on.
 	if (u_ShadowDebug.x >= 1.0)
 	{
@@ -5005,6 +5040,21 @@ void main()
 			#else
 			debugColor = vec3(1.0);
 			#endif
+		}
+		else if (u_ShadowDebug.x == 12.0)
+		{
+			// r_entitySunSplit: the analytic sun's share of the model's direct
+			// light (r), its visibility (g); legacy light and the world dark blue
+			#if defined(USE_ENTITY_SUN_SPLIT)
+			if (entitySunSplit)
+			{
+				float sunLuma = dot(u_EntitySun.rgb, vec3(0.2126, 0.7152, 0.0722));
+				float gridLuma = dot(u_DirectedLight, vec3(0.2126, 0.7152, 0.0722));
+				debugColor = vec3(sunLuma / max(sunLuma + gridLuma, 1e-4), entitySunVisibility, 0.0);
+			}
+			else
+			#endif
+				debugColor = vec3(0.0, 0.0, 0.25);
 		}
 		else if (u_ShadowDebug.x == 11.0)
 		{

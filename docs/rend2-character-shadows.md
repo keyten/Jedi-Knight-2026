@@ -177,3 +177,70 @@ Reading guide:
 Only if the captures show acne or peter-panning on characters that these three fixes do not cover will a
 follow-up add near-character CSM bias or filter tuning. That tuning would be driven by generic G2 entity bounds
 and would never be model-specific.
+
+## Sun light of models: the grid sun split (`r_entitySunSplit`)
+
+The three fixes above improve the shadow map. The bigger problem with sun shadows on players and NPCs is the light
+that the shadow darkens. Models are lit by the light grid, which stores one directed light per cell: the sum of
+every light the cell sees (sun, lamps, bounce) along their mean direction. With `r_sunlightMode 1` (the default),
+lightall computes:
+
+```
+shadowValue = cascadeShadow * contactShadow * NPL          // NPL: the SUN direction
+lightColor  = mix(sunAmbCol * gridDirected, gridDirected, shadowValue)
+out         = lightColor * reflectance * NL                // NL: the GRID direction
+```
+
+This has five defects:
+
+1. The shadow follows the sun, but the light it darkens comes from the grid direction. Self-shadows (an arm on
+   the torso, the head on the shoulders) fall where the main light on the model does not come from.
+2. The cosine is applied twice (NL along the grid direction times NPL along the sun), so the terminator is too dark.
+3. The sun shadow also darkens lamps and bounce light that are in the grid light.
+4. The modulation can only darken. The grid is sampled at one point. If that point is in shade, a model whose
+   shoulders are in the sun stays dark, because the cascades cannot add light the sample does not have.
+5. With `r_sunlightMode 2` the sun is added analytically, but the grid keeps its baked sun. The result is a double
+   sun, and the shadow is weak because the grid sun is never shadowed.
+
+With `r_entitySunSplit 1` (latched, default 0 = legacy, bit for bit) models have three terms:
+
+- **ambient**: the grid ambient, unchanged;
+- **residual directed**: the grid directed light minus its sun part, along its own direction. The sun shadow does
+  not touch it;
+- **sun**: an analytic light along the scene sun direction, with the strength of the grid's sun, shadowed per pixel
+  by the cascades, contact shadows, POM self-shadow, cloud shadows and liquid transmittance. It goes through the
+  same BRDF lobe as `r_sunlightMode 2` (Burley/GGX, skin SSS, energy partition), with a single cosine.
+
+CPU side (`tr_light.cpp`):
+
+- `R_CalibrateEntitySun` runs at map load and finds the grid's sun. This is the median directed light (style 0,
+  raw grid units) of the cells whose direction is within 10° of the sun, or within 20° if fewer than 16 cells
+  qualify. If no sun is found, or the map has no sun, the map keeps the legacy light.
+- `R_SetupEntitySunSplit` runs per entity per frame. It casts 5 probe rays toward the sun from the lighting origin,
+  the head (+40), the feet (−16) and ±32 across the sun. The rays use the same world trace as the static lighting
+  sun visibility, and the results are cached on an 8-unit grid for 1 s. The sun part of the sample is
+  `sunlit · min(S, D · max(dot(gridDir, sunDir), 0))`: it is bounded by the projection on the sun direction, so
+  light from elsewhere is never removed. The residual vector is `D·gridDir − sunPart·sunDir`. The analytic sun is
+  the full calibrated `S` if any probe sees the sky (the cascades shape it per pixel). If no probe sees it (deep
+  inside, or probes that start in solid, like a ship parked into the world), the model keeps the legacy light,
+  which stays darkened by the cascades, so the sun never leaks into interiors and grid light is never left unshadowed.
+
+GPU side: `USE_ENTITY_SUN_SPLIT` (name suffix `_ESUN`) is set on `_GRID` permutations when the split is wanted. The
+Entity block gains `u_EntitySun` (rgb sun, w = 1 for split, 0 = legacy light). The world entity, non-model entities
+and maps without a calibrated sun upload w = 0 and keep the legacy path in the same program. In a view without the
+sun (no cascades of its own) the analytic sun is left unshadowed, so the total light is preserved.
+
+Requirements: `r_sunlightMode` 1 or 2, `r_entityLightGrid 0` without its debug view, and normal or specular mapping
+(the fast vertex-light path is not split). The multi-point and GPU grids are a follow-up: they would subtract the
+sun per sample.
+
+Debug: `r_shadowDebug 12` (needs `r_sunShadowMode`). Red is the sun's share of the model's direct light, green is
+the sun's visibility. Legacy light and the world show as dark blue.
+
+Expected visual change: shadow edges and self-shadows on characters line up with the lit side, lamps stay lit in
+the sun's shadow, and shoulders in the sun stay bright when the feet are in shade. Shadows on models in the sun's
+shadow get darker than with `sunShadowScale` (they keep the ambient and the non-sun grid light, like the world's
+baked shadows), and brightness in full sun stays about the same.
+
+Not run in game yet. Builds (MSVC SP+MP) and all 12 lightall permutations (mode 1/2 × split on/off × skeletal,
+skin SSS, POM, physical PBR, cubemap, dlight shadows) link on Intel UHD and RTX 2060.

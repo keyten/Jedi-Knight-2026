@@ -140,6 +140,12 @@ static qboolean R_StaticSunVisible( const vec3_t start, const vec3_t sunDir )
 	return (qboolean)(trace.fraction >= 1.0f || (trace.surfaceFlags & SURF_SKY));
 }
 
+// the same test for the per frame entity sun probes (r_entitySunSplit, tr_light.cpp)
+qboolean R_SunVisibleFromPoint( const vec3_t start, const vec3_t sunDir )
+{
+	return R_StaticSunVisible(start, sunDir);
+}
+
 // rays of the light grid cell towards the sun: its centre and four corners of a
 // tetrahedron half a cell out; returns how many of rays [first, first + count) see the sky
 static int R_StaticSunRays( const world_t *world, int cell, const vec3_t sunDir, int first, int count )

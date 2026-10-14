@@ -763,6 +763,7 @@ extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
+extern cvar_t  *r_entitySunSplit;
 extern cvar_t  *r_ignoreDstAlpha;
 extern cvar_t  *r_refractionChromaticAberration;
 
@@ -1087,6 +1088,13 @@ typedef struct trRefEntity_s {
 	vec3_t		ambientLight;	// color normalized to 0-255
 	int			ambientLightInt;	// 32 bit rgba packed
 	vec3_t		directedLight;
+	// r_entitySunSplit (R_SetupEntityLighting): the directed light without its sun part,
+	// and the sun as an analytic light shadowed per pixel; sunSplit false = legacy light
+	qboolean	sunSplit;
+	vec3_t		residualLight;
+	vec3_t		residualDir;	// world space, towards the light
+	vec3_t		sunSplitLight;	// colour normalized to 0-255, already gated by sun visibility
+	float		sunSplitSeen;	// fraction of the probe points that see the sun
 	int			plantBoneOffset;	// MD3 plant: first bone texel of this frame (tr_plantsim.cpp), -1 at rest
 	int			plantBoneTexels;	// texels of one pose (2 per bone)
 } trRefEntity_t;
@@ -1484,6 +1492,7 @@ struct EntityBlock
 	vec4_t gridParams;       // lower Z, inverse height, mode, forced linear
 	vec4_t gridMinimum;      // additive RGB, LDR ambient clamp
 	vec4_t gridScale;        // ambient scale, directed scale, HDR grid, debug
+	vec4_t entitySun;        // r_entitySunSplit: sun rgb, 1 = split (0 = legacy light)
 	bool operator == (const EntityBlock &other) const
 	{
 		return (
@@ -1500,7 +1509,8 @@ struct EntityBlock
 			memcmp(this->gridDirection, other.gridDirection, sizeof(gridDirection)) == 0 &&
 			VectorCompare4(this->gridParams, other.gridParams) == qtrue &&
 			VectorCompare4(this->gridMinimum, other.gridMinimum) == qtrue &&
-			VectorCompare4(this->gridScale, other.gridScale) == qtrue
+			VectorCompare4(this->gridScale, other.gridScale) == qtrue &&
+			VectorCompare4(this->entitySun, other.entitySun) == qtrue
 			);
 	}
 };
@@ -3685,6 +3695,11 @@ typedef struct {
 	image_t		*entityGridDirection;
 	color4ub_t	entityGridStyleColors[MAX_LIGHT_STYLES];
 	qboolean	entityGridL1;	// r_entityLightProbes: the three volumes hold L1 probes (R, G, B: C1.xyz, C0)
+	// r_entitySunSplit: directed light of a fully sunlit grid cell (raw grid units, style 0),
+	// the median of the cells lit from the sun direction (R_CalibrateEntitySun)
+	qboolean	entitySunValid;
+	vec3_t		entitySunGrid;
+	int			entitySunCells;
 	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
 	// directional baked light moments, see R_BuildStaticLighting
 	// (tr_volumetric_reconstruct.cpp)
@@ -6266,6 +6281,10 @@ void R_VolumetricEnsureRasterCarry(void);
 void R_BuildStaticLighting(world_t *world);
 qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix);	// tr_bsp.cpp, dirMix: 3 channels or NULL
 qboolean R_EntityLightProbesWanted(void);
+qboolean R_SunVisibleFromPoint(const vec3_t start, const vec3_t sunDir);	// tr_staticlighting.cpp, world brushes
+// tr_light.cpp: r_entitySunSplit
+qboolean R_EntitySunSplitWanted(void);
+void R_CalibrateEntitySun(world_t *world);
 void R_CalibrateAreaLight(int index, const vec3_t radiance, float confidence);	// tr_arealights.cpp
 void R_FinishAreaLightCalibration(void);
 void R_StaticLightPortalsBeginScene(const refdef_t *fd);

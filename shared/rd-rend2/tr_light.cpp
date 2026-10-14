@@ -23,6 +23,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 
+#include <algorithm>
+#include <vector>
+
 #define	DLIGHT_AT_RADIUS		16
 // at the edge of a dlight's influence, this amount of light will be added
 
@@ -326,6 +329,232 @@ static void LogLight( trRefEntity_t *ent ) {
 }
 
 /*
+===============================================================================
+
+r_entitySunSplit
+
+The light grid stores one directed light per cell: the sum of every light the
+cell sees (the sun, lamps, bounce) along their mean direction. The legacy model
+darkens all of it with the sun shadow map while lighting it from the grid
+direction, so the shadow and the lit side of a model disagree, the sun cosine is
+applied twice and lamps go dark in the sun's shadow. With the split, the sun part
+of the sample is taken out of the directed light and the sun is lit as an
+analytic light from its own direction, shadowed per pixel (lightall
+USE_ENTITY_SUN_SPLIT).
+
+The sun of the grid is calibrated once per map (R_CalibrateEntitySun): the
+median directed light of the cells lit from the sun direction. Per entity, a few
+probe rays towards the sun tell whether the sun reaches the model at all (no sun
+through the cascades indoors or beyond their range) and how much of the grid
+sample is sunlit.
+
+===============================================================================
+*/
+
+#define ENTITY_SUN_CALIBRATION_COS_STRICT	0.9848f	// cos(10)
+#define ENTITY_SUN_CALIBRATION_COS_WIDE		0.9397f	// cos(20)
+#define ENTITY_SUN_CALIBRATION_MIN_CELLS	16
+#define ENTITY_SUN_PROBES					5
+#define ENTITY_SUN_CACHE_SIZE				4096	// power of two
+#define ENTITY_SUN_CACHE_QUANTUM			8.0f
+#define ENTITY_SUN_CACHE_MSEC				1000	// SP traces see movers too
+
+qboolean R_EntitySunSplitWanted( void )
+{
+	// the split lives in the per pixel legacy grid path only: the fast light
+	// vertex path and the multi-point / GPU grids keep the legacy light
+	return (qboolean)(r_entitySunSplit && r_entitySunSplit->integer &&
+		r_sunlightMode->integer &&
+		(r_normalMapping->integer || r_specularMapping->integer) &&
+		r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0);
+}
+
+static float R_EntitySunLuma( const vec3_t c )
+{
+	return 0.2126f * c[0] + 0.7152f * c[1] + 0.0722f * c[2];
+}
+
+void R_CalibrateEntitySun( world_t *world )
+{
+	world->entitySunValid = qfalse;
+	world->entitySunCells = 0;
+	VectorClear(world->entitySunGrid);
+	if ( !R_EntitySunSplitWanted() || !tr.sunParsed || !world->lightGridData ||
+		world->numGridArrayElements <= 0 )
+		return;
+
+	vec3_t sunDir;
+	VectorCopy(tr.sunDirection, sunDir);
+	VectorNormalize(sunDir);
+
+	const int numCells = world->numGridArrayElements;
+	const float windows[2] = { ENTITY_SUN_CALIBRATION_COS_STRICT, ENTITY_SUN_CALIBRATION_COS_WIDE };
+	std::vector<std::pair<float, int>> cells;
+	for ( int w = 0; w < 2 && (int)cells.size() < ENTITY_SUN_CALIBRATION_MIN_CELLS; w++ )
+	{
+		cells.clear();
+		for ( int i = 0; i < numCells; i++ )
+		{
+			const mgrid_t *data = world->lightGridData + world->lightGridArray[i];
+			if ( data->styles[0] == LS_LSNONE )
+				continue;
+			// as R_SetupEntityLightingGrid
+			const int lat = data->latLong[1] * (FUNCTABLE_SIZE / 256);
+			const int lng = data->latLong[0] * (FUNCTABLE_SIZE / 256);
+			vec3_t dir;
+			dir[0] = tr.sinTable[(lat + (FUNCTABLE_SIZE / 4)) & FUNCTABLE_MASK] * tr.sinTable[lng];
+			dir[1] = tr.sinTable[lat] * tr.sinTable[lng];
+			dir[2] = tr.sinTable[(lng + (FUNCTABLE_SIZE / 4)) & FUNCTABLE_MASK];
+			if ( DotProduct(dir, sunDir) < windows[w] )
+				continue;
+			vec3_t d;
+			if ( world->hdrLightGrid )
+				VectorScale(world->hdrLightGrid + i * 6 + 3, 255.0f, d);
+			else
+				VectorSet(d, data->directLight[0][0], data->directLight[0][1], data->directLight[0][2]);
+			const float luma = R_EntitySunLuma(d);
+			if ( luma > 0.0f )
+				cells.push_back(std::make_pair(luma, i));
+		}
+	}
+	if ( (int)cells.size() < ENTITY_SUN_CALIBRATION_MIN_CELLS )
+	{
+		ri.Printf(PRINT_DEVELOPER, "r_entitySunSplit: %d grid cells lit from the sun direction, legacy entity light\n",
+			(int)cells.size());
+		return;
+	}
+
+	std::nth_element(cells.begin(), cells.begin() + cells.size() / 2, cells.end());
+	const int median = cells[cells.size() / 2].second;
+	if ( world->hdrLightGrid )
+		VectorScale(world->hdrLightGrid + median * 6 + 3, 255.0f, world->entitySunGrid);
+	else
+	{
+		const mgrid_t *data = world->lightGridData + world->lightGridArray[median];
+		VectorSet(world->entitySunGrid, data->directLight[0][0], data->directLight[0][1], data->directLight[0][2]);
+	}
+	world->entitySunCells = (int)cells.size();
+	world->entitySunValid = qtrue;
+	ri.Printf(PRINT_DEVELOPER, "r_entitySunSplit: grid sun %.1f %.1f %.1f from %d cells\n",
+		world->entitySunGrid[0], world->entitySunGrid[1], world->entitySunGrid[2], world->entitySunCells);
+}
+
+// sun visibility of a point, cached on a small grid: the world is static, and the
+// probes of a model stay in the same cells for many frames
+static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
+{
+	static struct
+	{
+		int key[3];
+		int time;
+		const world_t *world;
+		vec3_t sunDir;
+		qboolean seen;
+	} cache[ENTITY_SUN_CACHE_SIZE];
+
+	int key[3];
+	for ( int c = 0; c < 3; c++ )
+		key[c] = (int)floorf(point[c] * (1.0f / ENTITY_SUN_CACHE_QUANTUM));
+	const unsigned hash = ((unsigned)key[0] * 73856093u ^ (unsigned)key[1] * 19349663u ^
+		(unsigned)key[2] * 83492791u) & (ENTITY_SUN_CACHE_SIZE - 1);
+	const int now = ri.Milliseconds();
+	auto &entry = cache[hash];
+	if ( entry.world == tr.world && entry.key[0] == key[0] && entry.key[1] == key[1] &&
+		entry.key[2] == key[2] && VectorCompare(entry.sunDir, sunDir) &&
+		now - entry.time >= 0 && now - entry.time < ENTITY_SUN_CACHE_MSEC )
+		return entry.seen;
+
+	// the centre of the cache cell: every point of the cell gets the same answer
+	vec3_t centre;
+	for ( int c = 0; c < 3; c++ )
+		centre[c] = (key[c] + 0.5f) * ENTITY_SUN_CACHE_QUANTUM;
+	entry.seen = R_SunVisibleFromPoint(centre, sunDir);
+	for ( int c = 0; c < 3; c++ )
+		entry.key[c] = key[c];
+	VectorCopy(sunDir, entry.sunDir);
+	entry.time = now;
+	entry.world = tr.world;
+	return entry.seen;
+}
+
+static void R_SetupEntitySunSplit( const trRefdef_t *refdef, trRefEntity_t *ent, const vec3_t lightOrigin )
+{
+	ent->sunSplit = qfalse;
+	if ( !R_EntitySunSplitWanted() || ent == &tr.worldEntity || ent->e.reType != RT_MODEL ||
+		(refdef->rdflags & RDF_NOWORLDMODEL) || !tr.world || !tr.world->lightGridData ||
+		!tr.world->entitySunValid || r_fullbright->integer || tr.refdef.doLAGoggles )
+		return;
+
+	vec3_t sunDir;
+	VectorCopy(refdef->sunDir, sunDir);
+	if ( VectorNormalize(sunDir) < 0.5f )
+		return;
+
+	// probes: the lighting origin, the head, the feet and both sides across the sun
+	vec3_t side;
+	const vec3_t up = { 0.0f, 0.0f, 1.0f };
+	CrossProduct(sunDir, up, side);
+	if ( VectorNormalize(side) < 0.01f )
+		VectorSet(side, 1.0f, 0.0f, 0.0f);
+	const float offsets[ENTITY_SUN_PROBES][2] = { { 0, 0 }, { 0, 40 }, { 0, -16 }, { 32, 8 }, { -32, 8 } };
+	int seen = 0;
+	for ( int p = 0; p < ENTITY_SUN_PROBES; p++ )
+	{
+		vec3_t point;
+		VectorMA(lightOrigin, offsets[p][0], side, point);
+		point[2] += offsets[p][1];
+		if ( R_EntitySunProbe(point, sunDir) )
+			seen++;
+	}
+	// No probe sees the sky: deep inside, or the probes start in solid (a model
+	// whose lighting origin is inside world brushes, e.g. a parked ship). The
+	// legacy light keeps the cascades' darkening there; the split would leave
+	// the grid light unshadowed.
+	if ( seen == 0 )
+		return;
+	const float sunlit = (float)seen / ENTITY_SUN_PROBES;
+
+	// the grid sun in the units of ent->directedLight (R_SetupEntityLighting)
+	vec3_t sun;
+	VectorScale(tr.world->entitySunGrid, r_directedScale->value, sun);
+	if ( tr.forcedLinearLight )
+	{
+		for ( int c = 0; c < 3; c++ )
+			sun[c] = 255.0f * (float)sRGBtoRGB(sun[c] / 255.0f);
+	}
+	const float sunLuma = R_EntitySunLuma(sun);
+	if ( sunLuma <= 0.0f )
+		return;
+
+	// The sun part of the sampled grid light: bounded by the projection of the
+	// directed light on the sun direction (a light from elsewhere is never taken
+	// out), by the calibrated sun, and scaled by the share of the sample that
+	// sees the sun.
+	const float directedLuma = R_EntitySunLuma(ent->directedLight);
+	const float projection = MAX(DotProduct(ent->lightDir, sunDir), 0.0f);
+	const float gridSunLuma = sunlit * MIN(sunLuma, directedLuma * projection);
+	vec3_t gridSun;
+	VectorScale(sun, gridSunLuma / sunLuma, gridSun);
+
+	vec3_t residualVector;
+	VectorScale(ent->lightDir, directedLuma, residualVector);
+	VectorMA(residualVector, -gridSunLuma, sunDir, residualVector);
+	const float residualLength = VectorLength(residualVector);
+	if ( residualLength > 1e-3f * MAX(directedLuma, 1.0f) )
+		VectorScale(residualVector, 1.0f / residualLength, ent->residualDir);
+	else
+		VectorCopy(ent->lightDir, ent->residualDir);
+	for ( int c = 0; c < 3; c++ )
+		ent->residualLight[c] = MAX(ent->directedLight[c] - gridSun[c], 0.0f);
+
+	// the analytic sun: full strength wherever any probe sees the sky (the
+	// cascades shape it per pixel)
+	VectorCopy(sun, ent->sunSplitLight);
+	ent->sunSplitSeen = sunlit;
+	ent->sunSplit = qtrue;
+}
+
+/*
 =================
 R_SetupEntityLighting
 
@@ -444,6 +673,8 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	ent->modelLightDir[0] = DotProduct( lightDir, ent->e.axis[0] );
 	ent->modelLightDir[1] = DotProduct( lightDir, ent->e.axis[1] );
 	ent->modelLightDir[2] = DotProduct( lightDir, ent->e.axis[2] );
+
+	R_SetupEntitySunSplit( refdef, ent, lightOrigin );
 }
 
 /*
