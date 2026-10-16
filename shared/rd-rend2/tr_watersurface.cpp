@@ -70,6 +70,10 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <set>
 #include "json.h"
 
+// GL 4.3 depth contact readback: frames in flight, bodies (r_waterInteractionMaxBodies)
+#define WATER_INTERSECTION_HIT_RING	4
+#define WATER_INTERSECTION_MAX_SLOTS	32
+
 /*
 ============================================================
 
@@ -211,6 +215,42 @@ struct waterDrawUniforms_t
 	vec4_t *Data() { return slots; }
 };
 
+struct waterMotionSnapshot_t
+{
+	vec4_t slots[WATER_MOTION_VEC4S] = {};
+	const shader_t *shader = nullptr;
+	unsigned renderedFrame = ~0u;
+	unsigned generation = 0;
+	bool legacySupported = false;
+	bool modelTransformSupported = false;
+	bool interactionSupported = false;
+	bool valid = false;
+};
+
+enum waterMotionInvalidation_t
+{
+	WM_INVALID_NONE,
+	WM_INVALID_RESOURCE_RECREATE,
+	WM_INVALID_MAP_CHANGE,
+	WM_INVALID_BODY_REBUILD,
+	WM_INVALID_INTERACTION_REMAP,
+	WM_INVALID_TIME_DISCONTINUITY,
+	WM_INVALID_SCREEN_HISTORY,
+	WM_INVALID_BODY_IDENTITY,
+	WM_INVALID_MODEL_IDENTITY,
+	WM_INVALID_LEGACY_DEFORM,
+	WM_INVALID_MOVING_INTERACTION,
+	WM_INVALID_TOPOLOGY,
+	WM_INVALID_COUNT
+};
+
+static const char *s_waterMotionInvalidationNames[WM_INVALID_COUNT] = {
+	"none", "resource recreation", "map change", "water body rebuild",
+	"interaction atlas remap", "wave/render time discontinuity", "screen history",
+	"body identity", "previous model identity", "legacy deform unsupported",
+	"moving-model interaction unsupported", "topology changed"
+};
+
 struct waterWindState_t
 {
 	waterWaveSet_t oldSet, targetSet;
@@ -265,9 +305,17 @@ struct waterInteractionState_t
 	int gpuSourceMinX = 0, gpuSourceMinY = 0, gpuSourceMaxX = 0, gpuSourceMaxY = 0;
 	int atlasX = 0, atlasY = 0;
 	bool active = false, dirty = false;
+	bool resolvedForMotionHistory = false;
+	unsigned lastMotionCopyFrame = ~0u;
 	float energy = 0.0f, quietTime = 0.0f;
 	float lastSource[4] = { 0, 0, 0, 0 }; // body UV, radius in UV, strength
 	bool intersectionPending = false; // depth contacts injected since the last foam update
+	// GL 4.3 depth contacts (RB_WaterIntersectionCompute): R16F source of this
+	// body, rewritten by every dispatch; consumed once by the step and the foam
+	image_t *gpuIntersection = nullptr;
+	int intersectionSlot = -1;			// entry in the hit readback buffer
+	bool intersectionFresh = false;		// written since the last fixed step
+	bool intersectionFoamFresh = false;	// written since the last foam update
 };
 
 // One independently allocated low-resolution concentration field per active
@@ -571,12 +619,46 @@ static struct
 	unsigned interactionSubmissions;
 	size_t interactionGpuBytes;
 	image_t *interactionAtlas;
+	image_t *previousInteractionAtlas;
 	int interactionAtlasWidth, interactionAtlasHeight;
+	unsigned interactionHistoryFrame;
+	std::vector<waterMotionSnapshot_t> motionSnapshots;
+	std::vector<waterMotionSnapshot_t> pendingMotionSnapshots;
+	unsigned motionGeneration;
+	unsigned motionCommitFrame;
+	waterMotionInvalidation_t motionInvalidation;
+	float motionLastWaveTime;
+	bool motionWaveTimeValid;
+	bool motionWaveTimeFrozen;
+	float motionCopyMsec;
+	double motionSnapshotUsec;
+	unsigned motionSnapshotCount;
 	unsigned foamFrame;
 	int foamTime;
 	size_t foamGpuBytes;
 	size_t flowFieldGpuBytes;
+	// GL 4.3 depth contacts: per body maximum source, read back without
+	// waiting (a fence per entry) to wake sleeping bodies
+	GLuint intersectionHitBuffers[WATER_INTERSECTION_HIT_RING];
+	GLsync intersectionHitSync[WATER_INTERSECTION_HIT_RING];
+	unsigned intersectionHitGeneration[WATER_INTERSECTION_HIT_RING];
+	unsigned intersectionGeneration;
+	int intersectionHitNext;
+	int intersectionDispatches;
+	int intersectionWakes;
 } s_water;
+
+static void R_WaterMotionInvalidate(waterMotionInvalidation_t reason)
+{
+	if (!r_waterSSRWaveReprojection || !r_waterSSRWaveReprojection->integer)
+		return;
+	s_water.motionGeneration++;
+	s_water.motionCommitFrame = ~0u;
+	s_water.interactionHistoryFrame = ~0u;
+	s_water.motionInvalidation = reason;
+	for (waterMotionSnapshot_t& snapshot : s_water.motionSnapshots) snapshot.valid = false;
+	for (waterMotionSnapshot_t& snapshot : s_water.pendingMotionSnapshots) snapshot.valid = false;
+}
 
 qboolean R_WaterSurfaceResourcesEnabled( void )
 {
@@ -593,6 +675,18 @@ qboolean R_WaterFoamResourcesEnabled( void )
 static bool R_WaterInteractionGpuEnabled(void)
 {
 	return tr.waterInteractionFbo && tr.waterInteractionFieldShader.program;
+}
+
+// GL 4.3 depth contacts (glsl/water_intersection.glsl) instead of the
+// readback of RB_WaterIntersectionInject: needs the GPU solver, whose step
+// and the foam field consume the kernel's image
+static void RB_WaterIntersectionPollHits(void);
+static void RB_WaterIntersectionReleaseHits(void);
+
+static bool R_WaterIntersectionComputeEnabled(void)
+{
+	return R_WaterInteractionGpuEnabled() && tr.waterIntersectionComputeShader.program &&
+		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE | MODERN_SSBO);
 }
 
 /*
@@ -806,12 +900,17 @@ static void R_WaterFoamBuild(void)
 
 static void R_WaterInteractionBuild(void)
 {
+	R_WaterMotionInvalidate(WM_INVALID_INTERACTION_REMAP);
 	s_water.interactionGpuBytes = 0;
 	s_water.interactionAccumulator = 0.0f;
 	s_water.interactionTime = -1;
 	s_water.interactionFrame = ~0u;
 	s_water.interactionAtlas = nullptr;
+	s_water.previousInteractionAtlas = nullptr;
 	s_water.interactionAtlasWidth = s_water.interactionAtlasHeight = 0;
+	// contact readbacks in flight refer to the old body slots
+	s_water.intersectionGeneration++;
+	int intersectionSlots = 0;
 	if (!r_waterInteraction || !r_waterInteraction->integer || !r_waterSurface->integer || !s_water.world)
 		return;
 
@@ -948,6 +1047,9 @@ static void R_WaterInteractionBuild(void)
 		s_water.interactionAtlasWidth = atlasWidth; s_water.interactionAtlasHeight = atlasHeight;
 		s_water.interactionAtlas = R_CreateImage("*waterInteractionAtlas", NULL, atlasWidth, atlasHeight,
 			IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
+		if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+			s_water.previousInteractionAtlas = R_CreateImage("*waterPreviousInteractionAtlas", NULL, atlasWidth, atlasHeight,
+				IMGTYPE_COLORALPHA, IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_RGBA16F);
 		GL_BindToTMU(s_water.interactionAtlas, 19); GL_SelectTexture(19);
 		for (waterBody_t& body : s_water.bodies)
 		{
@@ -956,6 +1058,13 @@ static void R_WaterInteractionBuild(void)
 			sim.image = s_water.interactionAtlas;
 			qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
 				GL_RGBA, GL_FLOAT, sim.upload.data());
+			if (s_water.previousInteractionAtlas)
+			{
+				GL_BindToTMU(s_water.previousInteractionAtlas, 24); GL_SelectTexture(24);
+				qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
+					GL_RGBA, GL_FLOAT, sim.upload.data());
+				GL_BindToTMU(s_water.interactionAtlas, 19); GL_SelectTexture(19);
+			}
 			for (int state = 0; state < 2; ++state)
 			{
 				sim.gpuState[state] = R_CreateImage(va("*waterInteractionState%d_%d", body.id, state), NULL,
@@ -971,6 +1080,17 @@ static void R_WaterInteractionBuild(void)
 			GL_Bind(sim.gpuSource);
 			qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
 				GL_RGBA, GL_FLOAT, sim.gpuSourceData.data());
+			if (R_WaterIntersectionComputeEnabled() && intersectionSlots < WATER_INTERSECTION_MAX_SLOTS)
+			{
+				std::vector<float> zero((size_t)sim.width * sim.height, 0.0f);
+				sim.gpuIntersection = R_CreateImage(va("*waterIntersection%d", body.id), NULL,
+					sim.width, sim.height, IMGTYPE_COLORALPHA,
+					IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_R16F);
+				GL_Bind(sim.gpuIntersection);
+				qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, sim.width, sim.height,
+					GL_RED, GL_FLOAT, zero.data());
+				sim.intersectionSlot = intersectionSlots++;
+			}
 			if (r_waterBathymetry->integer && !sim.bathymetry.empty())
 			{
 				sim.bathymetryImage = R_CreateImage(va("*waterBathymetry%d", body.id), NULL,
@@ -985,6 +1105,8 @@ static void R_WaterInteractionBuild(void)
 	s_water.interactionGpuBytes = s_water.interactionAtlas ?
 		(size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8 +
 		used * (r_waterBathymetry->integer ? 32 : 24) : 0;
+	if (s_water.previousInteractionAtlas)
+		s_water.interactionGpuBytes += (size_t)s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8;
 	ri.Printf(PRINT_DEVELOPER, "water interaction: %d body fields, %u active texels, %dx%d atlas, %.2f MiB GPU\n",
 		allocated, (unsigned)used, s_water.interactionAtlasWidth, s_water.interactionAtlasHeight,
 		s_water.interactionGpuBytes / (1024.0f * 1024.0f));
@@ -2047,8 +2169,10 @@ static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
 {
 	waterInteractionState_t& sim = body.interaction;
 	if (!sim.active || !sim.gpuState[0] || !sim.gpuSource) return;
-	const bool applySource = sim.gpuSourceDirty;
-	if (applySource)
+	// the GL 4.3 depth contacts are a source of their own (sim.gpuIntersection)
+	const bool applyContacts = sim.intersectionFresh && sim.gpuIntersection;
+	const bool applySource = sim.gpuSourceDirty || applyContacts;
+	if (sim.gpuSourceDirty)
 	{
 		GL_BindToTMU(sim.gpuSource, TB_NORMALMAP);
 		const int sourceWidth = sim.gpuSourceMaxX - sim.gpuSourceMinX + 1;
@@ -2091,14 +2215,17 @@ static void RB_WaterInteractionGpuStepBody(waterBody_t& body, float dt)
 	vec4_t sim1 = { sim.texelX, sim.texelY, flowX, flowY };
 	vec4_t domain = { 0.0f, 0.0f, MAX(r_waterIntersectionFoamPersistence->value, 0.001f), applySource ? 1.0f : 0.0f };
 	vec4_t bathymetry = { r_waterInteractionVariableDepth->integer && sim.bathymetryImage ? 1.0f : 0.0f,
-		fallbackDepth, effectiveGravity, 0.0f };
+		fallbackDepth, effectiveGravity, applyContacts ? 1.0f : 0.0f };
+	// not sampled without the contact flag (u_WaterBathymetryParams.w)
+	GL_BindToTMU(applyContacts ? sim.gpuIntersection : tr.whiteImage, TB_SHADOWMAP);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM0, sim0);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSIM1, sim1);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONDOMAIN, domain);
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYPARAMS, bathymetry);
 	RB_InstantTriangle();
 	sim.gpuCurrent = target;
-	if (applySource)
+	sim.intersectionFresh = false;
+	if (sim.gpuSourceDirty)
 	{
 		for (int y = sim.gpuSourceMinY; y <= sim.gpuSourceMaxY; ++y)
 			std::fill(sim.gpuSourceData.begin() + ((size_t)y * sim.width + sim.gpuSourceMinX) * 4,
@@ -2144,6 +2271,7 @@ static void RB_WaterInteractionGpuResolveBody(waterBody_t& body)
 	GLSL_SetUniformVec4(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYPARAMS, bathymetry);
 	RB_InstantTriangle();
 	sim.dirty = false;
+	sim.resolvedForMotionHistory = true;
 }
 
 static void RB_WaterInteractionUpdate(void)
@@ -2156,6 +2284,8 @@ static void RB_WaterInteractionUpdate(void)
 	s_water.interactionTime = now;
 	elapsed = Com_Clamp(0.0f, 0.25f, elapsed);
 	s_water.interactionAccumulator = MIN(s_water.interactionAccumulator + elapsed, 4.0f / 60.0f);
+	// GL 4.3 depth contacts of earlier frames wake their bodies (never waits)
+	RB_WaterIntersectionPollHits();
 
 	for (const refWaterImpulse_t& impulse : s_water.pendingImpulses)
 	{
@@ -2223,6 +2353,7 @@ static void RB_WaterInteractionUpdate(void)
 				qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
 					GL_RGBA, GL_FLOAT, sim.upload.data());
 				sim.active = sim.dirty = false; sim.energy = sim.quietTime = 0.0f;
+				sim.resolvedForMotionHistory = true;
 			}
 			else RB_WaterInteractionGpuResolveBody(body);
 			continue;
@@ -2246,6 +2377,7 @@ static void RB_WaterInteractionUpdate(void)
 		qglTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY, sim.width, sim.height,
 			GL_RGBA, GL_FLOAT, sim.upload.data());
 		sim.dirty = false;
+		sim.resolvedForMotionHistory = true;
 	}
 	if (gpu)
 	{
@@ -2392,6 +2524,13 @@ static void RB_WaterFoamUpdate(void)
 		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMSOURCES, sources);
 		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERACTIONRECT, rect);
 		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFLOWFIELDPARAMS, fieldParams);
+		// GL 4.3 depth contacts: resampled by the program, not into foam.source
+		const bool contacts = interaction.gpuIntersection && interaction.intersectionFoamFresh &&
+			r_waterFoamIntersection->value > 0.0f;
+		GL_BindToTMU(contacts ? interaction.gpuIntersection : tr.whiteImage, 22);	// unread at scale 0
+		const vec4_t contactParams = { contacts ? r_waterFoamIntersection->value : 0.0f, 0.0f, 0.0f, 0.0f };
+		GLSL_SetUniformVec4(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERSECTIONPARAMS, contactParams);
+		interaction.intersectionFoamFresh = false;
 		const int target = foam.current ^ 1;
 		FBO_Bind(tr.waterFoamFbo);
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, foam.image[target]->texnum, 0);
@@ -2469,11 +2608,14 @@ void R_WaterInteractionInfo_f(void)
 		s_water.interactionSubmitUsec / s_water.interactionSubmissions : 0.0;
 	const bool gpu = R_WaterInteractionGpuEnabled();
 	ri.Printf(PRINT_ALL, "water interaction: enabled (%s), %u GPU bytes, geometry %s, last %d fixed steps, source %.3f ms, step dispatch %.3f ms, resolve submit %.3f ms, API submit %.3f us avg (%u)\n",
-		gpu ? "GL3.2 ping-pong" : "CPU fallback",
+		gpu ? (R_WaterIntersectionComputeEnabled() ? "GL3.2 ping-pong, GL 4.3 depth contacts" : "GL3.2 ping-pong") : "CPU fallback",
 		(unsigned)s_water.interactionGpuBytes, r_waterGeometry && r_waterGeometry->integer ? "displacement+optics" : "optics-only",
 		s_water.interactionSteps, s_water.interactionSourceMsec,
 		s_water.interactionStepMsec, s_water.interactionUploadMsec, submitAverage,
 		s_water.interactionSubmissions);
+	if (R_WaterIntersectionComputeEnabled())
+		ri.Printf(PRINT_ALL, "  depth contacts: %d body dispatches last frame, %d wakes from readbacks\n",
+			s_water.intersectionDispatches, s_water.intersectionWakes);
 	for (const waterBody_t& body : s_water.bodies)
 	{
 		const waterInteractionState_t& sim = body.interaction;
@@ -2764,6 +2906,10 @@ static void R_WaterRefreshBodies( void );
 
 static void R_WaterDecideShaders( void )
 {
+	// Overrides and the experimental classifier can change body/profile identity
+	// without recreating the renderer resources.  Never carry a geometry
+	// snapshot across that reinterpretation.
+	R_WaterMotionInvalidate(WM_INVALID_BODY_REBUILD);
 	// reset every shader of the records (a previous decision may be undone)
 	for ( waterShaderRecord_t& s : s_water.shaders )
 	{
@@ -2904,6 +3050,7 @@ planes are loaded. Keeps the records of the candidate surfaces for r_waterInfo.
 void R_WaterClassifySurfaces( world_t *world, const byte *fileBase, const lump_t *surfacesLump,
 	const lump_t *modelsLump, const lump_t *brushesLump, const lump_t *sidesLump )
 {
+	R_WaterMotionInvalidate(WM_INVALID_BODY_REBUILD);
 	const int start = ri.Milliseconds();
 	// the shaders of the previous map are gone with it
 	s_water.world = world;
@@ -4752,6 +4899,30 @@ void R_WaterInfo_f( void )
 	ri.Printf(PRINT_ALL, "  last frame: %d water draws, view %s, SSR %s, froxel medium %s\n", s_water.lastDraws,
 		backEnd.waterSurfaceView ? "yes" : "no", backEnd.waterSurfaceSSR ? "yes" : "no",
 		RB_VolumetricLookupReady() ? "yes" : "no");
+	ri.Printf(PRINT_ALL, "  wave-aware SSR %d, motion generation %u, committed frame %u, interaction frame %u, invalidation %s, previous atlas %.2f MiB\n",
+		r_waterSSRWaveReprojection ? r_waterSSRWaveReprojection->integer : 0,
+		s_water.motionGeneration, s_water.motionCommitFrame, s_water.interactionHistoryFrame,
+		s_waterMotionInvalidationNames[s_water.motionInvalidation],
+		s_water.previousInteractionAtlas ?
+			(s_water.interactionAtlasWidth * s_water.interactionAtlasHeight * 8.0f) / (1024.0f * 1024.0f) : 0.0f);
+	ri.Printf(PRINT_ALL, "  motion bookkeeping %.3f us/draw, last dirty-rect copy CPU submission %.3f ms\n",
+		s_water.motionSnapshotCount ? s_water.motionSnapshotUsec / s_water.motionSnapshotCount : 0.0,
+		s_water.motionCopyMsec);
+	if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+		for (const waterBody_t& body : s_water.bodies)
+		{
+			const waterMotionSnapshot_t *snapshot = body.id < (int)s_water.motionSnapshots.size() ?
+				&s_water.motionSnapshots[body.id] : nullptr;
+			ri.Printf(PRINT_ALL, "    body %d snapshot %u generation %u previous %s interaction-history %s last-copy %u legacy-deform %s model-transform %s interaction-motion %s\n",
+				body.id, snapshot ? snapshot->renderedFrame : ~0u, snapshot ? snapshot->generation : 0,
+				snapshot && snapshot->valid ? "valid" : "invalid",
+				body.interaction.image ? (s_water.previousInteractionAtlas &&
+					s_water.interactionHistoryFrame == s_water.history.frameNumber ? "valid" : "invalid") : "n/a",
+				body.interaction.lastMotionCopyFrame,
+				snapshot && snapshot->legacySupported ? "yes" : "no",
+				snapshot && snapshot->modelTransformSupported ? "yes" : "no",
+				snapshot && snapshot->interactionSupported ? "yes" : "no");
+		}
 
 	int worldBrushes = 0;
 	for ( const waterBrushRecord_t& b : s_water.brushes )
@@ -5011,6 +5182,7 @@ static void R_WaterBuildWaveSlopes( int size, std::vector<float>& out )
 
 void R_CreateWaterSurfaceImages( int width, int height, int hdrFormat )
 {
+	R_WaterMotionInvalidate(WM_INVALID_RESOURCE_RECREATE);
 	// the GPU programs are kept over a map change (only a vid_restart rebuilds
 	// them): keep the decision they were built with
 	if ( !tr.textureColorShader[0].program )
@@ -5320,6 +5492,7 @@ static void R_WaterBuildContacts(world_t *world)
 
 void R_WaterBuildGeometry(world_t *world)
 {
+	R_WaterMotionInvalidate(WM_INVALID_TOPOLOGY);
 	s_water.geometryMsec = 0;
 	s_water.geometryBytes = 0;
 	s_water.contacts.clear();
@@ -5614,11 +5787,19 @@ void R_WaterGeometryInfo_f(void)
 
 void R_WaterSurfaceShutdown( void )
 {
+	R_WaterMotionInvalidate(WM_INVALID_MAP_CHANGE);
 	// images and FBOs belong to the renderer lists; the resource decision
 	// follows the programs (R_CreateWaterSurfaceImages)
 	s_water.world = NULL;
 	s_water.mergedViewSurfaces.clear();
 	s_water.history.valid = qfalse;
+	s_water.previousInteractionAtlas = nullptr;
+	s_water.motionSnapshots.clear();
+	s_water.pendingMotionSnapshots.clear();
+	s_water.motionWaveTimeValid = false;
+	s_water.motionCopyMsec = 0.0f;
+	s_water.motionSnapshotUsec = 0.0;
+	s_water.motionSnapshotCount = 0;
 	s_water.brushes.clear();
 	s_water.planes.clear();
 	s_water.sources.clear();
@@ -5646,6 +5827,8 @@ void R_WaterSurfaceShutdown( void )
 	s_water.bodyDebugShader = 0;
 	s_water.geometryBytes = 0;
 	s_water.geometryMsec = 0;
+	RB_WaterIntersectionReleaseHits();
+	s_water.intersectionGeneration++;
 }
 
 /*
@@ -5664,6 +5847,13 @@ Called by RB_BeginDrawingView after the screen-space passes decided theirs:
 the main view of the world, rendered into renderFbo.
 =================
 */
+static bool RB_WaterPrimaryFrame(void)
+{
+	return backEnd.viewParms.viewParmType == VPT_MAIN && !backEnd.viewParms.isPortal &&
+		!backEnd.viewParms.isSkyPortal && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
+		tr.world && !(backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE));
+}
+
 void RB_WaterSurfaceBeginView( void )
 {
 	backEnd.waterSurfaceView = qfalse;
@@ -5680,20 +5870,30 @@ void RB_WaterSurfaceBeginView( void )
 		s_water.statsFrame = backEndData->realFrameNumber;
 	}
 
-	// the experimental name rule may be toggled at run time
-	if ( r_waterSurfaceExperimental->modified )
-	{
-		r_waterSurfaceExperimental->modified = qfalse;
-		if ( tr.world && s_water.world == tr.world )
-			R_WaterDecideShaders();
-	}
-
 	// Advance once for the real main frame. Portal, mirror and reflection views
 	// sample the same uploaded state and can never consume another time step.
-	if (backEnd.viewParms.viewParmType == VPT_MAIN && !backEnd.viewParms.isPortal &&
-		!backEnd.viewParms.isSkyPortal && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
-		tr.world && !(backEnd.refdef.rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)))
+	const bool primaryWaterFrame = RB_WaterPrimaryFrame();
+	if (primaryWaterFrame)
 	{
+		// Classification mutates body keys and therefore motion identity.  Defer
+		// the live toggle until this same canonical primary-frame boundary.
+		if ( r_waterSurfaceExperimental->modified )
+		{
+			r_waterSurfaceExperimental->modified = qfalse;
+			if ( s_water.world == tr.world )
+				R_WaterDecideShaders();
+		}
+		if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+		{
+			const bool frozen = r_waterWaveTime->value >= 0.0f;
+			const float waveTime = frozen ? r_waterWaveTime->value : backEnd.refdef.floatTime;
+			if (s_water.motionWaveTimeValid && (frozen != s_water.motionWaveTimeFrozen ||
+				waveTime < s_water.motionLastWaveTime - 1.0e-4f || waveTime - s_water.motionLastWaveTime > 1.0f))
+				R_WaterMotionInvalidate(WM_INVALID_TIME_DISCONTINUITY);
+			s_water.motionLastWaveTime = waveTime;
+			s_water.motionWaveTimeFrozen = frozen;
+			s_water.motionWaveTimeValid = true;
+		}
 		RB_UpdateWeatherWind();
 		R_WaterFlowImpactSlaps(backEnd.refdef.time);
 		RB_WaterInteractionUpdate();
@@ -6180,6 +6380,63 @@ qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *q
 	return qtrue;
 }
 
+static void R_WaterPackMotionSnapshot(waterMotionSnapshot_t& snapshot,
+	const waterDrawUniforms_t& water, const vec4_t flowImpact, const shader_t *shader)
+{
+	Com_Memset(snapshot.slots, 0, sizeof(snapshot.slots));
+	snapshot.slots[WATER_MOTION_FRAME][0] = water[WATER_U_FRAME][2];
+	VectorCopy4(water[WATER_U_WAVE_CONTROL], snapshot.slots[WATER_MOTION_WAVE_CONTROL]);
+	VectorSet4(snapshot.slots[WATER_MOTION_WAVE_QUALITY], water[WATER_U_WAVE_QUALITY][0],
+		water[WATER_U_WAVE_QUALITY][1], water[WATER_U_BODY_FLOW_DEPTH][2], water[WATER_U_WAVE_DEBUG][2]);
+	VectorCopy4(water[WATER_U_BODY_WAVES], snapshot.slots[WATER_MOTION_BODY_WAVES]);
+	VectorCopy4(water[WATER_U_FLOW], snapshot.slots[WATER_MOTION_FLOW]);
+	VectorSet4(snapshot.slots[WATER_MOTION_FLOW_DETAIL], water[WATER_U_FLOW + 1][0],
+		water[WATER_U_FLOW + 1][1], water[WATER_U_WAVE_QUALITY][3], water[WATER_U_FLOW + 1][3]);
+	VectorCopy4(water[WATER_U_BODY_MAPPING], snapshot.slots[WATER_MOTION_BODY_MAPPING]);
+	VectorCopy4(water[WATER_U_BODY_MAPPING + 1], snapshot.slots[WATER_MOTION_INTERACTION]);
+	VectorCopy4(water[WATER_U_BODY_MAPPING + 3], snapshot.slots[WATER_MOTION_INTERACTION_RECT]);
+	VectorSet4(snapshot.slots[WATER_MOTION_SHORE], water[WATER_U_SHORELINE][0],
+		water[WATER_U_SHORELINE][1], water[WATER_U_BODY_BOUNDS][3], water[WATER_U_GEOMETRY_FOAM][1]);
+	for (int i = 0; i < 4; ++i)
+		VectorCopy4(water[WATER_U_WATERFALL + i], snapshot.slots[WATER_MOTION_WATERFALL + i]);
+	for (int i = 0; i < 8; ++i)
+	{
+		VectorCopy4(water[WATER_U_TARGET_TERMS + i], snapshot.slots[WATER_MOTION_TARGET_TERMS + i]);
+		VectorCopy4(water[WATER_U_OLD_TERMS + i], snapshot.slots[WATER_MOTION_OLD_TERMS + i]);
+	}
+	VectorSet4(snapshot.slots[WATER_MOTION_WIND_GEOMETRY], water[WATER_U_WIND + 2][0],
+		water[WATER_U_GEOMETRY][0], water[WATER_U_WATERFALL][0] > 0.5f ||
+		(water[WATER_U_GEOMETRY_FOAM][2] > 2.5f && water[WATER_U_GEOMETRY_FOAM][2] < 3.5f) ? 1.0f : 0.0f,
+		shader ? -shader->timeOffset : 0.0f);
+	VectorCopy4(water[WATER_U_TARGET_OMEGA], snapshot.slots[WATER_MOTION_TARGET_OMEGA]);
+	VectorCopy4(water[WATER_U_TARGET_OMEGA + 1], snapshot.slots[WATER_MOTION_TARGET_OMEGA + 1]);
+	VectorCopy4(water[WATER_U_OLD_OMEGA], snapshot.slots[WATER_MOTION_OLD_OMEGA]);
+	VectorCopy4(water[WATER_U_OLD_OMEGA + 1], snapshot.slots[WATER_MOTION_OLD_OMEGA + 1]);
+	VectorCopy4(flowImpact, snapshot.slots[WATER_MOTION_FLOW_IMPACT]);
+	snapshot.renderedFrame = backEndData->realFrameNumber;
+	snapshot.generation = s_water.motionGeneration;
+	snapshot.shader = shader;
+	snapshot.valid = true;
+}
+
+static bool R_WaterPreviousModelValid(void)
+{
+	if (!backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity)
+		return true;
+	const int entityNum = (int)(backEnd.currentEntity - backEnd.refdef.entities);
+	return entityNum >= 0 && entityNum < backEnd.refdef.num_entities &&
+		tr.previousEntityUboOffsets[entityNum] != -1;
+}
+
+static bool R_WaterLegacyMotionValid(const shader_t *shader)
+{
+	if (!shader || !shader->numDeforms) return true;
+	if (ShaderRequiresCPUDeforms(shader) || shader->clampTime != 0.0f) return false;
+	const deform_t type = shader->deforms[0].deformation;
+	return type == DEFORM_NONE || type == DEFORM_NORMALS || type == DEFORM_WAVE ||
+		type == DEFORM_BULGE || type == DEFORM_BULGE_UNIFORM || type == DEFORM_MOVE;
+}
+
 void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter& uniforms,
 	SamplerBindingsWriter& samplers )
 {
@@ -6365,12 +6622,12 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterFoamPatternImage ? tr.waterFoamPatternImage : tr.whiteImage, 16);
 	const bool flowField = body && !body->waterfall && r_waterFlow->integer && body->flowField.valid;
 	samplers.AddStaticImage(flowField ? body->flowField.image : tr.whiteImage, 17);
+	vec4_t flowParams[2];
 	{
 		// [0] field enabled, body flow speed (u/s), wall impact enabled, stagnation head (world units)
 		// [1] two-phase period (s), foam pattern world scale, flow debug, unused
 		const float speed = flowField ? body->flowSpeed * Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value) : 0.0f;
 		const bool impact = flowField && r_waterFlowImpact->integer;
-		vec4_t flowParams[2];
 		VectorSet4(flowParams[0], flowField ? 1.0f : 0.0f, speed, impact ? 1.0f : 0.0f,
 			impact ? R_WaterFlowImpactHead(*body) : 0.0f);
 		VectorSet4(flowParams[1], Com_Clamp(0.6f, 2.0f, 64.0f / MAX(speed, 1.0f)), 1.0f / 96.0f,
@@ -6378,6 +6635,57 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		uniforms.SetUniformVec4(UNIFORM_WATERFLOWPARAMS, flowParams[0], 2);
 	}
 	samplers.AddStaticImage(interaction ? s_water.interactionAtlas : tr.whiteImage, 19);
+	if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+	{
+		if (bodyId >= (int)s_water.pendingMotionSnapshots.size())
+		{
+			s_water.pendingMotionSnapshots.resize(bodyId + 1);
+			s_water.motionSnapshots.resize(bodyId + 1);
+		}
+		if (bodyId > 0)
+		{
+			const auto snapshotStart = std::chrono::high_resolution_clock::now();
+			R_WaterPackMotionSnapshot(s_water.pendingMotionSnapshots[bodyId], water, flowParams[0], input->shader);
+			s_water.pendingMotionSnapshots[bodyId].legacySupported = R_WaterLegacyMotionValid(input->shader);
+			s_water.pendingMotionSnapshots[bodyId].modelTransformSupported = R_WaterPreviousModelValid();
+			s_water.pendingMotionSnapshots[bodyId].interactionSupported = !interaction ||
+				!backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
+			s_water.motionSnapshotUsec += std::chrono::duration<double, std::micro>(
+				std::chrono::high_resolution_clock::now() - snapshotStart).count();
+			s_water.motionSnapshotCount++;
+		}
+
+		waterMotionSnapshot_t previous = {};
+		const bool bodyValid = bodyId > 0 && bodyId < (int)s_water.motionSnapshots.size() &&
+			s_water.motionSnapshots[bodyId].valid && s_water.history.valid &&
+			s_water.motionSnapshots[bodyId].renderedFrame == s_water.history.frameNumber &&
+			s_water.motionSnapshots[bodyId].generation == s_water.motionGeneration &&
+			s_water.motionSnapshots[bodyId].shader == input->shader;
+		const bool screenValid = RB_ScreenHistoryValid(s_water.history, s_water.reflectionScale) != qfalse;
+		const bool modelValid = R_WaterPreviousModelValid();
+		const bool legacyValid = R_WaterLegacyMotionValid(input->shader);
+		bool interactionValid = true;
+		const bool movingInteraction = interaction && backEnd.currentEntity &&
+			backEnd.currentEntity != &tr.worldEntity;
+		if (interaction)
+			interactionValid = s_water.previousInteractionAtlas &&
+				s_water.interactionHistoryFrame == s_water.history.frameNumber &&
+				!movingInteraction;
+		const bool drawValid = bodyValid && screenValid && modelValid && legacyValid && interactionValid;
+		if (!drawValid)
+			s_water.motionInvalidation = !bodyValid ? WM_INVALID_BODY_IDENTITY :
+				(!screenValid ? WM_INVALID_SCREEN_HISTORY : (!modelValid ? WM_INVALID_MODEL_IDENTITY :
+				(!legacyValid ? WM_INVALID_LEGACY_DEFORM : (movingInteraction ?
+				WM_INVALID_MOVING_INTERACTION : WM_INVALID_INTERACTION_REMAP))));
+		if (bodyValid) previous = s_water.motionSnapshots[bodyId];
+		previous.slots[WATER_MOTION_FRAME][1] = drawValid ? 1.0f : 0.0f;
+		previous.slots[WATER_MOTION_FRAME][2] = interactionValid ? 1.0f : 0.0f;
+		previous.slots[WATER_MOTION_FRAME][3] = (float)r_waterMotionDebug->integer;
+		previous.slots[WATER_MOTION_INTERACTION][3] = (float)s_water.motionInvalidation;
+		uniforms.SetUniformVec4(UNIFORM_WATERMOTION, previous.slots[0], WATER_MOTION_VEC4S);
+		samplers.AddStaticImage(interaction && s_water.previousInteractionAtlas ?
+			s_water.previousInteractionAtlas : tr.whiteImage, 24);
+	}
 	samplers.AddStaticImage(waterRain ? waterRainImage : tr.whiteImage, TB_WATERRAIN);
 	samplers.AddStaticImage(foam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
 		TB_WATERFOAM);
@@ -6548,6 +6856,154 @@ static void RB_WaterIntersectionInject(void)
 	}
 }
 
+/*
+=================
+RB_WaterIntersectionCompute
+
+GL 4.3 replacement of RB_WaterIntersectionInject: the same contact test per
+simulation cell in a compute kernel that samples the depth copy directly, so
+the frame never waits for the opaque pass to reach system memory. The source
+stays on the GPU (the step and foam programs sample sim.gpuIntersection);
+only the per-body maximum comes back, through a fenced buffer that is read
+when the GPU is done with it, to wake sleeping bodies a frame or two later.
+=================
+*/
+static void RB_WaterIntersectionReleaseHits(void)
+{
+	for (int i = 0; i < WATER_INTERSECTION_HIT_RING; ++i)
+	{
+		if (s_water.intersectionHitSync[i])
+			qglDeleteSync(s_water.intersectionHitSync[i]);
+		s_water.intersectionHitSync[i] = nullptr;
+	}
+	if (s_water.intersectionHitBuffers[0])
+		qglDeleteBuffers(WATER_INTERSECTION_HIT_RING, s_water.intersectionHitBuffers);
+	Com_Memset(s_water.intersectionHitBuffers, 0, sizeof(s_water.intersectionHitBuffers));
+	s_water.intersectionHitNext = 0;
+}
+
+static void RB_WaterIntersectionPollHits(void)
+{
+	for (int i = 0; i < WATER_INTERSECTION_HIT_RING; ++i)
+	{
+		GLsync sync = s_water.intersectionHitSync[i];
+		if (!sync)
+			continue;
+		const GLenum status = qglClientWaitSync(sync, 0, 0);
+		if (status != GL_ALREADY_SIGNALED && status != GL_CONDITION_SATISFIED)
+			continue;
+		qglDeleteSync(sync);
+		s_water.intersectionHitSync[i] = nullptr;
+		if (s_water.intersectionHitGeneration[i] != s_water.intersectionGeneration)
+			continue;
+		uint32_t hits[WATER_INTERSECTION_MAX_SLOTS];
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_water.intersectionHitBuffers[i]);
+		qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(hits), hits);
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		for (waterBody_t& body : s_water.bodies)
+		{
+			waterInteractionState_t& sim = body.interaction;
+			if (sim.intersectionSlot < 0)
+				continue;
+			float source;
+			memcpy(&source, &hits[sim.intersectionSlot], sizeof(source));
+			// what the CPU path does for every contact cell
+			if (source > 0.01f)
+			{
+				sim.active = sim.dirty = true;
+				sim.quietTime = 0.0f;
+				s_water.intersectionWakes++;
+			}
+		}
+	}
+}
+
+static void RB_WaterIntersectionCompute(void)
+{
+	s_water.intersectionDispatches = 0;
+	if (!r_waterIntersectionFoam->integer || !r_waterInteraction->integer ||
+		r_waterIntersectionFoamStrength->value <= 0.0f ||
+		r_waterIntersectionFoamPersistence->value <= 0.0f || !s_water.interactionAtlas)
+		return;
+	const viewParms_t& view = backEnd.viewParms;
+	const int width = s_water.copyRect[2], height = s_water.copyRect[3];
+	if (width < 3 || height < 3)
+		return;
+
+	if (!s_water.intersectionHitBuffers[0])
+	{
+		qglGenBuffers(WATER_INTERSECTION_HIT_RING, s_water.intersectionHitBuffers);
+		for (int i = 0; i < WATER_INTERSECTION_HIT_RING; ++i)
+		{
+			qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_water.intersectionHitBuffers[i]);
+			qglBufferData(GL_SHADER_STORAGE_BUFFER, WATER_INTERSECTION_MAX_SLOTS * sizeof(uint32_t),
+				NULL, GL_DYNAMIC_READ);
+		}
+	}
+	// an entry the GPU has not finished after the whole ring is dropped, never waited for
+	const int entry = s_water.intersectionHitNext;
+	if (s_water.intersectionHitSync[entry])
+	{
+		qglDeleteSync(s_water.intersectionHitSync[entry]);
+		s_water.intersectionHitSync[entry] = nullptr;
+	}
+	static const uint32_t zero[WATER_INTERSECTION_MAX_SLOTS] = {};
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_water.intersectionHitBuffers[entry]);
+	qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), zero);
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, s_water.intersectionHitBuffers[entry]);
+
+	shaderProgram_t *sp = &tr.waterIntersectionComputeShader;
+	GLSL_BindProgram(sp);
+	matrix_t viewProjection;
+	Matrix16Multiply(view.projectionMatrix, view.world.modelViewMatrix, viewProjection);
+	GLSL_SetUniformMatrix4x4(sp, UNIFORM_MODELVIEWPROJECTIONMATRIX, viewProjection);
+	GL_BindToTMU(tr.waterDepthImage, TB_LIGHTMAP);
+	const float band = MAX(r_waterIntersectionFoamWidth->value, 0.5f);
+	const float strength = Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value);
+	const float *p = view.projectionMatrix;
+	// the previous frame's step and foam passes sampled these images
+	qglMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	int dispatched = 0;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterInteractionState_t& sim = body.interaction;
+		if (!sim.gpuIntersection || sim.intersectionSlot < 0 || !sim.gpuState[0] ||
+			fabsf(body.planeNormal[2]) < 0.35f)
+			continue;
+		vec4_t params[11];
+		VectorSet4(params[0], body.bounds[0][0], body.bounds[0][1], sim.texelX, sim.texelY);
+		VectorSet4(params[1], body.planeNormal[0], body.planeNormal[1], body.planeNormal[2], body.planeDist);
+		VectorSet4(params[2], (float)s_water.copyRect[0], (float)s_water.copyRect[1], (float)width, (float)height);
+		VectorSet4(params[3], (float)view.viewportX, (float)view.viewportY,
+			(float)view.viewportWidth, (float)view.viewportHeight);
+		VectorSet4(params[4], (float)tr.waterDepthImage->width, (float)tr.waterDepthImage->height, band, strength);
+		VectorSet4(params[5], p[0], p[5], p[8], p[9]);
+		VectorSet4(params[6], p[10], p[14], (float)sim.intersectionSlot, 0.0f);
+		VectorSet4(params[7], view.ori.origin[0], view.ori.origin[1], view.ori.origin[2], 0.0f);
+		VectorSet4(params[8], view.ori.axis[0][0], view.ori.axis[0][1], view.ori.axis[0][2], 0.0f);
+		VectorSet4(params[9], view.ori.axis[1][0], view.ori.axis[1][1], view.ori.axis[1][2], 0.0f);
+		VectorSet4(params[10], view.ori.axis[2][0], view.ori.axis[2][1], view.ori.axis[2][2], 0.0f);
+		GLSL_SetUniformVec4N(sp, UNIFORM_WATERINTERSECTION, params[0], 11);
+		GL_BindToTMU(sim.gpuState[sim.gpuCurrent], TB_COLORMAP);
+		qglBindImageTexture(0, sim.gpuIntersection->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
+		qglDispatchCompute((sim.width + 7) / 8, (sim.height + 7) / 8, 1);
+		sim.intersectionFresh = sim.intersectionFoamFresh = true;
+		++dispatched;
+	}
+	qglBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+	GLSL_BindNullProgram();
+	if (!dispatched)
+		return;
+	// sampled by the next step / foam update, read back by RB_WaterIntersectionPollHits
+	qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+	s_water.intersectionHitSync[entry] = qglFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+	s_water.intersectionHitGeneration[entry] = s_water.intersectionGeneration;
+	s_water.intersectionHitNext = (entry + 1) % WATER_INTERSECTION_HIT_RING;
+	s_water.intersectionDispatches = dispatched;
+}
+
 void RB_WaterSurfacePrepare( void )
 {
 	FBO_t *oldFbo = glState.currentFBO;
@@ -6564,8 +7020,13 @@ void RB_WaterSurfacePrepare( void )
 		s_water.copyRect[2], s_water.copyRect[3]);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 0, 0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	FBO_Bind(tr.waterCopyFbo);
-	RB_WaterIntersectionInject();
+	if (R_WaterIntersectionComputeEnabled())
+		RB_WaterIntersectionCompute();
+	else
+	{
+		FBO_Bind(tr.waterCopyFbo);
+		RB_WaterIntersectionInject();
+	}
 
 	FBO_Bind(oldFbo);
 	GL_SetViewportAndScissor(viewParms.viewportX, viewParms.viewportY,
@@ -6597,10 +7058,65 @@ qboolean RB_WaterSurfaceReflectionBegin( void )
 	return qtrue;
 }
 
+static void RB_WaterMotionCommit(void)
+{
+	if (!r_waterSSRWaveReprojection || !r_waterSSRWaveReprojection->integer ||
+		s_water.motionCommitFrame == backEndData->realFrameNumber ||
+		!RB_WaterPrimaryFrame())
+		return;
+
+	// Draw uniforms were captured while building this primary view.  Promote
+	// only bodies actually rendered into the reflection history.
+	if (s_water.motionSnapshots.size() < s_water.pendingMotionSnapshots.size())
+		s_water.motionSnapshots.resize(s_water.pendingMotionSnapshots.size());
+	for (size_t i = 1; i < s_water.pendingMotionSnapshots.size(); ++i)
+	{
+		waterMotionSnapshot_t& pending = s_water.pendingMotionSnapshots[i];
+		if (pending.valid && pending.renderedFrame == backEndData->realFrameNumber)
+		{
+			assert(pending.generation == s_water.motionGeneration);
+			pending.generation = s_water.motionGeneration;
+			s_water.motionSnapshots[i] = pending;
+		}
+		pending.valid = false;
+	}
+
+	// The other solver ping-pong image is a previous fixed step, not a rendered
+	// frame.  Copy only resolved body rectangles after the reflection pass has
+	// finished reading the previous-rendered atlas.
+	if (s_water.previousInteractionAtlas && s_water.interactionAtlas && tr.waterInteractionFbo)
+	{
+		const auto copyStart = std::chrono::high_resolution_clock::now();
+		FBO_t *oldFbo = glState.currentFBO;
+		FBO_Bind(tr.waterInteractionFbo);
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			s_water.interactionAtlas->texnum, 0);
+		qglReadBuffer(GL_COLOR_ATTACHMENT0);
+		GL_BindToTMU(s_water.previousInteractionAtlas, 24);
+		for (waterBody_t& body : s_water.bodies)
+		{
+			waterInteractionState_t& sim = body.interaction;
+			if (!sim.image || !sim.resolvedForMotionHistory) continue;
+			qglCopyTexSubImage2D(GL_TEXTURE_2D, 0, sim.atlasX, sim.atlasY,
+				sim.atlasX, sim.atlasY, sim.width, sim.height);
+			sim.resolvedForMotionHistory = false;
+			sim.lastMotionCopyFrame = backEndData->realFrameNumber;
+		}
+		FBO_Bind(oldFbo);
+		s_water.motionCopyMsec = std::chrono::duration<float, std::milli>(
+			std::chrono::high_resolution_clock::now() - copyStart).count();
+	}
+	assert(!s_water.history.valid || s_water.history.frameNumber + 1 == backEndData->realFrameNumber ||
+		!RB_ScreenHistoryValid(s_water.history, s_water.reflectionScale));
+	s_water.interactionHistoryFrame = backEndData->realFrameNumber;
+	s_water.motionCommitFrame = backEndData->realFrameNumber;
+}
+
 void RB_WaterSurfaceReflectionEnd( void )
 {
 	screenViewInfo_t info;
 	RB_ScreenGetViewInfo(info);
+	RB_WaterMotionCommit();
 	RB_ScreenStoreHistory(s_water.history, info, s_water.reflectionScale, s_water.reflectionCurrent);
 	s_water.reflectionReady = qtrue;
 	FBO_Bind(tr.renderFbo);

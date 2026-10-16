@@ -63,6 +63,16 @@ The primary GL 3.2 path stores each body in two ping-pong `RGBA16F` state images
 
 Frame time enters an accumulator, is clamped to 250 ms after a hitch, and at most four steps are consumed per real frame. `backEndData->realFrameNumber` guards the update. Portal, mirror, sky-portal, and reflection views only sample the state produced by the main view.
 
+With latched `r_waterSSRWaveReprojection 1`, the resolved render atlas has a
+second, renderer-owned previous-rendered atlas. This is not either solver
+ping-pong image: after the primary water reflection pass consumes frame N-1,
+only body rectangles resolved for frame N are copied into it. A frame with
+zero fixed steps retains the same rendered height, while one with several
+catch-up steps still records exactly the single state seen by frame N. The CPU
+fallback follows the same dirty-rectangle commit. Sleeping rectangles remain
+valid at their last resolved state; allocation/remapping invalidates the water
+motion generation.
+
 An impulse adds a compact, smooth Mexican-hat velocity kernel. Its positive core and compensating trough are mean-corrected after mask clipping, conserving volume in a closed body and preventing a permanent DC water-height offset. Radius is clamped to at least 1.5 texels and at most 1024 world units; strength is clamped to `[-8, 8]`. An optional tangent direction biases the kernel without introducing a single-texel spike.
 
 Moving sources are tracked by stable entity ID. Their horizontal path is sampled at a physical spacing derived from body width; the leftover distance carries into the next frame. Injection density therefore depends on distance travelled rather than render frames or solver steps. Wake samples use an elongated bow/stern height-velocity dipole, and multiple samples, sources, and impulses superpose in the shared field and interfere naturally.

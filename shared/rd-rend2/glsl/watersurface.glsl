@@ -49,6 +49,28 @@ layout(std140) uniform Entity
 	float u_VertexLerp;
 };
 
+#if defined(USE_WATER_MOTION_REPROJECTION)
+layout(std140) uniform PreviousEntity
+{
+	mat4 u_PreviousModelMatrix;
+	vec4 u_PreviousLocalLightOrigin;
+	vec3 u_PreviousAmbientLight;
+	float u_PreviousEntityTime;
+	vec3 u_PreviousDirectedLight;
+	float u_PreviousFXVolumetricBase;
+	vec3 u_PreviousModelLightDir;
+	float u_PreviousVertexLerp;
+};
+
+layout(std140) uniform TemporalInfo
+{
+	mat4 u_previousViewProjectionMatrix;
+	vec2 u_currentJitter;
+	vec2 u_previousJitter;
+	float u_previousFrameTime;
+};
+#endif
+
 #if defined(USE_DEFORM_VERTEXES)
 layout(std140) uniform ShaderInstance
 {
@@ -74,6 +96,16 @@ out float var_GeometrySkirt;
 out vec3 var_ShoreData;
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform sampler2D u_WaterInteractionMap;
+#if defined(USE_WATER_MOTION_REPROJECTION)
+uniform vec4 u_WaterMotion[WATER_MOTION_VEC4S];
+uniform sampler2D u_WaterPrevInteractionMap;
+uniform mat4 u_SSRReproject; // exact water-history world-to-previous-clip matrix
+out vec4 var_PreviousClip;
+out vec3 var_PreviousPosition;
+out vec3 var_CurrentAnalytic;
+out vec3 var_PreviousAnalytic;
+out vec2 var_InteractionMotion;
+#endif
 uniform sampler2D u_WaterFlowField;	// r_waterFlowField: velocity / body speed, shore distance, impingement
 uniform vec4 u_WaterFlowParams[2];	// see the fragment stage
 
@@ -192,7 +224,8 @@ float CalculateDeformScale( in int func, in float time, in float phase, in float
 	}
 }
 
-vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
+vec3 DeformPositionAt(const vec3 pos, const vec3 normal, const vec2 st,
+	float entityTime, float shaderFrameTime, float shaderOffset)
 {
 	switch ( u_DeformType )
 	{
@@ -207,7 +240,7 @@ vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 			float bulgeWidth = u_DeformParams0.z; // phase
 			float bulgeSpeed = u_DeformParams0.w; // frequency
 
-			float scale = CalculateDeformScale( WF_SIN, (u_entityTime + u_frameTime + u_Time), bulgeWidth * st.x, bulgeSpeed );
+			float scale = CalculateDeformScale( WF_SIN, entityTime + shaderFrameTime + shaderOffset, bulgeWidth * st.x, bulgeSpeed );
 
 			return pos + normal * scale * bulgeHeight;
 		}
@@ -228,7 +261,7 @@ vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 			float spread = u_DeformParams1.x;
 
 			float offset = dot( pos.xyz, vec3( spread ) );
-			float scale = CalculateDeformScale( u_DeformFunc, (u_entityTime + u_frameTime + u_Time), phase + offset, frequency );
+			float scale = CalculateDeformScale( u_DeformFunc, entityTime + shaderFrameTime + shaderOffset, phase + offset, frequency );
 
 			return pos + normal * (base + scale * amplitude);
 		}
@@ -241,11 +274,16 @@ vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
 			float frequency = u_DeformParams0.w;
 			vec3 direction = u_DeformParams1.xyz;
 
-			float scale = CalculateDeformScale( u_DeformFunc, (u_entityTime + u_frameTime + u_Time), phase, frequency );
+			float scale = CalculateDeformScale( u_DeformFunc, entityTime + shaderFrameTime + shaderOffset, phase, frequency );
 
 			return pos + direction * (base + scale * amplitude);
 		}
 	}
+}
+
+vec3 DeformPosition(const vec3 pos, const vec3 normal, const vec2 st)
+{
+	return DeformPositionAt(pos, normal, st, u_entityTime, u_frameTime, u_Time);
 }
 
 vec3 DeformNormal( const in vec3 position, const in vec3 normal )
@@ -317,13 +355,116 @@ vec3 EvaluateWaterfallSheet(vec3 worldPosition, float time)
 	return sheetNormal * (breakup * regimeBreakup * (2.8 * sheetWave + 1.35 * medium));
 }
 
+#if defined(USE_WATER_MOTION_REPROJECTION)
+WaterWaveState EvaluatePreviousWaterSurface(vec3 worldPosition)
+{
+	WaterWaveState w;
+	w.displacement = vec3(0.0); w.slope = vec2(0.0); w.velocity = vec3(0.0);
+	w.height = 0.0; w.curvature = 0.0; w.attenuation = 1.0;
+	vec4 targetTerms[8], oldTerms[8], targetOmega[2], oldOmega[2];
+	for (int i = 0; i < 8; ++i)
+	{
+		targetTerms[i] = u_WaterMotion[WATER_MOTION_TARGET_TERMS + i];
+		oldTerms[i] = u_WaterMotion[WATER_MOTION_OLD_TERMS + i];
+	}
+	targetOmega[0] = u_WaterMotion[WATER_MOTION_TARGET_OMEGA];
+	targetOmega[1] = u_WaterMotion[WATER_MOTION_TARGET_OMEGA + 1];
+	oldOmega[0] = u_WaterMotion[WATER_MOTION_OLD_OMEGA];
+	oldOmega[1] = u_WaterMotion[WATER_MOTION_OLD_OMEGA + 1];
+	vec4 quality = u_WaterMotion[WATER_MOTION_WAVE_QUALITY];
+	WaterSurfaceCommonState state = EvaluateWaterSurfaceCommon(worldPosition,
+		u_WaterMotion[WATER_MOTION_FRAME].x, u_WaterMotion[WATER_MOTION_WAVE_CONTROL],
+		u_WaterMotion[WATER_MOTION_BODY_WAVES], quality,
+		u_WaterMotion[WATER_MOTION_FLOW], u_WaterMotion[WATER_MOTION_FLOW_DETAIL],
+		targetTerms, targetOmega, 1.0, u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].y);
+	float blend = clamp(u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].x, 0.0, 1.0);
+	if (blend < 0.999)
+	{
+		WaterSurfaceCommonState oldState = EvaluateWaterSurfaceCommon(worldPosition,
+			u_WaterMotion[WATER_MOTION_FRAME].x, u_WaterMotion[WATER_MOTION_WAVE_CONTROL],
+			u_WaterMotion[WATER_MOTION_BODY_WAVES], quality,
+			u_WaterMotion[WATER_MOTION_FLOW], u_WaterMotion[WATER_MOTION_FLOW_DETAIL],
+			oldTerms, oldOmega, 1.0, u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].y);
+		state.displacement = mix(oldState.displacement, state.displacement, blend);
+		state.slope = mix(oldState.slope, state.slope, blend);
+		state.height = mix(oldState.height, state.height, blend);
+	}
+	w.displacement = state.displacement; w.slope = state.slope; w.height = state.height;
+	return w;
+}
+
+vec3 PreviousWaterShoreData(float encodedDistance)
+{
+	vec4 shore = u_WaterMotion[WATER_MOTION_SHORE];
+	if (shore.x < 0.5 || shore.w < 0.5) return vec3(65504.0, 1.0, 0.0);
+	float distance = max(abs(encodedDistance) - 0.25, 0.0);
+	float rigid = step(encodedDistance, 0.0);
+	float width = max(shore.y, 1.0);
+	float profileShore = clamp(shore.z, 0.0, 1.5);
+	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
+	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	return vec3(distance,
+		mix(mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance)),
+			mix(rigidEdge, 1.0, smoothstep(0.0, width, distance)), rigid), rigid);
+}
+
+float PreviousWaterInteractionHeight(vec3 worldPosition)
+{
+	if (u_WaterMotion[WATER_MOTION_INTERACTION].z < 0.5 ||
+		u_WaterMotion[WATER_MOTION_FRAME].z < 0.5) return 0.0;
+	vec2 uv = (worldPosition.xy - u_WaterMotion[WATER_MOTION_BODY_MAPPING].xy) *
+		u_WaterMotion[WATER_MOTION_BODY_MAPPING].zw;
+	if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 0.0;
+	vec4 rect = u_WaterMotion[WATER_MOTION_INTERACTION_RECT];
+	vec4 field = texture(u_WaterPrevInteractionMap, rect.xy + uv * rect.zw);
+	return field.a > 0.5 ? field.r : 0.0;
+}
+
+float PreviousWaterWallPile(vec3 worldPosition)
+{
+	vec4 impact = u_WaterMotion[WATER_MOTION_FLOW_IMPACT];
+	if (impact.z < 0.5) return 0.0;
+	vec2 uv = (worldPosition.xy - u_WaterMotion[WATER_MOTION_BODY_MAPPING].xy) *
+		u_WaterMotion[WATER_MOTION_BODY_MAPPING].zw;
+	float impingement = textureLod(u_WaterFlowField, uv, 0.0).a;
+	float time = u_WaterMotion[WATER_MOTION_FRAME].x;
+	float slosh = 0.7 + 0.3 * sin(time * 3.3 + dot(worldPosition.xy, vec2(0.071, 0.053))) *
+		sin(time * 1.9 + dot(worldPosition.xy, vec2(-0.041, 0.083)) + 1.3);
+	return impingement * impact.w * slosh;
+}
+
+vec3 EvaluatePreviousWaterfallSheet(vec3 worldPosition)
+{
+	vec4 wf1 = u_WaterMotion[WATER_MOTION_WATERFALL_1];
+	vec4 wf2 = u_WaterMotion[WATER_MOTION_WATERFALL_2];
+	vec4 wf3 = u_WaterMotion[WATER_MOTION_WATERFALL_3];
+	vec3 fall = normalize(wf1.xyz), sheetNormal = normalize(wf2.xyz);
+	vec3 across = normalize(cross(sheetNormal, fall));
+	float along = clamp((dot(worldPosition, fall) - wf3.x) * wf2.w, 0.0, 1.0);
+	float side = dot(worldPosition, across);
+	float advected = dot(worldPosition, fall) - u_WaterMotion[WATER_MOTION_FRAME].x * wf1.w;
+	float sheetWave = sin(side * 0.0107 + advected * 0.0027) +
+		0.55 * sin(side * -0.023 + advected * 0.0061 + 1.7);
+	float medium = sin(side * 0.061 + advected * 0.018 + 0.7) * (0.25 + 0.75 * along);
+	return sheetNormal * (wf3.y * mix(0.16, 1.0, smoothstep(0.18, 0.86, along)) *
+		(2.8 * sheetWave + 1.35 * medium));
+}
+#endif
+
 void main()
 {
 	vec3 position = attr_Position;
 	vec3 normal   = attr_Normal * 2.0 - vec3(1.0);
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	vec3 previousObjectPosition = attr_Position;
+#endif
 
 #if defined(USE_DEFORM_VERTEXES)
 	position = DeformPosition(position, normal, attr_TexCoord0.st);
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	previousObjectPosition = DeformPositionAt(previousObjectPosition, normal, attr_TexCoord0.st,
+		u_PreviousEntityTime, u_previousFrameTime, u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].w);
+#endif
 	normal = DeformNormal(position, normal);
 #endif
 
@@ -331,7 +472,11 @@ void main()
 	var_BasePosition = wsPosition.xyz;
 	var_GeometryDisplacement = vec3(0.0);
 	var_GeometrySlope = vec2(0.0);
+	vec3 currentAnalytic = vec3(0.0);
+	float currentInteractionMotion = 0.0;
 	bool waterfallGeometry = u_Water[WATER_U_WATERFALL].x > 0.5;
+	float currentSkirt = waterfallGeometry ||
+		(u_Water[WATER_U_GEOMETRY_FOAM].z > 2.5 && u_Water[WATER_U_GEOMETRY_FOAM].z < 3.5) ? 1.0 : attr_TexCoord1.x;
 	var_GeometrySkirt = waterfallGeometry ? 0.0 : 1.0 - attr_TexCoord1.x;
 	var_ShoreData = waterfallGeometry ? vec3(65000.0, 1.0, 0.0) : WaterShoreData(attr_TexCoord1.y);
 	if (u_Water[WATER_U_GEOMETRY_FOAM].y > 0.5)
@@ -344,20 +489,63 @@ void main()
 			geometryWave.displacement *= var_ShoreData.y;
 			geometryWave.slope *= var_ShoreData.y;
 		}
+		currentAnalytic = geometryWave.displacement;
 		float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
 		// Local disturbances reflect at walls; only the ambient macro waves are
 		// suppressed near the boundary, so the field keeps most of its height.
 		float interactionEdge = mix(clamp(0.60 + profileShore * 0.10, 0.60, 0.75),
 			clamp(0.45 + profileShore * 0.05, 0.45, 0.55), var_ShoreData.z);
 		if (u_Water[WATER_U_WATERFALL].x < 0.5)
-			geometryWave.displacement.z += WaterInteractionHeight(var_BasePosition) * max(var_ShoreData.y, interactionEdge);
+		{
+			currentInteractionMotion = WaterInteractionHeight(var_BasePosition) * max(var_ShoreData.y, interactionEdge);
+			geometryWave.displacement.z += currentInteractionMotion;
+		}
 		if (!waterfallGeometry && u_WaterFlowParams[0].z > 0.5)
 			geometryWave.displacement.z += WaterWallPile(var_BasePosition, u_Water[WATER_U_FRAME].z);
-		var_GeometryDisplacement = geometryWave.displacement *
-			(waterfallGeometry || (u_Water[WATER_U_GEOMETRY_FOAM].z > 2.5 && u_Water[WATER_U_GEOMETRY_FOAM].z < 3.5) ? 1.0 : attr_TexCoord1.x);
+		var_GeometryDisplacement = geometryWave.displacement * currentSkirt;
 		var_GeometrySlope = waterfallGeometry ? vec2(0.0) : geometryWave.slope * attr_TexCoord1.x;
 		wsPosition.xyz += var_GeometryDisplacement;
 	}
+
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	vec4 previousWsPosition = u_PreviousModelMatrix * vec4(previousObjectPosition, 1.0);
+	vec3 previousBasePosition = previousWsPosition.xyz;
+	vec3 previousAnalytic = vec3(0.0);
+	float previousInteractionMotion = 0.0;
+	if (u_WaterMotion[WATER_MOTION_SHORE].w > 0.5)
+	{
+		bool previousWaterfall = u_WaterMotion[WATER_MOTION_WATERFALL].x > 0.5;
+		vec3 previousShore = previousWaterfall ? vec3(65000.0, 1.0, 0.0) :
+			PreviousWaterShoreData(attr_TexCoord1.y);
+		WaterWaveState previousWave = EvaluatePreviousWaterSurface(previousBasePosition);
+		if (previousWaterfall)
+			previousWave.displacement = EvaluatePreviousWaterfallSheet(previousBasePosition);
+		else
+			previousWave.displacement *= previousShore.y;
+		previousAnalytic = previousWave.displacement;
+		float profileShore = clamp(u_WaterMotion[WATER_MOTION_SHORE].z, 0.0, 1.5);
+		float interactionEdge = mix(clamp(0.60 + profileShore * 0.10, 0.60, 0.75),
+			clamp(0.45 + profileShore * 0.05, 0.45, 0.55), previousShore.z);
+		if (!previousWaterfall)
+		{
+			previousInteractionMotion = PreviousWaterInteractionHeight(previousBasePosition) *
+				max(previousShore.y, interactionEdge);
+			previousWave.displacement.z += previousInteractionMotion;
+			previousWave.displacement.z += PreviousWaterWallPile(previousBasePosition);
+		}
+		previousWsPosition.xyz += previousWave.displacement *
+			(u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].z > 0.5 ? 1.0 : attr_TexCoord1.x);
+	}
+	var_PreviousPosition = previousWsPosition.xyz;
+	// Use the transform stored with the water SSR images, not an independently
+	// advancing camera matrix.  Both sides now name the same rendered frame.
+	var_PreviousClip = u_SSRReproject * previousWsPosition;
+	float previousSkirt = u_WaterMotion[WATER_MOTION_WIND_GEOMETRY].z > 0.5 ? 1.0 : attr_TexCoord1.x;
+	var_CurrentAnalytic = currentAnalytic * currentSkirt;
+	var_PreviousAnalytic = previousAnalytic * previousSkirt;
+	var_InteractionMotion = vec2(currentInteractionMotion * currentSkirt,
+		previousInteractionMotion * previousSkirt);
+#endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
 	var_Position = wsPosition.xyz;
@@ -420,6 +608,9 @@ void main()
 
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform vec4 u_WaterPass; // x: reflection prepass, y: history / resolved reflection valid, z: history weight
+#if defined(USE_WATER_MOTION_REPROJECTION)
+uniform vec4 u_WaterMotion[WATER_MOTION_VEC4S];
+#endif
 uniform vec4 u_WaterOptics2; // x: opt-in rough dielectric transmission / eta transport
 uniform sampler2D u_GlowMap;
 
@@ -504,6 +695,13 @@ in vec3 var_ShoreData;
 in vec3 var_Position;
 in vec3 var_Normal;
 in vec2 var_FlowTex;
+#if defined(USE_WATER_MOTION_REPROJECTION)
+in vec4 var_PreviousClip;
+in vec3 var_PreviousPosition;
+in vec3 var_CurrentAnalytic;
+in vec3 var_PreviousAnalytic;
+in vec2 var_InteractionMotion;
+#endif
 
 out vec4 out_Color;
 out vec4 out_Glow;
@@ -966,9 +1164,16 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 	// Receiver-relative vectors retain useful precision in RGBA16F regardless
 	// of the map's absolute world coordinates.
 	vec4 hit = vec4(R * distance, ssr.a > 0.0 ? 1.0 : 0.0);
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	bool receiverHistoryValid = u_WaterMotion[WATER_MOTION_FRAME].y > 0.5;
+	if (u_WaterPass.y > 0.5 && hit.w > 0.0 && receiverHistoryValid)
+	{
+		vec4 prevClip = var_PreviousClip;
+#else
 	if (u_WaterPass.y > 0.5 && hit.w > 0.0)
 	{
 		vec4 prevClip = u_SSRReproject * vec4(P, 1.0);
+#endif
 		vec2 prevUV = (prevClip.xy / max(prevClip.w, 1e-4) * 0.5 + 0.5) * u_Water[WATER_U_VIEWPORT].zw + u_Water[WATER_U_VIEWPORT].xy;
 		if (prevClip.w > 0.0 && SSRInsideView(prevUV))
 		{
@@ -978,9 +1183,17 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 			vec4 old = texture(u_SSRHistoryMap, prevUV);
 			float tolerance = max(0.01 * z, 0.5);
 			float cone = max(2.0, distance * SSRConeTangent(roughness));
+#if defined(USE_WATER_MOTION_REPROJECTION)
+			vec3 previousHitWorld = var_PreviousPosition + oldHit.xyz;
+			vec3 currentHitWorld = P + hit.xyz;
+			if (geom.x > 0.0 && abs(geom.x - prevClip.w) < tolerance &&
+				dot(SSRDecodeNormal(geom.yz), N) > 0.97 && abs(geom.w - roughness) < 0.05 &&
+				oldHit.w > 0.0 && length(previousHitWorld - currentHitWorld) < cone)
+#else
 			if (geom.x > 0.0 && abs(geom.x - prevClip.w) < tolerance &&
 				dot(SSRDecodeNormal(geom.yz), N) > 0.97 && abs(geom.w - roughness) < 0.05 &&
 				oldHit.w > 0.0 && length(oldHit.xyz - hit.xyz) < cone)
+#endif
 			{
 				// A changed reflected object or wave must not leave a trail. Bound
 				// the history to current radiance and reduce its weight with motion.
@@ -993,6 +1206,39 @@ void WaterReflectionPass(vec3 P, vec3 V, vec3 N, vec3 Ng, bool inside, float rou
 			}
 		}
 	}
+
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	int motionDebug = int(u_WaterMotion[WATER_MOTION_FRAME].w + 0.5);
+	if (motionDebug > 0)
+	{
+		vec2 previousUV = var_PreviousClip.xy / max(var_PreviousClip.w, 1e-4) * 0.5 + 0.5;
+		vec2 currentUV = uv;
+		if (motionDebug == 1) current = vec4(receiverHistoryValid ? vec3(0.1, 1.0, 0.2) : vec3(1.0, 0.1, 0.1), 1.0);
+		else if (motionDebug == 2) current = vec4(fract(abs(P) * 0.03125), 1.0);
+		else if (motionDebug == 3) current = vec4(fract(abs(var_PreviousPosition) * 0.03125), 1.0);
+		else if (motionDebug == 4) current = vec4(0.5 + (previousUV - currentUV) * 16.0, length(previousUV - currentUV) * 32.0, 1.0);
+		else if (motionDebug == 5) current = vec4(abs(var_CurrentAnalytic - var_PreviousAnalytic) * 0.25, 1.0);
+		else if (motionDebug == 6) current = vec4(abs(var_InteractionMotion.x - var_InteractionMotion.y), var_InteractionMotion * 0.1 + 0.5, 1.0);
+		else if (motionDebug == 7) current = vec4(abs((P - var_PreviousPosition) - (var_GeometryDisplacement - var_PreviousAnalytic)) * 0.1, 1.0);
+		else if (motionDebug == 8) current = vec4(previousUV, length(previousUV - currentUV) * 32.0, 1.0);
+		else if (motionDebug == 9) current = vec4(u_WaterMotion[WATER_MOTION_INTERACTION].w / 11.0, receiverHistoryValid ? 1.0 : 0.0, 0.0, 1.0);
+		else
+		{
+			if (u_WaterPass.y <= 0.5)
+			{
+				current = vec4(1.0, 0.0, 0.0, 1.0);
+				out_Color = current;
+				out_Glow = vec4(z, SSREncodeNormal(N), roughness);
+				out_SSRNormal = hit;
+				return;
+			}
+			vec4 cameraClip = u_SSRReproject * vec4(P, 1.0);
+			vec2 cameraUV = cameraClip.xy / max(cameraClip.w, 1e-4) * 0.5 + 0.5;
+			current = gl_FragCoord.x < 0.5 * float(textureSize(u_SSRHistoryMap, 0).x) ?
+				vec4(cameraUV, 0.0, 1.0) : vec4(previousUV, 1.0, 1.0);
+		}
+	}
+#endif
 	out_Color = current;
 	out_Glow = vec4(z, SSREncodeNormal(N), roughness);
 	out_SSRNormal = hit;

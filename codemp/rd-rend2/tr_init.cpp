@@ -247,6 +247,8 @@ cvar_t	*r_waterSurfaceRefraction;
 cvar_t	*r_waterSurfaceDepthReject;
 cvar_t	*r_waterSurfaceReflection;
 cvar_t	*r_waterSurfaceSSR;
+cvar_t	*r_waterSSRWaveReprojection;
+cvar_t	*r_waterMotionDebug;
 cvar_t	*r_waterSurfaceAbsorption;
 cvar_t	*r_waterSurfaceDepthScale;
 cvar_t	*r_waterSurfaceExperimental;
@@ -584,6 +586,7 @@ cvar_t  *r_forwardPlusMaxLightsPerCluster;
 cvar_t  *r_forwardPlusDebug;
 cvar_t  *r_forwardPlusDebugLight;
 cvar_t  *r_forwardPlusMaxShadowLights;
+cvar_t  *r_forwardPlusCompute;
 cvar_t  *r_ltcAreaLights;
 cvar_t  *r_ltcDebug;
 cvar_t  *r_ltcDebugLight;
@@ -2736,6 +2739,8 @@ void R_Register( void )
 	r_forwardPlusDebugLight = ri.Cvar_Get( "r_forwardPlusDebugLight", "0", CVAR_CHEAT, "Forward+: light index shown by r_forwardPlusDebug 9" );
 	r_forwardPlusMaxShadowLights = ri.Cvar_Get( "r_forwardPlusMaxShadowLights", "4", CVAR_ARCHIVE, "Forward+: dynamic lights with a shadow cube (needs r_dlightMode 2), the most important ones get them" );
 	ri.Cvar_CheckRange( r_forwardPlusMaxShadowLights, 0, MAX_DLIGHT_SHADOWS, qtrue );
+	r_forwardPlusCompute = ri.Cvar_Get( "r_forwardPlusCompute", "1", CVAR_ARCHIVE, "Forward+: 1 = cluster lists built by a GL 4.3 compute shader when available (r_gl43), 0 = built on the CPU" );
+	ri.Cvar_CheckRange( r_forwardPlusCompute, 0, 1, qtrue );
 
 	r_ltcAreaLights = ri.Cvar_Get( "r_ltcAreaLights", "0", CVAR_ARCHIVE | CVAR_LATCH, "LTC rectangle / line area lights (maps/<map>.arealights.json, saber lines), requires r_forwardPlus 1" );
 	r_ltcDebug = ri.Cvar_Get( "r_ltcDebug", "0", CVAR_CHEAT | CVAR_LATCH, "LTC debug: 1-8 lighting, 9 static visibility, 10 cache slot, 11 saber cube, 12 saber screen, 13 confidence, 14 hybrid visibility" );
@@ -3218,6 +3223,12 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_waterSurfaceReflection, 0.0f, 4.0f, qfalse);
 	r_waterSurfaceSSR = ri.Cvar_Get("r_waterSurfaceSSR", "1.0", CVAR_ARCHIVE, "r_waterSurface: weight of the screen-space reflections over the cubemap (independent of opaque r_ssr; 0 = cubemap only)");
 	ri.Cvar_CheckRange(r_waterSurfaceSSR, 0.0f, 1.0f, qfalse);
+	r_waterSSRWaveReprojection = ri.Cvar_Get("r_waterSSRWaveReprojection", "0", CVAR_ARCHIVE | CVAR_LATCH,
+		"Use exact previous-rendered water geometry for temporal SSR reprojection");
+	ri.Cvar_CheckRange(r_waterSSRWaveReprojection, 0, 1, qtrue);
+	r_waterMotionDebug = ri.Cvar_Get("r_waterMotionDebug", "0", CVAR_CHEAT,
+		"Water receiver motion debug (1 validity, 2 current, 3 previous, 4 screen motion, 5 analytic, 6 interaction, 7 waterfall/legacy, 8 previous UV, 9 invalidation, 10 camera-only split)");
+	ri.Cvar_CheckRange(r_waterMotionDebug, 0, 10, qtrue);
 	r_waterSurfaceAbsorption = ri.Cvar_Get("r_waterSurfaceAbsorption", "1.0", CVAR_ARCHIVE, "r_waterSurface: shared liquid extinction scale for surface and volume (r_volumetricWaterExtinction / Color, Slime)");
 	ri.Cvar_CheckRange(r_waterSurfaceAbsorption, 0.0f, 16.0f, qfalse);
 	r_waterSurfaceDepthScale = ri.Cvar_Get("r_waterSurfaceDepthScale", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the path length under the surface (water thickness from the depth buffer)");

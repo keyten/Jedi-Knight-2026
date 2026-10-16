@@ -71,7 +71,13 @@ compiles and links without a fatal renderer error, and returns false on
 failure. It initializes the normal uniform interface and supports
 `GLSL_BindProgram` / `GLSL_DeleteGPUShader`. It accepts an empty program;
 the feature owns deletion and must not put it into the graphics draw queue.
-This initial helper does not use the graphics program binary cache.
+It uses the program binary cache (`r_shaderProgramCache`) like the graphics programs.
+
+A standalone kernel lives in its own `glsl/<name>.glsl` with a single `/*[Compute]*/` block
+(`GPUSHADER_COMPUTE`, embedded by `compact_glsl` like every other file). `GLSL_LoadComputeProgram(sp, name,
+fallback_<name>Program, defines, allocator, requiredFeatures)` prepends the normal renderer header and returns
+false without the modern tier. New files must also be added to the explicit list next to the GLSL glob in both
+`code/rd-rend2/CMakeLists.txt` and `codemp/rd-rend2/CMakeLists.txt`, so configured build trees pick them up.
 
 Choose barriers for the **next consumer**: shader storage access uses
 `GL_SHADER_STORAGE_BARRIER_BIT`, vertex fetch uses
@@ -81,10 +87,13 @@ Choose barriers for the **next consumer**: shader storage access uses
 reuse can also require fences; a memory barrier alone is not a CPU wait.
 See the [Khronos memory barrier reference](https://registry.khronos.org/OpenGL-Refpages/gl4/html/glMemoryBarrier.xhtml).
 
-Good candidates for later measured optimizations are Forward+ light-list
-construction (currently on the CPU), weather simulation (currently transform
-feedback), and image-based Hi-Z/AO or froxel fog passes. Each needs its own
-implementation, comparison of output with the baseline, and GPU timings.
+Implemented modern paths: froxel fog injection / media / integration
+([rend2-volumetric-fog.md](rend2-volumetric-fog.md)), the Forward+ cluster build
+([rend2-forward-plus.md](rend2-forward-plus.md), `r_forwardPlusCompute`) and the water
+intersection contacts without a depth readback
+([rend2-water-intersection-foam.md](rend2-water-intersection-foam.md)). The review of
+every other effect and the remaining candidates is in
+[rend2-gl43-review.md](rend2-gl43-review.md).
 
 ## Validation
 

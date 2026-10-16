@@ -459,6 +459,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterDepthMap",		GLSL_INT, 1 },
 	{ "u_WaterNormalMap",		GLSL_INT, 1 },
 	{ "u_WaterInteractionMap",	GLSL_INT, 1 },
+	{ "u_WaterPrevInteractionMap", GLSL_INT, 1 },
+	{ "u_WaterMotion",			GLSL_VEC4, WATER_MOTION_VEC4S },
 	{ "u_WaterInteractionState",	GLSL_INT, 1 },
 	{ "u_WaterInteractionSource",	GLSL_INT, 1 },
 	{ "u_WaterBathymetryMap",	GLSL_INT, 1 },
@@ -485,6 +487,12 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_GlowMap", GLSL_INT, 1 },
 
 	{ "u_WaterParticles",		GLSL_VEC4, 2 },
+
+	{ "u_WaterIntersection",	GLSL_VEC4, 11 },
+	{ "u_WaterIntersectionMap",	GLSL_INT, 1 },
+	{ "u_WaterFoamIntersectionMap",	GLSL_INT, 1 },
+	{ "u_WaterFoamIntersectionParams",	GLSL_VEC4, 1 },
+	{ "u_FPlusCluster",			GLSL_VEC4, 8 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -1088,6 +1096,9 @@ GLenum ToGLShaderType( GPUShaderType type )
 
 		case GPUSHADER_GEOMETRY:
 			return GL_GEOMETRY_SHADER;
+
+		case GPUSHADER_COMPUTE:
+			return GL_COMPUTE_SHADER;
 
 		default:
 			assert(!"Invalid shader type");
@@ -2463,6 +2474,36 @@ static const GPUProgramDesc *LoadProgramSource(
 	return result;
 }
 
+// A standalone GL 4.3 kernel: the /*[Compute]*/ block of glsl/<name>.glsl with
+// the common renderer header and `defines`. False (sp left empty, no error)
+// without the modern tier or on a compile / link failure: the caller keeps
+// its GL 3.2 path.
+static bool GLSL_LoadComputeProgram( shaderProgram_t *sp, const char *name,
+	const GPUProgramDesc& fallback, const char *defines, Allocator& scratchAlloc,
+	uint32_t requiredFeatures )
+{
+	if ( sp->program || !R_HasModernFeatures(requiredFeatures | MODERN_COMPUTE) )
+		return sp->program != 0;
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUProgramDesc *programDesc = LoadProgramSource(name, allocator, fallback);
+	for ( size_t i = 0; i < programDesc->numShaders; ++i )
+	{
+		const GPUShaderDesc& kernel = programDesc->shaders[i];
+		if ( kernel.type != GPUSHADER_COMPUTE )
+			continue;
+		std::vector<char> source(16384 + strlen(kernel.source) + strlen(defines));
+		if ( !GLSL_GetShaderHeader(GL_COMPUTE_SHADER, defines, nullptr,
+				kernel.firstLineNumber, source.data(), source.size()) )
+			return false;
+		Q_strcat(source.data(), source.size(), kernel.source);
+		// GLSL_InitComputeShader supplies the version directive itself.
+		const char *body = strchr(source.data(), '\n');
+		return body && GLSL_InitComputeShader(sp, name, body + 1, requiredFeatures);
+	}
+	ri.Printf(PRINT_WARNING, "glsl/%s.glsl has no compute block\n", name);
+	return false;
+}
+
 // Shared exposure/tone mapping functions (glsl/output_transform.glsl) used by
 // the tone map and refraction programs
 static const GPUShaderDesc *LoadOutputTransformLibrary( Allocator& allocator )
@@ -3035,7 +3076,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 	{
 		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
 		char name[64];
-		char extradefines[2048];
+		char extradefines[4096];
 		Q_strncpyz(name, "watersurface", sizeof(name));
 		Com_sprintf(extradefines, sizeof(extradefines),
 			"#define WATER_UNIFORM_VEC4S %d\n"
@@ -3061,6 +3102,21 @@ static int GLSL_LoadGPUProgramWaterSurface(
 			WATER_U_FOAM, WATER_U_WHITEWATER, WATER_U_WATERFALL,
 			WATER_U_OLD_TERMS, WATER_U_WIND, WATER_U_GEOMETRY,
 			WATER_U_TARGET_OMEGA, WATER_U_OLD_OMEGA);
+		if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+			Q_strcat(extradefines, sizeof(extradefines), va(
+				"#define WATER_MOTION_VEC4S %d\n"
+				"#define WATER_MOTION_FRAME %d\n#define WATER_MOTION_WAVE_CONTROL %d\n#define WATER_MOTION_WAVE_QUALITY %d\n"
+				"#define WATER_MOTION_BODY_WAVES %d\n#define WATER_MOTION_FLOW %d\n#define WATER_MOTION_FLOW_DETAIL %d\n"
+				"#define WATER_MOTION_BODY_MAPPING %d\n#define WATER_MOTION_INTERACTION %d\n#define WATER_MOTION_INTERACTION_RECT %d\n"
+				"#define WATER_MOTION_SHORE %d\n#define WATER_MOTION_WATERFALL %d\n"
+				"#define WATER_MOTION_TARGET_TERMS %d\n#define WATER_MOTION_OLD_TERMS %d\n#define WATER_MOTION_WIND_GEOMETRY %d\n"
+				"#define WATER_MOTION_TARGET_OMEGA %d\n#define WATER_MOTION_OLD_OMEGA %d\n#define WATER_MOTION_FLOW_IMPACT %d\n",
+				WATER_MOTION_VEC4S, WATER_MOTION_FRAME, WATER_MOTION_WAVE_CONTROL, WATER_MOTION_WAVE_QUALITY,
+				WATER_MOTION_BODY_WAVES, WATER_MOTION_FLOW, WATER_MOTION_FLOW_DETAIL,
+				WATER_MOTION_BODY_MAPPING, WATER_MOTION_INTERACTION, WATER_MOTION_INTERACTION_RECT,
+				WATER_MOTION_SHORE, WATER_MOTION_WATERFALL, WATER_MOTION_TARGET_TERMS,
+				WATER_MOTION_OLD_TERMS, WATER_MOTION_WIND_GEOMETRY, WATER_MOTION_TARGET_OMEGA,
+				WATER_MOTION_OLD_OMEGA, WATER_MOTION_FLOW_IMPACT));
 		if (R_SSRResourcesEnabled() && !R_SSROpaqueResourcesEnabled())
             Q_strcat(extradefines, sizeof(extradefines), "#define USE_SSR\n");
 		if (i & WATERDEF_USE_HIZ)
@@ -3076,6 +3132,8 @@ static int GLSL_LoadGPUProgramWaterSurface(
 			Q_strcat(name, sizeof(name), "_DEFORM");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_DEFORM_VERTEXES\n");
 		}
+		if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_MOTION_REPROJECTION\n");
 		// a permutation, not a uniform branch: r_waterSnell 0 runs the prompt-1
 		// program unchanged (bit identical) and the cvar still toggles live
 		if (i & WATERDEF_USE_SNELL)
@@ -3107,6 +3165,9 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERINTERACTIONMAP, 19);
+		// Water foam already occupies 18; 24 is free in this program and matches
+		// the renderer's existing extended water/atmosphere sampler layout.
+		GLSL_SetUniformInt(sp, UNIFORM_WATERPREVINTERACTIONMAP, 24);
 		// units 16/17 are free in the water program (entity grid units are lightall only)
 		GLSL_SetUniformInt(sp, UNIFORM_WATERFOAMPATTERNMAP, 16);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERFLOWFIELDMAP, 17);
@@ -4357,6 +4418,7 @@ static int GLSL_LoadGPUProgramWaterFoamField(
 	// foam map / source use TB_WATERFOAM / TB_WATERFOAMSOURCE (generic setup)
 	GLSL_SetUniformInt(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERACTIONMAP, TB_WATERRAIN);
 	GLSL_SetUniformInt(&tr.waterFoamFieldShader, UNIFORM_WATERFLOWFIELDMAP, 21);
+	GLSL_SetUniformInt(&tr.waterFoamFieldShader, UNIFORM_WATERFOAMINTERSECTIONMAP, 22);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.waterFoamFieldShader);
 	return 1;
@@ -4380,8 +4442,32 @@ static int GLSL_LoadGPUProgramWaterInteractionField(
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERACTIONSOURCE, TB_NORMALMAP);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERBATHYMETRYMAP, TB_DELUXEMAP);
 	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERFLOWFIELDMAP, TB_SPECULARMAP);
+	GLSL_SetUniformInt(&tr.waterInteractionFieldShader, UNIFORM_WATERINTERSECTIONMAP, TB_SHADOWMAP);
 	qglUseProgram(0);
 	GLSL_FinishGPUShader(&tr.waterInteractionFieldShader);
+
+	// GL 4.3: depth contacts without the readback of RB_WaterIntersectionInject
+	// (r_waterIntersectionFoam is not latched, so whenever the field exists)
+	int numPrograms = 1;
+	if (GLSL_LoadComputeProgram(&tr.waterIntersectionComputeShader, "water_intersection",
+			fallback_water_intersectionProgram, "", scratchAlloc, MODERN_IMAGE_LOAD_STORE | MODERN_SSBO))
+	{
+		qglUseProgram(tr.waterIntersectionComputeShader.program);
+		GLSL_SetUniformInt(&tr.waterIntersectionComputeShader, UNIFORM_WATERINTERACTIONSTATE, TB_COLORMAP);
+		GLSL_SetUniformInt(&tr.waterIntersectionComputeShader, UNIFORM_WATERDEPTHMAP, TB_LIGHTMAP);
+		qglUseProgram(0);
+		numPrograms++;
+	}
+	return numPrograms;
+}
+
+static int GLSL_LoadGPUProgramForwardPlusCluster( Allocator& scratchAlloc )
+{
+	// r_forwardPlus / r_forwardPlusCompute switch at run time: a small kernel,
+	// built whenever the modern tier is available
+	if (!GLSL_LoadComputeProgram(&tr.forwardPlusClusterShader, "fplus_cluster",
+			fallback_fplus_clusterProgram, "", scratchAlloc, MODERN_SSBO))
+		return 0;
 	return 1;
 }
 
@@ -5272,6 +5358,12 @@ static int GLSL_CountStartupPrograms()
 		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
 	if (R_WaterFoamResourcesEnabled())
 		++count;
+	// GL 4.3 kernels: water depth contacts, Forward+ cluster build
+	if (r_waterInteraction && r_waterInteraction->integer &&
+		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE | MODERN_SSBO))
+		++count;
+	if (R_HasModernFeatures(MODERN_COMPUTE | MODERN_SSBO))
+		++count;
 	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
 	count += 4;
 	// noise, march, resolve, composite, shadow map (GLSL_LoadGPUProgramClouds)
@@ -5412,6 +5504,7 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramWeatherRipple(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterInteractionField(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramForwardPlusCluster(allocator);
 	if (r_cubeMapping->integer)
 		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
 	if (r_diffuseIBL->integer)
@@ -5543,6 +5636,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.weatherWetnessShader);
 	GLSL_DeleteGPUShader(&tr.waterFoamFieldShader);
 	GLSL_DeleteGPUShader(&tr.waterInteractionFieldShader);
+	GLSL_DeleteGPUShader(&tr.waterIntersectionComputeShader);
+	GLSL_DeleteGPUShader(&tr.forwardPlusClusterShader);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

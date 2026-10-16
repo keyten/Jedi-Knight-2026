@@ -31,15 +31,16 @@ surface-patch data path and a stock-map audit can be delivered together.
 
 ### Wave-aware temporal reprojection
 
-The current SSR validation already rejects gross history errors, but exact
-receiver motion needs a previous rendered analytic spectrum/blend, previous
-waterfall time, and a previous resolved interaction atlas from the same render
-frame. The solver's other ping-pong image is a previous *solver step*, not a
-previous rendered frame, so binding it would implement the specific partial
-solution rejected by the review. Adding only analytic motion would still be
-wrong on the strongest interaction/waterfall cases. This remains deferred
-until the renderer owns a previous-rendered water state and can share it with
-the velocity target as well as SSR.
+Implemented as the opt-in, latched `r_waterSSRWaveReprojection`. The renderer
+owns a compact previous-rendered geometry snapshot and a separate resolved
+interaction-history atlas committed with the water SSR color/geometry/hit
+history. Analytic wind transitions retain exact old/target spectra and omega;
+waterfall, shoreline/skirt, supported legacy positional deforms and previous
+entity transforms use the same vertex path. Solver ping-pong images remain
+simulation-only. The shader exposes the same current/previous world and clip
+positions needed by a future general velocity integration, but this change
+intentionally adds neither a separate water velocity pass nor a placeholder
+motion-vector cvar.
 
 ### Explicit exclusions
 

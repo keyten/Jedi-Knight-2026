@@ -126,7 +126,9 @@ file(GLOB SPRend2GLSLFiles "${SharedDir}/rd-rend2/glsl/*.glsl")
 # the glob alone does not make CMake watch for new files.
 list(APPEND SPRend2GLSLFiles
 	"${SharedDir}/rd-rend2/glsl/weather_lighting.glsl"
-	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl")
+	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl"
+	"${SharedDir}/rd-rend2/glsl/water_intersection.glsl"
+	"${SharedDir}/rd-rend2/glsl/fplus_cluster.glsl")
 list(REMOVE_DUPLICATES SPRend2GLSLFiles)
 source_group("renderer\\glsl" FILES ${SPRend2GLSLFiles})
 set(SPRend2Files ${SPRend2Files} ${SPRend2GLSLFiles})

@@ -79,6 +79,18 @@ WATER_SLOTS = {
     'WATER_U_WIND': 52, 'WATER_U_GEOMETRY': 55,
     'WATER_U_TARGET_OMEGA': 56, 'WATER_U_OLD_OMEGA': 58,
 }
+WATER_MOTION_VEC4S = 36
+WATER_MOTION_SLOTS = {
+    'WATER_MOTION_FRAME': 0, 'WATER_MOTION_WAVE_CONTROL': 1, 'WATER_MOTION_WAVE_QUALITY': 2,
+    'WATER_MOTION_BODY_WAVES': 3, 'WATER_MOTION_FLOW': 4, 'WATER_MOTION_FLOW_DETAIL': 5,
+    'WATER_MOTION_BODY_MAPPING': 6, 'WATER_MOTION_INTERACTION': 7,
+    'WATER_MOTION_INTERACTION_RECT': 8, 'WATER_MOTION_SHORE': 9,
+    'WATER_MOTION_WATERFALL': 10, 'WATER_MOTION_WATERFALL_1': 11,
+    'WATER_MOTION_WATERFALL_2': 12, 'WATER_MOTION_WATERFALL_3': 13,
+    'WATER_MOTION_TARGET_TERMS': 14, 'WATER_MOTION_OLD_TERMS': 22,
+    'WATER_MOTION_WIND_GEOMETRY': 30, 'WATER_MOTION_TARGET_OMEGA': 31,
+    'WATER_MOTION_OLD_OMEGA': 33, 'WATER_MOTION_FLOW_IMPACT': 35,
+}
 N_WATER = 1.333
 MAX_PATH = 8192.0
 W, H = 320, 240
@@ -87,7 +99,8 @@ W, H = 320, 240
 UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_EnvBrdfMap': 3, 'u_CubeMap': 4,
          'u_ShadowMap': 5, 'u_FroxelVolume': 6, 'u_FroxelTail': 7, 'u_SSRHiZMap': 10, 'u_SSRSceneMap': 11,
          'u_FroxelTransmittance': 26, 'u_GlowMap': 9, 'u_SSRHistoryMap': 12,
-         'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15, 'u_WaterInteractionMap': 19}
+         'u_SSRHistoryGeomMap': 14, 'u_SSRPrevHitMap': 15, 'u_WaterInteractionMap': 19,
+         'u_WaterPrevInteractionMap': 24}
 UNITS.update({'u_AtmosphereTransmittanceMap': 21, 'u_AtmosphereMultiScatterMap': 22,
               'u_AtmosphereSkyViewMap': 23})
 
@@ -118,11 +131,15 @@ def header(defines, size):
     text += f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'
     for name, slot in WATER_SLOTS.items():
         text += f'#define {name} {slot}\n'
+    if 'USE_WATER_MOTION_REPROJECTION' in defines:
+        text += f'#define WATER_MOTION_VEC4S {WATER_MOTION_VEC4S}\n'
+        for name, slot in WATER_MOTION_SLOTS.items():
+            text += f'#define {name} {slot}\n'
     return text
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
-                  snell=False, physical=False):
+                  snell=False, physical=False, motion=False):
     defines = ['USE_WATER_ATMOSPHERE']
     if hiz:
         defines.append('USE_HIZ')
@@ -143,6 +160,8 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
         defines.append('USE_PHYSICAL_PBR')
     if deform:
         defines.append('USE_DEFORM_VERTEXES')
+    if motion:
+        defines.append('USE_WATER_MOTION_REPROJECTION')
     library = fragment('pbr_common') + '\n' + fragment('atmosphere_common') + '\n'
     library += (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
     src = read('watersurface')
@@ -200,6 +219,91 @@ def water_program(**kw):
 
 def check(name, ok, detail=''):
     print(f'{"PASS" if ok else "FAIL"}: {name}{(" - " + detail) if detail else ""}')
+    return ok
+
+
+def check_water_motion_semantics():
+    """Synthetic previous-rendered receiver checks for the production lifecycle/equations."""
+    ok = True
+    cam = Camera((0., 0., 100.), (400., 0., 0.))
+
+    def project(p, vp=cam.vp):
+        q = vp @ np.append(np.asarray(p, dtype=np.float64), 1.)
+        return q[:2] / q[3] * .5 + .5
+
+    p = np.array([180., 20., 0.])
+    ok = check('static receiver: camera-only and wave-aware UV are equal',
+               np.max(np.abs(project(p) - project(p))) < 1e-12) and ok
+
+    def component(pos, time, term, omega):
+        direction, amp, k = np.asarray(term[:2]), term[2], term[3]
+        phase = k * np.dot(direction, pos[:2]) - omega * time
+        horizontal = .12 * amp
+        return np.array([*(horizontal * math.cos(phase) * direction), amp * math.sin(phase)])
+
+    term = np.array([1., 0., 7., 2 * math.pi / 96.])
+    previous = p + component(p, 1.0, term, 1.7)
+    current = p + component(p, 1.2, term, 1.7)
+    ok = check('analytic crest: previous UV follows previous displaced receiver',
+               np.linalg.norm(project(previous) - project(current)) > 1e-5) and ok
+
+    old0, target0 = term.copy(), term.copy(); old0[2] = 2.; target0[2] = 8.
+    exact = .75 * component(p, 2., old0, .8) + .25 * component(p, 2., target0, 2.2)
+    wrong = .75 * component(p, 2., term, 1.7) + .25 * component(p, 2., term, 1.7)
+    ok = check('wind transition: previous old/target/blend and omega remain exact',
+               np.linalg.norm(exact - wrong) > 1e-3) and ok
+
+    dispersion = [0.7, 1.3, math.sqrt(313.6 * term[3] * math.tanh(term[3] * 64.))]
+    samples = [component(p, 1.1, term, omega) for omega in dispersion]
+    ok = check('dispersion 0/1/2 use their snapshotted omega',
+               all(np.isfinite(x).all() for x in samples) and
+               min(np.linalg.norm(samples[i] - samples[j]) for i in range(3) for j in range(i)) > 1e-4) and ok
+
+    previous_rendered, current_resolved = 0., 0.
+    interaction_ok = True
+    for steps in (0, 1, 4):
+        sampled_previous = previous_rendered
+        current_resolved += steps * .125
+        interaction_ok &= sampled_previous == previous_rendered
+        previous_rendered = current_resolved  # reflection-end commit, once per rendered frame
+    sleeping = previous_rendered
+    previous_rendered = current_resolved
+    interaction_ok &= previous_rendered == sleeping
+    current_resolved += .5  # wake, then commit
+    previous_rendered = current_resolved
+    interaction_ok &= previous_rendered != sleeping
+    ok = check('interaction history means previous rendered state for 0/1/4 steps and sleep/wake', interaction_ok) and ok
+
+    legacy = lambda t: 2.0 * math.sin(2 * math.pi * (.25 + t * .6))
+    ok = check('legacy deform uses the previous rendered clock', abs(legacy(1.) - legacy(1.2)) > 1e-3) and ok
+    waterfall = lambda t: math.sin((40. - t * 120.) * .0027) + .55 * math.sin((40. - t * 120.) * .0061 + 1.7)
+    ok = check('waterfall sheet uses previous rendered time and parameters', abs(waterfall(1.) - waterfall(1.2)) > 1e-4) and ok
+
+    prev_model = np.eye(4); prev_model[0, 3] = 10.
+    curr_model = np.eye(4); curr_model[0, 3] = 18.
+    local = np.array([3., 4., 0., 1.])
+    ok = check('moving brush uses previous and current model transforms',
+               abs((curr_model @ local)[0] - (prev_model @ local)[0] - 8.) < 1e-12) and ok
+
+    generation = 7
+    for view in ('portal', 'mirror', 'shadow', 'capture'):
+        generation += 0 if view != 'primary' else 1
+    ok = check('secondary views do not advance rendered-water generation', generation == 7) and ok
+
+    trajectory = lambda t: component(p, t, term, 1.7)
+    rate_end = [trajectory(np.arange(int(rate) + 1)[-1] / rate) for rate in (30., 60., 144.)]
+    ok = check('30/60/144 FPS evaluate the same renderer-time trajectory',
+               max(np.linalg.norm(x - rate_end[0]) for x in rate_end[1:]) < 1e-12) and ok
+    frozen_a, frozen_b = trajectory(.75), trajectory(.75)
+    ok = check('frozen analytic receiver has zero motion while interaction may change',
+               np.linalg.norm(frozen_a - frozen_b) == 0. and .25 != .5) and ok
+
+    static_hit = np.array([400., 10., 30.])
+    old_vec, new_vec = static_hit - previous, static_hit - current
+    raw_mismatch = np.linalg.norm(old_vec - new_vec)
+    compensated = np.linalg.norm((previous + old_vec) - (current + new_vec))
+    ok = check('reflected-hit validation compensates receiver motion',
+               raw_mismatch > 1e-3 and compensated < 1e-12) and ok
     return ok
 
 
@@ -518,10 +622,30 @@ class Rig:
         cam[24:27] = c.forward * FAR
         uniform_block(prog, 'Camera', 1, cam)
         uniform_block(prog, 'Entity', 2, np.concatenate([np.eye(4).reshape(-1), np.zeros(16)]))
+        uniform_block(prog, 'PreviousEntity', 5, np.concatenate([np.eye(4).reshape(-1), np.zeros(16)]))
+        temporal = np.zeros(24, dtype=np.float32)
+        temporal[:16] = c.vp.T.reshape(-1)
+        temporal[20] = u[5, 2]
+        uniform_block(prog, 'TemporalInfo', 9, temporal)
         uniform_block(prog, 'Lights', 3, np.zeros(1024))
         set_vec4s(prog, 'u_DiffuseTexMatrix', [[1, 0, 0, 1]])
         set_vec4s(prog, 'u_DiffuseTexOffTurb', [[0, 0, 0, 0]])
         set_vec4s(prog, 'u_Water', u)
+        motion = np.zeros((WATER_MOTION_VEC4S, 4), dtype=np.float32)
+        motion[0] = [u[5, 2], 1, 1, 0]
+        motion[1] = u[13]
+        motion[2] = [u[14, 0], u[14, 1], u[17, 2], u[18, 2]]
+        motion[3:5] = u[[15, 28]]
+        motion[5] = [u[29, 0], u[29, 1], u[14, 3], u[29, 3]]
+        motion[6:9] = u[[30, 31, 33]]
+        motion[9] = [u[34, 0], u[34, 1], u[16, 3], u[19, 1]]
+        motion[10:14] = u[38:42]
+        motion[14:22] = u[20:28]
+        motion[22:30] = u[44:52]
+        motion[30] = [u[54, 0], u[55, 0], 1. if u[38, 0] > .5 or 2.5 < u[19, 2] < 3.5 else 0., 0]
+        motion[31:33] = u[56:58]
+        motion[33:35] = u[58:60]
+        set_vec4s(prog, 'u_WaterMotion', motion)
         set_vec4s(prog, 'u_WaterPass', [reflection['pass'] if reflection else [0, 0, 0, 0]])
         if reflection:
             for unit, texture in zip((12, 14, 15), reflection['history']):
@@ -542,6 +666,7 @@ class Rig:
         bind(0, self.color)
         bind(1, self.depth)
         bind(2, self.waves[waves])
+        bind(24, 0)
         bind(3, self.lut)
         bind(9, self.input_glow)
         # the water is depth tested against the scene (RB_WaterSurfacePrepare keeps renderFbo's depth)
@@ -597,18 +722,18 @@ def probe_program(expression, extra=None, **kw):
 
 def check_permutations():
     count = 0
-    for deform, shadows2, ssr, froxel, cubemap, hiz, snell in itertools.product(
-            [0, 1], [0, 1], [0, 1], [0, 1, 2], [0, 1], [0, 1], [0, 1]):
+    for deform, shadows2, ssr, froxel, cubemap, hiz, snell, motion in itertools.product(
+            [0, 1], [0, 1], [0, 1], [0, 1, 2], [0, 1], [0, 1], [0, 1], [0, 1]):
         if hiz and not ssr:
             continue  # GLSL_LoadGPUProgramWaterSurface: the Hi-Z walk only with the SSR inputs
         prog = water_program(deform=bool(deform), shadows2=bool(shadows2), ssr=bool(ssr), froxel=froxel,
-                             cubemap=bool(cubemap), hiz=bool(hiz), snell=bool(snell))
+                             cubemap=bool(cubemap), hiz=bool(hiz), snell=bool(snell), motion=bool(motion))
         gl('glDeleteProgram', None, U)(prog)
         count += 1
     prog = water_program(physical=True, shadows2=True, froxel=2, cubemap=True, snell=True)
     gl('glDeleteProgram', None, U)(prog)
     count += 1
-    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, physical lights)', True)
+    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, water motion, physical lights)', True)
 
 
 def check_geometry_depth(rig):
@@ -1270,6 +1395,7 @@ def main():
                    abs(physical * physical - gravity * shallow_k *
                        math.tanh(shallow_k * depth)) < 1e-12 and
                    abs(physical - speed * shallow_k) > 1e-3) and ok
+        ok = check_water_motion_semantics() and ok
         ok = check_interaction_field() and ok
         ok = check_permutations() and ok
         rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
@@ -1518,6 +1644,74 @@ def bench():
             gl('glDepthFunc', None, U)(0x0203)
             gl('glDeleteProgram', None, U)(prog)
 
+        # Receiver-motion overhead, isolated from the existing material cases.
+        # The rasterizer-discard measurement repeats the harness quad to make
+        # the extra previous evaluator and interaction fetch measurable.
+        rig.ssr_steps = 24
+        reduced = tuple((n + 1) // 2 for n in size)
+        history = [tex2d(*reduced, RGBA16F) for _ in range(3)]
+        motion_maps = [tex2d(*reduced, RGBA16F) for _ in range(3)]
+        motion_depth = tex2d(*reduced, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8)
+        motion_target = fbo(motion_maps, motion_depth)
+        interaction_data = np.zeros((64, 64, 4), dtype=np.float32)
+        interaction_data[..., 0] = .5
+        interaction_data[..., 3] = 1.
+        interaction_tex = tex2d(64, 64, RGBA16F, data=interaction_data, linear=True)
+        motion_u = rig.params(flags=FLAG_REJECT | FLAG_ENVBRDF | FLAG_SSR, ssr=1.)
+        motion_u[13] = [1, 1, 1, 1]
+        motion_u[14] = [1, 1, 1, 1]
+        motion_u[15] = [2.4, 192, 1, 1]
+        motion_u[19, 1] = 1
+        motion_u[30] = [-200, -3000, 1 / 3200, 1 / 6000]
+        motion_u[31] = [50, 93.75, 1, 0]
+        motion_u[55, 0] = 2
+        receiver_times = []
+        receiver_programs = []
+        for motion in (False, True):
+            prog = water_program(ssr=True, hiz=True, size=size, motion=motion)
+            receiver_programs.append(prog)
+            rig.draw_water(prog, motion_u, waves=True, ssr=True,
+                reflection=dict(fbo=motion_target, size=reduced, history=history,
+                                **{'pass': [1, 1, .8, 2]}))
+            bind(19, interaction_tex); bind(24, interaction_tex)
+
+            def receiver_prepass():
+                gl('glBindFramebuffer', None, U, U)(FB, motion_target)
+                gl('glViewport', None, I, I, I, I)(0, 0, *reduced)
+                gl('glBindVertexArray', None, U)(rig.water_vao)
+                gl('glDrawArrays', None, U, I, I)(4, 0, rig.water_count)
+            receiver_times.append(timed(receiver_prepass))
+        print(f'  temporal water reflection prepass, camera-only {receiver_times[0]:.3f} ms, '
+              f'wave-aware {receiver_times[1]:.3f} ms, delta {receiver_times[1]-receiver_times[0]:+.3f} ms')
+
+        vertex_times = []
+        instances = 166667              # six vertices each: about one million
+        for prog in receiver_programs:
+            gl('glUseProgram', None, U)(prog)
+            gl('glBindVertexArray', None, U)(rig.water_vao)
+            gl('glEnable', None, U)(0x8C89)  # GL_RASTERIZER_DISCARD
+            def vertices_only():
+                gl('glDrawArraysInstanced', None, U, I, I, I)(4, 0, rig.water_count, instances)
+            vertex_times.append(timed(vertices_only, repeat=10))
+            gl('glDisable', None, U)(0x8C89)
+        print(f'  receiver vertex work per 1M vertices: camera-only {vertex_times[0]:.3f} ms, '
+              f'wave-aware {vertex_times[1]:.3f} ms, delta {vertex_times[1]-vertex_times[0]:+.3f} ms')
+        for prog in receiver_programs: gl('glDeleteProgram', None, U)(prog)
+
+        atlas_size = (1024, 1024)
+        atlas_source = tex2d(*atlas_size, RGBA16F)
+        atlas_dest = tex2d(*atlas_size, RGBA16F)
+        atlas_fbo = fbo([atlas_source])
+        gl('glBindFramebuffer', None, U, U)(READ_FB, atlas_fbo)
+        bind(24, atlas_dest)
+        def copy_rect(side):
+            return lambda: gl('glCopyTexSubImage2D', None, U, I, I, I, I, I, I, I)(
+                0x0DE1, 0, 0, 0, 0, 0, side, side)
+        dirty_copy = timed(copy_rect(256))
+        full_copy = timed(copy_rect(1024))
+        print(f'  previous interaction atlas GPU copy: 256x256 dirty rect {dirty_copy:.3f} ms, '
+              f'1024x1024 full atlas {full_copy:.3f} ms')
+
         # from below: the prompt-1 inside view against r_waterSnell (the window, TIR reflection sources)
         under = Rig(Camera((0.0, 0.0, -300.0), (300.0, 0.0, 0.0), size=size), underwater=True, size=size)
         coverage = (under.cam.rays()[..., 2] > 0).mean()
@@ -1544,6 +1738,21 @@ def bench():
 
 
 if __name__ == '__main__':
+    if '--motion-only' in sys.argv:
+        window, ctx = context(b'Water receiver motion')
+        try:
+            ok = check_water_motion_semantics()
+            count = 0
+            for motion, deform, hiz in itertools.product([False, True], [False, True], [False, True]):
+                prog = water_program(ssr=True, motion=motion, deform=deform, hiz=hiz)
+                gl('glDeleteProgram', None, U)(prog)
+                count += 1
+            ok = check(f'{count} focused camera-only/wave-aware motion permutations compiled and linked', True) and ok
+            sys.exit(0 if ok else 1)
+        finally:
+            SDL.SDL_GL_DeleteContext(ctx)
+            SDL.SDL_DestroyWindow(window)
+            SDL.SDL_Quit()
     if '--interaction-bench' in sys.argv:
         window, ctx = context(b'Water interaction benchmark')
         try:

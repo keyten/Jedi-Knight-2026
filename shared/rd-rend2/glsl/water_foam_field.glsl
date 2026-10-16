@@ -24,6 +24,10 @@ uniform vec4 u_WaterWhitewaterParams; // source threshold, decay/s, foam injecti
 uniform vec4 u_WaterFoamSources; // waterfall rate, shore breaking scale, crest steepness scale, wall impact scale
 uniform vec4 u_WaterFoamInteractionRect; // body UV -> atlas offset (xy) and scale (zw); zero scale = none
 uniform vec4 u_WaterFlowFieldParams; // field enabled, body flow speed (world units/s), 1 / body extent xy
+// GL 4.3: depth contacts of the interaction body (glsl/water_intersection.glsl), resampled here
+// instead of into the source green channel on the CPU; x = r_waterFoamIntersection (0 = none)
+uniform sampler2D u_WaterFoamIntersectionMap;
+uniform vec4 u_WaterFoamIntersectionParams;
 out vec4 out_Color;
 
 float Hash(vec2 p)
@@ -42,6 +46,15 @@ void main()
 	{
 		out_Color = vec4(0.0);
 		return;
+	}
+	if (u_WaterFoamIntersectionParams.x > 0.0)
+	{
+		// the nearest interaction cell, as the CPU resample (8 bit source)
+		ivec2 contactSize = textureSize(u_WaterFoamIntersectionMap, 0);
+		ivec2 contactCell = min(ivec2(gl_FragCoord.xy) * contactSize / size, contactSize - 1);
+		float contact = texelFetch(u_WaterFoamIntersectionMap, contactCell, 0).r * u_WaterFoamIntersectionParams.x;
+		if (contact > 0.004)
+			source.g = max(source.g, floor(255.0 * clamp(contact, 0.0, 1.0)) / 255.0);
 	}
 
 	float dt = u_WaterFoamParams.x;

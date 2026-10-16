@@ -45,6 +45,14 @@ frame), so an upload never touches data the GPU may still read.
 Lights are binned in importance order, so when a cluster is full
 (r_forwardPlusMaxLightsPerCluster) the least important lights are dropped.
 
+GL 4.3 (r_forwardPlusCompute 1, glsl/fplus_cluster.glsl): the CPU keeps the
+cheap part, the cluster box and view space bounding sphere of every light
+(R_ForwardPlusLightRange), and uploads them; a compute shader with one
+invocation per cluster replaces the count / prefix sum / fill and writes the
+grid and index buffers in place. It also culls each point / spot sphere
+against the cluster's view space AABB, so its lists are a subset of the CPU
+lists (same order and cap) that still holds every light reaching the cluster.
+
 Point light shadows: only MAX_DLIGHT_SHADOWS cubes exist. Forward+ gives the
 r_forwardPlusMaxShadowLights most important lights a slot (with hysteresis so
 slots do not jump between lights of similar importance); the shader reads the
@@ -63,6 +71,7 @@ slot from the light data instead of assuming slot == light index.
 #define FPLUS_GRID_CAPACITY		(1 << 19)	// clusters per frame (all scenes / views)
 #define FPLUS_INDEX_CAPACITY	(1 << 21)	// light indexes per frame
 #define FPLUS_STATS_FRAMES		64
+#define FPLUS_RANGE_CAPACITY	(MAX_RENDER_DLIGHTS * 64)	// light boxes per frame (GL 4.3 build)
 
 enum
 {
@@ -87,12 +96,26 @@ struct fplusFrameBuffers_t
 	image_t images[FPLUS_NUM_BUFFERS];	// buffer textures, bound like images
 	int writeOffset[FPLUS_NUM_BUFFERS];	// texels
 	unsigned frameStamp;
+	// GL 4.3 build: light boxes of the frame's views, index allocation counter
+	GLuint rangeBuffer, counterBuffer;
+	int rangeOffset;					// records
+	qboolean gpuBuild;					// latched for the frame (all views alike)
+	qboolean counterReset;
 };
 
 struct fplusLightRange_t
 {
 	int light;
 	int x0, x1, y0, y1, z0, z1;
+	vec4_t sphere;						// view space bounding sphere
+	qboolean sphereTest;				// point / spot light: one sphere
+};
+
+// glsl/fplus_cluster.glsl LightRange (std430)
+struct fplusGpuRange_t
+{
+	uint32_t box[4];
+	float sphere[4];
 };
 
 struct fplusShadowHistory_t
@@ -116,6 +139,7 @@ struct fplusStats_t
 	int shadowed;
 	int views;
 	double buildMsec;		// CPU, all views of all scenes of the frame
+	qboolean gpuBuild;		// lists of the main view built by glsl/fplus_cluster.glsl
 };
 
 static struct
@@ -124,6 +148,8 @@ static struct
 	qboolean active;			// latched per frame
 	qboolean gpuFailed;
 	qboolean gpuCreated;
+	qboolean computeCreated;	// GL 4.3 range / counter buffers
+	qboolean computeFailed;
 	qboolean firstCheck;
 	int capacity[FPLUS_NUM_BUFFERS];
 	fplusFrameBuffers_t frames[MAX_FRAMES];
@@ -345,6 +371,42 @@ static qboolean R_ForwardPlusCreateBuffers( void )
 	return qtrue;
 }
 
+// GL 4.3 cluster build: the kernel, four storage blocks that fit the
+// buffers, and its own range / counter buffers
+static qboolean R_ForwardPlusComputeEnabled( void )
+{
+	if ( !r_forwardPlusCompute->integer || s_fp.computeFailed || !tr.forwardPlusClusterShader.program ||
+		!R_HasModernFeatures(MODERN_COMPUTE | MODERN_SSBO) )
+		return qfalse;
+	if ( s_fp.computeCreated )
+		return qtrue;
+
+	const GLint64 largest = (GLint64)Q_max(s_fp.capacity[FPLUS_BUFFER_GRID] * s_texelSizes[FPLUS_BUFFER_GRID],
+		s_fp.capacity[FPLUS_BUFFER_INDICES] * s_texelSizes[FPLUS_BUFFER_INDICES]);
+	if ( glRefConfig.maxComputeShaderStorageBlocks < 4 || glRefConfig.maxShaderStorageBufferBindings < 4 ||
+		glRefConfig.maxShaderStorageBlockSize < largest ||
+		glRefConfig.maxShaderStorageBlockSize < (GLint64)(FPLUS_RANGE_CAPACITY * sizeof(fplusGpuRange_t)) )
+	{
+		s_fp.computeFailed = qtrue;
+		ri.Printf(PRINT_ALL, "Forward+: storage buffer limits too small, cluster lists are built on the CPU\n");
+		return qfalse;
+	}
+	for ( int f = 0; f < MAX_FRAMES; f++ )
+	{
+		fplusFrameBuffers_t *fb = &s_fp.frames[f];
+		qglGenBuffers(1, &fb->rangeBuffer);
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->rangeBuffer);
+		qglBufferData(GL_SHADER_STORAGE_BUFFER, FPLUS_RANGE_CAPACITY * sizeof(fplusGpuRange_t), NULL, GL_DYNAMIC_DRAW);
+		qglGenBuffers(1, &fb->counterBuffer);
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->counterBuffer);
+		qglBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+	}
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	s_fp.computeCreated = qtrue;
+	ri.Printf(PRINT_DEVELOPER, "Forward+: cluster lists built by a GL 4.3 compute shader\n");
+	return qtrue;
+}
+
 void R_ShutdownForwardPlus( void )
 {
 	if ( s_fp.gpuCreated )
@@ -364,6 +426,14 @@ void R_ShutdownForwardPlus( void )
 			qglDeleteBuffers(FPLUS_NUM_BUFFERS, fb->buffers);
 		}
 	}
+	if ( s_fp.computeCreated )
+	{
+		for ( int f = 0; f < MAX_FRAMES; f++ )
+		{
+			qglDeleteBuffers(1, &s_fp.frames[f].rangeBuffer);
+			qglDeleteBuffers(1, &s_fp.frames[f].counterBuffer);
+		}
+	}
 
 	// the next renderer start begins from scratch (see R_ForwardPlusBeginFrame)
 	const int testLights = s_fp.testLights;
@@ -381,6 +451,10 @@ static fplusFrameBuffers_t *RB_ForwardPlusFrameBuffers( const gpuFrame_t *frame 
 		fb->frameStamp = backEndData->realFrameNumber;
 		for ( int b = 0; b < FPLUS_NUM_BUFFERS; b++ )
 			fb->writeOffset[b] = 0;
+		// every view of the frame alike: both builds start the index list at 0
+		fb->gpuBuild = R_ForwardPlusComputeEnabled();
+		fb->rangeOffset = 0;
+		fb->counterReset = qfalse;
 	}
 	return fb;
 }
@@ -740,6 +814,9 @@ static qboolean R_ForwardPlusLightRange(
 		nearDepth = Q_min(nearDepth, -eyes[i][2] - radius);
 		farDepth = Q_max(farDepth, -eyes[i][2] + radius);
 	}
+	// the GL 4.3 build also culls a single sphere against each cluster
+	VectorSet4(range->sphere, eyes[0][0], eyes[0][1], eyes[0][2], radius);
+	range->sphereTest = (qboolean)(numCenters == 1);
 	if ( farDepth <= view->zNear || nearDepth >= view->zFar )
 		return qfalse;
 
@@ -783,6 +860,108 @@ static qboolean R_ForwardPlusLightRange(
 	return qtrue;
 }
 
+// the CameraBlock parameters of a view with lists
+static void RB_ForwardPlusFinishView( fplusView_t *out, const viewParms_t *view, int gridBase,
+	int lightBase, int tileSize, int tilesX, int tilesY, const fplusSlicing_t *slicing, int maxPerCluster )
+{
+	out->enabled = qtrue;
+	out->grid[0] = gridBase;
+	out->grid[1] = lightBase;
+	out->grid[2] = tilesX;
+	out->grid[3] = tilesY;
+	VectorSet4(out->params, (float)tileSize, (float)slicing->slices, slicing->scale, slicing->bias);
+	VectorSet4(out->params2, (float)view->viewportX, (float)view->viewportY, 1.0f, slicing->nearSlice);
+	VectorSet4(out->debug,
+		(float)Com_Clampi(0, 9, r_forwardPlusDebug->integer),
+		(float)r_forwardPlusDebugLight->integer,
+		(float)maxPerCluster, R_AreaLightsDebugParam());
+
+	s_fp.current.views++;
+}
+
+// GL 4.3: upload the light boxes of the view (s_ranges, importance order) and
+// let glsl/fplus_cluster.glsl build the grid and index list in place. False
+// when this frame's buffers are full (the view gets no lists, as on the CPU).
+static qboolean RB_ForwardPlusBuildViewGPU( fplusFrameBuffers_t *fb, const viewParms_t *view,
+	const fplusSlicing_t *slicing, float farZ, int tileSize, int tilesX, int tilesY,
+	int maxPerCluster, int numClusters, int *gridBase )
+{
+	const int numRanges = (int)s_ranges.size();
+	if ( fb->rangeOffset + numRanges > FPLUS_RANGE_CAPACITY ||
+		fb->writeOffset[FPLUS_BUFFER_GRID] + numClusters > s_fp.capacity[FPLUS_BUFFER_GRID] )
+	{
+		if ( !s_fp.warnedCapacity )
+		{
+			s_fp.warnedCapacity = qtrue;
+			ri.Printf(PRINT_WARNING, "Forward+: per frame buffer full, views without cluster lists get no dynamic light. Increase r_forwardPlusTileSize or lower r_forwardPlusSlices.\n");
+		}
+		return qfalse;
+	}
+
+	static fplusGpuRange_t records[MAX_RENDER_DLIGHTS];
+	for ( int i = 0; i < numRanges; i++ )
+	{
+		const fplusLightRange_t& r = s_ranges[i];
+		fplusGpuRange_t& g = records[i];
+		g.box[0] = (uint32_t)r.x0 | ((uint32_t)r.x1 << 16);
+		g.box[1] = (uint32_t)r.y0 | ((uint32_t)r.y1 << 16);
+		g.box[2] = (uint32_t)r.z0 | ((uint32_t)r.z1 << 16);
+		g.box[3] = (uint32_t)r.light | ((r.sphereTest ? 1u : 0u) << 16);
+		VectorCopy4(r.sphere, g.sphere);
+	}
+	const int firstRange = fb->rangeOffset;
+	if ( numRanges > 0 )
+	{
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->rangeBuffer);
+		qglBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLintptr)firstRange * sizeof(fplusGpuRange_t),
+			(GLsizeiptr)numRanges * sizeof(fplusGpuRange_t), records);
+		fb->rangeOffset += numRanges;
+	}
+	if ( !fb->counterReset )
+	{
+		const uint32_t zero = 0;
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->counterBuffer);
+		qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), &zero);
+		// the lists of this slot were last sampled MAX_FRAMES frames ago
+		qglMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		fb->counterReset = qtrue;
+	}
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	*gridBase = fb->writeOffset[FPLUS_BUFFER_GRID];
+	fb->writeOffset[FPLUS_BUFFER_GRID] += numClusters;
+
+	// the sphere test assumes a perspective projection without skew; any
+	// other keeps the CPU boxes alone (the same lists as the CPU build)
+	const float *p = view->projectionMatrix;
+	const qboolean perspective = (qboolean)(p[1] == 0.0f && p[2] == 0.0f && p[3] == 0.0f &&
+		p[4] == 0.0f && p[6] == 0.0f && p[7] == 0.0f && p[11] == -1.0f && p[15] == 0.0f &&
+		p[0] != 0.0f && p[5] != 0.0f);
+
+	shaderProgram_t *sp = &tr.forwardPlusClusterShader;
+	vec4_t params[8] = {};
+	VectorSet4(params[0], (float)tilesX, (float)tilesY, (float)slicing->slices, (float)numClusters);
+	VectorSet4(params[1], (float)tileSize, (float)view->viewportWidth, (float)view->viewportHeight, (float)numRanges);
+	VectorSet4(params[2], slicing->scale, slicing->bias, slicing->nearSlice, farZ);
+	VectorSet4(params[3], p[0], p[5], p[8], p[9]);
+	VectorSet4(params[4], p[12], p[13], perspective ? 1.0f : 0.0f, (float)maxPerCluster);
+	VectorSet4(params[5], (float)*gridBase, (float)firstRange, (float)s_fp.capacity[FPLUS_BUFFER_INDICES], 0.0f);
+	GLSL_BindProgram(sp);
+	GLSL_SetUniformVec4N(sp, UNIFORM_FPLUSCLUSTER, params[0], 8);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, fb->buffers[FPLUS_BUFFER_GRID]);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, fb->buffers[FPLUS_BUFFER_INDICES]);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, fb->rangeBuffer);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, fb->counterBuffer);
+	qglDispatchCompute((numClusters + 63) / 64, 1, 1);
+	for ( GLuint binding = 0; binding < 4; binding++ )
+		qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, 0);
+	// lightall samples the lists as buffer textures; the next view's dispatch
+	// shares the index counter
+	qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+	GLSL_BindNullProgram();
+	return qtrue;
+}
+
 static void RB_ForwardPlusBuildView(
 	fplusFrameBuffers_t *fb, const viewParms_t *view, const trRefdef_t *refdef,
 	int lightBase, qboolean collectStats )
@@ -818,6 +997,22 @@ static void RB_ForwardPlusBuildView(
 		{
 			s_ranges.push_back(range);
 		}
+	}
+
+	int gridBase;
+	if ( fb->gpuBuild )
+	{
+		if ( !RB_ForwardPlusBuildViewGPU(fb, view, &slicing, farZ, tileSize, tilesX, tilesY,
+				maxPerCluster, numClusters, &gridBase) )
+			return;
+		RB_ForwardPlusFinishView(out, view, gridBase, lightBase, tileSize, tilesX, tilesY,
+			&slicing, maxPerCluster);
+		if ( collectStats )
+		{
+			s_fp.current.clusters = numClusters;
+			s_fp.current.gpuBuild = qtrue;
+		}
+		return;
 	}
 
 	// pass 1: counts, capped per cluster (less important lights drop out)
@@ -876,23 +1071,12 @@ static void RB_ForwardPlusBuildView(
 		s_gridData[c * 2 + 0] = (uint32_t)indexBase + s_offsets[c];
 		s_gridData[c * 2 + 1] = s_counts[c];
 	}
-	const int gridBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_GRID, s_gridData.data(), numClusters);
+	gridBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_GRID, s_gridData.data(), numClusters);
 	if ( gridBase < 0 )
 		return;
 
-	out->enabled = qtrue;
-	out->grid[0] = gridBase;
-	out->grid[1] = lightBase;
-	out->grid[2] = tilesX;
-	out->grid[3] = tilesY;
-	VectorSet4(out->params, (float)tileSize, (float)slicing.slices, slicing.scale, slicing.bias);
-	VectorSet4(out->params2, (float)view->viewportX, (float)view->viewportY, 1.0f, slicing.nearSlice);
-	VectorSet4(out->debug,
-		(float)Com_Clampi(0, 9, r_forwardPlusDebug->integer),
-		(float)r_forwardPlusDebugLight->integer,
-		(float)maxPerCluster, R_AreaLightsDebugParam());
-
-	s_fp.current.views++;
+	RB_ForwardPlusFinishView(out, view, gridBase, lightBase, tileSize, tilesX, tilesY,
+		&slicing, maxPerCluster);
 	if ( collectStats )
 	{
 		fplusStats_t *st = &s_fp.current;
@@ -1136,6 +1320,22 @@ void R_ForwardPlusStats_f( void )
 
 	ri.Printf(PRINT_ALL, "  lights: %d in main scene, %d dropped (capacity %d per frame)\n",
 		st->lights, st->dropped, MAX_RENDER_DLIGHTS);
+	if ( st->gpuBuild )
+	{
+		// the counts stay on the GPU
+		ri.Printf(PRINT_ALL, "  clusters: %d (tile %d px, %d slices), %d views built by the GL 4.3 compute shader\n",
+			st->clusters, Com_Clampi(16, 256, r_forwardPlusTileSize->integer),
+			Com_Clampi(1, 64, r_forwardPlusSlices->integer), st->views);
+		ri.Printf(PRINT_ALL, "  per cluster statistics: set r_forwardPlusCompute 0 (CPU build)\n");
+		ri.Printf(PRINT_ALL, "  shadowed lights: %d (r_forwardPlusMaxShadowLights %d, r_dlightMode %d)\n",
+			st->shadowed, r_forwardPlusMaxShadowLights->integer, r_dlightMode->integer);
+		ri.Printf(PRINT_ALL, "  CPU side of the cluster build (light boxes, upload, dispatch): %.3f ms last frame, %.3f ms avg\n",
+			st->buildMsec, R_ForwardPlusAverageBuild());
+		const float gpuMain = R_ForwardPlusAverageGpu();
+		if ( gpuMain >= 0.0f )
+			ri.Printf(PRINT_ALL, "  GPU main view (lighting pass): %.3f ms avg\n", gpuMain);
+		return;
+	}
 	ri.Printf(PRINT_ALL, "  clusters: %d (tile %d px, %d slices), %d non-empty, %d views built\n",
 		st->clusters, Com_Clampi(16, 256, r_forwardPlusTileSize->integer),
 		Com_Clampi(1, 64, r_forwardPlusSlices->integer), st->nonEmptyClusters, st->views);

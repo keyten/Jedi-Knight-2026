@@ -36,6 +36,26 @@ field disabled (or persistence set to zero), there is no depth readback and
 only the immediate shader result is used. Portal, mirror and reflection views
 never inject the field.
 
+### GL 4.3 path (no readback)
+
+On the GL 3.2 path the projection reads the copied depth back to system memory
+(`glReadPixels`), which makes the CPU wait for the whole opaque pass, and then
+walks every simulation cell on the CPU. With a GL 4.3 context (`r_gl43 1`) and
+the GPU interaction solver, `glsl/water_intersection.glsl` runs the same test
+per cell in a compute kernel on the depth copy itself
+(`RB_WaterIntersectionCompute`, see [rend2-gl43-review.md](rend2-gl43-review.md)):
+
+- the source of every cell goes to a small R16F image of the body; the next
+  solver step takes it like the CPU source alpha, and the foam field resamples
+  it (nearest interaction cell, 8-bit, scaled by `r_waterFoamIntersection`)
+  instead of the CPU resample into its green source channel;
+- the largest source of each body goes to a 32-entry buffer that the CPU reads
+  only once its fence has signalled; a contact wakes a sleeping body one or two
+  frames later, exactly as a CPU contact would (active bodies run anyway).
+
+The timing is unchanged: the CPU path also fed the source to the next frame's
+step. `r_waterInteractionInfo` prints the path and the last frame's dispatches.
+
 `FoamMultiplier` in a water body's `env.json` rule scales both immediate and
 persistent intersection foam; zero disables it for that body.
 

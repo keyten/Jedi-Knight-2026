@@ -12,14 +12,26 @@ void main()
 // negative for dry cells, which lets all four physical channels use one image.
 uniform sampler2D u_WaterInteractionState;
 uniform sampler2D u_WaterInteractionSource;
+// GL 4.3 depth contacts (glsl/water_intersection.glsl, R16F) next to the CPU
+// source, read when u_WaterBathymetryParams.w is set; on the GL 3.2 path the
+// CPU writes them into source.a
+uniform sampler2D u_WaterIntersectionMap;
 uniform sampler2D u_WaterBathymetryMap;
 uniform vec4 u_WaterInteractionSim0; // dt, c, damping, resolve mode
 uniform vec4 u_WaterInteractionSim1; // texel world X/Y, flow world X/Y
 uniform vec4 u_WaterInteractionDomain; // viewport origin, intersection persistence, apply source
-uniform vec4 u_WaterBathymetryParams; // enabled, fallback depth, effective gravity, unused
+uniform vec4 u_WaterBathymetryParams; // enabled, fallback depth, effective gravity, GL 4.3 contact map
 uniform sampler2D u_WaterFlowField;     // r_waterFlowField: velocity / body speed (rg), same body UV
 uniform vec4 u_WaterFlowFieldParams;    // field enabled, body flow speed (world units/s), unused, unused
 out vec4 out_Color;
+
+vec4 Source(ivec2 p)
+{
+	vec4 source = texelFetch(u_WaterInteractionSource, p, 0);
+	if (u_WaterBathymetryParams.w > 0.5)
+		source.a = max(source.a, texelFetch(u_WaterIntersectionMap, p, 0).r);
+	return source;
+}
 
 vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
 {
@@ -29,7 +41,7 @@ vec4 State(ivec2 p, ivec2 centerPosition, ivec2 size, vec4 centerValue)
 		return centerValue;
 	if (u_WaterInteractionDomain.w > 0.5)
 	{
-		vec4 source = texelFetch(u_WaterInteractionSource, p, 0);
+		vec4 source = Source(p);
 		value.rgb += source.rgb;
 		value.a = max(value.a, source.a);
 	}
@@ -50,7 +62,7 @@ vec4 FlowState(ivec2 p, ivec2 size)
 	vec4 value = texelFetch(u_WaterInteractionState, p, 0);
 	if (value.a >= 0.0 && u_WaterInteractionDomain.w > 0.5)
 	{
-		vec4 source = texelFetch(u_WaterInteractionSource, p, 0);
+		vec4 source = Source(p);
 		value.rgb += source.rgb;
 		value.a = max(value.a, source.a);
 	}
@@ -121,8 +133,7 @@ void main()
 		return;
 	}
 
-	vec4 source = u_WaterInteractionDomain.w > 0.5 ?
-		texelFetch(u_WaterInteractionSource, p, 0) : vec4(0.0);
+	vec4 source = u_WaterInteractionDomain.w > 0.5 ? Source(p) : vec4(0.0);
 	center.rgb += source.rgb;
 	center.a = max(center.a, source.a);
 	float dt = u_WaterInteractionSim0.x;

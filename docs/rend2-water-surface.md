@@ -214,6 +214,8 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceDepthReject` | 1 | foreground depth rejection of the refraction |
 | `r_waterSurfaceReflection` | 1.0 | reflection scale |
 | `r_waterSurfaceSSR` | 1.0 | Water SSR weight over the cubemap; independent of opaque `r_ssr` |
+| `r_waterSSRWaveReprojection` | 0 | latched exact previous-rendered receiver geometry for temporal water SSR |
+| `r_waterMotionDebug` | 0 | receiver-motion/history diagnostics, modes 1-10 |
 | `r_waterSurfaceAbsorption` | 1.0 | shared extinction scale of the surface and volume |
 | `r_waterSurfaceDepthScale` | 1.0 | path length scale |
 | `r_waterSurfaceExperimental` | 0 | name based classification |
@@ -224,6 +226,51 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSnellOptics` | 0 | 1 solar BTDF/eta transport; 2 also atmosphere through Snell window |
 
 Commands: `r_waterInfo [surfaces]`, `r_waterOverride`.
+
+## Wave-aware SSR receiver reprojection
+
+`r_waterSSRWaveReprojection 1` (archive + latch, default 0) makes reflection
+history follow the same rasterized material point between primary rendered
+frames. The old path projects the current displaced receiver through the
+previous camera. The opt-in path reconstructs the previous world receiver from
+the previous entity transform, previous legacy-deform clock, exact previous
+resolved analytic spectrum (old/target terms, blend and omega), previous
+waterfall parameters, previous-rendered interaction atlas, and the same
+shore/skirt vertex data. Shading-only normal bands, rain micro-slopes and
+analytic components outside the geometric band never create receiver velocity.
+
+The lifecycle is tied to `RB_WaterSurfaceReflectionEnd()`. Reflection color,
+geometry and receiver-relative hit images for frame N are committed together
+with generation N's compact per-body geometry snapshot and the changed
+rectangles of the resolved interaction atlas. The solver may have advanced
+zero through four fixed steps; its ping-pong state is never rendered history.
+Portal, mirror, sky-portal, shadow and capture views cannot promote the state.
+
+The previous interaction resource is one additional RGBA16F atlas, allocated
+only when the latched feature is enabled. Its exact cost is
+`atlasWidth * atlasHeight * 8` bytes and is printed by `r_waterInfo`. Dirty
+body rectangles are copied GPU-to-GPU after the reflection pass has finished
+reading the old atlas. Sleeping bodies retain their last rendered rectangle.
+There is no readback.
+
+SSR hits remain receiver-relative for half-float precision, but validation
+reconstructs both world hits (`previousReceiver + oldVector` and
+`currentReceiver + currentVector`). Depth, normal, roughness, cone,
+radiance-clamp and temporal-weight validation remain in place.
+
+Unsupported CPU legacy deforms, clamped shader clocks, a missing previous
+entity match, body/generation mismatch, atlas recreation, renderer-time
+discontinuity, topology rebuild, or a normal screen-history camera cut reject
+history for that draw. There is no camera-only fallback while the opt-in path
+is active. Supported positional deforms are wave, bulge, bulge-uniform and
+move; `deformVertexes normal` contributes no positional motion.
+An interaction field is world/body-atlas addressed, so a moving brush model
+that also has such a field rejects history; moving brush water without an
+interaction field uses the renderer's normal previous-entity transform.
+`r_waterMotionDebug 1..10` shows validity, current/previous receiver, screen
+motion, analytic/interaction/legacy-waterfall components, previous UV,
+invalidation and a camera-only/wave-aware split. `r_waterInfo` prints body
+generation, previous validity and last interaction-rectangle copy.
 
 ## Debug views (r_waterSurfaceDebug, written into the HDR scene)
 
@@ -287,6 +334,16 @@ saber next to water (light glint; the blade is blended and not reflected), SSR o
 `r_volumetricWater` 0 / 1, generic refractive effects (force push) unchanged, `r_waterSurfaceDebug 9`.
 
 ## GPU timings (test_watersurface_gl.py --bench, 1920x1080, water over the whole view, waves)
+
+Wave-reprojection-specific Intel UHD GL 3.2 measurements (2026-10-15,
+fullscreen synthetic worst case): camera-only / wave-aware water reflection
+prepass 43.434 / 45.962 ms (+2.527 ms); isolated vertex work per one million
+vertices 2.706 / 16.629 ms (+13.923 ms). A 256x256 dirty RGBA16F interaction
+rectangle copies in 0.022 ms, versus 0.428 ms for a full 1024x1024 atlas; this
+is why the implementation commits dirty body rectangles. The extra atlas is
+8 MiB at 1024x1024. CPU snapshot packing and copy submission are measured in
+the real renderer and printed by `r_waterInfo`; no credible in-game sample was
+available in this run. RTX/AMD wave-reprojection numbers remain unmeasured.
 
 | | RTX 2060 | Intel UHD |
 |---|---|---|

@@ -2711,6 +2711,16 @@ static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysPr
 		GetShaderInstanceBlockUniformBinding(backEnd.currentEntity, input->shader),
 		RB_GetVolumetricFogBlockUniformBinding()
 	};
+	const UniformBlockBinding motionUniformBlockBindings[] = {
+		GetCameraBlockUniformBinding(backEnd.currentEntity),
+		GetLightsBlockUniformBinding(),
+		GetSceneBlockUniformBinding(),
+		GetEntityBlockUniformBinding(backEnd.currentEntity),
+		GetPreviousEntityBlockUniformBinding(backEnd.currentEntity),
+		GetShaderInstanceBlockUniformBinding(backEnd.currentEntity, input->shader),
+		GetTemporalBlockUniformBinding(),
+		RB_GetVolumetricFogBlockUniformBinding()
+	};
 
 	DrawItem item = {};
 	// replaces the scene (it was copied) and writes depth: the composites after
@@ -2728,8 +2738,10 @@ static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysPr
 
 	DrawItemSetVertexAttributes(
 		item, attribs, vertexArrays->numVertexArrays, frameAllocator);
-	DrawItemSetUniformBlockBindings(
-		item, uniformBlockBindings, frameAllocator);
+	if (r_waterSSRWaveReprojection && r_waterSSRWaveReprojection->integer)
+		DrawItemSetUniformBlockBindings(item, motionUniformBlockBindings, frameAllocator);
+	else
+		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
 
 	RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
 

@@ -342,6 +342,7 @@ extern cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactS
 extern cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
+extern cvar_t *r_waterSSRWaveReprojection, *r_waterMotionDebug;
 extern cvar_t *r_waterlineHysteresis, *r_waterlineDebug;
 extern cvar_t	*r_waterSurfaceRefraction;
 extern cvar_t	*r_waterSurfaceDepthReject;
@@ -683,6 +684,7 @@ extern cvar_t  *r_forwardPlusMaxLightsPerCluster;
 extern cvar_t  *r_forwardPlusDebug;
 extern cvar_t  *r_forwardPlusDebugLight;
 extern cvar_t  *r_forwardPlusMaxShadowLights;
+extern cvar_t  *r_forwardPlusCompute;
 
 extern cvar_t  *r_ltcAreaLights;
 extern cvar_t  *r_ltcDebug;
@@ -2617,6 +2619,7 @@ enum GPUShaderType
 	GPUSHADER_VERTEX,
 	GPUSHADER_FRAGMENT,
 	GPUSHADER_GEOMETRY,
+	GPUSHADER_COMPUTE,		// GL 4.3 kernels only (GLSL_LoadComputeProgram), never in a raster program
 	GPUSHADER_TYPE_COUNT
 };
 
@@ -2933,6 +2936,8 @@ typedef enum
 	UNIFORM_WATERDEPTHMAP,		// water surface: depth copy (unit 1)
 	UNIFORM_WATERNORMALMAP,		// water surface: wave slope texture (unit 2)
 	UNIFORM_WATERINTERACTIONMAP,	// water surface: body-local disturbance height/velocity/mask
+	UNIFORM_WATERPREVINTERACTIONMAP, // water motion: previous rendered resolved interaction atlas
+	UNIFORM_WATERMOTION,		// compact previous-rendered positional inputs, see waterMotionUniformSlot_t
 	UNIFORM_WATERINTERACTIONSTATE,
 	UNIFORM_WATERINTERACTIONSOURCE,
 	UNIFORM_WATERBATHYMETRYMAP,
@@ -2959,6 +2964,12 @@ typedef enum
 	UNIFORM_WATERGLOWMAP,
 
 	UNIFORM_WATERPARTICLES,		// vec4[2] r_waterParticles draw parameters, see waterparticles.glsl
+
+	UNIFORM_WATERINTERSECTION,	// vec4[11] GL 4.3 depth contact kernel, see water_intersection.glsl
+	UNIFORM_WATERINTERSECTIONMAP,	// interaction step: GL 4.3 depth contacts (R16F), black otherwise
+	UNIFORM_WATERFOAMINTERSECTIONMAP,	// foam update: GL 4.3 depth contacts of the interaction body
+	UNIFORM_WATERFOAMINTERSECTIONPARAMS,	// foam update: r_waterFoamIntersection scale (0 = no map)
+	UNIFORM_FPLUSCLUSTER,		// vec4[8] GL 4.3 Forward+ cluster build, see fplus_cluster.glsl
 
 	UNIFORM_COUNT
 } uniform_t;
@@ -4545,6 +4556,8 @@ typedef struct trGlobals_s {
 	shaderProgram_t foliageFieldDebugShader;	// r_foliageBendFieldDebug 1 overlay
 	shaderProgram_t waterFoamFieldShader;		// GL3.2 fragment/FBO foam advection
 	shaderProgram_t waterInteractionFieldShader;	// GL3.2 shallow-water ping-pong/resolve
+	shaderProgram_t waterIntersectionComputeShader;	// GL 4.3 depth contacts (no readback); empty otherwise
+	shaderProgram_t forwardPlusClusterShader;	// GL 4.3 Forward+ cluster build (r_forwardPlusCompute); empty otherwise
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
@@ -6438,6 +6451,34 @@ enum waterUniformSlot_t
 static_assert(WATER_U_TARGET_TERMS + 8 <= WATER_U_FLOW, "target water spectrum overlaps flow data");
 static_assert(WATER_U_OLD_TERMS + 8 <= WATER_U_WIND, "old water spectrum overlaps wind data");
 static_assert(WATER_U_OLD_OMEGA + 2 == WATER_UNIFORM_VEC4S, "water frequencies must end the ABI");
+
+// Previous-rendered geometry only.  This intentionally excludes optical and
+// shading-only water inputs instead of duplicating u_Water[60].
+enum waterMotionUniformSlot_t
+{
+	WATER_MOTION_FRAME = 0,		// previous wave time, draw valid, interaction valid, debug mode
+	WATER_MOTION_WAVE_CONTROL,
+	WATER_MOTION_WAVE_QUALITY,	// global choppiness, quality, body depth, body choppiness
+	WATER_MOTION_BODY_WAVES,
+	WATER_MOTION_FLOW,
+	WATER_MOTION_FLOW_DETAIL,
+	WATER_MOTION_BODY_MAPPING,
+	WATER_MOTION_INTERACTION,	// texel x/y, enabled, debug invalidation reason
+	WATER_MOTION_INTERACTION_RECT,
+	WATER_MOTION_SHORE,		// shoreline enabled, width, profile shoreline, geometry enabled
+	WATER_MOTION_WATERFALL,
+	WATER_MOTION_WATERFALL_1,
+	WATER_MOTION_WATERFALL_2,
+	WATER_MOTION_WATERFALL_3,
+	WATER_MOTION_TARGET_TERMS,	// 8 vec4
+	WATER_MOTION_OLD_TERMS = WATER_MOTION_TARGET_TERMS + 8,	// 8 vec4
+	WATER_MOTION_WIND_GEOMETRY = WATER_MOTION_OLD_TERMS + 8,	// wind blend, geometry count, no-skirt mode, shader time offset
+	WATER_MOTION_TARGET_OMEGA,	// 2 vec4
+	WATER_MOTION_OLD_OMEGA = WATER_MOTION_TARGET_OMEGA + 2,	// 2 vec4
+	WATER_MOTION_FLOW_IMPACT = WATER_MOTION_OLD_OMEGA + 2,
+	WATER_MOTION_VEC4S
+};
+static_assert(WATER_MOTION_VEC4S == 36, "water motion ABI changed; update watersurface.glsl and tests");
 #define WATER_CONTACT_SEGMENTS 12
 #define WATER_CONTACT_VEC4S (1 + WATER_CONTACT_SEGMENTS * 2)
 #define WATERKEY_INTERFACE 1u

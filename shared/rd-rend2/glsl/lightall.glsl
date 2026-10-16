@@ -65,7 +65,9 @@ layout(std140) uniform Entity
 	vec4 u_GridParams;
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
+	#if defined(USE_ENTITY_SUN_SPLIT)
 	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
+	#endif
 };
 
 #if defined(USE_SKELETAL_ANIMATION)
@@ -484,7 +486,9 @@ layout(std140) uniform Entity
 	vec4 u_GridParams;
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
+	#if defined(USE_ENTITY_SUN_SPLIT)
 	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
+	#endif
 };
 
 struct Light
@@ -4510,23 +4514,18 @@ void main()
     #if defined(SHADOWMAP_MODULATE)
 	vec3 ambientScale = mix(vec3(1.0), u_PrimaryLightAmbient, u_EnableTextures.z);
 	#if defined(USE_LIGHT_VECTOR)
-	// r_entityShadowAmbient (u_AOParams2.w): the world darkens its whole lightmap
-	// in the sun's shadow, ambient included, while the grid ambient of a model
-	// was never touched, so models read brighter in shadow than the ground they
-	// stand on. This share of the grid ambient follows the lightmap's shadow
-	// factor. Ambient has no direction: the sun visibility without the cosine.
-	if (u_AOParams2.w > 0.0)
-	{
-		vec3 ambientSunVisibility = vec3(cascadeShadow * contactShadow);
-		#if defined(USE_PARALLAXMAP)
-		ambientSunVisibility *= pomSunShadow;
-		#endif
-		#if defined(USE_LIQUID_SUN)
-		ambientSunVisibility *= liquidSun;
-		#endif
-		ambientColor *= mix(vec3(1.0), mix(ambientScale, vec3(1.0), ambientSunVisibility),
-			u_AOParams2.w);
-	}
+	// Algebraically the same as mix(1, mix(ambientScale, 1, visibility),
+	// amount), but avoids a uniform-dependent branch in the largest grid
+	// permutations. Older Intel GLSL compilers otherwise crash during startup.
+	vec3 ambientSunVisibility = vec3(cascadeShadow * contactShadow);
+	#if defined(USE_PARALLAXMAP)
+	ambientSunVisibility *= pomSunShadow;
+	#endif
+	#if defined(USE_LIQUID_SUN)
+	ambientSunVisibility *= liquidSun;
+	#endif
+	ambientColor *= mix(vec3(1.0), ambientScale,
+		u_AOParams2.w * (vec3(1.0) - ambientSunVisibility));
 	#endif
 	#if defined(USE_ENTITY_SUN_SPLIT)
 	if (entitySunSplit)

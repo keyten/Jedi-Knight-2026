@@ -1,9 +1,11 @@
 # Rend2 Forward+ / clustered dynamic lighting
 
 `r_forwardPlus 1` replaces the 32-light per-surface mask with clustered light lists, so a scene can have up to 256
-dynamic lights (sabers, blaster bolts, explosions, FX). Material shading stays forward: there is no G-buffer and no
-compute shader. The GL 3.2 / GLSL 150 baseline is unchanged. It is **off by default**, and `r_forwardPlus 0` keeps the
-legacy path.
+dynamic lights (sabers, blaster bolts, explosions, FX). Material shading stays forward: there is no G-buffer. The GL 3.2
+/ GLSL 150 baseline is unchanged. It is **off by default**, and `r_forwardPlus 0` keeps the legacy path.
+
+On a GL 4.3 context the cluster lists are built by a compute shader (`r_forwardPlusCompute 1`, default), see
+"GL 4.3 cluster build" below.
 
 Code: `shared/rd-rend2/tr_forwardplus.cpp`, `glsl/lightall.glsl` (EvaluateDynamicLight, FPlus* functions).
 
@@ -98,6 +100,32 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
 - The froxel fog uses the Lights UBO. Its `origin.w` is now the shadow layer: `i` in legacy mode (unchanged
   behaviour), the slot or −1 in Forward+ mode.
 
+## GL 4.3 cluster build
+
+`glsl/fplus_cluster.glsl` (`RB_ForwardPlusBuildViewGPU`) replaces the CPU count / prefix sum / fill of every colour
+view. The CPU still computes the cheap part, the tile / slice box of each light (`R_ForwardPlusLightRange`, in
+importance order) and the light's view-space bounding sphere, and uploads them (32 bytes per light). One invocation per
+cluster then:
+
+1. walks the boxes in importance order, keeps a light when its box contains the cluster and, for point and spot
+   lights, when its sphere touches the cluster's view-space AABB (rectangle and line lights keep the box alone);
+2. stops at `r_forwardPlusMaxLightsPerCluster`;
+3. allocates an even number of index entries with one `atomicAdd` on a per-frame counter (the counter starts at 0 for
+   the first view of the frame, every view and scene of the frame shares it) and writes its grid texel and the R16
+   indexes, two per 32-bit word.
+
+The grid and index buffers are the buffer textures lightall already samples, so lightall is unchanged. Every list is
+the CPU list (same order, same cap) without the lights whose sphere misses the cluster; the corner clusters of each
+light's box are where the CPU over-included them. A full index list gives the remaining clusters no light (the CPU
+build's capacity rule). Oblique (portal) or non-perspective projections skip the sphere test and produce exactly the
+CPU lists. `r_forwardPlusStats` prints the CPU part of the build only; per-cluster statistics need
+`r_forwardPlusCompute 0`.
+
+`tools/rend2/test_gl43_compute.py` compares the kernel with a port of the CPU binning on 3840 clusters and ~90 lights
+(with jitter, area-light boxes, cap 4 and 255): ordered subsets of the CPU lists, every light that reaches a sample of
+the cluster's frustum chunk kept, 10–14 % fewer light references than the CPU lists. Passes on Intel UHD and RTX 2060.
+Not measured in game: compare `r_forwardPlusBenchmark` with `r_forwardPlusCompute 0` and 1.
+
 ## Cvars and commands
 
 | Cvar | Default | |
@@ -110,6 +138,7 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
 | `r_forwardPlusDebug` | 0 | cheat, **latched** (`vid_restart`: the debug views are only compiled into lightall when it is non-zero). 1 tiles, 2 slices, 3 clusters, 4 lights/cluster heatmap, 5 overflowing clusters (red), 6 shadowed lights only, 7 unshadowed only, 8 light spheres, 9 only light `r_forwardPlusDebugLight` |
 | `r_forwardPlusDebugLight` | 0 | light index for debug 9 |
 | `r_forwardPlusMaxShadowLights` | 4 | Forward+ shadow budget |
+| `r_forwardPlusCompute` | 1 | 1: cluster lists built by a GL 4.3 compute shader when the context allows it (`r_gl43 1`), 0: CPU build. Switches at runtime, latched per frame |
 
 Dependency messages are printed once, when the cvar changes (and at renderer start). Nothing is auto-enabled:
 

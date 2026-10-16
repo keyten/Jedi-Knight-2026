@@ -83,6 +83,8 @@ def main():
     parser.add_argument('--timeout', type=int, default=600, help='Maximum runtime seconds (first Intel shader-cache build can be slow)')
     parser.add_argument('--interaction-quality', choices=('0', '1', '2'), default='1',
                         help='Interactive field density used by --interaction (default: 1)')
+    parser.add_argument('--wave-reprojection', choices=('0', '1'), default='0',
+                        help='Enable latched previous-rendered water SSR receiver motion and capture diagnostics')
     args = parser.parse_args()
     if os.name != 'nt':
         parser.error('Windows SP runtime required')
@@ -101,6 +103,11 @@ def main():
     game_dst = (base/'jagamex86_64.dll').resolve()
     if game_src != game_dst:
         shutil.copy2(game_src, game_dst)
+    # Never let a startup crash be diagnosed against a successful log from an
+    # earlier run of the same reusable runtime directory.
+    qconsole = base/'qconsole.log'
+    if qconsole.exists():
+        qconsole.unlink()
 
     lake = args.map == 't3_hevil'
     viewpoints = {
@@ -222,17 +229,32 @@ def main():
             'r_waterCausticsDebug 6', 'wait 6', 'screenshot_tga water-caustics-attenuation',
             'r_waterCausticsDebug 7', 'wait 6', 'screenshot_tga water-caustics-interaction',
             'r_waterCausticsDebug 0', 'r_volumetricWaterCaustics 0.35', 'r_waterWaveTime -1'])
+    if args.wave_reprojection == '1':
+        debug_reset = next(i for i, command in enumerate(commands)
+                           if command.startswith('r_waterSurfaceDebug 0'))
+        motion_commands = [above, 'centerview', 'r_waterWaveAmplitude 4', 'wait 30',
+                           'screenshot_tga water-motion-beauty']
+        for mode, name in ((1, 'validity'), (4, 'screen-motion'), (5, 'analytic'),
+                           (6, 'interaction'), (7, 'legacy-waterfall'),
+                           (8, 'previous-uv'), (9, 'invalidation'), (10, 'camera-split')):
+            motion_commands += [f'r_waterMotionDebug {mode}', 'wait 8',
+                                f'screenshot_tga water-motion-{name}']
+        motion_commands += ['r_waterMotionDebug 0', 'r_waterWaveAmplitude 1', 'r_waterInfo']
+        commands[debug_reset] += '\n' + '\n'.join(motion_commands)
     (base/'waterfix.cfg').write_text('\n'.join(commands)+'\n')
     # SP reads autoexec_sp.cfg before the server commands are registered. Delay
     # the map command until normal frames are running; this also survives local
     # Windows launchers which drop trailing +devmap/+exec arguments on restart.
     (base/'autoexec_sp.cfg').write_text(
+        f'set r_gl43 0\nset r_skinSSS 0\nset r_skinSSSTransmission 0\n'
         f'wait 300\ndevmap {args.map}\nwait 60\nexec waterfix.cfg\n')
     settings = dict(fs_basepath=str(installation), fs_homepath=str(home), fs_game='OpenJK',
                     cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='3', s_initsound='0',
-                    r_glslCache='1', r_normalMapping='0', r_parallaxMapping='0',
+                    r_shaderProgramCache='0', r_normalMapping='0', r_parallaxMapping='0',
                     r_specularMapping='0', r_pomSilhouette='0', r_diffuseIBL='0',
                     r_waterSurface='1', r_waterSnell='1', r_waterSurfaceDebug='0',
+                    r_waterSSRWaveReprojection=args.wave_reprojection,
+                    r_skinSSS='0', r_skinSSSTransmission='0',
                     r_waterWaves='1' if args.ambient_waves else '0',
                     r_waterFlow='1' if args.flow else '0',
                     r_waterGeometry='1' if (args.geometry or args.shoreline) else '0',
@@ -242,6 +264,7 @@ def main():
                     r_waterCausticsMode='2' if args.caustics else '1',
                     r_waterInteractionQuality=args.interaction_quality,
                     r_ssr='0', r_ssrHalfRes=args.half_res, r_cubeMapping='0',
+                    r_gl43='0',
                     r_volumetricFog='2', r_volumetricWater='1',
                     developer='0', logfile='2', com_maxfps='60')
     command = [str(root/'openjk_sp.x86_64.exe')]
@@ -259,7 +282,7 @@ def main():
             process.terminate()
             process.wait()
             raise
-    log = (base/'qconsole.log').read_text(errors='replace')
+    log = qconsole.read_text(errors='replace') if qconsole.exists() else (root/'launch.log').read_text(errors='replace')
     if args.interaction_benchmark:
         assert code == 0 and 'WATER_BENCH_DONE' in log, f'exit code {code}: {log[-3000:]}'
         section = log.split('WATER_BENCH_BEGIN', 1)[-1].split('WATER_BENCH_DONE', 1)[0]
@@ -331,6 +354,15 @@ def main():
                      'water-caustics-slope.tga', 'water-caustics-ray.tga', 'water-caustics-focus.tga',
                      'water-caustics-result.tga', 'water-caustics-projection.tga',
                      'water-caustics-attenuation.tga', 'water-caustics-interaction.tga'):
+            assert (base/'screenshots'/name).stat().st_size > 1000, name
+    if args.wave_reprojection == '1':
+        assert re.search(r'wave-aware SSR 1, motion generation \d+, committed frame \d+', log), \
+            'Missing wave-aware water motion diagnostics'
+        for name in ('water-motion-beauty.tga', 'water-motion-validity.tga',
+                     'water-motion-screen-motion.tga', 'water-motion-analytic.tga',
+                     'water-motion-interaction.tga', 'water-motion-legacy-waterfall.tga',
+                     'water-motion-previous-uv.tga', 'water-motion-invalidation.tga',
+                     'water-motion-camera-split.tga'):
             assert (base/'screenshots'/name).stat().st_size > 1000, name
     if args.map in ('t2_rancor', 't3_hevil'):
         print('PASS:', args.map, 'stock interface classification; water-only SSR above/below; overrides off/clear')
