@@ -245,6 +245,7 @@ extern cvar_t	*r_volumetricFogHistoryWeight;
 extern cvar_t	*r_volumetricFogSunScale;
 extern cvar_t	*r_volumetricFogDlightScale;
 extern cvar_t	*r_volumetricFogLightTile;
+extern cvar_t	*r_volumetricFogLightCompute;
 extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
 extern cvar_t	*r_staticLightReconstruction;
@@ -4561,6 +4562,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t waterInteractionFieldShader;	// GL3.2 shallow-water ping-pong/resolve
 	shaderProgram_t waterIntersectionComputeShader;	// GL 4.3 depth contacts (no readback); empty otherwise
 	shaderProgram_t forwardPlusClusterShader;	// GL 4.3 Forward+ cluster build (r_forwardPlusCompute); empty otherwise
+	shaderProgram_t froxelLightClusterShader;	// GL 4.3 froxel fog cluster build (r_volumetricFogLightCompute)
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
@@ -6325,6 +6327,7 @@ qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_
 void R_SetHeightFogBase(world_t *worldData);
 void R_VolumetricFog_f(void);
 void R_VolumetricLightStats_f(void);
+void R_VolumetricLightVerify_f(void);
 void RB_UpdateVolumetricConstants(struct gpuFrame_t *frame, const trRefdef_t *refdef);
 UniformBlockBinding RB_GetVolumetricFogBlockUniformBinding(void);
 void RB_VolumetricBeginView(void);

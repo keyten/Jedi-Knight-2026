@@ -6,6 +6,9 @@ fplus_cluster.glsl: Forward+ cluster lists against a port of the CPU binning of 
 list is the CPU list (same order) minus lights whose sphere misses the cluster, it keeps every light that reaches
 a point of the cluster (dense samples of the real cluster frustum), the cap and the R16 packing are respected.
 
+The FROXEL_LIGHT_LISTS permutation is checked against the volumetric CPU layout at 64/128 slices and tile sizes
+4/8/16, including the jitter-expanded AABB, camera-plane spheres, the 32-light cap and exact last-slice lists.
+
 water_intersection.glsl: depth contact sources against a port of RB_WaterIntersectionInject on a synthetic scene
 (floor under shallow water, a pillar through the surface, sky) and the per-body maximum in the hit buffer.
 """
@@ -41,10 +44,10 @@ def gl(name, result, *args):
     return C.WINFUNCTYPE(result, *args)(address)
 
 
-def compute_program(name):
+def compute_program(name, defines=''):
     text = (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text()
     assert text.startswith('/*[Compute]*/'), name
-    source = '#version 430 core\n' + text.split('/*[Compute]*/')[1]
+    source = '#version 430 core\n' + defines + text.split('/*[Compute]*/')[1]
     shader = gl('glCreateShader', U, U)(0x91B9)
     src = C.c_char_p(source.encode())
     gl('glShaderSource', None, U, I, C.POINTER(C.c_char_p), P)(shader, 1, C.byref(src), None)
@@ -233,6 +236,113 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
         cpu_refs += min(cap, len(cpu_full))
         gpu_refs += count
     return checked, len(ranges), cpu_refs, gpu_refs, used
+
+
+# ---------------------------------------------------------------- froxel fog light lists
+
+def froxel_slice(depth, near, far, slices):
+    first = near * (far / near) ** (1 / slices)
+    if depth <= first:
+        return 0
+    return max(0, min(slices - 1, math.floor(slices * math.log(depth / near) / math.log(far / near))))
+
+
+def froxel_range(eye, radius, p, width, height, near, far, slices, tile):
+    depth = -eye[2]
+    if depth + radius <= 0 or depth - radius >= far:
+        return None
+    tiles_x, tiles_y = (width + tile - 1) // tile, (height + tile - 1) // tile
+    r = dict(z0=froxel_slice(depth - radius, near, far, slices),
+             z1=froxel_slice(depth + radius, near, far, slices),
+             x0=0, x1=tiles_x - 1, y0=0, y1=tiles_y - 1)
+    if depth - radius <= 1:
+        return r
+    xs, ys = [], []
+    for c in range(8):
+        x = eye[0] + (radius if c & 1 else -radius)
+        y = eye[1] + (radius if c & 2 else -radius)
+        z = eye[2] + (radius if c & 4 else -radius)
+        cw = -z
+        if cw <= 1e-4:
+            return r
+        xs.append(p[0] * x / cw)
+        ys.append(p[5] * y / cw)
+    if max(xs) < -1 or min(xs) > 1 or max(ys) < -1 or min(ys) > 1:
+        return None
+    clamp = lambda lo, hi, v: max(lo, min(hi, v))
+    r['x0'] = clamp(0, tiles_x - 1, math.floor((min(xs) * .5 + .5) * width / tile))
+    r['x1'] = clamp(0, tiles_x - 1, math.floor((max(xs) * .5 + .5) * width / tile))
+    r['y0'] = clamp(0, tiles_y - 1, math.floor((min(ys) * .5 + .5) * height / tile))
+    r['y1'] = clamp(0, tiles_y - 1, math.floor((max(ys) * .5 + .5) * height / tile))
+    return r
+
+
+def froxel_case(prog, slices, tile, seed):
+    rng = random.Random(seed)
+    width, height, near, far = 96, 54, 8.0, 4096.0
+    tiles_x, tiles_y = (width + tile - 1) // tile, (height + tile - 1) // tile
+    num_clusters = tiles_x * tiles_y * slices
+    p = perspective(90, width / height, near, far)
+    lights = [([0.0, 0.0, -0.5], 24.0), ([0.0, 0.0, -1200.0], 900.0),
+              ([80.0, -20.0, -180.0], 18.0), ([-140.0, 50.0, -350.0], 45.0)]
+    for _ in range(20):
+        depth = math.exp(rng.uniform(math.log(4), math.log(3600)))
+        lights.append(([rng.uniform(-1.1, 1.1) * depth, rng.uniform(-.7, .7) * depth, -depth],
+                       rng.choice([rng.uniform(2, 24), rng.uniform(100, 700)])))
+    ranges = []
+    for k, (eye, radius) in enumerate(lights):
+        r = froxel_range(eye, radius, p, width, height, near, far, slices, tile)
+        if r is not None:
+            r.update(light=k, eye=eye, radius=radius)
+            ranges.append(r)
+
+    records = b''.join(struct.pack('4I4f', r['x0'] | r['x1'] << 16, r['y0'] | r['y1'] << 16,
+                                   r['z0'] | r['z1'] << 16, r['light'] | 1 << 16,
+                                   *r['eye'], r['radius']) for r in ranges)
+    capacity = num_clusters * 32
+    gl('glUseProgram', None, U)(prog)
+    uniform_vec4s(prog, 'u_FPlusCluster', [
+        (tiles_x, tiles_y, slices, num_clusters), (tile, width, height, len(ranges)),
+        (0, 0, near, far), (p[0], p[5], 0, 0), (0, 0, 1, 32),
+        (0, 0, capacity, 0), (0, 0, 0, 0), (0, 0, 0, 0)])
+    list_buf = ssbo(bytes((num_clusters + capacity) * 4), 0)
+    range_buf = ssbo(records or bytes(32), 2)
+    counter_buf = ssbo(bytes(4), 3)
+    gl('glDispatchCompute', None, U, U, U)((num_clusters + 63) // 64, 1, 1)
+    raw = struct.unpack(f'{num_clusters + capacity}I', read_buffer(list_buf, (num_clusters + capacity) * 4))
+    used = struct.unpack('I', read_buffer(counter_buf, 4))[0]
+    for b in (list_buf, range_buf, counter_buf):
+        gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(b))
+
+    cpu_refs = gpu_refs = 0
+    for c in range(num_clusters):
+        x, y, z = c % tiles_x, (c // tiles_x) % tiles_y, c // (tiles_x * tiles_y)
+        boxed = [r for r in ranges if r['x0'] <= x <= r['x1'] and r['y0'] <= y <= r['y1'] and r['z0'] <= z <= r['z1']]
+        cpu = [r['light'] for r in boxed][:32]
+        header = raw[c]
+        first, count = header & 0xffffff, header >> 24
+        assert count <= 32 and (count == 0 or num_clusters <= first < num_clusters + used)
+        gpu = list(raw[first:first + count]) if count else []
+        it = iter([r['light'] for r in boxed])
+        assert all(any(light == candidate for candidate in it) for light in gpu), (c, gpu, cpu)
+        if z == slices - 1:
+            assert gpu == cpu, (c, gpu, cpu)
+        elif count < 32 and boxed:
+            # Dense samples across the jitter-expanded cluster frustum. Any
+            # sphere reaching one must survive the GPU AABB test.
+            k0, k1 = z - .5, z + 1.5
+            d0 = 0 if k0 <= 0 else near * (far / near) ** (k0 / slices)
+            d1 = near * (far / near) ** (k1 / slices)
+            sx = np.linspace(x * tile - .5, min((x + 1) * tile, width) + .5, 3) / width * 2 - 1
+            sy = np.linspace(y * tile - .5, min((y + 1) * tile, height) + .5, 3) / height * 2 - 1
+            sd = np.linspace(d0, d1, 3)
+            NX, NY, SD = np.meshgrid(sx, sy, sd, indexing='ij')
+            samples = np.stack([NX * SD / p[0], NY * SD / p[5], -SD], axis=-1).reshape(-1, 3)
+            reaching = [r['light'] for r in boxed if np.min(np.sum((samples - np.array(r['eye'])) ** 2, axis=1)) <= r['radius'] ** 2]
+            assert all(light in gpu for light in reaching), (c, reaching, gpu)
+        cpu_refs += len(cpu)
+        gpu_refs += count
+    return num_clusters, len(ranges), cpu_refs, gpu_refs
 
 
 # ---------------------------------------------------------------- water contacts
@@ -531,6 +641,11 @@ def main():
             checked, lights, cpu_refs, gpu_refs, slots = fplus_case(fplus, seed, cap, jitter=jitter, area_every=area)
             print(f'fplus_cluster seed {seed} cap {cap}: {checked} clusters, {lights} lights in view, '
                   f'light refs CPU {cpu_refs} -> GPU {gpu_refs} ({slots} index slots)')
+        froxel = compute_program('fplus_cluster', '#define FROXEL_LIGHT_LISTS\n')
+        for slices, tile, seed in [(64, 4, 11), (64, 8, 12), (128, 16, 13)]:
+            checked, lights, cpu_refs, gpu_refs = froxel_case(froxel, slices, tile, seed)
+            print(f'froxel_cluster {slices} slices tile {tile}: {checked} clusters, {lights} lights in view, '
+                  f'light refs CPU {cpu_refs} -> GPU {gpu_refs}')
         water = compute_program('water_intersection')
         contacts, peak = water_case(water)
         print(f'water_intersection: {contacts} contact cells, peak source {peak:.3f}, hit buffer matches')

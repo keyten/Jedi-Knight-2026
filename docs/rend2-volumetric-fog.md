@@ -103,7 +103,7 @@ discretisation (see Integration).
 | `world->volumetricStaticGrid` | RGBA16F 3D | light grid | non-sun baked baseline B (rgb), sun fraction f = align * vis (a, traced at load) |
 | `world->volumetricSunGrid` | R11G11B10F 3D | light grid | baked sun part S |
 | `world->volumetricDirMomentR/G/B` | RGB16F 3D | light grid | `r_volumetricFogStaticDirectional 1, 2` only: first angular moment of the attributed baked light per colour channel (xyz, towards the light, `|M_c| <= B_c`) |
-| froxel light lists | buffer textures | per frame | lights (RGBA32F, 2 texels) and cluster headers + indexes (R32UI) |
+| froxel light lists | buffer textures | per frame | lights (RGBA32F, 5 texels) and cluster headers + indexes (R32UI) |
 
 Emission (not radiance) is stored because it is linear in the medium: blending two frames of emission and
 extinction is correct at fog boundaries and under jitter.
@@ -117,6 +117,12 @@ the first invocation of each column also writes its tail light. Integration disp
 with `imageStore` for each slice. The column invariants (ray length and geometric slice ratio) are computed
 once: one `exp2` per column, then multiplication for subsequent boundaries, with the last boundary anchored
 to `far`. Slice 0 still starts at the camera. Image outputs are `restrict writeonly` (distinct textures).
+The dynamic-light cluster lists also use compute by default (`r_volumetricFogLightCompute 1`). The shared
+`fplus_cluster.glsl` kernel consumes CPU-authored light ranges and writes the existing R32UI header/index layout.
+Its sphere test uses jitter-expanded cluster AABBs; the last slice keeps conservative CPU boxes for the tail.
+Set the cvar to 0 for the CPU fallback without restarting. `r_vfogLightStats` reports CPU preparation time and
+`r_speeds 100` includes `Froxel fog light lists` GPU time.
+
 The far depth of a slice is the near depth of the next, and the texel fetches of the next slice are issued before the math
 of the current one to hide their latency. No per-slice draws, attachment changes or carry texture accesses
 are needed. Carry textures are allocated only for raster, including fallback after compute compilation fails.
@@ -193,7 +199,9 @@ Per froxel (instance / layer = slice):
    renderer. Clustered like Forward+ but on the froxel grid (`R_VolumetricBuildLightLists`): tiles of 8 x 8
    froxels per slice (`r_volumetricFogLightTile 4 / 8 / 16`, not archived, for A/B; `r_vfogLightStats` prints
    the lights, clusters, average / max lights per cluster, overflow and CPU build time of the last view), each light sphere binned into the clusters its projected bounds and depth range touch, at
-   most 32 per cluster (the least important drop out). With `r_forwardPlus 1` every point light of the scene is a
+   most 32 per cluster (the least important drop out). On GL 4.3 the shared Forward+ kernel sphere-culls each
+   conservative box against a jitter-expanded cluster AABB; `r_volumetricFogLightCompute 0` restores CPU list
+   construction, and `r_vfogLightVerify` validates a compute-built view on demand. With `r_forwardPlus 1` every point light of the scene is a
    candidate (no `MAX_DLIGHTS` limit), otherwise the lights of the Lights block. The medium at the froxel center is
    evaluated only where the cluster has lights.
 6. **Temporal filter** of baked + sun (see Temporal). The dynamic light emission is written to its own volume

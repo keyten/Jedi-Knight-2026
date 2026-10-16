@@ -151,6 +151,7 @@ cvar_t	*r_volumetricFogHistoryWeight;
 cvar_t	*r_volumetricFogSunScale;
 cvar_t	*r_volumetricFogDlightScale;
 cvar_t	*r_volumetricFogLightTile;
+cvar_t	*r_volumetricFogLightCompute;
 cvar_t	*r_volumetricFogStaticScale;
 cvar_t	*r_volumetricFogStaticDirectional;
 cvar_t	*r_staticLightReconstruction;
@@ -1992,6 +1993,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_plantSimInfo", R_PlantSimInfo_f },
 	{ "r_forwardPlusStats",	R_ForwardPlusStats_f },
 	{ "r_forwardPlusVerify",	R_ForwardPlusVerify_f },
+	{ "r_vfogLightVerify",	R_VolumetricLightVerify_f },
 	{ "r_pomSilhouetteInfo",	R_PomSilhouetteInfo_f },
 	{ "r_autoPOMSilhouette",	R_AutoPomSilhouette_f },
 	{ "r_forwardPlusSpawnTestLights",	R_SpawnTestLights_f },
@@ -2910,6 +2912,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange(r_volumetricFogDlightScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogLightTile = ri.Cvar_Get("r_volumetricFogLightTile", "8", CVAR_NONE, "Froxel fog: froxels per side of a dynamic light tile (4, 8, 16), see r_vfogLightStats");
 	ri.Cvar_CheckRange(r_volumetricFogLightTile, 4.0f, 16.0f, qtrue);
+	r_volumetricFogLightCompute = ri.Cvar_Get("r_volumetricFogLightCompute", "1", CVAR_NONE, "Build froxel dynamic-light cluster lists on GL 4.3 compute");
 	r_volumetricFogStaticScale = ri.Cvar_Get("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
 	r_volumetricFogStaticDirectional = ri.Cvar_Get("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: directional baked light, the light grid light gets a first order (L1) phase response along the directions it is attributed to at map load: 0 = isotropic, 1 = reconstructed per channel moments (sources fitted from the light grid and the static area emitters), 2 = raw BSP light grid direction (developer comparison) (vid_restart)");

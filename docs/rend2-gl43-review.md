@@ -36,7 +36,7 @@ themselves; they would need a new algorithm (shared-memory tiling, wave intrinsi
 | LTC area lights, saber lines, LTC shadows | `bd149dc49` … `7b6f8db61` | data rides the Forward+ light buffer; screen traces are fragment passes | through Forward+ | covered by the Forward+ port |
 | Spot lights, cookies | `ffd5eea03`, `f6ee1fcb5` | bounding sphere in the Forward+ ranges; cookie 2D array | through Forward+ | covered |
 | CSM / Shadows 2.0 / PCSS / character shadows | `5f55edd8b`, `93c82eced`, `2e1f98f32` | raster shadow passes | layered rendering needs `ARB_shader_viewport_layer_array` (not core 4.3) | **no** |
-| Froxel volumetric fog and its media (height fog, noise, local volumes, FX media, emission, phase, self-shadow, multi-scatter, RGB extinction, liquids) | `239d3ee7e` … `4789c8b27`, `837c7a8e8` | **compute** inject / media / integrate already; light lists and fog-volume masks binned on the CPU | GPU froxel light lists | **later**: same pattern as Forward+ (`R_VolumetricBuildLightLists`); the froxel grid is ~20× smaller than the screen, so the CPU cost is a fraction of Forward+ |
+| Froxel volumetric fog and its media (height fog, noise, local volumes, FX media, emission, phase, self-shadow, multi-scatter, RGB extinction, liquids) | `239d3ee7e` … `4789c8b27`, `837c7a8e8` | **compute** inject / media / integrate; dynamic-light lists use the shared Forward+ cluster kernel | GPU froxel light lists | **yes, implemented** (`r_volumetricFogLightCompute`) |
 | Atmosphere LUTs, clouds, cloud shadows | `13fc62bdc`, `2455fe5e0` | fragment LUT passes / reduced-resolution march | none | **no**: the cloud noise readback is a one-off at the first frame |
 | Weather: rain simulation, splashes | `ddc0df4b5`, `1a0f16741`, `f701b2964` | transform feedback update + splash geometry shader; splash query read only when available | compute particle update | **no**: TF is already a GPU-only point update; a compute rewrite has the same cost |
 | Wetness persistence, puddle ripples, runoff trails | `bb27fecf5`, `933cf8693`, `f701b2964`, `af2cb2a18` | ping-pong fragment fields at ≤ 10–30 Hz | none | **no**: measured 0.2 ms per update at 256², amortised < 0.01 ms/frame |
@@ -64,9 +64,20 @@ the current caps are not reached by stock content).
 |---|---|---|---|
 | 1 | Water intersection foam on compute: no readback, no CPU cell loop, no CPU foam resample | removes a full pipeline stall per frame (`r_waterIntersectionFoam 1`) | **done** |
 | 2 | Forward+ cluster build on compute (`r_forwardPlusCompute 1`) | removes the CPU binning of every colour view; tighter sphere vs cluster test (fewer lights per cluster in the lighting loop) | **done** |
-| 3 | Froxel light lists on the GPU, reusing the Forward+ kernel | CPU time of `R_VolumetricBuildLightLists` | later |
+| 3 | Froxel light lists on the GPU, reusing the Forward+ kernel | removes CPU cluster binning and sphere-culls conservative boxes | **done** |
 | 4 | Water mesh tessellation LOD | prepass / reflection vertex cost of big water bodies | later, needs its own design |
 | 5 | Single-pass Hi-Z / AO depth chain | a few tens of µs | not planned |
+
+Detailed plans for the remaining work (what, why, where, what to change, how to validate):
+
+1. [In-game validation and tooling of the done ports](rend2-gl43-plan-1-validation.md): GPU timers, verify
+   commands, in-game scenarios, stale tests. Do first.
+2. [Froxel fog light lists on the GPU](rend2-gl43-plan-2-froxel-light-lists.md) (item 3 above).
+3. [Rain streaks and splashes without geometry shaders](rend2-gl43-plan-3-weather-no-gs.md): vertex expansion +
+   compute preparation and indirect splash draws; gated on a measurement.
+4. [Point-light and CSM shadows in one scene pass per light](rend2-gl43-plan-4-layered-shadows.md): stage 1 (one
+   traversal, face masks, any GL) and stage 2 (layered rendering, needs `ARB_shader_viewport_layer_array`).
+5. [Distance-adaptive water tessellation](rend2-gl43-plan-5-water-tessellation.md) (item 4 above).
 
 ### 1. Water intersection foam
 
@@ -108,15 +119,32 @@ always a subset of the CPU lists (same order, same cap) that still contains ever
 Cluster statistics of `r_forwardPlusStats` need the counts on the CPU and are therefore only printed for the
 CPU build; the build time shows the CPU cost of either path.
 
+### 3. Froxel fog light lists
+
+`fplus_cluster.glsl` is compiled a second time with `FROXEL_LIGHT_LISTS`. The CPU still selects and sorts dynamic,
+recovered-static and portal-shaft lights, uploads their five RGBA32F texels, selects self-shadowed lights and
+computes conservative tile/slice boxes. One compute invocation per froxel cluster then sphere-tests those boxes
+and writes the existing R32UI layout (`first | count << 24`, followed by 32-bit indexes) in place.
+
+The froxel AABB uses the unjittered `froxelProjection`, expands XY by half a froxel and depth to fractional
+boundaries `B(k - 0.5)..B(k + 1.5)`. The last slice keeps the CPU rectangle exactly, without sphere culling,
+because its list also serves the tail beyond `far`. Fixed per-frame buffers reserve 32 indexes per cluster;
+`r_volumetricFogLightCompute 0` switches back to CPU binning immediately. `r_vfogLightStats` reports CPU candidate,
+range and upload time in compute mode, while `r_speeds 100` exposes `Froxel fog light lists`. The on-demand
+`r_vfogLightVerify` command checks allocation bounds, ordering, the cap and exact last-slice lists.
+
 ## Validation
 
-`tools/rend2/test_gl43_compute.py` (hidden SDL GL 4.3 context; passes on Intel UHD 27.20.100.8280 and
-RTX 2060 616.92):
+`tools/rend2/test_gl43_compute.py` (hidden SDL GL 4.3 context; the established Forward+/water cases pass on
+Intel UHD 27.20.100.8280 and RTX 2060 616.92; the new froxel cases have currently been run on Intel):
 
 - `fplus_cluster.glsl` on 3840 clusters with ~90 lights (jitter, area-light boxes, caps 4 and 255): every
   GPU list is an ordered subsequence of the CPU list, keeps every light that reaches a sample of the
   cluster's frustum chunk, respects the cap, the even allocation and the R16 packing. The sphere test drops
   10–14 % of the CPU light references in these scenes.
+- the `FROXEL_LIGHT_LISTS` permutation at 64/128 slices and tile sizes 4/8/16, including small and large lights
+  and a sphere crossing the camera plane: GPU lists are ordered CPU subsequences, stay at 32 entries, retain every
+  sampled point of the jitter-expanded cluster, and the last slice equals CPU binning.
 - `water_intersection.glsl` on a synthetic scene (floor under shallow water, a pillar through the surface,
   sky, a round wet mask): the sources equal a port of `RB_WaterIntersectionInject` (≤ 3e-3, R16F), dry cells
   stay 0, the hit buffer holds the body maximum in its slot only.
@@ -143,6 +171,12 @@ reported 49,728 CPU -> 11,078 GPU references, no overflow and **0 verifier viola
 CPU/GPU contact counts (106 on the visible body), maximum difference 0.000485, **0 mismatches**, three body
 dispatches and a rising wake-readback counter. A later repeat with the controlled capture config also returned zero
 violations/mismatches.
+
+The froxel-list addition passed the Intel hidden-context cases at 64/128 slices and tile 4/8/16. A hidden SP
+`t2_trip` run with 64 renderer test lights reported 33,563 CPU-box references -> 17,803 GPU references and
+**0 verifier violations** over a 10x8x48 cluster grid; `r_vfogLightStats` reported 0.024 ms of CPU preparation
+for the sampled frame. GL 4.3 compute and GL 3.2 raster startup smoke tests both exited cleanly. NVIDIA,
+bit-exact CPU/GPU captures and controlled performance measurements remain pending.
 
 The first screenshot pass is not accepted as bit-exact evidence: its CPU/CPU control pair changed too, so the
 capture still contains frame-varying output unrelated to the compute switch. Interactive 30-second contact,

@@ -127,7 +127,10 @@ void WorkerMain() {
 				pool.done.notify_all();
 			continue;
 		}
-		RunTask(lock);
+		// the wait may have ended on chunks that other threads (they take
+		// chunks without the lock) used up before the check above
+		if (!pool.tasks.empty())
+			RunTask(lock);
 	}
 }
 

@@ -4789,10 +4789,15 @@ static int GLSL_LoadGPUProgramForwardPlusCluster( Allocator& scratchAlloc )
 {
 	// r_forwardPlus / r_forwardPlusCompute switch at run time: a small kernel,
 	// built whenever the modern tier is available
-	if (!GLSL_LoadComputeProgram(&tr.forwardPlusClusterShader, "fplus_cluster",
+	int numPrograms = 0;
+	if (GLSL_LoadComputeProgram(&tr.forwardPlusClusterShader, "fplus_cluster",
 			fallback_fplus_clusterProgram, "", scratchAlloc, MODERN_SSBO))
-		return 0;
-	return 1;
+		numPrograms++;
+	if (R_VolumetricFroxelEnabled() &&
+		GLSL_LoadComputeProgram(&tr.froxelLightClusterShader, "fplus_cluster",
+			fallback_fplus_clusterProgram, "#define FROXEL_LIGHT_LISTS\n", scratchAlloc, MODERN_SSBO))
+		numPrograms++;
+	return numPrograms;
 }
 
 static int GLSL_LoadGPUProgramVolumetric(
@@ -5997,12 +6002,12 @@ static int GLSL_CountStartupPrograms()
 		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
 	if (R_WaterFoamResourcesEnabled())
 		++count;
-	// GL 4.3 kernels: water depth contacts, Forward+ cluster build
+	// GL 4.3 kernels: water depth contacts, Forward+ and froxel cluster builds
 	if (r_waterInteraction && r_waterInteraction->integer &&
 		R_HasModernFeatures(MODERN_COMPUTE | MODERN_IMAGE_LOAD_STORE | MODERN_SSBO))
 		++count;
 	if (R_HasModernFeatures(MODERN_COMPUTE | MODERN_SSBO))
-		++count;
+		count += 1 + (R_VolumetricFroxelEnabled() ? 1 : 0);
 	// atmosphere LUTs (3) + composite (GLSL_LoadGPUProgramAtmosphere)
 	count += 4;
 	// noise, march, resolve, composite, shadow map (GLSL_LoadGPUProgramClouds)
@@ -6292,6 +6297,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterInteractionFieldShader);
 	GLSL_DeleteGPUShader(&tr.waterIntersectionComputeShader);
 	GLSL_DeleteGPUShader(&tr.forwardPlusClusterShader);
+	GLSL_DeleteGPUShader(&tr.froxelLightClusterShader);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

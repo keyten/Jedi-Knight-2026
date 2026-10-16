@@ -1,9 +1,10 @@
 /*[Compute]*/
-// GL 4.3 Forward+ cluster build (r_forwardPlusCompute, tr_forwardplus.cpp
-// RB_ForwardPlusBuildViewGPU). Replaces the CPU count / prefix sum / fill of
-// RB_ForwardPlusBuildView and writes the same buffers lightall samples:
+// GL 4.3 Forward+ / froxel fog cluster build. Replaces the CPU count / prefix
+// sum / fill and writes the same buffers the lighting shaders sample:
 //   grid    RG32UI per cluster: absolute offset into the index list, count
 //   indices R16UI light indexes (two per uint here)
+// With FROXEL_LIGHT_LISTS the output is instead one R32UI buffer: a header per
+// cluster (absolute first | count << 24), followed by 32-bit light indexes.
 // One invocation per cluster walks the light boxes of the view in importance
 // order (the CPU ranges: tile / slice box of the light), keeps the lights
 // whose box contains the cluster and, for point and spot lights, whose view
@@ -24,8 +25,12 @@ struct LightRange
 	vec4 sphere;	// view space center, radius
 };
 
+#if defined(FROXEL_LIGHT_LISTS)
+layout(std430, binding = 0) writeonly buffer FroxelLists { uint lists[]; };
+#else
 layout(std430, binding = 0) writeonly buffer FPlusGrid { uvec2 grid[]; };
 layout(std430, binding = 1) writeonly buffer FPlusIndices { uint indices[]; };
+#endif
 layout(std430, binding = 2) readonly buffer FPlusRanges { LightRange ranges[]; };
 layout(std430, binding = 3) buffer FPlusCounter { uint nextIndex; };
 
@@ -36,6 +41,16 @@ vec2 SliceDepths(int z)
 	int slices = int(u_FPlusCluster[0].z);
 	float nearSlice = u_FPlusCluster[2].z;
 	float farZ = u_FPlusCluster[2].w;
+#if defined(FROXEL_LIGHT_LISTS)
+	// The injection's temporal sample may move half a froxel in every axis.
+	// Cover z - 0.5 through z + 1.5; the last slice deliberately skips the
+	// sphere test because its light list is also used by the tail beyond far.
+	float k0 = float(z) - 0.5;
+	float k1 = float(z) + 1.5;
+	float d0 = k0 <= 0.0 ? 0.0 : nearSlice * pow(farZ / nearSlice, k0 / float(slices));
+	float d1 = nearSlice * pow(farZ / nearSlice, k1 / float(slices));
+	return vec2(d0, d1);
+#else
 	if (slices <= 1)
 		return vec2(0.0, farZ * 1.01);
 	if (z == 0)
@@ -44,6 +59,7 @@ vec2 SliceDepths(int z)
 	float d0 = exp((float(z - 1) - bias) / scale);
 	float d1 = z == slices - 1 ? farZ : exp((float(z) - bias) / scale);
 	return vec2(d0 * 0.99, d1 * 1.01);
+#endif
 }
 
 // eye space x (or y) of an NDC coordinate at view depth d (perspective P)
@@ -64,13 +80,23 @@ void main()
 	int z = c / (tilesX * tilesY);
 
 	bool sphereTest = u_FPlusCluster[4].z > 0.5;
+#if defined(FROXEL_LIGHT_LISTS)
+	sphereTest = sphereTest && z != int(u_FPlusCluster[0].z) - 1;
+#endif
 	vec3 boxMin = vec3(0.0), boxMax = vec3(0.0);
 	if (sphereTest)
 	{
 		float tileSize = u_FPlusCluster[1].x;
 		vec2 viewport = u_FPlusCluster[1].yz;
+#if defined(FROXEL_LIGHT_LISTS)
+		// viewport is the froxel grid and tileSize is measured in froxels.
+		// Half a froxel on either side covers the temporal injection jitter.
+		vec2 ndc0 = (vec2(x, y) * tileSize - 0.5) / viewport * 2.0 - 1.0;
+		vec2 ndc1 = (min(vec2(x + 1, y + 1) * tileSize, viewport) + 0.5) / viewport * 2.0 - 1.0;
+#else
 		vec2 ndc0 = vec2(x, y) * tileSize / viewport * 2.0 - 1.0;
 		vec2 ndc1 = min(vec2(x + 1, y + 1) * tileSize, viewport) / viewport * 2.0 - 1.0;
+#endif
 		vec2 depths = SliceDepths(z);
 		vec4 p = u_FPlusCluster[3];
 		vec4 q = u_FPlusCluster[4];
@@ -107,16 +133,25 @@ void main()
 		count++;
 	}
 
-	// an even number of entries per cluster: every uint belongs to one cluster
+	// Allocate the compact result. Forward+ rounds to pairs because its R16UI
+	// texture packs two entries per uint; froxel indexes are native uints.
 	uint offset = 0u;
 	if (count > 0u)
 	{
+#if defined(FROXEL_LIGHT_LISTS)
+		uint allocated = count;
+#else
 		uint allocated = (count + 1u) & ~1u;
+#endif
 		offset = atomicAdd(nextIndex, allocated);
 		if (offset + allocated > uint(u_FPlusCluster[5].z))
 			count = 0u;		// index list full: this cluster gets no light
 	}
+#if defined(FROXEL_LIGHT_LISTS)
+	lists[c] = count > 0u ? uint(numClusters) + offset | (count << 24) : 0u;
+#else
 	grid[int(u_FPlusCluster[5].x) + c] = uvec2(offset, count);
+#endif
 	if (count == 0u)
 		return;
 
@@ -137,12 +172,18 @@ void main()
 				continue;
 		}
 		uint light = r.box.w & 0xffffu;
+#if defined(FROXEL_LIGHT_LISTS)
+		lists[uint(numClusters) + offset + written] = light;
+#else
 		if ((written & 1u) == 0u)
 			pending = light;
 		else
 			indices[(offset + written) >> 1] = pending | (light << 16);
+#endif
 		written++;
 	}
+#if !defined(FROXEL_LIGHT_LISTS)
 	if ((written & 1u) != 0u)
 		indices[(offset + written) >> 1] = pending;
+#endif
 }

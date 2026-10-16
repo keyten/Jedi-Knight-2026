@@ -134,16 +134,23 @@ qboolean R_VolumetricComputeAvailable( void )
 		combinedSamplers > (s_vf.rgb ? TB_FROXELEXTINCTION : TB_LIGHTCOOKIES) && blocks >= 3);
 }
 
+#define FROXEL_LIGHTS_PER_CLUSTER	32
+#define FROXEL_LIGHT_TEXELS			5	// must match volumetric_inject.glsl / volumetric_debug.glsl
+
 // dynamic light lists of the froxels (R_VolumetricBuildLightLists): GL objects
 // created with the froxel resources, deleted by R_ShutdownVolumetric
 static struct
 {
 	GLuint lightBuffers[MAX_FRAMES];
 	GLuint listBuffers[MAX_FRAMES];
+	GLuint rangeBuffers[MAX_FRAMES];		// GL 4.3: 32-byte light range records
+	GLuint counterBuffers[MAX_FRAMES];	// GL 4.3: compact list allocator
 	image_t lightImages[MAX_FRAMES];	// buffer textures, bound like images
 	image_t listImages[MAX_FRAMES];
+	int listCapacity;					// uints, headers plus worst-case indexes
 	int lightSlot;						// buffers of this frame
 	qboolean hasLights;					// this frame's volume has light lists
+	qboolean verifyPending;				// r_vfogLightVerify: next compute-built view
 	std::vector<uint32_t> lightCounts;
 	std::vector<uint32_t> lightCursor;
 	std::vector<uint32_t> lightList;
@@ -162,7 +169,8 @@ static struct
 		int recoveredLights;	// promoted static lights in the volume (after the dynamic ones)
 		int recoveredCulled;	// promoted static lights out of the PVS
 		int portalShafts;		// light portal shafts in the volume
-		double buildMsec;		// CPU binning + upload
+		double buildMsec;		// CPU preparation (+ binning in fallback mode)
+		qboolean gpuBuild;		// cluster lists built by fplus_cluster.glsl
 	} stats;
 } s_vfl;
 
@@ -930,6 +938,17 @@ void R_CreateVolumetricFBOs( void )
 	{
 		qglGenBuffers(MAX_FRAMES, s_vfl.lightBuffers);
 		qglGenBuffers(MAX_FRAMES, s_vfl.listBuffers);
+		const qboolean gpuLists = R_HasModernFeatures(MODERN_COMPUTE | MODERN_SSBO);
+		if ( gpuLists )
+		{
+			qglGenBuffers(MAX_FRAMES, s_vfl.rangeBuffers);
+			qglGenBuffers(MAX_FRAMES, s_vfl.counterBuffers);
+		}
+		const int requestedTile = r_volumetricFogLightTile->integer;
+		const int tileSize = (requestedTile <= 5) ? 4 : ((requestedTile >= 12) ? 16 : 8);
+		const int clusters = ((s_vf.width + tileSize - 1) / tileSize) *
+			((s_vf.height + tileSize - 1) / tileSize) * s_vf.depth;
+		s_vfl.listCapacity = clusters * (1 + FROXEL_LIGHTS_PER_CLUSTER);
 		for ( int f = 0; f < MAX_FRAMES; f++ )
 		{
 			image_t *images[2] = { &s_vfl.lightImages[f], &s_vfl.listImages[f] };
@@ -941,13 +960,26 @@ void R_CreateVolumetricFBOs( void )
 				Q_strncpyz(images[b]->imgName, va("*froxelLights%d_%d", f, b), sizeof(images[b]->imgName));
 				images[b]->flags = IMGFLAG_TEXBUFFER;
 				qglBindBuffer(GL_TEXTURE_BUFFER, buffers[b]);
-				qglBufferData(GL_TEXTURE_BUFFER, 16, NULL, GL_STREAM_DRAW);
+				const GLsizeiptr size = b == 1 ?
+					(GLsizeiptr)s_vfl.listCapacity * sizeof(uint32_t) : 16;
+				qglBufferData(GL_TEXTURE_BUFFER, size, NULL, b == 1 ? GL_DYNAMIC_DRAW : GL_STREAM_DRAW);
 				qglGenTextures(1, &images[b]->texnum);
 				GL_BindToTMU(images[b], TB_FPLUS_LIGHTS);
 				qglTexBuffer(GL_TEXTURE_BUFFER, formats[b], buffers[b]);
 			}
+			if ( gpuLists )
+			{
+				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.rangeBuffers[f]);
+				qglBufferData(GL_SHADER_STORAGE_BUFFER,
+					(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX) * 32,
+					NULL, GL_STREAM_DRAW);
+				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.counterBuffers[f]);
+				qglBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), NULL, GL_STREAM_DRAW);
+			}
 		}
 		qglBindBuffer(GL_TEXTURE_BUFFER, 0);
+		if ( gpuLists )
+			qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
 	// composite: color and glow of renderFbo only, the sampled depth must not
@@ -996,9 +1028,17 @@ void R_ShutdownVolumetric( void )
 		}
 		qglDeleteBuffers(MAX_FRAMES, s_vfl.lightBuffers);
 		qglDeleteBuffers(MAX_FRAMES, s_vfl.listBuffers);
+		if ( s_vfl.rangeBuffers[0] )
+		{
+			qglDeleteBuffers(MAX_FRAMES, s_vfl.rangeBuffers);
+			qglDeleteBuffers(MAX_FRAMES, s_vfl.counterBuffers);
+		}
 	}
 	Com_Memset(s_vfl.lightBuffers, 0, sizeof(s_vfl.lightBuffers));
 	Com_Memset(s_vfl.listBuffers, 0, sizeof(s_vfl.listBuffers));
+	Com_Memset(s_vfl.rangeBuffers, 0, sizeof(s_vfl.rangeBuffers));
+	Com_Memset(s_vfl.counterBuffers, 0, sizeof(s_vfl.counterBuffers));
+	s_vfl.listCapacity = 0;
 	s_vfl.hasLights = qfalse;
 }
 
@@ -1092,14 +1132,20 @@ per cluster (the least important drop out). Two buffer textures per frame:
                    light indexes
 =================
 */
-#define FROXEL_LIGHTS_PER_CLUSTER	32
-#define FROXEL_LIGHT_TEXELS			5	// must match volumetric_inject.glsl / volumetric_debug.glsl
-
 struct froxelLightRange_t
 {
 	int light;		// index into the lights buffer
 	int x0, x1, y0, y1, z0, z1;
+	vec4_t sphere;	// view space bounding sphere
 };
+
+// glsl/fplus_cluster.glsl LightRange (std430)
+struct froxelGpuRange_t
+{
+	uint32_t box[4];
+	float sphere[4];
+};
+static_assert(sizeof(froxelGpuRange_t) == 32, "froxel GPU light-range ABI");
 
 static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *froxelProjection,
 	const dlight_t *dl, int tileSize, int tilesX, int tilesY, froxelLightRange_t *range )
@@ -1123,6 +1169,7 @@ static qboolean R_VolumetricLightRange( const viewParms_t *view, const float *fr
 	float eye[3];
 	for ( int r = 0; r < 3; r++ )
 		eye[r] = mv[r] * center[0] + mv[4 + r] * center[1] + mv[8 + r] * center[2] + mv[12 + r];
+	VectorSet4(range->sphere, eye[0], eye[1], eye[2], radius);
 	const float depth = -eye[2];
 	if ( depth + radius <= 0.0f || depth - radius >= s_vf.farZ )
 		return qfalse;
@@ -1174,6 +1221,182 @@ static int R_VolumetricLightTileSize( void )
 {
 	const int n = r_volumetricFogLightTile->integer;
 	return (n <= 5) ? 4 : ((n >= 12) ? 16 : 8);
+}
+
+static void R_VolumetricEnsureLightListCapacity( int numClusters )
+{
+	const int capacity = numClusters * (1 + FROXEL_LIGHTS_PER_CLUSTER);
+	if ( capacity == s_vfl.listCapacity )
+		return;
+	// The cvar is live. Orphan every frame slot once when its tile count
+	// changes; queued draws retain their old stores.
+	for ( int f = 0; f < MAX_FRAMES; f++ )
+	{
+		qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.listBuffers[f]);
+		qglBufferData(GL_TEXTURE_BUFFER, (GLsizeiptr)capacity * sizeof(uint32_t),
+			NULL, GL_DYNAMIC_DRAW);
+	}
+	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
+	s_vfl.listCapacity = capacity;
+}
+
+static qboolean RB_VolumetricBuildLightListsGPU( const froxelLightRange_t *ranges,
+	int numLights, const float *froxelProjection, int slot, int tileSize,
+	int tilesX, int tilesY, int numClusters )
+{
+	if ( !r_volumetricFogLightCompute->integer ||
+		!R_HasModernFeatures(MODERN_COMPUTE | MODERN_SSBO) ||
+		!tr.froxelLightClusterShader.program || !s_vfl.rangeBuffers[0] )
+		return qfalse;
+
+	const uint32_t indexCapacity = (uint32_t)numClusters * FROXEL_LIGHTS_PER_CLUSTER;
+	if ( (uint64_t)numClusters + indexCapacity >= (1u << 24) ||
+		(uint64_t)numClusters + indexCapacity > (uint32_t)s_vfl.listCapacity )
+		return qfalse;
+
+	static froxelGpuRange_t records[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX];
+	for ( int i = 0; i < numLights; i++ )
+	{
+		const froxelLightRange_t& r = ranges[i];
+		froxelGpuRange_t& g = records[i];
+		g.box[0] = (uint32_t)r.x0 | ((uint32_t)r.x1 << 16);
+		g.box[1] = (uint32_t)r.y0 | ((uint32_t)r.y1 << 16);
+		g.box[2] = (uint32_t)r.z0 | ((uint32_t)r.z1 << 16);
+		g.box[3] = (uint32_t)r.light | (1u << 16);
+		VectorCopy4(r.sphere, g.sphere);
+	}
+
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.rangeBuffers[slot]);
+	qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+		(GLsizeiptr)numLights * sizeof(froxelGpuRange_t), records);
+	const uint32_t zero = 0;
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.counterBuffers[slot]);
+	qglBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(zero), &zero);
+	qglMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	const float *p = froxelProjection;
+	const qboolean perspective = (qboolean)(p[1] == 0.0f && p[2] == 0.0f && p[3] == 0.0f &&
+		p[4] == 0.0f && p[6] == 0.0f && p[7] == 0.0f && p[11] == -1.0f && p[15] == 0.0f &&
+		p[0] != 0.0f && p[5] != 0.0f);
+	vec4_t params[8] = {};
+	VectorSet4(params[0], (float)tilesX, (float)tilesY, (float)s_vf.depth, (float)numClusters);
+	VectorSet4(params[1], (float)tileSize, (float)s_vf.width, (float)s_vf.height, (float)numLights);
+	VectorSet4(params[2], 0.0f, 0.0f, s_vf.nearZ, s_vf.farZ);
+	VectorSet4(params[3], p[0], p[5], p[8], p[9]);
+	VectorSet4(params[4], p[12], p[13], perspective ? 1.0f : 0.0f, (float)FROXEL_LIGHTS_PER_CLUSTER);
+	VectorSet4(params[5], 0.0f, 0.0f, (float)indexCapacity, 0.0f);
+
+	shaderProgram_t *sp = &tr.froxelLightClusterShader;
+	GLSL_BindProgram(sp);
+	GLSL_SetUniformVec4N(sp, UNIFORM_FPLUSCLUSTER, params[0], 8);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, s_vfl.listBuffers[slot]);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, s_vfl.rangeBuffers[slot]);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, s_vfl.counterBuffers[slot]);
+	const int timer = RB_VolumetricBeginTimer("Froxel fog light lists");
+	qglDispatchCompute((numClusters + 63) / 64, 1, 1);
+	RB_VolumetricEndTimer(timer);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+	qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+	GLSL_BindNullProgram();
+	return qtrue;
+}
+
+static void RB_VolumetricVerifyLightListsGPU( const froxelLightRange_t *ranges,
+	int numLights, int slot, int tilesX, int tilesY, int numClusters )
+{
+	qglMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	std::vector<uint32_t> data((size_t)s_vfl.listCapacity);
+	uint32_t used = 0;
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.listBuffers[slot]);
+	qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+		(GLsizeiptr)data.size() * sizeof(uint32_t), data.data());
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.counterBuffers[slot]);
+	qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(used), &used);
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	used = Q_min(used, (uint32_t)(s_vfl.listCapacity - numClusters));
+
+	uint64_t cpuRefs = 0, gpuRefs = 0;
+	int violations = 0, reported = 0;
+	auto violation = [&]( int c, const char *reason ) {
+		violations++;
+		if ( reported++ < 5 )
+		{
+			const int x = c % tilesX;
+			const int y = (c / tilesX) % tilesY;
+			const int z = c / (tilesX * tilesY);
+			ri.Printf(PRINT_ALL, "  cluster (%d,%d,%d): %s\n", x, y, z, reason);
+		}
+	};
+
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		const int x = c % tilesX;
+		const int y = (c / tilesX) % tilesY;
+		const int z = c / (tilesX * tilesY);
+		const uint32_t header = data[c];
+		const uint32_t first = header & 0xffffffu;
+		const uint32_t count = header >> 24;
+		gpuRefs += count;
+		if ( count > FROXEL_LIGHTS_PER_CLUSTER )
+			violation(c, "GPU count exceeds FROXEL_LIGHTS_PER_CLUSTER");
+		if ( count && (first < (uint32_t)numClusters ||
+			first + count > (uint32_t)numClusters + used) )
+		{
+			violation(c, "GPU index range lies outside the allocation counter");
+			continue;
+		}
+
+		uint32_t cpuCount = 0, cpuAt = 0;
+		for ( int n = 0; n < numLights; n++ )
+		{
+			const froxelLightRange_t& r = ranges[n];
+			if ( x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1 && z >= r.z0 && z <= r.z1 )
+				cpuCount++;
+		}
+		cpuRefs += Q_min(cpuCount, (uint32_t)FROXEL_LIGHTS_PER_CLUSTER);
+		for ( uint32_t i = 0; i < count; i++ )
+		{
+			const uint32_t light = data[first + i];
+			qboolean found = qfalse;
+			while ( cpuAt < (uint32_t)numLights )
+			{
+				const froxelLightRange_t& r = ranges[cpuAt++];
+				if ( x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1 &&
+					z >= r.z0 && z <= r.z1 && (uint32_t)r.light == light )
+				{
+					found = qtrue;
+					break;
+				}
+			}
+			if ( !found )
+				violation(c, "GPU light is not an ordered CPU-box candidate");
+		}
+		// The last slice skips sphere culling because its list also lights the tail.
+		if ( z == s_vf.depth - 1 && count != Q_min(cpuCount, (uint32_t)FROXEL_LIGHTS_PER_CLUSTER) )
+			violation(c, "last-slice list does not match CPU count");
+		if ( z == s_vf.depth - 1 )
+		{
+			uint32_t at = 0;
+			for ( int n = 0; n < numLights && at < count; n++ )
+			{
+				const froxelLightRange_t& r = ranges[n];
+				if ( x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1 && z >= r.z0 && z <= r.z1 )
+				{
+					if ( data[first + at] != (uint32_t)r.light )
+						violation(c, "last-slice list differs from CPU order");
+					at++;
+				}
+			}
+		}
+	}
+
+	ri.Printf(PRINT_ALL,
+		"Froxel light verify: CPU %llu -> GPU %llu light references, %d violation%s (%dx%dx%d)\n",
+		(unsigned long long)cpuRefs, (unsigned long long)gpuRefs, violations,
+		violations == 1 ? "" : "s", tilesX, tilesY, s_vf.depth);
 }
 
 static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewParms_t *view,
@@ -1253,6 +1476,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	const int tilesX = (s_vf.width + tileSize - 1) / tileSize;
 	const int tilesY = (s_vf.height + tileSize - 1) / tileSize;
 	const int numClusters = tilesX * tilesY * s_vf.depth;
+	R_VolumetricEnsureLightListCapacity(numClusters);
 
 	// lights touching the volume, in importance order
 	static vec4_t lightData[(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX) * FROXEL_LIGHT_TEXELS];
@@ -1483,6 +1707,47 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		}
 	}
 
+	// Light records stay CPU-authored in both modes. The per-frame list buffer
+	// has a fixed capacity so compute can write it in place.
+	const int slot = backEndData->realFrameNumber % MAX_FRAMES;
+	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.lightBuffers[slot]);
+	qglBufferData(GL_TEXTURE_BUFFER, numLights * FROXEL_LIGHT_TEXELS * sizeof(vec4_t), lightData, GL_STREAM_DRAW);
+	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
+
+	s_vfl.lightSlot = slot;
+	s_vfl.hasLights = qtrue;
+	block->lightTileSize = tileSize;
+	block->lightTilesX = tilesX;
+	block->lightTilesY = tilesY;
+	s_vfl.stats.lights = numLights;
+	s_vfl.stats.tileSize = tileSize;
+	s_vfl.stats.clusters = numClusters;
+	s_vfl.stats.gpuBuild = qfalse;
+
+	if ( RB_VolumetricBuildLightListsGPU(ranges, numLights, froxelProjection, slot,
+			tileSize, tilesX, tilesY, numClusters) )
+	{
+		if ( s_vfl.verifyPending )
+		{
+			RB_VolumetricVerifyLightListsGPU(ranges, numLights, slot, tilesX, tilesY, numClusters);
+			s_vfl.verifyPending = qfalse;
+		}
+		s_vfl.stats.gpuBuild = qtrue;
+		s_vfl.stats.nonEmptyClusters = 0;
+		s_vfl.stats.lightRefs = 0;
+		s_vfl.stats.maxPerCluster = 0;
+		s_vfl.stats.overflowClusters = 0;
+		s_vfl.stats.overflowRefs = 0;
+		s_vfl.stats.buildMsec = std::chrono::duration<double, std::milli>(
+			std::chrono::steady_clock::now() - buildStart).count();
+		return;
+	}
+	if ( s_vfl.verifyPending )
+	{
+		ri.Printf(PRINT_ALL, "r_vfogLightVerify requires the GL 4.3 compute build (r_volumetricFogLightCompute 1).\n");
+		s_vfl.verifyPending = qfalse;
+	}
+
 	// pass 1: counts, pass 2: fill (same order and cap)
 	int overflowRefs = 0;
 	s_vfl.lightCounts.assign(numClusters, 0);
@@ -1511,7 +1776,13 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		total += s_vfl.lightCounts[c];
 	}
 	if ( numClusters + total >= (1u << 24) )
+	{
+		s_vfl.hasLights = qfalse;
+		block->lightTileSize = 0;
+		block->lightTilesX = 0;
+		block->lightTilesY = 0;
 		return;
+	}
 	s_vfl.lightList.resize(numClusters + total);
 
 	s_vfl.lightCursor.assign(numClusters, 0);
@@ -1533,23 +1804,12 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	for ( int c = 0; c < numClusters; c++ )
 		s_vfl.lightList[c] |= s_vfl.lightCounts[c] << 24;
 
-	// this frame's buffers (orphaned: the GPU may still read the previous data)
-	const int slot = backEndData->realFrameNumber % MAX_FRAMES;
-	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.lightBuffers[slot]);
-	qglBufferData(GL_TEXTURE_BUFFER, numLights * FROXEL_LIGHT_TEXELS * sizeof(vec4_t), lightData, GL_STREAM_DRAW);
+	// This slot was last sampled MAX_FRAMES frames ago. Keep the allocation
+	// fixed for the compute path and update only the CPU-built prefix.
 	qglBindBuffer(GL_TEXTURE_BUFFER, s_vfl.listBuffers[slot]);
-	qglBufferData(GL_TEXTURE_BUFFER, s_vfl.lightList.size() * sizeof(uint32_t), s_vfl.lightList.data(), GL_STREAM_DRAW);
+	qglBufferSubData(GL_TEXTURE_BUFFER, 0,
+		(GLsizeiptr)s_vfl.lightList.size() * sizeof(uint32_t), s_vfl.lightList.data());
 	qglBindBuffer(GL_TEXTURE_BUFFER, 0);
-
-	s_vfl.lightSlot = slot;
-	s_vfl.hasLights = qtrue;
-	block->lightTileSize = tileSize;
-	block->lightTilesX = tilesX;
-	block->lightTilesY = tilesY;
-
-	s_vfl.stats.lights = numLights;
-	s_vfl.stats.tileSize = tileSize;
-	s_vfl.stats.clusters = numClusters;
 	s_vfl.stats.nonEmptyClusters = 0;
 	s_vfl.stats.lightRefs = (int)total;
 	s_vfl.stats.maxPerCluster = 0;
@@ -1586,6 +1846,16 @@ void R_VolumetricLightStats_f( void )
 		ri.Printf(PRINT_ALL, "  no lights binned yet\n");
 		return;
 	}
+	if ( st.gpuBuild )
+	{
+		ri.Printf(PRINT_ALL, "  lights: %d in the volume, tile %d froxels, %d clusters\n",
+			st.lights, st.tileSize, st.clusters);
+		ri.Printf(PRINT_ALL, "  lists: GL 4.3 compute (cluster statistics require r_volumetricFogLightCompute 0)\n");
+		ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS; portal shafts: %d\n",
+			st.recoveredLights, st.recoveredCulled, st.portalShafts);
+		ri.Printf(PRINT_ALL, "  CPU build: %.3f ms (candidates, ranges and upload only)\n", st.buildMsec);
+		return;
+	}
 	ri.Printf(PRINT_ALL, "  lights: %d in the volume, tile %d froxels, %d clusters, %d non-empty\n",
 		st.lights, st.tileSize, st.clusters, st.nonEmptyClusters);
 	ri.Printf(PRINT_ALL, "  lights per cluster: avg %.2f (non-empty %.2f), max %d, cap %d\n",
@@ -1597,6 +1867,12 @@ void R_VolumetricLightStats_f( void )
 	ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS; portal shafts: %d\n",
 		st.recoveredLights, st.recoveredCulled, st.portalShafts);
 	ri.Printf(PRINT_ALL, "  CPU build: %.3f ms\n", st.buildMsec);
+}
+
+void R_VolumetricLightVerify_f( void )
+{
+	s_vfl.verifyPending = qtrue;
+	ri.Printf(PRINT_ALL, "Froxel light-list verification queued for the next view with dynamic lights.\n");
 }
 
 /*
