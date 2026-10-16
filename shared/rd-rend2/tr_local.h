@@ -675,6 +675,7 @@ extern cvar_t  *r_diffuseIBLDebug;
 
 extern cvar_t  *r_shaderProgramCache;
 extern cvar_t  *r_shaderProgramCacheMaxMB;
+extern cvar_t  *r_shaderProgramLazy;
 
 extern cvar_t  *r_forwardPlus;
 extern cvar_t  *r_forwardPlusTileSize;
@@ -3000,6 +3001,8 @@ typedef struct shaderProgram_s
 
 	// uniform blocks
 	uint32_t uniformBlocks;
+
+	bool used;	// bound since it was loaded (glslusage)
 } shaderProgram_t;
 
 // Resolved once for a render scene. Weather commands remain authoritative;
@@ -5475,6 +5478,9 @@ void GLSL_VertexAttribPointers(const VertexArraysProperties *vertexArrays);
 void GL_VertexArraysToAttribs( vertexAttribute_t *attribs,
 	size_t attribsCount, const VertexArraysProperties *vertexArrays );
 void GLSL_BindProgram(shaderProgram_t * program);
+void GLSL_Usage_f( void );
+bool GLSL_EnsureProgram( shaderProgram_t *program );
+void GLSL_EndRegistration( void );
 void GLSL_BindNullProgram(void);
 
 void GLSL_SetUniformInt(shaderProgram_t *program, int uniformNum, GLint value);

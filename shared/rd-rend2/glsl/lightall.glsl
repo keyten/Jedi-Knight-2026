@@ -2545,6 +2545,8 @@ vec3 EvaluateDynamicLight(
 	#endif
 	#else
 	vec3 reflectance = s.diffuse;
+	// skin transmission below (USE_SKIN_SSS) tints with the plain albedo
+	vec3 directDiffuse = s.diffuse;
 	#endif
 	#if defined(USE_SSGI)
 	// the diffuse lobe only (view independent), after shadows and receiver

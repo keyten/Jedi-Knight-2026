@@ -758,6 +758,9 @@ UniformDataWriter::UniformDataWriter()
 
 void UniformDataWriter::Start( shaderProgram_t *sp )
 {
+	// the uniform locations are read before the draw binds the program
+	if ( !sp->program )
+		GLSL_EnsureProgram(sp);
 	shaderProgram = sp;
 }
 

@@ -1,8 +1,10 @@
 # Rend2 GLSL program cache (`r_shaderProgramCache`)
 
-Rend2 compiles every GLSL program at every renderer start: about 700 lightall permutations in SP plus generic,
-fog, post-processing and so on. `r_shaderProgramCache 1` (default) stores the linked programs on disk
-(GL_ARB_get_program_binary), so later starts load them instead of compiling.
+Rend2 used to compile every GLSL program at every renderer start: over 500 programs in SP with all features
+(112 lightall permutations, 196 surface sprite permutations, generic, fog, post-processing and so on).
+`r_shaderProgramCache 1` (default) stores the linked programs on disk (GL_ARB_get_program_binary), so later
+starts load them instead of compiling, and `r_shaderProgramLazy 1` (default) builds the per-draw permutations
+only when a level needs them.
 
 Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
 
@@ -20,6 +22,14 @@ Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
 - **Latched cvars:** they become `#define`s in the shader source, so the hash covers them. Each combination
   (for example `r_dlightMode 1` and `r_dlightMode 2`) gets its own entries, and switching back and forth never
   evicts the other combination.
+- **Unused defines are dropped before hashing** (`GLSL_PruneUnusedDefines`): a `#define NAME` line of the header
+  or the extra defines (everything before the first `#line`) is removed when `NAME` appears nowhere else in the
+  stage: not in the libraries, the stage file or another define (a comment counts too). Such a macro cannot
+  change the compiled stage. So toggling `r_ssr` changes only the programs that mention `USE_SSR`; before, every
+  global define was in every program, and any latched toggle made every program a cache miss.
+- **No resolution in the sources:** the window size is the uniform `r_FBufScale`, set once after linking
+  (`GLSL_SetFBufScale`), and SMAA's `SMAA_RT_METRICS` is built from it. Before, the size was a `#define` in every
+  header, and changing the resolution recompiled everything.
 
 ## File
 
@@ -40,12 +50,37 @@ Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
 - **Cleanup:** entries unused for 16 rewrites (sources or cvar combinations you no longer use) are dropped.
   `r_shaderProgramCacheMaxMB` (default 512) caps the size, evicting the least recently used entries first.
 
+## Lazy permutations (`r_shaderProgramLazy`)
+
+The families selected per draw have hundreds of permutations (lightall, generic, fog pass, velocity, refraction,
+surface sprites; about 450 programs with all features on), and a level binds few of them. With
+`r_shaderProgramLazy 1` (default):
+
+- **Startup** builds only the permutations of the usage profile, i.e. those bound in earlier runs. Lightall is
+  the exception: its profile spans every map played, so it is built per level instead.
+- **End of a level load** (`RE_EndRegistration` -> `GLSL_EndRegistration`) builds the lightall permutations the
+  registered shader stages can select: the stage's own index, its skeletal / vertex animated variants for grid
+  lit stages (models), and the unlit depth prepass / shadow variants (tcGen / tcMod, parallax).
+- **Any other permutation** is built when a draw first selects it (`GLSL_EnsureProgram`, from
+  `GLSL_BindProgram` and `UniformDataWriter::Start`). With a warm cache this is one `glProgramBinary`; cold, it
+  is a compile, i.e. a hitch.
+- The cache binaries of the permutations not built at startup stay in memory: their keys are computed at
+  startup without compiling (`GLSL_LazyCollectKeys`), every other entry is freed as before. Programs built
+  later are merged into the file at the end of each level load and at shutdown.
+- `glslcache/rend2_sp_used.txt` / `rend2_mp_used.txt` is the usage profile: `<family> <permutation>` lines,
+  extended with every lazy permutation bound. Deleting it is harmless.
+
+`glslusage` prints the loaded programs per family, how many were bound since loading (`glslusage reset` clears
+that, `glslusage all` lists them) and how many were built on demand. With `developer 1` every on-demand build
+is logged with its time.
+
 ## Cvars
 
 | Cvar | Default | |
 |---|---|---|
 | `r_shaderProgramCache` | 1 | 0 = compile everything as before, no file read or written. Latched. |
 | `r_shaderProgramCacheMaxMB` | 512 | size limit of the file |
+| `r_shaderProgramLazy` | 1 | 0 = build every permutation at startup, as before. Latched. |
 
 The start-up console shows, after the existing `loaded N GLSL shaders ... in X seconds` line:
 
@@ -82,6 +117,24 @@ The NVIDIA driver keeps its own GLSL cache, so warm starts there were already fa
 The rend2 cache also covers drivers without such a cache (Intel). The first start after a shader change, a driver
 update or a new cvar combination still compiles; only the programs that changed are compiled.
 
+## Measurements in game (2026-10-16, SP, Intel UHD, the author's config: HDR, SSR, GTAO, skin SSS, F+, LTC, froxel fog)
+
+Programs bound while looking around a level (`glslusage`): vjun2 44 of 518, t2_trip 44, t3_hevil 45, yavin1b 47.
+The lazy families together used 23 different programs on these four maps: lightall 9 of 112, generic 8 of 64,
+surface sprites 3 of 196. No spec-gloss or cloth lightall permutation was used.
+
+| | before | `r_shaderProgramLazy 1` |
+|---|---|---|
+| startup, nothing cached | 518 programs, 448 s | 74 programs, 15 s (+ 22 s at the first level load for 7 lightall programs) |
+| startup, cached | 3.7-5.5 s | 0.34 s + 0.15 s for the lazy keys |
+| level load, cached | - | 7 lightall programs from the cache in 69 ms |
+| `r_ssr 0` (latched) | every program compiled again | 3 of 74 startup programs compiled, the rest cached |
+| other resolution | every program compiled again | nothing compiled |
+
+Most of the old cached start was not the driver: the stage source was assembled with `Q_strcat`, whose
+`strncpy` fills the rest of the (lightall sized) buffer with zeros on every call, tens of MB per stage
+(`GLSL_HeaderCat` now).
+
 ## Test checklist
 
 1. First start: `0 from ...`, the file appears.
@@ -97,3 +150,8 @@ update or a new cvar combination still compiles; only the programs that changed 
 7. During a cold start, click the window while shaders compile. On a driver
    reporting `GLSL parallel shader compile: available`, the window should continue
    handling messages even while one shader or program is still compiling.
+8. `r_shaderProgramLazy 1`, load a level: `GLSL: N lightall permutations for this level, M built (K from cache)`;
+   play, then `glslusage`: few or no programs built on demand after the level load (`developer 1` logs each).
+   Restart: the lazy programs of the profile load at startup, the level ones from the cache.
+9. `r_shaderProgramLazy 0` + `vid_restart`: every permutation is built at startup as before, same image.
+10. Change `r_customwidth` / `r_customheight` + `vid_restart`: `0 compiled`.

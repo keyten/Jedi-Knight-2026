@@ -583,6 +583,7 @@ cvar_t  *r_diffuseIBLDebug;
 
 cvar_t  *r_shaderProgramCache;
 cvar_t  *r_shaderProgramCacheMaxMB;
+cvar_t  *r_shaderProgramLazy;
 
 cvar_t  *r_forwardPlus;
 cvar_t  *r_forwardPlusTileSize;
@@ -2017,6 +2018,7 @@ typedef struct consoleCommand_s {
 static consoleCommand_t	commands[] = {
 	{ "imagelist",			R_ImageList_f },
 	{ "imagechecksums",		R_ImageChecksums_f },
+	{ "glslusage",			GLSL_Usage_f },
 	{ "shaderlist",			R_ShaderList_f },
 	{ "r_pbrDumpMaterials",	R_PBRDumpMaterials_f },
 	{ "r_skinSSSKernel",	R_SkinSSSKernel_f },
@@ -2764,6 +2766,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_shaderProgramCache, 0, 1, qtrue );
 	r_shaderProgramCacheMaxMB = ri_Cvar_Get_NoComm( "r_shaderProgramCacheMaxMB", "512", CVAR_ARCHIVE, "Size limit of the GLSL program cache file, least recently used programs are dropped first" );
 	ri.Cvar_CheckRange( r_shaderProgramCacheMaxMB, 16, 4096, qtrue );
+	r_shaderProgramLazy = ri_Cvar_Get_NoComm( "r_shaderProgramLazy", "1", CVAR_ARCHIVE | CVAR_LATCH, "Build the lightall / generic / fog / velocity / refraction / surface sprite GLSL permutations when a level or a draw first needs them instead of all at startup" );
+	ri.Cvar_CheckRange( r_shaderProgramLazy, 0, 1, qtrue );
 
 	r_forwardPlus = ri_Cvar_Get_NoComm( "r_forwardPlus", "0", CVAR_ARCHIVE, "Dynamic lights: 0 = legacy (32 lights, per surface masks), 1 = Forward+ clustered light lists (up to 256 lights)" );
 	ri.Cvar_CheckRange( r_forwardPlus, 0, 1, qtrue );
@@ -4153,6 +4157,7 @@ void RE_EndRegistration( void ) {
 	const int start = ri.Milliseconds();
 	R_IssuePendingRenderCommands();
 	R_LoadProfilePrint("renderer pending uploads", start);
+	GLSL_EndRegistration();
 	R_ShaderLoadProfileEnd("post-world media");
 	R_ModelLoadProfileEnd();
 	if (R_LoadProfileEnabled())

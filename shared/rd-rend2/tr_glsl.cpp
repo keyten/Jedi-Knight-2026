@@ -27,7 +27,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <algorithm>
 #include <chrono>
 #include <thread>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 void GLSL_BindNullProgram(void);
@@ -38,6 +40,8 @@ static int s_startupLastPresent;
 static image_t *s_startupSplashImage;
 static GLint s_startupProgressUniform = -1;
 static bool s_parallelShaderCompile;
+// every program loaded since GLSL_LoadGPUShaders (glslusage)
+static std::vector<shaderProgram_t *> s_glslPrograms;
 
 // Startup runs before the ordinary UI renderer and fonts are available.
 static void GLSL_DrawStartupProgress(int percent)
@@ -606,6 +610,22 @@ static void GLSL_PrintShaderSource(GLuint shader)
 	Z_Free(msg);
 }
 
+/*
+Q_strcat for the stage source buffer. Q_strcat copies with strncpy, which
+fills the whole rest of the destination with zeros on every call: with a
+buffer sized for lightall (hundreds of KB) and about 50 calls per header that
+was tens of MB of writes per stage, most of the time of a cached start.
+*/
+static void GLSL_HeaderCat( char *dest, size_t size, const char *src )
+{
+	const size_t used = strlen(dest);
+	if ( used + 1 >= size )
+		return;
+	const size_t length = std::min(strlen(src), size - used - 1);
+	memcpy(dest + used, src, length);
+	dest[used + length] = '\0';
+}
+
 static size_t GLSL_GetShaderHeader(
 	GLenum shaderType,
 	const GLcharARB *extra,
@@ -614,18 +634,16 @@ static size_t GLSL_GetShaderHeader(
 	char *dest,
 	size_t size)
 {
-	float fbufWidthScale, fbufHeightScale;
-
 	dest[0] = '\0';
 
-	Q_strcat(dest, size, shaderType == GL_COMPUTE_SHADER ? "#version 430 core\n" : "#version 150 core\n");
+	GLSL_HeaderCat(dest, size, shaderType == GL_COMPUTE_SHADER ? "#version 430 core\n" : "#version 150 core\n");
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					"#ifndef M_PI\n"
 					"#define M_PI 3.14159265358979323846\n"
 					"#endif\n");
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					 va("#ifndef deformGen_t\n"
 						"#define deformGen_t\n"
 						"#define DEFORM_NONE %i\n"
@@ -658,7 +676,7 @@ static size_t GLSL_GetShaderHeader(
 						GF_SAWTOOTH,
 						GF_INVERSE_SAWTOOTH));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					 va("#ifndef tcGen_t\n"
 						"#define tcGen_t\n"
 						"#define TCGEN_LIGHTMAP %i\n"
@@ -683,7 +701,7 @@ static size_t GLSL_GetShaderHeader(
 						TCGEN_FOG,
 						TCGEN_VECTOR));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					 va("#ifndef colorGen_t\n"
 						"#define colorGen_t\n"
 						"#define CGEN_LIGHTING_DIFFUSE %i\n"
@@ -694,7 +712,7 @@ static size_t GLSL_GetShaderHeader(
 						CGEN_DISINTEGRATION_1,
 						CGEN_DISINTEGRATION_2));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					 va("#ifndef alphaGen_t\n"
 						"#define alphaGen_t\n"
 						"#define AGEN_LIGHTING_SPECULAR %i\n"
@@ -705,7 +723,7 @@ static size_t GLSL_GetShaderHeader(
 						AGEN_LIGHTING_SPECULAR_STATIC,
 						AGEN_PORTAL));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 					 va("#define ALPHA_TEST_GT0 %i\n"
 						"#define ALPHA_TEST_LT128 %i\n"
 						"#define ALPHA_TEST_GE128 %i\n"
@@ -717,127 +735,122 @@ static size_t GLSL_GetShaderHeader(
 						ALPHA_TEST_GE192,
 						ALPHA_TEST_E255));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 		va("#define MAX_G2_BONES %i\n",
 			MAX_G2_BONES));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 		va("#define MAX_GPU_FOGS %i\n",
 			MAX_GPU_FOGS));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 		va("#define MAX_DLIGHTS %i\n",
 			MAX_DLIGHTS));
 
-	Q_strcat(dest, size,
+	GLSL_HeaderCat(dest, size,
 		va("#define DSHADOW_MAP_SIZE %i\n",
 			DSHADOW_MAP_SIZE));
 
-	fbufWidthScale = (float)glConfig.vidWidth;
-	fbufHeightScale = (float)glConfig.vidHeight;
-	Q_strcat(dest, size,
-					 va("#ifndef r_FBufScale\n"
-						"#define r_FBufScale vec2(%f, %f)\n"
-						"#endif\n",
-						fbufWidthScale,
-						fbufHeightScale));
+	// window size in pixels, set once after linking (GLSL_SetFBufScale): as a
+	// uniform the sources, and so the cache keys, do not depend on the resolution
+	GLSL_HeaderCat(dest, size, "uniform vec2 r_FBufScale;\n");
 
 	if (r_deluxeSpecular->value > 0.000001f)
-		Q_strcat(dest, size, va("#define r_deluxeSpecular %f\n", r_deluxeSpecular->value));
+		GLSL_HeaderCat(dest, size, va("#define r_deluxeSpecular %f\n", r_deluxeSpecular->value));
 
 	if (r_volumetricFog->integer)
-		Q_strcat(dest, size, va("#define r_volumetricFogSamples %i\n", r_volumetricFogSamples->integer));
+		GLSL_HeaderCat(dest, size, va("#define r_volumetricFogSamples %i\n", r_volumetricFogSamples->integer));
 
 	// froxel volumetric fog (tr_volumetric.cpp): also enables the froxel
 	// lookup of the fog pass, generic and surface sprite programs
 	if (R_VolumetricFroxelEnabled())
 	{
-		Q_strcat(dest, size, "#define USE_FROXEL_FOG\n");
+		GLSL_HeaderCat(dest, size, "#define USE_FROXEL_FOG\n");
 		// local fog volumes (tr_fogvolume.cpp), sizes of the VolumetricFog block
-		Q_strcat(dest, size, va("#define MAX_GPU_FOG_VOLUMES %i\n", MAX_GPU_FOG_VOLUMES));
-		Q_strcat(dest, size, va("#define FROXEL_MAX_SLICES %i\n", FROXEL_MAX_SLICES));
-		Q_strcat(dest, size, va("#define FROXEL_LOCAL_POOL %i\n", FROXEL_LOCAL_POOL));
-		Q_strcat(dest, size, va("#define FROXEL_EXTINCTION_PALETTE %i\n", FROXEL_EXTINCTION_PALETTE));
+		GLSL_HeaderCat(dest, size, va("#define MAX_GPU_FOG_VOLUMES %i\n", MAX_GPU_FOG_VOLUMES));
+		GLSL_HeaderCat(dest, size, va("#define FROXEL_MAX_SLICES %i\n", FROXEL_MAX_SLICES));
+		GLSL_HeaderCat(dest, size, va("#define FROXEL_LOCAL_POOL %i\n", FROXEL_LOCAL_POOL));
+		GLSL_HeaderCat(dest, size, va("#define FROXEL_EXTINCTION_PALETTE %i\n", FROXEL_EXTINCTION_PALETTE));
 		// RGB extinction (r_volumetricFogRGBExtinction, latched): transmittance per channel
 		if (R_VolumetricFroxelRGB())
-			Q_strcat(dest, size, "#define USE_FROXEL_RGB\n");
+			GLSL_HeaderCat(dest, size, "#define USE_FROXEL_RGB\n");
 		// liquid media (r_volumetricWater, latched): size of the Liquids block
 		if (R_LiquidsAvailable())
-			Q_strcat(dest, size, va("#define MAX_GPU_LIQUIDS %i\n", MAX_GPU_LIQUIDS));
+			GLSL_HeaderCat(dest, size, va("#define MAX_GPU_LIQUIDS %i\n", MAX_GPU_LIQUIDS));
 	}
 
 	if (r_cubeMapping->integer)
 	{
-		Q_strcat(dest, size, va("#define CUBEMAP_RESOLUTION float(%i)\n", CUBE_MAP_SIZE));
-		Q_strcat(dest, size, va("#define ROUGHNESS_MIPS float(%i)\n", CUBE_MAP_ROUGHNESS_MIPS));
+		GLSL_HeaderCat(dest, size, va("#define CUBEMAP_RESOLUTION float(%i)\n", CUBE_MAP_SIZE));
+		GLSL_HeaderCat(dest, size, va("#define ROUGHNESS_MIPS float(%i)\n", CUBE_MAP_ROUGHNESS_MIPS));
 	}
 
-	Q_strcat(dest, size, "#define USE_ALPHA_TEST\n");
+	GLSL_HeaderCat(dest, size, "#define USE_ALPHA_TEST\n");
 
 	// The modern sun path uses raw depth and manual comparisons. This must be
 	// decided with texture creation, so the A/B switch is latched.
 	if (r_sunShadowMode->integer)
-		Q_strcat(dest, size, "#define USE_SHADOWS2\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SHADOWS2\n");
 
 	// screen-space AO / contact shadow map (u_SSAOMap), tr_ao.cpp
 	if (R_AOResourcesEnabled())
-		Q_strcat(dest, size, "#define USE_SSAO\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SSAO\n");
 
 	// lightall writes the SSR material attachments of renderFbo, tr_ssr.cpp
 	if (R_SSROpaqueResourcesEnabled())
-		Q_strcat(dest, size, "#define USE_SSR\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SSR\n");
 
 	// lightall writes the SSGI source / receiver attachments, tr_ssgi.cpp
 	if (R_SSGIResourcesEnabled())
-		Q_strcat(dest, size, "#define USE_SSGI\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SSGI\n");
 
 	// skin scattering, tr_skinsss.cpp: wrap / split of the skin diffuse light
 	// (r_skinSSS >= 1), and the skin diffuse attachment of renderFbo (2)
 	if (R_SkinSSSMode() >= 1)
-		Q_strcat(dest, size, "#define USE_SKIN_SSS\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SKIN_SSS\n");
 	if (R_SkinSSSResourcesEnabled())
-		Q_strcat(dest, size, "#define USE_SKIN_SSS_BUFFER\n");
+		GLSL_HeaderCat(dest, size, "#define USE_SKIN_SSS_BUFFER\n");
 
 	// lightall wets rain exposed surfaces, tr_weather.cpp
 	if (R_WeatherWetnessEnabled())
-		Q_strcat(dest, size, "#define USE_WETNESS\n");
+		GLSL_HeaderCat(dest, size, "#define USE_WETNESS\n");
 	if (R_WeatherWetnessPersistenceEnabled())
-		Q_strcat(dest, size, "#define USE_WETNESS_PERSISTENCE\n");
+		GLSL_HeaderCat(dest, size, "#define USE_WETNESS_PERSISTENCE\n");
 
 	if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
-		Q_strcat(dest, size, "#define USE_TONEMAPPING\n");
+		GLSL_HeaderCat(dest, size, "#define USE_TONEMAPPING\n");
 	if (r_pbrPhysical->integer)
 	{
-		Q_strcat(dest, size, "#define USE_PHYSICAL_PBR\n");
+		GLSL_HeaderCat(dest, size, "#define USE_PHYSICAL_PBR\n");
 		const float meters = R_PBRMetersPerWorldUnit();
-		Q_strcat(dest, size, va("#define PBR_METERS_PER_WORLD_UNIT_SQUARED %.12g\n",
+		GLSL_HeaderCat(dest, size, va("#define PBR_METERS_PER_WORLD_UNIT_SQUARED %.12g\n",
 			meters * meters));
 	}
 
 	// cloud shadow lookup of lightall and the froxel injection (r_clouds is
 	// latched, r_cloudShadows switches it per frame), tr_clouds.cpp
 	if (R_CloudsEnabled() && R_CloudShadowsAvailable())
-		Q_strcat(dest, size, "#define USE_CLOUD_SHADOWS\n");
+		GLSL_HeaderCat(dest, size, "#define USE_CLOUD_SHADOWS\n");
 
 	if (extra)
 	{
-		Q_strcat(dest, size, extra);
+		GLSL_HeaderCat(dest, size, extra);
 	}
 
 	if (library)
 	{
 		// Shared functions (see GLSL_LoadGPUShader). Errors in them are
 		// reported as source string 1 with the line numbers of their file.
-		Q_strcat(dest, size, va("\n#line %d 1\n", library->firstLineNumber - 1));
-		Q_strcat(dest, size, library->source);
-		Q_strcat(dest, size, va("\n#line %d 0\n", firstLineNumber - 1));
+		GLSL_HeaderCat(dest, size, va("\n#line %d 1\n", library->firstLineNumber - 1));
+		GLSL_HeaderCat(dest, size, library->source);
+		GLSL_HeaderCat(dest, size, va("\n#line %d 0\n", firstLineNumber - 1));
 	}
 	else
 	{
 		// OK we added a lot of stuff but if we do something bad in the GLSL
 		// shaders then we want the proper line so we have to reset the line
 		// counting
-		Q_strcat(dest, size, va("\n#line %d\n", firstLineNumber - 1));
+		GLSL_HeaderCat(dest, size, va("\n#line %d\n", firstLineNumber - 1));
 	}
 
 	return strlen(dest);
@@ -951,7 +964,9 @@ static size_t GLSL_LoadGPUShaderSource(
 	int result = 0;
 	if ( destSize >= (shaderTextLen + 1) )
 	{
-		Q_strncpyz(dest, shaderText, destSize);
+		// not Q_strncpyz: no zero fill of the rest of the buffer
+		memcpy(dest, shaderText, shaderTextLen);
+		dest[shaderTextLen] = '\0';
 		result = strlen(dest);
 	}
 
@@ -1171,6 +1186,10 @@ static struct
 	size_t fileSize;
 } s_glslCache;
 
+// cache keys of the lazy permutations not built at startup
+// (r_shaderProgramLazy): their binaries stay in memory after GLSL_CacheEnd
+static std::unordered_set<uint64_t> s_glslLazyKeys;
+
 static const uint64_t GLSL_HASH_SEED = 14695981039346656037ull;	// FNV-1a 64
 
 static uint64_t GLSL_HashBytes( uint64_t hash, const void *data, size_t length )
@@ -1184,11 +1203,244 @@ static uint64_t GLSL_HashBytes( uint64_t hash, const void *data, size_t length )
 	return hash;
 }
 
+// the long shared parts of stage sources: 8 bytes per step
+static uint64_t GLSL_HashWords( uint64_t hash, const void *data, size_t length )
+{
+	const uint8_t *bytes = (const uint8_t *)data;
+	size_t i = 0;
+	for ( ; i + 8 <= length; i += 8 )
+	{
+		uint64_t word;
+		memcpy(&word, bytes + i, sizeof(word));
+		hash = (hash ^ word) * 0x9E3779B97F4A7C15ull;
+		hash ^= hash >> 29;
+	}
+	return GLSL_HashBytes(hash, bytes + i, length - i);
+}
+
 static uint64_t GLSL_HashString( uint64_t hash, const char *text )
 {
 	if ( !text )
 		text = "";
 	return GLSL_HashBytes(hash, text, strlen(text) + 1);
+}
+
+/*
+Identifiers of the shared part of a stage source (libraries and the stage
+file after the first #line), by its hash: most permutations of a program
+share it, so it is scanned once.
+*/
+static std::unordered_map<uint64_t, std::unordered_set<std::string>> s_glslIdentifierSets;
+
+static bool GLSL_IsIdentifierStart( char c )
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+static bool GLSL_IsIdentifierChar( char c )
+{
+	return GLSL_IsIdentifierStart(c) || (c >= '0' && c <= '9');
+}
+
+template<typename Func>
+static void GLSL_ForEachIdentifier( const char *text, size_t length, Func&& func )
+{
+	size_t i = 0;
+	while ( i < length )
+	{
+		const char c = text[i];
+		if ( GLSL_IsIdentifierStart(c) )
+		{
+			const size_t start = i;
+			while ( i < length && GLSL_IsIdentifierChar(text[i]) )
+				++i;
+			func(text + start, i - start);
+		}
+		else if ( c >= '0' && c <= '9' )
+		{
+			// a number with its suffix or exponent is not an identifier
+			while ( i < length && GLSL_IsIdentifierChar(text[i]) )
+				++i;
+		}
+		else
+			++i;
+	}
+}
+
+/*
+Drops the "#define NAME" lines of the header and extra defines (everything
+before the first #line) that nothing else in the stage mentions. Such a macro
+cannot change the compiled stage, but it is part of the source and so of the
+cache key: without this, toggling a latched cvar like r_ssr would make every
+program a cache miss, not only those that test USE_SSR. A name used anywhere
+else, even in a comment or another macro, keeps its line.
+
+defines receives the kept part of the defines block, restOffset where the
+rest of the stage starts in source. Returns the hash of that rest, so the
+cache key needs to hash only the kept defines and this hash.
+*/
+static uint64_t GLSL_PruneUnusedDefines(
+	const char *source, size_t length, std::string& defines, size_t& restOffset )
+{
+	const char *lineDirective = strstr(source, "\n#line ");
+	if ( !lineDirective || (size_t)(lineDirective - source) >= length )
+	{
+		defines.assign(source, length);
+		restOffset = length;
+		return GLSL_HASH_SEED;
+	}
+
+	const size_t definesLength = (size_t)(lineDirective - source) + 1;
+	const char *rest = source + definesLength;
+	const size_t restLength = length - definesLength;
+	restOffset = definesLength;
+	const uint64_t restHash = GLSL_HashWords(GLSL_HASH_SEED, rest, restLength);
+	auto restIt = s_glslIdentifierSets.find(restHash);
+	if ( restIt == s_glslIdentifierSets.end() )
+	{
+		restIt = s_glslIdentifierSets.emplace(restHash, std::unordered_set<std::string>()).first;
+		std::unordered_set<std::string>& identifiers = restIt->second;
+		GLSL_ForEachIdentifier(rest, restLength, [&]( const char *name, size_t nameLength ) {
+			identifiers.emplace(name, nameLength);
+		});
+	}
+	const std::unordered_set<std::string>& restIdentifiers = restIt->second;
+
+	// uses inside the defines block: #ifndef guards, values of other macros
+	std::unordered_map<std::string, int> blockCounts;
+	GLSL_ForEachIdentifier(source, definesLength, [&]( const char *name, size_t nameLength ) {
+		blockCounts[std::string(name, nameLength)]++;
+	});
+
+	defines.clear();
+	defines.reserve(definesLength);
+	size_t lineStart = 0;
+	while ( lineStart < definesLength )
+	{
+		const char *lineEnd = (const char *)memchr(source + lineStart, '\n', definesLength - lineStart);
+		const size_t lineLength = lineEnd ?
+			(size_t)(lineEnd - (source + lineStart)) + 1 : definesLength - lineStart;
+		const char *line = source + lineStart;
+
+		bool keep = true;
+		size_t i = 0;
+		while ( i < lineLength && (line[i] == ' ' || line[i] == '\t') )
+			++i;
+		if ( lineLength - i > 8 && !strncmp(line + i, "#define", 7) &&
+			(line[i + 7] == ' ' || line[i + 7] == '\t') )
+		{
+			i += 7;
+			while ( i < lineLength && (line[i] == ' ' || line[i] == '\t') )
+				++i;
+			const size_t nameStart = i;
+			while ( i < lineLength && GLSL_IsIdentifierChar(line[i]) )
+				++i;
+			// a continued line is kept whole
+			const bool continued = lineLength >= 2 &&
+				(line[lineLength - 2] == '\\' || (lineLength >= 3 && line[lineLength - 3] == '\\'));
+			if ( i > nameStart && !continued )
+			{
+				const std::string name(line + nameStart, i - nameStart);
+				keep = restIdentifiers.count(name) || blockCounts[name] > 1;
+			}
+		}
+		if ( keep )
+			defines.append(line, lineLength);
+		lineStart += lineLength;
+	}
+	return restHash;
+}
+
+// window size uniform of the shader header (GLSL_GetShaderHeader)
+static void GLSL_SetFBufScale( GLuint program )
+{
+	const GLint location = qglGetUniformLocation(program, "r_FBufScale");
+	if ( location < 0 )
+		return;
+	GLint previousProgram = 0;
+	qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+	qglUseProgram(program);
+	qglUniform2f(location, (float)glConfig.vidWidth, (float)glConfig.vidHeight);
+	qglUseProgram(previousProgram);
+}
+
+/*
+Reads the cache file. At startup (merge false) it fills the entries and sets
+the generation of this run. A later rewrite (GLSL_CacheFlush, merge true)
+only adds the entries this run does not hold in memory, so they are kept.
+*/
+static void GLSL_CacheReadFile( bool merge )
+{
+	void *buffer = nullptr;
+	const long fileLength = ri.FS_ReadFile(GLSL_CACHE_FILE, &buffer);
+	if ( fileLength <= 0 || !buffer )
+		return;
+
+	// never trust the file: every size is checked against what is left
+	const uint8_t *data = (const uint8_t *)buffer;
+	size_t offset = 0;
+	glslCacheFileHeader_t header;
+	bool valid = (size_t)fileLength >= sizeof(header);
+	if ( valid )
+	{
+		memcpy(&header, data, sizeof(header));
+		offset = sizeof(header);
+		valid = header.magic == GLSL_CACHE_MAGIC && header.version == GLSL_CACHE_VERSION;
+	}
+
+	if ( !valid )
+	{
+		if ( !merge )
+			ri.Printf(PRINT_WARNING, "GLSL cache: %s is not a cache file of this renderer, rebuilding it\n", GLSL_CACHE_FILE);
+	}
+	else if ( header.driverHash != s_glslCache.driverHash )
+	{
+		if ( !merge )
+			ri.Printf(PRINT_ALL, "GLSL cache: graphics driver changed, rebuilding %s\n", GLSL_CACHE_FILE);
+		valid = false;
+	}
+
+	if ( valid )
+	{
+		if ( !merge )
+			s_glslCache.generation = header.generation + 1;
+		uint32_t numRead = 0;
+		for ( uint32_t i = 0; i < header.numEntries; ++i )
+		{
+			glslCacheFileEntry_t fileEntry;
+			if ( (size_t)fileLength - offset < sizeof(fileEntry) )
+				break;
+			memcpy(&fileEntry, data + offset, sizeof(fileEntry));
+			offset += sizeof(fileEntry);
+			if ( fileEntry.length == 0 || (size_t)fileLength - offset < fileEntry.length )
+				break;
+
+			++numRead;
+			if ( !merge || !s_glslCache.entries.count(fileEntry.key) )
+			{
+				glslCacheEntry_t& entry = s_glslCache.entries[fileEntry.key];
+				entry.format = fileEntry.format;
+				entry.lastUsed = fileEntry.lastUsed;
+				entry.data.assign(data + offset, data + offset + fileEntry.length);
+			}
+			offset += fileEntry.length;
+		}
+
+		if ( numRead != header.numEntries && !merge )
+		{
+			ri.Printf(PRINT_WARNING, "GLSL cache: %s is truncated, keeping %u of %u programs\n",
+				GLSL_CACHE_FILE, numRead, header.numEntries);
+			s_glslCache.dirty = true;
+		}
+		if ( !merge )
+			s_glslCache.fileSize = (size_t)fileLength;
+	}
+	else if ( !merge )
+	{
+		s_glslCache.dirty = true;
+	}
+
+	ri.FS_FreeFile(buffer);
 }
 
 static void GLSL_CacheBegin( void )
@@ -1209,65 +1461,7 @@ static void GLSL_CacheBegin( void )
 	driverHash = GLSL_HashString(driverHash, glConfig.version_string);
 	s_glslCache.driverHash = driverHash;
 
-	void *buffer = nullptr;
-	const long fileLength = ri.FS_ReadFile(GLSL_CACHE_FILE, &buffer);
-	if ( fileLength <= 0 || !buffer )
-		return;
-
-	// never trust the file: every size is checked against what is left
-	const uint8_t *data = (const uint8_t *)buffer;
-	size_t offset = 0;
-	glslCacheFileHeader_t header;
-	bool valid = (size_t)fileLength >= sizeof(header);
-	if ( valid )
-	{
-		memcpy(&header, data, sizeof(header));
-		offset = sizeof(header);
-		valid = header.magic == GLSL_CACHE_MAGIC && header.version == GLSL_CACHE_VERSION;
-	}
-
-	if ( !valid )
-		ri.Printf(PRINT_WARNING, "GLSL cache: %s is not a cache file of this renderer, rebuilding it\n", GLSL_CACHE_FILE);
-	else if ( header.driverHash != driverHash )
-	{
-		ri.Printf(PRINT_ALL, "GLSL cache: graphics driver changed, rebuilding %s\n", GLSL_CACHE_FILE);
-		valid = false;
-	}
-
-	if ( valid )
-	{
-		s_glslCache.generation = header.generation + 1;
-		for ( uint32_t i = 0; i < header.numEntries; ++i )
-		{
-			glslCacheFileEntry_t fileEntry;
-			if ( (size_t)fileLength - offset < sizeof(fileEntry) )
-				break;
-			memcpy(&fileEntry, data + offset, sizeof(fileEntry));
-			offset += sizeof(fileEntry);
-			if ( fileEntry.length == 0 || (size_t)fileLength - offset < fileEntry.length )
-				break;
-
-			glslCacheEntry_t& entry = s_glslCache.entries[fileEntry.key];
-			entry.format = fileEntry.format;
-			entry.lastUsed = fileEntry.lastUsed;
-			entry.data.assign(data + offset, data + offset + fileEntry.length);
-			offset += fileEntry.length;
-		}
-
-		if ( s_glslCache.entries.size() != header.numEntries )
-		{
-			ri.Printf(PRINT_WARNING, "GLSL cache: %s is truncated, keeping %d of %u programs\n",
-				GLSL_CACHE_FILE, (int)s_glslCache.entries.size(), header.numEntries);
-			s_glslCache.dirty = true;
-		}
-		s_glslCache.fileSize = (size_t)fileLength;
-	}
-	else
-	{
-		s_glslCache.dirty = true;
-	}
-
-	ri.FS_FreeFile(buffer);
+	GLSL_CacheReadFile(false);
 }
 
 static glslCacheEntry_t *GLSL_CacheFind( uint64_t key )
@@ -1309,11 +1503,9 @@ static void GLSL_CacheStore( uint64_t key, GLuint program )
 	s_glslCache.dirty = true;
 }
 
-static void GLSL_CacheEnd( void )
+// ages and caps the entries in memory and rewrites the file if anything changed
+static void GLSL_CacheWrite( void )
 {
-	if ( !s_glslCache.enabled )
-		return;
-
 	// drop programs of cvar combinations / sources not used for a while
 	for ( auto it = s_glslCache.entries.begin(); it != s_glslCache.entries.end(); )
 	{
@@ -1373,10 +1565,40 @@ static void GLSL_CacheEnd( void )
 
 		ri.FS_WriteFile(GLSL_CACHE_FILE, file.data(), (int)file.size());
 		s_glslCache.fileSize = file.size();
+		s_glslCache.dirty = false;
 	}
+}
 
-	// the binaries are not needed after loading
-	std::unordered_map<uint64_t, glslCacheEntry_t>().swap(s_glslCache.entries);
+// Only the binaries of permutations built later (r_shaderProgramLazy) stay
+// in memory: the file can hold many cvar combinations.
+static void GLSL_CacheKeepLazyEntries( void )
+{
+	for ( auto it = s_glslCache.entries.begin(); it != s_glslCache.entries.end(); )
+	{
+		if ( s_glslLazyKeys.count(it->first) )
+			++it;
+		else
+			it = s_glslCache.entries.erase(it);
+	}
+}
+
+static void GLSL_CacheEnd( void )
+{
+	if ( !s_glslCache.enabled )
+		return;
+	GLSL_CacheWrite();
+	GLSL_CacheKeepLazyEntries();
+}
+
+// programs built after startup: merged into the file, which this run no
+// longer holds completely
+static void GLSL_CacheFlush( void )
+{
+	if ( !s_glslCache.enabled || !s_glslCache.dirty )
+		return;
+	GLSL_CacheReadFile(true);
+	GLSL_CacheWrite();
+	GLSL_CacheKeepLazyEntries();
 }
 
 class ShaderProgramBuilder
@@ -1394,6 +1616,10 @@ class ShaderProgramBuilder
 			const uint32_t xfbVariables);
 		bool AddShader(const GPUShaderDesc& shaderDesc, const char *extra, const GPUShaderDesc *library);
 		bool Build(shaderProgram_t *program);
+		// only the cache key of the next started program (after AddShader), it
+		// cannot be built
+		void SetKeysOnly( bool value ) { keysOnly = value; }
+		uint64_t Key() const { return cacheKey; }
 
 	private:
 		static const size_t MAX_SHADER_SOURCE_LEN = 16384;
@@ -1417,6 +1643,7 @@ class ShaderProgramBuilder
 		std::string shaderSource;
 		std::vector<PendingShader> pendingShaders;
 		uint64_t cacheKey;
+		bool keysOnly;
 };
 
 ShaderProgramBuilder::ShaderProgramBuilder()
@@ -1427,6 +1654,7 @@ ShaderProgramBuilder::ShaderProgramBuilder()
 	, numShaderNames(0)
 	, shaderSource(MAX_SHADER_SOURCE_LEN, '\0')
 	, cacheKey(GLSL_HASH_SEED)
+	, keysOnly(false)
 {
 }
 
@@ -1444,10 +1672,10 @@ void ShaderProgramBuilder::Start(
 	const uint32_t attribs,
 	const uint32_t xfbVariables)
 {
-	this->program = qglCreateProgram();
 	this->name = name;
 	this->attribs = attribs;
 	this->xfbVariables = xfbVariables;
+	keysOnly = false;
 
 	pendingShaders.clear();
 	uint32_t keyData[3] = { GLSL_CACHE_VERSION, attribs, xfbVariables };
@@ -1519,10 +1747,19 @@ bool ShaderProgramBuilder::AddShader( const GPUShaderDesc& shaderDesc, const cha
 	PendingShader pending;
 	pending.apiShader = apiShader;
 	pending.type = shaderDesc.type;
-	pending.source.assign(shaderSource.c_str(), sourceLen + headerLen);
+	std::string defines;
+	size_t restOffset = 0;
+	const size_t length = sourceLen + headerLen;
+	const uint64_t restHash = GLSL_PruneUnusedDefines(shaderSource.c_str(), length, defines, restOffset);
 	cacheKey = GLSL_HashBytes(cacheKey, &apiShader, sizeof(apiShader));
-	cacheKey = GLSL_HashBytes(cacheKey, pending.source.data(), pending.source.size());
-	pendingShaders.push_back(std::move(pending));
+	cacheKey = GLSL_HashBytes(cacheKey, defines.data(), defines.size());
+	cacheKey = GLSL_HashBytes(cacheKey, &restHash, sizeof(restHash));
+	if ( !keysOnly )
+	{
+		pending.source.swap(defines);
+		pending.source.append(shaderSource.c_str() + restOffset, length - restOffset);
+		pendingShaders.push_back(std::move(pending));
+	}
 
 	return true;
 }
@@ -1535,6 +1772,9 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 
 	shaderProgram->attribs = attribs;
 	shaderProgram->xfbVariables = xfbVariables;
+	shaderProgram->used = false;
+	s_glslPrograms.push_back(shaderProgram);
+	program = qglCreateProgram();
 
 	// linked binary from the disk cache (attribute, output and transform
 	// feedback locations are part of it; block bindings and sampler units are
@@ -1603,6 +1843,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 
 	shaderProgram->program = program;
 	if (glRefConfig.annotateResources) qglObjectLabel(GL_PROGRAM, program, -1, name);
+	GLSL_SetFBufScale(program);
 
 	ReleaseShaders();
 	pendingShaders.clear();
@@ -1654,6 +1895,68 @@ static bool GLSL_LoadGPUShader(
 		}
 	}
 	return builder.Build(program);
+}
+
+/*
+Which permutations a loader of a lazily built family (r_shaderProgramLazy,
+see GLSL_EnsureProgram) handles in one call.
+*/
+struct GLSL_PermutationFilter
+{
+	const uint8_t *wanted;	// per permutation index; null = every permutation
+	bool keysOnly;			// only the cache keys of the permutations not loaded yet
+
+	bool Want( const shaderProgram_t& program, int index ) const
+	{
+		if ( program.program )
+			return false;
+		return keysOnly || !wanted || wanted[index];
+	}
+};
+
+static const GLSL_PermutationFilter GLSL_ALL_PERMUTATIONS = { nullptr, false };
+
+enum permutationResult_t
+{
+	PERMUTATION_BUILT,
+	PERMUTATION_KEY,	// keysOnly: the key was collected, nothing built
+	PERMUTATION_FAILED,
+};
+
+static permutationResult_t GLSL_LoadPermutation(
+	const GLSL_PermutationFilter& filter,
+	ShaderProgramBuilder& builder,
+	shaderProgram_t *program,
+	const char *name,
+	const uint32_t attribs,
+	const uint32_t xfbVariables,
+	const GLcharARB *extra,
+	const GPUProgramDesc& programDesc,
+	const GPUShaderDesc *fragmentLibrary = nullptr,
+	const GPUShaderDesc *vertexLibrary = nullptr)
+{
+	if ( !filter.keysOnly )
+	{
+		return GLSL_LoadGPUShader(builder, program, name, attribs, xfbVariables, extra, programDesc,
+			fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+	}
+
+	builder.Start(name, attribs, xfbVariables);
+	builder.SetKeysOnly(true);
+	for ( size_t i = 0; i < programDesc.numShaders; ++i )
+	{
+		const GPUShaderDesc& shaderDesc = programDesc.shaders[i];
+		const GPUShaderDesc *library = nullptr;
+		if ( shaderDesc.type == GPUSHADER_FRAGMENT )
+			library = fragmentLibrary;
+		else if ( shaderDesc.type == GPUSHADER_VERTEX )
+			library = vertexLibrary;
+		if ( !builder.AddShader(shaderDesc, extra, library) )
+			return PERMUTATION_FAILED;
+	}
+	builder.SetKeysOnly(false);
+	s_glslLazyKeys.insert(builder.Key());
+	return PERMUTATION_KEY;
 }
 
 void GLSL_InitUniforms(shaderProgram_t *program)
@@ -2308,6 +2611,7 @@ static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name
 	program->name = (char *)R_Malloc(nameSize, TAG_GENERAL);
 	Q_strncpyz(program->name, name, nameSize);
 	program->program = linkedProgram;
+	s_glslPrograms.push_back(program);
 	GLSL_InitUniforms(program);
 	if ( glRefConfig.annotateResources )
 		qglObjectLabel(GL_PROGRAM, linkedProgram, -1, name);
@@ -2660,7 +2964,8 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 
 static int GLSL_LoadGPUProgramGeneric(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc )
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS )
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -2675,7 +2980,7 @@ static int GLSL_LoadGPUProgramGeneric(
 	const GPUShaderDesc *leafFlutterLibrary = LoadLeafFlutterLibrary(allocator);
 	for ( int i = 0; i < GENERICDEF_COUNT; i++ )
 	{
-		if (!GLSL_IsValidPermutationForGeneric(i))
+		if (!GLSL_IsValidPermutationForGeneric(i) || !filter.Want(tr.genericShader[i], i))
 		{
 			continue;
 		}
@@ -2741,8 +3046,11 @@ static int GLSL_LoadGPUProgramGeneric(
 		/*if (i & GENERICDEF_USE_ALPHA_TEST)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_ALPHA_TEST\n");*/
 
-		if (!GLSL_LoadGPUShader(builder, &tr.genericShader[i], name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.genericShader[i],
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load generic shader!");
 		}
@@ -2768,7 +3076,8 @@ static int GLSL_LoadGPUProgramGeneric(
 
 static int GLSL_LoadGPUProgramFogPass(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc )
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS )
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -2783,7 +3092,7 @@ static int GLSL_LoadGPUProgramFogPass(
 	const GPUShaderDesc *leafFlutterLibrary = LoadLeafFlutterLibrary(allocator);
 	for (int i = 0; i < FOGDEF_COUNT; i++)
 	{
-		if (!GLSL_IsValidPermutationForFog(i))
+		if (!GLSL_IsValidPermutationForFog(i) || !filter.Want(tr.fogShader[i], i))
 		{
 			continue;
 		}
@@ -2830,8 +3139,11 @@ static int GLSL_LoadGPUProgramFogPass(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_VOLUMETRIC_FOG\n");
 		}
 
-		if (!GLSL_LoadGPUShader(builder, &tr.fogShader[i], name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.fogShader[i],
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load fogpass shader!");
 		}
@@ -2856,7 +3168,8 @@ static int GLSL_LoadGPUProgramFogPass(
 
 static int GLSL_LoadGPUProgramVelocityPass(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc)
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS)
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -2870,7 +3183,7 @@ static int GLSL_LoadGPUProgramVelocityPass(
 	const GPUShaderDesc *leafFlutterLibrary = LoadLeafFlutterLibrary(allocator);
 	for (int i = 0; i < VELOCITYDEF_COUNT; i++)
 	{
-		if (!GLSL_IsValidPermutationForFog(i))
+		if (!GLSL_IsValidPermutationForFog(i) || !filter.Want(tr.velocityShader[i], i))
 		{
 			continue;
 		}
@@ -2924,8 +3237,11 @@ static int GLSL_LoadGPUProgramVelocityPass(
 			attribs |= ATTR_TANGENT;
 		}
 
-		if (!GLSL_LoadGPUShader(builder, &tr.velocityShader[i], name, attribs, NO_XFB_VARS,
-			extradefines, *programDesc, nullptr, leafFlutterLibrary))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.velocityShader[i],
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, nullptr, leafFlutterLibrary);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load velocity shader!");
 		}
@@ -2948,7 +3264,8 @@ static int GLSL_LoadGPUProgramVelocityPass(
 
 static int GLSL_LoadGPUProgramRefraction(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc)
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS)
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -2962,6 +3279,9 @@ static int GLSL_LoadGPUProgramRefraction(
 	const GPUShaderDesc *outputTransform = LoadOutputTransformLibrary(allocator);
 	for (int i = 0; i < REFRACTIONDEF_COUNT; i++)
 	{
+		if (!filter.Want(tr.refractionShader[i], i))
+			continue;
+
 		uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL | ATTR_COLOR;
 		Q_strncpyz(name, "refraction\0", nameLen + 1);
 		extradefines[0] = '\0';
@@ -3008,8 +3328,11 @@ static int GLSL_LoadGPUProgramRefraction(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LINEAR_LIGHT\n");
 		}
 
-		if (!GLSL_LoadGPUShader(builder, &tr.refractionShader[i], name, attribs, NO_XFB_VARS,
-			extradefines, *programDesc, outputTransform))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.refractionShader[i],
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, outputTransform);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load refraction shader!");
 		}
@@ -3287,7 +3610,8 @@ static void GLSL_SetPomSilhouetteUnits( shaderProgram_t *program )
 
 static int GLSL_LoadGPUProgramLightAll(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc )
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS )
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -3318,7 +3642,7 @@ static int GLSL_LoadGPUProgramLightAll(
 		int lightType = i & LIGHTDEF_LIGHTTYPE_MASK;
 
 		// skip impossible combos
-		if (!GLSL_IsValidPermutationForLight (lightType, i))
+		if (!GLSL_IsValidPermutationForLight (lightType, i) || !filter.Want(tr.lightallShader[i], i))
 			continue;
 
 		uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_COLOR | ATTR_NORMAL;
@@ -3539,8 +3863,11 @@ static int GLSL_LoadGPUProgramLightAll(
 		const bool liquidSun = liquidLibrary && lightType && r_sunlightMode->integer;
 		const GPUShaderDesc *lightLibrary = liquidSun ?
 			GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary) : pbrLibrary;
-		if (!GLSL_LoadGPUShader(builder, &tr.lightallShader[i], name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, lightLibrary, leafFlutterLibrary))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.lightallShader[i],
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, lightLibrary, leafFlutterLibrary);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
@@ -3553,7 +3880,8 @@ static int GLSL_LoadGPUProgramLightAll(
 				// silhouette POM set (tr_pom_silhouette.cpp): the same permutation
 				// with the shell trace, world lightall stages only
 				const int pomIndex = GLSL_PomSilhouetteLightallIndex(i);
-				if ( pomIndex < 0 || !GLSL_PomSilhouetteEnabled() )
+				if ( pomIndex < 0 || !GLSL_PomSilhouetteEnabled() ||
+					tr.lightallSilhouetteShader[pomIndex].program )
 					break;
 				if ( !pomLibrary )
 					pomLibrary = LoadPomSilhouetteLibrary(allocator);
@@ -3898,12 +4226,8 @@ static int GLSL_LoadGPUProgramTonemap(
 	if (r_smaa->integer == 1)
 	{
 		Q_strcat(extradefines, sizeof(extradefines),
-			va( "#define USE_SMAA\n"
-				"#define SMAA_RT_METRICS vec4(1.0 / %f, 1.0 / %f, %f, %f)\n",
-				(float)glConfig.vidWidth,
-				(float)glConfig.vidHeight,
-				(float)glConfig.vidWidth,
-				(float)glConfig.vidHeight));
+			"#define USE_SMAA\n"
+			"#define SMAA_RT_METRICS vec4(1.0 / r_FBufScale, r_FBufScale)\n");
 
 	}
 
@@ -4943,9 +5267,21 @@ static int GLSL_LoadGPUProgramBloomPrefilter(
 	return 1;
 }
 
+static bool GLSL_IsValidPermutationForSprites( int i )
+{
+	if ( (i & SSDEF_FACE_CAMERA) && (i & SSDEF_FACE_UP) )
+		return false;
+	// auto grass replaces the vertical/oriented billboard only
+	if ((i & SSDEF_AUTO_GRASS) && (i & (SSDEF_FACE_CAMERA | SSDEF_FACE_UP |
+			SSDEF_FX_SPRITE | SSDEF_FOG_MODULATE | SSDEF_ADDITIVE | SSDEF_FLATTENED)))
+		return false;
+	return true;
+}
+
 static int GLSL_LoadGPUProgramSurfaceSprites(
 	ShaderProgramBuilder& builder,
-	Allocator& scratchAlloc )
+	Allocator& scratchAlloc,
+	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS )
 {
 	int numPrograms = 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
@@ -4965,12 +5301,7 @@ static int GLSL_LoadGPUProgramSurfaceSprites(
 		Q_strncpyz(name, "surface_sprites\0", nameLen + 1);
 		extradefines[0] = '\0';
 
-		if ( (i & SSDEF_FACE_CAMERA) && (i & SSDEF_FACE_UP) )
-			continue;
-
-		// auto grass replaces the vertical/oriented billboard only
-		if ((i & SSDEF_AUTO_GRASS) && (i & (SSDEF_FACE_CAMERA | SSDEF_FACE_UP |
-				SSDEF_FX_SPRITE | SSDEF_FOG_MODULATE | SSDEF_ADDITIVE | SSDEF_FLATTENED)))
+		if ( !GLSL_IsValidPermutationForSprites(i) || !filter.Want(tr.spriteShader[i], i) )
 			continue;
 
 		if (i & SSDEF_FACE_CAMERA)
@@ -5029,8 +5360,11 @@ static int GLSL_LoadGPUProgramSurfaceSprites(
 				"#define AUTO_GRASS\n");
 		}
 		shaderProgram_t *program = tr.spriteShader + i;
-		if (!GLSL_LoadGPUShader(builder, program, name, attribs, NO_XFB_VARS,
-				extradefines, *programDesc, volumetricLibrary, foliageInteractLibrary))
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, program,
+			name, attribs, NO_XFB_VARS, extradefines, *programDesc, volumetricLibrary, foliageInteractLibrary);
+		if (result == PERMUTATION_KEY)
+			continue;
+		if (result == PERMUTATION_FAILED)
 		{
 			ri.Error(ERR_FATAL, "Could not load surface sprites shader!");
 		}
@@ -5196,13 +5530,9 @@ static int GLSL_LoadGPUProgramSMAA(
 	extradefines[0] = '\0';
 	
 	Q_strcat(extradefines, sizeof(extradefines),
-		va(	"#define SMAA_LOCAL_CONTRAST_ADAPTATION_FACTOR 2.0\n"
+			"#define SMAA_LOCAL_CONTRAST_ADAPTATION_FACTOR 2.0\n"
 			"#define SMAA_REPROJECTION_WEIGHT_SCALE 30.0\n"
-			"#define SMAA_RT_METRICS vec4(1.0 / %f, 1.0 / %f, %f, %f)\n",
-			(float)glConfig.vidWidth,
-			(float)glConfig.vidHeight,
-			(float)glConfig.vidWidth,
-			(float)glConfig.vidHeight));
+			"#define SMAA_RT_METRICS vec4(1.0 / r_FBufScale, r_FBufScale)\n");
 	if (r_smaa_quality->integer == 0)
 	{
 		Q_strcat(extradefines, sizeof(extradefines),
@@ -5326,34 +5656,343 @@ static int GLSL_LoadGPUProgramSMAA(
 	return 4;
 }
 
+/*
+=============================================================
+
+LAZY PERMUTATIONS (r_shaderProgramLazy), see docs/rend2-shader-cache.md
+
+The families selected per draw (lightall, generic, fog pass, velocity,
+refraction, surface sprites) have hundreds of permutations, and a map uses
+few of them. With r_shaderProgramLazy 1:
+- startup builds the permutations of the usage profile (bound in earlier
+  runs), except lightall, whose profile spans every map played;
+- the end of a level load builds the lightall permutations the registered
+  shader stages can reach (GLSL_EndRegistration);
+- any other permutation is built when it is first selected
+  (GLSL_EnsureProgram from GLSL_BindProgram / UniformDataWriter::Start).
+The cache binaries of the permutations not built at startup stay in memory
+(s_glslLazyKeys), so on a warm start each of them loads from the cache.
+
+=============================================================
+*/
+
+enum lazyFamilyIndex_t
+{
+	LAZY_LIGHTALL,
+	LAZY_GENERIC,
+	LAZY_FOG,
+	LAZY_VELOCITY,
+	LAZY_REFRACTION,
+	LAZY_SPRITES,
+	LAZY_FAMILY_COUNT
+};
+
+typedef int (*permutationLoader_t)( ShaderProgramBuilder&, Allocator&, const GLSL_PermutationFilter& );
+
+struct lazyFamily_t
+{
+	const char *name;			// in the usage profile
+	shaderProgram_t *programs;
+	int count;
+	permutationLoader_t load;
+	bool (*valid)( int index );
+};
+
+static bool GLSL_IsValidLightallPermutation( int i )
+{
+	return GLSL_IsValidPermutationForLight(i & LIGHTDEF_LIGHTTYPE_MASK, i);
+}
+
+static bool GLSL_IsValidRefractionPermutation( int )
+{
+	return true;
+}
+
+static const lazyFamily_t& GLSL_LazyFamily( int family )
+{
+	static const lazyFamily_t families[LAZY_FAMILY_COUNT] = {
+		{ "lightall", tr.lightallShader, LIGHTDEF_COUNT, GLSL_LoadGPUProgramLightAll, GLSL_IsValidLightallPermutation },
+		{ "generic", tr.genericShader, GENERICDEF_COUNT, GLSL_LoadGPUProgramGeneric, GLSL_IsValidPermutationForGeneric },
+		{ "fogpass", tr.fogShader, FOGDEF_COUNT, GLSL_LoadGPUProgramFogPass, GLSL_IsValidPermutationForFog },
+		{ "velocity", tr.velocityShader, VELOCITYDEF_COUNT, GLSL_LoadGPUProgramVelocityPass, GLSL_IsValidPermutationForFog },
+		{ "refraction", tr.refractionShader, REFRACTIONDEF_COUNT, GLSL_LoadGPUProgramRefraction, GLSL_IsValidRefractionPermutation },
+		{ "sprites", tr.spriteShader, SSDEF_COUNT, GLSL_LoadGPUProgramSurfaceSprites, GLSL_IsValidPermutationForSprites },
+	};
+	return families[family];
+}
+
+#ifdef REND2_SP
+#define GLSL_PROFILE_FILE	"glslcache/rend2_sp_used.txt"
+#else
+#define GLSL_PROFILE_FILE	"glslcache/rend2_mp_used.txt"
+#endif
+
+static bool s_glslLazy;		// r_shaderProgramLazy, for the programs loaded now
+static std::vector<uint8_t> s_glslProfile[LAZY_FAMILY_COUNT];	// bound in earlier runs
+static std::vector<uint8_t> s_glslStartup[LAZY_FAMILY_COUNT];	// built at startup
+static bool s_glslProfileDirty;
+static int s_glslOnDemand;	// built when first selected (glslusage)
+
+static bool GLSL_StartupWanted( int family, int index )
+{
+	return !s_glslLazy || s_glslStartup[family][index];
+}
+
+static GLSL_PermutationFilter GLSL_StartupFilter( int family )
+{
+	const GLSL_PermutationFilter filter = { s_glslLazy ? s_glslStartup[family].data() : nullptr, false };
+	return filter;
+}
+
+// "<family> <permutation>" lines
+static void GLSL_ReadProfile( void )
+{
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+		s_glslProfile[f].assign(GLSL_LazyFamily(f).count, 0);
+	s_glslProfileDirty = false;
+
+	char *text = nullptr;
+	if ( ri.FS_ReadFile(GLSL_PROFILE_FILE, (void **)&text) <= 0 || !text )
+		return;
+	const char *line = text;
+	while ( *line )
+	{
+		const char *end = strchr(line, '\n');
+		const size_t length = end ? (size_t)(end - line) : strlen(line);
+		char buffer[128];
+		Q_strncpyz(buffer, line, (int)std::min(sizeof(buffer), length + 1));
+		char name[32];
+		int index = 0;
+		if ( sscanf(buffer, "%31s %d", name, &index) == 2 )
+		{
+			for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+			{
+				const lazyFamily_t& family = GLSL_LazyFamily(f);
+				if ( !Q_stricmp(name, family.name) && index >= 0 && index < family.count )
+					s_glslProfile[f][index] = 1;
+			}
+		}
+		line += end ? length + 1 : length;
+	}
+	ri.FS_FreeFile(text);
+}
+
+static void GLSL_WriteProfile( void )
+{
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+	{
+		const lazyFamily_t& family = GLSL_LazyFamily(f);
+		for ( int i = 0; i < family.count; ++i )
+		{
+			if ( family.programs[i].used && !s_glslProfile[f][i] )
+			{
+				s_glslProfile[f][i] = 1;
+				s_glslProfileDirty = true;
+			}
+		}
+	}
+	if ( !s_glslProfileDirty )
+		return;
+
+	std::string text = "// rend2 GLSL permutations bound in earlier runs (r_shaderProgramLazy)\n";
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+	{
+		for ( int i = 0; i < GLSL_LazyFamily(f).count; ++i )
+		{
+			if ( s_glslProfile[f][i] )
+				text += va("%s %d\n", GLSL_LazyFamily(f).name, i);
+		}
+	}
+	ri.FS_WriteFile(GLSL_PROFILE_FILE, text.c_str(), (int)text.size());
+	s_glslProfileDirty = false;
+}
+
+static void GLSL_LazyBegin( void )
+{
+	s_glslLazy = r_shaderProgramLazy->integer != 0;
+	s_glslOnDemand = 0;
+	s_glslLazyKeys.clear();
+	if ( !s_glslLazy )
+		return;
+
+	GLSL_ReadProfile();
+	const bool pom = GLSL_PomSilhouetteEnabled();
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+	{
+		const lazyFamily_t& family = GLSL_LazyFamily(f);
+		s_glslStartup[f].assign(family.count, 0);
+		for ( int i = 0; i < family.count; ++i )
+		{
+			if ( !family.valid(i) )
+				continue;
+			if ( f == LAZY_LIGHTALL )
+			{
+				// the silhouette POM set is built with its lightall permutation
+				s_glslStartup[f][i] = pom && GLSL_PomSilhouetteLightallIndex(i) >= 0;
+			}
+			else
+				s_glslStartup[f][i] = s_glslProfile[f][i];
+		}
+	}
+}
+
+// the cache keys of every permutation not built yet, before GLSL_CacheEnd
+static void GLSL_LazyCollectKeys( ShaderProgramBuilder& builder, Allocator& allocator )
+{
+	if ( !s_glslLazy || !s_glslCache.enabled )
+		return;
+	const GLSL_PermutationFilter keys = { nullptr, true };
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+		GLSL_LazyFamily(f).load(builder, allocator, keys);
+}
+
+// builds the wanted permutations of a family that are not loaded yet
+static int GLSL_BuildLazy( int family, const uint8_t *wanted )
+{
+	// may run inside a frame: keep the program the renderer has bound
+	GLint previousProgram = 0;
+	qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+	Allocator allocator(512 * 1024);
+	ShaderProgramBuilder builder;
+	const GLSL_PermutationFilter filter = { wanted, false };
+	const int built = GLSL_LazyFamily(family).load(builder, allocator, filter);
+	qglUseProgram(previousProgram);
+	return built;
+}
+
+bool GLSL_EnsureProgram( shaderProgram_t *program )
+{
+	if ( program->program )
+		return true;
+	if ( !s_glslLazy )
+		return false;
+
+	for ( int f = 0; f < LAZY_FAMILY_COUNT; ++f )
+	{
+		const lazyFamily_t& family = GLSL_LazyFamily(f);
+		if ( program < family.programs || program >= family.programs + family.count )
+			continue;
+		const int index = (int)(program - family.programs);
+		if ( !family.valid(index) )
+			return false;
+
+		const int start = ri.Milliseconds();
+		std::vector<uint8_t> wanted(family.count, 0);
+		wanted[index] = 1;
+		GLSL_BuildLazy(f, wanted.data());
+		s_glslOnDemand++;
+		ri.Printf(PRINT_DEVELOPER, "GLSL: built %s on demand in %d ms\n",
+			program->name ? program->name : family.name, ri.Milliseconds() - start);
+		return program->program != 0;
+	}
+	return false;
+}
+
+static void GLSL_LazyFlush( void )
+{
+	if ( !s_glslLazy )
+		return;
+	GLSL_WriteProfile();
+	GLSL_CacheFlush();
+}
+
+// lightall permutation index of a draw, and its skeletal / vertex animated
+// variants for stages that can be on a model (SelectShaderProgram)
+static void GLSL_WantLightall( std::vector<uint8_t>& wanted, int index, bool model )
+{
+	const lazyFamily_t& family = GLSL_LazyFamily(LAZY_LIGHTALL);
+	int variants[3] = { 0 };
+	int numVariants = 1;
+	if ( model )
+	{
+		variants[numVariants++] = LIGHTDEF_USE_SKELETAL_ANIMATION;
+#ifdef REND2_SP_MD3
+		variants[numVariants++] = LIGHTDEF_USE_VERTEX_ANIMATION;
+#endif
+	}
+	for ( int v = 0; v < numVariants; ++v )
+	{
+		const int i = index | variants[v];
+		if ( i < family.count && family.valid(i) )
+			wanted[i] = 1;
+	}
+}
+
+/*
+End of a level load: builds the lightall permutations the registered shader
+stages can select (SelectShaderProgram), so they are not built while
+playing, and saves what was built since the last save.
+*/
+void GLSL_EndRegistration( void )
+{
+	if ( !s_glslLazy )
+		return;
+
+	const int start = ri.Milliseconds();
+	const lazyFamily_t& family = GLSL_LazyFamily(LAZY_LIGHTALL);
+	std::vector<uint8_t> wanted(family.count, 0);
+	for ( int s = 0; s < tr.numShaders; ++s )
+	{
+		const shader_t *shader = tr.shaders[s];
+		for ( int st = 0; st < MAX_SHADER_STAGES; ++st )
+		{
+			const shaderStage_t *stage = shader->stages[st];
+			if ( !stage || !stage->active || stage->glslShaderGroup != tr.lightallShader )
+				continue;
+
+			const int index = stage->glslShaderIndex;
+			const int lightType = index & LIGHTDEF_LIGHTTYPE_MASK;
+			// world surfaces are lightmap or vertex lit, models use the grid
+			const bool model = lightType == LIGHTDEF_USE_LIGHT_VECTOR || lightType == 0;
+			GLSL_WantLightall(wanted,
+				r_parallaxMapping->integer ? index : index & ~LIGHTDEF_USE_PARALLAXMAP, model);
+
+			// depth prepass and shadow maps: unlit, tcGen / tcMod, parallax
+			// through the LIGHT_VERTEX bit
+			int depth = 0;
+			if ( stage->bundle[0].tcGen != TCGEN_TEXTURE || stage->bundle[0].numTexMods )
+				depth |= LIGHTDEF_USE_TCGEN_AND_TCMOD;
+			GLSL_WantLightall(wanted, depth, model);
+			if ( r_parallaxMapping->integer && (index & LIGHTDEF_USE_PARALLAXMAP) && lightType )
+				GLSL_WantLightall(wanted, depth | LIGHTDEF_USE_PARALLAXMAP | LIGHTDEF_USE_LIGHT_VERTEX, model);
+		}
+	}
+
+	int numWanted = 0;
+	for ( int i = 0; i < family.count; ++i )
+		numWanted += wanted[i];
+	const int hitsBefore = s_glslCache.hits;
+	const int built = GLSL_BuildLazy(LAZY_LIGHTALL, wanted.data());
+	const int buildTime = ri.Milliseconds() - start;
+	GLSL_LazyFlush();
+	ri.Printf(PRINT_ALL, "GLSL: %d lightall permutations for this level, %d built (%d from cache) in %d ms\n",
+		numWanted, built, s_glslCache.hits - hitsBefore, buildTime);
+}
+
 static int GLSL_CountStartupPrograms()
 {
 	int count = 0;
 	for (int i = 0; i < GENERICDEF_COUNT; ++i)
-		count += GLSL_IsValidPermutationForGeneric(i) ? 1 : 0;
+		count += GLSL_IsValidPermutationForGeneric(i) && GLSL_StartupWanted(LAZY_GENERIC, i) ? 1 : 0;
 	const bool pom = GLSL_PomSilhouetteEnabled();
 	for (int i = 0; i < LIGHTDEF_COUNT; ++i)
 	{
-		if (!GLSL_IsValidPermutationForLight(i & LIGHTDEF_LIGHTTYPE_MASK, i))
+		if (!GLSL_IsValidPermutationForLight(i & LIGHTDEF_LIGHTTYPE_MASK, i) ||
+			!GLSL_StartupWanted(LAZY_LIGHTALL, i))
 			continue;
 		++count;
 		if (pom && GLSL_PomSilhouetteLightallIndex(i) >= 0)
 			++count;
 	}
 	for (int i = 0; i < FOGDEF_COUNT; ++i)
-		count += GLSL_IsValidPermutationForFog(i) ? 1 : 0;
+		count += GLSL_IsValidPermutationForFog(i) && GLSL_StartupWanted(LAZY_FOG, i) ? 1 : 0;
 	for (int i = 0; i < VELOCITYDEF_COUNT; ++i)
-		count += GLSL_IsValidPermutationForFog(i) ? 1 : 0;
+		count += GLSL_IsValidPermutationForFog(i) && GLSL_StartupWanted(LAZY_VELOCITY, i) ? 1 : 0;
 	for (int i = 0; i < SSDEF_COUNT; ++i)
-	{
-		if ((i & SSDEF_FACE_CAMERA) && (i & SSDEF_FACE_UP))
-			continue;
-		if ((i & SSDEF_AUTO_GRASS) && (i & (SSDEF_FACE_CAMERA | SSDEF_FACE_UP |
-			SSDEF_FX_SPRITE | SSDEF_FOG_MODULATE | SSDEF_ADDITIVE | SSDEF_FLATTENED)))
-			continue;
-		++count;
-	}
-	count += REFRACTIONDEF_COUNT + MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
+		count += GLSL_IsValidPermutationForSprites(i) && GLSL_StartupWanted(LAZY_SPRITES, i) ? 1 : 0;
+	for (int i = 0; i < REFRACTIONDEF_COUNT; ++i)
+		count += GLSL_StartupWanted(LAZY_REFRACTION, i) ? 1 : 0;
+	count += MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
 	if (R_WaterSurfaceResourcesEnabled())
 		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
 	if (R_WaterFoamResourcesEnabled())
@@ -5460,6 +6099,7 @@ void GLSL_LoadGPUShaders()
 
 	Allocator allocator(512 * 1024);
 	ShaderProgramBuilder builder;
+	GLSL_LazyBegin();
 	s_startupProgramsTotal = GLSL_CountStartupPrograms();
 	s_parallelShaderCompile = ri.GL_ExtensionSupported("GL_ARB_parallel_shader_compile") ||
 		ri.GL_ExtensionSupported("GL_KHR_parallel_shader_compile");
@@ -5476,12 +6116,12 @@ void GLSL_LoadGPUShaders()
 	int numGenShaders = 0;
 	int numLightShaders = 0;
 	int numEtcShaders = 0;
-	numGenShaders += GLSL_LoadGPUProgramGeneric(builder, allocator);
-	numLightShaders += GLSL_LoadGPUProgramLightAll(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramFogPass(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramVelocityPass(builder, allocator);
+	numGenShaders += GLSL_LoadGPUProgramGeneric(builder, allocator, GLSL_StartupFilter(LAZY_GENERIC));
+	numLightShaders += GLSL_LoadGPUProgramLightAll(builder, allocator, GLSL_StartupFilter(LAZY_LIGHTALL));
+	numEtcShaders += GLSL_LoadGPUProgramFogPass(builder, allocator, GLSL_StartupFilter(LAZY_FOG));
+	numEtcShaders += GLSL_LoadGPUProgramVelocityPass(builder, allocator, GLSL_StartupFilter(LAZY_VELOCITY));
 	numEtcShaders += GLSL_LoadGPUProgramPomSilhouette(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramRefraction(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramRefraction(builder, allocator, GLSL_StartupFilter(LAZY_REFRACTION));
 	numEtcShaders += GLSL_LoadGPUProgramWaterSurface(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramTextureColor(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramPShadow(builder, allocator);
@@ -5514,12 +6154,15 @@ void GLSL_LoadGPUShaders()
 	numEtcShaders += GLSL_LoadGPUProgramDynamicGlowUpsample(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramDynamicGlowDownsample(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramBloomPrefilter(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramSurfaceSprites(builder, allocator);
+	numEtcShaders += GLSL_LoadGPUProgramSurfaceSprites(builder, allocator, GLSL_StartupFilter(LAZY_SPRITES));
 	numEtcShaders += GLSL_LoadGPUProgramWeather(builder, allocator);
 	numEtcShaders += GLSL_LoadGPUProgramWaterParticles(builder, allocator);
 	if (r_smaa->integer)
 		numEtcShaders += GLSL_LoadGPUProgramSMAA(builder, allocator);
 
+	const int keysStart = ri.Milliseconds();
+	GLSL_LazyCollectKeys(builder, allocator);
+	const int keysTime = ri.Milliseconds() - keysStart;
 	GLSL_CacheEnd();
 	if (s_startupProgramsDone != s_startupProgramsTotal)
 		ri.Printf(PRINT_WARNING, "GLSL startup progress: expected %d programs, loaded %d\n",
@@ -5538,13 +6181,24 @@ void GLSL_LoadGPUShaders()
 	else
 		ri.Printf(PRINT_ALL, "GLSL cache: off (%s)\n",
 			r_shaderProgramCache->integer ? "no GL_ARB_get_program_binary" : "r_shaderProgramCache 0");
+	if ( s_glslLazy )
+		ri.Printf(PRINT_ALL, "GLSL lazy permutations: %d keys kept in %d ms, %d binaries in memory\n",
+			(int)s_glslLazyKeys.size(), keysTime, (int)s_glslCache.entries.size());
 }
 
 void GLSL_ShutdownGPUShaders(void)
 {
 	int i;
 
+	// what was built or bound since the last level load
+	GLSL_LazyFlush();
+	s_glslLazy = false;
+	std::unordered_set<uint64_t>().swap(s_glslLazyKeys);
+	std::unordered_map<uint64_t, glslCacheEntry_t>().swap(s_glslCache.entries);
+
 	R_LiquidsUnlatchPrograms();
+	s_glslPrograms.clear();
+	std::unordered_map<uint64_t, std::unordered_set<std::string>>().swap(s_glslIdentifierSets);
 
 	ri.Printf(PRINT_ALL, "------- GLSL_ShutdownGPUShaders -------\n");
 
@@ -5702,6 +6356,10 @@ void GLSL_BindProgram(shaderProgram_t * program)
 		return;
 	}
 
+	// a lazy permutation selected for the first time (r_shaderProgramLazy)
+	if (!program->program)
+		GLSL_EnsureProgram(program);
+
 	if(r_logFile->integer)
 	{
 		// don't just call LogComment, or we will get a call to va() every frame!
@@ -5712,8 +6370,56 @@ void GLSL_BindProgram(shaderProgram_t * program)
 	{
 		qglUseProgram(program->program);
 		glState.currentProgram = program;
+		program->used = true;
 		backEnd.pc.c_glslShaderBinds++;
 	}
+}
+
+/*
+glslusage [all|reset]: loaded GLSL programs per family and how many of them
+were bound since they were loaded (or the last reset); "all" also lists the
+bound programs.
+*/
+void GLSL_Usage_f( void )
+{
+	if ( ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "reset") )
+	{
+		for ( shaderProgram_t *program : s_glslPrograms )
+			program->used = false;
+		return;
+	}
+	const bool listAll = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "all");
+	struct familyUsage_t { int loaded, used; };
+	std::vector<std::pair<std::string, familyUsage_t>> families;
+	int loaded = 0, used = 0;
+	for ( shaderProgram_t *program : s_glslPrograms )
+	{
+		if ( !program->program || !program->name )
+			continue;
+		const char *underscore = strchr(program->name, '_');
+		const std::string family = underscore ?
+			std::string(program->name, underscore - program->name) : std::string(program->name);
+		auto it = std::find_if(families.begin(), families.end(),
+			[&]( const std::pair<std::string, familyUsage_t>& f ) { return f.first == family; });
+		if ( it == families.end() )
+		{
+			families.push_back({ family, { 0, 0 } });
+			it = families.end() - 1;
+		}
+		it->second.loaded++;
+		loaded++;
+		if ( program->used )
+		{
+			it->second.used++;
+			used++;
+			if ( listAll )
+				ri.Printf(PRINT_ALL, "  %s\n", program->name);
+		}
+	}
+	for ( const auto& f : families )
+		ri.Printf(PRINT_ALL, "%-28s %4d used of %4d\n", f.first.c_str(), f.second.used, f.second.loaded);
+	ri.Printf(PRINT_ALL, "GLSL usage: %d of %d programs bound, %d built on demand\n",
+		used, loaded, s_glslOnDemand);
 }
 
 
