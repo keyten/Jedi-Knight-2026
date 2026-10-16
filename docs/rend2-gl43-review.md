@@ -126,3 +126,24 @@ RTX 2060 616.92):
 Both renderer targets build (MSVC Release). Not run in game: the in-game checks are `r_waterInteractionInfo`
 (path and dispatch count), `r_waterIntersectionFoamDebug`, and `r_forwardPlusBenchmark` /
 `r_forwardPlusStats` with `r_forwardPlusCompute 0` vs 1.
+
+Validation tooling added for the in-game pass:
+
+- `r_forwardPlusVerify` reads the main-view compute lists on demand and checks their ordering, cap, allocation and
+  index bounds against uncapped CPU binning;
+- `r_waterIntersectionVerify` compares the compute R16F contact images with a state-free run of the legacy depth
+  projection (3e-3 tolerance);
+- `r_speeds 100` exposes `Forward+ cluster build` and `Water depth contacts` as separate GPU timers;
+- `tools/rend2/gl43_validation/` contains reproducible configs and an exact image comparator.
+
+On 2026-10-16 the hidden-context GL 4.3 test passed on Intel UHD 27.20.100.8280: four Forward+ scenes
+(caps 255/4; 3840 clusters; 67,042/78,537/9,266/83,097 GPU references) and the water contact/readback tests
+(31 contact cells, peak 0.913). Both SP and MP MSVC Release renderer targets built. A hidden SP run on `t2_trip`
+reported 49,728 CPU -> 11,078 GPU references, no overflow and **0 verifier violations**; `yavin1` reported equal
+CPU/GPU contact counts (106 on the visible body), maximum difference 0.000485, **0 mismatches**, three body
+dispatches and a rising wake-readback counter. A later repeat with the controlled capture config also returned zero
+violations/mismatches.
+
+The first screenshot pass is not accepted as bit-exact evidence: its CPU/CPU control pair changed too, so the
+capture still contains frame-varying output unrelated to the compute switch. Interactive 30-second contact,
+1080p/1440p timings and the NVIDIA repeat remain pending and therefore no benchmark numbers are claimed here yet.

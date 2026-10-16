@@ -20,16 +20,20 @@ def main() -> None:
     require("shared/rd-rend2/glsl/watersurface.glsl", (
         "float WaterIntersectionFoam",
         "bandConfidence * normalConfidence * depthConfidence",
-        "intersectionMask * u_Water[35].z * u_Water[19].w",
-        "interactionField.b * u_Water[19].w + intersectionFoam",
-        "u_Water[35].w > 0.5",
+        "intersectionMask * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w",
+        "interactionField.b * u_Water[WATER_U_GEOMETRY_FOAM].w + intersectionFoam",
+        "u_Water[WATER_U_INTERSECTION_FOAM].w > 0.5",
     ))
     require("shared/rd-rend2/tr_watersurface.cpp", (
         "RB_WaterIntersectionInject",
+        "RB_WaterIntersectionCompute",
         "qglReadPixels(x0, y0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT",
         "sim.intersectionFoam.swap(sim.intersectionNext)",
-        "flowX * didx + flowY * didy",
+        "flowX * gx + flowY * gy",
         "r_waterIntersectionFoamPersistence",
+    ))
+    require("shared/rd-rend2/glsl/water_interaction_field.glsl", (
+        "u_WaterIntersectionMap",
     ))
     for path in ("code/rd-rend2/tr_init.cpp", "codemp/rd-rend2/tr_init.cpp"):
         require(path, (

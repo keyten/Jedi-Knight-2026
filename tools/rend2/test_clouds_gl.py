@@ -1017,6 +1017,7 @@ def check_lit_programs():
     vertex_lib = ''.join(vertex(n) + '\n' for n in ['leaf_flutter', 'plant_skin'])
     vs, fs = read('lightall').split('/*[Fragment]*/', 1)
     vs = vs.split('/*[Vertex]*/', 1)[1]
+    pbr = fragment('pbr_common')
     sun = '#define USE_SHADOWMAP\n#define r_shadowMapSize 1024\n#define r_shadowCascadeZFar 4096.0\n'
     bases = {
         'lightmap': '#define USE_LIGHT\n#define USE_LIGHTMAP\n#define USE_SPECULARMAP\n#define USE_NORMALMAP\n#define USE_CUBEMAP\n',
@@ -1031,7 +1032,7 @@ def check_lit_programs():
         for mode in modes:
             defines = header + base + sun + mode
             prog = compile_program([(GL_VERTEX, '#version 150 core\n' + defines + vertex_lib + vs),
-                                    (GL_FRAGMENT, '#version 150 core\n' + defines + fs)], 'lightall ' + mode,
+                                    (GL_FRAGMENT, '#version 150 core\n' + defines + pbr + fs)], 'lightall ' + mode,
                                    ('out_Color', 'out_Glow', 'out_SSRNormal', 'out_SSRSpecular'))
             gl('glDeleteProgram', None, U)(prog)
             count += 1

@@ -143,6 +143,7 @@ def check_permutations():
     count = 0
     lib = foliage_vertex_library()
     volumetric = stage('volumetric_common', 'fragment') + '\n'
+    pbr = stage('pbr_common', 'fragment') + '\n'
     sets = {
         'lightall': [[], ['USE_LIGHT', 'USE_LIGHT_VECTOR'], ['USE_LIGHT', 'USE_LIGHT_VECTOR', 'USE_SKELETAL_ANIMATION'],
                      ['USE_LIGHT', 'USE_LIGHT_VECTOR', 'USE_VERTEX_ANIMATION'], ['USE_LIGHT', 'USE_LIGHTMAP'],
@@ -157,7 +158,8 @@ def check_permutations():
     for name, variants in sets.items():
         for defines in variants:
             for froxel in ((False, True) if name in ('generic', 'fogpass') else (False,)):
-                prog = build(name, defines, lib, volumetric if name in ('generic', 'fogpass') else '', froxel)
+                fragment_lib = volumetric if name in ('generic', 'fogpass') else (pbr if name == 'lightall' else '')
+                prog = build(name, defines, lib, fragment_lib, froxel)
                 gl('glDeleteProgram', None, U)(prog)
                 count += 1
 

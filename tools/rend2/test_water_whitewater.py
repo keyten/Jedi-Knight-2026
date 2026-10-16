@@ -38,7 +38,7 @@ def main():
                  "r_waterWhitewaterStrength", "r_waterWhitewaterFoam",
                  "r_waterWhitewaterDecay", "r_waterWhitewaterDebug"):
         assert f'"{name}"' in init, name
-    assert "u_WaterFoamFlow.xy * u_WaterFoamParams.w + radialFlow" in update
+    assert "velocity * u_WaterFoamParams.w + radialFlow" in update
     assert "-normalize(sourceGradient)" in update
     assert "turbulence *= exp(-u_WaterWhitewaterParams.y * dt)" in update
     assert "out_Color = vec4(concentration, mask, turbulence, whitewaterSource)" in update

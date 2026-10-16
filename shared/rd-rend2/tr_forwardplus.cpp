@@ -181,6 +181,7 @@ static struct
 	int pendingTimer[MAX_FRAMES];
 	int readableTimer[MAX_FRAMES];
 	qboolean warnedCapacity;
+	qboolean verifyPending;
 
 	// r_forwardPlusSpawnTestLights
 	int testLights;
@@ -202,10 +203,61 @@ static struct
 
 static std::vector<uint32_t> s_counts;
 static std::vector<uint32_t> s_offsets;
-static std::vector<uint32_t> s_cursor;
 static std::vector<uint32_t> s_gridData;
 static std::vector<uint16_t> s_indexData;
 static std::vector<fplusLightRange_t> s_ranges;
+
+static uint32_t R_ForwardPlusBinCPU( const std::vector<fplusLightRange_t>& ranges,
+	int numClusters, int tilesX, int tilesY, int maxPerCluster,
+	std::vector<uint32_t>& offsets, std::vector<uint32_t>& counts,
+	std::vector<uint16_t>& indices, int *overflowRefs )
+{
+	counts.assign(numClusters, 0);
+	int overflow = 0;
+	for ( const fplusLightRange_t& r : ranges )
+	{
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
+			{
+				uint32_t *row = &counts[(z * tilesY + y) * tilesX];
+				for ( int x = r.x0; x <= r.x1; x++ )
+				{
+					if ( row[x] < (uint32_t)maxPerCluster )
+						row[x]++;
+					else
+						overflow++;
+				}
+			}
+	}
+
+	offsets.resize(numClusters);
+	uint32_t total = 0;
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		offsets[c] = total;
+		total += counts[c];
+	}
+
+	indices.resize(Q_max(total, 1u));
+	std::vector<uint32_t> cursor(numClusters, 0);
+	for ( const fplusLightRange_t& r : ranges )
+	{
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
+			{
+				const int rowStart = (z * tilesY + y) * tilesX;
+				for ( int x = r.x0; x <= r.x1; x++ )
+				{
+					const int c = rowStart + x;
+					if ( cursor[c] < counts[c] )
+						indices[offsets[c] + cursor[c]++] = (uint16_t)r.light;
+				}
+			}
+	}
+	if ( overflowRefs )
+		*overflowRefs = overflow;
+	return total;
+}
 
 static const struct
 {
@@ -215,6 +267,13 @@ static const struct
 	{ 0, 8 }, { 0, 32 },
 	{ 1, 8 }, { 1, 32 }, { 1, 64 }, { 1, 128 }, { 1, 256 },
 };
+
+static qboolean R_ForwardPlusCheatsEnabled( void )
+{
+	// MP exposes sv_cheats; SP's equivalent system-info cvar is helpUsObi.
+	return (qboolean)(ri.Cvar_VariableIntegerValue("sv_cheats") ||
+		ri.Cvar_VariableIntegerValue("helpUsObi"));
+}
 
 /*
 ============================================================
@@ -302,7 +361,7 @@ void R_ForwardPlusBeginFrame( void )
 	}
 
 	// test lights need cheats (they are not gameplay entities)
-	if ( s_fp.testLights > 0 && !ri.Cvar_VariableIntegerValue("sv_cheats") && s_fp.benchStep < 0 )
+	if ( s_fp.testLights > 0 && !R_ForwardPlusCheatsEnabled() && s_fp.benchStep < 0 )
 		s_fp.testLights = 0;
 
 	s_fp.active = (qboolean)(r_forwardPlus->integer != 0 && !s_fp.gpuFailed);
@@ -952,7 +1011,10 @@ static qboolean RB_ForwardPlusBuildViewGPU( fplusFrameBuffers_t *fb, const viewP
 	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, fb->buffers[FPLUS_BUFFER_INDICES]);
 	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, fb->rangeBuffer);
 	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, fb->counterBuffer);
+	const int timer = view->viewParmType == VPT_MAIN ?
+		RB_ScreenBeginTimer("Forward+ cluster build") : -1;
 	qglDispatchCompute((numClusters + 63) / 64, 1, 1);
+	RB_ScreenEndTimer(timer);
 	for ( GLuint binding = 0; binding < 4; binding++ )
 		qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, 0);
 	// lightall samples the lists as buffer textures; the next view's dispatch
@@ -960,6 +1022,97 @@ static qboolean RB_ForwardPlusBuildViewGPU( fplusFrameBuffers_t *fb, const viewP
 	qglMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 	GLSL_BindNullProgram();
 	return qtrue;
+}
+
+static void RB_ForwardPlusVerifyGPU( fplusFrameBuffers_t *fb, int gridBase,
+	int numClusters, int tilesX, int tilesY, int slices, int maxPerCluster )
+{
+	std::vector<uint32_t> cpuOffsets, cpuCounts;
+	std::vector<uint16_t> cpuIndices;
+	// The uncapped CPU list is the reference: a culled early light may let a
+	// later light into a capped GPU list, which is still a valid subsequence.
+	const uint32_t cpuRefs = R_ForwardPlusBinCPU(s_ranges, numClusters, tilesX, tilesY,
+		MAX_RENDER_DLIGHTS, cpuOffsets, cpuCounts, cpuIndices, nullptr);
+
+	qglMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	std::vector<uint32_t> grid((size_t)numClusters * 2);
+	uint32_t usedEntries = 0;
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->buffers[FPLUS_BUFFER_GRID]);
+	qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLintptr)gridBase * 2 * sizeof(uint32_t),
+		(GLsizeiptr)grid.size() * sizeof(uint32_t), grid.data());
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->counterBuffer);
+	qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(usedEntries), &usedEntries);
+	usedEntries = Q_min(usedEntries, (uint32_t)s_fp.capacity[FPLUS_BUFFER_INDICES]);
+	std::vector<uint16_t> gpuIndices(Q_max(usedEntries, 1u));
+	if ( usedEntries )
+	{
+		qglBindBuffer(GL_SHADER_STORAGE_BUFFER, fb->buffers[FPLUS_BUFFER_INDICES]);
+		qglGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0,
+			(GLsizeiptr)usedEntries * sizeof(uint16_t), gpuIndices.data());
+	}
+	qglBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	std::vector<int> owner(usedEntries, -1);
+	uint64_t gpuRefs = 0;
+	int violations = 0, reported = 0, overflowClusters = 0;
+	auto violation = [&]( int c, const char *reason ) {
+		violations++;
+		if ( reported++ < 5 )
+		{
+			const int x = c % tilesX;
+			const int y = (c / tilesX) % tilesY;
+			const int z = c / (tilesX * tilesY);
+			ri.Printf(PRINT_ALL, "  cluster (%d,%d,%d): %s\n", x, y, z, reason);
+		}
+	};
+
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		const uint32_t offset = grid[c * 2], count = grid[c * 2 + 1];
+		gpuRefs += count;
+		if ( cpuCounts[c] > (uint32_t)maxPerCluster )
+			overflowClusters++;
+		if ( count > (uint32_t)maxPerCluster )
+			violation(c, "GPU count exceeds r_forwardPlusMaxLightsPerCluster");
+		if ( count && (offset & 1u) )
+			violation(c, "GPU index offset is not even");
+		const uint32_t allocated = (count + 1u) & ~1u;
+		if ( count && (offset > usedEntries || allocated > usedEntries - offset) )
+		{
+			violation(c, "GPU index range lies outside the allocation counter");
+			continue;
+		}
+		bool overlap = false;
+		for ( uint32_t i = 0; i < allocated; i++ )
+		{
+			if ( owner[offset + i] >= 0 ) overlap = true;
+			else owner[offset + i] = c;
+		}
+		if ( overlap )
+			violation(c, "GPU index range overlaps another cluster");
+
+		uint32_t cpuAt = 0;
+		for ( uint32_t i = 0; i < count; i++ )
+		{
+			const uint16_t light = gpuIndices[offset + i];
+			if ( light >= s_fp.numLights )
+			{
+				violation(c, va("GPU light index %u is outside %d lights", light, s_fp.numLights));
+				continue;
+			}
+			while ( cpuAt < cpuCounts[c] && cpuIndices[cpuOffsets[c] + cpuAt] != light )
+				cpuAt++;
+			if ( cpuAt == cpuCounts[c] )
+				violation(c, va("GPU light index %u is not in CPU order", light));
+			else
+				cpuAt++;
+		}
+	}
+
+	ri.Printf(PRINT_ALL,
+		"Forward+ verify: CPU %u -> GPU %llu light references, %d overflowed clusters, %d violation%s (%dx%dx%d)\n",
+		cpuRefs, (unsigned long long)gpuRefs, overflowClusters, violations,
+		violations == 1 ? "" : "s", tilesX, tilesY, slices);
 }
 
 static void RB_ForwardPlusBuildView(
@@ -1005,6 +1158,12 @@ static void RB_ForwardPlusBuildView(
 		if ( !RB_ForwardPlusBuildViewGPU(fb, view, &slicing, farZ, tileSize, tilesX, tilesY,
 				maxPerCluster, numClusters, &gridBase) )
 			return;
+		if ( s_fp.verifyPending && collectStats )
+		{
+			RB_ForwardPlusVerifyGPU(fb, gridBase, numClusters, tilesX, tilesY,
+				slicing.slices, maxPerCluster);
+			s_fp.verifyPending = qfalse;
+		}
 		RB_ForwardPlusFinishView(out, view, gridBase, lightBase, tileSize, tilesX, tilesY,
 			&slicing, maxPerCluster);
 		if ( collectStats )
@@ -1015,51 +1174,9 @@ static void RB_ForwardPlusBuildView(
 		return;
 	}
 
-	// pass 1: counts, capped per cluster (less important lights drop out)
-	s_counts.assign(numClusters, 0);
 	int overflowRefs = 0;
-	for ( const fplusLightRange_t& r : s_ranges )
-	{
-		for ( int z = r.z0; z <= r.z1; z++ )
-			for ( int y = r.y0; y <= r.y1; y++ )
-			{
-				uint32_t *row = &s_counts[(z * tilesY + y) * tilesX];
-				for ( int x = r.x0; x <= r.x1; x++ )
-				{
-					if ( row[x] < (uint32_t)maxPerCluster )
-						row[x]++;
-					else
-						overflowRefs++;
-				}
-			}
-	}
-
-	// prefix sum
-	s_offsets.resize(numClusters);
-	uint32_t total = 0;
-	for ( int c = 0; c < numClusters; c++ )
-	{
-		s_offsets[c] = total;
-		total += s_counts[c];
-	}
-
-	// pass 2: fill, same order and cap
-	s_indexData.resize(Q_max(total, 1u));
-	s_cursor.assign(numClusters, 0);
-	for ( const fplusLightRange_t& r : s_ranges )
-	{
-		for ( int z = r.z0; z <= r.z1; z++ )
-			for ( int y = r.y0; y <= r.y1; y++ )
-			{
-				const int rowStart = (z * tilesY + y) * tilesX;
-				for ( int x = r.x0; x <= r.x1; x++ )
-				{
-					const int c = rowStart + x;
-					if ( s_cursor[c] < s_counts[c] )
-						s_indexData[s_offsets[c] + s_cursor[c]++] = (uint16_t)r.light;
-				}
-			}
-	}
+	const uint32_t total = R_ForwardPlusBinCPU(s_ranges, numClusters, tilesX, tilesY,
+		maxPerCluster, s_offsets, s_counts, s_indexData, &overflowRefs);
 
 	const int indexBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_INDICES, s_indexData.data(), (int)total);
 	if ( indexBase < 0 )
@@ -1116,6 +1233,11 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	R_ForwardPlusPrepareScene(refdef);
 	fplusFrameBuffers_t *fb = RB_ForwardPlusFrameBuffers(frame);
+	if ( s_fp.verifyPending && !fb->gpuBuild )
+	{
+		ri.Printf(PRINT_ALL, "Forward+ verify requires the GL 4.3 compute build (r_forwardPlus 1, r_forwardPlusCompute 1).\n");
+		s_fp.verifyPending = qfalse;
+	}
 
 	// light data of the scene, shared by its views
 	vec4_t lightData[MAX_RENDER_DLIGHTS * FPLUS_LIGHT_TEXELS];
@@ -1356,6 +1478,17 @@ void R_ForwardPlusStats_f( void )
 		ri.Printf(PRINT_ALL, "  GPU main view: no timer queries\n");
 }
 
+void R_ForwardPlusVerify_f( void )
+{
+	if ( !R_ForwardPlusCheatsEnabled() )
+	{
+		ri.Printf(PRINT_ALL, "r_forwardPlusVerify is cheat protected (devmap / cheats required).\n");
+		return;
+	}
+	s_fp.verifyPending = qtrue;
+	ri.Printf(PRINT_ALL, "Forward+ verification queued for the next main view.\n");
+}
+
 static float R_TestLightRand( int i, int k )
 {
 	unsigned int h = (unsigned int)(i * 747796405u + k * 2891336453u + 12345u);
@@ -1371,12 +1504,12 @@ void R_ForwardPlusAddTestLights( const refdef_t *fd )
 		return;
 
 	const float spread = s_fp.testRadius > 0.0f ? s_fp.testRadius : 768.0f;
-	const float t = fd->time * 0.001f;
 	for ( int i = 0; i < s_fp.testLights; i++ )
 	{
-		// deterministic points in a sphere around the camera, slowly orbiting
+		// Deterministic static points in a sphere around the camera. Keeping
+		// renderer test lights still makes CPU/compute screenshot A/B exact.
 		const float u = R_TestLightRand(i, 0) * 2.0f - 1.0f;
-		const float phi = R_TestLightRand(i, 1) * 2.0f * (float)M_PI + t * (0.2f + 0.3f * R_TestLightRand(i, 2));
+		const float phi = R_TestLightRand(i, 1) * 2.0f * (float)M_PI;
 		const float dist = spread * (0.15f + 0.85f * sqrtf(R_TestLightRand(i, 3)));
 		const float s = sqrtf(Q_max(0.0f, 1.0f - u * u));
 		vec3_t org;
@@ -1396,9 +1529,9 @@ void R_ForwardPlusAddTestLights( const refdef_t *fd )
 
 void R_SpawnTestLights_f( void )
 {
-	if ( !ri.Cvar_VariableIntegerValue("sv_cheats") )
+	if ( !R_ForwardPlusCheatsEnabled() )
 	{
-		ri.Printf(PRINT_ALL, "r_forwardPlusSpawnTestLights is cheat protected (sv_cheats 1).\n");
+		ri.Printf(PRINT_ALL, "r_forwardPlusSpawnTestLights is cheat protected (devmap / cheats required).\n");
 		return;
 	}
 	if ( ri.Cmd_Argc() < 2 )
@@ -1480,9 +1613,9 @@ static void R_ForwardPlusBenchmarkFrame( void )
 
 void R_ForwardPlusBenchmark_f( void )
 {
-	if ( !ri.Cvar_VariableIntegerValue("sv_cheats") )
+	if ( !R_ForwardPlusCheatsEnabled() )
 	{
-		ri.Printf(PRINT_ALL, "r_forwardPlusBenchmark is cheat protected (sv_cheats 1, it spawns test lights).\n");
+		ri.Printf(PRINT_ALL, "r_forwardPlusBenchmark is cheat protected (devmap / cheats required; it spawns test lights).\n");
 		return;
 	}
 	if ( s_fp.benchStep >= 0 )

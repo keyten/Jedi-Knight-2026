@@ -59,6 +59,12 @@ step. `r_waterInteractionInfo` prints the path and the last frame's dispatches.
 `FoamMultiplier` in a water body's `env.json` rule scales both immediate and
 persistent intersection foam; zero disables it for that body.
 
+`r_waterIntersectionVerify` (sv_cheats) performs a one-frame blocking check: it
+runs the legacy depth projection into a temporary vector without changing any
+body state, reads each R16F compute result, and prints CPU/GPU contact counts,
+the maximum difference, and mismatches above 3e-3 and 0.01. With
+`r_speeds 100`, the dispatch loop is reported as `Water depth contacts`.
+
 ## Controls
 
 | CVar | Default | Meaning |
@@ -81,3 +87,6 @@ Then enable the interaction field, restart, and verify foam remains briefly
 after the character leaves and travels downstream when body flow is enabled.
 With the debug mask active, submerged floors, airborne objects and unrelated
 depth edges should remain black.
+
+The repeatable capture configs and exact screenshot comparator are in
+`tools/rend2/gl43_validation/`.

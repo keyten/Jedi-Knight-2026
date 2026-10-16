@@ -1186,7 +1186,7 @@ def check_integration():
     for z0, z1 in ((100., 2000.), (850., 900.), (1200., 2000.)):
         z = np.linspace(z0, z1, 20001)
         t = np.clip((z - 800.) / 200., 0., 1.)
-        reference.append(np.trapezoid(t*t*(3.-2.*t), z)/(z1-z0))
+        reference.append(getattr(np, 'trapezoid', np.trapz)(t*t*(3.-2.*t), z)/(z1-z0))
     ok = check('whole-segment froxel fade agrees with independent numerical integration',
                np.max(np.abs(result[valid, :3] - reference)) < 2e-5, str(reference)) and ok
     # Dedicated glow must transmit through water even when scene bloom is disabled.

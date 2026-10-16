@@ -126,6 +126,9 @@ CPU lists. `r_forwardPlusStats` prints the CPU part of the build only; per-clust
 the cluster's frustum chunk kept, 10–14 % fewer light references than the CPU lists. Passes on Intel UHD and RTX 2060.
 Not measured in game: compare `r_forwardPlusBenchmark` with `r_forwardPlusCompute 0` and 1.
 
+The physical attenuation window is also exactly zero at and beyond the range: at `distance == range`,
+`PBRPointAttenuation` evaluates `edge` to 1 and its smooth window to `1 - 1 == 0` (and remains zero beyond it).
+
 ## Cvars and commands
 
 | Cvar | Default | |
@@ -150,8 +153,12 @@ Commands:
 
 - `r_forwardPlusStats`: lights (and how many were dropped by capacity), clusters, average/max lights per cluster,
   overflow, shadowed lights, CPU build time (last frame and average), GPU main-view time.
-- `r_forwardPlusSpawnTestLights N [spread]` (sv_cheats): N deterministic, slowly orbiting renderer-only lights around the
-  camera. They are not gameplay entities.
+- `r_forwardPlusVerify` (sv_cheats): on the next main view, reads the compute grid/index buffers once and checks
+  ordered-subsequence membership against the uncapped CPU lists, the per-cluster cap, even/non-overlapping
+  allocations and light-index bounds. It prints CPU -> GPU reference totals, overflowed clusters and the first five
+  violations.
+- `r_forwardPlusSpawnTestLights N [spread]` (sv_cheats): N deterministic, static renderer-only lights around the
+  camera. They are not gameplay entities; remaining static makes CPU/compute screenshot A/B reproducible.
 - `r_forwardPlusBenchmark [frames]` (sv_cheats): runs legacy 8/32, then Forward+ 8/32/64/128/256 with test lights,
   and prints a table. The camera should stay still during the run.
 
@@ -169,6 +176,9 @@ Not measured yet: the game was not launched in this task (validation = build + o
 | Forward+ | 64 | | | |
 | Forward+ | 128 | | | |
 | Forward+ | 256 | | | |
+
+With `r_speeds 100`, the compute dispatch of the main view is reported separately as
+`Forward+ cluster build`.
 
 ## Test checklist (in game)
 

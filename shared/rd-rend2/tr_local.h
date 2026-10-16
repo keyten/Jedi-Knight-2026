@@ -6523,6 +6523,7 @@ void R_WaterInfo_f(void);
 void R_WaterBodies_f(void);
 void R_WaterFlowOverride_f(void);
 void R_WaterInteractionInfo_f(void);
+void R_WaterIntersectionVerify_f(void);
 void R_WaterImpulse_f(void);
 void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
@@ -6722,6 +6723,7 @@ void R_ForwardPlusSetMainViewTimer(int timerHandle);
 void R_ForwardPlusCollectGpuTimes(struct gpuFrame_t *frame);
 void R_ShutdownForwardPlus(void);
 void R_ForwardPlusStats_f(void);
+void R_ForwardPlusVerify_f(void);
 void R_SpawnTestLights_f(void);
 void R_ForwardPlusBenchmark_f(void);
 

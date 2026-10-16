@@ -646,6 +646,7 @@ static struct
 	int intersectionHitNext;
 	int intersectionDispatches;
 	int intersectionWakes;
+	bool intersectionVerifyPending;
 } s_water;
 
 static void R_WaterMotionInvalidate(waterMotionInvalidation_t reason)
@@ -2625,6 +2626,18 @@ void R_WaterInteractionInfo_f(void)
 			body.id, sim.width, sim.height, sim.texelX, sim.texelY, maskCells, sim.width * sim.height,
 			sim.active ? "active" : "sleeping", sim.energy, (unsigned)((size_t)sim.width * sim.height * 32));
 	}
+}
+
+void R_WaterIntersectionVerify_f(void)
+{
+	if (!ri.Cvar_VariableIntegerValue("sv_cheats") &&
+		!ri.Cvar_VariableIntegerValue("helpUsObi"))
+	{
+		ri.Printf(PRINT_ALL, "r_waterIntersectionVerify is cheat protected (devmap / cheats required).\n");
+		return;
+	}
+	s_water.intersectionVerifyPending = true;
+	ri.Printf(PRINT_ALL, "Water intersection verification queued for the next water pass.\n");
 }
 
 void R_WaterImpulse_f(void)
@@ -6762,7 +6775,7 @@ static void RB_WaterIntersectionWorldPosition(int x, int y, float depth,
 // therefore do not turn into white outlines.  The one-frame delayed result is
 // a source for the persistent field, while the shader supplies the current
 // frame's immediate response.
-static void RB_WaterIntersectionInject(void)
+static void RB_WaterIntersectionInject(std::vector<float> *verifyOut = nullptr)
 {
 	if (!r_waterIntersectionFoam->integer || !r_waterInteraction->integer ||
 		r_waterIntersectionFoamStrength->value <= 0.0f ||
@@ -6777,6 +6790,14 @@ static void RB_WaterIntersectionInject(void)
 	qglReadPixels(x0, y0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
 	const float band = MAX(r_waterIntersectionFoamWidth->value, 0.5f);
 	const float strength = Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value);
+	size_t verifyBase = 0;
+	if (verifyOut)
+	{
+		size_t cells = 0;
+		for (const waterBody_t& body : s_water.bodies)
+			cells += (size_t)body.interaction.width * body.interaction.height;
+		verifyOut->assign(cells, 0.0f);
+	}
 	matrix_t viewProjection;
 	Matrix16Multiply(view.projectionMatrix, view.world.modelViewMatrix, viewProjection);
 	auto sampleDepth = [&](int x, int y) -> float {
@@ -6787,6 +6808,8 @@ static void RB_WaterIntersectionInject(void)
 	for (waterBody_t& body : s_water.bodies)
 	{
 		waterInteractionState_t& sim = body.interaction;
+		const size_t bodyVerifyBase = verifyBase;
+		verifyBase += (size_t)sim.width * sim.height;
 		if (!sim.image || fabsf(body.planeNormal[2]) < 0.35f) continue;
 		for (int gy = 0; gy < sim.height; ++gy) for (int gx = 0; gx < sim.width; ++gx)
 		{
@@ -6831,6 +6854,11 @@ static void RB_WaterIntersectionInject(void)
 			const float source = bandConfidence * normalConfidence * depthConfidence * strength;
 			if (source <= 0.01f) continue;
 			const float clampedSource = Com_Clamp(0.0f, 1.0f, source);
+			if (verifyOut)
+			{
+				(*verifyOut)[bodyVerifyBase + i] = MAX((*verifyOut)[bodyVerifyBase + i], clampedSource);
+				continue;
+			}
 			sim.intersectionFoam[i] = MAX(sim.intersectionFoam[i], clampedSource);
 			sim.intersectionPending = true;
 			if (R_WaterInteractionGpuEnabled() && sim.gpuState[0])
@@ -6965,6 +6993,7 @@ static void RB_WaterIntersectionCompute(void)
 	// the previous frame's step and foam passes sampled these images
 	qglMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	int dispatched = 0;
+	const int timer = RB_ScreenBeginTimer("Water depth contacts");
 	for (waterBody_t& body : s_water.bodies)
 	{
 		waterInteractionState_t& sim = body.interaction;
@@ -6991,6 +7020,7 @@ static void RB_WaterIntersectionCompute(void)
 		sim.intersectionFresh = sim.intersectionFoamFresh = true;
 		++dispatched;
 	}
+	RB_ScreenEndTimer(timer);
 	qglBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
 	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 	GLSL_BindNullProgram();
@@ -7002,6 +7032,49 @@ static void RB_WaterIntersectionCompute(void)
 	s_water.intersectionHitGeneration[entry] = s_water.intersectionGeneration;
 	s_water.intersectionHitNext = (entry + 1) % WATER_INTERSECTION_HIT_RING;
 	s_water.intersectionDispatches = dispatched;
+}
+
+static void RB_WaterIntersectionVerify(void)
+{
+	std::vector<float> cpu;
+	RB_WaterIntersectionInject(&cpu);
+	qglMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+
+	size_t base = 0;
+	int totalMismatches = 0;
+	for (waterBody_t& body : s_water.bodies)
+	{
+		waterInteractionState_t& sim = body.interaction;
+		const size_t cells = (size_t)sim.width * sim.height;
+		if (!sim.gpuIntersection || !cells)
+		{
+			base += cells;
+			continue;
+		}
+		std::vector<float> gpu(cells);
+		GL_Bind(sim.gpuIntersection);
+		qglGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_FLOAT, gpu.data());
+		int cpuContacts = 0, gpuContacts = 0, mismatches = 0, largeMismatches = 0;
+		float maxDifference = 0.0f;
+		for (size_t i = 0; i < cells; ++i)
+		{
+			const float a = cpu[base + i], b = gpu[i];
+			cpuContacts += a > 0.01f;
+			gpuContacts += b > 0.01f;
+			const float difference = fabsf(a - b);
+			maxDifference = MAX(maxDifference, difference);
+			mismatches += difference > 3.0e-3f;
+			largeMismatches += difference > 0.01f;
+		}
+		totalMismatches += mismatches;
+		ri.Printf(PRINT_ALL,
+			"  body %d: contacts CPU %d / GPU %d, max difference %.6f, mismatches >3e-3: %d (>0.01: %d)\n",
+			body.id, cpuContacts, gpuContacts, maxDifference, mismatches, largeMismatches);
+		base += cells;
+	}
+	GL_Bind(tr.whiteImage);
+	ri.Printf(PRINT_ALL, "Water intersection verify: %d mismatch%s above R16F tolerance 3e-3.\n",
+		totalMismatches, totalMismatches == 1 ? "" : "es");
 }
 
 void RB_WaterSurfacePrepare( void )
@@ -7021,9 +7094,22 @@ void RB_WaterSurfacePrepare( void )
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 0, 0, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 	FBO_FastBlitIndexed(tr.renderFbo, tr.waterCopyFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	if (R_WaterIntersectionComputeEnabled())
+	{
 		RB_WaterIntersectionCompute();
+		if (s_water.intersectionVerifyPending)
+		{
+			FBO_Bind(tr.waterCopyFbo);
+			RB_WaterIntersectionVerify();
+			s_water.intersectionVerifyPending = false;
+		}
+	}
 	else
 	{
+		if (s_water.intersectionVerifyPending)
+		{
+			ri.Printf(PRINT_ALL, "Water intersection verify requires GL 4.3 depth contacts (r_gl43 1 and GPU water interaction).\n");
+			s_water.intersectionVerifyPending = false;
+		}
 		FBO_Bind(tr.waterCopyFbo);
 		RB_WaterIntersectionInject();
 	}
