@@ -766,6 +766,9 @@ extern cvar_t  *r_shadowPCSSMaxPenumbra;
 extern cvar_t  *r_shadowDebug;
 extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
+extern cvar_t  *r_shadowStats;
+extern cvar_t  *r_shadowSinglePass;
+extern cvar_t  *r_shadowVerify;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
 extern cvar_t  *r_entitySunSplit;
@@ -3161,6 +3164,8 @@ enum viewParmFlag_t {
 	VPF_LTC_STATIC_SHADOW = 0x800,
 	VPF_LTC_DYNAMIC_SHADOW = 0x1000,
 	VPF_LTC_SABER_SHADOW = 0x2000,
+	VPF_POINTCUBE		= 0x4000, // One of the 6 consecutive cube face views of a point light shadow
+	VPF_CUBESHADOW		= 0x8000, // Front end only: one walk for all 6 faces (r_shadowSinglePass)
 };
 using viewParmFlags_t = uint32_t;
 
@@ -3268,7 +3273,21 @@ typedef struct drawSurf_s {
 	int fogIndex;
 	foliageResult_t foliage;
 	uint32_t waterKey; // per BSP surface: interface, medium and classification flags
+	uint8_t cubeFaceMask; // VPF_CUBESHADOW: cube faces the surface may cover
 } drawSurf_t;
+
+// r_shadowSinglePass: the light a VPF_CUBESHADOW walk collects surfaces for.
+// The cull helpers test bounds against the 6 face pyramids (cut at the light
+// radius) instead of a frustum and leave the face mask in 'mask' for
+// R_AddDrawSurf.
+struct shadowCube_t {
+	vec3_t origin;
+	float radius;
+	int faceAxis[6];		// world axis of each face's view direction
+	float faceSign[6];		// and its sign
+	const viewParms_t *faces;	// the 6 cached face views
+	uint8_t mask;			// faces of the surface being added
+};
 
 #define	MAX_FACE_POINTS		64
 
@@ -4702,6 +4721,8 @@ typedef struct trGlobals_s {
 	// Specific to Jedi Academy
 	int						numBSPModels;
 	int						currentLevel;
+
+	shadowCube_t			shadowCube;
 } trGlobals_t;
 
 struct glconfigExt_t
@@ -5009,6 +5030,9 @@ int R_CullBoxView(vec3_t bounds[2], viewParms_t *viewParms);
 int R_CullLocalBox (vec3_t bounds[2]);
 int R_CullPointAndRadiusEx( const vec3_t origin, float radius, const cplane_t* frustum, int numPlanes );
 int R_CullPointAndRadius( const vec3_t origin, float radius );
+uint8_t R_ShadowCubeBoundsMask( const vec3_t mins, const vec3_t maxs );
+qboolean R_ShadowCubeOverlaps( const vec3_t mins, const vec3_t maxs );
+void R_RenderCubeShadowView( const viewParms_t *faces );
 int R_CullLocalPointAndRadius( const vec3_t origin, float radius );
 
 void R_SetupProjection(viewParms_t *dest, float zProj, float zFar, qboolean computeFrustum);
@@ -5641,6 +5665,7 @@ public:
 
 void R_AddGhoulSurfaces( trRefEntity_t *ent, int entityNum );
 void R_G2ShadowStatsEndFrame( void );
+void R_ShadowStatsEndFrame( void );
 void RB_SurfaceGhoul( CRenderableSurface *surf );
 void RB_TransformBones(const trRefEntity_t *ent, const trRefdef_t *refdef, int currentFrameNum, gpuFrame_t *frame);
 int RB_GetBoneUboOffset(CRenderableSurface *surf);
@@ -5857,7 +5882,7 @@ typedef struct postProcessCommand_s {
 typedef struct beginTimedBlockCommand_s {
 	int commandId;
 	qhandle_t timerHandle;
-	const char *name;
+	char name[48];	// copied: callers pass va() strings that are reused before the backend runs
 } beginTimedBlockCommand_t;
 
 typedef struct endTimedBlockCommand_s {
@@ -5908,7 +5933,7 @@ struct gpuTimer_t
 
 struct gpuTimedBlock_t
 {
-	const char *name;
+	char name[48];
 	GLuint beginTimer;
 	GLuint endTimer;
 };

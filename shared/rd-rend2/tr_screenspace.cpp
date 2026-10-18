@@ -337,7 +337,7 @@ int RB_ScreenBeginTimer( const char *name )
 	gpuTimer_t *timer = frame->timers + frame->numTimers++;
 	gpuTimedBlock_t *timedBlock = frame->timedBlocks + handle;
 	timedBlock->beginTimer = timer->queryName;
-	timedBlock->name = name;
+	Q_strncpyz(timedBlock->name, name, sizeof(timedBlock->name));
 	frame->numTimedBlocks++;
 
 	qglQueryCounter(timer->queryName, GL_TIMESTAMP);

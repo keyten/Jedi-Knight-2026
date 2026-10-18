@@ -343,6 +343,11 @@ static void R_AddWorldSurface(
 {
 	// FIXME: bmodel fog?
 
+	// VPF_CUBESHADOW: the face mask of the caller (world surface bounds or the
+	// brush model's entity). R_CullSurface may narrow it to this surface.
+	const uint8_t cubeMask = tr.shadowCube.mask;
+	const bool cubeShadow = (tr.viewParms.flags & VPF_CUBESHADOW) != 0;
+
 	// silhouette POM (tr_pom_silhouette.cpp): the shell and / or the surface,
 	// POM_SURF_ORDINARY only for every other surface
 	int pomMode = R_PomSilhouetteSurfaceMode( surf );
@@ -388,6 +393,12 @@ static void R_AddWorldSurface(
 		R_AddDrawSurf( surf->data, entityNum, surf->shader, surf->fogIndex,
 				dlightBits, isPostRenderEntity, surf->cubemapIndex, {}, surf->waterKey );
 	}
+	// POM shells and surface sprites reach outside the surface bounds: every
+	// face (a separate face view keeps them only where the surface itself
+	// passes its frustum)
+	if ( cubeShadow ) {
+		tr.shadowCube.mask = 0x3F;
+	}
 	if ( pomMode & (POM_SURF_SHELL | POM_SURF_FADEBASE) ) {
 		R_PomSilhouetteAddDrawSurfs( surf, pomMode, entityNum, surf->fogIndex,
 				dlightBits, isPostRenderEntity, surf->cubemapIndex );
@@ -399,6 +410,9 @@ static void R_AddWorldSurface(
 		srfSprites_t *sprites = surf->surfaceSprites + i;
 		R_AddDrawSurf((surfaceType_t *)sprites, entityNum, sprites->shader,
 				surf->fogIndex, dlightBits, isPostRenderEntity, 0);
+	}
+	if ( cubeShadow ) {
+		tr.shadowCube.mask = cubeMask;
 	}
 }
 
@@ -564,7 +578,13 @@ void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int psh
 		// if the bounding volume is outside the frustum, nothing
 		// inside can be visible OPTIMIZE: don't do this all the way to leafs?
 
-		if ( !r_nocull->integer ) {
+		if ( tr.viewParms.flags & VPF_CUBESHADOW ) {
+			// r_shadowSinglePass: the union of the 6 faces is the light's cube
+			if ( !R_ShadowCubeOverlaps(node->mins, node->maxs) ) {
+				return;
+			}
+		}
+		else if ( !r_nocull->integer ) {
 			int		r;
 
 			if ( planeBits & 1 ) {
@@ -893,6 +913,22 @@ void R_MarkLeaves( void )
 R_AddWorldSurfaces
 =============
 */
+// VPF_CUBESHADOW: faces of a world surface from its cull bounds
+static uint8_t R_ShadowCubeSurfaceMask( const msurface_t *surf )
+{
+	if ( surf->cullinfo.type & CULLINFO_BOX ) {
+		return R_ShadowCubeBoundsMask(surf->cullinfo.bounds[0], surf->cullinfo.bounds[1]);
+	}
+	if ( surf->cullinfo.type & CULLINFO_SPHERE ) {
+		const float *c = surf->cullinfo.localOrigin;
+		const float r = surf->cullinfo.radius;
+		const vec3_t mins = { c[0] - r, c[1] - r, c[2] - r };
+		const vec3_t maxs = { c[0] + r, c[1] + r, c[2] + r };
+		return R_ShadowCubeBoundsMask(mins, maxs);
+	}
+	return 0x3F;
+}
+
 void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	int planeBits, dlightBits, pshadowBits;
 
@@ -945,6 +981,13 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 		if (tr.world->surfacesViewCount[i] != tr.viewCount)
 			continue;
 
+		if (viewParms->flags & VPF_CUBESHADOW)
+		{
+			tr.shadowCube.mask = R_ShadowCubeSurfaceMask(tr.world->surfaces + i);
+			if (!tr.shadowCube.mask)
+				continue;
+		}
+
 		R_AddWorldSurface(
 			tr.world->surfaces + i,
 			nullptr,
@@ -957,6 +1000,13 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	{
 		if (tr.world->mergedSurfacesViewCount[i] != tr.viewCount)
 			continue;
+
+		if (viewParms->flags & VPF_CUBESHADOW)
+		{
+			tr.shadowCube.mask = R_ShadowCubeSurfaceMask(tr.world->mergedSurfaces + i);
+			if (!tr.shadowCube.mask)
+				continue;
+		}
 
 		R_AddWorldSurface(
 			tr.world->mergedSurfaces + i,

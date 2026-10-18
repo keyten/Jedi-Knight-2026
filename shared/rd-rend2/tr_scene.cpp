@@ -23,6 +23,86 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "tr_pbr_contract.h"
 
+#include <chrono>
+#include <vector>
+
+/*
+r_shadowStats: per-frame CPU cost of every view class, printed once per second.
+front = R_RenderView (BSP walk, entity/G2/MD3 surfaces, draw surf sort),
+submit = backend execution of that view's commands (GL calls, driver),
+gather = R_GatherFrameViews (view setup incl. CSM bounds walks).
+Point shadow views are cube faces; spot = one projected view per spot light.
+*/
+enum {
+	SSTAT_SKYPORTAL, SSTAT_SUN, SSTAT_PLAYER, SSTAT_POINT, SSTAT_LTC, SSTAT_PORTAL, SSTAT_MAIN,
+	SSTAT_SPOT, SSTAT_POINTCUBE, SSTAT_CLASSES
+};
+static struct {
+	double frontUs[SSTAT_CLASSES];
+	double submitUs[SSTAT_CLASSES];
+	double frontMaxUs[SSTAT_CLASSES];
+	int views[SSTAT_CLASSES];
+	int drawSurfs[SSTAT_CLASSES];
+	double gatherUs;
+	int frames;
+	int lastPrintTime;
+} shadowStats;
+
+static int R_ShadowStatsClass( const viewParms_t *parms )
+{
+	if ( parms->viewParmType == VPT_POINT_SHADOWS && parms->fovX != 90.0f )
+		return SSTAT_SPOT;
+	return (int)parms->viewParmType;
+}
+
+static double R_ShadowStatsUs( std::chrono::steady_clock::time_point start )
+{
+	return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count();
+}
+
+void R_ShadowStatsEndFrame( void )
+{
+	if ( !r_shadowStats->integer )
+	{
+		Com_Memset(&shadowStats, 0, sizeof(shadowStats));
+		return;
+	}
+
+	shadowStats.frames++;
+	const int now = ri.Milliseconds();
+	if ( now - shadowStats.lastPrintTime < 1000 )
+		return;
+
+	static const char *names[SSTAT_CLASSES] = {
+		"skyportal", "sun cascade", "player shadow", "point face", "ltc shadow", "portal", "main", "spot", "point cube" };
+	const double perFrame = 1.0 / (double)Q_max(1, shadowStats.frames);
+	double shadowFront = 0.0, shadowSubmit = 0.0;
+	ri.Printf(PRINT_ALL, "shadowStats (%d frames), per frame: views, front ms, submit ms, drawsurfs/view, front max/view us\n",
+		shadowStats.frames);
+	for ( int c = 0; c < SSTAT_CLASSES; c++ )
+	{
+		if ( !shadowStats.views[c] )
+			continue;
+		ri.Printf(PRINT_ALL, "  %-13s %5.1f  %7.3f  %7.3f  %7.1f  %7.1f\n", names[c],
+			shadowStats.views[c] * perFrame,
+			shadowStats.frontUs[c] * perFrame * 0.001,
+			shadowStats.submitUs[c] * perFrame * 0.001,
+			(double)shadowStats.drawSurfs[c] / (double)shadowStats.views[c],
+			shadowStats.frontMaxUs[c]);
+		if ( c != SSTAT_MAIN && c != SSTAT_PORTAL && c != SSTAT_SKYPORTAL )
+		{
+			shadowFront += shadowStats.frontUs[c];
+			shadowSubmit += shadowStats.submitUs[c];
+		}
+	}
+	ri.Printf(PRINT_ALL, "  shadow total front %.3f ms, submit %.3f ms; gather %.3f ms\n",
+		shadowFront * perFrame * 0.001, shadowSubmit * perFrame * 0.001, shadowStats.gatherUs * perFrame * 0.001);
+
+	Com_Memset(&shadowStats, 0, sizeof(shadowStats));
+	shadowStats.lastPrintTime = now;
+}
+
+
 int			r_firstSceneDrawSurf;
 
 int			r_numdlights;
@@ -740,10 +820,78 @@ void RE_BeginScene(const refdef_t *fd)
 	tr.portalRenderedThisFrame = qfalse;
 
 	//ri.Printf(PRINT_ALL, "RE_BeginScene Frame: %i, skyportal: %i, entities: %i\n", backEndData->realFrameNumber, int(tr.world->skyboxportal && (tr.refdef.rdflags & RDF_SKYBOXPORTAL)), tr.refdef.num_entities);
+	const auto gatherStart = std::chrono::steady_clock::now();
 	R_GatherFrameViews(&tr.refdef);
+	if ( r_shadowStats->integer )
+		shadowStats.gatherUs += R_ShadowStatsUs(gatherStart);
 	RB_UpdateConstants(&tr.refdef);
 
 	R_PushDebugGroup(AL_SCENE, va("Scene_%i", backEndData->currentFrame->currentScene));
+}
+
+/*
+r_shadowVerify 1: on the next frame every point light cube is rendered by the
+6 separate face views and by the single pass (r_shadowSinglePass), the depth
+of the 6 faces is read back after each, and the texels that differ are
+printed. Resets itself to 0.
+*/
+static void R_ShadowCubeReadFaces( const viewParms_t *faces, std::vector<float> &depth )
+{
+	const int texels = DSHADOW_MAP_SIZE * DSHADOW_MAP_SIZE;
+	depth.resize(texels * 6);
+	FBO_t *oldFbo = glState.currentFBO;
+	qglPixelStorei(GL_PACK_ALIGNMENT, 4);
+	for ( int f = 0; f < 6; f++ )
+	{
+		FBO_Bind(faces[f].targetFbo);
+		qglReadPixels(0, 0, DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE, GL_DEPTH_COMPONENT, GL_FLOAT,
+			depth.data() + f * texels);
+	}
+	FBO_Bind(oldFbo);
+}
+
+static void R_ShadowCubeVerify( const viewParms_t *faces, int cubeIndex )
+{
+	std::vector<float> separate, single;
+
+	for ( int f = 0; f < 6; f++ )
+	{
+		tr.refdef.numDrawSurfs = 0;
+		R_RenderView(const_cast<viewParms_t *>(&faces[f]));
+		R_IssuePendingRenderCommands();
+	}
+	R_ShadowCubeReadFaces(faces, separate);
+
+	tr.refdef.numDrawSurfs = 0;
+	R_RenderCubeShadowView(faces);
+	R_IssuePendingRenderCommands();
+	R_ShadowCubeReadFaces(faces, single);
+
+	const int texels = DSHADOW_MAP_SIZE * DSHADOW_MAP_SIZE;
+	int totalDiff = 0;
+	for ( int f = 0; f < 6; f++ )
+	{
+		int diff = 0, covered = 0;
+		float maxDiff = 0.0f;
+		for ( int t = 0; t < texels; t++ )
+		{
+			const float a = separate[f * texels + t];
+			const float b = single[f * texels + t];
+			if ( a < 1.0f )
+				covered++;
+			if ( a != b )
+			{
+				diff++;
+				maxDiff = Q_max(maxDiff, fabsf(a - b));
+			}
+		}
+		totalDiff += diff;
+		ri.Printf(PRINT_ALL, "shadowVerify cube %d face %d: %d texels covered, %d differ (max %g)\n",
+			cubeIndex, f, covered, diff, maxDiff);
+	}
+	ri.Printf(PRINT_ALL, "shadowVerify cube %d (light at %.0f %.0f %.0f r %.0f): %s\n", cubeIndex,
+		faces[0].ori.origin[0], faces[0].ori.origin[1], faces[0].ori.origin[2], faces[0].zFar,
+		totalDiff ? "MISMATCH" : "identical");
 }
 
 void RE_EndScene()
@@ -834,6 +982,7 @@ void RE_RenderScene( const refdef_t *fd )
 	}
 
 	// Render all the passes
+	int verifiedCubes = 0;
 	for (int i = 0; i < tr.numCachedViewParms; i++)
 	{
 		const char *viewParmTypeNames[VPT_ALL] = {
@@ -862,9 +1011,67 @@ void RE_RenderScene( const refdef_t *fd )
 		if (tr.cachedViewParms[i].viewParmType == VPT_MAIN)
 			R_ForwardPlusSetMainViewTimer(timer);
 		tr.refdef.numDrawSurfs = 0;
-		R_RenderView(&tr.cachedViewParms[i]);
-		R_IssuePendingRenderCommands();
+		// r_shadowSinglePass: the 6 faces of a point light cube in one walk
+		const bool cubeGroup = r_shadowSinglePass->integer &&
+			(tr.cachedViewParms[i].flags & VPF_POINTCUBE) &&
+			i + 5 < tr.numCachedViewParms &&
+			(tr.cachedViewParms[i + 5].flags & VPF_POINTCUBE);
+		if ( cubeGroup && r_shadowVerify->integer )
+		{
+			R_ShadowCubeVerify(&tr.cachedViewParms[i], i);
+			verifiedCubes++;
+			i += 5;
+		}
+		else if ( cubeGroup )
+		{
+			std::chrono::steady_clock::time_point frontStart;
+			if ( r_shadowStats->integer )
+				frontStart = std::chrono::steady_clock::now();
+			R_RenderCubeShadowView(&tr.cachedViewParms[i]);
+			if ( r_shadowStats->integer )
+			{
+				const double frontUs = R_ShadowStatsUs(frontStart);
+				shadowStats.drawSurfs[SSTAT_POINTCUBE] += tr.refdef.numDrawSurfs;
+				const auto submitStart = std::chrono::steady_clock::now();
+				R_IssuePendingRenderCommands();
+				shadowStats.submitUs[SSTAT_POINTCUBE] += R_ShadowStatsUs(submitStart);
+				shadowStats.frontUs[SSTAT_POINTCUBE] += frontUs;
+				shadowStats.frontMaxUs[SSTAT_POINTCUBE] = Q_max(shadowStats.frontMaxUs[SSTAT_POINTCUBE], frontUs);
+				shadowStats.views[SSTAT_POINTCUBE]++;
+			}
+			else
+			{
+				R_IssuePendingRenderCommands();
+			}
+			i += 5;
+		}
+		else if ( r_shadowStats->integer )
+		{
+			const int statClass = R_ShadowStatsClass(&tr.cachedViewParms[i]);
+			const auto frontStart = std::chrono::steady_clock::now();
+			R_RenderView(&tr.cachedViewParms[i]);
+			const double frontUs = R_ShadowStatsUs(frontStart);
+			shadowStats.drawSurfs[statClass] += tr.refdef.numDrawSurfs;
+			const auto submitStart = std::chrono::steady_clock::now();
+			R_IssuePendingRenderCommands();
+			shadowStats.submitUs[statClass] += R_ShadowStatsUs(submitStart);
+			shadowStats.frontUs[statClass] += frontUs;
+			shadowStats.frontMaxUs[statClass] = Q_max(shadowStats.frontMaxUs[statClass], frontUs);
+			shadowStats.views[statClass]++;
+		}
+		else
+		{
+			R_RenderView(&tr.cachedViewParms[i]);
+			R_IssuePendingRenderCommands();
+		}
 		R_EndTimedBlockCmd(timer);
+	}
+
+	if ( r_shadowVerify->integer && !(fd->rdflags & RDF_NOWORLDMODEL) )
+	{
+		ri.Printf(PRINT_ALL, "shadowVerify: %d point light cubes compared%s\n", verifiedCubes,
+			r_shadowSinglePass->integer ? "" : " (needs r_shadowSinglePass 1)");
+		ri.Cvar_Set("r_shadowVerify", "0");
 	}
 
 	if(!( fd->rdflags & RDF_NOWORLDMODEL ))

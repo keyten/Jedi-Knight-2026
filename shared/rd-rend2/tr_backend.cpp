@@ -3936,7 +3936,7 @@ static const void *RB_BeginTimedBlock( const void *data )
 		{
 			gpuTimedBlock_t *timedBlock = currentFrame->timedBlocks + cmd->timerHandle;
 			timedBlock->beginTimer = timer->queryName;
-			timedBlock->name = cmd->name;
+			Q_strncpyz(timedBlock->name, cmd->name, sizeof(timedBlock->name));
 
 			currentFrame->numTimedBlocks++;
 

@@ -501,6 +501,12 @@ static int R_CullBoxForView(vec3_t worldBounds[2], viewParms_t *viewParms) {
 	qboolean        anyClip;
 	int             r, numPlanes;
 
+	if (viewParms->flags & VPF_CUBESHADOW)
+	{
+		tr.shadowCube.mask = R_ShadowCubeBoundsMask(worldBounds[0], worldBounds[1]);
+		return tr.shadowCube.mask ? CULL_CLIP : CULL_OUT;
+	}
+
 	numPlanes = (viewParms->flags & VPF_FARPLANEFRUSTUM) ? 5 : 4;
 
 	// check against frustum planes
@@ -597,7 +603,81 @@ int R_CullPointAndRadiusEx( const vec3_t pt, float radius, const cplane_t* frust
 */
 int R_CullPointAndRadius( const vec3_t pt, float radius )
 {
+	if (tr.viewParms.flags & VPF_CUBESHADOW)
+	{
+		const vec3_t mins = { pt[0] - radius, pt[1] - radius, pt[2] - radius };
+		const vec3_t maxs = { pt[0] + radius, pt[1] + radius, pt[2] + radius };
+		tr.shadowCube.mask = R_ShadowCubeBoundsMask(mins, maxs);
+		return tr.shadowCube.mask ? CULL_CLIP : CULL_OUT;
+	}
 	return R_CullPointAndRadiusEx(pt, radius, tr.viewParms.frustum, (tr.viewParms.flags & VPF_FARPLANEFRUSTUM) ? 5 : 4);
+}
+
+/*
+=================
+R_ShadowCubeBoundsMask
+
+r_shadowSinglePass: the cube faces of tr.shadowCube a world space box may
+cover. Face f looks along faceSign * faceAxis; with a 90 degree fov it sees
+the points with depth >= |other coordinates| and depth <= radius (far plane).
+For a box, max(depth) - min|u| >= 0 per side axis is necessary, so the mask is
+a superset of the faces the box rasterizes into: drawing a surface into an
+extra face changes no depth. 0 = outside the light's cube.
+=================
+*/
+uint8_t R_ShadowCubeBoundsMask( const vec3_t mins, const vec3_t maxs )
+{
+	if ( r_nocull->integer )
+		return 0x3F;
+
+	const shadowCube_t *cube = &tr.shadowCube;
+	const float eps = 1.0f;
+	const float r = cube->radius + eps;
+	float lo[3], hi[3], minAbs[3];
+	for ( int a = 0; a < 3; a++ )
+	{
+		lo[a] = mins[a] - cube->origin[a];
+		hi[a] = maxs[a] - cube->origin[a];
+		if ( lo[a] > r || hi[a] < -r )
+			return 0;
+		minAbs[a] = lo[a] > 0.0f ? lo[a] : (hi[a] < 0.0f ? -hi[a] : 0.0f);
+	}
+
+	uint8_t mask = 0;
+	for ( int f = 0; f < 6; f++ )
+	{
+		const int a = cube->faceAxis[f];
+		const float depthMax = (cube->faceSign[f] > 0.0f ? hi[a] : -lo[a]) + eps;
+		if ( depthMax >= 0.0f &&
+			depthMax >= minAbs[(a + 1) % 3] &&
+			depthMax >= minAbs[(a + 2) % 3] )
+		{
+			mask |= (uint8_t)(1 << f);
+		}
+	}
+	return mask;
+}
+
+/*
+=================
+R_ShadowCubeOverlaps
+
+BSP node test of a VPF_CUBESHADOW walk: the box touches the light's cube
+=================
+*/
+qboolean R_ShadowCubeOverlaps( const vec3_t mins, const vec3_t maxs )
+{
+	if ( r_nocull->integer )
+		return qtrue;
+
+	const shadowCube_t *cube = &tr.shadowCube;
+	const float r = cube->radius + 1.0f;
+	for ( int a = 0; a < 3; a++ )
+	{
+		if ( mins[a] - cube->origin[a] > r || maxs[a] - cube->origin[a] < -r )
+			return qfalse;
+	}
+	return qtrue;
 }
 
 /*
@@ -1866,6 +1946,14 @@ void R_AddDrawSurf(
 		return;
 	}
 
+	uint8_t cubeFaceMask = 0x3F;
+	if (tr.viewParms.flags & VPF_CUBESHADOW)
+	{
+		cubeFaceMask = tr.shadowCube.mask;
+		if (!cubeFaceMask)
+			return;
+	}
+
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
 	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
@@ -1873,6 +1961,7 @@ void R_AddDrawSurf(
 	surf->surface = surface;
 	surf->foliage = foliage;
 	surf->waterKey = waterKey;
+	surf->cubeFaceMask = cubeFaceMask;
 
 	if (tr.viewParms.flags & VPF_DEPTHSHADOW &&
 		drawShader->depthPrepass == DEPTHPREPASS_SIMPLE)
@@ -2071,6 +2160,30 @@ static void R_AddEntitySurfaces(const trRefdef_t *refdef)
 	for (int i = entityStart; i < numEntities; i++)
 	{
 		trRefEntity_t *ent = refdef->entities + i;
+		if (tr.viewParms.flags & VPF_CUBESHADOW)
+		{
+			// The per face path culls, picks LODs etc. with each face's
+			// orientation. Give the entity the face its origin lies in, so
+			// that face keeps exactly the old choices; the cull helpers
+			// then narrow the face mask to the entity bounds.
+			const shadowCube_t *cube = &tr.shadowCube;
+			vec3_t d;
+			VectorSubtract(ent->e.origin, cube->origin, d);
+			int axis = 0;
+			if (fabsf(d[1]) > fabsf(d[axis])) axis = 1;
+			if (fabsf(d[2]) > fabsf(d[axis])) axis = 2;
+			const float sign = d[axis] < 0.0f ? -1.0f : 1.0f;
+			for (int f = 0; f < 6; f++)
+			{
+				if (cube->faceAxis[f] == axis && cube->faceSign[f] == sign)
+				{
+					tr.viewParms.ori = cube->faces[f].ori;
+					tr.viewParms.world = cube->faces[f].world;
+					break;
+				}
+			}
+			tr.shadowCube.mask = 0x3F;
+		}
 		R_AddEntitySurface(refdef, ent, i);
 	}
 }
@@ -2121,6 +2234,8 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 
 	R_AddEntitySurfaces(refdef);
 
+	if (viewParms->flags & VPF_CUBESHADOW)
+		tr.shadowCube.mask = 0x3F;
 	R_AddPolygonSurfaces(refdef);
 
 	if ( tr.viewParms.viewParmType >= VPT_PORTAL &&
@@ -2218,6 +2333,97 @@ void R_RenderView (viewParms_t *parms) {
 	R_DebugGraphics();
 }
 
+
+/*
+================
+R_RenderCubeShadowView
+
+r_shadowSinglePass: the 6 face views of one point light shadow cube
+(VPF_POINTCUBE, consecutive in tr.cachedViewParms) from a single walk.
+The surfaces are collected once with a face mask, sorted once, and every face
+gets the masked subset in sort order as its own draw command, so the backend
+renders each face exactly as a separate view would.
+================
+*/
+void R_RenderCubeShadowView( const viewParms_t *faces )
+{
+	shadowCube_t *cube = &tr.shadowCube;
+	VectorCopy(faces[0].ori.origin, cube->origin);
+	cube->radius = faces[0].zFar;
+	cube->faces = faces;
+	cube->mask = 0x3F;
+	for (int f = 0; f < 6; f++)
+	{
+		const float *fwd = faces[f].ori.axis[0];
+		int axis = 0;
+		if (fabsf(fwd[1]) > fabsf(fwd[axis])) axis = 1;
+		if (fabsf(fwd[2]) > fabsf(fwd[axis])) axis = 2;
+		cube->faceAxis[f] = axis;
+		cube->faceSign[f] = fwd[axis] < 0.0f ? -1.0f : 1.0f;
+	}
+
+	tr.viewCount++;
+
+	tr.viewParms = faces[0];
+	tr.viewParms.flags |= VPF_CUBESHADOW;
+	tr.viewParms.frameSceneNum = tr.frameSceneNum;
+	tr.viewParms.frameCount = tr.frameCount;
+
+	const int first = tr.refdef.numDrawSurfs;
+	tr.refdef.fistDrawSurf = first;
+
+	R_GenerateDrawSurfs(&tr.viewParms, &tr.refdef);
+
+	const int numSurfs = tr.refdef.numDrawSurfs - first;
+	int faceSurfs[6] = {};
+	int total = numSurfs;
+	if (numSurfs > 0 && numSurfs <= MAX_DRAWSURFS)
+	{
+		R_RadixSort(tr.refdef.drawSurfs + first, numSurfs);
+		for (int i = 0; i < numSurfs; i++)
+		{
+			const uint8_t mask = tr.refdef.drawSurfs[first + i].cubeFaceMask;
+			for (int f = 0; f < 6; f++)
+				faceSurfs[f] += (mask >> f) & 1;
+		}
+		for (int f = 0; f < 6; f++)
+			total += faceSurfs[f];
+	}
+
+	if (first + total > MAX_DRAWSURFS)
+	{
+		// the per face copies would wrap: render the faces one by one
+		for (int f = 0; f < 6; f++)
+		{
+			tr.refdef.numDrawSurfs = 0;
+			R_RenderView(const_cast<viewParms_t *>(&faces[f]));
+		}
+		return;
+	}
+
+	for (int f = 0; f < 6; f++)
+	{
+		// a face without surfaces gets no command, as a separate view
+		if (!faceSurfs[f])
+			continue;
+
+		const int start = tr.refdef.numDrawSurfs;
+		drawSurf_t *dst = tr.refdef.drawSurfs + start;
+		const uint8_t bit = (uint8_t)(1 << f);
+		for (int i = 0; i < numSurfs; i++)
+		{
+			const drawSurf_t *src = tr.refdef.drawSurfs + first + i;
+			if (src->cubeFaceMask & bit)
+				*dst++ = *src;
+		}
+		tr.refdef.numDrawSurfs = start + faceSurfs[f];
+
+		tr.viewParms = faces[f];
+		tr.viewParms.frameSceneNum = tr.frameSceneNum;
+		tr.viewParms.frameCount = tr.frameCount;
+		R_AddDrawSurfCmd(tr.refdef.drawSurfs + start, faceSurfs[f]);
+	}
+}
 
 void R_RenderDlightCubemaps(const refdef_t *fd)
 {
@@ -2887,6 +3093,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 
 					shadowParms.targetFbo = tr.shadowCubeFbo[i * 6 + j];
 					shadowParms.targetFboLayer = 0;
+					shadowParms.flags |= VPF_POINTCUBE;
 
 					shadowParms.currentViewParm = tr.numCachedViewParms;
 					shadowParms.viewParmType = VPT_POINT_SHADOWS;

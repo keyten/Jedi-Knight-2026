@@ -140,6 +140,14 @@ off/on, each quality preset, and contact shadows off/on. A split-overlap pixel
 can execute twice the normal sun sample count; pixels outside overlaps never
 sample a second cascade.
 
+`r_shadowStats 1` prints the per-frame CPU cost (front end and command
+submission) of each view class once per second: main, sun cascade, point face,
+point cube, spot, and so on. Point light shadow cubes can be built from one
+scene walk per light with `r_shadowSinglePass 1`. That gives the same depth,
+and `r_shadowVerify 1` checks it on one frame. Details and measurements are in
+[rend2-gl43-plan-4-layered-shadows.md](rend2-gl43-plan-4-layered-shadows.md).
+Sun cascades still use one walk per cascade.
+
 Recommended visual checks are slow forward/strafe motion, both transition
 bands, close contacts, long shadows, sloped floors, rails and foliage,
 wide/narrow FOV, several shadow-map sizes, and low sun angles. Use debug views

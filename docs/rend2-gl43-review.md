@@ -78,6 +78,8 @@ Detailed plans for the remaining work (what, why, where, what to change, how to 
    (see "Weather geometry shaders: step 0 measurement" below).
 4. [Point-light and CSM shadows in one scene pass per light](rend2-gl43-plan-4-layered-shadows.md): stage 1 (one
    traversal, face masks, any GL) and stage 2 (layered rendering, needs `ARB_shader_viewport_layer_array`).
+   **Stage 1 done for point lights 2026-10-19** (`r_shadowSinglePass`, front 5× lower, depth bit-identical); CSM and
+   stage 2 open (see "Point light shadows: step 0 and stage 1" below).
 5. [Distance-adaptive water tessellation](rend2-gl43-plan-5-water-tessellation.md) (item 4 above).
 
 ### 1. Water intersection foam
@@ -205,3 +207,32 @@ rewrite above, so plan 3 was not implemented; the GS path stays the only path.
 Reproduce: the hidden-window test install with `+set cl_renderer rdsp-rend2` (a fresh `fs_homepath` otherwise
 writes `cl_renderer rdsp-vanilla` and the run silently uses the vanilla renderer); NVIDIA on the Optimus laptop
 via the per-process environment variable `SHIM_MCCOMPAT=0x800000001`.
+
+### Point light shadows: step 0 and stage 1 (plan 4)
+
+2026-10-19, hidden SP runs of the Release renderer at 1920x1080 with `r_dlightMode 2`, `r_forwardPlus 1` and
+`r_shadowStats 1`. Front = `R_RenderView` CPU time (BSP walk, entity/G2/MD3 surfaces, sort). Submit = execution
+of that view's backend commands (GL calls, driver). Scene: `vjun2`, the player's saber against 3–4 saber NPCs, so
+4 shadowed saber lights (radius ≈ 40–60), 24 cube faces. Values are per frame and averaged per second.
+
+| | Intel UHD front / submit | RTX 2060 front / submit |
+| --- | --- | --- |
+| 24 separate face views (`r_shadowSinglePass 0`) | 10–14 / 20–24 ms | 5.1–5.4 / 4.4–4.8 ms |
+| 4 cube passes (`r_shadowSinglePass 1`) | 2.1 / 6.2 ms | ≈ 1.0 / 2.8–3.0 ms |
+| GPU time of the 24 faces (`r_speeds 100`) | ≈ 4 ms | ≈ 0.4 ms |
+
+The old face views have no far plane (`planeBits` 15) and skip the PVS like every depth shadow view. So each face
+walked the BSP through an infinite pyramid and drew ≈ 540 surfaces, almost all of them beyond the light radius and
+clipped by the GPU. The cube pass walks the light's cube (`origin ± radius`) once, keeps a 6-bit face mask per
+draw surface and hands each face a filtered copy of one sorted list. Its 4 cubes carry ≈ 225–340 surfaces each,
+copies included. `r_shadowVerify 1` renders every cube both ways in the same frame and reads back the 6 faces. All
+8 Intel and 16 NVIDIA cube comparisons (with `r_shadowCasterLod` 0 and 1) were bit-identical, at ≈ 500k covered
+texels per cube.
+
+Not done: CSM in one walk. The sun cascades' front is 1.5 ms on Intel and 0.56–0.63 ms on NVIDIA for 3 cascades,
+so at most ≈ 1 / 0.4 ms could be saved, and G2 LODs differ per cascade, so the depth can't stay bit-identical.
+Also not done: stage 2 (layered rendering). After stage 1, submit is the larger cost, ≈ 0.7 ms per cube on NVIDIA
+and ≈ 1.5 ms on Intel. That is mostly the fixed price of 6 draw commands per cube, which stage 2 would remove.
+
+Side fix: GPU timer names (`r_speeds 100`) were stored as pointers into rotating `va()` buffers and printed with
+other views' names. The name is now copied into the command and the timed block.

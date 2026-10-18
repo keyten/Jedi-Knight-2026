@@ -317,7 +317,7 @@ qhandle_t R_BeginTimedBlockCmd( const char *name )
 	}
 
 	cmd->commandId = RC_BEGIN_TIMED_BLOCK;
-	cmd->name = name;
+	Q_strncpyz(cmd->name, name, sizeof(cmd->name));
 	cmd->timerHandle = tr.numTimedBlocks++;
 
 	return (qhandle_t)cmd->timerHandle;
@@ -855,6 +855,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	R_IssueRenderCommands( qtrue );
 
 	R_G2ShadowStatsEndFrame();
+	R_ShadowStatsEndFrame();
 
 	R_InitNextFrame();
 
