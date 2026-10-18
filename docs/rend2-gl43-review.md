@@ -38,7 +38,7 @@ themselves; they would need a new algorithm (shared-memory tiling, wave intrinsi
 | CSM / Shadows 2.0 / PCSS / character shadows | `5f55edd8b`, `93c82eced`, `2e1f98f32` | raster shadow passes | layered rendering needs `ARB_shader_viewport_layer_array` (not core 4.3) | **no** |
 | Froxel volumetric fog and its media (height fog, noise, local volumes, FX media, emission, phase, self-shadow, multi-scatter, RGB extinction, liquids) | `239d3ee7e` … `4789c8b27`, `837c7a8e8` | **compute** inject / media / integrate; dynamic-light lists use the shared Forward+ cluster kernel | GPU froxel light lists | **yes, implemented** (`r_volumetricFogLightCompute`) |
 | Atmosphere LUTs, clouds, cloud shadows | `13fc62bdc`, `2455fe5e0` | fragment LUT passes / reduced-resolution march | none | **no**: the cloud noise readback is a one-off at the first frame |
-| Weather: rain simulation, splashes | `ddc0df4b5`, `1a0f16741`, `f701b2964` | transform feedback update + splash geometry shader; splash query read only when available | compute particle update | **no**: TF is already a GPU-only point update; a compute rewrite has the same cost |
+| Weather: rain simulation, splashes | `ddc0df4b5`, `1a0f16741`, `f701b2964` | transform feedback update + splash geometry shader; splash query read only when available | compute particle update; splash/streak expansion without GS (plan 3) | **no**: TF is already a GPU-only point update; a compute rewrite has the same cost. GS removal measured and dropped: ≈ 0.2 ms removable on Intel, see below |
 | Wetness persistence, puddle ripples, runoff trails | `bb27fecf5`, `933cf8693`, `f701b2964`, `af2cb2a18` | ping-pong fragment fields at ≤ 10–30 Hz | none | **no**: measured 0.2 ms per update at 256², amortised < 0.01 ms/frame |
 | Rain lens / lens water | `4a1976496` … `331855edb` | CPU droplet agents (0.2 ms at the caps), PBO upload ring, fragment field + composite; GPU timers read only when available | GPU agents | **no**: the agents are coherent CPU logic with events; 0.2 ms does not justify a rewrite |
 | Foliage: auto grass, wind, flutter | `5010f1e84`, `acdda3729`, `c6600e7fc` | instanced cards, vertex libraries | none | **no** |
@@ -74,7 +74,8 @@ Detailed plans for the remaining work (what, why, where, what to change, how to 
    commands, in-game scenarios, stale tests. Do first.
 2. [Froxel fog light lists on the GPU](rend2-gl43-plan-2-froxel-light-lists.md) (item 3 above).
 3. [Rain streaks and splashes without geometry shaders](rend2-gl43-plan-3-weather-no-gs.md): vertex expansion +
-   compute preparation and indirect splash draws; gated on a measurement.
+   compute preparation and indirect splash draws; gated on a measurement. **Dropped 2026-10-16** after step 0
+   (see "Weather geometry shaders: step 0 measurement" below).
 4. [Point-light and CSM shadows in one scene pass per light](rend2-gl43-plan-4-layered-shadows.md): stage 1 (one
    traversal, face masks, any GL) and stage 2 (layered rendering, needs `ARB_shader_viewport_layer_array`).
 5. [Distance-adaptive water tessellation](rend2-gl43-plan-5-water-tessellation.md) (item 4 above).
@@ -181,3 +182,26 @@ bit-exact CPU/GPU captures and controlled performance measurements remain pendin
 The first screenshot pass is not accepted as bit-exact evidence: its CPU/CPU control pair changed too, so the
 capture still contains frame-varying output unrelated to the compute switch. Interactive 30-second contact,
 1080p/1440p timings and the NVIDIA repeat remain pending and therefore no benchmark numbers are claimed here yet.
+
+### Weather geometry shaders: step 0 measurement (plan 3, dropped)
+
+2026-10-16, hidden SP run of the HEAD Release renderer: `yavin1`, `setviewpos 1024 -3900 210 90`, `r_we heavyrain`
+(5000 drops per chunk, 45,000 TF points), `r_rainSplashes 1`, `r_speeds 100`, median of 30 frames. The view drew
+3–4 rain chunks (15,000–20,000 points) and 3–6 splash slots.
+
+| GPU, resolution | Weather simulation (TF) | Weather draw, streaks 0 / `r_rainStreaks 1` | Weather splashes, streaks 0 / 1 | Main View |
+| --- | --- | --- | --- | --- |
+| Intel UHD 27.20.100.8280, 1920x1080 | 0.21 ms | 0.22 / 0.52 ms | 0.25 / 0.22 ms | 57 / 82 ms |
+| Intel UHD, 640x360 | 0.21 ms | 0.17 / 0.20 ms | 0.24 / 0.24 ms | 8.6 / 9.0 ms |
+| RTX 2060 616.92, 1920x1080 | 0.045 ms | 0.011 / 0.011 ms | 0.032 / 0.028 ms | 2.0 ms |
+
+Both Intel timers are just above the plan's 0.2 ms gate, but the resolution split shows what the rewrite could
+remove. Splashes don't depend on resolution, so all ~0.24 ms is vertex/GS work. The streak time above
+~0.2 ms at 1080p is fill, and fill stays the same without a GS. The replacement also adds a compute pass over the
+same particles; the TF update over 45,000 points already takes 0.21 ms on this GPU. Estimated net gain: ~0.2–0.3 ms of a
+57 ms Intel main view, ~0.03 ms on NVIDIA. That is the same order as the lens-agent cost judged not worth a
+rewrite above, so plan 3 was not implemented; the GS path stays the only path.
+
+Reproduce: the hidden-window test install with `+set cl_renderer rdsp-rend2` (a fresh `fs_homepath` otherwise
+writes `cl_renderer rdsp-vanilla` and the run silently uses the vanilla renderer); NVIDIA on the Optimus laptop
+via the per-process environment variable `SHIM_MCCOMPAT=0x800000001`.
