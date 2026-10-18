@@ -65,6 +65,9 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
 	"${SharedDir}/rd-rend2/tr_staticlighting.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
+	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
+	"${SharedDir}/rd-rend2/tr_glslhelper.h"
+	"${SharedDir}/rd-rend2/glslc/glslc_protocol.h"
 	"${SharedDir}/rd-rend2/tr_bsp.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.h"
@@ -192,6 +195,7 @@ list(APPEND MPRend2Libraries          ${MINIZIP_LIBRARIES})
 
 find_package(OpenGL REQUIRED)
 include("${CMAKE_SOURCE_DIR}/cmake/RendererSDL2.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/Rend2Glslc.cmake")
 set(MPRend2IncludeDirectories ${MPRend2IncludeDirectories} ${OPENGL_INCLUDE_DIR})
 set(MPRend2Libraries ${MPRend2Libraries} ${OPENGL_LIBRARIES})
 
@@ -240,6 +244,11 @@ set_target_properties(${MPRend2} PROPERTIES PROJECT_LABEL "MP Rend2 Renderer")
 target_link_libraries(${MPRend2} ${MPRend2Libraries})
 target_link_renderer_sdl2(${MPRend2})
 target_include_directories(${MPRend2} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_rend2_glslc(${JKAInstallDir} ${JKAMPClientComponent})
+if(TARGET rend2_glslc)
+	add_dependencies(${MPRend2} rend2_glslc)
+endif()
 
 # GLSL shader file generator
 add_executable(compact_glsl

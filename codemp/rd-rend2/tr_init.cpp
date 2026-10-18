@@ -579,6 +579,7 @@ cvar_t  *r_diffuseIBLDebug;
 cvar_t  *r_shaderProgramCache;
 cvar_t  *r_shaderProgramCacheMaxMB;
 cvar_t  *r_shaderProgramLazy;
+cvar_t  *r_shaderCompileProcesses;
 
 cvar_t  *r_forwardPlus;
 cvar_t  *r_forwardPlusTileSize;
@@ -2731,6 +2732,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_shaderProgramCacheMaxMB, 16, 4096, qtrue );
 	r_shaderProgramLazy = ri.Cvar_Get( "r_shaderProgramLazy", "1", CVAR_ARCHIVE | CVAR_LATCH, "Build the lightall / generic / fog / velocity / refraction / surface sprite GLSL permutations when a level or a draw first needs them instead of all at startup" );
 	ri.Cvar_CheckRange( r_shaderProgramLazy, 0, 1, qtrue );
+	r_shaderCompileProcesses = ri.Cvar_Get( "r_shaderCompileProcesses", "-1", CVAR_ARCHIVE, "Link batches of GLSL programs that are not cached in this many rend2_glslc helper processes (-1 = half the CPU threads, at most 8; 0 = in the game process only)" );
+	ri.Cvar_CheckRange( r_shaderCompileProcesses, -1, 16, qtrue );
 
 	r_forwardPlus = ri.Cvar_Get( "r_forwardPlus", "0", CVAR_ARCHIVE, "Dynamic lights: 0 = legacy (32 lights, per surface masks), 1 = Forward+ clustered light lists (up to 256 lights)" );
 	ri.Cvar_CheckRange( r_forwardPlus, 0, 1, qtrue );

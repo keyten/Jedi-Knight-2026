@@ -677,6 +677,7 @@ extern cvar_t  *r_diffuseIBLDebug;
 extern cvar_t  *r_shaderProgramCache;
 extern cvar_t  *r_shaderProgramCacheMaxMB;
 extern cvar_t  *r_shaderProgramLazy;
+extern cvar_t  *r_shaderCompileProcesses;
 
 extern cvar_t  *r_forwardPlus;
 extern cvar_t  *r_forwardPlusTileSize;

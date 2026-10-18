@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "tr_allocator.h"
 #include "glsl_shaders.h"
+#include "tr_glslhelper.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1022,45 +1023,46 @@ static void GLSL_ShowProgramUniforms(GLuint program)
 }
 #endif
 
+// program interface, bound before linking (here and in rend2_glslc jobs)
+static const char *shaderInputNames[] = {
+	"attr_Position",  // ATTR_INDEX_POSITION
+	"attr_TexCoord0",  // ATTR_INDEX_TEXCOORD0
+	"attr_TexCoord1",  // ATTR_INDEX_TEXCOORD1
+	"attr_TexCoord2",  // ATTR_INDEX_TEXCOORD2
+	"attr_TexCoord3",  // ATTR_INDEX_TEXCOORD3
+	"attr_TexCoord4",  // ATTR_INDEX_TEXCOORD4
+	"attr_Tangent",  // ATTR_INDEX_TANGENT
+	"attr_Normal",  // ATTR_INDEX_NORMAL
+	"attr_Color",  // ATTR_INDEX_COLOR
+	"attr_LightDirection",  // ATTR_INDEX_LIGHTDIRECTION
+	"attr_BoneIndexes",  // ATTR_INDEX_BONE_INDEXES
+	"attr_BoneWeights",  // ATTR_INDEX_BONE_WEIGHTS
+	"attr_Position2",  // ATTR_INDEX_POSITION2
+	"attr_Tangent2",  // ATTR_INDEX_TANGENT2
+	"attr_Normal2",  // ATTR_INDEX_NORMAL2
+};
+
+static const char *xfbVarNames[XFB_VAR_COUNT] = {
+	"var_Position",
+	"var_Velocity",
+	"var_Impact",
+};
+
+static const char *shaderOutputNames[] = {
+	"out_Color",  // Color output
+	"out_Glow",  // Glow output
+	// screen-space attachments of renderFbo, tr_screenspace.cpp; the
+	// index is the attachment (SCREEN_ATTACHMENT_*)
+	"out_SSRNormal",  // shared normal (SSR, SSGI)
+	"out_SSRSpecular",  // SSR, tr_ssr.cpp
+	"out_SSRCubemap",
+	"out_SSGIAlbedo",  // SSGI, tr_ssgi.cpp
+	"out_SSGIRadiance",
+	"out_SkinDiffuse",  // skin SSS, tr_skinsss.cpp
+};
+
 static void GLSL_BindShaderInterface( shaderProgram_t *program )
 {
-	static const char *shaderInputNames[] = {
-		"attr_Position",  // ATTR_INDEX_POSITION
-		"attr_TexCoord0",  // ATTR_INDEX_TEXCOORD0
-		"attr_TexCoord1",  // ATTR_INDEX_TEXCOORD1
-		"attr_TexCoord2",  // ATTR_INDEX_TEXCOORD2
-		"attr_TexCoord3",  // ATTR_INDEX_TEXCOORD3
-		"attr_TexCoord4",  // ATTR_INDEX_TEXCOORD4
-		"attr_Tangent",  // ATTR_INDEX_TANGENT
-		"attr_Normal",  // ATTR_INDEX_NORMAL
-		"attr_Color",  // ATTR_INDEX_COLOR
-		"attr_LightDirection",  // ATTR_INDEX_LIGHTDIRECTION
-		"attr_BoneIndexes",  // ATTR_INDEX_BONE_INDEXES
-		"attr_BoneWeights",  // ATTR_INDEX_BONE_WEIGHTS
-		"attr_Position2",  // ATTR_INDEX_POSITION2
-		"attr_Tangent2",  // ATTR_INDEX_TANGENT2
-		"attr_Normal2",  // ATTR_INDEX_NORMAL2
-	};
-
-	static const char *xfbVarNames[XFB_VAR_COUNT] = {
-		"var_Position",
-		"var_Velocity",
-		"var_Impact",
-	};
-
-	static const char *shaderOutputNames[] = {
-		"out_Color",  // Color output
-		"out_Glow",  // Glow output
-		// screen-space attachments of renderFbo, tr_screenspace.cpp; the
-		// index is the attachment (SCREEN_ATTACHMENT_*)
-		"out_SSRNormal",  // shared normal (SSR, SSGI)
-		"out_SSRSpecular",  // SSR, tr_ssr.cpp
-		"out_SSRCubemap",
-		"out_SSGIAlbedo",  // SSGI, tr_ssgi.cpp
-		"out_SSGIRadiance",
-		"out_SkinDiffuse",  // skin SSS, tr_skinsss.cpp
-	};
-
 	const uint32_t attribs = program->attribs;
 	if (attribs != 0)
 	{
@@ -1139,7 +1141,7 @@ renderer / version string), a rejected binary is compiled again.
 */
 
 #define GLSL_CACHE_MAGIC	0x43473252u	// "R2GC"
-#define GLSL_CACHE_VERSION	1u
+#define GLSL_CACHE_VERSION	2u			// 2: uniform locations per entry
 #define GLSL_CACHE_MAX_AGE	16u			// rewrites an unused entry survives
 
 #ifdef REND2_SP
@@ -1161,9 +1163,10 @@ struct glslCacheFileEntry_t
 {
 	uint64_t key;
 	uint32_t format;
-	uint32_t length;
+	uint32_t length;		// of the binary, followed by numLocations GLints
 	uint32_t lastUsed;		// generation of the last rewrite that saw it used
-	uint32_t pad;
+	uint32_t numLocations;
+	uint64_t uniformTable;	// GLSL_UniformTableHash the locations belong to
 };
 
 struct glslCacheEntry_t
@@ -1171,6 +1174,12 @@ struct glslCacheEntry_t
 	GLenum format;
 	uint32_t lastUsed;
 	std::vector<uint8_t> data;
+	// glGetUniformLocation of every uniformsInfo entry: a program from the
+	// binary has the locations of the link that produced it, and querying
+	// all of them cost more than loading the binary
+	uint64_t uniformTable;
+	std::vector<GLint> locations;
+	bool fromHelper = false;	// linked by rend2_glslc in this run (GLSL_RunHelpers)
 };
 
 static struct
@@ -1185,6 +1194,10 @@ static struct
 	int rejected;
 	size_t fileSize;
 } s_glslCache;
+
+// rend2_glslc binaries while r_shaderProgramCache is off, until the batch
+// that asked for them is built
+static std::unordered_map<uint64_t, glslCacheEntry_t> s_glslPrebuilt;
 
 // cache keys of the lazy permutations not built at startup
 // (r_shaderProgramLazy): their binaries stay in memory after GLSL_CacheEnd
@@ -1390,7 +1403,11 @@ static void GLSL_CacheReadFile( bool merge )
 
 	if ( !valid )
 	{
-		if ( !merge )
+		if ( merge )
+			;
+		else if ( (size_t)fileLength >= sizeof(header) && header.magic == GLSL_CACHE_MAGIC )
+			ri.Printf(PRINT_ALL, "GLSL cache: %s has an older format, rebuilding it\n", GLSL_CACHE_FILE);
+		else
 			ri.Printf(PRINT_WARNING, "GLSL cache: %s is not a cache file of this renderer, rebuilding it\n", GLSL_CACHE_FILE);
 	}
 	else if ( header.driverHash != s_glslCache.driverHash )
@@ -1412,7 +1429,9 @@ static void GLSL_CacheReadFile( bool merge )
 				break;
 			memcpy(&fileEntry, data + offset, sizeof(fileEntry));
 			offset += sizeof(fileEntry);
-			if ( fileEntry.length == 0 || (size_t)fileLength - offset < fileEntry.length )
+			const size_t locationsSize = (size_t)fileEntry.numLocations * sizeof(GLint);
+			if ( fileEntry.length == 0 || fileEntry.numLocations > 65536 ||
+				(size_t)fileLength - offset < fileEntry.length + locationsSize )
 				break;
 
 			++numRead;
@@ -1422,8 +1441,12 @@ static void GLSL_CacheReadFile( bool merge )
 				entry.format = fileEntry.format;
 				entry.lastUsed = fileEntry.lastUsed;
 				entry.data.assign(data + offset, data + offset + fileEntry.length);
+				entry.uniformTable = fileEntry.uniformTable;
+				entry.locations.resize(fileEntry.numLocations);
+				if ( locationsSize )
+					memcpy(entry.locations.data(), data + offset + fileEntry.length, locationsSize);
 			}
-			offset += fileEntry.length;
+			offset += fileEntry.length + locationsSize;
 		}
 
 		if ( numRead != header.numEntries && !merge )
@@ -1466,10 +1489,9 @@ static void GLSL_CacheBegin( void )
 
 static glslCacheEntry_t *GLSL_CacheFind( uint64_t key )
 {
-	if ( !s_glslCache.enabled )
-		return nullptr;
-	auto it = s_glslCache.entries.find(key);
-	return it != s_glslCache.entries.end() ? &it->second : nullptr;
+	auto& entries = s_glslCache.enabled ? s_glslCache.entries : s_glslPrebuilt;
+	auto it = entries.find(key);
+	return it != entries.end() ? &it->second : nullptr;
 }
 
 static void GLSL_CacheMarkUsed( glslCacheEntry_t *entry )
@@ -1480,27 +1502,92 @@ static void GLSL_CacheMarkUsed( glslCacheEntry_t *entry )
 	entry->lastUsed = s_glslCache.generation;
 }
 
-static void GLSL_CacheStore( uint64_t key, GLuint program )
+static glslCacheEntry_t *GLSL_CacheStore( uint64_t key, GLuint program )
 {
 	GLint length = 0;
 	qglGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &length);
 	if ( length <= 0 )
-		return;
+		return nullptr;
 
 	std::vector<uint8_t> data((size_t)length);
 	GLsizei written = 0;
 	GLenum format = 0;
 	qglGetProgramBinary(program, length, &written, &format, data.data());
 	if ( written <= 0 )
-		return;
+		return nullptr;
 	data.resize((size_t)written);
 
 	glslCacheEntry_t& entry = s_glslCache.entries[key];
 	entry.format = format;
 	entry.lastUsed = s_glslCache.generation;
 	entry.data.swap(data);
+	entry.locations.clear();
+	entry.uniformTable = 0;
 	s_glslCache.stored++;
 	s_glslCache.dirty = true;
+	return &entry;
+}
+
+// the uniform list (names, order) the stored locations refer to
+static uint64_t GLSL_UniformTableHash( void )
+{
+	static uint64_t hash = 0;
+	if ( !hash )
+	{
+		hash = GLSL_HASH_SEED;
+		for ( int i = 0; i < UNIFORM_COUNT; i++ )
+			hash = GLSL_HashString(hash, uniformsInfo[i].name);
+	}
+	return hash;
+}
+
+/*
+Fills program->uniforms (UNIFORM_COUNT locations) for GLSL_InitUniforms.
+From the cache entry when it has them for this uniform list and two of them
+match the driver, else queried, and then kept in the entry.
+*/
+static void GLSL_ResolveUniformLocations( shaderProgram_t *program, glslCacheEntry_t *entry )
+{
+	GLint *uniforms = (GLint *)R_Malloc(UNIFORM_COUNT * sizeof(*uniforms), TAG_GENERAL);
+	bool cached = entry && entry->uniformTable == GLSL_UniformTableHash() &&
+		entry->locations.size() == UNIFORM_COUNT;
+	if ( cached )
+	{
+		// spot check: the first and the last active uniform
+		int first = -1, last = -1;
+		for ( int i = 0; i < UNIFORM_COUNT; i++ )
+		{
+			if ( entry->locations[i] == -1 )
+				continue;
+			if ( first < 0 )
+				first = i;
+			last = i;
+		}
+		const int checks[2] = { first, last };
+		for ( int index : checks )
+		{
+			if ( index >= 0 &&
+				qglGetUniformLocation(program->program, uniformsInfo[index].name) != entry->locations[index] )
+				cached = false;
+		}
+	}
+
+	if ( cached )
+	{
+		memcpy(uniforms, entry->locations.data(), UNIFORM_COUNT * sizeof(*uniforms));
+	}
+	else
+	{
+		for ( int i = 0; i < UNIFORM_COUNT; i++ )
+			uniforms[i] = qglGetUniformLocation(program->program, uniformsInfo[i].name);
+		if ( entry )
+		{
+			entry->uniformTable = GLSL_UniformTableHash();
+			entry->locations.assign(uniforms, uniforms + UNIFORM_COUNT);
+			s_glslCache.dirty = true;
+		}
+	}
+	program->uniforms = uniforms;
 }
 
 // ages and caps the entries in memory and rewrites the file if anything changed
@@ -1521,7 +1608,7 @@ static void GLSL_CacheWrite( void )
 	// size limit: least recently used first
 	size_t total = sizeof(glslCacheFileHeader_t);
 	for ( const auto& it : s_glslCache.entries )
-		total += sizeof(glslCacheFileEntry_t) + it.second.data.size();
+		total += sizeof(glslCacheFileEntry_t) + it.second.data.size() + it.second.locations.size() * sizeof(GLint);
 	const size_t maxBytes = (size_t)Com_Clampi(16, 4096, r_shaderProgramCacheMaxMB->integer) * 1024 * 1024;
 	if ( total > maxBytes )
 	{
@@ -1532,7 +1619,7 @@ static void GLSL_CacheWrite( void )
 		for ( size_t i = 0; i < byAge.size() && total > maxBytes; ++i )
 		{
 			const glslCacheEntry_t& entry = s_glslCache.entries[byAge[i].second];
-			total -= sizeof(glslCacheFileEntry_t) + entry.data.size();
+			total -= sizeof(glslCacheFileEntry_t) + entry.data.size() + entry.locations.size() * sizeof(GLint);
 			s_glslCache.entries.erase(byAge[i].second);
 		}
 		s_glslCache.dirty = true;
@@ -1559,8 +1646,12 @@ static void GLSL_CacheWrite( void )
 			fileEntry.format = it.second.format;
 			fileEntry.length = (uint32_t)it.second.data.size();
 			fileEntry.lastUsed = it.second.lastUsed;
+			fileEntry.numLocations = (uint32_t)it.second.locations.size();
+			fileEntry.uniformTable = it.second.uniformTable;
 			file.insert(file.end(), (const uint8_t *)&fileEntry, (const uint8_t *)(&fileEntry + 1));
 			file.insert(file.end(), it.second.data.begin(), it.second.data.end());
+			file.insert(file.end(), (const uint8_t *)it.second.locations.data(),
+				(const uint8_t *)(it.second.locations.data() + it.second.locations.size()));
 		}
 
 		ri.FS_WriteFile(GLSL_CACHE_FILE, file.data(), (int)file.size());
@@ -1601,6 +1692,81 @@ static void GLSL_CacheFlush( void )
 	GLSL_CacheKeepLazyEntries();
 }
 
+/*
+Startup dry run (GLSL_LoadGPUShaders, for rend2_glslc): every loader runs once
+with Build and GLSL_InitComputeShader not linking anything. A program that is
+not in the cache becomes a helper job; the loader gets a trivial linked program
+so its uniform setup is harmless, and the touched programs are cleared again.
+*/
+static bool s_glslDryRun;
+static GLuint s_glslDryRunProgram;
+static std::vector<shaderProgram_t *> s_glslDryRunTouched;
+static std::vector<glslHelperJob_t> s_glslHelperJobs;	// programs for rend2_glslc
+
+static void GLSL_DryRunStand( shaderProgram_t *program )
+{
+	if ( !s_glslDryRunProgram )
+	{
+		const char *vertex = "#version 150 core\nvoid main() { gl_Position = vec4(0.0); }\n";
+		const char *fragment = "#version 150 core\nout vec4 out_Color;\nvoid main() { out_Color = vec4(0.0); }\n";
+		const GLuint program = qglCreateProgram();
+		const GLuint shaders[2] = { qglCreateShader(GL_VERTEX_SHADER), qglCreateShader(GL_FRAGMENT_SHADER) };
+		qglShaderSource(shaders[0], 1, &vertex, nullptr);
+		qglShaderSource(shaders[1], 1, &fragment, nullptr);
+		for ( GLuint shader : shaders )
+		{
+			qglCompileShader(shader);
+			qglAttachShader(program, shader);
+		}
+		qglLinkProgram(program);
+		for ( GLuint shader : shaders )
+		{
+			qglDetachShader(program, shader);
+			qglDeleteShader(shader);
+		}
+		s_glslDryRunProgram = program;
+	}
+	program->program = s_glslDryRunProgram;
+	s_glslDryRunTouched.push_back(program);
+}
+
+static void GLSL_DryRunEnd( void )
+{
+	std::sort(s_glslDryRunTouched.begin(), s_glslDryRunTouched.end());
+	s_glslDryRunTouched.erase(std::unique(s_glslDryRunTouched.begin(), s_glslDryRunTouched.end()),
+		s_glslDryRunTouched.end());
+	for ( shaderProgram_t *program : s_glslDryRunTouched )
+	{
+		if ( program->name )
+			Z_Free(program->name);
+		if ( program->uniforms )
+			Z_Free(program->uniforms);
+		if ( program->uniformBufferOffsets )
+			Z_Free(program->uniformBufferOffsets);
+		if ( program->uniformBuffer )
+			Z_Free(program->uniformBuffer);
+		Com_Memset(program, 0, sizeof(*program));
+	}
+	std::vector<shaderProgram_t *>().swap(s_glslDryRunTouched);
+	if ( s_glslDryRunProgram )
+	{
+		qglUseProgram(0);
+		qglDeleteProgram(s_glslDryRunProgram);
+		s_glslDryRunProgram = 0;
+	}
+	s_glslDryRun = false;
+}
+
+static void GLSL_AddHelperJob( glslHelperJob_t&& job )
+{
+	for ( const glslHelperJob_t& other : s_glslHelperJobs )
+	{
+		if ( other.key == job.key )
+			return;
+	}
+	s_glslHelperJobs.push_back(std::move(job));
+}
+
 class ShaderProgramBuilder
 {
 	public:
@@ -1620,6 +1786,8 @@ class ShaderProgramBuilder
 		// cannot be built
 		void SetKeysOnly( bool value ) { keysOnly = value; }
 		uint64_t Key() const { return cacheKey; }
+		// the started program (after AddShader) as a rend2_glslc job
+		void MakeJob( glslHelperJob_t& job ) const;
 
 	private:
 		static const size_t MAX_SHADER_SOURCE_LEN = 16384;
@@ -1766,6 +1934,21 @@ bool ShaderProgramBuilder::AddShader( const GPUShaderDesc& shaderDesc, const cha
 
 bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 {
+	if ( s_glslDryRun )
+	{
+		if ( !GLSL_CacheFind(cacheKey) )
+		{
+			glslHelperJob_t job;
+			MakeJob(job);
+			GLSL_AddHelperJob(std::move(job));
+		}
+		shaderProgram->attribs = attribs;
+		shaderProgram->xfbVariables = xfbVariables;
+		GLSL_DryRunStand(shaderProgram);
+		pendingShaders.clear();
+		return true;
+	}
+
 	const size_t nameBufferSize = strlen(name) + 1;
 	shaderProgram->name = (char *)R_Malloc(nameBufferSize, TAG_GENERAL);
 	Q_strncpyz(shaderProgram->name, name, nameBufferSize);
@@ -1780,6 +1963,7 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 	// feedback locations are part of it; block bindings and sampler units are
 	// set after loading, as for a compiled program)
 	bool loaded = false;
+	glslCacheEntry_t *cacheEntry = nullptr;
 	if ( glslCacheEntry_t *entry = GLSL_CacheFind(cacheKey) )
 	{
 		qglProgramBinary(program, entry->format, entry->data.data(), (GLsizei)entry->data.size());
@@ -1789,14 +1973,20 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 		if ( linked == GL_TRUE )
 		{
 			GLSL_CacheMarkUsed(entry);
-			s_glslCache.hits++;
+			if ( entry->fromHelper )
+				entry->fromHelper = false;	// counted as stored by GLSL_RunHelpers
+			else
+				s_glslCache.hits++;
 			loaded = true;
+			cacheEntry = entry;
 		}
 		else
 		{
 			// e.g. a driver that rejects its own old binaries: compile it
 			while ( qglGetError() != GL_NO_ERROR )
 				;
+			if ( !s_glslCache.enabled )
+				s_glslPrebuilt.erase(cacheKey);
 			s_glslCache.entries.erase(cacheKey);
 			s_glslCache.rejected++;
 			s_glslCache.dirty = true;
@@ -1838,12 +2028,14 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 		GLSL_LinkProgram(program);
 
 		if ( s_glslCache.enabled )
-			GLSL_CacheStore(cacheKey, program);
+			cacheEntry = GLSL_CacheStore(cacheKey, program);
 	}
 
 	shaderProgram->program = program;
 	if (glRefConfig.annotateResources) qglObjectLabel(GL_PROGRAM, program, -1, name);
 	GLSL_SetFBufScale(program);
+	if ( cacheEntry )
+		GLSL_ResolveUniformLocations(shaderProgram, cacheEntry);
 
 	ReleaseShaders();
 	pendingShaders.clear();
@@ -1851,6 +2043,30 @@ bool ShaderProgramBuilder::Build( shaderProgram_t *shaderProgram )
 
 	GLSL_StartupProgramReady();
 	return true;
+}
+
+void ShaderProgramBuilder::MakeJob( glslHelperJob_t& job ) const
+{
+	job = glslHelperJob_t();
+	job.key = cacheKey;
+	for ( int i = 0; i < ATTR_INDEX_MAX; ++i )
+	{
+		if ( attribs & (1u << i) )
+			job.attribs.emplace_back((uint32_t)i, shaderInputNames[i]);
+	}
+	for ( size_t i = 0; i < ARRAY_LEN(shaderOutputNames); ++i )
+		job.outputs.emplace_back((uint32_t)i, shaderOutputNames[i]);
+	for ( uint32_t i = 0; i < XFB_VAR_COUNT; ++i )
+	{
+		if ( xfbVariables & (1u << i) )
+			job.varyings.push_back(xfbVarNames[i]);
+	}
+	job.sourceSize = 0;
+	for ( const PendingShader& pending : pendingShaders )
+	{
+		job.stages.emplace_back((uint32_t)pending.apiShader, pending.source);
+		job.sourceSize += pending.source.size();
+	}
 }
 
 void ShaderProgramBuilder::ReleaseShaders()
@@ -1905,6 +2121,7 @@ struct GLSL_PermutationFilter
 {
 	const uint8_t *wanted;	// per permutation index; null = every permutation
 	bool keysOnly;			// only the cache keys of the permutations not loaded yet
+	bool prepare;			// only rend2_glslc jobs for the wanted ones not in the cache
 
 	bool Want( const shaderProgram_t& program, int index ) const
 	{
@@ -1913,6 +2130,8 @@ struct GLSL_PermutationFilter
 		return keysOnly || !wanted || wanted[index];
 	}
 };
+
+
 
 static const GLSL_PermutationFilter GLSL_ALL_PERMUTATIONS = { nullptr, false };
 
@@ -1935,14 +2154,14 @@ static permutationResult_t GLSL_LoadPermutation(
 	const GPUShaderDesc *fragmentLibrary = nullptr,
 	const GPUShaderDesc *vertexLibrary = nullptr)
 {
-	if ( !filter.keysOnly )
+	if ( !filter.keysOnly && !filter.prepare )
 	{
 		return GLSL_LoadGPUShader(builder, program, name, attribs, xfbVariables, extra, programDesc,
 			fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
 	}
 
 	builder.Start(name, attribs, xfbVariables);
-	builder.SetKeysOnly(true);
+	builder.SetKeysOnly(filter.keysOnly);
 	for ( size_t i = 0; i < programDesc.numShaders; ++i )
 	{
 		const GPUShaderDesc& shaderDesc = programDesc.shaders[i];
@@ -1955,14 +2174,28 @@ static permutationResult_t GLSL_LoadPermutation(
 			return PERMUTATION_FAILED;
 	}
 	builder.SetKeysOnly(false);
-	s_glslLazyKeys.insert(builder.Key());
+	if ( filter.keysOnly )
+		s_glslLazyKeys.insert(builder.Key());
+	else if ( !GLSL_CacheFind(builder.Key()) )
+	{
+		glslHelperJob_t job;
+		builder.MakeJob(job);
+		GLSL_AddHelperJob(std::move(job));
+	}
 	return PERMUTATION_KEY;
 }
 
 void GLSL_InitUniforms(shaderProgram_t *program)
 {
-	program->uniforms = (GLint *)R_Malloc(
-			UNIFORM_COUNT * sizeof(*program->uniforms), TAG_GENERAL);
+	// the cached locations of the program binary, GLSL_ResolveUniformLocations
+	if (!program->uniforms)
+	{
+		program->uniforms = (GLint *)R_Malloc(
+				UNIFORM_COUNT * sizeof(*program->uniforms), TAG_GENERAL);
+		for (int i = 0; i < UNIFORM_COUNT; i++)
+			program->uniforms[i] = s_glslDryRun ? -1 :
+				qglGetUniformLocation(program->program, uniformsInfo[i].name);
+	}
 	program->uniformBufferOffsets = (short *)R_Malloc(
 			UNIFORM_COUNT * sizeof(*program->uniformBufferOffsets), TAG_GENERAL);
 
@@ -1970,7 +2203,6 @@ void GLSL_InitUniforms(shaderProgram_t *program)
 	int size = 0;
 	for (int i = 0; i < UNIFORM_COUNT; i++)
 	{
-		uniforms[i] = qglGetUniformLocation(program->program, uniformsInfo[i].name);
 		if (uniforms[i] == -1)
 			continue;
 
@@ -2512,7 +2744,8 @@ void GLSL_SetUniformMatrix4x4(shaderProgram_t *program, int uniformNum, const fl
 	qglUniformMatrix4fv(uniforms[uniformNum], numElements, GL_FALSE, matrix);
 }
 
-static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name, GLuint linkedProgram);
+static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name, GLuint linkedProgram,
+	glslCacheEntry_t *cacheEntry);
 
 bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 	const char *source, uint32_t requiredFeatures)
@@ -2529,6 +2762,21 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 	uint64_t cacheKey = GLSL_HashBytes(GLSL_HASH_SEED, &computeStage, sizeof(computeStage));
 	cacheKey = GLSL_HashBytes(cacheKey, sources[0], strlen(sources[0]));
 	cacheKey = GLSL_HashBytes(cacheKey, source, strlen(source));
+	if ( s_glslDryRun )
+	{
+		if ( !GLSL_CacheFind(cacheKey) )
+		{
+			glslHelperJob_t job = glslHelperJob_t();
+			job.key = cacheKey;
+			job.stages.emplace_back((uint32_t)GL_COMPUTE_SHADER, std::string(sources[0]) + source);
+			job.sourceSize = job.stages.back().second.size();
+			GLSL_AddHelperJob(std::move(job));
+		}
+		Com_Memset(program, 0, sizeof(*program));
+		GLSL_DryRunStand(program);
+		GLSL_InitUniforms(program);
+		return true;
+	}
 	if ( glslCacheEntry_t *entry = GLSL_CacheFind(cacheKey) )
 	{
 		const GLuint cachedProgram = qglCreateProgram();
@@ -2542,8 +2790,11 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 		if ( linked == GL_TRUE )
 		{
 			GLSL_CacheMarkUsed(entry);
-			s_glslCache.hits++;
-			GLSL_FinishComputeProgram(program, name, cachedProgram);
+			if ( entry->fromHelper )
+				entry->fromHelper = false;	// counted as stored by GLSL_RunHelpers
+			else
+				s_glslCache.hits++;
+			GLSL_FinishComputeProgram(program, name, cachedProgram, entry);
 			return true;
 		}
 		// e.g. a driver that rejects its own old binaries: compile it
@@ -2551,6 +2802,8 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 			;
 		if ( cachedProgram )
 			qglDeleteProgram(cachedProgram);
+		if ( !s_glslCache.enabled )
+			s_glslPrebuilt.erase(cacheKey);
 		s_glslCache.entries.erase(cacheKey);
 		s_glslCache.rejected++;
 		s_glslCache.dirty = true;
@@ -2597,14 +2850,14 @@ bool GLSL_InitComputeShader(shaderProgram_t *program, const char *name,
 		qglDeleteProgram(linkedProgram);
 		return false;
 	}
-	if ( s_glslCache.enabled )
-		GLSL_CacheStore(cacheKey, linkedProgram);
+	glslCacheEntry_t *cacheEntry = s_glslCache.enabled ? GLSL_CacheStore(cacheKey, linkedProgram) : nullptr;
 
-	GLSL_FinishComputeProgram(program, name, linkedProgram);
+	GLSL_FinishComputeProgram(program, name, linkedProgram, cacheEntry);
 	return true;
 }
 
-static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name, GLuint linkedProgram)
+static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name, GLuint linkedProgram,
+	glslCacheEntry_t *cacheEntry)
 {
 	Com_Memset(program, 0, sizeof(*program));
 	const size_t nameSize = strlen(name) + 1;
@@ -2612,6 +2865,8 @@ static void GLSL_FinishComputeProgram(shaderProgram_t *program, const char *name
 	Q_strncpyz(program->name, name, nameSize);
 	program->program = linkedProgram;
 	s_glslPrograms.push_back(program);
+	if ( cacheEntry )
+		GLSL_ResolveUniformLocations(program, cacheEntry);
 	GLSL_InitUniforms(program);
 	if ( glRefConfig.annotateResources )
 		qglObjectLabel(GL_PROGRAM, linkedProgram, -1, name);
@@ -5851,6 +6106,49 @@ static void GLSL_LazyCollectKeys( ShaderProgramBuilder& builder, Allocator& allo
 		GLSL_LazyFamily(f).load(builder, allocator, keys);
 }
 
+/*
+Links the collected s_glslHelperJobs in rend2_glslc processes
+(tr_glslhelper.cpp) and makes their binaries cache entries, which Build then
+loads. Jobs a helper did not do are compiled by Build as before.
+*/
+static void GLSL_RunHelpers( void )
+{
+	if ( s_glslHelperJobs.size() >= 2 )
+	{
+		int processes = r_shaderCompileProcesses->integer;
+		if ( processes < 0 )
+			processes = Com_Clampi(1, 8, (int)std::thread::hardware_concurrency() / 2);
+		GLSL_HelperCompile(s_glslHelperJobs, processes, GLSL_PresentStartupIfDue);
+		for ( glslHelperJob_t& job : s_glslHelperJobs )
+		{
+			if ( !job.done )
+				continue;
+			glslCacheEntry_t& entry = s_glslCache.enabled ? s_glslCache.entries[job.key] : s_glslPrebuilt[job.key];
+			entry.format = job.format;
+			entry.lastUsed = s_glslCache.generation;
+			entry.data.swap(job.binary);
+			entry.uniformTable = 0;
+			entry.locations.clear();
+			entry.fromHelper = true;
+			if ( s_glslCache.enabled )
+			{
+				s_glslCache.stored++;
+				s_glslCache.dirty = true;
+			}
+		}
+	}
+	std::vector<glslHelperJob_t>().swap(s_glslHelperJobs);
+}
+
+// the wanted permutations of a family not cached yet, linked in rend2_glslc
+static void GLSL_PrepareLazy( ShaderProgramBuilder& builder, Allocator& allocator, int family, const uint8_t *wanted )
+{
+	if ( !r_shaderCompileProcesses->integer )
+		return;
+	const GLSL_PermutationFilter prepare = { wanted, false, true };
+	GLSL_LazyFamily(family).load(builder, allocator, prepare);
+}
+
 // builds the wanted permutations of a family that are not loaded yet
 static int GLSL_BuildLazy( int family, const uint8_t *wanted )
 {
@@ -5859,8 +6157,19 @@ static int GLSL_BuildLazy( int family, const uint8_t *wanted )
 	qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
 	Allocator allocator(512 * 1024);
 	ShaderProgramBuilder builder;
+	// a single program (GLSL_EnsureProgram) is compiled here
+	const lazyFamily_t& lazyFamily = GLSL_LazyFamily(family);
+	int numWanted = 0;
+	for ( int i = 0; i < lazyFamily.count && numWanted < 2; ++i )
+		numWanted += wanted[i] && !lazyFamily.programs[i].program;
+	if ( numWanted >= 2 )
+	{
+		GLSL_PrepareLazy(builder, allocator, family, wanted);
+		GLSL_RunHelpers();
+	}
 	const GLSL_PermutationFilter filter = { wanted, false };
-	const int built = GLSL_LazyFamily(family).load(builder, allocator, filter);
+	const int built = lazyFamily.load(builder, allocator, filter);
+	std::unordered_map<uint64_t, glslCacheEntry_t>().swap(s_glslPrebuilt);
 	qglUseProgram(previousProgram);
 	return built;
 }
@@ -6040,6 +6349,57 @@ static int GLSL_CountStartupPrograms()
 	return count;
 }
 
+// every startup loader; GLSL_LoadGPUShaders runs them for real and, before
+// that, as the dry run for rend2_glslc
+static void GLSL_RunStartupLoaders( ShaderProgramBuilder& builder, Allocator& allocator,
+	int& numGen, int& numLight, int& numEtc )
+{
+	numGen += GLSL_LoadGPUProgramGeneric(builder, allocator, GLSL_StartupFilter(LAZY_GENERIC));
+	numLight += GLSL_LoadGPUProgramLightAll(builder, allocator, GLSL_StartupFilter(LAZY_LIGHTALL));
+	numEtc += GLSL_LoadGPUProgramFogPass(builder, allocator, GLSL_StartupFilter(LAZY_FOG));
+	numEtc += GLSL_LoadGPUProgramVelocityPass(builder, allocator, GLSL_StartupFilter(LAZY_VELOCITY));
+	numEtc += GLSL_LoadGPUProgramPomSilhouette(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramRefraction(builder, allocator, GLSL_StartupFilter(LAZY_REFRACTION));
+	numEtc += GLSL_LoadGPUProgramWaterSurface(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramTextureColor(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramPShadow(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramVShadow(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramDownscale4x(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramBokeh(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramTonemap(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramCalcLuminanceLevel(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramHighPass(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramSSAO(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramScreenSpaceAO(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramRainLens(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramVolumetric(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramClouds(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramFoliageField(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramWeatherWetness(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramWeatherRipple(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramWaterInteractionField(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramForwardPlusCluster(allocator);
+	if (r_cubeMapping->integer)
+		numEtc += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
+	if (r_diffuseIBL->integer)
+		numEtc += GLSL_LoadGPUProgramDiffuseIrradiance(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramDepthBlur(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramGaussianBlur(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramDynamicGlowUpsample(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramDynamicGlowDownsample(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramBloomPrefilter(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramSurfaceSprites(builder, allocator, GLSL_StartupFilter(LAZY_SPRITES));
+	numEtc += GLSL_LoadGPUProgramWeather(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramWaterParticles(builder, allocator);
+	if (r_smaa->integer)
+		numEtc += GLSL_LoadGPUProgramSMAA(builder, allocator);
+
+}
+
 void GLSL_LoadGPUShaders()
 {
 	// liquid media (r_volumetricWater): fixed for the lifetime of these programs
@@ -6118,53 +6478,24 @@ void GLSL_LoadGPUShaders()
 	GLSL_DrawStartupProgress(0);
 	GLSL_CacheBegin();
 
+	// the programs not cached yet are linked in rend2_glslc first
+	if ( r_shaderCompileProcesses->integer && GLSL_HelperAvailable() )
+	{
+		const int dryRunStart = ri.Milliseconds();
+		s_glslDryRun = true;
+		int ignored[3] = {};
+		GLSL_RunStartupLoaders(builder, allocator, ignored[0], ignored[1], ignored[2]);
+		GLSL_DryRunEnd();
+		ri.Printf(PRINT_DEVELOPER, "GLSL: %d programs not cached (dry run %d ms)\n",
+			(int)s_glslHelperJobs.size(), ri.Milliseconds() - dryRunStart);
+		GLSL_RunHelpers();
+	}
+
 	int numGenShaders = 0;
 	int numLightShaders = 0;
 	int numEtcShaders = 0;
-	numGenShaders += GLSL_LoadGPUProgramGeneric(builder, allocator, GLSL_StartupFilter(LAZY_GENERIC));
-	numLightShaders += GLSL_LoadGPUProgramLightAll(builder, allocator, GLSL_StartupFilter(LAZY_LIGHTALL));
-	numEtcShaders += GLSL_LoadGPUProgramFogPass(builder, allocator, GLSL_StartupFilter(LAZY_FOG));
-	numEtcShaders += GLSL_LoadGPUProgramVelocityPass(builder, allocator, GLSL_StartupFilter(LAZY_VELOCITY));
-	numEtcShaders += GLSL_LoadGPUProgramPomSilhouette(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramRefraction(builder, allocator, GLSL_StartupFilter(LAZY_REFRACTION));
-	numEtcShaders += GLSL_LoadGPUProgramWaterSurface(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramTextureColor(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramPShadow(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramVShadow(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramDownscale4x(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramBokeh(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramTonemap(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramCalcLuminanceLevel(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramHighPass(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramSSAO(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramScreenSpaceAO(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramRainLens(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramVolumetric(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramClouds(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramFoliageField(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramWeatherWetness(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramWeatherRipple(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramWaterFoamField(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramWaterInteractionField(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramForwardPlusCluster(allocator);
-	if (r_cubeMapping->integer)
-		numEtcShaders += GLSL_LoadGPUProgramPrefilterEnvMap(builder, allocator);
-	if (r_diffuseIBL->integer)
-		numEtcShaders += GLSL_LoadGPUProgramDiffuseIrradiance(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramDepthBlur(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramGaussianBlur(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramDynamicGlowUpsample(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramDynamicGlowDownsample(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramBloomPrefilter(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramSurfaceSprites(builder, allocator, GLSL_StartupFilter(LAZY_SPRITES));
-	numEtcShaders += GLSL_LoadGPUProgramWeather(builder, allocator);
-	numEtcShaders += GLSL_LoadGPUProgramWaterParticles(builder, allocator);
-	if (r_smaa->integer)
-		numEtcShaders += GLSL_LoadGPUProgramSMAA(builder, allocator);
-
+	GLSL_RunStartupLoaders(builder, allocator, numGenShaders, numLightShaders, numEtcShaders);
+	std::unordered_map<uint64_t, glslCacheEntry_t>().swap(s_glslPrebuilt);
 	const int keysStart = ri.Milliseconds();
 	GLSL_LazyCollectKeys(builder, allocator);
 	const int keysTime = ri.Milliseconds() - keysStart;

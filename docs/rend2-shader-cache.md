@@ -39,7 +39,7 @@ Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
 | Part | Content |
 |---|---|
 | header | magic `R2GC`, format version, hash of GL_VENDOR / GL_RENDERER / GL_VERSION, generation, entry count |
-| entry | key, binary format, length, generation last used, binary |
+| entry | key, binary format, length, generation last used, uniform location count, uniform list hash, binary, uniform locations |
 
 - **Driver update:** GL_VERSION usually changes, so the whole file is rebuilt. A binary the driver rejects anyway
   is compiled again.
@@ -49,6 +49,12 @@ Code: `shared/rd-rend2/tr_glsl.cpp` (`GLSL_Cache*`, `ShaderProgramBuilder`).
   entries need their age refreshed. A start that loads everything from the cache writes nothing.
 - **Cleanup:** entries unused for 16 rewrites (sources or cvar combinations you no longer use) are dropped.
   `r_shaderProgramCacheMaxMB` (default 512) caps the size, evicting the least recently used entries first.
+
+- **Uniform locations** (format 2): every entry also holds the `glGetUniformLocation` result of each
+  `uniformsInfo` uniform. A program from a binary has the locations of the link that produced it, and querying
+  all 289 of them took longer than loading the binary (3.3 ms against 2.7 ms on Intel). They are used when the
+  hash of the uniform names matches and two of them (the first and the last active one) match the driver;
+  otherwise they are queried and the entry updated (`GLSL_ResolveUniformLocations`).
 
 ## Lazy permutations (`r_shaderProgramLazy`)
 
@@ -74,6 +80,34 @@ surface sprites; about 450 programs with all features on), and a level binds few
 that, `glslusage all` lists them) and how many were built on demand. With `developer 1` every on-demand build
 is logged with its time.
 
+## Helper processes (`r_shaderCompileProcesses`)
+
+The Intel Windows driver compiles one GLSL program at a time per process: several threads with shared contexts
+are slower than one, but separate processes compile in parallel (12 lightall permutations: 1 process 21.7 s,
+3 processes 9.3 s, 6 processes 6.5 s). So a batch of programs that are not in the cache, the startup programs
+and the lightall permutations of a level (`GLSL_EndRegistration`), is linked in `rend2_glslc` processes
+(`shared/rd-rend2/glslc`, `tr_glslhelper.cpp`):
+
+- the batch is first collected without linking anything. At startup every loader runs once as a dry run:
+  `ShaderProgramBuilder::Build` and `GLSL_InitComputeShader` turn an uncached program into a job and give the
+  loader a trivial linked program, so its uniform setup is harmless, and those programs are cleared again
+  (`GLSL_DryRunEnd`, about 40-60 ms on a cached start). A level batch runs the lightall loader in `prepare` mode.
+  A job is the key, the stage sources and the attribute / output / transform feedback bindings;
+- `rend2_glslc.exe`, next to the renderer DLL, is started up to `r_shaderCompileProcesses` times (default -1 =
+  half the CPU threads, at most 8). It opens a hidden window with the renderer's context version and reports
+  its GL_VENDOR / GL_RENDERER / GL_VERSION; a helper on another GPU or driver is not used for the rest of the
+  session. Longest sources go first. The helpers exit at the end of the batch;
+- the returned binaries become cache entries, and the normal pass loads them with `glProgramBinary`. A program a
+  helper could not link, or a binary the driver rejects, is compiled in the game as before, which reports the
+  error. A helper that does not answer for two minutes is stopped.
+
+Single programs built on demand are still compiled in the game process. Without `rend2_glslc.exe` (or with
+`r_shaderCompileProcesses 0`) everything is compiled in the game process. A batch takes at least as long as its
+longest program: at startup that is the froxel fog compute kernels.
+
+`rend2_glslc.exe` is built with the renderers (CMake target `rend2_glslc`, a dependency of both) and must be
+copied next to `rdsp-rend2_x86_64.dll` / `rd-rend2_x86_64.dll`; it uses the `SDL2.dll` there.
+
 ## Cvars
 
 | Cvar | Default | |
@@ -81,6 +115,7 @@ is logged with its time.
 | `r_shaderProgramCache` | 1 | 0 = compile everything as before, no file read or written. Latched. |
 | `r_shaderProgramCacheMaxMB` | 512 | size limit of the file |
 | `r_shaderProgramLazy` | 1 | 0 = build every permutation at startup, as before. Latched. |
+| `r_shaderCompileProcesses` | -1 | helper processes for batches of uncached programs; -1 = half the CPU threads (at most 8), 0 = none |
 
 The start-up console shows, after the existing `loaded N GLSL shaders ... in X seconds` line:
 
@@ -130,6 +165,12 @@ surface sprites 3 of 196. No spec-gloss or cloth lightall permutation was used.
 | level load, cached | - | 7 lightall programs from the cache in 69 ms |
 | `r_ssr 0` (latched) | every program compiled again | 3 of 74 startup programs compiled, the rest cached |
 | other resolution | every program compiled again | nothing compiled |
+
+With the uniform locations in the cache (format 2) the cached start went from 0.34 s to 0.18 s and the cached
+level batch from 69 ms to 40 ms. With `rend2_glslc` (6 helper processes), everything uncached (`glslcache`
+deleted, t2_trip): startup 15.2 s -> 10.3 s (bounded by the volumetric compute kernels), the level's 7 lightall
+programs 15.3 s -> 7.3 s (another run: 35.7 s -> 9.0 s; the laptop's timings vary with heat). The screenshots of
+both are the same.
 
 Most of the old cached start was not the driver: the stage source was assembled with `Q_strcat`, whose
 `strncpy` fills the rest of the (lightall sized) buffer with zeros on every call, tens of MB per stage

@@ -65,6 +65,9 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
 	"${SharedDir}/rd-rend2/tr_staticlighting.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
+	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
+	"${SharedDir}/rd-rend2/tr_glslhelper.h"
+	"${SharedDir}/rd-rend2/glslc/glslc_protocol.h"
 	"${SharedDir}/rd-rend2/tr_bsp.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.h"
@@ -192,6 +195,7 @@ list(APPEND SPRend2Libraries          ${MINIZIP_LIBRARIES})
 
 find_package(OpenGL REQUIRED)
 include("${CMAKE_SOURCE_DIR}/cmake/RendererSDL2.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/Rend2Glslc.cmake")
 set(SPRend2IncludeDirectories ${SPRend2IncludeDirectories} ${OPENGL_INCLUDE_DIR})
 set(SPRend2Libraries ${SPRend2Libraries} ${OPENGL_LIBRARIES})
 
@@ -243,6 +247,11 @@ function(add_sp_renderer_project ProjectName Label EngineName InstallDir Compone
 	target_link_libraries(${ProjectName} ${SPRend2Libraries})
 	target_link_renderer_sdl2(${ProjectName})
 	target_include_directories(${ProjectName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+	add_rend2_glslc(${InstallDir} ${Component})
+	if(TARGET rend2_glslc)
+		add_dependencies(${ProjectName} rend2_glslc)
+	endif()
 endfunction(add_sp_renderer_project)
 
 # Defines
