@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_weather.h"
 
 #include <string.h> // memcpy
+#include <vector>
 #ifndef REND2_SP
 #include "ghoul2/g2_local.h"
 #endif
@@ -2305,6 +2306,90 @@ void R_DebugGraphics( void ) {
 
 /*
 ================
+R_SkyPortalCollectOccluders
+
+r_skyPortalCull: the skyportal view is drawn (and executed) before the main
+view, which covers it wherever it has an opaque surface. Walk the world with
+the main view's parms, which R_GatherFrameViews already set up, and keep the
+surfaces the main pass draws opaque over every pixel they cover: world, opaque
+sort, no blend / alpha test / deform (DEPTHPREPASS_SIMPLE). The skyportal
+backend writes them at depth 0 before its own passes (RB_SkyPortalOccluders).
+================
+*/
+static std::vector<drawSurf_t> s_skyPortalOccluders;
+static viewParms_t s_skyPortalOccluderParms;
+static int s_numSkyPortalOccluders;
+
+static void R_SkyPortalCollectOccluders( void )
+{
+	s_numSkyPortalOccluders = 0;
+	if ( !r_skyPortalCull->integer || !tr.world ||
+		(tr.refdef.rdflags & RDF_NOWORLDMODEL) )
+		return;
+
+	const viewParms_t *mainParms = nullptr;
+	for ( int i = 0; i < tr.numCachedViewParms; i++ )
+	{
+		if ( tr.cachedViewParms[i].viewParmType == VPT_MAIN )
+			mainParms = &tr.cachedViewParms[i];
+	}
+	if ( !mainParms ||
+		mainParms->viewportX != tr.viewParms.viewportX ||
+		mainParms->viewportY != tr.viewParms.viewportY ||
+		mainParms->viewportWidth != tr.viewParms.viewportWidth ||
+		mainParms->viewportHeight != tr.viewParms.viewportHeight ||
+		mainParms->targetFbo != tr.viewParms.targetFbo )
+		return;
+
+	// appended after the skyportal's own surfaces, then taken out again (the
+	// list wraps at MAX_DRAWSURFS: keep clear of the skyportal's own entries)
+	const viewParms_t skyPortalParms = tr.viewParms;
+	const int firstSurf = tr.refdef.numDrawSurfs;
+	if ( firstSurf >= MAX_DRAWSURFS / 2 )
+		return;
+	tr.viewCount++;
+	tr.viewParms = *mainParms;
+	tr.viewParms.frameSceneNum = tr.frameSceneNum;
+	tr.viewParms.frameCount = tr.frameCount;
+	R_AddWorldSurfaces(&tr.viewParms, &tr.refdef);
+
+	const int numSurfs = Q_min(tr.refdef.numDrawSurfs, MAX_DRAWSURFS) - firstSurf;
+	if ( (int)s_skyPortalOccluders.size() < numSurfs )
+		s_skyPortalOccluders.resize(numSurfs);
+	for ( int i = 0; i < numSurfs; i++ )
+	{
+		const drawSurf_t *drawSurf = tr.refdef.drawSurfs + firstSurf + i;
+		shader_t *shader;
+		int cubemapIndex, postRender, entityNum;
+		R_DecomposeSort(drawSurf->sort, &entityNum, &shader, &cubemapIndex, &postRender);
+		if ( entityNum != REFENTITYNUM_WORLD ||
+			shader->sort != SS_OPAQUE ||
+			shader->depthPrepass != DEPTHPREPASS_SIMPLE ||
+			shader->useDistortion ||
+			(drawSurf->waterKey & WATERKEY_INTERFACE) ||
+			(*drawSurf->surface != SF_FACE && *drawSurf->surface != SF_GRID &&
+			 *drawSurf->surface != SF_TRIANGLES && *drawSurf->surface != SF_VBO_MESH) )
+			continue;
+		s_skyPortalOccluders[s_numSkyPortalOccluders++] = *drawSurf;
+	}
+	s_skyPortalOccluderParms = tr.viewParms;
+
+	tr.refdef.numDrawSurfs = firstSurf;
+	tr.viewCount++;
+	tr.viewParms = skyPortalParms;
+}
+
+int R_SkyPortalTakeOccluders( const drawSurf_t **drawSurfs, const viewParms_t **viewParms )
+{
+	const int numSurfs = s_numSkyPortalOccluders;
+	s_numSkyPortalOccluders = 0;
+	*drawSurfs = s_skyPortalOccluders.data();
+	*viewParms = &s_skyPortalOccluderParms;
+	return numSurfs;
+}
+
+/*
+================
 R_RenderView
 
 A view may be either the actual camera view,
@@ -2327,6 +2412,9 @@ void R_RenderView (viewParms_t *parms) {
 
 	R_GenerateDrawSurfs(&tr.viewParms, &tr.refdef);
 
+	if (tr.viewParms.viewParmType == VPT_SKYPORTAL)
+		R_SkyPortalCollectOccluders();
+
 	R_SortAndSubmitDrawSurfs( tr.refdef.drawSurfs + tr.refdef.fistDrawSurf, tr.refdef.numDrawSurfs - tr.refdef.fistDrawSurf);
 
 	// draw main system development information (surface outlines, etc)
@@ -2345,7 +2433,29 @@ gets the masked subset in sort order as its own draw command, so the backend
 renders each face exactly as a separate view would.
 ================
 */
-void R_RenderCubeShadowView( const viewParms_t *faces )
+// r_shadowLayered: surfaces drawn through the generic / lightall stage
+// programs (which can write gl_Layer). The others build their own draw items.
+static bool R_ShadowCubeLayerableSurface( surfaceType_t type )
+{
+	switch ( type )
+	{
+	case SF_FACE:
+	case SF_GRID:
+	case SF_TRIANGLES:
+	case SF_POLY:
+	case SF_MDV:
+	case SF_MDR:
+	case SF_IQM:
+	case SF_MDX:
+	case SF_VBO_MESH:
+	case SF_VBO_MDVMESH:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool R_RenderCubeShadowView( const viewParms_t *faces, bool allowLayered, int faceSurfsOut[6] )
 {
 	shadowCube_t *cube = &tr.shadowCube;
 	VectorCopy(faces[0].ori.origin, cube->origin);
@@ -2390,6 +2500,47 @@ void R_RenderCubeShadowView( const viewParms_t *faces )
 			total += faceSurfs[f];
 	}
 
+	if (faceSurfsOut)
+		Com_Memcpy(faceSurfsOut, faceSurfs, sizeof(faceSurfs));
+
+	// r_shadowLayered: one command, every surface once, drawn into each face
+	// of its mask by the layered FBO of the cube slot
+	int slot = -1;
+	if (allowLayered && r_shadowLayered->integer && numSurfs > 0 && numSurfs <= MAX_DRAWSURFS)
+	{
+		for (int i = 0; i < MAX_DLIGHTS; i++)
+		{
+			if (tr.shadowCubeFbo[i * 6] == faces[0].targetFbo)
+			{
+				slot = i;
+				break;
+			}
+		}
+		if (slot >= 0 && !tr.shadowCubeLayerFbo[slot])
+			slot = -1;
+		for (int i = 0; i < numSurfs && slot >= 0; i++)
+		{
+			if (!R_ShadowCubeLayerableSurface(*tr.refdef.drawSurfs[first + i].surface))
+				slot = -1;
+		}
+	}
+	if (slot >= 0)
+	{
+		// the same products as the camera blocks of the faces (RB_UpdateCameraConstants)
+		for (int f = 0; f < 6; f++)
+			Matrix16Multiply(faces[f].projectionMatrix, faces[f].world.modelViewMatrix,
+				tr.shadowCubeLayerViewProj[slot][f]);
+
+		tr.viewParms = faces[0];
+		tr.viewParms.flags |= VPF_CUBELAYERED;
+		tr.viewParms.targetFbo = tr.shadowCubeLayerFbo[slot];
+		tr.viewParms.targetFboLayer = slot;
+		tr.viewParms.frameSceneNum = tr.frameSceneNum;
+		tr.viewParms.frameCount = tr.frameCount;
+		R_AddDrawSurfCmd(tr.refdef.drawSurfs + first, numSurfs);
+		return true;
+	}
+
 	if (first + total > MAX_DRAWSURFS)
 	{
 		// the per face copies would wrap: render the faces one by one
@@ -2398,7 +2549,7 @@ void R_RenderCubeShadowView( const viewParms_t *faces )
 			tr.refdef.numDrawSurfs = 0;
 			R_RenderView(const_cast<viewParms_t *>(&faces[f]));
 		}
-		return;
+		return false;
 	}
 
 	for (int f = 0; f < 6; f++)
@@ -2423,6 +2574,7 @@ void R_RenderCubeShadowView( const viewParms_t *faces )
 		tr.viewParms.frameCount = tr.frameCount;
 		R_AddDrawSurfCmd(tr.refdef.drawSurfs + start, faceSurfs[f]);
 	}
+	return false;
 }
 
 void R_RenderDlightCubemaps(const refdef_t *fd)

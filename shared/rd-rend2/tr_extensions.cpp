@@ -256,6 +256,7 @@ PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
 
 // Optional OpenGL 4.3 entry points
 PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
+PFNGLTEXTUREVIEWPROC qglTextureView;
 PFNGLDISPATCHCOMPUTEINDIRECTPROC qglDispatchComputeIndirect;
 PFNGLMEMORYBARRIERPROC qglMemoryBarrier;
 PFNGLBINDIMAGETEXTUREPROC qglBindImageTexture;
@@ -783,6 +784,29 @@ void R_PrintModernCapabilities()
 		(glRefConfig.modernFeatures & MODERN_SSBO) ? "supported" : "unavailable",
 		(glRefConfig.modernFeatures & MODERN_IMAGE_LOAD_STORE) ? "supported" : "unavailable",
 		r_gl43->integer);
+	ri.Printf(PRINT_ALL, "...vertex shader layer: %s\n",
+		(glRefConfig.modernFeatures & MODERN_VS_LAYER) ? glRefConfig.vsLayerExtension : "unavailable");
+}
+
+// MODERN_VS_LAYER: a #version 150 vertex shader that writes gl_Layer
+static bool GLimp_CompilesVertexLayer( const char *extension )
+{
+	const char *source = va(
+		"#version 150 core\n"
+		"#extension %s : enable\n"
+		"in vec3 attr_Position;\n"
+		"uniform vec4 u_CubeLayer;\n"
+		"void main() { gl_Layer = int(u_CubeLayer.y); gl_Position = vec4(attr_Position, 1.0); }\n",
+		extension);
+	GLuint shader = qglCreateShader(GL_VERTEX_SHADER);
+	if ( !shader )
+		return false;
+	qglShaderSource(shader, 1, &source, nullptr);
+	qglCompileShader(shader);
+	GLint compiled = GL_FALSE;
+	qglGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	qglDeleteShader(shader);
+	return compiled == GL_TRUE;
 }
 
 void GLimp_InitModernFunctions()
@@ -798,6 +822,8 @@ void GLimp_InitModernFunctions()
 	qglShaderStorageBlockBinding = nullptr;
 	qglGetProgramResourceIndex = nullptr;
 	qglGetProgramResourceiv = nullptr;
+	qglTextureView = nullptr;
+	glRefConfig.vsLayerExtension = nullptr;
 	glRefConfig.modernFeatures = 0;
 	glRefConfig.modernPaths = qfalse;
 	Com_Memset(glRefConfig.maxComputeWorkGroupCount, 0, sizeof(glRefConfig.maxComputeWorkGroupCount));
@@ -853,6 +879,19 @@ void GLimp_InitModernFunctions()
 			qglGetIntegerv(GL_MAX_IMAGE_UNITS, &glRefConfig.maxImageUnits);
 			qglGetIntegerv(GL_MAX_COMPUTE_IMAGE_UNIFORMS, &glRefConfig.maxComputeImageUniforms);
 			glRefConfig.modernFeatures |= MODERN_IMAGE_LOAD_STORE;
+		}
+		// r_shadowLayered: the generic / lightall vertex shaders (#version 150)
+		// write gl_Layer. Only enable it when such a shader really compiles,
+		// a failing lightall compile is fatal.
+		const char *layerExtension =
+			GLimp_HaveExtension("GL_AMD_vertex_shader_layer") ? "GL_AMD_vertex_shader_layer" :
+			GLimp_HaveExtension("GL_ARB_shader_viewport_layer_array") ? "GL_ARB_shader_viewport_layer_array" :
+			nullptr;
+		if ( layerExtension && GetGLFunction(qglTextureView, "glTextureView", qfalse) &&
+			GLimp_CompilesVertexLayer(layerExtension) )
+		{
+			glRefConfig.vsLayerExtension = layerExtension;
+			glRefConfig.modernFeatures |= MODERN_VS_LAYER;
 		}
 		glRefConfig.modernPaths = (qboolean)(r_gl43->integer && glRefConfig.modernFeatures != 0);
 	}

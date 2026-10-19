@@ -498,6 +498,9 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFoamIntersectionMap",	GLSL_INT, 1 },
 	{ "u_WaterFoamIntersectionParams",	GLSL_VEC4, 1 },
 	{ "u_FPlusCluster",			GLSL_VEC4, 8 },
+
+	{ "u_CubeFaceViewProj",		GLSL_MAT4x4, 6 },
+	{ "u_CubeLayer",			GLSL_VEC4, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -832,6 +835,14 @@ static size_t GLSL_GetShaderHeader(
 	// latched, r_cloudShadows switches it per frame), tr_clouds.cpp
 	if (R_CloudsEnabled() && R_CloudShadowsAvailable())
 		GLSL_HeaderCat(dest, size, "#define USE_CLOUD_SHADOWS\n");
+
+	// r_shadowLayered: generic / lightall vertex shaders write gl_Layer. The
+	// directive has to precede the shader code (the library comes after it).
+	if (extra && shaderType == GL_VERTEX_SHADER && glRefConfig.vsLayerExtension &&
+		strstr(extra, "#define USE_VS_LAYER\n"))
+	{
+		GLSL_HeaderCat(dest, size, va("#extension %s : enable\n", glRefConfig.vsLayerExtension));
+	}
 
 	if (extra)
 	{
@@ -3243,6 +3254,8 @@ static int GLSL_LoadGPUProgramGeneric(
 		uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_NORMAL | ATTR_COLOR;
 		Q_strncpyz(name, "generic\0", nameLen + 1);
 		extradefines[0] = '\0';
+		if (R_HasModernFeatures(MODERN_VS_LAYER))
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_VS_LAYER\n");
 
 		if (i & GENERICDEF_USE_DEFORM_VERTEXES)
 		{
@@ -3904,6 +3917,8 @@ static int GLSL_LoadGPUProgramLightAll(
 
 		Q_strncpyz(name, "lightall\0", nameLen + 1);
 		extradefines[0] = '\0';
+		if (R_HasModernFeatures(MODERN_VS_LAYER))
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_VS_LAYER\n");
 
 		if (r_hdr->integer && !glRefConfig.floatLightmap)
 			Q_strcat(extradefines, sizeof(extradefines), "#define RGBM_LIGHTMAP\n");

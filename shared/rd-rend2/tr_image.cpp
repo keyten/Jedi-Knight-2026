@@ -3252,7 +3252,7 @@ image_t *R_Create2DImageArray(const char *name, byte *pic, int width, int height
 	GL_SelectTexture(0);
 	GL_Bind(image);
 	if (ShouldUseImmutableTextures(image->flags, internalFormat))
-		qglTexStorage3D(GL_TEXTURE_2D_ARRAY, 0, internalFormat, width, height, layers);
+		qglTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, internalFormat, width, height, layers);
 	else
 		qglTexImage3D(GL_TEXTURE_2D_ARRAY, 0, internalFormat, width, height, layers, 0, format, GL_UNSIGNED_BYTE, NULL);
 
@@ -4959,6 +4959,9 @@ void R_CreateBuiltinImages( void ) {
 
 	if (r_dlightMode->integer >= 2)
 	{
+		// r_shadowLayered views 6 layers per cube slot (glTextureView), which
+		// needs immutable storage
+		const int layeredFlags = R_HasModernFeatures(MODERN_VS_LAYER) ? 0 : IMGFLAG_MUTABLE;
 		tr.pointShadowArrayImage = R_Create2DImageArray(
 			va("*pointshadowmapImage"),
 			NULL,
@@ -4966,7 +4969,7 @@ void R_CreateBuiltinImages( void ) {
 			DSHADOW_MAP_SIZE,
 			MAX_DLIGHTS*6,
 			IMGTYPE_COLORALPHA,
-			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGLFAG_SHADOWCOMP | IMGFLAG_MUTABLE,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGLFAG_SHADOWCOMP | layeredFlags,
 			GL_DEPTH_COMPONENT16);
 	}
 

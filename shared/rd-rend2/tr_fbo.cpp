@@ -707,6 +707,30 @@ void FBO_Init(void)
 			qglReadBuffer(GL_NONE);
 			R_CheckFBO(tr.shadowCubeFbo[i]);
 		}
+
+		// r_shadowLayered: per cube slot a layered FBO on a view of its 6
+		// layers, so one glClear and one bind serve the whole cube
+		GLint immutable = GL_FALSE;
+		if (R_HasModernFeatures(MODERN_VS_LAYER))
+		{
+			GL_Bind(tr.pointShadowArrayImage);
+			qglGetTexParameteriv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_IMMUTABLE_FORMAT, &immutable);
+		}
+		if (immutable && tr.numFBOs + MAX_DLIGHTS <= MAX_FBOS)
+		{
+			for (i = 0; i < MAX_DLIGHTS; i++)
+			{
+				qglGenTextures(1, &tr.shadowCubeViewTex[i]);
+				qglTextureView(tr.shadowCubeViewTex[i], GL_TEXTURE_2D_ARRAY, tr.pointShadowArrayImage->texnum,
+					tr.pointShadowArrayImage->internalFormat, 0, 1, i * 6, 6);
+				tr.shadowCubeLayerFbo[i] = FBO_Create(va("_shadowCubeLayerFbo_%i", i), DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE);
+				FBO_Bind(tr.shadowCubeLayerFbo[i]);
+				qglFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tr.shadowCubeViewTex[i], 0);
+				qglDrawBuffer(GL_NONE);
+				qglReadBuffer(GL_NONE);
+				R_CheckFBO(tr.shadowCubeLayerFbo[i]);
+			}
+		}
 	}
 	if (tr.ltcShadowArrayImage)
 	{
@@ -945,6 +969,14 @@ void FBO_Shutdown(void)
 
 		if(fbo->frameBuffer)
 			qglDeleteFramebuffers(1, &fbo->frameBuffer);
+	}
+
+	for (i = 0; i < MAX_DLIGHTS; i++)
+	{
+		if (tr.shadowCubeViewTex[i])
+			qglDeleteTextures(1, &tr.shadowCubeViewTex[i]);
+		tr.shadowCubeViewTex[i] = 0;
+		tr.shadowCubeLayerFbo[i] = nullptr;
 	}
 }
 

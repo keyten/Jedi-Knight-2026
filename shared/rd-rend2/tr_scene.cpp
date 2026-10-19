@@ -65,6 +65,7 @@ void R_ShadowStatsEndFrame( void )
 	if ( !r_shadowStats->integer )
 	{
 		Com_Memset(&shadowStats, 0, sizeof(shadowStats));
+		Com_Memset(&rb_shadowSubmitProfile, 0, sizeof(rb_shadowSubmitProfile));
 		return;
 	}
 
@@ -97,6 +98,25 @@ void R_ShadowStatsEndFrame( void )
 	}
 	ri.Printf(PRINT_ALL, "  shadow total front %.3f ms, submit %.3f ms; gather %.3f ms\n",
 		shadowFront * perFrame * 0.001, shadowSubmit * perFrame * 0.001, shadowStats.gatherUs * perFrame * 0.001);
+
+	// backend phases of the point light cube face draw commands
+	shadowSubmitProfile_t &prof = rb_shadowSubmitProfile;
+	if ( prof.commands )
+	{
+		static const char *phaseNames[SHADOWPROF_PHASES] = {
+			"pre", "beginView", "clouds", "record", "execute", "depthRest", "mainPass",
+			"bv.bind", "bv.clear", "bv.hooks" };
+		const double perCmd = 1.0 / prof.commands;
+		ri.Printf(PRINT_ALL, "  cube draw cmds %.1f/frame, RB_DrawSurfs %.3f ms/frame = %.1f us/cmd; per cmd: "
+			"%.1f surfs, %.1f items, %.1f binds\n",
+			prof.commands * perFrame, prof.totalUs * perFrame * 0.001, prof.totalUs * perCmd,
+			prof.surfaces * perCmd, prof.drawItems * perCmd, prof.programBinds * perCmd);
+		char line[512] = "   us/cmd:";
+		for ( int p = 0; p < SHADOWPROF_PHASES; p++ )
+			Q_strcat(line, sizeof(line), va(" %s %.1f", phaseNames[p], prof.us[p] * perCmd));
+		ri.Printf(PRINT_ALL, "%s\n", line);
+	}
+	Com_Memset(&prof, 0, sizeof(prof));
 
 	Com_Memset(&shadowStats, 0, sizeof(shadowStats));
 	shadowStats.lastPrintTime = now;
@@ -854,23 +874,47 @@ static void R_ShadowCubeVerify( const viewParms_t *faces, int cubeIndex )
 {
 	std::vector<float> separate, single;
 
-	for ( int f = 0; f < 6; f++ )
+	// r_shadowLayered: the reference is the single pass with per face
+	// commands, else the 6 separate face views
+	const bool layered = r_shadowLayered->integer != 0;
+	int faceSurfs[6] = { 1, 1, 1, 1, 1, 1 };
+	if ( layered )
 	{
 		tr.refdef.numDrawSurfs = 0;
-		R_RenderView(const_cast<viewParms_t *>(&faces[f]));
+		R_RenderCubeShadowView(faces, false, faceSurfs);
 		R_IssuePendingRenderCommands();
+	}
+	else
+	{
+		for ( int f = 0; f < 6; f++ )
+		{
+			tr.refdef.numDrawSurfs = 0;
+			R_RenderView(const_cast<viewParms_t *>(&faces[f]));
+			R_IssuePendingRenderCommands();
+		}
 	}
 	R_ShadowCubeReadFaces(faces, separate);
 
 	tr.refdef.numDrawSurfs = 0;
-	R_RenderCubeShadowView(faces);
+	backEnd.cubeLayerUnsupported = 0;
+	const bool layeredUsed = R_RenderCubeShadowView(faces, layered);
 	R_IssuePendingRenderCommands();
 	R_ShadowCubeReadFaces(faces, single);
+	if ( layered )
+		ri.Printf(PRINT_ALL, "shadowVerify cube %d: layered %s, %d items without layer output\n", cubeIndex,
+			layeredUsed ? "used" : "NOT used (fallback)", backEnd.cubeLayerUnsupported);
 
 	const int texels = DSHADOW_MAP_SIZE * DSHADOW_MAP_SIZE;
 	int totalDiff = 0;
 	for ( int f = 0; f < 6; f++ )
 	{
+		// a face without surfaces gets no command in the single pass (stale
+		// content), the layered draw clears it
+		if ( !faceSurfs[f] )
+		{
+			ri.Printf(PRINT_ALL, "shadowVerify cube %d face %d: no surfaces, not compared\n", cubeIndex, f);
+			continue;
+		}
 		int diff = 0, covered = 0;
 		float maxDiff = 0.0f;
 		for ( int t = 0; t < texels; t++ )
@@ -1027,7 +1071,7 @@ void RE_RenderScene( const refdef_t *fd )
 			std::chrono::steady_clock::time_point frontStart;
 			if ( r_shadowStats->integer )
 				frontStart = std::chrono::steady_clock::now();
-			R_RenderCubeShadowView(&tr.cachedViewParms[i]);
+			R_RenderCubeShadowView(&tr.cachedViewParms[i], true);
 			if ( r_shadowStats->integer )
 			{
 				const double frontUs = R_ShadowStatsUs(frontStart);
@@ -1069,7 +1113,8 @@ void RE_RenderScene( const refdef_t *fd )
 
 	if ( r_shadowVerify->integer && !(fd->rdflags & RDF_NOWORLDMODEL) )
 	{
-		ri.Printf(PRINT_ALL, "shadowVerify: %d point light cubes compared%s\n", verifiedCubes,
+		ri.Printf(PRINT_ALL, "shadowVerify: %d point light cubes compared (%s)%s\n", verifiedCubes,
+			r_shadowLayered->integer ? "single pass vs layered" : "separate faces vs single pass",
 			r_shadowSinglePass->integer ? "" : " (needs r_shadowSinglePass 1)");
 		ri.Cvar_Set("r_shadowVerify", "0");
 	}

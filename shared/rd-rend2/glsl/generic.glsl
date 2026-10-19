@@ -31,6 +31,12 @@ layout(std140) uniform Scene
 	float u_deltaTime;
 };
 
+#if defined(USE_VS_LAYER)
+// r_shadowLayered: x 1 = layered point light cube draw, y = face
+uniform vec4 u_CubeLayer;
+uniform mat4 u_CubeFaceViewProj[6];
+#endif
+
 layout(std140) uniform Camera
 {
 	mat4 u_viewProjectionMatrix;
@@ -475,6 +481,16 @@ void main()
 		wsPosition.xyz = PlantSkinPosition(wsPosition.xyz, false, plantRotation);
 	}
 
+#if defined(USE_VS_LAYER)
+	// r_shadowLayered: one draw per point light cube face, into its layer
+	if (u_CubeLayer.x > 0.5)
+	{
+		int face = int(u_CubeLayer.y);
+		gl_Layer = face;
+		gl_Position = u_CubeFaceViewProj[face] * wsPosition;
+	}
+	else
+#endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
 #if defined(USE_TCGEN)

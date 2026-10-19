@@ -34,6 +34,12 @@ in vec3 attr_LightDirection;
 in vec3 attr_Position2;	// silhouette POM shell data, see pom_silhouette.glsl
 #endif
 
+#if defined(USE_VS_LAYER)
+// r_shadowLayered: x 1 = layered point light cube draw, y = face
+uniform vec4 u_CubeLayer;
+uniform mat4 u_CubeFaceViewProj[6];
+#endif
+
 layout(std140) uniform Camera
 {
 	mat4 u_viewProjectionMatrix;
@@ -321,6 +327,16 @@ void main()
 
 	vec4 disintegration = CalcColor(position);
 
+#if defined(USE_VS_LAYER)
+	// r_shadowLayered: one draw per point light cube face, into its layer
+	if (u_CubeLayer.x > 0.5)
+	{
+		int face = int(u_CubeLayer.y);
+		gl_Layer = face;
+		gl_Position = u_CubeFaceViewProj[face] * wsPosition;
+	}
+	else
+#endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
 	position  = wsPosition.xyz;

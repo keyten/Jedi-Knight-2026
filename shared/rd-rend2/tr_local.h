@@ -768,6 +768,8 @@ extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
 extern cvar_t  *r_shadowStats;
 extern cvar_t  *r_shadowSinglePass;
+extern cvar_t  *r_skyPortalCull;
+extern cvar_t  *r_shadowLayered;
 extern cvar_t  *r_shadowVerify;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
@@ -2977,6 +2979,9 @@ typedef enum
 	UNIFORM_WATERFOAMINTERSECTIONPARAMS,	// foam update: r_waterFoamIntersection scale (0 = no map)
 	UNIFORM_FPLUSCLUSTER,		// vec4[8] GL 4.3 Forward+ cluster build, see fplus_cluster.glsl
 
+	UNIFORM_CUBEFACEVIEWPROJ,	// mat4[6] r_shadowLayered: view projection of each point light cube face
+	UNIFORM_CUBELAYER,			// r_shadowLayered: x 1 = layered cube draw, y = face (gl_Layer)
+
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -3166,6 +3171,8 @@ enum viewParmFlag_t {
 	VPF_LTC_SABER_SHADOW = 0x2000,
 	VPF_POINTCUBE		= 0x4000, // One of the 6 consecutive cube face views of a point light shadow
 	VPF_CUBESHADOW		= 0x8000, // Front end only: one walk for all 6 faces (r_shadowSinglePass)
+	VPF_CUBELAYERED		= 0x10000, // All 6 faces of a cube in one layered draw command (r_shadowLayered),
+								   // targetFboLayer = cube slot
 };
 using viewParmFlags_t = uint32_t;
 
@@ -4130,13 +4137,18 @@ typedef struct {
 	qboolean floatLightmap;
 
 	qboolean annotateResources;
+
+	const char *vsLayerExtension;	// MODERN_VS_LAYER: the extension the vertex shaders enable
 } glRefConfig_t;
 
 enum modernFeature_t
 {
 	MODERN_COMPUTE = 1u << 0,
 	MODERN_SSBO = 1u << 1,
-	MODERN_IMAGE_LOAD_STORE = 1u << 2
+	MODERN_IMAGE_LOAD_STORE = 1u << 2,
+	// gl_Layer from the vertex shader (GL_AMD_vertex_shader_layer or
+	// GL_ARB_shader_viewport_layer_array) + texture views: r_shadowLayered
+	MODERN_VS_LAYER = 1u << 3
 };
 
 qboolean R_HasModernFeatures(uint32_t requiredFeatures);
@@ -4219,6 +4231,7 @@ typedef struct {
 	qboolean    colorMask[4];
 	qboolean    framePostProcessed;
 	qboolean    depthFill;
+	qboolean    skyPortalOccluders; // GL_DepthRange forced to 0 (RB_SkyPortalOccluders)
 	qboolean    refractionFill;
 	image_t    *screenAoImage;	// AO / contact shadow map lightall samples in this view (TB_SSAOMAP)
 	qboolean    ssrView;		// this view gets SSR, see RB_ScreenSpaceBeginView
@@ -4236,6 +4249,10 @@ typedef struct {
 	qboolean    waterSurfaceSSR;	// ... and traces its reflections in the SSR inputs of the view
 	qboolean    waterItemTag;		// draw items being added belong to a water surface
 	qboolean    waterLegacyClipTag;	// draw items being added are legacy water stages of the split view
+	qboolean    cubeLayerView;		// r_shadowLayered: this view draws a whole point light cube
+	uint8_t     cubeLayerMask;		// ... faces of the draw items being added
+	const float *cubeLayerViewProj;	// ... 6 face view projections (tr.shadowCubeLayerViewProj)
+	int         cubeLayerUnsupported;	// ... items dropped: their program has no layer output
 } backEndState_t;
 
 /*
@@ -4419,6 +4436,11 @@ typedef struct trGlobals_s {
 	FBO_t					*depthFbo;
 	FBO_t					*pshadowFbos[MAX_DRAWN_PSHADOWS];
 	FBO_t					*shadowCubeFbo[MAX_DLIGHTS*6];
+	// r_shadowLayered: per cube slot, a layered FBO on a view of its 6 layers
+	// of pointShadowArrayImage, and the face view projections of this scene
+	FBO_t					*shadowCubeLayerFbo[MAX_DLIGHTS];
+	GLuint					shadowCubeViewTex[MAX_DLIGHTS];
+	float					shadowCubeLayerViewProj[MAX_DLIGHTS][6][16];
 	FBO_t					*textureScratchFbo[2];
 	FBO_t                   *quarterFbo[2];
 	FBO_t					*calcLevelsFbo;
@@ -4996,6 +5018,9 @@ void R_SortAndSubmitDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs );
 void R_SwapBuffers( int );
 
 void R_RenderView( viewParms_t *parms );
+// r_skyPortalCull: opaque world surfaces of the main view, collected with the
+// skyportal view for its backend (tr_main.cpp)
+int R_SkyPortalTakeOccluders( const drawSurf_t **drawSurfs, const viewParms_t **viewParms );
 void R_RenderDlightCubemaps(const refdef_t *fd);
 void R_SetupPshadowMaps(const refdef_t *fd);
 void R_RenderCubemapSide( int cubemapIndex, int cubemapSide, bool bounce);
@@ -5032,7 +5057,33 @@ int R_CullPointAndRadiusEx( const vec3_t origin, float radius, const cplane_t* f
 int R_CullPointAndRadius( const vec3_t origin, float radius );
 uint8_t R_ShadowCubeBoundsMask( const vec3_t mins, const vec3_t maxs );
 qboolean R_ShadowCubeOverlaps( const vec3_t mins, const vec3_t maxs );
-void R_RenderCubeShadowView( const viewParms_t *faces );
+bool R_RenderCubeShadowView( const viewParms_t *faces, bool allowLayered, int faceSurfs[6] = nullptr );
+
+// r_shadowStats: backend CPU time of the draw commands of point light cube
+// faces (VPF_POINTCUBE), split by phase of RB_DrawSurfs
+enum {
+	SHADOWPROF_PRE,			// water coverage, weather ripple / wetness updates
+	SHADOWPROF_BEGINVIEW,	// RB_BeginDrawingView: FBO bind, clear, per view begin hooks
+	SHADOWPROF_CLOUDS,		// RB_CloudsBeginView
+	SHADOWPROF_RECORD,		// RB_RenderDrawSurfList up to the pass: surfaces -> draw items
+	SHADOWPROF_EXECUTE,		// RB_SubmitRenderPass: sort draw items, GL state, draws
+	SHADOWPROF_DEPTHREST,	// rest of RB_RenderAllDepthRelatedPasses
+	SHADOWPROF_MAINPASS,	// RB_RenderMainPass (returns at once for shadows)
+	// parts of SHADOWPROF_BEGINVIEW
+	SHADOWPROF_BV_BIND,		// FBO_Bind, viewport / scissor, GL_State
+	SHADOWPROF_BV_CLEAR,	// glClear of the face
+	SHADOWPROF_BV_HOOKS,	// screen space / water / volumetric begin view hooks
+	SHADOWPROF_PHASES
+};
+struct shadowSubmitProfile_t {
+	double us[SHADOWPROF_PHASES];
+	double totalUs;			// whole RB_DrawSurfs
+	int commands;
+	int surfaces;
+	int drawItems;
+	int programBinds;
+};
+extern shadowSubmitProfile_t rb_shadowSubmitProfile;
 int R_CullLocalPointAndRadius( const vec3_t origin, float radius );
 
 void R_SetupProjection(viewParms_t *dest, float zProj, float zFar, qboolean computeFrustum);
@@ -7044,6 +7095,10 @@ struct DrawItem
 	UniformData *uniformData;
 
 	DrawCommand draw;
+
+	// r_shadowLayered: the item is drawn once per set bit, into that cube face
+	// (gl_Layer, u_CubeFaceViewProj). 0 = an ordinary draw.
+	uint8_t cubeFaceMask;
 };
 
 void DrawItemSetSamplerBindings(

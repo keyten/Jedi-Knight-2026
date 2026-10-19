@@ -23,6 +23,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_allocator.h"
 #include "glext.h"
 #include <algorithm>
+#include <chrono>
+
+// r_shadowStats: backend phases of point light cube face commands
+shadowSubmitProfile_t rb_shadowSubmitProfile;
+static bool rb_shadowProfileActive;
+
+static double RB_ShadowProfileUs( std::chrono::steady_clock::time_point start )
+{
+	return std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start).count();
+}
 
 backEndData_t	*backEndData;
 backEndState_t	backEnd;
@@ -153,6 +163,10 @@ void GL_Cull( int cullType ) {
 
 void GL_DepthRange( float min, float max )
 {
+	// RB_SkyPortalOccluders: every occluder fragment lands on the near plane
+	if ( backEnd.skyPortalOccluders )
+		min = max = 0.0f;
+
 	if ( glState.minDepth == min && glState.maxDepth == max )
 	{
 		return;
@@ -566,6 +580,14 @@ to actually render the visible surfaces for this view
 */
 void RB_BeginDrawingView (void) {
 	int clearBits = 0;
+	auto profT = rb_shadowProfileActive ?
+		std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
+	auto profPhase = [&]( int phase ) {
+		if ( !rb_shadowProfileActive )
+			return;
+		rb_shadowSubmitProfile.us[phase] += RB_ShadowProfileUs(profT);
+		profT = std::chrono::steady_clock::now();
+	};
 
 	// we will need to change the projection matrix before drawing
 	// 2D images again
@@ -592,6 +614,7 @@ void RB_BeginDrawingView (void) {
 
 	// ensures that depth writes are enabled for the depth clear
 	GL_State( GLS_DEFAULT );
+	profPhase(SHADOWPROF_BV_BIND);
 	// clear relevant buffers
 	clearBits = GL_DEPTH_BUFFER_BIT;
 
@@ -642,6 +665,7 @@ void RB_BeginDrawingView (void) {
 		// Clear the glow target
 		qglClearBufferfv (GL_COLOR, 1, colorBlack);
 	}
+	profPhase(SHADOWPROF_BV_CLEAR);
 
 	// screen-space reflections / GI of this view: clears their attachments
 	RB_ScreenSpaceBeginView();
@@ -655,6 +679,7 @@ void RB_BeginDrawingView (void) {
 	// volumetric clouds (tr_clouds.cpp)
 	backEnd.cloudsComposited = qfalse;
 	backEnd.cloudSunDrawn = qfalse;
+	profPhase(SHADOWPROF_BV_HOOKS);
 
 	if ( ( backEnd.refdef.rdflags & RDF_HYPERSPACE ) )
 	{
@@ -1131,6 +1156,48 @@ static void RB_BindTransformFeedbackBuffer(const bufferBinding_t& binding)
 	}
 }
 
+static void RB_ExecuteDrawCommand(const DrawCommand& draw)
+{
+	switch ( draw.type )
+	{
+		case DRAW_COMMAND_MULTI_INDEXED:
+		{
+			GL_MultiDrawIndexed(draw.primitiveType,
+				draw.params.multiIndexed.numIndices,
+				draw.params.multiIndexed.firstIndices,
+				draw.params.multiIndexed.numDraws);
+			break;
+		}
+
+		case DRAW_COMMAND_INDEXED:
+		{
+			GL_DrawIndexed(draw.primitiveType,
+				draw.params.indexed.numIndices,
+				draw.params.indexed.indexType,
+				draw.params.indexed.firstIndex,
+				draw.numInstances,
+				draw.params.indexed.baseVertex);
+			break;
+		}
+
+		case DRAW_COMMAND_ARRAYS:
+		{
+			GL_Draw(
+				draw.primitiveType,
+				draw.params.arrays.firstVertex,
+				draw.params.arrays.numVertices,
+				draw.numInstances);
+			break;
+		}
+
+		default:
+		{
+			assert(!"Invalid or unhandled draw type");
+			break;
+		}
+	}
+}
+
 static void RB_DrawItems(
 	int numDrawItems,
 	const DrawItem *drawItems,
@@ -1194,43 +1261,25 @@ static void RB_DrawItems(
 		if (drawItem.renderState.waterLegacyClip)
 			RB_WaterSurfaceLegacyScissor(qtrue);
 
-		switch ( drawItem.draw.type )
+		if (drawItem.cubeFaceMask)
 		{
-			case DRAW_COMMAND_MULTI_INDEXED:
+			// r_shadowLayered: the item once per cube face it covers
+			GLSL_SetUniformMatrix4x4(drawItem.program, UNIFORM_CUBEFACEVIEWPROJ,
+				backEnd.cubeLayerViewProj, 6);
+			for (int face = 0; face < 6; ++face)
 			{
-				GL_MultiDrawIndexed(drawItem.draw.primitiveType,
-					drawItem.draw.params.multiIndexed.numIndices,
-					drawItem.draw.params.multiIndexed.firstIndices,
-					drawItem.draw.params.multiIndexed.numDraws);
-				break;
+				if (!(drawItem.cubeFaceMask & (1 << face)))
+					continue;
+				const vec4_t cubeLayer = { 1.0f, (float)face, 0.0f, 0.0f };
+				GLSL_SetUniformVec4(drawItem.program, UNIFORM_CUBELAYER, cubeLayer);
+				RB_ExecuteDrawCommand(drawItem.draw);
 			}
-
-			case DRAW_COMMAND_INDEXED:
-			{
-				GL_DrawIndexed(drawItem.draw.primitiveType,
-					drawItem.draw.params.indexed.numIndices,
-					drawItem.draw.params.indexed.indexType,
-					drawItem.draw.params.indexed.firstIndex,
-					drawItem.draw.numInstances,
-					drawItem.draw.params.indexed.baseVertex);
-				break;
-			}
-
-			case DRAW_COMMAND_ARRAYS:
-			{
-				GL_Draw(
-					drawItem.draw.primitiveType,
-					drawItem.draw.params.arrays.firstVertex,
-					drawItem.draw.params.arrays.numVertices,
-					drawItem.draw.numInstances);
-				break;
-			}
-
-			default:
-			{
-				assert(!"Invalid or unhandled draw type");
-				break;
-			}
+			const vec4_t noCubeLayer = { 0.0f, 0.0f, 0.0f, 0.0f };
+			GLSL_SetUniformVec4(drawItem.program, UNIFORM_CUBELAYER, noCubeLayer);
+		}
+		else
+		{
+			RB_ExecuteDrawCommand(drawItem.draw);
 		}
 
 		if (drawItem.renderState.transformFeedback)
@@ -1259,9 +1308,27 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 			return;
 		}
 
+		// r_shadowLayered: only the generic / lightall stage programs write
+		// gl_Layer; anything else would land in face 0
+		uint8_t cubeFaceMask = 0;
+		if ( backEnd.cubeLayerView )
+		{
+			const shaderProgram_t *program = drawItem.program;
+			const bool layerProgram =
+				(program >= tr.genericShader && program < tr.genericShader + GENERICDEF_COUNT) ||
+				(program >= tr.lightallShader && program < tr.lightallShader + LIGHTDEF_COUNT);
+			if ( !layerProgram || !backEnd.cubeLayerMask )
+			{
+				backEnd.cubeLayerUnsupported++;
+				return;
+			}
+			cubeFaceMask = backEnd.cubeLayerMask;
+		}
+
 		pass->sortKeys[pass->numDrawItems] = sortKey;
 		DrawItem& added = pass->drawItems[pass->numDrawItems++];
 		added = drawItem;
+		added.cubeFaceMask = cubeFaceMask;
 		// modern water surface: its slot of the main pass / the split view clip
 		if ( backEnd.waterItemTag )
 			added.renderState.waterSurface = true;
@@ -1362,6 +1429,17 @@ static void RB_SubmitDrawSurfsForDepthFill(
 			!RB_WeatherImpactPass() &&
 			*drawSurf->surface != SF_POM_SHELL && *drawSurf->surface != SF_POM_FADEBASE)
 			shader = tr.defaultShader;
+
+		// r_shadowLayered: a batch covers one set of cube faces
+		if (backEnd.cubeLayerView && drawSurf->cubeFaceMask != backEnd.cubeLayerMask)
+		{
+			if ( oldShader != nullptr )
+			{
+				RB_EndSurface();
+			}
+			backEnd.cubeLayerMask = drawSurf->cubeFaceMask;
+			oldShader = nullptr;
+		}
 
 		if (*drawSurf->surface == SF_MDX)
 		{
@@ -1692,6 +1770,8 @@ RB_RenderDrawSurfList
 */
 static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 {
+	const auto recordStart = rb_shadowProfileActive ?
+		std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	/*
 	merging surfaces together that share the same shader (e.g. polys, patches)
 	upload per frame data - but this might be the same between render passes?
@@ -1802,9 +1882,19 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	}
 
 	// Do the drawing and release memory
+	std::chrono::steady_clock::time_point executeStart;
+	if (rb_shadowProfileActive)
+	{
+		rb_shadowSubmitProfile.us[SHADOWPROF_RECORD] += RB_ShadowProfileUs(recordStart);
+		rb_shadowSubmitProfile.drawItems += backEndData->currentPass->numDrawItems;
+		rb_shadowSubmitProfile.surfaces += numDrawSurfs;
+		executeStart = std::chrono::steady_clock::now();
+	}
 	RB_SubmitRenderPass(
 		*backEndData->currentPass,
 		*backEndData->perFrameMemory);
+	if (rb_shadowProfileActive)
+		rb_shadowSubmitProfile.us[SHADOWPROF_EXECUTE] += RB_ShadowProfileUs(executeStart);
 
 	backEndData->perFrameMemory->ResetTo(allocMark);
 	backEndData->currentPass = nullptr;
@@ -3970,6 +4060,50 @@ static const void *RB_EndTimedBlock( const void *data )
 
 /*
 =============
+RB_SkyPortalOccluders
+
+r_skyPortalCull: the skyportal view is drawn first and the main view covers
+it wherever the main view has an opaque surface. Before the skyportal draws,
+write the main view's opaque world surfaces (no blend, no alpha test, no
+deform: DEPTHPREPASS_SIMPLE, collected by R_SkyPortalCollectOccluders) into
+the depth buffer at depth 0 with the main camera. Every skyportal fragment
+there then fails the depth test, so only the pixels the main view leaves
+uncovered are shaded. The main view clears depth before its own passes.
+=============
+*/
+static void RB_SkyPortalOccluders( void )
+{
+	const drawSurf_t *occluders;
+	const viewParms_t *mainParms;
+	const int numOccluders = R_SkyPortalTakeOccluders(&occluders, &mainParms);
+	if ( numOccluders <= 0 )
+		return;
+
+	const viewParms_t skyPortalParms = backEnd.viewParms;
+	backEnd.viewParms = *mainParms;
+	SetViewportAndScissor();
+
+	backEnd.depthFill = qtrue;
+	backEnd.skyPortalOccluders = qtrue;
+	qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	RB_RenderDrawSurfList(const_cast<drawSurf_t *>(occluders), numOccluders);
+	qglColorMask(
+		!backEnd.colorMask[0],
+		!backEnd.colorMask[1],
+		!backEnd.colorMask[2],
+		!backEnd.colorMask[3]);
+	GL_ResetScreenAuxWrite();
+	backEnd.skyPortalOccluders = qfalse;
+	backEnd.depthFill = qfalse;
+	GL_DepthRange(0.0f, 1.0f);
+
+	backEnd.viewParms = skyPortalParms;
+	SetViewportAndScissor();
+	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
+}
+
+/*
+=============
 RB_DrawSurfs
 
 =============
@@ -3986,12 +4120,41 @@ static const void *RB_DrawSurfs(const void *data) {
 
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
+
+	// r_shadowLayered: all faces of a point light cube (R_RenderCubeShadowView)
+	backEnd.cubeLayerView = (qboolean)((backEnd.viewParms.flags & VPF_CUBELAYERED) != 0);
+	backEnd.cubeLayerMask = 0;
+	backEnd.cubeLayerViewProj = backEnd.cubeLayerView ?
+		&tr.shadowCubeLayerViewProj[backEnd.viewParms.targetFboLayer][0][0] : nullptr;
+
+	// r_shadowStats: phases of a point light cube face command
+	rb_shadowProfileActive = r_shadowStats->integer &&
+		(backEnd.viewParms.flags & VPF_POINTCUBE) != 0;
+	shadowSubmitProfile_t &prof = rb_shadowSubmitProfile;
+	const int bindsBefore = backEnd.pc.c_glslShaderBinds;
+	auto t = rb_shadowProfileActive ?
+		std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
+	const auto commandStart = t;
+	auto phaseEnd = [&]( int phase ) {
+		if ( !rb_shadowProfileActive )
+			return;
+		const auto now = std::chrono::steady_clock::now();
+		prof.us[phase] += std::chrono::duration<double, std::micro>(now - t).count();
+		t = now;
+	};
+
 	RB_WaterSurfaceSetCoverage(cmd->drawSurfs, cmd->numDrawSurfs);
 	RB_WeatherRippleUpdate();
 	RB_WeatherWetnessUpdate();
+	phaseEnd(SHADOWPROF_PRE);
 
 	// clear the z buffer, set the modelview, etc
 	RB_BeginDrawingView();
+	phaseEnd(SHADOWPROF_BEGINVIEW);
+
+	// r_skyPortalCull: hide the pixels the main view will cover
+	if (backEnd.viewParms.viewParmType == VPT_SKYPORTAL && cmd->numDrawSurfs > 0)
+		RB_SkyPortalOccluders();
 
 	if (cmd->numDrawSurfs > 0)
 	{
@@ -4002,11 +4165,35 @@ static const void *RB_DrawSurfs(const void *data) {
 			RB_CloudsBeginView();
 			SetViewportAndScissor();
 		}
+		phaseEnd(SHADOWPROF_CLOUDS);
 
+		const double recordExecuteBefore = prof.us[SHADOWPROF_RECORD] + prof.us[SHADOWPROF_EXECUTE];
 		RB_RenderAllDepthRelatedPasses(cmd->drawSurfs, cmd->numDrawSurfs);
+		if (rb_shadowProfileActive)
+		{
+			prof.us[SHADOWPROF_DEPTHREST] -=
+				prof.us[SHADOWPROF_RECORD] + prof.us[SHADOWPROF_EXECUTE] - recordExecuteBefore;
+			// record + execute were added inside: the rest is the remainder
+			const auto now = std::chrono::steady_clock::now();
+			const double depthUs = std::chrono::duration<double, std::micro>(now - t).count();
+			prof.us[SHADOWPROF_DEPTHREST] += depthUs;
+			t = now;
+		}
 
 		RB_RenderMainPass(cmd->drawSurfs, cmd->numDrawSurfs);
+		phaseEnd(SHADOWPROF_MAINPASS);
 	}
+
+	if (rb_shadowProfileActive)
+	{
+		prof.totalUs += std::chrono::duration<double, std::micro>(
+			std::chrono::steady_clock::now() - commandStart).count();
+		prof.commands++;
+		prof.programBinds += backEnd.pc.c_glslShaderBinds - bindsBefore;
+		rb_shadowProfileActive = false;
+	}
+	backEnd.cubeLayerView = qfalse;
+	backEnd.cubeLayerViewProj = nullptr;
 
 	return (const void *)(cmd + 1);
 }

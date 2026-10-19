@@ -41,7 +41,7 @@ themselves; they would need a new algorithm (shared-memory tiling, wave intrinsi
 | Weather: rain simulation, splashes | `ddc0df4b5`, `1a0f16741`, `f701b2964` | transform feedback update + splash geometry shader; splash query read only when available | compute particle update; splash/streak expansion without GS (plan 3) | **no**: TF is already a GPU-only point update; a compute rewrite has the same cost. GS removal measured and dropped: ≈ 0.2 ms removable on Intel, see below |
 | Wetness persistence, puddle ripples, runoff trails | `bb27fecf5`, `933cf8693`, `f701b2964`, `af2cb2a18` | ping-pong fragment fields at ≤ 10–30 Hz | none | **no**: measured 0.2 ms per update at 256², amortised < 0.01 ms/frame |
 | Rain lens / lens water | `4a1976496` … `331855edb` | CPU droplet agents (0.2 ms at the caps), PBO upload ring, fragment field + composite; GPU timers read only when available | GPU agents | **no**: the agents are coherent CPU logic with events; 0.2 ms does not justify a rewrite |
-| Foliage: auto grass, wind, flutter | `5010f1e84`, `acdda3729`, `c6600e7fc` | instanced cards, vertex libraries | none | **no** |
+| Foliage: auto grass, wind, flutter | `5010f1e84`, `acdda3729`, `c6600e7fc` | one draw per BSP surface with all its sprites, in prepass, velocity, every CSM cascade and colour; no per-sprite frustum culling, the distance fade only collapses vertices after the vertex shader ran; strips / 3 cards chosen per surface, so one near point puts the whole surface on the expensive LOD | compute per-sprite frustum / fade culling and per-sprite LOD into compact lists, indirect instanced draws | **candidate, gated on a measurement** ([plan 6](rend2-gl43-plan-6-grass-gpu-culling.md)); corrected 2026-10-19, the first review missed it |
 | Foliage bend field | `70283ae4c`, `e6fc2c783` | one fragment ping-pong pass per frame | none | **no** |
 | Plant skeleton (XPBD fronds) | `f53fecc92`, `08f805613` | CPU XPBD, bones in a buffer texture | compute XPBD | **no** (for now): ~0.3 ms CPU at 96 plants, a GPU port needs capsule contacts and hysteresis state on the GPU |
 | Water surface, Snell window, waves, geometry | `deddcdad2` … `0b0abb643` | fragment / vertex; static subdivided mesh | tessellation (GL 4.0 core) for distance-adaptive subdivision | **later, large**: level 6 builds 144 640 triangles for one `t3_hevil` body, processed by every water pass whatever the distance; needs TCS/TES permutations for every water pass and the motion vectors (not measured per pass) |
@@ -78,9 +78,16 @@ Detailed plans for the remaining work (what, why, where, what to change, how to 
    (see "Weather geometry shaders: step 0 measurement" below).
 4. [Point-light and CSM shadows in one scene pass per light](rend2-gl43-plan-4-layered-shadows.md): stage 1 (one
    traversal, face masks, any GL) and stage 2 (layered rendering, needs `ARB_shader_viewport_layer_array`).
-   **Stage 1 done for point lights 2026-10-19** (`r_shadowSinglePass`, front 5× lower, depth bit-identical); CSM and
-   stage 2 open (see "Point light shadows: step 0 and stage 1" below).
+   **Stage 1 done for point lights 2026-10-19** (`r_shadowSinglePass`, front 5× lower, depth bit-identical);
+   stage 2 done the same day (`r_shadowLayered`, submit ≈ 3× lower, depth bit-identical); CSM open (see "Point light
+   shadows: step 0 and stage 1" below).
 5. [Distance-adaptive water tessellation](rend2-gl43-plan-5-water-tessellation.md) (item 4 above).
+6. [GPU culling and per-sprite LOD of surface sprites](rend2-gl43-plan-6-grass-gpu-culling.md): compute + indirect
+   draws, sprite data through a buffer texture (no SSBO in the vertex stage); gated on a measurement.
+7. [Occlusion culling of hidden models: investigation](rend2-occlusion-culling-investigation.md): measure how much
+   work goes to fully occluded models and world surfaces before choosing conditional rendering (any GL), a compute
+   Hi-Z test with indirect draws (GL 4.3) or CPU-side skipping; the existing Hi-Z keeps the closest depth and does
+   not fit.
 
 ### 1. Water intersection foam
 
@@ -236,3 +243,107 @@ and ≈ 1.5 ms on Intel. That is mostly the fixed price of 6 draw commands per c
 
 Side fix: GPU timer names (`r_speeds 100`) were stored as pointers into rotating `va()` buffers and printed with
 other views' names. The name is now copied into the command and the timed block.
+
+Stage 2 step 0 (same day). Layer selection from the vertex shader is available on both machines: the RTX 2060
+exposes `GL_ARB_shader_viewport_layer_array` and `GL_AMD_vertex_shader_layer`, the Intel UHD only
+`GL_AMD_vertex_shader_layer`. Both have `ARB_shader_draw_parameters`, `ARB_multi_draw_indirect` and
+`ARB_texture_view`. `r_shadowStats` now also splits the backend time of every cube face command. After stage 1 a
+face command costs ≈ 92 µs on Intel and ≈ 98 µs on NVIDIA:
+
+| Phase (µs per face command, stage 1) | Intel | NVIDIA |
+| --- | --- | --- |
+| `RB_BeginDrawingView`: FBO bind, viewport, state, clear | 8 | 35 |
+| Recording (draw surfaces → draw items) | 30 | 21 |
+| Executing (`RB_SubmitRenderPass`) | 53 | 40 |
+
+A face has only ≈ 4–5 draw items, because consecutive surfaces with the same shader are already merged. The
+cost is in what repeats per face: the FBO switch and clear on NVIDIA, item execution (≈ 12 µs each) and surface
+recording on Intel. Each face also re-records copies of the same ≈ 43 unique surfaces per cube.
+
+Layered rendering would bind one FBO and clear once per cube, record each surface once, and execute ≈ 5 items per
+cube instead of ≈ 26. Estimated saving: ≈ 1.7–1.9 ms of CPU per frame with 4 lights on both machines (submit
+≈ 2.2 → ≈ 0.5 ms). There is no cheap halfway step without `gl_Layer`: a layered FBO without layer selection
+draws everything into layer 0. Open prerequisite: texture views need immutable storage, and
+`R_Create2DImageArray` calls `glTexStorage3D` with `levels = 0`, which the spec rejects; this has to be checked.
+
+Stage 2 implemented (same day, `r_shadowLayered 1` on top of `r_shadowSinglePass 1`, default 0). The capability bit
+`MODERN_VS_LAYER` requires a GL 4.3 context, the AMD or ARB layer extension and `glTextureView`, and a test compile
+of a `#version 150` vertex shader writing `gl_Layer`. All generic and lightall variants then get `USE_VS_LAYER`
+(no new permutation bit). The face comes from `u_CubeLayer` and the face matrices from `u_CubeFaceViewProj[6]`.
+Each cube slot has one layered FBO on a 6-layer texture view, so a whole cube is one command: one bind, one clear,
+each surface recorded once, draw items batched by face mask and drawn once per face. Cubes holding surfaces that
+build their own draw items (sprites, weather, POM shells, water particles, entity beams) fall back to stage 1.
+`r_shadowVerify 1` with `r_shadowLayered 1` compares against stage 1: 12/12 cubes on Intel and 12/12 on NVIDIA were
+bit-identical. Submit with 4 lights dropped from ≈ 2.0–2.1 to ≈ 0.7–0.9 ms per frame on Intel and from 2.1 to
+0.7 ms on NVIDIA, so ≈ 1.2–1.4 ms saved; the estimate was 1.7–1.9 ms. What remains is item execution (≈ 12–17 µs per
+item, each drawn up to 6 times).
+
+The `glTexStorage3D(levels = 0)` call in `R_Create2DImageArray` was dead code, since every caller passed
+`IMGFLAG_MUTABLE`. It now passes 1 level, and the point shadow array is immutable when `MODERN_VS_LAYER` is set.
+
+### Skyportal view on vjun2: hidden pixels (r_skyPortalCull)
+
+2026-10-19, same runs and scene as above (vjun2 spawn, 1920x1080, `r_dlightMode 2`, `r_forwardPlus 1`). Before the
+fix, the "Skyportal View" timer was 173–235 ms per frame on the Intel UHD, against 2.7–4.4 ms on the RTX 2060 and
+≈ 9 ms on Intel on yavin1. That was 60–75 % of the Intel frame.
+
+How it was narrowed down (temporary instrumentation, since removed):
+
+- **CPU time inside the block: 0.7–3 ms.** The GPU timestamps are real. A glFinish wall clock around the
+  skyportal main pass gave the same 185–255 ms.
+- **Where the time goes:** begin view (clears) ≈ 0, depth prepass 1.5–2 ms, main pass 170–250 ms.
+- **The bisection didn't help:**
+  - `r_shadowPCSS`, `r_forwardPlus`, `+set r_sunShadows 0`: within noise.
+  - Turning dynamic lights off for the skyportal: within noise.
+  - `+set r_dlightMode 1`: ≈ 125 ms instead of 230. It is a smaller lightall permutation (no `USE_DSHADOWS`); the
+    light loop itself costs nothing here.
+- **Per draw item** (glFinish plus a `GL_SAMPLES_PASSED` query around each item):
+  - The skyportal on vjun2 is a detailed hangar room (`vjun/hangerwall`, `largewall`, `wall_garrison`,
+    `basemetal*`…).
+  - It shades ≈ 1.95 M fragments, the whole 1080p screen, with `lightall_LMAP_N_MR_SUN` at 110–120 ns per fragment
+    on Intel. The main view's surfaces with the same program cost the same per fragment.
+- **None of it is visible.** After the main view's main pass, 0 of 2,073,600 pixels are at the far plane. Main-view
+  sky triangles are not drawn when a skyportal exists, and sky shaders are not in the depth prepass. So the main
+  view covers the whole skyportal at this spot.
+
+So the cause is not an Intel-specific skyportal path. The skyportal view is rendered first, at full resolution,
+under a main view that hides it. On vjun2 it is a full screen of the most expensive lightall permutation, at
+≈ 115 ns per fragment on this GPU (≈ 1.5 ns on the RTX 2060).
+
+Fix, `r_skyPortalCull` (default 1):
+
+- Every view is executed right after its frontend (`R_IssuePendingRenderCommands` per view). So the skyportal's
+  `R_RenderView` also walks the world once with the main view's parms, which `R_GatherFrameViews` already computed
+  (`R_SkyPortalCollectOccluders`, tr_main.cpp).
+- It keeps the surfaces the main pass draws opaque over every pixel they cover: world, `SS_OPAQUE`,
+  `DEPTHPREPASS_SIMPLE` (no blend, alpha test or deform), no distortion, water interface or POM shells.
+- After the skyportal's `RB_BeginDrawingView`, `RB_SkyPortalOccluders` draws them depth-only with the main camera,
+  and `GL_DepthRange` is forced to 0. Every skyportal fragment there then fails the depth test before shading. The
+  main view clears depth before its own passes.
+- The extra walk costs 0.1–0.25 ms of frontend CPU on the skyportal view.
+
+| vjun2 spawn, per frame | Intel UHD skyportal / main | RTX 2060 skyportal / main |
+| --- | --- | --- |
+| `r_skyPortalCull 0` | 173–182 / 69–77 ms | 2.7–3.0 / 3.8–4.3 ms |
+| `r_skyPortalCull 1` | 4.3–4.4 / 73–75 ms (occluder pass ≈ 3 ms) | 0.2 / 3.6–3.7 ms |
+| yavin1 (85 % of the screen shows the portal), 0 → 1 | 9.2–9.5 → 5.5–7.5 ms | not measured |
+
+Checks:
+
+- With the cull on, every skyportal draw item passed 0 samples on vjun2.
+- **Sentinel test** (same frame): the skyportal's color was cleared to (0, 65000, 0) before its passes, then the
+  pixels still carrying it were counted after the main view's main pass. Result: 0 with the cull on and off, on
+  vjun2 (Intel and NVIDIA) and on yavin1 (Intel). Every culled pixel is overwritten by the main view.
+- Screenshots don't work in the hidden-window runs, so there was no visual A/B.
+
+Known differences:
+
+- A translucent surface that writes the main depth prepass (`r_sunShadowAlphaCasters` alpha casters) in front of
+  an occluder used to blend over the skyportal there. Now it blends over the skyportal's clear color. Either way,
+  the opaque wall behind it is hidden.
+- With `r_skyPortalCull 0` the behaviour is unchanged.
+
+Not addressed: `lightall_LMAP_N_MR_SUN` is ≈ 75× slower per fragment on this Intel GPU than on the RTX 2060, and
+that also makes the main view 70–100 ms here. The `r_dlightMode 1` result (a smaller permutation runs faster
+everywhere on screen) suggests register pressure or spilling in the big permutations, not the lighting work
+itself. That needs its own look at the compiled program.
