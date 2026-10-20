@@ -281,6 +281,11 @@ inputs (copy, 6 color mips, depth + Hi-Z) ~0.2 ms, trace ~0.3-0.5 ms at medium (
 ~1-2 ms at high/ultra (full resolution), resolve ~0.1-0.3 ms, temporal ~0.15 ms, composite < 0.1 ms. Integrated
 GPUs several times more; low/medium are meant for them. Use `r_speeds 100` for real numbers.
 
+Water surface SSR (`r_waterSurface`, its own reduced reflection prepass with the trace settings of this page):
+in-game per-sub-pass timings and the `r_waterSSROptimize` savings are in `docs/rend2-water-surface.md`
+("Water SSR cost in game"). The march itself was ~1 ms of it on Intel UHD; the second rasterization of the
+water was the cost.
+
 ## Validation checklist
 
 Built (MSVC SP/MP, gcc compiles all changed files); every new shader and the lightall variants (lightmap / light

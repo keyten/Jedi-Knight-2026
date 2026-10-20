@@ -1240,7 +1240,10 @@ static void RB_DrawItems(
 		if (drawItem.ibo != nullptr)
 			R_BindIBO(drawItem.ibo);
 
-		GLSL_BindProgram(drawItem.program);
+		// the reflection prepass may have a program of its own (r_waterSSROptimize)
+		shaderProgram_t *program = waterReflection ?
+			RB_WaterSurfaceReflectionProgram(drawItem.program) : drawItem.program;
+		GLSL_BindProgram(program);
 
 		GL_VertexAttribPointers(drawItem.numAttributes, drawItem.attributes);
 		RB_BindTextures(drawItem.numSamplerBindings, drawItem.samplerBindings);
@@ -1249,12 +1252,12 @@ static void RB_DrawItems(
 			drawItem.uniformBlockBindings);
 		RB_BindTransformFeedbackBuffer(drawItem.transformFeedbackBuffer);
 
-		GLSL_SetUniforms(drawItem.program, drawItem.uniformData);
+		GLSL_SetUniforms(program, drawItem.uniformData);
 
 		RenderState state = drawItem.renderState;
 		if (waterProgram)
 		{
-			RB_WaterSurfaceBindReflection(drawItem.program, (qboolean)waterReflection);
+			RB_WaterSurfaceBindReflection(program, (qboolean)waterReflection);
 			state.screenAux = waterReflection;
 		}
 		RB_SetRenderState(state);
@@ -1744,7 +1747,11 @@ static void RB_SubmitRenderPass(
 			RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder, true);
 			RB_WaterSurfaceReflectionEnd();
 		}
+		const int shadeTimer = RB_ScreenBeginTimer("Water shading");
+		RB_WaterTessQuery(qtrue);
 		RB_DrawItems(numWaterItems, renderPass.drawItems, waterOrder);
+		RB_WaterTessQuery(qfalse);
+		RB_ScreenEndTimer(shadeTimer);
 		// Compose the true stock stages after the dedicated program.  The scissor
 		// keeps them on the left and avoids feeding them into the scene copy that
 		// the modern half samples.
@@ -3571,6 +3578,22 @@ static const void	*RB_SwapBuffers( const void *data ) {
 			ri.FS_FCloseFile(tr.debugFile);
 			tr.debugFile = 0;
 		}
+	}
+
+	// r_offscreenPresent: the frame was drawn into tr.presentFbo; copy it to the
+	// window (the scissor test also applies to blits)
+	if ( tr.presentFbo )
+	{
+		const GLboolean scissor = qglIsEnabled(GL_SCISSOR_TEST);
+		qglDisable(GL_SCISSOR_TEST);
+		qglBindFramebuffer(GL_READ_FRAMEBUFFER, tr.presentFbo->frameBuffer);
+		qglBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		qglBlitFramebuffer(0, 0, tr.presentFbo->width, tr.presentFbo->height,
+			0, 0, glConfig.vidWidth, glConfig.vidHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		qglBindFramebuffer(GL_FRAMEBUFFER,
+			glState.currentFBO ? glState.currentFBO->frameBuffer : tr.presentFbo->frameBuffer);
+		if ( scissor )
+			qglEnable(GL_SCISSOR_TEST);
 	}
 
 	R_NewFrameSync();

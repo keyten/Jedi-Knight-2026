@@ -215,6 +215,7 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceReflection` | 1.0 | reflection scale |
 | `r_waterSurfaceSSR` | 1.0 | Water SSR weight over the cubemap; independent of opaque `r_ssr` |
 | `r_waterSSRWaveReprojection` | 0 | latched exact previous-rendered receiver geometry for temporal water SSR |
+| `r_waterSSROptimize` | 7 | reflection prepass savings, bits (see "Water SSR cost in game"); 0 = the 10-19 prepass for A/B |
 | `r_waterMotionDebug` | 0 | receiver-motion/history diagnostics, modes 1-10 |
 | `r_waterSurfaceAbsorption` | 1.0 | shared extinction scale of the surface and volume |
 | `r_waterSurfaceDepthScale` | 1.0 | path length scale |
@@ -363,6 +364,52 @@ From below (camera under the surface looking up, the surface over the whole view
 In game the pass costs in proportion to the water on screen; the copy runs once per view with water and is
 scissored to the projected union of visible world-water bodies plus the maximum refraction halo. Dynamic or
 ambiguous bodies, and bounds crossing the eye plane, conservatively fall back to the complete view.
+
+## Water SSR cost in game (2026-10-19)
+
+The water SSR is two draws of every water interface: the **reflection prepass** (`RB_WaterSurfaceReflectionBegin/End`,
+the water program with `u_WaterPass.x = 1` into the three `RGBA16F` targets at `1 / s_water.reflectionScale` of the
+view, = the SSR trace grid scale, 2 at `r_ssrQuality 1`) traces the ray; the **main draw** only reconstructs it
+(`WaterResolvedSSR`, 4 bilateral taps). `r_speeds 100` now has GPU timers for both inside "Water surface":
+"Water SSR prepass" and "Water shading" (the rest of "Water surface" is the scene copy and the contact injection).
+
+Breakdown, t3_hevil lake, 1920x1080, `r_waterSurface 1`, waves, `r_waterGeometry 1`, `r_waterTessellation 1`
+(96 px), `r_ssrQuality 1` (half resolution trace, Hi-Z 72 iterations, 5 refine steps), hidden scripted runs,
+medians of 32 frames per phase, phases interleaved, two views (HIGH = above the lake, LOW = at the waterline):
+
+| ms, Intel UHD, view HIGH / LOW | Water surface | SSR prepass | Water shading |
+|---|---|---|---|
+| no water SSR (`r_waterSurfaceSSR 0`) | 66.7 / 46.6 | - | 62.3 / 42.7 |
+| 10-19 prepass (`r_waterSSROptimize 0`) | 100.9 / 84.9 | 36.1 / 38.1 | 61.2 / 43.4 |
+| same, no ray march (`r_ssrMaxDistance 1`) | 103.1 / 84.1 | 37.2 / 37.4 | |
+| `r_waterSSROptimize 1` | 84.5 / 74.7 | 23.7 / 27.5 | |
+| `r_waterSSROptimize 3` | 83.9 / 60.7 | 16.2 / 12.7 | |
+| `r_waterSSROptimize 7` (default) | 76.6 / 61.1 | 11.5 / 9.4 | 60.8 / 47.0 |
+| RTX 2060, `r_waterSSROptimize 0` -> `7` | 6.9 -> 5.4 / 6.0 -> 5.2 | 2.5 -> 1.2 / 2.1 -> 1.1 | 2.7 / 2.4 |
+
+What it showed: the ray march is almost free (prepass without it: Intel ~1 ms less, NV 0.6-1.2 ms less; a first
+sweep of Hi-Z vs linear, 12-48 steps and 1-5 refine steps changed the Intel prepass by < 6 ms, but overlapped another
+game run). The prepass cost was the second rasterization of the water:
+
+1. **Tessellation bug** (bit 1): the control stage multiplied the segments per edge by the prepass scale
+   (`u_WaterPass.w` = 2) instead of dividing, so the half resolution prepass drew ~4x the triangles of the main
+   pass. Now `u_WaterTessRange.z` = `1 / reflectionScale` (bit off: the old `x scale`); the geometry wave weights
+   still use the main view's scale, both passes see the same waves.
+2. **Early occlusion discard** (bit 2, `WATER_FLAG_PREPASS_CULL`): the prepass has no scene depth buffer and
+   discarded hidden water only after the whole wave / foam / flow shading; the same test now runs first.
+3. **Prepass-only program** (bit 4, `WATERDEF_REFLECTION_PASS` -> `USE_WATER_REFLECTION_PASS`,
+   `RB_WaterSurfaceReflectionProgram`): `WATER_PREPASS` becomes the constant `true`, the shading after the prepass
+   return is compiled out (the register pressure of the big main program on Intel, as in lightall). 8-16 more
+   programs, only with the SSR resources.
+
+Bits 2 and 4 are exact (`test_watersurface_gl.py`: max difference 0 on all three targets, Intel and NV); bit 1
+changes only the prepass mesh density. Screenshots `r_waterSSROptimize 7` vs `0` (frozen `r_waterWaveTime`,
+TGA) differ no more than two captures of the same setting (foam / interaction fields still animate): Intel HIGH
+mean 1.04 vs 0.99 (same setting), NV 0.66 vs 0.90 per 8-bit channel.
+
+Remaining water SSR cost on Intel: ~10 ms prepass + 0-4 ms resolve in the main draw (10-19: 34-38 ms). Not done:
+a quarter resolution prepass (visible quality loss), dropping the dead trace from the main program (measured
+< 1 ms on the main draw), stripping the ungated debug views from the prepass program.
 
 ## Known screen-space limitations
 

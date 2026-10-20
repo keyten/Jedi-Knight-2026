@@ -422,6 +422,10 @@ struct waterBody_t
 	waterWindState_t wind;
 	int geometryVerts, geometryTriangles, geometryLevel;
 	float geometryMaxEdge = 0.0f;
+	// r_waterTessellation: the mesh is a coarser base drawn as patches, and how
+	// far the evaluation stage can move it from the base triangles (culling)
+	bool geometryTessellated = false;
+	float tessCullExtent = 0.0f;
 	waterInteractionState_t interaction;
 	waterFoamState_t foam;
 	waterFlowFieldState_t flowField;
@@ -579,6 +583,13 @@ static struct
 	float		bodyMsec;
 	float		geometryMsec;
 	size_t		geometryBytes;
+	// r_waterTessellation: primitives of the main water pass from a
+	// GL_PRIMITIVES_GENERATED query about once per second, read without waiting
+	GLuint		tessQuery;
+	bool		tessQueryPending;
+	int			tessQueryTime;
+	uint64_t	tessPrimitives;
+	int			tessPrimitivesTime;
 	qboolean	bodyDebug;
 	qhandle_t	bodyDebugShader;
 	float		classifyMsec;
@@ -588,6 +599,7 @@ static struct
 
 	// per frame
 	int			timer;
+	int			prepassTimer;	// r_speeds 100: the reflection prepass inside "Water surface"
 	int			lastDraws;
 	int			drawsThisFrame;
 	unsigned	statsFrame;
@@ -664,6 +676,23 @@ static void R_WaterMotionInvalidate(waterMotionInvalidation_t reason)
 qboolean R_WaterSurfaceResourcesEnabled( void )
 {
 	return s_water.resources;
+}
+
+qboolean R_WaterTessellationAvailable( void )
+{
+	return (r_waterTessellation && r_waterTessellation->integer && r_waterGeometry && r_waterGeometry->integer &&
+		R_HasModernFeatures(MODERN_TESSELLATION)) ? qtrue : qfalse;
+}
+
+int R_WaterTessMaxLevel( void )
+{
+	return Com_Clampi(2, MAX(2, (int)glRefConfig.maxTessGenLevel), r_waterTessMax ? r_waterTessMax->integer : 16);
+}
+
+// the meshes of this map load are drawn as patches: the programs exist
+static bool R_WaterTessellationActive( void )
+{
+	return R_WaterTessellationAvailable() && tr.waterSurfaceShader[WATERDEF_USE_TESSELLATION].program != 0;
 }
 
 qboolean R_WaterFoamResourcesEnabled( void )
@@ -1182,7 +1211,10 @@ static int R_WaterGeometryComponentCount(const waterBody_t& body, const vec4_t *
 		body.geometryVerts <= 0 || body.geometryMaxEdge <= 0.0f)
 		return 0;
 	const int requested = r_waterWaveQuality->integer <= 0 ? 1 : 2;
-	const float minimumWavelength = body.geometryMaxEdge * 4.0f;
+	// tessellated: the candidates the finest level can hold, the evaluation
+	// stage weighs them by the local level (WaterTessGeometryWeights)
+	const float minimumWavelength = body.geometryMaxEdge * 4.0f /
+		(body.geometryTessellated ? (float)R_WaterTessMaxLevel() : 1.0f);
 	int resolved = 0;
 	for (; resolved < requested; ++resolved)
 	{
@@ -5572,6 +5604,15 @@ void R_WaterBuildGeometry(world_t *world)
 		}
 		int level = 0;
 		while (level < 8 && longest > target * (1 << level)) ++level;
+		// r_waterTessellation: log2(max level) fewer dyadic splits, the GPU
+		// subdivides the rest near the camera
+		const bool tessellated = R_WaterTessellationActive();
+		if (tessellated)
+		{
+			int reduction = 0;
+			while ((2 << reduction) <= R_WaterTessMaxLevel()) ++reduction;
+			level = MAX(0, level - reduction);
+		}
 		const int requested = level;
 		// A triangle subdivided n times along each edge has at most
 		// (n+1)(n+2)/2 unique top vertices, plus 3n boundary feet.
@@ -5743,6 +5784,7 @@ void R_WaterBuildGeometry(world_t *world)
 			VBO_USAGE_STATIC, va("WaterBody_%d", body.id));
 		IBO_t *ibo = R_CreateIBO((byte *)indices.data(), indices.size() * sizeof(glIndex_t),
 			VBO_USAGE_STATIC, va("WaterBody_%d", body.id));
+		ibo->waterPatches = tessellated ? qtrue : qfalse;
 		vbo->offsets[ATTR_INDEX_POSITION] = offsetof(packedVertex_t, position);
 		vbo->offsets[ATTR_INDEX_NORMAL] = offsetof(packedVertex_t, normal);
 		vbo->offsets[ATTR_INDEX_TEXCOORD0] = offsetof(packedVertex_t, texcoords[0]);
@@ -5782,6 +5824,9 @@ void R_WaterBuildGeometry(world_t *world)
 		body.geometryTriangles = (int)indices.size() / 3;
 		body.geometryLevel = level;
 		body.geometryMaxEdge = maxTopEdge;
+		body.geometryTessellated = tessellated;
+		// as the surface bounds above, plus a margin for the wall pile
+		body.tessCullExtent = extent + MAX(interactionExtent, !body.waterfall ? 64.0f : 0.0f) + 16.0f;
 		mapVerts += body.geometryVerts;
 		s_water.geometryBytes += verts.size() * sizeof(packedVertex_t) + indices.size() * sizeof(glIndex_t);
 	}
@@ -5793,14 +5838,77 @@ void R_WaterGeometryInfo_f(void)
 	ri.Printf(PRINT_ALL, "water geometry: %d bodies, %.1f ms, %u bytes GPU mesh, %d shoreline contact segments (%u CPU bytes)\n",
 		(int)s_water.bodies.size(), s_water.geometryMsec, (unsigned)s_water.geometryBytes,
 		(int)s_water.contacts.size(), (unsigned)(s_water.contacts.capacity() * sizeof(waterContactSegment_t)));
+	int baseTriangles = 0;
 	for (const waterBody_t& body : s_water.bodies)
-		ri.Printf(PRINT_ALL, "  body %d: %d vertices, %d triangles, level %d, max top edge %.1f\n",
-			body.id, body.geometryVerts, body.geometryTriangles, body.geometryLevel, body.geometryMaxEdge);
+	{
+		ri.Printf(PRINT_ALL, "  body %d: %d vertices, %d triangles, level %d, max top edge %.1f%s\n",
+			body.id, body.geometryVerts, body.geometryTriangles, body.geometryLevel, body.geometryMaxEdge,
+			body.geometryTessellated ? ", tessellated base" : "");
+		if (body.geometryTessellated)
+			baseTriangles += body.geometryTriangles;
+	}
+	if (R_WaterTessellationActive())
+	{
+		ri.Printf(PRINT_ALL, "water tessellation: max level %d, %.1f px edges, %d base triangles, ",
+			R_WaterTessMaxLevel(), r_waterTessPixels->value, baseTriangles);
+		if (s_water.tessPrimitivesTime)
+			ri.Printf(PRINT_ALL, "%llu triangles in the main water pass %.1f s ago (all views of that frame)\n",
+				(unsigned long long)s_water.tessPrimitives, (ri.Milliseconds() - s_water.tessPrimitivesTime) * 0.001f);
+		else
+			ri.Printf(PRINT_ALL, "no main water pass measured yet\n");
+	}
+	else if (r_waterTessellation->integer)
+		ri.Printf(PRINT_ALL, "water tessellation: unavailable (needs r_waterGeometry 1, r_gl43 1 and a GL 4.3 context)\n");
+}
+
+// r_waterTessellation: GL_PRIMITIVES_GENERATED around the main water pass
+// (after tessellation, before clipping), about once per second; a result is
+// read when the GPU has it, never waited for (r_waterGeometryInfo prints it)
+void RB_WaterTessQuery( qboolean begin )
+{
+	if (!begin)
+	{
+		if (s_water.tessQueryPending && s_water.tessQueryTime < 0)
+		{
+			qglEndQuery(GL_PRIMITIVES_GENERATED);
+			s_water.tessQueryTime = -s_water.tessQueryTime;
+		}
+		return;
+	}
+	if (!R_WaterTessellationActive())
+		return;
+	if (!s_water.tessQuery)
+		qglGenQueries(1, &s_water.tessQuery);
+	if (s_water.tessQueryPending)
+	{
+		GLuint available = 0;
+		qglGetQueryObjectuiv(s_water.tessQuery, GL_QUERY_RESULT_AVAILABLE, &available);
+		if (!available)
+			return;
+		GLuint64 primitives = 0;
+		qglGetQueryObjectui64v(s_water.tessQuery, GL_QUERY_RESULT, &primitives);
+		s_water.tessPrimitives = primitives;
+		s_water.tessPrimitivesTime = s_water.tessQueryTime;
+		s_water.tessQueryPending = false;
+	}
+	const int now = MAX(ri.Milliseconds(), 1);
+	if (s_water.tessQueryTime > 0 && now - s_water.tessQueryTime < 1000)
+		return;
+	qglBeginQuery(GL_PRIMITIVES_GENERATED, s_water.tessQuery);
+	s_water.tessQueryPending = true;
+	s_water.tessQueryTime = -now;	// negative while the query is open
 }
 
 void R_WaterSurfaceShutdown( void )
 {
 	R_WaterMotionInvalidate(WM_INVALID_MAP_CHANGE);
+	if (s_water.tessQuery)
+		qglDeleteQueries(1, &s_water.tessQuery);
+	s_water.tessQuery = 0;
+	s_water.tessQueryPending = false;
+	s_water.tessQueryTime = 0;
+	s_water.tessPrimitives = 0;
+	s_water.tessPrimitivesTime = 0;
 	// images and FBOs belong to the renderer lists; the resource decision
 	// follows the programs (R_CreateWaterSurfaceImages)
 	s_water.world = NULL;
@@ -5953,6 +6061,11 @@ qboolean RB_WaterSurfaceDraws( const shader_t *shader )
 shaderProgram_t *RB_WaterSurfaceProgram( const shader_t *shader )
 {
 	int index = 0;
+	// the tessellated render mesh of a body (R_WaterBuildGeometry); its BSP
+	// mesh (r_waterGeometryDebug 3, fallbacks) stays triangles
+	if ( tess.externalIBO && tess.externalIBO->waterPatches &&
+		tr.waterSurfaceShader[WATERDEF_USE_TESSELLATION].program )
+		index |= WATERDEF_USE_TESSELLATION;
 	if ( shader->numDeforms && !ShaderRequiresCPUDeforms(shader) )
 		index |= WATERDEF_USE_DEFORM_VERTEXES;
 	if ( r_waterSnell->integer )
@@ -5962,6 +6075,17 @@ shaderProgram_t *RB_WaterSurfaceProgram( const shader_t *shader )
 		index |= WATERDEF_USE_HIZ;
 	s_water.drawsThisFrame++;
 	return &tr.waterSurfaceShader[index];
+}
+
+// the program of a water draw in the reflection prepass: its prepass-only
+// permutation (r_waterSSROptimize), else the draw's own program
+shaderProgram_t *RB_WaterSurfaceReflectionProgram( shaderProgram_t *program )
+{
+	const ptrdiff_t index = program - tr.waterSurfaceShader;
+	if ( !(r_waterSSROptimize->integer & 4) || index < 0 || index >= WATERDEF_COUNT ||
+		(index & WATERDEF_REFLECTION_PASS) || !tr.waterSurfaceShader[index | WATERDEF_REFLECTION_PASS].program )
+		return program;
+	return &tr.waterSurfaceShader[index | WATERDEF_REFLECTION_PASS];
 }
 
 /*
@@ -6031,7 +6155,7 @@ static void RB_WaterSurfaceCacheView( void )
 		r_waterWaveShallow->integer ? 1.0f : 0.0f);
 	s_water.viewFlags = (sun ? 2 : 0) | (RB_VolumetricLookupReady() ? 4 : 0) |
 		(r_waterSurfaceDepthReject->integer ? 8 : 0) | (backEnd.waterSurfaceSSR ? 16 : 0) |
-		(tr.envBrdfImage ? 512 : 0);
+		(tr.envBrdfImage ? 512 : 0) | ((r_waterSSROptimize->integer & 2) ? 2048 : 0);
 	if (r_waterSnell->integer && r_waterSnellDebug->integer == 1 && R_LiquidPointClass(v.ori.origin) >= 0)
 		s_water.viewFlags |= 1024;
 	s_water.fallbackCubemap = r_cubeMapping->integer && !(v.flags & VPF_NOCUBEMAPS) ? R_CubemapForPoint(v.ori.origin) : 0;
@@ -6590,6 +6714,24 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		water.Data() + WATER_U_TARGET_TERMS) : 0;
 	VectorSet4(water[WATER_U_GEOMETRY], (float)geometryComponents, body ? body->geometryMaxEdge : 0.0f,
 		body ? body->geometryMaxEdge * 4.0f : 0.0f, 0.0f);
+	if (body && body->geometryTessellated)
+	{
+		// segments per world unit of edge at unit distance for the target
+		// pixel length (the main view; the reflection prepass scales it)
+		const float pixels = Com_Clamp(2.0f, 128.0f, r_waterTessPixels->value);
+		const vec4_t tessParams = {
+			fabsf(backEnd.viewParms.projectionMatrix[0]) * backEnd.viewParms.viewportWidth * 0.5f / pixels,
+			(float)R_WaterTessMaxLevel(),
+			r_waterTessForce->value > 0.0f ? Com_Clamp(1.0f, (float)R_WaterTessMaxLevel(), r_waterTessForce->value) : 0.0f,
+			body->tessCullExtent };
+		uniforms.SetUniformVec4(UNIFORM_WATERTESS, tessParams);
+		// z: segment factor of the reflection prepass, which renders at
+		// 1 / reflectionScale of the view (r_waterSSROptimize 0: the 10-19 x scale)
+		const float prepassTess = s_water.reflectionScale > 0.0f ? ((r_waterSSROptimize->integer & 1) ?
+			1.0f / s_water.reflectionScale : s_water.reflectionScale) : 1.0f;
+		const vec4_t tessRange = { MAX(r_waterTessMinEdge->value, 0.0f), MAX(r_waterTessLodDistance->value, 0.0f), prepassTess, 0.0f };
+		uniforms.SetUniformVec4(UNIFORM_WATERTESSRANGE, tessRange);
+	}
 	const int liquidClass = Com_Clampi(LIQUID_WATER, LIQUID_SLIME, (key >> 4) & 3);
 	const float *extinction = s_water.extinction[liquidClass];
 	const bool froxel = (s_water.viewFlags & 4) != 0;
@@ -7127,6 +7269,7 @@ qboolean RB_WaterSurfaceReflectionBegin( void )
 		RB_ScreenHistoryValid(s_water.history, s_water.reflectionScale));
 	s_water.reflectionCurrent = s_water.history.valid ? 1 - s_water.history.current : 0;
 	FBO_t *fbo = tr.waterReflectionFbo[s_water.reflectionCurrent];
+	s_water.prepassTimer = RB_ScreenBeginTimer("Water SSR prepass");
 	FBO_Bind(fbo);
 	GL_SetViewportAndScissor(0, 0, fbo->width, fbo->height);
 	GL_State(GLS_DEPTHMASK_TRUE);
@@ -7205,6 +7348,8 @@ void RB_WaterSurfaceReflectionEnd( void )
 	RB_WaterMotionCommit();
 	RB_ScreenStoreHistory(s_water.history, info, s_water.reflectionScale, s_water.reflectionCurrent);
 	s_water.reflectionReady = qtrue;
+	RB_ScreenEndTimer(s_water.prepassTimer);
+	s_water.prepassTimer = -1;
 	FBO_Bind(tr.renderFbo);
 	const viewParms_t& v = backEnd.viewParms;
 	GL_SetViewportAndScissor(v.viewportX, v.viewportY, v.viewportWidth, v.viewportHeight);

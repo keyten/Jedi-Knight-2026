@@ -1295,40 +1295,43 @@ SunCascadeResult sunShadowModern(in vec3 worldPosition,
 	float split1 = u_ShadowSplits.y;
 	float half0 = u_ShadowBlend.x;
 	float half1 = u_ShadowBlend.y;
-	SunCascadeResult result;
 
+	// The cascade (or the pair blended across a split) is chosen first, then
+	// evaluated by one EvaluateSunCascade in a loop. Five inlined copies (one per
+	// branch) cost the Intel UHD about a quarter more per fragment, as register
+	// pressure (docs/rend2-gl43-review.md); the result is the same.
+	int first;
+	int second = -1;
+	float t = 0.0;
 	if (half0 > 0.0 && viewDepth >= split0 - half0 && viewDepth <= split0 + half0)
 	{
-		SunCascadeResult a = EvaluateSunCascade(u_ShadowMvp, 0, worldPosition,
-			geometricNormal, normalLight, gradient0);
-		SunCascadeResult b = EvaluateSunCascade(u_ShadowMvp2, 1, worldPosition,
-			geometricNormal, normalLight, gradient1);
-		float t = smoothstep(split0 - half0, split0 + half0, viewDepth);
-		result = MixSunCascadeResults(a, b, t);
+		first = 0;
+		second = 1;
+		t = smoothstep(split0 - half0, split0 + half0, viewDepth);
 	}
 	else if (viewDepth < split0)
-	{
-		result = EvaluateSunCascade(u_ShadowMvp, 0, worldPosition,
-			geometricNormal, normalLight, gradient0);
-	}
+		first = 0;
 	else if (half1 > 0.0 && viewDepth >= split1 - half1 && viewDepth <= split1 + half1)
 	{
-		SunCascadeResult a = EvaluateSunCascade(u_ShadowMvp2, 1, worldPosition,
-			geometricNormal, normalLight, gradient1);
-		SunCascadeResult b = EvaluateSunCascade(u_ShadowMvp3, 2, worldPosition,
-			geometricNormal, normalLight, gradient2);
-		float t = smoothstep(split1 - half1, split1 + half1, viewDepth);
-		result = MixSunCascadeResults(a, b, t);
+		first = 1;
+		second = 2;
+		t = smoothstep(split1 - half1, split1 + half1, viewDepth);
 	}
 	else if (viewDepth < split1)
-	{
-		result = EvaluateSunCascade(u_ShadowMvp2, 1, worldPosition,
-			geometricNormal, normalLight, gradient1);
-	}
+		first = 1;
 	else
+		first = 2;
+
+	SunCascadeResult result;
+	int count = second >= 0 ? 2 : 1;
+	for (int i = 0; i < count; ++i)
 	{
-		result = EvaluateSunCascade(u_ShadowMvp3, 2, worldPosition,
-			geometricNormal, normalLight, gradient2);
+		int cascade = i == 0 ? first : second;
+		SunCascadeResult r = EvaluateSunCascade(
+			cascade == 0 ? u_ShadowMvp : (cascade == 1 ? u_ShadowMvp2 : u_ShadowMvp3),
+			cascade, worldPosition, geometricNormal, normalLight,
+			cascade == 0 ? gradient0 : (cascade == 1 ? gradient1 : gradient2));
+		result = i == 0 ? r : MixSunCascadeResults(result, r, t);
 	}
 
 	float farFade = smoothstep(u_ShadowSplits.w, u_ShadowSplits.z, viewDepth);
@@ -4744,6 +4747,7 @@ void main()
 		min(1.0, roughness + u_SpecularAAParams.y)));
 	effectiveAlpha = PerceptualRoughnessToAlpha(roughness);
 
+    #if defined(USE_LIGHTALL_DEBUG)
 	int specularAADebug = int(u_SpecularAAParams.z + 0.5);
 	if (specularAADebug > 0)
 	{
@@ -4759,6 +4763,7 @@ void main()
     #endif
 		return;
 	}
+    #endif
   #endif
 
 	// The DFG fetch is material/view state, not light state.  Reuse it for the
@@ -5041,7 +5046,7 @@ void main()
 	}
   #endif
 
-  #if defined(USE_SHADOWMAP) && defined(USE_SHADOWS2)
+  #if defined(USE_SHADOWMAP) && defined(USE_SHADOWS2) && defined(USE_LIGHTALL_DEBUG)
 	// r_shadowDebug 1-12. These values are deliberately written unlit; the
 	// post-process path bypasses tone mapping while a shadow debug view is on.
 	if (u_ShadowDebug.x >= 1.0)
@@ -5171,6 +5176,7 @@ void main()
 
 	// r_spotLightCookieDebug 1 projected uv, 2 cookie factor, 3 cookie * shadow
 	// (lights with a cookie, weighted by the cone), written unlit
+  #if defined(USE_LIGHTALL_DEBUG)
 	if (u_LightCookieParams.w > 0.5 && u_LightMask != 0)
 	{
 		out_Color = vec4(g_cookieDebug, diffuse.a);
@@ -5181,6 +5187,7 @@ void main()
     #endif
 		return;
 	}
+  #endif
 
   #if defined(USE_ENTITY_GRID_L1)
 	// r_entityLightGridDebug 10: L0 (C0), 11: L1 direction of the luminance, dimmed by |C1| / C0
@@ -5430,6 +5437,7 @@ void main()
 	}
   #endif
 
+  #if defined(USE_LIGHTALL_DEBUG)
 	int energyDebugView = int(u_PBRMaterial.w + 0.5);
 	if (energyDebugView >= 1 && energyDebugView <= 4)
 	{
@@ -5501,6 +5509,7 @@ void main()
     #endif
 		return;
 	}
+  #endif
 
   #if defined(USE_PARALLAXMAP) && defined(USE_POM_DEBUG)
 	// r_pomDebug 1-8 (compiled with r_pomDebug set at renderer start), written unlit (tone mapping is bypassed)

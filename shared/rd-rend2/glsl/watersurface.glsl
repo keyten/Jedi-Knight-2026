@@ -7,10 +7,32 @@
 // the blended layers. The scene under the water was copied there (color + depth, RB_WaterSurfacePrepare).
 // The surface keeps the vertex deforms of its shader and the texture coordinate animation (tcMod) of its
 // first stage. Resolved per-body flow separately advects the world-space detail.
+//
+// r_waterTessellation (USE_WATER_TESSELLATION, GL 4.0+ stages, #version 430 in every stage): the render
+// mesh is drawn as patches. This block is then compiled twice: as the vertex stage it only decodes the
+// control points (the main at the end), as the tessellation evaluation stage (WATER_TESS_EVALUATION) the
+// attributes below are plain globals that its main interpolates for each generated vertex before running the
+// same WaterVertex as the untessellated program. The control stage (TessControl block) picks the levels.
+#if defined(WATER_TESS_EVALUATION)
+layout(triangles, fractional_odd_spacing, ccw) in;
+vec3 attr_Position;
+vec3 attr_Normal;
+vec2 attr_TexCoord0;
+vec2 attr_TexCoord1;
+#else
 in vec3 attr_Position;
 in vec3 attr_Normal;
 in vec2 attr_TexCoord0;
 in vec2 attr_TexCoord1; // render mesh: 1 at the surface, 0 at skirt foot
+#endif
+#if !defined(USE_WATER_TESSELLATION) || defined(WATER_TESS_EVALUATION)
+#define WATER_VERTEX_OUTPUTS
+#endif
+#if defined(WATER_TESS_EVALUATION)
+// the fragment stage completes the shore attenuation from the interpolated
+// distance (the tessellated triangles can be wider than the shore falloff)
+#define var_ShoreData var_ShoreDataRaw
+#endif
 
 layout(std140) uniform Scene
 {
@@ -86,6 +108,7 @@ layout(std140) uniform ShaderInstance
 uniform vec4 u_DiffuseTexMatrix;
 uniform vec4 u_DiffuseTexOffTurb;
 
+#if defined(WATER_VERTEX_OUTPUTS)
 out vec3 var_Position;	// world
 out vec3 var_Normal;	// world, geometric (out of the liquid for the faces of a liquid brush)
 out vec2 var_FlowTex;	// first stage texture coordinates with its tcMods
@@ -94,17 +117,35 @@ out vec3 var_GeometryDisplacement;
 out vec2 var_GeometrySlope;
 out float var_GeometrySkirt;
 out vec3 var_ShoreData;
+#endif
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform sampler2D u_WaterInteractionMap;
 #if defined(USE_WATER_MOTION_REPROJECTION)
 uniform vec4 u_WaterMotion[WATER_MOTION_VEC4S];
 uniform sampler2D u_WaterPrevInteractionMap;
 uniform mat4 u_SSRReproject; // exact water-history world-to-previous-clip matrix
+#if defined(WATER_VERTEX_OUTPUTS)
 out vec4 var_PreviousClip;
 out vec3 var_PreviousPosition;
 out vec3 var_CurrentAnalytic;
 out vec3 var_PreviousAnalytic;
 out vec2 var_InteractionMotion;
+#endif
+#endif
+#if defined(USE_WATER_TESSELLATION)
+// x: target segments per world unit at unit distance (projection scale * viewport width / 2 /
+// r_waterTessPixels), y: r_waterTessMax, z: forced level (r_waterTessForce, 0 = by distance),
+// w: how far waves, interaction and wall pile can move the surface (patch culling).
+// u_Water[WATER_U_GEOMETRY].y is the max top edge of the base mesh.
+uniform vec4 u_WaterTess;
+// x: r_waterTessMinEdge, the shortest tessellated edge in world units (0 = only r_waterTessMax limits it),
+// y: r_waterTessLodDistance, within it the finest allowed edges, beyond it the pixel rule counts the distance
+// from there
+uniform vec4 u_WaterTessRange;
+uniform vec4 u_WaterPass; // x: reflection prepass, w: its resolution scale (see the fragment stage)
+#if defined(WATER_TESS_EVALUATION)
+out vec3 var_TessInfo;	// geometry weights of the two candidate waves, the patch level (r_waterGeometryDebug 6)
+#endif
 #endif
 uniform sampler2D u_WaterFlowField;	// r_waterFlowField: velocity / body speed, shore distance, impingement
 uniform vec4 u_WaterFlowParams[2];	// see the fragment stage
@@ -135,6 +176,33 @@ vec3 WaterShoreData(float encodedDistance)
 	float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance));
 	return vec3(distance, mix(naturalAttenuation, rigidAttenuation, rigid), rigid);
 }
+
+#if defined(USE_WATER_TESSELLATION)
+// The control points carry the decoded (distance, rigid): interpolating the
+// signed encoding across a rigid / natural edge would flip its sign midway.
+// The attenuation follows from the interpolated distance (a distance to one
+// straight boundary is linear over a triangle), so the coarse base mesh keeps
+// the shore falloff of the fine one.
+vec2 WaterShoreDecode(float encodedDistance)
+{
+	return vec2(max(abs(encodedDistance) - 0.25, 0.0), step(encodedDistance, 0.0));
+}
+
+vec3 WaterShoreFromDecoded(vec2 shore)
+{
+	if (u_Water[WATER_U_SHORELINE].x < 0.5 || u_Water[WATER_U_GEOMETRY_FOAM].y < 0.5)
+		return vec3(65504.0, 1.0, 0.0);
+	float distance = shore.x;
+	float rigid = shore.y;
+	float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
+	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
+	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
+	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, distance));
+	float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance));
+	return vec3(distance, mix(naturalAttenuation, rigidAttenuation, rigid), rigid);
+}
+#endif
 
 float WaterInteractionHeight(vec3 worldPosition)
 {
@@ -408,6 +476,23 @@ vec3 PreviousWaterShoreData(float encodedDistance)
 			mix(rigidEdge, 1.0, smoothstep(0.0, width, distance)), rigid), rigid);
 }
 
+#if defined(USE_WATER_TESSELLATION)
+vec3 PreviousWaterShoreFromDecoded(vec2 shore)
+{
+	vec4 params = u_WaterMotion[WATER_MOTION_SHORE];
+	if (params.x < 0.5 || params.w < 0.5) return vec3(65504.0, 1.0, 0.0);
+	float distance = shore.x;
+	float rigid = shore.y;
+	float width = max(params.y, 1.0);
+	float profileShore = clamp(params.z, 0.0, 1.5);
+	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
+	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	return vec3(distance,
+		mix(mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance)),
+			mix(rigidEdge, 1.0, smoothstep(0.0, width, distance)), rigid), rigid);
+}
+#endif
+
 float PreviousWaterInteractionHeight(vec3 worldPosition)
 {
 	if (u_WaterMotion[WATER_MOTION_INTERACTION].z < 0.5 ||
@@ -451,7 +536,24 @@ vec3 EvaluatePreviousWaterfallSheet(vec3 worldPosition)
 }
 #endif
 
+#if defined(WATER_TESS_EVALUATION)
+vec3 waterShoreInput;			// interpolated by the evaluation main
+#define WATER_SHORE_INPUT waterShoreInput
+#if defined(USE_WATER_MOTION_REPROJECTION)
+vec3 waterPreviousShoreInput;
+#define WATER_PREVIOUS_SHORE_INPUT waterPreviousShoreInput
+#endif
+#else
+#define WATER_SHORE_INPUT WaterShoreData(attr_TexCoord1.y)
+#define WATER_PREVIOUS_SHORE_INPUT PreviousWaterShoreData(attr_TexCoord1.y)
+#endif
+
+#if defined(WATER_VERTEX_OUTPUTS)
+#if defined(WATER_TESS_EVALUATION)
+void WaterVertex()
+#else
 void main()
+#endif
 {
 	vec3 position = attr_Position;
 	vec3 normal   = attr_Normal * 2.0 - vec3(1.0);
@@ -478,7 +580,7 @@ void main()
 	float currentSkirt = waterfallGeometry ||
 		(u_Water[WATER_U_GEOMETRY_FOAM].z > 2.5 && u_Water[WATER_U_GEOMETRY_FOAM].z < 3.5) ? 1.0 : attr_TexCoord1.x;
 	var_GeometrySkirt = waterfallGeometry ? 0.0 : 1.0 - attr_TexCoord1.x;
-	var_ShoreData = waterfallGeometry ? vec3(65000.0, 1.0, 0.0) : WaterShoreData(attr_TexCoord1.y);
+	var_ShoreData = waterfallGeometry ? vec3(65000.0, 1.0, 0.0) : WATER_SHORE_INPUT;
 	if (u_Water[WATER_U_GEOMETRY_FOAM].y > 0.5)
 	{
 		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[WATER_U_FRAME].z);
@@ -516,7 +618,7 @@ void main()
 	{
 		bool previousWaterfall = u_WaterMotion[WATER_MOTION_WATERFALL].x > 0.5;
 		vec3 previousShore = previousWaterfall ? vec3(65000.0, 1.0, 0.0) :
-			PreviousWaterShoreData(attr_TexCoord1.y);
+			WATER_PREVIOUS_SHORE_INPUT;
 		WaterWaveState previousWave = EvaluatePreviousWaterSurface(previousBasePosition);
 		if (previousWaterfall)
 			previousWave.displacement = EvaluatePreviousWaterfallSheet(previousBasePosition);
@@ -551,6 +653,193 @@ void main()
 	var_Position = wsPosition.xyz;
 	var_Normal = normalize(mat3(u_ModelMatrix) * normal);
 	var_FlowTex = ModTexCoords(attr_TexCoord0.st, position, u_DiffuseTexMatrix, u_DiffuseTexOffTurb);
+}
+#endif
+
+#if defined(WATER_TESS_EVALUATION)
+in vec3 wte_Position[];
+in vec3 wte_Normal[];
+in vec2 wte_TexCoord0[];
+in vec2 wte_TexCoord1[];
+in vec2 wte_Shore[];
+
+// The geometry share of the two candidate waves: a component enters the mesh
+// once its wavelength spans 4-6 of the local tessellated edges. That edge
+// (about distance / scale, as the control stage picks the levels, between the
+// base edge and base edge / max level) is estimated from the position alone, so
+// a vertex on an edge shared by two patches gets the same weights in both.
+// The main view's scale also in the reflection prepass: both passes see the
+// same waves, only the prepass mesh is coarser.
+vec2 WaterTessGeometryWeights(vec3 worldPosition)
+{
+	float baseEdge = max(u_Water[WATER_U_GEOMETRY].y, 1.0);
+	float maxLevel = max(u_WaterTess.y, 1.0);
+	float finest = min(max(baseEdge / maxLevel, u_WaterTessRange.x), baseEdge);
+	float edge = u_WaterTess.z > 0.0 ? baseEdge / clamp(u_WaterTess.z, 1.0, maxLevel) :
+		clamp(max(distance(worldPosition, u_ViewOrigin) - u_WaterTessRange.y, 1.0) / max(u_WaterTess.x, 1.0e-6),
+			finest, baseEdge);
+	vec2 k = max(vec2(u_Water[WATER_U_TARGET_TERMS].w, u_Water[WATER_U_TARGET_TERMS + 1].w), vec2(1.0e-6));
+	return smoothstep(vec2(4.0), vec2(6.0), (6.2831853 / k) / edge);
+}
+
+void main()
+{
+	vec3 b = gl_TessCoord;
+	// no contraction: a vertex on a shared edge must come out bit identical
+	// from the patches on both sides (the third weight is exactly 0 there)
+	precise vec3 position = b.x * wte_Position[0] + b.y * wte_Position[1] + b.z * wte_Position[2];
+	attr_Position = position;
+	attr_Normal = b.x * wte_Normal[0] + b.y * wte_Normal[1] + b.z * wte_Normal[2];
+	attr_TexCoord0 = b.x * wte_TexCoord0[0] + b.y * wte_TexCoord0[1] + b.z * wte_TexCoord0[2];
+	attr_TexCoord1 = b.x * wte_TexCoord1[0] + b.y * wte_TexCoord1[1] + b.z * wte_TexCoord1[2];
+	vec2 shore = b.x * wte_Shore[0] + b.y * wte_Shore[1] + b.z * wte_Shore[2];
+	waterShoreInput = WaterShoreFromDecoded(shore);
+#if defined(USE_WATER_MOTION_REPROJECTION)
+	waterPreviousShoreInput = PreviousWaterShoreFromDecoded(shore);
+#endif
+	waterGeometryWeights = WaterTessGeometryWeights((u_ModelMatrix * vec4(position, 1.0)).xyz);
+	var_TessInfo = vec3(waterGeometryWeights, gl_TessLevelInner[0]);
+	WaterVertex();
+}
+#elif defined(USE_WATER_TESSELLATION)
+// vertex stage of a tessellated program: the control points
+out vec3 wtc_Position;
+out vec3 wtc_Normal;
+out vec2 wtc_TexCoord0;
+out vec2 wtc_TexCoord1;
+out vec2 wtc_Shore;
+
+void main()
+{
+	wtc_Position = attr_Position;
+	wtc_Normal = attr_Normal;
+	wtc_TexCoord0 = attr_TexCoord0;
+	wtc_TexCoord1 = attr_TexCoord1;
+	wtc_Shore = WaterShoreDecode(attr_TexCoord1.y);
+	gl_Position = vec4(attr_Position, 1.0);
+}
+#endif
+
+/*[TessControl]*/
+// r_waterTessellation: the levels of one base triangle of the water render mesh (tr_watersurface.cpp,
+// docs/rend2-water-geometry.md). An edge level depends only on the two ends of that edge, so the patches
+// sharing it split it alike and the mesh has no cracks; fractional odd spacing changes it without pops.
+layout(vertices = 3) out;
+
+layout(std140) uniform Camera
+{
+	mat4 u_viewProjectionMatrix;
+	vec4 u_ViewInfo;
+	vec3 u_ViewOrigin;
+	vec3 u_ViewForward;
+	vec3 u_ViewLeft;
+	vec3 u_ViewUp;
+};
+
+layout(std140) uniform Entity
+{
+	mat4 u_ModelMatrix;
+	vec4 u_LocalLightOrigin;
+	vec3 u_AmbientLight;
+	float u_entityTime;
+	vec3 u_DirectedLight;
+	float u_FXVolumetricBase;
+	vec3 u_ModelLightDir;
+	float u_VertexLerp;
+};
+
+uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
+uniform vec4 u_WaterTess;	// see the vertex stage
+uniform vec4 u_WaterTessRange;
+uniform vec4 u_WaterPass;
+
+in vec3 wtc_Position[];
+in vec3 wtc_Normal[];
+in vec2 wtc_TexCoord0[];
+in vec2 wtc_TexCoord1[];
+in vec2 wtc_Shore[];
+out vec3 wte_Position[];
+out vec3 wte_Normal[];
+out vec2 wte_TexCoord0[];
+out vec2 wte_TexCoord1[];
+out vec2 wte_Shore[];
+
+// segments of the edge a b for a target length in pixels: symmetric in a and b
+float WaterTessEdgeLevel(vec3 a, vec3 b, float scale)
+{
+	if (u_WaterTess.z > 0.0)
+		return clamp(u_WaterTess.z, 1.0, u_WaterTess.y);
+	// r_waterTessLodDistance: full detail up to it, the pixel rule beyond
+	precise float d = max(distance((a + b) * 0.5, u_ViewOrigin) - u_WaterTessRange.y, 1.0);
+	precise float edgeLength = distance(a, b);
+	precise float level = edgeLength * scale / d;
+	// r_waterTessMinEdge: never finer than that (e.g. the static mesh's r_waterGeometryEdge)
+	if (u_WaterTessRange.x > 0.0)
+		level = min(level, edgeLength / u_WaterTessRange.x);
+	return clamp(level, 1.0, u_WaterTess.y);
+}
+
+// the box lo hi entirely outside one plane of the view (the far plane is not tested)
+bool WaterTessBoxOutside(vec3 lo, vec3 hi)
+{
+	int outside = 31;
+	for (int i = 0; i < 8; ++i)
+	{
+		vec3 corner = vec3((i & 1) != 0 ? hi.x : lo.x, (i & 2) != 0 ? hi.y : lo.y, (i & 4) != 0 ? hi.z : lo.z);
+		vec4 clip = u_viewProjectionMatrix * vec4(corner, 1.0);
+		int planes = 0;
+		if (clip.x < -clip.w) planes |= 1;
+		if (clip.x > clip.w) planes |= 2;
+		if (clip.y < -clip.w) planes |= 4;
+		if (clip.y > clip.w) planes |= 8;
+		if (clip.z < -clip.w) planes |= 16;
+		outside &= planes;
+	}
+	return outside != 0;
+}
+
+void main()
+{
+	wte_Position[gl_InvocationID] = wtc_Position[gl_InvocationID];
+	wte_Normal[gl_InvocationID] = wtc_Normal[gl_InvocationID];
+	wte_TexCoord0[gl_InvocationID] = wtc_TexCoord0[gl_InvocationID];
+	wte_TexCoord1[gl_InvocationID] = wtc_TexCoord1[gl_InvocationID];
+	wte_Shore[gl_InvocationID] = wtc_Shore[gl_InvocationID];
+	if (gl_InvocationID != 0)
+		return;
+
+	vec3 p0 = (u_ModelMatrix * vec4(wtc_Position[0], 1.0)).xyz;
+	vec3 p1 = (u_ModelMatrix * vec4(wtc_Position[1], 1.0)).xyz;
+	vec3 p2 = (u_ModelMatrix * vec4(wtc_Position[2], 1.0)).xyz;
+	// the bounds of everything the evaluation stage can move the patch to
+	vec3 extent = vec3(u_WaterTess.w);
+	if (WaterTessBoxOutside(min(min(p0, p1), p2) - extent, max(max(p0, p1), p2) + extent))
+	{
+		gl_TessLevelOuter[0] = 0.0;
+		gl_TessLevelOuter[1] = 0.0;
+		gl_TessLevelOuter[2] = 0.0;
+		gl_TessLevelInner[0] = 0.0;
+		return;
+	}
+
+	// the reflection prepass renders at a fraction of the view: fewer segments
+	// (u_WaterTessRange.z = 1 / its scale; r_waterSSROptimize 0: the scale)
+	float scale = u_WaterTess.x * (u_WaterPass.x > 0.5 ? u_WaterTessRange.z : 1.0);
+	// a skirt (TexCoord1.x < 1 at its feet) stays one triangle, only its top
+	// edge follows the surface edge it hangs from; waterfalls have no skirts
+	// (and the lightmap texture coordinates in TexCoord1)
+	bool waterfall = u_Water[WATER_U_WATERFALL].x > 0.5;
+	bool top0 = waterfall || wtc_TexCoord1[0].x > 0.999;
+	bool top1 = waterfall || wtc_TexCoord1[1].x > 0.999;
+	bool top2 = waterfall || wtc_TexCoord1[2].x > 0.999;
+	// outer level i: the edge opposite vertex i
+	float e0 = top1 && top2 ? WaterTessEdgeLevel(p1, p2, scale) : 1.0;
+	float e1 = top2 && top0 ? WaterTessEdgeLevel(p2, p0, scale) : 1.0;
+	float e2 = top0 && top1 ? WaterTessEdgeLevel(p0, p1, scale) : 1.0;
+	gl_TessLevelOuter[0] = e0;
+	gl_TessLevelOuter[1] = e1;
+	gl_TessLevelOuter[2] = e2;
+	gl_TessLevelInner[0] = top0 && top1 && top2 ? max(max(e0, e1), e2) : 1.0;
 }
 
 /*[Fragment]*/
@@ -608,6 +897,9 @@ void main()
 
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform vec4 u_WaterPass; // x: reflection prepass, y: history / resolved reflection valid, z: history weight
+#if defined(USE_WATER_TESSELLATION)
+uniform vec4 u_WaterTess; // see the vertex stage
+#endif
 #if defined(USE_WATER_MOTION_REPROJECTION)
 uniform vec4 u_WaterMotion[WATER_MOTION_VEC4S];
 #endif
@@ -691,7 +983,12 @@ in vec3 var_BasePosition;
 in vec3 var_GeometryDisplacement;
 in vec2 var_GeometrySlope;
 in float var_GeometrySkirt;
+#if defined(USE_WATER_TESSELLATION)
+in vec3 var_ShoreDataRaw;	// distance, attenuation at the vertices, rigid
+vec3 var_ShoreData;			// with the attenuation of the interpolated distance, set by main
+#else
 in vec3 var_ShoreData;
+#endif
 in vec3 var_Position;
 in vec3 var_Normal;
 in vec2 var_FlowTex;
@@ -701,6 +998,9 @@ in vec3 var_PreviousPosition;
 in vec3 var_CurrentAnalytic;
 in vec3 var_PreviousAnalytic;
 in vec2 var_InteractionMotion;
+#endif
+#if defined(USE_WATER_TESSELLATION)
+in vec3 var_TessInfo;	// geometry weights of the candidate waves, patch level
 #endif
 
 out vec4 out_Color;
@@ -724,8 +1024,16 @@ out vec4 out_SSRNormal; // reflection prepass: receiver-to-hit vector and validi
 #define WATER_FLAG_EXPERIMENTAL	256
 #define WATER_FLAG_ENVBRDF	512
 #define WATER_FLAG_CAMERA_LIQUID	1024	// the view origin is in a liquid brush (R_LiquidPointClass)
+#define WATER_FLAG_PREPASS_CULL	2048	// r_waterSSROptimize: the prepass drops occluded water before shading
 
 int g_flags;
+
+// the reflection prepass (u_WaterPass.x); its own permutation compiles the shading out
+#if defined(USE_WATER_REFLECTION_PASS)
+#define WATER_PREPASS true
+#else
+#define WATER_PREPASS (u_WaterPass.x > 0.5)
+#endif
 
 bool WaterFlag(int f)
 {
@@ -1141,7 +1449,7 @@ vec4 WaterResolvedSSR(vec3 P, vec3 N, float roughness, out float hitDistance)
 
 vec4 WaterSSR(vec3 Pw, vec3 Rw, vec3 Ngeo, vec3 Nwave, float roughness, out float hitDistance)
 {
-	if (u_WaterPass.y > 0.5 && u_WaterPass.x < 0.5)
+	if (u_WaterPass.y > 0.5 && !WATER_PREPASS)
 		return WaterResolvedSSR(Pw, Nwave, roughness, hitDistance);
 	return WaterSSRTrace(Pw, Rw, Ngeo, roughness, hitDistance);
 }
@@ -1298,7 +1606,7 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 // silhouettes and the usual screen-space halo around every object.
 float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 {
-	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || u_WaterPass.x > 0.5)
+	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || WATER_PREPASS)
 		return 0.0;
 	float width = max(u_Water[WATER_U_INTERSECTION_FOAM].y, 0.5);
 	vec2 targetSize = vec2(textureSize(u_WaterDepthMap, 0));
@@ -1404,15 +1712,42 @@ vec2 WaterRotateFlow1(vec2 v) { return vec2(0.994 * v.x + 0.105 * v.y, -0.105 * 
 
 void main()
 {
+#if defined(USE_WATER_TESSELLATION)
+	// the shading remainder adds what the tessellated mesh left out
+	waterGeometryWeights = clamp(var_TessInfo.xy, 0.0, 1.0);
+	var_ShoreData = var_ShoreDataRaw;
+	// shoreline off, waterfalls: constants (see WaterShoreFromDecoded)
+	if (var_ShoreDataRaw.x < 65000.0)
+	{
+		float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
+		float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
+		float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
+		float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+		float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, var_ShoreDataRaw.x));
+		float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, var_ShoreDataRaw.x));
+		var_ShoreData.y = mix(naturalAttenuation, rigidAttenuation, var_ShoreDataRaw.z);
+	}
+#endif
 	g_flags = int(u_Water[WATER_U_DEBUG].z + 0.5);
 	int debugView = int(u_Water[WATER_U_DEBUG].x + 0.5);
 
 	// split view: the legacy stages are drawn on the left (scissor), the water program on the right
-	if (u_WaterPass.x < 0.5 && u_Water[WATER_U_DEBUG].y >= 0.0 && gl_FragCoord.x < u_Water[WATER_U_DEBUG].y)
+	if (!WATER_PREPASS && u_Water[WATER_U_DEBUG].y >= 0.0 && gl_FragCoord.x < u_Water[WATER_U_DEBUG].y)
 		discard;
 
-	vec2 uv = u_WaterPass.x > 0.5 ? WaterProject(var_Position) :
+	vec2 uv = WATER_PREPASS ? WaterProject(var_Position) :
 		gl_FragCoord.xy / vec2(textureSize(u_WaterSceneMap, 0));
+#if defined(USE_SSR)
+	// the reflection prepass has no scene depth to test against: the occlusion
+	// test of WaterReflectionPass, before the wave shading instead of after it
+	if (WATER_PREPASS && WaterFlag(WATER_FLAG_PREPASS_CULL))
+	{
+		float sceneDepth = WaterSampleDepth(uv);
+		if (!WaterIsSky(sceneDepth) && WaterLinearDepth(sceneDepth) <
+			dot(var_Position - u_ViewOrigin, normalize(u_ViewForward)) - 0.5)
+			discard;
+	}
+#endif
 	vec4 sceneHere = texture(u_WaterSceneMap, uv);
 
 	float ior = u_Water[WATER_U_SURFACE].x;
@@ -1638,7 +1973,7 @@ void main()
 	float intersectionMask = !inside ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv) : 0.0;
 	float intersectionFoam = clamp(intersectionMask * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0);
 	int flowFieldDebug = int(u_WaterFlowParams[1].z + 0.5);
-	if (flowFieldDebug >= 5 && u_WaterPass.x < 0.5)
+	if (flowFieldDebug >= 5 && !WATER_PREPASS)
 	{
 		vec3 debugColor = vec3(0.05, 0.0, 0.1);
 		if (flowField)
@@ -1653,7 +1988,7 @@ void main()
 		return;
 	}
 	int foamDebug = int(u_Water[WATER_U_FOAM].y + 0.5);
-	if (foamDebug > 0 && u_WaterPass.x < 0.5)
+	if (foamDebug > 0 && !WATER_PREPASS)
 	{
 		vec3 debugColor = foamDebug == 1 ? vec3(foamSample.r) :
 			(foamDebug == 2 ? vec3(0.5 + 0.5 * normalize(vec3(u_Water[WATER_U_FLOW].xy, 0.001)).xy, 0.15) :
@@ -1665,7 +2000,7 @@ void main()
 		return;
 	}
 	int whitewaterDebug = int(u_Water[WATER_U_WHITEWATER].w + 0.5);
-	if (whitewaterDebug > 0 && u_WaterPass.x < 0.5)
+	if (whitewaterDebug > 0 && !WATER_PREPASS)
 	{
 		vec3 debugColor = vec3(0.0);
 		if (whitewaterDebug == 1)
@@ -1680,7 +2015,7 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
-	if (u_Water[WATER_U_INTERSECTION_FOAM].w > 0.5 && u_WaterPass.x < 0.5)
+	if (u_Water[WATER_U_INTERSECTION_FOAM].w > 0.5 && !WATER_PREPASS)
 	{
 		out_Color = vec4(LinearToScene(vec3(intersectionMask, intersectionMask * 0.35, 0.0)), sceneHere.a);
 		out_Glow = vec4(0.0);
@@ -1688,7 +2023,7 @@ void main()
 	}
 
 	int interactionDebug = int(u_Water[WATER_U_BODY_MAPPING + 1].w + 0.5);
-	if (interactionDebug > 0 && u_WaterPass.x < 0.5)
+	if (interactionDebug > 0 && !WATER_PREPASS)
 	{
 		vec2 bodyUV = (var_BasePosition.xy - u_Water[WATER_U_BODY_MAPPING].xy) * u_Water[WATER_U_BODY_MAPPING].zw;
 		vec3 debugColor = vec3(0.0);
@@ -1710,7 +2045,7 @@ void main()
 		return;
 	}
 	int rainDebug = int(u_WaterRainParams.w + 0.5);
-	if (rainDebug > 0 && u_WaterPass.x < 0.5)
+	if (rainDebug > 0 && !WATER_PREPASS)
 	{
 		vec3 debugColor = rainDebug == 1 ? vec3(0.0, 0.25 + 0.75 * step(0.001, u_WaterRainParams.x), 1.0) :
 			(rainDebug == 2 ? vec3(clamp(rainField.g * 0.12 + 0.5, 0.0, 1.0), 0.15, 0.85) :
@@ -1721,7 +2056,7 @@ void main()
 		return;
 	}
 	int shoreDebug = int(u_Water[WATER_U_SHORELINE].w + 0.5);
-	if (shoreDebug > 0 && u_WaterPass.x < 0.5)
+	if (shoreDebug > 0 && !WATER_PREPASS)
 	{
 		float contact = 1.0 - smoothstep(0.0, max(u_Water[WATER_U_SHORELINE].z, 0.25), var_ShoreData.x);
 		vec3 debugColor = vec3(0.0);
@@ -1803,7 +2138,7 @@ void main()
 	}
 
 	#if defined(USE_SSR)
-	if (u_WaterPass.x > 0.5)
+	if (WATER_PREPASS)
 	{
 		WaterReflectionPass(P, V, N, Ng, inside, roughness);
 		return;
@@ -2238,7 +2573,7 @@ void main()
 	}
 
 	int waterfallDebug = int(u_Water[WATER_U_WATERFALL].z + 0.5);
-	if (waterfall && waterfallDebug > 0 && u_WaterPass.x < 0.5)
+	if (waterfall && waterfallDebug > 0 && !WATER_PREPASS)
 	{
 		vec3 d = vec3(0.0);
 		if (waterfallDebug == 1) d = vec3(0.05, 0.85, 1.0);
@@ -2357,6 +2692,19 @@ void main()
 		out_Glow = vec4(0.0);
 		return;
 	}
+#if defined(USE_WATER_TESSELLATION)
+	if (geometryDebug == 6)
+	{
+		// patch level over r_waterTessMax: blue 1, green half, red max; the
+		// geometry weight of the longest wave darkens what it leaves to shading
+		float level = clamp(log2(max(var_TessInfo.z, 1.0)) / max(log2(max(u_WaterTess.y, 2.0)), 1.0), 0.0, 1.0);
+		vec3 heat = level < 0.5 ? mix(vec3(0.05, 0.15, 1.0), vec3(0.1, 0.9, 0.2), level * 2.0) :
+			mix(vec3(0.1, 0.9, 0.2), vec3(1.0, 0.1, 0.05), level * 2.0 - 1.0);
+		out_Color = vec4(LinearToScene(heat * mix(0.35, 1.0, var_TessInfo.x)), sceneHere.a);
+		out_Glow = vec4(0.0);
+		return;
+	}
+#endif
 	if (geometryDebug == 4)
 	{
 		vec3 bodyColor = vec3(fract(u_Water[WATER_U_WAVE_DEBUG].y * 0.37),

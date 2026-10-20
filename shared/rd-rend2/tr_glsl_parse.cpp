@@ -134,7 +134,7 @@ GPUProgramDesc ParseProgramSource( Allocator& allocator, const char *text )
 	}
 
 	static const char *shaderBlockNames[GPUSHADER_TYPE_COUNT] = {
-		"Vertex", "Fragment", "Geometry", "Compute"
+		"Vertex", "Fragment", "Geometry", "Compute", "TessControl", "TessEvaluation"
 	};
 
 	GPUProgramDesc theProgram = {};

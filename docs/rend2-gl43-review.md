@@ -65,7 +65,7 @@ the current caps are not reached by stock content).
 | 1 | Water intersection foam on compute: no readback, no CPU cell loop, no CPU foam resample | removes a full pipeline stall per frame (`r_waterIntersectionFoam 1`) | **done** |
 | 2 | Forward+ cluster build on compute (`r_forwardPlusCompute 1`) | removes the CPU binning of every colour view; tighter sphere vs cluster test (fewer lights per cluster in the lighting loop) | **done** |
 | 3 | Froxel light lists on the GPU, reusing the Forward+ kernel | removes CPU cluster binning and sphere-culls conservative boxes | **done** |
-| 4 | Water mesh tessellation LOD | prepass / reflection vertex cost of big water bodies | later, needs its own design |
+| 4 | Water mesh tessellation LOD | prepass / reflection vertex cost of big water bodies | **done** (`r_waterTessellation`, off by default): mesh memory and build time drop ~150×; with `r_waterTessPixels 96` the `t3_hevil` water pass on Intel goes from 99–120 ms to 73 ms (NVIDIA 6.5 → 5–6 ms); the rest is mostly water SSR (plan 5 status) |
 | 5 | Single-pass Hi-Z / AO depth chain | a few tens of µs | not planned |
 
 Detailed plans for the remaining work (what, why, where, what to change, how to validate):
@@ -346,4 +346,97 @@ Known differences:
 Not addressed: `lightall_LMAP_N_MR_SUN` is ≈ 75× slower per fragment on this Intel GPU than on the RTX 2060, and
 that also makes the main view 70–100 ms here. The `r_dlightMode 1` result (a smaller permutation runs faster
 everywhere on screen) suggests register pressure or spilling in the big permutations, not the lighting work
-itself. That needs its own look at the compiled program.
+itself. That needs its own look at the compiled program (next section).
+
+### lightall per-fragment cost on Intel (debug views, cascade loop)
+
+2026-10-19, follow-up of the skyportal work. On the Intel UHD (driver 27.20.100.8280),
+`lightall_LMAP_N_MR_SUN` and its `GRID` / `VERT` siblings cost 80–95 ns per fragment at the vjun2 spawn, against
+≈ 1.5–3 ns on the RTX 2060. That made the main view 133–137 ms per frame here (1080p, `r_dlightMode 2`,
+`r_forwardPlus 1`, PCSS on).
+
+**Cause: register pressure from code that does not run.** It is not the lighting or shadow work:
+
+- **Offline harness.** The program the game compiles (dumped from the renderer, preprocessed) was drawn full
+  screen in a hidden GL 4.3 context, with every uniform zero (no lights, PCSS off). It still took 66–75 ns per
+  fragment on the Intel GPU. `lightall_SUN` took 0.6 ns.
+- **SIMD width.** A `GL_ARB_shader_group_vote` probe (`allInvocationsARB` around one marked pixel) shows every big
+  permutation runs as SIMD8, including the fast variants below. `lightall_SUN` runs as SIMD16. So the slow tiers
+  are SIMD8 programs that spill, not a SIMD16 / SIMD8 switch. The driver gives no ISA or spill counts:
+  `GL_INTEL_performance_query` only has pipeline statistics, and the program binary is opaque.
+- **Dead code costs.**
+  - With no lights, `CalcDynamicLightContribution` returns before its loop. Removing it anyway took the program
+    from 68 to 28–33 ns.
+  - Removing only the cube / spot shadow code of the DSHADOWS loop gave 41–45 ns. That is the `r_dlightMode 1`
+    effect.
+  - Removing the five debug exits at the end of `main()` gave 25–38 ns. That includes the flat
+    `u_MaterialDebug` color: on its own, that exit is worth ≈ 15 ns.
+- **The work is cheap.** Without the debug exits, the sun cascade code is most of what is left (30 → 4 ns
+  without it). Its texture fetches cost nothing measurable: removing every fetch, or the PCF and blocker loops,
+  changed nothing. What matters is the structure. `sunShadowModern` inlined `EvaluateSunCascade` five times (one
+  call per branch, two in each blend band).
+
+Bisection in the harness (Intel, ns per fragment, two interleaved rounds):
+
+| `lightall_LMAP_N_MR_SUN` variant | ns / fragment |
+| --- | --- |
+| stock | 66–75 |
+| no `CalcDynamicLightContribution` / no sun shadow / neither | 28–33 / 16–22 / 4 |
+| no debug views | 31–38 |
+| no debug views, cascades in one loop (same math) | 24–25 |
+| no debug views, one cascade, no blend band, gradients from world derivatives | 7–8 |
+
+The same variants in game, through the renderer's source override (per draw item: glFinish plus
+`GL_SAMPLES_PASSED`, vjun2 spawn, two runs each, interleaved):
+
+| variant | LMAP | VERT | GRID | main view (r_speeds) |
+| --- | --- | --- | --- | --- |
+| stock | 81–96 | 78–85 | 84–95 ns | 133–137 ms |
+| no debug views | 46.5 | 44 | 51–54 ns | 73–75 ms |
+| no debug views, one cascade, no blend | 15–17 | 11 | 16–19 ns | 29.5–32 ms |
+
+**Fix (uncommitted, default behaviour, nothing to set):**
+
+- **`USE_LIGHTALL_DEBUG`.** The debug exits of lightall are now compiled only while one of their cvars is set:
+  - the exits: `r_shadowDebug`, `r_pbrEnergyDebug` 1–4, `r_materialModelDebug`, `r_specularAADebug`,
+    `r_spotLightCookieDebug`, and the flat material colors;
+  - the cvars that drive those colors: `r_autoPBRDebug`, `r_autoFoliageDebug`, `r_leafFlutterDebug`,
+    `r_emissiveDebug`, `r_skinSSSDebug`, `r_volumetricFogDebug 69`.
+
+  All of them are runtime cheat cvars. `GLSL_UpdateLightallDebug` (tr_glsl.cpp, called from `RE_BeginFrame`)
+  rebuilds the loaded lightall programs when the set flips. It took 3.6–4.2 s for 10 programs on Intel, and the
+  debug view then works (78 ns per fragment while it is on).
+- **Cascade loop.** `sunShadowModern` first picks the cascade, or the pair blended across a split, then runs one
+  `EvaluateSunCascade` in a loop of one or two iterations: `result = r0`, then `MixSunCascadeResults(result, r1,
+  t)`. The math is the same, with one inlined copy instead of five.
+
+| vjun2 spawn, 1080p | Intel LMAP / VERT / GRID / GRID_SK (ns per fragment) | Intel main view | RTX 2060 main view |
+| --- | --- | --- | --- |
+| stock | 84–86 / 79–81 / 84–86 / 156–161 | 133–137 ms | 3.01 ms |
+| fix | 35–39 / 25–28 / 38 / 88–101 | 55–62 ms | 2.93 ms |
+
+**Image.** The program the game compiles was compared bit for bit with the stock one, on both GPUs. The inputs
+were pseudo-random uniforms, uniform blocks and textures, with orthographic cascades whose blend bands cross the
+screen, and two point lights, one of them cube shadowed:
+
+- No dynamic light: identical.
+- With the lights: 1–62 of 8.3 M channels differ, by at most one RGBA16F ulp (≤ 0.1 % relative). That is
+  rounding. The removed debug accumulators (`g_energy*`, `g_materialSpecular`) change how the compiler associates
+  the light loop's products.
+- The cascade loop on its own adds no difference.
+
+There was no screenshot A/B: screenshots do not work in the hidden-window runs.
+
+**Not done (recommendation).** The remaining Intel cost is still ≈ 20× the RTX 2060 per fragment, against the
+usual 12–15×. The measured way down is the "one cascade" row: LMAP 15–17 ns, main view ≈ 30 ms. It needs two
+image changes, so it is a decision for the user:
+
+- **Receiver-plane gradient from world-space derivatives.** One `dFdx` / `dFdy` of the world position, and
+  `0.5 * mat3(M) * dP` per cascade. That is exact for the orthographic cascade matrices and avoids the
+  cancellation in `dFdx` of the projected position. It is therefore slightly more precise, so not bit-identical.
+- **No two-cascade evaluation in the blend band.** For example, dither the cascade choice across the band
+  instead of blending two full PCSS evaluations.
+
+Either change alone was not enough in the harness. The other debug views, entity grid (`r_entityLightGridDebug`)
+and diffuse IBL (`u_DiffuseIBLParams.y`), are in other permutations and were left as they are. The skinned
+permutations (`_SK`) are still 88–101 ns.

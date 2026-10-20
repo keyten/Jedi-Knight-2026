@@ -257,6 +257,7 @@ PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
 // Optional OpenGL 4.3 entry points
 PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
 PFNGLTEXTUREVIEWPROC qglTextureView;
+PFNGLPATCHPARAMETERIPROC qglPatchParameteri;
 PFNGLDISPATCHCOMPUTEINDIRECTPROC qglDispatchComputeIndirect;
 PFNGLMEMORYBARRIERPROC qglMemoryBarrier;
 PFNGLBINDIMAGETEXTUREPROC qglBindImageTexture;
@@ -786,6 +787,10 @@ void R_PrintModernCapabilities()
 		r_gl43->integer);
 	ri.Printf(PRINT_ALL, "...vertex shader layer: %s\n",
 		(glRefConfig.modernFeatures & MODERN_VS_LAYER) ? glRefConfig.vsLayerExtension : "unavailable");
+	if ( glRefConfig.modernFeatures & MODERN_TESSELLATION )
+		ri.Printf(PRINT_ALL, "...tessellation: supported, max level %d\n", glRefConfig.maxTessGenLevel);
+	else
+		ri.Printf(PRINT_ALL, "...tessellation: unavailable\n");
 }
 
 // MODERN_VS_LAYER: a #version 150 vertex shader that writes gl_Layer
@@ -823,6 +828,8 @@ void GLimp_InitModernFunctions()
 	qglGetProgramResourceIndex = nullptr;
 	qglGetProgramResourceiv = nullptr;
 	qglTextureView = nullptr;
+	qglPatchParameteri = nullptr;
+	glRefConfig.maxTessGenLevel = 0;
 	glRefConfig.vsLayerExtension = nullptr;
 	glRefConfig.modernFeatures = 0;
 	glRefConfig.modernPaths = qfalse;
@@ -892,6 +899,17 @@ void GLimp_InitModernFunctions()
 		{
 			glRefConfig.vsLayerExtension = layerExtension;
 			glRefConfig.modernFeatures |= MODERN_VS_LAYER;
+		}
+		// core since GL 4.0, so with every GL 4.3 context; the water patches
+		// are triangles (GL_PATCH_VERTICES 3 is also the default)
+		if ( GetGLFunction(qglPatchParameteri, "glPatchParameteri", qfalse) )
+		{
+			qglGetIntegerv(GL_MAX_TESS_GEN_LEVEL, &glRefConfig.maxTessGenLevel);
+			if ( glRefConfig.maxTessGenLevel >= 8 )
+			{
+				qglPatchParameteri(GL_PATCH_VERTICES, 3);
+				glRefConfig.modernFeatures |= MODERN_TESSELLATION;
+			}
 		}
 		glRefConfig.modernPaths = (qboolean)(r_gl43->integer && glRefConfig.modernFeatures != 0);
 	}

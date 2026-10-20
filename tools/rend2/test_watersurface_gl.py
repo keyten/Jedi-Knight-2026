@@ -107,6 +107,7 @@ UNITS.update({'u_AtmosphereTransmittanceMap': 21, 'u_AtmosphereMultiScatterMap':
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
 FLAG_CAMERA_LIQUID = 1024
+FLAG_PREPASS_CULL = 2048
 
 
 def read(name):
@@ -139,8 +140,10 @@ def header(defines, size):
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
-                  snell=False, physical=False, motion=False):
+                  snell=False, physical=False, motion=False, prepass=False):
     defines = ['USE_WATER_ATMOSPHERE']
+    if prepass:
+        defines.append('USE_WATER_REFLECTION_PASS')
     if hiz:
         defines.append('USE_HIZ')
     if snell:
@@ -166,7 +169,7 @@ def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=Fal
     library += (fragment('volumetric_common') + '\n' if froxel else '') + (fragment('ssr_common') + '\n' if ssr else '')
     src = read('watersurface')
     vs, fs = src.split('/*[Fragment]*/')
-    vs = vs.split('/*[Vertex]*/')[1]
+    vs = vs.split('/*[Vertex]*/')[1].split('/*[TessControl]*/')[0]
     if body is not None:
         fs = body(fs)
     h = header(defines, size)
@@ -689,7 +692,8 @@ class Rig:
         gl('glDepthFunc', None, U)(0x0203)
         gl('glDisable', None, U)(0x0B44)
         gl('glBindVertexArray', None, U)(self.water_vao)
-        gl('glDrawArrays', None, U, I, I)(4, 0, self.water_count)
+        # test_water_tessellation_gl.py draws its meshes as patches (GL_PATCHES 0xE)
+        gl('glDrawArrays', None, U, I, I)(getattr(self, 'water_mode', 4), 0, self.water_count)
         gl('glFinish', None)()
         return read_color(target, *out_size)
 
@@ -733,6 +737,12 @@ def check_permutations():
     prog = water_program(physical=True, shadows2=True, froxel=2, cubemap=True, snell=True)
     gl('glDeleteProgram', None, U)(prog)
     count += 1
+    # the prepass-only programs (WATERDEF_REFLECTION_PASS, SSR permutations only)
+    for deform, hiz, snell, motion in itertools.product([0, 1], [0, 1], [0, 1], [0, 1]):
+        prog = water_program(deform=bool(deform), ssr=True, hiz=bool(hiz), snell=bool(snell), motion=bool(motion),
+                             prepass=True)
+        gl('glDeleteProgram', None, U)(prog)
+        count += 1
     return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, water motion, physical lights)', True)
 
 
@@ -1156,6 +1166,20 @@ def check_integration():
     ok = check('water reflection history stores surface depth, normals and receiver-relative hits',
                active.any() and np.isfinite(geom[active]).all() and np.isfinite(hit[active]).all()
                and (hit[..., 3] > .5).sum() == hit_count) and ok
+    # r_waterSSROptimize: the prepass-only program and the early occlusion
+    # discard must write the same three targets as the combined program
+    refl_program = water_program(ssr=True, hiz=True, prepass=True)
+    for label, prog, extra in (('prepass-only program', refl_program, 0),
+                               ('early occlusion discard', program, FLAG_PREPASS_CULL),
+                               ('prepass-only program with the early discard', refl_program, FLAG_PREPASS_CULL)):
+        out = rig.draw_water(prog, rig.params(flags=flags | extra, ssr=1.), ssr=True, reflection=trace)
+        diff = max(np.max(np.abs(out - raw)),
+                   np.max(np.abs(read_color(buffers[0][0], *size, attachment=1) - geom)),
+                   np.max(np.abs(read_color(buffers[0][0], *size, attachment=2) - hit)))
+        ok = check(f'water reflection prepass: {label} matches the combined program', diff < 1e-5,
+                   f'max difference {diff:.3g}') and ok
+    gl('glDeleteProgram', None, U)(refl_program)
+    rig.draw_water(program, u, ssr=True, reflection=trace)
     resolve = dict(fbo=rig.water_fbo, size=rig.size, history=buffers[0][1], **{'pass': [0, 1, .8, 0]})
     image = rig.draw_water(probe_program('vec4(reflection, ssrDebug.g)', ssr=True, hiz=True),
                            u, ssr=True, reflection=resolve)

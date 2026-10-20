@@ -72,6 +72,8 @@ const char *GetShaderSuffix( GPUShaderType type )
 		case GPUSHADER_FRAGMENT: return "_fp";
 		case GPUSHADER_GEOMETRY: return "_gp";
 		case GPUSHADER_COMPUTE:  return "_cp";
+		case GPUSHADER_TESS_CONTROL:    return "_tc";
+		case GPUSHADER_TESS_EVALUATION: return "_te";
 		default: assert(!"Invalid shader type");
 	}
 	return nullptr;
@@ -85,6 +87,8 @@ const char *ToString( GPUShaderType type )
 		case GPUSHADER_FRAGMENT: return "GPUSHADER_FRAGMENT";
 		case GPUSHADER_GEOMETRY: return "GPUSHADER_GEOMETRY";
 		case GPUSHADER_COMPUTE:  return "GPUSHADER_COMPUTE";
+		case GPUSHADER_TESS_CONTROL:    return "GPUSHADER_TESS_CONTROL";
+		case GPUSHADER_TESS_EVALUATION: return "GPUSHADER_TESS_EVALUATION";
 		default: assert(!"Invalid shader type");
 	}
 	return nullptr;

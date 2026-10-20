@@ -345,6 +345,12 @@ static void FBO_SetupDrawBuffers()
 	}
 }
 
+// the GL name of the "window" framebuffer: tr.presentFbo with r_offscreenPresent
+static GLuint FBO_WindowFramebuffer(void)
+{
+	return tr.presentFbo ? tr.presentFbo->frameBuffer : 0;
+}
+
 /*
 ============
 FBO_Bind
@@ -366,7 +372,7 @@ void FBO_Bind(FBO_t * fbo)
 
 	if (!fbo)
 	{
-		qglBindFramebuffer(GL_FRAMEBUFFER, 0);
+		qglBindFramebuffer(GL_FRAMEBUFFER, FBO_WindowFramebuffer());
 		glState.currentFBO = NULL;
 	}
 	else
@@ -932,6 +938,23 @@ void FBO_Init(void)
 		R_CheckFBO(tr.weatherSurfaceFbo);
 	}
 
+	// r_offscreenPresent: the window's stand-in, created last so FBO_Bind(NULL)
+	// below already selects it. Same size and format as the window, with depth
+	// and stencil because 2D and some passes draw "to the screen" with them.
+	tr.presentFbo = NULL;
+	if (r_offscreenPresent && r_offscreenPresent->integer)
+	{
+		FBO_t *present = FBO_Create("_present", glConfig.vidWidth, glConfig.vidHeight);
+		FBO_Bind(present);
+		FBO_CreateBuffer(present, GL_RGBA8, 0, 0);
+		FBO_CreateBuffer(present, GL_DEPTH24_STENCIL8, 0, 0);
+		FBO_SetupDrawBuffers();
+		if (R_CheckFBO(present))
+			tr.presentFbo = present;
+		glState.currentFBO = present;	// FBO_Bind(NULL) below rebinds
+		ri.Printf(PRINT_ALL, "...offscreen present buffer: %s\n", tr.presentFbo ? "on" : "failed");
+	}
+
 	GL_CheckErrors();
 
 	FBO_Bind(NULL);
@@ -949,6 +972,8 @@ void FBO_Shutdown(void)
 
 	ri.Printf(PRINT_ALL, "------- FBO_Shutdown -------\n");
 
+	tr.presentFbo = NULL;
+	glState.currentFBO = (FBO_t *)-1;	// force the bind of the real window
 	FBO_Bind(NULL);
 
 	for(i = 0; i < tr.numFBOs; i++)
@@ -1181,8 +1206,8 @@ void FBO_FastBlit(FBO_t *src, vec4i_t srcBox, FBO_t *dst, vec4i_t dstBox, int bu
 	// get to a neutral state first
 	//FBO_Bind(NULL);
 
-	srcFb = src ? src->frameBuffer : 0;
-	dstFb = dst ? dst->frameBuffer : 0;
+	srcFb = src ? src->frameBuffer : FBO_WindowFramebuffer();
+	dstFb = dst ? dst->frameBuffer : FBO_WindowFramebuffer();
 
 	if (!srcBox)
 	{
@@ -1223,7 +1248,7 @@ void FBO_FastBlit(FBO_t *src, vec4i_t srcBox, FBO_t *dst, vec4i_t dstBox, int bu
 	                      dstBoxFinal[0], dstBoxFinal[1], dstBoxFinal[2], dstBoxFinal[3],
 						  buffers, filter);
 
-	qglBindFramebuffer(GL_FRAMEBUFFER, 0);
+	qglBindFramebuffer(GL_FRAMEBUFFER, FBO_WindowFramebuffer());
 	glState.currentFBO = NULL;
 }
 
@@ -1247,6 +1272,6 @@ void FBO_FastBlitIndexed(FBO_t *src, FBO_t *dst, int srcReadBuffer, int dstDrawB
 	glState.currentFBO = dst;
 	FBO_SetupDrawBuffers();
 
-	qglBindFramebuffer(GL_FRAMEBUFFER, 0);
+	qglBindFramebuffer(GL_FRAMEBUFFER, FBO_WindowFramebuffer());
 	glState.currentFBO = NULL;
 }

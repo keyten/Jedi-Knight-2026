@@ -555,6 +555,8 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	R_ForwardPlusBeginFrame();
 	R_PomSilhouetteBeginFrame();
 	R_PomBeginFrame();
+	// lightall debug views compiled in only while one is on (tr_glsl.cpp)
+	GLSL_UpdateLightallDebug();
 	// SSGI dependency notes, printed once (tr_ssgi.cpp)
 	R_SSGICheckDependencies();
 	if ( thisFrame->sync )
@@ -751,10 +753,15 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 
 				FBO_Bind(NULL);
 
-				qglDrawBuffer(GL_FRONT);
-				qglClear(GL_COLOR_BUFFER_BIT);
-				qglDrawBuffer(GL_BACK);
-				qglClear(GL_COLOR_BUFFER_BIT);
+				if (tr.presentFbo)
+					qglClear(GL_COLOR_BUFFER_BIT);	// no front / back buffers in an FBO
+				else
+				{
+					qglDrawBuffer(GL_FRONT);
+					qglClear(GL_COLOR_BUFFER_BIT);
+					qglDrawBuffer(GL_BACK);
+					qglClear(GL_COLOR_BUFFER_BIT);
+				}
 
 				r_anaglyphMode->modified = qfalse;
 			}

@@ -13,6 +13,15 @@ struct WaterSurfaceCommonState
 	float curvature;
 };
 
+#if defined(USE_WATER_TESSELLATION)
+// r_waterTessellation: how much of each of the two longest (geometry
+// candidate) components the tessellated mesh resolves at this point; the
+// evaluation stage sets it per generated vertex, the fragment stage from
+// var_GeometryWeights. Mode 1 scales the candidates by it, mode 2 adds the
+// rest (1 - weight), so the two always sum to the full spectrum.
+vec2 waterGeometryWeights = vec2(1.0);
+#endif
+
 WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float time,
 	vec4 controls, vec4 profile, vec4 body, vec4 flow, vec4 flowDetail, vec4 terms[8],
 	vec4 omega[2], float evaluationMode, float geometryCount)
@@ -38,9 +47,22 @@ WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float tim
 		if (i >= count) break;
 		int component = geometryPass ? i :
 			(shadingCount == 8 ? i : (i < shadingCount / 2 ? i : 4 + i - shadingCount / 2));
+#if defined(USE_WATER_TESSELLATION)
+		float split = 1.0;
+		if (component < geometryComponents && (geometryPass || shadingRemainder))
+		{
+			split = component == 0 ? waterGeometryWeights.x : waterGeometryWeights.y;
+			if (shadingRemainder) split = 1.0 - split;
+		}
+		if (split <= 0.0) continue;
+#else
 		if (shadingRemainder && component < geometryComponents) continue;
+#endif
 		float fi = float(component); vec4 term = terms[component]; vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude; float k = term.w;
+#if defined(USE_WATER_TESSELLATION)
+		a *= split;
+#endif
 		float temporalFrequency = omega[component / 4][component - (component / 4) * 4];
 		vec2 phasePosition = worldPosition.xy;
 		if (flow.w > 0.5 && component >= 4) phasePosition -= flow.xy * time * flowDetail.y * 0.35;
@@ -75,6 +97,15 @@ struct WaterSurfaceCommonState
 	float curvature;
 };
 
+#if defined(USE_WATER_TESSELLATION)
+// r_waterTessellation: how much of each of the two longest (geometry
+// candidate) components the tessellated mesh resolves at this point; the
+// evaluation stage sets it per generated vertex, the fragment stage from
+// var_GeometryWeights. Mode 1 scales the candidates by it, mode 2 adds the
+// rest (1 - weight), so the two always sum to the full spectrum.
+vec2 waterGeometryWeights = vec2(1.0);
+#endif
+
 WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float time,
 	vec4 controls, vec4 profile, vec4 body, vec4 flow, vec4 flowDetail, vec4 terms[8],
 	vec4 omega[2], float evaluationMode, float geometryCount)
@@ -97,9 +128,22 @@ WaterSurfaceCommonState EvaluateWaterSurfaceCommon(vec3 worldPosition, float tim
 		if (i >= count) break;
 		int component = geometryPass ? i :
 			(shadingCount == 8 ? i : (i < shadingCount / 2 ? i : 4 + i - shadingCount / 2));
+#if defined(USE_WATER_TESSELLATION)
+		float split = 1.0;
+		if (component < geometryComponents && (geometryPass || shadingRemainder))
+		{
+			split = component == 0 ? waterGeometryWeights.x : waterGeometryWeights.y;
+			if (shadingRemainder) split = 1.0 - split;
+		}
+		if (split <= 0.0) continue;
+#else
 		if (shadingRemainder && component < geometryComponents) continue;
+#endif
 		float fi = float(component); vec4 term = terms[component]; vec2 direction = term.xy;
 		float a = term.z * w.attenuation * qualityAmplitude; float k = term.w;
+#if defined(USE_WATER_TESSELLATION)
+		a *= split;
+#endif
 		float temporalFrequency = omega[component / 4][component - (component / 4) * 4];
 		vec2 phasePosition = worldPosition.xy;
 		if (flow.w > 0.5 && component >= 4) phasePosition -= flow.xy * time * flowDetail.y * 0.35;

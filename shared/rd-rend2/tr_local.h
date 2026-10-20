@@ -339,11 +339,15 @@ extern cvar_t *r_waterWhitewaterFoam, *r_waterWhitewaterDecay, *r_waterWhitewate
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
+extern cvar_t *r_waterTessellation, *r_waterTessPixels, *r_waterTessMax, *r_waterTessForce;
+extern cvar_t *r_waterTessMinEdge, *r_waterTessLodDistance;
+extern cvar_t *r_offscreenPresent;
 extern cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactSoftness;
 extern cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
 extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
 extern cvar_t *r_waterSSRWaveReprojection, *r_waterMotionDebug;
+extern cvar_t *r_waterSSROptimize;
 extern cvar_t *r_waterlineHysteresis, *r_waterlineDebug;
 extern cvar_t	*r_waterSurfaceRefraction;
 extern cvar_t	*r_waterSurfaceDepthReject;
@@ -1152,6 +1156,7 @@ typedef struct IBO_s
 {
 	uint32_t        indexesVBO;
 	size_t          indexesSize;	// amount of memory data allocated for all triangles in bytes
+	qboolean        waterPatches;	// water render mesh drawn as patches (r_waterTessellation)
 //  uint32_t        ofsIndexes;
 } IBO_t;
 
@@ -2499,7 +2504,9 @@ enum
 	WATERDEF_USE_DEFORM_VERTEXES	= 0x0001,
 	WATERDEF_USE_HIZ				= 0x0002,	// SSR reflections walk the closest depth mips (r_ssrHiZ)
 	WATERDEF_USE_SNELL				= 0x0004,	// Snell's window, total internal reflection from inside (r_waterSnell)
-	WATERDEF_ALL					= 0x0007,
+	WATERDEF_USE_TESSELLATION		= 0x0008,	// the render mesh as patches (r_waterTessellation, GL 4.3)
+	WATERDEF_REFLECTION_PASS		= 0x0010,	// the SSR prepass alone, without the shading (r_waterSSROptimize)
+	WATERDEF_ALL					= 0x001F,
 	WATERDEF_COUNT					= WATERDEF_ALL + 1,
 };
 
@@ -2628,6 +2635,8 @@ enum GPUShaderType
 	GPUSHADER_FRAGMENT,
 	GPUSHADER_GEOMETRY,
 	GPUSHADER_COMPUTE,		// GL 4.3 kernels only (GLSL_LoadComputeProgram), never in a raster program
+	GPUSHADER_TESS_CONTROL,		// GL 4.0+ (MODERN_TESSELLATION), the program gets #version 430 core in every stage
+	GPUSHADER_TESS_EVALUATION,
 	GPUSHADER_TYPE_COUNT
 };
 
@@ -2968,6 +2977,8 @@ typedef enum
 	UNIFORM_WATERFLOWPARAMS,	// vec4[2] water surface: flow field / wall impact / foam pattern controls
 	UNIFORM_WATERFOAMPATTERNMAP,	// water surface: procedural tiling foam structure
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
+	UNIFORM_WATERTESS,            // r_waterTessellation: level scale, max level, forced level, cull extent
+	UNIFORM_WATERTESSRANGE,       // r_waterTessMinEdge, r_waterTessLodDistance
 	UNIFORM_WATEROPTICS2,         // opt-in underwater BTDF / radiance transport
 	UNIFORM_WATERGLOWMAP,
 
@@ -4139,6 +4150,7 @@ typedef struct {
 	qboolean annotateResources;
 
 	const char *vsLayerExtension;	// MODERN_VS_LAYER: the extension the vertex shaders enable
+	GLint maxTessGenLevel;			// MODERN_TESSELLATION: GL_MAX_TESS_GEN_LEVEL
 } glRefConfig_t;
 
 enum modernFeature_t
@@ -4148,7 +4160,10 @@ enum modernFeature_t
 	MODERN_IMAGE_LOAD_STORE = 1u << 2,
 	// gl_Layer from the vertex shader (GL_AMD_vertex_shader_layer or
 	// GL_ARB_shader_viewport_layer_array) + texture views: r_shadowLayered
-	MODERN_VS_LAYER = 1u << 3
+	MODERN_VS_LAYER = 1u << 3,
+	// tessellation control / evaluation stages and glPatchParameteri:
+	// r_waterTessellation
+	MODERN_TESSELLATION = 1u << 4
 };
 
 qboolean R_HasModernFeatures(uint32_t requiredFeatures);
@@ -4428,6 +4443,9 @@ typedef struct trGlobals_s {
 	image_t					*skinBlurImage[2];	// horizontal, vertical blur of skinDiffuseImage
 
 	FBO_t					*renderFbo;
+	// r_offscreenPresent: stands in for the window framebuffer (FBO_Bind(NULL),
+	// blits from / to NULL), copied to the window in RB_SwapBuffers
+	FBO_t					*presentFbo;
 	FBO_t					*depthVelocityFbo;
 	FBO_t					*glowFboScaled[6];
 	FBO_t					*msaaResolveFbo;
@@ -5558,6 +5576,7 @@ void GL_VertexArraysToAttribs( vertexAttribute_t *attribs,
 void GLSL_BindProgram(shaderProgram_t * program);
 void GLSL_Usage_f( void );
 bool GLSL_EnsureProgram( shaderProgram_t *program );
+void GLSL_UpdateLightallDebug( void );
 void GLSL_EndRegistration( void );
 void GLSL_BindNullProgram(void);
 
@@ -6580,6 +6599,9 @@ void R_WaterClassifySurfaces(world_t *world, const byte *fileBase, const lump_t 
 	const lump_t *modelsLump, const lump_t *brushesLump, const lump_t *sidesLump);
 void R_WaterUpdateMergedSurfaces(world_t *world);
 qboolean R_WaterSurfaceResourcesEnabled(void);	// latched r_waterSurface: copy targets and programs exist
+qboolean R_WaterTessellationAvailable(void);	// latched r_waterTessellation + r_waterGeometry on a GL 4.3 context
+int R_WaterTessMaxLevel(void);					// r_waterTessMax within the driver limit
+void RB_WaterTessQuery(qboolean begin);			// primitive count of the main water pass (r_waterGeometryInfo)
 qboolean R_WaterFoamResourcesEnabled(void);	// latched body-local persistent foam field
 void R_CreateWaterSurfaceImages(int width, int height, int hdrFormat);
 void R_CreateWaterSurfaceFBOs(void);
@@ -6590,6 +6612,7 @@ void RB_WaterSurfaceBeginView(void);
 void RB_WaterSurfaceSetCoverage(const drawSurf_t *drawSurfs, int numDrawSurfs);
 qboolean RB_WaterSurfaceDraws(const shader_t *shader);	// this draw uses the water program in this view
 shaderProgram_t *RB_WaterSurfaceProgram(const shader_t *shader);
+shaderProgram_t *RB_WaterSurfaceReflectionProgram(shaderProgram_t *program);
 void RB_WaterSurfaceSetupDraw(const shaderCommands_t *input, UniformDataWriter& uniforms,
 	SamplerBindingsWriter& samplers);
 void RB_WaterSurfacePrepare(void);			// copies the scene under the water (RB_SubmitRenderPass)

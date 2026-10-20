@@ -2743,7 +2743,9 @@ static void RB_IterateStagesWater( shaderCommands_t *input, const VertexArraysPr
 	else
 		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
 
-	RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
+	const bool patches = sp >= tr.waterSurfaceShader &&
+		((sp - tr.waterSurfaceShader) & WATERDEF_USE_TESSELLATION) != 0;
+	RB_FillDrawCommand(item.draw, patches ? GL_PATCHES : GL_TRIANGLES, 1, input);
 
 	const uint32_t key = RB_CreateSortKey(item, 0, input->shader->sort);
 	RB_AddDrawItem(backEndData->currentPass, key, item);

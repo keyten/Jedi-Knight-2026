@@ -488,6 +488,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFlowParams",	GLSL_VEC4, 2 },
 	{ "u_WaterFoamPattern",	GLSL_INT, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
+	{ "u_WaterTess", GLSL_VEC4, 1 },
+	{ "u_WaterTessRange", GLSL_VEC4, 1 },
 	{ "u_WaterOptics2", GLSL_VEC4, 1 },
 	{ "u_GlowMap", GLSL_INT, 1 },
 
@@ -640,7 +642,9 @@ static size_t GLSL_GetShaderHeader(
 {
 	dest[0] = '\0';
 
-	GLSL_HeaderCat(dest, size, shaderType == GL_COMPUTE_SHADER ? "#version 430 core\n" : "#version 150 core\n");
+	const bool modernStage = shaderType == GL_COMPUTE_SHADER ||
+		shaderType == GL_TESS_CONTROL_SHADER || shaderType == GL_TESS_EVALUATION_SHADER;
+	GLSL_HeaderCat(dest, size, modernStage ? "#version 430 core\n" : "#version 150 core\n");
 
 	GLSL_HeaderCat(dest, size,
 					"#ifndef M_PI\n"
@@ -918,6 +922,8 @@ static const char *GLSL_GetShaderFileSuffix( GLenum shaderType )
 		{ GL_VERTEX_SHADER, "vp" },
 		{ GL_FRAGMENT_SHADER, "fp" },
 		{ GL_GEOMETRY_SHADER, "gp" },
+		{ GL_TESS_CONTROL_SHADER, "tc" },
+		{ GL_TESS_EVALUATION_SHADER, "te" },
 	};
 
 	for ( const auto& suffix : shaderToFileExtensionSuffix )
@@ -1127,6 +1133,12 @@ GLenum ToGLShaderType( GPUShaderType type )
 
 		case GPUSHADER_COMPUTE:
 			return GL_COMPUTE_SHADER;
+
+		case GPUSHADER_TESS_CONTROL:
+			return GL_TESS_CONTROL_SHADER;
+
+		case GPUSHADER_TESS_EVALUATION:
+			return GL_TESS_EVALUATION_SHADER;
 
 		default:
 			assert(!"Invalid shader type");
@@ -1796,6 +1808,9 @@ class ShaderProgramBuilder
 		// only the cache key of the next started program (after AddShader), it
 		// cannot be built
 		void SetKeysOnly( bool value ) { keysOnly = value; }
+		// every stage of the started program gets #version 430 core (a program
+		// with tessellation stages; mixed versions do not link reliably)
+		void SetModernVersion( bool value ) { modernVersion = value; }
 		uint64_t Key() const { return cacheKey; }
 		// the started program (after AddShader) as a rend2_glslc job
 		void MakeJob( glslHelperJob_t& job ) const;
@@ -1823,6 +1838,7 @@ class ShaderProgramBuilder
 		std::vector<PendingShader> pendingShaders;
 		uint64_t cacheKey;
 		bool keysOnly;
+		bool modernVersion;
 };
 
 ShaderProgramBuilder::ShaderProgramBuilder()
@@ -1834,6 +1850,7 @@ ShaderProgramBuilder::ShaderProgramBuilder()
 	, shaderSource(MAX_SHADER_SOURCE_LEN, '\0')
 	, cacheKey(GLSL_HASH_SEED)
 	, keysOnly(false)
+	, modernVersion(false)
 {
 }
 
@@ -1855,6 +1872,7 @@ void ShaderProgramBuilder::Start(
 	this->attribs = attribs;
 	this->xfbVariables = xfbVariables;
 	keysOnly = false;
+	modernVersion = false;
 
 	pendingShaders.clear();
 	uint32_t keyData[3] = { GLSL_CACHE_VERSION, attribs, xfbVariables };
@@ -1896,6 +1914,9 @@ bool ShaderProgramBuilder::AddShader( const GPUShaderDesc& shaderDesc, const cha
 			shaderDesc.firstLineNumber,
 			&shaderSource[0],
 			shaderSource.size());
+		// same length: only the version digits change
+		if ( modernVersion && strncmp(shaderSource.c_str(), "#version 150 core\n", 18) == 0 )
+			memcpy(&shaderSource[9], "430", 3);
 
 		sourceLen = GLSL_LoadGPUShaderSource(
 				name,
@@ -3663,6 +3684,21 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		}
 	}
 
+	// once: the scratch allocator does not hold a combined copy per permutation
+	const GPUShaderDesc *vertexStage = nullptr;
+	const GPUShaderDesc *fragmentStage = nullptr;
+	const GPUShaderDesc *controlStage = nullptr;
+	for (size_t stage = 0; stage < programDesc->numShaders; ++stage)
+	{
+		const GPUShaderDesc& desc = programDesc->shaders[stage];
+		if (desc.type == GPUSHADER_VERTEX)
+			vertexStage = GLSL_CombineLibraries(allocator, vertexLibrary, &desc);
+		else if (desc.type == GPUSHADER_FRAGMENT)
+			fragmentStage = &desc;
+		else if (desc.type == GPUSHADER_TESS_CONTROL)
+			controlStage = &desc;
+	}
+
 	for (int i = 0; i < WATERDEF_COUNT; i++)
 	{
 		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
@@ -3718,6 +3754,15 @@ static int GLSL_LoadGPUProgramWaterSurface(
 			Q_strcat(name, sizeof(name), "_HIZ");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_HIZ\n");
 		}
+		// the reflection prepass with the shading compiled out: the half
+		// resolution trace does not pay for the registers of the main pass
+		if (i & WATERDEF_REFLECTION_PASS)
+		{
+			if (!R_SSRResourcesEnabled())
+				continue;
+			Q_strcat(name, sizeof(name), "_REFL");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_REFLECTION_PASS\n");
+		}
 		if (i & WATERDEF_USE_DEFORM_VERTEXES)
 		{
 			Q_strcat(name, sizeof(name), "_DEFORM");
@@ -3734,17 +3779,34 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		}
 		if (r_waterSnellOptics->integer >= 2)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_ATMOSPHERE\n");
+		// r_waterTessellation: the render mesh as patches. The vertex block is
+		// also the evaluation stage, every stage gets #version 430.
+		const bool tessellation = (i & WATERDEF_USE_TESSELLATION) != 0;
+		if (tessellation)
+		{
+			if (!R_WaterTessellationAvailable())
+				continue;
+			Q_strcat(name, sizeof(name), "_TESS");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_TESSELLATION\n");
+		}
 
 		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
-		GPUProgramDesc waterProgram = *programDesc;
-		GPUShaderDesc stages[2];
-		Com_Memcpy(stages, programDesc->shaders, sizeof(stages));
-		for (int stage = 0; stage < 2; ++stage)
-			if (stages[stage].type == GPUSHADER_VERTEX)
-				stages[stage] = *GLSL_CombineLibraries(allocator, vertexLibrary, &stages[stage]);
-		waterProgram.shaders = stages;
-		if (!GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-			extradefines, waterProgram, library))
+		if (!vertexStage || !fragmentStage || (tessellation && !controlStage))
+			ri.Error(ERR_FATAL, "Could not load watersurface shader!");
+		builder.Start(name, attribs, NO_XFB_VARS);
+		builder.SetModernVersion(tessellation);
+		bool added = builder.AddShader(*vertexStage, extradefines, nullptr) &&
+			builder.AddShader(*fragmentStage, extradefines, library);
+		if (tessellation && added)
+		{
+			char evaluationDefines[4096 + 64];
+			Com_sprintf(evaluationDefines, sizeof(evaluationDefines), "%s#define WATER_TESS_EVALUATION\n", extradefines);
+			GPUShaderDesc evaluationStage = *vertexStage;
+			evaluationStage.type = GPUSHADER_TESS_EVALUATION;
+			added = builder.AddShader(*controlStage, extradefines, nullptr) &&
+				builder.AddShader(evaluationStage, evaluationDefines, nullptr);
+		}
+		if (!added || !builder.Build(sp))
 		{
 			ri.Error(ERR_FATAL, "Could not load watersurface shader!");
 		}
@@ -3876,6 +3938,35 @@ static void GLSL_SetPomSilhouetteUnits( shaderProgram_t *program )
 	GLSL_SetUniformInt(program, UNIFORM_POMGROUPS, TB_POM_GROUPS);
 }
 
+/*
+Lightall debug views (USE_LIGHTALL_DEBUG): r_shadowDebug, r_pbrEnergyDebug,
+r_materialModelDebug, r_specularAADebug, r_spotLightCookieDebug and the flat
+material colors (r_autoPBRDebug and co.) are runtime cheat cvars, so their exits
+used to be compiled into every lightall permutation. On the Intel UHD
+(27.20.100.8280) those exits alone cost the big permutations nearly 2x per
+fragment with every view off, as register pressure, not work
+(docs/rend2-gl43-review.md, "lightall per-fragment cost on Intel"). They
+are compiled only while one of the cvars is set; GLSL_UpdateLightallDebug
+rebuilds the loaded lightall programs when that changes.
+*/
+static bool s_lightallDebug;	// USE_LIGHTALL_DEBUG of every loaded lightall program
+
+static bool GLSL_LightallDebugWanted( void )
+{
+	const cvar_t *const views[] = {
+		r_shadowDebug, r_pbrEnergyDebug, r_materialModelDebug, r_specularAADebug,
+		r_spotLightCookieDebug, r_autoPBRDebug, r_autoFoliageDebug, r_leafFlutterDebug,
+		r_emissiveDebug, r_skinSSSDebug,
+	};
+	for ( const cvar_t *view : views )
+	{
+		if ( view && view->integer )
+			return true;
+	}
+	// r_volumetricFogDebug 69 colors the draws the liquid medium does not fog
+	return r_volumetricFogDebug && r_volumetricFogDebug->integer == 69;
+}
+
 static int GLSL_LoadGPUProgramLightAll(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc,
@@ -3926,6 +4017,8 @@ static int GLSL_LoadGPUProgramLightAll(
 		// r_forwardPlusDebug views (latched): only compiled when asked for
 		if (r_forwardPlusDebug->integer)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_FPLUS_DEBUG\n");
+		if (s_lightallDebug)
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIGHTALL_DEBUG\n");
 
 		// Normal-variance specular AA is a latched toggle. With it off the
 		// derivative/mip-variance path and its uniform are absent.
@@ -6217,6 +6310,43 @@ bool GLSL_EnsureProgram( shaderProgram_t *program )
 	return false;
 }
 
+/*
+Called once a frame (RE_BeginFrame): when a lightall debug view cvar is set or
+cleared, the loaded lightall programs (and their silhouette POM twins) are
+rebuilt with / without USE_LIGHTALL_DEBUG. The rest load on demand as before.
+*/
+void GLSL_UpdateLightallDebug( void )
+{
+	const bool wanted = GLSL_LightallDebugWanted();
+	if ( wanted == s_lightallDebug )
+		return;
+	s_lightallDebug = wanted;
+	R_IssuePendingRenderCommands();
+
+	std::vector<uint8_t> loaded(LIGHTDEF_COUNT, 0);
+	int numLoaded = 0;
+	for ( int i = 0; i < LIGHTDEF_COUNT; ++i )
+	{
+		if ( !tr.lightallShader[i].program )
+			continue;
+		loaded[i] = 1;
+		numLoaded++;
+		GLSL_DeleteGPUShader(&tr.lightallShader[i]);
+		const int pomIndex = GLSL_PomSilhouetteLightallIndex(i);
+		if ( pomIndex >= 0 )
+			GLSL_DeleteGPUShader(&tr.lightallSilhouetteShader[pomIndex]);
+	}
+	s_glslPrograms.erase(std::remove_if(s_glslPrograms.begin(), s_glslPrograms.end(),
+		[]( const shaderProgram_t *program ) { return !program->program; }), s_glslPrograms.end());
+	if ( !numLoaded )
+		return;
+
+	const int start = ri.Milliseconds();
+	GLSL_BuildLazy(LAZY_LIGHTALL, loaded.data());
+	ri.Printf(PRINT_ALL, "GLSL: rebuilt %d lightall programs %s the debug views in %d ms\n",
+		numLoaded, wanted ? "with" : "without", ri.Milliseconds() - start);
+}
+
 static void GLSL_LazyFlush( void )
 {
 	if ( !s_glslLazy )
@@ -6323,7 +6453,7 @@ static int GLSL_CountStartupPrograms()
 		count += GLSL_StartupWanted(LAZY_REFRACTION, i) ? 1 : 0;
 	count += MOTIONBLURDEF_COUNT + RAINLENSDEF_COUNT + RAINLENSCOMPOSITE_COUNT;
 	if (R_WaterSurfaceResourcesEnabled())
-		count += R_SSRResourcesEnabled() ? WATERDEF_COUNT : WATERDEF_COUNT / 2;
+		count += (WATERDEF_COUNT >> (R_SSRResourcesEnabled() ? 0 : 2)) >> (R_WaterTessellationAvailable() ? 0 : 1);
 	if (R_WaterFoamResourcesEnabled())
 		++count;
 	// GL 4.3 kernels: water depth contacts, Forward+ and froxel cluster builds
@@ -6480,6 +6610,7 @@ void GLSL_LoadGPUShaders()
 	Allocator allocator(512 * 1024);
 	ShaderProgramBuilder builder;
 	GLSL_LazyBegin();
+	s_lightallDebug = GLSL_LightallDebugWanted();
 	s_startupProgramsTotal = GLSL_CountStartupPrograms();
 	s_parallelShaderCompile = ri.GL_ExtensionSupported("GL_ARB_parallel_shader_compile") ||
 		ri.GL_ExtensionSupported("GL_KHR_parallel_shader_compile");

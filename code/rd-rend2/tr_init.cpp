@@ -222,6 +222,9 @@ cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
 cvar_t *r_waterfallImpact, *r_waterfallImpactRadius, *r_waterfallImpactImpulse;
 cvar_t *r_waterfallImpactTurbulence, *r_waterfallImpactFoam, *r_waterfallImpactDebug;
 cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
+cvar_t *r_waterTessellation, *r_waterTessPixels, *r_waterTessMax, *r_waterTessForce;
+cvar_t *r_waterTessMinEdge, *r_waterTessLodDistance;
+cvar_t *r_offscreenPresent;
 cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactSoftness;
 cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
 cvar_t	*r_waterSurfaceIOR;
@@ -255,6 +258,7 @@ cvar_t	*r_waterSurfaceDepthReject;
 cvar_t	*r_waterSurfaceReflection;
 cvar_t	*r_waterSurfaceSSR;
 cvar_t	*r_waterSSRWaveReprojection;
+cvar_t	*r_waterSSROptimize;
 cvar_t	*r_waterMotionDebug;
 cvar_t	*r_waterSurfaceAbsorption;
 cvar_t	*r_waterSurfaceDepthScale;
@@ -3232,6 +3236,17 @@ void R_Register( void )
 	r_waterGeometryBodyVerts = ri_Cvar_Get_NoComm("r_waterGeometryBodyVerts", "250000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per water body");
 	r_waterGeometryMapVerts = ri_Cvar_Get_NoComm("r_waterGeometryMapVerts", "1000000", CVAR_ARCHIVE | CVAR_LATCH, "Maximum subdivided vertices per map");
 	r_waterGeometryDebug = ri_Cvar_Get_NoComm("r_waterGeometryDebug", "0", CVAR_ARCHIVE, "Water geometry debug view");
+	r_offscreenPresent = ri_Cvar_Get_NoComm("r_offscreenPresent", "0", CVAR_LATCH, "Render the frame into an offscreen buffer and copy it to the window at swap, so screenshots work from a hidden window (scripted tests); requires vid_restart");
+	r_waterTessellation = ri_Cvar_Get_NoComm("r_waterTessellation", "0", CVAR_ARCHIVE | CVAR_LATCH, "Distance-adaptive GPU tessellation of the r_waterGeometry mesh (GL 4.3, r_gl43); coarser base mesh, requires vid_restart");
+	ri.Cvar_CheckRange(r_waterTessellation, 0, 1, qtrue);
+	r_waterTessPixels = ri_Cvar_Get_NoComm("r_waterTessPixels", "96", CVAR_ARCHIVE, "Target tessellated water edge length in pixels (smaller is denser and slower; waves too short for the mesh stay in shading)");
+	ri.Cvar_CheckRange(r_waterTessPixels, 2, 128, qfalse);
+	r_waterTessMinEdge = ri_Cvar_Get_NoComm("r_waterTessMinEdge", "0", CVAR_ARCHIVE, "Shortest tessellated water edge in world units: 64 = never finer than the static r_waterGeometry mesh, 0 = only r_waterTessMax limits the detail near the camera");
+	r_waterTessLodDistance = ri_Cvar_Get_NoComm("r_waterTessLodDistance", "0", CVAR_ARCHIVE, "Distance from the camera (world units) with the finest water tessellation; beyond it edges grow by r_waterTessPixels");
+	r_waterTessMax = ri_Cvar_Get_NoComm("r_waterTessMax", "16", CVAR_ARCHIVE | CVAR_LATCH, "Maximum water tessellation level (8, 16, 32): the base mesh is that much coarser; requires vid_restart");
+	ri.Cvar_CheckRange(r_waterTessMax, 2, 64, qtrue);
+	r_waterTessForce = ri_Cvar_Get_NoComm("r_waterTessForce", "0", CVAR_CHEAT, "Water tessellation level for every edge (0: by distance), for tests");
+	ri.Cvar_CheckRange(r_waterTessForce, 0, 64, qfalse);
 	r_waterShoreline = ri_Cvar_Get_NoComm("r_waterShoreline", "0", CVAR_ARCHIVE | CVAR_LATCH, "Displaced-water shoreline/contact treatment; requires r_waterSurface, r_waterGeometry and vid_restart");
 	r_waterShoreAttenuation = ri_Cvar_Get_NoComm("r_waterShoreAttenuation", "96", CVAR_ARCHIVE, "World distance over which macro waves recover from a rigid/shallow boundary");
 	r_waterShoreContactSoftness = ri_Cvar_Get_NoComm("r_waterShoreContactSoftness", "6", CVAR_ARCHIVE, "World width of the water/geometry soft contact and overlap");
@@ -3284,6 +3299,9 @@ void R_Register( void )
 	r_waterSSRWaveReprojection = ri_Cvar_Get_NoComm("r_waterSSRWaveReprojection", "0", CVAR_ARCHIVE | CVAR_LATCH,
 		"Use exact previous-rendered water geometry for temporal SSR reprojection");
 	ri.Cvar_CheckRange(r_waterSSRWaveReprojection, 0, 1, qtrue);
+	r_waterSSROptimize = ri_Cvar_Get_NoComm("r_waterSSROptimize", "7", CVAR_ARCHIVE,
+		"r_waterSurface SSR prepass savings, bits: 1 = the prepass tessellates for its own (reduced) resolution, 2 = it drops occluded water before the wave shading, 4 = it runs a prepass-only program without the shading code; 0 = the 10-19 prepass (A/B)");
+	ri.Cvar_CheckRange(r_waterSSROptimize, 0, 7, qtrue);
 	r_waterMotionDebug = ri_Cvar_Get_NoComm("r_waterMotionDebug", "0", CVAR_CHEAT,
 		"Water receiver motion debug (1 validity, 2 current, 3 previous, 4 screen motion, 5 analytic, 6 interaction, 7 waterfall/legacy, 8 previous UV, 9 invalidation, 10 camera-only split)");
 	ri.Cvar_CheckRange(r_waterMotionDebug, 0, 10, qtrue);
