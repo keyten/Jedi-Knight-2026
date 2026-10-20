@@ -245,7 +245,12 @@ static bool GLimp_DetectAvailableModes(void)
 
 	SDL_DisplayMode windowMode;
 
-	if( SDL_GetWindowDisplayMode( screen, &windowMode ) < 0 )
+	// SDL looks for a display mode at least as big as the window, which a
+	// window wider than every mode has not; only fullscreen needs one, a window
+	// takes the desktop pixel format
+	if( SDL_GetWindowDisplayMode( screen, &windowMode ) < 0 &&
+		( ( SDL_GetWindowFlags( screen ) & SDL_WINDOW_FULLSCREEN ) ||
+			SDL_GetDesktopDisplayMode( display, &windowMode ) < 0 ) )
 	{
 		Com_Printf( S_COLOR_YELLOW "WARNING: Couldn't get window display mode, no resolutions detected (%s).\n", SDL_GetError() );
 		return false;
@@ -314,6 +319,81 @@ static bool GLimp_DetectAvailableModes(void)
 
 	SDL_free( modes );
 	return true;
+}
+
+/*
+===============
+GLimp_GetWindowBorders
+
+The frame around the client area of the window
+===============
+*/
+static void GLimp_GetWindowBorders( int *top, int *left, int *bottom, int *right )
+{
+	*top = *left = *bottom = *right = 0;
+	if ( SDL_GetWindowBordersSize( screen, top, left, bottom, right ) == 0 )
+		return;
+	*top = *left = *bottom = *right = 0;
+
+#if defined(_WIN32)
+	// SDL_GetWindowBordersSize unsupported here: measure the window itself
+	SDL_SysWMinfo info;
+	SDL_VERSION( &info.version );
+	if ( !SDL_GetWindowWMInfo( screen, &info ) || info.subsystem != SDL_SYSWM_WINDOWS )
+		return;
+
+	HWND hwnd = info.info.win.window;
+	RECT frame, client;
+	POINT origin = { 0, 0 };
+	if ( GetWindowRect( hwnd, &frame ) && GetClientRect( hwnd, &client ) && ClientToScreen( hwnd, &origin ) )
+	{
+		*left = origin.x - frame.left;
+		*top = origin.y - frame.top;
+		*right = frame.right - ( origin.x + client.right );
+		*bottom = frame.bottom - ( origin.y + client.bottom );
+	}
+#endif
+}
+
+/*
+===============
+GLimp_FitWindowToDisplay
+
+A window larger than the desktop shrinks to fit it, keeping the aspect ratio
+of the mode, and is centered. A borderless window may cover the whole
+display, a framed one the area outside the taskbar.
+===============
+*/
+static void GLimp_FitWindowToDisplay( glconfig_t *glConfig, qboolean noborder )
+{
+	int display = SDL_GetWindowDisplayIndex( screen );
+	if ( display < 0 )
+		display = 0;
+
+	SDL_Rect area;
+	if ( ( noborder ? SDL_GetDisplayBounds( display, &area ) : SDL_GetDisplayUsableBounds( display, &area ) ) < 0 )
+	{
+		Com_DPrintf( "SDL_GetDisplayUsableBounds failed: %s\n", SDL_GetError() );
+		return;
+	}
+
+	int top, left, bottom, right;
+	GLimp_GetWindowBorders( &top, &left, &bottom, &right );
+	const int maxWidth = area.w - left - right;
+	const int maxHeight = area.h - top - bottom;
+	if ( maxWidth <= 0 || maxHeight <= 0 ||
+		( glConfig->vidWidth <= maxWidth && glConfig->vidHeight <= maxHeight ) )
+		return;
+
+	const float scale = Q_min( (float)maxWidth / glConfig->vidWidth, (float)maxHeight / glConfig->vidHeight );
+	const int width = Q_max( 1, (int)( glConfig->vidWidth * scale ) );
+	const int height = Q_max( 1, (int)( glConfig->vidHeight * scale ) );
+	Com_Printf( "...%dx%d does not fit the desktop (%dx%d free), adapting to %dx%d\n",
+		glConfig->vidWidth, glConfig->vidHeight, maxWidth, maxHeight, width, height );
+
+	SDL_SetWindowSize( screen, width, height );
+	SDL_SetWindowPosition( screen, area.x + left + ( maxWidth - width ) / 2, area.y + top + ( maxHeight - height ) / 2 );
+	SDL_GetWindowSize( screen, &glConfig->vidWidth, &glConfig->vidHeight );
 }
 
 /*
@@ -596,6 +676,10 @@ static rserr_t GLimp_SetMode(glconfig_t *glConfig, const windowDesc_t *windowDes
 			SDL_SetWindowIcon( screen, icon );
 #endif
 
+			// before the context: the default framebuffer takes the fitted size
+			if( !fullscreen && mode != -2 )
+				GLimp_FitWindowToDisplay( glConfig, noborder );
+
 			if( fullscreen )
 			{
 				SDL_DisplayMode mode;
@@ -657,6 +741,8 @@ static rserr_t GLimp_SetMode(glconfig_t *glConfig, const windowDesc_t *windowDes
 #ifndef MACOS_X
 			SDL_SetWindowIcon( screen, icon );
 #endif
+			if( !fullscreen && mode != -2 )
+				GLimp_FitWindowToDisplay( glConfig, noborder );
 			if( fullscreen )
 			{
 				if( SDL_SetWindowDisplayMode( screen, NULL ) < 0 )
@@ -741,6 +827,19 @@ static qboolean GLimp_StartDriverAndSetMode(glconfig_t *glConfig, const windowDe
 	return qtrue;
 }
 
+// r_mode, then R_MODE_FALLBACK in a window
+static qboolean GLimp_SetModeOrFallback( glconfig_t *glConfig, const windowDesc_t *windowDesc )
+{
+	if ( GLimp_StartDriverAndSetMode( glConfig, windowDesc, r_mode->integer,
+			(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer ) )
+		return qtrue;
+	if ( r_mode->integer == R_MODE_FALLBACK )
+		return qfalse;
+
+	Com_Printf( "Setting r_mode %d failed, falling back on r_mode %d\n", r_mode->integer, R_MODE_FALLBACK );
+	return GLimp_StartDriverAndSetMode( glConfig, windowDesc, R_MODE_FALLBACK, qfalse, qfalse );
+}
+
 window_t WIN_Init( const windowDesc_t *windowDesc, glconfig_t *glConfig )
 {
 	Cmd_AddCommand("modelist", R_ModeList_f);
@@ -772,9 +871,10 @@ window_t WIN_Init( const windowDesc_t *windowDesc, glconfig_t *glConfig )
 
 	// Rend2 prefers 4.3 Core, but retains its 3.2 Core baseline. Keep this
 	// negotiation inside the window layer, without changing the renderer ABI.
+	// A mode the display cannot show falls back on R_MODE_FALLBACK first, so it
+	// does not cost the GL version.
 	windowDesc_t effectiveDesc = *windowDesc;
-	qboolean initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, r_mode->integer,
-		(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer );
+	qboolean initialized = GLimp_SetModeOrFallback( glConfig, &effectiveDesc );
 	if ( !initialized && effectiveDesc.api == GRAPHICS_API_OPENGL &&
 		effectiveDesc.gl.profile == GLPROFILE_CORE &&
 		effectiveDesc.gl.majorVersion == 4 && effectiveDesc.gl.minorVersion == 3 )
@@ -782,20 +882,10 @@ window_t WIN_Init( const windowDesc_t *windowDesc, glconfig_t *glConfig )
 		Com_Printf( "OpenGL 4.3 Core context unavailable; falling back to OpenGL 3.2 Core.\n" );
 		effectiveDesc.gl.majorVersion = 3;
 		effectiveDesc.gl.minorVersion = 2;
-		initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, r_mode->integer,
-			(qboolean)r_fullscreen->integer, (qboolean)r_noborder->integer );
+		initialized = GLimp_SetModeOrFallback( glConfig, &effectiveDesc );
 	}
 	if ( !initialized )
-	{
-		if( r_mode->integer != R_MODE_FALLBACK )
-		{
-			Com_Printf( "Setting r_mode %d failed, falling back on r_mode %d\n", r_mode->integer, R_MODE_FALLBACK );
-
-			initialized = GLimp_StartDriverAndSetMode( glConfig, &effectiveDesc, R_MODE_FALLBACK, qfalse, qfalse );
-		}
-		if ( !initialized )
-			Com_Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
-	}
+		Com_Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
 
 	glConfig->deviceSupportsGamma =
 		(qboolean)(!r_ignorehwgamma->integer && SDL_SetWindowBrightness( screen, 1.0f ) >= 0);

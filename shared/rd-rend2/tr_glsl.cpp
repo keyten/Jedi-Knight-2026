@@ -3988,6 +3988,11 @@ static int GLSL_LoadGPUProgramLightAll(
 	// library and the exact same resolved water-surface evaluator.
 	const GPUShaderDesc *liquidLibrary = R_LiquidSurfacesEnabled() ? LoadLiquidLibrary(allocator) : nullptr;
 	const GPUShaderDesc *pbrLibrary = LoadPBRCommonLibrary(allocator);
+	// combined once on first use: a copy per permutation runs the scratch
+	// allocator out (GLSL_LazyCollectKeys walks every permutation)
+	const GPUShaderDesc *pbrLiquidLibrary = nullptr;
+	const GPUShaderDesc *pomPbrLibrary = nullptr;
+	const GPUShaderDesc *pomPbrLiquidLibrary = nullptr;
 	const bool useFastLight =
 		(!r_normalMapping->integer && !r_specularMapping->integer);
 	GLint maxFragmentSamplers = 0;
@@ -4224,8 +4229,9 @@ static int GLSL_LoadGPUProgramLightAll(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_GLOW_BUFFER\n");*/
 
 		const bool liquidSun = liquidLibrary && lightType && r_sunlightMode->integer;
-		const GPUShaderDesc *lightLibrary = liquidSun ?
-			GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary) : pbrLibrary;
+		if (liquidSun && !pbrLiquidLibrary)
+			pbrLiquidLibrary = GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary);
+		const GPUShaderDesc *lightLibrary = liquidSun ? pbrLiquidLibrary : pbrLibrary;
 		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.lightallShader[i],
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, lightLibrary, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)
@@ -4251,9 +4257,11 @@ static int GLSL_LoadGPUProgramLightAll(
 				program = &tr.lightallSilhouetteShader[pomIndex];
 				Q_strcat(name, sizeof(name), "_SPOM");
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_SILHOUETTE_POM\n");
-				const GPUShaderDesc *pomAndPbr = GLSL_CombineLibraries(allocator, pomLibrary, pbrLibrary);
-				const GPUShaderDesc *fragmentLibrary = liquidSun ?
-					GLSL_CombineLibraries(allocator, pomAndPbr, liquidLibrary) : pomAndPbr;
+				if (!pomPbrLibrary)
+					pomPbrLibrary = GLSL_CombineLibraries(allocator, pomLibrary, pbrLibrary);
+				if (liquidSun && !pomPbrLiquidLibrary)
+					pomPbrLiquidLibrary = GLSL_CombineLibraries(allocator, pomPbrLibrary, liquidLibrary);
+				const GPUShaderDesc *fragmentLibrary = liquidSun ? pomPbrLiquidLibrary : pomPbrLibrary;
 				if (!GLSL_LoadGPUShader(builder, program, name, attribs | ATTR_POSITION2 | ATTR_TANGENT,
 						NO_XFB_VARS, extradefines, *programDesc, fragmentLibrary, leafFlutterLibrary))
 				{
