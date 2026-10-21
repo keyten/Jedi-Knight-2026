@@ -82,9 +82,10 @@ Per-view parameters are appended to `CameraBlock` (lightall's Camera block only)
 - **Light bounds:** the view's own modelview/projection matrices are used, so mirrors, off-centre and jittered
   projections work. The eye-space AABB of the sphere is projected (conservative). When a light touches the near
   plane, the whole viewport is used. The depth range [d−r, d+r] selects the slices.
-- **Overflow:** lights are binned in importance order computed independently for the current view (brightness ×
-  radius² / distance², ×4 when that view's camera is inside the light). A portal or mirror therefore does not
-  inherit the main camera's overflow order. When a cluster reaches `r_forwardPlusMaxLightsPerCluster`, the less
+- **Overflow:** the main view reuses the scene importance order. A portal or mirror computes its own order
+  (brightness × radius² / distance², ×4 when that view's camera is inside the light) only when more visible lights
+  than `r_forwardPlusMaxLightsPerCluster` make dropping possible. A remote view therefore does not inherit the main
+  camera's overflow choices, while uncapped views avoid a redundant sort. When a cluster reaches the limit, the less
   important lights are dropped. The shader also clamps the count to 256.
 - **Verified offline:** a harness runs the real `R_ForwardPlusLightRange` / `R_ForwardPlusSlice` on 2,400 random
   lights (inside/behind the camera, crossing the near plane, huge radii, off-centre projection, 1/16/24 slices,
@@ -116,10 +117,11 @@ cluster then:
 1. walks the boxes in importance order, keeps a light when its box contains the cluster and, for point and spot
    lights, when its sphere touches the cluster's view-space AABB (rectangle and line lights keep the box alone);
 2. stops at `r_forwardPlusMaxLightsPerCluster`;
-3. reserves an even number of index entries with a bounded `atomicCompSwap` loop on a per-frame counter (the counter
-   starts at 0 for the first view of the frame, every view and scene of the frame shares it) and writes its grid texel
-   and the R16 indexes, two per 32-bit word. A failed reservation leaves the counter unchanged, so it cannot create a
-   hole that starves later, smaller cluster lists.
+3. reserves an even number of index entries on a per-frame counter (the counter starts at 0 for the first view of the
+   frame, every view and scene of the frame shares it) and writes its grid texel and the R16 indexes, two per 32-bit
+   word. When the CPU's accumulated worst-case counts prove that all lists fit, reservation is one `atomicAdd`;
+   capacity-constrained frames use the bounded `atomicCompSwap` loop. A failed bounded reservation leaves the counter
+   unchanged, so it cannot create a hole that starves later, smaller cluster lists.
 
 The grid and index buffers are the buffer textures lightall already samples, so lightall is unchanged. Every list is
 the CPU list (same order, same cap) without the lights whose sphere misses the cluster; the corner clusters of each

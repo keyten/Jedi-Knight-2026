@@ -101,6 +101,7 @@ struct fplusFrameBuffers_t
 	// GL 4.3 build: light boxes of the frame's views, index allocation counter
 	GLuint rangeBuffer, counterBuffer;
 	int rangeOffset;					// records
+	uint64_t indexWorstCase;			// conservative entries reserved by GPU views this frame
 	qboolean gpuBuild;					// latched for the frame (all views alike)
 	qboolean counterReset;
 };
@@ -556,6 +557,7 @@ static fplusFrameBuffers_t *RB_ForwardPlusFrameBuffers( const gpuFrame_t *frame 
 		// every view of the frame alike: both builds start the index list at 0
 		fb->gpuBuild = R_ForwardPlusComputeEnabled();
 		fb->rangeOffset = 0;
+		fb->indexWorstCase = 0;
 		fb->counterReset = qfalse;
 	}
 	return fb;
@@ -1039,6 +1041,17 @@ static qboolean RB_ForwardPlusBuildViewGPU( fplusFrameBuffers_t *fb, const viewP
 	*gridBase = fb->writeOffset[FPLUS_BUFFER_GRID];
 	fb->writeOffset[FPLUS_BUFFER_GRID] += numClusters;
 
+	// A single atomicAdd is enough when the CPU can prove that this and every
+	// earlier GPU view fit even at their per-cluster maximum.  Keep the bounded
+	// CAS allocator for genuinely capacity-constrained frames.
+	const uint32_t maxEntriesPerCluster =
+		(uint32_t)(Q_min(numRanges, maxPerCluster) + 1) & ~1u;
+	const uint64_t viewWorstCase = (uint64_t)numClusters * maxEntriesPerCluster;
+	const uint64_t indexCapacity = (uint64_t)s_fp.capacity[FPLUS_BUFFER_INDICES];
+	const qboolean fastReservation = (qboolean)(fb->indexWorstCase <= indexCapacity &&
+		viewWorstCase <= indexCapacity - fb->indexWorstCase);
+	fb->indexWorstCase += viewWorstCase;
+
 	// the sphere test assumes a perspective projection without skew; any
 	// other keeps the CPU boxes alone (the same lists as the CPU build)
 	const float *p = view->projectionMatrix;
@@ -1053,7 +1066,8 @@ static qboolean RB_ForwardPlusBuildViewGPU( fplusFrameBuffers_t *fb, const viewP
 	VectorSet4(params[2], slicing->scale, slicing->bias, slicing->nearSlice, farZ);
 	VectorSet4(params[3], p[0], p[5], p[8], p[9]);
 	VectorSet4(params[4], p[12], p[13], perspective ? 1.0f : 0.0f, (float)maxPerCluster);
-	VectorSet4(params[5], (float)*gridBase, (float)firstRange, (float)s_fp.capacity[FPLUS_BUFFER_INDICES], 0.0f);
+	VectorSet4(params[5], (float)*gridBase, (float)firstRange,
+		(float)s_fp.capacity[FPLUS_BUFFER_INDICES], fastReservation ? 1.0f : 0.0f);
 	GLSL_BindProgram(sp);
 	GLSL_SetUniformVec4N(sp, UNIFORM_FPLUSCLUSTER, params[0], 8);
 	qglBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, fb->buffers[FPLUS_BUFFER_GRID]);
@@ -1188,26 +1202,30 @@ static void RB_ForwardPlusBuildView(
 
 	const int numClusters = tilesX * tilesY * slicing.slices;
 
-	// Each colour view gets its own overflow order.  The scene/main-camera
-	// order remains the source of truth for the shadow budget, but a mirror or
-	// remote portal must not discard a nearby light in favour of one near the
-	// main camera.
+	// The scene order is already correct for the main view.  Other colour views
+	// only need their own order when the per-cluster cap can actually discard a
+	// light; otherwise changing the order cannot change list membership.
 	s_ranges.clear();
-	for ( int light = 0; light < s_fp.numLights; light++ )
+	for ( int k = 0; k < s_fp.numLights; k++ )
 	{
 		fplusLightRange_t range;
-		range.light = light;
-		range.importance = R_DlightImportance(refdef->dlights + light, view->ori.origin);
+		range.light = s_fp.order[k];
+		range.importance = 0.0f;
 		if ( R_ForwardPlusLightRange(view, refdef->dlights + range.light, &slicing,
 				(float)tileSize, tilesX, tilesY, &range) )
 		{
 			s_ranges.push_back(range);
 		}
 	}
-	std::sort(s_ranges.begin(), s_ranges.end(), [](const fplusLightRange_t& a,
-		const fplusLightRange_t& b) {
-		return a.importance != b.importance ? a.importance > b.importance : a.light < b.light;
-	});
+	if ( view->viewParmType != VPT_MAIN && (int)s_ranges.size() > maxPerCluster )
+	{
+		for ( fplusLightRange_t& range : s_ranges )
+			range.importance = R_DlightImportance(refdef->dlights + range.light, view->ori.origin);
+		std::sort(s_ranges.begin(), s_ranges.end(), [](const fplusLightRange_t& a,
+			const fplusLightRange_t& b) {
+			return a.importance != b.importance ? a.importance > b.importance : a.light < b.light;
+		});
+	}
 
 	int gridBase;
 	if ( fb->gpuBuild )

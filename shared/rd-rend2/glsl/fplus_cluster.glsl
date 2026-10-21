@@ -16,7 +16,7 @@ layout(local_size_x = 64) in;
 // 0 tiles x, tiles y, slices, clusters | 1 tile size (px), viewport w, h, ranges |
 // 2 slice scale, slice bias, near slice, far | 3 P[0], P[5], P[8], P[9] |
 // 4 P[12], P[13], sphere test (0/1), lights per cluster |
-// 5 grid base (texels), first range, index capacity (entries), unused | 6, 7 unused
+// 5 grid base (texels), first range, index capacity (entries), fast reservation | 6, 7 unused
 uniform vec4 u_FPlusCluster[8];
 
 struct LightRange
@@ -37,8 +37,10 @@ layout(std430, binding = 3) buffer FPlusCounter { uint nextIndex; };
 // A failed allocation must not advance the shared counter: otherwise one
 // oversized cluster creates a permanent hole and can starve smaller lists
 // that would still fit. CAS also keeps every successful span disjoint.
-uint ReserveIndexes(uint requested, uint capacity)
+uint ReserveIndexes(uint requested, uint capacity, bool guaranteedToFit)
 {
+	if (guaranteedToFit)
+		return atomicAdd(nextIndex, requested);
 	uint current = atomicAdd(nextIndex, 0u);
 	for (;;)
 	{
@@ -160,7 +162,8 @@ void main()
 #else
 		uint allocated = (count + 1u) & ~1u;
 #endif
-		offset = ReserveIndexes(allocated, uint(u_FPlusCluster[5].z));
+		offset = ReserveIndexes(allocated, uint(u_FPlusCluster[5].z),
+			u_FPlusCluster[5].w > 0.5);
 		if (offset == 0xffffffffu)
 		{
 			offset = 0u;

@@ -1285,7 +1285,9 @@ static qboolean RB_VolumetricBuildLightListsGPU( const froxelLightRange_t *range
 	VectorSet4(params[2], 0.0f, 0.0f, s_vf.nearZ, s_vf.farZ);
 	VectorSet4(params[3], p[0], p[5], p[8], p[9]);
 	VectorSet4(params[4], p[12], p[13], perspective ? 1.0f : 0.0f, (float)FROXEL_LIGHTS_PER_CLUSTER);
-	VectorSet4(params[5], 0.0f, 0.0f, (float)indexCapacity, 0.0f);
+	// The buffer is sized for the maximum light count of every froxel, so no
+	// allocation can fail and the shader may use its single-atomic fast path.
+	VectorSet4(params[5], 0.0f, 0.0f, (float)indexCapacity, 1.0f);
 
 	shaderProgram_t *sp = &tr.froxelLightClusterShader;
 	GLSL_BindProgram(sp);

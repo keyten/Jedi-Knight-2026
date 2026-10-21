@@ -144,7 +144,7 @@ def fplus_range(eye, radius, p, view, slicing, tile, tiles_x, tiles_y):
 
 
 def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0,
-               index_capacity=1 << 20, expect_overflow=False):
+               index_capacity=1 << 20, expect_overflow=False, fast_reservation=True):
     rng = random.Random(seed)
     view = dict(width=1280, height=720, znear=4.0, zfar=8192.0)
     tile, slices, near_slice = 64, 16, 48.0
@@ -189,7 +189,8 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0,
     uniform_vec4s(prog, 'u_FPlusCluster', [
         (tiles_x, tiles_y, slices, num_clusters), (tile, view['width'], view['height'], len(ranges)),
         (scale, bias, near_slice, far_z), (p[0], p[5], p[8], p[9]), (p[12], p[13], 1.0, cap),
-        (grid_base, 0, index_capacity, 0), (0, 0, 0, 0), (0, 0, 0, 0)])
+        (grid_base, 0, index_capacity, 1 if fast_reservation else 0),
+        (0, 0, 0, 0), (0, 0, 0, 0)])
     grid_buf = ssbo(bytes((grid_base + num_clusters) * 8), 0)
     index_buf = ssbo(bytes(index_capacity * 2), 1)
     range_buf = ssbo(records or bytes(32), 2)
@@ -311,7 +312,7 @@ def froxel_case(prog, slices, tile, seed):
     uniform_vec4s(prog, 'u_FPlusCluster', [
         (tiles_x, tiles_y, slices, num_clusters), (tile, width, height, len(ranges)),
         (0, 0, near, far), (p[0], p[5], 0, 0), (0, 0, 1, 32),
-        (0, 0, capacity, 0), (0, 0, 0, 0), (0, 0, 0, 0)])
+        (0, 0, capacity, 1), (0, 0, 0, 0), (0, 0, 0, 0)])
     list_buf = ssbo(bytes((num_clusters + capacity) * 4), 0)
     range_buf = ssbo(records or bytes(32), 2)
     counter_buf = ssbo(bytes(4), 3)
@@ -649,7 +650,8 @@ def main():
             print(f'fplus_cluster seed {seed} cap {cap}: {checked} clusters, {lights} lights in view, '
                   f'light refs CPU {cpu_refs} -> GPU {gpu_refs} ({slots} index slots)')
         checked, lights, cpu_refs, gpu_refs, slots = fplus_case(
-            fplus, 5, 8, area_every=1, index_capacity=64, expect_overflow=True)
+            fplus, 5, 8, area_every=1, index_capacity=64,
+            expect_overflow=True, fast_reservation=False)
         print(f'fplus_cluster bounded allocator: {checked} clusters, {lights} lights in view, '
               f'light refs CPU {cpu_refs} -> GPU {gpu_refs} ({slots}/64 index slots)')
         froxel = compute_program('fplus_cluster', '#define FROXEL_LIGHT_LISTS\n')
