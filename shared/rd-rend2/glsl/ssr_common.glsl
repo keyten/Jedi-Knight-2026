@@ -37,12 +37,15 @@ uniform sampler2D u_SSRPrevHitMap;    // SSR ray hits of the previous frame (hit
 
 uniform vec4 u_SSRProjection;   // P[0], P[5], P[8], P[9]
 uniform vec4 u_SSRDepthParams;  // P[14], P[10], zFar, view space size of one pixel at depth 1
+uniform vec4 u_SSRPrevProjection;
+uniform vec4 u_SSRPrevDepthParams;
 uniform vec4 u_SSRViewport;     // view rectangle in texture coordinates
 uniform vec4 u_SSRTexelSize;    // 1 / source size, 1 / destination size
 uniform vec4 u_SSRSettings;     // pass specific
 uniform vec4 u_SSRSettings2;    // pass specific
 uniform vec4 u_SSRSettings3;    // pass specific
 uniform vec4 u_SSRSettings4;    // pass specific
+uniform vec4 u_SSRSettings5;    // pass specific
 uniform mat4 u_SSRWorldToView;
 uniform mat4 u_SSRReproject;    // view space -> previous frame clip space
 uniform mat4 u_SSRPrevViewToView; // previous frame view space -> view space
@@ -169,6 +172,30 @@ float SSRDecodeHitDepth(float e)
 vec3 SSRHitPosition(vec4 hit)
 {
 	return SSRViewPosition(hit.xy, SSRDecodeHitDepth(hit.z));
+}
+
+// A cached hit was encoded with the previous projection and zFar. zFar can
+// change as the camera turns, even when the history passes the camera-cut test.
+vec3 SSRPrevHitPosition(vec4 hit)
+{
+	float z = exp2(hit.z * log2(max(u_SSRPrevDepthParams.z, 2.0)));
+	vec2 ndc = (hit.xy - u_SSRViewport.xy) / u_SSRViewport.zw * 2.0 - 1.0;
+	return vec3((ndc + u_SSRPrevProjection.zw) * z / u_SSRPrevProjection.xy, z);
+}
+
+vec2 SSRPhaseOffset(float phase)
+{
+	int p = int(phase);
+	return vec2(float(p & 1), float(p >> 1));
+}
+
+// UV refers to a full-resolution pixel center; find the closest ray sample
+// on the actual phased grid, rather than always choosing the containing block.
+ivec2 SSRNearestTraceTexel(vec2 uv, float gridScale, float phase, ivec2 traceSize)
+{
+	vec2 pixel = uv / u_SSRTexelSize.xy - 0.5;
+	vec2 offset = gridScale > 1.5 ? SSRPhaseOffset(phase) : vec2(0.0);
+	return clamp(ivec2(floor((pixel - offset) / gridScale + 0.5)), ivec2(0), traceSize - ivec2(1));
 }
 
 float SSREncodeConfidence(float confidence, bool reused)
@@ -407,17 +434,15 @@ bool SSRMarchRay(
 	return true;
 }
 
-// Shared cone-footprint radiance resolve. Mip 0 has unit coverage; coarser
-// mips contain premultiplied coverage (view model / outside-view rejection).
+// Every mip contains premultiplied coverage, including mip 0. Hardware
+// trilinear filtering now handles sharp and rough reflections identically.
 vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip)
 {
 	vec3 Q = SSRHitPosition(hit);
 	float footprint = 2.0 * length(Q - P) * coneTangent /
 		(max(Q.z, 1.0) * u_SSRDepthParams.w);
 	float mip = clamp(log2(max(footprint, 1.0)), 0.0, maxMip);
-	vec4 c = textureLod(u_SSRSceneMap, hit.xy, max(mip, 1.0));
-	if (mip < 1.0)
-		c = mix(vec4(textureLod(u_SSRSceneMap, hit.xy, 0.0).rgb, 1.0), c, mip);
+	vec4 c = textureLod(u_SSRSceneMap, hit.xy, mip);
 	float confidence = hit.w * smoothstep(0.2, 0.6, c.a);
 	return vec4(c.rgb / max(c.a, 1e-3) * confidence, confidence);
 }

@@ -323,12 +323,15 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_SSRHiZMap",			GLSL_INT, 1 },
 	{ "u_SSRProjection",		GLSL_VEC4, 1 },
 	{ "u_SSRDepthParams",		GLSL_VEC4, 1 },
+	{ "u_SSRPrevProjection",	GLSL_VEC4, 1 },
+	{ "u_SSRPrevDepthParams",	GLSL_VEC4, 1 },
 	{ "u_SSRViewport",			GLSL_VEC4, 1 },
 	{ "u_SSRTexelSize",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings2",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings3",			GLSL_VEC4, 1 },
 	{ "u_SSRSettings4",			GLSL_VEC4, 1 },
+	{ "u_SSRSettings5",			GLSL_VEC4, 1 },
 	{ "u_SSRWorldToView",		GLSL_MAT4x4, 1 },
 	{ "u_SSRReproject",			GLSL_MAT4x4, 1 },
 	{ "u_SSRPrevViewToView",	GLSL_MAT4x4, 1 },
@@ -4993,14 +4996,18 @@ static int GLSL_LoadGPUProgramScreenSpace(
 	if (R_SSRResourcesEnabled())
 	{
 		load(&tr.ssrDownsampleShader[0], "ssr_downsample", "ssr_downsample", fallback_ssr_downsampleProgram, nullptr);
-		load(&tr.ssrDownsampleShader[1], "ssr_downsample_first", "ssr_downsample", fallback_ssr_downsampleProgram, "#define FIRST_LEVEL\n");
+		load(&tr.ssrDownsampleShader[1], "ssr_color_mask", "ssr_downsample", fallback_ssr_downsampleProgram, "#define MASK_LEVEL\n");
 	}
 	if (R_SSROpaqueResourcesEnabled())
 	{
 		load(&tr.ssrTraceShader[SSRDEF_TRACE], "ssr_trace", "ssr_trace", fallback_ssr_traceProgram, nullptr);
 		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ], "ssr_trace_hiz", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n");
 		load(&tr.ssrTraceShader[SSRDEF_CLASSIFY], "ssr_classify", "ssr_trace", fallback_ssr_traceProgram, "#define CLASSIFY\n");
+		load(&tr.ssrTraceShader[SSRDEF_TRACE_CULLED], "ssr_trace_culled", "ssr_trace", fallback_ssr_traceProgram, "#define PRECLASSIFIED\n");
+		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ_CULLED], "ssr_trace_hiz_culled", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n#define PRECLASSIFIED\n");
 		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, nullptr);
+		load(&tr.ssrRadianceShader, "ssr_radiance", "ssr_resolve", fallback_ssr_resolveProgram, "#define TRACE_RADIANCE\n");
+		load(&tr.ssrUpsampleShader, "ssr_upsample", "ssr_resolve", fallback_ssr_resolveProgram, "#define UPSAMPLE_RADIANCE\n");
 		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, nullptr);
 		load(&tr.ssrCompositeShader, "ssr_composite", "ssr_composite", fallback_ssr_compositeProgram, nullptr);
 		load(&tr.ssrDebugShader, "ssr_debug", "ssr_debug", fallback_ssr_debugProgram, nullptr);
@@ -6495,7 +6502,7 @@ static int GLSL_CountStartupPrograms()
 	if (R_ScreenSpaceResourcesEnabled())
 	{
 		count += 2;
-		if (R_SSRResourcesEnabled()) count += R_SSROpaqueResourcesEnabled() ? 9 : 2;
+		if (R_SSRResourcesEnabled()) count += R_SSROpaqueResourcesEnabled() ? (2 + SSRDEF_COUNT + 6) : 2;
 		if (R_SSGIResourcesEnabled()) count += 7;
 		if (R_SkinSSSResourcesEnabled()) count += 3;
 	}
@@ -6798,6 +6805,8 @@ void GLSL_ShutdownGPUShaders(void)
 	for ( i = 0; i < SSRDEF_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.ssrTraceShader[i]);
 	GLSL_DeleteGPUShader(&tr.ssrResolveShader);
+	GLSL_DeleteGPUShader(&tr.ssrRadianceShader);
+	GLSL_DeleteGPUShader(&tr.ssrUpsampleShader);
 	GLSL_DeleteGPUShader(&tr.ssrTemporalShader);
 	GLSL_DeleteGPUShader(&tr.ssrCompositeShader);
 	GLSL_DeleteGPUShader(&tr.ssrDebugShader);

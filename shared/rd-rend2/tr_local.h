@@ -590,6 +590,7 @@ extern cvar_t  *r_ssrEmitters;
 extern cvar_t  *r_ssrEmitterIntensity;
 extern cvar_t  *r_ssrEmitterMaxRoughness;
 extern cvar_t  *r_ssrHitCache;
+extern cvar_t  *r_ssrResolveCache;
 extern cvar_t  *r_ssrReceiverCull;
 
 extern cvar_t  *r_ssgi;
@@ -2462,6 +2463,8 @@ enum
 	SSRDEF_TRACE		= 0,	// ray march, linear
 	SSRDEF_TRACE_HIZ	= 1,	// ray march, hierarchical depth
 	SSRDEF_CLASSIFY		= 2,	// early depth mask of the pixels that need a ray
+	SSRDEF_TRACE_CULLED	= 3,	// eligibility already checked by the depth mask
+	SSRDEF_TRACE_HIZ_CULLED	= 4,
 	SSRDEF_COUNT
 };
 
@@ -2813,12 +2816,15 @@ typedef enum
 	UNIFORM_SSRHIZMAP,
 	UNIFORM_SSRPROJECTION,	// P[0], P[5], P[8], P[9]
 	UNIFORM_SSRDEPTHPARAMS,	// P[14], P[10], zFar, depth hack threshold
+	UNIFORM_SSRPREVPROJECTION,
+	UNIFORM_SSRPREVDEPTHPARAMS,
 	UNIFORM_SSRVIEWPORT,	// view rectangle in texture coordinates
 	UNIFORM_SSRTEXELSIZE,	// 1 / source size, 1 / destination size
 	UNIFORM_SSRSETTINGS,	// pass specific
 	UNIFORM_SSRSETTINGS2,	// pass specific
 	UNIFORM_SSRSETTINGS3,	// pass specific
 	UNIFORM_SSRSETTINGS4,	// pass specific
+	UNIFORM_SSRSETTINGS5,	// pass specific
 	UNIFORM_SSRWORLDTOVIEW,	// world -> SSR view space (x right, y up, z forward)
 	UNIFORM_SSRREPROJECT,	// SSR view space -> previous frame clip space
 	UNIFORM_SSRPREVVIEWTOVIEW,	// previous frame SSR view space -> SSR view space
@@ -4427,6 +4433,7 @@ typedef struct trGlobals_s {
 	FBO_t *waterInteractionFbo;		// scratch attachment for interaction ping-pong/resolve
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
+	image_t					*ssrRadianceImage;	// per-frame half-res radiance cache
 	image_t					*ssrHistoryImage[2];
 	image_t					*ssrHistoryGeomImage[2];	// x = view depth, yz = octahedral normal, w = roughness
 	// screen-space GI (tr_ssgi.cpp)
@@ -4504,6 +4511,7 @@ typedef struct trGlobals_s {
 	FBO_t					*ltcSaberScreenFbo;
 	FBO_t					*ssrTraceFbo[2];
 	FBO_t					*ssrResolveFbo;
+	FBO_t					*ssrRadianceFbo;
 	FBO_t					*ssrHistoryFbo[2];
 	FBO_t					*screenHiZFbo[SCREEN_HIZ_MIPS];
 	FBO_t					*screenCompositeFbo;	// renderFbo color 0 only
@@ -4624,10 +4632,12 @@ typedef struct trGlobals_s {
 	shaderProgram_t waterIntersectionComputeShader;	// GL 4.3 depth contacts (no readback); empty otherwise
 	shaderProgram_t forwardPlusClusterShader;	// GL 4.3 Forward+ cluster build (r_forwardPlusCompute); empty otherwise
 	shaderProgram_t froxelLightClusterShader;	// GL 4.3 froxel fog cluster build (r_volumetricFogLightCompute)
-	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: first level (masks the view model)
+	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: masked mip 0
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
 	shaderProgram_t ssrResolveShader;
+	shaderProgram_t ssrRadianceShader;
+	shaderProgram_t ssrUpsampleShader;
 	shaderProgram_t ssrTemporalShader;
 	shaderProgram_t ssrCompositeShader;
 	shaderProgram_t ssrDebugShader;

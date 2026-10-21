@@ -13,8 +13,8 @@ void main()
 // cubemap prefilter (roughness^2, prefilterEnvMap.glsl), so SSR and cubemap reflections have the same
 // sharpness where they blend.
 //
-// The mips above 0 are premultiplied by their coverage (ssr_downsample.glsl): the first person view model
-// and the texels outside the view rectangle are left out, so a rough reflection never picks up the
+// All mips are premultiplied by their coverage (ssr_downsample.glsl): the first person view model
+// and the texels outside the view rectangle are left out, so a reflection never picks up the
 // weapon or a neighbouring view. A footprint made mostly of such texels falls back to the cubemap.
 //
 // Half resolution rays (u_SSRSettings.x = 2) are upsampled from the four nearest trace texels (each the
@@ -34,6 +34,12 @@ void main()
 	out_Color = vec4(0.0);
 
 	ivec2 pix = ivec2(gl_FragCoord.xy);
+#if defined(TRACE_RADIANCE)
+	vec4 hit = texelFetch(u_SSRTraceMap, pix, 0);
+	if (hit.w <= 0.0)
+		return;
+	pix = SSRTracePixel(pix, u_SSRSettings.x, SSRPhaseOffset(u_SSRSettings2.y), textureSize(u_SSRHiZMap, 0));
+#endif
 	vec2 uv = (vec2(pix) + 0.5) * u_SSRTexelSize.xy;
 	if (!SSRInsideView(uv))
 		return;
@@ -43,9 +49,15 @@ void main()
 	if (!SSRIsReceiver(pix, z, normalRoughness))
 		return;
 
+#if !defined(UPSAMPLE_RADIANCE)
 	float coneTangent = SSRConeTangent(normalRoughness.b);
 	vec3 P = SSRViewPosition(uv, z);
+#endif
 
+#if defined(TRACE_RADIANCE)
+	out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
+#else
+#if !defined(UPSAMPLE_RADIANCE)
 	if (u_SSRSettings.x < 1.5)
 	{
 		vec4 hit = texelFetch(u_SSRTraceMap, pix, 0);
@@ -53,6 +65,7 @@ void main()
 			out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
 		return;
 	}
+#endif
 
 	// half resolution: trace texel q holds the ray of full resolution pixel 2q + phase
 	int phaseIndex = int(u_SSRSettings2.y);
@@ -83,6 +96,15 @@ void main()
 		w *= exp(-abs(zs - z) / (0.02 * z + 1.0));
 		w *= pow(max(dot(SSRDecodeNormal(ns.rg), N), 0.0), 8.0);
 
+#if defined(UPSAMPLE_RADIANCE)
+		// A ray's radiance uses that receiver's roughness. Keep neighbours
+		// with a different blur footprint from leaking across material edges.
+		w *= exp(-abs(ns.b - normalRoughness.b) * 16.0);
+		vec4 h = texelFetch(u_SSRTraceMap, q, 0);
+		radiance += w * h.rgb;
+		confidenceSum += w * h.a;
+#else
+
 		vec4 hit = texelFetch(u_SSRTraceMap, q, 0);
 		if (hit.w > 0.0)
 		{
@@ -90,6 +112,7 @@ void main()
 			radiance += w * h.rgb;
 			confidenceSum += w * h.a;
 		}
+#endif
 		weightSum += w;
 	}
 
@@ -98,4 +121,5 @@ void main()
 		return;
 
 	out_Color = vec4(radiance, confidenceSum) / weightSum;
+#endif
 }

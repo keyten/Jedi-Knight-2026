@@ -13,32 +13,19 @@ void main()
 //
 // The mips are premultiplied by their coverage (alpha): texels of the first person view model (its
 // color is in the scene, but no ray hits it) and texels outside the view rectangle do not count.
-// FIRST_LEVEL builds mip 1 from the plain scene copy, 16 texel taps masked with the linear depth. The
-// other levels are four bilinear taps on the texel corners (premultiplied: a linear filter).
+// MASK_LEVEL builds masked mip 0 from the resolved scene, one color/depth fetch
+// per pixel. Every downsample is then four bilinear taps on premultiplied data.
 
 out vec4 out_Color;
 
 void main()
 {
-#if defined(FIRST_LEVEL)
-	ivec2 srcMax = textureSize(u_SSRSceneMap, 0) - ivec2(1);
-	ivec2 src = ivec2(gl_FragCoord.xy) * 2 - ivec2(1);
-
-	vec4 sum = vec4(0.0);
-	for (int y = 0; y < 4; y++)
-	{
-		for (int x = 0; x < 4; x++)
-		{
-			ivec2 p = src + ivec2(x, y);
-			vec2 uv = (vec2(p) + 0.5) * u_SSRTexelSize.xy;
-			if (any(lessThan(p, ivec2(0))) || any(greaterThan(p, srcMax)) || !SSRInsideView(uv))
-				continue;
-			if (texelFetch(u_SSRHiZMap, p, 0).r == SSR_DEPTH_VIEWMODEL)
-				continue;
-			sum += vec4(texelFetch(u_SSRSceneMap, p, 0).rgb, 1.0);
-		}
-	}
-	out_Color = sum * (1.0 / 16.0);
+#if defined(MASK_LEVEL)
+	ivec2 p = ivec2(gl_FragCoord.xy);
+	vec2 uv = (vec2(p) + 0.5) * u_SSRTexelSize.xy;
+	out_Color = vec4(0.0);
+	if (SSRInsideView(uv) && texelFetch(u_SSRHiZMap, p, 0).r != SSR_DEPTH_VIEWMODEL)
+		out_Color = vec4(texelFetch(u_SSRSceneMap, p, 0).rgb, 1.0);
 #else
 	vec2 uv = gl_FragCoord.xy * u_SSRTexelSize.zw;
 	vec2 offset = u_SSRTexelSize.xy;

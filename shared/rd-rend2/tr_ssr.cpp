@@ -50,8 +50,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //   trace     ray march (linear or Hi-Z), full or half res -> ssrTrace[current].
 //             Hit cache (r_ssrHitCache): the hit of the previous frame
 //             (ssrTrace[previous]) is reused without a march while it is
-//             still the reflection of the ray; each pixel is traced again
-//             once every 4 frames anyway
+//             still the reflection of the ray; refresh every 4 frames, all
+//             rotating half-resolution phases within 16 frames
 //   resolve   hit -> radiance from the color pyramid (cone of the roughness),
 //             depth/normal aware upsampling -> ssrResolve (premultiplied)
 //   temporal  optional, reprojected history -> ssrHistory[current], rejected
@@ -99,6 +99,8 @@ static const ssrQualityPreset_t ssrQualityPresets[] =
 // trace and history images of the last frame are [s_history.current]
 static screenHistory_t s_history;
 static matrix_t s_prevViewToWorld;
+static vec4_t s_prevProjection, s_prevDepthParams;
+static float s_prevPhase;
 
 // state of the last traced view, for r_ssrDebug
 static struct
@@ -129,7 +131,9 @@ float R_SSRTraceScale( void )
 
 qboolean R_SSRWantsVelocity( void )
 {
-	return s_ssrTemporalResources;
+	// Hit reuse needs moving-object velocities even without color accumulation.
+	// Reserve it for opaque SSR so r_ssrHitCache remains a runtime A/B switch.
+	return R_SSROpaqueResourcesEnabled();
 }
 
 /*
@@ -164,6 +168,7 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 	tr.ssrColorImage = NULL;
 	tr.ssrTraceImage[0] = tr.ssrTraceImage[1] = NULL;
 	tr.ssrResolveImage = NULL;
+	tr.ssrRadianceImage = NULL;
 	for ( int i = 0; i < 2; i++ )
 	{
 		tr.ssrHistoryImage[i] = NULL;
@@ -195,6 +200,8 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 	for ( int i = 0; i < 2; i++ )
 		tr.ssrTraceImage[i] = R_ScreenCreateImage(va("*ssrTrace%d", i), traceWidth, traceHeight, GL_RGBA16, qfalse);
 	tr.ssrResolveImage = R_ScreenCreateImage("*ssrResolve", width, height, GL_RGBA16F, qfalse);
+	if (s_gridScale > 1)
+		tr.ssrRadianceImage = R_ScreenCreateImage("*ssrRadiance", traceWidth, traceHeight, GL_RGBA16F, qfalse);
 
 	if ( s_ssrTemporalResources )
 	{
@@ -214,6 +221,7 @@ void R_CreateSSRFBOs( void )
 		tr.ssrColorFbo[i] = NULL;
 	tr.ssrTraceFbo[0] = tr.ssrTraceFbo[1] = NULL;
 	tr.ssrResolveFbo = NULL;
+	tr.ssrRadianceFbo = NULL;
 	tr.ssrHistoryFbo[0] = tr.ssrHistoryFbo[1] = NULL;
 
 	if ( !s_ssrResources )
@@ -233,6 +241,8 @@ void R_CreateSSRFBOs( void )
 		R_CheckFBO(tr.ssrTraceFbo[i]);
 	}
 	tr.ssrResolveFbo = R_ScreenCreateLevelFBO("_ssrResolve", tr.ssrResolveImage, 0);
+	if (tr.ssrRadianceImage)
+		tr.ssrRadianceFbo = R_ScreenCreateLevelFBO("_ssrRadiance", tr.ssrRadianceImage, 0);
 
 	if ( s_ssrTemporalResources )
 	{
@@ -301,22 +311,29 @@ static void RB_SSRBindMaterial( void )
 
 static void RB_SSRBuildColorPyramid( const screenViewInfo_t& info )
 {
-	// MSAA resolves here. Blits are clipped by the scissor rectangle
+	// Multisample renderbuffers cannot be sampled. Resolve into the existing
+	// renderImage first; without MSAA it already is the main color attachment.
 	GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
-	FBO_FastBlit(tr.renderFbo, NULL, tr.ssrColorFbo[0], NULL, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	if (tr.msaaResolveFbo)
+		FBO_FastBlitIndexed(tr.renderFbo, tr.msaaResolveFbo, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-	// mip 1 masks the view model and the outside of the view (linear depth),
-	// the next mips filter the premultiplied coverage
+	shaderProgram_t *mask = &tr.ssrDownsampleShader[1];
+	RB_ScreenBeginPass(tr.ssrColorFbo[0], mask, tr.ssrColorFbo[0]->width, tr.ssrColorFbo[0]->height);
+	RB_SSRBindMaterial();
+	GL_BindToTMU(tr.renderImage, TB_SPECULARMAP);
+	RB_ScreenSetViewUniforms(mask, info);
+	vec4_t maskTexelSize;
+	RB_ScreenTexelSize(maskTexelSize, tr.renderFbo->width, tr.renderFbo->height,
+		tr.renderFbo->width, tr.renderFbo->height);
+	GLSL_SetUniformVec4(mask, UNIFORM_SSRTEXELSIZE, maskTexelSize);
+	RB_InstantTriangle();
+
+	// All levels, including sharp mip 0, now have premultiplied coverage.
 	for ( int level = 1; level < SSR_COLOR_MIPS; level++ )
 	{
-		shaderProgram_t *sp = &tr.ssrDownsampleShader[level == 1 ? 1 : 0];
+		shaderProgram_t *sp = &tr.ssrDownsampleShader[0];
 		FBO_t *fbo = tr.ssrColorFbo[level];
 		RB_ScreenBeginPass(fbo, sp, fbo->width, fbo->height);
-		if ( level == 1 )
-		{
-			RB_SSRBindMaterial();
-			RB_ScreenSetViewUniforms(sp, info);
-		}
 		RB_ScreenSetLevelRange(tr.ssrColorImage, TB_SPECULARMAP, level - 1, level - 1);
 
 		vec4_t texelSize;
@@ -520,8 +537,10 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	const qboolean historyValid = RB_ScreenHistoryValid(s_history, traceScale);
 	const int previous = s_history.current;
 	const int current = previous ^ 1;
-	const qboolean hitCache = (qboolean)(historyValid && r_ssrHitCache->integer);
 	const qboolean velocity = RB_ScreenVelocityValid();
+	// No prepass (or no valid velocity for this scene): trace fresh, rather
+	// than silently reusing moving geometry with camera-only validation.
+	const qboolean hitCache = (qboolean)(historyValid && r_ssrHitCache->integer && velocity);
 
 	// this view space -> previous frame clip space, previous view space ->
 	// this view space
@@ -548,7 +567,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	{
 		FBO_t *traceFbo = tr.ssrTraceFbo[current];
 
-		vec4_t texelSize, settings, settings2, settings3, settings4;
+		vec4_t texelSize, settings, settings2, settings3, settings4, settings5;
 		RB_ScreenTexelSize(texelSize, width, height, traceWidth, traceHeight);
 		VectorSet4(settings,
 			(float)Com_Clampi(1, 256, steps),
@@ -561,15 +580,16 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			traceScale,
 			jitterFrame);
 		VectorSet4(settings3,
-			(float)(SCREEN_HIZ_MIPS - 1),
+			hiZ ? (float)(SCREEN_HIZ_MIPS - 1) : 0.0f,
 			SSR_MIN_WEIGHT,
 			r_znear->value,
 			(float)Com_Clampi(8, 1024, steps * 3));
 		VectorSet4(settings4,
 			hitCache ? 1.0f : 0.0f,
 			velocity ? 1.0f : 0.0f,
-			(float)(frame & 3),
+			(float)(((temporal && s_gridScale > 1) ? (frame >> 2) : frame) & 3),
 			phase);
+		VectorSet4(settings5, s_prevPhase, 0.0f, 0.0f, 0.0f);
 
 		uint32_t traceState = GLS_DEPTHTEST_DISABLE;
 		if ( r_ssrReceiverCull->integer )
@@ -581,7 +601,10 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			RB_ScreenBeginPass(traceFbo, sp, traceWidth, traceHeight,
 				GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS);
 			const float clearDepth = 1.0f;
-			qglClearBufferfv(GL_COLOR, 0, colorBlack);
+			// Alpha is hit confidence, not opacity: colorBlack has alpha 1
+			// and would turn every depth-culled texel into a fake cached hit.
+			const vec4_t clearMiss = { 0.0f, 0.0f, 0.0f, 0.0f };
+			qglClearBufferfv(GL_COLOR, 0, clearMiss);
 			qglClearBufferfv(GL_DEPTH, 0, &clearDepth);
 			// clears honor the masks: the color mask goes off after them
 			GL_State(GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_LESS | GLS_COLORMASK_BITS);
@@ -596,7 +619,10 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			traceState = GLS_DEPTHFUNC_GREATER;
 		}
 
-		shaderProgram_t *sp = &tr.ssrTraceShader[hiZ ? SSRDEF_TRACE_HIZ : SSRDEF_TRACE];
+		const int traceVariant = r_ssrReceiverCull->integer ?
+			(hiZ ? SSRDEF_TRACE_HIZ_CULLED : SSRDEF_TRACE_CULLED) :
+			(hiZ ? SSRDEF_TRACE_HIZ : SSRDEF_TRACE);
+		shaderProgram_t *sp = &tr.ssrTraceShader[traceVariant];
 		RB_ScreenBeginPass(traceFbo, sp, traceWidth, traceHeight, traceState);
 		RB_SSRBindMaterial();
 		GL_BindToTMU(tr.ssrTraceImage[previous], TB_SSR_PREVHIT);
@@ -609,20 +635,41 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, settings2);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS3, settings3);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS4, settings4);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS5, settings5);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVPROJECTION, historyValid ? s_prevProjection : info.projection);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVDEPTHPARAMS, historyValid ? s_prevDepthParams : info.depthParams);
 		RB_InstantTriangle();
 	}
 	RB_ScreenEndTimer(timer);
 
 	image_t *traceImage = tr.ssrTraceImage[current];
+	const qboolean resolveCache = (qboolean)(s_gridScale > 1 && r_ssrResolveCache->integer);
 
 	// hit -> radiance
 	timer = RB_ScreenBeginTimer("SSR resolve");
 	{
-		shaderProgram_t *sp = &tr.ssrResolveShader;
+		if (resolveCache)
+		{
+			shaderProgram_t *radiance = &tr.ssrRadianceShader;
+			RB_ScreenBeginPass(tr.ssrRadianceFbo, radiance, traceWidth, traceHeight);
+			RB_SSRBindMaterial();
+			GL_BindToTMU(tr.ssrColorImage, TB_SPECULARMAP);
+			GL_BindToTMU(traceImage, TB_SHADOWMAP);
+			RB_ScreenSetViewUniforms(radiance, info);
+			vec4_t texelSize, settings, settings2;
+			RB_ScreenTexelSize(texelSize, width, height, traceWidth, traceHeight);
+			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), 0.0f);
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, 0.0f, 0.0f);
+			GLSL_SetUniformVec4(radiance, UNIFORM_SSRTEXELSIZE, texelSize);
+			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS, settings);
+			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS2, settings2);
+			RB_InstantTriangle();
+		}
+		shaderProgram_t *sp = resolveCache ? &tr.ssrUpsampleShader : &tr.ssrResolveShader;
 		RB_ScreenBeginPass(tr.ssrResolveFbo, sp, width, height);
 		RB_SSRBindMaterial();
 		GL_BindToTMU(tr.ssrColorImage, TB_SPECULARMAP);
-		GL_BindToTMU(traceImage, TB_SHADOWMAP);
+		GL_BindToTMU(resolveCache ? tr.ssrRadianceImage : traceImage, TB_SHADOWMAP);
 		RB_ScreenSetViewUniforms(sp, info);
 
 		vec4_t texelSize, settings, settings2;
@@ -655,8 +702,10 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 		RB_ScreenSetViewUniforms(sp, info);
 		GLSL_SetUniformMatrix4x4(sp, UNIFORM_SSRREPROJECT, reproject, 1);
 		GLSL_SetUniformMatrix4x4(sp, UNIFORM_SSRPREVVIEWTOVIEW, prevViewToView, 1);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVPROJECTION, historyValid ? s_prevProjection : info.projection);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVDEPTHPARAMS, historyValid ? s_prevDepthParams : info.depthParams);
 
-		vec4_t texelSize, settings;
+		vec4_t texelSize, settings, temporalPhases;
 		RB_ScreenTexelSize(texelSize, width, height, width, height);
 		VectorSet4(settings,
 			historyValid ? 1.0f : 0.0f,
@@ -665,6 +714,8 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			traceScale);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRTEXELSIZE, texelSize);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS, settings);
+		VectorSet4(temporalPhases, phase, s_prevPhase, 0.0f, 0.0f);
+		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, temporalPhases);
 		RB_InstantTriangle();
 
 		finalImage = tr.ssrHistoryImage[current];
@@ -675,6 +726,9 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	// the trace (and history) of this frame are the next frame's history
 	RB_ScreenStoreHistory(s_history, info, traceScale, current);
 	Com_Memcpy(s_prevViewToWorld, info.viewToWorld, sizeof(matrix_t));
+	VectorCopy4(info.projection, s_prevProjection);
+	VectorCopy4(info.depthParams, s_prevDepthParams);
+	s_prevPhase = phase;
 
 	// composite: replace the cubemap reflection where the SSR is reliable
 	timer = RB_ScreenBeginTimer("SSR composite");

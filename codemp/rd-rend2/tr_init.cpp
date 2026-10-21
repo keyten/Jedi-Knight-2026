@@ -492,6 +492,7 @@ cvar_t  *r_ssrEmitters;
 cvar_t  *r_ssrEmitterIntensity;
 cvar_t  *r_ssrEmitterMaxRoughness;
 cvar_t  *r_ssrHitCache;
+cvar_t  *r_ssrResolveCache;
 cvar_t  *r_ssrReceiverCull;
 
 cvar_t  *r_ssgi;
@@ -2521,8 +2522,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrEmitterIntensity, 0.0f, 16.0f, qfalse );
 	r_ssrEmitterMaxRoughness = ri.Cvar_Get( "r_ssrEmitterMaxRoughness", "0.35", CVAR_ARCHIVE, "SSR: rougher surfaces do not reflect light sabers / effects (their dynamic light highlight already does)" );
 	ri.Cvar_CheckRange( r_ssrEmitterMaxRoughness, 0.05f, 1.0f, qfalse );
-	r_ssrHitCache = ri.Cvar_Get( "r_ssrHitCache", "1", CVAR_ARCHIVE, "SSR: reuse the ray hits of the previous frame while they are still valid (each pixel is traced again every 4 frames)" );
+	r_ssrHitCache = ri.Cvar_Get( "r_ssrHitCache", "1", CVAR_ARCHIVE, "SSR: reuse validated hits (needs depth prepass); refresh every 4 frames, all rotating half-res phases within 16" );
 	ri.Cvar_CheckRange( r_ssrHitCache, 0, 1, qtrue );
+	r_ssrResolveCache = ri.Cvar_Get( "r_ssrResolveCache", "1", CVAR_ARCHIVE, "SSR: resolve half-res rays to radiance once per frame, then upsample (0 = per-pixel resolve)" );
+	ri.Cvar_CheckRange( r_ssrResolveCache, 0, 1, qtrue );
 	r_ssrReceiverCull = ri.Cvar_Get( "r_ssrReceiverCull", "1", CVAR_ARCHIVE, "SSR: run the ray march only on the pixels that need a ray (early depth test)" );
 	ri.Cvar_CheckRange( r_ssrReceiverCull, 0, 1, qtrue );
 
@@ -3659,7 +3662,7 @@ static void R_InitBackEndFrameData()
 	bool reserveTemporalUbo = (r_smaa->integer == 2
 		// || r_smaa->integer == 4
 		// || r_taa->integer
-		|| (r_ssr->integer && r_ssrTemporal->integer)
+		|| r_ssr->integer // hit cache needs previous transforms without color temporal
 		|| r_ssgi->integer
 		|| r_motionBlur->integer
 		);

@@ -25,7 +25,7 @@ void main()
 // Hit cache: the hit of the previous frame (u_SSRPrevHitMap, at the reprojected receiver) is reused
 // without a march when it is still the reflection of this frame's ray: on the ray within the roughness
 // cone, still the visible surface there, not moved (velocity buffer), nothing new in between. Valid cached
-// hits are traced again once every 4 frames (a 2x2 rotation), invalid ones every frame.
+// trace cells are refreshed every 4 frames (every phase within 16 frames with rotating half resolution).
 //
 // CLASSIFY: the early depth pass of the trace (r_ssrReceiverCull). Writes the nearest depth where a pixel needs a
 // ray (receiver, glossy enough, visible specular weight), discards the others.
@@ -38,15 +38,10 @@ void main()
 // u_SSRSettings2: x = max roughness, y = edge fade, z = pixel scale of the trace grid (1 or 2), w = frame
 // u_SSRSettings3: x = coarsest Hi-Z level, y = min specular weight, z = near plane, w = Hi-Z iterations
 // u_SSRSettings4: x = hit cache valid, y = velocity buffer valid, z = refresh slot (0..3), w = phase (0..3)
+// u_SSRSettings5: x = previous trace phase
 // u_SSRTexelSize.xy = 1 / full resolution size
 
 out vec4 out_Color;
-
-vec2 PhaseOffset(float phase)
-{
-	int p = int(phase);
-	return vec2(float(p & 1), float(p >> 1));
-}
 
 // receiver tests shared by the classification and the trace
 bool NeedsRay(ivec2 pix, out float z, out vec4 normalRoughness)
@@ -70,6 +65,50 @@ bool NeedsRay(ivec2 pix, out float z, out vec4 normalRoughness)
 }
 
 #if !defined(CLASSIFY)
+// Conservative visibility of O -> cached Q. Unlike a new-hit test, ANY front
+// surface behind which the segment passes invalidates the cache, regardless of
+// thickness. A small Hi-Z budget bounds the cost; uncertainty causes a fresh
+// trace, never acceptance of an untested tail. Linear mode only reads mip 0.
+bool CachedPathClear(vec3 O, vec3 Q)
+{
+	if (!SSRInsideView(SSRProjectToUV(O)))
+		return false;
+	float sMin, sMax, screenLength;
+	if (!SSRSetupRay(O, Q, sMin, sMax, screenLength))
+		return false;
+	// Exclude the receiver and the hit's own pixel footprint.
+	float end = min(sMax, 1.0 - 1.5 / screenLength);
+	float s = max(sMin, 1.5 / screenLength);
+	int maxLevel = int(u_SSRSettings3.x);
+	int level = min(maxLevel, max(0, int(ceil(log2(max(screenLength, 1.0)))) - 2));
+	float eps = 0.02 / screenLength;
+	vec2 dirStep = vec2(g_D.x >= 0.0 ? 1.0 : 0.0, g_D.y >= 0.0 ? 1.0 : 0.0);
+	for (int i = 0; i < 24; i++)
+	{
+		if (s >= end)
+			return true;
+		float cellSize = exp2(float(level));
+		vec2 cell = floor(SSRRayPixel(s) / cellSize);
+		vec2 boundary = (cell + dirStep) * cellSize;
+		float sx = g_D.x != 0.0 ? (boundary.x - g_S0.x) / g_D.x : 1.0e30;
+		float sy = g_D.y != 0.0 ? (boundary.y - g_S0.y) / g_D.y : 1.0e30;
+		float exitS = min(min(sx, sy), end);
+		ivec2 size = textureSize(u_SSRHiZMap, level);
+		float zs = texelFetch(u_SSRHiZMap, clamp(ivec2(cell), ivec2(0), size - ivec2(1)), level).r;
+		float zFar = max(SSRRayDepth(s), SSRRayDepth(exitS));
+		if (!SSRIsSurface(zs) || zFar <= zs + 0.02 * zs + 1.0)
+		{
+			s = exitS + eps;
+			level = min(level + 1, maxLevel);
+		}
+		else if (level > 0)
+			level--;
+		else
+			return false;
+	}
+	return s >= end;
+}
+
 // The hit of the previous frame, if it is still the hit of the ray O + R t. Q = hit point (view space),
 // hitPixel / zScene as the march returns them.
 bool CachedHit(vec3 P, vec2 uv, vec3 O, vec3 R, float rayLength, float coneTangent, float startOffset,
@@ -96,13 +135,13 @@ bool CachedHit(vec3 P, vec2 uv, vec3 O, vec3 R, float rayLength, float coneTange
 		return false;
 
 	ivec2 traceSize = textureSize(u_SSRPrevHitMap, 0);
-	ivec2 q = clamp(ivec2(prevUV / (u_SSRTexelSize.xy * u_SSRSettings2.z)), ivec2(0), traceSize - ivec2(1));
+	ivec2 q = SSRNearestTraceTexel(prevUV, u_SSRSettings2.z, u_SSRSettings5.x, traceSize);
 	vec4 cached = texelFetch(u_SSRPrevHitMap, q, 0);
 	if (cached.w <= 0.0)
 		return false;
 
 	// the hit point is fixed in the world: previous view space -> this view space
-	Q = (u_SSRPrevViewToView * vec4(SSRHitPosition(cached), 1.0)).xyz;
+	Q = (u_SSRPrevViewToView * vec4(SSRPrevHitPosition(cached), 1.0)).xyz;
 	if (Q.z <= u_SSRSettings3.z * 1.5)
 		return false;
 
@@ -135,19 +174,7 @@ bool CachedHit(vec3 P, vec2 uv, vec3 O, vec3 R, float rayLength, float coneTange
 			return false;
 	}
 
-	// nothing new in between: a few taps along the ray (perspective correct depth)
-	vec2 S0 = SSRProjectToUV(O) / u_SSRTexelSize.xy;
-	for (int i = 1; i <= 4; i++)
-	{
-		float f = float(i) / 5.0;
-		vec2 pixel = mix(S0, hitPixel, f);
-		float zRay = 1.0 / mix(1.0 / O.z, 1.0 / Q.z, f);
-		float zs = SSRSceneDepth(pixel);
-		if (SSRIsSurface(zs) && zRay > zs + 0.02 * zs + 1.0 && zRay < zs + SSRThickness(zs, u_SSRSettings.w))
-			return false;
-	}
-
-	return true;
+	return CachedPathClear(O, Q);
 }
 #endif
 
@@ -158,19 +185,28 @@ void main()
 	float gridScale = u_SSRSettings2.z;
 	ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
 	ivec2 traceTexel = ivec2(gl_FragCoord.xy);
-	ivec2 pix = SSRTracePixel(traceTexel, gridScale, PhaseOffset(u_SSRSettings4.w), fullSize);
+	ivec2 pix = SSRTracePixel(traceTexel, gridScale, SSRPhaseOffset(u_SSRSettings4.w), fullSize);
 
 	float z;
 	vec4 normalRoughness;
+#if defined(PRECLASSIFIED)
+	// The classification depth test already proved eligibility. Only inputs
+	// needed by the ray itself are fetched again, not stored depth/specular W.
+	z = texelFetch(u_SSRHiZMap, pix, 0).r;
+	normalRoughness = texelFetch(u_SSRNormalMap, pix, 0);
+#else
 	bool needsRay = NeedsRay(pix, z, normalRoughness);
+#endif
 
 #if defined(CLASSIFY)
 	if (!needsRay)
 		discard;
 	out_Color = vec4(1.0);
 #else
+  #if !defined(PRECLASSIFIED)
 	if (!needsRay)
 		return;
+  #endif
 
 	vec2 uv = (vec2(pix) + 0.5) * u_SSRTexelSize.xy;
 	float roughness = normalRoughness.b;

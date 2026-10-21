@@ -27,6 +27,7 @@ void main()
 // (view depth, octahedral world normal, roughness; roughness -1 = no receiver).
 //
 // u_SSRSettings: x = history valid, y = history weight, z = velocity buffer valid, w = trace grid scale
+// u_SSRSettings2: x = current trace phase, y = previous trace phase
 
 out vec4 out_Color;
 out vec4 out_Glow;
@@ -110,8 +111,10 @@ void main()
 	// the reflected point: this frame's hit against the history's
 	float gridScale = u_SSRSettings.w;
 	ivec2 hitMax = textureSize(u_SSRHitMap, 0) - ivec2(1);
-	vec4 hitNow = texelFetch(u_SSRHitMap, clamp(pix / int(gridScale), ivec2(0), hitMax), 0);
-	vec4 hitPrev = texelFetch(u_SSRPrevHitMap, clamp(ivec2(prevUV / (u_SSRTexelSize.xy * gridScale)), ivec2(0), hitMax), 0);
+	vec4 hitNow = texelFetch(u_SSRHitMap,
+		SSRNearestTraceTexel(uv, gridScale, u_SSRSettings2.x, hitMax + ivec2(1)), 0);
+	vec4 hitPrev = texelFetch(u_SSRPrevHitMap,
+		SSRNearestTraceTexel(prevUV, gridScale, u_SSRSettings2.y, hitMax + ivec2(1)), 0);
 	float hitAgreement = 1.0;
 	if ((hitNow.w > 0.0) != (hitPrev.w > 0.0))
 	{
@@ -121,10 +124,13 @@ void main()
 	else if (hitNow.w > 0.0)
 	{
 		vec3 Qnow = SSRHitPosition(hitNow);
-		vec3 Qprev = (u_SSRPrevViewToView * vec4(SSRHitPosition(hitPrev), 1.0)).xyz;
-		float apart = Qprev.z > 1.0 ? length((SSRProjectToUV(Qprev) - hitNow.xy) / u_SSRTexelSize.xy) : 1.0e6;
-		float footprint = length(Qnow - P) * SSRConeTangent(normalRoughness.b) / (max(Qnow.z, 1.0) * u_SSRDepthParams.w);
-		float allowed = max(2.0 * gridScale, footprint);
+		vec3 Qprev = (u_SSRPrevViewToView * vec4(SSRPrevHitPosition(hitPrev), 1.0)).xyz;
+		// Compare points in 3D: equal projected UV does not imply equal hit
+		// geometry when an object moves along the camera ray or reveals a wall.
+		float apart = Qprev.z > 1.0 ? length(Qprev - Qnow) : 1.0e20;
+		float footprint = length(Qnow - P) * SSRConeTangent(normalRoughness.b);
+		float pixelSize = max(min(Qnow.z, Qprev.z), 1.0) * u_SSRDepthParams.w;
+		float allowed = max(2.0 * gridScale * pixelSize + 0.5, footprint);
 		hitAgreement = 1.0 - smoothstep(allowed, 2.0 * allowed, apart);
 	}
 	if (hitAgreement <= 0.0)

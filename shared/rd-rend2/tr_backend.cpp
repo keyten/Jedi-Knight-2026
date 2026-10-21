@@ -3775,7 +3775,12 @@ const void *RB_PostProcess(const void *data)
 	{
 		// Resolve the MSAA before anything else
 		// Can't resolve just part of the MSAA FBO, so multiple views will suffer a performance hit here
-		FBO_FastBlit(tr.renderFbo, NULL, tr.msaaResolveFbo, NULL, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		// A color blit writes the read attachment to EVERY enabled draw
+		// attachment. Preserve the already-resolved screen material buffers
+		// (also used by the SSR/SSGI debug overlays) instead of filling them
+		// with scene color. Glow is resolved separately below when needed.
+		FBO_FastBlitIndexed(tr.renderFbo, tr.msaaResolveFbo, 0, 0,
+			GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		srcFbo = tr.msaaResolveFbo;
 
 		if ( (r_bloom->integer == -1 && r_dynamicGlow->integer) || RB_ModernBloomActive() )
