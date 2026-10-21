@@ -4,6 +4,7 @@ Reads installed assets, writes only under build/ssr-runtime/<label>. Requires
 an explicit installation; never replaces the installed engine or renderer.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -34,6 +35,11 @@ def main():
     parser.add_argument('--half-res', type=int, choices=(0, 1), default=1)
     parser.add_argument('--msaa', type=int, choices=(0, 4), default=0)
     parser.add_argument('--resolve-cache', type=int, choices=(0, 1), default=1)
+    parser.add_argument('--rough-occlusion', type=int, choices=(0, 1), default=1)
+    parser.add_argument('--bench-frames', type=int, default=90,
+                        help='Engine wait ticks per measured section (positive, not wall-clock frames)')
+    parser.add_argument('--bench-warmup', type=int, default=25,
+                        help='Engine wait ticks before each measured section')
     parser.add_argument('--compare-resolve', action='store_true')
     parser.add_argument('--smoke-only', action='store_true', help='Skip GPU timing sections')
     parser.add_argument('--check-no-prepass-cache', action='store_true',
@@ -47,6 +53,7 @@ def main():
                         help='Wait this many seconds for other game runs to finish')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-zA-Z0-9_-]+', args.label)
+    assert args.bench_frames >= 40 and args.bench_warmup >= 0
     idle_since = None
     waiting_since = time.monotonic()
     while True:
@@ -87,7 +94,8 @@ def main():
                 'r_ssrBlendStrength 0', 'wait 30', 'screenshot_tga cubemap',
                 'r_ssrBlendStrength 1', f'r_ssrResolveCache {args.resolve_cache}', 'wait 30']
     if not args.smoke_only:
-        cfg += ['com_maxfps 0', 'com_maxfpsUnfocused 0']
+        cfg += ['com_maxfps 0', 'com_maxfpsUnfocused 0', 'com_maxfpsMinimized 0',
+                'echo SSR_BENCH_FPS_CAPS', 'com_maxfps', 'com_maxfpsUnfocused', 'com_maxfpsMinimized']
     modes = [(1, 1, args.resolve_cache), (0, 1, args.resolve_cache), (1, 0, args.resolve_cache)]
     if args.compare_resolve:
         modes.append((1, 1, 1 - args.resolve_cache))
@@ -99,12 +107,12 @@ def main():
             label = f'y{yaw}_cache{cache}_cull{cull}_resolve{resolve}'
             cfg += [f'r_ssrHitCache {cache}', f'r_ssrReceiverCull {cull}',
                 f'r_ssrResolveCache {resolve}',
-                'wait 25', f'echo SSR_BENCH_BEGIN_{label}', 'r_speeds 100',
-                'wait 90', 'r_speeds 0', f'echo SSR_BENCH_END_{label}']
+                f'wait {args.bench_warmup}', f'echo SSR_BENCH_BEGIN_{label}', 'r_speeds 100',
+                f'wait {args.bench_frames}', 'r_speeds 0', f'echo SSR_BENCH_END_{label}']
     if args.compare_resolve:
         # Late A/B/A captures separate the spatial resolve approximation
         # from map-start streaming, hit reuse and GPU warm-up.
-        cfg += ['com_maxfps 60', 'com_maxfpsUnfocused 60',
+        cfg += ['com_maxfps 60', 'com_maxfpsUnfocused 60', 'com_maxfpsMinimized 60',
                 'setviewpos 671 -769 -70 290', 'r_ssrHitCache 0',
                 'r_ssrReceiverCull 1', 'wait 120',
                 'r_ssrResolveCache 0', 'wait 120', 'screenshot_tga direct_late',
@@ -114,7 +122,9 @@ def main():
     # Exercise camera reprojection and a frame history cut as well as static reuse.
     cfg += ['r_ssrHitCache 1', 'r_ssrReceiverCull 1', '+right', 'wait 24',
         '-right', 'wait 20', 'screenshot_tga after_pan',
+        'setviewpos 671 -769 -70 110', 'wait 10',
         'setviewpos 671 -769 -70 290', 'wait 20',
+        'screenshot_tga after_cut',
         # Saber mode 2 independently forces a velocity/depth prepass.
         'r_ltcSaberShadows 0', 'r_depthPrepass 0', 'r_ssrDebug 12',
         'wait 20', 'screenshot_tga no_prepass',
@@ -124,7 +134,7 @@ def main():
         r_mode='-1', r_customwidth=str(args.width), r_customheight=str(args.height), r_fullscreen='0',
         # Smoke checks must outlive the 0.75 s real-time level dissolve, even
         # on a GPU rendering thousands of tiny frames per second.
-        r_swapInterval='0', com_maxfps='60', com_maxfpsUnfocused='60',
+        r_swapInterval='0', com_maxfps='60', com_maxfpsUnfocused='60', com_maxfpsMinimized='60',
         com_bootlogo='0', in_mouse='0',
         s_initsound='0', logfile='2', developer='0', r_hdr='1', r_autoExposure='0',
         r_ssr='1', r_ssrHalfRes=str(args.half_res), r_ssrTemporal=str(args.temporal),
@@ -132,6 +142,7 @@ def main():
         r_ssrReceiverCull='1', r_ssgi='0', r_smaa='0', r_motionBlur='0',
         r_depthPrepass='1', r_ext_multisample=str(args.msaa),
         r_ssrResolveCache=str(args.resolve_cache),
+        r_ssrRoughOcclusion=str(args.rough_occlusion),
         r_cubeMapping='1', r_normalMapping='1', r_specularMapping='1',
         r_autoPBR='1', r_weatherWetness='0', r_waterSurface='0',
         r_volumetricFog='0', r_volumetricWater='0', r_atmosphere='0', r_clouds='0',
@@ -144,7 +155,7 @@ def main():
                        if key not in ('fs_basepath', 'fs_homepath', 'fs_game')]
     config_settings += ['echo SSR_SETTINGS_BEGIN', 'r_ssr', 'r_ssrTemporal',
         'r_ssrHalfRes', 'r_ssgi', 'r_smaa', 'r_motionBlur', 'r_ext_multisample',
-        'r_ssrResolveCache', 'echo SSR_SETTINGS_END']
+        'r_ssrResolveCache', 'r_ssrRoughOcclusion', 'echo SSR_SETTINGS_END']
     (home / 'autoexec_sp.cfg').write_text('\n'.join(config_settings + cfg) + '\n', encoding='ascii')
     command = [str(runtime / 'openjk_sp.x86_64.exe')]
     for key in ('fs_basepath', 'fs_homepath', 'fs_game'):
@@ -171,12 +182,19 @@ def main():
             processes = game_processes()
             overlap |= len(processes) > 1
             time.sleep(2)
+    metadata = dict(source_revision=subprocess.check_output(
+        ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        renderer_path=str(args.renderer.resolve()),
+        renderer_sha256=hashlib.sha256(args.renderer.read_bytes()).hexdigest(),
+        bench_wait_ticks=args.bench_frames, bench_warmup_ticks=args.bench_warmup,
+        benchmark_fps_caps=None if args.smoke_only else dict(
+            com_maxfps=0, com_maxfpsUnfocused=0, com_maxfpsMinimized=0))
     (runtime / 'execution.json').write_text(json.dumps(dict(
-        returncode=process.returncode, overlap=overlap, settings=settings), indent=2))
+        returncode=process.returncode, overlap=overlap, settings=settings, **metadata), indent=2))
     log = (home / 'qconsole.log').read_text(errors='replace')
     assert process.returncode == 0 and 'SSR_RUNTIME_DONE' in log, log[-5000:]
     assert not re.search(r'GL_INVALID|GLSL shader compile error|GLSL shader link error|FBO.*incomplete', log), log[-5000:]
-    for name in ('beauty', 'cache', 'hits', 'after_pan', 'no_prepass'):
+    for name in ('beauty', 'cache', 'hits', 'after_pan', 'after_cut', 'no_prepass'):
         assert (home / f'screenshots/{name}.tga').stat().st_size > 1000, name
     # Only the fixed renderer promises no reuse without a valid prepass.
     # The baseline run remains useful for measuring/reproducing old behavior.
@@ -210,13 +228,14 @@ def main():
                'renderer': re.findall(r'GL_RENDERER:.*', log),
                'mode': re.findall(r'MODE: .*', log)[-1:],
                'cache_pixels': cache_pixels,
-               'no_prepass_green_pixels': green, 'sections': {}}
+               'no_prepass_green_pixels': green, 'sections': {}, **metadata}
     if args.compare_resolve:
         direct, cached, repeat = [tga_pixels(name) for name in
                                   ('direct_late', 'cached_late', 'direct_repeat')]
         assert len(direct) == len(cached) == len(repeat)
         results['resolve_quality'] = dict(direct_repeat_identical=direct == repeat,
-            cached_vs_direct_mean_absolute_8bit=sum(abs(a-b) for a, b in zip(direct, cached))/len(direct))
+            cached_vs_direct_mean_absolute_8bit=sum(abs(a-b) for a, b in zip(direct, cached))/len(direct),
+            direct_repeat_mean_absolute_8bit=sum(abs(a-b) for a, b in zip(direct, repeat))/len(direct))
     for label, section in re.findall(r'SSR_BENCH_BEGIN_(\w+)(.*?)SSR_BENCH_END_\1', log, re.S):
         passes = {}
         for name in ('Main View 0', 'Screen geometry', 'SSR inputs', 'SSR trace', 'SSR resolve',

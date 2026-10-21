@@ -4,6 +4,13 @@ Work starts at `6e6305f91af5f932743aa1bd41f5152dcef65c93` on branch
 `codex/ssr-cache-fixes`. The separate checkout is
 `C:/Users/Keyten/.codex/worktrees/ssr-cache-fixes/OpenJK-rend2`.
 
+The changes are now merged into `rend2-unified-wip` in the main checkout,
+`C:/Users/Keyten/Desktop/projects/OpenJK-rend2`, by merge `40a5b4979` (source
+commit `b71df52cc`). The merge retains `7c494746c`'s rough reflection occlusion
+and `e1e1baa87`'s emissive/liquid-linking fixes. The `lightall.glsl`, emissive
+and shade changes from those commits were not replaced. See the post-merge
+section below for validation of the combined main branch.
+
 ## Changes
 
 - Receiver classification clears trace confidence to zero. The old
@@ -105,7 +112,7 @@ come from `r_speeds 100`; warm-up and pipeline-tail samples are removed before
 median/mean/p95 calculation. These static views are not a full moving-NPC,
 weapon-animation, or gameplay-quality certification.
 
-## Final game results (2026-10-21)
+## Initial worktree game results (2026-10-21)
 
 Both SP/MP renderer DLLs build. The final production GLSL regressions pass on
 both GPUs, including the additional classified-clear and all-MRT resolve bugs
@@ -167,3 +174,88 @@ Raw logs, screenshots and per-section median/mean/p95 are in
 Earlier exploratory/overlapping runs and pre-clear-fix timings are excluded
 from the table. Representative-sample MSAA edge resolve, compute tracing,
 material packing and stochastic GGX remain out of scope.
+
+## Post-merge validation in the main checkout
+
+Merge `40a5b4979` combines the fixes with main's `7c494746c`; all results in
+this section are from `C:/Users/Keyten/Desktop/projects/OpenJK-rend2`.
+The pre-merge baseline DLLs are in `build/ssr-baseline-main-7c494746c`, not
+the earlier worktree baseline. Final SP/MP renderers and the SP engine/game
+build successfully in `build/ssr-msvc/RelWithDebInfo` (only the existing
+`/arch:SSE2` x64 warnings). Build log: `build/ssr-msvc/ssr-merged-build.log`.
+The build runner normalizes the child environment to avoid the host's
+duplicate `Path`/`PATH` entries confusing MSBuild; no system settings changed.
+
+The production GLSL regression suite passes on Intel and RTX against baseline
+`7c494746c`. Logs: `ssr-merged-tests-intel.log` / `ssr-merged-tests-rtx.log`
+in the same build directory. The other agent's `lightall.glsl`, emissive and
+shade code remains unchanged; both `r_ssrRoughOcclusion` and
+`r_ssrResolveCache` are registered in SP/MP and documented.
+
+All post-merge game runs record `overlap: false`. Performance uses 1600x900,
+half-resolution/Hi-Z, temporal off, MSAA off, and `r_ssrRoughOcclusion 1`
+in both baseline and merged renderers. Measured sections retain 588 samples
+on RTX and 168 on Intel after warm-up/tail trimming. The test launcher now
+also controls `com_maxfpsMinimized`: its default 50 cap can otherwise affect
+a hidden test window. RTX results below use the repeated `main-unlimited-*`
+runs with all three FPS caps disabled. Intel `main-before-intel` /
+`main-merged-intel` were GPU-bound below that cap already.
+
+Median main-view GPU time in ms, default hit cache/culling/resolve cache:
+
+| GPU | yaw | main before merge | merged | change |
+|---|---:|---:|---:|---:|
+| Intel UHD | 290 | 30.009 | 25.315 | -15.6% |
+| Intel UHD | 310 | 30.669 | 25.511 | -16.8% |
+| RTX 2060 | 290 | 2.407 | 2.442 | +1.4%* |
+| RTX 2060 | 310 | 2.897 | 2.451 | -15.4% |
+
+\* RTX's first measured section still has a different warm-up/boost profile:
+the otherwise unchanged screen-geometry pass measures .149 ms before versus
+.182 ms after. Do not read that row as an isolated SSR regression or normalize
+it into a claimed speedup. In the warmed yaw-290 cache-off sections, geometry
+is comparable (.180/.182 ms) and main-view GPU time is 2.875 -> 2.346 ms.
+Clocks are not locked, so these remain diagnostic GPU timings, not a general
+FPS promise. The baseline also retains its incorrect culled-hit clear and
+missing default velocity validation, so it does not produce identical images.
+
+The clearest per-pass gains persist with rough occlusion enabled: Intel
+`SSR inputs` 3.828/3.922 -> 2.302/2.294 ms; warmed RTX .623 -> .223 ms.
+Merged RTX cached resolve is .374/.366 ms versus .430/.408 ms direct.
+Strict hit-cache validation still costs time on these short rays: Intel trace
+5.597/5.184 ms with reuse versus 4.865/4.435 ms without it; RTX .640/.576
+versus .544/.495 ms. No blanket claim that more caching always wins.
+
+Late direct/cached/direct captures remain visually close: Intel mean absolute
+cached/direct difference is .00541 on the 0..255 scale with an identical
+repeated direct image. RTX cached/direct difference is .00565, smaller than
+the .00953 difference between its repeated direct captures. This covers this
+static view only, not all roughness/material boundaries.
+
+Additional game smoke tests pass:
+
+- `main-msaa-temporal-rough1`: RTX, temporal + MSAA 4x, rough occlusion on;
+  31,032 reused / 24,512 fresh hit pixels in debug 12.
+- `main-msaa-temporal-rough0`: same combination with rough occlusion off;
+  30,260 reused / 28,215 fresh hit pixels. Both lightall paths compile/run.
+- `main-full-intel`: full-resolution rays, rough occlusion on;
+  39,628 reused / 21,837 fresh hit pixels.
+- All three report **zero reused pixels without velocity/prepass**. The
+  latest smoke runs also include an explicit 180-degree camera history cut.
+
+Main-branch artifacts are under `build/ssr-runtime/`: `main-unlimited-*-rtx`,
+`main-*-intel`, `main-msaa-temporal-rough*`, `main-full-intel` and the collected
+`main-summary.json`. Each `results.json` records DLL path/hash, source revision,
+GPU, viewport, settings, section medians/mean/p95 and cache checks.
+The initially capped RTX runs are retained but excluded from this table.
+
+Example longer run (use `--nvidia --bench-frames 1200 --bench-warmup 1200`
+for RTX instead):
+
+```powershell
+python tools/rend2/test_ssr_runtime.py --installation C:/Users/Keyten/Desktop/projects/OpenJK/build-rend2 --renderer build/ssr-msvc/RelWithDebInfo/rdsp-rend2_x86_64.dll --label repeat-main-intel --width 1600 --height 900 --rough-occlusion 1 --bench-frames 360 --bench-warmup 120 --compare-resolve --check-no-prepass-cache
+```
+
+The earlier coverage limits still apply: moving NPC/weapon gameplay QA,
+representative-sample MSAA resolve and wider maps/materials remain unverified.
+Installed game files were only read; each run has its own executable and home.
