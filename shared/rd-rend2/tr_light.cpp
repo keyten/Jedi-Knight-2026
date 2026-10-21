@@ -738,7 +738,8 @@ int R_DLightsForPoint(const vec3_t point, const float radius)
 		const float radiusSum = radius + currentDlight->radius;
 
 		// spot lights (tr_spotlight.cpp): also outside the cone
-		if (DistanceSquared(point, currentDlight->origin) < radiusSum * radiusSum &&
+		if (radiusSum > 0.0f &&
+			DistanceSquared(point, currentDlight->origin) < radiusSum * radiusSum &&
 			R_SpotSphereInCone(currentDlight, point, radius))
 		{
 			// Forward+: only "lit", the cluster lists pick the lights

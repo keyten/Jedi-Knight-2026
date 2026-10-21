@@ -884,25 +884,8 @@ R_ACullModel
 =============
 */
 static int R_GCullModel( trRefEntity_t *ent ) {
-
-	// scale the radius if need be
-	float largestScale = ent->e.modelScale[0];
-
-	if (ent->e.modelScale[1] > largestScale)
-	{
-		largestScale = ent->e.modelScale[1];
-	}
-	if (ent->e.modelScale[2] > largestScale)
-	{
-		largestScale = ent->e.modelScale[2];
-	}
-	if (!largestScale)
-	{
-		largestScale = 1;
-	}
-
 	// cull bounding sphere
-  	switch ( R_CullLocalPointAndRadius( vec3_origin,  ent->e.radius * largestScale) )
+	switch ( R_CullLocalPointAndRadius( vec3_origin, ent->e.radius * ent->maxModelScale) )
   	{
   	case CULL_OUT:
   		tr.pc.c_sphere_cull_md3_out++;
@@ -1120,10 +1103,9 @@ void R_G2ShadowStatsEndFrame( void )
 }
 
 // work out lod for this entity.
-static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int lodBias )
+static int G2_ComputeLOD( const model_t *currentModel, int lodBias,
+	float projectedRadius, float cameraRadius )
 {
-	float projectedRadius;
-
 	if ( currentModel->numLods < 2 )
 	{	// model has only 1 LOD level, skip computations and bias
 		return(0);
@@ -1134,35 +1116,12 @@ static int G2_ComputeLOD( trRefEntity_t *ent, const model_t *currentModel, int l
 		lodBias = r_lodbias->integer;
 	}
 
-	// scale the radius if need be
-	float largestScale = ent->e.modelScale[0];
-
-	if (ent->e.modelScale[1] > largestScale)
-	{
-		largestScale = ent->e.modelScale[1];
-	}
-	if (ent->e.modelScale[2] > largestScale)
-	{
-		largestScale = ent->e.modelScale[2];
-	}
-	if (!largestScale)
-	{
-		largestScale = 1;
-	}
-
-	const float radius = 0.75*largestScale*ent->e.radius;
-	projectedRadius = ProjectRadius( radius, ent->e.origin );
-
 	// Shadow views project the model with their own (orthographic sun or
 	// light centred) projection, which picks another LOD than the camera: the
 	// caster mesh then differs from the receiver mesh. r_shadowCasterLod uses
 	// the camera LOD; casters behind the camera keep the shadow view LOD, so
 	// no caster gets more detail than the camera would give it.
 	const bool shadowView = (tr.viewParms.flags & VPF_DEPTHSHADOW) != 0;
-	const bool cameraValid = !(tr.refdef.rdflags & RDF_NOWORLDMODEL);
-	const float cameraRadius = (shadowView && cameraValid &&
-		(r_shadowCasterLod->integer || r_shadowCasterStats->integer)) ?
-		G2_CameraProjectRadius(radius, ent->e.origin) : 0.0f;
 	if ( r_shadowCasterLod->integer && cameraRadius > 0.0f )
 		projectedRadius = cameraRadius;
 
@@ -2550,14 +2509,6 @@ void RenderSurfaces( CRenderSurface &RS, trRefEntity_t *ent, int entityNum )
 			shader = R_GetShaderByHandle( surfInfo->shaderIndex );
 		}
 
-		// Get dlightBits and Cubemap
-		float radius;
-		// scale the radius if needed
-		float largestScale = MAX(ent->e.modelScale[0], MAX(ent->e.modelScale[1], ent->e.modelScale[2]));
-		radius = ent->e.radius * largestScale;
-		int dlightBits = R_DLightsForEntity(ent, ent->e.origin, radius);
-		int cubemapIndex = R_CubemapForEntity(ent, ent->e.origin);
-
 		// don't add third_person objects if not viewing through a portal
 		if ( !RS.personalModel )
 		{
@@ -2568,7 +2519,7 @@ void RenderSurfaces( CRenderSurface &RS, trRefEntity_t *ent, int entityNum )
 			assert (newSurf->vboMesh != NULL && RS.surfaceNum == surface->thisSurfaceIndex);
 			newSurf->surfaceData = surface;
 			newSurf->boneCache = RS.boneCache;
-			newSurf->dlightBits = dlightBits;
+			newSurf->dlightBits = ent->dlightCacheBits;
 
 			// render shadows?
 			if (r_shadows->integer == 2
@@ -2583,7 +2534,7 @@ void RenderSurfaces( CRenderSurface &RS, trRefEntity_t *ent, int entityNum )
 				RS.fogNum,
 				qfalse,
 				R_IsPostRenderEntity(ent),
-				cubemapIndex);
+				ent->cubemapCacheIndex);
 
 #ifdef _G2_GORE
 			if ( RS.gore_set && drawGore )
@@ -2670,7 +2621,7 @@ void RenderSurfaces( CRenderSurface &RS, trRefEntity_t *ent, int entityNum )
 							RS.fogNum,
 							qfalse,
 							R_IsPostRenderEntity(ent),
-							cubemapIndex);
+							ent->cubemapCacheIndex);
 					}
 				}
 			}
@@ -3366,6 +3317,31 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent, int entityNum )
 	// see if we are in a fog volume
 	int fogNum = R_GComputeFogNum(ent);
 
+	// Dlights and the nearest cubemap are scene properties.  Prime the shared
+	// per-entity caches once here instead of querying them for every surface;
+	// subsequent shadow/cubemap views reuse the same scene-tagged results.
+	const float lightingRadius = ent->e.radius * ent->maxModelScale;
+	R_DLightsForEntity(ent, ent->e.origin, lightingRadius);
+	R_CubemapForEntity(ent, ent->e.origin);
+
+	// Projection is common to every attached Ghoul2 model.  Keep the current
+	// view value local, and retain the main-camera value across shadow views.
+	const float lodRadius = 0.75f * ent->maxModelScale * ent->e.radius;
+	const float projectedRadius = ProjectRadius(lodRadius, ent->e.origin);
+	float cameraRadius = 0.0f;
+	const bool shadowView = (tr.viewParms.flags & VPF_DEPTHSHADOW) != 0;
+	const bool cameraValid = !(tr.refdef.rdflags & RDF_NOWORLDMODEL);
+	if ( shadowView && cameraValid &&
+		(r_shadowCasterLod->integer || r_shadowCasterStats->integer) )
+	{
+		if ( !ent->ghoulCameraLodCalculated )
+		{
+			ent->ghoulCameraProjectedRadius = G2_CameraProjectRadius(lodRadius, ent->e.origin);
+			ent->ghoulCameraLodCalculated = qtrue;
+		}
+		cameraRadius = ent->ghoulCameraProjectedRadius;
+	}
+
 	// order sort the ghoul 2 models so bolt ons get bolted to the right model
 	int modelCount;
 	G2_Sort_Models(ghoul2, modelList, ARRAY_LEN(modelList), &modelCount);
@@ -3422,7 +3398,8 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent, int entityNum )
 				}
 		}
 
-		int whichLod = G2_ComputeLOD( ent, g2Info.currentModel, g2Info.mLodBias );
+		int whichLod = G2_ComputeLOD( g2Info.currentModel, g2Info.mLodBias,
+			projectedRadius, cameraRadius );
 		G2_FindOverrideSurface(-1, g2Info.mSlist); //reset the quick surface override lookup;
 
 #ifdef _G2_GORE

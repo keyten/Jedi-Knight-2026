@@ -584,28 +584,49 @@ EntityGridSample SampleEntityGrid(vec3 position)
 	ivec3 base = clamp(ivec3(floor(result.cell)), ivec3(0), bounds - ivec3(1));
 	vec3 fraction = fract(result.cell);
 	float weightSum = 0.0;
-	for (int corner = 0; corner < 8; corner++)
+
+	// Every invalid texel is zero, while direction alpha is its validity.  A
+	// filtered sample therefore contains the weighted valid sum and weight in
+	// four channels; divide by the latter to exactly reproduce skip-invalid
+	// interpolation.  At the outer grid boundary retain the CPU-compatible
+	// linear-index behavior below (an X/Y overflow wraps into the next row).
+	bvec3 interiorMin = greaterThanEqual(result.cell, vec3(0.0));
+	bvec3 interiorMax = lessThan(base, bounds - ivec3(1));
+	if (all(interiorMin) && all(interiorMax))
 	{
-		ivec3 offset = ivec3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1);
-		// Match the CPU's linear BSP-array bounds check, including its edge
-		// behavior when a corner crosses an X or Y row boundary.
-		int linear = base.x + bounds.x * (base.y + bounds.y * base.z) +
-			offset.x + bounds.x * (offset.y + bounds.y * offset.z);
-		if (linear >= bounds.x * bounds.y * bounds.z)
-			continue;
-		ivec3 address = ivec3(linear % bounds.x,
-			(linear / bounds.x) % bounds.y, linear / (bounds.x * bounds.y));
-		vec3 weightAxis = vec3(offset.x != 0 ? fraction.x : 1.0 - fraction.x,
-			offset.y != 0 ? fraction.y : 1.0 - fraction.y,
-			offset.z != 0 ? fraction.z : 1.0 - fraction.z);
-		float weight = weightAxis.x * weightAxis.y * weightAxis.z;
-		vec4 encodedDirection = texelFetch(u_EntityGridDirection, address, 0);
-		if (encodedDirection.a < 0.5)
-			continue;
-		result.ambient += weight * texelFetch(u_EntityGridAmbient, address, 0).rgb;
-		result.directed += weight * texelFetch(u_EntityGridDirected, address, 0).rgb;
-		result.direction += weight * (encodedDirection.rgb * 2.0 - 1.0);
-		weightSum += weight;
+		vec3 texCoord = (result.cell + vec3(0.5)) / vec3(bounds);
+		vec4 encodedDirection = texture(u_EntityGridDirection, texCoord);
+		weightSum = encodedDirection.a;
+		result.ambient = texture(u_EntityGridAmbient, texCoord).rgb;
+		result.directed = texture(u_EntityGridDirected, texCoord).rgb;
+		// sum(w * (2 * encodedDirection - 1)) for valid corners only
+		result.direction = encodedDirection.rgb * 2.0 - vec3(weightSum);
+	}
+	else
+	{
+		for (int corner = 0; corner < 8; corner++)
+		{
+			ivec3 offset = ivec3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1);
+			// Match the CPU's linear BSP-array bounds check, including its edge
+			// behavior when a corner crosses an X or Y row boundary.
+			int linear = base.x + bounds.x * (base.y + bounds.y * base.z) +
+				offset.x + bounds.x * (offset.y + bounds.y * offset.z);
+			if (linear >= bounds.x * bounds.y * bounds.z)
+				continue;
+			ivec3 address = ivec3(linear % bounds.x,
+				(linear / bounds.x) % bounds.y, linear / (bounds.x * bounds.y));
+			vec3 weightAxis = vec3(offset.x != 0 ? fraction.x : 1.0 - fraction.x,
+				offset.y != 0 ? fraction.y : 1.0 - fraction.y,
+				offset.z != 0 ? fraction.z : 1.0 - fraction.z);
+			float weight = weightAxis.x * weightAxis.y * weightAxis.z;
+			vec4 encodedDirection = texelFetch(u_EntityGridDirection, address, 0);
+			if (encodedDirection.a < 0.5)
+				continue;
+			result.ambient += weight * texelFetch(u_EntityGridAmbient, address, 0).rgb;
+			result.directed += weight * texelFetch(u_EntityGridDirected, address, 0).rgb;
+			result.direction += weight * (encodedDirection.rgb * 2.0 - 1.0);
+			weightSum += weight;
+		}
 	}
 	if (weightSum > 0.0)
 	{

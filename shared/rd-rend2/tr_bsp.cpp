@@ -4505,15 +4505,24 @@ static void R_PackEntityLightGrid(world_t *world, uint16_t *ambient,
 
 		if (direction)
 		{
-			const int lat = cell->latLong[1] * (FUNCTABLE_SIZE / 256);
-			const int lng = cell->latLong[0] * (FUNCTABLE_SIZE / 256);
-			const float normal[3] = {
-				tr.sinTable[(lat + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK] * tr.sinTable[lng],
-				tr.sinTable[lat] * tr.sinTable[lng],
-				tr.sinTable[(lng + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK]
-			};
-			for (int c = 0; c < 3; c++)
-				direction[i * 4 + c] = (byte)(Com_Clamp(0.0f, 1.0f, normal[c] * 0.5f + 0.5f) * 255.0f + 0.5f);
+			if (valid)
+			{
+				const int lat = cell->latLong[1] * (FUNCTABLE_SIZE / 256);
+				const int lng = cell->latLong[0] * (FUNCTABLE_SIZE / 256);
+				const float normal[3] = {
+					tr.sinTable[(lat + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK] * tr.sinTable[lng],
+					tr.sinTable[lat] * tr.sinTable[lng],
+					tr.sinTable[(lng + FUNCTABLE_SIZE / 4) & FUNCTABLE_MASK]
+				};
+				for (int c = 0; c < 3; c++)
+					direction[i * 4 + c] = (byte)(Com_Clamp(0.0f, 1.0f, normal[c] * 0.5f + 0.5f) * 255.0f + 0.5f);
+			}
+			else
+			{
+				direction[i * 4 + 0] = 0;
+				direction[i * 4 + 1] = 0;
+				direction[i * 4 + 2] = 0;
+			}
 			direction[i * 4 + 3] = valid ? 255 : 0;
 		}
 	}
@@ -4551,7 +4560,9 @@ static void R_BuildEntityLightGridTextures(world_t *world, qboolean update)
 	const int format = hdr ? GL_RGB16F : GL_RGB16;
 	if (!update)
 	{
-		const int flags = IMGFLAG_CLAMPTOEDGE | IMGFLAG_NEAREST_3D;
+		// The shader uses hardware trilinear filtering for interior cells and
+		// texelFetch for the legacy linear-index behavior at grid boundaries.
+		const int flags = IMGFLAG_CLAMPTOEDGE;
 		world->entityGridAmbient = R_CreateImage3D("*entityGridAmbient", (byte *)ambient, width, height, depth, format, flags);
 		world->entityGridDirected = R_CreateImage3D("*entityGridDirected", (byte *)directed, width, height, depth, format, flags);
 		world->entityGridDirection = R_CreateImage3D("*entityGridDirection", direction, width, height, depth, GL_RGBA8, flags);

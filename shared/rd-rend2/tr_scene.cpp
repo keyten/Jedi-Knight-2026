@@ -430,6 +430,10 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 	backEndData->entities[r_numentities].bmodelDlightCacheScene = -1;
 	backEndData->entities[r_numentities].cubemapCacheScene = -1;
 	backEndData->entities[r_numentities].lightingCalculated = qfalse;
+	backEndData->entities[r_numentities].maxModelScale =
+		R_MaxEntityAxisScale(&backEndData->entities[r_numentities]);
+	backEndData->entities[r_numentities].ghoulCameraLodCalculated = qfalse;
+	backEndData->entities[r_numentities].ghoulCameraProjectedRadius = 0.0f;
 	backEndData->entities[r_numentities].plantBoneOffset = -1;
 	backEndData->entities[r_numentities].plantBoneTexels = 0;
 

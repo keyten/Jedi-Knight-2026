@@ -857,6 +857,30 @@ void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms,
 
 /*
 =================
+R_MaxEntityAxisScale
+
+Conservative scale of the model transform for spherical bounds.  Most client
+paths fold refEntity_t::modelScale into axis and mark nonNormalizedAxes; a few
+older paths leave the axes normalized, so preserve modelScale as their fallback.
+Axis lengths also handle mirrored and non-uniform transforms.
+=================
+*/
+float R_MaxEntityAxisScale( const trRefEntity_t *ent )
+{
+	float scaleSquared = DotProduct(ent->e.axis[0], ent->e.axis[0]);
+	scaleSquared = MAX(scaleSquared, DotProduct(ent->e.axis[1], ent->e.axis[1]));
+	scaleSquared = MAX(scaleSquared, DotProduct(ent->e.axis[2], ent->e.axis[2]));
+	const float axisScale = scaleSquared > 0.0f ? sqrtf(scaleSquared) : 1.0f;
+	if ( ent->e.nonNormalizedAxes )
+		return axisScale;
+
+	float modelScale = MAX(fabsf(ent->e.modelScale[0]),
+		MAX(fabsf(ent->e.modelScale[1]), fabsf(ent->e.modelScale[2])));
+	return modelScale > 0.0f ? modelScale : axisScale;
+}
+
+/*
+=================
 R_RotateForViewer
 
 Sets up the modelview matrix for a given viewParm
@@ -2968,15 +2992,8 @@ void R_SetupPshadowMaps(trRefdef_t *refdef)
 							if (cust_shader->sort != SS_OPAQUE)
 								continue;
 						}
-						// scale the radius if needed
-						float largestScale = ent->e.modelScale[0];
-						if (ent->e.modelScale[1] > largestScale)
-							largestScale = ent->e.modelScale[1];
-						if (ent->e.modelScale[2] > largestScale)
-							largestScale = ent->e.modelScale[2];
-						if (!largestScale)
-							largestScale = 1;
-						radius = ent->e.radius * largestScale * 1.2;
+						// handles both scaled axes and legacy modelScale-only paths
+						radius = ent->e.radius * ent->maxModelScale * 1.2f;
 					}
 				}
 				break;

@@ -1114,6 +1114,13 @@ typedef struct trRefEntity_s {
 	vec3_t		cubemapCachePoint;
 	int			cubemapCacheIndex;
 	qboolean	lightingCalculated;
+	// Derived once when the ref entity enters the scene.  Ghoul2 submission is
+	// repeated for the camera and shadow/cubemap views, so keep view-independent
+	// bounds and light selection on the entity instead of recomputing them for
+	// every surface in every view.
+	float		maxModelScale;
+	qboolean	ghoulCameraLodCalculated;
+	float		ghoulCameraProjectedRadius;
 	qboolean	mirrored;		// mirrored matrix, needs reversed culling
 	vec3_t		lightDir;		// normalized direction towards light, in world space
 	vec3_t      modelLightDir;  // normalized direction towards light, in model space
@@ -5199,6 +5206,7 @@ void R_SetupProjection(viewParms_t *dest, float zProj, float zFar, qboolean comp
 void R_RotateForViewer(orientationr_t *ori, viewParms_t *viewParms);
 void R_SetupProjectionZ(viewParms_t *dest);
 void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t *ori );
+float R_MaxEntityAxisScale( const trRefEntity_t *ent );
 void R_BindAnimatedImageToTMU( textureBundle_t *bundle, int tmu );
 
 /*
