@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "tr_weather.h"
 
+#include <cmath>
+#include <memory>
+#include <unordered_set>
 #include <string.h> // memcpy
 #include <vector>
 #ifndef REND2_SP
@@ -1905,6 +1908,49 @@ uint32_t R_CreateSortKey(int entityNum, int sortedShaderIndex, int cubemapIndex,
 
 /*
 =================
+R_IsStaticSunShadowCaster
+
+The persistent sun layer must never capture geometry whose depth can change
+without a BSP reload.  This is deliberately narrower than "world surface":
+cutouts, shader deforms, POM shells, surface sprites, foliage motion, water and
+polygon-offset material are all left in the per-frame dynamic pass.
+=================
+*/
+qboolean R_IsStaticSunShadowCaster(
+	surfaceType_t *surface,
+	int entityNum,
+	const shader_t *shader,
+	foliageResult_t foliage,
+	uint32_t waterKey)
+{
+	if (entityNum != REFENTITYNUM_WORLD || !surface || !shader)
+		return qfalse;
+
+	const surfaceType_t type = *surface;
+	if (type != SF_FACE && type != SF_GRID && type != SF_TRIANGLES && type != SF_VBO_MESH)
+		return qfalse;
+
+	if (shader->sort != SS_OPAQUE ||
+		shader->depthPrepass != DEPTHPREPASS_SIMPLE ||
+		shader->numDeforms != 0 ||
+		shader->alphaShadow ||
+		shader->foliageHint != FOLIAGE_NONE ||
+		shader->numSurfaceSpriteStages != 0 ||
+		shader->pomSilhouette ||
+		shader->useDistortion ||
+		shader->polygonOffset ||
+		(shader->surfaceFlags & SURF_FORCESIGHT) ||
+		foliage.cls != FOLIAGE_NONE ||
+		waterKey != 0)
+	{
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+/*
+=================
 R_AddDrawSurf
 =================
 */
@@ -1945,6 +1991,20 @@ void R_AddDrawSurf(
 		 (drawShader->sort != SS_OPAQUE && !alphaSunCaster)))
 	{
 		return;
+	}
+
+	if (tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW))
+	{
+		const qboolean staticCaster = R_IsStaticSunShadowCaster(
+			surface, entityNum, drawShader, foliage, waterKey);
+		if ((tr.viewParms.flags & VPF_SUN_STATIC_SHADOW) && !staticCaster)
+			return;
+		if ((tr.viewParms.flags & VPF_SUN_DYNAMIC_SHADOW) && staticCaster)
+			return;
+		if ((tr.viewParms.flags & VPF_SUN_DYNAMIC_SHADOW) &&
+			(drawShader->numDeforms || drawShader->foliageHint != FOLIAGE_NONE ||
+			 drawShader->useDistortion || waterKey))
+			tr.viewParms.sunShadowUnboundedDamage = qtrue;
 	}
 
 	uint8_t cubeFaceMask = 0x3F;
@@ -1988,7 +2048,10 @@ R_SortAndSubmitDrawSurfs
 */
 void R_SortAndSubmitDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	// it is possible for some views to not have any surfaces
-	if (numDrawSurfs < 1)
+	// Cache build views still have to clear their target, and dynamic cache
+	// views still have to copy the static layer when no dynamic caster exists.
+	if (numDrawSurfs < 1 &&
+		!(tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW | VPF_SUN_VERIFY_SHADOW)))
 		return;
 
 	// if we overflowed MAX_DRAWSURFS, the drawsurfs
@@ -1997,7 +2060,8 @@ void R_SortAndSubmitDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	if ( numDrawSurfs > MAX_DRAWSURFS )
 			numDrawSurfs = MAX_DRAWSURFS;
 
-	R_RadixSort( drawSurfs, numDrawSurfs );
+	if (numDrawSurfs > 0)
+		R_RadixSort( drawSurfs, numDrawSurfs );
 
 	R_AddDrawSurfCmd( drawSurfs, numDrawSurfs );
 }
@@ -2206,6 +2270,12 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 		R_AddWorldSurfaces(viewParms, refdef);
 		return;
 	}
+	if (viewParms->flags & VPF_SUN_STATIC_SHADOW)
+	{
+		if (!(viewParms->flags & VPF_SUN_TILE_LOAD_SHADOW))
+			R_AddWorldSurfaces(viewParms, refdef);
+		return;
+	}
 	if (viewParms->flags & VPF_LTC_DYNAMIC_SHADOW)
 	{
 		for (int i = 0; i < refdef->num_entities; ++i)
@@ -2388,6 +2458,151 @@ int R_SkyPortalTakeOccluders( const drawSurf_t **drawSurfs, const viewParms_t **
 	return numSurfs;
 }
 
+// A working layer persists between exact cache hits. Remember where the last
+// dynamic pass could write, not where this frame's objects happen to be.
+// Unknown or shader-displaced geometry deliberately falls back to a full copy.
+static void R_DisableUnboundedSunShadowCache(int level);
+static void R_PrepareSunShadowRestore()
+{
+	if (!(tr.viewParms.flags & VPF_SUN_DYNAMIC_SHADOW))
+		return;
+	struct workingLayer_t { qboolean valid; vec4i_t damage; };
+	static workingLayer_t working[3] = {};
+	const int level = tr.viewParms.targetFboLayer;
+	if (level < 0 || level >= 3)
+		return;
+	const int width = tr.viewParms.viewportWidth, height = tr.viewParms.viewportHeight;
+	workingLayer_t& old = working[level];
+	if (tr.viewParms.sunShadowFullRestore || !old.valid)
+	{
+		VectorSet4(tr.viewParms.sunShadowRestoreRect, 0, 0, width, height);
+	}
+	else
+		Com_Memcpy(tr.viewParms.sunShadowRestoreRect, old.damage, sizeof(old.damage));
+	tr.sunShadowCacheRestoredPixels += (uint64_t)tr.viewParms.sunShadowRestoreRect[2] *
+		tr.viewParms.sunShadowRestoreRect[3];
+
+	int minX = width, minY = height, maxX = 0, maxY = 0;
+	int lastGhoulEntity = -1;
+	bool full = tr.viewParms.sunShadowUnboundedDamage != qfalse;
+	const float *mvp = tr.refdef.sunShadowMvp[level];
+	for (int i = tr.refdef.fistDrawSurf; i < tr.refdef.numDrawSurfs && !full; ++i)
+	{
+		const drawSurf_t& surf = tr.refdef.drawSurfs[i & DRAWSURF_MASK];
+		int entityNum, cubemap, postRender;
+		shader_t *shader;
+		R_DecomposeSort(surf.sort, &entityNum, &shader, &cubemap, &postRender);
+		// Raw foliage evidence includes harmless two-sided/alpha/negative
+		// flags on ordinary materials. Only resolved motion changes bounds.
+		if (shader->numDeforms || surf.foliage.cls != FOLIAGE_NONE)
+		{
+			full = true;
+			break;
+		}
+		vec3_t bounds[2];
+		const surfaceType_t type = *surf.surface;
+		const refEntity_t *localEntity = nullptr;
+		if ((entityNum == REFENTITYNUM_WORLD || (entityNum >= 0 && entityNum < tr.refdef.num_entities)) &&
+			(type == SF_FACE || type == SF_GRID || type == SF_TRIANGLES || type == SF_VBO_MESH))
+		{
+			const auto *bsp = (const srfBspSurface_t *)surf.surface;
+			VectorCopy(bsp->cullBounds[0], bounds[0]);
+			VectorCopy(bsp->cullBounds[1], bounds[1]);
+			if (entityNum != REFENTITYNUM_WORLD)
+				localEntity = &tr.refdef.entities[entityNum].e;
+		}
+		else if (type == SF_VBO_MDVMESH && entityNum >= 0 && entityNum < tr.refdef.num_entities)
+		{
+			const auto *mesh = (const srfVBOMDVMesh_t *)surf.surface;
+			const mdvModel_t *model = mesh->mdvModel;
+			localEntity = &tr.refdef.entities[entityNum].e;
+			if (!model || model->plantSkel ||
+				localEntity->frame < 0 || localEntity->frame >= model->numFrames ||
+				localEntity->oldframe < 0 || localEntity->oldframe >= model->numFrames ||
+				localEntity->backlerp < 0.0f || localEntity->backlerp > 1.0f)
+			{
+				full = true;
+				break;
+			}
+			for (int j = 0; j < 3; ++j)
+			{
+				bounds[0][j] = Q_min(model->frames[localEntity->frame].bounds[0][j],
+					model->frames[localEntity->oldframe].bounds[0][j]);
+				bounds[1][j] = Q_max(model->frames[localEntity->frame].bounds[1][j],
+					model->frames[localEntity->oldframe].bounds[1][j]);
+			}
+		}
+		else if (type == SF_MDX && entityNum >= 0 && entityNum < tr.refdef.num_entities)
+		{
+			// A Ghoul2 entity can submit dozens of body/attachment surfaces;
+			// its model sphere is identical for all of them.
+			if (lastGhoulEntity == entityNum)
+				continue;
+			lastGhoulEntity = entityNum;
+			// Use the same model sphere supplied for Ghoul2 culling / player
+			// shadows, including modelScale and non-normalized entity axes.
+			const refEntity_t& ent = tr.refdef.entities[entityNum].e;
+			float scale = Q_max(fabsf(ent.modelScale[0]),
+				Q_max(fabsf(ent.modelScale[1]), fabsf(ent.modelScale[2])));
+			if (scale == 0.0f) scale = 1.0f;
+			const float radius = ent.radius * scale * 1.2f;
+			if (!(radius > 0.0f))
+			{
+				full = true;
+				break;
+			}
+			for (int j = 0; j < 3; ++j)
+			{
+				const float extent = radius * (fabsf(ent.axis[0][j]) +
+					fabsf(ent.axis[1][j]) + fabsf(ent.axis[2][j]));
+				bounds[0][j] = ent.origin[j] - extent;
+				bounds[1][j] = ent.origin[j] + extent;
+			}
+		}
+		else
+		{
+			full = true;
+			break;
+		}
+		float loX = (float)width, loY = (float)height, hiX = 0.0f, hiY = 0.0f;
+		for (int corner = 0; corner < 8; ++corner)
+		{
+			vec3_t point;
+			for (int j = 0; j < 3; ++j) point[j] = bounds[(corner >> j) & 1][j];
+			if (localEntity)
+			{
+				vec3_t worldPoint;
+				VectorCopy(localEntity->origin, worldPoint);
+				for (int j = 0; j < 3; ++j)
+					VectorMA(worldPoint, point[j], localEntity->axis[j], worldPoint);
+				VectorCopy(worldPoint, point);
+			}
+			const float x = 0.5f * width * (1.0f + mvp[0] * point[0] +
+				mvp[4] * point[1] + mvp[8] * point[2] + mvp[12]);
+			const float y = 0.5f * height * (1.0f + mvp[1] * point[0] +
+				mvp[5] * point[1] + mvp[9] * point[2] + mvp[13]);
+			if (!std::isfinite(x) || !std::isfinite(y)) { full = true; break; }
+			loX = Q_min(loX, x); loY = Q_min(loY, y);
+			hiX = Q_max(hiX, x); hiY = Q_max(hiY, y);
+		}
+		// Guard rasterization rounding and polygon edges. Clamp before the
+		// float-to-int conversion, including completely off-map objects.
+		minX = Q_min(minX, (int)floorf(Com_Clamp(0.0f, (float)width, loX - 4.0f)));
+		minY = Q_min(minY, (int)floorf(Com_Clamp(0.0f, (float)height, loY - 4.0f)));
+		maxX = Q_max(maxX, (int)ceilf(Com_Clamp(0.0f, (float)width, hiX + 4.0f)));
+		maxY = Q_max(maxY, (int)ceilf(Com_Clamp(0.0f, (float)height, hiY + 4.0f)));
+	}
+	if (full)
+	{
+		VectorSet4(old.damage, 0, 0, width, height);
+		if (r_sunShadowCache->integer == 1)
+			R_DisableUnboundedSunShadowCache(level);
+	}
+	else
+		VectorSet4(old.damage, minX, minY, Q_max(0, maxX - minX), Q_max(0, maxY - minY));
+	old.valid = qtrue;
+}
+
 /*
 ================
 R_RenderView
@@ -2409,8 +2624,10 @@ void R_RenderView (viewParms_t *parms) {
 	tr.viewParms.frameCount = tr.frameCount;
 
 	tr.refdef.fistDrawSurf = tr.refdef.numDrawSurfs;
+	tr.viewParms.sunShadowUnboundedDamage = qfalse;
 
 	R_GenerateDrawSurfs(&tr.viewParms, &tr.refdef);
+	R_PrepareSunShadowRestore();
 
 	if (tr.viewParms.viewParmType == VPT_SKYPORTAL)
 		R_SkyPortalCollectOccluders();
@@ -3096,8 +3313,557 @@ static float CalcSplit(float n, float f, float i, float m)
 	return (n * pow(f / n, i / m) + (f - n) * i / m) / 2.0f;
 }
 
+struct sunShadowCacheState_t
+{
+	world_t *world;
+	int casterGeneration;
+	uint64_t casterSettings;
+	qboolean valid[3];
+	qboolean observed[3];
+	int stableFrames[3];
+	float observedMvp[3][16];
+	qboolean unbounded[3];
+	float unboundedMvp[3][16];
+	float mvp[3][16];
+	vec3_t axis[3][3];
+	vec3_t bounds[3][2];
+	float centerX[3], centerY[3];
+	float texelX[3], texelY[3];
+	int bank[3];
+};
+
+static sunShadowCacheState_t s_sunShadowCache;
+
+static void R_DisableUnboundedSunShadowCache(int level)
+{
+	// Mode 1 is the low-overhead path, not a mandatory full-layer copy for
+	// scenes with unbounded moving foliage/deforms. Retry when the window or
+	// caster settings change; modes 2/3 remain explicit experiments.
+	s_sunShadowCache.unbounded[level] = qtrue;
+	Com_Memcpy(s_sunShadowCache.unboundedMvp[level], tr.refdef.sunShadowMvp[level],
+		sizeof(s_sunShadowCache.unboundedMvp[level]));
+}
+
+struct sunShadowDiskPage_t
+{
+	uint64_t layoutKey;
+	int pageX, pageY;
+	std::vector<float> depth;
+};
+
+static std::vector<std::unique_ptr<sunShadowDiskPage_t>> s_sunShadowDiskPages;
+static std::vector<std::unique_ptr<sunShadowTileLoad_t[]>> s_sunShadowDiskLoadLists;
+static std::unordered_set<uint64_t> s_sunShadowDiskScheduled;
+static world_t *s_sunShadowDiskHashWorld;
+static int s_sunShadowDiskHashGeneration;
+static uint64_t s_sunShadowDiskWorldHash;
+
+static uint64_t R_SunShadowHashBytes(uint64_t hash, const void *data, size_t size)
+{
+	const byte *bytes = (const byte *)data;
+	for (size_t i = 0; i < size; ++i)
+	{
+		hash ^= bytes[i];
+		hash *= UINT64_C(1099511628211);
+	}
+	return hash;
+}
+
+static uint64_t R_SunShadowHashString(uint64_t hash, const char *text)
+{
+	return R_SunShadowHashBytes(hash, text, strlen(text) + 1);
+}
+
+static uint64_t R_SunShadowCasterSettingsKey(void)
+{
+	const int settings[] = { r_drawworld->integer, r_nocurves->integer,
+		r_facePlaneCull->integer, r_nocull->integer };
+	uint64_t hash = R_SunShadowHashBytes(UINT64_C(14695981039346656037), settings, sizeof(settings));
+	return R_SunShadowHashBytes(hash, &r_lodCurveError->value, sizeof(r_lodCurveError->value));
+}
+
+static int R_SunShadowFloorDiv(int value, int divisor)
+{
+	int quotient = value / divisor;
+	if (value % divisor < 0)
+		--quotient;
+	return quotient;
+}
+
+void R_SunShadowDiskTilePath(char *path, size_t pathSize, uint64_t layoutKey,
+	int pageX, int pageY)
+{
+	const char *mapName = tr.world ? tr.world->baseName : "unknown";
+	Com_sprintf(path, (int)pathSize, "shadowcache/%s/%016llx_%d_%d.ssd",
+		mapName, (unsigned long long)layoutKey, pageX, pageY);
+}
+
+static uint64_t R_SunShadowWorldDiskHash(void)
+{
+	if (s_sunShadowDiskHashWorld == tr.world &&
+		s_sunShadowDiskHashGeneration == tr.sunShadowCasterGeneration)
+	{
+		return s_sunShadowDiskWorldHash;
+	}
+
+	uint64_t hash = UINT64_C(14695981039346656037);
+	hash = R_SunShadowHashString(hash, tr.world->name);
+	hash = R_SunShadowHashBytes(hash, &tr.world->dataSize, sizeof(tr.world->dataSize));
+	for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+	{
+		msurface_t *surface = &tr.world->surfaces[i];
+		shader_t *shader = surface->shader->remappedShader ?
+			surface->shader->remappedShader : surface->shader;
+		if (!R_IsStaticSunShadowCaster(
+			surface->data, REFENTITYNUM_WORLD, shader, {}, surface->waterKey))
+		{
+			continue;
+		}
+
+		const surfaceType_t type = *surface->data;
+		hash = R_SunShadowHashBytes(hash, &type, sizeof(type));
+		hash = R_SunShadowHashString(hash, shader->name);
+		hash = R_SunShadowHashBytes(hash, &shader->cullType, sizeof(shader->cullType));
+		const srfBspSurface_t *bsp = (const srfBspSurface_t *)surface->data;
+		hash = R_SunShadowHashBytes(hash, &bsp->numVerts, sizeof(bsp->numVerts));
+		hash = R_SunShadowHashBytes(hash, &bsp->numIndexes, sizeof(bsp->numIndexes));
+		if (bsp->verts)
+			for (int v = 0; v < bsp->numVerts; ++v)
+				hash = R_SunShadowHashBytes(hash, bsp->verts[v].xyz, sizeof(bsp->verts[v].xyz));
+		if (bsp->indexes)
+			hash = R_SunShadowHashBytes(hash, bsp->indexes,
+				(size_t)bsp->numIndexes * sizeof(*bsp->indexes));
+	}
+
+	s_sunShadowDiskHashWorld = tr.world;
+	s_sunShadowDiskHashGeneration = tr.sunShadowCasterGeneration;
+	s_sunShadowDiskWorldHash = hash;
+	return hash;
+}
+
+static uint64_t R_SunShadowDiskLayoutKey(
+	int level, const vec3_t lightViewAxis[3], const vec3_t lightviewBounds[2],
+	float texelX, float texelY, int width, int height)
+{
+	uint64_t hash = R_SunShadowWorldDiskHash();
+	const uint32_t version = SUN_SHADOW_DISK_VERSION;
+	const uint64_t settings = R_SunShadowCasterSettingsKey();
+	hash = R_SunShadowHashBytes(hash, &settings, sizeof(settings));
+	hash = R_SunShadowHashBytes(hash, &version, sizeof(version));
+	hash = R_SunShadowHashBytes(hash, &level, sizeof(level));
+	hash = R_SunShadowHashBytes(hash, lightViewAxis, sizeof(vec3_t) * 3);
+	hash = R_SunShadowHashBytes(hash, lightviewBounds, sizeof(vec3_t) * 2);
+	hash = R_SunShadowHashBytes(hash, &texelX, sizeof(texelX));
+	hash = R_SunShadowHashBytes(hash, &texelY, sizeof(texelY));
+	hash = R_SunShadowHashBytes(hash, &width, sizeof(width));
+	hash = R_SunShadowHashBytes(hash, &height, sizeof(height));
+	return hash;
+}
+
+static uint64_t R_SunShadowDiskPageToken(uint64_t layoutKey, int pageX, int pageY)
+{
+	uint64_t hash = R_SunShadowHashBytes(
+		UINT64_C(14695981039346656037), &layoutKey, sizeof(layoutKey));
+	hash = R_SunShadowHashBytes(hash, &pageX, sizeof(pageX));
+	return R_SunShadowHashBytes(hash, &pageY, sizeof(pageY));
+}
+
+static sunShadowDiskPage_t *R_LoadSunShadowDiskPage(
+	uint64_t layoutKey, int pageX, int pageY)
+{
+	for (const auto& page : s_sunShadowDiskPages)
+		if (page->layoutKey == layoutKey && page->pageX == pageX && page->pageY == pageY)
+			return page.get();
+
+	char path[MAX_OSPATH];
+	R_SunShadowDiskTilePath(path, sizeof(path), layoutKey, pageX, pageY);
+	void *file = NULL;
+	const int length = ri.FS_ReadFile(path, &file);
+	const int depthBytes = SUN_SHADOW_DISK_TILE_SIZE * SUN_SHADOW_DISK_TILE_SIZE * sizeof(float);
+	if (!file || length != (int)sizeof(sunShadowDiskHeader_t) + depthBytes)
+	{
+		if (file)
+			ri.FS_FreeFile(file);
+		return NULL;
+	}
+
+	const sunShadowDiskHeader_t *header = (const sunShadowDiskHeader_t *)file;
+	if (header->magic != SUN_SHADOW_DISK_MAGIC ||
+		header->version != SUN_SHADOW_DISK_VERSION ||
+		header->tileSize != SUN_SHADOW_DISK_TILE_SIZE ||
+		header->layoutKey != layoutKey ||
+		header->pageX != pageX || header->pageY != pageY)
+	{
+		ri.FS_FreeFile(file);
+		return NULL;
+	}
+
+	std::unique_ptr<sunShadowDiskPage_t> page(new sunShadowDiskPage_t);
+	page->layoutKey = layoutKey;
+	page->pageX = pageX;
+	page->pageY = pageY;
+	page->depth.resize(SUN_SHADOW_DISK_TILE_SIZE * SUN_SHADOW_DISK_TILE_SIZE);
+	Com_Memcpy(page->depth.data(), header + 1, depthBytes);
+	ri.FS_FreeFile(file);
+	for (float depth : page->depth)
+	{
+		if (!std::isfinite(depth) || depth < 0.0f || depth > 1.0f)
+			return NULL;
+	}
+	s_sunShadowDiskPages.push_back(std::move(page));
+	return s_sunShadowDiskPages.back().get();
+}
+
+static qboolean R_TryLoadSunShadowDiskWindow(
+	viewParms_t *view, uint64_t layoutKey, int originX, int originY,
+	int width, int height)
+{
+	std::vector<sunShadowTileLoad_t> loads;
+	const int firstPageX = R_SunShadowFloorDiv(originX, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastPageX = R_SunShadowFloorDiv(originX + width - 1, SUN_SHADOW_DISK_TILE_SIZE);
+	const int firstPageY = R_SunShadowFloorDiv(originY, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastPageY = R_SunShadowFloorDiv(originY + height - 1, SUN_SHADOW_DISK_TILE_SIZE);
+	for (int pageY = firstPageY; pageY <= lastPageY; ++pageY)
+	{
+		for (int pageX = firstPageX; pageX <= lastPageX; ++pageX)
+		{
+			sunShadowDiskPage_t *page = R_LoadSunShadowDiskPage(layoutKey, pageX, pageY);
+			if (!page)
+				return qfalse;
+			const int pageOriginX = pageX * SUN_SHADOW_DISK_TILE_SIZE;
+			const int pageOriginY = pageY * SUN_SHADOW_DISK_TILE_SIZE;
+			const int globalX = Q_max(originX, pageOriginX);
+			const int globalY = Q_max(originY, pageOriginY);
+			const int globalEndX = Q_min(originX + width, pageOriginX + SUN_SHADOW_DISK_TILE_SIZE);
+			const int globalEndY = Q_min(originY + height, pageOriginY + SUN_SHADOW_DISK_TILE_SIZE);
+			sunShadowTileLoad_t load = {};
+			load.srcX = globalX - pageOriginX;
+			load.srcY = globalY - pageOriginY;
+			load.dstX = globalX - originX;
+			load.dstY = globalY - originY;
+			load.width = globalEndX - globalX;
+			load.height = globalEndY - globalY;
+			load.depth = page->depth.data();
+			loads.push_back(load);
+		}
+	}
+
+	std::unique_ptr<sunShadowTileLoad_t[]> stored(new sunShadowTileLoad_t[loads.size()]);
+	Com_Memcpy(stored.get(), loads.data(), loads.size() * sizeof(loads[0]));
+	view->sunShadowTileLoadCount = (int)loads.size();
+	view->sunShadowTileLoads = stored.get();
+	view->sunShadowDiskLayoutKey = layoutKey;
+	view->sunShadowDiskOriginX = originX;
+	view->sunShadowDiskOriginY = originY;
+	s_sunShadowDiskLoadLists.push_back(std::move(stored));
+	tr.sunShadowCacheDiskHits++;
+	tr.sunShadowCacheDiskLoads += (int)loads.size();
+	ri.Printf(PRINT_ALL, "Sun shadow disk: loaded %u pages for window %d %d\n",
+		(unsigned)loads.size(), originX, originY);
+	return qtrue;
+}
+
+void R_InvalidateSunShadowCache(void)
+{
+	// tr is cleared on renderer restart, whereas these translation-unit
+	// statics may survive.  A monotonically increasing identity prevents an
+	// accidentally reused world/FBO address from looking like a cache hit.
+	static int nextGeneration = 1;
+	Com_Memset(&s_sunShadowCache, 0, sizeof(s_sunShadowCache));
+	tr.sunShadowCasterGeneration = nextGeneration++;
+	s_sunShadowDiskPages.clear();
+	s_sunShadowDiskLoadLists.clear();
+	s_sunShadowDiskScheduled.clear();
+	s_sunShadowDiskHashWorld = NULL;
+	s_sunShadowDiskHashGeneration = -1;
+	s_sunShadowDiskWorldHash = 0;
+	R_ResetSunShadowDynamicWorld();
+}
+
+/*
+Keep the light-space depth projection independent of the camera.  XY is still
+the per-cascade, texel-snapped window; Z encloses the map with enough room for
+ordinary dynamic casters.  Without this rebasing, translating the camera along
+the sun direction changes every stored depth value and makes reuse invalid.
+*/
+static float R_StabilizeSunShadowDepth(
+	const vec3_t lightViewAxis[3], float planeX, float planeY,
+	vec3_t lightOrigin, vec3_t lightviewBounds[2])
+{
+	if (!tr.world)
+		return 0.0f;
+
+	const vec3_t *mapBounds = tr.world->bmodels[0].bounds;
+	float depthMin = 1.0e30f;
+	float depthMax = -1.0e30f;
+	for (int corner = 0; corner < 8; ++corner)
+	{
+		vec3_t point;
+		point[0] = mapBounds[(corner >> 0) & 1][0];
+		point[1] = mapBounds[(corner >> 1) & 1][1];
+		point[2] = mapBounds[(corner >> 2) & 1][2];
+		const float depth = DotProduct(point, lightViewAxis[0]);
+		depthMin = Q_min(depthMin, depth);
+		depthMax = Q_max(depthMax, depth);
+	}
+
+	const float margin = Q_max(4096.0f, r_shadowCascadeZFar->value);
+	const float depthCenter = 0.5f * (depthMin + depthMax);
+	const float depthRadius = 0.5f * (depthMax - depthMin) + margin;
+	// Reconstruct from the orthonormal basis instead of correcting the old
+	// point in place. Camera motion along the light axis then produces bitwise
+	// identical matrices rather than a few residual floating-point ulps.
+	VectorScale(lightViewAxis[0], depthCenter, lightOrigin);
+	VectorMA(lightOrigin, planeX, lightViewAxis[1], lightOrigin);
+	VectorMA(lightOrigin, planeY, lightViewAxis[2], lightOrigin);
+	lightviewBounds[0][0] = -depthRadius;
+	lightviewBounds[1][0] = depthRadius;
+	return depthCenter;
+}
+
+enum sunShadowCacheAction_t
+{
+	SUN_CACHE_BYPASS,
+	SUN_CACHE_FULL,
+	SUN_CACHE_HIT,
+	SUN_CACHE_SCROLL,
+	SUN_CACHE_DISK
+};
+
+static sunShadowCacheAction_t R_ClassifySunShadowCache(
+	int level,
+	const float mvp[16],
+	const vec3_t lightViewAxis[3],
+	const vec3_t lightOrigin,
+	const vec3_t lightviewBounds[2],
+	float texelX,
+	float texelY,
+	int width,
+	int height,
+	int *shiftX,
+	int *shiftY,
+	int *cacheBank,
+	int *sourceBank)
+{
+	if (s_sunShadowCache.world != tr.world ||
+		s_sunShadowCache.casterGeneration != tr.sunShadowCasterGeneration ||
+		s_sunShadowCache.casterSettings != R_SunShadowCasterSettingsKey())
+	{
+		Com_Memset(&s_sunShadowCache, 0, sizeof(s_sunShadowCache));
+		s_sunShadowCache.world = tr.world;
+		s_sunShadowCache.casterGeneration = tr.sunShadowCasterGeneration;
+		s_sunShadowCache.casterSettings = R_SunShadowCasterSettingsKey();
+	}
+
+	*shiftX = *shiftY = 0;
+	*sourceBank = s_sunShadowCache.bank[level];
+	*cacheBank = s_sunShadowCache.bank[level];
+	if (r_sunShadowCache->integer == 1 && s_sunShadowCache.unbounded[level])
+	{
+		if (memcmp(s_sunShadowCache.unboundedMvp[level], mvp, sizeof(s_sunShadowCache.unboundedMvp[level])) == 0)
+		{
+			s_sunShadowCache.valid[level] = qfalse;
+			tr.sunShadowCacheBypasses++;
+			return SUN_CACHE_BYPASS;
+		}
+		s_sunShadowCache.unbounded[level] = qfalse;
+	}
+
+	if (s_sunShadowCache.valid[level] &&
+		memcmp(s_sunShadowCache.mvp[level], mvp, sizeof(s_sunShadowCache.mvp[level])) == 0)
+	{
+		tr.sunShadowCacheHits++;
+		return SUN_CACHE_HIT;
+	}
+	if (r_sunShadowCache->integer == 1)
+	{
+		// A changing projection must not pay for a static build + full copy +
+		// dynamic pass on every frame. Render the original single pass until
+		// this snapped projection survives for four consecutive observations.
+		if (!s_sunShadowCache.observed[level] ||
+			memcmp(s_sunShadowCache.observedMvp[level], mvp, sizeof(s_sunShadowCache.observedMvp[level])) != 0)
+		{
+			Com_Memcpy(s_sunShadowCache.observedMvp[level], mvp, sizeof(s_sunShadowCache.observedMvp[level]));
+			s_sunShadowCache.observed[level] = qtrue;
+			s_sunShadowCache.stableFrames[level] = 0;
+		}
+		if (++s_sunShadowCache.stableFrames[level] < 4)
+		{
+			s_sunShadowCache.valid[level] = qfalse;
+			tr.sunShadowCacheBypasses++;
+			return SUN_CACHE_BYPASS;
+		}
+	}
+
+	sunShadowCacheAction_t action = SUN_CACHE_FULL;
+	if (r_sunShadowCache->integer >= 2 &&
+		s_sunShadowCache.valid[level] && tr.sunShadowStaticFbo[1][level] &&
+		memcmp(s_sunShadowCache.axis[level], lightViewAxis, sizeof(s_sunShadowCache.axis[level])) == 0 &&
+		memcmp(s_sunShadowCache.bounds[level], lightviewBounds, sizeof(s_sunShadowCache.bounds[level])) == 0 &&
+		s_sunShadowCache.texelX[level] == texelX &&
+		s_sunShadowCache.texelY[level] == texelY)
+	{
+		const float centerX = DotProduct(lightOrigin, lightViewAxis[1]);
+		const float centerY = DotProduct(lightOrigin, lightViewAxis[2]);
+		const float deltaX = (centerX - s_sunShadowCache.centerX[level]) / texelX;
+		const float deltaY = (centerY - s_sunShadowCache.centerY[level]) / texelY;
+		const int deltaTexelsX = (int)roundf(deltaX);
+		const int deltaTexelsY = (int)roundf(deltaY);
+		if ((deltaTexelsX || deltaTexelsY) &&
+			fabsf(deltaX - (float)deltaTexelsX) < 0.01f &&
+			fabsf(deltaY - (float)deltaTexelsY) < 0.01f &&
+			abs(deltaTexelsX) < width && abs(deltaTexelsY) < height)
+		{
+			// R_RotateForViewer maps light axis 1 to -OpenGL X, while axis 2
+			// remains +OpenGL Y.  Account for that handedness here.
+			*shiftX = deltaTexelsX;
+			*shiftY = -deltaTexelsY;
+			*sourceBank = s_sunShadowCache.bank[level];
+			*cacheBank = 1 - s_sunShadowCache.bank[level];
+			action = SUN_CACHE_SCROLL;
+			tr.sunShadowCacheScrolls++;
+			tr.sunShadowCacheUpdatedPixels += (uint64_t)width * height -
+				(uint64_t)(width - abs(*shiftX)) * (height - abs(*shiftY));
+		}
+	}
+
+	Com_Memcpy(s_sunShadowCache.mvp[level], mvp, sizeof(s_sunShadowCache.mvp[level]));
+	Com_Memcpy(s_sunShadowCache.axis[level], lightViewAxis, sizeof(s_sunShadowCache.axis[level]));
+	Com_Memcpy(s_sunShadowCache.bounds[level], lightviewBounds, sizeof(s_sunShadowCache.bounds[level]));
+	s_sunShadowCache.centerX[level] = DotProduct(lightOrigin, lightViewAxis[1]);
+	s_sunShadowCache.centerY[level] = DotProduct(lightOrigin, lightViewAxis[2]);
+	s_sunShadowCache.texelX[level] = texelX;
+	s_sunShadowCache.texelY[level] = texelY;
+	s_sunShadowCache.bank[level] = *cacheBank;
+	s_sunShadowCache.valid[level] = qtrue;
+	if (action == SUN_CACHE_FULL)
+	{
+		tr.sunShadowCacheMisses++;
+		tr.sunShadowCacheUpdatedPixels += (uint64_t)width * height;
+	}
+	return action;
+}
+
+static void R_AppendSunShadowStripView(
+	const viewParms_t& fullView,
+	const orientationr_t& orientation,
+	const vec3_t fullBounds[2],
+	int level,
+	int cacheBank,
+	int sourceBank,
+	int shiftX,
+	int shiftY,
+	int x,
+	int y,
+	int width,
+	int height,
+	qboolean scroll)
+{
+	const int mapWidth = tr.sunShadowFbo[level]->width;
+	const int mapHeight = tr.sunShadowFbo[level]->height;
+	vec3_t stripBounds[2];
+	VectorCopy(fullBounds[0], stripBounds[0]);
+	VectorCopy(fullBounds[1], stripBounds[1]);
+	const float spanX = fullBounds[1][1] - fullBounds[0][1];
+	const float spanY = fullBounds[1][2] - fullBounds[0][2];
+	stripBounds[0][1] = fullBounds[1][1] - spanX * (float)(x + width) / (float)mapWidth;
+	stripBounds[1][1] = fullBounds[1][1] - spanX * (float)x / (float)mapWidth;
+	stripBounds[0][2] = fullBounds[0][2] + spanY * (float)y / (float)mapHeight;
+	stripBounds[1][2] = fullBounds[0][2] + spanY * (float)(y + height) / (float)mapHeight;
+
+	viewParmFlags_t flags = (viewParmFlags_t)(
+		VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC | VPF_NOVIEWMODEL |
+		VPF_SHADOWCASCADES | VPF_SUN_STATIC_SHADOW | VPF_NOCLEAR);
+	if (scroll)
+		flags = (viewParmFlags_t)(flags | VPF_SUN_SCROLL_SHADOW);
+	R_SetupViewParmsForOrthoRendering(
+		width, height, tr.sunShadowStaticFbo[cacheBank][level], flags, orientation, stripBounds);
+	// Keep the full cascade's raster transform. Changing projection for a
+	// one-pixel strip changes clipping/interpolation precision and creates
+	// seams. The narrow frustum still reduces CPU traversal; scissor bounds
+	// the GPU writes, with the same vertex transform as a complete rebuild.
+	Matrix16Copy(fullView.projectionMatrix, tr.viewParms.projectionMatrix);
+	tr.viewParms.world = fullView.world;
+	tr.viewParms.viewportWidth = mapWidth;
+	tr.viewParms.viewportHeight = mapHeight;
+	VectorSet4(tr.viewParms.sunShadowScissor, x, y, width, height);
+	tr.viewParms.targetFboLayer = level;
+	tr.viewParms.sunShadowCacheBank = cacheBank;
+	tr.viewParms.sunShadowCacheSourceBank = sourceBank;
+	tr.viewParms.sunShadowScrollX = shiftX;
+	tr.viewParms.sunShadowScrollY = shiftY;
+	tr.viewParms.currentViewParm = tr.numCachedViewParms;
+	tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
+	Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &tr.viewParms, sizeof(viewParms_t));
+	tr.numCachedViewParms++;
+}
+
+// Build at most one missing page per cascade/scene in the page scratch FBO.
+// A guard band keeps viewport clipping away from every persisted page edge;
+// storing cropped cascade depth instead can bake clip-dependent edge pixels.
+static void R_QueueSunShadowDiskPage(
+	const viewParms_t& fullView, const vec3_t fullBounds[2], int level,
+	uint64_t layoutKey, int originX, int originY, float texelX, float texelY)
+{
+	if (!tr.sunShadowPageFbo)
+		return;
+	const int firstX = R_SunShadowFloorDiv(originX, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastX = R_SunShadowFloorDiv(originX + fullView.viewportWidth - 1, SUN_SHADOW_DISK_TILE_SIZE);
+	const int firstY = R_SunShadowFloorDiv(originY, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastY = R_SunShadowFloorDiv(originY + fullView.viewportHeight - 1, SUN_SHADOW_DISK_TILE_SIZE);
+	for (int pageY = firstY; pageY <= lastY; ++pageY)
+		for (int pageX = firstX; pageX <= lastX; ++pageX)
+		{
+			const uint64_t token = R_SunShadowDiskPageToken(layoutKey, pageX, pageY);
+			if (!s_sunShadowDiskScheduled.insert(token).second)
+				continue;
+			if (R_LoadSunShadowDiskPage(layoutKey, pageX, pageY))
+				continue;
+			const viewParms_t savedView = tr.viewParms;
+			const float planeX = -(pageX + 0.5f) * SUN_SHADOW_DISK_TILE_SIZE * texelX;
+			const float planeY = (pageY + 0.5f) * SUN_SHADOW_DISK_TILE_SIZE * texelY;
+			const float depth = fullView.world.modelViewMatrix[14];
+			orientationr_t orientation = fullView.ori;
+			VectorScale(orientation.axis[0], depth, orientation.origin);
+			VectorMA(orientation.origin, planeX, orientation.axis[1], orientation.origin);
+			VectorMA(orientation.origin, planeY, orientation.axis[2], orientation.origin);
+			vec3_t pageBounds[2];
+			VectorCopy(fullBounds[0], pageBounds[0]);
+			VectorCopy(fullBounds[1], pageBounds[1]);
+			pageBounds[0][1] = -0.5f * SUN_SHADOW_DISK_SCRATCH_SIZE * texelX;
+			pageBounds[1][1] = -pageBounds[0][1];
+			pageBounds[0][2] = -0.5f * SUN_SHADOW_DISK_SCRATCH_SIZE * texelY;
+			pageBounds[1][2] = -pageBounds[0][2];
+			R_SetupViewParmsForOrthoRendering(SUN_SHADOW_DISK_SCRATCH_SIZE, SUN_SHADOW_DISK_SCRATCH_SIZE,
+				tr.sunShadowPageFbo, VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC |
+				VPF_NOVIEWMODEL | VPF_SHADOWCASCADES | VPF_SUN_STATIC_SHADOW | VPF_SUN_TILE_SAVE_SHADOW,
+				orientation, pageBounds);
+			tr.viewParms.world.modelViewMatrix[12] = planeX;
+			tr.viewParms.world.modelViewMatrix[13] = -planeY;
+			tr.viewParms.world.modelViewMatrix[14] = depth;
+			tr.viewParms.targetFboLayer = level;
+			tr.viewParms.sunShadowDiskLayoutKey = layoutKey;
+			tr.viewParms.sunShadowDiskOriginX = pageX * SUN_SHADOW_DISK_TILE_SIZE - SUN_SHADOW_DISK_GUARD_SIZE;
+			tr.viewParms.sunShadowDiskOriginY = pageY * SUN_SHADOW_DISK_TILE_SIZE - SUN_SHADOW_DISK_GUARD_SIZE;
+			tr.viewParms.currentViewParm = tr.numCachedViewParms;
+			tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
+			tr.cachedViewParms[tr.numCachedViewParms++] = tr.viewParms;
+			tr.sunShadowCacheUpdatedPixels += (uint64_t)SUN_SHADOW_DISK_SCRATCH_SIZE * SUN_SHADOW_DISK_SCRATCH_SIZE;
+			tr.viewParms = savedView;
+			return;
+		}
+}
+
 void R_GatherFrameViews(trRefdef_t *refdef)
 {
+	// Disk page pointers are only needed until this scene's cached views have
+	// executed. The previous scene has been submitted before another gather,
+	// so dropping them here bounds CPU memory to the pages of one scene.
+	if (r_sunShadowCache->integer >= 3)
+	{
+		s_sunShadowDiskPages.clear();
+		s_sunShadowDiskLoadLists.clear();
+	}
 	int mainFlags = 0;
 	// skyportal view
 	if (tr.world &&
@@ -3548,8 +4314,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				const float worldUnitsPerTexelY =
 					(lightviewBounds[1][2] - lightviewBounds[0][2]) / (float)tr.sunShadowFbo[level]->height;
 				refdef->sunShadowTexelSize[level] = Q_max(worldUnitsPerTexelX, worldUnitsPerTexelY);
-				refdef->sunShadowDepthSpan[level] = lightviewBounds[1][0] - lightviewBounds[0][0];
-
+				float stablePlaneX = 0.0f, stablePlaneY = 0.0f, stableDepth = 0.0f;
 				if (r_sunShadowMode->integer)
 				{
 					// Snap the light camera itself so its matrices, frustum and PVS origin
@@ -3559,9 +4324,12 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					const float lightY = DotProduct(lightOrigin, lightViewAxis[2]);
 					const float snappedX = floorf(lightX / worldUnitsPerTexelX + 0.5f) * worldUnitsPerTexelX;
 					const float snappedY = floorf(lightY / worldUnitsPerTexelY + 0.5f) * worldUnitsPerTexelY;
-					VectorMA(lightOrigin, snappedX - lightX, lightViewAxis[1], lightOrigin);
-					VectorMA(lightOrigin, snappedY - lightY, lightViewAxis[2], lightOrigin);
+					stableDepth = R_StabilizeSunShadowDepth(
+						lightViewAxis, snappedX, snappedY, lightOrigin, lightviewBounds);
+					stablePlaneX = snappedX;
+					stablePlaneY = snappedY;
 				}
+				refdef->sunShadowDepthSpan[level] = lightviewBounds[1][0] - lightviewBounds[0][0];
 
 				orientationr_t orientation = {};
 				R_SetOrientationOriginAndAxis(orientation, lightOrigin, lightViewAxis);
@@ -3573,6 +4341,15 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					VPF_DEPTHSHADOW | VPF_DEPTHCLAMP | VPF_ORTHOGRAPHIC | VPF_NOVIEWMODEL | VPF_SHADOWCASCADES,
 					orientation,
 					lightviewBounds);
+				if (r_sunShadowMode->integer)
+				{
+					// Use the original scalar light coordinates directly. Reprojecting
+					// the reconstructed world origin introduces XY-dependent depth
+					// rounding even though the intended Z projection is unchanged.
+					tr.viewParms.world.modelViewMatrix[12] = stablePlaneX;
+					tr.viewParms.world.modelViewMatrix[13] = -stablePlaneY;
+					tr.viewParms.world.modelViewMatrix[14] = stableDepth;
+				}
 
 				if (!r_sunShadowMode->integer)
 				{
@@ -3595,8 +4372,107 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					tr.viewParms.world.modelViewMatrix,
 					refdef->sunShadowMvp[level]);
 
-				tr.viewParms.currentViewParm = tr.numCachedViewParms;
 				tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
+				const qboolean cacheEnabled =
+					(r_sunShadowCache->integer && tr.sunShadowStaticFbo[0][level] != NULL) ? qtrue : qfalse;
+				if (cacheEnabled)
+				{
+					int shiftX, shiftY, cacheBank, sourceBank;
+					sunShadowCacheAction_t action = R_ClassifySunShadowCache(
+						level,
+						refdef->sunShadowMvp[level],
+						lightViewAxis,
+						lightOrigin,
+						lightviewBounds,
+						worldUnitsPerTexelX,
+						worldUnitsPerTexelY,
+						tr.sunShadowFbo[level]->width,
+						tr.sunShadowFbo[level]->height,
+						&shiftX, &shiftY, &cacheBank, &sourceBank);
+					uint64_t diskLayoutKey = 0;
+					int diskOriginX = 0, diskOriginY = 0;
+					viewParms_t diskParms = tr.viewParms;
+					if (r_sunShadowCache->integer >= 3)
+					{
+						const int mapWidth = tr.sunShadowFbo[level]->width;
+						const int mapHeight = tr.sunShadowFbo[level]->height;
+						diskLayoutKey = R_SunShadowDiskLayoutKey(
+							level, lightViewAxis, lightviewBounds,
+							worldUnitsPerTexelX, worldUnitsPerTexelY, mapWidth, mapHeight);
+						diskOriginX = (int)roundf(
+							-DotProduct(lightOrigin, lightViewAxis[1]) / worldUnitsPerTexelX) - mapWidth / 2;
+						diskOriginY = (int)roundf(
+							DotProduct(lightOrigin, lightViewAxis[2]) / worldUnitsPerTexelY) - mapHeight / 2;
+						if (action == SUN_CACHE_FULL && R_TryLoadSunShadowDiskWindow(
+							&diskParms, diskLayoutKey, diskOriginX, diskOriginY, mapWidth, mapHeight))
+						{
+							action = SUN_CACHE_DISK;
+							tr.sunShadowCacheMisses--;
+							tr.sunShadowCacheUpdatedPixels -= (uint64_t)mapWidth * mapHeight;
+						}
+					}
+					if (action == SUN_CACHE_FULL)
+					{
+						viewParms_t staticParms = tr.viewParms;
+						staticParms.targetFbo = tr.sunShadowStaticFbo[cacheBank][level];
+						staticParms.targetFboLayer = level;
+						staticParms.sunShadowCacheBank = cacheBank;
+						staticParms.flags |= VPF_SUN_STATIC_SHADOW;
+						staticParms.currentViewParm = tr.numCachedViewParms;
+						Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &staticParms, sizeof(viewParms_t));
+						tr.numCachedViewParms++;
+					}
+					else if (action == SUN_CACHE_SCROLL)
+					{
+						const viewParms_t fullParms = tr.viewParms;
+						qboolean firstStrip = qtrue;
+						const int mapWidth = tr.sunShadowFbo[level]->width;
+						const int mapHeight = tr.sunShadowFbo[level]->height;
+						if (shiftX)
+						{
+							const int width = abs(shiftX);
+							const int x = shiftX > 0 ? 0 : mapWidth - width;
+							R_AppendSunShadowStripView(fullParms, orientation, lightviewBounds, level,
+								cacheBank, sourceBank, shiftX, shiftY,
+								x, 0, width, mapHeight, firstStrip);
+							firstStrip = qfalse;
+						}
+						if (shiftY)
+						{
+							const int height = abs(shiftY);
+							const int y = shiftY > 0 ? 0 : mapHeight - height;
+							R_AppendSunShadowStripView(fullParms, orientation, lightviewBounds, level,
+								cacheBank, sourceBank, shiftX, shiftY,
+								0, y, mapWidth, height, firstStrip);
+						}
+						tr.viewParms = fullParms;
+					}
+					else if (action == SUN_CACHE_DISK)
+					{
+						diskParms.targetFbo = tr.sunShadowStaticFbo[cacheBank][level];
+						diskParms.targetFboLayer = level;
+						diskParms.sunShadowCacheBank = cacheBank;
+						diskParms.flags |= VPF_SUN_STATIC_SHADOW |
+							VPF_SUN_TILE_LOAD_SHADOW | VPF_NOCLEAR;
+						diskParms.currentViewParm = tr.numCachedViewParms;
+						diskParms.viewParmType = VPT_SUN_SHADOWS;
+						Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &diskParms, sizeof(viewParms_t));
+						tr.numCachedViewParms++;
+					}
+
+					if (action != SUN_CACHE_BYPASS)
+					{
+						tr.viewParms.flags |= VPF_SUN_DYNAMIC_SHADOW | VPF_NOCLEAR;
+						tr.viewParms.targetFboLayer = level;
+						tr.viewParms.sunShadowCacheBank = cacheBank;
+						tr.viewParms.sunShadowFullRestore = action != SUN_CACHE_HIT ? qtrue : qfalse;
+					}
+					if (r_sunShadowCache->integer >= 3)
+						R_QueueSunShadowDiskPage(tr.viewParms, lightviewBounds, level,
+							diskLayoutKey, diskOriginX, diskOriginY, worldUnitsPerTexelX, worldUnitsPerTexelY);
+				}
+
+				tr.viewParms.currentViewParm = tr.numCachedViewParms;
 				Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &tr.viewParms, sizeof(viewParms_t));
 				tr.numCachedViewParms++;
 			}

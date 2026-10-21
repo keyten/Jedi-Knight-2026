@@ -25,6 +25,42 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <chrono>
 #include <vector>
+#include <algorithm>
+
+// Complete wall-clock frame intervals: includes CPU, GPU waits, swap and the
+// game. No per-frame logging or synchronous query reads in the measured loop.
+void R_SunShadowBenchmarkFrame()
+{
+	static std::vector<double> samples;
+	static int target = 0;
+	static std::chrono::steady_clock::time_point previous;
+	if (!r_sunShadowBenchmark->integer)
+	{
+		target = 0;
+		return;
+	}
+	const auto now = std::chrono::steady_clock::now();
+	if (!target)
+	{
+		target = r_sunShadowBenchmark->integer;
+		samples.clear();
+		samples.reserve(target);
+		previous = now;
+		return;
+	}
+	samples.push_back(std::chrono::duration<double, std::milli>(now - previous).count());
+	previous = now;
+	if ((int)samples.size() < target)
+		return;
+	double total = 0.0;
+	for (double ms : samples) total += ms;
+	std::sort(samples.begin(), samples.end());
+	const double mean = total / samples.size();
+	ri.Printf(PRINT_ALL, "sunShadowBenchmark: %d frames, mean %.4f ms, median %.4f ms, p95 %.4f ms, %.2f FPS\n",
+		target, mean, samples[samples.size() / 2], samples[(samples.size() - 1) * 95 / 100], 1000.0 / mean);
+	ri.Cvar_Set("r_sunShadowBenchmark", "0");
+	target = 0;
+}
 
 /*
 r_shadowStats: per-frame CPU cost of every view class, printed once per second.
@@ -35,7 +71,7 @@ Point shadow views are cube faces; spot = one projected view per spot light.
 */
 enum {
 	SSTAT_SKYPORTAL, SSTAT_SUN, SSTAT_PLAYER, SSTAT_POINT, SSTAT_LTC, SSTAT_PORTAL, SSTAT_MAIN,
-	SSTAT_SPOT, SSTAT_POINTCUBE, SSTAT_CLASSES
+	SSTAT_SPOT, SSTAT_POINTCUBE, SSTAT_SUN_STATIC, SSTAT_SUN_DYNAMIC, SSTAT_CLASSES
 };
 static struct {
 	double frontUs[SSTAT_CLASSES];
@@ -50,6 +86,10 @@ static struct {
 
 static int R_ShadowStatsClass( const viewParms_t *parms )
 {
+	if (parms->flags & VPF_SUN_STATIC_SHADOW)
+		return SSTAT_SUN_STATIC;
+	if (parms->flags & VPF_SUN_DYNAMIC_SHADOW)
+		return SSTAT_SUN_DYNAMIC;
 	if ( parms->viewParmType == VPT_POINT_SHADOWS && parms->fovX != 90.0f )
 		return SSTAT_SPOT;
 	return (int)parms->viewParmType;
@@ -66,6 +106,15 @@ void R_ShadowStatsEndFrame( void )
 	{
 		Com_Memset(&shadowStats, 0, sizeof(shadowStats));
 		Com_Memset(&rb_shadowSubmitProfile, 0, sizeof(rb_shadowSubmitProfile));
+		tr.sunShadowCacheHits = 0;
+		tr.sunShadowCacheBypasses = 0;
+		tr.sunShadowCacheRestoredPixels = 0;
+		tr.sunShadowCacheMisses = 0;
+		tr.sunShadowCacheScrolls = 0;
+		tr.sunShadowCacheDiskHits = 0;
+		tr.sunShadowCacheDiskLoads = 0;
+		tr.sunShadowCacheDiskWrites = 0;
+		tr.sunShadowCacheUpdatedPixels = 0;
 		return;
 	}
 
@@ -75,7 +124,8 @@ void R_ShadowStatsEndFrame( void )
 		return;
 
 	static const char *names[SSTAT_CLASSES] = {
-		"skyportal", "sun cascade", "player shadow", "point face", "ltc shadow", "portal", "main", "spot", "point cube" };
+		"skyportal", "sun cascade", "player shadow", "point face", "ltc shadow", "portal", "main", "spot", "point cube",
+		"sun static", "sun dynamic" };
 	const double perFrame = 1.0 / (double)Q_max(1, shadowStats.frames);
 	double shadowFront = 0.0, shadowSubmit = 0.0;
 	ri.Printf(PRINT_ALL, "shadowStats (%d frames), per frame: views, front ms, submit ms, drawsurfs/view, front max/view us\n",
@@ -98,6 +148,29 @@ void R_ShadowStatsEndFrame( void )
 	}
 	ri.Printf(PRINT_ALL, "  shadow total front %.3f ms, submit %.3f ms; gather %.3f ms\n",
 		shadowFront * perFrame * 0.001, shadowSubmit * perFrame * 0.001, shadowStats.gatherUs * perFrame * 0.001);
+	if (tr.sunShadowCacheHits || tr.sunShadowCacheMisses || tr.sunShadowCacheScrolls ||
+		tr.sunShadowCacheDiskHits ||
+		tr.sunShadowCacheDiskLoads || tr.sunShadowCacheDiskWrites || tr.sunShadowCacheBypasses)
+	{
+		const int total = tr.sunShadowCacheHits + tr.sunShadowCacheMisses +
+			tr.sunShadowCacheScrolls + tr.sunShadowCacheDiskHits;
+		const double megapixelsPerFrame = (double)tr.sunShadowCacheUpdatedPixels * perFrame / 1000000.0;
+		ri.Printf(PRINT_ALL, "  sun static cache: %.1f hits/frame, %.1f scrolls/frame, %.1f disk/frame, %.1f full/frame (%.1f%% reused), %.3f Mpix updated/frame\n",
+			tr.sunShadowCacheHits * perFrame,
+			tr.sunShadowCacheScrolls * perFrame,
+			tr.sunShadowCacheDiskHits * perFrame,
+			tr.sunShadowCacheMisses * perFrame,
+			100.0 * (double)(tr.sunShadowCacheHits + tr.sunShadowCacheScrolls +
+				tr.sunShadowCacheDiskHits) / (double)Q_max(1, total),
+			megapixelsPerFrame);
+		ri.Printf(PRINT_ALL, "  sun working restore: %.3f Mpix/frame, %.1f baseline bypasses/frame\n",
+			(double)tr.sunShadowCacheRestoredPixels * perFrame / 1000000.0,
+			tr.sunShadowCacheBypasses * perFrame);
+		if (tr.sunShadowCacheDiskLoads || tr.sunShadowCacheDiskWrites)
+			ri.Printf(PRINT_ALL, "  sun disk pages: %.1f loaded/frame, %.1f written/frame\n",
+				tr.sunShadowCacheDiskLoads * perFrame,
+				tr.sunShadowCacheDiskWrites * perFrame);
+	}
 
 	// backend phases of the point light cube face draw commands
 	shadowSubmitProfile_t &prof = rb_shadowSubmitProfile;
@@ -119,6 +192,15 @@ void R_ShadowStatsEndFrame( void )
 	Com_Memset(&prof, 0, sizeof(prof));
 
 	Com_Memset(&shadowStats, 0, sizeof(shadowStats));
+	tr.sunShadowCacheHits = 0;
+	tr.sunShadowCacheBypasses = 0;
+	tr.sunShadowCacheRestoredPixels = 0;
+	tr.sunShadowCacheMisses = 0;
+	tr.sunShadowCacheScrolls = 0;
+	tr.sunShadowCacheDiskHits = 0;
+	tr.sunShadowCacheDiskLoads = 0;
+	tr.sunShadowCacheDiskWrites = 0;
+	tr.sunShadowCacheUpdatedPixels = 0;
 	shadowStats.lastPrintTime = now;
 }
 
@@ -938,6 +1020,93 @@ static void R_ShadowCubeVerify( const viewParms_t *faces, int cubeIndex )
 		totalDiff ? "MISMATCH" : "identical");
 }
 
+// Compare the final static+dynamic result with an uncached render using the
+// identical stable projection. The reference overwrites only the working
+// layer, leaving both persistent banks intact for the next scroll/hit.
+static void R_ReadSunShadowDepth(FBO_t *target, std::vector<float>& depth)
+{
+	FBO_t *oldFbo = glState.currentFBO;
+	GLint packBuffer, packAlignment;
+	qglGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer);
+	qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlignment);
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	qglPixelStorei(GL_PACK_ALIGNMENT, 4);
+	FBO_Bind(target);
+	qglReadPixels(0, 0, target->width, target->height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+	FBO_Bind(oldFbo);
+	qglPixelStorei(GL_PACK_ALIGNMENT, packAlignment);
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer);
+}
+
+static void R_VerifySunShadowView(const viewParms_t& cached)
+{
+	FBO_t *target = cached.targetFbo;
+	const size_t pixels = (size_t)target->width * target->height;
+	std::vector<float> actual(pixels), reference(pixels);
+	R_ReadSunShadowDepth(target, actual);
+
+	viewParms_t full = cached;
+	full.flags &= ~(VPF_SUN_DYNAMIC_SHADOW | VPF_NOCLEAR);
+	full.flags |= VPF_SUN_VERIFY_SHADOW;
+	tr.refdef.numDrawSurfs = 0;
+	R_RenderView(&full);
+	R_IssuePendingRenderCommands();
+	R_ReadSunShadowDepth(target, reference);
+	// Preserve the actual cached working layer, so the next verified frame
+	// exercises partial restoration as well (not a fresh full-copy fallback).
+	GLint unpackBuffer, unpackAlignment;
+	qglGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpackBuffer);
+	qglGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+	qglPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	GL_SelectTexture(0);
+	GL_BindToTMU(tr.sunShadowArrayImage, 0);
+	qglTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, cached.targetFboLayer,
+		target->width, target->height, 1, GL_DEPTH_COMPONENT, GL_FLOAT, actual.data());
+	qglPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+	qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBuffer);
+
+	size_t different = 0, significant = 0, outsideFootprint = 0;
+	float maxError = 0.0f;
+	const int level = cached.targetFboLayer;
+	const float epsilon = Q_max(8.0f / 16777215.0f,
+		0.05f * tr.refdef.sunShadowTexelSize[level] / Q_max(1.0f, tr.refdef.sunShadowDepthSpan[level]));
+	for (size_t i = 0; i < pixels; ++i)
+	{
+		const float error = fabsf(actual[i] - reference[i]);
+		different += actual[i] != reference[i];
+		significant += error > 2.0f / 16777215.0f;
+		maxError = Q_max(maxError, error);
+		if (error > 2.0f / 16777215.0f)
+		{
+			// Scrolling reuses rasterized triangles at an integer translation.
+			// GPU clipping/interpolation need not be bit-invariant under that
+			// translation. Keep the strict D24 metric, and separately test that
+			// both depths remain inside the same one-texel surface footprint.
+			float actualMin = actual[i], actualMax = actual[i];
+			float referenceMin = reference[i], referenceMax = reference[i];
+			const int x = (int)(i % target->width), y = (int)(i / target->width);
+			for (int dy = -1; dy <= 1; ++dy)
+				for (int dx = -1; dx <= 1; ++dx)
+				{
+					if (x + dx < 0 || x + dx >= target->width || y + dy < 0 || y + dy >= target->height)
+						continue;
+					const size_t n = (size_t)(y + dy) * target->width + x + dx;
+					actualMin = Q_min(actualMin, actual[n]);
+					actualMax = Q_max(actualMax, actual[n]);
+					referenceMin = Q_min(referenceMin, reference[n]);
+					referenceMax = Q_max(referenceMax, reference[n]);
+				}
+			outsideFootprint += actual[i] < referenceMin - epsilon || actual[i] > referenceMax + epsilon ||
+				reference[i] < actualMin - epsilon || reference[i] > actualMax + epsilon;
+		}
+	}
+	ri.Printf(PRINT_ALL,
+		"sunShadowVerify cascade %d: %s, %u/%u differ, %u above 2 D24 steps, max %g, %u outside one-texel footprint\n",
+		cached.targetFboLayer, outsideFootprint ? "MISMATCH" : "PASS",
+		(unsigned)different, (unsigned)pixels, (unsigned)significant, maxError, (unsigned)outsideFootprint);
+}
+
 void RE_EndScene()
 {
 	// the next scene rendered in this frame will tack on after this one
@@ -1044,6 +1213,10 @@ void RE_RenderScene( const refdef_t *fd )
 			viewName = "LTC dynamic caster shadow";
 		else if (tr.cachedViewParms[i].flags & VPF_LTC_SABER_SHADOW)
 			viewName = "LTC saber reference shadow";
+		else if (tr.cachedViewParms[i].flags & VPF_SUN_STATIC_SHADOW)
+			viewName = "Sun static shadow build";
+		else if (tr.cachedViewParms[i].flags & VPF_SUN_DYNAMIC_SHADOW)
+			viewName = "Sun dynamic shadow overlay";
 		R_PushDebugGroup(AL_VIEW, va(
 			"%s_%i",
 			viewName,
@@ -1063,6 +1236,8 @@ void RE_RenderScene( const refdef_t *fd )
 		if ( cubeGroup && r_shadowVerify->integer )
 		{
 			R_ShadowCubeVerify(&tr.cachedViewParms[i], i);
+			R_EndTimedBlockCmd(timer);
+			R_IssuePendingRenderCommands();
 			verifiedCubes++;
 			i += 5;
 		}
@@ -1077,6 +1252,7 @@ void RE_RenderScene( const refdef_t *fd )
 				const double frontUs = R_ShadowStatsUs(frontStart);
 				shadowStats.drawSurfs[SSTAT_POINTCUBE] += tr.refdef.numDrawSurfs;
 				const auto submitStart = std::chrono::steady_clock::now();
+				R_EndTimedBlockCmd(timer);
 				R_IssuePendingRenderCommands();
 				shadowStats.submitUs[SSTAT_POINTCUBE] += R_ShadowStatsUs(submitStart);
 				shadowStats.frontUs[SSTAT_POINTCUBE] += frontUs;
@@ -1085,6 +1261,7 @@ void RE_RenderScene( const refdef_t *fd )
 			}
 			else
 			{
+				R_EndTimedBlockCmd(timer);
 				R_IssuePendingRenderCommands();
 			}
 			i += 5;
@@ -1097,6 +1274,7 @@ void RE_RenderScene( const refdef_t *fd )
 			const double frontUs = R_ShadowStatsUs(frontStart);
 			shadowStats.drawSurfs[statClass] += tr.refdef.numDrawSurfs;
 			const auto submitStart = std::chrono::steady_clock::now();
+			R_EndTimedBlockCmd(timer);
 			R_IssuePendingRenderCommands();
 			shadowStats.submitUs[statClass] += R_ShadowStatsUs(submitStart);
 			shadowStats.frontUs[statClass] += frontUs;
@@ -1106,10 +1284,17 @@ void RE_RenderScene( const refdef_t *fd )
 		else
 		{
 			R_RenderView(&tr.cachedViewParms[i]);
+			R_EndTimedBlockCmd(timer);
 			R_IssuePendingRenderCommands();
 		}
-		R_EndTimedBlockCmd(timer);
+		if (r_sunShadowVerify->integer &&
+			(tr.cachedViewParms[i].flags & VPF_SUN_DYNAMIC_SHADOW))
+		{
+			R_VerifySunShadowView(tr.cachedViewParms[i]);
+		}
 	}
+	if (r_sunShadowVerify->integer == 1 && !(fd->rdflags & RDF_NOWORLDMODEL))
+		ri.Cvar_Set("r_sunShadowVerify", "0");
 
 	if ( r_shadowVerify->integer && !(fd->rdflags & RDF_NOWORLDMODEL) )
 	{

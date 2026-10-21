@@ -5148,6 +5148,7 @@ void RE_LoadWorldMap( const char *name ) {
 
 	tr.worldMapLoaded = qtrue;
 	tr.world = world;
+	R_InvalidateSunShadowCache();
 	const int postBspStart = ri.Milliseconds();
 
 	// no colliders or persistent foliage bend of the previous map

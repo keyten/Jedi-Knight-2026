@@ -759,6 +759,10 @@ extern cvar_t  *r_shadowCascadeZNear;
 extern cvar_t  *r_shadowCascadeZFar;
 extern cvar_t  *r_shadowCascadeZBias;
 extern cvar_t  *r_sunShadowMode;
+extern cvar_t  *r_sunShadowCache;
+extern cvar_t  *r_sunShadowBenchmark;
+void R_SunShadowBenchmarkFrame();
+extern cvar_t  *r_sunShadowVerify;
 extern cvar_t  *r_sunShadowAlphaCasters;
 extern cvar_t  *r_shadowCascadeBlend;
 extern cvar_t  *r_shadowDepthBias;
@@ -3191,8 +3195,39 @@ enum viewParmFlag_t {
 	VPF_CUBESHADOW		= 0x8000, // Front end only: one walk for all 6 faces (r_shadowSinglePass)
 	VPF_CUBELAYERED		= 0x10000, // All 6 faces of a cube in one layered draw command (r_shadowLayered),
 								   // targetFboLayer = cube slot
+	VPF_SUN_STATIC_SHADOW = 0x20000, // Conservative world-only build of a persistent sun depth layer
+	VPF_SUN_DYNAMIC_SHADOW = 0x40000, // Copy the persistent layer, then add moving/animated casters
+	VPF_SUN_SCROLL_SHADOW = 0x80000, // First exposed-strip view also scrolls old static depth into a new bank
+	VPF_SUN_TILE_LOAD_SHADOW = 0x100000, // Assemble persistent static depth from world-space disk pages
+	VPF_SUN_TILE_SAVE_SHADOW = 0x200000, // Persist fully covered world-space pages after this update
+	VPF_SUN_VERIFY_SHADOW = 0x400000, // Full reference render, including an empty depth clear
 };
 using viewParmFlags_t = uint32_t;
+
+#define SUN_SHADOW_DISK_TILE_SIZE 256
+#define SUN_SHADOW_DISK_GUARD_SIZE 16
+#define SUN_SHADOW_DISK_SCRATCH_SIZE (SUN_SHADOW_DISK_TILE_SIZE + 2 * SUN_SHADOW_DISK_GUARD_SIZE)
+#define SUN_SHADOW_DISK_MAGIC 0x53445343u // "SDSC"
+#define SUN_SHADOW_DISK_VERSION 4u
+
+typedef struct
+{
+	int srcX, srcY;
+	int dstX, dstY;
+	int width, height;
+	const float *depth;
+} sunShadowTileLoad_t;
+
+typedef struct
+{
+	uint32_t magic;
+	uint32_t version;
+	uint32_t tileSize;
+	uint32_t reserved;
+	uint64_t layoutKey;
+	int32_t pageX;
+	int32_t pageY;
+} sunShadowDiskHeader_t;
 
 enum viewParmType_t {
 	VPT_SKYPORTAL,
@@ -3219,6 +3254,17 @@ typedef struct {
 	int				viewportX, viewportY, viewportWidth, viewportHeight;
 	FBO_t			*targetFbo;
 	int				targetFboLayer;
+	int				sunShadowCacheBank;
+	int				sunShadowCacheSourceBank;
+	int				sunShadowScrollX, sunShadowScrollY;
+	qboolean		sunShadowFullRestore;
+	qboolean		sunShadowUnboundedDamage;
+	vec4i_t			sunShadowRestoreRect;
+	vec4i_t			sunShadowScissor;
+	uint64_t		sunShadowDiskLayoutKey;
+	int				sunShadowDiskOriginX, sunShadowDiskOriginY;
+	int				sunShadowTileLoadCount;
+	const sunShadowTileLoad_t *sunShadowTileLoads;
 	float			fovX, fovY;
 	float			projectionMatrix[16];
 	cplane_t		frustum[5];
@@ -4347,6 +4393,8 @@ typedef struct trGlobals_s {
 	char					colorGradingLutName[MAX_QPATH];
 	char					mapColorGradingLut[MAX_QPATH];
 	image_t					*sunShadowArrayImage;
+	image_t					*sunShadowStaticArrayImage[2];
+	image_t					*sunShadowPageImage;
 	image_t					*pointShadowArrayImage;
 	image_t					*lightCookieArray;	// tr_lightcookie.cpp, NULL until a cookie is registered
 	image_t                 *screenSsaoImage;	// legacy SSAO: r = AO, g = 1
@@ -4472,6 +4520,8 @@ typedef struct trGlobals_s {
 	FBO_t					*calcLevelsFbo;
 	FBO_t					*targetLevelsFbo;
 	FBO_t					*sunShadowFbo[3];
+	FBO_t					*sunShadowStaticFbo[2][3];
+	FBO_t					*sunShadowPageFbo;
 	FBO_t					*screenSsaoFbo;
 	FBO_t					*hdrDepthFbo;
 	FBO_t					*aoDepthFbo[AO_DEPTH_MIPS];
@@ -4664,7 +4714,7 @@ typedef struct trGlobals_s {
 	size_t defaultFogsUboOffset;
 	size_t defaultShaderInstanceUboOffset;
 
-	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
+	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
 	long sceneUboOffset;
 	long temporalInfoUboOffset;
 	long lightsUboOffset;
@@ -4687,7 +4737,7 @@ typedef struct trGlobals_s {
 	// -----------------------------------------
 
 	viewParms_t				viewParms;
-	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 3 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
+	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
 	int						numCachedViewParms;
 	qboolean				portalRenderedThisFrame;
 
@@ -4774,6 +4824,16 @@ typedef struct trGlobals_s {
 	int						currentLevel;
 
 	shadowCube_t			shadowCube;
+	int						sunShadowCasterGeneration;
+	int						sunShadowCacheHits;
+	int						sunShadowCacheBypasses;
+	uint64_t				sunShadowCacheRestoredPixels;
+	int						sunShadowCacheMisses;
+	int						sunShadowCacheScrolls;
+	int						sunShadowCacheDiskHits;
+	int						sunShadowCacheDiskLoads;
+	int						sunShadowCacheDiskWrites;
+	uint64_t				sunShadowCacheUpdatedPixels;
 } trGlobals_t;
 
 struct glconfigExt_t
@@ -4931,6 +4991,7 @@ extern  cvar_t  *r_shadowCascadeZNear;
 extern  cvar_t  *r_shadowCascadeZFar;
 extern  cvar_t  *r_shadowCascadeZBias;
 extern  cvar_t  *r_sunShadowMode;
+extern  cvar_t  *r_sunShadowCache;
 extern  cvar_t  *r_sunShadowAlphaCasters;
 extern  cvar_t  *r_shadowCascadeBlend;
 extern  cvar_t  *r_shadowDepthBias;
@@ -5063,6 +5124,12 @@ uint32_t R_CreateSortKey(int entityNum, int sortedShaderIndex, int cubemapIndex,
 void R_AddDrawSurf( surfaceType_t *surface, int entityNum, shader_t *shader,
 				   int fogIndex, int dlightMap, int postRender, int cubemap,
 				   foliageResult_t foliage = {}, uint32_t waterKey = 0 );
+qboolean R_IsStaticSunShadowCaster(surfaceType_t *surface, int entityNum,
+	const shader_t *shader, foliageResult_t foliage, uint32_t waterKey);
+void R_InvalidateSunShadowCache(void);
+void R_ResetSunShadowDynamicWorld(void);
+void R_SunShadowDiskTilePath(char *path, size_t pathSize, uint64_t layoutKey,
+	int pageX, int pageY);
 bool R_IsPostRenderEntity ( const trRefEntity_t *refEntity );
 
 void R_CalcMikkTSpaceBSPSurface(int numSurfaces, packedVertex_t *vertices, glIndex_t *indices);

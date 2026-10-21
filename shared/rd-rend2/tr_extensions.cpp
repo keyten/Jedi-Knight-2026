@@ -75,6 +75,7 @@ PFNGLISBUFFERPROC qglIsBuffer;
 PFNGLACTIVETEXTUREPROC qglActiveTexture;
 PFNGLTEXIMAGE3DPROC qglTexImage3D;
 PFNGLTEXSUBIMAGE3DPROC qglTexSubImage3D;
+PFNGLCOPYIMAGESUBDATAPROC qglCopyImageSubData;
 
 // Shader objects
 PFNGLCREATESHADERPROC qglCreateShader;
@@ -568,6 +569,13 @@ void GLimp_InitExtensions()
 
 	// Select our tc scheme
 	GLW_InitTextureCompression();
+	// Optional raw same-format depth copies. Keep the baseline FBO blit path
+	// on 3.2 drivers without ARB_copy_image; reset across context restarts.
+	qglCopyImageSubData = nullptr;
+	if (glRefConfig.glMajorVersion > 4 ||
+		(glRefConfig.glMajorVersion == 4 && glRefConfig.glMinorVersion >= 3) ||
+		GLimp_HaveExtension("GL_ARB_copy_image"))
+		GetGLFunction(qglCopyImageSubData, "glCopyImageSubData", qfalse);
 
 	// GL_EXT_texture_filter_anisotropic
 	glConfig.maxTextureFilterAnisotropy = 0;

@@ -545,6 +545,8 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	if ( !tr.registered ) {
 		return;
 	}
+	if (stereoFrame != STEREO_RIGHT)
+		R_SunShadowBenchmarkFrame();
 
 	backEndData->previousFrame = backEndData->currentFrame;
 	int frameNumber = backEndData->realFrameNumber;

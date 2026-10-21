@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "glext.h"
 #include <algorithm>
 #include <chrono>
+#include <vector>
 
 // r_shadowStats: backend phases of point light cube face commands
 shadowSubmitProfile_t rb_shadowSubmitProfile;
@@ -568,6 +569,15 @@ static void SetViewportAndScissor( void ) {
 	// set the window clipping
 	GL_SetViewportAndScissor(backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 		backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight);
+	if (backEnd.viewParms.sunShadowScissor[2] > 0 &&
+		(backEnd.viewParms.flags & VPF_SUN_STATIC_SHADOW))
+	{
+		const int *box = backEnd.viewParms.sunShadowScissor;
+		qglScissor(box[0], box[1], box[2], box[3]);
+		// Every viewport restore (including optional cloud hooks) must retain
+		// the strip. Invalidate the shared viewport/scissor cache afterwards.
+		glState.viewportOrigin[0] = -1;
+	}
 }
 
 /*
@@ -602,6 +612,99 @@ void RB_BeginDrawingView (void) {
 	{
 		targetFBO = tr.renderFbo;
 	}
+	// Blits obey the scissor test, which still describes the previous view
+	// here (possibly an exposed strip). Preserve the whole requested copy.
+	const qboolean sunCacheCopy = (backEnd.viewParms.flags &
+		(VPF_SUN_TILE_LOAD_SHADOW | VPF_SUN_SCROLL_SHADOW | VPF_SUN_DYNAMIC_SHADOW)) ? qtrue : qfalse;
+	const GLboolean sunCacheScissor = sunCacheCopy ? qglIsEnabled(GL_SCISSOR_TEST) : GL_FALSE;
+	if (sunCacheCopy)
+		qglDisable(GL_SCISSOR_TEST);
+	if ((backEnd.viewParms.flags & VPF_SUN_TILE_LOAD_SHADOW) &&
+		tr.sunShadowPageImage && tr.sunShadowPageFbo && targetFBO)
+	{
+		FBO_Bind(targetFBO);
+		GL_State(GLS_DEFAULT);
+		qglClear(GL_DEPTH_BUFFER_BIT);
+
+		GLint unpackBuffer, unpackAlignment;
+		qglGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpackBuffer);
+		qglGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
+		qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+		qglPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+		// GL_BindToTMU does not select an already-cached binding's unit.
+		GL_SelectTexture(0);
+		for (int i = 0; i < backEnd.viewParms.sunShadowTileLoadCount; ++i)
+		{
+			const sunShadowTileLoad_t& load = backEnd.viewParms.sunShadowTileLoads[i];
+			GL_BindToTMU(tr.sunShadowPageImage, 0);
+			qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+				SUN_SHADOW_DISK_TILE_SIZE, SUN_SHADOW_DISK_TILE_SIZE,
+				GL_DEPTH_COMPONENT, GL_FLOAT, load.depth);
+			vec4i_t srcBox = { load.srcX, load.srcY, load.width, load.height };
+			vec4i_t dstBox = { load.dstX, load.dstY, load.width, load.height };
+			FBO_FastBlit(tr.sunShadowPageFbo, srcBox, targetFBO, dstBox,
+				GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		}
+		qglPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+		qglBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBuffer);
+	}
+	if ((backEnd.viewParms.flags & VPF_SUN_SCROLL_SHADOW) &&
+		backEnd.viewParms.targetFboLayer >= 0 &&
+		backEnd.viewParms.targetFboLayer < 3 &&
+		backEnd.viewParms.sunShadowCacheSourceBank >= 0 &&
+		backEnd.viewParms.sunShadowCacheSourceBank < 2 &&
+		tr.sunShadowStaticFbo[backEnd.viewParms.sunShadowCacheSourceBank][backEnd.viewParms.targetFboLayer] &&
+		targetFBO)
+	{
+		// Ping-pong avoids the undefined overlapping self-blit case.  Clear the
+		// destination, preserve the overlap, then the one or two strip views
+		// rasterize only the newly exposed area.
+		FBO_Bind(targetFBO);
+		GL_State(GLS_DEFAULT);
+		qglClear(GL_DEPTH_BUFFER_BIT);
+
+		const int shiftX = backEnd.viewParms.sunShadowScrollX;
+		const int shiftY = backEnd.viewParms.sunShadowScrollY;
+		const int copyWidth = targetFBO->width - abs(shiftX);
+		const int copyHeight = targetFBO->height - abs(shiftY);
+		if (copyWidth > 0 && copyHeight > 0)
+		{
+			vec4i_t srcBox = {
+				Q_max(0, -shiftX), Q_max(0, -shiftY), copyWidth, copyHeight };
+			vec4i_t dstBox = {
+				Q_max(0, shiftX), Q_max(0, shiftY), copyWidth, copyHeight };
+			FBO_FastBlit(
+				tr.sunShadowStaticFbo[backEnd.viewParms.sunShadowCacheSourceBank][backEnd.viewParms.targetFboLayer],
+				srcBox, targetFBO, dstBox, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		}
+	}
+	if ((backEnd.viewParms.flags & VPF_SUN_DYNAMIC_SHADOW) &&
+		backEnd.viewParms.targetFboLayer >= 0 &&
+		backEnd.viewParms.targetFboLayer < 3 &&
+		backEnd.viewParms.sunShadowCacheBank >= 0 &&
+		backEnd.viewParms.sunShadowCacheBank < 2 &&
+		tr.sunShadowStaticFbo[backEnd.viewParms.sunShadowCacheBank][backEnd.viewParms.targetFboLayer] &&
+		targetFBO)
+	{
+		// The working layer already contains the unchanged static depth. Erase
+		// only last frame's dynamic footprint before drawing the current casters.
+		int *rect = backEnd.viewParms.sunShadowRestoreRect;
+		if (rect[2] > 0 && rect[3] > 0)
+		{
+			if (qglCopyImageSubData)
+				qglCopyImageSubData(
+					tr.sunShadowStaticArrayImage[backEnd.viewParms.sunShadowCacheBank]->texnum, GL_TEXTURE_2D_ARRAY,
+					0, rect[0], rect[1], backEnd.viewParms.targetFboLayer,
+					tr.sunShadowArrayImage->texnum, GL_TEXTURE_2D_ARRAY,
+					0, rect[0], rect[1], backEnd.viewParms.targetFboLayer, rect[2], rect[3], 1);
+			else
+				FBO_FastBlit(
+					tr.sunShadowStaticFbo[backEnd.viewParms.sunShadowCacheBank][backEnd.viewParms.targetFboLayer], rect,
+					targetFBO, rect, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		}
+	}
+	if (sunCacheScissor)
+		qglEnable(GL_SCISSOR_TEST);
 	FBO_Bind(targetFBO);
 	if (targetFBO == tr.ltcShadowScratchFbo)
 		qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
@@ -4130,6 +4233,106 @@ static void RB_SkyPortalOccluders( void )
 	GL_SetModelviewMatrix(backEnd.viewParms.world.modelViewMatrix);
 }
 
+struct savedSunShadowPage_t
+{
+	uint64_t layoutKey;
+	int pageX, pageY;
+};
+
+static std::vector<savedSunShadowPage_t> s_savedSunShadowPages;
+
+static int RB_SunShadowFloorDiv(int value, int divisor)
+{
+	int quotient = value / divisor;
+	if (value % divisor < 0)
+		--quotient;
+	return quotient;
+}
+
+static int RB_SunShadowCeilDiv(int value, int divisor)
+{
+	return -RB_SunShadowFloorDiv(-value, divisor);
+}
+
+static void RB_SaveSunShadowDiskPages(void)
+{
+	const viewParms_t& view = backEnd.viewParms;
+	FBO_t *target = view.targetFbo;
+	if (!target || !tr.world || !view.sunShadowDiskLayoutKey)
+		return;
+
+	const int width = target->width;
+	const int height = target->height;
+	std::vector<float> depth((size_t)width * height);
+	FBO_t *oldFbo = glState.currentFBO;
+	FBO_Bind(target);
+	GLint packBuffer, packAlignment;
+	qglGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer);
+	qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlignment);
+	// An asynchronous screenshot may leave its PBO bound across frames.
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	qglPixelStorei(GL_PACK_ALIGNMENT, 4);
+	qglReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+	qglPixelStorei(GL_PACK_ALIGNMENT, packAlignment);
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer);
+	FBO_Bind(oldFbo);
+
+	const int firstPageX = RB_SunShadowCeilDiv(
+		view.sunShadowDiskOriginX, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastPageX = RB_SunShadowFloorDiv(
+		view.sunShadowDiskOriginX + width, SUN_SHADOW_DISK_TILE_SIZE);
+	const int firstPageY = RB_SunShadowCeilDiv(
+		view.sunShadowDiskOriginY, SUN_SHADOW_DISK_TILE_SIZE);
+	const int lastPageY = RB_SunShadowFloorDiv(
+		view.sunShadowDiskOriginY + height, SUN_SHADOW_DISK_TILE_SIZE);
+	const size_t tilePixels = (size_t)SUN_SHADOW_DISK_TILE_SIZE * SUN_SHADOW_DISK_TILE_SIZE;
+	for (int pageY = firstPageY; pageY < lastPageY; ++pageY)
+	{
+		for (int pageX = firstPageX; pageX < lastPageX; ++pageX)
+		{
+			qboolean alreadySaved = qfalse;
+			for (const savedSunShadowPage_t& old : s_savedSunShadowPages)
+			{
+				if (old.layoutKey == view.sunShadowDiskLayoutKey &&
+					old.pageX == pageX && old.pageY == pageY)
+				{
+					alreadySaved = qtrue;
+					break;
+				}
+			}
+			if (alreadySaved)
+				continue;
+
+			std::vector<byte> file(sizeof(sunShadowDiskHeader_t) + tilePixels * sizeof(float));
+			sunShadowDiskHeader_t *header = (sunShadowDiskHeader_t *)file.data();
+			header->magic = SUN_SHADOW_DISK_MAGIC;
+			header->version = SUN_SHADOW_DISK_VERSION;
+			header->tileSize = SUN_SHADOW_DISK_TILE_SIZE;
+			header->reserved = 0;
+			header->layoutKey = view.sunShadowDiskLayoutKey;
+			header->pageX = pageX;
+			header->pageY = pageY;
+			float *tile = (float *)(header + 1);
+			const int sourceX = pageX * SUN_SHADOW_DISK_TILE_SIZE - view.sunShadowDiskOriginX;
+			const int sourceY = pageY * SUN_SHADOW_DISK_TILE_SIZE - view.sunShadowDiskOriginY;
+			for (int y = 0; y < SUN_SHADOW_DISK_TILE_SIZE; ++y)
+			{
+				Com_Memcpy(tile + (size_t)y * SUN_SHADOW_DISK_TILE_SIZE,
+					depth.data() + (size_t)(sourceY + y) * width + sourceX,
+					SUN_SHADOW_DISK_TILE_SIZE * sizeof(float));
+			}
+
+			char path[MAX_OSPATH];
+			R_SunShadowDiskTilePath(path, sizeof(path),
+				view.sunShadowDiskLayoutKey, pageX, pageY);
+			ri.FS_WriteFile(path, file.data(), (int)file.size());
+			savedSunShadowPage_t saved = { view.sunShadowDiskLayoutKey, pageX, pageY };
+			s_savedSunShadowPages.push_back(saved);
+			tr.sunShadowCacheDiskWrites++;
+		}
+	}
+}
+
 /*
 =============
 RB_DrawSurfs
@@ -4211,6 +4414,8 @@ static const void *RB_DrawSurfs(const void *data) {
 		RB_RenderMainPass(cmd->drawSurfs, cmd->numDrawSurfs);
 		phaseEnd(SHADOWPROF_MAINPASS);
 	}
+	if (backEnd.viewParms.flags & VPF_SUN_TILE_SAVE_SHADOW)
+		RB_SaveSunShadowDiskPages();
 
 	if (rb_shadowProfileActive)
 	{

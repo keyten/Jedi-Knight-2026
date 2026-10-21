@@ -22,8 +22,12 @@ For each expanded slice, the renderer computes the analytic bounding sphere of
 the symmetric perspective frustum slice. The radius is independent of camera
 rotation and translation and is quantized to 1/16 world unit. The light-view
 origin is projected onto the two shadow-plane axes and snapped independently to
-that cascade's world-units-per-texel. Light-space depth is intentionally not
-snapped.
+that cascade's world-units-per-texel. Modern light-space depth is rebased to a
+stable interval enclosing the BSP plus a dynamic-caster margin, including when
+`r_sunShadowCache 0` uses a full redraw. This keeps the comparison projection
+the same for every cache mode;
+this makes stored depth values reusable after XY scrolling and keeps PCSS
+blocker separation in one consistent light-space interval.
 
 The old implementation used function-static texel-size values inside the
 cascade loop. They were initialized by the first cascade and then incorrectly
@@ -83,6 +87,7 @@ PCSS visibility; it never replaces it.
 | Cvar | Default | Meaning |
 | --- | ---: | --- |
 | `r_sunShadowMode` | 1 | 0 legacy, 1 shadows 2.0; latched |
+| `r_sunShadowCache` | 0 | 0 off, 1 exact reuse, 2 scrolling clipmaps, 3 persistent world-space disk pages; latched |
 | `r_sunShadowAlphaCasters` | 1 | sun-shadow cutouts/receivers for `q3map_alphashadow` foliage and `surfaceSprites`; latched |
 | `r_shadowCascadeBlend` | 0.10 | overlap as fraction of smaller adjacent span |
 | `r_shadowDepthBias` | 0.15 | constant world-space receiver bias |
@@ -131,7 +136,78 @@ in each shadow map. Setting `r_sunShadowAlphaCasters 0` and restarting the
 renderer disables these paths; legacy sun shadows and dynamic-light shadow maps
 are unchanged.
 
+## Static sun-shadow cache
+
+Modern mode can keep a persistent D24 array for conservative static BSP
+casters. On a rebuild, that depth layer initializes the existing working
+cascade. On exact hits, only the previous dynamic-caster footprint is restored
+from static depth; with no previous casters there is no copy. Moving/animated
+casters are then rendered over it with the
+normal depth test. Lighting, volumetrics, cascade blending and PCSS continue to
+sample only `sunShadowArrayImage`; no PCSS tap gains a second texture lookup.
+Caching is opt-in: copying depth and redrawing strips can cost more GPU time
+than a full static draw on bandwidth-limited GPUs, even when CPU traversal drops.
+
+Only opaque, simple-depth world faces/grids/triangles/VBO meshes enter the
+persistent layer. Alpha-tested materials, shader deforms, resolved foliage motion,
+surface sprites, POM shells, water/distortion, Force Sight, polygon-offset surfaces and all
+entities stay in the dynamic overlay. Shader remaps invalidate both the static
+depth and the compact list of dynamic world surfaces. The dynamic overlay culls
+that compact list directly instead of walking the whole BSP every cascade.
+
+Raw classifier evidence such as a two-sided material is not itself motion.
+The working-layer restore uses conservative Ghoul2 culling spheres, MD3 frame
+bounds (both animation frames), and BSP bounds, with a four-texel raster guard.
+Unknown/deformed casters fall back to a complete restore. Same-format depth
+copies use optional `glCopyImageSubData`, with FBO blits on older GL drivers.
+PCSS shader taps are unchanged.
+
+Mode 1 uses the original one-pass redraw while the snapped projection changes.
+It builds a static layer after four consecutive matching projections, then
+reuses it. This avoids building/copying a throwaway cache on every moving frame.
+If a caster has no safe bounds (including moving foliage/deforms), mode 1
+returns that cascade to single-pass redraw on subsequent frames instead of
+continually copying a full layer; it retries after projection/caster invalidation.
+Mode 2 instead treats every cascade as a ping-pong shadow
+clipmap: an integer-texel camera movement blits the overlapping depth into the
+other bank, then renders only the newly exposed horizontal/vertical strips.
+Each strip has a matching narrow culling frustum and a scissor rectangle,
+while retaining the full cascade's raster projection and viewport. This avoids
+the additional clipping/interpolation seams of a one-pixel projection and
+reduces BSP traversal and fragment work together. Sun-direction, projection-extent, shader-generation,
+map or non-integral-grid changes fall back to a full conservative rebuild.
+
+At 1024, mode 1 adds about 12 MiB of D24 depth storage; mode 2 adds about
+24 MiB. `r_sunShadowCache 0` selects a one-pass-per-cascade full redraw with the
+same stable modern projection for visual and performance A/B tests.
+
+Mode 3 keeps the mode-2 GPU clipmaps and adds a lazy 256x256 world-space page
+cache under `shadowcache/<map>/`. Complete missing pages are built in a 288x288
+scratch FBO with a 16-texel guard band; only the central 256x256 is saved. This
+keeps viewport clipping away from the persisted edges and completes the pages
+partially covered by a cascade. Warmup is bounded to one page per cascade per
+scene. A repeated camera window can then hit disk without first exploring
+beyond all four borders. A later launch (or a
+large teleport) assembles a cascade from disk when every page covering its
+window is present; otherwise it falls back atomically to the normal full/strip
+render and fills the missing pages. CPU page data is retained for one scene
+only, so walking a large map does not create an unbounded RAM cache.
+
+The page layout key contains a version, map name and allocation size, the
+positions and indices of all conservative static casters, their resolved
+shader names/cull modes, the sun basis, stable depth range, cascade level,
+texel scale and resolution. Map geometry, relevant shader/remap, sun, FOV,
+split or resolution changes therefore select a different cache. Files have a
+validated header and finite normalized depth payload; an incomplete or corrupt
+page is treated as a miss. World/curve/culling settings also select a different
+cache. Mode 3 is experimental and opt-in because page creation includes synchronous page-depth
+readback, bounded extra page renders, and uncompressed float pages on disk.
+
 ## Performance and validation
+
+The local runtime results and remaining experimental scrolling/page mismatches
+are recorded in
+[sun-shadow cache validation](rend2-sun-shadow-cache-validation.md).
 
 GPU timers label each sun cascade render separately, the main-view sample cost
 is visible in the main-view timer, and the contact pass is labelled
@@ -141,14 +217,50 @@ can execute twice the normal sun sample count; pixels outside overlaps never
 sample a second cascade.
 
 `r_shadowStats 1` prints the per-frame CPU cost (front end and command
-submission) of each view class once per second: main, sun cascade, point face,
-point cube, spot, and so on. Point light shadow cubes can be built from one
+submission) of each view class once per second, including separate `sun static`
+and `sun dynamic` rows. It also prints cache hits, clipmap scrolls, disk-window
+hits, full rebuilds, disk pages read/written and the number of static
+megapixels updated/restored per frame and baseline bypasses. Point light shadow cubes can be built from one
 scene walk per light with `r_shadowSinglePass 1`. That gives the same depth,
 and `r_shadowVerify 1` checks it on one frame. Details and measurements are in
 [rend2-gl43-plan-4-layered-shadows.md](rend2-gl43-plan-4-layered-shadows.md).
-Sun cascades still use one walk per cascade.
 
 Recommended visual checks are slow forward/strafe motion, both transition
 bands, close contacts, long shadows, sloped floors, rails and foliage,
 wide/narrow FOV, several shadow-map sizes, and low sun angles. Use debug views
 1, 3, 5, 7, and 8 to isolate the common failure modes.
+
+`r_sunShadowVerify 1` compares the next scene's three cached working cascades
+with full world/entity renders at the identical stable projection;
+`r_sunShadowVerify 2` repeats continuously. Both perform slow synchronous
+readbacks and must be off for performance measurements. After rendering the
+reference, the actual depth is restored to the working texture so subsequent
+verified frames also exercise partial restoration. Persistent banks are untouched. The report
+keeps the exact differing-texel count, the count above two D24 steps and maximum
+normalized depth error. PASS checks a symmetric one-texel depth footprint with
+depth tolerance max(8 D24 steps, 5% of that cascade's world texel size). This is
+a geometric tolerance check, not a claim of bit-exact scroll or page rendering:
+GPU clipping/interpolation can change depth at triangle edges after translation.
+Disk uploads explicitly select the texture unit and preserve unpack-PBO state;
+all synchronous depth reads preserve pack-PBO state, including when an
+asynchronous screenshot is pending.
+
+The Windows integration harness `tools/rend2/test_sunshadow_cache_runtime.py`
+uses locally built engine/game/renderer binaries, reads installed assets, and
+writes configs, screenshots, logs, pages and JSON timing summaries to its own
+`build/sun-shadow-runtime` directory. Its default sequence is 0, 1, 2, 3, 3;
+the last launch reuses the previous mode-3 home to exercise persistent pages.
+It checks stationary views, small and diagonal steps, movement, large
+teleports/returns and world/curve/culling toggles. GPU timings are sampled with
+verification disabled. Example:
+
+```powershell
+python tools/rend2/test_sunshadow_cache_runtime.py --installation C:/path/to/game --binaries build/sun-shadow-cache/Release
+```
+
+`r_sunShadowBenchmark 600` measures 600 complete wall-clock frame intervals
+(CPU, GPU waits, swap and game), prints mean/median/p95 and average FPS, then
+resets to zero. Disable verification, stats, per-pass logging, vsync and all
+focused/unfocused/minimized FPS caps. The harness supports
+`--no-verify --benchmark-frames 600 --modes 0 1 0 1` (uncapped by default).
+Its private startup config avoids the SP engine's 32-command startup limit.

@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "tr_local.h"
 
+#include <vector>
+
 
 world_t *R_GetWorld(int worldIndex)
 {
@@ -32,6 +34,72 @@ world_t *R_GetWorld(int worldIndex)
 	{
 		return tr.bspModels[worldIndex];
 	}
+}
+
+struct sunShadowDynamicWorld_t
+{
+	world_t *world;
+	int casterGeneration;
+	std::vector<int> surfaces;
+	std::vector<int> mergedSurfaces;
+};
+
+static sunShadowDynamicWorld_t s_sunShadowDynamicWorld;
+
+void R_ResetSunShadowDynamicWorld(void)
+{
+	s_sunShadowDynamicWorld.world = NULL;
+	s_sunShadowDynamicWorld.casterGeneration = -1;
+	s_sunShadowDynamicWorld.surfaces.clear();
+	s_sunShadowDynamicWorld.mergedSurfaces.clear();
+}
+
+static qboolean R_SunShadowWorldSurfaceIsDynamic(msurface_t *surf)
+{
+	shader_t *shader = surf->shader->remappedShader ? surf->shader->remappedShader : surf->shader;
+	if (surf->numSurfaceSprites > 0 || surf->pomShell != NULL)
+		return qtrue;
+	return R_IsStaticSunShadowCaster(
+		surf->data, REFENTITYNUM_WORLD, shader, {}, surf->waterKey) ? qfalse : qtrue;
+}
+
+static void R_RebuildSunShadowDynamicWorld(void)
+{
+	s_sunShadowDynamicWorld.world = tr.world;
+	s_sunShadowDynamicWorld.casterGeneration = tr.sunShadowCasterGeneration;
+	s_sunShadowDynamicWorld.surfaces.clear();
+	s_sunShadowDynamicWorld.mergedSurfaces.clear();
+	std::vector<byte> seenSurfaces(tr.world->numWorldSurfaces, 0);
+	std::vector<byte> seenMerged(tr.world->numMergedSurfaces, 0);
+	for (int i = 0; i < tr.world->nummarksurfaces; ++i)
+	{
+		const int viewSurface = tr.world->viewSurfaces ?
+			tr.world->viewSurfaces[i] : tr.world->marksurfaces[i];
+		if (viewSurface >= 0)
+		{
+			if (viewSurface < tr.world->numWorldSurfaces && !seenSurfaces[viewSurface])
+			{
+				seenSurfaces[viewSurface] = 1;
+				if (R_SunShadowWorldSurfaceIsDynamic(&tr.world->surfaces[viewSurface]))
+					s_sunShadowDynamicWorld.surfaces.push_back(viewSurface);
+			}
+		}
+		else
+		{
+			const int merged = -viewSurface - 1;
+			if (merged < tr.world->numMergedSurfaces && !seenMerged[merged])
+			{
+				seenMerged[merged] = 1;
+				if (R_SunShadowWorldSurfaceIsDynamic(&tr.world->mergedSurfaces[merged]))
+					s_sunShadowDynamicWorld.mergedSurfaces.push_back(merged);
+			}
+		}
+	}
+
+	ri.Printf(PRINT_DEVELOPER,
+		"Sun shadow cache: %u/%d world and %u/%d merged surfaces remain dynamic\n",
+		(unsigned)s_sunShadowDynamicWorld.surfaces.size(), tr.world->numWorldSurfaces,
+		(unsigned)s_sunShadowDynamicWorld.mergedSurfaces.size(), tr.world->numMergedSurfaces);
 }
 
 /*
@@ -937,6 +1005,27 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	}
 
 	if ( refdef->rdflags & RDF_NOWORLDMODEL ) {
+		return;
+	}
+
+	// The dynamic overlay does not need another BSP walk.  Its conservative
+	// surface list is rebuilt only after a map change or shader remap, then the
+	// much smaller list is culled directly against the current cascade.
+	if ((viewParms->flags & VPF_SUN_DYNAMIC_SHADOW) && !r_nocurves->integer)
+	{
+		if (s_sunShadowDynamicWorld.world != tr.world ||
+			s_sunShadowDynamicWorld.casterGeneration != tr.sunShadowCasterGeneration)
+		{
+			R_RebuildSunShadowDynamicWorld();
+		}
+		ClearBounds(viewParms->visBounds[0], viewParms->visBounds[1]);
+		R_RotateForEntity(&tr.worldEntity, &tr.viewParms, &tr.ori);
+		for (int index : s_sunShadowDynamicWorld.surfaces)
+			R_AddWorldSurface(&tr.world->surfaces[index], nullptr,
+				REFENTITYNUM_WORLD, 0, 0);
+		for (int index : s_sunShadowDynamicWorld.mergedSurfaces)
+			R_AddWorldSurface(&tr.world->mergedSurfaces[index], nullptr,
+				REFENTITYNUM_WORLD, 0, 0);
 		return;
 	}
 

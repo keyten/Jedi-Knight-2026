@@ -417,6 +417,7 @@ extern PFNGLISBUFFERPROC qglIsBuffer;
 extern PFNGLACTIVETEXTUREPROC qglActiveTexture;
 extern PFNGLTEXIMAGE3DPROC qglTexImage3D;
 extern PFNGLTEXSUBIMAGE3DPROC qglTexSubImage3D;
+extern PFNGLCOPYIMAGESUBDATAPROC qglCopyImageSubData;
 
 // Shader objects
 extern PFNGLCREATESHADERPROC qglCreateShader;

@@ -556,6 +556,7 @@ Improves cascaded sun shadows with stabilized cascade fitting, blended cascade t
 - `r_shadowPCSS 0 | 1` — disable / enable PCSS.
 
 **Other controls**
+- `r_sunShadowCache 0..3` — off / exact static BSP depth reuse / scrolling cascade clipmaps / clipmaps plus persistent world-space disk pages. Requires `vid_restart`.
 - `r_sunShadowAlphaCasters 0 | 1` — alpha-tested foliage/cutout casters and receivers. Requires `vid_restart`.
 - `r_shadowCascadeBlend <value>` — cascade overlap.
 - `r_shadowDepthBias <units>` — constant receiver bias.

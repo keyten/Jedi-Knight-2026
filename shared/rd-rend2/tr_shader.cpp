@@ -320,6 +320,9 @@ void R_RemapShader(const char *shaderName, const char *newShaderName, const char
 	if (timeOffset) {
 		sh2->timeOffset = atof(timeOffset);
 	}
+	// A remap may change opacity, deformation or alpha-test behaviour. Static
+	// sun depth and its compact dynamic-surface list must be rebuilt together.
+	tr.sunShadowCasterGeneration++;
 }
 
 /*

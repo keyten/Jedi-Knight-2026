@@ -767,6 +767,37 @@ void FBO_Init(void)
 			R_CheckFBO(tr.sunShadowFbo[i]);
 		}
 	}
+	for (int bank = 0; bank < 2; ++bank)
+	{
+		if (tr.sunShadowStaticArrayImage[bank] == NULL)
+			continue;
+		for ( i = 0; i < 3; i++)
+		{
+			tr.sunShadowStaticFbo[bank][i] = FBO_Create(
+				va("_sunshadowstatic%i_%i", bank, i),
+				tr.sunShadowStaticArrayImage[bank]->width,
+				tr.sunShadowStaticArrayImage[bank]->height);
+
+			FBO_Bind(tr.sunShadowStaticFbo[bank][i]);
+			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+				tr.sunShadowStaticArrayImage[bank]->texnum, 0, i);
+			qglDrawBuffer(GL_NONE);
+			qglReadBuffer(GL_NONE);
+
+			R_CheckFBO(tr.sunShadowStaticFbo[bank][i]);
+		}
+	}
+	if (tr.sunShadowPageImage != NULL)
+	{
+		tr.sunShadowPageFbo = FBO_Create(
+			"_sunshadowpage", SUN_SHADOW_DISK_SCRATCH_SIZE, SUN_SHADOW_DISK_SCRATCH_SIZE);
+		FBO_Bind(tr.sunShadowPageFbo);
+		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+			tr.sunShadowPageImage->texnum, 0);
+		qglDrawBuffer(GL_NONE);
+		qglReadBuffer(GL_NONE);
+		R_CheckFBO(tr.sunShadowPageFbo);
+	}
 
 	for (i = 0; i < 2; i++)
 	{
