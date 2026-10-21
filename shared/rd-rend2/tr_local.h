@@ -781,6 +781,7 @@ extern cvar_t  *r_shadowSinglePass;
 extern cvar_t  *r_skyPortalCull;
 extern cvar_t  *r_shadowLayered;
 extern cvar_t  *r_shadowVerify;
+extern cvar_t  *r_shadowCache;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
 extern cvar_t  *r_entitySunSplit;
@@ -1102,6 +1103,16 @@ typedef struct trRefEntity_s {
 	float		axisLength;		// compensate for non-normalized axis
 
 	qboolean	needDlights;	// true for bmodels that touch a dlight
+	// Camera-independent receiver queries, shared by every view of this scene.
+	int			dlightCacheScene;
+	vec3_t		dlightCachePoint;
+	float		dlightCacheRadius;
+	int			dlightCacheBits;
+	int			bmodelDlightCacheScene;
+	int			bmodelDlightCacheBits;
+	int			cubemapCacheScene;
+	vec3_t		cubemapCachePoint;
+	int			cubemapCacheIndex;
 	qboolean	lightingCalculated;
 	qboolean	mirrored;		// mirrored matrix, needs reversed culling
 	vec3_t		lightDir;		// normalized direction towards light, in world space
@@ -5154,6 +5165,8 @@ int R_CullPointAndRadius( const vec3_t origin, float radius );
 uint8_t R_ShadowCubeBoundsMask( const vec3_t mins, const vec3_t maxs );
 qboolean R_ShadowCubeOverlaps( const vec3_t mins, const vec3_t maxs );
 bool R_RenderCubeShadowView( const viewParms_t *faces, bool allowLayered, int faceSurfs[6] = nullptr );
+void R_ShadowCacheInvalidate(void);
+void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, qboolean reset);
 
 // r_shadowStats: backend CPU time of the draw commands of point light cube
 // faces (VPF_POINTCUBE), split by phase of RB_DrawSurfs
@@ -5518,7 +5531,9 @@ void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 int R_LightDirForPoint( vec3_t point, vec3_t lightDir, vec3_t normal, world_t *world );
 int R_DLightsForPoint(const vec3_t point, const float radius);
+int R_DLightsForEntity(trRefEntity_t *ent, const vec3_t point, const float radius);
 int R_CubemapForPoint( const vec3_t point );
+int R_CubemapForEntity(trRefEntity_t *ent, const vec3_t point);
 #ifdef REND2_SP
 qboolean RE_GetLighting(const vec3_t origin, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir);
 #endif

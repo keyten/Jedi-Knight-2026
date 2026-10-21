@@ -2487,7 +2487,7 @@ void G2_ProcessGeneratedSurfaceBolts(CGhoul2Info &ghoul2, mdxaBone_v &bonePtr, m
 }
 #endif
 
-void RenderSurfaces( CRenderSurface &RS, const trRefEntity_t *ent, int entityNum )
+void RenderSurfaces( CRenderSurface &RS, trRefEntity_t *ent, int entityNum )
 {
 #ifdef G2_PERFORMANCE_ANALYSIS
 	G2PerformanceTimer_RenderSurfaces.Start();
@@ -2555,8 +2555,8 @@ void RenderSurfaces( CRenderSurface &RS, const trRefEntity_t *ent, int entityNum
 		// scale the radius if needed
 		float largestScale = MAX(ent->e.modelScale[0], MAX(ent->e.modelScale[1], ent->e.modelScale[2]));
 		radius = ent->e.radius * largestScale;
-		int dlightBits = R_DLightsForPoint(ent->e.origin, radius);
-		int cubemapIndex = R_CubemapForPoint(ent->e.origin);
+		int dlightBits = R_DLightsForEntity(ent, ent->e.origin, radius);
+		int cubemapIndex = R_CubemapForEntity(ent, ent->e.origin);
 
 		// don't add third_person objects if not viewing through a portal
 		if ( !RS.personalModel )

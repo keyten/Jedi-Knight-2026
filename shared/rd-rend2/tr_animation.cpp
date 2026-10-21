@@ -283,7 +283,7 @@ void R_MDRAddAnimSurfaces( trRefEntity_t *ent, int entityNum ) {
 	// fogNum?
 	fogNum = R_MDRComputeFogNum( header, ent );
 
-	cubemapIndex = R_CubemapForPoint(ent->e.origin);
+	cubemapIndex = R_CubemapForEntity(ent, ent->e.origin);
 
 	surface = (mdrSurface_t *)( (byte *)lod + lod->ofsSurfaces );
 

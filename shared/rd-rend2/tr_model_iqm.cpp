@@ -887,7 +887,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent, int entityNum ) {
 	//
 	fogNum = R_ComputeIQMFogNum( data, ent );
 
-	cubemapIndex = R_CubemapForPoint(ent->e.origin);
+	cubemapIndex = R_CubemapForEntity(ent, ent->e.origin);
 
 	for ( i = 0 ; i < data->num_surfaces ; i++ ) {
 		if(ent->e.customShader)

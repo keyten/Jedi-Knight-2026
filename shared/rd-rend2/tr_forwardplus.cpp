@@ -31,10 +31,12 @@ tiles x tiles x depth slices ("clusters") and bins each light sphere into the
 clusters it may touch. Three buffer textures (GL 3.1 core, no compute) carry
 the result to lightall, which loops only over the lights of its cluster:
 
-  light data   RGBA32F  3 texels per light of the scene
+  light data   RGBA32F  5 texels per light of the scene
                           0: origin.xyz, radius
-                          1: color.rgb, type (0 = point; line / rect / spot reserved)
-                          2: shadow slot (-1 = none), flags, 2 x reserved
+                          1: color.rgb, type
+                          2: shadow slot, cookie / flags and emitter dimensions
+                          3: spot axis / area-light right axis
+                          4: cookie roll / area-light up axis
   cluster grid RG32UI   1 texel per cluster: absolute offset into the index
                           list, light count
   index list   R16UI    light index within the scene's light data
@@ -106,6 +108,7 @@ struct fplusFrameBuffers_t
 struct fplusLightRange_t
 {
 	int light;
+	float importance;					// score from this view, most important first
 	int x0, x1, y0, y1, z0, z1;
 	vec4_t sphere;						// view space bounding sphere
 	qboolean sphereTest;				// point / spot light: one sphere
@@ -201,25 +204,25 @@ static struct
 	double benchResults[16][4];	// build ms, gpu ms, frame ms, gpu samples
 } s_fp = {};
 
-static std::vector<uint32_t> s_counts;
-static std::vector<uint32_t> s_offsets;
+static std::vector<uint8_t> s_counts;
 static std::vector<uint32_t> s_gridData;
 static std::vector<uint16_t> s_indexData;
 static std::vector<fplusLightRange_t> s_ranges;
 
+// GL 3.2 fallback. Counts and the fill cursor share one byte per cluster (the
+// public cap is 255); relative offsets/counts go directly into the upload
+// image, avoiding two extra uint32 arrays and a per-view cursor allocation.
 static uint32_t R_ForwardPlusBinCPU( const std::vector<fplusLightRange_t>& ranges,
-	int numClusters, int tilesX, int tilesY, int maxPerCluster,
-	std::vector<uint32_t>& offsets, std::vector<uint32_t>& counts,
-	std::vector<uint16_t>& indices, int *overflowRefs )
+	int numClusters, int tilesX, int tilesY, int maxPerCluster, int *overflowRefs )
 {
-	counts.assign(numClusters, 0);
+	s_counts.assign(numClusters, 0);
 	int overflow = 0;
 	for ( const fplusLightRange_t& r : ranges )
 	{
 		for ( int z = r.z0; z <= r.z1; z++ )
 			for ( int y = r.y0; y <= r.y1; y++ )
 			{
-				uint32_t *row = &counts[(z * tilesY + y) * tilesX];
+				uint8_t *row = &s_counts[(z * tilesY + y) * tilesX];
 				for ( int x = r.x0; x <= r.x1; x++ )
 				{
 					if ( row[x] < (uint32_t)maxPerCluster )
@@ -230,16 +233,17 @@ static uint32_t R_ForwardPlusBinCPU( const std::vector<fplusLightRange_t>& range
 			}
 	}
 
-	offsets.resize(numClusters);
+	s_gridData.resize((size_t)numClusters * 2);
 	uint32_t total = 0;
 	for ( int c = 0; c < numClusters; c++ )
 	{
-		offsets[c] = total;
-		total += counts[c];
+		s_gridData[c * 2 + 0] = total;
+		s_gridData[c * 2 + 1] = s_counts[c];
+		total += s_counts[c];
 	}
 
-	indices.resize(Q_max(total, 1u));
-	std::vector<uint32_t> cursor(numClusters, 0);
+	s_indexData.resize(Q_max(total, 1u));
+	std::fill(s_counts.begin(), s_counts.end(), 0);
 	for ( const fplusLightRange_t& r : ranges )
 	{
 		for ( int z = r.z0; z <= r.z1; z++ )
@@ -249,13 +253,52 @@ static uint32_t R_ForwardPlusBinCPU( const std::vector<fplusLightRange_t>& range
 				for ( int x = r.x0; x <= r.x1; x++ )
 				{
 					const int c = rowStart + x;
-					if ( cursor[c] < counts[c] )
-						indices[offsets[c] + cursor[c]++] = (uint16_t)r.light;
+					const uint32_t count = s_gridData[c * 2 + 1];
+					if ( s_counts[c] < count )
+						s_indexData[s_gridData[c * 2 + 0] + s_counts[c]++] = (uint16_t)r.light;
 				}
 			}
 	}
 	if ( overflowRefs )
 		*overflowRefs = overflow;
+	return total;
+}
+
+// Slow, uncapped reference used only by r_forwardPlusVerify. Keep uint32
+// counts because the verifier deliberately asks for all 256 scene lights.
+static uint32_t R_ForwardPlusBinCPUReference( const std::vector<fplusLightRange_t>& ranges,
+	int numClusters, int tilesX, int tilesY, int maxPerCluster,
+	std::vector<uint32_t>& offsets, std::vector<uint32_t>& counts,
+	std::vector<uint16_t>& indices )
+{
+	counts.assign(numClusters, 0);
+	for ( const fplusLightRange_t& r : ranges )
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
+			{
+				uint32_t *row = &counts[(z * tilesY + y) * tilesX];
+				for ( int x = r.x0; x <= r.x1; x++ )
+					if ( row[x] < (uint32_t)maxPerCluster )
+						row[x]++;
+			}
+	offsets.resize(numClusters);
+	uint32_t total = 0;
+	for ( int c = 0; c < numClusters; c++ )
+	{
+		offsets[c] = total;
+		total += counts[c];
+	}
+	indices.resize(Q_max(total, 1u));
+	std::vector<uint32_t> cursor(numClusters, 0);
+	for ( const fplusLightRange_t& r : ranges )
+		for ( int z = r.z0; z <= r.z1; z++ )
+			for ( int y = r.y0; y <= r.y1; y++ )
+				for ( int x = r.x0; x <= r.x1; x++ )
+				{
+					const int c = (z * tilesY + y) * tilesX + x;
+					if ( cursor[c] < counts[c] )
+						indices[offsets[c] + cursor[c]++] = (uint16_t)r.light;
+				}
 	return total;
 }
 
@@ -542,6 +585,12 @@ static int RB_ForwardPlusUpload( fplusFrameBuffers_t *fb, int buffer, const void
 	return first;
 }
 
+static qboolean RB_ForwardPlusCanUpload( const fplusFrameBuffers_t *fb, int buffer, int numTexels )
+{
+	return (qboolean)(numTexels >= 0 &&
+		fb->writeOffset[buffer] + numTexels <= s_fp.capacity[buffer]);
+}
+
 /*
 ============================================================
 
@@ -822,7 +871,7 @@ static int R_ForwardPlusSlice( const fplusSlicing_t *s, float depth )
 {
 	if ( s->slices <= 1 || depth <= s->nearSlice )
 		return 0;
-	const int slice = 1 + (int)floorf(logf(depth) * s->scale + s->bias);
+	const int slice = 1 + (int)floorf(log2f(depth) * s->scale + s->bias);
 	return Com_Clampi(1, s->slices - 1, slice);
 }
 
@@ -1031,8 +1080,8 @@ static void RB_ForwardPlusVerifyGPU( fplusFrameBuffers_t *fb, int gridBase,
 	std::vector<uint16_t> cpuIndices;
 	// The uncapped CPU list is the reference: a culled early light may let a
 	// later light into a capped GPU list, which is still a valid subsequence.
-	const uint32_t cpuRefs = R_ForwardPlusBinCPU(s_ranges, numClusters, tilesX, tilesY,
-		MAX_RENDER_DLIGHTS, cpuOffsets, cpuCounts, cpuIndices, nullptr);
+	const uint32_t cpuRefs = R_ForwardPlusBinCPUReference(s_ranges, numClusters, tilesX, tilesY,
+		MAX_RENDER_DLIGHTS, cpuOffsets, cpuCounts, cpuIndices);
 
 	qglMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	std::vector<uint32_t> grid((size_t)numClusters * 2);
@@ -1134,23 +1183,31 @@ static void RB_ForwardPlusBuildView(
 	slicing.nearSlice = Q_max(1.0f, r_forwardPlusNearSlice->value);
 	const float farZ = Q_max(view->zFar, slicing.nearSlice * 2.0f);
 	slicing.scale = slicing.slices > 1 ?
-		(float)(slicing.slices - 1) / logf(farZ / slicing.nearSlice) : 0.0f;
-	slicing.bias = -logf(slicing.nearSlice) * slicing.scale;
+		(float)(slicing.slices - 1) / log2f(farZ / slicing.nearSlice) : 0.0f;
+	slicing.bias = -log2f(slicing.nearSlice) * slicing.scale;
 
 	const int numClusters = tilesX * tilesY * slicing.slices;
 
-	// ranges in importance order
+	// Each colour view gets its own overflow order.  The scene/main-camera
+	// order remains the source of truth for the shadow budget, but a mirror or
+	// remote portal must not discard a nearby light in favour of one near the
+	// main camera.
 	s_ranges.clear();
-	for ( int k = 0; k < s_fp.numLights; k++ )
+	for ( int light = 0; light < s_fp.numLights; light++ )
 	{
 		fplusLightRange_t range;
-		range.light = s_fp.order[k];
+		range.light = light;
+		range.importance = R_DlightImportance(refdef->dlights + light, view->ori.origin);
 		if ( R_ForwardPlusLightRange(view, refdef->dlights + range.light, &slicing,
 				(float)tileSize, tilesX, tilesY, &range) )
 		{
 			s_ranges.push_back(range);
 		}
 	}
+	std::sort(s_ranges.begin(), s_ranges.end(), [](const fplusLightRange_t& a,
+		const fplusLightRange_t& b) {
+		return a.importance != b.importance ? a.importance > b.importance : a.light < b.light;
+	});
 
 	int gridBase;
 	if ( fb->gpuBuild )
@@ -1174,20 +1231,37 @@ static void RB_ForwardPlusBuildView(
 		return;
 	}
 
+	// Reserve both streams as one transaction.  In particular, never consume
+	// index space and then discover that this view's grid does not fit.
+	if ( !RB_ForwardPlusCanUpload(fb, FPLUS_BUFFER_GRID, numClusters) )
+	{
+		if ( !s_fp.warnedCapacity )
+		{
+			s_fp.warnedCapacity = qtrue;
+			ri.Printf(PRINT_WARNING, "Forward+: per frame grid buffer full, view gets no dynamic light. Increase r_forwardPlusTileSize or lower r_forwardPlusSlices.\n");
+		}
+		return;
+	}
 	int overflowRefs = 0;
 	const uint32_t total = R_ForwardPlusBinCPU(s_ranges, numClusters, tilesX, tilesY,
-		maxPerCluster, s_offsets, s_counts, s_indexData, &overflowRefs);
+		maxPerCluster, &overflowRefs);
+	if ( !RB_ForwardPlusCanUpload(fb, FPLUS_BUFFER_INDICES, (int)total) )
+	{
+		if ( !s_fp.warnedCapacity )
+		{
+			s_fp.warnedCapacity = qtrue;
+			ri.Printf(PRINT_WARNING, "Forward+: per frame index buffer full, view gets no dynamic light. Increase r_forwardPlusTileSize or lower r_forwardPlusSlices.\n");
+		}
+		return;
+	}
 
+	const int expectedIndexBase = fb->writeOffset[FPLUS_BUFFER_INDICES];
+	for ( int c = 0; c < numClusters; c++ )
+		s_gridData[c * 2 + 0] += (uint32_t)expectedIndexBase;
 	const int indexBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_INDICES, s_indexData.data(), (int)total);
 	if ( indexBase < 0 )
 		return;
-
-	s_gridData.resize(numClusters * 2);
-	for ( int c = 0; c < numClusters; c++ )
-	{
-		s_gridData[c * 2 + 0] = (uint32_t)indexBase + s_offsets[c];
-		s_gridData[c * 2 + 1] = s_counts[c];
-	}
+	assert(indexBase == expectedIndexBase);
 	gridBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_GRID, s_gridData.data(), numClusters);
 	if ( gridBase < 0 )
 		return;

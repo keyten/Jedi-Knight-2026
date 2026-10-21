@@ -5096,6 +5096,7 @@ Called directly from cgame
 */
 void RE_LoadWorldMap( const char *name ) {
 	const int loadStart = ri.Milliseconds();
+	R_ShadowCacheInvalidate();
 	R_SetMaterialDdcWorldLoad(qfalse);
 	if (R_LoadProfileEnabled())
 		ri.Printf(PRINT_ALL, "[map load] profile module: Rend2 DLL v%d (%s %s)\n",

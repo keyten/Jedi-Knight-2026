@@ -399,6 +399,8 @@ void FBO_Init(void)
 	GL_CheckErrors();
 
 	R_IssuePendingRenderCommands();
+	// All cached point/spot depth resides in FBO-owned texture storage.
+	R_ShadowCacheInvalidate();
 
 /*	if(glRefConfig.textureNonPowerOfTwo)
 	{

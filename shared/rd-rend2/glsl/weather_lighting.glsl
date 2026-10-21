@@ -94,10 +94,10 @@ int WeatherFPlusSlice(vec3 position)
 	int slices = int(u_FPlusParams.y);
 	if (slices <= 1)
 		return 0;
-	float depth = dot(position - u_ViewOrigin, normalize(u_ViewForward));
+	float depth = dot(position - u_ViewOrigin, u_ViewForward) / _u_ViewInfo.y;
 	if (depth <= u_FPlusParams2.w)
 		return 0;
-	return clamp(1 + int(floor(log(depth) * u_FPlusParams.z + u_FPlusParams.w)), 1, slices - 1);
+	return clamp(1 + int(floor(log2(depth) * u_FPlusParams.z + u_FPlusParams.w)), 1, slices - 1);
 }
 
 ivec2 WeatherFPlusList(vec3 position)

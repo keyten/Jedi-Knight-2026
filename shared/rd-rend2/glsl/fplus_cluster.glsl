@@ -34,6 +34,23 @@ layout(std430, binding = 1) writeonly buffer FPlusIndices { uint indices[]; };
 layout(std430, binding = 2) readonly buffer FPlusRanges { LightRange ranges[]; };
 layout(std430, binding = 3) buffer FPlusCounter { uint nextIndex; };
 
+// A failed allocation must not advance the shared counter: otherwise one
+// oversized cluster creates a permanent hole and can starve smaller lists
+// that would still fit. CAS also keeps every successful span disjoint.
+uint ReserveIndexes(uint requested, uint capacity)
+{
+	uint current = atomicAdd(nextIndex, 0u);
+	for (;;)
+	{
+		if (current > capacity || requested > capacity - current)
+			return 0xffffffffu;
+		uint observed = atomicCompSwap(nextIndex, current, current + requested);
+		if (observed == current)
+			return current;
+		current = observed;
+	}
+}
+
 // view depth range of a slice (FPlusSlice in lightall.glsl), widened a little:
 // the fragment's slice comes from a logarithm
 vec2 SliceDepths(int z)
@@ -56,8 +73,8 @@ vec2 SliceDepths(int z)
 	if (z == 0)
 		return vec2(0.0, nearSlice * 1.01);
 	float scale = u_FPlusCluster[2].x, bias = u_FPlusCluster[2].y;
-	float d0 = exp((float(z - 1) - bias) / scale);
-	float d1 = z == slices - 1 ? farZ : exp((float(z) - bias) / scale);
+	float d0 = exp2((float(z - 1) - bias) / scale);
+	float d1 = z == slices - 1 ? farZ : exp2((float(z) - bias) / scale);
 	return vec2(d0 * 0.99, d1 * 1.01);
 #endif
 }
@@ -143,9 +160,12 @@ void main()
 #else
 		uint allocated = (count + 1u) & ~1u;
 #endif
-		offset = atomicAdd(nextIndex, allocated);
-		if (offset + allocated > uint(u_FPlusCluster[5].z))
+		offset = ReserveIndexes(allocated, uint(u_FPlusCluster[5].z));
+		if (offset == 0xffffffffu)
+		{
+			offset = 0u;
 			count = 0u;		// index list full: this cluster gets no light
+		}
 	}
 #if defined(FROXEL_LIGHT_LISTS)
 	lists[c] = count > 0u ? uint(numClusters) + offset | (count << 24) : 0u;

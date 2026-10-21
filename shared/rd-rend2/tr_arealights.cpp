@@ -565,33 +565,80 @@ void R_AddAreaLightsToScene( const refdef_t *fd )
 	const int numLights = (int)s_al.lights.size();
 	if ( (int)s_previousMapSelection.size() != numLights )
 		s_previousMapSelection.assign(numLights, 0);
-	std::vector<std::pair<float, int>> order;
-	order.reserve(numLights);
+	struct candidateView_t { vec3_t origin; };
+	std::vector<candidateView_t> views(1);
+	VectorCopy(fd->vieworg, views[0].origin);
+	if ( tr.world->skyboxportal )
+	{
+		candidateView_t view;
+		VectorCopy(tr.skyPortalParms.ori.origin, view.origin);
+		views.push_back(view);
+	}
+	for ( int e = 0; e < tr.refdef.num_entities; e++ )
+	{
+		const refEntity_t *portal = &tr.refdef.entities[e].e;
+		if ( portal->reType != RT_PORTALSURFACE )
+			continue;
+		candidateView_t view;
+		const qboolean mirror = (qboolean)VectorCompare(portal->origin, portal->oldorigin);
+		VectorCopy(mirror ? portal->origin : portal->oldorigin, view.origin);
+		views.push_back(view);
+	}
+
+	struct candidate_t { int light, bestRank; float bestScore; };
+	std::vector<candidate_t> order(numLights);
 	for ( int i = 0; i < numLights; i++ )
 	{
-		// most important first: emitted power over squared distance (lights
-		// the view is inside of rank by their size), so a big ceiling panel
-		// is not pushed out by small indicators next to the camera; lights
-		// whose sphere cannot reach the view origin's surroundings rank last
-		const mapAreaLight_t *l = &s_al.lights[i];
-		const float distSq = DistanceSquared(fd->vieworg, l->center);
-		const float minDist = 0.1f * l->range;
-		float score = l->power / Q_max(distSq, minDist * minDist);
-		const float farDistance = l->range + l->halfDiagonal + 0.5f * l->range;
-		if ( distSq > farDistance * farDistance )
-			score *= 0.01f;
-		if ( s_previousMapSelection[i] )
-			score *= 1.15f;
-		order.push_back(std::make_pair(-score, i));
+		order[i].light = i;
+		order[i].bestRank = numLights;
+		order[i].bestScore = 0.0f;
 	}
+	// Give every possible colour view a fair share of the global map-light
+	// budget: rank independently, then interleave by each light's best rank.
+	// A dense main view can no longer consume all slots ahead of rank-0 lights
+	// at a remote portal camera.
+	for ( const candidateView_t& view : views )
+	{
+		std::vector<std::pair<float, int>> ranked;
+		ranked.reserve(numLights);
+		for ( int i = 0; i < numLights; i++ )
+		{
+			const mapAreaLight_t *l = &s_al.lights[i];
+			const float distSq = DistanceSquared(view.origin, l->center);
+			const float minDist = 0.1f * l->range;
+			float score = l->power / Q_max(distSq, minDist * minDist);
+			const float farDistance = l->range + l->halfDiagonal + 0.5f * l->range;
+			if ( distSq > farDistance * farDistance )
+				score *= 0.01f;
+			if ( s_previousMapSelection[i] )
+				score *= 1.15f;
+			ranked.push_back(std::make_pair(-score, i));
+		}
+		std::sort(ranked.begin(), ranked.end());
+		for ( int rank = 0; rank < numLights; rank++ )
+		{
+			candidate_t& candidate = order[ranked[rank].second];
+			const float score = -ranked[rank].first;
+			if ( rank < candidate.bestRank ||
+				(rank == candidate.bestRank && score > candidate.bestScore) )
+			{
+				candidate.bestRank = rank;
+				candidate.bestScore = score;
+			}
+		}
+	}
+	std::sort(order.begin(), order.end(), [](const candidate_t& a, const candidate_t& b) {
+		if ( a.bestRank != b.bestRank ) return a.bestRank < b.bestRank;
+		if ( a.bestScore != b.bestScore ) return a.bestScore > b.bestScore;
+		return a.light < b.light;
+	});
 	const int count = Q_min(maxLights, numLights);
-	std::partial_sort(order.begin(), order.begin() + count, order.end());
 	std::fill(s_previousMapSelection.begin(), s_previousMapSelection.end(), 0);
 
 	const float scale = Q_max(r_ltcIntensityScale->value, 0.0f);
 	for ( int k = 0; k < count; k++ )
 	{
-		const int i = order[k].second;
+		const int i = order[k].light;
 		const mapAreaLight_t *l = &s_al.lights[i];
 		vec3_t radiance;
 		float compatibility = 1.0f;

@@ -61,12 +61,13 @@ overwrite data in flight.
 
 | Buffer | Format | Content | Capacity per frame |
 |---|---|---|---|
-| light data | RGBA32F, 3 texels/light | origin.xyz, radius · color.rgb, type (0 point; line/rect/spot reserved) · shadow slot (−1 none), flags, 2 reserved | 3 scenes × 256 lights |
+| light data | RGBA32F, 5 texels/light | origin/radius · color/type · shadow/cookie/emitter data · spot axis or area-light right axis · cookie roll or area-light up axis | 3 scenes × 256 lights |
 | cluster grid | RG32UI | absolute offset into the index list, light count | 512K clusters (≤ GL_MAX_TEXTURE_BUFFER_SIZE) |
 | index list | R16UI | light index within the scene's light data | 2M entries |
 
-That is about 12 MB of GPU memory in total, allocated on the first Forward+ frame and freed at renderer
-shutdown. Units: `TB_FPLUS_LIGHTS 11`, `TB_FPLUS_GRID 12`, `TB_FPLUS_INDICES 13`.
+The two frame slots reserve about 16.1 MiB for these three buffer textures. The GL 4.3 path adds two 512 KiB
+range SSBOs and tiny counters, for about 17.1 MiB total. They are allocated on the first Forward+ frame and freed
+at renderer shutdown. Units: `TB_FPLUS_LIGHTS 11`, `TB_FPLUS_GRID 12`, `TB_FPLUS_INDICES 13`.
 
 Per-view parameters are appended to `CameraBlock` (lightall's Camera block only): `u_FPlusGrid`, `u_FPlusParams`,
 `u_FPlusParams2`, `u_FPlusDebug`. A zeroed block (legacy mode, or a view without lists) means disabled.
@@ -81,9 +82,10 @@ Per-view parameters are appended to `CameraBlock` (lightall's Camera block only)
 - **Light bounds:** the view's own modelview/projection matrices are used, so mirrors, off-centre and jittered
   projections work. The eye-space AABB of the sphere is projected (conservative). When a light touches the near
   plane, the whole viewport is used. The depth range [d−r, d+r] selects the slices.
-- **Overflow:** lights are binned in importance order (brightness × radius² / distance², ×4 when the camera is
-  inside the light). When a cluster reaches `r_forwardPlusMaxLightsPerCluster`, the less important lights are
-  dropped. The shader also clamps the count to 256.
+- **Overflow:** lights are binned in importance order computed independently for the current view (brightness ×
+  radius² / distance², ×4 when that view's camera is inside the light). A portal or mirror therefore does not
+  inherit the main camera's overflow order. When a cluster reaches `r_forwardPlusMaxLightsPerCluster`, the less
+  important lights are dropped. The shader also clamps the count to 256.
 - **Verified offline:** a harness runs the real `R_ForwardPlusLightRange` / `R_ForwardPlusSlice` on 2,400 random
   lights (inside/behind the camera, crossing the near plane, huge radii, off-centre projection, 1/16/24 slices,
   32/64 px tiles). 92,892 visible points inside the spheres were checked against the shader cluster math: 0 misses.
@@ -97,6 +99,10 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
   (position within max(16, radius/4), similar color) scores ×1.3 and keeps its slot.
 - The mapping is render light → shadow slot (−1 = unshadowed). The shader reads the slot from the light data.
   Shadow views are built per slot (`shadowCubeFbo[slot*6+face]`).
+- `r_shadowCache 1` reuses a slot's point/spot depth map when the light's projection/depth state, relevant shadow
+  settings, world/remap generation and every overlapping dynamic caster are unchanged. Animated/video/deformed/alpha-tested
+  time-dependent casters conservatively force a redraw. `r_shadowStats 1` prints cache hits, misses and dirty
+  time-dependent slots.
 - The froxel fog uses the Lights UBO. Its `origin.w` is now the shadow layer: `i` in legacy mode (unchanged
   behaviour), the slot or −1 in Forward+ mode.
 
@@ -110,9 +116,10 @@ cluster then:
 1. walks the boxes in importance order, keeps a light when its box contains the cluster and, for point and spot
    lights, when its sphere touches the cluster's view-space AABB (rectangle and line lights keep the box alone);
 2. stops at `r_forwardPlusMaxLightsPerCluster`;
-3. allocates an even number of index entries with one `atomicAdd` on a per-frame counter (the counter starts at 0 for
-   the first view of the frame, every view and scene of the frame shares it) and writes its grid texel and the R16
-   indexes, two per 32-bit word.
+3. reserves an even number of index entries with a bounded `atomicCompSwap` loop on a per-frame counter (the counter
+   starts at 0 for the first view of the frame, every view and scene of the frame shares it) and writes its grid texel
+   and the R16 indexes, two per 32-bit word. A failed reservation leaves the counter unchanged, so it cannot create a
+   hole that starves later, smaller cluster lists.
 
 The grid and index buffers are the buffer textures lightall already samples, so lightall is unchanged. Every list is
 the CPU list (same order, same cap) without the lights whose sphere misses the cluster; the corner clusters of each
@@ -142,6 +149,7 @@ The physical attenuation window is also exactly zero at and beyond the range: at
 | `r_forwardPlusDebugLight` | 0 | light index for debug 9 |
 | `r_forwardPlusMaxShadowLights` | 4 | Forward+ shadow budget |
 | `r_forwardPlusCompute` | 1 | 1: cluster lists built by a GL 4.3 compute shader when the context allows it (`r_gl43 1`), 0: CPU build. Switches at runtime, latched per frame |
+| `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; 0 forces every selected slot to redraw |
 
 Dependency messages are printed once, when the cvar changes (and at renderer start). Nothing is auto-enabled:
 

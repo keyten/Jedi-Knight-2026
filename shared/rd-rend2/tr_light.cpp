@@ -67,33 +67,40 @@ void R_DlightBmodel( bmodel_t *bmodel, trRefEntity_t *ent ) {
 	int			mask;
 	msurface_t	*surf;
 
-	// transform all the lights
-	R_TransformDlights( tr.refdef.num_dlights, tr.refdef.dlights, &tr.ori );
+	if ( ent->bmodelDlightCacheScene == tr.sceneCount ) {
+		mask = ent->bmodelDlightCacheBits;
+	} else {
+		// The entity transform and scene light list are the same in every colour
+		// and shadow view.  Do the O(lights) local-bounds test only once.
+		R_TransformDlights( tr.refdef.num_dlights, tr.refdef.dlights, &tr.ori );
 
-	mask = 0;
-	for ( i=0 ; i<tr.refdef.num_dlights ; i++ ) {
-		dl = &tr.refdef.dlights[i];
+		mask = 0;
+		for ( i=0 ; i<tr.refdef.num_dlights ; i++ ) {
+			dl = &tr.refdef.dlights[i];
 
-		// see if the point is close enough to the bounds to matter
-		for ( j = 0 ; j < 3 ; j++ ) {
-			if ( dl->transformed[j] - bmodel->bounds[1][j] > dl->radius ) {
+			// see if the point is close enough to the bounds to matter
+			for ( j = 0 ; j < 3 ; j++ ) {
+				if ( dl->transformed[j] - bmodel->bounds[1][j] > dl->radius ) {
+					break;
+				}
+				if ( bmodel->bounds[0][j] - dl->transformed[j] > dl->radius ) {
+					break;
+				}
+			}
+			if ( j < 3 ) {
+				continue;
+			}
+
+			// we need to check this light
+			if ( R_ForwardPlusActive() ) {
+				// Forward+: no per light bits, only "lit" (cluster lists pick the lights)
+				mask = 1;
 				break;
 			}
-			if ( bmodel->bounds[0][j] - dl->transformed[j] > dl->radius ) {
-				break;
-			}
+			mask |= 1 << i;
 		}
-		if ( j < 3 ) {
-			continue;
-		}
-
-		// we need to check this light
-		if ( R_ForwardPlusActive() ) {
-			// Forward+: no per light bits, only "lit" (cluster lists pick the lights)
-			mask = 1;
-			break;
-		}
-		mask |= 1 << i;
+		ent->bmodelDlightCacheScene = tr.sceneCount;
+		ent->bmodelDlightCacheBits = mask;
 	}
 
 	ent->needDlights = (qboolean)(mask != 0);
@@ -725,19 +732,14 @@ int R_LightDirForPoint( vec3_t point, vec3_t lightDir, vec3_t normal, world_t *w
 int R_DLightsForPoint(const vec3_t point, const float radius)
 {
 	int dlightBits = 0;
-	vec3_t delta;
-	float distance;
-	float radiusSum;
 	for (int i = 0; i < tr.refdef.num_dlights; i++)
 	{
 		const dlight_t *currentDlight = &tr.refdef.dlights[i];
-
-		VectorSubtract(point, currentDlight->origin, delta);
-		distance = VectorLength(delta);
-		radiusSum = radius + currentDlight->radius;
+		const float radiusSum = radius + currentDlight->radius;
 
 		// spot lights (tr_spotlight.cpp): also outside the cone
-		if (distance < radiusSum && R_SpotSphereInCone(currentDlight, point, radius))
+		if (DistanceSquared(point, currentDlight->origin) < radiusSum * radiusSum &&
+			R_SpotSphereInCone(currentDlight, point, radius))
 		{
 			// Forward+: only "lit", the cluster lists pick the lights
 			if (R_ForwardPlusActive())
@@ -746,6 +748,19 @@ int R_DLightsForPoint(const vec3_t point, const float radius)
 		}
 	}
 	return dlightBits;
+}
+
+int R_DLightsForEntity(trRefEntity_t *ent, const vec3_t point, const float radius)
+{
+	if (ent->dlightCacheScene != tr.sceneCount || ent->dlightCacheRadius != radius ||
+		!VectorCompare(ent->dlightCachePoint, point))
+	{
+		ent->dlightCacheBits = R_DLightsForPoint(point, radius);
+		VectorCopy(point, ent->dlightCachePoint);
+		ent->dlightCacheRadius = radius;
+		ent->dlightCacheScene = tr.sceneCount;
+	}
+	return ent->dlightCacheBits;
 }
 
 int R_CubemapForPoint( const vec3_t point )
@@ -774,6 +789,18 @@ int R_CubemapForPoint( const vec3_t point )
 	}
 
 	return cubemapIndex + 1;
+}
+
+int R_CubemapForEntity(trRefEntity_t *ent, const vec3_t point)
+{
+	if (ent->cubemapCacheScene != tr.sceneCount ||
+		!VectorCompare(ent->cubemapCachePoint, point))
+	{
+		ent->cubemapCacheIndex = R_CubemapForPoint(point);
+		VectorCopy(point, ent->cubemapCachePoint);
+		ent->cubemapCacheScene = tr.sceneCount;
+	}
+	return ent->cubemapCacheIndex;
 }
 
 #ifdef REND2_SP

@@ -115,6 +115,7 @@ void R_ShadowStatsEndFrame( void )
 		tr.sunShadowCacheDiskLoads = 0;
 		tr.sunShadowCacheDiskWrites = 0;
 		tr.sunShadowCacheUpdatedPixels = 0;
+		R_ShadowCacheGetStats(nullptr, nullptr, nullptr, qtrue);
 		return;
 	}
 
@@ -171,6 +172,10 @@ void R_ShadowStatsEndFrame( void )
 				tr.sunShadowCacheDiskLoads * perFrame,
 				tr.sunShadowCacheDiskWrites * perFrame);
 	}
+	int cacheHits, cacheMisses, cacheUncacheable;
+	R_ShadowCacheGetStats(&cacheHits, &cacheMisses, &cacheUncacheable, qtrue);
+	ri.Printf(PRINT_ALL, "  point shadow cache %.1f hits/frame, %.1f misses/frame, %.1f conservatively dirty/frame\n",
+		cacheHits * perFrame, cacheMisses * perFrame, cacheUncacheable * perFrame);
 
 	// backend phases of the point light cube face draw commands
 	shadowSubmitProfile_t &prof = rb_shadowSubmitProfile;
@@ -421,6 +426,9 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 	}
 
 	backEndData->entities[r_numentities].e = *ent;
+	backEndData->entities[r_numentities].dlightCacheScene = -1;
+	backEndData->entities[r_numentities].bmodelDlightCacheScene = -1;
+	backEndData->entities[r_numentities].cubemapCacheScene = -1;
 	backEndData->entities[r_numentities].lightingCalculated = qfalse;
 	backEndData->entities[r_numentities].plantBoneOffset = -1;
 	backEndData->entities[r_numentities].plantBoneTexels = 0;

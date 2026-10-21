@@ -2208,10 +2208,11 @@ int FPlusSlice(in vec3 position)
 	int numSlices = int(u_FPlusParams.y);
 	if (numSlices <= 1)
 		return 0;
-	float depth = dot(position - u_ViewOrigin, normalize(u_ViewForward));
+	// CameraBlock stores forward scaled by zFar and zFar in u_ViewInfo.y.
+	float depth = dot(position - u_ViewOrigin, u_ViewForward) / u_ViewInfo.y;
 	if (depth <= u_FPlusParams2.w)
 		return 0;
-	return clamp(1 + int(floor(log(depth) * u_FPlusParams.z + u_FPlusParams.w)), 1, numSlices - 1);
+	return clamp(1 + int(floor(log2(depth) * u_FPlusParams.z + u_FPlusParams.w)), 1, numSlices - 1);
 }
 
 ivec2 FPlusTile()

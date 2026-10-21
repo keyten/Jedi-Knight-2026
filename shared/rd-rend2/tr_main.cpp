@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_weather.h"
 
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <unordered_set>
 #include <string.h> // memcpy
@@ -3854,6 +3855,317 @@ static void R_QueueSunShadowDiskPage(
 		}
 }
 
+/*
+=============================================================================
+
+Point / spot shadow cache
+
+The point-shadow array persists across frames.  A slot is reusable only when
+the exact light, world material state and every potential caster affecting the
+light are unchanged.  Time-dependent opaque world surfaces and ambiguous
+dynamic model animation conservatively make the slot dirty; this trades some
+misses for never retaining stale depth.
+
+=============================================================================
+*/
+
+struct pointShadowCacheEntry_t
+{
+	uint64_t key;
+	uint64_t generation;
+	qboolean valid;
+};
+
+static pointShadowCacheEntry_t s_pointShadowCache[MAX_DLIGHT_SHADOWS];
+static uint64_t s_pointShadowCacheGeneration = 1;
+static int s_shadowCacheScene = -1;
+static uint64_t s_shadowCacheWorldKey;
+static int s_shadowCacheHits, s_shadowCacheMisses, s_shadowCacheUncacheable;
+static std::vector<const msurface_t *> s_shadowTimeDependentWorldSurfaces;
+
+static uint64_t R_ShadowHashBytes(uint64_t hash, const void *data, size_t size)
+{
+	const byte *bytes = (const byte *)data;
+	for (size_t i = 0; i < size; ++i)
+	{
+		hash ^= bytes[i];
+		hash *= UINT64_C(1099511628211);
+	}
+	return hash;
+}
+
+template <typename T>
+static uint64_t R_ShadowHashValue(uint64_t hash, const T& value)
+{
+	return R_ShadowHashBytes(hash, &value, sizeof(value));
+}
+
+static shader_t *R_ShadowEffectiveShader(shader_t *shader)
+{
+	return shader && shader->remappedShader ? shader->remappedShader : shader;
+}
+
+static qboolean R_ShadowShaderTimeDependent(shader_t *shader)
+{
+	shader = R_ShadowEffectiveShader(shader);
+	if (!shader || shader->sort != SS_OPAQUE)
+		return qfalse;
+	if (shader->numDeforms || shader->foliageHint != FOLIAGE_NONE)
+		return qtrue;
+	for (int i = 0; i < shader->numUnfoggedPasses; ++i)
+	{
+		const shaderStage_t *stage = shader->stages[i];
+		if (!stage || stage->alphaTestType == ALPHA_TEST_NONE)
+			continue;
+		const textureBundle_t& bundle = stage->bundle[TB_COLORMAP];
+		if (bundle.numImageAnimations > 1 || bundle.isVideoMap || bundle.numTexMods ||
+			stage->alphaGen == AGEN_WAVEFORM)
+			return qtrue;
+	}
+	return qfalse;
+}
+
+static qboolean R_ShadowLightTouchesSurface(const dlight_t *light, const msurface_t *surface)
+{
+	const cullinfo_t& cull = surface->cullinfo;
+	if (cull.type & CULLINFO_SPHERE)
+	{
+		const float radius = light->radius + cull.radius;
+		return (qboolean)(DistanceSquared(light->origin, cull.localOrigin) <= radius * radius);
+	}
+	if (cull.type & CULLINFO_BOX)
+	{
+		float distanceSq = 0.0f;
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			float delta = 0.0f;
+			if (light->origin[axis] < cull.bounds[0][axis])
+				delta = cull.bounds[0][axis] - light->origin[axis];
+			else if (light->origin[axis] > cull.bounds[1][axis])
+				delta = light->origin[axis] - cull.bounds[1][axis];
+			distanceSq += delta * delta;
+		}
+		return (qboolean)(distanceSq <= light->radius * light->radius);
+	}
+	return qtrue;
+}
+
+static void R_ShadowCacheBeginScene(const trRefdef_t *refdef)
+{
+	if (s_shadowCacheScene == tr.sceneCount)
+		return;
+	s_shadowCacheScene = tr.sceneCount;
+	uint64_t hash = UINT64_C(1469598103934665603);
+	hash = R_ShadowHashValue(hash, s_pointShadowCacheGeneration);
+	hash = R_ShadowHashValue(hash, tr.world);
+	s_shadowTimeDependentWorldSurfaces.clear();
+	if (tr.world)
+	{
+		// Shader remaps can change which opaque depth program a static surface
+		// uses without reloading the BSP.  Collect animated depth casters in the
+		// same pass so each shadowed light only visits this normally short list.
+		for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+		{
+			const msurface_t *surface = &tr.world->surfaces[i];
+			const shader_t *shader = surface->shader;
+			hash = R_ShadowHashValue(hash, shader);
+			hash = R_ShadowHashValue(hash, shader ? shader->remappedShader : nullptr);
+			if (R_ShadowShaderTimeDependent(surface->shader))
+				s_shadowTimeDependentWorldSurfaces.push_back(surface);
+		}
+	}
+	hash = R_ShadowHashBytes(hash, r_shadowOffsetFactor->string,
+		strlen(r_shadowOffsetFactor->string));
+	hash = R_ShadowHashBytes(hash, r_shadowOffsetUnits->string,
+		strlen(r_shadowOffsetUnits->string));
+	hash = R_ShadowHashValue(hash, r_shadowCasterLod->integer);
+	hash = R_ShadowHashValue(hash, refdef->rdflags & RDF_NOWORLDMODEL);
+	s_shadowCacheWorldKey = hash;
+}
+
+static float R_ShadowEntityRadius(const trRefEntity_t *ent, qboolean *known)
+{
+	*known = qtrue;
+	float radius = ent->e.radius;
+	if (radius <= 0.0f && ent->e.hModel)
+	{
+		vec3_t mins, maxs;
+		R_ModelBounds(ent->e.hModel, mins, maxs);
+		radius = RadiusFromBounds(mins, maxs);
+	}
+	if (radius <= 0.0f)
+	{
+		*known = qfalse;
+		return 0.0f;
+	}
+	float scale = 1.0f;
+	for (int axis = 0; axis < 3; ++axis)
+	{
+		scale = Q_max(scale, VectorLength(ent->e.axis[axis]));
+		scale = Q_max(scale, fabsf(ent->e.modelScale[axis]));
+	}
+	return radius * scale;
+}
+
+static qboolean R_ShadowEntityTouchesLight(const trRefEntity_t *ent, const dlight_t *light)
+{
+	qboolean known;
+	const float radius = R_ShadowEntityRadius(ent, &known);
+	if (!known)
+		return qtrue;
+	const float total = light->radius + radius;
+	return (qboolean)(DistanceSquared(ent->e.origin, light->origin) <= total * total);
+}
+
+static qboolean R_ShadowWorldCacheable(const dlight_t *light)
+{
+	if (!tr.world)
+		return qfalse;
+	for (const msurface_t *surface : s_shadowTimeDependentWorldSurfaces)
+	{
+		if (R_ShadowLightTouchesSurface(light, surface))
+			return qfalse;
+	}
+	return qtrue;
+}
+
+static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_t *light,
+	qboolean *cacheable)
+{
+	uint64_t hash = s_shadowCacheWorldKey;
+	*cacheable = (refdef->rdflags & RDF_NOWORLDMODEL) ? qtrue : R_ShadowWorldCacheable(light);
+	if (!*cacheable)
+		return hash;
+	for (int i = 0; i < refdef->num_entities; ++i)
+	{
+		const trRefEntity_t *ent = &refdef->entities[i];
+		if ((ent->e.renderfx & RF_FIRST_PERSON) || R_IsPostRenderEntity(ent) ||
+			ent->e.reType == RT_PORTALSURFACE)
+			continue;
+		if (ent->e.reType != RT_MODEL)
+		{
+			// Generated entities are normally additive/translucent and therefore
+			// rejected by R_AddDrawSurf in a depth-shadow view.  An opaque one can
+			// generate view- or time-dependent geometry for which there is no
+			// general bound here, so do not cache this scene conservatively.
+			shader_t *shader = R_ShadowEffectiveShader(R_GetShaderByHandle(ent->e.customShader));
+			if (!shader || shader->sort == SS_OPAQUE)
+			{
+				*cacheable = qfalse;
+				return hash;
+			}
+			continue;
+		}
+		if (!R_ShadowEntityTouchesLight(ent, light))
+			continue;
+		hash = R_ShadowHashValue(hash, i);
+		hash = R_ShadowHashBytes(hash, &ent->e, sizeof(ent->e));
+		model_t *model = R_GetModelByHandle(ent->e.hModel);
+		// Skeletal/vertex models and their material animations can change depth
+		// without changing the refEntity bytes.  Keep the cache exact by making
+		// such a local caster dirty as scene time advances.  Static brush movers
+		// still get stable hits until their transform changes.
+		if (!model || model->type != MOD_BRUSH || ent->e.ghoul2)
+			hash = R_ShadowHashValue(hash, refdef->time);
+		else
+		{
+			bmodel_t *bmodel = model->data.bmodel;
+			world_t *world = R_GetWorld(bmodel->worldIndex);
+			for (int s = 0; s < bmodel->numSurfaces; ++s)
+				if (R_ShadowShaderTimeDependent(world->surfaces[bmodel->firstSurface + s].shader))
+				{
+					hash = R_ShadowHashValue(hash, refdef->time);
+					break;
+				}
+		}
+	}
+	for (int i = 0; i < refdef->numPolys; ++i)
+	{
+		const srfPoly_t *poly = &refdef->polys[i];
+		vec3_t mins, maxs;
+		ClearBounds(mins, maxs);
+		for (int v = 0; v < poly->numVerts; ++v)
+			AddPointToBounds(poly->verts[v].xyz, mins, maxs);
+		float distanceSq = 0.0f;
+		for (int axis = 0; axis < 3; ++axis)
+		{
+			const float delta = light->origin[axis] < mins[axis] ? mins[axis] - light->origin[axis] :
+				(light->origin[axis] > maxs[axis] ? light->origin[axis] - maxs[axis] : 0.0f);
+			distanceSq += delta * delta;
+		}
+		if (distanceSq > light->radius * light->radius)
+			continue;
+		hash = R_ShadowHashValue(hash, poly->hShader);
+		hash = R_ShadowHashValue(hash, poly->numVerts);
+		hash = R_ShadowHashBytes(hash, poly->verts, (size_t)poly->numVerts * sizeof(polyVert_t));
+		if (R_ShadowShaderTimeDependent(R_GetShaderByHandle(poly->hShader)))
+			hash = R_ShadowHashValue(hash, refdef->time);
+	}
+	return hash;
+}
+
+static qboolean R_ShadowCacheHit(int slot, const trRefdef_t *refdef, const dlight_t *light)
+{
+	if (slot < 0 || slot >= MAX_DLIGHT_SHADOWS)
+		return qfalse;
+	const qboolean forceRedraw = (qboolean)(r_shadowVerify->integer != 0);
+	if (!r_shadowCache->integer)
+	{
+		s_pointShadowCache[slot].valid = qfalse;
+		return qfalse;
+	}
+	R_ShadowCacheBeginScene(refdef);
+	qboolean cacheable;
+	uint64_t key = R_ShadowDynamicCasterKey(refdef, light, &cacheable);
+	// Only projection/depth-affecting light state belongs in the key.  Color,
+	// cookie, physical intensity and receiver-only bias may change while the
+	// exact same depth map remains valid.
+	key = R_ShadowHashBytes(key, light->origin, sizeof(light->origin));
+	key = R_ShadowHashValue(key, light->radius);
+	key = R_ShadowHashValue(key, light->spot);
+	if (light->spot)
+	{
+		key = R_ShadowHashBytes(key, light->spotDir, sizeof(light->spotDir));
+		key = R_ShadowHashValue(key, light->spotCosOuter);
+	}
+	pointShadowCacheEntry_t& entry = s_pointShadowCache[slot];
+	if (!cacheable)
+	{
+		entry.valid = qfalse;
+		++s_shadowCacheUncacheable;
+		return qfalse;
+	}
+	if (!forceRedraw && entry.valid && entry.generation == s_pointShadowCacheGeneration && entry.key == key)
+	{
+		++s_shadowCacheHits;
+		return qtrue;
+	}
+	entry.key = key;
+	entry.generation = s_pointShadowCacheGeneration;
+	entry.valid = qtrue;
+	++s_shadowCacheMisses;
+	return qfalse;
+}
+
+void R_ShadowCacheInvalidate(void)
+{
+	++s_pointShadowCacheGeneration;
+	if (!s_pointShadowCacheGeneration)
+		s_pointShadowCacheGeneration = 1;
+	Com_Memset(s_pointShadowCache, 0, sizeof(s_pointShadowCache));
+	s_shadowCacheScene = -1;
+	s_shadowTimeDependentWorldSurfaces.clear();
+}
+
+void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, qboolean reset)
+{
+	if (hits) *hits = s_shadowCacheHits;
+	if (misses) *misses = s_shadowCacheMisses;
+	if (uncacheable) *uncacheable = s_shadowCacheUncacheable;
+	if (reset)
+		s_shadowCacheHits = s_shadowCacheMisses = s_shadowCacheUncacheable = 0;
+}
+
 void R_GatherFrameViews(trRefdef_t *refdef)
 {
 	// Disk page pointers are only needed until this scene's cached views have
@@ -3961,11 +4273,16 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					Matrix16Multiply(shadowParms.projectionMatrix, shadowParms.world.modelViewMatrix,
 						shadowLight->spotShadowVP);
 					shadowLight->spotShadowSlot = i;
+					if (R_ShadowCacheHit(i, refdef, shadowLight))
+						continue;
 
 					Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &shadowParms, sizeof(viewParms_t));
 					tr.numCachedViewParms++;
 					continue;
 				}
+
+				if (R_ShadowCacheHit(i, refdef, shadowLight))
+					continue;
 
 				for (j = 0; j < 6; j++)
 				{

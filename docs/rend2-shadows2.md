@@ -98,6 +98,9 @@ PCSS visibility; it never replaces it.
 | `r_shadowPCSSQuality` | 1 | 0 low, 1 high, 2 ultra |
 | `r_shadowSunAngularDiameter` | 0.53 | apparent source diameter in degrees |
 | `r_shadowPCSSMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
+| `r_shadowSinglePass` | 1 | gather all six point-light cube faces in one scene walk; 0 keeps six independent walks |
+| `r_shadowLayered` | 1 | submit a supported point-light cube through its layered FBO; unsupported hardware/surfaces fall back automatically |
+| `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; conservative time-dependent casters force a redraw |
 | `r_shadowDebug` | 0 | debug view, listed below |
 
 The contact controls are `r_contactShadows`, `r_contactShadowLength`,
@@ -220,9 +223,11 @@ sample a second cascade.
 submission) of each view class once per second, including separate `sun static`
 and `sun dynamic` rows. It also prints cache hits, clipmap scrolls, disk-window
 hits, full rebuilds, disk pages read/written and the number of static
-megapixels updated/restored per frame and baseline bypasses. Point light shadow cubes can be built from one
-scene walk per light with `r_shadowSinglePass 1`. That gives the same depth,
-and `r_shadowVerify 1` checks it on one frame. Details and measurements are in
+megapixels updated/restored per frame and baseline bypasses, plus point/spot
+cache hits, misses and slots dirtied by time-dependent casters. Point light shadow cubes are built
+from one scene walk per light by default (`r_shadowSinglePass 1`), with layered
+submission where supported (`r_shadowLayered 1`). The fallbacks remain available,
+and `r_shadowVerify 1` checks the optimized result on one frame. Details and measurements are in
 [rend2-gl43-plan-4-layered-shadows.md](rend2-gl43-plan-4-layered-shadows.md).
 
 Recommended visual checks are slow forward/strafe motion, both transition

@@ -106,7 +106,7 @@ def perspective(fov_x, aspect, near, far, jitter=(0.0, 0.0)):
 def fplus_slice(depth, slices, near_slice, scale, bias):
     if slices <= 1 or depth <= near_slice:
         return 0
-    s = 1 + math.floor(math.log(depth) * scale + bias)
+    s = 1 + math.floor(math.log2(depth) * scale + bias)
     return max(1, min(slices - 1, s))
 
 
@@ -143,14 +143,15 @@ def fplus_range(eye, radius, p, view, slicing, tile, tiles_x, tiles_y):
     return r
 
 
-def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
+def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0,
+               index_capacity=1 << 20, expect_overflow=False):
     rng = random.Random(seed)
     view = dict(width=1280, height=720, znear=4.0, zfar=8192.0)
     tile, slices, near_slice = 64, 16, 48.0
     tiles_x, tiles_y = (view['width'] + tile - 1) // tile, (view['height'] + tile - 1) // tile
     far_z = max(view['zfar'], near_slice * 2)
-    scale = (slices - 1) / math.log(far_z / near_slice)
-    bias = -math.log(near_slice) * scale
+    scale = (slices - 1) / math.log2(far_z / near_slice)
+    bias = -math.log2(near_slice) * scale
     slicing = (slices, near_slice, scale, bias)
     p = perspective(90.0, view['width'] / view['height'], view['znear'], view['zfar'], jitter)
     num_clusters = tiles_x * tiles_y * slices
@@ -174,8 +175,8 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
     def slice_depths(z):
         if z == 0:
             return 0.0, near_slice
-        d1 = far_z if z == slices - 1 else math.exp((z - bias) / scale)
-        return math.exp((z - 1 - bias) / scale), d1
+        d1 = far_z if z == slices - 1 else 2.0 ** ((z - bias) / scale)
+        return 2.0 ** ((z - 1 - bias) / scale), d1
 
     # GPU
     records = bytearray()
@@ -183,7 +184,7 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
         records += struct.pack('4I4f', r['x0'] | (r['x1'] << 16), r['y0'] | (r['y1'] << 16),
                                r['z0'] | (r['z1'] << 16), r['light'] | ((1 if r['sphere'] else 0) << 16),
                                *r['eye'], r['radius'])
-    grid_base, index_capacity = 37, 1 << 20
+    grid_base = 37
     gl('glUseProgram', None, U)(prog)
     uniform_vec4s(prog, 'u_FPlusCluster', [
         (tiles_x, tiles_y, slices, num_clusters), (tile, view['width'], view['height'], len(ranges)),
@@ -196,11 +197,12 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
     gl('glDispatchCompute', None, U, U, U)((num_clusters + 63) // 64, 1, 1)
     grid = struct.unpack(f'{2 * (grid_base + num_clusters)}I', read_buffer(grid_buf, (grid_base + num_clusters) * 8))
     used = struct.unpack('I', read_buffer(counter_buf, 4))[0]
+    assert used <= index_capacity, (used, index_capacity)
     indices = struct.unpack(f'{used}H', read_buffer(index_buf, used * 2)) if used else ()
     for b in (grid_buf, index_buf, range_buf, counter_buf):
         gl('glDeleteBuffers', None, I, C.POINTER(U))(1, C.byref(b))
 
-    checked = cpu_refs = gpu_refs = 0
+    checked = cpu_refs = gpu_refs = allocation_drops = 0
     spans = set()
     t = np.linspace(0.0, 1.0, 5)
     for c in range(num_clusters):
@@ -213,6 +215,8 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
         gpu = list(indices[offset:offset + count])
         boxed = [r for r in ranges if in_box(r, x, y, z)]
         cpu_full = [r['light'] for r in boxed]
+        if expect_overflow and boxed and count == 0:
+            allocation_drops += 1
         # in order, a subsequence of the uncapped CPU walk, and at most cap
         it = iter(cpu_full)
         assert all(any(l == m for m in it) for l in gpu), (c, gpu, cpu_full)
@@ -228,13 +232,16 @@ def fplus_case(prog, seed, cap, num_lights=96, jitter=(0.0, 0.0), area_every=0):
         reaching = [r['light'] for r in boxed if not r['sphere'] or
                     np.min(np.sum((samples - np.array(r['eye'])) ** 2, axis=1)) <= r['radius'] ** 2]
         # the GPU matches hold every reaching light; uncapped lists therefore contain them all
-        assert count >= min(cap, len(reaching)), (c, count, reaching)
-        if count < cap:
-            missing = [l for l in reaching if l not in gpu]
-            assert not missing, (c, missing, gpu)
+        if not expect_overflow:
+            assert count >= min(cap, len(reaching)), (c, count, reaching)
+            if count < cap:
+                missing = [l for l in reaching if l not in gpu]
+                assert not missing, (c, missing, gpu)
         checked += 1
         cpu_refs += min(cap, len(cpu_full))
         gpu_refs += count
+    if expect_overflow:
+        assert allocation_drops > 0, 'small index buffer did not exercise failed reservations'
     return checked, len(ranges), cpu_refs, gpu_refs, used
 
 
@@ -641,6 +648,10 @@ def main():
             checked, lights, cpu_refs, gpu_refs, slots = fplus_case(fplus, seed, cap, jitter=jitter, area_every=area)
             print(f'fplus_cluster seed {seed} cap {cap}: {checked} clusters, {lights} lights in view, '
                   f'light refs CPU {cpu_refs} -> GPU {gpu_refs} ({slots} index slots)')
+        checked, lights, cpu_refs, gpu_refs, slots = fplus_case(
+            fplus, 5, 8, area_every=1, index_capacity=64, expect_overflow=True)
+        print(f'fplus_cluster bounded allocator: {checked} clusters, {lights} lights in view, '
+              f'light refs CPU {cpu_refs} -> GPU {gpu_refs} ({slots}/64 index slots)')
         froxel = compute_program('fplus_cluster', '#define FROXEL_LIGHT_LISTS\n')
         for slices, tile, seed in [(64, 4, 11), (64, 8, 12), (128, 16, 13)]:
             checked, lights, cpu_refs, gpu_refs = froxel_case(froxel, slices, tile, seed)

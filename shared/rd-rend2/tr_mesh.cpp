@@ -423,9 +423,9 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 	R_LocalPointToWorld(model->frames[ent->e.frame].localOrigin, origin);
 	float maxScale = MAX(1.f, MAX(ent->e.modelScale[0], MAX(ent->e.modelScale[1], ent->e.modelScale[2])));
 
-	cubemapIndex = R_CubemapForPoint(origin);
+	cubemapIndex = R_CubemapForEntity(ent, origin);
 	
-	dlightBits = R_DLightsForPoint(origin, model->frames[ent->e.frame].radius * maxScale);
+	dlightBits = R_DLightsForEntity(ent, origin, model->frames[ent->e.frame].radius * maxScale);
 
 	// plants with a frond skeleton: this frame's bones (tr_plantsim.cpp)
 	ent->plantBoneOffset = -1;
