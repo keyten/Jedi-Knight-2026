@@ -3444,6 +3444,10 @@ vec3 SpecularIBLWeight(in vec3 envBrdf, in vec3 specular,
 #endif
 }
 
+// CalcIBLRadiance: the lightmap luminance scale of the last cubemap sample, a
+// reflection occlusion proxy (dark in baked shadow); USE_SSR_ROUGH_OCCLUSION
+float g_iblLightingScale = 1.0;
+
 // Cubemap radiance of the reflection, before the specular weight
 vec3 CalcIBLRadiance(
 	in float perceptualRoughness,
@@ -3463,7 +3467,8 @@ vec3 CalcIBLRadiance(
 	vec4 cubeLightColor = textureLod(u_CubeMap, R, perceptualRoughness * ROUGHNESS_MIPS) * u_EnableTextures.w;
 
 	// Scale reflection based on current light luminance / max luminance of the cubemap 
-	cubeLightColor.rgb *= clamp(luma(lighting) / cubeLightColor.a, 0.0, 1.0);
+	g_iblLightingScale = clamp(luma(lighting) / cubeLightColor.a, 0.0, 1.0);
+	cubeLightColor.rgb *= g_iblLightingScale;
 	return cubeLightColor.rgb;
 #else
 	return vec3(0.0);
@@ -4947,7 +4952,20 @@ void main()
 	// SSR hits are traced geometry, not occluded again (indirect-only: the
 	// weight has no specular occlusion; ssr_composite removes the occluded
 	// cubemap where SSR hits)
-	out_SSRSpecular = vec4(sqrt(clamp(iblWeight, 0.0, 1.0)), 0.0);
+	vec3 ssrWeight = iblWeight;
+	#if defined(USE_SSR_ROUGH_OCCLUSION)
+	// ...but one mirror ray only knows the visibility of a narrow lobe. On a
+	// rough surface it stands for the whole lobe, most of which a recess or a
+	// face in baked shadow does not see: there the cubemap is darkened by the
+	// lightmap luminance scale and the specular occlusion, while the ray finds
+	// a sunlit floor and replaces the dark reflection with a bright one, in the
+	// receiver speckles of the roughness map and cut where the ray leaves the
+	// screen (light ghosts on shadowed walls that come and go as the view
+	// turns). Rough surfaces keep the occlusion of the cubemap they replace.
+	float ssrOcclusion = specOcclusion * g_iblLightingScale;
+	ssrWeight *= mix(1.0, ssrOcclusion, smoothstep(0.15, 0.45, roughness));
+	#endif
+	out_SSRSpecular = vec4(sqrt(clamp(ssrWeight, 0.0, 1.0)), 0.0);
 	out_SSRCubemap.rgb = cubemapReflection;
   #endif
 #else

@@ -806,7 +806,11 @@ static size_t GLSL_GetShaderHeader(
 
 	// lightall writes the SSR material attachments of renderFbo, tr_ssr.cpp
 	if (R_SSROpaqueResourcesEnabled())
+	{
 		GLSL_HeaderCat(dest, size, "#define USE_SSR\n");
+		if (r_ssrRoughOcclusion->integer)
+			GLSL_HeaderCat(dest, size, "#define USE_SSR_ROUGH_OCCLUSION\n");
+	}
 
 	// lightall writes the SSGI source / receiver attachments, tr_ssgi.cpp
 	if (R_SSGIResourcesEnabled())

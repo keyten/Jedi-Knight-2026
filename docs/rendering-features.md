@@ -651,6 +651,7 @@ Adds real scene reflections to glossy PBR surfaces while retaining cubemaps as t
 - `r_ssrMaxDistance <units>` — maximum ray length.
 - `r_ssrThickness <units>` — assumed depth-buffer thickness.
 - `r_ssrMaxRoughness <value>` — roughness where SSR fully fades to cubemap.
+- `r_ssrRoughOcclusion 0|1` — latched; 1 (default) applies the cubemap's reflection occlusion (lightmap scale, specular occlusion) to SSR on rough surfaces, removing light ghosts on shadowed walls.
 - `r_ssrEdgeFade <value>` — screen-edge fade.
 - `r_ssrHalfRes -1 | 0 | 1` — preset / full / half-resolution tracing.
 - `r_ssrHiZ -1 | 0 | 1` — preset / linear / hierarchical tracing.

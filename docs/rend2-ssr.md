@@ -145,6 +145,13 @@ replaces), without particles or glass in it.
   gives the blur footprint at the hit; the resolve samples the color pyramid at `log2(footprint in pixels)`. Mirror
   surfaces are sharp, rough ones blurred, and the sharpness matches the cubemap mip they blend with. Above
   `r_ssrMaxRoughness` only the cubemap is used (smooth fade from 70% of it).
+- Reflection occlusion (`r_ssrRoughOcclusion`, latched, default 1): the cubemap reflection is darkened by the
+  lightmap luminance scale (`CalcIBLRadiance`) and the specular occlusion, the SSR weight was not. One mirror ray
+  only sees a narrow lobe, so on rough walls in baked shadow or recesses it found a sunlit floor and replaced the
+  dark reflection with a bright one: light, speckled ghosts (receiver speckles of the roughness map) cut where
+  the rays leave the screen, coming and going as the view turns (mp/ffa3 door jambs and column edges, 2026-10-21).
+  The SSR weight now takes the same occlusion, fading in from roughness 0.15 to 0.45; mirror surfaces keep the
+  unoccluded traced reflection. 0 restores the old behaviour.
 
 - The trace stores the hit **surface** point (its uv and log encoded view depth), not a distance: it is fixed in
   the world, so the next frame can reuse it, and the resolve derives the hit distance from it.
@@ -233,6 +240,7 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrMaxDistance` | 1024 | max ray length, world units |
 | `r_ssrThickness` | 8 | assumed surface thickness, world units (grows with distance) |
 | `r_ssrMaxRoughness` | 0.6 | rougher surfaces use the cubemap only |
+| `r_ssrRoughOcclusion` | 1 | latched: rough surfaces keep the cubemap's reflection occlusion (0 = old, ghosts in baked shadow) |
 | `r_ssrEdgeFade` | 0.1 | screen edge fade band, fraction of the view |
 | `r_ssrHalfRes` | -1 | -1 preset, 0 full, 1 half resolution rays |
 | `r_ssrHiZ` | -1 | -1 preset, 0 linear, 1 hierarchical |

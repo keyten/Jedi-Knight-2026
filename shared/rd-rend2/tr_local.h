@@ -577,6 +577,7 @@ extern cvar_t  *r_ssrRefineSteps;
 extern cvar_t  *r_ssrMaxDistance;
 extern cvar_t  *r_ssrThickness;
 extern cvar_t  *r_ssrMaxRoughness;
+extern cvar_t  *r_ssrRoughOcclusion;
 extern cvar_t  *r_ssrEdgeFade;
 extern cvar_t  *r_ssrHalfRes;
 extern cvar_t  *r_ssrHiZ;

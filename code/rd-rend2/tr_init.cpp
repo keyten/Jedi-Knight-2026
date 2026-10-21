@@ -485,6 +485,7 @@ cvar_t  *r_ssrRefineSteps;
 cvar_t  *r_ssrMaxDistance;
 cvar_t  *r_ssrThickness;
 cvar_t  *r_ssrMaxRoughness;
+cvar_t  *r_ssrRoughOcclusion;
 cvar_t  *r_ssrEdgeFade;
 cvar_t  *r_ssrHalfRes;
 cvar_t  *r_ssrHiZ;
@@ -2538,6 +2539,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrThickness, 0.5f, 256.0f, qfalse );
 	r_ssrMaxRoughness = ri_Cvar_Get_NoComm( "r_ssrMaxRoughness", "0.6", CVAR_ARCHIVE, "Rougher surfaces only use the cubemap reflection (SSR fades out towards this roughness)" );
 	ri.Cvar_CheckRange( r_ssrMaxRoughness, 0.05f, 1.0f, qfalse );
+	r_ssrRoughOcclusion = ri_Cvar_Get_NoComm( "r_ssrRoughOcclusion", "1", CVAR_ARCHIVE | CVAR_LATCH, "SSR on rough surfaces keeps the reflection occlusion of the cubemap it replaces (lightmap luminance scale and specular occlusion): 0 = off (SSR unoccluded, light ghosts in baked shadow), 1 = fades in from roughness 0.15 to 0.45" );
 	r_ssrEdgeFade = ri_Cvar_Get_NoComm( "r_ssrEdgeFade", "0.1", CVAR_ARCHIVE, "SSR fade out band at the screen edges, fraction of the view size" );
 	ri.Cvar_CheckRange( r_ssrEdgeFade, 0.0f, 0.5f, qfalse );
 	r_ssrHalfRes = ri_Cvar_Get_NoComm( "r_ssrHalfRes", "-1", CVAR_ARCHIVE, "SSR rays at half resolution: -1 = from r_ssrQuality, 0 = full, 1 = half" );
