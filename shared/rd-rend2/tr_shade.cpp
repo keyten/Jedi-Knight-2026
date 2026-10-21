@@ -1914,11 +1914,14 @@ static void BindEmissiveStage( shaderStage_t *stage, UniformDataWriter& uniforms
 	{
 		// Magnitude 2 selects the source-only compatibility path in GLSL. The
 		// already rendered stage color is exported without adding it a second time.
-		R_EmissiveStageCanonicalScale(stage, params);
 		// Physical auto emission is a calibrated visible/GI source (3); strict
-		// legacy remains the source-only compatibility path (2).
-		params[3] = tr.linearLight ? (r_pbrPhysical->integer ? 3.0f : 2.0f) :
-			(r_pbrPhysical->integer ? -3.0f : -2.0f);
+		// legacy remains the source-only compatibility path (2). 2D (menus,
+		// HUD, the load bar) is display-referred and never rescaled.
+		const bool physical = r_pbrPhysical->integer && !backEnd.projection2D;
+		if (physical)
+			R_EmissiveStageCanonicalScale(stage, params);
+		params[3] = tr.linearLight ? (physical ? 3.0f : 2.0f) :
+			(physical ? -3.0f : -2.0f);
 	}
 	uniforms.SetUniformVec4(UNIFORM_EMISSIVEPARAMS, params);
 }

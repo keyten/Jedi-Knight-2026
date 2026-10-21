@@ -52,11 +52,17 @@ void R_ClassifyEmissiveStage(const shader_t *sh, shaderStage_t *st) {
 void R_EmissiveStageCanonicalScale(const shaderStage_t *st, vec3_t out) {
 	VectorClear(out); if (!st) return;
 	if (st->emissivePhysical) { VectorScale(st->emissiveColor,Rend2PBR::PhysicalToScene(st->emissiveLuminance,R_PBRPhysicalToScene()),out); return; }
+	// Legacy amplitudes stay on the scene scale of the migrated legacy world
+	// (lightmaps, grid and sun keep their stock range times
+	// r_pbrLegacyReference / the map calibration), not on absolute nits times
+	// r_pbrPhysicalToScene: that made a stock additive stage 600 * 1e-4 = 0.06
+	// of its legacy color (lightning, FX, the load bar). The class nits remain
+	// provenance for r_emissiveDebug.
 	if (st->emissive) {
-		const float s=r_pbrPhysical->integer ? Rend2PBR::PhysicalToScene(Rend2PBR::LegacyEmissiveToNits(st->emissiveIntensity,r_emissiveLegacyNits->value),R_PBRPhysicalToScene()) : st->emissiveIntensity;
+		const float s=r_pbrPhysical->integer ? st->emissiveIntensity*r_pbrLegacyReference->value : st->emissiveIntensity;
 		VectorScale(st->emissiveColor,s,out); return;
 	}
-	if (st->emissiveProvenance==EMISSIVE_AUTO_INFERRED) { const float s=r_pbrPhysical->integer ? Rend2PBR::PhysicalToScene(st->emissiveLuminance,R_PBRPhysicalToScene()) : 1; VectorSet(out,s,s,s); }
+	if (st->emissiveProvenance==EMISSIVE_AUTO_INFERRED) { const float s=r_pbrPhysical->integer ? r_pbrLegacyReference->value : 1; VectorSet(out,s,s,s); }
 }
 
 qboolean R_EmissiveDebugColor(const shaderStage_t *st, vec4_t out) {

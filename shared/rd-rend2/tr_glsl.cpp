@@ -4228,7 +4228,10 @@ static int GLSL_LoadGPUProgramLightAll(
 		/*if (i & LIGHTDEF_USE_GLOW_BUFFER)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_GLOW_BUFFER\n");*/
 
-		const bool liquidSun = liquidLibrary && lightType && r_sunlightMode->integer;
+		// USE_LIQUIDS / USE_LIQUID_LOCAL / USE_LIQUID_BAKED are defined for every lit permutation, not
+		// only with the sun (r_sunlightMode 0 keeps the local and baked liquid paths), so link the library
+		// whenever they are
+		const bool liquidSun = liquidLibrary && lightType;
 		if (liquidSun && !pbrLiquidLibrary)
 			pbrLiquidLibrary = GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary);
 		const GPUShaderDesc *lightLibrary = liquidSun ? pbrLiquidLibrary : pbrLibrary;

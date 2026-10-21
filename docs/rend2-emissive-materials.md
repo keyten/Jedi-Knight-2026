@@ -30,8 +30,9 @@ with canonical scene radiance.
   texel has this reference luminance in cd/m2. Texture RGB and
   `emissiveColor` multiply it without per-pixel normalization.
 - `emissiveScale <value>` remains a legacy engine-unit scalar. In physical
-  mode one unit is `r_emissiveLegacyNits` (default 1000) reference-white nits;
-  thus `emissiveScale 4` is 4000 reference-white nits, never 4 nits.
+  mode it stays on the scene scale of the migrated legacy world (times
+  `r_pbrLegacyReference`); `r_emissiveLegacyNits` (default 1000 nits per unit)
+  only labels it for `r_emissiveDebug 2`.
 - `emissiveScale <r> <g> <b>` is shorthand for an RGB intensity with scalar
   intensity 1. It replaces the current emissive color.
 
@@ -71,9 +72,14 @@ sources without adding their color to the scene a second time:
 The structural rule intentionally rejects lit color generators, lightstyle
 passes, white diffuse surfaces and bright skies. Automatic filename-suffix
 discovery is not used in strict legacy mode. In `r_pbrPhysical 1`, stock
-glow/additive stages are classified once at shader registration and calibrated
-to conservative defaults: indicator 60, screen 250, decorative/unknown 600,
+glow/additive stages are classified once at shader registration with
+conservative class luminances: indicator 60, screen 250, decorative/unknown 600,
 panel 2000, lamp 3000, hot/lava 5000 and fictional energy/saber 40000 nits.
+The visible (and LTC/GI) amplitude of such a stage stays its legacy color times
+`r_pbrLegacyReference`, the scale the migrated legacy world keeps; the class
+nits are provenance for `r_emissiveDebug`. Converting them with
+`r_pbrPhysicalToScene` put an unknown stage at 0.06 of its legacy color
+(lightning, FX, the load bar). 2D drawing is never rescaled.
 Names, `q3map_surfacelight`, texture mask/geometry, LTC confidence and
 reconstructed baked-light calibration provide the evidence. Explicit nits
 always win and stock PK3s are not modified.
