@@ -64,11 +64,6 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_volrecon.h"
 	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
 	"${SharedDir}/rd-rend2/tr_staticlighting.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_types.cpp"
-	"${SharedDir}/rd-rend2/tr_lightrecon_types.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_api.cpp"
-	"${SharedDir}/rd-rend2/tr_lightrecon_api.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_manager.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.h"
@@ -249,7 +244,7 @@ function(add_sp_renderer_project ProjectName Label EngineName InstallDir Compone
 	set_target_properties(${ProjectName} PROPERTIES INCLUDE_DIRECTORIES "${SPRend2IncludeDirectories}")
 	set_target_properties(${ProjectName} PROPERTIES PROJECT_LABEL ${Label})
 
-	target_link_libraries(${ProjectName} ${SPRend2Libraries})
+	target_link_libraries(${ProjectName} ${SPRend2Libraries} rend2_lightrecon_core)
 	target_link_renderer_sdl2(${ProjectName})
 	target_include_directories(${ProjectName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

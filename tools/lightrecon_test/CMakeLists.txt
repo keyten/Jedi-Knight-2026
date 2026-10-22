@@ -4,9 +4,12 @@ if(NOT InOpenJK)
 	enable_testing()
 endif()
 
-add_executable(lightrecon_test
-	lightrecon_test.cpp
-	../../shared/rd-rend2/tr_lightrecon_types.cpp)
+if(NOT TARGET rend2_lightrecon_core)
+	add_subdirectory(../../shared/rd-rend2/lightrecon "${CMAKE_CURRENT_BINARY_DIR}/core")
+endif()
+
+add_executable(lightrecon_test lightrecon_test.cpp)
+target_link_libraries(lightrecon_test rend2_lightrecon_core)
 set_target_properties(lightrecon_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
 	target_compile_options(lightrecon_test PRIVATE /W4)
@@ -15,10 +18,8 @@ else()
 endif()
 add_test(NAME lightrecon_contract COMMAND lightrecon_test)
 
-add_executable(lightrecon_api_test
-	lightrecon_api_test.cpp
-	../../shared/rd-rend2/tr_lightrecon_api.cpp
-	../../shared/rd-rend2/tr_lightrecon_types.cpp)
+add_executable(lightrecon_api_test lightrecon_api_test.cpp)
+target_link_libraries(lightrecon_api_test rend2_lightrecon_core)
 set_target_properties(lightrecon_api_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
 	target_compile_options(lightrecon_api_test PRIVATE /W4)
@@ -26,3 +27,13 @@ else()
 	target_compile_options(lightrecon_api_test PRIVATE -Wall -Wextra -pedantic)
 endif()
 add_test(NAME lightrecon_api COMMAND lightrecon_api_test)
+
+add_executable(lightrecon_core_test lightrecon_core_test.cpp)
+target_link_libraries(lightrecon_core_test rend2_lightrecon_core)
+set_target_properties(lightrecon_core_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+	target_compile_options(lightrecon_core_test PRIVATE /W4)
+else()
+	target_compile_options(lightrecon_core_test PRIVATE -Wall -Wextra -pedantic)
+endif()
+add_test(NAME lightrecon_core COMMAND lightrecon_core_test)

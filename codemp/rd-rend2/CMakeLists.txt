@@ -64,11 +64,6 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_volrecon.h"
 	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
 	"${SharedDir}/rd-rend2/tr_staticlighting.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_types.cpp"
-	"${SharedDir}/rd-rend2/tr_lightrecon_types.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_api.cpp"
-	"${SharedDir}/rd-rend2/tr_lightrecon_api.h"
-	"${SharedDir}/rd-rend2/tr_lightrecon_manager.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.h"
@@ -246,7 +241,7 @@ set_target_properties(${MPRend2} PROPERTIES COMPILE_DEFINITIONS "${SharedDefines
 set_property(TARGET ${MPRend2} APPEND PROPERTY COMPILE_OPTIONS ${OPENJK_VISIBILITY_FLAGS})
 set_target_properties(${MPRend2} PROPERTIES INCLUDE_DIRECTORIES "${MPRend2IncludeDirectories}")
 set_target_properties(${MPRend2} PROPERTIES PROJECT_LABEL "MP Rend2 Renderer")
-target_link_libraries(${MPRend2} ${MPRend2Libraries})
+target_link_libraries(${MPRend2} ${MPRend2Libraries} rend2_lightrecon_core)
 target_link_renderer_sdl2(${MPRend2})
 target_include_directories(${MPRend2} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

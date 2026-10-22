@@ -10,6 +10,8 @@ This change implements a data contract, validation and conversion helpers.
 There is no inverse solver, importer, serializer, disk cache or lighting-rendering adapter.
 The [read-only CPU access API](rend2-reconstructed-lighting-api.md) supplies immutable
 published snapshots and explicit availability; it does not evaluate missing data.
+The [standalone CPU core](rend2-reconstruction-core.md) adds streaming inputs and
+an explicit builder/session boundary; it does not install an inverse solver.
 It does not populate the asset from stock maps. Existing `vrOutput`, `vrProxy`,
 `vrStaticLight`, fog promotion, entity lighting and legacy rendering still run
 as before. Those experimental records are not this canonical architecture.

@@ -54,7 +54,7 @@ option(BuildJK2SPRdVanilla "Whether to create projects for the jk2 sp renderer (
 option(BuildJK2SPRdRend2 "Whether to create projects for the EXPERIMENTAL jk2 SP rend2 renderer (rdjosp-rend2_x86.dll)" OFF)
 
 option(BuildTests "Whether to build automatic unit tests (requires Boost)" OFF)
-option(BuildLightReconTests "Build dependency-free reconstructed lighting contract tests" OFF)
+option(BuildLightReconTests "Build dependency-free reconstructed lighting CPU tests" OFF)
 option(UseAddressSanitizer "Whether to enable runtime address sanitizer" OFF)
 option(UseUndefinedSanitizer "Whether to enable runtime Undefined Behavior sanitizer" OFF)
 
@@ -427,6 +427,9 @@ endif()
 add_subdirectory(lib/minizip)
 
 # Add projects
+if(BuildSPRend2 OR BuildMPRend2 OR BuildJK2SPRdRend2 OR BuildLightReconTests)
+	add_subdirectory("${SharedDir}/rd-rend2/lightrecon")
+endif()
 add_subdirectory(${SPDir})
 if(BuildJK2SPGame)
 	add_subdirectory("${JK2SPDir}/game")

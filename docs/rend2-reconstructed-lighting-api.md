@@ -4,6 +4,8 @@
 for the [canonical lighting asset](rend2-reconstructed-lighting.md). It includes
 no world/BSP, dynamic-light submission, shader or OpenGL types. Its only runtime
 dependencies are the C++ standard library and canonical CPU type validation.
+It is built in the shared [CPU core target](rend2-reconstruction-core.md), along
+with the streaming input and producer-side session boundary.
 
 `tr_lightrecon_manager.h` is the producer/owner interface. Consumers need only
 the API header. Querying a snapshot never starts a reconstruction, opens a
@@ -235,5 +237,5 @@ target links only the API/types and standard library; unreachable dataset locato
 remain unread. Test-only supplied values are not production fallbacks.
 
 Build with `BuildLightReconTests=ON` or configure `tools/lightrecon_test` alone.
-CTest runs both `lightrecon_contract` and `lightrecon_api`. Both SP/MP Rend2 targets
-compile the API implementation; runtime lighting still uses the existing paths.
+CTest runs `lightrecon_contract`, `lightrecon_api` and `lightrecon_core`. Both SP/MP
+Rend2 targets link the one CPU archive; runtime lighting still uses the existing paths.
