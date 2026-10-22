@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "tr_volrecon.h"
+#include "tr_lightrecon_api.h"
 
 #include <vector>
 
@@ -54,6 +55,9 @@ struct staticLightingUploadStats_t
 // all structured lights of the loaded world (empty when not built)
 const std::vector<staticLight_t>& R_StaticLights( void );
 const std::vector<staticLightPortal_t>& R_StaticLightPortals( void );
+// Canonical CPU snapshot lease. No producer is installed yet: Missing for a
+// loaded world, Unloaded after clear. Independent of legacy fog/lightgrid cvars.
+Rend2LightRecon::Snapshot R_ReconstructedLighting( void );
 qboolean R_StaticLightCulled( const staticLight_t& light, int viewCluster );
 int R_StaticViewCluster( const vec3_t origin );
 

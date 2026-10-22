@@ -5,7 +5,9 @@ The canonical replacement data contract is documented in
 It separates physical sources, transport estimates and external datasets from
 observations and runtime resources. The experimental lightgrid reconstruction
 described below continues unchanged; `vrProxy`/`vrStaticLight` are not the
-canonical asset, and no new solver or runtime adapter has been implemented.
+canonical asset. The [read-only CPU API](rend2-reconstructed-lighting-api.md) adds
+explicit availability and immutable snapshot leases; no new solver or lighting
+integration has been implemented.
 
 Status: physical point / spot lights with energy promotion and unshadowed recovered lights in the froxel fog;
 phase 2 adds entity L1 probes, light portals with volumetric shafts, and grid-calibrated area lights. Everything

@@ -7,7 +7,9 @@ no engine, BSP or graphics types. The implementation reuses the dependency-free
 colour constants and normalization in `tr_pbr_contract.h`.
 
 This change implements a data contract, validation and conversion helpers.
-There is no inverse solver, importer, serializer, disk cache or runtime adapter.
+There is no inverse solver, importer, serializer, disk cache or lighting-rendering adapter.
+The [read-only CPU access API](rend2-reconstructed-lighting-api.md) supplies immutable
+published snapshots and explicit availability; it does not evaluate missing data.
 It does not populate the asset from stock maps. Existing `vrOutput`, `vrProxy`,
 `vrStaticLight`, fog promotion, entity lighting and legacy rendering still run
 as before. Those experimental records are not this canonical architecture.
@@ -261,10 +263,11 @@ dataset; actual BSP observation values remain outside the reconstruction.
 
 ## Implemented and provisional work
 
-Implemented now: the metadata records above, explicit incomplete/uncertain
+Implemented by the data-model module: the metadata records above, explicit incomplete/uncertain
 states, calibration provenance, ID/reference and provenance-DAG validation,
 geometry/frame/unit/range validation, strict finite conversion helpers, and CPU
-contract tests. Both SP/MP compile the module; no runtime function calls it.
+contract tests. Both SP/MP compile the module. The separate CPU access API validates
+and publishes manually supplied assets; no runtime solver populates them yet.
 
 Provisional choices: isotropic positional sigma rather than covariance; scalar
 intensity intervals rather than a distribution; individual-source alternative
