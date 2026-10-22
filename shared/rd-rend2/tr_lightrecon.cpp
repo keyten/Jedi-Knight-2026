@@ -1,6 +1,14 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "tr_local.h"
 #include "tr_lightrecon.h"
+#include "lightrecon/cache.h"
+
+std::string R_LightReconCacheRoot(void)
+{
+	char home[MAX_OSPATH]{};
+	ri.Cvar_VariableStringBuffer("fs_homepath", home, sizeof(home));
+	return Rend2LightRecon::Disk::CacheRoot(home);
+}
 
 // Nontrivial ownership stays outside hunk-allocated/memset world_t. One writer
 // follows the main world's lifetime; leases keep old publications safely alive.

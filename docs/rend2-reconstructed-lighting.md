@@ -7,7 +7,10 @@ no engine, BSP or graphics types. The implementation reuses the dependency-free
 colour constants and normalization in `tr_pbr_contract.h`.
 
 This change implements a data contract, validation and conversion helpers.
-There is no inverse solver, importer, serializer, disk cache or lighting-rendering adapter.
+There is no inverse solver, observation importer or lighting-rendering adapter.
+The separate [versioned disk format and cache adapter](rend2-reconstruction-disk.md)
+serialize validated assets and optional chunks; complete source hashing and
+automatic map-load cache integration remain unavailable.
 The [read-only CPU access API](rend2-reconstructed-lighting-api.md) supplies immutable
 published snapshots and explicit availability; it does not evaluate missing data.
 The [standalone CPU core](rend2-reconstruction-core.md) adds streaming inputs and
@@ -242,8 +245,9 @@ Sparse element count describes the logical lattice, not resident nonzero count.
 The payload encoding is extensible and must define stable sample IDs/locations,
 angular basis (e.g. a specified SH normalization), channels, byte order, signed
 basis coefficients where applicable, chunk lookup and decoding. No native C++
-struct layout or GPU format is implied. No production payload encoding or I/O
-is implemented by this task. Metadata validation does not pretend to inspect
+struct layout or GPU format is implied. The disk module provides bounded opaque
+chunk I/O; no production numerical field encoding/evaluator is implemented.
+Metadata validation does not pretend to inspect
 external data, sample ranges, visibility truth or numerical reconstruction quality.
 
 Contribution records are keyed by `(sample ID, source ID, component)` within a
@@ -273,8 +277,8 @@ and publishes manually supplied assets; no runtime solver populates them yet.
 
 Provisional choices: isotropic positional sigma rather than covariance; scalar
 intensity intervals rather than a distribution; individual-source alternative
-groups; uncapped Lambertian tubes; references to versioned payload encodings
-rather than an implemented storage format. Adding more uncertainty models,
+groups; uncapped Lambertian tubes; references to versioned numerical payload
+encodings whose decoders remain unimplemented. Adding more uncertainty models,
 material-aware transport or complex source groups will require a versioned
 extension/schema decision. This intentionally avoids permanent dense matrices
 and consumer-owned light limits, at the cost of a future loader/decoder layer.

@@ -2,6 +2,12 @@
 
 Scope: the single-player `code/` engine and `shared/rd-rend2` on this branch. Static-light reconstruction is deliberately outside this plan. All performance estimates in the review are hypotheses until measured on target hardware and content.
 
+The separate [reconstructed-lighting disk asset format](rend2-reconstruction-disk.md)
+now implements content-based keys, bounded validation and atomic CPU-cache writes.
+Its complete BSP/sidecar/material dependency collector and map-load backend are
+not installed; incomplete fingerprints are explicitly not cacheable. This does
+not change the map-loading/DDC performance findings or legacy lighting below.
+
 ## Baseline and profiling
 
 ### Map-load profiler bundle v1

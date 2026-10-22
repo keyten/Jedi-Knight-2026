@@ -9,3 +9,5 @@ Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snaps
 void R_LoadReconstructedLighting(void); // main-world map load only
 void R_ClearReconstructedLighting(void);
 void R_LightReconInfo_f(void);
+// Resolves only the supported per-user fs_homepath; performs no I/O or loading.
+std::string R_LightReconCacheRoot(void);
