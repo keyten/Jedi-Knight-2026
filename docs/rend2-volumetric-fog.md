@@ -1,5 +1,10 @@
 # Rend2: froxel volumetric fog
 
+The future renderer-independent reconstruction boundary is the
+[canonical reconstructed-lighting asset](rend2-reconstructed-lighting.md).
+Its metadata and external dataset references contain no froxel or GPU resources.
+This data-only module is not integrated into the fog path described below.
+
 A new volumetric fog mode, `r_volumetricFog 2`: the BSP fog volumes lit in a camera aligned froxel volume by the
 baked light grid, the sun (with its cascaded shadow maps) and the dynamic lights (with their shadow maps), with a
 Henyey-Greenstein phase function and temporal reprojection. The legacy mode `r_volumetricFog 1` is kept unchanged

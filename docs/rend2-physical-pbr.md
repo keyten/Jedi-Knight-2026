@@ -5,6 +5,12 @@ materials. It describes the opt-in `r_pbrPhysical 1` path. The default
 `r_pbrPhysical 0` path deliberately retains the previous mathematics for
 visual regression and stock-content compatibility.
 
+The renderer-independent [reconstructed-lighting asset](rend2-reconstructed-lighting.md)
+uses these same units and scene-linear colour semantics. It distinguishes
+physically authored values, calibrated legacy scene equivalents and uncalibrated
+relative estimates; historical LDR baked lighting is not a physical measurement.
+This data-only contract does not change the current rendering paths.
+
 ## Coordinate and scene units
 
 JA geometry remains in JA world units. Physical calculations use one

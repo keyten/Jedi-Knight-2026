@@ -64,6 +64,8 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_volrecon.h"
 	"${SharedDir}/rd-rend2/tr_staticlighting.cpp"
 	"${SharedDir}/rd-rend2/tr_staticlighting.h"
+	"${SharedDir}/rd-rend2/tr_lightrecon_types.cpp"
+	"${SharedDir}/rd-rend2/tr_lightrecon_types.h"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.h"

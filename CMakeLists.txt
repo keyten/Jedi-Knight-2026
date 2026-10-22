@@ -54,6 +54,7 @@ option(BuildJK2SPRdVanilla "Whether to create projects for the jk2 sp renderer (
 option(BuildJK2SPRdRend2 "Whether to create projects for the EXPERIMENTAL jk2 SP rend2 renderer (rdjosp-rend2_x86.dll)" OFF)
 
 option(BuildTests "Whether to build automatic unit tests (requires Boost)" OFF)
+option(BuildLightReconTests "Build dependency-free reconstructed lighting contract tests" OFF)
 option(UseAddressSanitizer "Whether to enable runtime address sanitizer" OFF)
 option(UseUndefinedSanitizer "Whether to enable runtime Undefined Behavior sanitizer" OFF)
 
@@ -437,7 +438,12 @@ if(BuildSymbolServer)
 	add_subdirectory("tools/WinSymbol")
 endif()
 
-if(BuildTests)
+if(BuildTests OR BuildLightReconTests)
 	enable_testing()
+endif()
+if(BuildLightReconTests)
+	add_subdirectory("tools/lightrecon_test")
+endif()
+if(BuildTests)
 	add_subdirectory("tests")
 endif()
