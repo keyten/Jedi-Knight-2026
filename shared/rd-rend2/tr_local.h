@@ -249,6 +249,11 @@ extern cvar_t	*r_volumetricFogLightCompute;
 extern cvar_t	*r_volumetricFogStaticScale;
 extern cvar_t	*r_volumetricFogStaticDirectional;
 extern cvar_t	*r_staticLightReconstruction;
+#define LIGHTRECON_CONTROL(name, maximum, description) extern cvar_t *name;
+#define LIGHTRECON_CONSUMER(name, kind, description) extern cvar_t *name;
+#include "tr_lightrecon_cvars.inc"
+#undef LIGHTRECON_CONSUMER
+#undef LIGHTRECON_CONTROL
 extern cvar_t	*r_recoveredVolumetricLights;
 extern cvar_t	*r_recoveredVolumetricMaxLights;
 extern cvar_t	*r_recoveredPhysicalConfidence;
@@ -6509,6 +6514,7 @@ void R_FinishAreaLightCalibration(void);
 void R_StaticLightPortalsBeginScene(const refdef_t *fd);
 void R_ClearStaticLighting(void);
 void R_StaticLightingStats_f(void);
+void R_LightReconInfo_f(void);
 void R_PBRInfo_f(void);
 void R_PBRLight_f(void);
 void R_PBRTestLightsBeginScene(const refdef_t *fd);

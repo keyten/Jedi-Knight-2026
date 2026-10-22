@@ -196,15 +196,18 @@ deliberately. Reset cached handles on module unload.
 
 ## World lifecycle and unchanged rendering
 
-The renderer adapter is `R_ReconstructedLighting()` in `tr_staticlighting.h/.cpp`.
+The renderer adapter is `R_ReconstructedLighting()` in `tr_lightrecon.h/.cpp`
+(also included by `tr_staticlighting.h`).
 It acquires a CPU snapshot without accessing `world_t` from the core API. The
 manager is a normal C++ owner beside the existing main-world static-lighting
 owner, outside `world_t`, which is hunk-allocated and zeroed with `Com_Memset`.
 No `shared_ptr` or nontrivial container is inserted into that world structure.
 
 `R_ClearStaticLighting` marks the canonical owner Unloaded. At main-world static
-lighting load, it becomes Missing with an explicit diagnostic: there is no
-canonical producer installed yet. The experimental grid reconstruction still
+lighting load, the independent [build/load policy](rend2-reconstruction-controls.md)
+is applied: default policy 0 exposes Disabled; enabled policies currently expose
+Missing with an explicit Unavailable diagnostic because no backend is installed.
+The experimental grid reconstruction still
 builds its existing result. Neither its proxies nor its promoted fog lights are
 presented as canonical physical lights. Sub-BSPs do not replace the main-world
 owner. A future producer can use the internal manager to set Disabled/Pending,
@@ -212,7 +215,8 @@ publish Ready/Partial, or report missing/corrupt input.
 
 `r_staticLightReconstruction` controls only the existing experimental path; it
 does not define canonical availability or depend on a future consumer's enable
-flag. No new cvar or renderer light-budget policy is introduced. Existing
+flag. The new `r_lightRecon*` controls apply only to the canonical owner and future
+consumers; no renderer light-budget policy is introduced. Existing
 `R_StaticLights()`/`R_StaticLightPortals()` accessors, sun/entity lighting and area
 light calibration continue their prior behaviour. Fog, `tr_light.cpp` and
 `tr_arealights.cpp` are not migrated to the new data or shaders by this task.

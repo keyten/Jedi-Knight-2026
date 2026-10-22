@@ -17,6 +17,7 @@ All executables link the one `rend2_lightrecon_core` static target:
 - `lightrecon_test`: canonical asset and photometric contracts.
 - `lightrecon_api_test`: read-only snapshots, queries and lifetime.
 - `lightrecon_core_test`: streaming input, validation, sessions and host errors.
+- `lightrecon_control_test`: build/load policy, independent consumer gates and SP/MP cvar registration.
 
 See [core architecture and complete build commands](../../docs/rend2-reconstruction-core.md).
 The old `tools/volrecon_test` tests the experimental solver separately and is

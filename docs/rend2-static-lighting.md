@@ -9,6 +9,9 @@ canonical asset. The [read-only CPU API](rend2-reconstructed-lighting-api.md) ad
 explicit availability and immutable snapshot leases; no new solver or lighting
 integration has been implemented.
 
+The [independent canonical build/use controls](rend2-reconstruction-controls.md)
+all default to zero and do not change the legacy controls or behaviour below.
+
 Status: physical point / spot lights with energy promotion and unshadowed recovered lights in the froxel fog;
 phase 2 adds entity L1 probes, light portals with volumetric shafts, and grid-calibrated area lights. Everything
 builds, the synthetic tests pass (`tools/volrecon_test`, 1087 checks) and the changed shaders compile on Intel and

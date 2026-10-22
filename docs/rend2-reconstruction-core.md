@@ -4,7 +4,7 @@ The C++11 static target `rend2_lightrecon_core` owns the CPU reconstruction
 boundary shared by SP, MP and standalone tools. It contains the canonical
 [output model](rend2-reconstructed-lighting.md), its validation and
 [read-only API](rend2-reconstructed-lighting-api.md), plus the new input and
-builder/session code under `shared/rd-rend2/lightrecon/`.
+builder/session and build/use policy code under `shared/rd-rend2/lightrecon/`.
 
 No inverse-lighting algorithm or production BSP/disk adapter is installed.
 The default session reports `Unavailable` and exposes no reconstruction result.
@@ -39,25 +39,27 @@ There is no connection from an empty/default session into renderer lighting.
 | --- | --- |
 | `lightrecon/input.h/.cpp` | Input schema, leased chunk sources, local validation and visibility adapters |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
+| `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
 | `lightrecon/CMakeLists.txt` | Single static target containing these files and existing canonical types/API |
 | `tools/lightrecon_test/lightrecon_core_test.cpp` | Synthetic standalone core tests |
-| `tools/lightrecon_test/CMakeLists.txt` | Three CPU executables linking the same target |
+| `tools/lightrecon_test/CMakeLists.txt` | Four CPU executables linking the same target |
 
 `tr_lightrecon_types.*`, `tr_lightrecon_api.*` and `tr_lightrecon_manager.h` keep
 their existing names/includes; moving them is unnecessary churn. The new core
-has two coherent source pairs rather than separate files for every interface.
+groups input, session and policy rather than separate files for every interface.
 Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all three test executables to it.
+only if it does not already exist, and links all four test executables to it.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,
 generated shader dependencies or OpenGL/engine libraries.
 
-The renderer-specific `tr_staticlighting.cpp` adapter stays outside the archive.
+The renderer-specific `tr_lightrecon.cpp` owner/control adapter and
+`tr_staticlighting.cpp` stay outside the archive.
 The experimental `tr_volrecon.cpp` remains in its existing SP/MP targets and its
 separate `tools/volrecon_test` harness. It is not wrapped or silently substituted
 as the canonical solver.
@@ -207,7 +209,7 @@ cmake --build build/lightrecon-standalone --config Release --parallel 4
 ctest --test-dir build/lightrecon-standalone -C Release --output-on-failure
 ```
 
-This standalone project enables only C++, adds the CPU archive and three test
+This standalone project enables only C++, adds the CPU archive and four test
 executables. It does not configure OpenGL, SDL, engine targets, shaders or Boost.
 For other platforms omit the Windows generator/platform arguments.
 
@@ -220,7 +222,7 @@ cmake -S . -B build/lightrecon-core-renderers -G "Visual Studio 16 2019" -A x64 
   -DBuildMPUI=OFF -DBuildMPRdVanilla=OFF -DBuildMPRend2=ON `
   -DBuildLightReconTests=ON -DBuildTests=OFF
 cmake --build build/lightrecon-core-renderers --config Release --parallel 4 `
-  --target rdsp-rend2_x86_64 rd-rend2_x86_64 lightrecon_test lightrecon_api_test lightrecon_core_test
+  --target rdsp-rend2_x86_64 rd-rend2_x86_64 lightrecon_test lightrecon_api_test lightrecon_core_test lightrecon_control_test
 ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure
 ```
 
@@ -230,6 +232,11 @@ invalid records/order/leases, bounded requests, failed visibility, cancellation,
 provider/algorithm/callback errors, deterministic seeds, immutable validated
 output and repeated session construction/destruction. Existing canonical/API
 tests link the same archive and remain part of CTest.
+
+`control.h/.cpp` also provides the CPU build/load policy and read-only consumer
+gates. The renderer adapter owns cvar registration and map-load invocation;
+see [independent controls](rend2-reconstruction-controls.md). No canonical cache
+backend, solver or consumption adapter is installed yet.
 
 ## Remaining work
 

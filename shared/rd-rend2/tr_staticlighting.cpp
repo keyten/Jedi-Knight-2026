@@ -42,7 +42,6 @@ load. See docs/rend2-static-lighting.md.
 #include "tr_local.h"
 #include "tr_volrecon.h"
 #include "tr_staticlighting.h"
-#include "tr_lightrecon_manager.h"
 
 #include <algorithm>
 #include <vector>
@@ -52,16 +51,6 @@ load. See docs/rend2-static-lighting.md.
 #define STATIC_SUN_COS_OUTER 0.9063f	// cos(25)
 #define STATIC_SUN_COS_INNER 0.9848f	// cos(10)
 #define STATIC_SUN_TRACE_DISTANCE 65536.0f
-
-// Nontrivial C++ ownership stays outside world_t (hunk allocated/memset).
-// This owner tracks the main world's lifetime, as the existing static result
-// does. It never converts experimental vrProxy/vrStaticLight into physical data.
-static Rend2LightRecon::Manager s_reconstructedLighting;
-
-Rend2LightRecon::Snapshot R_ReconstructedLighting( void )
-{
-	return s_reconstructedLighting.Acquire();
-}
 
 static struct
 {
@@ -93,7 +82,7 @@ static struct
 
 void R_ClearStaticLighting( void )
 {
-	s_reconstructedLighting.SetUnavailable(Rend2LightRecon::Availability::Unloaded);
+	R_ClearReconstructedLighting();
 	s_sl.valid = qfalse;
 	s_sl.mode = 0;
 	s_sl.promote = qfalse;
@@ -226,8 +215,7 @@ R_BuildStaticLighting
 void R_BuildStaticLighting( world_t *world )
 {
 	R_ClearStaticLighting();
-	s_reconstructedLighting.SetUnavailable(Rend2LightRecon::Availability::Missing,
-		"No canonical reconstructed-lighting producer is installed");
+	R_LoadReconstructedLighting();
 	R_ClearVolumetricStaticLighting(world);
 	// One deterministic map-load boundary for all legacy baked/grid consumers.
 	R_PBRCalibrateLegacyMap(world);

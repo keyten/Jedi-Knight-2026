@@ -155,6 +155,11 @@ cvar_t	*r_volumetricFogLightCompute;
 cvar_t	*r_volumetricFogStaticScale;
 cvar_t	*r_volumetricFogStaticDirectional;
 cvar_t	*r_staticLightReconstruction;
+#define LIGHTRECON_CONTROL(name, maximum, description) cvar_t *name;
+#define LIGHTRECON_CONSUMER(name, kind, description) cvar_t *name;
+#include "tr_lightrecon_cvars.inc"
+#undef LIGHTRECON_CONSUMER
+#undef LIGHTRECON_CONTROL
 cvar_t	*r_recoveredVolumetricLights;
 cvar_t	*r_recoveredVolumetricMaxLights;
 cvar_t	*r_recoveredPhysicalConfidence;
@@ -2033,6 +2038,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_cloudLayerTest",	R_CloudLayerTest_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
+	{ "r_lightReconInfo",	R_LightReconInfo_f },
 	{ "r_pbrInfo",		R_PBRInfo_f },
 	{ "r_pbrLight",		R_PBRLight_f },
 	{ "r_fogvol",			R_FogVolume_f },
@@ -2939,6 +2945,10 @@ void R_Register( void )
 	r_volumetricFogStaticDirectional = ri.Cvar_Get("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: directional baked light, the light grid light gets a first order (L1) phase response along the directions it is attributed to at map load: 0 = isotropic, 1 = reconstructed per channel moments (sources fitted from the light grid and the static area emitters), 2 = raw BSP light grid direction (developer comparison) (vid_restart)");
 	ri.Cvar_CheckRange(r_volumetricFogStaticDirectional, 0, 2, qtrue);
 	// Static Lighting Reconstruction (tr_staticlighting.cpp)
+	// Canonical controls: independent from the experimental lightgrid path.
+#define LIGHTRECON_GET ri.Cvar_Get
+#include "tr_lightrecon_register.inc"
+#undef LIGHTRECON_GET
 	r_staticLightReconstruction = ri.Cvar_Get("r_staticLightReconstruction", "1", CVAR_ARCHIVE | CVAR_LATCH, "Static lighting reconstruction: structured lights (point / spot / transport / area) validated against the BSP and fitted from the light grid at map load, with r_volumetricFogStaticDirectional 1 (vid_restart)");
 	ri.Cvar_CheckRange(r_staticLightReconstruction, 0, 1, qtrue);
 	r_recoveredVolumetricLights = ri.Cvar_Get("r_recoveredVolumetricLights", "1", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: the confident physical lights of r_staticLightReconstruction leave the baked light and are injected as exact point / spot lights (volumetric cones), unshadowed, after the dynamic lights (vid_restart)");
