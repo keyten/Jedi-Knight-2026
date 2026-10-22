@@ -1,0 +1,44 @@
+// Authored regression stimulus: fixed legacy FX sprite and point light.
+// No reconstruction, physicalization, commercial effect contents or random ranges.
+particle
+{
+ name FixedSaberFlare
+ count 1
+ life 30000
+ shader gfx/effects/saberFlare
+ size
+ {
+  start 4
+  end 4
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 1
+  flags linear
+ }
+ rgb
+ {
+  start 1 0.4 0.1
+  end 1 0.4 0.1
+  flags linear
+ }
+}
+Light
+{
+ count 1
+ life 30000
+ size
+ {
+  start 96
+  end 96
+  flags linear
+ }
+ rgb
+ {
+  start 1 0.4 0.1
+  end 1 0.4 0.1
+  flags linear
+ }
+}

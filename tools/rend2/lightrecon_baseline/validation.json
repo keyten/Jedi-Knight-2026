@@ -1,0 +1,990 @@
+{
+  "baseline_hash_encoding": "SHA256: raw bytes for gzip; UTF-8 with LF for text artifacts",
+  "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+  "baseline_sha256": {
+    "bindings.json": "1dc9c19187d8a4ef2096f1dab7d9ec71644e6cd1bca2198df7a2c5da5ab69ee0",
+    "legacy_fx.efx": "c1b2ece739797ba8a9083bcd090f0b9f3f5aa6d5674a428b0a226e3ef0a386cd",
+    "matrix.json": "74469fdfa4ecb4cd93463bb058fdc601b886acff4806fb5ac6d85dbfd132ecdd",
+    "preprocessed.json.gz": "5fbb77580605d588ccc9cfa258b22c9c8121af12a9ce55097a1708d805e7f966"
+  },
+  "cpu_tests": {
+    "checks": 5856,
+    "ctest_programs_passed": 4,
+    "ctest_programs_total": 4,
+    "failures": 0,
+    "python_detector_tests_passed": 9
+  },
+  "date": "2026-10-22",
+  "limitations": [
+    "Representative shader matrix, not exhaustive material permutations",
+    "Current Rend2 original-style configuration, not original JA renderer golden images",
+    "Intel SP runtime visuals; MP visual validation not run",
+    "Original stochastic saber blade glow not an exact-image claim; controlled stock-material FX and shader contracts cover its renderer paths",
+    "No FPS or hardware instruction-count benchmark; no inverse solver or runtime canonical-light integration"
+  ],
+  "production_renderer_or_shader_changes": false,
+  "renderer_builds": {
+    "MP": "rd-rend2_x86_64 Release: passed",
+    "SP": "rdsp-rend2_x86_64 Release: passed",
+    "engine_game_binaries": "existing build/ssr-msvc/RelWithDebInfo; current renderer DLL copied into private runtimes"
+  },
+  "runtime": [
+    {
+      "artifact_directory": "build/lightrecon-visual-20261022/hoth3-legacy-build3-accepted",
+      "build_policy_records": [
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      ],
+      "camera": [
+        3464,
+        700,
+        85,
+        90
+      ],
+      "captures_sha256": {
+        "recon-base-a.tga": "f593f2056d740dc01ca9c577c2069d6c6307ce9d8a8eca272b78fae78199e689",
+        "recon-base-b.tga": "f593f2056d740dc01ca9c577c2069d6c6307ce9d8a8eca272b78fae78199e689",
+        "recon-base-repeat.tga": "f593f2056d740dc01ca9c577c2069d6c6307ce9d8a8eca272b78fae78199e689",
+        "recon-dynamic-a.tga": "dc9dae8bef122e4cfb59a9ddf81c73fe4bcb9efd3f443c62700aeb7cc14a28da",
+        "recon-dynamic-b.tga": "dc9dae8bef122e4cfb59a9ddf81c73fe4bcb9efd3f443c62700aeb7cc14a28da",
+        "recon-dynamic-repeat.tga": "dc9dae8bef122e4cfb59a9ddf81c73fe4bcb9efd3f443c62700aeb7cc14a28da",
+        "recon-fx-proof.tga": "e0095ba5c9d15c21d27bf23efdc19f74384bdb36f098f8c3ea779c6498ffc8d1"
+      },
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "dynamic_stimulus": {
+        "differing_pixels": 509267,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 253,
+        "mean_rgb_delta": 27.638498585390945,
+        "pixels": 518400
+      },
+      "fx_stimulus": {
+        "differing_pixels": 480676,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 245,
+        "mean_rgb_delta": 18.07056841563786,
+        "pixels": 518400
+      },
+      "layers": {
+        "base": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        },
+        "dynamic": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        }
+      },
+      "map": "hoth3",
+      "passed": true,
+      "permutation_usage_identical": true,
+      "profile": "legacy",
+      "recorded_camera": {
+        "base": [
+          "3463 620 113",
+          "-359 89 0",
+          "80"
+        ],
+        "dynamic": [
+          "3463 620 113",
+          "-359 89 0",
+          "80"
+        ]
+      },
+      "renderer_sha256": "8beb1f99e80e52ace2ab387782afc91f45ef23c6e4229084977091ee002f9405",
+      "settings": {
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_bobup": 0,
+        "cg_fov": 80,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "cl_renderer": "rdsp-rend2",
+        "com_bootlogo": 0,
+        "com_maxfps": 60,
+        "com_maxfpsMinimized": 60,
+        "com_maxfpsUnfocused": 60,
+        "developer": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationEmission": 0,
+        "fx_physicalizationSources": 0,
+        "in_mouse": 0,
+        "logfile": 2,
+        "r_aoMode": 0,
+        "r_atmosphere": 0,
+        "r_autoExposure": 0,
+        "r_autoPBR": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_clouds": 0,
+        "r_contactShadows": 0,
+        "r_cubeMapping": 0,
+        "r_customheight": 540,
+        "r_customwidth": 960,
+        "r_diffuseIBL": 0,
+        "r_dynamiclight": 1,
+        "r_entityLightGrid": 0,
+        "r_entityLightProbes": 0,
+        "r_entitySunSplit": 0,
+        "r_exposureCompensation": 0,
+        "r_ext_multisample": 0,
+        "r_forwardPlus": 0,
+        "r_fullscreen": 0,
+        "r_gamma": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_intensity": 1,
+        "r_lightPortals": 0,
+        "r_lightReconArea": 1,
+        "r_lightReconBuild": 3,
+        "r_lightReconEntities": 1,
+        "r_lightReconEnvironment": 1,
+        "r_lightReconFog": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconUse": 0,
+        "r_lightReconWorldDiffuse": 1,
+        "r_ltcAreaCalibration": 0,
+        "r_ltcAreaLights": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_mode": -1,
+        "r_motionBlur": 0,
+        "r_normalMapping": 0,
+        "r_overBrightBits": 0,
+        "r_pbrPhysical": 0,
+        "r_recoveredVolumetricLights": 0,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_shadowMapSize": 1024,
+        "r_skinSSS": 0,
+        "r_smaa": 0,
+        "r_specularAA": 0,
+        "r_specularMapping": 0,
+        "r_ssao": 0,
+        "r_ssgi": 0,
+        "r_ssr": 0,
+        "r_staticLightReconstruction": 0,
+        "r_sunShadowCache": 0,
+        "r_sunShadowMode": 0,
+        "r_sunlightMode": 0,
+        "r_swapInterval": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_volumetricFog": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricWater": 0,
+        "r_waterSurface": 0,
+        "r_weatherWetness": 0,
+        "s_initsound": 0
+      },
+      "tolerance": {
+        "max_delta": 1,
+        "max_mean": 1e-05,
+        "max_pixels": 5
+      }
+    },
+    {
+      "artifact_directory": "build/lightrecon-visual-20261022/hoth3-modern-build3-accepted",
+      "build_policy_records": [
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      ],
+      "camera": [
+        3464,
+        700,
+        85,
+        90
+      ],
+      "captures_sha256": {
+        "recon-base-a.tga": "656fd61508c743645494f30ad16ecd04f9fde4d39bd0e7775c3762302bf29e3a",
+        "recon-base-b.tga": "656fd61508c743645494f30ad16ecd04f9fde4d39bd0e7775c3762302bf29e3a",
+        "recon-base-repeat.tga": "656fd61508c743645494f30ad16ecd04f9fde4d39bd0e7775c3762302bf29e3a",
+        "recon-dynamic-a.tga": "b811be248b3eddb3489024edc8e7947a19981ebf238dbbb6edf771ac345a95d3",
+        "recon-dynamic-b.tga": "b811be248b3eddb3489024edc8e7947a19981ebf238dbbb6edf771ac345a95d3",
+        "recon-dynamic-repeat.tga": "b811be248b3eddb3489024edc8e7947a19981ebf238dbbb6edf771ac345a95d3",
+        "recon-fx-proof.tga": "c403f0097bbfa133e2415ed4b09ea5de5d4941f6b74545de81729ae659369ba2"
+      },
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "dynamic_stimulus": {
+        "differing_pixels": 514512,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 247,
+        "mean_rgb_delta": 138.2163933899177,
+        "pixels": 518400
+      },
+      "fx_stimulus": {
+        "differing_pixels": 514512,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 247,
+        "mean_rgb_delta": 122.44430105452675,
+        "pixels": 518400
+      },
+      "layers": {
+        "base": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        },
+        "dynamic": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        }
+      },
+      "map": "hoth3",
+      "passed": true,
+      "permutation_usage_identical": true,
+      "profile": "modern",
+      "recorded_camera": {
+        "base": [
+          "3464 620 113",
+          "0 90 0",
+          "80"
+        ],
+        "dynamic": [
+          "3464 620 113",
+          "0 90 0",
+          "80"
+        ]
+      },
+      "renderer_sha256": "8beb1f99e80e52ace2ab387782afc91f45ef23c6e4229084977091ee002f9405",
+      "settings": {
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_bobup": 0,
+        "cg_fov": 80,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "cl_renderer": "rdsp-rend2",
+        "com_bootlogo": 0,
+        "com_maxfps": 60,
+        "com_maxfpsMinimized": 60,
+        "com_maxfpsUnfocused": 60,
+        "developer": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationEmission": 0,
+        "fx_physicalizationSources": 0,
+        "in_mouse": 0,
+        "logfile": 2,
+        "r_aoMode": 0,
+        "r_atmosphere": 0,
+        "r_autoExposure": 0,
+        "r_autoPBR": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_clouds": 0,
+        "r_contactShadows": 0,
+        "r_cubeMapping": 0,
+        "r_customheight": 540,
+        "r_customwidth": 960,
+        "r_diffuseIBL": 0,
+        "r_dynamiclight": 1,
+        "r_entityLightGrid": 0,
+        "r_entityLightProbes": 0,
+        "r_entitySunSplit": 0,
+        "r_exposureCompensation": 0,
+        "r_ext_multisample": 0,
+        "r_forwardPlus": 1,
+        "r_fullscreen": 0,
+        "r_gamma": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_intensity": 1,
+        "r_lightPortals": 0,
+        "r_lightReconArea": 1,
+        "r_lightReconBuild": 3,
+        "r_lightReconEntities": 1,
+        "r_lightReconEnvironment": 1,
+        "r_lightReconFog": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconUse": 0,
+        "r_lightReconWorldDiffuse": 1,
+        "r_ltcAreaCalibration": 0,
+        "r_ltcAreaLights": 1,
+        "r_ltcSaberAreaLights": 0,
+        "r_mode": -1,
+        "r_motionBlur": 0,
+        "r_normalMapping": 1,
+        "r_overBrightBits": 0,
+        "r_pbrPhysical": 1,
+        "r_recoveredVolumetricLights": 0,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_shadowMapSize": 1024,
+        "r_skinSSS": 0,
+        "r_smaa": 0,
+        "r_specularAA": 0,
+        "r_specularMapping": 1,
+        "r_ssao": 0,
+        "r_ssgi": 0,
+        "r_ssr": 0,
+        "r_staticLightReconstruction": 0,
+        "r_sunShadowCache": 0,
+        "r_sunShadowMode": 1,
+        "r_sunShadows": 1,
+        "r_sunlightMode": 1,
+        "r_swapInterval": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_volumetricFog": 2,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricWater": 0,
+        "r_waterSurface": 0,
+        "r_weatherWetness": 0,
+        "s_initsound": 0
+      },
+      "tolerance": {
+        "max_delta": 1,
+        "max_mean": 1e-05,
+        "max_pixels": 5
+      }
+    },
+    {
+      "artifact_directory": "build/lightrecon-visual-20261022/hoth2-legacy-build3-accepted",
+      "build_policy_records": [
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      ],
+      "camera": [
+        1728,
+        -576,
+        1040,
+        135
+      ],
+      "captures_sha256": {
+        "recon-base-a.tga": "df1049197e86c529981415ad7a24086c50c528007226034eb59d21bbdf3845fa",
+        "recon-base-b.tga": "df1049197e86c529981415ad7a24086c50c528007226034eb59d21bbdf3845fa",
+        "recon-base-repeat.tga": "df1049197e86c529981415ad7a24086c50c528007226034eb59d21bbdf3845fa",
+        "recon-dynamic-a.tga": "9888eb325587d0b28e9fc3b97b6af393975dfbdb29b5c5173e4aab784903f28b",
+        "recon-dynamic-b.tga": "9888eb325587d0b28e9fc3b97b6af393975dfbdb29b5c5173e4aab784903f28b",
+        "recon-dynamic-repeat.tga": "9888eb325587d0b28e9fc3b97b6af393975dfbdb29b5c5173e4aab784903f28b",
+        "recon-fx-proof.tga": "727c860e123761f69c25f8e6afe109a37500b9cb6684dfd5a2a39a5a262a6160"
+      },
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "dynamic_stimulus": {
+        "differing_pixels": 477575,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 224,
+        "mean_rgb_delta": 7.5234375,
+        "pixels": 518400
+      },
+      "fx_stimulus": {
+        "differing_pixels": 477519,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 217,
+        "mean_rgb_delta": 7.446900077160493,
+        "pixels": 518400
+      },
+      "layers": {
+        "base": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        },
+        "dynamic": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        }
+      },
+      "map": "hoth2",
+      "passed": true,
+      "permutation_usage_identical": true,
+      "profile": "legacy",
+      "recorded_camera": {
+        "base": [
+          "1781 -624 1067",
+          "0 137 0",
+          "80"
+        ],
+        "dynamic": [
+          "1784 -632 1067",
+          "0 135 0",
+          "80"
+        ]
+      },
+      "renderer_sha256": "8beb1f99e80e52ace2ab387782afc91f45ef23c6e4229084977091ee002f9405",
+      "settings": {
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_bobup": 0,
+        "cg_fov": 80,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "cl_renderer": "rdsp-rend2",
+        "com_bootlogo": 0,
+        "com_maxfps": 60,
+        "com_maxfpsMinimized": 60,
+        "com_maxfpsUnfocused": 60,
+        "developer": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationEmission": 0,
+        "fx_physicalizationSources": 0,
+        "in_mouse": 0,
+        "logfile": 2,
+        "r_aoMode": 0,
+        "r_atmosphere": 0,
+        "r_autoExposure": 0,
+        "r_autoPBR": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_clouds": 0,
+        "r_contactShadows": 0,
+        "r_cubeMapping": 0,
+        "r_customheight": 540,
+        "r_customwidth": 960,
+        "r_diffuseIBL": 0,
+        "r_dynamiclight": 1,
+        "r_entityLightGrid": 0,
+        "r_entityLightProbes": 0,
+        "r_entitySunSplit": 0,
+        "r_exposureCompensation": 0,
+        "r_ext_multisample": 0,
+        "r_forwardPlus": 0,
+        "r_fullscreen": 0,
+        "r_gamma": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_intensity": 1,
+        "r_lightPortals": 0,
+        "r_lightReconArea": 1,
+        "r_lightReconBuild": 3,
+        "r_lightReconEntities": 1,
+        "r_lightReconEnvironment": 1,
+        "r_lightReconFog": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconUse": 0,
+        "r_lightReconWorldDiffuse": 1,
+        "r_ltcAreaCalibration": 0,
+        "r_ltcAreaLights": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_mode": -1,
+        "r_motionBlur": 0,
+        "r_normalMapping": 0,
+        "r_overBrightBits": 0,
+        "r_pbrPhysical": 0,
+        "r_recoveredVolumetricLights": 0,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_shadowMapSize": 1024,
+        "r_skinSSS": 0,
+        "r_smaa": 0,
+        "r_specularAA": 0,
+        "r_specularMapping": 0,
+        "r_ssao": 0,
+        "r_ssgi": 0,
+        "r_ssr": 0,
+        "r_staticLightReconstruction": 0,
+        "r_sunShadowCache": 0,
+        "r_sunShadowMode": 0,
+        "r_sunlightMode": 0,
+        "r_swapInterval": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_volumetricFog": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricWater": 0,
+        "r_waterSurface": 0,
+        "r_weatherWetness": 0,
+        "s_initsound": 0
+      },
+      "tolerance": {
+        "max_delta": 1,
+        "max_mean": 1e-05,
+        "max_pixels": 5
+      }
+    },
+    {
+      "artifact_directory": "build/lightrecon-visual-20261022/hoth2-modern-build3-accepted",
+      "build_policy_records": [
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ],
+        [
+          "3",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      ],
+      "camera": [
+        1728,
+        -576,
+        1040,
+        135
+      ],
+      "captures_sha256": {
+        "recon-base-a.tga": "7238f7c4adc31af313957598d4d4db4ea9c1b5c8ce5d06875fa27b43f3a371c6",
+        "recon-base-b.tga": "7238f7c4adc31af313957598d4d4db4ea9c1b5c8ce5d06875fa27b43f3a371c6",
+        "recon-base-repeat.tga": "7238f7c4adc31af313957598d4d4db4ea9c1b5c8ce5d06875fa27b43f3a371c6",
+        "recon-dynamic-a.tga": "7dd8a6bc270ddfae844f75f291c50a8fa878a8a2c89d9fedca845621502f2e30",
+        "recon-dynamic-b.tga": "7dd8a6bc270ddfae844f75f291c50a8fa878a8a2c89d9fedca845621502f2e30",
+        "recon-dynamic-repeat.tga": "7dd8a6bc270ddfae844f75f291c50a8fa878a8a2c89d9fedca845621502f2e30",
+        "recon-fx-proof.tga": "213bbd9adbf29da6baf4c53d962cf3df5d7e68f6051fefef95ffe84b7f1c1fb5"
+      },
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "dynamic_stimulus": {
+        "differing_pixels": 514512,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 195,
+        "mean_rgb_delta": 102.32966563786009,
+        "pixels": 518400
+      },
+      "fx_stimulus": {
+        "differing_pixels": 514512,
+        "exact": false,
+        "expected_difference": true,
+        "max_channel_delta": 195,
+        "mean_rgb_delta": 88.60781442901235,
+        "pixels": 518400
+      },
+      "layers": {
+        "base": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        },
+        "dynamic": {
+          "comparison": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          },
+          "repeat_control": {
+            "differing_pixels": 0,
+            "exact": true,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "passed": true,
+            "pixels": 518400
+          }
+        }
+      },
+      "map": "hoth2",
+      "passed": true,
+      "permutation_usage_identical": true,
+      "profile": "modern",
+      "recorded_camera": {
+        "base": [
+          "1784 -632 1068",
+          "0 135 0",
+          "80"
+        ],
+        "dynamic": [
+          "1784 -632 1068",
+          "0 135 0",
+          "80"
+        ]
+      },
+      "renderer_sha256": "8beb1f99e80e52ace2ab387782afc91f45ef23c6e4229084977091ee002f9405",
+      "settings": {
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_bobup": 0,
+        "cg_fov": 80,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "cl_renderer": "rdsp-rend2",
+        "com_bootlogo": 0,
+        "com_maxfps": 60,
+        "com_maxfpsMinimized": 60,
+        "com_maxfpsUnfocused": 60,
+        "developer": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationEmission": 0,
+        "fx_physicalizationSources": 0,
+        "in_mouse": 0,
+        "logfile": 2,
+        "r_aoMode": 0,
+        "r_atmosphere": 0,
+        "r_autoExposure": 0,
+        "r_autoPBR": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_clouds": 0,
+        "r_contactShadows": 0,
+        "r_cubeMapping": 0,
+        "r_customheight": 540,
+        "r_customwidth": 960,
+        "r_diffuseIBL": 0,
+        "r_dynamiclight": 1,
+        "r_entityLightGrid": 0,
+        "r_entityLightProbes": 0,
+        "r_entitySunSplit": 0,
+        "r_exposureCompensation": 0,
+        "r_ext_multisample": 0,
+        "r_forwardPlus": 1,
+        "r_fullscreen": 0,
+        "r_gamma": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_intensity": 1,
+        "r_lightPortals": 0,
+        "r_lightReconArea": 1,
+        "r_lightReconBuild": 3,
+        "r_lightReconEntities": 1,
+        "r_lightReconEnvironment": 1,
+        "r_lightReconFog": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconUse": 0,
+        "r_lightReconWorldDiffuse": 1,
+        "r_ltcAreaCalibration": 0,
+        "r_ltcAreaLights": 1,
+        "r_ltcSaberAreaLights": 0,
+        "r_mode": -1,
+        "r_motionBlur": 0,
+        "r_normalMapping": 1,
+        "r_overBrightBits": 0,
+        "r_pbrPhysical": 1,
+        "r_recoveredVolumetricLights": 0,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_shadowMapSize": 1024,
+        "r_skinSSS": 0,
+        "r_smaa": 0,
+        "r_specularAA": 0,
+        "r_specularMapping": 1,
+        "r_ssao": 0,
+        "r_ssgi": 0,
+        "r_ssr": 0,
+        "r_staticLightReconstruction": 0,
+        "r_sunShadowCache": 0,
+        "r_sunShadowMode": 1,
+        "r_sunShadows": 1,
+        "r_sunlightMode": 1,
+        "r_swapInterval": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_volumetricFog": 2,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricWater": 0,
+        "r_waterSurface": 0,
+        "r_weatherWetness": 0,
+        "s_initsound": 0
+      },
+      "tolerance": {
+        "max_delta": 1,
+        "max_mean": 1e-05,
+        "max_pixels": 5
+      }
+    }
+  ],
+  "runtime_binaries_sha256": {
+    "jagamex86_64.dll": "03803845da078c24bd21bda8d895e23a46cd750b7d0f6bda182b318e73b8eca9",
+    "openjk_sp.x86_64.exe": "d6b9e568ec5446005626c8f3ef96474042c647f2e5c244b5a28c26ce1e681cab",
+    "rend2_glslc.exe": "0f7c38a10de182c91b5b4b35c3ef79e2f54524bca910eff699f8477f9e95f104"
+  },
+  "runtime_diagnostic_replay": {
+    "consumer_records": 240,
+    "passed": true,
+    "sections": 24
+  },
+  "schema": 1,
+  "shader_tests": {
+    "intel": {
+      "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+      "differences": 0,
+      "driver": [
+        "Intel",
+        "Intel(R) UHD Graphics",
+        "3.2.0 - Build 27.20.100.8280"
+      ],
+      "gpu_compiled": true,
+      "gpu_interface_comparison": "matching-driver baseline compared",
+      "passed": true,
+      "production_dependency_audit": "passed",
+      "programs": 27,
+      "stages": 51
+    },
+    "nvidia": {
+      "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+      "differences": 0,
+      "driver": [
+        "NVIDIA Corporation",
+        "NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "3.2.0 NVIDIA 616.92"
+      ],
+      "gpu_compiled": true,
+      "gpu_interface_comparison": "different driver; declared interfaces compared, active optimization differences not judged",
+      "passed": true,
+      "production_dependency_audit": "passed",
+      "programs": 27,
+      "stages": 51
+    }
+  }
+}

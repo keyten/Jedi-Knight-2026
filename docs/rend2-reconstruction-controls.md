@@ -191,3 +191,7 @@ Changed implementation files: `lightrecon/control.h/.cpp` and its core CMake lis
 `tr_lightrecon.h/.cpp`, shared cvar/registration `.inc` files, `tr_local.h` and the
 static-lighting lifecycle adapter; both SP/MP `tr_init.cpp` and CMake lists;
 the new control test, test CMake/README and linked architecture documentation.
+
+The [disabled-rendering regression suite](rend2-reconstruction-regression.md)
+adds versioned preprocessed shader/interface baselines, GPU compilation and
+actual SP A/B/A visual checks for this control boundary.
