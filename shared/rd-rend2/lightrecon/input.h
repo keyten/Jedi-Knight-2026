@@ -140,6 +140,7 @@ public:
 };
 class LightmapObservations;
 class LightgridObservations;
+class SurfaceGeometry;
 struct InputDataset
 {
 	InputManifest manifest;
@@ -153,6 +154,7 @@ struct InputDataset
 	// Immutable independently owned buffers; see lightmaps.h for encoding/UV rules.
 	std::shared_ptr<const LightmapObservations> lightmaps;
 	std::shared_ptr<const LightgridObservations> lightgrid; // original indexed evidence, not fitted grid
+	std::shared_ptr<const SurfaceGeometry> surfaceGeometry; // original static lightmap correspondence
 };
 
 // No chunk reads or visibility calls: validate only manifest/ownership contracts.
@@ -169,6 +171,7 @@ public:
 	bool HasVisibility() const { return !!input_.visibility; }
 	std::shared_ptr<const LightmapObservations> Lightmaps() const { return input_.lightmaps; }
 	std::shared_ptr<const LightgridObservations> Lightgrid() const { return input_.lightgrid; }
+	std::shared_ptr<const SurfaceGeometry> Geometry() const { return input_.surfaceGeometry; }
 	Error ValidateMetadata() const;
 	Error ReadSurfaces(uint64_t first, size_t count, Chunk<SurfaceObservation>& out);
 	Error ReadGrid(uint64_t first, size_t count, Chunk<GridObservation>& out);

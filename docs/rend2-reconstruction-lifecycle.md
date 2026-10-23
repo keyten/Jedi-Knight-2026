@@ -198,6 +198,10 @@ released temporary memory. See its [ownership/budget contract](rend2-lightmap-ob
 The separate lightgrid owner similarly reports `grid-observations=... bytes=...`;
 its [budget and lifetime rules](rend2-lightgrid-observations.md) also apply to
 retained `BuildRequired` inputs.
+The [original surface geometry owner](rend2-luxel-observations.md) follows the
+same leases/reset boundary. It captures source UVs before surface parsing and
+performs luxel mapping only on an explicit CPU/debug request; no automatic
+surface-sample matrix or numerical reconstruction is added to map loading.
 
 ## Tests and reproducible commands
 

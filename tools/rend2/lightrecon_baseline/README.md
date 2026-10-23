@@ -25,6 +25,10 @@ No production renderer or GLSL code is changed by the regression tooling.
   this does not replace or regenerate the controlled GLSL goldens.
 - `lightgrid-validation.json`: original record/index/HDR hashes and counts from
   stock-map SP lifecycle tests, including observation-only HDR with `r_hdr=0`.
+- `luxel-validation.json`: source-geometry error/normal/coverage checks, exact
+  atlas-independent export hashes and explicit SP overlay capture hashes. Raw
+  screenshots and geometry exports remain under ignored `build/`; reproduction
+  commands and limitations are in `docs/rend2-luxel-observations.md`.
 
 Run the existing suite's focused selection:
 

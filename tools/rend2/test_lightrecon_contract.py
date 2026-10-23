@@ -50,6 +50,21 @@ class Contracts(unittest.TestCase):
                 with mock.patch.object(regression, 'read', side_effect=changed):
                     self.assertTrue(regression.observation_audit())
 
+    def test_original_surface_and_opt_in_debug_guards(self):
+        import lightrecon_regression as regression
+        original = regression.read
+        for removed in ('observations.Surfaces(', 'observations.SurfaceMaterial('):
+            def changed(path):
+                text = original(path)
+                return text.replace(removed, 'removed_hook(') if path == 'shared/rd-rend2/tr_bsp.cpp' else text
+            with mock.patch.object(regression, 'read', side_effect=changed):
+                self.assertTrue(regression.observation_audit())
+        def depth_disabled(path):
+            text = original(path)
+            return text.replace('"*luxelDebug", lightmapsVertex', '"*luxelDebug", lightmaps2d') if path == 'shared/rd-rend2/tr_lightrecon.cpp' else text
+        with mock.patch.object(regression, 'read', side_effect=depth_disabled):
+            self.assertTrue(any('depth-tested' in failure for failure in regression.production_audit()))
+
     def test_disabled_future_branch_is_absent(self):
         added = '\n#ifdef USE_LIGHT_RECON_TEST\nuniform sampler3D u_LightReconTest;\n#endif\n'
         self.assertEqual(self.baseline, preprocess(self.source + added, self.cpp))

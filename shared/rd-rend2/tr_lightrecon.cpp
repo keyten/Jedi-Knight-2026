@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <new>
 
+qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
+
 std::string R_LightReconCacheRoot(void)
 {
 	char home[MAX_OSPATH]{};
@@ -17,6 +19,14 @@ std::string R_LightReconCacheRoot(void)
 static Rend2LightRecon::WorldLighting s_reconstructedLighting;
 static Rend2LightRecon::Core::LightmapCapture s_lightmapCapture;
 static Rend2LightRecon::Core::LightgridCapture s_lightgridCapture;
+static Rend2LightRecon::Core::SurfaceCapture s_surfaceCapture;
+static std::vector<Rend2LightRecon::Core::SurfaceLightingObservation> s_luxelDebug;
+static qhandle_t s_luxelDebugShader = 0;
+
+std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void)
+{
+	return s_surfaceCapture.Acquire();
+}
 
 std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void)
 {
@@ -39,6 +49,8 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 {
 	s_lightmapCapture.Begin(s_reconstructedLighting.Report().policy);
 	s_lightgridCapture.Begin(s_reconstructedLighting.Report().policy);
+	s_surfaceCapture.Begin(s_reconstructedLighting.Report().policy);
+	s_luxelDebug.clear();
 }
 
 LightReconWorldLoad::~LightReconWorldLoad()
@@ -47,6 +59,8 @@ LightReconWorldLoad::~LightReconWorldLoad()
 	{
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
+		s_surfaceCapture.Reset();
+		s_luxelDebug.clear();
 	}
 }
 
@@ -80,8 +94,9 @@ public:
 	{
 		plan.input.lightmaps = R_LightmapObservations();
 		plan.input.lightgrid = R_LightgridObservations();
+		plan.input.surfaceGeometry = R_LuxelGeometry();
 		return Rend2LightRecon::Core::Failure(Rend2LightRecon::Core::Code::Unavailable,
-			"Original lightmaps may be captured; geometry/material adapter and reconstruction algorithm are not installed");
+			"Original BSP observations may be captured; complete solver input/material adapter and reconstruction algorithm are not installed");
 	}
 };
 }
@@ -91,6 +106,8 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 		s_lightmapCapture.Freeze();
 	if (s_lightgridCapture.Needed())
 		s_lightgridCapture.Freeze();
+	if (s_surfaceCapture.Needed())
+		s_surfaceCapture.Freeze();
 	RendererWorldSource source;
 	Rend2LightRecon::WorldFacts facts;
 	if (s_reconstructedLighting.Report().policy == Rend2LightRecon::BuildPolicy::Disabled)
@@ -112,6 +129,7 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 	{
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
+		s_surfaceCapture.Reset();
 	}
 	finished_ = true;
 }
@@ -120,6 +138,9 @@ void R_ClearReconstructedLighting(void)
 {
 	s_lightmapCapture.Reset();
 	s_lightgridCapture.Reset();
+	s_surfaceCapture.Reset();
+	std::vector<Rend2LightRecon::Core::SurfaceLightingObservation>().swap(s_luxelDebug);
+	s_luxelDebugShader = 0;
 	s_reconstructedLighting.Unload();
 }
 
@@ -210,7 +231,157 @@ void LightReconBspCapture::GridEmbedded(int ro, int rb, int io, int ib)
 	const auto* bytes = static_cast<const uint8_t*>(source_);
 	s_lightgridCapture.SetSource(sourceMap_, bytes + ro, rb, ro, bytes + io, ib, io);
 }
-void LightReconBspCapture::GridLayout(const float* origin, const float* spacing, const int* bounds)
+void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int ib, int mo, int mb,
+									int sho, int shb)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!active_ || !s_surfaceCapture.Needed())
+		return;
+	auto span = [&](int offset, int bytes) {
+		return source_ && offset >= 0 && bytes >= 0 &&
+			   static_cast<size_t>(offset) <= sourceBytes_ &&
+			   static_cast<size_t>(bytes) <= sourceBytes_ - static_cast<size_t>(offset);
+	};
+	if (!span(so, sb) || !span(vo, vb) || !span(io, ib) || !span(mo, mb) || !span(sho, shb) ||
+		so % 4 || vo % 4 || io % 4 || mo % 4 || sho % 4 || sb % sizeof(dsurface_t) ||
+		vb % sizeof(drawVert_t) || ib % 4 || mb % sizeof(dmodel_t) || shb % sizeof(dshader_t))
+	{
+		s_surfaceCapture.Fail(Code::InvalidInput, "Malformed original geometry lumps");
+		return;
+	}
+	const auto *bytes = static_cast<const byte *>(source_);
+	const auto *surfaces = reinterpret_cast<const dsurface_t *>(bytes + so);
+	const auto *verts = reinterpret_cast<const drawVert_t *>(bytes + vo);
+	const auto *indices = reinterpret_cast<const int *>(bytes + io);
+	const auto *models = reinterpret_cast<const dmodel_t *>(bytes + mo);
+	const auto *shaders = reinterpret_cast<const dshader_t *>(bytes + sho);
+	const size_t count = sb / sizeof(dsurface_t), vertexCount = vb / sizeof(drawVert_t),
+				 indexCount = ib / 4, modelCount = mb / sizeof(dmodel_t),
+				 shaderCount = shb / sizeof(dshader_t);
+	const auto &limit = s_surfaceCapture.Limits();
+	if (count > limit.maxSurfaces || vertexCount > limit.maxVertices ||
+		indexCount > limit.maxIndices)
+	{
+		s_surfaceCapture.Fail(Code::MemoryLimit, "Original geometry counts exceed capture limits");
+		return;
+	}
+	try
+	{
+		if (!s_surfaceCapture.SetMap(sourceMap_))
+			return;
+		std::vector<uint32_t> owners(count, UINT32_MAX);
+		for (size_t m = 0; m < modelCount; ++m)
+		{
+			int first = LittleLong(models[m].firstSurface), n = LittleLong(models[m].numSurfaces);
+			if (first < 0 || n < 0 || static_cast<size_t>(first) > count ||
+				static_cast<size_t>(n) > count - static_cast<size_t>(first))
+			{
+				s_surfaceCapture.Fail(Code::InvalidInput, "Invalid brush model surface span");
+				return;
+			}
+			for (int j = 0; j < n; ++j)
+			{
+				auto &owner = owners[static_cast<size_t>(first) + j];
+				owner = owner == UINT32_MAX ? static_cast<uint32_t>(m) : UINT32_MAX - 1;
+			}
+		}
+		for (size_t i = 0; i < count; ++i)
+		{
+			const auto &ds = surfaces[i];
+			BakedSurface s;
+			s.ordinal = static_cast<uint32_t>(i);
+			s.model = owners[i];
+			s.motion = s.model == 0 ? SurfaceMotion::StaticWorld
+									: s.model < modelCount ? SurfaceMotion::BrushModel
+														   : SurfaceMotion::Unknown;
+			int kind = LittleLong(ds.surfaceType);
+			s.kind = kind == MST_PLANAR ? BakedSurfaceKind::Face
+										: kind == MST_PATCH ? BakedSurfaceKind::Patch
+															: kind == MST_TRIANGLE_SOUP
+																  ? BakedSurfaceKind::Triangles
+																  : BakedSurfaceKind::Unsupported;
+			int shader = LittleLong(ds.shaderNum);
+			if (shader >= 0 && static_cast<size_t>(shader) < shaderCount)
+			{
+				s.materialIndex = shader;
+				s.material.assign(shaders[shader].shader,
+								  strnlen(shaders[shader].shader, sizeof(shaders[shader].shader)));
+			}
+			else
+				s.kind = BakedSurfaceKind::Unsupported;
+			for (size_t slot = 0; slot < 4; ++slot)
+			{
+				s.lightmap[slot] = LittleLong(ds.lightmapNum[slot]);
+				s.styles[slot] = ds.lightmapStyles[slot];
+				s.chartX[slot] = LittleLong(ds.lightmapX[slot]);
+				s.chartY[slot] = LittleLong(ds.lightmapY[slot]);
+			}
+			s.lightmapOrigin = Rend2LightRecon::Vec3(LittleFloat(ds.lightmapOrigin[0]),
+													 LittleFloat(ds.lightmapOrigin[1]),
+													 LittleFloat(ds.lightmapOrigin[2]));
+			for (size_t j = 0; j < 3; ++j)
+				s.lightmapBasis[j] = Rend2LightRecon::Vec3(LittleFloat(ds.lightmapVecs[j][0]),
+														   LittleFloat(ds.lightmapVecs[j][1]),
+														   LittleFloat(ds.lightmapVecs[j][2]));
+			s.patchWidth = static_cast<uint32_t>(LittleLong(ds.patchWidth));
+			s.patchHeight = static_cast<uint32_t>(LittleLong(ds.patchHeight));
+			s.chartWidth = LittleLong(ds.lightmapWidth);
+			s.chartHeight = LittleLong(ds.lightmapHeight);
+			int fv = LittleLong(ds.firstVert), nv = LittleLong(ds.numVerts),
+				fi = LittleLong(ds.firstIndex), ni = LittleLong(ds.numIndexes);
+			if (fv < 0 || nv < 0 || fi < 0 || ni < 0 || static_cast<size_t>(fv) > vertexCount ||
+				static_cast<size_t>(nv) > vertexCount - static_cast<size_t>(fv) ||
+				static_cast<size_t>(fi) > indexCount ||
+				static_cast<size_t>(ni) > indexCount - static_cast<size_t>(fi))
+				s.kind = BakedSurfaceKind::Unsupported;
+			if (s.kind != BakedSurfaceKind::Unsupported)
+			{
+				const uint64_t recordBytes = sizeof(BakedSurface) + s.material.size() +
+											 uint64_t(nv) * sizeof(BakedVertex) +
+											 uint64_t(ni) * sizeof(uint32_t);
+				if (recordBytes > limit.maxBytes - s_surfaceCapture.Report().bytes)
+				{
+					s_surfaceCapture.Fail(Code::MemoryLimit,
+										  "Surface geometry payload exceeds capture budget");
+					return;
+				}
+				s.vertices.resize(nv);
+				s.indices.resize(ni);
+				for (int v = 0; v < nv; ++v)
+				{
+					auto &out = s.vertices[v];
+					const auto &in = verts[fv + v];
+					out.position = Rend2LightRecon::Vec3(
+						LittleFloat(in.xyz[0]), LittleFloat(in.xyz[1]), LittleFloat(in.xyz[2]));
+					out.shadingNormal =
+						Rend2LightRecon::Vec3(LittleFloat(in.normal[0]), LittleFloat(in.normal[1]),
+											  LittleFloat(in.normal[2]));
+					for (size_t slot = 0; slot < 4; ++slot)
+						out.lightmap[slot] = LightmapUv(LittleFloat(in.lightmap[slot][0]),
+														LittleFloat(in.lightmap[slot][1]));
+				}
+				for (int j = 0; j < ni; ++j)
+					s.indices[j] = static_cast<uint32_t>(LittleLong(indices[fi + j]));
+			}
+			if (!s_surfaceCapture.Add(std::move(s)))
+				return;
+		}
+	}
+	catch (const std::bad_alloc &)
+	{
+		s_surfaceCapture.Fail(Code::MemoryLimit, "Geometry capture allocation failed");
+	}
+}
+void LightReconBspCapture::SurfaceMaterial(unsigned ordinal, bool deformed, bool excluded)
+{
+	if (active_ && s_surfaceCapture.Needed())
+		s_surfaceCapture.Material(ordinal, deformed, excluded);
+}
+bool LightReconBspCapture::GeometryNeeded() const
+{
+	return active_ && s_surfaceCapture.Needed();
+}
+void LightReconBspCapture::GridLayout(const float *origin, const float *spacing, const int *bounds)
 {
 	using namespace Rend2LightRecon::Core;
 	if (!active_ || !s_lightgridCapture.Needed()) return;
@@ -330,6 +501,10 @@ void R_LightReconInfo_f(void)
 		AvailabilityName(snapshot.State()), asset ? 1 : 0, asset ? static_cast<int>(asset.value->emitters.size()) : 0,
 		asset ? static_cast<int>(asset.value->transport.size()) : 0);
 	const auto& report = s_reconstructedLighting.Report();
+	const auto& geometry=s_surfaceCapture.Report();
+	ri.Printf(PRINT_ALL,"  luxel-geometry=%s faces=%llu patches=%llu soups=%llu vertices=%llu indices=%llu bytes=%llu excluded=%llu malformed=%llu vertex-lit=%llu: %s\n",
+		Core::CaptureStateName(geometry.state),static_cast<unsigned long long>(geometry.faces),static_cast<unsigned long long>(geometry.patches),static_cast<unsigned long long>(geometry.triangles),
+		static_cast<unsigned long long>(geometry.vertices),static_cast<unsigned long long>(geometry.indices),static_cast<unsigned long long>(geometry.bytes),static_cast<unsigned long long>(geometry.excluded),static_cast<unsigned long long>(geometry.malformed),static_cast<unsigned long long>(geometry.vertexLit),geometry.message.c_str());
 	const auto& lm = s_lightmapCapture.Report();
 	ri.Printf(PRINT_ALL, "  observations=%s images=%llu missing=%llu RGB8=%llu RGBA8=%llu HDR32F=%llu deluxe=%llu pixels=%llu bytes=%llu accounted=%llu\n",
 		Core::CaptureStateName(lm.state), static_cast<unsigned long long>(lm.images), static_cast<unsigned long long>(lm.missing),
@@ -399,5 +574,224 @@ void R_LightReconInfo_f(void)
 		ri.Printf(PRINT_ALL, "  %s requested=%d effective=%d capability=%s feature=%d: %s\n", ConsumerCvar(c),
 			state.requested ? 1 : 0, state.effective ? 1 : 0, StatusName(state.capabilityStatus),
 			state.featureAvailable ? 1 : 0, GateReasonName(state.reason));
+	}
+}
+
+void R_LuxelDebug_f(void)
+{
+	using namespace Rend2LightRecon;
+	using namespace Rend2LightRecon::Core;
+	if (ri.Cmd_Argc() < 2 || !Q_stricmp(ri.Cmd_Argv(1), "off"))
+	{
+		s_luxelDebug.clear();
+		ri.Printf(PRINT_ALL, "luxel-debug off; usage: r_lightReconLuxels list | [logical] <image "
+							 "ID> <stride 1..64> [surface ordinal]\n");
+		return;
+	}
+	const auto geometry = R_LuxelGeometry();
+	const auto images = R_LightmapObservations();
+	if (!geometry || !images)
+	{
+		ri.Printf(PRINT_ALL, "luxel-debug unavailable: reload map with r_lightReconBuild 2 or 3\n");
+		return;
+	}
+	if (!Q_stricmp(ri.Cmd_Argv(1), "list"))
+	{
+		for (const auto &s : geometry->Surfaces())
+			if (s.kind == BakedSurfaceKind::Patch && s.motion == SurfaceMotion::StaticWorld &&
+				s.lightmap[0] >= 0 && !s.vertices.empty())
+			{
+				const auto &v = s.vertices[s.vertices.size() / 2];
+				ri.Printf(
+					PRINT_ALL,
+					"luxel-patch surface=%u lightmap=%d position=%.3f,%.3f,%.3f material=%s\n",
+					s.ordinal, s.lightmap[0], v.position.x, v.position.y, v.position.z,
+					s.material.c_str());
+			}
+		for (size_t i = 0; i < images->Images().size(); ++i)
+		{
+			const auto &im = images->Images()[i];
+			ri.Printf(PRINT_ALL, "luxel-image ordinal=%u logical=%u size=%ux%u source=%s\n",
+					  static_cast<unsigned>(i), im.logicalIndex, im.width, im.height,
+					  im.source.c_str());
+		}
+		return;
+	}
+	const bool logical = !Q_stricmp(ri.Cmd_Argv(1), "logical");
+	int first = logical ? 2 : 1;
+	int image = atoi(ri.Cmd_Argv(first)),
+		stride = ri.Cmd_Argc() > first + 1 ? atoi(ri.Cmd_Argv(first + 1)) : 4;
+	s_luxelDebug.clear(); // failed new requests cannot leave a previous image's overlay visible
+	int surface = ri.Cmd_Argc() > first + 2 ? atoi(ri.Cmd_Argv(first + 2)) : -1;
+	if (logical)
+	{
+		int requested = image;
+		image = -1;
+		for (size_t i = 0; i < images->Images().size(); ++i)
+		{
+			const auto &im = images->Images()[i];
+			if (requested >= 0 && im.logicalIndex == static_cast<unsigned>(requested) &&
+				im.role == LightmapRole::Lighting && !im.missing)
+			{
+				image = static_cast<int>(i);
+				break;
+			}
+		}
+	}
+	if (image < 0 || static_cast<size_t>(image) >= images->Images().size() || stride < 1 ||
+		stride > 64)
+	{
+		ri.Printf(PRINT_ALL, "luxel-debug invalid image/stride\n");
+		return;
+	}
+	const auto &im = images->Images()[image];
+	MappingOptions options;
+	ReadContext context;
+	context.maxBytes = 32ull * 1024 * 1024;
+	LuxelTile tile;
+	const auto error =
+		MapLuxels(geometry, images, image, 0, 0, im.width, im.height, options, context, tile);
+	if (!error)
+	{
+		ri.Printf(PRINT_ALL, "luxel-debug failed: %s\n", error.message.c_str());
+		return;
+	}
+	s_luxelDebug.clear();
+	std::string mask =
+		"P6\n" + std::to_string(tile.width) + " " + std::to_string(tile.height) + "\n255\n";
+	for (const auto &s : tile.samples)
+	{
+		byte rgb[3] = {20, 20, 20};
+		if (s.coverage == LuxelCoverage::Mapped)
+		{
+			rgb[0] = 40;
+			rgb[1] = 220;
+			rgb[2] = 80;
+		}
+		if (s.issues & LuxelBorder)
+		{
+			rgb[0] = 255;
+			rgb[1] = 180;
+			rgb[2] = 20;
+		}
+		if (s.coverage == LuxelCoverage::FootprintOnly)
+		{
+			rgb[0] = 80;
+			rgb[1] = 100;
+			rgb[2] = 255;
+		}
+		if (s.coverage == LuxelCoverage::Ambiguous)
+		{
+			rgb[0] = 255;
+			rgb[1] = 20;
+			rgb[2] = 180;
+		}
+		if (s.coverage == LuxelCoverage::Unsupported)
+		{
+			rgb[0] = 255;
+			rgb[1] = 30;
+			rgb[2] = 30;
+		}
+		mask.append(reinterpret_cast<const char *>(rgb), 3);
+		if (s.positionKnown && s.x % stride == 0 && s.y % stride == 0 &&
+			(surface < 0 || s.surface == static_cast<unsigned>(surface)))
+			s_luxelDebug.push_back(s);
+	}
+	auto distance = [](const SurfaceLightingObservation &s) {
+		double x = s.positionWorld.x - tr.refdef.vieworg[0],
+			   y = s.positionWorld.y - tr.refdef.vieworg[1],
+			   z = s.positionWorld.z - tr.refdef.vieworg[2];
+		return x * x + y * y + z * z;
+	};
+	std::stable_sort(s_luxelDebug.begin(), s_luxelDebug.end(),
+					 [&](const SurfaceLightingObservation &a, const SurfaceLightingObservation &b) {
+						 return distance(a) < distance(b);
+					 });
+	if (s_luxelDebug.size() > 512)
+		s_luxelDebug.resize(512);
+	const std::string stem = "lightrecon/luxel-image-" + std::to_string(image);
+	ri.FS_WriteFile((stem + ".ppm").c_str(), mask.data(), static_cast<int>(mask.size()));
+	std::string obj;
+	if (LuxelDebugObj(tile, options.maxTexels, obj))
+		ri.FS_WriteFile((stem + ".obj").c_str(), obj.data(), static_cast<int>(obj.size()));
+	const auto &r = tile.report;
+	ri.Printf(PRINT_ALL,
+			  "luxel-debug image=%d logical=%u mapped=%llu padding=%llu footprint=%llu "
+			  "ambiguous=%llu borders=%llu duplicate-triangles=%llu degenerate=%llu "
+			  "patch-segments=%llu unsupported-patch-UV=%llu excluded=%llu basis-max=%.9g "
+			  "markers=%u unsupported-texels=%llu; wrote %s.obj and %s.ppm\n",
+			  image, im.logicalIndex, static_cast<unsigned long long>(r.mapped),
+			  static_cast<unsigned long long>(r.padding),
+			  static_cast<unsigned long long>(r.footprintOnly),
+			  static_cast<unsigned long long>(r.ambiguous),
+			  static_cast<unsigned long long>(r.borders),
+			  static_cast<unsigned long long>(r.duplicates),
+			  static_cast<unsigned long long>(r.degenerate),
+			  static_cast<unsigned long long>(r.patchSegments),
+			  static_cast<unsigned long long>(r.unsupportedPatchUv),
+			  static_cast<unsigned long long>(r.excluded), r.maximumBasisError,
+			  static_cast<unsigned>(s_luxelDebug.size()),
+			  static_cast<unsigned long long>(r.unsupportedTexels), stem.c_str(), stem.c_str());
+}
+
+void R_LuxelDebugDraw(const refdef_t *fd)
+{
+	// No debug state means no shader registration, poly submission or asset query.
+	if (s_luxelDebug.empty() || (fd->rdflags & RDF_NOWORLDMODEL))
+		return;
+	if (!s_luxelDebugShader)
+		s_luxelDebugShader = RE_RegisterShaderFromImage("*luxelDebug", lightmapsVertex, stylesDefault,
+														tr.whiteImage, qfalse);
+	auto line = [&](const vec3_t a, const vec3_t b, const byte *colour) {
+		vec3_t dir, eye, side;
+		VectorSubtract(b, a, dir);
+		VectorSubtract(a, fd->vieworg, eye);
+		CrossProduct(dir, eye, side);
+		if (VectorNormalize(side) < 1e-6f)
+			return;
+		VectorScale(side, .35f, side);
+		polyVert_t p[4];
+		VectorSubtract(a, side, p[0].xyz);
+		VectorAdd(a, side, p[1].xyz);
+		VectorAdd(b, side, p[2].xyz);
+		VectorSubtract(b, side, p[3].xyz);
+		for (auto &v : p)
+		{
+			v.st[0] = v.st[1] = .5f;
+			Com_Memcpy(v.modulate, colour, 4);
+		}
+		RE_AddPolyToScene(s_luxelDebugShader, 4, p, 1);
+	};
+	for (const auto &s : s_luxelDebug)
+	{
+		vec3_t p = {s.positionWorld.x, s.positionWorld.y, s.positionWorld.z},
+			   n = {s.geometricNormal.x, s.geometricNormal.y, s.geometricNormal.z}, end, a, b, eye;
+		VectorSubtract(p, fd->vieworg, eye);
+		if (VectorLengthSquared(eye) > 2048 * 2048 || VectorLengthSquared(eye) < 32 * 32)
+			continue;
+		// 0.12 world units is DRAWING separation only; CPU observation stays exact.
+		VectorMA(p, .12f, n, p);
+		VectorMA(p, 6, n, end);
+		byte red[4] = {255, 60, 60, 255};
+		line(p, end, red);
+		vec3_t tangent = {s.tangentWorld.x, s.tangentWorld.y, s.tangentWorld.z};
+		VectorMA(p, -1.0f, tangent, a);
+		VectorMA(p, 1.0f, tangent, b);
+		byte colour[4] = {60, 255, 80, 255};
+		const auto geometry = R_LuxelGeometry();
+		if (geometry && s.surface < geometry->Surfaces().size() &&
+			geometry->Surfaces()[s.surface].kind == Rend2LightRecon::Core::BakedSurfaceKind::Patch)
+		{
+			colour[0] = 40;
+			colour[1] = 210;
+			colour[2] = 255;
+		}
+		if (s.issues & Rend2LightRecon::Core::LuxelBorder)
+		{
+			colour[0] = 255;
+			colour[1] = 190;
+			colour[2] = 20;
+		}
+		line(a, b, colour);
 	}
 }

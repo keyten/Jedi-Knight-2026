@@ -881,6 +881,7 @@ void RE_BeginScene(const refdef_t *fd)
 	// r_foliageInteractionDebug 1 capsules)
 	R_FoliageInteractionBeginScene(fd);
 	R_WaterBodiesDebugDraw(fd);
+	R_LuxelDebugDraw(fd);
 
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];

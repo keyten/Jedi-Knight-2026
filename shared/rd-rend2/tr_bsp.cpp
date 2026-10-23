@@ -2403,7 +2403,7 @@ static void R_CreateWorldVBOs( world_t *worldData )
 R_LoadSurfaces
 ===============
 */
-static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lump_t *indexLump ) {
+static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lump_t *indexLump, LightReconBspCapture& observations ) {
 	const int surfacesStart = ri.Milliseconds();
 	int stageStart = surfacesStart;
 	dsurface_t	*in;
@@ -2538,6 +2538,13 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 			break;
 		default:
 			ri.Error( ERR_DROP, "Bad surfaceType" );
+		}
+		if (observations.GeometryNeeded())
+		{
+			// Already parsed authored shader, independent of r_singleShader's draw override.
+			const shader_t* authored = R_FindShaderByName(worldData->shaders[LittleLong(in->shaderNum)].shader);
+			observations.SurfaceMaterial(i, authored->numDeforms > 0,
+				authored->defaultShader || authored->isSky || (authored->surfaceFlags & SURF_NODRAW));
 		}
 	}
 
@@ -4957,6 +4964,11 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	// Copy original record/index lumps while the original BSP lease is alive.
 	observations.GridEmbedded(header->lumps[LUMP_LIGHTGRID].fileofs, header->lumps[LUMP_LIGHTGRID].filelen,
 		header->lumps[LUMP_LIGHTARRAY].fileofs, header->lumps[LUMP_LIGHTARRAY].filelen);
+	observations.Surfaces(header->lumps[LUMP_SURFACES].fileofs, header->lumps[LUMP_SURFACES].filelen,
+		header->lumps[LUMP_DRAWVERTS].fileofs, header->lumps[LUMP_DRAWVERTS].filelen,
+		header->lumps[LUMP_DRAWINDEXES].fileofs, header->lumps[LUMP_DRAWINDEXES].filelen,
+		header->lumps[LUMP_MODELS].fileofs, header->lumps[LUMP_MODELS].filelen,
+		header->lumps[LUMP_SHADERS].fileofs, header->lumps[LUMP_SHADERS].filelen);
 	observations.ReleaseSource(); // pixel copies survive; borrowed BSP/re-read scratch does not
 	R_LoadProfilePrint("BSP entities/shaders/lightmaps", stageStart);
 	stageStart = ri.Milliseconds();
@@ -4972,7 +4984,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		worldData,
 		&header->lumps[LUMP_SURFACES],
 		&header->lumps[LUMP_DRAWVERTS],
-		&header->lumps[LUMP_DRAWINDEXES]);
+		&header->lumps[LUMP_DRAWINDEXES], observations);
 	R_SetMaterialDdcWorldLoad(qfalse);
 	R_LoadProfilePrint("BSP surfaces and patches", stageStart);
 	stageStart = ri.Milliseconds();

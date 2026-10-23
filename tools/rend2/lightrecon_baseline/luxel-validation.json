@@ -1,0 +1,972 @@
+{
+  "passed": true,
+  "date": "2026-10-23",
+  "source_base_revision": "fa7b8a7b59d8cb24fc907b84743365f43806b244",
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/surfaces.h": "14b0cc58cebc75cd18756c5c3a0609cb51e79b66da1410fe6965f0b87967be7f",
+    "shared/rd-rend2/lightrecon/surfaces.cpp": "a7049062632acb1c603270c32972527da5ae6be8b7149c08110c415ee5f45099",
+    "shared/rd-rend2/lightrecon/input.h": "0f5d784c63c9f3c935f9b81b802bcf2a9e4829cf7c36eb51aa56600da0bc96b0",
+    "shared/rd-rend2/tr_bsp.cpp": "527c9c08ffd0bfbf6c1fa54b2d209385c30bdf5bcac84f7bee42308f9e281a68",
+    "shared/rd-rend2/tr_lightrecon.h": "c37c3335951f6ff815add111e9b3f99472c8b3af405d39f796f87026d9c875c2",
+    "shared/rd-rend2/tr_lightrecon.cpp": "101638995b51a9b650312987d1e7f731bd227d328787c2623d03d8579530adf3",
+    "shared/rd-rend2/tr_local.h": "ec12ed5d911847017a7a272c157c41a4454dccb4abfb596a0c9f284a50caa477",
+    "shared/rd-rend2/tr_scene.cpp": "4cac5498fef1539fa9a03926c962275b0af56ff465579ddadab15be21ec50899",
+    "code/rd-rend2/tr_init.cpp": "a2d9cbb18d3c0149800e62eabebc7402a6b4e7ed2ab3930d3859c8d46970b859",
+    "codemp/rd-rend2/tr_init.cpp": "07830a515266f913617be101396fdd6e6ec30286b0d95881e8b347dd8062c684",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "6a2a975f7af436646d82d4843a2df40a6522bd09848b0bf2f28cf9d2b9b2380d",
+    "tools/lightrecon_test/CMakeLists.txt": "273e1b10b3a6003a9b8e25d5dfb92dbe4b03ea65c3cda984c7475596aa158aa2",
+    "tools/lightrecon_test/lightrecon_surfaces_test.cpp": "dc0b3b9594db13f996b5315feea7b709dfc13f48444620ed1242d24002105ddf",
+    "tools/rend2/test_lightrecon_luxels_runtime.py": "8a43b40fe83bde5db46e95b46038c420b7b3b3a7b4ae637e3638c007f77cb6af",
+    "tools/rend2/test_lightrecon_contract.py": "3e267eac12c2936e9e56d66f873b84abde10fb493b61889d824ed69a8a4b3032",
+    "tools/rend2/lightrecon_regression.py": "7b0e8c7550fbe6a61db025f1c1189e650f0cc4a0445580b956f8ec3f6df13e49"
+  },
+  "cpu": {
+    "msvc": {
+      "passed": true,
+      "executables": 10,
+      "checks": 536954,
+      "surface_checks": 5441
+    },
+    "gcc": {
+      "passed": true,
+      "executables": 10,
+      "checks": 536954,
+      "surface_checks": 5441
+    }
+  },
+  "shader_contract": {
+    "programs": 27,
+    "stages": 51,
+    "differences": 0,
+    "gpu_compiled": false,
+    "detector_tests": 13,
+    "dependency_audit": "passed"
+  },
+  "atlas_comparison": {
+    "passed": true,
+    "logical_pages": 38,
+    "identical_obj_exports": true,
+    "identical_coverage_masks": true
+  },
+  "runtime": [
+    {
+      "passed": true,
+      "external_layout": false,
+      "renderer_sha256": "c8de827bc29728ae8c71ffcd71dbf23bb791dc1960b32e5eef7c36f516e8bc57",
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 960,
+        "r_customheight": 540,
+        "r_swapInterval": 0,
+        "com_maxfps": 60,
+        "com_maxfpsUnfocused": 60,
+        "com_maxfpsMinimized": 60,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_staticLightReconstruction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_recoveredVolumetricLights": 0,
+        "r_lightPortals": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunSplit": 0,
+        "r_ltcAreaCalibration": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 1024,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 1,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 3,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 1,
+        "r_lightReconEntities": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconWorldDiffuse": 1,
+        "r_lightReconArea": 1,
+        "r_lightReconEnvironment": 1,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "fs_basepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "fs_homepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-internal\\home",
+        "fs_game": "OpenJK",
+        "r_subdivisions": 1,
+        "r_lodCurveError": 100000,
+        "r_deluxeMapping": 0,
+        "r_floatLightmap": 0
+      },
+      "map_identity": {
+        "path": "maps/hoth3.bsp",
+        "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "bytes": 13920700
+      },
+      "recorded_cameras": [
+        [
+          "3402 651 117",
+          "-357 55 0",
+          "80"
+        ],
+        [
+          "3402 651 117",
+          "-357 55 0",
+          "80"
+        ],
+        [
+          "3534 740 113",
+          "-359 171 0",
+          "80"
+        ],
+        [
+          "3534 740 113",
+          "-359 171 0",
+          "80"
+        ]
+      ],
+      "scenes": [
+        [
+          "face",
+          [
+            3464,
+            700,
+            85,
+            90
+          ],
+          4,
+          2,
+          -1
+        ],
+        [
+          "patch",
+          [
+            3464,
+            752,
+            85,
+            180
+          ],
+          16,
+          1,
+          319
+        ]
+      ],
+      "comparisons": {
+        "face": {
+          "disabled_repeat": {
+            "pixels": 518400,
+            "differing_pixels": 0,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "exact": true,
+            "passed": true
+          },
+          "overlay_changed_pixels": 4568
+        },
+        "patch": {
+          "disabled_repeat": {
+            "pixels": 518400,
+            "differing_pixels": 0,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "exact": true,
+            "passed": true
+          },
+          "overlay_changed_pixels": 841
+        }
+      },
+      "geometry": [
+        "luxel-geometry=Captured faces=12462 patches=365 soups=30 vertices=83772 indices=159663 bytes=13017960 excluded=129 malformed=0 vertex-lit=866: "
+      ],
+      "mapping_totals": {
+        "mapped": 390285,
+        "padding": 164788,
+        "footprint": 27310,
+        "ambiguous": 15680,
+        "borders": 164898,
+        "unsupported-texels": 24529,
+        "patch-segments": 760,
+        "unsupported-patch-UV": 168,
+        "duplicate-triangles": 12,
+        "degenerate": 9
+      },
+      "numerical": {
+        "samples": 390285,
+        "face_samples": 360296,
+        "patch_samples": 29989,
+        "soup_samples": 0,
+        "maximum_error_world": 0.0005295005897409643,
+        "normal_samples": 12196,
+        "maximum_normal_component_error": 4.000151132865781e-05,
+        "maximum_normal_angle_degrees": 0.0019448200948129469,
+        "exports": {
+          "0": {
+            "mapped": 0,
+            "obj_sha256": "8d0c2510ce2f786c93753f38b555d076e6a44088a6f6fb8992734f629a2e8b3b",
+            "coverage_sha256": "4780e25686ab29cb8537add777d90dace40ab4bd4701a90ecbcaa69abc3f2244"
+          },
+          "1": {
+            "mapped": 11542,
+            "obj_sha256": "b09fc80312a2e4b9e7e9bedb0611737d7e7fb1396c12e36e7984410c3e015a7a",
+            "coverage_sha256": "3ffe2a16099e4930679fce3838ec647d8991e44978b3cc709c721fbe8564e6dc"
+          },
+          "2": {
+            "mapped": 11712,
+            "obj_sha256": "adc3c8505e6a3753dfb12921e81bf49c2619d1650bad7c4e218e6fd6caa2c683",
+            "coverage_sha256": "5d98167494f8cc11e5e34a51dff0056de1ed562c070f74b636c5d02e1dd44f74"
+          },
+          "3": {
+            "mapped": 10239,
+            "obj_sha256": "2208606e1803eb920119b37eac36e5e36a65e20aa49437013620f4f936900f65",
+            "coverage_sha256": "421a5778ea03d54e06615ff0e2517aac8ec7d46cadec3e0e1688e864024ca1c5"
+          },
+          "4": {
+            "mapped": 12110,
+            "obj_sha256": "9104263ba403cc49f3e6110f358f83cf8b38ea030819bc7f0f5d428fed0bbc69",
+            "coverage_sha256": "cfb63882ffda1d7fec38ad68f38ad9c32bf702ffb07253f2bf9fd0c87025ef0f"
+          },
+          "5": {
+            "mapped": 10768,
+            "obj_sha256": "84721997a50a7df99050a963e97af98b6631720ae03564d80c81daf4e23d67ad",
+            "coverage_sha256": "97e3ab150926aade78420f2abc57c5082f1f07405f707c92172ba7d17ff542b3"
+          },
+          "6": {
+            "mapped": 12204,
+            "obj_sha256": "cb424c0fad18f79b73a39bd6935fc020ff7e3d9316dc18fbf704cd1bcb111d09",
+            "coverage_sha256": "c73a3913c67a43fa2de133a5013a62476e3fa9ceba7cba051f9d7195272ea3e5"
+          },
+          "7": {
+            "mapped": 12449,
+            "obj_sha256": "f2d9acd394b17e8021563e1ad3940b2b04729596de16c6fc48232c31fee812a2",
+            "coverage_sha256": "c247f96327b1152f7bca71a9c6eb9d14cda0d68fc3e44e5e43009f196cbf28f7"
+          },
+          "8": {
+            "mapped": 11767,
+            "obj_sha256": "453333f0ec7ddd8cb16825420142d2c2577e224e64c906160e6c5d3fb012b62f",
+            "coverage_sha256": "e7df720b932e2bb132c0cdeaa59ea1f7fdbde2e94ee0a19389cad3468815a0d2"
+          },
+          "9": {
+            "mapped": 11224,
+            "obj_sha256": "dae4fb9b9256b81a606ed99fc065231812b4a76b771e0d3f66f303771f9f9be8",
+            "coverage_sha256": "7f4ca0a9fd10fde1858c9a15c0a8ad6c1419eb174bbcce3a3bd1c3b59a624b62"
+          },
+          "10": {
+            "mapped": 10902,
+            "obj_sha256": "8453afd67d5b9351d6c55c39cd75661fab1e8783fcdfdbeb657c9192322bec47",
+            "coverage_sha256": "c05d054238bb2b959b6023bb417b4d699e29dce12d5d665f2f6e1a46af3f4106"
+          },
+          "11": {
+            "mapped": 12533,
+            "obj_sha256": "5cab46fb38ca8b8f49e860b82c005725fe3ee1299ca8cc7cb806a82799b134ba",
+            "coverage_sha256": "bc964794934a5dc4fce193f2910ab147e0d3130a03efd024b83426c202febdd3"
+          },
+          "12": {
+            "mapped": 12830,
+            "obj_sha256": "99c76e1f3d44e73a7b4b0cf958ed14f4fff33a98573a33f726f4d798cccd0055",
+            "coverage_sha256": "25f6e962e7ddbc33f3dee61f2640cd9ebb62e48dd208011bcee56a72f305ba76"
+          },
+          "13": {
+            "mapped": 11029,
+            "obj_sha256": "e588ed4674aba59162c90a4f7eb4a74aab05cbb37cb893854803f250ba855474",
+            "coverage_sha256": "33e9108fba7adce2a32062ffe980fc2bc2334f1f6b233b62651ea6740f7a034f"
+          },
+          "14": {
+            "mapped": 9583,
+            "obj_sha256": "fcd60e458305eb17cfb92814cee4cf3be59be865e3b4b01a10ee73ee2446949c",
+            "coverage_sha256": "89ec057b139be5d9e9b0116e4ac5ed15109a4971bf0af9f7e20ece0b65f1d282"
+          },
+          "15": {
+            "mapped": 11260,
+            "obj_sha256": "327fef59b001f53681a68bf7da4a687c34fa415b13e53e1ce45f4cbff701c6b7",
+            "coverage_sha256": "e0dacb0a70520d0f5070ae9eda7d7b072f762f2f979bfd0638fd94b42b9967ee"
+          },
+          "16": {
+            "mapped": 14087,
+            "obj_sha256": "6b5744f22ddedd96284850e069f46251117b19545c8c90caa0368777db8f3ce9",
+            "coverage_sha256": "10333b49c1b5ba99174d598f9e7aad5023ea4bbb4a4a40c04a4cc61a9d7a83a7"
+          },
+          "17": {
+            "mapped": 12819,
+            "obj_sha256": "48a87a03ad10662b3be32aea981c3c759634b9199adba3b838dab00bfc4eb918",
+            "coverage_sha256": "5f0e216d11f397f7acc9b440f6976e3671033db9aba6df0c63006ec407961891"
+          },
+          "18": {
+            "mapped": 13004,
+            "obj_sha256": "2f9bef8a22dd0f7a1d3a827ecc2b70338282a220eaab1c877c2346baf0c18de8",
+            "coverage_sha256": "ca8208e39e3ce137e41353e1961ec5311defc51a38ae1aefc1213209f0d7b532"
+          },
+          "19": {
+            "mapped": 10521,
+            "obj_sha256": "f8e9f8bf7fd3b061605ef6278e696a7f548fd04ab5dd034e2027e85c79cfa86a",
+            "coverage_sha256": "91e36d600be7e9bf2fae2c56327a5ce759dd7610f7ce94e467ba46077c8ac4f6"
+          },
+          "20": {
+            "mapped": 6812,
+            "obj_sha256": "46911c452e573b67b0e39402c46882e3187ab12ae6af4b5ccf6e5a29ddd1ea6f",
+            "coverage_sha256": "7acd58339c198aa8769a02302344363128f077669ca58a9940fa4e8537270d22"
+          },
+          "21": {
+            "mapped": 12416,
+            "obj_sha256": "462b616efcc307dfae10a50469a193fc213581b6c95203ee9d824f8fc94eaf85",
+            "coverage_sha256": "3cd1d2c984cd288bc9acce89fe730f4936a94c2c0849a3ab3f8f9df3941b8ff1"
+          },
+          "22": {
+            "mapped": 11278,
+            "obj_sha256": "64e35c758d0c64be7c7c701b7f7aec445e8767ed2af4d0f1fa38b92c1989ab91",
+            "coverage_sha256": "1e82e5ea4afdac85c890b780d247a1b02446bb39d611c500dfd386de52b9c027"
+          },
+          "23": {
+            "mapped": 12860,
+            "obj_sha256": "92dfc7779e7465caf371ad745c05975d205a1b5c440e823fc473bfdd3cea8c1c",
+            "coverage_sha256": "d0ad60bf5708768c5467cb65aa14935293dcf524ee3283717d5334713a1e88fd"
+          },
+          "24": {
+            "mapped": 14955,
+            "obj_sha256": "ce89d565cf7d5046ec1bd0ede600a9bdd3af3b2f058f66d9cafd387d4eaf37c5",
+            "coverage_sha256": "41cb919c150333421ace32f485bd47d144781cc2e3f7407fce68dc81cc7bd78d"
+          },
+          "25": {
+            "mapped": 9225,
+            "obj_sha256": "4eabef8509c22933c60f548ddbd7a7eeb0ef50bd3609ab08bb61250ad5a55f8f",
+            "coverage_sha256": "8367cebd54bc64588f8c8278aa8511bbe6e2fda2bdb8c8e567d7c97f081fb593"
+          },
+          "26": {
+            "mapped": 11695,
+            "obj_sha256": "d564cd5a71b382fed404dc2c672040221067a134a711d1afe1a945ac3285a99e",
+            "coverage_sha256": "0193d4d47eb5bbc63721fa38724ec406c0feb0e078fad78a917a844d97595cfb"
+          },
+          "27": {
+            "mapped": 13147,
+            "obj_sha256": "c268d141015170f92338db37eb18fd13535f06cfcdcb012543b8096de140fd65",
+            "coverage_sha256": "0ac8bf2374511851e88d62642095f75212317de6b71f055a6a329606aa6c072a"
+          },
+          "28": {
+            "mapped": 10058,
+            "obj_sha256": "bc93c8a13bbf3f79f0bf233b45b6e185ccd759e0d5eb8109cb70b6a143cebb48",
+            "coverage_sha256": "833c20caecf0fe2f0018f2bf2df1b723a71fd13e4a02c451b98c691a01850879"
+          },
+          "29": {
+            "mapped": 12244,
+            "obj_sha256": "070316e95a422e67ebbb932d80855d846c1c7e60696310eebdcaf6471da2eeb4",
+            "coverage_sha256": "1229548b7beed434ad87d65bc76e483aa94fc318e3697144565599db7fe65df1"
+          },
+          "30": {
+            "mapped": 10089,
+            "obj_sha256": "f2fbbc75abb475ed860a52a83bbebd3e5af197e2f392d912a9397c863bf4bcd8",
+            "coverage_sha256": "aeb706a0d172b7ef87e21b2b2caf0fecea3483d55effca5426dbd8693965f2b7"
+          },
+          "31": {
+            "mapped": 9303,
+            "obj_sha256": "72c09e33f0d019306168a69b9cd159b9cfe18b778e39aa3233ae7eb86ed47efe",
+            "coverage_sha256": "d190dd2f0caa0179784e511d97e65e6c0f7dc4443f4248c80bdd1d8d089ecd5b"
+          },
+          "32": {
+            "mapped": 12221,
+            "obj_sha256": "9c05b6f2a3684bf1ce3127f2a80fa581d522b58a4bd304fb2539514586a0476e",
+            "coverage_sha256": "f8319d95d1e46c82f7d17c55947bab06796c12be0b037264b76bc765203e1378"
+          },
+          "33": {
+            "mapped": 6026,
+            "obj_sha256": "248090a8b4f2caf2d6a75818563732847f326250b24e5cb3187c0545a0babdd5",
+            "coverage_sha256": "9fa66391a0a1456ec932c836fa86bce1b28bdbd4d2f90ddcbaa635bef820c785"
+          },
+          "34": {
+            "mapped": 6714,
+            "obj_sha256": "6cf5c726d131d003e4e9df599e75cc48df976809de86cc352f67072427bc7bb6",
+            "coverage_sha256": "d3da25ffc98e8dc2554d58f9c2ed964344f5a00dce0cc460ac7d436e8a14c55c"
+          },
+          "35": {
+            "mapped": 6391,
+            "obj_sha256": "0ab1be03f7cc6ba742728502e73b7fa7c2a80fe7814b0be75aa9263e14f3d61c",
+            "coverage_sha256": "b8127a54b2c439824b926d75e884eab1b26b8ab16e42fabf1e701dd8a2c300a4"
+          },
+          "36": {
+            "mapped": 2268,
+            "obj_sha256": "1e872b6c4f87b810288c9e5a2e6e13ff25c16013ccf0712ca084c12983f18be0",
+            "coverage_sha256": "80533a7ec02076b9081da6f0168058e79fab178d81447d235d44100aa3eabb79"
+          },
+          "37": {
+            "mapped": 0,
+            "obj_sha256": "31fe72d184a424b12fef8b893bd847555ddff0590b482fae3597474aa15c8c88",
+            "coverage_sha256": "52382633c4abb486bfdce954fc629f172dbf66bc6123c7d33323e2ad9d51b27c"
+          }
+        }
+      },
+      "captures": {
+        "face-base.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/face-base.png",
+          "sha256": "be446a3c592102e85c82bef5be2a9181da57df26370668827f19fada5528212f",
+          "bytes": 383236
+        },
+        "face-overlay.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/face-overlay.png",
+          "sha256": "72a22e0e60fdc31a771885347a4cf7b3292b7cee1adf2d95b531453dd2c6f870",
+          "bytes": 384773
+        },
+        "face-repeat.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/face-repeat.png",
+          "sha256": "be446a3c592102e85c82bef5be2a9181da57df26370668827f19fada5528212f",
+          "bytes": 383236
+        },
+        "patch-base.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/patch-base.png",
+          "sha256": "96155182bf04e07eb67455ff952d27625790c8c1295dfcf500e21545b65acba2",
+          "bytes": 305315
+        },
+        "patch-overlay.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/patch-overlay.png",
+          "sha256": "f35da044d6119e4537990a5eb514febe2550b1dec81df029719e473237dea20e",
+          "bytes": 306721
+        },
+        "patch-repeat.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/patch-repeat.png",
+          "sha256": "96155182bf04e07eb67455ff952d27625790c8c1295dfcf500e21545b65acba2",
+          "bytes": 305315
+        },
+        "coverage-logical-4.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/coverage-logical-4.png",
+          "sha256": "800df4dbf09c348069b578b2182f165060c16b7de6e9763c317ea20f16fc62a3",
+          "bytes": 2459
+        },
+        "coverage-logical-16.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-internal/coverage-logical-16.png",
+          "sha256": "adaf06917d73f19e3727041127102e03cd86c1d03e463b873bd2dc7a3612088e",
+          "bytes": 1612
+        }
+      },
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-internal\\openjk_sp.x86_64.exe",
+        "+set",
+        "fs_basepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "+set",
+        "fs_homepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-internal\\home",
+        "+set",
+        "fs_game",
+        "OpenJK"
+      ]
+    },
+    {
+      "passed": true,
+      "external_layout": true,
+      "renderer_sha256": "c8de827bc29728ae8c71ffcd71dbf23bb791dc1960b32e5eef7c36f516e8bc57",
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 960,
+        "r_customheight": 540,
+        "r_swapInterval": 0,
+        "com_maxfps": 60,
+        "com_maxfpsUnfocused": 60,
+        "com_maxfpsMinimized": 60,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 1,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_staticLightReconstruction": 0,
+        "r_volumetricFogStaticDirectional": 0,
+        "r_recoveredVolumetricLights": 0,
+        "r_lightPortals": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunSplit": 0,
+        "r_ltcAreaCalibration": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 1024,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 1,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 3,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 1,
+        "r_lightReconEntities": 1,
+        "r_lightReconSpecular": 1,
+        "r_lightReconShadows": 1,
+        "r_lightReconSun": 1,
+        "r_lightReconParticles": 1,
+        "r_lightReconIndirect": 1,
+        "r_lightReconWorldDiffuse": 1,
+        "r_lightReconArea": 1,
+        "r_lightReconEnvironment": 1,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "fs_basepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "fs_homepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-external\\home",
+        "fs_game": "OpenJK",
+        "r_subdivisions": 1,
+        "r_lodCurveError": 100000,
+        "r_deluxeMapping": 0,
+        "r_floatLightmap": 1
+      },
+      "map_identity": {
+        "path": "maps/hoth3.bsp",
+        "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "bytes": 13920700
+      },
+      "recorded_cameras": [
+        [
+          "3399 652 118",
+          "-357 53 0",
+          "80"
+        ],
+        [
+          "3399 652 118",
+          "-357 53 0",
+          "80"
+        ],
+        [
+          "3532 737 113",
+          "-359 169 0",
+          "80"
+        ],
+        [
+          "3532 737 113",
+          "-359 169 0",
+          "80"
+        ]
+      ],
+      "scenes": [
+        [
+          "face",
+          [
+            3464,
+            700,
+            85,
+            90
+          ],
+          4,
+          2,
+          -1
+        ],
+        [
+          "patch",
+          [
+            3464,
+            752,
+            85,
+            180
+          ],
+          16,
+          1,
+          319
+        ]
+      ],
+      "comparisons": {
+        "face": {
+          "disabled_repeat": {
+            "pixels": 518400,
+            "differing_pixels": 0,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "exact": true,
+            "passed": true
+          },
+          "overlay_changed_pixels": 4280
+        },
+        "patch": {
+          "disabled_repeat": {
+            "pixels": 518400,
+            "differing_pixels": 0,
+            "max_channel_delta": 0,
+            "mean_rgb_delta": 0.0,
+            "exact": true,
+            "passed": true
+          },
+          "overlay_changed_pixels": 875
+        }
+      },
+      "geometry": [
+        "luxel-geometry=Captured faces=12462 patches=365 soups=30 vertices=83772 indices=159663 bytes=13017960 excluded=129 malformed=0 vertex-lit=866: "
+      ],
+      "mapping_totals": {
+        "mapped": 390285,
+        "padding": 164788,
+        "footprint": 27310,
+        "ambiguous": 15680,
+        "borders": 164898,
+        "unsupported-texels": 24529,
+        "patch-segments": 760,
+        "unsupported-patch-UV": 168,
+        "duplicate-triangles": 12,
+        "degenerate": 9
+      },
+      "numerical": {
+        "samples": 390285,
+        "face_samples": 360296,
+        "patch_samples": 29989,
+        "soup_samples": 0,
+        "maximum_error_world": 0.0005295005897409643,
+        "normal_samples": 12196,
+        "maximum_normal_component_error": 4.000151132865781e-05,
+        "maximum_normal_angle_degrees": 0.0019448200948129469,
+        "exports": {
+          "0": {
+            "mapped": 0,
+            "obj_sha256": "8d0c2510ce2f786c93753f38b555d076e6a44088a6f6fb8992734f629a2e8b3b",
+            "coverage_sha256": "4780e25686ab29cb8537add777d90dace40ab4bd4701a90ecbcaa69abc3f2244"
+          },
+          "1": {
+            "mapped": 11542,
+            "obj_sha256": "b09fc80312a2e4b9e7e9bedb0611737d7e7fb1396c12e36e7984410c3e015a7a",
+            "coverage_sha256": "3ffe2a16099e4930679fce3838ec647d8991e44978b3cc709c721fbe8564e6dc"
+          },
+          "2": {
+            "mapped": 11712,
+            "obj_sha256": "adc3c8505e6a3753dfb12921e81bf49c2619d1650bad7c4e218e6fd6caa2c683",
+            "coverage_sha256": "5d98167494f8cc11e5e34a51dff0056de1ed562c070f74b636c5d02e1dd44f74"
+          },
+          "3": {
+            "mapped": 10239,
+            "obj_sha256": "2208606e1803eb920119b37eac36e5e36a65e20aa49437013620f4f936900f65",
+            "coverage_sha256": "421a5778ea03d54e06615ff0e2517aac8ec7d46cadec3e0e1688e864024ca1c5"
+          },
+          "4": {
+            "mapped": 12110,
+            "obj_sha256": "9104263ba403cc49f3e6110f358f83cf8b38ea030819bc7f0f5d428fed0bbc69",
+            "coverage_sha256": "cfb63882ffda1d7fec38ad68f38ad9c32bf702ffb07253f2bf9fd0c87025ef0f"
+          },
+          "5": {
+            "mapped": 10768,
+            "obj_sha256": "84721997a50a7df99050a963e97af98b6631720ae03564d80c81daf4e23d67ad",
+            "coverage_sha256": "97e3ab150926aade78420f2abc57c5082f1f07405f707c92172ba7d17ff542b3"
+          },
+          "6": {
+            "mapped": 12204,
+            "obj_sha256": "cb424c0fad18f79b73a39bd6935fc020ff7e3d9316dc18fbf704cd1bcb111d09",
+            "coverage_sha256": "c73a3913c67a43fa2de133a5013a62476e3fa9ceba7cba051f9d7195272ea3e5"
+          },
+          "7": {
+            "mapped": 12449,
+            "obj_sha256": "f2d9acd394b17e8021563e1ad3940b2b04729596de16c6fc48232c31fee812a2",
+            "coverage_sha256": "c247f96327b1152f7bca71a9c6eb9d14cda0d68fc3e44e5e43009f196cbf28f7"
+          },
+          "8": {
+            "mapped": 11767,
+            "obj_sha256": "453333f0ec7ddd8cb16825420142d2c2577e224e64c906160e6c5d3fb012b62f",
+            "coverage_sha256": "e7df720b932e2bb132c0cdeaa59ea1f7fdbde2e94ee0a19389cad3468815a0d2"
+          },
+          "9": {
+            "mapped": 11224,
+            "obj_sha256": "dae4fb9b9256b81a606ed99fc065231812b4a76b771e0d3f66f303771f9f9be8",
+            "coverage_sha256": "7f4ca0a9fd10fde1858c9a15c0a8ad6c1419eb174bbcce3a3bd1c3b59a624b62"
+          },
+          "10": {
+            "mapped": 10902,
+            "obj_sha256": "8453afd67d5b9351d6c55c39cd75661fab1e8783fcdfdbeb657c9192322bec47",
+            "coverage_sha256": "c05d054238bb2b959b6023bb417b4d699e29dce12d5d665f2f6e1a46af3f4106"
+          },
+          "11": {
+            "mapped": 12533,
+            "obj_sha256": "5cab46fb38ca8b8f49e860b82c005725fe3ee1299ca8cc7cb806a82799b134ba",
+            "coverage_sha256": "bc964794934a5dc4fce193f2910ab147e0d3130a03efd024b83426c202febdd3"
+          },
+          "12": {
+            "mapped": 12830,
+            "obj_sha256": "99c76e1f3d44e73a7b4b0cf958ed14f4fff33a98573a33f726f4d798cccd0055",
+            "coverage_sha256": "25f6e962e7ddbc33f3dee61f2640cd9ebb62e48dd208011bcee56a72f305ba76"
+          },
+          "13": {
+            "mapped": 11029,
+            "obj_sha256": "e588ed4674aba59162c90a4f7eb4a74aab05cbb37cb893854803f250ba855474",
+            "coverage_sha256": "33e9108fba7adce2a32062ffe980fc2bc2334f1f6b233b62651ea6740f7a034f"
+          },
+          "14": {
+            "mapped": 9583,
+            "obj_sha256": "fcd60e458305eb17cfb92814cee4cf3be59be865e3b4b01a10ee73ee2446949c",
+            "coverage_sha256": "89ec057b139be5d9e9b0116e4ac5ed15109a4971bf0af9f7e20ece0b65f1d282"
+          },
+          "15": {
+            "mapped": 11260,
+            "obj_sha256": "327fef59b001f53681a68bf7da4a687c34fa415b13e53e1ce45f4cbff701c6b7",
+            "coverage_sha256": "e0dacb0a70520d0f5070ae9eda7d7b072f762f2f979bfd0638fd94b42b9967ee"
+          },
+          "16": {
+            "mapped": 14087,
+            "obj_sha256": "6b5744f22ddedd96284850e069f46251117b19545c8c90caa0368777db8f3ce9",
+            "coverage_sha256": "10333b49c1b5ba99174d598f9e7aad5023ea4bbb4a4a40c04a4cc61a9d7a83a7"
+          },
+          "17": {
+            "mapped": 12819,
+            "obj_sha256": "48a87a03ad10662b3be32aea981c3c759634b9199adba3b838dab00bfc4eb918",
+            "coverage_sha256": "5f0e216d11f397f7acc9b440f6976e3671033db9aba6df0c63006ec407961891"
+          },
+          "18": {
+            "mapped": 13004,
+            "obj_sha256": "2f9bef8a22dd0f7a1d3a827ecc2b70338282a220eaab1c877c2346baf0c18de8",
+            "coverage_sha256": "ca8208e39e3ce137e41353e1961ec5311defc51a38ae1aefc1213209f0d7b532"
+          },
+          "19": {
+            "mapped": 10521,
+            "obj_sha256": "f8e9f8bf7fd3b061605ef6278e696a7f548fd04ab5dd034e2027e85c79cfa86a",
+            "coverage_sha256": "91e36d600be7e9bf2fae2c56327a5ce759dd7610f7ce94e467ba46077c8ac4f6"
+          },
+          "20": {
+            "mapped": 6812,
+            "obj_sha256": "46911c452e573b67b0e39402c46882e3187ab12ae6af4b5ccf6e5a29ddd1ea6f",
+            "coverage_sha256": "7acd58339c198aa8769a02302344363128f077669ca58a9940fa4e8537270d22"
+          },
+          "21": {
+            "mapped": 12416,
+            "obj_sha256": "462b616efcc307dfae10a50469a193fc213581b6c95203ee9d824f8fc94eaf85",
+            "coverage_sha256": "3cd1d2c984cd288bc9acce89fe730f4936a94c2c0849a3ab3f8f9df3941b8ff1"
+          },
+          "22": {
+            "mapped": 11278,
+            "obj_sha256": "64e35c758d0c64be7c7c701b7f7aec445e8767ed2af4d0f1fa38b92c1989ab91",
+            "coverage_sha256": "1e82e5ea4afdac85c890b780d247a1b02446bb39d611c500dfd386de52b9c027"
+          },
+          "23": {
+            "mapped": 12860,
+            "obj_sha256": "92dfc7779e7465caf371ad745c05975d205a1b5c440e823fc473bfdd3cea8c1c",
+            "coverage_sha256": "d0ad60bf5708768c5467cb65aa14935293dcf524ee3283717d5334713a1e88fd"
+          },
+          "24": {
+            "mapped": 14955,
+            "obj_sha256": "ce89d565cf7d5046ec1bd0ede600a9bdd3af3b2f058f66d9cafd387d4eaf37c5",
+            "coverage_sha256": "41cb919c150333421ace32f485bd47d144781cc2e3f7407fce68dc81cc7bd78d"
+          },
+          "25": {
+            "mapped": 9225,
+            "obj_sha256": "4eabef8509c22933c60f548ddbd7a7eeb0ef50bd3609ab08bb61250ad5a55f8f",
+            "coverage_sha256": "8367cebd54bc64588f8c8278aa8511bbe6e2fda2bdb8c8e567d7c97f081fb593"
+          },
+          "26": {
+            "mapped": 11695,
+            "obj_sha256": "d564cd5a71b382fed404dc2c672040221067a134a711d1afe1a945ac3285a99e",
+            "coverage_sha256": "0193d4d47eb5bbc63721fa38724ec406c0feb0e078fad78a917a844d97595cfb"
+          },
+          "27": {
+            "mapped": 13147,
+            "obj_sha256": "c268d141015170f92338db37eb18fd13535f06cfcdcb012543b8096de140fd65",
+            "coverage_sha256": "0ac8bf2374511851e88d62642095f75212317de6b71f055a6a329606aa6c072a"
+          },
+          "28": {
+            "mapped": 10058,
+            "obj_sha256": "bc93c8a13bbf3f79f0bf233b45b6e185ccd759e0d5eb8109cb70b6a143cebb48",
+            "coverage_sha256": "833c20caecf0fe2f0018f2bf2df1b723a71fd13e4a02c451b98c691a01850879"
+          },
+          "29": {
+            "mapped": 12244,
+            "obj_sha256": "070316e95a422e67ebbb932d80855d846c1c7e60696310eebdcaf6471da2eeb4",
+            "coverage_sha256": "1229548b7beed434ad87d65bc76e483aa94fc318e3697144565599db7fe65df1"
+          },
+          "30": {
+            "mapped": 10089,
+            "obj_sha256": "f2fbbc75abb475ed860a52a83bbebd3e5af197e2f392d912a9397c863bf4bcd8",
+            "coverage_sha256": "aeb706a0d172b7ef87e21b2b2caf0fecea3483d55effca5426dbd8693965f2b7"
+          },
+          "31": {
+            "mapped": 9303,
+            "obj_sha256": "72c09e33f0d019306168a69b9cd159b9cfe18b778e39aa3233ae7eb86ed47efe",
+            "coverage_sha256": "d190dd2f0caa0179784e511d97e65e6c0f7dc4443f4248c80bdd1d8d089ecd5b"
+          },
+          "32": {
+            "mapped": 12221,
+            "obj_sha256": "9c05b6f2a3684bf1ce3127f2a80fa581d522b58a4bd304fb2539514586a0476e",
+            "coverage_sha256": "f8319d95d1e46c82f7d17c55947bab06796c12be0b037264b76bc765203e1378"
+          },
+          "33": {
+            "mapped": 6026,
+            "obj_sha256": "248090a8b4f2caf2d6a75818563732847f326250b24e5cb3187c0545a0babdd5",
+            "coverage_sha256": "9fa66391a0a1456ec932c836fa86bce1b28bdbd4d2f90ddcbaa635bef820c785"
+          },
+          "34": {
+            "mapped": 6714,
+            "obj_sha256": "6cf5c726d131d003e4e9df599e75cc48df976809de86cc352f67072427bc7bb6",
+            "coverage_sha256": "d3da25ffc98e8dc2554d58f9c2ed964344f5a00dce0cc460ac7d436e8a14c55c"
+          },
+          "35": {
+            "mapped": 6391,
+            "obj_sha256": "0ab1be03f7cc6ba742728502e73b7fa7c2a80fe7814b0be75aa9263e14f3d61c",
+            "coverage_sha256": "b8127a54b2c439824b926d75e884eab1b26b8ab16e42fabf1e701dd8a2c300a4"
+          },
+          "36": {
+            "mapped": 2268,
+            "obj_sha256": "1e872b6c4f87b810288c9e5a2e6e13ff25c16013ccf0712ca084c12983f18be0",
+            "coverage_sha256": "80533a7ec02076b9081da6f0168058e79fab178d81447d235d44100aa3eabb79"
+          },
+          "37": {
+            "mapped": 0,
+            "obj_sha256": "31fe72d184a424b12fef8b893bd847555ddff0590b482fae3597474aa15c8c88",
+            "coverage_sha256": "52382633c4abb486bfdce954fc629f172dbf66bc6123c7d33323e2ad9d51b27c"
+          }
+        }
+      },
+      "captures": {
+        "face-base.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/face-base.png",
+          "sha256": "78adc0ed74f4861346f8b70cdd7929e3d22966411cdf82664c67486e4a63ca72",
+          "bytes": 437438
+        },
+        "face-overlay.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/face-overlay.png",
+          "sha256": "c83e3c5ca33044e8cffc6b5d4221a122b242359f02a7be4e03929151e596b9f6",
+          "bytes": 441519
+        },
+        "face-repeat.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/face-repeat.png",
+          "sha256": "78adc0ed74f4861346f8b70cdd7929e3d22966411cdf82664c67486e4a63ca72",
+          "bytes": 437438
+        },
+        "patch-base.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/patch-base.png",
+          "sha256": "4ce44ab1df3a3c62461fd47821e4504a71f6127d66040b9b442abdb6096c8fcd",
+          "bytes": 342290
+        },
+        "patch-overlay.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/patch-overlay.png",
+          "sha256": "8b0b4b622cf41bc33e146d57bef175914b7cde96f6508775492969da0adcc50e",
+          "bytes": 343940
+        },
+        "patch-repeat.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/patch-repeat.png",
+          "sha256": "4ce44ab1df3a3c62461fd47821e4504a71f6127d66040b9b442abdb6096c8fcd",
+          "bytes": 342290
+        },
+        "coverage-logical-4.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/coverage-logical-4.png",
+          "sha256": "800df4dbf09c348069b578b2182f165060c16b7de6e9763c317ea20f16fc62a3",
+          "bytes": 2459
+        },
+        "coverage-logical-16.png": {
+          "path": "build/lightrecon-visual-20261022/luxels-final-external/coverage-logical-16.png",
+          "sha256": "adaf06917d73f19e3727041127102e03cd86c1d03e463b873bd2dc7a3612088e",
+          "bytes": 1612
+        }
+      },
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-external\\openjk_sp.x86_64.exe",
+        "+set",
+        "fs_basepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "+set",
+        "fs_homepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\luxels-final-external\\home",
+        "+set",
+        "fs_game",
+        "OpenJK"
+      ]
+    }
+  ],
+  "limitations": [
+    "Non-affine/folded/singular patch UV blocks are explicitly Unsupported; no flat fallback.",
+    "Stock soups use LIGHTMAP_BY_VERTEX; soup luxel geometry is covered synthetically.",
+    "Source shading normals are separate from geometry and do not claim parity with every renderer patch LOD.",
+    "Full material/deluxe/style classification and inverse-lighting fitting are separate tasks.",
+    "No MP gameplay or new full-matrix GPU shader compilation claimed."
+  ]
+}

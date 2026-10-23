@@ -226,7 +226,7 @@ def observation_audit():
         failures.append('Original lightmap observation hooks must precede atlas upload and colour transforms')
     lower = bsp[bsp.find('world_t *R_LoadBSP('):bsp.find('void RE_LoadWorldMap( const char *name ) {')]
     tokens = ['LightReconBspCapture observations(name, bspIndex == nullptr, buffer.b, sourceBytes)',
-              '((int *)header)[i] =', 'R_LoadLightmaps(', 'observations.GridEmbedded(',
+              '((int *)header)[i] =', 'R_LoadLightmaps(', 'observations.GridEmbedded(', 'observations.Surfaces(',
               'observations.ReleaseSource()', 'R_LoadSurfaces(', 'R_LoadLightGrid(']
     positions = [lower.find(token) for token in tokens]
     if min(positions) < 0 or positions != sorted(positions):
@@ -239,6 +239,9 @@ def observation_audit():
     positions = [grid.find(token) for token in tokens]
     if min(positions) < 0 or positions != sorted(positions) or 'observations.GridHdrSidecar(' not in grid:
         failures.append('Original grid layout/HDR hooks must preserve pre-conversion inputs and observation-only sidecars')
+    surfaces = bsp[bsp.find('static\tvoid R_LoadSurfaces('):bsp.find('static\tvoid R_LoadMarksurfaces(')]
+    if 'observations.SurfaceMaterial(' not in surfaces:
+        failures.append('Original surface capture must retain parse-time deformation/material exclusions')
     return failures
 
 
@@ -264,13 +267,18 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] == 'r_lightReconInfo' and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 line = text[:m.start()].count('\n') + 1
                 failures.append(f'{relative}:{line}: canonical GPU consumer dependency {m[0]}; extend disabled-path coverage before integration')
     adapter = strip_comments(read('shared/rd-rend2/tr_lightrecon.cpp'))
     if re.search(r'\b(?:qgl\w+|GLSL_\w+|R_Volumetric\w+|R_ForwardPlus\w+)\s*\(|Cvar_(?:Set|Get)', adapter):
         failures.append('Canonical control adapter must not create GPU resources, shader permutations or force another cvar')
+    debug = adapter[adapter.find('void R_LuxelDebugDraw('):]
+    if not re.search(r'if\s*\(s_luxelDebug.empty\(\).*?\)\s*return;', debug, re.S):
+        failures.append('Luxel debug must return before shader registration/submission with no explicit markers')
+    if not re.search(r'RE_RegisterShaderFromImage\("\*luxelDebug",\s*lightmapsVertex\b', debug):
+        failures.append('Luxel markers must use the depth-tested vertex-colour shader, not a depth-disabled 2D shader')
     return failures
 
 

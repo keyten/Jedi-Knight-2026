@@ -231,11 +231,11 @@ formula changed. Existing renderer x64 `/arch:SSE2` ignored-option warnings rema
 
 The subsequent [photometric decoder](rend2-observation-decoding.md) and
 [indexed lightgrid snapshot](rend2-lightgrid-observations.md) extend the input
-boundary. Original per-surface UV/material/geometry association, complete input
+boundary. [Luxel correspondence](rend2-luxel-observations.md) now captures original
+UV/geometry and shader identity before atlas packing and maps supported static
+charts to world positions/normals/area. Full material semantics, complete input
 fingerprints, streaming spill-to-disk storage and a reconstruction solver remain
-unavailable. This bounded per-image snapshot is a building block for those tasks.
-It preserves logical image coordinates, but does not recover original UVs from
-already fat-packed surfaces. Main-world JA BSP is supported; MP sub-BSPs remain
+unavailable. Main-world JA BSP is supported; MP sub-BSPs remain
 excluded from the single main-world input owner. Other BSP formats and unrequested
 external formats beyond Rend2's existing decoders are unsupported. Original HDR
 container headers/colour primaries and LDR compression/channel-container metadata

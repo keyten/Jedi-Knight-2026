@@ -3,6 +3,7 @@
 #include "lightrecon/lifecycle.h"
 #include "lightrecon/lightmaps.h"
 #include "lightrecon/lightgrid.h"
+#include "lightrecon/surfaces.h"
 
 // Retain this lease while using views and effective-state decisions. Loading is
 // independent of consumption; acquiring a snapshot never runs work.
@@ -16,6 +17,8 @@ std::string R_LightReconCacheRoot(void);
 // the lease for all views. No reads or reconstruction are triggered here.
 std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObservations(void);
 std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void);
+std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void);
+void R_LuxelDebug_f(void);
 
 // Stack guard for the entire MAIN world load. No use from R_LoadBSP/sub-BSPs.
 // Counts are copied facts only; no borrowed hunk/renderer pointer is retained.
@@ -49,6 +52,10 @@ public:
 	void GridLayout(const float* origin, const float* spacing, const int* bounds);
 	void GridHdr(const char* source, const void* data, int bytes);
 	void GridHdrSidecar(const char* baseName); // bounded observation-only lookup when r_hdr is off
+	void Surfaces(int surfaceOffset,int surfaceBytes,int vertexOffset,int vertexBytes,
+		int indexOffset,int indexBytes,int modelOffset,int modelBytes,int shaderOffset,int shaderBytes);
+	void SurfaceMaterial(unsigned ordinal,bool deformed,bool excluded);
+	bool GeometryNeeded() const;
 private:
 	Rend2LightRecon::Core::LightmapMapIdentity sourceMap_;
 	const void* source_ = nullptr; // scoped original, never published

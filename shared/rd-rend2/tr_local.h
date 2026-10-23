@@ -6758,6 +6758,7 @@ typedef struct waterlineQuery_s
 qboolean R_WaterlineQuery(const vec3_t position, float time, waterlineQuery_t *query);
 void R_Waterfalls_f(void);
 void R_WaterBodiesDebugDraw(const refdef_t *fd);
+void R_LuxelDebugDraw(const refdef_t *fd); // explicit CPU luxel markers; empty by default
 qboolean R_WaterFlowAtWorldPosition(const vec3_t position, vec3_t velocity, int *bodyId);
 qboolean R_WaterFlowForBody(int bodyId, const vec2_t simulationCoordinate, vec3_t velocity);
 qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8],
