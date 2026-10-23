@@ -19,6 +19,8 @@ std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObs
 std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void);
 std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void);
 void R_LuxelDebug_f(void);
+void R_LightReconObservations_f(void);
+struct shader_s;
 
 // Stack guard for the entire MAIN world load. No use from R_LoadBSP/sub-BSPs.
 // Counts are copied facts only; no borrowed hunk/renderer pointer is retained.
@@ -44,8 +46,8 @@ public:
 	LightReconBspCapture& operator=(const LightReconBspCapture&) = delete;
 	void Embedded(int offset, int length, bool interleavedDeluxe);
 	void External(int logicalIndex, bool deluxe, const char* source, int width, int height,
-		const void* pixels, bool hdr);
-	void Missing(int logicalIndex, bool deluxe, const char* source, bool hdr);
+		const void* pixels, bool hdr, int pairedLightingIndex = -1);
+	void Missing(int logicalIndex, bool deluxe, const char* source, bool hdr, int pairedLightingIndex = -1);
 	bool Needed() const;
 	void ReleaseSource();
 	void GridEmbedded(int recordOffset, int recordBytes, int indexOffset, int indexBytes);
@@ -54,7 +56,9 @@ public:
 	void GridHdrSidecar(const char* baseName); // bounded observation-only lookup when r_hdr is off
 	void Surfaces(int surfaceOffset,int surfaceBytes,int vertexOffset,int vertexBytes,
 		int indexOffset,int indexBytes,int modelOffset,int modelBytes,int shaderOffset,int shaderBytes);
-	void SurfaceMaterial(unsigned ordinal,bool deformed,bool excluded);
+	void SurfaceMaterial(unsigned ordinal, const shader_s*, unsigned bspSurfaceFlags, unsigned bspContentFlags);
+	void VertexHdrSource(const char* source, const void*, size_t bytes, uint64_t sourceVertices);
+	void VertexHdrSidecar(const char* baseName, uint64_t sourceVertices);
 	bool GeometryNeeded() const;
 private:
 	Rend2LightRecon::Core::LightmapMapIdentity sourceMap_;

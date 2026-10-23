@@ -57,6 +57,7 @@ struct LightmapImage
 	std::string source;		   // BSP path + lump identity, or actual resolved external image path
 	uint64_t sourceOffset = 0; // byte offset in BSP for embedded images only
 	bool missing = false;	   // explicit failed external lookup; no invented dimensions/pixels
+	uint32_t pairedLightingIndex = UINT32_MAX; // deluxe only; explicit ORIGINAL colour page, not adjacency inference
 	Disk::Digest pixelHash{};  // SHA256 of preserved representation (float bytes are host-native)
 	std::shared_ptr<const std::vector<uint8_t>> bytes;
 	std::shared_ptr<const std::vector<float>> floats;
@@ -115,10 +116,11 @@ class LightmapCapture
 	Error Embedded(const void *originalBsp, size_t bspBytes, uint64_t offset, uint64_t length,
 				   uint32_t width, uint32_t height, bool interleavedDeluxe);
 	Error Rgba8(uint32_t logicalIndex, LightmapRole, const std::string &source, uint32_t width,
-				uint32_t height, const uint8_t *, size_t bytes);
+				uint32_t height, const uint8_t *, size_t bytes, uint32_t pairedLightingIndex = UINT32_MAX);
 	Error Rgb32F(uint32_t logicalIndex, const std::string &source, uint32_t width, uint32_t height,
 				 const float *, size_t values);
-	Error Missing(uint32_t logicalIndex, LightmapRole, LightmapEncoding, const std::string &source);
+	Error Missing(uint32_t logicalIndex, LightmapRole, LightmapEncoding, const std::string &source,
+				uint32_t pairedLightingIndex = UINT32_MAX);
 	Error Freeze();
 	Error Fail(Code, const std::string &message);
 	void Reset() noexcept;

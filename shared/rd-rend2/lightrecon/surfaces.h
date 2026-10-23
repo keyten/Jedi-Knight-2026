@@ -1,15 +1,14 @@
 // CPU correspondence of ORIGINAL lightmap coordinates to immutable BSP geometry.
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
-#include "lightmaps.h"
-#include "decode.h"
+#include "classification.h"
 
 namespace Rend2LightRecon
 {
 namespace Core
 {
 static constexpr const char *kSurfaceObservationSchema = "org.openjk.baked-surface-observations";
-static constexpr uint32_t kSurfaceObservationVersion = 1;
+static constexpr uint32_t kSurfaceObservationVersion = 2;
 struct LightmapUv
 {
 	double u = 0, v = 0;
@@ -34,6 +33,10 @@ struct BakedVertex
 {
 	Vec3 position, shadingNormal;
 	LightmapUv lightmap[4];
+	LightmapUv textureUv;				// ORIGINAL base coordinates, not a runtime tcMod result
+	uint32_t sourceVertex = UINT32_MAX; // original drawVert ordinal; unknown in hand-built fixtures
+	bool colourPresent = false;
+	uint8_t colour[4][4] = {}; // original style RGBA, including alpha; never overbright-transformed
 };
 struct BakedSurface
 {
@@ -45,9 +48,11 @@ struct BakedSurface
 	bool excludedMaterial = false;
 	int32_t lightmap[4] = {-1, -1, -1, -1}, chartX[4] = {}, chartY[4] = {};
 	uint8_t styles[4] = {255, 255, 255, 255};
+	uint8_t vertexStyles[4] = {255, 255, 255, 255};
+	MaterialFacts materialFacts;
 	uint32_t patchWidth = 0, patchHeight = 0;
 	int32_t chartWidth = 0, chartHeight = 0; // original dsurface extent, in source BSP luxels
-	Vec3 lightmapOrigin, lightmapBasis[3]; // verbatim BSP basis; patches use [0/1] as LOD bounds
+	Vec3 lightmapOrigin, lightmapBasis[3];	 // verbatim BSP basis; patches use [0/1] as LOD bounds
 	LightmapUv uvMin[4], uvMax[4]; // conservative bounds retained for unsupported geometry too
 	bool uvBoundsKnown[4] = {};
 	std::vector<BakedVertex> vertices;
@@ -82,12 +87,32 @@ class SurfaceGeometry
 	{
 		return report_;
 	}
+	VertexHdrState HdrState() const
+	{
+		return hdrState_;
+	}
+	const std::string &HdrSource() const
+	{
+		return hdrSource_;
+	}
+	const Disk::Digest &HdrHash() const
+	{
+		return hdrHash_;
+	}
+	const std::vector<float> &VertexHdr() const
+	{
+		return vertexHdr_;
+	}
 
   private:
 	friend class SurfaceCapture;
 	LightmapMapIdentity map_;
 	std::vector<BakedSurface> surfaces_;
 	SurfaceReport report_;
+	VertexHdrState hdrState_ = VertexHdrState::NotRequested;
+	std::string hdrSource_;
+	Disk::Digest hdrHash_{};
+	std::vector<float> vertexHdr_; // one source RGB tuple per ORIGINAL drawVert, not per style
 };
 class SurfaceCapture
 {
@@ -101,6 +126,9 @@ class SurfaceCapture
 	Error SetMap(const LightmapMapIdentity &);
 	Error Add(BakedSurface); // owns copied/moved source geometry, ordered by BSP ordinal
 	Error Material(uint32_t ordinal, bool deformed, bool excluded); // parse-time material facts
+	Error Material(uint32_t ordinal, const MaterialFacts &);
+	Error VertexHdr(VertexHdrState, const std::string &source, const void *data, size_t bytes,
+					uint64_t sourceVertices);
 	Error Freeze();
 	Error Fail(Code, const std::string &);
 	void Reset() noexcept;
@@ -209,6 +237,8 @@ struct DecodedSurfaceObservation
 	SurfaceLightingObservation surface;
 	std::shared_ptr<const SurfaceGeometry> geometry;
 	Decode::LightmapSample colour;
+	ObservationClassification classification;
+	DeluxeSample deluxe;
 };
 Error ReadSurfaceObservation(const Decode::Decoder &, const LuxelTile &, size_t sample,
 							 const ReadContext &, DecodedSurfaceObservation &);

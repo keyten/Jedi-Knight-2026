@@ -162,16 +162,34 @@ bool RendererStage(const Raw &raw, const RendererSettings &p, Value &out)
 	}
 	const bool hdr = raw.encoding == Encoding::LinearRgb32F;
 	const bool map = raw.component == Component::Lightmap;
+	const bool vertex = raw.component == Component::Vertex;
 	if ((map && (p.lightmapDebug == 2 || (hdr && !p.floatLightmaps))) || (hdr && !p.hdr))
 	{
 		Unavailable(out, Space::RendererEncoded, Reason::Unsupported);
 		return true;
 	}
-	const bool linearize = map && !hdr && ForcedLinear(p);
+	const bool linearize = (map || vertex) && !hdr && ForcedLinear(p);
 	out.state = State::Available;
 	out.space = hdr || linearize ? Space::RendererLinear : Space::RendererEncoded;
 	float rgb[3] = {};
-	if (hdr)
+	if (vertex)
+	{
+		float scale = hdr ? 1.0f : static_cast<float>((1.0f / 255.0f) *
+			std::pow(2.0f, p.mapOverbrightBits - p.effectiveOverbrightBits));
+		for (unsigned c = 0; c < 3; ++c)
+		{
+			rgb[c] = hdr ? Get(raw.hdr, c) : p.hdr ? std::max(float(raw.bytes[c]), 0.499f) : float(raw.bytes[c]);
+			if (!hdr && p.hdr && !raw.bytes[c]) out.flags |= RendererBlackFloor;
+			rgb[c] *= scale;
+		}
+		float high = std::max(rgb[0], std::max(rgb[1], rgb[2]));
+		if (!p.floatLightmaps && high > 1)
+		{
+			for (float &channel : rgb) channel /= high;
+			out.flags |= RendererNormalized;
+		}
+	}
+	else if (hdr)
 	{
 		for (unsigned c = 0; c < 3; ++c)
 			rgb[c] = Get(raw.hdr, c); // no OB scaling for HDR lightmap/grid
@@ -222,7 +240,7 @@ bool RendererStage(const Raw &raw, const RendererSettings &p, Value &out)
 		}
 		if (!std::isfinite(rgb[c]) || rgb[c] < 0)
 			return false;
-		if ((hdr || (map && p.floatLightmaps)) && rgb[c] > 65504.0f)
+		if (!vertex && (hdr || (map && p.floatLightmaps)) && rgb[c] > 65504.0f)
 			out.flags |= HalfRangeExceeded;
 		Put(out.rgb, c, rgb[c]);
 	}
@@ -335,8 +353,8 @@ Error Decoder::Run(const Raw &input, Observation &out) const
 	if (!p.source.magnitudeHistoryKnown)
 		out.flags |= MagnitudeHistoryUnknown;
 	bool invalid = !Enum(raw.encoding, Encoding::LinearRgb32F) ||
-				   !Enum(raw.component, Component::GridDirected) ||
-				   !Enum(raw.hdrOrigin, HdrOrigin::LightgridRawFloat32);
+				   !Enum(raw.component, Component::Vertex) ||
+				   !Enum(raw.hdrOrigin, HdrOrigin::VertexRawFloat32);
 	for (unsigned c = 0; c < 3; ++c)
 	{
 		if (raw.missing)

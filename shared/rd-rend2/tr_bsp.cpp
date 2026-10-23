@@ -671,11 +671,13 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs, Light
 				resolvedSource, sizeof(resolvedSource));
 			if (!externalLightmap)
 			{
-				observations.Missing(tr.worldDeluxeMapping ? i * 2 + 1 : i, true, filename, false);
+				observations.Missing(tr.worldDeluxeMapping ? i * 2 + 1 : i, true, filename, false,
+					tr.worldDeluxeMapping ? i * 2 : i);
 				continue;
 			}
 			observations.External(tr.worldDeluxeMapping ? i * 2 + 1 : i, true,
-				resolvedSource[0] ? resolvedSource : filename, lightmapWidth, lightmapHeight, externalLightmap, false);
+				resolvedSource[0] ? resolvedSource : filename, lightmapWidth, lightmapHeight, externalLightmap, false,
+				tr.worldDeluxeMapping ? i * 2 : i);
 			if (!r_deluxeMapping->integer)
 			{
 				// Observation-only probe: never create a deluxe GPU resource or alter
@@ -934,7 +936,7 @@ static shader_t *ShaderForShaderNum( const world_t *worldData, int shaderNum, co
 ParseFace
 ===============
 */
-static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf, int *indexes  ) {
+static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf, int *indexes, shader_t*& authored ) {
 	int			i, j;
 	srfBspSurface_t	*cv;
 	glIndex_t  *tri;
@@ -958,6 +960,7 @@ static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *ver
 
 	// get shader value
 	surf->shader = ShaderForShaderNum( worldData, ds->shaderNum, realLightmapNum, ds->lightmapStyles, ds->vertexStyles);
+	authored = surf->shader; // observation facts before an optional debug drawing override
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -1090,7 +1093,7 @@ static void ParseFace( const world_t *worldData, dsurface_t *ds, drawVert_t *ver
 ParseMesh
 ===============
 */
-static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf ) {
+static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf, shader_t*& authored ) {
 	srfBspSurface_t	*grid;
 	int				i, j;
 	int				width, height, numPoints;
@@ -1115,6 +1118,7 @@ static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *ve
 
 	// get shader value
 	surf->shader = ShaderForShaderNum( worldData, ds->shaderNum, realLightmapNum, ds->lightmapStyles, ds->vertexStyles );
+	authored = surf->shader;
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -1217,7 +1221,7 @@ static void ParseMesh ( const world_t *worldData, dsurface_t *ds, drawVert_t *ve
 ParseTriSurf
 ===============
 */
-static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf, int *indexes ) {
+static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, packedTangentSpace_t *tangentSpace, float *hdrVertColors, msurface_t *surf, int *indexes, shader_t*& authored ) {
 	srfBspSurface_t *cv;
 	glIndex_t  *tri;
 	int             i, j;
@@ -1239,6 +1243,7 @@ static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *
 
 	// get shader
 	surf->shader = ShaderForShaderNum( worldData, ds->shaderNum, realLightmapNum, ds->lightmapStyles, ds->vertexStyles );
+	authored = surf->shader;
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -1361,7 +1366,7 @@ static void ParseTriSurf( const world_t *worldData, dsurface_t *ds, drawVert_t *
 ParseFlare
 ===============
 */
-static void ParseFlare( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int *indexes ) {
+static void ParseFlare( const world_t *worldData, dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int *indexes, shader_t*& authored ) {
 	srfFlare_t		*flare;
 	int				i;
 
@@ -1377,6 +1382,7 @@ static void ParseFlare( const world_t *worldData, dsurface_t *ds, drawVert_t *ve
 
 	// get shader
 	surf->shader = ShaderForShaderNum( worldData, ds->shaderNum, lightmapsVertex, ds->lightmapStyles, ds->vertexStyles );
+	authored = surf->shader;
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
@@ -2457,7 +2463,10 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 			if ((unsigned)size != sizeof(float) * 3 * verts->filelen / sizeof(*dv))
 				ri.Error(ERR_DROP, "Bad size for %s (%i, expected %i)!", filename, size, (int)((sizeof(float)) * 3 * verts->filelen / sizeof(*dv)));
 		}
+		observations.VertexHdrSource(filename, hdrVertColors, hdrVertColors ? static_cast<size_t>(size) : 0,
+			verts->filelen / sizeof(*dv));
 	}
+	else observations.VertexHdrSidecar(worldData->baseName, verts->filelen / sizeof(*dv));
 
 	// load vertex tangent space
 	packedTangentSpace_t *tangentSpace = NULL;
@@ -2507,9 +2516,10 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 	in = (dsurface_t *)(fileBase + surfs->fileofs);
 	out = worldData->surfaces;
 	for ( i = 0 ; i < count ; i++, in++, out++ ) {
+		shader_t* authored = nullptr;
 		switch ( LittleLong( in->surfaceType ) ) {
 		case MST_PATCH:
-			ParseMesh ( worldData, in, dv, tangentSpace, hdrVertColors, out );
+			ParseMesh ( worldData, in, dv, tangentSpace, hdrVertColors, out, authored );
 			{
 				srfBspSurface_t *surface = (srfBspSurface_t *)out->data;
 
@@ -2522,15 +2532,15 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 			numMeshes++;
 			break;
 		case MST_TRIANGLE_SOUP:
-			ParseTriSurf( worldData, in, dv, tangentSpace, hdrVertColors, out, indexes );
+			ParseTriSurf( worldData, in, dv, tangentSpace, hdrVertColors, out, indexes, authored );
 			numTriSurfs++;
 			break;
 		case MST_PLANAR:
-			ParseFace( worldData, in, dv, tangentSpace, hdrVertColors, out, indexes );
+			ParseFace( worldData, in, dv, tangentSpace, hdrVertColors, out, indexes, authored );
 			numFaces++;
 			break;
 		case MST_FLARE:
-			ParseFlare( worldData, in, dv, out, indexes );
+			ParseFlare( worldData, in, dv, out, indexes, authored );
 			{
 				out->cullinfo.type = CULLINFO_NONE;
 			}
@@ -2541,10 +2551,8 @@ static	void R_LoadSurfaces( world_t *worldData, lump_t *surfs, lump_t *verts, lu
 		}
 		if (observations.GeometryNeeded())
 		{
-			// Already parsed authored shader, independent of r_singleShader's draw override.
-			const shader_t* authored = R_FindShaderByName(worldData->shaders[LittleLong(in->shaderNum)].shader);
-			observations.SurfaceMaterial(i, authored->numDeforms > 0,
-				authored->defaultShader || authored->isSky || (authored->surfaceFlags & SURF_NODRAW));
+			const auto& sourceShader = worldData->shaders[LittleLong(in->shaderNum)];
+			observations.SurfaceMaterial(i, authored, sourceShader.surfaceFlags, sourceShader.contentFlags);
 		}
 	}
 

@@ -27,6 +27,10 @@ All executables link the one `rend2_lightrecon_core` static target:
   compiled current SP/MP entity math.
 - `lightrecon_surfaces_test`: original lightmap UV correspondence, positions,
   separate normals, coverage/area, seams/overlaps, analytic patches and lifetime.
+- `lightrecon_classification_test`: deluxe correspondence/direction quantization,
+  distinct lightstyles/vertex RGBA/HDR, material categories and conservative eligibility.
+
+See [classification contracts, map counts and test commands](../../docs/rend2-observation-classification.md).
 
 See [luxel mapping, limitations, numerical and actual-SP validation](../../docs/rend2-luxel-observations.md).
 

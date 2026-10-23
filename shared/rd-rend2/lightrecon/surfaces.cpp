@@ -128,6 +128,7 @@ struct MapTriangle
 	double basisError = 0, basisOffset = 0;
 	bool basisKnown = false;
 	bool duplicate = false;
+	bool multipleReferences = false;
 };
 struct Evaluation
 {
@@ -385,7 +386,9 @@ Error SurfaceCapture::Add(BakedSurface s)
 		return Failure(Code::InvalidState, "Surface geometry not writable");
 	if (s.ordinal != staged_->surfaces_.size())
 		return Fail(Code::InvalidInput, "Surface ordinals must be complete BSP order");
-	uint64_t bytes = sizeof(s) + s.material.size() +
+	s.materialFacts.uncertainty = MaterialUncertaintyFlags(s.materialFacts);
+	uint64_t bytes = sizeof(s) + s.material.size() + s.materialFacts.baseTexture.size() +
+					 s.materialFacts.emissionTexture.size() +
 					 uint64_t(s.vertices.size()) * sizeof(BakedVertex) +
 					 uint64_t(s.indices.size()) * 4;
 	if (staged_->surfaces_.size() >= limits_.maxSurfaces ||
@@ -456,6 +459,69 @@ Error SurfaceCapture::Material(uint32_t ordinal, bool deform, bool excluded)
 		s.motion = SurfaceMotion::Deformed;
 	s.excludedMaterial = excluded;
 	return Error();
+}
+Error SurfaceCapture::Material(uint32_t ordinal, const MaterialFacts &facts)
+{
+	if (!Needed() || !staged_ || ordinal >= staged_->surfaces_.size())
+		return Failure(Code::InvalidState, "Invalid surface material update");
+	auto &s = staged_->surfaces_[ordinal];
+	const uint64_t oldBytes =
+		s.materialFacts.baseTexture.size() + s.materialFacts.emissionTexture.size();
+	const uint64_t newBytes = facts.baseTexture.size() + facts.emissionTexture.size();
+	if (facts.baseTexture.size() > limits_.maxPathBytes ||
+		facts.emissionTexture.size() > limits_.maxPathBytes ||
+		newBytes > limits_.maxBytes - (report_.bytes - oldBytes))
+		return Fail(Code::MemoryLimit, "Material evidence exceeds capture limits");
+	try
+	{
+		s.materialFacts = facts;
+		s.materialFacts.uncertainty = MaterialUncertaintyFlags(facts);
+		if (facts.signals & MaterialDeformed)
+			s.motion = SurfaceMotion::Deformed;
+		s.excludedMaterial =
+			(facts.signals & (MaterialMissing | MaterialSky | MaterialNoDraw)) != 0;
+		report_.bytes = report_.bytes - oldBytes + newBytes;
+		return Error();
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Fail(Code::MemoryLimit, "Material evidence allocation failed");
+	}
+}
+Error SurfaceCapture::VertexHdr(VertexHdrState state, const std::string &source, const void *data,
+								size_t bytes, uint64_t sourceVertices)
+{
+	if (!Needed() || !staged_ || staged_->hdrState_ != VertexHdrState::NotRequested)
+		return Failure(Code::InvalidState, "Vertex HDR capture not writable");
+	if (source.size() > limits_.maxPathBytes || source.size() > limits_.maxBytes - report_.bytes)
+		return Fail(Code::MemoryLimit, "Vertex HDR source exceeds capture budget");
+	try
+	{
+		staged_->hdrSource_ = source;
+		staged_->hdrState_ = state;
+		report_.bytes += source.size();
+		if (state != VertexHdrState::Present)
+			return Error();
+		if (!data || sourceVertices > limits_.maxVertices ||
+			sourceVertices > SIZE_MAX / (3 * sizeof(float)) ||
+			bytes != sourceVertices * 3 * sizeof(float))
+		{
+			staged_->hdrState_ = VertexHdrState::Invalid;
+			return Failure(Code::InvalidInput, "Vertex HDR size does not match original drawVerts");
+		}
+		if (bytes > limits_.maxBytes - report_.bytes)
+			return Fail(Code::MemoryLimit, "Vertex HDR payload exceeds capture budget");
+		staged_->vertexHdr_.resize(bytes / sizeof(float));
+		if (bytes)
+			std::memcpy(staged_->vertexHdr_.data(), data, bytes);
+		staged_->hdrHash_ = Disk::Hash(data, bytes);
+		report_.bytes += bytes;
+		return Error();
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Fail(Code::MemoryLimit, "Vertex HDR allocation failed");
+	}
 }
 Error SurfaceCapture::Freeze()
 {
@@ -563,7 +629,11 @@ Error MapLuxels(std::shared_ptr<const SurfaceGeometry> geometry,
 			auto inserted = unique.emplace(std::move(canonical), triangles.size());
 			if (!inserted.second)
 			{
-				triangles[inserted.first->second].duplicate = true;
+				auto &original = triangles[inserted.first->second];
+				original.duplicate = true;
+				original.multipleReferences = original.multipleReferences ||
+											  original.surface->ordinal != t.surface->ordinal ||
+											  original.slot != t.slot;
 				++tile.report.duplicates;
 				return;
 			}
@@ -788,6 +858,8 @@ Error MapLuxels(std::shared_ptr<const SurfaceGeometry> geometry,
 				const auto &t = triangles[piece.triangle];
 				if (t.duplicate)
 					sample.issues |= LuxelDuplicate;
+				if (t.multipleReferences)
+					sample.issues |= LuxelMultipleCharts;
 				if (!selected)
 					selected = &t;
 				for (size_t k = 0; k < j; ++k)
@@ -1032,7 +1104,15 @@ Error ReadSurfaceObservation(const Decode::Decoder &decoder, const LuxelTile &ti
 	out.surface = tile.samples[sample];
 	out.geometry = tile.geometry;
 	out.colour = std::move(colour);
-	return Error();
+	error = ClassifyLuxel(tile, sample, out.classification);
+	if (!error)
+		return error;
+	if (out.colour.value.encoded.state == Decode::State::Invalid)
+	{
+		out.classification.diffuseFitCandidate = false;
+		out.classification.reasons |= InvalidColourData;
+	}
+	return ReadLuxelDeluxe(tile, sample, context, out.deluxe);
 }
 Error LuxelDebugObj(const LuxelTile &tile, size_t maxSamples, std::string &out)
 {

@@ -3,12 +3,14 @@
 `shared/rd-rend2/lightrecon/surfaces.h/.cpp` implements the CPU correspondence
 between original logical lightmap images and static world geometry. It belongs
 to the shared C++11 `rend2_lightrecon_core`, linked once by SP, MP and standalone
-tests. Schema: `org.openjk.baked-surface-observations`, version 1.
+tests. Schema: `org.openjk.baked-surface-observations`, version 2 (the original
+geometry validation below records version 1 at commit `e496cd0e9`).
 
 This is observation geometry, not reconstructed lighting. It does not estimate
-emitters, invert lighting, classify lightstyles/deluxe directions, calibrate
+emitters, invert lighting, calibrate
 historical brightness, or supply a static visibility solver. The subsequent
-material/deluxe/style classification task is separate.
+material/deluxe/style [classification module](rend2-observation-classification.md)
+now supplies that separate metadata and eligibility boundary.
 
 ## Capture and lifetime
 
@@ -28,7 +30,7 @@ The original model surface ranges identify the main static world. Nonzero brush
 models, ambiguous ownership and unknown ownership are retained as distinct input
 records but excluded from static mapping. At `R_LoadSurfaces`, after each
 `ParseFace/ParseMesh/ParseTriSurf`, the adapter copies deformation and exclusion
-facts from the already parsed authored shader. This lookup does not use
+facts from the exact already parsed authored shader variant, captured before
 `r_singleShader`'s drawing override. Deformed geometry, sky, nodraw and missing
 default materials are excluded. No shader or geometry is changed by that hook.
 
@@ -329,7 +331,11 @@ squared world units. Actual-map maxima, counts, screenshot hashes, atlas
 comparison and build/test totals are recorded in
 `tools/rend2/lightrecon_baseline/luxel-validation.json` and described below.
 
-## Recorded results (23 October 2026)
+## Recorded geometry-version-1 results (23 October 2026, `e496cd0e9`)
+
+These retained witness hashes/counts describe the original geometry implementation.
+The subsequent version-2 [classification report](rend2-observation-classification.md)
+records the extended current snapshots and their separate validation.
 
 MSVC 2019 x64 built both `rdsp-rend2_x86_64` and `rd-rend2_x86_64`, plus
 all ten CPU test executables. Both MSVC and independent GCC 16.2 C++11 runs
@@ -444,7 +450,7 @@ geometry, patch subdivision, shader lighting or texture upload math is changed.
 Remaining cases are explicit: full non-affine patch UV inversion, arbitrary
 external repacks without matching UV metadata, reconstruction of shader-deformed
 or moving geometry, exact bake-tool footprint/filter history, full material
-reflectance/classification, deluxe interpretation, complete cache fingerprints
+reflectance estimation, complete cache fingerprints
 and any inverse-lighting solver. Stock triangle soups with no baked images are
 retained/excluded; their geometric mapping is tested synthetically. There is no
 claim of MP gameplay validation or a new full-matrix GPU shader compilation;

@@ -4,6 +4,8 @@
 #include "lightrecon/cache.h"
 #include <algorithm>
 #include <new>
+#include <cmath>
+#include <cstring>
 
 qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
 
@@ -313,6 +315,7 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 			{
 				s.lightmap[slot] = LittleLong(ds.lightmapNum[slot]);
 				s.styles[slot] = ds.lightmapStyles[slot];
+				s.vertexStyles[slot] = ds.vertexStyles[slot];
 				s.chartX[slot] = LittleLong(ds.lightmapX[slot]);
 				s.chartY[slot] = LittleLong(ds.lightmapY[slot]);
 			}
@@ -351,6 +354,10 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 				{
 					auto &out = s.vertices[v];
 					const auto &in = verts[fv + v];
+					out.sourceVertex = static_cast<uint32_t>(fv + v);
+					out.textureUv = LightmapUv(LittleFloat(in.st[0]), LittleFloat(in.st[1]));
+					out.colourPresent = true;
+					std::memcpy(out.colour, in.color, sizeof(out.colour));
 					out.position = Rend2LightRecon::Vec3(
 						LittleFloat(in.xyz[0]), LittleFloat(in.xyz[1]), LittleFloat(in.xyz[2]));
 					out.shadingNormal =
@@ -372,10 +379,182 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 		s_surfaceCapture.Fail(Code::MemoryLimit, "Geometry capture allocation failed");
 	}
 }
-void LightReconBspCapture::SurfaceMaterial(unsigned ordinal, bool deformed, bool excluded)
+void LightReconBspCapture::SurfaceMaterial(unsigned ordinal, const shader_s *shader,
+										   unsigned bspSurfaceFlags, unsigned bspContentFlags)
 {
-	if (active_ && s_surfaceCapture.Needed())
-		s_surfaceCapture.Material(ordinal, deformed, excluded);
+	using namespace Rend2LightRecon::Core;
+	if (!GeometryNeeded())
+		return;
+	MaterialFacts facts;
+	facts.available = shader && shader != tr.defaultShader && !shader->defaultShader;
+	facts.surfaceFlags = bspSurfaceFlags;
+	facts.contentFlags = bspContentFlags;
+	facts.uncertainty |= RuntimeShaderInterpretation;
+	if (!facts.available)
+		facts.signals |= MaterialMissing;
+	if (bspSurfaceFlags & SURF_SKY)
+		facts.signals |= MaterialSky;
+	if (bspSurfaceFlags & SURF_NODRAW)
+		facts.signals |= MaterialNoDraw;
+	if (bspContentFlags & CONTENTS_TRANSLUCENT)
+		facts.signals |= MaterialTranslucent;
+	if (shader)
+	{
+		if (shader->isSky)
+			facts.signals |= MaterialSky;
+		if (shader->surfaceFlags & SURF_NODRAW)
+			facts.signals |= MaterialNoDraw;
+		if (shader->contentFlags & CONTENTS_TRANSLUCENT)
+			facts.signals |= MaterialTranslucent;
+		if (shader->numDeforms)
+			facts.signals |= MaterialDeformed;
+		facts.legacySurfaceLight = shader->surfaceLight;
+		facts.legacySourceColour =
+			Rend2LightRecon::Vec3(shader->surfaceLightColor[0], shader->surfaceLightColor[1],
+								  shader->surfaceLightColor[2]);
+		for (int i = 0; i < std::min(shader->numUnfoggedPasses, MAX_SHADER_STAGES); ++i)
+		{
+			const shaderStage_t *stage = shader->stages[i];
+			if (!stage || !stage->active)
+				continue;
+			const auto &bundle = stage->bundle[TB_DIFFUSEMAP];
+			const bool lightall = stage->glslShaderGroup == tr.lightallShader;
+			const int lightType = lightall ? stage->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK : 0;
+			if (bundle.isLightmap || stage->bundle[TB_LIGHTMAP].isLightmap ||
+				lightType == LIGHTDEF_USE_LIGHTMAP)
+				facts.signals |= MaterialLightmapped;
+			if (lightType == LIGHTDEF_USE_LIGHT_VERTEX || stage->rgbGen == CGEN_VERTEX ||
+				stage->rgbGen == CGEN_EXACT_VERTEX || stage->rgbGen == CGEN_VERTEX_LIT ||
+				stage->rgbGen == CGEN_EXACT_VERTEX_LIT)
+				facts.signals |= MaterialVertexLit;
+			// Extra lightstyle passes are lighting channels, not translucent material layers.
+			if (bundle.isLightmap || stage->rgbGen == CGEN_LIGHTMAPSTYLE)
+				continue;
+			if (stage->alphaTestType != ALPHA_TEST_NONE)
+				facts.signals |= MaterialCutout;
+			if (bundle.numImageAnimations > 1 || bundle.isVideoMap ||
+				stage->rgbGen == CGEN_WAVEFORM || stage->alphaGen == AGEN_WAVEFORM)
+				facts.signals |= MaterialAnimated;
+			if (stage->rgbGen == CGEN_ENTITY || stage->rgbGen == CGEN_ONE_MINUS_ENTITY ||
+				stage->rgbGen == CGEN_LIGHTING_DIFFUSE ||
+				stage->rgbGen == CGEN_LIGHTING_DIFFUSE_ENTITY || stage->alphaGen == AGEN_ENTITY ||
+				stage->alphaGen == AGEN_ONE_MINUS_ENTITY)
+				facts.signals |= MaterialEntityDependent;
+			if (bundle.tcGen == TCGEN_ENVIRONMENT_MAPPED ||
+				bundle.tcGen == TCGEN_ENVIRONMENT_MAPPED_SP ||
+				bundle.tcGen == TCGEN_ENVIRONMENT_MAPPED_SP_FP)
+				facts.signals |= MaterialReflection;
+			if (bundle.numTexMods)
+				facts.uncertainty |= TextureTransformPresent;
+			for (int j = 0; j < bundle.numTexMods; ++j)
+				if (bundle.texMods[j].type == TMOD_SCROLL ||
+					bundle.texMods[j].type == TMOD_ROTATE ||
+					bundle.texMods[j].type == TMOD_STRETCH ||
+					bundle.texMods[j].type == TMOD_TURBULENT ||
+					bundle.texMods[j].type == TMOD_ENTITY_TRANSLATE)
+					facts.signals |= MaterialAnimated;
+			const image_t *image = bundle.image[0];
+			const bool emission = stage->glow || stage->emissive || stage->emissivePhysical;
+			if (emission)
+			{
+				facts.signals |= MaterialGlow;
+				++facts.emissionLayerCount;
+				facts.uncertainty |= EmissionUncalibrated;
+				if (facts.emissionLayerCount == 1)
+				{
+					facts.emissionTexture = image ? image->imgName : "";
+					facts.emissionProvenance =
+						stage->emissivePhysical ? EmissionProvenance::AuthoredLuminance
+												: stage->emissive ? EmissionProvenance::LegacyShader
+																  : EmissionProvenance::GlowTexture;
+					facts.authoredLuminance =
+						stage->emissivePhysical ? stage->emissiveLuminance : 0;
+					facts.emissionColourKnown = stage->emissive || stage->emissivePhysical;
+					facts.emissionColour = Rend2LightRecon::Vec3(
+						stage->emissiveColor[0], stage->emissiveColor[1], stage->emissiveColor[2]);
+				}
+				continue;
+			}
+			// Opaque lightmap multiplication does not make an ordinary surface translucent.
+			const auto blend = stage->stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+			const bool multiply = blend == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ||
+								  blend == (GLS_SRCBLEND_ZERO | GLS_DSTBLEND_SRC_COLOR);
+			if (blend && !multiply && shader->sort > SS_OPAQUE)
+				facts.signals |= MaterialTranslucent;
+			if (image && !bundle.isLightmap && image != tr.whiteImage)
+			{
+				if (facts.baseTexture.empty())
+				{
+					facts.baseTexture = image->imgName;
+					facts.baseLayerCount = 1;
+					facts.baseTextureSrgb = (image->flags & IMGFLAG_SRGB) != 0;
+					facts.baseModulationKnown = stage->rgbGen == CGEN_CONST;
+					facts.baseModulation = Rend2LightRecon::Vec3(
+						stage->constantColor[0], stage->constantColor[1], stage->constantColor[2]);
+				}
+				else if (facts.baseTexture != image->imgName)
+				{
+					++facts.baseLayerCount;
+					facts.uncertainty |= MultipleBaseLayers;
+				}
+			}
+		}
+	}
+	if (facts.signals & MaterialLightmapped)
+		facts.meaning = BakedMeaning::DiffuseModulationBakeUnknown;
+	if (!(facts.signals & (MaterialLightmapped | MaterialVertexLit | MaterialEntityDependent)))
+		facts.signals |= MaterialUnlit;
+	s_surfaceCapture.Material(ordinal, facts);
+}
+void LightReconBspCapture::VertexHdrSource(const char *path, const void *data, size_t bytes,
+										   uint64_t sourceVertices)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!GeometryNeeded())
+		return;
+	s_surfaceCapture.VertexHdr(data ? VertexHdrState::Present : VertexHdrState::Missing,
+							   path ? path : "", data, bytes, sourceVertices);
+}
+void LightReconBspCapture::VertexHdrSidecar(const char *baseName, uint64_t sourceVertices)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!GeometryNeeded())
+		return;
+	char path[MAX_QPATH];
+	Com_sprintf(path, sizeof(path), "maps/%s/vertlight.raw", baseName);
+	LightmapSourceFile file;
+	const int bytes = ri.FS_FOpenFileRead(path, &file.handle, qtrue);
+	if (!file.handle || bytes < 0)
+	{
+		VertexHdrSource(path, nullptr, 0, sourceVertices);
+		return;
+	}
+	if (static_cast<uint64_t>(bytes) != sourceVertices * 3 * sizeof(float))
+	{
+		s_surfaceCapture.VertexHdr(VertexHdrState::Present, path, nullptr,
+								   static_cast<size_t>(bytes), sourceVertices);
+		return;
+	}
+	if (static_cast<uint64_t>(bytes) >
+		s_surfaceCapture.Limits().maxBytes - s_surfaceCapture.Report().bytes)
+	{
+		s_surfaceCapture.Fail(Code::MemoryLimit, "Vertex HDR sidecar exceeds capture budget");
+		return;
+	}
+	try
+	{
+		std::vector<uint8_t> scratch(static_cast<size_t>(bytes));
+		if (ri.FS_Read(scratch.data(), bytes, file.handle) != bytes)
+			s_surfaceCapture.VertexHdr(VertexHdrState::ReadFailed, path, nullptr, 0,
+									   sourceVertices);
+		else
+			s_surfaceCapture.VertexHdr(VertexHdrState::Present, path, scratch.data(),
+									   scratch.size(), sourceVertices);
+	}
+	catch (const std::bad_alloc &)
+	{
+		s_surfaceCapture.Fail(Code::MemoryLimit, "Vertex HDR sidecar allocation failed");
+	}
 }
 bool LightReconBspCapture::GeometryNeeded() const
 {
@@ -443,7 +622,7 @@ void LightReconBspCapture::Embedded(int offset, int length, bool deluxe)
 		static_cast<uint64_t>(length), 128, 128, deluxe);
 }
 void LightReconBspCapture::External(int index, bool deluxe, const char* path, int width, int height,
-	const void* pixels, bool hdr)
+	const void* pixels, bool hdr, int pairedLightingIndex)
 {
 	using namespace Rend2LightRecon::Core;
 	if (!Needed()) return;
@@ -463,15 +642,17 @@ void LightReconBspCapture::External(int index, bool deluxe, const char* path, in
 			static_cast<const float*>(pixels), static_cast<size_t>(values));
 	else
 		s_lightmapCapture.Rgba8(static_cast<uint32_t>(index), deluxe ? LightmapRole::DeluxeDirection : LightmapRole::Lighting,
-			path ? path : "", width, height, static_cast<const uint8_t*>(pixels), static_cast<size_t>(values));
+			path ? path : "", width, height, static_cast<const uint8_t*>(pixels), static_cast<size_t>(values),
+			pairedLightingIndex >= 0 ? static_cast<uint32_t>(pairedLightingIndex) : UINT32_MAX);
 }
-void LightReconBspCapture::Missing(int index, bool deluxe, const char* path, bool hdr)
+void LightReconBspCapture::Missing(int index, bool deluxe, const char* path, bool hdr, int pairedLightingIndex)
 {
 	using namespace Rend2LightRecon::Core;
 	if (!Needed()) return;
 	if (index < 0) { s_lightmapCapture.Fail(Code::InvalidInput, "Negative missing lightmap index"); return; }
 	s_lightmapCapture.Missing(static_cast<uint32_t>(index), deluxe ? LightmapRole::DeluxeDirection : LightmapRole::Lighting,
-		hdr ? LightmapEncoding::ExternalRgb32F : LightmapEncoding::ExternalRgba8, path ? path : "");
+		hdr ? LightmapEncoding::ExternalRgb32F : LightmapEncoding::ExternalRgba8, path ? path : "",
+		pairedLightingIndex >= 0 ? static_cast<uint32_t>(pairedLightingIndex) : UINT32_MAX);
 }
 
 Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snapshot& snapshot, Rend2LightRecon::Consumer consumer)
@@ -732,6 +913,139 @@ void R_LuxelDebug_f(void)
 			  static_cast<unsigned long long>(r.excluded), r.maximumBasisError,
 			  static_cast<unsigned>(s_luxelDebug.size()),
 			  static_cast<unsigned long long>(r.unsupportedTexels), stem.c_str(), stem.c_str());
+}
+
+void R_LightReconObservations_f(void)
+{
+	using namespace Rend2LightRecon::Core;
+	const auto geometry = R_LuxelGeometry();
+	const auto images = R_LightmapObservations();
+	if (!geometry || !images)
+	{
+		ri.Printf(PRINT_ALL,
+				  "baked-summary unavailable: reload map with r_lightReconBuild 2 or 3\n");
+		return;
+	}
+	if (ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "surface"))
+	{
+		const int ordinal = ri.Cmd_Argc() > 2 ? atoi(ri.Cmd_Argv(2)) : -1;
+		if (ordinal < 0 || static_cast<size_t>(ordinal) >= geometry->Surfaces().size())
+		{
+			ri.Printf(PRINT_ALL, "baked-summary invalid surface ordinal\n");
+			return;
+		}
+		const auto &s = geometry->Surfaces()[ordinal];
+		const auto &m = s.materialFacts;
+		ri.Printf(PRINT_ALL,
+				  "baked-material surface=%u shader=%s signals=%u uncertainty=%u base=%s "
+				  "base-pixels=%d emission=%s authored-nits=%.9g legacy-surfacelight=%.9g\n",
+				  s.ordinal, s.material.c_str(), m.signals, m.uncertainty, m.baseTexture.c_str(),
+				  m.baseColourKnown ? 1 : 0, m.emissionTexture.c_str(), m.authoredLuminance,
+				  m.legacySurfaceLight);
+		for (uint32_t slot = 0; slot < 4; ++slot)
+			for (bool vertex : {false, true})
+			{
+				const auto c = ClassifySurface(s, slot, vertex);
+				ri.Printf(PRINT_ALL,
+						  "  channel=%s slot=%u style=%u path=%s fit=%d supplementary=%d "
+						  "emitter-hint=%d reasons:",
+						  vertex ? "vertex" : "lightmap", slot, unsigned(c.style.id),
+						  ObservationPathName(c.path), c.diffuseFitCandidate ? 1 : 0,
+						  c.supplementaryEvidence ? 1 : 0, c.emitterHint ? 1 : 0);
+				for (size_t bit = 0; bit < kObservationReasonCount; ++bit)
+					if (c.reasons & (1ull << bit))
+						ri.Printf(PRINT_ALL, " %s", ObservationReasonName(1ull << bit));
+				ri.Printf(PRINT_ALL, "\n");
+			}
+		return;
+	}
+	if (ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "direction"))
+	{
+		const int logical = ri.Cmd_Argc() > 2 ? atoi(ri.Cmd_Argv(2)) : -1;
+		const int x = ri.Cmd_Argc() > 3 ? atoi(ri.Cmd_Argv(3)) : -1,
+				  y = ri.Cmd_Argc() > 4 ? atoi(ri.Cmd_Argv(4)) : -1;
+		for (size_t image = 0; image < images->Images().size(); ++image)
+		{
+			const auto &im = images->Images()[image];
+			if (logical < 0 || x < 0 || y < 0 ||
+				im.logicalIndex != static_cast<unsigned>(logical) || im.missing ||
+				im.role != LightmapRole::Lighting)
+				continue;
+			DeluxeBinding binding;
+			DeluxeSample sample;
+			ReadContext ctx;
+			ctx.maxBytes = 16;
+			auto error = BindDeluxe(images, image, binding);
+			if (error)
+				error = ReadDeluxe(binding, static_cast<uint32_t>(x), static_cast<uint32_t>(y), ctx,
+								   sample);
+			if (!error)
+			{
+				ri.Printf(PRINT_ALL, "baked-direction failed: %s\n", error.message.c_str());
+				return;
+			}
+			const auto &d = sample.direction;
+			ri.Printf(PRINT_ALL,
+					  "baked-direction logical=%d x=%d y=%d state=%s raw=%u,%u,%u "
+					  "to-source=%.9g,%.9g,%.9g angle-bound=%.9g (supplementary WORLD evidence)\n",
+					  logical, x, y, DeluxeStateName(d.state), unsigned(d.raw[0]),
+					  unsigned(d.raw[1]), unsigned(d.raw[2]), d.toSource.x, d.toSource.y,
+					  d.toSource.z, d.angularBoundRadians);
+			return;
+		}
+		ri.Printf(PRINT_ALL, "baked-direction invalid/missing colour image\n");
+		return;
+	}
+	ClassificationOptions options;
+	options.scanLuxels = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "scan");
+	ReadContext context;
+	context.maxBytes = 32ull * 1024 * 1024;
+	ObservationSummary s;
+	const auto error = SummarizeObservations(geometry, images, options, context, s);
+	if (!error)
+	{
+		ri.Printf(PRINT_ALL, "baked-summary failed: %s\n", error.message.c_str());
+		return;
+	}
+	auto n = [](uint64_t value) { return static_cast<unsigned long long>(value); };
+	ri.Printf(PRINT_ALL,
+			  "baked-summary surfaces=%llu charts=%llu static-charts=%llu styled-charts=%llu "
+			  "vertex-samples=%llu images=%llu alternatives=%llu missing-images=%llu "
+			  "paired-deluxe=%llu unavailable-deluxe=%llu\n",
+			  n(s.surfaces), n(s.lightmappedCharts), n(s.staticCharts), n(s.styledCharts),
+			  n(s.vertexSamples), n(s.selectedLightingImages), n(s.alternativeImages),
+			  n(s.missingImages), n(s.pairedDeluxeImages), n(s.unavailableDeluxeImages));
+	ri.Printf(PRINT_ALL,
+			  "baked-categories emissive=%llu sky=%llu cutout=%llu translucent=%llu unlit=%llu "
+			  "moving=%llu animated=%llu excluded-surfaces=%llu\n",
+			  n(s.emissiveSurfaces), n(s.skySurfaces), n(s.cutoutSurfaces),
+			  n(s.translucentSurfaces), n(s.unlitSurfaces), n(s.movingSurfaces),
+			  n(s.animatedSurfaces), n(s.excludedSurfaces));
+	if (s.luxelsScanned)
+		ri.Printf(PRINT_ALL,
+				  "baked-luxels texels=%llu valid=%llu fit-candidates=%llu styled=%llu "
+				  "excluded=%llu deluxe-valid=%llu deluxe-unavailable=%llu\n",
+				  n(s.texels), n(s.validLuxels), n(s.fitCandidates), n(s.styledLuxels),
+				  n(s.excludedLuxels), n(s.deluxeAvailable), n(s.deluxeUnavailable));
+	else
+		ri.Printf(PRINT_ALL, "baked-luxels not scanned; use r_lightReconObservations scan for "
+							 "bounded CPU coverage/direction statistics\n");
+	for (unsigned style = 0; style < 255; ++style)
+		if (s.styles[style] || s.vertexStyles[style])
+			ri.Printf(PRINT_ALL, "baked-style id=%u charts=%llu vertex-channels=%llu status=%s\n",
+					  style, n(s.styles[style]), n(s.vertexStyles[style]),
+					  style ? "styled-animation-unknown" : "static");
+	for (size_t bit = 0; bit < kObservationReasonCount; ++bit)
+		if (s.exclusionReasons[bit])
+			ri.Printf(PRINT_ALL, "baked-exclusion reason=%s texels=%llu\n",
+					  ObservationReasonName(1ull << bit), n(s.exclusionReasons[bit]));
+	ri.Printf(
+		PRINT_ALL,
+		"baked-summary map=%s source=%s geometry-bytes=%llu vertex-HDR-state=%d "
+		"vertex-HDR-source=%s (relative evidence; no measured albedo or absolute lighting scale)\n",
+		geometry->Map().path.c_str(), Rend2LightRecon::Disk::Hex(geometry->Map().sha256).c_str(),
+		n(geometry->Report().bytes), static_cast<int>(geometry->HdrState()),
+		geometry->HdrSource().c_str());
 }
 
 void R_LuxelDebugDraw(const refdef_t *fd)

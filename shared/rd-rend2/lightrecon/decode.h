@@ -20,7 +20,8 @@ enum class Component
 {
 	Lightmap,
 	GridAmbient,
-	GridDirected
+	GridDirected,
+	Vertex
 };
 enum class Transfer
 {
@@ -38,7 +39,8 @@ enum class HdrOrigin
 {
 	Unknown,
 	RadianceRgbE,
-	LightgridRawFloat32
+	LightgridRawFloat32,
+	VertexRawFloat32
 };
 enum class Quantization
 {

@@ -6,7 +6,7 @@ boundary shared by SP, MP and standalone tools. It contains the canonical
 [read-only API](rend2-reconstructed-lighting-api.md), plus the new input and
 builder/session and build/use policy code under `shared/rd-rend2/lightrecon/`.
 
-No inverse-lighting algorithm or complete geometry/material input adapter is installed.
+No inverse-lighting algorithm or full bake-time material/visibility adapter is installed.
 [Original lightmap observations](rend2-lightmap-observations.md) now have a bounded,
 immutable input module and main-world capture adapter; they remain uncalibrated
 images rather than fitted surface/physical-light data.
@@ -16,6 +16,9 @@ alternatives without assuming geometric validity.
 [Luxel correspondence](rend2-luxel-observations.md) now retains original static
 surface geometry and maps supported source lightmap charts to positions,
 normals, coverage and area through explicit bounded CPU tile queries.
+[Observation classification](rend2-observation-classification.md) adds explicit
+deluxe correspondence, separate style/vertex evidence and material eligibility
+without treating texture colour as bake-time reflectance.
 The independent [versioned disk codec and cache adapter](rend2-reconstruction-disk.md)
 are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle.md).
 Complete source fingerprint collection remains unavailable, so the renderer
@@ -54,6 +57,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/lightmaps.h/.cpp` | Original image observations, source-map identity, bounded capture and immutable pixel leases |
 | `lightrecon/lightgrid.h/.cpp` | Original indexed JA grid evidence, bounded immutable capture, logical-cell and explicit decoder access |
 | `lightrecon/surfaces.h/.cpp` | Original source UV/geometry capture and bounded luxel correspondence, coverage/area and explicit debug export |
+| `lightrecon/classification.h/.cpp` | Read-only style/material eligibility, paired deluxe directions, distinct vertex observations and bounded statistics |
 | `lightrecon/decode.h/.cpp` | Explicit source transfer, renderer-compatible interpretation, censoring and optional scene-equivalent calibration ([contract](rend2-observation-decoding.md)) |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
@@ -61,7 +65,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/lifecycle.h/.cpp` | Main-world context, cache/session ownership, tickets and synchronous complete-only publication |
 | `lightrecon/CMakeLists.txt` | Single static target containing these files and existing canonical types/API |
 | `tools/lightrecon_test/lightrecon_core_test.cpp` | Synthetic standalone core tests |
-| `tools/lightrecon_test/CMakeLists.txt` | Ten CPU executables linking the same target |
+| `tools/lightrecon_test/CMakeLists.txt` | Eleven CPU executables linking the same target |
 
 `tr_lightrecon_types.*`, `tr_lightrecon_api.*` and `tr_lightrecon_manager.h` keep
 their existing names/includes; moving them is unnecessary churn. The new core
@@ -71,7 +75,7 @@ Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all ten test executables to it.
+only if it does not already exist, and links all eleven test executables to it.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,

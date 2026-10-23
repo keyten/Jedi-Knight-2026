@@ -233,8 +233,10 @@ The subsequent [photometric decoder](rend2-observation-decoding.md) and
 [indexed lightgrid snapshot](rend2-lightgrid-observations.md) extend the input
 boundary. [Luxel correspondence](rend2-luxel-observations.md) now captures original
 UV/geometry and shader identity before atlas packing and maps supported static
-charts to world positions/normals/area. Full material semantics, complete input
-fingerprints, streaming spill-to-disk storage and a reconstruction solver remain
+charts to world positions/normals/area. [Observation classification](rend2-observation-classification.md)
+now supplies paired deluxe directions, style/vertex evidence and material eligibility.
+Full bake-time material interpretation, complete input fingerprints,
+streaming spill-to-disk storage and a reconstruction solver remain
 unavailable. Main-world JA BSP is supported; MP sub-BSPs remain
 excluded from the single main-world input owner. Other BSP formats and unrequested
 external formats beyond Rend2's existing decoders are unsupported. Original HDR

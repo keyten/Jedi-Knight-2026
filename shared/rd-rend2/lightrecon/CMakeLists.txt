@@ -10,6 +10,7 @@ add_library(rend2_lightrecon_core STATIC
 	decode.cpp decode.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
+	classification.cpp classification.h
 	disk.cpp disk.h cache.cpp cache.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)
 set_target_properties(rend2_lightrecon_core PROPERTIES
 	CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO

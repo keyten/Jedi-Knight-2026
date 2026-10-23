@@ -69,6 +69,19 @@ class Contracts(unittest.TestCase):
         added = '\n#ifdef USE_LIGHT_RECON_TEST\nuniform sampler3D u_LightReconTest;\n#endif\n'
         self.assertEqual(self.baseline, preprocess(self.source + added, self.cpp))
 
+    def test_classification_source_guards(self):
+        import lightrecon_regression as regression
+        original = regression.read
+        for path, token in [('shared/rd-rend2/tr_bsp.cpp', 'observations.VertexHdrSource('),
+                            ('shared/rd-rend2/tr_bsp.cpp', 'authored = surf->shader;'),
+                            ('shared/rd-rend2/tr_lightrecon.cpp', 'out.colour, in.color'),
+                            ('shared/rd-rend2/tr_lightrecon.cpp', 'ds.vertexStyles[slot]')]:
+            def changed(name):
+                text = original(name)
+                return text.replace(token, 'removed_capture') if name == path else text
+            with mock.patch.object(regression, 'read', side_effect=changed):
+                self.assertTrue(regression.observation_audit())
+
     def test_define_sampler_ubo_ssbo_and_work_mutations_are_detected(self):
         for label, added in [
             ('define', '#define USE_LIGHT_RECON_TEST\n'),

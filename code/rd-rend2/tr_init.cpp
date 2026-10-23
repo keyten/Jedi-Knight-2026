@@ -2080,6 +2080,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_lightReconInfo",	R_LightReconInfo_f },
 	{ "r_lightReconLuxels", R_LuxelDebug_f },
+	{ "r_lightReconObservations", R_LightReconObservations_f },
 	{ "r_pbrInfo",		R_PBRInfo_f },
 	{ "r_pbrLight",		R_PBRLight_f },
 	{ "r_fogvol",			R_FogVolume_f },

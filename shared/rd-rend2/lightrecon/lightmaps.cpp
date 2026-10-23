@@ -234,6 +234,8 @@ Error LightmapCapture::Embedded(const void *bsp, size_t bspBytes, uint64_t offse
 			LightmapImage image;
 			image.logicalIndex = static_cast<uint32_t>(i);
 			image.role = deluxe && (i & 1) ? LightmapRole::DeluxeDirection : LightmapRole::Lighting;
+			if (image.role == LightmapRole::DeluxeDirection)
+				image.pairedLightingIndex = static_cast<uint32_t>(i - 1);
 			image.width = width;
 			image.height = height;
 			image.channels = 3;
@@ -253,13 +255,15 @@ Error LightmapCapture::Embedded(const void *bsp, size_t bspBytes, uint64_t offse
 	}
 }
 Error LightmapCapture::Rgba8(uint32_t index, LightmapRole role, const std::string &source,
-							 uint32_t width, uint32_t height, const uint8_t *data, size_t bytes)
+							 uint32_t width, uint32_t height, const uint8_t *data, size_t bytes,
+							 uint32_t pairedLightingIndex)
 {
 	try
 	{
 		LightmapImage image;
 		image.logicalIndex = index;
 		image.role = role;
+		image.pairedLightingIndex = pairedLightingIndex;
 		image.encoding = LightmapEncoding::ExternalRgba8;
 		image.source = source;
 		image.width = width;
@@ -292,13 +296,14 @@ Error LightmapCapture::Rgb32F(uint32_t index, const std::string &source, uint32_
 	}
 }
 Error LightmapCapture::Missing(uint32_t index, LightmapRole role, LightmapEncoding encoding,
-							   const std::string &source)
+							   const std::string &source, uint32_t pairedLightingIndex)
 {
 	try
 	{
 		LightmapImage image;
 		image.logicalIndex = index;
 		image.role = role;
+		image.pairedLightingIndex = pairedLightingIndex;
 		image.encoding = encoding;
 		image.source = source;
 		image.missing = true;

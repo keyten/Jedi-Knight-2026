@@ -242,6 +242,17 @@ def observation_audit():
     surfaces = bsp[bsp.find('static\tvoid R_LoadSurfaces('):bsp.find('static\tvoid R_LoadMarksurfaces(')]
     if 'observations.SurfaceMaterial(' not in surfaces:
         failures.append('Original surface capture must retain parse-time deformation/material exclusions')
+    if 'observations.VertexHdrSource(' not in surfaces or 'observations.VertexHdrSidecar(' not in surfaces:
+        failures.append('Vertex HDR evidence must be retained before temporary sidecars are freed')
+    adapter = read('shared/rd-rend2/tr_lightrecon.cpp')
+    if 'out.colour, in.color' not in adapter or 'ds.vertexStyles[slot]' not in adapter:
+        failures.append('Original vertex RGBA and style channels must survive BSP release')
+    for parser in ('ParseFace', 'ParseMesh', 'ParseTriSurf', 'ParseFlare'):
+        start = bsp.find('static void ' + parser)
+        body = bsp[start:]
+        capture, override = body.find('authored = surf->shader;'), body.find('if ( r_singleShader')
+        if start < 0 or capture < 0 or override < 0 or capture > override:
+            failures.append(f'{parser}: capture the exact shader variant before a drawing override')
     return failures
 
 
@@ -267,7 +278,7 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels') and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 line = text[:m.start()].count('\n') + 1
                 failures.append(f'{relative}:{line}: canonical GPU consumer dependency {m[0]}; extend disabled-path coverage before integration')

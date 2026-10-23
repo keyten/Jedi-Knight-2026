@@ -29,6 +29,12 @@ No production renderer or GLSL code is changed by the regression tooling.
   atlas-independent export hashes and explicit SP overlay capture hashes. Raw
   screenshots and geometry exports remain under ignored `build/`; reproduction
   commands and limitations are in `docs/rend2-luxel-observations.md`.
+- `classification-validation.json`: CPU/style/material/deluxe classification
+  witness, stock hoth3/hoth2 counts, synthetic external deluxe-pair pixel checks
+  and exact controlled SP before/after frame hashes. It does not replace the GLSL
+  goldens or claim stock maps contain deluxe data. Source SHA256 values normalize
+  CRLF to LF; DLLs, images and result files use exact byte hashes. Reproduction
+  commands and runtime limitations are in `docs/rend2-observation-classification.md`.
 
 Run the existing suite's focused selection:
 
