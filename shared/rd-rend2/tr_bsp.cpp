@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "tr_loadprofile.h"
+#include "tr_lightrecon.h"
 #include "../map_load_profile_version.h"
 
 #define JSON_IMPLEMENTATION
@@ -5106,6 +5107,7 @@ Called directly from cgame
 =================
 */
 void RE_LoadWorldMap( const char *name ) {
+	LightReconWorldLoad reconstructedWorld(name); // unwinds on ERR_DROP in SP and MP
 	const int loadStart = ri.Milliseconds();
 	R_ShadowCacheInvalidate();
 	R_SetMaterialDdcWorldLoad(qfalse);
@@ -5205,4 +5207,8 @@ void RE_LoadWorldMap( const char *name ) {
 	R_LoadProfilePrint("world total", loadStart);
 	R_ModelLoadProfileCheckpoint("world map");
 	if (R_LoadProfileEnabled()) R_ShaderLoadProfileBegin();
+	// All BSP geometry/materials, area lights and legacy initialization succeeded.
+	// Canonical loading is independent of R_BuildStaticLighting and its consumers.
+	reconstructedWorld.Finish(world->numsurfaces,
+		world->lightGridData ? world->numGridArrayElements : 0, tr.numLightmaps);
 }

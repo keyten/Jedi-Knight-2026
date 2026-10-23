@@ -1,7 +1,7 @@
 // Intentionally no include guard: one registration/declaration list for SP/MP.
 // Every entry defaults to 0, is archived and live (no new permutations/resources).
 // Build policy is sampled ONLY at the next map load/reload, not on cvar changes.
-LIGHTRECON_CONTROL(r_lightReconBuild, 3, "Canonical lighting asset: 0 off, 1 cache only, 2 cache or build, 3 force build; next map load/reload (vid_restart alone does not request work)")
+LIGHTRECON_CONTROL(r_lightReconBuild, 3, "Canonical lighting asset: 0 off, 1 cache only, 2 cache or build, 3 force build; next main-world load (vid_restart clears context and may reload the world)")
 LIGHTRECON_CONTROL(r_lightReconUse, 1, "Master use of canonical reconstructed lighting; live, requires each consumer opt-in, data and an available adapter")
 LIGHTRECON_CONSUMER(r_lightReconFog, Fog, "Use canonical incoming radiance for fog; live request, requires a prepared field and available fog adapter")
 LIGHTRECON_CONSUMER(r_lightReconEntities, Entities, "Use canonical irradiance for entities/Ghoul2; live request, requires prepared irradiance and an available entity adapter")

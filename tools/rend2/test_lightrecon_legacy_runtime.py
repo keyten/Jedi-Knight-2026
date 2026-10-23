@@ -95,10 +95,10 @@ def validate_consumers(section, label, policy):
         raise AssertionError('Master switch state not observed')
 
 
-def run_case(args, map_name, profile):
+def prepare_runtime(args, runtime, profile, policy):
+    """Shared stock-only SP map-load setup; does not launch or enter gameplay."""
     if game_processes():
         raise RuntimeError('Another OpenJK process is running; refusing overlapping validation')
-    runtime = args.output.resolve() / f'{map_name}-{profile}-build{args.build_policy}-{args.label}'
     if runtime.exists():
         raise RuntimeError(f'Use a fresh output directory, preserving prior evidence: {runtime}')
     base = args.output.resolve() / 'stock-assets/base'
@@ -139,9 +139,16 @@ def run_case(args, map_name, profile):
     shutil.copy2(args.binaries / 'jagamex86_64.dll', home / 'jagamex86_64.dll')
     shutil.copy2(args.renderer, runtime / 'rdsp-rend2_x86_64.dll')
     shutil.copy2(ROOT / 'lib/SDL2/bin/x64/SDL2.dll', runtime / 'SDL2.dll')
-    config = settings(profile, args.build_policy)
+    config = settings(profile, policy)
     config.update(fs_basepath=str(base.parent), fs_homepath=str(runtime / 'home'), fs_game='OpenJK')
     (home / 'openjk_sp.cfg').write_text(''.join(f'set {k} "{v}"\n' for k, v in config.items()), encoding='ascii')
+    return config, archives
+
+
+def run_case(args, map_name, profile):
+    runtime = args.output.resolve() / f'{map_name}-{profile}-build{args.build_policy}-{args.label}'
+    config, archives = prepare_runtime(args, runtime, profile, args.build_policy)
+    home = runtime / 'home/OpenJK'
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands(map_name)) + '\n', encoding='ascii')
     command = [str(runtime / 'openjk_sp.x86_64.exe')]
     for key in ('fs_basepath', 'fs_homepath', 'fs_game'):
@@ -173,7 +180,8 @@ def run_case(args, map_name, profile):
     if 'fxplay: test/lightrecon_legacy at distance 8' not in text:
         raise AssertionError('Controlled legacy FX was not played')
     applied = re.findall(r'build applied=(\d) result=(\w+) cache-called=(\d) build-called=(\d)', text)
-    expected = (str(args.build_policy), 'Disabled' if args.build_policy == 0 else 'Unavailable', '0', '0')
+    expected = (str(args.build_policy), 'Disabled' if args.build_policy == 0 else 'Unavailable', '0',
+                '1' if args.build_policy >= 2 else '0') # explicit prepare attempt; no algorithm/session
     if len(applied) != 6 or any(row != expected for row in applied):
         raise AssertionError(f'Map-load policy or missing-backend contract not observed: {applied}')
     shots = home / 'screenshots'

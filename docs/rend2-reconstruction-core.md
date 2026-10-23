@@ -6,10 +6,11 @@ boundary shared by SP, MP and standalone tools. It contains the canonical
 [read-only API](rend2-reconstructed-lighting-api.md), plus the new input and
 builder/session and build/use policy code under `shared/rd-rend2/lightrecon/`.
 
-No inverse-lighting algorithm or production BSP/map-load cache adapter is installed.
+No inverse-lighting algorithm or production immutable BSP input adapter is installed.
 The independent [versioned disk codec and cache adapter](rend2-reconstruction-disk.md)
-are available to explicit owners/tools; complete source fingerprint collection
-and automatic map-load use remain unavailable.
+are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle.md).
+Complete source fingerprint collection remains unavailable, so the renderer
+reports NotCacheable instead of attempting an unsafe cache lookup.
 The default session reports `Unavailable` and exposes no reconstruction result.
 Neither `tr_staticlighting.cpp` nor `tr_volrecon.cpp` calls the new session.
 Existing map loading, fog promotion, entity lighting, sun, area calibration,
@@ -44,9 +45,10 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
 | `lightrecon/disk.h/.cpp`, `cache.h/.cpp` | Portable asset format, content keys, selective chunks and explicit native atomic cache I/O |
+| `lightrecon/lifecycle.h/.cpp` | Main-world context, cache/session ownership, tickets and synchronous complete-only publication |
 | `lightrecon/CMakeLists.txt` | Single static target containing these files and existing canonical types/API |
 | `tools/lightrecon_test/lightrecon_core_test.cpp` | Synthetic standalone core tests |
-| `tools/lightrecon_test/CMakeLists.txt` | Five CPU executables linking the same target |
+| `tools/lightrecon_test/CMakeLists.txt` | Six CPU executables linking the same target |
 
 `tr_lightrecon_types.*`, `tr_lightrecon_api.*` and `tr_lightrecon_manager.h` keep
 their existing names/includes; moving them is unnecessary churn. The new core
@@ -56,7 +58,7 @@ Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all five test executables to it.
+only if it does not already exist, and links all six test executables to it.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,
@@ -213,7 +215,7 @@ cmake --build build/lightrecon-standalone --config Release --parallel 4
 ctest --test-dir build/lightrecon-standalone -C Release --output-on-failure
 ```
 
-This standalone project enables only C++, adds the CPU archive and five test
+This standalone project enables only C++, adds the CPU archive and six test
 executables. It does not configure OpenGL, SDL, engine targets, shaders or Boost.
 For other platforms omit the Windows generator/platform arguments.
 
@@ -226,7 +228,7 @@ cmake -S . -B build/lightrecon-core-renderers -G "Visual Studio 16 2019" -A x64 
   -DBuildMPUI=OFF -DBuildMPRdVanilla=OFF -DBuildMPRend2=ON `
   -DBuildLightReconTests=ON -DBuildTests=OFF
 cmake --build build/lightrecon-core-renderers --config Release --parallel 4 `
-  --target rdsp-rend2_x86_64 rd-rend2_x86_64 lightrecon_test lightrecon_api_test lightrecon_core_test lightrecon_control_test lightrecon_disk_test
+  --target rdsp-rend2_x86_64 rd-rend2_x86_64 lightrecon_test lightrecon_api_test lightrecon_core_test lightrecon_control_test lightrecon_disk_test lightrecon_lifecycle_test
 ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure
 ```
 

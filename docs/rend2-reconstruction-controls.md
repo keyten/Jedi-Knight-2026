@@ -55,9 +55,11 @@ For immediate consumption shutdown use `r_lightReconUse 0`.
 
 ## Build/load policy and failure semantics
 
-`ApplyBuildPolicy(BuildPolicy, Manager&, BuildBackend*)` is a synchronous CPU
-policy boundary invoked by the renderer owner at main-world load. It does not
-consult master or consumer requests. An offline host may invoke the same policy
+The renderer uses the synchronous [WorldLighting lifecycle](rend2-reconstruction-lifecycle.md)
+at `RE_LoadWorldMap`, with cache admission, bounded session ownership and complete-only
+publication. `ApplyBuildPolicy(BuildPolicy, Manager&, BuildBackend*)` remains a CPU
+backend helper for other explicit hosts. Neither path consults master or consumer
+requests. An offline host may invoke the same policy
 with an explicit backend bound to its immutable dataset/revision.
 
 | Value | Behaviour |
@@ -70,7 +72,9 @@ with an explicit backend bound to its immutable dataset/revision.
 `LoadCache` must never invoke reconstruction internally. It must check input
 revision, calibration and algorithm compatibility as well as schema validity;
 the core cannot infer cache freshness from a BSP or a pathname. There is no
-cache writer, implicit retry, background job or lazy build from a query.
+implicit retry, background job or lazy build from a query in this helper. The
+lifecycle owner can atomically write a completed validated result through the
+separate disk adapter, only with complete fingerprints.
 
 `BuildProduct` holds an immutable asset, optional prepared CPU evaluator,
 `Completeness` and diagnostic. Only `Ok` with a valid product is published through
@@ -86,12 +90,14 @@ current asset. Existing snapshot leases remain safely pinned. `BuildReport`
 records which callbacks were actually called and each status; consumer queries
 and the diagnostic command never invoke them. Clearing a world exposes `Unloaded`.
 
-**Current production state:** no canonical cache loader, solver or rendering
-adapter is installed. Policy 0 publishes `Disabled`; policies 1–3 report
-`Unavailable`, leave the asset `Missing`, and make no backend calls. In particular
-policy 1 cannot accidentally run the experimental solver. The old experimental
-pipeline still runs under its own existing controls. No improved map lighting,
-cache persistence or runtime integration is implemented by this change.
+**Current production state:** the map owner/native cache boundary is installed,
+but complete source hashing, immutable BSP input export, a solver and rendering
+adapters are unavailable. Policy 0 is `Disabled`; policy 1 is `Unavailable` with
+`NotCacheable` and no disk/build call. Policies 2/3 report `BuildRequired` after
+one explicit input-preparation attempt, with zero sessions/solver steps and no
+published asset. This never invokes the experimental solver. Its old controls
+retain their behaviour. Synthetic completed jobs/caches exercise real persistence;
+the game does not claim a fitted asset or improved rendering.
 
 ## Single consumption rule
 
@@ -140,6 +146,8 @@ status and callback counts, asset state/validity, metadata counts and each
 consumer's requested/effective/capability/feature states and fallback reason.
 Metadata counts are explicitly not usable-light counts. It does not call an
 empty asset “active,” start work, or change any renderer setting.
+The lifecycle report additionally prints map/ticket/generation/lineage, cache key
+completeness and status, session steps and current metadata/temporary memory.
 
 Exact standalone and SP/MP build commands are in
 [the core build instructions](rend2-reconstruction-core.md#build-and-run).

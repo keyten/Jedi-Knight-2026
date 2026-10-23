@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "tr_loadprofile.h"
+#include "tr_lightrecon.h"
 //#include "tr_stl.h"
 //#include "ghoul2/g2_local.h"
 #include "tr_cache.h"
@@ -3977,6 +3978,7 @@ static bool r_cacheGPUShaders = false;
 
 void R_ClearTr(void)
 {
+	R_ClearReconstructedLighting(); // before world/hunk pointers are reset
 	if (r_cacheGPUShaders)
 	{
 		// clear all but GPU shaders in tr
@@ -4136,6 +4138,7 @@ RE_Shutdown
 ===============
 */
 void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
+	R_ClearReconstructedLighting(); // also valid after a failed/partial R_Init
 	const int loadStart = ri.Milliseconds();
 
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow );

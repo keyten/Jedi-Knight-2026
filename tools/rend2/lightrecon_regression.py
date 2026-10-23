@@ -182,6 +182,38 @@ def preprocess(source, cpp):
             'texture_calls': len(re.findall(r'\b(?:texture\w*|texelFetch\w*)\s*\(', expanded))}
 
 
+def lifecycle_audit():
+    """Fence main-world ownership separately from legacy/grid reconstruction."""
+    failures = []
+    bsp = strip_comments(read('shared/rd-rend2/tr_bsp.cpp'))
+    # The definitions (not forward declarations) are unambiguous in this file.
+    main_start = bsp.find('void RE_LoadWorldMap( const char *name ) {')
+    lower_start = bsp.find('world_t *R_LoadBSP(')
+    if main_start < 0 or lower_start < 0:
+        return ['Main/sub-BSP lifecycle definitions were not found; review the ownership audit']
+    main = bsp[main_start:]
+    lower = bsp[lower_start:main_start]
+    required = ['LightReconWorldLoad reconstructedWorld(name)', 'R_LoadBSP(name)',
+                'R_LoadAreaLights(', 'R_BuildStaticLighting(', 'R_CalibrateEntitySun(',
+                'reconstructedWorld.Finish(']
+    positions = [main.find(token) for token in required]
+    if min(positions) < 0 or positions != sorted(positions):
+        failures.append('Canonical main-world guard/commit must bracket BSP, area lights and legacy initialization')
+    if re.search(r'LightReconWorldLoad|R_(?:Load|Clear)ReconstructedLighting', lower):
+        failures.append('R_LoadBSP/sub-BSPs must not replace the canonical main-world context')
+    legacy = strip_comments(read('shared/rd-rend2/tr_staticlighting.cpp'))
+    if re.search(r'R_(?:Load|Clear)ReconstructedLighting', legacy):
+        failures.append('Legacy static-light rebuild/clear must not own canonical asset loading')
+    for variant in ('code', 'codemp'):
+        init = strip_comments(read(f'{variant}/rd-rend2/tr_init.cpp'))
+        for entry in ('void R_ClearTr(void)', 'void RE_Shutdown('):
+            start = init.find(entry)
+            body = init[init.find('{', start) + 1:]
+            if start < 0 or not body.lstrip().startswith('R_ClearReconstructedLighting();'):
+                failures.append(f'{variant}: {entry} must unconditionally release the canonical context first')
+    return failures
+
+
 def production_audit():
     """Fence current absence of canonical GPU integration, with actionable errors.
 
@@ -191,7 +223,7 @@ def production_audit():
     allowed = {'shared/rd-rend2/tr_lightrecon.cpp', 'shared/rd-rend2/tr_lightrecon.h',
                'shared/rd-rend2/tr_lightrecon_cvars.inc', 'shared/rd-rend2/tr_lightrecon_register.inc',
                'shared/rd-rend2/tr_local.h', 'shared/rd-rend2/tr_staticlighting.h'}
-    failures = []
+    failures = lifecycle_audit()
     for directory in ('shared/rd-rend2', 'code/rd-rend2', 'codemp/rd-rend2'):
         for path in (ROOT / directory).rglob('*'):
             if path.suffix not in ('.cpp', '.h', '.glsl', '.inc') or not path.is_file():

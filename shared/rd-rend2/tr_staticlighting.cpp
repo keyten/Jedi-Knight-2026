@@ -82,7 +82,6 @@ static struct
 
 void R_ClearStaticLighting( void )
 {
-	R_ClearReconstructedLighting();
 	s_sl.valid = qfalse;
 	s_sl.mode = 0;
 	s_sl.promote = qfalse;
@@ -215,7 +214,6 @@ R_BuildStaticLighting
 void R_BuildStaticLighting( world_t *world )
 {
 	R_ClearStaticLighting();
-	R_LoadReconstructedLighting();
 	R_ClearVolumetricStaticLighting(world);
 	// One deterministic map-load boundary for all legacy baked/grid consumers.
 	R_PBRCalibrateLegacyMap(world);

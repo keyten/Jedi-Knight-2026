@@ -1,0 +1,133 @@
+{
+  "date": "2026-10-23",
+  "scope": "Main-world ownership; no inverse solver or rendering consumer",
+  "source_base_revision": "9c30779b1cad2ce5c72cc42fea839d71ee11cc2e",
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/lifecycle.h": "4956618793e5f03917b41ec6bef6540f399439b0e8104a868d5bf491f4479238",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "f7a4b7962ce788c662af6dc1320598f8f8aa591458afde1af84c9da05f27adea",
+    "shared/rd-rend2/tr_lightrecon.h": "054dc12c2298f8a697edc09f35c3a5da9bc5869815aeef695bd67cda4bf2c46c",
+    "shared/rd-rend2/tr_lightrecon.cpp": "30933464651c06ec359fc7038142e5752680d882e46177d5036cf92420ecb042",
+    "shared/rd-rend2/tr_lightrecon_api.cpp": "c85c3534008a6cf2a354d1b46361ef5109e862d364afe394174876c716f65b70",
+    "shared/rd-rend2/tr_lightrecon_manager.h": "e003e4a224853b8201406a6491a6cf4f8f3c4d90cf200efad718298b8fa52556",
+    "shared/rd-rend2/tr_bsp.cpp": "24651e4ec22e6db3f1727f999fe8b45f68f6d8273de7a4d8cd05c1614c708839",
+    "shared/rd-rend2/tr_staticlighting.cpp": "1afed6128aee77ab2b9f88a3898908a6da368e1542d32e665d05455d853d3ff9",
+    "code/rd-rend2/tr_init.cpp": "62bbbc767850723e41cd3ade72ba630676a9b9adac016e5f523a212613fc2705",
+    "codemp/rd-rend2/tr_init.cpp": "65d73bde1e07f4f68573f7845ce37b4728064e82ccfebfbb198b41b53c68d864"
+  },
+  "renderer_sha256": "70240401e098399a8338a8c073c3e569eb24d9b099bc69f4d9ddf2e3e5c37418",
+  "runtime_driver": [
+    "GL_RENDERER: Intel(R) UHD Graphics"
+  ],
+  "runtime_states": {
+    "UNLOADED": {
+      "state": "Unloaded",
+      "world": "<none>",
+      "ticket": 2,
+      "generation": 3,
+      "identity": "<none>",
+      "cache": "NotCacheable"
+    },
+    "DISABLED": {
+      "state": "Disabled",
+      "world": "maps/hoth3.bsp",
+      "ticket": 6,
+      "generation": 7,
+      "identity": "<none>",
+      "cache": "NotCacheable",
+      "applied": [
+        "0",
+        "Disabled",
+        "0",
+        "0"
+      ]
+    },
+    "POLICY_UNAPPLIED": {
+      "state": "Disabled",
+      "world": "maps/hoth3.bsp",
+      "ticket": 6,
+      "generation": 7,
+      "identity": "<none>",
+      "cache": "NotCacheable",
+      "applied": [
+        "0",
+        "Disabled",
+        "0",
+        "0"
+      ]
+    },
+    "FORCE": {
+      "state": "BuildRequired",
+      "world": "maps/hoth2.bsp",
+      "ticket": 10,
+      "generation": 12,
+      "identity": "<none>",
+      "cache": "NotCacheable",
+      "applied": [
+        "3",
+        "Unavailable",
+        "0",
+        "1"
+      ]
+    },
+    "CACHEONLY": {
+      "state": "Unavailable",
+      "world": "maps/hoth3.bsp",
+      "ticket": 14,
+      "generation": 17,
+      "identity": "<none>",
+      "cache": "NotCacheable",
+      "applied": [
+        "1",
+        "Unavailable",
+        "0",
+        "0"
+      ]
+    },
+    "RESTART": {
+      "state": "BuildRequired",
+      "world": "maps/hoth3.bsp",
+      "ticket": 3,
+      "generation": 5,
+      "identity": "<none>",
+      "cache": "NotCacheable",
+      "applied": [
+        "2",
+        "Unavailable",
+        "0",
+        "1"
+      ]
+    },
+    "DISCONNECTED": {
+      "state": "Unloaded",
+      "world": "<none>",
+      "ticket": 5,
+      "generation": 7,
+      "identity": "<none>",
+      "cache": "NotCacheable"
+    }
+  },
+  "runtime_passed": true,
+  "runtime_artifact_directory": "build/lightrecon-visual-20261022/lifecycle-ownership-final",
+  "canonical_cache_files": [],
+  "gameplay_actions": false,
+  "cache_hits_and_completed_builds": "Synthetic CPU/native-cache tests only; complete production source collector unavailable",
+  "cpu": {
+    "msvc": "6/6 passed",
+    "gcc": "6/6 passed",
+    "checks_per_configuration": 7330,
+    "lifecycle_checks": 347
+  },
+  "shader_contract": {
+    "programs": 27,
+    "stages": 51,
+    "differences": 0,
+    "gpu_compiled": false,
+    "python_detector_tests": 11
+  },
+  "limitations": [
+    "No MP runtime run",
+    "No numerical field decoder/evaluator",
+    "No live input-revision invalidation",
+    "No cross-DLL external lease pinning"
+  ]
+}

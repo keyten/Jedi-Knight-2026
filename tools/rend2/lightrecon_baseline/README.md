@@ -21,6 +21,8 @@ No production renderer or GLSL code is changed by the regression tooling.
   references a stock saber-flare material; it contains no commercial asset data.
 - `validation.json`: compact recorded results and capture hashes. Large raw
   captures, installed PK3s, caches and execution logs stay under ignored `build/`.
+- `lifecycle-validation.json`: subsequent main-world lifecycle CPU/runtime witness;
+  this does not replace or regenerate the controlled GLSL goldens.
 
 Run the existing suite's focused selection:
 

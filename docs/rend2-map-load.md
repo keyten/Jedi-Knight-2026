@@ -4,8 +4,9 @@ Scope: the single-player `code/` engine and `shared/rd-rend2` on this branch. St
 
 The separate [reconstructed-lighting disk asset format](rend2-reconstruction-disk.md)
 now implements content-based keys, bounded validation and atomic CPU-cache writes.
-Its complete BSP/sidecar/material dependency collector and map-load backend are
-not installed; incomplete fingerprints are explicitly not cacheable. This does
+Its [main-world lifecycle owner](rend2-reconstruction-lifecycle.md) is installed;
+the complete BSP/sidecar/material dependency collector remains unavailable, so
+incomplete fingerprints are explicitly not cacheable. This does
 not change the map-loading/DDC performance findings or legacy lighting below.
 
 ## Baseline and profiling

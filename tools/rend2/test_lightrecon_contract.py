@@ -4,6 +4,7 @@ import copy
 import json
 import unittest
 import tempfile
+from unittest import mock
 from pathlib import Path
 from lightrecon_regression import (BASELINE, differences, cpp_path, preprocess,
                                   production_audit, sources)
@@ -19,6 +20,19 @@ class Contracts(unittest.TestCase):
 
     def test_production_boundary(self):
         self.assertEqual(production_audit(), [])
+
+    def test_lifecycle_owner_hooks_cannot_disappear(self):
+        import lightrecon_regression as regression
+        original = regression.read
+        for file, removed in [('shared/rd-rend2/tr_bsp.cpp', 'reconstructedWorld.Finish('),
+                              ('code/rd-rend2/tr_init.cpp', 'R_ClearReconstructedLighting();'),
+                              ('codemp/rd-rend2/tr_init.cpp', 'R_ClearReconstructedLighting();')]:
+            with self.subTest(file=file):
+                def changed(path):
+                    value = original(path)
+                    return value.replace(removed, 'removed_hook(' if removed.endswith('(') else '') if path == file else value
+                with mock.patch.object(regression, 'read', side_effect=changed):
+                    self.assertTrue(regression.lifecycle_audit())
 
     def test_whitespace_comments_are_not_regressions(self):
         self.assertEqual(self.baseline, preprocess(self.source + '\n// unrelated formatting\n\n', self.cpp))
@@ -79,6 +93,11 @@ class Contracts(unittest.TestCase):
         from test_lightrecon_legacy_runtime import validate_consumers
         with self.assertRaises(AssertionError):
             validate_consumers('lightRecon: build requested=3; use=0\n', 'A', 3)
+
+    def test_missing_lifecycle_diagnostics_cannot_pass(self):
+        from test_lightrecon_lifecycle_runtime import parse
+        with self.assertRaises(AssertionError):
+            parse('RECON_LIFECYCLE_DONE\n')
 
 
 if __name__ == '__main__':

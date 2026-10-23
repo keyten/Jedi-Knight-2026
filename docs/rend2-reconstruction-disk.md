@@ -6,12 +6,13 @@ CPU codec for the [canonical asset](rend2-reconstructed-lighting.md).
 Both belong to the single `rend2_lightrecon_core` library linked by SP, MP and
 standalone tools. Neither includes engine headers, `tr_local.h` or graphics APIs.
 
-This implements storage, validation and content-key construction. No solver,
-production source dependency collector, map-load cache backend, evaluator or
-rendering consumer is installed. `R_LoadReconstructedLighting()` keeps its existing
-unavailable/missing behaviour. The only new renderer helper,
-`R_LightReconCacheRoot()`, reads the supported `fs_homepath` cvar and returns a
-path; it performs no I/O and is not called automatically.
+This implements storage, validation and content-key construction. The subsequent
+[main-world lifecycle](rend2-reconstruction-lifecycle.md) connects explicit native
+cache/session ownership to `RE_LoadWorldMap`. No solver, production complete
+dependency collector, evaluator or rendering consumer is installed. The real
+renderer still reports NotCacheable and performs no cache lookup with incomplete
+keys. `R_LightReconCacheRoot()` reads the supported `fs_homepath` cvar; disabled
+world loading does not even request this path.
 
 ```mermaid
 flowchart LR
@@ -191,7 +192,8 @@ fresh expected key. It cannot discover a dependency omitted by a lying host.
 collects them all, `MakeKey`, `Encode`, `Cache.Load` and `Cache.Store` return
 `NotCacheable`; opening an incomplete key does not touch the reader. There is no
 filename-only, old `InputManifest.revision`-only or BSP-only fallback. The new disk
-adapter is deliberately not wired into the build-policy backend yet.
+adapter is now reachable through the lifecycle owner, but cache access stays
+blocked until the renderer's source collector provides a complete key.
 
 ## Cache location, publication and lifetime
 

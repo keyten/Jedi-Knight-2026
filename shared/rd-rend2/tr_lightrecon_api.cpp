@@ -156,6 +156,11 @@ Status CpuEvaluator::Contribution(const ReconstructedLightingAsset&, const Contr
 
 Manager::Manager() { SetUnavailable(Availability::Missing); }
 Snapshot Manager::Acquire() const { return Snapshot(std::atomic_load_explicit(&current_, std::memory_order_acquire)); }
+void Manager::Reset() noexcept
+{
+	std::shared_ptr<const detail::SnapshotData> empty;
+	std::atomic_store_explicit(&current_, empty, std::memory_order_release);
+}
 Status Manager::SetUnavailable(Availability state, const std::string& message)
 {
 	if (state == Availability::Ready || state == Availability::Partial ||

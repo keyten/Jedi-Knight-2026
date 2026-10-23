@@ -279,7 +279,8 @@ void Registrations()
 		if (i >= 2) CHECK(s.name == ConsumerCvar(static_cast<Consumer>(i - 2)));
 		for (size_t j = 0; j < i; ++j) CHECK(s.name != SP::ri.records[j].name);
 	}
-	CHECK(MP::ri.records[0].description.find("next map load/reload") != std::string::npos);
+	CHECK(MP::ri.records[0].description.find("next main-world load") != std::string::npos);
+	CHECK(MP::ri.records[0].description.find("vid_restart clears context") != std::string::npos);
 }
 } // namespace
 int main()

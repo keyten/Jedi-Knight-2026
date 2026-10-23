@@ -32,6 +32,9 @@ public:
 	Manager(const Manager&) = delete;
 	Manager& operator=(const Manager&) = delete;
 	Snapshot Acquire() const; // O(1), safe concurrently with publication; never starts work
+	// Allocation-free emergency release. Null publication reports Missing. Used
+	// before map teardown so even an allocation failure cannot retain an old asset.
+	void Reset() noexcept;
 	// Deep copy once, then validate and index before atomic publication. This avoids
 	// writable aliases into a moved-from builder's buffers. Invalid assets publish
 	// Corrupt with a diagnostic, never stale current data. Old leases remain valid.

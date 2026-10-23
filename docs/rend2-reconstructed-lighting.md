@@ -9,8 +9,9 @@ colour constants and normalization in `tr_pbr_contract.h`.
 This change implements a data contract, validation and conversion helpers.
 There is no inverse solver, observation importer or lighting-rendering adapter.
 The separate [versioned disk format and cache adapter](rend2-reconstruction-disk.md)
-serialize validated assets and optional chunks; complete source hashing and
-automatic map-load cache integration remain unavailable.
+serialize validated assets and optional chunks. The [main-world lifecycle owner](rend2-reconstruction-lifecycle.md)
+now handles load/reset boundaries; complete source hashing remains unavailable,
+so real-game cache admission still fails explicitly as NotCacheable.
 The [read-only CPU access API](rend2-reconstructed-lighting-api.md) supplies immutable
 published snapshots and explicit availability; it does not evaluate missing data.
 The [standalone CPU core](rend2-reconstruction-core.md) adds streaming inputs and

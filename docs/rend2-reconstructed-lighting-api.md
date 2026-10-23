@@ -203,10 +203,13 @@ manager is a normal C++ owner beside the existing main-world static-lighting
 owner, outside `world_t`, which is hunk-allocated and zeroed with `Com_Memset`.
 No `shared_ptr` or nontrivial container is inserted into that world structure.
 
-`R_ClearStaticLighting` marks the canonical owner Unloaded. At main-world static
-lighting load, the independent [build/load policy](rend2-reconstruction-controls.md)
-is applied: default policy 0 exposes Disabled; enabled policies currently expose
-Missing with an explicit Unavailable diagnostic because no backend is installed.
+SP/MP renderer reset/shutdown marks the canonical owner Unloaded, independently
+of `R_ClearStaticLighting`. At the main-world `RE_LoadWorldMap` boundary, the
+[lifecycle manager](rend2-reconstruction-lifecycle.md) applies the independent
+[build/load policy](rend2-reconstruction-controls.md): default policy 0 exposes
+Disabled. Complete production source fingerprints/input export remain unavailable,
+so enabled policies expose Missing with explicit NotCacheable/BuildRequired
+diagnostics instead of accepting an underspecified cache key.
 The experimental grid reconstruction still
 builds its existing result. Neither its proxies nor its promoted fog lights are
 presented as canonical physical lights. Sub-BSPs do not replace the main-world
