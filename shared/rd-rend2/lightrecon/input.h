@@ -138,6 +138,7 @@ public:
 	virtual Error Segment(const Vec3& receiver, const Vec3& target, const ReadContext&, float& transmittance) const;
 	virtual Error Sky(const Vec3& receiver, const Vec3& directionToSky, const ReadContext&, float& transmittance) const;
 };
+class LightmapObservations;
 struct InputDataset
 {
 	InputManifest manifest;
@@ -147,6 +148,9 @@ struct InputDataset
 	std::shared_ptr<const ChunkSource<Material>> materials;
 	std::shared_ptr<const ChunkSource<SourceHint>> hints;
 	std::shared_ptr<const VisibilityProvider> visibility;
+	// Original image-space observations, distinct from fitted surface samples.
+	// Immutable independently owned buffers; see lightmaps.h for encoding/UV rules.
+	std::shared_ptr<const LightmapObservations> lightmaps;
 };
 
 // No chunk reads or visibility calls: validate only manifest/ownership contracts.
@@ -161,6 +165,7 @@ public:
 	const InputManifest& Metadata() const { return input_.manifest; }
 	const ReadLimits& Limits() const { return limits_; }
 	bool HasVisibility() const { return !!input_.visibility; }
+	std::shared_ptr<const LightmapObservations> Lightmaps() const { return input_.lightmaps; }
 	Error ValidateMetadata() const;
 	Error ReadSurfaces(uint64_t first, size_t count, Chunk<SurfaceObservation>& out);
 	Error ReadGrid(uint64_t first, size_t count, Chunk<GridObservation>& out);

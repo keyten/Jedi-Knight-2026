@@ -242,7 +242,7 @@ R_LoadLightmaps
 */
 #define	DEFAULT_LIGHTMAP_SIZE	128
 #define MAX_LIGHTMAP_PAGES 2
-static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
+static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs, LightReconBspCapture &observations ) {
 	byte		*buf = NULL, *buf_p = NULL;
 	dsurface_t  *surf;
 	int			len;
@@ -279,7 +279,10 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 	}
 
 	if (numLightmaps == 0)
+	{
+		observations.Embedded(l->fileofs, l->filelen, false);
 		return;
+	}
 
 	// test for hdr lighting
 	if (hdr_capable && tr.worldInternalLightmapping)
@@ -327,6 +330,10 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 		if (tr.worldDeluxeMapping == qtrue && (!len))
 			numLightmaps++;
 	}
+
+	// Preserve every original RGB8 image, including embedded deluxe maps and
+	// embedded alternatives to external HDR. No atlas or colour conversion yet.
+	observations.Embedded(l->fileofs, l->filelen, tr.worldDeluxeMapping != qfalse);
 
 	imageSize = tr.lightmapSize * tr.lightmapSize * 4 * 2;
 	image = (byte *)Z_Malloc(imageSize, TAG_BSP, qfalse);
@@ -413,6 +420,7 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 		// if (tr.worldLightmapping)
 		{
 			char filename[MAX_QPATH];
+			char resolvedSource[MAX_QPATH] = {};
 			byte *externalLightmap = NULL;
 			float *hdrL = NULL;
 			int lightmapWidth = tr.lightmapSize;
@@ -432,8 +440,15 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 				if (!externalLightmap)
 				{
 					bppc = 8;
-					R_LoadImage(filename, &externalLightmap, &lightmapWidth, &lightmapHeight);
+					R_LoadImageSource(filename, &externalLightmap, &lightmapWidth, &lightmapHeight,
+						resolvedSource, sizeof(resolvedSource));
 				}
+				const int logicalIndex = i * (tr.worldDeluxeMapping ? 2 : 1);
+				if (externalLightmap)
+					observations.External(logicalIndex, false, resolvedSource[0] ? resolvedSource : filename,
+						lightmapWidth, lightmapHeight, externalLightmap, bppc > 8);
+				else
+					observations.Missing(logicalIndex, false, filename, hdr_capable);
 			}
 
 			if (externalLightmap)
@@ -638,9 +653,10 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 					0);
 			}
 		}
-		else if (r_deluxeMapping->integer)
+		else if (r_deluxeMapping->integer || observations.Needed())
 		{
 			char filename[MAX_QPATH];
+			char resolvedSource[MAX_QPATH] = {};
 			byte *externalLightmap = NULL;
 			int lightmapWidth = tr.lightmapSize;
 			int lightmapHeight = tr.lightmapSize;
@@ -651,9 +667,22 @@ static	void R_LoadLightmaps( world_t *worldData, lump_t *l, lump_t *surfs ) {
 			else
 				Com_sprintf(filename, sizeof(filename), "maps/%s/dm_%04d.tga", worldData->baseName, i);
 
-			R_LoadImage(filename, &externalLightmap, &lightmapWidth, &lightmapHeight);
+			R_LoadImageSource(filename, &externalLightmap, &lightmapWidth, &lightmapHeight,
+				resolvedSource, sizeof(resolvedSource));
 			if (!externalLightmap)
+			{
+				observations.Missing(tr.worldDeluxeMapping ? i * 2 + 1 : i, true, filename, false);
 				continue;
+			}
+			observations.External(tr.worldDeluxeMapping ? i * 2 + 1 : i, true,
+				resolvedSource[0] ? resolvedSource : filename, lightmapWidth, lightmapHeight, externalLightmap, false);
+			if (!r_deluxeMapping->integer)
+			{
+				// Observation-only probe: never create a deluxe GPU resource or alter
+				// renderer deluxe detection when this rendering feature is disabled.
+				Z_Free(externalLightmap);
+				continue;
+			}
 
 			if (tr.worldInternalLightmapping && (lightmapWidth != tr.lightmapSize || lightmapHeight != tr.lightmapSize))
 			{
@@ -4847,6 +4876,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	// must still be read independently, even if they happen to share a name.
 	buffer.v = nullptr;
 	bool usingCachedBsp = false;
+	long sourceBytes = -1;
 #ifdef REND2_SP
 	usingCachedBsp = bspIndex == nullptr &&
 		ri.gpvCachedMapDiskImage() &&
@@ -4859,7 +4889,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 #endif
 	if (!usingCachedBsp)
 	{
-		ri.FS_ReadFile(name, &buffer.v);
+		sourceBytes = ri.FS_ReadFile(name, &buffer.v);
 	}
 	R_LoadProfilePrint(usingCachedBsp ? "BSP cached handoff" : "BSP file read", stageStart);
 	stageStart = ri.Milliseconds();
@@ -4872,6 +4902,9 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 
 		return nullptr;
 	}
+
+	// Exact original file bytes still exist here, before header byte swapping.
+	LightReconBspCapture observations(name, bspIndex == nullptr, buffer.b, sourceBytes);
 
 	Com_Memset(worldData, 0, sizeof(*worldData));
 	Q_strncpyz(worldData->name, name, sizeof(worldData->name));
@@ -4915,7 +4948,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	R_LoadLightmaps(
 		worldData,
 		&header->lumps[LUMP_LIGHTMAPS],
-		&header->lumps[LUMP_SURFACES]);
+		&header->lumps[LUMP_SURFACES], observations);
+	observations.ReleaseSource(); // pixel copies survive; borrowed BSP/re-read scratch does not
 	R_LoadProfilePrint("BSP entities/shaders/lightmaps", stageStart);
 	stageStart = ri.Milliseconds();
 	R_LoadPlanes(worldData, &header->lumps[LUMP_PLANES]);

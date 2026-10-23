@@ -105,6 +105,11 @@ Loads any of the supported image types into a cannonical
 =================
 */
 void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
+	R_LoadImageSource(shortname, pic, width, height, NULL, 0);
+}
+
+void R_LoadImageSource( const char *shortname, byte **pic, int *width, int *height, char *source, int sourceSize ) {
+	if (source && sourceSize > 0) source[0] = '\0';
 	*pic = NULL;
 	*width = 0;
 	*height = 0;
@@ -125,6 +130,7 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 #endif
 		if ( *pic )
 		{
+			if (source && sourceSize > 0) Q_strncpyz(source, shortname, sourceSize);
 			return;
 		}
 	}
@@ -153,6 +159,7 @@ void R_LoadImage( const char *shortname, byte **pic, int *width, int *height ) {
 #endif
 		if ( *pic )
 		{
+			if (source && sourceSize > 0) Q_strncpyz(source, name, sourceSize);
 			return;
 		}
 	}

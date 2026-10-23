@@ -6,7 +6,10 @@ boundary shared by SP, MP and standalone tools. It contains the canonical
 [read-only API](rend2-reconstructed-lighting-api.md), plus the new input and
 builder/session and build/use policy code under `shared/rd-rend2/lightrecon/`.
 
-No inverse-lighting algorithm or production immutable BSP input adapter is installed.
+No inverse-lighting algorithm or complete geometry/material input adapter is installed.
+[Original lightmap observations](rend2-lightmap-observations.md) now have a bounded,
+immutable input module and main-world capture adapter; they remain uncalibrated
+images rather than fitted surface/physical-light data.
 The independent [versioned disk codec and cache adapter](rend2-reconstruction-disk.md)
 are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle.md).
 Complete source fingerprint collection remains unavailable, so the renderer
@@ -42,6 +45,7 @@ There is no connection from an empty/default session into renderer lighting.
 | File | Responsibility |
 | --- | --- |
 | `lightrecon/input.h/.cpp` | Input schema, leased chunk sources, local validation and visibility adapters |
+| `lightrecon/lightmaps.h/.cpp` | Original image observations, source-map identity, bounded capture and immutable pixel leases |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
 | `lightrecon/disk.h/.cpp`, `cache.h/.cpp` | Portable asset format, content keys, selective chunks and explicit native atomic cache I/O |

@@ -59,6 +59,8 @@ qboolean R_ImageLoader_Add( const char *extension, ImageLoaderFn imageLoader );
 
 // Load an image from file.
 void R_LoadImage( const char *shortname, byte **pic, int *width, int *height );
+// Same loader/fallback order, optionally report the actual successful VFS path.
+void R_LoadImageSource( const char *shortname, byte **pic, int *width, int *height, char *source, int sourceSize );
 
 #ifdef REND2_LOAD_PROFILE
 long R_ImageProfileReadFile( const char *qpath, void **buffer );

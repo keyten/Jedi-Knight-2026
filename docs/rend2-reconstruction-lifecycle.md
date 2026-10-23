@@ -7,12 +7,14 @@ owner has no `world_t`, BSP, hunk, renderer allocator or GPU dependency, and
 does not consult master/consumer enable flags.
 
 This integrates ownership and the cache/session boundary. It does **not** implement
-a solver, immutable BSP observation exporter, complete production fingerprint
+a solver, complete geometry/lightgrid observation exporter, complete production fingerprint
 collector, numerical field decoder or reconstructed rendering consumer. In the
 current renderer, nonzero policies explicitly report `NotCacheable`; policies
 2/3 report `BuildRequired` because the input adapter/algorithm is unavailable.
 No filename-only cache acceptance or successful empty placeholder substitutes
-for those missing components. Synthetic CPU tests exercise real valid cache
+for those missing components. [Original lightmap capture](rend2-lightmap-observations.md)
+now preserves bounded immutable image inputs through world initialization for
+policies 2/3; it confers no reconstructed-lighting capability. Synthetic CPU tests exercise real valid cache
 hits, completed builds and atomic cache writes through the same owner.
 
 ## States and policy
@@ -135,6 +137,7 @@ world load leaves `Unloaded`. The cvar description reflects this distinction.
 | Map identity, policy, ticket, status | Small value-owned `WorldReport`; no raw world pointer |
 | Input geometry/material snapshots | Injected `BuildPlan.input` providers own immutable backing data; transferred into the local `Core::Session`, never naked hunk spans |
 | Temporary observations / builder / algorithm | Local plan/session during `Complete`; destroyed on success, miss, exception, cancellation and unfinished result |
+| Original lightmap input snapshot | Renderer map-scoped `LightmapCapture`; bounded private construction, immutable publication after full load; retained for pending future work, cleared on unload/failure/completed build; independent reader leases |
 | Cache file/index/decode buffers | Local `NativeWorldCache.Load` / disk codec; closed/freed before return; no full lightmap/grid/field prefetch |
 | Cache write buffers | Local bounded disk encoder / atomic writer, released before publication returns |
 | Future decoded fields / evaluator | Must own CPU data and be prepared before snapshot publication; current owner installs no evaluator and loads no chunks |
@@ -184,6 +187,12 @@ process RSS. Temporary/provider memory is explicitly unmeasured during work and
 zero retained by the owner after return. No hundreds-of-megabytes observation
 snapshot is held on a cache hit. `build-called` now means an explicit preparation
 attempt, not proof that fitting ran; `session=0 steps=0` disambiguates this.
+
+The renderer's separately owned original-lightmap snapshot has its own
+`observations=... bytes=... accounted=...` diagnostic. In `BuildRequired`, policies
+2/3 can retain this bounded input after `Complete`, for later CPU work. It is
+not included in the canonical asset metadata estimate or the local session's
+released temporary memory. See its [ownership/budget contract](rend2-lightmap-observations.md).
 
 ## Tests and reproducible commands
 
@@ -273,8 +282,8 @@ archive/config is modified or committed.
 
 ## Remaining integration work
 
-The readiness point is installed, but safe source plumbing remains necessary:
-hash original BSP bytes before header byte swaps/free, all internal/external
+The readiness point and original BSP/lightmap capture are installed, but complete
+source plumbing remains necessary: hash all internal/external
 lighting replacements, effective material/shader interpretation, authored hints,
 reconstruction options/seed and unit/calibration policy. Preserve original
 observations before legacy grid calibration mutates them; counts or GPU textures

@@ -37,6 +37,17 @@ class Contracts(unittest.TestCase):
     def test_whitespace_comments_are_not_regressions(self):
         self.assertEqual(self.baseline, preprocess(self.source + '\n// unrelated formatting\n\n', self.cpp))
 
+    def test_original_image_hooks_cannot_disappear(self):
+        import lightrecon_regression as regression
+        original = regression.read
+        for removed in ('observations.Embedded(', 'observations.External(', 'observations.ReleaseSource()'):
+            with self.subTest(removed=removed):
+                def changed(path):
+                    text = original(path)
+                    return text.replace(removed, 'removed_hook(') if path == 'shared/rd-rend2/tr_bsp.cpp' else text
+                with mock.patch.object(regression, 'read', side_effect=changed):
+                    self.assertTrue(regression.observation_audit())
+
     def test_disabled_future_branch_is_absent(self):
         added = '\n#ifdef USE_LIGHT_RECON_TEST\nuniform sampler3D u_LightReconTest;\n#endif\n'
         self.assertEqual(self.baseline, preprocess(self.source + added, self.cpp))

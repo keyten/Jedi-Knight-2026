@@ -214,6 +214,27 @@ def lifecycle_audit():
     return failures
 
 
+def observation_audit():
+    """Capture raw loader inputs, never renderer-converted/atlas pixels."""
+    bsp = strip_comments(read('shared/rd-rend2/tr_bsp.cpp'))
+    failures = []
+    load = bsp[bsp.find('static\tvoid R_LoadLightmaps('):bsp.find('static float FatPackU(')]
+    required = ['observations.Embedded(', 'R_CreateImage(', 'observations.External(',
+                'R_ColorShiftLightingFloats(', 'ColorToRGBA16F(', 'R_ColorShiftLightingBytes(']
+    positions = [load.find(token) for token in required]
+    if min(positions) < 0 or positions != sorted(positions):
+        failures.append('Original lightmap observation hooks must precede atlas upload and colour transforms')
+    lower = bsp[bsp.find('world_t *R_LoadBSP('):bsp.find('void RE_LoadWorldMap( const char *name ) {')]
+    tokens = ['LightReconBspCapture observations(name, bspIndex == nullptr, buffer.b, sourceBytes)',
+              '((int *)header)[i] =', 'R_LoadLightmaps(', 'observations.ReleaseSource()', 'R_LoadSurfaces(']
+    positions = [lower.find(token) for token in tokens]
+    if min(positions) < 0 or positions != sorted(positions):
+        failures.append('Original BSP capture must be main-world scoped, before byte swapping, and release scratch before surfaces')
+    if load.count('observations.External(') != 2 or 'R_LoadImageSource(' not in load:
+        failures.append('Both lighting and deluxe loaders must preserve original samples and resolved source paths')
+    return failures
+
+
 def production_audit():
     """Fence current absence of canonical GPU integration, with actionable errors.
 
@@ -223,7 +244,7 @@ def production_audit():
     allowed = {'shared/rd-rend2/tr_lightrecon.cpp', 'shared/rd-rend2/tr_lightrecon.h',
                'shared/rd-rend2/tr_lightrecon_cvars.inc', 'shared/rd-rend2/tr_lightrecon_register.inc',
                'shared/rd-rend2/tr_local.h', 'shared/rd-rend2/tr_staticlighting.h'}
-    failures = lifecycle_audit()
+    failures = lifecycle_audit() + observation_audit()
     for directory in ('shared/rd-rend2', 'code/rd-rend2', 'codemp/rd-rend2'):
         for path in (ROOT / directory).rglob('*'):
             if path.suffix not in ('.cpp', '.h', '.glsl', '.inc') or not path.is_file():

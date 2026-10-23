@@ -9,6 +9,11 @@ the complete BSP/sidecar/material dependency collector remains unavailable, so
 incomplete fingerprints are explicitly not cacheable. This does
 not change the map-loading/DDC performance findings or legacy lighting below.
 
+[Original CPU lightmap capture](rend2-lightmap-observations.md) is opt-in through
+build policies 2/3, before atlas packing/colour transforms. Disabled/cache-only
+loads retain no observation images. Original BSP hashes are available for those
+captures; complete material/sidecar/settings coverage is still required for a key.
+
 ## Baseline and profiling
 
 ### Map-load profiler bundle v1

@@ -1,0 +1,575 @@
+{
+  "passed": true,
+  "source_base_revision": "c7f80d31b1b2734bfd3e010af23ce55d9cf18b27",
+  "cpu": {
+    "msvc": {
+      "targets": 7,
+      "checks": 7852,
+      "lightmaps": 522,
+      "passed": true
+    },
+    "gcc": {
+      "targets": 7,
+      "checks": 7852,
+      "lightmaps": 522,
+      "passed": true
+    }
+  },
+  "shader_contract": {
+    "programs": 27,
+    "stages": 51,
+    "differences": 0,
+    "gpu_compiled": false
+  },
+  "atlas_independent_embedded_hashes": true,
+  "renderer_sha256": "b10c57abb8ec06f5e9c16295e17395944e02bc5441c6c1d3c5e0eb3faba1b8a1",
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/lifecycle.h": "4956618793e5f03917b41ec6bef6540f399439b0e8104a868d5bf491f4479238",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "f7a4b7962ce788c662af6dc1320598f8f8aa591458afde1af84c9da05f27adea",
+    "shared/rd-rend2/lightrecon/lightmaps.h": "4165cc105b95affc9f5cd19e682cbc308d7e52ed73a113ead250257b8c981221",
+    "shared/rd-rend2/lightrecon/lightmaps.cpp": "f708f98b19dbfc309f80946e3858125c1f07001fae2311e7876e8a9af9995ac6",
+    "shared/rd-rend2/lightrecon/input.h": "774ace39d54e96e2000dd8a0ee3bcc096da8425f275ea4ea4c76acdcb6324ae0",
+    "code/rd-common/tr_image_load.cpp": "3522ec200c3ab68f60729c976cd6e2ba7bb1d06641d6796e8c6171edb60f9f06",
+    "codemp/rd-common/tr_image_load.cpp": "03fb13dc724ced352b543a8649aaa4c6d609738ad38742e9a119f327b55e08ea",
+    "shared/rd-rend2/tr_lightrecon.h": "6841032eb3c82756277fe5ad11a97db3feb869be429d85ed730f1af407b29069",
+    "shared/rd-rend2/tr_lightrecon.cpp": "ffe9ea93ed7df14332ba4bcd69dbbd5aac34152790a286cca443330db81a71d4",
+    "shared/rd-rend2/tr_lightrecon_api.cpp": "c85c3534008a6cf2a354d1b46361ef5109e862d364afe394174876c716f65b70",
+    "shared/rd-rend2/tr_lightrecon_manager.h": "e003e4a224853b8201406a6491a6cf4f8f3c4d90cf200efad718298b8fa52556",
+    "shared/rd-rend2/tr_bsp.cpp": "ce9597b110dff56a6d9a7c49397efd988e3aefeae0e16e5e8a3ba9ce31e7fc6a",
+    "shared/rd-rend2/tr_staticlighting.cpp": "1afed6128aee77ab2b9f88a3898908a6da368e1542d32e665d05455d853d3ff9",
+    "code/rd-rend2/tr_init.cpp": "62bbbc767850723e41cd3ade72ba630676a9b9adac016e5f523a212613fc2705",
+    "codemp/rd-rend2/tr_init.cpp": "65d73bde1e07f4f68573f7845ce37b4728064e82ccfebfbb198b41b53c68d864"
+  },
+  "internal": {
+    "label": "lightmaps-internal-final",
+    "states": {
+      "UNLOADED": {
+        "state": "Unloaded",
+        "world": "<none>",
+        "ticket": 2,
+        "generation": 3,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0
+      },
+      "DISABLED": {
+        "state": "Disabled",
+        "world": "maps/hoth3.bsp",
+        "ticket": 6,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0,
+        "applied": [
+          "0",
+          "Disabled",
+          "0",
+          "0"
+        ]
+      },
+      "POLICY_UNAPPLIED": {
+        "state": "Disabled",
+        "world": "maps/hoth3.bsp",
+        "ticket": 6,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0,
+        "applied": [
+          "0",
+          "Disabled",
+          "0",
+          "0"
+        ]
+      },
+      "FORCE": {
+        "state": "BuildRequired",
+        "world": "maps/hoth2.bsp",
+        "ticket": 10,
+        "generation": 12,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "Captured",
+          "images": "24",
+          "missing": "12",
+          "rgb8": "12",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "12",
+          "pixels": "196608",
+          "bytes": "589824",
+          "accounted": "600050"
+        },
+        "lightmap_textures": 1,
+        "applied": [
+          "3",
+          "Unavailable",
+          "0",
+          "1"
+        ]
+      },
+      "CACHEONLY": {
+        "state": "Unavailable",
+        "world": "maps/hoth3.bsp",
+        "ticket": 14,
+        "generation": 17,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 1,
+        "applied": [
+          "1",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      },
+      "RESTART": {
+        "state": "BuildRequired",
+        "world": "maps/hoth3.bsp",
+        "ticket": 3,
+        "generation": 5,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "Captured",
+          "images": "76",
+          "missing": "38",
+          "rgb8": "38",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "38",
+          "pixels": "622592",
+          "bytes": "1867776",
+          "accounted": "1900128"
+        },
+        "lightmap_textures": 1,
+        "applied": [
+          "2",
+          "Unavailable",
+          "0",
+          "1"
+        ]
+      },
+      "DISCONNECTED": {
+        "state": "Unloaded",
+        "world": "<none>",
+        "ticket": 5,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0
+      }
+    },
+    "lightmaps": {
+      "FORCE": {
+        "map": "maps/hoth2.bsp",
+        "sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "source_bytes": 13970616,
+        "internal_images": 12,
+        "internal_pixel_bytes": 589824,
+        "embedded_hashes": [
+          "abc009a093d17dcf2a9f2a8428870f7d40293901284f5ab05ceffacdf2a592cb",
+          "c4dcb5781b406462ddb0ab87cb6d32c2d407d73a614dbe6cfcf2bf651e8054f1",
+          "278d2b2e668618b7b81b966c333dda171f5bc3f5aa2b48aaef312277dddcaff6",
+          "ae6e9cb9fa9aeed1237a08c5d4e8877155d1bcfa792a17524689831461bc9832",
+          "d1c118f9bc7ce584060ca6aa265134081250b52190b9a138356cc8b28210066a",
+          "fb0e2ff720d321e22587e4d62589564500281e35b8a872a5159fb3e1c2ab1955",
+          "408ef1cd31103aa91ebeb1a0df648f663b44abb22a9071bd5279f1c9d0b798ef",
+          "67e07b48f726134c8180a94212e5ec7a2282957938078d16564b9d2caca9b432",
+          "922fbd638f71494a82605115fcd28640b2e712f9b1b9f3d22768c77d825f51ef",
+          "46665e81517840f3164994f91d425d9a3768242e0ce2df3afafa9a75f95949d4",
+          "da9875feafc32e91481f3d4d5256ada8b5e9e3611381bf766d8d6eacc4283e27",
+          "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+        ],
+        "fixture_images": 0
+      },
+      "RESTART": {
+        "map": "maps/hoth3.bsp",
+        "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "source_bytes": 13920700,
+        "internal_images": 38,
+        "internal_pixel_bytes": 1867776,
+        "embedded_hashes": [
+          "32a396388cb0c4591cb95f62821997872eef0c264a876ada5c087c616d7ed172",
+          "6a650d5e40228672b366bd43611105156213b2b468243f4049ba18841d27956b",
+          "9b9d4e6bc26b0da73d654e2641dfd4dfe35126e70c62228aea536594ce89083e",
+          "7f6f75bb39f13d1ad5c1c04a0ce7e4aaa0188e08ad59f55d9117390bcd6d6480",
+          "7e3cafe2b809ca9d4796a9072644dbeff0d6bddeccd92b54d79b9014f0dd9c6b",
+          "2d49e4fa3617a9ab24857e0b43c439590521d0b17b567b894637de1d1254e5e6",
+          "eb7c10a6afb39b4cad78d03173948fcb542cc105d2b3ae0b3fad18bc1b7c981f",
+          "69a125aaf41d106e2f7dfe67d0a1e49697fd92a7e94295566d784d3e7edf4a4d",
+          "691f9651b8eb9d13a392facc300bd18e90878315e9ec58554218e9e1f0de47ee",
+          "b7e39dfaf537bd4e1e9f2ef1cbe2098a579d13789741e8d76e1494a99811a346",
+          "de4b2e3437b31933557c4a0e3f8c61d92288e9606800023bc4624fb7f0abbcbb",
+          "ec753e37201685c6e1d06e61e28a4c3ea17be835565d99c1c2e0f781fd05baa0",
+          "c3ed6b3e8b367c902c597ee46acf1b39309403b9c0dd21370024585432efeae2",
+          "ae8b1c0c0284fbcb962e74698cd4a4980aa47efd6c5ba04c2b7f3fb62503d56b",
+          "f627efa812bac99ca23813dbf0c4cdb6c4a5f731843fe919a7bb0e9b4ec856a2",
+          "76726ef8a18fd357c35cccf4d77bf92f5f4545a66faac080218df3c77d164eca",
+          "03c8d3d9ff23d89a7ab2eb0613220f244aea29d5131e517a26fbf84a8af5907c",
+          "31b3c1c1d14898ebec97972a361211b4df2a3b29ecbd291123eaa0cd2c3e7227",
+          "70264116fb235f5e3a135ddb7d8e60a99a2a0bc19999b5c4e6a744ef0baa0624",
+          "633ed58e1b52fff65709ee03e604c4c0319ee572d829b3412599624f33dc30a1",
+          "2d21dc4ce4e8911b7a1a0ea4f5d04e87174189dab8d14810c12bc12b68e46f4b",
+          "27b3073adb9c88a1bac01b7b16df84905a7c4fdb06b3fff0103998c87777dd6b",
+          "c79047fa9e2a2013f6f61b1733bbb2174b69faf3f4889335fdff4dd5b489d686",
+          "146475a3e50f9f66a7122f416b4c7585356436721f2169fe17ae98969cc6fbff",
+          "77b6e9db9abd07eb3e4ae908657acdbfe25990c5717fd8396bb3ff4f1d6e3980",
+          "d36b665ae4b5a7048385b0733af43c983786b2fcfe7483aef2216cba0f89162a",
+          "f31d53fcc4bfd1857ce441f1a04148593cb60cdf25c5099ea71a3bfe5ee25b38",
+          "0881f9081670a74c1cea71aa1e45ee0a3d746bd895f09dffb4cc16cf0e3bd22d",
+          "d3f9010c1358912045836cf47efe6eb1f7707c6778f2e3d10762359b47fe125a",
+          "983406b181313b116942e05b1159e0a3272e191c297a90358408743b2de0eedc",
+          "575548f20a44d63ee08b785fec6251b9117c4cb1618b5d1999bdb977b11436c7",
+          "9041563456837ae50683824efb419853a8092fdb69361651310a73bc2d75402d",
+          "ea3f508a4f594f78d471f87b97a1f04a82af93d28f7364078b69b4f7b1d5d4e3",
+          "2c2781633620a995054d90327e1a39ffa0d652a9c01435019c0b9135085cba15",
+          "169037c71e203123a8a4878f5a5e9d6e1ded54e8166e9239a677e393c9849fc0",
+          "cd747083555b7a0bb663673129c4605f1dec48a2764405168c3c9f0830ceb150",
+          "1c02217c2a88fe03193e3bb22dde2cdefaefcba987704240f7e1dcdd253210f6",
+          "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+        ],
+        "fixture_images": 0
+      }
+    },
+    "driver": [
+      "GL_RENDERER: Intel(R) UHD Graphics"
+    ],
+    "settings": {
+      "r_lightReconBuild": 0,
+      "r_lightReconUse": 0,
+      "r_hdr": 1,
+      "r_floatLightmap": 0,
+      "r_deluxeMapping": 0
+    },
+    "cache_hit_runtime_tested": false,
+    "gameplay_actions": false
+  },
+  "sidecars": {
+    "label": "lightmaps-sidecars-final",
+    "states": {
+      "UNLOADED": {
+        "state": "Unloaded",
+        "world": "<none>",
+        "ticket": 2,
+        "generation": 3,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0
+      },
+      "DISABLED": {
+        "state": "Disabled",
+        "world": "maps/hoth3.bsp",
+        "ticket": 6,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0,
+        "applied": [
+          "0",
+          "Disabled",
+          "0",
+          "0"
+        ]
+      },
+      "POLICY_UNAPPLIED": {
+        "state": "Disabled",
+        "world": "maps/hoth3.bsp",
+        "ticket": 6,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0,
+        "applied": [
+          "0",
+          "Disabled",
+          "0",
+          "0"
+        ]
+      },
+      "FORCE": {
+        "state": "BuildRequired",
+        "world": "maps/hoth2.bsp",
+        "ticket": 10,
+        "generation": 12,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "Captured",
+          "images": "36",
+          "missing": "21",
+          "rgb8": "12",
+          "rgba8": "2",
+          "hdr": "1",
+          "deluxe": "12",
+          "pixels": "196616",
+          "bytes": "589888",
+          "accounted": "605178"
+        },
+        "lightmap_textures": 12,
+        "applied": [
+          "3",
+          "Unavailable",
+          "0",
+          "1"
+        ]
+      },
+      "CACHEONLY": {
+        "state": "Unavailable",
+        "world": "maps/hoth3.bsp",
+        "ticket": 14,
+        "generation": 17,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 1,
+        "applied": [
+          "1",
+          "Unavailable",
+          "0",
+          "0"
+        ]
+      },
+      "RESTART": {
+        "state": "BuildRequired",
+        "world": "maps/hoth3.bsp",
+        "ticket": 3,
+        "generation": 5,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "Captured",
+          "images": "76",
+          "missing": "38",
+          "rgb8": "38",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "38",
+          "pixels": "622592",
+          "bytes": "1867776",
+          "accounted": "1900128"
+        },
+        "lightmap_textures": 1,
+        "applied": [
+          "2",
+          "Unavailable",
+          "0",
+          "1"
+        ]
+      },
+      "DISCONNECTED": {
+        "state": "Unloaded",
+        "world": "<none>",
+        "ticket": 5,
+        "generation": 7,
+        "identity": "<none>",
+        "cache": "NotCacheable",
+        "observations": {
+          "state": "NotRequested",
+          "images": "0",
+          "missing": "0",
+          "rgb8": "0",
+          "rgba8": "0",
+          "hdr": "0",
+          "deluxe": "0",
+          "pixels": "0",
+          "bytes": "0",
+          "accounted": "0"
+        },
+        "lightmap_textures": 0
+      }
+    },
+    "lightmaps": {
+      "FORCE": {
+        "map": "maps/hoth2.bsp",
+        "sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "source_bytes": 13970616,
+        "internal_images": 12,
+        "internal_pixel_bytes": 589824,
+        "embedded_hashes": [
+          "abc009a093d17dcf2a9f2a8428870f7d40293901284f5ab05ceffacdf2a592cb",
+          "c4dcb5781b406462ddb0ab87cb6d32c2d407d73a614dbe6cfcf2bf651e8054f1",
+          "278d2b2e668618b7b81b966c333dda171f5bc3f5aa2b48aaef312277dddcaff6",
+          "ae6e9cb9fa9aeed1237a08c5d4e8877155d1bcfa792a17524689831461bc9832",
+          "d1c118f9bc7ce584060ca6aa265134081250b52190b9a138356cc8b28210066a",
+          "fb0e2ff720d321e22587e4d62589564500281e35b8a872a5159fb3e1c2ab1955",
+          "408ef1cd31103aa91ebeb1a0df648f663b44abb22a9071bd5279f1c9d0b798ef",
+          "67e07b48f726134c8180a94212e5ec7a2282957938078d16564b9d2caca9b432",
+          "922fbd638f71494a82605115fcd28640b2e712f9b1b9f3d22768c77d825f51ef",
+          "46665e81517840f3164994f91d425d9a3768242e0ce2df3afafa9a75f95949d4",
+          "da9875feafc32e91481f3d4d5256ada8b5e9e3611381bf766d8d6eacc4283e27",
+          "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+        ],
+        "fixture_images": 3
+      },
+      "RESTART": {
+        "map": "maps/hoth3.bsp",
+        "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "source_bytes": 13920700,
+        "internal_images": 38,
+        "internal_pixel_bytes": 1867776,
+        "embedded_hashes": [
+          "32a396388cb0c4591cb95f62821997872eef0c264a876ada5c087c616d7ed172",
+          "6a650d5e40228672b366bd43611105156213b2b468243f4049ba18841d27956b",
+          "9b9d4e6bc26b0da73d654e2641dfd4dfe35126e70c62228aea536594ce89083e",
+          "7f6f75bb39f13d1ad5c1c04a0ce7e4aaa0188e08ad59f55d9117390bcd6d6480",
+          "7e3cafe2b809ca9d4796a9072644dbeff0d6bddeccd92b54d79b9014f0dd9c6b",
+          "2d49e4fa3617a9ab24857e0b43c439590521d0b17b567b894637de1d1254e5e6",
+          "eb7c10a6afb39b4cad78d03173948fcb542cc105d2b3ae0b3fad18bc1b7c981f",
+          "69a125aaf41d106e2f7dfe67d0a1e49697fd92a7e94295566d784d3e7edf4a4d",
+          "691f9651b8eb9d13a392facc300bd18e90878315e9ec58554218e9e1f0de47ee",
+          "b7e39dfaf537bd4e1e9f2ef1cbe2098a579d13789741e8d76e1494a99811a346",
+          "de4b2e3437b31933557c4a0e3f8c61d92288e9606800023bc4624fb7f0abbcbb",
+          "ec753e37201685c6e1d06e61e28a4c3ea17be835565d99c1c2e0f781fd05baa0",
+          "c3ed6b3e8b367c902c597ee46acf1b39309403b9c0dd21370024585432efeae2",
+          "ae8b1c0c0284fbcb962e74698cd4a4980aa47efd6c5ba04c2b7f3fb62503d56b",
+          "f627efa812bac99ca23813dbf0c4cdb6c4a5f731843fe919a7bb0e9b4ec856a2",
+          "76726ef8a18fd357c35cccf4d77bf92f5f4545a66faac080218df3c77d164eca",
+          "03c8d3d9ff23d89a7ab2eb0613220f244aea29d5131e517a26fbf84a8af5907c",
+          "31b3c1c1d14898ebec97972a361211b4df2a3b29ecbd291123eaa0cd2c3e7227",
+          "70264116fb235f5e3a135ddb7d8e60a99a2a0bc19999b5c4e6a744ef0baa0624",
+          "633ed58e1b52fff65709ee03e604c4c0319ee572d829b3412599624f33dc30a1",
+          "2d21dc4ce4e8911b7a1a0ea4f5d04e87174189dab8d14810c12bc12b68e46f4b",
+          "27b3073adb9c88a1bac01b7b16df84905a7c4fdb06b3fff0103998c87777dd6b",
+          "c79047fa9e2a2013f6f61b1733bbb2174b69faf3f4889335fdff4dd5b489d686",
+          "146475a3e50f9f66a7122f416b4c7585356436721f2169fe17ae98969cc6fbff",
+          "77b6e9db9abd07eb3e4ae908657acdbfe25990c5717fd8396bb3ff4f1d6e3980",
+          "d36b665ae4b5a7048385b0733af43c983786b2fcfe7483aef2216cba0f89162a",
+          "f31d53fcc4bfd1857ce441f1a04148593cb60cdf25c5099ea71a3bfe5ee25b38",
+          "0881f9081670a74c1cea71aa1e45ee0a3d746bd895f09dffb4cc16cf0e3bd22d",
+          "d3f9010c1358912045836cf47efe6eb1f7707c6778f2e3d10762359b47fe125a",
+          "983406b181313b116942e05b1159e0a3272e191c297a90358408743b2de0eedc",
+          "575548f20a44d63ee08b785fec6251b9117c4cb1618b5d1999bdb977b11436c7",
+          "9041563456837ae50683824efb419853a8092fdb69361651310a73bc2d75402d",
+          "ea3f508a4f594f78d471f87b97a1f04a82af93d28f7364078b69b4f7b1d5d4e3",
+          "2c2781633620a995054d90327e1a39ffa0d652a9c01435019c0b9135085cba15",
+          "169037c71e203123a8a4878f5a5e9d6e1ded54e8166e9239a677e393c9849fc0",
+          "cd747083555b7a0bb663673129c4605f1dec48a2764405168c3c9f0830ceb150",
+          "1c02217c2a88fe03193e3bb22dde2cdefaefcba987704240f7e1dcdd253210f6",
+          "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+        ],
+        "fixture_images": 0
+      }
+    },
+    "driver": [
+      "GL_RENDERER: Intel(R) UHD Graphics"
+    ],
+    "settings": {
+      "r_lightReconBuild": 0,
+      "r_lightReconUse": 0,
+      "r_hdr": 1,
+      "r_floatLightmap": 1,
+      "r_deluxeMapping": 0
+    },
+    "cache_hit_runtime_tested": false,
+    "gameplay_actions": false
+  }
+}

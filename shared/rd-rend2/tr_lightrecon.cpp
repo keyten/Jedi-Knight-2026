@@ -3,6 +3,7 @@
 #include "tr_lightrecon.h"
 #include "lightrecon/cache.h"
 #include <algorithm>
+#include <new>
 
 std::string R_LightReconCacheRoot(void)
 {
@@ -14,6 +15,12 @@ std::string R_LightReconCacheRoot(void)
 // Nontrivial ownership stays outside hunk-allocated/memset world_t. One writer
 // follows the main world's lifetime; leases keep old publications safely alive.
 static Rend2LightRecon::WorldLighting s_reconstructedLighting;
+static Rend2LightRecon::Core::LightmapCapture s_lightmapCapture;
+
+std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObservations(void)
+{
+	return s_lightmapCapture.Acquire();
+}
 
 Rend2LightRecon::Snapshot R_ReconstructedLighting(void)
 {
@@ -24,14 +31,32 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	: load_(s_reconstructedLighting, name ? name : "",
 		static_cast<Rend2LightRecon::BuildPolicy>(r_lightReconBuild ? r_lightReconBuild->integer : 0))
 {
+	s_lightmapCapture.Begin(s_reconstructedLighting.Report().policy);
+}
+
+LightReconWorldLoad::~LightReconWorldLoad()
+{
+	if (!finished_ && s_reconstructedLighting.Report().ticket == load_.Ticket())
+		s_lightmapCapture.Reset();
 }
 
 namespace {
 class RendererWorldSource : public Rend2LightRecon::WorldSource
 {
 public:
-	Rend2LightRecon::Disk::Error Describe(const std::string&, Rend2LightRecon::Disk::Fingerprint&) override
+	Rend2LightRecon::Disk::Error Describe(const std::string&, Rend2LightRecon::Disk::Fingerprint& fingerprint) override
 	{
+		const auto observations = R_LightmapObservations();
+		if (observations)
+		{
+			Rend2LightRecon::Disk::InputContent map;
+			map.kind = Rend2LightRecon::Disk::InputKind::Bsp;
+			map.name = observations->Map().path;
+			map.bytes = observations->Map().bytes;
+			map.sha256 = observations->Map().sha256;
+			fingerprint.inputs.push_back(map);
+			fingerprint.complete[static_cast<size_t>(map.kind)] = true;
+		}
 		// File/BSP/material dependency collection is deliberately NOT guessed from
 		// world name, GPU textures or calibrated lightgrid buffers. No false cache hit.
 		Rend2LightRecon::Disk::Error error;
@@ -39,20 +64,24 @@ public:
 		error.message = "Complete BSP/sidecar/material/settings fingerprints are unavailable";
 		return error;
 	}
-	Rend2LightRecon::Core::Error Prepare(const std::string&, Rend2LightRecon::BuildPlan&) override
+	Rend2LightRecon::Core::Error Prepare(const std::string&, Rend2LightRecon::BuildPlan& plan) override
 	{
+		plan.input.lightmaps = R_LightmapObservations();
 		return Rend2LightRecon::Core::Failure(Rend2LightRecon::Core::Code::Unavailable,
-			"Immutable BSP observation adapter and reconstruction algorithm are not installed");
+			"Original lightmaps may be captured; geometry/material adapter and reconstruction algorithm are not installed");
 	}
 };
 }
 void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapTextures)
 {
+	if (s_lightmapCapture.Needed())
+		s_lightmapCapture.Freeze();
 	RendererWorldSource source;
 	Rend2LightRecon::WorldFacts facts;
 	if (s_reconstructedLighting.Report().policy == Rend2LightRecon::BuildPolicy::Disabled)
 	{
 		load_.Finish(facts, source); // no path lookup, dependency hashing, disk I/O or sessions
+		finished_ = true;
 		return;
 	}
 	facts.geometryReady = facts.areaLightsReady = true;
@@ -61,11 +90,131 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 	facts.lightmapTextures = static_cast<uint64_t>(std::max(0, lightmapTextures));
 	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot());
 	load_.Finish(facts, source, &cache);
+	// A completed build/cache hit needs no resident source images. Currently the
+	// renderer has no complete cache key/solver, so BuildRequired keeps a bounded
+	// immutable input snapshot for a future session and CPU inspection.
+	if (s_reconstructedLighting.Report().state == Rend2LightRecon::WorldState::Available)
+		s_lightmapCapture.Reset();
+	finished_ = true;
 }
 
 void R_ClearReconstructedLighting(void)
 {
+	s_lightmapCapture.Reset();
 	s_reconstructedLighting.Unload();
+}
+
+namespace {
+struct LightmapSourceFile
+{
+	fileHandle_t handle = 0;
+	~LightmapSourceFile() { if (handle) ri.FS_FCloseFile(handle); }
+};
+}
+LightReconBspCapture::LightReconBspCapture(const char* name, bool mainWorld, const void* bsp, long bytes)
+{
+	using namespace Rend2LightRecon::Core;
+	active_ = mainWorld && name && s_reconstructedLighting.Report().world == name && s_lightmapCapture.Needed();
+	if (!active_) return;
+	try
+	{
+		// SP's collision-cache import supplies no allocation length. Do not guess
+		// one from lump offsets or Z_MemSize (which sums all allocations per tag).
+		// Re-read that case through a single bounded handle; retain it only through
+		// R_LoadLightmaps. Ordinary BSP reads reuse the existing exact-size buffer.
+		if (bytes < 0)
+		{
+			LightmapSourceFile file;
+			bytes = ri.FS_FOpenFileRead(name, &file.handle, qtrue);
+			if (!file.handle || bytes < static_cast<long>(sizeof(dheader_t)))
+			{
+				s_lightmapCapture.Fail(Code::ProviderError, "Original cached BSP could not be read");
+				return;
+			}
+			if (static_cast<uint64_t>(bytes) > s_lightmapCapture.Limits().maxSourceMapBytes)
+			{
+				s_lightmapCapture.Fail(Code::MemoryLimit, "Original cached BSP exceeds source limit");
+				return;
+			}
+			reread_.resize(static_cast<size_t>(bytes));
+			if (ri.FS_Read(reread_.data(), static_cast<int>(bytes), file.handle) != bytes)
+			{
+				s_lightmapCapture.Fail(Code::ProviderError, "Short original BSP read");
+				ReleaseSource();
+				return;
+			}
+			if (!bsp || memcmp(bsp, reread_.data(), sizeof(dheader_t)) != 0)
+			{
+				s_lightmapCapture.Fail(Code::ProviderError, "BSP changed since collision-cache load");
+				ReleaseSource();
+				return;
+			}
+			bsp = reread_.data();
+		}
+		if (bytes < static_cast<long>(sizeof(dheader_t)))
+		{
+			s_lightmapCapture.Fail(Code::InvalidInput, "Truncated source BSP");
+			return;
+		}
+		if (s_lightmapCapture.SetMap(name, bsp, static_cast<size_t>(bytes)))
+		{
+			source_ = bsp;
+			sourceBytes_ = static_cast<size_t>(bytes);
+		}
+	}
+	catch (const std::bad_alloc&) { s_lightmapCapture.Fail(Code::MemoryLimit, "BSP capture allocation failed"); }
+}
+bool LightReconBspCapture::Needed() const
+{
+	return active_ && s_lightmapCapture.Needed();
+}
+void LightReconBspCapture::ReleaseSource()
+{
+	source_ = nullptr;
+	sourceBytes_ = 0;
+	std::vector<uint8_t>().swap(reread_);
+}
+void LightReconBspCapture::Embedded(int offset, int length, bool deluxe)
+{
+	if (!Needed()) return;
+	if (offset < 0 || length < 0)
+	{
+		s_lightmapCapture.Fail(Rend2LightRecon::Core::Code::InvalidInput, "Negative lightmap lump bounds");
+		return;
+	}
+	s_lightmapCapture.Embedded(source_, sourceBytes_, static_cast<uint64_t>(offset),
+		static_cast<uint64_t>(length), 128, 128, deluxe);
+}
+void LightReconBspCapture::External(int index, bool deluxe, const char* path, int width, int height,
+	const void* pixels, bool hdr)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!Needed()) return;
+	if (index < 0 || width <= 0 || height <= 0)
+	{
+		s_lightmapCapture.Fail(Code::InvalidInput, "Invalid external lightmap dimensions/index");
+		return;
+	}
+	const uint64_t values = uint64_t(width) * uint64_t(height) * (hdr ? 3 : 4);
+	if (values > SIZE_MAX)
+	{
+		s_lightmapCapture.Fail(Code::MemoryLimit, "External lightmap size overflow");
+		return;
+	}
+	if (hdr)
+		s_lightmapCapture.Rgb32F(static_cast<uint32_t>(index), path ? path : "", width, height,
+			static_cast<const float*>(pixels), static_cast<size_t>(values));
+	else
+		s_lightmapCapture.Rgba8(static_cast<uint32_t>(index), deluxe ? LightmapRole::DeluxeDirection : LightmapRole::Lighting,
+			path ? path : "", width, height, static_cast<const uint8_t*>(pixels), static_cast<size_t>(values));
+}
+void LightReconBspCapture::Missing(int index, bool deluxe, const char* path, bool hdr)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!Needed()) return;
+	if (index < 0) { s_lightmapCapture.Fail(Code::InvalidInput, "Negative missing lightmap index"); return; }
+	s_lightmapCapture.Missing(static_cast<uint32_t>(index), deluxe ? LightmapRole::DeluxeDirection : LightmapRole::Lighting,
+		hdr ? LightmapEncoding::ExternalRgb32F : LightmapEncoding::ExternalRgba8, path ? path : "");
 }
 
 Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snapshot& snapshot, Rend2LightRecon::Consumer consumer)
@@ -95,6 +244,26 @@ void R_LightReconInfo_f(void)
 		AvailabilityName(snapshot.State()), asset ? 1 : 0, asset ? static_cast<int>(asset.value->emitters.size()) : 0,
 		asset ? static_cast<int>(asset.value->transport.size()) : 0);
 	const auto& report = s_reconstructedLighting.Report();
+	const auto& lm = s_lightmapCapture.Report();
+	ri.Printf(PRINT_ALL, "  observations=%s images=%llu missing=%llu RGB8=%llu RGBA8=%llu HDR32F=%llu deluxe=%llu pixels=%llu bytes=%llu accounted=%llu\n",
+		Core::CaptureStateName(lm.state), static_cast<unsigned long long>(lm.images), static_cast<unsigned long long>(lm.missing),
+		static_cast<unsigned long long>(lm.rgb8), static_cast<unsigned long long>(lm.rgba8), static_cast<unsigned long long>(lm.hdr),
+		static_cast<unsigned long long>(lm.deluxe), static_cast<unsigned long long>(lm.pixels),
+		static_cast<unsigned long long>(lm.pixelBytes), static_cast<unsigned long long>(lm.accountedBytes));
+	const auto observations = R_LightmapObservations();
+	if (observations)
+	{
+		ri.Printf(PRINT_ALL, "  observation-map=%s sha256=%s source-bytes=%llu (uncalibrated; no lighting capability)\n",
+			observations->Map().path.c_str(), Disk::Hex(observations->Map().sha256).c_str(),
+			static_cast<unsigned long long>(observations->Map().bytes));
+		if (ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "images"))
+			for (const auto& image : observations->Images())
+				ri.Printf(PRINT_ALL, "  lm-observation index=%u role=%s encoding=%s size=%ux%ux%u missing=%d offset=%llu hash=%s source=%s\n",
+					image.logicalIndex, image.role == Core::LightmapRole::Lighting ? "lightmap" : "deluxe",
+					Core::LightmapEncodingName(image.encoding), image.width, image.height, image.channels, image.missing ? 1 : 0,
+					static_cast<unsigned long long>(image.sourceOffset), Disk::Hex(image.pixelHash).c_str(), image.source.c_str());
+	}
+	if (lm.state == Core::CaptureState::Failed) ri.Printf(PRINT_ALL, "  observation-error: %s\n", lm.message.c_str());
 	ri.Printf(PRINT_ALL, "  lifecycle=%s world=%s ticket=%llu generation=%llu identity=%s\n",
 		WorldStateName(report.state), report.world.empty() ? "<none>" : report.world.c_str(),
 		static_cast<unsigned long long>(report.ticket), static_cast<unsigned long long>(snapshot.Generation()),

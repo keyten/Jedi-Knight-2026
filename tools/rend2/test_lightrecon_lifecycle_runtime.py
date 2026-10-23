@@ -13,13 +13,15 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import struct
 import time
+import zipfile
 from test_lightrecon_legacy_runtime import ROOT, CONSUMERS, prepare_runtime
 
 
 def commands():
     def info(label):
-        return [f'echo RECON_LIFECYCLE_{label}_BEGIN', 'r_lightReconInfo',
+        return [f'echo RECON_LIFECYCLE_{label}_BEGIN', 'r_lightReconInfo images',
                 f'echo RECON_LIFECYCLE_{label}_END']
     result = ['wait 30'] + info('UNLOADED')
     result += ['r_lightReconUse 1'] + [f'{c} 1' for c in CONSUMERS]
@@ -58,6 +60,17 @@ def parse(text):
             raise AssertionError('Unexpected expensive/loading work with incomplete source hashing')
         states[label] = dict(state=match[1], world=match[2], ticket=int(match[3]), generation=int(match[4]),
                              identity=match[5], cache=cache[1])
+        observation = re.search(r'observations=(\w+) images=(\d+) missing=(\d+) RGB8=(\d+) RGBA8=(\d+) HDR32F=(\d+) deluxe=(\d+) pixels=(\d+) bytes=(\d+) accounted=(\d+)', section)
+        if not observation:
+            raise AssertionError('Missing original-image diagnostic ' + label)
+        wanted = 'Captured' if label in ('FORCE', 'RESTART') else 'NotRequested'
+        if observation[1] != wanted or (wanted == 'NotRequested' and any(int(v) for v in observation.groups()[1:])):
+            raise AssertionError('Unexpected observation retention ' + label + ': ' + observation[0])
+        states[label]['observations'] = dict(zip(('state', 'images', 'missing', 'rgb8', 'rgba8', 'hdr', 'deluxe', 'pixels', 'bytes', 'accounted'), observation.groups()))
+        textures = re.search(r'lightmap-textures=(\d+)', section)
+        if not textures:
+            raise AssertionError('Missing atlas/texture count ' + label)
+        states[label]['lightmap_textures'] = int(textures[1])
         applied = re.search(r'build applied=(\d+) result=(\w+) cache-called=(\d+) build-called=(\d+)', section)
         policies = dict(DISABLED=('0', 'Disabled', '0', '0'), POLICY_UNAPPLIED=('0', 'Disabled', '0', '0'),
                         FORCE=('3', 'Unavailable', '0', '1'), CACHEONLY=('1', 'Unavailable', '0', '0'),
@@ -82,6 +95,70 @@ def parse(text):
     return states
 
 
+def lightmap_fixtures(home):
+    """Tiny original files, only in this invocation's private mod directory."""
+    folder = home / 'maps/hoth2'
+    folder.mkdir(parents=True)
+    (folder / 'lm_0000.hdr').write_bytes(b'#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 2\n' + bytes((128, 64, 32, 129, 16, 32, 64, 136)) * 2)
+    # Top-origin RGBA8 TGA, loader expands B,G,R,A to R,G,B,A.
+    pixels = bytes((0, 1, 255, 3, 128, 4, 9, 255))
+    header = struct.pack('<BBBHHBHHHHBB', 0, 0, 2, 0, 0, 0, 0, 0, 2, 1, 32, 0x28)
+    bgra = b''.join(bytes((pixels[i+2], pixels[i+1], pixels[i], pixels[i+3])) for i in (0, 4))
+    for name in ('lm_0002.tga', 'dm_0000.tga'):
+        (folder / name).write_bytes(header + bgra)
+    return dict(hdr=struct.pack('<12f', *((1, .5, .25, 16, 32, 64) * 2)), rgba=pixels)
+
+
+def validate_lightmaps(text, installation, fixtures=None):
+    """Compare exact original samples, independently of GPU atlas/deluxe repair."""
+    result = {}
+    for label, map_name in (('FORCE', 'hoth2'), ('RESTART', 'hoth3')):
+        section = re.search(f'RECON_LIFECYCLE_{label}_BEGIN(.*?)RECON_LIFECYCLE_{label}_END', text, re.S)[1]
+        path = f'maps/{map_name}.bsp'
+        bsp = None
+        for archive in sorted((installation / 'base').glob('assets[0-3].pk3'), reverse=True):
+            with zipfile.ZipFile(archive) as pk3:
+                if path in pk3.namelist():
+                    bsp = pk3.read(path)
+                    break
+        if bsp is None:
+            raise AssertionError('Missing stock source BSP ' + path)
+        identity = re.search(r'observation-map=(\S+) sha256=([0-9a-f]{64}) source-bytes=(\d+)', section)
+        if not identity or identity.groups() != (path, hashlib.sha256(bsp).hexdigest(), str(len(bsp))):
+            raise AssertionError('Incorrect original BSP fingerprint ' + label)
+        # JA dheader: ident/version + 18 (offset,length) lump descriptors;
+        # LIGHTMAPS is lump 14, each internal image is 128*128*RGB8.
+        offset, length = struct.unpack_from('<II', bsp, 8 + 14 * 8)
+        stride = 128 * 128 * 3
+        if length % stride or offset + length > len(bsp):
+            raise AssertionError('Invalid stock lightmap lump')
+        rows = re.findall(r'lm-observation index=(\d+) role=(\w+) encoding=([\w-]+) size=(\d+)x(\d+)x(\d+) missing=(\d) offset=(\d+) hash=([0-9a-f]{64}) source=(\S+)', section)
+        embedded = [r for r in rows if r[2] == 'BSP-RGB8']
+        if len(embedded) != length // stride:
+            raise AssertionError('Lost embedded lightmap images')
+        hashes = []
+        for index, row in enumerate(embedded):
+            expected = hashlib.sha256(bsp[offset+index*stride:offset+(index+1)*stride]).hexdigest()
+            if (int(row[0]), row[3:9], row[9]) != (index, ('128', '128', '3', '0', str(offset+index*stride), expected), path + '#LUMP_LIGHTMAPS'):
+                raise AssertionError('Changed original RGB8 samples/identity: ' + str(row))
+            hashes.append(expected)
+        if fixtures and label == 'FORCE':
+            for source, encoding, logical, role, payload in (
+                    ('maps/hoth2/lm_0000.hdr', 'external-RGB32F', '0', 'lightmap', fixtures['hdr']),
+                    ('maps/hoth2/lm_0002.tga', 'external-RGBA8', '2', 'lightmap', fixtures['rgba']),
+                    ('maps/hoth2/dm_0000.tga', 'external-RGBA8', '0', 'deluxe', fixtures['rgba'])):
+                matching = [r for r in rows if r[9] == source]
+                is_hdr = encoding.endswith('RGB32F')
+                expected = (logical, role, encoding, '2', '2' if is_hdr else '1', '3' if is_hdr else '4', '0', '0', hashlib.sha256(payload).hexdigest(), source)
+                if matching != [expected]:
+                    raise AssertionError('External fixture not preserved: ' + str(matching))
+        elif any(r[6] == '0' and r[2] != 'BSP-RGB8' for r in rows):
+            raise AssertionError('Unexpected stock external image')
+        result[label] = dict(map=path, sha256=identity[2], source_bytes=len(bsp), internal_images=len(embedded),
+                             internal_pixel_bytes=length, embedded_hashes=hashes, fixture_images=3 if fixtures and label == 'FORCE' else 0)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--installation', type=Path, required=True)
@@ -90,12 +167,19 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT / 'build/lightrecon-lifecycle-runtime')
     parser.add_argument('--label', default='smoke')
     parser.add_argument('--timeout', type=int, default=600)
+    parser.add_argument('--lightmap-fixtures', action='store_true', help='Private HDR/TGA override tests, including observation-only deluxe with rendering disabled')
     args = parser.parse_args()
     if os.name != 'nt' or not re.fullmatch(r'[A-Za-z0-9_-]+', args.label):
         parser.error('Windows and a simple unique label are required')
     runtime = args.output.resolve() / ('lifecycle-' + args.label)
     config, archives = prepare_runtime(args, runtime, 'legacy', 0)
     home = runtime / 'home/OpenJK'
+    fixtures = lightmap_fixtures(home) if args.lightmap_fixtures else None
+    # Force this off before renderer init: observation capture must not enable
+    # deluxe rendering even when a dm_XXXX file is available to the solver.
+    with (home / 'openjk_sp.cfg').open('a') as cfg:
+        config.update(r_deluxeMapping=0, r_floatLightmap=1 if fixtures else 0)
+        cfg.write(f'set r_deluxeMapping "0"\nset r_floatLightmap "{config["r_floatLightmap"]}"\n')
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands()) + '\n', encoding='ascii')
     command = [str(runtime / 'openjk_sp.x86_64.exe')]
     for key in ('fs_basepath', 'fs_homepath', 'fs_game'):
@@ -125,11 +209,17 @@ def main():
     if cache_files:
         raise AssertionError('Incomplete production keys wrote canonical cache files')
     source_files = ('shared/rd-rend2/lightrecon/lifecycle.h', 'shared/rd-rend2/lightrecon/lifecycle.cpp',
+                    'shared/rd-rend2/lightrecon/lightmaps.h', 'shared/rd-rend2/lightrecon/lightmaps.cpp',
+                    'shared/rd-rend2/lightrecon/input.h', 'code/rd-common/tr_image_load.cpp', 'codemp/rd-common/tr_image_load.cpp',
                     'shared/rd-rend2/tr_lightrecon.h', 'shared/rd-rend2/tr_lightrecon.cpp',
                     'shared/rd-rend2/tr_lightrecon_api.cpp', 'shared/rd-rend2/tr_lightrecon_manager.h',
                     'shared/rd-rend2/tr_bsp.cpp', 'shared/rd-rend2/tr_staticlighting.cpp',
                     'code/rd-rend2/tr_init.cpp', 'codemp/rd-rend2/tr_init.cpp')
-    result = dict(passed=True, states=parse(text), settings=config, archives=archives, command=command,
+    states = parse(text)
+    lightmaps = validate_lightmaps(text, args.installation, fixtures)
+    if states['FORCE']['lightmap_textures'] != (lightmaps['FORCE']['internal_images'] if fixtures else 1):
+        raise AssertionError('Expected external textures/internal atlas path was not exercised')
+    result = dict(passed=True, states=states, lightmaps=lightmaps, settings=config, archives=archives, command=command,
                   renderer_sha256=hashlib.sha256(args.renderer.read_bytes()).hexdigest(),
                   runtime=str(runtime), source_base_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   source_files_sha256={p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in source_files},
