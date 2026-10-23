@@ -11,6 +11,12 @@ physically authored values, calibrated legacy scene equivalents and uncalibrated
 relative estimates; historical LDR baked lighting is not a physical measurement.
 This data-only contract does not change the current rendering paths.
 
+The separate [baked-observation CPU decoder](rend2-observation-decoding.md)
+preserves raw inputs, distinguishes source-linear hypotheses from renderer
+presentation transforms, and labels calibrated legacy RGB as scene equivalents.
+Geometry scale and physical-to-scene presentation do not reveal historical BSP
+absolute brightness; censored LDR channels are not measured lux/candela.
+
 ## Coordinate and scene units
 
 JA geometry remains in JA world units. Physical calculations use one

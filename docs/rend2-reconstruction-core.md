@@ -46,6 +46,7 @@ There is no connection from an empty/default session into renderer lighting.
 | --- | --- |
 | `lightrecon/input.h/.cpp` | Input schema, leased chunk sources, local validation and visibility adapters |
 | `lightrecon/lightmaps.h/.cpp` | Original image observations, source-map identity, bounded capture and immutable pixel leases |
+| `lightrecon/decode.h/.cpp` | Explicit source transfer, renderer-compatible interpretation, censoring and optional scene-equivalent calibration ([contract](rend2-observation-decoding.md)) |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
 | `lightrecon/disk.h/.cpp`, `cache.h/.cpp` | Portable asset format, content keys, selective chunks and explicit native atomic cache I/O |

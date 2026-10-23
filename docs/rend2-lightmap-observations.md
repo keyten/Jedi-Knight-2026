@@ -5,6 +5,11 @@ inputs**, separate from the canonical reconstructed-lighting asset, GPU lightmap
 atlases and fitted `SurfaceObservation` records. This adds capture and inspection;
 it does not fit lights, evaluate irradiance or install a rendering consumer.
 
+The [photometric decoding API](rend2-observation-decoding.md) now reads these
+snapshots without modifying them, retaining channel censoring and explicit
+source-transfer/calibration assumptions. No decode is run automatically during
+map loading or observation acquisition.
+
 ## Capture points and representations
 
 `RE_LoadWorldMap`'s `LightReconWorldLoad` begins a map-scoped capture alongside
