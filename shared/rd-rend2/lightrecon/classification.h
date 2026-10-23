@@ -54,9 +54,13 @@ enum class EmissionProvenance
 	LegacyShader,
 	AuthoredLuminance
 };
+// Source triangle winding: Front has cross(v1-v0,v2-v0) toward the observer.
+// Preserve the parsed cull policy; optical queries may explicitly choose two sides.
+enum class SurfaceCull { Unknown, None, Front, Back };
 struct MaterialFacts
 {
 	bool available = false; // copied facts of the actual parsed shader variant, never a GPU handle
+	SurfaceCull cull = SurfaceCull::Unknown;
 	uint32_t signals = 0;
 	uint32_t uncertainty =
 		BakeReflectanceUnknown | TextureIsNotBakeAlbedo | TexturePixelsUnavailable;

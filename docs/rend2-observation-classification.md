@@ -2,7 +2,8 @@
 
 `shared/rd-rend2/lightrecon/classification.h/.cpp` adds version 1 CPU evidence
 classification to the original image, grid and surface snapshots. Surface input
-schema `org.openjk.baked-surface-observations` is now version 2. It preserves
+schema `org.openjk.baked-surface-observations` version 2 introduced these fields;
+version 3 adds source cull metadata for [static visibility](rend2-static-visibility.md). It preserves
 original vertex RGBA, source drawVert identities, base texture UVs, vertex styles,
 material facts and an optional independently owned vertex-HDR sidecar.
 

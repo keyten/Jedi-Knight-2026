@@ -129,10 +129,17 @@ struct InputManifest
 	GridMeaning gridMeaning = GridMeaning::Unknown;
 };
 
+struct RayQuery;
+struct RayResult;
 class VisibilityProvider
 {
 public:
 	virtual ~VisibilityProvider() = default;
+	// Structured static-geometry contract (visibility.h). Legacy scalar providers
+	// default to Unavailable rather than fabricating hit/material/sky information.
+	virtual Error Query(const RayQuery&, const ReadContext&, RayResult&) const;
+	// Caller-owned bounded result array; completed prefix is explicit on failure.
+	virtual Error Batch(const RayQuery*, size_t count, const ReadContext&, RayResult*, size_t& completed) const;
 	// Explicit transmittance [0,1]. Segment endpoints are world positions, sky
 	// direction is unit receiver -> sky. Defaults report Unavailable, never clear.
 	virtual Error Segment(const Vec3& receiver, const Vec3& target, const ReadContext&, float& transmittance) const;

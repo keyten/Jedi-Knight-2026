@@ -29,6 +29,10 @@ All executables link the one `rend2_lightrecon_core` static target:
   separate normals, coverage/area, seams/overlaps, analytic patches and lifetime.
 - `lightrecon_classification_test`: deluxe correspondence/direction quantization,
   distinct lightstyles/vertex RGBA/HDR, material categories and conservative eligibility.
+- `lightrecon_visibility_test`: immutable CPU BVH, static surface/patch rays,
+  optics/sky/domain uncertainty, independent reference, batches and concurrent readers.
+
+See [static visibility contracts, benchmark and test commands](../../docs/rend2-static-visibility.md).
 
 See [classification contracts, map counts and test commands](../../docs/rend2-observation-classification.md).
 

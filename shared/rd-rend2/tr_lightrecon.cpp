@@ -400,6 +400,8 @@ void LightReconBspCapture::SurfaceMaterial(unsigned ordinal, const shader_s *sha
 		facts.signals |= MaterialTranslucent;
 	if (shader)
 	{
+		facts.cull = shader->cullType == CT_TWO_SIDED ? SurfaceCull::None :
+			shader->cullType == CT_FRONT_SIDED ? SurfaceCull::Front : SurfaceCull::Back;
 		if (shader->isSky)
 			facts.signals |= MaterialSky;
 		if (shader->surfaceFlags & SURF_NODRAW)

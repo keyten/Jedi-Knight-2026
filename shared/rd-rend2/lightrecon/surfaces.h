@@ -8,7 +8,7 @@ namespace Rend2LightRecon
 namespace Core
 {
 static constexpr const char *kSurfaceObservationSchema = "org.openjk.baked-surface-observations";
-static constexpr uint32_t kSurfaceObservationVersion = 2;
+static constexpr uint32_t kSurfaceObservationVersion = 3;
 struct LightmapUv
 {
 	double u = 0, v = 0;

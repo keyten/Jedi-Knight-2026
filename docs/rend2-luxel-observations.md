@@ -3,12 +3,13 @@
 `shared/rd-rend2/lightrecon/surfaces.h/.cpp` implements the CPU correspondence
 between original logical lightmap images and static world geometry. It belongs
 to the shared C++11 `rend2_lightrecon_core`, linked once by SP, MP and standalone
-tests. Schema: `org.openjk.baked-surface-observations`, version 2 (the original
+tests. Schema: `org.openjk.baked-surface-observations`, version 3 (the original
 geometry validation below records version 1 at commit `e496cd0e9`).
 
 This is observation geometry, not reconstructed lighting. It does not estimate
 emitters, invert lighting, calibrate
-historical brightness, or supply a static visibility solver. The subsequent
+historical brightness. The separate [static visibility layer](rend2-static-visibility.md)
+now supplies explicit BVH queries over this geometry. The subsequent
 material/deluxe/style [classification module](rend2-observation-classification.md)
 now supplies that separate metadata and eligibility boundary.
 

@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "passed": true,
+  "date": "2026-10-23",
+  "source_base_revision": "0b44d2041b70ba367153ccef35ac47aab9ff236d",
+  "source_hash_encoding": "SHA256 of file bytes with CRLF normalized to LF; binary/log hashes use exact bytes",
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/visibility.h": "17f5fa54eae085c24a8867ac3dc158f852ab3f60ebe039d88e2f0be1da8716a8",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "dc91e5c1eeb2213f398910ac501cfc8be28d71efb6eee1fc222071f3a01f9efd",
+    "shared/rd-rend2/lightrecon/input.h": "4cc7e762bb8eb2a515f0116dafe5ebf8a6fa5b7b0b6c218f8b83329716a19900",
+    "shared/rd-rend2/lightrecon/classification.h": "cc485a81cf0f294ad68396b7e812804ab973f18bc92637053aa7366af46ca9b0",
+    "shared/rd-rend2/lightrecon/classification.cpp": "82a237b7a0d79d827147bdb43127fa2120ce0b9dc77225734b5032c8b6a5b49d",
+    "shared/rd-rend2/lightrecon/surfaces.h": "0a8b8df51f856bb28e788f4052829285d1d88c5c6245786f58e228f979f3b9bc",
+    "shared/rd-rend2/tr_lightrecon.cpp": "a3f24015e23ff1182cad48da53ff160354cccf7a560190718ccecb593357641b",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "4cc7a34725bc45015a16a4880140aa506e7d30b368620f14bf37732fdc56f7a0",
+    "tools/lightrecon_test/CMakeLists.txt": "c5f44bd90a7f81e3cdd11cb1d88a7134d7ad12b0c059c8efec9a43c60b80a79f",
+    "tools/lightrecon_test/lightrecon_visibility_test.cpp": "d8697cff6e7c460a7337428e551f0298bd197118af64553d7396ae41dd364fed"
+  },
+  "static_visibility_version": 1,
+  "surface_observation_version": 3,
+  "builds": {
+    "passed": true,
+    "configuration": "Release",
+    "sp": {
+      "target": "rdsp-rend2_x86_64",
+      "sha256": "9bb0ccdedff36afc91087d70988b9e6b8ccd1a27bcd649f3e22c8a906c3c15cf"
+    },
+    "mp": {
+      "target": "rd-rend2_x86_64",
+      "sha256": "871f667fbc4b69090715bb4f2d6e6af14e0f5d96760e6240ad7d4369a703e036"
+    }
+  },
+  "cpu": {
+    "msvc": {
+      "passed": true,
+      "compiler": "MSVC 19.27.29111.0 x64",
+      "executables": 12,
+      "checks": 562272,
+      "visibility_checks": 20920,
+      "irregular_reference": {
+        "triangles": 1000,
+        "rays": 1024,
+        "max_parameter_error": 1.942890293094024e-15,
+        "tolerance": 1e-12
+      },
+      "large_reference_rays": 512,
+      "benchmark": {
+        "triangles": 32768,
+        "nodes": 16383,
+        "bytes": 8519978,
+        "peak-build-bytes": 8519978,
+        "depth": 14,
+        "build-ms": 91.871,
+        "rays": 100000,
+        "seconds": 0.163341,
+        "rays-per-second": 612217,
+        "primitive-tests-per-ray": 3.761,
+        "max-reference-parameter-error": 3.3306690738754696e-16
+      },
+      "concurrency": {
+        "threads": 4,
+        "queries": 4096,
+        "mismatches": 0
+      },
+      "tests_log": "build/lightrecon-visibility-msvc-tests.log",
+      "tests_log_sha256": "b2a4d6f34049d30834193d255814f20e17daa6b7899e71e5975d0ecd719de8ab",
+      "build_log": "build/lightrecon-visibility-msvc-build.log",
+      "build_log_sha256": "dae995c0fd825634562934d0bae200f37d0820f78de387f1ef2588d3ba681b83"
+    },
+    "gcc": {
+      "passed": true,
+      "compiler": "GCC 16.2.0 C++11 x64",
+      "executables": 12,
+      "checks": 562272,
+      "visibility_checks": 20920,
+      "irregular_reference": {
+        "triangles": 1000,
+        "rays": 1024,
+        "max_parameter_error": 1.942890293094024e-15,
+        "tolerance": 1e-12
+      },
+      "large_reference_rays": 512,
+      "benchmark": {
+        "triangles": 32768,
+        "nodes": 16383,
+        "bytes": 8519978,
+        "peak-build-bytes": 8519978,
+        "depth": 14,
+        "build-ms": 280.197,
+        "rays": 100000,
+        "seconds": 0.486275,
+        "rays-per-second": 205645,
+        "primitive-tests-per-ray": 3.761,
+        "max-reference-parameter-error": 3.3306690738754696e-16
+      },
+      "concurrency": {
+        "threads": 4,
+        "queries": 4096,
+        "mismatches": 0
+      },
+      "tests_log": "build/lightrecon-visibility-gcc-tests.log",
+      "tests_log_sha256": "17101e8346e76e1605a1980d91fc402e13e6acec0cb966dce6f9548d8f68da92",
+      "build_log": "build/lightrecon-visibility-gcc-build.log",
+      "build_log_sha256": "1253857f983ec95d1db6d153118385fba6fd1c25884f7d94591803a08e6e32d6"
+    }
+  },
+  "strict_warnings": {
+    "passed": true,
+    "diagnostics": 0,
+    "flags": "-std=c++11 -Wall -Wextra -Wpedantic -Wconversion -fsyntax-only"
+  },
+  "shader_contract": {
+    "passed": true,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": false,
+    "driver": null,
+    "gpu_interface_comparison": "not run (--no-gpu)",
+    "production_dependency_audit": "passed",
+    "differences": 0,
+    "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+    "detector_tests": 14
+  },
+  "scenes": [
+    "Two rooms and separator",
+    "Open doorway",
+    "Fixed closed door",
+    "Excluded moving door",
+    "Skylight and actual sky polygon",
+    "Coincident sky/opaque",
+    "Curved quadratic patch",
+    "Diagonal thin wall and shared edges",
+    "Irregular triangle soup",
+    "Alpha-tested grate",
+    "Translucent window and combined categories",
+    "One/two-sided material",
+    "Surface/near/coplanar/solid/boundary origins",
+    "Bias crossing thin sheet",
+    "Scale-aware bias at 32768",
+    "Degenerate, unsupported, missing triangles",
+    "Empty/missing/invalid/limited/cancelled scene and failed providers"
+  ],
+  "limits": [
+    "Generated scenes only; actual map/collision/render overlay agreement was not run.",
+    "No alpha-mask or glass transport evaluation; default optical uncertainty is explicit.",
+    "Curved patches use conservative bounded tessellation; exact chord blockage requires explicit approximation policy.",
+    "Inside-solid classification needs an injected immutable provider; no domain oracle and no free-origin evidence cannot certify a clear ray.",
+    "BVH memory excludes input geometry, external provider, caller batches, allocator and bounded stack overhead.",
+    "No active renderer integration, gameplay collision replacement, source solver or GPU shader matrix compilation."
+  ]
+}

@@ -35,6 +35,10 @@ No production renderer or GLSL code is changed by the regression tooling.
   goldens or claim stock maps contain deluxe data. Source SHA256 values normalize
   CRLF to LF; DLLs, images and result files use exact byte hashes. Reproduction
   commands and runtime limitations are in `docs/rend2-observation-classification.md`.
+- `visibility-validation.json`: synthetic CPU BVH correctness, independent
+  triangle-reference errors, batch throughput/memory, concurrency, SP/MP builds
+  and unchanged preprocessed shader contracts. It contains no map/game assets;
+  commands and optical/geometry limitations are in `docs/rend2-static-visibility.md`.
 
 Run the existing suite's focused selection:
 

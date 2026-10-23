@@ -56,7 +56,8 @@ uint32_t MaterialUncertaintyFlags(const MaterialFacts &m)
 {
 	auto nonnegative = [](Vec3 v) { return Finite(v) && v.x >= 0 && v.y >= 0 && v.z >= 0; };
 	uint32_t flags = m.uncertainty;
-	if (static_cast<unsigned>(m.meaning) >
+	if (static_cast<unsigned>(m.cull) > static_cast<unsigned>(SurfaceCull::Back) ||
+		static_cast<unsigned>(m.meaning) >
 			static_cast<unsigned>(BakedMeaning::DiffuseModulationBakeUnknown) ||
 		static_cast<unsigned>(m.emissionProvenance) >
 			static_cast<unsigned>(EmissionProvenance::AuthoredLuminance))

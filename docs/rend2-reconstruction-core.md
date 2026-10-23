@@ -6,7 +6,7 @@ boundary shared by SP, MP and standalone tools. It contains the canonical
 [read-only API](rend2-reconstructed-lighting-api.md), plus the new input and
 builder/session and build/use policy code under `shared/rd-rend2/lightrecon/`.
 
-No inverse-lighting algorithm or full bake-time material/visibility adapter is installed.
+No inverse-lighting algorithm or full bake-time material adapter is installed.
 [Original lightmap observations](rend2-lightmap-observations.md) now have a bounded,
 immutable input module and main-world capture adapter; they remain uncalibrated
 images rather than fitted surface/physical-light data.
@@ -19,6 +19,9 @@ normals, coverage and area through explicit bounded CPU tile queries.
 [Observation classification](rend2-observation-classification.md) adds explicit
 deluxe correspondence, separate style/vertex evidence and material eligibility
 without treating texture colour as bake-time reflectance.
+[Static visibility](rend2-static-visibility.md) adds explicit immutable CPU BVH
+queries over these source surfaces, with optical/sky/domain uncertainty. BVH
+construction and provider installation remain explicit; map loading does not run them.
 The independent [versioned disk codec and cache adapter](rend2-reconstruction-disk.md)
 are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle.md).
 Complete source fingerprint collection remains unavailable, so the renderer
@@ -58,6 +61,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/lightgrid.h/.cpp` | Original indexed JA grid evidence, bounded immutable capture, logical-cell and explicit decoder access |
 | `lightrecon/surfaces.h/.cpp` | Original source UV/geometry capture and bounded luxel correspondence, coverage/area and explicit debug export |
 | `lightrecon/classification.h/.cpp` | Read-only style/material eligibility, paired deluxe directions, distinct vertex observations and bounded statistics |
+| `lightrecon/visibility.h/.cpp` | Explicit immutable static BVH, structured rays/batches, conservative optics/sky and optional point-domain provider |
 | `lightrecon/decode.h/.cpp` | Explicit source transfer, renderer-compatible interpretation, censoring and optional scene-equivalent calibration ([contract](rend2-observation-decoding.md)) |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
@@ -75,7 +79,7 @@ Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all eleven test executables to it.
+only if it does not already exist, and links all twelve test executables to it.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,
@@ -190,12 +194,15 @@ may explicitly copy manually populated hints; no such algorithm is installed in
 production. A future algorithm can legitimately complete with a validated empty
 asset, but the default core never reports a reconstruction success.
 
-`VisibilityProvider` supplies segment/sky transmittance `[0,1]` through explicit
-calls. Its defaults are Unavailable, not clear. Distinct finite endpoints and
+`VisibilityProvider` supplies structured rays via `Query` and compatibility
+segment/sky transmittance `[0,1]` through explicit calls. Its defaults are
+Unavailable, not clear. [StaticVisibility](rend2-static-visibility.md) implements
+the structured contract with an immutable CPU BVH. Distinct finite endpoints and
 unit sky directions are required. Failure, exception, no written value or invalid
 transmittance is reported and leaves the caller's output unchanged. Region/PVS
 connectivity is not fabricated as exact visibility. An OpenJK adapter may later
-implement traces using collision APIs; the CPU core never calls them itself.
+copy collision volumes for separate point-domain diagnostics; optical queries
+use source render geometry, and the CPU core never calls collision APIs itself.
 
 `Cancellation::IsCancelled()` is noexcept and can read a host-owned atomic flag.
 It is checked before/after provider and algorithm calls and between validation
