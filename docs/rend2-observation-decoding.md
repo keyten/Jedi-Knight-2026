@@ -267,9 +267,11 @@ $python = 'C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependenc
 
 Profiles are supplied explicitly by CPU callers, not automatically captured from
 renderer globals. A future runtime/offline adapter must retain the appropriate
-load-time settings/provenance, including mixed HDR/LDR ordering. Original
-lightgrid capture is not supplied here: do not pass already colour-shifted
-`world->lightGridData` as original bytes. Image parsing, lightgrid styles/geometry
+load-time settings/provenance, including mixed HDR/LDR ordering. The subsequent
+[original lightgrid capture module](rend2-lightgrid-observations.md) supplies
+pre-shift indexed data and explicit `DecodeGridLdr` / `DecodeGridHdr` helpers;
+do not pass already colour-shifted `world->lightGridData` as original bytes.
+Image parsing, lightgrid styles/geometry
 association, bake-tool discovery and physical reference measurements remain
 separate tasks. Profiles/results are not automatically serialized into the
 canonical output asset or cache; future input-key plumbing must include the

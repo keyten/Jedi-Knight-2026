@@ -134,6 +134,8 @@ class LightmapCapture
 	{
 		return limits_;
 	}
+	// Owner-thread staging identity, copied by other raw-observation adapters.
+	const LightmapMapIdentity &SourceIdentity() const { return map_; }
 
   private:
 	Error Add(LightmapImage, const void *, size_t elements);

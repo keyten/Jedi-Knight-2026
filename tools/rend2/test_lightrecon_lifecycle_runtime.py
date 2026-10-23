@@ -9,6 +9,7 @@ with synthetic assets; production complete input hashing is still unavailable.
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -67,6 +68,10 @@ def parse(text):
         if observation[1] != wanted or (wanted == 'NotRequested' and any(int(v) for v in observation.groups()[1:])):
             raise AssertionError('Unexpected observation retention ' + label + ': ' + observation[0])
         states[label]['observations'] = dict(zip(('state', 'images', 'missing', 'rgb8', 'rgba8', 'hdr', 'deluxe', 'pixels', 'bytes', 'accounted'), observation.groups()))
+        grid = re.search(r'grid-observations=(\w+) cells=(\d+) records=(\d+) indices=(\d+) HDR=(\d+) bytes=(\d+) missing=(\d+) invalid-indices=(\d+) no-style=(\d+) style-gaps=(\d+) nonfinite-HDR=(\d+) negative-HDR=(\d+) issues=(\d+)', section)
+        if not grid or grid[1] != wanted or (wanted == 'NotRequested' and any(int(v) for v in grid.groups()[1:])):
+            raise AssertionError('Unexpected original grid retention ' + label)
+        states[label]['lightgrid'] = dict(zip(('state', 'cells', 'records', 'indices', 'hdr_cells', 'bytes', 'missing', 'invalid_indices', 'no_style', 'style_gaps', 'nonfinite_hdr', 'negative_hdr', 'issues'), grid.groups()))
         textures = re.search(r'lightmap-textures=(\d+)', section)
         if not textures:
             raise AssertionError('Missing atlas/texture count ' + label)
@@ -159,6 +164,73 @@ def validate_lightmaps(text, installation, fixtures=None):
     return result
 
 
+def stock_bsp(installation, map_name):
+    path = f'maps/{map_name}.bsp'
+    for archive in sorted((installation / 'base').glob('assets[0-3].pk3'), reverse=True):
+        with zipfile.ZipFile(archive) as pk3:
+            if path in pk3.namelist():
+                return pk3.read(path)
+    raise AssertionError('Missing stock BSP ' + path)
+
+
+def grid_source(installation, map_name):
+    bsp = stock_bsp(installation, map_name)
+    def lump(index):
+        offset, size = struct.unpack_from('<II', bsp, 8 + index * 8)
+        if offset + size > len(bsp):
+            raise AssertionError('Invalid original grid/model lump')
+        return bsp[offset:offset+size]
+    worldspawn = lump(0).split(b'}', 1)[0].decode('ascii', errors='replace')
+    match = re.search(r'"gridsize"\s+"([^"]+)"', worldspawn)
+    spacing = tuple(map(float, match[1].split())) if match else (64., 64., 128.)
+    model = struct.unpack_from('<6f', lump(7))
+    origin = tuple(s * math.ceil(model[a] / s) for a, s in enumerate(spacing))
+    end = tuple(s * math.floor(model[a+3] / s) for a, s in enumerate(spacing))
+    bounds = tuple(round((e-o)/s) + 1 for e, o, s in zip(end, origin, spacing))
+    return bsp, lump(15), lump(17), bounds, origin, spacing
+
+
+def lightgrid_fixture(home, installation):
+    _, _, _, bounds, _, _ = grid_source(installation, 'hoth2')
+    cells = math.prod(bounds)
+    data = bytearray(cells * 24)
+    for i in range(cells):
+        struct.pack_into('<6f', data, i*24, i*.001, .5, 2., 4., 8., 16.)
+    path = home / 'maps/hoth2/lightgrid.raw'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return bytes(data)
+
+
+def validate_lightgrid(text, installation, fixture=None):
+    result = {}
+    for label, name in (('FORCE', 'hoth2'), ('RESTART', 'hoth3')):
+        section = re.search(f'RECON_LIFECYCLE_{label}_BEGIN(.*?)RECON_LIFECYCLE_{label}_END', text, re.S)[1]
+        bsp, records, indices, bounds, origin, spacing = grid_source(installation, name)
+        expected_hdr = fixture if label == 'FORCE' and fixture is not None else b''
+        identity = re.search(r'grid-map=(\S+) sha256=([0-9a-f]{64}) records-sha256=([0-9a-f]{64}) indices-sha256=([0-9a-f]{64}) HDR-sha256=([0-9a-f]{64})', section)
+        expected = (f'maps/{name}.bsp', *(hashlib.sha256(b).hexdigest() for b in (bsp, records, indices, expected_hdr)))
+        if not identity or identity.groups() != expected:
+            raise AssertionError('Original grid bytes/indirection/HDR changed ' + label)
+        layout = re.search(r'grid-layout bounds=([\d,]+) origin=([\d.,eE+-]+) spacing=([\d.,eE+-]+) HDR-state=(\d+)', section)
+        if not layout or tuple(map(int, layout[1].split(','))) != bounds or tuple(map(float, layout[2].split(','))) != origin or tuple(map(float, layout[3].split(','))) != spacing or int(layout[4]) != (2 if expected_hdr else 1):
+            raise AssertionError('Grid coordinate metadata changed ' + label)
+        referenced = struct.unpack('<' + 'H'*(len(indices)//2), indices)
+        invalid = sum(n >= len(records)//30 for n in referenced)
+        no_style = sum(all(b == 255 for b in records[n*30+24:n*30+28]) for n in referenced if n < len(records)//30)
+        gaps = sum(any(b != 255 and 255 in records[n*30+24:n*30+24+j] for j, b in enumerate(records[n*30+24:n*30+28])) for n in referenced if n < len(records)//30)
+        counts = re.search(r'grid-observations=Captured cells=(\d+) records=(\d+) indices=(\d+) HDR=(\d+) bytes=(\d+) missing=(\d+) invalid-indices=(\d+) no-style=(\d+) style-gaps=(\d+) nonfinite-HDR=(\d+) negative-HDR=(\d+) issues=(\d+)', section)
+        expected_counts = (math.prod(bounds), len(records)//30, len(indices)//2, len(expected_hdr)//24,
+                           len(records)+len(indices)+len(expected_hdr), invalid, invalid, no_style, gaps, 0, 0, 64 if gaps else 0)
+        if not counts or tuple(map(int, counts.groups())) != expected_counts:
+            raise AssertionError('Grid counts/quality lost ' + label)
+        result[label] = dict(map=expected[0], bounds=bounds, origin=origin, spacing=spacing, cells=math.prod(bounds),
+                             records=len(records)//30, indices=len(indices)//2, bytes=expected_counts[4],
+                             no_style=no_style, style_gaps=gaps, invalid_indices=invalid, geometry='Unknown for every cell',
+                             records_sha256=expected[2], indices_sha256=expected[3], hdr_sha256=expected[4], hdr_cells=len(expected_hdr)//24)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--installation', type=Path, required=True)
@@ -168,6 +240,8 @@ def main():
     parser.add_argument('--label', default='smoke')
     parser.add_argument('--timeout', type=int, default=600)
     parser.add_argument('--lightmap-fixtures', action='store_true', help='Private HDR/TGA override tests, including observation-only deluxe with rendering disabled')
+    parser.add_argument('--lightgrid-fixture', action='store_true', help='Private dense HDR grid with r_hdr=0; observation capture must remain independent')
+    parser.add_argument('--lightgrid-hdr', type=int, choices=(0, 1), default=0, help='r_hdr for the private grid fixture: 0 tests observation-only I/O, 1 reuses the renderer read')
     args = parser.parse_args()
     if os.name != 'nt' or not re.fullmatch(r'[A-Za-z0-9_-]+', args.label):
         parser.error('Windows and a simple unique label are required')
@@ -175,11 +249,15 @@ def main():
     config, archives = prepare_runtime(args, runtime, 'legacy', 0)
     home = runtime / 'home/OpenJK'
     fixtures = lightmap_fixtures(home) if args.lightmap_fixtures else None
+    grid_fixture = lightgrid_fixture(home, args.installation) if args.lightgrid_fixture else None
     # Force this off before renderer init: observation capture must not enable
     # deluxe rendering even when a dm_XXXX file is available to the solver.
     with (home / 'openjk_sp.cfg').open('a') as cfg:
         config.update(r_deluxeMapping=0, r_floatLightmap=1 if fixtures else 0)
         cfg.write(f'set r_deluxeMapping "0"\nset r_floatLightmap "{config["r_floatLightmap"]}"\n')
+        if grid_fixture is not None:
+            config['r_hdr'] = args.lightgrid_hdr
+            cfg.write(f'set r_hdr "{args.lightgrid_hdr}"\n')
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands()) + '\n', encoding='ascii')
     command = [str(runtime / 'openjk_sp.x86_64.exe')]
     for key in ('fs_basepath', 'fs_homepath', 'fs_game'):
@@ -210,6 +288,7 @@ def main():
         raise AssertionError('Incomplete production keys wrote canonical cache files')
     source_files = ('shared/rd-rend2/lightrecon/lifecycle.h', 'shared/rd-rend2/lightrecon/lifecycle.cpp',
                     'shared/rd-rend2/lightrecon/lightmaps.h', 'shared/rd-rend2/lightrecon/lightmaps.cpp',
+                    'shared/rd-rend2/lightrecon/lightgrid.h', 'shared/rd-rend2/lightrecon/lightgrid.cpp',
                     'shared/rd-rend2/lightrecon/input.h', 'code/rd-common/tr_image_load.cpp', 'codemp/rd-common/tr_image_load.cpp',
                     'shared/rd-rend2/tr_lightrecon.h', 'shared/rd-rend2/tr_lightrecon.cpp',
                     'shared/rd-rend2/tr_lightrecon_api.cpp', 'shared/rd-rend2/tr_lightrecon_manager.h',
@@ -217,9 +296,10 @@ def main():
                     'code/rd-rend2/tr_init.cpp', 'codemp/rd-rend2/tr_init.cpp')
     states = parse(text)
     lightmaps = validate_lightmaps(text, args.installation, fixtures)
+    lightgrid = validate_lightgrid(text, args.installation, grid_fixture)
     if states['FORCE']['lightmap_textures'] != (lightmaps['FORCE']['internal_images'] if fixtures else 1):
         raise AssertionError('Expected external textures/internal atlas path was not exercised')
-    result = dict(passed=True, states=states, lightmaps=lightmaps, settings=config, archives=archives, command=command,
+    result = dict(passed=True, states=states, lightmaps=lightmaps, lightgrid=lightgrid, settings=config, archives=archives, command=command,
                   renderer_sha256=hashlib.sha256(args.renderer.read_bytes()).hexdigest(),
                   runtime=str(runtime), source_base_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   source_files_sha256={p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in source_files},

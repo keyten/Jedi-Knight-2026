@@ -1,0 +1,497 @@
+{
+  "passed": true,
+  "source_base_revision": "3a88e68ca8ec509ffab24b6f350f5caafcd4fb12",
+  "cpu": {
+    "msvc": {
+      "targets": 9,
+      "checks": 531513,
+      "lightgrid_checks": 459733,
+      "passed": true
+    },
+    "gcc": {
+      "targets": 9,
+      "checks": 531513,
+      "lightgrid_checks": 459733,
+      "passed": true
+    }
+  },
+  "shader_contract": {
+    "programs": 27,
+    "stages": 51,
+    "differences": 0,
+    "gpu_compiled": false,
+    "dependency_audit": "passed",
+    "detector_tests": 12
+  },
+  "runtime": [
+    {
+      "passed": true,
+      "r_hdr": 0,
+      "renderer_sha256": "50d1511664d7f78f0b81ddb21efc0dfb209d5cdc2a3e5554669a8ed78b36105f",
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\lifecycle-grid-validated\\openjk_sp.x86_64.exe",
+        "+set",
+        "fs_basepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "+set",
+        "fs_homepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\lifecycle-grid-validated\\home",
+        "+set",
+        "fs_game",
+        "OpenJK"
+      ],
+      "lightgrid": {
+        "FORCE": {
+          "map": "maps/hoth2.bsp",
+          "bounds": [
+            213,
+            258,
+            19
+          ],
+          "origin": [
+            -11136.0,
+            -11232.0,
+            288.0
+          ],
+          "spacing": [
+            96.0,
+            96.0,
+            144.0
+          ],
+          "cells": 1044126,
+          "records": 4001,
+          "indices": 1044126,
+          "bytes": 27267306,
+          "no_style": 0,
+          "style_gaps": 0,
+          "invalid_indices": 0,
+          "geometry": "Unknown for every cell",
+          "records_sha256": "b2c052994f7d1cb129f91bb95cfa47af530d6cccccd959ab0679d8454e0992f4",
+          "indices_sha256": "401601aafd5721d11ccee4ba737f52d8f32b685cb05b052759eb87d0ef7995df",
+          "hdr_sha256": "e318db86fb6668c6296336abdefa779e5ae66c2521f78e4d42ae5255734446cf",
+          "hdr_cells": 1044126
+        },
+        "RESTART": {
+          "map": "maps/hoth3.bsp",
+          "bounds": [
+            202,
+            81,
+            14
+          ],
+          "origin": [
+            -2112.0,
+            -3456.0,
+            -128.0
+          ],
+          "spacing": [
+            64.0,
+            64.0,
+            128.0
+          ],
+          "cells": 229068,
+          "records": 11553,
+          "indices": 229068,
+          "bytes": 804726,
+          "no_style": 0,
+          "style_gaps": 0,
+          "invalid_indices": 0,
+          "geometry": "Unknown for every cell",
+          "records_sha256": "70563a189b5c9b920b714682b35b87636c2a67371fbd530f0641da6ff77fde72",
+          "indices_sha256": "eae5587db0f3e55076cbf62d896417cabcefcf71a27fe5c9a2f0d5e01c5b7970",
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "hdr_cells": 0
+        }
+      },
+      "states": {
+        "UNLOADED": {
+          "state": "Unloaded",
+          "world": "<none>",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "DISABLED": {
+          "state": "Disabled",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "POLICY_UNAPPLIED": {
+          "state": "Disabled",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "FORCE": {
+          "state": "BuildRequired",
+          "world": "maps/hoth2.bsp",
+          "grid": {
+            "state": "Captured",
+            "cells": "1044126",
+            "records": "4001",
+            "indices": "1044126",
+            "hdr_cells": "1044126",
+            "bytes": "27267306",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "CACHEONLY": {
+          "state": "Unavailable",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "RESTART": {
+          "state": "BuildRequired",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "Captured",
+            "cells": "229068",
+            "records": "11553",
+            "indices": "229068",
+            "hdr_cells": "0",
+            "bytes": "804726",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "DISCONNECTED": {
+          "state": "Unloaded",
+          "world": "<none>",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        }
+      },
+      "gameplay_actions": false,
+      "cache_hit_runtime_tested": false,
+      "canonical_cache_files": []
+    },
+    {
+      "passed": true,
+      "r_hdr": 1,
+      "renderer_sha256": "50d1511664d7f78f0b81ddb21efc0dfb209d5cdc2a3e5554669a8ed78b36105f",
+      "driver": [
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\lifecycle-grid-hdr-validated\\openjk_sp.x86_64.exe",
+        "+set",
+        "fs_basepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\stock-assets",
+        "+set",
+        "fs_homepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-visual-20261022\\lifecycle-grid-hdr-validated\\home",
+        "+set",
+        "fs_game",
+        "OpenJK"
+      ],
+      "lightgrid": {
+        "FORCE": {
+          "map": "maps/hoth2.bsp",
+          "bounds": [
+            213,
+            258,
+            19
+          ],
+          "origin": [
+            -11136.0,
+            -11232.0,
+            288.0
+          ],
+          "spacing": [
+            96.0,
+            96.0,
+            144.0
+          ],
+          "cells": 1044126,
+          "records": 4001,
+          "indices": 1044126,
+          "bytes": 27267306,
+          "no_style": 0,
+          "style_gaps": 0,
+          "invalid_indices": 0,
+          "geometry": "Unknown for every cell",
+          "records_sha256": "b2c052994f7d1cb129f91bb95cfa47af530d6cccccd959ab0679d8454e0992f4",
+          "indices_sha256": "401601aafd5721d11ccee4ba737f52d8f32b685cb05b052759eb87d0ef7995df",
+          "hdr_sha256": "e318db86fb6668c6296336abdefa779e5ae66c2521f78e4d42ae5255734446cf",
+          "hdr_cells": 1044126
+        },
+        "RESTART": {
+          "map": "maps/hoth3.bsp",
+          "bounds": [
+            202,
+            81,
+            14
+          ],
+          "origin": [
+            -2112.0,
+            -3456.0,
+            -128.0
+          ],
+          "spacing": [
+            64.0,
+            64.0,
+            128.0
+          ],
+          "cells": 229068,
+          "records": 11553,
+          "indices": 229068,
+          "bytes": 804726,
+          "no_style": 0,
+          "style_gaps": 0,
+          "invalid_indices": 0,
+          "geometry": "Unknown for every cell",
+          "records_sha256": "70563a189b5c9b920b714682b35b87636c2a67371fbd530f0641da6ff77fde72",
+          "indices_sha256": "eae5587db0f3e55076cbf62d896417cabcefcf71a27fe5c9a2f0d5e01c5b7970",
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "hdr_cells": 0
+        }
+      },
+      "states": {
+        "UNLOADED": {
+          "state": "Unloaded",
+          "world": "<none>",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "DISABLED": {
+          "state": "Disabled",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "POLICY_UNAPPLIED": {
+          "state": "Disabled",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "FORCE": {
+          "state": "BuildRequired",
+          "world": "maps/hoth2.bsp",
+          "grid": {
+            "state": "Captured",
+            "cells": "1044126",
+            "records": "4001",
+            "indices": "1044126",
+            "hdr_cells": "1044126",
+            "bytes": "27267306",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "CACHEONLY": {
+          "state": "Unavailable",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "RESTART": {
+          "state": "BuildRequired",
+          "world": "maps/hoth3.bsp",
+          "grid": {
+            "state": "Captured",
+            "cells": "229068",
+            "records": "11553",
+            "indices": "229068",
+            "hdr_cells": "0",
+            "bytes": "804726",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        },
+        "DISCONNECTED": {
+          "state": "Unloaded",
+          "world": "<none>",
+          "grid": {
+            "state": "NotRequested",
+            "cells": "0",
+            "records": "0",
+            "indices": "0",
+            "hdr_cells": "0",
+            "bytes": "0",
+            "missing": "0",
+            "invalid_indices": "0",
+            "no_style": "0",
+            "style_gaps": "0",
+            "nonfinite_hdr": "0",
+            "negative_hdr": "0",
+            "issues": "0"
+          }
+        }
+      },
+      "gameplay_actions": false,
+      "cache_hit_runtime_tested": false,
+      "canonical_cache_files": []
+    }
+  ],
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/lifecycle.h": "4956618793e5f03917b41ec6bef6540f399439b0e8104a868d5bf491f4479238",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "f7a4b7962ce788c662af6dc1320598f8f8aa591458afde1af84c9da05f27adea",
+    "shared/rd-rend2/lightrecon/lightmaps.h": "4ec5ac0e02d8eeb80f082596f804e795e8a90406d2a561fe1c38745ca2485ac5",
+    "shared/rd-rend2/lightrecon/lightmaps.cpp": "f708f98b19dbfc309f80946e3858125c1f07001fae2311e7876e8a9af9995ac6",
+    "shared/rd-rend2/lightrecon/lightgrid.h": "a7a7aac2c1e0db8ff10427381416dcff7d79c7ab1aa878e743af585357c9a661",
+    "shared/rd-rend2/lightrecon/lightgrid.cpp": "31a1c320852defe8091c709ee8305f6a53251b60bf4ef1cf6ff7469cd5722490",
+    "shared/rd-rend2/lightrecon/input.h": "058bd9623e486110b4397c0b414e32d4cc523a46efba280729c4ee601fad5011",
+    "code/rd-common/tr_image_load.cpp": "3522ec200c3ab68f60729c976cd6e2ba7bb1d06641d6796e8c6171edb60f9f06",
+    "codemp/rd-common/tr_image_load.cpp": "03fb13dc724ced352b543a8649aaa4c6d609738ad38742e9a119f327b55e08ea",
+    "shared/rd-rend2/tr_lightrecon.h": "f0614142e9740db93fa93d288f3a06d1d5bc4c8ee6efe83c372bc31287d2a384",
+    "shared/rd-rend2/tr_lightrecon.cpp": "7fd686d6002fc318411f7de24b154075335d03311e6e2cd5bd03f2ec9835c46b",
+    "shared/rd-rend2/tr_lightrecon_api.cpp": "c85c3534008a6cf2a354d1b46361ef5109e862d364afe394174876c716f65b70",
+    "shared/rd-rend2/tr_lightrecon_manager.h": "e003e4a224853b8201406a6491a6cf4f8f3c4d90cf200efad718298b8fa52556",
+    "shared/rd-rend2/tr_bsp.cpp": "3c8b23efef67febfae841f2ac7a0ebdef89ca2ca4c71e2901c739a97ea990102",
+    "shared/rd-rend2/tr_staticlighting.cpp": "1afed6128aee77ab2b9f88a3898908a6da368e1542d32e665d05455d853d3ff9",
+    "code/rd-rend2/tr_init.cpp": "62bbbc767850723e41cd3ade72ba630676a9b9adac016e5f523a212613fc2705",
+    "codemp/rd-rend2/tr_init.cpp": "65d73bde1e07f4f68573f7845ce37b4728064e82ccfebfbb198b41b53c68d864",
+    "tools/lightrecon_test/lightrecon_lightgrid_test.cpp": "874a45d5582e089781562aa41e1dbec5dfe9bcc7ec71c5dfb62e6f568a62cca0",
+    "tools/lightrecon_test/decode_reference.cmake": "eaf41fa1ac38e0f7a4b2af5a471abc55da4a288f0473cee6e6db247b74e4534b",
+    "tools/rend2/test_lightrecon_lifecycle_runtime.py": "050a3b580d6bb57730e1ecfe13547d6cea8ebfc4b88202cb8c7a4c171bf80223",
+    "tools/rend2/lightrecon_regression.py": "f0328c6bb248c70f4f5b5b6470c052c5defdb820ac9ceae905e9a7b9b47e1b1d"
+  },
+  "limitations": [
+    "Geometry remains Unknown for all cells; no stock geometry trace asserted.",
+    "Full-matrix GPU compilation and screenshot equivalence not run.",
+    "MP compiled; no MP gameplay run.",
+    "Complete production cache key and inverse solver unavailable."
+  ]
+}

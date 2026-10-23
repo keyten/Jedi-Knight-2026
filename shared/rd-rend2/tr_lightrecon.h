@@ -2,6 +2,7 @@
 #pragma once
 #include "lightrecon/lifecycle.h"
 #include "lightrecon/lightmaps.h"
+#include "lightrecon/lightgrid.h"
 
 // Retain this lease while using views and effective-state decisions. Loading is
 // independent of consumption; acquiring a snapshot never runs work.
@@ -14,6 +15,7 @@ std::string R_LightReconCacheRoot(void);
 // Raw, uncalibrated observations, NOT a reconstructed asset/capability. Retain
 // the lease for all views. No reads or reconstruction are triggered here.
 std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObservations(void);
+std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void);
 
 // Stack guard for the entire MAIN world load. No use from R_LoadBSP/sub-BSPs.
 // Counts are copied facts only; no borrowed hunk/renderer pointer is retained.
@@ -43,7 +45,12 @@ public:
 	void Missing(int logicalIndex, bool deluxe, const char* source, bool hdr);
 	bool Needed() const;
 	void ReleaseSource();
+	void GridEmbedded(int recordOffset, int recordBytes, int indexOffset, int indexBytes);
+	void GridLayout(const float* origin, const float* spacing, const int* bounds);
+	void GridHdr(const char* source, const void* data, int bytes);
+	void GridHdrSidecar(const char* baseName); // bounded observation-only lookup when r_hdr is off
 private:
+	Rend2LightRecon::Core::LightmapMapIdentity sourceMap_;
 	const void* source_ = nullptr; // scoped original, never published
 	size_t sourceBytes_ = 0;
 	std::vector<uint8_t> reread_;

@@ -226,12 +226,19 @@ def observation_audit():
         failures.append('Original lightmap observation hooks must precede atlas upload and colour transforms')
     lower = bsp[bsp.find('world_t *R_LoadBSP('):bsp.find('void RE_LoadWorldMap( const char *name ) {')]
     tokens = ['LightReconBspCapture observations(name, bspIndex == nullptr, buffer.b, sourceBytes)',
-              '((int *)header)[i] =', 'R_LoadLightmaps(', 'observations.ReleaseSource()', 'R_LoadSurfaces(']
+              '((int *)header)[i] =', 'R_LoadLightmaps(', 'observations.GridEmbedded(',
+              'observations.ReleaseSource()', 'R_LoadSurfaces(', 'R_LoadLightGrid(']
     positions = [lower.find(token) for token in tokens]
     if min(positions) < 0 or positions != sorted(positions):
         failures.append('Original BSP capture must be main-world scoped, before byte swapping, and release scratch before surfaces')
     if load.count('observations.External(') != 2 or 'R_LoadImageSource(' not in load:
         failures.append('Both lighting and deluxe loaders must preserve original samples and resolved source paths')
+    grid = bsp[bsp.find('void R_LoadLightGrid('):bsp.find('void R_LoadLightGridArray(')]
+    tokens = ['observations.GridLayout(', 'R_ColorShiftLightingBytes(', 'ri.FS_ReadFile(',
+              'observations.GridHdr(', 'worldData->hdrLightGrid =', 'ri.FS_FreeFile(']
+    positions = [grid.find(token) for token in tokens]
+    if min(positions) < 0 or positions != sorted(positions) or 'observations.GridHdrSidecar(' not in grid:
+        failures.append('Original grid layout/HDR hooks must preserve pre-conversion inputs and observation-only sidecars')
     return failures
 
 

@@ -8,6 +8,10 @@ described below continues unchanged; `vrProxy`/`vrStaticLight` are not the
 canonical asset. The [read-only CPU API](rend2-reconstructed-lighting-api.md) adds
 explicit availability and immutable snapshot leases; no new solver or lighting
 integration has been implemented.
+Original CPU input evidence is documented separately for
+[lightmaps](rend2-lightmap-observations.md) and
+[indexed lightgrid observations](rend2-lightgrid-observations.md); neither applies
+the experimental reconstruction's wall-cell heuristic.
 
 The [independent canonical build/use controls](rend2-reconstruction-controls.md)
 all default to zero and do not change the legacy controls or behaviour below.

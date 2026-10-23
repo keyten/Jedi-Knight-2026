@@ -2960,7 +2960,7 @@ R_LoadLightGrid
 
 ================
 */
-void R_LoadLightGrid( world_t *worldData, lump_t *l ) {
+void R_LoadLightGrid( world_t *worldData, lump_t *l, LightReconBspCapture& observations ) {
 	int		i;
 	vec3_t	maxs;
 	float	*wMins, *wMaxs;
@@ -2979,6 +2979,7 @@ void R_LoadLightGrid( world_t *worldData, lump_t *l ) {
 	}
 
 	int numGridDataElements = l->filelen / sizeof(*worldData->lightGridData);
+	observations.GridLayout(worldData->lightGridOrigin, worldData->lightGridSize, worldData->lightGridBounds);
 
 	worldData->lightGridData = (mgrid_t *)Hunk_Alloc( l->filelen, h_low );
 	Com_Memcpy( worldData->lightGridData, (void *)(fileBase + l->fileofs), l->filelen );
@@ -3008,6 +3009,8 @@ void R_LoadLightGrid( world_t *worldData, lump_t *l ) {
 		//ri.Printf(PRINT_ALL, "looking for %s\n", filename);
 
 		size = ri.FS_ReadFile(filename, (void **)&hdrLightGrid);
+		// Original dense six-float tuples, before hunk copy/free. No style/index inference.
+		observations.GridHdr(filename, hdrLightGrid, size);
 
 		if (hdrLightGrid)
 		{
@@ -3032,6 +3035,8 @@ void R_LoadLightGrid( world_t *worldData, lump_t *l ) {
 		if (hdrLightGrid)
 			ri.FS_FreeFile(hdrLightGrid);
 	}
+	else
+		observations.GridHdrSidecar(worldData->baseName);
 }
 
 /*
@@ -4949,6 +4954,9 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 		worldData,
 		&header->lumps[LUMP_LIGHTMAPS],
 		&header->lumps[LUMP_SURFACES], observations);
+	// Copy original record/index lumps while the original BSP lease is alive.
+	observations.GridEmbedded(header->lumps[LUMP_LIGHTGRID].fileofs, header->lumps[LUMP_LIGHTGRID].filelen,
+		header->lumps[LUMP_LIGHTARRAY].fileofs, header->lumps[LUMP_LIGHTARRAY].filelen);
 	observations.ReleaseSource(); // pixel copies survive; borrowed BSP/re-read scratch does not
 	R_LoadProfilePrint("BSP entities/shaders/lightmaps", stageStart);
 	stageStart = ri.Milliseconds();
@@ -4972,7 +4980,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	R_LoadNodesAndLeafs(worldData, &header->lumps[LUMP_NODES], &header->lumps[LUMP_LEAFS]);
 	R_LoadSubmodels(worldData, worldIndex, &header->lumps[LUMP_MODELS]);
 	R_LoadVisibility(worldData, &header->lumps[LUMP_VISIBILITY]);
-	R_LoadLightGrid(worldData, &header->lumps[LUMP_LIGHTGRID]);
+	R_LoadLightGrid(worldData, &header->lumps[LUMP_LIGHTGRID], observations);
 	R_LoadLightGridArray(worldData, &header->lumps[LUMP_LIGHTARRAY]);
 
 	// Add a plane to the volumetric fog to see skyboxes and stuff

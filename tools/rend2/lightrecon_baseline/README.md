@@ -23,6 +23,8 @@ No production renderer or GLSL code is changed by the regression tooling.
   captures, installed PK3s, caches and execution logs stay under ignored `build/`.
 - `lifecycle-validation.json`: subsequent main-world lifecycle CPU/runtime witness;
   this does not replace or regenerate the controlled GLSL goldens.
+- `lightgrid-validation.json`: original record/index/HDR hashes and counts from
+  stock-map SP lifecycle tests, including observation-only HDR with `r_hdr=0`.
 
 Run the existing suite's focused selection:
 

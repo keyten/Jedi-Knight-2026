@@ -16,6 +16,12 @@ std::string R_LightReconCacheRoot(void)
 // follows the main world's lifetime; leases keep old publications safely alive.
 static Rend2LightRecon::WorldLighting s_reconstructedLighting;
 static Rend2LightRecon::Core::LightmapCapture s_lightmapCapture;
+static Rend2LightRecon::Core::LightgridCapture s_lightgridCapture;
+
+std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void)
+{
+	return s_lightgridCapture.Acquire();
+}
 
 std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObservations(void)
 {
@@ -32,12 +38,16 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 		static_cast<Rend2LightRecon::BuildPolicy>(r_lightReconBuild ? r_lightReconBuild->integer : 0))
 {
 	s_lightmapCapture.Begin(s_reconstructedLighting.Report().policy);
+	s_lightgridCapture.Begin(s_reconstructedLighting.Report().policy);
 }
 
 LightReconWorldLoad::~LightReconWorldLoad()
 {
 	if (!finished_ && s_reconstructedLighting.Report().ticket == load_.Ticket())
+	{
 		s_lightmapCapture.Reset();
+		s_lightgridCapture.Reset();
+	}
 }
 
 namespace {
@@ -47,13 +57,15 @@ public:
 	Rend2LightRecon::Disk::Error Describe(const std::string&, Rend2LightRecon::Disk::Fingerprint& fingerprint) override
 	{
 		const auto observations = R_LightmapObservations();
-		if (observations)
+		const auto grid = R_LightgridObservations();
+		if (observations || grid)
 		{
+			const auto& identity = observations ? observations->Map() : grid->Map();
 			Rend2LightRecon::Disk::InputContent map;
 			map.kind = Rend2LightRecon::Disk::InputKind::Bsp;
-			map.name = observations->Map().path;
-			map.bytes = observations->Map().bytes;
-			map.sha256 = observations->Map().sha256;
+			map.name = identity.path;
+			map.bytes = identity.bytes;
+			map.sha256 = identity.sha256;
 			fingerprint.inputs.push_back(map);
 			fingerprint.complete[static_cast<size_t>(map.kind)] = true;
 		}
@@ -67,6 +79,7 @@ public:
 	Rend2LightRecon::Core::Error Prepare(const std::string&, Rend2LightRecon::BuildPlan& plan) override
 	{
 		plan.input.lightmaps = R_LightmapObservations();
+		plan.input.lightgrid = R_LightgridObservations();
 		return Rend2LightRecon::Core::Failure(Rend2LightRecon::Core::Code::Unavailable,
 			"Original lightmaps may be captured; geometry/material adapter and reconstruction algorithm are not installed");
 	}
@@ -76,6 +89,8 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 {
 	if (s_lightmapCapture.Needed())
 		s_lightmapCapture.Freeze();
+	if (s_lightgridCapture.Needed())
+		s_lightgridCapture.Freeze();
 	RendererWorldSource source;
 	Rend2LightRecon::WorldFacts facts;
 	if (s_reconstructedLighting.Report().policy == Rend2LightRecon::BuildPolicy::Disabled)
@@ -94,13 +109,17 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 	// renderer has no complete cache key/solver, so BuildRequired keeps a bounded
 	// immutable input snapshot for a future session and CPU inspection.
 	if (s_reconstructedLighting.Report().state == Rend2LightRecon::WorldState::Available)
+	{
 		s_lightmapCapture.Reset();
+		s_lightgridCapture.Reset();
+	}
 	finished_ = true;
 }
 
 void R_ClearReconstructedLighting(void)
 {
 	s_lightmapCapture.Reset();
+	s_lightgridCapture.Reset();
 	s_reconstructedLighting.Unload();
 }
 
@@ -158,6 +177,7 @@ LightReconBspCapture::LightReconBspCapture(const char* name, bool mainWorld, con
 		}
 		if (s_lightmapCapture.SetMap(name, bsp, static_cast<size_t>(bytes)))
 		{
+			sourceMap_ = s_lightmapCapture.SourceIdentity();
 			source_ = bsp;
 			sourceBytes_ = static_cast<size_t>(bytes);
 		}
@@ -173,6 +193,72 @@ void LightReconBspCapture::ReleaseSource()
 	source_ = nullptr;
 	sourceBytes_ = 0;
 	std::vector<uint8_t>().swap(reread_);
+}
+void LightReconBspCapture::GridEmbedded(int ro, int rb, int io, int ib)
+{
+	using namespace Rend2LightRecon::Core;
+	static_assert(sizeof(mgrid_t) == kGridRecordBytes && MAXLIGHTMAPS == kGridStyles,
+		"Update the canonical JA record adapter for a changed BSP schema");
+	if (!active_ || !s_lightgridCapture.Needed()) return;
+	if (!source_ || ro < 0 || rb < 0 || io < 0 || ib < 0 ||
+		static_cast<size_t>(ro) > sourceBytes_ || static_cast<size_t>(rb) > sourceBytes_ - static_cast<size_t>(ro) ||
+		static_cast<size_t>(io) > sourceBytes_ || static_cast<size_t>(ib) > sourceBytes_ - static_cast<size_t>(io))
+	{
+		s_lightgridCapture.Fail(Code::InvalidInput, "Invalid original lightgrid lump span");
+		return;
+	}
+	const auto* bytes = static_cast<const uint8_t*>(source_);
+	s_lightgridCapture.SetSource(sourceMap_, bytes + ro, rb, ro, bytes + io, ib, io);
+}
+void LightReconBspCapture::GridLayout(const float* origin, const float* spacing, const int* bounds)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!active_ || !s_lightgridCapture.Needed()) return;
+	if (bounds[0] < 0 || bounds[1] < 0 || bounds[2] < 0)
+	{
+		s_lightgridCapture.Fail(Code::InvalidInput, "Negative lightgrid bounds");
+		return;
+	}
+	Rend2LightRecon::Core::GridLayout layout;
+	layout.originWorld.x=origin[0]; layout.originWorld.y=origin[1]; layout.originWorld.z=origin[2];
+	layout.spacingWorld.x=spacing[0]; layout.spacingWorld.y=spacing[1]; layout.spacingWorld.z=spacing[2];
+	for (size_t i=0;i<3;++i) layout.bounds[i]=static_cast<uint32_t>(bounds[i]);
+	s_lightgridCapture.SetLayout(layout);
+}
+void LightReconBspCapture::GridHdr(const char* path, const void* data, int bytes)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!active_ || !s_lightgridCapture.Needed()) return;
+	if (bytes < 0 && data) { s_lightgridCapture.Fail(Code::InvalidInput, "Negative HDR grid size"); return; }
+	s_lightgridCapture.SetHdr(data ? GridHdrState::Present : GridHdrState::Missing,
+		path ? path : "", data, data ? static_cast<size_t>(bytes) : 0);
+}
+void LightReconBspCapture::GridHdrSidecar(const char* baseName)
+{
+	using namespace Rend2LightRecon::Core;
+	if (!active_ || !s_lightgridCapture.Needed()) return;
+	char path[MAX_QPATH];
+	Com_sprintf(path, sizeof(path), "maps/%s/lightgrid.raw", baseName);
+	LightmapSourceFile file;
+	const int bytes = ri.FS_FOpenFileRead(path, &file.handle, qtrue);
+	if (!file.handle || bytes < 0) { GridHdr(path, nullptr, 0); return; }
+	if (static_cast<uint64_t>(bytes) > s_lightgridCapture.Limits().maxBytes - s_lightgridCapture.Report().bytes)
+	{
+		s_lightgridCapture.Fail(Code::MemoryLimit, "HDR grid sidecar exceeds capture budget");
+		return;
+	}
+	try
+	{
+		std::vector<uint8_t> data(static_cast<size_t>(bytes));
+		if (ri.FS_Read(data.data(), bytes, file.handle) != bytes)
+		{
+			s_lightgridCapture.Fail(Code::ProviderError, "Short HDR grid sidecar read");
+			return;
+		}
+		// Empty existing files are Present (malformed), not missing.
+		s_lightgridCapture.SetHdr(GridHdrState::Present, path, data.data(), data.size());
+	}
+	catch (const std::bad_alloc&) { s_lightgridCapture.Fail(Code::MemoryLimit, "HDR grid sidecar allocation failed"); }
 }
 void LightReconBspCapture::Embedded(int offset, int length, bool deluxe)
 {
@@ -264,6 +350,30 @@ void R_LightReconInfo_f(void)
 					static_cast<unsigned long long>(image.sourceOffset), Disk::Hex(image.pixelHash).c_str(), image.source.c_str());
 	}
 	if (lm.state == Core::CaptureState::Failed) ri.Printf(PRINT_ALL, "  observation-error: %s\n", lm.message.c_str());
+	const auto& grid = s_lightgridCapture.Report();
+	ri.Printf(PRINT_ALL, "  grid-observations=%s cells=%llu records=%llu indices=%llu HDR=%llu bytes=%llu missing=%llu invalid-indices=%llu no-style=%llu style-gaps=%llu nonfinite-HDR=%llu negative-HDR=%llu issues=%u (geometry unknown)\n",
+		Core::CaptureStateName(grid.state), static_cast<unsigned long long>(grid.cells),
+		static_cast<unsigned long long>(grid.records), static_cast<unsigned long long>(grid.indices),
+		static_cast<unsigned long long>(grid.hdrCells), static_cast<unsigned long long>(grid.bytes),
+		static_cast<unsigned long long>(grid.missingCells), static_cast<unsigned long long>(grid.invalidIndices),
+		static_cast<unsigned long long>(grid.noStyle), static_cast<unsigned long long>(grid.styleGaps),
+		static_cast<unsigned long long>(grid.nonFiniteHdr), static_cast<unsigned long long>(grid.negativeHdr), grid.issues);
+	const auto rawGrid = R_LightgridObservations();
+	if (rawGrid)
+	{
+		const auto& layout = rawGrid->Layout();
+		ri.Printf(PRINT_ALL, "  grid-layout bounds=%u,%u,%u origin=%.9g,%.9g,%.9g spacing=%.9g,%.9g,%.9g HDR-state=%d source=%s\n",
+			layout.bounds[0], layout.bounds[1], layout.bounds[2],
+			layout.originWorld.x, layout.originWorld.y, layout.originWorld.z,
+			layout.spacingWorld.x, layout.spacingWorld.y, layout.spacingWorld.z,
+			static_cast<int>(rawGrid->HdrState()), rawGrid->HdrSource().c_str());
+		ri.Printf(PRINT_ALL, "  grid-map=%s sha256=%s records-sha256=%s indices-sha256=%s HDR-sha256=%s\n",
+			rawGrid->Map().path.c_str(), Disk::Hex(rawGrid->Map().sha256).c_str(),
+			Disk::Hex(Disk::Hash(rawGrid->Records().data(), rawGrid->Records().size())).c_str(),
+			Disk::Hex(Disk::Hash(rawGrid->Indices().data(), rawGrid->Indices().size())).c_str(),
+			Disk::Hex(Disk::Hash(rawGrid->Hdr().data(), rawGrid->Hdr().size()*sizeof(float))).c_str());
+	}
+	if (grid.state == Core::CaptureState::Failed) ri.Printf(PRINT_ALL, "  grid-observation-error: %s\n", grid.message.c_str());
 	ri.Printf(PRINT_ALL, "  lifecycle=%s world=%s ticket=%llu generation=%llu identity=%s\n",
 		WorldStateName(report.state), report.world.empty() ? "<none>" : report.world.c_str(),
 		static_cast<unsigned long long>(report.ticket), static_cast<unsigned long long>(snapshot.Generation()),

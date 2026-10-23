@@ -40,7 +40,9 @@ class Contracts(unittest.TestCase):
     def test_original_image_hooks_cannot_disappear(self):
         import lightrecon_regression as regression
         original = regression.read
-        for removed in ('observations.Embedded(', 'observations.External(', 'observations.ReleaseSource()'):
+        for removed in ('observations.Embedded(', 'observations.External(', 'observations.ReleaseSource()',
+                        'observations.GridEmbedded(', 'observations.GridLayout(', 'observations.GridHdr(',
+                        'observations.GridHdrSidecar('):
             with self.subTest(removed=removed):
                 def changed(path):
                     text = original(path)

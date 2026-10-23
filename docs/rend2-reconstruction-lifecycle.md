@@ -7,14 +7,16 @@ owner has no `world_t`, BSP, hunk, renderer allocator or GPU dependency, and
 does not consult master/consumer enable flags.
 
 This integrates ownership and the cache/session boundary. It does **not** implement
-a solver, complete geometry/lightgrid observation exporter, complete production fingerprint
+a solver, complete geometry/material observation adapter, complete production fingerprint
 collector, numerical field decoder or reconstructed rendering consumer. In the
 current renderer, nonzero policies explicitly report `NotCacheable`; policies
 2/3 report `BuildRequired` because the input adapter/algorithm is unavailable.
 No filename-only cache acceptance or successful empty placeholder substitutes
 for those missing components. [Original lightmap capture](rend2-lightmap-observations.md)
 now preserves bounded immutable image inputs through world initialization for
-policies 2/3; it confers no reconstructed-lighting capability. Synthetic CPU tests exercise real valid cache
+policies 2/3; [original indexed lightgrid capture](rend2-lightgrid-observations.md)
+also preserves raw styles/colours/directions/HDR independently of renderer transforms.
+Neither confers a reconstructed-lighting capability. Synthetic CPU tests exercise real valid cache
 hits, completed builds and atomic cache writes through the same owner.
 
 ## States and policy
@@ -193,6 +195,9 @@ The renderer's separately owned original-lightmap snapshot has its own
 2/3 can retain this bounded input after `Complete`, for later CPU work. It is
 not included in the canonical asset metadata estimate or the local session's
 released temporary memory. See its [ownership/budget contract](rend2-lightmap-observations.md).
+The separate lightgrid owner similarly reports `grid-observations=... bytes=...`;
+its [budget and lifetime rules](rend2-lightgrid-observations.md) also apply to
+retained `BuildRequired` inputs.
 
 ## Tests and reproducible commands
 
@@ -285,9 +290,10 @@ archive/config is modified or committed.
 The readiness point and original BSP/lightmap capture are installed, but complete
 source plumbing remains necessary: hash all internal/external
 lighting replacements, effective material/shader interpretation, authored hints,
-reconstruction options/seed and unit/calibration policy. Preserve original
-observations before legacy grid calibration mutates them; counts or GPU textures
-cannot stand in for this data. Until completeness is proven the real game must
+reconstruction options/seed and unit/calibration policy. Original lightmap and
+lightgrid snapshots now survive legacy transforms; geometry/material association
+and complete dependency coverage remain necessary. Counts or GPU textures
+cannot replace original observations. Until completeness is proven the real game must
 continue to report `NotCacheable` and avoid disk lookup.
 
 Future geometry/material providers must own immutable snapshots or bounded leased

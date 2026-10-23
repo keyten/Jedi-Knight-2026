@@ -18,6 +18,15 @@ All executables link the one `rend2_lightrecon_core` static target:
 - `lightrecon_api_test`: read-only snapshots, queries and lifetime.
 - `lightrecon_core_test`: streaming input, validation, sessions and host errors.
 - `lightrecon_control_test`: build/load policy, independent consumer gates and SP/MP cvar registration.
+- `lightrecon_disk_test`: portable output codec, corruption/limits and atomic cache I/O.
+- `lightrecon_lifecycle_test`: world-scoped publication and failed/unloaded sessions.
+- `lightrecon_lightmaps_test`: original bounded CPU image snapshots.
+- `lightrecon_decode_test`: photometric candidates, censoring and renderer math parity.
+- `lightrecon_lightgrid_test`: indexed JA grid evidence, coordinates/styles/HDR,
+  missing/malformed data, lifetime and all 65,536 direction encodings against
+  compiled current SP/MP entity math.
+
+See [lightgrid layout, conventions, memory and runtime validation](../../docs/rend2-lightgrid-observations.md).
 
 See [core architecture and complete build commands](../../docs/rend2-reconstruction-core.md).
 The old `tools/volrecon_test` tests the experimental solver separately and is
