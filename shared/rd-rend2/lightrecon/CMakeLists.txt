@@ -12,6 +12,7 @@ add_library(rend2_lightrecon_core STATIC
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h
 	visibility.cpp visibility.h
+	regions.cpp regions.h
 	disk.cpp disk.h cache.cpp cache.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)
 set_target_properties(rend2_lightrecon_core PROPERTIES
 	CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO

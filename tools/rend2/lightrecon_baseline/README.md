@@ -39,6 +39,10 @@ No production renderer or GLSL code is changed by the regression tooling.
   triangle-reference errors, batch throughput/memory, concurrency, SP/MP builds
   and unchanged preprocessed shader contracts. It contains no map/game assets;
   commands and optical/geometry limitations are in `docs/rend2-static-visibility.md`.
+- `regions-validation.json`: adaptive spatial-graph tests, SP/MP builds,
+  bounded hoth3 offline statistics, repeated/cross-compiler OBJ/TSV identity and
+  debug-slice hashes. Large source maps/exports remain under ignored `build/`;
+  reproduction and limitations are in `docs/rend2-lighting-regions.md`.
 
 Run the existing suite's focused selection:
 

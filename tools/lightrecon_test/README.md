@@ -31,6 +31,11 @@ All executables link the one `rend2_lightrecon_core` static target:
   distinct lightstyles/vertex RGBA/HDR, material categories and conservative eligibility.
 - `lightrecon_visibility_test`: immutable CPU BVH, static surface/patch rays,
   optics/sky/domain uncertainty, independent reference, batches and concurrent readers.
+- `lightrecon_regions_test`: adaptive free-space certificates, BSP domains,
+  components/room candidates/apertures, moving uncertainty, grid and surface sides.
+
+`lightrecon_regions_inspect` is an optional offline JA RBSP v1 inspector and OBJ/TSV exporter.
+See [lighting-region semantics, stock inspection and commands](../../docs/rend2-lighting-regions.md).
 
 See [static visibility contracts, benchmark and test commands](../../docs/rend2-static-visibility.md).
 

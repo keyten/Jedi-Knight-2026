@@ -148,6 +148,7 @@ public:
 class LightmapObservations;
 class LightgridObservations;
 class SurfaceGeometry;
+class LightingRegionGraph;
 struct InputDataset
 {
 	InputManifest manifest;
@@ -162,6 +163,7 @@ struct InputDataset
 	std::shared_ptr<const LightmapObservations> lightmaps;
 	std::shared_ptr<const LightgridObservations> lightgrid; // original indexed evidence, not fitted grid
 	std::shared_ptr<const SurfaceGeometry> surfaceGeometry; // original static lightmap correspondence
+	std::shared_ptr<const LightingRegionGraph> regionGraph; // explicit structural input, no GI or automatic build
 };
 
 // No chunk reads or visibility calls: validate only manifest/ownership contracts.
@@ -179,6 +181,7 @@ public:
 	std::shared_ptr<const LightmapObservations> Lightmaps() const { return input_.lightmaps; }
 	std::shared_ptr<const LightgridObservations> Lightgrid() const { return input_.lightgrid; }
 	std::shared_ptr<const SurfaceGeometry> Geometry() const { return input_.surfaceGeometry; }
+	std::shared_ptr<const LightingRegionGraph> RegionGraph() const { return input_.regionGraph; }
 	Error ValidateMetadata() const;
 	Error ReadSurfaces(uint64_t first, size_t count, Chunk<SurfaceObservation>& out);
 	Error ReadGrid(uint64_t first, size_t count, Chunk<GridObservation>& out);

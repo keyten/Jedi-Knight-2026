@@ -630,6 +630,47 @@ const std::vector<VisibilitySurface> &StaticVisibility::Surfaces() const
 {
 	return data_->surfaces;
 }
+Error StaticVisibility::OverlapBox(const Bounds& box, const ReadContext& ctx,
+	GeometryBoxResult& out, uint64_t maxWork) const
+{
+	out = GeometryBoxResult();
+	if (!box.known || !Finite(box.minWorld) || !Finite(box.maxWorld) || !maxWork)
+		return Failure(Code::InvalidInput, "Invalid geometry overlap box");
+	for (unsigned k=0;k<3;++k)
+		if (D3(box.minWorld).a[k]>D3(box.maxWorld).a[k])
+			return Failure(Code::InvalidInput, "Reversed geometry overlap box");
+	if (ctx.maxBytes<4096) return Failure(Code::MemoryLimit, "Geometry overlap scratch budget");
+	if (Cancelled(ctx)) return Failure(Code::Cancelled, "Geometry overlap cancelled");
+	GeometryBoxResult result;
+	auto overlaps=[&](const Box& b) {
+		for(unsigned k=0;k<3;++k)
+			if(b.high.a[k]<D3(box.minWorld).a[k] || b.low.a[k]>D3(box.maxWorld).a[k]) return false;
+		return true;
+	};
+	uint32_t stack[64]={0}; size_t size=data_->nodes.empty()?0:1;
+	while(size) {
+		if(Cancelled(ctx)) return Failure(Code::Cancelled,"Geometry overlap cancelled");
+		if(++result.work>maxWork) return Failure(Code::WorkLimit,"Geometry overlap work limit");
+		const auto& n=data_->nodes[stack[--size]];
+		if(!overlaps(n.bounds)) continue;
+		if(!n.count) {
+			if(size+2>64) return Failure(Code::WorkLimit,"Geometry overlap stack limit");
+			stack[size++]=n.right; stack[size++]=n.left; continue;
+		}
+		for(uint32_t i=n.first;i<n.first+n.count;++i) {
+			if(++result.work>maxWork) return Failure(Code::WorkLimit,"Geometry overlap work limit");
+			const auto& p=data_->primitives[i]; if(!overlaps(p.bounds)) continue;
+			result.intersects=true; Id id=Id(p.surface)+1;
+			bool found=false;for(size_t j=0;j<result.surfaceCount;++j)found=found||result.surfaces[j]==id;
+			if(!found) {
+				if(result.surfaceCount<8)result.surfaces[result.surfaceCount++]=id;
+				else result.referencesTruncated=true;
+			}
+		}
+	}
+	std::sort(result.surfaces,result.surfaces+result.surfaceCount);
+	out=result; return Error();
+}
 
 Error StaticVisibility::Query(const RayQuery &q, const ReadContext &ctx, RayResult &out) const
 {

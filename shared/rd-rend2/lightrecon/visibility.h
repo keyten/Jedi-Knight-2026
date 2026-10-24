@@ -171,6 +171,13 @@ struct VisibilitySurface
 	ObstacleKind obstacle = ObstacleKind::Unsupported;
 	SurfaceCull cull = SurfaceCull::Unknown;
 };
+struct GeometryBoxResult
+{
+	bool intersects = false, referencesTruncated = false;
+	Id surfaces[8] = {};
+	size_t surfaceCount = 0;
+	uint64_t work = 0;
+};
 
 class StaticVisibility final : public VisibilityProvider
 {
@@ -181,6 +188,10 @@ class StaticVisibility final : public VisibilityProvider
 					   const ReadContext &, std::shared_ptr<const StaticVisibility> &out,
 					   std::shared_ptr<const PointClassifier> domain = {});
 	Error Query(const RayQuery &, const ReadContext &, RayResult &) const override;
+	// Conservative primitive AABB overlap, including curved envelopes. A miss
+	// certifies no retained visual geometry in the box, not that it is outside solid.
+	Error OverlapBox(const Bounds &, const ReadContext &, GeometryBoxResult &,
+					 uint64_t maxWork = 1024 * 1024) const;
 	// Inherits VisibilityProvider::Batch: no per-ray heap allocation, explicit prefix.
 	// Compatibility adapters only return 0/1 for Geometric outcomes; Unknown,
 	// assumed/approximate results return Unavailable, never fake transmission.

@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "passed": true,
+  "date": "2026-10-24",
+  "region_graph_version": 1,
+  "source_base_revision": "e31e597bad417e839fc2ea71ed5997188dd383aa",
+  "source_hash_encoding": "SHA256 with CRLF normalized to LF; binaries/logs/exports exact bytes",
+  "source_files_sha256": {
+    "shared/rd-rend2/lightrecon/regions.h": "0207f285b4164a47c008184395dc7d9fabce601ec7130fb888bf8206844453ea",
+    "shared/rd-rend2/lightrecon/regions.cpp": "0e74fffe91b78e97e25384e941b2f664efa2e5944b41bfc9f8a1cd91f41be3eb",
+    "shared/rd-rend2/lightrecon/visibility.h": "846e5bb26a120b40715f2e2277c5e0e92ff9f79b6c8acb4b6ff01c8aeb6f3b17",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "a304d5acfa43a475733488f53a4c56e9f9f2ae7f31a5a650d1bc16d1a8b78058",
+    "shared/rd-rend2/lightrecon/input.h": "5377e05f54c93861ee4d2cff6a40026aca11923a3f3a97416e383cb7b759e232",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "96d68310cc85f983b6c044ac09357809fdc8eb5ad5c94555daff5eb0be6f697e",
+    "tools/lightrecon_test/CMakeLists.txt": "23d0e03eb3f44f7afae0c81c6e1e402c50ca184dc318f45cb2338cd1dff30284",
+    "tools/lightrecon_test/lightrecon_regions_test.cpp": "8aa9ee2dd0c267b63bde8fdea7e17549489b2dfd9d9b99d4801e5dbc68997131",
+    "tools/lightrecon_test/lightrecon_regions_inspect.cpp": "8fde90f90040e547705ca9444f523a59cac8c45f744b4636c6d89e0692d366f6",
+    "tools/rend2/test_lightrecon_regions_offline.py": "b054f9bc5c9c46c7078bc7ca2032d95955d698be9744323201fa5a365ceeaf5a"
+  },
+  "cpu": {
+    "gcc": {
+      "passed": true,
+      "compiler": "GCC 16.2.0 C++11 x64",
+      "executables": 13,
+      "checks": 645018,
+      "region_checks": 82746,
+      "synthetic_suite_seconds": 1.023555,
+      "open_door_statistics": {
+        "sealed": 2,
+        "open": 2,
+        "dynamic": 3,
+        "aperture-edges": 1,
+        "free": 4712,
+        "unknown": 4760,
+        "bytes": 4590904
+      },
+      "tests_log": "build/lightrecon-regions-gcc-tests.log",
+      "tests_log_sha256": "62f64be34cc0138289900a59340c9a0e0b39c4e6a4d5221639c786d287a81d4e",
+      "build_log_sha256": "e372b43439110ae1e0b6a98195d209e239e3b5a35348c2752ebea4a7ec916f47"
+    },
+    "msvc": {
+      "passed": true,
+      "compiler": "MSVC 19.27.29111.0 x64",
+      "executables": 13,
+      "checks": 645018,
+      "region_checks": 82746,
+      "synthetic_suite_seconds": 0.335518,
+      "open_door_statistics": {
+        "sealed": 2,
+        "open": 2,
+        "dynamic": 3,
+        "aperture-edges": 1,
+        "free": 4712,
+        "unknown": 4760,
+        "bytes": 3862592
+      },
+      "tests_log": "build/lightrecon-regions-msvc-tests.log",
+      "tests_log_sha256": "e378a34bccfa58faed95a628f8686583d73a0a4204abd699b746289f5e6e7a6b",
+      "build_log_sha256": "b99da384508314ecee98a0214f6b5f6eb474977bd081f53a8a1a635a2119fa2a"
+    }
+  },
+  "strict_warnings": {
+    "passed": true,
+    "diagnostics": 0
+  },
+  "builds": {
+    "passed": true,
+    "configuration": "Release",
+    "sp": {
+      "target": "rdsp-rend2_x86_64",
+      "sha256": "f9f4415b9115887ba8bd322a5e7eb467bf6e68333f5bcfd6bbb92b45a5c7b8ae"
+    },
+    "mp": {
+      "target": "rd-rend2_x86_64",
+      "sha256": "3b07ff7f95b372b13492b0b218b9a3bb04363a2aa97357cd80aab60fbec72f7c"
+    }
+  },
+  "shader_contract": {
+    "passed": true,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": false,
+    "driver": null,
+    "gpu_interface_comparison": "not run (--no-gpu)",
+    "production_dependency_audit": "passed",
+    "differences": 0,
+    "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+    "detector_tests": 14
+  },
+  "stock_offline": {
+    "result": "build/lightrecon-regions-offline/accepted-hoth3/result.json",
+    "result_sha256": "26e5004054a9501aff7e38507c44a8b5de4753a24cd97ce580ed95b9fe6d384e",
+    "passed": true,
+    "map": "hoth3",
+    "source_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+    "inspector_sha256": "3c45f707f2cba7f8d0b74a8a73faaf1c23c6be3083aef3142e285b4c3af763c7",
+    "commands": [
+      [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-disk-standalone\\lightrecon_regions_inspect.exe",
+        "build\\lightrecon-regions-offline\\accepted-hoth3\\hoth3.bsp",
+        "build\\lightrecon-regions-offline\\accepted-hoth3\\first\\hoth3",
+        "3320",
+        "700",
+        "123",
+        "512",
+        "128",
+        "32",
+        "16"
+      ],
+      [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-disk-standalone\\lightrecon_regions_inspect.exe",
+        "build\\lightrecon-regions-offline\\accepted-hoth3\\hoth3.bsp",
+        "build\\lightrecon-regions-offline\\accepted-hoth3\\repeat\\hoth3",
+        "3320",
+        "700",
+        "123",
+        "512",
+        "128",
+        "32",
+        "16"
+      ]
+    ],
+    "logs": [
+      "map=maps/hoth3.bsp sha256=821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32 domain-bytes=1794326 triangles=153443 visibility-bytes=38544566 ignored-flares=54 unknown-materials=12911\nregions=9 components=5 connections=5 apertures=5 free=1396 solid=641 sky=0 unknown=24850 dynamic=61 sky-regions=0 bytes=7041342 peak=23787742 domain-work=5003078 geometry-work=1128241 rays=3598 seconds=1.670655\ngrid-in-domain=1536 grid-assigned=99 grid-solid=1 grid-unknown=1436 grid-missing=0 bsp-links=16 boundary-refs=546\n",
+      "map=maps/hoth3.bsp sha256=821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32 domain-bytes=1794326 triangles=153443 visibility-bytes=38544566 ignored-flares=54 unknown-materials=12911\nregions=9 components=5 connections=5 apertures=5 free=1396 solid=641 sky=0 unknown=24850 dynamic=61 sky-regions=0 bytes=7041342 peak=23787742 domain-work=5003078 geometry-work=1128241 rays=3598 seconds=1.714710\ngrid-in-domain=1536 grid-assigned=99 grid-solid=1 grid-unknown=1436 grid-missing=0 bsp-links=16 boundary-refs=546\n"
+    ],
+    "identical_exports": true,
+    "export_sha256": {
+      ".obj": "de1c0138d526abd18073f461ad2d721c9dca012471ec765a8d9b1e68004cf1c2",
+      "-cells.tsv": "62241bd5bf3f1a4967b737ee3f035754ce455b36955bd23464b2c5feac9a327e",
+      "-edges.tsv": "c51f55f0725f86562ce9dcb6770cab7379cb0f69c07b8a269f0385c793b5e85c"
+    },
+    "statistics": {
+      "domain-bytes": 1794326,
+      "triangles": 153443,
+      "visibility-bytes": 38544566,
+      "ignored-flares": 54,
+      "unknown-materials": 12911,
+      "regions": 9,
+      "components": 5,
+      "connections": 5,
+      "apertures": 5,
+      "free": 1396,
+      "solid": 641,
+      "sky": 0,
+      "unknown": 24850,
+      "dynamic": 61,
+      "sky-regions": 0,
+      "bytes": 7041342,
+      "peak": 23787742,
+      "domain-work": 5003078,
+      "geometry-work": 1128241,
+      "rays": 3598,
+      "seconds": 1.670655,
+      "grid-in-domain": 1536,
+      "grid-assigned": 99,
+      "grid-solid": 1,
+      "grid-unknown": 1436,
+      "grid-missing": 0,
+      "bsp-links": 16,
+      "boundary-refs": 546
+    },
+    "centre": [
+      3320,
+      700,
+      123
+    ],
+    "radius": 512,
+    "coarse": 128,
+    "minimum": 32,
+    "sky_samples": 16,
+    "slice_z": 123,
+    "slice_cells": 973,
+    "image": "build\\lightrecon-regions-offline\\accepted-hoth3\\regions-xy.png",
+    "image_sha256": "d2ded90610a0ef892d48cd171cbc5e788c411321694c2a0da60bda428c055914",
+    "limits": [
+      "Bounded ROI, not a whole-map room census.",
+      "Shader scripts/alpha masks not interpreted; non-sky materials stay optically unknown.",
+      "Original nonpolygonal flares excluded explicitly by source type.",
+      "Patch analytic chord bound is minimum cell size / 4, with conservative envelopes.",
+      "Static-only geometry; authored moving-model bounds do not prove travel extents.",
+      "No game startup, GPU rendering, inverse-light fitting or irradiance smoothing."
+    ]
+  },
+  "cross_compiler_exports": {
+    "passed": true,
+    "obj": true,
+    "cells": true,
+    "edges": true,
+    "msvc_inspector_sha256": "f72c118ced74c1a530012d221f4d3ecfba2ea98e36862d42573da3edb85270ea",
+    "log": "build/lightrecon-regions-offline/accepted-msvc/inspection.log",
+    "log_sha256": "f0e969ef46c899ecab3d209ed3c63555bc19344856a6ce6255ba0062eae2f57f"
+  },
+  "limits": [
+    "Bounded ROI and conservative unknown coverage; no map-wide room census.",
+    "Semantic grouping is a deterministic provisional watershed, not photometric isolation.",
+    "Disconnected sampled components do not prove absent transport through unresolved/transparent/out-of-domain paths.",
+    "No game/GL startup, GI, light fitting, automatic map-load graph, shader or fog changes.",
+    "Graph budget excludes shared domain/BVH and offline raw/source buffers; peak is estimated accounting.",
+    "No graph cache serialization or complete production fingerprint integration."
+  ]
+}

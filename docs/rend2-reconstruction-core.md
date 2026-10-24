@@ -22,6 +22,9 @@ without treating texture colour as bake-time reflectance.
 [Static visibility](rend2-static-visibility.md) adds explicit immutable CPU BVH
 queries over these source surfaces, with optical/sky/domain uncertainty. BVH
 construction and provider installation remain explicit; map loading does not run them.
+[Lighting regions](rend2-lighting-regions.md) add a typed BSP spatial domain,
+adaptive free-space graph, provisional room/aperture grouping and explicit
+observation association. They remain structural input, built only on request.
 The independent [versioned disk codec and cache adapter](rend2-reconstruction-disk.md)
 are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle.md).
 Complete source fingerprint collection remains unavailable, so the renderer
@@ -62,6 +65,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/surfaces.h/.cpp` | Original source UV/geometry capture and bounded luxel correspondence, coverage/area and explicit debug export |
 | `lightrecon/classification.h/.cpp` | Read-only style/material eligibility, paired deluxe directions, distinct vertex observations and bounded statistics |
 | `lightrecon/visibility.h/.cpp` | Explicit immutable static BVH, structured rays/batches, conservative optics/sky and optional point-domain provider |
+| `lightrecon/regions.h/.cpp` | Immutable BSP point/volume classification and geometry-aware adaptive lighting-region graph |
 | `lightrecon/decode.h/.cpp` | Explicit source transfer, renderer-compatible interpretation, censoring and optional scene-equivalent calibration ([contract](rend2-observation-decoding.md)) |
 | `lightrecon/session.h/.cpp` | Builder, cooperative lifecycle, algorithm interface and host services |
 | `lightrecon/control.h/.cpp` | Independent build/load policy and read-only consumer gates |
@@ -69,7 +73,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/lifecycle.h/.cpp` | Main-world context, cache/session ownership, tickets and synchronous complete-only publication |
 | `lightrecon/CMakeLists.txt` | Single static target containing these files and existing canonical types/API |
 | `tools/lightrecon_test/lightrecon_core_test.cpp` | Synthetic standalone core tests |
-| `tools/lightrecon_test/CMakeLists.txt` | Eleven CPU executables linking the same target |
+| `tools/lightrecon_test/CMakeLists.txt` | Thirteen CPU tests plus an offline region inspector linking the same target |
 
 `tr_lightrecon_types.*`, `tr_lightrecon_api.*` and `tr_lightrecon_manager.h` keep
 their existing names/includes; moving them is unnecessary churn. The new core
@@ -79,7 +83,7 @@ Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all twelve test executables to it.
+only if it does not already exist, and links all thirteen test executables to it.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,
