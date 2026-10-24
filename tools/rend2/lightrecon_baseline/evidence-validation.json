@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "date": "2026-10-24",
+  "passed": true,
+  "source_base_revision": "7c8122b960d5468dd84150627d5a1b3b2d4c99a7",
+  "evidence_version": 1,
+  "surface_observation_version": 4,
+  "source_hash_encoding": "SHA256 with CRLF normalized to LF; binaries/logs/exports exact bytes",
+  "source_files_sha256": {
+    "code/rd-rend2/tr_init.cpp": "681cabf7bfd2b2b24a99dc74dcda2905a04f9bf6ada0826c79b714e2dc486da3",
+    "codemp/rd-rend2/tr_init.cpp": "c6a88f49dcd3b0c4f6a7eb619fb9a780de73be32910da83ea29c7c0a8a0513db",
+    "docs/rend2-emitter-evidence.md": "c19d92fb58e4fa271f14d2b376a3dd0cf5f81392f374c40eaa536a68842ccb9f",
+    "docs/rend2-luxel-observations.md": "75fefe7cb468db09d3d51306803e797dc20fa8a0383992344f39a4dd94049ecb",
+    "docs/rend2-observation-classification.md": "aba9bfef96be74094b4df0cc1043bf5c9ddfd87f919dcfd40f794c1610ead223",
+    "docs/rend2-reconstruction-core.md": "6feb8e8e100b895050cf62afd2372bbad4339f734f6fa5a3f391fc2b123c0419",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "a4fe308f4dd56ef96f974150463b3ce2120b30ccf20614ed6d00ef917d3fa7c0",
+    "shared/rd-rend2/lightrecon/classification.h": "5057b1f3af75e80444ebb5a29cd191c5d1b581146aacbaa7715a6a464fe76283",
+    "shared/rd-rend2/lightrecon/emission_geometry.cpp": "72ac544b79c9429994f8793977af4794f8397f0d723c61b503e8658fa2e0ab54",
+    "shared/rd-rend2/lightrecon/emission_geometry.h": "24778b9ad043fc6bc03ceb440c7f2a212752534ec9e9829c08c9d9febc235a64",
+    "shared/rd-rend2/lightrecon/evidence.cpp": "271f083cb7c2eb8fba720e23d6425295b09135fccaf6efa71175866d27af990d",
+    "shared/rd-rend2/lightrecon/evidence.h": "aaa8a930c076df80c7aa1abb5a86c69dfed0572880415121c0cc9ba2d1239567",
+    "shared/rd-rend2/lightrecon/input.h": "78fbddd2effe6b3d6f93567f3ccd38231a091e28f2f333ebe6fc1f64e6e36460",
+    "shared/rd-rend2/lightrecon/surfaces.h": "722cc2e0e60aad0a8038b758ad93feeb64be525bc1f3a4ef71a88873527c762e",
+    "shared/rd-rend2/tr_arealights.cpp": "ef113917623a2d9aed320021df0bce6e2e8cd3b9827f2769e4e93221400da3bd",
+    "shared/rd-rend2/tr_lightrecon.cpp": "4800c845b0d2ab0d40037d2fe1358c5c509d9ec8a9f1d1460eb4e4b1f0f0fcf4",
+    "shared/rd-rend2/tr_lightrecon.h": "25cd4fb13e646ac6be4835029742f5a220b8ac7a9d8d44b001e671438ca0e03b",
+    "shared/rd-rend2/tr_local.h": "6e91c78aebbc1d27ee9b749dc9f8621a236561549ccb6845c2ee13ec11f2d368",
+    "shared/rd-rend2/tr_shader.cpp": "99232d1a5a0055b6994c6d8d69d88e795db7764b7f2211eb95e068d9a8c403b0",
+    "tools/lightrecon_test/CMakeLists.txt": "946df0b1a9b54142803a09f0abd50c08a50f002888be48e842fc65cd3578fef9",
+    "tools/lightrecon_test/lightrecon_evidence_test.cpp": "d9c3dcb66b393f51691202a8d7582cd9c41e255f613fbba7ab8f6d7c0ae7d303",
+    "tools/rend2/lightrecon_regression.py": "b772129fa02103773bdd0f6928ee845eb416865c0a223b6354ccab9e74c46f71",
+    "tools/rend2/test_lightrecon_contract.py": "487ba34d6f627712ff9b46cd3ef2d8ffdaab0775d3aaf6755fa79bfbdc2860b9",
+    "tools/rend2/test_lightrecon_evidence_runtime.py": "b0aae36749566648551477a0980c0ddb0c6e3957e35430c2ed752deedde74b66"
+  },
+  "builds": [
+    "rdsp-rend2_x86_64 Release MSVC",
+    "rd-rend2_x86_64 Release MSVC",
+    "standalone GCC16.2 C++11",
+    "strict new core -Wall -Wextra -Werror -pedantic"
+  ],
+  "cpu_tests": {
+    "gcc16.2": {
+      "executables": 14,
+      "assertions": 647564,
+      "evidence_assertions": 2546,
+      "failures": 0,
+      "log_sha256": "9d854746090fc0360b540b75726348469d185dfc2ad5ff5e7c65b58c311a4d08"
+    },
+    "msvc19.27": {
+      "executables": 14,
+      "assertions": 647564,
+      "evidence_assertions": 2546,
+      "failures": 0,
+      "log_sha256": "25ebdc7a54fc5ef574777dcafc8933612cb8785e4514bcb3be214883d056d95b"
+    }
+  },
+  "production_contract_tests": 15,
+  "shader_contract": {
+    "passed": true,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": false,
+    "driver": null,
+    "gpu_interface_comparison": "not run (--no-gpu)",
+    "production_dependency_audit": "passed",
+    "differences": 0,
+    "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c"
+  },
+  "stock": {
+    "hoth3": {
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "candidates": 612,
+      "evidence": 661,
+      "owned_payload_bytes": 374486,
+      "classes_overlap": {
+        "point": 95,
+        "rect": 593,
+        "tube": 39,
+        "spot": 0,
+        "surface": 441,
+        "sun": 0,
+        "sky": 0
+      },
+      "statistics": {
+        "triangles": 516,
+        "groups": 384,
+        "maskBlobs": 411,
+        "authored": 0,
+        "entities": 0,
+        "sunDeclarations": 0,
+        "skyHints": 0,
+        "animated": 142,
+        "moving": 88,
+        "unsupported": 19
+      },
+      "dark_mask_records": 182,
+      "source_ids_unique": true,
+      "source_records_same_ltc_off_on": true,
+      "source_records_sha256": "c479849b14315c3e758871d4d02032516a4f5f699adc6d5bfc4856b9899d5dff",
+      "ltc_legacy_export_sha256": "bfd743713183c9168278ad2dae4f6bb90782f975b92db806b5fef6607914d4c3",
+      "ltc_export_byte_identical_to_pre_refactor": true,
+      "visual_cross_binary_verified": false,
+      "visual_reason": "Script-driven camera positions differ between processes; initial original-binary controls also showed variation. No cross-binary image pass is claimed.",
+      "within_latest_process_ltc_off": {
+        "pixels": 518400,
+        "differing_pixels": 0,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "exact": true,
+        "passed": true
+      },
+      "within_latest_process_ltc_on": {
+        "pixels": 518400,
+        "differing_pixels": 0,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "exact": true,
+        "passed": true
+      }
+    },
+    "hoth2": {
+      "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "candidates": 553,
+      "evidence": 553,
+      "owned_payload_bytes": 316816,
+      "classes_overlap": {
+        "point": 220,
+        "rect": 508,
+        "tube": 4,
+        "spot": 0,
+        "surface": 221,
+        "sun": 1,
+        "sky": 1
+      },
+      "statistics": {
+        "triangles": 368,
+        "groups": 190,
+        "maskBlobs": 470,
+        "authored": 0,
+        "entities": 0,
+        "sunDeclarations": 1,
+        "skyHints": 1,
+        "animated": 62,
+        "moving": 62,
+        "unsupported": 43
+      },
+      "dark_mask_records": 38,
+      "source_ids_unique": true,
+      "source_records_same_ltc_off_on": true,
+      "source_records_sha256": "028bd72877e4360003d1953bd420088a17cd6e1836f47c2dac6c6505395740fd",
+      "ltc_legacy_export_sha256": "eb04bfe53adf89bfd64108f2469e46dcd3408b0f56d04469fa6437c24e2397c2",
+      "ltc_export_byte_identical_to_pre_refactor": true,
+      "visual_cross_binary_verified": false,
+      "visual_reason": "Script-driven camera positions differ between processes; initial original-binary controls also showed variation. No cross-binary image pass is claimed.",
+      "within_latest_process_ltc_off": {
+        "pixels": 518400,
+        "differing_pixels": 55,
+        "max_channel_delta": 1,
+        "mean_rgb_delta": 3.60082304526749e-05,
+        "exact": false,
+        "passed": false
+      },
+      "within_latest_process_ltc_on": {
+        "pixels": 518400,
+        "differing_pixels": 55,
+        "max_channel_delta": 1,
+        "mean_rgb_delta": 3.60082304526749e-05,
+        "exact": false,
+        "passed": true
+      }
+    }
+  },
+  "runtime": {
+    "final_ltc_off": "build/lightrecon-evidence-runtime/final-source/result.json",
+    "final_ltc_on": "build/lightrecon-evidence-runtime/final-source-ltc-retry/result.json",
+    "baseline": "build/lightrecon-evidence-runtime/accepted/before/result.json",
+    "renderer_sha256": "bfeb72e8ab20e2ac9800bce75841d0d8737fcf18118ad569054c22ee4ada2fc5",
+    "latest_ltc_renderer_sha256": "bfeb72e8ab20e2ac9800bce75841d0d8737fcf18118ad569054c22ee4ada2fc5",
+    "baseline_renderer_sha256": "f9f4415b9115887ba8bd322a5e7eb467bf6e68333f5bcfd6bbb92b45a5c7b8ae",
+    "consumption_master": 0,
+    "consumer_requests": 1,
+    "build_policy": 3,
+    "physical_solver_or_lighting_integration": false
+  },
+  "limitations": [
+    "Visual cross-binary comparison unverified: differing actual scripted cameras and unstable original controls",
+    "Patch/nonpolygonal emission geometry explicit unsupported hints",
+    "Alpha optics and complex emission-layer composition not implemented",
+    "Texture/source values remain uncalibrated; no fitted brightness or new lights",
+    "Engine full image decode scratch is outside core retained-payload budget"
+  ]
+}

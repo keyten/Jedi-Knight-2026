@@ -68,6 +68,7 @@ struct MaterialFacts
 	uint32_t surfaceFlags = 0,
 			 contentFlags = 0; // verbatim source engine facts; core uses named signals
 	std::string baseTexture, emissionTexture;
+	bool emissionCoordinatesKnown = false, emissionStaticCoordinates = false, emissionClamp = false;
 	bool baseTextureSrgb = false, baseModulationKnown = false;
 	Vec3 baseModulation; // shader colour parameter, NOT a reflectance measurement
 	// Optional independently supplied source-linear texture candidate. Runtime

@@ -6,6 +6,8 @@
 #include <new>
 #include <cmath>
 #include <cstring>
+#include <set>
+#include <map>
 
 qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
 
@@ -22,6 +24,13 @@ static Rend2LightRecon::WorldLighting s_reconstructedLighting;
 static Rend2LightRecon::Core::LightmapCapture s_lightmapCapture;
 static Rend2LightRecon::Core::LightgridCapture s_lightgridCapture;
 static Rend2LightRecon::Core::SurfaceCapture s_surfaceCapture;
+static std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> s_emitterEvidence;
+static Rend2LightRecon::Core::Error s_emitterEvidenceError;
+static void R_CaptureEmitterEvidence();
+std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEvidence(void)
+{
+	return std::atomic_load(&s_emitterEvidence);
+}
 static std::vector<Rend2LightRecon::Core::SurfaceLightingObservation> s_luxelDebug;
 static qhandle_t s_luxelDebugShader = 0;
 
@@ -53,6 +62,9 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	s_lightgridCapture.Begin(s_reconstructedLighting.Report().policy);
 	s_surfaceCapture.Begin(s_reconstructedLighting.Report().policy);
 	s_luxelDebug.clear();
+	std::atomic_store(&s_emitterEvidence,
+					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
+	s_emitterEvidenceError = {};
 }
 
 LightReconWorldLoad::~LightReconWorldLoad()
@@ -62,6 +74,8 @@ LightReconWorldLoad::~LightReconWorldLoad()
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
 		s_surfaceCapture.Reset();
+		std::atomic_store(&s_emitterEvidence,
+						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 		s_luxelDebug.clear();
 	}
 }
@@ -97,6 +111,8 @@ public:
 		plan.input.lightmaps = R_LightmapObservations();
 		plan.input.lightgrid = R_LightgridObservations();
 		plan.input.surfaceGeometry = R_LuxelGeometry();
+		R_CaptureEmitterEvidence();
+		plan.input.emitterEvidence = R_EmitterEvidence();
 		return Rend2LightRecon::Core::Failure(Rend2LightRecon::Core::Code::Unavailable,
 			"Original BSP observations may be captured; complete solver input/material adapter and reconstruction algorithm are not installed");
 	}
@@ -132,6 +148,8 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
 		s_surfaceCapture.Reset();
+		std::atomic_store(&s_emitterEvidence,
+						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	}
 	finished_ = true;
 }
@@ -141,6 +159,8 @@ void R_ClearReconstructedLighting(void)
 	s_lightmapCapture.Reset();
 	s_lightgridCapture.Reset();
 	s_surfaceCapture.Reset();
+	std::atomic_store(&s_emitterEvidence,
+					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	std::vector<Rend2LightRecon::Core::SurfaceLightingObservation>().swap(s_luxelDebug);
 	s_luxelDebugShader = 0;
 	s_reconstructedLighting.Unload();
@@ -464,16 +484,32 @@ void LightReconBspCapture::SurfaceMaterial(unsigned ordinal, const shader_s *sha
 				facts.uncertainty |= EmissionUncalibrated;
 				if (facts.emissionLayerCount == 1)
 				{
-					facts.emissionTexture = image ? image->imgName : "";
+					const image_t *emissionImage =
+						stage->emissive && stage->bundle[TB_EMISSIVEMAP].image[0]
+							? stage->bundle[TB_EMISSIVEMAP].image[0]
+							: image;
+					facts.emissionTexture = emissionImage ? emissionImage->imgName : "";
+					const auto &emissionBundle =
+						emissionImage == image ? bundle : stage->bundle[TB_EMISSIVEMAP];
+					facts.emissionCoordinatesKnown = true;
+					facts.emissionStaticCoordinates =
+						emissionBundle.tcGen == TCGEN_TEXTURE && emissionBundle.numTexMods == 0;
+					facts.emissionClamp =
+						emissionImage && (emissionImage->flags & IMGFLAG_CLAMPTOEDGE);
 					facts.emissionProvenance =
 						stage->emissivePhysical ? EmissionProvenance::AuthoredLuminance
 												: stage->emissive ? EmissionProvenance::LegacyShader
 																  : EmissionProvenance::GlowTexture;
 					facts.authoredLuminance =
 						stage->emissivePhysical ? stage->emissiveLuminance : 0;
-					facts.emissionColourKnown = stage->emissive || stage->emissivePhysical;
+					facts.emissionColourKnown =
+						stage->emissive || stage->emissivePhysical || stage->rgbGen == CGEN_CONST;
 					facts.emissionColour = Rend2LightRecon::Vec3(
 						stage->emissiveColor[0], stage->emissiveColor[1], stage->emissiveColor[2]);
+					if (!stage->emissive && !stage->emissivePhysical && stage->rgbGen == CGEN_CONST)
+						facts.emissionColour =
+							Rend2LightRecon::Vec3(stage->constantColor[0], stage->constantColor[1],
+												  stage->constantColor[2]);
 				}
 				continue;
 			}
@@ -1110,4 +1146,185 @@ void R_LuxelDebugDraw(const refdef_t *fd)
 		}
 		line(a, b, colour);
 	}
+}
+
+namespace
+{
+class SourceEmissionMasks final : public Rend2LightRecon::Core::EmissionMaskProvider
+{
+	mutable std::map<std::string, Rend2LightRecon::Core::Emission::Mask> masks_;
+	mutable uint64_t bytes_ = 0;
+
+  public:
+	Rend2LightRecon::Core::Error Read(const Rend2LightRecon::Core::EmissionMaskRequest &request,
+									  const Rend2LightRecon::Core::ReadContext &context,
+									  Rend2LightRecon::Core::Emission::Mask &mask) const override
+	{
+		using namespace Rend2LightRecon::Core;
+		auto cached = masks_.find(request.texture);
+		if (cached != masks_.end())
+		{
+			mask = cached->second;
+			return {};
+		}
+		if (request.texture.empty())
+			return Failure(Code::Unavailable, "No source emission texture");
+		if (context.cancellation && context.cancellation->IsCancelled())
+			return Failure(Code::Cancelled, "Mask read cancelled");
+		if (request.texture[0] == '*')
+			return Failure(Code::Unavailable, "Procedural/white image has no source mask");
+		// Source image decoding, never GL readback or a GPU-ready colour transform.
+		byte *pixels = nullptr;
+		int width = 0, height = 0;
+		R_LoadImage(request.texture.c_str(), &pixels, &width, &height);
+		struct Release
+		{
+			byte *pixels;
+			~Release()
+			{
+				if (pixels)
+					Z_Free(pixels);
+			}
+		} release{pixels};
+		if (!pixels || width <= 0 || height <= 0)
+			return Failure(Code::Unavailable, "Source emission image missing");
+		mask.width = std::min(width, 128);
+		mask.height = std::min(height, 128);
+		if (uint64_t(mask.width) * mask.height * 3 * sizeof(float) > context.maxBytes)
+			return Failure(Code::MemoryLimit, "Source mask budget");
+		mask.rgb.resize(size_t(mask.width) * mask.height * 3);
+		// Box average to a bounded CPU mask; source texture colour only, not luminance calibration.
+		double total[3] = {};
+		for (unsigned y = 0; y < mask.height; ++y)
+			for (unsigned x = 0; x < mask.width; ++x)
+			{
+				double sum[3] = {};
+				uint64_t count = 0;
+				int x0 = int(uint64_t(x) * width / mask.width),
+					x1 = int(uint64_t(x + 1) * width / mask.width);
+				int y0 = int(uint64_t(y) * height / mask.height),
+					y1 = int(uint64_t(y + 1) * height / mask.height);
+				for (int j = y0; j < y1; ++j)
+					for (int i = x0; i < x1; ++i)
+					{
+						++count;
+						for (int c = 0; c < 3; ++c)
+						{
+							float v = pixels[(size_t(j) * width + i) * 4 + c] / 255.0f;
+							sum[c] += v <= .04045f ? v / 12.92f : powf((v + .055f) / 1.055f, 2.4f);
+						}
+					}
+				for (int c = 0; c < 3; ++c)
+				{
+					float value = float(sum[c] / count);
+					mask.rgb[(size_t(y) * mask.width + x) * 3 + c] = value;
+					total[c] += value;
+				}
+			}
+		for (int c = 0; c < 3; ++c)
+			mask.average[c] = float(total[c] / (mask.width * mask.height));
+		uint64_t bytes = mask.rgb.size() * sizeof(float);
+		if (bytes_ + bytes <= 16ull * 1024 * 1024)
+		{
+			masks_.emplace(request.texture, mask);
+			bytes_ += bytes;
+		}
+		return {};
+	}
+};
+} // namespace
+static void R_CaptureEmitterEvidence()
+{
+	using namespace Rend2LightRecon::Core;
+	std::atomic_store(&s_emitterEvidence,
+					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
+	s_emitterEvidenceError = {};
+	auto geometry = R_LuxelGeometry();
+	if (!geometry || !tr.world)
+	{
+		s_emitterEvidenceError = Failure(Code::Unavailable, "Source geometry not captured");
+		return;
+	}
+	EmitterEvidenceInput input;
+	input.map = geometry->Map();
+	input.geometry = geometry;
+	input.masks = std::make_shared<SourceEmissionMasks>();
+	if (tr.world->entityString)
+		input.entityText = tr.world->entityString;
+	std::set<std::string> materials;
+	for (const auto &s : geometry->Surfaces())
+		if (materials.insert(s.material).second)
+		{
+			auto text = R_LightReconShaderText(s.material.c_str());
+			if (!text.empty())
+			{
+				ShaderEvidenceText shader;
+				shader.material = s.material;
+				shader.text = std::move(text);
+				input.shaders.push_back(std::move(shader));
+			}
+		}
+	input.areaPath = "maps/" + std::string(tr.world->baseName) + ".arealights.json";
+	{
+		LightmapSourceFile file;
+		int bytes = ri.FS_FOpenFileRead(input.areaPath.c_str(), &file.handle, qtrue);
+		if (file.handle && bytes > 0)
+		{
+			if (bytes > 1024 * 1024)
+			{
+				s_emitterEvidenceError = Failure(Code::MemoryLimit, "Area evidence JSON limit");
+				return;
+			}
+			input.areaJson.resize(bytes);
+			ri.FS_Read(&input.areaJson[0], bytes, file.handle);
+		}
+	}
+	ReadContext context;
+	context.maxBytes = 64ull * 1024 * 1024;
+	std::shared_ptr<const EmitterEvidenceSet> publication;
+	s_emitterEvidenceError = ExtractEmitterEvidence(input, EvidenceOptions(), context, publication);
+	std::atomic_store(&s_emitterEvidence, publication);
+}
+void R_LightReconEvidence_f(void)
+{
+	using namespace Rend2LightRecon::Core;
+	const auto evidence = R_EmitterEvidence();
+	if (!evidence)
+	{
+		ri.Printf(PRINT_ALL,
+				  "Emitter evidence unavailable: %s (build policy 2/3 at map load required; no "
+				  "lights fitted)\n",
+				  s_emitterEvidenceError.message.c_str());
+		return;
+	}
+	const auto &r = evidence->Report();
+	uint64_t classes[7] = {};
+	for (const auto &c : evidence->Candidates())
+		for (unsigned bit = 0; bit < 7; ++bit)
+			if (c.shapes & (1u << bit))
+				++classes[bit];
+	ri.Printf(PRINT_ALL,
+			  "Emitter evidence %s: %u candidates, %u evidence, %llu bytes; hypotheses only\n",
+			  evidence->Map().path.c_str(), unsigned(evidence->Candidates().size()),
+			  unsigned(evidence->Evidence().size()), (unsigned long long)r.bytes);
+	ri.Printf(PRINT_ALL,
+			  "  point=%llu rect=%llu tube=%llu spot=%llu surface=%llu sun=%llu sky=%llu (classes "
+			  "overlap)\n",
+			  (unsigned long long)classes[0], (unsigned long long)classes[1],
+			  (unsigned long long)classes[2], (unsigned long long)classes[3],
+			  (unsigned long long)classes[4], (unsigned long long)classes[5],
+			  (unsigned long long)classes[6]);
+	ri.Printf(PRINT_ALL,
+			  "  triangles=%llu groups=%llu maskBlobs=%llu authored=%llu entities=%llu "
+			  "sunDeclarations=%llu skyHints=%llu animated=%llu moving=%llu unsupported=%llu\n",
+			  (unsigned long long)r.triangles, (unsigned long long)r.groups,
+			  (unsigned long long)r.maskBlobs, (unsigned long long)r.authored,
+			  (unsigned long long)r.entities, (unsigned long long)r.suns,
+			  (unsigned long long)r.skies, (unsigned long long)r.animated,
+			  (unsigned long long)r.moving, (unsigned long long)r.unsupported);
+	if (ri.Cmd_Argc() > 1)
+		for (const auto &e : evidence->Evidence())
+			ri.Printf(PRINT_ALL, "  id=%llu origin=%s material=%s shapes=%u issues=%u static=%d\n",
+					  (unsigned long long)e.id, EvidenceOriginName(e.origin), e.material.c_str(),
+					  e.shapes, e.issues, e.staticEligible ? 1 : 0);
 }

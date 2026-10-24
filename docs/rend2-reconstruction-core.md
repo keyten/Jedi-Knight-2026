@@ -280,3 +280,5 @@ visibility construction, inverse fitting, sun/sky estimation, uncertainty estima
 an offline CLI optimizer or renderer consumption of core results. The optional
 algorithm interface and leased providers establish where those implementations
 belong; they do not solve any of them. No map visual-quality improvement is claimed.
+
+Initial source hypotheses are provided by the optional immutable [emitter-evidence dataset](rend2-emitter-evidence.md), separately from reconstructed output emitters.

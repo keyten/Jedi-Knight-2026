@@ -4,6 +4,7 @@
 #include "lightrecon/lightmaps.h"
 #include "lightrecon/lightgrid.h"
 #include "lightrecon/surfaces.h"
+#include "lightrecon/evidence.h"
 
 // Retain this lease while using views and effective-state decisions. Loading is
 // independent of consumption; acquiring a snapshot never runs work.
@@ -18,6 +19,9 @@ std::string R_LightReconCacheRoot(void);
 std::shared_ptr<const Rend2LightRecon::Core::LightmapObservations> R_LightmapObservations(void);
 std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridObservations(void);
 std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void);
+std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEvidence(void);
+void R_LightReconEvidence_f(void);
+std::string R_LightReconShaderText(const char* name);
 void R_LuxelDebug_f(void);
 void R_LightReconObservations_f(void);
 struct shader_s;

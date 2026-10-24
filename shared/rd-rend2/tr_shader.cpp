@@ -5218,6 +5218,33 @@ static void R_PrefetchDiffuse( const char *token )
 	R_PrefetchImage( va( "%s_specGloss", base ) );
 }
 
+// Read-only source evidence adapter. Never uses tr.sunDirection/default sun or
+// registers a shader; the selected VFS shader definition remains authoritative.
+std::string R_LightReconShaderText(const char *name)
+{
+#ifdef REND2_SP
+	COM_ParseSession parseSession;
+#endif
+	const char *begin = FindShaderInShaderText(name);
+	if (!begin)
+		return {};
+	const char *cursor = begin;
+	int depth = 0;
+	do
+	{
+		const char *token = COM_ParseExt(&cursor, qtrue);
+		if (!token[0])
+			return {};
+		if (token[0] == '{')
+			++depth;
+		else if (token[0] == '}')
+			--depth;
+		if (cursor - begin > 65536)
+			return {};
+	} while (depth > 0);
+	return std::string(begin, cursor - begin);
+}
+
 void R_PrefetchShader( const char *name )
 {
 	char strippedName[MAX_QPATH];

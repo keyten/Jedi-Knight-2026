@@ -149,8 +149,11 @@ class LightmapObservations;
 class LightgridObservations;
 class SurfaceGeometry;
 class LightingRegionGraph;
+class EmitterEvidenceSet;
 struct InputDataset
 {
+	std::shared_ptr<const EmitterEvidenceSet> emitterEvidence; // optional immutable hypotheses, not output lights
+
 	InputManifest manifest;
 	std::shared_ptr<const ChunkSource<SurfaceObservation>> surfaces;
 	std::shared_ptr<const ChunkSource<GridObservation>> grid;
@@ -182,6 +185,7 @@ public:
 	std::shared_ptr<const LightgridObservations> Lightgrid() const { return input_.lightgrid; }
 	std::shared_ptr<const SurfaceGeometry> Geometry() const { return input_.surfaceGeometry; }
 	std::shared_ptr<const LightingRegionGraph> RegionGraph() const { return input_.regionGraph; }
+	std::shared_ptr<const EmitterEvidenceSet> EmitterEvidence() const { return input_.emitterEvidence; }
 	Error ValidateMetadata() const;
 	Error ReadSurfaces(uint64_t first, size_t count, Chunk<SurfaceObservation>& out);
 	Error ReadGrid(uint64_t first, size_t count, Chunk<GridObservation>& out);

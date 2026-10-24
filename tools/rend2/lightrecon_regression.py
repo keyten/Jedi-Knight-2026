@@ -256,6 +256,14 @@ def observation_audit():
     return failures
 
 
+def shared_emission_utility(relative, text, offset):
+    # Reused CPU geometry has no asset/capability access. Do not whitelist this
+    # renderer file: consumption APIs and other canonical types stay fenced.
+    return relative == 'shared/rd-rend2/tr_arealights.cpp' and bool(re.match(
+        r'Rend2LightRecon::Core::(?:Emission::(?:Triangle|Mask|Rectangle|FitRectangle|Blob|Groups|Sample)|ReadContext)\b',
+        text[offset:]))
+
+
 def production_audit():
     """Fence current absence of canonical GPU integration, with actionable errors.
 
@@ -278,8 +286,10 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations') and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
+                if shared_emission_utility(relative, text, m.start()):
+                    continue
                 line = text[:m.start()].count('\n') + 1
                 failures.append(f'{relative}:{line}: canonical GPU consumer dependency {m[0]}; extend disabled-path coverage before integration')
     adapter = strip_comments(read('shared/rd-rend2/tr_lightrecon.cpp'))

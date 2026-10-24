@@ -6515,6 +6515,7 @@ void R_StaticLightPortalsBeginScene(const refdef_t *fd);
 void R_ClearStaticLighting(void);
 void R_StaticLightingStats_f(void);
 void R_LightReconInfo_f(void);
+void R_LightReconEvidence_f(void);
 void R_PBRInfo_f(void);
 void R_PBRLight_f(void);
 void R_PBRTestLightsBeginScene(const refdef_t *fd);

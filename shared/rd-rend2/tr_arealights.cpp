@@ -42,6 +42,7 @@ The LUTs (tr_ltc_data.h) come from tools/ltcfit, never fitted at startup.
 #include "tr_local.h"
 #include "tr_loadprofile.h"
 #include "json.h"
+#include "lightrecon/emission_geometry.h"
 #include "tr_ltc_data.h"
 #include "tr_volrecon.h"
 #include "tr_pbr_contract.h"
@@ -948,13 +949,9 @@ The mask is a small mip level read back once per image, at map load.
 #define AUTO_CONFIDENCE_WIDE	0.35f	// r_ltcAutoAreaLights 2
 #define AUTO_MIN_RADIANCE		0.02f
 
-struct extractTri_t
+struct extractTri_t : Rend2LightRecon::Core::Emission::Triangle
 {
 	const shader_t *shader;
-	vec3_t v[3];
-	vec2_t st[3];
-	vec3_t normal;
-	float area;
 };
 
 struct litPoint_t
@@ -973,11 +970,8 @@ struct areaCandidate_t
 	qboolean sampled;		// fitted to the lit texels (else the whole surface)
 };
 
-struct imageMask_t
+struct imageMask_t : Rend2LightRecon::Core::Emission::Mask
 {
-	int width, height;
-	std::vector<float> rgb;	// linear
-	vec3_t average;
 };
 
 static std::unordered_map<const image_t *, imageMask_t> s_imageMasks;
@@ -992,16 +986,6 @@ static qboolean s_candidatesValid;
 static void R_ClearImageAverages( void )
 {
 	s_imageMasks.clear();
-}
-
-static int R_FindRoot( std::vector<int>& parent, int i )
-{
-	while ( parent[i] != i )
-	{
-		parent[i] = parent[parent[i]];
-		i = parent[i];
-	}
-	return i;
 }
 
 static qboolean R_ShaderEmits( const shader_t *sh, qboolean *hinted )
@@ -1061,6 +1045,7 @@ static const imageMask_t *R_ImageMask( image_t *image )
 		image->internalFormat == GL_RGB16F || image->internalFormat == GL_RGBA32F);
 	mask.width = width;
 	mask.height = height;
+	mask.clamp = (image->flags & IMGFLAG_CLAMPTOEDGE) != 0;
 	mask.rgb.resize((size_t)width * height * 3);
 	double sum[3] = { 0.0, 0.0, 0.0 };
 	for ( int i = 0; i < width * height; i++ )
@@ -1131,40 +1116,15 @@ static qboolean R_ShaderEmitterStage( const shader_t *sh, emitterStage_t *out )
 // rectangle in the plane (normal) around the points, along their principal axis
 static void R_FitRect( const std::vector<const float *>& points, const vec3_t normal, float margin, mapAreaLight_t *l )
 {
-	vec3_t centroid = { 0.0f, 0.0f, 0.0f };
-	for ( const float *p : points )
-		VectorAdd(centroid, p, centroid);
-	VectorScale(centroid, 1.0f / points.size(), centroid);
-
-	vec3_t a1, a2;
-	PerpendicularVector(a1, normal);
-	CrossProduct(normal, a1, a2);
-	float cxx = 0, cxy = 0, cyy = 0;
-	for ( const float *p : points )
-	{
-		vec3_t d;
-		VectorSubtract(p, centroid, d);
-		const float x = DotProduct(d, a1), y = DotProduct(d, a2);
-		cxx += x * x; cxy += x * y; cyy += y * y;
-	}
-	const float angle = 0.5f * atan2f(2.0f * cxy, cxx - cyy);
-	VectorScale(a1, cosf(angle), l->right);
-	VectorMA(l->right, sinf(angle), a2, l->right);
-	CrossProduct(normal, l->right, l->up);	// cross(right, up) = normal
-
-	float minR = 1e30f, maxR = -1e30f, minU = 1e30f, maxU = -1e30f;
-	for ( const float *p : points )
-	{
-		vec3_t d;
-		VectorSubtract(p, centroid, d);
-		minR = Q_min(minR, DotProduct(d, l->right)); maxR = Q_max(maxR, DotProduct(d, l->right));
-		minU = Q_min(minU, DotProduct(d, l->up)); maxU = Q_max(maxU, DotProduct(d, l->up));
-	}
-	l->halfWidth = 0.5f * (maxR - minR) + margin;
-	l->halfHeight = 0.5f * (maxU - minU) + margin;
-	VectorMA(centroid, 0.5f * (maxR + minR), l->right, l->center);
-	VectorMA(l->center, 0.5f * (maxU + minU), l->up, l->center);
-	VectorMA(l->center, 0.25f, normal, l->center);	// off the lamp surface itself
+	Rend2LightRecon::Core::Emission::Rectangle rect;
+	Rend2LightRecon::Core::Emission::FitRectangle(points, normal, margin, rect);
+	VectorCopy(rect.center, l->center);
+	VectorCopy(rect.right, l->right);
+	VectorCopy(rect.up, l->up);
+	l->halfWidth = rect.halfWidth;
+	l->halfHeight = rect.halfHeight;
+	// Legacy LTC presentation offset; canonical evidence retains the actual source plane.
+	VectorMA(l->center, 0.25f, normal, l->center);
 }
 
 // one candidate from the points of a lit region (sampled: blob of texel
@@ -1234,128 +1194,30 @@ static void R_BuildCandidate( const std::vector<extractTri_t>& tris, const std::
 	image_t *image = emitter.stage->bundle[emitter.bundle].image[0];
 	const imageMask_t *mask = image == tr.whiteImage ? nullptr : R_ImageMask(image);
 
-	if ( mask && emitter.staticCoords )
+	std::vector<Rend2LightRecon::Core::Emission::Triangle> geometry;
+	geometry.reserve(members.size());
+	std::vector<int> local;
+	for (int m : members)
 	{
-		// texture space bounds of the group
-		float smin = 1e30f, smax = -1e30f, tmin = 1e30f, tmax = -1e30f;
-		for ( int m : members )
-			for ( int k = 0; k < 3; k++ )
-			{
-				smin = Q_min(smin, tris[m].st[k][0]); smax = Q_max(smax, tris[m].st[k][0]);
-				tmin = Q_min(tmin, tris[m].st[k][1]); tmax = Q_max(tmax, tris[m].st[k][1]);
-			}
-		const int ns = Com_Clampi(4, AUTO_MAX_SAMPLES, (int)ceilf((smax - smin) * mask->width));
-		const int nt = Com_Clampi(4, AUTO_MAX_SAMPLES, (int)ceilf((tmax - tmin) * mask->height));
-
-		// sample grid: -1 outside the surface, 0 unlit, 1 lit
-		std::vector<signed char> state((size_t)ns * nt, -1);
-		std::vector<litPoint_t> points((size_t)ns * nt);
-		std::vector<litPoint_t> colors((size_t)ns * nt);
-		std::vector<float> weights((size_t)ns * nt, 0.0f);
-		int inside = 0;
-		float totalWeight = 0.0f;
-		for ( int j = 0; j < nt; j++ )
-			for ( int i = 0; i < ns; i++ )
-			{
-				const float s = smin + (smax - smin) * (i + 0.5f) / ns;
-				const float t = tmin + (tmax - tmin) * (j + 0.5f) / nt;
-				for ( int m : members )
-				{
-					// barycentrics in texture space
-					const extractTri_t *tri = &tris[m];
-					const float d = (tri->st[1][1] - tri->st[2][1]) * (tri->st[0][0] - tri->st[2][0]) +
-						(tri->st[2][0] - tri->st[1][0]) * (tri->st[0][1] - tri->st[2][1]);
-					if ( fabsf(d) < 1e-10f )
-						continue;
-					const float b0 = ((tri->st[1][1] - tri->st[2][1]) * (s - tri->st[2][0]) +
-						(tri->st[2][0] - tri->st[1][0]) * (t - tri->st[2][1])) / d;
-					const float b1 = ((tri->st[2][1] - tri->st[0][1]) * (s - tri->st[2][0]) +
-						(tri->st[0][0] - tri->st[2][0]) * (t - tri->st[2][1])) / d;
-					const float b2 = 1.0f - b0 - b1;
-					if ( b0 < -1e-4f || b1 < -1e-4f || b2 < -1e-4f )
-						continue;
-
-					inside++;
-					const size_t cell = (size_t)j * ns + i;
-					const float fs = (image->flags & IMGFLAG_CLAMPTOEDGE) ?
-						Com_Clamp(0.0f, 1.0f, s) : s - floorf(s);
-					const float ft = (image->flags & IMGFLAG_CLAMPTOEDGE) ?
-						Com_Clamp(0.0f, 1.0f, t) : t - floorf(t);
-					// One UV cell represents a different world area on each triangle.
-					weights[cell] = 2.0f * tri->area *
-						((smax - smin) / ns) * ((tmax - tmin) / nt) / fabsf(d);
-					totalWeight += weights[cell];
-					const int x = Com_Clampi(0, mask->width - 1, (int)(fs * mask->width));
-					const int y = Com_Clampi(0, mask->height - 1, (int)(ft * mask->height));
-					const float *rgb = &mask->rgb[((size_t)y * mask->width + x) * 3];
-					const float lum = 0.2126f * rgb[0] + 0.7152f * rgb[1] + 0.0722f * rgb[2];
-					state[cell] = lum > AUTO_LIT_LUMINANCE ? 1 : 0;
-					VectorScale(tri->v[0], b0, points[cell].p);
-					VectorMA(points[cell].p, b1, tri->v[1], points[cell].p);
-					VectorMA(points[cell].p, b2, tri->v[2], points[cell].p);
-					VectorCopy(rgb, colors[cell].p);
-					break;
-				}
-			}
-		if ( inside == 0 || totalWeight <= 0.0f )
-			return;
-		// Normalize the discrete coverage back to the known geometry area.
-		const float weightScale = area / totalWeight;
-
-		// one light per connected lit blob (8-neighbours): a texture with two
-		// tubes or a row of bulbs gives one rectangle each, not one with gaps
-		std::vector<int> stack;
-		for ( size_t start = 0; start < state.size(); start++ )
-		{
-			if ( state[start] != 1 )
-				continue;
-			std::vector<const float *> blob;
-			vec3_t power = { 0.0f, 0.0f, 0.0f }, peak = { 0.0f, 0.0f, 0.0f };
-			float litArea = 0.0f;
-			state[start] = 2;
-			stack.push_back((int)start);
-			while ( !stack.empty() )
-			{
-				const int cell = stack.back();
-				stack.pop_back();
-				blob.push_back(points[cell].p);
-				const float sampleArea = weights[cell] * weightScale;
-				litArea += sampleArea;
-				VectorMA(power, sampleArea, colors[cell].p, power);
-				for ( int k = 0; k < 3; k++ )
-					peak[k] = Q_max(peak[k], colors[cell].p[k]);
-				const int ci = cell % ns, cj = cell / ns;
-				for ( int dj = -1; dj <= 1; dj++ )
-					for ( int di = -1; di <= 1; di++ )
-					{
-						const int ni = ci + di, nj = cj + dj;
-						if ( ni < 0 || nj < 0 || ni >= ns || nj >= nt )
-							continue;
-						const int next = nj * ns + ni;
-						if ( state[next] == 1 )
-						{
-							state[next] = 2;
-							stack.push_back(next);
-						}
-					}
-			}
-			R_EmitCandidate(c, blob, power, peak, litArea, qtrue, normal, emitter.scale, out);
-		}
-		return;
+		local.push_back((int)geometry.size());
+		geometry.push_back(tris[m]);
 	}
-
-	// moving texture coordinates, or no image data: the whole surface
-	std::vector<const float *> corners;
-	for ( int m : members )
-		for ( int k = 0; k < 3; k++ )
-			corners.push_back(tris[m].v[k]);
-	vec3_t power = { 1.0f, 1.0f, 1.0f };
-	if ( mask )
-		VectorCopy(mask->average, power);
-	const vec3_t peak = { 1e30f, 1e30f, 1e30f };
-	VectorScale(power, area, power);
-	c.litArea = area;
-	R_EmitCandidate(c, corners, power, peak, 1.0f, qfalse, normal, emitter.scale, out);
+	Rend2LightRecon::Core::ReadContext context;
+	context.maxBytes = 32u * 1024 * 1024;
+	std::vector<Rend2LightRecon::Core::Emission::Blob> blobs;
+	if (!Rend2LightRecon::Core::Emission::Sample(geometry, local, mask,
+												 emitter.staticCoords != qfalse, AUTO_LIT_LUMINANCE,
+												 AUTO_MAX_SAMPLES, context, blobs))
+		return;
+	for (const auto &blob : blobs)
+	{
+		std::vector<const float *> points;
+		for (const auto &p : blob.points)
+			points.push_back(p.p);
+		c.litArea = blob.area;
+		R_EmitCandidate(c, points, blob.power, blob.peak, blob.sampled ? blob.area : 1.0f,
+						blob.sampled ? qtrue : qfalse, normal, emitter.scale, out);
+	}
 }
 
 static void R_FindAreaLightCandidates( const world_t *world, std::vector<areaCandidate_t>& out, int *numTriangles )
@@ -1395,37 +1257,18 @@ static void R_FindAreaLightCandidates( const world_t *world, std::vector<areaCan
 	}
 	*numTriangles = (int)tris.size();
 
-	// union triangles of one shader and plane sharing a vertex
-	const int n = (int)tris.size();
-	std::vector<int> parent(n);
-	for ( int i = 0; i < n; i++ )
-		parent[i] = i;
-	std::unordered_map<std::string, int> firstAt;
-	char key[256];
-	for ( int i = 0; i < n; i++ )
+	// Shared CPU grouping; stable numeric material identities replace pointer text keys.
+	std::map<const shader_t *, uint32_t> materialIds;
+	std::vector<Rend2LightRecon::Core::Emission::Triangle> geometry;
+	geometry.reserve(tris.size());
+	for (const auto &t : tris)
 	{
-		const extractTri_t *t = &tris[i];
-		const float dist = DotProduct(t->normal, t->v[0]);
-		for ( int k = 0; k < 3; k++ )
-		{
-			Com_sprintf(key, sizeof(key), "%p %d %d %d %d %d %d %d", (const void *)t->shader,
-				(int)floorf(t->normal[0] * 50.0f + 0.5f), (int)floorf(t->normal[1] * 50.0f + 0.5f),
-				(int)floorf(t->normal[2] * 50.0f + 0.5f), (int)floorf(dist + 0.5f),
-				(int)floorf(t->v[k][0] * 2.0f + 0.5f), (int)floorf(t->v[k][1] * 2.0f + 0.5f),
-				(int)floorf(t->v[k][2] * 2.0f + 0.5f));
-			auto it = firstAt.find(key);
-			if ( it == firstAt.end() )
-				firstAt[key] = i;
-			else
-				parent[R_FindRoot(parent, i)] = R_FindRoot(parent, it->second);
-		}
+		auto added = materialIds.emplace(t.shader, (uint32_t)materialIds.size());
+		geometry.push_back(t);
+		geometry.back().material = added.first->second;
 	}
-
-	std::map<int, std::vector<int>> groups;	// ordered: the same output every run
-	for ( int i = 0; i < n; i++ )
-		groups[R_FindRoot(parent, i)].push_back(i);
-	for ( auto& group : groups )
-		R_BuildCandidate(tris, group.second, out);
+	for (const auto &group : Rend2LightRecon::Core::Emission::Groups(geometry))
+		R_BuildCandidate(tris, group, out);
 }
 
 static void R_ClearAreaCandidates( void )

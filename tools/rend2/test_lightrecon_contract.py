@@ -18,6 +18,15 @@ class Contracts(unittest.TestCase):
         cls.source = sources(cls.case)['fragment']
         cls.baseline = preprocess(cls.source, cls.cpp)
 
+    def test_shared_emission_geometry_is_not_a_gpu_consumer(self):
+        from lightrecon_regression import shared_emission_utility
+        path='shared/rd-rend2/tr_arealights.cpp'
+        for symbol in ('Triangle','Mask','Rectangle','FitRectangle','Blob','Groups','Sample'):
+            self.assertTrue(shared_emission_utility(path,'Rend2LightRecon::Core::Emission::'+symbol,0))
+        for symbol in ('Snapshot','Core::EmitterEvidenceSet','Core::Emission::GpuBuffer'):
+            self.assertFalse(shared_emission_utility(path,'Rend2LightRecon::'+symbol,0))
+        self.assertFalse(shared_emission_utility('shared/rd-rend2/tr_light.cpp','Rend2LightRecon::Core::Emission::Sample',0))
+
     def test_production_boundary(self):
         self.assertEqual(production_audit(), [])
 

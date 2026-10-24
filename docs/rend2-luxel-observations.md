@@ -3,7 +3,7 @@
 `shared/rd-rend2/lightrecon/surfaces.h/.cpp` implements the CPU correspondence
 between original logical lightmap images and static world geometry. It belongs
 to the shared C++11 `rend2_lightrecon_core`, linked once by SP, MP and standalone
-tests. Schema: `org.openjk.baked-surface-observations`, version 3 (the original
+tests. Schema: `org.openjk.baked-surface-observations`, version 4 (the original
 geometry validation below records version 1 at commit `e496cd0e9`).
 
 This is observation geometry, not reconstructed lighting. It does not estimate
@@ -457,3 +457,5 @@ retained/excluded; their geometric mapping is tested synthetically. There is no
 claim of MP gameplay validation or a new full-matrix GPU shader compilation;
 the controlled GLSL comparison uses `--no-gpu`, while the SP runtime uses the
 actual driver. Legacy lighting/shader calculations are unchanged.
+
+Version 4 adds source emission-coordinate/wrap facts used by [emitter evidence](rend2-emitter-evidence.md); original luxel mapping is unchanged.
