@@ -286,7 +286,7 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence') and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 if shared_emission_utility(relative, text, m.start()):
                     continue

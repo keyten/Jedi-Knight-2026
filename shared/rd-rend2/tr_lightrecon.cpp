@@ -2,12 +2,15 @@
 #include "tr_local.h"
 #include "tr_lightrecon.h"
 #include "lightrecon/cache.h"
+#include "lightrecon/offline.h"
 #include <algorithm>
 #include <new>
 #include <cmath>
 #include <cstring>
 #include <set>
 #include <map>
+#include <cerrno>
+#include <climits>
 
 qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
 
@@ -24,6 +27,9 @@ static Rend2LightRecon::WorldLighting s_reconstructedLighting;
 static Rend2LightRecon::Core::LightmapCapture s_lightmapCapture;
 static Rend2LightRecon::Core::LightgridCapture s_lightgridCapture;
 static Rend2LightRecon::Core::SurfaceCapture s_surfaceCapture;
+static std::shared_ptr<const Rend2LightRecon::Core::BspRegionDomain> s_offlineDomain;
+static std::vector<Rend2LightRecon::Core::DynamicBoundary> s_offlineDynamic;
+static Rend2LightRecon::Core::Error s_offlineSpaceError;
 static std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> s_emitterEvidence;
 static Rend2LightRecon::Core::Error s_emitterEvidenceError;
 static void R_CaptureEmitterEvidence();
@@ -61,6 +67,9 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	s_lightmapCapture.Begin(s_reconstructedLighting.Report().policy);
 	s_lightgridCapture.Begin(s_reconstructedLighting.Report().policy);
 	s_surfaceCapture.Begin(s_reconstructedLighting.Report().policy);
+	s_offlineDomain.reset();
+	s_offlineDynamic.clear();
+	s_offlineSpaceError = {};
 	s_luxelDebug.clear();
 	std::atomic_store(&s_emitterEvidence,
 					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
@@ -74,6 +83,8 @@ LightReconWorldLoad::~LightReconWorldLoad()
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
 		s_surfaceCapture.Reset();
+		s_offlineDomain.reset();
+		s_offlineDynamic.clear();
 		std::atomic_store(&s_emitterEvidence,
 						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 		s_luxelDebug.clear();
@@ -148,6 +159,8 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 		s_lightmapCapture.Reset();
 		s_lightgridCapture.Reset();
 		s_surfaceCapture.Reset();
+		s_offlineDomain.reset();
+		s_offlineDynamic.clear();
 		std::atomic_store(&s_emitterEvidence,
 						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	}
@@ -159,6 +172,8 @@ void R_ClearReconstructedLighting(void)
 	s_lightmapCapture.Reset();
 	s_lightgridCapture.Reset();
 	s_surfaceCapture.Reset();
+	s_offlineDomain.reset();
+	s_offlineDynamic.clear();
 	std::atomic_store(&s_emitterEvidence,
 					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	std::vector<Rend2LightRecon::Core::SurfaceLightingObservation>().swap(s_luxelDebug);
@@ -223,6 +238,13 @@ LightReconBspCapture::LightReconBspCapture(const char* name, bool mainWorld, con
 			sourceMap_ = s_lightmapCapture.SourceIdentity();
 			source_ = bsp;
 			sourceBytes_ = static_cast<size_t>(bytes);
+			if (s_surfaceCapture.Needed())
+			{
+				ReadContext context;
+				context.maxBytes = 256ull * 1024 * 1024;
+				s_offlineSpaceError = Offline::CaptureBspSpace(
+					source_, sourceBytes_, sourceMap_, context, s_offlineDomain, s_offlineDynamic);
+			}
 		}
 	}
 	catch (const std::bad_alloc&) { s_lightmapCapture.Fail(Code::MemoryLimit, "BSP capture allocation failed"); }
@@ -1327,4 +1349,178 @@ void R_LightReconEvidence_f(void)
 			ri.Printf(PRINT_ALL, "  id=%llu origin=%s material=%s shapes=%u issues=%u static=%d\n",
 					  (unsigned long long)e.id, EvidenceOriginName(e.origin), e.material.c_str(),
 					  e.shapes, e.issues, e.staticEligible ? 1 : 0);
+}
+
+// Explicit author/tool operation. Never called by map loading or consumer queries.
+static void R_LightReconExport()
+{
+	using namespace Rend2LightRecon;
+	using namespace Rend2LightRecon::Core;
+	std::string stem = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : "";
+	if ((ri.Cmd_Argc() != 2 && ri.Cmd_Argc() != 3 && ri.Cmd_Argc() != 7) || stem.empty() ||
+		stem.size() > 64 ||
+		stem.find_first_not_of(
+			"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") !=
+			std::string::npos)
+	{
+		ri.Printf(
+			PRINT_ALL,
+			"usage: r_lightReconExport <safe-name> [mapped-images:1,0=all] [cx cy cz radius]\n");
+		return;
+	}
+	Offline::Sources s;
+	s.images = R_LightmapObservations();
+	s.grid = R_LightgridObservations();
+	s.geometry = R_LuxelGeometry();
+	s.evidence = R_EmitterEvidence();
+	s.domain = s_offlineDomain;
+	s.dynamic = s_offlineDynamic;
+	if (!s.geometry || !s.images)
+	{
+		ri.Printf(PRINT_ALL, "offline export unavailable: reload main map with r_lightReconBuild "
+							 "2/3; consumers may remain off\n");
+		return;
+	}
+	if (!s.domain)
+	{
+		ri.Printf(PRINT_ALL, "offline export unavailable: original BSP collision snapshot: %s\n",
+				  s_offlineSpaceError.message.c_str());
+		return;
+	}
+	s.metadata.map = s.geometry->Map();
+	s.metadata.producer = "Rend2 original CPU map-load snapshots";
+	s.metadata.producerVersion = "org.openjk.offline-export.v1";
+
+#ifdef _MSC_VER
+	s.metadata.producerVersion += "; MSVC " + std::to_string(_MSC_FULL_VER);
+#else
+	s.metadata.producerVersion += std::string("; GNU/Clang ") + __VERSION__;
+#endif
+	s.metadata.compiler = "Unknown historical BSP compiler";
+	s.metadata.recipe = "Renderer load is not a historical bake recipe";
+	s.metadata.units.worldUnitsPerMeter = r_pbrWorldUnitsPerMeter->value;
+	s.metadata.units.physicalToScene = R_PBRPhysicalToScene();
+	auto &profile = s.metadata.decoding;
+	profile.identity = "renderer-export-source-relative-v1";
+	profile.sourceProvenance =
+		"Original BSP/external samples; historical bake transfer and absolute intensity unknown";
+	// Unknown remains unavailable; users can form explicit alternative hypotheses offline.
+	auto &r = profile.renderer;
+	r.known = true;
+	r.linearLighting = r_linearLighting->integer != 0;
+	r.physicalPbr = r_pbrPhysical->integer != 0;
+	r.hdr = r_hdr->integer != 0;
+	r.toneMap = r_toneMap->integer != 0;
+	r.floatLightmaps = glRefConfig.floatLightmap != qfalse;
+	r.mapOverbrightBits = r_mapOverBrightBits->integer;
+	r.requestedOverbrightBits = r_overBrightBits->integer;
+	r.effectiveOverbrightBits = tr.overbrightBits;
+	r.displayGamma = r_gamma->value;
+	r.cameraExposure = r_cameraExposure->value;
+	r.exposureCompensation = r_exposureCompensation->value;
+	r.autoExposure = r_autoExposure->integer != 0;
+	r.exposureKnown = true;
+	r.lightmapDebug = r_lightmap->integer;
+	for (const auto &im : s.images->Images())
+		r.hdrLightmapSeen |= im.encoding == LightmapEncoding::ExternalRgb32F;
+	Offline::Options options;
+	if (ri.Cmd_Argc() > 2)
+	{
+		const char *arg = ri.Cmd_Argv(2);
+		char *end = nullptr;
+		errno = 0;
+		unsigned long n = std::strtoul(arg, &end, 10);
+		if (!arg[0] || arg[0] == '-' || !end || *end || errno || n > UINT_MAX)
+		{
+			ri.Printf(PRINT_ALL, "offline export invalid image prefix\n");
+			return;
+		}
+		options.mappedImages = unsigned(n);
+	}
+	ReadContext context;
+	context.maxBytes = options.maxResidentBytes;
+	// A bounded, explicitly stored ROI; source geometry/images always cover the full map.
+	const auto &world = s.domain->Source().worldBounds;
+	Vec3 centre((world.minWorld.x + world.maxWorld.x) * .5f,
+				(world.minWorld.y + world.maxWorld.y) * .5f,
+				(world.minWorld.z + world.maxWorld.z) * .5f);
+	float radius = 256;
+	if (ri.Cmd_Argc() >= 7)
+	{
+		centre = Vec3(float(atof(ri.Cmd_Argv(3))), float(atof(ri.Cmd_Argv(4))),
+					  float(atof(ri.Cmd_Argv(5))));
+		radius = float(atof(ri.Cmd_Argv(6)));
+	}
+	if (!std::isfinite(centre.x) || !std::isfinite(centre.y) || !std::isfinite(centre.z) ||
+		!std::isfinite(radius) || radius <= 0)
+	{
+		ri.Printf(PRINT_ALL, "offline export invalid region ROI\n");
+		return;
+	}
+	VisibilityBuildOptions visibility;
+	visibility.patchToleranceWorld = s.metadata.visibilityPatchToleranceWorld;
+	visibility.maxBytes = 128ull * 1024 * 1024;
+	std::shared_ptr<const StaticVisibility> rays;
+	auto error = StaticVisibility::Build(s.geometry, visibility, context, rays, s.domain);
+	if (!error)
+	{
+		ri.Printf(PRINT_ALL, "offline export visibility preparation failed: %s\n",
+				  error.message.c_str());
+		return;
+	}
+	RegionBuildInput input;
+	input.identity = s.metadata.map;
+	input.domain = s.domain;
+	input.geometry = rays;
+	input.dynamic = s.dynamic;
+	RegionOptions region;
+	region.minimumCellWorld = 16;
+	region.coarseCellWorld = 128;
+	region.constrictionWorld = 64;
+	region.skySamplesPerRegion = 4;
+	region.bounds.known = true;
+	region.bounds.minWorld = Vec3(std::max(world.minWorld.x, centre.x - radius),
+								  std::max(world.minWorld.y, centre.y - radius),
+								  std::max(world.minWorld.z, centre.z - radius));
+	region.bounds.maxWorld = Vec3(std::min(world.maxWorld.x, centre.x + radius),
+								  std::min(world.maxWorld.y, centre.y + radius),
+								  std::min(world.maxWorld.z, centre.z + radius));
+	error = LightingRegionGraph::Build(std::move(input), region, context, s.regions);
+	if (!error)
+	{
+		ri.Printf(PRINT_ALL, "offline export region graph failed: %s\n", error.message.c_str());
+		return;
+	}
+	std::string root = R_LightReconCacheRoot();
+	if (root.empty())
+	{
+		ri.Printf(PRINT_ALL, "offline export requires supported fs_homepath\n");
+		return;
+	}
+	std::string path = root + "/observations/" + stem + ".jkobs";
+	Offline::Summary summary;
+	error = Offline::ExportFile(path, s, options, context, summary);
+	if (!error)
+	{
+		ri.Printf(PRINT_ALL, "offline export failed: %s\n", error.message.c_str());
+		return;
+	}
+	ri.Printf(PRINT_ALL,
+			  "offline export wrote %s bytes=%llu samples=%llu complete=%d raw-images=%llu "
+			  "regions=%llu (observations, no reconstructed lights)\n",
+			  path.c_str(), (unsigned long long)summary.fileBytes,
+			  (unsigned long long)summary.mappedSamples, summary.derivedComplete ? 1 : 0,
+			  (unsigned long long)summary.images, (unsigned long long)summary.regions);
+}
+void R_LightReconExport_f(void)
+{
+	try
+	{
+		R_LightReconExport();
+	}
+	catch (const std::bad_alloc &)
+	{
+		ri.Printf(PRINT_ALL,
+				  "offline export allocation failed; no reconstructed asset published\n");
+	}
 }

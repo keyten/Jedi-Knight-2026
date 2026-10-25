@@ -7,6 +7,7 @@ namespace Rend2LightRecon
 {
 namespace Core
 {
+namespace Offline { struct Access; }
 constexpr uint32_t kEmitterEvidenceVersion = 1;
 enum CandidateShape : uint32_t
 {
@@ -45,7 +46,7 @@ enum EvidenceIssue : uint32_t
 	MaskCoordinatesUnsupported = 1u << 3,
 	AnimatedEvidence = 1u << 4,
 	MovingEvidence = 1u << 5,
-	UnsupportedGeometry = 1u << 6,
+	EvidenceUnsupportedGeometry = 1u << 6,
 	MissingTarget = 1u << 7,
 	MultipleEmissionLayers = 1u << 8,
 	ColourTransferUnknown = 1u << 9,
@@ -144,6 +145,7 @@ class EmitterEvidenceSet
 	}
 
   private:
+	friend struct Offline::Access;
 	friend Error ExtractEmitterEvidence(const EmitterEvidenceInput &, const EvidenceOptions &,
 										const ReadContext &,
 										std::shared_ptr<const EmitterEvidenceSet> &);

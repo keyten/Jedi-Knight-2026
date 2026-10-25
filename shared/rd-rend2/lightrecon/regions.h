@@ -163,6 +163,7 @@ struct RegionBspLink
 {
 	Id region = 0;
 	int32_t leaf = -1, cluster = -1, area = -1;
+	RegionBspLink() : region(0), leaf(-1), cluster(-1), area(-1) {}
 	RegionBspLink(Id r, int32_t l, int32_t c, int32_t a) : region(r), leaf(l), cluster(c), area(a)
 	{
 	}
@@ -170,6 +171,7 @@ struct RegionBspLink
 struct RegionBoundary
 {
 	Id region = 0, surface = 0;
+	RegionBoundary() : region(0), surface(0) {}
 	RegionBoundary(Id r, Id s) : region(r), surface(s) {}
 };
 struct RegionConnection

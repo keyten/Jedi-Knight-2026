@@ -269,16 +269,18 @@ tests link the same archive and remain part of CTest.
 
 `control.h/.cpp` also provides the CPU build/load policy and read-only consumer
 gates. The renderer adapter owns cvar registration and map-load invocation;
-see [independent controls](rend2-reconstruction-controls.md). No canonical cache
-backend, solver or consumption adapter is installed yet.
+see [independent controls](rend2-reconstruction-controls.md). A native output-asset
+cache backend now exists, but complete renderer cache-key plumbing, a numerical
+solver and consumption adapters are not installed yet.
 
 ## Remaining work
 
-Not implemented: BSP/lightmap extraction, disk formats/chunk cache, material/texture
-evaluation, complete foreign-key joins, full-map observation validation, geometric
-visibility construction, inverse fitting, sun/sky estimation, uncertainty estimation,
-an offline CLI optimizer or renderer consumption of core results. The optional
-algorithm interface and leased providers establish where those implementations
-belong; they do not solve any of them. No map visual-quality improvement is claimed.
+Subsequent modules now provide source observation capture, classification,
+world-space luxel mapping, CPU visibility, conservative region graphs, output
+asset serialization and [offline observation archives/fixtures](rend2-offline-observation-datasets.md).
+See those contracts for partial coverage and limits. Still unimplemented are
+inverse fitting, recovered sun/sky and uncertainty estimation, a numerical
+offline optimizer, complete cache-key plumbing and renderer consumption of core
+results. No map visual-quality improvement is claimed.
 
 Initial source hypotheses are provided by the optional immutable [emitter-evidence dataset](rend2-emitter-evidence.md), separately from reconstructed output emitters.

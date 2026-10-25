@@ -21,6 +21,7 @@ std::shared_ptr<const Rend2LightRecon::Core::LightgridObservations> R_LightgridO
 std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void);
 std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEvidence(void);
 void R_LightReconEvidence_f(void);
+void R_LightReconExport_f(void);
 std::string R_LightReconShaderText(const char* name);
 void R_LuxelDebug_f(void);
 void R_LightReconObservations_f(void);

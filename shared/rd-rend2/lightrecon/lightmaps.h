@@ -9,6 +9,7 @@ namespace Rend2LightRecon
 {
 namespace Core
 {
+namespace Offline { struct Access; }
 
 enum class LightmapRole
 {
@@ -85,7 +86,8 @@ class LightmapObservations
 
   private:
 	friend class LightmapCapture;
-	LightmapObservations() = default; // only a successfully frozen builder can create a set
+	friend struct Offline::Access;
+	LightmapObservations() = default; // only a frozen builder or validated codec can create a set
 	LightmapMapIdentity map_;
 	std::vector<LightmapImage> images_;
 };

@@ -280,3 +280,9 @@ error. `lights` lists each structured light with kind, flags, confidences, leak,
   shaft for now), and portals for sources that cannot see their receivers (around corners).
 - Validating the grid→LTC calibration constant against q3map-compiled test maps.
 - Tuning thresholds on stock maps (only synthetic grids so far).
+
+The independent canonical CPU pipeline now has a separate
+[offline observation format and synthetic ground-truth workflow](rend2-offline-observation-datasets.md).
+It exports original map-loading observations, geometry and uncertainty for future
+solvers. Its fixtures and diagnostics do not certify the experimental grid-based
+reconstruction described above or introduce a runtime lighting consumer.

@@ -758,7 +758,7 @@ void SurfaceEvidence(const EmitterEvidenceInput &in, const EvidenceOptions &o,
 			e.source = in.map.path;
 			e.material = s.material;
 			e.shapes = CandidateSurface;
-			e.issues = UnsupportedGeometry | UncalibratedEmission;
+			e.issues = EvidenceUnsupportedGeometry | UncalibratedEmission;
 			out.push_back(e);
 			++report.unsupported;
 			continue;

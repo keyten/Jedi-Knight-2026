@@ -1,0 +1,446 @@
+{
+  "base_revision": "6eabb54395296683b02eac99d90ddae995c6889c",
+  "compilers": {
+    "cmake": "4.4.2",
+    "renderer_and_standalone": "MSVC 19.27.29111, C++11",
+    "standalone": "GCC 16.2.0, C++11"
+  },
+  "cpu_tests": {
+    "gcc": {
+      "checks": 665064,
+      "executables_failed": 0,
+      "executables_passed": 15,
+      "maximum_offline_fixture_position_error_world": 0,
+      "offline_checks": 17500
+    },
+    "msvc": {
+      "checks": 665064,
+      "executables_failed": 0,
+      "executables_passed": 15,
+      "maximum_offline_fixture_position_error_world": 0,
+      "offline_checks": 17500
+    }
+  },
+  "date": "2026-10-25",
+  "format": {
+    "decoder": 1,
+    "evidence": 1,
+    "major": 1,
+    "minor": 0,
+    "region": 1,
+    "schema": "org.openjk.lighting-observations",
+    "surface": 4
+  },
+  "limitations": [
+    "Stock first page conservatively unsupported by existing mapper",
+    "Unbounded unsupported visual records prevent certification of stock ROI free cells: graph has zero certified regions",
+    "Derived stock luxels cover explicit two-page prefix; all raw images/grid/geometry stored",
+    "No full-map room topology, convergence/calibrated JA bake or cross-compiler byte identity claimed"
+  ],
+  "production_contract_tests": 15,
+  "renderer_builds": {
+    "rd-rend2_x86_64": {
+      "release_passed": true,
+      "sha256": "acf0b9d0bb2dfe3d0745a91e29af4af91718598517b95b5adb3a392e566b52a5"
+    },
+    "rdsp-rend2_x86_64": {
+      "release_passed": true,
+      "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+    }
+  },
+  "runtime_controls": {
+    "all_consumer_requests": 1,
+    "build": 3,
+    "fog": 0,
+    "forward_plus": 0,
+    "ltc": 0,
+    "master_use": 0,
+    "physical_pbr": 0,
+    "screenshots_used": false
+  },
+  "schema": "org.openjk.offline-observations-validation",
+  "shader_regression": {
+    "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+    "differences": 0,
+    "driver": null,
+    "gpu_compiled": false,
+    "gpu_interface_comparison": "not run (--no-gpu)",
+    "passed": true,
+    "production_dependency_audit": "passed",
+    "programs": 27,
+    "stages": 51
+  },
+  "source_sha256": {
+    "code/rd-rend2/tr_init.cpp": "62b445c60fa0814dd3516ddd1e37bd81e70c4e5c47cb1b70934417d251dcb688",
+    "codemp/rd-rend2/tr_init.cpp": "78ad28473ea37f998070ac2f2b20b2c81349075e443daca94fc9404a7a3cda3e",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "eca41bfe6216a57834738273b6aa57d8769d548c263cac4c0935f2b6d1f612fe",
+    "shared/rd-rend2/lightrecon/evidence.cpp": "f7cea78dcb0ba6ee5dababe2a060eda5a48e64db8a399aa96e9912d07cdd3d57",
+    "shared/rd-rend2/lightrecon/evidence.h": "eba63a312df2b7b61ef3611dcebb84d03215610c453848b3743150a1ff9f3ff8",
+    "shared/rd-rend2/lightrecon/lightmaps.h": "6b2c1dc52363c40b55fc6c64c4126b85ea23e06fde40eeb82afb69eb23f6e76a",
+    "shared/rd-rend2/lightrecon/offline.cpp": "18892fce200844cb3756848366da31a43116994910cc4f7e776320ba9ca3e50b",
+    "shared/rd-rend2/lightrecon/offline.h": "2309ff9849da46b8da361ad53835c629da552eded41ce0ac7b6b3f01d7d52f13",
+    "shared/rd-rend2/lightrecon/offline_bsp.cpp": "8d1ee8d8ecf6fb0080e0f2ba12b1eb769754c1f2e03d17c50b61c51f71de052a",
+    "shared/rd-rend2/lightrecon/offline_io.cpp": "11a658a2016fda2dd98b73ade527d1b628109df9689fca661a53a6c3e51dddd3",
+    "shared/rd-rend2/lightrecon/regions.h": "02f9a5c7343b9b7762fe26fb17bea446011c4958fc33d1499105bd54b1d2ead7",
+    "shared/rd-rend2/tr_lightrecon.cpp": "a1f181eb91fb28b74ff24646c4e6d418d75e53669283cbc72b8020802f172de7",
+    "shared/rd-rend2/tr_lightrecon.h": "b7c120dbe0cba1729bf6fca14f937f573d78f7e55172525145e59f9803c7b2ec",
+    "shared/rd-rend2/tr_local.h": "2d4491d790276f6ee97e0977ae387a3b4fd77dd6158158b67a8212a979a481ee",
+    "tools/lightrecon_test/CMakeLists.txt": "89f3bb68129c465824877cee7a9f57a0b48ce9357e8b161f828579acff685d3d",
+    "tools/lightrecon_test/lightrecon_dataset_tool.cpp": "867e099b2ce71f3825a6f442d1da68571e708b857000d26bacf4d0a0997d486c",
+    "tools/lightrecon_test/lightrecon_evidence_test.cpp": "04b183c596017d183d8a4cac9655b0f4a01c4a8648fd0606af6d866121e09918",
+    "tools/lightrecon_test/lightrecon_offline_test.cpp": "ba5d194e2f1d8f0150834cf064d3f273b1b6d9fede0754b530e5536efef579f7",
+    "tools/lightrecon_test/offline_fixtures.cpp": "6b9809d0277a8412ee02c72f6c579781b363fe58779f4f5b3764120233d9129c",
+    "tools/lightrecon_test/offline_fixtures.h": "433b562b104ebc1b58d6fb4f602d25ad20f9b46c1b6d58f132488e980f9cf34e",
+    "tools/rend2/datasets/run_pipeline.py": "9c8d6c72a38b618cad4f71fd4e8e7186f666fe8692a768a415fb9442c6761910",
+    "tools/rend2/datasets/test_runtime_export.py": "59e25ea88033246520c062668af4f914ff8ed2c4e6448edfb88f698a60946034",
+    "tools/rend2/lightrecon_regression.py": "999ac992649595b3337f6ecd9260bdf23d6d91c89f96e9c43e4d4bb672dcf94d"
+  },
+  "stock": {
+    "hoth2": {
+      "compiler_known": false,
+      "dataset_bytes": 40996016,
+      "dataset_sha256": "3f98cabcbea506227ff6c9e8d94174a919a986447acd82206b2d80ddeb263337",
+      "derived_complete": false,
+      "derived_pages": 2,
+      "historical_absolute_scale": "unknown",
+      "region_roi_radius_world": 256,
+      "source_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "statistics": {
+        "ambiguous": 116,
+        "build-peak-estimate": 24242374,
+        "bytes": 13970616,
+        "candidates": 553,
+        "collision-bytes": 3604318,
+        "complete": 0,
+        "covered": 3489,
+        "deluxe": 12,
+        "derived-samples": 32768,
+        "emissive-surfaces": 149,
+        "evidence": 553,
+        "file-bytes": 40996016,
+        "grid-cells": 1044126,
+        "held-out": 736,
+        "hint-policy": 0,
+        "images": 24,
+        "invalid-grid": 0,
+        "known": 0,
+        "maximum-tile-object-bytes": 167936,
+        "missing-grid": 0,
+        "missing-images": 12,
+        "outside": 0,
+        "padding": 2349,
+        "partition-seed": 20261024,
+        "pixels": 196608,
+        "raw-image-bytes": 589824,
+        "region-cells": 29604,
+        "region-free": 0,
+        "regions": 0,
+        "sky": 0,
+        "snapshot-bytes": 7568782,
+        "solid": 2601,
+        "source-component-memory-estimate": 26150055,
+        "spatial-block": 128,
+        "surfaces": 7421,
+        "synthetic": 0,
+        "train": 31428,
+        "triangles": 37062,
+        "unknown": 27003,
+        "unknown-material": 0,
+        "unsupported-geometry": 98,
+        "validation": 604,
+        "vertices": 54600
+      },
+      "two_exports_byte_identical": true,
+      "validation": "validated=1076894 source/decoded/UV/world/style/partition records; no GL, engine or reconstruction"
+    },
+    "hoth3": {
+      "compiler_known": false,
+      "dataset_bytes": 45932880,
+      "dataset_sha256": "2509d16bff3bb610aa118e7ae712b3bd97120f7b783193f18fc5d2c07af3b8ab",
+      "derived_complete": false,
+      "derived_pages": 2,
+      "historical_absolute_scale": "unknown",
+      "region_roi_radius_world": 256,
+      "source_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "statistics": {
+        "ambiguous": 368,
+        "build-peak-estimate": 25657734,
+        "bytes": 13920700,
+        "candidates": 612,
+        "collision-bytes": 1490558,
+        "complete": 0,
+        "covered": 11542,
+        "deluxe": 38,
+        "derived-samples": 32768,
+        "emissive-surfaces": 224,
+        "evidence": 661,
+        "file-bytes": 45932880,
+        "grid-cells": 229068,
+        "held-out": 2451,
+        "hint-policy": 0,
+        "images": 76,
+        "invalid-grid": 0,
+        "known": 0,
+        "maximum-tile-object-bytes": 167936,
+        "missing-grid": 0,
+        "missing-images": 38,
+        "outside": 0,
+        "padding": 3981,
+        "partition-seed": 20261024,
+        "pixels": 622592,
+        "raw-image-bytes": 1867776,
+        "region-cells": 31340,
+        "region-free": 0,
+        "regions": 0,
+        "sky": 0,
+        "snapshot-bytes": 7567054,
+        "solid": 2958,
+        "source-component-memory-estimate": 31199201,
+        "spatial-block": 128,
+        "surfaces": 12911,
+        "synthetic": 0,
+        "train": 27843,
+        "triangles": 53221,
+        "unknown": 28382,
+        "unknown-material": 0,
+        "unsupported-geometry": 54,
+        "validation": 2474,
+        "vertices": 83772
+      },
+      "two_exports_byte_identical": true,
+      "validation": "validated=261836 source/decoded/UV/world/style/partition records; no GL, engine or reconstruction"
+    }
+  },
+  "strict_gcc": {
+    "flags": "-std=c++11 -Wall -Wextra -Werror -pedantic -fsyntax-only",
+    "passed": true,
+    "translation_units": 6
+  },
+  "synthetic": {
+    "gcc": {
+      "q3map2_executed": false,
+      "scenes": {
+        "bounce_colour": {
+          "answer_sha256": "014aae77528f6580359957105f7811dca9af8950f64836208a7b38651d13882e",
+          "bytes": 1238600,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "932f9aa7f8845ce0fb427eb483c1e06efe1d2ea3505ba6b38671f4c179b4c308",
+          "source_sha256": "3408598d67a41e0d2f5098e6fc65913ec0d0f53749f15ca2b078de21c3698088",
+          "validated": true
+        },
+        "door_occlusion": {
+          "answer_sha256": "17a3ad2857fd14da62394cf054ef41c257407b1a46ede73431c2c3f1b533ff90",
+          "bytes": 1295192,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "97b17cdd3d59ea108f5245454781b932d3d95dce880e3c89cc8c42d44960e60e",
+          "source_sha256": "38828168158422b549ed3c47afeb78ec6b3c59850662eb40b60cb67a02142582",
+          "validated": true
+        },
+        "overlap_whites": {
+          "answer_sha256": "1110006cc7ba84f75613338fa25a0c0fab408cd65bf1fd0fbb8eba3f9c12809f",
+          "bytes": 1228184,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "f12469cf7effdc7c283b5e0f5186811779f62d46332b160fae0a9a333da54a3e",
+          "source_sha256": "5665dc8a4ea263c4bd401e80ff926a894618c85b866ed18debe22e0388504da4",
+          "validated": true
+        },
+        "panel": {
+          "answer_sha256": "c2f7a6120fc5dab1ef137057c8bd3ffbd7deeeefec3e8d08f762f83925641f4f",
+          "bytes": 1268312,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "bfcbbdef15bb13643c565fa93d3730d3589e414f1df5d79c5dd3ec58fc20bae9",
+          "source_sha256": "218ab590267d00a02c9f32d7a8b3a7ff4fe0d29d7312d47abf0bd304e839b433",
+          "validated": true
+        },
+        "point_room": {
+          "answer_sha256": "5cf98ab7fcec45dc4abd70c378765c696365b019adf16db50eaa9b9cd2b7e46c",
+          "bytes": 1228168,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "177fe6441d5cfc7673f4bae0c7c46e6aca05cd6f39876f18d415dafd5b19da2e",
+          "source_sha256": "e84a7d55f7231dcca7cf0147ad474e6dbdc7df2d6ef0c103b0206574f2bc0a09",
+          "validated": true
+        },
+        "skylight": {
+          "answer_sha256": "4d60f99207ebd5297b16988066faffde1d6649a7944541e1e1a21d83a6e3a927",
+          "bytes": 1231696,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "f7137fca477c61387e9706b78111b7a49d26154c3bb0b89e0966ec6ecef75672",
+          "source_sha256": "50fcc2a96893d43809a17fdde8e14ab440118fa9a969a401168b06fd114de5dc",
+          "validated": true
+        },
+        "spot": {
+          "answer_sha256": "8ef81d996ef909cdf275c4b168e2aad66c59b5d49612ea9c90dede1f51cbdcd7",
+          "bytes": 1228152,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "14e0147c2d832d0824cf00828418967f916b257ede5e43d290024bc6da551a73",
+          "source_sha256": "6f5a8555c8816434e61df9515b57c2cca26e13115a2972fe31c694ca1e523805",
+          "validated": true
+        },
+        "sun_sky": {
+          "answer_sha256": "7dc5af506805b79f5c58ea8666578c4a2bc143769cbc4d203350bcb837fa6ff9",
+          "bytes": 1163712,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "9b87ff4e5e9d836a4b5339ad2e1e4651d0a6519e0899d8a460d03d697fb1106c",
+          "source_sha256": "623c5c1c00ca07356867403c6f9c48a06fe0f70793997bdba96a638c3cf3ece5",
+          "validated": true
+        },
+        "tube": {
+          "answer_sha256": "059a341b522904712946bb01707ac67c167e813d16662905d89f3d378bf3c3bb",
+          "bytes": 1252200,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "d1c53843629c0ffb77a08f264fd1359b7cab5d976405fa00a33308f63d3f83d0",
+          "source_sha256": "4036af61b6ec6e6223f364d0c114d082ec4ad27efd0c476f1fbbfe75e3fe1c53",
+          "validated": true
+        },
+        "two_colour": {
+          "answer_sha256": "7060d7741d00a2833aece8b8cadf17a020aebc71f9f67c10b58af7f1231e3823",
+          "bytes": 1228168,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "6e2013ae27caa0058798eb90cd93b31920a0e06f402c6db799398ffc920c735c",
+          "source_sha256": "9bbc1368174e729ae53e6e4fbda4410dcca000c388df4cb84f43b367dab9a2f6",
+          "validated": true
+        },
+        "wall_leak": {
+          "answer_sha256": "5f94cfdb41266c2f1577a285e2604a14d150c677747852ee53f4129235ca0239",
+          "bytes": 1289456,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "d047bed96e69ccc980a65fd7747dcaa1419f00d32dbd12f14a469be836edb893",
+          "source_sha256": "6abdf24e4e1f921dccbea4efd2a0725a51c59cadb7f83135706f4e9ff467ff5a",
+          "validated": true
+        }
+      },
+      "schema": "org.openjk.offline-dataset-suite",
+      "spatial_partition_control": "point_room JSONL blocks disjoint, all three nonempty",
+      "tool_sha256": "1d462fc1f2fe8ac9e3442615d5c45a1b50f1e19c6f6203f6168cf9d54b5be7b3",
+      "tool_version": "org.openjk.offline-dataset-tool.v1 GNU/Clang 16.2.0",
+      "version": 1
+    },
+    "msvc": {
+      "q3map2_executed": false,
+      "scenes": {
+        "bounce_colour": {
+          "answer_sha256": "014aae77528f6580359957105f7811dca9af8950f64836208a7b38651d13882e",
+          "bytes": 1238600,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "01dd8bad24b0a2e1b48d99588e70aa5ada72ec9377d3f1354e33c4a43863948c",
+          "source_sha256": "3408598d67a41e0d2f5098e6fc65913ec0d0f53749f15ca2b078de21c3698088",
+          "validated": true
+        },
+        "door_occlusion": {
+          "answer_sha256": "17a3ad2857fd14da62394cf054ef41c257407b1a46ede73431c2c3f1b533ff90",
+          "bytes": 1295192,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "a868e4b86437c09bd8d5f806cf794538126232ee53122cd36c4a75c7d82b5a73",
+          "source_sha256": "38828168158422b549ed3c47afeb78ec6b3c59850662eb40b60cb67a02142582",
+          "validated": true
+        },
+        "overlap_whites": {
+          "answer_sha256": "1110006cc7ba84f75613338fa25a0c0fab408cd65bf1fd0fbb8eba3f9c12809f",
+          "bytes": 1228184,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "99f5b5f2a168efb9fdae6b9f89318b74fdb04345eed525eaaf0e329389ad950b",
+          "source_sha256": "5665dc8a4ea263c4bd401e80ff926a894618c85b866ed18debe22e0388504da4",
+          "validated": true
+        },
+        "panel": {
+          "answer_sha256": "c2f7a6120fc5dab1ef137057c8bd3ffbd7deeeefec3e8d08f762f83925641f4f",
+          "bytes": 1268312,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "d2d7bc555caa4014902b429a2fd689f8e3812179bbf547e33788eac70addb862",
+          "source_sha256": "218ab590267d00a02c9f32d7a8b3a7ff4fe0d29d7312d47abf0bd304e839b433",
+          "validated": true
+        },
+        "point_room": {
+          "answer_sha256": "5cf98ab7fcec45dc4abd70c378765c696365b019adf16db50eaa9b9cd2b7e46c",
+          "bytes": 1228168,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "4a2c9d443c1a5de75c718737b309915f25b564d1b0ea03bd824a40111b42a8e4",
+          "source_sha256": "e84a7d55f7231dcca7cf0147ad474e6dbdc7df2d6ef0c103b0206574f2bc0a09",
+          "validated": true
+        },
+        "skylight": {
+          "answer_sha256": "4d60f99207ebd5297b16988066faffde1d6649a7944541e1e1a21d83a6e3a927",
+          "bytes": 1231696,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "68112988a6ec057305a451449edf1a4830ca9495ddb4cbabe079f51c8a794b62",
+          "source_sha256": "50fcc2a96893d43809a17fdde8e14ab440118fa9a969a401168b06fd114de5dc",
+          "validated": true
+        },
+        "spot": {
+          "answer_sha256": "8ef81d996ef909cdf275c4b168e2aad66c59b5d49612ea9c90dede1f51cbdcd7",
+          "bytes": 1228144,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "f87f2444a0a024c21bf4263e9db4706a880e7c7b2044376b90dff39e8be1ba32",
+          "source_sha256": "6f5a8555c8816434e61df9515b57c2cca26e13115a2972fe31c694ca1e523805",
+          "validated": true
+        },
+        "sun_sky": {
+          "answer_sha256": "7dc5af506805b79f5c58ea8666578c4a2bc143769cbc4d203350bcb837fa6ff9",
+          "bytes": 1163712,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "22c05506e20b91fcf593087388d1dc78f901f9715c13b7bca053508a532f247c",
+          "source_sha256": "623c5c1c00ca07356867403c6f9c48a06fe0f70793997bdba96a638c3cf3ece5",
+          "validated": true
+        },
+        "tube": {
+          "answer_sha256": "059a341b522904712946bb01707ac67c167e813d16662905d89f3d378bf3c3bb",
+          "bytes": 1252192,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "acded85cdefd3a6c891ef6d1a0ec149ebd67df41a02b5a58697fd25abd288ed1",
+          "source_sha256": "4036af61b6ec6e6223f364d0c114d082ec4ad27efd0c476f1fbbfe75e3fe1c53",
+          "validated": true
+        },
+        "two_colour": {
+          "answer_sha256": "7060d7741d00a2833aece8b8cadf17a020aebc71f9f67c10b58af7f1231e3823",
+          "bytes": 1228168,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "318a5467455437949cb86064a76bbbe35707b767b15990792515c06660e2cc33",
+          "source_sha256": "9bbc1368174e729ae53e6e4fbda4410dcca000c388df4cb84f43b367dab9a2f6",
+          "validated": true
+        },
+        "wall_leak": {
+          "answer_sha256": "5f94cfdb41266c2f1577a285e2604a14d150c677747852ee53f4129235ca0239",
+          "bytes": 1289456,
+          "inspected": true,
+          "repeated_bytes_identical": true,
+          "sha256": "0690345f4793aed50297fd35a5a87975d7bb852baa2a808ad5b832882f339f29",
+          "source_sha256": "6abdf24e4e1f921dccbea4efd2a0725a51c59cadb7f83135706f4e9ff467ff5a",
+          "validated": true
+        }
+      },
+      "schema": "org.openjk.offline-dataset-suite",
+      "spatial_partition_control": "point_room JSONL blocks disjoint, all three nonempty",
+      "tool_sha256": "beb6d84d9bc922409b8037964bcd931ca16430a0be3364bbd1b4781d94a7ef21",
+      "tool_version": "org.openjk.offline-dataset-tool.v1 MSVC 192729111",
+      "version": 1
+    }
+  },
+  "unperformed": [
+    "q3map2 compilation/baking of own .map scenes (no compiler available)",
+    "compiled-own-map ground-truth/runtime validation",
+    "GPU shader matrix compilation or screenshot regression for this task",
+    "numerical inverse fitting (outside task scope)"
+  ],
+  "version": 1
+}

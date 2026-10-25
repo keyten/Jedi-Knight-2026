@@ -202,7 +202,7 @@ void GeometryTests()
 	in.geometry = Geometry({p});
 	s = Run(in);
 	CHECK(!s->Evidence()[0].positionKnown);
-	CHECK(s->Evidence()[0].issues & UnsupportedGeometry);
+	CHECK(s->Evidence()[0].issues & EvidenceUnsupportedGeometry);
 	p = Panel();
 	p.materialFacts.emissionCoordinatesKnown = true;
 	p.materialFacts.emissionStaticCoordinates = false;

@@ -2043,6 +2043,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_lightReconLuxels", R_LuxelDebug_f },
 	{ "r_lightReconObservations", R_LightReconObservations_f },
 	{ "r_lightReconEvidence", R_LightReconEvidence_f },
+	{ "r_lightReconExport", R_LightReconExport_f },
 	{ "r_pbrInfo",		R_PBRInfo_f },
 	{ "r_pbrLight",		R_PBRLight_f },
 	{ "r_fogvol",			R_FogVolume_f },
