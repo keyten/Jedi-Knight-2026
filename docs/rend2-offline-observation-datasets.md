@@ -320,6 +320,10 @@ not a sandbox or a complete replacement for the typed importer.
 
 ### Optional q3map2 bake
 
+The real compiler/SP validation has now been executed. See
+[q3map2 validation](rend2-q3map2-validation.md) for the pinned installation,
+reproduction commands, independent checks and compiler reproducibility limits.
+
 Pass `--q3map2 <absolute compiler path>` to the Python workflow. It records the
 compiler binary SHA, actual help/version output, exact command argv and stage
 logs, and sets `executed=true` only after BSP, VIS and LIGHT succeed. The recipe is
@@ -386,10 +390,12 @@ than fabricated topology. Fixtures have nonempty certified region graphs. This
 is an existing observation/visibility limitation to resolve before production
 fitting, not a solved room reconstruction.
 
-No q3map2 executable was available locally. Generated `.map` sources and exact
-recipes exist, but compiled-map bake/ground-truth tests were **not run**. CPU
-fixtures and real renderer observation export are tested separately. There is
-no inverse solver, numerical light fitting, GI solution or new runtime consumer.
+At the original validation revision, no q3map2 executable was available and
+compiled-map bake/ground-truth tests were **not run**. That historical witness is
+retained in `tools/rend2/datasets/validation.json`. The subsequent
+[real q3map2 validation](rend2-q3map2-validation.md) records the completed bake,
+actual SP exports and independent geometry/lighting checks separately. There is
+no inverse solver, numerical light fitting or new runtime consumer.
 
 ### Results, 2026-10-25
 

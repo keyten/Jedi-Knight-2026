@@ -24,3 +24,11 @@ stock SP map loading and repeated CPU exports. No game content belongs in Git.
 ground-truth answer. Generated own-content fixtures are GPL-2.0-or-later;
 repository code is governed by `LICENSE.txt`. q3map2 bakes are explicitly
 unverified when no compiler is supplied.
+
+The subsequent [real q3map2/SP validation](../../../docs/rend2-q3map2-validation.md)
+adds `test_q3map2_runtime.py` (actual map load, raw CPU audits and blind admission),
+`verify_q3map2.py` (independent BSP mapping, lighting and visibility checks) and
+`test_q3map2_recipe.py` (six dependency-free reporting guards). The small
+`q3map2-validation.json` witness records that run. Compiler outputs and all game
+content remain local under ignored `build/` directories. Full BSP reproducibility
+and identical-input dataset reproducibility are reported separately.

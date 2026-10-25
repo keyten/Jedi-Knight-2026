@@ -1,0 +1,983 @@
+{
+  "base_revision": "704b21871f4a597b52f89d0e4ae13dd1526631f1",
+  "compiler": {
+    "distribution": "NetRadiant 1.5.0-20220628 Windows amd64",
+    "executable_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+    "official_download": "https://dl.illwieckz.net/share/netradiant/release/netradiant_1.5.0-20220628-windows-amd64.zip",
+    "package_bytes": 59858083,
+    "verified_package_sha512": "2c8e7979b77ed2b63b6483c77d5ff4c0d11e0050b72143b151640bd1748417a3622fc265e3d0e713d735c449323135b41320d50491cafd5b26213da24f00422d",
+    "version": "2.5.17n-git-d9338309e"
+  },
+  "date": "2026-10-25",
+  "limitations": [
+    "External compiler whole-BSP reproducibility is not guaranteed; ancillary fields and a prior near-solid grid difference are retained/reported.",
+    "Same-BSP export and admitted dataset reproducibility passed; no output BSP or source hash was normalized.",
+    "Original intensity values are legacy q3map2 units; absolute physical scale and lightgrid/lightmap calibration remain unknown.",
+    "Planar brush fixtures only for actual q3map2 run; external HDR, animated styles and curved patch bakes not claimed.",
+    "Actual SP run; no new MP gameplay or large stock-map peak RSS measurement.",
+    "No solver, reconstruction accuracy or runtime lighting consumer implemented."
+  ],
+  "local_outputs": {
+    "bakes": "build/q3map2-bake-verified",
+    "runtime": "build/q3map2-runtime-verified"
+  },
+  "maps": {
+    "bounce_colour": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 108056,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "196d7e224ec2ce82c2cdfca537e5efcf420718d5d46897d91b18b7e8a0fbf00b",
+        "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617"
+      ],
+      "bsp_sha256": "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10574336,
+      "dataset_sha256": "5b66798eb7ad3114f2bb0cbcb532b830db98be7cb189ae5d77d1f05db3402e8c",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "2af407bc70a8dedbe4dff82ae9d189b92596b1b3c889f2cccbc0182f7bf80b61",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1756483,
+      "source_map_sha256": "e41dffe2df06cb5e558cec8af12ca93af15f46b4290c260cae621158db82e781"
+    },
+    "bounce_control": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 108056,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "e506854ce0ac05be4823cd4b28469d9bef8d1a0cf25ce38af6411e7867e2fb90",
+        "1fbee6e56a4e10f6b03ba1eac9bbc0cb6da0c76dad793a681a789ad2fb244cbe"
+      ],
+      "bsp_sha256": "1fbee6e56a4e10f6b03ba1eac9bbc0cb6da0c76dad793a681a789ad2fb244cbe",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10574336,
+      "dataset_sha256": "b5fa275b29f4b955981720c770570538193e6505bda63629a6b0befc089a39fa",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "1fbee6e56a4e10f6b03ba1eac9bbc0cb6da0c76dad793a681a789ad2fb244cbe",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "1a35c97d9dfbd295a0542ec3c5c52ac2b0cf1617d99ed99efb7b4c7b985a1d04",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1756486,
+      "source_map_sha256": "e41dffe2df06cb5e558cec8af12ca93af15f46b4290c260cae621158db82e781"
+    },
+    "door_occlusion": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [],
+      "bsp_bytes": 112448,
+      "bsp_repeat_identical": true,
+      "bsp_repeated_sha256": [
+        "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+        "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39"
+      ],
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2539,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 13845,
+        "region-cells": 7596,
+        "regions": 2,
+        "surfaces": 11,
+        "triangles": 34,
+        "vertices": 56
+      },
+      "dataset_bytes": 10646968,
+      "dataset_sha256": "e69241c38d2086ff5433751cb1dcafece28d128c37baf927cb38a52ddcc19157",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 2160,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 56,
+        "source_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+        "verified_world_deluxe_directions": 2539
+      },
+      "raw_export_sha256": "b2e0d4bba9d96155424d5459fa454c625be9bcf0555b69050f5a2d76416e6277",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1770224,
+      "source_map_sha256": "de92cc7a6943599f7fd88f430d80a9f589ee15cdaa0aacb98ad5d20a2285f796"
+    },
+    "overlap_whites": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 107984,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "54276589c8c1121d84c9e05e8adc8c4a7868135d93af830db79c809fc5724e38",
+        "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f"
+      ],
+      "bsp_sha256": "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10574336,
+      "dataset_sha256": "f997bf0aa44c2f12221b96edbe09f8119e628ba7a9db3d4683dc5dfa8e82e0e7",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "227eb9107d7eb60ee84fd797ae81c46754ff42c7ad2bd5e076ff0b98f9a06c07",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1756490,
+      "source_map_sha256": "571b7f87906db8a4a7b43541838e66be759321a2bc6280ce88a3fb7dd2c536eb"
+    },
+    "panel": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [],
+      "bsp_bytes": 112720,
+      "bsp_repeat_identical": true,
+      "bsp_repeated_sha256": [
+        "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+        "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a"
+      ],
+      "bsp_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 12,
+        "covered": 2328,
+        "evidence": 12,
+        "grid-cells": 105,
+        "padding": 14056,
+        "region-cells": 7372,
+        "regions": 1,
+        "surfaces": 12,
+        "triangles": 24,
+        "vertices": 48
+      },
+      "dataset_bytes": 10628568,
+      "dataset_sha256": "09f12ee44131e98a4b0716e4a7c7620e3b8691910da79f187942d8d7015801f3",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 2970,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 48,
+        "source_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+        "verified_world_deluxe_directions": 2328
+      },
+      "raw_export_sha256": "93b998f89e54d8752633fb2da7ab4c82c11580f8709904bbbe73ed3b1a93af17",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1783683,
+      "source_map_sha256": "c09bfbac2d7a970809e6ef15b284db639f1c000baeabb36fae992f34a9615439"
+    },
+    "point_room": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 107984,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "58a50f0d4dde0143b03896cc28a0336947156b9048dea2c19aa9cbc52bd0f9da",
+        "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af"
+      ],
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10574312,
+      "dataset_sha256": "a416eb4801e3c4f0a8a88e7c4d80036511ee2974a6b14bba78531356c7db6f8f",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "296273495ddbe63f066c5f9e043db3877c1a92ff127c5b3f45400ef12e1da911",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1756478,
+      "source_map_sha256": "a8651c3a9db67b0a487841bceae99f87a5473ac07be72278b0d93f4d56a1c929"
+    },
+    "skylight": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 110440,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "00b644b15d49585ebd23e1a7af072c0632023db1c03bd9943cd0909aa8ddaec1",
+        "b6bdb70e3f5de43f13bab50774a36aff9b024fc0731e71f1bf9235446981c15e"
+      ],
+      "bsp_sha256": "b6bdb70e3f5de43f13bab50774a36aff9b024fc0731e71f1bf9235446981c15e",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 2,
+        "covered": 1893,
+        "evidence": 2,
+        "grid-cells": 105,
+        "padding": 14491,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 11,
+        "triangles": 36,
+        "vertices": 56
+      },
+      "dataset_bytes": 10580520,
+      "dataset_sha256": "f52f380a98d5b605d178cc3469c42b93f829a65afec84cf324d8943bae2df0af",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 330,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 56,
+        "source_sha256": "b6bdb70e3f5de43f13bab50774a36aff9b024fc0731e71f1bf9235446981c15e",
+        "verified_world_deluxe_directions": 1893
+      },
+      "raw_export_sha256": "271e9b698d5d90d85b3140318a53e1475e6a0fe1a8ac6f697b8f89ab14bdd023",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1763524,
+      "source_map_sha256": "8e2a9391335507769f87c72e6cfb7d3f1c3ac8e257adfae23db0f4a64f12e9ec"
+    },
+    "spot": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 105700,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "cc3e8e70d55e6e1b73f9f3d2839965d2de4620ec30917f3167a567e31cd0f2a9",
+        "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee"
+      ],
+      "bsp_sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 1139,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 15245,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10571872,
+      "dataset_sha256": "9ed0e5eb802dcd8edd1e27972f44a28bf028fcacf4f636e42ed4ed27b0615d36",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 750,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee",
+        "verified_world_deluxe_directions": 1139
+      },
+      "raw_export_sha256": "38898f3af38929a93c9350c86c38263f3565556734fefef9d5ee4ac4b4d8e123",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1754060,
+      "source_map_sha256": "8f3034b8dd1c18c9ae6e912ead67d4ce081a33d5c72709d97e06be8a451e6d28"
+    },
+    "sun_sky": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 105416,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "24bf8e6195f813a2e60ad157f111077f3714f609c3817cf6f1c757eaee2db717",
+        "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e"
+      ],
+      "bsp_sha256": "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 2,
+        "covered": 1853,
+        "evidence": 2,
+        "grid-cells": 105,
+        "padding": 14531,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10572312,
+      "dataset_sha256": "c2bd54623b66a6288be8869635773e9b8a476e865771608fd8099f5366fc371b",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 510,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e",
+        "verified_world_deluxe_directions": 1853
+      },
+      "raw_export_sha256": "e8597ef0cb5727b24b36609318ee8800f04a6afb447f5146d426d956087ed482",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1755561,
+      "source_map_sha256": "1ed9b2c10f0683d8d4f6558b55118fd618f200bacc214e2ecf65b681ef02cdaf"
+    },
+    "tube": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [],
+      "bsp_bytes": 112900,
+      "bsp_repeat_identical": true,
+      "bsp_repeated_sha256": [
+        "b1150cdbbd382dc58ab74e9f13496a12da27d5a29f4a0b57d169c3140c2b61e8",
+        "b1150cdbbd382dc58ab74e9f13496a12da27d5a29f4a0b57d169c3140c2b61e8"
+      ],
+      "bsp_sha256": "b1150cdbbd382dc58ab74e9f13496a12da27d5a29f4a0b57d169c3140c2b61e8",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 12,
+        "covered": 2311,
+        "evidence": 12,
+        "grid-cells": 105,
+        "padding": 14073,
+        "region-cells": 7302,
+        "regions": 1,
+        "surfaces": 12,
+        "triangles": 24,
+        "vertices": 48
+      },
+      "dataset_bytes": 10612512,
+      "dataset_sha256": "c309aa8ac68435d82f1884c46158a3fb5f4335cd228cdabd0f805917b5762c26",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 48,
+        "source_sha256": "b1150cdbbd382dc58ab74e9f13496a12da27d5a29f4a0b57d169c3140c2b61e8",
+        "verified_world_deluxe_directions": 2311
+      },
+      "raw_export_sha256": "b39079d42f7295c320eb8efc6a9301aefbfc387c69f6e7d7ebabe6e6832cf0c1",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1783634,
+      "source_map_sha256": "7dc7c48dc6e9d2d9c0a7d7b6f28382c06a6d4956389c781bb640362a3c1d1143"
+    },
+    "two_colour": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [
+        0
+      ],
+      "bsp_bytes": 107984,
+      "bsp_repeat_identical": false,
+      "bsp_repeated_sha256": [
+        "6bb14614002ee6623d8818f0978db741a8f25d113c95fa2da8b08c69d2150e22",
+        "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1"
+      ],
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7211,
+        "regions": 1,
+        "surfaces": 6,
+        "triangles": 12,
+        "vertices": 24
+      },
+      "dataset_bytes": 10574312,
+      "dataset_sha256": "d9c37be2dae7d57818dbce2130b1ee871f7567a8c9d8958cf0ac96283f1b17dc",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 3150,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 24,
+        "source_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "b09be9696e72970d056e1dabbc88f0be4418d9ad4604a2d8290ee6ffa8cb788c",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1756478,
+      "source_map_sha256": "95b5e8610ad46e5dacd05c00fbbfecf8b3465fef15f38153648efb1ebbc93b76"
+    },
+    "wall_leak": {
+      "admitted_pair_identical": true,
+      "ancillary_brushsides": [],
+      "bsp_bytes": 107968,
+      "bsp_repeat_identical": true,
+      "bsp_repeated_sha256": [
+        "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+        "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527"
+      ],
+      "bsp_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+      "camera": [
+        "-150 -96 76",
+        "0 29 0",
+        "80"
+      ],
+      "counts": {
+        "candidates": 0,
+        "covered": 2278,
+        "evidence": 0,
+        "grid-cells": 105,
+        "padding": 14106,
+        "region-cells": 7624,
+        "regions": 2,
+        "surfaces": 8,
+        "triangles": 16,
+        "vertices": 32
+      },
+      "dataset_bytes": 10637232,
+      "dataset_sha256": "bca4e88c5d1888ba873b177df8449b823eccdbda0a79f817791c7fae5e24322f",
+      "image_repeat": {
+        "differing_pixels": 0,
+        "exact": true,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "passed": true,
+        "pixels": 518400
+      },
+      "maximum_tile_object_bytes": 167936,
+      "raw_audit": {
+        "exact_grid_bytes": 1620,
+        "exact_grid_index_bytes": 210,
+        "exact_image_bytes": 98304,
+        "exact_source_vertices": 32,
+        "source_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+        "verified_world_deluxe_directions": 2278
+      },
+      "raw_export_sha256": "3f4d0d9c88982a1c8bb3b95bb6e56b7dc6d144f3221d98578a9d6b34683db0a2",
+      "raw_grid_repeat_identical": true,
+      "same_bsp_export_pair_identical": true,
+      "source_component_memory_estimate": 1757617,
+      "source_map_sha256": "86328e8abef971f2db19b00718c3fdb1929d9b5bdc8e791631c9c8f724562937"
+    }
+  },
+  "maximum_source_component_memory_estimate": 1783683,
+  "numerical_verification": {
+    "claims": "raw transport/geometry behaviour, not fitting accuracy or calibrated physical intensity",
+    "independent_world_samples": 25731,
+    "maps": {
+      "bounce_colour": {
+        "samples": 2278,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "bounce_control": {
+        "samples": 2278,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "door_occlusion": {
+        "samples": 2539,
+        "source_surfaces": 11,
+        "spatial_partitions_disjoint": true
+      },
+      "overlap_whites": {
+        "samples": 2278,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "panel": {
+        "samples": 2328,
+        "source_surfaces": 12,
+        "spatial_partitions_disjoint": true
+      },
+      "point_room": {
+        "samples": 2278,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "skylight": {
+        "samples": 1893,
+        "source_surfaces": 11,
+        "spatial_partitions_disjoint": true
+      },
+      "spot": {
+        "samples": 1139,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "sun_sky": {
+        "samples": 1853,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "tube": {
+        "samples": 2311,
+        "source_surfaces": 12,
+        "spatial_partitions_disjoint": true
+      },
+      "two_colour": {
+        "samples": 2278,
+        "source_surfaces": 6,
+        "spatial_partitions_disjoint": true
+      },
+      "wall_leak": {
+        "samples": 2278,
+        "source_surfaces": 8,
+        "spatial_partitions_disjoint": true
+      }
+    },
+    "maximum_world_mapping_error": 3.1776437161565096e-14,
+    "metrics": {
+      "bounce_delta_rgb": [
+        26.80598958333333,
+        20.727213541666664,
+        20.077473958333336
+      ],
+      "door_lit": 17.88888888888889,
+      "door_shadow": 0.0,
+      "one_point_mean": 35.1875,
+      "panel_mean": 1.5598958333333333,
+      "spot_inside": 23.357466063348415,
+      "spot_outside": 0.0,
+      "tube_mean": 5.802083333333333,
+      "two_colour_left_r_b": 3.0721850822504315,
+      "two_colour_right_r_b": 0.28697852560355913,
+      "two_white_mean": 75.96940104166667,
+      "wall_left": 51.849264705882355,
+      "wall_right": 0.0
+    },
+    "passed": true,
+    "rejection_checks": {
+      "contaminated_public_profile": {
+        "diagnostic": "dataset error: Ground-truth data in public bake profile",
+        "exit_code": 1
+      },
+      "corrupted_archive": {
+        "diagnostic": "dataset error: 2: Section integrity checksum mismatch",
+        "exit_code": 1
+      },
+      "mismatched_source": {
+        "diagnostic": "dataset error: Original source BSP fingerprint mismatch",
+        "exit_code": 1
+      },
+      "private_answer_profile": {
+        "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+        "exit_code": 1
+      },
+      "unknown_transfer": {
+        "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+        "exit_code": 1
+      }
+    },
+    "schema": "org.openjk.q3map2-bake-observation-checks",
+    "traces": {
+      "door_occlusion[-80, 0, 80]": "visibility=0 sky=0 surface=0 issues=0 bvh-bytes=9004",
+      "point_room[0, 0, 1]": "visibility=1 sky=0 surface=3 issues=0 bvh-bytes=3424",
+      "skylight[0, 0, 1]": "visibility=0 sky=1 surface=1 issues=0 bvh-bytes=9494",
+      "skylight[100, 0, 1]": "visibility=1 sky=0 surface=4 issues=0 bvh-bytes=9494",
+      "sun_sky[0, 0, 1]": "visibility=0 sky=1 surface=1 issues=0 bvh-bytes=3421",
+      "wall_leak[-80, 0, 80]": "visibility=1 sky=0 surface=3 issues=0 bvh-bytes=4463"
+    },
+    "version": 1
+  },
+  "renderers": {
+    "rd-rend2_x86_64.dll": {
+      "release_build_passed": true,
+      "sha256": "acf0b9d0bb2dfe3d0745a91e29af4af91718598517b95b5adb3a392e566b52a5"
+    },
+    "rdsp-rend2_x86_64.dll": {
+      "release_build_passed": true,
+      "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+    }
+  },
+  "runtime_images": {
+    "contact_sheet": "build/q3map2-contact.png",
+    "differing_pixels": 0,
+    "height": 540,
+    "maximum_channel_difference": 0,
+    "observation_input": false,
+    "pairs": 12,
+    "width": 960
+  },
+  "schema": "org.openjk.q3map2-observation-validation",
+  "settings": {
+    "cg_bobpitch": 0,
+    "cg_bobroll": 0,
+    "cg_bobup": 0,
+    "cg_draw2D": 0,
+    "cg_drawGun": 0,
+    "cg_fov": 80,
+    "cg_runpitch": 0,
+    "cg_runroll": 0,
+    "cg_smoothCamera": 0,
+    "cg_thirdPersonCameraDamp": 1,
+    "cg_thirdPersonRange": 0,
+    "cg_thirdPersonTargetDamp": 1,
+    "cg_thirdPersonVertOffset": 0,
+    "cl_renderer": "rdsp-rend2",
+    "com_bootlogo": 0,
+    "com_maxfps": 60,
+    "com_maxfpsMinimized": 60,
+    "com_maxfpsUnfocused": 60,
+    "developer": 0,
+    "fs_basepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-runtime-verified\\stock-assets",
+    "fs_game": "OpenJK",
+    "fs_homepath": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-runtime-verified\\run\\home",
+    "fx_physicalization": 0,
+    "fx_physicalizationEmission": 0,
+    "fx_physicalizationSources": 0,
+    "in_mouse": 0,
+    "logfile": 2,
+    "r_aoMode": 0,
+    "r_atmosphere": 0,
+    "r_autoExposure": 0,
+    "r_autoPBR": 0,
+    "r_cameraExposure": 0,
+    "r_cameraMode": 0,
+    "r_clouds": 0,
+    "r_contactShadows": 0,
+    "r_cubeMapping": 0,
+    "r_customheight": 540,
+    "r_customwidth": 960,
+    "r_deluxeMapping": 0,
+    "r_diffuseIBL": 0,
+    "r_drawentities": 0,
+    "r_dynamiclight": 0,
+    "r_entityLightGrid": 0,
+    "r_entityLightProbes": 0,
+    "r_entitySunSplit": 0,
+    "r_exposureCompensation": 0,
+    "r_ext_multisample": 0,
+    "r_forwardPlus": 0,
+    "r_fullscreen": 0,
+    "r_gamma": 1,
+    "r_gl43": 1,
+    "r_hdr": 1,
+    "r_intensity": 1,
+    "r_lightPortals": 0,
+    "r_lightReconArea": 1,
+    "r_lightReconBuild": 3,
+    "r_lightReconEntities": 1,
+    "r_lightReconEnvironment": 1,
+    "r_lightReconFog": 1,
+    "r_lightReconIndirect": 1,
+    "r_lightReconParticles": 1,
+    "r_lightReconShadows": 1,
+    "r_lightReconSpecular": 1,
+    "r_lightReconSun": 1,
+    "r_lightReconUse": 0,
+    "r_lightReconWorldDiffuse": 1,
+    "r_linearLighting": 0,
+    "r_ltcAreaCalibration": 0,
+    "r_ltcAreaLights": 0,
+    "r_ltcSaberAreaLights": 0,
+    "r_mapOverBrightBits": 0,
+    "r_mode": -1,
+    "r_motionBlur": 0,
+    "r_normalMapping": 0,
+    "r_overBrightBits": 0,
+    "r_pbrPhysical": 0,
+    "r_pbrWorldUnitsPerMeter": 32,
+    "r_recoveredVolumetricLights": 0,
+    "r_shaderCompileProcesses": 0,
+    "r_shaderProgramCache": 1,
+    "r_shaderProgramLazy": 1,
+    "r_shadowMapSize": 1024,
+    "r_skinSSS": 0,
+    "r_smaa": 0,
+    "r_specularAA": 0,
+    "r_specularMapping": 0,
+    "r_ssao": 0,
+    "r_ssgi": 0,
+    "r_ssr": 0,
+    "r_staticLightReconstruction": 0,
+    "r_sunShadowCache": 0,
+    "r_sunShadowMode": 0,
+    "r_sunlightMode": 0,
+    "r_swapInterval": 0,
+    "r_toneMap": 1,
+    "r_toneMapMode": 0,
+    "r_volumetricFog": 0,
+    "r_volumetricFogRGBExtinction": 0,
+    "r_volumetricFogStaticDirectional": 0,
+    "r_volumetricFogTemporal": 0,
+    "r_volumetricWater": 0,
+    "r_waterSurface": 0,
+    "r_weatherWetness": 0,
+    "s_initsound": 0
+  },
+  "synthetic_bakes": {
+    "compiler_stages_per_scene": 6,
+    "ground_truth": "private answers/*.q3map-recipe.json",
+    "maps": 12,
+    "prior_grid_repeat_failure": {
+      "bsp_bytes_modified_after_compiler": false,
+      "bsp_sha256": [
+        "72d70879eb77fbf9b3834aec391d7dc6faca17d26cefc8f2a1d3d55ab5db75a8",
+        "4c7abd5780043611a4e0fb557b2e6ec597eaa22f9b41bb43c1b65c43fbe2092c"
+      ],
+      "local_evidence_directory": "build/q3map2-bake-accepted/compiler-logs",
+      "repeated_bsp_identical": false,
+      "repeated_lightgrid_identical": false,
+      "repeated_lighting_geometry_identical": false,
+      "repeated_surface_lighting_geometry_identical": true,
+      "varying_ancillary_brushside_surface_refs": [],
+      "varying_logical_grid_cells": [
+        10,
+        17,
+        24,
+        31,
+        38,
+        45,
+        52,
+        59,
+        73,
+        87,
+        94,
+        101
+      ]
+    },
+    "surface_lighting_geometry_repeat_passed": true,
+    "whole_bsp_identical_pairs": 4
+  },
+  "tests": {
+    "checks_per_configuration": 665064,
+    "gcc_cpu_executables": 15,
+    "msvc_cpu_executables": 15,
+    "negative_cli_cases": {
+      "contaminated_public_profile": {
+        "diagnostic": "dataset error: Ground-truth data in public bake profile",
+        "exit_code": 1
+      },
+      "corrupted_archive": {
+        "diagnostic": "dataset error: 2: Section integrity checksum mismatch",
+        "exit_code": 1
+      },
+      "mismatched_source": {
+        "diagnostic": "dataset error: Original source BSP fingerprint mismatch",
+        "exit_code": 1
+      },
+      "private_answer_profile": {
+        "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+        "exit_code": 1
+      },
+      "unknown_transfer": {
+        "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+        "exit_code": 1
+      }
+    },
+    "offline_checks_per_configuration": 17500,
+    "python_reporting_guards": 6,
+    "strict_cpp11_warnings_passed": true
+  },
+  "tools": {
+    "admission_sha256": "d87d55e5ae0b6201dab1225ac03358da7eb37ef9f439a70193da4823c237a3c1",
+    "msvc_sky_tool_sha256": "13e4a3abc9bbcb2519504f731f0a2d048fc41726b394d74baa0a46f5dcf47c7e",
+    "sky_verification_sha256": "ed26893b29eb0a1a088d084c8554c317c5a609ccb1c62b9cc186d81133a6376d"
+  },
+  "total_dataset_bytes": 127121616,
+  "version": 1
+}

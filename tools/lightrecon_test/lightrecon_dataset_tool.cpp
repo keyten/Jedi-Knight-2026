@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iomanip>
+#include <cstring>
+#include <cmath>
 using namespace Rend2LightRecon;
 using namespace Rend2LightRecon::Core;
 using namespace Rend2LightRecon::Core::Offline;
@@ -14,6 +16,147 @@ void Check(Error e)
 {
 	if (!e)
 		throw std::runtime_error(std::to_string(unsigned(e.code)) + ": " + e.message);
+}
+std::vector<uint8_t> ReadSmallFile(const char *path)
+{
+	std::ifstream in(path, std::ios::binary | std::ios::ate);
+	auto size = in.tellg();
+	if (!in || size < 0 || size > 32 * 1024 * 1024)
+		throw std::runtime_error("Missing or oversized validation input (32 MiB limit)");
+	std::vector<uint8_t> bytes(static_cast<size_t>(size));
+	in.seekg(0);
+	if (size && !in.read(reinterpret_cast<char *>(bytes.data()), size))
+		throw std::runtime_error("Short validation input read");
+	return bytes;
+}
+void AuditBsp(const Offline::Dataset &data, const char *path)
+{
+	auto b = ReadSmallFile(path);
+	auto need = [](bool value, const char *message) {
+		if (!value)
+			throw std::runtime_error(message);
+	};
+	need(b.size() >= 152 && !std::memcmp(b.data(), "RBSP\1\0\0\0", 8), "Expected JA RBSP v1");
+	need(data.Info().map.bytes == b.size() &&
+			 data.Info().map.sha256 == Disk::Hash(b.data(), b.size()),
+		 "Original source BSP fingerprint mismatch");
+	auto u = [&](size_t pos) {
+		need(pos <= b.size() && b.size() - pos >= 4, "Truncated BSP field");
+		return uint32_t(b[pos]) | uint32_t(b[pos + 1]) << 8 | uint32_t(b[pos + 2]) << 16 |
+			   uint32_t(b[pos + 3]) << 24;
+	};
+	auto f = [&](size_t pos) {
+		auto bits = u(pos);
+		float value;
+		std::memcpy(&value, &bits, 4);
+		return value;
+	};
+	struct Lump
+	{
+		size_t offset, bytes;
+	} lumps[18];
+	for (size_t i = 0; i < 18; ++i)
+	{
+		lumps[i] = {u(8 + i * 8), u(12 + i * 8)};
+		need(lumps[i].offset <= b.size() && lumps[i].bytes <= b.size() - lumps[i].offset,
+			 "Invalid BSP lump");
+	}
+	Sources s;
+	RegionSnapshot graph;
+	Check(data.Load(s, graph));
+	need(s.images && s.grid && s.geometry, "Audit requires original images/grid/geometry");
+	uint64_t imageBytes = 0, vertices = 0, deluxeDirections = 0;
+	for (const auto &image : s.images->Images())
+	{
+		need(!image.missing && image.encoding == LightmapEncoding::BspRgb8 && image.bytes,
+			 "Controlled BSP fixture unexpectedly lacks an embedded image");
+		const auto &pixels = *image.bytes;
+		need(image.sourceOffset <= b.size() && pixels.size() <= b.size() - image.sourceOffset &&
+				 !std::memcmp(pixels.data(), b.data() + image.sourceOffset, pixels.size()),
+			 "Original pixel bytes changed");
+		imageBytes += pixels.size();
+	}
+	need(imageBytes == lumps[14].bytes, "Not every original colour/deluxe image was captured");
+	auto equal = [&](const std::vector<uint8_t> &raw, unsigned lump) {
+		need(raw.size() == lumps[lump].bytes &&
+				 !std::memcmp(raw.data(), b.data() + lumps[lump].offset, raw.size()),
+			 "Original grid bytes/indirection changed");
+	};
+	equal(s.grid->Records(), 15);
+	equal(s.grid->Indices(), 17);
+	need(s.geometry->Surfaces().size() == lumps[13].bytes / 148, "Surface ordinal/count mismatch");
+	for (const auto &surface : s.geometry->Surfaces())
+	{
+		size_t ds = lumps[13].offset + surface.ordinal * 148;
+		need(surface.materialIndex == u(ds), "BSP material ID changed");
+		need(surface.materialIndex < lumps[1].bytes / 72, "Invalid source material ID");
+		const char *name =
+			reinterpret_cast<const char *>(b.data() + lumps[1].offset + surface.materialIndex * 72);
+		size_t len = 0;
+		while (len < 64 && name[len])
+			++len;
+		need(surface.material == std::string(name, len), "Source material identity changed");
+		for (unsigned slot = 0; slot < 4; ++slot)
+			need(uint32_t(surface.lightmap[slot]) == u(ds + 36 + slot * 4) &&
+					 surface.styles[slot] == b[ds + 28 + slot] &&
+					 surface.vertexStyles[slot] == b[ds + 32 + slot],
+				 "Original style/lightmap identity changed");
+		for (const auto &v : surface.vertices)
+		{
+			need(v.sourceVertex < lumps[10].bytes / 80, "Invalid source vertex ID");
+			size_t pos = lumps[10].offset + v.sourceVertex * 80;
+			need(v.position.x == f(pos) && v.position.y == f(pos + 4) && v.position.z == f(pos + 8),
+				 "Original world coordinates changed");
+			need(v.shadingNormal.x == f(pos + 52) && v.shadingNormal.y == f(pos + 56) &&
+					 v.shadingNormal.z == f(pos + 60),
+				 "Original shading normal changed");
+			for (unsigned slot = 0; slot < 4; ++slot)
+				need(v.lightmap[slot].u == f(pos + 20 + slot * 8) &&
+						 v.lightmap[slot].v == f(pos + 24 + slot * 8) &&
+						 !std::memcmp(v.colour[slot], b.data() + pos + 64 + slot * 4, 4),
+					 "Original source UV/vertex colour changed");
+			++vertices;
+		}
+	}
+	for (size_t i = 0; i < data.Directory().size(); ++i)
+		if (data.Directory()[i].kind == 15)
+		{
+			std::vector<Luxel> tile;
+			Check(data.ReadLuxels(i, tile));
+			for (const auto &sample : tile)
+				if (sample.deluxe.state == DeluxeState::Available)
+				{
+					float x = sample.deluxe.raw[0] / 255.f - .5f,
+						  y = sample.deluxe.raw[1] / 255.f - .5f,
+						  z = sample.deluxe.raw[2] / 255.f - .5f;
+					float length = std::sqrt(x * x + y * y + z * z);
+					need(length > 0 && std::abs(sample.deluxe.toSource.x - x / length) < 1e-5 &&
+							 std::abs(sample.deluxe.toSource.y - y / length) < 1e-5 &&
+							 std::abs(sample.deluxe.toSource.z - z / length) < 1e-5,
+						 "World-space deluxe direction decoding changed");
+					++deluxeDirections;
+				}
+		}
+	if (s.metadata.hints == HintPolicy::BlindBenchmark)
+	{
+		for (const auto &surface : s.geometry->Surfaces())
+			need(surface.materialFacts.authoredLuminance == 0 &&
+					 surface.materialFacts.legacySurfaceLight == 0,
+				 "Authored intensity leaked into benchmark material");
+		if (s.evidence)
+			for (const auto &e : s.evidence->Evidence())
+				need((e.origin == EvidenceOrigin::GlowSurface ||
+					  e.origin == EvidenceOrigin::SkyShader) &&
+						 e.raw.empty() && e.entities.empty() && !e.intensityKnown &&
+						 e.unit == EvidenceUnit::Unknown,
+					 "Source-answer leakage into blind benchmark");
+	}
+	std::cout << "{\"source_sha256\":\"" << Disk::Hex(data.Info().map.sha256)
+			  << "\",\"exact_image_bytes\":" << imageBytes
+			  << ",\"exact_grid_bytes\":" << s.grid->Records().size()
+			  << ",\"exact_grid_index_bytes\":" << s.grid->Indices().size()
+			  << ",\"exact_source_vertices\":" << vertices
+			  << ",\"verified_world_deluxe_directions\":" << deluxeDirections << "}\n";
 }
 int main(int argc, char **argv)
 {
@@ -66,6 +209,72 @@ int main(int argc, char **argv)
 			throw std::runtime_error("Dataset filename required");
 		std::shared_ptr<const Offline::Dataset> data;
 		Check(OpenFile(argv[2], Options(), data));
+		if (command == "audit-bsp")
+		{
+			if (argc != 4)
+				throw std::runtime_error("audit-bsp requires dataset and original BSP");
+			uint64_t checked = 0;
+			Check(data->Validate(true, checked));
+			AuditBsp(*data, argv[3]);
+			return 0;
+		}
+		if (command == "benchmark")
+		{
+			if (argc != 6)
+				throw std::runtime_error("benchmark requires source, destination, compiler "
+										 "version, PUBLIC bake profile");
+			Sources s;
+			RegionSnapshot graph;
+			Check(data->Load(s, graph));
+			auto recipe = ReadSmallFile(argv[5]);
+			if (recipe.size() > 1024 * 1024)
+				throw std::runtime_error("Public bake profile limit");
+			s.metadata.recipe.assign(recipe.begin(), recipe.end());
+			if (s.metadata.recipe.find("org.openjk.q3map2-public-bake-profile") ==
+					std::string::npos ||
+				s.metadata.recipe.find("linear; gamma=1, compensate=1, exposure=0") ==
+					std::string::npos)
+				throw std::runtime_error(
+					"Only the controlled linear q3map2 fixture profile is supported");
+			for (const char *secret :
+				 {"\"entities\"", "\"lights\"", "\"source_secret\"", "ANSWER_ONLY_DO_NOT_EXPORT"})
+				if (s.metadata.recipe.find(secret) != std::string::npos)
+					throw std::runtime_error("Ground-truth data in public bake profile");
+			s.metadata.recipeSha256 = Disk::Hex(Disk::Hash(recipe.data(), recipe.size()));
+			s.metadata.compiler = "q3map2 controlled JA fixture";
+			s.metadata.compilerVersion = argv[4];
+			s.metadata.producer += " + offline benchmark admission";
+			s.metadata.producerVersion += "; org.openjk.q3map-benchmark.v1";
+			s.metadata.compilerKnown = s.metadata.synthetic = true;
+			s.metadata.hints = HintPolicy::BlindBenchmark;
+			s.metadata.decoding.identity = "q3map2-controlled-benchmark-v1";
+			auto &source = s.metadata.decoding.source;
+			source.documentedTransfer = Decode::Transfer::Linear;
+			source.gamma = 1;
+			source.assumedTransfer = Decode::Transfer::Unknown;
+			source.transferProvenance =
+				"Verified q3map2 log: linear lightmaps, gamma 1, compensate 1, exposure 0";
+			source.assumeRec709 = true;
+			source.assumptionRationale =
+				"Controlled RGB fixtures; primaries assumption, not measured photometry";
+			s.metadata.decoding.relativeDomain.clear();
+			ReadContext ctx;
+			ctx.maxBytes = Options().maxResidentBytes;
+			std::shared_ptr<const StaticVisibility> rays;
+			if (s.regionSnapshot)
+				Check(ReplayGeometry(s, graph, ctx, rays, s.regions));
+			Options options;
+			options.mappedImages = 0;
+			Summary summary;
+			Check(ExportFile(argv[3], s, options, ctx, summary));
+			std::shared_ptr<const Offline::Dataset> verify;
+			Check(OpenFile(argv[3], options, verify));
+			uint64_t checked = 0;
+			Check(verify->Validate(true, checked));
+			std::cout << "benchmark-written bytes=" << summary.fileBytes << " checked=" << checked
+					  << " blind=1 absolute-scale=unknown\n";
+			return 0;
+		}
 		if (command == "inspect")
 		{
 			std::cout << InspectText(*data);
@@ -197,8 +406,8 @@ int main(int argc, char **argv)
 		}
 		if (command == "trace")
 		{
-			if (argc != 9)
-				throw std::runtime_error("trace requires file sx sy sz ex ey ez");
+			if (argc != 9 && argc != 10)
+				throw std::runtime_error("trace requires file sx sy sz ex ey ez [sky]");
 			Sources source;
 			RegionSnapshot graph;
 			Check(data->Load(source, graph));
@@ -212,6 +421,12 @@ int main(int argc, char **argv)
 			std::shared_ptr<const StaticVisibility> rays;
 			Check(StaticVisibility::Build(source.geometry, options, ctx, rays, source.domain));
 			RayQuery q;
+			if (argc == 10)
+			{
+				if (std::string(argv[9]) != "sky")
+					throw std::runtime_error("Unsupported trace purpose; expected sky");
+				q.purpose = RayPurpose::Sky;
+			}
 			q.startWorld = Vec3(float(atof(argv[3])), float(atof(argv[4])), float(atof(argv[5])));
 			q.endWorld = Vec3(float(atof(argv[6])), float(atof(argv[7])), float(atof(argv[8])));
 			RayResult result;
