@@ -471,10 +471,12 @@ python tools/rend2/lightrecon_regression.py --no-gpu --output build/offline-regr
 
 On this host `python` in the commands above was the bundled runtime at
 `C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`;
-CMake was 4.4.2. The witness includes exact binary and changed-code hashes. The
-existing experimental `tools/rend2/static_lighting/export_grid.py` and
-`tools/volrecon_test` remain separate: their transformed `.vrg`/solver-specific
-contracts are not imported, including their old style-based validity assumptions.
+CMake was 4.4.2. The witness includes exact binary and changed-code hashes.
+The former `tools/rend2/static_lighting/export_grid.py` and obsolete algorithm
+test in `tools/volrecon_test` were subsequently deleted with the failed grid
+reconstructor. Their transformed `.vrg`/solver-specific contracts and old
+style-based validity assumptions were never imported by this dataset format.
+See [the removal report](rend2-grid-reconstruction-removal.md).
 
 Touched file groups: `lightrecon/offline.{h,cpp}`, `offline_bsp.cpp`,
 `offline_io.cpp`; immutable image/evidence restoration friendship and region

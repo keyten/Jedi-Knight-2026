@@ -311,7 +311,7 @@ for that old DLL. Raw frames and the per-case copied DLL hashes distinguish
 intermediate builds from the final DLL; final lifecycle and saber-room checks
 use the final Release DLL. These commands require the local licensed archives,
 SP engine/game dependencies and (for the optional actor room) the prior q3map2
-fixture generation workflow in `rend2-offline-datasets.md`.
+fixture generation workflow in `rend2-offline-observation-datasets.md`.
 
 ### File scope and remaining limitations
 

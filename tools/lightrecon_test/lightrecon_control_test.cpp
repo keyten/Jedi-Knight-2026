@@ -155,6 +155,20 @@ void Consumers()
 		CHECK(state.assetLoaded && state.capabilityPresent && state.featureAvailable);
 	}
 	settings.master = true;
+	// Each consumer must work on its own; no fog/sun/Forward+ consumer flag
+	// is a prerequisite for another consumer of the same immutable asset.
+	for (size_t only = 0; only < kConsumerCount; ++only)
+	{
+		settings.requested.fill(false);
+		settings.requested[only] = true;
+		for (size_t i = 0; i < kConsumerCount; ++i)
+		{
+			const auto state = EvaluateConsumer(snapshot, settings, static_cast<Consumer>(i), yes);
+			CHECK(state.effective == (only == i));
+			CHECK(state.reason == (only == i ? GateReason::Enabled : GateReason::NotRequested));
+		}
+	}
+	settings.requested.fill(true);
 	for (size_t off = 0; off < kConsumerCount; ++off)
 	{
 		settings.requested[off] = false;

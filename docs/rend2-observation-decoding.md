@@ -226,7 +226,8 @@ Lightmap and lightgrid ambient/directed samples use the same explicit source
 conversion API. Components remain separate: no ambient+direct sum/max is assumed.
 `Compare` requires either two available scene equivalents with the same explicit
 reference and presentation scale, or two available source candidates whose host
-has attested the same nonempty `relativeDomain` and colour basis. Default profiles,
+has attested the same nonempty `relativeDomain` and a known matching colour basis.
+Two `Unknown` primaries values do not establish that basis. Default profiles,
 identical filenames/BSP hashes and matching world-units/physical-to-scene settings
 alone do not establish comparability. Comparison identifies a common basis; it
 does not erase bounds, uncertainty or competing transfer hypotheses.

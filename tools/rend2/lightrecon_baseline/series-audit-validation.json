@@ -1,0 +1,683 @@
+{
+  "schema": "org.openjk.reconstruction-series-audit",
+  "version": 1,
+  "date": "2026-10-26",
+  "timezone": "Australia/Sydney",
+  "base_revision": "a4f52c5cbf061328efebe472bd4f5a391a730fca",
+  "reviewed_commits": [
+    {
+      "sha": "0851b8563bd77f554731a307c1a5952c0fd0ac57",
+      "subject": "Define canonical reconstructed static lighting asset and CPU validation"
+    },
+    {
+      "sha": "31c1b9e5496acc032ca3a2819d1b8e3041b9ff2d",
+      "subject": "Add immutable CPU access API for reconstructed lighting"
+    },
+    {
+      "sha": "719d1c15b3ecfd6b3c46bd6172f727725c5badac",
+      "subject": "Establish shared standalone reconstruction core and streaming session boundary"
+    },
+    {
+      "sha": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+      "subject": "Add independent reconstruction build policies and consumer controls"
+    },
+    {
+      "sha": "1ed49a88d5e57f6bc3778aac16979ea257cd8f88",
+      "subject": "Protect disabled reconstructed-lighting paths with shader and SP regressions"
+    },
+    {
+      "sha": "9c30779b1cad2ce5c72cc42fea839d71ee11cc2e",
+      "subject": "Add validated versioned reconstructed-lighting disk assets and atomic cache"
+    },
+    {
+      "sha": "c7f80d31b1b2734bfd3e010af23ce55d9cf18b27",
+      "subject": "Own reconstructed lighting at the main-world lifecycle boundary"
+    },
+    {
+      "sha": "f55fd01cc6569e6bd921fda500ba00790ad121bc",
+      "subject": "Capture original CPU lightmap observations before renderer conversion"
+    },
+    {
+      "sha": "3a88e68ca8ec509ffab24b6f350f5caafcd4fb12",
+      "subject": "Decode baked observations with explicit transfer and calibration metadata"
+    },
+    {
+      "sha": "fa7b8a7b59d8cb24fc907b84743365f43806b244",
+      "subject": "Capture canonical indexed BSP lightgrid observations"
+    },
+    {
+      "sha": "e496cd0e941f429b98058ff366c3d0125f84cdc9",
+      "subject": "Map original baked luxels to static world geometry"
+    },
+    {
+      "sha": "0b44d2041b70ba367153ccef35ac47aab9ff236d",
+      "subject": "Classify baked lighting evidence and pair deluxe observations"
+    },
+    {
+      "sha": "e31e597bad417e839fc2ea71ed5997188dd383aa",
+      "subject": "Add immutable static geometry visibility queries for reconstruction"
+    },
+    {
+      "sha": "7c8122b960d5468dd84150627d5a1b3b2d4c99a7",
+      "subject": "Build geometry-aware lighting region graphs with bounded BSP domains"
+    },
+    {
+      "sha": "6eabb54395296683b02eac99d90ddae995c6889c",
+      "subject": "Unify initial baked-emitter evidence with shared CPU LTC geometry"
+    },
+    {
+      "sha": "704b21871f4a597b52f89d0e4ae13dd1526631f1",
+      "subject": "Add reproducible offline lighting observation datasets and ground-truth fixtures"
+    },
+    {
+      "sha": "380ee0f7e352300ce329aabfdc477512d532a77a",
+      "subject": "Validate offline observations with real q3map2 bakes and SP exports"
+    },
+    {
+      "sha": "a4f52c5cbf061328efebe472bd4f5a391a730fca",
+      "subject": "Remove obsolete lightgrid reconstruction and preserve independent baked lighting"
+    }
+  ],
+  "claims": {
+    "architecture": "No production inverse solver/physical-source fitting/evaluator or canonical renderer consumer installed",
+    "validated_empty_asset": "Inspectable metadata, never reconstruction success",
+    "physical_units": "Explicit raw/relative/scene-equivalent/authored physical distinctions retained",
+    "consumers": "Independent master/request/capability/adapter gates; each alone tested",
+    "formal_full_code_proof": false
+  },
+  "finding": {
+    "code": "UNKNOWN_PRIMARIES_COMPARABILITY",
+    "severity": "medium",
+    "reproduced_before_fix": true,
+    "old_test_result": "63931 checks, 1 failure",
+    "condition": "Both source stages available; same explicit relativeDomain; both resolvedPrimaries Unknown",
+    "old_behaviour": "Compare returned Relative",
+    "fixed_behaviour": "Compare returns Incomparable unless matching primaries are known",
+    "rendering_or_serialized_value_change": false
+  },
+  "source_hash_convention": "SHA256 after CRLF-to-LF normalization; binary/log/archive hashes exact bytes",
+  "source_files_sha256": {
+    "code/rd-rend2/tr_init.cpp": "dd262f1bfaa9434853b5a47147964c2b22047279b3f0505894d6041903ea3ab0",
+    "codemp/rd-rend2/tr_init.cpp": "d095a5fcb8058841bd0db9b9af5f734814e002241d4c7428b92e601ed84f9b8b",
+    "shared/rd-rend2/lightrecon/cache.cpp": "89cdebcc11e7492dacf1d2637b1d9274873ac28abf157519c4780f16b0ec3398",
+    "shared/rd-rend2/lightrecon/cache.h": "8772f768bb4e63cc9d954ebedad044ded8ed80dda2ce697c3c10dff070805a2b",
+    "shared/rd-rend2/lightrecon/classification.cpp": "82a237b7a0d79d827147bdb43127fa2120ce0b9dc77225734b5032c8b6a5b49d",
+    "shared/rd-rend2/lightrecon/classification.h": "5057b1f3af75e80444ebb5a29cd191c5d1b581146aacbaa7715a6a464fe76283",
+    "shared/rd-rend2/lightrecon/control.cpp": "e73082b288fef756af91a29d470908f181566b548ec162b08146cd855edfd108",
+    "shared/rd-rend2/lightrecon/control.h": "46fc42bda96c0fc8d89ab04a98f2ac11861809888adf7daf646760c012c981b7",
+    "shared/rd-rend2/lightrecon/decode.cpp": "62750a8a0813b9d5bf332ec67c31dab92d186dabe42c62e6b7e1abef3f872464",
+    "shared/rd-rend2/lightrecon/decode.h": "066f1c28c590dc054b51b50cc57a2adff66ec5e46f2b0394baa2f5dd92fe14d1",
+    "shared/rd-rend2/lightrecon/disk.cpp": "304c275c2371bb29677fd820ee426690255f6cf40b287cca1cd428abb70a2a4d",
+    "shared/rd-rend2/lightrecon/disk.h": "548dea15437edf6f6885554b88b4bc1e618789087b6117e2a5d85a4f553a1081",
+    "shared/rd-rend2/lightrecon/emission_geometry.cpp": "72ac544b79c9429994f8793977af4794f8397f0d723c61b503e8658fa2e0ab54",
+    "shared/rd-rend2/lightrecon/emission_geometry.h": "24778b9ad043fc6bc03ceb440c7f2a212752534ec9e9829c08c9d9febc235a64",
+    "shared/rd-rend2/lightrecon/evidence.cpp": "640170563258977122c8a2f791fcaf29099f455c61b53982773c18c593078fe5",
+    "shared/rd-rend2/lightrecon/evidence.h": "1310e9813cb1a1cf93f7f048e1a455fc97e8beb70e53ece7f0e38d82536311c7",
+    "shared/rd-rend2/lightrecon/input.cpp": "9618ae879e3e32c52a6577ca1ac79f60339e631602dc3081b51677f6b6866e91",
+    "shared/rd-rend2/lightrecon/input.h": "78fbddd2effe6b3d6f93567f3ccd38231a091e28f2f333ebe6fc1f64e6e36460",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "f7a4b7962ce788c662af6dc1320598f8f8aa591458afde1af84c9da05f27adea",
+    "shared/rd-rend2/lightrecon/lifecycle.h": "4956618793e5f03917b41ec6bef6540f399439b0e8104a868d5bf491f4479238",
+    "shared/rd-rend2/lightrecon/lightgrid.cpp": "31a1c320852defe8091c709ee8305f6a53251b60bf4ef1cf6ff7469cd5722490",
+    "shared/rd-rend2/lightrecon/lightgrid.h": "a7a7aac2c1e0db8ff10427381416dcff7d79c7ab1aa878e743af585357c9a661",
+    "shared/rd-rend2/lightrecon/lightmaps.cpp": "fa4e5f507dd96ca1aa48660a66b8c227cae28e7f4167933c94e72a496ddf1298",
+    "shared/rd-rend2/lightrecon/lightmaps.h": "b745747e21c7f799a04b1ec1563fe0180df2c45c540acbc731eccf213f23af40",
+    "shared/rd-rend2/lightrecon/offline.cpp": "a9b1728b93e34d6968a5d0743b2b6d711fbe3f72a8817d0d331c1756f6ccf55f",
+    "shared/rd-rend2/lightrecon/offline.h": "9b0ca30f5dfb12d7385dafcab544cc9c49e01b0e5860a2c92d9ff790f272f192",
+    "shared/rd-rend2/lightrecon/offline_bsp.cpp": "c6fd44faa4611d56381339d932afd6b7b424eba1e6537e52472d1058a3792d2e",
+    "shared/rd-rend2/lightrecon/offline_io.cpp": "7df7b0bd1fa76d18047ced3c497b561f3322ed7bc5a9b4ef9efdf928f2123774",
+    "shared/rd-rend2/lightrecon/regions.cpp": "0e74fffe91b78e97e25384e941b2f664efa2e5944b41bfc9f8a1cd91f41be3eb",
+    "shared/rd-rend2/lightrecon/regions.h": "b4c96dd7ebd14c57dd4e3398366a7d9b51d9ab10f06801a82557cd585cf6e8f0",
+    "shared/rd-rend2/lightrecon/session.cpp": "4f2ec7215e9d5c6ca461729ca8aa76997df649a5cae7eadb387c7c8104235586",
+    "shared/rd-rend2/lightrecon/session.h": "7d5c2e012c3dee978e2e57b4cff3310af56d153248bb8668f34292e626a410c7",
+    "shared/rd-rend2/lightrecon/surfaces.cpp": "716305c7703872808e74d0de12c8c12f6851db0ccd3fcd1fbc2cec1cbc11891b",
+    "shared/rd-rend2/lightrecon/surfaces.h": "722cc2e0e60aad0a8038b758ad93feeb64be525bc1f3a4ef71a88873527c762e",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "a304d5acfa43a475733488f53a4c56e9f9f2ae7f31a5a650d1bc16d1a8b78058",
+    "shared/rd-rend2/lightrecon/visibility.h": "846e5bb26a120b40715f2e2277c5e0e92ff9f79b6c8acb4b6ff01c8aeb6f3b17",
+    "shared/rd-rend2/tr_arealights.cpp": "a8b19cb7d1fe7a0d2adaea86c1fd1e8bc19f4a938aa0ff582695fc46f2e52d2a",
+    "shared/rd-rend2/tr_bakedlighting.cpp": "8796d78be7b4d22246a2daefafc81df8dd17980c116543796bc046298762098e",
+    "shared/rd-rend2/tr_bakedlighting.h": "9cc9065a6616301543f369be7e79af7c74aa62e3e03a9b045e867dbb311a63bb",
+    "shared/rd-rend2/tr_bsp.cpp": "fd7efdf8af8b01d9797efdbbcfabe22db8063574b086081e8771b51ca24bbff7",
+    "shared/rd-rend2/tr_glsl.cpp": "6a0892c8a8d37e39d3ca01442fbf1ff7bb3f4a424f7f6e9a24c7942b48cd84e9",
+    "shared/rd-rend2/tr_light.cpp": "eb7bebd987f64868305729551a2c0f31d5a03a76f5d6b13bb870b2b46baf3017",
+    "shared/rd-rend2/tr_lightrecon.cpp": "5484e8d7b7a1130c947cd947c06a275fd1e065d6b1337651a409db53cdffb94c",
+    "shared/rd-rend2/tr_lightrecon.h": "17be7d6ff6f9cfde6d5e86f892eb0aed58862e750b44e448add3e06750861be7",
+    "shared/rd-rend2/tr_lightrecon_api.cpp": "b0d1540813b5c6ea73c8dd2e1625308d2f88f1141129e55c2c5d83fee7fe8ea6",
+    "shared/rd-rend2/tr_lightrecon_api.h": "fcadf930f365dc651714908fd0e1949f800b06f401a1401596791b65c0341e9a",
+    "shared/rd-rend2/tr_lightrecon_cvars.inc": "0e85cda73caabe617e3ddc0f5eeedb80c9c3311c52b2550cd9442cb7d423d423",
+    "shared/rd-rend2/tr_lightrecon_manager.h": "f3381ad38b7ad2b2aa4d90a83161cb2415aca0f14e8089beaf2664bccc6d405d",
+    "shared/rd-rend2/tr_lightrecon_register.inc": "e359a9b613c066a606b752ac6f7653f7fc0419d0c2fae0b4d3e8111e57635499",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "39f5db814bafcdf63e8eba5f1455ee59f9ac6413139cf199e5ee732fc1995ed3",
+    "shared/rd-rend2/tr_lightrecon_types.h": "8de7eba848ebaff030997ee861ed26d6edaff34f80d91dc1e077417949cfc473",
+    "shared/rd-rend2/tr_pbr_contract.cpp": "cc5d371fa380dee321b85476475f3558ffc18b2fa671c31e4bd103dc297269ad",
+    "shared/rd-rend2/tr_pbr_contract.h": "7052a978a4eec28ad14b01090436dc0691ac69303181d9d58198262958cf5ec5",
+    "shared/rd-rend2/tr_volumetric.cpp": "b0f6a5db98d0da38d7daeed3e41495b1b3658ab43324596aba9541753aff3da4",
+    "tools/lightrecon_test/lightrecon_control_test.cpp": "a4c7b9488a63c808778e6b671b1f67374ea5240c130b9e6a28332870171c4e30",
+    "tools/lightrecon_test/lightrecon_decode_test.cpp": "f1bea18938e157237af6638b160402849898907e12a686ae4fc94d31c49bb3c0",
+    "tools/lightrecon_test/lightrecon_evidence_test.cpp": "51139da1e6e5b01a0671e421092ca802b271091393c332976a38c10b967ec960",
+    "tools/lightrecon_test/lightrecon_offline_test.cpp": "a1b3038b31f2400c3c81a4968a48f8a0716db7a94b7afc9d0c61bec774186b96"
+  },
+  "final_builds": {
+    "rdsp-rend2_x86_64.dll": {
+      "path": "build/lightrecon-core-renderers/Release/rdsp-rend2_x86_64.dll",
+      "bytes": 4778496,
+      "sha256": "4848c23319a44060595ca797709045da194b461e79649449d20fb08a8acb433b"
+    },
+    "rd-rend2_x86_64.dll": {
+      "path": "build/lightrecon-core-renderers/Release/rd-rend2_x86_64.dll",
+      "bytes": 4837376,
+      "sha256": "3109b3cd0cd2aa134051fdf93cddc396474cd5e4eacc7a6c30f2fb0f43e70703"
+    },
+    "lightrecon_dataset_tool.exe": {
+      "path": "build/lightrecon-core-renderers/Release/lightrecon_dataset_tool.exe",
+      "bytes": 697856,
+      "sha256": "b6e2f40dde3858050570eda0ef48d01c19ea551d6a0eb70f1dc10ecf1c935633"
+    }
+  },
+  "cpu": {
+    "GCC": {
+      "tests_passed": 16,
+      "tests_total": 16,
+      "checks": 1777346,
+      "log": {
+        "path": "build/reconstruction-series-audit/gcc-final-tests.log",
+        "bytes": 1917,
+        "sha256": "93dfc184a5b1675012b62c0304df622e09c3786f1a8f80fc684e045528f04151"
+      }
+    },
+    "MSVC": {
+      "tests_passed": 16,
+      "tests_total": 16,
+      "checks": 1777346,
+      "log": {
+        "path": "build/reconstruction-series-audit/msvc-final-tests.log",
+        "bytes": 1916,
+        "sha256": "7a9ea11c602666505734d61f98c57205f58dbd8e3b3c50e3be20fb900ff55e0a"
+      }
+    }
+  },
+  "python_contract_tests": {
+    "passed": 15,
+    "total": 15
+  },
+  "q3map2_recipe_tests": {
+    "passed": 6,
+    "total": 6
+  },
+  "shaders": {
+    "passed": true,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "gpu_interface_comparison": "matching-driver baseline compared",
+    "production_dependency_audit": "passed",
+    "differences": 0,
+    "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+  },
+  "synthetic_pipeline": {
+    "q3map2_executed": false,
+    "scenes": {
+      "bounce_colour": {
+        "answer_sha256": "014aae77528f6580359957105f7811dca9af8950f64836208a7b38651d13882e",
+        "bytes": 1238600,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "932f9aa7f8845ce0fb427eb483c1e06efe1d2ea3505ba6b38671f4c179b4c308",
+        "source_sha256": "3408598d67a41e0d2f5098e6fc65913ec0d0f53749f15ca2b078de21c3698088",
+        "validated": true
+      },
+      "door_occlusion": {
+        "answer_sha256": "17a3ad2857fd14da62394cf054ef41c257407b1a46ede73431c2c3f1b533ff90",
+        "bytes": 1295192,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "97b17cdd3d59ea108f5245454781b932d3d95dce880e3c89cc8c42d44960e60e",
+        "source_sha256": "38828168158422b549ed3c47afeb78ec6b3c59850662eb40b60cb67a02142582",
+        "validated": true
+      },
+      "overlap_whites": {
+        "answer_sha256": "1110006cc7ba84f75613338fa25a0c0fab408cd65bf1fd0fbb8eba3f9c12809f",
+        "bytes": 1228184,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "f12469cf7effdc7c283b5e0f5186811779f62d46332b160fae0a9a333da54a3e",
+        "source_sha256": "5665dc8a4ea263c4bd401e80ff926a894618c85b866ed18debe22e0388504da4",
+        "validated": true
+      },
+      "panel": {
+        "answer_sha256": "c2f7a6120fc5dab1ef137057c8bd3ffbd7deeeefec3e8d08f762f83925641f4f",
+        "bytes": 1268312,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "bfcbbdef15bb13643c565fa93d3730d3589e414f1df5d79c5dd3ec58fc20bae9",
+        "source_sha256": "218ab590267d00a02c9f32d7a8b3a7ff4fe0d29d7312d47abf0bd304e839b433",
+        "validated": true
+      },
+      "point_room": {
+        "answer_sha256": "5cf98ab7fcec45dc4abd70c378765c696365b019adf16db50eaa9b9cd2b7e46c",
+        "bytes": 1228168,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "177fe6441d5cfc7673f4bae0c7c46e6aca05cd6f39876f18d415dafd5b19da2e",
+        "source_sha256": "e84a7d55f7231dcca7cf0147ad474e6dbdc7df2d6ef0c103b0206574f2bc0a09",
+        "validated": true
+      },
+      "skylight": {
+        "answer_sha256": "4d60f99207ebd5297b16988066faffde1d6649a7944541e1e1a21d83a6e3a927",
+        "bytes": 1231696,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "f7137fca477c61387e9706b78111b7a49d26154c3bb0b89e0966ec6ecef75672",
+        "source_sha256": "50fcc2a96893d43809a17fdde8e14ab440118fa9a969a401168b06fd114de5dc",
+        "validated": true
+      },
+      "spot": {
+        "answer_sha256": "8ef81d996ef909cdf275c4b168e2aad66c59b5d49612ea9c90dede1f51cbdcd7",
+        "bytes": 1228152,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "14e0147c2d832d0824cf00828418967f916b257ede5e43d290024bc6da551a73",
+        "source_sha256": "6f5a8555c8816434e61df9515b57c2cca26e13115a2972fe31c694ca1e523805",
+        "validated": true
+      },
+      "sun_sky": {
+        "answer_sha256": "7dc5af506805b79f5c58ea8666578c4a2bc143769cbc4d203350bcb837fa6ff9",
+        "bytes": 1163712,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "9b87ff4e5e9d836a4b5339ad2e1e4651d0a6519e0899d8a460d03d697fb1106c",
+        "source_sha256": "623c5c1c00ca07356867403c6f9c48a06fe0f70793997bdba96a638c3cf3ece5",
+        "validated": true
+      },
+      "tube": {
+        "answer_sha256": "059a341b522904712946bb01707ac67c167e813d16662905d89f3d378bf3c3bb",
+        "bytes": 1252200,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "d1c53843629c0ffb77a08f264fd1359b7cab5d976405fa00a33308f63d3f83d0",
+        "source_sha256": "4036af61b6ec6e6223f364d0c114d082ec4ad27efd0c476f1fbbfe75e3fe1c53",
+        "validated": true
+      },
+      "two_colour": {
+        "answer_sha256": "7060d7741d00a2833aece8b8cadf17a020aebc71f9f67c10b58af7f1231e3823",
+        "bytes": 1228168,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "6e2013ae27caa0058798eb90cd93b31920a0e06f402c6db799398ffc920c735c",
+        "source_sha256": "9bbc1368174e729ae53e6e4fbda4410dcca000c388df4cb84f43b367dab9a2f6",
+        "validated": true
+      },
+      "wall_leak": {
+        "answer_sha256": "5f94cfdb41266c2f1577a285e2604a14d150c677747852ee53f4129235ca0239",
+        "bytes": 1289456,
+        "inspected": true,
+        "repeated_bytes_identical": true,
+        "sha256": "d047bed96e69ccc980a65fd7747dcaa1419f00d32dbd12f14a469be836edb893",
+        "source_sha256": "6abdf24e4e1f921dccbea4efd2a0725a51c59cadb7f83135706f4e9ff467ff5a",
+        "validated": true
+      }
+    },
+    "schema": "org.openjk.offline-dataset-suite",
+    "spatial_partition_control": "point_room JSONL blocks disjoint, all three nonempty",
+    "tool_sha256": "869e05c62ec58e6d91982ca50b1d508d5024e4f76e542157f4cb081f5d497adf",
+    "tool_version": "org.openjk.offline-dataset-tool.v1 GNU/Clang 16.2.0",
+    "version": 1
+  },
+  "q3map2_replay": {
+    "fresh_bake": false,
+    "fresh_game_launch": false,
+    "current_importer_validated_all_archives": true,
+    "current_audit_bsp_all_archives": true,
+    "current_all_partition_samples_regenerated": true,
+    "input_sha256": {
+      "bounce_colour": "5b66798eb7ad3114f2bb0cbcb532b830db98be7cb189ae5d77d1f05db3402e8c",
+      "bounce_control": "b5fa275b29f4b955981720c770570538193e6505bda63629a6b0befc089a39fa",
+      "door_occlusion": "e69241c38d2086ff5433751cb1dcafece28d128c37baf927cb38a52ddcc19157",
+      "overlap_whites": "f997bf0aa44c2f12221b96edbe09f8119e628ba7a9db3d4683dc5dfa8e82e0e7",
+      "panel": "09f12ee44131e98a4b0716e4a7c7620e3b8691910da79f187942d8d7015801f3",
+      "point_room": "a416eb4801e3c4f0a8a88e7c4d80036511ee2974a6b14bba78531356c7db6f8f",
+      "skylight": "f52f380a98d5b605d178cc3469c42b93f829a65afec84cf324d8943bae2df0af",
+      "spot": "9ed0e5eb802dcd8edd1e27972f44a28bf028fcacf4f636e42ed4ed27b0615d36",
+      "sun_sky": "c2bd54623b66a6288be8869635773e9b8a476e865771608fd8099f5366fc371b",
+      "tube": "c309aa8ac68435d82f1884c46158a3fb5f4335cd228cdabd0f805917b5762c26",
+      "two_colour": "d9c37be2dae7d57818dbce2130b1ee871f7567a8c9d8958cf0ac96283f1b17dc",
+      "wall_leak": "bca4e88c5d1888ba873b177df8449b823eccdbda0a79f817791c7fae5e24322f"
+    },
+    "verification": {
+      "claims": "raw transport/geometry behaviour, not fitting accuracy or calibrated physical intensity",
+      "independent_world_samples": 25731,
+      "maps": {
+        "bounce_colour": {
+          "samples": 2278,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "bounce_control": {
+          "samples": 2278,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "door_occlusion": {
+          "samples": 2539,
+          "source_surfaces": 11,
+          "spatial_partitions_disjoint": true
+        },
+        "overlap_whites": {
+          "samples": 2278,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "panel": {
+          "samples": 2328,
+          "source_surfaces": 12,
+          "spatial_partitions_disjoint": true
+        },
+        "point_room": {
+          "samples": 2278,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "skylight": {
+          "samples": 1893,
+          "source_surfaces": 11,
+          "spatial_partitions_disjoint": true
+        },
+        "spot": {
+          "samples": 1139,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "sun_sky": {
+          "samples": 1853,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "tube": {
+          "samples": 2311,
+          "source_surfaces": 12,
+          "spatial_partitions_disjoint": true
+        },
+        "two_colour": {
+          "samples": 2278,
+          "source_surfaces": 6,
+          "spatial_partitions_disjoint": true
+        },
+        "wall_leak": {
+          "samples": 2278,
+          "source_surfaces": 8,
+          "spatial_partitions_disjoint": true
+        }
+      },
+      "maximum_world_mapping_error": 3.1776437161565096e-14,
+      "metrics": {
+        "bounce_delta_rgb": [
+          26.80598958333333,
+          20.727213541666664,
+          20.077473958333336
+        ],
+        "door_lit": 17.88888888888889,
+        "door_shadow": 0.0,
+        "one_point_mean": 35.1875,
+        "panel_mean": 1.5598958333333333,
+        "spot_inside": 23.357466063348415,
+        "spot_outside": 0.0,
+        "tube_mean": 5.802083333333333,
+        "two_colour_left_r_b": 3.0721850822504315,
+        "two_colour_right_r_b": 0.28697852560355913,
+        "two_white_mean": 75.96940104166667,
+        "wall_left": 51.849264705882355,
+        "wall_right": 0.0
+      },
+      "passed": true,
+      "rejection_checks": {
+        "contaminated_public_profile": {
+          "diagnostic": "dataset error: Ground-truth data in public bake profile",
+          "exit_code": 1
+        },
+        "corrupted_archive": {
+          "diagnostic": "dataset error: 2: Section integrity checksum mismatch",
+          "exit_code": 1
+        },
+        "mismatched_source": {
+          "diagnostic": "dataset error: Original source BSP fingerprint mismatch",
+          "exit_code": 1
+        },
+        "private_answer_profile": {
+          "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+          "exit_code": 1
+        },
+        "unknown_transfer": {
+          "diagnostic": "dataset error: Only the controlled linear q3map2 fixture profile is supported",
+          "exit_code": 1
+        }
+      },
+      "schema": "org.openjk.q3map2-bake-observation-checks",
+      "traces": {
+        "door_occlusion[-80, 0, 80]": "visibility=0 sky=0 surface=0 issues=0 bvh-bytes=9004",
+        "point_room[0, 0, 1]": "visibility=1 sky=0 surface=3 issues=0 bvh-bytes=3424",
+        "skylight[0, 0, 1]": "visibility=0 sky=1 surface=1 issues=0 bvh-bytes=9494",
+        "skylight[100, 0, 1]": "visibility=1 sky=0 surface=4 issues=0 bvh-bytes=9494",
+        "sun_sky[0, 0, 1]": "visibility=0 sky=1 surface=1 issues=0 bvh-bytes=3421",
+        "wall_leak[-80, 0, 80]": "visibility=1 sky=0 surface=3 issues=0 bvh-bytes=4463"
+      },
+      "version": 1
+    },
+    "compiler_binary_unchanged": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+    "historical_witness": "tools/rend2/datasets/q3map2-validation.json",
+    "commands": [
+      "lightrecon_dataset_tool validate <each .jkobs>",
+      "lightrecon_dataset_tool audit-bsp <each .jkobs> <original self-authored .bsp>",
+      "lightrecon_dataset_tool samples <each .jkobs> train|validation|heldout",
+      "python tools/rend2/datasets/verify_q3map2.py --suite build/q3map2-bake-verified --runtime build/reconstruction-series-audit/q3map2-recheck --tool build/lightrecon-core-renderers/Release/lightrecon_dataset_tool.exe"
+    ]
+  },
+  "initial_io_failure": {
+    "test": "GCC lightrecon_offline NativeLifetime atomic replacement",
+    "initial_full_run": "15/16; 2 assertions failed when replacement returned error and old identity remained unchanged",
+    "old_dataset_readable": true,
+    "exact_os_cause_known": false,
+    "diagnostics_added": "Win32 error included in native adapter; test prints replacement error",
+    "claimed_cause_fixed": false,
+    "sequential_focused_runs_passed": 5,
+    "final_full_gcc_passed": true
+  },
+  "historical_runtime": {
+    "fresh_game_or_full_unrelated_gpu_suite_run": false,
+    "cleanup_witness": "tools/rend2/lightrecon_baseline/grid-removal-validation.json",
+    "cleanup_evidence": "Nine hoth3/hoth2 fixed static zero-difference views, lifecycle/input fixtures, separate saber/NPC room; recorded historical DLLs",
+    "stock_dataset_witness": "tools/rend2/datasets/validation.json",
+    "stock": {
+      "hoth2": {
+        "compiler_known": false,
+        "dataset_bytes": 40996016,
+        "dataset_sha256": "3f98cabcbea506227ff6c9e8d94174a919a986447acd82206b2d80ddeb263337",
+        "derived_complete": false,
+        "derived_pages": 2,
+        "historical_absolute_scale": "unknown",
+        "region_roi_radius_world": 256,
+        "source_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "statistics": {
+          "ambiguous": 116,
+          "build-peak-estimate": 24242374,
+          "bytes": 13970616,
+          "candidates": 553,
+          "collision-bytes": 3604318,
+          "complete": 0,
+          "covered": 3489,
+          "deluxe": 12,
+          "derived-samples": 32768,
+          "emissive-surfaces": 149,
+          "evidence": 553,
+          "file-bytes": 40996016,
+          "grid-cells": 1044126,
+          "held-out": 736,
+          "hint-policy": 0,
+          "images": 24,
+          "invalid-grid": 0,
+          "known": 0,
+          "maximum-tile-object-bytes": 167936,
+          "missing-grid": 0,
+          "missing-images": 12,
+          "outside": 0,
+          "padding": 2349,
+          "partition-seed": 20261024,
+          "pixels": 196608,
+          "raw-image-bytes": 589824,
+          "region-cells": 29604,
+          "region-free": 0,
+          "regions": 0,
+          "sky": 0,
+          "snapshot-bytes": 7568782,
+          "solid": 2601,
+          "source-component-memory-estimate": 26150055,
+          "spatial-block": 128,
+          "surfaces": 7421,
+          "synthetic": 0,
+          "train": 31428,
+          "triangles": 37062,
+          "unknown": 27003,
+          "unknown-material": 0,
+          "unsupported-geometry": 98,
+          "validation": 604,
+          "vertices": 54600
+        },
+        "two_exports_byte_identical": true,
+        "validation": "validated=1076894 source/decoded/UV/world/style/partition records; no GL, engine or reconstruction"
+      },
+      "hoth3": {
+        "compiler_known": false,
+        "dataset_bytes": 45932880,
+        "dataset_sha256": "2509d16bff3bb610aa118e7ae712b3bd97120f7b783193f18fc5d2c07af3b8ab",
+        "derived_complete": false,
+        "derived_pages": 2,
+        "historical_absolute_scale": "unknown",
+        "region_roi_radius_world": 256,
+        "source_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "statistics": {
+          "ambiguous": 368,
+          "build-peak-estimate": 25657734,
+          "bytes": 13920700,
+          "candidates": 612,
+          "collision-bytes": 1490558,
+          "complete": 0,
+          "covered": 11542,
+          "deluxe": 38,
+          "derived-samples": 32768,
+          "emissive-surfaces": 224,
+          "evidence": 661,
+          "file-bytes": 45932880,
+          "grid-cells": 229068,
+          "held-out": 2451,
+          "hint-policy": 0,
+          "images": 76,
+          "invalid-grid": 0,
+          "known": 0,
+          "maximum-tile-object-bytes": 167936,
+          "missing-grid": 0,
+          "missing-images": 38,
+          "outside": 0,
+          "padding": 3981,
+          "partition-seed": 20261024,
+          "pixels": 622592,
+          "raw-image-bytes": 1867776,
+          "region-cells": 31340,
+          "region-free": 0,
+          "regions": 0,
+          "sky": 0,
+          "snapshot-bytes": 7567054,
+          "solid": 2958,
+          "source-component-memory-estimate": 31199201,
+          "spatial-block": 128,
+          "surfaces": 12911,
+          "synthetic": 0,
+          "train": 27843,
+          "triangles": 53221,
+          "unknown": 28382,
+          "unknown-material": 0,
+          "unsupported-geometry": 54,
+          "validation": 2474,
+          "vertices": 83772
+        },
+        "two_exports_byte_identical": true,
+        "validation": "validated=261836 source/decoded/UV/world/style/partition records; no GL, engine or reconstruction"
+      }
+    }
+  },
+  "limitations": [
+    "No inverse solver, recovery accuracy evidence, canonical evaluator or renderer adapter.",
+    "Runtime complete BSP/sidecar/material/settings/calibration fingerprints unavailable: NotCacheable, no guessed cache hits.",
+    "Early validated cache preflight before policy-2 observation capture still needs renderer wiring; CPU suppression mechanism alone is not a tested runtime hit path.",
+    "Historical baked absolute intensity unknown; q3map2 original source values are legacy compiler units.",
+    "Stock hoth3/hoth2 export ROIs had zero certified regions; not successful full-map room segmentation.",
+    "Unsupported/missing/ambiguous geometry, deluxe/style/material/bake data remain explicit; default derived image prefix and region ROI are partial.",
+    "Historical external q3map2 whole-BSP repeats were not all identical; same-input archive identity is separate.",
+    "MP gameplay, exhaustive drivers/materials and large-map peak RSS not certified.",
+    "Unidentified intermittent native replacement failure remains recorded despite five focused and final full passing reruns."
+  ],
+  "logs": {
+    "decode-red.log": {
+      "path": "build/reconstruction-series-audit/decode-red.log",
+      "bytes": 110,
+      "sha256": "2942565b52bcc693dc2bb9993b3b692a9d0146c4a2f42b410b38435d4be14d27"
+    },
+    "gcc-tests.log": {
+      "path": "build/reconstruction-series-audit/gcc-tests.log",
+      "bytes": 2278,
+      "sha256": "2e4f590f51d81cbade57d96b7b15174524a2e6bee94abd641322364312fe34d4"
+    },
+    "offline-repeat.log": {
+      "path": "build/reconstruction-series-audit/offline-repeat.log",
+      "bytes": 687,
+      "sha256": "29a5b05ba9d141ab51fb2e9f0ffa69d064e3b74461adf38b760f13fef5753ecf"
+    },
+    "gcc-final-tests.log": {
+      "path": "build/reconstruction-series-audit/gcc-final-tests.log",
+      "bytes": 1917,
+      "sha256": "93dfc184a5b1675012b62c0304df622e09c3786f1a8f80fc684e045528f04151"
+    },
+    "msvc-final-tests.log": {
+      "path": "build/reconstruction-series-audit/msvc-final-tests.log",
+      "bytes": 1916,
+      "sha256": "7a9ea11c602666505734d61f98c57205f58dbd8e3b3c50e3be20fb900ff55e0a"
+    },
+    "contracts.log": {
+      "path": "build/reconstruction-series-audit/contracts.log",
+      "bytes": 119,
+      "sha256": "fd2a00135b27c50a06c1d27f229e9ead91aa176c436b469874a10528515083c1"
+    },
+    "q3map2-recipe.log": {
+      "path": "build/reconstruction-series-audit/q3map2-recipe.log",
+      "bytes": 763,
+      "sha256": "0e5c22f3c4e56d553c64fe7f488a368b59011f17b73766803c49c895fcafe81a"
+    },
+    "shaders.log": {
+      "path": "build/reconstruction-series-audit/shaders.log",
+      "bytes": 1553,
+      "sha256": "961f0fb2b7272beb78ff073801abde3e05d614ff889924440d2c6391d51f5859"
+    },
+    "synthetic.log": {
+      "path": "build/reconstruction-series-audit/synthetic.log",
+      "bytes": 671,
+      "sha256": "89278c2709dc770bb677e402105fd917e21ca1786a2fb8bc023de2eb8eaac7d1"
+    },
+    "q3map2-recheck.log": {
+      "path": "build/reconstruction-series-audit/q3map2-recheck.log",
+      "bytes": 4570,
+      "sha256": "76890f045e59aea75476e64d7198de54e17193b8aa1ab9b05bdce35ba0da2954"
+    },
+    "gcc-rebuild.log": {
+      "path": "build/reconstruction-series-audit/gcc-rebuild.log",
+      "bytes": 5126,
+      "sha256": "dc2a632a38c421a90ce1eae754392e8ec49709796371cabe860d8cc689ee6fe3"
+    },
+    "msvc-final-build.log": {
+      "path": "build/reconstruction-series-audit/msvc-final-build.log",
+      "bytes": 15823,
+      "sha256": "788be268c3140688cc03776fef373ffb164952f1166374b3216229dd0ada7e19"
+    }
+  }
+}

@@ -169,7 +169,16 @@ Error ExportFile(const std::string &path, const Sources &s, const Options &o,
 		ok = rename(writer.temporary.c_str(), path.c_str()) == 0;
 #endif
 		if (!ok)
-			return Failure(Code::ProviderError, "Atomic dataset replacement failed");
+		{
+#ifdef _WIN32
+			const DWORD failure = GetLastError();
+#endif
+			auto error = Failure(Code::ProviderError, "Atomic dataset replacement failed");
+#ifdef _WIN32
+			error.message += " (Win32 " + std::to_string(failure) + ")";
+#endif
+			return error;
+		}
 		writer.temporary.clear();
 		summary = staged;
 		return {};

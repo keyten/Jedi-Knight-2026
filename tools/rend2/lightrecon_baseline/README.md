@@ -54,6 +54,11 @@ moment and retired debug code. See [the removal report](../../../docs/rend2-grid
   self-authored saber/NPC fixture. Failed initial attempts and limits are explicit.
   It records per-run DLL hashes rather than claiming every intermediate capture
   used the final binary. See `docs/rend2-grid-reconstruction-removal.md` for commands.
+- `series-audit-validation.json`: review of all eighteen infrastructure commits,
+  the unknown-colour-basis comparison fix, independent-consumer/candidate tests,
+  fresh dual-compiler CPU/shader checks and offline replay of existing q3map2
+  datasets. It distinguishes new checks from historical gameplay/bake evidence
+  and records the unresolved intermittent atomic-replacement failure.
 
 Run the existing suite's focused selection:
 

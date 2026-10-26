@@ -74,6 +74,9 @@ of lights. Publishing an empty asset is legal: asset metadata can be read,
 enumeration succeeds with zero records and sun/lighting queries do not invent
 an answer. Invalid publication replaces the current result with a Corrupt state
 and validation diagnostic, while already pinned historical snapshots remain safe.
+Neither `Ready`, a successful publication, nor a metadata capability certifies
+successful inverse reconstruction or physical accuracy. That needs independent
+producer accuracy/coverage evidence; no inverse solver is currently installed.
 
 Metadata capabilities are `AssetMetadata`, `PhysicalEmitters`, `SunEstimate`,
 `SkyEstimate`, `IndirectField`, `IncomingRadianceField`, `GeometryRegions`,

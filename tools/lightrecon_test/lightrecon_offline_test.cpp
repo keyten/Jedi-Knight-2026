@@ -415,7 +415,10 @@ void NativeLifetime()
 	std::shared_ptr<const O::Dataset> current;
 	CHECK(O::OpenFile(path, Opt(), current));
 	CHECK(current->Info().map.sha256 == hash);
-	CHECK(O::ExportFile(path, second.sources, Opt(), Ctx(), summary));
+	const auto replacement = O::ExportFile(path, second.sources, Opt(), Ctx(), summary);
+	if (!replacement)
+		std::printf("Native replacement error: %s\n", replacement.message.c_str());
+	CHECK(replacement);
 	CHECK(O::OpenFile(path, Opt(), current));
 	CHECK(current->Info().map.sha256 != hash);
 	uint64_t checked = 0;

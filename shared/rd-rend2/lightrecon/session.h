@@ -5,6 +5,9 @@
 
 namespace Rend2LightRecon { namespace Core {
 
+// Completed means the injected algorithm finished with structurally valid
+// output. Accuracy/coverage and reconstruction success need separate evidence;
+// neither an empty result nor candidate-only metadata certifies recovered light.
 enum class SessionState { Created, Running, Completed, Unavailable, Cancelled, Failed };
 struct Options
 {

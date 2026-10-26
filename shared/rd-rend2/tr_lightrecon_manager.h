@@ -24,6 +24,8 @@ public:
 	virtual Status SkyVisibility(const ReconstructedLightingAsset&, const SkyVisibilityQuery&, VisibilitySample&) const;
 	virtual Status Contribution(const ReconstructedLightingAsset&, const ContributionQuery&, ContributionSample&) const;
 };
+// Publication completeness only. Even Ready + a valid nonempty asset does not
+// certify inverse-solver success, physical accuracy or an implemented consumer.
 enum class Completeness { Ready, Partial };
 class Manager
 {

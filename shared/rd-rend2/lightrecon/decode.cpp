@@ -466,6 +466,7 @@ CommonSpace Compare(const Observation &a, const Observation &b)
 	if (a.source.state == State::Available && b.source.state == State::Available &&
 		!a.metadata->relativeDomain.empty() &&
 		a.metadata->relativeDomain == b.metadata->relativeDomain &&
+		a.resolvedPrimaries != Primaries::Unknown &&
 		a.resolvedPrimaries == b.resolvedPrimaries)
 		return CommonSpace::Relative;
 	return CommonSpace::Incomparable;

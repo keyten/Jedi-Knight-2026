@@ -73,7 +73,7 @@ There is no connection from an empty/default session into renderer lighting.
 | `lightrecon/lifecycle.h/.cpp` | Main-world context, cache/session ownership, tickets and synchronous complete-only publication |
 | `lightrecon/CMakeLists.txt` | Single static target containing these files and existing canonical types/API |
 | `tools/lightrecon_test/lightrecon_core_test.cpp` | Synthetic standalone core tests |
-| `tools/lightrecon_test/CMakeLists.txt` | Thirteen CPU tests plus an offline region inspector linking the same target |
+| `tools/lightrecon_test/CMakeLists.txt` | Fifteen core CPU tests, an independent baked-lighting test, and offline inspectors/dataset tools |
 
 `tr_lightrecon_types.*`, `tr_lightrecon_api.*` and `tr_lightrecon_manager.h` keep
 their existing names/includes; moving them is unnecessary churn. The new core
@@ -83,7 +83,9 @@ Future algorithms implement `Core::Algorithm` in this module or an offline tool.
 Root CMake adds the CPU target once before renderer subdirectories. SP and MP
 link it; the former duplicated canonical/API source entries have been removed
 from both renderer lists. The standalone test project adds the same core target
-only if it does not already exist, and links all thirteen test executables to it.
+only if it does not already exist, and links all fifteen core test executables to it.
+The independent baked-lighting arithmetic test is header-only and does not link
+the core archive; there are sixteen CTest entries in total.
 Each CPU translation unit compiles once per build/configuration, not separately
 for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,

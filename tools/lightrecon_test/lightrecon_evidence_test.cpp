@@ -1,5 +1,6 @@
 // Synthetic source evidence; no renderer, engine files or OpenGL.
 #include "lightrecon/evidence.h"
+#include "lightrecon/session.h"
 #include <cstdio>
 #include <cmath>
 #include <limits>
@@ -123,6 +124,16 @@ void Empty()
 	static_assert(
 		std::is_same<decltype(s->Evidence()), const std::vector<EmitterEvidence> &>::value,
 		"Read-only publication");
+	// An evidence provider, including a nonempty entity candidate set, does
+	// not install an algorithm or become canonical reconstructed output.
+	in.entityText = "{ \"classname\" \"light\" \"origin\" \"1 2 3\" \"light\" \"300\" }";
+	s = Run(in);
+	CHECK(!s->Candidates().empty());
+	d.emitterEvidence = s;
+	Session session(d);
+	CHECK(session.Begin().code == Code::Unavailable);
+	CHECK(session.State() == SessionState::Unavailable);
+	CHECK(!session.Output());
 }
 void GeometryTests()
 {

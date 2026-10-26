@@ -392,6 +392,11 @@ void CalibrationAndFailures()
 	p.calibration.enabled = true;
 	CHECK(D::Decoder(p).Run(grid, b));
 	CHECK(b.scene.reason == D::Reason::UnknownPrimaries);
+	CHECK(D::Decoder(p).Run(Ldr(64, 128, 254), a));
+	// Equal Unknown enum values do not establish a shared colour basis, even
+	// when the caller attests a common relative magnitude domain.
+	CHECK(a.resolvedPrimaries == D::Primaries::Unknown);
+	CHECK(D::Compare(a, b) == D::CommonSpace::Incomparable);
 	for (unsigned mode = 0; mode < 15; ++mode)
 	{
 		p = Assumed();
