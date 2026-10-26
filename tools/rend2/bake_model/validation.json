@@ -1,0 +1,2995 @@
+{
+  "base_revision": "ff02fa5d4d977300e175a2069fbe64d2b5170650",
+  "cases": {
+    "ambient": {
+      "authored": {
+        "ambient": 20,
+        "name": "ambient",
+        "no_emit": true
+      },
+      "bsp_sha256": "71f875e0fcbac48c6db2c2d94e6e647e8dfaafaeca703770e3b4cf0fef7e8442",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 0,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "32bc076e8bec3ad18ad2bcdc0efa479016d3912bd6fee3e709dcabc699671824",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "angle_scale": {
+      "authored": {
+        "angle_scale": 0.5,
+        "keys": {
+          "_anglescale": "0.5"
+        },
+        "name": "angle_scale"
+      },
+      "bsp_sha256": "cc849d353aa3a4cdc10749120ad9b613713edbc3bac17765fe0612ae86e20746",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "raw_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            42,
+            42,
+            42
+          ],
+          "raw_rgb8": [
+            42,
+            42,
+            42
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "raw_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "raw_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "e90949504c6cf868f7328b8a7f23b6e5e27eaa146a60019f28e713133a8eca6e",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "area": {
+      "authored": {
+        "area": true,
+        "name": "area"
+      },
+      "bsp_sha256": "e07a241f3a70572f878bbe26840b6483464da4ba74987ad869cb3aa09cbf318b",
+      "deluxe_checked_channels": 0,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            80,
+            80,
+            80
+          ],
+          "raw_rgb8": [
+            80,
+            80,
+            80
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "raw_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            76,
+            76,
+            76
+          ],
+          "raw_rgb8": [
+            76,
+            76,
+            76
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            72,
+            72,
+            72
+          ],
+          "raw_rgb8": [
+            72,
+            72,
+            72
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            65,
+            65,
+            65
+          ],
+          "raw_rgb8": [
+            65,
+            65,
+            65
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 0,
+      "grid_direction_checked_angles": 0,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "05417249d4869ff243c3df19fdf343e8cd4283b3cbca3aec3b6dd95dcc26c572",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "bounce1": {
+      "authored": {
+        "bounces": 1,
+        "name": "bounce1"
+      },
+      "bsp_sha256": "dec820a49d3891a56035dbf6bb8a1c51507599d876ecd75053facc8ea03574f3",
+      "examples": [],
+      "floor_mean": 26.377142857142857,
+      "floor_mean_increase": 5.331428571428571,
+      "grid_identical_to_direct_control": true,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "resolved_grid_sha256": "8c83dd6d366be8c6a5f6764ca3bd486635d57b1eeee82a16929768009e208d2b",
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "1",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "validation_kind": "paired-bounce-behaviour; not exact bounce replay"
+    },
+    "bouncegrid1": {
+      "authored": {
+        "bounces": 1,
+        "name": "bouncegrid1",
+        "options": [
+          "-bouncegrid"
+        ]
+      },
+      "bsp_sha256": "93912bd2d01432797abb760bb9b220c488801ae596ee3ece73f9bdf9c710f90f",
+      "examples": [],
+      "floor_mean": 26.377142857142857,
+      "floor_mean_increase": 5.331428571428571,
+      "grid_identical_to_direct_control": false,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "resolved_grid_sha256": "e3ed2c9b470127d39ab7e63d98ff6571057b4ed15c1247317ef0661f099c7f3b",
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "1",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-bouncegrid"
+        ]
+      ],
+      "validation_kind": "paired-bounce-behaviour; not exact bounce replay"
+    },
+    "colour_clip": {
+      "authored": {
+        "color": [
+          0.2,
+          0.5,
+          1.0
+        ],
+        "intensity": 3000,
+        "name": "colour_clip"
+      },
+      "bsp_sha256": "1da8fb9c03684ace542b4e9fb1cd95fad9d48f38ce02c65428f87d47e0675f31",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            51,
+            127,
+            255
+          ],
+          "raw_rgb8": [
+            51,
+            127,
+            255
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            51,
+            127,
+            255
+          ],
+          "raw_rgb8": [
+            51,
+            127,
+            255
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            51,
+            127,
+            254
+          ],
+          "raw_rgb8": [
+            51,
+            127,
+            255
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            43,
+            108,
+            216
+          ],
+          "raw_rgb8": [
+            43,
+            108,
+            216
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            26,
+            65,
+            131
+          ],
+          "raw_rgb8": [
+            26,
+            65,
+            131
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 4,
+      "grid_max_byte_error": 1,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "5df1ef28f93db34f39eaf4c4309c92543573592de9fea699f0dd669ac1456e41",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 1,
+      "surface_mean_abs_byte_error": 0.029387755102040815,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "colour_gamma": {
+      "authored": {
+        "color": [
+          0.2,
+          0.5,
+          1.0
+        ],
+        "gamma": 2.2,
+        "name": "colour_gamma",
+        "options": [
+          "-gamma",
+          "2.2"
+        ]
+      },
+      "bsp_sha256": "35a5b7d154c8af766726aed4ea3ca07523763c31ddc312b0d54a37d36cc0ea1a",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            64,
+            97,
+            133
+          ],
+          "raw_rgb8": [
+            64,
+            97,
+            133
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            59,
+            90,
+            124
+          ],
+          "raw_rgb8": [
+            59,
+            90,
+            124
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            49,
+            75,
+            103
+          ],
+          "raw_rgb8": [
+            49,
+            75,
+            103
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            39,
+            60,
+            83
+          ],
+          "raw_rgb8": [
+            39,
+            60,
+            83
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            31,
+            48,
+            66
+          ],
+          "raw_rgb8": [
+            31,
+            48,
+            66
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "7c54ad9ae6843bde917546d4676a4217287545a482348538af550768eb77e823",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-gamma",
+          "2.2"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "extra_distance": {
+      "authored": {
+        "extra": 64,
+        "name": "extra_distance",
+        "options": [
+          "-extradist",
+          "64"
+        ]
+      },
+      "bsp_sha256": "9cfdd1f41bba4d6805da9c383ae0ea4d5242b531f576e7c2a4ac9b7ad1be3952",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "raw_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            47,
+            47,
+            47
+          ],
+          "raw_rgb8": [
+            47,
+            47,
+            47
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            32,
+            32,
+            32
+          ],
+          "raw_rgb8": [
+            32,
+            32,
+            32
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "raw_rgb8": [
+            20,
+            20,
+            20
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            12,
+            12,
+            12
+          ],
+          "raw_rgb8": [
+            12,
+            12,
+            12
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-extradist",
+          "64"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "half_lambert": {
+      "authored": {
+        "half_lambert": true,
+        "name": "half_lambert",
+        "options": [
+          "-lightanglehl",
+          "1"
+        ]
+      },
+      "bsp_sha256": "f3d69bd326da79be4fbe5b1a6108ef3cf5d7082c121c6e41b0fb4556fba8f7b0",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "raw_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "raw_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "raw_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            14,
+            14,
+            14
+          ],
+          "raw_rgb8": [
+            14,
+            14,
+            14
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-lightanglehl",
+          "1"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "inverse_square": {
+      "authored": {
+        "name": "inverse_square"
+      },
+      "bsp_sha256": "d2fbb2059b251c8f39d2630d05a86856d900274fb5ae2577cc58e0ea01c04ae9",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "raw_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "raw_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "raw_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "raw_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0,
+      "wrong_falloff_rmse_without_refitting": 17.720206383835215
+    },
+    "linear": {
+      "authored": {
+        "angle": false,
+        "flags": 1,
+        "linear": true,
+        "name": "linear"
+      },
+      "bsp_sha256": "6a15e3d8bf3828ba828715176fd194857a27b2543f86306dfa34256e4bc4ba7e",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "raw_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "raw_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            51,
+            51,
+            51
+          ],
+          "raw_rgb8": [
+            51,
+            51,
+            51
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "raw_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "93d7d3c59e40b358309b5c8afcb486fdf91a3a4e75f233bf5bbcf79fbe512ec0",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0,
+      "wrong_falloff_rmse_without_refitting": 19.248090284281105
+    },
+    "linear_angle": {
+      "authored": {
+        "flags": 1,
+        "keys": {
+          "_anglescale": "1"
+        },
+        "linear": true,
+        "name": "linear_angle"
+      },
+      "bsp_sha256": "d0c374f341b3d849d86e1e83ed94b691490623b4638216af975cc1f492ef13e1",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "raw_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            65,
+            65,
+            65
+          ],
+          "raw_rgb8": [
+            65,
+            65,
+            65
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            3,
+            3,
+            3
+          ],
+          "raw_rgb8": [
+            3,
+            3,
+            3
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "011d69e6b16d16cb927a084339353e6a6c1e0f712493aa8ee1a25387c048b98d",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "linear_fade": {
+      "authored": {
+        "angle": false,
+        "fade": 0.5,
+        "flags": 1,
+        "keys": {
+          "fade": "0.5"
+        },
+        "linear": true,
+        "name": "linear_fade"
+      },
+      "bsp_sha256": "d45acb23714208b944eee3d3008b3f60c9b1fea1aa1bc2ac6bb575e314fe3662",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            185,
+            185,
+            185
+          ],
+          "raw_rgb8": [
+            185,
+            185,
+            185
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            180,
+            180,
+            180
+          ],
+          "raw_rgb8": [
+            180,
+            180,
+            180
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            166,
+            166,
+            166
+          ],
+          "raw_rgb8": [
+            166,
+            166,
+            166
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            145,
+            145,
+            145
+          ],
+          "raw_rgb8": [
+            145,
+            145,
+            145
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            121,
+            121,
+            121
+          ],
+          "raw_rgb8": [
+            121,
+            121,
+            121
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "0a91645287faefbb8b7529510410d14b696cd81eb409e5c962ac05bd929ac09a",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "multi_sun": {
+      "authored": {
+        "multi": true,
+        "name": "multi_sun",
+        "sun": true
+      },
+      "bsp_sha256": "0ff603f3537a83b5ca6bc80eae344c6e697b37c356151667a0904c438c8157ba",
+      "deluxe_checked_channels": 0,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 0,
+      "grid_direction_checked_angles": 0,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "940f867a15f6ddb1a0f529f325bcbb00fe3795c12a5925c148376bea2f55b4cd",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3570,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 105,
+      "unchecked_sky_wall_boundary_max_error": 28
+    },
+    "no_angle": {
+      "authored": {
+        "angle": false,
+        "flags": 2,
+        "name": "no_angle"
+      },
+      "bsp_sha256": "b2e6c8b927dbae656b58a2aee0619756f47859012116013bb69a14cdeff2ba15",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "raw_rgb8": [
+            55,
+            55,
+            55
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            42,
+            42,
+            42
+          ],
+          "raw_rgb8": [
+            42,
+            42,
+            42
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "raw_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "raw_rgb8": [
+            22,
+            22,
+            22
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "c086e02728d107c2be13cfff11abcd558c9ad28cef5504797f1bd4c881942e38",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "pointscale_half": {
+      "authored": {
+        "name": "pointscale_half",
+        "options": [
+          "-pointscale",
+          "0.5"
+        ],
+        "pointscale": 0.5
+      },
+      "bsp_sha256": "35ac902c58a38777464aec831cb4cc7edd54cb94c57670bfc76e0e24d137cadb",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "raw_rgb8": [
+            30,
+            30,
+            30
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            26,
+            26,
+            26
+          ],
+          "raw_rgb8": [
+            26,
+            26,
+            26
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            17,
+            17,
+            17
+          ],
+          "raw_rgb8": [
+            17,
+            17,
+            17
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "raw_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            6,
+            6,
+            6
+          ],
+          "raw_rgb8": [
+            6,
+            6,
+            6
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-pointscale",
+          "0.5"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "retained_light": {
+      "authored": {
+        "bsp_options": [
+          "-keeplights"
+        ],
+        "name": "retained_light"
+      },
+      "bsp_sha256": "9ea8f132d325b6d211bfa16c6d4c93032c0932559055392dcd8fc70b4e075d11",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "raw_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "raw_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "raw_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "raw_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 1,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16",
+          "-keeplights"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "skylight": {
+      "authored": {
+        "name": "skylight",
+        "skylight": true,
+        "sun": true
+      },
+      "bsp_sha256": "8b6966dbd6e5b1764ca6e1609fab6ba49ca517d989c682c0bf98f0949fcddc5d",
+      "deluxe_checked_channels": 0,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            46,
+            46,
+            46
+          ],
+          "raw_rgb8": [
+            46,
+            46,
+            46
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "raw_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "raw_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "raw_rgb8": [
+            37,
+            37,
+            37
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            27,
+            27,
+            27
+          ],
+          "raw_rgb8": [
+            27,
+            27,
+            27
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 0,
+      "grid_direction_checked_angles": 0,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "12840bf422b7b6bd0f9b0cd69b9d463c1c729eb87e0f632c76702af17e5dfdef",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "spot": {
+      "authored": {
+        "flags": 1,
+        "name": "spot",
+        "spot": true
+      },
+      "bsp_sha256": "b899da6efb37abe21add3e68f3d08e81ca3d0f97b62ec9e7da9c5d93b40fd8c0",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "raw_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 12,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "b2f6239935af3357b522d44622bbbde89bd6a17d0c083cd7380d68a1beb012ec",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "sun": {
+      "authored": {
+        "name": "sun",
+        "sun": true
+      },
+      "bsp_sha256": "a00bb637895c09448ec00eecafcfd3f8721f7d8256b2cecea27dfd4b28cae422",
+      "deluxe_checked_channels": 0,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "raw_rgb8": [
+            120,
+            120,
+            120
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 0,
+      "grid_direction_checked_angles": 0,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "f8a4e89b17ba0aa04a611530cf4521e1c1fb289a0417c9d524ae97b96fbbd495",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "wolf_inverse_square": {
+      "authored": {
+        "flags": 1,
+        "name": "wolf_inverse_square",
+        "options": [
+          "-wolf"
+        ]
+      },
+      "bsp_sha256": "1698cdcbd89d7c097639a390c9600140021c49869db4c1db9098fffe5565ebb8",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "raw_rgb8": [
+            61,
+            61,
+            61
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "raw_rgb8": [
+            52,
+            52,
+            52
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "raw_rgb8": [
+            35,
+            35,
+            35
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "raw_rgb8": [
+            21,
+            21,
+            21
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "raw_rgb8": [
+            13,
+            13,
+            13
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "93d7d3c59e40b358309b5c8afcb486fdf91a3a4e75f233bf5bbcf79fbe512ec0",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-wolf"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    },
+    "wolf_linear": {
+      "authored": {
+        "angle": false,
+        "linear": true,
+        "name": "wolf_linear",
+        "options": [
+          "-wolf"
+        ]
+      },
+      "bsp_sha256": "4e8de03fad9e1d32c49e16bfbf641493b7d23383a0256cb319a50386dfcf9422",
+      "deluxe_checked_channels": 3675,
+      "deluxe_max_byte_error": 0,
+      "examples": [
+        {
+          "predicted_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "raw_rgb8": [
+            90,
+            90,
+            90
+          ],
+          "world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "raw_rgb8": [
+            79,
+            79,
+            79
+          ],
+          "world": [
+            64.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            51,
+            51,
+            51
+          ],
+          "raw_rgb8": [
+            51,
+            51,
+            51
+          ],
+          "world": [
+            128.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "raw_rgb8": [
+            10,
+            10,
+            10
+          ],
+          "world": [
+            192.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "predicted_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "raw_rgb8": [
+            0,
+            0,
+            0
+          ],
+          "world": [
+            256.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "grid_checked_channels": 450,
+      "grid_direction_checked_angles": 150,
+      "grid_direction_max_bin_error": 0,
+      "grid_max_byte_error": 0,
+      "grid_storage_merge_epsilon": 4,
+      "map_sha256": "6ce8a56d14537336c1d2c56d6d56bb14fd78327e973c346da4f294cdc9c76a31",
+      "passed": true,
+      "retained_light_entities": 0,
+      "stages": [
+        [
+          "-meta",
+          "-leaktest",
+          "-noflares",
+          "-samplesize",
+          "16"
+        ],
+        [
+          "-vis"
+        ],
+        [
+          "-light",
+          "-deluxe",
+          "-deluxemode",
+          "0",
+          "-gamma",
+          "1",
+          "-compensate",
+          "1",
+          "-exposure",
+          "0",
+          "-bounce",
+          "0",
+          "-super",
+          "1",
+          "-nocollapse",
+          "-wolf"
+        ]
+      ],
+      "surface_checked_channels": 3675,
+      "surface_max_byte_error": 0,
+      "surface_mean_abs_byte_error": 0.0,
+      "surface_samples": 1225,
+      "unchecked_sky_wall_boundary_channels": 0,
+      "unchecked_sky_wall_boundary_max_error": 0
+    }
+  },
+  "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "compiler_version": [
+    "2.5.17n-git-d9338309e",
+    "Usage: q3map2 [stage] [common options...] [stage options...] [stage source file]",
+    "       q3map2 -help [stage]",
+    "       q3map2 -help all",
+    "",
+    "Common Options:"
+  ],
+  "date": "2026-10-26",
+  "encoding": "gamma/compensation/exposure explicitly recorded per case; RGB8 truncation",
+  "expected_binary": true,
+  "kernel_tests": {
+    "command": "python tools/rend2/bake_model/test_kernels.py -v",
+    "passed": true,
+    "tests": 7
+  },
+  "limitations": [
+    "Two-unit sky/wall boundary band reported unchecked with raw discrepancies.",
+    "Grid byte/direction budgets include source-defined LG_EPSILON=4 plus one unit of float/cast roundoff.",
+    "Bounce tests check paired behaviour, not exact bounce transport.",
+    "Sun/sky/area fixtures assert floor RGB; their multisource grid reduction is not numerically asserted.",
+    "No full vertex replay, animated styles, patches, flood/dirt, HDR bakes or jitter RNG replay tested.",
+    "No renderer build or gameplay run required or performed for this documentation/offline-tools change."
+  ],
+  "local_output": "build/bake-model-comparison-final",
+  "passed": true,
+  "profile_status": "controlled-kernels-verified",
+  "renderer_changed": false,
+  "scale_fitted": false,
+  "schema": "org.openjk.bake-model-comparison",
+  "scope": "Controlled kernels only. No stock compiler identity, absolute photometry or full compiler replay verified.",
+  "scripts_sha256": {
+    "bake_model.py": "421bdada07d7c25ec38a75911533afa4f7ca2ca3b9e851174826839ed909c0b8",
+    "compare_bakes.py": "9fbf795ba4d9232304b9359f2b89e4f05372b1b664512fcc149203b7a68920d5",
+    "inspect_stock.py": "8f25b58c2ac5762f614a7080e20fade782109b965afd3d0de0ae309c647aeee3",
+    "test_kernels.py": "bdf120203a1ff40082285c688323eee3a497e630a173cc3cfabe8c608ea1cc3a"
+  },
+  "source_revision": "d9338309ea8fab75027b7382efaabe034302b862",
+  "totals": {
+    "compiler_cases": 22,
+    "compiler_stage_invocations": 66,
+    "deluxe_checked_channels": 58800,
+    "grid_checked_channels": 7200,
+    "grid_direction_checked_angles": 2112,
+    "surface_checked_channels": 73395,
+    "unchecked_boundary_channels": 105
+  },
+  "version": 1
+}

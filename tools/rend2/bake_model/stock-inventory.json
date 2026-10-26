@@ -1,0 +1,66 @@
+{
+  "maps": {
+    "maps/hoth2.bsp": {
+      "bsp_bytes": 13970616,
+      "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "compiler_provenance": {},
+      "grid_records": 4001,
+      "light_entities": 0,
+      "light_entity_field_names": [],
+      "lightmap_pages": 12,
+      "logical_grid_indices": 1044126,
+      "profile": "UnknownProfile",
+      "verification": "unverified"
+    },
+    "maps/hoth3.bsp": {
+      "bsp_bytes": 13920700,
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "compiler_provenance": {},
+      "grid_records": 11553,
+      "light_entities": 0,
+      "light_entity_field_names": [],
+      "lightmap_pages": 38,
+      "logical_grid_indices": 229068,
+      "profile": "UnknownProfile",
+      "verification": "unverified"
+    },
+    "maps/mp/ctf1.bsp": {
+      "bsp_bytes": 8269312,
+      "bsp_sha256": "375ba6a60ec25efde0a9744286d1e2998ff2a039eb9374290d0dc3b6e8d7bd36",
+      "compiler_provenance": {},
+      "grid_records": 22131,
+      "light_entities": 0,
+      "light_entity_field_names": [],
+      "lightmap_pages": 18,
+      "logical_grid_indices": 180668,
+      "profile": "UnknownProfile",
+      "verification": "unverified"
+    },
+    "maps/mp/duel1.bsp": {
+      "bsp_bytes": 3036068,
+      "bsp_sha256": "113bdcf0732ae1abc15ef1e43d13c00bcdca64d465e87c08534e50e2a19b92f2",
+      "compiler_provenance": {},
+      "grid_records": 2385,
+      "light_entities": 0,
+      "light_entity_field_names": [],
+      "lightmap_pages": 46,
+      "logical_grid_indices": 25584,
+      "profile": "UnknownProfile",
+      "verification": "unverified"
+    },
+    "maps/mp/ffa1.bsp": {
+      "bsp_bytes": 4617652,
+      "bsp_sha256": "87c7732e8439ab01cc7b7d2bc17333133102a16d42b086636b4af0a7ed0d6f9a",
+      "compiler_provenance": {},
+      "grid_records": 12241,
+      "light_entities": 0,
+      "light_entity_field_names": [],
+      "lightmap_pages": 22,
+      "logical_grid_indices": 118320,
+      "profile": "UnknownProfile",
+      "verification": "unverified"
+    }
+  },
+  "schema": "org.openjk.stock-bake-inventory",
+  "version": 1
+}

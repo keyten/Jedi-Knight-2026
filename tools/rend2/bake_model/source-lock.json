@@ -1,0 +1,276 @@
+{
+  "hash_policy": "SHA256 after CRLF to LF normalization; no sources vendored",
+  "schema": "org.openjk.bake-model-source-lock",
+  "version": 1,
+  "versions": [
+    {
+      "commit": "d9338309ea8fab75027b7382efaabe034302b862",
+      "files": [
+        {
+          "inspection_path": "build/bake-model-sources/net/light.c",
+          "lf_sha256": "3e29c6eea3aa65170050326216618acf2600720c0f17644806143d209a59b4f4",
+          "lines": 3081,
+          "path": "tools/quake3/q3map2/light.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/light_ydnar.c",
+          "lf_sha256": "dda4f4f2ba5cf806e080022ccaf0d21f759f046faeedc310ee930056833f8d44",
+          "lines": 4490,
+          "path": "tools/quake3/q3map2/light_ydnar.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light_ydnar.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/light_bounce.c",
+          "lf_sha256": "19cfb6032c1be79f9fd1bdb30d9b74159912722261ea73d576ce04d9ce127ac1",
+          "lines": 973,
+          "path": "tools/quake3/q3map2/light_bounce.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light_bounce.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/light_trace.c",
+          "lf_sha256": "6a3cb8f98469e2a32ea38e139c32b4ed97a0ded41dd59d40405ffd317a0e630f",
+          "lines": 1793,
+          "path": "tools/quake3/q3map2/light_trace.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light_trace.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/lightmaps.c",
+          "lf_sha256": "f82d995290aaae4921f9fe02ebd39d5a9f03d1c94fa48ab140f6040dd04304ff",
+          "lines": 115,
+          "path": "tools/quake3/q3map2/lightmaps.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/lightmaps.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/lightmaps_ydnar.c",
+          "lf_sha256": "f746f69fb3e58cf480d7dbd7e8f059d302545cf8564cbe522540131c4a99f6ca",
+          "lines": 3501,
+          "path": "tools/quake3/q3map2/lightmaps_ydnar.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/lightmaps_ydnar.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/shaders.c",
+          "lf_sha256": "36b0f1eda9c63f4e9118aa80a8a9b8f7f76e54621b3dc1a3a82d79ba93678dde",
+          "lines": 2142,
+          "path": "tools/quake3/q3map2/shaders.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/shaders.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/q3map2.h",
+          "lf_sha256": "49e337a826d46a3a88dac49e6095eef109847fd9f55a51ec6b065fe1d3d8fdc8",
+          "lines": 2631,
+          "path": "tools/quake3/q3map2/q3map2.h",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/q3map2.h"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/game_ja.h",
+          "lf_sha256": "225833ec633ad87818c430862820cd02c2115f2540da7073b7c31fe7a0c72794",
+          "lines": 209,
+          "path": "tools/quake3/q3map2/game_ja.h",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/game_ja.h"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/bspfile_rbsp.c",
+          "lf_sha256": "7bd5672a08c36617fab9eec704db003a9aea2104e90d127cf639b646ca9b6d96",
+          "lines": 337,
+          "path": "tools/quake3/q3map2/bspfile_rbsp.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/bspfile_rbsp.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/bsp.c",
+          "lf_sha256": "67c2684a3900b9f4a5d6d9cfe9cab6d9aaa05ecc41cfee143e0c99c668ae0116",
+          "lines": 1141,
+          "path": "tools/quake3/q3map2/bsp.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/bsp.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/bspfile_abstract.c",
+          "lf_sha256": "1c6e397e12c59f2a1424821b8f7c989444a0d87ccbd9ec9e4fc1d6ed5010cbf3",
+          "lines": 942,
+          "path": "tools/quake3/q3map2/bspfile_abstract.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/bspfile_abstract.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/map.c",
+          "lf_sha256": "af65f593c871eac7d9ef415ea18fca894e4fec6785081713b0bde873df75f467",
+          "lines": 1933,
+          "path": "tools/quake3/q3map2/map.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/map.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/writebsp.c",
+          "lf_sha256": "8eee0d3eb91e32379f62354828bfeccbf15238385375cc13851fcf4655d9fe3d",
+          "lines": 793,
+          "path": "tools/quake3/q3map2/writebsp.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/writebsp.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/changelog.q3map2.txt",
+          "lf_sha256": "5679a2ace25dd11795c1224e830914f1d6f60f69af2b8b5584f59c4531aa08dd",
+          "lines": 709,
+          "path": "tools/quake3/q3map2/changelog.q3map2.txt",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/changelog.q3map2.txt"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/mathlib.c",
+          "lf_sha256": "a59f65e68ad78bb214a190875d2d282e83c901936a86ac86fde6a44b2d6c1f77",
+          "lines": 773,
+          "path": "libs/mathlib/mathlib.c",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/libs/mathlib/mathlib.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/net/mathlib.h",
+          "lf_sha256": "61de10ba9534b40b2aa9247b57e6b34c2eacebf91b48f4e59dd7d073e4e0f2bb",
+          "lines": 483,
+          "path": "libs/mathlib.h",
+          "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/libs/mathlib.h"
+        }
+      ],
+      "key": "net",
+      "repository": "xonotic/netradiant",
+      "version": "2.5.17n-git-d9338309e"
+    },
+    {
+      "commit": "0991a5ce8b8ccb86a5b0d54c089369d84f53dc10",
+      "files": [
+        {
+          "inspection_path": "build/bake-model-sources/gtk/light.c",
+          "lf_sha256": "3f064d05230486363d3411b27a81c5ab59406e8d5359755d4dd7a32198dc2a72",
+          "lines": 2305,
+          "path": "tools/quake3/q3map2/light.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/light.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/light_ydnar.c",
+          "lf_sha256": "af075e87bf241e2e9da6a5cb4a3779196d2a08111399fcf9a77969ec04689722",
+          "lines": 3593,
+          "path": "tools/quake3/q3map2/light_ydnar.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/light_ydnar.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/light_bounce.c",
+          "lf_sha256": "ec12079f2710604e1d6462c40edafe3af72b0b02888c07f828db244a0b79cfdf",
+          "lines": 955,
+          "path": "tools/quake3/q3map2/light_bounce.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/light_bounce.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/light_trace.c",
+          "lf_sha256": "cc0349ccb85a116c36092bdfc75536aa56e4bba2793190b1acbcc039ec6fc838",
+          "lines": 1760,
+          "path": "tools/quake3/q3map2/light_trace.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/light_trace.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/lightmaps.c",
+          "lf_sha256": "d4ffb8491094f2a9d6ab77dbbd7d138b6849ba90563f928afca37ca261bdc562",
+          "lines": 496,
+          "path": "tools/quake3/q3map2/lightmaps.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/lightmaps.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/lightmaps_ydnar.c",
+          "lf_sha256": "58c0821e849fa5566c889f7469d97ee337cbf129cf956f1f45cf9a8361ae70ed",
+          "lines": 3136,
+          "path": "tools/quake3/q3map2/lightmaps_ydnar.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/lightmaps_ydnar.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/shaders.c",
+          "lf_sha256": "7da08cfb52ec7a17161e0390147138b3af913fb187d71def3a4cb4c2cb304c1e",
+          "lines": 2061,
+          "path": "tools/quake3/q3map2/shaders.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/shaders.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/q3map2.h",
+          "lf_sha256": "16646483a6e0462fce3df580883f3300f06f86892787ad9b18be248e6df7649a",
+          "lines": 2318,
+          "path": "tools/quake3/q3map2/q3map2.h",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/q3map2.h"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/game_ja.h",
+          "lf_sha256": "191a7238e7c9acd11f92cb1745b04eaf1879b80c662895f0039e77749385940d",
+          "lines": 188,
+          "path": "tools/quake3/q3map2/game_ja.h",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/game_ja.h"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/bspfile_rbsp.c",
+          "lf_sha256": "7b64816673f0741d17d19c73d2123993fdd36725c5940446536eef96e979f547",
+          "lines": 340,
+          "path": "tools/quake3/q3map2/bspfile_rbsp.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/bspfile_rbsp.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/bsp.c",
+          "lf_sha256": "5c4503465b62536b323c45aa4f518bd8ab4dbb1f3cf7732812fac92bdfc25ba8",
+          "lines": 858,
+          "path": "tools/quake3/q3map2/bsp.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/bsp.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/changelog.q3map2.txt",
+          "lf_sha256": "5679a2ace25dd11795c1224e830914f1d6f60f69af2b8b5584f59c4531aa08dd",
+          "lines": 709,
+          "path": "tools/quake3/q3map2/changelog.q3map2.txt",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/changelog.q3map2.txt"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/main.c",
+          "lf_sha256": "d93309b0081e3b51afdb51a2c716a592d22f45edcf3a526f138674b8f92ec5f6",
+          "lines": 745,
+          "path": "tools/quake3/q3map2/main.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/main.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/gtk/mathlib.c",
+          "lf_sha256": "bc6571693068aacba5172d0b28bc99b7d61c3d4ac2c3f93ebbfa77c1ea0990f3",
+          "lines": 578,
+          "path": "libs/mathlib/mathlib.c",
+          "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/libs/mathlib/mathlib.c"
+        }
+      ],
+      "key": "gtk",
+      "repository": "id-Software/GtkRadiant",
+      "version": "2.5.16"
+    },
+    {
+      "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49",
+      "files": [
+        {
+          "inspection_path": "build/bake-model-sources/q3/light.c",
+          "lf_sha256": "ddb23fca6707adbbf37e66cc58afea3cae6bdf974aafe6344cd01e2f8a5deeee",
+          "lines": 2149,
+          "path": "q3map/light.c",
+          "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/light.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/q3/lightv.c",
+          "lf_sha256": "1c7eadb4088431a746fd0042566f071269864d1f24355e8b99a262924f1096b5",
+          "lines": 5748,
+          "path": "q3map/lightv.c",
+          "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/lightv.c"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/q3/light.h",
+          "lf_sha256": "1c8456b34a19ab184d76583d49b72b470bcee67f5d00bf115384af29aefcb040",
+          "lines": 151,
+          "path": "q3map/light.h",
+          "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/light.h"
+        },
+        {
+          "inspection_path": "build/bake-model-sources/q3/shaders.c",
+          "lf_sha256": "c9ef369fcf7f5212a8da81ebb8caa5466dbfed7671681cdd4bc219d2e384c37f",
+          "lines": 608,
+          "path": "q3map/shaders.c",
+          "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/shaders.c"
+        }
+      ],
+      "key": "q3",
+      "repository": "id-Software/Quake-III-Arena",
+      "version": "original GPL release snapshot"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "schema": "org.openjk.bake-model-profile-catalogue",
+  "schema_version": 1,
+  "formula_version": 1,
+  "status": "proposal; not a production format or automatic classifier",
+  "specification": "docs/rend2-bake-model.md",
+  "profiles": [
+    {
+      "id": "UnknownProfile",
+      "status": "unverified",
+      "compiler": null,
+      "verified_features": [],
+      "defaults": {
+        "preserve_raw": true,
+        "source_transfer": "Unknown",
+        "primaries": "Unknown",
+        "absolute_scale": "Unknown",
+        "attenuation": null,
+        "minimum_distance_world": null,
+        "point_scale": null,
+        "sun_rgb_normalization": null,
+        "grid_directed_leak": null,
+        "grid_merge_epsilon": null,
+        "bounce_count": null,
+        "bounce_grid": null,
+        "gamma": null,
+        "compensate": null,
+        "exposure": null,
+        "linear_output_available": false,
+        "unknown_required_feature_result": "UnspecifiedModel"
+      },
+      "exploratory_candidates_only": [
+        "Assumed inverse-square, max(16,r), cosine; relative units",
+        "Assumed q3-style linear without cosine; relative units"
+      ],
+      "promotion_rule": "No automatic promotion from BSP format, retained entities or visual fit"
+    },
+    {
+      "id": "RavenProductionUnknown",
+      "status": "historical_hypothesis",
+      "compiler": null,
+      "inherits": "UnknownProfile",
+      "verified_features": [],
+      "source_basis": "sof2map attribution in accessible q3map2 parser/BSP comments; not production compiler source",
+      "stock_assignment": "unverified; do not assign by SP/MP identity alone"
+    },
+    {
+      "id": "Q3MapOriginal",
+      "status": "source_inspected_ancestor; not JA RBSP executable profile",
+      "repository": "id-Software/Quake-III-Arena",
+      "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49",
+      "verified_features": [],
+      "source_supported_differences": {
+        "grid_directed_leak": 0.25,
+        "grid_spot_cone": false,
+        "surface_linear_angle": true
+      },
+      "stock_assignment": "unverified"
+    },
+    {
+      "id": "Q3Map2-2.5.16-JA",
+      "status": "source_supported_candidate; not executed",
+      "repository": "id-Software/GtkRadiant",
+      "commit": "0991a5ce8b8ccb86a5b0d54c089369d84f53dc10",
+      "upstream_version": "2.5.16",
+      "game": "ja",
+      "verified_features": [],
+      "source_supported_defaults": {
+        "point_scale": 7500,
+        "spot_scale": 7500,
+        "area_scale": 0.25,
+        "form_factor_value_scale": 3,
+        "linear_scale": 0.000125,
+        "minimum_point_distance_world": 16,
+        "falloff_tolerance": 1,
+        "mode": "q3",
+        "sun_rgb_normalization": "Euclidean for shader suns; max-channel for entity suns",
+        "grid_directed_leak_first_pass": 0.125,
+        "grid_bounce_direction": "write direct direction only; in-place normalized accumulator",
+        "grid_merge_epsilon": 4,
+        "gamma": 1,
+        "compensate": 1,
+        "bounce_count": 0,
+        "bounce_grid": false,
+        "sky_sampler": "post-2.5.14 ring sampler"
+      },
+      "stock_assignment": "unverified"
+    },
+    {
+      "id": "NetRadiant-d9338309-JA",
+      "status": "VerifiedSubset for controlled fixtures only",
+      "repository": "xonotic/netradiant",
+      "commit": "d9338309ea8fab75027b7382efaabe034302b862",
+      "executable_version": "2.5.17n-git-d9338309e",
+      "executable_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "game": "ja",
+      "source_supported_defaults": {
+        "point_scale": 7500,
+        "spot_scale": 7500,
+        "area_scale": 0.25,
+        "form_factor_value_scale": 3,
+        "linear_scale": 0.000125,
+        "minimum_point_distance_world": 16,
+        "extra_distance_world": 0,
+        "falloff_tolerance": 1,
+        "mode": "q3",
+        "sun_rgb_normalization": "max-channel",
+        "grid_directed_leak_first_pass": 0,
+        "grid_directionality": 1,
+        "grid_ambient_directionality": 0,
+        "grid_scale": 1,
+        "grid_ambient_scale": 1,
+        "grid_nonzero_ambient_if_directed": true,
+        "grid_bounce_direction": "persistent unnormalized weighted sum; rewrite each pass",
+        "grid_merge_epsilon": 4,
+        "gamma": 1,
+        "compensate": 1,
+        "exposure": 0,
+        "srgb_light": false,
+        "srgb_color": false,
+        "srgb_texture": false,
+        "bounce_count": 0,
+        "bounce_grid": false
+      },
+      "verified_features": [
+        "specified point/spot falloff modes, fade, angle modes and scales",
+        "specified gamma and clipping fixtures",
+        "single-source interior grid RGB/directions and deluxe",
+        "interior vertical/multiple sun, 17-direction skylight and exact area floor RGB",
+        "ambient-only floor/grid source-order behavior",
+        "paired bounce/grid inclusion, not full transport replay",
+        "specified light retention option"
+      ],
+      "unverified_features": [
+        "complete compiler trace and shadow boundaries",
+        "arbitrary patches, sample nudges, filters and RNG replay",
+        "flood/dirt numerical bakes",
+        "animated lightstyles",
+        "full vertex lighting replay",
+        "HDR compiler output",
+        "any stock JA compiler identity or photometric calibration"
+      ],
+      "validation": "tools/rend2/bake_model/validation.json",
+      "stock_assignment": "unverified"
+    }
+  ]
+}

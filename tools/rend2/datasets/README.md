@@ -1,5 +1,11 @@
 # Offline lighting datasets
 
+The [historical bake-model specification](../../../docs/rend2-bake-model.md)
+and [independent attenuation comparison harness](../bake_model/README.md)
+describe compiler-relative forward models. Physical CPU reference fixtures and
+q3map2 recipes have different source units; passing controlled compiler tests
+does not verify the bake profile of an unknown stock BSP.
+
 Run from repository root:
 
 ```sh

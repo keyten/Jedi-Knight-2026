@@ -1,5 +1,12 @@
 # Original BSP lightgrid observations
 
+The [historical forward-model investigation](rend2-bake-model.md) distinguishes
+compiler grid reduction, direction encoding and approximate RBSP record merging
+from this decoder's canonical representation. In the inspected q3map2 writers,
+records can merge within four RGB byte values and roughly four angle bins.
+The direction quantization bound below does not include that compiler-specific
+compression error or identify an unknown stock compiler.
+
 `shared/rd-rend2/lightrecon/lightgrid.h/.cpp` provides a C++11 CPU snapshot of
 JA lightgrid evidence. SP, MP and standalone tools link the same
 `rend2_lightrecon_core`. This input is separate from reconstructed assets,
