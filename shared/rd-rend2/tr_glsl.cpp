@@ -355,9 +355,6 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_FroxelCarry",			GLSL_INT, 1 },
 	{ "u_VolumetricStaticGrid",	GLSL_INT, 1 },
 	{ "u_VolumetricSunGrid",	GLSL_INT, 1 },
-	{ "u_VolumetricDirMomentR",	GLSL_INT, 1 },
-	{ "u_VolumetricDirMomentG",	GLSL_INT, 1 },
-	{ "u_VolumetricDirMomentB",	GLSL_INT, 1 },
 	{ "u_VolumetricLegacyGrid",	GLSL_INT, 1 },
 	{ "u_FroxelSlice",			GLSL_INT, 1 },
 	{ "u_FroxelNoise",			GLSL_INT, 1 },
@@ -5211,9 +5208,6 @@ static int GLSL_LoadGPUProgramVolumetric(
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELCARRY, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSTATICGRID, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICSUNGRID, TB_NORMALMAP);
-		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTR, TB_SPECULARMAP);
-		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTG, TB_SSAOMAP);
-		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICDIRMOMENTB, TB_VOLUMETRICMOMENTB);
 		GLSL_SetUniformInt(sp, UNIFORM_VOLUMETRICLEGACYGRID, TB_EMISSIVEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_FROXELDYNAMIC, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
@@ -5245,8 +5239,6 @@ static int GLSL_LoadGPUProgramVolumetric(
 
 	// the density noise and the FX particle media (VolumetricParticles block)
 	// are read by the injection and the debug views only
-	// The directional baked light moments (r_volumetricFogStaticDirectional,
-	// latched) are a permutation: without it no moment sampler, fetch or ALU.
 	// The liquid media (r_volumetricWater, latched) are read by the injection and
 	// the debug views.
 	GLint rainTextureUnits = 0;
@@ -5256,9 +5248,8 @@ static int GLSL_LoadGPUProgramVolumetric(
 	Com_sprintf(particleDefines, sizeof(particleDefines),
 		"#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n"
 		"#define MAX_GPU_VOL_PARTICLES %i\n#define VOL_PARTICLE_POOL %i\n"
-		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s%s%s",
+		"#define MAX_GPU_EMISSIVE_PARTICLES %i\n%s%s",
 		MAX_GPU_VOL_PARTICLES, VOL_PARTICLE_POOL, MAX_GPU_EMISSIVE_PARTICLES,
-		R_VolumetricStaticDirectional() ? "#define USE_FROXEL_STATIC_RECONSTRUCTION\n" : "",
 		liquidLibrary ? "#define USE_LIQUIDS\n" : "",
 		rainVolumeShaders ? "#define USE_RAIN_VOLUME\n" : "");
 

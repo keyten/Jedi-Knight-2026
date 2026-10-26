@@ -1,0 +1,100 @@
+{
+  "GLSL_LoadGPUProgramFogPass": [
+    "& tr . fogShader [ i ] , UNIFORM_DIFFUSEMAP , 0"
+  ],
+  "GLSL_LoadGPUProgramGeneric": [
+    "& tr . genericShader [ i ] , UNIFORM_DIFFUSEMAP , TB_DIFFUSEMAP",
+    "& tr . genericShader [ i ] , UNIFORM_LIGHTMAP , TB_LIGHTMAP",
+    "& tr . genericShader [ i ] , UNIFORM_EMISSIVEMAP , TB_EMISSIVEMAP"
+  ],
+  "GLSL_LoadGPUProgramLightAll": [
+    "program , UNIFORM_DIFFUSEMAP , TB_DIFFUSEMAP",
+    "program , UNIFORM_LIGHTMAP , TB_LIGHTMAP",
+    "program , UNIFORM_NORMALMAP , TB_NORMALMAP",
+    "program , UNIFORM_SPECULARMAP , TB_SPECULARMAP",
+    "program , UNIFORM_SHADOWMAP , TB_SHADOWMAP",
+    "program , UNIFORM_ENVBRDFMAP , TB_ENVBRDFMAP",
+    "program , UNIFORM_SHADOWMAP2 , TB_SHADOWMAPARRAY",
+    "program , UNIFORM_EMISSIVEMAP , TB_EMISSIVEMAP",
+    "program , UNIFORM_ENTITYGRIDAMBIENT , TB_ENTITYGRID_AMBIENT",
+    "program , UNIFORM_ENTITYGRIDDIRECTED , TB_ENTITYGRID_DIRECTED",
+    "program , UNIFORM_ENTITYGRIDDIRECTION , TB_ENTITYGRID_DIRECTION",
+    "program , UNIFORM_FPLUSLIGHTS , TB_FPLUS_LIGHTS",
+    "program , UNIFORM_FPLUSGRID , TB_FPLUS_GRID",
+    "program , UNIFORM_FPLUSINDICES , TB_FPLUS_INDICES",
+    "program , UNIFORM_LTCMATRIXMAP , TB_LTC_MATRIX",
+    "program , UNIFORM_LTCAMPLITUDEMAP , TB_LTC_AMPLITUDE",
+    "program , UNIFORM_LTCSHADOWMAP , TB_LTC_SHADOW",
+    "program , UNIFORM_LTCSABERSCREENMAP , TB_LTC_SABER_SCREEN",
+    "program , UNIFORM_SKINMASKMAP , TB_SKINMASK",
+    "program , UNIFORM_LIGHTCOOKIEMAP , TB_LIGHTCOOKIES"
+  ],
+  "GLSL_LoadGPUProgramVolumetric": [
+    "sp , UNIFORM_FROXELHISTORY , TB_COLORMAP",
+    "sp , UNIFORM_VOLUMETRICSTATICGRID , TB_LIGHTMAP",
+    "sp , UNIFORM_VOLUMETRICSUNGRID , TB_NORMALMAP",
+    "sp , UNIFORM_VOLUMETRICLEGACYGRID , TB_EMISSIVEMAP",
+    "sp , UNIFORM_SHADOWMAP , TB_SHADOWMAP",
+    "sp , UNIFORM_SHADOWMAP2 , TB_SHADOWMAPARRAY",
+    "sp , UNIFORM_FROXELNOISE , TB_DELUXEMAP",
+    "sp , UNIFORM_FROXELMEDIA , TB_FROXELMEDIA",
+    "sp , UNIFORM_FROXELEXTINCTION , TB_FROXELEXTINCTION",
+    "sp , UNIFORM_FPLUSLIGHTS , TB_FPLUS_LIGHTS",
+    "sp , UNIFORM_FPLUSGRID , TB_FPLUS_GRID",
+    "sp , UNIFORM_FPLUSINDICES , TB_FPLUS_INDICES",
+    "sp , UNIFORM_LIGHTCOOKIEMAP , TB_LIGHTCOOKIES",
+    "sp , UNIFORM_PARTICLELIGHTVOLUME , TB_ENTITYGRID_AMBIENT"
+  ],
+  "GLSL_SetFroxelLookupUnits": [
+    "program , UNIFORM_FROXELVOLUME , TB_CUBEMAP",
+    "program , UNIFORM_FROXELTAIL , TB_ENVBRDFMAP",
+    "program , UNIFORM_FROXELTRANSMITTANCE , TB_FROXELTRANSMITTANCE",
+    "program , UNIFORM_PARTICLELIGHTVOLUME , TB_SHADOWMAPARRAY"
+  ],
+  "cpu_buffer_layouts": {
+    "CameraBlock": "matrix_t viewProjectionMatrix ; vec4_t viewInfo ; vec3_t viewOrigin ; float pad0 ; vec3_t viewForward ; float pad1 ; vec3_t viewLeft ; float pad2 ; vec3_t viewUp ; float pad3 ; int fplusGrid [ 4 ] ; vec4_t fplusParams ; vec4_t fplusParams2 ; vec4_t fplusDebug ;",
+    "EntityBlock": "matrix_t modelMatrix ; vec4_t lightOrigin ; vec3_t ambientLight ; float entityTime ; vec3_t directedLight ; float fxVolumetricBase ; vec3_t modelLightDir ; float vertexLerp ; vec4_t gridAmbient [ 3 ] ; vec4_t gridDirected [ 3 ] ; vec4_t gridDirection [ 3 ] ; vec4_t gridParams ; vec4_t gridMinimum ; vec4_t gridScale ; vec4_t entitySun ; bool operator == ( const EntityBlock & other ) const { return ( Matrix16Compare ( this - > modelMatrix , other . modelMatrix ) == qtrue && VectorCompare4 ( this - > lightOrigin , other . lightOrigin ) == qtrue && VectorCompare ( this - > ambientLight , other . ambientLight ) == qtrue && this - > entityTime == other . entityTime && VectorCompare ( this - > directedLight , other . directedLight ) == qtrue && this - > fxVolumetricBase == other . fxVolumetricBase && VectorCompare ( this - > modelLightDir , other . modelLightDir ) == qtrue && this - > vertexLerp == other . vertexLerp && memcmp ( this - > gridAmbient , other . gridAmbient , sizeof ( gridAmbient ) ) == 0 && memcmp ( this - > gridDirected , other . gridDirected , sizeof ( gridDirected ) ) == 0 && memcmp ( this - > gridDirection , other . gridDirection , sizeof ( gridDirection ) ) == 0 && VectorCompare4 ( this - > gridParams , other . gridParams ) == qtrue && VectorCompare4 ( this - > gridMinimum , other . gridMinimum ) == qtrue && VectorCompare4 ( this - > gridScale , other . gridScale ) == qtrue && VectorCompare4 ( this - > entitySun , other . entitySun ) == qtrue ) ; }",
+    "LightsBlock": "struct Light { vec4_t origin ; vec3_t color ; float radius ; vec4_t spot ; vec4_t spot2 ; vec4_t physical ; } ; matrix_t shadowVP1 ; matrix_t shadowVP2 ; matrix_t shadowVP3 ; vec4_t shadowSplits ; vec4_t shadowBlend ; vec4_t shadowTexelSize ; vec4_t shadowDepthSpan ; vec4_t shadowBias ; vec4_t shadowPcss ; vec4_t shadowDebug ; int numLights ; float pad0 [ 3 ] ; Light lights [ MAX_DLIGHTS ] ; matrix_t spotShadowVP [ MAX_DLIGHT_SHADOWS ] ;",
+    "SceneBlock": "vec4_t primaryLightOrigin ; vec3_t primaryLightAmbient ; int globalFogIndex ; vec3_t primaryLightColor ; float primaryLightRadius ; float currentTime ; float frameTime ; float pad0 [ 2 ] ; vec4_t aoParams ; vec4_t aoParams2 ; vec4_t pbrParams ; vec4_t ssgiParams ;",
+    "VolumetricFogBlock": "matrix_t viewProjection ; matrix_t invViewProjection ; matrix_t prevViewProjection ; vec4_t viewOrigin ; vec4_t viewForward ; vec4_t rayForward ; vec4_t rayRight ; vec4_t rayUp ; vec4_t viewport ; vec4_t sliceParams ; vec4_t gridSize ; vec4_t jitter ; vec4_t temporalParams ; vec4_t lightParams ; vec4_t sunColor ; vec4_t sunDirection ; vec4_t gridOrigin ; vec4_t gridScale ; vec4_t shadowParams ; vec4_t debugParams ; vec4_t heightFog ; vec4_t heightFogColor ; vec4_t heightFogTop ; vec4_t rainParams ; vec4_t rainGround ; vec4_t rainColor ; vec4_t rainLod ; vec4_t noiseParams ; vec4_t noiseMacroOffset ; vec4_t noiseDetailOffset ; vec4_t noiseLod ; vec4_t noiseNormMacro [ 4 ] ; vec4_t noiseNormDetail [ 4 ] ; vec4_t selfShadow ; vec4_t selfShadowLights ; vec4_t multiScatter ; vec4_t multiScatter2 ; int numFogs ; int lightTileSize ; int lightTilesX ; int lightTilesY ; vec4_t fogColor [ MAX_GPU_FOGS ] ; vec4_t fogPlane [ MAX_GPU_FOGS ] ; vec4_t fogMins [ MAX_GPU_FOGS ] ; vec4_t fogMaxs [ MAX_GPU_FOGS ] ; vec4_t fogMedium [ MAX_GPU_FOGS ] ; vec4_t localParams ; vec4_t localX [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localY [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localZ [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localPrevX [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localPrevY [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localPrevZ [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localColor [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localShape [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localMotion [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localEmission [ MAX_GPU_FOG_VOLUMES ] ; vec4_t localClusters ; int fogSlices [ FROXEL_MAX_SLICES ] ; int tailFogs [ 4 ] ; vec4_t extinctionPalette [ FROXEL_EXTINCTION_PALETTE ] ;"
+  },
+  "texture_unit_slots": {
+    "TB_COLORMAP": "0",
+    "TB_CUBEMAP": "6",
+    "TB_DELUXEMAP": "3",
+    "TB_DIFFUSEMAP": "0",
+    "TB_EMISSIVEMAP": "10",
+    "TB_ENTITYGRID_AMBIENT": "16",
+    "TB_ENTITYGRID_DIRECTED": "17",
+    "TB_ENTITYGRID_DIRECTION": "18",
+    "TB_ENVBRDFMAP": "7",
+    "TB_FPLUS_GRID": "12",
+    "TB_FPLUS_INDICES": "13",
+    "TB_FPLUS_LIGHTS": "11",
+    "TB_FROXELEXTINCTION": "27",
+    "TB_FROXELMEDIA": "13",
+    "TB_FROXELTRANSMITTANCE": "26",
+    "TB_LIGHTCOOKIES": "25",
+    "TB_LIGHTMAP": "1",
+    "TB_LTC_AMPLITUDE": "21",
+    "TB_LTC_MATRIX": "20",
+    "TB_LTC_SABER_SCREEN": "28",
+    "TB_LTC_SHADOW": "27",
+    "TB_NORMALMAP": "2",
+    "TB_SHADOWMAP": "5",
+    "TB_SHADOWMAPARRAY": "8",
+    "TB_SKINMASK": "22",
+    "TB_SPECULARMAP": "4"
+  },
+  "uniform_block_slots": [
+    "0 , \" Camera \" , sizeof ( CameraBlock )",
+    "1 , \" Scene \" , sizeof ( SceneBlock )",
+    "2 , \" Lights \" , sizeof ( LightsBlock )",
+    "3 , \" Fogs \" , sizeof ( FogsBlock )",
+    "4 , \" Entity \" , sizeof ( EntityBlock )",
+    "6 , \" ShaderInstance \" , sizeof ( ShaderInstanceBlock )",
+    "7 , \" Bones \" , sizeof ( SkeletonBoneMatricesBlock )",
+    "11 , \" VolumetricFog \" , sizeof ( VolumetricFogBlock )",
+    "13 , \" VolumetricParticles \" , sizeof ( VolumetricParticlesBlock )"
+  ]
+}

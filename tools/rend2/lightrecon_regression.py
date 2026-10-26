@@ -194,16 +194,16 @@ def lifecycle_audit():
     main = bsp[main_start:]
     lower = bsp[lower_start:main_start]
     required = ['LightReconWorldLoad reconstructedWorld(name)', 'R_LoadBSP(name)',
-                'R_LoadAreaLights(', 'R_BuildStaticLighting(', 'R_CalibrateEntitySun(',
+                'R_LoadAreaLights(', 'R_PBRCalibrateLegacyMap(', 'R_BuildBakedFogLighting(', 'R_CalibrateEntitySun(',
                 'reconstructedWorld.Finish(']
     positions = [main.find(token) for token in required]
     if min(positions) < 0 or positions != sorted(positions):
         failures.append('Canonical main-world guard/commit must bracket BSP, area lights and legacy initialization')
     if re.search(r'LightReconWorldLoad|R_(?:Load|Clear)ReconstructedLighting', lower):
         failures.append('R_LoadBSP/sub-BSPs must not replace the canonical main-world context')
-    legacy = strip_comments(read('shared/rd-rend2/tr_staticlighting.cpp'))
+    legacy = strip_comments(read('shared/rd-rend2/tr_bakedlighting.cpp'))
     if re.search(r'R_(?:Load|Clear)ReconstructedLighting', legacy):
-        failures.append('Legacy static-light rebuild/clear must not own canonical asset loading')
+        failures.append('Baked fog must not own canonical asset loading')
     for variant in ('code', 'codemp'):
         init = strip_comments(read(f'{variant}/rd-rend2/tr_init.cpp'))
         for entry in ('void R_ClearTr(void)', 'void RE_Shutdown('):
@@ -264,6 +264,42 @@ def shared_emission_utility(relative, text, offset):
         text[offset:]))
 
 
+def retirement_audit():
+    """No compatibility stubs; independent JA/PBR/fog owners remain mandatory."""
+    failures = []
+    for name in ('tr_volrecon.cpp', 'tr_volrecon.h', 'tr_staticlighting.cpp',
+                 'tr_staticlighting.h', 'tr_volumetric_reconstruct.cpp'):
+        if (ROOT/'shared/rd-rend2'/name).exists():
+            failures.append('Retired source must not remain: '+name)
+    forbidden = re.compile(r'\b(?:vrProxy|vrOutput|vrStaticLight|vrLightPortal|VR_Reconstruct|'
+        r'R_BuildStaticLighting|R_StaticLights|R_StaticLightPortals|R_CollectStaticAreaSources|'
+        r'R_CalibrateAreaLight|R_FinishAreaLightCalibration|r_staticLightReconstruction|'
+        r'r_volumetricFogStaticDirectional|r_recovered\w+|r_staticLightDebug|r_lightPortals|'
+        r'r_lightPortalDebug|r_ltcAreaCalibration\w*|USE_FROXEL_STATIC_RECONSTRUCTION|'
+        r'u_VolumetricDirMoment[RGB]|UNIFORM_VOLUMETRICDIRMOMENT\w*|TB_VOLUMETRICMOMENTB|'
+        r'tr_volrecon|tr_staticlighting|tr_volumetric_reconstruct)\b')
+    for folder in ('shared/rd-rend2', 'code/rd-rend2', 'codemp/rd-rend2'):
+        for p in (ROOT/folder).rglob('*'):
+            if p.suffix not in ('.h','.cpp','.glsl','.inc','.txt') or not p.is_file():
+                continue
+            text = strip_comments(p.read_text(encoding='utf-8', errors='replace'))
+            match = forbidden.search(text)
+            if match:
+                failures.append(f'{p.relative_to(ROOT)}: retired production dependency {match[0]}')
+    bsp = strip_comments(read('shared/rd-rend2/tr_bsp.cpp'))
+    if 'R_BuildEntityLightProbes(world);' not in bsp or 'dirMix' in bsp:
+        failures.append('Original-grid entity probes must have an independent builder, without attributed directions')
+    fog = strip_comments(read('shared/rd-rend2/tr_bakedlighting.cpp'))
+    if forbidden.search(fog):
+        failures.append('Retired source reconstruction returned to baked fog')
+    if 'r_lightRecon' in fog or 'Rend2LightRecon' in fog:
+        failures.append('Ordinary baked fog must not depend on canonical reconstruction')
+    light = strip_comments(read('shared/rd-rend2/tr_light.cpp'))
+    if 'qboolean R_SunVisibleFromPoint(' not in light or 'R_SunVisibleFromPoint(centre, sunDir)' not in light:
+        failures.append('Entity sun visibility must remain independently owned by tr_light.cpp')
+    return failures
+
+
 def production_audit():
     """Fence current absence of canonical GPU integration, with actionable errors.
 
@@ -272,8 +308,8 @@ def production_audit():
     """
     allowed = {'shared/rd-rend2/tr_lightrecon.cpp', 'shared/rd-rend2/tr_lightrecon.h',
                'shared/rd-rend2/tr_lightrecon_cvars.inc', 'shared/rd-rend2/tr_lightrecon_register.inc',
-               'shared/rd-rend2/tr_local.h', 'shared/rd-rend2/tr_staticlighting.h'}
-    failures = lifecycle_audit() + observation_audit()
+               'shared/rd-rend2/tr_local.h'}
+    failures = lifecycle_audit() + observation_audit() + retirement_audit()
     for directory in ('shared/rd-rend2', 'code/rd-rend2', 'codemp/rd-rend2'):
         for path in (ROOT / directory).rglob('*'):
             if path.suffix not in ('.cpp', '.h', '.glsl', '.inc') or not path.is_file():
@@ -398,6 +434,8 @@ def main(argv=None):
     current = snapshot(cases, cpp_path(args.cpp))
     bindings = binding_inventory(current)
     reflection = gpu_compile(cases, current) if not args.no_gpu else None
+    if reflection:
+        (args.output / 'reflection.json').write_text(json.dumps(reflection, indent=2, sort_keys=True) + '\n')
     frozen = BASELINE / 'preprocessed.json.gz'
     if args.write_baseline:
         if args.no_gpu:

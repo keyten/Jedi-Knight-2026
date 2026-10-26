@@ -196,33 +196,28 @@ deliberately. Reset cached handles on module unload.
 
 ## World lifecycle and unchanged rendering
 
-The renderer adapter is `R_ReconstructedLighting()` in `tr_lightrecon.h/.cpp`
-(also included by `tr_staticlighting.h`).
+The renderer adapter is `R_ReconstructedLighting()` in `tr_lightrecon.h/.cpp`.
 It acquires a CPU snapshot without accessing `world_t` from the core API. The
 manager is a normal C++ owner beside the existing main-world static-lighting
 owner, outside `world_t`, which is hunk-allocated and zeroed with `Com_Memset`.
 No `shared_ptr` or nontrivial container is inserted into that world structure.
 
 SP/MP renderer reset/shutdown marks the canonical owner Unloaded, independently
-of `R_ClearStaticLighting`. At the main-world `RE_LoadWorldMap` boundary, the
+of ordinary baked-lighting resources. At the main-world `RE_LoadWorldMap` boundary, the
 [lifecycle manager](rend2-reconstruction-lifecycle.md) applies the independent
 [build/load policy](rend2-reconstruction-controls.md): default policy 0 exposes
 Disabled. Complete production source fingerprints/input export remain unavailable,
 so enabled policies expose Missing with explicit NotCacheable/BuildRequired
 diagnostics instead of accepting an underspecified cache key.
-The experimental grid reconstruction still
-builds its existing result. Neither its proxies nor its promoted fog lights are
-presented as canonical physical lights. Sub-BSPs do not replace the main-world
+The obsolete experimental grid-source reconstruction has been removed.
+Sub-BSPs do not replace the main-world
 owner. A future producer can use the internal manager to set Disabled/Pending,
 publish Ready/Partial, or report missing/corrupt input.
 
-`r_staticLightReconstruction` controls only the existing experimental path; it
-does not define canonical availability or depend on a future consumer's enable
-flag. The new `r_lightRecon*` controls apply only to the canonical owner and future
-consumers; no renderer light-budget policy is introduced. Existing
-`R_StaticLights()`/`R_StaticLightPortals()` accessors, sun/entity lighting and area
-light calibration continue their prior behaviour. Fog, `tr_light.cpp` and
-`tr_arealights.cpp` are not migrated to the new data or shaders by this task.
+The `r_lightRecon*` controls apply only to the canonical owner and future
+consumers; no renderer light-budget policy is introduced. Ordinary sun/entity
+lighting, fog and authored LTC do not depend on a canonical asset. There is no
+canonical GPU consumer or inverse solver yet.
 
 ## Intentionally unavailable and verification
 

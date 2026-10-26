@@ -115,14 +115,16 @@ class Contracts(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             preprocess('#error deliberate regression test\n', self.cpp)
 
-    def test_removing_inactive_experimental_moment_samplers_is_allowed(self):
-        case = next(c for c in json.loads((BASELINE / 'matrix.json').read_text()) if c['name'] == 'froxel-inject-raster')
-        source = sources(case)['fragment']
-        removed = source
-        for channel in 'RGB':
-            removed = removed.replace(f'uniform sampler3D u_VolumetricDirMoment{channel};', '')
-        self.assertNotEqual(removed, source)
-        self.assertEqual(preprocess(source, self.cpp), preprocess(removed, self.cpp))
+    def test_retired_paths_cannot_return(self):
+        import lightrecon_regression as regression
+        original = regression.read
+        for path, addition in [('shared/rd-rend2/tr_bakedlighting.cpp', 'VR_Reconstruct();'),
+                               ('shared/rd-rend2/tr_bsp.cpp', 'dirMix;')]:
+            def changed(name):
+                value = original(name)
+                return value+addition if name == path else value
+            with mock.patch.object(regression, 'read', side_effect=changed):
+                self.assertTrue(regression.retirement_audit())
 
     def test_image_rounding_budget_and_exact_default(self):
         from PIL import Image

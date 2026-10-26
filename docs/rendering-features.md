@@ -726,7 +726,6 @@ Recovers where the baked (non-sun) light of the BSP light grid appears to come f
 **Requirements.** Requires froxel fog (`r_volumetricFog 2`). Changing the mode needs `vid_restart`.
 
 **Main controls**
-- `r_volumetricFogStaticDirectional 0 | 1 | 2` — isotropic baked light / reconstructed per-channel directions / raw light grid direction (developer comparison).
 - `r_vfogStaticStats [proxies]` — what the reconstruction found on the loaded map.
 
 Mode 0 costs nothing. Modes 1 and 2 add three small 3D texture fetches per participating froxel and a short map load step (a fraction of a second on large maps).

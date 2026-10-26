@@ -30,9 +30,9 @@ are connected to the [main-world lifecycle owner](rend2-reconstruction-lifecycle
 Complete source fingerprint collection remains unavailable, so the renderer
 reports NotCacheable instead of attempting an unsafe cache lookup.
 The default session reports `Unavailable` and exposes no reconstruction result.
-Neither `tr_staticlighting.cpp` nor `tr_volrecon.cpp` calls the new session.
-Existing map loading, fog promotion, entity lighting, sun, area calibration,
-shaders and physical-PBR mathematics remain unchanged.
+The old grid-source reconstruction has been removed; ordinary fog, entity
+lighting, sun, authored LTC and PBR calibration remain independent. See the
+[removal inventory](rend2-grid-reconstruction-removal.md).
 
 ```mermaid
 flowchart LR
@@ -89,11 +89,9 @@ for each test and renderer. The static archive is PIC/hidden on platforms that
 need those settings, has C++11 requirements and carries no renderer defines,
 generated shader dependencies or OpenGL/engine libraries.
 
-The renderer-specific `tr_lightrecon.cpp` owner/control adapter and
-`tr_staticlighting.cpp` stay outside the archive.
-The experimental `tr_volrecon.cpp` remains in its existing SP/MP targets and its
-separate `tools/volrecon_test` harness. It is not wrapped or silently substituted
-as the canonical solver.
+The renderer-specific `tr_lightrecon.cpp` owner/control adapter and independent
+`tr_bakedlighting.cpp` upload module stay outside the CPU archive. The discarded
+grid fitter and its synthetic-only harness have been deleted.
 
 ## Input contract and ownership
 

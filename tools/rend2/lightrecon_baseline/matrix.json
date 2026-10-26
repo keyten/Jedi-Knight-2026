@@ -19,7 +19,7 @@
   {"name":"pbr-forward-ltc-ghoul2","program":"lightall","defines":["USE_LIGHT","USE_LIGHT_VECTOR","USE_NORMALMAP","USE_SPECULARMAP","USE_SKELETAL_ANIMATION","USE_PHYSICAL_PBR","USE_LTC","USE_LTC_SHADOWS","USE_LTC_SABER_SCREEN"],"settings":{"r_forwardPlus":1,"r_ltcAreaLights":1,"r_pbrPhysical":1}},
   {"name":"froxel-surface-lookup","program":"generic","defines":["USE_FROXEL_FOG","USE_FOG","USE_RGBAGEN"],"settings":{"r_volumetricFog":2}},
   {"name":"froxel-fog-pass-rgb","program":"fogpass","defines":["USE_FROXEL_FOG","USE_FROXEL_RGB"],"settings":{"r_volumetricFog":2,"r_volumetricFogRGBExtinction":1}},
-  {"name":"froxel-inject-raster","program":"volumetric_inject","defines":["USE_FROXEL_FOG","USE_FROXEL_NOISE","USE_FROXEL_PARTICLES"],"settings":{"r_volumetricFog":2,"r_volumetricFogStaticDirectional":0}},
+  {"name":"froxel-inject-raster","program":"volumetric_inject","defines":["USE_FROXEL_FOG","USE_FROXEL_NOISE","USE_FROXEL_PARTICLES"],"settings":{"r_volumetricFog":2}},
   {"name":"froxel-inject-raster-pbr-sun","program":"volumetric_inject","defines":["USE_FROXEL_FOG","USE_FROXEL_NOISE","USE_FROXEL_PARTICLES","USE_PHYSICAL_PBR","USE_SHADOWS2"],"settings":{"r_volumetricFog":2,"r_pbrPhysical":1,"r_sunShadowMode":1}},
   {"name":"froxel-inject-compute","program":"volumetric_inject","compute":true,"defines":["USE_FROXEL_FOG","USE_FROXEL_NOISE","USE_FROXEL_PARTICLES","USE_FROXEL_COMPUTE"],"settings":{"r_volumetricFog":2,"r_volumetricCompute":1}},
   {"name":"froxel-inject-compute-rgb-sun","program":"volumetric_inject","compute":true,"defines":["USE_FROXEL_FOG","USE_FROXEL_NOISE","USE_FROXEL_PARTICLES","USE_FROXEL_COMPUTE","USE_FROXEL_RGB","USE_SHADOWS2"],"settings":{"r_volumetricFog":2,"r_volumetricCompute":1,"r_volumetricFogRGBExtinction":1}},

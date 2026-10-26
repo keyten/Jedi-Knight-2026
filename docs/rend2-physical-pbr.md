@@ -204,11 +204,12 @@ computed per frame. The source data itself is its cache key, so no generated
 PK3 or manual map edit is needed. A future on-disk cache can version and hash
 this same pure calculation without altering the contract.
 
-Lightmaps/light-grid probes and reconstructed static lights receive that same
-factor at their load/transport boundary. Reconstructed point sources also use
-the legacy-radius reference conversion before froxel injection. Raw legacy
-values remain relative; only the calibrated result occupies the common scene
-scale.
+Lightmaps/light-grid probes receive that same factor at their load/transport
+boundary. Ordinary baked fog uses it at injection. This map calibration is
+unconditional at `RE_LoadWorldMap`, independent of reconstruction build/use.
+The obsolete grid-source fitter and its radius-based promotion were removed.
+Raw legacy values remain relative; calibration defines a presentation scale,
+not a measurement of historical bake-time lux/candela.
 
 ## Exposure and output
 

@@ -1042,7 +1042,7 @@ def check_lit_programs():
     inject_vs = read('volumetric_inject').split('/*[Vertex]*/')[1].split('/*[')[0]
     inject_gs = read('volumetric_inject').split('/*[Geometry]*/')[1].split('/*[')[0]
     fog = header + '#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n'
-    for extra in ['', '#define USE_SHADOWS2\n', '#define USE_FROXEL_RGB\n', '#define USE_SHADOWS2\n#define USE_FROXEL_STATIC_RECONSTRUCTION\n']:
+    for extra in ['', '#define USE_SHADOWS2\n', '#define USE_FROXEL_RGB\n']:
         d = fog + extra
         prog = compile_program([(GL_VERTEX, '#version 150 core\n' + d + inject_vs),
                                 (GL_GEOMETRY, '#version 150 core\n' + d + inject_gs),

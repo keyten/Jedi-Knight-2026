@@ -87,13 +87,6 @@ bool froxelMediaPass = false;
 #endif
 uniform sampler3D u_VolumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f (a)
 uniform sampler3D u_VolumetricSunGrid;
-#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-// first angular moments of the non-sun baked light per channel (r_volumetricFogStaticDirectional):
-// xyz = sum of energy * direction towards the light, |M| <= B
-uniform sampler3D u_VolumetricDirMomentR;
-uniform sampler3D u_VolumetricDirMomentG;
-uniform sampler3D u_VolumetricDirMomentB;
-#endif
 uniform sampler3D u_VolumetricLegacyGrid;	// merged legacy light grid (debug view 25)
 #if defined(USE_SHADOWS2)
 uniform sampler2DArray u_ShadowMap;		// raw sun cascade depth
@@ -1116,46 +1109,6 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		vec4 physical = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 4);
 		float radius = originRadius.w;
 
-		// light portal shaft (tr_volrecon.cpp, PortalShape): the light at its source (spot.xyz)
-		// where the line source -> p crosses the aperture (center originRadius.xyz, right * half
-		// width spot2, up * half height texel 4), point attenuation to |source - center| + range,
-		// fading out to range behind the aperture. No shadow map: the aperture is the occluder.
-		if (colorLayer.w < -2.5)
-		{
-			if (u_ShadowDebug.z == 3.0)
-				continue;
-			vec4 upHeight = texelFetch(u_FPlusLights, i * FROXEL_LIGHT_TEXELS + 4);
-			vec3 center = originRadius.xyz;
-			float shaftRange = originRadius.w;
-			vec3 normal = cross(spot2.xyz, upHeight.xyz);
-			float sourceSide = dot(spot.xyz - center, normal);
-			float behind = -dot(p - center, normal);
-			if (sourceSide <= 0.0 || behind <= 0.0 || behind >= shaftRange)
-				continue;
-			vec3 toP = p - spot.xyz;
-			vec3 q = spot.xyz + toP * (sourceSide / (sourceSide + behind));
-			vec3 dq = q - center;
-			float softEdge = spot.w * behind + (-colorLayer.w - 3.0);
-			float du = abs(dot(dq, spot2.xyz)) - spot2.w;
-			float dv = abs(dot(dq, upHeight.xyz)) - upHeight.w;
-			float gate = clamp(-du / softEdge, 0.0, 1.0) * clamp(-dv / softEdge, 0.0, 1.0);
-			if (gate <= 0.0)
-				continue;
-			float shaftDist2 = max(dot(toP, toP), 1e-4);
-			float reach = sourceSide + shaftRange;
-			float shaft = gate * clamp(0.5 * reach * reach / shaftDist2 - 0.5, 0.0, 1.0) *
-				(1.0 - smoothstep(0.7 * shaftRange, shaftRange, behind));
-			if (shaft <= 0.0)
-				continue;
-			vec3 toLight = -toP * inversesqrt(shaftDist2);
-			vec4 shaftPhase = FroxelPhases(g, dot(toLight, viewDir));
-			vec3 shaftLight = colorLayer.rgb * shaft;
-			light0 += shaftLight * shaftPhase.x;
-			light1 += shaftLight * shaftPhase.y;
-			light2 += shaftLight * shaftPhase.z;
-			lightGlobal += shaftLight * shaftPhase.w;
-			continue;
-		}
 		bool lineLight = spot2.w < -999.0;
 
 		// r_spotLightDebug 3: no dynamic light in the fog, 4: spot lights only
@@ -1254,36 +1207,20 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 	}
 }
 
-// Baked light and sun, the phase kept apart for the lobes of the medium: the light terms are
-// evaluated once, each g (the three lobe slots, the global g) only costs its phase.
-//   baseline        non-sun baked light B (legacy brightness, the mean over all view directions)
-//   momentDot       (M_R.v, M_G.v, M_B.v): first angular moments of the confidently attributed baked
-//                   light (r_volumetricFogStaticDirectional, USE_FROXEL_STATIC_RECONSTRUCTION) with the
-//                   view direction; 0 without them
-//   staticG         g of each lobe for the baked light, clamped to +-1/3: the first order (L1) expansion
-//                   of Henyey-Greenstein, 1 + 3 g cos, stays >= 0 there since |M| <= B
-//   sun             sun radiance * sun scale (shadowed), full HG phase sunPhase
-//   sunUnshadowed   the sun without its realtime shadow (debug view 2)
-// Debug views 20-25 and 57, 58 replace the baseline with one baked term (no sun, no phase unless stated).
+// Ordinary non-sun baked baseline and authored sun; no fitted directional field.
+// B is isotropic. Sun phase remains per medium lobe; views 20/23/24/25 inspect B/S.
 struct FroxelStaticLight
 {
 	vec3 baseline;
-	vec3 momentDot;
-	vec4 staticG;
 	vec3 sun;
 	vec3 sunUnshadowed;
 	vec4 sunPhase;
 };
 
-// baked + sun of lobe k (0..2 the slots of the medium sample, 3 the global g):
-// B + 3 g (M.v), the L1 phase response, never negative
+// Baked light is isotropic; k is shared with the per-lobe sun API.
 vec3 FroxelStaticLobe(in FroxelStaticLight l, in int k)
 {
-#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-	return max(l.baseline + (3.0 * l.staticG[k]) * l.momentDot, vec3(0.0));
-#else
 	return l.baseline;
-#endif
 }
 
 vec3 FroxelSunLobe(in FroxelStaticLight l, in int k)
@@ -1291,14 +1228,10 @@ vec3 FroxelSunLobe(in FroxelStaticLight l, in int k)
 	return l.sun * l.sunPhase[k];
 }
 
-// The static baked field (baseline, moments) is sampled at the froxel center pc: it is coarse, smooth,
-// trilinearly filtered and static, and a directional response of a jittered sample would linger in the
-// history. The sun (its shadow and its baked part) is sampled at the jittered p.
+// Baked baseline is sampled at the froxel centre; sun shadows use jittered p.
 FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in vec4 g, in int debugView)
 {
 	FroxelStaticLight l;
-	l.momentDot = vec3(0.0);
-	l.staticG = clamp(g, vec4(-1.0 / 3.0), vec4(1.0 / 3.0));
 	l.sun = vec3(0.0);
 	l.sunUnshadowed = vec3(0.0);
 	l.sunPhase = vec4(1.0);
@@ -1309,89 +1242,40 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 	l.baseline = staticGrid.rgb * u_FroxelLightParams.w;
 	float sunWeight = staticGrid.a;
 
-#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-	// first angular moments of the attributed baked light (R_BuildStaticLighting), one per
-	// channel: red and blue lamps keep their own directions, opposite lamps cancel to isotropic
-	vec3 viewDirC = normalize(pc - u_FroxelViewOrigin.xyz);
-	vec3 momentR = texture(u_VolumetricDirMomentR, gridCoordC).rgb;
-	vec3 momentG = texture(u_VolumetricDirMomentG, gridCoordC).rgb;
-	vec3 momentB = texture(u_VolumetricDirMomentB, gridCoordC).rgb;
-	momentR *= u_FroxelDebugParams.w;
-	momentG *= u_FroxelDebugParams.w;
-	momentB *= u_FroxelDebugParams.w;
-	// the light travels along -M, towards the camera is -viewDir
-	l.momentDot = vec3(dot(momentR, viewDirC), dot(momentG, viewDirC), dot(momentB, viewDirC)) * u_FroxelLightParams.w;
-#endif
 
 	vec3 gridCoord = (p - u_FroxelGridOrigin.xyz) * u_FroxelGridScale.xyz;
-	if ((debugView >= 20 && debugView <= 25) || debugView == 57 || debugView == 58)
+	if (debugView == 20 || (debugView >= 23 && debugView <= 25))
 	{
 		vec3 bakedSun = (u_FroxelSunDirection.w > 0.5) ?
 			texture(u_VolumetricSunGrid, gridCoordC).rgb * u_FroxelDebugParams.w : vec3(0.0);
 		vec3 reconstructed = staticGrid.rgb + bakedSun;
-#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-		vec3 momentLength = vec3(length(momentR), length(momentG), length(momentB));
-		vec3 momentLuma = momentR * 0.2126 + momentG * 0.7152 + momentB * 0.0722;
-#else
-		vec3 momentLength = vec3(0.0);
-		vec3 momentLuma = vec3(0.0);
-#endif
-		if (debugView == 21)	// |M| per channel
-			l.baseline = momentLength * u_FroxelLightParams.w;
-		else if (debugView == 22)	// direction of the luminance moment, dimmed by |M| / B
-		{
-			float lumaB = dot(staticGrid.rgb, vec3(0.2126, 0.7152, 0.0722));
-			float lengthLuma = length(momentLuma);
-			vec3 dir = lengthLuma > 1e-8 ? momentLuma / lengthLuma : vec3(0.0);
-			l.baseline = (dir * 0.5 + 0.5) * (lumaB > 1e-8 ? clamp(lengthLuma / lumaB, 0.0, 1.0) : 0.0) * lumaB * u_FroxelLightParams.w;
-		}
-		else if (debugView == 23)
+		if (debugView == 23)
 			l.baseline = bakedSun * u_FroxelLightParams.w;
 		else if (debugView == 24)
 			l.baseline = reconstructed * u_FroxelLightParams.w;
 		else if (debugView == 25)	// 100 * |B + S - legacy| (the legacy grid of the fog without the split)
 			l.baseline = abs(reconstructed - texture(u_VolumetricLegacyGrid, gridCoordC).rgb) * 100.0;
-		else if (debugView == 57)	// the baked light after the L1 phase, global g
-			l.baseline = max(l.baseline + (3.0 * l.staticG.w) * l.momentDot, vec3(0.0));
-		else if (debugView == 58)	// directional fraction |M_c| / B_c
-			l.baseline = staticGrid.rgb * u_FroxelLightParams.w *
-				clamp(momentLength / max(staticGrid.rgb, vec3(1e-8)), vec3(0.0), vec3(1.0));
-		l.momentDot = vec3(0.0);
 		return l;
 	}
 
 #if defined(USE_LIQUIDS)
-	// The static grid is B plus first angular moments M. Only the directional
-	// fraction |M|/B is eligible for a surface-driven caustic; the isotropic
-	// remainder is ambient and stays unchanged. Mode 2 explicitly allows the
-	// legacy procedural filter when old maps have no reconstructed direction.
+	// No measured direction in the ordinary baked baseline: caustic mode 1 is
+	// a no-op; mode 2 remains the explicit procedural approximation.
 	if ((int(u_LiquidCausticLights.x + 0.5) & 4) != 0 &&
 		u_LiquidCausticLights.z > 0.5 && LiquidPointClass(pc) >= 0)
 	{
 		bool bakedDirectionValid = false;
 		vec3 bakedDirection = vec3(0.0, 0.0, 1.0);
 		vec3 directionalFraction = vec3(1.0);
-#if defined(USE_FROXEL_STATIC_RECONSTRUCTION)
-		vec3 momentLength = vec3(length(momentR), length(momentG), length(momentB));
-		vec3 momentLuma = momentR * 0.2126 + momentG * 0.7152 + momentB * 0.0722;
-		float momentLumaLength = length(momentLuma);
-		bakedDirectionValid = momentLumaLength > 1e-8;
-		if (bakedDirectionValid)
-			bakedDirection = momentLuma / momentLumaLength;
-		directionalFraction = clamp(momentLength / max(staticGrid.rgb, vec3(1e-8)),
-			vec3(0.0), vec3(1.0));
-#else
 		// No direction means mode 1 is a no-op. Mode 2 is explicitly the
 		// procedural approximation and may affect the whole baked baseline.
 		directionalFraction = vec3(1.0);
-#endif
 		float viewDepth = max(dot(pc - u_FroxelViewOrigin.xyz,
 			u_FroxelViewForward.xyz), 1.0);
 		vec3 bakedLiquid = LiquidBakedLightTransmittance(pc, bakedDirection,
 			bakedDirectionValid, viewDepth * u_LiquidView.z);
 		vec3 bakedModulation = mix(vec3(1.0), bakedLiquid, directionalFraction);
 		l.baseline *= bakedModulation;
-		l.momentDot *= bakedModulation;
 	}
 #endif
 
@@ -1409,7 +1293,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 			float shadow = SunShadow(p, temporal, coverage);
 
 			// The sun part of the light grid is S = f D, f = sun alignment * sky visibility of the cell
-			// (traced at map load, R_BuildStaticLighting); the other (1 - f) D stays in the
+			// (traced at map load, R_BuildBakedFogLighting); the other (1 - f) D stays in the
 			// baseline. Inside the cascades the realtime sun replaces exactly that part, f * sun, with
 			// its shadow: a window edge cell (f 0.2) never gets the full sun on top of 0.8 D, and deep
 			// indoors (f 0) the sun stays baked light.
@@ -1551,7 +1435,7 @@ void main()
 	}
 
 	// baked light and sun, with the phases of the lobe slots of the medium and of the global g
-	FroxelStaticLight staticLight = FroxelStaticLight(vec3(0.0), vec3(0.0), vec4(0.0), vec3(0.0), vec3(0.0), vec4(1.0));
+	FroxelStaticLight staticLight = FroxelStaticLight(vec3(0.0), vec3(0.0), vec3(0.0), vec4(1.0));
 	if (medium.extinction > 0.0)
 		staticLight = BakedAndSunLight(p, pc, temporal, vec4(medium.g, g), debugView);
 
@@ -1708,7 +1592,7 @@ void main()
 		static0 = static1 = static2 = vec3(0.0);
 		sun0 = sun1 = sun2 = vec3(0.0);
 	}
-	else if (debugView == 5 || (debugView >= 20 && debugView <= 25) || debugView == 57 || debugView == 58)
+	else if (debugView == 5 || debugView == 20 || (debugView >= 23 && debugView <= 25))
 	{
 		sun0 = sun1 = sun2 = vec3(0.0);
 		dynamic0 = dynamic1 = dynamic2 = vec3(0.0);

@@ -1,0 +1,72 @@
+{
+  "old_baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+  "programs_unchanged": [
+    "entity-grid-cpu-interpolation",
+    "entity-grid-gpu-legacy-direction",
+    "forward-cluster-compute",
+    "forward-off-ltc-off",
+    "forward-off-ltc-on",
+    "forward-on-ltc-off",
+    "forward-on-ltc-on",
+    "froxel-cluster-compute",
+    "froxel-fog-pass-rgb",
+    "froxel-surface-lookup",
+    "ja-dlight-saber-surfaces",
+    "ja-entity-cpu-grid",
+    "ja-fog-pass",
+    "ja-generic-saber-fx",
+    "ja-ghoul2-cpu-grid",
+    "ja-static-sun-shadows",
+    "ja-world-lightmap",
+    "modern-sun-shadows",
+    "pbr-forward-ltc-ghoul2",
+    "pbr-ghoul2",
+    "pbr-off-material",
+    "pbr-on-material"
+  ],
+  "changed_programs": [
+    {
+      "name": "froxel-inject-compute",
+      "stages": [
+        "compute"
+      ],
+      "program": "volumetric_inject"
+    },
+    {
+      "name": "froxel-inject-compute-rgb-sun",
+      "stages": [
+        "compute"
+      ],
+      "program": "volumetric_inject"
+    },
+    {
+      "name": "froxel-inject-raster",
+      "stages": [
+        "fragment"
+      ],
+      "program": "volumetric_inject"
+    },
+    {
+      "name": "froxel-inject-raster-pbr-sun",
+      "stages": [
+        "fragment"
+      ],
+      "program": "volumetric_inject"
+    },
+    {
+      "name": "froxel-media-compute",
+      "stages": [
+        "compute"
+      ],
+      "program": "volumetric_inject"
+    }
+  ],
+  "active_gpu_interfaces_identical": true,
+  "controlled_changes": [
+    "Remove unreachable fake portal record branch",
+    "Remove unused moment members and zero initialization",
+    "Remove retired direction debug branches",
+    "Remove obsolete control metadata; rendering settings unchanged"
+  ],
+  "reviewed": true
+}

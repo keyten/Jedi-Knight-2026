@@ -45,7 +45,6 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // legacy fog path.
 
 #include "tr_local.h"
-#include "tr_staticlighting.h"
 #include "tr_weather.h"
 #include "tr_pbr_contract.h"
 
@@ -128,9 +127,7 @@ qboolean R_VolumetricComputeAvailable( void )
 	qglGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &combinedSamplers);
 	qglGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS, &blocks);
 	// Stage limits count active samplers, not the largest global TMU index.
-	// + the three directional baked light moments (r_volumetricFogStaticDirectional)
-	const int moments = R_VolumetricStaticDirectional() ? 3 : 0;
-	return (qboolean)(samplers >= (s_vf.rgb ? 15 : 14) + moments &&
+	return (qboolean)(samplers >= (s_vf.rgb ? 15 : 14) &&
 		combinedSamplers > (s_vf.rgb ? TB_FROXELEXTINCTION : TB_LIGHTCOOKIES) && blocks >= 3);
 }
 
@@ -166,9 +163,6 @@ static struct
 		int maxPerCluster;
 		int overflowClusters;	// clusters that hit FROXEL_LIGHTS_PER_CLUSTER
 		int overflowRefs;		// light / cluster pairs dropped
-		int recoveredLights;	// promoted static lights in the volume (after the dynamic ones)
-		int recoveredCulled;	// promoted static lights out of the PVS
-		int portalShafts;		// light portal shafts in the volume
 		double buildMsec;		// CPU preparation (+ binning in fallback mode)
 		qboolean gpuBuild;		// cluster lists built by fplus_cluster.glsl
 	} stats;
@@ -971,7 +965,7 @@ void R_CreateVolumetricFBOs( void )
 			{
 				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.rangeBuffers[f]);
 				qglBufferData(GL_SHADER_STORAGE_BUFFER,
-					(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX) * 32,
+					MAX_RENDER_DLIGHTS * 32,
 					NULL, GL_STREAM_DRAW);
 				qglBindBuffer(GL_SHADER_STORAGE_BUFFER, s_vfl.counterBuffers[f]);
 				qglBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t), NULL, GL_STREAM_DRAW);
@@ -1124,7 +1118,6 @@ binned into the clusters its sphere may touch, at most FROXEL_LIGHTS_PER_CLUSTER
 per cluster (the least important drop out). Two buffer textures per frame:
 
   lights  RGBA32F  FROXEL_LIGHT_TEXELS per light: origin, radius | color, shadow cube layer
-                   (light portals: color, -3 - soft edge | then the portal layout below)
                    (-1 none) | spot axis, cos outer (-2: point) | cos inner (-1: point),
                    projected spot shadow, cookie layer (-1 none), cookie roll
                    (tr_spotlight.cpp, tr_lightcookie.cpp)
@@ -1254,7 +1247,7 @@ static qboolean RB_VolumetricBuildLightListsGPU( const froxelLightRange_t *range
 		(uint64_t)numClusters + indexCapacity > (uint32_t)s_vfl.listCapacity )
 		return qfalse;
 
-	static froxelGpuRange_t records[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX];
+	static froxelGpuRange_t records[MAX_RENDER_DLIGHTS];
 	for ( int i = 0; i < numLights; i++ )
 	{
 		const froxelLightRange_t& r = ranges[i];
@@ -1426,17 +1419,7 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 			shadowLayers[numSceneLights++] = R_ForwardPlusLightShadowSlot(i);
 		}
 	}
-	// the promoted lights of the static lighting reconstruction: their light is not in the baked
-	// field any more (r_staticLightDebug 5 drops them to show the residual, 4 drops the dynamic ones)
-	const std::vector<staticLight_t>& staticLights = R_StaticLights();
-	const std::vector<staticLightPortal_t>& portals = R_StaticLightPortals();
-	// r_lightPortalDebug 3: the portal shafts alone, 4: without them
-	const int portalDebug = r_lightPortalDebug->integer;
-	const qboolean recovered = (qboolean)(!staticLights.empty() && r_staticLightDebug->integer != 5 && portalDebug != 3);
-	const qboolean shafts = (qboolean)(!portals.empty() && portalDebug != 4 && r_staticLightDebug->integer != 4);
-	if ( r_staticLightDebug->integer == 4 || portalDebug == 3 )
-		numSceneLights = 0;
-	if ( numSceneLights <= 0 && !recovered && !shafts )
+	if (numSceneLights <= 0)
 		return;
 	struct fogCandidate_t { int light, shadowLayer; float score; };
 	fogCandidate_t candidates[MAX_RENDER_DLIGHTS];
@@ -1481,8 +1464,8 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 	R_VolumetricEnsureLightListCapacity(numClusters);
 
 	// lights touching the volume, in importance order
-	static vec4_t lightData[(MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX) * FROXEL_LIGHT_TEXELS];
-	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS + STATIC_LIGHTS_MAX_PROMOTED + STATIC_PORTALS_MAX];
+	static vec4_t lightData[MAX_RENDER_DLIGHTS * FROXEL_LIGHT_TEXELS];
+	static froxelLightRange_t ranges[MAX_RENDER_DLIGHTS];
 	const qboolean cookiesActive = R_LightCookiesActive();
 	int numLights = 0;
 	for ( int i = 0; i < numSceneLights; i++ )
@@ -1538,139 +1521,6 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		numLights++;
 	}
 
-	// recovered static lights after all dynamic ones: the per cluster cap is filled in list order,
-	// so a saber or an explosion is never pushed out by a lamp (the lamp's light is only missing
-	// where a cluster overflows). PVS of the view cluster, the froxel range, then importance.
-	int numRecovered = 0, numRecoveredCulled = 0;
-	if ( recovered )
-	{
-		struct recoveredCandidate_t { const vrStaticLight *light; float score; };
-		recoveredCandidate_t found[STATIC_LIGHTS_MAX_PROMOTED];
-		int numFound = 0;
-		const int viewCluster = R_StaticViewCluster(view->ori.origin);
-		for ( const staticLight_t& sl : staticLights )
-		{
-			const vrStaticLight& l = sl.light;
-			if ( !(l.flags & VR_LIGHT_PROMOTED) || numFound >= STATIC_LIGHTS_MAX_PROMOTED )
-				continue;
-			if ( R_StaticLightCulled(sl, viewCluster) )
-			{
-				numRecoveredCulled++;
-				continue;
-			}
-			const float luminance = 0.2126f * l.color[0] + 0.7152f * l.color[1] + 0.0722f * l.color[2];
-			const float minDist = 0.25f * l.radius;
-			found[numFound].light = &l;
-			found[numFound].score = luminance * l.radius * l.radius /
-				Q_max(DistanceSquared(view->ori.origin, l.origin), minDist * minDist);
-			numFound++;
-		}
-		std::sort(found, found + numFound, [](const recoveredCandidate_t& a, const recoveredCandidate_t& b) {
-			return a.score > b.score; });
-		const int maxRecovered = Com_Clampi(0, STATIC_LIGHTS_MAX_PROMOTED, r_recoveredVolumetricMaxLights->integer);
-		// the baked light was scaled by r_volumetricFogStaticScale, the dynamic sum gets
-		// r_volumetricFogDlightScale in the shader
-		const float colorScale = r_volumetricFogStaticScale->value / r_volumetricFogDlightScale->value;
-		// a froxel seen from the light: the cone edge is never sharper than that (narrow cones
-		// would alias into stair steps and sparkle), at the distance of half the radius
-		const float froxelSpan = 2.0f * tanf(DEG2RAD(view->fovX * 0.5f)) / (float)Q_max(s_vf.width, 1);
-		for ( int k = 0; k < numFound && numRecovered < maxRecovered; k++ )
-		{
-			const vrStaticLight& l = *found[k].light;
-			dlight_t dl;
-			Com_Memset(&dl, 0, sizeof(dl));
-			VectorCopy(l.origin, dl.origin);
-			dl.radius = l.radius;
-			const qboolean spot = (qboolean)(l.kind == VR_LIGHT_SPOT);
-			float cosOuter = l.cosOuter, cosInner = l.cosInner;
-			if ( spot )
-			{
-				const float lightDist = 0.5f * l.radius;
-				const float footprint = froxelSpan * Q_max(Distance(view->ori.origin, l.origin), lightDist) / lightDist;
-				const float outer = acosf(Com_Clamp(-1.0f, 1.0f, cosOuter));
-				const float inner = acosf(Com_Clamp(-1.0f, 1.0f, cosInner));
-				cosInner = cosf(Q_max(0.0f, Q_min(inner, outer - footprint)));
-				dl.spot = qtrue;
-				VectorCopy(l.axis, dl.spotDir);
-				dl.spotCosOuter = cosOuter;
-				dl.spotCosInner = cosInner;
-			}
-			froxelLightRange_t *range = &ranges[numLights];
-			if ( !R_VolumetricLightRange(view, froxelProjection, &dl, tileSize, tilesX, tilesY, range) )
-				continue;
-			range->light = numLights;
-			float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
-			float recoveredScale = colorScale;
-			if (r_pbrPhysical->integer)
-				recoveredScale *= Rend2PBR::LegacyRadiusToSceneCandela(l.radius,
-					r_pbrWorldUnitsPerMeter->value, r_pbrLegacyReference->value);
-			VectorSet4(t + 0, l.origin[0], l.origin[1], l.origin[2], l.radius);
-			VectorSet4(t + 4, l.color[0] * recoveredScale, l.color[1] * recoveredScale, l.color[2] * recoveredScale, -1.0f);
-			if ( spot )
-			{
-				VectorSet4(t + 8, l.axis[0], l.axis[1], l.axis[2], cosOuter);
-				VectorSet4(t + 12, cosInner, 0.0f, -1.0f, 0.0f);
-			}
-			else
-			{
-				VectorSet4(t + 8, 0.0f, 0.0f, 1.0f, -2.0f);
-				VectorSet4(t + 12, -1.0f, 0.0f, -1.0f, 0.0f);
-			}
-			VectorSet4(t + 16, Rend2PBR::kDefaultEmitterRadiusMeters *
-				r_pbrWorldUnitsPerMeter->value, 0.0f, 0.0f, 0.0f);
-			numLights++;
-			numRecovered++;
-		}
-	}
-	s_vfl.stats.recoveredLights = numRecovered;
-	s_vfl.stats.recoveredCulled = numRecoveredCulled;
-
-	// light portal shafts (the light of a source through its aperture), after the lamps: their
-	// light left the baked field, they come last only because the dynamic lights must not starve
-	int numShafts = 0;
-	if ( shafts )
-	{
-		const int viewCluster = R_StaticViewCluster(view->ori.origin);
-		const world_t *w = tr.world;
-		const float colorScale = r_volumetricFogStaticScale->value / r_volumetricFogDlightScale->value;
-		for ( const staticLightPortal_t& sp : portals )
-		{
-			const vrLightPortal& p = sp.portal;
-			if ( !(p.flags & VR_PORTAL_PROMOTED) || (p.flags & VR_PORTAL_SKY) || numShafts >= STATIC_PORTALS_MAX )
-				continue;
-			// PVS: either side of the aperture
-			if ( w && w->vis && viewCluster >= 0 && viewCluster < w->numClusters )
-			{
-				const byte *vis = w->vis + viewCluster * w->clusterBytes;
-				const int clusters[2] = { sp.frontCluster, sp.backCluster };
-				qboolean seen = qfalse;
-				for ( int k = 0; k < 2; k++ )
-					if ( clusters[k] < 0 || clusters[k] >= w->numClusters || (vis[clusters[k] >> 3] & (1 << (clusters[k] & 7))) )
-						seen = qtrue;
-				if ( !seen )
-					continue;
-			}
-			// the beam behind the aperture, inside a sphere
-			dlight_t dl;
-			Com_Memset(&dl, 0, sizeof(dl));
-			VectorMA(p.center, -0.5f * p.range, p.normal, dl.origin);
-			const float lateral = p.halfWidth + p.halfHeight + p.spreadTan * p.range;
-			dl.radius = sqrtf(0.25f * p.range * p.range + lateral * lateral);
-			froxelLightRange_t *range = &ranges[numLights];
-			if ( !R_VolumetricLightRange(view, froxelProjection, &dl, tileSize, tilesX, tilesY, range) )
-				continue;
-			range->light = numLights;
-			float *t = lightData[numLights * FROXEL_LIGHT_TEXELS];
-			VectorSet4(t + 0, p.center[0], p.center[1], p.center[2], p.range);
-			VectorSet4(t + 4, p.color[0] * colorScale, p.color[1] * colorScale, p.color[2] * colorScale, -3.0f - p.edge);
-			VectorSet4(t + 8, p.source[0], p.source[1], p.source[2], p.spreadTan);
-			VectorSet4(t + 12, p.right[0], p.right[1], p.right[2], p.halfWidth);
-			VectorSet4(t + 16, p.up[0], p.up[1], p.up[2], p.halfHeight);
-			numLights++;
-			numShafts++;
-		}
-	}
-	s_vfl.stats.portalShafts = numShafts;
 	if ( !numLights )
 		return;
 
@@ -1684,8 +1534,6 @@ static void R_VolumetricBuildLightLists( VolumetricFogBlock *block, const viewPa
 		for ( int n = 0; n < numLights; n++ )
 		{
 			const float *t = lightData[n * FROXEL_LIGHT_TEXELS];
-			if ( t[7] < -2.5f )
-				continue;	// a portal shaft: no media march
 			const float radius = t[3];
 			const float luminance = 0.2126f * t[4] + 0.7152f * t[5] + 0.0722f * t[6];
 			const float dist = Q_max(Distance(t, view->ori.origin), 0.25f * radius);
@@ -1853,8 +1701,6 @@ void R_VolumetricLightStats_f( void )
 		ri.Printf(PRINT_ALL, "  lights: %d in the volume, tile %d froxels, %d clusters\n",
 			st.lights, st.tileSize, st.clusters);
 		ri.Printf(PRINT_ALL, "  lists: GL 4.3 compute (cluster statistics require r_volumetricFogLightCompute 0)\n");
-		ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS; portal shafts: %d\n",
-			st.recoveredLights, st.recoveredCulled, st.portalShafts);
 		ri.Printf(PRINT_ALL, "  CPU build: %.3f ms (candidates, ranges and upload only)\n", st.buildMsec);
 		return;
 	}
@@ -1866,8 +1712,6 @@ void R_VolumetricLightStats_f( void )
 		st.maxPerCluster, FROXEL_LIGHTS_PER_CLUSTER);
 	ri.Printf(PRINT_ALL, "  overflow: %d clusters full, %d light/cluster pairs dropped\n",
 		st.overflowClusters, st.overflowRefs);
-	ri.Printf(PRINT_ALL, "  recovered static lights: %d in the volume, %d out of the PVS; portal shafts: %d\n",
-		st.recoveredLights, st.recoveredCulled, st.portalShafts);
 	ri.Printf(PRINT_ALL, "  CPU build: %.3f ms\n", st.buildMsec);
 }
 
@@ -2345,7 +2189,6 @@ static unsigned int R_VolumetricMediumKey( const trRefdef_t *refdef, qboolean ra
 		r_volumetricFogAnisotropy->value,
 		r_volumetricFogSunScale->value,
 		r_volumetricFogStaticScale->value,
-		(float)r_volumetricFogStaticDirectional->integer,
 		// the realtime sun color (refdef->sunCol) of maps without sunlit grid
 		// cells; r_forceSun 2 animates it every frame and is left to the clamp
 		(float)r_forceSun->integer,
@@ -2633,14 +2476,11 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		4.0f);	// history radiance clamped to [current / 4, current * 4]
 
 	const float globalAnisotropy = Com_Clamp(-0.9f, 0.9f, r_volumetricFogAnisotropy->value);
-	// r_staticLightDebug 4 / r_lightPortalDebug 3: only the recovered lights / only the portal shafts,
-	// so the baked field and the sun go (their colours are scaled on the CPU, not by these)
-	const qboolean exactOnly = (qboolean)(r_staticLightDebug->integer == 4 || r_lightPortalDebug->integer == 3);
 	VectorSet4(block.lightParams,
 		globalAnisotropy,
-		exactOnly ? 0.0f : r_volumetricFogSunScale->value,
+		r_volumetricFogSunScale->value,
 		r_volumetricFogDlightScale->value,
-		exactOnly ? 0.0f : r_volumetricFogStaticScale->value);
+		r_volumetricFogStaticScale->value);
 
 	// sun: realtime with the cascaded shadow maps rendered for this view,
 	// otherwise the baked sun part of the light grid
@@ -3293,15 +3133,6 @@ void RB_VolumetricBuild( void )
 		GL_BindToTMU(staticGrid, TB_LIGHTMAP);
 		GL_BindToTMU(sunGrid, TB_NORMALMAP);
 		GL_BindToTMU(legacyGrid, TB_EMISSIVEMAP);
-		// directional baked light moments: only the USE_FROXEL_STATIC_RECONSTRUCTION
-		// permutation samples them; without the split they are black (isotropic)
-		if ( R_VolumetricStaticDirectional() )
-		{
-			const world_t *w = tr.world;
-			GL_BindToTMU(w->volumetricDirMomentR ? w->volumetricDirMomentR : tr.blackImage3D, TB_SPECULARMAP);
-			GL_BindToTMU(w->volumetricDirMomentG ? w->volumetricDirMomentG : tr.blackImage3D, TB_SSAOMAP);
-			GL_BindToTMU(w->volumetricDirMomentB ? w->volumetricDirMomentB : tr.blackImage3D, TB_VOLUMETRICMOMENTB);
-		}
 		if ( tr.sunShadowArrayImage )
 			GL_BindToTMU(tr.sunShadowArrayImage, TB_SHADOWMAP);
 		if ( tr.pointShadowArrayImage )

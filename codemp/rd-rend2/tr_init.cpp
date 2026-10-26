@@ -154,23 +154,12 @@ cvar_t	*r_volumetricFogDlightScale;
 cvar_t	*r_volumetricFogLightTile;
 cvar_t	*r_volumetricFogLightCompute;
 cvar_t	*r_volumetricFogStaticScale;
-cvar_t	*r_volumetricFogStaticDirectional;
-cvar_t	*r_staticLightReconstruction;
 #define LIGHTRECON_CONTROL(name, maximum, description) cvar_t *name;
 #define LIGHTRECON_CONSUMER(name, kind, description) cvar_t *name;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
-cvar_t	*r_recoveredVolumetricLights;
-cvar_t	*r_recoveredVolumetricMaxLights;
-cvar_t	*r_recoveredPhysicalConfidence;
-cvar_t	*r_recoveredSpotConfidence;
-cvar_t	*r_staticLightDebug;
 cvar_t	*r_entityLightProbes;
-cvar_t	*r_lightPortals;
-cvar_t	*r_lightPortalDebug;
-cvar_t	*r_ltcAreaCalibration;
-cvar_t	*r_ltcAreaCalibrationScale;
 cvar_t	*r_volumetricSelfShadow;
 cvar_t	*r_volumetricSelfShadowSamples;
 cvar_t	*r_volumetricSelfShadowDistance;
@@ -2038,7 +2027,6 @@ static consoleCommand_t	commands[] = {
 	{ "r_cloudInfo",		R_CloudInfo_f },
 	{ "r_cloudLayerTest",	R_CloudLayerTest_f },
 	{ "r_vfogLightStats",	R_VolumetricLightStats_f },
-	{ "r_vfogStaticStats",	R_StaticLightingStats_f },
 	{ "r_lightReconInfo",	R_LightReconInfo_f },
 	{ "r_lightReconLuxels", R_LuxelDebug_f },
 	{ "r_lightReconObservations", R_LightReconObservations_f },
@@ -2947,35 +2935,12 @@ void R_Register( void )
 	r_volumetricFogLightCompute = ri.Cvar_Get("r_volumetricFogLightCompute", "1", CVAR_NONE, "Build froxel dynamic-light cluster lists on GL 4.3 compute");
 	r_volumetricFogStaticScale = ri.Cvar_Get("r_volumetricFogStaticScale", "1", CVAR_ARCHIVE, "Froxel fog: baked (light grid) scattering multiplier");
 	ri.Cvar_CheckRange(r_volumetricFogStaticScale, 0.0f, 16.0f, qfalse);
-	r_volumetricFogStaticDirectional = ri.Cvar_Get("r_volumetricFogStaticDirectional", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: directional baked light, the light grid light gets a first order (L1) phase response along the directions it is attributed to at map load: 0 = isotropic, 1 = reconstructed per channel moments (sources fitted from the light grid and the static area emitters), 2 = raw BSP light grid direction (developer comparison) (vid_restart)");
-	ri.Cvar_CheckRange(r_volumetricFogStaticDirectional, 0, 2, qtrue);
-	// Static Lighting Reconstruction (tr_staticlighting.cpp)
-	// Canonical controls: independent from the experimental lightgrid path.
+	// Canonical controls: independent build/load and opt-in consumption.
 #define LIGHTRECON_GET ri.Cvar_Get
 #include "tr_lightrecon_register.inc"
 #undef LIGHTRECON_GET
-	r_staticLightReconstruction = ri.Cvar_Get("r_staticLightReconstruction", "1", CVAR_ARCHIVE | CVAR_LATCH, "Static lighting reconstruction: structured lights (point / spot / transport / area) validated against the BSP and fitted from the light grid at map load, with r_volumetricFogStaticDirectional 1 (vid_restart)");
-	ri.Cvar_CheckRange(r_staticLightReconstruction, 0, 1, qtrue);
-	r_recoveredVolumetricLights = ri.Cvar_Get("r_recoveredVolumetricLights", "1", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: the confident physical lights of r_staticLightReconstruction leave the baked light and are injected as exact point / spot lights (volumetric cones), unshadowed, after the dynamic lights (vid_restart)");
-	ri.Cvar_CheckRange(r_recoveredVolumetricLights, 0, 1, qtrue);
-	r_recoveredVolumetricMaxLights = ri.Cvar_Get("r_recoveredVolumetricMaxLights", "32", CVAR_ARCHIVE | CVAR_LATCH, "Most recovered static lights promoted per map (1..32); the per view froxel budget is the same (vid_restart)");
-	ri.Cvar_CheckRange(r_recoveredVolumetricMaxLights, 1, 32, qtrue);
-	r_recoveredPhysicalConfidence = ri.Cvar_Get("r_recoveredPhysicalConfidence", "0.6", CVAR_LATCH, "Developer: physical confidence above which a reconstructed light is a lamp (visibility * fit * position), map load");
-	ri.Cvar_CheckRange(r_recoveredPhysicalConfidence, 0.05, 1.0, qfalse);
-	r_recoveredSpotConfidence = ri.Cvar_Get("r_recoveredSpotConfidence", "0.6", CVAR_LATCH, "Developer: spot confidence, as a fraction of r_recoveredPhysicalConfidence, above which a physical light is a spot, map load");
-	ri.Cvar_CheckRange(r_recoveredSpotConfidence, 0.05, 1.0, qfalse);
-	r_staticLightDebug = ri.Cvar_Get("r_staticLightDebug", "0", CVAR_CHEAT, "Static lighting reconstruction debug: 1 structured lights (green physical, bright green promoted, yellow uncertain, magenta transport, cyan area), 2 also range and position uncertainty, 3 promoted only, 4 froxel fog with only the recovered lights, 5 froxel fog without them (the residual baked light)");
-	ri.Cvar_CheckRange(r_staticLightDebug, 0, 5, qtrue);
-	r_entityLightProbes = ri.Cvar_Get("r_entityLightProbes", "1", CVAR_ARCHIVE | CVAR_LATCH, "Entity light grid L1 probes with r_entityLightGrid 2: per channel first order irradiance from the static lighting reconstruction (coloured lights keep their own directions; the legacy single direction without it) (vid_restart)");
+	r_entityLightProbes = ri.Cvar_Get("r_entityLightProbes", "1", CVAR_ARCHIVE | CVAR_LATCH, "Entity light grid L1 probes with r_entityLightGrid 2: first order irradiance from the original BSP direction and ambient/directed colours; no source reconstruction (vid_restart)");
 	ri.Cvar_CheckRange(r_entityLightProbes, 0, 1, qtrue);
-	r_lightPortals = ri.Cvar_Get("r_lightPortals", "1", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog light portals: apertures (doors, windows, gaps) the reconstructed baked light comes through, injected as volumetric shafts that replace that baked light (r_volumetricFog 2) (vid_restart)");
-	ri.Cvar_CheckRange(r_lightPortals, 0, 1, qtrue);
-	r_lightPortalDebug = ri.Cvar_Get("r_lightPortalDebug", "0", CVAR_CHEAT, "Light portal debug: 1 apertures (orange shaft, grey not promoted, blue sky), normal and the line to the light behind, 2 also the shaft range, 3 froxel fog with only the portal shafts, 4 froxel fog without them");
-	ri.Cvar_CheckRange(r_lightPortalDebug, 0, 4, qtrue);
-	r_ltcAreaCalibration = ri.Cvar_Get("r_ltcAreaCalibration", "0", CVAR_ARCHIVE | CVAR_LATCH, "LTC area lights: automatic area lights take their radiance from the light grid (authored ones keep theirs, the difference is reported with developer 1) (vid_restart)");
-	ri.Cvar_CheckRange(r_ltcAreaCalibration, 0, 1, qtrue);
-	r_ltcAreaCalibrationScale = ri.Cvar_Get("r_ltcAreaCalibrationScale", "1", CVAR_ARCHIVE | CVAR_LATCH, "Developer: scale of the grid calibrated area light radiance (the light grid to LTC constant, not validated against q3map yet) (vid_restart)");
-	ri.Cvar_CheckRange(r_ltcAreaCalibrationScale, 0.01f, 100.0f, qfalse);
 	r_volumetricSelfShadow = ri.Cvar_Get("r_volumetricSelfShadow", "0", CVAR_ARCHIVE | CVAR_LATCH, "Froxel fog: dense media shadow the light inside the media (current frame density along the light ray): 0 = off, 1 = sun, 2 = sun + the r_volumetricSelfShadowMaxLights strongest dynamic lights (vid_restart)");
 	ri.Cvar_CheckRange(r_volumetricSelfShadow, 0, 2, qtrue);
 	r_volumetricSelfShadowSamples = ri.Cvar_Get("r_volumetricSelfShadowSamples", "6", CVAR_ARCHIVE, "Froxel fog self-shadow: density samples along the sun ray (dynamic lights use half, at least 3)");
@@ -3305,7 +3270,7 @@ void R_Register( void )
 	r_waterSnellOptics = ri.Cvar_Get("r_waterSnellOptics", "0", CVAR_ARCHIVE | CVAR_LATCH, "Snell optics: 0 legacy, 1 underwater sun BTDF/eta transport, 2 also atmosphere through the air segment");
 	ri.Cvar_CheckRange(r_waterSnellOptics, 0, 2, qtrue);
 	r_volumetricFogReset = ri.Cvar_Get("r_volumetricFogReset", "0", 0, "Set to 1 by game code to reset the froxel fog history (camera cut), cleared by the renderer");
-	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20-25 baked light grid terms, 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, r_volumetricFogStaticDirectional: 57 baked light after the L1 phase, 58 directional fraction |M| / B, r_volumetricWater: 59 density of the liquids, 60 liquid brushes, 61 camera contents (CPU) vs GPU membership, 62 liquid boundary froxels, 63 liquid transmittance along the ray, 64 sun under water (transmittance * caustics), 65 liquid segment length, 66 liquid in-scattering only, 67 liquid transmittance (volume), 68 liquid medium sigma along the ray, 69 surfaces that bypass the liquid fog (magenta lightall blended, yellow generic blend, cyan immediate), 70 dynamic lights without the liquid light path (A/B with 4)");
+	r_volumetricFogDebug = ri.Cvar_Get("r_volumetricFogDebug", "0", CVAR_CHEAT, "Froxel fog debug view: 1 density, 2 sun (unshadowed), 3 sun (shadowed), 4 dynamic lights, 5 baked light, 6 scattering, 7 transmittance, 8 history weight, 9 integrated volume, 10 slices, 11 density of the BSP fog volumes, 12 density of the height fog, 13 noise modulation, 14 density without noise, 15 density with noise, 16 density of the local fog volumes, 17 local vs other fog share, 18 local fog volume bounds, 19 local volumes per slice, 20 baseline, 23 baked sun, 24 B+S, 25 split error (21/22 retired), 26 density of the FX particle media, 27 FX particle history reduction, 28 FX particle proxy bounds, 29 dynamic lights per froxel cluster (cyan: spot lights), 30 scattering source, 31 emissive source, 32 combined source, 33 integrated emission, 34 history vs emission, 35 medium extinction, 36 albedo, 37 phase lobes, 38 mixed g, 39 sun phase, r_volumetricSelfShadow: 40 media density, 41 sun ray optical depth, 42 sun media transmittance, 43 sun geometry shadow only, 44 sun media shadow only, 45 sun both, r_volumetricMultiScatter: 46 sun single scattering, 47 sun multiple scattering term, 48 sun combined, 49 multiple scattering ratio, 50 optical depth (red: towards the sun, green: extinction * r_volumetricMultiScatterLength), r_volumetricFogRGBExtinction: 51 extinction sigma_t.rgb, 52 transmittance T.rgb, 53 color shift RGB - scalar, 54 |RGB - scalar| heat, 55 extinction chroma, 56 tail transmittance, 57/58 retired, r_volumetricWater: 59 density of the liquids, 60 liquid brushes, 61 camera contents (CPU) vs GPU membership, 62 liquid boundary froxels, 63 liquid transmittance along the ray, 64 sun under water (transmittance * caustics), 65 liquid segment length, 66 liquid in-scattering only, 67 liquid transmittance (volume), 68 liquid medium sigma along the ray, 69 surfaces that bypass the liquid fog (magenta lightall blended, yellow generic blend, cyan immediate), 70 dynamic lights without the liquid light path (A/B with 4)");
 	ri.Cvar_CheckRange(r_volumetricFogDebug, 0, 74, qtrue);
 	// volumetric FX particles (tr_volparticle.cpp): media of the .efx particles with a volumetricMedia block.
 	// Mirrored by the SP cgame (only calls the engine with it set), so off by default.
@@ -4092,7 +4057,6 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ShutdownForwardPlus();
 		R_ShutdownPlantSim();
 		R_ClearAreaLights();
-		R_ClearStaticLighting();
 		R_FoliageInteractionReset();
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();

@@ -101,7 +101,7 @@ retry loop, worker pool, detached thread or queued write.
 | `RE_LoadWorldMap` entry | Construct stack `LightReconWorldLoad` before BSP loading/redundant-world checks; unpublish old data and sample build policy |
 | `R_LoadBSP` | No canonical lifecycle calls; retains ordinary BSP/lightmap/material/lightgrid loading |
 | `R_LoadAreaLights` in `RE_LoadWorldMap` | Existing authored/automatic area-light loading stays in its original position |
-| `R_BuildStaticLighting`, `R_CalibrateEntitySun` | Existing PBR calibration, grid, fog/proxy and sun behaviour stays in order; no longer owns/clears canonical data |
+| `R_PBRCalibrateLegacyMap`, `R_BuildBakedFogLighting`, `R_CalibrateEntitySun` | Independent PBR calibration, ordinary fog B/S and entity sun behaviour; no canonical ownership or source fitting |
 | End of `RE_LoadWorldMap` | After area lights, legacy initialization, weather/cubemap setup and prefetch flush, finish the guard with copied readiness/count facts and run the canonical owner |
 | Failed return / `ri.Error(ERR_DROP)` | Guard destructor aborts the ticket without publishing; SP and MP throw the error, so normal C++ unwinding applies |
 | SP/MP `R_ClearTr` | Unconditionally unload before renderer/world pointers are memset/reset, including cached-shader reset |

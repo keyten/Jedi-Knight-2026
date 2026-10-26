@@ -4635,20 +4635,14 @@ static void R_BuildEntityLightGridTextures(world_t *world, qboolean update)
 		Z_Free(direction);
 }
 
-// r_entityLightProbes: replaces the three entity grid volumes by L1 irradiance probes, one
-// RGBA16F volume per colour channel c: xyz = C1_c, w = C0_c (-1: a cell in a wall), so that
-//   irradiance_c(N) = C0_c + C1_c . N
-// For the legacy model ambient A + directed D max(N.u, 0): C0 = A + D / 4, C1 = D / 2 u (its L1
-// projection). With the static lighting reconstruction, u is the per channel direction mix of
-// the attributed sources (tr_volrecon.cpp, vrOutput::entityDir): red from the left, blue from
-// the right instead of one compromise direction. Same A / D as R_PackEntityLightGrid (all styles
-// active at load, linear), r_ambientScale / r_directedScale applied here (map load).
+// Optional original-grid L1 irradiance, one volume per colour: C0=A+D/4,
+// C1=D/2*u with the original BSP direction u. Not a recovered source field.
 static float R_EntityProbeSRGBToLinear(float c)
 {
 	return (c <= 0.04045f) ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f);
 }
 
-qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix)
+qboolean R_BuildEntityLightProbes(world_t *world)
 {
 	world->entityGridL1 = qfalse;
 	if (!world->lightGridData || !world->lightGridArray || world->numGridArrayElements <= 0)
@@ -4718,7 +4712,7 @@ qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix)
 		for (int c = 0; c < 3; c++)
 		{
 			const float A = Q_max(a[c], 0.0f) * ambientScale, D = Q_max(d[c], 0.0f) * directedScale;
-			const float *u = dirMix ? &dirMix[c][i * 3] : bspDir;
+			const float *u = bspDir;
 			const float c0 = A + 0.25f * D;
 			vec3_t c1;
 			VectorScale(u, 0.5f * D, c1);
@@ -4855,8 +4849,15 @@ void R_BuildLightGridColorTexture(world_t *world)
 
 static void R_BuildLightGridTexture(world_t *world)
 {
-	// r_entityLightProbes: the L1 probes are built with the static lighting reconstruction
-	if ((r_entityLightGrid->integer > 1 || r_entityLightGridDebug->integer) && !R_EntityLightProbesWanted())
+	// Independent legacy/per-fragment entity lighting, even with reconstruction disabled.
+	if (R_EntityLightProbesWanted())
+	{
+		// As before, only the main world owns optional probes; MP sub-BSPs
+		// must not replace their image-registry entries.
+		if (world == &s_worldData)
+			R_BuildEntityLightProbes(world);
+	}
+	else if (r_entityLightGrid->integer > 1 || r_entityLightGridDebug->integer)
 		R_BuildEntityLightGridTextures(world, qfalse);
 	if (r_volumetricFog->integer)
 		R_BuildLightGridColorTexture(world);
@@ -5053,8 +5054,6 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	R_LoadWeatherImages();
 	R_GenerateSurfaceSprites(worldData, worldIndex + 1);
 	R_BuildLightGridTexture(worldData);
-	// the static lighting reconstruction (R_BuildStaticLighting) is built in
-	// RE_LoadWorldMap, after the area lights it anchors to
 	if (bspIndex == nullptr)
 		R_SetHeightFogBase(worldData);
 
@@ -5242,10 +5241,9 @@ void RE_LoadWorldMap( const char *name ) {
 	R_LoadProfilePrint("world area lights", postBspStart);
 	const int staticLightingStart = ri.Milliseconds();
 
-	// static lighting reconstruction (froxel fog: light grid split by the sun, the
-	// directional baked light moments, the promoted lights), anchored to the static
-	// area emitters found above
-	R_BuildStaticLighting(world);
+	// Independent legacy/physical PBR calibration and ordinary fog input.
+	R_PBRCalibrateLegacyMap(world);
+	R_BuildBakedFogLighting(world);
 	// r_entitySunSplit: the sun of the light grid
 	R_CalibrateEntitySun(world);
 	R_LoadProfilePrint("world static lighting", staticLightingStart);
@@ -5270,7 +5268,7 @@ void RE_LoadWorldMap( const char *name ) {
 	R_ModelLoadProfileCheckpoint("world map");
 	if (R_LoadProfileEnabled()) R_ShaderLoadProfileBegin();
 	// All BSP geometry/materials, area lights and legacy initialization succeeded.
-	// Canonical loading is independent of R_BuildStaticLighting and its consumers.
+	// Canonical loading is independent of baked fog, entity and PBR initialization.
 	reconstructedWorld.Finish(world->numsurfaces,
 		world->lightGridData ? world->numGridArrayElements : 0, tr.numLightmaps);
 }

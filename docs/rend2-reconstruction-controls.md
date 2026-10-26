@@ -2,9 +2,9 @@
 
 These controls govern the [canonical asset/API](rend2-reconstructed-lighting-api.md),
 independently of generating/loading it and independently of each renderer feature.
-They do not change the experimental lightgrid pipeline: `r_staticLightReconstruction`,
-`r_recoveredVolumetricLights`, entity L1 probes, portal shafts and their existing
-shader defines keep their current meanings and defaults.
+The failed experimental grid fitter and its controls have been removed. Ordinary
+baked lighting, fog sun separation, entity probes, authored LTC and sun shadows
+remain independent. These canonical flags have no legacy aliases.
 
 ## Cvars and activation
 

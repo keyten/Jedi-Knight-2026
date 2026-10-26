@@ -1,3 +1,7 @@
+> Historical planning/review document. The grid-reconstructed static sources and
+> portal shafts mentioned below have since been removed; current froxel lists
+> contain ordinary scene/dynamic lights. See [removal report](rend2-grid-reconstruction-removal.md).
+
 # План 2. Списки источников froxel fog на GPU
 
 Относится к [rend2-gl43-review.md](rend2-gl43-review.md), пункт 3. Объём: средний (2–4 дня). Зависит от плана 1

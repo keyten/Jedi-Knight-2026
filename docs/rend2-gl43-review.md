@@ -1,3 +1,7 @@
+> Historical planning/review document. The grid-reconstructed static sources and
+> portal shafts mentioned below have since been removed; current froxel lists
+> contain ordinary scene/dynamic lights. See [removal report](rend2-grid-reconstruction-removal.md).
+
 # Rend2 GL 4.3 port review (2026-10-16)
 
 Scope: every rendering technology added from `00b8a5703` (Enhanced tone mapping + linear lighting) up to

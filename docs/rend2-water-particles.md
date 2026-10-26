@@ -51,7 +51,7 @@ Files:
     "another pool".
   - a collision trace from the camera against `CONTENTS_SOLID` reaches it. This rules out "behind a wall" and
     "inside a solid". The trace is `CM_BoxTrace` in MP and `SV_Trace` in SP, the same split as
-    `tr_staticlighting.cpp`.
+    the independent sun helper in `tr_light.cpp`.
 - **Spawn budget.** Each frame allows 48 + target/8 candidates and 24 + target/16 traces. A fresh fill takes
   1–10 frames (see the audit). The first generation of a fill gets random lifetimes, so it does not all expire
   at once.

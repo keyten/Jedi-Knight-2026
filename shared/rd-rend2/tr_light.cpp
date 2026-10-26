@@ -358,6 +358,29 @@ sample is sunlit.
 ===============================================================================
 */
 
+static void R_SunVisibilityTrace( trace_t *trace, const vec3_t start, const vec3_t end )
+{
+	Com_Memset(trace, 0, sizeof(*trace));
+#ifdef REND2_SP
+	ri.SV_Trace(trace, start, vec3_origin, vec3_origin, end, ENTITYNUM_NONE, CONTENTS_SOLID, G2_NOCOLLIDE, 0);
+#else
+	ri.CM_BoxTrace(trace, start, end, vec3_origin, vec3_origin, 0, CONTENTS_SOLID, 0);
+#endif
+}
+
+qboolean R_SunVisibleFromPoint( const vec3_t start, const vec3_t sunDir )
+{
+	vec3_t end;
+	VectorMA(start, 65536.0f, sunDir, end);
+	trace_t trace;
+	R_SunVisibilityTrace(&trace, start, end);
+	if ( trace.startsolid || trace.allsolid )
+		return qfalse;
+	// the sky brushes are solid: reaching one is reaching the sky
+	return (qboolean)(trace.fraction >= 1.0f || (trace.surfaceFlags & SURF_SKY));
+}
+
+
 #define ENTITY_SUN_CALIBRATION_COS_STRICT	0.9848f	// cos(10)
 #define ENTITY_SUN_CALIBRATION_COS_WIDE		0.9397f	// cos(20)
 #define ENTITY_SUN_CALIBRATION_MIN_CELLS	16
@@ -381,8 +404,11 @@ static float R_EntitySunLuma( const vec3_t c )
 	return 0.2126f * c[0] + 0.7152f * c[1] + 0.0722f * c[2];
 }
 
+static unsigned s_entitySunGeneration;
+
 void R_CalibrateEntitySun( world_t *world )
 {
+	++s_entitySunGeneration; // world_t storage is reused when maps change
 	world->entitySunValid = qfalse;
 	world->entitySunCells = 0;
 	VectorClear(world->entitySunGrid);
@@ -457,6 +483,7 @@ static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
 		const world_t *world;
 		vec3_t sunDir;
 		qboolean seen;
+		unsigned generation;
 	} cache[ENTITY_SUN_CACHE_SIZE];
 
 	int key[3];
@@ -466,7 +493,7 @@ static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
 		(unsigned)key[2] * 83492791u) & (ENTITY_SUN_CACHE_SIZE - 1);
 	const int now = ri.Milliseconds();
 	auto &entry = cache[hash];
-	if ( entry.world == tr.world && entry.key[0] == key[0] && entry.key[1] == key[1] &&
+	if ( entry.generation == s_entitySunGeneration && entry.world == tr.world && entry.key[0] == key[0] && entry.key[1] == key[1] &&
 		entry.key[2] == key[2] && VectorCompare(entry.sunDir, sunDir) &&
 		now - entry.time >= 0 && now - entry.time < ENTITY_SUN_CACHE_MSEC )
 		return entry.seen;
@@ -475,6 +502,7 @@ static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
 	vec3_t centre;
 	for ( int c = 0; c < 3; c++ )
 		centre[c] = (key[c] + 0.5f) * ENTITY_SUN_CACHE_QUANTUM;
+	entry.generation = s_entitySunGeneration;
 	entry.seen = R_SunVisibleFromPoint(centre, sunDir);
 	for ( int c = 0; c < 3; c++ )
 		entry.key[c] = key[c];

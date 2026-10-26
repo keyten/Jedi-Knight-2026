@@ -16,9 +16,10 @@ The [read-only CPU access API](rend2-reconstructed-lighting-api.md) supplies imm
 published snapshots and explicit availability; it does not evaluate missing data.
 The [standalone CPU core](rend2-reconstruction-core.md) adds streaming inputs and
 an explicit builder/session boundary; it does not install an inverse solver.
-It does not populate the asset from stock maps. Existing `vrOutput`, `vrProxy`,
-`vrStaticLight`, fog promotion, entity lighting and legacy rendering still run
-as before. Those experimental records are not this canonical architecture.
+It does not populate the asset from stock maps. The obsolete grid-source fitter,
+its proxies, promotion and artificial portals have been removed. Normal baked
+lighting and independent Rend2 features remain separate from this canonical
+architecture; see the [removal report](rend2-grid-reconstruction-removal.md).
 
 ## Boundaries and components
 

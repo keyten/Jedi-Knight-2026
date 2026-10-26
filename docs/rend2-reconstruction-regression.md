@@ -1,8 +1,11 @@
 # Reconstructed-lighting compatibility regression protection
 
-The controlled shader baseline is renderer revision
-`60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c`, immediately after the independent
-[build/use controls](rend2-reconstruction-controls.md). These checks protect
+The original controlled baseline at renderer revision
+`60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c` is retained under
+`tools/rend2/lightrecon_baseline/obsolete-grid-v1/`. The current baseline includes
+the [reviewed grid-reconstruction removal](rend2-grid-reconstruction-removal.md):
+22 programs and every active GPU interface are unchanged, while five injection
+stages lose obsolete portal/moment/debug code. These checks protect
 original-style and current **non-reconstruction** rendering. They do not require
 preserving unsuccessful experimental light fitting or promote its proxies.
 No production C++, shader, feature default or rendering technology is redesigned
@@ -13,8 +16,8 @@ or changed by this validation task.
 | Boundary | Existing behaviour and protection |
 | --- | --- |
 | Canonical `r_lightRecon*` controls | Read only in `tr_lightrecon.cpp`; build/load affects the CPU owner, all feature adapters currently unavailable. No shader define, sampler, UBO/SSBO or frame-light submission consumes them. The source dependency fence detects new raw-control/API/namespace dependencies outside the owner. |
-| `lightall.glsl` entity lighting | Legacy CPU grid, explicit CPU/GPU grid interpolation and Ghoul2 permutations are covered. `USE_ENTITY_GRID_L1` is experimental, selected by the old probe controls; it is absent from this baseline. |
-| `volumetric_inject.glsl` | `USE_FROXEL_STATIC_RECONSTRUCTION` and its three `u_VolumetricDirMoment*` samplers/fetches are absent. Existing isotropic static/sun/legacy-grid textures remain part of the ordinary froxel implementation. |
+| `lightall.glsl` entity lighting | Legacy CPU grid, explicit CPU/GPU grid interpolation and Ghoul2 permutations are covered. Optional L1 probes now use original BSP directions independently; they remain outside this particular shader matrix and have CPU/runtime coverage in the removal report. |
+| `volumetric_inject.glsl` | The old reconstruction define and moment samplers have been deleted. Existing isotropic static/sun/legacy-grid textures remain ordinary froxel inputs. |
 | `volumetric_common.glsl` | `USE_FROXEL_FOG` gates the library. Existing `VolumetricFog`, particle/media blocks and scalar/RGB lookup variants are captured, independently of canonical reconstruction. |
 | PBR / fog / sun / LTC | Their existing controls generate their existing defines. No build/load or canonical master/consumer request writes those controls or activates their resources. |
 | Forward+ | Current lightall uses runtime `u_FPlusParams2` selection, not an invented `USE_FORWARD_PLUS` define. Its existing TBO declarations/Camera fields can be present with Forward+ off. Existing GL4.3 cluster shaders/SSBOs are separate tested programs. |
@@ -72,8 +75,8 @@ Comparison is scoped to the controlled baseline, not arbitrary commits with
 unrelated changes. Whitespace, comments and `#line` noise are ignored; arithmetic,
 identifiers, declarations and layouts are retained. Intended unrelated changes
 must be reviewed in the per-stage diff and documented in an explicit baseline
-update reason. Inactive experimental code can be removed without a source
-contract change; a self-test removes its moment declarations and verifies this.
+update reason. Inactive branches are checked by mutations; a retirement audit
+now rejects reintroduced old files, controls, types or bindings.
 Never automatically regenerate goldens after a failure.
 
 Nine detector self-tests cover the production dependency fence, normalization,
@@ -240,11 +243,10 @@ with the proprietary original JA renderer. Current Rend2 already has its own
 UBO architecture, common PBR scene parameters, Forward+ Camera fields/TBO
 declarations, rewritten material lighting, HDR/tone mapping and optional modern
 fog/sun/LTC paths. Froxel fog is itself beyond original JA and retains its
-existing static/sun grid split and debug legacy grid. Experimental L1/moment
-paths remain in production under their old controls; the new canonical master
-does not redefine them or turn them off. Advanced configurations can still engage
-that old subsystem through its old controls. This baseline explicitly disables
-those controls; it does not freeze their algorithms or quality. Removal is separate work.
+existing static/sun grid split and debug legacy grid. The failed source fitting,
+directional fog moments, artificial portals and their controls are removed.
+Original-grid L1 entity probes remain independent. Canonical build/use still
+does not control unrelated technologies or introduce a lighting consumer.
 
 This suite certifies the controlled disabled-consumption paths and available
 runtime views. It is not exhaustive material coverage, MP visual validation,

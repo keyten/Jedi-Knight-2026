@@ -31,9 +31,9 @@ The inspected engine paths have different purposes:
 
 | Existing structure/path | Why it is not the optical authority |
 | --- | --- |
-| `tr_staticlighting.cpp::R_StaticLightTrace` | Boolean collision test using `CONTENTS_SOLID`; no render surface/material identity or partial optical state |
-| `R_StaticSkyTrace` | Requires collision `SURF_SKY`; still inherits collision geometry/contents |
-| `R_SunVisibleFromPoint` / `R_StaticSunVisible` | Also accepts a completely unobstructed 65,536-unit collision trace as sun visibility; that does not prove a sky boundary |
+| Removed `R_StaticLightTrace` (historical) | Boolean collision test using `CONTENTS_SOLID`; no render surface/material identity or partial optical state |
+| Removed `R_StaticSkyTrace` (historical) | Requires collision `SURF_SKY`; still inherits collision geometry/contents |
+| `tr_light.cpp::R_SunVisibleFromPoint` | Also accepts a completely unobstructed 65,536-unit collision trace as sun visibility; that does not prove a sky boundary |
 | SP `R_StaticTrace` | Calls `SV_Trace`; the server trace can include solid entities, rather than being an immutable static surface query |
 | MP `R_StaticTrace` | Calls model-0 `CM_BoxTrace`; collision brushes and patch facets still differ from drawing |
 | `cm_load.cpp`, `cm_trace.cpp`, `cm_patch.cpp` | Content masks, convex brush sides, collision facets and collision-specific tolerances can omit visual detail, include invisible clips, or approximate patches differently |

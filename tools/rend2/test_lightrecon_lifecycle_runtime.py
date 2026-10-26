@@ -239,8 +239,9 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT / 'build/lightrecon-lifecycle-runtime')
     parser.add_argument('--label', default='smoke')
     parser.add_argument('--timeout', type=int, default=600)
-    parser.add_argument('--lightmap-fixtures', action='store_true', help='Private HDR/TGA override tests, including observation-only deluxe with rendering disabled')
-    parser.add_argument('--lightgrid-fixture', action='store_true', help='Private dense HDR grid with r_hdr=0; observation capture must remain independent')
+    fixtures_group = parser.add_mutually_exclusive_group()
+    fixtures_group.add_argument('--lightmap-fixtures', action='store_true', help='Private HDR/TGA override tests (HDR renderer profile), including observation-only deluxe with rendering disabled')
+    fixtures_group.add_argument('--lightgrid-fixture', action='store_true', help='Private dense HDR grid with r_hdr=0; observation capture must remain independent')
     parser.add_argument('--lightgrid-hdr', type=int, choices=(0, 1), default=0, help='r_hdr for the private grid fixture: 0 tests observation-only I/O, 1 reuses the renderer read')
     args = parser.parse_args()
     if os.name != 'nt' or not re.fullmatch(r'[A-Za-z0-9_-]+', args.label):
@@ -292,7 +293,7 @@ def main():
                     'shared/rd-rend2/lightrecon/input.h', 'code/rd-common/tr_image_load.cpp', 'codemp/rd-common/tr_image_load.cpp',
                     'shared/rd-rend2/tr_lightrecon.h', 'shared/rd-rend2/tr_lightrecon.cpp',
                     'shared/rd-rend2/tr_lightrecon_api.cpp', 'shared/rd-rend2/tr_lightrecon_manager.h',
-                    'shared/rd-rend2/tr_bsp.cpp', 'shared/rd-rend2/tr_staticlighting.cpp',
+                    'shared/rd-rend2/tr_bsp.cpp', 'shared/rd-rend2/tr_bakedlighting.cpp',
                     'code/rd-rend2/tr_init.cpp', 'codemp/rd-rend2/tr_init.cpp')
     states = parse(text)
     lightmaps = validate_lightmaps(text, args.installation, fixtures)

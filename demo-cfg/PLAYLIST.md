@@ -33,8 +33,7 @@
 ## 3. Volumetrics и небо
 
 - `39` froxel fog; `40` height fog; `41` density noise.
-- `42` directional static-light reconstruction; `43` recovered lights;
-  `44` light portals.
+- `42`–`44` retired: unsuccessful grid reconstruction, recovered lights and fake portals removed.
 - `45` volumetric FX; `46` lit sprites; `47` legacy FX physicalization;
   `48` volumetric emission.
 - `49` media self-shadow; `50` multiple scattering; `51` RGB extinction.

@@ -1877,7 +1877,7 @@
     }
   },
   "reflection_note": "Active sampler names/types/counts, std140 block sizes and std430 block bindings/sizes; no driver locations/IDs",
-  "review_reason": "Initial controlled disabled-consumption baseline at 60d1cc8c6; production GLSL unchanged; experimental reconstruction off; active binding inventory excludes absent old moment samplers",
+  "review_reason": "Reviewed removal of obsolete grid fitter: five injection stages lose fake portal, zero moment fields and retired debug code; 22 programs and all active GPU interfaces unchanged. Previous contracts and exact diff retained in obsolete-grid-v1.",
   "schema": 1,
-  "source_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c"
+  "source_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
 }

@@ -1,8 +1,12 @@
+> **Historical validation of a removed subsystem.** The grid-source fitter and
+> its controls/tools are obsolete. Preserved results explain its removal; these
+> commands are not supported by current builds. See [removal report](rend2-grid-reconstruction-removal.md).
+
 # Rend2: Static Lighting Reconstruction — validation on stock maps
 
 Date: 2026-10-15. Branch `rend2-unified-wip`, HEAD `266fc26c9` plus the fixes listed in
 [Fixes made during the validation](#fixes-made-during-the-validation). Design doc:
-[rend2-static-lighting.md](rend2-static-lighting.md). Captures: [rend2-static-lighting-validation/](rend2-static-lighting-validation/).
+[obsolete design](rend2-static-lighting-obsolete.md). Captures: [rend2-static-lighting-validation/](rend2-static-lighting-validation/).
 Tools: [tools/rend2/static_lighting/](../tools/rend2/static_lighting/).
 
 **Short answer: on 18 stock SP maps and 2 MP maps the reconstruction promotes nothing.** It finds 0 physical

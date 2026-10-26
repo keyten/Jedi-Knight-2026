@@ -1,0 +1,4731 @@
+{
+  "schema": 1,
+  "completed_local_date": "2026-10-26",
+  "timezone": "Australia/Sydney",
+  "investigation_base": "380ee0f7e352300ce329aabfdc477512d532a77a",
+  "branch": "rend2-unified-wip",
+  "task": "Remove obsolete lightgrid source reconstruction; preserve independent JA/Rend2 lighting",
+  "no_inverse_solver_implemented": true,
+  "canonical_production_core_and_adapters_unchanged": true,
+  "hash_conventions": {
+    "source": "SHA256 after CRLF-to-LF normalization",
+    "artifacts": "SHA256 of exact bytes"
+  },
+  "dependency_inventory": "grid-removal-inventory.json",
+  "changed_files": [
+    {
+      "status": "M",
+      "path": "code/rd-rend2/CMakeLists.txt"
+    },
+    {
+      "status": "M",
+      "path": "code/rd-rend2/tr_init.cpp"
+    },
+    {
+      "status": "M",
+      "path": "codemp/rd-rend2/CMakeLists.txt"
+    },
+    {
+      "status": "M",
+      "path": "codemp/rd-rend2/tr_init.cpp"
+    },
+    {
+      "status": "M",
+      "path": "demo-cfg/0.cfg"
+    },
+    {
+      "status": "D",
+      "path": "demo-cfg/42-static-light-reconstruction.cfg"
+    },
+    {
+      "status": "D",
+      "path": "demo-cfg/43-recovered-volumetric-lights.cfg"
+    },
+    {
+      "status": "D",
+      "path": "demo-cfg/44-light-portals.cfg"
+    },
+    {
+      "status": "M",
+      "path": "demo-cfg/PLAYLIST.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-gl43-plan-2-froxel-light-lists.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-gl43-review.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/rend2-grid-reconstruction-removal.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-physical-pbr.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstructed-lighting-api.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstructed-lighting.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstruction-controls.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstruction-core.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstruction-lifecycle.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-reconstruction-regression.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/rend2-static-lighting-obsolete.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-static-lighting-validation.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-static-lighting.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-static-visibility.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-volumetric-fog.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rend2-water-particles.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/rendering-features.md"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/glsl/volumetric_debug.glsl"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/glsl/volumetric_inject.glsl"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_arealights.cpp"
+    },
+    {
+      "status": "A",
+      "path": "shared/rd-rend2/tr_bakedlighting.cpp"
+    },
+    {
+      "status": "A",
+      "path": "shared/rd-rend2/tr_bakedlighting.h"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_bsp.cpp"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_glsl.cpp"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_light.cpp"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_local.h"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_scene.cpp"
+    },
+    {
+      "status": "D",
+      "path": "shared/rd-rend2/tr_staticlighting.cpp"
+    },
+    {
+      "status": "D",
+      "path": "shared/rd-rend2/tr_staticlighting.h"
+    },
+    {
+      "status": "D",
+      "path": "shared/rd-rend2/tr_volrecon.cpp"
+    },
+    {
+      "status": "D",
+      "path": "shared/rd-rend2/tr_volrecon.h"
+    },
+    {
+      "status": "M",
+      "path": "shared/rd-rend2/tr_volumetric.cpp"
+    },
+    {
+      "status": "D",
+      "path": "shared/rd-rend2/tr_volumetric_reconstruct.cpp"
+    },
+    {
+      "status": "M",
+      "path": "tools/lightrecon_test/CMakeLists.txt"
+    },
+    {
+      "status": "A",
+      "path": "tools/lightrecon_test/bakedlighting_test.cpp"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/lightrecon_baseline/README.md"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/grid-removal-inventory.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/grid-removal-validation.json"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/lightrecon_baseline/manifest.json"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/lightrecon_baseline/matrix.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/README.md"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/bindings.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/manifest.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/matrix.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/preprocessed.json.gz"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/removal-review.json"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/lightrecon_baseline/obsolete-grid-v1/removal.diff.gz"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/lightrecon_baseline/preprocessed.json.gz"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/lightrecon_regression.py"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/static_lighting/README.md"
+    },
+    {
+      "status": "D",
+      "path": "tools/rend2/static_lighting/colorspots.py"
+    },
+    {
+      "status": "D",
+      "path": "tools/rend2/static_lighting/export_grid.py"
+    },
+    {
+      "status": "D",
+      "path": "tools/rend2/static_lighting/mkviews.py"
+    },
+    {
+      "status": "D",
+      "path": "tools/rend2/static_lighting/run.sh"
+    },
+    {
+      "status": "D",
+      "path": "tools/rend2/static_lighting/vrdiag.cpp"
+    },
+    {
+      "status": "A",
+      "path": "tools/rend2/test_bakedlighting_removal_runtime.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/test_clouds_gl.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/test_lightrecon_contract.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/test_lightrecon_legacy_runtime.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/test_lightrecon_lifecycle_runtime.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/rend2/test_volumetric_compute.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/controls.json"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/pk3/ui/ingame.menu"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/presentation.py"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/render2026_overlay_sp.zip"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/settings.json"
+    },
+    {
+      "status": "M",
+      "path": "tools/render_menu/zzzz_render2026_menu.pk3"
+    },
+    {
+      "status": "D",
+      "path": "tools/volrecon_test/volrecon_test.cpp"
+    }
+  ],
+  "source_files_sha256": {
+    "code/rd-rend2/CMakeLists.txt": "4b563aec2200a5c26bb7601844f5aac6d564d0e31ca24100e12d0f4387704ed8",
+    "code/rd-rend2/tr_init.cpp": "dd262f1bfaa9434853b5a47147964c2b22047279b3f0505894d6041903ea3ab0",
+    "codemp/rd-rend2/CMakeLists.txt": "2707bf7ec20ca340474806082e4bced151ce659ed1f211a7945015a80002eb49",
+    "codemp/rd-rend2/tr_init.cpp": "d095a5fcb8058841bd0db9b9af5f734814e002241d4c7428b92e601ed84f9b8b",
+    "shared/rd-rend2/glsl/volumetric_debug.glsl": "42662a869c38ad964a32ef8a4ca917e8ec0044cd85385e5361d9b14ec49a0d84",
+    "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+    "shared/rd-rend2/tr_arealights.cpp": "a8b19cb7d1fe7a0d2adaea86c1fd1e8bc19f4a938aa0ff582695fc46f2e52d2a",
+    "shared/rd-rend2/tr_bakedlighting.cpp": "8796d78be7b4d22246a2daefafc81df8dd17980c116543796bc046298762098e",
+    "shared/rd-rend2/tr_bakedlighting.h": "9cc9065a6616301543f369be7e79af7c74aa62e3e03a9b045e867dbb311a63bb",
+    "shared/rd-rend2/tr_bsp.cpp": "fd7efdf8af8b01d9797efdbbcfabe22db8063574b086081e8771b51ca24bbff7",
+    "shared/rd-rend2/tr_glsl.cpp": "6a0892c8a8d37e39d3ca01442fbf1ff7bb3f4a424f7f6e9a24c7942b48cd84e9",
+    "shared/rd-rend2/tr_light.cpp": "eb7bebd987f64868305729551a2c0f31d5a03a76f5d6b13bb870b2b46baf3017",
+    "shared/rd-rend2/tr_local.h": "30867a058d2fbc0b6efc4d5110f9568c2cc729b3a03246a27e1ed2620cdbe58c",
+    "shared/rd-rend2/tr_scene.cpp": "6ed30fc0758e99013923c41af1ca8116f9693d967595d26f6d6e300084bbf7bb",
+    "shared/rd-rend2/tr_volumetric.cpp": "b0f6a5db98d0da38d7daeed3e41495b1b3658ab43324596aba9541753aff3da4",
+    "tools/lightrecon_test/CMakeLists.txt": "fae8f6de2ecda89af83193bb58a5f2b4de119ae915ad22adfd9680cbe2a10da8",
+    "tools/lightrecon_test/bakedlighting_test.cpp": "b96bb357073d75741be11cf37db4a22a729149b63b584217971cb5fb81391786",
+    "tools/rend2/lightrecon_regression.py": "cb12de3d0d3f66c5ef2037353fd9903f0741fc881d5ba9ed46ba9da94879359c",
+    "tools/rend2/test_bakedlighting_removal_runtime.py": "e10c76a55489d5071db17cdeb497d7e4b6182f3b24b85d32e794f81e1b0e9f55",
+    "tools/rend2/test_clouds_gl.py": "5f2c98f1f590dbdb2951dd25696ac17376f1661fb2ed668254024b637920f6b1",
+    "tools/rend2/test_lightrecon_contract.py": "4e6ed6bd9015cf742e58e23afd8fd3d13876cc4eea70eac67263e8c907e9a0ea",
+    "tools/rend2/test_lightrecon_legacy_runtime.py": "a887684034f1372d1d7a369f2eddb9621e8f5da6912a783495a79de3a64521a9",
+    "tools/rend2/test_lightrecon_lifecycle_runtime.py": "4939d7a1b0fb68cfac53889a97a6f1193d2772e64f461cfa71529a92ca2c6e44",
+    "tools/rend2/test_volumetric_compute.py": "d27e6b859aefefd0d6e517c5fbb56116d68b1a640565e09b74569aef1829d06e",
+    "tools/render_menu/presentation.py": "db48feac849d8d9055a3056d4472798302cd94bfa2c12e6abc36754645778925"
+  },
+  "final_renderers": {
+    "rdsp-rend2_x86_64.dll": {
+      "path": "build/lightrecon-core-renderers/Release/rdsp-rend2_x86_64.dll",
+      "bytes": 4776960,
+      "sha256": "324e3d10879bda74085c4492ae25f7a6d0cb43eb1ec2bd510f494b9f86805555"
+    },
+    "rd-rend2_x86_64.dll": {
+      "path": "build/lightrecon-core-renderers/Release/rd-rend2_x86_64.dll",
+      "bytes": 4836352,
+      "sha256": "fba648a548bdc675c51427b8fc6800e9bb7b36b4afe9320cc757dcb811421cbe"
+    }
+  },
+  "before_renderer": {
+    "path": "build/remove-grid-recon/before-rdsp-rend2_x86_64.dll",
+    "bytes": 4933632,
+    "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+  },
+  "builds": {
+    "SP": "passed MSVC 2019 x64 Release",
+    "MP": "passed MSVC 2019 x64 Release",
+    "warning": "existing x64 /arch:SSE2 warning"
+  },
+  "cpu": {
+    "MSVC": {
+      "tests_passed": 16,
+      "tests_total": 16,
+      "checks": 1777137,
+      "new_baked_checks": 1112073,
+      "last_test_log": {
+        "path": "build/lightrecon-core-renderers/Testing/Temporary/LastTest.log",
+        "bytes": 13760,
+        "sha256": "d68b06abcbf9ed705296316543803d0e256429087f6e154da5004ac2aebfdc26"
+      }
+    },
+    "GCC": {
+      "tests_passed": 16,
+      "tests_total": 16,
+      "checks": 1777137,
+      "new_baked_checks": 1112073,
+      "last_test_log": {
+        "path": "build/lightrecon-disk-standalone/Testing/Temporary/LastTest.log",
+        "bytes": 13271,
+        "sha256": "e7f6c919d4a5a800f95673c654d2fc462f00f3e50c30df4abd6b0589ec9d1b96"
+      }
+    }
+  },
+  "python_contract_tests": 15,
+  "render_menu_tests": 7,
+  "menu_package": {
+    "release_changed_entries": [
+      "base/zzzz_render2026_menu.pk3"
+    ],
+    "engine_and_other_entries_byte_identical": true,
+    "retired_control_absent": true
+  },
+  "shaders": {
+    "pre_removal": {
+      "passed": true,
+      "programs": 27,
+      "stages": 51,
+      "gpu_compiled": true,
+      "driver": [
+        "Intel",
+        "Intel(R) UHD Graphics",
+        "3.2.0 - Build 27.20.100.8280"
+      ],
+      "gpu_interface_comparison": "matching-driver baseline compared",
+      "production_dependency_audit": "passed",
+      "differences": 0,
+      "baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c"
+    },
+    "reviewed_historical_comparison": {
+      "old_baseline_revision": "60d1cc8c6f59e29e8d3d1ccc4b180a3369b7be2c",
+      "programs_unchanged": [
+        "entity-grid-cpu-interpolation",
+        "entity-grid-gpu-legacy-direction",
+        "forward-cluster-compute",
+        "forward-off-ltc-off",
+        "forward-off-ltc-on",
+        "forward-on-ltc-off",
+        "forward-on-ltc-on",
+        "froxel-cluster-compute",
+        "froxel-fog-pass-rgb",
+        "froxel-surface-lookup",
+        "ja-dlight-saber-surfaces",
+        "ja-entity-cpu-grid",
+        "ja-fog-pass",
+        "ja-generic-saber-fx",
+        "ja-ghoul2-cpu-grid",
+        "ja-static-sun-shadows",
+        "ja-world-lightmap",
+        "modern-sun-shadows",
+        "pbr-forward-ltc-ghoul2",
+        "pbr-ghoul2",
+        "pbr-off-material",
+        "pbr-on-material"
+      ],
+      "changed_programs": [
+        {
+          "name": "froxel-inject-compute",
+          "stages": [
+            "compute"
+          ],
+          "program": "volumetric_inject"
+        },
+        {
+          "name": "froxel-inject-compute-rgb-sun",
+          "stages": [
+            "compute"
+          ],
+          "program": "volumetric_inject"
+        },
+        {
+          "name": "froxel-inject-raster",
+          "stages": [
+            "fragment"
+          ],
+          "program": "volumetric_inject"
+        },
+        {
+          "name": "froxel-inject-raster-pbr-sun",
+          "stages": [
+            "fragment"
+          ],
+          "program": "volumetric_inject"
+        },
+        {
+          "name": "froxel-media-compute",
+          "stages": [
+            "compute"
+          ],
+          "program": "volumetric_inject"
+        }
+      ],
+      "active_gpu_interfaces_identical": true,
+      "controlled_changes": [
+        "Remove unreachable fake portal record branch",
+        "Remove unused moment members and zero initialization",
+        "Remove retired direction debug branches",
+        "Remove obsolete control metadata; rendering settings unchanged"
+      ],
+      "reviewed": true
+    },
+    "final_gpu": {
+      "passed": true,
+      "programs": 27,
+      "stages": 51,
+      "gpu_compiled": true,
+      "driver": [
+        "Intel",
+        "Intel(R) UHD Graphics",
+        "3.2.0 - Build 27.20.100.8280"
+      ],
+      "gpu_interface_comparison": "matching-driver baseline compared",
+      "production_dependency_audit": "passed",
+      "differences": 0,
+      "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+    },
+    "final_source_only": {
+      "passed": true,
+      "programs": 27,
+      "stages": 51,
+      "gpu_compiled": false,
+      "driver": null,
+      "gpu_interface_comparison": "not run (--no-gpu)",
+      "production_dependency_audit": "passed",
+      "differences": 0,
+      "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+    }
+  },
+  "gpu_suite": {
+    "initial_full_run": {
+      "passed": 14,
+      "total": 15,
+      "passing_tests": [
+        "test_atmosphere_gl.py",
+        "test_clouds_gl.py",
+        "test_foliage_gl.py",
+        "test_lightrecon_legacy_gl.py",
+        "test_liquids_gl.py",
+        "test_ssr_gl.py",
+        "test_water_tessellation_gl.py",
+        "test_waterparticles_gl.py",
+        "test_watersurface_gl.py",
+        "test_gl43_compute.py",
+        "test_lightrecon_contract.py",
+        "test_water_intersection_foam.py",
+        "test_water_whitewater.py",
+        "test_waterfall_impact.py"
+      ],
+      "failed": "test_volumetric_compute.py",
+      "reason": "Existing UBO test fixture left baked PBR scale u_FroxelDebugParams.w at zero"
+    },
+    "focused_final_run": {
+      "passed": 1,
+      "total": 1,
+      "test": "test_volumetric_compute.py",
+      "permutations_compiled": 22,
+      "fix": "Set fixture baked PBR scale to production value 1; tolerances unchanged"
+    },
+    "all_selected_tests_have_passing_final_results": true,
+    "second_full_run_performed": false
+  },
+  "runtime": {
+    "driver": "Intel UHD Graphics; 3.2.0 - Build 27.20.100.8280",
+    "static_tolerance": {
+      "max_channel_delta": 1,
+      "max_differing_pixels": 5,
+      "max_mean_rgb_delta": 1e-05
+    },
+    "static_comparisons": {
+      "legacy": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 0,
+              "r_specularMapping": 0,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/legacy-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/legacy-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "90caf125b55b99a0dd0f8596aa3fb10e66864900c2c87ead99e334f5d1ddcaca"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/legacy-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "90caf125b55b99a0dd0f8596aa3fb10e66864900c2c87ead99e334f5d1ddcaca"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/legacy-before/home/OpenJK/qconsole.log",
+              "bytes": 58044,
+              "sha256": "367f21fb7f6d14975e0e01f6e372373aa54ef5b955f61768fffafdaf922fb5ed"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 0,
+              "r_specularMapping": 0,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/legacy-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/legacy-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "90caf125b55b99a0dd0f8596aa3fb10e66864900c2c87ead99e334f5d1ddcaca"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/legacy-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "90caf125b55b99a0dd0f8596aa3fb10e66864900c2c87ead99e334f5d1ddcaca"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/legacy-after/home/OpenJK/qconsole.log",
+              "bytes": 57702,
+              "sha256": "af345db9c140ed5f650c924e7a9e35ed321bd0728a2ac20dc9f62cb8f5e9c11a"
+            }
+          }
+        }
+      },
+      "physical-fog": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 3,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/physical-fog-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/physical-fog-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "4f296884b2052f876350f85cef0bd72d86fc7b4e42a75d9eaddf6d82e2e5a979"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/physical-fog-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "4f296884b2052f876350f85cef0bd72d86fc7b4e42a75d9eaddf6d82e2e5a979"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/physical-fog-before/home/OpenJK/qconsole.log",
+              "bytes": 61728,
+              "sha256": "e65ecf7a870ad478c7ca8635d66f0ae6770de945f937aba3b88dc639c8dd5002"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 3,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/physical-fog-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/physical-fog-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "4f296884b2052f876350f85cef0bd72d86fc7b4e42a75d9eaddf6d82e2e5a979"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/physical-fog-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "4f296884b2052f876350f85cef0bd72d86fc7b4e42a75d9eaddf6d82e2e5a979"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/physical-fog-after/home/OpenJK/qconsole.log",
+              "bytes": 61910,
+              "sha256": "ed65d30088e1eb8f03e3b7b67e046da240c1287eae5605e4d68b94176e78dbf0"
+            }
+          }
+        }
+      },
+      "fog1-multipoint": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 1,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 1,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "10d82b248176301f15739791b05aba7d3b4b2ace64282007d22188d2e9c0d959"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "10d82b248176301f15739791b05aba7d3b4b2ace64282007d22188d2e9c0d959"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-before/home/OpenJK/qconsole.log",
+              "bytes": 58118,
+              "sha256": "cab7727af6546fe0cc3fa9c5ef8cebc42c8094af6f2674fa4dd863e201996e32"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 1,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 1,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "10d82b248176301f15739791b05aba7d3b4b2ace64282007d22188d2e9c0d959"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "10d82b248176301f15739791b05aba7d3b4b2ace64282007d22188d2e9c0d959"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/fog1-multipoint-after/home/OpenJK/qconsole.log",
+              "bytes": 58371,
+              "sha256": "9bad8039e0536d4e3034dc5f556e0cafa32d52a164a7c1373168f5b431a79568"
+            }
+          }
+        }
+      },
+      "cacheonly-gpu-grid": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 1,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-before/home/OpenJK/qconsole.log",
+              "bytes": 59466,
+              "sha256": "86218d4a656200f7ea5ba8322dcb078bb76cecf92fb48cb7a23ed5907df009e2"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 1,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/cacheonly-gpu-grid-after/home/OpenJK/qconsole.log",
+              "bytes": 58652,
+              "sha256": "cc225b31fef2b712a9ac42901c57a474616d4c8c1000a1985bb8494e95ae3703"
+            }
+          }
+        }
+      },
+      "independent-probes": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 1,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/independent-probes-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/independent-probes-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/independent-probes-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/independent-probes-before/home/OpenJK/qconsole.log",
+              "bytes": 58974,
+              "sha256": "9c2476201ab929217e47771ac157bd527e85fc53805ca1b86514578c30c88e02"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 1,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/independent-probes-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/independent-probes-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/independent-probes-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "aa543ec5e7ff473ba472a584126a99264888bc2ed4514c9f245f567b28686342"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/independent-probes-after/home/OpenJK/qconsole.log",
+              "bytes": 58982,
+              "sha256": "775bb0039c223512627817fc6a8d76d156727f62ced121e3881abb77ee38bd0d"
+            }
+          }
+        }
+      },
+      "sun-raster": {
+        "map": "hoth2",
+        "camera": [
+          "1728 -576 1052",
+          "0 135 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 0,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 1,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 1,
+              "r_sunShadows": 1,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-raster-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-raster-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "a85522fc88d0a5cb547a7b7b04508feeeac3129a08c01d8a2f6adebb6b2c8e76"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-raster-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "a85522fc88d0a5cb547a7b7b04508feeeac3129a08c01d8a2f6adebb6b2c8e76"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-raster-before/home/OpenJK/qconsole.log",
+              "bytes": 58458,
+              "sha256": "ea6a98582e55b66e04ad1e0e556c47a42904f5383979a4de25c6efb0077307d0"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 0,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 1,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 1,
+              "r_sunShadows": 1,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-raster-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-raster-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "a85522fc88d0a5cb547a7b7b04508feeeac3129a08c01d8a2f6adebb6b2c8e76"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-raster-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "a85522fc88d0a5cb547a7b7b04508feeeac3129a08c01d8a2f6adebb6b2c8e76"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-raster-after/home/OpenJK/qconsole.log",
+              "bytes": 58268,
+              "sha256": "0a479c7e2a516b9922ba601fd88ea4580da18b0845ca231c21c31bdeb191396e"
+            }
+          }
+        }
+      },
+      "sun-physical-ltc": {
+        "map": "hoth2",
+        "camera": [
+          "1728 -576 1052",
+          "0 135 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 1,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 1,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 2,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 1,
+              "r_sunShadows": 1,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "d1c8b2714be0c8d4ec6c9a72f88d42175e73840ba72708183b397d173399c48e"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "d1c8b2714be0c8d4ec6c9a72f88d42175e73840ba72708183b397d173399c48e"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-before/home/OpenJK/qconsole.log",
+              "bytes": 61863,
+              "sha256": "0628531accde1d5530e2a0b8aa9636a765803e128b7a9151196d960fd810c67f"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 1,
+              "r_entityLightGrid": 2,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 1,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 2,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 1,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 2,
+              "r_sunlightMode": 1,
+              "r_sunShadows": 1,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "d1c8b2714be0c8d4ec6c9a72f88d42175e73840ba72708183b397d173399c48e"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "d1c8b2714be0c8d4ec6c9a72f88d42175e73840ba72708183b397d173399c48e"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/sun-physical-ltc-after/home/OpenJK/qconsole.log",
+              "bytes": 61956,
+              "sha256": "e2781ca4acddbf059ddeb2bbef0d6e53882f5d5a6b4db17a155b12baeb9ca91d"
+            }
+          }
+        }
+      },
+      "ltc-request-only": {
+        "map": "hoth3",
+        "camera": [
+          "3464 700 97",
+          "0 90 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "e5e1485d9420ba359e73ec7f45470f9ab27a463c98931764f4be889c7bb5b510"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "e5e1485d9420ba359e73ec7f45470f9ab27a463c98931764f4be889c7bb5b510"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-before/home/OpenJK/qconsole.log",
+              "bytes": 58558,
+              "sha256": "e83a89cd871df7f51e9991bebe7bb881437596cb8417e20c28d44b19fbf2969f"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 0,
+              "r_ltcAreaLights": 1,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "e5e1485d9420ba359e73ec7f45470f9ab27a463c98931764f4be889c7bb5b510"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "e5e1485d9420ba359e73ec7f45470f9ab27a463c98931764f4be889c7bb5b510"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/ltc-request-only-after/home/OpenJK/qconsole.log",
+              "bytes": 58797,
+              "sha256": "2dc428ab2008edc5fc426a06cbb4bfc5cbef42fe8b23dd50f0e1d3925a6a29fb"
+            }
+          }
+        }
+      },
+      "forward-only": {
+        "map": "hoth2",
+        "camera": [
+          "1728 -576 1052",
+          "0 135 0",
+          "80"
+        ],
+        "comparison": {
+          "pixels": 518400,
+          "differing_pixels": 0,
+          "max_channel_delta": 0,
+          "mean_rgb_delta": 0.0,
+          "exact": true,
+          "passed": true
+        },
+        "builds": {
+          "before": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1,
+              "r_staticLightReconstruction": 0,
+              "r_volumetricFogStaticDirectional": 0,
+              "r_recoveredVolumetricLights": 0,
+              "r_lightPortals": 0,
+              "r_ltcAreaCalibration": 0
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/forward-only-before/rdsp-rend2_x86_64.dll",
+              "bytes": 4933632,
+              "sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/forward-only-before/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "6ad6efad1c9ef18cec13cdb7f58d02a5a20efacaea17361c7961e1363bf8884c"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/forward-only-before/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "6ad6efad1c9ef18cec13cdb7f58d02a5a20efacaea17361c7961e1363bf8884c"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/forward-only-before/home/OpenJK/qconsole.log",
+              "bytes": 58378,
+              "sha256": "9b6df1ca588b1f846883c56b8ea49df6e60236042e46b4de92e6b128a2b3c1e8"
+            }
+          },
+          "after": {
+            "settings": {
+              "cl_renderer": "rdsp-rend2",
+              "r_fullscreen": 0,
+              "r_mode": -1,
+              "r_customwidth": 960,
+              "r_customheight": 540,
+              "r_swapInterval": 0,
+              "com_maxfps": 60,
+              "com_maxfpsUnfocused": 60,
+              "com_maxfpsMinimized": 60,
+              "s_initsound": 0,
+              "in_mouse": 0,
+              "com_bootlogo": 0,
+              "developer": 0,
+              "logfile": 2,
+              "r_shaderCompileProcesses": 0,
+              "r_shaderProgramCache": 1,
+              "r_shaderProgramLazy": 1,
+              "r_gl43": 1,
+              "r_hdr": 1,
+              "r_autoExposure": 0,
+              "r_cameraExposure": 0,
+              "r_cameraMode": 0,
+              "r_exposureCompensation": 0,
+              "r_toneMap": 1,
+              "r_toneMapMode": 0,
+              "r_gamma": 1,
+              "r_intensity": 1,
+              "r_overBrightBits": 0,
+              "r_ext_multisample": 0,
+              "r_smaa": 0,
+              "r_motionBlur": 0,
+              "r_ssr": 0,
+              "r_ssgi": 0,
+              "r_autoPBR": 0,
+              "r_cubeMapping": 0,
+              "r_diffuseIBL": 0,
+              "r_specularAA": 0,
+              "r_skinSSS": 0,
+              "r_weatherWetness": 0,
+              "r_waterSurface": 0,
+              "r_volumetricWater": 0,
+              "r_atmosphere": 0,
+              "r_clouds": 0,
+              "r_ssao": 0,
+              "r_aoMode": 0,
+              "r_contactShadows": 0,
+              "r_entityLightProbes": 0,
+              "r_entityLightGrid": 0,
+              "r_entitySunSplit": 0,
+              "r_volumetricFogTemporal": 0,
+              "r_volumetricFogRGBExtinction": 0,
+              "r_sunShadowCache": 0,
+              "r_shadowMapSize": 1024,
+              "r_sunShadowMode": 0,
+              "r_dynamiclight": 1,
+              "r_ltcSaberAreaLights": 0,
+              "r_lightReconBuild": 0,
+              "r_lightReconUse": 0,
+              "fx_physicalization": 0,
+              "fx_physicalizationSources": 0,
+              "fx_physicalizationEmission": 0,
+              "cg_fov": 80,
+              "cg_bobup": 0,
+              "cg_bobpitch": 0,
+              "cg_bobroll": 0,
+              "cg_runpitch": 0,
+              "cg_runroll": 0,
+              "r_lightReconFog": 1,
+              "r_lightReconEntities": 1,
+              "r_lightReconSpecular": 1,
+              "r_lightReconShadows": 1,
+              "r_lightReconSun": 1,
+              "r_lightReconParticles": 1,
+              "r_lightReconIndirect": 1,
+              "r_lightReconWorldDiffuse": 1,
+              "r_lightReconArea": 1,
+              "r_lightReconEnvironment": 1,
+              "r_normalMapping": 1,
+              "r_specularMapping": 1,
+              "r_pbrPhysical": 0,
+              "r_forwardPlus": 1,
+              "r_ltcAreaLights": 0,
+              "r_volumetricFog": 0,
+              "r_sunlightMode": 0,
+              "cg_smoothCamera": 0,
+              "cg_thirdPersonCameraDamp": 1,
+              "cg_thirdPersonTargetDamp": 1,
+              "cg_thirdPersonRange": 0,
+              "cg_thirdPersonVertOffset": 0,
+              "r_volumetricFogNoise": 0,
+              "r_weathersystem": 0,
+              "r_deluxeMapping": 0,
+              "r_loadProfile": 1
+            },
+            "repeat": {
+              "pixels": 518400,
+              "differing_pixels": 0,
+              "max_channel_delta": 0,
+              "mean_rgb_delta": 0.0,
+              "exact": true,
+              "passed": true
+            },
+            "renderer": {
+              "path": "build/remove-grid-recon/fixed-runtime/forward-only-after/rdsp-rend2_x86_64.dll",
+              "bytes": 4776960,
+              "sha256": "57d6d051380bdedd6a85aa5edc4535bb14cbb11a661f0d997d472d35afb6efff"
+            },
+            "frames": [
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/forward-only-after/home/OpenJK/screenshots/baked-static-a.tga",
+                "bytes": 1555218,
+                "sha256": "6ad6efad1c9ef18cec13cdb7f58d02a5a20efacaea17361c7961e1363bf8884c"
+              },
+              {
+                "path": "build/remove-grid-recon/fixed-runtime/forward-only-after/home/OpenJK/screenshots/baked-static-b.tga",
+                "bytes": 1555218,
+                "sha256": "6ad6efad1c9ef18cec13cdb7f58d02a5a20efacaea17361c7961e1363bf8884c"
+              }
+            ],
+            "log": {
+              "path": "build/remove-grid-recon/fixed-runtime/forward-only-after/home/OpenJK/qconsole.log",
+              "bytes": 58549,
+              "sha256": "ac25b9b77759bb0032d8c752c4fde84eda6ad72f66f9a11b7f00ecefac11eb1c"
+            }
+          }
+        }
+      }
+    },
+    "consumer_toggle_tests": {
+      "before": {
+        "result": {
+          "path": "build/remove-grid-recon/runtime/summary-before.json",
+          "bytes": 90047,
+          "sha256": "fee9e1de39e6079ac1278350a2502fbb707ec2666e6ab6c3c23070e79386302a"
+        },
+        "cases": [
+          {
+            "map": "hoth3",
+            "profile": "legacy",
+            "passed": true,
+            "renderer_sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 509644,
+              "max_channel_delta": 255,
+              "mean_rgb_delta": 28.003391846707817,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 481285,
+              "max_channel_delta": 249,
+              "mean_rgb_delta": 18.450425025720165,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth3",
+            "profile": "modern",
+            "passed": true,
+            "renderer_sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 247,
+              "mean_rgb_delta": 138.20511895576132,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 247,
+              "mean_rgb_delta": 122.42972286522634,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth2",
+            "profile": "legacy",
+            "passed": true,
+            "renderer_sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 470270,
+              "max_channel_delta": 222,
+              "mean_rgb_delta": 7.3348392489711935,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 470215,
+              "max_channel_delta": 217,
+              "mean_rgb_delta": 7.262597736625515,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth2",
+            "profile": "modern",
+            "passed": true,
+            "renderer_sha256": "8f1a9ddd3f76a31de1efdf2f7b18ee8a9d1b59403f244ba7d6822a0445fc0c50",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 195,
+              "mean_rgb_delta": 102.31765625,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 195,
+              "mean_rgb_delta": 88.59422775205762,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          }
+        ]
+      },
+      "after": {
+        "result": {
+          "path": "build/remove-grid-recon/runtime/summary-after.json",
+          "bytes": 89275,
+          "sha256": "c62fab9ba3d3df7d92e7744e1ad1765d3215d39dd4d201c958ff4e35e45de58f"
+        },
+        "cases": [
+          {
+            "map": "hoth3",
+            "profile": "legacy",
+            "passed": true,
+            "renderer_sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 509343,
+              "max_channel_delta": 253,
+              "mean_rgb_delta": 27.698070344650205,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 480685,
+              "max_channel_delta": 244,
+              "mean_rgb_delta": 18.1303716563786,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth3",
+            "profile": "modern",
+            "passed": true,
+            "renderer_sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 247,
+              "mean_rgb_delta": 138.21458783436213,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 247,
+              "mean_rgb_delta": 122.4397678755144,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth2",
+            "profile": "legacy",
+            "passed": true,
+            "renderer_sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 474499,
+              "max_channel_delta": 223,
+              "mean_rgb_delta": 7.490942001028807,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 474434,
+              "max_channel_delta": 217,
+              "mean_rgb_delta": 7.417653034979424,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          },
+          {
+            "map": "hoth2",
+            "profile": "modern",
+            "passed": true,
+            "renderer_sha256": "0e39bdacc4c9c057e4d2b05da5ddf7af381d4d0198ba7df140367cf3c30ef123",
+            "layers": {
+              "base": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              },
+              "dynamic": {
+                "comparison": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                },
+                "repeat_control": {
+                  "pixels": 518400,
+                  "differing_pixels": 0,
+                  "max_channel_delta": 0,
+                  "mean_rgb_delta": 0.0,
+                  "exact": true,
+                  "passed": true
+                }
+              }
+            },
+            "dynamic_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 195,
+              "mean_rgb_delta": 102.3131166409465,
+              "exact": false,
+              "expected_difference": true
+            },
+            "fx_stimulus": {
+              "pixels": 518400,
+              "differing_pixels": 514512,
+              "max_channel_delta": 195,
+              "mean_rgb_delta": 88.5896457047325,
+              "exact": false,
+              "expected_difference": true
+            },
+            "permutation_usage_identical": true,
+            "tolerance": {
+              "max_delta": 1,
+              "max_pixels": 5,
+              "max_mean": 1e-05
+            }
+          }
+        ]
+      }
+    },
+    "lifecycle": {
+      "lightmaps": {
+        "result": {
+          "path": "build/remove-grid-recon/runtime/lifecycle-lightmaps-final/result.json",
+          "bytes": 19015,
+          "sha256": "851a3b0f79099e612cc57fdc9e79fec4926b71f3cad67f795246373083431c90"
+        },
+        "passed": true,
+        "renderer_sha256": "324e3d10879bda74085c4492ae25f7a6d0cb43eb1ec2bd510f494b9f86805555",
+        "states": {
+          "UNLOADED": {
+            "state": "Unloaded",
+            "world": "<none>",
+            "ticket": 2,
+            "generation": 3,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0
+          },
+          "DISABLED": {
+            "state": "Disabled",
+            "world": "maps/hoth3.bsp",
+            "ticket": 6,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0,
+            "applied": [
+              "0",
+              "Disabled",
+              "0",
+              "0"
+            ]
+          },
+          "POLICY_UNAPPLIED": {
+            "state": "Disabled",
+            "world": "maps/hoth3.bsp",
+            "ticket": 6,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0,
+            "applied": [
+              "0",
+              "Disabled",
+              "0",
+              "0"
+            ]
+          },
+          "FORCE": {
+            "state": "BuildRequired",
+            "world": "maps/hoth2.bsp",
+            "ticket": 10,
+            "generation": 12,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "Captured",
+              "images": "36",
+              "missing": "21",
+              "rgb8": "12",
+              "rgba8": "2",
+              "hdr": "1",
+              "deluxe": "12",
+              "pixels": "196616",
+              "bytes": "589888",
+              "accounted": "605178"
+            },
+            "lightgrid": {
+              "state": "Captured",
+              "cells": "1044126",
+              "records": "4001",
+              "indices": "1044126",
+              "hdr_cells": "0",
+              "bytes": "2208282",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 12,
+            "applied": [
+              "3",
+              "Unavailable",
+              "0",
+              "1"
+            ]
+          },
+          "CACHEONLY": {
+            "state": "Unavailable",
+            "world": "maps/hoth3.bsp",
+            "ticket": 14,
+            "generation": 17,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 1,
+            "applied": [
+              "1",
+              "Unavailable",
+              "0",
+              "0"
+            ]
+          },
+          "RESTART": {
+            "state": "BuildRequired",
+            "world": "maps/hoth3.bsp",
+            "ticket": 3,
+            "generation": 5,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "Captured",
+              "images": "76",
+              "missing": "38",
+              "rgb8": "38",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "38",
+              "pixels": "622592",
+              "bytes": "1867776",
+              "accounted": "1900128"
+            },
+            "lightgrid": {
+              "state": "Captured",
+              "cells": "229068",
+              "records": "11553",
+              "indices": "229068",
+              "hdr_cells": "0",
+              "bytes": "804726",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 1,
+            "applied": [
+              "2",
+              "Unavailable",
+              "0",
+              "1"
+            ]
+          },
+          "DISCONNECTED": {
+            "state": "Unloaded",
+            "world": "<none>",
+            "ticket": 5,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0
+          }
+        },
+        "lightmaps": {
+          "FORCE": {
+            "map": "maps/hoth2.bsp",
+            "sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+            "source_bytes": 13970616,
+            "internal_images": 12,
+            "internal_pixel_bytes": 589824,
+            "embedded_hashes": [
+              "abc009a093d17dcf2a9f2a8428870f7d40293901284f5ab05ceffacdf2a592cb",
+              "c4dcb5781b406462ddb0ab87cb6d32c2d407d73a614dbe6cfcf2bf651e8054f1",
+              "278d2b2e668618b7b81b966c333dda171f5bc3f5aa2b48aaef312277dddcaff6",
+              "ae6e9cb9fa9aeed1237a08c5d4e8877155d1bcfa792a17524689831461bc9832",
+              "d1c118f9bc7ce584060ca6aa265134081250b52190b9a138356cc8b28210066a",
+              "fb0e2ff720d321e22587e4d62589564500281e35b8a872a5159fb3e1c2ab1955",
+              "408ef1cd31103aa91ebeb1a0df648f663b44abb22a9071bd5279f1c9d0b798ef",
+              "67e07b48f726134c8180a94212e5ec7a2282957938078d16564b9d2caca9b432",
+              "922fbd638f71494a82605115fcd28640b2e712f9b1b9f3d22768c77d825f51ef",
+              "46665e81517840f3164994f91d425d9a3768242e0ce2df3afafa9a75f95949d4",
+              "da9875feafc32e91481f3d4d5256ada8b5e9e3611381bf766d8d6eacc4283e27",
+              "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+            ],
+            "fixture_images": 3
+          },
+          "RESTART": {
+            "map": "maps/hoth3.bsp",
+            "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+            "source_bytes": 13920700,
+            "internal_images": 38,
+            "internal_pixel_bytes": 1867776,
+            "embedded_hashes": [
+              "32a396388cb0c4591cb95f62821997872eef0c264a876ada5c087c616d7ed172",
+              "6a650d5e40228672b366bd43611105156213b2b468243f4049ba18841d27956b",
+              "9b9d4e6bc26b0da73d654e2641dfd4dfe35126e70c62228aea536594ce89083e",
+              "7f6f75bb39f13d1ad5c1c04a0ce7e4aaa0188e08ad59f55d9117390bcd6d6480",
+              "7e3cafe2b809ca9d4796a9072644dbeff0d6bddeccd92b54d79b9014f0dd9c6b",
+              "2d49e4fa3617a9ab24857e0b43c439590521d0b17b567b894637de1d1254e5e6",
+              "eb7c10a6afb39b4cad78d03173948fcb542cc105d2b3ae0b3fad18bc1b7c981f",
+              "69a125aaf41d106e2f7dfe67d0a1e49697fd92a7e94295566d784d3e7edf4a4d",
+              "691f9651b8eb9d13a392facc300bd18e90878315e9ec58554218e9e1f0de47ee",
+              "b7e39dfaf537bd4e1e9f2ef1cbe2098a579d13789741e8d76e1494a99811a346",
+              "de4b2e3437b31933557c4a0e3f8c61d92288e9606800023bc4624fb7f0abbcbb",
+              "ec753e37201685c6e1d06e61e28a4c3ea17be835565d99c1c2e0f781fd05baa0",
+              "c3ed6b3e8b367c902c597ee46acf1b39309403b9c0dd21370024585432efeae2",
+              "ae8b1c0c0284fbcb962e74698cd4a4980aa47efd6c5ba04c2b7f3fb62503d56b",
+              "f627efa812bac99ca23813dbf0c4cdb6c4a5f731843fe919a7bb0e9b4ec856a2",
+              "76726ef8a18fd357c35cccf4d77bf92f5f4545a66faac080218df3c77d164eca",
+              "03c8d3d9ff23d89a7ab2eb0613220f244aea29d5131e517a26fbf84a8af5907c",
+              "31b3c1c1d14898ebec97972a361211b4df2a3b29ecbd291123eaa0cd2c3e7227",
+              "70264116fb235f5e3a135ddb7d8e60a99a2a0bc19999b5c4e6a744ef0baa0624",
+              "633ed58e1b52fff65709ee03e604c4c0319ee572d829b3412599624f33dc30a1",
+              "2d21dc4ce4e8911b7a1a0ea4f5d04e87174189dab8d14810c12bc12b68e46f4b",
+              "27b3073adb9c88a1bac01b7b16df84905a7c4fdb06b3fff0103998c87777dd6b",
+              "c79047fa9e2a2013f6f61b1733bbb2174b69faf3f4889335fdff4dd5b489d686",
+              "146475a3e50f9f66a7122f416b4c7585356436721f2169fe17ae98969cc6fbff",
+              "77b6e9db9abd07eb3e4ae908657acdbfe25990c5717fd8396bb3ff4f1d6e3980",
+              "d36b665ae4b5a7048385b0733af43c983786b2fcfe7483aef2216cba0f89162a",
+              "f31d53fcc4bfd1857ce441f1a04148593cb60cdf25c5099ea71a3bfe5ee25b38",
+              "0881f9081670a74c1cea71aa1e45ee0a3d746bd895f09dffb4cc16cf0e3bd22d",
+              "d3f9010c1358912045836cf47efe6eb1f7707c6778f2e3d10762359b47fe125a",
+              "983406b181313b116942e05b1159e0a3272e191c297a90358408743b2de0eedc",
+              "575548f20a44d63ee08b785fec6251b9117c4cb1618b5d1999bdb977b11436c7",
+              "9041563456837ae50683824efb419853a8092fdb69361651310a73bc2d75402d",
+              "ea3f508a4f594f78d471f87b97a1f04a82af93d28f7364078b69b4f7b1d5d4e3",
+              "2c2781633620a995054d90327e1a39ffa0d652a9c01435019c0b9135085cba15",
+              "169037c71e203123a8a4878f5a5e9d6e1ded54e8166e9239a677e393c9849fc0",
+              "cd747083555b7a0bb663673129c4605f1dec48a2764405168c3c9f0830ceb150",
+              "1c02217c2a88fe03193e3bb22dde2cdefaefcba987704240f7e1dcdd253210f6",
+              "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+            ],
+            "fixture_images": 0
+          }
+        },
+        "lightgrid": {
+          "FORCE": {
+            "map": "maps/hoth2.bsp",
+            "bounds": [
+              213,
+              258,
+              19
+            ],
+            "origin": [
+              -11136.0,
+              -11232.0,
+              288.0
+            ],
+            "spacing": [
+              96.0,
+              96.0,
+              144.0
+            ],
+            "cells": 1044126,
+            "records": 4001,
+            "indices": 1044126,
+            "bytes": 2208282,
+            "no_style": 0,
+            "style_gaps": 0,
+            "invalid_indices": 0,
+            "geometry": "Unknown for every cell",
+            "records_sha256": "b2c052994f7d1cb129f91bb95cfa47af530d6cccccd959ab0679d8454e0992f4",
+            "indices_sha256": "401601aafd5721d11ccee4ba737f52d8f32b685cb05b052759eb87d0ef7995df",
+            "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "hdr_cells": 0
+          },
+          "RESTART": {
+            "map": "maps/hoth3.bsp",
+            "bounds": [
+              202,
+              81,
+              14
+            ],
+            "origin": [
+              -2112.0,
+              -3456.0,
+              -128.0
+            ],
+            "spacing": [
+              64.0,
+              64.0,
+              128.0
+            ],
+            "cells": 229068,
+            "records": 11553,
+            "indices": 229068,
+            "bytes": 804726,
+            "no_style": 0,
+            "style_gaps": 0,
+            "invalid_indices": 0,
+            "geometry": "Unknown for every cell",
+            "records_sha256": "70563a189b5c9b920b714682b35b87636c2a67371fbd530f0641da6ff77fde72",
+            "indices_sha256": "eae5587db0f3e55076cbf62d896417cabcefcf71a27fe5c9a2f0d5e01c5b7970",
+            "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "hdr_cells": 0
+          }
+        },
+        "cache_hit_runtime_tested": false,
+        "canonical_cache_files": []
+      },
+      "lightgrid": {
+        "result": {
+          "path": "build/remove-grid-recon/runtime/lifecycle-lightgrid-final/result.json",
+          "bytes": 19028,
+          "sha256": "b317e6631fc8d5eaaa0f69941bfcb72013ec02840cc746112575eb23aacfc401"
+        },
+        "passed": true,
+        "renderer_sha256": "324e3d10879bda74085c4492ae25f7a6d0cb43eb1ec2bd510f494b9f86805555",
+        "states": {
+          "UNLOADED": {
+            "state": "Unloaded",
+            "world": "<none>",
+            "ticket": 2,
+            "generation": 3,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0
+          },
+          "DISABLED": {
+            "state": "Disabled",
+            "world": "maps/hoth3.bsp",
+            "ticket": 6,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0,
+            "applied": [
+              "0",
+              "Disabled",
+              "0",
+              "0"
+            ]
+          },
+          "POLICY_UNAPPLIED": {
+            "state": "Disabled",
+            "world": "maps/hoth3.bsp",
+            "ticket": 6,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0,
+            "applied": [
+              "0",
+              "Disabled",
+              "0",
+              "0"
+            ]
+          },
+          "FORCE": {
+            "state": "BuildRequired",
+            "world": "maps/hoth2.bsp",
+            "ticket": 10,
+            "generation": 12,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "Captured",
+              "images": "24",
+              "missing": "12",
+              "rgb8": "12",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "12",
+              "pixels": "196608",
+              "bytes": "589824",
+              "accounted": "600050"
+            },
+            "lightgrid": {
+              "state": "Captured",
+              "cells": "1044126",
+              "records": "4001",
+              "indices": "1044126",
+              "hdr_cells": "1044126",
+              "bytes": "27267306",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 1,
+            "applied": [
+              "3",
+              "Unavailable",
+              "0",
+              "1"
+            ]
+          },
+          "CACHEONLY": {
+            "state": "Unavailable",
+            "world": "maps/hoth3.bsp",
+            "ticket": 14,
+            "generation": 17,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 1,
+            "applied": [
+              "1",
+              "Unavailable",
+              "0",
+              "0"
+            ]
+          },
+          "RESTART": {
+            "state": "BuildRequired",
+            "world": "maps/hoth3.bsp",
+            "ticket": 3,
+            "generation": 5,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "Captured",
+              "images": "76",
+              "missing": "38",
+              "rgb8": "38",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "38",
+              "pixels": "622592",
+              "bytes": "1867776",
+              "accounted": "1900128"
+            },
+            "lightgrid": {
+              "state": "Captured",
+              "cells": "229068",
+              "records": "11553",
+              "indices": "229068",
+              "hdr_cells": "0",
+              "bytes": "804726",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 1,
+            "applied": [
+              "2",
+              "Unavailable",
+              "0",
+              "1"
+            ]
+          },
+          "DISCONNECTED": {
+            "state": "Unloaded",
+            "world": "<none>",
+            "ticket": 5,
+            "generation": 7,
+            "identity": "<none>",
+            "cache": "NotCacheable",
+            "observations": {
+              "state": "NotRequested",
+              "images": "0",
+              "missing": "0",
+              "rgb8": "0",
+              "rgba8": "0",
+              "hdr": "0",
+              "deluxe": "0",
+              "pixels": "0",
+              "bytes": "0",
+              "accounted": "0"
+            },
+            "lightgrid": {
+              "state": "NotRequested",
+              "cells": "0",
+              "records": "0",
+              "indices": "0",
+              "hdr_cells": "0",
+              "bytes": "0",
+              "missing": "0",
+              "invalid_indices": "0",
+              "no_style": "0",
+              "style_gaps": "0",
+              "nonfinite_hdr": "0",
+              "negative_hdr": "0",
+              "issues": "0"
+            },
+            "lightmap_textures": 0
+          }
+        },
+        "lightmaps": {
+          "FORCE": {
+            "map": "maps/hoth2.bsp",
+            "sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+            "source_bytes": 13970616,
+            "internal_images": 12,
+            "internal_pixel_bytes": 589824,
+            "embedded_hashes": [
+              "abc009a093d17dcf2a9f2a8428870f7d40293901284f5ab05ceffacdf2a592cb",
+              "c4dcb5781b406462ddb0ab87cb6d32c2d407d73a614dbe6cfcf2bf651e8054f1",
+              "278d2b2e668618b7b81b966c333dda171f5bc3f5aa2b48aaef312277dddcaff6",
+              "ae6e9cb9fa9aeed1237a08c5d4e8877155d1bcfa792a17524689831461bc9832",
+              "d1c118f9bc7ce584060ca6aa265134081250b52190b9a138356cc8b28210066a",
+              "fb0e2ff720d321e22587e4d62589564500281e35b8a872a5159fb3e1c2ab1955",
+              "408ef1cd31103aa91ebeb1a0df648f663b44abb22a9071bd5279f1c9d0b798ef",
+              "67e07b48f726134c8180a94212e5ec7a2282957938078d16564b9d2caca9b432",
+              "922fbd638f71494a82605115fcd28640b2e712f9b1b9f3d22768c77d825f51ef",
+              "46665e81517840f3164994f91d425d9a3768242e0ce2df3afafa9a75f95949d4",
+              "da9875feafc32e91481f3d4d5256ada8b5e9e3611381bf766d8d6eacc4283e27",
+              "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+            ],
+            "fixture_images": 0
+          },
+          "RESTART": {
+            "map": "maps/hoth3.bsp",
+            "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+            "source_bytes": 13920700,
+            "internal_images": 38,
+            "internal_pixel_bytes": 1867776,
+            "embedded_hashes": [
+              "32a396388cb0c4591cb95f62821997872eef0c264a876ada5c087c616d7ed172",
+              "6a650d5e40228672b366bd43611105156213b2b468243f4049ba18841d27956b",
+              "9b9d4e6bc26b0da73d654e2641dfd4dfe35126e70c62228aea536594ce89083e",
+              "7f6f75bb39f13d1ad5c1c04a0ce7e4aaa0188e08ad59f55d9117390bcd6d6480",
+              "7e3cafe2b809ca9d4796a9072644dbeff0d6bddeccd92b54d79b9014f0dd9c6b",
+              "2d49e4fa3617a9ab24857e0b43c439590521d0b17b567b894637de1d1254e5e6",
+              "eb7c10a6afb39b4cad78d03173948fcb542cc105d2b3ae0b3fad18bc1b7c981f",
+              "69a125aaf41d106e2f7dfe67d0a1e49697fd92a7e94295566d784d3e7edf4a4d",
+              "691f9651b8eb9d13a392facc300bd18e90878315e9ec58554218e9e1f0de47ee",
+              "b7e39dfaf537bd4e1e9f2ef1cbe2098a579d13789741e8d76e1494a99811a346",
+              "de4b2e3437b31933557c4a0e3f8c61d92288e9606800023bc4624fb7f0abbcbb",
+              "ec753e37201685c6e1d06e61e28a4c3ea17be835565d99c1c2e0f781fd05baa0",
+              "c3ed6b3e8b367c902c597ee46acf1b39309403b9c0dd21370024585432efeae2",
+              "ae8b1c0c0284fbcb962e74698cd4a4980aa47efd6c5ba04c2b7f3fb62503d56b",
+              "f627efa812bac99ca23813dbf0c4cdb6c4a5f731843fe919a7bb0e9b4ec856a2",
+              "76726ef8a18fd357c35cccf4d77bf92f5f4545a66faac080218df3c77d164eca",
+              "03c8d3d9ff23d89a7ab2eb0613220f244aea29d5131e517a26fbf84a8af5907c",
+              "31b3c1c1d14898ebec97972a361211b4df2a3b29ecbd291123eaa0cd2c3e7227",
+              "70264116fb235f5e3a135ddb7d8e60a99a2a0bc19999b5c4e6a744ef0baa0624",
+              "633ed58e1b52fff65709ee03e604c4c0319ee572d829b3412599624f33dc30a1",
+              "2d21dc4ce4e8911b7a1a0ea4f5d04e87174189dab8d14810c12bc12b68e46f4b",
+              "27b3073adb9c88a1bac01b7b16df84905a7c4fdb06b3fff0103998c87777dd6b",
+              "c79047fa9e2a2013f6f61b1733bbb2174b69faf3f4889335fdff4dd5b489d686",
+              "146475a3e50f9f66a7122f416b4c7585356436721f2169fe17ae98969cc6fbff",
+              "77b6e9db9abd07eb3e4ae908657acdbfe25990c5717fd8396bb3ff4f1d6e3980",
+              "d36b665ae4b5a7048385b0733af43c983786b2fcfe7483aef2216cba0f89162a",
+              "f31d53fcc4bfd1857ce441f1a04148593cb60cdf25c5099ea71a3bfe5ee25b38",
+              "0881f9081670a74c1cea71aa1e45ee0a3d746bd895f09dffb4cc16cf0e3bd22d",
+              "d3f9010c1358912045836cf47efe6eb1f7707c6778f2e3d10762359b47fe125a",
+              "983406b181313b116942e05b1159e0a3272e191c297a90358408743b2de0eedc",
+              "575548f20a44d63ee08b785fec6251b9117c4cb1618b5d1999bdb977b11436c7",
+              "9041563456837ae50683824efb419853a8092fdb69361651310a73bc2d75402d",
+              "ea3f508a4f594f78d471f87b97a1f04a82af93d28f7364078b69b4f7b1d5d4e3",
+              "2c2781633620a995054d90327e1a39ffa0d652a9c01435019c0b9135085cba15",
+              "169037c71e203123a8a4878f5a5e9d6e1ded54e8166e9239a677e393c9849fc0",
+              "cd747083555b7a0bb663673129c4605f1dec48a2764405168c3c9f0830ceb150",
+              "1c02217c2a88fe03193e3bb22dde2cdefaefcba987704240f7e1dcdd253210f6",
+              "2aae7dc846aaf25f1cadf55f1666862046c6db9d65d84bdc07fa039dac405606"
+            ],
+            "fixture_images": 0
+          }
+        },
+        "lightgrid": {
+          "FORCE": {
+            "map": "maps/hoth2.bsp",
+            "bounds": [
+              213,
+              258,
+              19
+            ],
+            "origin": [
+              -11136.0,
+              -11232.0,
+              288.0
+            ],
+            "spacing": [
+              96.0,
+              96.0,
+              144.0
+            ],
+            "cells": 1044126,
+            "records": 4001,
+            "indices": 1044126,
+            "bytes": 27267306,
+            "no_style": 0,
+            "style_gaps": 0,
+            "invalid_indices": 0,
+            "geometry": "Unknown for every cell",
+            "records_sha256": "b2c052994f7d1cb129f91bb95cfa47af530d6cccccd959ab0679d8454e0992f4",
+            "indices_sha256": "401601aafd5721d11ccee4ba737f52d8f32b685cb05b052759eb87d0ef7995df",
+            "hdr_sha256": "e318db86fb6668c6296336abdefa779e5ae66c2521f78e4d42ae5255734446cf",
+            "hdr_cells": 1044126
+          },
+          "RESTART": {
+            "map": "maps/hoth3.bsp",
+            "bounds": [
+              202,
+              81,
+              14
+            ],
+            "origin": [
+              -2112.0,
+              -3456.0,
+              -128.0
+            ],
+            "spacing": [
+              64.0,
+              64.0,
+              128.0
+            ],
+            "cells": 229068,
+            "records": 11553,
+            "indices": 229068,
+            "bytes": 804726,
+            "no_style": 0,
+            "style_gaps": 0,
+            "invalid_indices": 0,
+            "geometry": "Unknown for every cell",
+            "records_sha256": "70563a189b5c9b920b714682b35b87636c2a67371fbd530f0641da6ff77fde72",
+            "indices_sha256": "eae5587db0f3e55076cbf62d896417cabcefcf71a27fe5c9a2f0d5e01c5b7970",
+            "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "hdr_cells": 0
+          }
+        },
+        "cache_hit_runtime_tested": false,
+        "canonical_cache_files": []
+      }
+    },
+    "actual_saber_and_npc": {
+      "result": {
+        "path": "build/remove-grid-recon/saber-room/result.json",
+        "bytes": 8848,
+        "sha256": "6db18b5fdbe9515fc4c83d1f2292cc01bd7d3c9b07ad6b9706606b0c81829c24"
+      },
+      "renderer": {
+        "path": "build/remove-grid-recon/saber-room/legacy-after/rdsp-rend2_x86_64.dll",
+        "bytes": 4776960,
+        "sha256": "324e3d10879bda74085c4492ae25f7a6d0cb43eb1ec2bd510f494b9f86805555"
+      },
+      "stock_map": "hoth3",
+      "stock_static_comparison": {
+        "pixels": 518400,
+        "differing_pixels": 0,
+        "max_channel_delta": 0,
+        "mean_rgb_delta": 0.0,
+        "exact": true,
+        "passed": true
+      },
+      "actor_map": "lr_saber_room (local alias of self-authored point_room)",
+      "actor_bsp": {
+        "path": "build/q3map2-bake-verified/authoring/base/maps/point_room.bsp",
+        "bytes": 107984,
+        "sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af"
+      },
+      "capture": {
+        "path": "build/remove-grid-recon/saber-room/legacy-after/home/OpenJK/screenshots/baked-entities-saber.tga",
+        "bytes": 1555218,
+        "sha256": "434cb1ef3f11d1cbe7cc38f5c9493df76ca2a18dd25bee44f1d02bb8bb58b0c9"
+      },
+      "preview": {
+        "path": "build/remove-grid-recon/saber-proof.png",
+        "bytes": 224223,
+        "sha256": "f28ecc8862912f5c1c384b612308169560b13bcefc8ff5c6f3111a679df50485"
+      },
+      "manually_inspected": true,
+      "visible": [
+        "player Ghoul2",
+        "stormtrooper Ghoul2",
+        "green saber blade",
+        "green saber light on NPC",
+        "blue test dynamic-light illumination"
+      ],
+      "exact_actor_before_after_golden": false,
+      "unpause_assertion": "cl_paused=0; sv_paused is a stale SP diagnostic"
+    },
+    "map_load_work": {
+      "cacheonly-gpu-grid": {
+        "before": {
+          "static_lighting_ms": [
+            96
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            37
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "fog1-multipoint": {
+        "before": {
+          "static_lighting_ms": [
+            6
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            6
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "forward-only": {
+        "before": {
+          "static_lighting_ms": [
+            21
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            22
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "independent-probes": {
+        "before": {
+          "static_lighting_ms": [
+            154
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            30
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "legacy": {
+        "before": {
+          "static_lighting_ms": [
+            5
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            5
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "ltc-request-only": {
+        "before": {
+          "static_lighting_ms": [
+            8
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            5
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "physical-fog": {
+        "before": {
+          "static_lighting_ms": [
+            81
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            88
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "sun-physical-ltc": {
+        "before": {
+          "static_lighting_ms": [
+            1717
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            866
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      },
+      "sun-raster": {
+        "before": {
+          "static_lighting_ms": [
+            1030
+          ],
+          "obsolete_reconstruction_log": false
+        },
+        "after": {
+          "static_lighting_ms": [
+            768
+          ],
+          "obsolete_reconstruction_log": false
+        }
+      }
+    }
+  },
+  "rejected_initial_attempts": [
+    {
+      "test": "Naive cross-process image comparison",
+      "reason": "Uncontrolled camera smoothing/third-person poses and temporal actors differ; not an accepted lighting oracle",
+      "evidence": {
+        "path": "build/remove-grid-recon/runtime/cross-build-comparison.json",
+        "bytes": 2629,
+        "sha256": "7584e2c6381fc10cd62a47c0dd7cc9f000617a6f5728f1981ddfb7e2a3bdbd6c"
+      }
+    },
+    {
+      "test": "Combined lightmap/grid HDR runtime fixtures",
+      "reason": "Fixture profiles require contradictory HDR settings; CLI made mutually exclusive and both separate runs passed"
+    },
+    {
+      "test": "Actor unpause setup",
+      "reason": "Immediate onOpen menu closure is overwritten by UI catcher; sv_paused stays stale in SP. Deferred closure and cl_paused assertion corrected, accepted actual actor fixture rerun"
+    }
+  ],
+  "limitations": [
+    "No inverse solver or canonical runtime lighting consumer.",
+    "Cache-hit/build-success transitions covered by synthetic CPU tests, not real runtime: complete input cache key is still unavailable.",
+    "Controlled nine-case static views are not exhaustive material, GPU-driver or gameplay validation.",
+    "MP compiles; no MP gameplay capture.",
+    "Actor/saber proof is self-authored q3map2 point room after hoth3, not exhaustive stock-map combat or actor pixel identity.",
+    "Legacy sun collision traces, fog alignment/style mask, and map-load entity probes remain existing approximations.",
+    "Map-load timing observations are not benchmarks; concurrent GPU activity and cache state were not controlled.",
+    "Intermediate nine-case DLL hashes are recorded per case; final lifecycle/saber runs use final DLL."
+  ],
+  "logs": {
+    "release-build.log": {
+      "path": "build/remove-grid-recon/release-build.log",
+      "bytes": 10159,
+      "sha256": "a9c51be2802cd5199eb2224c44560dc265ff265f9fb9adaafd90ade21d40299a"
+    },
+    "gcc-build.log": {
+      "path": "build/remove-grid-recon/gcc-build.log",
+      "bytes": 1551,
+      "sha256": "cf0d7390a6874ae59f7684696b0b55458f3b5d3f4a2606ec35da391383e3c0cc"
+    },
+    "gcc-tests.log": {
+      "path": "build/remove-grid-recon/gcc-tests.log",
+      "bytes": 1917,
+      "sha256": "cd7d61c56a874cabc642f26d2e65c3eba847cc21f0445b7ae197b09ce9e34dd5"
+    },
+    "msvc-tests.log": {
+      "path": "build/remove-grid-recon/msvc-tests.log",
+      "bytes": 1916,
+      "sha256": "79343b5d4ebd52ec3a1f6920bc564a2ad05b09e55b330d788225ccbf52bdedc2"
+    },
+    "contracts-final.log": {
+      "path": "build/remove-grid-recon/contracts-final.log",
+      "bytes": 119,
+      "sha256": "8e5f9f71e0673164d5ecf2ec36a1128964954ec7c0d08c5beaa0511af3e49c3c"
+    },
+    "menu-final.log": {
+      "path": "build/remove-grid-recon/menu-final.log",
+      "bytes": 110,
+      "sha256": "038c4c41124e17e20c2a1e15529ea59dc9fd4f695446b413cd66cd40e483b80a"
+    },
+    "gpu-tests.log": {
+      "path": "build/remove-grid-recon/gpu-tests.log",
+      "bytes": 22517,
+      "sha256": "dfb288ac08dfe98603da52d25e28e9a0833f4866ccea78f6dd345dccc6a11093"
+    },
+    "volumetric-final.log": {
+      "path": "build/remove-grid-recon/volumetric-final.log",
+      "bytes": 2597,
+      "sha256": "6e1460facfe95b8a0d4fc8007f81c38640589c8ac83514bba04c506329005d50"
+    },
+    "lifecycle-lightmaps.log": {
+      "path": "build/remove-grid-recon/lifecycle-lightmaps.log",
+      "bytes": 19015,
+      "sha256": "851a3b0f79099e612cc57fdc9e79fec4926b71f3cad67f795246373083431c90"
+    },
+    "lifecycle-lightgrid.log": {
+      "path": "build/remove-grid-recon/lifecycle-lightgrid.log",
+      "bytes": 19028,
+      "sha256": "b317e6631fc8d5eaaa0f69941bfcb72013ec02840cc746112575eb23aacfc401"
+    },
+    "saber-room.log": {
+      "path": "build/remove-grid-recon/saber-room.log",
+      "bytes": 157,
+      "sha256": "8dc9503064b3c489da30b7ebe9c0428e30229d17039a538d8b7db4d040502f2a"
+    }
+  }
+}

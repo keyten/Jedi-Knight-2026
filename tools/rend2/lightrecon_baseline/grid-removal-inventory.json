@@ -1,0 +1,1220 @@
+{
+  "base_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+  "deleted_cvars": [
+    "r_volumetricFogStaticDirectional",
+    "r_staticLightReconstruction",
+    "r_recoveredVolumetricLights",
+    "r_recoveredVolumetricMaxLights",
+    "r_recoveredPhysicalConfidence",
+    "r_recoveredSpotConfidence",
+    "r_staticLightDebug",
+    "r_lightPortals",
+    "r_lightPortalDebug",
+    "r_ltcAreaCalibration",
+    "r_ltcAreaCalibrationScale"
+  ],
+  "preserved_ownership": {
+    "R_BuildEntityLightProbes": "tr_bsp.cpp, original BSP direction only, main world",
+    "R_PBRCalibrateLegacyMap": "Direct unconditional RE_LoadWorldMap call",
+    "R_SunVisibleFromPoint": "tr_light.cpp, same legacy collision behaviour",
+    "authored_and_auto_LTC": "tr_arealights.cpp, no grid-driven calibration",
+    "canonical_core_asset_api_observations": "Unchanged production implementation",
+    "ordinary_fog_B_S_and_reference": "tr_bakedlighting.cpp; sun alignment/visibility, half packing, percentile and particle reference"
+  },
+  "production_references_before": {
+    "code/rd-rend2/tr_init.cpp": [
+      {
+        "line": 162,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 163,
+        "symbols": [
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 169,
+        "symbols": [
+          "r_recoveredVolumetricLights"
+        ]
+      },
+      {
+        "line": 170,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 171,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 172,
+        "symbols": [
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 173,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 175,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 176,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 177,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 178,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 2080,
+        "symbols": [
+          "R_StaticLightingStats_f"
+        ]
+      },
+      {
+        "line": 2991,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2992,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2998,
+        "symbols": [
+          "r_staticLightReconstruction",
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2999,
+        "symbols": [
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 3000,
+        "symbols": [
+          "r_recoveredVolumetricLights",
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 3001,
+        "symbols": [
+          "r_recoveredVolumetricLights"
+        ]
+      },
+      {
+        "line": 3002,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 3003,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 3004,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 3005,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 3006,
+        "symbols": [
+          "r_recoveredPhysicalConfidence",
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 3007,
+        "symbols": [
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 3008,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 3009,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 3012,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 3013,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 3014,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 3015,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 3016,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 3017,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 3018,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 3019,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 3349,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 4174,
+        "symbols": [
+          "R_ClearStaticLighting"
+        ]
+      }
+    ],
+    "codemp/rd-rend2/tr_init.cpp": [
+      {
+        "line": 157,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 158,
+        "symbols": [
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 164,
+        "symbols": [
+          "r_recoveredVolumetricLights"
+        ]
+      },
+      {
+        "line": 165,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 166,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 167,
+        "symbols": [
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 168,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 170,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 171,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 172,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 173,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 2041,
+        "symbols": [
+          "R_StaticLightingStats_f"
+        ]
+      },
+      {
+        "line": 2950,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2951,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2957,
+        "symbols": [
+          "r_staticLightReconstruction",
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2958,
+        "symbols": [
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 2959,
+        "symbols": [
+          "r_recoveredVolumetricLights",
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 2960,
+        "symbols": [
+          "r_recoveredVolumetricLights"
+        ]
+      },
+      {
+        "line": 2961,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 2962,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 2963,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 2964,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 2965,
+        "symbols": [
+          "r_recoveredPhysicalConfidence",
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 2966,
+        "symbols": [
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 2967,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 2968,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 2971,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 2972,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 2973,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 2974,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 2975,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 2976,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 2977,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 2978,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 3308,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 4095,
+        "symbols": [
+          "R_ClearStaticLighting"
+        ]
+      }
+    ],
+    "shared/rd-rend2/glsl/volumetric_inject.glsl": [
+      {
+        "line": 90,
+        "symbols": [
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      },
+      {
+        "line": 93,
+        "symbols": [
+          "u_VolumetricDirMomentR"
+        ]
+      },
+      {
+        "line": 94,
+        "symbols": [
+          "u_VolumetricDirMomentG"
+        ]
+      },
+      {
+        "line": 95,
+        "symbols": [
+          "u_VolumetricDirMomentB"
+        ]
+      },
+      {
+        "line": 1282,
+        "symbols": [
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      },
+      {
+        "line": 1312,
+        "symbols": [
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      },
+      {
+        "line": 1316,
+        "symbols": [
+          "u_VolumetricDirMomentR"
+        ]
+      },
+      {
+        "line": 1317,
+        "symbols": [
+          "u_VolumetricDirMomentG"
+        ]
+      },
+      {
+        "line": 1318,
+        "symbols": [
+          "u_VolumetricDirMomentB"
+        ]
+      },
+      {
+        "line": 1332,
+        "symbols": [
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      },
+      {
+        "line": 1374,
+        "symbols": [
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_arealights.cpp": [
+      {
+        "line": 1417,
+        "symbols": [
+          "R_CollectStaticAreaSources"
+        ]
+      },
+      {
+        "line": 1426,
+        "symbols": [
+          "R_CollectStaticAreaSources"
+        ]
+      },
+      {
+        "line": 1498,
+        "symbols": [
+          "R_CalibrateAreaLight"
+        ]
+      },
+      {
+        "line": 1500,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 1506,
+        "symbols": [
+          "R_CalibrateAreaLight"
+        ]
+      },
+      {
+        "line": 1511,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 1521,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 1529,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 1533,
+        "symbols": [
+          "R_FinishAreaLightCalibration"
+        ]
+      },
+      {
+        "line": 1537,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_bsp.cpp": [
+      {
+        "line": 5248,
+        "symbols": [
+          "R_BuildStaticLighting"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_glsl.cpp": [
+      {
+        "line": 358,
+        "symbols": [
+          "u_VolumetricDirMomentR"
+        ]
+      },
+      {
+        "line": 359,
+        "symbols": [
+          "u_VolumetricDirMomentG"
+        ]
+      },
+      {
+        "line": 360,
+        "symbols": [
+          "u_VolumetricDirMomentB"
+        ]
+      },
+      {
+        "line": 5261,
+        "symbols": [
+          "R_VolumetricStaticDirectional",
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_light.cpp": [
+      {
+        "line": 478,
+        "symbols": [
+          "R_SunVisibleFromPoint"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_local.h": [
+      {
+        "line": 250,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 251,
+        "symbols": [
+          "r_staticLightReconstruction"
+        ]
+      },
+      {
+        "line": 257,
+        "symbols": [
+          "r_recoveredVolumetricLights"
+        ]
+      },
+      {
+        "line": 258,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 259,
+        "symbols": [
+          "r_recoveredPhysicalConfidence"
+        ]
+      },
+      {
+        "line": 260,
+        "symbols": [
+          "r_recoveredSpotConfidence"
+        ]
+      },
+      {
+        "line": 261,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 263,
+        "symbols": [
+          "r_lightPortals"
+        ]
+      },
+      {
+        "line": 264,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 265,
+        "symbols": [
+          "r_ltcAreaCalibration"
+        ]
+      },
+      {
+        "line": 266,
+        "symbols": [
+          "r_ltcAreaCalibrationScale"
+        ]
+      },
+      {
+        "line": 6505,
+        "symbols": [
+          "R_BuildStaticLighting"
+        ]
+      },
+      {
+        "line": 6508,
+        "symbols": [
+          "R_SunVisibleFromPoint"
+        ]
+      },
+      {
+        "line": 6512,
+        "symbols": [
+          "R_CalibrateAreaLight"
+        ]
+      },
+      {
+        "line": 6513,
+        "symbols": [
+          "R_FinishAreaLightCalibration"
+        ]
+      },
+      {
+        "line": 6514,
+        "symbols": [
+          "R_StaticLightPortalsBeginScene"
+        ]
+      },
+      {
+        "line": 6515,
+        "symbols": [
+          "R_ClearStaticLighting"
+        ]
+      },
+      {
+        "line": 6516,
+        "symbols": [
+          "R_StaticLightingStats_f"
+        ]
+      },
+      {
+        "line": 6530,
+        "symbols": [
+          "R_StaticLightsBeginScene"
+        ]
+      },
+      {
+        "line": 6531,
+        "symbols": [
+          "R_VolumetricStaticDirectional",
+          "USE_FROXEL_STATIC_RECONSTRUCTION"
+        ]
+      },
+      {
+        "line": 6960,
+        "symbols": [
+          "R_CollectStaticAreaSources"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_scene.cpp": [
+      {
+        "line": 877,
+        "symbols": [
+          "R_StaticLightsBeginScene"
+        ]
+      },
+      {
+        "line": 878,
+        "symbols": [
+          "R_StaticLightPortalsBeginScene"
+        ]
+      }
+    ],
+    "shared/rd-rend2/tr_volumetric.cpp": [
+      {
+        "line": 132,
+        "symbols": [
+          "R_VolumetricStaticDirectional"
+        ]
+      },
+      {
+        "line": 1431,
+        "symbols": [
+          "R_StaticLights"
+        ]
+      },
+      {
+        "line": 1432,
+        "symbols": [
+          "R_StaticLightPortals"
+        ]
+      },
+      {
+        "line": 1434,
+        "symbols": [
+          "r_lightPortalDebug"
+        ]
+      },
+      {
+        "line": 1435,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 1436,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 1437,
+        "symbols": [
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 1547,
+        "symbols": [
+          "vrStaticLight"
+        ]
+      },
+      {
+        "line": 1550,
+        "symbols": [
+          "R_StaticViewCluster"
+        ]
+      },
+      {
+        "line": 1553,
+        "symbols": [
+          "vrStaticLight"
+        ]
+      },
+      {
+        "line": 1556,
+        "symbols": [
+          "R_StaticLightCulled"
+        ]
+      },
+      {
+        "line": 1570,
+        "symbols": [
+          "r_recoveredVolumetricMaxLights"
+        ]
+      },
+      {
+        "line": 1579,
+        "symbols": [
+          "vrStaticLight"
+        ]
+      },
+      {
+        "line": 1633,
+        "symbols": [
+          "R_StaticViewCluster"
+        ]
+      },
+      {
+        "line": 1638,
+        "symbols": [
+          "vrLightPortal"
+        ]
+      },
+      {
+        "line": 2348,
+        "symbols": [
+          "r_volumetricFogStaticDirectional"
+        ]
+      },
+      {
+        "line": 2638,
+        "symbols": [
+          "r_lightPortalDebug",
+          "r_staticLightDebug"
+        ]
+      },
+      {
+        "line": 3298,
+        "symbols": [
+          "R_VolumetricStaticDirectional"
+        ]
+      }
+    ]
+  },
+  "purpose": "Pre-removal declarations and references, not compatibility code or an algorithm implementation. Function signatures scanned with regex; ownership/calls reviewed and final SP/MP links verified.",
+  "removed_files": {
+    "shared/rd-rend2/tr_staticlighting.cpp": {
+      "file_deleted": true,
+      "function_definitions": [
+        "R_BuildStaticLighting",
+        "R_ClearStaticLighting",
+        "R_StaticCompareFloats",
+        "R_StaticDebugCircle",
+        "R_StaticDebugSegment",
+        "R_StaticLightCulled",
+        "R_StaticLightPortals",
+        "R_StaticLightPortalsBeginScene",
+        "R_StaticLightTrace",
+        "R_StaticLightingStats_f",
+        "R_StaticLights",
+        "R_StaticLightsBeginScene",
+        "R_StaticSRGBToLinear",
+        "R_StaticSkyTrace",
+        "R_StaticSmoothstep",
+        "R_StaticSunRays",
+        "R_StaticSunVisible",
+        "R_StaticTrace",
+        "R_StaticViewCluster",
+        "R_SunVisibleFromPoint"
+      ],
+      "sha256": "150689428a8587c3bdefbd54382982c21bb37ac7dc61d491e70ca61b32a80a60"
+    },
+    "shared/rd-rend2/tr_staticlighting.h": {
+      "declaration_inventory": [
+        "#pragma once #include \"tr_volrecon.h\" #include \"tr_lightrecon.h\" #include <vector> #define STATIC_LIGHTS_MAX_PROMOTED 32 #define STATIC_PORTALS_MAX 32 struct staticLight_t { vrStaticLight light;",
+        "int cluster;",
+        "int area;",
+        "};",
+        "struct staticLightPortal_t { vrLightPortal portal;",
+        "int frontCluster, backCluster;",
+        "int frontArea, backArea;",
+        "};",
+        "struct staticLightingUploadStats_t { float maxError;",
+        "float maxRelError;",
+        "int msec;",
+        "};",
+        "const std::vector<staticLight_t>& R_StaticLights( void );",
+        "const std::vector<staticLightPortal_t>& R_StaticLightPortals( void );",
+        "qboolean R_StaticLightCulled( const staticLight_t& light, int viewCluster );",
+        "int R_StaticViewCluster( const vec3_t origin );",
+        "void R_ClearVolumetricStaticLighting( world_t *world );",
+        "void R_UploadVolumetricStaticLighting( world_t *world, const vrOutput& out, const uint8_t *valid, qboolean moments, staticLightingUploadStats_t *stats );"
+      ],
+      "file_deleted": true,
+      "function_definitions": [],
+      "sha256": "70f0344714f78e68d546626e21a5ee8aec4a7d610a1283b5d680ccc9cd096ef8"
+    },
+    "shared/rd-rend2/tr_volrecon.cpp": {
+      "file_deleted": true,
+      "function_definitions": [
+        "Add",
+        "AddProjector",
+        "AreaMoment",
+        "Attribute",
+        "AxisDerivative",
+        "BuildAreaAnchor",
+        "BuildLights",
+        "BuildPortals",
+        "ClassifyPoint",
+        "ComputeGradients",
+        "Convergence",
+        "Cross",
+        "Dot",
+        "Eigenvalues",
+        "EntityDirections",
+        "FindConstriction",
+        "FindSeeds",
+        "FitAperture",
+        "FitApertureAt",
+        "FitError",
+        "FitRuntime",
+        "FitSeed",
+        "Flood",
+        "FloodMulti",
+        "Get",
+        "IsotonicDecreasing",
+        "Length",
+        "LightModel",
+        "Load",
+        "Luma",
+        "Make",
+        "MatchSource",
+        "MaxComponent",
+        "ModelShape",
+        "Msec",
+        "Mul",
+        "NearestValid",
+        "Normalize",
+        "Perpendicular",
+        "PlaneBasis",
+        "PointAttenuation",
+        "PortalShape",
+        "PortalTrace",
+        "ProfileAt",
+        "Reconstruct",
+        "ResolveMoments",
+        "SampleVisibility",
+        "Saturate",
+        "Scale",
+        "SelectSamples",
+        "SetOrigin",
+        "Smoothstep",
+        "Solve",
+        "SourceContributions",
+        "Sub",
+        "Trace",
+        "VR_FloatToHalf",
+        "VR_HalfToFloat",
+        "VR_PackHalf",
+        "VR_Reconstruct",
+        "WeightedPercentile",
+        "Zero"
+      ],
+      "sha256": "0a4245a9333a32615f39fa05aab5416e787c755a2d06e5d97c4e51b0bf28cb17"
+    },
+    "shared/rd-rend2/tr_volrecon.h": {
+      "declaration_inventory": [
+        "#pragma once #include <cstdint> #include <vector> struct vrAreaSource { float center[3];",
+        "float right[3];",
+        "float up[3];",
+        "float halfWidth;",
+        "float halfHeight;",
+        "float color[3];",
+        "float confidence;",
+        "bool twoSided;",
+        "int sourceIndex;",
+        "};",
+        "struct vrInput { int dims[3];",
+        "float origin[3];",
+        "float cellSize[3];",
+        "bool hdr;",
+        "int mode;",
+        "const float *ambient;",
+        "const float *direct;",
+        "const float *bspDir;",
+        "const uint8_t *valid;",
+        "const float *sunAlign;",
+        "const float *sunVis;",
+        "const vrAreaSource *areas;",
+        "int numAreas;",
+        "float (*trace)( void *user, const float start[3], const float end[3] );",
+        "void *traceUser;",
+        "const uint8_t *animated;",
+        "bool promote;",
+        "float physicalThreshold;",
+        "float spotThreshold;",
+        "int maxPromoted;",
+        "bool entityProbes;",
+        "bool portals;",
+        "bool promotePortals;",
+        "float (*traceSky)( void *user, const float start[3], const float end[3] );",
+        "};",
+        "enum vrSourceType { VR_SOURCE_POINT, VR_SOURCE_RECT };",
+        "struct vrProxy { vrSourceType type;",
+        "float position[3];",
+        "float color[3];",
+        "float confidence;",
+        "float sigmaP;",
+        "float rayRms;",
+        "float range;",
+        "int area;",
+        "int support;",
+        "float right[3];",
+        "float up[3];",
+        "float halfWidth;",
+        "float halfHeight;",
+        "bool twoSided;",
+        "};",
+        "enum vrLightKind { VR_LIGHT_TRANSPORT, VR_LIGHT_POINT, VR_LIGHT_SPOT, VR_LIGHT_RECT };",
+        "enum vrLightFlags { VR_LIGHT_PHYSICAL = 1 << 0, VR_LIGHT_PROMOTED = 1 << 1, VR_LIGHT_RELOCATED = 1 << 2, VR_LIGHT_ANIMATED = 1 << 3 };",
+        "struct vrStaticLight { vrLightKind kind;",
+        "int flags;",
+        "int proxy;",
+        "float origin[3];",
+        "float color[3];",
+        "float radius;",
+        "float confidence;",
+        "float visibility;",
+        "float physicalConfidence;",
+        "float radiometricConfidence;",
+        "float spotConfidence;",
+        "float promotionWeight;",
+        "float explainedEnergy;",
+        "float sigmaP;",
+        "float fitError;",
+        "float leakFraction;",
+        "float excessFraction;",
+        "float axis[3];",
+        "float cosInner;",
+        "float cosOuter;",
+        "float right[3];",
+        "float up[3];",
+        "float halfWidth;",
+        "float halfHeight;",
+        "bool twoSided;",
+        "int areaSourceIndex;",
+        "};",
+        "enum vrPortalFlags { VR_PORTAL_SKY = 1 << 0, VR_PORTAL_PROMOTED = 1 << 1, VR_PORTAL_PHYSICAL = 1 << 2 };",
+        "struct vrLightPortal { int flags;",
+        "int proxy;",
+        "float center[3];",
+        "float normal[3];",
+        "float right[3];",
+        "float up[3];",
+        "float halfWidth;",
+        "float halfHeight;",
+        "float incoming[3];",
+        "float source[3];",
+        "float spreadTan;",
+        "float edge;",
+        "float range;",
+        "float color[3];",
+        "float confidence;",
+        "float solidBorder;",
+        "float explainedEnergy;",
+        "float promotionWeight;",
+        "float leakFraction;",
+        "float excessFraction;",
+        "int receivers;",
+        "};",
+        "struct vrStats { int cells;",
+        "int mergedFits;",
+        "int droppedSources;",
+        "int validCells;",
+        "int seeds;",
+        "int fits;",
+        "int pointProxies;",
+        "int areaAnchors;",
+        "int directionalCells;",
+        "float meanRayRms;",
+        "float p95RayRms;",
+        "float meanSigmaP;",
+        "float directionalFraction;",
+        "float attributedFraction;",
+        "float maxSplitError;",
+        "float msecSplit;",
+        "float msecGradients;",
+        "float msecSeeds;",
+        "float msecFit;",
+        "float msecAreas;",
+        "float msecAttribution;",
+        "float msecLights;",
+        "float msecTotal;",
+        "int traces;",
+        "int physicalLights;",
+        "int promotedPoints;",
+        "int promotedSpots;",
+        "int transportLights;",
+        "int relocatedLights;",
+        "float promotedFraction;",
+        "float excessFraction;",
+        "float maxPartitionError;",
+        "int portalCandidates;",
+        "int portals;",
+        "int skyPortals;",
+        "int promotedPortals;",
+        "int portalTraces;",
+        "float portalFraction;",
+        "float msecPortals;",
+        "};",
+        "struct vrOutput { std::vector<float> baseline;",
+        "std::vector<float> sun;",
+        "std::vector<float> sunFraction;",
+        "std::vector<float> moment[3];",
+        "std::vector<float> promoted;",
+        "std::vector<vrProxy> proxies;",
+        "std::vector<vrStaticLight> lights;",
+        "std::vector<vrLightPortal> portals;",
+        "std::vector<float> entityDir[3];",
+        "vrStats stats;",
+        "};",
+        "void VR_Reconstruct( const vrInput& in, vrOutput& out );",
+        "uint16_t VR_FloatToHalf( float f );",
+        "float VR_HalfToFloat( uint16_t h );",
+        "void VR_PackHalf( const vrOutput& out, const float *alpha, std::vector<uint16_t>& baseline, std::vector<uint16_t> moments[3] );"
+      ],
+      "file_deleted": true,
+      "function_definitions": [],
+      "sha256": "e888b0187d64027a702c7e48fefed6979682f2319318da37bb84cb758205c9ab"
+    },
+    "shared/rd-rend2/tr_volumetric_reconstruct.cpp": {
+      "file_deleted": true,
+      "function_definitions": [
+        "R_ClearVolumetricStaticLighting",
+        "R_UploadVolumetricStaticLighting",
+        "R_VolumetricCompareFloats",
+        "R_VolumetricStaticDirectional",
+        "R_VolumetricStaticDirectionalSupported"
+      ],
+      "sha256": "9672fb90a1f31c0140b5aa017122b883ed99df6bca16cd6c98d3eb50b879f697"
+    }
+  },
+  "removed_static_owner_members": [
+    "qboolean valid",
+    "int mode",
+    "qboolean promote",
+    "vrStats stats",
+    "std::vector<vrProxy> proxies",
+    "std::vector<staticLight_t> lights",
+    "std::vector<staticLightPortal_t> portals",
+    "qboolean fogConsumer",
+    "qboolean entityProbes",
+    "qboolean portalsOn",
+    "qboolean calibration",
+    "int numCalibrated",
+    "int numAreaSources",
+    "int numAreaCandidates",
+    "int numTraced",
+    "int numRefined",
+    "int numRays",
+    "int numSeeSky",
+    "int msecTrace",
+    "int msecAreaSources",
+    "int msecReconstruct",
+    "int msecTotal",
+    "staticLightingUploadStats_t upload"
+  ],
+  "schema": "org.openjk.obsolete-grid-dependency-inventory",
+  "version": 1
+}

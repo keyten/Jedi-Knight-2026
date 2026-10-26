@@ -247,23 +247,12 @@ extern cvar_t	*r_volumetricFogDlightScale;
 extern cvar_t	*r_volumetricFogLightTile;
 extern cvar_t	*r_volumetricFogLightCompute;
 extern cvar_t	*r_volumetricFogStaticScale;
-extern cvar_t	*r_volumetricFogStaticDirectional;
-extern cvar_t	*r_staticLightReconstruction;
 #define LIGHTRECON_CONTROL(name, maximum, description) extern cvar_t *name;
 #define LIGHTRECON_CONSUMER(name, kind, description) extern cvar_t *name;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
-extern cvar_t	*r_recoveredVolumetricLights;
-extern cvar_t	*r_recoveredVolumetricMaxLights;
-extern cvar_t	*r_recoveredPhysicalConfidence;
-extern cvar_t	*r_recoveredSpotConfidence;
-extern cvar_t	*r_staticLightDebug;
 extern cvar_t	*r_entityLightProbes;
-extern cvar_t	*r_lightPortals;
-extern cvar_t	*r_lightPortalDebug;
-extern cvar_t	*r_ltcAreaCalibration;
-extern cvar_t	*r_ltcAreaCalibrationScale;
 extern cvar_t	*r_volumetricSelfShadow;
 extern cvar_t	*r_volumetricSelfShadowSamples;
 extern cvar_t	*r_volumetricSelfShadowDistance;
@@ -1855,9 +1844,7 @@ enum
 	// volumetric_inject / volumetric_debug, which have no Forward+ index buffer
 	TB_FROXELMEDIA       = 13,
 
-	// blue moment of the directional baked light (r_volumetricFogStaticDirectional)
 	// in volumetric_inject; red / green use TB_SPECULARMAP / TB_SSAOMAP there
-	TB_VOLUMETRICMOMENTB = 17,
 
 	// RGB extinction (r_volumetricFogRGBExtinction): the integrated transmittance of the
 	// froxel lookup (every program with USE_FROXEL_FOG), the injected extinction
@@ -2875,9 +2862,6 @@ typedef enum
 	UNIFORM_FROXELCARRY,	// integration state of the previous slice
 	UNIFORM_VOLUMETRICSTATICGRID,	// baked light grid without the sun
 	UNIFORM_VOLUMETRICSUNGRID,		// baked sun part of the light grid
-	UNIFORM_VOLUMETRICDIRMOMENTR,	// first angular moments of the non-sun baked light, per channel
-	UNIFORM_VOLUMETRICDIRMOMENTG,
-	UNIFORM_VOLUMETRICDIRMOMENTB,
 	UNIFORM_VOLUMETRICLEGACYGRID,	// merged legacy light grid (debug view 25)
 	UNIFORM_FROXELSLICE,	// slice rendered by the injection / integration pass
 	UNIFORM_FROXELNOISE,	// tiling density noise
@@ -3830,24 +3814,15 @@ typedef struct {
 	qboolean	entitySunValid;
 	vec3_t		entitySunGrid;
 	int			entitySunCells;
-	// froxel volumetric fog (r_volumetricFog 2): light grid split by the sun and
-	// directional baked light moments, see R_BuildStaticLighting
-	// (tr_volumetric_reconstruct.cpp)
+	// Independent baked fog baseline/sun split, tr_bakedlighting.cpp.
 	image_t		*volumetricStaticGrid;	// non-sun baked baseline B (rgb), sun fraction f = align * vis (a)
 	image_t		*volumetricSunGrid;		// baked sun part
-	image_t		*volumetricDirMomentR;	// first angular moment of the red baked light (xyz), r_volumetricFogStaticDirectional
-	image_t		*volumetricDirMomentG;
-	image_t		*volumetricDirMomentB;
 	vec3_t		volumetricSunRadiance;	// realtime sun radiance estimated from the sunlit cells
 	qboolean	volumetricHasSunCells;
 	float		particleLightReference;	// mean luminance of the valid light grid cells (r_particleLighting: gain 1 there)
 	float		pbrLegacyCalibration;	// map-load legacy baked-light -> canonical scene scale
 	float		pbrLegacyMedian;
 	float		pbrLegacyP95;
-	int			volumetricReconstructedSources;
-	int			volumetricReconstructedAreaSources;
-	int			volumetricDirectionalCells;
-	float		volumetricDirectionalEnergyFraction;
 
 	int			skyboxportal;
 	int			numClusters;
@@ -6499,21 +6474,14 @@ void R_CloudInfo_f(void);
 void R_CloudLayerTest_f(void);
 qboolean R_VolumetricComputeAvailable(void);
 void R_VolumetricEnsureRasterCarry(void);
-// tr_staticlighting.cpp: Static Lighting Reconstruction, once per map load (the light
-// grid split by the sun, directional baked moments, structured / promoted lights);
-// tr_volumetric_reconstruct.cpp uploads it for the froxel fog
-void R_BuildStaticLighting(world_t *world);
-qboolean R_BuildEntityLightProbes(world_t *world, const float *const *dirMix);	// tr_bsp.cpp, dirMix: 3 channels or NULL
+// Independent map-load baked fog upload; ordinary lightgrid path remains available.
+void R_BuildBakedFogLighting(world_t *world);
+qboolean R_BuildEntityLightProbes(world_t *world); // original BSP directions only
 qboolean R_EntityLightProbesWanted(void);
-qboolean R_SunVisibleFromPoint(const vec3_t start, const vec3_t sunDir);	// tr_staticlighting.cpp, world brushes
+qboolean R_SunVisibleFromPoint(const vec3_t start, const vec3_t sunDir); // tr_light.cpp
 // tr_light.cpp: r_entitySunSplit
 qboolean R_EntitySunSplitWanted(void);
 void R_CalibrateEntitySun(world_t *world);
-void R_CalibrateAreaLight(int index, const vec3_t radiance, float confidence);	// tr_arealights.cpp
-void R_FinishAreaLightCalibration(void);
-void R_StaticLightPortalsBeginScene(const refdef_t *fd);
-void R_ClearStaticLighting(void);
-void R_StaticLightingStats_f(void);
 void R_LightReconInfo_f(void);
 void R_LightReconEvidence_f(void);
 void R_LightReconExport_f(void);
@@ -6527,8 +6495,6 @@ void R_PBRCanonicalColor(const vec3_t rgb, float photometricY, vec3_t out);
 void R_ClassifyEmissiveStage(const shader_t *shader, shaderStage_t *stage);
 void R_EmissiveStageCanonicalScale(const shaderStage_t *stage, vec3_t out);
 qboolean R_EmissiveDebugColor(const shaderStage_t *stage, vec4_t out);
-void R_StaticLightsBeginScene(const refdef_t *fd);
-qboolean R_VolumetricStaticDirectional(void);	// moment textures and USE_FROXEL_STATIC_RECONSTRUCTION
 void R_SetHeightFogBase(world_t *worldData);
 void R_VolumetricFog_f(void);
 void R_VolumetricLightStats_f(void);
@@ -6954,10 +6920,6 @@ void R_AreaLightsBeginFrame(void);
 void R_CreateLtcImages(void);
 void R_LoadAreaLights(const char *mapName);
 void R_ClearAreaLights(void);
-// static emitters (explicit non-dynamic lamps, accepted emissive surface candidates) that
-// anchor the directional baked light reconstruction, tr_volumetric_reconstruct.cpp
-struct vrAreaSource;
-void R_CollectStaticAreaSources(const world_t *world, std::vector<vrAreaSource>& out, int *numCandidates);
 void R_AddAreaLightsToScene(const refdef_t *fd);
 void R_AreaLightsDrawDebug(void);
 void RB_AreaLightsBindTextures(SamplerBindingsWriter& samplers);
