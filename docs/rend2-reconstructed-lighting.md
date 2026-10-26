@@ -291,6 +291,11 @@ uncertainty, diagnostic residuals and suitability from real observations. No
 claim is made that those inverse problems are solved or that LDR stock maps
 contain enough information for unique calibrated physical reconstruction.
 
+The [inverse-lighting research design](rend2-inverse-lighting-research.md) reviews
+the full Schwengerer thesis, maps its assumptions to JA observations and proposes
+a geometry-aware offline objective, optimization stages and verification gates.
+It is a research plan; no numerical reconstruction solver is implemented.
+
 ## CPU verification
 
 Standalone (no Boost, engine, OpenGL or external libraries):

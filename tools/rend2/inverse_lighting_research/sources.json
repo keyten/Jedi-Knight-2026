@@ -1,0 +1,184 @@
+{
+  "schema": "org.openjk.inverse-lighting-research-sources/1",
+  "research_date": "2026-10-26",
+  "repository_baseline": "447e2ce22",
+  "thesis": {
+    "author": "Mathias Schwengerer",
+    "title": "Inverse Method for Baked Lighting",
+    "year": 2023,
+    "url": "https://www.cg.tuwien.ac.at/research/publications/2023/Schwengerer_Mathias-2022-BGL/Schwengerer_Mathias-2022-BGL-Thesis.pdf",
+    "bytes": 4753811,
+    "sha256": "23f15080f41828f4930628fcf3cd9058f6ce4314f8a843e3e9f1212e4f6fd148",
+    "pdf_pages": 67,
+    "printed_arabic_to_pdf_offset": 16,
+    "read": "English abstract, complete Chapters 1-6, references and Appendix A",
+    "extraction": "All pages rendered with Poppler at 140 DPI; Windows en-US OCR; broken original text layer.",
+    "visually_checked_pdf_pages": [
+      30,
+      31,
+      32,
+      40,
+      42,
+      43,
+      47,
+      49,
+      50
+    ],
+    "key_locators": {
+      "rendering_equation": "printed p6, Eq2.1",
+      "projection": "printed pp14-15, Eq3.1-3.7",
+      "sampling_implementation": "printed p24, Algorithm4.1",
+      "schedules": "printed p31, Table5.1",
+      "limitations": "printed pp32-35,38",
+      "framework_private_reference": "printed p46, Pri23"
+    }
+  },
+  "framework_clarification": {
+    "authors": [
+      "Lukas Lipp",
+      "David Hahn",
+      "Pierre Ecormier-Nocca",
+      "Florian Rist",
+      "Michael Wimmer"
+    ],
+    "title": "View-Independent Adjoint Light Tracing for Lighting Design Optimization",
+    "doi": "10.1145/3662180",
+    "year": 2024,
+    "versioned_url": "https://arxiv.org/html/2310.02043v2",
+    "arxiv_version_date": "2024-05-06",
+    "locators": [
+      "section3 Eq1-3: forward model and objective",
+      "section4.1 Eq4-6: spatial/HSH objective",
+      "section4.3 Eq9: gradient chain rule",
+      "sections2.2,6.4,7: visibility derivative omissions",
+      "section6.3.4: later OpenArena experiment, not thesis settings"
+    ],
+    "not_reproduced": "No author code or optimizer experiments were executed."
+  },
+  "primary_code": [
+    {
+      "repository": "id-Software/Quake-III-Arena",
+      "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49",
+      "path": "code/qcommon/qfiles.h",
+      "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/code/qcommon/qfiles.h",
+      "bytes": 11319,
+      "sha256": "3de04999757b7747dc2f39156ae432a0e9b21dde5eaf0a5b09350156bc44d3b6"
+    },
+    {
+      "repository": "id-Software/Quake-III-Arena",
+      "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49",
+      "path": "q3map/light.c",
+      "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/light.c",
+      "bytes": 51041,
+      "sha256": "ddb23fca6707adbbf37e66cc58afea3cae6bdf974aafe6344cd01e2f8a5deeee"
+    },
+    {
+      "repository": "id-Software/Quake-III-Arena",
+      "commit": "dbe4ddb10315479fc00086f08e25d968b4b43c49",
+      "path": "q3map/lightmaps.c",
+      "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/lightmaps.c",
+      "bytes": 9328,
+      "sha256": "e20988e79a9fa6fdbde74b120cc4a3cc334c20a726ca9cafcd069ce0295bc5bc"
+    },
+    {
+      "repository": "xonotic/netradiant",
+      "commit": "c00084bc741a16438e9257dc5a64da989085532f",
+      "path": "tools/quake3/q3map2/light.c",
+      "url": "https://raw.githubusercontent.com/xonotic/netradiant/c00084bc741a16438e9257dc5a64da989085532f/tools/quake3/q3map2/light.c",
+      "bytes": 84654,
+      "sha256": "01a8f29c4d3a6f5918ec5e28a72266e8d2b68f285a8d01091e64758755835386"
+    }
+  ],
+  "boundary_derivatives_reference": {
+    "url": "https://cseweb.ucsd.edu/~tzli/diffrt/",
+    "title": "Differentiable Monte Carlo Ray Tracing through Edge Sampling",
+    "year": 2018,
+    "scope": "Primary author project/paper locator for boundary derivative alternatives; no reproduced experiment."
+  },
+  "repository_files_lf_sha256": [
+    {
+      "path": "shared/rd-rend2/tr_lightrecon_types.h",
+      "sha256": "8de7eba848ebaff030997ee861ed26d6edaff34f80d91dc1e077417949cfc473"
+    },
+    {
+      "path": "shared/rd-rend2/tr_pbr_contract.cpp",
+      "sha256": "cc5d371fa380dee321b85476475f3558ffc18b2fa671c31e4bd103dc297269ad"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/input.h",
+      "sha256": "78fbddd2effe6b3d6f93567f3ccd38231a091e28f2f333ebe6fc1f64e6e36460"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/session.h",
+      "sha256": "7d5c2e012c3dee978e2e57b4cff3310af56d153248bb8668f34292e626a410c7"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/decode.h",
+      "sha256": "066f1c28c590dc054b51b50cc57a2adff66ec5e46f2b0394baa2f5dd92fe14d1"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/lightmaps.h",
+      "sha256": "b745747e21c7f799a04b1ec1563fe0180df2c45c540acbc731eccf213f23af40"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/lightgrid.h",
+      "sha256": "a7a7aac2c1e0db8ff10427381416dcff7d79c7ab1aa878e743af585357c9a661"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/surfaces.h",
+      "sha256": "722cc2e0e60aad0a8038b758ad93feeb64be525bc1f3a4ef71a88873527c762e"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/classification.h",
+      "sha256": "5057b1f3af75e80444ebb5a29cd191c5d1b581146aacbaa7715a6a464fe76283"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/visibility.h",
+      "sha256": "846e5bb26a120b40715f2e2277c5e0e92ff9f79b6c8acb4b6ff01c8aeb6f3b17"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/regions.h",
+      "sha256": "b4c96dd7ebd14c57dd4e3398366a7d9b51d9ab10f06801a82557cd585cf6e8f0"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/evidence.h",
+      "sha256": "1310e9813cb1a1cf93f7f048e1a455fc97e8beb70e53ece7f0e38d82536311c7"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/offline.h",
+      "sha256": "9b0ca30f5dfb12d7385dafcab544cc9c49e01b0e5860a2c92d9ff790f272f192"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/disk.h",
+      "sha256": "548dea15437edf6f6885554b88b4bc1e618789087b6117e2a5d85a4f553a1081"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/cache.h",
+      "sha256": "8772f768bb4e63cc9d954ebedad044ded8ed80dda2ce697c3c10dff070805a2b"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/lifecycle.h",
+      "sha256": "4956618793e5f03917b41ec6bef6540f399439b0e8104a868d5bf491f4479238"
+    },
+    {
+      "path": "shared/rd-rend2/tr_lightrecon.cpp",
+      "sha256": "5484e8d7b7a1130c947cd947c06a275fd1e065d6b1337651a409db53cdffb94c"
+    },
+    {
+      "path": "docs/rend2-physical-pbr.md",
+      "sha256": "ac3423ddb8d507847c7c70ce9e9ded8676bee8806d97b0951246a0bb13e131c0"
+    },
+    {
+      "path": "docs/rend2-q3map2-validation.md",
+      "sha256": "1daf4265749c32f74aa726a45897b97ed14044bfc65837e52b56a7196ebdc5fe"
+    },
+    {
+      "path": "code/qcommon/qfiles.h",
+      "sha256": "03f828bb91483d37a4fb52bf86e5230db633f6aad9d75cd06530e29a5e4fc986"
+    },
+    {
+      "path": "codemp/qcommon/qfiles.h",
+      "sha256": "119346259ac7d88ed1be6e5d2aa7ee77bb705e1b4a7041f9cd118d512e0696e1"
+    }
+  ]
+}
