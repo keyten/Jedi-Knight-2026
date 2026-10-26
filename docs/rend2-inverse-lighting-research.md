@@ -10,6 +10,10 @@ explanations**, not proof of the original source configuration. Appearance error
 geometric source error, calibration, and suitability for a particular consumer
 must be evaluated separately.
 
+The follow-up [localization and shadow research](rend2-light-localization-research.md)
+develops identifiability, caster/edge constraints, conditional uncertainty and
+deterministic ambiguity demonstrations using the subsequent bake-model evidence.
+
 ## 1. Sources, scope and reproducibility
 
 Primary reference **[T]**: Mathias Schwengerer, *Inverse Method for Baked Lighting*,

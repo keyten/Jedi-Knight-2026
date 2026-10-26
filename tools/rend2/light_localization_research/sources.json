@@ -1,0 +1,140 @@
+{
+  "schema": "org.openjk.light-localization-research-sources/1",
+  "date": "2026-10-26",
+  "code_baseline": "ff02fa5d4",
+  "input_state": "Bake-model specification, harness and adjacent documentation edits supplied as workspace changes; hashes pin their inspected content, not membership in baseline commit.",
+  "downloaded_primary_papers": [
+    {
+      "name": "sato2001",
+      "pages": 8,
+      "bytes": 1390563,
+      "sha256": "878456062433476300cb35cbe5215ac6b80f57923abeec803432f97561740b09",
+      "url": "https://research.nii.ac.jp/~imarik/resources/papers/CVPR01-StabilityIssue.pdf",
+      "reviewed": "PDF pp2-7: Eq1-4, response rank/conditioning, source-bin coarsening, penumbra sampling, experimental limitations."
+    },
+    {
+      "name": "sato2003",
+      "pages": 11,
+      "bytes": 2750698,
+      "sha256": "82883de051e54b01ae395ce12e0157abef326e52b36881605901948c6dc6a5c7",
+      "url": "https://research.nii.ac.jp/~imarik/resources/papers/TPAMI-IlluminationFromShadows.pdf",
+      "reviewed": "PDF pp1-7: assumptions, Eq1-12, angular solve, reflectance, adaptive estimation setup. No finite-distance light recovery claimed."
+    },
+    {
+      "name": "weber2001",
+      "pages": 10,
+      "bytes": 691787,
+      "sha256": "5ab7df9c73ea11e957d5e098b9f03f520d38ca20cf780f95e3c813e95e0b3fc0",
+      "url": "https://bmva-archive.org.uk/bmvc/2001/papers/117/accepted_117.pdf",
+      "reviewed": "PDF pp2-6, sections3-6: finite-source model, Gauss-Newton, on/off subtraction and distant initialization."
+    },
+    {
+      "name": "zhang2018-supplement",
+      "pages": 4,
+      "bytes": 2541658,
+      "sha256": "0b0457861501033c9ffa92d78813a6db3a0b0c9e13e046f572707b73b5c1cfda",
+      "url": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization_supplementary.pdf",
+      "reviewed": "Sections1-3: specular extension, occlusion-induced false proposals and real-scene assumptions."
+    },
+    {
+      "name": "zhang2018",
+      "pages": 9,
+      "bytes": 3832411,
+      "sha256": "bb03ad005cffde3edceb7a51f928afbd4b4631d7137efea4237b8789412bdbc2",
+      "url": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization.pdf",
+      "reviewed": "Main text PDF pp1-8: Eq1-8, proposal/refinement, Table1, ambiguity, noise, material and 3D cost limits."
+    }
+  ],
+  "reading_method": "pypdf plain/layout text; visual Poppler 120 DPI check of Zhang2018 PDFp3 Eq3-7 and Sato2001 PDFp4 Eq4.",
+  "reused_thesis": {
+    "manifest": "tools/rend2/inverse_lighting_research/sources.json",
+    "sha256": "23f15080f41828f4930628fcf3cd9058f6ce4314f8a843e3e9f1212e4f6fd148",
+    "url": "https://www.cg.tuwien.ac.at/research/publications/2023/Schwengerer_Mathias-2022-BGL/Schwengerer_Mathias-2022-BGL-Thesis.pdf",
+    "review": "Previously read full English technical thesis; revisited printed pp15-16,25-35,38 for this follow-up."
+  },
+  "additional_primary_references": [
+    {
+      "url": "https://arxiv.org/html/2310.02043v2",
+      "title": "View-Independent Adjoint Light Tracing for Lighting Design Optimization",
+      "review": "Sections2.2,4.3-4.4,6.4,7; version v2 2024-05-06."
+    },
+    {
+      "url": "https://doi.org/10.1007/s11263-020-01312-3",
+      "title": "Light Structure from Pin Motion: Geometric Point Light Source Calibration",
+      "review": "Publisher full HTML sections3-4, Eq1-4,17-20; known metric geometry and correspondence assumptions."
+    },
+    {
+      "url": "https://cseweb.ucsd.edu/~tzli/diffrt/",
+      "title": "Differentiable Monte Carlo Ray Tracing through Edge Sampling",
+      "review": "Author project description of boundary derivatives; full-PDF web fetch unavailable, no implementation reproduced."
+    },
+    {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19505944/",
+      "doi": "10.1093/bioinformatics/btp358",
+      "title": "Structural and practical identifiability analysis of partially observed dynamical models by exploiting the profile likelihood",
+      "review": "Primary indexed abstract only; publisher full article unavailable. Design formulas are our derivations, not claimed reproductions."
+    }
+  ],
+  "repository_inputs_lf_sha256": [
+    {
+      "path": "shared/rd-rend2/tr_lightrecon_types.h",
+      "sha256": "8de7eba848ebaff030997ee861ed26d6edaff34f80d91dc1e077417949cfc473"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/visibility.h",
+      "sha256": "846e5bb26a120b40715f2e2277c5e0e92ff9f79b6c8acb4b6ff01c8aeb6f3b17"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/regions.h",
+      "sha256": "b4c96dd7ebd14c57dd4e3398366a7d9b51d9ab10f06801a82557cd585cf6e8f0"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/surfaces.h",
+      "sha256": "722cc2e0e60aad0a8038b758ad93feeb64be525bc1f3a4ef71a88873527c762e"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/evidence.h",
+      "sha256": "1310e9813cb1a1cf93f7f048e1a455fc97e8beb70e53ece7f0e38d82536311c7"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/lightgrid.cpp",
+      "sha256": "31a1c320852defe8091c709ee8305f6a53251b60bf4ef1cf6ff7469cd5722490"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/classification.h",
+      "sha256": "5057b1f3af75e80444ebb5a29cd191c5d1b581146aacbaa7715a6a464fe76283"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/decode.h",
+      "sha256": "066f1c28c590dc054b51b50cc57a2adff66ec5e46f2b0394baa2f5dd92fe14d1"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/offline.h",
+      "sha256": "9b0ca30f5dfb12d7385dafcab544cc9c49e01b0e5860a2c92d9ff790f272f192"
+    },
+    {
+      "path": "docs/rend2-bake-model.md",
+      "sha256": "69864da7fd83e02225eaf6441e0ca30c63ec98ad416d1a4d093e15be95ff7983"
+    },
+    {
+      "path": "tools/rend2/bake_model/profiles.json",
+      "sha256": "864f103f6ee760bf124d163ec7eadf827d5773d34b146130e89c55e335accee0"
+    },
+    {
+      "path": "tools/rend2/bake_model/source-lock.json",
+      "sha256": "56e385069a4dfbb50244b71370c7a75adaf5dd7b52ed41ead41d09ff2578b314"
+    },
+    {
+      "path": "tools/rend2/bake_model/validation.json",
+      "sha256": "bc88413f6659646f7624d32ca8fc20e72d39a8d74104449004befd4e09608542"
+    },
+    {
+      "path": "tools/rend2/bake_model/stock-inventory.json",
+      "sha256": "7a962718d30a1968c1e9d1d9b1742d12e164f9b37f876eb482dfc291a88c5382"
+    },
+    {
+      "path": "tools/rend2/datasets/q3map2-validation.json",
+      "sha256": "355474b77e8ece4577a22e107b6ea6d615dceda8b0da36a31adc803b931f34ed"
+    }
+  ]
+}
