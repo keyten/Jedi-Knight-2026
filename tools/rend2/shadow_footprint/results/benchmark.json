@@ -1,0 +1,2178 @@
+{
+  "claims": {
+    "compiler_replay": "separate",
+    "historical_raven": "Unknown",
+    "runtime": false,
+    "solver": false
+  },
+  "derivatives": [
+    {
+      "analytic": 0.1859654174511269,
+      "axis": "x",
+      "boundary_fd": 0.1858539876879812,
+      "case": "edge",
+      "error": -0.00011142976314570952,
+      "fixed5_fd": 0.1686002078716647,
+      "frozen_visibility_ad": 0.007974727460359998,
+      "recomputed_samples_fd": 0.18314534130896115,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.1859654174511269,
+      "axis": "x",
+      "boundary_fd": 0.18596430348573714,
+      "case": "edge",
+      "error": -1.1139653897651591e-06,
+      "fixed5_fd": 0.11434110954672491,
+      "frozen_visibility_ad": 0.007974727460359998,
+      "recomputed_samples_fd": 0.09106642292089247,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.1859654174511269,
+      "axis": "x",
+      "boundary_fd": 0.1859654063116438,
+      "case": "edge",
+      "error": -1.1139483113709048e-08,
+      "fixed5_fd": 0.00729856069184992,
+      "frozen_visibility_ad": 0.007974727460359998,
+      "recomputed_samples_fd": -0.41074893331602064,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.1859654174511269,
+      "axis": "x",
+      "boundary_fd": 0.185965417341602,
+      "case": "edge",
+      "error": -1.0952491691362809e-10,
+      "fixed5_fd": 0.007298561454649466,
+      "frozen_visibility_ad": 0.007974727460359998,
+      "recomputed_samples_fd": -8.350133955272524,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.1859654174511269,
+      "axis": "x",
+      "boundary_fd": 0.18596541743534642,
+      "case": "edge",
+      "error": -1.578048802741705e-11,
+      "fixed5_fd": 0.007298561462490415,
+      "frozen_visibility_ad": 0.007974727460359998,
+      "recomputed_samples_fd": -83.57479750823876,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "edge",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": -5.293955920339377e-23,
+      "recomputed_samples_fd": -0.008350628589204462,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -2.42861286636753e-15,
+      "case": "edge",
+      "error": -2.42861286636753e-15,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": -5.293955920339377e-23,
+      "recomputed_samples_fd": -0.08358164153346795,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -1.249000902703301e-13,
+      "case": "edge",
+      "error": -1.249000902703301e-13,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": -5.293955920339377e-23,
+      "recomputed_samples_fd": -0.8358289125356133,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -1.2490009027033011e-12,
+      "case": "edge",
+      "error": -1.2490009027033011e-12,
+      "fixed5_fd": -3.469446951953614e-14,
+      "frozen_visibility_ad": -5.293955920339377e-23,
+      "recomputed_samples_fd": -8.358295331062498,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 3.0878077872387166e-11,
+      "case": "edge",
+      "error": 3.0878077872387166e-11,
+      "fixed5_fd": -3.4694469519536137e-13,
+      "frozen_visibility_ad": -5.293955920339377e-23,
+      "recomputed_samples_fd": -83.58295888716872,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.04440537907695604,
+      "axis": "z",
+      "boundary_fd": 0.04460863627338687,
+      "case": "edge",
+      "error": 0.0002032571964308283,
+      "fixed5_fd": 0.03781166095701116,
+      "frozen_visibility_ad": -0.014647007772901021,
+      "recomputed_samples_fd": 0.0477454340151056,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.04440537907695604,
+      "axis": "z",
+      "boundary_fd": 0.044407408945387056,
+      "case": "edge",
+      "error": 2.0298684310152137e-06,
+      "fixed5_fd": -0.01337393429749617,
+      "frozen_visibility_ad": -0.014647007772901021,
+      "recomputed_samples_fd": -0.05708053110494299,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.04440537907695604,
+      "axis": "z",
+      "boundary_fd": 0.04440539937591165,
+      "case": "edge",
+      "error": 2.0298955606679048e-08,
+      "fixed5_fd": -0.01337384231669611,
+      "frozen_visibility_ad": -0.014647007772901021,
+      "recomputed_samples_fd": -0.43418418300439005,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.04440537907695604,
+      "axis": "z",
+      "boundary_fd": 0.04440537927835608,
+      "case": "edge",
+      "error": 2.0140004247659604e-10,
+      "fixed5_fd": -0.013373841396893682,
+      "frozen_visibility_ad": -0.014647007772901021,
+      "recomputed_samples_fd": -8.373298261695888,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.04440537907695604,
+      "axis": "z",
+      "boundary_fd": 0.044405379083511935,
+      "case": "edge",
+      "error": 6.555894715987165e-12,
+      "fixed5_fd": -0.013373841387456785,
+      "frozen_visibility_ad": -0.014647007772901021,
+      "recomputed_samples_fd": -83.59796180185708,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.012076101094027101,
+      "axis": "x",
+      "boundary_fd": 0.012063214335901185,
+      "case": "clear",
+      "error": -1.2886758125916359e-05,
+      "fixed5_fd": 0.012063399392857714,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.012061621009568785,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.012076101094027101,
+      "axis": "x",
+      "boundary_fd": 0.01207597215148841,
+      "case": "clear",
+      "error": -1.2894253869147332e-07,
+      "fixed5_fd": 0.012076157534228471,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.012058211022006673,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.012076101094027101,
+      "axis": "x",
+      "boundary_fd": 0.012076099804598367,
+      "case": "clear",
+      "error": -1.2894287339249022e-09,
+      "fixed5_fd": 0.012076285190596586,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.011896702473000731,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.012076101094027101,
+      "axis": "x",
+      "boundary_fd": 0.012076101081129331,
+      "case": "clear",
+      "error": -1.2897769657849167e-11,
+      "fixed5_fd": 0.012076286467245512,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.010280345984978179,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.012076101094027101,
+      "axis": "x",
+      "boundary_fd": 0.012076101094105061,
+      "case": "clear",
+      "error": 7.796020773387369e-14,
+      "fixed5_fd": 0.012076286480186547,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.005883231221984197,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "clear",
+      "error": 0.0,
+      "fixed5_fd": 3.469446951953614e-17,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 6.155619371867038e-07,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 3.469446951953614e-16,
+      "case": "clear",
+      "error": 3.469446951953614e-16,
+      "fixed5_fd": -6.938893903907228e-16,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -1.554438963102811e-05,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "clear",
+      "error": 0.0,
+      "fixed5_fd": 6.938893903907228e-15,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.0001771800993699557,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 6.938893903907228e-14,
+      "case": "clear",
+      "error": 6.938893903907228e-14,
+      "fixed5_fd": 6.938893903907228e-14,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.0017935378177069694,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "clear",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.017957115032093962,
+      "step": 1e-05
+    },
+    {
+      "analytic": -0.022500117333179023,
+      "axis": "z",
+      "boundary_fd": -0.022516060287350002,
+      "case": "clear",
+      "error": -1.5942954170979767e-05,
+      "fixed5_fd": -0.022516219810225467,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.022517699612140812,
+      "step": 0.1
+    },
+    {
+      "analytic": -0.022500117333179023,
+      "axis": "z",
+      "boundary_fd": -0.022500276723454518,
+      "case": "clear",
+      "error": -1.5939027549552454e-07,
+      "fixed5_fd": -0.022500436115566527,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.02251807603626914,
+      "step": 0.01
+    },
+    {
+      "analytic": -0.022500117333179023,
+      "axis": "z",
+      "boundary_fd": -0.022500118927088614,
+      "case": "clear",
+      "error": -1.593909591118825e-09,
+      "fixed5_fd": -0.022500278317877376,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.02267955361454077,
+      "step": 0.001
+    },
+    {
+      "analytic": -0.022500117333179023,
+      "axis": "z",
+      "boundary_fd": -0.022500117349069648,
+      "case": "clear",
+      "error": -1.5890625620906818e-11,
+      "fixed5_fd": -0.02250027673986882,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.024295909718183295,
+      "step": 0.0001
+    },
+    {
+      "analytic": -0.022500117333179023,
+      "axis": "z",
+      "boundary_fd": -0.02250011733248569,
+      "case": "clear",
+      "error": 6.933342788784103e-13,
+      "fixed5_fd": -0.022500276722695053,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": -0.040459486916333276,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.0,
+      "axis": "x",
+      "boundary_fd": -1.6944341784481313e-17,
+      "case": "blocked",
+      "error": -1.6944341784481313e-17,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.0,
+      "axis": "x",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.0,
+      "axis": "x",
+      "boundary_fd": -1.7446329976194836e-15,
+      "case": "blocked",
+      "error": -1.7446329976194836e-15,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "x",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "x",
+      "boundary_fd": -3.071817440589538e-13,
+      "case": "blocked",
+      "error": -3.071817440589538e-13,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -1.744776858761376e-17,
+      "case": "blocked",
+      "error": -1.744776858761376e-17,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -1.7585202381095523e-16,
+      "case": "blocked",
+      "error": -1.7585202381095523e-16,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": -8.702031428400751e-16,
+      "case": "blocked",
+      "error": -8.702031428400751e-16,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "y",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 1e-05
+    },
+    {
+      "analytic": 0.0,
+      "axis": "z",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.1
+    },
+    {
+      "analytic": 0.0,
+      "axis": "z",
+      "boundary_fd": 4.560412572502954e-17,
+      "case": "blocked",
+      "error": 4.560412572502954e-17,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.01
+    },
+    {
+      "analytic": 0.0,
+      "axis": "z",
+      "boundary_fd": 6.489867601278034e-16,
+      "case": "blocked",
+      "error": 6.489867601278034e-16,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "z",
+      "boundary_fd": 0.0,
+      "case": "blocked",
+      "error": 0.0,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 0.0001
+    },
+    {
+      "analytic": 0.0,
+      "axis": "z",
+      "boundary_fd": -1.0903638233051111e-13,
+      "case": "blocked",
+      "error": -1.0903638233051111e-13,
+      "fixed5_fd": 0.0,
+      "frozen_visibility_ad": null,
+      "recomputed_samples_fd": 0.0,
+      "step": 1e-05
+    }
+  ],
+  "edge_locations": [
+    {
+      "edge_50": 1.3333333337679507,
+      "edge_error": 4.3461745313777556e-10,
+      "locations": [
+        1.2933333327993752,
+        1.3333333337679507,
+        1.3733333336189388
+      ],
+      "method": "boundary",
+      "n": 4,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.0800000008195636,
+      "true_footprint_transition": 0.08
+    },
+    {
+      "edge_50": 1.3333333337679507,
+      "edge_error": 4.3461745313777556e-10,
+      "locations": [
+        1.3333333337679507,
+        1.3333333337679507,
+        1.3333333337679507
+      ],
+      "method": "grid",
+      "n": 1,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.0,
+      "true_footprint_transition": 0.08
+    },
+    {
+      "edge_50": 1.3083333330228926,
+      "edge_error": -0.025000000310440695,
+      "locations": [
+        1.3083333330228926,
+        1.3083333330228926,
+        1.3583333333954215
+      ],
+      "method": "grid",
+      "n": 2,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.05000000037252894,
+      "true_footprint_transition": 0.08
+    },
+    {
+      "edge_50": 1.3208333333954214,
+      "edge_error": -0.012499999937911843,
+      "locations": [
+        1.2958333337679506,
+        1.3208333333954214,
+        1.3708333337679508
+      ],
+      "method": "grid",
+      "n": 4,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.07500000000000018,
+      "true_footprint_transition": 0.08
+    },
+    {
+      "edge_50": 1.3270833330228924,
+      "edge_error": -0.006250000310440873,
+      "locations": [
+        1.2895833330228923,
+        1.3270833330228924,
+        1.3770833333954218
+      ],
+      "method": "grid",
+      "n": 8,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.08750000037252947,
+      "true_footprint_transition": 0.08
+    },
+    {
+      "edge_50": 1.3302083333954218,
+      "edge_error": -0.003124999937911488,
+      "locations": [
+        1.2927083333954217,
+        1.3302083333954218,
+        1.3739583330228924
+      ],
+      "method": "grid",
+      "n": 16,
+      "physical_point_penumbra": 0.0,
+      "transition_10_90": 0.0812499996274707,
+      "true_footprint_transition": 0.08
+    }
+  ],
+  "finite": {
+    "convergence": [
+      {
+        "exact_visibility": 0.5833333333333336,
+        "kind": "rectangle",
+        "smooth_error_estimate": 2.293863537553356e-09,
+        "source_order": 2,
+        "value": 0.006844471972734034,
+        "visibility": 0.5446581987385175,
+        "work": {
+          "limit": 2000000,
+          "pieces": 16,
+          "projections": 16,
+          "rays": 0,
+          "responses": 200
+        }
+      },
+      {
+        "exact_visibility": 0.5833333333333336,
+        "kind": "rectangle",
+        "smooth_error_estimate": 2.3401876072226198e-09,
+        "source_order": 4,
+        "value": 0.007543004370225025,
+        "visibility": 0.6065232231280264,
+        "work": {
+          "limit": 2000000,
+          "pieces": 56,
+          "projections": 64,
+          "rays": 0,
+          "responses": 560
+        }
+      },
+      {
+        "exact_visibility": 0.5833333333333336,
+        "kind": "rectangle",
+        "smooth_error_estimate": 2.0280036795582184e-09,
+        "source_order": 8,
+        "value": 0.0072469396845231,
+        "visibility": 0.5825846743815348,
+        "work": {
+          "limit": 2000000,
+          "pieces": 224,
+          "projections": 256,
+          "rays": 0,
+          "responses": 2400
+        }
+      },
+      {
+        "exact_visibility": 0.5833333333333336,
+        "kind": "rectangle",
+        "smooth_error_estimate": 2.06155994172261e-09,
+        "source_order": 16,
+        "value": 0.00725816037662289,
+        "visibility": 0.5833056744801722,
+        "work": {
+          "limit": 2000000,
+          "pieces": 896,
+          "projections": 1024,
+          "rays": 0,
+          "responses": 9600
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "sun",
+        "smooth_error_estimate": 1.4433441421213295e-16,
+        "source_order": 2,
+        "value": 0.6324555320336773,
+        "visibility": 0.6658329790136863,
+        "work": {
+          "limit": 2000000,
+          "pieces": 64,
+          "projections": 64,
+          "rays": 0,
+          "responses": 960
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "sun",
+        "smooth_error_estimate": 1.4086157912839032e-16,
+        "source_order": 4,
+        "value": 0.632455532033675,
+        "visibility": 0.6658329790136807,
+        "work": {
+          "limit": 2000000,
+          "pieces": 256,
+          "projections": 256,
+          "rays": 0,
+          "responses": 3840
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "sun",
+        "smooth_error_estimate": 1.4574260648694322e-16,
+        "source_order": 8,
+        "value": 0.6324555320336762,
+        "visibility": 0.6658329790136813,
+        "work": {
+          "limit": 2000000,
+          "pieces": 1024,
+          "projections": 1024,
+          "rays": 0,
+          "responses": 15360
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "sun",
+        "smooth_error_estimate": 1.5159242777891824e-16,
+        "source_order": 16,
+        "value": 0.632455532033674,
+        "visibility": 0.6658329790136807,
+        "work": {
+          "limit": 2000000,
+          "pieces": 4096,
+          "projections": 4096,
+          "rays": 0,
+          "responses": 61440
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "spot",
+        "smooth_error_estimate": 9.15954722428815e-08,
+        "source_order": 2,
+        "value": 0.018356505589208198,
+        "visibility": 0.6666666666666633,
+        "work": {
+          "limit": 2000000,
+          "pieces": 4,
+          "projections": 4,
+          "rays": 0,
+          "responses": 60
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "spot",
+        "smooth_error_estimate": 9.15954722428815e-08,
+        "source_order": 4,
+        "value": 0.018356505589208198,
+        "visibility": 0.6666666666666633,
+        "work": {
+          "limit": 2000000,
+          "pieces": 4,
+          "projections": 4,
+          "rays": 0,
+          "responses": 60
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "spot",
+        "smooth_error_estimate": 9.15954722428815e-08,
+        "source_order": 8,
+        "value": 0.018356505589208198,
+        "visibility": 0.6666666666666633,
+        "work": {
+          "limit": 2000000,
+          "pieces": 4,
+          "projections": 4,
+          "rays": 0,
+          "responses": 60
+        }
+      },
+      {
+        "exact_visibility": null,
+        "kind": "spot",
+        "smooth_error_estimate": 9.15954722428815e-08,
+        "source_order": 16,
+        "value": 0.018356505589208198,
+        "visibility": 0.6666666666666633,
+        "work": {
+          "limit": 2000000,
+          "pieces": 4,
+          "projections": 4,
+          "rays": 0,
+          "responses": 60
+        }
+      }
+    ],
+    "derivatives": [
+      {
+        "contribution_fd": 0.010797317570303841,
+        "independent_exact_reference": -0.13892747985548848,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 4,
+        "step": 0.01,
+        "visibility_fd": -0.184764158599382
+      },
+      {
+        "contribution_fd": 0.010797301157663801,
+        "independent_exact_reference": -0.1388892746920778,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 4,
+        "step": 0.001,
+        "visibility_fd": -0.18476415859702833
+      },
+      {
+        "contribution_fd": 0.01079730099347049,
+        "independent_exact_reference": -0.13888889274671357,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 4,
+        "step": 0.0001,
+        "visibility_fd": -0.1847641586028015
+      },
+      {
+        "contribution_fd": 0.010916031231666045,
+        "independent_exact_reference": -0.13892747985548848,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 8,
+        "step": 0.01,
+        "visibility_fd": -0.1373858413459994
+      },
+      {
+        "contribution_fd": 0.010916003854050029,
+        "independent_exact_reference": -0.1388892746920778,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 8,
+        "step": 0.001,
+        "visibility_fd": -0.13738584134503906
+      },
+      {
+        "contribution_fd": 0.010916003580206148,
+        "independent_exact_reference": -0.13888889274671357,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 8,
+        "step": 0.0001,
+        "visibility_fd": -0.13738584134892484
+      },
+      {
+        "contribution_fd": 0.010904036991698021,
+        "independent_exact_reference": -0.13892747985548848,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 16,
+        "step": 0.01,
+        "visibility_fd": -0.14159027640054944
+      },
+      {
+        "contribution_fd": 0.010904005464442649,
+        "independent_exact_reference": -0.1388892746920778,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 16,
+        "step": 0.001,
+        "visibility_fd": -0.14159027639948363
+      },
+      {
+        "contribution_fd": 0.010904005149051273,
+        "independent_exact_reference": -0.13888889274671357,
+        "kind": "rectangle",
+        "parameter": "width",
+        "source_order": 16,
+        "step": 0.0001,
+        "visibility_fd": -0.141590276406256
+      },
+      {
+        "contribution_fd": -0.14480165331574035,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 4,
+        "step": 0.01,
+        "visibility_fd": -0.20650014181469722
+      },
+      {
+        "contribution_fd": 5.551115123125783e-14,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 4,
+        "step": 0.001,
+        "visibility_fd": -0.055602860962067346
+      },
+      {
+        "contribution_fd": 1.0547118733938987e-11,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 4,
+        "step": 0.0001,
+        "visibility_fd": -0.05560280889771452
+      },
+      {
+        "contribution_fd": -0.13947714647881138,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 8,
+        "step": 0.01,
+        "visibility_fd": -0.2009315002909018
+      },
+      {
+        "contribution_fd": -0.004116556148403561,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 8,
+        "step": 0.001,
+        "visibility_fd": -0.059899337620072934
+      },
+      {
+        "contribution_fd": -5.551115123125783e-13,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 8,
+        "step": 0.0001,
+        "visibility_fd": -0.05560280890604119
+      },
+      {
+        "contribution_fd": -0.14198213374753688,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 16,
+        "step": 0.01,
+        "visibility_fd": -0.20354572222562317
+      },
+      {
+        "contribution_fd": -0.0031441569231516198,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 16,
+        "step": 0.001,
+        "visibility_fd": -0.05888429259603978
+      },
+      {
+        "contribution_fd": 8.326672684688674e-12,
+        "independent_exact_reference": null,
+        "kind": "sun",
+        "parameter": "angular_radius",
+        "source_order": 16,
+        "step": 0.0001,
+        "visibility_fd": -0.055602808901045186
+      },
+      {
+        "contribution_fd": -0.18346846242855516,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 4,
+        "step": 0.01,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18375849772502525,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 4,
+        "step": 0.001,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18376139736545755,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 4,
+        "step": 0.0001,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18346846242855516,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 8,
+        "step": 0.01,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18375849772502525,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 8,
+        "step": 0.001,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18376139736545755,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 8,
+        "step": 0.0001,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18346846242855516,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 16,
+        "step": 0.01,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18375849772502525,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 16,
+        "step": 0.001,
+        "visibility_fd": 0.0
+      },
+      {
+        "contribution_fd": -0.18376139736545755,
+        "independent_exact_reference": null,
+        "kind": "spot",
+        "parameter": "orientation_radians",
+        "source_order": 16,
+        "step": 0.0001,
+        "visibility_fd": 0.0
+      }
+    ],
+    "rectangle_edge_profile": [
+      {
+        "lux": 1.817919876102278e-18,
+        "visibility": 1.4541279527245409e-16,
+        "x": 1.15
+      },
+      {
+        "lux": 0.0,
+        "visibility": 0.0,
+        "x": 1.22
+      },
+      {
+        "lux": 0.0030661672888070957,
+        "visibility": 0.23405234511674183,
+        "x": 1.28
+      },
+      {
+        "lux": 0.0061126295705710015,
+        "visibility": 0.4818502414889955,
+        "x": 1.33
+      },
+      {
+        "lux": 0.008960356022836059,
+        "visibility": 0.7319741053937154,
+        "x": 1.38
+      },
+      {
+        "lux": 0.01170949999317491,
+        "visibility": 0.9984567717551185,
+        "x": 1.44
+      },
+      {
+        "lux": 0.011427515078335114,
+        "visibility": 0.9999999999999927,
+        "x": 1.52
+      }
+    ],
+    "rectangle_independent_4d_qmc": {
+      "numerical_error": "Uncertified; cross-check analytic visibility and independent source orders",
+      "rays": 16384,
+      "samples": 16384,
+      "value": 0.007261397719219787,
+      "visibility": 0.58355712890625
+    },
+    "support": [
+      {
+        "caster_height": 0.5,
+        "rectangle_support": 0.08571428571428572,
+        "sun_support": 0.030009003241180714
+      },
+      {
+        "caster_height": 1.0,
+        "rectangle_support": 0.19999999999999998,
+        "sun_support": 0.06001800648236143
+      },
+      {
+        "caster_height": 2.0,
+        "rectangle_support": 0.6,
+        "sun_support": 0.12003601296472285
+      },
+      {
+        "caster_height": 3.0,
+        "rectangle_support": 1.7999999999999998,
+        "sun_support": 0.18005401944708427
+      }
+    ]
+  },
+  "localization": {
+    "geometry_generalization": "Not demonstrated for unknown XYZ/caster correspondences/bake profile",
+    "posterior": null,
+    "protocol": "one height on known axis, bounded 2..8m; fixed source count; analytic own-content forward geometry",
+    "quantizer": "nearest 1/2048lux; no JA physical calibration",
+    "results": [
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 2.420937167746234,
+        "height": 2.2000397215944663,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 2.2,
+        "iterations": 80,
+        "method": "intensity_only",
+        "position_error": 1.7999602784055337,
+        "train_mse": 1.365570792463941e-08
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 4.500875159862626,
+        "height": 3.000008426145916,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 3.0,
+        "iterations": 80,
+        "method": "intensity_only",
+        "position_error": 0.9999915738540839,
+        "train_mse": 3.9500168917075865e-09
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 15.125849964710724,
+        "height": 5.5,
+        "heldout_lux_rmse": 0.2649177100725875,
+        "initial_height": 5.5,
+        "iterations": 1,
+        "method": "intensity_only",
+        "position_error": 1.5,
+        "train_mse": 3.4968824590552563e-10
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 28.125849981022217,
+        "height": 7.5,
+        "heldout_lux_rmse": 0.2771590946103378,
+        "initial_height": 7.5,
+        "iterations": 0,
+        "method": "intensity_only",
+        "position_error": 3.5,
+        "train_mse": 1.0113352503719561e-10
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 2.4208435028741278,
+        "height": 2.200019864111745,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 2.2,
+        "iterations": 80,
+        "method": "centre_visibility",
+        "position_error": 1.799980135888255,
+        "train_mse": 0.035920547320498514
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 4.500812533571916,
+        "height": 3.000004213412259,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 3.0,
+        "iterations": 80,
+        "method": "centre_visibility",
+        "position_error": 0.9999957865877409,
+        "train_mse": 0.03592054246686184
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.060227523925686,
+        "height": 4.015362882889595,
+        "heldout_lux_rmse": 0.010640905602902685,
+        "initial_height": 5.5,
+        "iterations": 80,
+        "method": "centre_visibility",
+        "position_error": 0.015362882889594864,
+        "train_mse": 0.0063261259691107935
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 15.1556684601755,
+        "height": 6.418611227365084,
+        "heldout_lux_rmse": 0.19447100025474665,
+        "initial_height": 7.5,
+        "iterations": 80,
+        "method": "centre_visibility",
+        "position_error": 2.4186112273650844,
+        "train_mse": 0.03362254331204917
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 2.4208934743762867,
+        "height": 2.200019861242513,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 2.2,
+        "iterations": 80,
+        "method": "integrated_visibility",
+        "position_error": 1.799980138757487,
+        "train_mse": 0.035920547319840394
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 4.50086252068127,
+        "height": 3.00000421309445,
+        "heldout_lux_rmse": 0.31586202276433006,
+        "initial_height": 3.0,
+        "iterations": 80,
+        "method": "integrated_visibility",
+        "position_error": 0.9999957869055498,
+        "train_mse": 0.03592054246675945
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.000446975564074,
+        "height": 3.999931932266664,
+        "heldout_lux_rmse": 7.10771862055902e-05,
+        "initial_height": 5.5,
+        "iterations": 20,
+        "method": "integrated_visibility",
+        "position_error": 6.806773333600802e-05,
+        "train_mse": 8.07185905186644e-10
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 15.153165627909344,
+        "height": 6.41798261204209,
+        "heldout_lux_rmse": 0.19447423263960942,
+        "initial_height": 7.5,
+        "iterations": 80,
+        "method": "integrated_visibility",
+        "position_error": 2.41798261204209,
+        "train_mse": 0.0336204782477896
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.00084993499858,
+        "height": 4.000000000429347,
+        "heldout_lux_rmse": 3.143303639623011e-05,
+        "initial_height": 2.2,
+        "iterations": 29,
+        "method": "explicit_boundary",
+        "position_error": 4.2934722443987994e-10,
+        "train_mse": 1.2499010415837956e-09
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.00084991837275,
+        "height": 3.9999999962728894,
+        "heldout_lux_rmse": 3.143459241769565e-05,
+        "initial_height": 3.0,
+        "iterations": 27,
+        "method": "explicit_boundary",
+        "position_error": 3.7271106201330895e-09,
+        "train_mse": 1.2499011144831992e-09
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.000849934007949,
+        "height": 4.000000000181688,
+        "heldout_lux_rmse": 3.143312910522911e-05,
+        "initial_height": 5.5,
+        "iterations": 29,
+        "method": "explicit_boundary",
+        "position_error": 1.8168844206911672e-10,
+        "train_mse": 1.2499010411640012e-09
+      },
+      {
+        "boundary_receiver_and_occluder": "separate from brightness targets; validation caster height1.5m",
+        "fitted_cd": 8.000849933281204,
+        "height": 4.0000000000000036,
+        "heldout_lux_rmse": 3.143319711753494e-05,
+        "initial_height": 7.5,
+        "iterations": 11,
+        "method": "explicit_boundary",
+        "position_error": 3.552713678800501e-15,
+        "train_mse": 1.249901041209144e-09
+      }
+    ],
+    "truth": {
+      "height_metres": 4.0,
+      "intensity_cd": 8.0
+    }
+  },
+  "multiple_sources": {
+    "convention": "Both independent sources translated by the same differential; intensities fixed",
+    "derivatives": [
+      {
+        "axis": "x",
+        "error": -1.3017403821535822e-10,
+        "fd": 0.20545182972397935,
+        "reference": 0.2054518298541534
+      },
+      {
+        "axis": "y",
+        "error": -8.298913314365441e-13,
+        "fd": -0.0003117825962684062,
+        "reference": -0.0003117825954385149
+      },
+      {
+        "axis": "z",
+        "error": 1.7086340675653844e-10,
+        "fd": 0.0026816577293475863,
+        "reference": 0.0026816575584841795
+      }
+    ],
+    "reference": 0.1351164674340502,
+    "value": 0.1351164674340502
+  },
+  "schema": "org.openjk.shadow-footprint-benchmark.v1",
+  "smooth_orientation_ad": [
+    {
+      "ad": -0.27436833445097536,
+      "error": 0.00042140946695723436,
+      "fd": -0.2739469249840181,
+      "step": 0.01,
+      "value": 0.028683836158014148
+    },
+    {
+      "ad": -0.27436833445097536,
+      "error": 4.213018693577375e-06,
+      "fd": -0.2743641214322818,
+      "step": 0.001,
+      "value": 0.028683836158014148
+    },
+    {
+      "ad": -0.27436833445097536,
+      "error": 4.213073739878226e-08,
+      "fd": -0.27436829232023796,
+      "step": 0.0001,
+      "value": 0.028683836158014148
+    },
+    {
+      "ad": -0.27436833445097536,
+      "error": 4.2109815634461256e-10,
+      "fd": -0.2743683340298772,
+      "step": 1e-05,
+      "value": 0.028683836158014148
+    }
+  ],
+  "source_sha256": {
+    "adaptive.py": "d1fb3363251affe47215fde3cd3fffcca085b7c3a5a7796a789ac89e67ce2a11",
+    "analytic.py": "538ce090dd51e8fd64a895659d500f2b939cb39ea7cbda9b5b2254e5fc3e5a6f",
+    "api.py": "bc0223f8cb1b49825a7e03565d8da542e8f04b85e376fcc9938c5db59e123f27",
+    "benchmark.py": "352f78ae62792ddf36dac1a8e7b192e1c1d356d999c34fc07ca9e1893e48a27a",
+    "compile_variants.py": "d4b0c9f6257f06cf7a7ae4ee2a394614adbe191cba6e201705aedbcc9f6a0ac8",
+    "compiler_boundary.py": "f6478ab48d394af5778af9454de2a4f4a038794a64ef61550858cd0fe4a2370a",
+    "compiler_trace.py": "f16fe3bcb19e4dfa23df6c78c15cf7a166adb0eafed6625069c2cf41435b5eee",
+    "fixtures.py": "b9707c6a0c58dea77b99e7a28310877eadaf4ed8fd3bae4affbce150233c8a06",
+    "geometry.py": "ab9e33537eb836d66fced38c961dcfbd67151bffbc7436d2865879528130e10d",
+    "integrate.py": "51ae37c7b9cb22d66466634b6c1b127326ae3fd2985ce3c534e7a9d83b86c340",
+    "localize.py": "66e7c903a04dbb3a44250d2452182d32434b06bcbbaf404409428e590e464653",
+    "report.py": "7cf86fb6227d197f622a372af896ef9248e1b535e38b7c7d53054af0bfc873f9",
+    "test_compiler_boundary.py": "a7cd8c51ce117119b550cebccf0b2603628c367c1fb988a44c5eec6060e8f797",
+    "test_footprint.py": "5fd1d037ee36a81871ebf21bfc64ad15d04f144e713cb235980db8fdf485d880"
+  },
+  "uncertainty": {
+    "alpha_unknown": {
+      "contribution_lower": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "contribution_upper": [
+        0.053157152869725444,
+        0.053157152869725444,
+        0.053157152869725444
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "alpha_unknown"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 7.216212650758115e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.6666666666666633,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 180
+      }
+    },
+    "known_wall_plus_missing": {
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "UnboundedOrProjectionUncertainty"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 0.0,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 0.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 4,
+        "rays": 0,
+        "responses": 0
+      }
+    },
+    "missing_unbounded": {
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": [
+        0.053157152869725444,
+        0.053157152869725444,
+        0.053157152869725444
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "UnboundedOrProjectionUncertainty"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 3.72276123908897e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 0,
+        "responses": 120
+      }
+    },
+    "moving": {
+      "contribution_lower": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "contribution_upper": [
+        0.053157152869725444,
+        0.053157152869725444,
+        0.053157152869725444
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "moving"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 7.216212650758115e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.6666666666666633,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 180
+      }
+    },
+    "narrow_opening": {
+      "contribution_lower": [
+        0.024949609525949944,
+        0.024949609525949944,
+        0.024949609525949944
+      ],
+      "contribution_upper": [
+        0.024949609525949944,
+        0.024949609525949944,
+        0.024949609525949944
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [],
+      "jacobian": null,
+      "numerical_error_estimate": 4.611739332684306e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.5712500000000004,
+      "visibility_upper": 0.5712500000000004,
+      "work": {
+        "limit": 200000,
+        "pieces": 22,
+        "projections": 8,
+        "rays": 0,
+        "responses": 1020
+      }
+    },
+    "near_tangent": [
+      {
+        "height": 3.8571428,
+        "interval": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "height": 3.857142857142857,
+        "interval": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "height": 3.857143,
+        "interval": [
+          1.0,
+          1.0
+        ]
+      }
+    ],
+    "opaque": {
+      "contribution_lower": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "contribution_upper": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [],
+      "jacobian": null,
+      "numerical_error_estimate": 3.4934514116691455e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.6666666666666633,
+      "visibility_upper": 0.6666666666666633,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 60
+      }
+    },
+    "patch2": {
+      "approximate_contribution": [
+        0.04498053917371068,
+        0.04498053917371068,
+        0.04498053917371068
+      ],
+      "approximate_visibility": 0.9683926251706781,
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": null,
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "CasterCrossesProjectionPlane",
+        "UnboundedOrProjectionUncertainty",
+        "CurvedReceiverEnvelope; numerical estimates apply to mesh only"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 4.7111489214895334e-07,
+      "numerical_error_is_certified_bound": false,
+      "observation": "curved",
+      "profile": "PhysicalSI-Direct-v1",
+      "receiver_geometry_envelope": 0.2,
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "ReceiverGeometryApproximation",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 500000,
+        "pieces": 6,
+        "projections": 16,
+        "rays": 0,
+        "responses": 720
+      }
+    },
+    "patch4": {
+      "approximate_contribution": [
+        0.0447761224446337,
+        0.0447761224446337,
+        0.0447761224446337
+      ],
+      "approximate_visibility": 0.969185599862967,
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": null,
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "CasterCrossesProjectionPlane",
+        "UnboundedOrProjectionUncertainty",
+        "CurvedReceiverEnvelope; numerical estimates apply to mesh only"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 2.841666387479469e-07,
+      "numerical_error_is_certified_bound": false,
+      "observation": "curved",
+      "profile": "PhysicalSI-Direct-v1",
+      "receiver_geometry_envelope": 0.05,
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "ReceiverGeometryApproximation",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 500000,
+        "pieces": 14,
+        "projections": 64,
+        "rays": 0,
+        "responses": 900
+      }
+    },
+    "patch8": {
+      "approximate_contribution": [
+        0.04478487686545125,
+        0.04478487686545125,
+        0.04478487686545125
+      ],
+      "approximate_visibility": 0.9708701230483421,
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": null,
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "CasterCrossesProjectionPlane",
+        "UnboundedOrProjectionUncertainty",
+        "CurvedReceiverEnvelope; numerical estimates apply to mesh only"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 5.9419191627802155e-08,
+      "numerical_error_is_certified_bound": false,
+      "observation": "curved",
+      "profile": "PhysicalSI-Direct-v1",
+      "receiver_geometry_envelope": 0.0125,
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "ReceiverGeometryApproximation",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 500000,
+        "pieces": 36,
+        "projections": 256,
+        "rays": 0,
+        "responses": 2600
+      }
+    },
+    "source_below_caster_independent_ray": {
+      "available": true,
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "differentiability": "Discrete binary visibility; deterministic does NOT mean correct derivative",
+      "geometry_confidence": null,
+      "jacobian": null,
+      "numerical_error_estimate": null,
+      "observation": "receiver",
+      "source": "source",
+      "source_key": "bb4d0021941c4562128704354a08f1e5d12da7d22561c2a988dca5caa38d4aed",
+      "status": "SampledApproximation",
+      "visibility_lower": 0.0,
+      "visibility_upper": 0.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 64,
+        "responses": 64
+      }
+    },
+    "source_below_caster_reference": {
+      "contribution_lower": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "contribution_upper": [
+        0.20381807696171167,
+        0.20381807696171167,
+        0.20381807696171167
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "CasterCrossesProjectionPlane",
+        "UnboundedOrProjectionUncertainty"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 4.175913558326086e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "bb4d0021941c4562128704354a08f1e5d12da7d22561c2a988dca5caa38d4aed",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.0,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 4,
+        "rays": 0,
+        "responses": 2600
+      }
+    },
+    "translucent": {
+      "contribution_lower": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "contribution_upper": [
+        0.053157152869725444,
+        0.053157152869725444,
+        0.053157152869725444
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "translucent"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 7.216212650758115e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.6666666666666633,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 180
+      }
+    },
+    "unsupported": {
+      "contribution_lower": [
+        0.03530417704076458,
+        0.03530417704076458,
+        0.03530417704076458
+      ],
+      "contribution_upper": [
+        0.053157152869725444,
+        0.053157152869725444,
+        0.053157152869725444
+      ],
+      "differentiability": "Piecewise; boundary/topology events require branch checks",
+      "finite_source_error": "Unknown: compare independent orders",
+      "geometry_confidence": null,
+      "geometry_uncertainty": [
+        "unsupported"
+      ],
+      "jacobian": null,
+      "numerical_error_estimate": 7.216212650758115e-09,
+      "numerical_error_is_certified_bound": false,
+      "observation": "receiver",
+      "profile": "PhysicalSI-Direct-v1",
+      "scene": "analytic-fixture-v1",
+      "source": "source",
+      "source_key": "49b03d251f9365258ac87352e6a48c932a0ca8fcda7735cf7e688f526797591a",
+      "source_order": 1,
+      "status": "PlanarBoundaryReference",
+      "unit": "lux",
+      "visibility_lower": 0.6666666666666633,
+      "visibility_upper": 1.0,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 180
+      }
+    }
+  },
+  "units": "metres/candela/nits/lux; analytic fixtures ONLY",
+  "values": [
+    {
+      "lux_error": 0.017858526226857713,
+      "method": "centre",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 71.43410490743085,
+      "value": 0.05316270326762233,
+      "visibility": 1.0,
+      "visibility_error": 0.3333333333333325,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 1,
+        "responses": 1
+      }
+    },
+    {
+      "lux_error": -0.008875892790238947,
+      "method": "grid2",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": -35.50357116095579,
+      "value": 0.026428284250525673,
+      "visibility": 0.5,
+      "visibility_error": -0.16666666666666752,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 4,
+        "responses": 4
+      }
+    },
+    {
+      "lux_error": 0.004451061907963461,
+      "method": "grid4",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 17.80424763185384,
+      "value": 0.03975523894872808,
+      "visibility": 0.7500000000000001,
+      "visibility_error": 0.0833333333333326,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 16,
+        "responses": 16
+      }
+    },
+    {
+      "lux_error": -0.0022222241378935456,
+      "method": "grid8",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": -8.888896551574183,
+      "value": 0.033081952902871074,
+      "visibility": 0.6249999999999996,
+      "visibility_error": -0.04166666666666796,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 64,
+        "responses": 64
+      }
+    },
+    {
+      "lux_error": 0.0011119352532450097,
+      "method": "grid16",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 4.447741012980039,
+      "value": 0.03641611229400963,
+      "visibility": 0.6875000000000033,
+      "visibility_error": 0.020833333333335813,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 256,
+        "responses": 256
+      }
+    },
+    {
+      "lux_error": -0.0005557613923107343,
+      "method": "grid32",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": -2.223045569242937,
+      "value": 0.034748415648453886,
+      "visibility": 0.6562500000000014,
+      "visibility_error": -0.010416666666666075,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 1024,
+        "responses": 1024
+      }
+    },
+    {
+      "lux_error": 0.017700835639710123,
+      "method": "stratified2",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 70.8033425588405,
+      "value": 0.05300501268047474,
+      "visibility": 1.0,
+      "visibility_error": 0.3333333333333325,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 4,
+        "responses": 4
+      }
+    },
+    {
+      "lux_error": -0.008881957631240878,
+      "method": "stratified4",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": -35.52783052496351,
+      "value": 0.02642221940952374,
+      "visibility": 0.5000000000000002,
+      "visibility_error": -0.1666666666666673,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 16,
+        "responses": 16
+      }
+    },
+    {
+      "lux_error": 0.00111752980081338,
+      "method": "stratified8",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 4.470119203253519,
+      "value": 0.036421706841578,
+      "visibility": 0.6874999999999997,
+      "visibility_error": 0.02083333333333215,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 64,
+        "responses": 64
+      }
+    },
+    {
+      "lux_error": 6.959122360730013e-05,
+      "method": "stratified16",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 0.27836489442920054,
+      "value": 0.03537376826437192,
+      "visibility": 0.6679687500000032,
+      "visibility_error": 0.0013020833333357018,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 256,
+        "responses": 256
+      }
+    },
+    {
+      "lux_error": 6.923873883978027e-05,
+      "method": "stratified32",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 0.27695495535912107,
+      "value": 0.0353734157796044,
+      "visibility": 0.6679687500000013,
+      "visibility_error": 0.0013020833333338144,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 1024,
+        "responses": 1024
+      }
+    },
+    {
+      "lux_error": 0.004313273523074514,
+      "method": "halton2",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 17.253094092298056,
+      "value": 0.039617450563839134,
+      "visibility": 0.75,
+      "visibility_error": 0.08333333333333248,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 4,
+        "responses": 4
+      }
+    },
+    {
+      "lux_error": 0.0010975705235832037,
+      "method": "halton4",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 4.3902820943328145,
+      "value": 0.036401747564347824,
+      "visibility": 0.6875000000000001,
+      "visibility_error": 0.020833333333332593,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 16,
+        "responses": 16
+      }
+    },
+    {
+      "lux_error": 0.00027296108904899946,
+      "method": "halton8",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 1.0918443561959978,
+      "value": 0.03557713812981362,
+      "visibility": 0.6718749999999997,
+      "visibility_error": 0.005208333333332149,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 64,
+        "responses": 64
+      }
+    },
+    {
+      "lux_error": 6.961146868805085e-05,
+      "method": "halton16",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 0.2784458747522034,
+      "value": 0.03537378850945267,
+      "visibility": 0.6679687500000032,
+      "visibility_error": 0.0013020833333357018,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 256,
+        "responses": 256
+      }
+    },
+    {
+      "lux_error": 1.7165947629453615e-05,
+      "method": "halton32",
+      "numerical_error_estimate": null,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 0.06866379051781446,
+      "value": 0.035321342988394074,
+      "visibility": 0.6669921875000013,
+      "visibility_error": 0.00032552083333381443,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 1024,
+        "responses": 1024
+      }
+    },
+    {
+      "lux_error": 0.0006496671799152282,
+      "method": "adaptive",
+      "numerical_error_estimate": 0.0025638351216044886,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": 2.5986687196609126,
+      "value": 0.03595384422067985,
+      "visibility": 0.6788330078125,
+      "visibility_error": 0.012166341145832482,
+      "work": {
+        "limit": 200000,
+        "pieces": 0,
+        "projections": 0,
+        "rays": 968,
+        "responses": 968
+      }
+    },
+    {
+      "lux_error": -4.163336342344337e-17,
+      "method": "boundary",
+      "numerical_error_estimate": 3.5934988684291936e-12,
+      "reference": 0.03530417704076462,
+      "rgb8_error_under_fixed_4000_bytes_per_lux": -1.6653345369377348e-13,
+      "value": 0.03530417704076458,
+      "visibility": 0.6666666666666633,
+      "visibility_error": -4.218847493575595e-15,
+      "work": {
+        "limit": 200000,
+        "pieces": 4,
+        "projections": 4,
+        "rays": 0,
+        "responses": 10220
+      }
+    }
+  ]
+}

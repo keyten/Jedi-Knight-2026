@@ -715,3 +715,9 @@ geometry. A validated angular transport field can be useful even when these
 prevent physical emitter recovery. Consumers must continue reading the shared
 asset independently and require their own capability/suitability; none is
 implemented or enabled by this research.
+
+[X04 shadow-footprint validation](rend2-shadow-footprints-x04.md) now tests the
+moving-boundary term against independent exact solid-angle derivatives, retains
+fixed-sample/frozen-visibility failures, and adds scoped compiler trace replay.
+Finite-source quadrature derivatives and general real shadow correspondence
+remain explicitly unverified.

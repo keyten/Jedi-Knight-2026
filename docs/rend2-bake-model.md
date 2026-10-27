@@ -732,6 +732,12 @@ full compiler trace/triangle epsilon replay is required there. All other cases
 retain their interior sample checks. No broader claim of exact stock visibility
 or boundary sampling is made.
 
+The follow-up [X04 boundary/footprint validation](rend2-shadow-footprints-x04.md)
+reproduces the unchanged35-texel witness and explains this pinned fixture using
+clipped trace-tree triangles and source-defined barycentric slack. Its restricted
+replay matches all checked floor bytes, including the old excluded row. The
+historical witness remains unchanged; this is not general Raven trace validation.
+
 ## Historical unknowns and next implementation boundaries
 
 The missing production compiler/recipe is a substantive result, not an assumed
