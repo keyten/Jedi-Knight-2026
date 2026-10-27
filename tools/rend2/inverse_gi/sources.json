@@ -1,0 +1,57 @@
+{
+  "schema": "org.openjk.inverse-gi-research-sources",
+  "version": 1,
+  "read_date": "2026-10-27",
+  "sources": [
+    {
+      "id": "IPT",
+      "title": "Inverse Path Tracing for Joint Material and Lighting Estimation",
+      "authors": "Dejan Azinovic, Tzu-Mao Li, Anton Kaplanyan, Matthias Niessner",
+      "version": "arXiv 1903.07145v1, 2019-03-17; CVPR 2019",
+      "url": "https://arxiv.org/pdf/1903.07145",
+      "sha256": "97f453c5d2675f2954c256ffea4a2f7cfd47dd801ac8861fe3589844620308bd",
+      "pages": 14,
+      "read": "Mathematics/independent gradient estimators PDF pp.3-4, Eqs.1-3; implementation/regularization pp.4-5; results pp.6-8, Figs.9-11/Table1; supplementary limitations."
+    },
+    {
+      "id": "FIPT",
+      "title": "Factorized Inverse Path Tracing for Efficient and Accurate Material-Lighting Estimation",
+      "authors": "Liwen Wu et al.",
+      "version": "arXiv 2304.05669v2, 2023-08-23; ICCV 2023",
+      "url": "https://arxiv.org/pdf/2304.05669v2",
+      "sha256": "70981fd6a028f8360389cefbed5a8be144e1a5842539c16680e23a7051c2f911",
+      "pages": 20,
+      "read": "PDF pp.3-5 Eqs.1-17; results/ablations pp.6-9 including Table3 and Fig14; supplementary HDR acquisition, cache and network details pp.12-13. PDF equation numbers, not HTML reflow numbers."
+    },
+    {
+      "id": "YU",
+      "title": "Inverse Global Illumination: Recovering Reflectance Models of Real Scenes from Photographs",
+      "authors": "Yizhou Yu, Paul Debevec, Jitendra Malik, Tim Hawkins",
+      "version": "SIGGRAPH 1999, pp.215-224; author manuscript with colour plates",
+      "url": "https://www.cs.princeton.edu/courses/archive/spring2001/cs598b/papers/yu99.pdf",
+      "sha256": "4f625a240301e8045dbbab2509a2f8f44a6342af65a7dfc2e3e9f348835dc9c6",
+      "pages": 13,
+      "read": "Section3, printed p217 Eq1 (PDF p3); Section5 printed pp218-219/PDF pp4-5; Section7/8 printed pp220-222/PDF pp6-8, relighting and error discussion."
+    },
+    {
+      "id": "KELLER",
+      "title": "Instant Radiosity",
+      "authors": "Alexander Keller",
+      "version": "SIGGRAPH 1997, pp.49-56",
+      "url": "https://www.cg.tuwien.ac.at/courses/Rendering/InstantRadiosity.pdf",
+      "doi": "https://doi.org/10.1145/258734.258769",
+      "sha256": "dedd0f9358a14289c9629ce18c42415b4a28c5af01e7bfc0b908cb2c95b725cc",
+      "pages": 8,
+      "read": "PDF pp1-3 rendering operator, Eqs1-3 and path-weight construction; pp3-4 implementation and Fig4; pp5-6 singularity/limitations, convergence and results."
+    }
+  ],
+  "compiler": {
+    "source_lock": "../bake_model/source-lock.json",
+    "source_revision": "d9338309ea8fab75027b7382efaabe034302b862",
+    "executable_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+    "existing_forward_witness": "../bake_model/validation.json",
+    "existing_dataset_witness": "../datasets/q3map2-validation.json",
+    "scope": "NetRadiant controlled subset. Not the historical Raven production compiler."
+  },
+  "storage": "PDFs/source text and compiler BSPs remain ignored under build/. No redistribution of stock maps or third-party PDFs."
+}

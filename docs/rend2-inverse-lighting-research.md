@@ -1,5 +1,9 @@
 # Inverse baked-light reconstruction: research and a JA solver design
 
+The subsequent [physically constrained GI decision](rend2-inverse-gi-research.md)
+separates reflected transport from direct-profile discrepancy, tests emitter
+collapse under flexible residuals, and specifies a bounded first-bounce model.
+
 Research date: 2026-10-26. Repository baseline: `447e2ce22`.
 This document proposes an offline algorithm; it does not implement reconstruction,
 change rendering, or certify any recovered light. A valid observation dataset,

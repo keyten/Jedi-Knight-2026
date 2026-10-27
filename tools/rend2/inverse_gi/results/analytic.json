@@ -1,0 +1,635 @@
+{
+  "bounce_orders": {
+    "layers_lux": [
+      [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          1.0,
+          1.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          0.1,
+          0.1,
+          0.1
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.010000000000000002,
+          0.010000000000000002,
+          0.010000000000000002
+        ]
+      ],
+      [
+        [
+          0.0010000000000000002,
+          0.0010000000000000002,
+          0.0010000000000000002
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    ],
+    "note": "Nonzero later bounces demonstrated on a separate passive network; not q3map empirical radiosity",
+    "power_contraction": 0.1,
+    "tail_power_after_four_bound_lumens": 0.00011111111111111113
+  },
+  "censoring": {
+    "intervals": [
+      [
+        0.0,
+        0.00392156862745098
+      ],
+      [
+        0.0196078431372549,
+        0.023529411764705882
+      ],
+      [
+        0.4980392156862745,
+        0.5019607843137255
+      ],
+      [
+        1.0,
+        null
+      ],
+      [
+        1.0,
+        null
+      ]
+    ],
+    "note": "Censoring is lower-bound information; no exact upper target or interval probability is inferred",
+    "point_value_rmse": 0.447214489582377,
+    "raw_rgb8": [
+      0,
+      5,
+      127,
+      255,
+      255
+    ],
+    "true_relative": [
+      0.0,
+      0.02,
+      0.5,
+      1.0,
+      2.0
+    ],
+    "unknown_transport_lower": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "unknown_transport_upper": [
+      0.30000000000000004,
+      0.30000000000000004,
+      0.30000000000000004
+    ]
+  },
+  "emitter_suppression": {
+    "identical_basis_allocation": [
+      2.6772818806990943,
+      0.3325904230876136
+    ],
+    "recall_threshold_cd": 1.5,
+    "rows": [
+      {
+        "cd": 0.0,
+        "heldout_rmse_lux": 1.2566734040548206,
+        "model": "free_per_sample",
+        "parameters": 34,
+        "physical_gi": false,
+        "source_recalled": false,
+        "train_rmse_lux": 0.0
+      },
+      {
+        "cd": 0.0,
+        "heldout_rmse_lux": 1.2597396260458464,
+        "model": "smooth_plus_sparse_sources",
+        "parameters": 34,
+        "physical_gi": false,
+        "source_recalled": false,
+        "train_rmse_lux": 0.004473161312021342
+      },
+      {
+        "cd": 3.0010014887706635,
+        "heldout_rmse_lux": 0.0020875216550158004,
+        "model": "smooth_no_source_penalty",
+        "parameters": 34,
+        "physical_gi": false,
+        "source_recalled": true,
+        "train_rmse_lux": 6.583650131980371e-05
+      },
+      {
+        "cd": 3.002665287670358,
+        "heldout_rmse_lux": 0.0019195602178573047,
+        "model": "residual_energy_penalty",
+        "parameters": 34,
+        "physical_gi": false,
+        "source_recalled": true,
+        "train_rmse_lux": 0.001795913026764149
+      },
+      {
+        "cd": 2.9993821233234454,
+        "heldout_rmse_lux": 0.004253938744578789,
+        "model": "constant_unresolved",
+        "parameters": 2,
+        "physical_gi": false,
+        "source_recalled": true,
+        "train_rmse_lux": 0.004306229136917574
+      },
+      {
+        "cd": 3.0,
+        "heldout_rmse_lux": 0.0,
+        "model": "transport_energy_coupled",
+        "parameters": 1,
+        "physical_gi": true,
+        "source_recalled": true,
+        "train_rmse_lux": 0.0
+      }
+    ],
+    "source_count_priors": [
+      {
+        "extra_source_cd": 0.0,
+        "false_emitters_at_1_5cd": 0,
+        "heldout_rmse_lux": 0.0,
+        "l1": 0.0,
+        "true_source_cd": 3.0
+      },
+      {
+        "extra_source_cd": 0.0037956912662032564,
+        "false_emitters_at_1_5cd": 0,
+        "heldout_rmse_lux": 0.0007193247011011662,
+        "l1": 0.05,
+        "true_source_cd": 2.9919885979605394
+      },
+      {
+        "extra_source_cd": 0.03795691301970969,
+        "false_emitters_at_1_5cd": 0,
+        "heldout_rmse_lux": 0.007193247012352915,
+        "l1": 0.5,
+        "true_source_cd": 2.9198859792310543
+      }
+    ],
+    "truth_cd": 3.0,
+    "warning": "Recall is a toy threshold, NOT calibrated source-existence probability; held-out fit alone cannot prove attribution"
+  },
+  "finite_reflector": [
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 1.68248264654431e-12,
+      "midpoint_relative_error": 0.003202015539331383,
+      "order24_difference": 6.5052130349130266e-18,
+      "receiver": [
+        0.1,
+        0.0,
+        0.0
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.003110419627151388,
+      "size_metres": 0.1
+    },
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 1.3769301739594862e-07,
+      "midpoint_relative_error": 0.028426774633017085,
+      "order24_difference": 1.942890293094024e-16,
+      "receiver": [
+        0.1,
+        0.0,
+        0.8
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.04952183572581547,
+      "size_metres": 0.1
+    },
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 5.610314274560911e-07,
+      "midpoint_relative_error": 0.07989204749572869,
+      "order24_difference": 9.71445146547012e-17,
+      "receiver": [
+        0.1,
+        0.0,
+        0.0
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.07223822155111549,
+      "size_metres": 0.5
+    },
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 0.004125747683398234,
+      "midpoint_relative_error": 1.0582483971265522,
+      "order24_difference": 3.4416913763379853e-15,
+      "receiver": [
+        0.1,
+        0.0,
+        0.8
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.6186034428656364,
+      "size_metres": 0.5
+    },
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 9.318675228009767e-05,
+      "midpoint_relative_error": 0.3180732043917005,
+      "order24_difference": 1.6653345369377348e-16,
+      "receiver": [
+        0.1,
+        0.0,
+        0.0
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.2367379314543795,
+      "size_metres": 1.0
+    },
+    {
+      "fast_evaluations": 16,
+      "gauss4_relative_error": 0.15472785100496517,
+      "midpoint_relative_error": 4.798368142285914,
+      "order24_difference": 1.6029714888787794e-08,
+      "receiver": [
+        0.1,
+        0.0,
+        0.8
+      ],
+      "reference_evaluations": 2304,
+      "reference_lux": 0.8783433638507874,
+      "size_metres": 1.0
+    }
+  ],
+  "geometry": {
+    "doorway": {
+      "direct_visibility": [
+        0.0,
+        0.0
+      ],
+      "local_physical_emitters": 0,
+      "possible_one_bounce_path": [
+        1.0,
+        1.0
+      ],
+      "reflector_to_receiver": [
+        1.0,
+        1.0
+      ],
+      "source_to_reflector": [
+        1.0,
+        1.0
+      ]
+    },
+    "sealed_wall": {
+      "direct_visibility": [
+        1.0,
+        1.0
+      ],
+      "local_physical_emitters": 0,
+      "possible_one_bounce_path": [
+        0.0,
+        0.0
+      ],
+      "reflector_to_receiver": [
+        0.0,
+        0.0
+      ],
+      "source_to_reflector": [
+        1.0,
+        1.0
+      ]
+    },
+    "sky_only": {
+      "horizontal_irradiance_lux": 6.283185307179586,
+      "local_physical_emitters": 0,
+      "note": "Uniform unoccluded hemisphere, analytic pi L; one zenith query alone does not integrate sky",
+      "radiance_cd_m2": 2.0,
+      "zenith_visibility": [
+        1.0,
+        1.0
+      ]
+    },
+    "unbounded_missing": {
+      "direct_visibility": [
+        0.0,
+        0.0
+      ],
+      "local_physical_emitters": 0,
+      "possible_one_bounce_path": [
+        0.0,
+        1.0
+      ],
+      "reflector_to_receiver": [
+        0.0,
+        1.0
+      ],
+      "source_to_reflector": [
+        0.0,
+        1.0
+      ]
+    },
+    "unknown_mask": {
+      "direct_visibility": [
+        0.0,
+        1.0
+      ],
+      "local_physical_emitters": 0,
+      "possible_one_bounce_path": [
+        1.0,
+        1.0
+      ],
+      "reflector_to_receiver": [
+        1.0,
+        1.0
+      ],
+      "source_to_reflector": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "network": {
+    "basis": "reciprocal midpoint, black receivers; no higher bounce in this fixture",
+    "edges": 154,
+    "maximum_outgoing_fraction": 0.16500978780061004,
+    "patches": 78
+  },
+  "reflectance": {
+    "alternatives": [
+      {
+        "incident_lux": 6.000000000000001,
+        "outgoing_cd_m2": 0.3819718634205489,
+        "reflectance": 0.2
+      },
+      {
+        "incident_lux": 3.0000000000000004,
+        "outgoing_cd_m2": 0.3819718634205489,
+        "reflectance": 0.4
+      },
+      {
+        "incident_lux": 1.5000000000000002,
+        "outgoing_cd_m2": 0.3819718634205489,
+        "reflectance": 0.8
+      }
+    ],
+    "incident_ratio_max_min": 4.0,
+    "lm_warning": "Do not multiply receiver rho into JA lightmap target or divide baked RGB by current PBR albedo",
+    "observed_outgoing_cd_m2": 0.3819718634205489,
+    "two_bounce_product_examples": [
+      [
+        3.0,
+        0.4,
+        0.5
+      ],
+      [
+        6.0,
+        0.2,
+        0.5
+      ],
+      [
+        3.0,
+        0.8,
+        0.25
+      ]
+    ]
+  },
+  "schema": "org.openjk.inverse-gi-research",
+  "source_sha256": {
+    "experiment.py": "e8e211bca16a10194caa48befddfb4362ad76b83dfe2b8ab8ed58618757a212c",
+    "transport.py": "53cfa37b02c263da951b4b1c2270915be87572bfb6771db7629f1de5d688e666"
+  },
+  "sparse_clipped": {
+    "all_clipped_intensity_upper": null,
+    "extra_physical_sources": 0,
+    "feasible_cd_interval": [
+      2.9946169174634707,
+      3.0422113741178354
+    ],
+    "gain_bytes_per_lux": 128.0,
+    "heldout_interval_rmse_bytes": 0.18599625515019685,
+    "heldout_intervals_covered": 33,
+    "heldout_samples": 33,
+    "note": "Known single candidate, linear scalar quantizer; NOT NR shared-peak ColorToBytes. No source-discovery benchmark.",
+    "saturated_training_samples": 2,
+    "source_recalled": true,
+    "train_samples": 5,
+    "treating_clipped_as_exact_cd": 1.9999380651867007,
+    "truth_cd": 3.0
+  },
+  "stability": {
+    "gap_samples": 11,
+    "heldout_samples": 33,
+    "profile_caveat": "linear_alternative is an idealized confounder, NOT a q3map2 formula; see compiler_controls for pinned kernels",
+    "rows": [
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 3.0,
+        "heldout_rmse_lux": 0.0,
+        "material": "known",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.0,
+        "unsafe_heldout_rmse_lux": 0.0,
+        "unsafe_independent_direct_gain": 3.0,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 3.0,
+        "heldout_rmse_lux": 0.0,
+        "material": "wrong_half",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.0,
+        "unsafe_heldout_rmse_lux": 0.0,
+        "unsafe_independent_direct_gain": 3.0,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 3.0,
+        "heldout_rmse_lux": 0.0,
+        "material": "unknown_grey",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.0,
+        "unsafe_heldout_rmse_lux": 0.0,
+        "unsafe_independent_direct_gain": 3.0,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 2.2388633406850036,
+        "heldout_rmse_lux": 0.6570206463485245,
+        "material": "known",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9808515804154492,
+        "unsafe_heldout_rmse_lux": 0.6570206463485245,
+        "unsafe_independent_direct_gain": 2.2388633406850036,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 2.2388633406850036,
+        "heldout_rmse_lux": 0.6570206463485245,
+        "material": "wrong_half",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9808515804154492,
+        "unsafe_heldout_rmse_lux": 0.6570206463485245,
+        "unsafe_independent_direct_gain": 2.2388633406850036,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": false,
+        "fitted_cd_per_channel": 2.2388633406850036,
+        "heldout_rmse_lux": 0.6570206463485245,
+        "material": "unknown_grey",
+        "predicted_gi_mean_lux": 0.0,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9808515804154492,
+        "unsafe_heldout_rmse_lux": 0.6570206463485245,
+        "unsafe_independent_direct_gain": 2.2388633406850036,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 3.0,
+        "heldout_rmse_lux": 0.0,
+        "material": "known",
+        "predicted_gi_mean_lux": 0.0035056429151233857,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.0,
+        "unsafe_heldout_rmse_lux": 1.222951778183642e-16,
+        "unsafe_independent_direct_gain": 2.9999999999999996,
+        "unsafe_independent_gi_gain": 2.9999999999999707
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 3.002259429930675,
+        "heldout_rmse_lux": 0.002400166428173114,
+        "material": "wrong_half",
+        "predicted_gi_mean_lux": 0.0017541415833164742,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.002243322249984885,
+        "unsafe_heldout_rmse_lux": 2.1402792322424445e-16,
+        "unsafe_independent_direct_gain": 2.9999999999999987,
+        "unsafe_independent_gi_gain": 6.000000000000219
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 2.9988714097892224,
+        "heldout_rmse_lux": 0.0035037535282898707,
+        "material": "unknown_grey",
+        "predicted_gi_mean_lux": 0.004380405129622363,
+        "profile": "inverse_square",
+        "train_rmse_lux": 0.0034777372105791082,
+        "unsafe_heldout_rmse_lux": 0.0033998675071311274,
+        "unsafe_independent_direct_gain": 3.0000000000000018,
+        "unsafe_independent_gi_gain": 2.399999999999613
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 2.236731146692136,
+        "heldout_rmse_lux": 0.6571886014890075,
+        "material": "known",
+        "predicted_gi_mean_lux": 0.0049941639024012364,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9808770963092335,
+        "unsafe_heldout_rmse_lux": 0.6565563983124658,
+        "unsafe_independent_direct_gain": 2.243682750658525,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 2.240209780158342,
+        "heldout_rmse_lux": 0.6568696600946309,
+        "material": "wrong_half",
+        "predicted_gi_mean_lux": 0.002500965490291202,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9808361094914498,
+        "unsafe_heldout_rmse_lux": 0.6565563983124658,
+        "unsafe_independent_direct_gain": 2.243682750658525,
+        "unsafe_independent_gi_gain": 0.0
+      },
+      {
+        "bounce": true,
+        "fitted_cd_per_channel": 2.235005153172866,
+        "heldout_rmse_lux": 0.6573603681986404,
+        "material": "unknown_grey",
+        "predicted_gi_mean_lux": 0.006237887639158121,
+        "profile": "linear_alternative",
+        "train_rmse_lux": 0.9809031015604286,
+        "unsafe_heldout_rmse_lux": 0.6565563983124658,
+        "unsafe_independent_direct_gain": 2.243682750658525,
+        "unsafe_independent_gi_gain": 0.0
+      }
+    ],
+    "separation_metres": 0.6,
+    "shared_rgb_gain": true,
+    "train_samples": 33,
+    "zero_bounce_false_attribution": {
+      "free_residual_direct_gain": 0.0,
+      "free_residual_mean_lux": 1.2186512874174074,
+      "note": "Here even the loose transport basis rejects positive GI; a free residual can still swallow all zero-bounce light",
+      "truth_bounce_lux": 0.0,
+      "wrong_profile_direct_gain": 2.2388633406850036,
+      "wrong_profile_independent_gi_gain": 0.0
+    }
+  },
+  "uncertainty": {
+    "bounded_material": {
+      "channels_enclosed": 99,
+      "heldout_channels": 99,
+      "interpretation": "Deterministic conditional envelope at FIXED source/profile/geometry, not a probability",
+      "lower_reflectance": [
+        0.5,
+        0.1,
+        0.02
+      ],
+      "upper_reflectance": [
+        0.85,
+        0.3,
+        0.2
+      ]
+    },
+    "sparse_training_sites": [
+      1,
+      9,
+      17,
+      25,
+      33
+    ],
+    "thin_wall": {
+      "naive_smooth_dark_side": 0.3333333333333333,
+      "reason": "Euclidean proximity cannot authorize cross-wall transfer",
+      "visibility_constrained_dark_side": 0.0
+    },
+    "unknown_material_gi_mean_lux_range": [
+      0.0,
+      0.010955134109760581
+    ],
+    "unknown_profile_posterior": null
+  },
+  "units": "SI analytical scenes only; no stock-map absolute calibration",
+  "version": 1
+}

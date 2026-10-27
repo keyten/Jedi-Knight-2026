@@ -1,5 +1,10 @@
 # JA baked-light forward models, specification v1
 
+The [inverse-GI research controls](rend2-inverse-gi-research.md) reuse the pinned
+direct/bounce fixtures and show why wrong direct profiles cannot be treated as
+measured indirect light. They do not identify the stock production compiler or
+implement full bounce replay.
+
 Investigation and controlled checks: **2026-10-26**. This specifies compiler-relative
 lighting for a future inverse solver. It changes no renderer, decoder, PBR,
 brightness, or reconstruction-consumer code. A complete bake emulator and light
