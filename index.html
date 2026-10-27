@@ -4,278 +4,194 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jedi Academy 2026</title>
-<meta name="description" content="Jedi Academy 2026 — a modern OpenJK fork for Jedi Academy / Jedi Outcast: a physically based rend2 renderer, new Force powers, physics and modding tools. Everything opt-in, fully backward compatible.">
-<meta name="theme-color" content="#05070d">
-<meta property="og:title" content="Jedi Academy 2026">
-<meta property="og:description" content="Modern graphics, new Force powers and physics for Jedi Academy — fully backward compatible.">
+<meta name="description" content="An OpenJK fork for Jedi Academy and Jedi Outcast: rend2 rendering features, new Force powers, physics objects and per-map scripts. Everything is off until enabled.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<canvas id="stars" aria-hidden="true"></canvas>
 
-<header class="nav" id="nav">
-  <a class="brand" href="#top" aria-label="Jedi Academy 2026 home">
-    <span class="brand-mark" aria-hidden="true"></span>
-    <span>JA<b>2026</b></span>
-  </a>
-  <nav class="nav-links" id="navLinks">
-    <a href="#graphics">Graphics</a>
-    <a href="#force">Force</a>
-    <a href="#physics">Physics</a>
-    <a href="#modding">Modding</a>
-    <a href="#start">Get started</a>
-  </nav>
-  <a class="btn btn-ghost btn-sm nav-gh" href="https://github.com/keyten/BetterJK" target="_blank" rel="noopener">
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-    GitHub
-  </a>
-  <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="name" href="#">Jedi Academy 2026</a>
+    <nav>
+      <a href="#graphics">Graphics</a>
+      <a href="#force">Force powers</a>
+      <a href="#physics">Physics</a>
+      <a href="#scripts">Map scripts</a>
+      <a href="https://github.com/keyten/BetterJK">Source</a>
+    </nav>
+  </div>
 </header>
 
-<main id="top">
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-glow" aria-hidden="true"></div>
-    <div class="beams" aria-hidden="true">
-      <i class="beam b-blue"></i><i class="beam b-green"></i><i class="beam b-red"></i>
-    </div>
-    <div class="wrap hero-inner">
-      <p class="eyebrow reveal"><span class="dot"></span> OpenJK fork · Jedi Academy &amp; Jedi Outcast</p>
-      <h1 class="reveal">Jedi&nbsp;Academy <span class="year">2026</span></h1>
-      <p class="lead reveal">A modern physically based renderer, new Force powers, real physics and modding tools — for the game you already love. <strong>Nothing changes until you turn it on.</strong></p>
-      <div class="cta reveal">
-        <a class="btn btn-primary" href="#graphics">Explore features</a>
-        <a class="btn btn-ghost" href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md" target="_blank" rel="noopener">Rendering reference →</a>
-      </div>
-      <dl class="stats reveal">
-        <div><dt>60+</dt><dd>rendering features</dd></div>
-        <div><dt>4</dt><dd>new Force powers</dd></div>
-        <div><dt>7</dt><dd>powers upped to level 4–5</dd></div>
-        <div><dt>100%</dt><dd>backward compatible</dd></div>
-      </dl>
-    </div>
-    <a class="scroll-hint" href="#pillars" aria-label="Scroll down"><span></span></a>
+<main class="wrap">
+
+  <section class="intro">
+    <h1>Jedi Academy 2026</h1>
+    <p>A fork of OpenJK for Jedi Academy and Jedi Outcast. It adds rendering features to rend2, a few new Force powers and higher levels for existing ones, physical objects, and a way for mods to run scripts per map. Most of the work targets single player; some rendering changes apply to multiplayer as well.</p>
+    <p>Nothing changes by default. Every addition is behind a cvar or a console command, so the game, its saves and existing mods behave as before until you enable something.</p>
+    <p>The project is based on SomaZ's <code>rend2-unified-wip</code> branch of OpenJK.</p>
   </section>
 
-  <!-- PILLARS -->
-  <section class="section" id="pillars">
-    <div class="wrap">
-      <div class="pillars">
-        <article class="pillar reveal" style="--c:var(--blue)">
-          <div class="pillar-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg></div>
-          <h3>Graphics</h3>
-          <p>HDR tone mapping, PBR materials, GTAO, SSR, volumetric fog, clouds, water, rain and living foliage in rend2.</p>
-        </article>
-        <article class="pillar reveal" style="--c:var(--green)">
-          <div class="pillar-icon"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
-          <h3>Gameplay</h3>
-          <p>New Force powers and levels 4–5 for classic ones — play as Vader, Yoda or Starkiller while keeping the game's identity.</p>
-        </article>
-        <article class="pillar reveal" style="--c:var(--purple)">
-          <div class="pillar-icon"><svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg></div>
-          <h3>Physics &amp; modding</h3>
-          <p>Cloth, pushable crates and barrels, telekinesis targets and per-map scripts that let mods change any level.</p>
-        </article>
-        <article class="pillar reveal" style="--c:var(--amber)">
-          <div class="pillar-icon"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></div>
-          <h3>Fully compatible</h3>
-          <p>Every change sits behind a command or cvar. Saves, maps and mods behave exactly as before until you opt in.</p>
-        </article>
-      </div>
-    </div>
+  <section id="install">
+    <h2>Getting started</h2>
+    <ol>
+      <li>Build the project with CMake from the <a href="https://github.com/keyten/BetterJK">source repository</a>, the same way as OpenJK. You need an original copy of the game.</li>
+      <li>Select the rend2 renderer: <code>cl_renderer rdsp-rend2</code> in single player, <code>cl_renderer rd-rend2</code> in multiplayer.</li>
+      <li>Most rendering features require HDR: <code>r_hdr 1</code>. Some of them also need a <code>vid_restart</code>; the reference says which.</li>
+    </ol>
   </section>
 
-  <!-- GRAPHICS -->
-  <section class="section" id="graphics">
-    <div class="wrap">
-      <header class="section-head reveal">
-        <p class="kicker">rend2 · OpenGL 3.2 – 4.3</p>
-        <h2>A renderer for the next decade</h2>
-        <p class="sub">Linear HDR lighting, physically based materials and a full volumetric pipeline — tuned to keep 20-year-old maps looking like themselves, only better.</p>
-      </header>
+  <section id="graphics">
+    <h2>Graphics</h2>
+    <p>Short descriptions with the main cvar for each feature. Requirements, all controls and debug views are listed in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">rendering features reference</a>.</p>
 
-      <div class="tabs reveal" role="tablist" id="gfxTabs">
-        <button role="tab" aria-selected="true" data-tab="all">All</button>
-        <button role="tab" aria-selected="false" data-tab="light">Lighting &amp; shadows</button>
-        <button role="tab" aria-selected="false" data-tab="mat">Materials</button>
-        <button role="tab" aria-selected="false" data-tab="vol">Volumetrics &amp; sky</button>
-        <button role="tab" aria-selected="false" data-tab="weather">Water &amp; weather</button>
-        <button role="tab" aria-selected="false" data-tab="nature">Foliage</button>
-        <button role="tab" aria-selected="false" data-tab="post">Post &amp; performance</button>
-      </div>
+    <h3>Color and post-processing</h3>
+    <dl>
+      <dt>Tone mapping <code>r_toneMapMode 0|1|2</code></dt>
+      <dd>Legacy rend2 filmic, ACES fitted or AgX-like conversion from HDR to the display. <code>r_toneMapDebug</code> shows them side by side.</dd>
+      <dt>Color grading <code>r_colorGrading 1</code></dt>
+      <dd>Applies a <code>.cube</code> LUT. A map can provide <code>maps/&lt;map&gt;.cube</code>; <code>r_colorGradingLUT</code> overrides it.</dd>
+      <dt>Linear lighting <code>r_linearLighting 1</code></dt>
+      <dd>Lighting is computed in linear space instead of sRGB.</dd>
+      <dt>Bloom and motion blur <code>r_motionBlur 1</code></dt>
+      <dd>HDR bloom and per-pixel velocity motion blur with a shutter-angle model.</dd>
+    </dl>
 
-      <div class="grid feature-grid" id="gfxGrid">
-        <article class="card" data-cat="post"><span class="tag t-post">Post</span><h4>Tone mapping</h4><p>Legacy filmic, ACES fitted or AgX-like compression of the HDR scene, with split-screen comparison.</p><code>r_toneMapMode 0|1|2</code></article>
-        <article class="card" data-cat="post"><span class="tag t-post">Post</span><h4>Color grading LUTs</h4><p>Standard <em>.cube</em> lookup tables per map — a warmer Tatooine, a gloomier Coruscant.</p><code>r_colorGrading 1</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>Linear lighting</h4><p>Light is computed in linear space instead of sRGB — physically correct falloff and blending.</p><code>r_linearLighting 1</code></article>
-        <article class="card" data-cat="post"><span class="tag t-post">Post</span><h4>HDR bloom &amp; motion blur</h4><p>Energy-preserving bloom and per-pixel velocity blur with a physical shutter angle.</p><code>r_motionBlur 1</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>GTAO &amp; contact shadows</h4><p>Ground-truth ambient occlusion with bent normals and specular occlusion, plus screen-space contact shadows.</p><code>r_aoMode 2</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>Forward+ dynamic lights</h4><p>Clustered light lists — hundreds of dynamic lights without per-surface limits.</p><code>r_forwardPlus 1</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>Screen-space GI</h4><p>Dynamic one-bounce indirect light: sabers and explosions colour nearby walls.</p><code>r_ssgi 1</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>LTC area lights</h4><p>Real area lighting for lamps and light panels, with automatic lamp detection and saber line lights.</p><code>r_ltcAreaLights 1</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>Spot lights &amp; gobos</h4><p>Projected spot lights with shadows and light cookies — grates and windows cast patterned light.</p><code>r_spotLightCookies 2</code></article>
-        <article class="card" data-cat="light"><span class="tag t-light">Lighting</span><h4>Sun Shadows 2.0</h4><p>Cascaded sun shadows with caching and single-pass layered rendering; better character shadows.</p><code>r_shadowLayered 1</code></article>
-        <article class="card" data-cat="mat"><span class="tag t-mat">Materials</span><h4>Skin subsurface scattering</h4><p>Wrap lighting and screen-space diffusion make faces and hands look soft instead of plastic.</p><code>r_skinSSS 1</code></article>
-        <article class="card" data-cat="mat"><span class="tag t-mat">Materials</span><h4>Auto PBR</h4><p>Legacy shaders are classified into metal, stone, wood, glass… and get roughness variation automatically.</p><code>r_autoPBR 1</code></article>
-        <article class="card" data-cat="mat"><span class="tag t-mat">Materials</span><h4>Parallax occlusion</h4><p>Adaptive POM with self-shadowing and silhouette POM — bricks and grates gain real depth at the edges.</p><code>r_pomSilhouette 1</code></article>
-        <article class="card" data-cat="mat"><span class="tag t-mat">Materials</span><h4>Screen-space reflections</h4><p>Hybrid SSR + cubemaps with Hi-Z tracing; reflects sabers and effects on glossy floors.</p><code>r_ssr 1</code></article>
-        <article class="card" data-cat="mat"><span class="tag t-mat">Materials</span><h4>Emissive materials</h4><p>Glowing panels and screens become physical light emitters, compatible with the original glow look.</p><code>r_pbrPhysical 1</code></article>
-        <article class="card" data-cat="vol"><span class="tag t-vol">Volumetric</span><h4>Froxel volumetric fog</h4><p>Light shafts from sun, spots and dlights through a 3D fog grid, with a GL 4.3 compute path.</p><code>r_volumetricFog 2</code></article>
-        <article class="card" data-cat="vol"><span class="tag t-vol">Volumetric</span><h4>Fog volumes &amp; FX media</h4><p>Local ellipsoid / box media, smoke and steam from effects, emission, per-medium phase and RGB extinction.</p><code>r_volumetricParticles 1</code></article>
-        <article class="card" data-cat="vol"><span class="tag t-vol">Volumetric</span><h4>Self-shadowing &amp; multiscatter</h4><p>Thick smoke shadows itself and glows from within thanks to approximate multiple scattering.</p><code>r_volumetricSelfShadow 1</code></article>
-        <article class="card" data-cat="vol"><span class="tag t-vol">Sky</span><h4>Physical atmosphere</h4><p>Hillaire-style sky and aerial perspective — distant mountains fade into real air.</p><code>r_atmosphere 1</code></article>
-        <article class="card" data-cat="vol"><span class="tag t-vol">Sky</span><h4>Volumetric clouds</h4><p>Ray-marched cloud shell with temporal reprojection, casting moving cloud shadows on the ground.</p><code>r_clouds 1</code></article>
-        <article class="card" data-cat="weather"><span class="tag t-weather">Water</span><h4>Modern water surface</h4><p>PBR water with waves, tessellation, foam, flow fields, Snell's window, caustics and underwater medium.</p><code>r_waterSurface 1</code></article>
-        <article class="card" data-cat="weather"><span class="tag t-weather">Water</span><h4>Underwater particles</h4><p>Drifting specks and bubbles lit by the light grid, plus waterfall mist and impact spray.</p><code>r_waterParticles 1</code></article>
-        <article class="card" data-cat="weather"><span class="tag t-weather">Rain</span><h4>Rain streaks &amp; splashes</h4><p>Lit, motion-correct rain streaks and GPU splash events where drops actually hit geometry.</p><code>r_rainSplashes 1</code></article>
-        <article class="card" data-cat="weather"><span class="tag t-weather">Rain</span><h4>Wet surfaces &amp; puddles</h4><p>Rain exposure darkens and polishes surfaces, fills height-aware puddles with ripples and runoff streaks.</p><code>r_weatherWetness 1</code></article>
-        <article class="card" data-cat="weather"><span class="tag t-weather">Rain</span><h4>Lens water</h4><p>Droplets and films on the camera lens with physically refracted optics, driven by weather and effects.</p><code>r_rainLens 1</code></article>
-        <article class="card" data-cat="nature"><span class="tag t-nature">Foliage</span><h4>Auto grass</h4><p>Legacy surface sprites become cross / tri-card grass, instanced and GPU-culled.</p><code>r_grassCardMode 3</code></article>
-        <article class="card" data-cat="nature"><span class="tag t-nature">Foliage</span><h4>Wind &amp; leaf flutter</h4><p>A coherent breeze moves grass, fronds and leaves together instead of random wobble.</p><code>r_foliageWind 1</code></article>
-        <article class="card" data-cat="nature"><span class="tag t-nature">Foliage</span><h4>Plant interaction</h4><p>Characters push through grass and plants via XPBD frond skeletons and a contact field.</p><code>r_leafFlutter 1</code></article>
-        <article class="card" data-cat="post"><span class="tag t-post">Performance</span><h4>Shader cache &amp; fast loading</h4><p>On-disk program binaries, lazy compilation and faster texture loading cut startup and vid_restart time.</p><code>r_shaderProgramCache 1</code></article>
-      </div>
+    <h3>Lighting and shadows</h3>
+    <dl>
+      <dt>GTAO and contact shadows <code>r_aoMode 2</code></dt>
+      <dd>Ground-truth ambient occlusion, with optional bent normals and specular occlusion, plus screen-space contact shadows (<code>r_contactShadows</code>).</dd>
+      <dt>Forward+ <code>r_forwardPlus 1</code></dt>
+      <dd>Clustered dynamic lights instead of per-surface light lists.</dd>
+      <dt>Screen-space GI <code>r_ssgi 1</code></dt>
+      <dd>One bounce of indirect light from what is on screen, mainly for dynamic lights.</dd>
+      <dt>Area lights <code>r_ltcAreaLights 1</code></dt>
+      <dd>LTC area lights for lamps and panels, with automatic lamp detection, and line lights for sabers.</dd>
+      <dt>Spot lights <code>r_spotLightCookies 1|2</code></dt>
+      <dd>Shadowed spot lights from effects, optionally with projected cookie textures.</dd>
+      <dt>Sun shadows <code>r_shadowLayered 1</code></dt>
+      <dd>Cascaded sun shadows with caching and single-pass layered rendering, and adjustments for character shadows.</dd>
+    </dl>
 
-      <p class="more reveal">Every feature lists its requirements, cvars and debug views in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md" target="_blank" rel="noopener">rendering features reference</a>.</p>
-    </div>
+    <h3>Materials and reflections</h3>
+    <dl>
+      <dt>Automatic PBR <code>r_autoPBR 1</code></dt>
+      <dd>Classifies legacy shaders by material and generates roughness variation for them.</dd>
+      <dt>Parallax occlusion <code>r_pomSilhouette 1</code></dt>
+      <dd>Adaptive POM with self-shadowing and silhouettes.</dd>
+      <dt>Skin <code>r_skinSSS 1</code></dt>
+      <dd>Subsurface scattering approximation for skin.</dd>
+      <dt>Emissive surfaces <code>r_pbrPhysical 1</code></dt>
+      <dd>Glowing surfaces as light emitters, compatible with the original glow.</dd>
+      <dt>Screen-space reflections <code>r_ssr 1</code></dt>
+      <dd>SSR combined with cubemaps; can include sabers and effects.</dd>
+    </dl>
+
+    <h3>Volumetrics and sky</h3>
+    <dl>
+      <dt>Volumetric fog <code>r_volumetricFog 2</code></dt>
+      <dd>Froxel fog lit by the sun, dynamic and spot lights. Has a compute path on OpenGL 4.3.</dd>
+      <dt>Local media <code>r_volumetricParticles 1</code></dt>
+      <dd>Fog volumes defined per map and volumetric smoke from effects, with emission, per-medium phase, self-shadowing, multiple scattering and colored extinction.</dd>
+      <dt>Atmosphere <code>r_atmosphere 1</code></dt>
+      <dd>Physically based sky and aerial perspective.</dd>
+      <dt>Clouds <code>r_clouds 1</code></dt>
+      <dd>Ray-marched volumetric clouds and cloud shadows (<code>r_cloudShadows</code>).</dd>
+    </dl>
+
+    <h3>Water and weather</h3>
+    <dl>
+      <dt>Water surface <code>r_waterSurface 1</code></dt>
+      <dd>PBR water with waves, tessellation, foam, flow, caustics, Snell's window and an underwater medium.</dd>
+      <dt>Underwater particles <code>r_waterParticles 1</code></dt>
+      <dd>Specks and bubbles under water.</dd>
+      <dt>Rain <code>r_rainSplashes 1</code></dt>
+      <dd>Lit rain streaks and splashes where drops hit geometry.</dd>
+      <dt>Wet surfaces <code>r_weatherWetness 1</code></dt>
+      <dd>Surfaces exposed to rain get wet, with puddles, ripples and runoff.</dd>
+      <dt>Lens water <code>r_rainLens 1</code></dt>
+      <dd>Drops and water film on the camera lens.</dd>
+    </dl>
+
+    <h3>Foliage</h3>
+    <dl>
+      <dt>Grass cards <code>r_grassCardMode 3</code></dt>
+      <dd>Surface sprite grass drawn as two- or three-card tufts.</dd>
+      <dt>Wind <code>r_foliageWind 1</code></dt>
+      <dd>A shared wind field for grass and plants; <code>r_leafFlutter</code> adds leaf motion on models.</dd>
+      <dt>Interaction</dt>
+      <dd>Characters bend grass and plants they walk through.</dd>
+    </dl>
+
+    <h3>Loading</h3>
+    <dl>
+      <dt>Shader cache <code>r_shaderProgramCache 1</code></dt>
+      <dd>Stores compiled shader programs on disk to shorten startup and <code>vid_restart</code>.</dd>
+    </dl>
   </section>
 
-  <!-- FORCE -->
-  <section class="section section-alt" id="force">
-    <div class="wrap">
-      <header class="section-head reveal">
-        <p class="kicker kicker-green">Gameplay</p>
-        <h2>Feel the Force — again</h2>
-        <p class="sub">Four new powers and higher levels for the classics. Nothing existing is changed; some powers are overpowered on purpose.</p>
-      </header>
+  <section id="force">
+    <h2>Force powers</h2>
+    <p>Existing powers keep their behavior at their original levels. New powers and levels are set from the console.</p>
 
-      <div class="force-grid">
-        <article class="force reveal" style="--c:var(--blue)">
-          <div class="force-top"><h3>Telekinesis</h3><span class="pips" data-lv="3"></span></div>
-          <p>Grab an NPC or an object and move it through space, The Force Unleashed style. Release mid-swing to throw.</p>
-          <code>setForceTelekinesis 3</code>
-        </article>
-        <article class="force reveal" style="--c:var(--green)">
-          <div class="force-top"><h3>Soar</h3><span class="pips" data-lv="3"></span></div>
-          <p>Cling to walls, wall-run from mid-air, double jump after touching a wall and hang in the air for a few strikes.</p>
-          <code>setForceSoar 3</code>
-        </article>
-        <article class="force reveal" style="--c:var(--amber)">
-          <div class="force-top"><h3>Deflect</h3><span class="pips" data-lv="3"></span></div>
-          <p>Stop blaster bolts without a saber: freeze them, move while holding them, then send them back.</p>
-          <code>setforcedeflect 3</code>
-        </article>
-        <article class="force reveal" style="--c:var(--purple)">
-          <div class="force-top"><h3>Chain Lightning</h3><span class="pips" data-lv="3"></span></div>
-          <p>Lightning that jumps from enemy to enemy — two, five, or unlimited targets.</p>
-          <code>setForceChainLightning 3</code>
-        </article>
-      </div>
+    <h3>New powers</h3>
+    <dl>
+      <dt>Telekinesis <code>setForceTelekinesis 3</code></dt>
+      <dd>Hold an NPC or an object and move it in space, similar to Grip in The Force Unleashed but without damage. Releasing it while moving throws it. Movement keys move the held target.</dd>
+      <dt>Soar <code>setForceSoar 3</code></dt>
+      <dd>Stick to walls, start wall runs and flips in mid-air, jump again after touching a wall, and stay in the air for a few attacks.</dd>
+      <dt>Deflect <code>setforcedeflect 3</code></dt>
+      <dd>Stop blaster bolts without a saber. Level 1 freezes a bolt, level 2 lets you move while doing it, level 3 sends it back.</dd>
+      <dt>Chain Lightning <code>setForceChainLightning 3</code></dt>
+      <dd>Lightning that passes from one NPC to the next: up to 2, 5 or any number of targets. Bind it with <code>+force_chain_lightning</code>.</dd>
+    </dl>
 
-      <h3 class="subhead reveal">Upgraded to level 4–5</h3>
-      <div class="upgrades reveal">
-        <div class="up"><b>Grip 5</b><span>Three targets, longer range, ignores Absorb; combos with Lightning, Drain and attacks.</span></div>
-        <div class="up"><b>Push / Pull / Jump 5</b><span>More range and power. Pull 5 disarms a weak saberist.</span></div>
-        <div class="up"><b>Saber Throw 4</b><span>Throw both dual sabers together, or a saber staff.</span></div>
-        <div class="up"><b>Drain 4</b><span>Strips Absorb, Protection and Heal 1–2, drains faster.</span></div>
-        <div class="up"><b>Heal 4</b><span>Heals faster and raises max health to 120.</span></div>
-      </div>
-    </div>
+    <h3>Levels 4 and 5</h3>
+    <dl>
+      <dt>Grip <code>setForceGrip 5</code></dt>
+      <dd>Longer range, works on ungrippable NPCs, ignores Absorb, holds two or three NPCs. Combined with Lightning, Drain or an attack it becomes Chain Lightning, a pull into Drain, or an undeflectable pull and strike.</dd>
+      <dt>Push, Pull, Jump <code>setForcePush 5</code></dt>
+      <dd>More range and strength. Pull 5 can take a saber from a weak opponent.</dd>
+      <dt>Saber Throw <code>setSaberThrow 4</code></dt>
+      <dd>Throws both sabers in dual style, and the staff.</dd>
+      <dt>Drain <code>setForceDrain 4</code></dt>
+      <dd>Cancels Absorb, Protection and Heal 1–2, ignores Push 1, drains faster.</dd>
+      <dt>Heal <code>setForceHeal 4</code></dt>
+      <dd>Heals faster and raises maximum health to 120.</dd>
+    </dl>
   </section>
 
-  <!-- PHYSICS -->
-  <section class="section" id="physics">
-    <div class="wrap split">
-      <div class="reveal">
-        <p class="kicker kicker-purple">Physics</p>
-        <h2>A world that pushes back</h2>
-        <p class="sub">Spawn physical objects anywhere, or turn existing map entities physical. They react to the player, NPCs, Force Push / Pull, Grip, Telekinesis and saber hits.</p>
-        <ul class="checks">
-          <li><b>Cloth</b> — banners and curtains that react to bodies, the Force and sabers.</li>
-          <li><b>Movable objects</b> — crates and barrels that knock NPCs down.</li>
-          <li><b>Map entities</b> — make anything under your crosshair physical.</li>
-          <li><b>Deformables</b> <span class="badge">experimental</span> — Verlet bodies and craters.</li>
-        </ul>
-      </div>
-      <div class="terminal reveal" aria-label="Console example">
-        <div class="term-bar"><i></i><i></i><i></i><span>console</span></div>
-<pre><span class="c">// where am I?</span>
-<span class="p">]</span>get_position
-<span class="c">// a cloth banner</span>
-<span class="p">]</span>add_cloth 100 200 300 128 192 90 textures/kejim/metal
-<span class="c">// crates in front of the player</span>
-<span class="p">]</span>add_object imperial/crate_02 150
-<span class="p">]</span>add_object barrel 40
-<span class="c">// the thing under the crosshair</span>
-<span class="p">]</span>get_entity_id
-<span class="p">]</span>make_entity_physical 214 80<span class="cursor"></span></pre>
-      </div>
-    </div>
+  <section id="physics">
+    <h2>Physics</h2>
+    <p>Objects can be added from the console. They react to the player, NPCs, Push, Pull, Grip, Telekinesis and saber hits. <code>get_position</code> prints your current coordinates.</p>
+<pre><code>add_cloth x y z width height angle [shader]
+add_cloth 100 200 300 128 192 90 textures/kejim/metal
+
+add_object objectname mass
+add_object imperial/crate_02 150
+add_object models/map_objects/hoth/crate_snow.md3 120
+
+get_entity_id
+make_entity_physical &lt;entity_id&gt; &lt;mass&gt;</code></pre>
+    <p>There are also deformable objects (<code>add_object_deform</code>, <code>make_box_deform</code>) and commands that make all entities on a map physical. These are unfinished and unstable.</p>
   </section>
 
-  <!-- MODDING -->
-  <section class="section section-alt" id="modding">
-    <div class="wrap split split-rev">
-      <div class="reveal">
-        <p class="kicker kicker-amber">Modding</p>
-        <h2>Per-map scripts</h2>
-        <p class="sub">Bind config files to a map's load and unload. Give an item only on one level, retune the renderer for a single map, or furnish it with physical props — all from a .pk3.</p>
-        <ul class="checks">
-          <li>Per-map items, weapons and Force powers</li>
-          <li>Per-map colour grading, fog and lighting</li>
-          <li>Per-map physics props and cloth</li>
-          <li>Per-map LUTs: <code>maps/&lt;map&gt;.cube</code></li>
-        </ul>
-      </div>
-      <div class="files reveal">
-        <div class="file">
-          <div class="file-name">maps_configs/t1_rail/give_force_deflect.cfg</div>
-          <pre>setforcedeflect 1</pre>
-        </div>
-        <div class="file">
-          <div class="file-name">maps_configs/t1_rail/give_force_deflect_unload.cfg</div>
-          <pre>setforcedeflect 0</pre>
-        </div>
-        <p class="note">Always undo your changes in <code>_unload</code> so they don't leak into other maps.</p>
-      </div>
-    </div>
+  <section id="scripts">
+    <h2>Map scripts</h2>
+    <p>A mod can run console configs when a map loads and unloads. This can be used to give an item on one map only, adjust rendering settings for a map, or place physical objects in it.</p>
+<pre><code>maps_configs/t1_rail/give_force_deflect.cfg         setforcedeflect 1
+maps_configs/t1_rail/give_force_deflect_unload.cfg  setforcedeflect 0</code></pre>
+    <p>The unload config should undo everything the load config changed, so the settings don't carry over to other maps.</p>
   </section>
 
-  <!-- GET STARTED -->
-  <section class="section" id="start">
-    <div class="wrap">
-      <header class="section-head center reveal">
-        <p class="kicker">Get started</p>
-        <h2>Opt in, one cvar at a time</h2>
-        <p class="sub">Install over your Jedi Academy copy, then enable what you want from the console. Most graphics features need <code>r_hdr 1</code>; some need a <code>vid_restart</code>.</p>
-      </header>
-      <ol class="steps">
-        <li class="reveal"><span>1</span><h4>Get the build</h4><p>Build from source with CMake or grab a binary from the repository.</p></li>
-        <li class="reveal"><span>2</span><h4>Pick the renderer</h4><p>Select the rend2 renderer: <code>cl_renderer rdsp-rend2</code> (SP) or <code>rd-rend2</code> (MP).</p></li>
-        <li class="reveal"><span>3</span><h4>Turn things on</h4><p>Start with <code>r_hdr 1</code>, <code>r_toneMapMode 2</code>, <code>r_aoMode 2</code>, <code>r_volumetricFog 2</code>.</p></li>
-      </ol>
-      <div class="cta center reveal">
-        <a class="btn btn-primary" href="https://github.com/keyten/BetterJK" target="_blank" rel="noopener">View on GitHub</a>
-        <a class="btn btn-ghost" href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/README.md" target="_blank" rel="noopener">Read the README</a>
-      </div>
-    </div>
-  </section>
 </main>
 
-<footer class="footer">
-  <div class="wrap footer-inner">
-    <div>
-      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span><span>JA<b>2026</b></span></a>
-      <p>A fork of SomaZ/OpenJK <code>rend2-unified-wip</code>, built on <a href="https://github.com/JACoders/OpenJK" target="_blank" rel="noopener">OpenJK</a>.</p>
-    </div>
-    <p class="legal">OpenJK is free software licensed under GPLv2. Star Wars and Jedi Academy are trademarks of their respective owners; this is an unofficial fan project and requires the original game.</p>
-  </div>
+<footer class="wrap foot">
+  <p>Source on <a href="https://github.com/keyten/BetterJK">GitHub</a>. Based on <a href="https://github.com/JACoders/OpenJK">OpenJK</a>, licensed under GPLv2. Requires the original game; not affiliated with its publishers.</p>
 </footer>
 
-<script src="assets/main.js"></script>
 </body>
 </html>
