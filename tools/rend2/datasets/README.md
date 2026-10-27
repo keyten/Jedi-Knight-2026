@@ -26,6 +26,11 @@ recipe and solver guide](../../../docs/rend2-offline-observation-datasets.md)
 document the complete workflow. `test_runtime_export.py` exercises licensed local
 stock SP map loading and repeated CPU exports. No game content belongs in Git.
 
+Use the separate [evaluation runner](../evaluation/README.md) for area-weighted
+readiness, source matching, censored prediction error, profile alternatives and
+uncertainty diagnostics. Its reports distinguish metric/oracle sanity checks
+from real physical-source recovery and preserve explicit unavailable quantities.
+
 `validation.json` is a small validation witness, not an observation dataset or
 ground-truth answer. Generated own-content fixtures are GPL-2.0-or-later;
 repository code is governed by `LICENSE.txt`. q3map2 bakes are explicitly

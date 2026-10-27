@@ -1,0 +1,3464 @@
+{
+  "confidence_claim": null,
+  "records": [
+    {
+      "condition": null,
+      "height_error_world": 14.620379987118326,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 4.71744990460963e-25,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.15895234960909913,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.09077629999956116,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.38409854162193857,
+        0.2053004861260205
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 21.091789231373724,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 1.6286128051596417e-24,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.23305082260029109,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.07329430000390857,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.40656871260893657,
+        0.2206312046759223
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 17.415147461239712,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 1.23799733460501e-09,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.19060965584423098,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.7656550999963656,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3938025953515268,
+        0.21185027362294434
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 32.96735430890581,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 3,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 0.0,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.37500002182316694,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.26783119997708127,
+      "work": {
+        "derivative": 0,
+        "forward": 192,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 6720,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4478033135725896,
+        0.250000004515138
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 136.80565947623626,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 5,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 1.4112098398052534e-17,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.9455483944256022,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.023509099963121116,
+      "work": {
+        "derivative": 5,
+        "forward": 25,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 875,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.808352984292487,
+        0.5749410471225384
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 137.75098420925542,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 1.1360818336841695e-20,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.9625615964926673,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.031328000011853874,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8116353618376925,
+        0.5784610199640001
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 160.08054613316688,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 1.526722747355431e-11,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.378658565055449,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.5956060999887995,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8891685629623849,
+        0.6645500479425066
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 180.91910908801538,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 3,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 0.0,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.79166754488153,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.3076763999997638,
+      "work": {
+        "derivative": 0,
+        "forward": 232,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 8120,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.9615246843333868,
+        0.750000181699627
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 14.619259264922562,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.4653890116359676e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.1589586190815345,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.03700120002031326,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3840946502254255,
+        0.20530178325824852
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 21.09045666251569,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.4653890116359676e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.23305543976966742,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.058873499976471066,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.406564085633735,
+        0.22063215995234498
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 17.414335015876873,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.47996787424279e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.19061455701288993,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.5697378999902867,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.39379977436068364,
+        0.21185128765783928
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 32.965527605693524,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 2,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.465389011635967e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.37500001936082716,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.08697320002829656,
+      "work": {
+        "derivative": 0,
+        "forward": 77,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2695,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4477969708531025,
+        0.2500000040056884
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 136.80495624726757,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 5,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.46538901177692e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.9455838000507648,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.027831399987917393,
+      "work": {
+        "derivative": 5,
+        "forward": 25,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 875,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8083505425252345,
+        0.5749483724242962
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 137.75068948379726,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.4653890116360814e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.962604605800728,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.03881940001156181,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8116343384854072,
+        0.57846991844153
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 160.07909641611485,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.4655271580164574e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.3787235718992283,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.5735538000008091,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8891635292226211,
+        0.6645634976343231
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 180.91603271544642,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 2,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.4653890116359676e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.7916666621871453,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.09260239999275655,
+      "work": {
+        "derivative": 0,
+        "forward": 89,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 3115,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.961514002484189,
+        0.7499999990732025
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 14.625554179142284,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.852320229311338e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.15892340447612885,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.029589399986434728,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.38411650756646626,
+        0.20529449747781978
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 21.09794137582014,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.8523202293113384e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.23302950405668127,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.05185019999044016,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.40659007422159776,
+        0.22062679394276166
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 17.41889818623926,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.8568776593691585e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.19058702774720454,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.5720073999837041,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.39381561870221965,
+        0.21184559194769748
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 32.975786930826985,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 2,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.852320229311338e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 0.37500001944403116,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.09373540000524372,
+      "work": {
+        "derivative": 0,
+        "forward": 68,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2380,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4478325935098159,
+        0.250000004022903
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 136.80890607744095,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 5,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.8523202294532365e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.945384937073289,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.030058299947995692,
+      "work": {
+        "derivative": 5,
+        "forward": 25,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 875,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8083642572133366,
+        0.5749072283599909
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 137.75234471954388,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.852320229311452e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 1.962363035300644,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.04762060003122315,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8116400858317496,
+        0.5784199383380643
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 160.08723892390714,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.852468313878403e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.378533253869123,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.4935440000263043,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.889191801819122,
+        0.6645241214901634
+      ]
+    },
+    {
+      "condition": null,
+      "height_error_world": 180.9330690658681,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 2,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.852320229311338e-07,
+      "receiver_baseline": "single_point",
+      "relative_intensity_error": 2.7916666576559224,
+      "scaled_response_singular_values": [
+        3600.4372422940237,
+        2.0849228226200942e-13
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 1,
+      "wall_seconds": 0.07175140001345426,
+      "work": {
+        "derivative": 0,
+        "forward": 86,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 3010,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.9615731564787087,
+        0.7499999981357081
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 0.001310515269096868,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 82,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 1.2210413356055361e-17,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.3713993608917007e-05,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.4966054999968037,
+      "work": {
+        "derivative": 68,
+        "forward": 354,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 12390,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3333378837335732,
+        0.17241663048143635
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 21.092887338802,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 2.3131544716086437e-09,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.23291865440168996,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.08601739996811375,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4065725254819514,
+        0.22060385953138414
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 17.416057649199672,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 6.539206416537575e-09,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.19044106284725446,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.782999400049448,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3938057557263878,
+        0.21181539231322505
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 32.98427360123037,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 6,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 4.820489799185183e-09,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.37497594539705387,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.8423592000035569,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4478620611153832,
+        0.24999502318559735
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 84.49229311342344,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 0,
+      "library_nfev": null,
+      "message": "Forward evaluation budget exhausted",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 1.746897638624764e-08,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.0797521271097095,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "WorkLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.8540741999750026,
+      "work": {
+        "derivative": 94,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.626709351088276,
+        0.3958107849192502
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 137.7643781024443,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 2.842967240814126e-08,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.9615844616825184,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.06101379997562617,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.811681868411265,
+        0.5782588541412107
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 159.74428873636464,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 3.2057064849498224e-08,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 2.370733111330593,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.7487153000547551,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8880010025568216,
+        0.6629102988959849
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 116.03016438304735,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 2.4340648533363226e-08,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.5830340243090681,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6982517000287771,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.7362158485522476,
+        0.4999380739949796
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 2.96506974726492,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 86,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.464723548630367e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.03077191494854958,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.4578404999920167,
+      "work": {
+        "derivative": 73,
+        "forward": 378,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 13230,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3230379522664413,
+        0.1660471900106449
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 21.091553049705055,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.496354467006337e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.23292326865137586,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.07094750000396743,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4065678925336981,
+        0.22060481420373296
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 17.41524021976886,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.5416972568063027e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.1904459242830099,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.7326138999778777,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.39380291742975293,
+        0.2118163981275193
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 32.9824923522028,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 6,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.524899611319412e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.37497656278896213,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.5200976000051014,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4478558762229264,
+        0.24999515092185423
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 82.65909190771765,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 0,
+      "library_nfev": null,
+      "message": "Forward evaluation budget exhausted",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.6569989394049354e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.052208845153106,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "WorkLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6206946999882348,
+      "work": {
+        "derivative": 95,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.6203440691240196,
+        0.3901121748592633
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 137.7640831051562,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.7771191612085416e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.961627488570287,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.04210449999663979,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8116808441151258,
+        0.5782677562559214
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 159.74451682577802,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.815358877034831e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 2.370821609197259,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6752283000387251,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8880017945339514,
+        0.6629286087994329
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 90.54040700861373,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 6,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.676448261401299e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.1720825289282466,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.882437199994456,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.6477097465576865,
+        0.41491362667480963
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 14.627832136133264,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.840211592598205e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.15885029815888135,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.054732899996452034,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.38412441713935164,
+        0.205279372032872
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 21.09904703168951,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.8419868078026096e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.2328973471854647,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.09578209999017417,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1925,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4065939133044775,
+        0.22059945114182028
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 17.419829954177715,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 2.87193802828998e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.19041860239232808,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.8914941999828443,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3938188540075615,
+        0.21181074532255062
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 32.99420811970501,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.85222396500792e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.3749934859957447,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.792623299988918,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.44789655597119793,
+        0.24999865227498166
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 89.67034901383789,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 0,
+      "library_nfev": null,
+      "message": "Forward evaluation budget exhausted",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.9439442752444823e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.158482746637257,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "WorkLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 1.1727127999765798,
+      "work": {
+        "derivative": 94,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.6446887118536038,
+        0.41209987861460484
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 137.76573975823834,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 5,
+      "library_nfev": null,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 3.019280239366359e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 1.9613858190848759,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.06046589999459684,
+      "work": {
+        "derivative": 7,
+        "forward": 35,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1225,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.811686596382772,
+        0.5782177556727329
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 159.753651873816,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 3.0500842022286923e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 2.3705959910713763,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.8316580000100657,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.88803351345075,
+        0.6628819291871813
+      ]
+    },
+    {
+      "condition": 5957.755321756913,
+      "height_error_world": 37.70126811847035,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 6,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.8580172716176735e-07,
+      "receiver_baseline": "narrow_plane",
+      "relative_intensity_error": 0.4333625297458127,
+      "scaled_response_singular_values": [
+        3597.576349859475,
+        0.603847616353363
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.8214031000388786,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.4642405143002443,
+        0.26207500615430607
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 3.5365124517738877e-06,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 1.1122770712173163e-17,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 2.2349705848985954e-08,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.054030200000852346,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3333333456128904,
+        0.17241379772752535
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 2.1782642534162733e-07,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 4.718155594172928e-19,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 3.338580161956391e-09,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.13452459999825805,
+      "work": {
+        "derivative": 13,
+        "forward": 65,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2275,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333408967514,
+        0.172413793794189
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.35024345694426984,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 1.1881935687682841e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.002477862812309013,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.9801872000098228,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3345494564477231,
+        0.17292645437496051
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 1.5741733250251855e-08,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 9.835457605895566e-22,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 1.3620062115175338e-11,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6867668000049889,
+      "work": {
+        "derivative": 0,
+        "forward": 443,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 15505,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333327867454,
+        0.17241379310063035
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 1.2321217468524992e-07,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 2.0587313538890263e-20,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 5.070971080082624e-10,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.055878100043628365,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1575,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333376115337,
+        0.17241379320836495
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 6.52116511901113e-08,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 10,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 3.2635957655088706e-20,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 1.1176060373448611e-10,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.14377520000562072,
+      "work": {
+        "derivative": 18,
+        "forward": 90,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 3150,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.333333333106904,
+        0.17241379312657115
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 143.0762296061531,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 0.006351023135608306,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 1.059695841680626,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.5712925999541767,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.830125797243587,
+        0.3916612086235778
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 1.2830412288167281e-08,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 1.6445357442921904e-22,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 9.245771555773293e-11,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.410354699997697,
+      "work": {
+        "derivative": 0,
+        "forward": 292,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 10220,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333328878323,
+        0.17241379308431912
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.07347917973879703,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.40948479400909e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.000363070838249655,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.03780120000010356,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3330781972925736,
+        0.17233867499898284
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.07348665791272424,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.4094847934900604e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00036311575703393826,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.06451290001859888,
+      "work": {
+        "derivative": 13,
+        "forward": 65,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2275,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3330781713266919,
+        0.17233866570544124
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.269259713817803,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 3.58169946965164e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.002108332532225556,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6770407999865711,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33426826289520073,
+        0.17284999983425356
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.07348688237613032,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.4094847934861334e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.0003631188821420513,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.6383978999801911,
+      "work": {
+        "derivative": 0,
+        "forward": 481,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 16835,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33307817054730515,
+        0.17233866505886716
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.07348528239646157,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.4094847935080683e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.0003631093108492678,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.061091499985195696,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1575,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33307817610279006,
+        0.17233866703913464
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.0734869021823954,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 10,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.4094847934864383e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00036311856466644105,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.15636510000331327,
+      "work": {
+        "derivative": 18,
+        "forward": 90,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 3150,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33307817047853333,
+        0.1723386651245518
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 143.048034081085,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 0.006359397307758404,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 1.0595594898151042,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.7217439999803901,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8300278961148784,
+        0.3916329978927802
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.07348687136172316,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.4094847934861275e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.0003631188063013724,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.49180159997195005,
+      "work": {
+        "derivative": 0,
+        "forward": 308,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 10780,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33307817058554956,
+        0.17233866507455836
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.013655147009899338,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.8450156575951925e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00025618152365533813,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.0397703000344336,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1050,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33328591962843784,
+        0.17236079002958854
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.01365999579201116,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.8450156573723635e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00025621006514597866,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.09520540002267808,
+      "work": {
+        "derivative": 13,
+        "forward": 65,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2275,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3332859027923889,
+        0.17236078412445258
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.3392892649495707,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 4.0394975187652855e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.0022220966881099005,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.656530600041151,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3345114210588527,
+        0.17287353724581583
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.013660219549166186,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.8450156573679595e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.000256213282130678,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.5541206999914721,
+      "work": {
+        "derivative": 0,
+        "forward": 422,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 14770,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33328590201545427,
+        0.1723607834588695
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.013659563953240195,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.8450156573716393e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00025620957270670414,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.0632702000439167,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1575,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.333285904291829,
+        0.17236078422633655
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.013660229817674008,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 10,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.8450156573682507e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.00025621297719150487,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.13831869995919988,
+      "work": {
+        "derivative": 18,
+        "forward": 90,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 3150,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3332859019797998,
+        0.17236078352196038
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 143.1048539868741,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 0.0063516416287502896,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 1.0596016748771797,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.7096052999841049,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 17500,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.8302251874544239,
+        0.39164172583665785
+      ]
+    },
+    {
+      "condition": 6.689284084749172,
+      "height_error_world": 0.013660223828679818,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.8450156573679346e-07,
+      "receiver_baseline": "broad_plane",
+      "relative_intensity_error": 0.0002562134129209426,
+      "scaled_response_singular_values": [
+        1576.7591820871203,
+        235.71419035438439
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 35,
+      "wall_seconds": 0.4163690999848768,
+      "work": {
+        "derivative": 0,
+        "forward": 293,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 10255,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3332859020005949,
+        0.17236078343180947
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 1.0385485893493751e-07,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 1.2380198964440853e-20,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 5.528086906754955e-10,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.05406329996185377,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1320,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3333333336939404,
+        0.17241379321782246
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 3.7545570705788123e-06,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 1.8733859550388884e-17,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 2.522955999969175e-08,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.09585189999779686,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2420,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333332029667684,
+        0.1724137878835393
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.46154351619154,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 2.6517814943918304e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.0020511633851049284,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.8449937000405043,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33173075167989047,
+        0.17198941447204727
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 13.25885492532575,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 0.0003418664621924988,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.040295744076710965,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 1.0855131999705918,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.28729564262039664,
+        0.16407674260481842
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 2.6693669497035444e-10,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.0,
+      "objective": 9.681343971749323e-26,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 1.0580455030625065e-12,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.13459199998760596,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1980,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333333426013,
+        0.1724137931036672
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 6.271898485010752e-07,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 15,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.0,
+      "objective": 4.5378718721682e-19,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 3.2277618326285543e-09,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.22607849998166785,
+      "work": {
+        "derivative": 23,
+        "forward": 115,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 5060,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333551107586,
+        0.17241379377126106
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 164.05448411352722,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.0,
+      "objective": 0.008250709988071227,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 1.0886672337043777,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.9150899000233039,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.9029669587275251,
+        0.39765528973194025
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 6.061895874154288e-09,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 9,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.0,
+      "objective": 3.7780080336706154e-22,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 8.971577850995042e-11,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.6095758000155911,
+      "work": {
+        "derivative": 0,
+        "forward": 316,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 13904,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33333333335438153,
+        0.17241379312201016
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.05510101061503292,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.7069388736617834e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.0002191059406925433,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.05610710004111752,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1320,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33314201037980895,
+        0.1723684608398567
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.05510645908674405,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.706938873938313e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00021914077976020963,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.09262899996247143,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2420,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33314199146150436,
+        0.17236845363177375
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.5241301323979428,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 5.502961435318318e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.002247266282045833,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.8484559999778867,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33151343704028485,
+        0.1719488414588871
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 11.780958055223465,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 11,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 0.00033627151648248934,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.026422316247614316,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.9418009000364691,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.2924272289749185,
+        0.16694710698325219
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.05510172129925195,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.7069388736551855e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00021910976234948976,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.08039909997023642,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1980,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33314200791215537,
+        0.1723684600491691
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.05510110371596966,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 15,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.706938873660298e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00021910661205765792,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.20520970004145056,
+      "work": {
+        "derivative": 23,
+        "forward": 115,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 5060,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33314201005654176,
+        0.1723684607009536
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 164.03842600842222,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 0.008260584660912042,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 1.0886047148157392,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.8564825000357814,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.9029112014181326,
+        0.39764235478946325
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.05510174214492736,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 9,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.706938873655063e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00021910984140428505,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 11,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.5187003000173718,
+      "work": {
+        "derivative": 0,
+        "forward": 343,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 15092,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33314200783977455,
+        0.17236846003281292
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.02603580301396846,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 6,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.809394494129297e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00033996698718434954,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.050087800016626716,
+      "work": {
+        "derivative": 6,
+        "forward": 30,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1320,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33324293123953486,
+        0.17234345510609977
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.02604043361418462,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 8,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.809394494391794e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00033999733911646975,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.07320879999315366,
+      "work": {
+        "derivative": 11,
+        "forward": 55,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 2420,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3332429151610618,
+        0.1723434488263897
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.4839914568740653,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 5.427567813317518e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.0023663390596076776,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.6373309000045992,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3316528074414095,
+        0.17192420571180533
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 11.969399877675244,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 10,
+      "library_nfev": null,
+      "message": "Maximum number of function evaluations has been exceeded.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 0.00034998408906682175,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.026952538203387347,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.25,
+      "status": "Budget",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.7546063000336289,
+      "work": {
+        "derivative": 0,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.29177291709140535,
+        0.16683740588895435
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.02603592865347082,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": null,
+      "library_nfev": 9,
+      "message": "`gtol` termination condition is satisfied.",
+      "method": "trf",
+      "noise": 0.05,
+      "objective": 2.8093944941291807e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00033996765744708076,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.061844099953304976,
+      "work": {
+        "derivative": 9,
+        "forward": 45,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 1980,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.3332429308032866,
+        0.17234345496742476
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.026035373978260168,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 15,
+      "library_nfev": null,
+      "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "method": "lbfgsb",
+      "noise": 0.05,
+      "objective": 2.8093944941327165e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.000339964778629754,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.1500833000172861,
+      "work": {
+        "derivative": 23,
+        "forward": 115,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 5060,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33324293272924216,
+        0.17234345556304212
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 164.07931299141336,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 100,
+      "library_nfev": null,
+      "message": "",
+      "method": "adam",
+      "noise": 0.05,
+      "objective": 0.008252273029010618,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 1.0884150305459885,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "IterationLimit",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.6879088000277989,
+      "work": {
+        "derivative": 100,
+        "forward": 500,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 22000,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.9030531701090742,
+        0.39760310976813557
+      ]
+    },
+    {
+      "condition": 5.572941245969308,
+      "height_error_world": 0.02603592220955875,
+      "information_note": "Repeated identical positions in single_point do not add independent evidence",
+      "iterations": 9,
+      "library_nfev": null,
+      "message": "Optimization terminated successfully.",
+      "method": "powell",
+      "noise": 0.05,
+      "objective": 2.809394494129098e-07,
+      "receiver_baseline": "multi_surface",
+      "relative_intensity_error": 0.00033996757159836005,
+      "scaled_response_singular_values": [
+        1699.0577624705923,
+        304.8763099197313
+      ],
+      "seed": 37,
+      "start": 0.75,
+      "status": "Stationary",
+      "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+      "unique_receiver_positions": 44,
+      "wall_seconds": 0.5386841999716125,
+      "work": {
+        "derivative": 0,
+        "forward": 360,
+        "matvec": 0,
+        "projections": 0,
+        "rays": 0,
+        "scalar_responses": 15840,
+        "visibility_tests": 0
+      },
+      "x": [
+        0.33324293082566125,
+        0.17234345498518652
+      ]
+    }
+  ],
+  "schema": "org.openjk.optimization-distance-ablation.v1",
+  "source_sha256": "1a84dcfb90f31ce06a2a7fb80358acd92976076330fcd559a24c908239a7c509",
+  "units": "Compiler relative; same verified kernel, height/intensity only; no new compiler invocation"
+}

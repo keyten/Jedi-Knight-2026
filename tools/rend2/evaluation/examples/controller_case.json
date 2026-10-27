@@ -1,0 +1,394 @@
+{
+  "schema": "org.openjk.lighting-evaluation-case.v1",
+  "id": "controller-only-metric-fixture",
+  "units_per_metre": 32,
+  "seed": 20261027,
+  "provenance": {
+    "scope": "Self-contained metric assertions based on existing fixture source geometries; NOT solver input",
+    "geometry": "tools/lightrecon_test/offline_fixtures.cpp",
+    "map_sha256": "synthetic-metric-example-not-a-BSP",
+    "threshold_basis": "8 world units = half of the existing 16-unit compiled luxel spacing; illustrative diagnostic gate only",
+    "threshold_freeze": "v1 metric fixture, independent of any future solver settings"
+  },
+  "match_policy": {
+    "position_world": 8,
+    "angle_degrees": 5,
+    "cone_degrees": 3,
+    "dimension_relative": 0.1,
+    "roll_degrees": 5
+  },
+  "truth": [
+    {
+      "kind": "point",
+      "id": "hidden-point",
+      "position": [
+        -96,
+        32,
+        180
+      ],
+      "photometry": {
+        "value": 120,
+        "unit": "candela",
+        "kind": "PhysicallyAuthored",
+        "domain": "synthetic-reference",
+        "rgb": [
+          1,
+          1,
+          1
+        ],
+        "primaries": "Rec709Linear"
+      }
+    },
+    {
+      "kind": "spot",
+      "id": "hidden-spot",
+      "position": [
+        96,
+        32,
+        180
+      ],
+      "direction": [
+        0,
+        0,
+        -1
+      ],
+      "direction_convention": "propagation",
+      "cone_degrees": 25
+    },
+    {
+      "kind": "rectangle",
+      "position": [
+        0,
+        0,
+        240
+      ],
+      "direction": [
+        0,
+        0,
+        -1
+      ],
+      "direction_convention": "propagation",
+      "dimensions": [
+        144,
+        64
+      ],
+      "tangent": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "kind": "tube",
+      "position": [
+        0,
+        96,
+        240
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "direction_convention": "axis",
+      "dimensions": [
+        160,
+        4
+      ]
+    },
+    {
+      "kind": "sun",
+      "direction": [
+        0.4,
+        0.1,
+        1
+      ],
+      "direction_convention": "receiver_to_source"
+    },
+    {
+      "kind": "sky",
+      "component": "environment"
+    },
+    {
+      "kind": "transport",
+      "component": "bounce"
+    }
+  ],
+  "surface_targets": [
+    {
+      "id": "map/page0/texel0/surface0/style0",
+      "weight": 1,
+      "domain": "SourceLinearRelative",
+      "primaries": "Rec709Linear",
+      "lower": [
+        1,
+        1,
+        1
+      ],
+      "upper": [
+        1,
+        1,
+        1
+      ],
+      "region": "small-room",
+      "lighting": "direct",
+      "brightness": "bright",
+      "comparison_id": "synthetic-reference-comparison-v1"
+    },
+    {
+      "id": "map/page0/texel1/surface1/style0",
+      "weight": 9,
+      "domain": "SourceLinearRelative",
+      "primaries": "Rec709Linear",
+      "lower": [
+        2,
+        2,
+        2
+      ],
+      "upper": [
+        2,
+        2,
+        2
+      ],
+      "region": "large-room",
+      "lighting": "bounce",
+      "brightness": "dim",
+      "comparison_id": "synthetic-reference-comparison-v1"
+    }
+  ],
+  "surface_predictions": [
+    {
+      "id": "map/page0/texel0/surface0/style0",
+      "domain": "SourceLinearRelative",
+      "primaries": "Rec709Linear",
+      "rgb": [
+        1,
+        1,
+        1
+      ],
+      "comparison_id": "synthetic-reference-comparison-v1"
+    },
+    {
+      "id": "map/page0/texel1/surface1/style0",
+      "domain": "SourceLinearRelative",
+      "primaries": "Rec709Linear",
+      "rgb": [
+        2,
+        2,
+        2
+      ],
+      "comparison_id": "synthetic-reference-comparison-v1"
+    }
+  ],
+  "observations": [
+    {
+      "id": "surface0",
+      "area": 1,
+      "surface": 0,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "region": "small-room",
+      "quality": {
+        "raw_rgb": true,
+        "mapped": true,
+        "normal": true,
+        "footprint": true,
+        "comparable_colour": true,
+        "visibility": true,
+        "region": true,
+        "material_style": true,
+        "censored": false,
+        "deluxe": false
+      }
+    },
+    {
+      "id": "surface1",
+      "area": 9,
+      "surface": 1,
+      "position": [
+        0,
+        10,
+        0
+      ],
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "region": "large-room",
+      "quality": {
+        "raw_rgb": true,
+        "mapped": true,
+        "normal": true,
+        "footprint": true,
+        "comparable_colour": true,
+        "visibility": null,
+        "region": false,
+        "material_style": null,
+        "censored": true,
+        "deluxe": false
+      }
+    }
+  ],
+  "receiver_area": 10,
+  "coverage_regions": [
+    {
+      "area": 1,
+      "state": "physical_resolved"
+    },
+    {
+      "area": 9,
+      "state": "unresolved"
+    }
+  ],
+  "information": {
+    "rows": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        3
+      ]
+    ],
+    "scales": [
+      1,
+      1
+    ],
+    "singular_relative_cutoff": 1e-06
+  },
+  "visibility": [
+    {
+      "truth": "Blocked",
+      "predicted": "Visible",
+      "predicted_energy": 2,
+      "weight": 1
+    },
+    {
+      "truth": "Unknown",
+      "predicted": "Unknown"
+    }
+  ],
+  "shadow_edges": [
+    {
+      "edge_truth": 10,
+      "edge_predicted": 12,
+      "width_truth": 3,
+      "width_predicted": 5,
+      "association_correct": true,
+      "boundary_interval": [
+        11,
+        13
+      ],
+      "nominal": 0.95
+    }
+  ],
+  "profiles": [
+    {
+      "id": "NetRadiant-isq",
+      "validation_error": 1,
+      "domain": "encoded-byte-interval",
+      "parameter_budget": 1,
+      "partition_hash": "same-frozen-spatial-fold"
+    },
+    {
+      "id": "linear-alternative",
+      "validation_error": 1.01,
+      "domain": "encoded-byte-interval",
+      "parameter_budget": 1,
+      "partition_hash": "same-frozen-spatial-fold"
+    }
+  ],
+  "profile_regret": 0.1,
+  "selected_profile": "NetRadiant-isq",
+  "directions": [
+    {
+      "truth": [
+        0,
+        0,
+        1
+      ],
+      "prediction": [
+        0,
+        1,
+        0
+      ],
+      "meaning": "receiver_to_source",
+      "quantization_bound_degrees": 2
+    }
+  ],
+  "position_intervals": [
+    {
+      "truth": 180,
+      "interval": [
+        179,
+        181
+      ],
+      "nominal": 0.95
+    },
+    {
+      "truth": 180,
+      "interval": [
+        200,
+        201
+      ],
+      "nominal": 0.95
+    }
+  ],
+  "intensity_intervals": [
+    {
+      "truth": 120,
+      "interval": [
+        110,
+        130
+      ],
+      "nominal": 0.95
+    }
+  ],
+  "underconstrained": [
+    {
+      "case": "co-located",
+      "asserted_unique": false
+    },
+    {
+      "case": "single-plane",
+      "asserted_unique": true
+    }
+  ],
+  "alternative_sets": [
+    {
+      "truth_in_alternatives": true
+    }
+  ],
+  "components": [
+    {
+      "truth": {
+        "direct": 10,
+        "bounce": 2,
+        "sky": 0
+      },
+      "prediction": {
+        "direct": 10,
+        "bounce": 2,
+        "sky": 0
+      },
+      "included_roots": [
+        "lightA/direct",
+        "lightA/direct"
+      ]
+    }
+  ]
+}

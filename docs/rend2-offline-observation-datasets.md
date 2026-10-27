@@ -11,6 +11,11 @@ The complete `.jkobs` archive belongs to the trusted controller; partition tags
 do not make it safe to hand to an optimizer. Publish the sanitized `inputs/`
 package and keep evaluator targets/raw archives/answers outside its filesystem view.
 
+The [evaluation and uncertainty contract](rend2-lighting-evaluation.md) and
+[executable metric runner](../tools/rend2/evaluation/README.md) separately measure
+dataset readiness, physical-source accuracy, held-out prediction, profile ambiguity
+and uncertainty calibration. A valid archive alone is not a recovered-light result.
+
 X01 advances the contained surface/region sub-schemas to **5/2** without changing
 the file container 1.0. Imported 4/1 snapshots are explicitly labelled legacy;
 they do not gain current certification or inferred flare semantics. Region

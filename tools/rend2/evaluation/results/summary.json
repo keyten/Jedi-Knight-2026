@@ -1,0 +1,1354 @@
+{
+  "analytical_source_sanity": {
+    "bounce_colour": {
+      "answer_sha256": "014aae77528f6580359957105f7811dca9af8950f64836208a7b38651d13882e",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "door_occlusion": {
+      "answer_sha256": "17a3ad2857fd14da62394cf054ef41c257407b1a46ede73431c2c3f1b533ff90",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "overlap_whites": {
+      "answer_sha256": "1110006cc7ba84f75613338fa25a0c0fab408cd65bf1fd0fbb8eba3f9c12809f",
+      "tp": 2,
+      "truth_count": 2
+    },
+    "panel": {
+      "answer_sha256": "c2f7a6120fc5dab1ef137057c8bd3ffbd7deeeefec3e8d08f762f83925641f4f",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "point_room": {
+      "answer_sha256": "5cf98ab7fcec45dc4abd70c378765c696365b019adf16db50eaa9b9cd2b7e46c",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "skylight": {
+      "answer_sha256": "4d60f99207ebd5297b16988066faffde1d6649a7944541e1e1a21d83a6e3a927",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "spot": {
+      "answer_sha256": "8ef81d996ef909cdf275c4b168e2aad66c59b5d49612ea9c90dede1f51cbdcd7",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "sun_sky": {
+      "answer_sha256": "7dc5af506805b79f5c58ea8666578c4a2bc143769cbc4d203350bcb837fa6ff9",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "tube": {
+      "answer_sha256": "059a341b522904712946bb01707ac67c167e813d16662905d89f3d378bf3c3bb",
+      "tp": 1,
+      "truth_count": 1
+    },
+    "two_colour": {
+      "answer_sha256": "7060d7741d00a2833aece8b8cadf17a020aebc71f9f67c10b58af7f1231e3823",
+      "tp": 2,
+      "truth_count": 2
+    },
+    "wall_leak": {
+      "answer_sha256": "5f94cfdb41266c2f1577a285e2604a14d150c677747852ee53f4129235ca0239",
+      "tp": 1,
+      "truth_count": 1
+    }
+  },
+  "boundary_35": {
+    "boundary_texels": 35,
+    "channels": 105,
+    "claim": "Dedicated original X04 boundary witness, not a universal epsilon/boundary model",
+    "max_byte_error": 28,
+    "nonzero_residual_texels": 17,
+    "old_analytic": {
+      "breakdown": {
+        "brightness/3": {
+          "denominator": 13056.0,
+          "status": "Available",
+          "value": 15.87713240271471
+        },
+        "brightness/4": {
+          "denominator": 13824.0,
+          "status": "Available",
+          "value": 0.0
+        },
+        "lighting/compiler-mixture": {
+          "denominator": 26880.0,
+          "status": "Available",
+          "value": 11.065282472240652
+        },
+        "region/Unknown": {
+          "denominator": 26880.0,
+          "status": "Available",
+          "value": 11.065282472240652
+        }
+      },
+      "censored_channels_scored": 0,
+      "channels_in_requested_targets": 105,
+      "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result",
+      "extra_prediction_ids": 0,
+      "failures": {},
+      "linear_luminance_interval_rmse": {
+        "reason": "Luminance requires comparable linear Rec709 predictions",
+        "status": "NotComparable",
+        "value": null
+      },
+      "observations_used_coverage": {
+        "denominator": 8960.0,
+        "numerator": 0.0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "prediction_coverage": {
+        "denominator": 8960.0,
+        "numerator": 8960.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 11.065282472240652
+      },
+      "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream"
+    },
+    "signed_byte_residual_sum": -476,
+    "source_epsilon_replay": {
+      "breakdown": {
+        "brightness/3": {
+          "denominator": 13056.0,
+          "status": "Available",
+          "value": 0.0
+        },
+        "brightness/4": {
+          "denominator": 13824.0,
+          "status": "Available",
+          "value": 0.0
+        },
+        "lighting/compiler-mixture": {
+          "denominator": 26880.0,
+          "status": "Available",
+          "value": 0.0
+        },
+        "region/Unknown": {
+          "denominator": 26880.0,
+          "status": "Available",
+          "value": 0.0
+        }
+      },
+      "censored_channels_scored": 0,
+      "channels_in_requested_targets": 105,
+      "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result",
+      "extra_prediction_ids": 0,
+      "failures": {},
+      "linear_luminance_interval_rmse": {
+        "reason": "Luminance requires comparable linear Rec709 predictions",
+        "status": "NotComparable",
+        "value": null
+      },
+      "observations_used_coverage": {
+        "denominator": 8960.0,
+        "numerator": 0.0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "prediction_coverage": {
+        "denominator": 8960.0,
+        "numerator": 8960.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream"
+    },
+    "source_sha256": "6ea755f8c5e9335d12904e3ddeddf2a747ea2587daaaf9770a62dcf9f40cde4d"
+  },
+  "cases": [
+    {
+      "existence_brier": {
+        "count": 0,
+        "reason": "No comparable records",
+        "status": "Unavailable",
+        "value": null
+      },
+      "f1": {
+        "denominator": 10,
+        "numerator": 10,
+        "status": "Available",
+        "value": 1.0
+      },
+      "fn": 0,
+      "fp": 0,
+      "id": "source-oracle-sanity",
+      "precision": {
+        "denominator": 5,
+        "numerator": 5,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 10.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 5,
+        "status": "Available",
+        "value": 1.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "tp": 5
+    },
+    {
+      "existence_brier": {
+        "count": 15,
+        "status": "Available",
+        "value": 0.6534333333333333
+      },
+      "f1": {
+        "denominator": 20,
+        "numerator": 10,
+        "status": "Available",
+        "value": 0.5
+      },
+      "fn": 0,
+      "fp": 10,
+      "id": "many-lights-perfect-rgb",
+      "precision": {
+        "denominator": 15,
+        "numerator": 5,
+        "status": "Available",
+        "value": 0.3333333333333333
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 10.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 5,
+        "status": "Available",
+        "value": 1.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "tp": 5
+    },
+    {
+      "existence_brier": {
+        "count": 0,
+        "reason": "No comparable records",
+        "status": "Unavailable",
+        "value": null
+      },
+      "f1": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "fn": 5,
+      "fp": 0,
+      "id": "indirect-only-perfect-rgb",
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 10.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "tp": 0
+    },
+    {
+      "existence_brier": {
+        "count": 0,
+        "reason": "No comparable records",
+        "status": "Unavailable",
+        "value": null
+      },
+      "f1": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "fn": 5,
+      "fp": 0,
+      "id": "one-easy-observation-only",
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 1.0,
+        "status": "Available",
+        "value": 0.1
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "tp": 0
+    },
+    {
+      "existence_brier": {
+        "count": 0,
+        "reason": "No comparable records",
+        "status": "Unavailable",
+        "value": null
+      },
+      "f1": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "fn": 5,
+      "fp": 0,
+      "id": "valid-empty-asset-no-recovery",
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 0.0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Unavailable",
+        "value": null
+      },
+      "tp": 0
+    },
+    {
+      "existence_brier": {
+        "count": 0,
+        "reason": "No comparable records",
+        "status": "Unavailable",
+        "value": null
+      },
+      "f1": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "fn": 5,
+      "fp": 0,
+      "id": "candidates-not-recovered",
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_area_coverage": {
+        "denominator": 10.0,
+        "numerator": 10.0,
+        "status": "Available",
+        "value": 1.0
+      },
+      "recall": {
+        "denominator": 5,
+        "numerator": 0,
+        "status": "Available",
+        "value": 0.0
+      },
+      "rgb_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "tp": 0
+    }
+  ],
+  "compiled": {
+    "bounce_colour": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617",
+      "public_geometry_sha256": "cab088f4215590b5ef3fc08dbc443ae3f860461bff8ee3b62a52aebfbc7f5277",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 123.66169025354472
+      }
+    },
+    "bounce_control": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "1fbee6e56a4e10f6b03ba1eac9bbc0cb6da0c76dad793a681a789ad2fb244cbe",
+      "public_geometry_sha256": "4bfd5be122375228d17d2f90bb6a3e5bbc6ddcba5d21509eddaf928ec0aae742",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 96.82537389704741
+      }
+    },
+    "door_occlusion": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 578304.0,
+      "map_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "public_geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 3.8259480900658844
+      }
+    },
+    "overlap_whites": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f",
+      "public_geometry_sha256": "7abcc9d861fe6e173581c6cd0c9767b10b978b2622c1222bb33e064f981bba62",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 84.85332264346732
+      }
+    },
+    "panel": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 533504.0,
+      "map_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+      "public_geometry_sha256": "972fd4fe577af30d604117b16d03f9b30848aec9f1a2d1f78ec2e6695e2185fd",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 0.8453676505795953
+      }
+    },
+    "point_room": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "public_geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 20.335854289824407
+      }
+    },
+    "skylight": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 430080.0,
+      "map_sha256": "b6bdb70e3f5de43f13bab50774a36aff9b024fc0731e71f1bf9235446981c15e",
+      "public_geometry_sha256": "96296beeb346516f2cd8b64ce5f22283e43ef08a6600e7c60f1b3c962378252f",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      }
+    },
+    "spot": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 110,
+      "known_footprint_area": 262144.0,
+      "map_sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee",
+      "public_geometry_sha256": "ec7071ee8fb5e47ec05e289105d4992157c6f8215be3b72112d8eb7bf383ef89",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 4.365754071456636
+      }
+    },
+    "sun_sky": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 425984.0,
+      "map_sha256": "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e",
+      "public_geometry_sha256": "2e028a908097e683528d06c418d87ecdcaab6d8d4a568850ae6ceb3a0fc26182",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 1.4612848919199621
+      }
+    },
+    "tube": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 526848.0,
+      "map_sha256": "b1150cdbbd382dc58ab74e9f13496a12da27d5a29f4a0b57d169c3140c2b61e8",
+      "public_geometry_sha256": "a840bd81654c18301da5548435e808a5f8746aed55bc014e13b9092c6927020d",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 6.156830812728709
+      }
+    },
+    "two_colour": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 176,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "public_geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 40.93041026973081
+      }
+    },
+    "wall_leak": {
+      "answer_present": true,
+      "candidate_count": 16384,
+      "heldout_count": 110,
+      "known_footprint_area": 524288.0,
+      "map_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+      "public_geometry_sha256": "83463218adaf4895482f15c9330f4b722dbf702e7a399a954b033cf80bc4ae07",
+      "target_copy_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      },
+      "zero_interval_rmse": {
+        "status": "Available",
+        "value": 0.0
+      }
+    }
+  },
+  "limitations": [
+    "No source fitting or new compiler/game run",
+    "Target-copy/source-copy controls are sanity assertions only",
+    "Stock unknown transfer, primaries, profile and absolute scale",
+    "Unknown whole-map receiver area denominator",
+    "API/artifact isolation is not an OS sandbox",
+    "No probability calibration on independent deployment scenes",
+    "No new SP/MP build; production sources unchanged"
+  ],
+  "measurement": {
+    "command": [
+      "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "-X",
+      "utf8",
+      "tools/rend2/evaluation/benchmark.py",
+      "--output",
+      "build/lighting-evaluation/complete",
+      "--analytical-answers",
+      "build/offline-suite-msvc-accepted/answers",
+      "--compiled-root",
+      "build/x02/compiled-fixtures-frozen",
+      "--compiled-answers",
+      "build/q3map2-bake-verified/answers",
+      "--stock-root",
+      "build/x02/final"
+    ],
+    "exit_code": 0,
+    "peak_working_set_bytes": 193421312,
+    "wall_seconds": 176.58665610000025
+  },
+  "metric_schema": "org.openjk.lighting-metrics.v1",
+  "metric_source_sha256": {
+    "tools/rend2/evaluation/adapters.py": "3ecd86b02239c594771b2f6ad450c01773838815b7797ddcd975d8d473a7c899",
+    "tools/rend2/evaluation/benchmark.py": "f7d80ad6d216a59ca1d383a766a47219c18b170a357288dd2fb1e9fb8b7e1cd1",
+    "tools/rend2/evaluation/examples/controller_case.json": "1c546fa3f911b0e8c2e092dc339c5cef24016e8915910fa3ab077ea6ba2b56ab",
+    "tools/rend2/evaluation/metrics.py": "ce05b69b07506e87b2823cd395037b3a1b35560e6a2a8f44eda5b6051746cffb",
+    "tools/rend2/evaluation/summarize.py": "428ec9bc569a56bbc9a3c390f79fb47ccd83ecbc5b0773857ab12e0010978b99",
+    "tools/rend2/evaluation/test_metrics.py": "45ea66f6ddf9b7ac36e80ff4ec8a1a8ae06b8bf8f446c89240c662c27c002868"
+  },
+  "prior_x03_regret_sensitivity": {
+    "0.0": {
+      "known_truth_in_viable": 42,
+      "known_truth_trials": 78,
+      "multiple_viable": 9,
+      "selected_known_correct": 39,
+      "trials": 78
+    },
+    "0.5": {
+      "known_truth_in_viable": 42,
+      "known_truth_trials": 78,
+      "multiple_viable": 20,
+      "selected_known_correct": 39,
+      "trials": 78
+    },
+    "2.0": {
+      "known_truth_in_viable": 45,
+      "known_truth_trials": 78,
+      "multiple_viable": 30,
+      "selected_known_correct": 39,
+      "trials": 78
+    }
+  },
+  "run_sha256": "2cb0a6288aca2c3d268473fd65a91b313402132a7d739545fb53dc890ccb8ed8",
+  "schema": "org.openjk.lighting-evaluation-witness.v1",
+  "stock_readiness": {
+    "hoth2": {
+      "all_pages_declared_complete": true,
+      "candidate_count": 196608,
+      "complete_derived_stream": true,
+      "grid": {
+        "assigned_cells": 50,
+        "caveat": "Logical index count is not independent information or free-space certification",
+        "directions_quantized_uncalibrated": 1044126,
+        "logical_cells": 1044126,
+        "original_records_present": 1044126
+      },
+      "known_footprint_area": 38926063.827983566,
+      "map_area_coverage": {
+        "reason": "Full receiver-area denominator unavailable; do not invent padding area",
+        "status": "NotComparable",
+        "value": null
+      },
+      "map_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "normal_second_moment_eigenvalues": [
+        0.27638063755335557,
+        0.302124323428352,
+        0.42149503901823615
+      ],
+      "page_area": {
+        "page/0": 2998821.061731411,
+        "page/1": 3132007.7675075987,
+        "page/10": 297472.0,
+        "page/11": 0.0,
+        "page/2": 5566564.958285902,
+        "page/3": 7599907.083171543,
+        "page/4": 5707534.706642204,
+        "page/5": 2024329.98220052,
+        "page/6": 3260447.645445149,
+        "page/7": 4304396.801011236,
+        "page/8": 3952145.5695799575,
+        "page/9": 82436.25240629897
+      },
+      "profile": "UnknownProfile",
+      "qualities": {
+        "ambiguous": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 2815,
+          "unknown_predicate_area": 0.0
+        },
+        "censored": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 1842909.5898897077,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 1842909.5898897077,
+            "status": "Available",
+            "value": 0.04734384647863774
+          },
+          "true_count": 11658,
+          "unknown_predicate_area": 0.0
+        },
+        "comparable_colour": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "deluxe": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "footprint": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 35637167.33028637,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 35637167.33028637,
+            "status": "Available",
+            "value": 0.9155091428655358
+          },
+          "true_count": 60031,
+          "unknown_predicate_area": 0.0
+        },
+        "grid_direction": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 38926063.827983566
+        },
+        "mapped": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 37082664.8903923,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 37082664.8903923,
+            "status": "Available",
+            "value": 0.9526435823119095
+          },
+          "true_count": 79565,
+          "unknown_predicate_area": 0.0
+        },
+        "material_style": {
+          "classified_area": 12418185.006398786,
+          "classified_count": 139394,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 104886,
+          "unknown_predicate_area": 26507878.82158478
+        },
+        "normal": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 37082664.8903923,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 37082664.8903923,
+            "status": "Available",
+            "value": 0.9526435823119095
+          },
+          "true_count": 79565,
+          "unknown_predicate_area": 0.0
+        },
+        "raw_rgb": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 38926063.827983566,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 38926063.827983566,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_count": 196608,
+          "unknown_predicate_area": 0.0
+        },
+        "region": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "unsupported": {
+          "classified_area": 38926063.827983566,
+          "classified_count": 196608,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 32351,
+          "unknown_predicate_area": 0.0
+        },
+        "visibility": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 38926063.827983566,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 38926063.827983566
+        }
+      },
+      "samples_without_area": 107701,
+      "source_rows_sha256": "3f1887be975acb1fe9261f0e58d72d3d95115e7a96c4674869cd022f5c42c45e",
+      "source_visibility_complete": true
+    },
+    "hoth3": {
+      "all_pages_declared_complete": true,
+      "candidate_count": 622592,
+      "complete_derived_stream": true,
+      "grid": {
+        "assigned_cells": 9,
+        "caveat": "Logical index count is not independent information or free-space certification",
+        "directions_quantized_uncalibrated": 229068,
+        "logical_cells": 229068,
+        "original_records_present": 229068
+      },
+      "known_footprint_area": 96650139.43611856,
+      "map_area_coverage": {
+        "reason": "Full receiver-area denominator unavailable; do not invent padding area",
+        "status": "NotComparable",
+        "value": null
+      },
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "normal_second_moment_eigenvalues": [
+        0.21809101484700805,
+        0.22323366359943264,
+        0.5586753215535449
+      ],
+      "page_area": {
+        "page/0": 2809202.074321411,
+        "page/1": 2127798.3589599957,
+        "page/10": 2514239.24690774,
+        "page/11": 2915031.0490839956,
+        "page/12": 3000178.391660113,
+        "page/13": 2645002.6258700676,
+        "page/14": 1787468.6231326917,
+        "page/15": 2616847.316686587,
+        "page/16": 7126666.887663762,
+        "page/17": 5805874.837245923,
+        "page/18": 3039691.916578305,
+        "page/19": 1984827.7821027855,
+        "page/2": 3051190.5952668786,
+        "page/20": 817829.0558536024,
+        "page/21": 2694804.1278515384,
+        "page/22": 2718770.9906007755,
+        "page/23": 3116689.1063402686,
+        "page/24": 3272850.093076063,
+        "page/25": 2387082.6963361986,
+        "page/26": 2989637.297859902,
+        "page/27": 3243093.231873332,
+        "page/28": 2511392.7048767745,
+        "page/29": 3043725.7478537313,
+        "page/3": 2269680.215420023,
+        "page/30": 2336909.9516755766,
+        "page/31": 2307294.670483892,
+        "page/32": 2293247.89474584,
+        "page/33": 1137115.0899601523,
+        "page/34": 1349497.9881497393,
+        "page/35": 800007.4169339725,
+        "page/36": 195420.68895262215,
+        "page/37": 0.0,
+        "page/4": 2790102.8589528906,
+        "page/5": 2201422.223177047,
+        "page/6": 2567858.6641655657,
+        "page/7": 2884652.969468635,
+        "page/8": 2615269.5381087735,
+        "page/9": 2681764.5079266946
+      },
+      "profile": "UnknownProfile",
+      "qualities": {
+        "ambiguous": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 15870,
+          "unknown_predicate_area": 0.0
+        },
+        "censored": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 5086149.94297779,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 5086149.94297779,
+            "status": "Available",
+            "value": 0.052624341492435285
+          },
+          "true_count": 26438,
+          "unknown_predicate_area": 0.0
+        },
+        "comparable_colour": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "deluxe": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "footprint": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 90641477.63627172,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 90641477.63627172,
+            "status": "Available",
+            "value": 0.9378308005047598
+          },
+          "true_count": 370876,
+          "unknown_predicate_area": 0.0
+        },
+        "grid_direction": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 96650139.43611856
+        },
+        "mapped": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 95083546.05381075,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 95083546.05381075,
+            "status": "Available",
+            "value": 0.983791090303152
+          },
+          "true_count": 403084,
+          "unknown_predicate_area": 0.0
+        },
+        "material_style": {
+          "classified_area": 22522927.294108603,
+          "classified_count": 284218,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 175827,
+          "unknown_predicate_area": 74127212.14200996
+        },
+        "normal": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 95081822.28447479,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 95081822.28447479,
+            "status": "Available",
+            "value": 0.9837732551572742
+          },
+          "true_count": 403067,
+          "unknown_predicate_area": 0.0
+        },
+        "raw_rgb": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 96650139.43611856,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 96650139.43611856,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_count": 622592,
+          "unknown_predicate_area": 0.0
+        },
+        "region": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 494855.78790009924,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 494855.78790009924,
+            "status": "Available",
+            "value": 0.005120073191691326
+          },
+          "true_count": 1927,
+          "unknown_predicate_area": 0.0
+        },
+        "unsupported": {
+          "classified_area": 96650139.43611856,
+          "classified_count": 622592,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 8145,
+          "unknown_predicate_area": 0.0
+        },
+        "visibility": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 96650139.43611856,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 96650139.43611856
+        }
+      },
+      "samples_without_area": 191697,
+      "source_rows_sha256": "8ea1ab2e3630d3d68cd011e90826b2d366ae8c1826d4af5596094d59bbcf16af",
+      "source_visibility_complete": false
+    },
+    "mp_ffa3": {
+      "all_pages_declared_complete": true,
+      "candidate_count": 425984,
+      "complete_derived_stream": true,
+      "grid": {
+        "assigned_cells": 47,
+        "caveat": "Logical index count is not independent information or free-space certification",
+        "directions_quantized_uncalibrated": 94350,
+        "logical_cells": 94350,
+        "original_records_present": 94350
+      },
+      "known_footprint_area": 67727355.87602115,
+      "map_area_coverage": {
+        "reason": "Full receiver-area denominator unavailable; do not invent padding area",
+        "status": "NotComparable",
+        "value": null
+      },
+      "map_sha256": "2a448530b908761dd797a02f6530bbe2deb6597f1bc58d9c458e6d62619d5b05",
+      "normal_second_moment_eigenvalues": [
+        0.3191214426640524,
+        0.33099285685926927,
+        0.3498857004766297
+      ],
+      "page_area": {
+        "page/0": 2724738.669512594,
+        "page/1": 1648326.0140499333,
+        "page/10": 2673329.0214447747,
+        "page/11": 1711582.6582791968,
+        "page/12": 2421305.227703859,
+        "page/13": 2783637.3900577268,
+        "page/14": 2818085.0505983676,
+        "page/15": 2798250.526658412,
+        "page/16": 3046640.1563631985,
+        "page/17": 2769013.8948689755,
+        "page/18": 3305282.569526018,
+        "page/19": 2843881.202203144,
+        "page/2": 2380754.7552594435,
+        "page/20": 1857334.4792274155,
+        "page/21": 2737963.8627372785,
+        "page/22": 3326834.128114153,
+        "page/23": 2092156.5175759455,
+        "page/24": 1284519.3192669842,
+        "page/25": 0.0,
+        "page/3": 2366919.8734663497,
+        "page/4": 2841497.8029589737,
+        "page/5": 4463883.606175402,
+        "page/6": 3551547.76407474,
+        "page/7": 3052476.7353058425,
+        "page/8": 2960035.142450048,
+        "page/9": 3267359.5081476164
+      },
+      "profile": "UnknownProfile",
+      "qualities": {
+        "ambiguous": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 1539,
+          "unknown_predicate_area": 0.0
+        },
+        "censored": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 1735037.0711843267,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 1735037.0711843267,
+            "status": "Available",
+            "value": 0.025617965573030973
+          },
+          "true_count": 8540,
+          "unknown_predicate_area": 0.0
+        },
+        "comparable_colour": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "deluxe": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 0.0
+        },
+        "footprint": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 56188561.92437153,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 56188561.92437153,
+            "status": "Available",
+            "value": 0.8296287548450578
+          },
+          "true_count": 242085,
+          "unknown_predicate_area": 0.0
+        },
+        "grid_direction": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 67727355.87602115
+        },
+        "mapped": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 67181051.16695328,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 67181051.16695328,
+            "status": "Available",
+            "value": 0.9919337658764074
+          },
+          "true_count": 301473,
+          "unknown_predicate_area": 0.0
+        },
+        "material_style": {
+          "classified_area": 15558603.035802552,
+          "classified_count": 185215,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 113569,
+          "unknown_predicate_area": 52168752.840218596
+        },
+        "normal": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 67181051.16695328,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 67181051.16695328,
+            "status": "Available",
+            "value": 0.9919337658764074
+          },
+          "true_count": 301473,
+          "unknown_predicate_area": 0.0
+        },
+        "raw_rgb": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 67727355.87602115,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 67727355.87602115,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_count": 425984,
+          "unknown_predicate_area": 0.0
+        },
+        "region": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 176640,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 176640,
+            "status": "Available",
+            "value": 0.002608104180581769
+          },
+          "true_count": 690,
+          "unknown_predicate_area": 0.0
+        },
+        "unsupported": {
+          "classified_area": 67727355.87602115,
+          "classified_count": 425984,
+          "covered_area": 0.0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0.0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 15170,
+          "unknown_predicate_area": 0.0
+        },
+        "visibility": {
+          "classified_area": 0,
+          "classified_count": 0,
+          "covered_area": 0,
+          "fraction_of_known_footprint": {
+            "denominator": 67727355.87602115,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_count": 0,
+          "unknown_predicate_area": 67727355.87602115
+        }
+      },
+      "samples_without_area": 115108,
+      "source_rows_sha256": "da0219cd6e64a6ed5cd701154c192dc61b26acd1f93d764a1d9430e967d82634",
+      "source_visibility_complete": false
+    }
+  }
+}

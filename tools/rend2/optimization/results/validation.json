@@ -1,0 +1,143 @@
+{
+  "approval_event": {
+    "action": "Recursive ACL inheritance change for isolated SciPy install",
+    "outcome": "Rejected by automatic review; no ACL changed; numerical commands executed under package owner context"
+  },
+  "date": "2026-10-27",
+  "discarded_intermediate_runs": [
+    {
+      "path": "build/optimization-benchmark/complete",
+      "reason": "Floor-only adapter admitted no X02 wall receivers for two_colour/door_occlusion; corrected, tested, rerun"
+    },
+    {
+      "path": "build/optimization-benchmark/repeat",
+      "reason": "Source changed during run; start/end hash guard rejected it"
+    }
+  ],
+  "limits": [
+    "No production solver/runtime/GPU integration or new SP/MP build",
+    "No stock profile or calibrated stock intensity inferred",
+    "Dense library-internal linear matvec counts unavailable",
+    "Tiny geometry/indirect/area controls do not validate arbitrary BSP fitting",
+    "BLAS one-thread environment requested; cross-platform last-bit reproducibility not claimed"
+  ],
+  "measurement": {
+    "command": [
+      "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "-X",
+      "utf8",
+      "tools/rend2/optimization/run.py",
+      "--output",
+      "build/optimization-benchmark/validated",
+      "--compiled22",
+      "build/bake-model-comparison-final",
+      "--compiled12",
+      "build/x02/compiled-fixtures-frozen",
+      "--recipes12",
+      "build/q3map2-bake-verified/answers",
+      "--ray-tool",
+      "build/lightrecon-core-renderers/Release/lightrecon_profile_rays.exe"
+    ],
+    "exit_code": 0,
+    "peak_working_set_bytes": 81612800,
+    "wall_seconds": 153.7710726999794
+  },
+  "numerical_confidence": "No source-existence posterior or physical reconstruction claim",
+  "original_compiler_checks": {
+    "cases": [
+      "inverse_square",
+      "linear",
+      "spot",
+      "colour_clip"
+    ],
+    "new_bakes": false,
+    "passed": true
+  },
+  "per_method_resource_source_sha256": "820984f33798fbce9246ee060cf52f38dcfd12ba4c5e36b3ad3d28bf418a80b2",
+  "per_method_resources_sha256": "046821af68d09ce9756ac466b9ce93d7b02cbad5d0a9879d945e970077a0d980",
+  "postprocessor_sha256": "800e1a208a9710610036250b5c9a8860baaed23f70d25902a64dbf5c1f58f752",
+  "real_archive_visibility": {
+    "door_occlusion": {
+      "blocked_rays": 63,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "geometry_rays": 166,
+      "new_compiler_run": false,
+      "partitions": {
+        "heldout": 48,
+        "train": 58,
+        "validation": 42
+      },
+      "ray_command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-core-renderers\\Release\\lightrecon_profile_rays.exe",
+        "build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\inputs\\geometry.jkobs",
+        "<run>/rays\\door_occlusion-queries.tsv",
+        "<run>/rays\\door_occlusion-rays.tsv"
+      ],
+      "ray_witness_sha256": "303218df1e5c5f36da012a771791110d3eb80d126fa6b9161b2af96180386fcb",
+      "receiver_sampling": "All available oriented receiver types; assumed +1WU geometric-normal compiler push",
+      "units": "Compiler relative, NOT SI",
+      "unknown_observations_excluded": 18,
+      "visible_rays": 85
+    },
+    "two_colour": {
+      "blocked_rays": 0,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "geometry_rays": 332,
+      "new_compiler_run": false,
+      "partitions": {
+        "heldout": 48,
+        "train": 58,
+        "validation": 42
+      },
+      "ray_command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-core-renderers\\Release\\lightrecon_profile_rays.exe",
+        "build\\x02\\compiled-fixtures-frozen\\two_colour-views\\inputs\\geometry.jkobs",
+        "<run>/rays\\two_colour-queries.tsv",
+        "<run>/rays\\two_colour-rays.tsv"
+      ],
+      "ray_witness_sha256": "37feeb6fa5f97c587b3bac649e08b169fe0e95c628149b11d44f13067504eb5d",
+      "receiver_sampling": "All available oriented receiver types; assumed +1WU geometric-normal compiler push",
+      "units": "Compiler relative, NOT SI",
+      "unknown_observations_excluded": 18,
+      "visible_rays": 296
+    }
+  },
+  "repeat_measurement": {
+    "command": [
+      "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "-X",
+      "utf8",
+      "tools/rend2/optimization/run.py",
+      "--output",
+      "build/optimization-benchmark/validated-repeat",
+      "--compiled22",
+      "build/bake-model-comparison-final",
+      "--compiled12",
+      "build/x02/compiled-fixtures-frozen",
+      "--recipes12",
+      "build/q3map2-bake-verified/answers",
+      "--ray-tool",
+      "build/lightrecon-core-renderers/Release/lightrecon_profile_rays.exe"
+    ],
+    "exit_code": 0,
+    "peak_working_set_bytes": 81797120,
+    "wall_seconds": 135.76642670005094
+  },
+  "schema": "org.openjk.optimization-validation.v1",
+  "semantic_repeat": {
+    "metrics.csv": "91f4cbb6feae25f2ac857eb2a29483576258313642d1c4b2305c3492501ef9ce",
+    "result.json": "3b789bc1e7b3020d4433eb483b1fd49c1b4a9771b5556ecf35cce36713e34a8e"
+  },
+  "source_hashes_current": true,
+  "supplemental_distance_records": 96,
+  "supplemental_distance_source_sha256": "1a84dcfb90f31ce06a2a7fb80358acd92976076330fcd559a24c908239a7c509",
+  "tests": {
+    "cpu_ctest": 17,
+    "evaluation": 39,
+    "inverse_gi": 15,
+    "optimization": 30,
+    "shadow_footprint": 27
+  }
+}

@@ -1,0 +1,3 @@
+# Research tools only. Never a renderer/game/runtime dependency.
+numpy==2.3.5
+scipy==1.16.3

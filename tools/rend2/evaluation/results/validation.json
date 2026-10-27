@@ -1,0 +1,75 @@
+{
+  "compiled_public_check": {
+    "failed": 0,
+    "passed": 12,
+    "scenes": [
+      "bounce_colour-views",
+      "bounce_control-views",
+      "door_occlusion-views",
+      "overlap_whites-views",
+      "panel-views",
+      "point_room-views",
+      "skylight-views",
+      "spot-views",
+      "sun_sky-views",
+      "tube-views",
+      "two_colour-views",
+      "wall_leak-views"
+    ],
+    "tool_sha256": "0dbbd007ec3a26e2e4d7a680ef87311baa89f21f3a458bb4aabadb62145401a2"
+  },
+  "date": "2026-10-27",
+  "initial_failed_attempt": {
+    "log": "build/lighting-evaluation/measurement.log",
+    "reason": "Adapter did not account for null material on padding",
+    "resolved": "Unknown group plus regression test; full final run passed"
+  },
+  "manifest_roundtrip_and_frozen_regression": {
+    "evaluated_rules": 1,
+    "failures": [],
+    "status": "Passed"
+  },
+  "metric_run_sha256": "2cb0a6288aca2c3d268473fd65a91b313402132a7d739545fb53dc890ccb8ed8",
+  "not_performed": [
+    "Production source fitting",
+    "New compiler bakes",
+    "Game or GPU execution",
+    "New SP/MP build",
+    "OS sandbox penetration test",
+    "Statistical deployment calibration"
+  ],
+  "physical_success_claimed": false,
+  "repeat": {
+    "metrics.csv": "05a8b288b7e9005323b69e88f2ac662772eb4f2dbdcc784ab3a16be57cba9ea5",
+    "metrics.json": "45cfe5243d3acc74022b58de542e70f0387f5b4df9758d7783a31688d93d8314"
+  },
+  "schema": "org.openjk.lighting-evaluation-validation.v1",
+  "stages": {
+    "analytical_answers": 11,
+    "compiled_datasets": 12,
+    "original_boundary_texels": 35,
+    "stock_censuses": 3
+  },
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/evaluation -p 'test_*.py' -v",
+      "failed": 0,
+      "passed": 39
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/datasets -p 'test_blind_views.py' -v",
+      "failed": 0,
+      "passed": 6
+    },
+    {
+      "command": "python -X utf8 tools/rend2/bake_model/test_identifiability.py -v",
+      "failed": 0,
+      "passed": 11
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure",
+      "failed": 0,
+      "passed": 17
+    }
+  ]
+}

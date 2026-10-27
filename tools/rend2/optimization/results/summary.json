@@ -1,0 +1,2123 @@
+[
+  {
+    "forward": 0.0,
+    "heldout": 0.3280619975776514,
+    "method": "bvls",
+    "parameter_error": 0.005925257376878638,
+    "problem": "A/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006853000086266547
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3280619975776442,
+    "method": "coordinate",
+    "parameter_error": 0.005925257376878407,
+    "problem": "A/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0002775499888230115
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3317658922807554,
+    "method": "group_prox",
+    "parameter_error": 0.006034371141318333,
+    "problem": "A/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00042055000085383654
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3280619975776499,
+    "method": "nnls",
+    "parameter_error": 0.005925257376878582,
+    "problem": "A/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0002634999982547015
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3280619975776514,
+    "method": "trf_linear",
+    "parameter_error": 0.005925257376878638,
+    "problem": "A/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0007780000159982592
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "bvls",
+    "parameter_error": null,
+    "problem": "A/control/co_located",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0007411000260617584
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "coordinate",
+    "parameter_error": null,
+    "problem": "A/control/co_located",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00026229998911730945
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "nnls",
+    "parameter_error": null,
+    "problem": "A/control/co_located",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00018550001550465822
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "bvls",
+    "parameter_error": null,
+    "problem": "A/control/near_correlated",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006616500031668693
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "coordinate",
+    "parameter_error": null,
+    "problem": "A/control/near_correlated",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0003166000242345035
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "nnls",
+    "parameter_error": null,
+    "problem": "A/control/near_correlated",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0002521499991416931
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "bvls",
+    "parameter_error": null,
+    "problem": "A/control/zero_column",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0005223499611020088
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "coordinate",
+    "parameter_error": null,
+    "problem": "A/control/zero_column",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0002261500048916787
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "nnls",
+    "parameter_error": null,
+    "problem": "A/control/zero_column",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00019069999689236283
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.022323354983678687,
+    "method": "bvls",
+    "parameter_error": 0.008275677367305572,
+    "problem": "A/door_occlusion",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006916499987710267
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.02232335498367913,
+    "method": "coordinate",
+    "parameter_error": 0.008275677367305702,
+    "problem": "A/door_occlusion",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00022620000527240336
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.023151042420477372,
+    "method": "group_prox",
+    "parameter_error": 0.00851434615148098,
+    "problem": "A/door_occlusion",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00023414997849613428
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.02232335498367878,
+    "method": "nnls",
+    "parameter_error": 0.008275677367305606,
+    "problem": "A/door_occlusion",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00027329998556524515
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.022323354983678687,
+    "method": "trf_linear",
+    "parameter_error": 0.008275677367305572,
+    "problem": "A/door_occlusion",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006186999671626836
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3148494725240681,
+    "method": "bvls",
+    "parameter_error": 0.020492528764085596,
+    "problem": "A/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006371999916154891
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.31484947252406315,
+    "method": "coordinate",
+    "parameter_error": 0.020492528764085402,
+    "problem": "A/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0002164000179618597
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3251351985935897,
+    "method": "group_prox",
+    "parameter_error": 0.020990658734641256,
+    "problem": "A/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00022914999863132834
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.31484947252406614,
+    "method": "nnls",
+    "parameter_error": 0.020492528764085503,
+    "problem": "A/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.00030834999051876366
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.3148494725240681,
+    "method": "trf_linear",
+    "parameter_error": 0.020492528764085596,
+    "problem": "A/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0006325000140350312
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.10489677193741162,
+    "method": "bvls",
+    "parameter_error": 0.009754797739934231,
+    "problem": "A/two_colour",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0007180999964475632
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.10489677193665747,
+    "method": "coordinate",
+    "parameter_error": 0.00975479773981217,
+    "problem": "A/two_colour",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.0013818500156048685
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.10883180339727147,
+    "method": "group_prox",
+    "parameter_error": 0.009909808594563823,
+    "problem": "A/two_colour",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.005568949971348047
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.10489677193741184,
+    "method": "nnls",
+    "parameter_error": 0.009754797739934117,
+    "problem": "A/two_colour",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.000288350012851879
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.10489677193741162,
+    "method": "trf_linear",
+    "parameter_error": 0.009754797739934231,
+    "problem": "A/two_colour",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.000734750006813556
+  },
+  {
+    "forward": 91.0,
+    "heldout": 3.97983536694258e-15,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "B/colour_clip",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.19075460004387423
+  },
+  {
+    "forward": 56.0,
+    "heldout": 11.462309182844084,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "B/colour_clip",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.0955497000250034
+  },
+  {
+    "forward": 70.0,
+    "heldout": 110.82886810177583,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "B/colour_clip",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.16498519998276606
+  },
+  {
+    "forward": 49.0,
+    "heldout": 0.015504667962475798,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "B/inverse_square",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.065118899976369
+  },
+  {
+    "forward": 85.0,
+    "heldout": 11.688233978615266,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "B/inverse_square",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.13116479996824637
+  },
+  {
+    "forward": 42.0,
+    "heldout": 18.816504420911333,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "B/inverse_square",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.08106210001278669
+  },
+  {
+    "forward": 35.0,
+    "heldout": 13.336623627131651,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "B/linear",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.07075070001883432
+  },
+  {
+    "forward": 84.0,
+    "heldout": 0.1089187319497185,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "B/linear",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.17279060004511848
+  },
+  {
+    "forward": 42.0,
+    "heldout": 20.689205743354243,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "B/linear",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.11870490002911538
+  },
+  {
+    "forward": 42.0,
+    "heldout": 11.660186042255964,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "B/spot",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.08622779999859631
+  },
+  {
+    "forward": 96.0,
+    "heldout": 4.75156146328064,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "B/spot",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 2,
+      "WorkLimit": 1
+    },
+    "wall_seconds": 0.21441650000633672
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.0,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "B/spot",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.11621529998956248
+  },
+  {
+    "forward": 182.0,
+    "heldout": 0.003352875168944833,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "B/two_colour",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.6661385999759659
+  },
+  {
+    "forward": 277.0,
+    "heldout": 42.87578959428425,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "B/two_colour",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 1.1641804999671876
+  },
+  {
+    "forward": 13.0,
+    "heldout": 42.87578959428425,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "B/two_colour",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.07607429998461157
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.4746807878024442,
+    "method": "adam",
+    "parameter_error": 0.32778424816529705,
+    "problem": "C/area_far",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.038626749999821186
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.15919656697814097,
+    "method": "lbfgsb",
+    "parameter_error": 0.6189680184112378,
+    "problem": "C/area_far",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 2,
+      "WorkLimit": 6
+    },
+    "wall_seconds": 0.0421156499942299
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.1592105638737842,
+    "method": "powell",
+    "parameter_error": 0.6145056046617767,
+    "problem": "C/area_far",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.04377400001976639
+  },
+  {
+    "forward": 75.5,
+    "heldout": 0.15919273983561963,
+    "method": "projected_lm",
+    "parameter_error": 0.2894856201281922,
+    "problem": "C/area_far",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 4,
+      "WorkLimit": 4
+    },
+    "wall_seconds": 0.03156155001488514
+  },
+  {
+    "forward": 79.5,
+    "heldout": 0.1592148116517672,
+    "method": "trf",
+    "parameter_error": 0.29732788121892445,
+    "problem": "C/area_far",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 4,
+      "WorkLimit": 4
+    },
+    "wall_seconds": 0.04594655000255443
+  },
+  {
+    "forward": 700.0,
+    "heldout": 0.06452716559962644,
+    "method": "adam",
+    "parameter_error": 0.03696513648932945,
+    "problem": "C/compiled/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "IterationLimit": 2
+    },
+    "wall_seconds": 0.9261860499973409
+  },
+  {
+    "forward": 136.5,
+    "heldout": 0.016996298568912542,
+    "method": "lbfgsb",
+    "parameter_error": 0.01385793668067712,
+    "problem": "C/compiled/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.19499420002102852
+  },
+  {
+    "forward": 271.5,
+    "heldout": 0.002976534500978799,
+    "method": "powell",
+    "parameter_error": 0.013652581178896244,
+    "problem": "C/compiled/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.35763454998959787
+  },
+  {
+    "forward": 67.0,
+    "heldout": 0.016980099484851494,
+    "method": "projected_lm",
+    "parameter_error": 0.01985848771906678,
+    "problem": "C/compiled/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.08995825002784841
+  },
+  {
+    "forward": 74.5,
+    "heldout": 0.0169274474515032,
+    "method": "trf",
+    "parameter_error": 0.018873541468315026,
+    "problem": "C/compiled/colour_clip",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.11162354997941293
+  },
+  {
+    "forward": 700.0,
+    "heldout": 0.33645853708091755,
+    "method": "adam",
+    "parameter_error": 0.10250448278907862,
+    "problem": "C/compiled/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "IterationLimit": 2
+    },
+    "wall_seconds": 0.9262110499839764
+  },
+  {
+    "forward": 126.0,
+    "heldout": 0.0403646564560617,
+    "method": "lbfgsb",
+    "parameter_error": 0.020369669425102387,
+    "problem": "C/compiled/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.19202784998924471
+  },
+  {
+    "forward": 335.0,
+    "heldout": 0.021238381905475043,
+    "method": "powell",
+    "parameter_error": 0.013496386244653975,
+    "problem": "C/compiled/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.46247340002446435
+  },
+  {
+    "forward": 111.0,
+    "heldout": 0.03620959160536105,
+    "method": "projected_lm",
+    "parameter_error": 0.033821955291960325,
+    "problem": "C/compiled/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.14495560000068508
+  },
+  {
+    "forward": 56.5,
+    "heldout": 0.04021713289792492,
+    "method": "trf",
+    "parameter_error": 0.02149156406059092,
+    "problem": "C/compiled/inverse_square",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.07493175001582131
+  },
+  {
+    "forward": 381.5,
+    "heldout": 0.04908908774151929,
+    "method": "adam",
+    "parameter_error": 0.012720805964565473,
+    "problem": "C/compiled/spot",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.6763737500004936
+  },
+  {
+    "forward": 115.5,
+    "heldout": 0.07522121874897161,
+    "method": "lbfgsb",
+    "parameter_error": 0.030903684118282135,
+    "problem": "C/compiled/spot",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.2147172000259161
+  },
+  {
+    "forward": 312.5,
+    "heldout": 0.07286911798481718,
+    "method": "powell",
+    "parameter_error": 0.028565885310657055,
+    "problem": "C/compiled/spot",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.616499499999918
+  },
+  {
+    "forward": 79.0,
+    "heldout": 0.20372577343239887,
+    "method": "projected_lm",
+    "parameter_error": 0.0328401758158461,
+    "problem": "C/compiled/spot",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.1343598500243388
+  },
+  {
+    "forward": 63.5,
+    "heldout": 0.1142769142957108,
+    "method": "trf",
+    "parameter_error": 0.0380438981658468,
+    "problem": "C/compiled/spot",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.11186439997982234
+  },
+  {
+    "forward": 700.0,
+    "heldout": 3.3204471240380533,
+    "method": "adam",
+    "parameter_error": 3.1795094218139766,
+    "problem": "C/distance_ambiguity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 1.1015675000089686
+  },
+  {
+    "forward": 513.0,
+    "heldout": 0.23172805844742578,
+    "method": "lbfgsb",
+    "parameter_error": 0.01626540175923693,
+    "problem": "C/distance_ambiguity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.8958006500033662
+  },
+  {
+    "forward": 700.0,
+    "heldout": 3.4112211928928695,
+    "method": "powell",
+    "parameter_error": 4.0564835690898144,
+    "problem": "C/distance_ambiguity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Budget": 8
+    },
+    "wall_seconds": 1.174007400026312
+  },
+  {
+    "forward": 69.0,
+    "heldout": 0.2316735346757411,
+    "method": "projected_lm",
+    "parameter_error": 0.016263760843167243,
+    "problem": "C/distance_ambiguity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.10803114998270757
+  },
+  {
+    "forward": 136.0,
+    "heldout": 0.23167337635189877,
+    "method": "trf",
+    "parameter_error": 0.01626386027837757,
+    "problem": "C/distance_ambiguity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.18810129998018965
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.7244296745711625,
+    "method": "adam",
+    "parameter_error": 0.166908561420768,
+    "problem": "C/rectangle",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.04193379997741431
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.28334616984366645,
+    "method": "lbfgsb",
+    "parameter_error": 0.07985943202544943,
+    "problem": "C/rectangle",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.040365399996517226
+  },
+  {
+    "forward": 96.0,
+    "heldout": 0.30064914535563303,
+    "method": "powell",
+    "parameter_error": 0.17638076454707333,
+    "problem": "C/rectangle",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.04631264999625273
+  },
+  {
+    "forward": 50.0,
+    "heldout": 0.22844314393721687,
+    "method": "projected_lm",
+    "parameter_error": 0.00450241072043311,
+    "problem": "C/rectangle",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.023989100009202957
+  },
+  {
+    "forward": 61.0,
+    "heldout": 0.22844313878966743,
+    "method": "trf",
+    "parameter_error": 0.004502238076965287,
+    "problem": "C/rectangle",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.030113999993773177
+  },
+  {
+    "forward": 700.0,
+    "heldout": 0.2680521774488387,
+    "method": "adam",
+    "parameter_error": 0.013554924757436469,
+    "problem": "C/single_plane",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "IterationLimit": 8
+    },
+    "wall_seconds": 0.5329179500113241
+  },
+  {
+    "forward": 77.0,
+    "heldout": 0.2306660659758008,
+    "method": "lbfgsb",
+    "parameter_error": 0.00868632375055971,
+    "problem": "C/single_plane",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.060366250021616
+  },
+  {
+    "forward": 161.0,
+    "heldout": 0.2306645447036752,
+    "method": "powell",
+    "parameter_error": 0.00868605653758392,
+    "problem": "C/single_plane",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.14909379999153316
+  },
+  {
+    "forward": 47.0,
+    "heldout": 0.2306641689138289,
+    "method": "projected_lm",
+    "parameter_error": 0.008686073694728449,
+    "problem": "C/single_plane",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.03715610000654124
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.23066443669713851,
+    "method": "trf",
+    "parameter_error": 0.008686087777180796,
+    "problem": "C/single_plane",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.026961899973684922
+  },
+  {
+    "forward": 437.5,
+    "heldout": 6.763106081861725,
+    "method": "adam",
+    "parameter_error": 0.07215599289301218,
+    "problem": "C/spot_axis_cone",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "IterationLimit": 4,
+      "Stationary": 4
+    },
+    "wall_seconds": 0.9406207499851007
+  },
+  {
+    "forward": 52.5,
+    "heldout": 9.935146650448642,
+    "method": "lbfgsb",
+    "parameter_error": 0.11539364327469863,
+    "problem": "C/spot_axis_cone",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.15024435002123937
+  },
+  {
+    "forward": 375.5,
+    "heldout": 4.971720338893285,
+    "method": "powell",
+    "parameter_error": 0.059810162737871195,
+    "problem": "C/spot_axis_cone",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Budget": 3,
+      "Stationary": 5
+    },
+    "wall_seconds": 0.5662471000105143
+  },
+  {
+    "forward": 59.0,
+    "heldout": 12.455548788245032,
+    "method": "projected_lm",
+    "parameter_error": 0.22911547299044427,
+    "problem": "C/spot_axis_cone",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.11272095001186244
+  },
+  {
+    "forward": 49.0,
+    "heldout": 12.448413610041737,
+    "method": "trf",
+    "parameter_error": 0.21368064791835528,
+    "problem": "C/spot_axis_cone",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.13605900001130067
+  },
+  {
+    "forward": 7.0,
+    "heldout": 0.2259954095499471,
+    "method": "adam",
+    "parameter_error": 0.40077626071464084,
+    "problem": "C/spot_core",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.006180700002005324
+  },
+  {
+    "forward": 7.0,
+    "heldout": 0.2259954095499471,
+    "method": "lbfgsb",
+    "parameter_error": 0.40077626071464084,
+    "problem": "C/spot_core",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.0096052999724634
+  },
+  {
+    "forward": 104.0,
+    "heldout": 0.2259954095499471,
+    "method": "powell",
+    "parameter_error": 0.40077626071464084,
+    "problem": "C/spot_core",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.0970256500004325
+  },
+  {
+    "forward": 7.0,
+    "heldout": 0.2259954095499471,
+    "method": "projected_lm",
+    "parameter_error": 0.40077626071464084,
+    "problem": "C/spot_core",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.006797199981519952
+  },
+  {
+    "forward": 7.0,
+    "heldout": 0.2259954095499471,
+    "method": "trf",
+    "parameter_error": 0.40077626071464084,
+    "problem": "C/spot_core",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.006551099999342114
+  },
+  {
+    "forward": 700.0,
+    "heldout": 0.2615777452532132,
+    "method": "adam",
+    "parameter_error": 0.011431956031578934,
+    "problem": "C/xyz",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "IterationLimit": 8
+    },
+    "wall_seconds": 0.8807983500009868
+  },
+  {
+    "forward": 73.5,
+    "heldout": 0.23607580051859503,
+    "method": "lbfgsb",
+    "parameter_error": 0.006509868389979064,
+    "problem": "C/xyz",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.09531629996490665
+  },
+  {
+    "forward": 257.0,
+    "heldout": 0.2360759129571228,
+    "method": "powell",
+    "parameter_error": 0.006509921415987778,
+    "problem": "C/xyz",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.2680691000132356
+  },
+  {
+    "forward": 47.0,
+    "heldout": 0.23607556006247502,
+    "method": "projected_lm",
+    "parameter_error": 0.006509839198567181,
+    "problem": "C/xyz",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.05262229999061674
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.23607545277239714,
+    "method": "trf",
+    "parameter_error": 0.006509687315068118,
+    "problem": "C/xyz",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.05004820000613108
+  },
+  {
+    "forward": 700.0,
+    "heldout": 3.520163886454252,
+    "method": "adam",
+    "parameter_error": 1.912572541748648,
+    "problem": "C/xyz_intensity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "WorkLimit": 8
+    },
+    "wall_seconds": 0.7449315499980003
+  },
+  {
+    "forward": 238.5,
+    "heldout": 0.23649362469799118,
+    "method": "lbfgsb",
+    "parameter_error": 0.0053040173195535514,
+    "problem": "C/xyz_intensity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.2610644500236958
+  },
+  {
+    "forward": 700.0,
+    "heldout": 0.23649579419670144,
+    "method": "powell",
+    "parameter_error": 0.005305527074757075,
+    "problem": "C/xyz_intensity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Budget": 6,
+      "Stationary": 2
+    },
+    "wall_seconds": 0.7430383999890182
+  },
+  {
+    "forward": 69.0,
+    "heldout": 0.23648186662053514,
+    "method": "projected_lm",
+    "parameter_error": 0.005301691609240434,
+    "problem": "C/xyz_intensity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.07496144998003729
+  },
+  {
+    "forward": 72.0,
+    "heldout": 0.23648166395445333,
+    "method": "trf",
+    "parameter_error": 0.005301458930457873,
+    "problem": "C/xyz_intensity",
+    "rays": 0.0,
+    "runs": 8,
+    "statuses": {
+      "Stationary": 8
+    },
+    "wall_seconds": 0.09171629999764264
+  },
+  {
+    "forward": 30.0,
+    "heldout": 0.020056249611591803,
+    "method": "lbfgsb",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/adaptive",
+    "rays": 4416.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 2,
+      "WorkLimit": 1
+    },
+    "wall_seconds": 0.7487123999744654
+  },
+  {
+    "forward": 72.0,
+    "heldout": 0.00046785055592729244,
+    "method": "powell",
+    "parameter_error": 0.013182810552156532,
+    "problem": "D/moving_edge/adaptive",
+    "rays": 21216.0,
+    "runs": 3,
+    "statuses": {
+      "Budget": 1,
+      "Stationary": 2
+    },
+    "wall_seconds": 3.3988198000006378
+  },
+  {
+    "forward": 23.0,
+    "heldout": 0.022973151634469783,
+    "method": "projected_lm",
+    "parameter_error": 1.6647033556118087,
+    "problem": "D/moving_edge/adaptive",
+    "rays": 2944.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 2,
+      "WorkLimit": 1
+    },
+    "wall_seconds": 0.48621390003245324
+  },
+  {
+    "forward": 12.0,
+    "heldout": 0.022973151099067328,
+    "method": "trf",
+    "parameter_error": 1.6646885787008205,
+    "problem": "D/moving_edge/adaptive",
+    "rays": 1536.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.23395299998810515
+  },
+  {
+    "forward": 24.0,
+    "heldout": 0.02297338021239054,
+    "method": "lbfgsb",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/centre",
+    "rays": 96.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.05995629995595664
+  },
+  {
+    "forward": 70.0,
+    "heldout": 0.0063271637128615825,
+    "method": "powell",
+    "parameter_error": 0.3333333256250315,
+    "problem": "D/moving_edge/centre",
+    "rays": 280.0,
+    "runs": 3,
+    "statuses": {
+      "Budget": 1,
+      "Stationary": 2
+    },
+    "wall_seconds": 0.21798379998654127
+  },
+  {
+    "forward": 23.0,
+    "heldout": 0.022973380231340258,
+    "method": "projected_lm",
+    "parameter_error": 2.285465088803087,
+    "problem": "D/moving_edge/centre",
+    "rays": 92.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.05036390002351254
+  },
+  {
+    "forward": 12.0,
+    "heldout": 0.0229733801602644,
+    "method": "trf",
+    "parameter_error": 2.28546479991288,
+    "problem": "D/moving_edge/centre",
+    "rays": 48.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.02783799997996539
+  },
+  {
+    "forward": 27.0,
+    "heldout": 0.019702003332167598,
+    "method": "lbfgsb",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/grid4",
+    "rays": 1728.0,
+    "runs": 3,
+    "statuses": {
+      "StalledOrBudget": 1,
+      "Stationary": 2
+    },
+    "wall_seconds": 0.2573018000111915
+  },
+  {
+    "forward": 34.0,
+    "heldout": 0.0040003580878713975,
+    "method": "powell",
+    "parameter_error": 0.12286703781032138,
+    "problem": "D/moving_edge/grid4",
+    "rays": 2176.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.3365406999946572
+  },
+  {
+    "forward": 23.0,
+    "heldout": 0.022973156603567912,
+    "method": "projected_lm",
+    "parameter_error": 1.6242657667734024,
+    "problem": "D/moving_edge/grid4",
+    "rays": 1472.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 2,
+      "WorkLimit": 1
+    },
+    "wall_seconds": 0.18960250000236556
+  },
+  {
+    "forward": 12.0,
+    "heldout": 0.022973156068167896,
+    "method": "trf",
+    "parameter_error": 1.6242216424131932,
+    "problem": "D/moving_edge/grid4",
+    "rays": 768.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.11063770001055673
+  },
+  {
+    "forward": 51.0,
+    "heldout": 1.8062257113464315e-13,
+    "method": "trf_surrogate_then_reference",
+    "parameter_error": 5.03419528286031e-12,
+    "problem": "D/moving_edge/hybrid",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.10163300001295283
+  },
+  {
+    "forward": 30.0,
+    "heldout": 8.29243576173465e-12,
+    "method": "lbfgsb",
+    "parameter_error": 2.312230407142124e-10,
+    "problem": "D/moving_edge/polygon",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.4255243000225164
+  },
+  {
+    "forward": 30.0,
+    "heldout": 1.2339457725507306e-09,
+    "method": "powell",
+    "parameter_error": 3.440587725833666e-08,
+    "problem": "D/moving_edge/polygon",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.4509855000069365
+  },
+  {
+    "forward": 23.0,
+    "heldout": 0.022973141696245605,
+    "method": "projected_lm",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/polygon",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.29629089997615665
+  },
+  {
+    "forward": 12.0,
+    "heldout": 0.022973141160876658,
+    "method": "trf",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/polygon",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.17291890003252774
+  },
+  {
+    "forward": 30.0,
+    "heldout": 8.292826532813582e-12,
+    "method": "lbfgsb",
+    "parameter_error": 2.3123014614157e-10,
+    "problem": "D/moving_edge/reference",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.05893659999128431
+  },
+  {
+    "forward": 30.0,
+    "heldout": 1.2339461777828993e-09,
+    "method": "powell",
+    "parameter_error": 3.4405887916477695e-08,
+    "problem": "D/moving_edge/reference",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.058132899983320385
+  },
+  {
+    "forward": 23.0,
+    "heldout": 0.022973141696304027,
+    "method": "projected_lm",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/reference",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.043957200017757714
+  },
+  {
+    "forward": 12.0,
+    "heldout": 0.022973141160685145,
+    "method": "trf",
+    "parameter_error": 1.2800000000000002,
+    "problem": "D/moving_edge/reference",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.02589710004394874
+  },
+  {
+    "forward": 33.0,
+    "heldout": 0.0014239486584711792,
+    "method": "lbfgsb",
+    "parameter_error": 0.03849653419640209,
+    "problem": "D/moving_edge/surrogate",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.06542180001270026
+  },
+  {
+    "forward": 30.0,
+    "heldout": 0.001423948485995165,
+    "method": "powell",
+    "parameter_error": 0.03849652967375938,
+    "problem": "D/moving_edge/surrogate",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.07521590002579615
+  },
+  {
+    "forward": 99.0,
+    "heldout": 0.0014239486811137,
+    "method": "projected_lm",
+    "parameter_error": 0.03849653479012494,
+    "problem": "D/moving_edge/surrogate",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stagnated": 1,
+      "Stationary": 2
+    },
+    "wall_seconds": 0.15574900002684444
+  },
+  {
+    "forward": 39.0,
+    "heldout": 0.0014239425346937126,
+    "method": "trf",
+    "parameter_error": 0.03849637361981939,
+    "problem": "D/moving_edge/surrogate",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.05927180004073307
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.04523100753308788,
+    "method": "group_prox",
+    "parameter_error": null,
+    "problem": "E/group_sparse",
+    "rays": 0.0,
+    "runs": 4,
+    "statuses": {
+      "IterationLimit": 4
+    },
+    "wall_seconds": 0.05184075000579469
+  },
+  {
+    "forward": 0.0,
+    "heldout": 4.451519020865787e-15,
+    "method": "nnls",
+    "parameter_error": null,
+    "problem": "E/subsets",
+    "rays": 0.0,
+    "runs": 15,
+    "statuses": {
+      "Stationary": 15
+    },
+    "wall_seconds": 0.00017850002041086555
+  },
+  {
+    "forward": 42.0,
+    "heldout": 14.856344424324014,
+    "method": "trf/isq",
+    "parameter_error": null,
+    "problem": "E/type",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.07769810000900179
+  },
+  {
+    "forward": 28.0,
+    "heldout": 0.0,
+    "method": "trf/spot",
+    "parameter_error": null,
+    "problem": "E/type",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.04353939997963607
+  },
+  {
+    "forward": 12.0,
+    "heldout": null,
+    "method": "cancelled-trf",
+    "parameter_error": 19.98461221086364,
+    "problem": "cancel/restart",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Cancelled": 1
+    },
+    "wall_seconds": 0.010103999986313283
+  },
+  {
+    "forward": 28.0,
+    "heldout": null,
+    "method": "restarted-trf",
+    "parameter_error": 1.5448710607305662e-06,
+    "problem": "cancel/restart",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.030145600030664355
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.19149239532512172,
+    "method": "independent_rgb",
+    "parameter_error": null,
+    "problem": "colour/parameterization",
+    "rays": 0.0,
+    "runs": 4,
+    "statuses": {
+      "Stationary": 4
+    },
+    "wall_seconds": 0.00022334998357109725
+  },
+  {
+    "forward": 0.0,
+    "heldout": 0.0715523495455988,
+    "method": "known_chroma",
+    "parameter_error": null,
+    "problem": "colour/parameterization",
+    "rays": 0.0,
+    "runs": 4,
+    "statuses": {
+      "Stationary": 4
+    },
+    "wall_seconds": 6.159997428767383e-05
+  },
+  {
+    "forward": 0.0,
+    "heldout": 16.96687282393063,
+    "method": "wrong_white_prior",
+    "parameter_error": null,
+    "problem": "colour/parameterization",
+    "rays": 0.0,
+    "runs": 4,
+    "statuses": {
+      "Stationary": 4
+    },
+    "wall_seconds": 5.894998321309686e-05
+  },
+  {
+    "forward": 56.0,
+    "heldout": null,
+    "method": "trf",
+    "parameter_error": null,
+    "problem": "geometry/hard_solid",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.012593399966135621
+  },
+  {
+    "forward": 18.0,
+    "heldout": null,
+    "method": "trf",
+    "parameter_error": null,
+    "problem": "geometry/soft_prior",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.0036466000019572675
+  },
+  {
+    "forward": 56.0,
+    "heldout": null,
+    "method": "trf",
+    "parameter_error": null,
+    "problem": "geometry/unknown_region",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.012402300024405122
+  },
+  {
+    "forward": 21.0,
+    "heldout": null,
+    "method": "trf",
+    "parameter_error": 0.004867424583614888,
+    "problem": "loss/censored",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.005633499997202307
+  },
+  {
+    "forward": 12.0,
+    "heldout": null,
+    "method": "trf",
+    "parameter_error": 1.2810457436572766,
+    "problem": "loss/naive_l2_on_clipped",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.0026169000193476677
+  },
+  {
+    "forward": 19.0,
+    "heldout": 0.002332928059721326,
+    "method": "trf/cauchy",
+    "parameter_error": null,
+    "problem": "loss/outliers",
+    "rays": 0.0,
+    "runs": 6,
+    "statuses": {
+      "Stationary": 6
+    },
+    "wall_seconds": 0.007434449973516166
+  },
+  {
+    "forward": 19.0,
+    "heldout": 0.017144770216775376,
+    "method": "trf/huber",
+    "parameter_error": null,
+    "problem": "loss/outliers",
+    "rays": 0.0,
+    "runs": 6,
+    "statuses": {
+      "Stationary": 6
+    },
+    "wall_seconds": 0.006982749968301505
+  },
+  {
+    "forward": 21.0,
+    "heldout": 0.23324655794778937,
+    "method": "trf/linear",
+    "parameter_error": null,
+    "problem": "loss/outliers",
+    "rays": 0.0,
+    "runs": 6,
+    "statuses": {
+      "Stationary": 6
+    },
+    "wall_seconds": 0.005066649988293648
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.5426657959907908,
+    "method": "trf/area_weighted",
+    "parameter_error": 0.907748079729356,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.015925199957564473
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.6282643328204226,
+    "method": "trf/normal_diversity",
+    "parameter_error": 1.5717197855533869,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.018996500002685934
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.5428411838738428,
+    "method": "trf/region_local",
+    "parameter_error": 0.5902228010637137,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.021730200038291514
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.5439838387831156,
+    "method": "trf/saturation_aware",
+    "parameter_error": 1.0306852279817575,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.027895300008822232
+  },
+  {
+    "forward": 35.0,
+    "heldout": 0.5488698853612864,
+    "method": "trf/stratified",
+    "parameter_error": 0.7109192482275037,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.014260599971748888
+  },
+  {
+    "forward": 42.0,
+    "heldout": 0.5784059468346422,
+    "method": "trf/uniform",
+    "parameter_error": 2.0982402950785963,
+    "problem": "sampling/receiver_subset",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.015640099998563528
+  },
+  {
+    "forward": 15.0,
+    "heldout": null,
+    "method": "trf/candidate_boundary",
+    "parameter_error": 0.9800274870825616,
+    "problem": "sampling/shadow_footprints",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.03352140000788495
+  },
+  {
+    "forward": 18.0,
+    "heldout": null,
+    "method": "trf/uniform",
+    "parameter_error": 8.455662836581723e-10,
+    "problem": "sampling/shadow_footprints",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.03608350001741201
+  },
+  {
+    "forward": 420.0,
+    "heldout": 0.8249378623268216,
+    "method": "adam",
+    "parameter_error": 4.828337973981914,
+    "problem": "sampling/stochastic_common_random_batch",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "IterationLimit": 1
+    },
+    "wall_seconds": 0.19172429997706786
+  },
+  {
+    "forward": 700.0,
+    "heldout": 28.460662635916435,
+    "method": "adam",
+    "parameter_error": 517.4429854493077,
+    "problem": "scaling/raw_vs_unit_box",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "WorkLimit": 2
+    },
+    "wall_seconds": 0.6179505499603692
+  },
+  {
+    "forward": 384.5,
+    "heldout": 24.273629448046194,
+    "method": "projected_lm",
+    "parameter_error": 369.4810624548249,
+    "problem": "scaling/raw_vs_unit_box",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 1,
+      "WorkLimit": 1
+    },
+    "wall_seconds": 0.3104280999978073
+  },
+  {
+    "forward": 81.0,
+    "heldout": 2.6046451876007696e-10,
+    "method": "trf",
+    "parameter_error": 3.0868316413868697e-09,
+    "problem": "scaling/raw_vs_unit_box",
+    "rays": 0.0,
+    "runs": 2,
+    "statuses": {
+      "Stationary": 2
+    },
+    "wall_seconds": 0.07446385000366718
+  },
+  {
+    "forward": 279.0,
+    "heldout": null,
+    "method": "bounded_coordinate",
+    "parameter_error": 45.44142557538057,
+    "problem": "schedule/alternating_position_intensity",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "SweepLimit": 1
+    },
+    "wall_seconds": 0.24855880002724007
+  },
+  {
+    "forward": 35.0,
+    "heldout": null,
+    "method": "coarse",
+    "parameter_error": 1.0419421132520845e-05,
+    "problem": "schedule/coarse_fine",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.03399580001132563
+  },
+  {
+    "forward": 7.0,
+    "heldout": null,
+    "method": "fine",
+    "parameter_error": 1.0419421132520845e-05,
+    "problem": "schedule/coarse_fine",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.006542999995872378
+  },
+  {
+    "forward": 35.0,
+    "heldout": null,
+    "method": "full",
+    "parameter_error": 1.5451253209268366e-06,
+    "problem": "schedule/coarse_fine",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "Stationary": 1
+    },
+    "wall_seconds": 0.041021899960469455
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "<class 'numpy.float32'>",
+    "parameter_error": null,
+    "problem": "stability/float_arithmetic",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "LocalFullRank": 1
+    },
+    "wall_seconds": 0.009796499973163009
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "<class 'numpy.float64'>",
+    "parameter_error": null,
+    "problem": "stability/float_arithmetic",
+    "rays": 0.0,
+    "runs": 1,
+    "statuses": {
+      "LocalFullRank": 1
+    },
+    "wall_seconds": 0.00020000000949949026
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "nnls",
+    "parameter_error": null,
+    "problem": "stability/scale",
+    "rays": 0.0,
+    "runs": 3,
+    "statuses": {
+      "Stationary": 3
+    },
+    "wall_seconds": 0.00016639998648315668
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "coordinate/cold",
+    "parameter_error": null,
+    "problem": "warm/data_and_matrix_change",
+    "rays": 0.0,
+    "runs": 5,
+    "statuses": {
+      "Stationary": 5
+    },
+    "wall_seconds": 0.012331000005360693
+  },
+  {
+    "forward": 0.0,
+    "heldout": null,
+    "method": "coordinate/warm",
+    "parameter_error": null,
+    "problem": "warm/data_and_matrix_change",
+    "rays": 0.0,
+    "runs": 5,
+    "statuses": {
+      "Stationary": 5
+    },
+    "wall_seconds": 0.008014600025489926
+  }
+]

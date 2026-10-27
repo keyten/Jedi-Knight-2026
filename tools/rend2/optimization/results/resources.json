@@ -1,0 +1,741 @@
+{
+  "interpretation": "Actual independent process peak including Python/NumPy/SciPy imports; startup reference is separate, do not subtract peaks as exact allocator cost",
+  "records": [
+    {
+      "case": "startup",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "startup",
+          "--method",
+          "imports"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70008832,
+        "wall_seconds": 1.8808780999970622
+      },
+      "method": "imports",
+      "result": {
+        "numerical_work": false,
+        "status": "ImportedOnly"
+      }
+    },
+    {
+      "case": "linear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "linear",
+          "--method",
+          "nnls"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70848512,
+        "wall_seconds": 1.4465844000224024
+      },
+      "method": "nnls",
+      "result": {
+        "columns": 8,
+        "condition": 76.93407240850006,
+        "identification": "LocalFullRank",
+        "iterations": null,
+        "kkt_violation": 8.892109581548165e-14,
+        "matrix_shape": [
+          98,
+          8
+        ],
+        "objective": 2.825384218139576e-26,
+        "rank": 8,
+        "regularization": {
+          "group_or_coordinate_penalty": 0.0,
+          "ridge": 0.0
+        },
+        "singular_values": [
+          2.6564909634410543,
+          0.8724684474625786,
+          0.32871643779836046,
+          0.22269501068058922,
+          0.11518214887221923,
+          0.07420449161445712,
+          0.06512671021710448,
+          0.03452944684035148
+        ],
+        "status": "Stationary",
+        "wall_seconds": 0.011088700033724308,
+        "work": {
+          "derivative": 0,
+          "forward": 0,
+          "matvec": null,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 0,
+          "visibility_tests": 0
+        },
+        "x": [
+          [
+            178.63214026413812,
+            89.31607013206903,
+            125.04249818489667
+          ],
+          [
+            161.28494494283407,
+            67.20206039284739,
+            94.08288454998637
+          ],
+          [
+            203.9652777554791,
+            72.84474205552836,
+            101.98263887773973
+          ],
+          [
+            179.9800424923259,
+            56.24376327885214,
+            78.7412685903927
+          ],
+          [
+            240.31965690478316,
+            66.75546025132844,
+            93.45764435185991
+          ],
+          [
+            209.29936480321183,
+            52.32484120080305,
+            73.25477768112422
+          ],
+          [
+            274.11355027116474,
+            62.29853415253752,
+            87.21794781355253
+          ],
+          [
+            236.28146042259368,
+            49.225304254706906,
+            68.91542595658966
+          ]
+        ]
+      }
+    },
+    {
+      "case": "linear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "linear",
+          "--method",
+          "bvls"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70389760,
+        "wall_seconds": 1.4002651000046171
+      },
+      "method": "bvls",
+      "result": {
+        "columns": 8,
+        "condition": 76.93407240850006,
+        "identification": "LocalFullRank",
+        "iterations": 0,
+        "kkt_violation": 6.685767557498206e-13,
+        "matrix_shape": [
+          98,
+          8
+        ],
+        "objective": 2.868487578000852e-25,
+        "rank": 8,
+        "regularization": {
+          "group_or_coordinate_penalty": 0.0,
+          "ridge": 0.0
+        },
+        "singular_values": [
+          2.6564909634410543,
+          0.8724684474625786,
+          0.32871643779836046,
+          0.22269501068058922,
+          0.11518214887221923,
+          0.07420449161445712,
+          0.06512671021710448,
+          0.03452944684035148
+        ],
+        "status": "Stationary",
+        "wall_seconds": 0.011722000024747103,
+        "work": {
+          "derivative": 0,
+          "forward": 0,
+          "matvec": null,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 0,
+          "visibility_tests": 0
+        },
+        "x": [
+          [
+            178.6321402641383,
+            89.31607013206933,
+            125.04249818489704
+          ],
+          [
+            161.2849449428336,
+            67.20206039284716,
+            94.0828845499862
+          ],
+          [
+            203.96527775547963,
+            72.84474205552843,
+            101.98263887773963
+          ],
+          [
+            179.98004249232628,
+            56.24376327885213,
+            78.74126859039285
+          ],
+          [
+            240.31965690478285,
+            66.75546025132833,
+            93.45764435185974
+          ],
+          [
+            209.29936480321112,
+            52.32484120080301,
+            73.2547776811241
+          ],
+          [
+            274.11355027116474,
+            62.29853415253745,
+            87.21794781355251
+          ],
+          [
+            236.28146042259357,
+            49.22530425470695,
+            68.91542595658967
+          ]
+        ]
+      }
+    },
+    {
+      "case": "linear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "linear",
+          "--method",
+          "trf_linear"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70901760,
+        "wall_seconds": 1.4441841000225395
+      },
+      "method": "trf_linear",
+      "result": {
+        "columns": 8,
+        "condition": 76.93407240850006,
+        "identification": "LocalFullRank",
+        "iterations": 0,
+        "kkt_violation": 6.685767557498206e-13,
+        "matrix_shape": [
+          98,
+          8
+        ],
+        "objective": 2.868487578000852e-25,
+        "rank": 8,
+        "regularization": {
+          "group_or_coordinate_penalty": 0.0,
+          "ridge": 0.0
+        },
+        "singular_values": [
+          2.6564909634410543,
+          0.8724684474625786,
+          0.32871643779836046,
+          0.22269501068058922,
+          0.11518214887221923,
+          0.07420449161445712,
+          0.06512671021710448,
+          0.03452944684035148
+        ],
+        "status": "Stationary",
+        "wall_seconds": 0.0010983000393025577,
+        "work": {
+          "derivative": 0,
+          "forward": 0,
+          "matvec": null,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 0,
+          "visibility_tests": 0
+        },
+        "x": [
+          [
+            178.6321402641383,
+            89.31607013206933,
+            125.04249818489704
+          ],
+          [
+            161.2849449428336,
+            67.20206039284716,
+            94.0828845499862
+          ],
+          [
+            203.96527775547963,
+            72.84474205552843,
+            101.98263887773963
+          ],
+          [
+            179.98004249232628,
+            56.24376327885213,
+            78.74126859039285
+          ],
+          [
+            240.31965690478285,
+            66.75546025132833,
+            93.45764435185974
+          ],
+          [
+            209.29936480321112,
+            52.32484120080301,
+            73.2547776811241
+          ],
+          [
+            274.11355027116474,
+            62.29853415253745,
+            87.21794781355251
+          ],
+          [
+            236.28146042259357,
+            49.22530425470695,
+            68.91542595658967
+          ]
+        ]
+      }
+    },
+    {
+      "case": "linear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "linear",
+          "--method",
+          "coordinate"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70688768,
+        "wall_seconds": 1.589245600043796
+      },
+      "method": "coordinate",
+      "result": {
+        "columns": 8,
+        "condition": 76.93407240850006,
+        "identification": "LocalFullRank",
+        "iterations": 416,
+        "kkt_violation": 0.12258284363632913,
+        "matrix_shape": [
+          98,
+          8
+        ],
+        "objective": 1.3162321529369414,
+        "rank": 8,
+        "regularization": {
+          "group_or_coordinate_penalty": 0.0,
+          "ridge": 0.0
+        },
+        "singular_values": [
+          2.6564909634410543,
+          0.8724684474625786,
+          0.32871643779836046,
+          0.22269501068058922,
+          0.11518214887221923,
+          0.07420449161445712,
+          0.06512671021710448,
+          0.03452944684035148
+        ],
+        "status": "WorkLimit",
+        "wall_seconds": 0.09769670001696795,
+        "work": {
+          "derivative": 0,
+          "forward": 0,
+          "matvec": 10002,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 0,
+          "visibility_tests": 0
+        },
+        "x": [
+          [
+            182.03551749517445,
+            89.89850573683626,
+            125.85790803157019
+          ],
+          [
+            153.98609491023643,
+            66.12752308320734,
+            92.57853231649268
+          ],
+          [
+            212.108580811388,
+            74.39876279759001,
+            104.15826791662201
+          ],
+          [
+            181.5564960588023,
+            56.00564601376555,
+            78.40790441927216
+          ],
+          [
+            216.9682916963789,
+            63.77038503616333,
+            89.27853905062959
+          ],
+          [
+            225.94294229483023,
+            53.96161174226673,
+            75.54625643917575
+          ],
+          [
+            291.8377255625761,
+            64.88512604423975,
+            90.83917646193488
+          ],
+          [
+            219.89495921090557,
+            47.27936616104493,
+            66.19111262546207
+          ]
+        ]
+      }
+    },
+    {
+      "case": "linear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "linear",
+          "--method",
+          "group_prox"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70479872,
+        "wall_seconds": 1.4869680000119843
+      },
+      "method": "group_prox",
+      "result": {
+        "columns": 8,
+        "condition": 76.93407240850006,
+        "identification": "LocalFullRank",
+        "iterations": 500,
+        "kkt_violation": 0.0034094037638429083,
+        "matrix_shape": [
+          98,
+          8
+        ],
+        "objective": 0.005818279007619887,
+        "rank": 8,
+        "regularization": {
+          "group_or_coordinate_penalty": 0.0,
+          "ridge": 0.0
+        },
+        "singular_values": [
+          2.6564909634410543,
+          0.8724684474625786,
+          0.32871643779836046,
+          0.22269501068058922,
+          0.11518214887221923,
+          0.07420449161445712,
+          0.06512671021710448,
+          0.03452944684035148
+        ],
+        "status": "IterationLimit",
+        "wall_seconds": 0.038144499994814396,
+        "work": {
+          "derivative": 0,
+          "forward": 0,
+          "matvec": 3000,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 0,
+          "visibility_tests": 0
+        },
+        "x": [
+          [
+            178.56104787977247,
+            89.27288368777619,
+            124.9820371628868
+          ],
+          [
+            161.94123560079296,
+            67.47879587798865,
+            94.47031422918471
+          ],
+          [
+            203.3503472000774,
+            72.61336750770332,
+            101.65871451078519
+          ],
+          [
+            179.37862639331513,
+            56.00858791509245,
+            78.4120230811283
+          ],
+          [
+            240.8680558150266,
+            66.93682086149963,
+            93.71154920609979
+          ],
+          [
+            209.63132495360958,
+            52.46301609353744,
+            73.4482225309506
+          ],
+          [
+            274.24630599394374,
+            62.38246595058501,
+            87.33545233081882
+          ],
+          [
+            235.89787239333262,
+            49.054278768148386,
+            68.67599027540946
+          ]
+        ]
+      }
+    },
+    {
+      "case": "nonlinear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "nonlinear",
+          "--method",
+          "trf"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70852608,
+        "wall_seconds": 1.504596600017976
+      },
+      "method": "trf",
+      "result": {
+        "iterations": null,
+        "library_nfev": 9,
+        "message": "`gtol` termination condition is satisfied.",
+        "objective": 2.3385508600182664e-05,
+        "status": "Stationary",
+        "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+        "wall_seconds": 0.0799261000356637,
+        "work": {
+          "derivative": 9,
+          "forward": 81,
+          "matvec": 0,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 2673,
+          "visibility_tests": 0
+        },
+        "x": [
+          0.5634304332271076,
+          0.4058361871967245,
+          0.4695235913888137,
+          0.17263426561864986
+        ]
+      }
+    },
+    {
+      "case": "nonlinear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "nonlinear",
+          "--method",
+          "projected_lm"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70455296,
+        "wall_seconds": 1.6432977999793366
+      },
+      "method": "projected_lm",
+      "result": {
+        "iterations": 7,
+        "library_nfev": null,
+        "message": "",
+        "objective": 2.3385508600153892e-05,
+        "status": "Stationary",
+        "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+        "wall_seconds": 0.09639320004498586,
+        "work": {
+          "derivative": 8,
+          "forward": 79,
+          "matvec": 0,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 2607,
+          "visibility_tests": 0
+        },
+        "x": [
+          0.5634304402790684,
+          0.40583618688209566,
+          0.4695235751953509,
+          0.17263426194483322
+        ]
+      }
+    },
+    {
+      "case": "nonlinear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "nonlinear",
+          "--method",
+          "lbfgsb"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70434816,
+        "wall_seconds": 1.7109349999809638
+      },
+      "method": "lbfgsb",
+      "result": {
+        "iterations": 24,
+        "library_nfev": null,
+        "message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+        "objective": 2.3385508600153984e-05,
+        "status": "Stationary",
+        "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+        "wall_seconds": 0.22395050001796335,
+        "work": {
+          "derivative": 29,
+          "forward": 261,
+          "matvec": 0,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 8613,
+          "visibility_tests": 0
+        },
+        "x": [
+          0.5634304403069893,
+          0.4058361863586373,
+          0.4695235765648151,
+          0.17263426226277453
+        ]
+      }
+    },
+    {
+      "case": "nonlinear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "nonlinear",
+          "--method",
+          "adam"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70209536,
+        "wall_seconds": 2.012818699993659
+      },
+      "method": "adam",
+      "result": {
+        "iterations": 77,
+        "library_nfev": null,
+        "message": "Forward evaluation budget exhausted",
+        "objective": 0.004318341531701271,
+        "status": "WorkLimit",
+        "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+        "wall_seconds": 0.611199300037697,
+        "work": {
+          "derivative": 78,
+          "forward": 700,
+          "matvec": 0,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 23100,
+          "visibility_tests": 0
+        },
+        "x": [
+          0.6738214480355046,
+          0.44170968529719445,
+          0.9999672635045093,
+          0.33889351648639227
+        ]
+      }
+    },
+    {
+      "case": "nonlinear",
+      "measurement": {
+        "command": [
+          "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+          "-X",
+          "utf8",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\optimization\\report\\resource_matrix.py",
+          "--case",
+          "nonlinear",
+          "--method",
+          "powell"
+        ],
+        "exit_code": 0,
+        "peak_working_set_bytes": 70713344,
+        "wall_seconds": 2.0265127000166103
+      },
+      "method": "powell",
+      "result": {
+        "iterations": 11,
+        "library_nfev": null,
+        "message": "Maximum number of function evaluations has been exceeded.",
+        "objective": 2.3385508749613052e-05,
+        "status": "Budget",
+        "success_claim": "Numerical stationarity/partial result only; not physical source confidence",
+        "wall_seconds": 0.623402500001248,
+        "work": {
+          "derivative": 0,
+          "forward": 700,
+          "matvec": 0,
+          "projections": 0,
+          "rays": 0,
+          "scalar_responses": 23100,
+          "visibility_tests": 0
+        },
+        "x": [
+          0.5634308864003393,
+          0.40583682090771933,
+          0.46952304626911706,
+          0.17263401578235238
+        ]
+      }
+    }
+  ],
+  "scale": "Representative small problem only, not a large sparse/full-map memory benchmark",
+  "schema": "org.openjk.optimization-resource-matrix.v1",
+  "source_sha256": "820984f33798fbce9246ee060cf52f38dcfd12ba4c5e36b3ad3d28bf418a80b2"
+}
