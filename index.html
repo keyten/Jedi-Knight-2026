@@ -18,7 +18,6 @@
 <header class="nav" id="nav">
   <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Jedi Academy <b>2026</b></a>
   <nav class="nav-links" id="navLinks">
-    <a href="#start">Getting started</a>
     <a href="#graphics">Graphics</a>
     <a href="#force">Force powers</a>
     <a href="#physics">Physics</a>
@@ -34,9 +33,8 @@
     <div class="beams" aria-hidden="true"><i class="beam b-blue"></i><i class="beam b-red"></i></div>
     <div class="wrap hero-inner">
       <h1>Jedi Academy <span class="year">2026</span></h1>
-      <p>A fork of OpenJK for Jedi Academy and Jedi Outcast. It adds rendering features to rend2, a few new Force powers and higher levels for existing ones, physical objects, and a way for mods to run scripts per map. Most of the work targets single player; some rendering changes apply to multiplayer as well.</p>
-      <p>Nothing changes by default. Every addition is behind a cvar or a console command, so the game, its saves and existing mods behave as before until you enable something.</p>
-      <p class="muted">Based on SomaZ's <code>rend2-unified-wip</code> branch of OpenJK.</p>
+      <p>A fully compatible fork of OpenJK for Jedi Academy and Jedi Outcast.</p>
+      <p>It adds rendering features to rend2, a few new Force powers and higher levels for existing ones, physical objects, and a way for mods to run scripts per map. Most of the work targets single player; some rendering changes apply to multiplayer as well.</p>
       <div class="links">
         <a class="btn btn-primary" href="https://github.com/keyten/BetterJK">Source on GitHub</a>
         <a class="btn" href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">Rendering reference</a>
@@ -44,73 +42,67 @@
     </div>
   </section>
 
-  <section class="section" id="start">
-    <div class="wrap">
-      <h2>Getting started</h2>
-      <ol class="steps">
-        <li><span>1</span><p>Build the project with CMake from the <a href="https://github.com/keyten/BetterJK">source repository</a>, the same way as OpenJK. You need an original copy of the game.</p></li>
-        <li><span>2</span><p>Select the rend2 renderer: <code>cl_renderer rdsp-rend2</code> in single player, <code>cl_renderer rd-rend2</code> in multiplayer.</p></li>
-        <li><span>3</span><p>Most rendering features require HDR: <code>r_hdr 1</code>. Some of them also need a <code>vid_restart</code>; the reference says which.</p></li>
-      </ol>
-    </div>
-  </section>
-
   <section class="section" id="graphics">
     <div class="wrap">
       <h2>Graphics</h2>
-      <p class="sub">Short descriptions with the main cvar for each feature. Requirements, all controls and debug views are listed in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">rendering features reference</a>.</p>
+      <p class="sub">Short descriptions with the main cvar for each feature; open a card for its full description and settings. Requirements, all controls and debug views are listed in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">rendering features reference</a>.</p>
 
+      <!-- cards:graphics -->
       <h3>Color and post-processing</h3>
       <div class="grid">
-        <article class="card"><h4>Tone mapping</h4><p>Legacy rend2 filmic, ACES fitted or AgX-like conversion from HDR to the display. <code>r_toneMapDebug</code> shows them side by side.</p><code>r_toneMapMode 0|1|2</code></article>
-        <article class="card"><h4>Color grading</h4><p>Applies a <code>.cube</code> LUT. A map can provide <code>maps/&lt;map&gt;.cube</code>; <code>r_colorGradingLUT</code> overrides it.</p><code>r_colorGrading 1</code></article>
-        <article class="card"><h4>Linear lighting</h4><p>Lighting is computed in linear space instead of sRGB.</p><code>r_linearLighting 1</code></article>
-        <article class="card"><h4>Bloom and motion blur</h4><p>HDR bloom and per-pixel velocity motion blur with a shutter-angle model.</p><code>r_motionBlur 1</code></article>
+        <article class="card" data-feature="tonemap" tabindex="0" role="button" aria-haspopup="dialog"><h4>Tone mapping</h4><p>Legacy rend2 filmic, ACES fitted or AgX-like conversion from HDR to the display. <code>r_toneMapDebug</code> shows them side by side.</p><code>r_toneMapMode 0|1|2</code></article>
+        <article class="card" data-feature="grading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Color grading</h4><p>Applies a <code>.cube</code> LUT. A map can provide <code>maps/&lt;map&gt;.cube</code>; <code>r_colorGradingLUT</code> overrides it.</p><code>r_colorGrading 1</code></article>
+        <article class="card" data-feature="linear" tabindex="0" role="button" aria-haspopup="dialog"><h4>Linear lighting</h4><p>Lighting is computed in linear space instead of sRGB.</p><code>r_linearLighting 1</code></article>
+        <article class="card" data-feature="bloom" tabindex="0" role="button" aria-haspopup="dialog"><h4>HDR bloom</h4><p>Soft glow around genuinely bright sources, computed from scene brightness before tone mapping.</p><code>r_bloom 1</code></article>
+        <article class="card" data-feature="motionblur" tabindex="0" role="button" aria-haspopup="dialog"><h4>Motion blur</h4><p>Per-pixel camera and object motion blur with a shutter-angle model. HUD and menus stay sharp.</p><code>r_motionBlur 1</code></article>
       </div>
 
       <h3>Lighting and shadows</h3>
       <div class="grid">
-        <article class="card"><h4>GTAO and contact shadows</h4><p>Ground-truth ambient occlusion, with optional bent normals and specular occlusion, plus screen-space contact shadows (<code>r_contactShadows</code>).</p><code>r_aoMode 2</code></article>
-        <article class="card"><h4>Forward+</h4><p>Clustered dynamic lights instead of per-surface light lists.</p><code>r_forwardPlus 1</code></article>
-        <article class="card"><h4>Screen-space GI</h4><p>One bounce of indirect light from what is on screen, mainly for dynamic lights.</p><code>r_ssgi 1</code></article>
-        <article class="card"><h4>Area lights</h4><p>LTC area lights for lamps and panels, with automatic lamp detection, and line lights for sabers.</p><code>r_ltcAreaLights 1</code></article>
-        <article class="card"><h4>Spot lights</h4><p>Shadowed spot lights from effects, optionally with projected cookie textures.</p><code>r_spotLightCookies 1|2</code></article>
-        <article class="card"><h4>Sun shadows</h4><p>Cascaded sun shadows with caching and single-pass layered rendering, and adjustments for character shadows.</p><code>r_shadowLayered 1</code></article>
+        <article class="card" data-feature="gtao" tabindex="0" role="button" aria-haspopup="dialog"><h4>GTAO and contact shadows</h4><p>Ground-truth ambient occlusion, with optional bent normals and specular occlusion, plus screen-space contact shadows.</p><code>r_aoMode 2</code></article>
+        <article class="card" data-feature="forwardplus" tabindex="0" role="button" aria-haspopup="dialog"><h4>Forward+</h4><p>Clustered dynamic lights instead of per-surface light lists.</p><code>r_forwardPlus 1</code></article>
+        <article class="card" data-feature="ssgi" tabindex="0" role="button" aria-haspopup="dialog"><h4>Screen-space GI</h4><p>One bounce of indirect light from what is on screen, mainly for dynamic lights.</p><code>r_ssgi 1</code></article>
+        <article class="card" data-feature="ambient" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ambient light on models</h4><p>Light-grid lighting sampled across the body or per pixel, and directional ambient from cubemap probes.</p><code>r_entityLightGrid 2</code></article>
+        <article class="card" data-feature="arealights" tabindex="0" role="button" aria-haspopup="dialog"><h4>Area lights</h4><p>LTC area lights for lamps and panels, with automatic lamp detection, and line lights for sabers.</p><code>r_ltcAreaLights 1</code></article>
+        <article class="card" data-feature="spotlights" tabindex="0" role="button" aria-haspopup="dialog"><h4>Spot lights</h4><p>Shadowed spot lights from effects, optionally with projected cookie textures.</p><code>r_spotLights 1</code></article>
+        <article class="card" data-feature="sunshadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun shadows</h4><p>Stabilized, blended shadow cascades with better bias, optional PCSS softness and caching; fixes for character shadows.</p><code>r_sunShadowMode 1</code></article>
       </div>
 
       <h3>Materials and reflections</h3>
       <div class="grid">
-        <article class="card"><h4>Automatic PBR</h4><p>Classifies legacy shaders by material and generates roughness variation for them.</p><code>r_autoPBR 1</code></article>
-        <article class="card"><h4>Parallax occlusion</h4><p>Adaptive POM with self-shadowing and silhouettes.</p><code>r_pomSilhouette 1</code></article>
-        <article class="card"><h4>Skin</h4><p>Subsurface scattering approximation for skin.</p><code>r_skinSSS 1</code></article>
-        <article class="card"><h4>Emissive surfaces</h4><p>Glowing surfaces as light emitters, compatible with the original glow.</p><code>r_pbrPhysical 1</code></article>
-        <article class="card"><h4>Screen-space reflections</h4><p>SSR combined with cubemaps; can include sabers and effects.</p><code>r_ssr 1</code></article>
+        <article class="card" data-feature="autopbr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Automatic PBR</h4><p>Classifies legacy shaders by material and generates roughness variation for them.</p><code>r_autoPBR 0|1|2</code></article>
+        <article class="card" data-feature="pom" tabindex="0" role="button" aria-haspopup="dialog"><h4>Parallax occlusion</h4><p>Adaptive POM with self-shadowing and silhouettes.</p><code>r_pomSilhouette 1</code></article>
+        <article class="card" data-feature="skin" tabindex="0" role="button" aria-haspopup="dialog"><h4>Skin</h4><p>Subsurface scattering approximation for skin.</p><code>r_skinSSS 1|2</code></article>
+        <article class="card" data-feature="emissive" tabindex="0" role="button" aria-haspopup="dialog"><h4>Emissive surfaces</h4><p>Glowing surfaces as light emitters, compatible with the original glow.</p><code>r_autoEmissive 1</code></article>
+        <article class="card" data-feature="ssr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Screen-space reflections</h4><p>SSR combined with cubemaps; can include sabers and effects.</p><code>r_ssr 1</code></article>
       </div>
 
       <h3>Volumetrics and sky</h3>
       <div class="grid">
-        <article class="card"><h4>Volumetric fog</h4><p>Froxel fog lit by the sun, dynamic and spot lights. Has a compute path on OpenGL 4.3.</p><code>r_volumetricFog 2</code></article>
-        <article class="card"><h4>Local media</h4><p>Fog volumes defined per map and volumetric smoke from effects, with emission, per-medium phase, self-shadowing, multiple scattering and colored extinction.</p><code>r_volumetricParticles 1</code></article>
-        <article class="card"><h4>Atmosphere</h4><p>Physically based sky and aerial perspective.</p><code>r_atmosphere 1</code></article>
-        <article class="card"><h4>Clouds</h4><p>Ray-marched volumetric clouds and cloud shadows (<code>r_cloudShadows</code>).</p><code>r_clouds 1</code></article>
+        <article class="card" data-feature="vfog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric fog</h4><p>Froxel fog lit by the sun, dynamic and spot lights. Has a compute path on OpenGL 4.3.</p><code>r_volumetricFog 2</code></article>
+        <article class="card" data-feature="media" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fog volumes and FX media</h4><p>Local fog volumes, volumetric smoke from effects, glowing media and lit smoke sprites.</p><code>r_volumetricParticles 1</code></article>
+        <article class="card" data-feature="scattering" tabindex="0" role="button" aria-haspopup="dialog"><h4>Scattering in dense media</h4><p>Per-medium color and phase, self-shadowing, multiple scattering and colored absorption.</p><code>r_volumetricSelfShadow 1</code></article>
+        <article class="card" data-feature="atmosphere" tabindex="0" role="button" aria-haspopup="dialog"><h4>Atmosphere</h4><p>Physically based sky and aerial perspective.</p><code>r_atmosphere 1</code></article>
+        <article class="card" data-feature="clouds" tabindex="0" role="button" aria-haspopup="dialog"><h4>Clouds</h4><p>Ray-marched volumetric clouds and cloud shadows.</p><code>r_clouds 1</code></article>
       </div>
 
       <h3>Water and weather</h3>
       <div class="grid">
-        <article class="card"><h4>Water surface</h4><p>PBR water with waves, tessellation, foam, flow, caustics, Snell's window and an underwater medium.</p><code>r_waterSurface 1</code></article>
-        <article class="card"><h4>Underwater particles</h4><p>Specks and bubbles under water.</p><code>r_waterParticles 1</code></article>
-        <article class="card"><h4>Rain</h4><p>Lit rain streaks and splashes where drops hit geometry.</p><code>r_rainSplashes 1</code></article>
-        <article class="card"><h4>Wet surfaces</h4><p>Surfaces exposed to rain get wet, with puddles, ripples and runoff.</p><code>r_weatherWetness 1</code></article>
-        <article class="card"><h4>Lens water</h4><p>Drops and water film on the camera lens.</p><code>r_rainLens 1</code></article>
+        <article class="card" data-feature="water" tabindex="0" role="button" aria-haspopup="dialog"><h4>Water surface</h4><p>PBR water with waves, tessellation, foam, flow, caustics, Snell's window and an underwater medium.</p><code>r_waterSurface 1</code></article>
+        <article class="card" data-feature="waterparticles" tabindex="0" role="button" aria-haspopup="dialog"><h4>Underwater particles</h4><p>Specks and bubbles under water.</p><code>r_waterParticles 1</code></article>
+        <article class="card" data-feature="rain" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain</h4><p>Lit rain streaks, distance LOD and splashes where drops hit geometry.</p><code>r_rainStreaks 1</code></article>
+        <article class="card" data-feature="wetness" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wet surfaces</h4><p>Surfaces exposed to rain get wet, with puddles, ripples and runoff.</p><code>r_weatherWetness 1</code></article>
+        <article class="card" data-feature="lenswater" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lens water</h4><p>Drops and water film on the camera lens.</p><code>r_rainLens 1</code></article>
       </div>
 
       <h3>Foliage and loading</h3>
       <div class="grid">
-        <article class="card"><h4>Grass cards</h4><p>Surface sprite grass drawn as two- or three-card tufts.</p><code>r_grassCardMode 3</code></article>
-        <article class="card"><h4>Wind</h4><p>A shared wind field for grass and plants; <code>r_leafFlutter</code> adds leaf motion on models.</p><code>r_foliageWind 1</code></article>
-        <article class="card"><h4>Interaction</h4><p>Characters bend grass and plants they walk through.</p></article>
-        <article class="card"><h4>Shader cache</h4><p>Stores compiled shader programs on disk to shorten startup and <code>vid_restart</code>.</p><code>r_shaderProgramCache 1</code></article>
+        <article class="card" data-feature="grass" tabindex="0" role="button" aria-haspopup="dialog"><h4>Grass cards</h4><p>Surface sprite grass drawn as two- or three-card tufts.</p><code>r_grassCardMode 3</code></article>
+        <article class="card" data-feature="wind" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wind</h4><p>A shared wind field for grass and plants; <code>r_leafFlutter</code> adds leaf motion on models.</p><code>r_foliageWind 1</code></article>
+        <article class="card" data-feature="interaction" tabindex="0" role="button" aria-haspopup="dialog"><h4>Interaction</h4><p>Characters bend grass and plants they walk through.</p><code>r_foliageInteraction 1</code></article>
+        <article class="card" data-feature="shadercache" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shader cache</h4><p>Stores compiled shader programs on disk to shorten startup and <code>vid_restart</code>.</p><code>r_shaderProgramCache 1</code></article>
       </div>
+      <!-- /cards:graphics -->
     </div>
   </section>
 
@@ -121,10 +113,11 @@
 
       <h3>New powers</h3>
       <div class="grid grid-2">
-        <article class="card force" style="--c:var(--blue)"><h4>Telekinesis</h4><p>Hold an NPC or an object and move it in space, similar to Grip in The Force Unleashed but without damage. Releasing it while moving throws it. Movement keys move the held target.</p><code>setForceTelekinesis 3</code></article>
-        <article class="card force" style="--c:var(--green)"><h4>Soar</h4><p>Stick to walls, start wall runs and flips in mid-air, jump again after touching a wall, and stay in the air for a few attacks.</p><code>setForceSoar 3</code></article>
-        <article class="card force" style="--c:var(--amber)"><h4>Deflect</h4><p>Stop blaster bolts without a saber. Level 1 freezes a bolt, level 2 lets you move while doing it, level 3 sends it back.</p><code>setforcedeflect 3</code></article>
-        <article class="card force" style="--c:var(--purple)"><h4>Chain Lightning</h4><p>Lightning that passes from one NPC to the next: up to 2, 5 or any number of targets. Bind it with <code>+force_chain_lightning</code>.</p><code>setForceChainLightning 3</code></article>
+      <!-- cards:force -->
+        <article class="card force" data-feature="telekinesis" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--blue)"><h4>Telekinesis</h4><p>Hold an NPC or an object and move it in space, similar to Grip in The Force Unleashed but without damage. Releasing it while moving throws it. Movement keys move the held target.</p><code>setForceTelekinesis 3</code></article>
+        <article class="card force" data-feature="soar" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--green)"><h4>Soar</h4><p>Stick to walls, start wall runs and flips in mid-air, jump again after touching a wall, and stay in the air for a few attacks.</p><code>setForceSoar 3</code></article>
+        <article class="card force" data-feature="deflect" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--amber)"><h4>Deflect</h4><p>Stop blaster bolts without a saber. Level 1 freezes a bolt, level 2 lets you move while doing it, level 3 sends it back.</p><code>setforcedeflect 3</code></article>
+        <article class="card force" data-feature="chainlightning" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--purple)"><h4>Chain Lightning</h4><p>Lightning that passes from one NPC to the next: up to 2, 5 or any number of targets. Bind it with <code>+force_chain_lightning</code>.</p><code>setForceChainLightning 3</code></article>      <!-- /cards:force -->
       </div>
 
       <h3>Levels 4 and 5</h3>
@@ -183,6 +176,15 @@ make_entity_physical &lt;entity_id&gt; &lt;mass&gt;</pre>
   </div>
 </footer>
 
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="assets/features.js"></script>
 <script src="assets/main.js"></script>
 </body>
 </html>
