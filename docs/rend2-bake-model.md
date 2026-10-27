@@ -760,6 +760,10 @@ source set is therefore not proof of recovering the authored source set.
 
 ### Pinned source references
 
+The follow-up [X03 identifiability experiments](rend2-bake-identifiability-x03.md)
+add fitted nuisance comparisons and an explicit UnknownProfile strategy. Their
+conditional rankings do not identify a stock JA production compiler.
+
 [N-L]: https://github.com/xonotic/netradiant/blob/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light.c
 [N-Y]: https://github.com/xonotic/netradiant/blob/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light_ydnar.c
 [N-B]: https://github.com/xonotic/netradiant/blob/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light_bounce.c
