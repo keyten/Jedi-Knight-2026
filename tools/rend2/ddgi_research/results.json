@@ -1,0 +1,482 @@
+{
+  "codec": {
+    "constant_radiance": 2.0,
+    "linear_mix_0_100": 50.0,
+    "perceptual_mix_0_100": 25.0,
+    "restored_irradiance": 6.283185307179586,
+    "stored_unencoded": 1.0
+  },
+  "equal_moments": {
+    "distributions": [
+      {
+        "distances": [
+          1.0,
+          3.0
+        ],
+        "weights": [
+          0.5,
+          0.5
+        ]
+      },
+      {
+        "distances": [
+          1.5,
+          4.0
+        ],
+        "weights": [
+          0.8,
+          0.2
+        ]
+      }
+    ],
+    "moments": [
+      {
+        "mean": 2.0,
+        "second": 5.0
+      },
+      {
+        "mean": 2.0,
+        "second": 5.0
+      }
+    ],
+    "note": "Identical first two moments do not identify the CDF, much less one geometric ray",
+    "queries": [
+      {
+        "cubed": 1.0,
+        "distance": 1.8,
+        "true_angular_survival": [
+          0.5,
+          0.2
+        ],
+        "upper": 1.0
+      },
+      {
+        "cubed": 0.5120000000000001,
+        "distance": 2.5,
+        "true_angular_survival": [
+          0.5,
+          0.2
+        ],
+        "upper": 0.8
+      },
+      {
+        "cubed": 0.1686414297015671,
+        "distance": 2.9,
+        "true_angular_survival": [
+          0.5,
+          0.2
+        ],
+        "upper": 0.5524861878453039
+      }
+    ]
+  },
+  "leakage": [
+    {
+      "exact_geometry_supported": 0.0,
+      "exact_status": "SupportedInterpolationFixture",
+      "exact_unknown": false,
+      "moment_linear": 0.06324123015903999,
+      "moment_perceptual": 3.999453192028669e-05,
+      "moments": [
+        {
+          "angular_upper": 0.00033347614062584504,
+          "display_weight": 0.0001423828125,
+          "mean": 0.5050247211247837,
+          "query_distance": 0.9,
+          "second": 0.2551020104041095,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 0,
+            "distances": [
+              0.6058141572561583,
+              0.5552797034868637,
+              0.5233758007690428,
+              0.5056782213368322,
+              0.5,
+              0.5056782213368322,
+              0.5233758007690428,
+              0.5552797034868637,
+              0.6058141572561583
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 5.204145694398532e-05
+        },
+        {
+          "angular_upper": 1.0,
+          "display_weight": 0.225,
+          "mean": 0.5050247211247837,
+          "query_distance": 0.09999999999999998,
+          "second": 0.25510201040410946,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 0,
+            "distances": [
+              0.6058141572561584,
+              0.5552797034868637,
+              0.5233758007690428,
+              0.5056782213368322,
+              0.5,
+              0.505678221336832,
+              0.5233758007690428,
+              0.5552797034868637,
+              0.6058141572561583
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 5.204145694392981e-05
+        }
+      ],
+      "naive_linear": 50.0,
+      "name": "sealed_bright_dark",
+      "note": "Values are declared synthetic field samples, not recovered emitters or a source-fitting visibility API",
+      "probe_values": [
+        100.0,
+        0.0
+      ],
+      "probes": [
+        [
+          -0.5,
+          0.0,
+          1.0
+        ],
+        [
+          0.5,
+          0.0,
+          1.0
+        ]
+      ],
+      "query": [
+        0.4,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "exact_geometry_supported": null,
+      "exact_status": "Unavailable",
+      "exact_unknown": false,
+      "moment_linear": 100.0,
+      "moment_perceptual": 100.0,
+      "moments": [
+        {
+          "angular_upper": 0.0007820646199463358,
+          "display_weight": 0.0001423828125,
+          "mean": 0.5082633917825272,
+          "query_distance": 0.9055385138137417,
+          "second": 0.2584552033545685,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 0,
+            "distances": [
+              0.5664811045797338,
+              0.5302375173055439,
+              0.5090985351553393,
+              0.5003872132866283,
+              0.5030769521187454,
+              0.5174800568224434,
+              0.5453403311952866,
+              0.5903844175585614,
+              0.6596886444204109
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 0.00012352792828973502
+        },
+        {
+          "angular_upper": 0.0007820646199463358,
+          "display_weight": 0.0001423828125,
+          "mean": 0.5082633917825272,
+          "query_distance": 0.9055385138137417,
+          "second": 0.2584552033545685,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 0,
+            "distances": [
+              0.6596886444204109,
+              0.5903844175585614,
+              0.5453403311952866,
+              0.5174800568224434,
+              0.5030769521187454,
+              0.5003872132866283,
+              0.5090985351553393,
+              0.5302375173055439,
+              0.5664811045797338
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 0.00012352792828973502
+        }
+      ],
+      "naive_linear": 100.0,
+      "name": "all_probes_behind_wall",
+      "note": "Values are declared synthetic field samples, not recovered emitters or a source-fitting visibility API",
+      "probe_values": [
+        100.0,
+        100.0
+      ],
+      "probes": [
+        [
+          -0.5,
+          -0.1,
+          1.0
+        ],
+        [
+          -0.5,
+          0.1,
+          1.0
+        ]
+      ],
+      "query": [
+        0.4,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "exact_geometry_supported": 0.0,
+      "exact_status": "SupportedInterpolationFixture",
+      "exact_unknown": false,
+      "moment_linear": 41.794907361096264,
+      "moment_perceptual": 17.468142813226184,
+      "moments": [
+        {
+          "angular_upper": 0.8954763644222307,
+          "display_weight": 0.16156411286185654,
+          "mean": 0.6939834097618314,
+          "query_distance": 0.9,
+          "second": 0.8452298313310155,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 6,
+            "distances": [
+              2.598076211353316,
+              2.598076211353316,
+              2.598076211353316,
+              0.5056782213368322,
+              0.5,
+              0.5056782213368322,
+              2.598076211353316,
+              2.598076211353316,
+              2.598076211353316
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 0.36361685830635754
+        },
+        {
+          "angular_upper": 1.0,
+          "display_weight": 0.225,
+          "mean": 0.6939834097618314,
+          "query_distance": 0.09999999999999998,
+          "second": 0.8452298313310154,
+          "trace": {
+            "cap": 2.598076211353316,
+            "capped": 6,
+            "distances": [
+              2.598076211353316,
+              2.598076211353316,
+              2.598076211353316,
+              0.5056782213368322,
+              0.5,
+              0.505678221336832,
+              2.598076211353316,
+              2.598076211353316,
+              2.598076211353316
+            ],
+            "rays": 9,
+            "weights": [
+              6.784679081917267e-05,
+              0.0052833604702009415,
+              0.10181653147983688,
+              0.5685749602222488,
+              1.0,
+              0.5685749602222488,
+              0.10181653147983688,
+              0.0052833604702009415,
+              6.784679081917267e-05
+            ]
+          },
+          "variance": 0.3636168583063574
+        }
+      ],
+      "naive_linear": 50.0,
+      "name": "thin_finite_partition",
+      "note": "Values are declared synthetic field samples, not recovered emitters or a source-fitting visibility API",
+      "probe_values": [
+        100.0,
+        0.0
+      ],
+      "probes": [
+        [
+          -0.5,
+          0.0,
+          1.0
+        ],
+        [
+          0.5,
+          0.0,
+          1.0
+        ]
+      ],
+      "query": [
+        0.4,
+        0.0,
+        1.0
+      ]
+    }
+  ],
+  "memory": {
+    "angular_interior_sizes": [
+      6,
+      14
+    ],
+    "cpu_fp32_rgb_moments_metadata_bytes_per_probe": 2064,
+    "illustrative_gpu_like_r10_rg16_rgba16_border_bytes_per_probe": 1288,
+    "note": "Excludes BVH, sparse indices, extra validity masks, variability and allocator overhead; persistent ray buffers are optional",
+    "probes100000_cpu_bytes": 206400000,
+    "probes10000_cpu_bytes": 20640000,
+    "ray_scratch_fp32x2_256_per_probe": 2048
+  },
+  "placement": {
+    "analytic_sheet_point_free": true,
+    "fixed_backface_hits": 16,
+    "fixed_rays": 32,
+    "heuristic_inactive": true,
+    "historical_observation_relocation": "Forbidden: retain sample position/RGB; create a separate field support point and reevaluate",
+    "no_nearby_hits": "Inactive for update relevance does not mean Solid or unlit",
+    "probe": [
+      -0.5,
+      0.0,
+      500.0
+    ],
+    "relocation_counterexample": {
+      "correct_new_field_lux": 1.5624999999999998,
+      "new_position": 0.2,
+      "old_field_lux": 1.0,
+      "old_position": 0.0,
+      "source_position": 1.0,
+      "stale_value_relative_error": 0.36
+    },
+    "threshold": 0.25,
+    "total_hits": 16
+  },
+  "reference_commit": "f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6",
+  "schema": "org.openjk.ddgi-research",
+  "source_ambiguity": {
+    "distance_metres": [
+      1.0,
+      2.0
+    ],
+    "intensity_cd": [
+      1.0,
+      4.0
+    ],
+    "normal_incidence_lux": [
+      1.0,
+      1.0
+    ],
+    "note": "At one probe these point configurations have identical directional irradiance for every normal"
+  },
+  "source_sha256": "52bafb396f0ce8652dd561c329e15561d6b570c0b44fbb7b2254590240081b3a",
+  "units": "metres for synthetic geometry/distance; synthetic field values labelled lux for interpolation only",
+  "unknown_dynamic": {
+    "door_closed": {
+      "segment": [
+        0.0,
+        0.0
+      ]
+    },
+    "door_open": {
+      "segment": [
+        1.0,
+        1.0
+      ]
+    },
+    "explicit_sky": [
+      1.0,
+      1.0
+    ],
+    "missing_geometry": {
+      "segment": [
+        0.0,
+        1.0
+      ]
+    },
+    "missing_sky_boundary": [
+      0.0,
+      1.0
+    ],
+    "stale_open_moments_on_closed_door": {
+      "angular_weight": 1.0,
+      "exact_closed": [
+        0.0,
+        0.0
+      ],
+      "old_mean": 5.0,
+      "query_distance": 1.0
+    },
+    "unknown_alpha": {
+      "segment": [
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "version": 1
+}

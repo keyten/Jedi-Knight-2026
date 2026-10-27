@@ -1,0 +1,153 @@
+{
+  "schema": "org.openjk.ddgi-research-sources",
+  "version": 1,
+  "commit": "f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6",
+  "repository": "https://github.com/NVIDIAGameWorks/RTXGI-DDGI",
+  "read_date": "2026-10-27",
+  "files": [
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/README.md",
+      "sha256": "83f5cc01e945860d409d50d63cc936b8b9296f92cbc6487838418498c8f80097",
+      "bytes": 4844
+    },
+    {
+      "path": "License.txt",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/License.txt",
+      "sha256": "0f74d24da3082b666de48eea9ec7ff835657575a71576281e383901f3d7c08c2",
+      "bytes": 24319
+    },
+    {
+      "path": "docs/Algorithms.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/docs/Algorithms.md",
+      "sha256": "7c8d14335763b46eb28991d735e1f86c9f73eb9ff43abe8f1a61c9b534273c88",
+      "bytes": 2750
+    },
+    {
+      "path": "docs/Math.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/docs/Math.md",
+      "sha256": "3178e78c18e7c3c678c97b7e446fc3e2c67e27c281541b1199ba2cd888c00475",
+      "bytes": 7220
+    },
+    {
+      "path": "docs/Integration.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/docs/Integration.md",
+      "sha256": "35fdabae5c7abce8e69ad2e7376fc335b49a6bd3074307b06321d69d0dccc133",
+      "bytes": 11241
+    },
+    {
+      "path": "docs/DDGIVolume.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/docs/DDGIVolume.md",
+      "sha256": "5fceba77d1417b99e3b4310afd0b7c694a13843b248d4b0bc29f876ed495246c",
+      "bytes": 54502
+    },
+    {
+      "path": "docs/ShaderAPI.md",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/docs/ShaderAPI.md",
+      "sha256": "30d5eb3c2a4e69d6cc174db82827a03c9cf9f688a7c5955a688bfe45217af7be",
+      "bytes": 8062
+    },
+    {
+      "path": "rtxgi-sdk/include/rtxgi/ddgi/DDGIVolume.h",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/include/rtxgi/ddgi/DDGIVolume.h",
+      "sha256": "88c33508465908edb9c571b80557096cee02861c1af9d5c082c21c47d52b2525",
+      "bytes": 20322
+    },
+    {
+      "path": "rtxgi-sdk/include/rtxgi/ddgi/DDGIVolumeDescGPU.h",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/include/rtxgi/ddgi/DDGIVolumeDescGPU.h",
+      "sha256": "be0092a9f68181f0d62a7a7b4878548e7c8c6c257886742be8e7f35babc57f97",
+      "bytes": 15078
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/Irradiance.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/Irradiance.hlsl",
+      "sha256": "585f5ab627ce5230572f50a09c553b0969272707cd0c8a6c8e9926253ee162b8",
+      "bytes": 9775
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/ProbeBlendingCS.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/ProbeBlendingCS.hlsl",
+      "sha256": "a8bc4622974926a6b4403b55609294ab55d423dfe3cb2ad14758ac9265eaa27e",
+      "bytes": 27352
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/ProbeClassificationCS.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/ProbeClassificationCS.hlsl",
+      "sha256": "175ee76f6562a13de34483353448ed69b1307d3e3b930492bcd6d183ef1808f4",
+      "bytes": 11327
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/ProbeRelocationCS.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/ProbeRelocationCS.hlsl",
+      "sha256": "b27909ecb4384cd3920bf5ee2e2f7cbd9a6ff8221622c84d18aaf07627573239",
+      "bytes": 12267
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/ProbeCommon.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/ProbeCommon.hlsl",
+      "sha256": "8fb9d5f969d63fd1eaa60f3ef92177bf609e364ccd9c76b81deb1ab65f55d160",
+      "bytes": 4079
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/Common.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/Common.hlsl",
+      "sha256": "b90a3e92995336aba062dce5141fb1169fcbf6ac0f8d5ac8eeacba7b14da6b14",
+      "bytes": 2379
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/ProbeDataCommon.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/ProbeDataCommon.hlsl",
+      "sha256": "53059acd5bb2f70f8981b94df01b91fa76ec8b85f564b33acff5dde8b49c1267",
+      "bytes": 1863
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/ProbeRayCommon.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/ProbeRayCommon.hlsl",
+      "sha256": "73e3b28a2c8d30c94baccbf7e13e587d5488e0bf78fd549108edbb1525ebe1df",
+      "bytes": 5428
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/ProbeOctahedral.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/ProbeOctahedral.hlsl",
+      "sha256": "62892a2ed73fb32f3c4d5b2f4169d7a58bad524559f0aafd148638ad64464e95",
+      "bytes": 2527
+    },
+    {
+      "path": "rtxgi-sdk/shaders/ddgi/include/ProbeIndexing.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/include/ProbeIndexing.hlsl",
+      "sha256": "b2ae643c36f6b4872aa8e676323495734fda2d8a88fd645cfa37f8d94b4471dc",
+      "bytes": 13015
+    },
+    {
+      "path": "rtxgi-sdk/src/ddgi/DDGIVolume.cpp",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/src/ddgi/DDGIVolume.cpp",
+      "sha256": "d8f07acb79901ba8f001ffba0e168b4f18bcf263ab5247f59c49f0aaeee10445",
+      "bytes": 22851
+    },
+    {
+      "path": "samples/test-harness/shaders/ddgi/ProbeTraceRGS.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/samples/test-harness/shaders/ddgi/ProbeTraceRGS.hlsl",
+      "sha256": "69b6ba37419dc9000e4e20b4e4f3a7fd6493aca2b4e2b15214e19b53060c4f5e",
+      "bytes": 7745
+    },
+    {
+      "path": "samples/test-harness/shaders/CHS.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/samples/test-harness/shaders/CHS.hlsl",
+      "sha256": "7556dd4ea05b97952983278e5ea2c4d0a666409af9666ab2751a8461b0f9ac6e",
+      "bytes": 9231
+    },
+    {
+      "path": "samples/test-harness/shaders/Miss.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/samples/test-harness/shaders/Miss.hlsl",
+      "sha256": "e620a6606907965020a73addaed5852735ce447be9edaf6ba5da77a8734d948c",
+      "bytes": 633
+    },
+    {
+      "path": "samples/test-harness/shaders/include/Lighting.hlsl",
+      "url": "https://raw.githubusercontent.com/NVIDIAGameWorks/RTXGI-DDGI/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/samples/test-harness/shaders/include/Lighting.hlsl",
+      "sha256": "b9f8dc421e794735fa13fec7e5af24104a3980dacd741f23f27c1985cb1fff9b",
+      "bytes": 6725
+    }
+  ]
+}

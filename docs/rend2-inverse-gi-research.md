@@ -1,5 +1,9 @@
 # Physically constrained indirect lighting for baked JA maps
 
+The subsequent [DDGI field comparison](rend2-ddgi-field-research.md) examines
+probe placement and distance moments for future field generation. It keeps
+approximate interpolation weights separate from exact inverse-fitting visibility.
+
 Research and experiments: 2026-10-27; repository baseline `7840feb44`,
 `rend2-unified-wip`. This is an engineering decision and bounded CPU research,
 not a production inverse solver. No renderer, consumer, cvar, shader, canonical
