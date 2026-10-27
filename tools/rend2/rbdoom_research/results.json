@@ -1,0 +1,240 @@
+{
+  "comparison": {
+    "heldout_directions": 257,
+    "input": "Three distinct coloured SG incoming-radiance lobes, lambda=32, plus constant .015",
+    "nodes": 3200,
+    "reference_48_vs_64_max_irradiance_difference": 3.1086244689504383e-15,
+    "rows": [
+      {
+        "clamped_irradiance": {
+          "channels": 771,
+          "minimum": 0.0,
+          "negative_channels": 0,
+          "relative_rms": 0.2560225645114988,
+          "rmse": 0.09326093291212091
+        },
+        "coefficients_rgb": 4,
+        "degree": 1,
+        "fp16_coefficient_extra_rmse": 7.93112807090654e-05,
+        "fp32_bytes": 48,
+        "irradiance": {
+          "channels": 771,
+          "minimum": -0.17212808060865753,
+          "negative_channels": 112,
+          "relative_rms": 0.2844839498210752,
+          "rmse": 0.10362851653119373
+        },
+        "radiance": {
+          "channels": 771,
+          "minimum": -0.13186116454071678,
+          "negative_channels": 209,
+          "relative_rms": 0.9292817380906566,
+          "rmse": 0.34777548600792657
+        }
+      },
+      {
+        "clamped_irradiance": {
+          "channels": 771,
+          "minimum": 0.017419243649403192,
+          "negative_channels": 0,
+          "relative_rms": 0.05417727126061558,
+          "rmse": 0.019735068547722154
+        },
+        "coefficients_rgb": 9,
+        "degree": 2,
+        "fp16_coefficient_extra_rmse": 8.610861246603811e-05,
+        "fp32_bytes": 108,
+        "irradiance": {
+          "channels": 771,
+          "minimum": 0.017419243649403192,
+          "negative_channels": 0,
+          "relative_rms": 0.05417727126061558,
+          "rmse": 0.019735068547722154
+        },
+        "radiance": {
+          "channels": 771,
+          "minimum": -0.11631209312695989,
+          "negative_channels": 325,
+          "relative_rms": 0.861273213676941,
+          "rmse": 0.3223238961819415
+        }
+      },
+      {
+        "clamped_irradiance": {
+          "channels": 771,
+          "minimum": 0.017419243649402064,
+          "negative_channels": 0,
+          "relative_rms": 0.05417727126061558,
+          "rmse": 0.019735068547722154
+        },
+        "coefficients_rgb": 16,
+        "degree": 3,
+        "fp16_coefficient_extra_rmse": 8.610861246603817e-05,
+        "fp32_bytes": 192,
+        "irradiance": {
+          "channels": 771,
+          "minimum": 0.017419243649402064,
+          "negative_channels": 0,
+          "relative_rms": 0.05417727126061558,
+          "rmse": 0.019735068547722154
+        },
+        "radiance": {
+          "channels": 771,
+          "minimum": -0.23189713735734413,
+          "negative_channels": 315,
+          "relative_rms": 0.7698278283012524,
+          "rmse": 0.28810126806104996
+        }
+      },
+      {
+        "clamped_irradiance": {
+          "channels": 771,
+          "minimum": 0.03311237200623492,
+          "negative_channels": 0,
+          "relative_rms": 0.017463013207808284,
+          "rmse": 0.0063612240832145225
+        },
+        "coefficients_rgb": 25,
+        "degree": 4,
+        "fp16_coefficient_extra_rmse": 8.62232216948675e-05,
+        "fp32_bytes": 300,
+        "irradiance": {
+          "channels": 771,
+          "minimum": 0.03311237200623492,
+          "negative_channels": 0,
+          "relative_rms": 0.017463013207808284,
+          "rmse": 0.0063612240832145225
+        },
+        "radiance": {
+          "channels": 771,
+          "minimum": -0.19581057353378165,
+          "negative_channels": 328,
+          "relative_rms": 0.6670840065850624,
+          "rmse": 0.24965029989172402
+        }
+      },
+      {
+        "clamped_irradiance": {
+          "channels": 771,
+          "minimum": 0.04624928250533297,
+          "negative_channels": 0,
+          "relative_rms": 0.002194402868374845,
+          "rmse": 0.0007993516473056052
+        },
+        "coefficients_rgb": 81,
+        "degree": 8,
+        "fp16_coefficient_extra_rmse": 8.622887263776053e-05,
+        "fp32_bytes": 972,
+        "irradiance": {
+          "channels": 771,
+          "minimum": 0.04624928250533297,
+          "negative_channels": 0,
+          "relative_rms": 0.002194402868374845,
+          "rmse": 0.0007993516473056052
+        },
+        "radiance": {
+          "channels": 771,
+          "minimum": -0.18873144908500125,
+          "negative_channels": 314,
+          "relative_rms": 0.275429011802413,
+          "rmse": 0.1030768759505339
+        }
+      }
+    ],
+    "sg_oracle": {
+      "fitted_unknown_geometry": false,
+      "method": "Three known SG lobes plus known constant; oracle capacity control",
+      "radiance": {
+        "channels": 771,
+        "minimum": 0.015,
+        "negative_channels": 0,
+        "relative_rms": 0.0,
+        "rmse": 0.0
+      },
+      "stored_float_parameters": 21
+    }
+  },
+  "convention": "Real orthonormal Condon-Shortley, z polar, index=l*l+l+m; incoming receiver-to-source direction",
+  "delta_irradiance": [
+    {
+      "degree": 1,
+      "metrics": {
+        "channels": 1539,
+        "minimum": -0.24902534113060326,
+        "negative_channels": 384,
+        "relative_rms": 0.3535554057644743,
+        "rmse": 0.14433811575597513
+      }
+    },
+    {
+      "degree": 2,
+      "metrics": {
+        "channels": 1539,
+        "minimum": -0.039583048345359355,
+        "negative_channels": 447,
+        "relative_rms": 0.08839137035486976,
+        "rmse": 0.03608555727927276
+      }
+    },
+    {
+      "degree": 3,
+      "metrics": {
+        "channels": 1539,
+        "minimum": -0.039583048345360916,
+        "negative_channels": 447,
+        "relative_rms": 0.08839137035486976,
+        "rmse": 0.03608555727927276
+      }
+    },
+    {
+      "degree": 4,
+      "metrics": {
+        "channels": 1539,
+        "minimum": -0.030281563096184398,
+        "negative_channels": 399,
+        "relative_rms": 0.04419795221153333,
+        "rmse": 0.018043704150673096
+      }
+    },
+    {
+      "degree": 8,
+      "metrics": {
+        "channels": 1539,
+        "minimum": -0.012471436278596926,
+        "negative_channels": 396,
+        "relative_rms": 0.01933991162748606,
+        "rmse": 0.007895470858839022
+      }
+    }
+  ],
+  "diffuse_factors": [
+    3.141592653589786,
+    2.0943951023931886,
+    0.7853981633974416,
+    -6.669449496025434e-15,
+    -0.13089969389958117,
+    -6.3732399913103084e-15,
+    0.04908738521233432,
+    -6.0230833750380785e-15,
+    -0.02454369260617615
+  ],
+  "reference_commit": "ea29c006e84fedcc0e7c173c383a087ce0a8c0d5",
+  "schema": "org.openjk.rbdoom-field-research",
+  "source_sha256": "ffa5588e0b0dbdef5ea23c03c1a6c612aa56aa10d0a0a1be1f07a4950f5aa549",
+  "units": "Synthetic relative-linear RGB incoming radiance / derived irradiance; NOT stock-map SI calibration",
+  "validity": {
+    "explicit_valid": [
+      true,
+      true
+    ],
+    "no_valid_support": null,
+    "proper_linear_interpolation": 50.0,
+    "reason": "Black is a valid physical value; absent/invalid must have separate support status",
+    "reject_black_and_renormalize": 100.0,
+    "values": [
+      0.0,
+      100.0
+    ]
+  },
+  "version": 1
+}

@@ -22,6 +22,11 @@ This complements the existing [GI decision](rend2-inverse-gi-research.md),
 hardware ray tracing, new renderer dependency, shader path or canonical schema
 change is introduced.
 
+The separate [RBDOOM area-grid and SH investigation](rend2-rbdoom-field-research.md)
+compares local BSP-area supports, diffuse E/pi atlases and environment probes.
+It supplies complementary angular-representation tests without adopting either
+engine's renderer layout.
+
 ## 1. Actual implementation inspected
 
 The relevant sources are pinned, not links to a changing `main` branch:

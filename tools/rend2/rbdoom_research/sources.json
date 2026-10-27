@@ -1,0 +1,310 @@
+{
+  "schema": "org.openjk.rbdoom-field-research-sources",
+  "version": 1,
+  "commit": "ea29c006e84fedcc0e7c173c383a087ce0a8c0d5",
+  "repository": "https://github.com/RobertBeckebans/RBDOOM-3-BFG",
+  "read_date": "2026-10-27",
+  "files": [
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/README.md",
+      "sha256": "7f08b1dd86b721b616dfa5c1d10c91e385ac35b531e2bc0996a13ab53d5486c1",
+      "bytes": 42614,
+      "git_blob_sha1": "96a103a8d5927658cd27ffe6111b6f03ee11f635"
+    },
+    {
+      "path": "LICENSE.md",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/LICENSE.md",
+      "sha256": "e838e41c27c2fc5d194d9ba19b8eaa3e66aa61016d21d16039aa6ba8cf324aa7",
+      "bytes": 35578,
+      "git_blob_sha1": "8c4776134c9dbdd45c47f877c1c7e585bb827e36"
+    },
+    {
+      "path": "LICENSE_EXCEPTIONS.md",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/LICENSE_EXCEPTIONS.md",
+      "sha256": "18581e33aa7d04e56b017de2760f2d2dbeb0e3b752215476b381add173e3cd93",
+      "bytes": 35039,
+      "git_blob_sha1": "abddf271200e1eb6306dc09e5620e1dab3f50d57"
+    },
+    {
+      "path": "RELEASE-NOTES.md",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/RELEASE-NOTES.md",
+      "sha256": "e5e1899ff9e16be2a36c33e4581a00282015951a75156c3febcbb32850525644",
+      "bytes": 73268,
+      "git_blob_sha1": "0469314b330905c654e0a8e4da46b765a9d52058"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_lightgrid.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_lightgrid.cpp",
+      "sha256": "3922f41c892a6d64de2dbda60b67c49087346c51c29dea16fd2df5b2fe3cd365",
+      "bytes": 41895,
+      "git_blob_sha1": "3137e7e82c43a8b1727d899b4270e87928183ab3"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_envprobes.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_envprobes.cpp",
+      "sha256": "ef87ddc1138f596e82b3b7d8bec4cb76eb13f17ad3f834fc7e8b262679250bdf",
+      "bytes": 35791,
+      "git_blob_sha1": "20dbf89679ba4580f1a347cd450a3eb8de8bed32"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_local.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_local.h",
+      "sha256": "e4c45cb676bd1d2db00d0d29d9f8f8ae82356605853d741057570788b0e16bd0",
+      "bytes": 16813,
+      "git_blob_sha1": "7b9b09480703df34ea3c67f35092b35b23cadbad"
+    },
+    {
+      "path": "neo/renderer/RenderWorld.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld.h",
+      "sha256": "e31c316717880e696c9d9147c693ba334d46d7bfc5ebf694acf42b9a8a2de64f",
+      "bytes": 21981,
+      "git_blob_sha1": "4a9dfd097027e1eafa8f06a7423258e2ea984f9e"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_load.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_load.cpp",
+      "sha256": "9e19eb88cc31cd3f5b957afb827b1c97ccbee4b98c3af5a5341a8d5a23247cff",
+      "bytes": 26374,
+      "git_blob_sha1": "785884508d332823ad5a7e0e02a000b7d02c60df"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_portals.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_portals.cpp",
+      "sha256": "b9a8a5da0ec38161a406f8249b6a5263a7d7611a1109459a765d85b6a33f9096",
+      "bytes": 29991,
+      "git_blob_sha1": "d386e2642aa25ca390b86689d9720b0f58132c33"
+    },
+    {
+      "path": "neo/renderer/RenderWorld_defs.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_defs.cpp",
+      "sha256": "41c82e95e634357b13331bb1a2392a52478ee649e8b5a03bfd193467bdbe8a61",
+      "bytes": 29555,
+      "git_blob_sha1": "209971cf95707608ecd1eadcd2e2e299eae21534"
+    },
+    {
+      "path": "neo/renderer/RenderWorld.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld.cpp",
+      "sha256": "3acbac780ae990f32376a463fb9757736044e5bfe3c93cb0edb4e58e88b3471b",
+      "bytes": 64644,
+      "git_blob_sha1": "b6ecfe3f28f8cc6a8c40cd4cad0b26be53048321"
+    },
+    {
+      "path": "neo/renderer/RenderCommon.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderCommon.h",
+      "sha256": "b435b074105ee1569c181770f9ab64f589157f490cecaeb258bde40c0218bda8",
+      "bytes": 66413,
+      "git_blob_sha1": "f2ba87cbc550bc1d950a746d43bbf9efa0bc7dcb"
+    },
+    {
+      "path": "neo/idlib/math/SphericalHarmonics.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/math/SphericalHarmonics.h",
+      "sha256": "1e930109e752ffe587434cbd9f562fa2eef776e6ee505355f7f03cb952e2d536",
+      "bytes": 11563,
+      "git_blob_sha1": "5a33bfa80413ecfaa2c47ad5f07b363962cb5250"
+    },
+    {
+      "path": "neo/shaders/builtin/lighting/ambient_lightgrid_IBL.ps.hlsl",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/shaders/builtin/lighting/ambient_lightgrid_IBL.ps.hlsl",
+      "sha256": "751973ed8121facc468890264207d8b18402b293a76d6ebb2ea44e028b7a5d9e",
+      "bytes": 13301,
+      "git_blob_sha1": "a8f766bc9862725c44be0a169bd6b94ff396acde"
+    },
+    {
+      "path": "neo/shaders/builtin/lighting/ambient_lightgrid_IBL.vs.hlsl",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/shaders/builtin/lighting/ambient_lightgrid_IBL.vs.hlsl",
+      "sha256": "f8d339c1a30e098e464d5cc29954cdf314d3cf89b682a7247490686cd0356b26",
+      "bytes": 7861,
+      "git_blob_sha1": "4ab94d4be145ac6b8842ccd8ef1d2a82b78caaf3"
+    },
+    {
+      "path": "neo/shaders/builtin/lighting/ambient_lighting_IBL.ps.hlsl",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/shaders/builtin/lighting/ambient_lighting_IBL.ps.hlsl",
+      "sha256": "2e4684558e42a80bc0796a1bdf42d2317a543f476aaaa21265ebeaa725c12307",
+      "bytes": 10284,
+      "git_blob_sha1": "cf79f58a3de902c410635abdc3d5bd3033e79733"
+    },
+    {
+      "path": "neo/shaders/global_inc.hlsl",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/shaders/global_inc.hlsl",
+      "sha256": "101ae4f69a571ff15d4ddc99a178ff4e4aea41f935af9229d2a89f55cefac349",
+      "bytes": 16866,
+      "git_blob_sha1": "6707e8a5a70c0b7ecd3ee3a6e6f9ae31b4b523be"
+    },
+    {
+      "path": "neo/renderer/Image_process.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/Image_process.cpp",
+      "sha256": "40df84423fa85cf41faa9a4a89d67d3b5b3562270c9132db9b5e82445be4ab52",
+      "bytes": 31654,
+      "git_blob_sha1": "9757186b1f57e2656c30fa947a24835eaf884c88"
+    },
+    {
+      "path": "neo/d3xp/EnvironmentProbe.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/d3xp/EnvironmentProbe.cpp",
+      "sha256": "5b5c7bcad219dc158201b1f5c8a29faedde222deb298cc9fcfb5e4615381b76e",
+      "bytes": 22187,
+      "git_blob_sha1": "a02537b0549fa25076516b86e8a884cb194436a3"
+    },
+    {
+      "path": "neo/d3xp/EnvironmentProbe.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/d3xp/EnvironmentProbe.h",
+      "sha256": "2e09179a9feb078e523d20fafab760edf387efd9dd01d23b63254f367f28844f",
+      "bytes": 4820,
+      "git_blob_sha1": "6dc50e133d86053aa0b6dfafff9f15c3aa0e8756"
+    },
+    {
+      "path": "neo/renderer/Image.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/Image.h",
+      "sha256": "35ddf491dc9fcc13f65f9954289f8fdfa368ed7007d58441775be2e69b40b39e",
+      "bytes": 25143,
+      "git_blob_sha1": "ad11d4c626554427038a2fb123ae6cb7286001f5"
+    },
+    {
+      "path": "neo/renderer/Image_load.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/Image_load.cpp",
+      "sha256": "b364a7afa47de697e88499106f5fda968673c1fcfee1d86ae22b405615ea63e4",
+      "bytes": 29195,
+      "git_blob_sha1": "6a2acb4829fd48305b009ed52493c497f7acd114"
+    },
+    {
+      "path": "neo/renderer/BinaryImage.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/BinaryImage.cpp",
+      "sha256": "0bea8180dcd8bba350781e8aafaec4fe41575e4bc962eb1561bff9448129408d",
+      "bytes": 30994,
+      "git_blob_sha1": "a7fb0da9e93910e715567b11b4dbca99bef6137c"
+    },
+    {
+      "path": "neo/renderer/RenderBackend.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderBackend.cpp",
+      "sha256": "a34e739d9dd686322e2479797a7338db5e914eda183310f8f1a38ca003ba8c34",
+      "bytes": 201153,
+      "git_blob_sha1": "bda09aedad391180132d1a912b5a529d5bb8de87"
+    },
+    {
+      "path": "neo/renderer/NVRHI/RenderBackend_NVRHI.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/NVRHI/RenderBackend_NVRHI.cpp",
+      "sha256": "46f6078e286d34257f3defed8ec3664c3f723a45e29281700a0ea7eeaaee0c47",
+      "bytes": 75545,
+      "git_blob_sha1": "6995850bf009dca9eaee06a4356a289fa4778deb"
+    },
+    {
+      "path": "neo/renderer/tr_frontend_main.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/tr_frontend_main.cpp",
+      "sha256": "fb5e2ad7c582115f6cb081e6b45e326922a3d2ec0bb25af2bb089e6a9c6e46f7",
+      "bytes": 25936,
+      "git_blob_sha1": "a5d8f46eb386b6cf545c19f88f8a47068dac156b"
+    },
+    {
+      "path": "neo/renderer/RenderSystem.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderSystem.cpp",
+      "sha256": "31f3b4dbc852846256675d71072fcde1fb0dcac7871d16f357495cba603e5895",
+      "bytes": 24873,
+      "git_blob_sha1": "e4d0804860bbf8006f7072c6e7db3297922a1f5e"
+    },
+    {
+      "path": "neo/d3xp/Game_local.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/d3xp/Game_local.cpp",
+      "sha256": "4693d5bc7fbe3da5c0d9f2293d7adb42a640443aa886a6bfe274b351f46ed3fa",
+      "bytes": 141058,
+      "git_blob_sha1": "e48c700793407886a7efad2ed88e36343550a58e"
+    },
+    {
+      "path": "neo/idlib/math/Vector.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/math/Vector.cpp",
+      "sha256": "cb0febfe358940cd3c0bdbbcc68e552687cc00433b2757e3fdfc9f8cd4d0beb3",
+      "bytes": 9299,
+      "git_blob_sha1": "8547e010bf50b73b1e81f86dea1ce5fff502e5cd"
+    },
+    {
+      "path": "neo/shaders/BRDF.inc.hlsl",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/shaders/BRDF.inc.hlsl",
+      "sha256": "2797e8cd3789a5fc512bca2c05b3c4d2f7834fe38dbdd8499c3dbc50ec427a57",
+      "bytes": 9215,
+      "git_blob_sha1": "0e6c0b44a2e3ceeb9eb01eae683339cd578a8d79"
+    },
+    {
+      "path": "neo/idlib/precompiled.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/precompiled.h",
+      "sha256": "87870d2b43e4f6cf325e65fc074465384e91323519ec5130dd8f855e57a7c8af",
+      "bytes": 5882,
+      "git_blob_sha1": "ac59f0d22841ca81d956ec92778442295e5eb821"
+    },
+    {
+      "path": "neo/renderer/RenderProgs.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderProgs.h",
+      "sha256": "da33d3a1d702454f8b57f6fa3a05298c82fd1e491c6d71bcd346fca56c55028d",
+      "bytes": 43162,
+      "git_blob_sha1": "5f132deb088371edc321a4835047a0e1b25ae18b"
+    },
+    {
+      "path": "neo/renderer/Model.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/Model.h",
+      "sha256": "7dbb0a44bba2586e400d7e22e8b5c902c99a67efd1ac02c48ca3840058277b73",
+      "bytes": 12435,
+      "git_blob_sha1": "99c5fbb6dbfaea0935dbf320a4446931dcec9ee0"
+    },
+    {
+      "path": "neo/framework/Common.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/framework/Common.h",
+      "sha256": "47b645d818d85a9e4bb28841fc9d2f09ac60fef756bb3c2fc6d5c396b611b6e2",
+      "bytes": 12517,
+      "git_blob_sha1": "23c740216568c3cb9a4baa553818ee25ac5899ed"
+    },
+    {
+      "path": "neo/framework/DeclManager.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/framework/DeclManager.h",
+      "sha256": "ca70cab2b5ebbf6d954259a61db5c18a7713e2f4c86774126deb27ff93c50d09",
+      "bytes": 13872,
+      "git_blob_sha1": "f57e167d1613d563e5c8bb5d3447049d756dfa6b"
+    },
+    {
+      "path": "neo/renderer/RenderBackend.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderBackend.h",
+      "sha256": "91fa1a42375a90eca177cd9d4306216a4649d09a8d37ac02b455b10c061ccfec",
+      "bytes": 13631,
+      "git_blob_sha1": "b7ce4abdfd3b65b29528637b7daeec639d14b9d2"
+    },
+    {
+      "path": "neo/renderer/RenderContext.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderContext.h",
+      "sha256": "82c78c4f2be16d980fb6b3c3c9e3996df6d57150dfaa4dde9b94640e0bfabfeb",
+      "bytes": 4057,
+      "git_blob_sha1": "2664e9c2e3d081e6a7794f4f3877a89d6ac0cfcb"
+    },
+    {
+      "path": "neo/renderer/tr_frontend_addmodels.cpp",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/tr_frontend_addmodels.cpp",
+      "sha256": "b567e4406b421a5b3eb1b938fb6536ba0b3e82b2154ef5c5571c2e9a46e90b49",
+      "bytes": 43250,
+      "git_blob_sha1": "5ed9665f6946bd48e7a1a8b6d960fdfa2eb7d3c5"
+    },
+    {
+      "path": "neo/idlib/sys/sys_builddefines.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/sys/sys_builddefines.h",
+      "sha256": "a061a54e48c433c6b679bdf614ddde4e35a9a3aec18c142860bbcce3293e4c03",
+      "bytes": 1812,
+      "git_blob_sha1": "430f5d89dc6d6342362429150a71a8a08e4ad312"
+    },
+    {
+      "path": "neo/idlib/sys/sys_defines.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/sys/sys_defines.h",
+      "sha256": "710c476df27f7dd7efc90372116b7d35ad71bdf230020eed72a2b82c3f284a87",
+      "bytes": 11795,
+      "git_blob_sha1": "03569f800ffc382de5904edb766482230d096f98"
+    },
+    {
+      "path": "neo/idlib/Lib.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/Lib.h",
+      "sha256": "ccc7532e6519ae69485e9ca693f70d00380934e3ab4c3572722f7ff94efd907c",
+      "bytes": 10520,
+      "git_blob_sha1": "c69fc44cb0850f03b2d01f5ebe74e9eb376b005e"
+    },
+    {
+      "path": "neo/renderer/RenderSystem.h",
+      "url": "https://raw.githubusercontent.com/RobertBeckebans/RBDOOM-3-BFG/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderSystem.h",
+      "sha256": "a5491ba4ffd28cccd16206c566e51a03f5b036ad74f5d908f1d6b397077030a6",
+      "git_blob_sha1": "4aa539ec7d60b1d4cc5eafb88fdbc9cd483505d2",
+      "bytes": 14361
+    }
+  ]
+}
