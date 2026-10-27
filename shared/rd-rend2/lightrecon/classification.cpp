@@ -199,6 +199,8 @@ ObservationClassification ClassifySurface(const BakedSurface &s, uint32_t slot, 
 		out.reasons |= IntentionallyExcluded;
 	if (s.kind == BakedSurfaceKind::Unsupported)
 		out.reasons |= MalformedGeometry;
+	if (s.kind == BakedSurfaceKind::Flare)
+		out.reasons |= IntentionallyExcluded;
 	if (!vertex && s.lightmap[slot] >= 0 && m.available && !(m.signals & MaterialLightmapped))
 		out.reasons |= InvalidSourceCombination;
 	out.supplementaryEvidence = !(out.reasons & (Rejections() | UnusedStyle | NoLightmap));

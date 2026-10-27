@@ -1,10 +1,15 @@
 # Geometry-aware lighting region graph
 
 `lightrecon/regions.h/.cpp` provides the immutable C++11
-`org.openjk.lighting-region-graph` version 1 structural input. It contains no
+`org.openjk.lighting-region-graph` version 2 structural input. It contains no
 irradiance, lights, fitted portals, GI weights or renderer resources. SP, MP and
 standalone tools link the same implementation. Building a graph is explicit;
 map loading, visibility, fog and lighting consumers do not call it automatically.
+
+The [X01 stock-map report](rend2-lighting-regions-x01.md) documents the v2
+flare classification fix, local/global completeness distinction, detailed
+uncertainty counters, content certification keys and reproducible stock ROI
+matrix. Validation figures later in this document are the historical v1 run.
 
 ```mermaid
 flowchart LR
@@ -62,22 +67,26 @@ without a containing solid brush stays Unknown. No style, RGB, lightgrid
 direction, PVS bit or cluster equality is used as a free-space/transport proof.
 
 Box classification visits all intersected BSP leaves. Plane/AABB intervals
-exclude disjoint brushes; full containment certifies Solid/Sky. Any possible
+exclude disjoint brushes; four bounded interval-clipping passes can additionally
+prove oblique disjointness. Full containment certifies Solid/Sky. Any remaining possible
 solid intersection, unresolved leaf or partial world-bound overlap yields
 Unknown. This deliberately errs toward uncertainty for convex intersections.
 The snapshot assumes the supplied compiler leaf/brush indexing is spatially
 consistent; validation is not a repair of arbitrary corrupt BSP geometry.
 
-The visual BVH's new `OverlapBox` query conservatively intersects primitive
-AABBs, including patch error envelopes. A miss certifies no **retained visual
+The visual BVH's `OverlapBox` query conservatively intersects triangles and
+boxes, including patch error envelopes; unsupported bounds retain AABB tests.
+A miss certifies no **retained visual
 geometry** in the cell; it does not certify absence of collision solid. A hit
-can be a false positive for a diagonal triangle, so it causes refinement or
+can still reflect approximation/unsupported geometry, so it causes refinement or
 Unknown instead of declaring the entire box opaque. Bounded surface references
 are sorted; truncation is explicitly flagged. Existing ray-query behaviour is
 unchanged.
 
 A free/exterior cell requires both the domain certificate and no visual
-geometry overlap, with complete BVH coverage. Its centre is independently
+geometry overlap, with complete relevant spatial coverage. Global unsupported
+bounded records do not invalidate an unrelated local miss; unbounded unknown
+occluders still do. Its centre is independently
 classified before publication. Unsupported/incomplete geometry cannot silently
 become free. Solid, outside, sky-volume and unresolved cells have region ID 0.
 Explicit `Exterior` certificates are allowed; BSP clusters do not infer them.

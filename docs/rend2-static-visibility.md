@@ -1,5 +1,14 @@
 # Static geometry visibility for reconstruction
 
+Current visibility schema is **2**, with surface input schema **5**. See the
+[X01 stock-map report](rend2-lighting-regions-x01.md) for verified flare handling,
+local uncertainty, conservative triangle/box tests and current stock evidence.
+`Report().complete` describes global source-record support;
+`spatialCoverageComplete` separately excludes unbounded possibly opaque
+omissions. Bounded unknowns affect only intersecting queries. An unbounded
+unknown still prevents Clear/Sky claims, while a known opaque wall still proves
+Blocked. The original validation and implementation history below describe v1.
+
 `shared/rd-rend2/lightrecon/visibility.h/.cpp` implements a C++11 CPU ray layer
 over immutable original BSP surface snapshots. It is shared by SP, MP and the
 standalone test target. Building it is an explicit synchronous operation; no map

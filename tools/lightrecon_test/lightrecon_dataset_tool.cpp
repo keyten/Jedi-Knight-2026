@@ -65,11 +65,12 @@ void AuditBsp(const Offline::Dataset &data, const char *path)
 	RegionSnapshot graph;
 	Check(data.Load(s, graph));
 	need(s.images && s.grid && s.geometry, "Audit requires original images/grid/geometry");
-	uint64_t imageBytes = 0, vertices = 0, deluxeDirections = 0;
+	uint64_t imageBytes = 0, vertices = 0, deluxeDirections = 0, unusedNanUv = 0;
 	for (const auto &image : s.images->Images())
 	{
-		need(!image.missing && image.encoding == LightmapEncoding::BspRgb8 && image.bytes,
-			 "Controlled BSP fixture unexpectedly lacks an embedded image");
+		if(image.missing) continue; // explicit absent external/deluxe alternative
+		need(image.encoding == LightmapEncoding::BspRgb8 && image.bytes,
+			 "Source audit needs embedded images; external inputs require their own file hashes");
 		const auto &pixels = *image.bytes;
 		need(image.sourceOffset <= b.size() && pixels.size() <= b.size() - image.sourceOffset &&
 				 !std::memcmp(pixels.data(), b.data() + image.sourceOffset, pixels.size()),
@@ -111,10 +112,25 @@ void AuditBsp(const Offline::Dataset &data, const char *path)
 					 v.shadingNormal.z == f(pos + 60),
 				 "Original shading normal changed");
 			for (unsigned slot = 0; slot < 4; ++slot)
-				need(v.lightmap[slot].u == f(pos + 20 + slot * 8) &&
-						 v.lightmap[slot].v == f(pos + 24 + slot * 8) &&
-						 !std::memcmp(v.colour[slot], b.data() + pos + 64 + slot * 4, 4),
-					 "Original source UV/vertex colour changed");
+			{
+				auto sameUv=[&](double captured,float original) {
+					// Stock RBSPs contain NaNs in UNUSED style slots. NaN != NaN
+					// is not evidence that an active source coordinate was altered.
+					if((surface.styles[slot]==255 || surface.lightmap[slot]<0) &&
+					   std::isnan(captured) && std::isnan(original)) {
+						++unusedNanUv; return true;
+					}
+					return captured==original;
+				};
+				if(!sameUv(v.lightmap[slot].u,f(pos+20+slot*8)) || !sameUv(v.lightmap[slot].v,f(pos+24+slot*8)) ||
+				   std::memcmp(v.colour[slot],b.data()+pos+64+slot*4,4)) {
+					std::cerr << "source mismatch surface=" << surface.ordinal << " vertex=" << v.sourceVertex << " slot=" << slot
+						<< " uv=" << v.lightmap[slot].u << ',' << v.lightmap[slot].v << " expected=" << f(pos+20+slot*8) << ',' << f(pos+24+slot*8)
+						<< " colour=" << unsigned(v.colour[slot][0]) << ',' << unsigned(v.colour[slot][1]) << ',' << unsigned(v.colour[slot][2]) << ',' << unsigned(v.colour[slot][3])
+						<< " expected=" << unsigned(b[pos+64+slot*4]) << ',' << unsigned(b[pos+65+slot*4]) << ',' << unsigned(b[pos+66+slot*4]) << ',' << unsigned(b[pos+67+slot*4]) << '\n';
+					throw std::runtime_error("Original source UV/vertex colour changed");
+				}
+			}
 			++vertices;
 		}
 	}
@@ -156,6 +172,7 @@ void AuditBsp(const Offline::Dataset &data, const char *path)
 			  << ",\"exact_grid_bytes\":" << s.grid->Records().size()
 			  << ",\"exact_grid_index_bytes\":" << s.grid->Indices().size()
 			  << ",\"exact_source_vertices\":" << vertices
+			  << ",\"unused_nan_uv_components\":" << unusedNanUv
 			  << ",\"verified_world_deluxe_directions\":" << deluxeDirections << "}\n";
 }
 int main(int argc, char **argv)
@@ -209,12 +226,12 @@ int main(int argc, char **argv)
 			throw std::runtime_error("Dataset filename required");
 		std::shared_ptr<const Offline::Dataset> data;
 		Check(OpenFile(argv[2], Options(), data));
-		if (command == "audit-bsp")
+		if (command == "audit-bsp" || command == "audit-source-bsp")
 		{
 			if (argc != 4)
 				throw std::runtime_error("audit-bsp requires dataset and original BSP");
 			uint64_t checked = 0;
-			Check(data->Validate(true, checked));
+			if(command=="audit-bsp") Check(data->Validate(true, checked));
 			AuditBsp(*data, argv[3]);
 			return 0;
 		}

@@ -2,13 +2,14 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include "classification.h"
+#include <map>
 
 namespace Rend2LightRecon
 {
 namespace Core
 {
 static constexpr const char *kSurfaceObservationSchema = "org.openjk.baked-surface-observations";
-static constexpr uint32_t kSurfaceObservationVersion = 4;
+static constexpr uint32_t kSurfaceObservationVersion = 5;
 struct LightmapUv
 {
 	double u = 0, v = 0;
@@ -20,7 +21,8 @@ enum class BakedSurfaceKind
 	Face,
 	Patch,
 	Triangles,
-	Unsupported
+	Unsupported,
+	Flare // RBSP MST_FLARE: optical sprite/effect, never a static occluding polygon
 };
 enum class SurfaceMotion
 {
@@ -55,6 +57,10 @@ struct BakedSurface
 	Vec3 lightmapOrigin, lightmapBasis[3];	 // verbatim BSP basis; patches use [0/1] as LOD bounds
 	LightmapUv uvMin[4], uvMax[4]; // conservative bounds retained for unsupported geometry too
 	bool uvBoundsKnown[4] = {};
+	// Unsupported + nonempty vertices asserts their AABB bounds ALL possible
+	// geometry. Suppliers without such evidence must leave vertices empty.
+	// The RBSP adapter does so for malformed/future types; arbitrary unknown
+	// procedural geometry must not be bounded just by guessing a vertex hull.
 	std::vector<BakedVertex> vertices;
 	std::vector<uint32_t> indices; // source winding and order, relative to this surface
 };
@@ -219,12 +225,26 @@ struct LuxelTile
 	std::vector<SurfaceLightingObservation> samples; // row-major, includes padding coverage mask
 	MappingReport report;
 };
+// Page-to-source lookup built once per derivation. It retains the immutable
+// geometry lease, not mapped pixels. Original surface ordering is preserved.
+class SurfaceMappingIndex
+{
+  public:
+	static Error Build(std::shared_ptr<const SurfaceGeometry>, const ReadContext &,
+					   SurfaceMappingIndex &);
+	const std::vector<size_t> *Page(uint32_t logical) const;
+	bool Matches(const std::shared_ptr<const SurfaceGeometry> &g) const { return geometry_ == g; }
+  private:
+	std::shared_ptr<const SurfaceGeometry> geometry_;
+	std::map<uint32_t, std::vector<size_t>> pages_;
+};
 // Explicit tile computation only: no renderer state, I/O, automatic work or per-map
 // permanent sample matrix. Source UVs are normalized for the ORIGINAL logical image.
 // External image alternatives use their own dimensions; caller selects the image.
 Error MapLuxels(std::shared_ptr<const SurfaceGeometry>, std::shared_ptr<const LightmapObservations>,
 				size_t image, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
-				const MappingOptions &, const ReadContext &, LuxelTile &);
+				const MappingOptions &, const ReadContext &, LuxelTile &,
+				const SurfaceMappingIndex *index = nullptr);
 // Joins a mapped texel to raw RGB + decoder recipe without discarding
 // geometric coverage. Padding/ambiguous texels explicitly return Unavailable.
 Error DecodeLuxel(const Decode::Decoder &, const LuxelTile &, size_t sample, const ReadContext &,

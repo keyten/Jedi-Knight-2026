@@ -9,7 +9,7 @@ namespace Rend2LightRecon
 namespace Core
 {
 
-constexpr uint32_t kStaticVisibilityVersion = 1;
+constexpr uint32_t kStaticVisibilityVersion = 2;
 enum class VisibilityState
 {
 	Visible,
@@ -162,6 +162,9 @@ struct VisibilityBuildReport
 	unsigned depth = 0;
 	double maximumPatchErrorWorld = 0;
 	bool complete = false;
+	// Global source-record support vs coverage relevant to a clear local query.
+	bool spatialCoverageComplete = false;
+	uint64_t excludedFlares = 0, missingUnsupportedBounds = 0, missingKnownSurfaceBounds = 0;
 };
 struct VisibilitySurface
 {
@@ -177,6 +180,9 @@ struct GeometryBoxResult
 	Id surfaces[8] = {};
 	size_t surfaceCount = 0;
 	uint64_t work = 0;
+	bool coverageComplete = false; // false for unbounded possibly-opaque omissions anywhere
+	uint32_t issues =
+		0; // OpticalUnknown, UnsupportedGeometry, PatchApproximation, IncompleteGeometry
 };
 
 class StaticVisibility final : public VisibilityProvider
@@ -188,7 +194,7 @@ class StaticVisibility final : public VisibilityProvider
 					   const ReadContext &, std::shared_ptr<const StaticVisibility> &out,
 					   std::shared_ptr<const PointClassifier> domain = {});
 	Error Query(const RayQuery &, const ReadContext &, RayResult &) const override;
-	// Conservative primitive AABB overlap, including curved envelopes. A miss
+	// Conservative triangle/box SAT, including curved error envelopes. A miss
 	// certifies no retained visual geometry in the box, not that it is outside solid.
 	Error OverlapBox(const Bounds &, const ReadContext &, GeometryBoxResult &,
 					 uint64_t maxWork = 1024 * 1024) const;
@@ -200,6 +206,8 @@ class StaticVisibility final : public VisibilityProvider
 	const VisibilityBuildReport &Report() const;
 	const LightmapMapIdentity &GeometryIdentity() const;
 	const std::vector<VisibilitySurface> &Surfaces() const;
+	const Disk::Digest &CertificationKey() const;
+	bool BuiltFrom(const std::shared_ptr<const SurfaceGeometry> &) const;
 
   private:
 	struct Data;

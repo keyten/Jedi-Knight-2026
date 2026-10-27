@@ -48,6 +48,13 @@ struct Sources
 	std::shared_ptr<const RegionSnapshot>
 		regionSnapshot; // imported immutable graph, no implicit rebuild
 };
+class ExportProgress
+{
+  public:
+	virtual ~ExportProgress() = default;
+	// Borrowed synchronous observer, invoked after a complete tile. Never serialized.
+	virtual void Tile(uint32_t logicalImage, uint32_t x, uint32_t y, uint64_t samples) = 0;
+};
 struct Options
 {
 	uint64_t maxFileBytes = 1024ull * 1024 * 1024, maxResidentBytes = 256ull * 1024 * 1024;
@@ -56,6 +63,10 @@ struct Options
 	uint32_t maxSections = 131072, maxStringBytes = 1024 * 1024, tileSide = 16;
 	// 0 = all. A finite prefix is explicitly marked partial; raw images/UVs always complete.
 	uint32_t mappedImages = 1;
+	// Deterministic page-range shards. Nonzero start is always partial; raw sources
+	// remain complete. Concatenating archives is NOT a valid merge operation.
+	uint32_t firstMappedImage = 0;
+	ExportProgress *progress = nullptr;
 };
 struct Summary
 {
@@ -78,6 +89,8 @@ struct Luxel
 };
 struct RegionSnapshot
 {
+	uint32_t schemaVersion = kLightingRegionGraphVersion;
+	Disk::Digest certificationKey{}; // v1 imported snapshots have no reusable certification
 	LightmapMapIdentity map;
 	RegionOptions options;
 	RegionReport report;
@@ -117,6 +130,18 @@ class Dataset
 	{
 		return summary_;
 	}
+	uint32_t RegionSchemaVersion() const
+	{
+		return regionVersion_;
+	}
+	uint32_t SurfaceSchemaVersion() const
+	{
+		return surfaceVersion_;
+	}
+	bool RegionSchemaCurrent() const
+	{
+		return regionVersion_ == kLightingRegionGraphVersion;
+	}
 	const std::vector<Entry> &Directory() const
 	{
 		return entries_;
@@ -132,12 +157,19 @@ class Dataset
 	Metadata metadata_;
 	Summary summary_;
 	std::vector<Entry> entries_;
+	uint32_t regionVersion_ = kLightingRegionGraphVersion;
+	uint32_t surfaceVersion_ = kSurfaceObservationVersion;
 };
 Error ReplayGeometry(const Sources &, const RegionSnapshot &, const ReadContext &,
 					 std::shared_ptr<const StaticVisibility> &,
-					 std::shared_ptr<const LightingRegionGraph> &);
+					 std::shared_ptr<const LightingRegionGraph> &,
+					 const VisibilityBuildOptions *explicitBuildOptions = nullptr);
 Partition Split(const Metadata &,
 				Vec3); // position block only: seams/grid/surface samples share split
+// Original content/image/chart identity. No atlas index, tile ordinal, region ID
+// or partition participates. Mapping interpretation v1; archive layout unchanged.
+Disk::Digest SampleIdentity(const LightmapMapIdentity &, const LightmapImage &,
+							const SurfaceLightingObservation &, uint8_t style);
 Error CaptureBspSpace(const void *originalBsp, size_t, const LightmapMapIdentity &,
 					  const ReadContext &, std::shared_ptr<const BspRegionDomain> &,
 					  std::vector<DynamicBoundary> &);

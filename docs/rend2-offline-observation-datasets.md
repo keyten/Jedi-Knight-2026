@@ -5,6 +5,22 @@
 lighting output asset/DDC described in `rend2-reconstruction-disk.md`. It contains
 no fitted emitters, GPU resources, screenshots or shader binaries.
 
+For complete-page coverage, quantitative stock-map results and **actual blind RGB
+isolation**, see [X02 observation coverage](rend2-observation-coverage-x02.md).
+The complete `.jkobs` archive belongs to the trusted controller; partition tags
+do not make it safe to hand to an optimizer. Publish the sanitized `inputs/`
+package and keep evaluator targets/raw archives/answers outside its filesystem view.
+
+X01 advances the contained surface/region sub-schemas to **5/2** without changing
+the file container 1.0. Imported 4/1 snapshots are explicitly labelled legacy;
+they do not gain current certification or inferred flare semantics. Region
+sections now retain reason counters and a map/geometry/material/options/version
+key. Inspect `RegionSchemaVersion()`, `SurfaceSchemaVersion()` and
+`RegionSchemaCurrent()` before using archived assignments. See
+[local geometry uncertainty and stock ROI replay](rend2-lighting-regions-x01.md)
+for commands, backwards-reading rules and limitations. Explicit replay, rather
+than reading a dataset, builds new geometry/region results.
+
 ```mermaid
 flowchart LR
     BSP[Original BSP and source images] --> Capture[Canonical CPU snapshots]

@@ -12,7 +12,7 @@ add_library(rend2_lightrecon_core STATIC
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h
 	visibility.cpp visibility.h
-	regions.cpp regions.h
+	regions.cpp regions.h geometry_key.h
 	emission_geometry.cpp emission_geometry.h evidence.cpp evidence.h
 	offline.cpp offline.h offline_io.cpp offline_bsp.cpp
 	disk.cpp disk.h cache.cpp cache.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)

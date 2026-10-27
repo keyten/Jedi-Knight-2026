@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from test_lightrecon_legacy_runtime import ROOT, CAMERAS, prepare_runtime
 from run_pipeline import sha
+from measure import peak_memory
 
 
 def main():
@@ -27,6 +28,10 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--private-archives', type=Path, help='existing private stock-assets/base to hardlink')
     p.add_argument('--timeout', type=int, default=600)
+    p.add_argument('--mapped-images', type=int, default=2, help='0 derives every original colour page')
+    p.add_argument('--maps', nargs='+', default=['hoth3', 'hoth2'])
+    p.add_argument('--repeats', type=int, choices=(1,2), default=2)
+    p.add_argument('--skip-offline-validation', action='store_true', help='capture-only measurement; no validation success is reported')
     args = p.parse_args()
     args.output = args.output.resolve()
     if args.private_archives:
@@ -38,14 +43,15 @@ def main():
     config, archives = prepare_runtime(args, runtime, 'legacy', 3)
     home = runtime / 'home/OpenJK'
     commands = ['wait 30']
-    for name in ('hoth3', 'hoth2'):
-        x, y, z, _ = CAMERAS[name]
+    for name in args.maps:
+        x, y, z, _ = CAMERAS.get(name, (-1208, -912, 224, 0))
+        slug = name.replace('/', '_')
         if name == 'hoth3':
             x, y, z = 3320, 700, 123
-        commands += [f'devmap {name}', 'wait 150', f'echo OFFLINE_{name}_BEGIN',
-                     f'r_lightReconExport {name}_a 2 {x} {y} {z} 256',
-                     f'r_lightReconExport {name}_b 2 {x} {y} {z} 256',
-                     'r_lightReconInfo', f'echo OFFLINE_{name}_END']
+        commands += [f'devmap {name}', 'wait 150', f'echo OFFLINE_{name}_BEGIN']
+        for suffix in ('a','b')[:args.repeats]:
+            commands += [f'r_lightReconExport {slug}_{suffix} {args.mapped_images} {x} {y} {z} 256']
+        commands += ['r_lightReconInfo', f'echo OFFLINE_{name}_END']
     commands += ['echo OFFLINE_RUNTIME_DONE', 'wait 5', 'quit']
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands) + '\n')
     cmd = [str(runtime / 'openjk_sp.x86_64.exe')]
@@ -65,22 +71,25 @@ def main():
     text = (home / 'qconsole.log').read_text(errors='replace')
     if proc.returncode or 'OFFLINE_RUNTIME_DONE' not in text:
         raise AssertionError('SP did not complete map exports: ' + text[-2500:])
-    result = dict(renderer_sha256=sha(args.renderer),
+    result = dict(renderer_sha256=sha(args.renderer), engine_peak_working_set_bytes=peak_memory(proc),
                   settings=config, archives=archives, maps={})
-    for name in ('hoth3', 'hoth2'):
-        matches = list((runtime / 'home').rglob(f'{name}_a.jkobs'))
+    for name in args.maps:
+        slug = name.replace('/', '_')
+        matches = list((runtime / 'home').rglob(f'{slug}_a.jkobs'))
         if len(matches) != 1:
             section = re.search(f'OFFLINE_{name}_BEGIN(.*?)OFFLINE_{name}_END', text, re.S)
             raise AssertionError('Missing export: ' + (section[1] if section else text[-2000:]))
         first = matches[0]
-        second = first.with_name(f'{name}_b.jkobs')
+        second = first.with_name(f'{slug}_b.jkobs')
         digest = sha(first)
-        assert digest == sha(second), f'Non-deterministic {name}'
-        entry = dict(bytes=first.stat().st_size, sha256=digest, repeated_bytes_identical=True)
-        for command in ('inspect', 'validate'):
+        if args.repeats == 2:
+            assert digest == sha(second), f'Non-deterministic {name}'
+        entry = dict(bytes=first.stat().st_size, sha256=digest, repeated_bytes_identical=True if args.repeats==2 else None,
+                     offline_validation_executed=not args.skip_offline_validation)
+        for command in (() if args.skip_offline_validation else ('inspect', 'validate')):
             run = subprocess.run([str(args.tool.resolve()), command, str(first)],
                                  capture_output=True, text=True)
-            (args.output / f'{name}.{command}.txt').write_text(run.stdout + run.stderr)
+            (args.output / f'{slug}.{command}.txt').write_text(run.stdout + run.stderr)
             if run.returncode:
                 raise AssertionError(f'{name} {command}: {run.stderr}')
             entry[command] = run.stdout.strip()

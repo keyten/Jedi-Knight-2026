@@ -1,4 +1,5 @@
 // Offline RBSP v1 inspection adapter. Core binary geometry/graph code has no file I/O.
+#include "lightrecon/offline.h"
 #include "lightrecon/regions.h"
 #include <algorithm>
 #include <chrono>
@@ -102,10 +103,10 @@ void Write(const std::string &name, const std::string &text)
 } // namespace
 int main(int argc, char **argv)
 {
-	if (argc != 10)
+	if (argc != 10 && argc != 11)
 	{
 		std::fprintf(stderr, "usage: lightrecon_regions_inspect map.bsp output-prefix cx cy cz "
-							 "radius coarse minimum sky-samples\n");
+							 "radius coarse minimum sky-samples [geometry-only.jkobs]\n");
 		return 2;
 	}
 	try
@@ -265,9 +266,9 @@ int main(int argc, char **argv)
 			if (kind == 4)
 			{
 				++ignoredFlares;
-				s.materialFacts.signals |= MaterialNoDraw;
+				s.kind = BakedSurfaceKind::Flare;
 			} // explicit nonpolygonal flare, not guessed opaque geometry
-			if (s.kind != BakedSurfaceKind::Unsupported)
+			if (s.kind != BakedSurfaceKind::Unsupported && s.kind != BakedSurfaceKind::Flare)
 			{
 				for (uint32_t j = 0; j < count; ++j)
 				{
@@ -318,6 +319,20 @@ int main(int argc, char **argv)
 		input.dynamic = dynamic;
 		std::shared_ptr<const LightingRegionGraph> graph;
 		Check(LightingRegionGraph::Build(std::move(input), options, Context(), graph));
+		if (argc == 11)
+		{
+			Offline::Sources source;
+			source.metadata.map = identity;
+			source.metadata.producer = "RBSP geometry inspector";
+			source.metadata.producerVersion = "2";
+			source.metadata.visibilityPatchToleranceWorld = float(visibility.patchToleranceWorld);
+			source.geometry = geometry;
+			source.domain = domain;
+			source.dynamic = dynamic;
+			source.regions = graph;
+			Offline::Summary summary;
+			Check(Offline::ExportFile(argv[10], source, Offline::Options(), Context(), summary));
+		}
 		std::string obj;
 		Check(graph->DebugObj(100000, 32 * 1024 * 1024, obj));
 		Write(std::string(argv[2]) + ".obj", obj);

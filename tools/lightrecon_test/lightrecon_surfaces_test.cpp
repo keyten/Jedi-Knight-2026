@@ -525,6 +525,16 @@ int main()
 	arbitrary();
 	curved();
 	invalidAndLifetime();
+	// A nonpolygonal flare's irrelevant lightmap number must not invalidate a whole chart.
+	BakedSurface flare; flare.ordinal=1; flare.kind=BakedSurfaceKind::Flare;
+	flare.motion=SurfaceMotion::StaticWorld; flare.lightmap[0]=3; flare.styles[0]=0;
+	auto withFlare=run({quad(),flare});
+	CHECK(withFlare.report.mapped==64 && withFlare.report.unsupported==0);
+	CHECK(withFlare.report.excluded==1);
+	CHECK(ClassifySurface(flare,0,false).reasons&IntentionallyExcluded);
+	flare.kind=BakedSurfaceKind::Unsupported;
+	auto genuinelyUnknown=run({quad(),flare});
+	CHECK(genuinelyUnknown.report.mapped==0 && genuinelyUnknown.report.unsupported>0);
 	std::printf("luxel surfaces: %d checks, %d failures; maximum position error %.9g world units; "
 				"area error %.9g world units squared\n",
 				checks, failures, maximumPositionError, maximumAreaError);

@@ -8,7 +8,7 @@ namespace Rend2LightRecon
 {
 namespace Core
 {
-constexpr uint32_t kLightingRegionGraphVersion = 1;
+constexpr uint32_t kLightingRegionGraphVersion = 2;
 constexpr const char *kLightingRegionGraphSchema = "org.openjk.lighting-region-graph";
 enum class SpaceClass
 {
@@ -25,6 +25,14 @@ struct SpatialLocation
 	int32_t leaf = -1, cluster = -1, area = -1;
 	bool boundary = false;
 	uint64_t work = 0;
+};
+enum SpatialBoxIssue : uint32_t
+{
+	BoxOutsideWorld = 1u << 0,
+	BoxUnclusteredLeaf = 1u << 1,
+	BoxPossibleSolidBrush = 1u << 2,
+	BoxInsideSolidBrush = 1u << 3,
+	BoxBrushDisjointRefined = 1u << 4
 };
 class RegionDomain : public PointClassifier
 {
@@ -76,6 +84,7 @@ class BspRegionDomain final : public RegionDomain
 						uint64_t maxTestsPerQuery = 1024 * 1024);
 	Error Locate(Vec3, SpatialLocation &, double toleranceWorld = 1e-5) const override;
 	Error ClassifyBox(const Bounds &, SpaceClass &, uint64_t &) const override;
+	Error InspectBox(const Bounds &, SpaceClass &, uint64_t &, uint32_t &reasons) const;
 	const BspSpaceInput &Source() const
 	{
 		return input_;
@@ -106,7 +115,17 @@ enum RegionCellIssue : uint32_t
 	CellDynamicPossible = 1u << 1,
 	CellBspMembershipSampled = 1u << 2,
 	CellBoundaryRefsTruncated = 1u << 3,
-	CellResolutionLimit = 1u << 4
+	CellResolutionLimit = 1u << 4,
+	CellBspUncertain = 1u << 5,
+	CellUnboundedGeometry = 1u << 6,
+	CellUnsupportedGeometry = 1u << 7,
+	CellOpticalUncertain = 1u << 8,
+	CellRepresentativeDisagrees = 1u << 9,
+	CellPatchEnvelope = 1u << 10,
+	CellBspSolid = 1u << 11,
+	CellBspUnclustered = 1u << 12,
+	CellBspBrushBoundary = 1u << 13,
+	CellOutsideWorldBounds = 1u << 14
 };
 struct RegionCell
 {
@@ -209,6 +228,15 @@ struct RegionReport
 	uint64_t regions = 0, staticComponents = 0, connections = 0, apertures = 0, skyRegions = 0;
 	uint64_t domainWork = 0, geometryWork = 0, rays = 0, ownedBytes = 0, peakBuildBytes = 0;
 	bool resolutionLimited = false, dynamicExtentUnknown = false, staticOnly = true;
+	// Final adaptive leaves, before visual geometry; counters may overlap.
+	uint64_t bspFree = 0, bspSolid = 0, bspUnknown = 0;
+	uint64_t localInvalidated = 0, globalOnlyInvalidated = 0, minimumLimited = 0;
+	uint64_t movingUncertain = 0, opticalUncertain = 0, unsupportedUncertain = 0;
+	// Box vs point differences include expected mixed-boundary boxes, not just invalid
+	// certificates.
+	uint64_t representativeDisagrees = 0, locallyClearUnassigned = 0;
+	uint64_t bspUnclustered = 0, bspPossibleBrush = 0, bspOutsideWorld = 0;
+	uint64_t bspRefinedDisjoint = 0;
 };
 enum class RegionAssignmentState
 {
@@ -224,6 +252,8 @@ struct RegionAssignment
 	RegionAssignmentState state = RegionAssignmentState::Unknown;
 	Id cell = 0, region = 0, staticComponent = 0;
 	SpatialLocation bsp;
+	uint32_t issues = 0;				// cell reasons, valid also when region == 0
+	bool outsideAnalysisBounds = false; // distinct from physically Outside
 };
 struct SurfaceRegionSides
 {
@@ -243,6 +273,7 @@ struct RegionPairFilter
 	RegionAssignment source, observation;
 	SampleGraphRelation relation = SampleGraphRelation::Unknown;
 	RayResult direct; // Only actual ray blockage rejects direct light, never graph/PVS alone.
+	bool dynamicPossible = false, dynamicExtentUnknown = false; // distinct from static ray result
 };
 class LightingRegionGraph
 {
@@ -272,6 +303,13 @@ class LightingRegionGraph
 	const RegionReport &Report() const;
 	const RegionOptions &Options() const;
 	const LightmapMapIdentity &Identity() const;
+	// Scope ordinal IDs by this content/options/version key. Never reuse old certification.
+	const Disk::Digest &CertificationKey() const;
+	bool PortableCertification() const; // false for custom domains without canonical BSP content
+	// Cheap export guard; identical replacement leases still require explicit replay.
+	bool MatchesSources(const std::shared_ptr<const SurfaceGeometry> &,
+						const std::shared_ptr<const RegionDomain> &,
+						const std::vector<DynamicBoundary> &) const;
 
   private:
 	struct Data;

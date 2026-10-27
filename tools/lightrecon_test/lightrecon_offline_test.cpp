@@ -256,6 +256,8 @@ void RoundTrip(const std::string &name)
 	CHECK(*loaded.images->Images()[0].bytes == *fixture.sources.images->Images()[0].bytes);
 	CHECK(loaded.grid->Indices() == fixture.sources.grid->Indices());
 	CHECK(graph.cells.size() == fixture.sources.regions->Cells().size());
+	CHECK(graph.schemaVersion == kLightingRegionGraphVersion);
+	CHECK(graph.certificationKey == fixture.sources.regions->CertificationKey());
 	for (const auto &s : loaded.geometry->Surfaces())
 	{
 		CHECK(s.materialFacts.authoredLuminance == 0);
@@ -273,6 +275,7 @@ void RoundTrip(const std::string &name)
 	std::shared_ptr<const StaticVisibility> replayRays;
 	CHECK(O::ReplayGeometry(loaded, graph, Ctx(), replayRays, loaded.regions));
 	CHECK(loaded.regions->Cells().size() == graph.cells.size());
+	CHECK(loaded.regions->CertificationKey() == graph.certificationKey);
 	auto round = Encode(loaded);
 	CHECK(round->bytes == bytes->bytes);
 	unsigned partitions[3] = {};
@@ -442,6 +445,84 @@ void NativeLifetime()
 	CHECK(std::remove(path) == 0);
 }
 } // namespace
+void StaleRegionCertification()
+{
+	auto fixture = OfflineFixtures::Make("point_room");
+	auto original = fixture.sources.regions;
+	SurfaceCapture capture;
+	capture.Begin(BuildPolicy::ForceRebuild);
+	CHECK(capture.SetMap(fixture.sources.geometry->Map()));
+	for (auto surface : fixture.sources.geometry->Surfaces())
+	{
+		if (surface.ordinal == 0 && !surface.vertices.empty())
+			surface.vertices[0].position.x += .125f;
+		CHECK(capture.Add(std::move(surface)));
+	}
+	CHECK(capture.Freeze());
+	fixture.sources.geometry = capture.Acquire();
+	Memory writer;
+	O::Summary summary;
+	CHECK(O::Export(fixture.sources, Opt(), Ctx(), writer, summary).code == Code::InvalidInput);
+	O::RegionSnapshot options;
+	options.options = original->Options();
+	std::shared_ptr<const StaticVisibility> rays;
+	CHECK(O::ReplayGeometry(fixture.sources, options, Ctx(), rays, fixture.sources.regions));
+	CHECK(fixture.sources.regions->CertificationKey() != original->CertificationKey());
+	CHECK(fixture.sources.regions->MatchesSources(fixture.sources.geometry, fixture.sources.domain,
+												  fixture.sources.dynamic));
+	fixture.sources.dynamic.push_back(DynamicBoundary());
+	CHECK(!fixture.sources.regions->MatchesSources(fixture.sources.geometry, fixture.sources.domain,
+												   fixture.sources.dynamic));
+}
+void FullDerivation()
+{
+	auto f = OfflineFixtures::Make("bounce_colour");
+	auto all = Encode(f.sources);
+	auto a = Open(all);
+	CHECK(a->Counts().derivedComplete);
+	auto options = Opt(); options.mappedImages = 1;
+	Memory prefix; O::Summary prefixSummary;
+	CHECK(O::Export(f.sources, options, Ctx(), prefix, prefixSummary));
+	CHECK(!prefixSummary.derivedComplete);
+	options.firstMappedImage = 1;
+	Memory shard; O::Summary shardSummary;
+	CHECK(O::Export(f.sources, options, Ctx(), shard, shardSummary));
+	CHECK(!shardSummary.derivedComplete);
+	CHECK(prefixSummary.mappedSamples + shardSummary.mappedSamples == a->Counts().mappedSamples);
+	options = Opt(); options.maxMappedTexels = 1;
+	Memory limited; O::Summary limitSummary;
+	CHECK(O::Export(f.sources, options, Ctx(), limited, limitSummary).code == Code::MemoryLimit);
+	struct Stop : O::ExportProgress, Cancellation {
+		unsigned tiles = 0;
+		void Tile(uint32_t, uint32_t, uint32_t, uint64_t) override { ++tiles; }
+		bool IsCancelled() const noexcept override { return tiles == 1; }
+	} stop;
+	options = Opt(); options.tileSide = 4; options.progress = &stop;
+	auto ctx = Ctx(); ctx.cancellation = &stop;
+	Memory cancelled;
+	CHECK(O::Export(f.sources, options, ctx, cancelled, limitSummary).code == Code::Cancelled);
+	CHECK(stop.tiles == 1);
+	SurfaceMappingIndex index;
+	CHECK(SurfaceMappingIndex::Build(f.sources.geometry, Ctx(), index));
+	for (size_t i=0;i<f.sources.images->Images().size();++i) {
+		const auto &im=f.sources.images->Images()[i];
+		if (im.missing || im.role!=LightmapRole::Lighting) continue;
+		LuxelTile original, indexed; MappingOptions m;
+		CHECK(MapLuxels(f.sources.geometry,f.sources.images,i,0,0,im.width,im.height,m,Ctx(),original));
+		CHECK(MapLuxels(f.sources.geometry,f.sources.images,i,0,0,im.width,im.height,m,Ctx(),indexed,&index));
+		CHECK(original.samples.size()==indexed.samples.size());
+		for (size_t n=0;n<original.samples.size();++n) {
+			const auto &x=original.samples[n], &y=indexed.samples[n];
+			CHECK(x.coverage==y.coverage && x.issues==y.issues && x.positionWorld.x==y.positionWorld.x &&
+				x.positionWorld.y==y.positionWorld.y && x.positionWorld.z==y.positionWorld.z && x.areaWorldSquared==y.areaWorldSquared);
+			auto id=O::SampleIdentity(f.sources.metadata.map,im,x,0);
+			CHECK(id==O::SampleIdentity(f.sources.metadata.map,im,y,0));
+			auto changed=f.sources.metadata.map; changed.sha256[0]^=1;
+			CHECK(id!=O::SampleIdentity(changed,im,x,0));
+			CHECK(id!=O::SampleIdentity(f.sources.metadata.map,im,x,1));
+		}
+	}
+}
 int main()
 {
 	for (const auto &name : OfflineFixtures::Names())
@@ -449,6 +530,8 @@ int main()
 	MetadataErrors();
 	Empty();
 	NativeLifetime();
+	StaleRegionCertification();
+	FullDerivation();
 	std::printf("offline dataset: %d checks, %d failures; 11 quantized scenes, q3map2 not run\n",
 				checks, failures);
 	std::printf("Maximum fixture luxel position error: %.9g world units\n", maximumPositionError);

@@ -1,5 +1,6 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "visibility.h"
+#include "geometry_key.h"
 #include <algorithm>
 #include <cmath>
 #include <exception>
@@ -167,10 +168,15 @@ Error EmitGeometry(const SurfaceGeometry &geometry, const VisibilityBuildOptions
 			return Failure(Code::Cancelled, "Visibility build cancelled");
 		if (s.ordinal >= geometry.Surfaces().size())
 			return Failure(Code::InvalidInput, "Invalid source surface ordinal");
-		if (static_cast<unsigned>(s.kind) > static_cast<unsigned>(BakedSurfaceKind::Unsupported) ||
+		if (static_cast<unsigned>(s.kind) > static_cast<unsigned>(BakedSurfaceKind::Flare) ||
 			static_cast<unsigned>(s.motion) > static_cast<unsigned>(SurfaceMotion::Unknown))
 			return Failure(Code::InvalidInput, "Invalid static geometry kind/motion");
 		++report.surfaces;
+		if (s.kind == BakedSurfaceKind::Flare)
+		{
+			++report.excludedFlares;
+			continue;
+		}
 		if (s.motion == SurfaceMotion::StaticWorld && s.model != 0)
 			return Failure(Code::InvalidInput, "Static surface belongs to a non-world model");
 		if (s.motion == SurfaceMotion::BrushModel || s.motion == SurfaceMotion::Deformed ||
@@ -195,6 +201,10 @@ Error EmitGeometry(const SurfaceGeometry &geometry, const VisibilityBuildOptions
 			if (s.vertices.empty())
 			{
 				++report.unboundedUnsupported;
+				if (s.kind == BakedSurfaceKind::Unsupported)
+					++report.missingUnsupportedBounds;
+				else
+					++report.missingKnownSurfaceBounds;
 				return Error();
 			}
 			Primitive p;
@@ -360,8 +370,10 @@ struct StaticVisibility::Data
 	std::vector<Node> nodes;
 	std::vector<VisibilitySurface> surfaces;
 	std::shared_ptr<const PointClassifier> domain;
+	std::weak_ptr<const SurfaceGeometry> source;
 	LightmapMapIdentity identity;
 	VisibilityBuildReport report;
+	Disk::Digest key{};
 	uint32_t Split(uint32_t first, uint32_t count, unsigned depth, const VisibilityBuildOptions &o,
 				   bool &exceeded)
 	{
@@ -575,7 +587,36 @@ Error StaticVisibility::Build(std::shared_ptr<const SurfaceGeometry> geometry,
 		if (bytes > options.maxBytes || bytes > ctx.maxBytes)
 			return Failure(Code::MemoryLimit, "Visibility BVH exceeds build budget");
 		std::shared_ptr<Data> data(new Data());
+
+		GeometryKey key;
+		key.U(kStaticVisibilityVersion);
+		key.Digest(geometry->Map().sha256);
+		key.F(options.patchToleranceWorld);
+		key.U(options.maxPatchSubdivisions);
+		key.U(options.leafSize);
+		key.U(options.completeStaticGeometry);
+		for (const auto &s : geometry->Surfaces())
+		{
+			key.U(s.ordinal);
+			key.U(unsigned(s.kind));
+			key.U(unsigned(s.motion));
+			key.U(s.model);
+			key.U(s.materialIndex);
+			key.U(s.materialFacts.signals);
+			key.U(s.materialFacts.available);
+			key.U(unsigned(s.materialFacts.cull));
+			key.U(s.patchWidth);
+			key.U(s.patchHeight);
+			key.U(s.vertices.size());
+			for (auto &p : s.vertices)
+				key.V(p.position);
+			key.U(s.indices.size());
+			for (auto i : s.indices)
+				key.U(i);
+		}
+		data->key = key.Finish();
 		data->identity = geometry->Map();
+		data->source = geometry;
 		data->domain = std::move(domain);
 		data->report = report;
 		data->report.buildWork = count * 2;
@@ -609,7 +650,10 @@ Error StaticVisibility::Build(std::shared_ptr<const SurfaceGeometry> geometry,
 			return Failure(Code::Cancelled, "Visibility build cancelled");
 		data->report.nodes = data->nodes.size();
 		data->report.ownedBytes = bytes;
-		data->report.complete = options.completeStaticGeometry && !report.unboundedUnsupported;
+		data->report.spatialCoverageComplete =
+			options.completeStaticGeometry && !report.unboundedUnsupported;
+		data->report.complete =
+			data->report.spatialCoverageComplete && !report.unsupportedBounds && !report.degenerate;
 		out = std::shared_ptr<const StaticVisibility>(new StaticVisibility(data));
 		return Error();
 	}
@@ -630,8 +674,16 @@ const std::vector<VisibilitySurface> &StaticVisibility::Surfaces() const
 {
 	return data_->surfaces;
 }
-Error StaticVisibility::OverlapBox(const Bounds& box, const ReadContext& ctx,
-	GeometryBoxResult& out, uint64_t maxWork) const
+const Disk::Digest &StaticVisibility::CertificationKey() const
+{
+	return data_->key;
+}
+bool StaticVisibility::BuiltFrom(const std::shared_ptr<const SurfaceGeometry> &source) const
+{
+	return source && data_->source.lock() == source;
+}
+Error StaticVisibility::OverlapBox(const Bounds &box, const ReadContext &ctx,
+								   GeometryBoxResult &out, uint64_t maxWork) const
 {
 	out = GeometryBoxResult();
 	if (!box.known || !Finite(box.minWorld) || !Finite(box.maxWorld) || !maxWork)
@@ -642,9 +694,13 @@ Error StaticVisibility::OverlapBox(const Bounds& box, const ReadContext& ctx,
 	if (ctx.maxBytes<4096) return Failure(Code::MemoryLimit, "Geometry overlap scratch budget");
 	if (Cancelled(ctx)) return Failure(Code::Cancelled, "Geometry overlap cancelled");
 	GeometryBoxResult result;
-	auto overlaps=[&](const Box& b) {
-		for(unsigned k=0;k<3;++k)
-			if(b.high.a[k]<D3(box.minWorld).a[k] || b.low.a[k]>D3(box.maxWorld).a[k]) return false;
+	result.coverageComplete = data_->report.spatialCoverageComplete;
+	if (!result.coverageComplete)
+		result.issues |= IncompleteGeometry;
+	auto overlaps = [&](const Box &b) {
+		for (unsigned k = 0; k < 3; ++k)
+			if (b.high.a[k] < D3(box.minWorld).a[k] || b.low.a[k] > D3(box.maxWorld).a[k])
+				return false;
 		return true;
 	};
 	uint32_t stack[64]={0}; size_t size=data_->nodes.empty()?0:1;
@@ -658,13 +714,70 @@ Error StaticVisibility::OverlapBox(const Bounds& box, const ReadContext& ctx,
 			stack[size++]=n.right; stack[size++]=n.left; continue;
 		}
 		for(uint32_t i=n.first;i<n.first+n.count;++i) {
-			if(++result.work>maxWork) return Failure(Code::WorkLimit,"Geometry overlap work limit");
-			const auto& p=data_->primitives[i]; if(!overlaps(p.bounds)) continue;
-			result.intersects=true; Id id=Id(p.surface)+1;
-			bool found=false;for(size_t j=0;j<result.surfaceCount;++j)found=found||result.surfaces[j]==id;
-			if(!found) {
-				if(result.surfaceCount<8)result.surfaces[result.surfaceCount++]=id;
-				else result.referencesTruncated=true;
+			if (++result.work > maxWork)
+				return Failure(Code::WorkLimit, "Geometry overlap work limit");
+			const auto &p = data_->primitives[i];
+			if (!overlaps(p.bounds))
+				continue;
+
+			// Separating axes for triangle vs expanded box. Patch chord error is
+			// an isotropic conservative envelope, never discarded by this test.
+			if (!p.boundsOnly)
+			{
+				D3 centre = (D3(box.minWorld) + D3(box.maxWorld)) * .5;
+				D3 half = (D3(box.maxWorld) - D3(box.minWorld)) * .5;
+				for (unsigned k = 0; k < 3; ++k)
+					half.a[k] += p.error;
+				D3 a[3] = {D3(p.p[0]) - centre, D3(p.p[1]) - centre, D3(p.p[2]) - centre};
+				D3 e[3] = {a[1] - a[0], a[2] - a[1], a[0] - a[2]};
+				bool separated = false;
+				auto axis = [&](D3 n) {
+					double lo = Dot(a[0], n), hi = lo;
+					for (unsigned k = 1; k < 3; ++k)
+					{
+						lo = std::min(lo, Dot(a[k], n));
+						hi = std::max(hi, Dot(a[k], n));
+					}
+					double radius = 0, magnitude = 1;
+					for (unsigned k = 0; k < 3; ++k)
+					{
+						radius += half.a[k] * std::abs(n.a[k]);
+						magnitude += std::abs(n.a[k]) * (std::abs(centre.a[k]) + half.a[k]);
+					}
+					double eps = 64 * std::numeric_limits<double>::epsilon() * magnitude;
+					if (lo > radius + eps || hi < -radius - eps)
+						separated = true;
+				};
+				axis(Cross(e[0], e[1]));
+				for (unsigned k = 0; k < 3; ++k)
+				{
+					D3 n;
+					n.a[k] = 1;
+					for (auto edge : e)
+						axis(Cross(edge, n));
+				}
+				if (separated)
+					continue;
+			}
+			result.intersects = true;
+			if (p.boundsOnly)
+				result.issues |= UnsupportedGeometry;
+			if (p.error > 0)
+				result.issues |= PatchApproximation;
+			auto obstacle = data_->surfaces[p.surface].obstacle;
+			if (obstacle == ObstacleKind::AlphaTested || obstacle == ObstacleKind::Translucent ||
+				obstacle == ObstacleKind::Unsupported)
+				result.issues |= OpticalUnknown;
+			Id id = Id(p.surface) + 1;
+			bool found = false;
+			for (size_t j = 0; j < result.surfaceCount; ++j)
+				found = found || result.surfaces[j] == id;
+			if (!found)
+			{
+				if (result.surfaceCount < 8)
+					result.surfaces[result.surfaceCount++] = id;
+				else
+					result.referencesTruncated = true;
 			}
 		}
 	}
@@ -878,7 +991,7 @@ Error StaticVisibility::Query(const RayQuery &q, const ReadContext &ctx, RayResu
 	}
 	if (!q.policy.requireKnownFreeOrigin && !free)
 		result.issues |= PolicyAssumption;
-	if (!data_->report.complete && result.state != VisibilityState::Blocked)
+	if (!data_->report.spatialCoverageComplete && result.state != VisibilityState::Blocked)
 	{
 		result.state = VisibilityState::Unknown;
 		result.issues |= IncompleteGeometry;

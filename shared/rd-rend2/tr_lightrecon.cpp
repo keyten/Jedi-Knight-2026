@@ -339,11 +339,14 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 									: s.model < modelCount ? SurfaceMotion::BrushModel
 														   : SurfaceMotion::Unknown;
 			int kind = LittleLong(ds.surfaceType);
-			s.kind = kind == MST_PLANAR ? BakedSurfaceKind::Face
-										: kind == MST_PATCH ? BakedSurfaceKind::Patch
-															: kind == MST_TRIANGLE_SOUP
-																  ? BakedSurfaceKind::Triangles
-																  : BakedSurfaceKind::Unsupported;
+			s.kind = kind == MST_PLANAR
+						 ? BakedSurfaceKind::Face
+						 : kind == MST_PATCH
+							   ? BakedSurfaceKind::Patch
+							   : kind == MST_TRIANGLE_SOUP
+									 ? BakedSurfaceKind::Triangles
+									 : kind == MST_FLARE ? BakedSurfaceKind::Flare
+														 : BakedSurfaceKind::Unsupported;
 			int shader = LittleLong(ds.shaderNum);
 			if (shader >= 0 && static_cast<size_t>(shader) < shaderCount)
 			{
@@ -351,7 +354,7 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 				s.material.assign(shaders[shader].shader,
 								  strnlen(shaders[shader].shader, sizeof(shaders[shader].shader)));
 			}
-			else
+			else if (s.kind != BakedSurfaceKind::Flare)
 				s.kind = BakedSurfaceKind::Unsupported;
 			for (size_t slot = 0; slot < 4; ++slot)
 			{
@@ -374,12 +377,13 @@ void LightReconBspCapture::Surfaces(int so, int sb, int vo, int vb, int io, int 
 			s.chartHeight = LittleLong(ds.lightmapHeight);
 			int fv = LittleLong(ds.firstVert), nv = LittleLong(ds.numVerts),
 				fi = LittleLong(ds.firstIndex), ni = LittleLong(ds.numIndexes);
-			if (fv < 0 || nv < 0 || fi < 0 || ni < 0 || static_cast<size_t>(fv) > vertexCount ||
-				static_cast<size_t>(nv) > vertexCount - static_cast<size_t>(fv) ||
-				static_cast<size_t>(fi) > indexCount ||
-				static_cast<size_t>(ni) > indexCount - static_cast<size_t>(fi))
+			if (s.kind != BakedSurfaceKind::Flare &&
+				(fv < 0 || nv < 0 || fi < 0 || ni < 0 || static_cast<size_t>(fv) > vertexCount ||
+				 static_cast<size_t>(nv) > vertexCount - static_cast<size_t>(fv) ||
+				 static_cast<size_t>(fi) > indexCount ||
+				 static_cast<size_t>(ni) > indexCount - static_cast<size_t>(fi)))
 				s.kind = BakedSurfaceKind::Unsupported;
-			if (s.kind != BakedSurfaceKind::Unsupported)
+			if (s.kind != BakedSurfaceKind::Unsupported && s.kind != BakedSurfaceKind::Flare)
 			{
 				const uint64_t recordBytes = sizeof(BakedSurface) + s.material.size() +
 											 uint64_t(nv) * sizeof(BakedVertex) +

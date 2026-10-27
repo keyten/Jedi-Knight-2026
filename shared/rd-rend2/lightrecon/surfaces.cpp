@@ -313,7 +313,7 @@ struct Piece
 };
 bool validSurface(const BakedSurface &s)
 {
-	if (s.kind == BakedSurfaceKind::Unsupported)
+	if ((s.kind == BakedSurfaceKind::Unsupported || s.kind == BakedSurfaceKind::Flare))
 		return true;
 	if (s.vertices.empty())
 		return false;
@@ -530,7 +530,8 @@ Error SurfaceCapture::Freeze()
 	if (!staged_)
 		return Fail(Code::InvalidState, "Surface source unavailable");
 	for (const auto &s : staged_->surfaces_)
-		if (s.motion != SurfaceMotion::StaticWorld || s.excludedMaterial)
+		if (s.motion != SurfaceMotion::StaticWorld || s.excludedMaterial ||
+			s.kind == BakedSurfaceKind::Flare)
 			++report_.excluded;
 	report_.state = CaptureState::Captured;
 	staged_->report_ = report_;
@@ -545,14 +546,45 @@ Error SurfaceCapture::Freeze()
 		return Fail(Code::MemoryLimit, "Surface publication failed");
 	}
 }
+Error SurfaceMappingIndex::Build(std::shared_ptr<const SurfaceGeometry> g,
+								const ReadContext &ctx, SurfaceMappingIndex &out)
+{
+	out = SurfaceMappingIndex();
+	if (!g) return Failure(Code::MissingGeometry, "Mapping index requires geometry");
+	if (g->Surfaces().size() > ctx.maxBytes / 512)
+		return Failure(Code::MemoryLimit, "Mapping index budget exceeded");
+	try {
+		SurfaceMappingIndex staged;
+		staged.geometry_ = g;
+		for (size_t i = 0; i < g->Surfaces().size(); ++i) {
+			if (ctx.cancellation && ctx.cancellation->IsCancelled())
+				return Failure(Code::Cancelled, "Mapping index cancelled");
+			const auto &s = g->Surfaces()[i];
+			for (unsigned slot = 0; slot < 4; ++slot) {
+				if (s.lightmap[slot] < 0 || s.styles[slot] == 255) continue;
+				auto &page = staged.pages_[uint32_t(s.lightmap[slot])];
+				if (page.empty() || page.back() != i) page.push_back(i);
+			}
+		}
+		out = std::move(staged);
+		return {};
+	} catch (const std::bad_alloc &) { return Failure(Code::MemoryLimit, "Mapping index allocation"); }
+}
+const std::vector<size_t> *SurfaceMappingIndex::Page(uint32_t logical) const
+{
+	auto found = pages_.find(logical);
+	return found == pages_.end() ? nullptr : &found->second;
+}
 Error MapLuxels(std::shared_ptr<const SurfaceGeometry> geometry,
 				std::shared_ptr<const LightmapObservations> images, size_t image, uint32_t x,
 				uint32_t y, uint32_t width, uint32_t height, const MappingOptions &o,
-				const ReadContext &context, LuxelTile &out)
+				const ReadContext &context, LuxelTile &out, const SurfaceMappingIndex *index)
 {
 	out = LuxelTile();
 	if (!geometry || !images)
 		return Failure(Code::Unavailable, "Missing original geometry/images");
+	if (index && !index->Matches(geometry))
+		return Failure(Code::InvalidInput, "Mapping index belongs to different geometry");
 	if (geometry->Map().sha256 != images->Map().sha256 ||
 		geometry->Map().path != images->Map().path)
 		return Failure(Code::InvalidInput, "Geometry/image map identities differ");
@@ -685,11 +717,15 @@ Error MapLuxels(std::shared_ptr<const SurfaceGeometry> geometry,
 			triangles.push_back(t);
 			scratch += 2048;
 		};
-		for (const auto &s : geometry->Surfaces())
+		const auto *page = index ? index->Page(im.logicalIndex) : nullptr;
+		const size_t sourceCount = index ? (page ? page->size() : 0) : geometry->Surfaces().size();
+		for (size_t source = 0; source < sourceCount; ++source)
 		{
+			const auto &s = geometry->Surfaces()[index ? (*page)[source] : source];
 			if (!budget.step())
 				break;
-			if (s.motion != SurfaceMotion::StaticWorld || s.excludedMaterial)
+			if (s.motion != SurfaceMotion::StaticWorld || s.excludedMaterial ||
+				s.kind == BakedSurfaceKind::Flare)
 			{
 				++tile.report.excluded;
 				continue;

@@ -39,6 +39,7 @@ template <class T> void Fields(Codec &, T &);
 struct Codec
 {
 	bool reading;
+	uint32_t regionVersion = kLightingRegionGraphVersion;
 	std::vector<uint8_t> bytes;
 	size_t pos = 0;
 	Options limits;
@@ -428,11 +429,20 @@ void Fields(Codec &a, RegionReport &v)
 	  v.regions, v.staticComponents, v.connections, v.apertures, v.skyRegions, v.domainWork,
 	  v.geometryWork, v.rays, v.ownedBytes, v.peakBuildBytes, v.resolutionLimited,
 	  v.dynamicExtentUnknown, v.staticOnly);
+	if (a.regionVersion >= 2)
+		a(v.bspFree, v.bspSolid, v.bspUnknown, v.localInvalidated, v.globalOnlyInvalidated,
+		  v.minimumLimited, v.movingUncertain, v.opticalUncertain, v.unsupportedUncertain,
+		  v.representativeDisagrees, v.locallyClearUnassigned, v.bspUnclustered, v.bspPossibleBrush,
+		  v.bspOutsideWorld, v.bspRefinedDisjoint);
 }
 void Fields(Codec &a, RegionSnapshot &v)
 {
 	a(v.map, v.options, v.report, v.cells, v.regions, v.connections, v.cellConnections, v.members,
 	  v.neighbours, v.bspLinks, v.boundaries);
+	if (a.reading)
+		v.schemaVersion = a.regionVersion;
+	if (a.regionVersion >= 2)
+		a(v.certificationKey);
 }
 void Fields(Codec &a, EmitterEvidence &v)
 {
@@ -581,9 +591,12 @@ template <class T> std::vector<uint8_t> Pack(const T &v, const Options &o)
 	a.One(const_cast<T &>(v));
 	return std::move(a.bytes);
 }
-template <class T> T Unpack(std::vector<uint8_t> b, const Options &o)
+template <class T>
+T Unpack(std::vector<uint8_t> b, const Options &o,
+		 uint32_t regionVersion = kLightingRegionGraphVersion)
 {
 	Codec a(std::move(b), o);
+	a.regionVersion = regionVersion;
 	T v{};
 	a.One(v);
 	a.Done();
@@ -711,6 +724,7 @@ EvidenceInfo FilterEvidence(const EmitterEvidenceSet &s, HintPolicy policy)
 RegionSnapshot SnapshotGraph(const LightingRegionGraph &g)
 {
 	RegionSnapshot r;
+	r.certificationKey = g.CertificationKey();
 	r.map = g.Identity();
 	r.options = g.Options();
 	r.report = g.Report();
@@ -857,6 +871,19 @@ struct Access
 		return p;
 	}
 };
+Disk::Digest SampleIdentity(const LightmapMapIdentity &map, const LightmapImage &image,
+						   const SurfaceLightingObservation &sample, uint8_t style)
+{
+	Codec a{Options()};
+	auto hash = map.sha256;
+	auto pixels = image.pixelHash;
+	auto source = image.source;
+	auto encoding = image.encoding;
+	uint32_t version = 1, page = image.logicalIndex, x = sample.x, y = sample.y,
+			 surface = sample.surface, slot = sample.styleSlot, width = image.width, height = image.height;
+	a(version, hash, source, pixels, encoding, width, height, page, x, y, surface, slot, style);
+	return Disk::Hash(a.bytes.data(), a.bytes.size());
+}
 Partition Split(const Metadata &m, Vec3 p)
 {
 	Need(std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z),
@@ -888,6 +915,8 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 		MetaValid(s.metadata);
 		Need(!s.regionSnapshot || s.regions,
 			 "Re-export derived region assignments requires explicit ReplayGeometry");
+		Need(!s.regions || s.regions->MatchesSources(s.geometry, s.domain, s.dynamic),
+			 "Region certification/source leases changed; explicit ReplayGeometry required");
 		Need(o.tileSide > 0 && o.tileSide <= 128 && o.maxChunkBytes >= 4096 &&
 				 o.maxChunkBytes <= o.maxResidentBytes,
 			 "Invalid export limits");
@@ -999,6 +1028,8 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 		}
 		if (s.regions || s.regionSnapshot)
 		{
+			Need(!s.regions || s.regions->PortableCertification(),
+				 "Custom region domain has no portable certification");
 			auto g = s.regions ? SnapshotGraph(*s.regions) : *s.regionSnapshot;
 			Identity(s.metadata.map, g.map);
 			ValidateRegion(g, o);
@@ -1006,7 +1037,9 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 			d.summary.regionCells = g.cells.size();
 			sink.Object(Regions, 0, g, g.cells.size());
 		}
-		uint64_t selected = 0, tileOrdinal = 0;
+		uint64_t selected = 0, eligible = 0, tileOrdinal = 0;
+		SurfaceMappingIndex mappingIndex;
+		if (s.geometry) Check(SurfaceMappingIndex::Build(s.geometry, ctx, mappingIndex));
 		Decode::Decoder decoder(s.metadata.decoding);
 		Check(decoder.Validation());
 		if (s.images && s.geometry)
@@ -1015,11 +1048,12 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 				const auto &im = s.images->Images()[i];
 				if (im.missing || im.role != LightmapRole::Lighting)
 					continue;
+				if (eligible++ < o.firstMappedImage) continue;
 				if (o.mappedImages && selected >= o.mappedImages)
 					continue;
 				++selected;
 				Need(uint64_t(im.width) * im.height <= o.maxMappedTexels - d.summary.mappedSamples,
-					 "Mapped-texel export limit (choose explicit image prefix)", Code::MemoryLimit);
+					 "Mapped-texel export limit (use explicit page-range shards)", Code::MemoryLimit);
 				for (uint32_t y = 0; y < im.height; y += o.tileSide)
 					for (uint32_t x = 0; x < im.width; x += o.tileSide)
 					{
@@ -1031,7 +1065,7 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 						mapping.maxScratchBytes = std::min(o.maxResidentBytes, ctx.maxBytes);
 						Check(MapLuxels(s.geometry, s.images, i, x, y,
 										std::min(o.tileSide, im.width - x),
-										std::min(o.tileSide, im.height - y), mapping, ctx, tile));
+										std::min(o.tileSide, im.height - y), mapping, ctx, tile, &mappingIndex));
 						TileInfo data;
 						data.image = i;
 						data.x = x;
@@ -1074,9 +1108,10 @@ Error Export(const Sources &s, const Options &o, const ReadContext &ctx, Writer 
 							data.samples.push_back(std::move(l));
 						}
 						sink.Object(Tile, tileOrdinal++, data, data.samples.size());
+						if (o.progress) o.progress->Tile(im.logicalIndex, x, y, d.summary.mappedSamples);
 					}
 			}
-		d.summary.derivedComplete = selected == totalLighting && bool(s.geometry);
+		d.summary.derivedComplete = !o.firstMappedImage && selected == totalLighting && bool(s.geometry);
 		uint64_t metaOffset =
 			sink.position; // metadata includes final file size, whose encoded width is fixed
 		d.summary.fileBytes = 0;
@@ -1211,10 +1246,14 @@ Error Dataset::Open(std::shared_ptr<const Disk::Reader> reader, const Options &o
 		MetaValid(document.metadata);
 		Need(document.metadata.map.sha256 == map, "Header/source-map digest mismatch");
 		Need(document.summary.fileBytes == total, "Metadata file size mismatch");
-		Need(document.surfaceVersion == kSurfaceObservationVersion &&
+		Need((document.surfaceVersion == 4 ||
+			  document.surfaceVersion == kSurfaceObservationVersion) &&
 				 document.evidenceVersion == kEmitterEvidenceVersion &&
-				 document.regionVersion == kLightingRegionGraphVersion,
+				 (document.regionVersion == 1 ||
+				  document.regionVersion == kLightingRegionGraphVersion),
 			 "Incompatible observation sub-schema", Code::UnsupportedSchema);
+		file->regionVersion_ = document.regionVersion;
+		file->surfaceVersion_ = document.surfaceVersion;
 		file->metadata_ = std::move(document.metadata);
 		file->summary_ = document.summary;
 		out = std::shared_ptr<const Dataset>(file.release());
@@ -1422,8 +1461,9 @@ Error Dataset::Load(Sources &out, RegionSnapshot &regions) const
 				{
 					auto v = Unpack<BakedSurface>(Read(*reader_, e, limits_), limits_);
 					Need(v.ordinal == count && e.id == count, "Surface ID/order mismatch");
-					Need(uint32_t(v.kind) <= 3 && uint32_t(v.motion) <= 3 &&
-							 uint32_t(v.materialFacts.cull) <= 3 &&
+					Need(uint32_t(v.kind) <=
+								 (surfaceVersion_ >= 5 ? uint32_t(BakedSurfaceKind::Flare) : 3) &&
+							 uint32_t(v.motion) <= 3 && uint32_t(v.materialFacts.cull) <= 3 &&
 							 uint32_t(v.materialFacts.emissionProvenance) <= 3,
 						 "Unsupported surface/material enum");
 					for (const auto &p : v.vertices)
@@ -1464,7 +1504,10 @@ Error Dataset::Load(Sources &out, RegionSnapshot &regions) const
 		}
 		if (doc.regions)
 		{
-			auto g = Object<RegionSnapshot>(*reader_, entries_, Regions, limits_);
+			auto entry = Find(entries_, Regions, 0);
+			Need(entry != nullptr, "Missing region snapshot");
+			auto g =
+				Unpack<RegionSnapshot>(Read(*reader_, *entry, limits_), limits_, regionVersion_);
 			Identity(metadata_.map, g.map);
 			ValidateRegion(g, limits_);
 			Need(g.regions.size() == summary_.regions && g.cells.size() == summary_.regionCells,
@@ -1617,6 +1660,8 @@ Error Dataset::Validate(bool remap, uint64_t &checked) const
 		ReadContext ctx;
 		ctx.maxBytes = limits_.maxResidentBytes;
 		Decode::Decoder decoder(metadata_.decoding);
+		SurfaceMappingIndex mappingIndex;
+		if (remap && s.geometry) Check(SurfaceMappingIndex::Build(s.geometry, ctx, mappingIndex));
 		uint64_t total = 0;
 		std::set<Id> regionIds;
 		for (const auto &r : graph.regions)
@@ -1641,7 +1686,7 @@ Error Dataset::Validate(bool remap, uint64_t &checked) const
 					m.maxTexels = 128 * 128;
 					m.maxScratchBytes = limits_.maxResidentBytes;
 					Check(MapLuxels(s.geometry, s.images, size_t(tile.image), tile.x, tile.y,
-									tile.width, tile.height, m, ctx, mapped));
+									tile.width, tile.height, m, ctx, mapped, &mappingIndex));
 				}
 				for (size_t n = 0; n < samples.size(); ++n)
 				{
@@ -1757,7 +1802,8 @@ std::string InspectText(const Dataset &d)
 }
 Error ReplayGeometry(const Sources &s, const RegionSnapshot &snapshot, const ReadContext &ctx,
 					 std::shared_ptr<const StaticVisibility> &rays,
-					 std::shared_ptr<const LightingRegionGraph> &graph)
+					 std::shared_ptr<const LightingRegionGraph> &graph,
+					 const VisibilityBuildOptions *explicitBuildOptions)
 {
 	rays.reset();
 	graph.reset();
@@ -1766,6 +1812,8 @@ Error ReplayGeometry(const Sources &s, const RegionSnapshot &snapshot, const Rea
 	VisibilityBuildOptions o;
 	o.patchToleranceWorld = s.metadata.visibilityPatchToleranceWorld;
 	o.maxBytes = ctx.maxBytes;
+	if (explicitBuildOptions)
+		o = *explicitBuildOptions;
 	auto e = StaticVisibility::Build(s.geometry, o, ctx, rays, s.domain);
 	if (!e)
 		return e;

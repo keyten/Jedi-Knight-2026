@@ -1,12 +1,13 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "regions.h"
+#include "geometry_key.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <exception>
 #include <iomanip>
-#include <locale>
 #include <limits>
+#include <locale>
 #include <map>
 #include <new>
 #include <set>
@@ -306,17 +307,28 @@ Error BspRegionDomain::Locate(Vec3 p, SpatialLocation &out, double tolerance) co
 }
 Error BspRegionDomain::ClassifyBox(const Bounds &box, SpaceClass &out, uint64_t &work) const
 {
+	uint32_t reasons = 0;
+	return InspectBox(box, out, work, reasons);
+}
+Error BspRegionDomain::InspectBox(const Bounds &box, SpaceClass &out, uint64_t &work,
+								  uint32_t &reasons) const
+{
+	reasons = 0;
 	out = SpaceClass::Unknown;
 	work = 0;
 	if (!Valid(box))
 		return Failure(Code::InvalidInput, "Invalid BSP spatial box");
 	if (!Overlap(box, input_.worldBounds))
 	{
+		reasons |= BoxOutsideWorld;
 		out = SpaceClass::Outside;
 		return Error();
 	}
 	if (!Inside(input_.worldBounds, box.minWorld) || !Inside(input_.worldBounds, box.maxWorld))
+	{
+		reasons |= BoxOutsideWorld;
 		return Error();
+	}
 	int32_t stack[64];
 	size_t size = 1;
 	stack[0] = input_.nodes.empty() ? -1 : 0;
@@ -341,6 +353,8 @@ Error BspRegionDomain::ClassifyBox(const Bounds &box, SpaceClass &out, uint64_t 
 		}
 		const auto &leaf = input_.leaves[size_t(-int64_t(i) - 1)];
 		uncertain = uncertain || leaf.cluster < 0;
+		if (leaf.cluster < 0)
+			reasons |= BoxUnclusteredLeaf;
 		for (uint32_t j = 0; j < leaf.brushCount; ++j)
 		{
 			const auto &b = input_.brushes[input_.leafBrushes[leaf.firstBrush + j]];
@@ -363,10 +377,59 @@ Error BspRegionDomain::ClassifyBox(const Bounds &box, SpaceClass &out, uint64_t 
 			}
 			if (candidate && inside)
 			{
+				reasons |= BoxInsideSolidBrush;
 				out = b.sky ? SpaceClass::Sky : SpaceClass::Solid;
 				return Error();
 			}
+			if (candidate)
+			{
+				// Necessary interval bounds for the conjunction of brush planes.
+				// Unlike independent plane/AABB tests, repeated clipping can prove
+				// disjointness at oblique corners. Failure to converge is Unknown.
+				double low[3], high[3];
+				for (unsigned axis = 0; axis < 3; ++axis)
+				{
+					low[axis] = Axis(box.minWorld, axis);
+					high[axis] = Axis(box.maxWorld, axis);
+				}
+				for (unsigned pass = 0; pass < 4 && candidate; ++pass)
+					for (uint32_t side = 0; side < b.sideCount && candidate; ++side)
+					{
+						if (++work > limit_)
+							return Failure(Code::WorkLimit, "BSP brush interval work limit");
+						const auto &plane = input_.planes[input_.sides[b.firstSide + side]];
+						for (unsigned axis = 0; axis < 3 && candidate; ++axis)
+						{
+							double coefficient = Axis(plane.normal, axis), other = 0,
+								   magnitude = 1 + std::abs(plane.distance);
+							if (std::abs(coefficient) < 1e-15)
+								continue;
+							for (unsigned k = 0; k < 3; ++k)
+								if (k != axis)
+								{
+									double term = Axis(plane.normal, k) *
+												  (Axis(plane.normal, k) >= 0 ? low[k] : high[k]);
+									other += term;
+									magnitude += std::abs(term);
+								}
+							double round = 64 * std::numeric_limits<double>::epsilon() * magnitude;
+							double bound = (plane.distance + 1e-5 + round - other) / coefficient;
+							double outward =
+								64 * std::numeric_limits<double>::epsilon() * (1 + std::abs(bound));
+							if (coefficient > 0)
+								high[axis] = std::min(high[axis], bound + outward);
+							else
+								low[axis] = std::max(low[axis], bound - outward);
+							if (low[axis] > high[axis])
+								candidate = false;
+						}
+					}
+				if (!candidate)
+					reasons |= BoxBrushDisjointRefined;
+			}
 			uncertain = uncertain || candidate;
+			if (candidate)
+				reasons |= BoxPossibleSolidBrush;
 		}
 	}
 	out = uncertain ? SpaceClass::Unknown : SpaceClass::Free;
@@ -462,6 +525,7 @@ struct LightingRegionGraph::Data
 		}
 		return nodes[i].cell;
 	}
+	Disk::Digest key{};
 	void Subdivide(uint32_t index)
 	{
 		Check();
@@ -469,12 +533,18 @@ struct LightingRegionGraph::Data
 		Bounds b = Box(n);
 		SpaceClass space;
 		uint64_t tests = 0;
-		Require(input.domain->ClassifyBox(b, space, tests));
+
+		uint32_t bspReasons = 0;
+		if (auto bsp = dynamic_cast<const BspRegionDomain *>(input.domain.get()))
+			Require(bsp->InspectBox(b, space, tests, bspReasons));
+		else
+			Require(input.domain->ClassifyBox(b, space, tests));
 		Work(tests);
 		Work(1);
 		report.domainWork += tests;
 		if (static_cast<unsigned>(space) > static_cast<unsigned>(SpaceClass::Exterior))
 			throw BuildFailure{Failure(Code::ProviderError, "Invalid spatial box classification")};
+		const SpaceClass bspSpace = space;
 		GeometryBoxResult geometry;
 		if (Free(space) || space == SpaceClass::Unknown)
 		{
@@ -492,9 +562,11 @@ struct LightingRegionGraph::Data
 				break;
 			}
 		}
-		if (Free(space) && (geometry.intersects || !input.geometry->Report().complete))
+		if (Free(space) && (geometry.intersects || !geometry.coverageComplete))
 			space = SpaceClass::Unknown;
-		if (n.units > 1 && (space == SpaceClass::Unknown || moving))
+		// Refinement cannot resolve an unbounded omission. Refine only for
+		// spatially local uncertainty, preserving the global reason on coarse cells.
+		if (n.units > 1 && (bspSpace == SpaceClass::Unknown || geometry.intersects || moving))
 		{
 			if (nodes.size() + 8 > options.maxNodes)
 				throw BuildFailure{Failure(Code::MemoryLimit, "Region octree node limit")};
@@ -532,16 +604,63 @@ struct LightingRegionGraph::Data
 				Failure(Code::ProviderError, "Invalid spatial point classification")};
 		if (Free(space) && !Free(c.bsp.space))
 			c.space = SpaceClass::Unknown;
+
 		c.issues = CellBspMembershipSampled;
+		report.bspFree += Free(bspSpace);
+		report.bspSolid += bspSpace == SpaceClass::Solid;
+		report.bspUnknown += bspSpace == SpaceClass::Unknown;
+		report.bspUnclustered += bool(bspReasons & BoxUnclusteredLeaf);
+		report.bspPossibleBrush += bool(bspReasons & BoxPossibleSolidBrush);
+		report.bspOutsideWorld += bool(bspReasons & BoxOutsideWorld);
+		report.bspRefinedDisjoint += bool(bspReasons & BoxBrushDisjointRefined);
+		if (bspSpace == SpaceClass::Unknown)
+			c.issues |= CellBspUncertain;
+		if (bspReasons & BoxUnclusteredLeaf)
+			c.issues |= CellBspUnclustered;
+		if (bspReasons & BoxPossibleSolidBrush)
+			c.issues |= CellBspBrushBoundary;
+		if (bspReasons & BoxOutsideWorld)
+			c.issues |= CellOutsideWorldBounds;
+		if (bspSpace == SpaceClass::Solid)
+			c.issues |= CellBspSolid;
+		if (Free(bspSpace) && geometry.intersects)
+			++report.localInvalidated;
+		if (Free(bspSpace) && !geometry.intersects && !geometry.coverageComplete)
+			++report.globalOnlyInvalidated;
+		if ((Free(bspSpace) || bspSpace == SpaceClass::Unknown) && !geometry.coverageComplete)
+			c.issues |= CellUnboundedGeometry;
+		if (geometry.issues & UnsupportedGeometry)
+		{
+			c.issues |= CellUnsupportedGeometry;
+			++report.unsupportedUncertain;
+		}
+		if (geometry.issues & OpticalUnknown)
+		{
+			c.issues |= CellOpticalUncertain;
+			++report.opticalUncertain;
+		}
+		if (geometry.issues & PatchApproximation)
+			c.issues |= CellPatchEnvelope;
+		if (bspSpace != c.bsp.space && !(Free(bspSpace) && Free(c.bsp.space)))
+		{
+			c.issues |= CellRepresentativeDisagrees;
+			++report.representativeDisagrees;
+		}
+		if (moving)
+			++report.movingUncertain;
+		if (c.space == SpaceClass::Unknown && !geometry.intersects && geometry.coverageComplete)
+			++report.locallyClearUnassigned;
 		if (geometry.intersects)
 			c.issues |= CellGeometryBoundary;
 		if (geometry.referencesTruncated)
 			c.issues |= CellBoundaryRefsTruncated;
 		if (moving)
 			c.issues |= CellDynamicPossible;
-		if (c.space == SpaceClass::Unknown)
+		if (c.space == SpaceClass::Unknown && n.units == 1 &&
+			(bspSpace == SpaceClass::Unknown || geometry.intersects))
 		{
 			c.issues |= CellResolutionLimit;
+			++report.minimumLimited;
 			report.resolutionLimited = true;
 		}
 		c.boundaryCount = uint32_t(geometry.surfaceCount);
@@ -1004,6 +1123,77 @@ Error LightingRegionGraph::Build(RegionBuildInput input, const RegionOptions &o,
 			d->bspLinks.capacity() * sizeof(RegionBspLink) +
 			d->boundaries.capacity() * sizeof(RegionBoundary) +
 			d->input.dynamic.capacity() * sizeof(DynamicBoundary) + d->input.identity.path.size();
+
+		GeometryKey key;
+		const auto &options = d->options;
+		key.U(kLightingRegionGraphVersion);
+		key.Digest(d->input.identity.sha256);
+		key.Digest(d->input.geometry->CertificationKey());
+		key.B(options.bounds);
+		key.F(options.coarseCellWorld);
+		key.F(options.minimumCellWorld);
+		key.F(options.constrictionWorld);
+		key.U(options.inspectSky);
+		key.U(options.skySamplesPerRegion);
+		key.U(options.maxNodes);
+		key.U(options.maxCells);
+		key.U(options.maxLinks);
+		key.U(options.maxDynamicBounds);
+		key.U(options.maxBytes);
+		key.U(options.maxWork);
+		key.U(options.maxRayWork);
+		// Custom domains have no persistent certification unless they supply a
+		// canonical BSP snapshot. Their IDs remain lease-local.
+		if (auto bsp = dynamic_cast<const BspRegionDomain *>(d->input.domain.get()))
+		{
+			auto &s = bsp->Source();
+			key.B(s.worldBounds);
+			key.U(s.planes.size());
+			for (auto &p : s.planes)
+			{
+				key.V(p.normal);
+				key.F(p.distance);
+			}
+			key.U(s.nodes.size());
+			for (auto &n : s.nodes)
+			{
+				key.U(n.plane);
+				key.U(n.children[0]);
+				key.U(n.children[1]);
+			}
+			key.U(s.leaves.size());
+			for (auto &l : s.leaves)
+			{
+				key.U(l.cluster);
+				key.U(l.area);
+				key.U(l.firstBrush);
+				key.U(l.brushCount);
+			}
+			key.U(s.brushes.size());
+			for (auto &b : s.brushes)
+			{
+				key.U(b.firstSide);
+				key.U(b.sideCount);
+				key.U(b.solid);
+				key.U(b.sky);
+				key.U(b.world);
+			}
+			key.U(s.sides.size());
+			for (auto i : s.sides)
+				key.U(i);
+			key.U(s.leafBrushes.size());
+			for (auto i : s.leafBrushes)
+				key.U(i);
+		}
+		key.U(d->input.dynamic.size());
+		for (auto &b : d->input.dynamic)
+		{
+			key.U(b.id);
+			key.U(b.model);
+			key.B(b.bounds);
+			key.U(b.sweptExtentKnown);
+		}
+		d->key = key.Finish();
 		d->context = ReadContext();
 		out = std::shared_ptr<const LightingRegionGraph>(new LightingRegionGraph(d));
 		return Error();
@@ -1067,6 +1257,35 @@ const RegionOptions &LightingRegionGraph::Options() const
 {
 	return data_->options;
 }
+const Disk::Digest &LightingRegionGraph::CertificationKey() const
+{
+	return data_->key;
+}
+bool LightingRegionGraph::PortableCertification() const
+{
+	return dynamic_cast<const BspRegionDomain *>(data_->input.domain.get()) != nullptr;
+}
+bool LightingRegionGraph::MatchesSources(const std::shared_ptr<const SurfaceGeometry> &geometry,
+										 const std::shared_ptr<const RegionDomain> &domain,
+										 const std::vector<DynamicBoundary> &dynamic) const
+{
+	if (!data_->input.geometry->BuiltFrom(geometry) || data_->input.domain != domain ||
+		data_->input.dynamic.size() != dynamic.size())
+		return false;
+	for (size_t i = 0; i < dynamic.size(); ++i)
+	{
+		auto &a = data_->input.dynamic[i];
+		auto &b = dynamic[i];
+		if (a.id != b.id || a.model != b.model || a.sweptExtentKnown != b.sweptExtentKnown ||
+			a.bounds.known != b.bounds.known)
+			return false;
+		for (unsigned k = 0; k < 3; ++k)
+			if (Axis(a.bounds.minWorld, k) != Axis(b.bounds.minWorld, k) ||
+				Axis(a.bounds.maxWorld, k) != Axis(b.bounds.maxWorld, k))
+				return false;
+	}
+	return true;
+}
 const LightmapMapIdentity &LightingRegionGraph::Identity() const
 {
 	return data_->input.identity;
@@ -1109,6 +1328,7 @@ Error LightingRegionGraph::Lookup(Vec3 p, const ReadContext &ctx, RegionAssignme
 		out = RegionAssignment();
 		return Failure(Code::Cancelled, "Region lookup cancelled");
 	}
+	out.outsideAnalysisBounds = !Inside(data_->options.bounds, p);
 	if (out.bsp.space == SpaceClass::Solid)
 	{
 		out.state = RegionAssignmentState::Solid;
@@ -1119,16 +1339,19 @@ Error LightingRegionGraph::Lookup(Vec3 p, const ReadContext &ctx, RegionAssignme
 		out.state = RegionAssignmentState::Sky;
 		return Error();
 	}
-	if (!Inside(data_->options.bounds, p) || out.bsp.space == SpaceClass::Outside)
+	if (out.bsp.space == SpaceClass::Outside)
 	{
 		out.state = RegionAssignmentState::Outside;
 		return Error();
 	}
+	if (out.outsideAnalysisBounds)
+		return Error();
 	uint32_t cell = data_->FindCell(p);
 	if (cell == UINT32_MAX)
 		return Error();
 	const auto &c = data_->cells[cell];
 	out.cell = c.id;
+	out.issues = c.issues;
 	if (Free(c.space) && Free(out.bsp.space) && c.region)
 	{
 		out.state = RegionAssignmentState::Assigned;
@@ -1257,6 +1480,31 @@ Error LightingRegionGraph::FilterPair(Vec3 source, Vec3 observation, const ReadC
 	q.originKnownFree = Free(out.source.bsp.space);
 	q.policy.facing = FacingPolicy::TwoSided;
 	q.maxWork = data_->options.maxRayWork;
+	out.dynamicExtentUnknown = data_->report.dynamicExtentUnknown;
+	for (const auto &boundary : data_->input.dynamic)
+	{
+		double lo = 0, hi = 1;
+		for (unsigned k = 0; k < 3; ++k)
+		{
+			double a = Axis(source, k), d = Axis(observation, k) - a;
+			if (d == 0)
+			{
+				if (a < Axis(boundary.bounds.minWorld, k) || a > Axis(boundary.bounds.maxWorld, k))
+					hi = -1;
+			}
+			else
+			{
+				double near = (Axis(boundary.bounds.minWorld, k) - a) / d,
+					   far = (Axis(boundary.bounds.maxWorld, k) - a) / d;
+				if (near > far)
+					std::swap(near, far);
+				lo = std::max(lo, near);
+				hi = std::min(hi, far);
+			}
+		}
+		if (lo <= hi)
+			out.dynamicPossible = true;
+	}
 	return data_->input.geometry->Query(q, ctx, out.direct);
 }
 Error LightingRegionGraph::DebugObj(size_t maximum, size_t bytes, std::string &out) const

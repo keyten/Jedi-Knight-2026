@@ -711,6 +711,64 @@ void ReferenceAndBenchmark()
 				double(tests) / double(rays.size()), maxError);
 }
 } // namespace
+void LocalCompleteness()
+{
+	Scene recess;
+	recess.WallX(0, -2, -.5f);
+	recess.WallX(0, .5f, 2);
+	recess.WallX(-1);
+	auto fixture = recess.Build();
+	CHECK(Trace(fixture, Ray(Vec3(-.5f, 0, 1), Vec3(2, 0, 1))).state == VisibilityState::Visible);
+	CHECK(Trace(fixture, Ray(Vec3(-.5f, 0, 1), Vec3(2, 3, 1))).state == VisibilityState::Blocked);
+	Scene scene;
+	scene.WallX(0);
+	BakedSurface flare;
+	flare.ordinal = 1;
+	flare.kind = BakedSurfaceKind::Flare;
+	flare.lightmapOrigin = Vec3(10000, 10000, 10000);
+	scene.surfaces.push_back(flare);
+	auto good = scene.Build();
+	CHECK(good->Report().excludedFlares == 1 && good->Report().spatialCoverageComplete);
+	CHECK(Trace(good, Ray(Vec3(-1, 0, 1), Vec3(-1, 1, 1))).state == VisibilityState::Visible);
+	CHECK(Trace(good, Ray(Vec3(-1, 0, 1), Vec3(1, 0, 1))).state == VisibilityState::Blocked);
+	scene.surfaces.back().kind = BakedSurfaceKind::Unsupported;
+	auto unknown = scene.Build();
+	CHECK(!unknown->Report().complete && !unknown->Report().spatialCoverageComplete);
+	CHECK(unknown->Report().missingUnsupportedBounds == 1);
+	auto r = Trace(unknown, Ray(Vec3(-1, 0, 1), Vec3(-1, 1, 1)));
+	CHECK(r.state == VisibilityState::Unknown && (r.issues & IncompleteGeometry));
+	CHECK(Trace(unknown, Ray(Vec3(-1, 0, 1), Vec3(1, 0, 1))).state == VisibilityState::Blocked);
+	// An unsupported bounded object affects only boxes/rays intersecting its bound.
+	for (auto p : {Vec3(5, 5, 5), Vec3(6, 6, 6)})
+	{
+		BakedVertex v;
+		v.position = p;
+		scene.surfaces.back().vertices.push_back(v);
+	}
+	auto bounded = scene.Build();
+	CHECK(!bounded->Report().complete && bounded->Report().spatialCoverageComplete);
+	CHECK(Trace(bounded, Ray(Vec3(-1, 0, 1), Vec3(-1, 1, 1))).state == VisibilityState::Visible);
+	CHECK(Trace(bounded, Ray(Vec3(4, 5.5f, 5.5f), Vec3(7, 5.5f, 5.5f))).state ==
+		  VisibilityState::Unknown);
+	CHECK(bounded->CertificationKey() != unknown->CertificationKey());
+	CHECK(bounded->CertificationKey() == scene.Build()->CertificationKey());
+	// SAT must reject empty portions of a diagonal triangle AABB, never its interior.
+	Scene diagonal;
+	auto &s = diagonal.Quad(Vec3(0, 0, 0), Vec3(10, 0, 0), Vec3(0, 10, 0), Vec3(0, 10, 0));
+	s.indices = {0, 1, 2};
+	auto triangles = diagonal.Build();
+	GeometryBoxResult box;
+	Bounds b;
+	b.known = true;
+	b.minWorld = Vec3(8, 8, -.1f);
+	b.maxWorld = Vec3(9, 9, .1f);
+	CHECK(triangles->OverlapBox(b, Context(), box));
+	CHECK(!box.intersects && box.coverageComplete);
+	b.minWorld = Vec3(1, 1, -.001f);
+	b.maxWorld = Vec3(2, 2, .001f);
+	CHECK(triangles->OverlapBox(b, Context(), box));
+	CHECK(box.intersects);
+}
 int main()
 {
 	RoomsAndPolicies();
@@ -718,6 +776,7 @@ int main()
 	DomainsAndFailures();
 	MeshAndPatch();
 	ReferenceAndBenchmark();
+	LocalCompleteness();
 	std::printf("visibility: %d checks, %d failures\n", checks, failures);
 	return failures ? 1 : 0;
 }

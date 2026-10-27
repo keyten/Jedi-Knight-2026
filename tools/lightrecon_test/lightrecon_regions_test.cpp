@@ -321,6 +321,7 @@ void Rooms()
 	CHECK(pair.relation == SampleGraphRelation::Unknown);
 	CHECK(pair.direct.state == VisibilityState::Visible);
 	Invariants(dynamic);
+	CHECK(pair.dynamicPossible && pair.dynamicExtentUnknown);
 	door.Solid(Box(Vec3(-.25f, -2, 0), Vec3(.25f, 2, 6)));
 	auto closed = door.Build();
 	CHECK(closed->Report().staticComponents == 2);
@@ -583,12 +584,103 @@ void DomainAndLimits()
 	CHECK(!overlap.intersects);
 }
 } // namespace
+void UncertaintyAndOptionalRegions()
+{
+	Fixture f;
+	f.Shell();
+	BakedSurface s;
+	s.ordinal = uint32_t(f.surfaces.size());
+	s.kind = BakedSurfaceKind::Flare;
+	f.surfaces.push_back(s);
+	auto flare = f.Build();
+	CHECK(flare->Report().freeCells > 0);
+	f.surfaces.back().kind = BakedSurfaceKind::Unsupported;
+	auto unknown = f.Build();
+	CHECK(unknown->Report().freeCells == 0);
+	CHECK(unknown->Report().globalOnlyInvalidated > 0);
+	CHECK(unknown->Report().minimumLimited < unknown->Report().unknownCells);
+	auto a = Lookup(unknown, Vec3(-4, 0, 4));
+	CHECK(a.region == 0 && (a.issues & CellUnboundedGeometry));
+	RegionPairFilter pair;
+	CHECK(unknown->FilterPair(Vec3(-4, 0, 4), Vec3(-3, 0, 4), Context(), pair));
+	CHECK(pair.direct.state == VisibilityState::Unknown);
+	for (auto p : {Vec3(1000, 1000, 1000), Vec3(1001, 1001, 1001)})
+	{
+		BakedVertex vertex;
+		vertex.position = p;
+		f.surfaces.back().vertices.push_back(vertex);
+	}
+	auto bounded = f.Build();
+	CHECK(bounded->Report().freeCells == flare->Report().freeCells);
+	// A conservative boundary cell may lack a region although this particular ray is clear.
+	f.surfaces.pop_back();
+	f.Quad(Vec3(0, -6, 0), Vec3(0, 6, 0), Vec3(0, 6, 8), Vec3(0, -6, 8), MaterialCutout);
+	auto boundary = f.Build();
+	CHECK(boundary->Report().opticalUncertain > 0);
+	CHECK(boundary->FilterPair(Vec3(-.1f, 0, 4), Vec3(-.1f, 1, 4), Context(), pair));
+	CHECK(pair.source.state == RegionAssignmentState::Unknown && pair.source.region == 0);
+	CHECK(pair.direct.state == VisibilityState::Visible);
+	CHECK(boundary->FilterPair(Vec3(-1, 0, 4), Vec3(1, 0, 4), Context(), pair));
+	CHECK(pair.direct.state == VisibilityState::Unknown && (pair.direct.issues & OpticalUnknown));
+	CHECK(boundary->CertificationKey() == f.Build()->CertificationKey());
+	f.surfaces.back().vertices[0].position.x = .125f;
+	CHECK(boundary->CertificationKey() != f.Build()->CertificationKey());
+	f.options.bounds = Box(Vec3(-2, -2, 1), Vec3(2, 2, 7));
+	auto small = f.Build();
+	a = Lookup(small, Vec3(-4, 0, 4));
+	CHECK(a.state == RegionAssignmentState::Unknown && a.outsideAnalysisBounds &&
+		  a.bsp.space == SpaceClass::Free);
+	f.Solid(Box(Vec3(-5,-1,3),Vec3(-3,1,5)));
+	a=Lookup(f.Build(),Vec3(-4,0,4));
+	CHECK(a.state==RegionAssignmentState::Solid && a.outsideAnalysisBounds);
+}
+void ObliqueBrushCertificates()
+{
+	auto input = Bsp();
+	for (float x : {-.70710677f, .70710677f})
+	{
+		SpatialPlane plane;
+		plane.normal = Vec3(x, .70710677f, 0);
+		input.sides.push_back(uint32_t(input.planes.size()));
+		input.planes.push_back(plane);
+	}
+	input.brushes[0].sideCount = 8;
+	std::shared_ptr<const BspRegionDomain> domain;
+	CHECK(BspRegionDomain::Create(input, Context(), domain));
+	SpaceClass space;
+	uint64_t work;
+	uint32_t reasons;
+	CHECK(
+		domain->InspectBox(Box(Vec3(-.8f, .1f, -.5f), Vec3(.8f, .2f, .5f)), space, work, reasons));
+	CHECK(space == SpaceClass::Free && (reasons & BoxBrushDisjointRefined));
+	CHECK(
+		domain->InspectBox(Box(Vec3(-.8f, -.2f, -.5f), Vec3(.8f, .2f, .5f)), space, work, reasons));
+	CHECK(space == SpaceClass::Unknown);
+	// Independent sampled half-space reference: every certified box must contain no solid points.
+	for (unsigned y = 0; y < 20; ++y)
+		for (unsigned x = 0; x < 20; ++x)
+		{
+			float px = -1.1f + x * .11f, py = -1.1f + y * .11f;
+			Bounds box = Box(Vec3(px, py, -.05f), Vec3(px + .1f, py + .1f, .05f));
+			CHECK(domain->ClassifyBox(box, space, work));
+			if (space == SpaceClass::Free)
+				for (unsigned j = 0; j <= 4; ++j)
+					for (unsigned i = 0; i <= 4; ++i)
+					{
+						float a = px + i * .025f, b = py + j * .025f;
+						bool solid = std::abs(a) < 1 && std::abs(b) < 1 && b < -std::abs(a) - 1e-5f;
+						CHECK(!solid);
+					}
+		}
+}
 int main()
 {
 	auto start = std::chrono::steady_clock::now();
 	Rooms();
 	CorridorFloorsAndExterior();
 	DomainAndLimits();
+	UncertaintyAndOptionalRegions();
+	ObliqueBrushCertificates();
 	std::printf("regions: %d checks, %d failures; seconds=%.6f\n", checks, failures,
 				std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
 	return failures ? 1 : 0;
