@@ -2501,6 +2501,79 @@ static void CG_AddFoliageInteractors( void )
 	trap->ext.R_SetFoliageInteractors( list, count );
 }
 
+/*
+=====================
+CG_AddFoliageForceWaves
+
+r_foliageInteraction (rend2): a Force push or pull leaving a player or an NPC
+sends one shock wave through the vegetation; the renderer throws the plants,
+grass and leaves in its cone away from (push) or towards (pull) the caster as
+the front passes them. ForceThrow (and a counter push) turns PW_DISINT_4 on
+for the hand effect, with PW_PULL for a pull; grip uses PW_DISINT_4 too and
+is told apart by its active power.
+=====================
+*/
+static const float foliageForceWaveRadius[NUM_FORCE_POWER_LEVELS] = { 448.0f, 384.0f, 448.0f, 512.0f };	// w_force.c
+// cosine of half the visionArc of ForceThrow (level 1: aimed, still a narrow lane)
+static const float foliageForceWaveCone[NUM_FORCE_POWER_LEVELS] = { 0.6f, 0.9f, 0.866f, 0.0f };
+
+static void CG_FoliageForceWave( int number, qboolean pushing, qboolean pull, int level,
+	const vec3_t origin, const vec3_t angles )
+{
+	static qboolean wasPushing[MAX_GENTITIES];
+	foliageForceWave_t wave;
+
+	if ( pushing == wasPushing[number] )
+		return;
+	wasPushing[number] = pushing;
+	if ( !pushing )
+		return;
+
+	memset( &wave, 0, sizeof( wave ) );
+	wave.id = number;
+	VectorCopy( origin, wave.origin );
+	AngleVectors( angles, wave.direction, NULL, NULL );
+	// level 0: unknown (other clients), a level 2 push
+	wave.radius = foliageForceWaveRadius[level];
+	wave.cone = foliageForceWaveCone[level];
+	wave.strength = level ? 0.5f + 0.25f * level : 1.0f;
+	wave.flags = pull ? FOLIAGE_FORCEWAVE_PULL : 0;
+	trap->ext.R_AddFoliageForceWave( &wave );
+}
+
+static void CG_AddFoliageForceWaves( void )
+{
+	const playerState_t *ps = &cg.predictedPlayerState;
+	int num;
+
+	if ( !r_foliageInteraction.integer || !trap->ext.R_AddFoliageForceWave || !cg.snap || cg.hyperspace )
+		return;
+
+	// the player: its own power levels
+	if ( ps->pm_type != PM_SPECTATOR && ps->pm_type != PM_INTERMISSION )
+	{
+		const qboolean pull = ps->powerups[PW_PULL] ? qtrue : qfalse;
+		const qboolean pushing = ps->powerups[PW_DISINT_4] > cg.time && ps->pm_type != PM_DEAD &&
+			!(ps->fd.forcePowersActive & (1 << FP_GRIP)) ? qtrue : qfalse;
+		const int level = Com_Clampi( FORCE_LEVEL_0, FORCE_LEVEL_3, ps->fd.forcePowerLevel[pull ? FP_PULL : FP_PUSH] );
+		CG_FoliageForceWave( ps->clientNum, pushing, pull, level, ps->origin, ps->viewangles );
+	}
+
+	for ( num = 0; num < cg.snap->numEntities; num++ )
+	{
+		const entityState_t *es = &cg.snap->entities[num];
+		const centity_t *cent = &cg_entities[es->number];
+		qboolean pushing;
+
+		if ( es->number == ps->clientNum || (es->eType != ET_PLAYER && es->eType != ET_NPC) )
+			continue;
+		pushing = (es->powerups & (1 << PW_DISINT_4)) && !(es->forcePowersActive & (1 << FP_GRIP)) &&
+			!(es->eFlags & (EF_DEAD | EF_NODRAW)) ? qtrue : qfalse;
+		CG_FoliageForceWave( es->number, pushing, (es->powerups & (1 << PW_PULL)) ? qtrue : qfalse,
+			FORCE_LEVEL_0, cent->lerpOrigin, cent->lerpAngles );
+	}
+}
+
 /* Moving bodies for the renderer's body-local shallow-water wake solver. */
 #define WATER_WAKE_RANGE 2048.0f
 #define MAX_WATER_WAKE_SOURCES 64
@@ -2914,6 +2987,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 		CG_AddPacketEntities(qfalse);			// adter calcViewValues, so predicted player state is correct
 		CG_AddMarks();
 		CG_AddFoliageInteractors();
+		CG_AddFoliageForceWaves();
 		CG_AddWaterWakeSources();
 	}
 	CG_AddViewWeapon( &cg.predictedPlayerState );

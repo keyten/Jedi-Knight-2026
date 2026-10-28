@@ -328,6 +328,23 @@ typedef struct {
 	int			flags;		// FOLIAGE_INTERACTOR_*
 } foliageInteractor_t;
 
+// Force push / pull through the foliage (rend2 r_foliageInteraction,
+// r_foliageForceWaves): the shock wave of a Force push or pull leaving a
+// character, sent once when it is cast through the optional renderer extension
+// GetRefFoliageWaveAPI. As the front passes them, plants, grass and leaves in
+// the cone are thrown away from (push) or towards (pull) the caster.
+#define	FOLIAGE_FORCEWAVE_PULL		1
+
+typedef struct {
+	int			id;			// caster entity number
+	vec3_t		origin;		// caster body center
+	vec3_t		direction;	// aim (unit)
+	float		radius;		// reach, world units
+	float		cone;		// cosine of the half angle of the cone (-1 = all around)
+	float		strength;	// 1 = a level 2 push
+	int			flags;		// FOLIAGE_FORCEWAVE_*
+} foliageForceWave_t;
+
 // Local fog volumes (rend2 froxel fog, r_volumetricFog 2): a small analytic
 // participating medium (smoke pocket, steam, haze, dust) with a soft edge,
 // added per scene like a dynamic light through the optional renderer

@@ -545,6 +545,8 @@ cvar_t  *r_foliageInteractionRadius;
 cvar_t  *r_foliageInteractionMaxInteractors;
 cvar_t  *r_foliageInteractionNPCs;
 cvar_t  *r_foliageInteractionDebug;
+cvar_t  *r_foliageForceWaves;
+cvar_t  *r_foliageForceWaveStrength;
 cvar_t  *r_foliageBendFieldSize;
 cvar_t  *r_foliageBendFieldExtent;
 cvar_t  *r_foliageBendFieldStrength;
@@ -2661,6 +2663,12 @@ void R_Register( void )
 	r_foliageInteractionDebug = ri.Cvar_Get( "r_foliageInteractionDebug", "0", CVAR_CHEAT,
 		"Foliage interaction debug bits: 1 = draw colliders, 2 = x2 radius and strength, 4 = interaction only (no wind), 8 = grass contact heat color (plants: r_plantDebug 8), 16 = freeze colliders, 32 = player only" );
 	ri.Cvar_CheckRange( r_foliageInteractionDebug, 0, 63, qtrue );
+	r_foliageForceWaves = ri.Cvar_Get( "r_foliageForceWaves", "1", CVAR_ARCHIVE,
+		"r_foliageInteraction: a Force push / pull of the player or an NPC throws the plants, grass and leaves in its cone away from / towards the caster" );
+	ri.Cvar_CheckRange( r_foliageForceWaves, 0, 1, qtrue );
+	r_foliageForceWaveStrength = ri.Cvar_Get( "r_foliageForceWaveStrength", "1", CVAR_ARCHIVE,
+		"Strength of the Force push / pull through the foliage (r_foliageForceWaves), 0 = none" );
+	ri.Cvar_CheckRange( r_foliageForceWaveStrength, 0.0f, 4.0f, qfalse );
 	r_foliageBendFieldSize = ri.Cvar_Get( "r_foliageBendFieldSize", "256", CVAR_ARCHIVE | CVAR_LATCH,
 		"r_foliageInteraction: texels per side of the grass bend field (64, 128 or 256)" );
 	ri.Cvar_CheckRange( r_foliageBendFieldSize, 64, 256, qtrue );
@@ -4223,6 +4231,19 @@ Optional extension (tr_public.h): foliage interaction, tr_foliageinteract.cpp
 extern "C" Q_EXPORT const refFoliageExport_t* QDECL GetRefFoliageAPI ( void ) {
 	static const refFoliageExport_t foliage = { RE_SetFoliageInteractors };
 	return &foliage;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefFoliageWaveAPI
+
+Optional extension (tr_public.h): Force push / pull waves through the
+foliage, tr_foliageinteract.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refFoliageWaveExport_t* QDECL GetRefFoliageWaveAPI ( void ) {
+	static const refFoliageWaveExport_t foliageWaves = { RE_AddFoliageForceWave };
+	return &foliageWaves;
 }
 
 /*

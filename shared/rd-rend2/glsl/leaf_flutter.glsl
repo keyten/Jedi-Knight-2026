@@ -13,9 +13,45 @@ uniform vec4 u_LeafFlutter;			// wind dir x, y (unit), amplitude in units (0 = o
 uniform vec4 u_LeafFlutterParams;	// time, previous frame time, 1 / model xy radius, normal amount
 uniform float u_LeafFlutterDebug;	// fragment debug view: 0, 4 = highlight, 8 = magnitude
 
+// Force push / pull waves (r_foliageForceWaves, tr_foliageinteract.cpp), the
+// newest first. Per wave: (origin, radius), (horizontal aim x, y (0 = all
+// around), cosine of the cone, signed strength: < 0 pull), (start time, unused)
+#define FOLIAGE_MAX_FORCE_WAVES 4
+uniform vec4 u_LeafForceWave;		// count, front speed, amplitude (units), unused
+uniform vec4 u_LeafForceWaves[FOLIAGE_MAX_FORCE_WAVES * 3];
+
 bool LeafFlutterEnabled()
 {
-	return u_LeafFlutter.z > 0.0;
+	return u_LeafFlutter.z > 0.0 || u_LeafForceWave.x > 0.0;
+}
+
+// Leaves hit by a Force wave: from the arrival of the front the crown swings
+// like a damped oscillator (~1.4 Hz, e^-1.8t, peak normalised to 1) away from
+// (push) or towards (pull) the caster, gone after the 3 s the wave lives. A
+// pure function of the rest position and the time, like the flutter, so the
+// velocity pass gets the previous frame from the previous time.
+vec3 LeafForceWaveOffset(in vec3 p, in float t, in float weight)
+{
+	vec2 offset = vec2(0.0);
+	int count = int(u_LeafForceWave.x);
+	for (int i = 0; i < FOLIAGE_MAX_FORCE_WAVES; ++i)
+	{
+		if (i >= count)
+			break;
+		vec4 origin = u_LeafForceWaves[3 * i];
+		vec4 aim = u_LeafForceWaves[3 * i + 1];
+		vec2 r = p.xy - origin.xy;
+		float d = length(r);
+		float tau = t - u_LeafForceWaves[3 * i + 2].x - d / u_LeafForceWave.y;
+		if (d >= origin.w || tau <= 0.0)
+			continue;
+		vec2 n = d > 1e-3 ? r / d : (dot(aim.xy, aim.xy) > 0.0 ? aim.xy : vec2(1.0, 0.0));
+		float a = aim.z > -1.0 ? smoothstep(aim.z - 0.15, aim.z + 0.05, dot(n, aim.xy)) : 1.0;
+		a *= (1.0 - smoothstep(0.6 * origin.w, origin.w, d)) * (1.0 - 0.5 * d / origin.w);
+		float swing = 1.35 * exp(-1.8 * tau) * sin(8.8 * tau);
+		offset += n * (aim.w * a * swing);
+	}
+	return vec3(offset * (u_LeafForceWave.z * weight), 0.0);
 }
 
 // Stable per tree phase in [0, 1) from the entity origin, on an 8 unit lattice
@@ -56,7 +92,10 @@ vec3 LeafFlutterOffset(in vec3 p, in float seed, in float t, in float weight, ou
 	bands = vec2(slow, fast);
 
 	float amplitude = u_LeafFlutter.z * weight;
-	return vec3(dir * (0.6 * slow) + side * (0.45 * fast), 0.3 * fast) * amplitude;
+	vec3 offset = vec3(dir * (0.6 * slow) + side * (0.45 * fast), 0.3 * fast) * amplitude;
+	if (u_LeafForceWave.x > 0.0)
+		offset += LeafForceWaveOffset(p, t, weight);
+	return offset;
 }
 
 // Small tilt of the world space normal in step with the displacement. On the
@@ -73,5 +112,5 @@ vec3 LeafFlutterNormal(in vec3 normal, in vec2 bands, in float weight)
 // Debug magnitude in [0, 1]: |offset| relative to the largest possible offset
 float LeafFlutterMagnitude(in vec3 offset)
 {
-	return clamp(length(offset) / (0.81 * u_LeafFlutter.z), 0.0, 1.0);
+	return clamp(length(offset) / max(0.81 * u_LeafFlutter.z, 1e-3), 0.0, 1.0);
 }

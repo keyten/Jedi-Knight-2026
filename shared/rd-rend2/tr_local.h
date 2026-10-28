@@ -642,6 +642,8 @@ extern cvar_t  *r_foliageInteractionRadius;
 extern cvar_t  *r_foliageInteractionMaxInteractors;
 extern cvar_t  *r_foliageInteractionNPCs;
 extern cvar_t  *r_foliageInteractionDebug;
+extern cvar_t  *r_foliageForceWaves;
+extern cvar_t  *r_foliageForceWaveStrength;
 extern cvar_t  *r_foliageBendFieldSize;
 extern cvar_t  *r_foliageBendFieldExtent;
 extern cvar_t  *r_foliageBendFieldStrength;
@@ -1577,6 +1579,9 @@ struct TemporalBlock
 // Same layout as the FoliageInteraction block of glsl/foliage_interact.glsl
 // (std140). Per collider: (axis x, y, feet z, head z), (radius, velocity x,
 // velocity y, unused).
+// Force push / pull waves on the GPU (the grass field and the leaves), the
+// newest of the live ones; same as FOLIAGE_MAX_FORCE_WAVES in the shaders
+#define FOLIAGE_FORCEWAVE_GPU 4
 struct FoliageInteractionBlock
 {
 	vec4_t params;		// current count, previous count, strength, 1 = no wind (debug)
@@ -1588,6 +1593,9 @@ struct FoliageInteractionBlock
 	vec4_t fieldUpdate;		// update pass: time step, spring k, damping c, impulse
 	vec4_t fieldShift;		// update pass: texel shift x, y, clear, unused
 	vec4_t fieldTrample;	// update pass: trample strength, 1 / recovery time, unused, unused
+	// Force push / pull waves (r_foliageForceWaves), the newest first
+	vec4_t waveParams;		// count, front half width, grass kick (units / s), front speed
+	vec4_t waves[FOLIAGE_FORCEWAVE_GPU * 3];	// FoliageForceWavePack
 };
 
 // Froxel volumetric fog (r_volumetricFog 2, tr_volumetric.cpp). Same layout
@@ -2760,6 +2768,8 @@ typedef enum
 	UNIFORM_LEAFFLUTTER,		// r_leafFlutter: wind dir x, y, amplitude (0 = off), speed
 	UNIFORM_LEAFFLUTTERPARAMS,	// r_leafFlutter: time, previous time, 1 / model xy radius, normal amount
 	UNIFORM_LEAFFLUTTERDEBUG,	// r_leafFlutterDebug: 0, 4 = highlight, 8 = magnitude colour
+	UNIFORM_LEAFFORCEWAVE,		// r_foliageForceWaves on leaves: count, front speed, amplitude, unused
+	UNIFORM_LEAFFORCEWAVES,		// r_foliageForceWaves on leaves: FOLIAGE_FORCEWAVE_GPU x 3 vec4
 	UNIFORM_PLANTSKIN,			// FOLIAGE_PLANT: first bone texel, texels per pose, 1 = skinned, debug
 	UNIFORM_PLANTBONES,			// FOLIAGE_PLANT: bone buffer texture (TB_PLANTBONES)
 	UNIFORM_FOLIAGEINTERACT,	// surface sprites: interaction (0 / 1), contact heat debug (0 / 1)
@@ -6362,6 +6372,13 @@ void RB_UpdateFoliageInteractionConstants(struct gpuFrame_t *frame, const trRefd
 UniformBlockBinding RB_GetFoliageInteractionBlockUniformBinding(void);
 void RB_SetFoliageMotionUniforms(UniformDataWriter& writer, uint8_t cls);
 void RB_SetSpriteInteractionUniforms(UniformDataWriter& writer);
+// Force push / pull waves through the foliage (r_foliageForceWaves)
+void RE_AddFoliageForceWave(const foliageForceWave_t *wave);
+bool R_FoliageForceWavesEnabled(void);
+bool R_FoliageForceWaveReaches(const float *center, float radius, float t0, float t1);
+bool R_FoliageForceWaveImpulse(const float *p, float t0, float t1, float *dv);
+float R_FoliageLeafWaveAmplitude(void);
+void RB_SetLeafForceWaveUniforms(UniformDataWriter& writer, bool active);
 
 // tr_plantskel.cpp: frond skeletons of MD3 plants
 void R_BuildPlantSkeleton(mdvModel_t *model);

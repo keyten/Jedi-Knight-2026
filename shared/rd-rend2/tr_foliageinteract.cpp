@@ -10,8 +10,17 @@
  *   - the MD3 plants: the frond chains of tr_plantsim.cpp collide with them on
  *     the CPU; glsl/plant_skin.glsl draws the result.
  *
+ * Force push / pull (r_foliageForceWaves): cgame sends one wave per cast
+ * (GetRefFoliageWaveAPI). Its front leaves the caster at FORCEWAVE_SPEED;
+ * whatever it passes inside the cone gets a velocity kick away from (push) or
+ * towards (pull) the caster, spread over the time the front needs to cross
+ * it (a smoothstep pulse, integrated exactly over any time step). The fronds
+ * (tr_plantsim.cpp) and the grass field (glsl/foliage_field.glsl) take the
+ * kick as state and spring back by themselves; the stateless leaves
+ * (glsl/leaf_flutter.glsl) swing as a damped oscillator from the arrival.
+ *
  * Per scene the FoliageInteraction uniform block carries the colliders of this
- * frame and of the previous frame and the bend field parameters. Every view
+ * frame and of the previous frame, the bend field parameters and the waves. Every view
  * of the scene (main, mirrors / portals, sun and point shadows) uses the same
  * world space state; the sky portal view and non world scenes get none.
  */
@@ -26,6 +35,26 @@ enum
 	FOLIAGEINTERACT_DEBUG_HEAT       = 8,	// color by collider contact
 	FOLIAGEINTERACT_DEBUG_FREEZE     = 16,	// keep the colliders of one frame
 	FOLIAGEINTERACT_DEBUG_PLAYER     = 32	// player only
+};
+
+// Force push / pull waves
+const int FORCEWAVE_MAX = 8;				// live waves (the oldest drops out)
+const float FORCEWAVE_SPEED = 1400.0f;		// front speed (units / s): 512 units in 0.37 s
+const float FORCEWAVE_WIDTH = 48.0f;		// half width of the front: the kick lasts 2 w / speed
+const float FORCEWAVE_VERTICAL = 160.0f;	// full kick within this height of the caster, none beyond 2x
+const float FORCEWAVE_PLANT_KICK = 420.0f;	// velocity kick of a frond node at strength 1 (units / s)
+const float FORCEWAVE_GRASS_KICK = 180.0f;	// velocity kick of the grass field at strength 1 (units / s)
+const float FORCEWAVE_LEAF_AMPLITUDE = 6.0f;	// largest leaf offset at strength 1 (units)
+const float FORCEWAVE_LEAF_TAIL = 3.0f;		// s a tree keeps swinging after the front (glsl: e^-5.4)
+
+struct ForceWave
+{
+	vec3_t origin;
+	vec2_t dir;			// horizontal aim (unit), 0 = all around
+	float cone;			// cosine of the half angle, -1 = all around
+	float radius;
+	float kick;			// strength, negative = pull
+	float t0;			// refdef time (s) the wave left, < 0 until latched
 };
 
 static struct
@@ -46,6 +75,13 @@ static struct
 	// the scene being drawn
 	int sceneCount;				// colliders of the current scene (0: none)
 	bool sceneField;			// the current scene samples the persistent field
+
+	// Force push / pull waves, the oldest first
+	ForceWave waves[FORCEWAVE_MAX];
+	int numWaves;
+	// the newest live ones packed for the shaders (latched once per frame)
+	vec4_t wavePack[FOLIAGE_FORCEWAVE_GPU * 3];
+	int wavePackCount;
 } s_fi = {};
 
 static int FoliageInteractionDebug(void)
@@ -79,6 +115,227 @@ int R_FoliageInteractionColliders(const vec4_t **colliders)
 }
 
 /*
+=============================================================
+
+Force push / pull waves
+
+=============================================================
+*/
+
+bool R_FoliageForceWavesEnabled(void)
+{
+	return R_FoliageInteractionActive() && r_foliageForceWaves->integer &&
+		r_foliageForceWaveStrength->value > 0.0f;
+}
+
+// largest leaf offset of a wave (for the cull margin of the trees)
+float R_FoliageLeafWaveAmplitude(void)
+{
+	if (!R_FoliageForceWavesEnabled() || !r_autoFoliage->integer)
+		return 0.0f;
+	return FORCEWAVE_LEAF_AMPLITUDE * MIN(r_foliageForceWaveStrength->value, 4.0f) * 4.0f;
+}
+
+/*
+=============
+RE_AddFoliageForceWave
+
+Optional renderer extension (tr_public.h): cgame, once per Force push or
+pull cast. Starts at the refdef time of the next world scene.
+=============
+*/
+void RE_AddFoliageForceWave(const foliageForceWave_t *in)
+{
+	if (!in || !R_FoliageForceWavesEnabled() || !tr.world)
+		return;
+
+	ForceWave w = {};
+	VectorCopy(in->origin, w.origin);
+	const float len = sqrtf(in->direction[0] * in->direction[0] + in->direction[1] * in->direction[1]);
+	if (len > 0.2f)
+	{
+		// the cone is horizontal: a push aimed down at the grass parts it too
+		w.dir[0] = in->direction[0] / len;
+		w.dir[1] = in->direction[1] / len;
+		w.cone = Com_Clamp(-1.0f, 0.95f, in->cone);
+	}
+	else
+	{
+		// aimed (almost) straight up or down: all around
+		w.cone = -1.0f;
+	}
+	w.radius = Com_Clamp(64.0f, 2048.0f, in->radius);
+	w.kick = Com_Clamp(0.0f, 4.0f, in->strength) * r_foliageForceWaveStrength->value;
+	if (in->flags & FOLIAGE_FORCEWAVE_PULL)
+		w.kick = -w.kick;
+	w.t0 = -1.0f;
+	if (w.kick == 0.0f)
+		return;
+
+	if (s_fi.numWaves == FORCEWAVE_MAX)
+	{
+		memmove(&s_fi.waves[0], &s_fi.waves[1], (FORCEWAVE_MAX - 1) * sizeof(s_fi.waves[0]));
+		--s_fi.numWaves;
+	}
+	s_fi.waves[s_fi.numWaves++] = w;
+}
+
+// seconds a wave lives: its front crosses the radius, then the leaves settle
+static float ForceWaveLifetime(const ForceWave &w)
+{
+	return (w.radius + FORCEWAVE_WIDTH) / FORCEWAVE_SPEED + FORCEWAVE_LEAF_TAIL;
+}
+
+// once per frame (the first world scene): new waves start now, finished ones
+// go, the newest live ones are packed for the shaders
+static void R_FoliageForceWavesLatch(float now)
+{
+	int live = 0;
+	for (int i = 0; i < s_fi.numWaves; ++i)
+	{
+		ForceWave &w = s_fi.waves[i];
+		if (w.t0 < 0.0f)
+			w.t0 = now;
+		// a time jump back (map restart, demo seek) ends it too
+		if (now - w.t0 > ForceWaveLifetime(w) || now < w.t0 - 0.5f || !R_FoliageForceWavesEnabled())
+			continue;
+		s_fi.waves[live++] = w;
+	}
+	s_fi.numWaves = live;
+
+	// FoliageForceWavePack: (origin, radius), (aim x, y, cone, kick), (t0,
+	// seconds since t0)
+	s_fi.wavePackCount = 0;
+	for (int i = s_fi.numWaves - 1; i >= 0 && s_fi.wavePackCount < FOLIAGE_FORCEWAVE_GPU; --i)
+	{
+		const ForceWave &w = s_fi.waves[i];
+		float *pack = s_fi.wavePack[s_fi.wavePackCount * 3];
+		VectorSet4(pack + 0, w.origin[0], w.origin[1], w.origin[2], w.radius);
+		VectorSet4(pack + 4, w.dir[0], w.dir[1], w.cone, w.kick);
+		VectorSet4(pack + 8, w.t0, now - w.t0, 0.0f, 0.0f);
+		++s_fi.wavePackCount;
+	}
+}
+
+static float ForceWaveSmoothStep(float edge0, float edge1, float x)
+{
+	const float t = Com_Clamp(0.0f, 1.0f, (x - edge0) / (edge1 - edge0));
+	return t * t * (3.0f - 2.0f * t);
+}
+
+// how much of a wave reaches the point p (distance, cone, height falloffs) and
+// the horizontal way it is thrown (away from the caster), 0 outside. Same as
+// FoliageForceWaveWeight in glsl/foliage_interact.glsl (without the height
+// there: the grass field has none)
+static float ForceWaveWeight(const ForceWave &w, const float *p, float &d, vec2_t n)
+{
+	const float dx = p[0] - w.origin[0];
+	const float dy = p[1] - w.origin[1];
+	d = sqrtf(dx * dx + dy * dy);
+	if (d >= w.radius)
+		return 0.0f;
+	if (d > 1e-3f)
+	{
+		n[0] = dx / d;
+		n[1] = dy / d;
+	}
+	else if (w.cone > -1.0f)
+	{
+		n[0] = w.dir[0];
+		n[1] = w.dir[1];
+	}
+	else
+	{
+		n[0] = 1.0f;
+		n[1] = 0.0f;
+	}
+	float weight = 1.0f;
+	if (w.cone > -1.0f)
+		weight *= ForceWaveSmoothStep(w.cone - 0.15f, w.cone + 0.05f, n[0] * w.dir[0] + n[1] * w.dir[1]);
+	weight *= 1.0f - ForceWaveSmoothStep(FORCEWAVE_VERTICAL, 2.0f * FORCEWAVE_VERTICAL, fabsf(p[2] - w.origin[2]));
+	// strongest near the caster, nothing at the reach
+	weight *= (1.0f - ForceWaveSmoothStep(0.6f * w.radius, w.radius, d)) * (1.0f - 0.5f * d / w.radius);
+	return weight;
+}
+
+// part of the kick given while the front moves across the point at distance
+// d: 0 before it arrives, 1 once it is past
+static float ForceWavePassed(const ForceWave &w, float t, float d)
+{
+	return ForceWaveSmoothStep(-FORCEWAVE_WIDTH, FORCEWAVE_WIDTH, FORCEWAVE_SPEED * (t - w.t0) - d);
+}
+
+/*
+=============
+R_FoliageForceWaveReaches
+
+A front passes through the sphere between the times t0 and t1 (refdef
+seconds): the plant must be stepped (and in detail).
+=============
+*/
+bool R_FoliageForceWaveReaches(const float *center, float radius, float t0, float t1)
+{
+	for (int i = 0; i < s_fi.numWaves; ++i)
+	{
+		const ForceWave &w = s_fi.waves[i];
+		if (w.t0 < 0.0f)
+			continue;
+		const float d = sqrtf((center[0] - w.origin[0]) * (center[0] - w.origin[0]) +
+			(center[1] - w.origin[1]) * (center[1] - w.origin[1]));
+		const float nearest = MAX(d - radius, 0.0f);
+		if (nearest >= w.radius)
+			continue;
+		const float front0 = FORCEWAVE_SPEED * (t0 - w.t0) - FORCEWAVE_WIDTH;
+		const float front1 = FORCEWAVE_SPEED * (t1 - w.t0) + FORCEWAVE_WIDTH;
+		if (front1 > nearest && front0 < d + radius)
+			return true;
+	}
+	return false;
+}
+
+/*
+=============
+R_FoliageForceWaveImpulse
+
+The velocity change (world units / s) the waves give a point p between the
+times t0 and t1 (refdef seconds), added to dv. False when none reaches it.
+=============
+*/
+bool R_FoliageForceWaveImpulse(const float *p, float t0, float t1, float *dv)
+{
+	bool any = false;
+	for (int i = 0; i < s_fi.numWaves; ++i)
+	{
+		const ForceWave &w = s_fi.waves[i];
+		if (w.t0 < 0.0f)
+			continue;
+		float d;
+		vec2_t n;
+		const float weight = ForceWaveWeight(w, p, d, n);
+		if (weight <= 0.0f)
+			continue;
+		const float part = ForceWavePassed(w, t1, d) - ForceWavePassed(w, t0, d);
+		if (part <= 0.0f)
+			continue;
+		const float kick = FORCEWAVE_PLANT_KICK * w.kick * weight * part;
+		dv[0] += n[0] * kick;
+		dv[1] += n[1] * kick;
+		any = true;
+	}
+	return any;
+}
+
+// leaf_flutter.glsl, every draw with the library: the waves of this frame
+// (count 0 = none, also for the draws that must stay still)
+void RB_SetLeafForceWaveUniforms(UniformDataWriter& writer, bool active)
+{
+	const int count = active ? s_fi.wavePackCount : 0;
+	writer.SetUniformVec4(UNIFORM_LEAFFORCEWAVE, (float)count, FORCEWAVE_SPEED, FORCEWAVE_LEAF_AMPLITUDE, 0.0f);
+	if (count)
+		writer.SetUniformVec4(UNIFORM_LEAFFORCEWAVES, s_fi.wavePack[0], count * 3);
+}
+
+/*
 =============
 RE_SetFoliageInteractors
 
@@ -107,6 +364,8 @@ ones become the motion vector history. Called once per frame.
 */
 static void R_FoliageInteractionLatch(const refdef_t *fd)
 {
+	R_FoliageForceWavesLatch(fd->time * 0.001f);
+
 	const int debug = FoliageInteractionDebug();
 	const bool consecutive = s_fi.latchedFrame == tr.frameCount - 1 &&
 		fd->time >= s_fi.latchedTime && fd->time - s_fi.latchedTime <= 250;
@@ -227,6 +486,8 @@ void R_FoliageInteractionReset(void)
 	s_fi.latchedFrame = -1;
 	s_fi.sceneCount = 0;
 	s_fi.sceneField = false;
+	s_fi.numWaves = 0;
+	s_fi.wavePackCount = 0;
 	R_FoliageFieldReset();
 	// the plant instances point into the models of the previous map
 	R_PlantSimReset();
@@ -262,6 +523,10 @@ void RB_UpdateFoliageInteractionConstants(gpuFrame_t *frame, const trRefdef_t *r
 		Com_Memcpy(block.previous, s_fi.previous, sizeof(block.previous));
 	}
 	R_FoliageFieldBlock(&block, debug);
+	// the grass field update takes the waves (glsl/foliage_field.glsl)
+	VectorSet4(block.waveParams, (float)s_fi.wavePackCount, FORCEWAVE_WIDTH, FORCEWAVE_GRASS_KICK, FORCEWAVE_SPEED);
+	if (s_fi.wavePackCount)
+		Com_Memcpy(block.waves, s_fi.wavePack, s_fi.wavePackCount * 3 * sizeof(vec4_t));
 	tr.foliageInteractionUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
 
 	// the first world scene of the frame updates the persistent field before
@@ -409,6 +674,38 @@ static void R_FoliageInteractionDebugCapsules(const refdef_t *fd)
 		if (DistanceSquared(foot, tip) > 1.0f)
 			R_FoliageDebugSegmentShader(shader, fd, foot, tip, rgba);
 	}
+
+	// Force waves: the front inside its cone (orange = push, magenta = pull)
+	// and the reach, faint
+	static const byte push[4] = { 255, 140, 30, 255 };
+	static const byte pull[4] = { 220, 60, 255, 255 };
+	static const byte reach[4] = { 120, 120, 120, 255 };
+	const float now = fd->time * 0.001f;
+	for (int i = 0; i < s_fi.numWaves; ++i)
+	{
+		const ForceWave &w = s_fi.waves[i];
+		if (w.t0 < 0.0f)
+			continue;
+		const float front = FORCEWAVE_SPEED * (now - w.t0);
+		const float yaw = w.cone > -1.0f ? atan2f(w.dir[1], w.dir[0]) : 0.0f;
+		const float half = w.cone > -1.0f ? acosf(Com_Clamp(-1.0f, 1.0f, w.cone - 0.05f)) : M_PI;
+		const int arcs = 24;
+		for (int ring = 0; ring < 2; ++ring)
+		{
+			const float r = ring ? w.radius : front;
+			if (r <= 0.0f || r > w.radius)
+				continue;
+			for (int s = 0; s < arcs; ++s)
+			{
+				const float a0 = yaw - half + 2.0f * half * s / arcs;
+				const float a1 = yaw - half + 2.0f * half * (s + 1) / arcs;
+				vec3_t p0, p1;
+				VectorSet(p0, w.origin[0] + cosf(a0) * r, w.origin[1] + sinf(a0) * r, w.origin[2]);
+				VectorSet(p1, w.origin[0] + cosf(a1) * r, w.origin[1] + sinf(a1) * r, w.origin[2]);
+				R_FoliageDebugSegmentShader(shader, fd, p0, p1, ring ? reach : (w.kick < 0.0f ? pull : push));
+			}
+		}
+	}
 }
 
 // r_foliageBendFieldDebug 2: the square the persistent field covers, at the
@@ -446,6 +743,15 @@ void R_FoliageInteractionList_f(void)
 		R_FoliageInteractionActive() ? "on" : "off", s_fi.submittedCount, s_fi.submittedFrame,
 		tr.frameCount, s_fi.currentCount, s_fi.previousCount);
 	R_FoliageFieldInfo();
+	ri.Printf(PRINT_ALL, "force waves: %s, %d live, %d on the GPU\n",
+		R_FoliageForceWavesEnabled() ? "on" : "off", s_fi.numWaves, s_fi.wavePackCount);
+	for (int i = 0; i < s_fi.numWaves; ++i)
+	{
+		const ForceWave &w = s_fi.waves[i];
+		ri.Printf(PRINT_ALL, "  wave %d: %s from (%.0f %.0f %.0f) aim (%.2f %.2f) cone %.2f radius %.0f "
+			"strength %.2f, start %.2f s\n", i, w.kick < 0.0f ? "pull" : "push", w.origin[0], w.origin[1],
+			w.origin[2], w.dir[0], w.dir[1], w.cone, w.radius, fabsf(w.kick), w.t0);
+	}
 	for (int i = 0; i < s_fi.submittedCount; ++i)
 	{
 		const foliageInteractor_t *in = &s_fi.submitted[i];

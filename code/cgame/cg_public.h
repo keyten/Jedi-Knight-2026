@@ -247,6 +247,11 @@ Ghoul2 Insert End
 	CG_R_ADDLENSWATEREVENT,
 	CG_R_ADDWATERIMPULSE,
 	CG_R_SETWATERSOURCES,
+
+	// Force push / pull wave through the foliage (rend2 foliage wave
+	// extension); only called with cl_rendererFoliageWaves set by the engine
+	// (older engines lack it)
+	CG_R_ADDFOLIAGEFORCEWAVE,
 } cgameImport_t;
 
 #ifdef JK2_MODE

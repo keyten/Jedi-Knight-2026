@@ -1041,6 +1041,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reWaterInteraction && reWaterInteraction->SetWaterSources )
 			reWaterInteraction->SetWaterSources( (const refWaterSource_t *) VMA(1), args[2] );
 		return 0;
+	case CG_R_ADDFOLIAGEFORCEWAVE:
+		if ( reFoliageWaves && reFoliageWaves->AddFoliageForceWave )
+			reFoliageWaves->AddFoliageForceWave( (const foliageForceWave_t *) VMA(1) );
+		return 0;
 	case CG_R_RENDERSCENE:
 		re.RenderScene( (const refdef_t *) VMA(1) );
 		return 0;

@@ -128,6 +128,7 @@ cvar_t	*cl_reconnectArgs;
 refexport_t	*re = NULL;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
+const refFoliageWaveExport_t	*reFoliageWaves = NULL;	// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
@@ -2327,6 +2328,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	re = NULL;
 	reAreaLights = NULL;
 	reFoliage = NULL;
+	reFoliageWaves = NULL;
 	reVolParticles = NULL;
 	reSpotLights = NULL;
 	reLensWater = NULL;
@@ -2555,6 +2557,8 @@ void CL_InitRef( void ) {
 	reAreaLights = GetRefAreaLightAPI ? GetRefAreaLightAPI() : NULL;
 	GetRefFoliageAPI_t GetRefFoliageAPI = (GetRefFoliageAPI_t)Sys_LoadFunction( rendererLib, "GetRefFoliageAPI" );
 	reFoliage = GetRefFoliageAPI ? GetRefFoliageAPI() : NULL;
+	GetRefFoliageWaveAPI_t GetRefFoliageWaveAPI = (GetRefFoliageWaveAPI_t)Sys_LoadFunction( rendererLib, "GetRefFoliageWaveAPI" );
+	reFoliageWaves = GetRefFoliageWaveAPI ? GetRefFoliageWaveAPI() : NULL;
 	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
 	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
 	GetRefSpotLightAPI_t GetRefSpotLightAPI = (GetRefSpotLightAPI_t)Sys_LoadFunction( rendererLib, "GetRefSpotLightAPI" );
