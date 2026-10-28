@@ -2487,11 +2487,102 @@ int R_SkyPortalTakeOccluders( const drawSurf_t **drawSurfs, const viewParms_t **
 // dynamic pass could write, not where this frame's objects happen to be.
 // Unknown or shader-displaced geometry deliberately falls back to a full copy.
 static void R_DisableUnboundedSunShadowCache(int level);
+
+// Separate rectangles (x0, y0, x1, y1): two characters in opposite corners of
+// a cascade restore two small footprints, not the whole map between them.
+struct sunShadowDamage_t
+{
+	int count;
+	vec4i_t rects[SUN_SHADOW_MAX_RESTORE_RECTS];
+};
+
+static int64_t R_SunShadowDamageArea(int x0, int y0, int x1, int y1)
+{
+	return (int64_t)(x1 - x0) * (y1 - y0);
+}
+
+static void R_AddSunShadowDamage(sunShadowDamage_t& damage, int x0, int y0, int x1, int y1)
+{
+	if (x1 <= x0 || y1 <= y0)
+		return;
+	// Absorb every touching rectangle; once the list is full, fold into the
+	// one whose union grows the least. Each pass removes one entry.
+	for (;;)
+	{
+		int merge = -1;
+		for (int i = 0; i < damage.count && merge < 0; ++i)
+		{
+			const int *r = damage.rects[i];
+			if (x0 <= r[2] && r[0] <= x1 && y0 <= r[3] && r[1] <= y1)
+				merge = i;
+		}
+		if (merge < 0 && damage.count == SUN_SHADOW_MAX_RESTORE_RECTS)
+		{
+			int64_t best = INT64_MAX;
+			for (int i = 0; i < damage.count; ++i)
+			{
+				const int *r = damage.rects[i];
+				const int64_t growth = R_SunShadowDamageArea(Q_min(x0, r[0]), Q_min(y0, r[1]),
+					Q_max(x1, r[2]), Q_max(y1, r[3])) - R_SunShadowDamageArea(r[0], r[1], r[2], r[3]);
+				if (growth < best)
+				{
+					best = growth;
+					merge = i;
+				}
+			}
+		}
+		if (merge < 0)
+			break;
+		const int *r = damage.rects[merge];
+		x0 = Q_min(x0, r[0]); y0 = Q_min(y0, r[1]);
+		x1 = Q_max(x1, r[2]); y1 = Q_max(y1, r[3]);
+		Com_Memcpy(damage.rects[merge], damage.rects[--damage.count], sizeof(vec4i_t));
+	}
+	VectorSet4(damage.rects[damage.count], x0, y0, x1, y1);
+	damage.count++;
+}
+
+// A world overlay surface that is not animated writes the same depth on every
+// exact cache hit, so the working layer never has to forget it. Only shaders
+// known through the sort key qualify: simple-depth surfaces are sorted with
+// the default shader and stay in the damage.
+static qboolean R_SunShadowOverlayIsStable(const shader_t *shader)
+{
+	if (!shader || shader == tr.defaultShader ||
+		shader->numDeforms || shader->foliageHint != FOLIAGE_NONE ||
+		shader->numSurfaceSpriteStages || shader->pomSilhouette || shader->useDistortion ||
+		(shader->surfaceFlags & SURF_FORCESIGHT))
+	{
+		return qfalse;
+	}
+	for (int i = 0; i < MAX_SHADER_STAGES; ++i)
+	{
+		const shaderStage_t *stage = shader->stages[i];
+		if (!stage || !stage->active)
+			break;
+		const textureBundle_t& bundle = stage->bundle[TB_COLORMAP];
+		if (bundle.numImageAnimations > 1 || bundle.isVideoMap || bundle.numTexMods)
+			return qfalse;
+		switch (stage->alphaGen)
+		{
+		case AGEN_IDENTITY:
+		case AGEN_SKIP:
+		case AGEN_CONST:
+		case AGEN_VERTEX:
+		case AGEN_ONE_MINUS_VERTEX:
+			break;
+		default:
+			return qfalse;
+		}
+	}
+	return qtrue;
+}
+
 static void R_PrepareSunShadowRestore()
 {
 	if (!(tr.viewParms.flags & VPF_SUN_DYNAMIC_SHADOW))
 		return;
-	struct workingLayer_t { qboolean valid; vec4i_t damage; };
+	struct workingLayer_t { qboolean valid; sunShadowDamage_t damage; };
 	static workingLayer_t working[3] = {};
 	const int level = tr.viewParms.targetFboLayer;
 	if (level < 0 || level >= 3)
@@ -2500,14 +2591,23 @@ static void R_PrepareSunShadowRestore()
 	workingLayer_t& old = working[level];
 	if (tr.viewParms.sunShadowFullRestore || !old.valid)
 	{
-		VectorSet4(tr.viewParms.sunShadowRestoreRect, 0, 0, width, height);
+		VectorSet4(tr.viewParms.sunShadowRestoreRects[0], 0, 0, width, height);
+		tr.viewParms.sunShadowRestoreRectCount = 1;
 	}
 	else
-		Com_Memcpy(tr.viewParms.sunShadowRestoreRect, old.damage, sizeof(old.damage));
-	tr.sunShadowCacheRestoredPixels += (uint64_t)tr.viewParms.sunShadowRestoreRect[2] *
-		tr.viewParms.sunShadowRestoreRect[3];
+	{
+		tr.viewParms.sunShadowRestoreRectCount = old.damage.count;
+		for (int i = 0; i < old.damage.count; ++i)
+		{
+			const int *r = old.damage.rects[i];
+			VectorSet4(tr.viewParms.sunShadowRestoreRects[i], r[0], r[1], r[2] - r[0], r[3] - r[1]);
+		}
+	}
+	for (int i = 0; i < tr.viewParms.sunShadowRestoreRectCount; ++i)
+		tr.sunShadowCacheRestoredPixels += (uint64_t)tr.viewParms.sunShadowRestoreRects[i][2] *
+			tr.viewParms.sunShadowRestoreRects[i][3];
 
-	int minX = width, minY = height, maxX = 0, maxY = 0;
+	sunShadowDamage_t damage = {};
 	int lastGhoulEntity = -1;
 	bool full = tr.viewParms.sunShadowUnboundedDamage != qfalse;
 	const float *mvp = tr.refdef.sunShadowMvp[level];
@@ -2530,6 +2630,9 @@ static void R_PrepareSunShadowRestore()
 		if ((entityNum == REFENTITYNUM_WORLD || (entityNum >= 0 && entityNum < tr.refdef.num_entities)) &&
 			(type == SF_FACE || type == SF_GRID || type == SF_TRIANGLES || type == SF_VBO_MESH))
 		{
+			if (entityNum == REFENTITYNUM_WORLD && surf.waterKey == 0 &&
+				R_SunShadowOverlayIsStable(shader))
+				continue;
 			const auto *bsp = (const srfBspSurface_t *)surf.surface;
 			VectorCopy(bsp->cullBounds[0], bounds[0]);
 			VectorCopy(bsp->cullBounds[1], bounds[1]);
@@ -2610,21 +2713,29 @@ static void R_PrepareSunShadowRestore()
 			loX = Q_min(loX, x); loY = Q_min(loY, y);
 			hiX = Q_max(hiX, x); hiY = Q_max(hiY, y);
 		}
+		if (full)
+			break;
 		// Guard rasterization rounding and polygon edges. Clamp before the
 		// float-to-int conversion, including completely off-map objects.
-		minX = Q_min(minX, (int)floorf(Com_Clamp(0.0f, (float)width, loX - 4.0f)));
-		minY = Q_min(minY, (int)floorf(Com_Clamp(0.0f, (float)height, loY - 4.0f)));
-		maxX = Q_max(maxX, (int)ceilf(Com_Clamp(0.0f, (float)width, hiX + 4.0f)));
-		maxY = Q_max(maxY, (int)ceilf(Com_Clamp(0.0f, (float)height, hiY + 4.0f)));
+		R_AddSunShadowDamage(damage,
+			(int)floorf(Com_Clamp(0.0f, (float)width, loX - 4.0f)),
+			(int)floorf(Com_Clamp(0.0f, (float)height, loY - 4.0f)),
+			(int)ceilf(Com_Clamp(0.0f, (float)width, hiX + 4.0f)),
+			(int)ceilf(Com_Clamp(0.0f, (float)height, hiY + 4.0f)));
 	}
-	if (full)
+	int64_t damageArea = 0;
+	for (int i = 0; i < damage.count; ++i)
+		damageArea += R_SunShadowDamageArea(damage.rects[i][0], damage.rects[i][1],
+			damage.rects[i][2], damage.rects[i][3]);
+	// Past half the layer one copy is cheaper than several.
+	if (full || 2 * damageArea > (int64_t)width * height)
 	{
-		VectorSet4(old.damage, 0, 0, width, height);
-		if (r_sunShadowCache->integer == 1)
+		damage.count = 0;
+		R_AddSunShadowDamage(damage, 0, 0, width, height);
+		if (full && r_sunShadowCache->integer == 1)
 			R_DisableUnboundedSunShadowCache(level);
 	}
-	else
-		VectorSet4(old.damage, minX, minY, Q_max(0, maxX - minX), Q_max(0, maxY - minY));
+	old.damage = damage;
 	old.valid = qtrue;
 }
 
@@ -3369,6 +3480,18 @@ struct sunShadowDiskPage_t
 	std::vector<float> depth;
 };
 
+uint32_t R_SunShadowDiskChecksum(const float *depth, size_t count)
+{
+	const byte *bytes = (const byte *)depth;
+	uint32_t hash = 2166136261u;
+	for (size_t i = 0; i < count * sizeof(float); ++i)
+	{
+		hash ^= bytes[i];
+		hash *= 16777619u;
+	}
+	return hash;
+}
+
 static std::vector<std::unique_ptr<sunShadowDiskPage_t>> s_sunShadowDiskPages;
 static std::vector<std::unique_ptr<sunShadowTileLoad_t[]>> s_sunShadowDiskLoadLists;
 static std::unordered_set<uint64_t> s_sunShadowDiskScheduled;
@@ -3522,7 +3645,10 @@ static sunShadowDiskPage_t *R_LoadSunShadowDiskPage(
 	page->pageY = pageY;
 	page->depth.resize(SUN_SHADOW_DISK_TILE_SIZE * SUN_SHADOW_DISK_TILE_SIZE);
 	Com_Memcpy(page->depth.data(), header + 1, depthBytes);
+	const uint32_t checksum = header->checksum;
 	ri.FS_FreeFile(file);
+	if (R_SunShadowDiskChecksum(page->depth.data(), page->depth.size()) != checksum)
+		return NULL;
 	for (float depth : page->depth)
 	{
 		if (!std::isfinite(depth) || depth < 0.0f || depth > 1.0f)
@@ -3596,6 +3722,7 @@ void R_InvalidateSunShadowCache(void)
 	s_sunShadowDiskHashGeneration = -1;
 	s_sunShadowDiskWorldHash = 0;
 	R_ResetSunShadowDynamicWorld();
+	RB_ResetSunShadowDiskSaves();
 }
 
 /*
@@ -4505,6 +4632,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				refdef->sunShadowSplits[i] = cascadeSplits[i];
 			for (int i = 0; i < 2; ++i)
 				refdef->sunShadowBlendWidths[i] = blendHalfWidths[i];
+			refdef->sunShadowDepthTop = (r_sunShadowMode->integer && tr.world) ? 1.0f : 0.0f;
 
 			for (int level = 0; level < 3; level++)
 			{
@@ -4705,6 +4833,23 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					tr.viewParms.projectionMatrix,
 					tr.viewParms.world.modelViewMatrix,
 					refdef->sunShadowMvp[level]);
+				if (r_sunShadowMode->integer && tr.world)
+				{
+					// No caster is nearer the sun than the map's light-side bound,
+					// which bounds the PCSS blocker search (lightall). The stable Z
+					// interval makes this the same for every cascade; keep the
+					// smallest anyway, a lower bound only widens the search.
+					const vec3_t *mapBounds = tr.world->bmodels[0].bounds;
+					const float *m = refdef->sunShadowMvp[level];
+					for (int corner = 0; corner < 8; ++corner)
+					{
+						const float x = mapBounds[(corner >> 0) & 1][0];
+						const float y = mapBounds[(corner >> 1) & 1][1];
+						const float z = mapBounds[(corner >> 2) & 1][2];
+						const float depth = 0.5f * (m[2] * x + m[6] * y + m[10] * z + m[14]) + 0.5f;
+						refdef->sunShadowDepthTop = Q_min(refdef->sunShadowDepthTop, Q_max(0.0f, depth));
+					}
+				}
 
 				tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
 				const qboolean cacheEnabled =

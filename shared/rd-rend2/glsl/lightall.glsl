@@ -1115,19 +1115,28 @@ vec3 ShadowProject(in mat4 m, in vec3 p)
 	return q.xyz / q.w * 0.5 + 0.5;
 }
 
-// dz / d(shadow uv), solved from screen-space derivatives. Calls are made
-// before cascade-dependent branches so derivatives remain well-defined.
-vec2 ShadowReceiverGradient(in vec3 shadowPos)
+// dz / d(shadow uv) of one cascade. The receiver position derivatives are
+// taken once, before cascade-dependent branches, so they remain well-defined;
+// the sun projection is orthographic (affine), so the shadow-space derivatives
+// are its 3x3 part times them, the same as dFdx of each projected position.
+vec2 ShadowReceiverGradient(in mat4 m, in vec3 positionDx, in vec3 positionDy)
 {
-	vec2 uvDx = dFdx(shadowPos.xy);
-	vec2 uvDy = dFdy(shadowPos.xy);
-	float zDx = dFdx(shadowPos.z);
-	float zDy = dFdy(shadowPos.z);
-	float det = uvDx.x * uvDy.y - uvDx.y * uvDy.x;
+	vec3 dx = 0.5 * (mat3(m) * positionDx);
+	vec3 dy = 0.5 * (mat3(m) * positionDy);
+	float det = dx.x * dy.y - dx.y * dy.x;
 	if (abs(det) < 1e-10)
 		return vec2(0.0);
-	return vec2(zDx * uvDy.y - zDy * uvDx.y,
-		uvDx.x * zDy - zDx * uvDy.x) / det;
+	return vec2(dx.z * dy.y - dy.z * dx.y,
+		dx.x * dy.z - dx.z * dy.x) / det;
+}
+
+// Keep a kernel inside the cascade. Clamping its samples to the border would
+// repeat the edge texels as fake blockers (or fake light); near the map edge
+// the disc shrinks instead, so the shadow there only gets harder.
+float ShadowKernelRadius(in vec2 uv, in float radiusUv)
+{
+	vec2 edge = min(uv, vec2(1.0) - uv);
+	return min(radiusUv, max(min(edge.x, edge.y) - 0.5 * u_ShadowTexelSize.w, 0.0));
 }
 
 float ShadowRawDepth(in int cascade, in vec2 uv)
@@ -1153,6 +1162,9 @@ float ShadowStableAngle(in vec3 worldPosition)
 	return h * 6.28318530718;
 }
 
+// Per-tap sqrt/cos/sin on purpose: on the Intel UHD a golden-angle rotation
+// recurrence made the main pass ~20% slower and a dynamically indexed const
+// table of the disc ~5x slower (docs/rend2-shadows2.md).
 vec2 ShadowVogel(in int sampleIndex, in int sampleCount, in float angleOffset)
 {
 	float i = float(sampleIndex) + 0.5;
@@ -1186,6 +1198,7 @@ float ShadowManualPcf(in int cascade, in vec3 shadowPos,
 	in int sampleCount, in float angle)
 {
 	float visibility = 0.0;
+	radiusUv = ShadowKernelRadius(shadowPos.xy, radiusUv);
 	for (int i = 0; i < 32; ++i)
 	{
 		if (i >= sampleCount)
@@ -1250,11 +1263,15 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		return result;
 	}
 
-	// A directional light has no finite light-plane distance. Search in the
-	// largest permitted receiver-space penumbra instead, which keeps the
-	// meaning identical in every cascade.
-	float searchWorld = max(2.0 * worldTexel, u_ShadowPcss.y);
-	float searchRadiusUv = searchWorld * uvPerWorld;
+	// The sun seen from the receiver is a cone of half-angle atan(x): a blocker
+	// at separation d widens this penumbra only within d * x of the receiver,
+	// and no caster lies nearer the sun than the map's light-side bound (depth
+	// u_ShadowDepthSpan.w, 0 when unknown). Searching further only averages
+	// unrelated blockers into the estimate and thins the samples out.
+	float maxSeparationWorld = max(shadowPos.z - u_ShadowDepthSpan.w, 0.0) * depthSpan;
+	float searchWorld = max(2.0 * worldTexel,
+		min(u_ShadowPcss.y, maxSeparationWorld * u_ShadowPcss.x));
+	float searchRadiusUv = ShadowKernelRadius(shadowPos.xy, searchWorld * uvPerWorld);
 	float blockerSum = 0.0;
 	float blockerCount = 0.0;
 	for (int i = 0; i < 24; ++i)
@@ -1301,15 +1318,14 @@ SunCascadeResult MixSunCascadeResults(in SunCascadeResult a,
 	return r;
 }
 
-SunCascadeResult sunShadowModern(in vec3 worldPosition,
+// viewDir: the view origin minus the receiver position. Its derivatives are
+// more precise than those of the absolute world position.
+SunCascadeResult sunShadowModern(in vec3 viewDir,
 	in vec3 geometricNormal, in float normalLight)
 {
-	vec3 base0 = ShadowProject(u_ShadowMvp, worldPosition);
-	vec3 base1 = ShadowProject(u_ShadowMvp2, worldPosition);
-	vec3 base2 = ShadowProject(u_ShadowMvp3, worldPosition);
-	vec2 gradient0 = ShadowReceiverGradient(base0);
-	vec2 gradient1 = ShadowReceiverGradient(base1);
-	vec2 gradient2 = ShadowReceiverGradient(base2);
+	vec3 worldPosition = u_ViewOrigin - viewDir;
+	vec3 positionDx = -dFdx(viewDir);
+	vec3 positionDy = -dFdy(viewDir);
 
 	float viewDepth = dot(worldPosition - u_ViewOrigin, normalize(u_ViewForward));
 	float split0 = u_ShadowSplits.x;
@@ -1343,6 +1359,14 @@ SunCascadeResult sunShadowModern(in vec3 worldPosition,
 	else
 		first = 2;
 
+	// Only the gradients of the evaluated cascades stay live through the
+	// cascade loop (register pressure on the Intel UHD).
+	vec2 gradientFirst = ShadowReceiverGradient(
+		first == 0 ? u_ShadowMvp : (first == 1 ? u_ShadowMvp2 : u_ShadowMvp3),
+		positionDx, positionDy);
+	vec2 gradientSecond = second < 0 ? vec2(0.0) : ShadowReceiverGradient(
+		second == 1 ? u_ShadowMvp2 : u_ShadowMvp3, positionDx, positionDy);
+
 	SunCascadeResult result;
 	int count = second >= 0 ? 2 : 1;
 	for (int i = 0; i < count; ++i)
@@ -1351,7 +1375,7 @@ SunCascadeResult sunShadowModern(in vec3 worldPosition,
 		SunCascadeResult r = EvaluateSunCascade(
 			cascade == 0 ? u_ShadowMvp : (cascade == 1 ? u_ShadowMvp2 : u_ShadowMvp3),
 			cascade, worldPosition, geometricNormal, normalLight,
-			cascade == 0 ? gradient0 : (cascade == 1 ? gradient1 : gradient2));
+			i == 0 ? gradientFirst : gradientSecond);
 		result = i == 0 ? r : MixSunCascadeResults(result, r, t);
 	}
 
@@ -4499,9 +4523,9 @@ void main()
 	vec3 geometricNormal = normalize(vertexNormal);
 	float geometricNPL = clamp(dot(geometricNormal, primaryLightDir), 0.0, 1.0);
 	#if defined(USE_SILHOUETTE_POM)
-	sunInfo = sunShadowModern(u_ViewOrigin - shadowViewDir, geometricNormal, geometricNPL);
+	sunInfo = sunShadowModern(shadowViewDir, geometricNormal, geometricNPL);
 	#else
-	sunInfo = sunShadowModern(u_ViewOrigin - viewDir, geometricNormal, geometricNPL);
+	sunInfo = sunShadowModern(viewDir, geometricNormal, geometricNPL);
 	#endif
 	cascadeShadow = sunInfo.visibility;
 	#else

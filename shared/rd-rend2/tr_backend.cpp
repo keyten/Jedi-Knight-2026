@@ -687,10 +687,12 @@ void RB_BeginDrawingView (void) {
 		targetFBO)
 	{
 		// The working layer already contains the unchanged static depth. Erase
-		// only last frame's dynamic footprint before drawing the current casters.
-		int *rect = backEnd.viewParms.sunShadowRestoreRect;
-		if (rect[2] > 0 && rect[3] > 0)
+		// only last frame's dynamic footprints before drawing the current casters.
+		for (int i = 0; i < backEnd.viewParms.sunShadowRestoreRectCount; ++i)
 		{
+			int *rect = backEnd.viewParms.sunShadowRestoreRects[i];
+			if (rect[2] <= 0 || rect[3] <= 0)
+				continue;
 			if (qglCopyImageSubData)
 				qglCopyImageSubData(
 					tr.sunShadowStaticArrayImage[backEnd.viewParms.sunShadowCacheBank]->texnum, GL_TEXTURE_2D_ARRAY,
@@ -2872,7 +2874,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		refdef->sunShadowTexelSize[2], 1.0f / (float)Q_max(1, r_shadowMapSize->integer));
 	VectorSet4(lightsBlock.shadowDepthSpan,
 		refdef->sunShadowDepthSpan[0], refdef->sunShadowDepthSpan[1],
-		refdef->sunShadowDepthSpan[2], 0.0f);
+		refdef->sunShadowDepthSpan[2], refdef->sunShadowDepthTop);
 	VectorSet4(lightsBlock.shadowBias,
 		Com_Clamp(0.0f, 8.0f, r_shadowDepthBias->value),
 		Com_Clamp(0.0f, 8.0f, r_shadowNormalBias->value),
@@ -4241,6 +4243,13 @@ struct savedSunShadowPage_t
 
 static std::vector<savedSunShadowPage_t> s_savedSunShadowPages;
 
+// R_InvalidateSunShadowCache: a new map / caster generation saves again.
+void RB_ResetSunShadowDiskSaves(void)
+{
+	s_savedSunShadowPages.clear();
+	s_savedSunShadowPages.shrink_to_fit();
+}
+
 static int RB_SunShadowFloorDiv(int value, int divisor)
 {
 	int quotient = value / divisor;
@@ -4308,7 +4317,6 @@ static void RB_SaveSunShadowDiskPages(void)
 			header->magic = SUN_SHADOW_DISK_MAGIC;
 			header->version = SUN_SHADOW_DISK_VERSION;
 			header->tileSize = SUN_SHADOW_DISK_TILE_SIZE;
-			header->reserved = 0;
 			header->layoutKey = view.sunShadowDiskLayoutKey;
 			header->pageX = pageX;
 			header->pageY = pageY;
@@ -4321,11 +4329,19 @@ static void RB_SaveSunShadowDiskPages(void)
 					depth.data() + (size_t)(sourceY + y) * width + sourceX,
 					SUN_SHADOW_DISK_TILE_SIZE * sizeof(float));
 			}
+			header->checksum = R_SunShadowDiskChecksum(tile, tilePixels);
 
 			char path[MAX_OSPATH];
 			R_SunShadowDiskTilePath(path, sizeof(path),
 				view.sunShadowDiskLayoutKey, pageX, pageY);
 			ri.FS_WriteFile(path, file.data(), (int)file.size());
+			// FS_WriteFile reports nothing: a page that did not reach the disk
+			// stays unsaved and is written again by a later update.
+			if (ri.FS_ReadFile(path, NULL) != (int)file.size())
+			{
+				ri.Printf(PRINT_DEVELOPER, "Sun shadow disk: could not write %s\n", path);
+				continue;
+			}
 			savedSunShadowPage_t saved = { view.sunShadowDiskLayoutKey, pageX, pageY };
 			s_savedSunShadowPages.push_back(saved);
 			tr.sunShadowCacheDiskWrites++;
