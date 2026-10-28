@@ -1,0 +1,23 @@
+{
+  "schema": "org.openjk.x07-validation-checks.v1",
+  "semantic_sha256": "fef5dcec72ea697aea086ebcaa131b89e8c55f27a6ddfcb6fad2c75a7f238371",
+  "cpu_tests": {"passed": 18, "failed": 0, "command": "ctest --test-dir build/lightrecon-disk-standalone --output-on-failure"},
+  "x07_python": {"passed": 22, "skipped": 0, "failed": 0, "command": "python -X utf8 -m unittest discover -s tools/rend2/fixed_geometry -p test_*.py -v", "fixture_root": "build/x07-published-a"},
+  "bake_model_python": {"passed": 24, "skipped": 0, "failed": 0, "command": "python -X utf8 -m unittest discover -s tools/rend2/bake_model -p test_*.py -v"},
+  "x05_python": {"passed": 16, "skipped": 0, "failed": 0, "command": "python -X utf8 -m unittest discover -s tools/rend2/evaluation/x05 -p test_*.py -v"},
+  "release_targets": {"passed": ["lightrecon_bake_forward_tool", "rdsp-rend2_x86_64", "rd-rend2_x86_64"], "command": "cmake --build build/lightrecon-core-renderers --config Release --target lightrecon_bake_forward_tool rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 6"},
+  "compiler_regression": {
+    "output": "build/x07-production-regression",
+    "original_cases": 22,
+    "direct_supported_within_frozen_tolerance": 20,
+    "explicitly_unsupported_bounce_replay": ["bounce1", "bouncegrid1"],
+    "x05_status": "Passed",
+    "x06_fully_supported_cases": 7,
+    "x06_partial": {"case": "thin_door", "status": "PartialUnsupportedReceiverPlacement", "supported_samples": 1200, "unsupported_samples": 25},
+    "new_q3map2_invocation": false
+  },
+  "disabled_path_gpu": {"passed": true, "programs": 27, "stages": 51, "differences": 0, "driver": "Intel UHD Graphics, OpenGL 3.2.0 build 27.20.100.8280", "output": "build/x07-shader-regression", "command": "python -X utf8 tools/rend2/lightrecon_regression.py --output build/x07-shader-regression"},
+  "repeated_full_runs": {"directories": ["build/x07-published-a", "build/x07-published-b"], "all_semantic_results_equal": true, "correct_fit_individual_restarts_equal": true},
+  "not_performed_or_not_claimed": ["new compiler invocation", "gameplay visual validation", "stock source discovery", "absolute physical calibration", "full-map fitting", "calibrated statistical confidence", "hostile native-code OS sandbox validation"],
+  "runtime_light_publication": false
+}

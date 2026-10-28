@@ -432,6 +432,16 @@ offline-only change, and none is claimed.
 
 ## Follow-up boundaries
 
+The [S02 directional sun/sky estimator](rend2-sun-sky-reconstruction-s02.md)
+uses these source-scoped CPU kernels with blind training, separate validation,
+explicit sky intersections and candidate-only canonical outputs. Stock compiler
+identity, absolute lux and soft sun extent remain unknown.
+
+The first [blind fixed-geometry RGB fitting prototype (X07)](rend2-fixed-geometry-blind-fit-x07.md)
+now calls this production evaluator end to end. Supplied XYZ/count/type and a
+known controlled compiler profile remain priors; only compiler-relative RGB
+amplitudes are fitted. No physical-light asset or runtime consumer is published.
+
 Before broad stock-map fitting: implement/verify profile-specific receiver nudge,
 light sampling/filtering and source expansion; refine supported trace scopes;
 add authentic material/alpha policies; and retain competing stock bake profiles.

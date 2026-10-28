@@ -41,6 +41,8 @@ size_t Count(std::istream &in, size_t max)
 		throw std::runtime_error("Protocol count limit");
 	return n;
 }
+#include "bake_fit_server.h"
+#include "solar_tool.h"
 int main(int argc, char **argv)
 {
 	try
@@ -100,20 +102,24 @@ int main(int argc, char **argv)
 					  << (result.predictions.count ? int(result.predictions.data[0].status) : -1) << "}\n";
 			return available ? 1 : 0;
 		}
-		if (argc != 2)
+		const bool server = argc == 3 && std::string(argv[1]) == "--server";
+		const bool solar = (argc == 5||argc == 6) && std::string(argv[1]) == "--solar";
+		if (argc != 2 && !server && !solar)
 			throw std::runtime_error("usage: lightrecon_bake_forward_tool request.txt");
-		std::ifstream in(argv[1]);
+		std::ifstream in(argv[server || solar ? 2 : 1]);
 		std::string magic;
 		in >> magic;
 		if (magic != "JKBAKE2")
 			throw std::runtime_error("Protocol version");
 		Recipe recipe;
-		int linear, normal, fast, srgb, domain, strict;
+		int linear = 0, normal = 0, fast = 0, srgb = 0, domain = 0, strict = 0;
 		in >> linear >> normal >> recipe.photonsPerParameter >> recipe.minimumDistanceWorld >> recipe.fade >>
 			recipe.extraDistanceWorld >> recipe.angleScale >> recipe.tolerance >> fast >>
 			recipe.receiverPushWorld >> recipe.areaParameterScale >> recipe.gamma >> recipe.compensate >>
 			recipe.exposure >> srgb;
 		Vec(in, recipe.explicitSurfaceAmbient);
+		if (!in)
+			throw std::runtime_error("Truncated recipe");
 		recipe.falloff = linear ? Falloff::Linear : Falloff::InverseSquare;
 		recipe.normal = normal == 1 ? NormalResponse::None
 									: normal == 2 ? NormalResponse::HalfLambert : NormalResponse::Cosine;
@@ -191,6 +197,9 @@ int main(int argc, char **argv)
 		if (!e)
 			throw std::runtime_error(e.message);
 		context.geometryKey = context.compilerTrace->Key();
+		if(solar) return SolarTool::Run(recipe,sources,receivers,context,read,hash,argv[3],argv[4],argc==6?argv[5]:nullptr);
+		if (server)
+			return RunFitServer(recipe, sources, receivers, context, read, hash);
 		Options options;
 		options.allowAssumed = true;
 		options.trace = TraceMode::CompilerTree;

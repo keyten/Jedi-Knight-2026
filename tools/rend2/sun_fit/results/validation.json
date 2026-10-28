@@ -1,0 +1,2980 @@
+{
+  "analytical_cpu": {
+    "checks": 14899,
+    "failures": 0,
+    "fixtures": [
+      {
+        "alternatives": 12,
+        "angular_error_degrees": 0.222384472623,
+        "interval_rmse": 0,
+        "name": "known_sun_multinormal",
+        "sky_rgb_relative_error": 0.0751398616779,
+        "state": "SunHypotheses",
+        "sun_rgb_relative_error": 0.0136487836513,
+        "validation_rays": 984
+      },
+      {
+        "alternatives": 1,
+        "angular_error_degrees": null,
+        "interval_rmse": 0.00184038019368,
+        "name": "positive_skylight_no_sun",
+        "sky_rgb_relative_error": 0.00271234304363,
+        "state": "SkyOnly",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 888
+      },
+      {
+        "alternatives": 14,
+        "angular_error_degrees": 0.18169825986,
+        "interval_rmse": 0.00126960132173,
+        "name": "sun_opening_known_indoor_lamp",
+        "sky_rgb_relative_error": null,
+        "state": "SunHypotheses",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 1080
+      },
+      {
+        "alternatives": 0,
+        "angular_error_degrees": null,
+        "interval_rmse": null,
+        "name": "ambient_only",
+        "sky_rgb_relative_error": null,
+        "state": "UnresolvedEnvironment",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 724
+      },
+      {
+        "alternatives": 0,
+        "angular_error_degrees": null,
+        "interval_rmse": null,
+        "name": "saturated_sun",
+        "sky_rgb_relative_error": null,
+        "state": "UnknownSun",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 612
+      },
+      {
+        "alternatives": 15,
+        "angular_error_degrees": 0.222384472623,
+        "interval_rmse": 0,
+        "name": "authored_matching",
+        "sky_rgb_relative_error": null,
+        "state": "SunHypotheses",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 1128
+      },
+      {
+        "alternatives": 12,
+        "angular_error_degrees": 0.222384472623,
+        "interval_rmse": 0,
+        "name": "authored_conflicting",
+        "sky_rgb_relative_error": null,
+        "state": "SunHypotheses",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 984
+      },
+      {
+        "alternatives": 0,
+        "angular_error_degrees": null,
+        "interval_rmse": null,
+        "name": "single_normal_insufficient",
+        "sky_rgb_relative_error": null,
+        "state": "UnknownSun",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 408
+      },
+      {
+        "alternatives": 0,
+        "angular_error_degrees": null,
+        "interval_rmse": null,
+        "name": "unmodelled_reflection",
+        "sky_rgb_relative_error": null,
+        "state": "UnknownSun",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 808
+      },
+      {
+        "alternatives": 0,
+        "angular_error_degrees": null,
+        "interval_rmse": null,
+        "name": "multiple_coloured_suns",
+        "sky_rgb_relative_error": null,
+        "state": "UnknownSun",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 884
+      },
+      {
+        "alternatives": 24,
+        "angular_error_degrees": 0.222384472623,
+        "interval_rmse": 0,
+        "name": "competing_assumed_profiles",
+        "sky_rgb_relative_error": null,
+        "state": "SunHypotheses",
+        "sun_rgb_relative_error": null,
+        "validation_rays": 1968
+      }
+    ]
+  },
+  "compiler_suite": {
+    "cases": {
+      "ambient_only": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": null,
+          "heldout_interval_rmse_limit": null,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": null,
+        "bsp_sha256": "5d078b824cbe0bd2a47dbaaa5699405c0847321554d74baf03f5cc0baebee3a7",
+        "code": 1,
+        "diagnostic": {
+          "code": 1,
+          "decisions": [],
+          "diagnostics": [
+            "NetRadiant-d9338309e-subsets-v2/isq/8bd418128d02d6fd: insufficient positive/spatial/comparable training coverage"
+          ],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 72,
+            "forward_calls": 1,
+            "pairs": 1224,
+            "rays": 1224,
+            "traversal": 35538
+          },
+          "frozen_key": "0000000000000000000000000000000000000000000000000000000000000000",
+          "heldout": [],
+          "hypotheses": [],
+          "map_sha256": "5d078b824cbe0bd2a47dbaaa5699405c0847321554d74baf03f5cc0baebee3a7",
+          "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "Unavailable",
+          "training_coverage": [
+            {
+              "black_rmse": 50,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 0,
+              "positive_blocks": 0,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": false,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 0,
+            "forward_calls": 0,
+            "pairs": 0,
+            "rays": 0,
+            "traversal": 0
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 72,
+            "sha256": "99795115bb8eb500609e1a3ed0c5b460b3296143d7288677403c8050cc7183bf"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 72,
+            "sha256": "c9a44b08f468c154f3283858fba948bb5d59320bcc795b583bed60674d697d65"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 72,
+            "sha256": "c622708930c6ed1ed2c3fbc332e1055465b762ab86824fe30069b2d4b1a1e44d"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "be82161237aa962cbc3416881c9739aeaff4d96dc998148aec3f034ca2fbd866",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "7dd9d2a12fef5ea7d3e03ae9e4a1922e0dac209f2ebfcb7b573714a2ffed6838",
+        "state": "Unavailable",
+        "sun_rgb_relative_l2_error": null,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "multi_directional": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": null,
+          "heldout_interval_rmse_limit": null,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": null,
+        "bsp_sha256": "2cf7e3a4bb1ee2ae9e3c677c58eae23502310420465dc28dd6569238416d6c46",
+        "code": 1,
+        "diagnostic": {
+          "code": 1,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Sky not distinguished from fill or outside independent error tolerance",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": 39.8504343196
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "validation_rmse": 13.165083245
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "validation_rmse": 13.1456524245
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "validation_rmse": 13.1228397637
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.500370740891,
+                0.265540212393,
+                0.824085891247
+              ],
+              "validation_rmse": 13.0893282792
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.513856053352,
+                0.278497010469,
+                0.811413168907
+              ],
+              "validation_rmse": 13.0077426958
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.514122962952,
+                0.272722780704,
+                0.813203454018
+              ],
+              "validation_rmse": 12.9938611437
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.514463484287,
+                0.266176044941,
+                0.815154969692
+              ],
+              "validation_rmse": 12.9712803709
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.510147750378,
+                0.253152698278,
+                0.821987211704
+              ],
+              "validation_rmse": 20.7679878811
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.505929708481,
+                0.233462110162,
+                0.830379784107
+              ],
+              "validation_rmse": 20.8019550554
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0.514009594917,
+                0.207114711404,
+                0.832404732704
+              ],
+              "validation_rmse": 20.6901855068
+            }
+          ],
+          "diagnostics": [],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 23688,
+            "forward_calls": 327,
+            "pairs": 24696,
+            "rays": 16096,
+            "traversal": 522945
+          },
+          "frozen_key": "6d3003b4c4632b5caace5e9376d6b93905dd5f5e3b6c4a0fbe2a9a133abdb67c",
+          "heldout": [],
+          "hypotheses": [],
+          "map_sha256": "2cf7e3a4bb1ee2ae9e3c677c58eae23502310420465dc28dd6569238416d6c46",
+          "reason": "UnknownSun: insufficient directional evidence or unresolved ambient/bounce/model discrepancy",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "UnknownSun",
+          "training_coverage": [
+            {
+              "black_rmse": 58.1722713833,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 60,
+              "positive_blocks": 33,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 1800,
+            "forward_calls": 11,
+            "pairs": 1944,
+            "rays": 1624,
+            "traversal": 49096
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 46,
+            "sha256": "bddc1b8ab928c3287320b144a7ce98865599ac01237fb924f9e82f1d8033aa98"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 60,
+            "sha256": "873caa42140fa4e41e5bc6dba357246d1a93b835e0076fbdd9692814a87de418"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 58,
+            "sha256": "2d1df7a915114f81c6b76f3f1c4144d74d79ac86f1f839a4abf7149754c93d3f"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "5f4bac5673ed6d0cbedc47b1d08715cdb89cadbacc887ac84c4ecc6c0b14147a",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "8d0a5d27a83e64e140c80d2f1e9b7bd75e5212a282f4cead96c79e2033a28402",
+        "state": "UnknownSun",
+        "sun_rgb_relative_l2_error": null,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "no_sun": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": null,
+          "heldout_interval_rmse_limit": null,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": null,
+        "bsp_sha256": "cf64db1ab968237f0c6d9405b858d930536556ffb96a45152b76d0c002fc1f59",
+        "code": 1,
+        "diagnostic": {
+          "code": 1,
+          "decisions": [],
+          "diagnostics": [
+            "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d: insufficient positive/spatial/comparable training coverage"
+          ],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 72,
+            "forward_calls": 1,
+            "pairs": 1224,
+            "rays": 1224,
+            "traversal": 34929
+          },
+          "frozen_key": "0000000000000000000000000000000000000000000000000000000000000000",
+          "heldout": [],
+          "hypotheses": [],
+          "map_sha256": "cf64db1ab968237f0c6d9405b858d930536556ffb96a45152b76d0c002fc1f59",
+          "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "Unavailable",
+          "training_coverage": [
+            {
+              "black_rmse": 0,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 0,
+              "positive_blocks": 0,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": false,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 0,
+            "forward_calls": 0,
+            "pairs": 0,
+            "rays": 0,
+            "traversal": 0
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 0,
+            "sha256": "fbf7400d94250e99c23d8e224b3773186cb0e5d229ca810da2fee10870874aa4"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 0,
+            "sha256": "1e065bd3a247f8f478e00977219428c32b0c4494d79ff0465fdde0ae33b20bfe"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 0,
+            "sha256": "0eb3eb1ae28abe098653d005e6eab69ba617550d2d9261083c21f326b1844739"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "ac9c72b18dc8d3c5f8b4cb4a50d1178aeb28dfba7343410914a251da2f90ba51",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "e0122cc3356c1ceb80e2751547ab4156bff4d262927e6c5cd90eee07d9bfb24b",
+        "state": "Unavailable",
+        "sun_rgb_relative_l2_error": null,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "sky_aperture": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "reason": "Retained original v1 failed positive fixture: validation signal occupies one block; not a passed skylight benchmark",
+          "status": "InsufficientPositiveValidation",
+          "strict_complete_coverage_gate": false
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": null,
+        "bsp_sha256": "97c1cd59691425b04e2db8b32259c13e3a4b9f9937e47d4cf953686474f4d44b",
+        "code": 1,
+        "diagnostic": {
+          "code": 1,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.137700527906,
+                0.368684828281,
+                0.919298708439
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.135187163949,
+                0.408880501986,
+                0.902519345284
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.122077189386,
+                0.374571353197,
+                0.919126451015
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.120299972594,
+                0.402994006872,
+                0.907261669636
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.114869646728,
+                0.388782680035,
+                0.914140582085
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.136476323009,
+                0.388875216246,
+                0.911125838757
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.113992616534,
+                0.424046874046,
+                0.8984375
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.12405782938,
+                0.461488962173,
+                0.878429055214
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.133886888623,
+                0.498052597046,
+                0.856748461723
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.152762204409,
+                0.568267822266,
+                0.808539032936
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.384979218245,
+                -0.390654981136,
+                0.836169660091
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.371153771877,
+                -0.386247009039,
+                0.844427704811
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.366174310446,
+                -0.372616916895,
+                0.852685749531
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.386346817017,
+                -0.370592087507,
+                0.844628691673
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.372140198946,
+                -0.450128614902,
+                0.81172400713
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.376809537411,
+                -0.193822026253,
+                0.905785620213
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.371944069862,
+                -0.178689241409,
+                0.910893917084
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.369770169258,
+                -0.208954825997,
+                0.905322015285
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.358023822308,
+                -0.17242102325,
+                0.917654573917
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.354949474335,
+                -0.215223029256,
+                0.909774661064
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.343203127384,
+                -0.178689241409,
+                0.922107219696
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.34102922678,
+                -0.208954825997,
+                0.916535317898
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.336163759232,
+                -0.193822026253,
+                0.921643614769
+              ],
+              "validation_rmse": null
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Missing positive independent validation coverage",
+              "to_source": [
+                -0.359391272068,
+                -0.344735771418,
+                0.867176532745
+              ],
+              "validation_rmse": null
+            }
+          ],
+          "diagnostics": [
+            "Direction alternatives reached output cap; sampled spread is NOT a complete angular confidence set"
+          ],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 23688,
+            "forward_calls": 327,
+            "pairs": 24696,
+            "rays": 14720,
+            "traversal": 624755
+          },
+          "frozen_key": "aec5f4cbad13fa542a660f7634c2b6e6361e07dbb024215381949e871c5ed2a0",
+          "heldout": [],
+          "hypotheses": [],
+          "map_sha256": "97c1cd59691425b04e2db8b32259c13e3a4b9f9937e47d4cf953686474f4d44b",
+          "reason": "UnknownSun: insufficient directional evidence or unresolved ambient/bounce/model discrepancy",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "UnknownSun",
+          "training_coverage": [
+            {
+              "black_rmse": 5.30143972501,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 16,
+              "positive_blocks": 8,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 72,
+            "forward_calls": 1,
+            "pairs": 1224,
+            "rays": 1224,
+            "traversal": 46693
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 16,
+            "sha256": "c378b3e31f765845af8aaa97a6803ac6c7fd5849fd5b99e58c8dd77ef6bc6d1e"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 16,
+            "sha256": "a040be250371dfaddf54e73ebb69408ffae14276e7bda3f4a636858b6609198f"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 5,
+            "sha256": "d07c31c0d8cdfad3dc582ba004b99d77b2bbeafc98077af1e7f6aa4a05cb3099"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "602365aa5fe7513671cc3e18231de1f58a105cf4d7e0711ec83adfa4f8954d9f",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "000811d501677acf9b9c008fe473123555465145030890a94fb3856f3f3cfebb",
+        "state": "UnknownSun",
+        "sun_rgb_relative_l2_error": null,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "sky_aperture_positive_v2": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": null,
+          "heldout_interval_rmse_limit": 1,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": null,
+        "bsp_sha256": "b2841a313c4e625e8a5b09e17cbd5a103c39a9bde2e230475d55d6ef09b96c3e",
+        "code": 0,
+        "diagnostic": {
+          "code": 0,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive sky-only prediction beats uniform fill; no required directional sun",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": 0.0163160913527
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -5.8330229081e-17,
+                -0.321439474821,
+                0.946930110455
+              ],
+              "validation_rmse": 0
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -5.37397671105e-17,
+                -0.279829025269,
+                0.96004986763
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -5.47122403433e-17,
+                -0.30070579052,
+                0.953716933727
+              ],
+              "validation_rmse": 0
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -4.51341704468e-17,
+                -0.21643961966,
+                0.976296007633
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -4.72973039969e-17,
+                -0.258819043636,
+                0.965925812721
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -2.69307342698e-17,
+                -0.0871557444334,
+                0.996194720268
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -3.18986519887e-17,
+                -0.173648178577,
+                0.984807729721
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                0,
+                0,
+                1
+              ],
+              "validation_rmse": 0.0210574643802
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.63457262516,
+                -0.643842995167,
+                0.427532166243
+              ],
+              "validation_rmse": 0.0184643669784
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.620877981186,
+                -0.629948318005,
+                0.466557174921
+              ],
+              "validation_rmse": 0.0184643669784
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.627874732018,
+                -0.637047290802,
+                0.447151094675
+              ],
+              "validation_rmse": 0.0184643669784
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.643553316593,
+                -0.63098013401,
+                0.433247238398
+              ],
+              "validation_rmse": 0.0186845502803
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.633869767189,
+                -0.621155083179,
+                0.460842102766
+              ],
+              "validation_rmse": 0.0186884885967
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.643262207508,
+                -0.621582508087,
+                0.447044670582
+              ],
+              "validation_rmse": 0.0187776938186
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.621580839157,
+                -0.652636229992,
+                0.433247238398
+              ],
+              "validation_rmse": 0.0182427199039
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.611897289753,
+                -0.642811238766,
+                0.460842102766
+              ],
+              "validation_rmse": 0.0182392955763
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.608457922935,
+                -0.636255562305,
+                0.474297165871
+              ],
+              "validation_rmse": 0.0166779873662
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.65348637104,
+                -0.618822157383,
+                0.43590682745
+              ],
+              "validation_rmse": 0.0189057709693
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.639058291912,
+                -0.605159401894,
+                0.474749028683
+              ],
+              "validation_rmse": 0.0189057709693
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.612188398838,
+                -0.652208864689,
+                0.447044670582
+              ],
+              "validation_rmse": 0.0181479183225
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.677909135818,
+                -0.602960109711,
+                0.420568972826
+              ],
+              "validation_rmse": 0.0192934260423
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.670289933681,
+                -0.592256128788,
+                0.447151094675
+              ],
+              "validation_rmse": 0.0193330093678
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.668442130089,
+                -0.572911262512,
+                0.474297165871
+              ],
+              "validation_rmse": 0.0195136565345
+            },
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Rejected sun: insufficient directional improvement, normal diversity, visibility or independent RGB agreement",
+              "to_source": [
+                -0.695068955421,
+                -0.538300454617,
+                0.4765625
+              ],
+              "validation_rmse": 0.0200731396154
+            }
+          ],
+          "diagnostics": [
+            "Direction alternatives reached output cap; sampled spread is NOT a complete angular confidence set"
+          ],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 23688,
+            "forward_calls": 327,
+            "pairs": 24696,
+            "rays": 13832,
+            "traversal": 607441
+          },
+          "frozen_key": "bfa10f11daf419ef8b98855ee63891659fd1c14d40fc4ed19984a313ca19a0b0",
+          "heldout": [
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 22.5351577171,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 72,
+                "positive_blocks": 13,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "hypothesis": 0,
+              "maximum_error": 0.0893669128418,
+              "rmse": 0.0189004882616,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 144,
+                "forward_calls": 1,
+                "pairs": 1224,
+                "rays": 1224,
+                "traversal": 45666
+              }
+            }
+          ],
+          "hypotheses": [
+            {
+              "angular_extent": null,
+              "canonical_environments": 1,
+              "canonical_suns": 0,
+              "canonical_unresolved_transport_descriptors": 0,
+              "coverage": {
+                "black_rmse": 29.536901859,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 72,
+                "positive_blocks": 14,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.965925812721,
+                    0,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.683012723923,
+                    0.683012723923,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    5.91458953394e-17,
+                    0.965925812721,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.683012723923,
+                    0.683012723923,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.965925812721,
+                    1.18291790679e-16,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.683012723923,
+                    -0.683012723923,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -1.77437692636e-16,
+                    -0.965925812721,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.683012723923,
+                    -0.683012723923,
+                    0.258819043636
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.653281509876,
+                    0.270598053932,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.270598053932,
+                    0.653281509876,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.270598053932,
+                    0.653281509876,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.653281509876,
+                    0.270598053932,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.653281509876,
+                    -0.270598053932,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    -0.270598053932,
+                    -0.653281509876,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.270598053932,
+                    -0.653281509876,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0.653281509876,
+                    -0.270598053932,
+                    0.707106769085
+                  ]
+                },
+                {
+                  "relative_rgb": [
+                    241.132476807,
+                    241.132476807,
+                    241.132476807
+                  ],
+                  "response_weight": 0.0588235294118,
+                  "to_source": [
+                    0,
+                    0,
+                    1
+                  ]
+                }
+              ],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 12.8961199203,
+              "model": 0,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 0,
+                "sun_response_positive": 0
+              },
+              "sampled_angular_ambiguity_radians": 0,
+              "sky_compiler_rgb": [
+                241.132476807,
+                241.132476807,
+                241.132476807
+              ],
+              "sky_component_supported": true,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 0.0163160913527,
+              "source_id": 0,
+              "sun_compiler_rgb": [
+                0,
+                0,
+                0
+              ],
+              "sun_intensity_slice": {
+                "bounded": false,
+                "lower": 0,
+                "probability": null,
+                "upper": 0
+              },
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "train_rmse": 0.0218796632305,
+              "validation_max_error": 0.0893669128418,
+              "validation_rmse": 0.0163160913527
+            }
+          ],
+          "map_sha256": "b2841a313c4e625e8a5b09e17cbd5a103c39a9bde2e230475d55d6ef09b96c3e",
+          "reason": "Diffuse sky supported; direct sun not required",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "SkyOnly",
+          "training_coverage": [
+            {
+              "black_rmse": 23.7073717161,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 72,
+              "positive_blocks": 38,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 5544,
+            "forward_calls": 25,
+            "pairs": 2952,
+            "rays": 2680,
+            "traversal": 117246
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 72,
+            "sha256": "b803310a3bd74652b39be1d45b3d8b6a1a0f20d54dcb50432a908d0cf8166259"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 72,
+            "sha256": "b21186044f6bc8e55fa5a9f31b6a2e6faf8c8e4012208d9d56d08a29e1433c4d"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 72,
+            "sha256": "e5e152d8d1a572b2b63af7cc6729274704891024f6a983a4ee1267d8937c5b5c"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "8a7489aa27aec23136e23bcd4de10968ce029ed09475393408c0d127379f8f26",
+        "sky_rgb_relative_l2_error": 0.004718653362499954,
+        "source_map_sha256": "9d179d48452e550192f2f976e0819d5b51b1ec42fc66948067e61cc6ea6e5773",
+        "state": "SkyOnly",
+        "sun_rgb_relative_l2_error": null,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "sun_oriented": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": 2,
+          "heldout_interval_rmse_limit": 1,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": 0.40452866237178053,
+        "bsp_sha256": "d47b1f182346c8cf653942b1c374a7eee7d3f98ec7714aa9641b57d76cd51193",
+        "code": 0,
+        "diagnostic": {
+          "code": 0,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Sky not distinguished from fill or outside independent error tolerance",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": 42.1166705586
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "validation_rmse": 0.0092292089501
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "validation_rmse": 0.184497274063
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "validation_rmse": 0.263837760472
+            }
+          ],
+          "diagnostics": [],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 23688,
+            "forward_calls": 327,
+            "pairs": 24696,
+            "rays": 16096,
+            "traversal": 522945
+          },
+          "frozen_key": "62d82767cc343c6d53fb3fd56a842e1a62a956838526fe54b5c98ea1f61cadc2",
+          "heldout": [
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 59.8012091465,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 35,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "hypothesis": 0,
+              "maximum_error": 0.280246734619,
+              "rmse": 0.106098483155,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 144,
+                "forward_calls": 2,
+                "pairs": 1296,
+                "rays": 1266,
+                "traversal": 37126
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 59.8012091465,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 35,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "hypothesis": 1,
+              "maximum_error": 0.186393737793,
+              "rmse": 0.0792206906749,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 144,
+                "forward_calls": 2,
+                "pairs": 1296,
+                "rays": 1266,
+                "traversal": 37101
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 59.8012091465,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 35,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "hypothesis": 2,
+              "maximum_error": 0.373680114746,
+              "rmse": 0.195173367975,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 144,
+                "forward_calls": 2,
+                "pairs": 1296,
+                "rays": 1266,
+                "traversal": 37115
+              }
+            }
+          ],
+          "hypotheses": [
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 62.4372828182,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 36,
+                "positive_blocks": 8,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 46.6534731455,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 4,
+                "sun_response_positive": 36
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                3.32209324837,
+                3.32209324837,
+                3.32209324837
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 42.1166705586,
+              "source_id": 1704800136620484231,
+              "sun_compiler_rgb": [
+                119.15397644,
+                119.15397644,
+                119.15397644
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 115.488594055,
+                "probability": null,
+                "upper": 122.36831665
+              },
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "train_rmse": 0.0554430356624,
+              "validation_max_error": 0.0386085510254,
+              "validation_rmse": 0.0092292089501
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 62.4372828182,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 36,
+                "positive_blocks": 8,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 46.6534731455,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 4,
+                "sun_response_positive": 36
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                2.32167673111,
+                2.32167673111,
+                2.32167673111
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 42.1166705586,
+              "source_id": 11254918280172382053,
+              "sun_compiler_rgb": [
+                119.442504883,
+                119.442504883,
+                119.442504883
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 116.584747314,
+                "probability": null,
+                "upper": 123.115470886
+              },
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "train_rmse": 0.26610445784,
+              "validation_max_error": 0.620059967041,
+              "validation_rmse": 0.184497274063
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 62.4372828182,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 36,
+                "positive_blocks": 8,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 46.6534731455,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 4,
+                "sun_response_positive": 36
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                1.34996163845,
+                1.34996163845,
+                1.34996163845
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 42.1166705586,
+              "source_id": 569231218384048680,
+              "sun_compiler_rgb": [
+                119.775238037,
+                119.775238037,
+                119.775238037
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 117.172698975,
+                "probability": null,
+                "upper": 123.906593323
+              },
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "train_rmse": 0.319674600333,
+              "validation_max_error": 0.596302032471,
+              "validation_rmse": 0.263837760472
+            }
+          ],
+          "map_sha256": "d47b1f182346c8cf653942b1c374a7eee7d3f98ec7714aa9641b57d76cd51193",
+          "reason": "Directional hypotheses supported under explicit bake assumptions; not calibrated physical lux",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "SunHypotheses",
+          "training_coverage": [
+            {
+              "black_rmse": 56.171494925,
+              "blocks": 38,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.714285714286,
+              "positive": 43,
+              "positive_blocks": 24,
+              "requested": 72,
+              "saturated": 0,
+              "used": 72
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 11160,
+            "forward_calls": 7,
+            "pairs": 1656,
+            "rays": 1464,
+            "traversal": 43182
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 35,
+            "sha256": "25a6e2c24188722d02c05c102b50b9093bf502d756ab0cee0d11a7bd5888d6ea"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 43,
+            "sha256": "32bf2841f83037eed204faa242e7ca775c359dc659564bd73d27d372d4a28083"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 36,
+            "sha256": "e5e7f41118c6112ae4e4d099d26fded35c7d2e01e199421ee84b71090b55032d"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "e74c9f6bf05fe79cd01eaeb1d9a6c7960baf0d940d0ab23fd21e5757c7d1d6a9",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "8d0a5d27a83e64e140c80d2f1e9b7bd75e5212a282f4cead96c79e2033a28402",
+        "state": "SunHypotheses",
+        "sun_rgb_relative_l2_error": 0.007050196333333384,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "sun_shadow": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": 2,
+          "heldout_interval_rmse_limit": 1,
+          "reason": "Original complete-coverage gate remains FAILED; unknown receivers stay unknown. Error metrics apply only to explicitly reported supported area; no tolerance changed",
+          "status": "PartialUnsupportedVisibility",
+          "strict_complete_coverage_gate": false,
+          "unsupported": 3
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": 0.40452866237178053,
+        "bsp_sha256": "c60d36e0c4b6f57884245e666f2a7cbd8f53b75804c6e1ad3afdacd1ba0c0d2e",
+        "code": 0,
+        "diagnostic": {
+          "code": 0,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Sky not distinguished from fill or outside independent error tolerance",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": 48.4029101053
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "validation_rmse": 0
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "validation_rmse": 0.224153976189
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "validation_rmse": 0.326770588486
+            }
+          ],
+          "diagnostics": [],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 22960,
+            "forward_calls": 327,
+            "pairs": 24044,
+            "rays": 14298,
+            "traversal": 552850
+          },
+          "frozen_key": "4a65fcf9eb4c187dfc1693b30dfb4fd912411450f5977b460252ae2214c6cc70",
+          "heldout": [
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 35.1674383194,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 3,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 72,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 0,
+              "maximum_error": 0.24333190918,
+              "rmse": 0.0934563715032,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1293,
+                "rays": 1263,
+                "traversal": 44391
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 35.1674383194,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 3,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 72,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 1,
+              "maximum_error": 0.512657165527,
+              "rmse": 0.137788674216,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1293,
+                "rays": 1263,
+                "traversal": 44396
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 35.1674383194,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 3,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 72,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 2,
+              "maximum_error": 0.661911010742,
+              "rmse": 0.19921979914,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1293,
+                "rays": 1263,
+                "traversal": 44388
+              }
+            }
+          ],
+          "hypotheses": [
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 56.6781640997,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8655397458,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                3.56369185448,
+                3.56369185448,
+                3.56369185448
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.4029101053,
+              "source_id": 3136512344875754071,
+              "sun_compiler_rgb": [
+                119.205688477,
+                119.205688477,
+                119.205688477
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 115.247688293,
+                "probability": null,
+                "upper": 122.419937134
+              },
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "train_rmse": 0.0375469287391,
+              "validation_max_error": 0,
+              "validation_rmse": 0
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 56.6781640997,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8655397458,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                2.33520913124,
+                2.33520913124,
+                2.33520913124
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.4029101053,
+              "source_id": 17097081984924798519,
+              "sun_compiler_rgb": [
+                119.277565002,
+                119.277565002,
+                119.277565002
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 116.336395264,
+                "probability": null,
+                "upper": 123.410011292
+              },
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "train_rmse": 0.259108401921,
+              "validation_max_error": 0.539524078369,
+              "validation_rmse": 0.224153976189
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 56.6781640997,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8655397458,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                1.39213597775,
+                1.39213597775,
+                1.39213597775
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.4029101053,
+              "source_id": 11172025393926084303,
+              "sun_compiler_rgb": [
+                119.553634644,
+                119.553634644,
+                119.553634644
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 116.868347168,
+                "probability": null,
+                "upper": 124.144569397
+              },
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "train_rmse": 0.315016486121,
+              "validation_max_error": 0.604011535645,
+              "validation_rmse": 0.326770588486
+            }
+          ],
+          "map_sha256": "c60d36e0c4b6f57884245e666f2a7cbd8f53b75804c6e1ad3afdacd1ba0c0d2e",
+          "reason": "Directional hypotheses supported under explicit bake assumptions; not calibrated physical lux",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "SunHypotheses",
+          "training_coverage": [
+            {
+              "black_rmse": 49.8035027773,
+              "blocks": 42,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 2,
+              "normal_eigen_ratio": 0.451612903226,
+              "positive": 31,
+              "positive_blocks": 25,
+              "requested": 72,
+              "saturated": 0,
+              "used": 70
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 11160,
+            "forward_calls": 7,
+            "pairs": 1656,
+            "rays": 1464,
+            "traversal": 54340
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 72,
+            "normal_orientations": 4,
+            "positive": 16,
+            "sha256": "9cf886f60db7f8e4e8522088295abda3fb2ad305ac2ee7eb64b16b03a857ae88"
+          },
+          "train": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 31,
+            "sha256": "4bd4e386a9d4643b12fa9d5b96d7e8f4d42166bb4ab010cac3f8213f563a04ba"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 31,
+            "sha256": "83269f37a79a9f899e26e0f7b6400be67d2024e0c3a7dc409c382bcff0a4c2ad"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "f11d66bf1b360c96190cae5fc350655d5f24cbc135f91606262d8cac5f4f9aa6",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "86c9392dc5c4c5808d83a02bd096e4cd138204a07f594c7b2d964e5560950fa3",
+        "state": "SunHypotheses",
+        "sun_rgb_relative_l2_error": 0.006619262691666706,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": []
+      },
+      "sun_with_lamp": {
+        "absolute_photometry": "NotComparable",
+        "acceptance": {
+          "angular_limit_degrees": 2,
+          "heldout_interval_rmse_limit": 1,
+          "scope": "Supported single-sun/sky controlled classes; negative rejection is not recovery of missing source count or GI",
+          "status": "Passed",
+          "strict_complete_coverage_gate": true
+        },
+        "actual_historical_ja_profile": "UnknownProfile",
+        "angular_error_degrees": 0.40452866237178053,
+        "bsp_sha256": "d2e5751cce4b896689dfe483eda264b6f135f4b7dc7b86f0317bef14879b120c",
+        "code": 0,
+        "diagnostic": {
+          "code": 0,
+          "decisions": [
+            {
+              "admitted_before_alternative_pruning": false,
+              "model": 0,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Sky not distinguished from fill or outside independent error tolerance",
+              "to_source": [
+                0,
+                0,
+                0
+              ],
+              "validation_rmse": 48.6095050156
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "validation_rmse": 0.093345793121
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "validation_rmse": 0.206837392624
+            },
+            {
+              "admitted_before_alternative_pruning": true,
+              "model": 2,
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "reason": "Positive independent directional improvement over sky-only and uniform-fill controls; source count/profile/extent remain conditional",
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "validation_rmse": 0.303129751147
+            }
+          ],
+          "diagnostics": [],
+          "fit_work": {
+            "counters_complete": true,
+            "directions": 326,
+            "encoding_calls": 22960,
+            "forward_calls": 327,
+            "pairs": 24010,
+            "rays": 14264,
+            "traversal": 552850
+          },
+          "frozen_key": "492b2788b42fe94876fb6ba8a36943c79ae3ba7a0683571fd87c3b451ca0309c",
+          "heldout": [
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 39.6410712508,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 69,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 0,
+              "maximum_error": 0.657165527344,
+              "rmse": 0.159662006075,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1242,
+                "rays": 1212,
+                "traversal": 44391
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 39.6410712508,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 69,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 1,
+              "maximum_error": 0.596481323242,
+              "rmse": 0.151259009273,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1242,
+                "rays": 1212,
+                "traversal": 44396
+              }
+            },
+            {
+              "code": 0,
+              "coverage": {
+                "black_rmse": 39.6410712508,
+                "blocks": 13,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.153846153846,
+                "positive": 16,
+                "positive_blocks": 5,
+                "requested": 69,
+                "saturated": 0,
+                "used": 69
+              },
+              "hypothesis": 2,
+              "maximum_error": 0.823944091797,
+              "rmse": 0.226464586635,
+              "work": {
+                "counters_complete": true,
+                "directions": 0,
+                "encoding_calls": 138,
+                "forward_calls": 2,
+                "pairs": 1242,
+                "rays": 1212,
+                "traversal": 44388
+              }
+            }
+          ],
+          "hypotheses": [
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 61.4699694392,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8420481896,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                2.66065454483,
+                2.88312649727,
+                2.80115222931
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.6095050156,
+              "source_id": 5204762828492624687,
+              "sun_compiler_rgb": [
+                119.319267273,
+                119.30531311,
+                119.381507874
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 115.293930054,
+                "probability": null,
+                "upper": 122.06703186
+              },
+              "to_source": [
+                0.495690613985,
+                0.280406504869,
+                0.821987211704
+              ],
+              "train_rmse": 0.0690599189392,
+              "validation_max_error": 0.476220607758,
+              "validation_rmse": 0.093345793121
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 61.4699694392,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8420481896,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                1.4263253212,
+                1.64985740185,
+                1.55732166767
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.6095050156,
+              "source_id": 14500239965331926843,
+              "sun_compiler_rgb": [
+                119.393722534,
+                119.379272461,
+                119.460746765
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 116.444328308,
+                "probability": null,
+                "upper": 123.51776123
+              },
+              "to_source": [
+                0.503836333752,
+                0.285227864981,
+                0.815349042416
+              ],
+              "train_rmse": 0.240335838814,
+              "validation_max_error": 0.797943115234,
+              "validation_rmse": 0.206837392624
+            },
+            {
+              "angular_extent": null,
+              "canonical_environments": 0,
+              "canonical_suns": 1,
+              "canonical_unresolved_transport_descriptors": 1,
+              "coverage": {
+                "black_rmse": 61.4699694392,
+                "blocks": 14,
+                "excluded_encoding": 0,
+                "excluded_geometry": 0,
+                "excluded_sky": 0,
+                "normal_eigen_ratio": 0.5,
+                "positive": 31,
+                "positive_blocks": 7,
+                "requested": 72,
+                "saturated": 0,
+                "used": 72
+              },
+              "environment_payload": [],
+              "exact_light_suitability": "Unsuitable",
+              "existence_probability": null,
+              "fill_validation_rmse": 52.8420481896,
+              "model": 2,
+              "numerical_status": "AvailableConditional",
+              "photometric_unit": "UncalibratedRelative",
+              "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+              "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+              "receiver_evidence_summary": {
+                "excluded": 0,
+                "requested": 72,
+                "sky_response_positive": 72,
+                "sun_facing_but_blocked": 9,
+                "sun_response_positive": 31
+              },
+              "sampled_angular_ambiguity_radians": 0.0218166156499,
+              "sky_compiler_rgb": [
+                0.480196297169,
+                0.704182267189,
+                0.609955668449
+              ],
+              "sky_component_supported": false,
+              "sky_excludes_direct_sun": true,
+              "sky_only_validation_rmse": 48.6095050156,
+              "source_id": 4934219861552221274,
+              "sun_compiler_rgb": [
+                119.671195984,
+                119.656532288,
+                119.738754272
+              ],
+              "sun_intensity_slice": {
+                "bounded": true,
+                "lower": 117.007003784,
+                "probability": null,
+                "upper": 123.794494629
+              },
+              "to_source": [
+                0.5037779212,
+                0.291929244995,
+                0.813009917736
+              ],
+              "train_rmse": 0.287973782058,
+              "validation_max_error": 0.820068359375,
+              "validation_rmse": 0.303129751147
+            }
+          ],
+          "map_sha256": "d2e5751cce4b896689dfe483eda264b6f135f4b7dc7b86f0317bef14879b120c",
+          "reason": "Directional hypotheses supported under explicit bake assumptions; not calibrated physical lux",
+          "runtime_publication": false,
+          "schema": "org.openjk.solar-fit-diagnostic.v1",
+          "state": "SunHypotheses",
+          "training_coverage": [
+            {
+              "black_rmse": 55.5532658258,
+              "blocks": 42,
+              "excluded_encoding": 0,
+              "excluded_geometry": 0,
+              "excluded_sky": 0,
+              "normal_eigen_ratio": 0.451612903226,
+              "positive": 31,
+              "positive_blocks": 25,
+              "requested": 70,
+              "saturated": 0,
+              "used": 70
+            }
+          ],
+          "validation_read_after_freeze": true,
+          "validation_work": {
+            "counters_complete": true,
+            "directions": 0,
+            "encoding_calls": 11160,
+            "forward_calls": 7,
+            "pairs": 1656,
+            "rays": 1464,
+            "traversal": 54340
+          }
+        },
+        "folds": {
+          "heldout": {
+            "count": 69,
+            "normal_orientations": 4,
+            "positive": 32,
+            "sha256": "7eea99fab4a3bdae97a513b3800bf3e9586e320ddda9a6bef1213f72c28662b3"
+          },
+          "train": {
+            "count": 70,
+            "normal_orientations": 5,
+            "positive": 42,
+            "sha256": "6af343a6cccd5bc2c0106077cd17f7972660e66e0b65ab2c9a5ab2cd5e32b3ed"
+          },
+          "validation": {
+            "count": 72,
+            "normal_orientations": 5,
+            "positive": 36,
+            "sha256": "de558de82f8e9b865e68ae2131c2f6f94bcc9de841974e2a21aee5222eccb40b"
+          }
+        },
+        "hidden_sun_direction_used_only_by_trusted_evaluator": true,
+        "recipe_sha256": "ae40883c130828922d56e14b892f41a747bd623fb59bd7e27a7e73aed37ff1e2",
+        "sky_rgb_relative_l2_error": null,
+        "source_map_sha256": "d8000d966d46a6ed03203d2021b432ebc25b331deac8366d259ed11bd9a4de25",
+        "state": "SunHypotheses",
+        "sun_rgb_relative_l2_error": 0.005545517523086536,
+        "supplied_sun_prior": false,
+        "unsupported_original_receivers": [
+          {
+            "partition": "train",
+            "reason": "Unsupported original nominal receiver placement in known local-lamp operator",
+            "sample": 64,
+            "status": 5
+          },
+          {
+            "partition": "train",
+            "reason": "Unsupported original nominal receiver placement in known local-lamp operator",
+            "sample": 65,
+            "status": 5
+          },
+          {
+            "partition": "heldout",
+            "reason": "Unsupported original nominal receiver placement in known local-lamp operator",
+            "sample": 153,
+            "status": 5
+          },
+          {
+            "partition": "heldout",
+            "reason": "Unsupported original nominal receiver placement in known local-lamp operator",
+            "sample": 165,
+            "status": 5
+          },
+          {
+            "partition": "heldout",
+            "reason": "Unsupported original nominal receiver placement in known local-lamp operator",
+            "sample": 204,
+            "status": 5
+          }
+        ]
+      }
+    },
+    "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+    "schema": "org.openjk.s02-compiled-validation.v1",
+    "split": {
+      "block": 128.0,
+      "gap": 1.0,
+      "origin": [
+        64.0,
+        64.0,
+        64.0
+      ],
+      "seed": 20261030
+    },
+    "tool_sha256": "7900e5aafd77a2cf13eca151262e28adcbac823c4dbfcc7d2bc0102b7effb22c"
+  },
+  "false_sun_controls": {
+    "cases": [
+      "ambient_only",
+      "no_sun"
+    ],
+    "denominator": 2,
+    "published_suns": 0,
+    "scope": "controlled true-no-sun negatives, not a stock-map false-positive rate"
+  },
+  "hash_policy": "SHA256 LF-normalized source bytes",
+  "repeated_frozen_inputs_identical": true,
+  "retained_failures": [
+    {
+      "case": "sky_aperture",
+      "status": "InsufficientPositiveValidation"
+    },
+    {
+      "case": "sun_shadow",
+      "status": "PartialUnsupportedVisibility"
+    }
+  ],
+  "schema": "org.openjk.s02-sun-sky-validation.v1",
+  "scope": {
+    "angular_extent": "Unavailable",
+    "confidence_probability": "Uncalibrated/unknown",
+    "heldout": "Value-only Assess after training freeze and validation; never used to refit",
+    "historical_ja_profile": "UnknownProfile",
+    "physical_lux": "NotComparable",
+    "runtime_publication": false
+  },
+  "semantic_sha256": "80af43b11cb59ec0378ae609fe5d01ce1a4eec862e65fa606388b7abe8915f36",
+  "source_commit": "0387b328170853374eaaa59c37b9e57c110bdb72",
+  "unsupported_multi_source_control": {
+    "accepted_single_sun_hypotheses": 0,
+    "case": "multi_directional",
+    "meaning": "Two true suns; rejecting unsupported one-sun explanation is NOT a no-sun ground-truth result",
+    "state": "UnknownSun"
+  },
+  "working_tree_source_sha256": {
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "88bf198ed79775f2e9587097e4e401f052903df710d90521124e8c338b34b568",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "c674fae5ff7f6a4b374e0c4e783b965c9d8f09b55dd3574b4e55cf035acad1f4",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "7be875d478d9c1f6727546c90485a15a0e5694e55e218df7eecc94c0df3b37de",
+    "shared/rd-rend2/lightrecon/bake_integral.cpp": "07f70526816259884badad6c11e3f0574b5d62ab6c2325262e0d4aa1e84bcbbc",
+    "shared/rd-rend2/lightrecon/bake_math.h": "342a4b791e8e2af250e4e986eac5ffc52543200270a9aef6522a148f93716041",
+    "shared/rd-rend2/lightrecon/bake_profile.h": "ec9cb47679d0effcb48011c03eebaf504d5005db1d4305e366ed8bd45ead3ab2",
+    "shared/rd-rend2/lightrecon/bake_trace.cpp": "4670cf72e42f14ca6c397120824f26ab417946515712d49643697cc600e53494",
+    "shared/rd-rend2/lightrecon/bake_trace.h": "45247951e2e67f0f153c69243e2a630d243204bb0c4023e5f7db6405fa729702",
+    "shared/rd-rend2/lightrecon/sun_fit.cpp": "e17c8bb7b67ca902cd1f0364c097d779201d159a6de306a3fa673c92869e009d",
+    "shared/rd-rend2/lightrecon/sun_fit.h": "fb3aa253fa391a51dc9b3ef27665d8d4ac82033d50e01153ab908e25d1d00e41",
+    "tools/lightrecon_test/CMakeLists.txt": "4987289ed41b5a4e6ae5edd7f121fc82ecb6aab81a88a1432c60b6f98c90d91b",
+    "tools/lightrecon_test/lightrecon_bake_forward_tool.cpp": "7906eee0eb5b54e701e74f136af5650fe3ba4876cdf393c04abed4ae38c73174",
+    "tools/lightrecon_test/lightrecon_sun_test.cpp": "5658b5da24091bb6a8b1511022ec19618a8941ca7cc6f5c62122034cf4db8c15",
+    "tools/lightrecon_test/solar_tool.h": "67b43ec5ac73803a2db5e36acd66b09e969d9226f4a621ef94d23f6801d9e4c4",
+    "tools/rend2/bake_model/compare_bakes.py": "24a30b3ba64b4cdaf47d489ea0aca5080444280604d73b407f660d10d502dc87",
+    "tools/rend2/bake_model/profiles.json": "864f103f6ee760bf124d163ec7eadf827d5773d34b146130e89c55e335accee0",
+    "tools/rend2/bake_model/source-lock.json": "56e385069a4dfbb50244b71370c7a75adaf5dd7b52ed41ead41d09ff2578b314",
+    "tools/rend2/bake_model/validate_cpp.py": "bc54c2b307b6094e120a8ab4ed002a6a28aa3de509c571c39122af108dcd71d3",
+    "tools/rend2/datasets/prepare_blind.py": "8c220c287ebd2ada246bf124a73affbf310e484ac4b2dc9da10860b04be2b410",
+    "tools/rend2/shadow_footprint/compiler_boundary.py": "efcb8d808f17da41997b64c7df48c7c0c4868df98c5e19cdd80a5a48ad76024c",
+    "tools/rend2/sun_fit/report.py": "356085d028b4627e25658b39a70bf924ec7b3a986cbb248876e722618f764be5",
+    "tools/rend2/sun_fit/run.py": "6510b8105a1bd3386edeee94f6532198172d5d8c3f78d881e4317dfec3a13453",
+    "tools/rend2/sun_fit/test_sun_fit.py": "b16fb8aaf7e23d4d1d8800b4d18567279969df01838dfc7b4612d1613952dc9e"
+  }
+}

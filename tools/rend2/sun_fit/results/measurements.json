@@ -1,0 +1,147 @@
+{
+  "metric": "Windows GetProcessMemoryInfo peak working set, separate controller/C++ processes; no sum of asynchronous peaks",
+  "runs": [
+    {
+      "cases": {
+        "ambient_only": {
+          "cpp_fit_validation_seconds": 0.0032566,
+          "resources": {
+            "controller_peak_rss_bytes": 24924160,
+            "cpp_peak_rss_bytes": 4538368,
+            "total_case_wall_seconds": 0.9012948999879882
+          }
+        },
+        "multi_directional": {
+          "cpp_fit_validation_seconds": 0.2435977,
+          "resources": {
+            "controller_peak_rss_bytes": 24932352,
+            "cpp_peak_rss_bytes": 10006528,
+            "total_case_wall_seconds": 1.161218099994585
+          }
+        },
+        "no_sun": {
+          "cpp_fit_validation_seconds": 0.0057165,
+          "resources": {
+            "controller_peak_rss_bytes": 24924160,
+            "cpp_peak_rss_bytes": 4562944,
+            "total_case_wall_seconds": 1.053457499947399
+          }
+        },
+        "sky_aperture": {
+          "cpp_fit_validation_seconds": 0.2542258,
+          "resources": {
+            "controller_peak_rss_bytes": 23302144,
+            "cpp_peak_rss_bytes": 10604544,
+            "total_case_wall_seconds": 1.27613160002511
+          }
+        },
+        "sky_aperture_positive_v2": {
+          "cpp_fit_validation_seconds": 0.2742489,
+          "resources": {
+            "controller_peak_rss_bytes": 23576576,
+            "cpp_peak_rss_bytes": 10452992,
+            "total_case_wall_seconds": 1.248392799985595
+          }
+        },
+        "sun_oriented": {
+          "cpp_fit_validation_seconds": 0.2425042,
+          "resources": {
+            "controller_peak_rss_bytes": 22413312,
+            "cpp_peak_rss_bytes": 9969664,
+            "total_case_wall_seconds": 1.0927820999640971
+          }
+        },
+        "sun_shadow": {
+          "cpp_fit_validation_seconds": 0.2392636,
+          "resources": {
+            "controller_peak_rss_bytes": 22835200,
+            "cpp_peak_rss_bytes": 10096640,
+            "total_case_wall_seconds": 1.214544799993746
+          }
+        },
+        "sun_with_lamp": {
+          "cpp_fit_validation_seconds": 0.2814789,
+          "resources": {
+            "controller_peak_rss_bytes": 24006656,
+            "cpp_peak_rss_bytes": 10080256,
+            "total_case_wall_seconds": 1.411890499992296
+          }
+        }
+      },
+      "directory": "build/s02-final-a",
+      "wall_seconds": 9.444987499970011
+    },
+    {
+      "cases": {
+        "ambient_only": {
+          "cpp_fit_validation_seconds": 0.0033445,
+          "resources": {
+            "controller_peak_rss_bytes": 25337856,
+            "cpp_peak_rss_bytes": 4575232,
+            "total_case_wall_seconds": 0.9071473000803962
+          }
+        },
+        "multi_directional": {
+          "cpp_fit_validation_seconds": 0.2609182,
+          "resources": {
+            "controller_peak_rss_bytes": 25690112,
+            "cpp_peak_rss_bytes": 9957376,
+            "total_case_wall_seconds": 1.166011800058186
+          }
+        },
+        "no_sun": {
+          "cpp_fit_validation_seconds": 0.0031099,
+          "resources": {
+            "controller_peak_rss_bytes": 25632768,
+            "cpp_peak_rss_bytes": 4546560,
+            "total_case_wall_seconds": 1.0220329000148922
+          }
+        },
+        "sky_aperture": {
+          "cpp_fit_validation_seconds": 0.25844,
+          "resources": {
+            "controller_peak_rss_bytes": 23805952,
+            "cpp_peak_rss_bytes": 10477568,
+            "total_case_wall_seconds": 1.357013300061226
+          }
+        },
+        "sky_aperture_positive_v2": {
+          "cpp_fit_validation_seconds": 0.2930414,
+          "resources": {
+            "controller_peak_rss_bytes": 24047616,
+            "cpp_peak_rss_bytes": 10424320,
+            "total_case_wall_seconds": 1.3745507000712678
+          }
+        },
+        "sun_oriented": {
+          "cpp_fit_validation_seconds": 0.2879067,
+          "resources": {
+            "controller_peak_rss_bytes": 22626304,
+            "cpp_peak_rss_bytes": 9994240,
+            "total_case_wall_seconds": 1.216554999933578
+          }
+        },
+        "sun_shadow": {
+          "cpp_fit_validation_seconds": 0.2761913,
+          "resources": {
+            "controller_peak_rss_bytes": 23097344,
+            "cpp_peak_rss_bytes": 10084352,
+            "total_case_wall_seconds": 1.377801200025715
+          }
+        },
+        "sun_with_lamp": {
+          "cpp_fit_validation_seconds": 0.258778,
+          "resources": {
+            "controller_peak_rss_bytes": 24293376,
+            "cpp_peak_rss_bytes": 10027008,
+            "total_case_wall_seconds": 1.3716304999543354
+          }
+        }
+      },
+      "directory": "build/s02-final-b",
+      "wall_seconds": 9.882006700034253
+    }
+  ],
+  "schema": "org.openjk.s02-resource-measurements.v1",
+  "semantic_sha256": "80af43b11cb59ec0378ae609fe5d01ce1a4eec862e65fa606388b7abe8915f36"
+}

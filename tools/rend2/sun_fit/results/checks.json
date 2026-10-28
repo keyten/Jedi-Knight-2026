@@ -1,0 +1,61 @@
+{
+  "gameplay_visual_validation": "NotPerformed: CPU-only output, no renderer integration",
+  "original_compiler_regression": {
+    "supported": 20,
+    "total": 22,
+    "unsupported_bounce_replay": 2,
+    "x05": "Passed",
+    "x06_full": 7,
+    "x06_partial": {
+      "name": "thin_door",
+      "unsupported": 25
+    }
+  },
+  "python": {
+    "bake_model_passed": 24,
+    "s02_gates_passed": 9,
+    "skipped": 0,
+    "x07_blind_fit_passed": 22
+  },
+  "release_builds": [
+    "rdsp-rend2_x86_64",
+    "rd-rend2_x86_64",
+    "lightrecon_sun_test",
+    "lightrecon_bake_forward_tool"
+  ],
+  "retained_failures": [
+    {
+      "case": "sky_aperture",
+      "status": "InsufficientPositiveValidation"
+    },
+    {
+      "case": "sun_shadow",
+      "status": "PartialUnsupportedVisibility"
+    }
+  ],
+  "runtime_lighting_changed": false,
+  "schema": "org.openjk.s02-checks.v1",
+  "semantic_sha256": "80af43b11cb59ec0378ae609fe5d01ce1a4eec862e65fa606388b7abe8915f36",
+  "shader_regression": {
+    "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "differences": 0,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "gpu_compiled": true,
+    "gpu_interface_comparison": "matching-driver baseline compared",
+    "passed": true,
+    "production_dependency_audit": "passed",
+    "programs": 27,
+    "stages": 51
+  },
+  "standalone_cpu": {
+    "failed": 0,
+    "new_solar_failures": 0,
+    "new_solar_numerical_checks": 14899,
+    "passed": 19
+  },
+  "stock_historical_profile": "UnknownProfile"
+}

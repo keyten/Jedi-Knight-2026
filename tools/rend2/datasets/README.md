@@ -26,6 +26,10 @@ recipe and solver guide](../../../docs/rend2-offline-observation-datasets.md)
 document the complete workflow. `test_runtime_export.py` exercises licensed local
 stock SP map loading and repeated CPU exports. No game content belongs in Git.
 
+The [X07 fixed-geometry blind RGB fit](../fixed_geometry/README.md) uses the
+separated training/evaluator views with the production C++ forward model.
+Known candidate XYZ are supplied test priors; this does not discover stock lights.
+
 Use the separate [evaluation runner](../evaluation/README.md) for area-weighted
 readiness, source matching, censored prediction error, profile alternatives and
 uncertainty diagnostics. Its reports distinguish metric/oracle sanity checks
