@@ -3339,7 +3339,7 @@ void R_Register( void )
 	r_shadowCascadeZBias = ri.Cvar_Get( "r_shadowCascadeZBias", "-320", CVAR_ARCHIVE | CVAR_LATCH, "" );
 	r_sunShadowMode = ri.Cvar_Get( "r_sunShadowMode", "1", CVAR_ARCHIVE | CVAR_LATCH, "Sun shadows: 0 legacy, 1 stabilized blended PCSS" );
 	ri.Cvar_CheckRange( r_sunShadowMode, 0, 1, qtrue );
-	r_sunShadowCache = ri.Cvar_Get( "r_sunShadowCache", "0", CVAR_ARCHIVE | CVAR_LATCH, "Static BSP sun cache: 0 off, 1 exact reuse, 2 scrolling clipmaps, 3 persistent world-space disk pages" );
+	r_sunShadowCache = ri.Cvar_Get( "r_sunShadowCache", "0", CVAR_ARCHIVE | CVAR_LATCH, "Static BSP sun cache: 0 off, 1 exact reuse, 2 scrolling clipmaps (experimental), 3 persistent world-space disk pages (experimental)" );
 	ri.Cvar_CheckRange( r_sunShadowCache, 0, 3, qtrue );
 	r_sunShadowVerify = ri.Cvar_Get( "r_sunShadowVerify", "0", CVAR_CHEAT, "Compare cached sun depth with a full render: 1 next scene, 2 continuous (slow readbacks)" );
 	ri.Cvar_CheckRange( r_sunShadowVerify, 0, 2, qtrue );

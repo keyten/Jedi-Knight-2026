@@ -49,13 +49,26 @@ The modern comparison depth combines:
 3. a receiver-plane correction for every kernel offset.
 
 The receiver-plane gradient is solved from screen-space derivatives of shadow
-UV and depth. Corrections are clamped in world units to prevent derivatives at
-geometry discontinuities from producing extreme bias.
+UV and depth. The receiver position is differentiated once, before the cascade
+branch; because the sun projection is orthographic, each evaluated cascade gets
+its shadow-space derivatives from the 3x3 part of its matrix instead of
+projecting the pixel into all three cascades. Corrections are clamped in world
+units to prevent derivatives at geometry discontinuities from producing extreme
+bias.
 
-PCSS uses a stable world-space Vogel pattern:
+PCSS uses a stable world-space Vogel pattern with per-tap `sqrt`/`cos`/`sin`.
+That is deliberate: on the Intel UHD (mp/ffa3, 960x540, r_sunShadowCache 0) a
+dynamically indexed const table of the disc points made the main view about 5x
+slower, and advancing each tap by a golden-angle complex multiply (one
+`sin`/`cos` per pixel) made it 7.0 -> 8.2-8.7 ms. A
+kernel never leaves its cascade: near the map edge the disc radius shrinks
+instead of clamping taps onto (and repeating) the border texels.
 
-1. Search raw depth in a bounded world-space radius and collect depths less
-   than the bias-corrected receiver depth.
+1. Search raw depth and collect depths less than the bias-corrected receiver
+   depth. The search radius is `maxSeparation * tan(sunAngularDiameter / 2)`,
+   at most `r_shadowPCSSMaxPenumbra` and at least two texels, where
+   `maxSeparation` is the receiver's distance below the map's light-side bound
+   (`u_ShadowDepthSpan.w`): no blocker further away can widen its penumbra.
 2. Average the blocker depths.
 3. Convert receiver/blocker depth separation back to world units and compute
    `penumbra = separation * tan(sunAngularDiameter / 2)`.
@@ -87,7 +100,7 @@ PCSS visibility; it never replaces it.
 | Cvar | Default | Meaning |
 | --- | ---: | --- |
 | `r_sunShadowMode` | 1 | 0 legacy, 1 shadows 2.0; latched |
-| `r_sunShadowCache` | 0 | 0 off, 1 exact reuse, 2 scrolling clipmaps, 3 persistent world-space disk pages; latched |
+| `r_sunShadowCache` | 0 | 0 off, 1 exact reuse, 2 scrolling clipmaps (experimental), 3 persistent world-space disk pages (experimental); latched |
 | `r_sunShadowAlphaCasters` | 1 | sun-shadow cutouts/receivers for `q3map_alphashadow` foliage and `surfaceSprites`; latched |
 | `r_shadowCascadeBlend` | 0.10 | overlap as fraction of smaller adjacent span |
 | `r_shadowDepthBias` | 0.15 | constant world-space receiver bias |
@@ -161,6 +174,12 @@ that compact list directly instead of walking the whole BSP every cascade.
 Raw classifier evidence such as a two-sided material is not itself motion.
 The working-layer restore uses conservative Ghoul2 culling spheres, MD3 frame
 bounds (both animation frames), and BSP bounds, with a four-texel raster guard.
+Footprints are kept as up to eight separate rectangles (touching ones merge;
+past eight, the pair with the smallest union grows), so characters far apart
+restore only their own areas; past half the layer one full copy is used. World
+overlay surfaces without animation (no deforms, tcMod, animMap, video or
+time-varying alphaGen, no Force Sight, known through the sort key) write the
+same depth on every exact hit and are left out of the footprint.
 Unknown/deformed casters fall back to a complete restore. Same-format depth
 copies use optional `glCopyImageSubData`, with FBO blits on older GL drivers.
 PCSS shader taps are unchanged.
@@ -201,8 +220,10 @@ positions and indices of all conservative static casters, their resolved
 shader names/cull modes, the sun basis, stable depth range, cascade level,
 texel scale and resolution. Map geometry, relevant shader/remap, sun, FOV,
 split or resolution changes therefore select a different cache. Files have a
-validated header and finite normalized depth payload; an incomplete or corrupt
-page is treated as a miss. World/curve/culling settings also select a different
+validated header, a payload checksum and finite normalized depth; an incomplete
+or corrupt page is treated as a miss. A page counts as saved only after its
+file reads back at full size, so a failed write is retried; the saved-page
+list is reset with the cache (map load). World/curve/culling settings also select a different
 cache. Mode 3 is experimental and opt-in because page creation includes synchronous page-depth
 readback, bounded extra page renders, and uncompressed float pages on disk.
 

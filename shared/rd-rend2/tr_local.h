@@ -3142,6 +3142,7 @@ typedef struct {
 	float       sunShadowBlendWidths[2];
 	float       sunShadowTexelSize[3];
 	float       sunShadowDepthSpan[3];
+	float       sunShadowDepthTop;		// [0, 1] cascade depth of the map's light-side bound, 0 unknown
 	float       sunDir[4];
 	float       sunCol[4];
 	float       sunAmbCol[4];
@@ -3215,7 +3216,9 @@ using viewParmFlags_t = uint32_t;
 #define SUN_SHADOW_DISK_GUARD_SIZE 16
 #define SUN_SHADOW_DISK_SCRATCH_SIZE (SUN_SHADOW_DISK_TILE_SIZE + 2 * SUN_SHADOW_DISK_GUARD_SIZE)
 #define SUN_SHADOW_DISK_MAGIC 0x53445343u // "SDSC"
-#define SUN_SHADOW_DISK_VERSION 4u
+#define SUN_SHADOW_DISK_VERSION 5u
+// r_sunShadowCache 1: separate dirty rectangles restored from the static layer
+#define SUN_SHADOW_MAX_RESTORE_RECTS 8
 
 typedef struct
 {
@@ -3230,7 +3233,7 @@ typedef struct
 	uint32_t magic;
 	uint32_t version;
 	uint32_t tileSize;
-	uint32_t reserved;
+	uint32_t checksum;		// FNV-1a of the depth texels (R_SunShadowDiskChecksum)
 	uint64_t layoutKey;
 	int32_t pageX;
 	int32_t pageY;
@@ -3266,7 +3269,8 @@ typedef struct {
 	int				sunShadowScrollX, sunShadowScrollY;
 	qboolean		sunShadowFullRestore;
 	qboolean		sunShadowUnboundedDamage;
-	vec4i_t			sunShadowRestoreRect;
+	vec4i_t			sunShadowRestoreRects[SUN_SHADOW_MAX_RESTORE_RECTS];
+	int				sunShadowRestoreRectCount;
 	vec4i_t			sunShadowScissor;
 	uint64_t		sunShadowDiskLayoutKey;
 	int				sunShadowDiskOriginX, sunShadowDiskOriginY;
@@ -5128,6 +5132,8 @@ void R_InvalidateSunShadowCache(void);
 void R_ResetSunShadowDynamicWorld(void);
 void R_SunShadowDiskTilePath(char *path, size_t pathSize, uint64_t layoutKey,
 	int pageX, int pageY);
+uint32_t R_SunShadowDiskChecksum(const float *depth, size_t count);
+void RB_ResetSunShadowDiskSaves(void);
 bool R_IsPostRenderEntity ( const trRefEntity_t *refEntity );
 
 void R_CalcMikkTSpaceBSPSurface(int numSurfaces, packedVertex_t *vertices, glIndex_t *indices);
