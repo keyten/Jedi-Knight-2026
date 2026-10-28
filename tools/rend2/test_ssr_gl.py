@@ -160,6 +160,35 @@ def cache_checks(revision=None):
     return outcomes
 
 
+def cache_gate_checks():
+    # The clear cached hit of cache_checks is ~180 pixels from the receiver:
+    # reused at the production minimum of 24 pixels, traced again at 1000.
+    body = fragment('ssr_trace').split('void main()', 1)[0]
+    body += '''void main() {
+        vec3 Q; vec2 pixel; float depth;
+        bool valid = CachedHit(vec3(-70, 0, 100), vec2(.15, .5),
+            vec3(-70, 0, 100), vec3(1, 0, 0), 1024, 0, .1, Q, pixel, depth);
+        out_Color = vec4(valid ? 1 : 0);
+    }'''
+    prog = program('ssr_trace', '#define USE_HIZ\n', body=body)
+    w, h = 256, 64
+    uniforms(prog, w, h)
+    v4(prog, 'u_SSRSettings', (24, 5, 1024, 8))
+    v4(prog, 'u_SSRSettings2', (.6, .1, 1, 0))
+    v4(prog, 'u_SSRSettings3', (6, .002, 4, 72))
+    v4(prog, 'u_SSRSettings4', (1, 1, 0, 0))
+    texture('u_SSRPrevHitMap', np.array([[[.85, .5, math.log2(100)/12, 1]]]))
+    texture('u_VelocityMap', np.zeros((h, w, 4)))
+    texture('u_SSRHiZMap', np.where(np.arange(w)[None, :] >= 217, 100,
+            np.full((h, w), 1000, dtype=np.float32)), levels=True)
+    v4(prog, 'u_SSRSettings5', (0, 24, 0, 0))
+    reused = draw(prog, 1, 1)[0, 0, 0] > .5
+    v4(prog, 'u_SSRSettings5', (0, 1000, 0, 0))
+    retraced = draw(prog, 1, 1)[0, 0, 0] < .5
+    gl('glDeleteProgram', None, U)(prog)
+    return {'cached rays shorter than the minimum screen length are traced again': reused and retraced}
+
+
 def temporal_checks(revision=None):
     prog = program('ssr_temporal', revision=revision)
     w = h = 16
@@ -208,7 +237,7 @@ def coverage_checks():
     body = '''out vec4 out_Color;
     void main() {
         out_Color = SSRHitRadiance(vec4(.5, .5, log2(100.0)/12.0, 1.0),
-            vec3(0, 0, 10), 0.0, 0.0);
+            vec3(0, 0, 10), 0.0, 0.0, 0.0);
     }'''
     prog = program('ssr_resolve', body=body)
     uniforms(prog, w, h)
@@ -324,10 +353,12 @@ def compile_checks():
         ('ssr_resolve', ''), ('ssr_resolve', '#define TRACE_RADIANCE\n'),
         ('ssr_resolve', '#define UPSAMPLE_RADIANCE\n'),
         ('ssr_temporal', ''), ('ssr_composite', ''),
+        ('ssr_composite', '#define FUSED_RESOLVE\n'),
+        ('ssr_composite', '#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n'),
         ('ssr_debug', ''), ('ssr_hiz', '#define LINEARIZE\n'), ('ssr_hiz', '')]:
         prog = program(name, defines)
         gl('glDeleteProgram', None, U)(prog)
-    return {'15 SSR shader permutations compile/link': True}
+    return {'17 SSR shader permutations compile/link': True}
 
 
 def msaa_resolve_checks():
@@ -376,18 +407,36 @@ def msaa_resolve_checks():
 def confidence_checks():
     prog = program('ssr_resolve', body='''out vec4 out_Color;
         void main() { out_Color = vec4(0, 0, 0,
-            SSREncodeConfidence(gl_FragCoord.x / 1024.0, u_SSRSettings.x > 0.5)); }''')
-    target = fbo([tex2d(1024, 1, 0x805B)])  # actual trace format GL_RGBA16, not half float
-    uniforms(prog, 1024, 1)
-    gl('glViewport', None, I, I, I, I)(0, 0, 1024, 1)
+            SSREncodeConfidence(floor(gl_FragCoord.x) / 1023.0, u_SSRSettings.x > 0.5)); }''')
+    decode = program('ssr_resolve', body='''out vec4 out_Color;
+        void main() {
+            float w = texelFetch(u_SSRTraceMap, ivec2(gl_FragCoord.xy), 0).a;
+            out_Color = vec4(abs(SSRHitConfidence(w) - floor(gl_FragCoord.x) / 1023.0),
+                SSRHitReused(w) ? 1 : 0, 0, 1);
+        }''')
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    stored = tex2d(1024, 1, 0x805B)  # actual trace format GL_RGBA16, not half float
+    target = fbo([stored])
+    for p in (prog, decode):
+        uniforms(p, 1024, 1)
     for reused in (0, 1):
+        gl('glBindFramebuffer', None, U, U)(0x8D40, target)
+        gl('glViewport', None, I, I, I, I)(0, 0, 1024, 1)
+        gl('glUseProgram', None, U)(prog)
         v4(prog, 'u_SSRSettings', (reused, 0, 0, 0))
         gl('glDrawArrays', None, U, I, I)(4, 0, 3)
-        values = read_color(target, 1024, 1)[..., 3]
-        parity = np.rint(values * 65535).astype(int) & 1
-        assert np.all(parity == reused), (reused, np.count_nonzero(parity != reused))
-    gl('glDeleteProgram', None, U)(prog)
-    return {'reused debug bit survives actual RGBA16 storage': True}
+        values = read_color(target, 1024, 1)[0, :, 3]
+        bits = np.rint(values * 65535).astype(int)
+        assert np.all((bits & 1) == reused), (reused, np.count_nonzero((bits & 1) != reused))
+        # zero confidence is still a hit: the geometry flag keeps w != 0
+        assert np.all(bits & 2) and np.all(values > 0)
+        bind(SAMPLERS.index('u_SSRTraceMap'), stored)
+        result = draw(decode, 1024, 1)[0]
+        assert np.max(result[:, 0]) < 1.5 / 16383, (reused, np.max(result[:, 0]))
+        assert np.all(result[:, 1] == reused)
+    for p in (prog, decode):
+        gl('glDeleteProgram', None, U)(p)
+    return {'14 bit confidence, geometry and reused bits survive actual RGBA16 storage': True}
 
 
 def classified_miss_checks():
@@ -400,11 +449,15 @@ def classified_miss_checks():
         v4(prog, 'u_SSRSettings3', (0, .004, 4, 72))
         v4(prog, 'u_SSRSettings4', (0, 0, 0, 0))
     texture('u_SSRHiZMap', np.full((h, w), 100))
-    # Valid receivers, but too rough to need any rays. The depth test must
-    # leave the trace untouched: its CLEAR alpha determines hit vs miss.
-    texture('u_SSRNormalMap', np.tile((.5, .5, .9, 1), (h, w, 1)))
+    # Valid receivers; the left half too rough to need any rays. The depth test
+    # must leave the trace untouched there (the clear decides hit vs miss), and
+    # run it on the right half, whose rays face away and write a miss (0).
+    normals = np.tile((.5, .5, .9, 1), (h, w, 1)).astype(np.float32)
+    normals[:, 4:, 2] = .1
+    texture('u_SSRNormalMap', normals)
     texture('u_SSRCubemapMap', np.tile((0, 0, 0, 100), (h, w, 1)))
     texture('u_SSRSpecularMap', np.tile((.5, .5, .5, 1), (h, w, 1)))
+    gl('glActiveTexture', None, U)(0x84C0 + 15)  # not over a sampler's unit (unit 0 is the Hi-Z)
     target = fbo([tex2d(w, h, 0x805B)])
     depth = U()
     gl('glGenRenderbuffers', None, I, C.POINTER(U))(1, C.byref(depth))
@@ -413,29 +466,140 @@ def classified_miss_checks():
     gl('glFramebufferRenderbuffer', None, U, U, U, U)(0x8D40, 0x8D00, 0x8D41, depth)
     assert gl('glCheckFramebufferStatus', U, U)(0x8D40) == 0x8CD5
     gl('glViewport', None, I, I, I, I)(0, 0, w, h)
-    for alpha in (1, 0):  # old colorBlack, then the fixed clearMiss
-        gl('glEnable', None, U)(0x0B71)
-        gl('glDepthMask', None, U)(1)
-        gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
-        gl('glClearBufferfv', None, U, I, P)(0x1800, 0, (F * 4)(0, 0, 0, alpha))
-        gl('glClearBufferfv', None, U, I, P)(0x1801, 0, (F * 1)(1))
-        gl('glDepthFunc', None, U)(0x0201)  # LESS
-        gl('glColorMask', None, U, U, U, U)(0, 0, 0, 0)
-        gl('glUseProgram', None, U)(classify)
-        gl('glDrawArrays', None, U, I, I)(4, 0, 3)
-        gl('glDepthFunc', None, U)(0x0204)  # GREATER
-        gl('glDepthMask', None, U)(0)
-        gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
-        gl('glUseProgram', None, U)(trace)
-        gl('glDrawArrays', None, U, I, I)(4, 0, 3)
-        result = read_color(target, w, h)
-        assert np.all(result[..., 3] == alpha)
+    # sentinel alpha 1 (the old colorBlack fake hit) shows which pixels ran
+    gl('glEnable', None, U)(0x0B71)
+    gl('glDepthMask', None, U)(1)
+    gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
+    gl('glClearBufferfv', None, U, I, P)(0x1800, 0, (F * 4)(0, 0, 0, 1))
+    gl('glClearBufferfv', None, U, I, P)(0x1801, 0, (F * 1)(1))
+    gl('glDepthFunc', None, U)(0x0201)  # LESS, as tr_ssr.cpp for both passes
+    gl('glColorMask', None, U, U, U, U)(0, 0, 0, 0)
+    gl('glUseProgram', None, U)(classify)
+    gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+    gl('glDepthMask', None, U)(0)
+    gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
+    gl('glUseProgram', None, U)(trace)
+    gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+    result = read_color(target, w, h)
+    skipped = np.all(result[:, :4, 3] == 1)
+    traced = np.all(result[:, 4:, 3] == 0)
     gl('glDisable', None, U)(0x0B71)
     gl('glDepthMask', None, U)(1)
     gl('glDeleteRenderbuffers', None, I, C.POINTER(U))(1, C.byref(depth))
     for prog in (classify, trace):
         gl('glDeleteProgram', None, U)(prog)
-    return {'classified non-receivers remain misses; old alpha-1 fake hit reproduced': True}
+    return {'LESS-only classification: no-ray pixels skip the trace (clear stays), ray pixels run it': skipped and traced}
+
+
+def composite_inputs(w, h, depth=100.0):
+    # receivers facing the camera (view = world normal (0, 0, -1), octahedral (1, 1)), W = 1, no cubemap
+    texture('u_SSRHiZMap', np.full((h, w), depth), levels=True)
+    texture('u_SSRNormalMap', np.tile((1, 1, .02, 1), (h, w, 1)))
+    texture('u_SSRCubemapMap', np.tile((0, 0, 0, depth), (h, w, 1)))
+    texture('u_SSRSpecularMap', np.ones((h, w, 4)))
+
+
+def emitter_checks(revision=None):
+    # A glowing sphere 50 units in front of a receiver, on its reflection ray
+    # (straight back to the camera). A wall hit at z = 70 hides it even when
+    # the SSR confidence is zero (screen edge, grazing, ...); no hit shows it.
+    prog = program('ssr_composite', revision=revision)
+    uniforms(prog, 1, 1)
+    composite_inputs(1, 1)
+    texture('u_SSRTraceMap', np.zeros((1, 1, 4)))
+    v4(prog, 'u_SSRSettings', (1, -1, 11, 0))
+    v4(prog, 'u_SSRSettings2', (1, 1024, 0, 0))
+    v4(prog, 'u_SSREmitterParams', (1, 0, .35, 0))
+    loc = uloc(prog, 'u_SSREmitters')
+    gl('glUniform4fv', None, I, I, P)(loc, 3, (F * 12)(0, 0, 50, 5, 0, 0, 50, 1, 1, 1, 1, 0))
+    outcomes = {}
+    wall = (.5, .5, math.log2(70) / 12)
+    for label, w_value, hidden in [('no hit: emitter reflected', 0.0, False),
+            ('zero confidence wall hit still hides the emitter', 2 / 65535, True),
+            ('confident wall hit hides the emitter', 1.0, True)]:
+        # fp32: the zero-confidence value 2 / 65535 is a half float denormal
+        gl('glActiveTexture', None, U)(0x84C0 + 15)
+        bind(SAMPLERS.index('u_SSRHistoryMap'), tex2d(1, 1, data=np.array([[[*wall, w_value]]])))
+
+        value = draw(prog, 1, 1)[0, 0, 0]
+        outcomes[label] = (value < 1e-4) if hidden else (value > .1)
+    gl('glDeleteProgram', None, U)(prog)
+    return outcomes
+
+
+def fused_checks():
+    # The fused composite equals resolve + composite for direct and cached
+    # half resolution rays, every phase.
+    w = h = 8
+    composite_inputs(w, h)
+    scene = np.tile((.25, .5, 1, 1), (h, w, 1))
+    trace = np.tile((.5, .5, math.log2(500) / 12, .8), (4, 4, 1))
+    expected = (.2, .4, .8)
+    outcomes = {}
+    for label, defines in [('direct', '#define FUSED_RESOLVE\n'),
+                           ('radiance cache', '#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n')]:
+        ok = True
+        for phase in range(4):
+            texture('u_SSRSceneMap', scene, linear=True)
+            texture('u_SSRHistoryMap', trace)
+            texture('u_SSRTraceMap', trace)
+            if 'UPSAMPLE' in defines:
+                radiance = program('ssr_resolve', '#define TRACE_RADIANCE\n')
+                uniforms(radiance, w, h)
+                v4(radiance, 'u_SSRSettings', (2, 1024, 0, 0))
+                v4(radiance, 'u_SSRSettings2', (.6, phase, 0, 0))
+                texture('u_SSRTraceMap', draw(radiance, 4, 4))
+                gl('glDeleteProgram', None, U)(radiance)
+            fused = program('ssr_composite', defines)
+            uniforms(fused, w, h)
+            v4(fused, 'u_SSRSettings', (1, -1, 0, 0))
+            v4(fused, 'u_SSRSettings2', (2, 1024, phase, 0))
+            v4(fused, 'u_SSRSettings3', (0, 0, 0, 0))
+            v4(fused, 'u_SSREmitterParams', (0, 0, .35, 0))
+            result = draw(fused, w, h)
+            ok = ok and np.max(np.abs(result[..., :3] - expected)) < .002
+            gl('glDeleteProgram', None, U)(fused)
+        outcomes[f'fused composite resolves {label} half-res rays like the resolve pass'] = ok
+    return outcomes
+
+
+def footprint_checks():
+    # Rough hit at depth 500; mip 0 of the scene is green, mips 1.. red. A
+    # surface at depth 100 next to the hit (in front of it) must keep the blur
+    # off it (green); without it, or with the test off, the cone mip is red.
+    w = h = 16
+    body = '''out vec4 out_Color;
+    void main() {
+        out_Color = SSRHitRadiance(vec4(.5, .5, log2(500.0)/12.0, 1.0),
+            vec3(0, 0, 100), 1.0, 3.0, u_SSRSettings.x);
+    }'''
+    prog = program('ssr_resolve', body=body)
+    uniforms(prog, w, h)
+    v4(prog, 'u_SSRDepthParams', (0, 0, 4096, .001))  # fine pixels: the slope allowance stays small
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    scene = tex2d(w, h, RGBA16F, data=np.tile((0, 1, 0, 1), (h, w, 1)), linear=True)
+    size = w
+    for level in range(1, 4):
+        size //= 2
+        red = np.ascontiguousarray(np.tile((1, 0, 0, 1), (size, size, 1)), dtype=np.float32)
+        gl('glTexImage2D', None, U, I, I, I, I, I, U, U, P)(
+            TEX2D, level, RGBA16F, size, size, 0, RGBA, FLOAT, red.ctypes.data_as(P))
+    gl('glTexParameteri', None, U, U, I)(TEX2D, 0x813D, 3)
+    gl('glTexParameteri', None, U, U, I)(TEX2D, 0x2801, 0x2703)
+    bind(SAMPLERS.index('u_SSRSceneMap'), scene)
+    outcomes = {}
+    for label, foreground, test, green in [('no foreground: cone mip', False, 6, False),
+            ('foreground silhouette next to the hit: footprint narrowed', True, 6, True),
+            ('test off: cone mip', True, 0, False)]:
+        depth = np.full((h, w), 500, dtype=np.float32)
+        if foreground:
+            depth[8, 9] = 100  # the pixel next to the hit
+        texture('u_SSRHiZMap', depth, levels=True)
+        v4(prog, 'u_SSRSettings', (test, 0, 0, 0))
+        c = draw(prog, 1, 1)[0, 0]
+        outcomes[f'footprint depth: {label}'] = (c[1] > .9 and c[0] < .1) if green else (c[0] > .9 and c[1] < .1)
+    gl('glDeleteProgram', None, U)(prog)
+    return outcomes
 
 
 def main():
@@ -448,11 +612,14 @@ def main():
     gl('glBindVertexArray', None, U)(vao)
     try:
         if args.baseline_ref:
-            for name, ok in {**cache_checks(args.baseline_ref), **temporal_checks(args.baseline_ref)}.items():
+            for name, ok in {**cache_checks(args.baseline_ref), **temporal_checks(args.baseline_ref),
+                             **emitter_checks(args.baseline_ref)}.items():
                 print(f'BASELINE {"PASS" if ok else "REPRODUCED BUG"}: {name}', flush=True)
-        outcomes = {**compile_checks(), **cache_checks(), **temporal_checks(),
+        outcomes = {**compile_checks(), **cache_checks(), **cache_gate_checks(), **temporal_checks(),
                     **coverage_checks(), **phase_checks(), **resolve_checks(), **resolve_edge_checks(),
-                    **msaa_resolve_checks(), **confidence_checks(), **classified_miss_checks()}
+                    **msaa_resolve_checks(), **confidence_checks(), **classified_miss_checks(),
+                    **emitter_checks(), **fused_checks(), **footprint_checks()}
+
         for name, ok in outcomes.items():
             print(f'{"PASS" if ok else "FAIL"}: {name}', flush=True)
         assert all(outcomes.values()), outcomes

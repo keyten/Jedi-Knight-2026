@@ -5007,6 +5007,8 @@ static int GLSL_LoadGPUProgramScreenSpace(
 		load(&tr.ssrUpsampleShader, "ssr_upsample", "ssr_resolve", fallback_ssr_resolveProgram, "#define UPSAMPLE_RADIANCE\n");
 		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, nullptr);
 		load(&tr.ssrCompositeShader, "ssr_composite", "ssr_composite", fallback_ssr_compositeProgram, nullptr);
+		load(&tr.ssrCompositeFusedShader[0], "ssr_composite_fused", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n");
+		load(&tr.ssrCompositeFusedShader[1], "ssr_composite_fused_upsample", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n");
 		load(&tr.ssrDebugShader, "ssr_debug", "ssr_debug", fallback_ssr_debugProgram, nullptr);
 	}
 
@@ -6800,6 +6802,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.ssrUpsampleShader);
 	GLSL_DeleteGPUShader(&tr.ssrTemporalShader);
 	GLSL_DeleteGPUShader(&tr.ssrCompositeShader);
+	GLSL_DeleteGPUShader(&tr.ssrCompositeFusedShader[0]);
+	GLSL_DeleteGPUShader(&tr.ssrCompositeFusedShader[1]);
 	GLSL_DeleteGPUShader(&tr.ssrDebugShader);
 	GLSL_DeleteGPUShader(&tr.ssgiSourceShader);
 	for ( i = 0; i < SSGIDEF_COUNT; i++)

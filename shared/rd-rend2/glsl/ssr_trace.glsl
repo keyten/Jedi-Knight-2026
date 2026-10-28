@@ -3,11 +3,13 @@ void main()
 {
 	vec2 position = vec2(2.0 * float(gl_VertexID & 2) - 1.0, 4.0 * float(gl_VertexID & 1) - 1.0);
 #if defined(CLASSIFY)
-	// nearest depth: marks the pixels that need a ray
+	// nearest depth: marks the pixels that do NOT need a ray
 	gl_Position = vec4(position, -1.0, 1.0);
 #else
-	// in front of the cleared depth, behind the marked pixels: with a depth test the pixels without a ray
-	// are rejected before the fragment shader runs (the trace neither discards nor writes depth)
+	// in front of the cleared depth (the pixels that need a ray), behind the marked ones: with a LESS depth
+	// test the pixels without a ray are rejected before the fragment shader runs (the trace neither discards
+	// nor writes depth). Both passes test LESS: a flipped depth direction disables the coarse (hierarchical)
+	// depth culling of many GPUs until the next clear, and only per-pixel early tests would remain.
 	gl_Position = vec4(position, 0.0, 1.0);
 #endif
 }
@@ -26,19 +28,25 @@ void main()
 // without a march when it is still the reflection of this frame's ray: on the ray within the roughness
 // cone, still the visible surface there, not moved (velocity buffer), nothing new in between. Valid cached
 // trace cells are refreshed every 4 frames (every phase within 16 frames with rotating half resolution).
+// The refresh slot is one per 8x8 tile of trace texels, not per texel: a GPU runs neighbouring pixels in
+// lockstep, and a refreshed texel in every group would make each group pay for the full march anyway.
+// Short cached rays (projected length below u_SSRSettings5.y pixels) are traced again: the validation
+// walks the same segment as the march, it only saves the climb of the Hi-Z walk and the refinement, which
+// on a short ray are cheaper than its own extra fetches. Linear marches never reuse (tr_ssr.cpp).
 //
-// CLASSIFY: the early depth pass of the trace (r_ssrReceiverCull). Writes the nearest depth where a pixel needs a
-// ray (receiver, glossy enough, visible specular weight), discards the others.
+// CLASSIFY: the early depth pass of the trace (r_ssrReceiverCull). Writes the nearest depth where a pixel does
+// not need a ray, discards the pixels that need one (receiver, glossy enough, visible specular weight).
 //
 // Output (RGBA16): see ssr_common.glsl. The confidence fades the SSR towards the cubemap reflection where
 // the hit is doubtful: near the screen edges, the end of the ray, back facing or ambiguous (thick) hits,
-// rays towards the camera, grazing rays and rough surfaces.
+// rays towards the camera, grazing rays and rough surfaces. A hit at zero confidence is still written as
+// geometry (the emitter occlusion of the composite), only a crossing too far behind a surface is a miss.
 //
 // u_SSRSettings:  x = max steps, y = refine steps, z = max ray length, w = thickness
 // u_SSRSettings2: x = max roughness, y = edge fade, z = pixel scale of the trace grid (1 or 2), w = frame
 // u_SSRSettings3: x = coarsest Hi-Z level, y = min specular weight, z = near plane, w = Hi-Z iterations
 // u_SSRSettings4: x = hit cache valid, y = velocity buffer valid, z = refresh slot (0..3), w = phase (0..3)
-// u_SSRSettings5: x = previous trace phase
+// u_SSRSettings5: x = previous trace phase, y = min projected length of a reused hit (pixels)
 // u_SSRTexelSize.xy = 1 / full resolution size
 
 out vec4 out_Color;
@@ -145,6 +153,10 @@ bool CachedHit(vec3 P, vec2 uv, vec3 O, vec3 R, float rayLength, float coneTange
 	if (Q.z <= u_SSRSettings3.z * 1.5)
 		return false;
 
+	// a short ray is cheaper to march again than to validate
+	if (length((SSRProjectToUV(Q) - SSRProjectToUV(O)) / u_SSRTexelSize.xy) < u_SSRSettings5.y)
+		return false;
+
 	// still on the ray, within the roughness cone (at least a couple of trace pixels)
 	vec3 d = Q - O;
 	float t = dot(d, R);
@@ -199,7 +211,7 @@ void main()
 #endif
 
 #if defined(CLASSIFY)
-	if (!needsRay)
+	if (needsRay)
 		discard;
 	out_Color = vec4(1.0);
 #else
@@ -236,8 +248,9 @@ void main()
 	float zScene = 0.0;
 	bool reused = false;
 
-	// the refresh slot of this pixel traces even with a valid cached hit
-	bool refresh = int(u_SSRSettings4.z) == ((traceTexel.x & 1) | ((traceTexel.y & 1) << 1));
+	// the refresh slot of this pixel's 8x8 tile traces even with a valid cached hit
+	ivec2 tile = traceTexel >> 3;
+	bool refresh = int(u_SSRSettings4.z) == ((tile.x & 1) | ((tile.y & 1) << 1));
 	if (u_SSRSettings4.x > 0.5 && !refresh)
 	{
 		reused = CachedHit(P, uv, O, R, rayLength, SSRConeTangent(roughness), startOffset, Q, hitPixel, zScene);
@@ -279,8 +292,11 @@ void main()
 
 	float confidence = 1.0;
 
-	// ambiguous hit: the ray ended up far from the surface it crossed
+	// ambiguous hit: the ray ended up far from the surface it crossed. Fully ambiguous is a miss, the
+	// ray may as well have passed behind a thin object; every other hit below is geometry
 	confidence *= 1.0 - smoothstep(0.25, 1.0, abs(zRay - zScene) / SSRThickness(zScene, u_SSRSettings.w));
+	if (confidence <= 0.0)
+		return;
 
 	// the ray sees the back of the surface it hit
 	vec4 hitNormalRoughness;
@@ -307,10 +323,8 @@ void main()
 	// rough surfaces fade to the prefiltered cubemap
 	confidence *= 1.0 - smoothstep(maxRoughness * 0.7, maxRoughness, roughness);
 
-	if (confidence <= 0.0)
-		return;
-
-	// the surface point (not the ray point behind it): fixed in the world, the next frame's cache
+	// the surface point (not the ray point behind it): fixed in the world, the next frame's cache. Written
+	// even at zero confidence: SSREncodeConfidence keeps it a geometry hit
 	out_Color = vec4(clamp(hitUV, 0.0, 1.0), SSREncodeHitDepth(zScene), SSREncodeConfidence(confidence, reused));
 #endif
 }

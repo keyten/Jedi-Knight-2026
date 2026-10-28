@@ -9,7 +9,8 @@ void main()
 // r_ssrDebug 1-6 (tr_ssr.cpp, see ssr_common.glsl), drawn over the final image. Pixels that do not
 // receive SSR (not an opaque PBR surface) are black, except in the hit/miss view (dark gray).
 //
-//   1 material normal (world, * 0.5 + 0.5)    4 ray hit (green, brighter = more confident) / miss (red)
+//   1 material normal (world, * 0.5 + 0.5)    4 ray hit (green, brighter = more confident; olive = geometry
+//                                               at zero confidence) / miss (red)
 //   2 roughness                               5 hit distance (blue near .. red at r_ssrMaxDistance)
 //   3 specular reflectance W                  6 final confidence
 //  12 hit cache: green = hit reused from the previous frame, red = hit traced this frame, dark = miss
@@ -49,8 +50,9 @@ void main()
 		else
 		{
 			vec4 hit = texelFetch(u_SSRTraceMap, min(pix / int(u_SSRSettings.y), textureSize(u_SSRTraceMap, 0) - ivec2(1)), 0);
-			if (view == 4)
-				color = hit.w > 0.0 ? vec3(0.1, 0.3 + 0.7 * hit.w, 0.1) : vec3(0.6, 0.05, 0.05);
+			if (view == 4) // zero confidence geometry hits (emitter occluders only) are olive
+				color = hit.w <= 0.0 ? vec3(0.6, 0.05, 0.05) : SSRHitConfidence(hit.w) > 0.0 ?
+					vec3(0.1, 0.3 + 0.7 * SSRHitConfidence(hit.w), 0.1) : vec3(0.3, 0.3, 0.05);
 			else if (view == 12)
 				color = hit.w > 0.0 ? (SSRHitReused(hit.w) ? vec3(0.1, 0.8, 0.1) : vec3(0.8, 0.1, 0.1)) : vec3(0.08);
 			else if (hit.w > 0.0)
