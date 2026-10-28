@@ -40,6 +40,8 @@ def main():
                         help='Engine wait ticks per measured section (positive, not wall-clock frames)')
     parser.add_argument('--bench-warmup', type=int, default=25,
                         help='Engine wait ticks before each measured section')
+    parser.add_argument('--modes', help='comma list of <hitcache><cull> pairs to time, e.g. 00,10,01,11 '
+                        '(default 11,01,10)')
     parser.add_argument('--compare-resolve', action='store_true')
     parser.add_argument('--smoke-only', action='store_true', help='Skip GPU timing sections')
     parser.add_argument('--check-no-prepass-cache', action='store_true',
@@ -97,6 +99,8 @@ def main():
         cfg += ['com_maxfps 0', 'com_maxfpsUnfocused 0', 'com_maxfpsMinimized 0',
                 'echo SSR_BENCH_FPS_CAPS', 'com_maxfps', 'com_maxfpsUnfocused', 'com_maxfpsMinimized']
     modes = [(1, 1, args.resolve_cache), (0, 1, args.resolve_cache), (1, 0, args.resolve_cache)]
+    if args.modes:
+        modes = [(int(m[0]), int(m[1]), args.resolve_cache) for m in args.modes.split(',')]
     if args.compare_resolve:
         modes.append((1, 1, 1 - args.resolve_cache))
     if args.smoke_only:

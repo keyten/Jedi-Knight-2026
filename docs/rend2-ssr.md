@@ -182,7 +182,7 @@ replaces), without particles or glass in it.
 - The trace stores the hit **surface** point (its uv and log encoded view depth), not a distance: it is fixed in
   the world, so the next frame can reuse it, and the resolve derives the hit distance from it.
 
-### Hit cache (`r_ssrHitCache 1`)
+### Hit cache (`r_ssrHitCache 1`, off by default)
 
 The trace reprojects the receiver into the previous frame using its velocity, reads the nearest ray sample on
 the previous phased trace grid, and brings the cached hit into this view. Previous hits are decoded with the
@@ -214,9 +214,12 @@ Why validation rarely beats a fresh march, and what limits its cost:
   pixels with its 24-iteration budget, more than the 16-step linear march it would replace.
 - The refresh slot is one per 8x8 tile of trace texels. With a per-texel 2x2 pattern every group of pixels the
   GPU runs in lockstep contained a refreshing texel, so every group paid for the full march on top of the
-  validation of the others: the strict cache was slower than no cache in all measured views (2026-10-21).
+  validation of the others.
 
-Compare `r_ssrHitCache 0/1` on the target GPU; do not infer a speedup from the green debug pixels alone.
+With these changes the cache costs less (Intel, mp/ffa3, culling off: trace 4.67/4.39 -> 3.88/3.82 ms with the
+cache on), but it still does not beat tracing every ray (cache on vs off with culling: 5.00/4.73 vs 4.50/4.27 ms;
+see `rend2-ssr-validation.md`, 2026-10-28). The default is therefore 0 since 2026-10-28; it stays a runtime A/B
+switch. Compare `r_ssrHitCache 0/1` on the target GPU; do not infer a speedup from the green debug pixels alone.
 
 ### Confidence
 
@@ -313,7 +316,8 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrTemporalWeight` | 0.9 | history weight |
 | `r_ssrBlendStrength` | 1 | confidence scale. 0 = cubemap only (and no SSR work unless a debug view or the compare is on) |
 | `r_ssrCompare` | 0 | split screen: left half cubemap reflections only, right half hybrid |
-| `r_ssrHitCache` | 1 | reuse validated hits; refresh every 4 frames, all rotating half-res phases within 16 frames; needs depth prepass |
+| `r_ssrHitCache` | 0 | reuse validated hits (Hi-Z only); refresh every 4 frames per 8x8 tile, all rotating half-res phases within 16 frames; needs depth prepass. Off: measured slower than tracing every ray |
+
 | `r_ssrResolveCache` | 1 | resolve each half-res ray's current-frame radiance once before edge-aware upsample; 0 = direct per-pixel footprint |
 | `r_ssrReceiverCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
 | `r_ssrFusedResolve` | 1 | without temporal accumulation the composite resolves the rays itself (no full resolution resolve image); 0 = separate pass |

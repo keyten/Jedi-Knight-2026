@@ -259,3 +259,54 @@ python tools/rend2/test_ssr_runtime.py --installation C:/Users/Keyten/Desktop/pr
 The earlier coverage limits still apply: moving NPC/weapon gameplay QA,
 representative-sample MSAA resolve and wider maps/materials remain unverified.
 Installed game files were only read; each run has its own executable and home.
+
+## 2026-10-28 review follow-up (branch `fix/ssr-review`)
+
+Second external review plus an own review; the changes are described in
+`rend2-ssr.md` (emitter occlusion, hit cache, classification, fused resolve,
+footprint depth). Worktree `C:/Users/Keyten/Desktop/projects/OpenJK-rend2-ssrfix`;
+the baseline is a clean SP renderer build of `4104a4f71`
+(`C:/Users/Keyten/Desktop/projects/OpenJK-rend2-ssrbase`).
+
+GPU regressions: `test_ssr_gl.py` passes on Intel UHD and RTX 2060 (17
+permutations). New checks: emitter occlusion by a zero-confidence hit (the
+baseline reproduces the leak), fused composite = resolve pass for direct and
+cached half-res rays in every phase, footprint depth narrowing next to a
+foreground texel, the cached-ray length gate, the 14 bit confidence /
+geometry / reused bits in real RGBA16 storage, and LESS-only classification
+(no-ray pixels keep the clear, ray pixels run). The old classification check
+created its render target on texture unit 0, which is the Hi-Z sampler, so
+its receivers were never valid and it could not fail. Water SSR (8 motion
+permutations) and the SSGI / LTC saber / skin programs that embed
+`ssr_common` still compile on both GPUs.
+
+Game timings, Intel UHD, mp/ffa3 `(671, -769, -70)`, 1600x900, medium preset
+(half res, Hi-Z), temporal off, resolve cache on, hit cache and culling
+forced per section. Two interleaved rounds each (`build/ssr-runtime/ab-*`
+in the worktree), all without overlap; medians in ms, round 1 / round 2:
+
+| section | yaw | baseline | fixed |
+|---|---:|---:|---:|
+| Main View 0, cache 1 cull 1 | 290 | 24.59 / 24.08 | 22.06 / 21.87 |
+| Main View 0, cache 1 cull 1 | 310 | 24.33 / 24.13 | 22.42 / 23.44 |
+| SSR resolve + composite | 290 | 7.03 / 6.78 | 4.91 / 4.85 |
+| SSR trace, cache 1 cull 1 | 290 | 5.44 / 5.33 | 4.99 / 5.00 |
+| SSR trace, cache 0 cull 1 | 290 | 4.56 / 4.55 | 4.49 / 4.59 |
+| SSR trace, cache 1 cull 0 | 290 | 4.70 / 4.67 | 3.95 / 3.88 |
+| SSR trace, cache 1 cull 0 | 310 | 4.42 / 4.39 | 3.81 / 3.83 |
+
+- The fused resolve and the composite discard save ~2 ms per view: the
+  resolve section keeps only the per-ray radiance pass (~0.45 ms).
+- Tile refresh, the length gate and no-reuse-with-linear make the cache
+  ~0.8 ms cheaper without culling, but caching still loses to tracing
+  every ray (cache 1 vs 0 with culling: 5.0 vs 4.5 ms). `r_ssrHitCache`
+  now defaults to 0.
+- The LESS classification made no measurable difference on Intel (cache 0
+  cull 1 unchanged). Culling still loses in these dense views; a four-mode
+  run (`--modes 00,10,01,11`, overlapped by another game, ordering only)
+  ranks cache 0 cull 0 < cache 1 cull 0 < cache 0 cull 1 < cache 1 cull 1 at
+  both yaws. `r_ssrReceiverCull` stays 1: it is meant for sparse receivers,
+  which these views are not; measure on such scenes before changing it.
+- Not measured: RTX timings, temporal accumulation, full resolution rays,
+  MSAA, moving NPC / saber gameplay and the visual effect of the footprint
+  depth test.

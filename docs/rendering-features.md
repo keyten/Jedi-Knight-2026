@@ -775,7 +775,7 @@ Adds real scene reflections to glossy PBR surfaces while retaining cubemaps as t
 - `r_ssrTemporal 0 | 1` — temporal accumulation. Requires `vid_restart`.
 - `r_ssrTemporalWeight <value>` — history weight.
 - `r_ssrBlendStrength <value>` — confidence/replacement scale.
-- `r_ssrHitCache 0 | 1` — reuse still-valid previous-frame ray hits; pixels are periodically retraced.
+- `r_ssrHitCache 0 | 1` — reuse still-valid previous-frame ray hits; pixels are periodically retraced (default 0: measured slower than tracing every ray).
 - `r_ssrReceiverCull 0 | 1` — skip ray marching on pixels that cannot use SSR.
 - `r_ssrFusedResolve 0 | 1` — without temporal accumulation, resolve the rays inside the composite (no full-resolution resolve image).
 - `r_ssrFootprintDepth 0 | 1` — keep the rough-reflection blur off surfaces in front of the hit (needs Hi-Z tracing).

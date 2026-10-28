@@ -2571,7 +2571,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrEmitterIntensity, 0.0f, 16.0f, qfalse );
 	r_ssrEmitterMaxRoughness = ri_Cvar_Get_NoComm( "r_ssrEmitterMaxRoughness", "0.35", CVAR_ARCHIVE, "SSR: rougher surfaces do not reflect light sabers / effects (their dynamic light highlight already does)" );
 	ri.Cvar_CheckRange( r_ssrEmitterMaxRoughness, 0.05f, 1.0f, qfalse );
-	r_ssrHitCache = ri_Cvar_Get_NoComm( "r_ssrHitCache", "1", CVAR_ARCHIVE, "SSR: reuse validated hits (needs depth prepass); refresh every 4 frames, all rotating half-res phases within 16" );
+	r_ssrHitCache = ri_Cvar_Get_NoComm( "r_ssrHitCache", "0", CVAR_ARCHIVE, "SSR: reuse validated hits (needs depth prepass, Hi-Z); refresh every 4 frames per 8x8 tile, all rotating half-res phases within 16. Off by default: validating costs about as much as the march" );
 	ri.Cvar_CheckRange( r_ssrHitCache, 0, 1, qtrue );
 	r_ssrResolveCache = ri_Cvar_Get_NoComm( "r_ssrResolveCache", "1", CVAR_ARCHIVE, "SSR: resolve half-res rays to radiance once per frame, then upsample (0 = per-pixel resolve)" );
 	ri.Cvar_CheckRange( r_ssrResolveCache, 0, 1, qtrue );
