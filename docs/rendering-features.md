@@ -2,6 +2,10 @@
 
 This page is a practical reference for rendering features added by Jedi Academy 2026. **Requirements** mention existing Rend2 settings or other features that must already be enabled. Command lists contain only controls introduced by the feature itself. Comparison modes and diagnostics are listed separately under **Debug**.
 
+The [cvar and command provenance audit](rendering-cvar-audit.md) records every currently registered name absent from the local `rend2` baseline, with its introducing commit and verified `git blame` location. It includes engine/game support and internal status variables. Names are compared case-insensitively across SP, MP and shared code; inherited Rend2 controls can still appear here as requirements.
+
+In the additional control tables, **Restart** means `CVAR_LATCH`: apply the setting with `vid_restart`. **Cheat** means `CVAR_CHEAT`; **Read-only** denotes engine-owned state. **Live** means the cvar is not latched; load-time settings still apply only when the resource next loads. Defaults describe registration in this source snapshot, not a recommended preset.
+
 # Colors & post-processing
 
 ## Tone mapping
@@ -91,6 +95,34 @@ Adds camera and object motion streaks while keeping HUD and menus sharp. It uses
 
 Moderate GPU cost, increasing with quality and screen resolution.
 
+## Physical camera exposure
+
+Exposes the HDR scene using ISO, f-number and shutter time, or an automatically metered EV100. `r_cameraMode 0` keeps legacy exposure; mode 1 is manual and mode 2 is physical auto. In physical modes `r_exposureCompensation` remains the artistic bias in stops.
+
+**Requirements.** HDR and the existing tone-mapping path. `r_motionBlurPhysicalShutter 1` couples velocity-blur exposure to the camera shutter while a physical camera mode is active. Aperture controls exposure; it does not add depth of field. See [physical camera](rend2-physical-camera.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_cameraAperture` | `"16"` | Live | Physical camera aperture f-number N (manual mode; reserved for future physical DOF) |
+| `r_cameraAutoEVMax` | `"20"` | Live | Maximum EV100 allowed in physical auto mode |
+| `r_cameraAutoEVMin` | `"-6"` | Live | Minimum EV100 allowed in physical auto mode |
+| `r_cameraDebug` | `"0"` | Cheat | Print calibrated camera/meter state once per second |
+| `r_cameraISO` | `"100"` | Live | Physical camera ISO speed (manual mode) |
+| `r_cameraMode` | `"0"` | Live | Camera exposure: 0 = legacy, 1 = physical manual, 2 = physical auto |
+| `r_cameraShutterSeconds` | `"0.008"` | Live | Physical camera shutter duration in seconds (manual mode; optional motion-blur coupling) |
+| `r_motionBlurPhysicalShutter` | `"0"` | Live | Use r_cameraShutterSeconds as motion-blur exposure duration in physical camera modes |
+
+## SMAA, legacy glow and refraction
+
+SMAA filters screen-space edges. Its quality and enable switches are latched. Generic refractive materials and distortion effects also expose a chromatic offset. Legacy dynamic glow can also add a bright-scene bloom contribution. These controls are independent of modern-water optics.
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_dynamicGlowBloom` | `"0.0"` | Live | Bright-scene contribution to legacy dynamic glow; active with r_bloom -1 and r_dynamicGlow enabled. |
+| `r_refractionChromaticAberration` | `"0.05"` | Live | Chromatic offset in the generic refractive-material/distortion shader. |
+| `r_smaa` | `"0"` | Restart | Disable/enable SMAA |
+| `r_smaa_quality` | `"2"` | Restart | 0: LOW \| 1: MEDIUM \| 2: HIGH \| 3: ULTRA |
+
 # Materials & surface detail
 
 ## Auto PBR material classification
@@ -178,6 +210,45 @@ Lets existing stock-style glow and safe unlit additive stages act as physical em
 - `r_autoEmissive 0 | 1` — legacy behavior / expose compatible legacy glow stages as emissive sources.
 
 No meaningful effect on performance.
+
+## Physical PBR units and emissive calibration
+
+Gives lights and emissive surfaces one scene-linear unit contract. `r_pbrPhysical 1` enables it; geometry remains in JA world units. The unit scale and migration references are calibration settings, so changing them affects several lighting consumers together. A sun illuminance of 0 uses the map migration path.
+
+See [physical PBR](rend2-physical-pbr.md) and [emissive materials](rend2-emissive-materials.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_emissiveDebug` | `"0"` | Cheat | Emissive debug: 1 provenance, 2 false-color nits, 3 confidence |
+| `r_emissiveLegacyNits` | `"1000"` | Restart | Reference-white nits represented by legacy emissiveScale 1 in physical mode |
+| `r_pbrLegacyReference` | `"1"` | Restart | Legacy light reference in canonical scene units at the migration anchor |
+| `r_pbrPhysical` | `"0"` | Restart | 0 exact Rend2 compatibility, 1 unified scene-referred physical PBR contract (vid_restart) |
+| `r_pbrPhysicalToScene` | `"0.0001"` | Restart | Canonical scene value per physical cd, lux or cd/m^2 |
+| `r_pbrSunIlluminance` | `"0"` | Live | Physical sun illuminance in lux; 0 migrates the map sun |
+| `r_pbrWorldUnitsPerMeter` | `"33.333333"` | Restart | JA world units per metre for physical light distance and emitter area |
+
+**Commands**
+
+- `r_pbrInfo` — Print physical PBR calibration and unit state.
+- `r_pbrLight` — Inspect/test calibrated physical lights; run without arguments for syntax.
+
+## GGX roughness, specular AA and energy compensation
+
+Material roughness is perceptual; the BRDF converts it to GGX slope roughness at evaluation. The legacy migration switch preserves compatibility for older AutoPBR, spec-gloss and scalar inputs.
+
+Specular AA increases effective roughness where normal variation would otherwise create unstable bright speckles. Energy compensation restores energy lost by the standard single-scatter GGX lobe; diffuse/specular energy partition remains active when compensation is disabled. These are separate controls.
+
+See [roughness](rend2-ggx-roughness.md), [specular AA](rend2-specular-aa.md) and [energy compensation](rend2-brdf-energy-compensation.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_brdfEnergyCompensation` | `"1"` | Live | Multiple-scattering energy compensation for standard GGX; 0 uses single scattering while diffuse energy partition remains active |
+| `r_pbrEnergyDebug` | `"0"` | Cheat | PBR energy: 1 diffuse, 2 specular, 3 total, 4 unreflected white-furnace energy, 5 split legacy diffuse (left) / conserved (right) |
+| `r_pbrLegacyRoughness` | `"1"` | Live | Migrate legacy AutoPBR, spec-gloss and scalar alpha-like roughness to perceptual roughness; 0 provides an A/B strict interpretation |
+| `r_specularAA` | `"1"` | Restart | Derivative and normal-mip variance filtering for GGX specular; vid_restart to compile it in |
+| `r_specularAADebug` | `"0"` | Cheat | Specular AA debug: 1 material roughness, 2 material alpha, 3 effective roughness, 4 added roughness, 5 normal variance, 6 effective alpha |
+| `r_specularAAMaxAdded` | `"0.25"` | Live | Maximum roughness specular AA may add (0..1) |
+| `r_specularAAStrength` | `"0.15"` | Live | Specular AA normal variance scale (0..0.25) |
 
 ## Adaptive POM traversal
 
@@ -289,6 +360,12 @@ Automatically enables silhouette POM for compatible materials that already have 
 - `r_autoPOMSilhouette <shader>` — print matching shader state.
 
 Per-shader switches are live, but shell data is prepared at map load. Performance is the same as explicit silhouette POM for surfaces that are actually enabled.
+
+The console command `r_autoPOMSilhouette` changes `r_autoPOMSilhouetteMode`, the archived automatic-eligibility switch. Use the command to rebuild/reselect eligible loaded materials; the cvar is its stored mode. Requires `r_pomSilhouette 1` and ordinary height data.
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_autoPOMSilhouetteMode` | `"0"` | Live | Silhouette POM for every material with an ordinary POM height map (set with the r_autoPOMSilhouette command, needs r_pomSilhouette 1) |
 
 # Lighting & shadows
 
@@ -572,6 +649,23 @@ Improves cascaded sun shadows with stabilized cascade fitting, blended cascade t
 
 Moderate GPU cost; high-quality PCSS on large shadowed screen areas can be expensive.
 
+## LTC shadowing and saber calibration
+
+Static rectangular area lights can use cached world shadows, optionally including dynamic characters. Saber shadowing has separate approximation/reference modes. The saber luminance setting applies to physical PBR; its intensity multiplier also supports artistic tuning. Requires the corresponding LTC light feature.
+
+See [LTC lighting](rend2-ltc-area-lights.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_ltcSaberIntensityScale` | `"1"` | Live | LTC saber surface lighting: radiance multiplier |
+| `r_ltcSaberLuminance` | `"40000"` | Live | Physical mode: artistic saber blade luminance in cd/m^2 (nits) |
+| `r_ltcSaberShadows` | `"-1"` | Live | Saber LTC shadows: -1 midpoint cube, 0 off, 1 anisotropic cube, 2 hybrid screen space, 3 three point reference |
+| `r_ltcStaticShadows` | `"0"` | Live | Static rectangle LTC shadows: 0 off, 1 cached world, 2 cached world plus dynamic characters |
+
+**Commands**
+
+- `r_ltcShadowStats` — Print LTC shadow selection/cache statistics.
+
 # Player & model lighting
 
 ## Entity light-grid lighting
@@ -587,6 +681,18 @@ Improves lighting across characters and entities. Instead of sampling one point 
 - `r_entityLightGridDebug 1..9` — ambient, direct, direction, validity, cell, old/new modes and difference. Requires `vid_restart`.
 
 Mode 1 has little cost; mode 2 has moderate per-pixel cost on lit entities.
+
+## Entity sun separation and original-grid probes
+
+The legacy entity-grid path can separate authored sun from the grid's directed light and shadow that sun per pixel. A separate setting controls how much ambient grid light sun shadows darken.
+
+Per-fragment grid mode can instead use L1 irradiance probes projected from the original BSP ambient/directed samples. These probes do not reconstruct physical emitters. See [entity lighting and removal boundaries](rend2-grid-reconstruction-removal.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_entityLightProbes` | `"1"` | Restart | Entity light grid L1 probes with r_entityLightGrid 2: first order irradiance from the original BSP direction and ambient/directed colours; no source reconstruction (vid_restart) |
+| `r_entityShadowAmbient` | `"0"` | Live | Models (players, NPCs, items): share of the light grid ambient that the sun shadow darkens like the world lightmap (0 = legacy: only the directed light is shadowed, 1 = the whole ambient, as the lightmap). r_sunlightMode 1 only |
+| `r_entitySunSplit` | `"0"` | Restart | Models (players, NPCs, items): take the sun out of the light grid's directed light and light it from the sun direction, shadowed per pixel by the sun cascades (0 = legacy: the grid light darkened by the sun shadow). Needs r_sunlightMode, the legacy grid (r_entityLightGrid 0) and normal or specular mapping; vid_restart |
 
 ## Skin subsurface scattering
 
@@ -633,6 +739,16 @@ Improves Ghoul2 self-shadowing consistency by controlling caster LOD, using a be
 - `r_shadowDebug 11` — Ghoul2 receiver/caster view.
 
 Usually a small performance difference.
+
+## Hair and eye material models
+
+Hair uses an anisotropic dielectric highlight aligned to authored or mesh tangents; eye coverage uses a smoother wet specular response. Mod shaders can declare `materialType hair` or `materialType eye` and a `materialMap`. Mixed face/eye atlases require a mask. Automatic hair selection is limited to exact hair-name tokens; painted eyes are not globally inferred.
+
+There is no global enable cvar. `r_materialModelDebug 1..7` shows type, tangent, bitangent, anisotropy direction, hair specular, eye specular and mask. See [hair and eye materials](rend2-hair-eye-materials.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_materialModelDebug` | `"0"` | Cheat | Hair/eye debug: 1 = type, 2 = tangent, 3 = bitangent, 4 = anisotropy direction, 5 = hair specular, 6 = eye specular, 7 = mask |
 
 # Reflections
 
@@ -719,16 +835,13 @@ Adds rain haze as another participating medium of the existing froxel volume. It
 - `r_rainVolumeMaxDistance <units>` — camera range with a soft fade over the outer 15%.
 - `r_volumetricFogDebug 71..74` — rain-only density, weather exposure, unattenuated in-scattering source and final integrated rain contribution.
 
-## Directional baked light in volumetrics
+## Baked light and sun separation in volumetrics
 
-Recovers where the baked (non-sun) light of the BSP light grid appears to come from, once at map load, so fog subtly brightens towards the lamps it is lit by instead of glowing uniformly. Red and blue lamps keep their own directions; where the light grid gives no confident answer the fog stays isotropic. It only redistributes the existing baked light over view directions, never adds light, and never changes the fog density. Stock maps need no changes; static emissive surfaces and `maps/<map>.arealights.json` lamps help it.
+Froxel fog uses the original BSP light grid. When usable authored sun metadata is available, map-load preparation separates its sun contribution from the remaining baked light, so the existing sun visibility can shadow it independently. Without a usable split the ordinary merged grid remains available.
 
-**Requirements.** Requires froxel fog (`r_volumetricFog 2`). Changing the mode needs `vid_restart`.
+**Requirements.** Requires froxel fog (`r_volumetricFog 2`). `r_volumetricFogStaticScale` scales baked scattering.
 
-**Main controls**
-- `r_vfogStaticStats [proxies]` — what the reconstruction found on the loaded map.
-
-Mode 0 costs nothing. Modes 1 and 2 add three small 3D texture fetches per participating froxel and a short map load step (a fraction of a second on large maps).
+The obsolete grid-gradient source reconstruction, recovered lamp directions and artificial light portals have been removed. See [the removal report](rend2-grid-reconstruction-removal.md). Canonical reconstructed-lighting controls are described separately below; no production solver or rendering adapter is installed.
 
 ## Height fog
 
@@ -804,7 +917,7 @@ Cost depends on how many volumes overlap the visible froxel slices; isolated vol
 
 **For mod authors.** Smoke, steam, dust and explosion-cloud particles can become real participating media instead of only transparent sprites. They then receive baked light, sun, dynamic lights, volumetric shadows and phase scattering naturally.
 
-**Requirements.** Requires froxel fog (`r_volumetricFog 2`) and `r_volumetricParticles 1`. Nothing is detected automatically: a Particle or OrientedParticle must opt in.
+**Requirements.** Requires froxel fog (`r_volumetricFog 2`) and `r_volumetricParticles 1`. Authored media uses a Particle or OrientedParticle opt-in; the optional legacy FX physicalization below can also supply automatic media.
 
 ~~~text
 Particle
@@ -837,6 +950,33 @@ Particle
 
 Can moderately or significantly affect performance when many large volumetric particles overlap the view.
 
+## Automatic legacy FX physicalization
+
+Adds automatic participating media to conservatively classified legacy smoke, steam, dust and gas effects. Mode/list changes affect the next FX update, including existing particles. Authored `volumetricMedia` keeps precedence.
+
+**Requirements.** `r_volumetricFog 2`, `r_volumetricParticles 1` and matching updated game/client modules. Classification still gates effects in every mode. Emission, composite effects and automatic physical sources have independent opt-ins; the automatic system does not replace every legacy effect.
+
+See [physicalization rules and source controls](legacy-fx-physicalization.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `fx_physicalization` | `"0"` | Live | 0 off, 1 all classified effects, 2 exact opt-in list, 3 all except opt-out list. |
+| `fx_physicalizationAdaptive` | `"0"` | Live | Adapt the radius, softness and optical depth of already accepted media. |
+| `fx_physicalizationAggregate` | `"0"` | Live | Experimental coalescing of exactly coincident automatic non-emissive media. |
+| `fx_physicalizationComposite` | `"0"` | Live | Allow classified smoke within composite explosions. |
+| `fx_physicalizationDebug` | `"0"` | Live | Print classification and submitted automatic-media diagnostics. |
+| `fx_physicalizationEmission` | `"0"` | Live | Enable emission for exact stock flame/fireball profiles. |
+| `fx_physicalizationOptIn` | `""` | Live | Exact normalized EFX names for mode 2, separated by spaces, commas or semicolons. |
+| `fx_physicalizationOptOut` | `""` | Live | Exact normalized EFX names excluded by mode 3. |
+| `fx_physicalizationSources` | `"0"` | Live | Enable the independently gated automatic physical-source submissions. |
+| `fx_physicalizationStrength` | `"1"` | Live | Automatic-medium optical-depth multiplier; 0..16. |
+
+**Commands**
+
+- `fxaudit` — fxaudit <efx>: inspect physicalization eligibility; developer 1, SP.
+- `fxsources` — Inspect the last automatic FX source submissions; developer 1, SP/MP.
+- `r_volparticles` — Print particle-media submission, culling and upload limits.
+
 ## Sprite particle lighting
 
 Lights ordinary alpha-blended smoke and dust sprites from the same local light field used by froxel fog, so a smoke sprite in a dark room is dark and one beside a saber or lamp receives that color. Additive sprites remain unlit.
@@ -847,12 +987,12 @@ Lights ordinary alpha-blended smoke and dust sprites from the same local light f
 - `r_particleLighting 0 | 1` — authored sprite color / volumetric-light-field lighting. Requires `vid_restart`.
 
 **Other controls**
-- `r_particleLightingingMix 0..1` — blend between authored and lit color.
-- `r_particleLightingingScale <value>` — light-field gain.
-- `r_particleLightingingFloor <value>` — minimum light factor.
+- `r_particleLightingMix 0..1` — blend between authored and lit color.
+- `r_particleLightingScale <value>` — light-field gain.
+- `r_particleLightingFloor <value>` — minimum light factor.
 
 **Debug**
-- `r_particleLightingingDebug 1..5` — field, baked-only, sun-only, dynamic-only and sprite classification.
+- `r_particleLightingDebug 1..5` — field, baked-only, sun-only, dynamic-only and sprite classification.
 
 Moderate additional cost because the volumetric light field must exist and lit sprites sample it.
 
@@ -974,6 +1114,88 @@ Local env.json volumes can use `"Extinction": [r,g,b]`. Height fog uses `r_volum
 
 This is one of the heavier volumetric options: it adds about 24 bytes per froxel, extra 3D buffers and a second composite draw.
 
+## Legacy volumetric controls
+
+The earlier ray-marched volumetric path also exposes a sample budget and persistent/default density scale. The temporary density multiplier is not an archived quality preset. These controls are distinct from froxel-grid resolution.
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_volumetricFogDefaultScale` | `"1.0"` | Restart | Scales volumetric fog density unless scale has been explicitly defined |
+| `r_volumetricFogSamples` | `"48"` | Restart | How many ray samples to take |
+| `r_volumetricFogScale` | `"1.0"` | Live | Temporarily scales volumetric fog density |
+
+# Atmosphere & clouds
+
+## Atmospheric scattering and sky
+
+Adds long-range Rayleigh/Mie aerial perspective and an optional analytic sky before froxel fog. Sky mode 0 overlays the skybox, mode 1 blends it with the analytic sky and mode 2 replaces it. Sky-portal maps retain overlay behavior.
+
+**Requirements.** A usable map sun or `r_forceSun`. The sun/air coefficients and the world-to-metre scale determine the result; aerial scale changes the apparent path length without rescaling geometry. See [atmosphere](rend2-atmosphere.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_atmosphere` | `"0"` | Live | Long range atmosphere: aerial perspective of distant surfaces and the sky (Rayleigh / Mie), composited before the froxel fog. Needs a map sun (or r_forceSun) |
+| `r_atmosphereAerialScale` | `"1"` | Live | Atmosphere: multiplier of the aerial perspective path length only (1 = physical; JA views are a few hundred metres of air, 8-30 makes the haze visible) |
+| `r_atmosphereAltitude` | `"0"` | Live | Atmosphere: altitude of the ground in metres above sea level |
+| `r_atmosphereDebug` | `"0"` | Cheat | Atmosphere debug view: 1 Rayleigh in-scattering, 2 Mie in-scattering, 3 transmittance, 4 aerial in-scattering, 5 atmosphere-only sky, 6 froxel (red) + atmosphere (green) opacity, 7 LUTs, 8 aerial distance bands (1, 2, 5, 10, 20 km) |
+| `r_atmosphereGroundZ` | `"auto"` | Live | Atmosphere: world z of the ground (altitude 0 + r_atmosphereAltitude), auto = lowest floor of the map |
+| `r_atmosphereMie` | `"1"` | Live | Atmosphere: Mie (aerosol, haze) density multiplier |
+| `r_atmosphereMieG` | `"0.8"` | Live | Atmosphere: Mie anisotropy g (Cornette-Shanks) |
+| `r_atmosphereOzone` | `"1"` | Live | Atmosphere: ozone density multiplier (sky colour only) |
+| `r_atmosphereRayleigh` | `"1"` | Live | Atmosphere: Rayleigh (air molecules) density multiplier |
+| `r_atmosphereSky` | `"0"` | Live | Atmosphere sky: 0 overlay (skybox kept, horizon haze and sun glow), 1 blend skybox and analytic sky, 2 analytic sky (with the sun disc unless r_drawSun 1). Sky portal maps always use 0 |
+| `r_atmosphereSkyBlend` | `"0.5"` | Live | Atmosphere sky 1: share of the analytic sky |
+| `r_atmosphereStart` | `"0"` | Live | Atmosphere: distance in world units before which there is no aerial perspective |
+| `r_atmosphereSunColor` | `"1"` | Live | Atmosphere sun illuminance: 0 map sun at the top of the atmosphere, 1 map sun at the ground (the air above the camera is undone), 2 white |
+| `r_atmosphereSunGlow` | `"1"` | Live | Atmosphere sky 0: scale of the Mie sun glow over the skybox (lower it when the painted sun is elsewhere) |
+| `r_atmosphereSunIntensity` | `"1"` | Live | Atmosphere: sun illuminance multiplier |
+| `r_atmosphereSunSize` | `"0.53"` | Live | Atmosphere: angular diameter of the sun disc in degrees |
+| `r_atmosphereUnitScale` | `"0.03"` | Live | Atmosphere: metres per world unit (0.03: the 64 unit player box is ~1.8 m) |
+
+**Commands**
+
+- `r_atmosphereInfo` — Print atmosphere configuration and runtime status.
+
+## Volumetric clouds and cloud shadows
+
+Ray marches an elevated cloud layer with sun self-shadowing, sky ambient and temporal accumulation. The cloud-shadow switch projects it onto world sunlight and volumetric sunlight.
+
+**Requirements.** A usable map sun or `r_forceSun`. Enable/resolution changes require restart. Sky-portal rendering is opt-in and approximate. `r_cloudLegacy` controls how SP cloud-layer entities inform cloud selection. See [clouds](rend2-volumetric-clouds.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_cloudAmbient` | `"1"` | Live | Clouds: sky ambient multiplier |
+| `r_cloudAnisotropy` | `"0.6"` | Live | Clouds: Henyey-Greenstein g of the forward lobe (silver lining towards the sun) |
+| `r_cloudBase` | `"1500"` | Live | Clouds: altitude of the cloud base in metres above the ground (r_atmosphereGroundZ, r_atmosphereUnitScale) |
+| `r_cloudCoverage` | `"0.5"` | Live | Clouds: 0 clear, 0.5 the weather map, 1 overcast |
+| `r_cloudDebug` | `"0"` | Cheat | Clouds debug view: 1 interval, 2 max density, 3 shape noise, 4 detail noise, 5 sun transmittance, 6 phase, 7 temporal weight, 8 cloud radiance, 9 legacy mask (r) / coverage (g) / mode (b), 10 weather map, 11 cloud shadow map |
+| `r_cloudDensity` | `"1"` | Live | Clouds: extinction multiplier (1 = 60 per km in a full cloud) |
+| `r_cloudDetail` | `"1"` | Live | Clouds: erosion by the detail noise (0 = off, cheaper) |
+| `r_cloudDetailScale` | `"1.5"` | Live | Clouds: size in km of one tile of the detail (erosion) noise |
+| `r_cloudLegacy` | `"1"` | Live | Clouds: SP fx_cloudlayer entities: 0 ignored (legacy haze drawn), 1 style hint (tube: open sky overhead, alt: thin haze), 2 literal disc / ring at the entity height (debug) |
+| `r_cloudMaxDistance` | `"60"` | Live | Clouds: march distance limit in km (faded out towards it) |
+| `r_cloudMSOctaves` | `"3"` | Live | Clouds: multiple scattering octaves (1 = single scattering) |
+| `r_clouds` | `"0"` | Restart | Volumetric clouds: a ray marched cloud shell above the map (sun, self shadow, sky ambient), composited between the atmosphere and the froxel fog. Needs a map sun (or r_forceSun); vid_restart |
+| `r_cloudScale` | `"2"` | Restart | Clouds: march resolution divisor per axis (1, 2, 4), vid_restart |
+| `r_cloudShadowExtent` | `"8"` | Live | Clouds: size in km of the cloud shadow map around the camera |
+| `r_cloudShadowInterval` | `"1"` | Live | Clouds: frames between cloud shadow map updates |
+| `r_cloudShadows` | `"0"` | Live | Clouds: shadows of the clouds on the world (sun of lightall, froxel fog sun) |
+| `r_cloudShadowSteps` | `"5"` | Live | Clouds: light march steps towards the sun (self shadow); the shadow map uses twice as many |
+| `r_cloudShapeScale` | `"12"` | Live | Clouds: size in km of one tile of the shape noise |
+| `r_cloudSkyPortal` | `"0"` | Live | Clouds on sky portal maps: 0 off, 1 composited over the portal scene (approximate) |
+| `r_cloudStepLength` | `"150"` | Live | Clouds: march step length in metres (the step count adapts to the path through the layer, at least 16, at most r_cloudSteps) |
+| `r_cloudSteps` | `"64"` | Live | Clouds: max march steps per ray |
+| `r_cloudTemporal` | `"0.9"` | Live | Clouds: weight of the reprojected history (0 = no temporal filter) |
+| `r_cloudTop` | `"4000"` | Live | Clouds: altitude of the cloud tops in metres above the ground |
+| `r_cloudWeatherScale` | `"40"` | Live | Clouds: size in km of one tile of the weather (coverage) map |
+| `r_cloudWindDir` | `"45"` | Live | Clouds: wind direction in degrees (world x axis = 0, y = 90) |
+| `r_cloudWindSpeed` | `"10"` | Live | Clouds: wind speed in metres per second |
+
+**Commands**
+
+- `r_cloudInfo` — Print cloud layer configuration and runtime status.
+- `r_cloudLayerTest` — Exercise cloud-layer/legacy-entity selection.
+
 # Rain & wet surfaces
 
 ## Weather chunk culling
@@ -1052,6 +1274,40 @@ Makes rain-exposed PBR surfaces darker, smoother and more reflective while roofs
 - `r_weatherSurfaceDebug 21` — geometric normal.
 
 May slightly affect performance on rain-exposed PBR surfaces.
+
+## Persistent wetness and drying
+
+Stores rain exposure as world-surface water that accumulates during rain and dries after it stops. Steep surfaces and acid rain can use different accumulation/drying rates.
+
+**Requirements.** `r_weatherWetness 1`. The persistent field and its resolution require restart. See [persistent wetness](rend2-weather-wetness-persistence.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_weatherWetnessAccumulationRate` | `"0.20"` | Live | Persistent world water deposited per second at full rain |
+| `r_weatherWetnessAcidAccumulationScale` | `"1"` | Live | Acid-rain persistent wetness accumulation multiplier |
+| `r_weatherWetnessAcidDryScale` | `"1"` | Live | Acid-rain persistent wetness drying multiplier |
+| `r_weatherWetnessDryRate` | `"0.02"` | Live | Persistent world water removed per second (0.02 = about 50 seconds) |
+| `r_weatherWetnessPersistence` | `"0"` | Restart | Persist world wetness after rain stops (requires r_weatherWetness) |
+| `r_weatherWetnessPersistenceDebug` | `"0"` | Cheat | 1 shows persistent world water amount |
+| `r_weatherWetnessResolution` | `"256"` | Restart | Persistent world wetness texture resolution (64-1024) |
+| `r_weatherWetnessSteepDryScale` | `"2"` | Live | Drying multiplier for steep surfaces (selected from geometric normal) |
+| `r_weatherWetnessUpdateHz` | `"10"` | Live | Persistent world wetness simulation updates per second |
+
+## Unified precipitation and acid-rain optics
+
+The resolved precipitation state is shared by streaks, haze, wetness, puddles, runoff and lens water. The acid-rain optical profile is optional and controls tint and strength for active acid rain; it does not create rain or change gameplay damage.
+
+See [precipitation state](rend2-unified-precipitation.md) and [acid rain](rend2-acid-rain-profile.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_acidRainStrength` | `"1"` | Live | Strength of the coherent acid-rain optical profile |
+| `r_acidRainTint` | `"0.78 1.00 0.62"` | Live | Linear RGB optical tint of acid rain |
+| `r_acidRainVisuals` | `"0"` | Live | Coherent optical acid-rain profile for rain, wet surfaces, puddles, runoff, volume and lens water |
+
+**Commands**
+
+- `r_precipitationInfo` — Print resolved precipitation type, intensity and consumer state.
 
 ## Per-material weather response
 
@@ -1144,7 +1400,7 @@ Adds procedural expanding rain rings to standing water. The rings perturb the pu
 **Requirements.** Requires procedural puddles and active rain.
 
 **Main controls**
-- `r_weatherPuddleRipples 0 | 1` — disable / enable ripples.
+- `r_weatherPuddleRipples 0 | 1 | 2 | 3` — off / procedural rings / real rain-impact field / real nearby impacts with procedural rings farther away.
 
 **Other controls**
 - `r_weatherPuddleRippleStrength <value>` — ring normal strength.
@@ -1155,6 +1411,22 @@ Adds procedural expanding rain rings to standing water. The rings perturb the pu
 - `r_weatherSurfaceDebug 17..20` — ripple height, normal offset, masking and final normal.
 
 May slightly affect performance.
+
+## Rain-impact puddle simulation
+
+Puddle ripple modes 2/3 inject real rain crossings into a bounded height/velocity field. Mode 3 blends to procedural rings beyond the nearby field. This is an impact-driven ripple simulation; it does not simulate puddle drainage or change puddle placement.
+
+**Requirements.** Active rain, weather impact/depth resources and wet procedural puddles. See [water realism follow-up](rend2-water-realism-followup.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_weatherPuddleRippleDamping` | `"2.5"` | Live | Real puddle ripple damping per second |
+| `r_weatherPuddleRippleDebug` | `"0"` | Cheat | Real ripple debug: 1 impulses, 2 height, 3 velocity, 4 final normal |
+| `r_weatherPuddleRippleDistance` | `"1500"` | Live | Real ripple draw distance; hybrid fades to procedural beyond it |
+| `r_weatherPuddleRippleFieldScale` | `"1"` | Live | World coverage of the real ripple field relative to the weather map |
+| `r_weatherPuddleRippleImpulse` | `"0.45"` | Live | Velocity impulse deposited by each real rain impact |
+| `r_weatherPuddleRipplePropagation` | `"10"` | Live | Real puddle ripple propagation in field texels per second |
+| `r_weatherPuddleRippleResolution` | `"256"` | Restart | Real puddle ripple field resolution (64..1024; vid_restart) |
 
 ## Water runoff
 
@@ -1177,6 +1449,17 @@ Adds a thin animated water film and streaks on rain-exposed slopes and walls. Fl
 
 May slightly affect performance. It is shading-only and has no fluid simulation or additional pass.
 
+## Persistent runoff trails
+
+Keeps runoff streaks dark and smooth after a water filament passes. A value of 0 disables retained trails.
+
+**Requirements.** Persistent world wetness and runoff. See [runoff trails](rend2-weather-runoff-trails.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_weatherRunoffTrailDebug` | `"0"` | Cheat | Persistent world runoff trail debug: 1 retained history, 2 final trail mask |
+| `r_weatherRunoffTrailPersistence` | `"0"` | Live | Seconds world runoff trails remain dark and smooth after water passes (0 off; needs persistent wetness) |
+
 ## Rain impact splashes
 
 Creates short splash rings/spray where GPU rain drops cross the weather depth surface. No CPU trace is performed for each drop.
@@ -1195,6 +1478,24 @@ Creates short splash rings/spray where GPU rain drops cross the weather depth su
 - `r_rainSplashDebug 1..3` — impact points, accepted/rejected crossings and recent trajectories.
 
 Usually moderate only in very heavy rain; normal rain has a much smaller cost.
+
+## Surface-dependent rain impacts
+
+Chooses an impact response for hard dry/wet surfaces, puddles, real water, soil, vegetation and metal from the weather impact-class map. Each class has an independent strength multiplier.
+
+**Requirements.** Active rain and rain-impact resources. The response switch needs restart; 0 keeps the legacy splash. See [realism follow-up](rend2-water-realism-followup.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_rainSplashHardDryStrength` | `"1"` | Live | Hard dry rain impact response scale |
+| `r_rainSplashHardWetStrength` | `"1"` | Live | Hard wet rain impact response scale |
+| `r_rainSplashMetalStrength` | `"1"` | Live | Metal rain impact response scale |
+| `r_rainSplashPuddleStrength` | `"1"` | Live | Puddle rain impact response scale |
+| `r_rainSplashSoilStrength` | `"1"` | Live | Soft soil rain impact response scale |
+| `r_rainSplashSurfaceDebug` | `"0"` | Cheat | Show the top-down R8 weather impact class map |
+| `r_rainSplashSurfaceResponse` | `"0"` | Restart | Surface-dependent rain impacts: 0 exact legacy splash, 1 class response (vid_restart) |
+| `r_rainSplashVegetationStrength` | `"1"` | Live | Vegetation rain impact response scale |
+| `r_rainSplashWaterStrength` | `"1"` | Live | Real water rain impact response scale |
 
 ## Rain on the camera lens
 
@@ -1227,6 +1528,341 @@ Rain only adds water while the camera is outside. Under cover, existing water ke
 **Maps and effects.** Waterfalls and spray: `LensWaterEmitters` in `cubemaps/<map>/env.json` or the efx `lensWater` primitive. Splashes of characters entering water nearby and leaving water yourself are automatic with the updated game modules. Scripts can use `r_we lenswater splash 1`.
 
 The CPU simulation is bounded: up to 128 drops, 256 micro drops and 8 sheets, about 0.2 ms at worst. The field is quality bounded, and the full-resolution composite only samples extra where there is water. A dry lens under cover costs nothing.
+
+## Film-first lens water
+
+Adds a second lens-water model dominated by a draining refracting film and short-lived micro drops. Controls tune emergence from water, peripheral mist and directional impact splats. The default model remains the hybrid-drop model.
+
+**Requirements.** The lens-water pass and HDR. See [lens water](rend2-rain-lens.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_rainLensEmergeTime` | `"1.0"` | Live | Lens water film-first model: how long the film takes to drain and break into drops leaving water, 0.25..4 (below 1: sooner) |
+| `r_rainLensEmergeWater` | `"1.0"` | Live | Lens water film-first model: water left on the lens leaving water (drop count and size), 0.25..3 |
+| `r_rainLensFilmMicro` | `"1.0"` | Live | Lens water film-first model: wet film micro refraction, 0..4 |
+| `r_rainLensFilmModel` | `"0"` | Live | Lens water model: 0 = hybrid drops (A), 1 = film-first: short lived micro drops, refracting wet film (B) |
+| `r_rainLensImpactSplat` | `"0"` | Live | Lens water film-first model: oblique rain impacts splat along their direction, throw spray and leave a smear, 0..2 (0 = off) |
+| `r_rainLensMist` | `"0.04"` | Live | Lens water film-first model: rain reaching the lens when not looking into it (spray, mist), 0..1 |
+
+# Water & liquids
+
+## Modern water surfaces and body identity
+
+Replaces classified stock water stages with Fresnel reflection, depth-aware refraction, absorption and direct-light glints before tone mapping. Bodies carry stable identity and optics through `cubemaps/<map>/env.json` metadata. Semantic BSP classification is the default; the name-based experimental fallback is separately gated.
+
+**Requirements.** Enable `r_waterSurface 1` and restart. Water SSR is independent of opaque-surface `r_ssr`. Classification/override commands aid mod authors. See [water surfaces](rend2-water-surface.md) and [water bodies](rend2-water-bodies.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterSurface` | `"0"` | Restart | Modern water surface for the stock water (CONTENTS_WATER surfaces): Fresnel reflection (SSR -> cubemap), depth aware refraction, liquid absorption, before tone mapping. 0 = legacy water stages (no extra targets or passes); vid_restart |
+| `r_waterSurfaceAbsorption` | `"1.0"` | Live | r_waterSurface: shared liquid extinction scale for surface and volume (r_volumetricWaterExtinction / Color, Slime) |
+| `r_waterSurfaceDebug` | `"0"` | Cheat | r_waterSurface debug view: 1 = classified surfaces (blue water, green slime, violet fog volume medium, yellow override, magenta experimental), 2 = normal, 3 = Fresnel / reflection weight, 4 = path length under the surface, 5 = raw refracted color, 6 = SSR hit (green) / miss (red), 7 = reflection source (red SSR, green cubemap, blue fallback), 8 = transmittance, 9 = split old (left) / new (right), 10 = refraction depth rejection, 11 = roughness |
+| `r_waterSurfaceDepthReject` | `"1"` | Live | r_waterSurface: refraction never samples objects in front of the water (shrinks the offset, else none) |
+| `r_waterSurfaceDepthScale` | `"1.0"` | Live | r_waterSurface: scale of the path length under the surface (water thickness from the depth buffer) |
+| `r_waterSurfaceExperimental` | `"0"` | Live | r_waterSurface: also classify surfaces by a water-like shader name (pool, lake, river, water...) when they face up and have no water contents; experimental |
+| `r_waterSurfaceIOR` | `"1.333"` | Live | r_waterSurface: index of refraction of the liquid (Fresnel and refraction) |
+| `r_waterSurfaceNormal` | `"1.0"` | Live | r_waterSurface: detail wave normal strength (0 removes micro detail; ambient macro is separate) |
+| `r_waterSurfaceReflection` | `"1.0"` | Live | r_waterSurface: scale of the reflection (1 = physical) |
+| `r_waterSurfaceRefraction` | `"1.0"` | Live | r_waterSurface: scale of the screen-space refraction offset (1 = physical for the depth behind the water) |
+| `r_waterSurfaceRoughness` | `"0.06"` | Live | r_waterSurface: base roughness (perceptual); the unresolved waves add to it |
+| `r_waterSurfaceSplit` | `"0.5"` | Live | r_waterSurfaceDebug 9: position of the split (0-1 of the view width) |
+| `r_waterSurfaceSSR` | `"1.0"` | Live | r_waterSurface: weight of the screen-space reflections over the cubemap (independent of opaque r_ssr; 0 = cubemap only) |
+
+**Commands**
+
+- `r_waterBodies` — List resolved water-body identities and profiles.
+- `r_waterInfo` — Inspect classified modern-water surfaces.
+- `r_waterOverride` — Inspect/set water classification overrides; run without arguments for syntax.
+
+## Participating liquid volumes
+
+Treats liquid brushes as participating media. `r_volumetricWater` is a mask: 1 water, 2 slime, 4 lava; combine bits as needed. Each class has independent extinction, relative RGB absorption, scattering albedo and anisotropy.
+
+**Requirements.** Froxel fog (`r_volumetricFog 2`). Updated cgame uses the renderer's active-liquid status to suppress duplicate screen tint. Surface sun attenuation also needs the sunlight path. Lava parameters describe absorption/scattering, without adding lava emission.
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `cg_underwaterTint` | `"1"` | Live | Legacy full-screen underwater tint; updated cgame skips liquid classes handled by volumetric water. |
+| `r_volumetricLavaAlbedo` | `"0.6 0.15 0.02"` | Live | r_volumetricWater 4: lava single scattering albedo "r g b" (no emission: absorption and scattering only) |
+| `r_volumetricLavaAnisotropy` | `"0.3"` | Live | r_volumetricWater 4: lava Henyey-Greenstein g |
+| `r_volumetricLavaColor` | `"0.6 1.2 1.2"` | Live | r_volumetricWater 4: lava relative extinction "r g b" |
+| `r_volumetricLavaExtinction` | `"0.02"` | Live | r_volumetricWater 4: lava extinction per world unit |
+| `r_volumetricSlimeAlbedo` | `"0.25 0.7 0.2"` | Live | r_volumetricWater 2: slime single scattering albedo "r g b" |
+| `r_volumetricSlimeAnisotropy` | `"0.4"` | Live | r_volumetricWater 2: slime Henyey-Greenstein g |
+| `r_volumetricSlimeColor` | `"1.6 0.5 0.9"` | Live | r_volumetricWater 2: slime relative extinction "r g b" |
+| `r_volumetricSlimeExtinction` | `"0.005"` | Live | r_volumetricWater 2: slime extinction per world unit; the slime profile is also the medium of water brushes under a slime-flagged surface (vjun1) and of env.json "Liquids" rules |
+| `r_volumetricWater` | `"0"` | Restart | Froxel fog (r_volumetricFog 2): liquid brushes of the map are participating media, mask: 1 water, 2 slime, 4 lava (0 = off, the legacy look). cgame then skips the full screen tint of those liquids (r_volumetricWaterActive, cg_underwaterTint) |
+| `r_volumetricWaterActive` | `"0"` | Read-only | Set by the renderer: liquid classes drawn as a medium on this map (1 water, 2 slime, 4 lava), read by cgame |
+| `r_volumetricWaterAlbedo` | `"0.10 0.45 0.75"` | Live | r_volumetricWater: water single scattering albedo "r g b" (in-scattering color = albedo * relative extinction) |
+| `r_volumetricWaterAnisotropy` | `"0.75"` | Live | r_volumetricWater: water Henyey-Greenstein g (forward scattering) |
+| `r_volumetricWaterCausticFocus` | `"48"` | Live | r_volumetricWater: depth below the surface where the caustics reach full contrast (world units) |
+| `r_volumetricWaterCaustics` | `"0.35"` | Live | r_volumetricWater: strength of the sun caustics under water (0 = off, 1 = full pattern contrast); the average sunlight is kept |
+| `r_volumetricWaterCausticScale` | `"160"` | Live | r_volumetricWater: caustic pattern period in world units |
+| `r_volumetricWaterCausticSpeed` | `"0.06"` | Live | r_volumetricWater: caustic drift in pattern periods per second |
+| `r_volumetricWaterColor` | `"2.0 0.75 0.25"` | Live | r_volumetricWater: water relative extinction "r g b" (normalized to mean 1; red is absorbed first): RGB transmittance with r_volumetricFogRGBExtinction, the sun path color in both modes |
+| `r_volumetricWaterExtinction` | `"0.0014"` | Live | r_volumetricWater: water extinction per world unit (mean of the channels; 0.0014 = 1/e after ~700 units; as fogparms depthForOpaque D: extinction = 5.14 / D) |
+| `r_volumetricWaterSunPath` | `"1"` | Live | r_volumetricWater: exact path of the sunlight through the liquid to the surface (deep water is darker and bluer), and in the froxel volume the path of the dynamic lights through the liquid; 0 = unattenuated |
+| `r_volumetricWaterSurfaces` | `"1"` | Restart | r_volumetricWater: the sun on surfaces inside a liquid passes the liquid above them (transmittance, caustics); needs r_sunlightMode |
+
+**Commands**
+
+- `r_liquids` — Inspect resolved participating liquid brushes and profiles.
+
+## Snell window and underwater optics
+
+When seen from inside water, the surface refracts the scene above and becomes internally reflective beyond the critical angle. The optional optics modes also transport sunlight through the interface and, in mode 2, evaluate atmosphere along the air segment.
+
+**Requirements.** Modern water. Enable `r_waterSnell` for the interface; `r_waterSnellOptics` requires restart. See [water optics decisions](rend2-water-realism-followup.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterSnell` | `"0"` | Live | r_waterSurface: seen from inside the liquid, the surface is the water -> air interface: Snell's window refracts the scene above, total internal reflection beyond the critical angle (exact Fresnel, IOR r_waterSurfaceIOR) reflects the scene in the liquid (SSR -> cubemap in the liquid -> the liquid) through the medium. 0 = the r_waterSurface view from inside unchanged |
+| `r_waterSnellDebug` | `"0"` | Cheat | r_waterSnell debug view: 1 = crossing direction (blue air -> water, orange water -> air, magenta stripes: camera contents disagree), 2 = total internal reflection share (red) / transmits (green), yellow critical angle, 3 = exact Fresnel, 4 = refracted direction (black: TIR), 5 = reflection (red) / transmission (green) weights, 6 = reflection source (red SSR, green cubemap, blue liquid / fallback) |
+| `r_waterSnellOptics` | `"0"` | Restart | Snell optics: 0 legacy, 1 underwater sun BTDF/eta transport, 2 also atmosphere through the air segment |
+
+## Ambient waves and wind
+
+Adds coherent body-local macro/medium waves. Quality chooses 2/4/8 wave terms; normal detail remains separate. Dispersion mode 1 uses authored speed and finite depth; mode 2 uses calibrated gravity for non-flowing water. Wind response crossfades wave sets using resolved outdoor wind.
+
+**Requirements.** Modern water. Visible geometric displacement also needs water geometry; without it waves affect optics. `r_waterWaveChoppiness` is reserved for future horizontal displacement. See [waves](rend2-water-waves.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterWaveAmplitude` | `"1"` | Live | Ambient wave amplitude scale |
+| `r_waterWaveChoppiness` | `"1"` | Live | Future ambient horizontal displacement scale |
+| `r_waterWaveDebug` | `"0"` | Cheat | Ambient waves debug: 1 height, 2 macro normal, 3 micro normal, 4 combined, 5 profile, 6 depth mask, 7 displacement, 8 split, 9 multiplier, 10 legacy deform |
+| `r_waterWaveDispersion` | `"1"` | Live | Wave dispersion: 0 legacy nondispersive, 1 authored-speed finite-depth, 2 calibrated physical for non-flowing water |
+| `r_waterWaveGravity` | `"313.6"` | Live | Physical renderer water gravity in world units per second squared (dispersion mode 2 and variable-depth interaction) |
+| `r_waterWaveLength` | `"1"` | Live | Ambient wave wavelength scale |
+| `r_waterWaveMicro` | `"1"` | Live | Micro slope scale in addition to r_waterSurfaceNormal |
+| `r_waterWaveQuality` | `"1"` | Live | Ambient waves: 0 = 2 terms, 1 = 4 terms, 2 = 8 terms |
+| `r_waterWaves` | `"0"` | Live | Ambient macro/medium water waves; 0 keeps existing water |
+| `r_waterWaveShallow` | `"1"` | Live | Dampen analytical waves using stable body mean depth |
+| `r_waterWaveSpeed` | `"1"` | Live | Ambient wave speed scale |
+| `r_waterWaveTime` | `"-1"` | Cheat | Ambient wave time: -1 running, >=0 fixed seconds |
+| `r_waterWind` | `"0"` | Live | Wind-driven outdoor water response (requires r_waterWaves); 0 preserves existing waves |
+| `r_waterWindDebug` | `"0"` | Cheat | Water wind debug: 1 resolved wind, 2 current wave direction, 3 target direction, 4 blend/source |
+| `r_waterWindScale` | `"1"` | Live | Global scale for resolved wind response on water |
+| `r_waterWindTransition` | `"4"` | Live | Seconds to crossfade old and target wind wave sets |
+
+## Water geometry, tessellation and camera waterline
+
+Builds a subdivided render mesh so waves and disturbances change the water silhouette. Budgets bound vertices per body and map. Optional GL 4.3 tessellation uses a coarser base mesh with distance-dependent detail.
+
+**Requirements.** Modern water and restart. Tessellation also requires `r_gl43 1` and supported hardware. The camera-waterline hysteresis follows the displaced visual surface to reduce rapid enter/exit flicker. See [geometry](rend2-water-geometry.md) and [waterline](rend2-dynamic-waterline.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterGeometry` | `"0"` | Restart | Subdivided render-only water mesh; requires r_waterSurface and vid_restart |
+| `r_waterGeometryBodyVerts` | `"250000"` | Restart | Maximum subdivided vertices per water body |
+| `r_waterGeometryDebug` | `"0"` | Live | Water geometry debug view |
+| `r_waterGeometryEdge` | `"64"` | Restart | Target maximum water mesh edge length in world units |
+| `r_waterGeometryMapVerts` | `"1000000"` | Restart | Maximum subdivided vertices per map |
+| `r_waterlineDebug` | `"0"` | Cheat | Visual waterline diagnostics: 1 = once-per-second state, 2 = state plus recent camera-relative-height graph |
+| `r_waterlineHysteresis` | `"1.5"` | Live | Visual camera waterline enter/exit band in world units; fast crossings reduce the band |
+| `r_waterTessellation` | `"0"` | Restart | Distance-adaptive GPU tessellation of the r_waterGeometry mesh (GL 4.3, r_gl43); coarser base mesh, requires vid_restart |
+| `r_waterTessForce` | `"0"` | Cheat | Water tessellation level for every edge (0: by distance), for tests |
+| `r_waterTessLodDistance` | `"0"` | Live | Distance from the camera (world units) with the finest water tessellation; beyond it edges grow by r_waterTessPixels |
+| `r_waterTessMax` | `"16"` | Restart | Maximum water tessellation level (8, 16, 32): the base mesh is that much coarser; requires vid_restart |
+| `r_waterTessMinEdge` | `"0"` | Live | Shortest tessellated water edge in world units: 64 = never finer than the static r_waterGeometry mesh, 0 = only r_waterTessMax limits the detail near the camera |
+| `r_waterTessPixels` | `"96"` | Live | Target tessellated water edge length in pixels (smaller is denser and slower; waves too short for the mesh stay in shading) |
+
+**Commands**
+
+- `r_waterGeometryInfo` — Print subdivided/tessellated water geometry and budgets.
+
+## Water disturbances and bathymetry
+
+Simulates local height/velocity disturbances in bounded per-body fields. Bathymetry supplies body-local depth/confidence; variable-depth propagation can use it to slow waves in shallow water.
+
+**Requirements.** Modern water and restart. Geometry is needed for displaced vertices; otherwise supported fields affect optics. Memory, texel and body budgets limit allocation. `r_waterImpulse` supplies a diagnostic impulse. See [interaction](rend2-water-interaction.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterBathymetry` | `"0"` | Restart | Build exact body-local liquid depth/confidence fields; requires water interaction and vid_restart |
+| `r_waterBathymetryDebug` | `"0"` | Cheat | Print body-local bathymetry coverage and confidence audit |
+| `r_waterInteraction` | `"0"` | Restart | Per-body interactive water disturbances; requires r_waterSurface and vid_restart |
+| `r_waterInteractionDamping` | `"1"` | Live | Profile disturbance damping multiplier |
+| `r_waterInteractionDebug` | `"0"` | Cheat | Interaction debug: 1 domain, 2 mask, 3 height, 4 velocity, 5 slope, 6 source, 7 foam, 8 active/sleep, 9 mapping |
+| `r_waterInteractionMaxBodies` | `"8"` | Restart | Maximum bodies with interaction fields |
+| `r_waterInteractionMaxTexels` | `"524288"` | Restart | Total interaction texel budget |
+| `r_waterInteractionMemoryMB` | `"16"` | Restart | GPU interaction-field memory budget in MiB |
+| `r_waterInteractionQuality` | `"1"` | Restart | Interaction density: 0=32, 1=16, 2=8 world units per texel |
+| `r_waterInteractionSpeed` | `"1"` | Live | Profile disturbance propagation-speed multiplier |
+| `r_waterInteractionStrength` | `"1"` | Live | Global water interaction strength multiplier |
+| `r_waterInteractionVariableDepth` | `"0"` | Live | Use bathymetry and g*div(H*grad(height)) in interactive water |
+
+**Commands**
+
+- `r_waterImpulse` — Inject a diagnostic impulse at the aimed water body; optional strength and radius.
+- `r_waterInteractionInfo` — Print allocated disturbance fields, masks and resource budgets.
+
+## Directional flow and wall response
+
+Advects body-local wave detail and disturbances with resolved flow. The optional spatial field turns/slows flow at banks; wall impact adds local pile-up, sloshing, foam and wet contact.
+
+**Requirements.** Modern water. Spatial flow and impact are latched; impact needs the flow field. See [flow](rend2-water-flow.md) and [wall response](rend2-water-realism-pass2.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterFlow` | `"0"` | Live | Directional per-body water flow; 0 preserves the pre-flow water result |
+| `r_waterFlowDebug` | `"0"` | Cheat | Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail, 5 field speed, 6 wall impingement, 7 field shore distance |
+| `r_waterFlowDetail` | `"1"` | Live | Directional advection scale for medium and micro water detail |
+| `r_waterFlowField` | `"0"` | Restart | Spatial per-body flow field baked at map load: slower water at banks, flow turning along walls (requires r_waterFlow 1) |
+| `r_waterFlowImpact` | `"0"` | Restart | Flow running into a wall piles up, sloshes, foams and wets the wall (requires r_waterFlowField 1) |
+| `r_waterFlowSpeed` | `"1"` | Live | Global multiplier for resolved per-body flow velocity |
+
+**Commands**
+
+- `r_waterFlowOverride` — Inspect/set per-body flow overrides; run without arguments for syntax.
+
+## Persistent foam and object intersections
+
+Maintains body-local foam with advection, diffusion and decay. Waterfalls, impacts/wakes, shoreline contacts and optional wave steepness contribute independent sources. Object intersection foam uses qualified opaque depth/normal contacts; the verification command compares contact classification.
+
+**Requirements.** Modern water; persistent foam fields require restart. Persistent intersection response uses allocated interaction fields. See [intersection foam](rend2-water-intersection-foam.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterFoamAdvection` | `"1"` | Live | Foam advection multiplier for resolved body flow |
+| `r_waterFoamDebug` | `"0"` | Cheat | Persistent foam debug: 1 concentration, 2 velocity, 3 sources |
+| `r_waterFoamDecay` | `"0.55"` | Live | Persistent foam concentration decay per second |
+| `r_waterFoamDiffusion` | `"0.12"` | Live | Mild foam diffusion in texels per second |
+| `r_waterFoamField` | `"0"` | Restart | Persistent body-local water foam fields; requires r_waterSurface and vid_restart (never ocean foam) |
+| `r_waterFoamImpact` | `"1"` | Live | Impact-pool and wake foam source strength (0 disables this source) |
+| `r_waterFoamIntersection` | `"1"` | Live | Obstacle/intersection foam source strength (0 disables this source) |
+| `r_waterFoamResolution` | `"128"` | Restart | Longest side of each active local foam field |
+| `r_waterFoamShoreline` | `"1"` | Live | Enabled shoreline foam source strength (0 disables this source) |
+| `r_waterFoamSteepness` | `"0"` | Live | Optional local wave-steepness foam source strength |
+| `r_waterFoamWaterfall` | `"1"` | Live | Waterfall/turbulent-stream foam source strength (0 disables this source) |
+| `r_waterIntersectionFoam` | `"0"` | Live | Opaque-object intersection foam on modern shallow water |
+| `r_waterIntersectionFoamDebug` | `"0"` | Cheat | Show the raw depth/normal-qualified object intersection mask |
+| `r_waterIntersectionFoamPersistence` | `"1.5"` | Live | Seconds for intersection foam in the interaction field to fade |
+| `r_waterIntersectionFoamStrength` | `"1"` | Live | Object/water intersection foam strength |
+| `r_waterIntersectionFoamWidth` | `"8"` | Live | World-space half-width of the object/water intersection band |
+
+**Commands**
+
+- `r_waterIntersectionVerify` — Verify GPU water/object intersection classification.
+
+## Displaced shorelines and wet contact
+
+Attenuates macro waves at rigid/shallow boundaries, softens water/geometry contact and retains a drying wet fringe after water retreats. Shore foam feeds the existing foam field.
+
+**Requirements.** Modern water, water geometry and restart. See [shorelines](rend2-water-shoreline.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterShoreAttenuation` | `"96"` | Live | World distance over which macro waves recover from a rigid/shallow boundary |
+| `r_waterShoreContactSoftness` | `"6"` | Live | World width of the water/geometry soft contact and overlap |
+| `r_waterShoreDebug` | `"0"` | Cheat | Shoreline debug: 1 depth, 2 boundary distance, 3 attenuation, 4 displaced height, 5 rigid/contact class, 6 contact mask, 7 wet fringe, 8 foam source, 9 crack inspection |
+| `r_waterShoreFoam` | `"1"` | Live | Profile-scaled shoreline source strength for the existing water foam field |
+| `r_waterShoreline` | `"0"` | Restart | Displaced-water shoreline/contact treatment; requires r_waterSurface, r_waterGeometry and vid_restart |
+| `r_waterShoreWetPersistence` | `"8"` | Live | Seconds for a retreated displaced waterline to dry |
+| `r_waterShoreWetStrength` | `"0.8"` | Live | Water-contact wet-fringe strength through the existing material wetness response |
+
+## Water entry splashes, wakes and rain
+
+Updated SP/MP game/client code submits water entry/exit and projectile impacts, movement wakes and rain disturbances. Sparse rain ripples and aggregate micro disturbance share the real-water body classification.
+
+**Requirements.** Matching updated modules. Impulses need interaction resources and foam needs its corresponding field. `r_waterSplashes` is off by default; wake controls do not enable the water renderer. See [physical splashes](rend2-physical-water-splashes.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterRainRippleDebug` | `"0"` | Cheat | Water rain debug: 1 impact mask, 2 source texture, 3 sparse field, 4 aggregate energy |
+| `r_waterRainRippleDensity` | `"0.22"` | Live | Statistical fraction of real-water rain impacts injected as explicit ripples |
+| `r_waterRainRippleImpulse` | `"0.55"` | Live | Velocity impulse scale of explicit real-water rain ripples |
+| `r_waterRainRippleMicro` | `"1"` | Live | Aggregate rain micro-disturbance scale on real water |
+| `r_waterRainRippleQuality` | `"1"` | Restart | Real-water rain field quality: 0=128, 1=256, 2=512 (vid_restart) |
+| `r_waterRainRipples` | `"1"` | Live | Rain disturbances on classified real water bodies |
+| `r_waterSplashDebug` | `"0"` | Cheat | Show and print physical splash events |
+| `r_waterSplashes` | `"0"` | Live | Physical water entry, exit and projectile splashes |
+| `r_waterSplashFoam` | `"1"` | Live | Physical splash foam scale |
+| `r_waterSplashProjectiles` | `"1"` | Live | Projectile and thrown-saber water splashes |
+| `r_waterSplashQuality` | `"1"` | Live | Physical splash particles: 0 low, 1 medium, 2 high |
+| `r_waterSplashStrength` | `"1"` | Live | Physical splash impulse and spray strength scale |
+| `r_waterWakeDebug` | `"0"` | Cheat | Print/draw movement-wake diagnostics. |
+| `r_waterWakeFoamSpeed` | `"260"` | Live | Entity speed at which the wake foam response reaches its reference strength. |
+| `r_waterWakeMaxEntities` | `"16"` | Live | Maximum wake-producing entities per frame. |
+| `r_waterWakeMinSpeed` | `"35"` | Live | Minimum entity speed for wake submission, world units per second. |
+| `r_waterWakes` | `"1"` | Live | Submit movement-driven water wakes from updated game/client code. |
+| `r_waterWakeStrength` | `"1"` | Live | Wake impulse strength multiplier. |
+
+## Surface-driven caustics
+
+Caustic mode 2 derives focusing from the actual resolved water surface instead of the older procedural pattern. Source-mask bits select sun, dynamic point/spot and directed baked light independently. Directed baked mode requires direction evidence; its procedural fallback is explicit.
+
+**Requirements.** Modern water for surface-driven evaluation; enabled liquid attenuation and the corresponding source path. The light-source mask is latched. See [caustics](rend2-surface-caustics.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterCausticsBakedMode` | `"0"` | Live | directional baked-light caustics: 0 off, 1 surface-driven, 2 original procedural pattern |
+| `r_waterCausticsBakedStrength` | `"0.35"` | Live | strength of liquid attenuation and caustic modulation on the directional baked-light share |
+| `r_waterCausticsDebug` | `"0"` | Cheat | surface caustics debug: 1 slope, 2 refracted ray, 3 focus, 4 weighted result, 5 projected receiver, 6 attenuation, 7 interaction |
+| `r_waterCausticsFilter` | `"1"` | Live | receiver-depth footprint filter for surface-driven caustics |
+| `r_waterCausticsLightMask` | `"1"` | Restart | caustic light sources: 1 sun, 2 dynamic point/spot, 4 directional baked light |
+| `r_waterCausticsLocalMaxLights` | `"1"` | Live | maximum dynamic point/spot lights evaluated for water caustics per receiver |
+| `r_waterCausticsMaxDepth` | `"2048"` | Live | maximum liquid path depth for surface-driven caustic contrast |
+| `r_waterCausticsMode` | `"1"` | Live | underwater caustics: 0 off, 1 original procedural, 2 actual water-surface driven |
+| `r_waterCausticsQuality` | `"1"` | Live | surface-driven caustic derivative quality: 0 32u, 1 16u, 2 8u base spacing |
+| `r_waterCausticsSlope` | `"1"` | Live | surface slope contribution to surface-driven caustics |
+
+## Waterfalls, mist and whitewater
+
+Dedicated waterfall sheets use authored metadata or audited stock mappings, with optional geometry detail and optical strength by waterfall size. Base mist can feed the froxel volume and lens spray. Impact pools inject disturbances and foam; whitewater transports stream/rapid aeration.
+
+**Requirements.** Modern water features as applicable. Waterfall sheets and whitewater require restart. Mist in the volume needs froxel fog; lens coupling needs lens water; impact response needs interaction and/or foam fields. See [waterfalls](rend2-waterfalls.md), [mist](rend2-waterfall-mist.md), [impact pools](rend2-waterfall-impact.md) and [whitewater](rend2-water-whitewater.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterfall` | `"0"` | Restart | Dedicated modern waterfall sheets selected by env.json Waterfalls metadata or the audited stock mapping; 0 restores exact legacy stages; vid_restart |
+| `r_waterfallDebug` | `"0"` | Cheat | Waterfall debug: 1 classified, 2 flow, 3 along-fall, 4 displacement, 5 thickness, 6 raw refraction, 7 turbulence, 8 aeration, 9 foam source, 10 spray source, 11 impact region, 12 subdivided wireframe |
+| `r_waterfallGeometry` | `"1"` | Restart | Render-only waterfall subdivision; BSP collision is unchanged; vid_restart |
+| `r_waterfallHeavyStrength` | `"1"` | Live | Heavy/high-volume waterfall profile breakup, whitewater and spray strength |
+| `r_waterfallImpact` | `"0"` | Live | Localized waterfall impact-pool ripples, turbulence and foam; requires r_waterInteraction and/or r_waterFoamField |
+| `r_waterfallImpactDebug` | `"0"` | Cheat | Draw resolved waterfall impact regions and print resolution diagnostics |
+| `r_waterfallImpactFoam` | `"1"` | Live | Waterfall impact-pool persistent foam injection strength |
+| `r_waterfallImpactImpulse` | `"1"` | Live | Waterfall impact-pool central downward impulse strength |
+| `r_waterfallImpactRadius` | `"1"` | Live | Waterfall impact-pool authored/inferred radius multiplier |
+| `r_waterfallImpactTurbulence` | `"1"` | Live | Waterfall impact-pool stochastic secondary disturbance strength |
+| `r_waterfallMediumStrength` | `"1"` | Live | Medium waterfall profile breakup, whitewater and spray strength |
+| `r_waterfallMist` | `"0"` | Live | Waterfall base spray/mist generated from authored emitters or classified sheet impact edges |
+| `r_waterfallMistBalance` | `"0.65"` | Live | Waterfall particle/mist balance: 0 keeps particle spray only, 1 uses full froxel mist |
+| `r_waterfallMistDebug` | `"0"` | Cheat | Draw and list resolved waterfall mist emitters |
+| `r_waterfallMistDensity` | `"1"` | Live | Waterfall suspended mist density scale |
+| `r_waterfallMistLens` | `"0"` | Live | Couple nearby waterfall spray to the existing LensWater SPRAY input |
+| `r_waterfallMistRadius` | `"1"` | Live | Waterfall mist and lens emitter radius scale |
+| `r_waterfallQuality` | `"1"` | Live | Waterfall coherent breakup quality: 0 low, 1 medium, 2 high |
+| `r_waterfallRefraction` | `"1"` | Live | Waterfall thin-sheet refraction strength |
+| `r_waterfallSmallStrength` | `"1"` | Live | Small waterfall profile breakup, whitewater and spray strength |
+| `r_waterfallWhitewater` | `"1"` | Live | Waterfall aeration and lit whitewater scale |
+| `r_waterWhitewater` | `"0"` | Restart | Advected stream/rapid aeration; requires r_waterSurface and vid_restart |
+| `r_waterWhitewaterDebug` | `"0"` | Cheat | Whitewater debug: 1 flow, 2 turbulence source, 3 final whitewater, 4 foam sources |
+| `r_waterWhitewaterDecay` | `"1.1"` | Live | Advected whitewater turbulence decay per second |
+| `r_waterWhitewaterFoam` | `"0.35"` | Live | Persistent surface-foam injection from whitewater |
+| `r_waterWhitewaterStrength` | `"1"` | Live | Whitewater bulk optical strength |
+| `r_waterWhitewaterThreshold` | `"0.45"` | Live | Turbulence source threshold for whitewater formation |
+
+**Commands**
+
+- `r_waterfalls` — List selected waterfall sheets and metadata.
+
+## Underwater suspended particles
+
+Adds drifting motes and micro bubbles around an underwater camera using a per-body clean/murky/dirty profile, optionally authored in env.json.
+
+**Requirements.** A supported resolved water body and underwater view. See [particles](rend2-water-particles.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_waterParticles` | `"0"` | Live | Underwater suspended particles and micro-bubbles around the camera (0 off, 1 on) |
+| `r_waterParticlesBubbles` | `"-1"` | Live | r_waterParticles: share of micro-bubbles 0..1, -1 = the body profile's |
+| `r_waterParticlesDebug` | `"0"` | Cheat | r_waterParticles debug: 1 placement (opaque, cyan motes, yellow bubbles), 2 no fog in front, 3 print stats every second |
+| `r_waterParticlesDensity` | `"1"` | Live | r_waterParticles: density scale of the body profile |
+| `r_waterParticlesDistance` | `"160"` | Live | r_waterParticles: radius of the particle volume around the camera (world units) |
+| `r_waterParticlesProfile` | `"0"` | Live | r_waterParticles: body profile, 0 auto (env.json WaterParticles, else clean), 1 clean, 2 murky, 3 dirty, -1 none |
+| `r_waterParticlesSize` | `"1"` | Live | r_waterParticles: particle size scale |
+| `r_waterParticlesSpeed` | `"1"` | Live | r_waterParticles: drift and bubble rise speed scale |
 
 # Foliage
 
@@ -1369,6 +2005,39 @@ client/cgame path.
 Small vertex cost in dense grass (one texture fetch per vertex and a short curve), the near grass strips add
 vertices; the grass state is one small pass per frame (256x256 texels, 1.5 MB).
 
+# Reconstructed lighting
+
+## Canonical reconstructed-lighting controls and observations
+
+These settings govern the canonical CPU asset, build policy and independent consumer requests. All default to 0. Build policy 0 is disabled, 1 cache only, 2 cache or build and 3 force rebuild; a changed policy applies at the next main-world map load.
+
+**Current implementation.** The lifecycle/API exists, but complete source hashing, a production solver and rendering adapters are unavailable. Consumer switches cannot by themselves improve lighting. Policies 2/3 can prepare preserved original observations for research without publishing a fitted lighting asset. Observation/evidence/export commands inspect original data and retain confidence/availability boundaries.
+
+See [controls and availability](rend2-reconstruction-controls.md), [luxels](rend2-luxel-observations.md), [observations](rend2-lightgrid-observations.md), [evidence](rend2-emitter-evidence.md) and [offline export](rend2-offline-observation-datasets.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_lightReconArea` | `"0"` | Live | Use canonical rectangle/tube emitters via area/LTC lighting; live request, requires usable area sources and an available area adapter |
+| `r_lightReconBuild` | `"0"` | Live | Canonical lighting asset: 0 off, 1 cache only, 2 cache or build, 3 force build; next main-world load (vid_restart clears context and may reload the world) |
+| `r_lightReconEntities` | `"0"` | Live | Use canonical irradiance for entities/Ghoul2; live request, requires prepared irradiance and an available entity adapter |
+| `r_lightReconEnvironment` | `"0"` | Live | Use the unique resolved canonical sky/environment for IBL; live request, requires prepared incoming radiance and an available environment adapter |
+| `r_lightReconFog` | `"0"` | Live | Use canonical incoming radiance for fog; live request, requires a prepared field and available fog adapter |
+| `r_lightReconIndirect` | `"0"` | Live | Use canonical indirect irradiance; live request, requires prepared irradiance and an available indirect adapter |
+| `r_lightReconParticles` | `"0"` | Live | Use canonical incoming radiance for particles; live request, requires a prepared field and available particle adapter |
+| `r_lightReconShadows` | `"0"` | Live | Use canonical emitters and visibility for shadows; live request, requires prepared visibility and an available shadow adapter |
+| `r_lightReconSpecular` | `"0"` | Live | Use canonical incoming radiance for specular; live request, requires a prepared field and available specular adapter |
+| `r_lightReconSun` | `"0"` | Live | Use the unique resolved canonical sun; live request, requires known emission and an available sun adapter |
+| `r_lightReconUse` | `"0"` | Live | Master use of canonical reconstructed lighting; live, requires each consumer opt-in, data and an available adapter |
+| `r_lightReconWorldDiffuse` | `"0"` | Live | Use canonical physical emitters for world diffuse; live request, requires usable sources and an available world adapter |
+
+**Commands**
+
+- `r_lightReconEvidence` — Inspect classified emitter evidence and confidence.
+- `r_lightReconExport` — Export a bounded original-observation dataset for offline analysis.
+- `r_lightReconInfo` — Print world asset/build/consumer availability without starting a build.
+- `r_lightReconLuxels` — Inspect original baked luxel-to-geometry mappings.
+- `r_lightReconObservations` — Inspect preserved original BSP observations.
+
 # Performance & loading
 
 ## Shader program cache
@@ -1382,3 +2051,85 @@ Caches linked Rend2 shader programs on disk so later starts and `vid_restart` op
 - `r_shaderProgramCacheMaxMB <MB>` — maximum cache size; least-recently-used entries are evicted first.
 
 The cache has no effect on frame performance. It can substantially reduce warm startup and `vid_restart` time. Driver or shader changes automatically invalidate incompatible entries.
+
+## Modern OpenGL paths and light-list validation
+
+Requests GL 4.3 and enables supported modern paths, with legacy fallback. Forward+ and froxel light lists can be built on compute; froxel tile size tunes the dynamic-light-list partition. These switches do not enable the lighting features themselves.
+
+Verification commands compare CPU/GPU results and can be expensive. See [OpenGL 4.3](rend2-opengl43.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_forwardPlusCompute` | `"1"` | Live | Forward+: 1 = cluster lists built by a GL 4.3 compute shader when available (r_gl43), 0 = built on the CPU |
+| `r_gl43` | `"1"` | Restart | Prefer GL 4.3 and allow modern paths; 0 forces legacy paths after vid_restart |
+| `r_volumetricFogLightCompute` | `"1"` | Live | Build froxel dynamic-light cluster lists on GL 4.3 compute |
+| `r_volumetricFogLightTile` | `"8"` | Live | Froxel fog: froxels per side of a dynamic light tile (4, 8, 16), see r_vfogLightStats |
+
+**Commands**
+
+- `r_forwardPlusVerify` — Compare GPU and CPU cluster lists.
+- `r_vfogLightStats` — Print froxel dynamic-light-list sizes and costs.
+- `r_vfogLightVerify` — Compare GPU and CPU froxel light-list construction.
+
+## Shadow, SSR and sky-portal optimizations
+
+Point/spot shadow caches conservatively reuse unchanged depth. Single-scene-walk and layered-cube submission reduce shadow overhead when supported. SSR can resolve its half-resolution hits to current-frame radiance once and reuse that resolve during upsampling; water has separate prepass and motion-reprojection controls. Sky-portal culling limits portal shading to visible main-view gaps.
+
+Sun/point-shadow verification performs additional rendering/readbacks and is intended for diagnostics. See [sun-cache validation](rend2-sun-shadow-cache-validation.md), [SSR validation](rend2-ssr-validation.md) and [water surfaces](rend2-water-surface.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `r_shadowCache` | `"1"` | Live | Reuse unchanged point/spot shadow maps; conservative around animated world surfaces and dynamic casters |
+| `r_shadowLayered` | `"1"` | Live | With r_shadowSinglePass 1: 1 = all 6 faces of a point light cube in one layered draw command when supported |
+| `r_shadowSinglePass` | `"1"` | Live | Point light shadows: 1 = one scene walk per light, filtered per cube face (same depth as 0) |
+| `r_shadowStats` | `"0"` | Cheat | Print per-frame CPU front-end / submit cost of shadow and camera views once per second |
+| `r_shadowVerify` | `"0"` | Cheat | 1 = next frame, render every point light shadow cube both ways (r_shadowSinglePass 0 and 1) and print the depth texels that differ |
+| `r_skyPortalCull` | `"1"` | Live | 1 = the skyportal view only shades the pixels the opaque world of the main view leaves uncovered |
+| `r_ssrResolveCache` | `"1"` | Live | SSR: resolve half-res rays to radiance once per frame, then upsample (0 = per-pixel resolve) |
+| `r_sunShadowBenchmark` | `"0"` | Cheat | Measure this many complete frame intervals, with GPU readbacks/stats disabled |
+| `r_sunShadowVerify` | `"0"` | Cheat | Compare cached sun depth with a full render: 1 next scene, 2 continuous (slow readbacks) |
+| `r_waterMotionDebug` | `"0"` | Cheat | Water receiver motion debug (1 validity, 2 current, 3 previous, 4 screen motion, 5 analytic, 6 interaction, 7 waterfall/legacy, 8 previous UV, 9 invalidation, 10 camera-only split) |
+| `r_waterSSROptimize` | `"7"` | Live | r_waterSurface SSR prepass savings, bits: 1 = the prepass tessellates for its own (reduced) resolution, 2 = it drops occluded water before the wave shading, 4 = it runs a prepass-only program without the shading code; 0 = the 10-19 prepass (A/B) |
+| `r_waterSSRWaveReprojection` | `"0"` | Restart | Use exact previous-rendered water geometry for temporal SSR reprojection |
+
+## Shader compilation and material loading
+
+Builds shader permutations on demand, optionally links uncached batches in helper processes, caches prepared textures on disk and predicts texture work on loading threads. World and non-world material DDC switches are independent; the world cache defaults off. Texture prefetch has a separate memory budget.
+
+SP also exposes loose-image indexing, lazy menu assets and the memory-touch load stage. Checksums and nested CPU timings support comparisons; nested timing totals must not be added together. See [material DDC](rend2-material-ddc.md), [shader cache](rend2-shader-cache.md) and [map loading](rend2-map-load.md).
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `com_touchMemoryOnLoad` | `"1"` | Live | Touch process memory at map load; 0 skips that SP load stage. |
+| `fs_looseImageIndex` | `"1"` | Live | Windows loose JPG/PNG/TGA negative-lookup index; rebuilt at map/search-path changes. |
+| `r_genNormalMapsLazy` | `"0"` | Live | Experimental: generate normal maps (r_genNormalMaps) only for lit stages that need them |
+| `r_imageChecksums` | `"0"` | Live | Write a hash of every loaded texture to imagechecksums/<map>.txt after registration |
+| `r_loadPrefetch` | `"1"` | Live | Decode predicted textures on worker threads during map load |
+| `r_loadPrefetchMB` | `"512"` | Live | Memory for textures decoded ahead of use, in MB |
+| `r_loadProfile` | `"0"` | Live | Print nested map-load CPU timings from the engine, renderer and matching SP game module. |
+| `r_loadThreads` | `"-1"` | Live | Worker threads for load-time texture work: -1 = automatic, 0 = none |
+| `r_materialDDCObjects` | `"1"` | Live | Cache prepared NPC, object and other non-BSP textures on disk |
+| `r_materialDDCWorld` | `"0"` | Live | Cache prepared BSP surface textures on disk |
+| `r_shaderCompileProcesses` | `"-1"` | Live | Link batches of GLSL programs that are not cached in this many rend2_glslc helper processes (-1 = half the CPU threads, at most 8; 0 = in the game process only) |
+| `r_shaderProgramLazy` | `"1"` | Restart | Build the lightall / generic / fog / velocity / refraction / surface sprite GLSL permutations when a level or a draw first needs them instead of all at startup |
+| `r_uploadPBO` | `"1"` | Live | Upload textures through a persistently mapped pixel buffer |
+| `ui_lazyMenuAssets` | `"1"` | Live | SP: defer menu asset loading until required. |
+
+**Commands**
+
+- `glslusage` — Print shader program/permutation usage.
+- `imagechecksums` — Write loaded-image checksums for comparison.
+
+## Integration status and capture diagnostics
+
+The capability flags and active-liquid mask are written by the engine/renderer and read by game code. The `cl_renderer*` flags and `r_volumetricWaterActive` default to 0; runtime values report the active interface or liquid classes. Set user-facing feature controls to change behavior.
+
+The offscreen-present setting is a separate capture aid for scripted hidden-window tests.
+
+| Control | Default | Application | Meaning |
+| --- | --- | --- | --- |
+| `cl_rendererLensWater` | `"0"` | Read-only | Engine-owned flag: the active renderer exposes lens-water events. |
+| `cl_rendererSpotLights` | `"0"` | Read-only | Engine-owned flag: the active renderer exposes the optional spot-light API. |
+| `cl_rendererWaterInteraction` | `"0"` | Read-only | Engine-owned flag: the active renderer exposes water interaction events. |
+| `r_ext_multisample_default_fb` | `"1"` | Read-only | Internal default-framebuffer multisample state; not a user quality setting. |
+| `r_offscreenPresent` | `"0"` | Restart | Render the frame into an offscreen buffer and copy it to the window at swap, so screenshots work from a hidden window (scripted tests); requires vid_restart |
