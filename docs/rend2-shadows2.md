@@ -73,7 +73,10 @@ instead of clamping taps onto (and repeating) the border texels.
 3. Convert receiver/blocker depth separation back to world units and compute
    `penumbra = separation * tan(sunAngularDiameter / 2)`.
 4. Clamp the penumbra in world units, convert it to the current cascade's UV
-   scale, and run variable-radius manual PCF.
+   scale, and run variable-radius manual PCF. A penumbra of at most one texel
+   (contact-hard, the common case at a 0.53 degree sun) uses a 2x2 bilinear
+   PCF instead: 4 fetches rather than the preset's 8-32, and a smoother edge
+   than random taps on nearest texels.
 
 Because both separation and penumbra are in world units, cascade resolution
 does not change the apparent light size. Only pixels in a configured split
@@ -103,9 +106,12 @@ geometry inside a character's depth range near it counts as that character.
 It is a latched shader permutation (`USE_PCSS_CHARACTER_LAYERS`): 0 compiles
 the previous lightall exactly. `r_shadowDebug 13` shows the split pixels red.
 
-Off by default: on the Intel UHD (mp/ffa3, 960x540) enabling it costs about
-18-20% of the main view even with no character in view (6.9 -> 8.5-9.1 ms;
-frame 10.0 -> 11.8-12.2 ms), from register pressure of the larger lightall.
+Off by default. The first version (character classification inside the
+blocker search loop) cost about 18-20% of the Intel UHD main view even with no
+character in view (6.9 -> 8.5-9.1 ms), from register pressure of the larger
+lightall. The search loop is now unchanged and a second pass over the same
+(cached) taps runs only next to a character; that measured +0.4-1.2 ms, but in
+runs shared with another game process, so it is not a reliable number.
 
 ## Screen-space contacts
 
