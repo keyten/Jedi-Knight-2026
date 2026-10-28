@@ -2888,10 +2888,14 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		r_shadowPCSS->integer ? 1.0f : 0.0f,
 		(float)Com_Clampi(0, 2, r_shadowPCSSQuality->integer));
 	VectorSet4(lightsBlock.shadowDebug,
-		(float)Com_Clampi(0, 12, r_shadowDebug->integer),
+		(float)Com_Clampi(0, 13, r_shadowDebug->integer),
 		r_dlightShadowBias->integer ? 1.0f : 0.0f,
 		(float)Com_Clampi(0, 4, r_spotLightDebug->integer),
 		(float)Com_Clampi(-1, 3, r_ltcSaberShadows->integer));
+	const int shadowCharacters = Com_Clampi(0, MAX_SUN_SHADOW_CHARACTERS, refdef->numSunShadowCharacters);
+	for (int i = 0; i < shadowCharacters; ++i)
+		VectorCopy4(refdef->sunShadowCharacters[i], lightsBlock.shadowCharacters[i]);
+	VectorSet4(lightsBlock.shadowCharacterInfo, (float)shadowCharacters, 0.0f, 0.0f, 0.0f);
 
 	// legacy: the first MAX_DLIGHTS lights, shadow cube i. Forward+: the most
 	// important ones (froxel fog), shadow slot or -1 (tr_forwardplus.cpp)

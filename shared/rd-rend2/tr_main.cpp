@@ -4310,8 +4310,51 @@ void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, qboolean re
 		s_shadowCacheHits = s_shadowCacheMisses = s_shadowCacheUncacheable = 0;
 }
 
+// r_shadowPCSSCharacterLayers: the Ghoul2 casters nearest the camera, as the
+// conservative model spheres the sun cache restore uses. lightall filters the
+// blockers inside a sphere's light-space depth range with their own penumbra.
+static void R_GatherSunShadowCharacters(trRefdef_t *refdef)
+{
+	refdef->numSunShadowCharacters = 0;
+	if (!r_sunShadowMode->integer || !r_shadowPCSSCharacterLayers->integer || !r_drawentities->integer)
+		return;
+	const int first = (tr.world && tr.world->skyboxportal) ? tr.skyPortalEntities : 0;
+	float distanceSq[MAX_SUN_SHADOW_CHARACTERS];
+	for (int i = first; i < refdef->num_entities; ++i)
+	{
+		const refEntity_t& ent = refdef->entities[i].e;
+		if (ent.reType != RT_MODEL || !ent.ghoul2 || (ent.renderfx & RF_FIRST_PERSON) ||
+			!G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent.ghoul2)))
+			continue;
+		float scale = Q_max(fabsf(ent.modelScale[0]),
+			Q_max(fabsf(ent.modelScale[1]), fabsf(ent.modelScale[2])));
+		if (scale == 0.0f) scale = 1.0f;
+		const float radius = ent.radius * scale * 1.2f;
+		if (!(radius > 0.0f))
+			continue;
+		const float d = DistanceSquared(ent.origin, refdef->vieworg);
+		int slot = refdef->numSunShadowCharacters;
+		if (slot == MAX_SUN_SHADOW_CHARACTERS)
+		{
+			// replace the farthest one if this is nearer
+			slot = 0;
+			for (int j = 1; j < MAX_SUN_SHADOW_CHARACTERS; ++j)
+				if (distanceSq[j] > distanceSq[slot])
+					slot = j;
+			if (d >= distanceSq[slot])
+				continue;
+		}
+		else
+			refdef->numSunShadowCharacters++;
+		VectorCopy(ent.origin, refdef->sunShadowCharacters[slot]);
+		refdef->sunShadowCharacters[slot][3] = radius;
+		distanceSq[slot] = d;
+	}
+}
+
 void R_GatherFrameViews(trRefdef_t *refdef)
 {
+	refdef->numSunShadowCharacters = 0;
 	// Disk page pointers are only needed until this scene's cached views have
 	// executed. The previous scene has been submitted before another gather,
 	// so dropping them here bounds CPU memory to the pages of one scene.
@@ -4955,6 +4998,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &tr.viewParms, sizeof(viewParms_t));
 				tr.numCachedViewParms++;
 			}
+			R_GatherSunShadowCharacters(refdef);
 			mainFlags |= VPF_USESUNLIGHT;
 		}
 	}
