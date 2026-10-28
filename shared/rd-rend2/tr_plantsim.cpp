@@ -15,7 +15,9 @@
  *   - the character capsules are hard one-sided contacts on the segments
  *     (radius + part of the lamina width, no force field ahead of the body);
  *     the whole frond is pushed to one side of the body (hysteresis), so it
- *     swings aside around its base instead of wrapping around the leg;
+ *     swings aside around its base instead of wrapping around the leg; a frond
+ *     whose base is inside the body (character standing in the plant) is
+ *     splayed out from its base instead; friction on the body;
  *   - wind is a drag towards the coherent breeze of the grass
  *     (glsl/surface_sprites.glsl FoliageWind, same gust field), across the
  *     segments; aerodynamic and internal damping;
@@ -48,6 +50,7 @@ const int PLANTSIM_EVICT_FRAMES = 300;		// unseen instances are dropped after th
 // wind drag at r_plantWindStrength 1: ~14 degrees at the tip in the strongest gust
 const float PLANTSIM_WIND_ACCEL = 450.0f;
 const float PLANTSIM_AIR_DRAG = 2.0f;		// 1/s
+const float PLANTSIM_CONTACT_FRICTION = 30.0f;	// 1/s, velocity of a node on a body towards the body's
 
 struct Vec3
 {
@@ -169,6 +172,8 @@ struct FrondSim
 	int contactSide;					// -1 / +1 while in contact, 0 free
 	float contactTimer;					// s left before the side is forgotten
 	bool contact;						// touched in the last frame
+	uint32_t pressed;					// nodes a body pushed in the last sub step
+	bool splayed;						// base inside a body: splayed, not pushed aside
 };
 
 struct PlantInstance
@@ -428,6 +433,8 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 		fr.contactSide = 0;
 		fr.contactTimer = 0.0f;
 		fr.contact = false;
+		fr.pressed = 0;
+		fr.splayed = false;
 	}
 
 	inst.bones.assign(skel->numBones * 8, 0.0f);
@@ -604,22 +611,91 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 	for (int j = 0; j < K; ++j)
 		lambda[j][0] = lambda[j][1] = lambda[j][2] = 0.0f;
 
+	// rest arc length at every node
+	float arc[PLANTSKEL_MAX_NODES];
+	arc[0] = 0.0f;
+	for (int j = 0; j < K; ++j)
+		arc[j + 1] = arc[j] + fr.L[j];
+
 	bool contact = false;
+	bool splayed = false;
+	bool touched[PLANTSKEL_MAX_NODES] = {};		// node pushed by a body (friction)
+	Vec3 touchVelocity[PLANTSKEL_MAX_NODES];
 	auto solveContact = [&]() {
 		// Character contact: one side for the whole frond.
 		for (int ci = 0; ci < numCapsules; ++ci)
 		{
 			const Capsule &cap = capsules[ci];
+			// A character standing in the plant has the pinned base inside its
+			// body: no pose of the frond clears it, and pushing it to one side
+			// (or away from the axis) has no solution either, so it spins
+			// around the leg for as long as the character stands there.  Such
+			// a frond is splayed instead: every node is pushed along its own
+			// line from the base out to the edge of the body, at most as far
+			// as its arc allows (a 45 degree droop), which always has a pose.
+			// Hysteresis: a body swaying at the base would flip the frond
+			// between the two models.
+			const Vec3 b = V3(fr.X[0].x - cap.a0.x, fr.X[0].y - cap.a0.y, 0.0f);
+			const float body = cap.radius + fr.margin[0];
+			const float splayReach = fr.splayed ? body + 0.5f * cap.radius : body;
+			if (Dot(b, b) < splayReach * splayReach && fr.X[0].z < cap.a1.z + cap.radius &&
+				fr.X[0].z > cap.a0.z - 2.0f * cap.radius)
+			{
+				splayed = true;
+				const Vec3 restHeading = Normalized(V3(fr.side.y, -fr.side.x, 0.0f), V3(1.0f, 0.0f, 0.0f));
+				for (int k = 1; k <= K; ++k)
+				{
+					if (p[k].z > cap.a1.z + cap.radius)
+						continue;
+					const Vec3 q = V3(p[k].x - p[0].x, p[k].y - p[0].y, 0.0f);
+					const float l = Length(q);
+					const Vec3 u = Normalized(q, restHeading);
+					// the line from the base crosses the body circle at
+					// t0 .. t1 (the base is outside it in the hysteresis band:
+					// a node short of the body is free)
+					const float r = cap.radius + fr.margin[k - 1];
+					const float bu = Dot(b, u);
+					const float disc = bu * bu - Dot(b, b) + r * r;
+					if (disc <= 0.0f)
+						continue;
+					const float t0 = -bu - sqrtf(disc), t1 = -bu + sqrtf(disc);
+					if (t1 <= 0.0f || l <= t0)
+						continue;
+					const float need = MIN(t1, 0.7f * arc[k]);
+					if (l >= need)
+						continue;
+					contact = true;
+					touched[k] = true;
+					touchVelocity[k] = cap.velocity;
+					p[k].x = p[0].x + u.x * need;
+					p[k].y = p[0].y + u.y * need;
+				}
+				continue;
+			}
 			for (int j = 0; j < K; ++j)
 			{
 				float s;
 				Vec3 c, a;
 				ClosestSegmentSegment(p[j], p[j + 1], cap.a0, cap.a1, s, c, a);
 				const float reach = cap.radius + fr.margin[j];
-				const Vec3 d = c - a;
+				Vec3 d = c - a;
+				// the legs reach the feet: a vertical cylinder down there, not
+				// the bottom of the capsule pressing the frond into the ground
+				if (c.z < cap.a0.z && c.z > cap.a0.z - cap.radius)
+					d.z = 0.0f;
 				if (Dot(d, d) >= reach * reach)
 					continue;
 				contact = true;
+				if (s < 0.999f)
+				{
+					touched[j] = true;
+					touchVelocity[j] = cap.velocity;
+				}
+				if (s > 0.001f)
+				{
+					touched[j + 1] = true;
+					touchVelocity[j + 1] = cap.velocity;
+				}
 				if (fr.contactSide == 0)
 				{
 					const float g = Dot(V3(d.x, d.y, 0.0f), fr.side);
@@ -693,12 +769,14 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 				p[j] -= basis[axis] * (dl * fr.invMass[j]);
 			}
 
-			// joint limit around the rest direction of this joint
+			// joint limit around the rest direction of this joint; not on a
+			// node a body holds (both are hard: the contact wins the last
+			// pass, the limit snapped it back in the next step, a cycle)
 			const Vec3 restDir = Normalized(Rotate(frame, fr.D[j]), V3(0.0f, 0.0f, 1.0f));
 			Vec3 cur = p[j + 1] - p[j];
 			const Vec3 curDir = Normalized(cur, restDir);
 			const float c = Dot(curDir, restDir);
-			if (c < fr.maxCos[j])
+			if (c < fr.maxCos[j] && !(fr.pressed & (1u << (j + 1))))
 			{
 				Vec3 ortho = curDir - restDir * c;
 				ortho = Normalized(ortho, Normalized(Cross(restDir, V3(0.0f, 0.0f, 1.0f)), V3(1.0f, 0.0f, 0.0f)));
@@ -725,9 +803,19 @@ static void StepFrond(FrondSim &fr, const PlantInstance &inst, float h, int iter
 		solveGround();
 	}
 
+	// friction on the body: a node held against a character moves with it,
+	// the contact projection does not turn into a swing of its own
+	const float friction = expf(-PLANTSIM_CONTACT_FRICTION * h);
+	fr.splayed = splayed;
+	fr.pressed = 0;
 	for (int k = 1; k <= K; ++k)
 	{
 		fr.v[k] = (p[k] - fr.x[k]) * (1.0f / h);
+		if (touched[k])
+		{
+			fr.v[k] = touchVelocity[k] + (fr.v[k] - touchVelocity[k]) * friction;
+			fr.pressed |= 1u << k;
+		}
 		fr.x[k] = p[k];
 	}
 	fr.x[0] = fr.X[0];

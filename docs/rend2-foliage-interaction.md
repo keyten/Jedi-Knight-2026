@@ -116,6 +116,14 @@ character left). XPBD (Macklin et al. 2016), fixed 120 Hz sub steps (at most 8 p
   pushed out exactly to that distance. The whole frond uses one side of the body (the side its centerline is on
   when the contact starts, the walk direction when it is right across), kept until 0.3 s after the last contact:
   the frond swings aside around its base instead of wrapping around the leg;
+- **standing in the plant** (the pinned base inside the body: no pose clears the leg, so "aside" had no solution and
+  the frond spun around the character as long as it stood there): the frond is splayed instead, every node pushed
+  along its own horizontal line from the base out to the edge of the body, at most 0.7 × its arc from the base
+  (a 45° droop), which always has a pose. The mode keeps until the base is half a radius outside the body (a swaying
+  body would flip it); the legs are a vertical cylinder down to the feet (the capsule bottom no longer presses fronds
+  into the ground);
+- contact friction: a node a body pushed moves with the body (velocity relaxes to the body's at 30 /s), and the joint
+  limit skips it in the next sub step (two hard constraints against each other made a 2 Hz cycle at the tip);
 - ground: no node below the bottom of the model;
 - wind: acceleration across the segments towards the coherent breeze (same gust field as the grass,
   `PLANTSIM_WIND_ACCEL` 450 u/s² × `r_plantWindStrength`, ~14° at the tip in the strongest gust), air drag 2/s;
