@@ -2430,11 +2430,10 @@ int FPlusLightIndex(in int entry)
 	return int(texelFetch(u_FPlusIndexMap, entry).x);
 }
 
-FPlusLight FPlusFetchLight(in int lightIndex)
+// t0, t1: the first two texels of the light (FPlusFetchLightHead)
+FPlusLight FPlusUnpackLight(in int lightIndex, in vec4 t0, in vec4 t1)
 {
 	int base = u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS;
-	vec4 t0 = texelFetch(u_FPlusLights, base);
-	vec4 t1 = texelFetch(u_FPlusLights, base + 1);
 	vec4 t2 = texelFetch(u_FPlusLights, base + 2);
 	FPlusLight light;
 	light.origin = t0.xyz;
@@ -2448,6 +2447,32 @@ FPlusLight FPlusFetchLight(in int lightIndex)
 	light.sourceRadius = light.type == 0.0 ?
 		texelFetch(u_FPlusLights, base + 4).y : 0.0;
 	return light;
+}
+
+// origin / radius and color / type: enough to reject a point or spot light
+// whose range does not reach the receiver
+void FPlusFetchLightHead(in int lightIndex, out vec4 t0, out vec4 t1)
+{
+	int base = u_FPlusGrid.y + lightIndex * FPLUS_LIGHT_TEXELS;
+	t0 = texelFetch(u_FPlusLights, base);
+	t1 = texelFetch(u_FPlusLights, base + 1);
+}
+
+FPlusLight FPlusFetchLight(in int lightIndex)
+{
+	vec4 t0, t1;
+	FPlusFetchLightHead(lightIndex, t0, t1);
+	return FPlusUnpackLight(lightIndex, t0, t1);
+}
+
+// A cluster is a conservative box around the light sphere, so many of its
+// fragments lie outside the range; there both attenuations are exactly zero
+// (CalcLightAttenuation, PBRPointAttenuation) and the light adds nothing.
+// Area lights (type != 0) reach further than t0.w and test their own range.
+bool FPlusPointLightMisses(in vec4 t0, in vec4 t1, in vec3 position)
+{
+	vec3 d = t0.xyz - position;
+	return t1.w == 0.0 && dot(d, d) >= t0.w * t0.w;
 }
 
 // point lights (type 0): the spot cone, tr_spotlight.cpp. halfWidth holds the
@@ -2656,10 +2681,18 @@ vec3 EvaluateDynamicLight(
 	float sqrLightDist = dot(L, L);
 
 	float attenuation = CalcPointLightAttenuation(lightRadius, sqrLightDist, sourceRadius);
-
 	#if defined(USE_DSHADOWS)
 		vec3 sampleVector = L;
-		L /= sqrt(sqrLightDist);
+	#endif
+	L /= sqrt(sqrLightDist);
+	float cone = SpotConeAttenuation(L, spot, spot2.x);
+	attenuation *= cone;
+	// out of range or outside the cone: every term below scales with the
+	// attenuation, so skip the shadow lookups and the BRDF
+	if (attenuation <= 0.0)
+		return vec3(0.0);
+
+	#if defined(USE_DSHADOWS)
 		float dlightShadow = 1.0;
 		if (shadowLayer >= 0)
 		{
@@ -2691,15 +2724,13 @@ vec3 EvaluateDynamicLight(
 				dlightShadow = SpotShadow(u_ShadowMap2, lightOrigin - sampleVector, shadowLayer, fovScale);
 			else
 				dlightShadow = pcfShadow(u_ShadowMap2, lookupDir, getLightDepth(sampleVector, lightRadius), shadowLayer);
-			if (attenuation > 0.0 && dot(s.N, L) > 0.0)
+			if (dot(s.N, L) > 0.0)
 				g_dlightShadowVisibility = min(g_dlightShadowVisibility, dlightShadow);
 			attenuation *= dlightShadow;
 		}
 	#else
 		float dlightShadow = 1.0;
-		L /= sqrt(sqrLightDist);
 	#endif
-	attenuation *= SpotConeAttenuation(L, spot, spot2.x);
 	// the cookie modulates the light before the BRDF (radial * cone * cookie * shadow)
 	if (spot2.z > -0.5)
 	{
@@ -2709,7 +2740,6 @@ vec3 EvaluateDynamicLight(
 		if (mode > 0.5)
 		{
 			vec3 uvr = SpotCookieUV(-L, spot, spot2.w);
-			float cone = SpotConeAttenuation(L, spot, spot2.x);
 			vec3 v = mode < 1.5 ? vec3(fract(uvr.xy), 0.0) * step(0.0, uvr.z) :
 				mode < 2.5 ? cookie : cookie * dlightShadow;
 			g_cookieDebug = max(g_cookieDebug, v * cone);
@@ -3332,7 +3362,12 @@ vec3 CalcDynamicLightContribution(
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
-			FPlusLight light = FPlusFetchLight(lightIndex);
+			vec4 head0, head1;
+			FPlusFetchLightHead(lightIndex, head0, head1);
+			// out of range: skip the remaining texels, the shadow and the BRDF
+			if (FPlusPointLightMisses(head0, head1, s.position))
+				continue;
+			FPlusLight light = FPlusUnpackLight(lightIndex, head0, head1);
 			if (FPlusDebugSkipLight(light, lightIndex))
 				continue;
 			if (light.type != 0.0)
@@ -3450,8 +3485,12 @@ vec3 CalcDynamicLightContribution(
 		if (fplus)
 		{
 			int lightIndex = FPlusLightIndex(list.x + k);
-			FPlusLight light = FPlusFetchLight(lightIndex);
-			if (light.type != 0.0 || FPlusDebugSkipLight(light, lightIndex))
+			vec4 head0, head1;
+			FPlusFetchLightHead(lightIndex, head0, head1);
+			if (head1.w != 0.0 || FPlusPointLightMisses(head0, head1, position))
+				continue;
+			FPlusLight light = FPlusUnpackLight(lightIndex, head0, head1);
+			if (FPlusDebugSkipLight(light, lightIndex))
 				continue;
 			lightOrigin = light.origin;
 			lightColor = light.color;

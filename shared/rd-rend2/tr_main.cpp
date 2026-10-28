@@ -4026,6 +4026,10 @@ static int s_shadowCacheScene = -1;
 static uint64_t s_shadowCacheWorldKey;
 static int s_shadowCacheHits, s_shadowCacheMisses, s_shadowCacheUncacheable;
 static std::vector<const msurface_t *> s_shadowTimeDependentWorldSurfaces;
+// world / generations the list above was collected for
+static const world_t *s_shadowWorldScanWorld;
+static int s_shadowWorldScanGeneration;
+static uint64_t s_shadowWorldScanCacheGeneration;
 
 static uint64_t R_ShadowHashBytes(uint64_t hash, const void *data, size_t size)
 {
@@ -4102,20 +4106,28 @@ static void R_ShadowCacheBeginScene(const trRefdef_t *refdef)
 	uint64_t hash = UINT64_C(1469598103934665603);
 	hash = R_ShadowHashValue(hash, s_pointShadowCacheGeneration);
 	hash = R_ShadowHashValue(hash, tr.world);
-	s_shadowTimeDependentWorldSurfaces.clear();
-	if (tr.world)
+	// World surface shaders only change through R_RemapShader, which bumps
+	// tr.sunShadowCasterGeneration (as does a map load).  Rescan the world for
+	// animated depth casters only then, not every scene: the walk over every
+	// world surface used to cost O(surfaces) per frame with a shadowed light.
+	hash = R_ShadowHashValue(hash, tr.sunShadowCasterGeneration);
+	if (s_shadowWorldScanWorld != tr.world ||
+		s_shadowWorldScanGeneration != tr.sunShadowCasterGeneration ||
+		s_shadowWorldScanCacheGeneration != s_pointShadowCacheGeneration)
 	{
-		// Shader remaps can change which opaque depth program a static surface
-		// uses without reloading the BSP.  Collect animated depth casters in the
-		// same pass so each shadowed light only visits this normally short list.
-		for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+		s_shadowWorldScanWorld = tr.world;
+		s_shadowWorldScanGeneration = tr.sunShadowCasterGeneration;
+		s_shadowWorldScanCacheGeneration = s_pointShadowCacheGeneration;
+		s_shadowTimeDependentWorldSurfaces.clear();
+		if (tr.world)
 		{
-			const msurface_t *surface = &tr.world->surfaces[i];
-			const shader_t *shader = surface->shader;
-			hash = R_ShadowHashValue(hash, shader);
-			hash = R_ShadowHashValue(hash, shader ? shader->remappedShader : nullptr);
-			if (R_ShadowShaderTimeDependent(surface->shader))
-				s_shadowTimeDependentWorldSurfaces.push_back(surface);
+			// each shadowed light then only visits this normally short list
+			for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+			{
+				const msurface_t *surface = &tr.world->surfaces[i];
+				if (R_ShadowShaderTimeDependent(surface->shader))
+					s_shadowTimeDependentWorldSurfaces.push_back(surface);
+			}
 		}
 	}
 	hash = R_ShadowHashBytes(hash, r_shadowOffsetFactor->string,
@@ -4226,6 +4238,13 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 	for (int i = 0; i < refdef->numPolys; ++i)
 	{
 		const srfPoly_t *poly = &refdef->polys[i];
+		// R_AddDrawSurf drops non-opaque surfaces from depth shadow views, so
+		// marks and particles (blended, often fading every frame) cast nothing
+		// here and must not make the slot dirty
+		shader_t *polyShader = R_GetShaderByHandle(poly->hShader);
+		const shader_t *drawShader = R_ShadowEffectiveShader(polyShader);
+		if (drawShader && drawShader->sort != SS_OPAQUE)
+			continue;
 		vec3_t mins, maxs;
 		ClearBounds(mins, maxs);
 		for (int v = 0; v < poly->numVerts; ++v)
@@ -4242,7 +4261,7 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 		hash = R_ShadowHashValue(hash, poly->hShader);
 		hash = R_ShadowHashValue(hash, poly->numVerts);
 		hash = R_ShadowHashBytes(hash, poly->verts, (size_t)poly->numVerts * sizeof(polyVert_t));
-		if (R_ShadowShaderTimeDependent(R_GetShaderByHandle(poly->hShader)))
+		if (R_ShadowShaderTimeDependent(polyShader))
 			hash = R_ShadowHashValue(hash, refdef->time);
 	}
 	return hash;

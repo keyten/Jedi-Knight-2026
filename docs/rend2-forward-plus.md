@@ -103,7 +103,9 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
 - `r_shadowCache 1` reuses a slot's point/spot depth map when the light's projection/depth state, relevant shadow
   settings, world/remap generation and every overlapping dynamic caster are unchanged. Animated/video/deformed/alpha-tested
   time-dependent casters conservatively force a redraw. `r_shadowStats 1` prints cache hits, misses and dirty
-  time-dependent slots.
+  time-dependent slots. The world's time-dependent casters are collected once per map / shader remap
+  (`tr.sunShadowCasterGeneration`), not per frame, and blended polys (marks, particles) are not casters: depth
+  shadow views drop every non-opaque surface, so a fading mark no longer dirties the light.
 - The froxel fog uses the Lights UBO. Its `origin.w` is now the shadow layer: `i` in legacy mode (unchanged
   behaviour), the slot or −1 in Forward+ mode.
 
@@ -217,8 +219,9 @@ sit behind `USE_FPLUS_DEBUG`. Offline compile times are back to the pre-Forward+
 
 ## Known limitations
 
-- XY bounds are the projected sphere AABB, and there is no per-cluster sphere test. Clusters are conservative
-  (more lights per cluster than strictly needed).
+- XY bounds are the projected sphere AABB. Only the GL 4.3 build tests each sphere against the cluster box, so the
+  CPU build's clusters are conservative (more lights per cluster than strictly needed). Either way lightall rejects a
+  point/spot light whose range or cone misses the fragment after two texel fetches, before its shadow lookup.
 - Transparent surfaces use the cluster of their own fragment depth. This is correct for forward rendering, but
   lights are not culled against the opaque depth.
 - The froxel fog still uses the legacy-sized light list (the 32 most important lights). The light data and lists
