@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "programs": 27,
+  "stages": 51,
+  "gpu_compiled": true,
+  "driver": [
+    "Intel",
+    "Intel(R) UHD Graphics",
+    "3.2.0 - Build 27.20.100.8280"
+  ],
+  "gpu_interface_comparison": "matching-driver baseline compared",
+  "production_dependency_audit": "passed",
+  "differences": 0,
+  "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+}

@@ -1,0 +1,228 @@
+{
+  "schema": "org.openjk.x06-validation.v1",
+  "date": "2026-10-28",
+  "branch": "rend2-unified-wip",
+  "base_revision": "fe16bce7729fd4c77b62d55abb4718da217882f6",
+  "tests": [
+    {
+      "name": "evaluation",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/evaluation -p 'test_*.py'",
+      "chunk_id": "e86c6b",
+      "wall_time_seconds": 3.06e-05,
+      "exit_code": 0,
+      "original_token_count": 36,
+      "output": ".......................................\r\n----------------------------------------------------------------------\r\nRan 39 tests in 0.328s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "blind",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/datasets -p 'test_blind_views.py'",
+      "chunk_id": "52aaa6",
+      "wall_time_seconds": 2.46e-05,
+      "exit_code": 0,
+      "original_token_count": 33,
+      "output": "..page=0 seconds=0.001\r\n....\r\n----------------------------------------------------------------------\r\nRan 6 tests in 0.385s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "bake",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/bake_model -p 'test_*.py'",
+      "chunk_id": "25af11",
+      "wall_time_seconds": 2.16e-05,
+      "exit_code": 0,
+      "original_token_count": 31,
+      "output": "..................\r\n----------------------------------------------------------------------\r\nRan 18 tests in 1.899s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "shadow",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/shadow_footprint -p 'test_*.py'",
+      "chunk_id": "33a8f0",
+      "wall_time_seconds": 9.4493943,
+      "exit_code": 0,
+      "original_token_count": 33,
+      "output": "...........................\r\n----------------------------------------------------------------------\r\nRan 27 tests in 13.579s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "gi",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/inverse_gi -p 'test_*.py'",
+      "chunk_id": "3e5dd4",
+      "wall_time_seconds": 2.08e-05,
+      "exit_code": 0,
+      "original_token_count": 30,
+      "output": "...............\r\n----------------------------------------------------------------------\r\nRan 15 tests in 2.013s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "ddgi",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/ddgi_research -p 'test_*.py'",
+      "chunk_id": "655874",
+      "wall_time_seconds": 2.38e-05,
+      "exit_code": 0,
+      "original_token_count": 29,
+      "output": "............\r\n----------------------------------------------------------------------\r\nRan 12 tests in 0.150s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "rbdoom",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 -m unittest discover -s tools/rend2/rbdoom_research -p 'test_*.py'",
+      "chunk_id": "96cf8f",
+      "wall_time_seconds": 5.2855826,
+      "exit_code": 0,
+      "original_token_count": 30,
+      "output": ".............\r\n----------------------------------------------------------------------\r\nRan 13 tests in 6.222s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "core",
+      "cmd": "$env:PATH='C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin;'+$env:PATH; ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure",
+      "chunk_id": "eaa449",
+      "wall_time_seconds": 10.0042927,
+      "session_id": 28611,
+      "original_token_count": 464,
+      "output": "Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/lightrecon-core-renderers\n      Start  1: rend2_bakedlighting\n 1/17 Test  #1: rend2_bakedlighting ..............   Passed    0.53 sec\n      Start  2: lightrecon_contract\n 2/17 Test  #2: lightrecon_contract ..............   Passed    0.08 sec\n      Start  3: lightrecon_api\n 3/17 Test  #3: lightrecon_api ...................   Passed    0.08 sec\n      Start  4: lightrecon_core\n 4/17 Test  #4: lightrecon_core ..................   Passed    0.09 sec\n      Start  5: lightrecon_controls\n 5/17 Test  #5: lightrecon_controls ..............   Passed    0.08 sec\n      Start  6: lightrecon_disk\n 6/17 Test  #6: lightrecon_disk ..................   Passed    0.43 sec\n      Start  7: lightrecon_lifecycle\n 7/17 Test  #7: lightrecon_lifecycle .............   Passed    0.20 sec\n      Start  8: lightrecon_lightmaps\n 8/17 Test  #8: lightrecon_lightmaps .............   Passed    0.12 sec\n      Start  9: lightrecon_decode\n 9/17 Test  #9: lightrecon_decode ................   Passed    0.13 sec\n      Start 10: lightrecon_lightgrid\n10/17 Test #10: lightrecon_lightgrid .............   Passed    0.24 sec\n      Start 11: lightrecon_surfaces\n11/17 Test #11: lightrecon_surfaces ..............   Passed    0.22 sec\n      Start 12: lightrecon_classification\n12/17 Test #12: lightrecon_classification ........   Passed    0.14 sec\n      Start 13: lightrecon_visibility\n13/17 Test #13: lightrecon_visibility ............   Passed    3.77 sec\n      Start 14: lightrecon_regions\n14/17 Test #14: lightrecon_regions ...............   Passed    1.91 sec\n      Start 15: lightrecon_evidence\n15/17 Test #15: lightrecon_evidence ..............   Passed    0.12 sec\n      Start 16: lightrecon_bake_profile\n16/17 Test #16: lightrecon_bake_profile ..........   Passed    0.13 sec\n      Start 17: lightrecon_offline\n"
+    },
+    {
+      "name": "disabled",
+      "cmd": "& 'C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe' -X utf8 tools/rend2/lightrecon_regression.py --cpp C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/gcc.exe --no-gpu --output build/x06-disabled",
+      "chunk_id": "557f4f",
+      "wall_time_seconds": 10.0071299,
+      "session_id": 16091,
+      "original_token_count": 0,
+      "output": ""
+    }
+  ],
+  "completed_async": {
+    "core": {
+      "session_id": 28611,
+      "exit_code": 0,
+      "passed": 17,
+      "seconds": 13.3
+    },
+    "disabled": {
+      "session_id": 16091,
+      "exit_code": 0,
+      "programs": 27,
+      "stages": 51,
+      "differences": 0,
+      "gpu_compiled": false
+    }
+  },
+  "extra_tests": [
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/cross_map -p 'test_*.py' -v",
+      "exit_code": 0,
+      "tests": 14,
+      "skipped": 0
+    },
+    {
+      "command": "$env:X05_RUN='build/x05/release'; python -X utf8 -m unittest discover -s tools/rend2/evaluation/x05 -p 'test_*.py'",
+      "exit_code": 0,
+      "tests": 16,
+      "skipped": 0
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/datasets -p 'test_q3map2_recipe.py'",
+      "exit_code": 0,
+      "tests": 6
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/optimization -p 'test_*.py' -v",
+      "first_sandbox_exit_code": 1,
+      "reason": "Existing SciPy owner-only installation unavailable in sandbox; import scipy.optimize failed",
+      "owner_context_exit_code": 0,
+      "tests": 30,
+      "skipped": 0,
+      "packages_or_acl_changed": false
+    }
+  ],
+  "renderer_build": {
+    "command": "cmake --build build/lightrecon-core-renderers --config Release --target rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2",
+    "exit_code": 0,
+    "shared_production_source_changes": false
+  },
+  "geometry_tool_build": {
+    "command": "cmake --build build/lightrecon-disk-standalone --target lightrecon_regions_audit --parallel 2",
+    "exit_code": 0
+  },
+  "runs": [
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/capture.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028",
+      "new_maps": 7,
+      "successful_maps": 6,
+      "failed": "mp/ctf1: Section chunk limit",
+      "phase_result": "Partial; no all-map success"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/capture.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028 --maps mp/ctf1 --mapped-images 1 --tag=-prefix",
+      "result": "Failed: Section chunk limit"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/capture.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028 --maps mp/ctf1 --mapped-images 0 --tag=-small-roi --roi -4608 0 24 16",
+      "result": "Failed: Section chunk limit; evidence report retained"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/datasets/measure.py build/x06-census-measurement.json python -X utf8 tools/rend2/cross_map/census.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028",
+      "exit_code": 0,
+      "note": "Successful exit preserves explicit failed map; six complete all-page datasets, not seven"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/stress.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028",
+      "rois": 24,
+      "independent_opaque_hits": 2104,
+      "false_clear": 0
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/stress.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028 --regression",
+      "rois": 3,
+      "independent_opaque_hits": 441,
+      "false_clear": 0
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/stock_trial.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028",
+      "queried_segments": 16944,
+      "admitted_regions": 0,
+      "outer_evaluation_targets_read": false
+    },
+    {
+      "command": "python -X utf8 tools/rend2/datasets/measure.py build/x06-stock-trial-measurement.json python -X utf8 tools/rend2/cross_map/stock_trial.py --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028 --output C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028/stock-trials-repeat",
+      "exit_code": 0,
+      "selection_states_admission_identical": true,
+      "timing_fields_excluded": true
+    },
+    {
+      "command": "python -X utf8 tools/rend2/datasets/measure.py build/x06-compiler-measurement.json python -X utf8 tools/rend2/cross_map/controlled.py --compiler build/toolchain/netradiant-20220628/portable/netradiant_1.5.0-20220628-windows-amd64/q3map2.exe --output build/x06-controlled-final",
+      "new_bakes": 10,
+      "compiler_stage_invocations": 30,
+      "exit_code": 0,
+      "scope": "Known-source forward and bounded scalar nuisance, not inverse recovery"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/field_checks.py --output build/x06-fields.json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -X utf8 tools/rend2/datasets/measure.py build/x06-evaluation-v2-measurement.json python -X utf8 tools/rend2/cross_map/evaluation_checks.py --work build/x06-controlled-final --sky build/x06-controlled-final --output build/x06-evaluation-v2",
+      "exit_code": 0,
+      "new_blind_archives": 10
+    },
+    {
+      "command": "python -X utf8 tools/rend2/cross_map/inventory.py --archives build/lightrecon-evidence-runtime/final-source/stock-assets/base --private C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-x06-20261028 --output build/x06-inventory-repeat.json --hashes tools/rend2/cross_map/results/archive-hashes.json",
+      "exact_availability_repeat": true
+    }
+  ],
+  "old_decisions_modified": false,
+  "not_performed": [
+    "Native MP runtime/export material-equivalence test",
+    "Gameplay screenshot regression",
+    "GPU shader compile/reflection (preprocessing checked)",
+    "Stock profile ranking or physical emitter recovery: no region admitted",
+    "Production inverse fitting, full stock GI or field generation",
+    "All-page ctf1 observations: three export attempts failed"
+  ],
+  "no_new_dependencies": true,
+  "no_acl_changes": true,
+  "no_stock_assets_committed": true,
+  "no_physical_reconstruction_claim": true,
+  "aggregate_pass_claim": "Component tests pass. Research data/stock admission failures remain explicit; there is no blanket solver-readiness success.",
+  "python_tests_passed": 196,
+  "cpu_ctest_passed": 17,
+  "compile_check": "py_compile passed for all 10 X06 Python files",
+  "git_diff_check": "passed, CRLF normalization warnings only",
+  "final_manifest_sha256": "1161113a17752aa7660d3a5168080cd3ca0a90053bd677e79e6d8c722f5bc70f",
+  "result_sha256": "3972be88b6fbbc270b3901aaea262f300f562e3b81b0d2a44419cc13c102c2ee"
+}

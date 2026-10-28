@@ -1,0 +1,96 @@
+{
+  "cpp": {
+    "checks": 67,
+    "failures": 0,
+    "finite_rectangle_lux": 0.215757086873,
+    "finite_rectangle_total_error_bound": null,
+    "fixed_2x2_visibility_derivative": 0,
+    "half_integrated_lux": 2.9428858757,
+    "half_quadrature_responses": 28699,
+    "irradiance_derivative_analytic_fd": -3.29042011204,
+    "irradiance_derivative_fd": -3.29041481018,
+    "point_analytic_lux": 5.88575059471,
+    "point_centre_lux": 6.25,
+    "point_integrated_lux": 5.88576412201,
+    "schema": "org.openjk.bake-integral-check.v2",
+    "visibility_derivative_analytic": -0.5,
+    "visibility_derivative_fd": -0.499993562698
+  },
+  "point_absolute_difference": 1.3527301874205477e-05,
+  "python_point": {
+    "contribution_lower": [
+      5.885750594708126,
+      5.885750594708126,
+      5.885750594708126
+    ],
+    "contribution_upper": [
+      5.885750594708126,
+      5.885750594708126,
+      5.885750594708126
+    ],
+    "differentiability": "Piecewise; boundary/topology events require branch checks",
+    "finite_source_error": "Unknown: compare independent orders",
+    "geometry_confidence": null,
+    "geometry_uncertainty": [],
+    "jacobian": null,
+    "numerical_error_estimate": 1.815236793371866e-06,
+    "numerical_error_is_certified_bound": false,
+    "observation": "receiver",
+    "profile": "PhysicalSI-Direct-v1",
+    "scene": "analytic-fixture-v1",
+    "source": "source",
+    "source_key": "9cebffbaa74225e7e758c60732110a37742c742cb21679170c00e08d17d13fc5",
+    "source_order": 1,
+    "status": "NumericalLimit",
+    "unit": "lux",
+    "visibility_lower": 1.0,
+    "visibility_upper": 1.0,
+    "work": {
+      "limit": 1000000,
+      "pieces": 0,
+      "projections": 0,
+      "rays": 0,
+      "responses": 13640
+    }
+  },
+  "python_rectangle": {
+    "contribution_lower": [
+      0.21548054835286656,
+      0.21548054835286656,
+      0.21548054835286656
+    ],
+    "contribution_upper": [
+      0.21548054835286656,
+      0.21548054835286656,
+      0.21548054835286656
+    ],
+    "differentiability": "Piecewise; boundary/topology events require branch checks",
+    "finite_source_error": "Unknown: compare independent orders",
+    "geometry_confidence": null,
+    "geometry_uncertainty": [],
+    "jacobian": null,
+    "numerical_error_estimate": 3.940911779884356e-07,
+    "numerical_error_is_certified_bound": false,
+    "observation": "receiver",
+    "profile": "PhysicalSI-Direct-v1",
+    "scene": "analytic-fixture-v1",
+    "source": "source",
+    "source_key": "134c12c2d9f1a4cb9a75bf28dbfe280c9b625221a56697c73b84b89266093b14",
+    "source_order": 8,
+    "status": "PlanarBoundaryReference",
+    "unit": "lux",
+    "visibility_lower": 1.000000000000001,
+    "visibility_upper": 1.000000000000001,
+    "work": {
+      "limit": 1000000,
+      "pieces": 0,
+      "projections": 0,
+      "rays": 0,
+      "responses": 395680
+    }
+  },
+  "rectangle_absolute_difference": 0.00027653852013342917,
+  "rectangle_scope": "8x8 midpoint source quadrature vs 8x8 Gauss; observed difference, not a certified total error bound",
+  "schema": "org.openjk.bake-physical-comparison.v2",
+  "unit": "Lux"
+}

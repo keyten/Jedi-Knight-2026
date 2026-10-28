@@ -33,6 +33,10 @@ All executables link the one `rend2_lightrecon_core` static target:
   optics/sky/domain uncertainty, independent reference, batches and concurrent readers.
 - `lightrecon_regions_test`: adaptive free-space certificates, BSP domains,
   components/room candidates/apertures, moving uncertainty, grid and surface sides.
+- `lightrecon_bake_forward_test`: historical direct kernels, explicit capability
+  failures, factors/invalidation and the separate SI footprint integral.
+- `lightrecon_bake_forward_tool`: geometry-only CPU protocol for external
+  fixed-geometry tests; see [S01 support and reproduction](../../docs/rend2-bake-forward-evaluator.md).
 
 `lightrecon_regions_inspect` is an optional offline JA RBSP v1 inspector and OBJ/TSV exporter.
 See [lighting-region semantics, stock inspection and commands](../../docs/rend2-lighting-regions.md).
@@ -46,5 +50,5 @@ See [luxel mapping, limitations, numerical and actual-SP validation](../../docs/
 See [lightgrid layout, conventions, memory and runtime validation](../../docs/rend2-lightgrid-observations.md).
 
 See [core architecture and complete build commands](../../docs/rend2-reconstruction-core.md).
-The old `tools/volrecon_test` tests the experimental solver separately and is
-unchanged. The new core has no default inverse solver and returns Unavailable.
+The obsolete lightgrid-source solver was removed. The core still has no inverse
+solver; numerical forward prediction does not reconstruct or publish lights.

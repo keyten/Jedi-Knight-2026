@@ -1,0 +1,337 @@
+{
+  "cases": {
+    "ambient": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "71f875e0fcbac48c6db2c2d94e6e647e8dfaafaeca703770e3b4cf0fef7e8442",
+      "rebuilt_sha256": "cedc7c53add1ab7b72779dd5274f76efd39edd794c1598b8e631f5ce4b1bd83e",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "angle_scale": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "cc849d353aa3a4cdc10749120ad9b613713edbc3bac17765fe0612ae86e20746",
+      "rebuilt_sha256": "af063fbfc0ae2405bcc4bbdcb5aa3485f7267fbf8f20ff78203d49a034b74d5e",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "area": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "e07a241f3a70572f878bbe26840b6483464da4ba74987ad869cb3aa09cbf318b",
+      "rebuilt_sha256": "65e117edb93fc0f9728da77e5a234d143f97a66edf803854e3f07dd589885914",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "bounce1": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "dec820a49d3891a56035dbf6bb8a1c51507599d876ecd75053facc8ea03574f3",
+      "rebuilt_sha256": "864b78649481f1f5af8acd198a0d6dfeb25748cd963516072d017bfaa3ce378b",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "bouncegrid1": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "93912bd2d01432797abb760bb9b220c488801ae596ee3ece73f9bdf9c710f90f",
+      "rebuilt_sha256": "7e74450119b6d852ff1dda7cc78d176aa758f26a0696b049e0846f64f5210fc7",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "colour_clip": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "1da8fb9c03684ace542b4e9fb1cd95fad9d48f38ce02c65428f87d47e0675f31",
+      "rebuilt_sha256": "840fbea5687a8023519cbd3448c35a4258112ad09df5c5af3e83acfb22208a6d",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "colour_gamma": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "35a5b7d154c8af766726aed4ea3ca07523763c31ddc312b0d54a37d36cc0ea1a",
+      "rebuilt_sha256": "924ae86a3d28a325a09bfe7a91e830e6f027dcfdcca2b6af84320834387ea152",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "extra_distance": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "9cfdd1f41bba4d6805da9c383ae0ea4d5242b531f576e7c2a4ac9b7ad1be3952",
+      "rebuilt_sha256": "f235c68a5d6cab2a0fdbeb81bb1777fa3703f78a5f3dc0fd0e22edead492646b",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "half_lambert": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "f3d69bd326da79be4fbe5b1a6108ef3cf5d7082c121c6e41b0fb4556fba8f7b0",
+      "rebuilt_sha256": "268666667941eb2b3c2629aff66cb3233efdcd89e2e0548d34d2088e6026f940",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "inverse_square": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "d2fbb2059b251c8f39d2630d05a86856d900274fb5ae2577cc58e0ea01c04ae9",
+      "rebuilt_sha256": "4ec4fb03d828d9396e67bcc80a9d3f25d3f8edf64f10829f609774dfc94c156b",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "linear": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "6a15e3d8bf3828ba828715176fd194857a27b2543f86306dfa34256e4bc4ba7e",
+      "rebuilt_sha256": "9e2bb5d43bbb3aaf7705aba794713f1b85f26311b8620c3eef5d8a30c4d6e6cb",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "linear_angle": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "d0c374f341b3d849d86e1e83ed94b691490623b4638216af975cc1f492ef13e1",
+      "rebuilt_sha256": "14b23b39c8e9c50487e0b083d79817e800be14e3f02019ef0aa7f516d6ff5a0f",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "linear_fade": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "d45acb23714208b944eee3d3008b3f60c9b1fea1aa1bc2ac6bb575e314fe3662",
+      "rebuilt_sha256": "ba9232a414e66d573ef49b7fa25c71497a342f10828468f9abb8fd3b64a6a78a",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "multi_sun": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "0ff603f3537a83b5ca6bc80eae344c6e697b37c356151667a0904c438c8157ba",
+      "rebuilt_sha256": "396b53d632324a70279fbcc85f4448f1510b9c024aa5d49d890fb0fd6f3b063c",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "no_angle": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "b2e6c8b927dbae656b58a2aee0619756f47859012116013bb69a14cdeff2ba15",
+      "rebuilt_sha256": "393c51be2e4458170448e84ee252a29e78174545a97730415597d7c105c52321",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "pointscale_half": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "35ac902c58a38777464aec831cb4cc7edd54cb94c57670bfc76e0e24d137cadb",
+      "rebuilt_sha256": "bf779169c620567124761b363f459d913284b496f4745c6a3ac9cef18bf2ef1b",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "retained_light": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "9ea8f132d325b6d211bfa16c6d4c93032c0932559055392dcd8fc70b4e075d11",
+      "rebuilt_sha256": "62d8176d7c054475a15a3b2e8c1c70d97f9db0ce8145ec977f930cc63790e7a1",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "skylight": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "8b6966dbd6e5b1764ca6e1609fab6ba49ca517d989c682c0bf98f0949fcddc5d",
+      "rebuilt_sha256": "bc3b2a8cbf9b9b582400c9ec8360b0437cf20b7b5e183b31374842f7be4cc365",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "spot": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "b899da6efb37abe21add3e68f3d08e81ca3d0f97b62ec9e7da9c5d93b40fd8c0",
+      "rebuilt_sha256": "d53703de0b9cbc417013374ac41eaa79099f06b0053afe2313248d2b1b906116",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "sun": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "a00bb637895c09448ec00eecafcfd3f8721f7d8256b2cecea27dfd4b28cae422",
+      "rebuilt_sha256": "cba25176d3ec03b329a4ef144b9a01ad5cd8b647e2ff2be3baa8e3c39d256e19",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "wolf_inverse_square": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "1698cdcbd89d7c097639a390c9600140021c49869db4c1db9098fffe5565ebb8",
+      "rebuilt_sha256": "b5bf85cf6aedf4f1f9a24838d84e536e5541f4617fc710d48c9e2febe5b572e7",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    },
+    "wolf_linear": {
+      "brush_draw_surface_references_equal": false,
+      "brush_plane_materials_equal": true,
+      "different_lumps": [
+        9
+      ],
+      "original_lightmaps_equal": true,
+      "original_sha256": "4e8de03fad9e1d32c49e16bfbf641493b7d23383a0256cb319a50386dfcf9422",
+      "rebuilt_sha256": "41faf8a8183275aab022045ac492c94b2ad33aa70fa8aea8a163e992df63e65d",
+      "resolved_grid_byte_mismatches": 0,
+      "resolved_grid_equal": true,
+      "resolved_grid_max_byte_delta": 0,
+      "visual_geometry_equal": true,
+      "whole_bsp_equal": false
+    }
+  },
+  "interpretation": "Report grid record ordering/values separately. Never reuse a BSP content hash across these differences. Freeze original artifacts; repeat analysis from identical frozen bytes.",
+  "surface_witness_reproduced": true,
+  "whole_bsp_deterministic": false
+}

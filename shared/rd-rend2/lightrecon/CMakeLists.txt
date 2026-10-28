@@ -8,6 +8,7 @@ add_library(rend2_lightrecon_core STATIC
 	../tr_lightrecon_api.cpp ../tr_lightrecon_api.h ../tr_lightrecon_manager.h
 	input.cpp input.h session.cpp session.h control.cpp control.h lightmaps.cpp lightmaps.h
 	decode.cpp decode.h
+	bake_profile.h bake_forward.cpp bake_forward.h bake_math.h bake_trace.cpp bake_trace.h bake_integral.cpp
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h

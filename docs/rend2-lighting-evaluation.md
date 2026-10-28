@@ -6,6 +6,9 @@ framework, not a solver, renderer consumer, dataset-readiness certificate or
 statistically calibrated source detector.
 
 Implementation and exact commands: [evaluation tools](../tools/rend2/evaluation/README.md).
+Positive-light/occlusion admission and frozen forward acceptance are specified
+separately in [X05](rend2-benchmark-acceptance-x05.md). Original dark or weak folds
+below remain historical controls, not positive-light capability evidence.
 The executable produces JSON, flattened CSV and a ten-section Markdown dashboard.
 Its self-contained controller fixture and adversarial numerical tests are separate
 from original observation extraction. Existing raw/decoded observations, archives,

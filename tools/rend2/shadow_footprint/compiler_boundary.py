@@ -16,7 +16,7 @@ from geometry import Triangle, footprint, ray_triangle, unit, sub
 from compiler_trace import Replay
 
 
-def load(path):
+def load(path, strict_receiver_uv=True):
     lumps=bsp(path); vertices=[]; shaders=[]; surfaces=[]; casters=[]
     for off in range(0,len(lumps[1]),72):
         shaders.append(dict(name=lumps[1][off:off+64].split(b'\0')[0].decode(),flags=struct.unpack_from('<I',lumps[1],off+64)[0]))
@@ -36,7 +36,13 @@ def load(path):
                        ((0.,0.),(1.,0.),(0.,1.)),tuple(p[2] for p in v),optical)
             casters.append(t)
             if page>=0:
-                surf['triangles'].append(Triangle(t.id,t.surface,t.world,tuple(p[1] for p in v),t.normals,optical))
+                try:
+                    surf['triangles'].append(Triangle(t.id,t.surface,t.world,tuple(p[1] for p in v),t.normals,optical))
+                except ValueError:
+                    if strict_receiver_uv: raise
+                    # A degenerate receiving chart is not missing caster geometry.
+                    # The independently validated world triangle above is retained.
+                    surf['unsupported_receiver_uv_triangles']=surf.get('unsupported_receiver_uv_triangles',0)+1
         surfaces.append(surf)
     return lumps,surfaces,tuple(casters)
 

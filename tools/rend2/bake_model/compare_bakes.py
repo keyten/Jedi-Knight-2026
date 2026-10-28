@@ -146,7 +146,7 @@ def bsp(path):
     return lumps
 
 
-def floor_samples(lumps):
+def floor_samples(lumps, maximum_coordinate=272.):
     """Independent triangle barycentric mapping of texel centres to surface."""
     verts=[]
     for p in range(0,len(lumps[10]),80):
@@ -177,7 +177,7 @@ def floor_samples(lumps):
                         continue
                     world=[a[0][i]+u*(b[0][i]-a[0][i])+v*(c[0][i]-a[0][i]) for i in range(3)]
                     # Keep interior samples; the compiler nudges boundary samples.
-                    if max(abs(world[0]),abs(world[1]))>272:
+                    if max(abs(world[0]),abs(world[1]))>maximum_coordinate:
                         continue
                     offset=(page*128*128+y*128+x)*3
                     deluxe_offset=offset+128*128*3

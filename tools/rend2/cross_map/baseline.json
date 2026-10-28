@@ -1,0 +1,39 @@
+{
+  "schema": "org.openjk.x06-baseline.v1",
+  "frozen_date": "2026-10-28",
+  "source_commit": "fe16bce7729fd4c77b62d55abb4718da217882f6",
+  "branch": "rend2-unified-wip",
+  "working_changes": " M docs/rend2-lighting-evaluation.md\n M tools/rend2/bake_model/compare_bakes.py\n M tools/rend2/datasets/prepare_blind.py\n M tools/rend2/evaluation/README.md\n M tools/rend2/evaluation/adapters.py\n M tools/rend2/shadow_footprint/compiler_boundary.py\n?? docs/rend2-benchmark-acceptance-x05.md\n?? tools/rend2/evaluation/x05/\n",
+  "sources": {
+    "docs/rend2-lighting-regions-x01.md": "fff7c80d466e4d1517653c60cbbfd74a3bcdaa16f5f00a94a3b5acade54321bd",
+    "docs/rend2-observation-coverage-x02.md": "212faebc741bd68a73006c5515417f17b4bceffeddacd3e85a6f921a9136577f",
+    "docs/rend2-bake-identifiability-x03.md": "d77b891712f9b8a9b2687b409886cb2f2ce15c1eb3a746e94fe34b41e65724d1",
+    "docs/rend2-shadow-footprints-x04.md": "f9af068c143fb3f24f4ec7a2cb3f689164efe1de071cfb0d5dea3d889b028a9b",
+    "docs/rend2-inverse-gi-research.md": "a2159f5541e75cdddab5946fe5f1e9fa1b17fccd09c1e2f070c55ad7343486c1",
+    "docs/rend2-ddgi-field-research.md": "92b16f75e75200d6fc77fdb7e5aadaf9996ea5c854a9491336c80f22aaf450c9",
+    "docs/rend2-rbdoom-field-research.md": "5aa23ada722ce81afc2af5b40bfbd4e3c3e0c597ee77d9f655c9107e7bab39af",
+    "docs/rend2-lighting-evaluation.md": "e5d16e729896c25ebda270e791cb955d744f120936d285e705fc43a789cca338",
+    "docs/rend2-optimization-benchmark.md": "c1a823faac77fc0d8f3fe0893346a433b7bf1b2652d844f3100823933c7c8632",
+    "tools/rend2/lightrecon_baseline/regions-x01-validation.json": "9600f18eea9f902e0b9b4d001d8714240ca8a9a7488238c637bdff8064371c70",
+    "tools/rend2/lightrecon_baseline/observations-x02-validation.json": "2163a87034732d3c8d7a97e9ffdf43c06f75dbf8c421939c93b6ecf31b728add",
+    "tools/rend2/bake_model/x03/witness.json": "791ff63be9b4f5da4f8a2277bb42b379e723a1982939d7386173a0f183bef740",
+    "tools/rend2/bake_model/source-lock.json": "fabd107c6abe1683ca64c5db74deca0ae178431499c8db99e8e9e6b7424308ac",
+    "tools/rend2/bake_model/validation.json": "e69f8b1cb942f1965c2e05a5694c9700c1c5bff6f96baa9e2c344177aec831eb",
+    "tools/rend2/shadow_footprint/results/witness.json": "6e2da02a36aabebfc8cd28dfcd863215dcc2854741b19ef2550a828639717d71",
+    "tools/rend2/evaluation/x05/policy.json": "b1f95bcf45fae3131b0b3f839b47a0c2fee66a105b3d507b30a6d1659a639cf1",
+    "tools/rend2/evaluation/x05/results/manifest.json": "5578e67722c0431737e4731edc80d8342a52e808552340304424d18fd56036c0"
+  },
+  "decisions": {
+    "A": "Controlled compiler profiles verified only for tested feature subsets; stock remains UnknownProfile.",
+    "B": "Physical emitters need geometry, visibility and independent observations; low RGB residual is insufficient.",
+    "C": "NNLS/BVLS only for genuinely linear blocks; bounded geometry, discrete profile/count/type, explicit shadow topology.",
+    "D": "Quality includes source correctness, heldout prediction, coverage/observability, attribution and uncertainty."
+  },
+  "assumptions": [
+    "Raw RGB8, source-relative, calibrated scene and physically authored intensities stay distinct.",
+    "Grid ambient/directed are distinct observation operators, not universal indirect/direct components.",
+    "Source-linked passive GI must not absorb wrong-direct-profile discrepancy.",
+    "Region IDs are optional; unavailable geometry is never clear.",
+    "No inverse solver, runtime light or consumer dependency is added."
+  ]
+}

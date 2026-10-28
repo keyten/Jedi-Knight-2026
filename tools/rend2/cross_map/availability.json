@@ -1,0 +1,171 @@
+{
+  "schema": "org.openjk.x06-availability.v1",
+  "private_root": "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x06-20261028",
+  "archives": {
+    "assets0.pk3": {
+      "bytes": 561806019,
+      "maps": {
+        "vjun2": {
+          "member": "maps/vjun2.bsp",
+          "uncompressed_bytes": 13339312,
+          "zip_crc32": "8fa374cd"
+        },
+        "kor1": {
+          "member": "maps/kor1.bsp",
+          "uncompressed_bytes": 12565400,
+          "zip_crc32": "10c84f35"
+        },
+        "yavin1b": {
+          "member": "maps/yavin1b.bsp",
+          "uncompressed_bytes": 10959860,
+          "zip_crc32": "d3f10e13"
+        },
+        "t2_trip": {
+          "member": "maps/t2_trip.bsp",
+          "uncompressed_bytes": 14157324,
+          "zip_crc32": "edff0b4e"
+        },
+        "t1_sour": {
+          "member": "maps/t1_sour.bsp",
+          "uncompressed_bytes": 10203160,
+          "zip_crc32": "0e9d1da8"
+        },
+        "mp/ffa1": {
+          "member": "maps/mp/ffa1.bsp",
+          "uncompressed_bytes": 4617652,
+          "zip_crc32": "0b318231"
+        },
+        "mp/ctf1": {
+          "member": "maps/mp/ctf1.bsp",
+          "uncompressed_bytes": 11452192,
+          "zip_crc32": "73fee43c"
+        },
+        "mp/duel1": {
+          "member": "maps/mp/duel1.bsp",
+          "uncompressed_bytes": 3036068,
+          "zip_crc32": "deae10f7"
+        },
+        "hoth3": {
+          "member": "maps/hoth3.bsp",
+          "uncompressed_bytes": 13920700,
+          "zip_crc32": "8da4f453"
+        },
+        "hoth2": {
+          "member": "maps/hoth2.bsp",
+          "uncompressed_bytes": 13970616,
+          "zip_crc32": "44e04d9a"
+        },
+        "mp/ffa3": {
+          "member": "maps/mp/ffa3.bsp",
+          "uncompressed_bytes": 7577200,
+          "zip_crc32": "c5368fe9"
+        }
+      },
+      "total_bsp_members": 57
+    },
+    "assets1.pk3": {
+      "bytes": 652804510,
+      "maps": {},
+      "total_bsp_members": 0
+    },
+    "assets2.pk3": {
+      "bytes": 1116384,
+      "maps": {},
+      "total_bsp_members": 0
+    },
+    "assets3.pk3": {
+      "bytes": 9282026,
+      "maps": {
+        "mp/ctf1": {
+          "member": "maps/mp/ctf1.bsp",
+          "uncompressed_bytes": 8269312,
+          "zip_crc32": "58b408e5"
+        }
+      },
+      "total_bsp_members": 4
+    }
+  },
+  "selected_new": [
+    "vjun2",
+    "kor1",
+    "yavin1b",
+    "t2_trip",
+    "mp/ffa1",
+    "mp/ctf1",
+    "mp/duel1"
+  ],
+  "regression": [
+    "hoth3",
+    "hoth2",
+    "mp/ffa3"
+  ],
+  "missing": [],
+  "available": {
+    "vjun2": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/vjun2.bsp",
+      "uncompressed_bytes": 13339312,
+      "zip_crc32": "8fa374cd"
+    },
+    "kor1": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/kor1.bsp",
+      "uncompressed_bytes": 12565400,
+      "zip_crc32": "10c84f35"
+    },
+    "yavin1b": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/yavin1b.bsp",
+      "uncompressed_bytes": 10959860,
+      "zip_crc32": "d3f10e13"
+    },
+    "t2_trip": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/t2_trip.bsp",
+      "uncompressed_bytes": 14157324,
+      "zip_crc32": "edff0b4e"
+    },
+    "t1_sour": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/t1_sour.bsp",
+      "uncompressed_bytes": 10203160,
+      "zip_crc32": "0e9d1da8"
+    },
+    "mp/ffa1": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/mp/ffa1.bsp",
+      "uncompressed_bytes": 4617652,
+      "zip_crc32": "0b318231"
+    },
+    "mp/ctf1": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets3.pk3",
+      "member": "maps/mp/ctf1.bsp",
+      "uncompressed_bytes": 8269312,
+      "zip_crc32": "58b408e5"
+    },
+    "mp/duel1": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/mp/duel1.bsp",
+      "uncompressed_bytes": 3036068,
+      "zip_crc32": "deae10f7"
+    },
+    "hoth3": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/hoth3.bsp",
+      "uncompressed_bytes": 13920700,
+      "zip_crc32": "8da4f453"
+    },
+    "hoth2": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/hoth2.bsp",
+      "uncompressed_bytes": 13970616,
+      "zip_crc32": "44e04d9a"
+    },
+    "mp/ffa3": {
+      "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+      "member": "maps/mp/ffa3.bsp",
+      "uncompressed_bytes": 7577200,
+      "zip_crc32": "c5368fe9"
+    }
+  }
+}

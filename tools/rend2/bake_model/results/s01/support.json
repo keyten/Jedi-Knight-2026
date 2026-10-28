@@ -1,0 +1,23 @@
+{
+  "schema": "org.openjk.bake-forward-support.v2",
+  "profile_schema": 2,
+  "formula_version": 2,
+  "profile_family": "NetRadiant-d9338309e-subsets-v2",
+  "stock_profile": "UnknownProfile",
+  "matrix": [
+    {"sources": ["Point"], "profiles": ["isq", "linear"], "receiver": "PlanarStyle0", "domains": ["CompilerLinearRelative255", "EncodedRgb8BeforeQuantization", "RGB8"], "mode": "CompilerFaithful", "visibility": "ConditionalStaticOrCompilerTree", "support": "Conditional", "fixture_max_rgb8_error": 1},
+    {"sources": ["Spot"], "profiles": ["NetRadiantForcedIsqCosine"], "receiver": "PlanarStyle0", "domains": ["CompilerLinearRelative255", "EncodedRgb8BeforeQuantization", "RGB8"], "mode": "CompilerFaithful", "visibility": "ConditionalStaticOrCompilerTree", "support": "Conditional", "fixture_max_rgb8_error": 0},
+    {"sources": ["ExpandedConvexPolygon"], "profiles": ["NetRadiantEdgeIntegral"], "receiver": "PlanarStyle0", "domains": ["CompilerLinearRelative255", "EncodedRgb8BeforeQuantization", "RGB8"], "mode": "CompilerFaithful", "visibility": "SingleCentroidRay", "support": "UnoccludedCeilingSubsetOnly", "fixture_max_rgb8_error": 0},
+    {"sources": ["Directional", "Sky17"], "profiles": ["NetRadiantSunSky"], "receiver": "PlanarStyle0", "domains": ["CompilerLinearRelative255", "EncodedRgb8BeforeQuantization", "RGB8"], "mode": "CompilerFaithful", "visibility": "SkyRequired", "support": "Conditional", "fixture_max_rgb8_error": 0},
+    {"sources": ["ExactMultiSunWitness"], "profiles": ["PinnedRecipeAndGeometry"], "receiver": "1225OriginalFloorSamples", "domains": ["EncodedRgb8BeforeQuantization", "RGB8"], "mode": "CompilerFaithful", "visibility": "ContentScopedClippedCompilerTree", "support": "ScopedCompilerReplay", "fixture_max_rgb8_error": 0},
+    {"sources": ["Point", "Spot"], "profiles": ["NetRadiantSinglePass"], "receiver": "CertifiedUnnudgedGridPosition", "domains": ["UnpackedGridAmbient", "UnpackedGridDirected", "DominantDirection"], "mode": "CompilerFaithful", "visibility": "ConditionalStaticOrCompilerTree", "support": "UnpackedOnly", "final_ordered_grid_packing": "Unsupported"},
+    {"sources": ["Point", "Spot", "ExplicitAmbient"], "profiles": ["NetRadiantDirectNormalBias"], "receiver": "PlanarStyle0", "domains": ["DeluxeWorldDirection", "DeluxeRGB8"], "mode": "CompilerFaithful", "support": "ControlledDirectSubset", "fixture_max_rgb8_error": 0},
+    {"sources": ["Point", "Spot", "Directional"], "profiles": ["PhysicallyAuthoredSI"], "receiver": "DisjointPlanarFootprintTriangles", "domains": ["PhysicalIrradianceLux", "AverageVisibility"], "mode": "PhysicalIntegral", "support": "PlanarBoundaryClippingAndAdaptiveQuadrature", "total_error_bound": "NotCertified"},
+    {"sources": ["Rectangle"], "profiles": ["PhysicallyAuthoredSI"], "receiver": "DisjointPlanarFootprintTriangles", "domains": ["PhysicalIrradianceLux", "AverageVisibility"], "mode": "PhysicalIntegral", "support": "Approximate8x8SourceQuadrature", "total_error_bound": "Unknown"},
+    {"sources": ["SupportedHistoricalSources"], "profiles": ["ExplicitCandidate"], "receiver": "SupportedCentre", "domains": ["RequestedSupportedDomain"], "mode": "OptimizationSurrogate", "support": "ExplicitSurrogate", "error_bound": "Unknown", "source_motion_derivatives": "Unsupported"},
+    {"sources": ["Any"], "profiles": ["UnknownProfile"], "receiver": "Any", "domains": ["HistoricalNumeric"], "support": "UnspecifiedModel"},
+    {"sources": ["NativeTube", "UnknownExtension"], "profiles": ["Any"], "receiver": "Any", "domains": ["HistoricalNumeric"], "support": "Unsupported"}
+  ],
+  "unsupported": ["FullBounceReplay", "OrderedGridCompression", "GridNudge", "CompilerReceiverNudgeInSolids", "AnimatedStyles", "GeneralPatchOrSeamSampling", "AlphaMaskReplay", "ArbitrarySkyExpansion", "FiniteAngularSunReference", "PhysicalSphereOrTubeIntegral", "HistoricalAbsolutePhotometry"],
+  "nonclaims": ["Preflight is not numerical support", "Conditional prediction is not compiler identification", "Forward agreement is not emitter recovery", "Zero/Unavailable cannot satisfy positive-light contracts", "Low residual is not calibrated physical confidence"]
+}

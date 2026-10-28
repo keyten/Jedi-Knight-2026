@@ -1,0 +1,903 @@
+{
+  "controller_sources": {
+    "acceptance.py": "ab972674c56b9ad3f0f406d778bbca3e86a8b7631b7a3c809c210de0371671ff",
+    "audit.py": "e67fa4ae0e3f9aeadd3866a4170d58ea770b5565a22b8238a49b2306173c149a",
+    "diagnostics.py": "d404c784449b21aa11150b79bbc8440d461f8ab5f933b4c42339f5a7dc528efa",
+    "fixtures.py": "1e0c5f748a9080e4569d956bbd085e82ca14d36e2675419b4e80be25f218117d",
+    "report.py": "f50f1af28657dedae4264c63d728f7f1ced89e32ab03e2052cb2b4b7a09857ac",
+    "run.py": "7e9ccaacbb34b358fb0282c7a0a68d6800b7146ea557a83be6d49de0389ee13f",
+    "score.py": "096e66c94fe58e526b4b0dfb598b063d538e22c672072a4092211a66584bbc53",
+    "test_acceptance.py": "49e42d0b3f663798b20d0ad9779c223dfa09b02fb51b23c440d3461ee744b431",
+    "verify_reproduction.py": "997898c720012904d807bf4b2625461f7950166ab4df0f64334a5ffbadf4574a"
+  },
+  "controls": {
+    "x05_doorway_pair_v3": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible",
+        "wrong_profile",
+        "wrong_geometry"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible",
+        "wrong_profile",
+        "wrong_geometry"
+      ],
+      "status": "Passed"
+    },
+    "x05_panel_positive_v1": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked"
+      ],
+      "status": "Passed"
+    },
+    "x05_sky_aperture_v1": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible"
+      ],
+      "status": "Passed"
+    },
+    "x05_sky_sealed_v1": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "all_visible"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "all_visible"
+      ],
+      "status": "Passed"
+    },
+    "x05_sun_positive_v1": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked"
+      ],
+      "status": "Passed"
+    },
+    "x05_wall_pair_v1": {
+      "actually_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible",
+        "wrong_profile",
+        "wrong_geometry"
+      ],
+      "expected_rejected": [
+        "missing",
+        "unavailable",
+        "partial",
+        "black",
+        "all_blocked",
+        "all_visible",
+        "wrong_profile",
+        "wrong_geometry"
+      ],
+      "status": "Passed"
+    }
+  },
+  "cpu_tools": {
+    "inspector_sha256": "fb241fa618602005ba8902ed21b5292a877640fabb3c98168b8adeda74a46718",
+    "quality_sha256": "0dbbd007ec3a26e2e4d7a680ef87311baa89f21f3a458bb4aabadb62145401a2"
+  },
+  "diagnostics": [
+    {
+      "categories": [
+        "ShadowBoundary"
+      ],
+      "id": "moving_shadow_boundary",
+      "required": true
+    },
+    {
+      "categories": [
+        "PositiveLight",
+        "ShadowBoundary"
+      ],
+      "id": "spot_angular_edge",
+      "required": true
+    },
+    {
+      "categories": [
+        "EncodingQuantization"
+      ],
+      "id": "correct_encoding",
+      "required": true
+    },
+    {
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "id": "unknown_geometry",
+      "required": true
+    },
+    {
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "id": "unknown_photometry",
+      "required": true
+    },
+    {
+      "categories": [
+        "GIIndirect",
+        "InvalidUnsupported"
+      ],
+      "id": "gi_operator_unavailable",
+      "required": true
+    },
+    {
+      "categories": [
+        "ShadowBoundary",
+        "PositiveLight"
+      ],
+      "id": "spot_angular_edge-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "ShadowBoundary"
+      ],
+      "id": "moving_shadow_boundary-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "EncodingQuantization"
+      ],
+      "id": "correct_encoding-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "id": "unknown_geometry-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "id": "unknown_photometry-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "id": "gi_operator_unavailable-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "ProfileDiscrimination"
+      ],
+      "id": "profile_kernel_linear-prediction-contract",
+      "required": true
+    },
+    {
+      "categories": [
+        "ProfileDiscrimination"
+      ],
+      "id": "profile_kernel_no_angle-prediction-contract",
+      "required": true
+    }
+  ],
+  "fixtures": [
+    {
+      "bsp_sha256": "323c36f00a85d8568ee11e4e4c545b46897115a65c9fc8775f9fef1cea281497",
+      "categories": [
+        "PositiveLight",
+        "DarkBlockedNegative"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "opening",
+          "id": "doorway_through",
+          "kind": "PositiveLight"
+        },
+        {
+          "group": "behind_wall",
+          "id": "doorway_blocked",
+          "kind": "DarkBlockedNegative"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "8727565b673ae88069819e2bc8b75bea09c123218907da53feb07ef3e70c58c9",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "173c44af8e1ae8636bd36c2100d097a9a004701e0401c3952a23103ff5565d6c"
+      },
+      "id": "x05_doorway_pair_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "e39d9d30b3b9b415f1f5c9fe6997d90b98ed6dd073eabfe041843a8af00ecce6",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "855960af765aec191b7f022af61e62791afba815f8c36910566d8e7210cdc91a"
+      },
+      "map_sha256": "5fbeb1d4c1faecac59ce0d3c98576cce0dee90f51a0bf1469761f34cf515f1b6",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_doorway_pair_v1\\controller-case.json",
+      "private_case_sha256": "e724c11cff710ad00bba534a5e1a7944f3a7864baa4432ac614291a72e9b9b96",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "a1e69659545ba3fd80e5c3f1f9017fef2d91e252a080bfc6d166fe2f406884fb",
+      "required": false,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "14a9fcd986cfaed1b1b0111e335c7cc812b5b0af6a0b0529bf65081b47a404c6",
+      "categories": [
+        "PositiveLight",
+        "DarkBlockedNegative"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "opening",
+          "id": "doorway_through",
+          "kind": "PositiveLight"
+        },
+        {
+          "group": "behind_wall",
+          "id": "doorway_blocked",
+          "kind": "DarkBlockedNegative"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "2a572535b93dde28f8823f913af7c945729c99b6012e334106892d476f2650ad",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "8a70cee9e4a546088140b2fcfc21b0d99609b0946f84136da096131c95d70dce"
+      },
+      "id": "x05_doorway_pair_v2",
+      "input_member_hashes": {
+        "geometry.jkobs": "cbbcc933fa3064f0f7afdd7aa83db20f17dd05097742b2b5dd3707f392cd6c61",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "0dd1a52bd5149a03b71f389bf014eccc57bfedc2e233830969aa2e2a47ba38e1"
+      },
+      "map_sha256": "3583bc8868163503da901ce0b7e1b22bf91639abd8c847c602cb8e8817c770ce",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_doorway_pair_v2\\controller-case.json",
+      "private_case_sha256": "70ca2dabed51289a158e2ff8b49ed72316d6f2415b10863025af406d90faf8b8",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "b0f984f69138105b40883307303600ed9f64b44269445d932a50d8d6e7428787",
+      "required": false,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "55a33bafa7e2240daef9168baf3dfa47a7b717f5f5053f23999440ad32657256",
+      "categories": [
+        "PositiveLight",
+        "DarkBlockedNegative"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "opening",
+          "id": "doorway_through",
+          "kind": "PositiveLight"
+        },
+        {
+          "group": "behind_wall",
+          "id": "doorway_blocked",
+          "kind": "DarkBlockedNegative"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "da872deaa7f514897bbfd12e33fffa9c81cab88496cbc84d585070740fffd222",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "378b414b5ddb7ec32fd65aa2f9dd8b46a95086931076369c7f174776612a9546"
+      },
+      "id": "x05_doorway_pair_v3",
+      "input_member_hashes": {
+        "geometry.jkobs": "60f3181812c5c601579cb13f40dc4b18cd85a92bd2d38fa01a787ea5f635db87",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "5da2b50c23cbddd7a2cb134a71665dc32efe8fe8e26b4ad149b9a6aef784afab"
+      },
+      "map_sha256": "f640103b641f8f34d04aa9b31e866ff39cb706c776d805c910a49ec8f31adc2b",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_doorway_pair_v3\\controller-case.json",
+      "private_case_sha256": "de82b9732af1d34a8d8ceda7a48d312130986ed2705a2bd6f13c8c09a0a40ec6",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "463ead800253862c77ee81675e4388fd24b42a79eb594efa9384f003a8dedfed",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "ff9543e20c9337571e9e0b29029b388330cfc45447d87b37c9ddad7202dc0bbb",
+      "categories": [
+        "AreaTube"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "area",
+          "id": "strong_area",
+          "kind": "PositiveLight"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "3ea87a53a37c436c8f0a83d4966399b9192e215cab8510e4d852cc238ea431f1",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "6ce8e4a4a9bec963878ba82a8ed4bf08a4ede03ff8450a971c7a40c6fb7f6333"
+      },
+      "id": "x05_panel_positive_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "835db1de426d01883033353b4e8c9cec1677a949450d95873b08a3c1711b6ffd",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "8fae65b2b4baf95c3ff432741d69aa2da6242e362038116c1c1b5b3dce14f27f"
+      },
+      "map_sha256": "323f7da42a9db5c90d14b5cf8669698a5366b7e293c21bf879e857c0a4f948d9",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_panel_positive_v1\\controller-case.json",
+      "private_case_sha256": "5e40eae171ef17b2c4b9b45c2feb282f17b5ad5afe7f46111aa8d4531b7a4f74",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "19ded70c9d237d3d4f0a4df3f3c28a6d729b250b6170a2104327aa99e705e2a1",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "e6f1ec8ae471dfdd69f8380fcb6ec8ed762113787a47e7d0b3d4e79b84ba2601",
+      "categories": [
+        "SunSkyDirectional"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "exposed",
+          "id": "positive_sky",
+          "kind": "PositiveLight"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "31049956e47ae4e0492b3233163ed193dff2e1328dead2c2db519a015080d093",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "cada51bcce899c8630bad63e0db629c5df476e672f7718758dfacde5c3367488"
+      },
+      "id": "x05_sky_aperture_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "75329fedbecdd6da4c579ed3412485539c85b6c29c59623a57a66c424daf5d47",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "5248cc03a0fca6150be9b4b80c389c582d2c0e49b9cb4931a0015b4582522814"
+      },
+      "map_sha256": "b8ecf09635c96bfe5a1aa6353a2ebb93382f1a6429420de1142c3967147060a2",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_sky_aperture_v1\\controller-case.json",
+      "private_case_sha256": "c6847525b69409cff3aee773ae010cdf8355555793e92242c5782f0752642700",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "49afdcbadad673bc76278c785d7fdb8a8693c24b7e8419af3dd1cff1763eeca9",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "fab1821c05eac98d93b10657617a79366ec7fecc42050520efd6dd74c7f2d9d0",
+      "categories": [
+        "SunSkyDirectional"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "sealed",
+          "id": "sealed_sky_negative",
+          "kind": "DarkBlockedNegative"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "c2fca1bc4ee2a250034a4073a197e29a9d1df4c1a5a669010bb734e3fd8ef17a",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "1a03c7792d578042f80168dd13bd5059432d1be7466206f53cb27b9bc5829e13"
+      },
+      "id": "x05_sky_sealed_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "e8c00a0fcf061f941c6f789f00ffd02e2d70133ad3748815eca7efc293b33f66",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "cf10f2ef41d1b6ddb53a1acadf4e0f41fd4fe6c7842764550185e2426f90c77f"
+      },
+      "map_sha256": "49652ece416477d3dedffb96ba855a973efc6906091fbf1c5467c04f556983d9",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_sky_sealed_v1\\controller-case.json",
+      "private_case_sha256": "c408c720f1b7eacbf93030f8628a4c5bf63456718849498446f969b7631d4287",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "bb2a73d4a68982ce6d6dc124ee8ea2b086385cae23649b7125dc3b9d6aa0e2b0",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "07f954d2bfa5fa98a2d312e39e499f2a6593991635f1e964b3cee3b2b8932519",
+      "categories": [
+        "SunSkyDirectional"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "exposed",
+          "id": "strong_sun",
+          "kind": "PositiveLight"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "f575e4ad2e9dec1aa3bf12e7261f57f408f53e9d83986d16ee3f849cbf17549f",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "854bef8bba2f82f3021d4d0ff785fbcaf755294100db0ae156053ef0d24dfc75"
+      },
+      "id": "x05_sun_positive_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "5ae0ac86d89abbff0f4d78ed4b04fd3595a2e04c0efc20ee458557398b9f8164",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "7facb9d566c313f6ad3ea7adfa0435c34bd743ebcaed7148f77ae222922c368e"
+      },
+      "map_sha256": "5b0f71af2b1f9f37f7fdc78c0d4968843579057c64571b810b82b6dcd41dd6c8",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_sun_positive_v1\\controller-case.json",
+      "private_case_sha256": "759977b262514d6fbdd51b4290e249f6b37f938d424f35bfbaf9d5b7d5be9373",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "10a80ab1b07aac5e2118cd079cd3c124b1e22c69decc3fbd6c3f72073699ff53",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "1d2e6980c09229daa430e6a221e0c53e76e4de31467916cc218d9d92b154c980",
+      "categories": [
+        "PositiveLight",
+        "DarkBlockedNegative"
+      ],
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "contracts": [
+        {
+          "group": "lit",
+          "id": "wall_illuminated",
+          "kind": "PositiveLight"
+        },
+        {
+          "group": "blocked",
+          "id": "wall_blocked",
+          "kind": "DarkBlockedNegative"
+        }
+      ],
+      "evaluator_member_hashes": {
+        "heldout-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "heldout.jsonl": "17945fc3d49b322f6da65946bebca50b36364a30b78a51e23114a90694e0cc0a",
+        "validation-grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "validation.jsonl": "c0a5ce0559eb19f7008e3a80c2e88b7620884210301812053a443fbbc5ba3073"
+      },
+      "id": "x05_wall_pair_v1",
+      "input_member_hashes": {
+        "geometry.jkobs": "064f67e23c6789a479edff786819178b2aae759358955c620d9cdabf78fa0488",
+        "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "train.jsonl": "07f7cbe94ab66e6d26240c485d86e9085ffc3198ac4c45df56bf364262bc2be6"
+      },
+      "map_sha256": "31b2b10cbde22cc151e8a3bbad451b97df12fb6ef2f53c2723c9e5a4153232f5",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\x05_wall_pair_v1\\controller-case.json",
+      "private_case_sha256": "28fb871b962ee8091c6096cdd15155ff3f6db13292bba3c4a216aca02dea0685",
+      "protocol": "ForwardKnownSources private reference; inverse input contains no source answers",
+      "recipe_sha256": "1a290bcbe1b79675eb50abc6931317cfd9adb560bfedca0481a8eea451e0a044",
+      "required": true,
+      "shader_sha256": "98806ec0ecf9c080b08749959ab35006b5aa0de4ab120dd1b66b22e7a9d361b3",
+      "split_identity": {
+        "block_world": 128,
+        "gap_world": 1,
+        "partition_origin_world": [
+          17,
+          31,
+          47
+        ],
+        "seed": 20261028
+      }
+    },
+    {
+      "bsp_sha256": "b899da6efb37abe21add3e68f3d08e81ca3d0f97b62ec9e7da9c5d93b40fd8c0",
+      "categories": [
+        "ShadowBoundary",
+        "PositiveLight"
+      ],
+      "contracts": [
+        {
+          "group": "angular_edge",
+          "id": "spot_angular_edge",
+          "kind": "PositiveLight"
+        }
+      ],
+      "id": "spot_angular_edge",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\spot_angular_edge-controller-case.json",
+      "private_case_sha256": "6518a5969c539e63b9cc7e5e453ecf06f66ad1c66b928096c044592adc15c797",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "0ff603f3537a83b5ca6bc80eae344c6e697b37c356151667a0904c438c8157ba",
+      "categories": [
+        "ShadowBoundary"
+      ],
+      "contracts": [
+        {
+          "group": "boundary",
+          "id": "moving_shadow_boundary",
+          "kind": "PositiveLight"
+        }
+      ],
+      "id": "moving_shadow_boundary",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\moving_shadow_boundary-controller-case.json",
+      "private_case_sha256": "e9fe499cc713245d654734b61ecb731e9c4dc3e88991b221778548c8f46993d2",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "self-authored-encoding-domain-v1",
+      "categories": [
+        "EncodingQuantization"
+      ],
+      "contracts": [
+        {
+          "group": "encoding",
+          "id": "correct_encoding",
+          "kind": "EncodingQuantization"
+        }
+      ],
+      "id": "correct_encoding",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\correct_encoding-controller-case.json",
+      "private_case_sha256": "aaba19719b05e12b588aadc83db3b39c5d4cbd7d8b658d4c74a77cebfad9a5ea",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "self-authored-capability-query-v1",
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "contracts": [
+        {
+          "group": "query",
+          "id": "unknown_geometry",
+          "kind": "ExpectedUnknown"
+        }
+      ],
+      "id": "unknown_geometry",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\unknown_geometry-controller-case.json",
+      "private_case_sha256": "6e28e168bdc0debf46e10170215ee269955afface122a700368dab74414c1b2f",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "self-authored-capability-query-v1",
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "contracts": [
+        {
+          "group": "query",
+          "id": "unknown_photometry",
+          "kind": "ExpectedNotComparable"
+        }
+      ],
+      "id": "unknown_photometry",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\unknown_photometry-controller-case.json",
+      "private_case_sha256": "d8c6a11674c03508b78eac9c5f35da43ef0a9fa815d1267a73b166298a007f8c",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "self-authored-capability-query-v1",
+      "categories": [
+        "InvalidUnsupported"
+      ],
+      "contracts": [
+        {
+          "group": "query",
+          "id": "gi_operator_unavailable",
+          "kind": "ExpectedUnknown"
+        }
+      ],
+      "id": "gi_operator_unavailable",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\gi_operator_unavailable-controller-case.json",
+      "private_case_sha256": "32771985a0c8f44dbea49cb18e7b009d75d93d7223fbe3dc2538c4374bdb010b",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "6a15e3d8bf3828ba828715176fd194857a27b2543f86306dfa34256e4bc4ba7e",
+      "categories": [
+        "ProfileDiscrimination"
+      ],
+      "contracts": [
+        {
+          "group": "direct",
+          "id": "profile_kernel_linear",
+          "kind": "KernelConformance"
+        }
+      ],
+      "id": "profile_kernel_linear",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\profile_kernel_linear-controller-case.json",
+      "private_case_sha256": "f02c6c7b0c38551cb3933c0819648229fa3f0750c473a718a9077352462a2c6a",
+      "required": true,
+      "role": "diagnostic"
+    },
+    {
+      "bsp_sha256": "b2e6c8b927dbae656b58a2aee0619756f47859012116013bb69a14cdeff2ba15",
+      "categories": [
+        "ProfileDiscrimination"
+      ],
+      "contracts": [
+        {
+          "group": "direct",
+          "id": "profile_kernel_no_angle",
+          "kind": "KernelConformance"
+        }
+      ],
+      "id": "profile_kernel_no_angle",
+      "output_profile": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "private_case": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x05\\release\\profile_kernel_no_angle-controller-case.json",
+      "private_case_sha256": "7d35e599dcc40cb8622e1b7188f05078baf3f5f2f67fcde3bb31c2a128b4f5e3",
+      "required": true,
+      "role": "diagnostic"
+    }
+  ],
+  "frozen_before_future_solver_fitting": true,
+  "policy": {
+    "acceptance": {
+      "maximum_blocked_prediction_code": 1,
+      "maximum_channel_interval_error": 1,
+      "maximum_interval_rmse": 1,
+      "maximum_missing_area_fraction": 0,
+      "minimum_zero_relative_improvement": 0.5
+    },
+    "categories": [
+      "PositiveLight",
+      "DarkBlockedNegative",
+      "ShadowBoundary",
+      "SunSkyDirectional",
+      "AreaTube",
+      "EncodingQuantization",
+      "ProfileDiscrimination",
+      "AmbiguityIdentifiability",
+      "GIIndirect",
+      "InvalidUnsupported"
+    ],
+    "encoding": {
+      "absolute_scale": "Unknown",
+      "domain": "EncodedRGB8",
+      "id": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+      "maximum": 255,
+      "quantizer": "truncate",
+      "quantum": 1,
+      "shared_peak_normalization": true
+    },
+    "failure_policy": "No all-black/unavailable/partial result may satisfy required positive capability. Unknown geometry requires a typed unknown result, never a numerical zero. Inadmissible required data fails admission; it is not silently skipped. Historical weak/negative folds remain diagnostic. All contracts are independently reported.",
+    "frozen_date": "2026-10-28",
+    "new_fixtures": [
+      "x05_sky_aperture_v1",
+      "x05_sky_sealed_v1",
+      "x05_wall_pair_v1",
+      "x05_doorway_pair_v1",
+      "x05_panel_positive_v1",
+      "x05_sun_positive_v1",
+      "x05_doorway_pair_v2",
+      "x05_doorway_pair_v3"
+    ],
+    "new_receiver_domain": {
+      "floor_abs_xy_max_world": 352,
+      "historical_compiler_verification_default": 272,
+      "reason": "Full interior floor with 32WU wall clearance, no RGB-dependent selection"
+    },
+    "profile": {
+      "amplitude_bounds": [
+        0,
+        3000
+      ],
+      "amplitude_search_steps": 32,
+      "colour_fixed": true,
+      "minimum_discriminating_separation": 2,
+      "parameter_budget_per_source": 1,
+      "selection": "training nuisance fit; validation profile comparison; heldout confirmation",
+      "viable_regret": 1
+    },
+    "profile_rationale": "Two codes exceed the sum of two one-code kernel envelopes. A narrower separation retains alternatives, not a forced compiler winner.",
+    "purpose": "S01 forward capability acceptance, not emitter recovery",
+    "required_contracts": [
+      "positive_sky",
+      "sealed_sky_negative",
+      "wall_illuminated",
+      "wall_blocked",
+      "doorway_through",
+      "doorway_blocked",
+      "strong_area",
+      "strong_sun",
+      "moving_shadow_boundary",
+      "spot_angular_edge",
+      "correct_encoding",
+      "broad_profile_separation",
+      "narrow_profile_ambiguity",
+      "unknown_geometry",
+      "unknown_photometry",
+      "gi_operator_unavailable"
+    ],
+    "revision_reason": "Retain insufficient v1/v2 doorway controls; add declared 1200-relative-unit primary for informative distant receivers. Same admission/error/split thresholds. No brightness fit or renderer change.",
+    "schema": "org.openjk.forward-acceptance-policy.v1",
+    "split": {
+      "block_world": 128,
+      "filter_radius_multiplier": 3,
+      "gap_world": 1,
+      "origin_world": [
+        17,
+        31,
+        47
+      ],
+      "seed": 20261028
+    },
+    "support": {
+      "minimum_blocks": 2,
+      "minimum_positive_code": 8,
+      "minimum_receivers": 4,
+      "minimum_zero_interval_rmse": 4
+    },
+    "support_rationale": "Eight output codes exceed truncation/one-code verified kernel uncertainty; two footprint-separated blocks prevent a single tiny patch admitting a positive test. These gates apply only to this declared controlled output profile.",
+    "threshold_changes": "Change policy version and review rationale; never relax this version after a control fails. Synthetic/source-answer-copy outputs cannot count as emitter recovery.",
+    "tolerance_rationale": "One code is the existing controlled direct-kernel float/quantization envelope. No universal physical lux or source-position threshold is inferred. Zero baseline must have nonzero informative support before relative improvement is defined.",
+    "version": 3
+  },
+  "policy_sha256": "b1f95bcf45fae3131b0b3f839b47a0c2fee66a105b3d507b30a6d1659a639cf1",
+  "profile_contracts": {
+    "broad": "Train-only scalar nuisance fit, validation separation and independent heldout confirmation on multiple receiver normals",
+    "narrow": "Same distance in separated quadrants; preserve ambiguity"
+  },
+  "reference_models": [
+    "Existing source-locked direct kernels",
+    "17-direction sky subset",
+    "Ceiling polygon form-factor subset"
+  ],
+  "reference_sources": {
+    "bake_model/bake_model.py": "421bdada07d7c25ec38a75911533afa4f7ca2ca3b9e851174826839ed909c0b8",
+    "bake_model/compare_bakes.py": "24a30b3ba64b4cdaf47d489ea0aca5080444280604d73b407f660d10d502dc87",
+    "bake_model/hypotheses.py": "133e1ea670e69d9531d9912720a510ef70655b0ccc171e409631c4365bb5dddc",
+    "bake_model/identifiability.py": "e66bee3f468630fef0412fda2ccd0ba73f11521888b165b78a92808dc8d460b4",
+    "datasets/evaluation_view.py": "c24d476435274a2162860265e6d59db4d0ebf0f152f107075bbc55afc0d8d139",
+    "datasets/prepare_blind.py": "1c57ec4d95c50b621ddba9e2e18838da2cb3d8a2b9bdf74f246ffe2f44f34e10",
+    "datasets/solver_view.py": "39c73889907f849b56d0b1d6ab1e308c4801a5ee67fc4e24ea86eb8337477a00",
+    "evaluation/adapters.py": "ea98fbdaeb4717ac357432db0eec429705bbfb082d4f4818690f0d9080e31164",
+    "evaluation/metrics.py": "ce05b69b07506e87b2823cd395037b3a1b35560e6a2a8f44eda5b6051746cffb",
+    "shadow_footprint/analytic.py": "538ce090dd51e8fd64a895659d500f2b939cb39ea7cbda9b5b2254e5fc3e5a6f",
+    "shadow_footprint/compiler_boundary.py": "efcb8d808f17da41997b64c7df48c7c0c4868df98c5e19cdd80a5a48ad76024c",
+    "shadow_footprint/compiler_trace.py": "f16fe3bcb19e4dfa23df6c78c15cf7a166adb0eafed6625069c2cf41435b5eee",
+    "shadow_footprint/geometry.py": "ab9e33537eb836d66fced38c961dcfbd67151bffbc7436d2865879528130e10d",
+    "shadow_footprint/integrate.py": "51ae37c7b9cb22d66466634b6c1b127326ae3fd2985ce3c534e7a9d83b86c340"
+  },
+  "resource_limits": {
+    "compiler_timeout_seconds": 180,
+    "json_bytes": 67108864,
+    "max_case_records": 100000
+  },
+  "schema": "org.openjk.x05-benchmark-manifest.v1",
+  "source_lock_sha256": "fabd107c6abe1683ca64c5db74deca0ae178431499c8db99e8e9e6b7424308ac"
+}

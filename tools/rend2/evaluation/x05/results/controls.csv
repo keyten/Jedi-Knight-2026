@@ -1,0 +1,13 @@
+fixture,contract,heldout,blocks,positive,black_rmse,reference_rmse,admission,reference_status
+x05_doorway_pair_v1,doorway_through,23,3,9,8.992750703616291,0.0,InsufficientEvidence,Failed
+x05_doorway_pair_v1,doorway_blocked,13,2,0,0.0,0.0,Admitted,Passed
+x05_doorway_pair_v2,doorway_through,12,2,0,2.943920288775949,0.0,InsufficientEvidence,Failed
+x05_doorway_pair_v2,doorway_blocked,24,3,0,0.0,0.0,Admitted,Passed
+x05_doorway_pair_v3,doorway_through,23,3,20,37.33572714892708,0.0,Admitted,Passed
+x05_doorway_pair_v3,doorway_blocked,13,2,0,0.0,0.0,Admitted,Passed
+x05_panel_positive_v1,strong_area,96,11,96,59.95102167603151,0.0,Admitted,Passed
+x05_sky_aperture_v1,positive_sky,96,11,29,6.386835418786573,0.0,Admitted,Passed
+x05_sky_sealed_v1,sealed_sky_negative,96,11,0,0.0,0.0,Admitted,Passed
+x05_sun_positive_v1,strong_sun,96,11,96,120.0,0.0,Admitted,Passed
+x05_wall_pair_v1,wall_illuminated,60,7,53,18.942896645796633,0.0,Admitted,Passed
+x05_wall_pair_v1,wall_blocked,36,4,0,0.0,0.0,Admitted,Passed

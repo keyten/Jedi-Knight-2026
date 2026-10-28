@@ -1,0 +1,61 @@
+{
+  "boundary_identical": true,
+  "controller_sources_match": {
+    "acceptance.py": true,
+    "audit.py": true,
+    "diagnostics.py": true,
+    "fixtures.py": true,
+    "report.py": true,
+    "run.py": true,
+    "score.py": true,
+    "test_acceptance.py": true,
+    "verify_reproduction.py": true
+  },
+  "inputs": {
+    "x05_doorway_pair_v1": true,
+    "x05_doorway_pair_v2": true,
+    "x05_doorway_pair_v3": true,
+    "x05_panel_positive_v1": true,
+    "x05_sky_aperture_v1": true,
+    "x05_sky_sealed_v1": true,
+    "x05_sun_positive_v1": true,
+    "x05_wall_pair_v1": true
+  },
+  "manifest_sha256": "5578e67722c0431737e4731edc80d8342a52e808552340304424d18fd56036c0",
+  "private_targets_identical": {
+    "correct_encoding": true,
+    "gi_operator_unavailable": true,
+    "moving_shadow_boundary": true,
+    "profile_kernel_linear": true,
+    "profile_kernel_no_angle": true,
+    "spot_angular_edge": true,
+    "unknown_geometry": true,
+    "unknown_photometry": true,
+    "x05_doorway_pair_v1": true,
+    "x05_doorway_pair_v2": true,
+    "x05_doorway_pair_v3": true,
+    "x05_panel_positive_v1": true,
+    "x05_sky_aperture_v1": true,
+    "x05_sky_sealed_v1": true,
+    "x05_sun_positive_v1": true,
+    "x05_wall_pair_v1": true
+  },
+  "reference_sources_match": {
+    "bake_model/bake_model.py": true,
+    "bake_model/compare_bakes.py": true,
+    "bake_model/hypotheses.py": true,
+    "bake_model/identifiability.py": true,
+    "datasets/evaluation_view.py": true,
+    "datasets/prepare_blind.py": true,
+    "datasets/solver_view.py": true,
+    "evaluation/adapters.py": true,
+    "evaluation/metrics.py": true,
+    "shadow_footprint/analytic.py": true,
+    "shadow_footprint/compiler_boundary.py": true,
+    "shadow_footprint/compiler_trace.py": true,
+    "shadow_footprint/geometry.py": true,
+    "shadow_footprint/integrate.py": true
+  },
+  "result_identical": true,
+  "result_sha256": "92f0312abe350602b7dad14977e51c20247ad9e0f8d62b3c9ddd0f33e35b4c6b"
+}

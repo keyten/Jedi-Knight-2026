@@ -1,5 +1,5 @@
 // CPU forward-evaluator contract for feature-scoped bake hypotheses (X03).
-// No evaluator/solver or renderer integration is provided by this header.
+// Concrete CPU implementation: bake_forward.h. No runtime lighting integration.
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include "decode.h"
@@ -12,7 +12,7 @@ namespace Core
 {
 namespace Bake
 {
-constexpr uint32_t kProfileSchemaVersion = 1, kFormulaVersion = 1;
+constexpr uint32_t kProfileSchemaVersion = 2, kFormulaVersion = 2;
 enum class Feature
 {
 	Attenuation,
@@ -27,6 +27,10 @@ enum class Feature
 	OutputEncoding,
 	SamplingVisibility,
 	AbsoluteCalibration,
+	Ambient,
+	LightStyles,
+	ReceiverPlacement,
+	Filtering,
 	Count
 };
 enum class Knowledge
@@ -65,6 +69,7 @@ struct ProfileHypothesis
 {
 	uint32_t schemaVersion = kProfileSchemaVersion, formulaVersion = kFormulaVersion;
 	std::string id = "UnknownProfile", family = "UnknownProfile";
+	std::string compilerSourceRevision, compilerBinarySha256; // empty when unidentified
 	Disk::Digest contentKey{}, sourceLockKey{}, catalogueKey{};
 	std::array<FeatureRule, static_cast<size_t>(Feature::Count)> rules;
 	std::vector<Parameter> nuisanceBounds;
@@ -82,7 +87,8 @@ enum class Domain
 	CompilerLinearRelative255,
 	SourceLinearRelative,
 	GridAmbientDirected,
-	DeluxeWorldDirection
+	DeluxeWorldDirection,
+	PhysicalIrradianceLux // SI reference only, never decoded stock RGB
 };
 enum class SourceKind
 {
@@ -91,7 +97,8 @@ enum class SourceKind
 	Polygon,
 	Tube,
 	Directional,
-	Unsupported
+	Unsupported,
+	Sky // explicit environment hypothesis, never a finite physical emitter
 };
 enum class AmplitudeDomain
 {
@@ -114,6 +121,15 @@ struct SourceHypothesis
 	Chunk<Vec3> polygon; // optional immutable world-space winding; source owns lease
 	Calibration calibration;
 	Units worldUnits;
+	// Expanded legacy spot geometry, not canonical smooth-cone parameters.
+	double spotTargetDistanceWorld = 0, spotRadiusWorld = 0;
+	// Explicit mapping only. Neither unit nor current physicalToScene implies it.
+	Estimate compilerParametersPerCanonicalUnit;
+	std::string calibrationReference, calibrationMethod;
+};
+struct FootprintTriangle
+{
+	Vec3 world[3], normal[3]; // disjoint UV-clipped world triangles, covered area only
 };
 struct Receiver
 {
@@ -121,6 +137,12 @@ struct Receiver
 	Vec3 world, geometricNormal, shadingNormal; // +Z up, normals outward, world units
 	uint8_t style = 0;
 	Domain domain = Domain::EncodedRgb8BeforeQuantization;
+	bool mappedPlanar = false, compilerPlacementCertified = false, twoSided = false;
+	// Supplied original sample is unchanged. Recipe's explicit projection push
+	// produces the compiler sample; no inferred nudge at padding/seams/solid cells.
+	Chunk<FootprintTriangle> footprint;
+	double geometryErrorWorld = 0;
+	double mappingErrorWorld = 0; // numerical UV mapping bound, distinct from curved geometry envelope
 };
 enum class Status
 {
@@ -128,7 +150,25 @@ enum class Status
 	UnsupportedDomain,
 	InvalidInput,
 	AvailableRelative,
-	AvailablePhysical
+	AvailablePhysical,
+	UnsupportedFeature,
+	VisibilityUnknown,
+	AvailableConditional
+};
+enum class Mode { CompilerFaithful, PhysicalIntegral, OptimizationSurrogate };
+enum class TraceMode { StaticGeometry, CompilerTree };
+enum class Fidelity { Unsupported, ConditionalGeometry, ScopedCompilerReplay, PhysicalIntegral, Surrogate };
+enum PredictionIssue : uint32_t
+{
+	AssumedProfileApplicability = 1u << 0,
+	ConditionalTracePolicy = 1u << 1,
+	UnresolvedAbsolutePhotometricScale = 1u << 2,
+	SourceParameterUncertainty = 1u << 3,
+	ApproximationWithoutTotalErrorBound = 1u << 4
+};
+struct Work
+{
+	uint64_t pairs = 0, rays = 0, nodeTests = 0, triangleTests = 0, quadrature = 0, cacheHits = 0;
 };
 struct Prediction
 {
@@ -144,20 +184,58 @@ struct Prediction
 	uint8_t encodedDirection[2] = {0, 0};	   // grid lat/long only; selector defines quantizer
 	Estimate angularErrorRadians;			   // quantization/model uncertainty; unknown by default
 	Estimate numericalError, modelDiscrepancy; // unknown unless independently bounded
+	Estimate integratedVisibility; // receiver/source area fraction; NOT irradiance ratio
 	std::vector<Feature> missing;
+	Id observation = 0;
+	Fidelity fidelity = Fidelity::Unsupported;
+	Vec3 direct, sun, sky, ambient; // PRE-encoding compatible domain only
+	Vec3 compilerRelative, encodedPrequantization;
+	uint8_t packedRgb[3] = {}, packedAmbient[3] = {}, packedDirected[3] = {}, deluxeRgb[3] = {};
+	bool packedKnown = false, deluxeKnown = false, surrogate = false;
+	uint32_t visibilityIssues = 0;
+	uint32_t issues = 0; // model/scale assumptions, separate from optical visibility issues
+	std::string reason;
+	Work work;
 };
+struct Contribution
+{
+	Id observation = 0, source = 0;
+	SourceKind kind = SourceKind::Unsupported;
+	Vec3 preencodingRgb;
+	Status status = Status::UnspecifiedModel;
+	bool globallyLinearInAmplitude = false;
+};
+class ContributionSink
+{
+  public:
+	virtual ~ContributionSink() = default;
+	virtual Error Write(const Contribution &) = 0; // synchronous, no retained caller pointers
+};
+class PreparedFactors;
+class CompilerTrace;
+struct IntegralScene;
 struct Options
 {
 	std::vector<Feature> required;
 	Domain output = Domain::EncodedRgb8BeforeQuantization;
 	PhotometricUnit requestedUnit = PhotometricUnit::Relative;
 	bool externallyCertifiedVisibility = false; // explicit assumption, no native trace claim
+	Mode mode = Mode::CompilerFaithful;
+	TraceMode trace = TraceMode::StaticGeometry;
+	bool allowAssumed = false, unpackedGridOnly = false, requireScopedCompilerReplay = false;
+	uint64_t maxPairs = 1048576, maxRays = 1048576, maxWork = 32ull * 1024 * 1024;
+	unsigned quadratureDepth = 6;
+	double integralTolerance = 1e-7;
+	ContributionSink *contributions = nullptr; // borrowed call-only; optional sparse stream
+	std::shared_ptr<const PreparedFactors> factors;
 };
 struct Result
 {
 	std::string profileId;
 	Disk::Digest profileKey{};
 	Chunk<Prediction> predictions; // immutable owning lease, may outlive the evaluator
+	Mode mode = Mode::CompilerFaithful;
+	Work work;
 };
 struct EvaluationContext
 {
@@ -168,6 +246,8 @@ struct EvaluationContext
 	Disk::Digest geometryKey{}, materialKey{}, observationPolicyKey{};
 	uint64_t samplingSeed = 0;
 	bool samplingSeedKnown = false, orderedGridReduction = false;
+	std::shared_ptr<const CompilerTrace> compilerTrace;
+	std::shared_ptr<const IntegralScene> integralScene;
 	// Chunk reads honour ReadContext budgets/cancellation. Missing inputs/rules
 	// return Unavailable; neither visibility nor material reflectance is invented.
 };

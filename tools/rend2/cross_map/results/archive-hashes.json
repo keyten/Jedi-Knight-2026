@@ -1,0 +1,18 @@
+{
+  "assets0.pk3": {
+    "bytes": 561806019,
+    "sha256": "ffea9e7489bad7175411d122e0652b4272efb67c0e71805d1f4d8058084b5939"
+  },
+  "assets1.pk3": {
+    "bytes": 652804510,
+    "sha256": "5f196826e226b1115bd46f54697334ca970c8261dd76864c1600179ff38e4c4f"
+  },
+  "assets2.pk3": {
+    "bytes": 1116384,
+    "sha256": "8f21cdd89afe78fdf916d103117f4b2621c6f4781dee003716057dc705ef98af"
+  },
+  "assets3.pk3": {
+    "bytes": 9282026,
+    "sha256": "0f542dccb6858fc10a8083ca71f581c9eba93173386e03a9e5e05d3a56118f78"
+  }
+}

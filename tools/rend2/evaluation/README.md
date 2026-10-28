@@ -4,6 +4,11 @@
 Python 3.12 standard library only. No solver, game, GL, new package or renderer
 change. The code consumes frozen predictions under a **trusted controller**.
 
+For non-vacuous positive-light, occlusion, encoding and profile gates, use the
+[X05 acceptance controller](x05/README.md) and its [versioned witness](x05/results/README.md).
+The historical dark/weak held-out folds below remain diagnostic evidence; they
+are not positive-light capability tests.
+
 ## Self-contained run
 
 From the repository root, using a fresh output directory:

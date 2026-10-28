@@ -1,0 +1,102 @@
+{
+  "schema": "org.openjk.forward-acceptance-policy.v1",
+  "version": 3,
+  "frozen_date": "2026-10-28",
+  "purpose": "S01 forward capability acceptance, not emitter recovery",
+  "split": {
+    "block_world": 128,
+    "gap_world": 1,
+    "origin_world": [
+      17,
+      31,
+      47
+    ],
+    "seed": 20261028,
+    "filter_radius_multiplier": 3
+  },
+  "encoding": {
+    "id": "NetRadiant-d9338309e-ColorToBytes-gamma1-compensate1-exposure0-v1",
+    "domain": "EncodedRGB8",
+    "quantizer": "truncate",
+    "quantum": 1,
+    "maximum": 255,
+    "shared_peak_normalization": true,
+    "absolute_scale": "Unknown"
+  },
+  "support": {
+    "minimum_receivers": 4,
+    "minimum_blocks": 2,
+    "minimum_positive_code": 8,
+    "minimum_zero_interval_rmse": 4
+  },
+  "support_rationale": "Eight output codes exceed truncation/one-code verified kernel uncertainty; two footprint-separated blocks prevent a single tiny patch admitting a positive test. These gates apply only to this declared controlled output profile.",
+  "acceptance": {
+    "maximum_interval_rmse": 1,
+    "maximum_channel_interval_error": 1,
+    "maximum_missing_area_fraction": 0,
+    "minimum_zero_relative_improvement": 0.5,
+    "maximum_blocked_prediction_code": 1
+  },
+  "tolerance_rationale": "One code is the existing controlled direct-kernel float/quantization envelope. No universal physical lux or source-position threshold is inferred. Zero baseline must have nonzero informative support before relative improvement is defined.",
+  "profile": {
+    "minimum_discriminating_separation": 2,
+    "viable_regret": 1,
+    "amplitude_bounds": [
+      0,
+      3000
+    ],
+    "amplitude_search_steps": 32,
+    "colour_fixed": true,
+    "selection": "training nuisance fit; validation profile comparison; heldout confirmation",
+    "parameter_budget_per_source": 1
+  },
+  "profile_rationale": "Two codes exceed the sum of two one-code kernel envelopes. A narrower separation retains alternatives, not a forced compiler winner.",
+  "categories": [
+    "PositiveLight",
+    "DarkBlockedNegative",
+    "ShadowBoundary",
+    "SunSkyDirectional",
+    "AreaTube",
+    "EncodingQuantization",
+    "ProfileDiscrimination",
+    "AmbiguityIdentifiability",
+    "GIIndirect",
+    "InvalidUnsupported"
+  ],
+  "new_fixtures": [
+    "x05_sky_aperture_v1",
+    "x05_sky_sealed_v1",
+    "x05_wall_pair_v1",
+    "x05_doorway_pair_v1",
+    "x05_panel_positive_v1",
+    "x05_sun_positive_v1",
+    "x05_doorway_pair_v2",
+    "x05_doorway_pair_v3"
+  ],
+  "required_contracts": [
+    "positive_sky",
+    "sealed_sky_negative",
+    "wall_illuminated",
+    "wall_blocked",
+    "doorway_through",
+    "doorway_blocked",
+    "strong_area",
+    "strong_sun",
+    "moving_shadow_boundary",
+    "spot_angular_edge",
+    "correct_encoding",
+    "broad_profile_separation",
+    "narrow_profile_ambiguity",
+    "unknown_geometry",
+    "unknown_photometry",
+    "gi_operator_unavailable"
+  ],
+  "failure_policy": "No all-black/unavailable/partial result may satisfy required positive capability. Unknown geometry requires a typed unknown result, never a numerical zero. Inadmissible required data fails admission; it is not silently skipped. Historical weak/negative folds remain diagnostic. All contracts are independently reported.",
+  "threshold_changes": "Change policy version and review rationale; never relax this version after a control fails. Synthetic/source-answer-copy outputs cannot count as emitter recovery.",
+  "revision_reason": "Retain insufficient v1/v2 doorway controls; add declared 1200-relative-unit primary for informative distant receivers. Same admission/error/split thresholds. No brightness fit or renderer change.",
+  "new_receiver_domain": {
+    "floor_abs_xy_max_world": 352,
+    "historical_compiler_verification_default": 272,
+    "reason": "Full interior floor with 32WU wall clearance, no RGB-dependent selection"
+  }
+}

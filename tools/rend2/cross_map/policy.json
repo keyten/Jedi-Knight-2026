@@ -1,0 +1,87 @@
+{
+  "schema": "org.openjk.x06-policy.v1",
+  "date": "2026-10-28",
+  "baseline_sha256": "937dfcb2810c53c718e6166e2c24fd56ff869b64c555821e13eddc52e610eba2",
+  "selection": {
+    "sp_priority": [
+      "vjun2",
+      "kor1",
+      "yavin1b",
+      "t2_trip",
+      "t1_sour"
+    ],
+    "sp_take": 4,
+    "mp_priority": [
+      "mp/ffa1",
+      "mp/ctf1",
+      "mp/duel1"
+    ],
+    "mp_take": 3,
+    "regression": [
+      "hoth3",
+      "hoth2",
+      "mp/ffa3"
+    ],
+    "availability": "First available listed maps; archive names are enumerated before final selection. Dimensions are stress intentions, verified from capture, not semantic truths."
+  },
+  "split": {
+    "block_world": 256,
+    "gap_world": 1,
+    "seed": 20261028,
+    "origin_world": [
+      17,
+      31,
+      47
+    ],
+    "filter_radius_multiplier": 3
+  },
+  "budgets": {
+    "engine_total_seconds": 1800,
+    "per_stage_seconds": 600,
+    "max_new_maps": 7,
+    "max_new_disk_bytes": 25769803776,
+    "process_rss_limit_bytes": 4294967296,
+    "roi_per_map": 4,
+    "roi_radius_world": 256,
+    "coarse_world": 128,
+    "minimum_world": 32,
+    "source_search_roi_per_map": 8,
+    "source_search_radius_world": 768,
+    "candidates_per_roi": 8,
+    "samples_per_nested_role": 48,
+    "max_ray_queries_per_map": 16384,
+    "independent_contacts_per_map": 16
+  },
+  "roi_selection": [
+    "Most distinct training receiver normals/surfaces in 256WU cell",
+    "Most upward training receivers, a sky-access candidate only",
+    "Most moving/material-uncertain/patch observations from geometry/training metadata",
+    "Nearest training-rich glow fixture neighbourhood"
+  ],
+  "direct_admission": {
+    "training_positive_minimum_code": 8,
+    "training_positive_receivers": 12,
+    "distinct_receiver_normals": 2,
+    "common_visible_per_nested_role": 8,
+    "minimum_nested_blocks_per_role": 2,
+    "distance_ratio": 1.25,
+    "centroid_offsets_world": [
+      1,
+      4
+    ],
+    "source_claim": "Glow centroid point hypothesis only; no physical source ground truth"
+  },
+  "nested_split": {
+    "block_world": 512,
+    "gap_world": 4,
+    "seed": 20261028,
+    "origin_world": [
+      91,
+      113,
+      157
+    ],
+    "outer": "TrainingView only; outer validation/heldout RGB are never opened for stock hypothesis selection"
+  },
+  "frozen_thresholds": "X05 thresholds unchanged; failed/unsupported controls retained. No stock physical XYZ/profile-accuracy score.",
+  "licensed_data": "All newly extracted stock resources go to an OS temporary directory outside this Git checkout."
+}

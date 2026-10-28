@@ -1,0 +1,90 @@
+{
+  "bake_compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "base_commit": "fe16bce7729fd4c77b62d55abb4718da217882f6",
+  "cpp_binary_sha256": "fd4451b556db124831c1a635e8047bd5736c9e06441c18817802977c0d9dedbd",
+  "cpp_compiler": "MSVC 2019 14.27.29110 Release x64; standalone additionally GCC C++11",
+  "date": "2026-10-28",
+  "failed_initial_experiments": [
+    {
+      "affected": 25,
+      "case": "thin_door",
+      "maximum_rgb8_error": 95,
+      "resolution": "Explicit unsupported receiver placement, not corrected RGB or wider tolerance"
+    },
+    {
+      "case": "SI rectangle",
+      "max_work": 1000000,
+      "resolution": "Explicit coarse example uses 1e-4; finite-source error remains unknown",
+      "status": "WorkLimit",
+      "tolerance": 1e-06
+    }
+  ],
+  "formula_version": 2,
+  "inverse_solver": false,
+  "limitations": [
+    "Bounce replay unsupported; direct-only controls retain max6 discrepancy",
+    "Thin-door: 25 unsupported solid-origin receiver placements, 1200 supported samples byte-exact",
+    "Finite rectangle total quadrature error not certified",
+    "No stock compiler identity or physical source recovery",
+    "Original pinned compiler BSPs reused, not recompiled in S01"
+  ],
+  "profile_catalogue_lf_sha256": "864f103f6ee760bf124d163ec7eadf827d5773d34b146130e89c55e335accee0",
+  "profile_schema": 2,
+  "profile_source_lock_lf_sha256": "56e385069a4dfbb50244b71370c7a75adaf5dd7b52ed41ead41d09ff2578b314",
+  "renderer_changes": false,
+  "schema": "org.openjk.bake-forward-witness.v2",
+  "source_lf_sha256": {
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "0884038753f11b3a1f254be01ec54f8397018ce46e50d2210503a5abda7607a4",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "c674fae5ff7f6a4b374e0c4e783b965c9d8f09b55dd3574b4e55cf035acad1f4",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "7be875d478d9c1f6727546c90485a15a0e5694e55e218df7eecc94c0df3b37de",
+    "shared/rd-rend2/lightrecon/bake_integral.cpp": "07f70526816259884badad6c11e3f0574b5d62ab6c2325262e0d4aa1e84bcbbc",
+    "shared/rd-rend2/lightrecon/bake_math.h": "342a4b791e8e2af250e4e986eac5ffc52543200270a9aef6522a148f93716041",
+    "shared/rd-rend2/lightrecon/bake_profile.h": "ec9cb47679d0effcb48011c03eebaf504d5005db1d4305e366ed8bd45ead3ab2",
+    "shared/rd-rend2/lightrecon/bake_trace.cpp": "4670cf72e42f14ca6c397120824f26ab417946515712d49643697cc600e53494",
+    "shared/rd-rend2/lightrecon/bake_trace.h": "45247951e2e67f0f153c69243e2a630d243204bb0c4023e5f7db6405fa729702",
+    "tools/lightrecon_test/CMakeLists.txt": "f610db2cfcb74296c716035af3ba121f91200f55548f37ff5c6ddc1604e23c14",
+    "tools/lightrecon_test/lightrecon_bake_forward_test.cpp": "100739523380defc76c91c021c5a819c6c8260bd5648253b6daa560210a92a56",
+    "tools/lightrecon_test/lightrecon_bake_forward_tool.cpp": "bb1c049d83db32df7c04205250fcebdee327ae9f56023d8fbcc439cd3a68e30c",
+    "tools/rend2/bake_model/bake_model.py": "421bdada07d7c25ec38a75911533afa4f7ca2ca3b9e851174826839ed909c0b8",
+    "tools/rend2/bake_model/compare_bakes.py": "24a30b3ba64b4cdaf47d489ea0aca5080444280604d73b407f660d10d502dc87",
+    "tools/rend2/bake_model/profiles.json": "864f103f6ee760bf124d163ec7eadf827d5773d34b146130e89c55e335accee0",
+    "tools/rend2/bake_model/source-lock.json": "56e385069a4dfbb50244b71370c7a75adaf5dd7b52ed41ead41d09ff2578b314",
+    "tools/rend2/bake_model/test_cpp_forward.py": "e8d3c08fc9b3824d04e8ddd36b4ef20b6fae335b2341c35a4f3abd448ab76805",
+    "tools/rend2/bake_model/validate_cpp.py": "bc54c2b307b6094e120a8ab4ed002a6a28aa3de509c571c39122af108dcd71d3",
+    "tools/rend2/bake_model/validation.json": "bc88413f6659646f7624d32ca8fc20e72d39a8d74104449004befd4e09608542"
+  },
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "3bbe3731485dea675185f3c153f053951ed47d5655ea034c70bcfcf9ac683113",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "c674fae5ff7f6a4b374e0c4e783b965c9d8f09b55dd3574b4e55cf035acad1f4",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "7be875d478d9c1f6727546c90485a15a0e5694e55e218df7eecc94c0df3b37de",
+    "shared/rd-rend2/lightrecon/bake_integral.cpp": "07f70526816259884badad6c11e3f0574b5d62ab6c2325262e0d4aa1e84bcbbc",
+    "shared/rd-rend2/lightrecon/bake_math.h": "342a4b791e8e2af250e4e986eac5ffc52543200270a9aef6522a148f93716041",
+    "shared/rd-rend2/lightrecon/bake_profile.h": "ec9cb47679d0effcb48011c03eebaf504d5005db1d4305e366ed8bd45ead3ab2",
+    "shared/rd-rend2/lightrecon/bake_trace.cpp": "4670cf72e42f14ca6c397120824f26ab417946515712d49643697cc600e53494",
+    "shared/rd-rend2/lightrecon/bake_trace.h": "45247951e2e67f0f153c69243e2a630d243204bb0c4023e5f7db6405fa729702",
+    "tools/lightrecon_test/CMakeLists.txt": "f6469576e2613a8795f6a7556219700a23786f022fbdd40dcaa977dfb8492d26",
+    "tools/lightrecon_test/lightrecon_bake_forward_test.cpp": "100739523380defc76c91c021c5a819c6c8260bd5648253b6daa560210a92a56",
+    "tools/lightrecon_test/lightrecon_bake_forward_tool.cpp": "bb1c049d83db32df7c04205250fcebdee327ae9f56023d8fbcc439cd3a68e30c",
+    "tools/rend2/bake_model/bake_model.py": "421bdada07d7c25ec38a75911533afa4f7ca2ca3b9e851174826839ed909c0b8",
+    "tools/rend2/bake_model/compare_bakes.py": "24a30b3ba64b4cdaf47d489ea0aca5080444280604d73b407f660d10d502dc87",
+    "tools/rend2/bake_model/profiles.json": "864f103f6ee760bf124d163ec7eadf827d5773d34b146130e89c55e335accee0",
+    "tools/rend2/bake_model/source-lock.json": "fabd107c6abe1683ca64c5db74deca0ae178431499c8db99e8e9e6b7424308ac",
+    "tools/rend2/bake_model/test_cpp_forward.py": "e8d3c08fc9b3824d04e8ddd36b4ef20b6fae335b2341c35a4f3abd448ab76805",
+    "tools/rend2/bake_model/validate_cpp.py": "bc54c2b307b6094e120a8ab4ed002a6a28aa3de509c571c39122af108dcd71d3",
+    "tools/rend2/bake_model/validation.json": "e69f8b1cb942f1965c2e05a5694c9700c1c5bff6f96baa9e2c344177aec831eb"
+  },
+  "stock_profile": "UnknownProfile",
+  "tests": {
+    "cpp_forward_checks": 67,
+    "cpu_ctest": 18,
+    "disabled_shader_differences": 0,
+    "disabled_shader_programs": 27,
+    "disabled_shader_stages": 51,
+    "mp_release": "Passed",
+    "python_bake": 24,
+    "required_x05_contracts": 14,
+    "shadow_footprints": 27,
+    "sp_release": "Passed",
+    "x05": 16
+  }
+}

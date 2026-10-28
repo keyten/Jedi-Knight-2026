@@ -1,0 +1,61 @@
+{
+  "schema": "org.openjk.x06-decisions.v1",
+  "decisions": [
+    {
+      "id": "A",
+      "previous": "Known compiler profiles verified only per feature subset; stock UnknownProfile",
+      "assessment": "ConfirmedQualified",
+      "new_evidence": [
+        "Controlled new multi/spot/gamma/thin-wall forward matches",
+        "White saturation preserves isq/linear alternatives",
+        "No stock region admitted; no historical identification"
+      ],
+      "coverage": "Ten new compiled scenes; six complete new stock maps; one archive failure",
+      "impact": "S01 feature/status/domain and discrete alternatives must remain explicit",
+      "severity": "High",
+      "required_before": "S01 profile admission"
+    },
+    {
+      "id": "B",
+      "previous": "Physical source hypotheses require geometry, visibility and independent observations",
+      "assessment": "Confirmed; exclusive glow-centroid sufficiency contradicted",
+      "new_evidence": [
+        "24 new ROI audits: 2104 independent opaque hits, zero sampled false-clear",
+        "16944 candidate rays produce no admitted new region",
+        "No legitimate glow priors on three captured maps"
+      ],
+      "coverage": "Four new SP, two complete MP through SP renderer, three regression ROIs",
+      "impact": "S04 alternatives beyond glow centroids, provenance/clearance; S02 optional regions/local uncertainty",
+      "severity": "High",
+      "required_before": "Stock S04 physical claims"
+    },
+    {
+      "id": "C",
+      "previous": "Use linear solvers only for genuine linear blocks, bounded geometry and discrete profile/count/type; shadow topology explicit",
+      "assessment": "ConfirmedQualified",
+      "new_evidence": [
+        "Correct/wrong bounded scalar fits distinguish laws on informative controls",
+        "Bounce raises fitted direct gain without moving sources",
+        "Coincident sources and saturation remain unidentifiable; analytic moving-edge derivatives retain sign"
+      ],
+      "impact": "S01/S09 diagnose gauges, model discrepancy and passive transport before publication",
+      "severity": "High",
+      "required_before": "S01/S09 confidence"
+    },
+    {
+      "id": "D",
+      "previous": "Quality includes source accuracy, heldout prediction, coverage, attribution and uncertainty",
+      "assessment": "ConfirmedQualified",
+      "new_evidence": [
+        "44–65% count mapping differs from reliable-area/linear-colour readiness",
+        "ctf1 section limit disproves blanket all-map archival",
+        "Identical lightmaps for one/two co-located authored lights"
+      ],
+      "impact": "S02 chunking and failure records; S09 equivalence-aware truth metrics; S10 quantity/bandwidth/support metadata",
+      "severity": "High",
+      "required_before": "S02 all-map promise and benchmark certification"
+    }
+  ],
+  "no_historical_compiler_reclassification": true,
+  "no_production_implementation": true
+}

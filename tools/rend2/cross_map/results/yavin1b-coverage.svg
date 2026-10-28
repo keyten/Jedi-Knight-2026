@@ -1,0 +1,683 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1110" viewBox="0 0 1360 1110">
+<rect width="1360" height="1110" fill="#fff"/>
+<text x="25" y="30" font-family="sans-serif" font-size="20">maps/yavin1b.bsp — all-page observation coverage</text>
+<text x="25" y="65" font-size="16">XY: log count of mapped receiver luxels (256 WU bins)</text>
+<rect x="25.00" y="289.44" width="10.22" height="10.22" fill="rgb(147,192,220)"><title>cell -8,4; mapped=24; material uncertain=24</title></rect>
+<rect x="25.00" y="279.22" width="10.22" height="10.22" fill="rgb(138,187,217)"><title>cell -8,5; mapped=33; material uncertain=33</title></rect>
+<rect x="25.00" y="269.00" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,6; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="258.78" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,7; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="248.56" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,8; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="238.33" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,9; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="228.11" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,10; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="217.89" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -8,11; mapped=32; material uncertain=32</title></rect>
+<rect x="25.00" y="207.67" width="10.22" height="10.22" fill="rgb(191,218,235)"><title>cell -8,12; mapped=4; material uncertain=4</title></rect>
+<rect x="35.22" y="412.11" width="10.22" height="10.22" fill="rgb(76,150,197)"><title>cell -7,-8; mapped=327; material uncertain=327</title></rect>
+<rect x="35.22" y="401.89" width="10.22" height="10.22" fill="rgb(75,150,196)"><title>cell -7,-7; mapped=342; material uncertain=342</title></rect>
+<rect x="35.22" y="289.44" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell -7,4; mapped=48; material uncertain=48</title></rect>
+<rect x="35.22" y="279.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell -7,5; mapped=93; material uncertain=93</title></rect>
+<rect x="35.22" y="269.00" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,6; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="258.78" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,7; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="248.56" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,8; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="238.33" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,9; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="228.11" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,10; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="217.89" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -7,11; mapped=64; material uncertain=64</title></rect>
+<rect x="35.22" y="207.67" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell -7,12; mapped=8; material uncertain=8</title></rect>
+<rect x="45.44" y="412.11" width="10.22" height="10.22" fill="rgb(45,132,186)"><title>cell -6,-8; mapped=1027; material uncertain=1027</title></rect>
+<rect x="45.44" y="401.89" width="10.22" height="10.22" fill="rgb(44,131,186)"><title>cell -6,-7; mapped=1082; material uncertain=1082</title></rect>
+<rect x="45.44" y="371.22" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell -6,-4; mapped=8; material uncertain=8</title></rect>
+<rect x="45.44" y="361.00" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -6,-3; mapped=32; material uncertain=32</title></rect>
+<rect x="45.44" y="350.78" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -6,-2; mapped=32; material uncertain=32</title></rect>
+<rect x="45.44" y="340.56" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -6,-1; mapped=32; material uncertain=32</title></rect>
+<rect x="45.44" y="330.33" width="10.22" height="10.22" fill="rgb(151,195,222)"><title>cell -6,0; mapped=20; material uncertain=20</title></rect>
+<rect x="45.44" y="289.44" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell -6,4; mapped=48; material uncertain=48</title></rect>
+<rect x="45.44" y="279.22" width="10.22" height="10.22" fill="rgb(105,167,206)"><title>cell -6,5; mapped=114; material uncertain=114</title></rect>
+<rect x="45.44" y="269.00" width="10.22" height="10.22" fill="rgb(115,173,210)"><title>cell -6,6; mapped=80; material uncertain=80</title></rect>
+<rect x="45.44" y="258.78" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -6,7; mapped=64; material uncertain=64</title></rect>
+<rect x="45.44" y="248.56" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -6,8; mapped=64; material uncertain=64</title></rect>
+<rect x="45.44" y="238.33" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -6,9; mapped=64; material uncertain=64</title></rect>
+<rect x="45.44" y="228.11" width="10.22" height="10.22" fill="rgb(115,173,210)"><title>cell -6,10; mapped=79; material uncertain=79</title></rect>
+<rect x="45.44" y="217.89" width="10.22" height="10.22" fill="rgb(106,168,207)"><title>cell -6,11; mapped=111; material uncertain=111</title></rect>
+<rect x="45.44" y="207.67" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell -6,12; mapped=8; material uncertain=8</title></rect>
+<rect x="45.44" y="197.44" width="10.22" height="10.22" fill="rgb(153,196,222)"><title>cell -6,13; mapped=19; material uncertain=19</title></rect>
+<rect x="55.67" y="412.11" width="10.22" height="10.22" fill="rgb(45,132,186)"><title>cell -5,-8; mapped=1021; material uncertain=1021</title></rect>
+<rect x="55.67" y="401.89" width="10.22" height="10.22" fill="rgb(46,132,187)"><title>cell -5,-7; mapped=1003; material uncertain=1003</title></rect>
+<rect x="55.67" y="371.22" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -5,-4; mapped=16; material uncertain=16</title></rect>
+<rect x="55.67" y="361.00" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -5,-3; mapped=64; material uncertain=64</title></rect>
+<rect x="55.67" y="350.78" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -5,-2; mapped=64; material uncertain=64</title></rect>
+<rect x="55.67" y="340.56" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -5,-1; mapped=64; material uncertain=64</title></rect>
+<rect x="55.67" y="330.33" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell -5,0; mapped=40; material uncertain=40</title></rect>
+<rect x="55.67" y="289.44" width="10.22" height="10.22" fill="rgb(126,180,213)"><title>cell -5,4; mapped=53; material uncertain=53</title></rect>
+<rect x="55.67" y="279.22" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell -5,5; mapped=123; material uncertain=123</title></rect>
+<rect x="55.67" y="269.00" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell -5,6; mapped=125; material uncertain=125</title></rect>
+<rect x="55.67" y="258.78" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell -5,7; mapped=120; material uncertain=120</title></rect>
+<rect x="55.67" y="248.56" width="10.22" height="10.22" fill="rgb(102,166,205)"><title>cell -5,8; mapped=127; material uncertain=127</title></rect>
+<rect x="55.67" y="238.33" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell -5,9; mapped=123; material uncertain=123</title></rect>
+<rect x="55.67" y="228.11" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell -5,10; mapped=118; material uncertain=118</title></rect>
+<rect x="55.67" y="217.89" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell -5,11; mapped=121; material uncertain=121</title></rect>
+<rect x="55.67" y="207.67" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell -5,12; mapped=8; material uncertain=8</title></rect>
+<rect x="55.67" y="197.44" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell -5,13; mapped=32; material uncertain=32</title></rect>
+<rect x="65.89" y="412.11" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell -4,-8; mapped=146; material uncertain=146</title></rect>
+<rect x="65.89" y="401.89" width="10.22" height="10.22" fill="rgb(116,174,210)"><title>cell -4,-7; mapped=76; material uncertain=76</title></rect>
+<rect x="65.89" y="371.22" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -4,-4; mapped=16; material uncertain=16</title></rect>
+<rect x="65.89" y="361.00" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,-3; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="350.78" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,-2; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="340.56" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,-1; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="330.33" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell -4,0; mapped=40; material uncertain=40</title></rect>
+<rect x="65.89" y="289.44" width="10.22" height="10.22" fill="rgb(120,176,211)"><title>cell -4,4; mapped=65; material uncertain=65</title></rect>
+<rect x="65.89" y="279.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell -4,5; mapped=99; material uncertain=99</title></rect>
+<rect x="65.89" y="269.00" width="10.22" height="10.22" fill="rgb(118,175,211)"><title>cell -4,6; mapped=70; material uncertain=70</title></rect>
+<rect x="65.89" y="258.78" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,7; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="248.56" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -4,8; mapped=67; material uncertain=67</title></rect>
+<rect x="65.89" y="238.33" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,9; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="228.11" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -4,10; mapped=64; material uncertain=64</title></rect>
+<rect x="65.89" y="217.89" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -4,11; mapped=68; material uncertain=68</title></rect>
+<rect x="65.89" y="207.67" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell -4,12; mapped=8; material uncertain=8</title></rect>
+<rect x="76.11" y="524.56" width="10.22" height="10.22" fill="rgb(90,158,201)"><title>cell -3,-19; mapped=199; material uncertain=199</title></rect>
+<rect x="76.11" y="514.33" width="10.22" height="10.22" fill="rgb(101,165,205)"><title>cell -3,-18; mapped=133; material uncertain=133</title></rect>
+<rect x="76.11" y="412.11" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell -3,-8; mapped=43; material uncertain=43</title></rect>
+<rect x="76.11" y="401.89" width="10.22" height="10.22" fill="rgb(149,194,221)"><title>cell -3,-7; mapped=22; material uncertain=22</title></rect>
+<rect x="76.11" y="371.22" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,-4; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="361.00" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -3,-3; mapped=69; material uncertain=69</title></rect>
+<rect x="76.11" y="350.78" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell -3,-2; mapped=101; material uncertain=101</title></rect>
+<rect x="76.11" y="340.56" width="10.22" height="10.22" fill="rgb(118,175,211)"><title>cell -3,-1; mapped=70; material uncertain=70</title></rect>
+<rect x="76.11" y="330.33" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell -3,0; mapped=40; material uncertain=40</title></rect>
+<rect x="76.11" y="289.44" width="10.22" height="10.22" fill="rgb(163,202,226)"><title>cell -3,4; mapped=13; material uncertain=13</title></rect>
+<rect x="76.11" y="279.22" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,5; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="269.00" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,6; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="258.78" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,7; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="248.56" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,8; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="238.33" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,9; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="228.11" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,10; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="217.89" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -3,11; mapped=16; material uncertain=16</title></rect>
+<rect x="76.11" y="207.67" width="10.22" height="10.22" fill="rgb(205,227,240)"><title>cell -3,12; mapped=2; material uncertain=2</title></rect>
+<rect x="86.33" y="534.78" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell -2,-20; mapped=21; material uncertain=21</title></rect>
+<rect x="86.33" y="524.56" width="10.22" height="10.22" fill="rgb(77,151,197)"><title>cell -2,-19; mapped=316; material uncertain=316</title></rect>
+<rect x="86.33" y="514.33" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell -2,-18; mapped=86; material uncertain=86</title></rect>
+<rect x="86.33" y="504.11" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -2,-17; mapped=14; material uncertain=14</title></rect>
+<rect x="86.33" y="381.44" width="10.22" height="10.22" fill="rgb(172,207,229)"><title>cell -2,-5; mapped=9; material uncertain=9</title></rect>
+<rect x="86.33" y="371.22" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -2,-4; mapped=16; material uncertain=16</title></rect>
+<rect x="86.33" y="361.00" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -2,-3; mapped=68; material uncertain=68</title></rect>
+<rect x="86.33" y="350.78" width="10.22" height="10.22" fill="rgb(94,161,203)"><title>cell -2,-2; mapped=169; material uncertain=169</title></rect>
+<rect x="86.33" y="340.56" width="10.22" height="10.22" fill="rgb(100,164,205)"><title>cell -2,-1; mapped=138; material uncertain=138</title></rect>
+<rect x="86.33" y="330.33" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell -2,0; mapped=54; material uncertain=54</title></rect>
+<rect x="96.56" y="534.78" width="10.22" height="10.22" fill="rgb(148,193,221)"><title>cell -1,-20; mapped=23; material uncertain=23</title></rect>
+<rect x="96.56" y="524.56" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell -1,-19; mapped=49; material uncertain=49</title></rect>
+<rect x="96.56" y="514.33" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -1,-18; mapped=67; material uncertain=67</title></rect>
+<rect x="96.56" y="504.11" width="10.22" height="10.22" fill="rgb(144,190,219)"><title>cell -1,-17; mapped=27; material uncertain=27</title></rect>
+<rect x="96.56" y="442.78" width="10.22" height="10.22" fill="rgb(157,198,224)"><title>cell -1,-11; mapped=16; material uncertain=16</title></rect>
+<rect x="96.56" y="432.56" width="10.22" height="10.22" fill="rgb(216,233,243)"><title>cell -1,-10; mapped=1; material uncertain=1</title></rect>
+<rect x="96.56" y="371.22" width="10.22" height="10.22" fill="rgb(181,213,232)"><title>cell -1,-4; mapped=6; material uncertain=6</title></rect>
+<rect x="96.56" y="361.00" width="10.22" height="10.22" fill="rgb(147,192,220)"><title>cell -1,-3; mapped=24; material uncertain=24</title></rect>
+<rect x="96.56" y="350.78" width="10.22" height="10.22" fill="rgb(147,192,220)"><title>cell -1,-2; mapped=24; material uncertain=24</title></rect>
+<rect x="96.56" y="340.56" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -1,-1; mapped=64; material uncertain=64</title></rect>
+<rect x="96.56" y="330.33" width="10.22" height="10.22" fill="rgb(159,199,224)"><title>cell -1,0; mapped=15; material uncertain=15</title></rect>
+<rect x="96.56" y="258.78" width="10.22" height="10.22" fill="rgb(191,218,235)"><title>cell -1,7; mapped=4; material uncertain=4</title></rect>
+<rect x="96.56" y="248.56" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,8; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="238.33" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,9; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="228.11" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,10; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="217.89" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,11; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="207.67" width="10.22" height="10.22" fill="rgb(148,193,221)"><title>cell -1,12; mapped=23; material uncertain=23</title></rect>
+<rect x="96.56" y="197.44" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell -1,13; mapped=64; material uncertain=64</title></rect>
+<rect x="96.56" y="187.22" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell -1,14; mapped=57; material uncertain=57</title></rect>
+<rect x="96.56" y="177.00" width="10.22" height="10.22" fill="rgb(117,175,210)"><title>cell -1,15; mapped=72; material uncertain=72</title></rect>
+<rect x="96.56" y="166.78" width="10.22" height="10.22" fill="rgb(119,176,211)"><title>cell -1,16; mapped=68; material uncertain=68</title></rect>
+<rect x="96.56" y="156.56" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell -1,17; mapped=58; material uncertain=58</title></rect>
+<rect x="96.56" y="146.33" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell -1,18; mapped=54; material uncertain=54</title></rect>
+<rect x="96.56" y="136.11" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell -1,19; mapped=58; material uncertain=58</title></rect>
+<rect x="96.56" y="125.89" width="10.22" height="10.22" fill="rgb(151,195,222)"><title>cell -1,20; mapped=20; material uncertain=20</title></rect>
+<rect x="96.56" y="115.67" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,21; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="105.44" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,22; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="95.22" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell -1,23; mapped=14; material uncertain=14</title></rect>
+<rect x="96.56" y="85.00" width="10.22" height="10.22" fill="rgb(181,213,232)"><title>cell -1,24; mapped=6; material uncertain=6</title></rect>
+<rect x="106.78" y="524.56" width="10.22" height="10.22" fill="rgb(172,207,229)"><title>cell 0,-19; mapped=9; material uncertain=9</title></rect>
+<rect x="106.78" y="514.33" width="10.22" height="10.22" fill="rgb(122,178,212)"><title>cell 0,-18; mapped=60; material uncertain=60</title></rect>
+<rect x="106.78" y="504.11" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell 0,-17; mapped=32; material uncertain=32</title></rect>
+<rect x="106.78" y="442.78" width="10.22" height="10.22" fill="rgb(169,206,228)"><title>cell 0,-11; mapped=10; material uncertain=10</title></rect>
+<rect x="106.78" y="432.56" width="10.22" height="10.22" fill="rgb(172,207,229)"><title>cell 0,-10; mapped=9; material uncertain=9</title></rect>
+<rect x="106.78" y="258.78" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 0,7; mapped=14; material uncertain=14</title></rect>
+<rect x="106.78" y="248.56" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 0,8; mapped=49; material uncertain=49</title></rect>
+<rect x="106.78" y="238.33" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 0,9; mapped=49; material uncertain=49</title></rect>
+<rect x="106.78" y="228.11" width="10.22" height="10.22" fill="rgb(127,180,214)"><title>cell 0,10; mapped=51; material uncertain=51</title></rect>
+<rect x="106.78" y="217.89" width="10.22" height="10.22" fill="rgb(114,173,209)"><title>cell 0,11; mapped=81; material uncertain=81</title></rect>
+<rect x="106.78" y="207.67" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 0,12; mapped=100; material uncertain=100</title></rect>
+<rect x="106.78" y="197.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 0,13; mapped=98; material uncertain=98</title></rect>
+<rect x="106.78" y="187.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 0,14; mapped=91; material uncertain=91</title></rect>
+<rect x="106.78" y="177.00" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 0,15; mapped=98; material uncertain=98</title></rect>
+<rect x="106.78" y="166.78" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 0,16; mapped=91; material uncertain=91</title></rect>
+<rect x="106.78" y="156.56" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 0,17; mapped=98; material uncertain=98</title></rect>
+<rect x="106.78" y="146.33" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 0,18; mapped=91; material uncertain=91</title></rect>
+<rect x="106.78" y="136.11" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 0,19; mapped=98; material uncertain=98</title></rect>
+<rect x="106.78" y="125.89" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 0,20; mapped=92; material uncertain=92</title></rect>
+<rect x="106.78" y="115.67" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 0,21; mapped=58; material uncertain=58</title></rect>
+<rect x="106.78" y="105.44" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 0,22; mapped=49; material uncertain=49</title></rect>
+<rect x="106.78" y="95.22" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 0,23; mapped=49; material uncertain=49</title></rect>
+<rect x="106.78" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 0,24; mapped=21; material uncertain=21</title></rect>
+<rect x="117.00" y="514.33" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 1,-18; mapped=44; material uncertain=44</title></rect>
+<rect x="117.00" y="504.11" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 1,-17; mapped=48; material uncertain=48</title></rect>
+<rect x="117.00" y="442.78" width="10.22" height="10.22" fill="rgb(135,185,216)"><title>cell 1,-11; mapped=37; material uncertain=37</title></rect>
+<rect x="117.00" y="258.78" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 1,7; mapped=14; material uncertain=14</title></rect>
+<rect x="117.00" y="248.56" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 1,8; mapped=49; material uncertain=49</title></rect>
+<rect x="117.00" y="238.33" width="10.22" height="10.22" fill="rgb(122,177,212)"><title>cell 1,9; mapped=61; material uncertain=61</title></rect>
+<rect x="117.00" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,10; mapped=90; material uncertain=90</title></rect>
+<rect x="117.00" y="217.89" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,11; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="207.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,12; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="197.44" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,13; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="187.22" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 1,14; mapped=85; material uncertain=85</title></rect>
+<rect x="117.00" y="177.00" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,15; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="166.78" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 1,16; mapped=84; material uncertain=84</title></rect>
+<rect x="117.00" y="156.56" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,17; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="146.33" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 1,18; mapped=85; material uncertain=85</title></rect>
+<rect x="117.00" y="136.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,19; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="125.89" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 1,20; mapped=91; material uncertain=91</title></rect>
+<rect x="117.00" y="115.67" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 1,21; mapped=84; material uncertain=84</title></rect>
+<rect x="117.00" y="105.44" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell 1,22; mapped=63; material uncertain=63</title></rect>
+<rect x="117.00" y="95.22" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 1,23; mapped=49; material uncertain=49</title></rect>
+<rect x="117.00" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 1,24; mapped=21; material uncertain=21</title></rect>
+<rect x="127.22" y="514.33" width="10.22" height="10.22" fill="rgb(139,188,218)"><title>cell 2,-18; mapped=32; material uncertain=32</title></rect>
+<rect x="127.22" y="504.11" width="10.22" height="10.22" fill="rgb(121,177,212)"><title>cell 2,-17; mapped=64; material uncertain=64</title></rect>
+<rect x="127.22" y="493.89" width="10.22" height="10.22" fill="rgb(156,198,223)"><title>cell 2,-16; mapped=17; material uncertain=17</title></rect>
+<rect x="127.22" y="442.78" width="10.22" height="10.22" fill="rgb(136,186,217)"><title>cell 2,-11; mapped=36; material uncertain=36</title></rect>
+<rect x="127.22" y="258.78" width="10.22" height="10.22" fill="rgb(147,192,220)"><title>cell 2,7; mapped=24; material uncertain=24</title></rect>
+<rect x="127.22" y="248.56" width="10.22" height="10.22" fill="rgb(116,174,210)"><title>cell 2,8; mapped=77; material uncertain=77</title></rect>
+<rect x="127.22" y="238.33" width="10.22" height="10.22" fill="rgb(110,170,208)"><title>cell 2,9; mapped=96; material uncertain=96</title></rect>
+<rect x="127.22" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 2,10; mapped=91; material uncertain=91</title></rect>
+<rect x="127.22" y="217.89" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,11; mapped=98; material uncertain=98</title></rect>
+<rect x="127.22" y="207.67" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,12; mapped=98; material uncertain=98</title></rect>
+<rect x="127.22" y="197.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,13; mapped=98; material uncertain=98</title></rect>
+<rect x="127.22" y="187.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 2,14; mapped=91; material uncertain=91</title></rect>
+<rect x="127.22" y="177.00" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 2,15; mapped=189; material uncertain=189</title></rect>
+<rect x="127.22" y="166.78" width="10.22" height="10.22" fill="rgb(88,157,201)"><title>cell 2,16; mapped=214; material uncertain=214</title></rect>
+<rect x="127.22" y="156.56" width="10.22" height="10.22" fill="rgb(87,157,200)"><title>cell 2,17; mapped=222; material uncertain=222</title></rect>
+<rect x="127.22" y="146.33" width="10.22" height="10.22" fill="rgb(92,160,202)"><title>cell 2,18; mapped=186; material uncertain=186</title></rect>
+<rect x="127.22" y="136.11" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,19; mapped=98; material uncertain=98</title></rect>
+<rect x="127.22" y="125.89" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,20; mapped=98; material uncertain=98</title></rect>
+<rect x="127.22" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 2,21; mapped=91; material uncertain=91</title></rect>
+<rect x="127.22" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 2,22; mapped=97; material uncertain=97</title></rect>
+<rect x="127.22" y="95.22" width="10.22" height="10.22" fill="rgb(118,175,211)"><title>cell 2,23; mapped=71; material uncertain=71</title></rect>
+<rect x="127.22" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 2,24; mapped=21; material uncertain=21</title></rect>
+<rect x="137.44" y="514.33" width="10.22" height="10.22" fill="rgb(186,215,233)"><title>cell 3,-18; mapped=5; material uncertain=5</title></rect>
+<rect x="137.44" y="504.11" width="10.22" height="10.22" fill="rgb(122,177,212)"><title>cell 3,-17; mapped=61; material uncertain=61</title></rect>
+<rect x="137.44" y="493.89" width="10.22" height="10.22" fill="rgb(126,180,213)"><title>cell 3,-16; mapped=53; material uncertain=53</title></rect>
+<rect x="137.44" y="483.67" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 3,-15; mapped=43; material uncertain=43</title></rect>
+<rect x="137.44" y="473.44" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 3,-14; mapped=54; material uncertain=54</title></rect>
+<rect x="137.44" y="463.22" width="10.22" height="10.22" fill="rgb(181,213,232)"><title>cell 3,-13; mapped=6; material uncertain=6</title></rect>
+<rect x="137.44" y="453.00" width="10.22" height="10.22" fill="rgb(172,207,229)"><title>cell 3,-12; mapped=9; material uncertain=9</title></rect>
+<rect x="137.44" y="442.78" width="10.22" height="10.22" fill="rgb(129,182,214)"><title>cell 3,-11; mapped=47; material uncertain=47</title></rect>
+<rect x="137.44" y="258.78" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell 3,7; mapped=57; material uncertain=57</title></rect>
+<rect x="137.44" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 3,8; mapped=105; material uncertain=105</title></rect>
+<rect x="137.44" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 3,9; mapped=98; material uncertain=98</title></rect>
+<rect x="137.44" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 3,10; mapped=91; material uncertain=91</title></rect>
+<rect x="137.44" y="217.89" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 3,11; mapped=98; material uncertain=98</title></rect>
+<rect x="137.44" y="207.67" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 3,12; mapped=98; material uncertain=98</title></rect>
+<rect x="137.44" y="197.44" width="10.22" height="10.22" fill="rgb(85,155,200)"><title>cell 3,13; mapped=240; material uncertain=240</title></rect>
+<rect x="137.44" y="187.22" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 3,14; mapped=194; material uncertain=194</title></rect>
+<rect x="137.44" y="177.00" width="10.22" height="10.22" fill="rgb(75,150,196)"><title>cell 3,15; mapped=341; material uncertain=341</title></rect>
+<rect x="137.44" y="166.78" width="10.22" height="10.22" fill="rgb(50,135,188)"><title>cell 3,16; mapped=872; material uncertain=872</title></rect>
+<rect x="137.44" y="156.56" width="10.22" height="10.22" fill="rgb(48,134,187)"><title>cell 3,17; mapped=918; material uncertain=918</title></rect>
+<rect x="137.44" y="146.33" width="10.22" height="10.22" fill="rgb(60,141,191)"><title>cell 3,18; mapped=596; material uncertain=596</title></rect>
+<rect x="137.44" y="136.11" width="10.22" height="10.22" fill="rgb(80,152,198)"><title>cell 3,19; mapped=288; material uncertain=288</title></rect>
+<rect x="137.44" y="125.89" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell 3,20; mapped=123; material uncertain=123</title></rect>
+<rect x="137.44" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 3,21; mapped=91; material uncertain=91</title></rect>
+<rect x="137.44" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 3,22; mapped=98; material uncertain=98</title></rect>
+<rect x="137.44" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 3,23; mapped=98; material uncertain=98</title></rect>
+<rect x="137.44" y="85.00" width="10.22" height="10.22" fill="rgb(127,180,214)"><title>cell 3,24; mapped=51; material uncertain=51</title></rect>
+<rect x="147.67" y="504.11" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 4,-17; mapped=49; material uncertain=49</title></rect>
+<rect x="147.67" y="493.89" width="10.22" height="10.22" fill="rgb(120,176,211)"><title>cell 4,-16; mapped=65; material uncertain=65</title></rect>
+<rect x="147.67" y="483.67" width="10.22" height="10.22" fill="rgb(135,185,216)"><title>cell 4,-15; mapped=37; material uncertain=37</title></rect>
+<rect x="147.67" y="473.44" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 4,-14; mapped=35; material uncertain=35</title></rect>
+<rect x="147.67" y="463.22" width="10.22" height="10.22" fill="rgb(122,177,212)"><title>cell 4,-13; mapped=61; material uncertain=61</title></rect>
+<rect x="147.67" y="453.00" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 4,-12; mapped=55; material uncertain=55</title></rect>
+<rect x="147.67" y="442.78" width="10.22" height="10.22" fill="rgb(146,192,220)"><title>cell 4,-11; mapped=25; material uncertain=25</title></rect>
+<rect x="147.67" y="299.67" width="10.22" height="10.22" fill="rgb(129,182,214)"><title>cell 4,3; mapped=47; material uncertain=47</title></rect>
+<rect x="147.67" y="289.44" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 4,4; mapped=117; material uncertain=117</title></rect>
+<rect x="147.67" y="258.78" width="10.22" height="10.22" fill="rgb(129,182,214)"><title>cell 4,7; mapped=47; material uncertain=47</title></rect>
+<rect x="147.67" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 4,8; mapped=105; material uncertain=105</title></rect>
+<rect x="147.67" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 4,9; mapped=98; material uncertain=98</title></rect>
+<rect x="147.67" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 4,10; mapped=91; material uncertain=91</title></rect>
+<rect x="147.67" y="217.89" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 4,11; mapped=98; material uncertain=98</title></rect>
+<rect x="147.67" y="207.67" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 4,12; mapped=98; material uncertain=98</title></rect>
+<rect x="147.67" y="197.44" width="10.22" height="10.22" fill="rgb(58,140,191)"><title>cell 4,13; mapped=637; material uncertain=637</title></rect>
+<rect x="147.67" y="187.22" width="10.22" height="10.22" fill="rgb(45,132,186)"><title>cell 4,14; mapped=1035; material uncertain=1035</title></rect>
+<rect x="147.67" y="177.00" width="10.22" height="10.22" fill="rgb(53,136,189)"><title>cell 4,15; mapped=783; material uncertain=783</title></rect>
+<rect x="147.67" y="166.78" width="10.22" height="10.22" fill="rgb(39,128,184)"><title>cell 4,16; mapped=1307; material uncertain=1307</title></rect>
+<rect x="147.67" y="156.56" width="10.22" height="10.22" fill="rgb(43,130,186)"><title>cell 4,17; mapped=1123; material uncertain=1123</title></rect>
+<rect x="147.67" y="146.33" width="10.22" height="10.22" fill="rgb(50,134,188)"><title>cell 4,18; mapped=878; material uncertain=878</title></rect>
+<rect x="147.67" y="136.11" width="10.22" height="10.22" fill="rgb(92,160,202)"><title>cell 4,19; mapped=184; material uncertain=184</title></rect>
+<rect x="147.67" y="125.89" width="10.22" height="10.22" fill="rgb(94,161,203)"><title>cell 4,20; mapped=170; material uncertain=170</title></rect>
+<rect x="147.67" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 4,21; mapped=91; material uncertain=91</title></rect>
+<rect x="147.67" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 4,22; mapped=98; material uncertain=98</title></rect>
+<rect x="147.67" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 4,23; mapped=98; material uncertain=98</title></rect>
+<rect x="147.67" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 4,24; mapped=58; material uncertain=58</title></rect>
+<rect x="157.89" y="504.11" width="10.22" height="10.22" fill="rgb(140,188,218)"><title>cell 5,-17; mapped=31; material uncertain=31</title></rect>
+<rect x="157.89" y="493.89" width="10.22" height="10.22" fill="rgb(129,182,214)"><title>cell 5,-16; mapped=46; material uncertain=46</title></rect>
+<rect x="157.89" y="463.22" width="10.22" height="10.22" fill="rgb(216,233,243)"><title>cell 5,-13; mapped=1; material uncertain=1</title></rect>
+<rect x="157.89" y="299.67" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell 5,3; mapped=56; material uncertain=56</title></rect>
+<rect x="157.89" y="289.44" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 5,4; mapped=118; material uncertain=118</title></rect>
+<rect x="157.89" y="258.78" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 5,7; mapped=48; material uncertain=48</title></rect>
+<rect x="157.89" y="248.56" width="10.22" height="10.22" fill="rgb(110,170,208)"><title>cell 5,8; mapped=95; material uncertain=95</title></rect>
+<rect x="157.89" y="238.33" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 5,9; mapped=91; material uncertain=91</title></rect>
+<rect x="157.89" y="228.11" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 5,10; mapped=85; material uncertain=85</title></rect>
+<rect x="157.89" y="217.89" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 5,11; mapped=91; material uncertain=91</title></rect>
+<rect x="157.89" y="207.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 5,12; mapped=91; material uncertain=91</title></rect>
+<rect x="157.89" y="197.44" width="10.22" height="10.22" fill="rgb(48,133,187)"><title>cell 5,13; mapped=931; material uncertain=931</title></rect>
+<rect x="157.89" y="187.22" width="10.22" height="10.22" fill="rgb(48,133,187)"><title>cell 5,14; mapped=943; material uncertain=943</title></rect>
+<rect x="157.89" y="177.00" width="10.22" height="10.22" fill="rgb(54,137,189)"><title>cell 5,15; mapped=748; material uncertain=748</title></rect>
+<rect x="157.89" y="166.78" width="10.22" height="10.22" fill="rgb(28,121,181)"><title>cell 5,16; mapped=1958; material uncertain=1958</title></rect>
+<rect x="157.89" y="156.56" width="10.22" height="10.22" fill="rgb(36,126,183)"><title>cell 5,17; mapped=1469; material uncertain=1469</title></rect>
+<rect x="157.89" y="146.33" width="10.22" height="10.22" fill="rgb(37,127,184)"><title>cell 5,18; mapped=1376; material uncertain=1376</title></rect>
+<rect x="157.89" y="136.11" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 5,19; mapped=189; material uncertain=189</title></rect>
+<rect x="157.89" y="125.89" width="10.22" height="10.22" fill="rgb(96,162,203)"><title>cell 5,20; mapped=160; material uncertain=160</title></rect>
+<rect x="157.89" y="115.67" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 5,21; mapped=85; material uncertain=85</title></rect>
+<rect x="157.89" y="105.44" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 5,22; mapped=91; material uncertain=91</title></rect>
+<rect x="157.89" y="95.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 5,23; mapped=91; material uncertain=91</title></rect>
+<rect x="157.89" y="85.00" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 5,24; mapped=55; material uncertain=55</title></rect>
+<rect x="168.11" y="504.11" width="10.22" height="10.22" fill="rgb(175,209,230)"><title>cell 6,-17; mapped=8; material uncertain=8</title></rect>
+<rect x="168.11" y="493.89" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell 6,-16; mapped=57; material uncertain=57</title></rect>
+<rect x="168.11" y="258.78" width="10.22" height="10.22" fill="rgb(127,181,214)"><title>cell 6,7; mapped=50; material uncertain=50</title></rect>
+<rect x="168.11" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 6,8; mapped=105; material uncertain=105</title></rect>
+<rect x="168.11" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 6,9; mapped=98; material uncertain=98</title></rect>
+<rect x="168.11" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 6,10; mapped=91; material uncertain=91</title></rect>
+<rect x="168.11" y="217.89" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 6,11; mapped=98; material uncertain=98</title></rect>
+<rect x="168.11" y="207.67" width="10.22" height="10.22" fill="rgb(101,165,205)"><title>cell 6,12; mapped=134; material uncertain=134</title></rect>
+<rect x="168.11" y="197.44" width="10.22" height="10.22" fill="rgb(40,129,185)"><title>cell 6,13; mapped=1235; material uncertain=1235</title></rect>
+<rect x="168.11" y="187.22" width="10.22" height="10.22" fill="rgb(37,127,184)"><title>cell 6,14; mapped=1367; material uncertain=1367</title></rect>
+<rect x="168.11" y="177.00" width="10.22" height="10.22" fill="rgb(44,131,186)"><title>cell 6,15; mapped=1084; material uncertain=1084</title></rect>
+<rect x="168.11" y="166.78" width="10.22" height="10.22" fill="rgb(25,120,180)"><title>cell 6,16; mapped=2202; material uncertain=2202</title></rect>
+<rect x="168.11" y="156.56" width="10.22" height="10.22" fill="rgb(35,126,183)"><title>cell 6,17; mapped=1513; material uncertain=1513</title></rect>
+<rect x="168.11" y="146.33" width="10.22" height="10.22" fill="rgb(31,123,182)"><title>cell 6,18; mapped=1735; material uncertain=1735</title></rect>
+<rect x="168.11" y="136.11" width="10.22" height="10.22" fill="rgb(79,152,198)"><title>cell 6,19; mapped=301; material uncertain=301</title></rect>
+<rect x="168.11" y="125.89" width="10.22" height="10.22" fill="rgb(94,161,203)"><title>cell 6,20; mapped=173; material uncertain=173</title></rect>
+<rect x="168.11" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 6,21; mapped=91; material uncertain=91</title></rect>
+<rect x="168.11" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 6,22; mapped=98; material uncertain=98</title></rect>
+<rect x="168.11" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 6,23; mapped=98; material uncertain=98</title></rect>
+<rect x="168.11" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 6,24; mapped=58; material uncertain=58</title></rect>
+<rect x="178.33" y="493.89" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell 7,-16; mapped=40; material uncertain=40</title></rect>
+<rect x="178.33" y="483.67" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 7,-15; mapped=21; material uncertain=21</title></rect>
+<rect x="178.33" y="258.78" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 7,7; mapped=54; material uncertain=54</title></rect>
+<rect x="178.33" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 7,8; mapped=105; material uncertain=105</title></rect>
+<rect x="178.33" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 7,9; mapped=98; material uncertain=98</title></rect>
+<rect x="178.33" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 7,10; mapped=91; material uncertain=91</title></rect>
+<rect x="178.33" y="217.89" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 7,11; mapped=150; material uncertain=150</title></rect>
+<rect x="178.33" y="207.67" width="10.22" height="10.22" fill="rgb(78,151,197)"><title>cell 7,12; mapped=308; material uncertain=308</title></rect>
+<rect x="178.33" y="197.44" width="10.22" height="10.22" fill="rgb(48,133,187)"><title>cell 7,13; mapped=935; material uncertain=935</title></rect>
+<rect x="178.33" y="187.22" width="10.22" height="10.22" fill="rgb(49,134,188)"><title>cell 7,14; mapped=901; material uncertain=901</title></rect>
+<rect x="178.33" y="177.00" width="10.22" height="10.22" fill="rgb(50,135,188)"><title>cell 7,15; mapped=869; material uncertain=869</title></rect>
+<rect x="178.33" y="166.78" width="10.22" height="10.22" fill="rgb(40,129,185)"><title>cell 7,16; mapped=1237; material uncertain=1237</title></rect>
+<rect x="178.33" y="156.56" width="10.22" height="10.22" fill="rgb(50,134,188)"><title>cell 7,17; mapped=876; material uncertain=876</title></rect>
+<rect x="178.33" y="146.33" width="10.22" height="10.22" fill="rgb(43,130,186)"><title>cell 7,18; mapped=1125; material uncertain=1125</title></rect>
+<rect x="178.33" y="136.11" width="10.22" height="10.22" fill="rgb(76,150,197)"><title>cell 7,19; mapped=336; material uncertain=336</title></rect>
+<rect x="178.33" y="125.89" width="10.22" height="10.22" fill="rgb(95,161,203)"><title>cell 7,20; mapped=167; material uncertain=167</title></rect>
+<rect x="178.33" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 7,21; mapped=91; material uncertain=91</title></rect>
+<rect x="178.33" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 7,22; mapped=98; material uncertain=98</title></rect>
+<rect x="178.33" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 7,23; mapped=98; material uncertain=98</title></rect>
+<rect x="178.33" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 7,24; mapped=58; material uncertain=58</title></rect>
+<rect x="188.56" y="493.89" width="10.22" height="10.22" fill="rgb(153,196,222)"><title>cell 8,-16; mapped=19; material uncertain=19</title></rect>
+<rect x="188.56" y="483.67" width="10.22" height="10.22" fill="rgb(129,182,214)"><title>cell 8,-15; mapped=46; material uncertain=46</title></rect>
+<rect x="188.56" y="258.78" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell 8,7; mapped=56; material uncertain=56</title></rect>
+<rect x="188.56" y="248.56" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 8,8; mapped=98; material uncertain=98</title></rect>
+<rect x="188.56" y="238.33" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 8,9; mapped=91; material uncertain=91</title></rect>
+<rect x="188.56" y="228.11" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 8,10; mapped=84; material uncertain=84</title></rect>
+<rect x="188.56" y="217.89" width="10.22" height="10.22" fill="rgb(87,157,200)"><title>cell 8,11; mapped=221; material uncertain=221</title></rect>
+<rect x="188.56" y="207.67" width="10.22" height="10.22" fill="rgb(71,147,195)"><title>cell 8,12; mapped=394; material uncertain=394</title></rect>
+<rect x="188.56" y="197.44" width="10.22" height="10.22" fill="rgb(49,134,188)"><title>cell 8,13; mapped=889; material uncertain=889</title></rect>
+<rect x="188.56" y="187.22" width="10.22" height="10.22" fill="rgb(52,136,189)"><title>cell 8,14; mapped=808; material uncertain=808</title></rect>
+<rect x="188.56" y="177.00" width="10.22" height="10.22" fill="rgb(52,136,189)"><title>cell 8,15; mapped=814; material uncertain=814</title></rect>
+<rect x="188.56" y="166.78" width="10.22" height="10.22" fill="rgb(52,136,189)"><title>cell 8,16; mapped=811; material uncertain=811</title></rect>
+<rect x="188.56" y="156.56" width="10.22" height="10.22" fill="rgb(51,136,188)"><title>cell 8,17; mapped=818; material uncertain=818</title></rect>
+<rect x="188.56" y="146.33" width="10.22" height="10.22" fill="rgb(54,137,189)"><title>cell 8,18; mapped=749; material uncertain=749</title></rect>
+<rect x="188.56" y="136.11" width="10.22" height="10.22" fill="rgb(80,152,198)"><title>cell 8,19; mapped=292; material uncertain=292</title></rect>
+<rect x="188.56" y="125.89" width="10.22" height="10.22" fill="rgb(96,162,203)"><title>cell 8,20; mapped=160; material uncertain=160</title></rect>
+<rect x="188.56" y="115.67" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 8,21; mapped=84; material uncertain=84</title></rect>
+<rect x="188.56" y="105.44" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 8,22; mapped=91; material uncertain=91</title></rect>
+<rect x="188.56" y="95.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 8,23; mapped=91; material uncertain=91</title></rect>
+<rect x="188.56" y="85.00" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 8,24; mapped=55; material uncertain=55</title></rect>
+<rect x="198.78" y="493.89" width="10.22" height="10.22" fill="rgb(191,218,235)"><title>cell 9,-16; mapped=4; material uncertain=4</title></rect>
+<rect x="198.78" y="483.67" width="10.22" height="10.22" fill="rgb(127,180,214)"><title>cell 9,-15; mapped=51; material uncertain=51</title></rect>
+<rect x="198.78" y="258.78" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 9,7; mapped=54; material uncertain=54</title></rect>
+<rect x="198.78" y="248.56" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 9,8; mapped=97; material uncertain=97</title></rect>
+<rect x="198.78" y="238.33" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 9,9; mapped=91; material uncertain=91</title></rect>
+<rect x="198.78" y="228.11" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 9,10; mapped=85; material uncertain=85</title></rect>
+<rect x="198.78" y="217.89" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 9,11; mapped=229; material uncertain=229</title></rect>
+<rect x="198.78" y="207.67" width="10.22" height="10.22" fill="rgb(72,148,195)"><title>cell 9,12; mapped=387; material uncertain=387</title></rect>
+<rect x="198.78" y="197.44" width="10.22" height="10.22" fill="rgb(47,133,187)"><title>cell 9,13; mapped=979; material uncertain=979</title></rect>
+<rect x="198.78" y="187.22" width="10.22" height="10.22" fill="rgb(47,133,187)"><title>cell 9,14; mapped=967; material uncertain=967</title></rect>
+<rect x="198.78" y="177.00" width="10.22" height="10.22" fill="rgb(47,133,187)"><title>cell 9,15; mapped=975; material uncertain=975</title></rect>
+<rect x="198.78" y="166.78" width="10.22" height="10.22" fill="rgb(47,133,187)"><title>cell 9,16; mapped=966; material uncertain=966</title></rect>
+<rect x="198.78" y="156.56" width="10.22" height="10.22" fill="rgb(47,133,187)"><title>cell 9,17; mapped=973; material uncertain=973</title></rect>
+<rect x="198.78" y="146.33" width="10.22" height="10.22" fill="rgb(44,131,186)"><title>cell 9,18; mapped=1059; material uncertain=1059</title></rect>
+<rect x="198.78" y="136.11" width="10.22" height="10.22" fill="rgb(76,150,197)"><title>cell 9,19; mapped=327; material uncertain=327</title></rect>
+<rect x="198.78" y="125.89" width="10.22" height="10.22" fill="rgb(95,162,203)"><title>cell 9,20; mapped=163; material uncertain=163</title></rect>
+<rect x="198.78" y="115.67" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 9,21; mapped=85; material uncertain=85</title></rect>
+<rect x="198.78" y="105.44" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 9,22; mapped=91; material uncertain=91</title></rect>
+<rect x="198.78" y="95.22" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 9,23; mapped=91; material uncertain=91</title></rect>
+<rect x="198.78" y="85.00" width="10.22" height="10.22" fill="rgb(125,179,213)"><title>cell 9,24; mapped=55; material uncertain=55</title></rect>
+<rect x="209.00" y="483.67" width="10.22" height="10.22" fill="rgb(124,179,213)"><title>cell 10,-15; mapped=57; material uncertain=57</title></rect>
+<rect x="209.00" y="258.78" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 10,7; mapped=58; material uncertain=58</title></rect>
+<rect x="209.00" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 10,8; mapped=105; material uncertain=105</title></rect>
+<rect x="209.00" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 10,9; mapped=98; material uncertain=98</title></rect>
+<rect x="209.00" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 10,10; mapped=91; material uncertain=91</title></rect>
+<rect x="209.00" y="217.89" width="10.22" height="10.22" fill="rgb(83,154,199)"><title>cell 10,11; mapped=258; material uncertain=258</title></rect>
+<rect x="209.00" y="207.67" width="10.22" height="10.22" fill="rgb(71,147,195)"><title>cell 10,12; mapped=398; material uncertain=398</title></rect>
+<rect x="209.00" y="197.44" width="10.22" height="10.22" fill="rgb(61,141,192)"><title>cell 10,13; mapped=581; material uncertain=581</title></rect>
+<rect x="209.00" y="187.22" width="10.22" height="10.22" fill="rgb(68,146,194)"><title>cell 10,14; mapped=440; material uncertain=440</title></rect>
+<rect x="209.00" y="177.00" width="10.22" height="10.22" fill="rgb(66,144,193)"><title>cell 10,15; mapped=475; material uncertain=475</title></rect>
+<rect x="209.00" y="166.78" width="10.22" height="10.22" fill="rgb(64,143,193)"><title>cell 10,16; mapped=510; material uncertain=510</title></rect>
+<rect x="209.00" y="156.56" width="10.22" height="10.22" fill="rgb(64,143,193)"><title>cell 10,17; mapped=524; material uncertain=524</title></rect>
+<rect x="209.00" y="146.33" width="10.22" height="10.22" fill="rgb(64,143,193)"><title>cell 10,18; mapped=511; material uncertain=511</title></rect>
+<rect x="209.00" y="136.11" width="10.22" height="10.22" fill="rgb(73,148,196)"><title>cell 10,19; mapped=371; material uncertain=371</title></rect>
+<rect x="209.00" y="125.89" width="10.22" height="10.22" fill="rgb(94,161,203)"><title>cell 10,20; mapped=170; material uncertain=170</title></rect>
+<rect x="209.00" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 10,21; mapped=91; material uncertain=91</title></rect>
+<rect x="209.00" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 10,22; mapped=98; material uncertain=98</title></rect>
+<rect x="209.00" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 10,23; mapped=98; material uncertain=98</title></rect>
+<rect x="209.00" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 10,24; mapped=58; material uncertain=58</title></rect>
+<rect x="219.22" y="483.67" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell 11,-15; mapped=41; material uncertain=41</title></rect>
+<rect x="219.22" y="473.44" width="10.22" height="10.22" fill="rgb(169,206,228)"><title>cell 11,-14; mapped=10; material uncertain=10</title></rect>
+<rect x="219.22" y="258.78" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 11,7; mapped=48; material uncertain=48</title></rect>
+<rect x="219.22" y="248.56" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell 11,8; mapped=101; material uncertain=101</title></rect>
+<rect x="219.22" y="238.33" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 11,9; mapped=98; material uncertain=98</title></rect>
+<rect x="219.22" y="228.11" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 11,10; mapped=91; material uncertain=91</title></rect>
+<rect x="219.22" y="217.89" width="10.22" height="10.22" fill="rgb(83,154,199)"><title>cell 11,11; mapped=256; material uncertain=256</title></rect>
+<rect x="219.22" y="207.67" width="10.22" height="10.22" fill="rgb(80,152,198)"><title>cell 11,12; mapped=291; material uncertain=291</title></rect>
+<rect x="219.22" y="197.44" width="10.22" height="10.22" fill="rgb(74,149,196)"><title>cell 11,13; mapped=364; material uncertain=364</title></rect>
+<rect x="219.22" y="187.22" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 11,14; mapped=231; material uncertain=231</title></rect>
+<rect x="219.22" y="177.00" width="10.22" height="10.22" fill="rgb(83,154,199)"><title>cell 11,15; mapped=261; material uncertain=261</title></rect>
+<rect x="219.22" y="166.78" width="10.22" height="10.22" fill="rgb(76,150,197)"><title>cell 11,16; mapped=337; material uncertain=337</title></rect>
+<rect x="219.22" y="156.56" width="10.22" height="10.22" fill="rgb(75,150,196)"><title>cell 11,17; mapped=340; material uncertain=340</title></rect>
+<rect x="219.22" y="146.33" width="10.22" height="10.22" fill="rgb(76,150,197)"><title>cell 11,18; mapped=335; material uncertain=335</title></rect>
+<rect x="219.22" y="136.11" width="10.22" height="10.22" fill="rgb(77,151,197)"><title>cell 11,19; mapped=324; material uncertain=324</title></rect>
+<rect x="219.22" y="125.89" width="10.22" height="10.22" fill="rgb(94,161,203)"><title>cell 11,20; mapped=170; material uncertain=170</title></rect>
+<rect x="219.22" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 11,21; mapped=91; material uncertain=91</title></rect>
+<rect x="219.22" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 11,22; mapped=98; material uncertain=98</title></rect>
+<rect x="219.22" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 11,23; mapped=98; material uncertain=98</title></rect>
+<rect x="219.22" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 11,24; mapped=58; material uncertain=58</title></rect>
+<rect x="229.44" y="483.67" width="10.22" height="10.22" fill="rgb(216,233,243)"><title>cell 12,-15; mapped=1; material uncertain=1</title></rect>
+<rect x="229.44" y="473.44" width="10.22" height="10.22" fill="rgb(147,192,220)"><title>cell 12,-14; mapped=24; material uncertain=24</title></rect>
+<rect x="229.44" y="258.78" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 12,7; mapped=44; material uncertain=44</title></rect>
+<rect x="229.44" y="248.56" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 12,8; mapped=105; material uncertain=105</title></rect>
+<rect x="229.44" y="238.33" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 12,9; mapped=105; material uncertain=105</title></rect>
+<rect x="229.44" y="228.11" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 12,10; mapped=100; material uncertain=100</title></rect>
+<rect x="229.44" y="217.89" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 12,11; mapped=230; material uncertain=230</title></rect>
+<rect x="229.44" y="207.67" width="10.22" height="10.22" fill="rgb(84,155,199)"><title>cell 12,12; mapped=250; material uncertain=250</title></rect>
+<rect x="229.44" y="197.44" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 12,13; mapped=234; material uncertain=234</title></rect>
+<rect x="229.44" y="187.22" width="10.22" height="10.22" fill="rgb(120,176,211)"><title>cell 12,14; mapped=66; material uncertain=66</title></rect>
+<rect x="229.44" y="177.00" width="10.22" height="10.22" fill="rgb(116,174,210)"><title>cell 12,15; mapped=77; material uncertain=77</title></rect>
+<rect x="229.44" y="166.78" width="10.22" height="10.22" fill="rgb(95,161,203)"><title>cell 12,16; mapped=166; material uncertain=166</title></rect>
+<rect x="229.44" y="156.56" width="10.22" height="10.22" fill="rgb(93,160,202)"><title>cell 12,17; mapped=179; material uncertain=179</title></rect>
+<rect x="229.44" y="146.33" width="10.22" height="10.22" fill="rgb(92,160,202)"><title>cell 12,18; mapped=183; material uncertain=183</title></rect>
+<rect x="229.44" y="136.11" width="10.22" height="10.22" fill="rgb(84,155,199)"><title>cell 12,19; mapped=245; material uncertain=245</title></rect>
+<rect x="229.44" y="125.89" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell 12,20; mapped=124; material uncertain=124</title></rect>
+<rect x="229.44" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 12,21; mapped=91; material uncertain=91</title></rect>
+<rect x="229.44" y="105.44" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 12,22; mapped=98; material uncertain=98</title></rect>
+<rect x="229.44" y="95.22" width="10.22" height="10.22" fill="rgb(109,170,208)"><title>cell 12,23; mapped=98; material uncertain=98</title></rect>
+<rect x="229.44" y="85.00" width="10.22" height="10.22" fill="rgb(123,178,212)"><title>cell 12,24; mapped=58; material uncertain=58</title></rect>
+<rect x="239.67" y="473.44" width="10.22" height="10.22" fill="rgb(191,218,235)"><title>cell 13,-14; mapped=4; material uncertain=4</title></rect>
+<rect x="239.67" y="258.78" width="10.22" height="10.22" fill="rgb(140,188,218)"><title>cell 13,7; mapped=31; material uncertain=31</title></rect>
+<rect x="239.67" y="248.56" width="10.22" height="10.22" fill="rgb(105,168,206)"><title>cell 13,8; mapped=113; material uncertain=113</title></rect>
+<rect x="239.67" y="238.33" width="10.22" height="10.22" fill="rgb(107,169,207)"><title>cell 13,9; mapped=105; material uncertain=105</title></rect>
+<rect x="239.67" y="228.11" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell 13,10; mapped=103; material uncertain=103</title></rect>
+<rect x="239.67" y="217.89" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 13,11; mapped=91; material uncertain=91</title></rect>
+<rect x="239.67" y="207.67" width="10.22" height="10.22" fill="rgb(82,154,199)"><title>cell 13,12; mapped=266; material uncertain=266</title></rect>
+<rect x="239.67" y="197.44" width="10.22" height="10.22" fill="rgb(80,153,198)"><title>cell 13,13; mapped=286; material uncertain=286</title></rect>
+<rect x="239.67" y="187.22" width="10.22" height="10.22" fill="rgb(89,158,201)"><title>cell 13,14; mapped=209; material uncertain=209</title></rect>
+<rect x="239.67" y="177.00" width="10.22" height="10.22" fill="rgb(82,154,199)"><title>cell 13,15; mapped=264; material uncertain=264</title></rect>
+<rect x="239.67" y="166.78" width="10.22" height="10.22" fill="rgb(79,152,198)"><title>cell 13,16; mapped=296; material uncertain=296</title></rect>
+<rect x="239.67" y="156.56" width="10.22" height="10.22" fill="rgb(82,154,199)"><title>cell 13,17; mapped=264; material uncertain=264</title></rect>
+<rect x="239.67" y="146.33" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 13,18; mapped=228; material uncertain=228</title></rect>
+<rect x="239.67" y="136.11" width="10.22" height="10.22" fill="rgb(86,156,200)"><title>cell 13,19; mapped=230; material uncertain=230</title></rect>
+<rect x="239.67" y="125.89" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell 13,20; mapped=103; material uncertain=103</title></rect>
+<rect x="239.67" y="115.67" width="10.22" height="10.22" fill="rgb(113,172,209)"><title>cell 13,21; mapped=85; material uncertain=85</title></rect>
+<rect x="239.67" y="105.44" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 13,22; mapped=91; material uncertain=91</title></rect>
+<rect x="239.67" y="95.22" width="10.22" height="10.22" fill="rgb(110,170,208)"><title>cell 13,23; mapped=96; material uncertain=96</title></rect>
+<rect x="239.67" y="85.00" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 13,24; mapped=35; material uncertain=35</title></rect>
+<rect x="249.89" y="258.78" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 14,7; mapped=14; material uncertain=14</title></rect>
+<rect x="249.89" y="248.56" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 14,8; mapped=90; material uncertain=90</title></rect>
+<rect x="249.89" y="238.33" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 14,9; mapped=147; material uncertain=147</title></rect>
+<rect x="249.89" y="228.11" width="10.22" height="10.22" fill="rgb(102,165,205)"><title>cell 14,10; mapped=129; material uncertain=129</title></rect>
+<rect x="249.89" y="217.89" width="10.22" height="10.22" fill="rgb(102,166,205)"><title>cell 14,11; mapped=126; material uncertain=126</title></rect>
+<rect x="249.89" y="207.67" width="10.22" height="10.22" fill="rgb(87,157,200)"><title>cell 14,12; mapped=222; material uncertain=222</title></rect>
+<rect x="249.89" y="197.44" width="10.22" height="10.22" fill="rgb(82,154,199)"><title>cell 14,13; mapped=266; material uncertain=266</title></rect>
+<rect x="249.89" y="187.22" width="10.22" height="10.22" fill="rgb(85,156,200)"><title>cell 14,14; mapped=238; material uncertain=238</title></rect>
+<rect x="249.89" y="177.00" width="10.22" height="10.22" fill="rgb(84,155,199)"><title>cell 14,15; mapped=252; material uncertain=252</title></rect>
+<rect x="249.89" y="166.78" width="10.22" height="10.22" fill="rgb(85,156,200)"><title>cell 14,16; mapped=236; material uncertain=236</title></rect>
+<rect x="249.89" y="156.56" width="10.22" height="10.22" fill="rgb(84,155,199)"><title>cell 14,17; mapped=250; material uncertain=250</title></rect>
+<rect x="249.89" y="146.33" width="10.22" height="10.22" fill="rgb(97,162,204)"><title>cell 14,18; mapped=156; material uncertain=156</title></rect>
+<rect x="249.89" y="136.11" width="10.22" height="10.22" fill="rgb(101,165,205)"><title>cell 14,19; mapped=131; material uncertain=131</title></rect>
+<rect x="249.89" y="125.89" width="10.22" height="10.22" fill="rgb(106,168,207)"><title>cell 14,20; mapped=112; material uncertain=112</title></rect>
+<rect x="249.89" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 14,21; mapped=91; material uncertain=91</title></rect>
+<rect x="249.89" y="105.44" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell 14,22; mapped=102; material uncertain=102</title></rect>
+<rect x="249.89" y="95.22" width="10.22" height="10.22" fill="rgb(116,174,210)"><title>cell 14,23; mapped=75; material uncertain=75</title></rect>
+<rect x="249.89" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 14,24; mapped=21; material uncertain=21</title></rect>
+<rect x="260.11" y="258.78" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 15,7; mapped=14; material uncertain=14</title></rect>
+<rect x="260.11" y="248.56" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 15,8; mapped=49; material uncertain=49</title></rect>
+<rect x="260.11" y="238.33" width="10.22" height="10.22" fill="rgb(106,168,207)"><title>cell 15,9; mapped=109; material uncertain=109</title></rect>
+<rect x="260.11" y="228.11" width="10.22" height="10.22" fill="rgb(101,165,205)"><title>cell 15,10; mapped=133; material uncertain=133</title></rect>
+<rect x="260.11" y="217.89" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 15,11; mapped=147; material uncertain=147</title></rect>
+<rect x="260.11" y="207.67" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 15,12; mapped=147; material uncertain=147</title></rect>
+<rect x="260.11" y="197.44" width="10.22" height="10.22" fill="rgb(99,164,204)"><title>cell 15,13; mapped=143; material uncertain=143</title></rect>
+<rect x="260.11" y="187.22" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 15,14; mapped=195; material uncertain=195</title></rect>
+<rect x="260.11" y="177.00" width="10.22" height="10.22" fill="rgb(90,159,201)"><title>cell 15,15; mapped=196; material uncertain=196</title></rect>
+<rect x="260.11" y="166.78" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 15,16; mapped=192; material uncertain=192</title></rect>
+<rect x="260.11" y="156.56" width="10.22" height="10.22" fill="rgb(91,159,202)"><title>cell 15,17; mapped=193; material uncertain=193</title></rect>
+<rect x="260.11" y="146.33" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 15,18; mapped=91; material uncertain=91</title></rect>
+<rect x="260.11" y="136.11" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 15,19; mapped=118; material uncertain=118</title></rect>
+<rect x="260.11" y="125.89" width="10.22" height="10.22" fill="rgb(107,168,207)"><title>cell 15,20; mapped=108; material uncertain=108</title></rect>
+<rect x="260.11" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 15,21; mapped=91; material uncertain=91</title></rect>
+<rect x="260.11" y="105.44" width="10.22" height="10.22" fill="rgb(112,171,209)"><title>cell 15,22; mapped=89; material uncertain=89</title></rect>
+<rect x="260.11" y="95.22" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 15,23; mapped=49; material uncertain=49</title></rect>
+<rect x="260.11" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 15,24; mapped=21; material uncertain=21</title></rect>
+<rect x="270.33" y="258.78" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 16,7; mapped=14; material uncertain=14</title></rect>
+<rect x="270.33" y="248.56" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 16,8; mapped=49; material uncertain=49</title></rect>
+<rect x="270.33" y="238.33" width="10.22" height="10.22" fill="rgb(127,180,214)"><title>cell 16,9; mapped=51; material uncertain=51</title></rect>
+<rect x="270.33" y="228.11" width="10.22" height="10.22" fill="rgb(107,168,207)"><title>cell 16,10; mapped=107; material uncertain=107</title></rect>
+<rect x="270.33" y="217.89" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 16,11; mapped=147; material uncertain=147</title></rect>
+<rect x="270.33" y="207.67" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 16,12; mapped=147; material uncertain=147</title></rect>
+<rect x="270.33" y="197.44" width="10.22" height="10.22" fill="rgb(98,163,204)"><title>cell 16,13; mapped=147; material uncertain=147</title></rect>
+<rect x="270.33" y="187.22" width="10.22" height="10.22" fill="rgb(101,165,205)"><title>cell 16,14; mapped=133; material uncertain=133</title></rect>
+<rect x="270.33" y="177.00" width="10.22" height="10.22" fill="rgb(99,164,204)"><title>cell 16,15; mapped=142; material uncertain=142</title></rect>
+<rect x="270.33" y="166.78" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell 16,16; mapped=124; material uncertain=124</title></rect>
+<rect x="270.33" y="156.56" width="10.22" height="10.22" fill="rgb(100,164,205)"><title>cell 16,17; mapped=138; material uncertain=138</title></rect>
+<rect x="270.33" y="146.33" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 16,18; mapped=118; material uncertain=118</title></rect>
+<rect x="270.33" y="136.11" width="10.22" height="10.22" fill="rgb(103,166,206)"><title>cell 16,19; mapped=124; material uncertain=124</title></rect>
+<rect x="270.33" y="125.89" width="10.22" height="10.22" fill="rgb(106,168,207)"><title>cell 16,20; mapped=112; material uncertain=112</title></rect>
+<rect x="270.33" y="115.67" width="10.22" height="10.22" fill="rgb(111,171,208)"><title>cell 16,21; mapped=91; material uncertain=91</title></rect>
+<rect x="270.33" y="105.44" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 16,22; mapped=49; material uncertain=49</title></rect>
+<rect x="270.33" y="95.22" width="10.22" height="10.22" fill="rgb(128,181,214)"><title>cell 16,23; mapped=49; material uncertain=49</title></rect>
+<rect x="270.33" y="85.00" width="10.22" height="10.22" fill="rgb(150,194,221)"><title>cell 16,24; mapped=21; material uncertain=21</title></rect>
+<rect x="280.56" y="258.78" width="10.22" height="10.22" fill="rgb(169,206,228)"><title>cell 17,7; mapped=10; material uncertain=10</title></rect>
+<rect x="280.56" y="248.56" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 17,8; mapped=35; material uncertain=35</title></rect>
+<rect x="280.56" y="238.33" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 17,9; mapped=35; material uncertain=35</title></rect>
+<rect x="280.56" y="228.11" width="10.22" height="10.22" fill="rgb(135,185,216)"><title>cell 17,10; mapped=37; material uncertain=37</title></rect>
+<rect x="280.56" y="217.89" width="10.22" height="10.22" fill="rgb(108,169,207)"><title>cell 17,11; mapped=101; material uncertain=101</title></rect>
+<rect x="280.56" y="207.67" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 17,12; mapped=119; material uncertain=119</title></rect>
+<rect x="280.56" y="197.44" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 17,13; mapped=119; material uncertain=119</title></rect>
+<rect x="280.56" y="187.22" width="10.22" height="10.22" fill="rgb(107,168,207)"><title>cell 17,14; mapped=107; material uncertain=107</title></rect>
+<rect x="280.56" y="177.00" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 17,15; mapped=119; material uncertain=119</title></rect>
+<rect x="280.56" y="166.78" width="10.22" height="10.22" fill="rgb(105,167,206)"><title>cell 17,16; mapped=114; material uncertain=114</title></rect>
+<rect x="280.56" y="156.56" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 17,17; mapped=119; material uncertain=119</title></rect>
+<rect x="280.56" y="146.33" width="10.22" height="10.22" fill="rgb(107,168,207)"><title>cell 17,18; mapped=107; material uncertain=107</title></rect>
+<rect x="280.56" y="136.11" width="10.22" height="10.22" fill="rgb(104,167,206)"><title>cell 17,19; mapped=119; material uncertain=119</title></rect>
+<rect x="280.56" y="125.89" width="10.22" height="10.22" fill="rgb(107,168,207)"><title>cell 17,20; mapped=108; material uncertain=108</title></rect>
+<rect x="280.56" y="115.67" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell 17,21; mapped=41; material uncertain=41</title></rect>
+<rect x="280.56" y="105.44" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 17,22; mapped=35; material uncertain=35</title></rect>
+<rect x="280.56" y="95.22" width="10.22" height="10.22" fill="rgb(137,186,217)"><title>cell 17,23; mapped=35; material uncertain=35</title></rect>
+<rect x="280.56" y="85.00" width="10.22" height="10.22" fill="rgb(159,199,224)"><title>cell 17,24; mapped=15; material uncertain=15</title></rect>
+<rect x="290.78" y="217.89" width="10.22" height="10.22" fill="rgb(161,201,225)"><title>cell 18,11; mapped=14; material uncertain=14</title></rect>
+<rect x="290.78" y="207.67" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,12; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="197.44" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,13; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="187.22" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell 18,14; mapped=40; material uncertain=40</title></rect>
+<rect x="290.78" y="177.00" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,15; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="166.78" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,16; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="156.56" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,17; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="146.33" width="10.22" height="10.22" fill="rgb(133,184,216)"><title>cell 18,18; mapped=40; material uncertain=40</title></rect>
+<rect x="290.78" y="136.11" width="10.22" height="10.22" fill="rgb(131,183,215)"><title>cell 18,19; mapped=44; material uncertain=44</title></rect>
+<rect x="290.78" y="125.89" width="10.22" height="10.22" fill="rgb(151,195,222)"><title>cell 18,20; mapped=20; material uncertain=20</title></rect>
+<text x="25" y="575" font-size="12">world extent: -2048..4864, -5120..6400; empty ≠ free space</text>
+<text x="695" y="65" font-size="16">XZ: log count of mapped receiver luxels (256 WU bins)</text>
+<rect x="695.00" y="216.11" width="21.85" height="21.85" fill="rgb(97,163,204)"><title>cell -8,1; mapped=253; material uncertain=253</title></rect>
+<rect x="716.85" y="237.96" width="21.85" height="21.85" fill="rgb(93,160,202)"><title>cell -7,0; mapped=299; material uncertain=299</title></rect>
+<rect x="716.85" y="216.11" width="21.85" height="21.85" fill="rgb(66,144,193)"><title>cell -7,1; mapped=890; material uncertain=890</title></rect>
+<rect x="716.85" y="194.26" width="21.85" height="21.85" fill="rgb(169,206,228)"><title>cell -7,2; mapped=13; material uncertain=13</title></rect>
+<rect x="738.70" y="259.81" width="21.85" height="21.85" fill="rgb(115,173,210)"><title>cell -6,-1; mapped=124; material uncertain=124</title></rect>
+<rect x="738.70" y="237.96" width="21.85" height="21.85" fill="rgb(97,163,204)"><title>cell -6,0; mapped=256; material uncertain=256</title></rect>
+<rect x="738.70" y="216.11" width="21.85" height="21.85" fill="rgb(58,139,191)"><title>cell -6,1; mapped=1250; material uncertain=1250</title></rect>
+<rect x="738.70" y="194.26" width="21.85" height="21.85" fill="rgb(58,140,191)"><title>cell -6,2; mapped=1235; material uncertain=1235</title></rect>
+<rect x="738.70" y="172.41" width="21.85" height="21.85" fill="rgb(160,200,225)"><title>cell -6,3; mapped=19; material uncertain=19</title></rect>
+<rect x="760.56" y="259.81" width="21.85" height="21.85" fill="rgb(98,163,204)"><title>cell -5,-1; mapped=248; material uncertain=248</title></rect>
+<rect x="760.56" y="237.96" width="21.85" height="21.85" fill="rgb(84,155,199)"><title>cell -5,0; mapped=444; material uncertain=444</title></rect>
+<rect x="760.56" y="216.11" width="21.85" height="21.85" fill="rgb(50,135,188)"><title>cell -5,1; mapped=1724; material uncertain=1724</title></rect>
+<rect x="760.56" y="194.26" width="21.85" height="21.85" fill="rgb(70,146,195)"><title>cell -5,2; mapped=774; material uncertain=774</title></rect>
+<rect x="760.56" y="172.41" width="21.85" height="21.85" fill="rgb(148,193,221)"><title>cell -5,3; mapped=32; material uncertain=32</title></rect>
+<rect x="782.41" y="259.81" width="21.85" height="21.85" fill="rgb(98,163,204)"><title>cell -4,-1; mapped=248; material uncertain=248</title></rect>
+<rect x="782.41" y="237.96" width="21.85" height="21.85" fill="rgb(143,190,219)"><title>cell -4,0; mapped=40; material uncertain=40</title></rect>
+<rect x="782.41" y="216.11" width="21.85" height="21.85" fill="rgb(74,149,196)"><title>cell -4,1; mapped=663; material uncertain=663</title></rect>
+<rect x="782.41" y="194.26" width="21.85" height="21.85" fill="rgb(123,178,212)"><title>cell -4,2; mapped=88; material uncertain=88</title></rect>
+<rect x="804.26" y="259.81" width="21.85" height="21.85" fill="rgb(95,161,203)"><title>cell -3,-1; mapped=284; material uncertain=284</title></rect>
+<rect x="804.26" y="237.96" width="21.85" height="21.85" fill="rgb(133,184,216)"><title>cell -3,0; mapped=59; material uncertain=59</title></rect>
+<rect x="804.26" y="216.11" width="21.85" height="21.85" fill="rgb(96,162,203)"><title>cell -3,1; mapped=263; material uncertain=263</title></rect>
+<rect x="804.26" y="194.26" width="21.85" height="21.85" fill="rgb(109,170,208)"><title>cell -3,2; mapped=158; material uncertain=158</title></rect>
+<rect x="804.26" y="172.41" width="21.85" height="21.85" fill="rgb(134,185,216)"><title>cell -3,3; mapped=56; material uncertain=56</title></rect>
+<rect x="826.11" y="259.81" width="21.85" height="21.85" fill="rgb(91,159,202)"><title>cell -2,-1; mapped=326; material uncertain=326</title></rect>
+<rect x="826.11" y="237.96" width="21.85" height="21.85" fill="rgb(103,166,206)"><title>cell -2,0; mapped=200; material uncertain=200</title></rect>
+<rect x="826.11" y="216.11" width="21.85" height="21.85" fill="rgb(94,161,203)"><title>cell -2,1; mapped=287; material uncertain=287</title></rect>
+<rect x="826.11" y="194.26" width="21.85" height="21.85" fill="rgb(127,180,214)"><title>cell -2,2; mapped=77; material uncertain=77</title></rect>
+<rect x="826.11" y="172.41" width="21.85" height="21.85" fill="rgb(217,234,244)"><title>cell -2,3; mapped=1; material uncertain=1</title></rect>
+<rect x="847.96" y="259.81" width="21.85" height="21.85" fill="rgb(121,177,212)"><title>cell -1,-1; mapped=98; material uncertain=98</title></rect>
+<rect x="847.96" y="237.96" width="21.85" height="21.85" fill="rgb(107,169,207)"><title>cell -1,0; mapped=171; material uncertain=171</title></rect>
+<rect x="847.96" y="216.11" width="21.85" height="21.85" fill="rgb(75,150,196)"><title>cell -1,1; mapped=629; material uncertain=629</title></rect>
+<rect x="869.81" y="237.96" width="21.85" height="21.85" fill="rgb(116,174,210)"><title>cell 0,0; mapped=120; material uncertain=120</title></rect>
+<rect x="869.81" y="216.11" width="21.85" height="21.85" fill="rgb(57,139,190)"><title>cell 0,1; mapped=1278; material uncertain=1278</title></rect>
+<rect x="891.67" y="237.96" width="21.85" height="21.85" fill="rgb(114,173,209)"><title>cell 1,0; mapped=129; material uncertain=129</title></rect>
+<rect x="891.67" y="216.11" width="21.85" height="21.85" fill="rgb(57,139,190)"><title>cell 1,1; mapped=1322; material uncertain=1322</title></rect>
+<rect x="913.52" y="237.96" width="21.85" height="21.85" fill="rgb(110,171,208)"><title>cell 2,0; mapped=149; material uncertain=149</title></rect>
+<rect x="913.52" y="216.11" width="21.85" height="21.85" fill="rgb(47,133,187)"><title>cell 2,1; mapped=1960; material uncertain=1960</title></rect>
+<rect x="935.37" y="237.96" width="21.85" height="21.85" fill="rgb(95,162,203)"><title>cell 3,0; mapped=278; material uncertain=278</title></rect>
+<rect x="935.37" y="216.11" width="21.85" height="21.85" fill="rgb(29,122,181)"><title>cell 3,1; mapped=4051; material uncertain=4051</title></rect>
+<rect x="935.37" y="194.26" width="21.85" height="21.85" fill="rgb(86,156,200)"><title>cell 3,2; mapped=406; material uncertain=406</title></rect>
+<rect x="957.22" y="237.96" width="21.85" height="21.85" fill="rgb(81,153,198)"><title>cell 4,0; mapped=491; material uncertain=491</title></rect>
+<rect x="957.22" y="216.11" width="21.85" height="21.85" fill="rgb(25,120,180)"><title>cell 4,1; mapped=4825; material uncertain=4825</title></rect>
+<rect x="957.22" y="194.26" width="21.85" height="21.85" fill="rgb(61,142,192)"><title>cell 4,2; mapped=1083; material uncertain=1083</title></rect>
+<rect x="957.22" y="172.41" width="21.85" height="21.85" fill="rgb(61,141,192)"><title>cell 4,3; mapped=1091; material uncertain=1091</title></rect>
+<rect x="979.07" y="237.96" width="21.85" height="21.85" fill="rgb(97,163,204)"><title>cell 5,0; mapped=252; material uncertain=252</title></rect>
+<rect x="979.07" y="216.11" width="21.85" height="21.85" fill="rgb(28,122,181)"><title>cell 5,1; mapped=4197; material uncertain=4197</title></rect>
+<rect x="979.07" y="194.26" width="21.85" height="21.85" fill="rgb(66,144,193)"><title>cell 5,2; mapped=909; material uncertain=909</title></rect>
+<rect x="979.07" y="172.41" width="21.85" height="21.85" fill="rgb(43,131,186)"><title>cell 5,3; mapped=2257; material uncertain=2257</title></rect>
+<rect x="979.07" y="150.56" width="21.85" height="21.85" fill="rgb(68,145,194)"><title>cell 5,4; mapped=844; material uncertain=844</title></rect>
+<rect x="979.07" y="128.70" width="21.85" height="21.85" fill="rgb(87,157,200)"><title>cell 5,5; mapped=390; material uncertain=390</title></rect>
+<rect x="1000.93" y="237.96" width="21.85" height="21.85" fill="rgb(131,183,215)"><title>cell 6,0; mapped=65; material uncertain=65</title></rect>
+<rect x="1000.93" y="216.11" width="21.85" height="21.85" fill="rgb(25,120,180)"><title>cell 6,1; mapped=4755; material uncertain=4755</title></rect>
+<rect x="1000.93" y="194.26" width="21.85" height="21.85" fill="rgb(70,147,195)"><title>cell 6,2; mapped=768; material uncertain=768</title></rect>
+<rect x="1000.93" y="172.41" width="21.85" height="21.85" fill="rgb(43,130,186)"><title>cell 6,3; mapped=2305; material uncertain=2305</title></rect>
+<rect x="1000.93" y="150.56" width="21.85" height="21.85" fill="rgb(71,147,195)"><title>cell 6,4; mapped=737; material uncertain=737</title></rect>
+<rect x="1000.93" y="128.70" width="21.85" height="21.85" fill="rgb(49,134,188)"><title>cell 6,5; mapped=1799; material uncertain=1799</title></rect>
+<rect x="1000.93" y="106.85" width="21.85" height="21.85" fill="rgb(108,169,207)"><title>cell 6,6; mapped=167; material uncertain=167</title></rect>
+<rect x="1022.78" y="237.96" width="21.85" height="21.85" fill="rgb(132,184,215)"><title>cell 7,0; mapped=61; material uncertain=61</title></rect>
+<rect x="1022.78" y="216.11" width="21.85" height="21.85" fill="rgb(41,130,185)"><title>cell 7,1; mapped=2440; material uncertain=2440</title></rect>
+<rect x="1022.78" y="194.26" width="21.85" height="21.85" fill="rgb(105,167,206)"><title>cell 7,2; mapped=187; material uncertain=187</title></rect>
+<rect x="1022.78" y="172.41" width="21.85" height="21.85" fill="rgb(56,138,190)"><title>cell 7,3; mapped=1377; material uncertain=1377</title></rect>
+<rect x="1022.78" y="150.56" width="21.85" height="21.85" fill="rgb(66,144,193)"><title>cell 7,4; mapped=910; material uncertain=910</title></rect>
+<rect x="1022.78" y="128.70" width="21.85" height="21.85" fill="rgb(39,128,184)"><title>cell 7,5; mapped=2683; material uncertain=2683</title></rect>
+<rect x="1044.63" y="237.96" width="21.85" height="21.85" fill="rgb(131,183,215)"><title>cell 8,0; mapped=65; material uncertain=65</title></rect>
+<rect x="1044.63" y="216.11" width="21.85" height="21.85" fill="rgb(42,130,185)"><title>cell 8,1; mapped=2386; material uncertain=2386</title></rect>
+<rect x="1044.63" y="128.70" width="21.85" height="21.85" fill="rgb(39,128,184)"><title>cell 8,5; mapped=2635; material uncertain=2635</title></rect>
+<rect x="1044.63" y="106.85" width="21.85" height="21.85" fill="rgb(53,137,189)"><title>cell 8,6; mapped=1499; material uncertain=1499</title></rect>
+<rect x="1044.63" y="85.00" width="21.85" height="21.85" fill="rgb(124,179,213)"><title>cell 8,7; mapped=86; material uncertain=86</title></rect>
+<rect x="1066.48" y="237.96" width="21.85" height="21.85" fill="rgb(135,185,216)"><title>cell 9,0; mapped=55; material uncertain=55</title></rect>
+<rect x="1066.48" y="216.11" width="21.85" height="21.85" fill="rgb(39,128,184)"><title>cell 9,1; mapped=2654; material uncertain=2654</title></rect>
+<rect x="1066.48" y="128.70" width="21.85" height="21.85" fill="rgb(45,132,186)"><title>cell 9,5; mapped=2126; material uncertain=2126</title></rect>
+<rect x="1066.48" y="106.85" width="21.85" height="21.85" fill="rgb(51,135,188)"><title>cell 9,6; mapped=1659; material uncertain=1659</title></rect>
+<rect x="1066.48" y="85.00" width="21.85" height="21.85" fill="rgb(58,140,191)"><title>cell 9,7; mapped=1235; material uncertain=1235</title></rect>
+<rect x="1088.33" y="237.96" width="21.85" height="21.85" fill="rgb(134,185,216)"><title>cell 10,0; mapped=57; material uncertain=57</title></rect>
+<rect x="1088.33" y="216.11" width="21.85" height="21.85" fill="rgb(40,129,185)"><title>cell 10,1; mapped=2538; material uncertain=2538</title></rect>
+<rect x="1088.33" y="128.70" width="21.85" height="21.85" fill="rgb(42,130,185)"><title>cell 10,5; mapped=2397; material uncertain=2397</title></rect>
+<rect x="1110.19" y="237.96" width="21.85" height="21.85" fill="rgb(137,186,217)"><title>cell 11,0; mapped=51; material uncertain=51</title></rect>
+<rect x="1110.19" y="216.11" width="21.85" height="21.85" fill="rgb(41,129,185)"><title>cell 11,1; mapped=2469; material uncertain=2469</title></rect>
+<rect x="1110.19" y="150.56" width="21.85" height="21.85" fill="rgb(119,176,211)"><title>cell 11,4; mapped=106; material uncertain=106</title></rect>
+<rect x="1110.19" y="128.70" width="21.85" height="21.85" fill="rgb(63,142,192)"><title>cell 11,5; mapped=1017; material uncertain=1017</title></rect>
+<rect x="1132.04" y="237.96" width="21.85" height="21.85" fill="rgb(154,196,223)"><title>cell 12,0; mapped=25; material uncertain=25</title></rect>
+<rect x="1132.04" y="216.11" width="21.85" height="21.85" fill="rgb(41,129,185)"><title>cell 12,1; mapped=2453; material uncertain=2453</title></rect>
+<rect x="1153.89" y="237.96" width="21.85" height="21.85" fill="rgb(195,221,236)"><title>cell 13,0; mapped=4; material uncertain=4</title></rect>
+<rect x="1153.89" y="216.11" width="21.85" height="21.85" fill="rgb(37,127,184)"><title>cell 13,1; mapped=2896; material uncertain=2896</title></rect>
+<rect x="1175.74" y="216.11" width="21.85" height="21.85" fill="rgb(39,128,184)"><title>cell 14,1; mapped=2658; material uncertain=2658</title></rect>
+<rect x="1197.59" y="216.11" width="21.85" height="21.85" fill="rgb(45,132,186)"><title>cell 15,1; mapped=2085; material uncertain=2085</title></rect>
+<rect x="1219.44" y="216.11" width="21.85" height="21.85" fill="rgb(49,134,188)"><title>cell 16,1; mapped=1763; material uncertain=1763</title></rect>
+<rect x="1241.30" y="216.11" width="21.85" height="21.85" fill="rgb(56,138,190)"><title>cell 17,1; mapped=1375; material uncertain=1375</title></rect>
+<rect x="1263.15" y="216.11" width="21.85" height="21.85" fill="rgb(87,157,200)"><title>cell 18,1; mapped=378; material uncertain=378</title></rect>
+<text x="695" y="575" font-size="12">world extent: -2048..4864, -256..2048; empty ≠ free space</text>
+<text x="25" y="610" font-size="16">Per original colour page: exclusive coverage categories; bar denominator = page texels</text>
+<text x="25" y="630" font-size="10">image 0</text>
+<rect x="100.00" y="620" width="854.97" height="8" fill="#247f9c"><title>mapped: 12507/16384</title></rect>
+<rect x="954.97" y="620" width="48.06" height="8" fill="#86c4cf"><title>footprint_only: 703/16384</title></rect>
+<rect x="1003.03" y="620" width="109.44" height="8" fill="#d59235"><title>ambiguous_overlap: 1601/16384</title></rect>
+<rect x="1112.47" y="620" width="15.11" height="8" fill="#a458b4"><title>unsupported_geometry: 221/16384</title></rect>
+<rect x="1127.58" y="620" width="32.81" height="8" fill="#dedede"><title>atlas_padding_certified: 480/16384</title></rect>
+<rect x="1160.39" y="620" width="59.61" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 872/16384</title></rect>
+<text x="25" y="640" font-size="10">image 2</text>
+<rect x="100.00" y="630" width="219.84" height="8" fill="#247f9c"><title>mapped: 3216/16384</title></rect>
+<rect x="319.84" y="630" width="10.73" height="8" fill="#86c4cf"><title>footprint_only: 157/16384</title></rect>
+<rect x="330.58" y="630" width="61.66" height="8" fill="#d59235"><title>ambiguous_overlap: 902/16384</title></rect>
+<rect x="392.24" y="630" width="769.73" height="8" fill="#a458b4"><title>unsupported_geometry: 11260/16384</title></rect>
+<rect x="1161.96" y="630" width="25.70" height="8" fill="#dedede"><title>atlas_padding_certified: 376/16384</title></rect>
+<rect x="1187.67" y="630" width="32.33" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 473/16384</title></rect>
+<text x="25" y="650" font-size="10">image 4</text>
+<rect x="100.00" y="640" width="843.42" height="8" fill="#247f9c"><title>mapped: 12338/16384</title></rect>
+<rect x="943.42" y="640" width="37.12" height="8" fill="#86c4cf"><title>footprint_only: 543/16384</title></rect>
+<rect x="980.54" y="640" width="11.96" height="8" fill="#d59235"><title>ambiguous_overlap: 175/16384</title></rect>
+<rect x="992.50" y="640" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="992.50" y="640" width="45.32" height="8" fill="#dedede"><title>atlas_padding_certified: 663/16384</title></rect>
+<rect x="1037.82" y="640" width="182.18" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 2665/16384</title></rect>
+<text x="25" y="660" font-size="10">image 6</text>
+<rect x="100.00" y="650" width="1040.29" height="8" fill="#247f9c"><title>mapped: 15218/16384</title></rect>
+<rect x="1140.29" y="650" width="19.48" height="8" fill="#86c4cf"><title>footprint_only: 285/16384</title></rect>
+<rect x="1159.78" y="650" width="23.93" height="8" fill="#d59235"><title>ambiguous_overlap: 350/16384</title></rect>
+<rect x="1183.70" y="650" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="1183.70" y="650" width="36.30" height="8" fill="#dedede"><title>atlas_padding_certified: 531/16384</title></rect>
+<rect x="1220.00" y="650" width="0.00" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 0/16384</title></rect>
+<text x="25" y="670" font-size="10">image 8</text>
+<rect x="100.00" y="660" width="769.18" height="8" fill="#247f9c"><title>mapped: 11252/16384</title></rect>
+<rect x="869.18" y="660" width="35.75" height="8" fill="#86c4cf"><title>footprint_only: 523/16384</title></rect>
+<rect x="904.93" y="660" width="25.50" height="8" fill="#d59235"><title>ambiguous_overlap: 373/16384</title></rect>
+<rect x="930.43" y="660" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="930.43" y="660" width="94.06" height="8" fill="#dedede"><title>atlas_padding_certified: 1376/16384</title></rect>
+<rect x="1024.49" y="660" width="195.51" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 2860/16384</title></rect>
+<text x="25" y="680" font-size="10">image 10</text>
+<rect x="100.00" y="670" width="803.43" height="8" fill="#247f9c"><title>mapped: 11753/16384</title></rect>
+<rect x="903.43" y="670" width="6.63" height="8" fill="#86c4cf"><title>footprint_only: 97/16384</title></rect>
+<rect x="910.06" y="670" width="92.42" height="8" fill="#d59235"><title>ambiguous_overlap: 1352/16384</title></rect>
+<rect x="1002.48" y="670" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="1002.48" y="670" width="135.08" height="8" fill="#dedede"><title>atlas_padding_certified: 1976/16384</title></rect>
+<rect x="1137.56" y="670" width="82.44" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 1206/16384</title></rect>
+<text x="25" y="690" font-size="10">image 12</text>
+<rect x="100.00" y="680" width="903.23" height="8" fill="#247f9c"><title>mapped: 13213/16384</title></rect>
+<rect x="1003.23" y="680" width="0.00" height="8" fill="#86c4cf"><title>footprint_only: 0/16384</title></rect>
+<rect x="1003.23" y="680" width="70.96" height="8" fill="#d59235"><title>ambiguous_overlap: 1038/16384</title></rect>
+<rect x="1074.19" y="680" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="1074.19" y="680" width="145.81" height="8" fill="#dedede"><title>atlas_padding_certified: 2133/16384</title></rect>
+<rect x="1220.00" y="680" width="0.00" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 0/16384</title></rect>
+<text x="25" y="700" font-size="10">image 14</text>
+<rect x="100.00" y="690" width="695.21" height="8" fill="#247f9c"><title>mapped: 10170/16384</title></rect>
+<rect x="795.21" y="690" width="18.39" height="8" fill="#86c4cf"><title>footprint_only: 269/16384</title></rect>
+<rect x="813.60" y="690" width="11.48" height="8" fill="#d59235"><title>ambiguous_overlap: 168/16384</title></rect>
+<rect x="825.09" y="690" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="825.09" y="690" width="190.18" height="8" fill="#dedede"><title>atlas_padding_certified: 2782/16384</title></rect>
+<rect x="1015.26" y="690" width="204.74" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 2995/16384</title></rect>
+<text x="25" y="710" font-size="10">image 16</text>
+<rect x="100.00" y="700" width="170.90" height="8" fill="#247f9c"><title>mapped: 2500/16384</title></rect>
+<rect x="270.90" y="700" width="4.99" height="8" fill="#86c4cf"><title>footprint_only: 73/16384</title></rect>
+<rect x="275.89" y="700" width="0.00" height="8" fill="#d59235"><title>ambiguous_overlap: 0/16384</title></rect>
+<rect x="275.89" y="700" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="275.89" y="700" width="923.74" height="8" fill="#dedede"><title>atlas_padding_certified: 13513/16384</title></rect>
+<rect x="1199.63" y="700" width="20.37" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 298/16384</title></rect>
+<text x="25" y="720" font-size="10">image 18</text>
+<rect x="100.00" y="710" width="0.00" height="8" fill="#247f9c"><title>mapped: 0/16384</title></rect>
+<rect x="100.00" y="710" width="0.00" height="8" fill="#86c4cf"><title>footprint_only: 0/16384</title></rect>
+<rect x="100.00" y="710" width="0.00" height="8" fill="#d59235"><title>ambiguous_overlap: 0/16384</title></rect>
+<rect x="100.00" y="710" width="0.00" height="8" fill="#a458b4"><title>unsupported_geometry: 0/16384</title></rect>
+<rect x="100.00" y="710" width="1120.00" height="8" fill="#dedede"><title>atlas_padding_certified: 16384/16384</title></rect>
+<rect x="1220.00" y="710" width="0.00" height="8" fill="#e5bcba"><title>chart_unmapped_or_padding: 0/16384</title></rect>
+<rect x="25" y="1045" width="10" height="10" fill="#247f9c"/><text x="39" y="1054" font-size="10">mapped</text>
+<rect x="240" y="1045" width="10" height="10" fill="#86c4cf"/><text x="254" y="1054" font-size="10">footprint_only</text>
+<rect x="455" y="1045" width="10" height="10" fill="#d59235"/><text x="469" y="1054" font-size="10">ambiguous_overlap</text>
+<rect x="670" y="1045" width="10" height="10" fill="#a458b4"/><text x="684" y="1054" font-size="10">unsupported_geometry</text>
+<rect x="885" y="1045" width="10" height="10" fill="#dedede"/><text x="899" y="1054" font-size="10">atlas_padding_certified</text>
+<rect x="1100" y="1045" width="10" height="10" fill="#e5bcba"/><text x="1114" y="1054" font-size="10">chart_unmapped_or_padding</text>
+<text x="25" y="1090" font-size="12">Counts are not independent localization constraints. Unknown transfer/primaries and missing deluxe are reported separately.</text></svg>

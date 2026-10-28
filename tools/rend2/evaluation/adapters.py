@@ -143,7 +143,7 @@ def audit_training(directory, map_hash):
     manifest = load(root/'manifest.json', 1024*1024)
     permitted = {'schema', 'role', 'map_sha256', 'counts', 'block_world', 'gap_world', 'seed',
         'footprint_filter_multiplier', 'image_alternative_policy', 'all_pages_complete', 'absolute_scale',
-        'grid_counts', 'sha256'}
+        'grid_counts', 'sha256', 'partition_origin_world'}
     if set(manifest)-permitted: raise ValueError('Unexpected solver metadata (private compiler/answers prohibited)')
     view = TrainingView(root, map_hash)
     observations = sum(1 for _ in view.observations()); grid = sum(1 for _ in view.grid_observations())

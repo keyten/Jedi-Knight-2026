@@ -72,7 +72,7 @@ def eligible(r):
             and all(v is not None and math.isfinite(v) and v >= 0 for v in r['raw']))
 
 
-def assignment(r, block, gap, seed):
+def assignment(r, block, gap, seed, origin=(0., 0., 0.)):
     """Entire conservative footprint + filter margin must remain in one block.
 
     3 source pixels of margin cover bilinear filtering plus adjacent texels;
@@ -83,6 +83,9 @@ def assignment(r, block, gap, seed):
     p = r['position']
     if not p or not math.isfinite(radius) or radius < 0:
         return None
+    if len(origin) != 3 or not all(math.isfinite(v) for v in origin):
+        raise ValueError('Invalid partition origin')
+    p = [v-o for v,o in zip(p,origin)]
     cell = tuple(math.floor(x / block) for x in p)
     if any(min(x - c * block, (c + 1) * block - x) <= radius for x, c in zip(p, cell)):
         return None
@@ -91,7 +94,7 @@ def assignment(r, block, gap, seed):
     return 'train' if value < 6 else 'validation' if value < 8 else 'heldout'
 
 
-def grid_views(path, inputs, evaluator, map_hash, block, gap, seed):
+def grid_views(path, inputs, evaluator, map_hash, block, gap, seed, origin=(0., 0., 0.)):
     """Deduplicated mgrid source records must not bridge colour partitions.
 
     A record touched by any gap cell or by multiple partitions is withheld.
@@ -103,7 +106,7 @@ def grid_views(path, inputs, evaluator, map_hash, block, gap, seed):
         path = Path(str(path) + '.gz')
     if path.exists():
         for r in rows(path):
-            bit = bits[assignment(r, block, gap, seed)]
+            bit = bits[assignment(r, block, gap, seed, origin)]
             masks[r['record']] = masks.get(r['record'], 0) | bit
     with ExitStack() as stack:
         streams = {role: stack.enter_context((directory / filename).open('w', encoding='utf-8', newline='\n'))
@@ -111,7 +114,7 @@ def grid_views(path, inputs, evaluator, map_hash, block, gap, seed):
                         ('validation',evaluator,'validation-grid.jsonl'),('heldout',evaluator,'heldout-grid.jsonl')]}
         if path.exists():
             for r in rows(path):
-                role = assignment(r, block, gap, seed)
+                role = assignment(r, block, gap, seed, origin)
                 if role is None or masks[r['record']] != bits[role]:
                     counts['withheld_shared_or_gap'] += 1
                     continue
@@ -163,9 +166,11 @@ class Group:
                     localization_information='No hypothesis/Jacobian: not Fisher information; pixel independence unproven')
 
 
-def prepare(prefix, output, block=1024., gap=8., seed=20261026):
+def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 0.)):
     if block <= 0 or gap < 0 or not math.isfinite(block + gap):
         raise ValueError('Invalid partition geometry')
+    if len(origin) != 3 or not all(math.isfinite(v) for v in origin):
+        raise ValueError('Invalid partition origin')
     prefix, output = Path(prefix), Path(output)
     source = json.loads(prefix.with_suffix('.source.json').read_text(encoding='utf-8'))
     path = prefix.with_suffix('.rows.jsonl')
@@ -239,7 +244,7 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026):
                 if len(groups) > 65536:
                     raise ValueError('Quality grouping budget (65536 groups) exceeded')
                 primary=image==primary_images[pinfo.get('page',image)]
-                role = assignment(r, block, gap, seed) if eligible(r) and primary else None
+                role = assignment(r, block, gap, seed, origin) if eligible(r) and primary else None
                 if role:
                     record = {key: r[key] for key in sorted(FIELDS)}
                     streams[role].write(json.dumps(record, separators=(',', ':'), allow_nan=False) + '\n')
@@ -257,7 +262,7 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026):
                 all(page_counts[p['image']] == p['width']*p['height'] for p in source['pages'] if not p['missing']) and
                 groups['map'].counts['denominator_candidate_texels'] == expected_pixels)
     grid_counts = grid_views(prefix.with_suffix('.grid.jsonl'), inputs, evaluator,
-                             source['map_sha256'], block, gap, seed)
+                             source['map_sha256'], block, gap, seed, origin)
     report = dict(source=source, all_pages_complete=bool(complete), grid_partitions=grid_counts,
                   image_alternative_policy='first sorted available image per logical page; alternatives never added as independent energy',
                   derived_texel_denominator=groups['map'].counts['denominator_candidate_texels'],
@@ -277,6 +282,8 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026):
                     grid_counts={k:grid_counts.get(k,0) for k in ('train','validation','heldout')},
                     sha256={name:digest(inputs / name) for name in ('train.jsonl','geometry.jkobs','grid.jsonl')})
     # The public manifest reveals counts/hashes, not RGB, raw images or light answers.
+    if any(origin):
+        manifest['partition_origin_world'] = list(origin)
     write(inputs / 'manifest.json', manifest)
     private = dict(manifest, role='evaluator', source=source,
                    sha256={name:digest(evaluator / name) for name in ('validation.jsonl','heldout.jsonl','validation-grid.jsonl','heldout-grid.jsonl')})
@@ -289,8 +296,9 @@ def main():
     p.add_argument('prefix', type=Path); p.add_argument('output', type=Path)
     p.add_argument('--block', type=float, default=1024); p.add_argument('--gap', type=float, default=8)
     p.add_argument('--seed', type=int, default=20261026)
+    p.add_argument('--origin', type=float, nargs=3, default=(0.,0.,0.), help='Geometry-only partition origin; source positions are not changed')
     args = p.parse_args()
-    report = prepare(args.prefix, args.output, args.block, args.gap, args.seed)
+    report = prepare(args.prefix, args.output, args.block, args.gap, args.seed, args.origin)
     print(json.dumps({k:v for k,v in report.items() if k != 'groups'}, indent=2))
 
 

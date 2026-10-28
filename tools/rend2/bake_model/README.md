@@ -5,6 +5,12 @@ source-supported q3map/q3map2 models from unknown stock-JA production bakes.
 These Python tools are offline research fixtures. They do not change rendering,
 decoding, reconstruction, or the physical PBR contract.
 
+S01 now provides a separate production **C++** implementation in
+`shared/rd-rend2/lightrecon/bake_forward.*`. `validate_cpp.py` compares its
+geometry-only protocol with these Python kernels and frozen compiler BSPs;
+`test_cpp_forward.py` tests missing capabilities and boundary scope.
+See the [support matrix, equations and exact commands](../../../docs/rend2-bake-forward-evaluator.md).
+
 Run from the repository root with Python 3.8+ (standard library only):
 
 ```powershell

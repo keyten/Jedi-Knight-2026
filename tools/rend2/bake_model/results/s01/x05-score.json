@@ -1,0 +1,1582 @@
+{
+  "schema": "org.openjk.forward-score.v1",
+  "cases": {
+    "correct_encoding": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "correct_encoding",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 6,
+            "spatial_blocks": 6,
+            "positive_receivers": 5,
+            "zero_interval_rmse": 156.57852130267847,
+            "known_receiver_area": 6.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 6.0,
+              "denominator": 6.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 6.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 18,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 18.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 18.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 18.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 156.57852130267847,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 6.0,
+          "denominator": 6.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 6.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 18,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 18.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 18.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 18.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "gi_operator_unavailable": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "gi_operator_unavailable",
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 1,
+            "spatial_blocks": 1,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 1.0
+          },
+          "status": "Passed",
+          "reason": "Typed unknown required; a numerical black value cannot satisfy this contract"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Unavailable",
+          "value": null
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 3,
+        "failures": {
+          "missing_prediction": 1
+        },
+        "extra_prediction_ids": 0,
+        "breakdown": {},
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "moving_shadow_boundary": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "moving_shadow_boundary",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 35,
+            "spatial_blocks": 6,
+            "positive_receivers": 35,
+            "zero_interval_rmse": 125.24535919546081,
+            "known_receiver_area": 8960.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 8960.0,
+              "denominator": 8960.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 8960.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 105,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 26880.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 26880.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 26880.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 125.24535919546081,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 8960.0,
+          "denominator": 8960.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 8960.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 105,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 26880.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 26880.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 26880.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "profile_kernel_linear": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "profile_kernel_linear",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 33,
+            "spatial_blocks": 5,
+            "positive_receivers": 9,
+            "zero_interval_rmse": 36.95410749302519,
+            "known_receiver_area": 8448.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 8448.0,
+              "denominator": 8448.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 8448.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 99,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 36.95410749302519,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 8448.0,
+          "denominator": 8448.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 8448.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 99,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "profile_kernel_no_angle": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "profile_kernel_no_angle",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 33,
+            "spatial_blocks": 5,
+            "positive_receivers": 33,
+            "zero_interval_rmse": 32.94347776529866,
+            "known_receiver_area": 8448.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 8448.0,
+              "denominator": 8448.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 8448.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 99,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 25344.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 32.94347776529866,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 8448.0,
+          "denominator": 8448.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 8448.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 99,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 25344.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "spot_angular_edge": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "spot_angular_edge",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 20,
+            "spatial_blocks": 2,
+            "positive_receivers": 14,
+            "zero_interval_rmse": 24.0249869927124,
+            "known_receiver_area": 5120.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 5120.0,
+              "denominator": 5120.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 5120.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 60,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 15360.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 15360.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 15360.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 24.0249869927124,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 5120.0,
+          "denominator": 5120.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 5120.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 60,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 15360.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 15360.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 15360.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "unknown_geometry": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "unknown_geometry",
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 1,
+            "spatial_blocks": 1,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 1.0
+          },
+          "status": "Passed",
+          "reason": "Typed unknown required; a numerical black value cannot satisfy this contract"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Unavailable",
+          "value": null
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 3,
+        "failures": {
+          "missing_prediction": 1
+        },
+        "extra_prediction_ids": 0,
+        "breakdown": {},
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "unknown_photometry": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "unknown_photometry",
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 1,
+            "spatial_blocks": 1,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 1.0
+          },
+          "status": "Passed",
+          "reason": "Typed unknown required; a numerical black value cannot satisfy this contract"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Unavailable",
+          "value": null
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 1.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 3,
+        "failures": {
+          "missing_prediction": 1
+        },
+        "extra_prediction_ids": 0,
+        "breakdown": {},
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_doorway_pair_v3": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "doorway_through",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 23,
+            "spatial_blocks": 3,
+            "positive_receivers": 20,
+            "zero_interval_rmse": 37.33572714892708,
+            "known_receiver_area": 5888.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 5888.0,
+              "denominator": 5888.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 5888.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 69,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 17664.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 17664.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 17664.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 37.33572714892708,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        },
+        {
+          "id": "doorway_blocked",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 13,
+            "spatial_blocks": 2,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 3328.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 3328.0,
+              "denominator": 3328.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 3328.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 39,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 9984.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 9984.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 9984.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 0.0,
+          "relative_zero_improvement": null,
+          "relative_status": "NonInformativeBaseline"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_panel_positive_v1": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "strong_area",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 96,
+            "spatial_blocks": 11,
+            "positive_receivers": 96,
+            "zero_interval_rmse": 59.95102167603151,
+            "known_receiver_area": 24576.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 24576.0,
+              "denominator": 24576.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 24576.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 288,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 59.95102167603151,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_sky_aperture_v1": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "positive_sky",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 96,
+            "spatial_blocks": 11,
+            "positive_receivers": 29,
+            "zero_interval_rmse": 6.386835418786573,
+            "known_receiver_area": 24576.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 24576.0,
+              "denominator": 24576.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 24576.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 288,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 6.386835418786573,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_sky_sealed_v1": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "sealed_sky_negative",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 96,
+            "spatial_blocks": 11,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 24576.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 24576.0,
+              "denominator": 24576.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 24576.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 288,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 0.0,
+          "relative_zero_improvement": null,
+          "relative_status": "NonInformativeBaseline"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_sun_positive_v1": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "strong_sun",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 96,
+            "spatial_blocks": 11,
+            "positive_receivers": 96,
+            "zero_interval_rmse": 120.0,
+            "known_receiver_area": 24576.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 24576.0,
+              "denominator": 24576.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 24576.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 288,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 73728.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 120.0,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    },
+    "x05_wall_pair_v1": {
+      "status": "Passed",
+      "success": true,
+      "contracts": [
+        {
+          "id": "wall_illuminated",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 60,
+            "spatial_blocks": 7,
+            "positive_receivers": 53,
+            "zero_interval_rmse": 18.942896645796633,
+            "known_receiver_area": 15360.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 15360.0,
+              "denominator": 15360.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 15360.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 180,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 46080.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 46080.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 46080.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0.0,
+          "absolute_zero_improvement": 18.942896645796633,
+          "relative_zero_improvement": 1.0,
+          "relative_status": "Available"
+        },
+        {
+          "id": "wall_blocked",
+          "status": "Passed",
+          "reasons": [],
+          "admission": {
+            "status": "Admitted",
+            "reasons": [],
+            "count": 36,
+            "spatial_blocks": 4,
+            "positive_receivers": 0,
+            "zero_interval_rmse": 0.0,
+            "known_receiver_area": 9216.0
+          },
+          "score": {
+            "rgb_interval_rmse": {
+              "status": "Available",
+              "value": 0.0
+            },
+            "linear_luminance_interval_rmse": {
+              "status": "NotComparable",
+              "value": null,
+              "reason": "Luminance requires comparable linear Rec709 predictions"
+            },
+            "prediction_coverage": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 9216.0,
+              "denominator": 9216.0
+            },
+            "observations_used_coverage": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0.0,
+              "denominator": 9216.0
+            },
+            "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+            "censored_channels_scored": 0,
+            "channels_in_requested_targets": 108,
+            "failures": {},
+            "extra_prediction_ids": 0,
+            "breakdown": {
+              "brightness/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 27648.0
+              },
+              "lighting/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 27648.0
+              },
+              "region/Unknown": {
+                "status": "Available",
+                "value": 0.0,
+                "denominator": 27648.0
+              }
+            },
+            "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+          },
+          "maximum_channel_interval_error": 0,
+          "absolute_zero_improvement": 0.0,
+          "relative_zero_improvement": null,
+          "relative_status": "NonInformativeBaseline"
+        }
+      ],
+      "overall": {
+        "rgb_interval_rmse": {
+          "status": "Available",
+          "value": 0.0
+        },
+        "linear_luminance_interval_rmse": {
+          "status": "NotComparable",
+          "value": null,
+          "reason": "Luminance requires comparable linear Rec709 predictions"
+        },
+        "prediction_coverage": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 24576.0,
+          "denominator": 24576.0
+        },
+        "observations_used_coverage": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0.0,
+          "denominator": 24576.0
+        },
+        "weight_unit": "Declared receiver area for surfaces; declared volume/equal-record weight for separate grid stream",
+        "censored_channels_scored": 0,
+        "channels_in_requested_targets": 288,
+        "failures": {},
+        "extra_prediction_ids": 0,
+        "breakdown": {
+          "brightness/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "lighting/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          },
+          "region/Unknown": {
+            "status": "Available",
+            "value": 0.0,
+            "denominator": 73728.0
+          }
+        },
+        "claim": "Error conditional on comparable predictions; coverage is an independent mandatory result"
+      },
+      "claim": "Forward capability only; no emitter recovery or historical compiler identification"
+    }
+  },
+  "status": "Passed",
+  "scope": "Required compiled positive/negative forward contracts only; profile/encoding/derivative/unsupported contracts require their separate diagnostics. This score is never full solver success.",
+  "no_emitter_recovery": true
+}
