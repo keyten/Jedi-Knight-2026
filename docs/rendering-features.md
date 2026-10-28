@@ -777,6 +777,8 @@ Adds real scene reflections to glossy PBR surfaces while retaining cubemaps as t
 - `r_ssrBlendStrength <value>` — confidence/replacement scale.
 - `r_ssrHitCache 0 | 1` — reuse still-valid previous-frame ray hits; pixels are periodically retraced.
 - `r_ssrReceiverCull 0 | 1` — skip ray marching on pixels that cannot use SSR.
+- `r_ssrFusedResolve 0 | 1` — without temporal accumulation, resolve the rays inside the composite (no full-resolution resolve image).
+- `r_ssrFootprintDepth 0 | 1` — keep the rough-reflection blur off surfaces in front of the hit (needs Hi-Z tracing).
 - `r_ssrEmitters 0 | 1` — analytic saber/blaster/effect reflections.
 - `r_ssrEmitterIntensity <value>` — analytic emitter brightness.
 - `r_ssrEmitterMaxRoughness <value>` — roughness limit for analytic emitters.
@@ -2085,6 +2087,8 @@ Sun/point-shadow verification performs additional rendering/readbacks and is int
 | `r_shadowStats` | `"0"` | Cheat | Print per-frame CPU front-end / submit cost of shadow and camera views once per second |
 | `r_shadowVerify` | `"0"` | Cheat | 1 = next frame, render every point light shadow cube both ways (r_shadowSinglePass 0 and 1) and print the depth texels that differ |
 | `r_skyPortalCull` | `"1"` | Live | 1 = the skyportal view only shades the pixels the opaque world of the main view leaves uncovered |
+| `r_ssrFootprintDepth` | `"1"` | Live | SSR: rough reflections do not blur surfaces in front of the hit into it (Hi-Z closest depth of the blur footprint, needs Hi-Z tracing) |
+| `r_ssrFusedResolve` | `"1"` | Live | SSR: without temporal accumulation the composite resolves the rays itself instead of a separate full resolution resolve pass (0 = separate pass) |
 | `r_ssrResolveCache` | `"1"` | Live | SSR: resolve half-res rays to radiance once per frame, then upsample (0 = per-pixel resolve) |
 | `r_sunShadowBenchmark` | `"0"` | Cheat | Measure this many complete frame intervals, with GPU readbacks/stats disabled |
 | `r_sunShadowVerify` | `"0"` | Cheat | Compare cached sun depth with a full render: 1 next scene, 2 continuous (slow readbacks) |

@@ -154,9 +154,12 @@ vec3 SSRSpecularWeight(ivec2 pix)
 }
 
 /*
-SSR trace texels (RGBA16, tr_ssr.cpp): xy = hit uv, z = SSREncodeHitDepth(hit view depth), w = confidence
-(0 = miss). The lowest bit of w flags a hit reused from the previous frame (hit cache, r_ssrDebug 12).
-The hit depth is log encoded over [1, zFar]: 16 bits keep it within ~0.02% everywhere.
+SSR trace texels (RGBA16, tr_ssr.cpp): xy = hit uv, z = SSREncodeHitDepth(hit view depth), w = 14 bit
+confidence and two flags, see SSREncodeConfidence. w = 0 is a miss; any other value is a ray that hit
+geometry, even at zero confidence (how much the SSR may replace the cubemap is not whether something is
+there: the analytic emitters behind it stay occluded). The lowest bit flags a hit reused from the previous
+frame (hit cache, r_ssrDebug 12). The hit depth is log encoded over [1, zFar]: 16 bits keep it within
+~0.02% everywhere.
 */
 float SSREncodeHitDepth(float z)
 {
@@ -198,15 +201,27 @@ ivec2 SSRNearestTraceTexel(vec2 uv, float gridScale, float phase, ivec2 traceSiz
 	return clamp(ivec2(floor((pixel - offset) / gridScale + 0.5)), ivec2(0), traceSize - ivec2(1));
 }
 
+// bits 15..2 = confidence, bit 1 = geometry hit (always set: w != 0), bit 0 = reused
 float SSREncodeConfidence(float confidence, bool reused)
 {
-	float q = floor(clamp(confidence, 0.0, 1.0) * 32767.0) * 2.0 + (reused ? 1.0 : 0.0);
+	float q = floor(clamp(confidence, 0.0, 1.0) * 16383.0) * 4.0 + 2.0 + (reused ? 1.0 : 0.0);
 	return q / 65535.0;
+}
+
+float SSRHitConfidence(float w)
+{
+	return float(int(w * 65535.0 + 0.5) >> 2) * (1.0 / 16383.0);
 }
 
 bool SSRHitReused(float w)
 {
 	return (int(w * 65535.0 + 0.5) & 1) != 0;
+}
+
+// trace texel -> hit with a plain confidence in w (SSRHitRadiance)
+vec4 SSRTraceHit(vec4 texel)
+{
+	return vec4(texel.xyz, SSRHitConfidence(texel.w));
 }
 
 // full resolution pixel that half resolution trace texel q traces: 2q + phase, the phase rotates over
@@ -434,15 +449,114 @@ bool SSRMarchRay(
 	return true;
 }
 
-// Every mip contains premultiplied coverage, including mip 0. Hardware
-// trilinear filtering now handles sharp and rough reflections identically.
-vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip)
+// Radiance of a hit (hit.w = plain confidence, see SSRTraceHit) from the color pyramid, at the mip of the
+// roughness cone where it meets the hit surface. Every mip contains premultiplied coverage, including mip 0:
+// hardware trilinear filtering handles sharp and rough reflections identically.
+//
+// maxHiZLevel > 0 (r_ssrFootprintDepth, the closest depth mips of u_SSRHiZMap exist up to that level): the
+// pyramid blurs what the camera sees around the hit, and a surface well in front of it (a silhouette next to
+// it on the screen) is nowhere near the reflection lobe, which ends at the hit; it would bleed into the rough
+// reflection as a dark or bright halo. The footprint is narrowed to the coarsest level whose closest depth
+// around the hit is not in front of it by more than the hit surface's own slope across the cell could explain.
+vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip, float maxHiZLevel)
 {
 	vec3 Q = SSRHitPosition(hit);
-	float footprint = 2.0 * length(Q - P) * coneTangent /
-		(max(Q.z, 1.0) * u_SSRDepthParams.w);
+	float pixelSize = max(Q.z, 1.0) * u_SSRDepthParams.w;
+	float footprint = 2.0 * length(Q - P) * coneTangent / pixelSize;
 	float mip = clamp(log2(max(footprint, 1.0)), 0.0, maxMip);
+
+	int level = min(int(ceil(mip)), int(maxHiZLevel));
+	if (level > 0)
+	{
+		ivec2 pixel = ivec2(hit.xy / u_SSRTexelSize.xy);
+		for (; level > 0; level--)
+		{
+			float allowance = 0.03 * Q.z + 2.0 + 3.0 * exp2(float(level)) * pixelSize;
+			ivec2 levelMax = textureSize(u_SSRHiZMap, level) - ivec2(1);
+			if (texelFetch(u_SSRHiZMap, min(pixel >> level, levelMax), level).r >= Q.z - allowance)
+				break;
+		}
+		mip = min(mip, float(level));
+	}
+
 	vec4 c = textureLod(u_SSRSceneMap, hit.xy, mip);
 	float confidence = hit.w * smoothstep(0.2, 0.6, c.a);
 	return vec4(c.rgb / max(c.a, 1e-3) * confidence, confidence);
+}
+
+/*
+Reflected radiance of the full resolution receiver pixel pix (z and normalRoughness as SSRIsReceiver returns
+them), premultiplied: rgb = radiance * confidence, a = confidence. Shared by the resolve pass (ssr_resolve.glsl)
+and the fused composite (ssr_composite.glsl, FUSED_RESOLVE).
+
+u_SSRTraceMap holds the trace texels, or with UPSAMPLE_RADIANCE the premultiplied radiance of every ray
+(ssr_resolve.glsl TRACE_RADIANCE, the current frame's pyramid). Half resolution rays (gridScale 2) are
+upsampled from the four nearest trace texels (each the ray of full resolution pixel 2q + phase), weighted by
+their bilinear position, depth and normal similarity: no reflection leaks across silhouettes.
+*/
+vec4 SSRResolvePixel(ivec2 pix, vec2 uv, float z, vec4 normalRoughness, float gridScale, float phaseIndex,
+	float maxMip, float maxHiZLevel)
+{
+#if !defined(UPSAMPLE_RADIANCE)
+	float coneTangent = SSRConeTangent(normalRoughness.b);
+	vec3 P = SSRViewPosition(uv, z);
+	if (gridScale < 1.5)
+	{
+		vec4 hit = SSRTraceHit(texelFetch(u_SSRTraceMap, pix, 0));
+		return hit.w > 0.0 ? SSRHitRadiance(hit, P, coneTangent, maxMip, maxHiZLevel) : vec4(0.0);
+	}
+#endif
+
+	// half resolution: trace texel q holds the ray of full resolution pixel 2q + phase
+	vec2 phase = SSRPhaseOffset(phaseIndex);
+	ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
+	ivec2 traceMax = textureSize(u_SSRTraceMap, 0) - ivec2(1);
+	vec2 st = (vec2(pix) - phase) * 0.5;
+	ivec2 base = ivec2(floor(st));
+	vec2 f = st - vec2(base);
+	vec3 N = SSRDecodeNormal(normalRoughness.rg);
+
+	vec3 radiance = vec3(0.0);
+	float confidenceSum = 0.0;
+	float weightSum = 0.0;
+	for (int i = 0; i < 4; i++)
+	{
+		ivec2 offset = ivec2(i & 1, i >> 1);
+		ivec2 q = clamp(base + offset, ivec2(0), traceMax);
+		ivec2 src = SSRTracePixel(q, 2.0, phase, fullSize);
+
+		float w = (offset.x == 1 ? f.x : 1.0 - f.x) * (offset.y == 1 ? f.y : 1.0 - f.y);
+		w = max(w, 0.01);
+
+		float zs = texelFetch(u_SSRHiZMap, src, 0).r;
+		vec4 ns = texelFetch(u_SSRNormalMap, src, 0);
+		if (!SSRIsSurface(zs) || ns.a < 0.5)
+			continue;
+		w *= exp(-abs(zs - z) / (0.02 * z + 1.0));
+		w *= pow(max(dot(SSRDecodeNormal(ns.rg), N), 0.0), 8.0);
+
+#if defined(UPSAMPLE_RADIANCE)
+		// A ray's radiance uses that receiver's roughness. Keep neighbours
+		// with a different blur footprint from leaking across material edges.
+		w *= exp(-abs(ns.b - normalRoughness.b) * 16.0);
+		vec4 h = texelFetch(u_SSRTraceMap, q, 0);
+		radiance += w * h.rgb;
+		confidenceSum += w * h.a;
+#else
+		vec4 hit = SSRTraceHit(texelFetch(u_SSRTraceMap, q, 0));
+		if (hit.w > 0.0)
+		{
+			vec4 h = SSRHitRadiance(hit, P, coneTangent, maxMip, maxHiZLevel);
+			radiance += w * h.rgb;
+			confidenceSum += w * h.a;
+		}
+#endif
+		weightSum += w;
+	}
+
+	// no compatible ray: cubemap reflection only
+	if (weightSum < 1.0e-4)
+		return vec4(0.0);
+
+	return vec4(radiance, confidenceSum) / weightSum;
 }

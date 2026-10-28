@@ -17,7 +17,8 @@ void main()
 //     tolerance of moving surfaces grows with their screen motion only),
 //   - the reflected point moved: the ray hit of this frame (u_SSRHitMap) and the one of the history
 //     (u_SSRPrevHitMap, brought into this view) are further apart than the reflection cone or two trace
-//     pixels, or one of them is a hit and the other a miss. The receiver alone does not tell: a mirror
+//     pixels, or one of them is a confident hit and the other a miss (geometry hits are compared by
+//     position whatever their confidence: the clamp follows a confidence change). The receiver alone does not tell: a mirror
 //     under a moving camera keeps its depth and normal while it reflects something else,
 // and it is clamped to the range of the current 3x3 neighborhood (YCoCg), so reflections of moving
 // things do not smear. Large motion lowers the history weight.
@@ -119,7 +120,7 @@ void main()
 	if ((hitNow.w > 0.0) != (hitPrev.w > 0.0))
 	{
 		// a hit appeared or vanished (faint ones blend, the clamp handles them)
-		hitAgreement = 1.0 - smoothstep(0.1, 0.4, max(hitNow.w, hitPrev.w));
+		hitAgreement = 1.0 - smoothstep(0.1, 0.4, max(SSRHitConfidence(hitNow.w), SSRHitConfidence(hitPrev.w)));
 	}
 	else if (hitNow.w > 0.0)
 	{

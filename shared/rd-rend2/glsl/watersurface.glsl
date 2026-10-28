@@ -1387,7 +1387,7 @@ vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDi
 		return vec4(0.0);
 
 	vec4 radiance = SSRHitRadiance(vec4(hitUV, SSREncodeHitDepth(zScene), confidence),
-		P, SSRConeTangent(roughness), u_SSRSettings2.z);
+		P, SSRConeTangent(roughness), u_SSRSettings2.z, 0.0);
 	return vec4(SceneToLinear(radiance.rgb / max(radiance.a, 1e-3)), radiance.a);
 }
 

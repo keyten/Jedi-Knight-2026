@@ -15,19 +15,27 @@ void main()
 //   color += c * (SSR radiance * W - C)
 //
 // (the SSR input is premultiplied by c). c = 1 shows the SSR instead of the cubemap reflection, c = 0
-// leaves the pixel as lightall wrote it: the cubemap reflection is never doubled.
+// leaves the pixel as lightall wrote it: the cubemap reflection is never doubled. Pixels with nothing to
+// add are discarded, so most of the screen is not blended at all.
 //
 // Light sabers and additive effects are neither in the SSR scene (blended, no depth, drawn later) nor
 // in the cubemaps, so their reflection is added: color += W * E, E = the reflection ray intersected
 // with the capsule / sphere proxies of RB_SSRCollectEmitters, blurred by the roughness cone and hidden
-// behind the surface the SSR ray hit first.
+// behind the geometry the SSR rays around the pixel hit first. That is the geometry of the hit, not the
+// SSR confidence: a wall at the screen edge or under a grazing ray still hides what is behind it.
 //
-// u_SSRTraceMap = final SSR (resolve or temporal accumulation), u_SSRHistoryMap = trace (hit point and
-// confidence, for the emitter occlusion).
+// FUSED_RESOLVE (r_ssrFusedResolve, no temporal accumulation): the resolve is done here
+// (SSRResolvePixel) instead of being written to a full resolution image and read back.
+//
+// u_SSRTraceMap = final SSR (resolve or temporal accumulation); FUSED_RESOLVE: the trace, or the per-ray
+// radiance with UPSAMPLE_RADIANCE. u_SSRHistoryMap = trace (hit points, for the emitter occlusion).
 // u_SSRSettings: x = strength (confidence scale), y = split x in window pixels (r_ssrCompare, pixels
 // left of it keep the cubemap reflection, -1 = off), z = debug view 7..11 (0 = off), w = pass:
 // 0 = signed delta (float target), 1 = replaced cubemap part (subtracted), 2 = added part
-// u_SSRSettings2: x = trace grid scale (1 or 2), y = max ray length
+// u_SSRSettings2: x = trace grid scale (1 or 2), y = max ray length, z = trace phase (0..3)
+// u_SSRSettings3: FUSED_RESOLVE: x = coarsest color mip, y = coarsest Hi-Z level of the footprint depth
+// test (0 = off)
+// u_SSRTexelSize.xy = 1 / full resolution size
 // u_SSREmitters: 3 vec4 per emitter, SSR view space: (a, radius), (b, 1 = sphere), (color, 0)
 // u_SSREmitterParams: x = number of emitters, z = max roughness
 
@@ -38,8 +46,49 @@ uniform vec4 u_SSREmitterParams;
 
 out vec4 out_Color;
 
+// Distance from O to the nearest geometry that the reflection rays around this pixel hit (1e30: none).
+// At half resolution the four nearest rays of the same surface (depth and normal, as SSRResolvePixel
+// weights them) are considered and the nearest hit is kept: an emitter behind a wall is hidden by all.
+float EmitterOccluderDistance(ivec2 pix, float z, vec3 worldNormal, vec3 O)
+{
+	ivec2 traceMax = textureSize(u_SSRHistoryMap, 0) - ivec2(1);
+	ivec2 nearest = min(pix, traceMax);
+	if (u_SSRSettings2.x > 1.5)
+	{
+		vec2 phase = SSRPhaseOffset(u_SSRSettings2.z);
+		ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
+		ivec2 base = ivec2(floor((vec2(pix) - phase) * 0.5));
+		float hitDistance = 1.0e30;
+		bool sameSurface = false;
+		for (int i = 0; i < 4; i++)
+		{
+			ivec2 q = clamp(base + ivec2(i & 1, i >> 1), ivec2(0), traceMax);
+			ivec2 src = SSRTracePixel(q, 2.0, phase, fullSize);
+			float zs = texelFetch(u_SSRHiZMap, src, 0).r;
+			vec4 ns = texelFetch(u_SSRNormalMap, src, 0);
+			if (!SSRIsSurface(zs) || ns.a < 0.5 || abs(zs - z) > 0.02 * z + 1.0 ||
+				dot(SSRDecodeNormal(ns.rg), worldNormal) < 0.9)
+			{
+				continue;
+			}
+			sameSurface = true;
+			vec4 hit = texelFetch(u_SSRHistoryMap, q, 0);
+			if (hit.w > 0.0)
+				hitDistance = min(hitDistance, length(SSRHitPosition(hit) - O));
+		}
+		if (sameSurface)
+			return hitDistance;
+
+		// no ray of this surface around (a thin receiver): the nearest ray
+		nearest = SSRNearestTraceTexel((vec2(pix) + 0.5) * u_SSRTexelSize.xy, 2.0, u_SSRSettings2.z, traceMax + ivec2(1));
+	}
+
+	vec4 hit = texelFetch(u_SSRHistoryMap, nearest, 0);
+	return hit.w > 0.0 ? length(SSRHitPosition(hit) - O) : 1.0e30;
+}
+
 // Reflection of the emitters seen along the ray O + R t, t > 0
-vec3 EmitterReflection(vec3 O, vec3 R, float roughness, float occluderDistance, float occluderConfidence)
+vec3 EmitterReflection(vec3 O, vec3 R, float roughness, float occluderDistance)
 {
 	float coneTangent = SSRConeTangent(roughness);
 	int count = int(u_SSREmitterParams.x);
@@ -86,8 +135,8 @@ vec3 EmitterReflection(vec3 O, vec3 R, float roughness, float occluderDistance, 
 		if (b.w > 0.5)
 			energy *= energy; // spread in two directions
 
-		// behind the surface the SSR ray hit first
-		float visibility = t > occluderDistance ? 1.0 - occluderConfidence : 1.0;
+		// behind the geometry the SSR ray hit first, partly where the emitter reaches through it
+		float visibility = smoothstep(t - radius, t + radius + 1.0, occluderDistance);
 		visibility *= 1.0 - smoothstep(u_SSRSettings2.y, 2.0 * u_SSRSettings2.y, t);
 
 		result += color * (profile * energy * visibility);
@@ -102,7 +151,21 @@ void main()
 		discard;
 
 	ivec2 pix = ivec2(gl_FragCoord.xy);
+	vec2 uv = (vec2(pix) + 0.5) * u_SSRTexelSize.xy;
+	float z = texelFetch(u_SSRHiZMap, pix, 0).r;
+	vec4 normalRoughness;
+	bool receiver = SSRIsReceiver(pix, z, normalRoughness);
+
+#if defined(FUSED_RESOLVE)
+	vec4 ssr = vec4(0.0);
+	if (receiver && SSRInsideView(uv))
+	{
+		ssr = SSRResolvePixel(pix, uv, z, normalRoughness, u_SSRSettings2.x, u_SSRSettings2.z,
+			u_SSRSettings3.x, u_SSRSettings3.y);
+	}
+#else
 	vec4 ssr = texelFetch(u_SSRTraceMap, pix, 0);
+#endif
 	vec3 weight = SSRSpecularWeight(pix);
 	vec3 cubemap = texelFetch(u_SSRCubemapMap, pix, 0).rgb;
 
@@ -110,17 +173,12 @@ void main()
 	vec3 ssrPart = ssr.rgb * weight * strength;
 	vec3 cubemapPart = cubemap * (ssr.a * strength);
 
-	float z = texelFetch(u_SSRHiZMap, pix, 0).r;
-	vec4 normalRoughness;
-	bool receiver = SSRIsReceiver(pix, z, normalRoughness);
-
 	// light sabers and effects, glossy surfaces only (the dynamic light of
 	// a saber already gives rough surfaces their highlight)
 	vec3 emitterPart = vec3(0.0);
 	float maxRoughness = u_SSREmitterParams.z;
 	if (receiver && u_SSREmitterParams.x > 0.5 && normalRoughness.b < maxRoughness)
 	{
-		vec2 uv = (vec2(pix) + 0.5) / vec2(textureSize(u_SSRHiZMap, 0));
 		vec3 P = SSRViewPosition(uv, z);
 		vec3 N = SSRViewNormal(normalRoughness.rg);
 		vec3 V = -normalize(P);
@@ -128,12 +186,10 @@ void main()
 		{
 			vec3 R = reflect(-V, N);
 			vec3 O = P + N * max(0.05, 0.002 * z);
-
-			vec4 hit = texelFetch(u_SSRHistoryMap, min(pix / int(u_SSRSettings2.x), textureSize(u_SSRHistoryMap, 0) - ivec2(1)), 0);
-			float occluderDistance = hit.w > 0.0 ? length(SSRHitPosition(hit) - O) : 1.0e30;
+			float occluderDistance = EmitterOccluderDistance(pix, z, SSRDecodeNormal(normalRoughness.rg), O);
 
 			float fade = 1.0 - smoothstep(0.5, 1.0, normalRoughness.b / maxRoughness);
-			emitterPart = EmitterReflection(O, R, normalRoughness.b, occluderDistance, hit.w) *
+			emitterPart = EmitterReflection(O, R, normalRoughness.b, occluderDistance) *
 				weight * (fade * strength);
 		}
 	}
@@ -158,6 +214,13 @@ void main()
 		}
 		out_Color = vec4(result, 1.0);
 		return;
+	}
+
+	// nothing replaced or added: leave the target alone (no blend)
+	if (max(ssr.a, max(ssr.r, max(ssr.g, ssr.b))) <= 0.0 &&
+		max(emitterPart.r, max(emitterPart.g, emitterPart.b)) <= 0.0)
+	{
+		discard;
 	}
 
 	int pass = int(u_SSRSettings.w);

@@ -495,6 +495,8 @@ cvar_t  *r_ssrEmitterMaxRoughness;
 cvar_t  *r_ssrHitCache;
 cvar_t  *r_ssrResolveCache;
 cvar_t  *r_ssrReceiverCull;
+cvar_t  *r_ssrFusedResolve;
+cvar_t  *r_ssrFootprintDepth;
 
 cvar_t  *r_ssgi;
 cvar_t  *r_ssgiSource;
@@ -2575,6 +2577,10 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrResolveCache, 0, 1, qtrue );
 	r_ssrReceiverCull = ri_Cvar_Get_NoComm( "r_ssrReceiverCull", "1", CVAR_ARCHIVE, "SSR: run the ray march only on the pixels that need a ray (early depth test)" );
 	ri.Cvar_CheckRange( r_ssrReceiverCull, 0, 1, qtrue );
+	r_ssrFusedResolve = ri_Cvar_Get_NoComm( "r_ssrFusedResolve", "1", CVAR_ARCHIVE, "SSR: without temporal accumulation the composite resolves the rays itself instead of a separate full resolution resolve pass (0 = separate pass)" );
+	ri.Cvar_CheckRange( r_ssrFusedResolve, 0, 1, qtrue );
+	r_ssrFootprintDepth = ri_Cvar_Get_NoComm( "r_ssrFootprintDepth", "1", CVAR_ARCHIVE, "SSR: rough reflections do not blur surfaces in front of the hit into it (Hi-Z closest depth of the blur footprint, needs Hi-Z tracing)" );
+	ri.Cvar_CheckRange( r_ssrFootprintDepth, 0, 1, qtrue );
 
 	r_ssgi = ri_Cvar_Get_NoComm( "r_ssgi", "0", CVAR_ARCHIVE | CVAR_LATCH, "Screen-space diffuse GI: bounces dynamic light (sabers, blasters, explosions) and emission, not the baked lighting (needs vid_restart)" );
 	ri.Cvar_CheckRange( r_ssgi, 0, 1, qtrue );

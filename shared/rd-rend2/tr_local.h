@@ -586,6 +586,8 @@ extern cvar_t  *r_ssrEmitterMaxRoughness;
 extern cvar_t  *r_ssrHitCache;
 extern cvar_t  *r_ssrResolveCache;
 extern cvar_t  *r_ssrReceiverCull;
+extern cvar_t  *r_ssrFusedResolve;
+extern cvar_t  *r_ssrFootprintDepth;
 
 extern cvar_t  *r_ssgi;
 extern cvar_t  *r_ssgiSource;
@@ -4710,6 +4712,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t ssrUpsampleShader;
 	shaderProgram_t ssrTemporalShader;
 	shaderProgram_t ssrCompositeShader;
+	shaderProgram_t ssrCompositeFusedShader[2];	// resolves itself: [0] from the trace, [1] from the radiance cache
 	shaderProgram_t ssrDebugShader;
 	shaderProgram_t screenHiZShader[2];		// 0 = linearize, 1 = downsample mip (tr_screenspace.cpp)
 	shaderProgram_t ssgiSourceShader;

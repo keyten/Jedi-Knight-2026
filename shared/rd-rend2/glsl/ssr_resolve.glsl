@@ -17,13 +17,17 @@ void main()
 // and the texels outside the view rectangle are left out, so a reflection never picks up the
 // weapon or a neighbouring view. A footprint made mostly of such texels falls back to the cubemap.
 //
-// Half resolution rays (u_SSRSettings.x = 2) are upsampled from the four nearest trace texels (each the
-// ray of full resolution pixel 2q + phase), weighted by their bilinear position, depth and normal
-// similarity: no reflection leaks across silhouettes.
+// Full resolution rays: one hit per pixel. Half resolution rays (u_SSRSettings.x = 2) are upsampled
+// from the four nearest trace texels, see SSRResolvePixel. The composite does the same work itself
+// when nothing needs this image (no temporal accumulation, ssr_composite.glsl FUSED_RESOLVE).
+//
+// TRACE_RADIANCE (r_ssrResolveCache, half resolution): the radiance of every ray once, at trace
+// resolution, with the roughness of its own receiver. UPSAMPLE_RADIANCE then only filters it.
 //
 // Output (RGBA16F): rgb = radiance * confidence (premultiplied), a = confidence.
 //
-// u_SSRSettings: x = trace grid scale (1 or 2), z = coarsest color mip
+// u_SSRSettings: x = trace grid scale (1 or 2), z = coarsest color mip, w = coarsest Hi-Z level of
+// the footprint depth test (0 = off)
 // u_SSRSettings2: y = trace phase (0..3)
 // u_SSRTexelSize.xy = 1 / full resolution size
 
@@ -35,7 +39,7 @@ void main()
 
 	ivec2 pix = ivec2(gl_FragCoord.xy);
 #if defined(TRACE_RADIANCE)
-	vec4 hit = texelFetch(u_SSRTraceMap, pix, 0);
+	vec4 hit = SSRTraceHit(texelFetch(u_SSRTraceMap, pix, 0));
 	if (hit.w <= 0.0)
 		return;
 	pix = SSRTracePixel(pix, u_SSRSettings.x, SSRPhaseOffset(u_SSRSettings2.y), textureSize(u_SSRHiZMap, 0));
@@ -49,77 +53,11 @@ void main()
 	if (!SSRIsReceiver(pix, z, normalRoughness))
 		return;
 
-#if !defined(UPSAMPLE_RADIANCE)
-	float coneTangent = SSRConeTangent(normalRoughness.b);
-	vec3 P = SSRViewPosition(uv, z);
-#endif
-
 #if defined(TRACE_RADIANCE)
-	out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
+	out_Color = SSRHitRadiance(hit, SSRViewPosition(uv, z), SSRConeTangent(normalRoughness.b),
+		u_SSRSettings.z, u_SSRSettings.w);
 #else
-#if !defined(UPSAMPLE_RADIANCE)
-	if (u_SSRSettings.x < 1.5)
-	{
-		vec4 hit = texelFetch(u_SSRTraceMap, pix, 0);
-		if (hit.w > 0.0)
-			out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
-		return;
-	}
-#endif
-
-	// half resolution: trace texel q holds the ray of full resolution pixel 2q + phase
-	int phaseIndex = int(u_SSRSettings2.y);
-	vec2 phase = vec2(float(phaseIndex & 1), float(phaseIndex >> 1));
-	ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
-	ivec2 traceMax = textureSize(u_SSRTraceMap, 0) - ivec2(1);
-	vec2 st = (vec2(pix) - phase) * 0.5;
-	ivec2 base = ivec2(floor(st));
-	vec2 f = st - vec2(base);
-	vec3 N = SSRDecodeNormal(normalRoughness.rg);
-
-	vec3 radiance = vec3(0.0);
-	float confidenceSum = 0.0;
-	float weightSum = 0.0;
-	for (int i = 0; i < 4; i++)
-	{
-		ivec2 offset = ivec2(i & 1, i >> 1);
-		ivec2 q = clamp(base + offset, ivec2(0), traceMax);
-		ivec2 src = SSRTracePixel(q, 2.0, phase, fullSize);
-
-		float w = (offset.x == 1 ? f.x : 1.0 - f.x) * (offset.y == 1 ? f.y : 1.0 - f.y);
-		w = max(w, 0.01);
-
-		float zs = texelFetch(u_SSRHiZMap, src, 0).r;
-		vec4 ns = texelFetch(u_SSRNormalMap, src, 0);
-		if (!SSRIsSurface(zs) || ns.a < 0.5)
-			continue;
-		w *= exp(-abs(zs - z) / (0.02 * z + 1.0));
-		w *= pow(max(dot(SSRDecodeNormal(ns.rg), N), 0.0), 8.0);
-
-#if defined(UPSAMPLE_RADIANCE)
-		// A ray's radiance uses that receiver's roughness. Keep neighbours
-		// with a different blur footprint from leaking across material edges.
-		w *= exp(-abs(ns.b - normalRoughness.b) * 16.0);
-		vec4 h = texelFetch(u_SSRTraceMap, q, 0);
-		radiance += w * h.rgb;
-		confidenceSum += w * h.a;
-#else
-
-		vec4 hit = texelFetch(u_SSRTraceMap, q, 0);
-		if (hit.w > 0.0)
-		{
-			vec4 h = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z);
-			radiance += w * h.rgb;
-			confidenceSum += w * h.a;
-		}
-#endif
-		weightSum += w;
-	}
-
-	// no compatible ray: cubemap reflection only
-	if (weightSum < 1.0e-4)
-		return;
-
-	out_Color = vec4(radiance, confidenceSum) / weightSum;
+	out_Color = SSRResolvePixel(pix, uv, z, normalRoughness, u_SSRSettings.x, u_SSRSettings2.y,
+		u_SSRSettings.z, u_SSRSettings.w);
 #endif
 }

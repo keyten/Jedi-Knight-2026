@@ -100,18 +100,25 @@ look.
    3. `RB_RenderSSR`: MSAA color is resolved into `renderImage` when needed. `ssr_color_mask` builds
       `ssrColor` mip 0 with premultiplied coverage, excluding the first person weapon and texels outside
       the view rectangle. All six downsample levels use four bilinear taps on that masked result.
-   4. classify (`ssr_classify`, `r_ssrReceiverCull 1`): nearest depth where a pixel needs a ray, so the trace is rejected
-      by the early depth test everywhere else. The classified trace variants skip the duplicate receiver
-      eligibility checks (stored depth and specular weight). The trace is cleared with confidence **zero**;
-      an alpha-1 black clear would make rejected pixels look like confident cached hits.
+   4. classify (`ssr_classify`, `r_ssrReceiverCull 1`): nearest depth where a pixel does **not** need a ray; the
+      trace is drawn behind it and in front of the cleared depth, so it is rejected by the early depth test there.
+      Both passes test `LESS`: the earlier "mark the ray pixels, trace with `GREATER`" flipped the depth
+      direction after writing, which turns the coarse (hierarchical) depth rejection of many GPUs off until the
+      next clear and leaves only per-pixel early tests. The classified trace variants skip the duplicate
+      receiver eligibility checks (stored depth and specular weight). The trace is cleared with confidence
+      **zero**; an alpha-1 black clear would make rejected pixels look like confident cached hits.
    5. trace (`ssr_trace`, full or half resolution) -> `ssrTrace[current]`, reusing valid hits of
       `ssrTrace[previous]` (hit cache)
    6. resolve: at half resolution, `r_ssrResolveCache 1` reads the current scene color once per ray into
       `ssrRadiance`, then upsamples that radiance into full-resolution `ssrResolve`. Full resolution and
-      `r_ssrResolveCache 0` retain direct per-pixel color-pyramid resolve.
+      `r_ssrResolveCache 0` retain direct per-pixel color-pyramid resolve. Without the temporal pass
+      (`r_ssrFusedResolve 1`, float target, not `r_ssrDebug 6`) nothing else reads `ssrResolve`: the composite
+      runs the same resolve itself (`SSRResolvePixel`, `ssr_composite_fused*`) and the full resolution RGBA16F
+      write + read disappear; only the per-ray radiance pass of the resolve cache remains.
    7. optional temporal accumulation (`ssr_temporal`) -> `ssrHistory[current]`
    8. composite (`ssr_composite`) into color 0 through `ssrCompositeFbo` (color 0 only: the glow and material
-      attachments stay untouched and the sampled depth is not attached)
+      attachments stay untouched and the sampled depth is not attached). Pixels with nothing to replace or add
+      are discarded rather than blended with zero.
 5. Main pass, **the rest**: decals, see-through, blended surfaces, fog passes, sun, flares - on top of the hybrid
    result.
 6. Post processing unchanged; `r_ssrDebug 1-6` and `12` overlays at its end.
@@ -130,8 +137,8 @@ replaces), without particles or glass in it.
 |---|---|---|
 | `ssrColor` | as renderImage, 7 mips (all premultiplied coverage) | full |
 | `screenHiZ` (shared) | R32F, 7 mips | full |
-| `ssrTrace[2]` | RGBA16 (hit uv, log hit depth, confidence + reused bit), depth 16 (classification) | trace resolution (half: a quarter); this frame and the previous (hit cache) |
-| `ssrResolve` | RGBA16F (premultiplied radiance, confidence) | full |
+| `ssrTrace[2]` | RGBA16 (hit uv, log hit depth, 14 bit confidence + geometry + reused bits), depth 16 (classification) | trace resolution (half: a quarter); this frame and the previous (hit cache) |
+| `ssrResolve` | RGBA16F (premultiplied radiance, confidence) | full; not written by the fused composite |
 | `ssrRadiance` | RGBA16F (current-frame radiance, confidence) | trace resolution, allocated only at half res |
 | `ssrHistory[2]`, `ssrHistoryGeom[2]` | RGBA16F | full, only with `r_ssrTemporal 1` |
 
@@ -155,6 +162,15 @@ replaces), without particles or glass in it.
   gives the blur footprint at the hit; the resolve samples the color pyramid at `log2(footprint in pixels)`. Mirror
   surfaces are sharp, rough ones blurred, and the sharpness matches the cubemap mip they blend with. Above
   `r_ssrMaxRoughness` only the cubemap is used (smooth fade from 70% of it).
+- Footprint depth (`r_ssrFootprintDepth`, default 1, Hi-Z tracing only): the pyramid blurs what the camera sees
+  around the hit. A surface well in front of the hit next to it on the screen (a pillar silhouette in front of
+  the reflected wall) is nowhere near the reflection lobe, which ends at the hit, yet a coarse mip blends it in:
+  dark or bright halos around foreground silhouettes in rough reflections. `SSRHitRadiance` reads the closest
+  depth of the Hi-Z cell around the hit at the chosen level and steps down while it is in front of the hit by more
+  than `3% + 2 + 3 cell widths` (what the hit surface's own slope across the cell can explain); the mip is
+  narrowed to that level. One Hi-Z fetch when nothing is in front, a reflection sharper than the cone (never a
+  halo) next to silhouettes. Surfaces behind the hit are left in the blur: lobe rays passing beside a reflected
+  object do reach them. With linear tracing the Hi-Z mips do not exist and the test is off.
 - Reflection occlusion (`r_ssrRoughOcclusion`, latched, default 1): the cubemap reflection is darkened by the
   lightmap luminance scale (`CalcIBLRadiance`) and the specular occlusion, the SSR weight was not. One mirror ray
   only sees a narrow lobe, so on rough walls in baked shadow or recesses it found a sunlit floor and replaced the
@@ -178,8 +194,7 @@ consistent with this frame's ray:
 - not a moving object (the velocity at the hit leads back to where the cached hit was);
 - no front surface blocks the interior of the segment to the cached hit. A conservative Hi-Z query has a
   24-iteration budget; any blocker or an untested tail invalidates the cache. There is no upper thickness
-  bound that could let a much closer blocker pass. Linear tracing only reads mip 0, so long segments
-  usually fall back to fresh tracing when that budget is exhausted.
+  bound that could let a much closer blocker pass.
 
 The confidence terms are recomputed with the current geometry, and the radiance is always read from this frame's
 scene: lights, sabers or a door changing color show at once. A trace cell refreshes every four frames with a
@@ -189,8 +204,19 @@ previous-transform UBOs even with color temporal accumulation off, keeping `r_ss
 Without a valid depth-prepass velocity buffer, reuse is disabled. Needs a valid history (same cut rules as the temporal accumulation).
 `r_ssrDebug 12` shows reused (green) and traced (red) hits.
 
-Cache validation has a cost and need not beat a short, cheap fresh march. Compare `r_ssrHitCache 0/1` on the
-target GPU; do not infer a speedup from the green debug pixels alone.
+Why validation rarely beats a fresh march, and what limits its cost:
+
+- The validation walks the same segment, through the same Hi-Z levels, as the march to that hit. It saves the
+  march's climb from level 0 and the refinement, and pays the receiver reprojection, the cached texel, the hit
+  depth and the hit velocity. Cached rays shorter than 24 pixels on screen (`SSR_CACHE_MIN_PIXELS`) are traced
+  again without the validation walk.
+- Linear tracing (`r_ssrHiZ 0`, low preset) never reuses: without Hi-Z levels the validation steps single
+  pixels with its 24-iteration budget, more than the 16-step linear march it would replace.
+- The refresh slot is one per 8x8 tile of trace texels. With a per-texel 2x2 pattern every group of pixels the
+  GPU runs in lockstep contained a refreshing texel, so every group paid for the full march on top of the
+  validation of the others: the strict cache was slower than no cache in all measured views (2026-10-21).
+
+Compare `r_ssrHitCache 0/1` on the target GPU; do not infer a speedup from the green debug pixels alone.
 
 ### Confidence
 
@@ -199,6 +225,12 @@ the ray), screen edge fade (`r_ssrEdgeFade`), end of the ray, rays back towards 
 skims its own normal mapped surface), roughness fade, `r_ssrBlendStrength`. Misses, rays leaving the screen, sky (no
 depth), the first person weapon (hacked depth range: neither receiver nor hit), and hits closer than twice the
 start offset (self intersection) have 0.
+
+The confidence says how far the SSR may replace the cubemap, not whether the ray hit something. The trace
+therefore writes every hit that is not fully ambiguous, even at zero confidence: `w` holds 14 bits of
+confidence, a geometry bit (always set, so `w = 0` is exactly a miss) and the reused bit
+(`SSREncodeConfidence` / `SSRHitConfidence`). The resolve and the temporal confidence tests decode the
+confidence; the analytic emitter occlusion and the hit cache use the geometry.
 
 ### Half resolution
 
@@ -250,8 +282,14 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
   the distance and spreads its energy (`radius / effective radius`, squared for spheres). The result is weighted
   by `W` like every other reflection and **added**: it is neither in `C` nor in the SSR scene, so nothing is
   counted twice.
-- **Occlusion.** When the SSR ray of the pixel hit a surface closer than the emitter, the emitter is hidden by
-  that hit's confidence. Emitters farther than `r_ssrMaxDistance` fade out by twice that distance.
+- **Occlusion.** When the SSR ray of the pixel hit geometry closer than the emitter, the emitter is hidden,
+  softly where the proxy reaches through the hit (`smoothstep(t - radius, t + radius + 1, hit distance)`). This
+  is the geometry of the hit, not the SSR confidence: before 2026-10-28 the emitter was dimmed by
+  `1 - confidence`, so a wall near the screen edge, under a grazing ray, in a ray towards the camera or on a
+  surface near `r_ssrMaxRoughness` let most of a saber behind it through, and a zero-confidence hit (written as a
+  miss) let all of it through. At half resolution the four nearest rays of the same surface (depth and normal
+  as the upsampling weights them, phase aware) are read and the nearest hit kept; a pixel with none of them
+  falls back to the nearest ray. Emitters farther than `r_ssrMaxDistance` fade out by twice that distance.
 - **Rough surfaces.** A saber also adds a dynamic light, whose specular highlight already shows on rough
   surfaces; the emitter reflection fades out between 50% and 100% of `r_ssrEmitterMaxRoughness`.
 - Computed in the composite, after the temporal accumulation: fast saber swings do not smear.
@@ -278,6 +316,8 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrHitCache` | 1 | reuse validated hits; refresh every 4 frames, all rotating half-res phases within 16 frames; needs depth prepass |
 | `r_ssrResolveCache` | 1 | resolve each half-res ray's current-frame radiance once before edge-aware upsample; 0 = direct per-pixel footprint |
 | `r_ssrReceiverCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
+| `r_ssrFusedResolve` | 1 | without temporal accumulation the composite resolves the rays itself (no full resolution resolve image); 0 = separate pass |
+| `r_ssrFootprintDepth` | 1 | rough reflections do not blur surfaces in front of the hit into it (Hi-Z tracing only) |
 | `r_ssrDebug` | 0 | cheat, see below |
 | `r_ssrEmitters` | 1 | reflect light sabers and additive effects (analytic) |
 | `r_ssrEmitterIntensity` | 1 | brightness of those reflections |
@@ -293,7 +333,7 @@ color of the view before the rest of the pass and go through the normal tone map
 | 1 | material normal (world, `* 0.5 + 0.5`) |
 | 2 | roughness |
 | 3 | specular reflectance W (F0 * EnvBRDF.x + EnvBRDF.y with specular occlusion) |
-| 4 | ray hit (green, brighter = more confident) / miss (red); non-receivers dark gray |
+| 4 | ray hit (green, brighter = more confident; olive = geometry at zero confidence, an emitter occluder only) / miss (red); non-receivers dark gray |
 | 5 | hit distance (blue near, red at `r_ssrMaxDistance`) |
 | 6 | final confidence (after temporal accumulation) |
 | 7 | raw SSR radiance |
@@ -307,7 +347,8 @@ A/B: `r_ssr 0` is the previous renderer; `r_ssrCompare 1` shows cubemap-only and
 frame; `r_ssrDebug 8` vs `9` shows the reflection term alone. `build/ab/*-pressr.dll` (HEAD) vs `*-ssr.dll`.
 
 GPU timers: `r_speeds 100` lists "Screen geometry" (shared MSAA resolve + depth pyramid), "SSR inputs" (color
-pyramid), "SSR trace", "SSR resolve", "SSR temporal", "SSR composite".
+pyramid), "SSR trace", "SSR resolve", "SSR temporal", "SSR composite". With the fused resolve, "SSR resolve" is
+only the per-ray radiance pass (or nothing at full resolution) and the resolve work moves into "SSR composite".
 
 ## GPU cost
 
@@ -323,9 +364,10 @@ water was the cost.
 
 ## Validation checklist
 
-The cache-fix renderer builds in MSVC SP/MP. Its 15 SSR shader permutations and targeted regressions run
-on Intel UHD and RTX 2060; the shared water library also passes the focused RTX motion/SSR compilation
-checks. See the validation report for game runs and remaining coverage. The broader visual checklist
+The cache-fix renderer builds in MSVC SP/MP. Its 17 SSR shader permutations and targeted regressions run
+on Intel UHD and RTX 2060 (`tools/rend2/test_ssr_gl.py`, including the 2026-10-28 emitter occlusion, fused
+composite, footprint depth, cache length gate and LESS classification checks); the shared water library also
+passes the focused RTX motion/SSR compilation checks. See the validation report for game runs and remaining coverage. The broader visual checklist
 (`r_ssr 1`, `r_ssrCompare 1`, `r_ssrDebug 4/6/9/10`) remains:
 
 - polished metal (sharp, tinted by F0), rough metal (blurred, fades to the cubemap), painted metal and rough
@@ -346,7 +388,9 @@ checks. See the validation report for game runs and remaining coverage. The broa
   world surfaces, poly effects or oriented quads; shape and color are approximations (a capsule with the average
   bright color of the texture). Their occlusion is only known on screen: an emitter behind an off-screen wall can
   leak into a reflection. Rough surfaces show the saber's dynamic light highlight instead.
-- Only the fog of the receiver is applied (fog passes draw after the composite); fog along the reflected ray is not.
+- Only the fog of the receiver is applied (fog passes draw after the composite); fog along the reflected ray is
+  not: reflected objects behind fog look too clear. Attenuating `P -> Q` needs the froxel extinction at SSR time
+  (the volumetric integration runs later in the frame), see the possible improvements.
 - A multiplicative stage drawn after the PBR stage of the same shader (rare) is not included in `C`.
 - The depth buffer only has the front faces: thin objects are thickened by `r_ssrThickness`, which can produce
   false hits behind them (reduced by the ambiguity term and the back facing test).
@@ -360,7 +404,8 @@ checks. See the validation report for game runs and remaining coverage. The broa
   would need multisample textures (the attachments are renderbuffers). Silhouette pixels mostly fail the depth
   validation and keep the cubemap.
 - Rough reflections are a mirror ray plus a cone blur of the scene (cheap, matches the cubemap prefilter), not a
-  distribution of rays: occlusion and parallax inside a rough lobe are those of the mirror direction.
+  distribution of rays: occlusion and parallax inside a rough lobe are those of the mirror direction. The blur
+  is kept off nearer surfaces (`r_ssrFootprintDepth`), not off farther ones.
 
 ## Possible improvements (not implemented)
 
@@ -371,5 +416,12 @@ checks. See the validation report for game runs and remaining coverage. The broa
   analytic emitters.
 - Pack the material buffer tighter (R11G11B10F for `C`), or reuse the prepass for the normal.
 - Depth pyramid shared with GTAO (GTAO uses farthest-weighted averages built before the main pass, a different
-  filter); compute shader tracing on GL 4.3+.
+  filter).
+- GL 4.3 compute path: 8x8 tile classification, a compacted SSBO list of the rays, an indirect dispatch over it
+  (the early-depth classification stays the GL 3 fallback); a single-dispatch color / Hi-Z pyramid. The
+  compaction only pays where the receivers are sparse; measure against the fixed fragment cull first.
+- Rough reflections: specular occlusion from the GTAO bent cone around the reflection direction instead of the
+  lightmap luminance proxy of `r_ssrRoughOcclusion`.
+- Representative-sample MSAA resolve of the material attachments (needs multisample textures).
+
 - Screen-space specular occlusion from the trace for the cubemap part that remains.
