@@ -4339,9 +4339,15 @@ static void RB_SaveSunShadowDiskPages(void)
 			R_SunShadowDiskTilePath(path, sizeof(path),
 				view.sunShadowDiskLayoutKey, pageX, pageY);
 			ri.FS_WriteFile(path, file.data(), (int)file.size());
-			// FS_WriteFile reports nothing: a page that did not reach the disk
-			// stays unsaved and is written again by a later update.
-			if (ri.FS_ReadFile(path, NULL) != (int)file.size())
+			// FS_WriteFile reports nothing: a page whose file does not read
+			// back byte for byte stays unsaved and is written again later.
+			void *written = NULL;
+			const int writtenSize = ri.FS_ReadFile(path, &written);
+			const bool same = written && writtenSize == (int)file.size() &&
+				memcmp(written, file.data(), file.size()) == 0;
+			if (written)
+				ri.FS_FreeFile(written);
+			if (!same)
 			{
 				ri.Printf(PRINT_DEVELOPER, "Sun shadow disk: could not write %s\n", path);
 				continue;

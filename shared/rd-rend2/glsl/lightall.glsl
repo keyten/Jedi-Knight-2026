@@ -1198,6 +1198,27 @@ void ShadowSampleCounts(out int blockerSamples, out int filterSamples)
 	}
 }
 
+// Bilinear 2x2 PCF: a penumbra of at most one texel needs no more than the
+// four texels around the receiver, weighted like a bilinear fetch.
+float ShadowBilinearPcf(in int cascade, in vec3 shadowPos,
+	in vec2 receiverGradient, in float depthSpan)
+{
+	vec2 size = vec2(textureSize(u_ShadowMap, 0).xy);
+	vec2 st = shadowPos.xy * size - 0.5;
+	vec2 base = floor(st);
+	vec2 f = st - base;
+	vec4 lit;
+	for (int corner = 0; corner < 4; ++corner)
+	{
+		vec2 texel = base + vec2(float(corner & 1), float(corner >> 1));
+		vec2 offset = (texel + 0.5) / size - shadowPos.xy;
+		float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
+		ivec2 p = clamp(ivec2(texel), ivec2(0), ivec2(size) - ivec2(1));
+		lit[corner] = receiver <= texelFetch(u_ShadowMap, ivec3(p, cascade), 0).r ? 1.0 : 0.0;
+	}
+	return mix(mix(lit.x, lit.y, f.x), mix(lit.z, lit.w, f.x), f.y);
+}
+
 float ShadowManualPcf(in int cascade, in vec3 shadowPos,
 	in vec2 receiverGradient, in float depthSpan, in float radiusUv,
 	in int sampleCount, in float angle)
@@ -1217,6 +1238,35 @@ float ShadowManualPcf(in int cascade, in vec3 shadowPos,
 }
 
 #if defined(USE_PCSS_CHARACTER_LAYERS)
+// Shadow depth range [x, y] of the nearest character sphere between the
+// receiver and the sun that can reach the search disc; empty (x > y) if none.
+vec2 ShadowCharacterDepth(in mat4 shadowMvp, in vec3 worldPosition,
+	in float receiverDepth, in float depthSpan, in float searchWorld)
+{
+	vec2 characterDepth = vec2(2.0, -1.0);
+	// depth grows away from the sun along the matrix's z row
+	vec3 towardSun = -normalize(vec3(shadowMvp[0][2], shadowMvp[1][2], shadowMvp[2][2]));
+	float bestAlong = 1e20;
+	int characters = int(u_ShadowCharacterInfo.x + 0.5);
+	for (int c = 0; c < 8; ++c)
+	{
+		if (c >= characters)
+			break;
+		vec4 sphere = u_ShadowCharacters[c];
+		vec3 d = sphere.xyz - worldPosition;
+		float along = dot(d, towardSun);
+		float reach = sphere.w + searchWorld;
+		if (along + sphere.w > 0.0 && along < bestAlong &&
+			dot(d, d) - along * along < reach * reach)
+		{
+			bestAlong = along;
+			characterDepth = vec2(receiverDepth - (along + sphere.w) / depthSpan,
+				receiverDepth - (along - sphere.w) / depthSpan);
+		}
+	}
+	return characterDepth;
+}
+
 // ShadowManualPcf counting only the occluders inside (or only those outside)
 // the character's shadow depth range [characterDepth.x, characterDepth.y].
 float ShadowLayerPcf(in int cascade, in vec3 shadowPos,
@@ -1304,39 +1354,6 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	float searchWorld = max(2.0 * worldTexel,
 		min(u_ShadowPcss.y, maxSeparationWorld * u_ShadowPcss.x));
 	float searchRadiusUv = ShadowKernelRadius(shadowPos.xy, searchWorld * uvPerWorld);
-#if defined(USE_PCSS_CHARACTER_LAYERS)
-	// r_shadowPCSSCharacterLayers: one averaged blocker depth gives a single
-	// penumbra, so a character standing in a tree top's soft shadow would blur
-	// like the tree top. The nearest character sphere (tr_main.cpp) between the
-	// receiver and the sun, close enough to reach the search disc, gives a
-	// shadow depth range; blockers inside it are filtered with their own
-	// (contact hard) penumbra, the rest with theirs.
-	vec2 characterDepth = vec2(2.0, -1.0);
-	{
-		// depth grows away from the sun along the matrix's z row
-		vec3 towardSun = -normalize(vec3(shadowMvp[0][2], shadowMvp[1][2], shadowMvp[2][2]));
-		float bestAlong = 1e20;
-		int characters = int(u_ShadowCharacterInfo.x + 0.5);
-		for (int c = 0; c < 8; ++c)
-		{
-			if (c >= characters)
-				break;
-			vec4 sphere = u_ShadowCharacters[c];
-			vec3 d = sphere.xyz - worldPosition;
-			float along = dot(d, towardSun);
-			float reach = sphere.w + searchWorld;
-			if (along + sphere.w > 0.0 && along < bestAlong &&
-				dot(d, d) - along * along < reach * reach)
-			{
-				bestAlong = along;
-				characterDepth = vec2(shadowPos.z - (along + sphere.w) / depthSpan,
-					shadowPos.z - (along - sphere.w) / depthSpan);
-			}
-		}
-	}
-	float characterSum = 0.0;
-	float characterCount = 0.0;
-#endif
 	float blockerSum = 0.0;
 	float blockerCount = 0.0;
 	for (int i = 0; i < 24; ++i)
@@ -1351,13 +1368,6 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		{
 			blockerSum += sampleDepth;
 			blockerCount += 1.0;
-#if defined(USE_PCSS_CHARACTER_LAYERS)
-			if (sampleDepth >= characterDepth.x && sampleDepth <= characterDepth.y)
-			{
-				characterSum += sampleDepth;
-				characterCount += 1.0;
-			}
-#endif
 		}
 	}
 
@@ -1365,6 +1375,36 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		return result;
 
 #if defined(USE_PCSS_CHARACTER_LAYERS)
+	// r_shadowPCSSCharacterLayers: one averaged blocker depth gives a single
+	// penumbra, so a character standing in a tree top's soft shadow would blur
+	// like the tree top. The nearest character sphere (tr_main.cpp) between the
+	// receiver and the sun, close enough to reach the search disc, gives a
+	// shadow depth range; blockers inside it are filtered with their own
+	// (contact hard) penumbra, the rest with theirs. Kept out of the ordinary
+	// search loop: a second pass over the same (cached) taps runs only next
+	// to a character, which keeps the common path's registers unchanged.
+	vec2 characterDepth = ShadowCharacterDepth(shadowMvp, worldPosition,
+		shadowPos.z, depthSpan, searchWorld);
+	float characterSum = 0.0;
+	float characterCount = 0.0;
+	if (characterDepth.x <= characterDepth.y)
+	{
+		for (int i = 0; i < 24; ++i)
+		{
+			if (i >= blockerSamples)
+				break;
+			vec2 offset = i == 0 ? vec2(0.0) :
+				ShadowVogel(i - 1, blockerSamples - 1, angle) * searchRadiusUv;
+			float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
+			float sampleDepth = ShadowRawDepth(cascade, shadowPos.xy + offset);
+			if (sampleDepth < receiver && sampleDepth >= characterDepth.x &&
+				sampleDepth <= characterDepth.y)
+			{
+				characterSum += sampleDepth;
+				characterCount += 1.0;
+			}
+		}
+	}
 	float otherCount = blockerCount - characterCount;
 	if (characterCount > 0.5 && otherCount > 0.5)
 	{
@@ -1397,8 +1437,13 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		return result;
 	float filterRadiusUv = max(0.5 * u_ShadowTexelSize.w,
 		result.penumbraWorld * uvPerWorld);
-	result.visibility = ShadowManualPcf(cascade, shadowPos, receiverGradient,
-		depthSpan, filterRadiusUv, filterSamples, angle);
+	// Contact-hard penumbrae (the common case at a 0.53 degree sun) take 4
+	// fetches instead of the preset's 8-32.
+	if (filterRadiusUv <= u_ShadowTexelSize.w)
+		result.visibility = ShadowBilinearPcf(cascade, shadowPos, receiverGradient, depthSpan);
+	else
+		result.visibility = ShadowManualPcf(cascade, shadowPos, receiverGradient,
+			depthSpan, filterRadiusUv, filterSamples, angle);
 	return result;
 }
 
