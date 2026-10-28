@@ -769,6 +769,7 @@ extern cvar_t  *r_shadowPCSS;
 extern cvar_t  *r_shadowPCSSQuality;
 extern cvar_t  *r_shadowSunAngularDiameter;
 extern cvar_t  *r_shadowPCSSMaxPenumbra;
+extern cvar_t  *r_shadowPCSSCharacterLayers;
 extern cvar_t  *r_shadowDebug;
 extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
@@ -1462,6 +1463,8 @@ struct SceneBlock
 	vec4_t ssgiParams;	// source bits, linear scene, emissive scale, glow scale
 };
 
+#define MAX_SUN_SHADOW_CHARACTERS 8	// u_ShadowCharacters[8] in lightall.glsl
+
 struct LightsBlock
 {
 	struct Light
@@ -1492,6 +1495,9 @@ struct LightsBlock
 	// spot light shadows (tr_spotlight.cpp): world to clip of the one
 	// perspective view in layer 6 * slot of pointShadowArrayImage
 	matrix_t spotShadowVP[MAX_DLIGHT_SHADOWS];
+	// r_shadowPCSSCharacterLayers: nearest Ghoul2 casters, world sphere
+	vec4_t shadowCharacters[MAX_SUN_SHADOW_CHARACTERS];
+	vec4_t shadowCharacterInfo;	// count, unused
 };
 
 struct FogsBlock
@@ -3153,6 +3159,8 @@ typedef struct {
 	float       sunShadowTexelSize[3];
 	float       sunShadowDepthSpan[3];
 	float       sunShadowDepthTop;		// [0, 1] cascade depth of the map's light-side bound, 0 unknown
+	float       sunShadowCharacters[MAX_SUN_SHADOW_CHARACTERS][4];	// r_shadowPCSSCharacterLayers spheres
+	int         numSunShadowCharacters;
 	float       sunDir[4];
 	float       sunCol[4];
 	float       sunAmbCol[4];

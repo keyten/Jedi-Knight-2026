@@ -801,6 +801,9 @@ static size_t GLSL_GetShaderHeader(
 	// decided with texture creation, so the A/B switch is latched.
 	if (r_sunShadowMode->integer)
 		GLSL_HeaderCat(dest, size, "#define USE_SHADOWS2\n");
+	// a permutation, not a uniform branch: off leaves lightall unchanged
+	if (r_sunShadowMode->integer && r_shadowPCSSCharacterLayers->integer)
+		GLSL_HeaderCat(dest, size, "#define USE_PCSS_CHARACTER_LAYERS\n");
 
 	// screen-space AO / contact shadow map (u_SSAOMap), tr_ao.cpp
 	if (R_AOResourcesEnabled())

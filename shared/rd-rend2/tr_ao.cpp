@@ -646,7 +646,7 @@ void RB_AOSceneParams( vec4_t aoParams, vec4_t aoParams2 )
 qboolean RB_AODebugBypassesToneMap( void )
 {
 	return (qboolean)(
-		(r_sunShadowMode->integer && r_shadowDebug->integer >= 1 && r_shadowDebug->integer <= 12) ||
+		(r_sunShadowMode->integer && r_shadowDebug->integer >= 1 && r_shadowDebug->integer <= 13) ||
 		(s_aoResources && RB_AODebugIsLightall()) ||
 		(r_autoPBRDebug->integer >= 1 && r_autoPBRDebug->integer <= 2) ||
 		(r_materialModelDebug->integer >= 1 && r_materialModelDebug->integer <= 7) ||

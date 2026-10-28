@@ -85,6 +85,28 @@ overlap evaluate two cascades. Preset sample counts are:
 | high (default) | 12 | 16 |
 | ultra | 24 | 32 |
 
+### Character layers
+
+One averaged blocker depth gives one penumbra per pixel. A character standing
+in the soft shadow of a tree top therefore used to get the tree top's blur on
+its own shadow edge. With `r_shadowPCSSCharacterLayers 1` the renderer passes
+the conservative model spheres of the eight Ghoul2 entities nearest the camera
+(`u_ShadowCharacters`, the spheres the sun cache restore also uses). A pixel
+whose search disc a sphere can reach, with the sphere between the receiver and
+the sun, gets that sphere's light-space depth range. Blockers inside the range
+are averaged and filtered with their own penumbra, the rest with theirs, and
+the two visibilities multiply. Pixels with only one kind of blocker, or with no
+character nearby, run the ordinary single PCSS. Only characters get this split:
+general depth layering would run two PCF passes over most foliage. Other
+geometry inside a character's depth range near it counts as that character.
+
+It is a latched shader permutation (`USE_PCSS_CHARACTER_LAYERS`): 0 compiles
+the previous lightall exactly. `r_shadowDebug 13` shows the split pixels red.
+
+Off by default: on the Intel UHD (mp/ffa3, 960x540) enabling it costs about
+18-20% of the main view even with no character in view (6.9 -> 8.5-9.1 ms;
+frame 10.0 -> 11.8-12.2 ms), from register pressure of the larger lightall.
+
 ## Screen-space contacts
 
 The contact pass reconstructs the view-space receiver position and a
@@ -111,6 +133,7 @@ PCSS visibility; it never replaces it.
 | `r_shadowPCSSQuality` | 1 | 0 low, 1 high, 2 ultra |
 | `r_shadowSunAngularDiameter` | 0.53 | apparent source diameter in degrees |
 | `r_shadowPCSSMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
+| `r_shadowPCSSCharacterLayers` | 0 | Ghoul2 character blockers get their own penumbra where their shadow meets softer shadows; latched |
 | `r_shadowSinglePass` | 1 | gather all six point-light cube faces in one scene walk; 0 keeps six independent walks |
 | `r_shadowLayered` | 1 | submit a supported point-light cube through its layered FBO; unsupported hardware/surfaces fall back automatically |
 | `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; conservative time-dependent casters force a redraw |
@@ -123,7 +146,9 @@ The contact controls are `r_contactShadows`, `r_contactShadowLength`,
 `r_shadowDebug` values are: 1 cascade colors, 2 raw depth, 3 fixed-radius PCF,
 4 average blocker depth, 5 penumbra radius, 6 PCSS visibility, 7 contact-only,
 8 final CSM/PCSS times contact visibility, 9 effective bias, 10 dynamic light cube
-shadows only, and 11 Ghoul2 receivers (see rend2-character-shadows.md).
+shadows only, 11 Ghoul2 receivers (see rend2-character-shadows.md), 12 model
+sun split, and 13 PCSS character layers (red where a character's blockers got
+their own penumbra).
 
 ### Alpha-tested foliage casters
 

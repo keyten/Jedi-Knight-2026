@@ -532,6 +532,8 @@ layout(std140) uniform Lights
 	int u_NumLights;
 	Light u_Lights[32];
 	mat4 u_SpotShadowVP[32];	// spot light shadow views, by shadow slot (layer 6 * slot)
+	vec4 u_ShadowCharacters[8];	// r_shadowPCSSCharacterLayers: world sphere (center, radius)
+	vec4 u_ShadowCharacterInfo;	// count, unused
 };
 
 uniform int u_LightMask;
@@ -1102,6 +1104,9 @@ struct SunCascadeResult
 	float penumbraWorld;
 	float biasWorld;
 	float cascade;
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+	float layers;		// 1 where a character's blockers got their own penumbra
+#endif
 };
 
 float ShadowCascadeValue(in vec4 v, in int cascade)
@@ -1211,6 +1216,30 @@ float ShadowManualPcf(in int cascade, in vec3 shadowPos,
 	return visibility / float(sampleCount);
 }
 
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+// ShadowManualPcf counting only the occluders inside (or only those outside)
+// the character's shadow depth range [characterDepth.x, characterDepth.y].
+float ShadowLayerPcf(in int cascade, in vec3 shadowPos,
+	in vec2 receiverGradient, in float depthSpan, in float radiusUv,
+	in int sampleCount, in float angle, in vec2 characterDepth, in bool character)
+{
+	float visibility = 0.0;
+	radiusUv = ShadowKernelRadius(shadowPos.xy, radiusUv);
+	for (int i = 0; i < 32; ++i)
+	{
+		if (i >= sampleCount)
+			break;
+		vec2 offset = i == 0 ? vec2(0.0) :
+			ShadowVogel(i - 1, sampleCount - 1, angle) * radiusUv;
+		float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
+		float sampleDepth = ShadowRawDepth(cascade, shadowPos.xy + offset);
+		bool inCharacter = sampleDepth >= characterDepth.x && sampleDepth <= characterDepth.y;
+		visibility += (receiver > sampleDepth && inCharacter == character) ? 0.0 : 1.0;
+	}
+	return visibility / float(sampleCount);
+}
+#endif
+
 SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	in vec3 worldPosition, in vec3 geometricNormal, in float normalLight,
 	in vec2 receiverGradient)
@@ -1228,6 +1257,9 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	result.penumbraWorld = 0.0;
 	result.biasWorld = u_ShadowBias.x + normalOffset;
 	result.cascade = float(cascade);
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+	result.layers = 0.0;
+#endif
 
 	if (any(lessThan(shadowPos, vec3(0.0))) || any(greaterThan(shadowPos, vec3(1.0))))
 		return result;
@@ -1272,6 +1304,39 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	float searchWorld = max(2.0 * worldTexel,
 		min(u_ShadowPcss.y, maxSeparationWorld * u_ShadowPcss.x));
 	float searchRadiusUv = ShadowKernelRadius(shadowPos.xy, searchWorld * uvPerWorld);
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+	// r_shadowPCSSCharacterLayers: one averaged blocker depth gives a single
+	// penumbra, so a character standing in a tree top's soft shadow would blur
+	// like the tree top. The nearest character sphere (tr_main.cpp) between the
+	// receiver and the sun, close enough to reach the search disc, gives a
+	// shadow depth range; blockers inside it are filtered with their own
+	// (contact hard) penumbra, the rest with theirs.
+	vec2 characterDepth = vec2(2.0, -1.0);
+	{
+		// depth grows away from the sun along the matrix's z row
+		vec3 towardSun = -normalize(vec3(shadowMvp[0][2], shadowMvp[1][2], shadowMvp[2][2]));
+		float bestAlong = 1e20;
+		int characters = int(u_ShadowCharacterInfo.x + 0.5);
+		for (int c = 0; c < 8; ++c)
+		{
+			if (c >= characters)
+				break;
+			vec4 sphere = u_ShadowCharacters[c];
+			vec3 d = sphere.xyz - worldPosition;
+			float along = dot(d, towardSun);
+			float reach = sphere.w + searchWorld;
+			if (along + sphere.w > 0.0 && along < bestAlong &&
+				dot(d, d) - along * along < reach * reach)
+			{
+				bestAlong = along;
+				characterDepth = vec2(shadowPos.z - (along + sphere.w) / depthSpan,
+					shadowPos.z - (along - sphere.w) / depthSpan);
+			}
+		}
+	}
+	float characterSum = 0.0;
+	float characterCount = 0.0;
+#endif
 	float blockerSum = 0.0;
 	float blockerCount = 0.0;
 	for (int i = 0; i < 24; ++i)
@@ -1286,11 +1351,44 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		{
 			blockerSum += sampleDepth;
 			blockerCount += 1.0;
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+			if (sampleDepth >= characterDepth.x && sampleDepth <= characterDepth.y)
+			{
+				characterSum += sampleDepth;
+				characterCount += 1.0;
+			}
+#endif
 		}
 	}
 
 	if (blockerCount < 0.5)
 		return result;
+
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+	float otherCount = blockerCount - characterCount;
+	if (characterCount > 0.5 && otherCount > 0.5)
+	{
+		float characterBlocker = characterSum / characterCount;
+		float otherBlocker = (blockerSum - characterSum) / otherCount;
+		float characterPenumbra = min(max((shadowPos.z - characterBlocker) * depthSpan, 0.0) *
+			u_ShadowPcss.x, u_ShadowPcss.y);
+		float otherPenumbra = min(max((shadowPos.z - otherBlocker) * depthSpan, 0.0) *
+			u_ShadowPcss.x, u_ShadowPcss.y);
+		result.layers = 1.0;
+		result.blockerDepth = characterBlocker;
+		result.penumbraWorld = characterPenumbra;
+		if (debugMode == 4 || debugMode == 5)
+			return result;
+		// independent occluders: the visible fractions of the sun multiply
+		result.visibility = ShadowLayerPcf(cascade, shadowPos, receiverGradient, depthSpan,
+				max(0.5 * u_ShadowTexelSize.w, characterPenumbra * uvPerWorld),
+				filterSamples, angle, characterDepth, true) *
+			ShadowLayerPcf(cascade, shadowPos, receiverGradient, depthSpan,
+				max(0.5 * u_ShadowTexelSize.w, otherPenumbra * uvPerWorld),
+				filterSamples, angle, characterDepth, false);
+		return result;
+	}
+#endif
 
 	result.blockerDepth = blockerSum / blockerCount;
 	float separationWorld = max((shadowPos.z - result.blockerDepth) * depthSpan, 0.0);
@@ -1315,6 +1413,9 @@ SunCascadeResult MixSunCascadeResults(in SunCascadeResult a,
 	r.penumbraWorld = mix(a.penumbraWorld, b.penumbraWorld, t);
 	r.biasWorld = mix(a.biasWorld, b.biasWorld, t);
 	r.cascade = mix(a.cascade, b.cascade, t);
+#if defined(USE_PCSS_CHARACTER_LAYERS)
+	r.layers = max(a.layers, b.layers);
+#endif
 	return r;
 }
 
@@ -5170,6 +5271,17 @@ void main()
 			debugColor = vec3(1.0, 0.25, 1.0) * (0.15 + 0.85 * sunInfo.visibility * contactShadow);
 			#else
 			debugColor = vec3(0.6) * (0.15 + 0.85 * sunInfo.visibility * contactShadow);
+			#endif
+		}
+		else if (u_ShadowDebug.x == 13.0)
+		{
+			// r_shadowPCSSCharacterLayers: red where a character's blockers got
+			// their own penumbra, grey elsewhere (always grey when it is off)
+			#if defined(USE_PCSS_CHARACTER_LAYERS)
+			debugColor = mix(vec3(0.6), vec3(1.0, 0.2, 0.2), sunInfo.layers) *
+				(0.15 + 0.85 * sunInfo.visibility);
+			#else
+			debugColor = vec3(0.6) * (0.15 + 0.85 * sunInfo.visibility);
 			#endif
 		}
 		else
