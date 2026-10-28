@@ -254,6 +254,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_LeafFlutter",       GLSL_VEC4, 1 },
 	{ "u_LeafFlutterParams", GLSL_VEC4, 1 },
 	{ "u_LeafFlutterDebug",  GLSL_FLOAT, 1 },
+	{ "u_LeafForceWave",     GLSL_VEC4, 1 },
+	{ "u_LeafForceWaves",    GLSL_VEC4, FOLIAGE_FORCEWAVE_GPU * 3 },
 	{ "u_PlantSkin",         GLSL_VEC4, 1 },
 	{ "u_PlantBones",        GLSL_INT,  1 },
 	{ "u_FoliageInteract",   GLSL_VEC4, 1 },

@@ -2084,6 +2084,85 @@ static void CG_AddFoliageInteractors( void )
 
 /*
 =====================
+CG_AddFoliageForceWaves
+
+r_foliageInteraction (rend2): a Force push or pull leaving a character (the
+player or an NPC) sends one shock wave through the vegetation; the renderer
+throws the plants, grass and leaves in its cone away from (push) or towards
+(pull) the caster as the front passes them. ForceThrow and the push_l /
+push_r anim events restart ps.powerups[PW_FORCE_PUSH] with a new end time: a
+new end time is a new cast. ForceThrow also sets the debounce of the power it
+used, which tells a pull from a push.
+=====================
+*/
+extern float forcePushCone[];
+extern float forcePullCone[];
+
+// ms: the anim events of one cast restart the powerup again
+#define FOLIAGE_FORCEWAVE_MIN_INTERVAL	300
+
+static void CG_FoliageForceWave( const centity_t *cent, const gentity_t *gent )
+{
+	static int lastPush[MAX_GENTITIES];
+	static int lastWave[MAX_GENTITIES];
+	const int num = gent->s.number;
+	const playerState_t *ps = &gent->client->ps;
+	const int pushTime = ps->powerups[PW_FORCE_PUSH];
+	if ( pushTime == lastPush[num] )
+		return;
+	lastPush[num] = pushTime;
+	if ( pushTime <= cg.time )
+		return;	// cleared or run out
+	// (a last wave in the future is from before a map load or restart)
+	if ( lastWave[num] <= cg.time && cg.time - lastWave[num] < FOLIAGE_FORCEWAVE_MIN_INTERVAL )
+		return;
+	lastWave[num] = cg.time;
+
+	qboolean pull;
+	if ( ps->forcePowerDebounce[FP_PULL] > cg.time || ps->forcePowerDebounce[FP_PUSH] > cg.time )
+		pull = ps->forcePowerDebounce[FP_PULL] > ps->forcePowerDebounce[FP_PUSH] ? qtrue : qfalse;
+	else
+		pull = (ps->forcePowersActive & (1 << FP_PULL)) ? qtrue : qfalse;
+	const int level = Com_Clampi( FORCE_LEVEL_0, FORCE_LEVEL_3, ps->forcePowerLevel[pull ? FP_PULL : FP_PUSH] );
+
+	foliageForceWave_t wave = {};
+	wave.id = num;
+	VectorCopy( cent->lerpOrigin, wave.origin );
+	AngleVectors( ps->viewangles, wave.direction, NULL, NULL );
+	// level 0: a scripted push (anim event) of a character without the power
+	wave.radius = level ? forcePushPullRadius[level] : 384.0f;
+	// an aimed push (cone 1) still parts a narrow lane
+	wave.cone = Q_min( level ? (pull ? forcePullCone[level] : forcePushCone[level]) : 1.0f, 0.9f );
+	wave.strength = level ? 0.5f + 0.25f * level : 1.0f;
+	wave.flags = pull ? FOLIAGE_FORCEWAVE_PULL : 0;
+	cgi_R_AddFoliageForceWave( &wave );
+}
+
+static void CG_AddFoliageForceWaves( void )
+{
+	if ( !r_foliageInteraction.integer || !cl_rendererFoliageWaves.integer || !cg.snap || cg.hyperspace )
+		return;
+
+	const centity_t *player = &cg_entities[0];
+	if ( player->gent && player->gent->client && cg.predicted_player_state.pm_type != PM_INTERMISSION )
+		CG_FoliageForceWave( player, player->gent );
+
+	for ( int num = 0; num < cg.snap->numEntities; num++ )
+	{
+		const int number = cg.snap->entities[num].number;
+		if ( number == 0 )
+			continue;
+		const centity_t *cent = &cg_entities[number];
+		const gentity_t *gent = cent->gent;
+		if ( cent->currentState.eType != ET_PLAYER || !gent || !gent->client || gent->health <= 0 ||
+			(cent->currentState.eFlags & EF_NODRAW) )
+			continue;
+		CG_FoliageForceWave( cent, gent );
+	}
+}
+
+/*
+=====================
 CG_AddWaterWakeSources
 
 Sends physical bodies, not cameras or frame-timed ripple events. The renderer
@@ -2394,6 +2473,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 		CG_AddMarks();
 		CG_DrawMiscEnts();
 		CG_AddFoliageInteractors();
+		CG_AddFoliageForceWaves();
 		CG_AddWaterWakeSources();
 	}
 

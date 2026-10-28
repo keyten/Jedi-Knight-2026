@@ -7,6 +7,9 @@
  * velocity); this file only feeds them per frame and per draw constants.
  * No CPU simulation and no new shader permutations: every draw writes the
  * uniforms, amplitude 0 for everything that must stay still.
+ *
+ * The same library swings the leaves when a Force push / pull wave passes
+ * (r_foliageForceWaves, tr_foliageinteract.cpp), also with r_leafFlutter 0.
  */
 #include "tr_local.h"
 
@@ -51,18 +54,27 @@ bool R_LeafFlutterActive(void)
 		r_leafFlutterStrength->value > 0.0f;
 }
 
+// Force push / pull waves move the leaves too (only the waves, without
+// r_leafFlutter)
+static bool R_LeafForceWavesActive(void)
+{
+	return r_autoFoliage->integer && R_FoliageForceWavesEnabled();
+}
+
 bool R_LeafFlutterSurface(const drawSurf_t *drawSurf)
 {
-	return drawSurf->foliage.cls == FOLIAGE_LEAF && R_LeafFlutterActive();
+	return drawSurf->foliage.cls == FOLIAGE_LEAF && (R_LeafFlutterActive() || R_LeafForceWavesActive());
 }
 
 // Model bounds stay static; the culling of map object models grows by the
 // largest possible offset instead (a constant, nothing per frame).
 float R_LeafFlutterCullMargin(const mdvModel_t *model)
 {
-	if (!model || !(model->foliageSignals & FOLIAGE_MODEL_OBJECT) || !R_LeafFlutterActive())
+	if (!model || !(model->foliageSignals & FOLIAGE_MODEL_OBJECT))
 		return 0.0f;
-	return LeafFlutterAmplitude() * LEAFFLUTTER_MAX_OFFSET + 0.5f;
+	const float flutter = R_LeafFlutterActive() ? LeafFlutterAmplitude() * LEAFFLUTTER_MAX_OFFSET : 0.0f;
+	const float wave = R_LeafForceWavesActive() ? R_FoliageLeafWaveAmplitude() : 0.0f;
+	return flutter + wave > 0.0f ? flutter + wave + 0.5f : 0.0f;
 }
 
 // Once per scene, next to the Scene / TemporalInfo blocks: the times of the
@@ -120,8 +132,12 @@ void RB_SetLeafFlutterUniforms(UniformDataWriter& writer, bool active)
 		writer.SetUniformVec4(UNIFORM_LEAFFLUTTER, 0.0f, 0.0f, 0.0f, 0.0f);
 		writer.SetUniformVec4(UNIFORM_LEAFFLUTTERPARAMS, 0.0f, 0.0f, 0.0f, 0.0f);
 		writer.SetUniformFloat(UNIFORM_LEAFFLUTTERDEBUG, 0.0f);
+		RB_SetLeafForceWaveUniforms(writer, false);
 		return;
 	}
+	RB_SetLeafForceWaveUniforms(writer, R_LeafForceWavesActive());
+	// only the waves: the flutter itself stays at rest
+	const bool flutter = R_LeafFlutterActive();
 
 	const int debug = LeafFlutterDebug();
 	// shared breeze direction with the surface sprite grass (r_foliageWind)
@@ -131,9 +147,9 @@ void RB_SetLeafFlutterUniforms(UniformDataWriter& writer, bool active)
 		normalAmount *= 3.0f;
 
 	writer.SetUniformVec4(UNIFORM_LEAFFLUTTER,
-		cosf(yaw), sinf(yaw), LeafFlutterAmplitude(), r_leafFlutterSpeed->value);
+		cosf(yaw), sinf(yaw), flutter ? LeafFlutterAmplitude() : 0.0f, r_leafFlutterSpeed->value);
 	writer.SetUniformVec4(UNIFORM_LEAFFLUTTERPARAMS,
-		leafFlutter.time, leafFlutter.previousTime, LeafFlutterInvRadius(), normalAmount);
+		leafFlutter.time, leafFlutter.previousTime, LeafFlutterInvRadius(), flutter ? normalAmount : 0.0f);
 
 	float debugView = 0.0f;
 	if (!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))

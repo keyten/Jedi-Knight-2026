@@ -201,6 +201,48 @@ are drawn as triangle strips of `r_grassBendSegments` (4) segments: one instance
 sprite), so the sprite VBO is unchanged. The far quads lie on the same curve (their top edge is the tip). The shader
 branches on `u_GrassStrip`, no permutation.
 
+## Force push / pull (`r_foliageForceWaves`)
+
+A Force push or pull of the player or of an NPC sends a shock wave through all of the vegetation: MD3 plants,
+grass sprites and the leaves of trees. Push throws them away from the caster, pull towards it; the plants and the
+grass swing back on their own springs.
+
+**Detection (cgame, once per cast).**
+- SP (`code/cgame/cg_view.cpp`, `CG_AddFoliageForceWaves`): every character whose `ps.powerups[PW_FORCE_PUSH]`
+  gets a new end time (set by `ForceThrow` and by the `push_l` / `push_r` anim events; restarts within 300 ms
+  are one cast). A pull is told by the newer debounce (`forcePowerDebounce[FP_PULL]` vs `[FP_PUSH]`). Radius and
+  cone are the game's own tables for the power level (`forcePushPullRadius`, `forcePushCone`, `forcePullCone`).
+- MP (`codemp/cgame/cg_view.c`): the rising edge of `PW_DISINT_4` (push hand effect, also on a counter push),
+  `PW_PULL` for a pull, grip (which uses `PW_DISINT_4` too) excluded by its active power. The player uses its own
+  power level; other clients a level 2 push (their level is not networked).
+- Aim: the view angles; an aimed level 1 push (cone 1) still parts a lane of ~25°. Strength 0.75 / 1 / 1.25 for
+  levels 1–3.
+- Sent through the optional extension `GetRefFoliageWaveAPI` (`foliageForceWave_t`). SP: syscall
+  `CG_R_ADDFOLIAGEFORCEWAVE`, only with `cl_rendererFoliageWaves` (set by the engine when the renderer has it).
+  MP: `trap->ext.R_AddFoliageForceWave` (NULL in the legacy VM).
+
+**The wave (`tr_foliageinteract.cpp`).** The front leaves the caster at 1400 u/s (512 u in 0.37 s). A point the
+front crosses gets a horizontal velocity kick along the line from the caster, spread over the time the front
+(half width 48 u) needs to cross it: the kick is a smoothstep pulse, so the part between any two times is exact
+(`Passed(t1) − Passed(t0)`), whatever the time step. Falloffs: the cone (soft edge 0.2 in cosine, horizontal, so
+a push aimed down at the grass parts it too), the distance (strongest near the caster, nothing at the reach) and,
+for the MD3 plants, the height (full within 160 u of the caster, none beyond 320 u). At most 8 live waves, the 4
+newest on the GPU; a wave lives until its front crossed the reach plus the 3 s the leaves need to settle.
+
+| | kick at strength 1 | state |
+|---|---|---|
+| MD3 fronds | 420 u/s on every node | `tr_plantsim.cpp`: added to the node velocities in the 120 Hz steps, integrated back to back over the steps (`waveTime`); a plant the front reaches wakes, steps in detail and ignores the plant budget, even beyond `r_plantWindDistance` |
+| grass sprites | 180 u/s on the field velocity | `foliage_field.glsl` `FoliageForceWaveKick`: the spring of the field brings it back (peak ~12 u at the shins ≈ 50° at strength 1, < 1 u after 1 s) |
+| leaves | 6 u largest offset | `leaf_flutter.glsl` `LeafForceWaveOffset`: stateless damped swing from the arrival of the front (1.4 Hz, e^−1.8t); also with `r_leafFlutter 0` |
+
+The grass field covers the square around the player (`r_foliageBendFieldExtent`): grass farther away does not
+react. Debug: `r_foliageInteractionDebug 1` draws the front inside the cone (orange push, magenta pull) and the
+reach; `r_foliageInteractionList` prints the live waves.
+
+GPU test (`tools/rend2/test_foliage_gl.py`, Intel + NVIDIA): field kick = python mirror within 0.3 u/s of
+170, direction exact for push and pull, nothing behind the cone or beyond the reach, back to rest after 4 s;
+leaf offsets = mirror within 4e-4 u, zero before the front arrives, 0.7 % left after 2.9 s.
+
 ## Cvars
 
 | cvar | default | |
@@ -209,7 +251,9 @@ branches on `u_GrassStrip`, no permutation.
 | `r_foliageInteractionStrength` / `Radius` | 1 / 1 | contact depth / capsule radius scale |
 | `r_foliageInteractionMaxInteractors` | 8 | colliders uploaded |
 | `r_foliageInteractionNPCs` | 1 | NPCs too |
-| `r_foliageInteractionDebug` | 0 | 1 colliders, 2 x2 radius and strength, 4 interaction only, 8 grass contact heat, 16 freeze, 32 player only |
+| `r_foliageForceWaves` | 1 | Force push / pull throws the vegetation (with `r_foliageInteraction`) |
+| `r_foliageForceWaveStrength` | 1 | its strength, 0–4 |
+| `r_foliageInteractionDebug` | 0 | 1 colliders and Force waves, 2 x2 radius and strength, 4 interaction only, 8 grass contact heat, 16 freeze, 32 player only |
 | `r_plantWind` / `r_plantWindStrength` | 0 / 1 | breeze on the MD3 fronds |
 | `r_plantSimDistance` / `r_plantWindDistance` | 1500 / 3000 | full step / coarse step / rest |
 | `r_plantSimMaxPlants` | 96 | plants stepped per frame |

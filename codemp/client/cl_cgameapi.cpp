@@ -383,6 +383,12 @@ static void CL_R_SetFoliageInteractors( const foliageInteractor_t *interactors, 
 }
 
 // optional renderer extension (tr_public.h): nothing without it
+static void CL_R_AddFoliageForceWave( const foliageForceWave_t *wave ) {
+	if ( reFoliageWaves && reFoliageWaves->AddFoliageForceWave )
+		reFoliageWaves->AddFoliageForceWave( wave );
+}
+
+// optional renderer extension (tr_public.h): nothing without it
 static void CL_R_AddLensWaterEvent( const refLensWaterEvent_t *event ) {
 	if ( reLensWater && reLensWater->AddLensWaterEvent )
 		reLensWater->AddLensWaterEvent( event );
@@ -1945,6 +1951,7 @@ void CL_BindCGame( void ) {
 		cgi.ext.R_AddLensWaterEvent				= CL_R_AddLensWaterEvent;
 		cgi.ext.R_AddWaterImpulse				= CL_R_AddWaterImpulse;
 		cgi.ext.R_SetWaterSources				= CL_R_SetWaterSources;
+		cgi.ext.R_AddFoliageForceWave			= CL_R_AddFoliageForceWave;
 
 		GetCGameAPI = (GetCGameAPI_t)cgvm->GetModuleAPI;
 		ret = GetCGameAPI( CGAME_API_VERSION, &cgi );

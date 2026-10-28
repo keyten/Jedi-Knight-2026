@@ -18,11 +18,18 @@
 // so the blade curves and keeps its length.
 
 #define FOLIAGE_MAX_INTERACTORS 16
+// Force push / pull waves (FOLIAGE_FORCEWAVE_GPU, also in leaf_flutter.glsl)
+#ifndef FOLIAGE_MAX_FORCE_WAVES
+#define FOLIAGE_MAX_FORCE_WAVES 4
+#endif
 
 // std140, FoliageInteractionBlock in tr_local.h. Per collider two vec4:
 //   [2i]     axis x, y, bottom z (feet), top z
 //   [2i + 1] radius, velocity x, velocity y, 1 = airborne
 // Then the bend field: a player centered world XY texture of the grass state.
+// Then the Force push / pull waves, the newest first, per wave three vec4:
+//   (origin, radius), (horizontal aim x, y (0 = all around), cosine of the
+//   cone, signed strength: < 0 pull), (start time, seconds since the start)
 layout(std140) uniform FoliageInteraction
 {
 	vec4 u_FIParams;	// current count, previous count, strength, debug: 1 = no wind
@@ -33,6 +40,8 @@ layout(std140) uniform FoliageInteraction
 	vec4 u_FIFieldUpdate;	// update pass: time step, spring k, damping c, impulse
 	vec4 u_FIFieldShift;	// update pass: texel shift x, y, clear (0 / 1), unused
 	vec4 u_FIFieldTrample;	// update pass: trample strength, 1 / recovery time, unused, unused
+	vec4 u_FIWaveParams;	// wave count, front half width, grass kick (units / s), front speed
+	vec4 u_FIWaves[FOLIAGE_MAX_FORCE_WAVES * 3];
 };
 
 // the field state: rg = grass displacement delta (world units), ba = its
@@ -71,6 +80,39 @@ float FoliageColliderPenetration(in vec4 axis, in vec4 body, in vec3 q, out vec2
 	if (len > 1e-3)
 		n = d / len;
 	return radius - dist;
+}
+
+// Velocity kick (world units / s) of the Force push / pull waves on the grass
+// patch at xy while their fronts moved over the last dt seconds: the part of
+// the kick of a smoothstep pulse, away from (push) or towards (pull) the
+// caster. R_FoliageForceWaveImpulse (tr_foliageinteract.cpp) without the
+// height falloff: the field has no height.
+vec2 FoliageForceWaveKick(in vec2 xy, in float dt)
+{
+	vec2 kick = vec2(0.0);
+	int count = int(u_FIWaveParams.x);
+	float width = u_FIWaveParams.y;
+	for (int i = 0; i < FOLIAGE_MAX_FORCE_WAVES; ++i)
+	{
+		if (i >= count)
+			break;
+		vec4 origin = u_FIWaves[3 * i];
+		vec4 aim = u_FIWaves[3 * i + 1];
+		vec2 r = xy - origin.xy;
+		float d = length(r);
+		if (d >= origin.w)
+			continue;
+		float front = u_FIWaveParams.w * u_FIWaves[3 * i + 2].y;
+		float part = smoothstep(-width, width, front - d) -
+			smoothstep(-width, width, front - u_FIWaveParams.w * dt - d);
+		if (part <= 0.0)
+			continue;
+		vec2 n = d > 1e-3 ? r / d : (dot(aim.xy, aim.xy) > 0.0 ? aim.xy : vec2(1.0, 0.0));
+		float a = aim.z > -1.0 ? smoothstep(aim.z - 0.15, aim.z + 0.05, dot(n, aim.xy)) : 1.0;
+		a *= (1.0 - smoothstep(0.6 * origin.w, origin.w, d)) * (1.0 - 0.5 * d / origin.w);
+		kick += n * (u_FIWaveParams.z * aim.w * a * part);
+	}
+	return kick;
 }
 
 // Grass displacement of the bend field at the world position xy: zero outside

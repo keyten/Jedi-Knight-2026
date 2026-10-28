@@ -192,6 +192,7 @@ struct PlantInstance
 	int simFrame;
 	int lastTime;			// refdef time of the last step
 	float accumulator;
+	float waveTime;			// refdef time (s) the Force wave kicks are integrated to
 	int arenaOffset;		// first texel this frame, -1 none
 	bool atRest;			// bones are the rest pose (current and previous)
 	bool valid;
@@ -445,6 +446,7 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 	inst.simFrame = -1;
 	inst.lastTime = 0;
 	inst.accumulator = 0.0f;
+	inst.waveTime = 0.0f;
 	inst.arenaOffset = -1;
 	inst.atRest = true;
 	inst.valid = true;
@@ -862,7 +864,16 @@ static bool WriteBones(PlantInstance &inst, float renderAlpha)
 	return rest;
 }
 
-static void SimulateInstance(PlantInstance &inst, float distance)
+// a Force push / pull front reaches the plant this frame (or did within the
+// last 0.25 s: the frame time step)
+static bool ForceWaveNear(const PlantInstance &inst)
+{
+	const float now = tr.refdef.floatTime;
+	return R_FoliageForceWavesEnabled() &&
+		R_FoliageForceWaveReaches(&inst.center.x, inst.radius, now - 0.25f, now);
+}
+
+static void SimulateInstance(PlantInstance &inst, float distance, bool waveNear)
 {
 	const int now = tr.refdef.time;
 	const bool consecutive = inst.simFrame == tr.frameCount - 1 && now >= inst.lastTime &&
@@ -894,7 +905,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 	}
 
 	// asleep: nothing moves it and it is back at rest
-	if (!wind && numNear == 0 && inst.atRest && !touched)
+	if (!wind && numNear == 0 && inst.atRest && !touched && !waveNear)
 	{
 		if (!consecutive)
 			inst.prevBones = inst.bones;
@@ -903,7 +914,7 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 
 	if (dt > 0.0f)
 	{
-		const bool detailed = numNear > 0 || distance <= r_plantSimDistance->value;
+		const bool detailed = numNear > 0 || waveNear || distance <= r_plantSimDistance->value;
 		int steps;
 		float h;
 		int iterations;
@@ -937,10 +948,27 @@ static void SimulateInstance(PlantInstance &inst, float distance)
 		for (int step = 0; step < steps; ++step)
 		{
 			const float t = tr.refdef.floatTime - (steps - 1 - step) * h;
+			// the kicks over [waveFrom, t]: back to back over the steps of all
+			// frames, so the whole kick arrives whatever the step pattern
+			if (inst.waveTime > t || t - inst.waveTime > 0.25f)
+				inst.waveTime = t - h;
+			const float waveFrom = inst.waveTime;
+			inst.waveTime = t;
 			for (FrondSim &fr : inst.fronds)
 			{
 				for (int k = 0; k <= fr.segments; ++k)
 					fr.prevX[k] = fr.x[k];
+				// Force push / pull: the part of the kick the front gives each
+				// node during this step
+				if (waveNear)
+				{
+					for (int k = 1; k <= fr.segments; ++k)
+					{
+						float dv[3] = { 0.0f, 0.0f, 0.0f };
+						if (R_FoliageForceWaveImpulse(&fr.x[k].x, waveFrom, t, dv))
+							fr.v[k] += V3(dv[0], dv[1], dv[2]);
+					}
+				}
 				Vec3 windAccel = V3(0.0f, 0.0f, 0.0f);
 				if (strength > 0.0f)
 				{
@@ -997,7 +1025,11 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 
 	const float distance = Distance(tr.refdef.vieworg, ent->e.origin);
 	const bool beyondWind = distance > r_plantWindDistance->value;
-	PlantInstance *inst = beyondWind && s_ps.numCapsules == 0 ?
+	// the waves reach farther than the characters: a plant hit by one gets an
+	// instance even beyond r_plantWindDistance
+	const bool wavesLive = R_FoliageForceWaveReaches(ent->e.origin, 512.0f,
+		tr.refdef.floatTime - 0.25f, tr.refdef.floatTime) && R_FoliageForceWavesEnabled();
+	PlantInstance *inst = beyondWind && s_ps.numCapsules == 0 && !wavesLive ?
 		FindExistingInstance(ent, mdv) : FindInstance(ent, mdv);
 	if (!inst)
 		return;
@@ -1011,12 +1043,14 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 					return true;
 			return false;
 		}();
-		const bool simulate = nearCharacter || (!beyondWind &&
+		// touched plants always step, like the ones near a character
+		const bool waveNear = wavesLive && ForceWaveNear(*inst);
+		const bool simulate = nearCharacter || waveNear || (!beyondWind &&
 			s_ps.simulated < MAX(r_plantSimMaxPlants->integer, 0));
 		if (simulate)
 		{
 			const auto start = std::chrono::steady_clock::now();
-			SimulateInstance(*inst, distance);
+			SimulateInstance(*inst, distance, waveNear);
 			s_ps.lastMicroseconds += (int)std::chrono::duration_cast<std::chrono::microseconds>(
 				std::chrono::steady_clock::now() - start).count();
 		}

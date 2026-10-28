@@ -727,6 +727,10 @@ typedef struct cgameImport_s {
 		void			(*R_AddLensWaterEvent)					( const refLensWaterEvent_t *event );
 		void			(*R_AddWaterImpulse)					( const refWaterImpulse_t *impulse );
 		void			(*R_SetWaterSources)					( const refWaterSource_t *sources, int count );
+		// Force push / pull wave through the foliage (rend2 foliage wave
+		// extension), once per cast. NULL in the legacy VM; only called with
+		// r_foliageInteraction set
+		void			(*R_AddFoliageForceWave)				( const foliageForceWave_t *wave );
 	} ext;
 } cgameImport_t;
 

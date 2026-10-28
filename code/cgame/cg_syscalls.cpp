@@ -359,6 +359,10 @@ void	cgi_R_SetWaterSources( const refWaterSource_t *sources, int count ) {
 	Q_syscall( CG_R_SETWATERSOURCES, sources, count );
 }
 
+void	cgi_R_AddFoliageForceWave( const foliageForceWave_t *wave ) {
+	Q_syscall( CG_R_ADDFOLIAGEFORCEWAVE, wave );
+}
+
 void	cgi_R_RenderScene( const refdef_t *fd ) {
 	Q_syscall( CG_R_RENDERSCENE, fd );
 }

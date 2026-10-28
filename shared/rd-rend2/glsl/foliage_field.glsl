@@ -18,8 +18,10 @@ void main()
 // its trampled pose; a character is then a hard one-sided contact: delta is
 // pushed out of the capsule, along the direction away from its axis, nothing
 // ahead of the body moves. While a character stands on it, the patch slowly
-// takes a trampled set it keeps for a while after (r_grassTrample). No blur:
-// the state never spreads to other texels.
+// takes a trampled set it keeps for a while after (r_grassTrample). A Force
+// push / pull front passing the patch kicks its velocity away from / towards
+// the caster (FoliageForceWaveKick); the spring brings it back. No blur: the
+// state never spreads to other texels.
 //
 // DEBUG_VIEW: r_foliageBendFieldDebug 1, the current field in a corner of the
 // screen: left square = displacement (red / green = +x / +y, gray = rest),
@@ -106,6 +108,9 @@ void main()
 	float c = u_FIFieldUpdate.z;
 	vec2 d = state.xy;
 	vec2 v = state.zw;
+
+	// Force push / pull: the front that passed this frame
+	v += FoliageForceWaveKick(xy, dt);
 
 	// damped spring towards the trampled pose, semi-implicit Euler in steps of
 	// at most 1/60 s

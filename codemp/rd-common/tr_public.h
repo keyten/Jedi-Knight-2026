@@ -379,6 +379,15 @@ typedef struct refFoliageExport_s {
 
 typedef	const refFoliageExport_t* (QDECL *GetRefFoliageAPI_t) ( void );
 
+// Optional renderer extension (rend2 Force push / pull through the foliage),
+// looked up as "GetRefFoliageWaveAPI": cgame calls it once per cast push or
+// pull, only with r_foliageInteraction and cl_rendererFoliageWaves set.
+typedef struct refFoliageWaveExport_s {
+	void		(*AddFoliageForceWave)( const foliageForceWave_t *wave );
+} refFoliageWaveExport_t;
+
+typedef	const refFoliageWaveExport_t* (QDECL *GetRefFoliageWaveAPI_t) ( void );
+
 // Optional renderer extension (rend2 local fog volumes, r_volumetricFog 2),
 // looked up as "GetRefFogVolumeAPI". Same lifetime as a dynamic light: add
 // the volumes of a scene between ClearScene and RenderScene, every frame.

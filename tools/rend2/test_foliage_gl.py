@@ -15,6 +15,10 @@ Run from any directory: python tools/rend2/test_foliage_gl.py   (NVIDIA Optimus:
 - bend field update (foliage_field.glsl): a capsule pushes the patches inside it exactly out (hard contact),
   nothing outside it moves (no force field), the grass springs back towards the trampled part after the
   character left, and the trampled part fades
+- Force push / pull waves (r_foliageForceWaves): the field takes exactly the kick of the waves (python mirror
+  of tr_foliageinteract.cpp), away from the caster for a push and towards it for a pull, nothing behind the
+  cone or beyond the reach, and springs back; the leaves (leaf_flutter.glsl) swing from the arrival of the
+  front only, also with the flutter off
 """
 import ctypes as C
 from pathlib import Path
@@ -844,7 +848,7 @@ def check_field():
     state = {'cur': 0}
 
     def step(capsule):
-        rows = np.zeros((70, 4), dtype=np.float32)
+        rows = np.zeros((FIELD_BLOCK_ROWS, 4), dtype=np.float32)
         rows[0] = [1 if capsule else 0, 0, 1.0, 0]
         if capsule:
             rows[1] = [capsule[0], capsule[1], 0.0, 72.0]
@@ -907,6 +911,174 @@ def check_field():
             f'(trampled {trample_after:.1f} u), 13.5 s after {final:.2f} u')
 
 
+# FoliageInteraction block: params, 2 x 32 colliders, 5 field rows, wave params, 4 waves x 3
+FIELD_BLOCK_ROWS = 1 + 64 + 5 + 1 + 4 * 3
+# tr_foliageinteract.cpp
+WAVE_SPEED, WAVE_WIDTH, WAVE_GRASS_KICK, WAVE_LEAF_AMPLITUDE = 1400.0, 48.0, 180.0, 6.0
+
+
+def smoothstep(e0, e1, x):
+    t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def wave_weight(px, py, origin, radius, aim, cone):
+    """ForceWaveWeight without the height falloff, and the direction n"""
+    rx, ry = px - origin[0], py - origin[1]
+    d = np.hypot(rx, ry)
+    nx = np.where(d > 1e-3, rx / np.maximum(d, 1e-9), aim[0])
+    ny = np.where(d > 1e-3, ry / np.maximum(d, 1e-9), aim[1])
+    a = smoothstep(cone - 0.15, cone + 0.05, nx * aim[0] + ny * aim[1]) if cone > -1.0 else np.ones_like(d)
+    a = a * (1.0 - smoothstep(0.6 * radius, radius, d)) * (1.0 - 0.5 * d / radius)
+    return np.where(d < radius, a, 0.0), d, nx, ny
+
+
+def check_force_wave_field():
+    size = 64
+    extent = 1024.0
+    interact = stage('foliage_interact', 'vertex')
+    prog = build('foliage_field', [], '', interact)
+    tex_a = [texture(size, size, RGBA16F, RGBA) for _ in range(2)]
+    tex_b = [texture(size, size, RG16F, RG) for _ in range(2)]
+    fbos = [framebuffer([tex_a[i], tex_b[i]]) for i in range(2)]
+    ubo = U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(ubo))
+    block = gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'FoliageInteraction')
+    gl('glUniformBlockBinding', None, U, U, U)(prog, block, 3)
+    gl('glUseProgram', None, U)(prog)
+    gl('glUniform1i', None, I, I)(uloc(prog, 'u_FoliageFieldMap'), 23)
+    gl('glUniform1i', None, I, I)(uloc(prog, 'u_FoliageFieldPrevMap'), 24)
+    vao()
+    dt = 1.0 / 60.0
+    zeta, recovery = 0.6, 0.8
+    omega = 3.0 / (zeta * recovery)
+    centers = (np.arange(size) + 0.5) / size * extent - extent / 2
+    gx, gy = np.meshgrid(centers, centers)
+    origin, radius, aim, cone = (-200.0, 30.0, 40.0), 420.0, (1.0, 0.0), 0.6
+    report = []
+
+    for kick in (1.0, -0.75):
+        for f in fbos:
+            gl('glBindFramebuffer', None, U, U)(FB, f)
+            gl('glClearColor', None, F, F, F, F)(0, 0, 0, 0)
+            gl('glClear', None, U)(0x4000)
+        state = {'cur': 0}
+
+        def step(elapsed, spring):
+            rows = np.zeros((FIELD_BLOCK_ROWS, 4), dtype=np.float32)
+            rows[65] = [0.0, 0.0, 1.0 / extent, 1.0]
+            rows[66] = rows[65]
+            rows[67] = [dt, omega * omega if spring else 0.0, 2 * zeta * omega if spring else 0.0, 1.0]
+            rows[69] = [0.25, 1.0 / 6.0, 0, 0]
+            rows[70] = [1.0, WAVE_WIDTH, WAVE_GRASS_KICK, WAVE_SPEED]
+            rows[71] = [*origin, radius]
+            rows[72] = [*aim, cone, kick]
+            rows[73] = [100.0, elapsed, 0.0, 0.0]
+            gl('glBindBuffer', None, U, U)(UNIFORM_BUFFER, ubo)
+            gl('glBufferData', None, U, C.c_ssize_t, P, U)(UNIFORM_BUFFER, rows.nbytes, rows.ctypes.data, STATIC_DRAW)
+            gl('glBindBufferBase', None, U, U, U)(UNIFORM_BUFFER, 3, ubo)
+            src = state['cur']
+            dst = 1 - src
+            bind(23, tex_a[src])
+            bind(24, tex_b[src])
+            gl('glBindFramebuffer', None, U, U)(FB, fbos[dst])
+            gl('glViewport', None, I, I, I, I)(0, 0, size, size)
+            gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+            state['cur'] = dst
+            return read_pixels(size, size, 0)
+
+        # no spring: the velocity after the front passed is the whole kick
+        frames = int(0.45 / dt)
+        for n in range(1, frames + 1):
+            a = step(n * dt, False)
+        weight, d, nx, ny = wave_weight(gx, gy, origin, radius, aim, cone)
+        part = 1.0 - smoothstep(-WAVE_WIDTH, WAVE_WIDTH, -d)
+        expected = WAVE_GRASS_KICK * kick * weight * part
+        vx, vy = a[..., 2], a[..., 3]
+        err = np.max(np.hypot(vx - nx * expected, vy - ny * expected))
+        assert err < 0.01 * WAVE_GRASS_KICK, ('wave kick', kick, err)
+        hit = weight > 0.2
+        speed = np.hypot(vx, vy)
+        cosines = (vx * nx + vy * ny) / np.maximum(speed, 1e-6)
+        assert np.min(cosines[hit] * np.sign(kick)) > 0.999, ('wave direction', kick)
+        behind = (nx * aim[0] + ny * aim[1] < cone - 0.16) | (d > radius + 8.0)
+        assert np.max(speed[behind]) < 1e-3, ('moved behind the cone / beyond the reach', np.max(speed[behind]))
+        report.append(f'{"push" if kick > 0 else "pull"} {abs(kick):.2f}: kick error {err:.3f} u/s of '
+                      f'{np.max(np.abs(expected)):.0f}, max displacement {np.hypot(a[..., 0], a[..., 1]).max():.1f} u '
+                      f'(no spring)')
+
+    # with the spring: a push bends the grass and it comes back
+    for f in fbos:
+        gl('glBindFramebuffer', None, U, U)(FB, f)
+        gl('glClear', None, U)(0x4000)
+    state['cur'] = 0
+    kick = 1.0
+    peak = 0.0
+    for n in range(1, int(4.0 / dt) + 1):
+        a = step(n * dt, True)
+        disp = np.hypot(a[..., 0], a[..., 1]).max()
+        peak = max(peak, disp)
+        if n * dt <= 1.0:
+            at_1s = disp
+    final = np.hypot(a[..., 0], a[..., 1]).max()
+    assert peak > 8.0 and final < 0.05 * peak, (peak, final)
+    report.append(f'push with the spring: peak {peak:.1f} u, {at_1s:.1f} u after 1 s, {final:.2f} u after 4 s')
+    gl('glDeleteProgram', None, U)(prog)
+    return report
+
+
+def check_force_wave_leaves():
+    vs_lib = header([]) + stage('leaf_flutter', 'vertex')
+    origin, radius, aim, cone, kick, t0 = (100.0, -50.0, 20.0), 500.0, (0.6, 0.8), 0.5, 1.25, 10.0
+    pts = []
+    for d, ang in ((0.0, 0.0), (60.0, 0.0), (150.0, 0.3), (300.0, -0.2), (420.0, 0.1), (200.0, 2.5), (600.0, 0.0)):
+        yaw = math.atan2(aim[1], aim[0]) + ang
+        pts.append((origin[0] + d * math.cos(yaw), origin[1] + d * math.sin(yaw), origin[2] + 180.0))
+    times = np.linspace(t0 - 0.1, t0 + 3.0, 40)
+    data = np.array([[*p, t] for p in pts for t in times], dtype=np.float32)
+    count = len(data)
+
+    def setup(prog):
+        vao()
+        buffer(ARRAY_BUFFER, data)
+        gl('glEnableVertexAttribArray', None, U)(0)
+        gl('glVertexAttribPointer', None, U, I, U, C.c_ubyte, I, P)(0, 4, FLOAT, 0, 16, None)
+        # the flutter off: only the wave
+        gl('glUniform4f', None, I, F, F, F, F)(uloc(prog, 'u_LeafFlutter'), 1.0, 0.0, 0.0, 1.0)
+        gl('glUniform4f', None, I, F, F, F, F)(uloc(prog, 'u_LeafForceWave'), 1.0, WAVE_SPEED, WAVE_LEAF_AMPLITUDE, 0.0)
+        waves = np.zeros((12, 4), dtype=np.float32)
+        waves[0] = [*origin, radius]
+        waves[1] = [*aim, cone, kick]
+        waves[2] = [t0, 0.0, 0.0, 0.0]
+        gl('glUniform4fv', None, I, I, P)(uloc(prog, 'u_LeafForceWaves'), 12, waves.ctypes.data)
+
+    vs = vs_lib + """
+in vec4 attr_Position;   // world xyz, time
+void Probe(out vec4 a, out vec4 b)
+{
+    vec2 bands;
+    a = vec4(LeafFlutterOffset(attr_Position.xyz, 0.3, attr_Position.w, 1.0, bands), LeafFlutterEnabled() ? 1.0 : 0.0);
+    b = vec4(0.0);
+}
+"""
+    gpu, _ = run_probe(vs, count, setup)
+    assert np.all(gpu[:, 3] == 1.0), 'leaves not enabled with the flutter off'
+    px, py, t = data[:, 0].astype(np.float64), data[:, 1].astype(np.float64), data[:, 3].astype(np.float64)
+    weight, d, nx, ny = wave_weight(px, py, origin, radius, aim, cone)
+    tau = t - t0 - d / WAVE_SPEED
+    swing = np.where(tau > 0.0, 1.35 * np.exp(-1.8 * np.maximum(tau, 0.0)) * np.sin(8.8 * np.maximum(tau, 0.0)), 0.0)
+    amount = WAVE_LEAF_AMPLITUDE * kick * weight * swing
+    err = np.max(np.hypot(gpu[:, 0] - nx * amount, gpu[:, 1] - ny * amount))
+    assert err < 1e-3 * WAVE_LEAF_AMPLITUDE * kick + 1e-4, ('leaf offset', err)
+    assert np.max(np.abs(gpu[:, 2])) == 0.0
+    before = tau <= 0.0
+    assert np.max(np.abs(gpu[before, :2])) == 0.0, 'moved before the front arrived'
+    peak = np.max(np.hypot(gpu[:, 0], gpu[:, 1]))
+    tail = np.max(np.hypot(gpu[t > t0 + 2.9, 0], gpu[t > t0 + 2.9, 1]))
+    assert peak <= WAVE_LEAF_AMPLITUDE * kick * 1.01 and tail < 0.01 * peak, (peak, tail)
+    return f'leaves: offset error {err:.1e} u, peak {peak:.2f} u, {tail:.3f} u after 2.9 s, still before the front'
+
+
 def context(title):
     assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
     SDL.SDL_GL_SetAttribute(17, 3)
@@ -929,6 +1101,9 @@ def main():
         for line in check_blade():
             print('blade:', line)
         print(check_field())
+        for line in check_force_wave_field():
+            print('force wave field:', line)
+        print(check_force_wave_leaves())
         print('PASS')
     finally:
         SDL.SDL_GL_DeleteContext(ctx)
