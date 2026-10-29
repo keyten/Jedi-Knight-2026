@@ -1,0 +1,587 @@
+{
+  "cases": {
+    "hoth3_declared_roi": {
+      "diagnostic": {
+        "accounted_bytes": 11415552,
+        "areas": [
+          {
+            "excluded": 0,
+            "id": 1,
+            "limited": true,
+            "nodes": 128,
+            "outside_rejected": 16,
+            "requested": 64,
+            "retained": 16,
+            "saturated": 6,
+            "selected": 58,
+            "solid_rejected": 24,
+            "unknown_region": 128,
+            "unknown_relations": 4182,
+            "unsupported_receivers": 0
+          }
+        ],
+        "blocked_relations": 364,
+        "candidates": 16,
+        "classifications": {
+          "1": 16
+        },
+        "code": 0,
+        "diagnostics": [
+          "Candidate geometry only; no final amplitudes, source promotion, physical confidence or runtime capability"
+        ],
+        "feasibility": {
+          "0": 8,
+          "3": 8
+        },
+        "forward_calls": 1584,
+        "geometry_bytes": 38544638,
+        "geometry_global_complete": false,
+        "independent_surfaces_range": [
+          58,
+          58
+        ],
+        "key": "67b6069d8e1f0cf94c27e129f8a496a6b2d18216f33bde5660d2045decc4e15f",
+        "localization_evidence": "UnlocalizedNoKnownVisibleReceiverSupport",
+        "methods": {
+          "2": 16
+        },
+        "pairs": 61248,
+        "profiles": {
+          "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253": 8,
+          "NetRadiant-d9338309e-subsets-v2/linear/a6d23c7589a46776": 8
+        },
+        "rays": 16182,
+        "reason": "",
+        "region_assigned": 0,
+        "region_unknown": 16,
+        "search_complete": false,
+        "source_kinds": {
+          "0": 8,
+          "1": 8
+        },
+        "underconstrained": 16,
+        "unknown_relations": 60,
+        "visible_relations": 0,
+        "work": 3498878
+      },
+      "geometry_sha256": "7155d4dcaaf244fd3db1fb47a3f6af6109ef8313871dbae4a2de0b56eebf42fd",
+      "input_scope": "Blind training RGB + sanitized geometry only; no validation/held-out reads",
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "observations": 64,
+      "receiver_surfaces": 64,
+      "request_sha256": "b14d29798c0830857904e94ffb733c4de49603a60f8e0202ff4c88ed769b8389",
+      "search_geometry": {
+        "bounds": [
+          2808,
+          188,
+          -389,
+          3832,
+          1212,
+          635
+        ],
+        "coarse_divisions": 4,
+        "declared_finest_cell_radius_world": 55.42562584220407,
+        "meaning": "Resolution scale, not a position confidence interval or guaranteed fully searched support",
+        "refinement_rounds": 2
+      },
+      "status": "CandidateDiagnostics",
+      "stock_truth": "Unavailable: no physical-source recall or position accuracy",
+      "training_manifest_sha256": "655b1bd3ec89109ba796c7089e47cbeb07b20072e5ead58c453a89c743fbb619"
+    },
+    "point_room": {
+      "diagnostic": {
+        "accounted_bytes": 11415552,
+        "areas": [
+          {
+            "excluded": 0,
+            "id": 1,
+            "limited": true,
+            "nodes": 144,
+            "outside_rejected": 52,
+            "requested": 64,
+            "retained": 16,
+            "saturated": 0,
+            "selected": 64,
+            "solid_rejected": 4,
+            "unknown_region": 144,
+            "unknown_relations": 1056,
+            "unsupported_receivers": 0
+          }
+        ],
+        "blocked_relations": 0,
+        "candidates": 16,
+        "classifications": {
+          "1": 16
+        },
+        "code": 0,
+        "diagnostics": [
+          "Candidate geometry only; no final amplitudes, source promotion, physical confidence or runtime capability"
+        ],
+        "feasibility": {
+          "0": 16
+        },
+        "forward_calls": 1584,
+        "geometry_bytes": 3496,
+        "geometry_global_complete": true,
+        "independent_surfaces_range": [
+          3,
+          3
+        ],
+        "key": "cceda452bda82a3135fc1dd68df09ad9f0a58cda17d3f08487644040b7b89d29",
+        "localization_evidence": "ConditionalUnderconstrainedCandidates",
+        "methods": {
+          "2": 16
+        },
+        "pairs": 67584,
+        "profiles": {
+          "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253": 8,
+          "NetRadiant-d9338309e-subsets-v2/linear/a6d23c7589a46776": 8
+        },
+        "rays": 33792,
+        "reason": "",
+        "region_assigned": 0,
+        "region_unknown": 16,
+        "search_complete": false,
+        "source_kinds": {
+          "0": 8,
+          "1": 8
+        },
+        "underconstrained": 16,
+        "unknown_relations": 32,
+        "visible_relations": 992,
+        "work": 643720
+      },
+      "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "input_scope": "Blind training RGB + sanitized geometry only; no validation/held-out reads",
+      "map_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "observations": 64,
+      "receiver_surfaces": 3,
+      "request_sha256": "bcb8e13028b64d8fce0edaf7d8d04d8054e330d8be7b74d5700596810fd431c3",
+      "search_geometry": {
+        "bounds": [
+          -320,
+          -256,
+          -80,
+          320,
+          80,
+          336
+        ],
+        "coarse_divisions": 4,
+        "declared_finest_cell_radius_world": 26.062425059844298,
+        "meaning": "Resolution scale, not a position confidence interval or guaranteed fully searched support",
+        "refinement_rounds": 2
+      },
+      "status": "CandidateDiagnostics",
+      "training_manifest_sha256": "79c86a5ae1b38065b9d3b9c3ce0e037e306d3c4975ef4cf758b57c40c007816f",
+      "trusted_answer_evaluation": {
+        "answer_sha256": "ab9cbf34cea31daf2393b8aec024a495bacaac2511fd78aa2d6a2644f2a49294",
+        "claim": "Candidate-set coverage only, not recovered source XYZ/count/intensity",
+        "nearest_point_proposal_world": [
+          14.326548781894402
+        ],
+        "nearest_proposal_world": [
+          14.326548781894402
+        ],
+        "recall_at_declared_grid_radius": 1.0,
+        "recall_at_twice_grid_radius": 1.0,
+        "source_count": 1
+      }
+    },
+    "two_colour": {
+      "diagnostic": {
+        "accounted_bytes": 11415552,
+        "areas": [
+          {
+            "excluded": 0,
+            "id": 1,
+            "limited": true,
+            "nodes": 256,
+            "outside_rejected": 52,
+            "requested": 64,
+            "retained": 38,
+            "saturated": 0,
+            "selected": 64,
+            "solid_rejected": 4,
+            "unknown_region": 256,
+            "unknown_relations": 2400,
+            "unsupported_receivers": 0
+          }
+        ],
+        "blocked_relations": 0,
+        "candidates": 38,
+        "classifications": {
+          "1": 38
+        },
+        "code": 0,
+        "diagnostics": [
+          "Candidate geometry only; no final amplitudes, source promotion, physical confidence or runtime capability"
+        ],
+        "feasibility": {
+          "0": 38
+        },
+        "forward_calls": 3600,
+        "geometry_bytes": 3496,
+        "geometry_global_complete": true,
+        "independent_surfaces_range": [
+          3,
+          3
+        ],
+        "key": "cf79096c30a01c3ad0a7cf5b4e6a8302f526889e1f3a0a77c872c3fe28e39440",
+        "localization_evidence": "ConditionalUnderconstrainedCandidates",
+        "methods": {
+          "0": 1,
+          "2": 37
+        },
+        "pairs": 153600,
+        "profiles": {
+          "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253": 19,
+          "NetRadiant-d9338309e-subsets-v2/linear/a6d23c7589a46776": 19
+        },
+        "rays": 76800,
+        "reason": "",
+        "region_assigned": 0,
+        "region_unknown": 38,
+        "search_complete": false,
+        "source_kinds": {
+          "0": 24,
+          "1": 14
+        },
+        "underconstrained": 38,
+        "unknown_relations": 76,
+        "visible_relations": 2356,
+        "work": 1463000
+      },
+      "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "input_scope": "Blind training RGB + sanitized geometry only; no validation/held-out reads",
+      "map_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "observations": 64,
+      "receiver_surfaces": 3,
+      "request_sha256": "c32f0231a431bbc41bcf575a1ce8260d71a9892c270be61ee77f5655d75961c9",
+      "search_geometry": {
+        "bounds": [
+          -320,
+          -256,
+          -80,
+          320,
+          80,
+          336
+        ],
+        "coarse_divisions": 4,
+        "declared_finest_cell_radius_world": 26.062425059844298,
+        "meaning": "Resolution scale, not a position confidence interval or guaranteed fully searched support",
+        "refinement_rounds": 2
+      },
+      "status": "CandidateDiagnostics",
+      "training_manifest_sha256": "5876b6c4b7403a92beb659cee7da5cbd3606edfc87a8804cbebb58e91d25980c",
+      "trusted_answer_evaluation": {
+        "answer_sha256": "b70590e1ba2c70d1e3406be3a654c276cb5fb9b9c2438310c6b27e24e618ca21",
+        "claim": "Candidate-set coverage only, not recovered source XYZ/count/intensity",
+        "nearest_point_proposal_world": [
+          14.326548781894402,
+          8.789197915623474
+        ],
+        "nearest_proposal_world": [
+          14.326548781894402,
+          8.789197915623474
+        ],
+        "recall_at_declared_grid_radius": 1.0,
+        "recall_at_twice_grid_radius": 1.0,
+        "source_count": 2
+      }
+    }
+  },
+  "cpu": {
+    "checks": 1791,
+    "failures": 0,
+    "scenes": [
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 0,
+        "name": "hidden_point",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 5,
+        "rays": 5760,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 15,
+        "known_solid_rejected": 0,
+        "name": "two_colours",
+        "nearest_truth_world": [
+          7.1763500472,
+          7.1763500472
+        ],
+        "physical_candidates": 15,
+        "rays": 10752,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 0,
+        "name": "nearby_white_ambiguous_count",
+        "nearest_truth_world": [
+          9.02773504263,
+          9.02773504263
+        ],
+        "physical_candidates": 5,
+        "rays": 6144,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 6294528,
+        "ambiguous_candidates": 0,
+        "candidates": 6,
+        "known_solid_rejected": 0,
+        "name": "hidden_spot",
+        "nearest_truth_world": [
+          19.0131533418
+        ],
+        "physical_candidates": 6,
+        "rays": 18432,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 9,
+        "name": "known_wall",
+        "nearest_truth_world": [
+          9.38083151965
+        ],
+        "physical_candidates": 5,
+        "rays": 3936,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2816256,
+        "ambiguous_candidates": 0,
+        "candidates": 6,
+        "known_solid_rejected": 0,
+        "name": "bright_doorway_transport",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 5888,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2816256,
+        "ambiguous_candidates": 6,
+        "candidates": 6,
+        "known_solid_rejected": 0,
+        "name": "unlabelled_bright_transport_ambiguous",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 5888,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 0,
+        "known_solid_rejected": 0,
+        "name": "material_boundary_only",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 0,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 0,
+        "known_solid_rejected": 0,
+        "name": "saturated_plateau",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 0,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 1,
+        "candidates": 1,
+        "known_solid_rejected": 0,
+        "name": "unknown_optics_missing_regions",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 3072,
+        "unknown_rays": 48
+      },
+      {
+        "accounted_bytes": 2772480,
+        "ambiguous_candidates": 7,
+        "candidates": 7,
+        "known_solid_rejected": 0,
+        "name": "one_plane_underconstrained",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 0,
+        "rays": 1024,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 0,
+        "name": "noisy_sparse_grid_seed",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 5,
+        "rays": 5760,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 5581824,
+        "ambiguous_candidates": 0,
+        "candidates": 12,
+        "known_solid_rejected": 0,
+        "name": "competing_bake_profiles",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 12,
+        "rays": 13824,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 3231360,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 0,
+        "name": "unsupported_receiver_does_not_poison_faces",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 5,
+        "rays": 5760,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 5,
+        "known_solid_rejected": 0,
+        "name": "certified_region_optional_context",
+        "nearest_truth_world": [
+          9.02773504263
+        ],
+        "physical_candidates": 5,
+        "rays": 5760,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2864640,
+        "ambiguous_candidates": 0,
+        "candidates": 18,
+        "known_solid_rejected": 0,
+        "name": "dark_room_plus_bright_courtyard",
+        "nearest_truth_world": [
+          9.02773504263,
+          18.547236991
+        ],
+        "physical_candidates": 18,
+        "rays": 13184,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 0,
+        "candidates": 0,
+        "known_solid_rejected": 0,
+        "name": "opaque_wall_survives_uncertain_foreground",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 3072,
+        "unknown_rays": 0
+      },
+      {
+        "accounted_bytes": 2818560,
+        "ambiguous_candidates": 1,
+        "candidates": 1,
+        "known_solid_rejected": 0,
+        "name": "assumed_alpha_block_is_unknown",
+        "nearest_truth_world": [],
+        "physical_candidates": 0,
+        "rays": 3072,
+        "unknown_rays": 48
+      }
+    ]
+  },
+  "cross_compiler_checked": true,
+  "enum_legend": {
+    "classification": {
+      "0": "physical emitter CANDIDATE, not verified",
+      "1": "ambiguous source/transport",
+      "2": "transport evidence"
+    },
+    "feasibility": {
+      "0": "proven static free",
+      "1": "plausible unverified",
+      "2": "boundary",
+      "3": "region/visibility unknown"
+    },
+    "methods": {
+      "0": "surface response",
+      "1": "direction intersection",
+      "2": "refinement"
+    },
+    "source_kind": {
+      "0": "point",
+      "1": "spot"
+    }
+  },
+  "executable_sha256": "afaf9771c19f56d9aad020524e95a071f612df988007d991146a9a0818839112",
+  "limitations": [
+    "Finite searched hypotheses, not a completed reconstruction",
+    "Two fixed probe amplitudes; no final photometric fit",
+    "Spot axis/cone initialization incomplete",
+    "Stock has no source recall or XYZ ground truth",
+    "Known source fixtures are development checks, not untouched held-out-scene generalization; bounds bug was diagnosed with development answers",
+    "Search/output and observation sampling caps remain explicit",
+    "No HDR candidate scoring or full inverse solver",
+    "Moving-state uncertainty is limited to supplied domain/region/visibility contracts; no dynamic scene inference"
+  ],
+  "repeated_identical": true,
+  "schema": "org.openjk.s04-hidden-candidates-validation.v1",
+  "scope": {
+    "confidence_probability": "Unknown",
+    "physical_intensity": "Unavailable",
+    "reconstructed": false,
+    "runtime_sources": 0,
+    "stock_bake_profile": "UnknownProfile",
+    "stock_source_truth": "Unavailable"
+  },
+  "semantic_sha256": "7771d1cbd2b869ad790ec3a1e3e201edc6ac01f710387d3b6b94986b9e258b0a",
+  "source_commit": "1ee34edd5166620e5a5c4de5bb5d595e5b4456ec",
+  "source_sha256_lf": {
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "9cd4ef6d4b6fdd19920e3d28384220fd55eebed1a2ec9f70eb65ecec0a0796c7",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "c674fae5ff7f6a4b374e0c4e783b965c9d8f09b55dd3574b4e55cf035acad1f4",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "7be875d478d9c1f6727546c90485a15a0e5694e55e218df7eecc94c0df3b37de",
+    "shared/rd-rend2/lightrecon/evidence.cpp": "22685e3203dce6def6ac9e96d5f725d7e9170cc46c20d5a46211383545e5bc9b",
+    "shared/rd-rend2/lightrecon/evidence.h": "0f7b2465612793463ef9d92bebf00badf1e215a56877d7e82e27bce9aba460b0",
+    "shared/rd-rend2/lightrecon/hidden_candidates.cpp": "2029e8a885e701b548d2fa0e7e05ef9d962bb831d8b39e52f7be3e7704a6c43c",
+    "shared/rd-rend2/lightrecon/hidden_candidates.h": "0b6ef663795a6fd4cd30763339678da9c039333ed9e98e47c0cef892f472e6bb",
+    "shared/rd-rend2/lightrecon/offline.cpp": "088d9dc37315f782b653dc1babfda7d7ca52ecc26f3433d8ced167688c412723",
+    "shared/rd-rend2/lightrecon/regions.cpp": "ae2a5e7e9c80aa2ff54bd2d421653f8a3687683b0f371905cf46947317e0b677",
+    "shared/rd-rend2/lightrecon/regions.h": "acbca50d6d22c8f1be44b0ef0b7354f40a86365e20c10c47b6c0d559cf6919f6",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "32da6ae9be2e8423e208ef6c0327aa1e5991dd1e20748ee89b7996415b9e86ac",
+    "tools/lightrecon_test/CMakeLists.txt": "819e91141f78e202e7f3388ed877475bc930877a62eca5c38f60be898afb5582",
+    "tools/lightrecon_test/lightrecon_hidden_test.cpp": "e4c314602faa7589ac7750e7ff3a6197d7781e97c38f0ccaac08f50a202f3056",
+    "tools/lightrecon_test/lightrecon_hidden_tool.cpp": "3594a949cbd3d0fcb6e163f35d1b9c0edfc32e6fe71dfd7e0d3669bfb61f6d91",
+    "tools/rend2/hidden_candidates/report.py": "01e64996ce77cf77bba57556e022abc15e72bf780eca99c327dd10758198a679",
+    "tools/rend2/hidden_candidates/run.py": "50e2504f0ce14bbd23c0de8ad24eaf149872ea27bd5e98ac8ea9cbeec06a2b7f",
+    "tools/rend2/hidden_candidates/test_hidden_candidates.py": "9c15e81c8c48ac641c321eb8aeb7baad10007a784d92da4d455f7603bdf2e310"
+  }
+}

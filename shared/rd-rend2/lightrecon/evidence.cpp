@@ -1045,6 +1045,8 @@ const char *EvidenceOriginName(EvidenceOrigin o)
 		return "sun-declaration";
 	case EvidenceOrigin::SkyShader:
 		return "sky-hint";
+	case EvidenceOrigin::SurfaceObservation:
+		return "surface-observation-hypothesis";
 	}
 	return "unknown";
 }

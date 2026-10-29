@@ -1261,6 +1261,10 @@ const Disk::Digest &LightingRegionGraph::CertificationKey() const
 {
 	return data_->key;
 }
+const Disk::Digest &LightingRegionGraph::VisibilityKey() const
+{
+	return data_->input.geometry->CertificationKey();
+}
 bool LightingRegionGraph::PortableCertification() const
 {
 	return dynamic_cast<const BspRegionDomain *>(data_->input.domain.get()) != nullptr;

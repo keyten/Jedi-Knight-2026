@@ -27,7 +27,8 @@ enum class EvidenceOrigin
 	AutomaticArea,
 	BspEntity,
 	SunShader,
-	SkyShader
+	SkyShader,
+	SurfaceObservation // appended: inferred candidate geometry, never authored intensity
 };
 enum class EvidenceUnit
 {

@@ -305,6 +305,8 @@ class LightingRegionGraph
 	const LightmapMapIdentity &Identity() const;
 	// Scope ordinal IDs by this content/options/version key. Never reuse old certification.
 	const Disk::Digest &CertificationKey() const;
+	// Visual-scene generation used by this graph's certificates.
+	const Disk::Digest &VisibilityKey() const;
 	bool PortableCertification() const; // false for custom domains without canonical BSP content
 	// Cheap export guard; identical replacement leases still require explicit replay.
 	bool MatchesSources(const std::shared_ptr<const SurfaceGeometry> &,

@@ -1,0 +1,67 @@
+{
+  "deterministic": true,
+  "diagnostics_csv_sha256": "77f39296816831e162597019f87d929db179c215892900253534b7ebf55393ec",
+  "provenance": {
+    "dirty_sources": true,
+    "head": "c86d5680c74a3bbbf09235dac472d7a7b5b2ac1f",
+    "source_sha256": {
+      "shared/rd-rend2/lightrecon/candidate_pool.cpp": "475a5abf30aeb9ea4fc85cd1a5f398a16b9ee095d3ed6a76162e76a42713e3ec",
+      "shared/rd-rend2/lightrecon/candidate_pool.h": "c96fdde78c3f8a09f15f22296e808344bb0b2f40b41337ec2ce42f0a3e6d99f5",
+      "tools/lightrecon_test/lightrecon_candidates_test.cpp": "c4b0e455798ded5b0a2904df5206651ebd7218785db407957a5029437a04c123",
+      "tools/rend2/candidate_pool/run.py": "1a923a2fb2db5189cbbd4b7267f3e5d9a7ba7cdf11e14a4e5982401cdb7870a1"
+    },
+    "tool_sha256": "2b923cc7140fe1d6619f19b89cef605eff94ab04aa5c72abbd5970c54d9ad6d1"
+  },
+  "resources": [
+    {
+      "peak_rss_bytes": 27820032,
+      "seconds": 4.191709700040519,
+      "stages": {
+        "large_63_waves_seconds": 0.6776354,
+        "large_consolidate_seconds": 1.6956244,
+        "union_64_waves_seconds": 0.0030767,
+        "union_consolidate_seconds": 0.7823083
+      }
+    },
+    {
+      "peak_rss_bytes": 27238400,
+      "seconds": 5.472181799937971,
+      "stages": {
+        "large_63_waves_seconds": 0.8285677,
+        "large_consolidate_seconds": 2.7269903,
+        "union_64_waves_seconds": 0.0022606,
+        "union_consolidate_seconds": 0.8943874
+      }
+    }
+  ],
+  "schema": "org.openjk.candidate-pool-benchmark",
+  "scope": "Own-content scheduling/retention only; not physical reconstruction recall",
+  "semantic_sha256": "1c1cf427f98bbbcb423a30b17ba20d51ba2aeeb8dd8ffa47fe8f95a4261caaed",
+  "version": 1,
+  "witness": {
+    "all_waves": {
+      "area": 6000,
+      "point": 24,
+      "spot": 24,
+      "waves": 63
+    },
+    "bundles": 6048,
+    "catalog_key": "eae4e0238ae3c730fc73d8bc52d8885f2416eeab52e03493b46268afb2ece4c7",
+    "checks": 21342,
+    "conservative_accounted_bytes": 57890544,
+    "exact_union_parts": 2048,
+    "failures": 0,
+    "first_wave": {
+      "area": 96,
+      "deferred": 5904,
+      "point": 24,
+      "spot": 24
+    },
+    "inputs": 6048,
+    "models": 6048,
+    "pair_tests": 1000,
+    "schema": "org.openjk.candidate-pool-validation",
+    "union_waves": 64,
+    "version": 1
+  }
+}

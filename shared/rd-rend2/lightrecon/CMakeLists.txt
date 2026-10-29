@@ -10,6 +10,8 @@ add_library(rend2_lightrecon_core STATIC
 	decode.cpp decode.h
 	bake_profile.h bake_forward.cpp bake_forward.h bake_math.h bake_trace.cpp bake_trace.h bake_integral.cpp
 	sun_fit.cpp sun_fit.h
+	hidden_candidates.cpp hidden_candidates.h
+	candidate_pool.cpp candidate_pool.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h

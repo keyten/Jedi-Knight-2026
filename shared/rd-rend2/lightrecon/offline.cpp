@@ -1326,7 +1326,7 @@ void EvidenceValid(const EvidenceInfo &e, const Metadata &m, uint64_t surfaces)
 	for (const auto &v : e.evidence)
 	{
 		Need(v.id && ids.insert(v.id).second, "Duplicate evidence source ID");
-		Need(uint32_t(v.origin) <= uint32_t(EvidenceOrigin::SkyShader) &&
+		Need(uint32_t(v.origin) <= uint32_t(EvidenceOrigin::SurfaceObservation) &&
 				 uint32_t(v.unit) <= uint32_t(EvidenceUnit::IlluminanceLux),
 			 "Invalid evidence kind/unit");
 		for (auto n : v.surfaces)
@@ -1334,6 +1334,9 @@ void EvidenceValid(const EvidenceInfo &e, const Metadata &m, uint64_t surfaces)
 		for (auto p : {v.position, v.right, v.up, v.outward, v.toSource, v.colour, v.chromaticity})
 			Need(Finite(p), "Non-finite candidate geometry/colour");
 		Need(std::isfinite(v.intensity) && v.intensity >= 0, "Invalid candidate intensity");
+		if(v.origin==EvidenceOrigin::SurfaceObservation)
+			Need(!v.intensityKnown&&v.intensity==0&&v.unit==EvidenceUnit::Unknown&&
+				 (v.issues&ShapeHypothesis),"Inferred source candidate cannot claim authored/physical intensity");
 		for (float value : {v.halfWidth, v.halfHeight, v.radius, v.areaWorld, v.sourceRadiusHint,
 							v.coneDegrees, v.range, v.geometricCoverage})
 			Need(std::isfinite(value) && value >= 0, "Invalid candidate dimensions");

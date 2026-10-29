@@ -1,0 +1,33 @@
+{
+  "compiled_fixture_source": "Reused immutable/hash-checked q3map2 observations",
+  "cpu_suite": {
+    "ctest_seconds": 45.92,
+    "failed": 0,
+    "passed": 20
+  },
+  "fresh_q3map2_invocation": false,
+  "game_launched": false,
+  "hidden_checks": {
+    "compilers": [
+      "GCC Release",
+      "MSVC 2019 Release"
+    ],
+    "failed": 0,
+    "passed": 1791
+  },
+  "python_protocol": {
+    "failed": 0,
+    "passed": 5
+  },
+  "release_builds": [
+    "rdsp-rend2_x86_64",
+    "rd-rend2_x86_64",
+    "lightrecon_hidden_test",
+    "lightrecon_hidden_tool"
+  ],
+  "runtime_sources": 0,
+  "schema": "org.openjk.s04-checks.v1",
+  "semantic_sha256": "7771d1cbd2b869ad790ec3a1e3e201edc6ac01f710387d3b6b94986b9e258b0a",
+  "shader_or_gameplay_visual_test": "NotPerformed: CPU-only provider; no renderer integration",
+  "stock_localization": "UnlocalizedNoKnownVisibleReceiverSupport"
+}
