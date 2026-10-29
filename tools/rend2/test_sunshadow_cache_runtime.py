@@ -161,7 +161,7 @@ def run_case(args, mode, run_index):
     if log_path.exists():
         shutil.move(str(log_path), str(runtime/('previous-%d.log' % time.time_ns())))
     settings = dict(fs_basepath=str(args.installation), fs_homepath=str(home), fs_game='OpenJK',
-        cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='-1', r_customwidth='960', r_customheight='540',
+        cl_renderer='rdsp-rend2', r_fullscreen='0', r_mode='-1', r_customwidth=str(args.window[0]), r_customheight=str(args.window[1]),
         r_swapInterval='0', s_initsound='0', r_sunlightMode='1', r_sunShadows='1', r_sunShadowMode='1',
         r_shadowMapSize=str(args.shadow_size), r_sunShadowCache=str(mode), r_shadowPCSS='1',
         r_depthPrepass='1', r_forceSun='1', r_cubeMapping='0', r_diffuseIBL='0', r_ssr='0', r_ssgi='0',
@@ -231,6 +231,8 @@ def main():
     parser.add_argument('--timeout', type=int, default=420)
     parser.add_argument('--no-verify', action='store_true')
     parser.add_argument('--maxfps', type=int, default=0)
+    # Correctness-only runs next to other game instances: e.g. --window 480 270 --maxfps 60
+    parser.add_argument('--window', type=int, nargs=2, default=[960, 540], metavar=('WIDTH', 'HEIGHT'))
     parser.add_argument('--benchmark-frames', type=int, default=0)
     args = parser.parse_args()
     if os.name != 'nt':

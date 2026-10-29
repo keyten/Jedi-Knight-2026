@@ -53,6 +53,7 @@ layout(std140) uniform Camera
 	vec4 u_FPlusParams;   // tile size, depth slices, slice scale, slice bias
 	vec4 u_FPlusParams2;  // viewport x, viewport y, enabled, near slice distance
 	vec4 u_FPlusDebug;    // r_forwardPlusDebug, selected light, max lights per cluster, r_ltcDebug
+	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
 layout(std140) uniform Entity
@@ -339,6 +340,13 @@ void main()
 #endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
+	// r_sunShadowCache 2: see generic.glsl (snap to the 1/256 pixel raster grid)
+	if (u_SunShadowSnap.x > 0.0)
+	{
+		vec2 snapLinear = (u_viewProjectionMatrix * vec4(wsPosition.xyz, 0.0)).xy;
+		gl_Position.xy = floor(snapLinear * u_SunShadowSnap.xy + 0.5) / u_SunShadowSnap.xy + u_SunShadowSnap.zw;
+	}
+
 	position  = wsPosition.xyz;
 	normal    = normalize(mat3(u_ModelMatrix) * normal);
   #if defined(PER_PIXEL_LIGHTING)
@@ -484,6 +492,7 @@ layout(std140) uniform Camera
 	vec4 u_FPlusParams;   // tile size, depth slices, slice scale, slice bias
 	vec4 u_FPlusParams2;  // viewport x, viewport y, enabled, near slice distance
 	vec4 u_FPlusDebug;    // r_forwardPlusDebug, selected light, max lights per cluster, r_ltcDebug
+	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
 layout(std140) uniform Entity

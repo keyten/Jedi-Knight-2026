@@ -1450,6 +1450,9 @@ struct CameraBlock
 	vec4_t fplusParams;		// tile size (pixels), depth slices, slice scale, slice bias
 	vec4_t fplusParams2;	// viewport x, viewport y, enabled, near slice distance
 	vec4_t fplusDebug;		// r_forwardPlusDebug, selected light, max lights per cluster, r_ltcDebug
+	// r_sunShadowCache 2 cascades (generic/lightall.glsl): grid steps per NDC unit x/y
+	// (0 = off), then the matrix translation already on that grid
+	vec4_t sunShadowSnap;
 };
 
 struct SceneBlock

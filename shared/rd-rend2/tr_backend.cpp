@@ -2777,6 +2777,28 @@ static void RB_UpdateCameraConstants(gpuFrame_t *frame)
 		VectorCopy(tr.cachedViewParms[i].ori.origin, cameraBlock.viewOrigin);
 		RB_ForwardPlusCameraParams(tr.cachedViewParms[i].currentViewParm, &cameraBlock);
 
+		// Scrolled cascades reuse depth rasterized under an older translation.
+		// Float rounding of M * v differs per translation, which moves vertices
+		// by ~1e-5 pixel: coverage flips at edges passing ~1/700 pixel from a
+		// texel centre (10-29 ffa3 trace: a wall corner, error 0.52) and depth
+		// differs in thousands of copied texels. Snapping the translation-free
+		// part to the 1/256 pixel raster grid and adding a grid-aligned
+		// translation makes an integer texel scroll exact (generic.glsl and
+		// lightall.glsl; the static depth fill runs lightall).
+		const int snapWidth = tr.cachedViewParms[i].viewportWidth;
+		const int snapHeight = tr.cachedViewParms[i].viewportHeight;
+		if (r_sunShadowCache->integer == 2 && r_sunShadowMode->integer &&
+			(tr.cachedViewParms[i].flags & VPF_SHADOWCASCADES) &&
+			(tr.cachedViewParms[i].flags & VPF_ORTHOGRAPHIC) &&
+			snapWidth > 0 && snapHeight > 0 &&
+			!(snapWidth & (snapWidth - 1)) && !(snapHeight & (snapHeight - 1)))
+		{
+			const double stepsX = 128.0 * snapWidth, stepsY = 128.0 * snapHeight;
+			VectorSet4(cameraBlock.sunShadowSnap, (float)stepsX, (float)stepsY,
+				(float)(floor(cameraBlock.viewProjectionMatrix[12] * stepsX + 0.5) / stepsX),
+				(float)(floor(cameraBlock.viewProjectionMatrix[13] * stepsY + 0.5) / stepsY));
+		}
+
 		if (backEnd.viewParms.viewParmType == VPT_MAIN && frame->currentScene == 0)
 			memcpy(frame->viewProjectionMatrix, cameraBlock.viewProjectionMatrix, sizeof(matrix_t));
 

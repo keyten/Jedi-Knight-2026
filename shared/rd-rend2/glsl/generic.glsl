@@ -45,6 +45,11 @@ layout(std140) uniform Camera
 	vec3 u_ViewForward;
 	vec3 u_ViewLeft;
 	vec3 u_ViewUp;
+	ivec4 u_FPlusGrid;
+	vec4 u_FPlusParams;
+	vec4 u_FPlusParams2;
+	vec4 u_FPlusDebug;
+	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
 layout(std140) uniform Entity
@@ -493,6 +498,16 @@ void main()
 #endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
+	// r_sunShadowCache 2: scrolled cascade depth is reused at an
+	// integer texel translation. Snap the translation-free part to the 1/256
+	// pixel raster grid and add the grid-aligned translation, so every build
+	// rasterizes bit-identical positions (all steps are powers of two).
+	if (u_SunShadowSnap.x > 0.0)
+	{
+		vec2 snapLinear = (u_viewProjectionMatrix * vec4(wsPosition.xyz, 0.0)).xy;
+		gl_Position.xy = floor(snapLinear * u_SunShadowSnap.xy + 0.5) / u_SunShadowSnap.xy + u_SunShadowSnap.zw;
+	}
+
 #if defined(USE_TCGEN)
 	vec2 tex = GenTexCoords(u_TCGen0, position.xyz, normal, u_TCGen0Vector0, u_TCGen0Vector1);
 #else
@@ -570,6 +585,11 @@ layout(std140) uniform Camera
 	vec3 u_ViewForward;
 	vec3 u_ViewLeft;
 	vec3 u_ViewUp;
+	ivec4 u_FPlusGrid;
+	vec4 u_FPlusParams;
+	vec4 u_FPlusParams2;
+	vec4 u_FPlusDebug;
+	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 #endif
 

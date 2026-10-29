@@ -2771,6 +2771,44 @@ static	void R_LoadShaders( world_t *worldData, lump_t *l ) {
 
 /*
 =================
+R_ExpandLeafBoundsToSurfaces
+
+A surface is only reached through the leaves that list it, but a patch (or a
+face) can extend past those leaves' cells. Frustum culling on the cell bounds
+then drops it where only its overhang is in view: 10-29 ffa3, an h_sandstone
+patch whose seven leaves were all outside a sun cascade although the patch
+covered texels at the cascade edge (r_sunShadowCache 2 reuse made it visible
+as a mismatch). Grow every leaf, and its ancestors, to its surfaces' bounds.
+=================
+*/
+static void R_ExpandLeafBoundsToSurfaces(world_t *worldData)
+{
+	for (int i = worldData->numDecisionNodes; i < worldData->numnodes; ++i)
+	{
+		mnode_t *leaf = worldData->nodes + i;
+		for (int j = 0; j < leaf->nummarksurfaces; ++j)
+		{
+			const int surfNum = worldData->marksurfaces[leaf->firstmarksurface + j];
+			if (surfNum < 0 || surfNum >= worldData->numsurfaces)
+				continue;
+			const cullinfo_t& cull = worldData->surfaces[surfNum].cullinfo;
+			if (!(cull.type & CULLINFO_BOX))
+				continue;
+			for (mnode_t *node = leaf; node; node = node->parent)
+			{
+				if (cull.bounds[0][0] >= node->mins[0] && cull.bounds[0][1] >= node->mins[1] &&
+					cull.bounds[0][2] >= node->mins[2] && cull.bounds[1][0] <= node->maxs[0] &&
+					cull.bounds[1][1] <= node->maxs[1] && cull.bounds[1][2] <= node->maxs[2])
+					break;
+				AddPointToBounds(cull.bounds[0], node->mins, node->maxs);
+				AddPointToBounds(cull.bounds[1], node->mins, node->maxs);
+			}
+		}
+	}
+}
+
+/*
+=================
 R_LoadMarksurfaces
 =================
 */
@@ -4999,6 +5037,7 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 	stageStart = ri.Milliseconds();
 	R_LoadMarksurfaces(worldData, &header->lumps[LUMP_LEAFSURFACES]);
 	R_LoadNodesAndLeafs(worldData, &header->lumps[LUMP_NODES], &header->lumps[LUMP_LEAFS]);
+	R_ExpandLeafBoundsToSurfaces(worldData);
 	R_LoadSubmodels(worldData, worldIndex, &header->lumps[LUMP_MODELS]);
 	R_LoadVisibility(worldData, &header->lumps[LUMP_VISIBILITY]);
 	R_LoadLightGrid(worldData, &header->lumps[LUMP_LIGHTGRID], observations);
