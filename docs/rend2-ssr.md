@@ -220,6 +220,23 @@ see occlusion and parallax of their own. With `r_ssrStochastic 1`:
 Without `r_ssrTemporal 1` it is off (a warning), one sample per pixel would only be noise. Measurements, the
 reference test and the choices of the constants: [validation](rend2-ssr-validation.md), 2026-10-29 stochastic GGX.
 
+### Reflected fog (`r_ssrReflectedFog`, latched, default 1, froxel fog only)
+
+The color pyramid is the scene before any fog, and the froxel fog composite (after the SSR) only fogs the camera ->
+receiver part: a reflected object behind fog looked as clear as one next to the mirror. The froxel volume of
+the view is built after the depth prepass, before the main pass, so its media exist when the SSR runs.
+`SSRHitRadiance` (every hit radiance: the per-ray radiance pass, the direct resolve, the fused composite) marches
+the segment receiver P -> hit Q through this frame's injected media (`froxelInject[current]`: sigma_s * L and
+sigma_t, `froxelDynamic`, `froxelExtinction` with RGB extinction) with the Beer-Lambert steps of the integration,
+one step per froxel crossed (at most 16), and returns `L * T + S`. Both ends are on the screen, so the segment
+lies in the froxel frustum; past the last slice the last one is used.
+
+- The injected light is what the media scatter towards the camera (the phase lobe of each medium); the light
+  scattered into the reflection has another phase angle. Isotropic media are exact, forward scattering sun
+  beams scatter a different amount into the reflection.
+- Not fogged along the ray: the cubemap reflection, saber / effect reflections, the water surface's own SSR.
+- `r_volumetricFog` other than 2 (legacy fog passes, the grid ray march): no media to march, no effect.
+
 ### Hit cache (`r_ssrHitCache 1`, off by default)
 
 The trace reprojects the receiver into the previous frame using its velocity, reads the nearest ray sample on
@@ -372,6 +389,7 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrReceiverCull` | -1 | 1 = early depth classification of the pixels that need a ray, 0 = the trace discards the others itself, -1 = classify only while under ~15% of the trace texels need a ray (measured share, hysteresis 12% / 18%) |
 | `r_ssrFusedResolve` | 1 | without temporal accumulation the composite resolves the rays itself (no full resolution resolve image); 0 = separate pass |
 | `r_ssrFootprintDepth` | 1 | rough reflections do not blur surfaces in front of the hit into it (Hi-Z tracing only) |
+| `r_ssrReflectedFog` | 1 | archive, latch: fog the SSR along the reflected ray with the froxel fog (`r_volumetricFog 2` only; see Reflected fog). Intel 640x360: +0.07 ms half res, +0.4-0.8 ms full res |
 | `r_ssrStochastic` | 0 | archive, latch, needs `r_ssrTemporal 1`: GGX sampled rays reused by the neighbours instead of the mirror ray with a cone blur (see Stochastic GGX; the SSR costs about 1.6-1.7x in game on Intel) |
 | `r_ssrDebug` | 0 | cheat, see below |
 | `r_ssrEmitters` | 1 | reflect light sabers and additive effects (analytic) |
@@ -443,9 +461,9 @@ passes the focused RTX motion/SSR compilation checks. See the validation report 
   world surfaces, poly effects or oriented quads; shape and color are approximations (a capsule with the average
   bright color of the texture). Their occlusion is only known on screen: an emitter behind an off-screen wall can
   leak into a reflection. Rough surfaces show the saber's dynamic light highlight instead.
-- Only the fog of the receiver is applied (fog passes draw after the composite); fog along the reflected ray is
-  not: reflected objects behind fog look too clear. Attenuating `P -> Q` needs the froxel extinction at SSR time
-  (the volumetric integration runs later in the frame), see the possible improvements.
+- Fog along the reflected ray only with the froxel fog (`r_ssrReflectedFog`, see Reflected fog): with the
+  legacy fog passes only the fog of the receiver is applied and reflected objects behind fog look too clear. The
+  froxel in-scattering keeps the phase angle towards the camera.
 - A multiplicative stage drawn after the PBR stage of the same shader (rare) is not included in `C`.
 - The depth buffer only has the front faces: thin objects are thickened by `r_ssrThickness`, which can produce
   false hits behind them (reduced by the ambiguity term and the back facing test).
@@ -469,7 +487,9 @@ passes the focused RTX motion/SSR compilation checks. See the validation report 
 
 - Stochastic GGX (`r_ssrStochastic`): a history of luminance moments (variance guided clamping, SVGF) instead of
   the half clamp, and reprojection by the hit point for rough reflections of moving objects.
-- Fog along the reflected ray; SSR for remaining transparent surfaces such as glass (water already has its own pass).
+- Reflected fog: the in-scattering with the phase angle of the reflected ray (a per-medium phase lookup during
+  the march), the water surface's SSR, the cubemap reflection. SSR for remaining transparent surfaces such as
+  glass (water already has its own pass).
 - A screen-space emissive layer for the remaining additive effects (exact look, on screen only), next to the
   analytic emitters.
 - Pack the material buffer tighter (R11G11B10F for `C`), or reuse the prepass for the normal.

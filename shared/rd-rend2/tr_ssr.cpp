@@ -184,6 +184,29 @@ qboolean R_SSRStochastic( void )
 	return s_ssrStochastic;
 }
 
+// r_ssrReflectedFog: decided when the GPU shaders are built (latched), only
+// with the froxel fog, whose resources exist by then
+qboolean R_SSRReflectedFog( void )
+{
+	return (qboolean)(s_ssrResources && r_ssr->integer && r_ssrReflectedFog->integer && R_VolumetricFroxelEnabled());
+}
+
+// Binds the froxel media and fog block for the programs that fog the reflected
+// ray (SSR_REFLECTED_FOG). Returns the value of their "volume available" flag.
+static float RB_SSRBindReflectedFog( void )
+{
+	image_t *source, *dynamic, *extinction;
+	if ( !R_SSRReflectedFog() || !RB_VolumetricMediaImages(&source, &dynamic, &extinction) )
+		return 0.0f;
+	GL_BindToTMU(source, TB_SSR_FROXELSOURCE);
+	GL_BindToTMU(dynamic, TB_SSR_FROXELDYNAMIC);
+	if ( extinction )
+		GL_BindToTMU(extinction, TB_SSR_FROXELEXTINCTION);
+	const UniformBlockBinding binding = RB_GetVolumetricFogBlockUniformBinding();
+	RB_BindUniformBlock(binding.ubo, binding.block, binding.offset);
+	return 1.0f;
+}
+
 float R_SSRTraceScale( void )
 {
 	return (float)s_gridScale;
@@ -778,7 +801,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			vec4_t texelSize, settings, settings2;
 			RB_ScreenTexelSize(texelSize, width, height, traceWidth, traceHeight);
 			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), footprintHiZ);
-			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, 0.0f);
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, RB_SSRBindReflectedFog());
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRTEXELSIZE, texelSize);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS, settings);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS2, settings2);
@@ -801,7 +824,8 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			vec4_t texelSize, settings, settings2;
 			RB_ScreenTexelSize(texelSize, width, height, width, height);
 			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), footprintHiZ);
-			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, 0.0f);
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame,
+				resolveCache ? 0.0f : RB_SSRBindReflectedFog());
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRTEXELSIZE, texelSize);
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS, settings);
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, settings2);
@@ -896,7 +920,9 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			GLSL_SetUniformVec4N(sp, UNIFORM_SSREMITTERS, emitterData[0], numEmitters * 3);
 		vec4_t emitterParams, settings2;
 		VectorSet4(emitterParams, (float)numEmitters, 0.0f, r_ssrEmitterMaxRoughness->value, 0.0f);
-		VectorSet4(settings2, traceScale, maxDistance, phase, 0.0f);
+		// the fused resolve without the radiance cache looks up the hits itself
+		VectorSet4(settings2, traceScale, maxDistance, phase,
+			(fusedResolve && !resolveCache) ? RB_SSRBindReflectedFog() : 0.0f);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSREMITTERPARAMS, emitterParams);
 
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, settings2);

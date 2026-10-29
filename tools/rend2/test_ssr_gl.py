@@ -36,6 +36,9 @@ def fragment(name, revision=None):
 
 def program(name, defines='', revision=None, body=None):
     common = fragment('ssr_common', revision)
+    if 'SSR_REFLECTED_FOG' in defines:
+        # r_ssrReflectedFog: the froxel functions go in front of the library (tr_glsl.cpp)
+        common = fragment('volumetric_common', revision) + common
     fs = body if body is not None else fragment(name, revision)
     vs = source(name, revision).split('/*[Vertex]*/', 1)[1].split('/*[Fragment]*/')[0]
     header = '#version 150 core\n' + defines
@@ -347,6 +350,7 @@ def resolve_edge_checks():
 
 def compile_checks():
     S = '#define SSR_STOCHASTIC\n'  # r_ssrStochastic
+    FOG = FROXEL_DEFINES + '#define SSR_REFLECTED_FOG\n'  # r_ssrReflectedFog
     for name, defines in [('ssr_trace', ''), ('ssr_trace', '#define USE_HIZ\n'),
         ('ssr_trace', '#define CLASSIFY\n'), ('ssr_trace', '#define PRECLASSIFIED\n'),
         ('ssr_trace', '#define USE_HIZ\n#define PRECLASSIFIED\n'),
@@ -360,10 +364,13 @@ def compile_checks():
         ('ssr_trace', S), ('ssr_trace', S + '#define USE_HIZ\n'), ('ssr_trace', S + '#define PRECLASSIFIED\n'),
         ('ssr_trace', S + '#define USE_HIZ\n#define PRECLASSIFIED\n'), ('ssr_resolve', S),
         ('ssr_resolve', S + '#define TRACE_RADIANCE\n'), ('ssr_resolve', S + '#define UPSAMPLE_RADIANCE\n'),
-        ('ssr_temporal', S)]:
+        ('ssr_temporal', S),
+        ('ssr_resolve', FOG), ('ssr_resolve', FOG + '#define TRACE_RADIANCE\n'),
+        ('ssr_resolve', FOG + S + '#define TRACE_RADIANCE\n'), ('ssr_resolve', FOG + '#define USE_FROXEL_RGB\n'),
+        ('ssr_composite', FOG + '#define FUSED_RESOLVE\n')]:
         prog = program(name, defines)
         gl('glDeleteProgram', None, U)(prog)
-    return {'25 SSR shader permutations compile/link': True}
+    return {'30 SSR shader permutations compile/link': True}
 
 
 def msaa_resolve_checks():
@@ -875,6 +882,103 @@ def stochastic_checks():
                 cache_gap < .05 and e_cached < .9 * e_cone}
 
 
+FROXEL_DEFINES = ('#define USE_FROXEL_FOG\n#define MAX_GPU_FOGS 24\n#define MAX_GPU_FOG_VOLUMES 64\n'
+                  '#define FROXEL_MAX_SLICES 128\n#define FROXEL_LOCAL_POOL 8192\n#define FROXEL_EXTINCTION_PALETTE 16\n')
+
+
+def froxel_block(prog, values):
+    """Fill the VolumetricFog block of prog (binding 11) with values {member: floats}, the rest 0."""
+    index = gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'VolumetricFog')
+    assert index != 0xFFFFFFFF
+    size = C.c_int()
+    gl('glGetActiveUniformBlockiv', None, U, U, U, C.POINTER(C.c_int))(prog, index, 0x8A40, C.byref(size))
+    data = np.zeros(size.value // 4, dtype=np.float32)
+    names = list(values)
+    raw = (C.c_char_p * len(names))(*[n.encode() for n in names])
+    indices = (U * len(names))()
+    gl('glGetUniformIndices', None, U, I, P, P)(prog, len(names), C.cast(raw, P), C.cast(indices, P))
+    offsets = (C.c_int * len(names))()
+    gl('glGetActiveUniformsiv', None, U, I, P, U, P)(prog, len(names), C.cast(indices, P), 0x8A3B, C.cast(offsets, P))
+    for name, offset in zip(names, offsets):
+        v = np.asarray(values[name], dtype=np.float32).ravel()
+        data[offset // 4: offset // 4 + len(v)] = v
+    ubo = U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(ubo))
+    gl('glBindBuffer', None, U, U)(0x8A11, ubo)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8A11, data.nbytes, data.ctypes.data_as(P), 0x88E4)
+    gl('glBindBufferBase', None, U, U, U)(0x8A11, 11, ubo)
+    gl('glUniformBlockBinding', None, U, U, U)(prog, index, 11)
+
+
+def volume(unit, data):
+    """RGBA16F 3D texture (data: z, y, x, 4) on unit, linear, clamped"""
+    gl('glActiveTexture', None, U)(0x84C0 + unit)
+    tex = U()
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(tex))
+    gl('glBindTexture', None, U, U)(0x806F, tex)
+    d = np.ascontiguousarray(data, dtype=np.float32)
+    gl('glTexImage3D', None, U, I, I, I, I, I, I, U, U, P)(0x806F, 0, RGBA16F, d.shape[2], d.shape[1], d.shape[0], 0,
+                                                          RGBA, FLOAT, d.ctypes.data_as(P))
+    for parameter, value in ((0x2800, 0x2601), (0x2801, 0x2601), (0x2802, 0x812F), (0x2803, 0x812F), (0x8072, 0x812F)):
+        gl('glTexParameteri', None, U, U, I)(0x806F, parameter, value)
+    gl('glActiveTexture', None, U)(0x84C0)
+
+
+def reflected_fog_checks():
+    """SSRReflectedFog (r_ssrReflectedFog) against analytic media: the transmittance and in-scattering of a
+    view space segment marched through a froxel volume whose camera is the SSR view (world = view space)."""
+    body = '''out vec4 out_Color;
+    void main() {
+        vec3 S, T;
+        int k = int(gl_FragCoord.x);
+        vec3 P = k == 0 ? vec3(0, 0, 100) : k == 1 ? vec3(-100, 0, 300) : vec3(0, 0, 100);
+        vec3 Q = k == 0 ? vec3(0, 0, 500) : k == 1 ? vec3(100, 0, 300) : vec3(0, 0, 500);
+        SSRReflectedFog(P, Q, S, T);
+        out_Color = vec4(S.r, T.r, T.g, T.b);
+    }'''
+    prog = program('ssr_resolve', FROXEL_DEFINES + '#define SSR_REFLECTED_FOG\n', body=body)
+    uniforms(prog, 4, 1)
+    v4(prog, 'u_SSRSettings2', (0, 0, 0, 1))
+    for name, unit in (('u_FroxelSource', 12), ('u_FroxelDynamic', 13)):
+        gl('glUniform1i', None, I, I)(uloc(prog, name), unit)
+    near, far, nx, ny, nz = 4.0, 1000.0, 16, 16, 64
+    vp = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 1, 0]], dtype=np.float32)
+    froxel_block(prog, {
+        'u_FroxelViewProjection': vp.T, 'u_FroxelViewOrigin': (0, 0, 0, 1), 'u_FroxelViewForward': (0, 0, 1, 0),
+        'u_FroxelSliceParams': (near, far, math.log2(far / near), 4096), 'u_FroxelGridSize': (nx, ny, nz, 0)})
+    sigma, emission = .002, .004
+    # slice k center depth: near * (far / near)^((k + .5) / N) (slice 0 is linear, irrelevant here)
+    centers = near * (far / near) ** ((np.arange(nz) + .5) / nz)
+    uniform = np.zeros((nz, ny, nx, 4), np.float32)
+    uniform[..., :3], uniform[..., 3] = emission, sigma
+    volume(13, np.zeros((nz, ny, nx, 4)))
+    # two slices of medium around depth 300: a march with fewer steps than froxels crossed misses them
+    bounds = near * (far / near) ** (np.arange(nz + 1) / nz)
+    band = (centers > 270) & (centers < 330)
+    band_length = float(np.sum((bounds[1:] - bounds[:-1])[band]))
+    results = {}
+    for label, data in (('homogeneous', uniform), ('slab', uniform * (centers > 300)[:, None, None, None]),
+                        ('band', uniform * band[:, None, None, None] * 20)):
+        volume(12, data)
+        out = draw(prog, 3, 1)[0]
+        results[label] = out
+    gl('glDeleteProgram', None, U)(prog)
+    T400, T200 = math.exp(-sigma * 400), math.exp(-sigma * 200)
+    hom, slab, thin = results['homogeneous'], results['slab'], results['band']
+    Tband = math.exp(-sigma * 20 * band_length)
+    S400 = emission * (1 - T400) / sigma
+    return {
+        f'reflected fog, homogeneous medium along the view: T {hom[0][1]:.4f} vs {T400:.4f}, '
+        f'S {hom[0][0]:.4f} vs {S400:.4f}': abs(hom[0][1] - T400) < .01 and abs(hom[0][0] - S400) < .01 * S400 + 1e-4,
+        f'reflected fog, the same medium crossed sideways (not a camera ray): T {hom[1][1]:.4f} vs {T200:.4f}':
+            abs(hom[1][1] - T200) < .01,
+        f'reflected fog, a slab from depth 300 half crossed: T {slab[2][1]:.4f} vs {T200:.4f}':
+            abs(slab[2][1] - T200) < .03,
+        f'reflected fog, two slices of dense medium on the way: T {thin[0][1]:.4f} vs {Tband:.4f}':
+            abs(thin[0][1] - Tband) < .1 * (1 - Tband),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline-ref')
@@ -893,7 +997,7 @@ def main():
                     **coverage_checks(), **phase_checks(), **resolve_checks(), **resolve_edge_checks(),
                     **msaa_resolve_checks(), **confidence_checks(), **classified_miss_checks(),
                     **emitter_checks(), **emitter_neighbour_checks(), **fused_checks(), **footprint_checks(),
-                    **trace_count_checks(), **stochastic_checks()}
+                    **trace_count_checks(), **stochastic_checks(), **reflected_fog_checks()}
 
         for name, ok in outcomes.items():
             print(f'{"PASS" if ok else "FAIL"}: {name}', flush=True)

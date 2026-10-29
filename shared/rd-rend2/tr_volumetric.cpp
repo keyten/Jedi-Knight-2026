@@ -2712,6 +2712,27 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	tr.volumetricFogUboOffset = RB_AppendConstantsData(frame, &block, sizeof(block));
 }
 
+/*
+=================
+RB_VolumetricMediaImages
+
+The media of the froxel volume of this view (r_ssrReflectedFog): injected
+scattering + extinction, dynamic light scattering and, with RGB extinction,
+sigma_t.rgb (else NULL). False when no volume was built for this view.
+=================
+*/
+qboolean RB_VolumetricMediaImages( image_t **source, image_t **dynamic, image_t **extinction )
+{
+	*source = *dynamic = *extinction = NULL;
+	if ( !s_vf.resources || !backEnd.volumetricView || !s_vf.built || tr.volumetricFogUboOffset == -1 )
+		return qfalse;
+	*source = tr.froxelInjectImage[s_vf.builtVolumeImage];
+	*dynamic = tr.froxelDynamicImage;
+	if ( s_vf.rgb )
+		*extinction = tr.froxelExtinctionImage[s_vf.builtVolumeImage];
+	return qtrue;
+}
+
 UniformBlockBinding RB_GetVolumetricFogBlockUniformBinding( void )
 {
 	const byte currentFrameScene = backEndData->currentFrame->currentScene;

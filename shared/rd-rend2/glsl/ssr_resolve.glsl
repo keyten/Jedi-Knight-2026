@@ -30,7 +30,7 @@ void main()
 // u_SSRSettings: x = trace grid scale (1 or 2), z = coarsest color mip, w = coarsest Hi-Z level of
 // the footprint depth test (0 = off)
 // u_SSRSettings2: y = trace phase (0..3), z = frame (0..63, SSR_STOCHASTIC: the reused 2x2 block of full
-// resolution rays)
+// resolution rays), w = 1: the froxel volume is bound (SSR_REFLECTED_FOG, ssr_common.glsl)
 //
 // SSR_STOCHASTIC (r_ssrStochastic): the rays are GGX samples, see SSRResolveStochastic. u_SSRHitMap = trace.
 // u_SSRTexelSize.xy = 1 / full resolution size

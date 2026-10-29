@@ -544,6 +544,80 @@ bool SSRMarchRay(
 	return true;
 }
 
+#if defined(SSR_REFLECTED_FOG)
+/*
+Fog along the reflected ray (r_ssrReflectedFog): the color pyramid holds the scene before any fog, and the
+composite of the froxel fog only covers the camera -> receiver part. The hit radiance L becomes L * T + S of
+the segment receiver P -> hit Q, marched through the media of this frame's froxel volume (volumetric_common.glsl
+is inserted before this library). Both ends are on the screen, so the segment lies in the froxel frustum; past
+the last slice the last one is used. The steps are the Beer-Lambert steps of volumetric_integrate.glsl, one per
+froxel crossed (at most SSR_FOG_MAX_STEPS).
+
+The injected light is what the media scatter towards the camera (its phase lobe), not towards P: anisotropic
+media (forward scattering sun beams) scatter a different amount into the reflection. Sabers and effects
+(EmitterReflection) and the cubemap reflection are not fogged along the ray.
+*/
+#define SSR_FOG_MAX_STEPS 16
+
+uniform sampler3D u_FroxelSource;		// rgb = sigma_s * L (baked + sun), a = extinction sigma
+uniform sampler3D u_FroxelDynamic;		// rgb = sigma_s * L of the dynamic lights
+#if defined(USE_FROXEL_RGB)
+uniform sampler3D u_FroxelExtinction;	// rgb = sigma_t.rgb
+#endif
+
+vec3 SSRViewToWorld(vec3 v)
+{
+	return transpose(mat3(u_SSRWorldToView)) * (v - u_SSRWorldToView[3].xyz);
+}
+
+// froxel volume texture coordinates of a world point (slice k is centered at w = (k + 0.5) / N)
+vec3 SSRFroxelCoord(vec3 world)
+{
+	vec4 clip = u_FroxelViewProjection * vec4(world, 1.0);
+	vec2 uv = clamp(clip.xy / max(clip.w, 1.0e-6) * 0.5 + 0.5, 0.0, 1.0);
+	float d = dot(world - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz);
+	return vec3(uv, FroxelDepthToW(clamp(d, 0.0, u_FroxelSliceParams.y)));
+}
+
+// in-scattering S and transmittance T (per channel with RGB extinction) of the view space segment P -> Q
+void SSRReflectedFog(vec3 P, vec3 Q, out vec3 S, out vec3 T)
+{
+	S = vec3(0.0);
+	T = vec3(1.0);
+	// u_SSRSettings2.w: the froxel volume of this view is built and bound (tr_ssr.cpp)
+	if (u_SSRSettings2.w < 0.5 || u_FroxelViewOrigin.w < 0.5)
+		return;
+
+	vec3 a = SSRViewToWorld(P);
+	vec3 b = SSRViewToWorld(Q);
+	vec3 ca = SSRFroxelCoord(a);
+	vec3 cb = SSRFroxelCoord(b);
+	vec3 crossed = abs(cb - ca) * u_FroxelGridSize.xyz;
+	int steps = int(clamp(ceil(max(crossed.x, max(crossed.y, crossed.z))), 1.0, float(SSR_FOG_MAX_STEPS)));
+	float ds = length(b - a) / float(steps);
+
+	for (int i = 0; i < SSR_FOG_MAX_STEPS; i++)
+	{
+		if (i >= steps)
+			break;
+		vec3 c = SSRFroxelCoord(mix(a, b, (float(i) + 0.5) / float(steps)));
+		vec4 source = textureLod(u_FroxelSource, c, 0.0);
+		vec3 emission = source.rgb + textureLod(u_FroxelDynamic, c, 0.0).rgb;
+#if defined(USE_FROXEL_RGB)
+		vec3 x = max(textureLod(u_FroxelExtinction, c, 0.0).rgb, vec3(0.0)) * ds;
+#else
+		vec3 x = vec3(max(source.a, 0.0) * ds);
+#endif
+		vec3 stepT = exp(-x);
+		// (1 - exp(-x)) / x, the series below 0.05 (as the integration)
+		vec3 series = 1.0 - x * (1.0 / 2.0 - x * (1.0 / 6.0 - x * (1.0 / 24.0 - x * (1.0 / 120.0))));
+		vec3 phi = mix((1.0 - stepT) / max(x, vec3(1.0e-20)), series, lessThan(x, vec3(0.05)));
+		S += T * emission * ds * phi;
+		T *= stepT;
+	}
+}
+#endif
+
 // Radiance of a hit (hit.w = plain confidence, see SSRTraceHit) from the color pyramid, at the mip of the
 // roughness cone where it meets the hit surface. Every mip contains premultiplied coverage, including mip 0:
 // hardware trilinear filtering handles sharp and rough reflections identically.
@@ -589,7 +663,13 @@ vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip, float max
 
 	vec4 c = textureLod(u_SSRSceneMap, hit.xy, mip);
 	float confidence = hit.w * smoothstep(0.2, 0.6, c.a);
-	return vec4(c.rgb / max(c.a, 1e-3) * confidence, confidence);
+	vec3 radiance = c.rgb / max(c.a, 1e-3);
+#if defined(SSR_REFLECTED_FOG)
+	vec3 fogS, fogT;
+	SSRReflectedFog(P, Q, fogS, fogT);
+	radiance = radiance * fogT + fogS;
+#endif
+	return vec4(radiance * confidence, confidence);
 }
 
 /*
