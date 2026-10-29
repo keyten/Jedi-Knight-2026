@@ -1,0 +1,1090 @@
+{
+  "deterministic": true,
+  "protocol": "FixedCountPointXYZAndRelativeRGBDiagnostic",
+  "schema": "org.openjk.s07-benchmark",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/amplitude_fit.cpp": "8a0d99b337d9c19c14d5ae1cb465982cb7c5aba347c06b1cf18bbc3338027c86",
+    "shared/rd-rend2/lightrecon/amplitude_fit.h": "3ac4d40e4c695f6313f76d46c346739dd54018bd7351b129d6ce51d7ceee7f05",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "d3b040df7c35947c777d4545d7e1a70125a7882e75d4fad9a5d44874d17cc815",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "8064bbf0ae8bc0499728aefe72ac11734766d2ed64d4662242748ad47cc1d354",
+    "shared/rd-rend2/lightrecon/point_refine.cpp": "2d1b1ec5e9b040a1c363eeaffe2af7f2284c92ae66d9a9834d23a54e662ebeb1",
+    "shared/rd-rend2/lightrecon/point_refine.h": "58625a875068c5a483e99e05961c2eef7517506bd5cf0bc39278e3b707f9555c",
+    "shared/rd-rend2/lightrecon/regions.cpp": "f1b1e99ffd8cd6ed2ebcfe3fe6a0561c8eae623907f2b58734d7c0f82465a151",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "7c14e89756fb7d2b19c2e0f538ba8deba67b13a409d04334f5087fda722100e8",
+    "tools/lightrecon_test/lightrecon_point_refine_test.cpp": "01d34eee9ba3915d12e156bf2d35df921bf7ca09c1491cf41f7fdf5ac43a9d71"
+  },
+  "tool_sha256": "9f338b4df2c56d738d341c93f7f92e4cd914a979abb66887a289f799de5bb044",
+  "trace_sha256": "36c1c7a96bf86c13d47e9c4dec5009badacb24f5382642de8cb70397ee8ba08c",
+  "version": 1,
+  "witness": {
+    "cases": [
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 5.72204611672e-07,
+        "after_world": 1.90734863281e-05,
+        "amplitude_evaluations": 1472,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.110716541424,
+          0.11071647682,
+          0.110716450452
+        ],
+        "before_world": 51.2249938995,
+        "condition": 1.98860001239,
+        "converged": true,
+        "derivative_step_relative_change": 4.38319589495e-05,
+        "expansions": 0,
+        "fits": 242,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 1.52587890625e-05,
+        "name": "open_multinormal",
+        "objective_final": 9.25505598085e-12,
+        "objective_initial": 69.8565037922,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 29647,
+        "rejected": 5,
+        "singular": [
+          0.219769969773,
+          0.210676957129,
+          0.110514919242
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 12,
+                "min": 12,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -20.0000190735,
+                "min": -20.0000190735,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 144,
+                "min": 144,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              44,
+              -44,
+              112
+            ],
+            "q": [
+              300.000030518,
+              90.0000076294,
+              30.0000019073
+            ],
+            "truth_q": [
+              300,
+              90,
+              30
+            ],
+            "truth_xyz": [
+              12,
+              -20,
+              144
+            ],
+            "xyz": [
+              12,
+              -20.0000190735,
+              144
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 578691
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 6.77178436545e-06,
+        "after_world": 0.000225726136904,
+        "amplitude_evaluations": 6880,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.0696300323045,
+          0.0696299881683,
+          0.0696298858266
+        ],
+        "before_world": 16.4924225025,
+        "condition": 3.46338947353,
+        "converged": true,
+        "derivative_step_relative_change": 3.6055313367e-05,
+        "expansions": 0,
+        "fits": 1144,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 5.72204589844e-05,
+        "name": "wall_adjacent",
+        "objective_final": 6.24931810004e-11,
+        "objective_initial": 0.994963483643,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 139989,
+        "rejected": 18,
+        "singular": [
+          0.143795822228,
+          0.0923482420055,
+          0.0415188136728
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 150.000198364,
+                "min": 146.000198364,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 0.999943237275,
+                "min": -1.00005676272,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 141.000091553,
+                "min": 139.000091553,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              140,
+              8,
+              128
+            ],
+            "q": [
+              300.000610352,
+              180.000366211,
+              80.0001602173
+            ],
+            "truth_q": [
+              300,
+              180,
+              80
+            ],
+            "truth_xyz": [
+              148,
+              0,
+              140
+            ],
+            "xyz": [
+              148.000198364,
+              -5.67627248529e-05,
+              140.000091553
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 2731113
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 1.7946438475e-05,
+        "after_world": 0.000598214593015,
+        "amplitude_evaluations": 1460,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.032519215535,
+          0.0325192020474,
+          0.0325191911179
+        ],
+        "before_world": 13.416407865,
+        "condition": 2.27691207209,
+        "converged": true,
+        "derivative_step_relative_change": 4.70393245741e-05,
+        "expansions": 0,
+        "fits": 240,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 3.62396240234e-05,
+        "name": "recessed_fixture",
+        "objective_final": 2.43155619096e-11,
+        "objective_initial": 0.0215905520431,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 26089,
+        "rejected": 5,
+        "singular": [
+          0.0265338219466,
+          0.0210830464813,
+          0.0116534240702
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 122.000366211,
+                "min": 116.000366211,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 1,
+                "min": -1,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 140.000473022,
+                "min": 132.000473022,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              110,
+              4,
+              128
+            ],
+            "q": [
+              300.000946045,
+              100.000312805,
+              40.000125885
+            ],
+            "truth_q": [
+              300,
+              100,
+              40
+            ],
+            "truth_xyz": [
+              120,
+              0,
+              136
+            ],
+            "xyz": [
+              120.000366211,
+              0,
+              136.000473022
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 43,
+        "work": 1344942
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 2.35926005339e-06,
+        "after_world": 7.86419987796e-05,
+        "amplitude_evaluations": 2462,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.133789168437,
+          0.133789095068,
+          0.13378897794
+        ],
+        "before_world": 46.6476151588,
+        "condition": 2.03947138225,
+        "converged": true,
+        "derivative_step_relative_change": 7.79757731136e-05,
+        "expansions": 0,
+        "fits": 407,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 9.1552734375e-05,
+        "name": "partial_occlusion",
+        "objective_final": 1.59401987035e-10,
+        "objective_initial": 133.636823965,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 47665,
+        "rejected": 12,
+        "singular": [
+          0.384577414468,
+          0.314668422201,
+          0.188567203156
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": -48,
+                "min": -48,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -24.0000190735,
+                "min": -24.0000190735,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 144.000076294,
+                "min": 144.000076294,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              -80,
+              -48,
+              120
+            ],
+            "q": [
+              300.000152588,
+              180.000091553,
+              50.0000228882
+            ],
+            "truth_q": [
+              300,
+              180,
+              50
+            ],
+            "truth_xyz": [
+              -48,
+              -24,
+              144
+            ],
+            "xyz": [
+              -48,
+              -24.0000190735,
+              144.000076294
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 45,
+        "work": 1164809
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 5.36841683586e-05,
+        "after_world": 0.00178947221036,
+        "amplitude_evaluations": 8998,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.0939256265513,
+          0.093925581523,
+          0.093925576682
+        ],
+        "before_world": 72,
+        "condition": 2.32171857804,
+        "converged": false,
+        "derivative_step_relative_change": 4.77210398815e-05,
+        "expansions": 3,
+        "fits": 1497,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 0.000839233398438,
+        "name": "wrong_start_bounded_expansion",
+        "objective_final": 1.07132248357e-08,
+        "objective_initial": 57.293433701,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 180962,
+        "rejected": 25,
+        "singular": [
+          0.185617531307,
+          0.149638691212,
+          0.0799483335591
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 73.0009689331,
+                "min": 71.0009689331,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -20.000787735,
+                "min": -20.000787735,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 145.001281738,
+                "min": 143.001281738,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              0,
+              -20,
+              144
+            ],
+            "q": [
+              300.004089355,
+              90.0012283325,
+              30.00041008
+            ],
+            "truth_q": [
+              300,
+              90,
+              30
+            ],
+            "truth_xyz": [
+              72,
+              -20,
+              144
+            ],
+            "xyz": [
+              72.0009689331,
+              -20.000787735,
+              144.001281738
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "IterationLimit",
+        "visibility_changes": 0,
+        "work": 3531486
+      },
+      {
+        "accounted_bytes": 35993216,
+        "after_metres": 2.43859212687e-06,
+        "after_world": 8.12864011282e-05,
+        "amplitude_evaluations": 6534,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.130840029305,
+          0.130839877059,
+          0.130839452193
+        ],
+        "before_world": 57.8273291792,
+        "condition": 2.03554258678,
+        "converged": true,
+        "derivative_step_relative_change": 4.64302283976e-05,
+        "expansions": 0,
+        "fits": 1087,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 3.0517578125e-05,
+        "name": "single_broad_plane_multiple_starts",
+        "objective_final": 5.00151031702e-11,
+        "objective_initial": 47.1727012701,
+        "parameters": 3,
+        "rank": 3,
+        "rays": 44332,
+        "rejected": 11,
+        "singular": [
+          0.239587136919,
+          0.233972327665,
+          0.117701854275
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 12.0000162125,
+                "min": 12.0000162125,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -20.0000228882,
+                "min": -20.0000228882,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 145.000076294,
+                "min": 143.000076294,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              -20,
+              12,
+              180
+            ],
+            "q": [
+              300.000213623,
+              90.0000686646,
+              30.0000228882
+            ],
+            "truth_q": [
+              300,
+              90,
+              30
+            ],
+            "truth_xyz": [
+              12,
+              -20,
+              144
+            ],
+            "xyz": [
+              12.0000162125,
+              -20.0000228882,
+              144.000076294
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 910096
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 1.20000004578,
+        "after_world": 40,
+        "amplitude_evaluations": 530,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.191414219839,
+          0.191414219839,
+          0.191414219839
+        ],
+        "before_world": 40,
+        "condition": null,
+        "converged": true,
+        "derivative_step_relative_change": 8.65442021469e-05,
+        "expansions": 0,
+        "fits": 85,
+        "information_available": true,
+        "locally_identifiable": false,
+        "max_rgb_error": 0,
+        "name": "symmetric_two_receivers",
+        "objective_final": 0,
+        "objective_initial": 0,
+        "parameters": 3,
+        "rank": 1,
+        "rays": 420,
+        "rejected": 2,
+        "singular": [
+          0.267757587928,
+          2.00288492885e-09,
+          0
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -16,
+                "min": -24,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 148,
+                "min": 140,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              0,
+              -20,
+              144
+            ],
+            "q": [
+              300,
+              100,
+              40
+            ],
+            "truth_q": [
+              300,
+              100,
+              40
+            ],
+            "truth_xyz": [
+              0,
+              20,
+              144
+            ],
+            "xyz": [
+              0,
+              -20,
+              144
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 13644
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 1.20000004578,
+        "after_world": 40,
+        "amplitude_evaluations": 470,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.0903651487154,
+          0.0903651487154,
+          0.0903650110644
+        ],
+        "before_world": 40,
+        "condition": null,
+        "converged": true,
+        "derivative_step_relative_change": 0.000989041829029,
+        "expansions": 0,
+        "fits": 75,
+        "information_available": true,
+        "locally_identifiable": false,
+        "max_rgb_error": 3.81469726562e-06,
+        "name": "parallel_direction_depth_ambiguity",
+        "objective_final": 2.42531920473e-12,
+        "objective_initial": 2.42531920473e-12,
+        "parameters": 3,
+        "rank": 0,
+        "rays": 308,
+        "rejected": 2,
+        "singular": [
+          0,
+          0,
+          0
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 4,
+                "min": -4,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 4,
+                "min": -4,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 104,
+                "min": 96,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              100
+            ],
+            "q": [
+              272.40133667,
+              90.8004379272,
+              36.3201751709
+            ],
+            "truth_q": [
+              300,
+              100,
+              40
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              140
+            ],
+            "xyz": [
+              0,
+              0,
+              100
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 10896
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 6.04566735294e-06,
+        "after_world": 0.00020152223741,
+        "amplitude_evaluations": 93266,
+        "amplitude_parameters": 6,
+        "amplitude_rank": 6,
+        "amplitude_singular": [
+          0.169514124599,
+          0.169514096869,
+          0.169513998344,
+          0.026822728245,
+          0.0268227113606,
+          0.0268226681374
+        ],
+        "before_world": 24.2074368738,
+        "condition": 5.02299290957,
+        "converged": true,
+        "derivative_step_relative_change": 4.94458180479e-05,
+        "expansions": 0,
+        "fits": 946,
+        "information_available": true,
+        "locally_identifiable": true,
+        "max_rgb_error": 0.000160217285156,
+        "name": "two_nearby_coloured_sources",
+        "objective_final": 1.71691015586e-09,
+        "objective_initial": 20.2710518899,
+        "parameters": 6,
+        "rank": 6,
+        "rays": 230637,
+        "rejected": 6,
+        "singular": [
+          0.250639530063,
+          0.201178096362,
+          0.169499028924,
+          0.103667113928,
+          0.0593014248318,
+          0.0498984439307
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": -17.9999485016,
+                "min": -17.9999485016,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -8.0001745224,
+                "min": -8.0001745224,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 140,
+                "min": 140,
+                "sampled": false,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": false,
+            "id": 1,
+            "initial_xyz": [
+              -34,
+              -20,
+              124
+            ],
+            "q": [
+              300.000183105,
+              30.000038147,
+              10.0001144409
+            ],
+            "truth_q": [
+              300,
+              30,
+              10
+            ],
+            "truth_xyz": [
+              -18,
+              -8,
+              140
+            ],
+            "xyz": [
+              -17.9999485016,
+              -8.0001745224,
+              140
+            ]
+          },
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 2,
+            "initial_xyz": [
+              40,
+              20,
+              164
+            ],
+            "q": [
+              10.0000152588,
+              50.0000038147,
+              280.000030518
+            ],
+            "truth_q": [
+              10,
+              50,
+              280
+            ],
+            "truth_xyz": [
+              26,
+              12,
+              148
+            ],
+            "xyz": [
+              26.0002193451,
+              12,
+              148
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 4441605
+      },
+      {
+        "accounted_bytes": 35987936,
+        "after_metres": 0.0088149950693,
+        "after_world": 0.293833157768,
+        "amplitude_evaluations": 97751,
+        "amplitude_parameters": 0,
+        "amplitude_rank": 0,
+        "amplitude_singular": [],
+        "before_world": 46.3033476112,
+        "condition": null,
+        "converged": true,
+        "derivative_step_relative_change": 0,
+        "expansions": 0,
+        "fits": 919,
+        "information_available": false,
+        "locally_identifiable": false,
+        "max_rgb_error": 0.529052734375,
+        "name": "sparse_grid_plus_surface",
+        "objective_final": 0.00790848247139,
+        "objective_initial": 2058.4819373,
+        "parameters": 0,
+        "rank": 0,
+        "rays": 44962,
+        "rejected": 24,
+        "singular": [],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 0,
+                "min": 0,
+                "sampled": false,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              40,
+              -44,
+              116
+            ],
+            "q": [
+              300.524261475,
+              90.1572799683,
+              30.0524291992
+            ],
+            "truth_q": [
+              300,
+              90,
+              30
+            ],
+            "truth_xyz": [
+              12,
+              -20,
+              144
+            ],
+            "xyz": [
+              12.2187519073,
+              -20.0750007629,
+              144.181274414
+            ]
+          }
+        ],
+        "step_stable": false,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 911278
+      },
+      {
+        "accounted_bytes": 35977376,
+        "after_metres": 0.848528169793,
+        "after_world": 28.2842712475,
+        "amplitude_evaluations": 872,
+        "amplitude_parameters": 3,
+        "amplitude_rank": 3,
+        "amplitude_singular": [
+          0.0661289317182,
+          0.0661286564161,
+          0.0661286564161
+        ],
+        "before_world": 48,
+        "condition": null,
+        "converged": true,
+        "derivative_step_relative_change": 8.97382208444e-05,
+        "expansions": 0,
+        "fits": 142,
+        "information_available": true,
+        "locally_identifiable": false,
+        "max_rgb_error": 0,
+        "name": "prior_driven_ambiguity",
+        "objective_final": 0,
+        "objective_initial": 31.4,
+        "parameters": 3,
+        "rank": 0,
+        "rays": 407,
+        "rejected": 4,
+        "singular": [
+          2.93266988697e-09,
+          1.38620273018e-09,
+          0
+        ],
+        "sources": [
+          {
+            "axis_tested_ranges": [
+              {
+                "geometry_limit": false,
+                "max": 41,
+                "min": 39,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": -19,
+                "min": -21,
+                "sampled": true,
+                "search_limit": false
+              },
+              {
+                "geometry_limit": false,
+                "max": 141,
+                "min": 139,
+                "sampled": true,
+                "search_limit": false
+              }
+            ],
+            "boundary_encountered": true,
+            "id": 1,
+            "initial_xyz": [
+              -20,
+              12,
+              160
+            ],
+            "q": [
+              380.888549805,
+              114.266571045,
+              38.0888557434
+            ],
+            "truth_q": [
+              300,
+              90,
+              30
+            ],
+            "truth_xyz": [
+              12,
+              -20,
+              144
+            ],
+            "xyz": [
+              40,
+              -20,
+              140
+            ]
+          }
+        ],
+        "step_stable": true,
+        "stop": "PatternStationary",
+        "visibility_changes": 0,
+        "work": 16931
+      }
+    ],
+    "checks": 1492,
+    "failures": 0,
+    "schema": "org.openjk.point-refinement-tests",
+    "version": 1,
+    "world_units_per_metre": 33.3333320618
+  }
+}

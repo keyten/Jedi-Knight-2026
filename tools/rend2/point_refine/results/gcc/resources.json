@@ -1,0 +1,111 @@
+{
+  "runs": [
+    {
+      "child": {
+        "cases": [
+          {
+            "name": "open_multinormal",
+            "seconds": 1.72429
+          },
+          {
+            "name": "wall_adjacent",
+            "seconds": 10.2102
+          },
+          {
+            "name": "recessed_fixture",
+            "seconds": 2.80173
+          },
+          {
+            "name": "partial_occlusion",
+            "seconds": 3.50107
+          },
+          {
+            "name": "wrong_start_bounded_expansion",
+            "seconds": 14.4984
+          },
+          {
+            "name": "single_broad_plane_multiple_starts",
+            "seconds": 3.46015
+          },
+          {
+            "name": "symmetric_two_receivers",
+            "seconds": 0.104529
+          },
+          {
+            "name": "parallel_direction_depth_ambiguity",
+            "seconds": 0.073546
+          },
+          {
+            "name": "two_nearby_coloured_sources",
+            "seconds": 107.293
+          },
+          {
+            "name": "sparse_grid_plus_surface",
+            "seconds": 87.8933
+          },
+          {
+            "name": "prior_driven_ambiguity",
+            "seconds": 0.115483
+          }
+        ],
+        "seconds": 233.474
+      },
+      "peak_process_rss_bytes": 13697024,
+      "wall_seconds": 233.50298709992785
+    },
+    {
+      "child": {
+        "cases": [
+          {
+            "name": "open_multinormal",
+            "seconds": 1.78751
+          },
+          {
+            "name": "wall_adjacent",
+            "seconds": 9.99079
+          },
+          {
+            "name": "recessed_fixture",
+            "seconds": 1.85768
+          },
+          {
+            "name": "partial_occlusion",
+            "seconds": 3.083
+          },
+          {
+            "name": "wrong_start_bounded_expansion",
+            "seconds": 12.8228
+          },
+          {
+            "name": "single_broad_plane_multiple_starts",
+            "seconds": 3.01184
+          },
+          {
+            "name": "symmetric_two_receivers",
+            "seconds": 0.078183
+          },
+          {
+            "name": "parallel_direction_depth_ambiguity",
+            "seconds": 0.057497
+          },
+          {
+            "name": "two_nearby_coloured_sources",
+            "seconds": 97.0713
+          },
+          {
+            "name": "sparse_grid_plus_surface",
+            "seconds": 72.9541
+          },
+          {
+            "name": "prior_driven_ambiguity",
+            "seconds": 0.104089
+          }
+        ],
+        "seconds": 204.66
+      },
+      "peak_process_rss_bytes": 13692928,
+      "wall_seconds": 204.686945799971
+    }
+  ],
+  "version": 1
+}

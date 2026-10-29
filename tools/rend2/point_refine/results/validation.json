@@ -1,0 +1,265 @@
+{
+  "baseline_commit": "54e319d842b2dfa87a2d485c2c001d32bfb59d3c",
+  "compiled_amplitude_regression": {
+    "door_occlusion": {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "fitted_parameters": [
+        {
+          "absolute_photometry": "NotComparable",
+          "candidate": 1,
+          "compiler_chromaticity_angle_degrees": 1.2074182697257333e-06,
+          "fitted_compiler_rgb": [
+            298.817962646,
+            298.817962646,
+            298.817962646
+          ],
+          "relative_rgb_l2_error": 0.003940124513333293,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "heldout_interval_rmse": {
+        "ambient": 45.53167774957183,
+        "correct": 0.0,
+        "wrong_profile": 9.037606795664058,
+        "wrong_xyz": 22.972332578419103
+      },
+      "repeated_semantics_identical": true
+    },
+    "point_room": {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "fitted_parameters": [
+        {
+          "absolute_photometry": "NotComparable",
+          "candidate": 1,
+          "compiler_chromaticity_angle_degrees": 1.2074182697257333e-06,
+          "fitted_compiler_rgb": [
+            299.714447021,
+            299.714447021,
+            299.714447021
+          ],
+          "relative_rgb_l2_error": 0.0009518432633332925,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "heldout_interval_rmse": {
+        "ambient": 18.913556049075094,
+        "correct": 0.0,
+        "wrong_profile": 9.037606795664058,
+        "wrong_xyz": 25.387134110803053
+      },
+      "repeated_semantics_identical": true
+    },
+    "two_colour": {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "fitted_parameters": [
+        {
+          "absolute_photometry": "NotComparable",
+          "candidate": 1,
+          "compiler_chromaticity_angle_degrees": 0.1837121706591995,
+          "fitted_compiler_rgb": [
+            299.491516113,
+            35.9522476196,
+            8.01693439484
+          ],
+          "relative_rgb_l2_error": 0.003664786816838611,
+          "true_compiler_rgb": [
+            300.0,
+            35.9999991,
+            8.99999979
+          ]
+        },
+        {
+          "absolute_photometry": "NotComparable",
+          "candidate": 2,
+          "compiler_chromaticity_angle_degrees": 0.13950419573639747,
+          "fitted_compiler_rgb": [
+            12.7779808044,
+            60.0769462585,
+            301.021697998
+          ],
+          "relative_rgb_l2_error": 0.004201774694397728,
+          "true_compiler_rgb": [
+            11.99999973,
+            60.0000009,
+            300.0
+          ]
+        }
+      ],
+      "heldout_interval_rmse": {
+        "ambient": 12.825121173573796,
+        "correct": 0.0,
+        "dropped_source": 6.675431168320913,
+        "wrong_profile": 9.76135700093278,
+        "wrong_xyz": 15.042032814569092
+      },
+      "repeated_semantics_identical": true
+    }
+  },
+  "compiled_bsp_xyz_refinement": "NotExecuted",
+  "compiled_forward_regression": {
+    "cases": {
+      "ambient": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "angle_scale": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "area": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "bounce1": {
+        "max_byte_error": 6,
+        "status": "UnsupportedBounceReplay"
+      },
+      "bouncegrid1": {
+        "max_byte_error": 6,
+        "status": "UnsupportedBounceReplay"
+      },
+      "colour_clip": {
+        "max_byte_error": 1,
+        "status": "Passed"
+      },
+      "colour_gamma": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "extra_distance": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "half_lambert": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "inverse_square": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear_angle": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear_fade": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "multi_sun": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "no_angle": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "pointscale_half": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "retained_light": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "skylight": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "spot": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "sun": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "wolf_inverse_square": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "wolf_linear": {
+        "max_byte_error": 0,
+        "status": "Passed"
+      }
+    },
+    "exact": 19,
+    "one_byte_clipping": 1,
+    "supported_passed": 20,
+    "unsupported_bounce": 2
+  },
+  "game_or_gpu_visual_tests": "NotExecuted; CPU-only change",
+  "gcc_existing_ctest": {
+    "excludes": "S07 covered by repeated generated CPU executable",
+    "failed": 0,
+    "passed": 22,
+    "seconds": 32.35
+  },
+  "generated_cpu": {
+    "checks": 1492,
+    "deterministic": true,
+    "runs": 2
+  },
+  "geometry_support": "Conditional on supplied immutable BSP/visual geometry and supported bake rules",
+  "mp_release": "built",
+  "msvc_s06_s07_ctest": {
+    "failed": 0,
+    "passed": 2
+  },
+  "old_disabled_baseline": {
+    "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "differences": 3562,
+    "driver": null,
+    "gpu_compiled": false,
+    "gpu_interface_comparison": "not run (--no-gpu)",
+    "passed": false,
+    "production_dependency_audit": "passed",
+    "programs": 27,
+    "stages": 51
+  },
+  "physical_intensity": "NotComparable: compiler-relative Q, unknown absolute scale",
+  "python": {
+    "amplitude_protocol": 4,
+    "forward_protocol": 6,
+    "point_refine": 4,
+    "skipped": 0
+  },
+  "runtime_publication": false,
+  "s07_shader_delta": {
+    "comparison": "worktree versus explicit Git reference; existing regression assembler",
+    "gpu_compiled": false,
+    "inputs": {
+      "shared/rd-rend2/glsl/fogpass.glsl": "0695a5370f67b3e71c8276f34d164ef6f293c733e064ef373f28e6cbdeab85da",
+      "shared/rd-rend2/glsl/fplus_cluster.glsl": "a20c39cdd07b1b4d841930f008efa6b2be34857fd7ae86cbdb8d49515c9b1af2",
+      "shared/rd-rend2/glsl/generic.glsl": "16bd867e40ae9898e76fec3293a025d0b5b6be889732d0f10e63b336af82a1e6",
+      "shared/rd-rend2/glsl/leaf_flutter.glsl": "c1638da79166a883a362fac3eed05e6f04ad861a737c37dfeb49caf186069d72",
+      "shared/rd-rend2/glsl/lightall.glsl": "f68385093d0fcf9e060a79f8e9335858d5d23c4c5f467bc8a3e8622a649def01",
+      "shared/rd-rend2/glsl/pbr_common.glsl": "0b48230ae3423325ebfbb8e3141344100c075c88cbad82100fea06eb5763c44a",
+      "shared/rd-rend2/glsl/plant_skin.glsl": "255b7919e8cb1714ece2065f09d6509c71354baab21c95788cca45942f38a0a3",
+      "shared/rd-rend2/glsl/volumetric_common.glsl": "bf2c581d029ffa8a19a9f39afa0b6ea79e0c0c132408d422e74957c79668c0c8",
+      "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+      "shared/rd-rend2/tr_glsl.cpp": "4d67f455a2685dd81c3e30c29d43d42e80e60352bf41260cc251f71dd90d20b0",
+      "shared/rd-rend2/tr_local.h": "2d58e81e65872cab72f6737a28236d6d24001ae17c54090b8a6af756652b8302"
+    },
+    "passed": true,
+    "programs": 27,
+    "reference": "54e319d842b2dfa87a2d485c2c001d32bfb59d3c",
+    "stages": 51,
+    "version": 1
+  },
+  "schema": "org.openjk.s07-validation",
+  "sp_release": "built",
+  "version": 1
+}
