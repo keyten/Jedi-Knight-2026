@@ -216,8 +216,10 @@ void main()
 	out_Color = vec4(1.0);
 #else
   #if !defined(PRECLASSIFIED)
+	// The target is cleared to a miss. Discarding here leaves exactly the pixels with a ray as passed
+	// samples, as the depth test of the classified variants does (r_ssrReceiverCull -1 counts them)
 	if (!needsRay)
-		return;
+		discard;
   #endif
 
 	vec2 uv = (vec2(pix) + 0.5) * u_SSRTexelSize.xy;

@@ -108,6 +108,49 @@ static matrix_t s_prevViewToWorld;
 static vec4_t s_prevProjection, s_prevDepthParams;
 static float s_prevPhase;
 
+// r_ssrReceiverCull -1: the fraction of trace texels that need a ray, counted
+// by a sample query around the trace draw (both variants pass exactly those
+// pixels). Read frames later when available, never waited for. Measured on
+// Intel UHD (docs/rend2-ssr-validation.md, 2026-10-29): the plain trace, which
+// discards the texels without a ray, wins on dense and on contiguous sparse
+// receivers; the early depth classification only wins on sparse scattered
+// receivers (speckled roughness maps), by up to a third. Above
+// SSR_CULL_OFF_FRACTION it is off, below SSR_CULL_ON_FRACTION on (hysteresis).
+#define SSR_RAY_QUERIES			3
+#define SSR_CULL_ON_FRACTION	0.12f
+#define SSR_CULL_OFF_FRACTION	0.18f
+
+static struct
+{
+	GLuint query[SSR_RAY_QUERIES];
+	int pixels[SSR_RAY_QUERIES];	// texels of the queried trace, 0 = no query pending
+	int next;
+	float fraction;					// last measured fraction, -1 = none yet
+	qboolean culled;				// the trace of the last view was classified
+	qboolean cull;					// the automatic choice
+} s_rays;
+
+static void RB_SSRPollRayQueries( void )
+{
+	for ( int i = 0; i < SSR_RAY_QUERIES; i++ )
+	{
+		if ( !s_rays.pixels[i] )
+			continue;
+		GLuint available = 0;
+		qglGetQueryObjectuiv(s_rays.query[i], GL_QUERY_RESULT_AVAILABLE, &available);
+		if ( !available )
+			continue;
+		GLuint samples = 0;
+		qglGetQueryObjectuiv(s_rays.query[i], GL_QUERY_RESULT, &samples);
+		s_rays.fraction = (float)samples / (float)s_rays.pixels[i];
+		s_rays.pixels[i] = 0;
+		if ( s_rays.cull && s_rays.fraction > SSR_CULL_OFF_FRACTION )
+			s_rays.cull = qfalse;
+		else if ( !s_rays.cull && s_rays.fraction < SSR_CULL_ON_FRACTION )
+			s_rays.cull = qtrue;
+	}
+}
+
 // state of the last traced view, for r_ssrDebug
 static struct
 {
@@ -137,6 +180,7 @@ float R_SSRTraceScale( void )
 
 qboolean R_SSRWantsVelocity( void )
 {
+
 	// Hit reuse needs moving-object velocities even without color accumulation.
 	// Reserve it for opaque SSR so r_ssrHitCache remains a runtime A/B switch.
 	return R_SSROpaqueResourcesEnabled();
@@ -168,6 +212,12 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 {
 	Com_Memset(&s_history, 0, sizeof(s_history));
 	Com_Memset(&s_debug, 0, sizeof(s_debug));
+	// names of an earlier context are unknown to this one (deleting them is harmless)
+	if ( s_rays.query[0] )
+		qglDeleteQueries(SSR_RAY_QUERIES, s_rays.query);
+	Com_Memset(&s_rays, 0, sizeof(s_rays));
+	s_rays.fraction = -1.0f;
+	s_rays.cull = qtrue;
 
 	tr.ssrSpecularImage = NULL;
 	tr.ssrCubemapImage = NULL;
@@ -601,8 +651,14 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			phase);
 		VectorSet4(settings5, s_prevPhase, SSR_CACHE_MIN_PIXELS, 0.0f, 0.0f);
 
+		// r_ssrReceiverCull -1: classify only while few enough texels need a ray
+		RB_SSRPollRayQueries();
+		const qboolean autoCull = (qboolean)(r_ssrReceiverCull->integer < 0);
+		const qboolean cull = autoCull ? s_rays.cull : (qboolean)(r_ssrReceiverCull->integer != 0);
+		const vec4_t clearMiss = { 0.0f, 0.0f, 0.0f, 0.0f };
+
 		uint32_t traceState = GLS_DEPTHTEST_DISABLE;
-		if ( r_ssrReceiverCull->integer )
+		if ( cull )
 		{
 			// the pixels that need no ray get the nearest depth, the trace is
 			// drawn behind them and in front of the cleared depth: they are
@@ -615,7 +671,6 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			const float clearDepth = 1.0f;
 			// Alpha is hit confidence, not opacity: colorBlack has alpha 1
 			// and would turn every depth-culled texel into a fake cached hit.
-			const vec4_t clearMiss = { 0.0f, 0.0f, 0.0f, 0.0f };
 			qglClearBufferfv(GL_COLOR, 0, clearMiss);
 			qglClearBufferfv(GL_DEPTH, 0, &clearDepth);
 			// clears honor the masks: the color mask goes off after them
@@ -631,11 +686,14 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			traceState = GLS_DEPTHFUNC_LESS;
 		}
 
-		const int traceVariant = r_ssrReceiverCull->integer ?
+		const int traceVariant = cull ?
 			(hiZ ? SSRDEF_TRACE_HIZ_CULLED : SSRDEF_TRACE_CULLED) :
 			(hiZ ? SSRDEF_TRACE_HIZ : SSRDEF_TRACE);
 		shaderProgram_t *sp = &tr.ssrTraceShader[traceVariant];
 		RB_ScreenBeginPass(traceFbo, sp, traceWidth, traceHeight, traceState);
+		// the unclassified trace discards the texels without a ray: they keep the miss
+		if ( !cull )
+			qglClearBufferfv(GL_COLOR, 0, clearMiss);
 		RB_SSRBindMaterial();
 		GL_BindToTMU(tr.ssrTraceImage[previous], TB_SSR_PREVHIT);
 		GL_BindToTMU(velocity ? tr.velocityImage : tr.whiteImage, TB_SSAOMAP);
@@ -650,11 +708,29 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS5, settings5);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVPROJECTION, historyValid ? s_prevProjection : info.projection);
 		GLSL_SetUniformVec4(sp, UNIFORM_SSRPREVDEPTHPARAMS, historyValid ? s_prevDepthParams : info.depthParams);
+
+		// count the texels with a ray (automatic culling, r_speeds 100 prints it)
+		const int slot = s_rays.next;
+		const qboolean countRays = (qboolean)((autoCull || r_speeds->integer == 100) && !s_rays.pixels[slot]);
+		if ( countRays )
+		{
+			if ( !s_rays.query[0] )
+				qglGenQueries(SSR_RAY_QUERIES, s_rays.query);
+			qglBeginQuery(GL_SAMPLES_PASSED, s_rays.query[slot]);
+		}
 		RB_InstantTriangle();
+		if ( countRays )
+		{
+			qglEndQuery(GL_SAMPLES_PASSED);
+			s_rays.pixels[slot] = traceWidth * traceHeight;
+			s_rays.next = (slot + 1) % SSR_RAY_QUERIES;
+		}
+		s_rays.culled = cull;
 	}
 	RB_ScreenEndTimer(timer);
 
 	image_t *traceImage = tr.ssrTraceImage[current];
+
 	const qboolean resolveCache = (qboolean)(s_gridScale > 1 && r_ssrResolveCache->integer);
 
 	// Without the temporal accumulation (and the debug view of the resolved
@@ -853,6 +929,15 @@ Debug views
 // through the tone mapping)
 void RB_SSRDebugOverlay( void )
 {
+	// r_speeds 100: the measured ray share, printed after the views so the
+	// console write is not a bubble inside a timed pass
+	if ( s_ssrResources && r_speeds->integer == 100 && s_rays.fraction >= 0.0f &&
+		s_debug.frameNumber == backEndData->realFrameNumber )
+	{
+		ri.Printf(PRINT_ALL, "SSR rays: %.1f%% of the trace texels, culling %s\n",
+			100.0f * s_rays.fraction, s_rays.culled ? "on" : "off");
+	}
+
 	const int debugView = r_ssrDebug->integer;
 	if ( !s_ssrResources || debugView < 1 || (debugView > 6 && debugView != 12) )
 		return;

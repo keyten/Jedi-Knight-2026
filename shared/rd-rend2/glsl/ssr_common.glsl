@@ -456,8 +456,8 @@ bool SSRMarchRay(
 // maxHiZLevel > 0 (r_ssrFootprintDepth, the closest depth mips of u_SSRHiZMap exist up to that level): the
 // pyramid blurs what the camera sees around the hit, and a surface well in front of it (a silhouette next to
 // it on the screen) is nowhere near the reflection lobe, which ends at the hit; it would bleed into the rough
-// reflection as a dark or bright halo. The footprint is narrowed to the coarsest level whose closest depth
-// around the hit is not in front of it by more than the hit surface's own slope across the cell could explain.
+// reflection as a dark or bright halo. The footprint is narrowed below each level whose closest depth around
+// the hit is in front of it by more than the hit surface's own slope across the cell could explain.
 vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip, float maxHiZLevel)
 {
 	vec3 Q = SSRHitPosition(hit);
@@ -465,18 +465,31 @@ vec4 SSRHitRadiance(vec4 hit, vec3 P, float coneTangent, float maxMip, float max
 	float footprint = 2.0 * length(Q - P) * coneTangent / pixelSize;
 	float mip = clamp(log2(max(footprint, 1.0)), 0.0, maxMip);
 
+	// The color sample is bilinear: test the 2x2 Hi-Z texels its taps sit in, not only the cell of the hit.
+	// Each texel in front adds its bilinear weight (scaled by how far in front it is): the limit moves
+	// continuously with the hit and the foreground depth instead of jumping a whole level.
 	int level = min(int(ceil(mip)), int(maxHiZLevel));
-	if (level > 0)
+	vec2 pixel = hit.xy / u_SSRTexelSize.xy;
+	for (; level > 0; level--)
 	{
-		ivec2 pixel = ivec2(hit.xy / u_SSRTexelSize.xy);
-		for (; level > 0; level--)
+		float cellSize = exp2(float(level));
+		float allowance = 0.03 * Q.z + 2.0 + 3.0 * cellSize * pixelSize;
+		ivec2 levelMax = textureSize(u_SSRHiZMap, level) - ivec2(1);
+		vec2 st = pixel / cellSize - 0.5;
+		ivec2 base = ivec2(floor(st));
+		vec2 f = st - vec2(base);
+		float front = 0.0;
+		for (int i = 0; i < 4; i++)
 		{
-			float allowance = 0.03 * Q.z + 2.0 + 3.0 * exp2(float(level)) * pixelSize;
-			ivec2 levelMax = textureSize(u_SSRHiZMap, level) - ivec2(1);
-			if (texelFetch(u_SSRHiZMap, min(pixel >> level, levelMax), level).r >= Q.z - allowance)
-				break;
+			ivec2 offset = ivec2(i & 1, i >> 1);
+			float closest = texelFetch(u_SSRHiZMap, clamp(base + offset, ivec2(0), levelMax), level).r;
+			float w = (offset.x == 1 ? f.x : 1.0 - f.x) * (offset.y == 1 ? f.y : 1.0 - f.y);
+			front += w * smoothstep(0.0, allowance, Q.z - allowance - closest);
 		}
-		mip = min(mip, float(level));
+		front = min(2.0 * front, 1.0);
+		if (front <= 0.0)
+			break;
+		mip = min(mip, float(level) - front);
 	}
 
 	vec4 c = textureLod(u_SSRSceneMap, hit.xy, mip);

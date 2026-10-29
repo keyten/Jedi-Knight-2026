@@ -42,6 +42,9 @@ def main():
                         help='Engine wait ticks before each measured section')
     parser.add_argument('--modes', help='comma list of <hitcache><cull> pairs to time, e.g. 00,10,01,11 '
                         '(default 11,01,10)')
+    parser.add_argument('--sweep', help='time every mode at each value of one cvar, e.g. r_ssrMaxRoughness=0.6,0.3')
+    parser.add_argument('--set', action='append', default=[], metavar='CVAR=VALUE',
+                        help='extra render setting before renderer init (repeatable)')
     parser.add_argument('--compare-resolve', action='store_true')
     parser.add_argument('--smoke-only', action='store_true', help='Skip GPU timing sections')
     parser.add_argument('--check-no-prepass-cache', action='store_true',
@@ -100,15 +103,20 @@ def main():
                 'echo SSR_BENCH_FPS_CAPS', 'com_maxfps', 'com_maxfpsUnfocused', 'com_maxfpsMinimized']
     modes = [(1, 1, args.resolve_cache), (0, 1, args.resolve_cache), (1, 0, args.resolve_cache)]
     if args.modes:
-        modes = [(int(m[0]), int(m[1]), args.resolve_cache) for m in args.modes.split(',')]
+        # cull: 0, 1 or a = automatic (r_ssrReceiverCull -1)
+        modes = [(int(m[0]), -1 if m[1] == 'a' else int(m[1]), args.resolve_cache) for m in args.modes.split(',')]
+    sweep_cvar, sweep_values = (args.sweep.split('=', 1)[0], args.sweep.split('=', 1)[1].split(','))         if args.sweep else (None, [None])
     if args.compare_resolve:
         modes.append((1, 1, 1 - args.resolve_cache))
     if args.smoke_only:
         modes = []
     for yaw in (290, 310):
         cfg += [f'setviewpos 671 -769 -70 {yaw}', 'wait 40']
-        for cache, cull, resolve in modes:
-            label = f'y{yaw}_cache{cache}_cull{cull}_resolve{resolve}'
+        for index, value in enumerate(sweep_values):
+          if sweep_cvar:
+            cfg += [f'{sweep_cvar} {value}']
+          for cache, cull, resolve in modes:
+            label = f'y{yaw}_cache{cache}_cull{"A" if cull < 0 else cull}_resolve{resolve}' + (f'_s{index}' if sweep_cvar else '')
             cfg += [f'r_ssrHitCache {cache}', f'r_ssrReceiverCull {cull}',
                 f'r_ssrResolveCache {resolve}',
                 f'wait {args.bench_warmup}', f'echo SSR_BENCH_BEGIN_{label}', 'r_speeds 100',
@@ -152,7 +160,10 @@ def main():
         r_volumetricFog='0', r_volumetricWater='0', r_atmosphere='0', r_clouds='0',
         r_ssao='0', r_aoMode='0', r_contactShadows='0', r_sunlightMode='0',
         r_ltcAreaLights='0', r_forwardPlus='0', r_shaderProgramCache='1',
-        r_shaderCompileProcesses='0', r_gl43='1')
+        r_shaderCompileProcesses='0', r_gl43='1', r_picmip='2')
+    for item in args.set:
+        key, value = item.split('=', 1)
+        settings[key] = value
     # Com_ParseCommandLine accepts only 32 '+' commands. Set the render
     # configuration before the first wait in autoexec, before renderer init.
     config_settings = [f'set {key} "{value}"' for key, value in settings.items()
@@ -242,14 +253,18 @@ def main():
             direct_repeat_mean_absolute_8bit=sum(abs(a-b) for a, b in zip(direct, repeat))/len(direct))
     for label, section in re.findall(r'SSR_BENCH_BEGIN_(\w+)(.*?)SSR_BENCH_END_\1', log, re.S):
         passes = {}
-        for name in ('Main View 0', 'Screen geometry', 'SSR inputs', 'SSR trace', 'SSR resolve',
+        for name in ('Main View 0', 'Depth prepass', 'Screen geometry', 'SSR inputs', 'SSR trace', 'SSR resolve',
                      'SSR temporal', 'SSR composite', 'Post processing'):
             values = [float(v) for v in re.findall(re.escape(name) + r': ([0-9.]+)ms', section)][8:-4]
             if values:
                 passes[name] = dict(n=len(values), median=statistics.median(values),
                     mean=statistics.mean(values), p95=sorted(values)[int(.95 * (len(values)-1))])
+        rays = [float(v) for v in re.findall(r'SSR rays: ([0-9.]+)%', section)][8:-4]
+        if rays:
+            passes['ray texels %'] = dict(n=len(rays), median=statistics.median(rays),
+                mean=statistics.mean(rays), p95=sorted(rays)[int(.95 * (len(rays)-1))])
         results['sections'][label] = passes
-    assert len(results['sections']) == 2 * len(modes), results
+    assert len(results['sections']) == 2 * len(modes) * len(sweep_values), results
     (runtime / 'results.json').write_text(json.dumps(results, indent=2))
     for label, passes in results['sections'].items():
         print(label, {name: round(value['median'], 3) for name, value in passes.items()}, flush=True)

@@ -100,13 +100,23 @@ look.
    3. `RB_RenderSSR`: MSAA color is resolved into `renderImage` when needed. `ssr_color_mask` builds
       `ssrColor` mip 0 with premultiplied coverage, excluding the first person weapon and texels outside
       the view rectangle. All six downsample levels use four bilinear taps on that masked result.
-   4. classify (`ssr_classify`, `r_ssrReceiverCull 1`): nearest depth where a pixel does **not** need a ray; the
+   4. classify (`ssr_classify`, `r_ssrReceiverCull 1`, or `-1` while few texels need a ray): nearest depth where a pixel does **not** need a ray; the
       trace is drawn behind it and in front of the cleared depth, so it is rejected by the early depth test there.
       Both passes test `LESS`: the earlier "mark the ray pixels, trace with `GREATER`" flipped the depth
       direction after writing, which turns the coarse (hierarchical) depth rejection of many GPUs off until the
       next clear and leaves only per-pixel early tests. The classified trace variants skip the duplicate
       receiver eligibility checks (stored depth and specular weight). The trace is cleared with confidence
-      **zero**; an alpha-1 black clear would make rejected pixels look like confident cached hits.
+      **zero**; an alpha-1 black clear would make rejected pixels look like confident cached hits. Without
+      the classification the trace clears to zero too and **discards** the texels without a ray (they keep
+      the miss), so both variants pass exactly the ray texels.
+
+      `r_ssrReceiverCull -1` (default since 2026-10-29) counts them with a `GL_SAMPLES_PASSED` query on the
+      trace draw (three queries in a ring, read when available, never waited for) and classifies only while
+      under 12% of the trace texels need a ray, off again above 18%. Measured on Intel UHD (see
+      `rend2-ssr-validation.md`): the classification pass costs about as much as the eligibility test it
+      replaces in the trace, so it only pays when the early depth test packs scattered ray pixels into full
+      GPU groups (sparse, speckled receivers: up to a third faster below ~16%); on contiguous receivers it lost
+      ~15% at every share, and at 1600x900 with 45% ray texels about 1 ms. `r_speeds 100` prints the share.
    5. trace (`ssr_trace`, full or half resolution) -> `ssrTrace[current]`, reusing valid hits of
       `ssrTrace[previous]` (hit cache)
    6. resolve: at half resolution, `r_ssrResolveCache 1` reads the current scene color once per ray into
@@ -165,12 +175,16 @@ replaces), without particles or glass in it.
 - Footprint depth (`r_ssrFootprintDepth`, default 1, Hi-Z tracing only): the pyramid blurs what the camera sees
   around the hit. A surface well in front of the hit next to it on the screen (a pillar silhouette in front of
   the reflected wall) is nowhere near the reflection lobe, which ends at the hit, yet a coarse mip blends it in:
-  dark or bright halos around foreground silhouettes in rough reflections. `SSRHitRadiance` reads the closest
-  depth of the Hi-Z cell around the hit at the chosen level and steps down while it is in front of the hit by more
-  than `3% + 2 + 3 cell widths` (what the hit surface's own slope across the cell can explain); the mip is
-  narrowed to that level. One Hi-Z fetch when nothing is in front, a reflection sharper than the cone (never a
-  halo) next to silhouettes. Surfaces behind the hit are left in the blur: lobe rays passing beside a reflected
-  object do reach them. With linear tracing the Hi-Z mips do not exist and the test is off.
+  dark or bright halos around foreground silhouettes in rough reflections. `SSRHitRadiance` reads, at the chosen
+  level, the 2x2 Hi-Z texels under the bilinear taps of the color sample (since 2026-10-29; the hit's own cell
+  alone missed a pillar in the neighbouring cell that the taps still blend in). Each texel in front of the hit by
+  more than `3% + 2 + 3 cell widths` (what the hit surface's own slope across the cell can explain) adds its
+  bilinear weight, scaled by how far in front it is (`front = min(2 * sum, 1)`), and the mip is limited to
+  `level - front`; the walk goes on to finer levels while anything is in front. The limit moves continuously
+  with the hit position and the foreground depth instead of jumping a whole level. Four Hi-Z fetches when
+  nothing is in front; a reflection sharper than the cone (never a halo) next to silhouettes. Surfaces behind
+  the hit are left in the blur: lobe rays passing beside a reflected object do reach them. With linear tracing
+  the Hi-Z mips do not exist and the test is off.
 - Reflection occlusion (`r_ssrRoughOcclusion`, latched, default 1): the cubemap reflection is darkened by the
   lightmap luminance scale (`CalcIBLRadiance`) and the specular occlusion, the SSR weight was not. One mirror ray
   only sees a narrow lobe, so on rough walls in baked shadow or recesses it found a sunlit floor and replaced the
@@ -201,6 +215,10 @@ scene: lights, sabers or a door changing color show at once. A trace cell refres
 fixed phase; rotating half resolution uses independent phase and refresh cycles, covering every cell/phase
 combination within 16 frames. Invalid hits trace immediately. Opaque SSR reserves the velocity image and
 previous-transform UBOs even with color temporal accumulation off, keeping `r_ssrHitCache` a runtime switch.
+This costs nothing: the velocity prepass uses the small `velocity` programs, while a depth-only prepass uses
+the lightall family. Measured 2026-10-29 (Intel UHD, mp/ffa3, 640x360, "Depth prepass" timer): 0.10 ms
+with velocity vs 0.30 ms depth only. Writing velocity only when the hit cache or temporal pass reads it was
+tried and reverted: the default became 0.19 ms slower.
 Without a valid depth-prepass velocity buffer, reuse is disabled. Needs a valid history (same cut rules as the temporal accumulation).
 `r_ssrDebug 12` shows reused (green) and traced (red) hits.
 
@@ -291,8 +309,16 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
   `1 - confidence`, so a wall near the screen edge, under a grazing ray, in a ray towards the camera or on a
   surface near `r_ssrMaxRoughness` let most of a saber behind it through, and a zero-confidence hit (written as a
   miss) let all of it through. At half resolution the four nearest rays of the same surface (depth and normal
-  as the upsampling weights them, phase aware) are read and the nearest hit kept; a pixel with none of them
-  falls back to the nearest ray. Emitters farther than `r_ssrMaxDistance` fade out by twice that distance.
+  as the upsampling weights them, phase aware) are read. A neighbour's hit `Q` is not on this pixel's ray, so
+  its distance is not compared directly (since 2026-10-29): this ray is intersected with the plane of the hit
+  surface when its normal is known (`Q` is a receiver), else `Q` is projected onto the ray (`t = dot(Q - O,
+  R)`). The crossing must lie within `2 * gridScale` pixels (at the receiver) `+ 2 + max(cone, 0.1) * t` of
+  `Q` (twice that for the plane): a neighbour whose ray went elsewhere says nothing about this one and is
+  skipped. The nearest accepted crossing is kept; a same-surface miss counts as "nothing in front". When no
+  neighbour is accepted, the nearest ray's projected crossing is used without the reach test (a missing saber
+  reflection is the safer error than a saber through a wall). Emitters farther than `r_ssrMaxDistance` fade
+  out by twice that distance.
+
 - **Rough surfaces.** A saber also adds a dynamic light, whose specular highlight already shows on rough
   surfaces; the emitter reflection fades out between 50% and 100% of `r_ssrEmitterMaxRoughness`.
 - Computed in the composite, after the temporal accumulation: fast saber swings do not smear.
@@ -319,7 +345,7 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrHitCache` | 0 | reuse validated hits (Hi-Z only); refresh every 4 frames per 8x8 tile, all rotating half-res phases within 16 frames; needs depth prepass. Off: measured slower than tracing every ray |
 
 | `r_ssrResolveCache` | 1 | resolve each half-res ray's current-frame radiance once before edge-aware upsample; 0 = direct per-pixel footprint |
-| `r_ssrReceiverCull` | 1 | early depth classification: the ray march only runs on pixels that need a ray |
+| `r_ssrReceiverCull` | -1 | 1 = early depth classification of the pixels that need a ray, 0 = the trace discards the others itself, -1 = classify only while under ~15% of the trace texels need a ray (measured share, hysteresis 12% / 18%) |
 | `r_ssrFusedResolve` | 1 | without temporal accumulation the composite resolves the rays itself (no full resolution resolve image); 0 = separate pass |
 | `r_ssrFootprintDepth` | 1 | rough reflections do not blur surfaces in front of the hit into it (Hi-Z tracing only) |
 | `r_ssrDebug` | 0 | cheat, see below |
