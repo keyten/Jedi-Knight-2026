@@ -497,6 +497,7 @@ cvar_t  *r_ssrResolveCache;
 cvar_t  *r_ssrReceiverCull;
 cvar_t  *r_ssrFusedResolve;
 cvar_t  *r_ssrFootprintDepth;
+cvar_t  *r_ssrStochastic;
 
 cvar_t  *r_ssgi;
 cvar_t  *r_ssgiSource;
@@ -2587,6 +2588,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrFusedResolve, 0, 1, qtrue );
 	r_ssrFootprintDepth = ri_Cvar_Get_NoComm( "r_ssrFootprintDepth", "1", CVAR_ARCHIVE, "SSR: rough reflections do not blur surfaces in front of the hit into it (Hi-Z closest depth of the blur footprint, needs Hi-Z tracing)" );
 	ri.Cvar_CheckRange( r_ssrFootprintDepth, 0, 1, qtrue );
+	r_ssrStochastic = ri_Cvar_Get_NoComm( "r_ssrStochastic", "0", CVAR_ARCHIVE | CVAR_LATCH, "SSR: stochastic GGX reflections, one ray per pixel sampled from the roughness lobe, reused by the neighbours and averaged over the frames, instead of the mirror ray with a cone blur (needs r_ssrTemporal 1, vid_restart)" );
+	ri.Cvar_CheckRange( r_ssrStochastic, 0, 1, qtrue );
 
 	r_ssgi = ri_Cvar_Get_NoComm( "r_ssgi", "0", CVAR_ARCHIVE | CVAR_LATCH, "Screen-space diffuse GI: bounces dynamic light (sabers, blasters, explosions) and emission, not the baked lighting (needs vid_restart)" );
 	ri.Cvar_CheckRange( r_ssgi, 0, 1, qtrue );

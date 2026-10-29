@@ -588,6 +588,7 @@ extern cvar_t  *r_ssrResolveCache;
 extern cvar_t  *r_ssrReceiverCull;
 extern cvar_t  *r_ssrFusedResolve;
 extern cvar_t  *r_ssrFootprintDepth;
+extern cvar_t  *r_ssrStochastic;
 
 extern cvar_t  *r_ssgi;
 extern cvar_t  *r_ssgiSource;
@@ -4539,7 +4540,8 @@ typedef struct trGlobals_s {
 	FBO_t *waterInteractionFbo;		// scratch attachment for interaction ping-pong/resolve
 	image_t					*ssrTraceImage[2];	// trace resolution, xy = hit uv, z = hit depth, w = confidence (ssr_common.glsl), ping-pong: hit cache
 	image_t					*ssrResolveImage;	// rgb = reflected radiance, a = confidence
-	image_t					*ssrRadianceImage;	// per-frame half-res radiance cache
+	image_t					*ssrRadianceImage;	// per-frame half-res radiance cache (r_ssrStochastic: any trace resolution)
+	image_t					*ssrRayImage;		// r_ssrStochastic: hit point and log2 pdf of every ray, trace resolution
 	image_t					*ssrHistoryImage[2];
 	image_t					*ssrHistoryGeomImage[2];	// x = view depth, yz = octahedral normal, w = roughness
 	// screen-space GI (tr_ssgi.cpp)
@@ -7151,6 +7153,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	class UniformDataWriter &uniformDataWriter, class SamplerBindingsWriter &samplerBindingsWriter);
 void RB_WaterContactUniforms(vec4_t *contact, int vec4Count);
 qboolean R_SSRWantsVelocity(void);
+qboolean R_SSRStochastic(void);
 void R_SSRSelectResources(void);
 void R_CreateSSRImages(int width, int height, int hdrFormat);
 void R_CreateSSRFBOs(void);

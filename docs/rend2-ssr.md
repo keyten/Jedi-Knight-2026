@@ -196,6 +196,30 @@ replaces), without particles or glass in it.
 - The trace stores the hit **surface** point (its uv and log encoded view depth), not a distance: it is fixed in
   the world, so the next frame can reuse it, and the resolve derives the hit distance from it.
 
+### Stochastic GGX (`r_ssrStochastic 1`, latched, needs `r_ssrTemporal 1`)
+
+The mirror ray with a cone blur at the hit gives every reflection the cone's round footprint. A real GGX lobe
+stretches along the view at grazing angles (a lamp over a glossy floor becomes a vertical streak) and its rays
+see occlusion and parallax of their own. With `r_ssrStochastic 1`:
+
+- Trace: each trace texel marches one direction sampled from the visible normals of the GGX lobe (Heitz 2018,
+  alpha = roughness^2 as the cone), a new one every frame (interleaved gradient noise shifted by an R2 sequence over
+  the frames). A sample into the surface falls back to the mirror direction. No hit cache.
+- Radiance pass (the resolve cache, also at full resolution): every ray's radiance, filtered over the solid angle
+  of one of 32 samples (`1 / (32 pdf)`, at most the cone), plus its view space hit point and log2 pdf
+  (`*ssrRay`, RGBA16F, trace resolution).
+- Resolve: every pixel reuses the rays of the nearest trace texels (half resolution 3x3, tent weights; full
+  resolution a 2x2 block that moves with the frame), weighted by depth / normal similarity as before and by this
+  pixel's BRDF over the pdf the ray was sampled with (`D G2 / (4 NV)` over `G1 D / (4 NV)`, ratio estimator,
+  Stachowiak 2015; limited to 4 against fireflies). A miss weighs as the pixel's own ray would and adds nothing.
+- Temporal: two samples of a lobe say nothing about whether the reflected point changed, so the hit comparison
+  only remains for near mirrors (cone tangent below 0.003-0.008); the clamp range comes from every other pixel of
+  a 5x5 area, and the history is clamped half way (fully clamped, the sparse tail of a highlight is cut back every
+  frame; unclamped, a changed reflection ghosts for many frames).
+
+Without `r_ssrTemporal 1` it is off (a warning), one sample per pixel would only be noise. Measurements, the
+reference test and the choices of the constants: [validation](rend2-ssr-validation.md), 2026-10-29 stochastic GGX.
+
 ### Hit cache (`r_ssrHitCache 1`, off by default)
 
 The trace reprojects the receiver into the previous frame using its velocity, reads the nearest ray sample on
@@ -348,6 +372,7 @@ depth, are drawn after the SSR and are not in the cubemaps. They are reflected a
 | `r_ssrReceiverCull` | -1 | 1 = early depth classification of the pixels that need a ray, 0 = the trace discards the others itself, -1 = classify only while under ~15% of the trace texels need a ray (measured share, hysteresis 12% / 18%) |
 | `r_ssrFusedResolve` | 1 | without temporal accumulation the composite resolves the rays itself (no full resolution resolve image); 0 = separate pass |
 | `r_ssrFootprintDepth` | 1 | rough reflections do not blur surfaces in front of the hit into it (Hi-Z tracing only) |
+| `r_ssrStochastic` | 0 | archive, latch, needs `r_ssrTemporal 1`: GGX sampled rays reused by the neighbours instead of the mirror ray with a cone blur (see Stochastic GGX; the SSR costs about 1.6-1.7x in game on Intel) |
 | `r_ssrDebug` | 0 | cheat, see below |
 | `r_ssrEmitters` | 1 | reflect light sabers and additive effects (analytic) |
 | `r_ssrEmitterIntensity` | 1 | brightness of those reflections |
@@ -435,12 +460,15 @@ passes the focused RTX motion/SSR compilation checks. See the validation report 
   validation and keep the cubemap.
 - Rough reflections are a mirror ray plus a cone blur of the scene (cheap, matches the cubemap prefilter), not a
   distribution of rays: occlusion and parallax inside a rough lobe are those of the mirror direction. The blur
-  is kept off nearer surfaces (`r_ssrFootprintDepth`), not off farther ones.
+  is kept off nearer surfaces (`r_ssrFootprintDepth`), not off farther ones. `r_ssrStochastic 1` traces the lobe
+  instead; it relies on the temporal pass, so a reflection that changes (a lamp switching, an NPC walking past)
+  converges over a few more frames than the cone, and the reflections of moving objects on rough surfaces are
+  reprojected with the receiver's motion, not the hit's.
 
 ## Possible improvements (not implemented)
 
-- Stochastic GGX ray directions with temporal + spatial denoising for physically correct rough reflections
-  instead of the cone blur (the hit cache and the hit based history rejection are the base for it).
+- Stochastic GGX (`r_ssrStochastic`): a history of luminance moments (variance guided clamping, SVGF) instead of
+  the half clamp, and reprojection by the hit point for rough reflections of moving objects.
 - Fog along the reflected ray; SSR for remaining transparent surfaces such as glass (water already has its own pass).
 - A screen-space emissive layer for the remaining additive effects (exact look, on screen only), next to the
   analytic emitters.

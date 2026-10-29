@@ -5002,15 +5002,22 @@ static int GLSL_LoadGPUProgramScreenSpace(
 	}
 	if (R_SSROpaqueResourcesEnabled())
 	{
-		load(&tr.ssrTraceShader[SSRDEF_TRACE], "ssr_trace", "ssr_trace", fallback_ssr_traceProgram, nullptr);
-		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ], "ssr_trace_hiz", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n");
+		// r_ssrStochastic: GGX sampled rays in the trace, resolve and temporal programs
+		const std::string stochastic = R_SSRStochastic() ? "#define SSR_STOCHASTIC\n" : "";
+		const std::string traceHiZ = stochastic + "#define USE_HIZ\n";
+		const std::string traceCulled = stochastic + "#define PRECLASSIFIED\n";
+		const std::string traceHiZCulled = stochastic + "#define USE_HIZ\n#define PRECLASSIFIED\n";
+		const std::string radiance = stochastic + "#define TRACE_RADIANCE\n";
+		const std::string upsample = stochastic + "#define UPSAMPLE_RADIANCE\n";
+		load(&tr.ssrTraceShader[SSRDEF_TRACE], "ssr_trace", "ssr_trace", fallback_ssr_traceProgram, stochastic.c_str());
+		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ], "ssr_trace_hiz", "ssr_trace", fallback_ssr_traceProgram, traceHiZ.c_str());
 		load(&tr.ssrTraceShader[SSRDEF_CLASSIFY], "ssr_classify", "ssr_trace", fallback_ssr_traceProgram, "#define CLASSIFY\n");
-		load(&tr.ssrTraceShader[SSRDEF_TRACE_CULLED], "ssr_trace_culled", "ssr_trace", fallback_ssr_traceProgram, "#define PRECLASSIFIED\n");
-		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ_CULLED], "ssr_trace_hiz_culled", "ssr_trace", fallback_ssr_traceProgram, "#define USE_HIZ\n#define PRECLASSIFIED\n");
-		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, nullptr);
-		load(&tr.ssrRadianceShader, "ssr_radiance", "ssr_resolve", fallback_ssr_resolveProgram, "#define TRACE_RADIANCE\n");
-		load(&tr.ssrUpsampleShader, "ssr_upsample", "ssr_resolve", fallback_ssr_resolveProgram, "#define UPSAMPLE_RADIANCE\n");
-		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, nullptr);
+		load(&tr.ssrTraceShader[SSRDEF_TRACE_CULLED], "ssr_trace_culled", "ssr_trace", fallback_ssr_traceProgram, traceCulled.c_str());
+		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ_CULLED], "ssr_trace_hiz_culled", "ssr_trace", fallback_ssr_traceProgram, traceHiZCulled.c_str());
+		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, stochastic.c_str());
+		load(&tr.ssrRadianceShader, "ssr_radiance", "ssr_resolve", fallback_ssr_resolveProgram, radiance.c_str());
+		load(&tr.ssrUpsampleShader, "ssr_upsample", "ssr_resolve", fallback_ssr_resolveProgram, upsample.c_str());
+		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, stochastic.c_str());
 		load(&tr.ssrCompositeShader, "ssr_composite", "ssr_composite", fallback_ssr_compositeProgram, nullptr);
 		load(&tr.ssrCompositeFusedShader[0], "ssr_composite_fused", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n");
 		load(&tr.ssrCompositeFusedShader[1], "ssr_composite_fused_upsample", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n");

@@ -255,6 +255,101 @@ float SSRConeTangent(float perceptualRoughness)
 }
 
 /*
+Stochastic GGX reflections (r_ssrStochastic, SSR_STOCHASTIC programs). Instead of the mirror ray and a cone
+blur of the roughness at the hit, each trace texel marches one reflection direction L sampled from the
+visible normals of the GGX lobe (Heitz 2018), a new one every frame. The resolve reuses the rays of the
+nearest trace texels for every pixel, each weighted by this pixel's BRDF over the pdf the ray was sampled
+with (ratio estimator, Stachowiak 2015), and the temporal accumulation averages the frames. The lobe takes
+its true shape (stretched along the view at grazing angles, sharper near contact), the color pyramid only
+filters the solid angle of one sample.
+
+Same alpha as the cone (roughness^2, the cubemap prefilter). View space vectors, N V L unit length.
+*/
+#define SSR_PI 3.14159265
+
+// samples a pixel averages (the reused rays of the frames the temporal accumulation keeps): the solid angle
+// the pyramid filters per sample. Against a Monte Carlo GGX reference 32 has the least error, 4 (the reused
+// rays of one frame) blurs as much as the cone, 64 is noisier (docs/rend2-ssr-validation.md)
+#define SSR_STOCHASTIC_SAMPLES 32.0
+// reuse weight limit: a ray that hardly lies in this pixel's lobe must not become a firefly
+#define SSR_STOCHASTIC_MAX_WEIGHT 4.0
+
+float SSRGGXAlpha(float perceptualRoughness)
+{
+	return max(perceptualRoughness * perceptualRoughness, 0.0025);
+}
+
+float SSRGGXSmithTerm(float NX, float a2)
+{
+	return sqrt(a2 + (1.0 - a2) * NX * NX);
+}
+
+// pdf (solid angle) of the reflection direction L from visible normal sampling: G1(V) D(H) / (4 NV)
+float SSRGGXPdf(vec3 N, vec3 V, vec3 L, float alpha)
+{
+	float NV = dot(N, V);
+	if (NV <= 0.0 || dot(N, L) <= 0.0)
+		return 0.0;
+	float a2 = alpha * alpha;
+	float NH = max(dot(N, normalize(V + L)), 0.0);
+	float d = NH * NH * (a2 - 1.0) + 1.0;
+	float D = a2 / (SSR_PI * d * d);
+	float G1 = 2.0 * NV / (NV + SSRGGXSmithTerm(NV, a2));
+	return G1 * D / (4.0 * NV);
+}
+
+// BRDF * cos without the Fresnel term (that is in the IBL weight W): D G2 / (4 NV), height correlated G2
+float SSRGGXBRDFCos(vec3 N, vec3 V, vec3 L, float alpha)
+{
+	float NV = dot(N, V);
+	float NL = dot(N, L);
+	if (NV <= 0.0 || NL <= 0.0)
+		return 0.0;
+	float a2 = alpha * alpha;
+	float NH = max(dot(N, normalize(V + L)), 0.0);
+	float d = NH * NH * (a2 - 1.0) + 1.0;
+	float D = a2 / (SSR_PI * d * d);
+	float G2 = 2.0 * NL * NV / (NL * SSRGGXSmithTerm(NV, a2) + NV * SSRGGXSmithTerm(NL, a2));
+	return D * G2 / (4.0 * NV);
+}
+
+// reflection direction of a visible GGX normal, u in [0, 1)^2. The mirror direction where the sample
+// points into the surface (rough grazing views)
+vec3 SSRSampleGGXReflection(vec3 N, vec3 V, float alpha, vec2 u)
+{
+	vec3 T = abs(N.z) < 0.999 ? normalize(cross(vec3(0.0, 0.0, 1.0), N)) : vec3(1.0, 0.0, 0.0);
+	vec3 B = cross(N, T);
+	vec3 Ve = vec3(dot(V, T), dot(V, B), dot(V, N));
+
+	vec3 Vh = normalize(vec3(alpha * Ve.x, alpha * Ve.y, Ve.z));
+	float lensq = Vh.x * Vh.x + Vh.y * Vh.y;
+	vec3 T1 = lensq > 0.0 ? vec3(-Vh.y, Vh.x, 0.0) * inversesqrt(lensq) : vec3(1.0, 0.0, 0.0);
+	vec3 T2 = cross(Vh, T1);
+	float r = sqrt(u.x);
+	float phi = 2.0 * SSR_PI * u.y;
+	float t1 = r * cos(phi);
+	float t2 = r * sin(phi);
+	float s = 0.5 * (1.0 + Vh.z);
+	t2 = (1.0 - s) * sqrt(max(1.0 - t1 * t1, 0.0)) + s * t2;
+	vec3 Nh = t1 * T1 + t2 * T2 + sqrt(max(1.0 - t1 * t1 - t2 * t2, 0.0)) * Vh;
+	vec3 He = normalize(vec3(alpha * Nh.x, alpha * Nh.y, max(Nh.z, 0.0)));
+
+	vec3 L = reflect(-V, T * He.x + B * He.y + N * He.z);
+	return dot(L, N) > 0.0 ? L : reflect(-V, N);
+}
+
+// cone of the solid angle that one of SSR_STOCHASTIC_SAMPLES samples of this pdf stands for, at most the
+// cone of the whole lobe
+float SSRStochasticConeTangent(float pdf, float perceptualRoughness)
+{
+	float lobe = SSRConeTangent(perceptualRoughness);
+	if (pdf <= 0.0)
+		return lobe;
+	float cosAngle = max(1.0 - 1.0 / (2.0 * SSR_PI * SSR_STOCHASTIC_SAMPLES * pdf), 0.0);
+	return min(sqrt(max(1.0 - cosAngle * cosAngle, 0.0)) / max(cosAngle, 1.0e-3), lobe);
+}
+
+/*
 Shared ray march (SSR reflection rays, SSGI diffuse rays). The caller sets up the ray with
 SSRSetupRay and marches it with SSRMarchRay; the pass specific parameters (steps, thickness, step
 distribution, Hi-Z budget) are arguments, so SSR and SSGI keep separate settings.
@@ -573,3 +668,104 @@ vec4 SSRResolvePixel(ivec2 pix, vec2 uv, float z, vec4 normalRoughness, float gr
 
 	return vec4(radiance, confidenceSum) / weightSum;
 }
+
+#if defined(SSR_STOCHASTIC)
+// r_ssrStochastic: every ray's hit point and pdf (RGBA16F, trace resolution), written by the TRACE_RADIANCE pass:
+// xyz = view space hit point (z = 0: no ray / miss), w = log2(pdf). The upsample reads it instead of the trace
+// texels, the receivers' positions and normals of the neighbours. Bound to the sampler of the temporal history
+// geometry, which no resolve pass uses
+#define u_SSRRayMap u_SSRHistoryGeomMap
+
+// Stochastic resolve of the full resolution receiver pixel pix (arguments as SSRResolvePixel): the rays of the
+// nearest trace texels, each weighted by its position (tent), depth and normal similarity (as
+// SSRResolvePixel) and by this pixel's BRDF over the pdf the ray was sampled with (its own receiver,
+// SSRGGXPdf). A miss weighs as the ray's own pixel would (BRDF / pdf = G2 / G1, about 1) and adds nothing.
+// Half resolution: the 3x3 nearest trace texels, full resolution: a 2x2 block that moves with the frame.
+//
+// u_SSRHitMap = the trace texels. With UPSAMPLE_RADIANCE u_SSRTraceMap holds every ray's radiance and
+// u_SSRRayMap its hit point and pdf (TRACE_RADIANCE), else they are computed here for every reused ray.
+vec4 SSRResolveStochastic(ivec2 pix, vec2 uv, float z, vec4 normalRoughness, float gridScale, float phaseIndex,
+	float frame, float maxMip, float maxHiZLevel)
+{
+	vec3 P = SSRViewPosition(uv, z);
+	vec3 N = SSRViewNormal(normalRoughness.rg);
+	vec3 Nw = SSRDecodeNormal(normalRoughness.rg);
+	vec3 V = -normalize(P);
+	float alpha = SSRGGXAlpha(normalRoughness.b);
+
+	ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
+	ivec2 traceMax = textureSize(u_SSRHitMap, 0) - ivec2(1);
+	vec2 phase = vec2(0.0);
+	ivec2 base;
+	vec2 st;
+	int reuse;
+	if (gridScale > 1.5)
+	{
+		// the 3x3 trace texels around the pixel's position on the trace grid, tent weights (a quarter of the
+		// rays per pixel: 2x2 leaves the low roughness lobes noisy)
+		phase = SSRPhaseOffset(phaseIndex);
+		st = (vec2(pix) - phase) * 0.5;
+		base = ivec2(floor(st + 0.5)) - ivec2(1);
+		reuse = 3;
+	}
+	else
+	{
+		// a 2x2 block around the pixel, moving with the frame (3x3 is not measurably better here)
+		int k = int(frame);
+		base = pix - ivec2(k & 1, (k >> 1) & 1);
+		st = vec2(base) + 0.5;
+		reuse = 2;
+	}
+
+	vec3 radiance = vec3(0.0);
+	float confidenceSum = 0.0;
+	float weightSum = 0.0;
+	for (int i = 0; i < 9; i++)
+	{
+		if (i >= reuse * reuse)
+			break;
+		ivec2 offset = ivec2(i % reuse, i / reuse);
+		vec2 d = abs(vec2(base + offset) - st);
+		float w = max(1.0 - d.x / 1.5, 0.0) * max(1.0 - d.y / 1.5, 0.0);
+		ivec2 q = clamp(base + offset, ivec2(0), traceMax);
+		ivec2 src = SSRTracePixel(q, gridScale, phase, fullSize);
+		w = max(w, 0.01);
+
+		float zs = texelFetch(u_SSRHiZMap, src, 0).r;
+		vec4 ns = texelFetch(u_SSRNormalMap, src, 0);
+		if (!SSRIsSurface(zs) || ns.a < 0.5)
+			continue;
+		w *= exp(-abs(zs - z) / (0.02 * z + 1.0));
+		w *= pow(max(dot(SSRDecodeNormal(ns.rg), Nw), 0.0), 8.0);
+
+#if defined(UPSAMPLE_RADIANCE)
+		// the radiance pass stored every ray's radiance, hit point and pdf
+		vec4 ray = texelFetch(u_SSRRayMap, q, 0);
+		if (ray.z > 0.0)
+		{
+			vec3 Q = ray.xyz;
+			float pdf = exp2(ray.w);
+			vec4 h = texelFetch(u_SSRTraceMap, q, 0);
+#else
+		vec4 texel = texelFetch(u_SSRHitMap, q, 0);
+		if (texel.w > 0.0)
+		{
+			vec3 Q = SSRHitPosition(texel);
+			vec3 Ps = SSRViewPosition((vec2(src) + 0.5) * u_SSRTexelSize.xy, zs);
+			float pdf = SSRGGXPdf(SSRViewNormal(ns.rg), -normalize(Ps), normalize(Q - Ps), SSRGGXAlpha(ns.b));
+			vec4 h = SSRHitRadiance(SSRTraceHit(texel), Ps, SSRStochasticConeTangent(pdf, ns.b), maxMip, maxHiZLevel);
+#endif
+			float brdf = SSRGGXBRDFCos(N, V, normalize(Q - P), alpha);
+			w *= pdf > 0.0 ? min(brdf / pdf, SSR_STOCHASTIC_MAX_WEIGHT) : 0.0;
+			radiance += w * h.rgb;
+			confidenceSum += w * h.a;
+		}
+		weightSum += w;
+	}
+
+	if (weightSum < 1.0e-4)
+		return vec4(0.0);
+
+	return vec4(radiance, confidenceSum) / weightSum;
+}
+#endif
