@@ -12,7 +12,7 @@ import subprocess
 import numpy as np
 
 from test_watersurface_gl import (context, compile_program, tex2d, fbo,
-    read_color, bind, gl, uloc, SDL, U, I, F, P, GL_VERTEX, GL_FRAGMENT,
+    read_color, bind, mipmaps, gl, uloc, SDL, U, I, F, P, GL_VERTEX, GL_FRAGMENT,
     RGBA16F, R32F, RED, RGBA, FLOAT, TEX2D)
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -346,6 +346,7 @@ def resolve_edge_checks():
 
 
 def compile_checks():
+    S = '#define SSR_STOCHASTIC\n'  # r_ssrStochastic
     for name, defines in [('ssr_trace', ''), ('ssr_trace', '#define USE_HIZ\n'),
         ('ssr_trace', '#define CLASSIFY\n'), ('ssr_trace', '#define PRECLASSIFIED\n'),
         ('ssr_trace', '#define USE_HIZ\n#define PRECLASSIFIED\n'),
@@ -355,10 +356,14 @@ def compile_checks():
         ('ssr_temporal', ''), ('ssr_composite', ''),
         ('ssr_composite', '#define FUSED_RESOLVE\n'),
         ('ssr_composite', '#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n'),
-        ('ssr_debug', ''), ('ssr_hiz', '#define LINEARIZE\n'), ('ssr_hiz', '')]:
+        ('ssr_debug', ''), ('ssr_hiz', '#define LINEARIZE\n'), ('ssr_hiz', ''),
+        ('ssr_trace', S), ('ssr_trace', S + '#define USE_HIZ\n'), ('ssr_trace', S + '#define PRECLASSIFIED\n'),
+        ('ssr_trace', S + '#define USE_HIZ\n#define PRECLASSIFIED\n'), ('ssr_resolve', S),
+        ('ssr_resolve', S + '#define TRACE_RADIANCE\n'), ('ssr_resolve', S + '#define UPSAMPLE_RADIANCE\n'),
+        ('ssr_temporal', S)]:
         prog = program(name, defines)
         gl('glDeleteProgram', None, U)(prog)
-    return {'17 SSR shader permutations compile/link': True}
+    return {'25 SSR shader permutations compile/link': True}
 
 
 def msaa_resolve_checks():
@@ -713,6 +718,163 @@ def footprint_checks(revision=None):
     return outcomes
 
 
+def stochastic_scene(w):
+    """Floor y = -50 under a wall at z = 600 with three lamps (projection (1, 1), row 0 = bottom)."""
+    nd = (np.arange(w) + .5) / w * 2 - 1
+    X, Y = np.meshgrid(nd, nd)
+    floor_t = np.where(Y < 0, -50 / np.minimum(Y, -1e-6), 1e9)
+    floor = floor_t < 600
+    depth = np.where(floor, floor_t, 600).astype(np.float32)
+    wx, wy = X * 600, Y * 600
+    color = np.full((w, w, 4), .04, np.float32)
+    color[..., 3] = 1
+    for lx in (-250, 0, 250):
+        color[(abs(wx - lx) < 14) & (abs(wy - 150) < 14), :3] = (12, 9, 5)
+    color[floor, :3] = .02
+    return X, Y, floor, depth, color
+
+
+def ggx_reference(X, Y, floor, depth, color, roughness, samples=256):
+    """Monte Carlo GGX lobe average (visible normals, weight G2 / G1) of the visible wall, normalized over the
+    rays that reach it as the SSR confidence is; NaN where under 80% of the lobe does."""
+    w = X.shape[0]
+    alpha = max(roughness * roughness, .0025)
+    a2 = alpha * alpha
+    ys, xs = np.nonzero(floor)
+    P = np.stack([X[ys, xs] * depth[ys, xs], Y[ys, xs] * depth[ys, xs], depth[ys, xs]], -1)
+    V = -P / np.linalg.norm(P, axis=-1, keepdims=True)
+    N, T = np.array([0., 1, 0]), np.array([-1., 0, 0])  # the frame of SSRSampleGGXReflection
+    B = np.cross(N, T)
+    Ve = np.stack([V @ T, V @ B, V @ N], -1)
+    Vh = Ve * (alpha, alpha, 1)
+    Vh /= np.linalg.norm(Vh, axis=-1, keepdims=True)
+    T1 = np.stack([-Vh[:, 1], Vh[:, 0], 0 * Vh[:, 0]], -1)
+    T1 /= np.linalg.norm(T1, axis=-1, keepdims=True)
+    T2 = np.cross(Vh, T1)
+    rng = np.random.default_rng(7)
+    acc, hit, total = np.zeros((len(ys), 3)), np.zeros(len(ys)), np.zeros(len(ys))
+    for _ in range(samples):
+        r, phi = np.sqrt(rng.random(len(ys))), 2 * np.pi * rng.random(len(ys))
+        t1, t2 = r * np.cos(phi), r * np.sin(phi)
+        s = .5 * (1 + Vh[:, 2])
+        t2 = (1 - s) * np.sqrt(np.maximum(1 - t1 * t1, 0)) + s * t2
+        Nh = t1[:, None] * T1 + t2[:, None] * T2 + np.sqrt(np.maximum(1 - t1 * t1 - t2 * t2, 0))[:, None] * Vh
+        He = Nh * (alpha, alpha, 1)
+        He /= np.linalg.norm(He, axis=-1, keepdims=True)
+        H = He[:, :1] * T + He[:, 1:2] * B + He[:, 2:] * N
+        L = 2 * np.sum(V * H, -1, keepdims=True) * H - V
+        NL = L[:, 1]
+        weight = np.where(NL > 0, 2 * NL / (NL + np.sqrt(a2 + (1 - a2) * NL * NL)), 0)
+        t = (600 - P[:, 2]) / np.maximum(L[:, 2], 1e-6)
+        sx, sy = (P[:, 0] + L[:, 0] * t) / 600, (P[:, 1] + L[:, 1] * t) / 600
+        ok = (L[:, 2] > 0) & (abs(sx) < .9) & (sy > -50 / 600 + .02) & (sy < .9) & (t < 1100)
+        px = np.clip((sx + 1) / 2 * w - .5, 0, w - 1.001)
+        py = np.clip((sy + 1) / 2 * w - .5, 0, w - 1.001)
+        x0, y0 = px.astype(int), py.astype(int)
+        fx, fy = (px - x0)[:, None], (py - y0)[:, None]
+        c = (color[y0, x0, :3] * (1 - fx) * (1 - fy) + color[y0, x0 + 1, :3] * fx * (1 - fy) +
+             color[y0 + 1, x0, :3] * (1 - fx) * fy + color[y0 + 1, x0 + 1, :3] * fx * fy)
+        acc += np.where(ok, weight, 0)[:, None] * c
+        hit += np.where(ok, weight, 0)
+        total += weight
+    out = np.full((w, w, 3), np.nan)
+    valid = hit > .8 * total
+    out[ys[valid], xs[valid]] = acc[valid] / hit[valid, None]
+    return out
+
+
+def stochastic_checks():
+    """r_ssrStochastic against a Monte Carlo GGX reference: a rough floor reflecting three lamps, the frames of
+    a static camera averaged (the temporal pass's ideal). The cone blur of the mirror ray turns a lamp into a
+    round blob, the GGX lobe stretches it along the view."""
+    w = 128
+    X, Y, floor, depth, color = stochastic_scene(w)
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    scene = tex2d(w, w, RGBA16F, RGBA, data=color, linear=True)
+    mipmaps(scene)  # binds it on unit 0: the textures of unit 0 (Hi-Z) follow
+    bind(SAMPLERS.index('u_SSRSceneMap'), scene)
+    texture('u_SSRHiZMap', depth, levels=True)
+    texture('u_SSRSpecularMap', np.ones((w, w, 4)))
+    texture('u_SSRCubemapMap', np.dstack([np.zeros((w, w, 3)), depth]))
+    texture('u_SSRPrevHitMap', np.zeros((4, 4, 4)))
+    texture('u_VelocityMap', np.zeros((4, 4, 4)))
+    lum = np.array([.2126, .7152, .0722])
+    roughness = .3
+    normal = np.zeros((w, w, 4), np.float32)
+    normal[..., 0], normal[..., 1], normal[..., 2], normal[..., 3] = .5, 1, roughness, floor
+    texture('u_SSRNormalMap', normal)
+
+    def render(stochastic, cached, frames):
+        S = '#define SSR_STOCHASTIC\n' if stochastic else ''
+        trace = program('ssr_trace', S + '#define USE_HIZ\n')
+        resolve = program('ssr_resolve', S + ('#define UPSAMPLE_RADIANCE\n' if cached else ''))
+        radiance = program('ssr_resolve', S + '#define TRACE_RADIANCE\n')
+        gl('glActiveTexture', None, U)(0x84C0 + 15)
+        trace_tex = tex2d(w, w, 0x805B)
+        trace_fbo = fbo([trace_tex])
+        ray_tex = [tex2d(w, w, RGBA16F), tex2d(w, w, RGBA16F)]
+        ray_fbo = fbo(ray_tex)
+        out_fbo = fbo([tex2d(w, w, RGBA16F)])
+        total = np.zeros((w, w, 4))
+        for frame in range(frames):
+            uniforms(trace, w, w)
+            v4(trace, 'u_SSRSettings', (64, 8, 2048, 8))
+            v4(trace, 'u_SSRSettings2', (1, 0, 1, frame))
+            v4(trace, 'u_SSRSettings3', (6, .004, 4, 1024))
+            v4(trace, 'u_SSRSettings4', (0, 0, 0, 0))
+            v4(trace, 'u_SSRSettings5', (0, 24, 0, 0))
+            gl('glBindFramebuffer', None, U, U)(0x8D40, trace_fbo)
+            gl('glViewport', None, I, I, I, I)(0, 0, w, w)
+            gl('glClearBufferfv', None, U, I, P)(0x1800, 0, (F * 4)(0, 0, 0, 0))
+            gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+            bind(SAMPLERS.index('u_SSRTraceMap'), trace_tex)
+            bind(SAMPLERS.index('u_SSRHitMap'), trace_tex)
+            for prog in (radiance, resolve):
+                uniforms(prog, w, w)
+                v4(prog, 'u_SSRSettings', (1, 2048, 7, 6))
+                v4(prog, 'u_SSRSettings2', (1, 0, frame, 0))
+            if cached:
+                gl('glBindFramebuffer', None, U, U)(0x8D40, ray_fbo)
+                gl('glUseProgram', None, U)(radiance)
+                gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+                bind(SAMPLERS.index('u_SSRTraceMap'), ray_tex[0])
+                bind(SAMPLERS.index('u_SSRHistoryGeomMap'), ray_tex[1])
+            gl('glBindFramebuffer', None, U, U)(0x8D40, out_fbo)
+            gl('glUseProgram', None, U)(resolve)
+            gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+            total += read_color(out_fbo, w, w)
+        for prog in (trace, resolve, radiance):
+            gl('glDeleteProgram', None, U)(prog)
+        return total[..., :3] / np.maximum(total[..., 3:], 1e-6), total[..., 3] / frames
+
+    def error(image, confidence, reference):
+        m = ~np.isnan(reference[..., 0]) & (confidence > .5)
+        e = image[m] @ lum - reference[m] @ lum
+        return np.sqrt(np.mean(e ** 2) / np.mean((reference[m] @ lum) ** 2))
+
+    def elongation(image):
+        """vertical / horizontal extent above half the peak of the middle lamp's reflection"""
+        l = np.where(floor, np.nan_to_num(image @ lum), 0)[:, w // 2 - w // 8: w // 2 + w // 8]
+        y, x = np.unravel_index(np.argmax(l), l.shape)
+        half = l > .5 * l[y, x]
+        return half[:, x].sum() / max(half[y, :].sum(), 1)
+
+    reference = ggx_reference(X, Y, floor, depth, color, roughness)
+    cone, cone_c = render(False, False, 1)
+    direct, direct_c = render(True, False, 32)
+    cached, cached_c = render(True, True, 32)
+    e_cone, e_sto, e_cached = (error(i, c, reference) for i, c in ((cone, cone_c), (direct, direct_c), (cached, cached_c)))
+    both = floor & (direct_c > .5) & (cached_c > .5)
+    cache_gap = np.mean(np.abs(direct[both] - cached[both]) @ lum) / np.mean(direct[both] @ lum)
+    return {f'stochastic GGX nearer the GGX reference than the cone (r 0.3: {e_sto:.3f} vs {e_cone:.3f})':
+                e_sto < .9 * e_cone,
+            f'lamp reflection stretched along the view like the reference ({elongation(direct):.1f} vs '
+            f'{elongation(reference):.1f}, cone {elongation(cone):.1f})':
+                elongation(direct) > 1.4 and elongation(cone) < 1.2,
+            f'cached rays (hit point + pdf) resolve like the direct path ({cache_gap:.3f}, error {e_cached:.3f})':
+                cache_gap < .05 and e_cached < .9 * e_cone}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline-ref')
@@ -731,7 +893,7 @@ def main():
                     **coverage_checks(), **phase_checks(), **resolve_checks(), **resolve_edge_checks(),
                     **msaa_resolve_checks(), **confidence_checks(), **classified_miss_checks(),
                     **emitter_checks(), **emitter_neighbour_checks(), **fused_checks(), **footprint_checks(),
-                    **trace_count_checks()}
+                    **trace_count_checks(), **stochastic_checks()}
 
         for name, ok in outcomes.items():
             print(f'{"PASS" if ok else "FAIL"}: {name}', flush=True)

@@ -48,6 +48,9 @@ void main()
 // u_SSRSettings4: x = hit cache valid, y = velocity buffer valid, z = refresh slot (0..3), w = phase (0..3)
 // u_SSRSettings5: x = previous trace phase, y = min projected length of a reused hit (pixels)
 // u_SSRTexelSize.xy = 1 / full resolution size
+//
+// SSR_STOCHASTIC (r_ssrStochastic): the ray is a GGX sample of the lobe, not the mirror direction (see
+// ssr_common.glsl), a new one every frame; no hit cache.
 
 out vec4 out_Color;
 
@@ -233,6 +236,14 @@ void main()
 	if (NV <= 0.0)
 		return;
 	vec3 R = reflect(-V, N);
+#if defined(SSR_STOCHASTIC)
+	// one GGX sample per texel and frame (ssr_common.glsl): interleaved gradient noise over the screen,
+	// shifted by an R2 sequence over the frames
+	vec2 u = fract(vec2(SSRInterleavedGradientNoise(gl_FragCoord.xy + vec2(47.0, 17.0)),
+		SSRInterleavedGradientNoise(gl_FragCoord.xy + vec2(13.0, 71.0))) +
+		u_SSRSettings2.w * vec2(0.7548776662, 0.5698402910));
+	R = SSRSampleGGXReflection(N, V, SSRGGXAlpha(roughness), u);
+#endif
 
 	// start slightly above the surface, stop in front of the near plane
 	float startOffset = max(0.05, 0.002 * z);

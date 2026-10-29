@@ -21,21 +21,31 @@ void main()
 // from the four nearest trace texels, see SSRResolvePixel. The composite does the same work itself
 // when nothing needs this image (no temporal accumulation, ssr_composite.glsl FUSED_RESOLVE).
 //
-// TRACE_RADIANCE (r_ssrResolveCache, half resolution): the radiance of every ray once, at trace
-// resolution, with the roughness of its own receiver. UPSAMPLE_RADIANCE then only filters it.
+// TRACE_RADIANCE (r_ssrResolveCache, half resolution; with SSR_STOCHASTIC also full resolution): the
+// radiance of every ray once, at trace resolution, with the roughness of its own receiver (SSR_STOCHASTIC:
+// and its hit point and pdf, output 1). UPSAMPLE_RADIANCE then only filters it.
 //
 // Output (RGBA16F): rgb = radiance * confidence (premultiplied), a = confidence.
 //
 // u_SSRSettings: x = trace grid scale (1 or 2), z = coarsest color mip, w = coarsest Hi-Z level of
 // the footprint depth test (0 = off)
-// u_SSRSettings2: y = trace phase (0..3)
+// u_SSRSettings2: y = trace phase (0..3), z = frame (0..63, SSR_STOCHASTIC: the reused 2x2 block of full
+// resolution rays)
+//
+// SSR_STOCHASTIC (r_ssrStochastic): the rays are GGX samples, see SSRResolveStochastic. u_SSRHitMap = trace.
 // u_SSRTexelSize.xy = 1 / full resolution size
 
 out vec4 out_Color;
+#if defined(TRACE_RADIANCE) && defined(SSR_STOCHASTIC)
+out vec4 out_Glow; // hit point and log2(pdf) of the ray (u_SSRRayMap)
+#endif
 
 void main()
 {
 	out_Color = vec4(0.0);
+#if defined(TRACE_RADIANCE) && defined(SSR_STOCHASTIC)
+	out_Glow = vec4(0.0); // no ray
+#endif
 
 	ivec2 pix = ivec2(gl_FragCoord.xy);
 #if defined(TRACE_RADIANCE)
@@ -54,8 +64,21 @@ void main()
 		return;
 
 #if defined(TRACE_RADIANCE)
-	out_Color = SSRHitRadiance(hit, SSRViewPosition(uv, z), SSRConeTangent(normalRoughness.b),
-		u_SSRSettings.z, u_SSRSettings.w);
+	vec3 P = SSRViewPosition(uv, z);
+  #if defined(SSR_STOCHASTIC)
+	// the pyramid filters the solid angle of the sample, not the whole lobe
+	vec3 N = SSRViewNormal(normalRoughness.rg);
+	vec3 Q = SSRHitPosition(hit);
+	float pdf = SSRGGXPdf(N, -normalize(P), normalize(Q - P), SSRGGXAlpha(normalRoughness.b));
+	float coneTangent = SSRStochasticConeTangent(pdf, normalRoughness.b);
+	out_Glow = vec4(Q, log2(max(pdf, 1.0e-20)));
+  #else
+	float coneTangent = SSRConeTangent(normalRoughness.b);
+  #endif
+	out_Color = SSRHitRadiance(hit, P, coneTangent, u_SSRSettings.z, u_SSRSettings.w);
+#elif defined(SSR_STOCHASTIC)
+	out_Color = SSRResolveStochastic(pix, uv, z, normalRoughness, u_SSRSettings.x, u_SSRSettings2.y,
+		u_SSRSettings2.z, u_SSRSettings.z, u_SSRSettings.w);
 #else
 	out_Color = SSRResolvePixel(pix, uv, z, normalRoughness, u_SSRSettings.x, u_SSRSettings2.y,
 		u_SSRSettings.z, u_SSRSettings.w);

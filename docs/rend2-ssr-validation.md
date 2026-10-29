@@ -366,3 +366,67 @@ on): main view 2.89-3.04 vs 2.93-3.07; trace 0.43-0.49 vs 0.46-0.55; composite
 2060 (new: neighbour emitter projection, neighbour-cell footprint, both trace
 variants pass exactly the ray texels); water SSR and the SSGI / LTC saber /
 skin programs still compile. RTX game timings were not taken.
+
+## 2026-10-29 stochastic GGX (branch `feat/ssr-stochastic-ggx`, `r_ssrStochastic 1`)
+
+Reference test (`test_ssr_gl.py` stochastic checks; the full sweeps were run with the same scene at 256x256):
+a floor 50 units below the camera, a wall at 600 with three 28 unit lamps (HDR 12). The reference is a numpy
+Monte Carlo average of the GGX lobe (visible normal samples, weight G2 / G1) over the rasterized wall, normalized
+over the rays that reach it as the SSR confidence is. Error = RMS luminance error / RMS reference luminance over
+the floor pixels whose lobe mostly lands on the wall.
+
+Through the real trace -> radiance -> resolve -> temporal chain, static camera, 32 frames:
+
+| roughness | cone, full res | cone, half | stochastic, full | stochastic, half |
+|---:|---:|---:|---:|---:|
+| 0.10 | 0.198 | 0.182 | 0.123 | 0.196 |
+| 0.20 | 0.386 | 0.387 | 0.258 | 0.305 |
+| 0.30 | 0.488 | 0.489 | 0.394 | 0.406 |
+| 0.45 | 0.539 | 0.539 | 0.438 | 0.441 |
+
+Lamp reflection extent above half its peak, vertical x horizontal pixels: reference 14x6 (r 0.2) and 20x7 (0.3);
+cone 18x18 and 38x40 (a round blob at any roughness); stochastic 12x7 and 11x8.
+
+Choices, each measured with that test:
+
+- Footprint of one sample, `1 / (K pdf)`: K = 4 (the reused rays of one frame) blurs as much as the cone
+  (r 0.3: 0.458 vs 0.488), 8 / 16 / 32 / 64 give 0.360 / 0.307 / 0.304 / 0.342. K = 32.
+- Reused rays at half resolution, ideal 16 frame average: 2x2 0.375 / 0.443, 3x3 0.254 / 0.337 (r 0.2 / 0.3);
+  through the temporal pass 0.398 / 0.504 vs 0.368 / 0.486. 3x3. Full resolution: 3x3 is not better than 2x2
+  (0.306 vs 0.299 at r 0.2), 2x2.
+- Temporal hit comparison: two samples of a lobe disagree by its width and the tail; the unchanged rejection
+  left error 0.69 / 0.75 (r 0.2 / 0.3) against 0.35 / 0.50 without it. It remains for near mirrors only.
+- Clamp (r 0.1 / 0.2 / 0.3 static; error 2 / 4 / 8 frames after the lamps jump 120 units at r 0.2):
+  3x3 min-max 0.154 / 0.354 / 0.503, 0.575 / 0.460 / 0.398 (notched, shrunk streaks);
+  every other pixel of 5x5 0.143 / 0.315 / 0.473, 0.659 / 0.527 / 0.422;
+  same, half clamped 0.131 / 0.278 / 0.428, 0.730 / 0.579 / 0.435 (chosen);
+  unclamped 0.127 / 0.232 / 0.356, 1.061 / 0.876 / 0.614 (ghosts);
+  cone 0.203 / 0.400 / 0.510, 0.424 / 0.416 / 0.408.
+  Variance clipping (1.5 / 2.5 sigma) and a 2x / 3x expanded 3x3 box were worse than the wider box.
+
+Cost, synthetic Intel UHD 1600x900 (floor + wall, half the screen receivers; ms, cone -> stochastic):
+
+| | trace | radiance | resolve | temporal | total |
+|---|---:|---:|---:|---:|---:|
+| half res, r 0.1 | 5.92 -> 6.86 | 0.87 -> 1.30 | 3.73 -> 9.06 | 5.52 -> 4.37 | 16.0 -> 21.6 |
+| half res, r 0.3 | 4.47 -> 7.35 | 0.59 -> 1.00 | 3.43 -> 8.30 | 4.85 -> 4.25 | 13.3 -> 20.9 |
+| half res, r 0.5 | 3.81 -> 7.49 | 0.39 -> 0.60 | 3.81 -> 7.02 | 5.18 -> 4.12 | 13.2 -> 19.2 |
+| full res, r 0.1 | 19.0 -> 19.6 | - -> 3.10 | 2.29 -> 3.56 | 3.99 -> 3.27 | 25.3 -> 29.5 |
+| full res, r 0.3 | 10.8 -> 15.6 | - -> 1.86 | 1.53 -> 2.96 | 2.91 -> 2.93 | 15.3 -> 23.4 |
+| full res, r 0.5 | 13.1 -> 20.1 | - -> 1.39 | 1.80 -> 3.07 | 3.97 -> 3.61 | 18.8 -> 28.2 |
+
+The divergent lobe directions cost the trace most on rough surfaces; the resolve is the 3x3 reuse. Storing
+each ray's hit point and pdf in the radiance pass took the half resolution resolve from 14.8 to 9.1 ms and the
+full resolution one from 10.0 (four footprints per pixel) to 3.6 + the radiance pass.
+
+In game, Intel UHD, mp/ffa3 `(671, -769, -70)` yaw 290 / 310, 640x360, `r_picmip 2`, medium preset, temporal
+on, hit cache off, automatic culling, 45% ray texels; second interleaved round, no overlap (ms, off -> on):
+
+| | main view | SSR trace | SSR resolve | SSR temporal |
+|---|---:|---:|---:|---:|
+| half res | 4.19-4.24 -> 5.59-5.66 | 0.52-0.55 -> 0.84 | 0.56 -> 1.44-1.46 | 0.79-0.82 -> 0.89-0.90 |
+| full res | 4.89-5.06 -> 7.14-7.21 | 1.49-1.56 -> 2.70 | 0.29-0.31 -> 1.10-1.15 | 0.82-0.83 -> 0.88-0.89 |
+
+The SSR costs about 1.6x (half) / 1.7x (full); hence latched and off by default. The first round overlapped GPU
+tests of this session and is not used. The in-game screenshots of the two runs are not comparable (the camera
+landed a pixel apart); the picture was judged on the reference test only. RTX game timings were not taken.

@@ -48,6 +48,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 //   classify  r_ssrReceiverCull: depth mask of the pixels that need no ray, so
 //             the trace only runs on the others (early depth test)
 //   trace     ray march (linear or Hi-Z), full or half res -> ssrTrace[current].
+//             The mirror ray, or with r_ssrStochastic (needs the temporal
+//             pass) one GGX sample of the lobe per texel and frame, reused by
+//             the pixels around it in the resolve (ssr_common.glsl)
 //             Hit cache (r_ssrHitCache, Hi-Z only): the hit of the previous
 //             frame (ssrTrace[previous]) is reused without a march while it
 //             is still the reflection of the ray; refresh every 4 frames per
@@ -70,6 +73,9 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 // builds its GPU shaders, see R_CreateScreenSpaceImages
 static qboolean s_ssrResources = qfalse;
 static qboolean s_ssrTemporalResources = qfalse;
+// r_ssrStochastic: GGX sampled rays (SSR_STOCHASTIC programs), needs the
+// temporal accumulation
+static qboolean s_ssrStochastic = qfalse;
 
 // trace grid scale (1 = full, 2 = half resolution rays): a resource size,
 // decided with the resources (r_ssrHalfRes / r_ssrQuality, vid_restart)
@@ -173,6 +179,11 @@ qboolean R_SSROpaqueResourcesEnabled( void )
 	return (qboolean)(s_ssrResources && r_ssr->integer);
 }
 
+qboolean R_SSRStochastic( void )
+{
+	return s_ssrStochastic;
+}
+
 float R_SSRTraceScale( void )
 {
 	return (float)s_gridScale;
@@ -203,6 +214,11 @@ void R_SSRSelectResources( void )
 	if ( r_ssr->integer && !r_specularMapping->integer )
 		ri.Printf(PRINT_WARNING, "r_ssr: r_specularMapping is off, no material has specular reflections\n");
 	s_ssrTemporalResources = (qboolean)(r_ssr->integer && r_ssrTemporal->integer);
+	// one sample of the lobe per pixel and frame is noise without the frames
+	// it is averaged over
+	s_ssrStochastic = (qboolean)(s_ssrTemporalResources && r_ssrStochastic->integer);
+	if ( r_ssr->integer && r_ssrStochastic->integer && !s_ssrStochastic )
+		ri.Printf(PRINT_WARNING, "r_ssrStochastic: needs r_ssrTemporal 1, mirror rays with a cone blur instead\n");
 
 	const int halfRes = r_ssrHalfRes->integer >= 0 ? r_ssrHalfRes->integer : RB_SSRQuality().halfRes;
 	s_gridScale = halfRes ? 2 : 1;
@@ -225,6 +241,7 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 	tr.ssrTraceImage[0] = tr.ssrTraceImage[1] = NULL;
 	tr.ssrResolveImage = NULL;
 	tr.ssrRadianceImage = NULL;
+	tr.ssrRayImage = NULL;
 	for ( int i = 0; i < 2; i++ )
 	{
 		tr.ssrHistoryImage[i] = NULL;
@@ -256,8 +273,12 @@ void R_CreateSSRImages( int width, int height, int hdrFormat )
 	for ( int i = 0; i < 2; i++ )
 		tr.ssrTraceImage[i] = R_ScreenCreateImage(va("*ssrTrace%d", i), traceWidth, traceHeight, GL_RGBA16, qfalse);
 	tr.ssrResolveImage = R_ScreenCreateImage("*ssrResolve", width, height, GL_RGBA16F, qfalse);
-	if (s_gridScale > 1)
+	// the stochastic rays are resolved from the cache at full resolution too:
+	// every pixel reuses several of them
+	if (s_gridScale > 1 || s_ssrStochastic)
 		tr.ssrRadianceImage = R_ScreenCreateImage("*ssrRadiance", traceWidth, traceHeight, GL_RGBA16F, qfalse);
+	if (s_ssrStochastic)
+		tr.ssrRayImage = R_ScreenCreateImage("*ssrRay", traceWidth, traceHeight, GL_RGBA16F, qfalse);
 
 	if ( s_ssrTemporalResources )
 	{
@@ -297,7 +318,9 @@ void R_CreateSSRFBOs( void )
 		R_CheckFBO(tr.ssrTraceFbo[i]);
 	}
 	tr.ssrResolveFbo = R_ScreenCreateLevelFBO("_ssrResolve", tr.ssrResolveImage, 0);
-	if (tr.ssrRadianceImage)
+	if (tr.ssrRayImage)
+		tr.ssrRadianceFbo = R_ScreenCreatePairFBO("_ssrRadiance", tr.ssrRadianceImage, tr.ssrRayImage);
+	else if (tr.ssrRadianceImage)
 		tr.ssrRadianceFbo = R_ScreenCreateLevelFBO("_ssrRadiance", tr.ssrRadianceImage, 0);
 
 	if ( s_ssrTemporalResources )
@@ -598,7 +621,8 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	// than silently reusing moving geometry with camera-only validation. The
 	// validation walks the cached segment; without the Hi-Z levels it can only
 	// step single pixels and costs more than the linear march it would save.
-	const qboolean hitCache = (qboolean)(historyValid && r_ssrHitCache->integer && velocity && hiZ);
+	// GGX sampled rays change their direction every frame: nothing to reuse
+	const qboolean hitCache = (qboolean)(historyValid && r_ssrHitCache->integer && velocity && hiZ && !s_ssrStochastic);
 	// closest depth levels for the depth test of the rough blur footprint
 	const float footprintHiZ = (hiZ && r_ssrFootprintDepth->integer) ? (float)(SCREEN_HIZ_MIPS - 1) : 0.0f;
 
@@ -731,7 +755,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 
 	image_t *traceImage = tr.ssrTraceImage[current];
 
-	const qboolean resolveCache = (qboolean)(s_gridScale > 1 && r_ssrResolveCache->integer);
+	const qboolean resolveCache = (qboolean)(tr.ssrRadianceImage && r_ssrResolveCache->integer);
 
 	// Without the temporal accumulation (and the debug view of the resolved
 	// confidence) only the composite reads the resolve: it resolves itself,
@@ -754,7 +778,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			vec4_t texelSize, settings, settings2;
 			RB_ScreenTexelSize(texelSize, width, height, traceWidth, traceHeight);
 			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), footprintHiZ);
-			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, 0.0f, 0.0f);
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, 0.0f);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRTEXELSIZE, texelSize);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS, settings);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS2, settings2);
@@ -767,12 +791,17 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			RB_SSRBindMaterial();
 			GL_BindToTMU(tr.ssrColorImage, TB_SPECULARMAP);
 			GL_BindToTMU(resolveCache ? tr.ssrRadianceImage : traceImage, TB_SHADOWMAP);
+			// the stochastic resolve weighs every reused ray by its direction
+			// and pdf
+			GL_BindToTMU(traceImage, TB_SSR_HIT);
+			if ( resolveCache && tr.ssrRayImage )
+				GL_BindToTMU(tr.ssrRayImage, TB_ENVBRDFMAP);
 			RB_ScreenSetViewUniforms(sp, info);
 
 			vec4_t texelSize, settings, settings2;
 			RB_ScreenTexelSize(texelSize, width, height, width, height);
 			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), footprintHiZ);
-			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, 0.0f, 0.0f);
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, 0.0f);
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRTEXELSIZE, texelSize);
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS, settings);
 			GLSL_SetUniformVec4(sp, UNIFORM_SSRSETTINGS2, settings2);
