@@ -98,6 +98,7 @@ struct Engine
 	size_t parameters = 0;
 	bool baseline = false, linear = true;
 	GeometryKey identity;
+	PredictionSink *sink = nullptr;
 	Engine(const Request &request, const ReadContext &c) : r(request), o(r.options), read(c)
 	{
 		Check(Bake::DescribeRecipe(r.profile, recipe));
@@ -381,6 +382,10 @@ struct Engine
 	}
 	void Discover()
 	{
+		GeometryKey admission, visibility;
+		admission.U(kVersion);
+		admission.Digest(r.mapKey);
+		visibility.U(kVersion);
 		Cancel();
 		result.coverage.requested = r.count;
 		Id last = 0;
@@ -445,6 +450,19 @@ struct Engine
 						continue;
 					}
 					++result.coverage.used;
+					admission.U(a.id);
+					admission.U(uint32_t(a.type));
+					for (const auto &c : a.channels)
+						admission.U(c.present);
+					visibility.U(a.id);
+					visibility.U(uint32_t(a.type));
+					for (size_t j = 0; j < sources->size(); ++j)
+					{
+						visibility.U((*sources)[j].id);
+						const auto &factor = factors->Records()[k * sources->size() + j];
+						visibility.U(uint32_t(factor.visibility));
+						visibility.U(factor.issues);
+					}
 					result.coverage.measure[t] += a.measure * a.reliability;
 					Need(std::isfinite(result.coverage.measure[t]), Code::InvalidInput,
 						 "Observation measure sum overflow");
@@ -496,6 +514,8 @@ struct Engine
 				for (size_t k = 0; k < 3; ++k)
 					initial[j * 3 + k] = lower[j * 3 + k];
 		result.key = identity.Finish();
+		result.admissionKey = admission.Finish();
+		result.visibilityKey = visibility.Finish();
 	}
 	double Weight(const Observation &a) const
 	{
@@ -694,6 +714,8 @@ struct Engine
 		std::map<std::pair<Id, Type>, GroupTerms> groups;
 		Scan(x, strict, result.linear && !strict,
 			 [&](const Observation &a, V p, const std::vector<double> &) {
+				 if (sink)
+					 Check(sink->Write(a, p.Float(), Weight(a)));
 				 if (values)
 					 values->push_back(p);
 				 double w = Weight(a), rowLoss = 0, squared = 0;
@@ -1327,6 +1349,16 @@ struct Engine
 		result.fitted = true;
 		return result;
 	}
+	Result AssessOnly(PredictionSink *output)
+	{
+		auto x = initial;
+		Discover();
+		sink = output;
+		result.objective = Evaluate(x, true, true);
+		result.strictReevaluated = true;
+		Cancel();
+		return result;
+	}
 };
 } // namespace
 Interval Rgb8(uint8_t b)
@@ -1368,6 +1400,32 @@ Error Fit(const Request &r, const ReadContext &read, Result &out)
 		out = {};
 		out.stop = Stop::NumericalFailure;
 		return Failure(Code::MemoryLimit, "Amplitude fitting allocation failed");
+	}
+}
+Error Assess(const Request &r, const ReadContext &read, Result &out, PredictionSink *sink)
+{
+	out = {};
+	std::unique_ptr<Engine> engine;
+	try
+	{
+		engine.reset(new Engine(r, read));
+		out = engine->AssessOnly(sink);
+		return {};
+	}
+	catch (const Error &e)
+	{
+		if (engine)
+		{
+			out.coverage = engine->result.coverage;
+			out.work = engine->result.work;
+		}
+		out.diagnostics.push_back(e.message);
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		out = {};
+		return Failure(Code::MemoryLimit, "Assessment allocation failed");
 	}
 }
 const char *StopName(Stop s)

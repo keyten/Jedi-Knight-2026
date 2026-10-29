@@ -180,6 +180,7 @@ struct Result
 	bool fitted = false, converged = false, linear = false, strictReevaluated = false;
 	Stop stop = Stop::NotStarted;
 	Disk::Digest key{}, profileKey{};
+	Disk::Digest admissionKey{}, visibilityKey{}; // same comparable rows / discrete optical states, not XYZ
 	std::vector<SourceResult> sources;
 	Vec3 baseline;
 	Coverage coverage;
@@ -197,6 +198,15 @@ struct Result
 // hidden answers, held-out selection, XYZ update or canonical asset promotion.
 // Failed calls return diagnostics/work only; fitted=false, no partial Q publication.
 Error Fit(const Request &, const ReadContext &, Result &);
+class PredictionSink
+{
+  public:
+	virtual ~PredictionSink() = default;
+	virtual Error Write(const Observation &, Vec3 predicted, double normalizedWeight) = 0;
+};
+// Value-only strict evaluation using Candidate::initialQ. No fitting or hidden
+// target selection. Streams comparable predictions; Result::fitted stays false.
+Error Assess(const Request &, const ReadContext &, Result &, PredictionSink * = nullptr);
 const char *StopName(Stop);
 } // namespace Amplitude
 } // namespace Core
