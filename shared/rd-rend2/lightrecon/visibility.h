@@ -181,8 +181,21 @@ struct GeometryBoxResult
 	size_t surfaceCount = 0;
 	uint64_t work = 0;
 	bool coverageComplete = false; // false for unbounded possibly-opaque omissions anywhere
-	uint32_t issues =
-		0; // OpticalUnknown, UnsupportedGeometry, PatchApproximation, IncompleteGeometry
+	uint32_t issues = 0; // OpticalUnknown, UnsupportedGeometry, PatchApproximation, IncompleteGeometry
+};
+struct VisibilityTriangle
+{
+	Triangle geometry;
+	Id primitive = 0, surface = 0;
+	ObstacleKind optical = ObstacleKind::Unsupported;
+	double errorWorld = 0;
+};
+struct LocalGeometry
+{
+	std::vector<VisibilityTriangle> triangles;
+	bool coverageComplete = false;
+	uint32_t issues = 0;
+	uint64_t work = 0;
 };
 
 class StaticVisibility final : public VisibilityProvider
@@ -198,6 +211,9 @@ class StaticVisibility final : public VisibilityProvider
 	// certifies no retained visual geometry in the box, not that it is outside solid.
 	Error OverlapBox(const Bounds &, const ReadContext &, GeometryBoxResult &,
 					 uint64_t maxWork = 1024 * 1024) const;
+	// BVH-local conservative AABB export of full triangles, never clipped/new
+	// geometry. Unknown bounded/unbounded support remains in coverage/issue flags.
+	Error ExtractBox(const Bounds&,const ReadContext&,size_t maxTriangles,uint64_t maxWork,LocalGeometry&) const;
 	// Inherits VisibilityProvider::Batch: no per-ray heap allocation, explicit prefix.
 	// Compatibility adapters only return 0/1 for Geometric outcomes; Unknown,
 	// assumed/approximate results return Unavailable, never fake transmission.

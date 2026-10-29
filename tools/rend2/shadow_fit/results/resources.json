@@ -1,0 +1,32 @@
+[
+  {
+    "peak_process_rss_bytes": 4632576,
+    "seconds": 0.3463840999174863,
+    "stage": "CPU-0"
+  },
+  {
+    "peak_process_rss_bytes": 4628480,
+    "seconds": 0.35879089997615665,
+    "stage": "CPU-1"
+  },
+  {
+    "peak_process_rss_bytes": 7274496,
+    "seconds": 0.9797114999964833,
+    "stage": "point_room"
+  },
+  {
+    "peak_process_rss_bytes": 7262208,
+    "seconds": 0.40175079996697605,
+    "stage": "two_colour"
+  },
+  {
+    "peak_process_rss_bytes": 7483392,
+    "seconds": 0.3015077000018209,
+    "stage": "door_occlusion"
+  },
+  {
+    "peak_process_rss_bytes": 21688320,
+    "seconds": 0.8059123000130057,
+    "stage": "X04-unchanged-replay"
+  }
+]

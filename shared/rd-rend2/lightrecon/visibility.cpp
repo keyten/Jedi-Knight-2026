@@ -682,8 +682,100 @@ bool StaticVisibility::BuiltFrom(const std::shared_ptr<const SurfaceGeometry> &s
 {
 	return source && data_->source.lock() == source;
 }
-Error StaticVisibility::OverlapBox(const Bounds &box, const ReadContext &ctx,
-								   GeometryBoxResult &out, uint64_t maxWork) const
+Error StaticVisibility::ExtractBox(const Bounds &box, const ReadContext &read, size_t maximum,
+								   uint64_t maxWork, LocalGeometry &out) const
+{
+	out = {};
+	if (!box.known || !Finite(box.minWorld) || !Finite(box.maxWorld) || !maximum || maximum > 1048576 ||
+		!maxWork)
+		return Failure(Code::InvalidInput, "Invalid local geometry request");
+	for (unsigned k = 0; k < 3; ++k)
+		if (D3(box.minWorld).a[k] > D3(box.maxWorld).a[k])
+			return Failure(Code::InvalidInput, "Reversed local geometry box");
+	if (read.maxBytes < 4096)
+		return Failure(Code::MemoryLimit, "Local geometry scratch");
+	try
+	{
+		LocalGeometry result;
+		result.coverageComplete = data_->report.spatialCoverageComplete;
+		if (!result.coverageComplete)
+			result.issues |= IncompleteGeometry;
+		auto overlaps = [&](const Box &b) {
+			for (unsigned k = 0; k < 3; ++k)
+				if (b.high.a[k] < D3(box.minWorld).a[k] || b.low.a[k] > D3(box.maxWorld).a[k])
+					return false;
+			return true;
+		};
+		uint32_t stack[64] = {};
+		size_t count = data_->nodes.empty() ? 0 : 1;
+		while (count)
+		{
+			if (Cancelled(read))
+				return Failure(Code::Cancelled, "Local geometry cancelled");
+			if (++result.work > maxWork)
+				return Failure(Code::WorkLimit, "Local geometry BVH budget");
+			const auto &n = data_->nodes[stack[--count]];
+			if (!overlaps(n.bounds))
+				continue;
+			if (!n.count)
+			{
+				if (count + 2 > 64)
+					return Failure(Code::WorkLimit, "Local geometry stack");
+				stack[count++] = n.right;
+				stack[count++] = n.left;
+				continue;
+			}
+			for (uint32_t i = n.first; i < n.first + n.count; ++i)
+			{
+				if (++result.work > maxWork)
+					return Failure(Code::WorkLimit, "Local geometry primitive budget");
+				const auto &p = data_->primitives[i];
+				if (!overlaps(p.bounds))
+					continue;
+				const auto &s = data_->surfaces[p.surface];
+				if (p.boundsOnly)
+				{
+					result.coverageComplete = false;
+					result.issues |= UnsupportedGeometry;
+					continue;
+				}
+				if (p.error > 0)
+				{
+					result.issues |= PatchApproximation;
+					result.coverageComplete = false;
+				}
+				if (result.triangles.size() >= maximum ||
+					(result.triangles.size() + 1) * sizeof(VisibilityTriangle) + 4096 > read.maxBytes)
+					return Failure(Code::MemoryLimit, "Local geometry triangle budget");
+				VisibilityTriangle t;
+				t.primitive = p.id;
+				t.geometry.id = p.id;
+				t.surface = s.id;
+				t.geometry.material = s.material;
+				t.optical = s.obstacle;
+				t.errorWorld = p.error;
+				for (int k = 0; k < 3; ++k)
+					t.geometry.verticesWorld[k] = p.p[k];
+				result.triangles.push_back(t);
+				if (s.obstacle == ObstacleKind::AlphaTested || s.obstacle == ObstacleKind::Translucent ||
+					s.obstacle == ObstacleKind::Unsupported)
+					result.issues |= OpticalUnknown;
+			}
+		}
+		std::sort(result.triangles.begin(), result.triangles.end(),
+				  [](const VisibilityTriangle &a, const VisibilityTriangle &b) {
+					  return a.primitive < b.primitive;
+				  });
+		out = std::move(result);
+		return {};
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Failure(Code::MemoryLimit, "Local geometry allocation");
+	}
+}
+Error StaticVisibility::OverlapBox(const Bounds &box, const ReadContext &ctx, GeometryBoxResult &out,
+								   uint64_t maxWork) const
 {
 	out = GeometryBoxResult();
 	if (!box.known || !Finite(box.minWorld) || !Finite(box.maxWorld) || !maxWork)

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include "amplitude_fit.h"
+#include "fit_evidence.h"
 #include "point_refine.h"
 namespace Rend2LightRecon
 {
@@ -147,6 +148,8 @@ struct Request
 	PointRefine::SceneInput placement; // immutable BSP + visual geometry; region membership optional
 	Sampling searchSampling, strictSampling;
 	Options options;
+	std::shared_ptr<const FitEvidence::Objective> shadow;
+	double shadowWeight = 0; // zero means no shadow work, independent of RGB/priors
 };
 enum class Stop
 {
@@ -161,7 +164,7 @@ enum class Stop
 struct Iteration
 {
 	size_t trial = 0, sweep = 0;
-	double objective = 0, prior = 0;
+	double objective = 0, prior = 0, shadow = 0;
 	bool accepted = false;
 };
 struct FitResult
@@ -177,6 +180,9 @@ struct FitResult
 	uint64_t trials = 0, rejectedGeometry = 0, rejectedCoverage = 0, accountedBytes = 0;
 	size_t parameters = 0;
 	double initialObjective = 0, objective = 0, projectedKkt = 0, strictDifference = 0;
+	double shadowObjective = 0, shadowWeight = 0;
+	FitEvidence::Value shadowDiagnostics;
+	FitEvidence::Value shadowReference;
 	bool preciseAngularClassification =
 		false; // remains false without independently identified angular evidence
 	Disk::Digest key{}, trainingIdentity{}, mapKey{}, geometryKey{};

@@ -1,0 +1,128 @@
+{
+  "commands": [
+    {
+      "command": "cmake --build build/s06-gcc --parallel 2",
+      "log": "build/s09-final-gcc-all.log",
+      "log_sha256": "957b6639a5c098dc762528d279de13a97fe865a2219bc3f3049ec6aba6196dd2",
+      "scope": "CPU library and all standalone targets",
+      "stage": "gcc-build",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -E \"^lightrecon_point_refine$\" --parallel 2",
+      "log": "build/s09-verified-cpu.log",
+      "log_sha256": "40d6fb0789d0d61f2e14bc7023c194008bf9abad069b20e1b681cdd0b4d307a0",
+      "scope": "24 CTest cases",
+      "stage": "cpu",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -R \"^lightrecon_point_refine$\"",
+      "log": "build/s09-point-tests-resumed.log",
+      "log_sha256": "def70ff75e485213bb11f50215902e3f23c0fe24f05989a776aaf33386660be0",
+      "scope": "S07 point fitter, 305.54 seconds; shadow weight disabled regression",
+      "stage": "point",
+      "status": "Passed"
+    },
+    {
+      "command": "cmake --build build/lightrecon-core-renderers --config Release --target lightrecon_shadow_test lightrecon_shadow_inspect lightrecon_shape_test lightrecon_visibility_test rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2",
+      "log": "build/s09-msvc-verified-build.log",
+      "log_sha256": "dbca01098c9b82a57bb91a2cd26783b012be8fbc31d0b110cd202b80e5c6d897",
+      "scope": "SP/MP Release and selected standalone targets",
+      "stage": "msvc-build",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure -R \"^(lightrecon_shadow|lightrecon_shape|lightrecon_visibility)$\" --parallel 2",
+      "log": "build/s09-msvc-tests.log",
+      "log_sha256": "b9a6dcbf0175c9b3d44687c00dc3270546d1d8184a43b3cf9066deb276a7281e",
+      "scope": "3 CTest cases",
+      "stage": "msvc-tests",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/shadow_fit/benchmark.py --tool build/s06-gcc/lightrecon_shadow_test.exe --inspect build/s06-gcc/lightrecon_shadow_inspect.exe --out build/s09-verified",
+      "log": "build/s09-verified.log",
+      "log_sha256": "8097b42dc49fa6b22212894910986aaf37e103213ed85df0af5158ddedf78dd6",
+      "scope": "285 checks twice, deterministic semantic witness, 3 original compiled archives, X04 replay",
+      "stage": "benchmark",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/shadow_fit -p \"test_*.py\" -v",
+      "log": "build/s09-harness-tests.log",
+      "log_sha256": "ee216629480e4c171681c12146297b1fcad459cd213e269b91f1fc7c0f56f191",
+      "scope": "3 Python negative/positive gate tests",
+      "stage": "harness",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/shadow_footprint -p \"test_*.py\" -v",
+      "log": "build/s09-footprint-tests.log",
+      "log_sha256": "917d94b548b648dd7ceed933c78bb2dd81a8be2925d55dd299e555f781259a6c",
+      "scope": "27 tests, pinned compiler boundary test executed, no skip",
+      "stage": "footprints",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/light_localization_research -p \"test_*.py\" -v",
+      "log": "build/s09-localization-tests-final.log",
+      "log_sha256": "1132941201e8eda15008a9d66b9edbcef540955c8bf2e721064727481a43c7df",
+      "scope": "33 tests",
+      "stage": "localization",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/bake_model/validate_cpp.py --exe build/s06-gcc/lightrecon_bake_forward_tool.exe --bsp-dir build/bake-model-comparison-final/authoring/base/maps --output build/s09-forward-verified",
+      "log": "build/s09-forward-verified.log",
+      "log_sha256": "0cd9adfe11257750cc8e54385188da2035dfd6dbc6c4eaef03815d48d158065b",
+      "scope": "20 supported compiled cases; 2 explicit UnsupportedBounceReplay",
+      "stage": "forward",
+      "status": "PassedWithUnsupportedCases"
+    }
+  ],
+  "date": "2026-10-30",
+  "environment": {
+    "gcc": "w64devkit GCC 16.2.0, Release -O3 -DNDEBUG",
+    "msvc": "Visual Studio 2019 x64 Release",
+    "parallel_jobs": 2,
+    "python": "3.12.14 bundled CPython; standard library only"
+  },
+  "limitations": [
+    "Fixed-height/Y synthetic fitting protocol, not unrestricted XYZ identifiability",
+    "Compiled archive matches are conditional diagnostics, not annotated association accuracy",
+    "Shadow-like undisclosed albedo stays ambiguous",
+    "No renderer consumer or runtime source publication"
+  ],
+  "not_executed": [
+    "Game/GPU visual validation",
+    "New q3map2 bake invocation (original pinned compiled fixtures reused)",
+    "Stock JA shadow localization against unknown source ground truth"
+  ],
+  "numerical_witness_sha256": "fcf3fd54f503426d715ef8e3fdaced8861c52f5da3ea916cc205598b6e9e52d2",
+  "previous_change_commit": "9510015d0",
+  "reference_head": "3d155dc4dd468786d851a0c21755e041ed0a9237",
+  "schema": "org.openjk.s09-validation.v1",
+  "shader_comparison": {
+    "comparison": "worktree versus explicit Git reference; existing regression assembler",
+    "gpu_compiled": false,
+    "inputs": {
+      "shared/rd-rend2/glsl/fogpass.glsl": "0695a5370f67b3e71c8276f34d164ef6f293c733e064ef373f28e6cbdeab85da",
+      "shared/rd-rend2/glsl/fplus_cluster.glsl": "a20c39cdd07b1b4d841930f008efa6b2be34857fd7ae86cbdb8d49515c9b1af2",
+      "shared/rd-rend2/glsl/generic.glsl": "16bd867e40ae9898e76fec3293a025d0b5b6be889732d0f10e63b336af82a1e6",
+      "shared/rd-rend2/glsl/leaf_flutter.glsl": "c1638da79166a883a362fac3eed05e6f04ad861a737c37dfeb49caf186069d72",
+      "shared/rd-rend2/glsl/lightall.glsl": "0a2a9169a5ce4732bfc6b61da6565532322a0df29111b175f934e566959695f7",
+      "shared/rd-rend2/glsl/pbr_common.glsl": "0b48230ae3423325ebfbb8e3141344100c075c88cbad82100fea06eb5763c44a",
+      "shared/rd-rend2/glsl/plant_skin.glsl": "255b7919e8cb1714ece2065f09d6509c71354baab21c95788cca45942f38a0a3",
+      "shared/rd-rend2/glsl/volumetric_common.glsl": "bf2c581d029ffa8a19a9f39afa0b6ea79e0c0c132408d422e74957c79668c0c8",
+      "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+      "shared/rd-rend2/tr_glsl.cpp": "452046b53fba60cb2575f69242cc4a5354416dd5cdaa7f3f6da1106b8bde605f",
+      "shared/rd-rend2/tr_local.h": "280d048b3a1b1d217ee9d7549e3fd0caac69d63a864c1e0b2190eb7633215165"
+    },
+    "passed": true,
+    "programs": 27,
+    "reference": "3d155dc4dd468786d851a0c21755e041ed0a9237",
+    "stages": 51,
+    "version": 1
+  }
+}

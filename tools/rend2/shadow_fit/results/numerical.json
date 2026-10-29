@@ -1,0 +1,392 @@
+{
+  "boundary": {
+    "bsp_sha256": "0ff603f3537a83b5ca6bc80eae344c6e697b37c356151667a0904c438c8157ba",
+    "former_excluded_texels": 35,
+    "formerly_unchecked_channels": 105,
+    "full_floor_samples": 1225,
+    "old_physical_centre_max_rgb8_error": 28,
+    "scope": "opaque/sky clipped trace-tree subset, supplied original sample origin; NOT instrumented compiler or general replay",
+    "scoped_replay_max_rgb8_error": 0
+  },
+  "compiled": {
+    "door_occlusion": {
+      "archive_sha256": "abc5ebdbc9a09383204155cf3f34b06eae2fb510a5f42d0f39797c5ababec831",
+      "attempts": 173,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_faithful": false,
+      "edges": 30,
+      "eligible": 25,
+      "excluded": 13845,
+      "gradients": 144,
+      "loss": 3.52,
+      "matched": 3,
+      "omitted_diagnostics": 0,
+      "protocol": "training-only diagnostic; first point prior, no source discovery",
+      "rays": 573,
+      "requested": 16384,
+      "samples": 1634,
+      "schema": "org.openjk.shadow-archive-diagnostic.v1",
+      "supplied_point_xyz": [
+        -96.0,
+        32.0,
+        180.0
+      ],
+      "training_only": true,
+      "unassigned": 22,
+      "unknown": 0,
+      "withheld": 905,
+      "work": 41107
+    },
+    "point_room": {
+      "archive_sha256": "6bb0c10296777e35a8cd17fd728b6b987be005660b30a49803dd5c6f4721aa00",
+      "attempts": 0,
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_faithful": false,
+      "edges": 7,
+      "eligible": 4,
+      "excluded": 14106,
+      "gradients": 60,
+      "loss": 4,
+      "matched": 0,
+      "omitted_diagnostics": 0,
+      "protocol": "training-only diagnostic; first point prior, no source discovery",
+      "rays": 84,
+      "requested": 16384,
+      "samples": 1545,
+      "schema": "org.openjk.shadow-archive-diagnostic.v1",
+      "supplied_point_xyz": [
+        -96.0,
+        32.0,
+        180.0
+      ],
+      "training_only": true,
+      "unassigned": 4,
+      "unknown": 0,
+      "withheld": 733,
+      "work": 2806
+    },
+    "two_colour": {
+      "archive_sha256": "f62fcb6618b6f74ac5075b15dce25db69b35a382fc0fea5fd1f2506fe7a6d64c",
+      "attempts": 4,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_faithful": false,
+      "edges": 6,
+      "eligible": 2,
+      "excluded": 14106,
+      "gradients": 32,
+      "loss": 4,
+      "matched": 0,
+      "omitted_diagnostics": 0,
+      "protocol": "training-only diagnostic; first point prior, no source discovery",
+      "rays": 42,
+      "requested": 16384,
+      "samples": 1545,
+      "schema": "org.openjk.shadow-archive-diagnostic.v1",
+      "supplied_point_xyz": [
+        -96.0,
+        32.0,
+        180.0
+      ],
+      "training_only": true,
+      "unassigned": 2,
+      "unknown": 0,
+      "withheld": 733,
+      "work": 1265
+    }
+  },
+  "deterministic": true,
+  "executable_sha256": "3422f7633d1e00c3fd614dc94903214629311e4c207309e236221aadf69c97ab",
+  "inspect_sha256": "16219c8d54f9b438b871e912f8fbed6d87f363ceadde0d50bdc387c2b1b5b9fe",
+  "owned": {
+    "ablations": [
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0701161917633,
+        "mode": 0,
+        "position_error_world": 20,
+        "rays": 66,
+        "rgb_amplitude": 12610.7138672,
+        "seed_x": -52,
+        "shadow_loss": 0,
+        "source_x": -52,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0701161917633,
+        "mode": 1,
+        "position_error_world": 20,
+        "rays": 700,
+        "rgb_amplitude": 12610.7138672,
+        "seed_x": -52,
+        "shadow_loss": 0.01,
+        "source_x": -52,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0701161917633,
+        "mode": 2,
+        "position_error_world": 20,
+        "rays": 616,
+        "rgb_amplitude": 12610.7138672,
+        "seed_x": -52,
+        "shadow_loss": 0.01,
+        "source_x": -52,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 1.08310458922e-16,
+        "mode": 3,
+        "position_error_world": 0,
+        "rays": 890,
+        "rgb_amplitude": 10000,
+        "seed_x": -52,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 1.08310458922e-16,
+        "mode": 4,
+        "position_error_world": 0,
+        "rays": 890,
+        "rgb_amplitude": 10000,
+        "seed_x": -52,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0381946441705,
+        "mode": 0,
+        "position_error_world": 12,
+        "rays": 66,
+        "rgb_amplitude": 11485.9580078,
+        "seed_x": -44,
+        "shadow_loss": 0,
+        "source_x": -44,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0381946441705,
+        "mode": 1,
+        "position_error_world": 12,
+        "rays": 700,
+        "rgb_amplitude": 11485.9580078,
+        "seed_x": -44,
+        "shadow_loss": 0.01,
+        "source_x": -44,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 0.0381946441705,
+        "mode": 2,
+        "position_error_world": 12,
+        "rays": 616,
+        "rgb_amplitude": 11485.9580078,
+        "seed_x": -44,
+        "shadow_loss": 0.01,
+        "source_x": -44,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 6.49862753679e-16,
+        "mode": 3,
+        "position_error_world": 0,
+        "rays": 882,
+        "rgb_amplitude": 10000.0009766,
+        "seed_x": -44,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 6.49862753679e-16,
+        "mode": 4,
+        "position_error_world": 0,
+        "rays": 882,
+        "rgb_amplitude": 10000.0009766,
+        "seed_x": -44,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 3.37992634431e-05,
+        "mode": 0,
+        "position_error_world": 12,
+        "rays": 66,
+        "rgb_amplitude": 8738.0234375,
+        "seed_x": -20,
+        "shadow_loss": 0,
+        "source_x": -20,
+        "trials": 21
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 5.41552294757e-16,
+        "mode": 1,
+        "position_error_world": 0,
+        "rays": 812,
+        "rgb_amplitude": 10000.0009766,
+        "seed_x": -20,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 26
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 5.41552294757e-16,
+        "mode": 2,
+        "position_error_world": 0,
+        "rays": 732,
+        "rgb_amplitude": 10000.0009766,
+        "seed_x": -20,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 26
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 1.08310458922e-16,
+        "mode": 3,
+        "position_error_world": 0,
+        "rays": 870,
+        "rgb_amplitude": 10000,
+        "seed_x": -20,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      },
+      {
+        "black_mse": 0.0908573982187,
+        "heldout_mse": 1.08310458922e-16,
+        "mode": 4,
+        "position_error_world": 0,
+        "rays": 870,
+        "rgb_amplitude": 10000,
+        "seed_x": -20,
+        "shadow_loss": 0,
+        "source_x": -32,
+        "trials": 31
+      }
+    ],
+    "checks": 285,
+    "edge_candidate_confusion": [
+      {
+        "candidate_admitted": 1,
+        "name": "point_shadow",
+        "shadow_truth": 1,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 1,
+        "name": "undisclosed_albedo_same_RGB",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "known_material_boundary",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "chart_seam",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "unknown_transfer",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "saturation_boundary",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "normal_crease",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 0,
+        "name": "uninformative_dark",
+        "shadow_truth": 0,
+        "verified_cast_shadow": false
+      },
+      {
+        "candidate_admitted": 1,
+        "name": "two_coloured_shadows",
+        "shadow_truth": 1,
+        "verified_cast_shadow": false
+      }
+    ],
+    "failures": 0,
+    "finite_source": {
+      "centre_integrated_visibility": 0.5,
+      "predicted_geometric_width": 8,
+      "quadrature_exact": false,
+      "reference_geometric_width": 8
+    },
+    "protocol": "fixed-height one-dimensional source localization",
+    "reported_association_confusion": {
+      "fn": 0,
+      "fp": 0,
+      "scope": "reported source-caster pairs in the two-colour owned fixture, not all possible pairs",
+      "tn": 2,
+      "tp": 2
+    },
+    "schema": "org.openjk.shadow-fit-s09.v1",
+    "source_motion_derivatives": [
+      {
+        "absolute_error": 1.14440917969e-05,
+        "derivative": 1.99998855591,
+        "h": 0.1,
+        "reference": 2
+      },
+      {
+        "absolute_error": 4.57763671875e-05,
+        "derivative": 2.00004577637,
+        "h": 0.02,
+        "reference": 2
+      },
+      {
+        "absolute_error": 4.57763671875e-05,
+        "derivative": 2.00004577637,
+        "h": 0.005,
+        "reference": 2
+      }
+    ]
+  },
+  "schema": "org.openjk.s09-benchmark.v1",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/emitter_shape.cpp": "d7505566bc8f3ad6410a1c9e3dbb14dd383af35db862076d157a9a356944fe3f",
+    "shared/rd-rend2/lightrecon/emitter_shape.h": "49b8932e051f7c3cb8eeb7c838934e18345d937d85910efacb45a7b7e4f3905e",
+    "shared/rd-rend2/lightrecon/fit_evidence.h": "87612a806cbcdda89b66bea7d232631de0c950444f41aee81be43b6125d6b1a1",
+    "shared/rd-rend2/lightrecon/point_refine.cpp": "5590367e0768d8e93b1d4701e9b22b9466557e5226c592e86b04de3337558d47",
+    "shared/rd-rend2/lightrecon/point_refine.h": "2c2aae480631a3f6ea4c3f91dc1f39a4f159dd5e32833b75e4fde881c4775ce5",
+    "shared/rd-rend2/lightrecon/shadow_evidence.cpp": "4fea5ce9df6f0b20959158350ce85f88fefe4d4bf8118b456a73f6d2d793377c",
+    "shared/rd-rend2/lightrecon/shadow_evidence.h": "b4543ee43853a22205502fe0b4f8152ae4f8ee3bc39aef40c31436f28f124881",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "f3adee5f49d4f3669b2e0c513d25491318c1f61b0e329c241b43bf950f40d1a3",
+    "shared/rd-rend2/lightrecon/visibility.h": "4760844048c744fae8d3b9059da6bc4a4f2fe8344844350f75dce570d4a63c60",
+    "tools/lightrecon_test/lightrecon_shadow_inspect.cpp": "4b2edfdad0ded3b4fa12541c46e5c7b033620eb0c193e63ddcc2a3b489131d32",
+    "tools/lightrecon_test/lightrecon_shadow_test.cpp": "007a818639f7deff353b26b9b20d6a7b13df02c49156c4e85b82354b9cbc9ba3",
+    "tools/rend2/shadow_fit/benchmark.py": "e37c94eafc7b353c9d18b4386e677d0b70502d48d8996115e6d21b593dc92c6c"
+  }
+}

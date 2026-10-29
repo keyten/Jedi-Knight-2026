@@ -348,8 +348,9 @@ struct State
 {
 	std::vector<Vec3> positions;
 	Amplitude::Result amplitude;
-	double prior = 0, directional = 0;
-	double Total() const { return amplitude.objective.Total() + prior + directional; }
+	double prior = 0, directional = 0, shadow = 0;
+	FitEvidence::Value shadowValue;
+	double Total() const { return amplitude.objective.Total() + prior + directional + shadow; }
 };
 struct SampleValues final : public Amplitude::PredictionSink
 {
@@ -446,6 +447,12 @@ struct Engine
 	Engine(const Request &request, const ReadContext &context)
 		: r(request), o(r.options), read(context), lighting(r.lighting), points(r.points)
 	{
+		Need(std::isfinite(r.shadowWeight) && r.shadowWeight >= 0, Code::InvalidInput,
+			 "Invalid shadow weight");
+		if (r.shadowWeight > 0)
+			Need(r.shadow && r.shadow->MapKey() == lighting.mapKey &&
+					 r.shadow->GeometryKey() == lighting.geometry.geometryKey,
+				 Code::MissingGeometry, "Shadow objective map/geometry generation mismatch");
 		Need(r.placement && r.placement->MapKey() == lighting.mapKey &&
 				 r.placement->GeometryKey() == lighting.geometry.geometryKey &&
 				 !Zero(r.placement->PolicyKey()),
@@ -480,6 +487,11 @@ struct Engine
 			Need(sourceIndex.emplace(lighting.candidates[i].source.id, i).second, Code::InvalidInput,
 				 "Duplicate candidate ID");
 		key.U(kVersion);
+		if (r.shadowWeight > 0)
+		{
+			key.Digest(r.shadow->Key());
+			key.F(r.shadowWeight);
+		}
 		key.Digest(lighting.mapKey);
 		key.Digest(lighting.observationKey);
 		key.Digest(lighting.profile.contentKey);
@@ -769,6 +781,42 @@ struct Engine
 			++out.work.coverageRejected;
 			return false;
 		}
+		if (r.shadowWeight > 0)
+		{
+			std::vector<FitEvidence::Source> sources;
+			for (const auto &c : q.candidates)
+			{
+				FitEvidence::Source source;
+				source.geometry.source.id = c.source.id;
+				source.geometry.kind = c.source.kind == Bake::SourceKind::Point
+										   ? EmitterKind::Point
+										   : c.source.kind == Bake::SourceKind::Spot
+												 ? EmitterKind::Spot
+												 : c.source.kind == Bake::SourceKind::Polygon
+													   ? EmitterKind::Rectangle
+													   : c.source.kind == Bake::SourceKind::Tube
+															 ? EmitterKind::Tube
+															 : EmitterKind::Extension;
+				source.geometry.position = c.source.position;
+				source.geometry.frame = c.source.orientation;
+				source.geometry.geometry = c.source.geometry;
+				source.geometry.angular = c.source.angular;
+				source.legacySpotDistance = c.source.spotTargetDistanceWorld;
+				source.legacySpotRadius = c.source.spotRadiusWorld;
+				for (const auto &value : state.amplitude.sources)
+					if (value.source == c.source.id)
+						source.rgb = value.compilerQ;
+				sources.push_back(source);
+			}
+			Checked(r.shadow->Evaluate(sources, read, state.shadowValue));
+			Need(Add(out.work.rays, state.shadowValue.rays, o.maxRays) &&
+					 Add(out.work.traversal, state.shadowValue.work, o.maxWork),
+				 Code::WorkLimit, "Shadow evidence cumulative budget");
+			Need(state.shadowValue.available && std::isfinite(state.shadowValue.loss) &&
+					 state.shadowValue.loss >= 0,
+				 Code::Unavailable, "Shadow objective unavailable");
+			state.shadow = r.shadowWeight * state.shadowValue.loss;
+		}
 		Need(std::isfinite(state.Total()), Code::AlgorithmError, "Nonfinite position objective");
 		++out.work.cacheInvalidations;
 		if (record)
@@ -779,6 +827,7 @@ struct Engine
 			it.data = state.amplitude.objective.Total();
 			it.prior = state.prior;
 			it.directional = state.directional;
+			it.shadow = state.shadow;
 			it.total = state.Total();
 			out.trace.push_back(it);
 		}
@@ -1245,6 +1294,9 @@ struct Engine
 		out.objective = best.Total();
 		out.positionPrior = best.prior;
 		out.directionalObjective = best.directional;
+		out.shadowObjective = best.shadow;
+		out.shadowWeight = r.shadowWeight;
+		out.shadowDiagnostics = best.shadowValue;
 		auto final = Setup(best.positions, &best.amplitude);
 		final.cache->Clear();
 		Amplitude::Result assessment;
@@ -1260,7 +1312,40 @@ struct Engine
 		out.amplitude.objective = assessment.objective;
 		out.amplitude.groups = assessment.groups;
 		out.amplitude.maximumIntervalError = assessment.maximumIntervalError;
-		out.objective = assessment.objective.Total() + best.prior + best.directional;
+		out.objective = assessment.objective.Total() + best.prior + best.directional + best.shadow;
+		if (r.shadowWeight > 0)
+		{
+			std::vector<FitEvidence::Source> sources;
+			for (const auto &c : final.candidates)
+			{
+				FitEvidence::Source s;
+				s.geometry.source.id = c.source.id;
+				s.geometry.kind = c.source.kind == Bake::SourceKind::Point
+									  ? EmitterKind::Point
+									  : c.source.kind == Bake::SourceKind::Spot
+											? EmitterKind::Spot
+											: c.source.kind == Bake::SourceKind::Polygon
+												  ? EmitterKind::Rectangle
+												  : c.source.kind == Bake::SourceKind::Tube
+														? EmitterKind::Tube
+														: EmitterKind::Extension;
+				s.geometry.position = c.source.position;
+				s.geometry.frame = c.source.orientation;
+				s.geometry.geometry = c.source.geometry;
+				s.geometry.angular = c.source.angular;
+				s.legacySpotDistance = c.source.spotTargetDistanceWorld;
+				s.legacySpotRadius = c.source.spotRadiusWorld;
+				for (const auto &q : best.amplitude.sources)
+					if (q.source == c.source.id)
+						s.rgb = q.compilerQ;
+				sources.push_back(s);
+			}
+			Checked(r.shadow->EvaluateReference(sources, read, out.shadowReference));
+			Need(Add(out.work.rays, out.shadowReference.rays, o.maxRays) &&
+					 Add(out.work.traversal, out.shadowReference.work, o.maxWork),
+				 Code::WorkLimit, "Frozen reference shadow budget");
+			Need(out.shadowReference.available, Code::Unavailable, "Frozen reference shadow unavailable");
+		}
 		out.strictReevaluated = true;
 		out.admissionKey = admission;
 		key.Digest(out.amplitude.key);

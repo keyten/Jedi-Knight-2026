@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include "amplitude_fit.h"
+#include "fit_evidence.h"
 #include "regions.h"
 namespace Rend2LightRecon
 {
@@ -112,6 +113,8 @@ struct Request
 	std::shared_ptr<const PlacementProvider> placement;
 	std::vector<DirectionEvidence> directions; // isolated/profile-validated point cones only
 	Options options;
+	std::shared_ptr<const FitEvidence::Objective> shadow;
+	double shadowWeight = 0;
 };
 enum class Stop
 {
@@ -136,7 +139,7 @@ struct Iteration
 	size_t evaluation = 0, sweep = 0;
 	Id source = 0;
 	Vec3 position;
-	double stepWorld = 0, data = 0, prior = 0, directional = 0, total = 0;
+	double stepWorld = 0, data = 0, prior = 0, directional = 0, shadow = 0, total = 0;
 	bool accepted = false, visibilityChanged = false, expansion = false;
 };
 struct AxisRange
@@ -171,6 +174,9 @@ struct Result
 	std::vector<PointResult> points;
 	Amplitude::Result amplitude;
 	double initialObjective = 0, objective = 0, positionPrior = 0, directionalObjective = 0;
+	double shadowObjective = 0, shadowWeight = 0;
+	FitEvidence::Value shadowDiagnostics;
+	FitEvidence::Value shadowReference;
 	Work work;
 	Information information;
 	std::vector<Iteration> trace;

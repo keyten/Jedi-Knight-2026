@@ -836,9 +836,10 @@ struct State
 	std::vector<double> x;
 	std::vector<Emitter> emitters;
 	std::vector<Vec3> q;
-	double data = 0, prior = 0, kkt = 0;
+	double data = 0, prior = 0, kkt = 0, shadow = 0;
+	FitEvidence::Value shadowValue;
 	bool linear = false, qConverged = false;
-	double Total() const { return data + prior; }
+	double Total() const { return data + prior + shadow; }
 };
 struct Engine
 {
@@ -859,6 +860,12 @@ struct Engine
 	{
 		const auto &o = r.options;
 		Cancel(read);
+		Need(std::isfinite(r.shadowWeight) && r.shadowWeight >= 0, Code::InvalidInput,
+			 "Invalid shadow weight");
+		if (r.shadowWeight > 0)
+			Need(r.shadow && r.shadow->MapKey() == r.mapKey &&
+					 r.shadow->GeometryKey() == r.geometry.geometryKey,
+				 Code::MissingGeometry, "Shadow evidence has a stale map/geometry generation");
 		Need(r.training && r.count && r.count <= o.maxRows && r.count <= 1000000 && o.batchRows &&
 				 o.batchRows <= 512 && !Zero(r.mapKey) && !Zero(r.observationsKey) && candidates.size() > 0 &&
 				 candidates.size() <= 8 && o.maxTrials && o.maxTrials <= 20000 && o.maxSweeps &&
@@ -1411,11 +1418,33 @@ struct Engine
 			throw;
 		}
 		s.prior = Prior(x);
+		if (r.shadowWeight > 0)
+		{
+			std::vector<FitEvidence::Source> sources;
+			for (const auto &e : s.emitters)
+			{
+				FitEvidence::Source source;
+				source.geometry = e.geometry;
+				source.rgb = e.rgbAmplitude;
+				source.legacySpotDistance = e.spotTargetDistanceWorld;
+				source.legacySpotRadius = e.spotRadiusWorld;
+				source.emittingSurface = e.emittingSurface;
+				sources.push_back(source);
+			}
+			Check(r.shadow->Evaluate(sources, read, s.shadowValue));
+			out.work.rays += s.shadowValue.rays;
+			out.work.traversal += s.shadowValue.work;
+			Limit();
+			Need(s.shadowValue.available && std::isfinite(s.shadowValue.loss) && s.shadowValue.loss >= 0,
+				 Code::Unavailable, "Shadow term unavailable");
+			s.shadow = r.shadowWeight * s.shadowValue.loss;
+		}
 		Iteration t;
 		t.trial = out.trials;
 		t.sweep = sweep;
 		t.objective = s.data;
 		t.prior = s.prior;
+		t.shadow = s.shadow;
 		out.trace.push_back(t);
 		return true;
 	}
@@ -1716,7 +1745,29 @@ struct Engine
 		out.geometryKey = r.geometry.geometryKey;
 		out.model = r.model;
 		out.emitters = current.emitters;
-		out.objective = strict + current.prior;
+		out.objective = strict + current.prior + current.shadow;
+		out.shadowObjective = current.shadow;
+		out.shadowWeight = r.shadowWeight;
+		out.shadowDiagnostics = current.shadowValue;
+		if (r.shadowWeight > 0)
+		{
+			std::vector<FitEvidence::Source> sources;
+			for (const auto &e : current.emitters)
+			{
+				FitEvidence::Source s;
+				s.geometry = e.geometry;
+				s.rgb = e.rgbAmplitude;
+				s.legacySpotDistance = e.spotTargetDistanceWorld;
+				s.legacySpotRadius = e.spotRadiusWorld;
+				sources.push_back(s);
+			}
+			Check(r.shadow->EvaluateReference(sources, read, out.shadowReference));
+			out.work.rays += out.shadowReference.rays;
+			out.work.traversal += out.shadowReference.work;
+			Limit();
+			Need(out.shadowReference.available, Code::Unavailable,
+				 "Frozen reference shadow assessment unavailable");
+		}
 		out.projectedKkt = current.kkt;
 		out.linearAmplitudes = current.linear;
 		out.projectedKktAvailable = current.linear;
@@ -1744,6 +1795,11 @@ struct Engine
 		out.absoluteScaleKnown = r.model.output == Output::PhysicalLux;
 		GeometryKey key;
 		key.Digest(identity);
+		if (r.shadowWeight > 0)
+		{
+			key.Digest(r.shadow->Key());
+			key.F(r.shadowWeight);
+		}
 		key.Digest(placement->PolicyKey());
 		HashModel(key, r.model);
 		HashSampling(key, r.searchSampling);
