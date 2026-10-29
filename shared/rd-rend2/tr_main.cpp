@@ -2032,6 +2032,16 @@ void R_AddDrawSurf(
 			tr.viewParms.sunShadowUnboundedDamage = qtrue;
 	}
 
+	// r_shadowStaticCache: the persistent part of a point/spot slot is the same
+	// conservative static world the sun cache keeps
+	if (tr.viewParms.flags & (VPF_POINT_STATIC_SHADOW | VPF_POINT_DYNAMIC_SHADOW))
+	{
+		const qboolean staticCaster = R_IsStaticSunShadowCaster(
+			surface, entityNum, drawShader, foliage, waterKey);
+		if ((tr.viewParms.flags & VPF_POINT_STATIC_SHADOW) ? !staticCaster : staticCaster)
+			return;
+	}
+
 	uint8_t cubeFaceMask = 0x3F;
 	if (tr.viewParms.flags & VPF_CUBESHADOW)
 	{
@@ -2299,6 +2309,11 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	{
 		if (!(viewParms->flags & VPF_SUN_TILE_LOAD_SHADOW))
 			R_AddWorldSurfaces(viewParms, refdef);
+		return;
+	}
+	if (viewParms->flags & VPF_POINT_STATIC_SHADOW)
+	{
+		R_AddWorldSurfaces(viewParms, refdef);
 		return;
 	}
 	if (viewParms->flags & VPF_LTC_DYNAMIC_SHADOW)
@@ -4021,6 +4036,14 @@ struct pointShadowCacheEntry_t
 };
 
 static pointShadowCacheEntry_t s_pointShadowCache[MAX_DLIGHT_SHADOWS];
+// r_shadowStaticCache: the static world depth kept per slot (light state only)
+static pointShadowCacheEntry_t s_pointShadowStatic[POINT_SHADOW_STATIC_MAX_SLOTS];
+static int s_shadowStaticBuilds, s_shadowStaticReuses;
+static uint64_t s_pointShadowLastKey[POINT_SHADOW_STATIC_MAX_SLOTS];	// light key of the slot's last plan
+// r_shadowStaticCache 2: slots rendered both ways this scene
+static int s_shadowStaticVerifySlots[POINT_SHADOW_STATIC_MAX_SLOTS];
+static int s_shadowStaticVerifyLayers[POINT_SHADOW_STATIC_MAX_SLOTS];
+static int s_numShadowStaticVerify;
 static uint64_t s_pointShadowCacheGeneration = 1;
 static int s_shadowCacheScene = -1;
 static uint64_t s_shadowCacheWorldKey;
@@ -4270,47 +4293,179 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 	return hash;
 }
 
-static qboolean R_ShadowCacheHit(int slot, const trRefdef_t *refdef, const dlight_t *light)
+enum pointShadowPlan_t
+{
+	POINT_SHADOW_HIT,			// the slot still holds this light's depth
+	POINT_SHADOW_FULL,			// one pass, every caster
+	POINT_SHADOW_STATIC_BUILD,	// static world pass, save it, then the other casters
+	POINT_SHADOW_STATIC_REUSE	// restore the saved static world, then the other casters
+};
+
+// r_shadowStaticCache: the static store exists (created here on first use) and
+// covers the slot. Copies need ARB_copy_image (core in GL 4.3).
+static qboolean R_PointShadowStaticAvailable(int slot)
+{
+	if (!r_shadowStaticCache->integer || !qglCopyImageSubData || !tr.pointShadowArrayImage ||
+		slot < 0 || slot >= POINT_SHADOW_STATIC_MAX_SLOTS)
+		return qfalse;
+	if (!tr.pointShadowStaticArrayImage)
+	{
+		// sized by the shadow budget, not by every possible slot: 6 layers of
+		// DSHADOW_MAP_SIZE^2 16 bit depth (3 MiB at 512) per slot
+		const int budget = R_ForwardPlusActive() ? r_forwardPlusMaxShadowLights->integer : 4;
+		tr.pointShadowStaticSlots = Com_Clampi(1, POINT_SHADOW_STATIC_MAX_SLOTS, budget);
+		tr.pointShadowStaticArrayImage = R_Create2DImageArray("*pointshadowStaticImage", NULL,
+			DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE, tr.pointShadowStaticSlots * 6, IMGTYPE_COLORALPHA,
+			IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE, GL_DEPTH_COMPONENT16);
+		Com_Memset(s_pointShadowStatic, 0, sizeof(s_pointShadowStatic));
+	}
+	return (qboolean)(tr.pointShadowStaticArrayImage && slot < tr.pointShadowStaticSlots);
+}
+
+static pointShadowPlan_t R_PointShadowPlan(int slot, const trRefdef_t *refdef, const dlight_t *light)
 {
 	if (slot < 0 || slot >= MAX_DLIGHT_SHADOWS)
-		return qfalse;
+		return POINT_SHADOW_FULL;
+	// r_shadowVerify compares the slot's own passes, keep them whole
 	const qboolean forceRedraw = (qboolean)(r_shadowVerify->integer != 0);
-	if (!r_shadowCache->integer)
+	const qboolean useStatic = (qboolean)(!forceRedraw && R_PointShadowStaticAvailable(slot));
+	if (!r_shadowCache->integer && !useStatic)
 	{
 		s_pointShadowCache[slot].valid = qfalse;
-		return qfalse;
+		return POINT_SHADOW_FULL;
 	}
 	R_ShadowCacheBeginScene(refdef);
-	qboolean cacheable;
-	uint64_t key = R_ShadowDynamicCasterKey(refdef, light, &cacheable);
-	// Only projection/depth-affecting light state belongs in the key.  Color,
+	// Only projection/depth-affecting light state belongs in the keys.  Color,
 	// cookie, physical intensity and receiver-only bias may change while the
 	// exact same depth map remains valid.
-	key = R_ShadowHashBytes(key, light->origin, sizeof(light->origin));
-	key = R_ShadowHashValue(key, light->radius);
-	key = R_ShadowHashValue(key, light->spot);
+	uint64_t lightKey = s_shadowCacheWorldKey;
+	lightKey = R_ShadowHashBytes(lightKey, light->origin, sizeof(light->origin));
+	lightKey = R_ShadowHashValue(lightKey, light->radius);
+	lightKey = R_ShadowHashValue(lightKey, light->spot);
 	if (light->spot)
 	{
-		key = R_ShadowHashBytes(key, light->spotDir, sizeof(light->spotDir));
-		key = R_ShadowHashValue(key, light->spotCosOuter);
+		lightKey = R_ShadowHashBytes(lightKey, light->spotDir, sizeof(light->spotDir));
+		lightKey = R_ShadowHashValue(lightKey, light->spotCosOuter);
 	}
+
 	pointShadowCacheEntry_t& entry = s_pointShadowCache[slot];
-	if (!cacheable)
+	if (r_shadowCache->integer)
 	{
+		qboolean cacheable;
+		const uint64_t key = R_ShadowHashValue(R_ShadowDynamicCasterKey(refdef, light, &cacheable), lightKey);
+		if (!cacheable)
+		{
+			entry.valid = qfalse;
+			++s_shadowCacheUncacheable;
+		}
+		else if (!forceRedraw && entry.valid && entry.generation == s_pointShadowCacheGeneration &&
+			entry.key == key)
+		{
+			++s_shadowCacheHits;
+			return POINT_SHADOW_HIT;
+		}
+		else
+		{
+			entry.key = key;
+			entry.generation = s_pointShadowCacheGeneration;
+			entry.valid = qtrue;
+			++s_shadowCacheMisses;
+		}
+	}
+	else
 		entry.valid = qfalse;
-		++s_shadowCacheUncacheable;
-		return qfalse;
-	}
-	if (!forceRedraw && entry.valid && entry.generation == s_pointShadowCacheGeneration && entry.key == key)
+
+	if (!useStatic)
+		return POINT_SHADOW_FULL;
+	// The static pass keeps R_IsStaticSunShadowCaster surfaces only (BSP world
+	// whose depth cannot change without a reload or a remap, both in the world
+	// key); time-dependent world surfaces, movers, models and polys always go to
+	// the dynamic pass, so the static copy depends on the light alone.
+	pointShadowCacheEntry_t& stat = s_pointShadowStatic[slot];
+	if (stat.valid && stat.generation == s_pointShadowCacheGeneration && stat.key == lightKey)
 	{
-		++s_shadowCacheHits;
-		return qtrue;
+		++s_shadowStaticReuses;
+		return POINT_SHADOW_STATIC_REUSE;
 	}
-	entry.key = key;
-	entry.generation = s_pointShadowCacheGeneration;
-	entry.valid = qtrue;
-	++s_shadowCacheMisses;
-	return qfalse;
+	// A moving light (saber, blaster bolt) would rebuild every frame: a static
+	// pass, a copy and the dynamic pass cost more than one ordinary pass. Build
+	// only once the light has kept its key for a frame.
+	const qboolean stationary = (qboolean)(s_pointShadowLastKey[slot] == lightKey);
+	s_pointShadowLastKey[slot] = lightKey;
+	if (!stationary)
+		return POINT_SHADOW_FULL;
+	stat.key = lightKey;
+	stat.generation = s_pointShadowCacheGeneration;
+	stat.valid = qtrue;
+	++s_shadowStaticBuilds;
+	return POINT_SHADOW_STATIC_BUILD;
+}
+
+// Appends the views of one point/spot shadow slot (6 cube faces, or the one
+// projected spot view) for its plan. The first view of each pass carries the
+// slot operation that tr_scene queues before it: faces without casters get no
+// draw command, so only the slot command clears / restores them.
+static void R_AppendPointShadowViews(const viewParms_t *views, int count, int slot, pointShadowPlan_t plan)
+{
+	// r_shadowStaticCache 2: after the cached passes, read the slot back and
+	// render it again in one ordinary pass (which is what the slot keeps)
+	const qboolean verify = (qboolean)(r_shadowStaticCache->integer == 2 &&
+		(plan == POINT_SHADOW_STATIC_BUILD || plan == POINT_SHADOW_STATIC_REUSE) &&
+		s_numShadowStaticVerify < POINT_SHADOW_STATIC_MAX_SLOTS);
+	const int passes = (plan == POINT_SHADOW_STATIC_BUILD ? 2 : 1) + (verify ? 1 : 0);
+	for (int pass = 0; pass < passes; ++pass)
+	{
+		int extraFlags = 0;
+		int op = POINT_SHADOW_SLOT_CLEAR;
+		if (verify && pass == passes - 1)
+			op = POINT_SHADOW_SLOT_SNAPSHOT;
+		else if (plan == POINT_SHADOW_STATIC_BUILD && pass == 0)
+			extraFlags = VPF_POINT_STATIC_SHADOW;
+		else if (plan == POINT_SHADOW_STATIC_BUILD || plan == POINT_SHADOW_STATIC_REUSE)
+		{
+			extraFlags = VPF_POINT_DYNAMIC_SHADOW | VPF_NOCLEAR;
+			op = plan == POINT_SHADOW_STATIC_BUILD ? POINT_SHADOW_SLOT_SAVE : POINT_SHADOW_SLOT_RESTORE;
+		}
+		for (int f = 0; f < count; ++f)
+		{
+			if (tr.numCachedViewParms >= MAX_CACHED_VIEW_PARMS)
+				return;
+			viewParms_t *view = &tr.cachedViewParms[tr.numCachedViewParms];
+			*view = views[f];
+			view->flags |= extraFlags;
+			view->currentViewParm = tr.numCachedViewParms;
+			view->pointShadowSlot = slot;
+			view->pointShadowSlotLayers = count;
+			view->pointShadowSlotOp = f == 0 ? op : POINT_SHADOW_SLOT_NONE;
+			tr.numCachedViewParms++;
+		}
+	}
+	if (verify)
+	{
+		s_shadowStaticVerifySlots[s_numShadowStaticVerify] = slot;
+		s_shadowStaticVerifyLayers[s_numShadowStaticVerify] = count;
+		++s_numShadowStaticVerify;
+	}
+}
+
+// r_shadowStaticCache 2: after every view of the scene, compare each slot's
+// full render with the snapshot of its cached passes, then back to 1
+void R_QueuePointShadowStaticVerify(void)
+{
+	if (r_shadowStaticCache->integer != 2)
+		return;
+	for (int i = 0; i < s_numShadowStaticVerify; ++i)
+	{
+		viewParms_t view = {};
+		view.pointShadowSlotOp = POINT_SHADOW_SLOT_COMPARE;
+		view.pointShadowSlot = s_shadowStaticVerifySlots[i];
+		view.pointShadowSlotLayers = s_shadowStaticVerifyLayers[i];
+		R_QueuePointShadowSlotCmd(&view);
+	}
+	if (!s_numShadowStaticVerify)
+		ri.Printf(PRINT_ALL, "r_shadowStaticCache 2: no shadow slot used the static cache this frame\n");
+	s_numShadowStaticVerify = 0;
+	ri.Cvar_Set("r_shadowStaticCache", "1");
 }
 
 void R_ShadowCacheInvalidate(void)
@@ -4319,17 +4474,22 @@ void R_ShadowCacheInvalidate(void)
 	if (!s_pointShadowCacheGeneration)
 		s_pointShadowCacheGeneration = 1;
 	Com_Memset(s_pointShadowCache, 0, sizeof(s_pointShadowCache));
+	Com_Memset(s_pointShadowStatic, 0, sizeof(s_pointShadowStatic));
 	s_shadowCacheScene = -1;
 	s_shadowTimeDependentWorldSurfaces.clear();
 }
 
-void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, qboolean reset)
+void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, int *staticBuilds,
+	int *staticReuses, qboolean reset)
 {
 	if (hits) *hits = s_shadowCacheHits;
 	if (misses) *misses = s_shadowCacheMisses;
 	if (uncacheable) *uncacheable = s_shadowCacheUncacheable;
+	if (staticBuilds) *staticBuilds = s_shadowStaticBuilds;
+	if (staticReuses) *staticReuses = s_shadowStaticReuses;
 	if (reset)
-		s_shadowCacheHits = s_shadowCacheMisses = s_shadowCacheUncacheable = 0;
+		s_shadowCacheHits = s_shadowCacheMisses = s_shadowCacheUncacheable =
+			s_shadowStaticBuilds = s_shadowStaticReuses = 0;
 }
 
 // r_shadowPCSSCharacterLayers: the Ghoul2 casters nearest the camera, as the
@@ -4482,16 +4642,16 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					Matrix16Multiply(shadowParms.projectionMatrix, shadowParms.world.modelViewMatrix,
 						shadowLight->spotShadowVP);
 					shadowLight->spotShadowSlot = i;
-					if (R_ShadowCacheHit(i, refdef, shadowLight))
-						continue;
-
-					Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &shadowParms, sizeof(viewParms_t));
-					tr.numCachedViewParms++;
+					const pointShadowPlan_t plan = R_PointShadowPlan(i, refdef, shadowLight);
+					if (plan != POINT_SHADOW_HIT)
+						R_AppendPointShadowViews(&shadowParms, 1, i, plan);
 					continue;
 				}
 
-				if (R_ShadowCacheHit(i, refdef, shadowLight))
+				const pointShadowPlan_t plan = R_PointShadowPlan(i, refdef, shadowLight);
+				if (plan == POINT_SHADOW_HIT)
 					continue;
+				viewParms_t faceParms[6];
 
 				for (j = 0; j < 6; j++)
 				{
@@ -4539,16 +4699,15 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 					shadowParms.targetFboLayer = 0;
 					shadowParms.flags |= VPF_POINTCUBE;
 
-					shadowParms.currentViewParm = tr.numCachedViewParms;
 					shadowParms.viewParmType = VPT_POINT_SHADOWS;
 
 					R_RotateForViewer(&shadowParms.world, &shadowParms);
 					R_SetupProjection(&shadowParms, shadowParms.zNear, shadowParms.zFar, qtrue);
 					R_SetupProjectionZ(&shadowParms);
 
-					Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &shadowParms, sizeof(viewParms_t));
-					tr.numCachedViewParms++;
+					faceParms[j] = shadowParms;
 				}
+				R_AppendPointShadowViews(faceParms, 6, i, plan);
 			}
 		}
 

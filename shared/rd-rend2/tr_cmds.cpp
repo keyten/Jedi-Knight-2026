@@ -226,6 +226,27 @@ void *R_GetCommandBuffer(int bytes) {
 
 /*
 =============
+R_QueuePointShadowSlotCmd
+
+Clear, save or restore every layer of a point/spot shadow slot before its views
+=============
+*/
+void R_QueuePointShadowSlotCmd( const viewParms_t *view ) {
+	if ( !tr.registered ) {
+		return;
+	}
+	pointShadowSlotCommand_t *cmd = (pointShadowSlotCommand_t *)R_GetCommandBuffer( sizeof( *cmd ) );
+	if ( !cmd ) {
+		return;
+	}
+	cmd->commandId = RC_POINT_SHADOW_SLOT;
+	cmd->op = view->pointShadowSlotOp;
+	cmd->slot = view->pointShadowSlot;
+	cmd->layers = view->pointShadowSlotLayers;
+}
+
+/*
+=============
 R_AddDrawSurfCmd
 
 =============

@@ -115,7 +115,7 @@ void R_ShadowStatsEndFrame( void )
 		tr.sunShadowCacheDiskLoads = 0;
 		tr.sunShadowCacheDiskWrites = 0;
 		tr.sunShadowCacheUpdatedPixels = 0;
-		R_ShadowCacheGetStats(nullptr, nullptr, nullptr, qtrue);
+		R_ShadowCacheGetStats(nullptr, nullptr, nullptr, nullptr, nullptr, qtrue);
 		return;
 	}
 
@@ -172,10 +172,12 @@ void R_ShadowStatsEndFrame( void )
 				tr.sunShadowCacheDiskLoads * perFrame,
 				tr.sunShadowCacheDiskWrites * perFrame);
 	}
-	int cacheHits, cacheMisses, cacheUncacheable;
-	R_ShadowCacheGetStats(&cacheHits, &cacheMisses, &cacheUncacheable, qtrue);
+	int cacheHits, cacheMisses, cacheUncacheable, staticBuilds, staticReuses;
+	R_ShadowCacheGetStats(&cacheHits, &cacheMisses, &cacheUncacheable, &staticBuilds, &staticReuses, qtrue);
 	ri.Printf(PRINT_ALL, "  point shadow cache %.1f hits/frame, %.1f misses/frame, %.1f conservatively dirty/frame\n",
 		cacheHits * perFrame, cacheMisses * perFrame, cacheUncacheable * perFrame);
+	ri.Printf(PRINT_ALL, "  point shadow static world %.1f builds/frame, %.1f reuses/frame (r_shadowStaticCache %d)\n",
+		staticBuilds * perFrame, staticReuses * perFrame, r_shadowStaticCache->integer);
 
 	// backend phases of the point light cube face draw commands
 	shadowSubmitProfile_t &prof = rb_shadowSubmitProfile;
@@ -1257,6 +1259,9 @@ void RE_RenderScene( const refdef_t *fd )
 		if (tr.cachedViewParms[i].viewParmType == VPT_MAIN)
 			R_ForwardPlusSetMainViewTimer(timer);
 		tr.refdef.numDrawSurfs = 0;
+		if (tr.cachedViewParms[i].viewParmType == VPT_POINT_SHADOWS &&
+			tr.cachedViewParms[i].pointShadowSlotOp != POINT_SHADOW_SLOT_NONE)
+			R_QueuePointShadowSlotCmd(&tr.cachedViewParms[i]);
 		// r_shadowSinglePass: the 6 faces of a point light cube in one walk
 		const bool cubeGroup = r_shadowSinglePass->integer &&
 			(tr.cachedViewParms[i].flags & VPF_POINTCUBE) &&
@@ -1324,6 +1329,9 @@ void RE_RenderScene( const refdef_t *fd )
 	}
 	if (r_sunShadowVerify->integer == 1 && !(fd->rdflags & RDF_NOWORLDMODEL))
 		ri.Cvar_Set("r_sunShadowVerify", "0");
+
+	if ( !(fd->rdflags & RDF_NOWORLDMODEL) )
+		R_QueuePointShadowStaticVerify();
 
 	if ( r_shadowVerify->integer && !(fd->rdflags & RDF_NOWORLDMODEL) )
 	{

@@ -106,6 +106,20 @@ Legacy mode still renders a cube for every light, up to 32. Forward+ separates r
   time-dependent slots. The world's time-dependent casters are collected once per map / shader remap
   (`tr.sunShadowCasterGeneration`), not per frame, and blended polys (marks, particles) are not casters: depth
   shadow views drop every non-opaque surface, so a fading mark no longer dirties the light.
+- `r_shadowStaticCache 1` (default, needs `ARB_copy_image` / GL 4.3) splits a dirty slot into the static world and
+  everything else. The static part is the sun cache's conservative set (`R_IsStaticSunShadowCaster`: opaque BSP
+  surfaces with a simple depth prepass, no deforms, foliage, sprites, POM shells, water, polygon offset). It is kept
+  per slot in `tr.pointShadowStaticArrayImage` (created on first use, `min(r_forwardPlusMaxShadowLights, 8)` slots,
+  3 MiB each at 512²) and keyed on the light alone (origin, radius, spot cone, world/remap generation, shadow bias
+  cvars). When only casters changed, the slot is restored with one `glCopyImageSubData` and only the other casters
+  are drawn over it (`VPF_POINT_DYNAMIC_SHADOW`, no clear; the world part of that pass walks the cached list of
+  non-static world surfaces instead of the BSP). A light builds its static copy only after it kept its key for a
+  frame, so moving sabers and bolts keep the ordinary single pass and never pay for a copy.
+  `r_shadowStaticCache 2` renders every cached slot of one frame both ways, reads the depth back and prints the
+  differing texels, then returns to 1. `r_shadowStats 1` prints static builds/reuses per frame.
+- Every point/spot slot that is drawn first gets `RC_POINT_SHADOW_SLOT` (clear, save or restore of all its layers).
+  Before it, a cube face without any caster got no draw command at all and kept the depth of whatever light used the
+  slot before (phantom shadows on open faces, e.g. towards the sky).
 - The froxel fog uses the Lights UBO. Its `origin.w` is now the shadow layer: `i` in legacy mode (unchanged
   behaviour), the slot or −1 in Forward+ mode.
 
@@ -154,6 +168,7 @@ The physical attenuation window is also exactly zero at and beyond the range: at
 | `r_forwardPlusMaxShadowLights` | 4 | Forward+ shadow budget |
 | `r_forwardPlusCompute` | 1 | 1: cluster lists built by a GL 4.3 compute shader when the context allows it (`r_gl43 1`), 0: CPU build. Switches at runtime, latched per frame |
 | `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; 0 forces every selected slot to redraw |
+| `r_shadowStaticCache` | 1 | keep the static world depth per slot and redraw only the other casters over it; 2 = verify one frame against a full render |
 
 Dependency messages are printed once, when the cvar changes (and at renderer start). Nothing is auto-enabled:
 
@@ -193,6 +208,24 @@ Not measured yet: the game was not launched in this task (validation = build + o
 
 With `r_speeds 100`, the compute dispatch of the main view is reported separately as
 `Forward+ cluster build`.
+
+### Point shadow static cache (2026-10-29)
+
+Intel UHD, SP `t2_trip` start (player on the swoop inside the lights), 640×360 with every unrelated feature off,
+`r_forwardPlusSpawnTestLights 8 400`, 4 shadow slots, `r_shadowCache 1` (the animated player keeps every slot dirty).
+`r_shadowStaticCache` toggled in one run, interleaved; GPU = sum of the `Pointlight Shadow` timers of `r_speeds 100`
+per frame, CPU = `r_shadowStats` for the 24 faces. Other agents' games ran at the same time, so absolute numbers are
+noisy; the CPU and draw counts are not.
+
+| case | GPU shadows ms/frame | CPU front ms | CPU submit ms | drawsurfs/face |
+|---|---|---|---|---|
+| still lights, off | 14.6 / 15.7 / 14.6 | 10.7–16.0 | 11.7–16.6 | 504 |
+| still lights, on | 4.7 / 10.6 / 4.7 | 1.0–1.2 | 2.9–3.4 | 10.8 |
+| lights moved every frame, off | 46.5 (outlier) / 9.1 | 11.5–23.9 | 11.6–25.6 | 503.5 |
+| lights moved every frame, on | 9.3 / 9.7 | 8.2–13.1 | 9.5–14.9 | 503.5 (0 static builds) |
+
+`r_shadowStaticCache 2`: 0 of 1,572,864 depth texels differ per slot, for reuse and for build frames, with and
+without the characters.
 
 ## Test checklist (in game)
 
