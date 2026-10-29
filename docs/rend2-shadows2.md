@@ -101,7 +101,9 @@ are averaged and filtered with their own penumbra, the rest with theirs, and
 the two visibilities multiply. Pixels with only one kind of blocker, or with no
 character nearby, run the ordinary single PCSS. Only characters get this split:
 general depth layering would run two PCF passes over most foliage. Other
-geometry inside a character's depth range near it counts as that character.
+blockers count as the character only inside both its depth range and its
+sphere's disc in shadow uv, so canopy or walls at the character's height keep
+their soft penumbra. A layer of at most one texel uses the bilinear 2x2 filter.
 
 It is a latched shader permutation (`USE_PCSS_CHARACTER_LAYERS`): 0 compiles
 the previous lightall exactly. `r_shadowDebug 13` shows the split pixels red.
@@ -112,6 +114,11 @@ character in view (6.9 -> 8.5-9.1 ms), from register pressure of the larger
 lightall. The search loop is now unchanged and a second pass over the same
 (cached) taps runs only next to a character; that measured +0.4-1.2 ms, but in
 runs shared with another game process, so it is not a reliable number.
+
+Checked on yavin1 (forced sun, player in third person in the soft shadow of the
+canyon wall / canopy, view 6): with 0 the character's ground shadow is blurred
+away and its self shadow is grey; with 1 both are crisp, and the canopy pattern
+around it is unchanged (no halo).
 
 ## Screen-space contacts
 
