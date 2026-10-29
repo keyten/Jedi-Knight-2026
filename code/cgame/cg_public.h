@@ -252,6 +252,10 @@ Ghoul2 Insert End
 	// extension); only called with cl_rendererFoliageWaves set by the engine
 	// (older engines lack it)
 	CG_R_ADDFOLIAGEFORCEWAVE,
+
+	// one step of an attacking saber blade, cuts the foliage (rend2 foliage
+	// cut extension); only called with cl_rendererFoliageCut set by the engine
+	CG_R_ADDFOLIAGESABERCUT,
 } cgameImport_t;
 
 #ifdef JK2_MODE

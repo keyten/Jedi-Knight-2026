@@ -4908,6 +4908,14 @@ void WP_SaberDamageTrace( gentity_t *ent, int saberNum, int bladeNum )
 	// Get the future state of the blade
 	VectorCopy( mp2, baseNew );
 	VectorMA( baseNew, ent->client->ps.saber[saberNum].blade[bladeNum].length, md2, endNew );
+	// rend2: an attacking blade (one that does damage, not one merely
+	// touching) cuts the foliage it sweeps through
+	if ( ent->client->ps.saber[saberNum].blade[bladeNum].active
+		&& ent->client->ps.saber[saberNum].blade[bladeNum].length > 0.0f && baseDamage > 0.1f )
+	{
+		CG_FoliageSaberCut( ent->s.number, saberNum, bladeNum, baseOld, endOld, baseNew, endNew,
+			ent->client->ps.saber[saberNum].blade[bladeNum].radius, level.time - level.previousTime );
+	}
 
 	sabersCrossed = -1;
 	if ( VectorCompare2( baseOld, baseNew ) && VectorCompare2( endOld, endNew ) )

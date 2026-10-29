@@ -646,6 +646,9 @@ extern cvar_t  *r_foliageInteractionNPCs;
 extern cvar_t  *r_foliageInteractionDebug;
 extern cvar_t  *r_foliageForceWaves;
 extern cvar_t  *r_foliageForceWaveStrength;
+extern cvar_t  *r_foliageSaberCut;
+extern cvar_t  *r_foliageSaberCutPieces;
+extern cvar_t  *r_foliageSaberCutPieceTime;
 extern cvar_t  *r_foliageBendFieldSize;
 extern cvar_t  *r_foliageBendFieldExtent;
 extern cvar_t  *r_foliageBendFieldStrength;
@@ -1135,6 +1138,10 @@ typedef struct trRefEntity_s {
 	float		sunSplitSeen;	// fraction of the probe points that see the sun
 	int			plantBoneOffset;	// MD3 plant: first bone texel of this frame (tr_plantsim.cpp), -1 at rest
 	int			plantBoneTexels;	// texels of one pose (2 per bone)
+	// MD3 plant cut by a saber (tr_plantcut.cpp): its surfaces from the cut
+	// mesh; plantCutDebris: a cut off piece, only the piece is drawn (lod 0)
+	const struct plantCutDraw_s *plantCutDraw;
+	qboolean	plantCutDebris;
 } trRefEntity_t;
 
 
@@ -3932,6 +3939,8 @@ typedef struct mdvSurface_s
 	vec3_t          foliageRoot;    // candidate base in local MD3 coordinates
 	float           foliageXYRadius;
 	uint32_t       *plantSkin;      // per vertex bone A, B, weight of B, 255 (tr_plantskel.cpp), NULL none
+	float          *plantU;         // per vertex position along its frond, node units (with plantSkin)
+	signed char    *plantFrond;     // per vertex frond of the skeleton, -1 none (with plantSkin)
 
 	struct mdvModel_s *model;
 } mdvSurface_t;
@@ -6394,6 +6403,44 @@ void RB_SetLeafForceWaveUniforms(UniformDataWriter& writer, bool active);
 // tr_plantskel.cpp: frond skeletons of MD3 plants
 void R_BuildPlantSkeleton(mdvModel_t *model);
 void R_PrintPlantSkeleton(const mdvModel_t *model);
+uint32_t R_PlantSkinPack(const plantFrond_t *frond, int segments, float u);
+
+// tr_plantcut.cpp: MD3 plants cut by a saber (r_foliageSaberCut); the draws of
+// a cut plant or of a cut off piece: per model surface, a mesh of the cut
+// plant's own buffers (vbo NULL: the model's surface)
+typedef struct plantCutDraw_s
+{
+	int					numSurfaces;
+	srfVBOMDVMesh_t		*surfaces;
+} plantCutDraw_t;
+typedef struct plantCut_s plantCut_t;
+
+typedef struct plantCutPose_s
+{
+	vec3_t			origin;			// the plant entity
+	vec3_t			axis[3];
+	const float		*bones;			// current pose, 8 floats per bone (tr_plantsim.cpp)
+	int				numBones;
+	// per frond and node: velocity (world, u/s), for the pieces cut off
+	const float		(*nodeVelocity)[PLANTSKEL_MAX_NODES][3];
+	float			groundZ;
+	const refEntity_t *ent;			// the plant's last refEntity (for the pieces)
+} plantCutPose_t;
+
+void RE_AddFoliageSaberCut(const foliageSaberCut_t *cut);
+bool R_PlantCutEnabled(void);
+const foliageSaberCut_t *R_PlantCutStrikes(int *count);
+void R_PlantCutClearStrikes(void);
+plantCut_t *R_PlantCutCreate(const mdvModel_t *mdv);
+void R_PlantCutFree(plantCut_t *cut);
+bool R_PlantCutStrike(plantCut_t *cut, const plantCutPose_t *pose, const foliageSaberCut_t *strike,
+	float keepU[PLANTSKEL_MAX_FRONDS]);
+const plantCutDraw_t *R_PlantCutDrawOf(const plantCut_t *cut);
+int R_PlantCutTriangles(const plantCut_t *cut);
+void R_PlantCutBeginScene(const refdef_t *fd);
+trRefEntity_t *R_AddSceneEntity(const refEntity_t *ent);
+void R_PlantCutReset(void);
+void R_PlantCutInfo(void);
 
 // tr_plantsim.cpp: frond chains of the MD3 plants (wind, character contact)
 bool R_PlantSimActive(void);
@@ -6402,6 +6449,10 @@ void R_PlantSimQueueUpload(void);
 void R_PlantSimReset(void);
 void R_ShutdownPlantSim(void);
 float R_PlantSimCullMargin(const mdvModel_t *model);
+bool R_PlantSimCutLod(const trRefEntity_t *ent);
+void R_PlantSimProcessCuts(void);
+void R_PlantSimRestoreCuts_f(void);
+void R_PlantSimCutTest_f(void);
 void R_PlantSimDebugDraw(const refdef_t *fd);
 void R_PlantSimInfo_f(void);
 const void *RB_PlantBonesCommand(const void *data);

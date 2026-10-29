@@ -2138,6 +2138,38 @@ static void CG_FoliageForceWave( const centity_t *cent, const gentity_t *gent )
 	cgi_R_AddFoliageForceWave( &wave );
 }
 
+/*
+=====================
+CG_FoliageSaberCut
+
+WP_SaberDamageTrace (game, every blade of every saber wielder): one step of a
+blade that is attacking (it would do damage), from its previous position to
+the current one; the renderer cuts the MD3 plants it sweeps through
+(r_foliageSaberCut).
+=====================
+*/
+void CG_FoliageSaberCut( int entityNum, int saberNum, int bladeNum, const vec3_t base0, const vec3_t tip0,
+	const vec3_t base1, const vec3_t tip1, float radius, int msec )
+{
+	if ( !cl_rendererFoliageCut.integer || !cg.snap )
+		return;
+	// the first step of a blade, or a teleport
+	if ( (!VectorLengthSquared( base0 ) && !VectorLengthSquared( tip0 )) ||
+		DistanceSquared( base0, base1 ) > 256.0f * 256.0f )
+		return;
+	foliageSaberCut_t cut;
+	memset( &cut, 0, sizeof( cut ) );
+	cut.id = entityNum;
+	cut.blade = saberNum * 8 + bladeNum;
+	VectorCopy( base0, cut.base0 );
+	VectorCopy( tip0, cut.tip0 );
+	VectorCopy( base1, cut.base1 );
+	VectorCopy( tip1, cut.tip1 );
+	cut.radius = radius;
+	cut.duration = Com_Clamp( 0.001f, 0.25f, msec * 0.001f );
+	cgi_R_AddFoliageSaberCut( &cut );
+}
+
 static void CG_AddFoliageForceWaves( void )
 {
 	if ( !r_foliageInteraction.integer || !cl_rendererFoliageWaves.integer || !cg.snap || cg.hyperspace )

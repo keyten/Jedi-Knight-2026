@@ -28,7 +28,8 @@
  *
  * Instances are keyed by model and origin (stock plants are static map
  * objects); the state persists across frames, so a frond swings back after a
- * character left. Plants farther than r_plantWindDistance stay at rest, farther
+ * character left. A plant cut by a saber (tr_plantcut.cpp) keeps its cut mesh
+ * in its instance, never evicted; its fronds' chains end where they were cut. Plants farther than r_plantWindDistance stay at rest, farther
  * than r_plantSimDistance (and away from every character) take one coarse
  * step per frame.
  */
@@ -153,6 +154,7 @@ struct FrondSim
 {
 	int segments;
 	int firstBone;
+	float keepU;						// node units of the chain kept (saber cut), all of it uncut
 	Vec3 X[PLANTSKEL_MAX_NODES];		// rest, world
 	Vec3 D[PLANTSKEL_MAX_NODES - 1];	// rest segment vectors
 	Vec3 T[PLANTSKEL_MAX_NODES - 1];	// rest basis of every segment: tangent,
@@ -193,9 +195,13 @@ struct PlantInstance
 	int lastTime;			// refdef time of the last step
 	float accumulator;
 	float waveTime;			// refdef time (s) the Force wave kicks are integrated to
+	float scale;			// largest axis length of the entity
 	int arenaOffset;		// first texel this frame, -1 none
 	bool atRest;			// bones are the rest pose (current and previous)
 	bool valid;
+	plantCut_t *cut;		// saber cut mesh (tr_plantcut.cpp), NULL uncut
+	bool cutFailed;			// the model can't be cut
+	refEntity_t refEnt;		// last refEntity of the plant (the pieces cut off copy it)
 };
 
 } // namespace
@@ -204,6 +210,7 @@ static struct
 {
 	std::vector<PlantInstance *> instances;
 	std::unordered_map<uint64_t, PlantInstance *> lookup;
+	int numCut;				// instances drawn from a cut mesh
 
 	// bones of this frame, uploaded per view in front of its draws
 	std::vector<float> arena;
@@ -324,6 +331,8 @@ static void SetRestBones(std::vector<float> &bones)
 	}
 }
 
+static void SetupFrond(const PlantInstance &inst, FrondSim &fr, const plantFrond_t &src, float keepU);
+
 static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const mdvModel_t *mdv)
 {
 	const plantSkeleton_t *skel = mdv->plantSkel;
@@ -348,22 +357,76 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 	const vec3_t bottom = { mid[0], mid[1], mdv->foliageMins[2] };
 	inst.groundZ = LocalToWorld(inst, bottom).z - 1.0f;
 
-	const float stiffness = MAX(r_plantStiffness->value, 0.05f);
+	inst.scale = scale;
 	inst.fronds.resize(skel->numFronds);
 	for (int f = 0; f < skel->numFronds; ++f)
 	{
 		const plantFrond_t &src = skel->fronds[f];
 		FrondSim &fr = inst.fronds[f];
-		fr.segments = src.numNodes - 1;
-		fr.firstBone = src.firstBone;
-		for (int k = 0; k < src.numNodes; ++k)
+		SetupFrond(inst, fr, src, (float)(src.numNodes - 1));
+		for (int k = 0; k <= fr.segments; ++k)
 		{
-			fr.X[k] = LocalToWorld(inst, src.nodes[k]);
 			fr.x[k] = fr.X[k];
 			fr.prevX[k] = fr.X[k];
 			fr.v[k] = V3(0.0f, 0.0f, 0.0f);
 		}
+		fr.contactSide = 0;
+		fr.contactTimer = 0.0f;
+		fr.contact = false;
+		fr.pressed = 0;
+		fr.splayed = false;
+	}
 
+	inst.bones.assign(skel->numBones * 8, 0.0f);
+	inst.prevBones.assign(skel->numBones * 8, 0.0f);
+	SetRestBones(inst.bones);
+	SetRestBones(inst.prevBones);
+	inst.seenFrame = -1;
+	inst.simFrame = -1;
+	inst.lastTime = 0;
+	inst.accumulator = 0.0f;
+	inst.waveTime = 0.0f;
+	inst.arenaOffset = -1;
+	inst.atRest = true;
+	inst.valid = true;
+	// another model here: the cut of the old one is gone
+	if (inst.cut)
+	{
+		if (R_PlantCutDrawOf(inst.cut))
+			--s_ps.numCut;
+		R_PlantCutFree(inst.cut);
+		inst.cut = NULL;
+	}
+	inst.cutFailed = false;
+}
+
+/*
+=============
+SetupFrond
+
+Rest shape and dynamics of a frond, its chain ending at keepU (node units;
+less than the whole frond after a saber cut, the last segment shortened, at
+least 1 unit); the state (x, v, contact) is left alone
+=============
+*/
+static void SetupFrond(const PlantInstance &inst, FrondSim &fr, const plantFrond_t &src, float keepU)
+{
+	const float scale = inst.scale;
+	const float stiffness = MAX(r_plantStiffness->value, 0.05f);
+	const int whole = src.numNodes - 1;
+	fr.keepU = Com_Clamp(0.0f, (float)whole, keepU);
+	fr.segments = Com_Clampi(1, whole, (int)ceilf(fr.keepU - 1e-4f));
+	fr.firstBone = src.firstBone;
+	for (int k = 0; k <= fr.segments; ++k)
+		fr.X[k] = LocalToWorld(inst, src.nodes[k]);
+	{
+		const int j = fr.segments - 1;
+		const Vec3 seg = fr.X[j + 1] - fr.X[j];
+		const float len = MAX(Length(seg), 1e-3f);
+		const float part = MAX(Com_Clamp(0.0f, 1.0f, fr.keepU - j), MIN(1.0f, 1.0f / len));
+		fr.X[j + 1] = fr.X[j] + seg * part;
+	}
+	{
 		// lineal density tapering to the tip, lumped into the nodes
 		float mass[PLANTSKEL_MAX_NODES] = {};
 		float total = 0.0f;
@@ -431,25 +494,7 @@ static void InitInstance(PlantInstance &inst, const trRefEntity_t *ent, const md
 			fr.side = V3(-chord.y / horizontal, chord.x / horizontal, 0.0f);
 		else
 			fr.side = Normalized(V3(fr.N[0].x, fr.N[0].y, 0.0f), V3(1.0f, 0.0f, 0.0f));
-		fr.contactSide = 0;
-		fr.contactTimer = 0.0f;
-		fr.contact = false;
-		fr.pressed = 0;
-		fr.splayed = false;
 	}
-
-	inst.bones.assign(skel->numBones * 8, 0.0f);
-	inst.prevBones.assign(skel->numBones * 8, 0.0f);
-	SetRestBones(inst.bones);
-	SetRestBones(inst.prevBones);
-	inst.seenFrame = -1;
-	inst.simFrame = -1;
-	inst.lastTime = 0;
-	inst.accumulator = 0.0f;
-	inst.waveTime = 0.0f;
-	inst.arenaOffset = -1;
-	inst.atRest = true;
-	inst.valid = true;
 }
 
 static PlantInstance *FindInstance(const trRefEntity_t *ent, const mdvModel_t *mdv)
@@ -494,13 +539,18 @@ static PlantInstance *FindExistingInstance(const trRefEntity_t *ent, const mdvMo
 void R_PlantSimReset(void)
 {
 	for (PlantInstance *inst : s_ps.instances)
+	{
+		R_PlantCutFree(inst->cut);
 		delete inst;
+	}
 	s_ps.instances.clear();
 	s_ps.lookup.clear();
+	s_ps.numCut = 0;
 	s_ps.arena.clear();
 	s_ps.arenaFrame = -1;
 	s_ps.uploaded = 0;
 	s_ps.capsuleFrame = -1;
+	R_PlantCutReset();
 }
 
 // drop the instances not seen for a while (another area, another map)
@@ -509,7 +559,8 @@ static void EvictInstances(void)
 	for (size_t i = 0; i < s_ps.instances.size(); )
 	{
 		PlantInstance *inst = s_ps.instances[i];
-		if (tr.frameCount - inst->seenFrame > PLANTSIM_EVICT_FRAMES)
+		// a cut plant stays cut
+		if (tr.frameCount - inst->seenFrame > PLANTSIM_EVICT_FRAMES && !R_PlantCutDrawOf(inst->cut))
 		{
 			for (auto it = s_ps.lookup.begin(); it != s_ps.lookup.end(); ++it)
 			{
@@ -519,6 +570,7 @@ static void EvictInstances(void)
 					break;
 				}
 			}
+			R_PlantCutFree(inst->cut);
 			delete inst;
 			s_ps.instances[i] = s_ps.instances.back();
 			s_ps.instances.pop_back();
@@ -1017,8 +1069,20 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 {
 	ent->plantBoneOffset = -1;
 	ent->plantBoneTexels = 0;
-	if (!mdv->plantSkel || !R_PlantSimActive() || (tr.refdef.rdflags & RDF_NOWORLDMODEL))
+	ent->plantCutDraw = NULL;
+	if (!mdv->plantSkel || (tr.refdef.rdflags & RDF_NOWORLDMODEL))
 		return;
+	if (!R_PlantSimActive())
+	{
+		// a cut plant stays cut (at rest)
+		PlantInstance *inst = s_ps.numCut > 0 ? FindExistingInstance(ent, mdv) : NULL;
+		if (inst && inst->cut)
+		{
+			inst->seenFrame = tr.frameCount;
+			ent->plantCutDraw = R_PlantCutDrawOf(inst->cut);
+		}
+		return;
+	}
 
 	BeginFrame();
 	LatchCapsules();
@@ -1033,6 +1097,8 @@ void R_PlantSimAcquire(trRefEntity_t *ent, const mdvModel_t *mdv)
 		FindExistingInstance(ent, mdv) : FindInstance(ent, mdv);
 	if (!inst)
 		return;
+	inst->refEnt = ent->e;
+	ent->plantCutDraw = R_PlantCutDrawOf(inst->cut);
 	if (inst->seenFrame != tr.frameCount)
 	{
 		inst->seenFrame = tr.frameCount;
@@ -1272,17 +1338,237 @@ void R_PlantSimDebugDraw(const refdef_t *fd)
 
 void R_PlantSimInfo_f(void)
 {
-	ri.Printf(PRINT_ALL, "plant sim: %s, %d instances, %d stepped last frame, %d bone texels, buffers %s\n",
-		R_PlantSimActive() ? "on" : "off", (int)s_ps.instances.size(), s_ps.simulated,
+	ri.Printf(PRINT_ALL, "plant sim: %s, %d instances (%d cut), %d stepped last frame, %d bone texels, buffers %s\n",
+		R_PlantSimActive() ? "on" : "off", (int)s_ps.instances.size(), s_ps.numCut, s_ps.simulated,
 		(int)s_ps.arena.size() / 4, s_ps.created ? "created" : (s_ps.failed ? "failed" : "not yet"));
+	R_PlantCutInfo();
 	for (const PlantInstance *inst : s_ps.instances)
 	{
-		int contacts = 0;
-		for (const FrondSim &fr : inst->fronds)
-			contacts += fr.contactSide != 0;
-		ri.Printf(PRINT_ALL, "  %s (%.0f %.0f %.0f): %d fronds, %d bones, %s, %d in contact, seen %d frames ago\n",
+		int contacts = 0, shortened = 0;
+		for (size_t f = 0; f < inst->fronds.size(); ++f)
+		{
+			contacts += inst->fronds[f].contactSide != 0;
+			shortened += inst->fronds[f].keepU < (float)(inst->skel->fronds[f].numNodes - 1);
+		}
+		ri.Printf(PRINT_ALL, "  %s (%.0f %.0f %.0f): %d fronds, %d bones, %s, %d in contact, seen %d frames ago",
 			R_GetModelByHandle(inst->hModel)->name, inst->origin.x, inst->origin.y, inst->origin.z,
 			(int)inst->fronds.size(), inst->skel->numBones, inst->atRest ? "rest" : "moving",
 			contacts, tr.frameCount - inst->seenFrame);
+		if (R_PlantCutDrawOf(inst->cut))
+			ri.Printf(PRINT_ALL, ", cut: %d triangles, %d fronds shortened", R_PlantCutTriangles(inst->cut), shortened);
+		ri.Printf(PRINT_ALL, "\n");
 	}
+}
+
+/*
+=============================================================
+
+Saber cut (tr_plantcut.cpp)
+
+=============================================================
+*/
+
+// the blade step passes within the plant's bounding sphere (its bounds grown
+// by the sphere)
+static bool StrikeNear(const foliageSaberCut_t &strike, const Vec3 &center, float radius)
+{
+	const float *corners[4] = { strike.base0, strike.tip0, strike.tip1, strike.base1 };
+	const float pad = radius + strike.radius;
+	const float c[3] = { center.x, center.y, center.z };
+	for (int axis = 0; axis < 3; ++axis)
+	{
+		float lo = FLT_MAX, hi = -FLT_MAX;
+		for (int k = 0; k < 4; ++k)
+		{
+			lo = MIN(lo, corners[k][axis]);
+			hi = MAX(hi, corners[k][axis]);
+		}
+		if (c[axis] < lo - pad || c[axis] > hi + pad)
+			return false;
+	}
+	return true;
+}
+
+// the frond's chain ends at keepU now; the state of the kept nodes stays, the
+// shortened last segment keeps its current direction
+static void TruncateFrond(PlantInstance &inst, int f, float keepU)
+{
+	FrondSim &fr = inst.fronds[f];
+	SetupFrond(inst, fr, inst.skel->fronds[f], keepU);
+	const int n = fr.segments;
+	const float current = Length(fr.x[n] - fr.x[n - 1]);
+	const float part = fr.L[n - 1] / MAX(current, 1e-3f);
+	fr.x[n] = fr.x[n - 1] + (fr.x[n] - fr.x[n - 1]) * part;
+	fr.prevX[n] = fr.prevX[n - 1] + (fr.prevX[n] - fr.prevX[n - 1]) * part;
+	fr.pressed &= (2u << n) - 1u;
+}
+
+/*
+=============
+R_PlantSimProcessCuts
+
+R_PlantCutBeginScene, once per frame: this frame's attacking blade steps
+against the plants seen last frame; a plant hit gets its cut mesh (lod 0 only)
+and its fronds are cut short
+=============
+*/
+void R_PlantSimProcessCuts(void)
+{
+	int count;
+	const foliageSaberCut_t *strikes = R_PlantCutStrikes(&count);
+	if (!count)
+		return;
+	static float velocity[PLANTSKEL_MAX_FRONDS][PLANTSKEL_MAX_NODES][3];
+	for (PlantInstance *inst : s_ps.instances)
+	{
+		if (!inst->valid || tr.frameCount - inst->seenFrame > 2 || inst->cutFailed)
+			continue;
+		for (int k = 0; k < count; ++k)
+		{
+			const foliageSaberCut_t &strike = strikes[k];
+			if (!StrikeNear(strike, inst->center, inst->radius))
+				continue;
+			if (!inst->cut)
+			{
+				const model_t *model = R_GetModelByHandle(inst->hModel);
+				const mdvModel_t *mdv = model && model->type == MOD_MESH ? model->data.mdv[0] : NULL;
+				// its bones belong to the skeleton of the lod it was drawn with
+				if (mdv && mdv->plantSkel == inst->skel)
+					inst->cut = R_PlantCutCreate(mdv);
+				if (!inst->cut)
+				{
+					inst->cutFailed = mdv && mdv->plantSkel == inst->skel;
+					ri.Printf(PRINT_DEVELOPER, "saber cut: %s can't be cut (%s)\n", model ? model->name : "?",
+						inst->cutFailed ? "no cuttable surfaces" : "drawn with another lod");
+					break;
+				}
+			}
+			const bool wasDrawn = R_PlantCutDrawOf(inst->cut) != NULL;
+			for (size_t f = 0; f < inst->fronds.size() && f < PLANTSKEL_MAX_FRONDS; ++f)
+			{
+				const FrondSim &fr = inst->fronds[f];
+				for (int n = 0; n < PLANTSKEL_MAX_NODES; ++n)
+				{
+					const Vec3 v = n <= fr.segments ? fr.v[n] : fr.v[fr.segments];
+					velocity[f][n][0] = v.x;
+					velocity[f][n][1] = v.y;
+					velocity[f][n][2] = v.z;
+				}
+			}
+			plantCutPose_t pose;
+			VectorSet(pose.origin, inst->origin.x, inst->origin.y, inst->origin.z);
+			for (int i = 0; i < 3; ++i)
+				VectorSet(pose.axis[i], inst->axis[i].x, inst->axis[i].y, inst->axis[i].z);
+			pose.bones = inst->bones.data();
+			pose.numBones = inst->skel->numBones;
+			pose.nodeVelocity = velocity;
+			pose.groundZ = inst->groundZ;
+			pose.ent = &inst->refEnt;
+			float keepU[PLANTSKEL_MAX_FRONDS];
+			if (!R_PlantCutStrike(inst->cut, &pose, &strike, keepU))
+				continue;
+			if (!wasDrawn)
+				++s_ps.numCut;
+			for (size_t f = 0; f < inst->fronds.size() && f < PLANTSKEL_MAX_FRONDS; ++f)
+			{
+				if (keepU[f] < inst->fronds[f].keepU - 1e-4f)
+					TruncateFrond(*inst, (int)f, keepU[f]);
+			}
+			// wake it: the stubs swing back
+			inst->atRest = false;
+		}
+	}
+}
+
+// R_AddMD3Surfaces: a cut plant is drawn with lod 0 (its cut mesh)
+bool R_PlantSimCutLod(const trRefEntity_t *ent)
+{
+	if (s_ps.numCut <= 0)
+		return false;
+	auto it = s_ps.lookup.find(PlantKey(ent->e.hModel, ent->e.origin));
+	return it != s_ps.lookup.end() && it->second->hModel == ent->e.hModel && R_PlantCutDrawOf(it->second->cut);
+}
+
+/*
+=============
+R_PlantSimCutTest_f
+
+r_foliageSaberCutTest [height] [partial]: a blade step through the plant
+nearest to the view, as an attacking saber would send it: level, at height
+(fraction of the plant, default 0.5), all the way through or (partial 1)
+stopping in its middle
+=============
+*/
+void R_PlantSimCutTest_f(void)
+{
+	const float height = ri.Cmd_Argc() > 1 ? Com_Clamp(0.0f, 1.0f, (float)atof(ri.Cmd_Argv(1))) : 0.5f;
+	const bool partial = ri.Cmd_Argc() > 2 && atoi(ri.Cmd_Argv(2)) != 0;
+	if (!R_PlantCutEnabled())
+	{
+		ri.Printf(PRINT_ALL, "r_foliageSaberCut is off (or no plant simulation: r_autoFoliage, r_plantWind / r_foliageInteraction)\n");
+		return;
+	}
+	const PlantInstance *best = NULL;
+	float bestD = FLT_MAX;
+	const Vec3 view = V3(tr.refdef.vieworg[0], tr.refdef.vieworg[1], tr.refdef.vieworg[2]);
+	for (const PlantInstance *inst : s_ps.instances)
+	{
+		if (!inst->valid || tr.frameCount - inst->seenFrame > 2)
+			continue;
+		const float d = Length(inst->center - view);
+		if (d < bestD)
+		{
+			bestD = d;
+			best = inst;
+		}
+	}
+	if (!best)
+	{
+		ri.Printf(PRINT_ALL, "no plant in view\n");
+		return;
+	}
+	const float top = 2.0f * best->center.z - best->groundZ;
+	const float z = best->groundZ + height * (top - best->groundZ);
+	const float r = best->radius * 1.2f;
+	// steps of at most 64 units at 1200 u/s, like the frames of a swing
+	const float x0 = best->center.x - r;
+	const float x1 = partial ? best->center.x : best->center.x + r;
+	const int steps = Com_Clampi(1, 32, (int)ceilf((x1 - x0) / 64.0f));
+	for (int s = 0; s < steps; ++s)
+	{
+		const float a = x0 + (x1 - x0) * s / steps;
+		const float b = x0 + (x1 - x0) * (s + 1) / steps;
+		foliageSaberCut_t cut;
+		Com_Memset(&cut, 0, sizeof(cut));
+		cut.id = -1;
+		VectorSet(cut.base0, a, best->center.y - r, z);
+		VectorSet(cut.tip0, a, best->center.y + r, z);
+		VectorSet(cut.base1, b, best->center.y - r, z);
+		VectorSet(cut.tip1, b, best->center.y + r, z);
+		cut.radius = 1.0f;
+		cut.duration = (b - a) / 1200.0f;
+		RE_AddFoliageSaberCut(&cut);
+	}
+	ri.Printf(PRINT_ALL, "blade step through %s (%.0f %.0f %.0f) at z %.0f, %s\n",
+		R_GetModelByHandle(best->hModel)->name, best->origin.x, best->origin.y, best->origin.z, z,
+		partial ? "to its middle" : "all the way");
+}
+
+// r_foliageSaberCutReset: every cut plant whole again, the pieces gone
+void R_PlantSimRestoreCuts_f(void)
+{
+	int restored = 0;
+	for (PlantInstance *inst : s_ps.instances)
+	{
+		if (!inst->cut)
+			continue;
+		restored += R_PlantCutDrawOf(inst->cut) != NULL;
+		R_PlantCutFree(inst->cut);
+		inst->cut = NULL;
+		inst->cutFailed = false;
+		// the whole chains back at the next draw
+		inst->valid = false;
+	}
+	s_ps.numCut = 0;
+	ri.Printf(PRINT_ALL, "%d cut plants restored\n", restored);
 }

@@ -731,6 +731,9 @@ typedef struct cgameImport_s {
 		// extension), once per cast. NULL in the legacy VM; only called with
 		// r_foliageInteraction set
 		void			(*R_AddFoliageForceWave)				( const foliageForceWave_t *wave );
+		// one step of an attacking saber blade, cuts the foliage (rend2 foliage
+		// cut extension). NULL in the legacy VM
+		void			(*R_AddFoliageSaberCut)					( const foliageSaberCut_t *cut );
 	} ext;
 } cgameImport_t;
 

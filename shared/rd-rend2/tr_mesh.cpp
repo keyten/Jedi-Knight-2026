@@ -402,6 +402,10 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 	// compute LOD
 	//
 	lod = R_ComputeLOD( ent );
+	// saber cut plants and their pieces (tr_plantcut.cpp): their cut mesh is
+	// made of lod 0
+	if ( lod > 0 && ( ent->plantCutDebris || R_PlantSimCutLod( ent ) ) )
+		lod = 0;
 
 	model = tr.currentModel->data.mdv[lod];
 
@@ -427,10 +431,16 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 	
 	dlightBits = R_DLightsForEntity(ent, origin, model->frames[ent->e.frame].radius * maxScale);
 
-	// plants with a frond skeleton: this frame's bones (tr_plantsim.cpp)
+	// plants with a frond skeleton: this frame's bones (tr_plantsim.cpp), and
+	// the cut mesh of a plant cut by a saber; a piece cut off is drawn rigid
 	ent->plantBoneOffset = -1;
-	if ( model->plantSkel )
+	if ( model->plantSkel && !ent->plantCutDebris )
 		R_PlantSimAcquire( ent, model );
+	const plantCutDraw_t *cutDraw = ent->plantCutDraw;
+	if ( cutDraw && cutDraw->numSurfaces != model->numSurfaces )
+		cutDraw = NULL;
+	if ( ent->plantCutDebris && !cutDraw )
+		return;
 
 	//
 	// draw all surfaces
@@ -467,10 +477,16 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 			shader = tr.shaders[ surface->shaderIndexes[ ent->e.skinNum % surface->numShaderIndexes ] ];
 		}
 
+		srfVBOMDVMesh_t *vboSurface = &model->vboSurfaces[i];
+		if ( cutDraw && cutDraw->surfaces[i].vbo )
+			vboSurface = &cutDraw->surfaces[i];
+		// a piece: only its own triangles; a cut plant: nothing left of a surface
+		const bool skip = ( ent->plantCutDebris && !( cutDraw && cutDraw->surfaces[i].vbo ) ) ||
+			( vboSurface != &model->vboSurfaces[i] && vboSurface->numIndexes <= 0 );
+
 		// don't add third_person objects if not viewing through a portal
-		if(!personalModel)
+		if(!personalModel && !skip)
 		{
-			srfVBOMDVMesh_t *vboSurface = &model->vboSurfaces[i];
 			const shader_t *resolvedShader = shader->remappedShader ? shader->remappedShader : shader;
 			const foliageResult_t foliage = R_ResolveAutoFoliage(model, surface, resolvedShader,
 				r_autoFoliage->integer);

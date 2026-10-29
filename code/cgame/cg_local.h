@@ -580,6 +580,7 @@ extern	vmCvar_t		cl_rendererSpotLights;
 extern	vmCvar_t		cl_rendererLensWater;
 extern	vmCvar_t		cl_rendererWaterInteraction;
 extern	vmCvar_t		cl_rendererFoliageWaves;
+extern	vmCvar_t		cl_rendererFoliageCut;
 extern	vmCvar_t		r_waterSplashes;
 extern	vmCvar_t		r_waterSplashQuality;
 extern	vmCvar_t		r_waterSplashStrength;
@@ -1071,6 +1072,9 @@ void	cgi_R_AddLensWaterEvent( const refLensWaterEvent_t *event );
 void	cgi_R_AddWaterImpulse( const refWaterImpulse_t *impulse );
 void	cgi_R_SetWaterSources( const refWaterSource_t *sources, int count );
 void	cgi_R_AddFoliageForceWave( const foliageForceWave_t *wave );
+void	cgi_R_AddFoliageSaberCut( const foliageSaberCut_t *cut );
+void	CG_FoliageSaberCut( int entityNum, int saberNum, int bladeNum, const vec3_t base0, const vec3_t tip0,
+			const vec3_t base1, const vec3_t tip1, float radius, int msec );
 void	cgi_R_RenderScene( const refdef_t *fd );
 void	cgi_R_SetColor( const float *rgba );	// NULL = 1,1,1,1
 void	cgi_R_DrawStretchPic( float x, float y, float w, float h,

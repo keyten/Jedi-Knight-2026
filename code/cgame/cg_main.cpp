@@ -255,6 +255,7 @@ vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_AD
 vmCvar_t	cl_rendererLensWater;	// engine: the renderer has lens water (CG_R_ADDLENSWATEREVENT)
 vmCvar_t	cl_rendererWaterInteraction;	// engine: modern-water interaction syscalls are available
 vmCvar_t	cl_rendererFoliageWaves;	// engine: the renderer takes Force push / pull waves (CG_R_ADDFOLIAGEFORCEWAVE)
+vmCvar_t	cl_rendererFoliageCut;	// engine: the renderer takes saber cuts of the foliage (CG_R_ADDFOLIAGESABERCUT)
 vmCvar_t	r_waterSplashes;
 vmCvar_t	r_waterSplashQuality;
 vmCvar_t	r_waterSplashStrength;
@@ -398,6 +399,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cl_rendererLensWater, "cl_rendererLensWater", "0", 0 },
 	{ &cl_rendererWaterInteraction, "cl_rendererWaterInteraction", "0", 0 },
 	{ &cl_rendererFoliageWaves, "cl_rendererFoliageWaves", "0", 0 },
+	{ &cl_rendererFoliageCut, "cl_rendererFoliageCut", "0", 0 },
 	{ &r_waterSplashes, "r_waterSplashes", "0", CVAR_ARCHIVE },
 	{ &r_waterSplashQuality, "r_waterSplashQuality", "1", CVAR_ARCHIVE },
 	{ &r_waterSplashStrength, "r_waterSplashStrength", "1", CVAR_ARCHIVE },

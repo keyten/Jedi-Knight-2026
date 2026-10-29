@@ -414,6 +414,15 @@ typedef struct refFoliageWaveExport_s {
 
 typedef	const refFoliageWaveExport_t* (QDECL *GetRefFoliageWaveAPI_t) ( void );
 
+// Optional renderer extension (rend2 saber cut of the foliage), looked up as
+// "GetRefFoliageCutAPI": the game / cgame calls it for every step of an
+// attacking saber blade, only with cl_rendererFoliageCut set (SP).
+typedef struct refFoliageCutExport_s {
+	void		(*AddFoliageSaberCut)( const foliageSaberCut_t *cut );
+} refFoliageCutExport_t;
+
+typedef	const refFoliageCutExport_t* (QDECL *GetRefFoliageCutAPI_t) ( void );
+
 // Optional renderer extension (rend2 local fog volumes, r_volumetricFog 2),
 // looked up as "GetRefFogVolumeAPI". Same lifetime as a dynamic light: add
 // the volumes of a scene between ClearScene and RenderScene, every frame.

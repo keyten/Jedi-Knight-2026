@@ -89,6 +89,7 @@ refexport_t	re;
 const refAreaLightExport_t	*reAreaLights = NULL;	// optional, see tr_public.h
 const refFoliageExport_t	*reFoliage = NULL;		// optional, see tr_public.h
 const refFoliageWaveExport_t	*reFoliageWaves = NULL;	// optional, see tr_public.h
+const refFoliageCutExport_t	*reFoliageCut = NULL;	// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
@@ -917,6 +918,8 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reFoliage = NULL;
 	reFoliageWaves = NULL;
 	Cvar_Set2( "cl_rendererFoliageWaves", "0", qtrue );
+	reFoliageCut = NULL;
+	Cvar_Set2( "cl_rendererFoliageCut", "0", qtrue );
 	reVolParticles = NULL;
 	reSpotLights = NULL;
 	Cvar_Set2( "cl_rendererSpotLights", "0", qtrue );
@@ -1239,6 +1242,11 @@ void CL_InitRef( void ) {
 	// the cgame calls CG_R_ADDFOLIAGEFORCEWAVE only when set (Force push / pull waves)
 	Cvar_Get( "cl_rendererFoliageWaves", "0", CVAR_ROM );
 	Cvar_Set2( "cl_rendererFoliageWaves", reFoliageWaves ? "1" : "0", qtrue );
+	GetRefFoliageCutAPI_t GetRefFoliageCutAPI = (GetRefFoliageCutAPI_t)Sys_LoadFunction( rendererLib, "GetRefFoliageCutAPI" );
+	reFoliageCut = GetRefFoliageCutAPI ? GetRefFoliageCutAPI() : NULL;
+	// the game calls CG_R_ADDFOLIAGESABERCUT only when set (saber cut of the foliage)
+	Cvar_Get( "cl_rendererFoliageCut", "0", CVAR_ROM );
+	Cvar_Set2( "cl_rendererFoliageCut", reFoliageCut ? "1" : "0", qtrue );
 	GetRefVolParticleAPI_t GetRefVolParticleAPI = (GetRefVolParticleAPI_t)Sys_LoadFunction( rendererLib, "GetRefVolParticleAPI" );
 	reVolParticles = GetRefVolParticleAPI ? GetRefVolParticleAPI() : NULL;
 	GetRefSpotLightAPI_t GetRefSpotLightAPI = (GetRefSpotLightAPI_t)Sys_LoadFunction( rendererLib, "GetRefSpotLightAPI" );

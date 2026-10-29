@@ -38,6 +38,8 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_foliagefield.cpp"
 	"${SharedDir}/rd-rend2/tr_plantskel.cpp"
 	"${SharedDir}/rd-rend2/tr_plantsim.cpp"
+	"${SharedDir}/rd-rend2/tr_plantcut.cpp"
+	"${SharedDir}/rd-rend2/tr_plantcut_mesh.h"
 	"${SharedDir}/rd-rend2/tr_fogvolume.cpp"
 	"${SharedDir}/rd-rend2/tr_liquid.cpp"
 	"${SharedDir}/rd-rend2/tr_watersurface.cpp"

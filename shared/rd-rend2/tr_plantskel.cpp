@@ -107,6 +107,8 @@ void R_BuildPlantSkeleton(mdvModel_t *model)
 	{
 		mdvSurface_t *surf = &model->surfaces[s];
 		surf->plantSkin = NULL;
+		surf->plantU = NULL;
+		surf->plantFrond = NULL;
 		const int cls = PlantSkelSurfaceClass(model, surf);
 		if ((cls == FOLIAGE_PLANT || cls == FOLIAGE_GRASS) && surf->numVerts > 0)
 			candidates.push_back({ s, cls == FOLIAGE_GRASS ? PLANTFROND_GRASS : PLANTFROND_LEAF });
@@ -518,48 +520,66 @@ void R_BuildPlantSkeleton(mdvModel_t *model)
 		skel->maxLength = MAX(skel->maxLength, fronds[f].length);
 	}
 
-	// per vertex skin of the plant surfaces
+	// per vertex skin of the plant surfaces, and the frond parameter the saber
+	// cut (tr_plantcut.cpp) interpolates and skins its new vertices with
 	for (size_t c = 0; c < candidates.size(); ++c)
 	{
 		mdvSurface_t *surf = &model->surfaces[candidates[c].surface];
 		surf->plantSkin = (uint32_t *)Hunk_Alloc(sizeof(uint32_t) * surf->numVerts, h_low);
+		surf->plantU = (float *)Hunk_Alloc(sizeof(float) * surf->numVerts, h_low);
+		surf->plantFrond = (signed char *)Hunk_Alloc(surf->numVerts, h_low);
 		for (int v = 0; v < surf->numVerts; ++v)
 		{
 			const int w = vmap[c][v];
-			int boneA = 0, boneB = 0;
-			float weightB = 0.0f;
 			const int f = vertFrond[w];
-			if (f >= 0)
-			{
-				const plantFrond_t &frond = skel->fronds[f];
-				const int segments = frond.numNodes - 1;
-				const float u = Com_Clamp(0.0f, (float)segments, vertU[w]);
-				const int j = MIN((int)floorf(u), segments - 1);
-				const float t = u - j;
-				// blended across the joint next to the vertex: from the middle of
-				// one segment to the middle of the next; the base half of the
-				// first segment turns with it around the attachment (both keep
-				// the attachment point)
-				if (t < 0.5f)
-				{
-					boneA = j == 0 ? frond.firstBone : frond.firstBone + j - 1;
-					boneB = frond.firstBone + j;
-					weightB = j == 0 ? 0.0f : t + 0.5f;
-				}
-				else
-				{
-					boneA = frond.firstBone + j;
-					boneB = j + 1 < segments ? frond.firstBone + j + 1 : boneA;
-					weightB = t - 0.5f;
-				}
-			}
-			const uint32_t wB = (uint32_t)Com_Clampi(0, 255, (int)floorf(weightB * 255.0f + 0.5f));
-			// RGBA8 in memory order: bone A, bone B, weight, 255
-			surf->plantSkin[v] = LittleLong((uint32_t)boneA | ((uint32_t)boneB << 8) | (wB << 16) | (255u << 24));
+			surf->plantFrond[v] = (signed char)f;
+			surf->plantU[v] = f >= 0 ? vertU[w] : 0.0f;
+			surf->plantSkin[v] = f >= 0 ? R_PlantSkinPack(&skel->fronds[f], skel->fronds[f].numNodes - 1, vertU[w]) :
+				R_PlantSkinPack(NULL, 0, 0.0f);
 		}
 	}
 
 	model->plantSkel = skel;
+}
+
+/*
+=============
+R_PlantSkinPack
+
+The skin of a vertex at u (node units) along a frond whose chain has the given
+segments (fewer than the frond's after a saber cut): two neighbouring bones and
+the weight of the second, as the bone weight attribute (RGBA8 in memory order:
+bone A, bone B, weight, 255). NULL frond: bone 0 (rest).
+=============
+*/
+uint32_t R_PlantSkinPack(const plantFrond_t *frond, int segments, float u)
+{
+	int boneA = 0, boneB = 0;
+	float weightB = 0.0f;
+	if (frond && segments > 0)
+	{
+		u = Com_Clamp(0.0f, (float)segments, u);
+		const int j = MIN((int)floorf(u), segments - 1);
+		const float t = u - j;
+		// blended across the joint next to the vertex: from the middle of
+		// one segment to the middle of the next; the base half of the
+		// first segment turns with it around the attachment (both keep
+		// the attachment point)
+		if (t < 0.5f)
+		{
+			boneA = j == 0 ? frond->firstBone : frond->firstBone + j - 1;
+			boneB = frond->firstBone + j;
+			weightB = j == 0 ? 0.0f : t + 0.5f;
+		}
+		else
+		{
+			boneA = frond->firstBone + j;
+			boneB = j + 1 < segments ? frond->firstBone + j + 1 : boneA;
+			weightB = t - 0.5f;
+		}
+	}
+	const uint32_t wB = (uint32_t)Com_Clampi(0, 255, (int)floorf(weightB * 255.0f + 0.5f));
+	return LittleLong((uint32_t)boneA | ((uint32_t)boneB << 8) | (wB << 16) | (255u << 24));
 }
 
 // r_printAutoFoliage: the skeleton of a model

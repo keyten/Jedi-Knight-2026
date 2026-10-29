@@ -243,6 +243,59 @@ GPU test (`tools/rend2/test_foliage_gl.py`, Intel + NVIDIA): field kick = python
 170, direction exact for push and pull, nothing behind the cone or beyond the reach, back to rest after 4 s;
 leaf offsets = mirror within 4e-4 u, zero before the front arrives, 0.7 % left after 2.9 s.
 
+## Saber cut (`r_foliageSaberCut`)
+
+An attacking lightsaber of the player or of an NPC cuts the MD3 plants (the frond skeleton surfaces: ferns, bushes,
+grass cards) it sweeps through. Only a strike cuts, not a blade merely touching or held still in a plant.
+
+**Strikes.**
+- SP (`code/game/wp_saber.cpp`, `WP_SaberDamageTrace`): every blade step the game does damage with
+  (`baseDamage > 0.1`, the condition the BetterJK cloth cut uses), from the blade of the previous game frame to the
+  current one, through `CG_FoliageSaberCut` (cgame, same DLL) and the syscall `CG_R_ADDFOLIAGESABERCUT`, only with
+  `cl_rendererFoliageCut` (set by the engine when the renderer has the extension).
+- MP (`codemp/cgame/cg_players.c`, `CG_AddSaberBlade`): per blade and frame, from where the blade was drawn last frame;
+  a strike is `BG_SaberInAttack` (the player: and not blocked) or `BG_SaberInSpecial`, or a thrown saber;
+  `trap->ext.R_AddFoliageSaberCut` (NULL in the legacy VM).
+- Transport: the optional extension `GetRefFoliageCutAPI` with `foliageSaberCut_t` (blade at the start and at the end
+  of the step, radius, step duration).
+
+**The cut (`tr_plantcut.cpp`, `tr_plantcut_mesh.h`).** At the start of the next world scene every blade step is
+tested against the plants seen last frame. A plant hit for the first time gets its own copy of its skeleton surfaces
+(lod 0: rest geometry, UV, normal, tangent and the frond parameter u of every vertex, kept by `tr_plantskel.cpp`).
+The step is two triangles of the blade quad; each cuts the mesh in the pose on screen (the current bones skin the
+rest positions on the CPU like `plant_skin.glsl`):
+- a triangle the sweep plane crosses gets the crossing segment, clipped to the sweep triangle;
+- crossed all the way: split into its two sides, the vertices on the cut duplicated per side;
+- crossed from an edge to a point inside (the blade ends in it): a slit, like the cloth cut of `cg_cloth.cpp`
+  (`SplitTriangleAtCutTip`) in 3D, the tip shared by both sides;
+- a stab through the middle of a triangle cuts nothing.
+New vertices interpolate the rest attributes with the fraction found on the world positions; connectivity goes
+through welded positions, so a side is one piece across the UV seams of a stock MD3.
+
+**What stays, what falls.** A piece of the mesh that still reaches an anchor (hub, stem, the base of a frond,
+u <= 0.15) stays on the plant: a leaf cut part of the way keeps its slit and moves on as before. A piece that lost its
+anchor falls as a separate piece: it starts in the pose it was cut in (the bone most of it rides on), with the
+velocity of its frond plus 12 % of the blade's (at most 220 u/s), falls under gravity with the plate drag and flutter
+of a leaf (a blade of grass like a rod), takes Force push / pull waves, lies down on the ground (traced), lies for
+`r_foliageSaberCutPieceTime` seconds and sinks away; `r_foliageSaberCutPieces` live at most, the oldest go first.
+Each frond of the plant is cut short at the highest u it keeps: its chain in `tr_plantsim.cpp` is truncated there
+(the last segment shortened, masses and stiffness recomputed) and the kept vertices are skinned to the truncated
+chain, so the rest of the plant keeps swinging with wind, characters and Force waves.
+
+**Drawing.** The cut plant draws its skeleton surfaces from its own vertex / index buffers (layout of the MD3 VBO,
+skin in the bone weight slot, rebuilt after each cut) and always with lod 0; the pieces are entities of the plant
+model added by the renderer to every world scene, whose only surfaces are their index ranges of those buffers, drawn
+rigid (no bones). Cut plants are never evicted; they stay cut until the map changes or `r_foliageSaberCutReset`.
+Plants whose shaders need CPU deforms are not cut.
+
+Debug: `r_plantDebug 32` draws the recent blade steps (red: they cut something), `r_plantSimInfo` the cut plants and
+the pieces, `developer 1` prints every cut. `r_foliageSaberCutTest [height] [partial]` sends a level blade step
+through the plant nearest to the view (height as a fraction of the plant, default 0.5; partial 1 stops in its middle).
+
+CPU test of the mesh cut: `tools/rend2/plantcut_mesh/run.sh` (full cut, slit, stab, cut through a vertex row, two
+cuts, bent pose). In game (SP, yavin1b, hidden run 2026-10-28): the test command splits `fern3_b` into 11 falling
+pieces and 12 shortened fronds, a real player saber attack cuts it too.
+
 ## Cvars
 
 | cvar | default | |
@@ -253,6 +306,9 @@ leaf offsets = mirror within 4e-4 u, zero before the front arrives, 0.7 % left a
 | `r_foliageInteractionNPCs` | 1 | NPCs too |
 | `r_foliageForceWaves` | 1 | Force push / pull throws the vegetation (with `r_foliageInteraction`) |
 | `r_foliageForceWaveStrength` | 1 | its strength, 0–4 |
+| `r_foliageSaberCut` | 1 | an attacking saber cuts the MD3 plants (needs the plant simulation) |
+| `r_foliageSaberCutPieces` | 48 | pieces cut off alive at most, 0 = cut off parts vanish |
+| `r_foliageSaberCutPieceTime` | 20 | seconds a piece lies before it sinks away |
 | `r_foliageInteractionDebug` | 0 | 1 colliders and Force waves, 2 x2 radius and strength, 4 interaction only, 8 grass contact heat, 16 freeze, 32 player only |
 | `r_plantWind` / `r_plantWindStrength` | 0 / 1 | breeze on the MD3 fronds |
 | `r_plantSimDistance` / `r_plantWindDistance` | 1500 / 3000 | full step / coarse step / rest |

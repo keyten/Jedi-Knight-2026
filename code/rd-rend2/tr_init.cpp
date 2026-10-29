@@ -555,6 +555,9 @@ cvar_t  *r_foliageInteractionNPCs;
 cvar_t  *r_foliageInteractionDebug;
 cvar_t  *r_foliageForceWaves;
 cvar_t  *r_foliageForceWaveStrength;
+cvar_t  *r_foliageSaberCut;
+cvar_t  *r_foliageSaberCutPieces;
+cvar_t  *r_foliageSaberCutPieceTime;
 cvar_t  *r_foliageBendFieldSize;
 cvar_t  *r_foliageBendFieldExtent;
 cvar_t  *r_foliageBendFieldStrength;
@@ -2046,6 +2049,8 @@ static consoleCommand_t	commands[] = {
 	{ "r_foliageInteractionList", R_FoliageInteractionList_f },
 	{ "r_foliageBendFieldClear", R_FoliageFieldClear_f },
 	{ "r_plantSimInfo", R_PlantSimInfo_f },
+	{ "r_foliageSaberCutReset", R_PlantSimRestoreCuts_f },
+	{ "r_foliageSaberCutTest", R_PlantSimCutTest_f },
 	{ "r_forwardPlusStats",	R_ForwardPlusStats_f },
 	{ "r_forwardPlusVerify",	R_ForwardPlusVerify_f },
 	{ "r_vfogLightVerify",	R_VolumetricLightVerify_f },
@@ -2717,6 +2722,15 @@ void R_Register( void )
 	r_foliageForceWaveStrength = ri_Cvar_Get_NoComm( "r_foliageForceWaveStrength", "1", CVAR_ARCHIVE,
 		"Strength of the Force push / pull through the foliage (r_foliageForceWaves), 0 = none" );
 	ri.Cvar_CheckRange( r_foliageForceWaveStrength, 0.0f, 4.0f, qfalse );
+	r_foliageSaberCut = ri_Cvar_Get_NoComm( "r_foliageSaberCut", "1", CVAR_ARCHIVE,
+		"An attacking saber of the player or an NPC cuts the MD3 plants (fronds, grass cards) it sweeps through: a part cut off falls, a partial cut stays (needs the plant simulation: r_autoFoliage with r_plantWind or r_foliageInteraction)" );
+	ri.Cvar_CheckRange( r_foliageSaberCut, 0, 1, qtrue );
+	r_foliageSaberCutPieces = ri_Cvar_Get_NoComm( "r_foliageSaberCutPieces", "48", CVAR_ARCHIVE,
+		"Pieces cut off the plants (r_foliageSaberCut) alive at most, the oldest go first; 0 = cut off parts vanish" );
+	ri.Cvar_CheckRange( r_foliageSaberCutPieces, 0, 256, qtrue );
+	r_foliageSaberCutPieceTime = ri_Cvar_Get_NoComm( "r_foliageSaberCutPieceTime", "20", CVAR_ARCHIVE,
+		"Seconds a piece cut off a plant lies on the ground before it sinks away" );
+	ri.Cvar_CheckRange( r_foliageSaberCutPieceTime, 0.0f, 600.0f, qfalse );
 	r_foliageBendFieldSize = ri_Cvar_Get_NoComm( "r_foliageBendFieldSize", "256", CVAR_ARCHIVE | CVAR_LATCH,
 		"r_foliageInteraction: texels per side of the grass bend field (64, 128 or 256)" );
 	ri.Cvar_CheckRange( r_foliageBendFieldSize, 64, 256, qtrue );
@@ -2756,8 +2770,8 @@ void R_Register( void )
 		"Bending stiffness of the plant fronds (1 = default, higher = stiffer and faster swing); applies to plants seen after a change" );
 	ri.Cvar_CheckRange( r_plantStiffness, 0.1f, 8.0f, qfalse );
 	r_plantDebug = ri_Cvar_Get_NoComm( "r_plantDebug", "0", CVAR_CHEAT,
-		"Plant frond debug bits: 1 = centerlines and nodes, 2 = color by segment, 4 = color by bone, 8 = centerlines colored by contact side, 16 = print the simulation cost" );
-	ri.Cvar_CheckRange( r_plantDebug, 0, 31, qtrue );
+		"Plant frond debug bits: 1 = centerlines and nodes, 2 = color by segment, 4 = color by bone, 8 = centerlines colored by contact side, 16 = print the simulation cost, 32 = saber cut blade steps (red: cut)" );
+	ri.Cvar_CheckRange( r_plantDebug, 0, 63, qtrue );
 	r_grassBendSegments = ri_Cvar_Get_NoComm( "r_grassBendSegments", "4", CVAR_ARCHIVE,
 		"Segments of a near grass sprite (curved blade), 1 = flat card everywhere" );
 	ri.Cvar_CheckRange( r_grassBendSegments, 1, 8, qtrue );
@@ -4380,6 +4394,19 @@ foliage, tr_foliageinteract.cpp
 extern "C" Q_EXPORT const refFoliageWaveExport_t* QDECL GetRefFoliageWaveAPI ( void ) {
 	static const refFoliageWaveExport_t foliageWaves = { RE_AddFoliageForceWave };
 	return &foliageWaves;
+}
+
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefFoliageCutAPI
+
+Optional extension (tr_public.h): attacking saber blades cut the MD3
+plants, tr_plantcut.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refFoliageCutExport_t* QDECL GetRefFoliageCutAPI ( void ) {
+	static const refFoliageCutExport_t foliageCut = { RE_AddFoliageSaberCut };
+	return &foliageCut;
 }
 
 /*

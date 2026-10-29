@@ -363,6 +363,10 @@ void	cgi_R_AddFoliageForceWave( const foliageForceWave_t *wave ) {
 	Q_syscall( CG_R_ADDFOLIAGEFORCEWAVE, wave );
 }
 
+void	cgi_R_AddFoliageSaberCut( const foliageSaberCut_t *cut ) {
+	Q_syscall( CG_R_ADDFOLIAGESABERCUT, cut );
+}
+
 void	cgi_R_RenderScene( const refdef_t *fd ) {
 	Q_syscall( CG_R_RENDERSCENE, fd );
 }

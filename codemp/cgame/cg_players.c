@@ -6075,6 +6075,101 @@ void CG_SaberCompWork(vec3_t start, vec3_t end, centity_t *owner, int saberNum, 
 
 qboolean BG_SuperBreakWinAnim( int anim );
 
+/*
+=====================
+CG_FoliageSaberCut
+
+CG_AddSaberBlade, every blade every frame: a step of a blade that is attacking
+(the attacks and specials the game does full damage with, a thrown saber; not
+a blade merely touching) from where it was last frame; the renderer cuts the
+MD3 plants it sweeps through (rend2 r_foliageSaberCut)
+=====================
+*/
+#define FOLIAGE_CUT_BLADES	64
+
+typedef struct {
+	int		number;		// entity * 16 + saber * 8 + blade, -1 free
+	int		time;
+	vec3_t	base, tip;
+} foliageCutBlade_t;
+
+static qboolean CG_FoliageSaberAttacking( const centity_t *cent, qboolean fromSaber )
+{
+	int move;
+
+	if ( fromSaber || cent->currentState.saberInFlight )
+		return qtrue;
+	if ( cent->currentState.number == cg.predictedPlayerState.clientNum )
+	{
+		const playerState_t *ps = &cg.predictedPlayerState;
+		if ( BG_SaberInSpecial( ps->saberMove ) )
+			return qtrue;
+		return BG_SaberInAttack( ps->saberMove ) && ps->saberBlocked == BLOCKED_NONE ? qtrue : qfalse;
+	}
+	move = cent->currentState.saberMove;
+	return BG_SaberInAttack( move ) || BG_SaberInSpecial( move ) ? qtrue : qfalse;
+}
+
+static void CG_FoliageSaberCut( const centity_t *cent, int saberNum, int bladeNum, const vec3_t base,
+	const vec3_t tip, float length, float radius, qboolean fromSaber )
+{
+	static foliageCutBlade_t blades[FOLIAGE_CUT_BLADES];
+	static qboolean initialized;
+	foliageCutBlade_t *slot = NULL, *oldest = NULL;
+	const int number = cent->currentState.number * 16 + saberNum * 8 + bladeNum;
+	int i;
+
+	if ( !trap->ext.R_AddFoliageSaberCut || length <= 0.0f )
+		return;
+	if ( !initialized )
+	{
+		for ( i = 0; i < FOLIAGE_CUT_BLADES; i++ )
+			blades[i].number = -1;
+		initialized = qtrue;
+	}
+	for ( i = 0; i < FOLIAGE_CUT_BLADES; i++ )
+	{
+		if ( blades[i].number == number )
+		{
+			slot = &blades[i];
+			break;
+		}
+		if ( !oldest || blades[i].time < oldest->time )
+			oldest = &blades[i];
+	}
+	if ( !slot )
+	{
+		// a blade not seen recently: no step yet
+		slot = oldest;
+		slot->number = number;
+		slot->time = cg.time;
+		VectorCopy( base, slot->base );
+		VectorCopy( tip, slot->tip );
+		return;
+	}
+	// drawn more than once per frame
+	if ( slot->time == cg.time )
+		return;
+	if ( cg.time > slot->time && cg.time - slot->time <= 250 && CG_FoliageSaberAttacking( cent, fromSaber ) &&
+		DistanceSquared( slot->base, base ) < 256.0f * 256.0f )
+	{
+		foliageSaberCut_t cut;
+		memset( &cut, 0, sizeof( cut ) );
+		cut.id = cent->currentState.number;
+		cut.blade = saberNum * 8 + bladeNum;
+		VectorCopy( slot->base, cut.base0 );
+		VectorCopy( slot->tip, cut.tip0 );
+		VectorCopy( base, cut.base1 );
+		VectorCopy( tip, cut.tip1 );
+		cut.radius = radius;
+		cut.duration = ( cg.time - slot->time ) * 0.001f;
+		trap->ext.R_AddFoliageSaberCut( &cut );
+	}
+	slot->time = cg.time;
+	VectorCopy( base, slot->base );
+	VectorCopy( tip, slot->tip );
+}
+
 void CG_AddSaberBlade( centity_t *cent, centity_t *scent, refEntity_t *saber, int renderfx, int modelIndex, int saberNum, int bladeNum, vec3_t origin, vec3_t angles, qboolean fromSaber, qboolean dontDraw)
 {
 	vec3_t	org_, end, v,
@@ -6153,6 +6248,9 @@ void CG_AddSaberBlade( centity_t *cent, centity_t *scent, refEntity_t *saber, in
 	}
 
 	VectorMA( org_, saberLen, axis_[0], end );
+
+	CG_FoliageSaberCut( cent, saberNum, bladeNum, org_, end, saberLen,
+		client->saber[saberNum].blade[bladeNum].radius, fromSaber );
 
 	VectorAdd( end, axis_[0], end );
 

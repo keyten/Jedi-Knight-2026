@@ -436,11 +436,27 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 	backEndData->entities[r_numentities].ghoulCameraProjectedRadius = 0.0f;
 	backEndData->entities[r_numentities].plantBoneOffset = -1;
 	backEndData->entities[r_numentities].plantBoneTexels = 0;
+	backEndData->entities[r_numentities].plantCutDraw = NULL;
+	backEndData->entities[r_numentities].plantCutDebris = qfalse;
 
 	CrossProduct(ent->axis[0], ent->axis[1], cross);
 	backEndData->entities[r_numentities].mirrored = (qboolean)(DotProduct(ent->axis[2], cross) < 0.f);
 
 	r_numentities++;
+}
+
+/*
+=====================
+R_AddSceneEntity
+
+A renderer made entity of this scene (RE_BeginScene, before the scene takes
+its entities): its slot, NULL when the scene is full
+=====================
+*/
+trRefEntity_t *R_AddSceneEntity( const refEntity_t *ent ) {
+	const int before = r_numentities;
+	RE_AddRefEntityToScene( ent );
+	return r_numentities > before ? &backEndData->entities[r_numentities - 1] : NULL;
 }
 
 #ifndef REND2_SP
@@ -859,6 +875,10 @@ void RE_BeginScene(const refdef_t *fd)
 
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData->drawSurfs;
+
+	// saber cut (tr_plantcut.cpp): blade steps into the plants, the pieces
+	// cut off fall and are added as entities of the scene
+	R_PlantCutBeginScene(fd);
 
 	tr.refdef.num_entities = r_numentities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData->entities[r_firstSceneEntity];

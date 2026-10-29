@@ -355,6 +355,22 @@ typedef struct {
 	int			flags;		// FOLIAGE_FORCEWAVE_*
 } foliageForceWave_t;
 
+// Saber cut of the foliage (rend2 r_foliageSaberCut): one step of an attacking
+// lightsaber blade (only a strike, not a blade merely touching), sent through
+// the optional renderer extension GetRefFoliageCutAPI. The renderer cuts the
+// MD3 plants the blade sweeps through: a leaf cut part of the way keeps a slit,
+// a part cut off falls as a piece of its own.
+typedef struct {
+	int			id;			// wielder entity number
+	int			blade;		// saber * 8 + blade
+	vec3_t		base0;		// blade at the start of the step
+	vec3_t		tip0;
+	vec3_t		base1;		// and at its end
+	vec3_t		tip1;
+	float		radius;		// blade radius
+	float		duration;	// of the step, seconds (blade speed for the pieces)
+} foliageSaberCut_t;
+
 // Local fog volumes (rend2 froxel fog, r_volumetricFog 2): a small analytic
 // participating medium (smoke pocket, steam, haze, dust) with a soft edge,
 // added per scene like a dynamic light through the optional renderer
