@@ -360,6 +360,8 @@ cvar_t  *r_colorGradingIntensity;
 cvar_t  *r_autoEmissive;
 
 cvar_t  *r_depthPrepass;
+cvar_t  *r_depthPrepassFast;
+cvar_t  *r_depthPrepassVerify;
 cvar_t  *r_ssao;
 cvar_t  *r_aoMode;
 cvar_t  *r_aoApply;
@@ -2383,6 +2385,10 @@ void R_Register( void )
 	R_CvarRange( r_autoEmissive, 0, 1, qtrue );
 
 	r_depthPrepass = R_Cvar( "r_depthPrepass", "1", CVAR_ARCHIVE, "Depth pre-pass before the main pass (needed by SSAO, GTAO, SSR, SSGI, contact shadows, volumetric fog): 0 off, 1 on" );
+	r_depthPrepassFast = R_Cvar( "r_depthPrepassFast", "0", CVAR_ARCHIVE, "Depth prepass without a velocity buffer: 1 = depth-only velocity programs (cheap), 0 = lightall / generic programs" );
+	R_CvarRange( r_depthPrepassFast, 0, 1, qtrue );
+	r_depthPrepassVerify = R_Cvar( "r_depthPrepassVerify", "0", CVAR_TEMP, "Depth prepass check: 1 = draw the prepass a second time with the other program family and print the samples nearer than the first (0 = bit-identical); alternates the order each frame" );
+	R_CvarRange( r_depthPrepassVerify, 0, 1, qtrue );
 	r_ssao = R_Cvar( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE, "Rend2's original screen-space ambient occlusion: 0 off, 1 on, 2 debug view" );
 	r_aoMode = R_Cvar( "r_aoMode", "-1", CVAR_ARCHIVE, "Screen-space ambient occlusion: -1 = follow r_ssao (legacy), 0 = off, 1 = legacy SSAO, 2 = GTAO. Needs r_depthPrepass; turning it on from off needs a vid_restart" );
 	R_CvarRange( r_aoMode, -1, 2, qtrue );

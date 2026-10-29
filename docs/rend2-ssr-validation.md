@@ -358,6 +358,8 @@ Measured and rejected:
   (new, `r_speeds 100`): 0.295-0.306 ms depth only vs 0.101-0.108 ms with
   velocity; main view +0.17 ms. The depth-only prepass uses the lightall
   programs, the velocity prepass the small `velocity` programs. Reverted.
+  The depth-only prepass now uses a depth-only velocity permutation
+  (`docs/rend2-depth-prepass.md`).
 - Hit cache for long rays only: not pursued (the 10-28 numbers stand).
 
 Final defaults vs baseline (two interleaved rounds, ms, footprint test off /

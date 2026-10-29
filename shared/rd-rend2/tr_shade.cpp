@@ -1592,6 +1592,21 @@ static unsigned int RB_CalcShaderVertexAttribs( const shader_t *shader )
 	return vertexAttribs;
 }
 
+// A depth prepass without a velocity buffer draws with the depth-only
+// permutation of the velocity programs: same position, alpha test and
+// parallax as the velocity prepass, and cheaper than lightall (ffa3 640x360:
+// Intel 0.43 -> 0.22 ms, NVIDIA 0.18 -> 0.14 ms; docs/rend2-depth-prepass.md).
+// Shadow maps (cube layers, sun snap) and the weather
+// impact pass (class written to colour) keep lightall / generic.
+// r_depthPrepassFast 0 or the r_depthPrepassVerify reference draw use them too.
+static bool RB_DepthOnlyVelocityPrograms( void )
+{
+	return r_depthPrepassFast->integer &&
+		!backEnd.depthPrepassLegacy &&
+		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
+		!RB_WeatherImpactPass();
+}
+
 static shaderProgram_t *SelectShaderProgram( int stageIndex, shaderStage_t *stage, shaderProgram_t *glslShaderGroup, bool useAlphaTestGE192, bool forceRefraction )
 {
 	uint32_t index;
@@ -1647,9 +1662,11 @@ static shaderProgram_t *SelectShaderProgram( int stageIndex, shaderStage_t *stag
 
 	if (backEnd.depthFill)
 	{
-		if (tr.depthVelocityFbo != nullptr && glState.currentFBO == tr.depthVelocityFbo)
+		const bool velocityFill =
+			tr.depthVelocityFbo != nullptr && glState.currentFBO == tr.depthVelocityFbo;
+		if (velocityFill || RB_DepthOnlyVelocityPrograms())
 		{
-			index = 0;
+			index = velocityFill ? 0 : VELOCITYDEF_DEPTH_ONLY;
 			if (glState.skeletalAnimation)
 				index |= VELOCITYDEF_USE_SKELETAL_ANIMATION;
 			if (tess.shader->numDeforms && !ShaderRequiresCPUDeforms(tess.shader))
@@ -2071,6 +2088,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 		if (backEnd.viewParms.flags & VPF_POINTSHADOW)
 			stateBits |= GLS_POLYGON_OFFSET_FILL;
+
+		// r_depthPrepassVerify: second draw of the prepass that counts the
+		// samples strictly nearer than the depth the first one wrote
+		if (backEnd.depthPrepassCompare)
+			stateBits = (stateBits & ~(GLS_DEPTHFUNC_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE)) |
+				GLS_DEPTHFUNC_LESS;
 
 		sp = SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction);
 		assert(sp);

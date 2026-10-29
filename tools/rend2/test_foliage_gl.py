@@ -157,7 +157,10 @@ def check_permutations():
         'fogpass': [[], ['USE_SKELETAL_ANIMATION'], ['USE_VERTEX_ANIMATION'], ['USE_DEFORM_VERTEXES'],
                     ['USE_FALLBACK_GLOBAL_FOG']],
         'velocity': [[], ['USE_SKELETAL_ANIMATION'], ['USE_VERTEX_ANIMATION'], ['USE_DEFORM_VERTEXES'],
-                     ['USE_ALPHA_TEST', 'USE_TCGEN', 'USE_TCMOD']],
+                     ['USE_ALPHA_TEST', 'USE_TCGEN', 'USE_TCMOD'],
+                     # depth prepass without a velocity buffer (VELOCITYDEF_DEPTH_ONLY)
+                     ['USE_DEPTH_ONLY'], ['USE_DEPTH_ONLY', 'USE_SKELETAL_ANIMATION', 'USE_DEFORM_VERTEXES'],
+                     ['USE_DEPTH_ONLY', 'USE_TCGEN', 'USE_TCMOD', 'USE_RGBAGEN', 'USE_PARALLAXMAP']],
     }
     for name, variants in sets.items():
         for defines in variants:

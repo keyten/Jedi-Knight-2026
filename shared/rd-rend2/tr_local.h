@@ -2537,12 +2537,14 @@ enum
 	VELOCITYDEF_USE_TCGEN_AND_TCMOD		= 0x0004,
 	VELOCITYDEF_USE_RGBAGEN				= 0x0008,
 	VELOCITYDEF_USE_PARALLAXMAP			= 0x0010,
+	// depth prepass without a velocity buffer: no previous frame, no colour
+	VELOCITYDEF_DEPTH_ONLY				= 0x0020,
 	//VELOCITYDEF_USE_ALPHA_TEST		= 0x0004,
 #ifdef REND2_SP_MD3
 	VELOCITYDEF_USE_VERTEX_ANIMATION	= 0x0004,
 	VELOCITYDEF_ALL						= 0x0007,
 #else
-	VELOCITYDEF_ALL						= 0x001F,
+	VELOCITYDEF_ALL						= 0x003F,
 #endif // REND2_SP
 	VELOCITYDEF_COUNT					= VELOCITYDEF_ALL + 1,
 };
@@ -4433,6 +4435,8 @@ typedef struct {
 	qboolean    colorMask[4];
 	qboolean    framePostProcessed;
 	qboolean    depthFill;
+	bool        depthPrepassLegacy;  // depth-only prepass with lightall / generic (r_depthPrepassVerify)
+	bool        depthPrepassCompare; // depth test LESS, no write (r_depthPrepassVerify)
 	qboolean    skyPortalOccluders; // GL_DepthRange forced to 0 (RB_SkyPortalOccluders)
 	qboolean    refractionFill;
 	image_t    *screenAoImage;	// AO / contact shadow map lightall samples in this view (TB_SSAOMAP)
@@ -5105,6 +5109,8 @@ extern  cvar_t  *r_forceAutoExposureMax;
 extern  cvar_t  *r_cameraExposure;
 
 extern  cvar_t  *r_depthPrepass;
+extern  cvar_t  *r_depthPrepassFast;
+extern  cvar_t  *r_depthPrepassVerify;
 extern  cvar_t  *r_ssao;
 
 extern  cvar_t  *r_normalMapping;

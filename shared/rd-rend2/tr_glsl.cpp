@@ -3560,6 +3560,12 @@ static int GLSL_LoadGPUProgramVelocityPass(
 			attribs |= ATTR_TANGENT;
 		}
 
+		if (i & VELOCITYDEF_DEPTH_ONLY)
+		{
+			Q_strcat(name, sizeof(name), "_DEPTH");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_DEPTH_ONLY\n");
+		}
+
 		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.velocityShader[i],
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, nullptr, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)

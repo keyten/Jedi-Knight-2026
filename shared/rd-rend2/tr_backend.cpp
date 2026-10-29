@@ -2632,7 +2632,41 @@ static void RB_RenderDepthOnly( drawSurf_t *drawSurfs, int numDrawSurfs )
 	{
 		qglColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	}
+
+	// r_depthPrepassVerify: the depth-only velocity programs against lightall /
+	// generic. One family writes the depth, the other draws again with LESS
+	// and no depth write; any sample that passes is nearer in the second
+	// family. The order alternates per frame, so 0 both ways = bit-identical.
+	const bool verify = r_depthPrepassVerify->integer && r_depthPrepassFast->integer &&
+		!needVelocityBuffer && !RB_WeatherImpactPass() &&
+		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW);
+	static int verifyFrame;
+	const bool legacyFirst = verify && (++verifyFrame & 1);
+
+	backEnd.depthPrepassLegacy = legacyFirst;
 	RB_RenderDrawSurfList(drawSurfs, numDrawSurfs);
+	backEnd.depthPrepassLegacy = false;
+
+	if (verify)
+	{
+		static GLuint query;
+		if (!query)
+			qglGenQueries(1, &query);
+		backEnd.depthPrepassLegacy = !legacyFirst;
+		backEnd.depthPrepassCompare = true;
+		qglBeginQuery(GL_SAMPLES_PASSED, query);
+		RB_RenderDrawSurfList(drawSurfs, numDrawSurfs);
+		qglEndQuery(GL_SAMPLES_PASSED);
+		backEnd.depthPrepassCompare = false;
+		backEnd.depthPrepassLegacy = false;
+
+		GLuint nearer = 0;
+		qglGetQueryObjectuiv(query, GL_QUERY_RESULT, &nearer);
+		ri.Printf(PRINT_ALL, "depth prepass verify: %s nearer than %s: %u samples (%d surfs)\n",
+			legacyFirst ? "fast" : "legacy", legacyFirst ? "legacy" : "fast",
+			nearer, numDrawSurfs);
+	}
+
 	if (needVelocityBuffer)
 		FBO_Bind(oldFbo);
 

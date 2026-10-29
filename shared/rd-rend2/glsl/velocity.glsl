@@ -52,6 +52,7 @@ layout(std140) uniform Entity
 	float u_VertexLerp;
 };
 
+#if !defined(USE_DEPTH_ONLY)
 layout(std140) uniform PreviousEntity
 {
 	mat4 u_PreviousModelMatrix;
@@ -63,6 +64,7 @@ layout(std140) uniform PreviousEntity
 	vec3 u_PreviousModelLightDir;
 	float u_PreviousVertexLerp;
 };
+#endif
 
 layout(std140) uniform ShaderInstance
 {
@@ -80,12 +82,15 @@ layout(std140) uniform Bones
 	mat3x4 u_BoneMatrices[MAX_G2_BONES];
 };
 
+#if !defined(USE_DEPTH_ONLY)
 layout(std140) uniform PreviousBones
 {
 	mat3x4 u_PreviousBoneMatrices[MAX_G2_BONES];
 };
 #endif
+#endif
 
+#if !defined(USE_DEPTH_ONLY)
 layout(std140) uniform TemporalInfo
 {
 	mat4 u_previousViewProjectionMatrix;
@@ -93,6 +98,7 @@ layout(std140) uniform TemporalInfo
 	vec2 u_previousJitter;
 	float u_previousFrameTime;
 };
+#endif
 
 uniform vec4 u_DiffuseTexMatrix;
 uniform vec4 u_DiffuseTexOffTurb;
@@ -115,8 +121,10 @@ uniform int u_AlphaGen;
 uniform vec4 u_Disintegration; // origin, threshhold
 #endif
 
+#if !defined(USE_DEPTH_ONLY)
 out vec4 var_Position;
 out vec4 var_prevPosition;
+#endif
 
 out vec4 var_Color;
 
@@ -340,12 +348,14 @@ void main()
         GetBoneMatrix(u_BoneMatrices[attr_BoneIndexes[2]]) * attr_BoneWeights[2] +
         GetBoneMatrix(u_BoneMatrices[attr_BoneIndexes[3]]) * attr_BoneWeights[3];
     vec3 position = influence * vec4(attr_Position, 1.0);
+#if !defined(USE_DEPTH_ONLY)
 	mat4x3 prevInfluence =
 		GetBoneMatrix(u_PreviousBoneMatrices[attr_BoneIndexes[0]]) * attr_BoneWeights[0] +
         GetBoneMatrix(u_PreviousBoneMatrices[attr_BoneIndexes[1]]) * attr_BoneWeights[1] +
         GetBoneMatrix(u_PreviousBoneMatrices[attr_BoneIndexes[2]]) * attr_BoneWeights[2] +
         GetBoneMatrix(u_PreviousBoneMatrices[attr_BoneIndexes[3]]) * attr_BoneWeights[3];
 	vec3 prevPosition = prevInfluence * vec4(attr_Position, 1.0);
+#endif
 #else
 	vec3 position = attr_Position;
 	vec3 prevPosition = position;
@@ -358,7 +368,9 @@ void main()
 		vec3 prevNormal = normal;
 	#elif defined(USE_SKELETAL_ANIMATION)
 		vec3 normal = normalize(influence * vec4(attr_Normal - vec3(0.5), 0.0));
+	#if !defined(USE_DEPTH_ONLY)
 		vec3 prevNormal = normalize(prevInfluence * vec4(attr_Normal - vec3(0.5), 0.0));
+	#endif
 	#else
 		vec3 normal   = attr_Normal * 2.0 - vec3(1.0);
 		vec3 prevNormal = normal;
@@ -378,10 +390,28 @@ void main()
 
 #if defined(USE_DEFORM_VERTEXES)
 	position = DeformPosition(position, normal, attr_TexCoord0.st);
+#if !defined(USE_DEPTH_ONLY)
 	prevPosition = DeformPosition(prevPosition, prevNormal, attr_TexCoord0.st);
+#endif
 #endif
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
+
+#if defined(USE_DEPTH_ONLY)
+	// depth prepass without a velocity buffer: the same current frame
+	// position as below and as lightall / generic, no previous frame
+	if (LeafFlutterEnabled())
+	{
+		vec2 leafBands;
+		wsPosition.xyz += LeafFlutterOffset(wsPosition.xyz, LeafFlutterSeed(u_ModelMatrix[3].xyz),
+			u_LeafFlutterParams.x, LeafFlutterWeight(position), leafBands);
+	}
+	else if (PlantSkinEnabled())
+	{
+		vec4 plantRotation;
+		wsPosition.xyz = PlantSkinPosition(wsPosition.xyz, false, plantRotation);
+	}
+#else
 
 	// r_leafFlutter: same displacement as lightall, evaluated again at the
 	// previous frame time for the motion vector (leaf_flutter.glsl). One seed
@@ -411,10 +441,13 @@ void main()
 	{
 		var_prevPosition = u_previousViewProjectionMatrix * u_PreviousModelMatrix * vec4(prevPosition, 1.0);
 	}
+#endif
 
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
+#if !defined(USE_DEPTH_ONLY)
 	var_Position = gl_Position;
+#endif
 
 #if defined(USE_ALPHA_TEST)
 #if defined(USE_TCGEN)
@@ -457,6 +490,7 @@ uniform float u_ParallaxBias;
 #endif
 #endif
 
+#if !defined(USE_DEPTH_ONLY)
 layout(std140) uniform TemporalInfo
 {
 	mat4 u_previousViewProjectionMatrix;
@@ -467,6 +501,7 @@ layout(std140) uniform TemporalInfo
 
 in vec4 var_Position;
 in vec4 var_prevPosition;
+#endif
 
 in vec4 var_Color;
 
@@ -477,7 +512,9 @@ in vec3 var_TangentViewDir;
 #endif
 #endif
 
+#if !defined(USE_DEPTH_ONLY)
 out vec4 out_Color;
+#endif
 
 #if defined(USE_ALPHA_TEST) && defined(USE_PARALLAXMAP)
 float RayIntersectDisplaceMap(in vec2 inDp, in vec2 ds, in sampler2D normalMap, in float parallaxBias)
@@ -586,6 +623,7 @@ void main()
 			discard;
 	}
 #endif
+#if !defined(USE_DEPTH_ONLY)
 	vec2 currentPos = (var_Position.xy / var_Position.w) * 0.5 + 0.5;
 	vec2 prevPos = (var_prevPosition.xy / var_prevPosition.w) * 0.5 + 0.5;
 	vec2 motionVector = currentPos - prevPos;
@@ -594,4 +632,5 @@ void main()
 	motionVector -= u_previousJitter / r_FBufScale.xy;
 
 	out_Color = vec4(motionVector, 0.0, 1.0);
+#endif
 }
