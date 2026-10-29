@@ -1,0 +1,3441 @@
+{
+  "cases": {
+    "door_occlusion": {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "models": {
+        "ambient": {
+          "converged": true,
+          "fitted_q": [
+            [
+              4.9999961853,
+              4.9999961853,
+              4.9999961853
+            ]
+          ],
+          "frozen_parameter_sha256": "aef50ed5406cc46a409d7e5c292de206921e7e33a5d2bbf30ca817986e386fb4",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734"
+          },
+          "parameter_slices": [],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 45.53167774957183,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.09847982681261491,
+              "known_area": 3840,
+              "maximum_interval_error": 55.0000038147,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 44.98518653813056,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 9,
+                "positive_spatial_blocks": 1,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.21857361885625
+              },
+              "area_interval_rmse": 33.81567928827598,
+              "black_interval_rmse": 37.21857361885625,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.09143000388537836,
+              "known_area": 4608,
+              "maximum_interval_error": 55.0000038147,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 33.81567928827598,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 9,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 9
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 30.105373995287984,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.1333367744845131,
+              "known_area": 3840,
+              "maximum_interval_error": 48.0000038147,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 32.42427426776879,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "c34d42fdff81d9153c1d610ef13296158622ef88ee0735e66bd2b549bb9fb3ae",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 55.0000038147,
+            "objective": 94.8888892639,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                4.9999961853,
+                4.9999961853,
+                4.9999961853
+              ]
+            ],
+            "singular": [
+              0.577350338015,
+              0.577350338015,
+              0.577350338015
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10924626,
+              "cache_hits": 0,
+              "evaluations": 539,
+              "forward_calls": 548,
+              "pairs": 0,
+              "prepare_calls": 1,
+              "rays": 0,
+              "row_reads": 9864,
+              "traversal": 0
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "reason": "Ambient/extra candidate, not a true source",
+              "status": "NotComparable"
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "converged": true,
+          "fitted_q": [
+            [
+              298.817962646,
+              298.817962646,
+              298.817962646
+            ]
+          ],
+          "frozen_parameter_sha256": "47db799beec35fd8a8f647442ee6b297b063174697fe651eb922061ecc460dbf",
+          "heldout_positive_prediction_gate": true,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734"
+          },
+          "oracle_heldout": {
+            "area_interval_rmse": 0.0,
+            "count": 15,
+            "known_area": 3840,
+            "maximum_interval_error": 0.0,
+            "prediction_count": 15,
+            "prediction_coverage": 1.0,
+            "spatial_blocks": 2,
+            "spatial_interval_rmse": 0.0
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 1.0,
+              "known_area": 3840,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 9,
+                "positive_spatial_blocks": 1,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.21857361885625
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 37.21857361885625,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 1.0,
+              "known_area": 4608,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 9,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 9
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 0.016983995648835747,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.9995110705333385,
+              "known_area": 3840,
+              "maximum_interval_error": 0.06577873230000009,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.015504195889061548,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "bcf0b2a824617b4bb5b8d4fa32dcac1bf89a0bd3c2c6232944d6bf2af2651ccc",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 0,
+            "objective": 0,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                298.817962646,
+                298.817962646,
+                298.817962646
+              ]
+            ],
+            "singular": [
+              0.0723906569692,
+              0.0723906569692,
+              0.0723906569692
+            ],
+            "stop": "IntervalFeasible",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 5580,
+              "evaluations": 148,
+              "forward_calls": 156,
+              "pairs": 2808,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 2808,
+              "traversal": 1746
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 1.2074182697257333e-06,
+              "fitted_compiler_rgb": [
+                298.817962646,
+                298.817962646,
+                298.817962646
+              ],
+              "relative_rgb_l2_error": 0.003940124513333293,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "wrong_profile": {
+          "converged": true,
+          "fitted_q": [
+            [
+              296.026245117,
+              271.730407715,
+              271.730407715
+            ]
+          ],
+          "frozen_parameter_sha256": "b6a2e8aa364228bcb0c1fc633df34891ed1e45352caefe5da1671f238094e2fc",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 9.037606795664058,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.8210567840605617,
+              "known_area": 3840,
+              "maximum_interval_error": 21.0372619629,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 9.488374070192565,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 9,
+                "positive_spatial_blocks": 1,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.21857361885625
+              },
+              "area_interval_rmse": 4.912978372716245,
+              "black_interval_rmse": 37.21857361885625,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.8679965969940568,
+              "known_area": 4608,
+              "maximum_interval_error": 15.078971862800003,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 4.912978372716245,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 9,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 9
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 19.25738409383355,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.4456250031517748,
+              "known_area": 3840,
+              "maximum_interval_error": 27.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 18.193487766677297,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 8.82792131783,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "09fd65b735db2bd38e6842aa6c0e8414d49ec1889b67feec160fe9d1a2dc6779",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 15.0789718628,
+            "objective": 7.79047490239,
+            "parameters": 3,
+            "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+            "rank": 3,
+            "rgb": [
+              [
+                296.026245117,
+                271.730407715,
+                271.730407715
+              ]
+            ],
+            "singular": [
+              0.498659457229,
+              0.0785779950395,
+              0.0564866223061
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 61344,
+              "evaluations": 1696,
+              "forward_calls": 1705,
+              "pairs": 30690,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 30690,
+              "traversal": 1746
+            }
+          },
+          "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 2.3437601319482253,
+              "fitted_compiler_rgb": [
+                296.026245117,
+                271.730407715,
+                271.730407715
+              ],
+              "relative_rgb_l2_error": 0.07731921384011503,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "wrong_xyz": {
+          "converged": true,
+          "fitted_q": [
+            [
+              234.443344116,
+              234.443344116,
+              234.443344116
+            ]
+          ],
+          "frozen_parameter_sha256": "98b8d1771e38dcfb0605184cb554e2564ba7b37691c5ada2668b0ca2a6c1c2e6",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 22.972332578419103,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.5451513700303005,
+              "known_area": 3840,
+              "maximum_interval_error": 30.2566223145,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 23.72549172882687,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 9,
+                "positive_spatial_blocks": 1,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.21857361885625
+              },
+              "area_interval_rmse": 2.904005470680393,
+              "black_interval_rmse": 37.21857361885625,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.9219742943289713,
+              "known_area": 4608,
+              "maximum_interval_error": 7.652080535899998,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 2.904005470680393,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 9,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 9
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 21.780474082872306,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.37299115018889795,
+              "known_area": 3840,
+              "maximum_interval_error": 27.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 21.45765034988185,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 9,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 6
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "2c7513184f8c3652cb5f9ecbb991852960bb13887ed67c04ae058845a7b71e35",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 7.65208053589,
+            "objective": 3.68978542897,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                234.443344116,
+                234.443344116,
+                234.443344116
+              ]
+            ],
+            "singular": [
+              0.0919619644438,
+              0.0919619644438,
+              0.0919619644438
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 17712,
+              "evaluations": 479,
+              "forward_calls": 493,
+              "pairs": 8874,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 8874,
+              "traversal": 1584
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 8.537736462515939e-07,
+              "fitted_compiler_rgb": [
+                234.443344116,
+                234.443344116,
+                234.443344116
+              ],
+              "relative_rgb_l2_error": 0.21852218628000003,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -32.0,
+                80.0,
+                180.0
+              ]
+            }
+          ]
+        }
+      },
+      "source_capture_sha256": "abc5ebdbc9a09383204155cf3f34b06eae2fb510a5f42d0f39797c5ababec831"
+    },
+    "point_room": {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "models": {
+        "ambient": {
+          "converged": true,
+          "fitted_q": [
+            [
+              32.0002937317,
+              32.0002937317,
+              32.0002937317
+            ]
+          ],
+          "frozen_parameter_sha256": "2ffadaefa78f879d5b8ce774ab5ee4ad68e8512ea23398240d4e1f2de067b70d",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72"
+          },
+          "parameter_slices": [],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 18.913556049075094,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.6255145171954082,
+              "known_area": 3840,
+              "maximum_interval_error": 27.999706268300002,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 18.37542531741845,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 40.62429486567532
+              },
+              "area_interval_rmse": 15.970345423655289,
+              "black_interval_rmse": 40.62429486567532,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.6068769814599512,
+              "known_area": 4608,
+              "maximum_interval_error": 27.999706268300002,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 15.970345423655289,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 11.75582129391328,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.6615774312333346,
+              "known_area": 3840,
+              "maximum_interval_error": 20.999706268300002,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 12.438657436534548,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "813a2544bfa362c754b14525d7a9413e4086ca49d6687771a89cb590d14a5d6a",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 27.9997062683,
+            "objective": 49.1111264714,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                32.0002937317,
+                32.0002937317,
+                32.0002937317
+              ]
+            ],
+            "singular": [
+              0.577350819794,
+              0.577350819794,
+              0.577350819794
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10924626,
+              "cache_hits": 0,
+              "evaluations": 635,
+              "forward_calls": 644,
+              "pairs": 0,
+              "prepare_calls": 1,
+              "rays": 0,
+              "row_reads": 11592,
+              "traversal": 0
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "reason": "Ambient/extra candidate, not a true source",
+              "status": "NotComparable"
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "converged": true,
+          "fitted_q": [
+            [
+              299.714447021,
+              299.714447021,
+              299.714447021
+            ]
+          ],
+          "frozen_parameter_sha256": "a6dbcec0c8222dd4a7a7758ac3b1c59ae81fca8b8900ab15e4f5fbf5a855debe",
+          "heldout_positive_prediction_gate": true,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72"
+          },
+          "oracle_heldout": {
+            "area_interval_rmse": 0.0,
+            "count": 15,
+            "known_area": 3840,
+            "maximum_interval_error": 0.0,
+            "prediction_count": 15,
+            "prediction_coverage": 1.0,
+            "spatial_blocks": 2,
+            "spatial_interval_rmse": 0.0
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 1.0,
+              "known_area": 3840,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 40.62429486567532
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 40.62429486567532,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 1.0,
+              "known_area": 4608,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 1.0,
+              "known_area": 3840,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "b55c937a4d07bfd43c59af9f3f4bf7fa2e1ee14383bf09b55101f55e2df31c12",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 0,
+            "objective": 0,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                299.714447021,
+                299.714447021,
+                299.714447021
+              ]
+            ],
+            "singular": [
+              0.0790609030355,
+              0.0790609030355,
+              0.0790609030355
+            ],
+            "stop": "IntervalFeasible",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 5580,
+              "evaluations": 148,
+              "forward_calls": 156,
+              "pairs": 2808,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 2808,
+              "traversal": 1044
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 1.2074182697257333e-06,
+              "fitted_compiler_rgb": [
+                299.714447021,
+                299.714447021,
+                299.714447021
+              ],
+              "relative_rgb_l2_error": 0.0009518432633332925,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "wrong_profile": {
+          "converged": true,
+          "fitted_q": [
+            [
+              296.026245117,
+              271.730407715,
+              271.730407715
+            ]
+          ],
+          "frozen_parameter_sha256": "b6a2e8aa364228bcb0c1fc633df34891ed1e45352caefe5da1671f238094e2fc",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 9.037606795664058,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.8210567840605617,
+              "known_area": 3840,
+              "maximum_interval_error": 21.0372619629,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 9.488374070192565,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 40.62429486567532
+              },
+              "area_interval_rmse": 17.00730630058413,
+              "black_interval_rmse": 40.62429486567532,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.5813513475909188,
+              "known_area": 4608,
+              "maximum_interval_error": 27.0,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 17.00730630058413,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 19.25738409383355,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.4456250031517748,
+              "known_area": 3840,
+              "maximum_interval_error": 27.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 18.193487766677297,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 8.82792131783,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "95015266d531fc465e20d71e1aedc4b1139d1661cf3bb1ed4b905c981bbc7483",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 27,
+            "objective": 49.5682526802,
+            "parameters": 3,
+            "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+            "rank": 3,
+            "rgb": [
+              [
+                296.026245117,
+                271.730407715,
+                271.730407715
+              ]
+            ],
+            "singular": [
+              0.498659457229,
+              0.0785779950395,
+              0.0564866223061
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 57888,
+              "evaluations": 1600,
+              "forward_calls": 1609,
+              "pairs": 28962,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 28962,
+              "traversal": 1044
+            }
+          },
+          "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 2.3437601319482253,
+              "fitted_compiler_rgb": [
+                296.026245117,
+                271.730407715,
+                271.730407715
+              ],
+              "relative_rgb_l2_error": 0.07731921384011503,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "wrong_xyz": {
+          "converged": true,
+          "fitted_q": [
+            [
+              213.015380859,
+              213.015380859,
+              213.015380859
+            ]
+          ],
+          "frozen_parameter_sha256": "58df0bae5655c63a8c8c9cd95fb47b385315d3a4e4a5ca1533c596163e0c3a56",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 49.958871973743456
+              },
+              "area_interval_rmse": 25.387134110803053,
+              "black_interval_rmse": 50.505445250982596,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.4973386733916747,
+              "known_area": 3840,
+              "maximum_interval_error": 32.335351943999996,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 26.02475770130433,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 40.62429486567532
+              },
+              "area_interval_rmse": 6.245049259058644,
+              "black_interval_rmse": 40.62429486567532,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.8462730422839838,
+              "known_area": 4608,
+              "maximum_interval_error": 12.436645507800002,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 6.245049259058644,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 37.09147850622537
+              },
+              "area_interval_rmse": 14.17552486713963,
+              "black_interval_rmse": 34.737107920301405,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.5919198311021445,
+              "known_area": 3840,
+              "maximum_interval_error": 26.1638126373,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 15.811750721022335,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "a9db414e2d9b19482d05e56f30af565383c8878264e667eda59904b44ad9040e",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 12.4366455078,
+            "objective": 15.0738221541,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                213.015380859,
+                213.015380859,
+                213.015380859
+              ]
+            ],
+            "singular": [
+              0.108619330369,
+              0.108619330369,
+              0.108619330369
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 17712,
+              "evaluations": 479,
+              "forward_calls": 493,
+              "pairs": 8874,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 8874,
+              "traversal": 984
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 0.0,
+              "fitted_compiler_rgb": [
+                213.015380859,
+                213.015380859,
+                213.015380859
+              ],
+              "relative_rgb_l2_error": 0.28994873046999997,
+              "true_compiler_rgb": [
+                300.0,
+                300.0,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -32.0,
+                80.0,
+                180.0
+              ]
+            }
+          ]
+        }
+      },
+      "source_capture_sha256": "6bb0c10296777e35a8cd17fd728b6b987be005660b30a49803dd5c6f4721aa00"
+    },
+    "two_colour": {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "models": {
+        "ambient": {
+          "converged": true,
+          "fitted_q": [
+            [
+              33.9999465942,
+              11.0000228882,
+              32.2499237061
+            ]
+          ],
+          "frozen_parameter_sha256": "fabbdfc828572d0e9ae3a61add219a8661dc38076386563c113522fc995308c2",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7"
+          },
+          "parameter_slices": [],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 34.214059271765045
+              },
+              "area_interval_rmse": 12.825121173573796,
+              "black_interval_rmse": 35.17069487197798,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.6353463808361623,
+              "known_area": 3840,
+              "maximum_interval_error": 27.000053405800003,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 12.921738655034027,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 31.80816340594438
+              },
+              "area_interval_rmse": 10.42312146759478,
+              "black_interval_rmse": 31.80816340594438,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.6723130054831494,
+              "known_area": 4608,
+              "maximum_interval_error": 27.000053405800003,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 10.42312146759478,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 42.7525177946022
+              },
+              "area_interval_rmse": 26.39359859413781,
+              "black_interval_rmse": 45.05749413557947,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.4142240020113277,
+              "known_area": 3840,
+              "maximum_interval_error": 56.7500762939,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 24.819692328611037,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1,
+            "conditional_slices": [],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "a600d8168d8cf3e7e2f3ff4395d49dfae11ec2275cad19a237bd475e546fcee2",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 27.0000534058,
+            "objective": 24.4884375115,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                33.9999465942,
+                11.0000228882,
+                32.2499237061
+              ]
+            ],
+            "singular": [
+              0.57735026919,
+              0.57735026919,
+              0.57735026919
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10924626,
+              "cache_hits": 0,
+              "evaluations": 635,
+              "forward_calls": 644,
+              "pairs": 0,
+              "prepare_calls": 1,
+              "rays": 0,
+              "row_reads": 11592,
+              "traversal": 0
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "reason": "Ambient/extra candidate, not a true source",
+              "status": "NotComparable"
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            },
+            {
+              "id": 2,
+              "kind": "Point",
+              "xyz": [
+                96.0,
+                -32.0,
+                160.0
+              ]
+            }
+          ]
+        },
+        "correct": {
+          "converged": true,
+          "fitted_q": [
+            [
+              299.491516113,
+              35.9522476196,
+              8.01693439484
+            ],
+            [
+              12.7779808044,
+              60.0769462585,
+              301.021697998
+            ]
+          ],
+          "frozen_parameter_sha256": "c320ff5b847918f7be7d82289096ce2b240c97c5745ef5953c4655fd5c2f2f2b",
+          "heldout_positive_prediction_gate": true,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7"
+          },
+          "oracle_heldout": {
+            "area_interval_rmse": 0.0,
+            "count": 15,
+            "known_area": 3840,
+            "maximum_interval_error": 0.0,
+            "prediction_count": 15,
+            "prediction_coverage": 1.0,
+            "spatial_blocks": 2,
+            "spatial_interval_rmse": 0.0
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 34.214059271765045
+              },
+              "area_interval_rmse": 0.0,
+              "black_interval_rmse": 35.17069487197798,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 1.0,
+              "known_area": 3840,
+              "maximum_interval_error": 0.0,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.0,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 31.80816340594438
+              },
+              "area_interval_rmse": 1.6498736860143866e-05,
+              "black_interval_rmse": 31.80816340594438,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.9999994813049515,
+              "known_area": 4608,
+              "maximum_interval_error": 8.010860000240427e-05,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 1.6498736860143866e-05,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 42.7525177946022
+              },
+              "area_interval_rmse": 0.04085832165882906,
+              "black_interval_rmse": 45.05749413557947,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.9990931958724583,
+              "known_area": 3840,
+              "maximum_interval_error": 0.1903533935999988,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 0.03828720547979388,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 2.96451795263,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "44c2aecdfbc5f90286f0af7522c0c112b7a97046a21c2fc104d22efb426e2183",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 8.01086425781e-05,
+            "objective": 1.36104197871e-10,
+            "parameters": 6,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 6,
+            "rgb": [
+              [
+                299.491516113,
+                35.9522476196,
+                8.01693439484
+              ],
+              [
+                12.7779808044,
+                60.0769462585,
+                301.021697998
+              ]
+            ],
+            "singular": [
+              0.0971410506883,
+              0.0971409377919,
+              0.0971408625504,
+              0.0327679665489,
+              0.032767958042,
+              0.032767907714
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 11000082,
+              "cache_hits": 677016,
+              "evaluations": 9390,
+              "forward_calls": 9404,
+              "pairs": 338544,
+              "prepare_calls": 1,
+              "rays": 72,
+              "row_reads": 169272,
+              "traversal": 2538
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 0.1837121706591995,
+              "fitted_compiler_rgb": [
+                299.491516113,
+                35.9522476196,
+                8.01693439484
+              ],
+              "relative_rgb_l2_error": 0.003664786816838611,
+              "true_compiler_rgb": [
+                300.0,
+                35.9999991,
+                8.99999979
+              ]
+            },
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 2,
+              "compiler_chromaticity_angle_degrees": 0.13950419573639747,
+              "fitted_compiler_rgb": [
+                12.7779808044,
+                60.0769462585,
+                301.021697998
+              ],
+              "relative_rgb_l2_error": 0.004201774694397728,
+              "true_compiler_rgb": [
+                11.99999973,
+                60.0000009,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            },
+            {
+              "id": 2,
+              "kind": "Point",
+              "xyz": [
+                96.0,
+                -32.0,
+                160.0
+              ]
+            }
+          ]
+        },
+        "dropped_source": {
+          "converged": true,
+          "fitted_q": [
+            [
+              309.310516357,
+              74.4797210693,
+              153.25062561
+            ]
+          ],
+          "frozen_parameter_sha256": "9672ec98701eec34274c5540ba708b160a85e0eb8835b3a4b6663ffc7050834b",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 34.214059271765045
+              },
+              "area_interval_rmse": 6.675431168320913,
+              "black_interval_rmse": 35.17069487197798,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.8101990537116308,
+              "known_area": 3840,
+              "maximum_interval_error": 19.5487346649,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 6.618054826710197,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 31.80816340594438
+              },
+              "area_interval_rmse": 12.653964825007874,
+              "black_interval_rmse": 31.80816340594438,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.6021787028847106,
+              "known_area": 4608,
+              "maximum_interval_error": 38.1728487015,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 12.653964825007874,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 42.7525177946022
+              },
+              "area_interval_rmse": 34.266096955518,
+              "black_interval_rmse": 45.05749413557947,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.239502826046868,
+              "known_area": 3840,
+              "maximum_interval_error": 78.569062233,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 31.440997709211945,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 1.00000402263,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "6955c8b6bb2547f8d4522c3316dab07ae0a93c50031adf52ac86bcb2c325774d",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 38.1728487015,
+            "objective": 21.8415349133,
+            "parameters": 3,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 3,
+            "rgb": [
+              [
+                309.310516357,
+                74.4797210693,
+                153.25062561
+              ]
+            ],
+            "singular": [
+              0.0790610217727,
+              0.0790607673078,
+              0.0790607037404
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 10961490,
+              "cache_hits": 17712,
+              "evaluations": 479,
+              "forward_calls": 493,
+              "pairs": 8874,
+              "prepare_calls": 1,
+              "rays": 36,
+              "row_reads": 8874,
+              "traversal": 1044
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 24.86425015286481,
+              "fitted_compiler_rgb": [
+                309.310516357,
+                74.4797210693,
+                153.25062561
+              ],
+              "relative_rgb_l2_error": 0.4948448669124409,
+              "true_compiler_rgb": [
+                300.0,
+                35.9999991,
+                8.99999979
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            }
+          ]
+        },
+        "wrong_profile": {
+          "converged": true,
+          "fitted_q": [
+            [
+              295.045043945,
+              57.0561599731,
+              125.817871094
+            ],
+            [
+              163.287689209,
+              77.1954269409,
+              342.989654541
+            ]
+          ],
+          "frozen_parameter_sha256": "0e9516d2aaf480b72dbaf5a7f8690a054039a444b047d9e34912d7bffbc25243",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 34.214059271765045
+              },
+              "area_interval_rmse": 9.76135700093278,
+              "black_interval_rmse": 35.17069487197798,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.7224576586711093,
+              "known_area": 3840,
+              "maximum_interval_error": 25.042297363299994,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 9.36681958966503,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 31.80816340594438
+              },
+              "area_interval_rmse": 7.414293379549322,
+              "black_interval_rmse": 31.80816340594438,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.7669059579163341,
+              "known_area": 4608,
+              "maximum_interval_error": 18.394943237299998,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 7.414293379549322,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 42.7525177946022
+              },
+              "area_interval_rmse": 38.700754063993294,
+              "black_interval_rmse": 45.05749413557947,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.14108063915979296,
+              "known_area": 3840,
+              "maximum_interval_error": 72.55279540999999,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 35.459735852989496,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 7.0719815013,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": true,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "9d1f3eb5b5684295bfaf006fa7969d20eb9e23843df99a2de06edae294f593a0",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 18.3949432373,
+            "objective": 15.157701582,
+            "parameters": 6,
+            "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+            "rank": 6,
+            "rgb": [
+              [
+                295.045043945,
+                57.0561599731,
+                125.817871094
+              ],
+              [
+                163.287689209,
+                77.1954269409,
+                342.989654541
+              ]
+            ],
+            "singular": [
+              0.371960294388,
+              0.324374298313,
+              0.0777014277822,
+              0.0730631609801,
+              0.0565248603157,
+              0.0525963330531
+            ],
+            "stop": "ParameterStep",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 11000082,
+              "cache_hits": 169056,
+              "evaluations": 2345,
+              "forward_calls": 2349,
+              "pairs": 84564,
+              "prepare_calls": 1,
+              "rays": 72,
+              "row_reads": 42282,
+              "traversal": 2538
+            }
+          },
+          "profile_key": "6bcbab2dbc4aff5c40ec9c352d5528fb6d3a192e904fd26e897c52d7e3de02d0",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 21.386183625265257,
+              "fitted_compiler_rgb": [
+                295.045043945,
+                57.0561599731,
+                125.817871094
+              ],
+              "relative_rgb_l2_error": 0.39301729638419386,
+              "true_compiler_rgb": [
+                300.0,
+                35.9999991,
+                8.99999979
+              ]
+            },
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 2,
+              "compiler_chromaticity_angle_degrees": 22.70522436332141,
+              "fitted_compiler_rgb": [
+                163.287689209,
+                77.1954269409,
+                342.989654541
+              ],
+              "relative_rgb_l2_error": 0.5167422069864978,
+              "true_compiler_rgb": [
+                11.99999973,
+                60.0000009,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -96.0,
+                32.0,
+                180.0
+              ]
+            },
+            {
+              "id": 2,
+              "kind": "Point",
+              "xyz": [
+                96.0,
+                -32.0,
+                160.0
+              ]
+            }
+          ]
+        },
+        "wrong_xyz": {
+          "converged": false,
+          "fitted_q": [
+            [
+              217.870010376,
+              32.7134017944,
+              8.06319522858
+            ],
+            [
+              0,
+              46.5939178467,
+              297.354705811
+            ]
+          ],
+          "frozen_parameter_sha256": "3171122649a6ed4aa9f421c026b67213fc21aa5b19f06cc5b423d8a1986011cf",
+          "heldout_positive_prediction_gate": false,
+          "hidden_read_denials": [
+            "existing-private-file-0",
+            "existing-private-file-1",
+            "existing-private-file-2"
+          ],
+          "input_partition_hashes": {
+            "geometry.jkobs": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+            "grid.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "train.jsonl": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7"
+          },
+          "parameter_slices": [
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            },
+            {
+              "lower": 0,
+              "reason": "Linear conditional feasibility only; no nonlinear or joint CI",
+              "status": "Unavailable",
+              "upper": 1200
+            }
+          ],
+          "prediction": {
+            "heldout": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 34.214059271765045
+              },
+              "area_interval_rmse": 15.042032814569092,
+              "black_interval_rmse": 35.17069487197798,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.572313459562787,
+              "known_area": 3840,
+              "maximum_interval_error": 31.8644046783,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 15.384013940268437,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            },
+            "train": {
+              "admission": {
+                "observations": 18,
+                "positive_receivers": 18,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 31.80816340594438
+              },
+              "area_interval_rmse": 3.3617265425449294,
+              "black_interval_rmse": 31.80816340594438,
+              "comparable_count": 18,
+              "count": 18,
+              "improvement_over_black": 0.8943124599920572,
+              "known_area": 4608,
+              "maximum_interval_error": 12.352672576899998,
+              "prediction_count": 18,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 18,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 3.3617265425449294,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 18
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 18
+                }
+              ]
+            },
+            "validation": {
+              "admission": {
+                "observations": 15,
+                "positive_receivers": 15,
+                "positive_spatial_blocks": 2,
+                "saturated_channels": 0,
+                "spatial_blocks": 2,
+                "status": "Admitted",
+                "zero_interval_rmse": 42.7525177946022
+              },
+              "area_interval_rmse": 8.557374046792466,
+              "black_interval_rmse": 45.05749413557947,
+              "comparable_count": 15,
+              "count": 15,
+              "improvement_over_black": 0.8100787846513824,
+              "known_area": 3840,
+              "maximum_interval_error": 25.5522155762,
+              "prediction_count": 15,
+              "prediction_coverage": 1.0,
+              "production_prediction_status_codes": [
+                7
+              ],
+              "requested_count": 15,
+              "spatial_blocks": 2,
+              "spatial_interval_rmse": 9.432901856044994,
+              "unavailable_count": 0,
+              "visibility": [
+                {
+                  "blocked": 0,
+                  "source": 1,
+                  "unknown": 0,
+                  "visible": 15
+                },
+                {
+                  "blocked": 0,
+                  "source": 2,
+                  "unknown": 0,
+                  "visible": 15
+                }
+              ]
+            }
+          },
+          "production": {
+            "code": 0,
+            "condition": 4.33401907291,
+            "conditional_slices": [
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              },
+              {
+                "available": false,
+                "lower": 0,
+                "search_limited": true,
+                "upper": 1200
+              }
+            ],
+            "converged": false,
+            "coverage": {
+              "censored": 0,
+              "channels": 54,
+              "requested": 18,
+              "unknown_visibility": 0,
+              "used": 18
+            },
+            "fitted": true,
+            "key": "4280f68e5bf6be1362638bbd0687d75d99a7ab743110ca492f2d27b2034a3843",
+            "kkt": 0,
+            "kkt_available": false,
+            "linear": false,
+            "maximum_interval_error": 12.3526725769,
+            "objective": 4.41235450429,
+            "parameters": 6,
+            "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+            "rank": 6,
+            "rgb": [
+              [
+                217.870010376,
+                32.7134017944,
+                8.06319522858
+              ],
+              [
+                0,
+                46.5939178467,
+                297.354705811
+              ]
+            ],
+            "singular": [
+              0.123474868072,
+              0.123474855758,
+              0.123474750009,
+              0.0284901264608,
+              0.0284898137302,
+              0.0284896918992
+            ],
+            "stop": "IterationLimit",
+            "strict_difference": 0,
+            "type": "production_fit",
+            "work": {
+              "accounted_bytes": 11000082,
+              "cache_hits": 666072,
+              "evaluations": 9246,
+              "forward_calls": 9252,
+              "pairs": 333072,
+              "prepare_calls": 1,
+              "rays": 72,
+              "row_reads": 166536,
+              "traversal": 2478
+            }
+          },
+          "profile_key": "bf4382d99bbc93b9a8158e2d387ad68311ce36bf13e246018946b7c9d30e2231",
+          "protocol": "FixedGeometryBlindIntensityFit",
+          "source_parameters": [
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 1,
+              "compiler_chromaticity_angle_degrees": 1.739770790666092,
+              "fitted_compiler_rgb": [
+                217.870010376,
+                32.7134017944,
+                8.06319522858
+              ],
+              "relative_rgb_l2_error": 0.2719311619706086,
+              "true_compiler_rgb": [
+                300.0,
+                35.9999991,
+                8.99999979
+              ]
+            },
+            {
+              "absolute_photometry": "NotComparable",
+              "candidate": 2,
+              "compiler_chromaticity_angle_degrees": 3.289905506142803,
+              "fitted_compiler_rgb": [
+                0,
+                46.5939178467,
+                297.354705811
+              ],
+              "relative_rgb_l2_error": 0.05939623375855313,
+              "true_compiler_rgb": [
+                11.99999973,
+                60.0000009,
+                300.0
+              ]
+            }
+          ],
+          "supplied_geometry": [
+            {
+              "id": 1,
+              "kind": "Point",
+              "xyz": [
+                -32.0,
+                80.0,
+                180.0
+              ]
+            },
+            {
+              "id": 2,
+              "kind": "Point",
+              "xyz": [
+                96.0,
+                -32.0,
+                160.0
+              ]
+            }
+          ]
+        }
+      },
+      "source_capture_sha256": "f62fcb6618b6f74ac5075b15dce25db69b35a382fc0fea5fd1f2506fe7a6d64c"
+    }
+  },
+  "repeated_semantics_identical": true,
+  "schema": "org.openjk.s06-compiled-witness",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/amplitude_fit.cpp": "735e262b1a8c8f0490082596c12b92fde43635d15f0c975cb7abdf7c6df8c442",
+    "shared/rd-rend2/lightrecon/amplitude_fit.h": "01bdf2a48385f414a01cf62ad609362ba94401a887b01cf4b10545e2fb89af3c",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "d3b040df7c35947c777d4545d7e1a70125a7882e75d4fad9a5d44874d17cc815",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "8064bbf0ae8bc0499728aefe72ac11734766d2ed64d4662242748ad47cc1d354",
+    "tools/lightrecon_test/bake_fit_server.h": "1b0b161b4b3fb8531e38b5c119c6df204fef713c33c8ccba8bd9d8be3482a370",
+    "tools/rend2/amplitude_fit/run.py": "61d1cf54f674913204ba07177398e81938824a8f12cefdfc9575fab5b758effa",
+    "tools/rend2/amplitude_fit/worker.py": "25b6240e72a1ff69bae2fbd6494009861f0f1e6f081c48f4bd607b6645366c65"
+  },
+  "version": 1
+}

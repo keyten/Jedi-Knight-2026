@@ -1,0 +1,177 @@
+{
+  "door_occlusion": {
+    "ambient": {
+      "fit": {
+        "cpp_fitting_seconds": 0.2618637,
+        "cpp_replay_seconds": 0.0001103,
+        "worker_wall_seconds": 0.2729527000337839
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4583424,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.3877431999426335,
+        "worker_peak_rss_bytes": 17788928
+      }
+    },
+    "correct": {
+      "fit": {
+        "cpp_fitting_seconds": 0.0837804,
+        "cpp_replay_seconds": 0.0002021,
+        "worker_wall_seconds": 0.09502800006885082
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4542464,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.21415050001814961,
+        "worker_peak_rss_bytes": 17514496
+      }
+    },
+    "wrong_profile": {
+      "fit": {
+        "cpp_fitting_seconds": 0.9546471,
+        "cpp_replay_seconds": 0.0001813,
+        "worker_wall_seconds": 0.96646529994905
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4648960,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 1.0867317001102492,
+        "worker_peak_rss_bytes": 17666048
+      }
+    },
+    "wrong_xyz": {
+      "fit": {
+        "cpp_fitting_seconds": 0.2684424,
+        "cpp_replay_seconds": 0.0001867,
+        "worker_wall_seconds": 0.27970159996766597
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4571136,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.40037660009693354,
+        "worker_peak_rss_bytes": 17747968
+      }
+    }
+  },
+  "point_room": {
+    "ambient": {
+      "fit": {
+        "cpp_fitting_seconds": 0.3119947,
+        "cpp_replay_seconds": 0.0001177,
+        "worker_wall_seconds": 0.32154670008458197
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4546560,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.4430651000002399,
+        "worker_peak_rss_bytes": 17735680
+      }
+    },
+    "correct": {
+      "fit": {
+        "cpp_fitting_seconds": 0.0799169,
+        "cpp_replay_seconds": 0.0001833,
+        "worker_wall_seconds": 0.12456690007820725
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4399104,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.23304870002903044,
+        "worker_peak_rss_bytes": 17764352
+      }
+    },
+    "wrong_profile": {
+      "fit": {
+        "cpp_fitting_seconds": 0.8646837,
+        "cpp_replay_seconds": 0.0001551,
+        "worker_wall_seconds": 0.8741513000568375
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4636672,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 1.001007099985145,
+        "worker_peak_rss_bytes": 17514496
+      }
+    },
+    "wrong_xyz": {
+      "fit": {
+        "cpp_fitting_seconds": 0.2669396,
+        "cpp_replay_seconds": 0.0001573,
+        "worker_wall_seconds": 0.2766301999799907
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4567040,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.38947779999580234,
+        "worker_peak_rss_bytes": 17522688
+      }
+    }
+  },
+  "two_colour": {
+    "ambient": {
+      "fit": {
+        "cpp_fitting_seconds": 0.3124704,
+        "cpp_replay_seconds": 0.0001137,
+        "worker_wall_seconds": 0.3219430000754073
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4546560,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.44134669995401055,
+        "worker_peak_rss_bytes": 17752064
+      }
+    },
+    "correct": {
+      "fit": {
+        "cpp_fitting_seconds": 5.3365382,
+        "cpp_replay_seconds": 0.0002322,
+        "worker_wall_seconds": 5.346157699939795
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4636672,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 5.4537270000437275,
+        "worker_peak_rss_bytes": 17707008
+      }
+    },
+    "dropped_source": {
+      "fit": {
+        "cpp_fitting_seconds": 0.256841,
+        "cpp_replay_seconds": 0.0001799,
+        "worker_wall_seconds": 0.26619810005649924
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4554752,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 0.389741100021638,
+        "worker_peak_rss_bytes": 17485824
+      }
+    },
+    "wrong_profile": {
+      "fit": {
+        "cpp_fitting_seconds": 1.3956121,
+        "cpp_replay_seconds": 0.0002198,
+        "worker_wall_seconds": 1.4061437000054866
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4763648,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 1.5377585000824183,
+        "worker_peak_rss_bytes": 17711104
+      }
+    },
+    "wrong_xyz": {
+      "fit": {
+        "cpp_fitting_seconds": 5.1933074,
+        "cpp_replay_seconds": 0.0001994,
+        "worker_wall_seconds": 5.2037511999951676
+      },
+      "process": {
+        "cpp_peak_rss_bytes": 4796416,
+        "wall_budget_seconds": 120,
+        "wall_seconds": 5.322743199998513,
+        "worker_peak_rss_bytes": 17764352
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ add_library(rend2_lightrecon_core STATIC
 	sun_fit.cpp sun_fit.h
 	hidden_candidates.cpp hidden_candidates.h
 	candidate_pool.cpp candidate_pool.h
+	amplitude_fit.cpp amplitude_fit.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h

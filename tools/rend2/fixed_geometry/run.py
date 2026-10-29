@@ -36,9 +36,9 @@ def peak(handle):
     m=Memory();m.cb=ctypes.sizeof(m);query=ctypes.WinDLL('psapi').GetProcessMemoryInfo;query.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_ulong]
     return m.peak_ws if query(int(handle),ctypes.byref(m),m.cb) else None
 
-def launch_worker(exe,inputs,work,denied_paths=()):
+def launch_worker(exe,inputs,work,denied_paths=(),worker_script=None):
     work.mkdir(parents=True,exist_ok=True);start=time.perf_counter();child_handle=None;events=[]
-    argv=[sys.executable,'-X','utf8',str(HERE/'worker.py'),'--inputs',str(inputs),'--work',str(work),'--exe',str(exe)]
+    argv=[sys.executable,'-X','utf8',str(worker_script or HERE/'worker.py'),'--inputs',str(inputs),'--work',str(work),'--exe',str(exe)]
     for path in denied_paths:
         if not path.is_file():raise ValueError('Private read probe must target an existing file')
         argv+=['--deny-probe',str(path)]

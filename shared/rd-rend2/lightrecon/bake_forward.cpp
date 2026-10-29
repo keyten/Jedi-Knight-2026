@@ -501,6 +501,76 @@ Error Chunks(const Chunk<SourceHypothesis> &s, const Chunk<Receiver> &r, const R
 	return Error();
 }
 } // namespace
+Error DescribeRecipe(const ProfileHypothesis &p, Recipe &out)
+{
+	Recipe r;
+	auto e = ReadRecipe(p, r);
+	if (e)
+		out = r;
+	return e;
+}
+Disk::Digest FactorDependencyKey(const ProfileHypothesis &p, const Chunk<SourceHypothesis> &s,
+								 const Chunk<Receiver> &r, const EvaluationContext &c, const Options &o)
+{
+	return FactorKey(p, s, r, c, o);
+}
+Error ProveLinearResponse(const ProfileHypothesis &p, const SourceHypothesis &s, const Factor &f, Vec3 lo,
+						  Vec3 hi, LinearResponse &out)
+{
+	out = {};
+	Recipe recipe;
+	auto e = ReadRecipe(p, recipe);
+	if (!e)
+		return e;
+	return ProveLinearResponse(recipe, s, f, lo, hi, out);
+}
+Error ProveLinearResponse(const Recipe &recipe, const SourceHypothesis &s, const Factor &f, Vec3 lo, Vec3 hi,
+						  LinearResponse &out)
+{
+	out = {};
+	if (s.amplitudeDomain != AmplitudeDomain::CompilerRelative || !Positive(V(lo)) || !Positive(V(hi)) ||
+		lo.x > hi.x || lo.y > hi.y || lo.z > hi.z)
+		return Failure(Code::InvalidInput, "Invalid compiler-Q linearity region");
+	if (f.visibility == VisibilityState::Unknown)
+	{
+		out.reason = "Unknown optical visibility";
+		return {};
+	}
+	if (s.kind == SourceKind::Sky || s.kind == SourceKind::Tube || s.kind == SourceKind::Unsupported)
+	{
+		out.reason = "No implemented fixed-factor source kernel";
+		return {};
+	}
+	auto white = [&](double q) {
+		auto a = s;
+		a.amplitudeKnown = true;
+		a.compilerRgbAmplitude = V(q, q, q).Float();
+		return Value(a, f, recipe, false).x;
+	};
+	double high = std::nextafter(float(Peak(V(hi))), std::numeric_limits<float>::infinity());
+	if (Peak(V(hi)) == 0 || f.visibility == VisibilityState::Blocked || white(high) == 0)
+	{
+		out.proven = out.inactive = true;
+		out.reason = "Response identically zero over declared bounds";
+		return {};
+	}
+	bool isq = s.kind == SourceKind::Spot || recipe.falloff == Falloff::InverseSquare;
+	bool uncut = s.kind == SourceKind::Polygon || s.kind == SourceKind::Directional || (!recipe.fast && isq);
+	double low = std::max(0.0, double(std::nextafter(float(Peak(V(lo))), 0.0f)));
+	if (!uncut && (!isq || low <= 0 || white(low) <= 0))
+	{
+		out.reason = "Intensity-dependent envelope/threshold or linear attenuation crosses parameter region";
+		return {};
+	}
+	double probe = uncut ? 1 : low;
+	out.coefficient = white(probe) / probe;
+	if (!std::isfinite(out.coefficient) || out.coefficient < 0)
+		return Failure(Code::AlgorithmError, "Invalid proven response");
+	out.proven = true;
+	out.reason = uncut ? "Globally linear pre-encoding implemented kernel"
+					   : "Proven fixed active branch over positive-Q box";
+	return {};
+}
 ProfileHypothesis NetRadiantProfile(const Recipe &r)
 {
 	ProfileHypothesis p;
@@ -712,6 +782,10 @@ Error Encode(const ProfileHypothesis &p, Vec3 input, Vec3 &pre, uint8_t packed[3
 	auto e = ReadRecipe(p, r);
 	if (!e)
 		return e;
+	return Encode(r, input, pre, packed);
+}
+Error Encode(const Recipe &r, Vec3 input, Vec3 &pre, uint8_t packed[3])
+{
 	V v(input);
 	if (!Positive(v))
 		return Failure(Code::InvalidInput, "Encoding requires finite nonnegative accumulated RGB");
@@ -777,6 +851,7 @@ Error CpuForwardEvaluator::Prepare(const ProfileHypothesis &p, const Chunk<Sourc
 				if (!e)
 					return e;
 			}
+		f->preparation_ = w;
 		out = f;
 		return Error();
 	}
@@ -1010,7 +1085,9 @@ Error CpuForwardEvaluator::Evaluate(const ProfileHypothesis &p, const Chunk<Sour
 				V axis = Unit(dominant), a, d;
 				for (const auto &item : grid)
 				{
-					double q = std::max(0.0, Dot(item.second, axis));
+					// Both vectors are unit: clamp double roundoff at one so a
+					// single active source cannot create negative ambient energy.
+					double q = Clamp(Dot(item.second, axis), 0, 1);
 					d = d + item.first * q;
 					a = a + item.first * (.25 * (1 - q));
 				}

@@ -47,6 +47,24 @@ struct Support
 };
 Support Capability(const ProfileHypothesis &, SourceKind, const Receiver &, const Options &);
 Error Encode(const ProfileHypothesis &, Vec3 relative255, Vec3 &prequantized, uint8_t packed[3]);
+// Numerical implementation metadata, not Require() alone. No default recipe for
+// UnknownProfile. These helpers reuse the production kernels and factor identity.
+Error DescribeRecipe(const ProfileHypothesis &, Recipe &);
+// Already validated recipe only; identical encoding/value kernels, no new model.
+Error Encode(const Recipe &, Vec3 relative255, Vec3 &prequantized, uint8_t packed[3]);
+Disk::Digest FactorDependencyKey(const ProfileHypothesis &, const Chunk<SourceHypothesis> &,
+								 const Chunk<Receiver> &, const EvaluationContext &, const Options &);
+struct LinearResponse
+{
+	bool proven = false, inactive = false;
+	double coefficient = 0; // pre-encoding compiler-relative RGB / Q, fixed geometry
+	std::string reason;
+};
+struct Factor;
+Error ProveLinearResponse(const ProfileHypothesis &, const SourceHypothesis &, const Factor &, Vec3 lowerQ,
+						  Vec3 upperQ, LinearResponse &);
+Error ProveLinearResponse(const Recipe &, const SourceHypothesis &, const Factor &, Vec3 lowerQ, Vec3 upperQ,
+						  LinearResponse &);
 // Geometry-only adapter; deliberately accepts no DecodedSurfaceObservation or RGB.
 Error ReceiverFromLuxel(Id observation, const SurfaceLightingObservation &, const BakedSurface &,
 						bool compilerPlacementCertified, Receiver &);
@@ -64,11 +82,13 @@ class PreparedFactors
   public:
 	const std::vector<Factor> &Records() const { return records_; }
 	const Disk::Digest &Key() const { return key_; }
+	const Work &PreparationWork() const { return preparation_; }
 
   private:
 	friend class CpuForwardEvaluator;
 	Disk::Digest key_{};
 	std::vector<Factor> records_;
+	Work preparation_;
 };
 class CpuForwardEvaluator final : public ForwardEvaluator
 {
