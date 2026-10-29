@@ -766,6 +766,14 @@ cvar_t	*r_noPrecacheGLA;
 
 cvar_t	*r_noServerGhoul2; // In SP renderer CVAR is actually r_noghoul2!
 cvar_t	*r_Ghoul2AnimSmooth=0;
+cvar_t	*r_ragSoftLimits=0;
+cvar_t	*r_ragSoftLimitZone=0;
+cvar_t	*r_ragSoftLimitStiffness=0;
+cvar_t	*r_ragNeutralPull=0;
+cvar_t	*r_animSoftLimits=0;
+cvar_t	*r_animSoftLimitZone=0;
+cvar_t	*r_animSoftLimitMargin=0;
+cvar_t	*r_animSoftLimitBounce=0;
 cvar_t	*r_Ghoul2UnSqashAfterSmooth=0;
 //cvar_t	*r_Ghoul2UnSqash;
 //cvar_t	*r_Ghoul2TimeBase=0; from single player
@@ -3635,6 +3643,15 @@ void R_Register( void )
 	r_Ghoul2AnimSmooth					= ri_Cvar_Get_NoComm( "r_ghoul2animsmooth",			"0.3",						CVAR_TEMP, "" );
 	r_Ghoul2UnSqashAfterSmooth			= ri_Cvar_Get_NoComm( "r_ghoul2unsqashaftersmooth",	"1",						CVAR_TEMP, "" );
 	broadsword							= ri_Cvar_Get_NoComm( "broadsword",					"0",						CVAR_ARCHIVE, "" );
+	r_ragSoftLimits						= ri_Cvar_Get_NoComm( "r_ragSoftLimits",				"0",					CVAR_ARCHIVE, "Ragdoll soft joint limits: tension in the last part of each range, bounce back, weak pull to the range centre" );
+	r_ragSoftLimitZone					= ri_Cvar_Get_NoComm( "r_ragSoftLimitZone",			"0.18",					CVAR_ARCHIVE, "Fraction of each half range where ragdoll joint tension builds" );
+	r_ragSoftLimitStiffness				= ri_Cvar_Get_NoComm( "r_ragSoftLimitStiffness",		"0.25",					CVAR_ARCHIVE, "Ragdoll soft limit tension at the hard end (zone widths per solver iteration^2)" );
+	r_ragNeutralPull					= ri_Cvar_Get_NoComm( "r_ragNeutralPull",				"0.0002",				CVAR_ARCHIVE, "Ragdoll pull toward the joint range centre (per solver iteration^2)" );
+	r_animSoftLimits					= ri_Cvar_Get_NoComm( "r_animSoftLimits",				"0",					CVAR_ARCHIVE, "Soft joint limits in GLA animation: 0 off, 1 everyone, 2 everyone except the player" );
+	ri.Cvar_CheckRange( r_animSoftLimits, 0, 2, qtrue );
+	r_animSoftLimitZone					= ri_Cvar_Get_NoComm( "r_animSoftLimitZone",			"0.18",					CVAR_ARCHIVE, "Fraction of each half range where animation joint tension builds" );
+	r_animSoftLimitMargin				= ri_Cvar_Get_NoComm( "r_animSoftLimitMargin",			"0.1",					CVAR_ARCHIVE, "Animation joint range = observed GLA range widened by this fraction of its span (latched per GLA scan)" );
+	r_animSoftLimitBounce				= ri_Cvar_Get_NoComm( "r_animSoftLimitBounce",			"0.35",					CVAR_ARCHIVE, "Fraction of the momentum removed near a joint end that bounces the animation joint back" );
 	broadsword_kickbones				= ri_Cvar_Get_NoComm( "broadsword_kickbones",			"1",					CVAR_TEMP, "" );
 	broadsword_kickorigin				= ri_Cvar_Get_NoComm( "broadsword_kickorigin",			"1",					CVAR_TEMP, "" );
 	broadsword_dontstopanim				= ri_Cvar_Get_NoComm( "broadsword_dontstopanim",		"0",					CVAR_TEMP, "" );

@@ -411,6 +411,7 @@ typedef std::vector <mdxaBone_t> mdxaBone_v;
 #define		GHOUL2_NORENDER	 0x002
 #define		GHOUL2_NOMODEL	 0x004
 #define		GHOUL2_NEWORIGIN 0x008
+#define		GHOUL2_SOFTLIMIT_PLAYER 0x2000	// set by cgame on the player: r_animSoftLimits 2 skips it
 
 
 // NOTE order in here matters. We save out from mModelindex to mFlags, but not the STL vectors that are at the top or the bottom.

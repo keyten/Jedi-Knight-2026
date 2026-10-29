@@ -7,6 +7,7 @@
 #if !defined(TR_LOCAL_H)
 	#include "tr_local.h"
 #endif
+#include "G2_softlimits.h"
 
 #if !defined(_QCOMMON_H_)
 	#include "qcommon/qcommon.h"
@@ -1377,6 +1378,7 @@ static int G2_Set_Bone_Angles_Rag(
 		}
 		if (!bone.lastTimeUpdated)
 		{
+			VectorClear(bone.extraMatrix.matrix[0]);	// soft limit rebound velocity
 			static mdxaBone_t		id = 
 			{ 
 				{
@@ -4024,11 +4026,38 @@ static void G2_RagDollSolve(CGhoul2Info_v &ghoul2V,int g2Index,float decay,int f
 			}
 #endif
 
+			// soft limits only where the hard clamp below would apply
+			const bool softLimits = r_ragSoftLimits && r_ragSoftLimits->integer &&
+				limitAngles && ( allSolidCount < 32 || (bone.RagFlags & RAG_UNSNAPPABLE) ) &&
+				(!bone.snapped || (bone.RagFlags & RAG_UNSNAPPABLE));
+			g2soft::RagParams softParams;
+			if (softLimits)
+			{
+				softParams.zone = Com_Clamp(0.01f, 0.5f, r_ragSoftLimitZone->value);
+				softParams.stiffness = Q_max(0.0f, r_ragSoftLimitStiffness->value);
+				softParams.neutral = Q_max(0.0f, r_ragNeutralPull->value);
+				softParams.damping = 0.80f;
+			}
+
 			for (k=0;k<3;k++)
 			{
-				bone.currentAngles[k]+=delAngles[k]*fac;
+				if (softLimits)
+				{
+					// tension in the last part of the range, rebound velocity in extraMatrix row 0
+					const float lo = Q_min(bone.minAngles[k], bone.maxAngles[k])*magicFactor32;
+					const float hi = Q_max(bone.minAngles[k], bone.maxAngles[k])*magicFactor32;
+					float &w = bone.extraMatrix.matrix[0][k];
+					const float step = g2soft::RagStep(bone.currentAngles[k], lo, hi, delAngles[k]*fac, w, softParams);
+					bone.currentAngles[k]+=step;
+					bone.currentAngles[k]=(bone.lastAngles[k]-bone.currentAngles[k])*magicFactor9 + bone.currentAngles[k];
+					bone.currentAngles[k]+=w;
+				}
+				else
+				{
+					bone.currentAngles[k]+=delAngles[k]*fac;
 
-				bone.currentAngles[k]=(bone.lastAngles[k]-bone.currentAngles[k])*magicFactor9 + bone.currentAngles[k];
+					bone.currentAngles[k]=(bone.lastAngles[k]-bone.currentAngles[k])*magicFactor9 + bone.currentAngles[k];
+				}
 				bone.currentAngles[k]=AngleNormZero(bone.currentAngles[k]);
 //	bone.currentAngles[k]=flrand(bone.minAngles[k],bone.maxAngles[k]);
 #if 1 //constraint breaks?
@@ -4363,6 +4392,7 @@ static int G2_Set_Bone_Angles_IK(
 		}
 		if (!bone.lastTimeUpdated)
 		{
+			VectorClear(bone.extraMatrix.matrix[0]);	// soft limit rebound velocity
 			static mdxaBone_t		id = 
 			{ 
 				{

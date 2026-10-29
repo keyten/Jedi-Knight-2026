@@ -760,6 +760,10 @@ cvar_t	*r_noPrecacheGLA;
 
 cvar_t	*r_noServerGhoul2;
 cvar_t	*r_Ghoul2AnimSmooth=0;
+cvar_t	*r_ragSoftLimits=0;
+cvar_t	*r_ragSoftLimitZone=0;
+cvar_t	*r_ragSoftLimitStiffness=0;
+cvar_t	*r_ragNeutralPull=0;
 cvar_t	*r_Ghoul2UnSqashAfterSmooth=0;
 //cvar_t	*r_Ghoul2UnSqash;
 //cvar_t	*r_Ghoul2TimeBase=0; from single player
@@ -3589,6 +3593,10 @@ Ghoul2 Insert Start
 	r_Ghoul2AnimSmooth					= ri.Cvar_Get( "r_ghoul2animsmooth",				"0.3",						CVAR_NONE, "" );
 	r_Ghoul2UnSqashAfterSmooth			= ri.Cvar_Get( "r_ghoul2unsqashaftersmooth",		"1",						CVAR_NONE, "" );
 	broadsword							= ri.Cvar_Get( "broadsword",						"0",						CVAR_ARCHIVE, "" );
+	r_ragSoftLimits						= ri.Cvar_Get( "r_ragSoftLimits",					"0",						CVAR_ARCHIVE, "Ragdoll soft joint limits: tension in the last part of each range, bounce back, weak pull to the range centre" );
+	r_ragSoftLimitZone					= ri.Cvar_Get( "r_ragSoftLimitZone",				"0.18",						CVAR_ARCHIVE, "Fraction of each half range where ragdoll joint tension builds" );
+	r_ragSoftLimitStiffness				= ri.Cvar_Get( "r_ragSoftLimitStiffness",			"0.25",						CVAR_ARCHIVE, "Ragdoll soft limit tension at the hard end (zone widths per solver iteration^2)" );
+	r_ragNeutralPull					= ri.Cvar_Get( "r_ragNeutralPull",					"0.0002",					CVAR_ARCHIVE, "Ragdoll pull toward the joint range centre (per solver iteration^2)" );
 	broadsword_kickbones				= ri.Cvar_Get( "broadsword_kickbones",				"1",						CVAR_NONE, "" );
 	broadsword_kickorigin				= ri.Cvar_Get( "broadsword_kickorigin",			"1",						CVAR_NONE, "" );
 	broadsword_dontstopanim				= ri.Cvar_Get( "broadsword_dontstopanim",			"0",						CVAR_NONE, "" );

@@ -320,6 +320,39 @@ struct SBoneCalc
 	float blendLerp;
 };
 
+#ifdef REND2_SP
+#include "G2_softlimits.h"
+
+#ifndef GHOUL2_RAG_STARTED
+#define		GHOUL2_RAG_STARTED						0x0010
+#endif
+#ifndef GHOUL2_SOFTLIMIT_PLAYER
+#define GHOUL2_SOFTLIMIT_PLAYER 0x2000
+#endif
+
+// r_animSoftLimits: per GLA joint ranges measured over all of its frames, as
+// the rotation vector of each bone's local rotation (bind frame) relative to
+// its mean pose (g2soft::ScanBoneRange)
+struct SAnimSoftTable
+{
+	const mdxaHeader_t *header;
+	int numBones;
+	int numFrames;
+	float margin;
+	char name[MAX_QPATH];
+	std::vector<g2soft::BoneRange> bones;
+};
+
+static const SAnimSoftTable *G2_AnimSoftTable( const mdxaHeader_t *header );
+
+struct SAnimSoftState
+{
+	g2soft::AnimAxis axes[3];
+	int time;
+	int gen;
+};
+#endif
+
 class CBoneCache;
 static void G2_TransformBone( int index, CBoneCache &CB );
 
@@ -422,6 +455,15 @@ public:
 	bool mUnsquash;
 	float mSmoothFactor;
 
+#ifdef REND2_SP
+	// r_animSoftLimits state (per bone, not saved)
+	std::vector<SAnimSoftState> mSoftBones;
+	const SAnimSoftTable *mSoftTable;
+	g2soft::AnimParams mSoftParams;
+	bool mSoftActive;
+	int mSoftGen;
+#endif
+
 	// GPU Data
 	mat3x4_t boneMatrices[MAX_G2_BONES];
 	int      uboOffset;
@@ -440,6 +482,12 @@ public:
 		, mSmoothingActive(false)
 		, mUnsquash(false)
 		, mSmoothFactor(0.0f)
+#ifdef REND2_SP
+		, mSoftBones(aheader->numBones)
+		, mSoftTable(nullptr)
+		, mSoftActive(false)
+		, mSoftGen(1)
+#endif
 		, uboOffset(-1)
 		, uboPreviousOffset(-1)
 		, uboGPUFrame(-1)
@@ -1630,6 +1678,295 @@ void G2_RagGetAnimMatrix(
 	matrix = bone.animFrameMatrix;
 }
 
+#ifdef REND2_SP
+static void G2_AnimSoftCopy33( const mdxaBone_t &m, float o[3][3] )
+{
+	for ( int i = 0; i < 3; i++ )
+		for ( int j = 0; j < 3; j++ )
+			o[i][j] = m.matrix[i][j];
+}
+
+// the bone's local rotation D = B^T R B in its (orthonormal) bind frame B
+static void G2_AnimSoftLocal( const float B[3][3], const float Bt[3][3], const mdxaBone_t &m, float D[3][3] )
+{
+	float R[3][3], Ro[3][3], tmp[3][3];
+	G2_AnimSoftCopy33(m, R);
+	g2soft::Orthonormalize(R, Ro);
+	g2soft::Mul33(Bt, Ro, tmp);
+	g2soft::Mul33(tmp, B, D);
+}
+
+static void G2_AnimSoftBindFrame( const mdxaSkel_t *skel, float Bo[3][3], float Bt[3][3] )
+{
+	float B[3][3];
+	G2_AnimSoftCopy33(skel->BasePoseMat, B);
+	g2soft::Orthonormalize(B, Bo);
+	g2soft::Transpose33(Bo, Bt);
+}
+
+static void G2_AnimSoftBuildBone(
+	const mdxaHeader_t *header,
+	int bone,
+	g2soft::BoneRange &out,
+	float margin,
+	std::vector<int> &seen,
+	std::vector<float> &quats,
+	std::vector<float> &work )
+{
+	const mdxaSkelOffsets_t *offsets =
+		(mdxaSkelOffsets_t *)((byte *)header + sizeof(mdxaHeader_t));
+	const mdxaSkel_t *skel =
+		(mdxaSkel_t *)((byte *)offsets + offsets->offsets[bone]);
+
+	// joints that carry the whole body's motion, and weapon tags, stay exact
+	if ( skel->parent < 0 ||
+		!Q_stricmp(skel->name, "model_root") ||
+		!Q_stricmp(skel->name, "Motion") ||
+		!Q_stricmp(skel->name, "pelvis") ||
+		Q_stristr(skel->name, "tag") )
+	{
+		g2soft::ScanBoneRange(nullptr, 0, nullptr, margin, nullptr, out);
+		return;
+	}
+
+	float Bo[3][3], Bt[3][3];
+	G2_AnimSoftBindFrame(skel, Bo, Bt);
+
+	// every unique pose of this bone once
+	const mdxaCompQuatBone_t *pool =
+		(mdxaCompQuatBone_t *)((byte *)header + header->ofsCompBonePool);
+	quats.clear();
+	for ( int frame = 0; frame < header->numFrames; frame++ )
+	{
+		const int index = G2_GetBonePoolIndex(header, frame, bone);
+		if ( index < 0 || index >= (int)seen.size() || seen[index] == bone )
+		{
+			continue;
+		}
+		seen[index] = bone;
+		float q[4];
+		g2soft::UnpackGLAQuat(pool[index].Comp, q);
+		quats.insert(quats.end(), q, q + 4);
+	}
+
+	const int n = (int)quats.size() / 4;
+	work.resize(7 * n);
+	g2soft::ScanBoneRange((const float (*)[4])quats.data(), n, Bo, margin, work.data(), out);
+}
+
+static const SAnimSoftTable *G2_AnimSoftTable( const mdxaHeader_t *header )
+{
+	// a handful of GLAs per session; entries are rebuilt in place when a
+	// header address is reused by another GLA
+	static std::vector<SAnimSoftTable *> tables;
+
+	const float margin = Com_Clamp(0.0f, 1.0f, r_animSoftLimitMargin->value);
+	SAnimSoftTable *table = nullptr;
+	for ( SAnimSoftTable *t : tables )
+	{
+		if ( t->header == header )
+		{
+			table = t;
+			break;
+		}
+	}
+
+	if ( table &&
+		table->numBones == header->numBones &&
+		table->numFrames == header->numFrames &&
+		table->margin == margin &&
+		!Q_strncmp(table->name, header->name, sizeof(table->name)) )
+	{
+		return table;
+	}
+
+	if ( !table )
+	{
+		table = new SAnimSoftTable;
+		tables.push_back(table);
+	}
+
+	const int startTime = ri.Milliseconds();
+	table->header = header;
+	table->numBones = header->numBones;
+	table->numFrames = header->numFrames;
+	table->margin = margin;
+	Q_strncpyz(table->name, header->name, sizeof(table->name));
+	table->bones.assign(header->numBones, g2soft::BoneRange());
+
+	// pool entries are unique bone poses; size it from the furthest index used
+	int poolCount = 0;
+	for ( int frame = 0; frame < header->numFrames; frame++ )
+	{
+		for ( int i = 0; i < header->numBones; i++ )
+		{
+			poolCount = Q_max(poolCount, G2_GetBonePoolIndex(header, frame, i) + 1);
+		}
+	}
+	std::vector<int> seen(poolCount, -1);
+	std::vector<float> quats, work;
+
+	int limited = 0;
+	for ( int i = 0; i < header->numBones; i++ )
+	{
+		G2_AnimSoftBuildBone(header, i, table->bones[i], margin, seen, quats, work);
+		if ( table->bones[i].valid )
+		{
+			limited++;
+		}
+	}
+
+	ri.Printf(PRINT_DEVELOPER, "r_animSoftLimits: %s, %d of %d bones limited, %d frames, %d ms\n",
+		header->name, limited, header->numBones, header->numFrames, ri.Milliseconds() - startTime);
+	return table;
+}
+
+// once per skeleton traversal: decide whether this model gets soft limits
+static void G2_AnimSoftBegin( CBoneCache &BC, const CGhoul2Info &ghoul2, const mdxaHeader_t *header )
+{
+	const int mode = r_animSoftLimits ? r_animSoftLimits->integer : 0;
+	const bool active =
+		mode != 0 &&
+		header->numBones > 1 &&
+		!(ghoul2.mFlags & GHOUL2_RAG_STARTED) &&
+		!(mode == 2 && (ghoul2.mFlags & GHOUL2_SOFTLIMIT_PLAYER));
+
+	if ( !active )
+	{
+		if ( BC.mSoftActive )
+		{
+			BC.mSoftGen++;	// restart from the plain animation when re-enabled
+		}
+		BC.mSoftActive = false;
+		return;
+	}
+
+	const SAnimSoftTable *table = G2_AnimSoftTable(header);
+	if ( table != BC.mSoftTable || BC.mSoftBones.size() != (size_t)header->numBones )
+	{
+		BC.mSoftTable = table;
+		BC.mSoftBones.assign(header->numBones, SAnimSoftState());
+		BC.mSoftGen++;
+	}
+
+	BC.mSoftParams.zone = Com_Clamp(0.01f, 0.5f, r_animSoftLimitZone->value);
+	BC.mSoftParams.bounce = Com_Clamp(0.0f, 1.0f, r_animSoftLimitBounce->value);
+	BC.mSoftParams.omega = 18.0f;
+	BC.mSoftParams.zeta = 0.45f;
+	BC.mSoftActive = true;
+}
+
+static void G2_AnimSoftApply( CBoneCache &BC, int child, mdxaBone_t &currentBone )
+{
+	const g2soft::BoneRange &sb = BC.mSoftTable->bones[child];
+	if ( !sb.valid )
+	{
+		return;
+	}
+
+	const mdxaSkelOffsets_t *offsets =
+		(mdxaSkelOffsets_t *)((byte *)BC.header + sizeof(mdxaHeader_t));
+	const mdxaSkel_t *skel =
+		(mdxaSkel_t *)((byte *)offsets + offsets->offsets[child]);
+
+	float Bo[3][3], Bt[3][3], D[3][3], RefT[3][3], Dr[3][3], t[3];
+	G2_AnimSoftBindFrame(skel, Bo, Bt);
+	G2_AnimSoftLocal(Bo, Bt, currentBone, D);
+	g2soft::Transpose33(sb.ref, RefT);
+	g2soft::Mul33(RefT, D, Dr);
+	g2soft::LogMap(Dr, t);
+
+	// The state advances only when this bone sees a later time, so game,
+	// cgame and render evaluations at the same (or an older) time agree.
+	SAnimSoftState &st = BC.mSoftBones[child];
+	const int time = BC.incomingTime;
+	bool reset = false;
+	float dt = 0.0f;
+	if ( st.gen != BC.mSoftGen || time < st.time - 1000 )
+	{
+		reset = true;
+	}
+	else if ( time > st.time )
+	{
+		const int delta = time - st.time;
+		if ( delta > 250 )
+		{
+			reset = true;
+		}
+		else
+		{
+			dt = Q_min(delta, 50) * 0.001f;
+		}
+	}
+	if ( reset || time > st.time )
+	{
+		st.time = time;
+		st.gen = BC.mSoftGen;
+	}
+
+	float a[3];
+	bool changed = false;
+	for ( int k = 0; k < 3; k++ )
+	{
+		a[k] = t[k];
+		if ( !sb.axisValid[k] )
+		{
+			continue;
+		}
+		// a jump across most of the range (anim switch, pi wrap) restarts the axis
+		const bool axisReset = reset ||
+			fabsf(t[k] - st.axes[k].prevT) > 0.5f * (sb.hi[k] - sb.lo[k]);
+		a[k] = g2soft::AnimFilter(t[k], sb.lo[k], sb.hi[k], st.axes[k], dt, axisReset, BC.mSoftParams);
+		if ( a[k] != t[k] )
+		{
+			changed = true;
+		}
+	}
+	if ( !changed )
+	{
+		return;
+	}
+
+	// correction C = B (ref exp(a)) D^T B^T, applied about the bone's pivot so
+	// the lerped matrix keeps its own scale and the joint stays in place
+	float Ea[3][3], Dn[3][3], Dt[3][3], E[3][3], tmp[3][3], C[3][3];
+	g2soft::ExpMap(a, Ea);
+	g2soft::Mul33(sb.ref, Ea, Dn);
+	g2soft::Transpose33(D, Dt);
+	g2soft::Mul33(Dn, Dt, E);
+	g2soft::Mul33(Bo, E, tmp);
+	g2soft::Mul33(tmp, Bt, C);
+
+	const vec3_t pivot = {
+		skel->BasePoseMat.matrix[0][3],
+		skel->BasePoseMat.matrix[1][3],
+		skel->BasePoseMat.matrix[2][3] };
+	vec3_t q;
+	for ( int i = 0; i < 3; i++ )
+	{
+		q[i] = currentBone.matrix[i][0] * pivot[0] +
+			currentBone.matrix[i][1] * pivot[1] +
+			currentBone.matrix[i][2] * pivot[2] +
+			currentBone.matrix[i][3];
+	}
+
+	mdxaBone_t out;
+	for ( int i = 0; i < 3; i++ )
+	{
+		for ( int j = 0; j < 4; j++ )
+		{
+			out.matrix[i][j] =
+				C[i][0] * currentBone.matrix[0][j] +
+				C[i][1] * currentBone.matrix[1][j] +
+				C[i][2] * currentBone.matrix[2][j];
+		}
+		// translation: C (t - q) + q
+		out.matrix[i][3] += q[i] - (C[i][0] * q[0] + C[i][1] * q[1] + C[i][2] * q[2]);
+	}
+	currentBone = out;
+}
+#endif
+
 static void G2_TransformBone( int child, CBoneCache& BC )
 {
 	SBoneCalc &TB = BC.mBones[child];
@@ -1826,6 +2163,16 @@ static void G2_TransformBone( int child, CBoneCache& BC )
 		Mat3x4_Lerp(&lerpFrameBone, &blendFrameBone, &blendOldFrameBone, backlerp);
 		Mat3x4_Lerp(&currentBone, &currentBone, &lerpFrameBone, TB.blendLerp);
 	}
+
+#ifdef REND2_SP
+	// soft joint limits on the animated local rotation, before the game's
+	// angle overrides (head look, lumbar aim stay exact)
+	if ( BC.mSoftActive && child &&
+		!(angleOverride & (BONE_ANGLES_REPLACE | BONE_ANGLES_RAGDOLL | BONE_ANGLES_IK)) )
+	{
+		G2_AnimSoftApply(BC, child, currentBone);
+	}
+#endif
 
 	if ( !child )
 	{
@@ -2129,6 +2476,10 @@ static void G2_TransformGhoulBones(
 	ghoul2.mBoneCache->rootBoneList = &rootBoneList;
 	ghoul2.mBoneCache->rootMatrix = rootMatrix;
 	ghoul2.mBoneCache->incomingTime = time;
+
+#ifdef REND2_SP
+	G2_AnimSoftBegin(*ghoul2.mBoneCache, ghoul2, aHeader);
+#endif
 
 	SBoneCalc &TB = ghoul2.mBoneCache->Root();
 	TB.newFrame = 0;
@@ -5227,6 +5578,14 @@ qboolean R_LoadMDXA(model_t *mod, void *buffer, const char *mod_name, qboolean &
 		Com_Printf(S_COLOR_YELLOW "R_LoadMDXA: %s has no frames\n", mod_name);
 		return qfalse;
 	}
+
+#ifdef REND2_SP
+	// measure the joint ranges at load instead of on the first animated frame
+	if (r_animSoftLimits && r_animSoftLimits->integer)
+	{
+		G2_AnimSoftTable(mdxa);
+	}
+#endif
 
 	if (bAlreadyFound)
 	{

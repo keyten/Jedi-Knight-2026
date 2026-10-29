@@ -6885,6 +6885,15 @@ void CG_Player( centity_t *cent ) {
 		return;
 	}
 
+	if ( cent->gent->s.number == 0 )
+	{
+		// lets the renderer leave the player out of r_animSoftLimits 2
+		for ( int i = 0; i < cent->gent->ghoul2.size(); i++ )
+		{
+			cent->gent->ghoul2[i].mFlags |= GHOUL2_SOFTLIMIT_PLAYER;
+		}
+	}
+
 	if( cent->gent->s.number == 0 && cg.weaponSelect == WP_NONE && cg.zoomMode == 1 )
 	{
 		// HACK

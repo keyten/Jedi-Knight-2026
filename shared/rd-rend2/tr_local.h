@@ -881,6 +881,16 @@ extern cvar_t	*r_noPrecacheGLA;
 extern cvar_t	*r_noServerGhoul2;
 extern cvar_t	*r_Ghoul2AnimSmooth;
 extern cvar_t	*r_Ghoul2UnSqashAfterSmooth;
+extern cvar_t	*r_ragSoftLimits;
+extern cvar_t	*r_ragSoftLimitZone;
+extern cvar_t	*r_ragSoftLimitStiffness;
+extern cvar_t	*r_ragNeutralPull;
+#ifdef REND2_SP
+extern cvar_t	*r_animSoftLimits;
+extern cvar_t	*r_animSoftLimitZone;
+extern cvar_t	*r_animSoftLimitMargin;
+extern cvar_t	*r_animSoftLimitBounce;
+#endif
 //extern cvar_t	*r_Ghoul2UnSqash;
 //extern cvar_t	*r_Ghoul2TimeBase=0; from single player
 //extern cvar_t	*r_Ghoul2NoLerp;
