@@ -1249,10 +1249,15 @@ float ShadowManualPcf(in int cascade, in vec3 shadowPos,
 #if defined(USE_PCSS_CHARACTER_LAYERS)
 // Shadow depth range [x, y] of the nearest character sphere between the
 // receiver and the sun that can reach the search disc; empty (x > y) if none.
+// footprint: the sphere's disc in shadow uv (center, radius). A blocker is the
+// character only inside both: depth alone would also claim canopy and walls
+// at the character's height, whose soft shadow would then lighten around it.
 vec2 ShadowCharacterDepth(in mat4 shadowMvp, in vec3 worldPosition,
-	in float receiverDepth, in float depthSpan, in float searchWorld)
+	in float receiverDepth, in float depthSpan, in float searchWorld,
+	in float uvPerWorld, out vec3 footprint)
 {
 	vec2 characterDepth = vec2(2.0, -1.0);
+	vec4 best = vec4(0.0);
 	// depth grows away from the sun along the matrix's z row
 	vec3 towardSun = -normalize(vec3(shadowMvp[0][2], shadowMvp[1][2], shadowMvp[2][2]));
 	float bestAlong = 1e20;
@@ -1269,19 +1274,52 @@ vec2 ShadowCharacterDepth(in mat4 shadowMvp, in vec3 worldPosition,
 			dot(d, d) - along * along < reach * reach)
 		{
 			bestAlong = along;
+			best = sphere;
 			characterDepth = vec2(receiverDepth - (along + sphere.w) / depthSpan,
 				receiverDepth - (along - sphere.w) / depthSpan);
 		}
 	}
+	footprint = vec3(ShadowProject(shadowMvp, best.xyz).xy, best.w * uvPerWorld);
 	return characterDepth;
 }
 
-// ShadowManualPcf counting only the occluders inside (or only those outside)
-// the character's shadow depth range [characterDepth.x, characterDepth.y].
+bool ShadowInCharacter(in float sampleDepth, in vec2 uv, in vec2 characterDepth,
+	in vec3 footprint)
+{
+	vec2 o = uv - footprint.xy;
+	return sampleDepth >= characterDepth.x && sampleDepth <= characterDepth.y &&
+		dot(o, o) <= footprint.z * footprint.z;
+}
+
+// ShadowManualPcf counting only the character's occluders (ShadowInCharacter),
+// or only the others.
 float ShadowLayerPcf(in int cascade, in vec3 shadowPos,
 	in vec2 receiverGradient, in float depthSpan, in float radiusUv,
-	in int sampleCount, in float angle, in vec2 characterDepth, in bool character)
+	in int sampleCount, in float angle, in vec2 characterDepth, in vec3 footprint,
+	in bool character)
 {
+	// a contact-hard layer: the bilinear 2x2 of ShadowBilinearPcf (random taps
+	// on nearest texels leave a stair-stepped edge)
+	if (radiusUv <= u_ShadowTexelSize.w)
+	{
+		vec2 size = vec2(textureSize(u_ShadowMap, 0).xy);
+		vec2 st = shadowPos.xy * size - 0.5;
+		vec2 base = floor(st);
+		vec2 f = st - base;
+		vec4 lit;
+		for (int corner = 0; corner < 4; ++corner)
+		{
+			vec2 texel = base + vec2(float(corner & 1), float(corner >> 1));
+			vec2 offset = (texel + 0.5) / size - shadowPos.xy;
+			float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
+			ivec2 p = clamp(ivec2(texel), ivec2(0), ivec2(size) - ivec2(1));
+			float sampleDepth = texelFetch(u_ShadowMap, ivec3(p, cascade), 0).r;
+			bool inCharacter = ShadowInCharacter(sampleDepth, (texel + 0.5) / size,
+				characterDepth, footprint);
+			lit[corner] = (receiver > sampleDepth && inCharacter == character) ? 0.0 : 1.0;
+		}
+		return mix(mix(lit.x, lit.y, f.x), mix(lit.z, lit.w, f.x), f.y);
+	}
 	float visibility = 0.0;
 	radiusUv = ShadowKernelRadius(shadowPos.xy, radiusUv);
 	for (int i = 0; i < 32; ++i)
@@ -1292,7 +1330,8 @@ float ShadowLayerPcf(in int cascade, in vec3 shadowPos,
 			ShadowVogel(i - 1, sampleCount - 1, angle) * radiusUv;
 		float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
 		float sampleDepth = ShadowRawDepth(cascade, shadowPos.xy + offset);
-		bool inCharacter = sampleDepth >= characterDepth.x && sampleDepth <= characterDepth.y;
+		bool inCharacter = ShadowInCharacter(sampleDepth, shadowPos.xy + offset,
+			characterDepth, footprint);
 		visibility += (receiver > sampleDepth && inCharacter == character) ? 0.0 : 1.0;
 	}
 	return visibility / float(sampleCount);
@@ -1392,8 +1431,9 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	// (contact hard) penumbra, the rest with theirs. Kept out of the ordinary
 	// search loop: a second pass over the same (cached) taps runs only next
 	// to a character, which keeps the common path's registers unchanged.
+	vec3 footprint;
 	vec2 characterDepth = ShadowCharacterDepth(shadowMvp, worldPosition,
-		shadowPos.z, depthSpan, searchWorld);
+		shadowPos.z, depthSpan, searchWorld, uvPerWorld, footprint);
 	float characterSum = 0.0;
 	float characterCount = 0.0;
 	if (characterDepth.x <= characterDepth.y)
@@ -1406,8 +1446,8 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 				ShadowVogel(i - 1, blockerSamples - 1, angle) * searchRadiusUv;
 			float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
 			float sampleDepth = ShadowRawDepth(cascade, shadowPos.xy + offset);
-			if (sampleDepth < receiver && sampleDepth >= characterDepth.x &&
-				sampleDepth <= characterDepth.y)
+			if (sampleDepth < receiver && ShadowInCharacter(sampleDepth,
+				shadowPos.xy + offset, characterDepth, footprint))
 			{
 				characterSum += sampleDepth;
 				characterCount += 1.0;
@@ -1431,10 +1471,10 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		// independent occluders: the visible fractions of the sun multiply
 		result.visibility = ShadowLayerPcf(cascade, shadowPos, receiverGradient, depthSpan,
 				max(0.5 * u_ShadowTexelSize.w, characterPenumbra * uvPerWorld),
-				filterSamples, angle, characterDepth, true) *
+				filterSamples, angle, characterDepth, footprint, true) *
 			ShadowLayerPcf(cascade, shadowPos, receiverGradient, depthSpan,
 				max(0.5 * u_ShadowTexelSize.w, otherPenumbra * uvPerWorld),
-				filterSamples, angle, characterDepth, false);
+				filterSamples, angle, characterDepth, footprint, false);
 		return result;
 	}
 #endif
