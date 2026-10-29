@@ -527,7 +527,112 @@ def emitter_checks(revision=None):
     return outcomes
 
 
+def emitter_neighbour_checks(revision=None):
+    # Half resolution, 4x2 pixels, trace 2x1, phase 0. Pixel (1, 0) reads the
+    # rays of pixels (0, 0) and (2, 0), same flat surface. Its own reflection
+    # ray passes a glowing sphere at t = 50. Ray (0, 0) hit a wall 30 units
+    # beside this ray (at t = 20 along it); ray (2, 0) missed. The wall is
+    # nearer than the sphere by Euclidean distance (36 < 50), but this ray
+    # never meets it: the emitter must stay visible.
+    w, h = 4, 2
+    prog = program('ssr_composite', revision=revision)
+    uniforms(prog, w, h)
+    v4(prog, 'u_SSRDepthParams', (0, 0, 4096, .001))
+    composite_inputs(w, h)
+    texture('u_SSRTraceMap', np.zeros((h, w, 4)))
+    v4(prog, 'u_SSRSettings', (1, -1, 11, 0))
+    v4(prog, 'u_SSRSettings2', (2, 1024, 0, 0))
+    v4(prog, 'u_SSREmitterParams', (1, 0, .35, 0))
+    uv = np.array([1.5 / w, .5 / h])
+    Pv = np.array([*((uv * 2 - 1) * 100), 100.0])
+    N = np.array([0, 0, -1.0])
+    d = Pv / np.linalg.norm(Pv)
+    R = d - 2 * np.dot(d, N) * N
+    O = Pv + N * .2
+    E = O + R * 50
+    side = np.array([-R[1], R[0], 0.0])
+    side /= np.linalg.norm(side)
+    Q = O + R * 20 + side * 30
+
+    def hit_texel(p, conf):
+        return [*((p[:2] / p[2]) * .5 + .5), math.log2(p[2]) / 12, conf]
+
+    loc = uloc(prog, 'u_SSREmitters')
+    gl('glUniform4fv', None, I, I, P)(loc, 3, (F * 12)(*E, 5, *E, 1, 1, 1, 1, 0))
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    trace = np.array([[hit_texel(Q, 1.0), [0, 0, 0, 0]]], dtype=np.float32)
+    bind(SAMPLERS.index('u_SSRHistoryMap'), tex2d(2, 1, data=trace))
+    value = draw(prog, w, h)[0, 1, 0]
+    gl('glDeleteProgram', None, U)(prog)
+    return {'half-res emitter occlusion: a neighbour hit beside this ray does not hide the emitter': value > .1}
+
+
+def trace_count_checks():
+    # Both trace variants pass exactly the texels that need a ray (the query of
+    # r_ssrReceiverCull -1): the classified one through the depth test, the
+    # other by discarding. The discarded texels keep the cleared miss.
+    w = h = 8
+    classify = program('ssr_trace', '#define CLASSIFY\n')
+    culled = program('ssr_trace', '#define PRECLASSIFIED\n')
+    plain = program('ssr_trace')
+    for prog in (classify, culled, plain):
+        uniforms(prog, w, h)
+        v4(prog, 'u_SSRSettings', (24, 5, 1024, 8))
+        v4(prog, 'u_SSRSettings2', (.6, .1, 1, 0))
+        v4(prog, 'u_SSRSettings3', (0, .004, 4, 72))
+        v4(prog, 'u_SSRSettings4', (0, 0, 0, 0))
+    texture('u_SSRHiZMap', np.full((h, w), 100))
+    normals = np.tile((.5, .5, .9, 1), (h, w, 1)).astype(np.float32)
+    normals[:, 5:, 2] = .1  # 3 of 8 columns need a ray: 24 texels
+    texture('u_SSRNormalMap', normals)
+    texture('u_SSRCubemapMap', np.tile((0, 0, 0, 100), (h, w, 1)))
+    texture('u_SSRSpecularMap', np.tile((.5, .5, .5, 1), (h, w, 1)))
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    target = fbo([tex2d(w, h, 0x805B)])
+    depth = U()
+    gl('glGenRenderbuffers', None, I, C.POINTER(U))(1, C.byref(depth))
+    gl('glBindRenderbuffer', None, U, U)(0x8D41, depth)
+    gl('glRenderbufferStorage', None, U, U, I, I)(0x8D41, 0x81A5, w, h)
+    gl('glFramebufferRenderbuffer', None, U, U, U, U)(0x8D40, 0x8D00, 0x8D41, depth)
+    gl('glViewport', None, I, I, I, I)(0, 0, w, h)
+    query = U()
+    gl('glGenQueries', None, I, C.POINTER(U))(1, C.byref(query))
+    counts, kept = [], []
+    for cull in (True, False):
+        gl('glDepthMask', None, U)(1)
+        gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
+        gl('glClearBufferfv', None, U, I, P)(0x1800, 0, (F * 4)(0, 0, 0, 1))  # sentinel
+        gl('glClearBufferfv', None, U, I, P)(0x1801, 0, (F * 1)(1))
+        if cull:
+            gl('glEnable', None, U)(0x0B71)
+            gl('glDepthFunc', None, U)(0x0201)
+            gl('glColorMask', None, U, U, U, U)(0, 0, 0, 0)
+            gl('glUseProgram', None, U)(classify)
+            gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+            gl('glColorMask', None, U, U, U, U)(1, 1, 1, 1)
+        else:
+            gl('glDisable', None, U)(0x0B71)
+        gl('glDepthMask', None, U)(0)
+        gl('glUseProgram', None, U)(culled if cull else plain)
+        gl('glBeginQuery', None, U, U)(0x8914, query)  # GL_SAMPLES_PASSED
+        gl('glDrawArrays', None, U, I, I)(4, 0, 3)
+        gl('glEndQuery', None, U)(0x8914)
+        samples = U()
+        gl('glGetQueryObjectuiv', None, U, U, C.POINTER(U))(query, 0x8866, C.byref(samples))
+        counts.append(samples.value)
+        result = read_color(target, w, h)
+        kept.append(np.all(result[:, :5, 3] == 1) and np.all(result[:, 5:, 3] == 0))
+    gl('glDisable', None, U)(0x0B71)
+    gl('glDepthMask', None, U)(1)
+    gl('glDeleteQueries', None, I, C.POINTER(U))(1, C.byref(query))
+    gl('glDeleteRenderbuffers', None, I, C.POINTER(U))(1, C.byref(depth))
+    for prog in (classify, culled, plain):
+        gl('glDeleteProgram', None, U)(prog)
+    return {f'both trace variants pass exactly the ray texels (24): {counts}': counts == [24, 24] and all(kept)}
+
+
 def fused_checks():
+
     # The fused composite equals resolve + composite for direct and cached
     # half resolution rays, every phase.
     w = h = 8
@@ -563,17 +668,20 @@ def fused_checks():
     return outcomes
 
 
-def footprint_checks():
-    # Rough hit at depth 500; mip 0 of the scene is green, mips 1.. red. A
-    # surface at depth 100 next to the hit (in front of it) must keep the blur
-    # off it (green); without it, or with the test off, the cone mip is red.
+def footprint_checks(revision=None):
+    # Rough hit at depth 500 on pixel corner (8, 8); mip 0 of the scene is
+    # green, mips 1.. red. A surface at depth 100 near the hit (in front of it)
+    # must keep the blur off it (green); without it, or with the test off, the
+    # cone mip is red. The bilinear color taps reach the neighbouring Hi-Z
+    # cells too: a foreground in the cell left of the hit's cell bleeds into
+    # the sample, which a test of the hit's own cell alone misses.
     w = h = 16
     body = '''out vec4 out_Color;
     void main() {
         out_Color = SSRHitRadiance(vec4(.5, .5, log2(500.0)/12.0, 1.0),
             vec3(0, 0, 100), 1.0, 3.0, u_SSRSettings.x);
     }'''
-    prog = program('ssr_resolve', body=body)
+    prog = program('ssr_resolve', body=body, revision=revision)
     uniforms(prog, w, h)
     v4(prog, 'u_SSRDepthParams', (0, 0, 4096, .001))  # fine pixels: the slope allowance stays small
     gl('glActiveTexture', None, U)(0x84C0 + 15)
@@ -588,16 +696,19 @@ def footprint_checks():
     gl('glTexParameteri', None, U, U, I)(TEX2D, 0x2801, 0x2703)
     bind(SAMPLERS.index('u_SSRSceneMap'), scene)
     outcomes = {}
-    for label, foreground, test, green in [('no foreground: cone mip', False, 6, False),
-            ('foreground silhouette next to the hit: footprint narrowed', True, 6, True),
-            ('test off: cone mip', True, 0, False)]:
+    for label, foreground, test, green in [('no foreground: cone mip', None, 6, 0),
+            ('one foreground pixel next to the hit: footprint narrowed', 'pixel', 6, .4),
+            ('foreground in the neighbouring Hi-Z cell: footprint narrowed', 'left', 6, .9),
+            ('test off: cone mip', 'left', 0, 0)]:
         depth = np.full((h, w), 500, dtype=np.float32)
-        if foreground:
-            depth[8, 9] = 100  # the pixel next to the hit
+        if foreground == 'pixel':
+            depth[8, 9] = 100  # the pixel next to the hit, the hit's own cell at every level
+        elif foreground == 'left':
+            depth[:, :8] = 100  # a pillar left of the hit: other cells than the hit's at levels 1-3
         texture('u_SSRHiZMap', depth, levels=True)
         v4(prog, 'u_SSRSettings', (test, 0, 0, 0))
         c = draw(prog, 1, 1)[0, 0]
-        outcomes[f'footprint depth: {label}'] = (c[1] > .9 and c[0] < .1) if green else (c[0] > .9 and c[1] < .1)
+        outcomes[f'footprint depth: {label}'] = (c[1] > green and c[0] < 1 - green) if green else (c[0] > .9 and c[1] < .1)
     gl('glDeleteProgram', None, U)(prog)
     return outcomes
 
@@ -613,12 +724,14 @@ def main():
     try:
         if args.baseline_ref:
             for name, ok in {**cache_checks(args.baseline_ref), **temporal_checks(args.baseline_ref),
-                             **emitter_checks(args.baseline_ref)}.items():
+                             **emitter_checks(args.baseline_ref), **emitter_neighbour_checks(args.baseline_ref),
+                             **footprint_checks(args.baseline_ref)}.items():
                 print(f'BASELINE {"PASS" if ok else "REPRODUCED BUG"}: {name}', flush=True)
         outcomes = {**compile_checks(), **cache_checks(), **cache_gate_checks(), **temporal_checks(),
                     **coverage_checks(), **phase_checks(), **resolve_checks(), **resolve_edge_checks(),
                     **msaa_resolve_checks(), **confidence_checks(), **classified_miss_checks(),
-                    **emitter_checks(), **fused_checks(), **footprint_checks()}
+                    **emitter_checks(), **emitter_neighbour_checks(), **fused_checks(), **footprint_checks(),
+                    **trace_count_checks()}
 
         for name, ok in outcomes.items():
             print(f'{"PASS" if ok else "FAIL"}: {name}', flush=True)

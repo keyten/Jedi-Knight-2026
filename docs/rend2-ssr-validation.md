@@ -310,3 +310,59 @@ in the worktree), all without overlap; medians in ms, round 1 / round 2:
 - Not measured: RTX timings, temporal accumulation, full resolution rays,
   MSAA, moving NPC / saber gameplay and the visual effect of the footprint
   depth test.
+
+## 2026-10-29 third review (branch `fix/ssr-review-2`)
+
+Baseline: SP renderer of `cfdf7e1ec` (detached worktree `OpenJK-rend2-ssrbase`).
+Game runs: Intel UHD, mp/ffa3 `(671, -769, -70)` yaw 290/310, **640x360,
+`r_picmip 2`** (other agents run several game instances; see
+`test_ssr_runtime.py --set/--sweep/--modes`), medium preset, half res, temporal
+off, hit cache off, all without overlap.
+
+Accepted and changed:
+
+- Half-res emitter occlusion: a neighbour's hit is projected onto this pixel's
+  ray and skipped when it lies beyond `2 * gridScale` pixels `+ 2 + max(cone,
+  0.1) * t` of it. Regression `emitter_neighbour_checks`: a wall 30 units
+  beside the ray (Euclidean 36 < emitter 50) hid the emitter at `cfdf7e1ec`
+  (reproduced), not any more. Intersecting the hit surface's plane was tried
+  and dropped: its normal fetches cost the composite 1.7 ms at 1600x900 on
+  Intel (synthetic full-screen receivers; 2.73 -> 4.39 ms) through register
+  pressure even when no emitter is drawn.
+- Footprint depth over the bilinear 2x2 Hi-Z texels with a continuous limit.
+  Regression: a foreground block in the cell left of the hit's cell left the
+  cone mip (red) at `cfdf7e1ec` (reproduced), now narrowed. Cost in game: the
+  per-ray radiance pass 0.040/0.047 -> 0.048/0.058 ms (footprint test on).
+- Composite: non-receivers discard before the material fetches. Synthetic
+  1600x900, a third non-receivers: unfused composite 1.24-1.48 -> 0.88-1.03 ms.
+- `r_ssrReceiverCull -1` (new default), see `rend2-ssr.md`. Synthetic
+  1600x900 floor + wall, classify + culled trace / plain trace:
+
+  | ray share | 32x32 blocks | scattered pixels |
+  |---:|---:|---:|
+  | 46% | 1.13 | 1.15 |
+  | 23% | 1.14 | 1.11 |
+  | 16% | 1.13 | 0.87 |
+  | 9% | 1.20 | 0.88 |
+  | 2-5% | 1.15-1.19 | 0.66-0.69 |
+
+  In game (640x360, `r_ssrMaxRoughness` 0.6 ... 0.5 = 45% ... 6% ray texels)
+  culling on/off stays within +-10% either way; at 1600x900 / 45% it lost
+  ~1 ms (10-28). The automatic mode is verified in game: off at 45% and 18%,
+  on at 6%, no flapping.
+
+Measured and rejected:
+
+- "SSR pays for velocity nobody reads": writing velocity only for the hit
+  cache / temporal pass made the default **slower**. "Depth prepass" timer
+  (new, `r_speeds 100`): 0.295-0.306 ms depth only vs 0.101-0.108 ms with
+  velocity; main view +0.17 ms. The depth-only prepass uses the lightall
+  programs, the velocity prepass the small `velocity` programs. Reverted.
+- Hit cache for long rays only: not pursued (the 10-28 numbers stand).
+
+Final defaults vs baseline (two interleaved rounds, ms, footprint test off /
+on): main view 2.89-3.04 vs 2.93-3.07; trace 0.43-0.49 vs 0.46-0.55; composite
+0.52-0.54 vs 0.54-0.55. Production GLSL regressions pass on Intel UHD and RTX
+2060 (new: neighbour emitter projection, neighbour-cell footprint, both trace
+variants pass exactly the ray texels); water SSR and the SSGI / LTC saber /
+skin programs still compile. RTX game timings were not taken.

@@ -2540,8 +2540,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrHitCache, 0, 1, qtrue );
 	r_ssrResolveCache = ri.Cvar_Get( "r_ssrResolveCache", "1", CVAR_ARCHIVE, "SSR: resolve half-res rays to radiance once per frame, then upsample (0 = per-pixel resolve)" );
 	ri.Cvar_CheckRange( r_ssrResolveCache, 0, 1, qtrue );
-	r_ssrReceiverCull = ri.Cvar_Get( "r_ssrReceiverCull", "1", CVAR_ARCHIVE, "SSR: run the ray march only on the pixels that need a ray (early depth test)" );
-	ri.Cvar_CheckRange( r_ssrReceiverCull, 0, 1, qtrue );
+	r_ssrReceiverCull = ri.Cvar_Get( "r_ssrReceiverCull", "-1", CVAR_ARCHIVE, "SSR: classify the pixels that need a ray in an early depth pass (1), or discard the others in the trace itself (0); -1 = automatic: classify only while under ~15% of the trace texels need a ray" );
+	ri.Cvar_CheckRange( r_ssrReceiverCull, -1, 1, qtrue );
 	r_ssrFusedResolve = ri.Cvar_Get( "r_ssrFusedResolve", "1", CVAR_ARCHIVE, "SSR: without temporal accumulation the composite resolves the rays itself instead of a separate full resolution resolve pass (0 = separate pass)" );
 	ri.Cvar_CheckRange( r_ssrFusedResolve, 0, 1, qtrue );
 	r_ssrFootprintDepth = ri.Cvar_Get( "r_ssrFootprintDepth", "1", CVAR_ARCHIVE, "SSR: rough reflections do not blur surfaces in front of the hit into it (Hi-Z closest depth of the blur footprint, needs Hi-Z tracing)" );

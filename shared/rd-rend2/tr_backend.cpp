@@ -2725,7 +2725,9 @@ static void RB_RenderAllDepthRelatedPasses( drawSurf_t *drawSurfs, int numDrawSu
 		qglEnable(GL_DEPTH_CLAMP);
 	}
 
+	const int prepassTimer = (backEnd.viewParms.flags & VPF_DEPTHSHADOW) ? -1 : RB_ScreenBeginTimer("Depth prepass");
 	RB_RenderDepthOnly(drawSurfs, numDrawSurfs);
+	RB_ScreenEndTimer(prepassTimer);
 	RB_ScreenPrepareSaberDepth();
 
 	// SSAO / GTAO / contact shadows for the main pass of this view (tr_ao.cpp)

@@ -46,20 +46,37 @@ uniform vec4 u_SSREmitterParams;
 
 out vec4 out_Color;
 
-// Distance from O to the nearest geometry that the reflection rays around this pixel hit (1e30: none).
-// At half resolution the four nearest rays of the same surface (depth and normal, as SSRResolvePixel
-// weights them) are considered and the nearest hit is kept: an emitter behind a wall is hidden by all.
-float EmitterOccluderDistance(ivec2 pix, float z, vec3 worldNormal, vec3 O)
+// Where this pixel's ray O + R t passes the geometry another ray hit at Q: Q projected onto the ray. Negative
+// when Q is further than reach from the ray: the other ray says nothing about this one. reach = (base, slope):
+// base + slope * t (the two rays start a few pixels apart and diverge with their normals). Intersecting the
+// plane of the hit surface instead (its normal from the material buffer) is more exact on slanted walls, but
+// its fetches cost 1.7 ms on Intel UHD at 1600x900 in this shader (register pressure, even unexecuted).
+float OccluderOnRay(vec4 hit, vec3 O, vec3 R, vec2 reach, bool check)
+{
+	vec3 d = SSRHitPosition(hit) - O;
+	float t = dot(d, R);
+	if (t <= 0.0)
+		return -1.0;
+	return (!check || length(d - R * t) <= reach.x + reach.y * t) ? t : -1.0;
+}
+
+// Distance along the ray O + R to the nearest geometry that the reflection rays around this pixel hit (1e30:
+// none). Full resolution: the pixel's own ray. Half resolution: the four nearest rays of the same surface
+// (depth and normal, as SSRResolvePixel weights them), each brought onto this ray (OccluderOnRay); the nearest
+// is kept. When none of them describes this ray, the nearest ray is used without the reach test.
+float EmitterOccluderDistance(ivec2 pix, float z, vec3 worldNormal, vec3 O, vec3 R, float coneTangent)
 {
 	ivec2 traceMax = textureSize(u_SSRHistoryMap, 0) - ivec2(1);
 	ivec2 nearest = min(pix, traceMax);
-	if (u_SSRSettings2.x > 1.5)
+	float gridScale = u_SSRSettings2.x;
+	vec2 reach = vec2(2.0 * gridScale * z * u_SSRDepthParams.w + 2.0, max(coneTangent, 0.1));
+	if (gridScale > 1.5)
 	{
 		vec2 phase = SSRPhaseOffset(u_SSRSettings2.z);
 		ivec2 fullSize = textureSize(u_SSRHiZMap, 0);
 		ivec2 base = ivec2(floor((vec2(pix) - phase) * 0.5));
 		float hitDistance = 1.0e30;
-		bool sameSurface = false;
+		bool described = false;
 		for (int i = 0; i < 4; i++)
 		{
 			ivec2 q = clamp(base + ivec2(i & 1, i >> 1), ivec2(0), traceMax);
@@ -71,20 +88,30 @@ float EmitterOccluderDistance(ivec2 pix, float z, vec3 worldNormal, vec3 O)
 			{
 				continue;
 			}
-			sameSurface = true;
 			vec4 hit = texelFetch(u_SSRHistoryMap, q, 0);
-			if (hit.w > 0.0)
-				hitDistance = min(hitDistance, length(SSRHitPosition(hit) - O));
+			if (hit.w <= 0.0)
+			{
+				described = true; // a miss of the same surface
+				continue;
+			}
+			float t = OccluderOnRay(hit, O, R, reach, true);
+			if (t > 0.0)
+			{
+				described = true;
+				hitDistance = min(hitDistance, t);
+			}
 		}
-		if (sameSurface)
+		if (described)
 			return hitDistance;
 
-		// no ray of this surface around (a thin receiver): the nearest ray
 		nearest = SSRNearestTraceTexel((vec2(pix) + 0.5) * u_SSRTexelSize.xy, 2.0, u_SSRSettings2.z, traceMax + ivec2(1));
 	}
 
 	vec4 hit = texelFetch(u_SSRHistoryMap, nearest, 0);
-	return hit.w > 0.0 ? length(SSRHitPosition(hit) - O) : 1.0e30;
+	if (hit.w <= 0.0)
+		return 1.0e30;
+	float t = OccluderOnRay(hit, O, R, reach, false);
+	return t > 0.0 ? t : 1.0e30;
 }
 
 // Reflection of the emitters seen along the ray O + R t, t > 0
@@ -156,6 +183,11 @@ void main()
 	vec4 normalRoughness;
 	bool receiver = SSRIsReceiver(pix, z, normalRoughness);
 
+	// a non-receiver adds nothing (neither SSR nor emitters): leave before the material fetches. The scene
+	// debug views 7-11 draw it black instead
+	if (!receiver && u_SSRSettings.z == 0.0)
+		discard;
+
 #if defined(FUSED_RESOLVE)
 	vec4 ssr = vec4(0.0);
 	if (receiver && SSRInsideView(uv))
@@ -186,7 +218,8 @@ void main()
 		{
 			vec3 R = reflect(-V, N);
 			vec3 O = P + N * max(0.05, 0.002 * z);
-			float occluderDistance = EmitterOccluderDistance(pix, z, SSRDecodeNormal(normalRoughness.rg), O);
+			float occluderDistance = EmitterOccluderDistance(pix, z, SSRDecodeNormal(normalRoughness.rg), O, R,
+				SSRConeTangent(normalRoughness.b));
 
 			float fade = 1.0 - smoothstep(0.5, 1.0, normalRoughness.b / maxRoughness);
 			emitterPart = EmitterReflection(O, R, normalRoughness.b, occluderDistance) *
