@@ -3606,6 +3606,87 @@ static const void *RB_ColorMask(const void *data)
 
 /*
 =============
+RB_PointShadowSlot
+
+r_shadowStaticCache and empty faces: one point/spot shadow slot as a whole
+=============
+*/
+static const void *RB_PointShadowSlot(const void *data)
+{
+	const pointShadowSlotCommand_t *cmd = (const pointShadowSlotCommand_t *)data;
+	if (tess.numIndexes)
+		RB_EndSurface();
+
+	const int slot = cmd->slot;
+	const int layers = Q_min(Q_max(cmd->layers, 1), 6);
+	if (slot < 0 || slot >= MAX_DLIGHT_SHADOWS || !tr.pointShadowArrayImage)
+		return (const void *)(cmd + 1);
+
+	// r_shadowStaticCache 2: depth of the cached passes, per slot
+	static std::vector<uint16_t> snapshots[MAX_DLIGHT_SHADOWS];
+	const size_t layerTexels = (size_t)DSHADOW_MAP_SIZE * DSHADOW_MAP_SIZE;
+	if (cmd->op == POINT_SHADOW_SLOT_SNAPSHOT || cmd->op == POINT_SHADOW_SLOT_COMPARE)
+	{
+		std::vector<uint16_t> current(layerTexels * layers);
+		GLint packBuffer, packAlignment;
+		qglGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer);
+		qglGetIntegerv(GL_PACK_ALIGNMENT, &packAlignment);
+		qglBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+		qglPixelStorei(GL_PACK_ALIGNMENT, 2);
+		for (int f = 0; f < layers; ++f)
+		{
+			FBO_Bind(tr.shadowCubeFbo[slot * 6 + f]);
+			qglReadPixels(0, 0, DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE, GL_DEPTH_COMPONENT,
+				GL_UNSIGNED_SHORT, current.data() + layerTexels * f);
+		}
+		qglPixelStorei(GL_PACK_ALIGNMENT, packAlignment);
+		qglBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer);
+		if (cmd->op == POINT_SHADOW_SLOT_SNAPSHOT)
+			snapshots[slot].swap(current);
+		else if (snapshots[slot].size() == current.size())
+		{
+			size_t differ = 0;
+			int maxDelta = 0;
+			for (size_t t = 0; t < current.size(); ++t)
+			{
+				const int delta = abs((int)current[t] - (int)snapshots[slot][t]);
+				if (delta)
+				{
+					++differ;
+					maxDelta = Q_max(maxDelta, delta);
+				}
+			}
+			ri.Printf(PRINT_ALL, "r_shadowStaticCache verify: slot %d, %d layers, %u of %u depth texels differ (max %d/65535)\n",
+				slot, layers, (unsigned)differ, (unsigned)current.size(), maxDelta);
+		}
+	}
+	if (cmd->op == POINT_SHADOW_SLOT_CLEAR || cmd->op == POINT_SHADOW_SLOT_SNAPSHOT)
+	{
+		GL_State(GLS_DEFAULT);	// depth writes on for the clear
+		for (int f = 0; f < layers; ++f)
+		{
+			if (!tr.shadowCubeFbo[slot * 6 + f])
+				continue;
+			FBO_Bind(tr.shadowCubeFbo[slot * 6 + f]);
+			GL_SetViewportAndScissor(0, 0, DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE);
+			qglClear(GL_DEPTH_BUFFER_BIT);
+		}
+	}
+	else if ((cmd->op == POINT_SHADOW_SLOT_SAVE || cmd->op == POINT_SHADOW_SLOT_RESTORE) &&
+		tr.pointShadowStaticArrayImage && qglCopyImageSubData && slot < tr.pointShadowStaticSlots)
+	{
+		const GLuint live = tr.pointShadowArrayImage->texnum;
+		const GLuint store = tr.pointShadowStaticArrayImage->texnum;
+		const qboolean save = (qboolean)(cmd->op == POINT_SHADOW_SLOT_SAVE);
+		qglCopyImageSubData(save ? live : store, GL_TEXTURE_2D_ARRAY, 0, 0, 0, slot * 6,
+			save ? store : live, GL_TEXTURE_2D_ARRAY, 0, 0, 0, slot * 6,
+			DSHADOW_MAP_SIZE, DSHADOW_MAP_SIZE, layers);
+	}
+	return (const void *)(cmd + 1);
+}
+
+/*
+=============
 RB_ClearDepth
 
 =============
@@ -4549,6 +4630,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_PLANT_BONES:
 			data = RB_PlantBonesCommand(data);
+			break;
+		case RC_POINT_SHADOW_SLOT:
+			data = RB_PointShadowSlot(data);
 			break;
 		case RC_END_OF_LIST:
 		default:

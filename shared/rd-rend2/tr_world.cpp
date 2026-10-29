@@ -1010,8 +1010,9 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 
 	// The dynamic overlay does not need another BSP walk.  Its conservative
 	// surface list is rebuilt only after a map change or shader remap, then the
-	// much smaller list is culled directly against the current cascade.
-	if ((viewParms->flags & VPF_SUN_DYNAMIC_SHADOW) && !r_nocurves->integer)
+	// much smaller list is culled directly against the current cascade (or the
+	// point light's cube faces, r_shadowStaticCache).
+	if ((viewParms->flags & (VPF_SUN_DYNAMIC_SHADOW | VPF_POINT_DYNAMIC_SHADOW)) && !r_nocurves->integer)
 	{
 		if (s_sunShadowDynamicWorld.world != tr.world ||
 			s_sunShadowDynamicWorld.casterGeneration != tr.sunShadowCasterGeneration)
@@ -1020,12 +1021,23 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 		}
 		ClearBounds(viewParms->visBounds[0], viewParms->visBounds[1]);
 		R_RotateForEntity(&tr.worldEntity, &tr.viewParms, &tr.ori);
+		const bool cubeShadow = (viewParms->flags & VPF_CUBESHADOW) != 0;
 		for (int index : s_sunShadowDynamicWorld.surfaces)
+		{
+			if (cubeShadow && !(tr.shadowCube.mask = R_ShadowCubeSurfaceMask(&tr.world->surfaces[index])))
+				continue;
 			R_AddWorldSurface(&tr.world->surfaces[index], nullptr,
 				REFENTITYNUM_WORLD, 0, 0);
+		}
 		for (int index : s_sunShadowDynamicWorld.mergedSurfaces)
+		{
+			if (cubeShadow && !(tr.shadowCube.mask = R_ShadowCubeSurfaceMask(&tr.world->mergedSurfaces[index])))
+				continue;
 			R_AddWorldSurface(&tr.world->mergedSurfaces[index], nullptr,
 				REFENTITYNUM_WORLD, 0, 0);
+		}
+		if (cubeShadow)
+			tr.shadowCube.mask = 0x3F;
 		return;
 	}
 

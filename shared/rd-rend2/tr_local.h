@@ -784,6 +784,7 @@ extern cvar_t  *r_skyPortalCull;
 extern cvar_t  *r_shadowLayered;
 extern cvar_t  *r_shadowVerify;
 extern cvar_t  *r_shadowCache;
+extern cvar_t  *r_shadowStaticCache;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
 extern cvar_t  *r_entitySunSplit;
@@ -3239,6 +3240,21 @@ enum viewParmFlag_t {
 	VPF_SUN_TILE_LOAD_SHADOW = 0x100000, // Assemble persistent static depth from world-space disk pages
 	VPF_SUN_TILE_SAVE_SHADOW = 0x200000, // Persist fully covered world-space pages after this update
 	VPF_SUN_VERIFY_SHADOW = 0x400000, // Full reference render, including an empty depth clear
+	VPF_POINT_STATIC_SHADOW = 0x800000, // Point/spot slot: static world casters only (r_shadowStaticCache)
+	VPF_POINT_DYNAMIC_SHADOW = 0x1000000, // Point/spot slot: every other caster over the restored static depth
+};
+
+// r_shadowStaticCache: point/spot shadow slots that keep a static world copy
+#define POINT_SHADOW_STATIC_MAX_SLOTS 8
+
+// RC_POINT_SHADOW_SLOT, queued before the first view of a point/spot slot
+enum pointShadowSlotOp_t {
+	POINT_SHADOW_SLOT_NONE,
+	POINT_SHADOW_SLOT_CLEAR,	// clear every layer: faces without casters get no draw command
+	POINT_SHADOW_SLOT_SAVE,		// static build done: copy the slot into the static store
+	POINT_SHADOW_SLOT_RESTORE,	// copy the static store back before the dynamic casters
+	POINT_SHADOW_SLOT_SNAPSHOT,	// r_shadowStaticCache 2: read the cached result back, then clear
+	POINT_SHADOW_SLOT_COMPARE	// r_shadowStaticCache 2: compare the full render with the snapshot
 };
 using viewParmFlags_t = uint32_t;
 
@@ -3301,6 +3317,9 @@ typedef struct {
 	qboolean		sunShadowUnboundedDamage;
 	vec4i_t			sunShadowRestoreRects[SUN_SHADOW_MAX_RESTORE_RECTS];
 	int				sunShadowRestoreRectCount;
+	int				pointShadowSlotOp;	// pointShadowSlotOp_t, first view of a point/spot slot
+	int				pointShadowSlot;
+	int				pointShadowSlotLayers;	// 6 (cube) or 1 (projected spot)
 	vec4i_t			sunShadowScissor;
 	uint64_t		sunShadowDiskLayoutKey;
 	int				sunShadowDiskOriginX, sunShadowDiskOriginY;
@@ -4366,6 +4385,9 @@ typedef struct {
 ** by the frontend.
 */
 struct weatherSystem_t;
+// r_shadowStaticCache: a static build adds 6 views to the cube of its slot
+#define MAX_CACHED_VIEW_PARMS (3 + MAX_DLIGHTS * 6 + POINT_SHADOW_STATIC_MAX_SLOTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS)
+
 typedef struct trGlobals_s {
 	qboolean				registered;		// cleared at shutdown, set at beginRegistration
 
@@ -4430,6 +4452,8 @@ typedef struct trGlobals_s {
 	image_t					*sunShadowStaticArrayImage[2];
 	image_t					*sunShadowPageImage;
 	image_t					*pointShadowArrayImage;
+	image_t					*pointShadowStaticArrayImage;	// r_shadowStaticCache, created on first use
+	int						pointShadowStaticSlots;
 	image_t					*lightCookieArray;	// tr_lightcookie.cpp, NULL until a cookie is registered
 	image_t                 *screenSsaoImage;	// legacy SSAO: r = AO, g = 1
 	image_t					*hdrDepthImage;
@@ -4749,7 +4773,7 @@ typedef struct trGlobals_s {
 	size_t defaultFogsUboOffset;
 	size_t defaultShaderInstanceUboOffset;
 
-	long cameraUboOffsets[3 + MAX_DLIGHTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
+	long cameraUboOffsets[MAX_CACHED_VIEW_PARMS];
 	long sceneUboOffset;
 	long temporalInfoUboOffset;
 	long lightsUboOffset;
@@ -4772,7 +4796,7 @@ typedef struct trGlobals_s {
 	// -----------------------------------------
 
 	viewParms_t				viewParms;
-	viewParms_t				cachedViewParms[3 + MAX_DLIGHTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS];
+	viewParms_t				cachedViewParms[MAX_CACHED_VIEW_PARMS];
 	int						numCachedViewParms;
 	qboolean				portalRenderedThisFrame;
 
@@ -5192,7 +5216,10 @@ uint8_t R_ShadowCubeBoundsMask( const vec3_t mins, const vec3_t maxs );
 qboolean R_ShadowCubeOverlaps( const vec3_t mins, const vec3_t maxs );
 bool R_RenderCubeShadowView( const viewParms_t *faces, bool allowLayered, int faceSurfs[6] = nullptr );
 void R_ShadowCacheInvalidate(void);
-void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, qboolean reset);
+void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, int *staticBuilds,
+	int *staticReuses, qboolean reset);
+void R_QueuePointShadowSlotCmd(const viewParms_t *view);
+void R_QueuePointShadowStaticVerify(void);
 
 // r_shadowStats: backend CPU time of the draw commands of point light cube
 // faces (VPF_POINTCUBE), split by phase of RB_DrawSurfs
@@ -6112,8 +6139,16 @@ typedef enum {
 	RC_BEGIN_TIMED_BLOCK,
 	RC_END_TIMED_BLOCK,
 	RC_FOLIAGE_FIELD,
-	RC_PLANT_BONES
+	RC_PLANT_BONES,
+	RC_POINT_SHADOW_SLOT
 } renderCommand_t;
+
+typedef struct {
+	int		commandId;
+	int		op;			// pointShadowSlotOp_t
+	int		slot;
+	int		layers;
+} pointShadowSlotCommand_t;
 
 struct gpuTimer_t
 {

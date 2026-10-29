@@ -697,6 +697,7 @@ cvar_t  *r_skyPortalCull;
 cvar_t  *r_shadowLayered;
 cvar_t  *r_shadowVerify;
 cvar_t  *r_shadowCache;
+cvar_t  *r_shadowStaticCache;
 cvar_t  *r_dlightShadowBias;
 cvar_t  *r_contactShadowSoft;
 cvar_t  *r_entitySunSplit;
@@ -3448,6 +3449,8 @@ void R_Register( void )
 	r_shadowLayered = ri_Cvar_Get_NoComm( "r_shadowLayered", "1", CVAR_ARCHIVE, "With r_shadowSinglePass 1: 1 = all 6 faces of a point light cube in one layered draw command when supported" );
 	r_shadowCache = ri_Cvar_Get_NoComm( "r_shadowCache", "1", CVAR_ARCHIVE, "Reuse unchanged point/spot shadow maps; conservative around animated world surfaces and dynamic casters" );
 	ri.Cvar_CheckRange( r_shadowCache, 0, 1, qtrue );
+	r_shadowStaticCache = ri_Cvar_Get_NoComm( "r_shadowStaticCache", "1", CVAR_ARCHIVE, "Point/spot shadows: keep a copy of the static world depth per shadow slot and redraw only moving casters over it when the light is unchanged (needs GL 4.3 / ARB_copy_image); 2 = verify one frame against a full render" );
+	ri.Cvar_CheckRange( r_shadowStaticCache, 0, 2, qtrue );
 	r_shadowStats = ri_Cvar_Get_NoComm( "r_shadowStats", "0", CVAR_CHEAT, "Print per-frame CPU front-end / submit cost of shadow and camera views once per second" );
 	r_dlightShadowBias = ri_Cvar_Get_NoComm( "r_dlightShadowBias", "0", CVAR_ARCHIVE, "Dynamic light shadow cube bias: 0 legacy slope offset, 1 texel scaled normal + clamped slope bias" );
 	ri.Cvar_CheckRange( r_dlightShadowBias, 0, 1, qtrue );
