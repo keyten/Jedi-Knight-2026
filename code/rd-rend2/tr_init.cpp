@@ -498,6 +498,7 @@ cvar_t  *r_ssrReceiverCull;
 cvar_t  *r_ssrFusedResolve;
 cvar_t  *r_ssrFootprintDepth;
 cvar_t  *r_ssrStochastic;
+cvar_t  *r_ssrReflectedFog;
 
 cvar_t  *r_ssgi;
 cvar_t  *r_ssgiSource;
@@ -2590,6 +2591,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_ssrFootprintDepth, 0, 1, qtrue );
 	r_ssrStochastic = ri_Cvar_Get_NoComm( "r_ssrStochastic", "0", CVAR_ARCHIVE | CVAR_LATCH, "SSR: stochastic GGX reflections, one ray per pixel sampled from the roughness lobe, reused by the neighbours and averaged over the frames, instead of the mirror ray with a cone blur (needs r_ssrTemporal 1, vid_restart)" );
 	ri.Cvar_CheckRange( r_ssrStochastic, 0, 1, qtrue );
+	r_ssrReflectedFog = ri_Cvar_Get_NoComm( "r_ssrReflectedFog", "1", CVAR_ARCHIVE | CVAR_LATCH, "SSR: fog along the reflected ray, the froxel fog (r_volumetricFog 2) between the reflecting surface and what it reflects, marched through the froxel media (needs vid_restart)" );
+	ri.Cvar_CheckRange( r_ssrReflectedFog, 0, 1, qtrue );
 
 	r_ssgi = ri_Cvar_Get_NoComm( "r_ssgi", "0", CVAR_ARCHIVE | CVAR_LATCH, "Screen-space diffuse GI: bounces dynamic light (sabers, blasters, explosions) and emission, not the baked lighting (needs vid_restart)" );
 	ri.Cvar_CheckRange( r_ssgi, 0, 1, qtrue );

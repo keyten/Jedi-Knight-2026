@@ -589,6 +589,7 @@ extern cvar_t  *r_ssrReceiverCull;
 extern cvar_t  *r_ssrFusedResolve;
 extern cvar_t  *r_ssrFootprintDepth;
 extern cvar_t  *r_ssrStochastic;
+extern cvar_t  *r_ssrReflectedFog;
 
 extern cvar_t  *r_ssgi;
 extern cvar_t  *r_ssgiSource;
@@ -1825,6 +1826,12 @@ enum
 	// SSR ray hits of this and the previous frame (hit cache, tr_ssr.cpp)
 	TB_SSR_HIT       = 10,
 	TB_SSR_PREVHIT   = 11,
+	// froxel media of this frame (r_ssrReflectedFog): injected scattering +
+	// extinction, dynamic light scattering, RGB extinction (needs > 27 units,
+	// as r_volumetricFogRGBExtinction itself)
+	TB_SSR_FROXELSOURCE     = 12,
+	TB_SSR_FROXELDYNAMIC    = 13,
+	TB_SSR_FROXELEXTINCTION = 27,
 
 	// silhouette POM group footprints of lightall / fogpass / pom_silhouette_depth
 	// (tr_pom_silhouette.cpp). The silhouette lightall set is lightmap / vertex
@@ -7154,6 +7161,8 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 void RB_WaterContactUniforms(vec4_t *contact, int vec4Count);
 qboolean R_SSRWantsVelocity(void);
 qboolean R_SSRStochastic(void);
+qboolean R_SSRReflectedFog(void);
+qboolean RB_VolumetricMediaImages(image_t **source, image_t **dynamic, image_t **extinction);
 void R_SSRSelectResources(void);
 void R_CreateSSRImages(int width, int height, int hdrFormat);
 void R_CreateSSRFBOs(void);

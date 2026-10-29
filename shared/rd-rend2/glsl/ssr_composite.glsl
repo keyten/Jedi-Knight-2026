@@ -32,7 +32,8 @@ void main()
 // u_SSRSettings: x = strength (confidence scale), y = split x in window pixels (r_ssrCompare, pixels
 // left of it keep the cubemap reflection, -1 = off), z = debug view 7..11 (0 = off), w = pass:
 // 0 = signed delta (float target), 1 = replaced cubemap part (subtracted), 2 = added part
-// u_SSRSettings2: x = trace grid scale (1 or 2), y = max ray length, z = trace phase (0..3)
+// u_SSRSettings2: x = trace grid scale (1 or 2), y = max ray length, z = trace phase (0..3), w = 1: the
+// froxel volume is bound (FUSED_RESOLVE with SSR_REFLECTED_FOG, ssr_common.glsl)
 // u_SSRSettings3: FUSED_RESOLVE: x = coarsest color mip, y = coarsest Hi-Z level of the footprint depth
 // test (0 = off)
 // u_SSRTexelSize.xy = 1 / full resolution size

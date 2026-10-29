@@ -4949,13 +4949,16 @@ static int GLSL_LoadGPUProgramScreenSpace(
 	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	int numPrograms = 0;
 
+	// the library of the next loads: ssr_common, with the froxel functions in
+	// front of it for the programs that fog the reflected ray
+	const GPUShaderDesc *library = common;
 	auto load = [&]( shaderProgram_t *sp, const char *name, const char *programName,
 		const GPUProgramDesc& fallback, const char *defines )
 	{
 		const GPUProgramDesc *programDesc =
 			LoadProgramSource(programName, allocator, fallback);
 		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-				defines ? defines : "", *programDesc, common) )
+				defines ? defines : "", *programDesc, library) )
 		{
 			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
 		}
@@ -4963,6 +4966,9 @@ static int GLSL_LoadGPUProgramScreenSpace(
 		GLSL_InitUniforms(sp);
 		qglUseProgram(sp->program);
 		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELSOURCE, TB_SSR_FROXELSOURCE);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELDYNAMIC, TB_SSR_FROXELDYNAMIC);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELEXTINCTION, TB_SSR_FROXELEXTINCTION);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRNORMALMAP, TB_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRSPECULARMAP, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRCUBEMAPMAP, TB_DELUXEMAP);
@@ -5014,12 +5020,24 @@ static int GLSL_LoadGPUProgramScreenSpace(
 		load(&tr.ssrTraceShader[SSRDEF_CLASSIFY], "ssr_classify", "ssr_trace", fallback_ssr_traceProgram, "#define CLASSIFY\n");
 		load(&tr.ssrTraceShader[SSRDEF_TRACE_CULLED], "ssr_trace_culled", "ssr_trace", fallback_ssr_traceProgram, traceCulled.c_str());
 		load(&tr.ssrTraceShader[SSRDEF_TRACE_HIZ_CULLED], "ssr_trace_hiz_culled", "ssr_trace", fallback_ssr_traceProgram, traceHiZCulled.c_str());
-		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, stochastic.c_str());
-		load(&tr.ssrRadianceShader, "ssr_radiance", "ssr_resolve", fallback_ssr_resolveProgram, radiance.c_str());
+		// r_ssrReflectedFog: the programs that look up hit radiance (SSRHitRadiance)
+		// march the froxel fog of the reflected ray
+		const std::string fog = R_SSRReflectedFog() ? "#define SSR_REFLECTED_FOG\n" : "";
+		const std::string resolve = stochastic + fog;
+		const std::string radianceFog = radiance + fog;
+		const std::string fused = fog + "#define FUSED_RESOLVE\n";
+		const GPUShaderDesc *fogLibrary = R_SSRReflectedFog() ?
+			GLSL_CombineLibraries(allocator, LoadVolumetricLibrary(allocator), common) : common;
+		library = fogLibrary;
+		load(&tr.ssrResolveShader, "ssr_resolve", "ssr_resolve", fallback_ssr_resolveProgram, resolve.c_str());
+		load(&tr.ssrRadianceShader, "ssr_radiance", "ssr_resolve", fallback_ssr_resolveProgram, radianceFog.c_str());
+		library = common;
 		load(&tr.ssrUpsampleShader, "ssr_upsample", "ssr_resolve", fallback_ssr_resolveProgram, upsample.c_str());
 		load(&tr.ssrTemporalShader, "ssr_temporal", "ssr_temporal", fallback_ssr_temporalProgram, stochastic.c_str());
 		load(&tr.ssrCompositeShader, "ssr_composite", "ssr_composite", fallback_ssr_compositeProgram, nullptr);
-		load(&tr.ssrCompositeFusedShader[0], "ssr_composite_fused", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n");
+		library = fogLibrary;
+		load(&tr.ssrCompositeFusedShader[0], "ssr_composite_fused", "ssr_composite", fallback_ssr_compositeProgram, fused.c_str());
+		library = common;
 		load(&tr.ssrCompositeFusedShader[1], "ssr_composite_fused_upsample", "ssr_composite", fallback_ssr_compositeProgram, "#define FUSED_RESOLVE\n#define UPSAMPLE_RADIANCE\n");
 		load(&tr.ssrDebugShader, "ssr_debug", "ssr_debug", fallback_ssr_debugProgram, nullptr);
 	}

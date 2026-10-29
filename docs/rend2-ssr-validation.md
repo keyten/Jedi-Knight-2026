@@ -430,3 +430,31 @@ on, hit cache off, automatic culling, 45% ray texels; second interleaved round, 
 The SSR costs about 1.6x (half) / 1.7x (full); hence latched and off by default. The first round overlapped GPU
 tests of this session and is not used. The in-game screenshots of the two runs are not comparable (the camera
 landed a pixel apart); the picture was judged on the reference test only. RTX game timings were not taken.
+
+## 2026-10-30 reflected fog (branch `feat/ssr-reflected-fog`, `r_ssrReflectedFog`)
+
+`test_ssr_gl.py` reflected fog checks: a froxel volume 16 x 16 x 64 (near 4, far 1000) whose camera is the SSR
+view, σ = 0.002, emission 0.004, `SSRReflectedFog` of view space segments against the analytic answer:
+
+| case | T | expected |
+|---|---:|---:|
+| homogeneous, depth 100 -> 500 along the view | 0.4495 (S 1.1006) | 0.4493 (S 1.1013) |
+| homogeneous, x -100 -> 100 at depth 300 (not a camera ray) | 0.6704 | 0.6703 |
+| medium beyond depth 300 only, depth 100 -> 500 | 0.6685 | 0.6703 |
+| two slices of 20x denser medium around depth 300 | 0.1262 | 0.1268 |
+
+The last case sets the step budget: the segment crosses 9 slices; at most 8 steps give 0.1196, 4 or 2 steps
+miss the band (T = 1). One step per froxel crossed, at most 16.
+
+In game, Intel UHD, mp/ffa3 as above, 640x360, `r_picmip 2`, temporal off, automatic culling,
+`r_volumetricFog 2` quality 0 (40 x 23 x 32 froxels, GL 4.3 compute) with height fog (`r_volumetricFogHeight 1`,
+opaque distance 800); two interleaved rounds, no overlap (ms, off -> on):
+
+| | pass with the fog | off | on |
+|---|---|---:|---:|
+| half res (radiance pass, per ray) | SSR resolve | 0.07-0.09 | 0.14-0.17 |
+| full res (fused composite, per pixel) | SSR composite | 0.32-0.60 | 0.70-1.37 |
+
+About 3-4 ns per ray on Intel (the full res rounds differ in clock, the ratio does not: 2.2x the composite).
+Cheap at the default half resolution: on by default, latched (program define). The screenshots are not compared
+(the camera lands a pixel apart between runs); RTX game timings were not taken.
