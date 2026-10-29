@@ -108,7 +108,7 @@ their soft penumbra. A layer of at most one texel uses the bilinear 2x2 filter.
 It is a latched shader permutation (`USE_PCSS_CHARACTER_LAYERS`): 0 compiles
 the previous lightall exactly. `r_shadowDebug 13` shows the split pixels red.
 
-Off by default. The first version (character classification inside the
+On by default (set 0 to get the previous lightall back). The first version (character classification inside the
 blocker search loop) cost about 18-20% of the Intel UHD main view even with no
 character in view (6.9 -> 8.5-9.1 ms), from register pressure of the larger
 lightall. The search loop is now unchanged and a second pass over the same
@@ -146,7 +146,7 @@ PCSS visibility; it never replaces it.
 | `r_shadowPCSSQuality` | 1 | 0 low, 1 high, 2 ultra |
 | `r_shadowSunAngularDiameter` | 0.53 | apparent source diameter in degrees |
 | `r_shadowPCSSMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
-| `r_shadowPCSSCharacterLayers` | 0 | Ghoul2 character blockers get their own penumbra where their shadow meets softer shadows; latched |
+| `r_shadowPCSSCharacterLayers` | 1 | Ghoul2 character blockers get their own penumbra where their shadow meets softer shadows; latched |
 | `r_shadowSinglePass` | 1 | gather all six point-light cube faces in one scene walk; 0 keeps six independent walks |
 | `r_shadowLayered` | 1 | submit a supported point-light cube through its layered FBO; unsupported hardware/surfaces fall back automatically |
 | `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; conservative time-dependent casters force a redraw |

@@ -3435,7 +3435,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_shadowSunAngularDiameter, 0.0f, 8.0f, qfalse );
 	r_shadowPCSSMaxPenumbra = ri_Cvar_Get_NoComm( "r_shadowPCSSMaxPenumbra", "32", CVAR_ARCHIVE, "Maximum PCSS penumbra radius in world units" );
 	ri.Cvar_CheckRange( r_shadowPCSSMaxPenumbra, 0.0f, 256.0f, qfalse );
-	r_shadowPCSSCharacterLayers = ri_Cvar_Get_NoComm( "r_shadowPCSSCharacterLayers", "0", CVAR_ARCHIVE | CVAR_LATCH, "Sun PCSS: Ghoul2 characters get their own (contact hard) penumbra where their shadow meets softer scenery shadows; costs lightall ALU, latched" );
+	r_shadowPCSSCharacterLayers = ri_Cvar_Get_NoComm( "r_shadowPCSSCharacterLayers", "1", CVAR_ARCHIVE | CVAR_LATCH, "Sun PCSS: Ghoul2 characters get their own (contact hard) penumbra where their shadow meets softer scenery shadows; costs lightall ALU, latched" );
 	ri.Cvar_CheckRange( r_shadowPCSSCharacterLayers, 0, 1, qtrue );
 	r_shadowDebug = ri_Cvar_Get_NoComm( "r_shadowDebug", "0", CVAR_CHEAT, "Sun shadow debug: 1 cascades, 2 depth, 3 PCF, 4 blockers, 5 penumbra, 6 PCSS, 7 contact, 8 final, 9 bias, 10 point shadows, 11 G2 receivers, 12 model sun split (r_entitySunSplit), 13 PCSS character layers" );
 	ri.Cvar_CheckRange( r_shadowDebug, 0, 13, qtrue );
