@@ -1,0 +1,1285 @@
+{
+  "deterministic": true,
+  "executable_sha256": "ca7e4378e728df6eef00b21707cc66fb4dd008c7701a045cedc992a0d258055f",
+  "models": {
+    "cases": [
+      {
+        "models": [
+          {
+            "black_mse": 0.865149615616,
+            "heldout_mse": 0,
+            "kind": 1,
+            "parameters": 3,
+            "penalty": 0.0003,
+            "quadrature_difference": 0,
+            "validation_mse": 0
+          },
+          {
+            "black_mse": 0.865149615616,
+            "heldout_mse": 0,
+            "kind": 2,
+            "parameters": 5,
+            "penalty": 0.0005,
+            "quadrature_difference": 0,
+            "validation_mse": 0
+          },
+          {
+            "black_mse": 0.865149615616,
+            "heldout_mse": 0.00071622499284,
+            "kind": 3,
+            "parameters": 5,
+            "penalty": 0.0005,
+            "quadrature_difference": 0.025147047462,
+            "validation_mse": 0.000709763319932
+          },
+          {
+            "black_mse": 0.865149615616,
+            "heldout_mse": 0.000476707820483,
+            "kind": 4,
+            "parameters": 5,
+            "penalty": 0.0005,
+            "quadrature_difference": 0.0368652880442,
+            "validation_mse": 0.000473003803328
+          }
+        ],
+        "name": "point_vs_overcomplex",
+        "preferred_kind": 1,
+        "retained_kinds": [
+          1,
+          4
+        ]
+      },
+      {
+        "models": [
+          {
+            "black_mse": 5.13769438253,
+            "heldout_mse": 0.0214709684913,
+            "kind": 1,
+            "parameters": 3,
+            "penalty": 3e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.0214149449427
+          },
+          {
+            "black_mse": 5.13769438253,
+            "heldout_mse": 0.0214709684913,
+            "kind": 2,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.0214149449427
+          },
+          {
+            "black_mse": 5.13769438253,
+            "heldout_mse": 7.6655895675e-05,
+            "kind": 3,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0.0415817911516,
+            "validation_mse": 7.66908569558e-05
+          },
+          {
+            "black_mse": 5.13769438253,
+            "heldout_mse": 0.025919958909,
+            "kind": 4,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0.0889507317275,
+            "validation_mse": 0.0256824081692
+          }
+        ],
+        "name": "panel",
+        "preferred_kind": 3,
+        "retained_kinds": [
+          3
+        ]
+      },
+      {
+        "models": [
+          {
+            "black_mse": 0.330669213171,
+            "heldout_mse": 0.000217538861356,
+            "kind": 1,
+            "parameters": 3,
+            "penalty": 3e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.000218027373778
+          },
+          {
+            "black_mse": 0.330669213171,
+            "heldout_mse": 0.000217538861356,
+            "kind": 2,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.000218027373778
+          },
+          {
+            "black_mse": 0.330669213171,
+            "heldout_mse": 0.000118497378643,
+            "kind": 3,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0.0161071283178,
+            "validation_mse": 0.000112627159377
+          },
+          {
+            "black_mse": 0.330669213171,
+            "heldout_mse": 1.44156236128e-05,
+            "kind": 4,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0.0224748168887,
+            "validation_mse": 1.38150331909e-05
+          }
+        ],
+        "name": "tube",
+        "preferred_kind": 4,
+        "retained_kinds": [
+          3,
+          4
+        ]
+      },
+      {
+        "models": [
+          {
+            "black_mse": 0.266296626378,
+            "heldout_mse": 0.158757903508,
+            "kind": 1,
+            "parameters": 3,
+            "penalty": 3e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.158472694202
+          },
+          {
+            "black_mse": 0.266296626378,
+            "heldout_mse": 0.00194329233217,
+            "kind": 2,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0,
+            "validation_mse": 0.0126386915403
+          },
+          {
+            "black_mse": 0.266296626378,
+            "heldout_mse": 0.134311337981,
+            "kind": 3,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 2.11344451222e-05,
+            "validation_mse": 0.134417827687
+          },
+          {
+            "black_mse": 0.266296626378,
+            "heldout_mse": 0.102857987457,
+            "kind": 4,
+            "parameters": 5,
+            "penalty": 5e-07,
+            "quadrature_difference": 0.746189175664,
+            "validation_mse": 0.105045946092
+          }
+        ],
+        "name": "spot",
+        "preferred_kind": 2,
+        "retained_kinds": [
+          2,
+          4
+        ]
+      },
+      {
+        "models": [
+          {
+            "black_mse": 1.94078582032,
+            "heldout_mse": 0.000142756536376,
+            "kind": 1,
+            "parameters": 3,
+            "penalty": 0,
+            "quadrature_difference": 0,
+            "validation_mse": 0.000188556788389
+          },
+          {
+            "black_mse": 1.94078582032,
+            "heldout_mse": 0.000142756536376,
+            "kind": 2,
+            "parameters": 5,
+            "penalty": 0,
+            "quadrature_difference": 0,
+            "validation_mse": 0.000188556788389
+          },
+          {
+            "black_mse": 1.94078582032,
+            "heldout_mse": 6.92084734245e-05,
+            "kind": 3,
+            "parameters": 5,
+            "penalty": 0,
+            "quadrature_difference": 0.00530031423534,
+            "validation_mse": 7.96293711707e-05
+          },
+          {
+            "black_mse": 1.94078582032,
+            "heldout_mse": 0.000586164360376,
+            "kind": 4,
+            "parameters": 5,
+            "penalty": 0,
+            "quadrature_difference": 0.0262797238651,
+            "validation_mse": 0.000626127137725
+          }
+        ],
+        "name": "missing_shape_evidence",
+        "preferred_kind": 3,
+        "retained_kinds": [
+          3,
+          4
+        ]
+      }
+    ],
+    "schema": "org.openjk.s08-model-comparison",
+    "version": 1
+  },
+  "schema": "org.openjk.s08-benchmark",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/amplitude_fit.h": "9c7bf0bce8be3cd1b2e23ee8079321ec3d5111fff68ac3824edd95d3cf47ba15",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "d3b040df7c35947c777d4545d7e1a70125a7882e75d4fad9a5d44874d17cc815",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "8064bbf0ae8bc0499728aefe72ac11734766d2ed64d4662242748ad47cc1d354",
+    "shared/rd-rend2/lightrecon/bake_math.h": "342a4b791e8e2af250e4e986eac5ffc52543200270a9aef6522a148f93716041",
+    "shared/rd-rend2/lightrecon/bake_profile.h": "ec9cb47679d0effcb48011c03eebaf504d5005db1d4305e366ed8bd45ead3ab2",
+    "shared/rd-rend2/lightrecon/emitter_shape.cpp": "3624b48374a1414e9f141370e949616e422fc8d088931d2e0d3e9547a809340f",
+    "shared/rd-rend2/lightrecon/emitter_shape.h": "f958b860f67f50d6e0f75efcf5dd92f2a7c2e7255d9fabe89bfc3182ce661c31",
+    "shared/rd-rend2/lightrecon/geometry_key.h": "74ec7e33b16ee51a2f9af52f3c3db200808ba3940201c4f49f2eb35af0ad47cd",
+    "shared/rd-rend2/lightrecon/point_refine.cpp": "2d1b1ec5e9b040a1c363eeaffe2af7f2284c92ae66d9a9834d23a54e662ebeb1",
+    "shared/rd-rend2/lightrecon/point_refine.h": "098a9548b44b8a3165e6bd427d7abef1c08e7138a1020db5a95312090b326ed3",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "7c14e89756fb7d2b19c2e0f538ba8deba67b13a409d04334f5087fda722100e8",
+    "shared/rd-rend2/lightrecon/visibility.h": "49e3536a0574551a18cb7c3486767ab5875e8015987e8978de3d1c2a4c02b8cb",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "ad742e99abd6a813acafc17cb96ae81a621168d94e9e7aa66241ccb1b648db66",
+    "shared/rd-rend2/tr_lightrecon_types.h": "a670e1d8b9d12a9d233e90e2f9dbfb1c94a85aa9c9bf48f67c23021f12bda3ae",
+    "tools/lightrecon_test/lightrecon_shape_test.cpp": "8ab37695e1be399a776eb97ff0daa73bade993146e24ef4a107f2d4f0819eaeb"
+  },
+  "version": 1,
+  "witness": {
+    "cases": [
+      {
+        "after_world": 2.29419966717e-05,
+        "angular_error_radians": 0,
+        "before_world": 13.8564064606,
+        "black_mse": 0.865149615616,
+        "converged": true,
+        "heldout_mse": 1.02648048791e-14,
+        "name": "true_point",
+        "rays": 3741,
+        "sources": [
+          {
+            "angular_profile": 1,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              8,
+              -8,
+              128
+            ],
+            "kind": 1,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              40000.0078125,
+              16000.0039062,
+              8000.00195312
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              40000,
+              16000,
+              8000
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              1.1351997955e-06,
+              1.08516564978e-06,
+              120.000022888
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 1.49253625332e-14,
+        "trials": 72,
+        "validation_mse": 1.12418011408e-14,
+        "values": 672
+      },
+      {
+        "after_world": 0.0139810552496,
+        "angular_error_radians": 0,
+        "before_world": 5.65685424949,
+        "black_mse": 4.8428476386,
+        "converged": true,
+        "heldout_mse": 1.0623334638e-08,
+        "name": "narrow_spot",
+        "rays": 11438,
+        "sources": [
+          {
+            "angular_profile": 2,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955370306969,
+            "cos_outer": 0.877626717091,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              -0.000113544127089,
+              1.66267636814e-06,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              4,
+              0,
+              124
+            ],
+            "kind": 2,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              40015.8515625,
+              16006.3417969,
+              8003.17089844
+            ],
+            "right": [
+              1,
+              8.30216464465e-08,
+              -0.000113544127089
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              40000,
+              16000,
+              8000
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0.00659507559612,
+              -0.000395230803406,
+              120.012321472
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 1.2971373055e-08,
+        "trials": 327,
+        "validation_mse": 8.085328917e-09,
+        "values": 3382
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.650047283963,
+        "converged": true,
+        "heldout_mse": 1.41884700063e-06,
+        "name": "rectangle",
+        "rays": 104688,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32.8697738647,
+              16.4606723785,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              18.9250431061,
+              7.5700173378,
+              3.7850086689
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 2.11856975944e-06,
+        "trials": 122,
+        "validation_mse": 1.41990679634e-06,
+        "values": 1766
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.166653844004,
+        "converged": true,
+        "heldout_mse": 5.5598855703e-06,
+        "name": "long_tube",
+        "rays": 372180,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              56.4294395447,
+              11.4756441116
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 4,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              7.33025932312,
+              2.93210363388,
+              1.46605181694
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 8.45746117971e-06,
+        "trials": 405,
+        "validation_mse": 5.41676824421e-06,
+        "values": 5714
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.650047283963,
+        "converged": true,
+        "heldout_mse": 5.44816444576e-07,
+        "name": "two_sided_sheet",
+        "rays": 6720,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              19.9788684845,
+              7.9915471077,
+              3.99577355385
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 8.11945116446e-07,
+        "trials": 1,
+        "validation_mse": 5.45303980952e-07,
+        "values": 30
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 2.50648847356,
+        "converged": true,
+        "heldout_mse": 3.38065464984e-06,
+        "name": "two_adjacent_panels",
+        "rays": 6720,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              -50,
+              0,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              29.9448299408,
+              2.9980006218,
+              1.03495240211
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              30,
+              3,
+              1
+            ],
+            "truth_xyz": [
+              -50,
+              0,
+              120
+            ],
+            "xyz": [
+              -50,
+              0,
+              120
+            ]
+          },
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 2,
+            "initial_xyz": [
+              50,
+              0,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              1.03144645691,
+              2.99712061882,
+              29.9384803772
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              1,
+              3,
+              30
+            ],
+            "truth_xyz": [
+              50,
+              0,
+              120
+            ],
+            "xyz": [
+              50,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 4.98433598156e-06,
+        "trials": 1,
+        "validation_mse": 3.3725580814e-06,
+        "values": 207
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.283209462528,
+        "converged": true,
+        "heldout_mse": 4.88069470575e-05,
+        "name": "partial_occlusion",
+        "rays": 3360,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              -32,
+              -32,
+              140
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              19.7335109711,
+              7.89340400696,
+              3.94670200348
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              -32,
+              -32,
+              140
+            ],
+            "xyz": [
+              -32,
+              -32,
+              140
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 0.00055852742475,
+        "trials": 1,
+        "validation_mse": 6.38671188768e-05,
+        "values": 15
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 6.25354655871,
+        "converged": true,
+        "heldout_mse": 1.57218175685e-05,
+        "name": "near_field_tube",
+        "rays": 937280,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48.0401535034,
+              4.89068412781
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              18
+            ],
+            "kind": 4,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              20.4184341431,
+              8.16737365723,
+              4.08368682861
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              18
+            ],
+            "xyz": [
+              0,
+              0,
+              18
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 2.2838616412e-05,
+        "trials": 68,
+        "validation_mse": 1.86273796001e-05,
+        "values": 1017
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.865149615616,
+        "converged": true,
+        "heldout_mse": 0,
+        "name": "broad_spot",
+        "rays": 1343,
+        "sources": [
+          {
+            "angular_profile": 2,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.169967159629,
+            "cos_outer": 0.0707371979952,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 2,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              40000,
+              16000,
+              8000
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              40000,
+              16000,
+              8000
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 0,
+        "trials": 38,
+        "validation_mse": 0,
+        "values": 316
+      },
+      {
+        "after_world": 0.231951396373,
+        "angular_error_radians": 0.000458529665319,
+        "before_world": 4.24264068712,
+        "black_mse": 0.64480257639,
+        "converged": true,
+        "heldout_mse": 1.11165921354e-06,
+        "name": "panel_pose",
+        "rays": 265269,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0.0796991661191,
+              -0.0592908225954,
+              -0.995054066181
+            ],
+            "id": 1,
+            "initial_xyz": [
+              3,
+              -3,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              20.0211029053,
+              8.00844097137,
+              4.00422048569
+            ],
+            "right": [
+              0.996818900108,
+              0.0050284541212,
+              0.0795408934355
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              -0.0321768112481,
+              -0.00780464150012,
+              120.229576111
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 1.66771682395e-06,
+        "trials": 304,
+        "validation_mse": 1.10932466944e-06,
+        "values": 3738
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0.0058082978391,
+        "before_world": 0,
+        "black_mse": 0.16663848419,
+        "converged": true,
+        "heldout_mse": 1.29093451598e-06,
+        "name": "tube_axis",
+        "rays": 78310,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0.00578896328807,
+              0.000449078215752,
+              -0.999983131886
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 4,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              19.9620609283,
+              7.98482370377,
+              3.99241185188
+            ],
+            "right": [
+              0.988019526005,
+              0.154220402241,
+              0.00578896328807
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 2.56548766493e-06,
+        "trials": 60,
+        "validation_mse": 1.69219068132e-06,
+        "values": 631
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 673.009463543,
+        "converged": true,
+        "heldout_mse": 7.93540894371e-13,
+        "name": "historical_spot",
+        "rays": 1540,
+        "sources": [
+          {
+            "angular_profile": 0,
+            "canonical_emission_unit": 0,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 2,
+            "legacy_spot_radius": 53.9267190938,
+            "rgb": [
+              300,
+              120,
+              40
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              300,
+              120,
+              40
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 5.40520009703e-14,
+        "trials": 35,
+        "validation_mse": 6.41789267233e-13,
+        "values": 500
+      },
+      {
+        "after_world": 0,
+        "angular_error_radians": 0,
+        "before_world": 0,
+        "black_mse": 0.650047283963,
+        "converged": true,
+        "heldout_mse": 5.44816444576e-07,
+        "name": "authored_SI_panel",
+        "rays": 3360,
+        "sources": [
+          {
+            "angular_profile": 3,
+            "canonical_emission_unit": 2,
+            "canonical_intensity_known": true,
+            "cos_inner": 0.955336511135,
+            "cos_outer": 0.877582550049,
+            "dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "forward": [
+              0,
+              0,
+              -1
+            ],
+            "id": 1,
+            "initial_xyz": [
+              0,
+              0,
+              120
+            ],
+            "kind": 3,
+            "legacy_spot_radius": 53.9267187,
+            "rgb": [
+              19.9788684845,
+              7.9915471077,
+              3.99577355385
+            ],
+            "right": [
+              1,
+              0,
+              0
+            ],
+            "truth_dimensions": [
+              32,
+              16,
+              48,
+              5
+            ],
+            "truth_rgb": [
+              20,
+              8,
+              4
+            ],
+            "truth_xyz": [
+              0,
+              0,
+              120
+            ],
+            "xyz": [
+              0,
+              0,
+              120
+            ]
+          }
+        ],
+        "stop": "PatternStationary",
+        "train_objective": 8.11945116446e-07,
+        "trials": 1,
+        "validation_mse": 5.45303980952e-07,
+        "values": 15
+      }
+    ],
+    "checks": 2910,
+    "failures": 0,
+    "schema": "org.openjk.s08-tests",
+    "version": 1
+  }
+}

@@ -1,0 +1,14 @@
+scene,initial_xyz_error_world,final_xyz_error_world,angular_error_radians,heldout_mse,black_mse,trials,rays,stop
+true_point,13.8564064606,2.29419966717e-05,0,1.02648048791e-14,0.865149615616,72,3741,PatternStationary
+narrow_spot,5.65685424949,0.0139810552496,0,1.0623334638e-08,4.8428476386,327,11438,PatternStationary
+rectangle,0,0,0,1.41884700063e-06,0.650047283963,122,104688,PatternStationary
+long_tube,0,0,0,5.5598855703e-06,0.166653844004,405,372180,PatternStationary
+two_sided_sheet,0,0,0,5.44816444576e-07,0.650047283963,1,6720,PatternStationary
+two_adjacent_panels,0,0,0,3.38065464984e-06,2.50648847356,1,6720,PatternStationary
+partial_occlusion,0,0,0,4.88069470575e-05,0.283209462528,1,3360,PatternStationary
+near_field_tube,0,0,0,1.57218175685e-05,6.25354655871,68,937280,PatternStationary
+broad_spot,0,0,0,0,0.865149615616,38,1343,PatternStationary
+panel_pose,4.24264068712,0.231951396373,0.000458529665319,1.11165921354e-06,0.64480257639,304,265269,PatternStationary
+tube_axis,0,0,0.0058082978391,1.29093451598e-06,0.16663848419,60,78310,PatternStationary
+historical_spot,0,0,0,7.93540894371e-13,673.009463543,35,1540,PatternStationary
+authored_SI_panel,0,0,0,5.44816444576e-07,0.650047283963,1,3360,PatternStationary

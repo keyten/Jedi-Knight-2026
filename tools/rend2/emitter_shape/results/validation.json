@@ -1,0 +1,184 @@
+{
+  "absolute_stock_photometry": "NotComparable",
+  "compiler_fixture_regression": {
+    "cases": {
+      "ambient": {
+        "bsp_sha256": "71f875e0fcbac48c6db2c2d94e6e647e8dfaafaeca703770e3b4cf0fef7e8442",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "angle_scale": {
+        "bsp_sha256": "cc849d353aa3a4cdc10749120ad9b613713edbc3bac17765fe0612ae86e20746",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "area": {
+        "bsp_sha256": "e07a241f3a70572f878bbe26840b6483464da4ba74987ad869cb3aa09cbf318b",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "bounce1": {
+        "bsp_sha256": "dec820a49d3891a56035dbf6bb8a1c51507599d876ecd75053facc8ea03574f3",
+        "max_byte_error": 6,
+        "status": "UnsupportedBounceReplay"
+      },
+      "bouncegrid1": {
+        "bsp_sha256": "93912bd2d01432797abb760bb9b220c488801ae596ee3ece73f9bdf9c710f90f",
+        "max_byte_error": 6,
+        "status": "UnsupportedBounceReplay"
+      },
+      "colour_clip": {
+        "bsp_sha256": "1da8fb9c03684ace542b4e9fb1cd95fad9d48f38ce02c65428f87d47e0675f31",
+        "max_byte_error": 1,
+        "status": "Passed"
+      },
+      "colour_gamma": {
+        "bsp_sha256": "35a5b7d154c8af766726aed4ea3ca07523763c31ddc312b0d54a37d36cc0ea1a",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "extra_distance": {
+        "bsp_sha256": "9cfdd1f41bba4d6805da9c383ae0ea4d5242b531f576e7c2a4ac9b7ad1be3952",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "half_lambert": {
+        "bsp_sha256": "f3d69bd326da79be4fbe5b1a6108ef3cf5d7082c121c6e41b0fb4556fba8f7b0",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "inverse_square": {
+        "bsp_sha256": "d2fbb2059b251c8f39d2630d05a86856d900274fb5ae2577cc58e0ea01c04ae9",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear": {
+        "bsp_sha256": "6a15e3d8bf3828ba828715176fd194857a27b2543f86306dfa34256e4bc4ba7e",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear_angle": {
+        "bsp_sha256": "d0c374f341b3d849d86e1e83ed94b691490623b4638216af975cc1f492ef13e1",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "linear_fade": {
+        "bsp_sha256": "d45acb23714208b944eee3d3008b3f60c9b1fea1aa1bc2ac6bb575e314fe3662",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "multi_sun": {
+        "bsp_sha256": "0ff603f3537a83b5ca6bc80eae344c6e697b37c356151667a0904c438c8157ba",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "no_angle": {
+        "bsp_sha256": "b2e6c8b927dbae656b58a2aee0619756f47859012116013bb69a14cdeff2ba15",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "pointscale_half": {
+        "bsp_sha256": "35ac902c58a38777464aec831cb4cc7edd54cb94c57670bfc76e0e24d137cadb",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "retained_light": {
+        "bsp_sha256": "9ea8f132d325b6d211bfa16c6d4c93032c0932559055392dcd8fc70b4e075d11",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "skylight": {
+        "bsp_sha256": "8b6966dbd6e5b1764ca6e1609fab6ba49ca517d989c682c0bf98f0949fcddc5d",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "spot": {
+        "bsp_sha256": "b899da6efb37abe21add3e68f3d08e81ca3d0f97b62ec9e7da9c5d93b40fd8c0",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "sun": {
+        "bsp_sha256": "a00bb637895c09448ec00eecafcfd3f8721f7d8256b2cecea27dfd4b28cae422",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "wolf_inverse_square": {
+        "bsp_sha256": "1698cdcbd89d7c097639a390c9600140021c49869db4c1db9098fffe5565ebb8",
+        "max_byte_error": 0,
+        "status": "Passed"
+      },
+      "wolf_linear": {
+        "bsp_sha256": "4e8de03fad9e1d32c49e16bfbf641493b7d23383a0256cb319a50386dfcf9422",
+        "max_byte_error": 0,
+        "status": "Passed"
+      }
+    },
+    "clipping_max_one_byte": 1,
+    "exact": 19,
+    "supported_passed": 20,
+    "unsupported_bounce": 2
+  },
+  "confidence": "Candidate diagnostic; no source-existence or calibrated type posterior",
+  "game_or_gpu_visual_tests": "NotExecuted; CPU-only task",
+  "generated_cpu": {
+    "deterministic": true,
+    "gcc_checks_per_run": 2910,
+    "msvc_checks_per_run": 2910,
+    "repeats_each": 2
+  },
+  "mp_release": "Built",
+  "msvc_shape_ctest": {
+    "passed": 1,
+    "seconds": 4.11
+  },
+  "native_historical_tube": "Unsupported; explicit faceted expansion is an assumed model",
+  "new_compiler_runs": "NotExecuted; existing pinned bakes reused",
+  "python_witness_tests": {
+    "failed": 0,
+    "passed": 3
+  },
+  "runtime_consumers_modified": false,
+  "schema": "org.openjk.s08-validation",
+  "shader_delta": {
+    "comparison": "worktree versus explicit Git reference; existing regression assembler",
+    "gpu_compiled": false,
+    "inputs": {
+      "shared/rd-rend2/glsl/fogpass.glsl": "0695a5370f67b3e71c8276f34d164ef6f293c733e064ef373f28e6cbdeab85da",
+      "shared/rd-rend2/glsl/fplus_cluster.glsl": "a20c39cdd07b1b4d841930f008efa6b2be34857fd7ae86cbdb8d49515c9b1af2",
+      "shared/rd-rend2/glsl/generic.glsl": "16bd867e40ae9898e76fec3293a025d0b5b6be889732d0f10e63b336af82a1e6",
+      "shared/rd-rend2/glsl/leaf_flutter.glsl": "c1638da79166a883a362fac3eed05e6f04ad861a737c37dfeb49caf186069d72",
+      "shared/rd-rend2/glsl/lightall.glsl": "0a2a9169a5ce4732bfc6b61da6565532322a0df29111b175f934e566959695f7",
+      "shared/rd-rend2/glsl/pbr_common.glsl": "0b48230ae3423325ebfbb8e3141344100c075c88cbad82100fea06eb5763c44a",
+      "shared/rd-rend2/glsl/plant_skin.glsl": "255b7919e8cb1714ece2065f09d6509c71354baab21c95788cca45942f38a0a3",
+      "shared/rd-rend2/glsl/volumetric_common.glsl": "bf2c581d029ffa8a19a9f39afa0b6ea79e0c0c132408d422e74957c79668c0c8",
+      "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+      "shared/rd-rend2/tr_glsl.cpp": "4d67f455a2685dd81c3e30c29d43d42e80e60352bf41260cc251f71dd90d20b0",
+      "shared/rd-rend2/tr_local.h": "5e88c7840d74630861663439fb2b923216a8d037ffbcc92b6478a7db8862b0e3"
+    },
+    "passed": true,
+    "programs": 27,
+    "reference": "4beeacb0a0055d953a1dbc69f8f98ade10a85dfb",
+    "stages": 51,
+    "version": 1
+  },
+  "source_hashes_validated": true,
+  "sp_release": "Built",
+  "standalone_ctest": {
+    "failed": 0,
+    "invocations": [
+      {
+        "excluding": "lightrecon_point_refine",
+        "passed": 23,
+        "seconds": 20.84
+      },
+      {
+        "only": "lightrecon_point_refine",
+        "passed": 1,
+        "seconds": 207.63
+      }
+    ],
+    "passed": 24
+  },
+  "stock_physical_ground_truth": "Unavailable",
+  "version": 1
+}

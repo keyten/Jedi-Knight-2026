@@ -1,0 +1,127 @@
+{
+  "runs": [
+    {
+      "peak_process_rss_bytes": 5840896,
+      "seconds": 3.594419699977152,
+      "stages": {
+        "cases": [
+          {
+            "name": "true_point",
+            "seconds": 0.024334
+          },
+          {
+            "name": "narrow_spot",
+            "seconds": 0.149813
+          },
+          {
+            "name": "rectangle",
+            "seconds": 0.119431
+          },
+          {
+            "name": "long_tube",
+            "seconds": 0.425918
+          },
+          {
+            "name": "two_sided_sheet",
+            "seconds": 0.00957
+          },
+          {
+            "name": "two_adjacent_panels",
+            "seconds": 0.013342
+          },
+          {
+            "name": "partial_occlusion",
+            "seconds": 0.005802
+          },
+          {
+            "name": "near_field_tube",
+            "seconds": 0.700585
+          },
+          {
+            "name": "broad_spot",
+            "seconds": 0.011286
+          },
+          {
+            "name": "panel_pose",
+            "seconds": 0.288879
+          },
+          {
+            "name": "tube_axis",
+            "seconds": 0.086635
+          },
+          {
+            "name": "historical_spot",
+            "seconds": 0.245168
+          },
+          {
+            "name": "authored_SI_panel",
+            "seconds": 0.005363
+          }
+        ],
+        "seconds": 3.56653
+      }
+    },
+    {
+      "peak_process_rss_bytes": 5902336,
+      "seconds": 3.6256762000266463,
+      "stages": {
+        "cases": [
+          {
+            "name": "true_point",
+            "seconds": 0.026264
+          },
+          {
+            "name": "narrow_spot",
+            "seconds": 0.160239
+          },
+          {
+            "name": "rectangle",
+            "seconds": 0.123561
+          },
+          {
+            "name": "long_tube",
+            "seconds": 0.412956
+          },
+          {
+            "name": "two_sided_sheet",
+            "seconds": 0.009633
+          },
+          {
+            "name": "two_adjacent_panels",
+            "seconds": 0.013594
+          },
+          {
+            "name": "partial_occlusion",
+            "seconds": 0.008911
+          },
+          {
+            "name": "near_field_tube",
+            "seconds": 0.69407
+          },
+          {
+            "name": "broad_spot",
+            "seconds": 0.011124
+          },
+          {
+            "name": "panel_pose",
+            "seconds": 0.293856
+          },
+          {
+            "name": "tube_axis",
+            "seconds": 0.083158
+          },
+          {
+            "name": "historical_spot",
+            "seconds": 0.237437
+          },
+          {
+            "name": "authored_SI_panel",
+            "seconds": 0.005676
+          }
+        ],
+        "seconds": 3.60772
+      }
+    }
+  ],
+  "version": 1
+}

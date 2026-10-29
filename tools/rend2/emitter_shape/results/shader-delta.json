@@ -1,0 +1,22 @@
+{
+  "comparison": "worktree versus explicit Git reference; existing regression assembler",
+  "gpu_compiled": false,
+  "inputs": {
+    "shared/rd-rend2/glsl/fogpass.glsl": "0695a5370f67b3e71c8276f34d164ef6f293c733e064ef373f28e6cbdeab85da",
+    "shared/rd-rend2/glsl/fplus_cluster.glsl": "a20c39cdd07b1b4d841930f008efa6b2be34857fd7ae86cbdb8d49515c9b1af2",
+    "shared/rd-rend2/glsl/generic.glsl": "16bd867e40ae9898e76fec3293a025d0b5b6be889732d0f10e63b336af82a1e6",
+    "shared/rd-rend2/glsl/leaf_flutter.glsl": "c1638da79166a883a362fac3eed05e6f04ad861a737c37dfeb49caf186069d72",
+    "shared/rd-rend2/glsl/lightall.glsl": "0a2a9169a5ce4732bfc6b61da6565532322a0df29111b175f934e566959695f7",
+    "shared/rd-rend2/glsl/pbr_common.glsl": "0b48230ae3423325ebfbb8e3141344100c075c88cbad82100fea06eb5763c44a",
+    "shared/rd-rend2/glsl/plant_skin.glsl": "255b7919e8cb1714ece2065f09d6509c71354baab21c95788cca45942f38a0a3",
+    "shared/rd-rend2/glsl/volumetric_common.glsl": "bf2c581d029ffa8a19a9f39afa0b6ea79e0c0c132408d422e74957c79668c0c8",
+    "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+    "shared/rd-rend2/tr_glsl.cpp": "4d67f455a2685dd81c3e30c29d43d42e80e60352bf41260cc251f71dd90d20b0",
+    "shared/rd-rend2/tr_local.h": "5e88c7840d74630861663439fb2b923216a8d037ffbcc92b6478a7db8862b0e3"
+  },
+  "passed": true,
+  "programs": 27,
+  "reference": "4beeacb0a0055d953a1dbc69f8f98ade10a85dfb",
+  "stages": 51,
+  "version": 1
+}

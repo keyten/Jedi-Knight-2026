@@ -18,7 +18,8 @@ The replacement is a separate [canonical asset](rend2-reconstructed-lighting.md)
 [independent opt-in controls](rend2-reconstruction-controls.md) and
 [offline observation datasets](rend2-offline-observation-datasets.md).
 CPU diagnostics now include [fixed-geometry RGB fitting](rend2-amplitude-fitting-s06.md)
-and [geometry-constrained point XYZ refinement](rend2-point-position-refinement-s07.md).
+[geometry-constrained point XYZ refinement](rend2-point-position-refinement-s07.md)
+and [extended emitter model fitting](rend2-emitter-shapes-s08.md).
 There is no complete map-reconstruction solver or production consumer. Missing
 capabilities remain explicitly unavailable; enabling use never invents a light.
 

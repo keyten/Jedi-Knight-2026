@@ -14,6 +14,7 @@ add_library(rend2_lightrecon_core STATIC
 	candidate_pool.cpp candidate_pool.h
 	amplitude_fit.cpp amplitude_fit.h
 	point_refine.cpp point_refine.h
+	emitter_shape.cpp emitter_shape.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h
