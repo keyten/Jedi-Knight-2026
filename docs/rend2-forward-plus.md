@@ -170,7 +170,9 @@ Commands:
   allocations and light-index bounds. It prints CPU -> GPU reference totals, overflowed clusters and the first five
   violations.
 - `r_forwardPlusSpawnTestLights N [spread]` (sv_cheats): N deterministic, static renderer-only lights around the
-  camera. They are not gameplay entities; remaining static makes CPU/compute screenshot A/B reproducible.
+  camera position of the first scene after the command (they no longer follow the camera, whose view bob moved
+  them and redrew their shadows every frame). They are not gameplay entities; remaining static makes CPU/compute
+  screenshot A/B reproducible and lets `r_shadowStats 1` show point shadow cache hits.
 - `r_forwardPlusBenchmark [frames]` (sv_cheats): runs legacy 8/32, then Forward+ 8/32/64/128/256 with test lights,
   and prints a table. The camera should stay still during the run.
 

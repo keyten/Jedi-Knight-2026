@@ -4192,7 +4192,10 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 	*cacheable = (refdef->rdflags & RDF_NOWORLDMODEL) ? qtrue : R_ShadowWorldCacheable(light);
 	if (!*cacheable)
 		return hash;
-	for (int i = 0; i < refdef->num_entities; ++i)
+	hash = R_ShadowHashValue(hash, r_drawentities->integer);
+	// r_drawentities 0: R_AddEntitySurfaces adds no entity to any view
+	const int numEntities = r_drawentities->integer ? refdef->num_entities : 0;
+	for (int i = 0; i < numEntities; ++i)
 	{
 		const trRefEntity_t *ent = &refdef->entities[i];
 		if ((ent->e.renderfx & RF_FIRST_PERSON) || R_IsPostRenderEntity(ent) ||

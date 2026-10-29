@@ -190,6 +190,8 @@ static struct
 	// r_forwardPlusSpawnTestLights
 	int testLights;
 	float testRadius;
+	vec3_t testAnchor;			// camera position when the lights were placed
+	const world_t *testAnchorWorld;	// NULL = place them at the next scene
 
 	// r_forwardPlusBenchmark
 	int benchStep;				// -1 = off
@@ -1595,6 +1597,14 @@ void R_ForwardPlusAddTestLights( const refdef_t *fd )
 	if ( s_fp.testLights <= 0 || (fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) )
 		return;
 
+	// anchored where the camera was at the first scene after the command: lights
+	// that followed the camera moved with every view bob and redrew their
+	// shadows each frame, so a still scene was neither cacheable nor repeatable
+	if ( s_fp.testAnchorWorld != tr.world )
+	{
+		VectorCopy(fd->vieworg, s_fp.testAnchor);
+		s_fp.testAnchorWorld = tr.world;
+	}
 	const float spread = s_fp.testRadius > 0.0f ? s_fp.testRadius : 768.0f;
 	for ( int i = 0; i < s_fp.testLights; i++ )
 	{
@@ -1605,9 +1615,9 @@ void R_ForwardPlusAddTestLights( const refdef_t *fd )
 		const float dist = spread * (0.15f + 0.85f * sqrtf(R_TestLightRand(i, 3)));
 		const float s = sqrtf(Q_max(0.0f, 1.0f - u * u));
 		vec3_t org;
-		org[0] = fd->vieworg[0] + dist * s * cosf(phi);
-		org[1] = fd->vieworg[1] + dist * s * sinf(phi);
-		org[2] = fd->vieworg[2] + dist * u * 0.35f;
+		org[0] = s_fp.testAnchor[0] + dist * s * cosf(phi);
+		org[1] = s_fp.testAnchor[1] + dist * s * sinf(phi);
+		org[2] = s_fp.testAnchor[2] + dist * u * 0.35f;
 
 		const float hue = R_TestLightRand(i, 4) * 6.0f;
 		vec3_t color = {
@@ -1633,6 +1643,7 @@ void R_SpawnTestLights_f( void )
 	}
 	s_fp.testLights = Com_Clampi(0, MAX_RENDER_DLIGHTS, atoi(ri.Cmd_Argv(1)));
 	s_fp.testRadius = ri.Cmd_Argc() > 2 ? (float)atof(ri.Cmd_Argv(2)) : 0.0f;
+	s_fp.testAnchorWorld = NULL;
 	ri.Printf(PRINT_ALL, "%d renderer test lights around the camera%s\n", s_fp.testLights,
 		(!r_forwardPlus->integer && s_fp.testLights > LEGACY_DLIGHT_LIMIT) ?
 			va(" (legacy path keeps the first %d; r_forwardPlus 1 for more)", LEGACY_DLIGHT_LIMIT) : "");
