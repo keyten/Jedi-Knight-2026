@@ -684,6 +684,7 @@ cvar_t  *r_shadowPCSSQuality;
 cvar_t  *r_shadowSunAngularDiameter;
 cvar_t  *r_shadowPCSSMaxPenumbra;
 cvar_t  *r_shadowPCSSCharacterLayers;
+cvar_t  *r_sunShadowSplit;
 cvar_t  *r_shadowDebug;
 cvar_t  *r_shadowCasterLod;
 cvar_t  *r_shadowCasterStats;
@@ -3407,6 +3408,8 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_shadowPCSSMaxPenumbra, 0.0f, 256.0f, qfalse );
 	r_shadowPCSSCharacterLayers = ri.Cvar_Get( "r_shadowPCSSCharacterLayers", "1", CVAR_ARCHIVE | CVAR_LATCH, "Sun PCSS: Ghoul2 characters get their own (contact hard) penumbra where their shadow meets softer scenery shadows; costs lightall ALU, latched" );
 	ri.Cvar_CheckRange( r_shadowPCSSCharacterLayers, 0, 1, qtrue );
+	r_sunShadowSplit = ri.Cvar_Get( "r_sunShadowSplit", "1", CVAR_ARCHIVE | CVAR_LATCH, "Sun shadows 2.0: models (characters, NPCs, md3) go to their own hard shadow layer, multiplied with the PCSS of the rest; replaces r_shadowPCSSCharacterLayers, latched" );
+	ri.Cvar_CheckRange( r_sunShadowSplit, 0, 1, qtrue );
 	r_shadowDebug = ri.Cvar_Get( "r_shadowDebug", "0", CVAR_CHEAT, "Sun shadow debug: 1 cascades, 2 depth, 3 PCF, 4 blockers, 5 penumbra, 6 PCSS, 7 contact, 8 final, 9 bias, 10 point shadows, 11 G2 receivers, 12 model sun split (r_entitySunSplit), 13 PCSS character layers" );
 	ri.Cvar_CheckRange( r_shadowDebug, 0, 13, qtrue );
 	r_shadowCasterLod = ri.Cvar_Get( "r_shadowCasterLod", "0", CVAR_ARCHIVE, "Ghoul2 models in sun cascades and dlight shadow cubes use the LOD of the camera view (0 = LOD of the shadow view)" );

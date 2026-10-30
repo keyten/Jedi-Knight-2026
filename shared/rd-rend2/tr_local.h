@@ -777,6 +777,7 @@ extern cvar_t  *r_shadowPCSSQuality;
 extern cvar_t  *r_shadowSunAngularDiameter;
 extern cvar_t  *r_shadowPCSSMaxPenumbra;
 extern cvar_t  *r_shadowPCSSCharacterLayers;
+extern cvar_t  *r_sunShadowSplit;
 extern cvar_t  *r_shadowDebug;
 extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
@@ -1522,7 +1523,7 @@ struct LightsBlock
 	matrix_t spotShadowVP[MAX_DLIGHT_SHADOWS];
 	// r_shadowPCSSCharacterLayers: nearest Ghoul2 casters, world sphere
 	vec4_t shadowCharacters[MAX_SUN_SHADOW_CHARACTERS];
-	vec4_t shadowCharacterInfo;	// count, unused
+	vec4_t shadowCharacterInfo;	// count, r_sunShadowSplit cascade mask
 };
 
 struct FogsBlock
@@ -3197,6 +3198,7 @@ typedef struct {
 	float       sunShadowDepthTop;		// [0, 1] cascade depth of the map's light-side bound, 0 unknown
 	float       sunShadowCharacters[MAX_SUN_SHADOW_CHARACTERS][4];	// r_shadowPCSSCharacterLayers spheres
 	int         numSunShadowCharacters;
+	int         sunShadowHardMask;	// r_sunShadowSplit: cascades whose hard layer has casters
 	float       sunDir[4];
 	float       sunCol[4];
 	float       sunAmbCol[4];
@@ -3265,6 +3267,7 @@ enum viewParmFlag_t {
 	VPF_SUN_VERIFY_SHADOW = 0x400000, // Full reference render, including an empty depth clear
 	VPF_POINT_STATIC_SHADOW = 0x800000, // Point/spot slot: static world casters only (r_shadowStaticCache)
 	VPF_POINT_DYNAMIC_SHADOW = 0x1000000, // Point/spot slot: every other caster over the restored static depth
+	VPF_SUN_HARD_SHADOW = 0x2000000, // r_sunShadowSplit: models (characters, md3) into layer 3 + cascade
 };
 
 // r_shadowStaticCache: point/spot shadow slots that keep a static world copy
@@ -4409,7 +4412,7 @@ typedef struct {
 */
 struct weatherSystem_t;
 // r_shadowStaticCache: a static build adds 6 views to the cube of its slot
-#define MAX_CACHED_VIEW_PARMS (3 + MAX_DLIGHTS * 6 + POINT_SHADOW_STATIC_MAX_SLOTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS)
+#define MAX_CACHED_VIEW_PARMS (3 + 3 /* r_sunShadowSplit */ + MAX_DLIGHTS * 6 + POINT_SHADOW_STATIC_MAX_SLOTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS)
 
 typedef struct trGlobals_s {
 	qboolean				registered;		// cleared at shutdown, set at beginRegistration
@@ -4603,6 +4606,7 @@ typedef struct trGlobals_s {
 	FBO_t					*targetLevelsFbo;
 	FBO_t					*sunShadowFbo[3];
 	FBO_t					*sunShadowStaticFbo[2][3];
+	FBO_t					*sunShadowHardFbo[3];	// r_sunShadowSplit: layers 3-5 of sunShadowArrayImage
 	FBO_t					*sunShadowPageFbo;
 	FBO_t					*screenSsaoFbo;
 	FBO_t					*hdrDepthFbo;

@@ -542,7 +542,7 @@ layout(std140) uniform Lights
 	Light u_Lights[32];
 	mat4 u_SpotShadowVP[32];	// spot light shadow views, by shadow slot (layer 6 * slot)
 	vec4 u_ShadowCharacters[8];	// r_shadowPCSSCharacterLayers: world sphere (center, radius)
-	vec4 u_ShadowCharacterInfo;	// count, unused
+	vec4 u_ShadowCharacterInfo;	// count, r_sunShadowSplit cascade mask
 };
 
 uniform int u_LightMask;
@@ -1113,8 +1113,9 @@ struct SunCascadeResult
 	float penumbraWorld;
 	float biasWorld;
 	float cascade;
-#if defined(USE_PCSS_CHARACTER_LAYERS)
-	float layers;		// 1 where a character's blockers got their own penumbra
+#if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
+	float layers;		// 1 where a character's blockers got their own penumbra,
+						// r_sunShadowSplit: the hard layer's occlusion
 #endif
 };
 
@@ -1355,7 +1356,7 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	result.penumbraWorld = 0.0;
 	result.biasWorld = u_ShadowBias.x + normalOffset;
 	result.cascade = float(cascade);
-#if defined(USE_PCSS_CHARACTER_LAYERS)
+#if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
 	result.layers = 0.0;
 #endif
 
@@ -1386,6 +1387,19 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		result.visibility = result.fixedPcf;
 		return result;
 	}
+
+#if defined(USE_SUN_SHADOW_SPLIT)
+	// r_sunShadowSplit: models (characters, NPCs, md3) cast into their own
+	// layer, 3 + cascade, without the rest of the scene. One depth per texel
+	// cannot hold both: where a high roof covers a leg in light space, the leg
+	// is gone from this layer and the roof's penumbra shows through the leg's
+	// shadow. The occluders are independent, so sunShadowModern multiplies the
+	// visible fractions of the sun. Models stand on the ground: their penumbra
+	// is contact hard, the 2x2 PCF. u_ShadowCharacterInfo.y: the cascades a
+	// model can reach (tr_main.cpp).
+	if ((int(u_ShadowCharacterInfo.y + 0.5) & (1 << cascade)) != 0)
+		result.layers = 1.0 - ShadowBilinearPcf(cascade + 3, shadowPos, receiverGradient, depthSpan);
+#endif
 
 	if (!pcssEnabled)
 	{
@@ -1507,7 +1521,7 @@ SunCascadeResult MixSunCascadeResults(in SunCascadeResult a,
 	r.penumbraWorld = mix(a.penumbraWorld, b.penumbraWorld, t);
 	r.biasWorld = mix(a.biasWorld, b.biasWorld, t);
 	r.cascade = mix(a.cascade, b.cascade, t);
-#if defined(USE_PCSS_CHARACTER_LAYERS)
+#if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
 	r.layers = max(a.layers, b.layers);
 #endif
 	return r;
@@ -1571,6 +1585,9 @@ SunCascadeResult sunShadowModern(in vec3 viewDir,
 			cascade == 0 ? u_ShadowMvp : (cascade == 1 ? u_ShadowMvp2 : u_ShadowMvp3),
 			cascade, worldPosition, geometricNormal, normalLight,
 			i == 0 ? gradientFirst : gradientSecond);
+#if defined(USE_SUN_SHADOW_SPLIT)
+		r.visibility *= 1.0 - r.layers;
+#endif
 		result = i == 0 ? r : MixSunCascadeResults(result, r, t);
 	}
 
@@ -5409,8 +5426,9 @@ void main()
 		else if (u_ShadowDebug.x == 13.0)
 		{
 			// r_shadowPCSSCharacterLayers: red where a character's blockers got
-			// their own penumbra, grey elsewhere (always grey when it is off)
-			#if defined(USE_PCSS_CHARACTER_LAYERS)
+			// their own penumbra, grey elsewhere (always grey when it is off);
+			// r_sunShadowSplit: red where the hard model layer occludes
+			#if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
 			debugColor = mix(vec3(0.6), vec3(1.0, 0.2, 0.2), sunInfo.layers) *
 				(0.15 + 0.85 * sunInfo.visibility);
 			#else

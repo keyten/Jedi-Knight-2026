@@ -1108,7 +1108,8 @@ static int G2_StatsViewClass( void )
 	{
 		for ( int i = 0; i < 3; i++ )
 		{
-			if ( tr.viewParms.targetFbo == tr.sunShadowFbo[i] )
+			if ( tr.viewParms.targetFbo == tr.sunShadowFbo[i] ||
+				tr.viewParms.targetFbo == tr.sunShadowHardFbo[i] )
 				return 1 + i;
 		}
 	}

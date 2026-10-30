@@ -802,7 +802,11 @@ static size_t GLSL_GetShaderHeader(
 	if (r_sunShadowMode->integer)
 		GLSL_HeaderCat(dest, size, "#define USE_SHADOWS2\n");
 	// a permutation, not a uniform branch: off leaves lightall unchanged
-	if (r_sunShadowMode->integer && r_shadowPCSSCharacterLayers->integer)
+	// r_sunShadowSplit: models are not in the soft layers, so the character
+	// layers have nothing to separate there
+	if (r_sunShadowMode->integer && r_sunShadowSplit->integer)
+		GLSL_HeaderCat(dest, size, "#define USE_SUN_SHADOW_SPLIT\n");
+	else if (r_sunShadowMode->integer && r_shadowPCSSCharacterLayers->integer)
 		GLSL_HeaderCat(dest, size, "#define USE_PCSS_CHARACTER_LAYERS\n");
 
 	// screen-space AO / contact shadow map (u_SSAOMap), tr_ao.cpp

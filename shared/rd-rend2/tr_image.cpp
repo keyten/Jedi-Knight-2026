@@ -5204,7 +5204,8 @@ void R_CreateBuiltinImages( void ) {
 			NULL,
 			r_shadowMapSize->integer,
 			r_shadowMapSize->integer,
-			3, // number of cascades
+			// cascades; r_sunShadowSplit adds the hard model layers 3-5
+			(r_sunShadowMode->integer && r_sunShadowSplit->integer) ? 6 : 3,
 			IMGTYPE_COLORALPHA,
 			sunShadowFlags,
 			r_sunShadowMode->integer ? GL_DEPTH_COMPONENT24 : GL_DEPTH_COMPONENT16);

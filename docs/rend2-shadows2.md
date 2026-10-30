@@ -120,6 +120,77 @@ canyon wall / canopy, view 6): with 0 the character's ground shadow is blurred
 away and its self shadow is grey; with 1 both are crisp, and the canopy pattern
 around it is unchanged (no halo).
 
+Character layers can only separate what is in the map. A sun shadow map keeps
+one depth per texel, the caster nearest the sun. Take a point in the inner half
+of a building's penumbra: its ray to the sun passes the character's leg first,
+then the roof. The roof is nearer the sun, so the texel holds the roof and the
+leg is not in the map at all. There the leg's shadow is cut off and the
+building's soft gradient shows through it. `r_sunShadowSplit` fixes this.
+
+### Model layers (r_sunShadowSplit)
+
+With `r_sunShadowSplit 1` (default) models cast into their own layers:
+Ghoul2 characters and NPCs, and md3 / mdr / iqm entities. The plant surfaces
+of an md3 stay out, since a tree crown is as high as the BSP's. Everything else
+casts into the cascades as before: the BSP, brush models (doors, lifts), and
+deformed and alpha-tested world surfaces. The sun shadow array gets three more
+layers: layer 3 + cascade is a model-only depth of the same cascade camera.
+
+lightall multiplies the two. The occluders are independent, so the visible
+fractions of the sun multiply:
+
+    visibility = PCSS(cascade layer) * PCF2x2(model layer)
+
+Models stand near the ground, so their penumbra is contact hard. The model
+layer therefore has no blocker search: it uses the bilinear 2x2 PCF, 4 fetches
+with the same receiver-plane bias. The PCSS blocker search only sees the
+scenery, which also keeps a character from averaging its depth into the
+estimate for a tree top. A tall model (an AT-ST, a flying droid) gets a hard
+shadow too; that is the trade.
+
+Costs and savings:
+
+- Each cascade gets one more view: a clear plus the model surfaces. The view
+  has no world walk.
+- The lights UBO carries a per-cascade mask of the model spheres that reach the
+  cascade (`u_ShadowCharacterInfo.y`). lightall reads a model layer only under
+  its bit. The mask is decided from spheres because the UBO goes up before the
+  views render. A view whose bit is clear only clears.
+- With `r_sunShadowCache`, models are no longer drawn over the cached static
+  layer, so they no longer leave damage rectangles to restore next frame. Only
+  animated world surfaces (foliage, deforms) still do.
+- Character layers have nothing to separate in the cascades any more, so
+  `USE_PCSS_CHARACTER_LAYERS` is not compiled.
+
+Water (`watersurface.glsl`) multiplies the model layer into its 2x2 sun taps
+too. Froxel fog, weather and particles read only the cascade layers, so models
+cast no shadow into volumetric fog. `r_shadowDebug 13` shows the model layer's
+occlusion in red.
+
+`r_sunShadowSplit 0` gives the previous single-layer build, with
+`r_shadowPCSSCharacterLayers` as before. Both are latched.
+
+Measured 2026-10-30 on the Intel UHD, mp/ffa3, forced sun, 1280x720, with
+another game process sometimes running, so these are medians of interleaved
+runs:
+
+- **Main view, with three NPCs and third person:** no layers 8.1-9.6 ms,
+  character layers 10.5-11.2 ms, split 8.8-10.9 ms.
+- **Main view, first person without NPCs:** no layers 5.5-5.9 ms, split
+  6.2 ms. This is the cost of the permutation even where the model branch is
+  not taken.
+- **Shadow views:** the three model views take 0.23-0.31 ms GPU with NPCs and
+  0.09 ms without. The cascade views drop about 0.15 ms, since models are no
+  longer in them.
+
+The first version read the model layer in its own function after
+EvaluateSunCascade, which projected the receiver a second time. It measured
+10.5-10.9 ms; the hard PCF now reuses the cascade's shadowPos and gradient.
+
+`r_sunShadowVerify` with split on and NPCs: mode 1 89/89 and mode 2 480/480
+bit-exact. On yavin1 (view 6) a character's ground shadow under the canopy
+stays whole, where character layers broke it up.
+
 ## Screen-space contacts
 
 The contact pass reconstructs the view-space receiver position and a
@@ -146,7 +217,8 @@ PCSS visibility; it never replaces it.
 | `r_shadowPCSSQuality` | 1 | 0 low, 1 high, 2 ultra |
 | `r_shadowSunAngularDiameter` | 0.53 | apparent source diameter in degrees |
 | `r_shadowPCSSMaxPenumbra` | 32 | maximum world-space penumbra/search radius |
-| `r_shadowPCSSCharacterLayers` | 1 | Ghoul2 character blockers get their own penumbra where their shadow meets softer shadows; latched |
+| `r_shadowPCSSCharacterLayers` | 1 | Ghoul2 character blockers get their own penumbra where their shadow meets softer shadows; only with `r_sunShadowSplit 0`; latched |
+| `r_sunShadowSplit` | 1 | models (characters, NPCs, md3) cast into their own hard layers, multiplied with the PCSS of the rest; latched |
 | `r_shadowSinglePass` | 1 | gather all six point-light cube faces in one scene walk; 0 keeps six independent walks |
 | `r_shadowLayered` | 1 | submit a supported point-light cube through its layered FBO; unsupported hardware/surfaces fall back automatically |
 | `r_shadowCache` | 1 | reuse unchanged point/spot shadow slots; conservative time-dependent casters force a redraw |
@@ -161,7 +233,7 @@ The contact controls are `r_contactShadows`, `r_contactShadowLength`,
 8 final CSM/PCSS times contact visibility, 9 effective bias, 10 dynamic light cube
 shadows only, 11 Ghoul2 receivers (see rend2-character-shadows.md), 12 model
 sun split, and 13 PCSS character layers (red where a character's blockers got
-their own penumbra).
+their own penumbra) or, with `r_sunShadowSplit`, the model layer's occlusion.
 
 ### Alpha-tested foliage casters
 

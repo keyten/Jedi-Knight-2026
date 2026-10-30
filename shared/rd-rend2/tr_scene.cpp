@@ -71,7 +71,7 @@ Point shadow views are cube faces; spot = one projected view per spot light.
 */
 enum {
 	SSTAT_SKYPORTAL, SSTAT_SUN, SSTAT_PLAYER, SSTAT_POINT, SSTAT_LTC, SSTAT_PORTAL, SSTAT_MAIN,
-	SSTAT_SPOT, SSTAT_POINTCUBE, SSTAT_SUN_STATIC, SSTAT_SUN_DYNAMIC, SSTAT_CLASSES
+	SSTAT_SPOT, SSTAT_POINTCUBE, SSTAT_SUN_STATIC, SSTAT_SUN_DYNAMIC, SSTAT_SUN_HARD, SSTAT_CLASSES
 };
 static struct {
 	double frontUs[SSTAT_CLASSES];
@@ -90,6 +90,8 @@ static int R_ShadowStatsClass( const viewParms_t *parms )
 		return SSTAT_SUN_STATIC;
 	if (parms->flags & VPF_SUN_DYNAMIC_SHADOW)
 		return SSTAT_SUN_DYNAMIC;
+	if (parms->flags & VPF_SUN_HARD_SHADOW)
+		return SSTAT_SUN_HARD;
 	if ( parms->viewParmType == VPT_POINT_SHADOWS && parms->fovX != 90.0f )
 		return SSTAT_SPOT;
 	return (int)parms->viewParmType;
@@ -126,7 +128,7 @@ void R_ShadowStatsEndFrame( void )
 
 	static const char *names[SSTAT_CLASSES] = {
 		"skyportal", "sun cascade", "player shadow", "point face", "ltc shadow", "portal", "main", "spot", "point cube",
-		"sun static", "sun dynamic" };
+		"sun static", "sun dynamic", "sun hard" };
 	const double perFrame = 1.0 / (double)Q_max(1, shadowStats.frames);
 	double shadowFront = 0.0, shadowSubmit = 0.0;
 	ri.Printf(PRINT_ALL, "shadowStats (%d frames), per frame: views, front ms, submit ms, drawsurfs/view, front max/view us\n",
@@ -1248,6 +1250,8 @@ void RE_RenderScene( const refdef_t *fd )
 			viewName = "Sun static shadow build";
 		else if (tr.cachedViewParms[i].flags & VPF_SUN_DYNAMIC_SHADOW)
 			viewName = "Sun dynamic shadow overlay";
+		else if (tr.cachedViewParms[i].flags & VPF_SUN_HARD_SHADOW)
+			viewName = "Sun hard model shadow";
 		R_PushDebugGroup(AL_VIEW, va(
 			"%s_%i",
 			viewName,

@@ -1976,6 +1976,102 @@ qboolean R_IsStaticSunShadowCaster(
 
 /*
 =================
+R_IsSunHardShadowEntity
+
+r_sunShadowSplit: models (characters, NPCs, md3 / mdr / iqm entities) cast
+into the hard sun layers 3-5, the BSP, brush models and everything else into
+the soft PCSS ones. A single depth per texel cannot hold both: where a high
+roof covers a leg in light space, the leg is gone from the map, and the roof's
+penumbra shows through the leg's shadow. Two layers multiply instead.
+=================
+*/
+static qboolean R_SunShadowSplitActive(void)
+{
+	return (r_sunShadowMode->integer && r_sunShadowSplit->integer && tr.sunShadowHardFbo[0]) ?
+		qtrue : qfalse;
+}
+
+static qboolean R_IsSunHardShadowEntity(const trRefEntity_t *ent)
+{
+	if (ent->e.reType != RT_MODEL)
+		return qfalse;
+	if (ent->e.ghoul2 && G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent->e.ghoul2)))
+		return qtrue;
+	const model_t *model = R_GetModelByHandle(ent->e.hModel);
+	return (model && (model->type == MOD_MESH || model->type == MOD_MDR || model->type == MOD_IQM)) ?
+		qtrue : qfalse;
+}
+
+// A conservative world sphere of a hard caster; qfalse when unknown.
+static qboolean R_SunShadowHardSphere(const trRefEntity_t *ent, vec4_t sphere)
+{
+	VectorCopy(ent->e.origin, sphere);
+	if (ent->e.ghoul2)
+	{
+		// the sphere Ghoul2 culling and the sun cache restore use
+		float scale = Q_max(fabsf(ent->e.modelScale[0]),
+			Q_max(fabsf(ent->e.modelScale[1]), fabsf(ent->e.modelScale[2])));
+		if (scale == 0.0f) scale = 1.0f;
+		sphere[3] = ent->e.radius * scale * 1.2f;
+		return sphere[3] > 0.0f ? qtrue : qfalse;
+	}
+	const model_t *model = R_GetModelByHandle(ent->e.hModel);
+	if (!model || model->type != MOD_MESH || !model->data.mdv[0])
+		return qfalse;
+	const mdvModel_t *mdv = model->data.mdv[0];
+	if (ent->e.frame < 0 || ent->e.frame >= mdv->numFrames ||
+		ent->e.oldframe < 0 || ent->e.oldframe >= mdv->numFrames)
+		return qfalse;
+	float scale = 0.0f;
+	for (int i = 0; i < 3; ++i)
+		scale = Q_max(scale, VectorLength(ent->e.axis[i]));
+	const mdvFrame_t *a = &mdv->frames[ent->e.frame], *b = &mdv->frames[ent->e.oldframe];
+	sphere[3] = scale * Q_max(VectorLength(a->localOrigin) + a->radius,
+		VectorLength(b->localOrigin) + b->radius);
+	return sphere[3] > 0.0f ? qtrue : qfalse;
+}
+
+// Cascades (bits) a hard caster can reach. The lights UBO goes up before the
+// views render, so this is decided from spheres, not from drawn surfaces.
+static int R_SunShadowHardMask(const trRefdef_t *refdef, int level)
+{
+	if (!R_SunShadowSplitActive() || !r_drawentities->integer)
+		return 0;
+	const float *m = refdef->sunShadowMvp[level];
+	const float sx = sqrtf(m[0] * m[0] + m[4] * m[4] + m[8] * m[8]);
+	const float sy = sqrtf(m[1] * m[1] + m[5] * m[5] + m[9] * m[9]);
+	const int first = (tr.world && tr.world->skyboxportal) ? tr.skyPortalEntities : 0;
+	for (int i = first; i < refdef->num_entities; ++i)
+	{
+		const trRefEntity_t *ent = &refdef->entities[i];
+		if ((ent->e.renderfx & RF_FIRST_PERSON) || !R_IsSunHardShadowEntity(ent))
+			continue;
+		vec4_t s;
+		if (!R_SunShadowHardSphere(ent, s))
+			return 1 << level;
+		const float x = m[0] * s[0] + m[4] * s[1] + m[8] * s[2] + m[12];
+		const float y = m[1] * s[0] + m[5] * s[1] + m[9] * s[2] + m[13];
+		if (fabsf(x) <= 1.0f + s[3] * sx && fabsf(y) <= 1.0f + s[3] * sy)
+			return 1 << level;
+	}
+	return 0;
+}
+
+// Plant surfaces of an md3 stay soft: a tree crown is as high as the BSP's.
+static qboolean R_IsSunHardShadowSurface(int entityNum, const shader_t *shader, foliageResult_t foliage)
+{
+	if (entityNum == REFENTITYNUM_WORLD || entityNum < 0 || entityNum >= tr.refdef.num_entities)
+		return qfalse;
+	const trRefEntity_t *ent = &tr.refdef.entities[entityNum];
+	if (!R_IsSunHardShadowEntity(ent))
+		return qfalse;
+	if (ent->e.ghoul2)
+		return qtrue;
+	return (foliage.cls == FOLIAGE_NONE && shader->foliageHint == FOLIAGE_NONE) ? qtrue : qfalse;
+}
+
+/*
+=================
 R_AddDrawSurf
 =================
 */
@@ -2017,6 +2113,11 @@ void R_AddDrawSurf(
 	{
 		return;
 	}
+
+	if ((tr.viewParms.flags & VPF_SHADOWCASCADES) && R_SunShadowSplitActive() &&
+		R_IsSunHardShadowSurface(entityNum, drawShader, foliage) !=
+			((tr.viewParms.flags & VPF_SUN_HARD_SHADOW) ? qtrue : qfalse))
+		return;
 
 	if (tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW))
 	{
@@ -2086,7 +2187,8 @@ void R_SortAndSubmitDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	// Cache build views still have to clear their target, and dynamic cache
 	// views still have to copy the static layer when no dynamic caster exists.
 	if (numDrawSurfs < 1 &&
-		!(tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW | VPF_SUN_VERIFY_SHADOW)))
+		!(tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW | VPF_SUN_VERIFY_SHADOW |
+			VPF_SUN_HARD_SHADOW)))
 		return;
 
 	// if we overflowed MAX_DRAWSURFS, the drawsurfs
@@ -2260,6 +2362,11 @@ static void R_AddEntitySurfaces(const trRefdef_t *refdef)
 	for (int i = entityStart; i < numEntities; i++)
 	{
 		trRefEntity_t *ent = refdef->entities + i;
+		// r_sunShadowSplit: Ghoul2 bodies are all in the hard layer, skip their
+		// skinning setup here
+		if ((tr.viewParms.flags & VPF_SHADOWCASCADES) && ent->e.ghoul2 &&
+			R_SunShadowSplitActive() && R_IsSunHardShadowEntity(ent))
+			continue;
 		if (tr.viewParms.flags & VPF_CUBESHADOW)
 		{
 			// The per face path culls, picks LODs etc. with each face's
@@ -2314,6 +2421,16 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	if (viewParms->flags & VPF_POINT_STATIC_SHADOW)
 	{
 		R_AddWorldSurfaces(viewParms, refdef);
+		return;
+	}
+	if (viewParms->flags & VPF_SUN_HARD_SHADOW)
+	{
+		if (!(refdef->sunShadowHardMask & (1 << viewParms->targetFboLayer)))
+			return;
+		const int first = (tr.world && tr.world->skyboxportal) ? tr.skyPortalEntities : 0;
+		for (int i = first; i < refdef->num_entities; ++i)
+			if (R_IsSunHardShadowEntity(&refdef->entities[i]))
+				R_AddEntitySurface(refdef, &refdef->entities[i], i);
 		return;
 	}
 	if (viewParms->flags & VPF_LTC_DYNAMIC_SHADOW)
@@ -4498,7 +4615,8 @@ void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, int *static
 static void R_GatherSunShadowCharacters(trRefdef_t *refdef)
 {
 	refdef->numSunShadowCharacters = 0;
-	if (!r_sunShadowMode->integer || !r_shadowPCSSCharacterLayers->integer || !r_drawentities->integer)
+	if (!r_sunShadowMode->integer || !r_shadowPCSSCharacterLayers->integer || !r_drawentities->integer ||
+		R_SunShadowSplitActive())
 		return;
 	const int first = (tr.world && tr.world->skyboxportal) ? tr.skyPortalEntities : 0;
 	float distanceSq[MAX_SUN_SHADOW_CHARACTERS];
@@ -4537,6 +4655,7 @@ static void R_GatherSunShadowCharacters(trRefdef_t *refdef)
 void R_GatherFrameViews(trRefdef_t *refdef)
 {
 	refdef->numSunShadowCharacters = 0;
+	refdef->sunShadowHardMask = 0;
 	// Disk page pointers are only needed until this scene's cached views have
 	// executed. The previous scene has been submitted before another gather,
 	// so dropping them here bounds CPU memory to the pages of one scene.
@@ -5076,6 +5195,9 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				}
 
 				tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
+				// r_sunShadowSplit: the same cascade camera, models only, into
+				// layer 3 + level; not cached, cleared and redrawn every frame
+				viewParms_t hardParms = tr.viewParms;
 				const qboolean cacheEnabled =
 					(r_sunShadowCache->integer && tr.sunShadowStaticFbo[0][level] != NULL) ? qtrue : qfalse;
 				if (cacheEnabled)
@@ -5178,6 +5300,18 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				tr.viewParms.currentViewParm = tr.numCachedViewParms;
 				Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &tr.viewParms, sizeof(viewParms_t));
 				tr.numCachedViewParms++;
+
+				refdef->sunShadowHardMask |= R_SunShadowHardMask(refdef, level);
+				if (R_SunShadowSplitActive())
+				{
+					// always cleared: water reads the hard layers without the mask
+					hardParms.targetFbo = tr.sunShadowHardFbo[level];
+					hardParms.targetFboLayer = level;
+					hardParms.flags |= VPF_SUN_HARD_SHADOW;
+					hardParms.currentViewParm = tr.numCachedViewParms;
+					Com_Memcpy(&tr.cachedViewParms[tr.numCachedViewParms], &hardParms, sizeof(viewParms_t));
+					tr.numCachedViewParms++;
+				}
 			}
 			R_GatherSunShadowCharacters(refdef);
 			mainFlags |= VPF_USESUNLIGHT;

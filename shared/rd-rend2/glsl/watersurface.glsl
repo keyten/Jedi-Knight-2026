@@ -1255,7 +1255,11 @@ vec3 WaterLiquidPath(vec3 dir, float d, vec3 Ng, vec3 sigma, vec3 albedo, float 
 
 float WaterShadowTap(vec3 s, float layer)
 {
-#if defined(USE_SHADOWS2)
+#if defined(USE_SHADOWS2) && defined(USE_SUN_SHADOW_SPLIT)
+	// r_sunShadowSplit: models are in their own layers, 3 + cascade
+	return step(s.z - 0.0005, texture(u_ShadowMap, vec3(s.xy, layer)).r) *
+		step(s.z - 0.0005, texture(u_ShadowMap, vec3(s.xy, layer + 3.0)).r);
+#elif defined(USE_SHADOWS2)
 	return step(s.z - 0.0005, texture(u_ShadowMap, vec3(s.xy, layer)).r);
 #else
 	return texture(u_ShadowMap, vec4(s.xy, layer, s.z - 0.0005));

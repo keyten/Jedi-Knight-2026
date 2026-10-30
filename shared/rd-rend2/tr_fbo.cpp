@@ -768,6 +768,20 @@ void FBO_Init(void)
 
 			R_CheckFBO(tr.sunShadowFbo[i]);
 		}
+		for ( i = 0; i < 3 && tr.sunShadowArrayImage->layers >= 6; i++)
+		{
+			tr.sunShadowHardFbo[i] = FBO_Create(
+				va("_sunshadowhard%i", i),
+				tr.sunShadowArrayImage->width,
+				tr.sunShadowArrayImage->height);
+
+			FBO_Bind(tr.sunShadowHardFbo[i]);
+			qglFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tr.sunShadowArrayImage->texnum, 0, 3 + i);
+			qglDrawBuffer(GL_NONE);
+			qglReadBuffer(GL_NONE);
+
+			R_CheckFBO(tr.sunShadowHardFbo[i]);
+		}
 	}
 	for (int bank = 0; bank < 2; ++bank)
 	{
