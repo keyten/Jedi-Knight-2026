@@ -1,0 +1,217 @@
+{
+  "artifact_sha256": {
+    "compiled-resources.json": "691757f023e92600897a15124f2f933efd7f3094de7a95b4e1cde4c116fd01a2",
+    "compiled.json": "a87921b5002470f3071f6450d28f36cbea468fb0c2f21d64feb6a57d0da540a5",
+    "metrics.csv": "38d5ce2c191ff661aa92ce9843486c42dc499e62f835c8fb9c0d3418c84bc68e",
+    "numerical.json": "9f2881f40e4d9778aa907b68a68e6806006331ff6dba18710fa60fbe0205a607",
+    "resources.json": "f4e3e79ef1bff562e29ed473a574e4856b42f04dd3165d82e9b513ab57e76846",
+    "shader-delta.json": "61d02942a23bc180fecbfc77ce807ebef4f7d0f1c4fbf015c76c0bb7386da2fd"
+  },
+  "canonical_schema_changed_by_s11": false,
+  "commands": [
+    {
+      "command": "cmake --build build/s06-gcc --parallel 2",
+      "log": "build/s11-audited-gcc-build.log",
+      "scope": "Release, GCC 16.2.0; final sources",
+      "sha256": "51432636de160eead42c589b7063ababecf8c057d083411d85e9d755b444084f",
+      "stage": "gcc-build",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -E \"^lightrecon_point_refine$\" --parallel 2",
+      "log": "build/s11-audited-gcc-tests.log",
+      "scope": "26 cases passed, 23.67 seconds",
+      "sha256": "8441697553e8de1a1d587f8299da6fe7f1db2579ef2621b07be6277c50d1eea0",
+      "stage": "cpu",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -R \"^lightrecon_point_refine$\"",
+      "log": "build/s11-audited-point-tests.log",
+      "scope": "Final S07 executable,1 passed,204.47 seconds",
+      "sha256": "7534c5def55e65c47ec7c6e5e09f313f480a7b869b475b567ac79a7c1b2e124d",
+      "stage": "point-regression",
+      "status": "Passed"
+    },
+    {
+      "command": "cmake --build build/lightrecon-core-renderers --config Release --target lightrecon_joint_test lightrecon_joint_tool rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2",
+      "log": "build/s11-audited-msvc-build.log",
+      "scope": "SP/MP Release, VS2019; CL=/MP2, project parallelism2",
+      "sha256": "c5d6e7cdff5fae11be093d359a9b5b3b812339c09b92c1241d6f9e38ea562c4e",
+      "stage": "msvc-build",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure -R \"^(lightrecon_joint|lightrecon_indirect|lightrecon_disk)$\"",
+      "log": "build/s11-audited-msvc-tests.log",
+      "scope": "3 passed, 22.66 seconds",
+      "sha256": "31535faffa70773dc6318cc6db411106fdc85a71a101e949e3ebf1bbd80c2906",
+      "stage": "msvc-tests",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/joint/benchmark.py --tool build/s06-gcc/lightrecon_joint_test.exe --out build/s11-audited-numerical",
+      "log": "build/s11-audited-numerical.log",
+      "scope": "246 checks,27 case records,two identical semantic runs",
+      "sha256": "2d915f3809c095103e41270f10f3b5a9ed944639d90868cf39a477d559d32380",
+      "stage": "owned-repeat",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/joint/compiled.py --tool build/s06-gcc/lightrecon_joint_tool.exe --out build/s11-audited-compiled-a",
+      "log": "build/s11-audited-compiled-a.log",
+      "scope": "3 original compiled BSPs,correct/wrong profiles; native production fit",
+      "sha256": "2a7dadc647294993d2be5b91357e558e30628036804fea1f6a82af2ec0ddd020",
+      "stage": "compiler-a",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/joint/compiled.py --tool build/s06-gcc/lightrecon_joint_tool.exe --out build/s11-audited-compiled-b",
+      "log": "build/s11-audited-compiled-b.log",
+      "scope": "Repeated semantic output identical; private answers/RGB stay in controller",
+      "sha256": "2a7dadc647294993d2be5b91357e558e30628036804fea1f6a82af2ec0ddd020",
+      "stage": "compiler-b",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/joint -p \"test_*.py\" -v",
+      "log": "build/s11-benchmark-gates.log",
+      "scope": "4 passed",
+      "sha256": "98cab0bbb890c5700596d4ef848038a8f8b1ef9d839d8f7879157d0d3d8d7d9b",
+      "stage": "gates",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/evaluation -p \"test_*.py\" -v",
+      "log": "build/s11-evaluation-tests.log",
+      "scope": "39 passed",
+      "sha256": "e59b9cec9e2dd8ffc056bc1e271d848dec0f67af879f70695620630e07187983",
+      "stage": "evaluation",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/datasets -p \"test_blind_views.py\" -v",
+      "log": "build/s11-blind-tests.log",
+      "scope": "6 passed",
+      "sha256": "0a83e41b2366e447a9252c6e852d5f29c7db2be253de89c7ae07c16f6cbe5760",
+      "stage": "blind",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/inverse_gi -p \"test_*.py\" -v",
+      "log": "build/s11-inverse-gi-tests.log",
+      "scope": "15 passed",
+      "sha256": "4c941acd7f2a3d1de290af13fb2df25ac0406533253d74469c7775cf558a1587",
+      "stage": "gi-research",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/bake_model/validate_cpp.py --exe build/s06-gcc/lightrecon_bake_forward_tool.exe --bsp-dir build/bake-model-comparison-final/authoring/base/maps --output build/s11-forward-regression",
+      "log": "build/s11-forward-regression.log",
+      "scope": "20 supported pass,2 UnsupportedBounceReplay; multi_sun scoped exact replay retained",
+      "sha256": "0cd9adfe11257750cc8e54385188da2035dfd6dbc6c4eaef03815d48d158065b",
+      "stage": "forward",
+      "status": "PassedWithUnsupported"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/evaluation/benchmark.py --output build/s11-original-fixture-audit --analytical-answers build/offline-suite-msvc-accepted/answers --compiled-root build/x02/compiled-fixtures-frozen --compiled-answers build/q3map2-bake-verified/answers",
+      "log": "build/s11-original-fixture-audit.log",
+      "scope": "11 analytical answers,12 compiled datasets; metric/readiness audit,NOT S11 fitting all recipes",
+      "sha256": "02478ff329e61601459f85a6693ff91d95801cdf26d05f4026126eb4c53aa2da",
+      "stage": "original-audit",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/point_refine/compare_shader_inputs.py --reference 7caa01eac827414323c7a984393b834e9ef2163e --output build/s11-shader-delta.json",
+      "log": "build/s11-shader-delta.log",
+      "scope": "27 programs/51 stages identical,not GPU compilation",
+      "sha256": "31d1e3c36b8a1e74561ab4cea5d97f0e743ce34bbc696271f224129b9502aaa7",
+      "stage": "shader",
+      "status": "Passed"
+    }
+  ],
+  "compiled_repeat_semantic_identical": true,
+  "conditional_physical_source_claim_only": true,
+  "corrected_failures": [
+    {
+      "action": "Bootstrap supported candidate instead of banning all positive directional models",
+      "case": "undefined black directional baseline"
+    },
+    {
+      "action": "Use positive clearance volume; no free-space fabrication",
+      "case": "real BSP placement of zero-radius points"
+    },
+    {
+      "action": "Split test declarations; rerun MSVC/SP/MP",
+      "case": "VS2019 combined default-member initializer"
+    },
+    {
+      "action": "Use existing angle_degrees contract; include actual sun/frame/dimension conventions",
+      "case": "source-matching wrapper option mismatch"
+    },
+    {
+      "action": "Reset diagnostics and convergence at every refit; enforce rank<=parameter count; regenerate final witnesses",
+      "case": "parent rank/convergence inherited by structural child"
+    }
+  ],
+  "cpu_total": {
+    "final_parallel_cases": 26,
+    "separate_point_cases": 1,
+    "total_passed": 27
+  },
+  "date": "2026-10-30",
+  "environment": {
+    "gcc": "16.2.0 Release -O3 -DNDEBUG",
+    "msvc": "Visual Studio2019 x64 Release",
+    "parallelism": 2,
+    "python": "3.12.14 standard library"
+  },
+  "negative_controls": [
+    "black",
+    "missing/no-source",
+    "wrong profile",
+    "wrong/missing initial candidates",
+    "same-position source count",
+    "unknown absolute gain",
+    "weak source",
+    "unknown material",
+    "unbounded missing geometry",
+    "corrupted stream",
+    "wrong partition role",
+    "stale checkpoint/policy",
+    "cancel",
+    "memory/work caps",
+    "hidden held-out mutation",
+    "free axis+cone validation overfit"
+  ],
+  "not_executed": [
+    "Game/GPU runtime visual validation",
+    "Fresh q3map2 compile invocation (pinned original BSPs reused)",
+    "Complete stock-map inverse reconstruction/source truth",
+    "Joint fitting of all12 original compiler recipes (separate audit only)",
+    "Higher bounce/order compressed grid GI/general alpha or curved transport",
+    "Portable crash-resume checkpoint codec/OS sandbox for malicious native solvers"
+  ],
+  "original_fixture_audit": {
+    "analytical_count": 11,
+    "compiled_count": 12,
+    "report_sha256": "543caec97d321bc6ebb5808e770009e70ffb1e5cc7dd9b7438ee6ed0add34303",
+    "solver_executed_for_original_audit": false
+  },
+  "owned_assertions": 246,
+  "owned_case_records": 27,
+  "renderer_consumer_enabled": false,
+  "retained_rejections": [
+    {
+      "case": "free spotlight axis+cone",
+      "frozen_gate": 0.015,
+      "status": "Rejected,unchanged gate",
+      "training_objective": 0.00010533,
+      "validation_surface_mse": 0.00492652,
+      "validation_worst_block_rmse": 0.0992625
+    }
+  ],
+  "schema": "org.openjk.s11-validation.v1",
+  "scope": "Bounded coordinated CPU solver with conditional alternatives; no stock physical-recovery or runtime publication claim",
+  "source_head": "7caa01eac827414323c7a984393b834e9ef2163e"
+}

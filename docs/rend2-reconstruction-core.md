@@ -278,9 +278,12 @@ solver and consumption adapters are not installed yet.
 Subsequent modules now provide source observation capture, classification,
 world-space luxel mapping, CPU visibility, conservative region graphs, output
 asset serialization and [offline observation archives/fixtures](rend2-offline-observation-datasets.md).
-See those contracts for partial coverage and limits. Still unimplemented are
-inverse fitting, recovered sun/sky and uncertainty estimation, a numerical
-offline optimizer, complete cache-key plumbing and renderer consumption of core
-results. No map visual-quality improvement is claimed.
+See those contracts for partial coverage and limits. Bounded CPU forward,
+amplitude/geometry/sun hypotheses, shadow association and passive transport stages
+now exist. The [S11 coordinator](rend2-joint-optimization-s11.md) compares/refits
+complete conditional models with independent validation. It is not installed by
+default in a runtime session. Automatic full-stock-map reconstruction, complete
+cache-key plumbing, calibrated source-existence uncertainty and renderer
+consumption remain unimplemented. No map visual-quality improvement is claimed.
 
 Initial source hypotheses are provided by the optional immutable [emitter-evidence dataset](rend2-emitter-evidence.md), separately from reconstructed output emitters.

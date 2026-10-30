@@ -1,0 +1,166 @@
+{
+  "canonical_schema": 2,
+  "commands": [
+    {
+      "command": "cmake --build build/s06-gcc --parallel 2",
+      "log": "build/s10-final-reciprocal-gcc-build.log",
+      "scope": "All standalone targets linked after reciprocal path correction",
+      "sha256": "1d7cd5b7c8f94a9ea76877af58e00b04492a5b68aedea5b7455e29a4a1a75132",
+      "stage": "build-gcc",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -E \"^lightrecon_point_refine$\" --parallel 2",
+      "log": "build/s10-final-reciprocal-gcc-tests.log",
+      "scope": "25 tests, 16.25 seconds; final reciprocal/unresolved-path implementation",
+      "sha256": "9d3631dbe8761ef462538bd92183026eb581892434f61fe566e47a80fc86c935",
+      "stage": "cpu",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure -R \"^lightrecon_point_refine$\"",
+      "log": "build/s10-point-tests.log",
+      "scope": "S07 regression passed in 448.03 seconds before final indirect-only reciprocal correction; S07 has no indirect consumer and was not rerun after that correction",
+      "sha256": "fd2fa8c0582128012958335c741f4df55b0b876665fa52ce06cb9884ec655901",
+      "stage": "point-regression",
+      "status": "Passed"
+    },
+    {
+      "command": "cmake --build build/lightrecon-core-renderers --config Release --target lightrecon_indirect_test lightrecon_disk_test rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2",
+      "log": "build/s10-final-reciprocal-msvc-build.log",
+      "scope": "SP/MP Release; CL=/MP2; configured toolchain bin added to PATH",
+      "sha256": "bcd0785f7cb9be6407ed2c1ac3b54b42d680f19f088168ab53757619e68a0b44",
+      "stage": "build-msvc",
+      "status": "Passed"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release --output-on-failure -R \"^(lightrecon_indirect|lightrecon_disk)$\"",
+      "log": "build/s10-final-reciprocal-msvc-tests.log",
+      "scope": "2 cases, 0.91 seconds; final schema/transport code",
+      "sha256": "db7f3d36c4199135f07f556b786a7bafc98459cea693bf2cb293c4701acbb0d3",
+      "stage": "msvc-tests",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/indirect_fit/benchmark.py --tool build/s06-gcc/lightrecon_indirect_test.exe --out build/s10-final-reciprocal",
+      "log": "build/s10-final-reciprocal-benchmark.log",
+      "scope": "338 assertions twice, identical numerical output; five original compiled bounce pairs hash-checked and compared",
+      "sha256": "6540e5114db34adf924d6267a6e18fde396522666b1739f4eba1d5063df2ef2b",
+      "stage": "benchmark",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/indirect_fit -p \"test_*.py\" -v",
+      "log": "build/s10-final-reciprocal-gates.log",
+      "scope": "3 positive/adversarial gates against final witness",
+      "sha256": "27fa39d9955379e97d87e45683593532df262966ee9a109962641cbf38ad8842",
+      "stage": "python-gates",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/inverse_gi -p \"test_*.py\" -v",
+      "log": "build/s10-research-tests.log",
+      "scope": "15 existing passive transport/censoring/ambiguity tests",
+      "sha256": "54eb316ec39d854e7208fb04b5402600edfc96139a1fdbb626471f955dcabe40",
+      "stage": "research-regression",
+      "status": "Passed"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/bake_model/validate_cpp.py --exe build/s06-gcc/lightrecon_bake_forward_tool.exe --bsp-dir build/bake-model-comparison-final/authoring/base/maps --output build/s10-forward-regression",
+      "log": "build/s10-forward-regression.log",
+      "scope": "20 supported direct cases; 2 UnsupportedBounceReplay. This does not certify S10 as compiler bounce replay",
+      "sha256": "0cd9adfe11257750cc8e54385188da2035dfd6dbc6c4eaef03815d48d158065b",
+      "stage": "direct-model",
+      "status": "PassedWithUnsupportedCases"
+    }
+  ],
+  "corrected_failures": [
+    {
+      "action": "Pinned schema-2 digest, added valid-checksum schema-1 rejection; numerical tolerances unchanged",
+      "case": "disk empty byte witness",
+      "cause": "Intentional semantic schema 1 -> 2 changes key, metadata and header SHA256"
+    },
+    {
+      "action": "Separated certified wall from unknown/open scenarios; wall remains blocked",
+      "case": "opaque wall plus missing/moving placeholder",
+      "cause": "Initial fixture expected unknown positive upper despite a separate known opaque wall"
+    },
+    {
+      "action": "Guarded endpoint-normal segments and raised segment verification; no material-ignore policy added",
+      "case": "surface unresolved interpolation",
+      "cause": "Direct tangent rays correctly report CoplanarRay/Unknown"
+    },
+    {
+      "action": "Declared geometry-based fixed origin for the compact room; no automatic target-dependent grid search",
+      "case": "coarse field origin",
+      "cause": "Initial origin at zero split training and held-out into different unsupported cells"
+    },
+    {
+      "action": "Require agreement in both directions for reciprocal links and clear unresolved paths; disagreement remains unknown; added front/back culling and positive training negatives",
+      "case": "reciprocal physical transfer with one-sided culling",
+      "cause": "One direction alone can be geometrically clear while the opposite direction is blocked"
+    },
+    {
+      "action": "Added configured toolchain bin explicitly, reran final build and tests successfully",
+      "case": "MSVC shell tool discovery",
+      "cause": "A fresh shell did not inherit the CMake toolchain PATH"
+    }
+  ],
+  "date": "2026-10-30",
+  "disk_test_source_sha256": "9ed0dfac9cb8bf03cd7429e634be508987fa190e24bbd7ba0c61d496acfee710",
+  "environment": {
+    "cpp": "C++11; standard library only",
+    "gcc": "16.2.0, Release -O3 -DNDEBUG",
+    "maximum_project_parallelism": 2,
+    "msvc": "Visual Studio 2019 x64 Release",
+    "python": "3.12.14"
+  },
+  "final_coloured_scene_build_rays": 3400,
+  "final_owned_checks": 338,
+  "limitations": [
+    "Stage holds source geometry/intensities fixed; no new emitters or physical source recovery claim",
+    "Source-linked one-bounce physical approximation remains conditional; physicalBounceVerified=false",
+    "Unknown material/visibility/operator yields interval diagnostics/unavailable comparisons rather than a measured bounce",
+    "No posterior probability or unique decomposition claimed",
+    "Memory figures are compact fixture RSS, not a full stock-map guarantee"
+  ],
+  "not_executed": [
+    "Game/GPU visual validation",
+    "Fresh q3map2 compile invocation (original pinned compiler pairs reused)",
+    "Stock-map physical GI attribution or complete map radiosity benchmark",
+    "Higher-bounce/specular transport or arbitrary empirical compiler bounce replay",
+    "S07 repetition after final indirect-only correction (previous full S07 pass retained explicitly)"
+  ],
+  "numerical_sha256": "aea23b4413b103ed86baeef559081073f483258d6f5ec127e3d2d9c29b195955",
+  "observation_schema_changed": false,
+  "reference_head": "da19e8e1801aebafd9b8a80508d54dbb71c2eade",
+  "resources_sha256": "3f636f8c576a0d10e90d1beb5b37194f65e26875beb24f2eadb142668459ce14",
+  "schema": "org.openjk.s10-validation.v1",
+  "shader_command": "python -X utf8 tools/rend2/point_refine/compare_shader_inputs.py --reference da19e8e1801aebafd9b8a80508d54dbb71c2eade --output build/s10-final-reciprocal-shader-delta.json",
+  "shader_comparison": {
+    "comparison": "worktree versus explicit Git reference; existing regression assembler",
+    "gpu_compiled": false,
+    "inputs": {
+      "shared/rd-rend2/glsl/fogpass.glsl": "0695a5370f67b3e71c8276f34d164ef6f293c733e064ef373f28e6cbdeab85da",
+      "shared/rd-rend2/glsl/fplus_cluster.glsl": "a20c39cdd07b1b4d841930f008efa6b2be34857fd7ae86cbdb8d49515c9b1af2",
+      "shared/rd-rend2/glsl/generic.glsl": "16bd867e40ae9898e76fec3293a025d0b5b6be889732d0f10e63b336af82a1e6",
+      "shared/rd-rend2/glsl/leaf_flutter.glsl": "c1638da79166a883a362fac3eed05e6f04ad861a737c37dfeb49caf186069d72",
+      "shared/rd-rend2/glsl/lightall.glsl": "a51e3c0d1e3283ec11d5af6456746ef8e746605d56cd210cfe2d8cbe12ac30fc",
+      "shared/rd-rend2/glsl/pbr_common.glsl": "0b48230ae3423325ebfbb8e3141344100c075c88cbad82100fea06eb5763c44a",
+      "shared/rd-rend2/glsl/plant_skin.glsl": "255b7919e8cb1714ece2065f09d6509c71354baab21c95788cca45942f38a0a3",
+      "shared/rd-rend2/glsl/volumetric_common.glsl": "bf2c581d029ffa8a19a9f39afa0b6ea79e0c0c132408d422e74957c79668c0c8",
+      "shared/rd-rend2/glsl/volumetric_inject.glsl": "4c28ff5a985425fa3dc06c3fbdf66a970e07b2d3fec73afa8416c2497ec01d74",
+      "shared/rd-rend2/tr_glsl.cpp": "8b1a443df941ed035bd311c581e96a87b3a36d4e755290565b3e5db91910b0ed",
+      "shared/rd-rend2/tr_local.h": "4cbfe853c8379ac9463599f3d4ee680bb3f63f47649a1fb43ac5a8678ca8a5e3"
+    },
+    "passed": true,
+    "programs": 27,
+    "reference": "da19e8e1801aebafd9b8a80508d54dbb71c2eade",
+    "stages": 51,
+    "version": 1
+  },
+  "shader_log": "build/s10-final-reciprocal-shader.log",
+  "shader_log_sha256": "948ed88fab0cae9b7ca83a6edc7aa2f044582bd9152f32536a99d14965846436",
+  "validation_head": "7caa01eac827414323c7a984393b834e9ef2163e",
+  "working_tree_note": "Other chats committed unrelated work during validation. Frozen shader reference is retained; numerical source hashes identify this uncommitted S10 implementation."
+}

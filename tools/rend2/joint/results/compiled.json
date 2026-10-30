@@ -1,0 +1,341 @@
+{
+  "cases": [
+    {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "historical_compiler_identified": false,
+      "name": "point_room",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "bee52ba3747711197d72394b6dd9e66cfbbd3db4e18d98d0d89538247d9af540",
+      "result": {
+        "code": 0,
+        "evaluations": 465,
+        "event": "result",
+        "models": 2,
+        "preferred_available": true,
+        "rays": 144,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              299.854919434,
+              299.854919434,
+              299.854919434
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 2,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "point_room",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "42c1b61ce0e26a4ef472804550d62bc057086ed192f42ebc7c9ae0861ec82eba",
+      "result": {
+        "code": 0,
+        "evaluations": 1215,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 2,
+        "preferred_available": false,
+        "rays": 144,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 2,
+      "wrong_profile": true
+    },
+    {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "heldout": {
+        "available": true,
+        "black": 1170.6018518518517,
+        "mse": 0.222869236135012,
+        "objective": 0.16480971039361977,
+        "positive": true,
+        "required": true,
+        "worst": 0.6534529352668867
+      },
+      "historical_compiler_identified": false,
+      "name": "two_colour",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "14344e1ce10de5956faf53cc38fc5f2b904883f1d682dca6dd83ac7c59be7ce8",
+      "result": {
+        "code": 0,
+        "evaluations": 3943,
+        "event": "result",
+        "models": 4,
+        "preferred_available": true,
+        "rays": 384,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              287.158630371,
+              27.55534935,
+              6.30522537231
+            ]
+          },
+          {
+            "id": 2,
+            "rgb": [
+              26.7347106934,
+              69.7119522095,
+              303.298187256
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            287.158630371,
+            27.55534935,
+            6.30522537231
+          ],
+          "relative_rgb_error": 0.05161886670630411,
+          "true_compiler_rgb": [
+            300.0,
+            35.9999991,
+            8.99999979
+          ]
+        },
+        {
+          "candidate": 2,
+          "fitted_compiler_rgb": [
+            26.7347106934,
+            69.7119522095,
+            303.298187256
+          ],
+          "relative_rgb_error": 0.058636268504425326,
+          "true_compiler_rgb": [
+            11.99999973,
+            60.0000009,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 4,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "two_colour",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "9aa7e6a5b2370ae4d7923f50fcd3921ea3431edf7f5ca2dc1fdbbb7a37e91f94",
+      "result": {
+        "code": 0,
+        "evaluations": 3643,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 4,
+        "preferred_available": false,
+        "rays": 384,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 4,
+      "wrong_profile": true
+    },
+    {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "historical_compiler_identified": false,
+      "name": "door_occlusion",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "87e5796bdf411431c829a4fd52c7a6b5172d2d731c843010202d3f6007112458",
+      "result": {
+        "code": 0,
+        "evaluations": 465,
+        "event": "result",
+        "models": 2,
+        "preferred_available": true,
+        "rays": 144,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              299.854919434,
+              299.854919434,
+              299.854919434
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 2,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "door_occlusion",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "3cfc9e9878557e34125b4fc39e719b6dd1bf0d085b8e0326d448290eb00da13a",
+      "result": {
+        "code": 0,
+        "evaluations": 1215,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 2,
+        "preferred_available": false,
+        "rays": 144,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 2,
+      "wrong_profile": true
+    }
+  ],
+  "executable_sha256": "7ae8ebb6b1da28a74c7e34f6d5e30b64cfae5cea84346cec23d5c4da2cf5fb58",
+  "schema": "org.openjk.s11-compiled.v1",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "d3b040df7c35947c777d4545d7e1a70125a7882e75d4fad9a5d44874d17cc815",
+    "shared/rd-rend2/lightrecon/emitter_shape.cpp": "d7505566bc8f3ad6410a1c9e3dbb14dd383af35db862076d157a9a356944fe3f",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "93e5dc071c9f4d3c6c134b24d13b835eeba617ff85fd36198e3c8c2ad4e9dad6",
+    "shared/rd-rend2/lightrecon/joint.cpp": "3ed872c117d8244598f030ff359ad90902a9f57489751b7b951e56d76f701576",
+    "shared/rd-rend2/lightrecon/joint.h": "aca74cd371b9d7c6ba8ad4e7aa4edd5d207d694439d740152e909e12eab70829",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "f3adee5f49d4f3669b2e0c513d25491318c1f61b0e329c241b43bf950f40d1a3",
+    "tools/lightrecon_test/lightrecon_joint_tool.cpp": "38710a21303cede0b623757c50c6bbaeae4877482dd6f505a2746cf349e870da",
+    "tools/rend2/joint/compiled.py": "7cbbfbdf31237b1197942da6f5940f12fcd8e185d7332c12d84b51a60bc392d8"
+  }
+}

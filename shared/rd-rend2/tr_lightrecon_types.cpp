@@ -282,10 +282,10 @@ struct Validator
 		for (const TransportField& f : asset.transport)
 		{
 			if (!Common(f.source, "transport.source", false)) return false;
-			if (!EnumIn(f.component, TransportComponent::UnattributedIncidentRadiance) || !EnumIn(f.quantity, FieldQuantity::Radiance) ||
+			if (!EnumIn(f.component, TransportComponent::UnresolvedIrradiance) || !EnumIn(f.quantity, FieldQuantity::Radiance) ||
 				!ValidBounds(f.bounds)) return Fail("transport", "invalid component, quantity or bounds");
 			const bool irradiance = f.quantity == FieldQuantity::Irradiance;
-			if (((f.component == TransportComponent::IndirectIrradiance || f.component == TransportComponent::UnresolvedDirectIrradiance) && !irradiance) ||
+			if (((f.component == TransportComponent::IndirectIrradiance || f.component == TransportComponent::UnresolvedDirectIrradiance || f.component == TransportComponent::UnresolvedIrradiance) && !irradiance) ||
 				((f.component == TransportComponent::ReflectedRadiance || f.component == TransportComponent::UnattributedIncidentRadiance) && irradiance) ||
 				(f.unit != PhotometricUnit::Relative && f.unit != (irradiance ? PhotometricUnit::Lux : PhotometricUnit::Nits)))
 				return Fail("transport.unit", "component, quantity and unit conflict");
@@ -301,8 +301,32 @@ struct Validator
 			}
 			if (!CalibrationRef(f.calibration, f.unit, "transport.calibration", f.dataset != 0) ||
 				!Data(f.dataset, DatasetPurpose::Transport, "transport.dataset")) return false;
-			if (f.dataset && count && datasets[f.dataset]->elementCount != count)
+			if (f.dataset && dims[0] && datasets[f.dataset]->elementCount != count)
 				return Fail("transport.sampleDimensions", "dataset logical count differs from lattice");
+			const auto& m=f.membership;
+			if(m.version!=1 || m.style>255 || !EnumIn(m.directLocal,FieldMembership::Included) ||
+				!EnumIn(m.directSun,FieldMembership::Included) || !EnumIn(m.directSky,FieldMembership::Included) ||
+				!EnumIn(m.legacyAmbient,FieldMembership::Included) || !EnumIn(m.reflected,FieldMembership::Included) ||
+				!EnumIn(m.unresolved,FieldMembership::Included)) return Fail("transport.membership","unsupported membership");
+			if(m.reflectionOrderKnown && (m.minimumReflectionOrder>m.maximumReflectionOrder || m.maximumReflectionOrder>64))
+				return Fail("transport.membership","invalid reflection orders");
+			if((f.component==TransportComponent::IndirectIrradiance && m.reflected==FieldMembership::Excluded) ||
+				(f.component==TransportComponent::UnresolvedIrradiance && m.unresolved==FieldMembership::Excluded) ||
+				(m.reflectionOrderKnown && m.maximumReflectionOrder>0 && m.reflected==FieldMembership::Excluded) ||
+				(m.reflectionOrderKnown && m.maximumReflectionOrder==0 && m.reflected==FieldMembership::Included))
+				return Fail("transport.membership","component/reflection membership conflict");
+			std::set<Id> roots;
+			for(const auto& r:m.roots) {
+				if(!EnumIn(r.kind,TransportRootKind::Unknown) ||
+					(r.kind!=TransportRootKind::Unknown && (!r.source || !sources.count(r.source))) ||
+					(r.source && (!sources.count(r.source)||!roots.insert(r.source).second)))
+					return Fail("transport.membership.roots","invalid root identity");
+				if(r.kind==TransportRootKind::LocalEmitter && (!emitters.count(r.source)||emitters[r.source]->kind==EmitterKind::Directional))
+					return Fail("transport.membership.roots","local root is not a local emitter");
+				if(r.kind==TransportRootKind::Sun && !suns.count(r.source)) return Fail("transport.membership.roots","sun root missing");
+				if(r.kind==TransportRootKind::Sky && !IsEnvironment(r.source)) return Fail("transport.membership.roots","sky root missing");
+			}
+			if((!m.roots.empty() || m.reflectionOrderKnown) && m.model.empty()) return Fail("transport.membership.model","model identity required");
 		}
 		for (const VisibilityReference& v : asset.visibility)
 		{

@@ -1,0 +1,280 @@
+{
+  "compiled": {
+    "cases": {
+      "bounce_colour": {
+        "floor_mean_delta_rgb8": [
+          26.60705882352941,
+          20.527058823529412,
+          19.87529411764706
+        ],
+        "grid_identical": true,
+        "left": {
+          "mean_delta_rgb8": [
+            15.905882352941177,
+            13.688235294117646,
+            13.447058823529412
+          ],
+          "samples": 170
+        },
+        "limitation": "Paired byte differences; not a linear radiance subtraction or exact bounce replay",
+        "max_absolute_delta": 46,
+        "negative_channels": 0,
+        "one_grid_sha256": "f761ee2636c113a9d71529cceeabf5492391f69cdfe7e3ea5decc5ef6fb2c7b1",
+        "one_sha256": "137a46bac1565fd3d67c2ced1e4df50adc46fc93a53bc7d1da8d0bf4ce48fcd8",
+        "positive_channels": 1275,
+        "right": {
+          "mean_delta_rgb8": [
+            37.16470588235294,
+            26.488235294117647,
+            25.347058823529412
+          ],
+          "samples": 170
+        },
+        "samples": 425,
+        "zero_grid_sha256": "f761ee2636c113a9d71529cceeabf5492391f69cdfe7e3ea5decc5ef6fb2c7b1",
+        "zero_sha256": "55243daa36b469de6974a084aa1a7943fb89f6d8df4c9fa74da8e6f7050e415a"
+      },
+      "door_occlusion": {
+        "floor_mean_delta_rgb8": [
+          17.755294117647058,
+          17.755294117647058,
+          17.755294117647058
+        ],
+        "grid_identical": true,
+        "left": {
+          "mean_delta_rgb8": [
+            32.65882352941176,
+            32.65882352941176,
+            32.65882352941176
+          ],
+          "samples": 170
+        },
+        "limitation": "Paired byte differences; not a linear radiance subtraction or exact bounce replay",
+        "max_absolute_delta": 39,
+        "negative_channels": 0,
+        "one_grid_sha256": "8eef111e9c53bdfd1d025e271e47149bef15fc5c487e74ea0853d5e6e4777bd2",
+        "one_sha256": "f46ade82469056a10e998b1eaf470a37890249163d82810fc82b3d5f5fe00d9d",
+        "positive_channels": 1233,
+        "right": {
+          "mean_delta_rgb8": [
+            3.1411764705882352,
+            3.1411764705882352,
+            3.1411764705882352
+          ],
+          "samples": 170
+        },
+        "samples": 425,
+        "zero_grid_sha256": "8eef111e9c53bdfd1d025e271e47149bef15fc5c487e74ea0853d5e6e4777bd2",
+        "zero_sha256": "b83337445943785acd60c93193c7b4703e837b71d16baa243842ed9fcb0f59ea"
+      },
+      "point_room": {
+        "floor_mean_delta_rgb8": [
+          22.221176470588237,
+          22.221176470588237,
+          22.221176470588237
+        ],
+        "grid_identical": true,
+        "left": {
+          "mean_delta_rgb8": [
+            29.988235294117647,
+            29.988235294117647,
+            29.988235294117647
+          ],
+          "samples": 170
+        },
+        "limitation": "Paired byte differences; not a linear radiance subtraction or exact bounce replay",
+        "max_absolute_delta": 37,
+        "negative_channels": 0,
+        "one_grid_sha256": "f2ac5cfb74eb3aa200b10b26b8aef43ccc37c139a15404d6abd97078fc56d1e6",
+        "one_sha256": "0d31ae8c40c20d6fa83fd7b551a531c5f597ef57f9bf9d616eeea34f95830967",
+        "positive_channels": 1275,
+        "right": {
+          "mean_delta_rgb8": [
+            14.652941176470588,
+            14.652941176470588,
+            14.652941176470588
+          ],
+          "samples": 170
+        },
+        "samples": 425,
+        "zero_grid_sha256": "f2ac5cfb74eb3aa200b10b26b8aef43ccc37c139a15404d6abd97078fc56d1e6",
+        "zero_sha256": "7ce5a53118387f95da619ecbdc1a8626075c6ca7eb0a189ce93f7bbd81a6ce0c"
+      },
+      "skylight": {
+        "floor_mean_delta_rgb8": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "grid_identical": true,
+        "left": {
+          "mean_delta_rgb8": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "samples": 170
+        },
+        "limitation": "Paired byte differences; not a linear radiance subtraction or exact bounce replay",
+        "max_absolute_delta": 0,
+        "negative_channels": 0,
+        "one_grid_sha256": "285d2f6a7e1f241d8f8ef9bb4912081a3d7647271a067605e224cbd5fac4738f",
+        "one_sha256": "5f2ffce4c068b5eb0c9304bc9ce8ab73fe68b18a618c1584ecb8baf783d7e307",
+        "positive_channels": 0,
+        "right": {
+          "mean_delta_rgb8": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "samples": 170
+        },
+        "samples": 425,
+        "zero_grid_sha256": "285d2f6a7e1f241d8f8ef9bb4912081a3d7647271a067605e224cbd5fac4738f",
+        "zero_sha256": "f1ab166957f8531e0fa65703747509c76b294054008b50ab4eab309ade85d4d1"
+      },
+      "wall_leak": {
+        "floor_mean_delta_rgb8": [
+          18.71529411764706,
+          18.71529411764706,
+          18.71529411764706
+        ],
+        "grid_identical": true,
+        "left": {
+          "mean_delta_rgb8": [
+            36.5,
+            36.5,
+            36.5
+          ],
+          "samples": 170
+        },
+        "limitation": "Paired byte differences; not a linear radiance subtraction or exact bounce replay",
+        "max_absolute_delta": 42,
+        "negative_channels": 0,
+        "one_grid_sha256": "5e82ab9656a2efa0d06e4f0a9ca8d2fe2f477236ca09bd6b454c3652a0b3a67f",
+        "one_sha256": "cc0736981484516866bd84691d354d2f11c7159ad2a03471f66894f25e1c0e39",
+        "positive_channels": 663,
+        "right": {
+          "mean_delta_rgb8": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "samples": 170
+        },
+        "samples": 425,
+        "zero_grid_sha256": "5e82ab9656a2efa0d06e4f0a9ca8d2fe2f477236ca09bd6b454c3652a0b3a67f",
+        "zero_sha256": "da13f2062dac4dc65fa1476e08d17887447f03683f71f73a2aa983552577b616"
+      }
+    },
+    "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+    "original_witness_sha256": "99998090e83ef5bbaaec71902c07f452a42add4581acce359d22f2a9bdf9a019",
+    "semantics": "encoded RGB8 differences, NOT additive radiance or physical-GI accuracy",
+    "source_revision": "d9338309ea8fab75027b7382efaabe034302b862"
+  },
+  "deterministic": true,
+  "executable_sha256": "93aaa09fb37216ad25f4f6726cb4699d60dd9b8e29ef21b23232c81bb86539ec",
+  "limitations": [
+    "Physical one-bounce approximation is not empirical compiler bounce replay",
+    "Stock UnknownProfile not identified; no stock physical attribution benchmark",
+    "No source discovery or runtime publication"
+  ],
+  "owned": {
+    "checks": 338,
+    "failures": 0,
+    "scenes": [
+      {
+        "maximum_relative_difference": 0.00282128156654,
+        "reference48_64_difference": 1.06087143507e-07,
+        "scene": "independent_finite_reflector"
+      },
+      {
+        "black_mse": 0.233308001829,
+        "direct_only_mse": 3.98462528274e-05,
+        "evaluations": 345,
+        "false_emitters": 0,
+        "heldout_mse": 1.33226762955e-16,
+        "links": 25,
+        "rays": 3400,
+        "rho_b": 0.0800008699298,
+        "rho_g": 0.180000007153,
+        "rho_r": 0.700000345707,
+        "scene": "red_reflector"
+      },
+      {
+        "false_emitters": 0,
+        "physical_bounce_verified": false,
+        "scene": "wrong_direct_model",
+        "training_objective": 9628.97
+      },
+      {
+        "bytes": 69936,
+        "false_emitters": 0,
+        "rays": 136,
+        "receiver_comparable": 1,
+        "receiver_indirect_r": 0,
+        "receiver_upper_r": 0,
+        "scene": "geometry_mode_0"
+      },
+      {
+        "bytes": 69976,
+        "false_emitters": 0,
+        "rays": 136,
+        "receiver_comparable": 1,
+        "receiver_indirect_r": 0.00557812629268,
+        "receiver_upper_r": 0.00557812629268,
+        "scene": "geometry_mode_1"
+      },
+      {
+        "bytes": 69976,
+        "false_emitters": 0,
+        "rays": 136,
+        "receiver_comparable": 0,
+        "receiver_indirect_r": 0,
+        "receiver_upper_r": 0.00557812629268,
+        "scene": "geometry_mode_2"
+      },
+      {
+        "bytes": 69976,
+        "false_emitters": 0,
+        "rays": 136,
+        "receiver_comparable": 0,
+        "receiver_indirect_r": 0,
+        "receiver_upper_r": 0.00557812629268,
+        "scene": "geometry_mode_3"
+      },
+      {
+        "bytes": 69976,
+        "false_emitters": 0,
+        "rays": 136,
+        "receiver_comparable": 0,
+        "receiver_indirect_r": 0,
+        "receiver_upper_r": 0.00557812629268,
+        "scene": "geometry_mode_4"
+      },
+      {
+        "direct_receiver": 0,
+        "indirect_receiver": 0.00197298172861,
+        "new_aperture_emitters": 0,
+        "scene": "hidden_source_doorway"
+      },
+      {
+        "fixed_direct_amplitudes_changed": false,
+        "heldout_mse": 6.9041069158e-14,
+        "no_field_mse": 0.0174999991556,
+        "scene": "unresolved_fill"
+      }
+    ],
+    "schema": "org.openjk.indirect-s10.v1"
+  },
+  "schema": "org.openjk.s10-benchmark.v1",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/disk.cpp": "a9d46b2d52f1b6a2542c26fdf8bca3ba02383ca8bc17fe039adeb22631471372",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "93e5dc071c9f4d3c6c134b24d13b835eeba617ff85fd36198e3c8c2ad4e9dad6",
+    "shared/rd-rend2/lightrecon/indirect.h": "be423975ba60b14cafa738a271dcf3ba2f021e1b1917fd68b9c73e49818f3cb7",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "3825ca6c3d01b1665228465f86a90ce4b4e07a6f8e86159c45357622946ad87b",
+    "shared/rd-rend2/tr_lightrecon_types.h": "9d401cf9c3bdb20be80825489485d8c964b13e08c87a25b53459d7349271d9fa",
+    "tools/lightrecon_test/lightrecon_indirect_test.cpp": "de3cd7ccace2683e2c7e239eb3279c4229b23768f462f76f2b87a965f03a6797",
+    "tools/rend2/indirect_fit/benchmark.py": "c6a41bfbdee8c2df7336ef4063fd9c596f5c4860a29e71614206b351e7cfe702"
+  }
+}

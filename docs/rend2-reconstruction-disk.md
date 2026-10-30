@@ -1,5 +1,10 @@
 # Reconstructed-lighting disk assets, format 1.0
 
+S10 retains this envelope and raises its canonical semantic schema to **2** for
+explicit transport membership. `MakeKey` includes that schema. Version-1 assets
+and prior keys are rejected, without an implicit migration. The independent
+observation archive is unchanged. See [S10](rend2-indirect-fitting-s10.md).
+
 `shared/rd-rend2/lightrecon/disk.h/.cpp` implements a portable, deterministic
 CPU codec for the [canonical asset](rend2-reconstructed-lighting.md).
 `lightrecon/cache.h/.cpp` implements explicit native file reads and atomic writes.

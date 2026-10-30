@@ -1,5 +1,10 @@
 # Physically constrained indirect lighting for baked JA maps
 
+The subsequent [S10 implementation](rend2-indirect-fitting-s10.md) implements
+the selected passive one-bounce CPU stage and a separate bounded unresolved
+appearance fallback. This document preserves the original research evidence;
+its compiler controls do not certify physical radiosity or a stock Raven profile.
+
 The subsequent [DDGI field comparison](rend2-ddgi-field-research.md) examines
 probe placement and distance moments for future field generation. It keeps
 approximate interpolation weights separate from exact inverse-fitting visibility.

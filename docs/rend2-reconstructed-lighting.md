@@ -1,4 +1,10 @@
-# Canonical reconstructed static lighting, schema 1
+# Canonical reconstructed static lighting, schema 2
+
+S10 adds explicit transport root/component membership and reflection order, plus
+`UnresolvedIrradiance`. See [the S10 report](rend2-indirect-fitting-s10.md) for the
+CPU passive-bounce producer and its conditional scope. Existing runtime consumers
+remain unimplemented. Schema-1 assets/cache entries are rejected rather than
+silently reinterpreted; observation `.jkobs` archives retain their own version.
 
 `shared/rd-rend2/tr_lightrecon_types.h/.cpp` defines the single canonical
 `Rend2LightRecon::ReconstructedLightingAsset`. It is a C++11, standard-library-only
@@ -6,8 +12,10 @@ CPU model. Its location is shared with Rend2 for build convenience; it includes
 no engine, BSP or graphics types. The implementation reuses the dependency-free
 colour constants and normalization in `tr_pbr_contract.h`.
 
-This change implements a data contract, validation and conversion helpers.
-There is no inverse solver, observation importer or lighting-rendering adapter.
+This document describes the data contract, validation and conversion helpers.
+Offline observation capture and bounded CPU forward/fitting stages are separate
+modules; they do not constitute a complete stock-map inverse solver or a runtime
+lighting adapter. No fitting result is automatically published to consumers.
 The separate [versioned disk format and cache adapter](rend2-reconstruction-disk.md)
 serialize validated assets and optional chunks. The [main-world lifecycle owner](rend2-reconstruction-lifecycle.md)
 now handles load/reset boundaries; complete source hashing remains unavailable,
@@ -34,7 +42,7 @@ consume the same asset, each through its own adapter.
 | `PhysicalEmitter` | A hypothesis about a physical emitting object, including directional sources |
 | `SunSource` | A role referencing a directional emitter, never a duplicate intensity record |
 | `EnvironmentLighting` | Sky/environment radiance metadata, optional mean luminance and external distribution |
-| `TransportField` | Indirect irradiance, reflected radiance, aperture transport, unresolved direct irradiance or unattributed incident radiance |
+| `TransportField` | Indirect irradiance, reflected radiance, aperture transport, unresolved direct irradiance, unattributed incident radiance or unresolved irradiance; explicit component/root membership |
 | `GeometryRegion` | Persistent geometry-region identity, optional world bounds and external membership |
 | `VisibilityReference` | Segment/sky transmittance or region connectivity dataset, with source/region scope |
 | `ContributionReference` | Per-source attribution evidence, with direct/indirect/unresolved component and explicit quantity |
@@ -56,10 +64,10 @@ any consumer to subtract an attributed contribution from baked lighting.
 
 ## Identity, version and provenance
 
-The stable schema identifier is `org.openjk.reconstructed-lighting`, version 1.
+The stable schema identifier is `org.openjk.reconstructed-lighting`, version 2.
 This is an in-memory semantic schema, not a native-struct binary file format.
 An incompatible schema change requires a version change; a reader must reject
-unsupported versions. `Validate` currently accepts version 1 only.
+unsupported versions. `Validate` currently accepts version 2 only.
 
 `lineage` identifies the reconstruction across revisions. Nonempty results need
 a lineage and root provenance. The fully empty default asset is valid and means

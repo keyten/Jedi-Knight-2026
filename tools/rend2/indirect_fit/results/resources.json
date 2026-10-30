@@ -1,0 +1,12 @@
+[
+  {
+    "peak_process_rss_bytes": 4710400,
+    "seconds": 0.22003319999203086,
+    "stage": "CPU-0"
+  },
+  {
+    "peak_process_rss_bytes": 4706304,
+    "seconds": 0.21567249996587634,
+    "stage": "CPU-1"
+  }
+]

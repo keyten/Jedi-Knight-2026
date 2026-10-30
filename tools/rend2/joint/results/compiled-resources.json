@@ -1,0 +1,66 @@
+{
+  "repeat_a": [
+    {
+      "name": "point_room",
+      "peak_process_rss_bytes": 5001216,
+      "seconds": 0.5649033000227064
+    },
+    {
+      "name": "point_room-wrong",
+      "peak_process_rss_bytes": 5173248,
+      "seconds": 0.8026937999529764
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 5615616,
+      "seconds": 4.3237774999579415
+    },
+    {
+      "name": "two_colour-wrong",
+      "peak_process_rss_bytes": 5578752,
+      "seconds": 3.3584119000006467
+    },
+    {
+      "name": "door_occlusion",
+      "peak_process_rss_bytes": 4956160,
+      "seconds": 0.33720599999651313
+    },
+    {
+      "name": "door_occlusion-wrong",
+      "peak_process_rss_bytes": 5160960,
+      "seconds": 1.1597570000449196
+    }
+  ],
+  "repeat_b": [
+    {
+      "name": "point_room",
+      "peak_process_rss_bytes": 5005312,
+      "seconds": 0.41440630005672574
+    },
+    {
+      "name": "point_room-wrong",
+      "peak_process_rss_bytes": 5165056,
+      "seconds": 0.8329548999899998
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 5623808,
+      "seconds": 4.150403500068933
+    },
+    {
+      "name": "two_colour-wrong",
+      "peak_process_rss_bytes": 5586944,
+      "seconds": 3.200283500016667
+    },
+    {
+      "name": "door_occlusion",
+      "peak_process_rss_bytes": 4956160,
+      "seconds": 0.3076955999713391
+    },
+    {
+      "name": "door_occlusion-wrong",
+      "peak_process_rss_bytes": 5160960,
+      "seconds": 0.7367558000842109
+    }
+  ]
+}

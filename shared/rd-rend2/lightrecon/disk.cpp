@@ -172,8 +172,12 @@ FIELDS(GeometryRegion, v.id, v.provenance, v.key, v.bounds, v.membership)
 FIELDS(Dataset, v.id, v.purpose, v.layout, v.locator, v.contentHash, v.encoding, v.encodingVersion,
 	   v.elementCount, v.chunkElements)
 FIELDS(EnvironmentLighting, v.source, v.meanLuminance, v.radiance, v.sunCoverage)
+FIELDS(TransportRoot, v.source, v.kind)
+FIELDS(TransportMembership, v.version, v.model, v.roots, v.directLocal, v.directSun, v.directSky,
+	   v.legacyAmbient, v.reflected, v.unresolved, v.reflectionOrderKnown,
+	   v.minimumReflectionOrder, v.maximumReflectionOrder, v.style)
 FIELDS(TransportField, v.source, v.component, v.quantity, v.unit, v.calibration, v.bounds,
-	   v.sampleDimensions[0], v.sampleDimensions[1], v.sampleDimensions[2], v.dataset)
+	   v.sampleDimensions[0], v.sampleDimensions[1], v.sampleDimensions[2], v.dataset, v.membership)
 FIELDS(VisibilityReference, v.dataset, v.kind, v.source, v.region)
 FIELDS(ContributionReference, v.dataset, v.sampleDomain, v.sources, v.component, v.quantity, v.unit,
 	   v.calibration)
@@ -265,12 +269,14 @@ template <class T> bool ValidEnum(uint32_t value);
 		return v <= uint32_t(T::last);                                                             \
 	}
 ENUM_RANGE(ProvenanceKind, External)
+ENUM_RANGE(FieldMembership, Included)
+ENUM_RANGE(TransportRootKind, Unknown)
 ENUM_RANGE(CalibrationKind, UncalibratedRelative)
 ENUM_RANGE(PhotometricUnit, Lux) ENUM_RANGE(HypothesisState, Rejected)
 	ENUM_RANGE(Suitability, Candidate) ENUM_RANGE(AngularKind, Tabulated)
 		ENUM_RANGE(DatasetPurpose, ObservationQuality) ENUM_RANGE(DatasetLayout, Procedural)
 			ENUM_RANGE(SunCoverage, IncludesExplicitSun)
-				ENUM_RANGE(TransportComponent, UnattributedIncidentRadiance)
+				ENUM_RANGE(TransportComponent, UnresolvedIrradiance)
 					ENUM_RANGE(FieldQuantity, Radiance) ENUM_RANGE(VisibilityKind, SkyTransmittance)
 						ENUM_RANGE(ContributionComponent, Unresolved)
 							ENUM_RANGE(ContributionQuantity, AttributionFraction)

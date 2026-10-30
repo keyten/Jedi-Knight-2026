@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 1;
+static constexpr uint32_t kSchemaVersion = 2;
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -210,8 +210,27 @@ struct EnvironmentLighting
 	SunCoverage sunCoverage = SunCoverage::Unknown; // adapter must resolve double counting
 };
 enum class TransportComponent { IndirectIrradiance, ReflectedRadiance, ApertureTransport,
-	UnresolvedDirectIrradiance, UnattributedIncidentRadiance };
+	UnresolvedDirectIrradiance, UnattributedIncidentRadiance, UnresolvedIrradiance };
 enum class FieldQuantity { Irradiance, Radiance };
+enum class FieldMembership { Unknown, Excluded, Included };
+enum class TransportRootKind { LocalEmitter, Sun, Sky, LegacyAmbient, Unknown };
+struct TransportRoot
+{
+	Id source = 0; // zero only for an explicitly unknown root
+	TransportRootKind kind = TransportRootKind::Unknown;
+};
+struct TransportMembership
+{
+	uint32_t version = 1;
+	std::string model; // namespaced operator/hypothesis identity, not a physical-certainty label
+	std::vector<TransportRoot> roots;
+	FieldMembership directLocal = FieldMembership::Unknown, directSun = FieldMembership::Unknown,
+		directSky = FieldMembership::Unknown, legacyAmbient = FieldMembership::Unknown,
+		reflected = FieldMembership::Unknown, unresolved = FieldMembership::Unknown;
+	bool reflectionOrderKnown = false;
+	uint32_t minimumReflectionOrder = 0, maximumReflectionOrder = 0;
+	uint32_t style = 0; // canonical portable integer, 0..255
+};
 struct TransportField
 {
 	Source source; // transport estimates are NEVER physical emitter records
@@ -222,6 +241,7 @@ struct TransportField
 	Bounds bounds;
 	uint32_t sampleDimensions[3] = { 0, 0, 0 }; // optional world-space regular lattice; all zero or all >0
 	Id dataset = 0; // absent data is valid incomplete metadata, not zero illumination
+	TransportMembership membership; // consumers must resolve Unknown before composing fields
 };
 enum class VisibilityKind { SegmentTransmittance, RegionConnectivity, SkyTransmittance };
 struct VisibilityReference
