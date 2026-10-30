@@ -103,6 +103,8 @@ UNITS = {'u_WaterSceneMap': 0, 'u_WaterDepthMap': 1, 'u_WaterNormalMap': 2, 'u_E
          'u_WaterPrevInteractionMap': 24}
 UNITS.update({'u_AtmosphereTransmittanceMap': 21, 'u_AtmosphereMultiScatterMap': 22,
               'u_AtmosphereSkyViewMap': 23})
+# r_ssrReflectedFog: the froxel media (TB_WATER_FROXEL*)
+UNITS.update({'u_FroxelSource': 25, 'u_FroxelDynamic': 13, 'u_FroxelExtinction': 27})
 
 # u_Water[6].z flags (RB_WaterSurfaceSetupDraw)
 FLAG_CUBEMAP, FLAG_SUN, FLAG_FROXEL, FLAG_REJECT, FLAG_SSR, FLAG_ENVBRDF = 1, 2, 4, 8, 16, 512
@@ -140,8 +142,13 @@ def header(defines, size):
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
-                  snell=False, physical=False, motion=False, prepass=False):
+                  snell=False, physical=False, motion=False, prepass=False, fog=False):
     defines = ['USE_WATER_ATMOSPHERE']
+    if fog:
+        # r_ssrReflectedFog (GLSL_LoadGPUProgramWaterSurface): the prepass program marches the fog, the main
+        # program only corrects the liquid path; fog='march' puts the march in a main program, whose trace
+        # (WaterSSRTrace, the same function) the harness can drive directly
+        defines.append('SSR_REFLECTED_FOG' if prepass or fog == 'march' else 'WATER_SSR_FOGGED')
     if prepass:
         defines.append('USE_WATER_REFLECTION_PASS')
     if hiz:
@@ -433,6 +440,44 @@ def set_matrix(prog, name, m):
     gl('glUniformMatrix4fv', None, I, I, U, P)(loc, 1, 0, flat.ctypes.data_as(P))
 
 
+def froxel_block(prog, values):
+    """Fill the VolumetricFog block of prog (binding 11) with values {member: floats}, the rest 0."""
+    index = gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'VolumetricFog')
+    assert index != 0xFFFFFFFF
+    size = C.c_int()
+    gl('glGetActiveUniformBlockiv', None, U, U, U, C.POINTER(C.c_int))(prog, index, 0x8A40, C.byref(size))
+    data = np.zeros(size.value // 4, dtype=np.float32)
+    names = list(values)
+    raw = (C.c_char_p * len(names))(*[n.encode() for n in names])
+    indices = (U * len(names))()
+    gl('glGetUniformIndices', None, U, I, P, P)(prog, len(names), C.cast(raw, P), C.cast(indices, P))
+    offsets = (C.c_int * len(names))()
+    gl('glGetActiveUniformsiv', None, U, I, P, U, P)(prog, len(names), C.cast(indices, P), 0x8A3B, C.cast(offsets, P))
+    for name, offset in zip(names, offsets):
+        v = np.asarray(values[name], dtype=np.float32).ravel()
+        data[offset // 4: offset // 4 + len(v)] = v
+    ubo = U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(ubo))
+    gl('glBindBuffer', None, U, U)(0x8A11, ubo)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8A11, data.nbytes, data.ctypes.data_as(P), 0x88E4)
+    gl('glBindBufferBase', None, U, U, U)(0x8A11, 11, ubo)
+    gl('glUniformBlockBinding', None, U, U, U)(prog, index, 11)
+
+
+def volume(unit, data):
+    """RGBA16F 3D texture (data: z, y, x, 4) on unit, linear, clamped"""
+    gl('glActiveTexture', None, U)(0x84C0 + unit)
+    tex = U()
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(tex))
+    gl('glBindTexture', None, U, U)(0x806F, tex)
+    d = np.ascontiguousarray(data, dtype=np.float32)
+    gl('glTexImage3D', None, U, I, I, I, I, I, I, U, U, P)(0x806F, 0, RGBA16F, d.shape[2], d.shape[1], d.shape[0], 0,
+                                                          RGBA, FLOAT, d.ctypes.data_as(P))
+    for parameter, value in ((0x2800, 0x2601), (0x2801, 0x2601), (0x2802, 0x812F), (0x2803, 0x812F), (0x8072, 0x812F)):
+        gl('glTexParameteri', None, U, U, I)(0x806F, parameter, value)
+    gl('glActiveTexture', None, U)(0x84C0)
+
+
 # --- camera, scene ------------------------------------------------------------------------------------------------
 
 NEAR, FAR = 4.0, 8192.0
@@ -508,6 +553,7 @@ class Rig:
         w, h = size
         self.cam, self.size = cam, size
         self.ssr_steps = 48
+        self.ssr_fog = 0.0  # u_SSRSettings2.w: the froxel media are bound (r_ssrReflectedFog)
         self.scene_prog = compile_program(
             [(GL_VERTEX, '#version 150 core\nin vec3 pos; in vec3 col; uniform mat4 vp; out vec3 c;\n'
                          'void main(){ c = col; gl_Position = vp * vec4(pos, 1.0); }\n'),
@@ -662,7 +708,7 @@ class Rig:
             set_vec4s(prog, 'u_SSRViewport', [[0, 0, 1, 1]])
             set_vec4s(prog, 'u_SSRTexelSize', [[1 / w, 1 / h, 1 / w, 1 / h]])
             set_vec4s(prog, 'u_SSRSettings', [[self.ssr_steps, 6, 2000, 24]])
-            set_vec4s(prog, 'u_SSRSettings2', [[0.6, 0.1, 6, 0]])
+            set_vec4s(prog, 'u_SSRSettings2', [[0.6, 0.1, 6, self.ssr_fog]])
             set_vec4s(prog, 'u_SSRSettings3', [[6, 0, NEAR, self.ssr_steps * 3]])
             bind(10, self.hiz)
             bind(11, self.pyramid)
@@ -743,7 +789,14 @@ def check_permutations():
                              prepass=True)
         gl('glDeleteProgram', None, U)(prog)
         count += 1
-    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, water motion, physical lights)', True)
+    # r_ssrReflectedFog: the SSR programs with the froxel library, main pass (WATER_SSR_FOGGED) and prepass
+    # (SSR_REFLECTED_FOG)
+    for froxel, hiz, snell, prepass in itertools.product([1, 2], [0, 1], [0, 1], [0, 1]):
+        prog = water_program(ssr=True, froxel=froxel, hiz=bool(hiz), snell=bool(snell), prepass=bool(prepass),
+                             motion=bool(prepass), fog=True)
+        gl('glDeleteProgram', None, U)(prog)
+        count += 1
+    return check(f'{count} water surface permutations compiled and linked (deform, shadows2, SSR linear / Hi-Z, froxel scalar / RGB, cubemap, Snell, water motion, physical lights, reflected fog)', True)
 
 
 def check_geometry_depth(rig):
@@ -969,6 +1022,170 @@ def check_above(rig):
         ok = check(f'SSR ({label}, {steps} steps): the reflection rays find the pillar above the water', hit.sum() >= 10 and
                    abs(int(np.median(cols)) - W // 2) < 20 and bool(np.isfinite(ssr[water]).all()), detail) and ok
     rig.ssr_steps = 48
+    return ok
+
+
+def rep_once(text, old, new):
+    assert text.count(old) == 1, old
+    return text.replace(old, new)
+
+
+def fog_probe(fs):
+    """out_Color = the SSR term of the reflection: from above (ssr.r, confidence, view depth of the hit point Q that
+    SSRHitRadiance looks up, |Q - P| or -1 without a hit), from below (ssr.rgb * Tr + S, the liquid along the
+    reflected path, confidence)"""
+    fs = rep_once(fs, '\nvec4 WaterSSRTrace(', '\nvec2 g_fogHit = vec2(0.0);\nvec4 WaterSSRTrace(')
+    lookup = '\tvec4 radiance = SSRHitRadiance(vec4(hitUV, SSREncodeHitDepth(zScene), confidence),\n'
+    fs = rep_once(fs, lookup, '\tvec3 Qs = SSRHitPosition(vec4(hitUV, SSREncodeHitDepth(zScene), confidence));\n'
+                  '\tg_fogHit = vec2(length(Qs - P), Qs.z);\n' + lookup)
+    fs = rep_once(fs, '\nvoid main()', '\nvec4 g_fogProbe = vec4(0.0);\nvoid main()')
+    above = '\t\t\tvec4 ssr = WaterSSR(P, R, Ng, N, roughness, hitDistance);\n'
+    fs = rep_once(fs, above, above + '\t\t\tg_fogProbe = vec4(ssr.r, ssr.a, g_fogHit.y, ssr.a > 0.0 ? g_fogHit.x : -1.0);\n')
+    below = '\t\t\t\treflection = mix(reflection, ssr.rgb * Tr + S, c);\n'
+    fs = rep_once(fs, below, below + '\t\t\t\tg_fogProbe = vec4(ssr.rgb * Tr + S, c);\n')
+    return rep_once(fs, FINAL, '\tout_Color = g_fogProbe;')
+
+
+def fog_media(rig, progs, source, extinction=None, far=4000.0, grid=(16, 16, 64)):
+    """the froxel volume of the rig's camera (r_ssrReflectedFog): VolumetricFog block, u_SSRWorldToView, media
+    on the water program's units; returns the view depth of each slice center"""
+    c = rig.cam
+    view = np.eye(4)
+    view[0, :3], view[1, :3], view[2, :3] = c.right, c.up, c.forward
+    view[:3, 3] = -view[:3, :3] @ c.eye
+    for prog in progs:
+        gl('glUseProgram', None, U)(prog)
+        froxel_block(prog, {
+            'u_FroxelViewProjection': c.vp.T, 'u_FroxelViewOrigin': (*c.eye, 1), 'u_FroxelViewForward': (*c.forward, 0),
+            'u_FroxelSliceParams': (NEAR, far, math.log2(far / NEAR), 4096), 'u_FroxelGridSize': (*grid, 0)})
+        set_matrix(prog, 'u_SSRWorldToView', view)
+    nx, ny, nz = grid
+    volume(25, source)
+    volume(13, np.zeros((nz, ny, nx, 4)))
+    if extinction is not None:
+        volume(27, extinction)
+    return NEAR * (far / NEAR) ** ((np.arange(nz) + .5) / nz)
+
+
+def check_reflected_fog():
+    """r_ssrReflectedFog in the water SSR (SSR_REFLECTED_FOG): the hit radiance L becomes L * T + S of the
+    segment surface -> hit, marched through the froxel media (SSRReflectedFog of ssr_common.glsl)"""
+    ok = True
+    flags = FLAG_REJECT | FLAG_ENVBRDF | FLAG_SSR
+    rig = Rig(Camera((0.0, 0.0, 100.0), (400.0, 0.0, 0.0)))
+    zeros = np.zeros((64, 16, 16, 4), np.float32)
+
+    # off (u_SSRSettings2.w = 0): a program with the march renders what the program without it does, bit for
+    # bit; the main program of the loader (WATER_SSR_FOGGED) too, and above the water also with the flag on
+    for hiz in (False, True):
+        plain = water_program(ssr=True, froxel=1, hiz=hiz)
+        for fog, flag in (('march', 0.0), (True, 0.0), (True, 1.0)):
+            prog = water_program(ssr=True, froxel=1, hiz=hiz, fog=fog)
+            fog_media(rig, [prog], zeros + 0.01)
+            rig.ssr_fog = 0.0
+            a = rig.draw_water(plain, rig.params(flags=flags, ssr=1.0), ssr=True)
+            rig.ssr_fog = flag
+            b = rig.draw_water(prog, rig.params(flags=flags, ssr=1.0), ssr=True)
+            rig.ssr_fog = 0.0
+            water = a[..., 3] > -0.5
+            label = 'march, off' if fog == 'march' else f'main program, flag {flag:.0f}'
+            ok = check(f'reflected fog ({label}, {"Hi-Z" if hiz else "linear"}): bit identical to the program '
+                       'without it', water.any() and np.array_equal(a[water], b[water]), f'{water.sum()} px') and ok
+            gl('glDeleteProgram', None, U)(prog)
+        gl('glDeleteProgram', None, U)(plain)
+
+    probe_fog = water_program(body=fog_probe, ssr=True, froxel=1, fog='march')
+    u = rig.params(flags=flags, ssr=1.0)
+    d, s, Pw, cos_i, cos_t = above_geometry(rig.cam)
+    sigma, emission = 0.002, 0.002
+    fog_media(rig, [probe_fog], zeros + [emission, emission, emission, sigma])
+    rig.ssr_fog = 0.0
+    L = rig.draw_water(probe_fog, u, ssr=True)
+    rig.ssr_fog = 1.0
+    F = rig.draw_water(probe_fog, u, ssr=True)
+    # below a confidence of 1e-3 WaterSSRTrace's rgb / max(a, 1e-3) does not undo the premultiplication
+    hit = (L[..., 3] > 0.0) & (F[..., 3] > 0.0) & (L[..., 1] >= 1e-3) & (cos_i > 0.03)
+    T = np.exp(-sigma * L[..., 3])
+    expected = L[..., 0] * T + emission * (1 - T) / sigma
+    err = np.abs(F[..., 0] - expected)[hit]
+    ok = check('reflected fog from above, homogeneous medium: L * T + S of the segment surface -> hit',
+               hit.sum() >= 100 and err.max() < 0.01 and bool(np.isfinite(F[hit]).all()),
+               f'{hit.sum()} px, segment {L[..., 3][hit].min():.0f}..{L[..., 3][hit].max():.0f} units, '
+               f'abs error p99 {np.percentile(err, 99):.4f} max {err.max():.4f}') and ok
+
+    # a slab of medium beyond view depth D: segments in front of it stay clear, segments behind it are
+    # attenuated; tests the view -> world transform (u_SSRWorldToView) of the water receiver
+    D = 600.0
+    centers = fog_media(rig, [probe_fog], zeros)
+    volume(25, (zeros + [0, 0, 0, sigma]) * (centers > D)[:, None, None, None])
+    F = rig.draw_water(probe_fog, u, ssr=True)
+    zP, zQ = (Pw - rig.cam.eye) @ rig.cam.forward, L[..., 2]
+    ratio = F[..., 0] / np.maximum(L[..., 0], 1e-4)
+    valid = hit & (L[..., 0] > 0.05)
+    front = valid & (np.maximum(zP, zQ) < D * 0.8)
+    behind = valid & (np.minimum(zP, zQ) > D * 1.25)
+    err_front = np.abs(ratio - 1)[front]
+    err_behind = np.abs(ratio - np.exp(-sigma * L[..., 3]))[behind]
+    ok = check('reflected fog from above, slab beyond depth 600: clear in front, attenuated behind it',
+               front.sum() >= 20 and behind.sum() >= 20 and err_front.max() < 0.01 and err_behind.max() < 0.02,
+               f'in front {front.sum()} px (max |T - 1| {err_front.max() if front.any() else 0:.4f}), behind '
+               f'{behind.sum()} px (max |T - Tref| {err_behind.max() if behind.any() else 0:.4f})') and ok
+    gl('glDeleteProgram', None, U)(probe_fog)
+
+    # the program of the loader that marches: the reflection prepass (WATERDEF_REFLECTION_PASS), its three
+    # targets at half resolution; homogeneous medium without emission: radiance x exp(-sigma |hit|)
+    size = (W // 2, H // 2)
+    textures = [tex2d(*size, RGBA16F) for _ in range(3)]
+    target = fbo(textures, tex2d(*size, DEPTH24_STENCIL8, DEPTH_STENCIL, UINT_24_8))
+    history = [tex2d(*size, RGBA16F) for _ in range(3)]
+    trace = dict(fbo=target, size=size, history=history, **{'pass': [1, 0, .8, 0]})
+    plain = water_program(ssr=True, froxel=1, prepass=True)
+    prepass = water_program(ssr=True, froxel=1, prepass=True, fog=True)
+    fog_media(rig, [prepass], zeros + [0, 0, 0, sigma])
+    rig.ssr_fog = 0.0
+    a = rig.draw_water(plain, u, ssr=True, reflection=trace)
+    b0 = rig.draw_water(prepass, u, ssr=True, reflection=trace)
+    rig.ssr_fog = 1.0
+    b1 = rig.draw_water(prepass, u, ssr=True, reflection=trace)
+    hits = read_color(target, *size, attachment=2)
+    rig.ssr_fog = 0.0
+    m = (a[..., 3] > 1e-3) & (b1[..., 3] > 1e-3) & (a[..., 0] > 0.02)
+    ratio = (b1[..., 0] / np.maximum(b1[..., 3], 1e-6)) / np.maximum(a[..., 0] / np.maximum(a[..., 3], 1e-6), 1e-6)
+    expected = np.exp(-sigma * np.linalg.norm(hits[..., :3], axis=-1))
+    close = np.abs(ratio - expected)[m] < 0.01
+    ok = check('reflected fog in the reflection prepass: off bit identical, on attenuates by the hit distance',
+               np.array_equal(a, b0) and m.sum() >= 50 and close.mean() > 0.95,
+               f'{m.sum()} px, {close.mean() * 100:.1f}% within 0.01 of exp(-sigma |hit|) (the rest: ray vs scene '
+               f'hit point), transmittance {ratio[m].min():.3f}..{ratio[m].max():.3f}') and ok
+    gl('glDeleteProgram', None, U)(plain)
+    gl('glDeleteProgram', None, U)(prepass)
+
+    # from below with r_volumetricWater (u_Water extinction w = 1: the volume holds the liquid): the march
+    # crosses the liquid, the analytic liquid path only covers what the volume fades out (nothing here),
+    # so the result equals the analytic medium alone, not its square
+    rig = Rig(Camera((0.0, 0.0, -60.0), (400.0, 0.0, 120.0)), underwater=True)
+    probe_fog = water_program(body=fog_probe, ssr=True, froxel=2, snell=True, fog='march')
+    u = rig.params(flags=flags, ssr=1.0)
+    u[3][:3] = 0.0  # no in-scattering: compare the transmittance
+    u[2][3] = 1.0
+    u[7][3] = 1.0e6  # the volume does not fade out
+    sig = np.array(u[2][:3])
+    liquid, extinction = zeros.copy(), zeros.copy()
+    liquid[..., 3] = sig.mean()
+    extinction[..., :3] = sig
+    fog_media(rig, [probe_fog], liquid, extinction)
+    rig.ssr_fog = 0.0
+    A = rig.draw_water(probe_fog, u, ssr=True)
+    rig.ssr_fog = 1.0
+    B = rig.draw_water(probe_fog, u, ssr=True)
+    rig.ssr_fog = 0.0
+    hit = (A[..., 3] > 0.5) & (B[..., 3] > 0.5) & (A[..., 0] > 0.05)
+    rel = (np.abs(B[..., :3] - A[..., :3]) / np.maximum(A[..., :3], 1e-3))[hit]
+    ok = check('reflected fog from below, liquid in the volume: not attenuated twice',
+               hit.sum() >= 10 and np.percentile(rel, 99) < 0.02,
+               f'{hit.sum()} px, relative difference p99 {np.percentile(rel, 99) if hit.any() else 0:.4f} '
+               f'max {rel.max() if hit.any() else 0:.4f}') and ok
+    gl('glDeleteProgram', None, U)(probe_fog)
     return ok
 
 
@@ -1430,6 +1647,7 @@ def main():
         ok = check_above(rig) and ok
         ok = check_inside() and ok
         ok = check_snell() and ok
+        ok = check_reflected_fog() and ok
         ok = check_integration() and ok
         err = gl('glGetError', U)()
         ok = check('no GL error', err == 0, hex(err)) and ok

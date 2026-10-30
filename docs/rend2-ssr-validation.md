@@ -458,3 +458,18 @@ opaque distance 800); two interleaved rounds, no overlap (ms, off -> on):
 About 3-4 ns per ray on Intel (the full res rounds differ in clock, the ratio does not: 2.2x the composite).
 Cheap at the default half resolution: on by default, latched (program define). The screenshots are not compared
 (the camera lands a pixel apart between runs); RTX game timings were not taken.
+
+## 2026-10-30 water surface reflected fog (`r_ssrReflectedFog` in the water SSR)
+
+The water SSR (reflection prepass program only) marches the same `SSRReflectedFog`. `test_watersurface_gl.py`
+`check_reflected_fog`, Intel UHD and RTX 2060 with the same results: off bit identical (linear / Hi-Z, march and main
+program); homogeneous medium sigma 0.002, emission 0.002: max error 1e-4 against `L T + S` of the segment (3178 px,
+3-1752 units); slab beyond view depth 600: in front error 0, behind 2e-4; the prepass program: 100% of 754 px within
+0.01 of `exp(-sigma |hit|)`; under water with the liquid in the volume: p99 0.6% from the analytic medium alone (0.86
+without the correction of the liquid path).
+
+In game, t3_hevil lake, 640x360, `r_picmip 2`, water SSR only, froxel height fog quality 0, 3 interleaved rounds,
+no overlap: reflection prepass +0.04-0.13 ms on the RTX 2060 (~1-2 ns per ray at half resolution), within the
+run-to-run spread on Intel UHD (-0.3 .. +0.5 ms); the main water draw unchanged. A first build with the march also in
+the main water program (where the trace never runs) cost Intel 1.0-2.6 ms in "Water shading" in both rounds
+(registers), hence the prepass-only define. Table: `docs/rend2-water-surface.md`, "Reflected fog".

@@ -11,7 +11,7 @@ import subprocess
 
 import numpy as np
 
-from test_watersurface_gl import (context, compile_program, tex2d, fbo,
+from test_watersurface_gl import (context, compile_program, tex2d, fbo, froxel_block, volume,
     read_color, bind, mipmaps, gl, uloc, SDL, U, I, F, P, GL_VERTEX, GL_FRAGMENT,
     RGBA16F, R32F, RED, RGBA, FLOAT, TEX2D)
 
@@ -884,44 +884,6 @@ def stochastic_checks():
 
 FROXEL_DEFINES = ('#define USE_FROXEL_FOG\n#define MAX_GPU_FOGS 24\n#define MAX_GPU_FOG_VOLUMES 64\n'
                   '#define FROXEL_MAX_SLICES 128\n#define FROXEL_LOCAL_POOL 8192\n#define FROXEL_EXTINCTION_PALETTE 16\n')
-
-
-def froxel_block(prog, values):
-    """Fill the VolumetricFog block of prog (binding 11) with values {member: floats}, the rest 0."""
-    index = gl('glGetUniformBlockIndex', U, U, C.c_char_p)(prog, b'VolumetricFog')
-    assert index != 0xFFFFFFFF
-    size = C.c_int()
-    gl('glGetActiveUniformBlockiv', None, U, U, U, C.POINTER(C.c_int))(prog, index, 0x8A40, C.byref(size))
-    data = np.zeros(size.value // 4, dtype=np.float32)
-    names = list(values)
-    raw = (C.c_char_p * len(names))(*[n.encode() for n in names])
-    indices = (U * len(names))()
-    gl('glGetUniformIndices', None, U, I, P, P)(prog, len(names), C.cast(raw, P), C.cast(indices, P))
-    offsets = (C.c_int * len(names))()
-    gl('glGetActiveUniformsiv', None, U, I, P, U, P)(prog, len(names), C.cast(indices, P), 0x8A3B, C.cast(offsets, P))
-    for name, offset in zip(names, offsets):
-        v = np.asarray(values[name], dtype=np.float32).ravel()
-        data[offset // 4: offset // 4 + len(v)] = v
-    ubo = U()
-    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(ubo))
-    gl('glBindBuffer', None, U, U)(0x8A11, ubo)
-    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x8A11, data.nbytes, data.ctypes.data_as(P), 0x88E4)
-    gl('glBindBufferBase', None, U, U, U)(0x8A11, 11, ubo)
-    gl('glUniformBlockBinding', None, U, U, U)(prog, index, 11)
-
-
-def volume(unit, data):
-    """RGBA16F 3D texture (data: z, y, x, 4) on unit, linear, clamped"""
-    gl('glActiveTexture', None, U)(0x84C0 + unit)
-    tex = U()
-    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(tex))
-    gl('glBindTexture', None, U, U)(0x806F, tex)
-    d = np.ascontiguousarray(data, dtype=np.float32)
-    gl('glTexImage3D', None, U, I, I, I, I, I, I, U, U, P)(0x806F, 0, RGBA16F, d.shape[2], d.shape[1], d.shape[0], 0,
-                                                          RGBA, FLOAT, d.ctypes.data_as(P))
-    for parameter, value in ((0x2800, 0x2601), (0x2801, 0x2601), (0x2802, 0x812F), (0x2803, 0x812F), (0x8072, 0x812F)):
-        gl('glTexParameteri', None, U, U, I)(0x806F, parameter, value)
-    gl('glActiveTexture', None, U)(0x84C0)
 
 
 def reflected_fog_checks():

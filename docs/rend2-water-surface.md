@@ -215,7 +215,7 @@ the centre normal - 4 refracted direction (world `* 0.5 + 0.5`, black in TIR) - 
 | `r_waterSurfaceReflection` | 1.0 | reflection scale |
 | `r_waterSurfaceSSR` | 1.0 | Water SSR weight over the cubemap; independent of opaque `r_ssr` |
 | `r_waterSSRWaveReprojection` | 0 | latched exact previous-rendered receiver geometry for temporal water SSR |
-| `r_waterSSROptimize` | 7 | reflection prepass savings, bits (see "Water SSR cost in game"); 0 = the 10-19 prepass for A/B |
+| `r_waterSSROptimize` | 7 | reflection prepass savings, bits (see "Water SSR cost in game"); 0 = the 10-19 prepass for A/B; without bit 4 the reflected fog is off |
 | `r_waterMotionDebug` | 0 | receiver-motion/history diagnostics, modes 1-10 |
 | `r_waterSurfaceAbsorption` | 1.0 | shared extinction scale of the surface and volume |
 | `r_waterSurfaceDepthScale` | 1.0 | path length scale |
@@ -411,6 +411,59 @@ Remaining water SSR cost on Intel: ~10 ms prepass + 0-4 ms resolve in the main d
 a quarter resolution prepass (visible quality loss), dropping the dead trace from the main program (measured
 < 1 ms on the main draw), stripping the ungated debug views from the prepass program.
 
+## Reflected fog (`r_ssrReflectedFog`, 2026-10-30)
+
+The color pyramid the water SSR reads is the scene before any fog, and the froxel composite only fogs the camera ->
+water segment: a reflected object behind froxel fog looked clear. The water SSR now marches the segment
+surface P -> hit Q through this frame's froxel media exactly as the opaque SSR (`SSRHitRadiance` ->
+`SSRReflectedFog` of `ssr_common.glsl`, `docs/rend2-ssr.md` "Reflected fog"): `L * T + S`, one Beer-Lambert step
+per froxel crossed, at most 16.
+
+- Same cvar: `r_ssrReflectedFog` (latched, default 1), but gated by the water SSR resources and the froxel fog
+  only, not by `r_ssr` (`R_WaterSSRReflectedFog`). Off, or without `r_volumetricFog 2`, the programs are the old ones.
+- Only the **reflection prepass program** (`WATERDEF_REFLECTION_PASS`) gets `SSR_REFLECTED_FOG`: the prepass always
+  runs when the water SSR is on, so the trace compiled into the main program is dead code at run time. With the
+  march in the main program as well, Intel's "Water shading" rose 1.0-2.6 ms in both measured rounds (register
+  pressure of a branch that never runs) while the prepass, where the march runs, did not move. The main program only
+  gets `WATER_SSR_FOGGED` for the correction below. `r_waterSSROptimize` without bit 4 (the prepass runs the main
+  program) leaves the reflection unfogged (`u_SSRSettings2.w = 0`).
+- Bindings in the draw item (`RB_WaterSurfaceSetupDraw`): inject / dynamic / RGB extinction volumes on units
+  **25 / 13 / 27** (`TB_WATER_FROXEL*`: the water program's unit 12 is its reflection history; 13, 25 and 27 are
+  unused by it), `u_SSRWorldToView` of the view, `u_SSRSettings2.w` = the volume of this view is built and bound.
+- Under the surface with `r_volumetricWater` (`u_Water[EXTINCTION].w = 1`) the volume already holds the liquid,
+  which the march crosses: the analytic `WaterLiquidPath` of the TIR / SSR reflection then only covers the part the
+  volume fades out (`WaterMissingMedium(z_P, z_hit)`), as the refraction does. Without this the liquid attenuated the
+  reflection twice (the GL check below fails at p99 0.86 without it).
+- The approximations of the opaque march apply: in-scattering with the camera's phase angle, last slice past the
+  volume. The cubemap fallback is not fogged along the ray.
+
+GL checks (`test_watersurface_gl.py` `check_reflected_fog`, Intel UHD and RTX 2060, identical results): off and the
+main program with the flag on above the water are bit identical to the program without the feature (linear and
+Hi-Z); homogeneous medium (sigma 0.002, emission 0.002): `L T + S` of the actual segment, max error 1e-4 over
+3178 pixels; a slab of medium beyond view depth 600: segments in front of it unchanged (error 0), segments behind
+it within 2e-4 of `exp(-sigma d)` (checks `u_SSRWorldToView` of the water receiver); the reflection prepass program
+itself: off bit identical, on 100% of 754 pixels within 0.01 of `exp(-sigma |hit|)`; from below with the liquid in
+the volume: within 0.6% (p99) of the analytic medium alone. 16 more permutations compile (scalar / RGB froxels,
+linear / Hi-Z, Snell, main / prepass).
+
+Cost in game: `tools/rend2/test_water_ssr_fog_runtime.py`, t3_hevil lake, 640x360, `r_picmip 2`, water surface SSR
+only (`r_ssr 0`, temporal off, half resolution trace), `r_volumetricFog 2` quality 0 (40 x 23 x 32) with height fog
+(opaque distance 800), hidden runs, latched cvar so one launch per setting, off / on interleaved, 3 rounds, medians
+of ~80 frames, no other game running (ms, off -> on per round):
+
+| view | pass | Intel UHD | RTX 2060 |
+|---|---|---|---|
+| above the lake | Water SSR prepass | 1.70 -> 1.41, 2.12 -> 2.66, 2.00 -> 2.11 | 2.17 -> 2.21, 2.27 -> 2.37, 2.27 -> 2.30 |
+| | Water shading | 10.15 -> 10.11, 13.02 -> 17.99 *, 12.23 -> 11.69 | 9.97 -> 10.01, 10.07 -> 9.98, 10.01 -> 9.58 |
+| waterline | Water SSR prepass | 1.34 -> 1.55, 1.72 -> 1.66, 1.64 -> 1.86 | 1.71 -> 1.83, 1.72 -> 1.79, 1.70 -> 1.78 |
+| | Water shading | 9.89 -> 10.18, 11.62 -> 11.16, 9.94 -> 10.52 | 7.06 -> 7.06, 7.12 -> 7.28, 7.29 -> 7.21 |
+
+\* one slow run (the frame as a whole); the main program is unchanged apart from the liquid correction.
+NVIDIA: +0.04-0.13 ms in the prepass (half resolution, 320 x 180 trace texels: ~1-2 ns per ray), consistent in every
+round; Intel: inside its run-to-run spread (-0.3 .. +0.5 ms, median about +0.1-0.2). Cheap, so it follows
+`r_ssrReflectedFog` instead of a cvar of its own. The screenshots of this spot (a pillar in the lake, dark
+surroundings) show no visible difference: the height fog is thin there; the visual result was not judged in game.
+
 ## Known screen-space limitations
 
 - Single layer: one water surface per pixel (the nearest), blended effects behind the water (underwater particles,
@@ -439,7 +492,7 @@ retained on the CPU across map loads and vid_restart. View constants, medium opt
 probe selection are computed once per view. Reflection history and copied scene textures remain view-dependent;
 they cannot be cached across arbitrary camera changes. `r_waterInfo surfaces` reports actual interface decisions.
 
-`test_watersurface_gl.py` checks all 144 shader permutations, exact depth sampling even with a changed filter,
+`test_watersurface_gl.py` checks all 321 shader permutations (reflected fog included), exact depth sampling even with a changed filter,
 reflection prepass/resolve, history acceptance/rejection, whole-segment fade and transmitted glow, in addition to
 refraction, Fresnel and Snell tests. The color-pyramid coverage weighting is shared with opaque SSR.
 

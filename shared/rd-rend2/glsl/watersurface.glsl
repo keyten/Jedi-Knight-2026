@@ -1321,7 +1321,8 @@ vec3 WaterEnvironment(vec3 P, vec3 R, float lod)
 // Screen-space reflection of the opaque scene along R (view space ray march of ssr_common.glsl,
 // linear steps). rgb = radiance (linear), a = confidence.
 //   u_SSRSettings  steps, refine steps, max distance, thickness
-//   u_SSRSettings2 max roughness, edge fade, coarsest color mip
+//   u_SSRSettings2 max roughness, edge fade, coarsest color mip, froxel media bound (SSR_REFLECTED_FOG:
+//                  SSRHitRadiance fogs the segment surface -> hit, r_ssrReflectedFog)
 //   u_SSRSettings3 coarsest Hi-Z level, unused, near plane, Hi-Z iterations (USE_HIZ)
 // Ngeo: the geometric normal on the side the ray leaves from; hitDistance: world units to the hit
 vec4 WaterSSRTrace(vec3 Pw, vec3 Rw, vec3 Ngeo, float roughness, out float hitDistance)
@@ -2495,7 +2496,19 @@ void main()
 			float c = ssr.a * u_Water[WATER_U_OPTICS].y;
 			if (c > 0.0)
 			{
-				vec3 S = WaterLiquidPath(R, hitDistance * pathScale, Ng, sigma, albedo, g, ambientUp, sunLight,
+				float liquidPath = hitDistance * pathScale;
+#if defined(SSR_REFLECTED_FOG) || defined(WATER_SSR_FOGGED)
+				// the froxel volume holds the liquid (r_volumetricWater): the march of the hit radiance
+				// (SSRReflectedFog, in the prepass) crossed it, the analytic medium covers what the volume
+				// fades out
+				if (!waterfall && u_SSRSettings2.w > 0.5 && u_Water[WATER_U_EXTINCTION].w > 0.5)
+				{
+					vec3 forward = normalize(u_ViewForward);
+					float z0 = dot(P - u_ViewOrigin, forward);
+					liquidPath *= WaterMissingMedium(z0, z0 + dot(R, forward) * hitDistance);
+				}
+#endif
+				vec3 S = WaterLiquidPath(R, liquidPath, Ng, sigma, albedo, g, ambientUp, sunLight,
 					sunInLiquid, sunCos, Tr);
 				reflection = mix(reflection, ssr.rgb * Tr + S, c);
 				debugSource = mix(debugSource, vec3(1.0, 0.0, 0.0), c);

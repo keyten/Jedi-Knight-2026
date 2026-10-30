@@ -555,7 +555,8 @@ froxel crossed (at most SSR_FOG_MAX_STEPS).
 
 The injected light is what the media scatter towards the camera (its phase lobe), not towards P: anisotropic
 media (forward scattering sun beams) scatter a different amount into the reflection. Sabers and effects
-(EmitterReflection) and the cubemap reflection are not fogged along the ray.
+(EmitterReflection) and the cubemap reflection are not fogged along the ray. The water surface SSR
+(watersurface.glsl WaterSSRTrace) uses the same march, with u_SSRWorldToView and the media on units of its own.
 */
 #define SSR_FOG_MAX_STEPS 16
 

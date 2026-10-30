@@ -191,6 +191,13 @@ qboolean R_SSRReflectedFog( void )
 	return (qboolean)(s_ssrResources && r_ssr->integer && r_ssrReflectedFog->integer && R_VolumetricFroxelEnabled());
 }
 
+// The water SSR (r_waterSurface) follows r_ssrReflectedFog; it exists without
+// r_ssr (R_SSRSelectResources)
+qboolean R_WaterSSRReflectedFog( void )
+{
+	return (qboolean)(s_ssrResources && r_ssrReflectedFog->integer && R_VolumetricFroxelEnabled());
+}
+
 // Binds the froxel media and fog block for the programs that fog the reflected
 // ray (SSR_REFLECTED_FOG). Returns the value of their "volume available" flag.
 static float RB_SSRBindReflectedFog( void )

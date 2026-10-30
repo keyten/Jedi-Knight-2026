@@ -234,7 +234,13 @@ lies in the froxel frustum; past the last slice the last one is used.
 - The injected light is what the media scatter towards the camera (the phase lobe of each medium); the light
   scattered into the reflection has another phase angle. Isotropic media are exact, forward scattering sun
   beams scatter a different amount into the reflection.
-- Not fogged along the ray: the cubemap reflection, saber / effect reflections, the water surface's own SSR.
+- Not fogged along the ray: the cubemap reflection, saber / effect reflections.
+- The water surface's SSR (`r_waterSurface`, `WaterSSRTrace`) calls the same `SSRHitRadiance` and is fogged by
+  the same cvar (it exists without `r_ssr`, so only `r_ssrReflectedFog` and the froxel fog gate it): its
+  reflection prepass program gets `SSR_REFLECTED_FOG` (+0.04-0.13 ms on an RTX 2060 at 640x360), `u_SSRWorldToView` and the media on units of its own (25 / 13 / 27, its unit
+  12 is the reflection history). Under the surface with `r_volumetricWater` the volume already holds the liquid:
+  the analytic liquid path of the reflection then only covers what the volume fades out (no double extinction).
+  Details and cost: `docs/rend2-water-surface.md`, "Reflected fog".
 - `r_volumetricFog` other than 2 (legacy fog passes, the grid ray march): no media to march, no effect.
 
 ### Hit cache (`r_ssrHitCache 1`, off by default)
@@ -488,7 +494,7 @@ passes the focused RTX motion/SSR compilation checks. See the validation report 
 - Stochastic GGX (`r_ssrStochastic`): a history of luminance moments (variance guided clamping, SVGF) instead of
   the half clamp, and reprojection by the hit point for rough reflections of moving objects.
 - Reflected fog: the in-scattering with the phase angle of the reflected ray (a per-medium phase lookup during
-  the march), the water surface's SSR, the cubemap reflection. SSR for remaining transparent surfaces such as
+  the march), the cubemap reflection. SSR for remaining transparent surfaces such as
   glass (water already has its own pass).
 - A screen-space emissive layer for the remaining additive effects (exact look, on screen only), next to the
   analytic emitters.

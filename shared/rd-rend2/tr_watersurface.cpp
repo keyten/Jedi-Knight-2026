@@ -6866,7 +6866,24 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		RB_ScreenTexelSize(texelSize, tr.renderFbo->width, tr.renderFbo->height, tr.renderFbo->width, tr.renderFbo->height);
 		uniforms.SetUniformVec4(UNIFORM_SSRTEXELSIZE, texelSize);
 		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS, s_water.ssrSettings[0]);
-		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS2, s_water.ssrSettings[1]);
+		// r_ssrReflectedFog: the froxel media of this view for the march of the
+		// reflected ray in the prepass program (SSR_REFLECTED_FOG, r_waterSSROptimize
+		// bit 4: without it the prepass runs the main program, which has no march),
+		// w = the volume is bound and the resolved reflection is fogged
+		vec4_t settings2;
+		VectorCopy4(s_water.ssrSettings[1], settings2);
+		image_t *source, *dynamic, *extinction;
+		if (R_WaterSSRReflectedFog() && (r_waterSSROptimize->integer & 4) &&
+			RB_VolumetricMediaImages(&source, &dynamic, &extinction))
+		{
+			samplers.AddStaticImage(source, TB_WATER_FROXELSOURCE);
+			samplers.AddStaticImage(dynamic, TB_WATER_FROXELDYNAMIC);
+			if (extinction)
+				samplers.AddStaticImage(extinction, TB_WATER_FROXELEXTINCTION);
+			uniforms.SetUniformMatrix4x4(UNIFORM_SSRWORLDTOVIEW, s_water.viewInfo.worldToView);
+			settings2[3] = 1.0f;
+		}
+		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS2, settings2);
 		uniforms.SetUniformVec4(UNIFORM_SSRSETTINGS3, s_water.ssrSettings[2]);
 		samplers.AddStaticImage(tr.screenHiZImage, 10);
 		samplers.AddStaticImage(tr.ssrColorImage, 11);

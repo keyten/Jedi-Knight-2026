@@ -3755,6 +3755,10 @@ static int GLSL_LoadGPUProgramWaterSurface(
 				WATER_MOTION_OLD_OMEGA, WATER_MOTION_FLOW_IMPACT));
 		if (R_SSRResourcesEnabled() && !R_SSROpaqueResourcesEnabled())
             Q_strcat(extradefines, sizeof(extradefines), "#define USE_SSR\n");
+		// r_ssrReflectedFog: the main program resolves the fogged reflection of
+		// the prepass (it only corrects the liquid path under the surface)
+		if (R_WaterSSRReflectedFog())
+			Q_strcat(extradefines, sizeof(extradefines), "#define WATER_SSR_FOGGED\n");
 		if (i & WATERDEF_USE_HIZ)
 		{
 			// the Hi-Z walk only exists with the SSR inputs
@@ -3771,6 +3775,12 @@ static int GLSL_LoadGPUProgramWaterSurface(
 				continue;
 			Q_strcat(name, sizeof(name), "_REFL");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_REFLECTION_PASS\n");
+			// r_ssrReflectedFog: the hit radiance of the trace (SSRHitRadiance)
+			// marches the froxel fog of the reflected ray, as the opaque SSR.
+			// Only here: the main program's trace is dead code at run time (the
+			// prepass always runs), its registers cost Intel 1-2.5 ms.
+			if (R_WaterSSRReflectedFog())
+				Q_strcat(extradefines, sizeof(extradefines), "#define SSR_REFLECTED_FOG\n");
 		}
 		if (i & WATERDEF_USE_DEFORM_VERTEXES)
 		{
@@ -3846,6 +3856,9 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_SHADOWMAP, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHIZMAP, 10);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRSCENEMAP, 11);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELSOURCE, TB_WATER_FROXELSOURCE);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELDYNAMIC, TB_WATER_FROXELDYNAMIC);
+		GLSL_SetUniformInt(sp, UNIFORM_FROXELEXTINCTION, TB_WATER_FROXELEXTINCTION);
 		GLSL_SetFroxelLookupUnits(sp);
 		qglUseProgram(0);
 

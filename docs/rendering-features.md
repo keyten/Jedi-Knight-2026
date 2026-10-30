@@ -779,7 +779,7 @@ Adds real scene reflections to glossy PBR surfaces while retaining cubemaps as t
 - `r_ssrReceiverCull -1 | 0 | 1` — classify the pixels that need a ray in an early depth pass (1) or discard the rest inside the trace (0); -1 (default) classifies only while few trace texels need a ray.
 - `r_ssrFusedResolve 0 | 1` — without temporal accumulation, resolve the rays inside the composite (no full-resolution resolve image).
 - `r_ssrFootprintDepth 0 | 1` — keep the rough-reflection blur off surfaces in front of the hit (needs Hi-Z tracing).
-- `r_ssrReflectedFog 0 | 1` — fog the SSR along the reflected ray with the froxel fog (`r_volumetricFog 2`) between the reflecting surface and what it reflects. Requires `vid_restart`.
+- `r_ssrReflectedFog 0 | 1` — fog the SSR along the reflected ray with the froxel fog (`r_volumetricFog 2`) between the reflecting surface and what it reflects; also the water surface's SSR (`r_waterSurface`, without `r_ssr`). Requires `vid_restart`.
 - `r_ssrStochastic 0 | 1` — stochastic GGX reflections: one lobe sample per ray and frame, reused by the neighbouring pixels, instead of the mirror ray with a cone blur. Needs `r_ssrTemporal 1` and `vid_restart`; best with full resolution rays (`r_ssrQuality` 2/3).
 - `r_ssrEmitters 0 | 1` — analytic saber/blaster/effect reflections.
 - `r_ssrEmitterIntensity <value>` — analytic emitter brightness.
