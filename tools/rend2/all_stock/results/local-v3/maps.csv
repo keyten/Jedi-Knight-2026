@@ -1,0 +1,7 @@
+map,pages,texels,mapped,eligible,mapped_area,candidate_evidence,train,validation,heldout,grid_indices,region_assigned,rays_visible,rays_blocked,rays_unknown,result,profile_states,reasons,wall_seconds,peak_rss_bytes
+academy1,24,393216,235581,224303,24697688.8756,71,86,46,2,29952,674,,,,NotEvaluated,,,8.140999999945052,13856768
+hoth2,12,196608,79565,41347,37082664.8903,553,43,0,6,1044126,0,,,,NotEvaluated,,,4.530999999959022,30232576
+hoth3,38,622592,403084,202558,95083546.054,612,85,5,44,229068,1927,,,,NotEvaluated,,,13.187000000034459,45158400
+mp/duel4,2,32768,19842,10962,11146704.8939,1913,13,17,11,11988,139,6,34,64,NoAcceptedFit,Failed; Failed,Unavailable: no positive supported training data/profile; no sun inferred,2.827999999979511,23642112
+mp/ffa3,26,425984,301473,177997,67181051.1668,1660,188,49,11,94350,690,4,116,392,NoAcceptedFit,Failed; Failed,Visibility ray work limit,20.609000000054948,52510720
+vjun2,42,688128,448811,409070,108822820.582,10911,115,0,76,152500,39,,,,NotEvaluated,,,18.54700000002049,46981120

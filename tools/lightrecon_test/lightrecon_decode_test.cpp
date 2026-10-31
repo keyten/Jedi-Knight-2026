@@ -523,6 +523,31 @@ void CalibrationAndFailures()
 		CHECK(a.flags == b.flags && a.channels[0] == b.channels[0] && a.metadata == b.metadata);
 	}
 }
+void SourceIndependentOfRuntime()
+{
+	auto p = Assumed();
+	D::Observation reference;
+	CHECK(D::Decoder(p).Run(Ldr(128, 64, 255), reference));
+	for (unsigned mask = 0; mask < 16; ++mask)
+	{
+		p.renderer.known = true;
+		p.renderer.physicalPbr = (mask & 1) != 0;
+		p.renderer.linearLighting = (mask & 2) != 0;
+		p.renderer.hdr = (mask & 4) != 0;
+		p.renderer.toneMap = (mask & 8) != 0;
+		D::Observation actual;
+		CHECK(D::Decoder(p).Run(Ldr(128, 64, 255), actual));
+		CHECK(actual.source.rgb.x == reference.source.rgb.x &&
+			  actual.source.rgb.y == reference.source.rgb.y &&
+			  actual.source.rgb.z == reference.source.rgb.z);
+		CHECK(actual.source.state == reference.source.state &&
+			  actual.source.censoredChannels == reference.source.censoredChannels);
+		for (unsigned c = 0; c < 3; ++c)
+			CHECK(actual.source.bounds[c].lower == reference.source.bounds[c].lower &&
+				  actual.source.bounds[c].upperKnown == reference.source.bounds[c].upperKnown &&
+				  actual.source.bounds[c].upper == reference.source.bounds[c].upper);
+	}
+}
 void ImageBoundary()
 {
 	LightmapCapture capture;
@@ -569,6 +594,7 @@ int main()
 	RawAndTransfer();
 	RendererParity();
 	CalibrationAndFailures();
+	SourceIndependentOfRuntime();
 	ImageBoundary();
 	std::printf("lightrecon decode: %d checks, %d failures\n", checks, failures);
 	return failures ? 1 : 0;

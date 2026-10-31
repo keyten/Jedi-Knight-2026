@@ -1,8 +1,9 @@
 // Original BSP collision metadata capture only; no engine/collision trace dependency.
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "offline.h"
-#include <cstring>
 #include <cmath>
+#include <cstring>
+#include <limits>
 #include <stdexcept>
 namespace Rend2LightRecon
 {
@@ -128,6 +129,25 @@ Error CaptureBspSpace(const void *original, size_t bytes, const LightmapMapIdent
 			q.bounds.known = true;
 			q.bounds.minWorld = v(models.offset + n * 40);
 			q.bounds.maxWorld = v(models.offset + n * 40 + 12);
+			// RBSP models can be planar (stock t2_dpred model 229). Keep
+			// their moving-geometry uncertainty instead of rejecting the whole
+			// snapshot or discarding a potentially occluding sheet. This is a
+			// conservative bound guard, never invented solid/free volume.
+			float *lo[] = {&q.bounds.minWorld.x, &q.bounds.minWorld.y, &q.bounds.minWorld.z};
+			float *hi[] = {&q.bounds.maxWorld.x, &q.bounds.maxWorld.y, &q.bounds.maxWorld.z};
+			for (unsigned axis = 0; axis < 3; ++axis)
+			{
+				need(*lo[axis] <= *hi[axis], "Inverted BSP model bounds");
+				if (*lo[axis] == *hi[axis])
+				{
+					*lo[axis] = std::nextafter(*lo[axis] - 1.f / 1024,
+											   -std::numeric_limits<float>::infinity());
+					*hi[axis] = std::nextafter(*hi[axis] + 1.f / 1024,
+											   std::numeric_limits<float>::infinity());
+					need(std::isfinite(*lo[axis]) && std::isfinite(*hi[axis]),
+						 "Unrepresentable planar BSP model bounds");
+				}
+			}
 			staged.push_back(q);
 		}
 		auto error = BspRegionDomain::Create(std::move(space), ctx, out);

@@ -1,0 +1,2245 @@
+{
+  "schema": "org.openjk.all-stock-maps.v2",
+  "maps": [
+    {
+      "map": "academy1",
+      "mode": "sp",
+      "bsp_sha256": "d50ad832c18a08c5f57c9cc1e1e6048d9a7cd50b33b6d70c3897ff9fffbc3ad3",
+      "bsp_bytes": 1770292,
+      "archive": "assets0.pk3",
+      "member": "maps/academy1.bsp",
+      "capture": {
+        "state": "Captured",
+        "seconds": 17.89000000001397,
+        "peak_process_rss_bytes": 468983808,
+        "material_context": "SP renderer; MP BSP semantics must remain qualified"
+      },
+      "run_state": "NativeRejected",
+      "reconstruction_verdict": "NotEvaluated",
+      "dataset_bytes": 230092312,
+      "wall_seconds": 8.140999999945052,
+      "peak_process_rss_bytes": 13856768,
+      "native_exit_code": 1,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/academy1.bsp",
+        "bsp_sha256": "d50ad832c18a08c5f57c9cc1e1e6048d9a7cd50b33b6d70c3897ff9fffbc3ad3",
+        "archive_sha256": "ed7de3960ee59c0daaf111625abed4ee3ae47436a4372322ec046de95ba0b9b6",
+        "source_surfaces": 451,
+        "source_candidates": 71,
+        "raw_colour_pages": 24,
+        "derived_texels": 393216,
+        "coverage": [
+          117518,
+          5194,
+          235581,
+          34923,
+          0
+        ],
+        "eligible_planar": 224303,
+        "unsupported_receiver": 0,
+        "transport_normal_unsupported": 4140,
+        "partition_gap_rejections": 22676,
+        "invalid_footprints": 0,
+        "mapped_area_world_squared": 24697688.8756,
+        "eligible_area_world_squared": 23554682.828,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 239,
+        "selected": [
+          86,
+          46,
+          2
+        ],
+        "censored_channels": 22008,
+        "channel_denominator": 1179648,
+        "unknown_transfer": 393216,
+        "unknown_primaries": 393216,
+        "deluxe_records": 0,
+        "region_assigned": 674,
+        "moving_receivers": 0,
+        "grid_indices": 29952,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              5483,
+              220,
+              9012,
+              1669,
+              0
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              3567,
+              186,
+              11189,
+              1442,
+              0
+            ]
+          },
+          {
+            "page": 2,
+            "counts": [
+              6547,
+              226,
+              7688,
+              1923,
+              0
+            ]
+          },
+          {
+            "page": 3,
+            "counts": [
+              2861,
+              174,
+              9323,
+              4026,
+              0
+            ]
+          },
+          {
+            "page": 4,
+            "counts": [
+              4046,
+              281,
+              11685,
+              372,
+              0
+            ]
+          },
+          {
+            "page": 5,
+            "counts": [
+              3514,
+              244,
+              12245,
+              381,
+              0
+            ]
+          },
+          {
+            "page": 6,
+            "counts": [
+              4063,
+              392,
+              10983,
+              946,
+              0
+            ]
+          },
+          {
+            "page": 7,
+            "counts": [
+              6857,
+              268,
+              9259,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 8,
+            "counts": [
+              3421,
+              78,
+              12885,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 9,
+            "counts": [
+              3251,
+              0,
+              6195,
+              6938,
+              0
+            ]
+          },
+          {
+            "page": 10,
+            "counts": [
+              1705,
+              278,
+              14401,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 11,
+            "counts": [
+              1884,
+              345,
+              12739,
+              1416,
+              0
+            ]
+          },
+          {
+            "page": 12,
+            "counts": [
+              7333,
+              570,
+              8442,
+              39,
+              0
+            ]
+          },
+          {
+            "page": 13,
+            "counts": [
+              2098,
+              135,
+              12357,
+              1794,
+              0
+            ]
+          },
+          {
+            "page": 14,
+            "counts": [
+              3947,
+              222,
+              11621,
+              594,
+              0
+            ]
+          },
+          {
+            "page": 15,
+            "counts": [
+              5153,
+              515,
+              9715,
+              1001,
+              0
+            ]
+          },
+          {
+            "page": 16,
+            "counts": [
+              4733,
+              0,
+              11370,
+              281,
+              0
+            ]
+          },
+          {
+            "page": 17,
+            "counts": [
+              6076,
+              509,
+              9574,
+              225,
+              0
+            ]
+          },
+          {
+            "page": 18,
+            "counts": [
+              3982,
+              16,
+              8995,
+              3391,
+              0
+            ]
+          },
+          {
+            "page": 19,
+            "counts": [
+              1595,
+              45,
+              10778,
+              3966,
+              0
+            ]
+          },
+          {
+            "page": 20,
+            "counts": [
+              3080,
+              375,
+              10942,
+              1987,
+              0
+            ]
+          },
+          {
+            "page": 21,
+            "counts": [
+              2784,
+              4,
+              12517,
+              1079,
+              0
+            ]
+          },
+          {
+            "page": 22,
+            "counts": [
+              13154,
+              111,
+              1666,
+              1453,
+              0
+            ]
+          },
+          {
+            "page": 23,
+            "counts": [
+              16384,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": null,
+      "folds": null,
+      "geometry_rays": null,
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          -2048,
+          0,
+          1024
+        ],
+        "local_max": [
+          -1536,
+          512,
+          1536
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {},
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile",
+      "failure": "scan all original pages\nInsufficient independent training/validation/held-out geometry after footprint gaps\n"
+    },
+    {
+      "map": "hoth2",
+      "mode": "sp",
+      "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "bsp_bytes": 13970616,
+      "archive": "assets0.pk3",
+      "member": "maps/hoth2.bsp",
+      "capture": {
+        "state": "ReusedNeedsIdentityCheck",
+        "seconds": null,
+        "peak_process_rss_bytes": null,
+        "material_context": "reused original capture; see X02/X06"
+      },
+      "run_state": "NativeRejected",
+      "reconstruction_verdict": "NotEvaluated",
+      "dataset_bytes": 131790672,
+      "wall_seconds": 4.530999999959022,
+      "peak_process_rss_bytes": 30232576,
+      "native_exit_code": 1,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/hoth2.bsp",
+        "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "archive_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+        "source_surfaces": 7421,
+        "source_candidates": 553,
+        "raw_colour_pages": 12,
+        "derived_texels": 196608,
+        "coverage": [
+          72535,
+          9342,
+          79565,
+          2815,
+          32351
+        ],
+        "eligible_planar": 41347,
+        "unsupported_receiver": 3045,
+        "transport_normal_unsupported": 2234,
+        "partition_gap_rejections": 15134,
+        "invalid_footprints": 2,
+        "mapped_area_world_squared": 37082664.8903,
+        "eligible_area_world_squared": 21157602.9581,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 572,
+        "selected": [
+          43,
+          0,
+          6
+        ],
+        "censored_channels": 13345,
+        "channel_denominator": 589824,
+        "unknown_transfer": 196608,
+        "unknown_primaries": 196608,
+        "deluxe_records": 0,
+        "region_assigned": 0,
+        "moving_receivers": 0,
+        "grid_indices": 1044126,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              5827,
+              1663,
+              7261,
+              1264,
+              369
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              2349,
+              564,
+              3489,
+              116,
+              9866
+            ]
+          },
+          {
+            "page": 2,
+            "counts": [
+              3911,
+              851,
+              11487,
+              124,
+              11
+            ]
+          },
+          {
+            "page": 3,
+            "counts": [
+              5698,
+              1126,
+              9219,
+              341,
+              0
+            ]
+          },
+          {
+            "page": 4,
+            "counts": [
+              7584,
+              1432,
+              7108,
+              260,
+              0
+            ]
+          },
+          {
+            "page": 5,
+            "counts": [
+              2238,
+              591,
+              2204,
+              7,
+              11344
+            ]
+          },
+          {
+            "page": 6,
+            "counts": [
+              4964,
+              996,
+              3688,
+              99,
+              6637
+            ]
+          },
+          {
+            "page": 7,
+            "counts": [
+              5359,
+              1015,
+              9659,
+              351,
+              0
+            ]
+          },
+          {
+            "page": 8,
+            "counts": [
+              5924,
+              995,
+              7726,
+              253,
+              1486
+            ]
+          },
+          {
+            "page": 9,
+            "counts": [
+              0,
+              0,
+              16384,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 10,
+            "counts": [
+              12297,
+              109,
+              1340,
+              0,
+              2638
+            ]
+          },
+          {
+            "page": 11,
+            "counts": [
+              16384,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": null,
+      "folds": null,
+      "geometry_rays": null,
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          6144,
+          -5632,
+          512
+        ],
+        "local_max": [
+          6656,
+          -5120,
+          1024
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {},
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile",
+      "failure": "scan all original pages\nInsufficient independent training/validation/held-out geometry after footprint gaps\n"
+    },
+    {
+      "map": "hoth3",
+      "mode": "sp",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "bsp_bytes": 13920700,
+      "archive": "assets0.pk3",
+      "member": "maps/hoth3.bsp",
+      "capture": {
+        "state": "ReusedNeedsIdentityCheck",
+        "seconds": null,
+        "peak_process_rss_bytes": null,
+        "material_context": "reused original capture; see X02/X06"
+      },
+      "run_state": "NativeRejected",
+      "reconstruction_verdict": "NotEvaluated",
+      "dataset_bytes": 383228400,
+      "wall_seconds": 13.187000000034459,
+      "peak_process_rss_bytes": 45158400,
+      "native_exit_code": 1,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/hoth3.bsp",
+        "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "archive_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+        "source_surfaces": 12911,
+        "source_candidates": 612,
+        "raw_colour_pages": 38,
+        "derived_texels": 622592,
+        "coverage": [
+          167682,
+          27811,
+          403084,
+          15870,
+          8145
+        ],
+        "eligible_planar": 202558,
+        "unsupported_receiver": 26605,
+        "transport_normal_unsupported": 66017,
+        "partition_gap_rejections": 68883,
+        "invalid_footprints": 0,
+        "mapped_area_world_squared": 95083546.054,
+        "eligible_area_world_squared": 51228936.0904,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 1129,
+        "selected": [
+          85,
+          5,
+          44
+        ],
+        "censored_channels": 26716,
+        "channel_denominator": 1867776,
+        "unknown_transfer": 622592,
+        "unknown_primaries": 622592,
+        "deluxe_records": 0,
+        "region_assigned": 1927,
+        "moving_receivers": 0,
+        "grid_indices": 229068,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              2894,
+              501,
+              12799,
+              190,
+              0
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              3981,
+              493,
+              11542,
+              368,
+              0
+            ]
+          },
+          {
+            "page": 2,
+            "counts": [
+              3720,
+              494,
+              11712,
+              458,
+              0
+            ]
+          },
+          {
+            "page": 3,
+            "counts": [
+              4466,
+              1095,
+              10239,
+              375,
+              209
+            ]
+          },
+          {
+            "page": 4,
+            "counts": [
+              3372,
+              682,
+              12110,
+              195,
+              25
+            ]
+          },
+          {
+            "page": 5,
+            "counts": [
+              4796,
+              704,
+              10768,
+              103,
+              13
+            ]
+          },
+          {
+            "page": 6,
+            "counts": [
+              2872,
+              657,
+              12204,
+              626,
+              25
+            ]
+          },
+          {
+            "page": 7,
+            "counts": [
+              2335,
+              385,
+              12449,
+              1121,
+              94
+            ]
+          },
+          {
+            "page": 8,
+            "counts": [
+              3266,
+              516,
+              11767,
+              747,
+              88
+            ]
+          },
+          {
+            "page": 9,
+            "counts": [
+              3504,
+              529,
+              11224,
+              1091,
+              36
+            ]
+          },
+          {
+            "page": 10,
+            "counts": [
+              4407,
+              614,
+              10902,
+              461,
+              0
+            ]
+          },
+          {
+            "page": 11,
+            "counts": [
+              3420,
+              352,
+              12533,
+              79,
+              0
+            ]
+          },
+          {
+            "page": 12,
+            "counts": [
+              2929,
+              434,
+              12830,
+              175,
+              16
+            ]
+          },
+          {
+            "page": 13,
+            "counts": [
+              3910,
+              835,
+              11029,
+              601,
+              9
+            ]
+          },
+          {
+            "page": 14,
+            "counts": [
+              5620,
+              967,
+              9583,
+              87,
+              127
+            ]
+          },
+          {
+            "page": 15,
+            "counts": [
+              3597,
+              1039,
+              11260,
+              431,
+              57
+            ]
+          },
+          {
+            "page": 16,
+            "counts": [
+              1576,
+              462,
+              14087,
+              242,
+              17
+            ]
+          },
+          {
+            "page": 17,
+            "counts": [
+              2675,
+              470,
+              12819,
+              396,
+              24
+            ]
+          },
+          {
+            "page": 18,
+            "counts": [
+              3041,
+              195,
+              13004,
+              120,
+              24
+            ]
+          },
+          {
+            "page": 19,
+            "counts": [
+              5211,
+              300,
+              10521,
+              352,
+              0
+            ]
+          },
+          {
+            "page": 20,
+            "counts": [
+              7614,
+              1240,
+              6812,
+              601,
+              117
+            ]
+          },
+          {
+            "page": 21,
+            "counts": [
+              3032,
+              521,
+              12416,
+              277,
+              138
+            ]
+          },
+          {
+            "page": 22,
+            "counts": [
+              2415,
+              721,
+              11278,
+              523,
+              1447
+            ]
+          },
+          {
+            "page": 23,
+            "counts": [
+              2392,
+              547,
+              12860,
+              119,
+              466
+            ]
+          },
+          {
+            "page": 24,
+            "counts": [
+              972,
+              308,
+              14955,
+              149,
+              0
+            ]
+          },
+          {
+            "page": 25,
+            "counts": [
+              4627,
+              1453,
+              9225,
+              1027,
+              52
+            ]
+          },
+          {
+            "page": 26,
+            "counts": [
+              2684,
+              801,
+              11695,
+              297,
+              907
+            ]
+          },
+          {
+            "page": 27,
+            "counts": [
+              1809,
+              494,
+              13147,
+              493,
+              441
+            ]
+          },
+          {
+            "page": 28,
+            "counts": [
+              2194,
+              454,
+              10058,
+              1203,
+              2475
+            ]
+          },
+          {
+            "page": 29,
+            "counts": [
+              3014,
+              857,
+              12244,
+              269,
+              0
+            ]
+          },
+          {
+            "page": 30,
+            "counts": [
+              4207,
+              1179,
+              10089,
+              501,
+              408
+            ]
+          },
+          {
+            "page": 31,
+            "counts": [
+              4627,
+              1625,
+              9303,
+              379,
+              450
+            ]
+          },
+          {
+            "page": 32,
+            "counts": [
+              3434,
+              432,
+              12221,
+              188,
+              109
+            ]
+          },
+          {
+            "page": 33,
+            "counts": [
+              8236,
+              1582,
+              6026,
+              432,
+              108
+            ]
+          },
+          {
+            "page": 34,
+            "counts": [
+              8112,
+              1056,
+              6714,
+              397,
+              105
+            ]
+          },
+          {
+            "page": 35,
+            "counts": [
+              8184,
+              1291,
+              6391,
+              382,
+              136
+            ]
+          },
+          {
+            "page": 36,
+            "counts": [
+              12153,
+              1526,
+              2268,
+              415,
+              22
+            ]
+          },
+          {
+            "page": 37,
+            "counts": [
+              16384,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": null,
+      "folds": null,
+      "geometry_rays": null,
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          -2048,
+          512,
+          0
+        ],
+        "local_max": [
+          -1536,
+          1024,
+          512
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {},
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile",
+      "failure": "scan all original pages\nInsufficient independent training/validation/held-out geometry after footprint gaps\n"
+    },
+    {
+      "map": "mp/duel4",
+      "mode": "mp",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "bsp_bytes": 1167576,
+      "archive": "assets0.pk3",
+      "member": "maps/mp/duel4.bsp",
+      "capture": {
+        "state": "Captured",
+        "seconds": 16.70299999997951,
+        "peak_process_rss_bytes": 465928192,
+        "material_context": "SP renderer; MP BSP semantics must remain qualified"
+      },
+      "run_state": "Completed",
+      "reconstruction_verdict": "NoAcceptedFit",
+      "dataset_bytes": 25475232,
+      "wall_seconds": 2.827999999979511,
+      "peak_process_rss_bytes": 23642112,
+      "native_exit_code": 0,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/mp/duel4.bsp",
+        "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "archive_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+        "source_surfaces": 1112,
+        "source_candidates": 1913,
+        "raw_colour_pages": 2,
+        "derived_texels": 32768,
+        "coverage": [
+          11172,
+          1146,
+          19842,
+          247,
+          361
+        ],
+        "eligible_planar": 10962,
+        "unsupported_receiver": 4399,
+        "transport_normal_unsupported": 0,
+        "partition_gap_rejections": 6929,
+        "invalid_footprints": 0,
+        "mapped_area_world_squared": 11146704.8939,
+        "eligible_area_world_squared": 7745192.46626,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 165,
+        "selected": [
+          13,
+          17,
+          11
+        ],
+        "censored_channels": 1340,
+        "channel_denominator": 98304,
+        "unknown_transfer": 32768,
+        "unknown_primaries": 32768,
+        "deluxe_records": 0,
+        "region_assigned": 139,
+        "moving_receivers": 0,
+        "grid_indices": 11988,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              4962,
+              509,
+              10535,
+              17,
+              361
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              6210,
+              637,
+              9307,
+              230,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": {
+        "scene_complete": false,
+        "spatial_coverage_complete": true,
+        "triangles": 14610,
+        "patch_triangles": 11380,
+        "unsupported_bounded": 0,
+        "unsupported_unbounded": 0,
+        "excluded_flares": 0,
+        "patch_error_world": 7.97943,
+        "peak_build_bytes_accounted": 3666209,
+        "dynamic_bounds": 0,
+        "region_scope": "captured bounded ROI, not full map",
+        "region_free_cells": 1684,
+        "region_solid_cells": 1735,
+        "region_unknown_cells": 19262,
+        "regions": 19,
+        "components": 19,
+        "apertures": 0
+      },
+      "folds": {
+        "scope": "trusted evaluation controller; never solver source discovery",
+        "folds": [
+          {
+            "role": 0,
+            "rows": 13,
+            "positive_rows_ge_8_codes": 11,
+            "censored_channels": 0,
+            "source_surfaces": 4,
+            "independent_blocks": 2,
+            "normal_major_axis_bins": 4,
+            "selected_actual_area": 9200.94,
+            "represented_stratum_area": 37421.2,
+            "black_interval_mse": 3025.73
+          },
+          {
+            "role": 1,
+            "rows": 17,
+            "positive_rows_ge_8_codes": 12,
+            "censored_channels": 1,
+            "source_surfaces": 9,
+            "independent_blocks": 1,
+            "normal_major_axis_bins": 5,
+            "selected_actual_area": 10595.3,
+            "represented_stratum_area": 42353.9,
+            "black_interval_mse": 16583.5
+          },
+          {
+            "role": 2,
+            "rows": 11,
+            "positive_rows_ge_8_codes": 11,
+            "censored_channels": 0,
+            "source_surfaces": 3,
+            "independent_blocks": 1,
+            "normal_major_axis_bins": 3,
+            "selected_actual_area": 8377.26,
+            "represented_stratum_area": 27198.9,
+            "black_interval_mse": 6962.72
+          }
+        ]
+      },
+      "geometry_rays": {
+        "scope": "bounded geometry-only fixture-centre witnesses; unverified physical XYZ",
+        "queries": 104,
+        "visible": 6,
+        "blocked": 34,
+        "unknown": 64
+      },
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          -2048,
+          2048,
+          0
+        ],
+        "local_max": [
+          -1536,
+          2560,
+          512
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {
+        "isq": {
+          "schema": "org.openjk.all-stock-fit.v1",
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "code": 1,
+          "producer": {
+            "schema": "org.openjk.producer-report.v1",
+            "state": "Failed",
+            "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+            "asset_available": false,
+            "candidates": 0,
+            "deferred": 0,
+            "evaluations": 0,
+            "rays": 0,
+            "payload_bytes": 0,
+            "training_interval_mse": null,
+            "validation_interval_mse": null,
+            "heldout_interval_mse": null,
+            "heldout_black_mse": null,
+            "stages": [
+              "hidden-candidate search executed; proposals are not physical lights"
+            ]
+          },
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "hidden_search_complete": false,
+          "hidden_areas": 1,
+          "hidden_forward_calls": 861,
+          "hidden_rays": 3654,
+          "solar_state": "Unavailable",
+          "solar_alternatives": 0,
+          "shadow_observed_gradients": 1,
+          "shadow_candidates": 1,
+          "no_oracle_correspondence": true,
+          "initial_catalogue": 0,
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempts": [],
+          "sources": [],
+          "final_evaluation_performed": false,
+          "source_xyz_error": null,
+          "photometric_si_error": null,
+          "hidden_area_diagnostics": [
+            {
+              "area": 17139451323037053173,
+              "requested": 13,
+              "selected": 13,
+              "saturated": 0,
+              "unsupported": 0,
+              "nodes": 128,
+              "retained": 16,
+              "unknown_visibility": 759
+            }
+          ],
+          "work_scope": "Joint counters and hidden-provider counters are separate; solar work not serialized by this adapter"
+        },
+        "linear": {
+          "schema": "org.openjk.all-stock-fit.v1",
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "code": 1,
+          "producer": {
+            "schema": "org.openjk.producer-report.v1",
+            "state": "Failed",
+            "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+            "asset_available": false,
+            "candidates": 0,
+            "deferred": 0,
+            "evaluations": 0,
+            "rays": 0,
+            "payload_bytes": 0,
+            "training_interval_mse": null,
+            "validation_interval_mse": null,
+            "heldout_interval_mse": null,
+            "heldout_black_mse": null,
+            "stages": [
+              "hidden-candidate search executed; proposals are not physical lights"
+            ]
+          },
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "hidden_search_complete": false,
+          "hidden_areas": 1,
+          "hidden_forward_calls": 861,
+          "hidden_rays": 3654,
+          "solar_state": "Unavailable",
+          "solar_alternatives": 0,
+          "shadow_observed_gradients": 1,
+          "shadow_candidates": 1,
+          "no_oracle_correspondence": true,
+          "initial_catalogue": 0,
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempts": [],
+          "sources": [],
+          "final_evaluation_performed": false,
+          "source_xyz_error": null,
+          "photometric_si_error": null,
+          "hidden_area_diagnostics": [
+            {
+              "area": 17139451323037053173,
+              "requested": 13,
+              "selected": 13,
+              "saturated": 0,
+              "unsupported": 0,
+              "nodes": 128,
+              "retained": 9,
+              "unknown_visibility": 759
+            }
+          ],
+          "work_scope": "Joint counters and hidden-provider counters are separate; solar work not serialized by this adapter"
+        }
+      },
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile"
+    },
+    {
+      "map": "mp/ffa3",
+      "mode": "mp",
+      "bsp_sha256": "2a448530b908761dd797a02f6530bbe2deb6597f1bc58d9c458e6d62619d5b05",
+      "bsp_bytes": 7577200,
+      "archive": "assets0.pk3",
+      "member": "maps/mp/ffa3.bsp",
+      "capture": {
+        "state": "ReusedNeedsIdentityCheck",
+        "seconds": null,
+        "peak_process_rss_bytes": null,
+        "material_context": "reused original capture; see X02/X06"
+      },
+      "run_state": "Completed",
+      "reconstruction_verdict": "NoAcceptedFit",
+      "dataset_bytes": 259336064,
+      "wall_seconds": 20.609000000054948,
+      "peak_process_rss_bytes": 52510720,
+      "native_exit_code": 0,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/mp/ffa3.bsp",
+        "bsp_sha256": "2a448530b908761dd797a02f6530bbe2deb6597f1bc58d9c458e6d62619d5b05",
+        "archive_sha256": "61b110e50ba0ab8944ae028a9d5592384f9fdc5324feb4cda41e42212c0c0161",
+        "source_surfaces": 5040,
+        "source_candidates": 1660,
+        "raw_colour_pages": 26,
+        "derived_texels": 425984,
+        "coverage": [
+          98399,
+          9403,
+          301473,
+          1539,
+          15170
+        ],
+        "eligible_planar": 177997,
+        "unsupported_receiver": 44322,
+        "transport_normal_unsupported": 1468,
+        "partition_gap_rejections": 23033,
+        "invalid_footprints": 0,
+        "mapped_area_world_squared": 67181051.1668,
+        "eligible_area_world_squared": 41673857.9869,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 749,
+        "selected": [
+          188,
+          49,
+          11
+        ],
+        "censored_channels": 8540,
+        "channel_denominator": 1277952,
+        "unknown_transfer": 425984,
+        "unknown_primaries": 425984,
+        "deluxe_records": 0,
+        "region_assigned": 690,
+        "moving_receivers": 0,
+        "grid_indices": 94350,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              3655,
+              420,
+              12147,
+              11,
+              151
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              6276,
+              273,
+              9162,
+              88,
+              585
+            ]
+          },
+          {
+            "page": 2,
+            "counts": [
+              4640,
+              373,
+              11106,
+              265,
+              0
+            ]
+          },
+          {
+            "page": 3,
+            "counts": [
+              3752,
+              561,
+              10648,
+              77,
+              1346
+            ]
+          },
+          {
+            "page": 4,
+            "counts": [
+              1975,
+              116,
+              12126,
+              37,
+              2130
+            ]
+          },
+          {
+            "page": 5,
+            "counts": [
+              2779,
+              665,
+              12756,
+              184,
+              0
+            ]
+          },
+          {
+            "page": 6,
+            "counts": [
+              1396,
+              252,
+              14730,
+              6,
+              0
+            ]
+          },
+          {
+            "page": 7,
+            "counts": [
+              2047,
+              1592,
+              12300,
+              4,
+              441
+            ]
+          },
+          {
+            "page": 8,
+            "counts": [
+              2420,
+              612,
+              12465,
+              5,
+              882
+            ]
+          },
+          {
+            "page": 9,
+            "counts": [
+              1817,
+              244,
+              14081,
+              44,
+              198
+            ]
+          },
+          {
+            "page": 10,
+            "counts": [
+              2762,
+              378,
+              12014,
+              12,
+              1218
+            ]
+          },
+          {
+            "page": 11,
+            "counts": [
+              4020,
+              700,
+              11118,
+              18,
+              528
+            ]
+          },
+          {
+            "page": 12,
+            "counts": [
+              3190,
+              138,
+              11096,
+              10,
+              1950
+            ]
+          },
+          {
+            "page": 13,
+            "counts": [
+              3611,
+              96,
+              12622,
+              23,
+              32
+            ]
+          },
+          {
+            "page": 14,
+            "counts": [
+              3744,
+              251,
+              12137,
+              180,
+              72
+            ]
+          },
+          {
+            "page": 15,
+            "counts": [
+              3030,
+              172,
+              12981,
+              6,
+              195
+            ]
+          },
+          {
+            "page": 16,
+            "counts": [
+              2595,
+              244,
+              12996,
+              12,
+              537
+            ]
+          },
+          {
+            "page": 17,
+            "counts": [
+              3315,
+              363,
+              12524,
+              12,
+              170
+            ]
+          },
+          {
+            "page": 18,
+            "counts": [
+              1133,
+              87,
+              15100,
+              64,
+              0
+            ]
+          },
+          {
+            "page": 19,
+            "counts": [
+              2487,
+              188,
+              13599,
+              110,
+              0
+            ]
+          },
+          {
+            "page": 20,
+            "counts": [
+              5017,
+              763,
+              10059,
+              100,
+              445
+            ]
+          },
+          {
+            "page": 21,
+            "counts": [
+              1011,
+              148,
+              11682,
+              62,
+              3481
+            ]
+          },
+          {
+            "page": 22,
+            "counts": [
+              1630,
+              312,
+              14391,
+              51,
+              0
+            ]
+          },
+          {
+            "page": 23,
+            "counts": [
+              4081,
+              349,
+              10987,
+              158,
+              809
+            ]
+          },
+          {
+            "page": 24,
+            "counts": [
+              9632,
+              106,
+              6646,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 25,
+            "counts": [
+              16384,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": {
+        "scene_complete": false,
+        "spatial_coverage_complete": true,
+        "triangles": 87514,
+        "patch_triangles": 66066,
+        "unsupported_bounded": 0,
+        "unsupported_unbounded": 0,
+        "excluded_flares": 0,
+        "patch_error_world": 8.00035,
+        "peak_build_bytes_accounted": 22011296,
+        "dynamic_bounds": 8,
+        "region_scope": "captured bounded ROI, not full map",
+        "region_free_cells": 769,
+        "region_solid_cells": 891,
+        "region_unknown_cells": 24080,
+        "regions": 2,
+        "components": 2,
+        "apertures": 0
+      },
+      "folds": {
+        "scope": "trusted evaluation controller; never solver source discovery",
+        "folds": [
+          {
+            "role": 0,
+            "rows": 188,
+            "positive_rows_ge_8_codes": 166,
+            "censored_channels": 3,
+            "source_surfaces": 95,
+            "independent_blocks": 5,
+            "normal_major_axis_bins": 6,
+            "selected_actual_area": 23989.6,
+            "represented_stratum_area": 322521,
+            "black_interval_mse": 6876.43
+          },
+          {
+            "role": 1,
+            "rows": 49,
+            "positive_rows_ge_8_codes": 40,
+            "censored_channels": 0,
+            "source_surfaces": 28,
+            "independent_blocks": 1,
+            "normal_major_axis_bins": 6,
+            "selected_actual_area": 6465.71,
+            "represented_stratum_area": 97625.8,
+            "black_interval_mse": 9176.97
+          },
+          {
+            "role": 2,
+            "rows": 11,
+            "positive_rows_ge_8_codes": 11,
+            "censored_channels": 2,
+            "source_surfaces": 4,
+            "independent_blocks": 2,
+            "normal_major_axis_bins": 3,
+            "selected_actual_area": 2093.33,
+            "represented_stratum_area": 26126.2,
+            "black_interval_mse": 7458.5
+          }
+        ]
+      },
+      "geometry_rays": {
+        "scope": "bounded geometry-only fixture-centre witnesses; unverified physical XYZ",
+        "queries": 512,
+        "visible": 4,
+        "blocked": 116,
+        "unknown": 392
+      },
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          0,
+          1536,
+          0
+        ],
+        "local_max": [
+          512,
+          2048,
+          512
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {
+        "isq": {
+          "state": "Failed",
+          "reason": "Visibility ray work limit",
+          "work_scope": "Joint counters and hidden-provider counters are separate; solar work not serialized by this adapter"
+        },
+        "linear": {
+          "state": "Failed",
+          "reason": "Visibility ray work limit",
+          "work_scope": "Joint counters and hidden-provider counters are separate; solar work not serialized by this adapter"
+        }
+      },
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile"
+    },
+    {
+      "map": "vjun2",
+      "mode": "sp",
+      "bsp_sha256": "cf81f39198d71a6e5f0ecf9ed7b08382d76397674492934cb07057835c49a343",
+      "bsp_bytes": 13339312,
+      "archive": "assets0.pk3",
+      "member": "maps/vjun2.bsp",
+      "capture": {
+        "state": "ReusedNeedsIdentityCheck",
+        "seconds": null,
+        "peak_process_rss_bytes": null,
+        "material_context": "reused original capture; see X02/X06"
+      },
+      "run_state": "NativeRejected",
+      "reconstruction_verdict": "NotEvaluated",
+      "dataset_bytes": 422778040,
+      "wall_seconds": 18.54700000002049,
+      "peak_process_rss_bytes": 46981120,
+      "native_exit_code": 1,
+      "census": {
+        "schema": "org.openjk.all-stock-census.v1",
+        "map": "maps/vjun2.bsp",
+        "bsp_sha256": "cf81f39198d71a6e5f0ecf9ed7b08382d76397674492934cb07057835c49a343",
+        "archive_sha256": "ac37bef02c9034f2f8237118fb5b86d4a284eba9e73958c257ce6fdd0c6ceb55",
+        "source_surfaces": 14922,
+        "source_candidates": 10911,
+        "raw_colour_pages": 42,
+        "derived_texels": 688128,
+        "coverage": [
+          171850,
+          25111,
+          448811,
+          40046,
+          2310
+        ],
+        "eligible_planar": 409070,
+        "unsupported_receiver": 14923,
+        "transport_normal_unsupported": 6208,
+        "partition_gap_rejections": 45788,
+        "invalid_footprints": 2,
+        "mapped_area_world_squared": 108822820.582,
+        "eligible_area_world_squared": 97078607.6799,
+        "world_area_scope": "sum of mapped receiver patches, not full-world area",
+        "geography_strata": 1098,
+        "selected": [
+          115,
+          0,
+          76
+        ],
+        "censored_channels": 62924,
+        "channel_denominator": 2064384,
+        "unknown_transfer": 688128,
+        "unknown_primaries": 688128,
+        "deluxe_records": 0,
+        "region_assigned": 39,
+        "moving_receivers": 0,
+        "grid_indices": 152500,
+        "grid_fitting": "Unsupported historical reduction/calibration; hints only",
+        "pages": [
+          {
+            "page": 0,
+            "counts": [
+              5823,
+              892,
+              7035,
+              2625,
+              9
+            ]
+          },
+          {
+            "page": 1,
+            "counts": [
+              3968,
+              596,
+              8317,
+              2901,
+              602
+            ]
+          },
+          {
+            "page": 2,
+            "counts": [
+              8305,
+              1211,
+              6442,
+              226,
+              200
+            ]
+          },
+          {
+            "page": 3,
+            "counts": [
+              6060,
+              1237,
+              8732,
+              355,
+              0
+            ]
+          },
+          {
+            "page": 4,
+            "counts": [
+              9106,
+              2189,
+              4450,
+              587,
+              52
+            ]
+          },
+          {
+            "page": 5,
+            "counts": [
+              6440,
+              820,
+              8613,
+              511,
+              0
+            ]
+          },
+          {
+            "page": 6,
+            "counts": [
+              7005,
+              390,
+              8825,
+              164,
+              0
+            ]
+          },
+          {
+            "page": 7,
+            "counts": [
+              3802,
+              514,
+              11189,
+              609,
+              270
+            ]
+          },
+          {
+            "page": 8,
+            "counts": [
+              4119,
+              914,
+              10932,
+              289,
+              130
+            ]
+          },
+          {
+            "page": 9,
+            "counts": [
+              6222,
+              750,
+              7481,
+              1833,
+              98
+            ]
+          },
+          {
+            "page": 10,
+            "counts": [
+              9373,
+              1429,
+              5165,
+              417,
+              0
+            ]
+          },
+          {
+            "page": 11,
+            "counts": [
+              7606,
+              1788,
+              6586,
+              388,
+              16
+            ]
+          },
+          {
+            "page": 12,
+            "counts": [
+              7375,
+              1394,
+              7122,
+              475,
+              18
+            ]
+          },
+          {
+            "page": 13,
+            "counts": [
+              2135,
+              382,
+              13666,
+              201,
+              0
+            ]
+          },
+          {
+            "page": 14,
+            "counts": [
+              3195,
+              941,
+              11891,
+              357,
+              0
+            ]
+          },
+          {
+            "page": 15,
+            "counts": [
+              4334,
+              717,
+              3123,
+              8210,
+              0
+            ]
+          },
+          {
+            "page": 16,
+            "counts": [
+              5520,
+              519,
+              6069,
+              4276,
+              0
+            ]
+          },
+          {
+            "page": 17,
+            "counts": [
+              4918,
+              884,
+              2172,
+              8410,
+              0
+            ]
+          },
+          {
+            "page": 18,
+            "counts": [
+              6099,
+              2247,
+              5513,
+              2357,
+              168
+            ]
+          },
+          {
+            "page": 19,
+            "counts": [
+              4875,
+              522,
+              10430,
+              62,
+              495
+            ]
+          },
+          {
+            "page": 20,
+            "counts": [
+              819,
+              41,
+              15508,
+              16,
+              0
+            ]
+          },
+          {
+            "page": 21,
+            "counts": [
+              1741,
+              319,
+              13806,
+              518,
+              0
+            ]
+          },
+          {
+            "page": 22,
+            "counts": [
+              2159,
+              462,
+              13425,
+              338,
+              0
+            ]
+          },
+          {
+            "page": 23,
+            "counts": [
+              977,
+              350,
+              14710,
+              347,
+              0
+            ]
+          },
+          {
+            "page": 24,
+            "counts": [
+              1860,
+              572,
+              13627,
+              325,
+              0
+            ]
+          },
+          {
+            "page": 25,
+            "counts": [
+              5396,
+              211,
+              10446,
+              331,
+              0
+            ]
+          },
+          {
+            "page": 26,
+            "counts": [
+              2511,
+              218,
+              13589,
+              66,
+              0
+            ]
+          },
+          {
+            "page": 27,
+            "counts": [
+              860,
+              133,
+              14938,
+              453,
+              0
+            ]
+          },
+          {
+            "page": 28,
+            "counts": [
+              642,
+              164,
+              15492,
+              86,
+              0
+            ]
+          },
+          {
+            "page": 29,
+            "counts": [
+              607,
+              29,
+              15646,
+              39,
+              63
+            ]
+          },
+          {
+            "page": 30,
+            "counts": [
+              1387,
+              185,
+              14373,
+              250,
+              189
+            ]
+          },
+          {
+            "page": 31,
+            "counts": [
+              1812,
+              216,
+              13597,
+              759,
+              0
+            ]
+          },
+          {
+            "page": 32,
+            "counts": [
+              1075,
+              187,
+              14342,
+              780,
+              0
+            ]
+          },
+          {
+            "page": 33,
+            "counts": [
+              1751,
+              449,
+              14144,
+              40,
+              0
+            ]
+          },
+          {
+            "page": 34,
+            "counts": [
+              2585,
+              497,
+              13153,
+              149,
+              0
+            ]
+          },
+          {
+            "page": 35,
+            "counts": [
+              1512,
+              35,
+              14837,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 36,
+            "counts": [
+              2361,
+              0,
+              13831,
+              192,
+              0
+            ]
+          },
+          {
+            "page": 37,
+            "counts": [
+              2896,
+              0,
+              13488,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 38,
+            "counts": [
+              2764,
+              0,
+              13620,
+              0,
+              0
+            ]
+          },
+          {
+            "page": 39,
+            "counts": [
+              4838,
+              0,
+              11494,
+              52,
+              0
+            ]
+          },
+          {
+            "page": 40,
+            "counts": [
+              3424,
+              74,
+              12864,
+              22,
+              0
+            ]
+          },
+          {
+            "page": 41,
+            "counts": [
+              11593,
+              633,
+              4128,
+              30,
+              0
+            ]
+          }
+        ]
+      },
+      "geometry": null,
+      "folds": null,
+      "geometry_rays": null,
+      "selection_scope": {
+        "kind": "geometry-selected dense local follow-up",
+        "local_min": [
+          1536,
+          1536,
+          0
+        ],
+        "local_max": [
+          2048,
+          2048,
+          512
+        ],
+        "selection_uses_observed_rgb": false
+      },
+      "profiles": {},
+      "physical_truth": {
+        "emitter_precision": null,
+        "emitter_recall": null,
+        "source_xyz_error": null,
+        "source_type_accuracy": null,
+        "physical_intensity_error": null,
+        "reason": "No authoritative original stock sources/photometry"
+      },
+      "historical_profile": "UnknownProfile",
+      "failure": "scan all original pages\nInsufficient independent training/validation/held-out geometry after footprint gaps\n"
+    }
+  ]
+}

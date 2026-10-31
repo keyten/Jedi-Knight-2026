@@ -246,6 +246,18 @@ void Negative()
 	Final final(rig);
 	auto r = Request(rig);
 	P::Result out;
+	{
+		auto failingProvider = r;
+		auto hidden = std::make_shared<Hidden::Request>();
+		hidden->map = r.map;
+		hidden->geometry = r.fitting.geometry;
+		// Deliberately missing analysis bounds. The failure must retain the
+		// provider report rather than displaying a false complete/zero-work search.
+		failingProvider.hidden = hidden;
+		CHECK(!P::Run(failingProvider, Read(), out, &validation, &final));
+		CHECK(!out.artifact.asset && !out.work.hidden.complete);
+		CHECK(!out.work.hidden.diagnostics.empty());
+	}
 	auto mismatched = r;
 	mismatched.map.sha256[0] ^= 1;
 	CHECK(!P::Run(mismatched, Read(), out, &validation, &final));

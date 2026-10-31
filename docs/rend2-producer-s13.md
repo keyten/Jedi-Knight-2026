@@ -119,6 +119,11 @@ No shader source/permutation or normal lighting path changed. The historical fro
 
 ## Readiness
 
+The later [all-stock solver audit (2026-10-31)](rend2-solver-stock-audit.md)
+attempts the producer on all 57 available official BSPs and documents the current
+scene-wide scheduling/admission blockers. The six-map bounded S13 test below is
+historical evidence, not a completed whole-map reconstruction benchmark.
+
 | Dimension | Current result |
 |---|---|
 | Immutable data | Full-map stock resources/readiness available; local observation/material/visibility uncertainty remains |

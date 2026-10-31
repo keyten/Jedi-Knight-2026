@@ -1,0 +1,47 @@
+{
+  "schema": "org.openjk.all-stock-witness.v1",
+  "base_commit": "27119e46e1a155a5629d243a4f5c2f1c15895719",
+  "branch": "rend2-unified-wip",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/producer.cpp": "515b3b0c2d75d855feeb1837f1bd19029e02e8360f658b02423923ad8dfe3344",
+    "shared/rd-rend2/lightrecon/offline_bsp.cpp": "9974141c557638ad125239d2616e8f5fa8e5c43fbb45d455c08e968167ee7aec",
+    "shared/rd-rend2/tr_lightrecon.cpp": "133ce895136b2b8833d9bf8f4fd6ea33370c36fcef33f4e077b8f27e87289926",
+    "tools/lightrecon_test/lightrecon_map_solver.cpp": "7f0ec05840ccbed6f9a5cbf5d5a2765229da8c8fbb6855dcd1e0b3c3ea0c9193",
+    "tools/lightrecon_test/source_footprint.h": "17fbaa764b207e39f35199ace97b164e5fee53641f39c30f52b05e0d3ab399fc",
+    "tools/rend2/all_stock/architecture.py": "b281e315f6274761f39c4bc2d6ef0bc2d9231eb219e01b2419e00e298a882292",
+    "tools/rend2/all_stock/capture.py": "b66162df4c354b4f543a64378f93ba54b9ee19cb484cc6ff37f245fcbda195ff",
+    "tools/rend2/all_stock/collect.py": "b5fe83ff0fb5502cac0c611ab5e0d2bfdc691c697e6b8a54d8a7246441ff0501",
+    "tools/rend2/all_stock/freeze.py": "30db50d64f428d3196239587529934b0dccaf5221b74bb05242d2e6ed5f7ad22",
+    "tools/rend2/all_stock/inventory.py": "2253fd670d38119df153a3838898aacedf8a3c4540139ce842504971a16e8f38",
+    "tools/rend2/all_stock/run.py": "9e20b38ecda364993f30db65a3666b8eab55013792ffeafe33986732fd5f0d4c",
+    "tools/rend2/all_stock/test_audit.py": "ad7a01d16ef9758263f11452a5181dbc67cdf9f8f470c244978e0d0cc3a08041",
+    "tools/rend2/all_stock/verify.py": "338b384546e70d6e6019cdc75acb6f0cba00c7d2c197cc5c91187dc487d11437"
+  },
+  "binaries": {
+    "initial_map_adapter": "98292ddefd0012ab4e2fca0d563b67cbafd71e6cb603766427a35d7407bdad77",
+    "final_map_adapter": "6b1d79c45848e32a6f5b8f1127a8aad92b997347f2762f62b1b09d95c2af218f"
+  },
+  "files": {
+    "determinism.json": "d3c59ca6799f18babca6a4de93fd4c9c0ab99faf55fdf8fd4b3d3087d7f59c27",
+    "local-v3/coverage-table.md": "7cbe2987c08b56778eb832cc34b8bc149faae658140b2d276bee20179e195629",
+    "local-v3/maps.csv": "a869dafc4b5d93c52b7399d1ed48d0dcd1cd3e8d79fdf2a3a01a9401165f5c60",
+    "local-v3/maps.json": "8461086bac1d1ccda0b15e3a7a3ffbb38a24854f0843bddeabb6f8c299dbac90",
+    "local-v3/summary.json": "6947e029bf621e3d576843adfbec5ea82d476766200d2a777a93120c5620d843",
+    "v2/coverage-table.md": "79d2dd72a6739dd9a123fe71434f06ec4920288fa95d75aff2b841f575d3a772",
+    "v2/maps.csv": "acb1de56b9b0cdcb7266185470df1a208be74b84a5d94f5510f4f484b28686a3",
+    "v2/maps.json": "568483cecca2e08ed7fb8a55acad82a75bc50475dc90636d7dcff705d80a9cd8",
+    "v2/summary.json": "b85a05c4b35bd626170e469ac8b83a5729026cf0f63a1f0bdce10d925fec3e76",
+    "v4/coverage-table.md": "c0a2c0b49bf9382b20e1b0ecb3d97fd9a1faad52e73ecf4602584bbad4da305e",
+    "v4/maps.csv": "0e941dda6945f097fccfcb974907ccc40aeb40c4454af2f10fa45168957ca79b",
+    "v4/maps.json": "87397b6f7453f043c9b5b58ecdc9db3faa9f476908fa984fd878791dd5628594",
+    "v4/summary.json": "234927e553d233376b43f9880789cf0fb8520bfc372492f9386e894e9b21e7e9",
+    "validation.json": "3e1cde36047170a2b997ee3e31855438c6a766f02ad29e240c824779da1e4a74"
+  },
+  "claims": {
+    "full_map_census": true,
+    "all_stock_producer_attempted": true,
+    "whole_map_joint_optimization_completed": false,
+    "stock_physical_reconstruction_verified": false,
+    "runtime_consumer_enabled": false
+  }
+}

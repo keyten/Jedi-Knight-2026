@@ -1,0 +1,43 @@
+{
+  "schema": "org.openjk.all-stock-validation.v1",
+  "tests": {
+    "all-stock-ctest.log": {
+      "sha256": "fcd083a5d2c81d6740e1ffd57c099bd35278604878ad1a1c51f2f33c0f136647",
+      "expected_summary": "100% tests passed out of 31"
+    },
+    "all-stock-final-focused-tests.log": {
+      "sha256": "52824e47126e49bbf4945d4e08223ab381d60b3b7219d420a2ec1135146f9cfe",
+      "expected_summary": "100% tests passed out of 4"
+    },
+    "all-stock-blind-tests.log": {
+      "sha256": "99869fe3f53df0e12158fc5cf309d1accb0cf65c4a27ff24086cf560b80460e3",
+      "expected_summary": "Ran 6 tests"
+    },
+    "all-stock-evaluation-tests.log": {
+      "sha256": "df418c428dc9bd23772d010532858856050505d0f63433f9633393a717b57e34",
+      "expected_summary": "Ran 39 tests"
+    },
+    "all-stock-positive-tests.log": {
+      "sha256": "4075c1c802b3a572e6d1c7c5ca1e1fdf9a4c6aa6a9fbf7011adb4fac92b9794d",
+      "expected_summary": "Ran 16 tests"
+    }
+  },
+  "renderer_build_log_sha256": "aaf8346cafcbf434adcba197b1fcd41f3c713efffd1a4e1d07cd5d662d784cee",
+  "shader": {
+    "schema": "org.openjk.producer-disabled-path.v1",
+    "revision": "27119e46e",
+    "source_differences": 0,
+    "programs": 27,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "historical_baseline_passed": false,
+    "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it"
+  },
+  "stock_visual_reconstruction": "Not executed",
+  "new_q3map2_bakes": "Not executed"
+}

@@ -1,0 +1,58 @@
+map,pages,texels,mapped,eligible,mapped_area,candidate_evidence,train,validation,heldout,grid_indices,region_assigned,rays_visible,rays_blocked,rays_unknown,result,profile_states,reasons,wall_seconds,peak_rss_bytes
+academy1,24,393216,235581,224303,24697688.8756,71,113,49,39,29952,674,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.827999999979511,15921152
+academy2,22,360448,211130,201380,15801476.4724,1,80,39,32,21528,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.437999999965541,20865024
+academy3,22,360448,228917,218314,23427993.8488,1,110,44,35,21528,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.358999999938533,21012480
+academy4,22,360448,211130,201661,15801476.4724,1,88,34,29,58812,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.25,19460096
+academy5,22,360448,211130,201380,15801476.4724,1,82,40,29,21528,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.26500000001397,20881408
+academy6,34,557056,352907,335872,98400314.9424,233,245,74,79,370685,0,12,226,274,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,9.96799999999348,17121280
+hoth2,12,196608,79565,41347,37082664.8903,553,177,56,61,1044126,0,10,130,372,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,5.437999999965541,57458688
+hoth3,38,622592,403084,202558,95083546.054,612,512,181,147,229068,1927,0,97,415,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,15.109000000054948,92082176
+kor1,24,393216,235843,180494,167038330.965,37,512,188,211,562326,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,12.296999999904074,70230016
+kor2,80,1310720,717542,121243,356485987.647,877,360,161,114,156975,653,0,172,340,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,25.125,56307712
+mp/ctf1,18,294912,159777,113115,80416990.458,15106,374,73,106,180668,195,6,138,368,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.421999999904074,84414464
+mp/ctf2,24,393216,260065,77138,61287917.109,1510,211,86,94,63720,678,17,205,290,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,9.484000000054948,36659200
+mp/ctf3,20,327680,199362,165588,46638750.5239,4397,323,122,135,92053,230,7,185,320,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,9.093999999924563,37220352
+mp/ctf4,60,983040,663613,492909,173697422.398,0,512,256,256,90459,682,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,17.42099999997299,52310016
+mp/ctf5,20,327680,198998,163181,110847485.637,13124,413,148,117,253260,293,0,110,402,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.219000000040978,75571200
+mp/duel1,46,753664,486958,266439,10796717.8203,168,80,11,29,25584,0,35,305,172,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,13.405999999959022,14221312
+mp/duel10,36,589824,439569,255569,11682049.1618,1670,106,19,38,7047,12180,14,219,279,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,11.015999999945052,25206784
+mp/duel2,6,98304,32297,15043,13084704.1215,2414,69,32,20,28224,138,1,90,421,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,3.530999999959022,45559808
+mp/duel3,22,360448,237522,154680,19215374.8562,675,130,33,43,16100,2617,25,154,333,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,7.358999999938533,21594112
+mp/duel4,2,32768,19842,10962,11146704.8939,1913,34,24,18,11988,139,14,72,186,NoAcceptedFit,Failed; Failed,No supported multi-observation surface search; directions alone cannot create a lamp,1.422000000020489,23375872
+mp/duel5,76,1245184,833796,659954,104402368.274,369,245,85,73,595125,0,0,85,427,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,24.108999999938533,20647936
+mp/duel6,68,1114112,748769,295778,63694077.2026,51,348,115,93,465948,1852,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,21.39000000001397,34869248
+mp/duel7,27,442368,247563,227545,15384084.9724,272,146,31,50,34408,2947,28,244,240,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,8.78200000000652,18407424
+mp/duel8,26,425984,318431,283023,16906580.3007,237,178,34,44,29070,1309,15,126,371,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,8.780999999959022,22675456
+mp/duel9,40,655360,444221,85704,40658677.5458,16,115,30,34,496800,1226,8,192,312,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,11.5,18698240
+mp/ffa1,22,360448,226573,175571,57242025.2882,4926,368,88,123,118320,610,7,144,361,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,9.0,33726464
+mp/ffa2,32,524288,381767,331532,84936339.168,2202,478,191,164,122766,955,6,189,317,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,13.422000000020489,37687296
+mp/ffa3,26,425984,301473,177997,67181051.1668,1660,376,124,127,94350,690,4,131,377,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.094000000040978,54734848
+mp/ffa4,42,688128,522042,484957,162848772.937,804,512,223,241,242060,1468,10,127,375,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,16.75,42721280
+mp/ffa5,46,753664,539814,484085,196598474.632,2706,512,229,245,595125,0,1,160,351,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,21.57799999997951,36024320
+mp/siege_desert,26,425984,227302,132387,465677224.067,1392,77,27,26,861840,74,0,84,428,NoAcceptedFit,Failed; Failed,Coincident/overlapping transport nodes; split or deduplicate original receiving patches,16.21799999999348,51630080
+mp/siege_hoth,38,622592,382098,94344,140814043.457,834,366,160,120,444528,66,2,96,414,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,17.67200000002049,47075328
+mp/siege_korriban,18,294912,140383,64372,354149235.928,581,17,7,15,906984,74,,,,NotEvaluated,,,8.297000000020489,26394624
+t1_danger,94,1540096,654675,19647,189159953.862,1102,78,28,13,288000,0,0,80,432,NoAcceptedFit,Failed; Failed,Unavailable: no positive supported training data/profile; no sun inferred,29.875,37056512
+t1_fatal,28,458752,293094,249008,193661904.252,2124,512,210,169,375375,187,0,162,350,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,13.608999999938533,78299136
+t1_inter,12,196608,107085,72334,3568702.75163,1,13,9,13,1320,12588,0,0,0,NoAcceptedFit,Failed; Failed,No supported multi-observation surface search; directions alone cannot create a lamp,3.952999999979511,14802944
+t1_rail,28,458752,75186,54198,61212410.4301,0,201,64,84,990640,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,13.719000000040978,99598336
+t1_sour,12,196608,94812,48719,65679187.9874,0,104,37,36,298320,37,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,6.467999999993481,48734208
+t1_surprise,28,458752,293536,51387,125575080.349,869,162,42,43,426951,0,0,202,310,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.5,47124480
+t2_dpred,32,524288,312913,253735,182918162.792,13293,512,200,210,46464,431,4,142,366,NoAcceptedFit,Failed; Failed,Coincident/overlapping transport nodes; split or deduplicate original receiving patches,14.125,82661376
+t2_rancor,8,131072,67625,53749,67823654.7819,16219,49,18,31,535059,0,0,89,303,NoAcceptedFit,Failed; Failed,No supported multi-observation surface search; directions alone cannot create a lamp,6.25,122306560
+t2_rogue,26,425984,299268,246790,270208731.204,0,512,180,165,980352,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,11.905999999959022,47239168
+t2_trip,14,229376,101098,91420,116308827.151,1,312,91,117,1047540,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,7.469000000040978,60751872
+t2_wedge,36,589824,311739,235541,78926708.7588,7340,509,183,177,1033780,0,1,86,425,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,18.78200000000652,80166912
+t3_bounty,32,524288,284029,164244,215906140.348,5905,325,92,110,295200,478,0,114,398,NoAcceptedFit,Failed; Failed,Coincident/overlapping transport nodes; split or deduplicate original receiving patches,16.32799999997951,108994560
+t3_byss,28,458752,325784,213307,60346897.2799,0,361,101,95,985167,0,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,9.562000000034459,37642240
+t3_hevil,30,491520,295319,173848,255456548.297,0,512,222,232,18879,431,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.686999999918044,66088960
+t3_rift,66,1081344,682408,276453,581774218.821,989,512,256,234,128304,0,1,85,426,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,19.54700000002049,66711552
+t3_stamp,24,393216,226561,165601,274741481.068,2123,486,170,141,553610,242,3,203,306,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,8.297000000020489,63352832
+taspir1,48,786432,467212,359262,646743653.797,5346,512,256,256,52155,305,0,103,409,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,14.797000000020489,73498624
+taspir2,30,491520,317209,258651,274147828.433,9795,512,193,216,886080,228,4,198,310,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.98499999998603,108888064
+vjun1,30,491520,299160,269955,191795400.961,22201,512,208,213,1001520,0,0,104,408,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,12.5,93933568
+vjun2,42,688128,448811,409070,108822820.582,10911,418,149,154,152500,39,1,147,364,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,12.969000000040978,88055808
+vjun3,26,425984,225081,190808,122905558.67,25879,512,161,143,203232,177,2,114,396,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,10.375,102420480
+yavin1,14,229376,144622,112274,87203175.4469,2425,117,38,42,668800,0,0,37,475,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,5.046999999904074,33366016
+yavin1b,10,163840,92167,73815,62469147.5395,1154,74,36,31,798537,0,4,97,411,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,3.937000000034459,34738176
+yavin2,40,655360,400283,64787,82722619.938,9,169,61,64,866304,47,0,0,0,NoAcceptedFit,Budget; Budget,Too many local areas; issue explicit deterministic area shards,12.062999999965541,67719168

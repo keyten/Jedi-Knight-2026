@@ -1,0 +1,100 @@
+{
+  "schema": "org.openjk.all-stock-audit.v2",
+  "base_commit": "27119e46e",
+  "adapter_revision": "v4",
+  "inventory_maps": 57,
+  "reported_maps": 57,
+  "attempted_maps": 57,
+  "captured_maps": 57,
+  "modes": {
+    "sp": 34,
+    "mp": 23
+  },
+  "verdicts": {
+    "NoAcceptedFit": 56,
+    "NotEvaluated": 1
+  },
+  "profile_stop_reasons": {
+    "Too many local areas; issue explicit deterministic area shards": 98,
+    "No supported multi-observation surface search; directions alone cannot create a lamp": 6,
+    "Coincident/overlapping transport nodes; split or deduplicate original receiving patches": 6,
+    "Unavailable: no positive supported training data/profile; no sun inferred": 2
+  },
+  "mapped_luxels": 17718741,
+  "raw_texels": 29147136,
+  "source_evidence_candidates": 187100,
+  "caveats": [
+    "Attempted does not mean solved; early failures have null numerical prediction metrics",
+    "Full-map census, bounded selected observations; no full-luxel joint solve claim",
+    "Original compiler, transfer, primaries and SI scale remain unknown",
+    "Geometry-only fixture rays are not fitted-source validation",
+    "Region counts cover captured ROIs only",
+    "Performance is actual OS process RSS/wall time, outside deterministic numerical witnesses"
+  ],
+  "architecture": {
+    "schema": "org.openjk.solver-architecture-audit.v1",
+    "modules": [
+      "producer",
+      "joint",
+      "uncertainty",
+      "amplitude_fit",
+      "point_refine",
+      "emitter_shape",
+      "hidden_candidates",
+      "sun_fit",
+      "indirect",
+      "bake_forward",
+      "bake_integral",
+      "bake_trace",
+      "candidate_pool",
+      "shadow_evidence"
+    ],
+    "forbidden_runtime_dependencies": [],
+    "dependency_check_pass": true,
+    "boundary": "Producer::Run -> immutable ReconstructedLightingAsset plus data payloads",
+    "decoder_exception": "RendererSettings describes presentation parity; source decoding is independently tested invariant",
+    "physical_validity": "hard geometry/finite/nonnegative constraints; uncertain geometry is not certified free",
+    "ranking": "validation objective + complexity + geometry/material priors; required-block gate first",
+    "priority_qualification": "No independent stock physical-truth oracle; ranking is not a proof of physical configuration",
+    "uncertainty": "runs before publication; remains conditional/unknown without calibration",
+    "budgets": "CPU offline work/memory limits, not renderer resource limits",
+    "consumer_status": "Unavailable; independent consumer gates do not enable renderer features"
+  },
+  "policy": {
+    "schema": "org.openjk.all-stock-policy.v1",
+    "base_commit": "27119e46e",
+    "native_sha256": "6b1d79c45848e32a6f5b8f1127a8aad92b997347f2762f62b1b09d95c2af218f",
+    "quality_sha256": "31faa02b767c856f2fa3539c21abc46b9acbf988fdebf79fa931d91ad26162bf",
+    "split_seed": 20261031,
+    "cell_world": 256,
+    "split_origin": [
+      17,
+      31,
+      47
+    ],
+    "footprint_gap": "3 * radius + 1 world unit",
+    "split": [
+      0.6,
+      0.2,
+      0.2
+    ],
+    "sampling": "minimum stable sample ID per 512-world-unit position/normal stratum",
+    "max_rows": [
+      512,
+      256,
+      256
+    ],
+    "profiles": [
+      "explicit NetRadiant inverse-square",
+      "explicit NetRadiant linear"
+    ],
+    "historical_stock_profile": "UnknownProfile",
+    "absolute_photometry": "Unknown",
+    "process_seconds": 600,
+    "process_bytes": 1073741824,
+    "joint_seconds_per_profile": 180,
+    "policy_frozen_before_run": true,
+    "target_scope": "full-map census; bounded whole-map solver attempt; not full-luxel optimization",
+    "adapter_revision": "v4"
+  }
+}

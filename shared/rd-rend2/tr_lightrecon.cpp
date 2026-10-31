@@ -1504,6 +1504,10 @@ static void R_LightReconExport()
 	for (const auto &im : s.images->Images())
 		r.hdrLightmapSeen |= im.encoding == LightmapEncoding::ExternalRgb32F;
 	Offline::Options options;
+	// Stock ctf1's immutable emission evidence exceeds the generic 8 MiB
+	// per-section default. Keep it intact under an explicit bounded tool budget.
+	options.maxChunkBytes = 32ull * 1024 * 1024;
+	options.maxMappedTexels = 8ull * 1024 * 1024;
 	if (ri.Cmd_Argc() > 2)
 	{
 		const char *arg = ri.Cmd_Argv(2);

@@ -1,0 +1,542 @@
+{
+  "schema": "org.openjk.all-stock-reproducibility.v1",
+  "all_maps_before_after_diagnostic_fix": [
+    {
+      "map": "academy1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "academy2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "academy3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "academy4",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "academy5",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "academy6",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "hoth2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "hoth3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "kor1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "kor2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ctf1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ctf2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ctf3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ctf4",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ctf5",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel10",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel4",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel5",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel6",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel7",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel8",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/duel9",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ffa1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ffa2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ffa3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ffa4",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/ffa5",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/siege_desert",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/siege_hoth",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "mp/siege_korriban",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_danger",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_fatal",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_inter",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_rail",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_sour",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t1_surprise",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t2_dpred",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t2_rancor",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t2_rogue",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t2_trip",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t2_wedge",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t3_bounty",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t3_byss",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t3_hevil",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t3_rift",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "t3_stamp",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "taspir1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "taspir2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "vjun1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "vjun2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "vjun3",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "yavin1",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "yavin1b",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    },
+    {
+      "map": "yavin2",
+      "census": true,
+      "folds": true,
+      "geometry": true,
+      "geometry_rays": true,
+      "reconstruction_verdict": true
+    }
+  ],
+  "same_binary_eight_file_repeats": {
+    "academy1": {
+      "exit_code": 0,
+      "semantic_files": {
+        "census.json": {
+          "identical": true,
+          "sha256": "b3847ad4d22f49d21a5a7a9f5a3e763f556567ca0592ed1eaf293a7b5333daf3"
+        },
+        "folds.json": {
+          "identical": true,
+          "sha256": "59cb3519cf586abef294ac8accbb49f06e6220ba27a22a61f6ccfdead93bd86e"
+        },
+        "geometry.json": {
+          "identical": true,
+          "sha256": "013b0c925457888190cc2bcbb9a0447390476dbdf9d25c6b4a9713f67f4c90b8"
+        },
+        "ray-summary.json": {
+          "identical": true,
+          "sha256": "97488ccd8a2d27d7534e84be8e63b39f29bae7156fb323a94ad5d0fb4f15af22"
+        },
+        "selected-geometry.tsv": {
+          "identical": true,
+          "sha256": "0fee0a5d1edbf76002cee60aa6e748feb2fa83eecb13185aec3023262e88abeb"
+        },
+        "fixture-rays.tsv": {
+          "identical": true,
+          "sha256": "c9b984df23da27e583f3245d4e59b4bd2e966b698319037bc88f61f80d308fdb"
+        },
+        "isq.json": {
+          "identical": true,
+          "sha256": "077da7f3dfe2144c632b1b5f11cd0eedee7db302ceb71e791e26ab01ca6edb84"
+        },
+        "linear.json": {
+          "identical": true,
+          "sha256": "c161e9eadb15cd5e94703f8c52077dabea7b16919788144e767ff3b15bfdf017"
+        }
+      },
+      "wall_seconds": 7.530999999959022,
+      "peak_process_rss_bytes": 19947520
+    },
+    "hoth3": {
+      "exit_code": 0,
+      "semantic_files": {
+        "census.json": {
+          "identical": true,
+          "sha256": "3012ead686c2ee1a0a2588a7fa6f04148a6ecda3edbdf7d787eb51b8ea24da3d"
+        },
+        "folds.json": {
+          "identical": true,
+          "sha256": "0c3627db2afb94a3e997e86a8a2d7734ebb51647401d161581b1c2bcc6bf46cd"
+        },
+        "geometry.json": {
+          "identical": true,
+          "sha256": "9e2ad18906622999b5a1a6d45dcf4def3aabd4bfb8142c63ca00053532f4024b"
+        },
+        "ray-summary.json": {
+          "identical": true,
+          "sha256": "046c1da897b4e8e3bd90281766cc4710dc4e58fef925e0bd923bc5833d0305bd"
+        },
+        "selected-geometry.tsv": {
+          "identical": true,
+          "sha256": "c1c8f214b205a78c42edd4361965a5b0d2b50dd0277773dc77a7ede33712732f"
+        },
+        "fixture-rays.tsv": {
+          "identical": true,
+          "sha256": "6ef01f3cd9388da7d16b19892872c300beaabca517d9dfc23a0ba5fde34a04e2"
+        },
+        "isq.json": {
+          "identical": true,
+          "sha256": "e01288c2edf3785562a0a5558e3a8d3c4869e57725d5fb8115b31aed21f35e20"
+        },
+        "linear.json": {
+          "identical": true,
+          "sha256": "598d303b9cde17d6cfe888ef904c278d6a50ceec61cdcafbe7a2ae673e0b5c7f"
+        }
+      },
+      "wall_seconds": 14.530999999959022,
+      "peak_process_rss_bytes": 92057600
+    }
+  },
+  "note": "Time/RSS are outside semantic comparison; failed-work reporting differs by design"
+}

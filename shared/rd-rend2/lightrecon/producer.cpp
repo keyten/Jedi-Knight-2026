@@ -1069,8 +1069,9 @@ Joint::Request Prepare(const Request &request, const ReadContext &read, Result &
 				 request.hidden->geometry.geometryKey == q.geometry.geometryKey,
 			 Code::InvalidInput, "Hidden provider generation mismatch");
 		auto generated = std::make_shared<Hidden::Result>();
-		Check(Hidden::Generate(*request.hidden, read, *generated));
+		auto generatedStatus = Hidden::Generate(*request.hidden, read, *generated);
 		result.work.hidden = generated->report;
+		Check(generatedStatus); // retain work/exclusion diagnostics on failed searches too
 		Candidates::Provider provider;
 		Check(Candidates::FromHidden("surface-response", request.map.sha256, q.geometry.geometryKey,
 									 regionKey, generated, provider));
@@ -1083,8 +1084,9 @@ Joint::Request Prepare(const Request &request, const ReadContext &read, Result &
 				 request.solar->geometry.geometryKey == q.geometry.geometryKey,
 			 Code::InvalidInput, "Solar provider generation mismatch");
 		Solar::FitResult fit;
-		Check(Solar::Fit(*request.solar, read, fit));
+		auto solarStatus = Solar::Fit(*request.solar, read, fit);
 		result.work.solar = fit.work;
+		Check(solarStatus);
 		if (request.solarValidation)
 		{
 			auto accepted = std::make_shared<Solar::Result>();
