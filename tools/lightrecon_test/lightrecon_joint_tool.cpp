@@ -5,6 +5,7 @@
 #include "lightrecon/geometry_key.h"
 #include "lightrecon/joint.h"
 #include "lightrecon/offline.h"
+#include "lightrecon/producer.h"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -15,6 +16,7 @@ using namespace Rend2LightRecon;
 using namespace Rend2LightRecon::Core;
 using namespace Bake::Detail;
 namespace J = Rend2LightRecon::Core::Joint;
+namespace P = Rend2LightRecon::Core::Producer;
 void Check(Error e)
 {
 	if (!e)
@@ -126,12 +128,14 @@ class Controller final : public J::Validation
 {
 	const J::Request &request;
 	std::shared_ptr<Data<J::Observation>> validation;
+	Disk::Digest partition;
 
   public:
-	Controller(const J::Request &r, std::shared_ptr<Data<J::Observation>> rows) : request(r), validation(rows)
+	Controller(const J::Request &r, std::shared_ptr<Data<J::Observation>> rows, Disk::Digest key)
+		: request(r), validation(rows), partition(key)
 	{
 	}
-	Disk::Digest Key() const override { return ::Key("S11 external private validation partition v1"); }
+	Disk::Digest Key() const override { return partition; }
 	Error Evaluate(const J::Model &m, const ReadContext &read, J::Score &score) const override
 	{
 		std::vector<J::Prediction> predictions;
@@ -162,19 +166,65 @@ class Controller final : public J::Validation
 		return {};
 	}
 };
+class FinalController final : public P::FinalEvaluation
+{
+	const J::Request &request;
+	std::shared_ptr<Data<J::Observation>> rows;
+	Disk::Digest partition;
+
+  public:
+	FinalController(const J::Request &q, std::shared_ptr<Data<J::Observation>> r, Disk::Digest k)
+		: request(q), rows(r), partition(k)
+	{
+	}
+	Disk::Digest Key() const override { return partition; }
+	Error Assess(const J::Model &m, const ReadContext &read, P::FinalReceipt &receipt) const override
+	{
+		auto &score = receipt.score;
+		std::vector<J::Prediction> values;
+		auto error = J::EvaluateFrozen(request, m, rows, rows->records->size(), J::Role::Heldout, Key(), read,
+									   score, &values);
+		if (!error)
+			return error;
+		std::cout << std::setprecision(12) << "{\"event\":\"final\",\"predictions\":[";
+		for (size_t i = 0; i < values.size(); ++i)
+		{
+			const auto &p = values[i];
+			std::cout << (i ? "," : "") << "{\"id\":" << p.id
+					  << ",\"available\":" << (p.available ? "true" : "false") << ",\"rgb\":[" << p.rgb.x
+					  << ',' << p.rgb.y << ',' << p.rgb.z << "]}";
+		}
+		std::cout << "]}\n" << std::flush;
+		std::string marker;
+		unsigned available = 0, positive = 0, required = 0;
+		std::cin >> marker >> available >> positive >> required >> score.intervalMse >> score.blackMse >>
+			score.objective >> score.worstBlockRmse;
+		if (!std::cin || marker != "FINAL" || available > 1 || positive > 1 || required > 1 ||
+			!std::isfinite(score.objective) || score.objective < 0)
+			return Failure(Code::ProviderError, "Invalid independent final receipt");
+		score.available = available != 0;
+		score.positive = positive != 0;
+		score.requiredBlocksPass = required != 0;
+		receipt.evidence = "Independent external held-out RGB controller, parameters frozen before receipt";
+		return {};
+	}
+};
 int main(int argc, char **argv)
 {
 	try
 	{
-		Need(argc == 3, "usage: lightrecon_joint_tool geometry.public.jkobs training-and-geometry.txt");
+		Need(argc == 3 || argc == 4 || argc == 5,
+			 "usage: lightrecon_joint_tool geometry.public.jkobs training-and-geometry.txt "
+			 "[producer-cache-root [--stock]]");
 		ReadContext read;
 		read.maxBytes = 128ull * 1024 * 1024;
 		Offline::Options limits;
 		limits.maxResidentBytes = read.maxBytes;
 		std::shared_ptr<const Offline::Dataset> data;
 		Check(Offline::OpenFile(argv[1], limits, data));
-		Need(data->Counts().rawImageBytes == 0 && data->Counts().candidates == 0 &&
-				 data->Counts().evidence == 0,
+		const bool stockMode = argc == 5 && std::string(argv[4]) == "--stock";
+		Need(data->Counts().rawImageBytes == 0 &&
+				 (stockMode || (data->Counts().candidates == 0 && data->Counts().evidence == 0)),
 			 "Blind geometry archive contains lighting/answer evidence");
 		Offline::Sources source;
 		Offline::RegionSnapshot graph;
@@ -192,12 +242,34 @@ int main(int argc, char **argv)
 		std::ifstream in(argv[2]);
 		std::string magic;
 		in >> magic;
-		Need(magic == "JKJOINT1", "Joint protocol version");
+		Need(magic == "JKJOINT1" || magic == "JKJOINT13", "Joint protocol version");
+		Disk::Digest validationKey = Key("S11 external private validation partition v1"),
+					 heldoutKey = Key("External final held-out geometry");
+		BuildCoverage coverage;
+		std::string trainIdentity, validationIdentity, heldoutIdentity;
+		if (magic == "JKJOINT13")
+		{
+			in >> trainIdentity >> validationIdentity >> heldoutIdentity;
+			Need(trainIdentity.size() == 64 && validationIdentity.size() == 64 &&
+					 heldoutIdentity.size() == 64,
+				 "Partition hashes required");
+			validationKey = Key(validationIdentity);
+			heldoutKey = Key(heldoutIdentity);
+			unsigned complete = 0;
+			in >> coverage.rawPages >> coverage.rawPixels >> coverage.derivedPixels >>
+				coverage.mappedSamples >> complete;
+			coverage.rawComplete = true;
+			coverage.derivedComplete = complete != 0;
+			coverage.sourceTransferKnown = coverage.primariesKnown = coverage.historicalProfileKnown = true;
+		}
+		Need(argc < 4 || magic == "JKJOINT13",
+			 "Publication requires hashed partition manifests and full-map denominators");
 		int linear = 0;
 		in >> linear;
-		Need(linear == 0 || linear == 1, "Discrete supported profile selector");
+		Need(linear == 0 || linear == 1 || (stockMode && (linear == 2 || linear == 3)),
+			 "Discrete supported/conditional profile selector");
 		Bake::Recipe recipe;
-		recipe.falloff = linear ? Bake::Falloff::Linear : Bake::Falloff::InverseSquare;
+		recipe.falloff = linear == 1 ? Bake::Falloff::Linear : Bake::Falloff::InverseSquare;
 		J::Profile profile;
 		profile.model.law = Shape::Law::HistoricalBake;
 		profile.model.output = Shape::Output::RelativeIncident;
@@ -213,9 +285,34 @@ int main(int argc, char **argv)
 		profile.contract.provenance = "Selected direct-only fixture recipe, relative Q only";
 		profile.calibrationHypothesis = "Uncalibrated compiler Q, gain fixed at one";
 		request.profiles = {profile};
+		if (stockMode)
+		{
+			coverage.sourceTransferKnown = coverage.primariesKnown = coverage.historicalProfileKnown = false;
+			coverage.limitations.push_back("UnknownProfile; numerical profiles/receiver recipe are explicit "
+										   "conditional hypotheses, unknown source transfer and primaries");
+			profile.model.provenance =
+				"Explicit assumed NetRadiant direct surface hypothesis, not verified original JA bake";
+			profile.contract.provenance =
+				"Conditionally compare encoded bytes under assumed gamma1/profile; not decoded physical RGB";
+			request.profiles = {profile};
+			if (linear == 2)
+			{
+				auto other = profile;
+				Bake::Recipe alt;
+				alt.falloff = Bake::Falloff::Linear;
+				other.model.profile = Bake::NetRadiantProfile(alt);
+				other.contract.profile = other.model.profile;
+				request.profiles.push_back(other);
+			}
+			if (linear == 3)
+			{
+				request.profiles[0].model.profile = {};
+				request.profiles[0].contract.profile = {};
+			}
+		}
 		size_t candidates = 0;
 		in >> candidates;
-		Need(candidates > 0 && candidates <= 8, "Native controlled candidate budget");
+		Need((candidates > 0 || stockMode) && candidates <= 8, "Native controlled candidate budget");
 		for (size_t i = 0; i < candidates; ++i)
 		{
 			J::Candidate c;
@@ -280,7 +377,9 @@ int main(int argc, char **argv)
 		std::string extra;
 		Need(bool(in) && !(in >> extra), "Joint protocol truncated/trailing fields");
 		std::shared_ptr<const StaticVisibility> visibility;
-		Check(StaticVisibility::Build(source.geometry, {}, read, visibility, source.domain));
+		VisibilityBuildOptions visibilityOptions;
+		visibilityOptions.patchToleranceWorld = data->Info().visibilityPatchToleranceWorld;
+		Check(StaticVisibility::Build(source.geometry, visibilityOptions, read, visibility, source.domain));
 		Indirect::BuildInput transfer;
 		transfer.geometry = visibility;
 		transfer.mapKey = request.mapKey;
@@ -362,10 +461,95 @@ int main(int argc, char **argv)
 		options.equivalentValidationSlack = .1;
 		options.complexityPerSource = .001;
 		options.complexityPerParameter = .0001;
-		Controller controller(request, validation);
+		Controller controller(request, validation, validationKey);
+		FinalController final(request, held, heldoutKey);
 		J::Result result;
-		auto error = J::Solve(request, read, result, &controller);
-		for(const auto& attempt:result.attempts)if(!attempt.reason.empty())std::cerr<<attempt.proposal<<": "<<attempt.reason<<'\n';
+		Error error;
+		P::Result produced;
+		if (argc >= 4)
+		{
+			P::Request q;
+			q.map = data->Info().map;
+			q.coverage = coverage;
+			q.metadata.units = data->Info().units;
+			q.metadata.lineage = "controlled/" + Disk::Hex(q.map.sha256);
+			q.metadata.revision = "sanitized-q3map2-bsp/1";
+			q.metadata.provenance = 1;
+			Provenance prov;
+			prov.id = 1;
+			prov.kind = ProvenanceKind::External;
+			prov.producer = "Explicit controlled original BSP observation pipeline";
+			prov.contentHash = Disk::Hex(q.map.sha256);
+			q.metadata.provenanceRecords = {prov};
+			q.fitting = request;
+			q.validationKey = validationKey;
+			q.heldoutKey = heldoutKey;
+			q.settingsIdentity =
+				stockMode ? "S13 predeclared training-local emissive hypotheses/1; no XYZ truth"
+						  : "S13 native fixed-XYZ compiler fixture, bounded amplitude/count selection/1";
+			q.decoder = "NetRadiant pinned direct-only RGB8 gamma1; relative compiler Q, no absolute scale";
+			q.fingerprint.complete.fill(true);
+			q.fingerprint.units = q.metadata.units;
+			Disk::InputContent bsp;
+			bsp.kind = Disk::InputKind::Bsp;
+			bsp.name = q.map.path;
+			bsp.bytes = q.map.bytes;
+			bsp.sha256 = q.map.sha256;
+			q.fingerprint.inputs.push_back(bsp);
+			Disk::InputContent geometry;
+			geometry.kind = Disk::InputKind::Materials;
+			geometry.name = "sanitized-original-geometry-material-archive";
+			std::unique_ptr<Disk::FileReader> geometryFile;
+			auto opened = Disk::FileReader::OpenFile(argv[1], geometryFile);
+			Need(bool(opened), "Original public geometry fingerprint read");
+			auto hashed = Disk::HashContent(*geometryFile, geometry.sha256, 256ull * 1024 * 1024);
+			Need(bool(hashed), "Public archive hash limit");
+			geometry.bytes = geometryFile->Size();
+			q.fingerprint.inputs.push_back(geometry);
+			Disk::InputContent units;
+			units.kind = Disk::InputKind::UnitCalibration;
+			units.name = "uncalibrated-compiler-Q-no-absolute-photometry/1";
+			units.bytes = units.name.size();
+			units.sha256 = Key(units.name);
+			q.fingerprint.inputs.push_back(units);
+			q.options.uncertainty.positionLevels = 0;
+			q.options.uncertainty.colourProfiles = 0;
+			q.options.uncertainty.deleteBlocks = 0;
+			q.options.uncertainty.subsampleReplicates = 0;
+			q.options.uncertainty.restarts = 0;
+			q.options.uncertainty.materialProfiles = false;
+			error = P::Run(q, read, produced, &controller, &final);
+			result = produced.fitted;
+			if (error && produced.artifact.asset)
+			{
+				Disk::Cache cache(argv[3]);
+				auto stored = P::Store(produced.artifact, cache, read);
+				if (!stored)
+					std::cerr << "Cache write unavailable: " << stored.message << '\n';
+				P::Artifact loaded = produced.artifact;
+				if (stored)
+					Check(P::Load(cache, produced.artifact.fingerprint, read, loaded));
+				Manager manager;
+				Need(P::Publish(loaded, manager, manager.Acquire().Generation(), read) == Status::Ok,
+					 "Immutable snapshot publication");
+				// Cache::Store creates the output directory, including diagnostic-only archives.
+				std::ofstream report(std::string(argv[3]) + "/report.json");
+				report << P::ReportJson(produced) << '\n';
+				std::string obj;
+				Check(P::DebugObj(loaded, 128 * 1024, obj));
+				std::ofstream debug(std::string(argv[3]) + "/sources.obj");
+				debug << obj;
+				std::string preview;
+				Check(P::DebugPreview(loaded, 128 * 1024, preview));
+				std::ofstream previewFile(std::string(argv[3]) + "/sources.preview");
+				previewFile << preview;
+			}
+		}
+		else
+			error = J::Solve(request, read, result, &controller);
+		for (const auto &attempt : result.attempts)
+			if (!attempt.reason.empty())
+				std::cerr << attempt.proposal << ": " << attempt.reason << '\n';
 		std::cout << std::setprecision(12) << "{\"event\":\"result\",\"code\":" << unsigned(error.code)
 				  << ",\"state\":\"" << J::StateName(result.state)
 				  << "\",\"models\":" << result.work.attemptedModels
@@ -384,7 +568,8 @@ int main(int argc, char **argv)
 						  << s.value.rgbAmplitude.y << ',' << s.value.rgbAmplitude.z << "]}";
 			}
 		}
-		std::cout << "],\"heldout_predictions\":[";
+		std::cout << "],\"producer\":" << (argc >= 4 ? P::ReportJson(produced) : "null")
+				  << ",\"heldout_predictions\":[";
 		if (result.preferred != SIZE_MAX)
 		{
 			J::Score score;

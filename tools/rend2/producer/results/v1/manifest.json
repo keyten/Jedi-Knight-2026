@@ -1,0 +1,137 @@
+{
+  "acceptance": {
+    "pipeline": "Conditional operational",
+    "production_cache": "NotCacheable",
+    "runtime_consumers": "Unavailable",
+    "stock_physical_reconstruction": "Not demonstrated",
+    "visual_alignment": "Not verified"
+  },
+  "base_commit": "0aa1757cf",
+  "binaries": {
+    "build/s06-gcc/lightrecon_joint_tool.exe": {
+      "bytes": 7730610,
+      "sha256": "b309f2a04297795b6fd7de7f9efe12fe170a271740992625f8f4a14a4575356b"
+    },
+    "build/s06-gcc/lightrecon_producer_suite.exe": {
+      "bytes": 7864160,
+      "sha256": "bb5aab3176320d53e3042711097991ee6ec051fd111953ec7b78ac3681aacf96"
+    },
+    "build/s13-renderers/Release/rd-rend2_x86_64.dll": {
+      "bytes": 5057536,
+      "sha256": "87d2cc0d0f53c5d43db81e0d47832dfa0a5303a1011243ecd31a4bf6eb030ebd"
+    },
+    "build/s13-renderers/Release/rdsp-rend2_x86_64.dll": {
+      "bytes": 5014016,
+      "sha256": "f4c7f81b6a808156541a9808ea5890c9d7bcb3ba7281b40b834aac2d72cdae58"
+    }
+  },
+  "historical_failures": [
+    "Salted Joint/S12 training identity mismatch fixed",
+    "Source/metadata ID collision fixed",
+    "GI-link uncertainty incorrectly poisoned direct publication fixed",
+    "Frozen first-patch transport export fixed",
+    "Historical shader baseline drift remains",
+    "MSBuild sandbox write denials; permitted builds succeed",
+    "Inconclusive stock marker camera runs retained"
+  ],
+  "schema": "org.openjk.producer-witness.v1",
+  "semantic_schema": 4,
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/joint.cpp": "72cdc4152a9b6be446831722d347db8b6d90ca9cafe1f081a81fa670ec9d2b91",
+    "shared/rd-rend2/lightrecon/producer.cpp": "e8d698f3105dd1298e7ac7cfc8b89f75e68a6a8e18f0ac3a96d444cf3354a39b",
+    "shared/rd-rend2/lightrecon/producer.h": "bcce58625d6424fbcb25c526da6bb6d37a2f1d7d460e42a3fe06415ea3dd75a0",
+    "shared/rd-rend2/tr_lightrecon.cpp": "f783b193b0fafb8f32cde69fee7be32414796d6b0c6cff6415ad922b9b7385ad",
+    "tools/rend2/producer/benchmark.py": "391d0ec9aa23a0ee4b034f42208892218879a9fae996602d5d815a7656811cb6",
+    "tools/rend2/producer/collect.py": "b3316894354b5787d610184349f40b8676bca38d6022f4c33acc88d9c02c44f6",
+    "tools/rend2/producer/compare_revision.py": "ab34be63feecc4929846873c12dc15efd25ced4606f87997e29e0131c748b5e9",
+    "tools/rend2/producer/runtime_preview.py": "12379cb4be4fe54090f1f7c02e74e80bb6ee5c8865b0bcb4f88152eda3a51456",
+    "tools/rend2/producer/stock.py": "b447ca070f47ae973d6d8f14e95f697d69292453cdaa151077b4325001f1d8d5",
+    "tools/rend2/producer/test_controller.py": "304d33314963bb16400d600ecabccd35c9e5f1cd0c63dfd831e2984f0142be1d"
+  },
+  "tests": {
+    "s13-ctest-affected.log": {
+      "sha256": "8c36a20c52217d51160e6376d14d643e583e356f37039f78f2e2f6f22cb882f2",
+      "tail": [
+        "    Start 30: lightrecon_offline",
+        "4/5 Test #30: lightrecon_offline ...............   Passed    1.51 sec",
+        "5/5 Test  #3: lightrecon_uncertainty ...........   Passed    5.54 sec",
+        "",
+        "100% tests passed out of 5",
+        "",
+        "Total Test time (real) =  18.54 sec"
+      ]
+    },
+    "s13-ctest-release.log": {
+      "sha256": "39f1a203c8bfc19cd4edd718f6423b4ef04a44df39927a78d865ef4f6f952b0d",
+      "tail": [
+        "      Start  9: lightrecon_api",
+        "29/30 Test  #9: lightrecon_api ...................   Passed    0.02 sec",
+        "30/30 Test #28: lightrecon_point_refine ..........   Passed  269.69 sec",
+        "",
+        "100% tests passed out of 30",
+        "",
+        "Total Test time (real) = 269.69 sec"
+      ]
+    },
+    "s13-python-blind.log": {
+      "sha256": "6c8a76ab61eef1c30c64130c6323d7232a5c1e7a0f6abe97ae86796cfd5d6677",
+      "tail": [
+        "test_spatial_and_footprint_gap (test_blind_views.BlindTests.test_spatial_and_footprint_gap) ... ok",
+        "test_taxonomy (test_blind_views.BlindTests.test_taxonomy) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 6 tests in 0.462s",
+        "",
+        "OK"
+      ]
+    },
+    "s13-python-controller.log": {
+      "sha256": "5ea432e12a505d51b08b649aacd9cbb1acf733444f5848d2dbb73a5b60714875",
+      "tail": [
+        "test_geometry_selection_ignores_targets (test_controller.Controls.test_geometry_selection_ignores_targets) ... ok",
+        "test_missing_is_unavailable (test_controller.Controls.test_missing_is_unavailable) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 4 tests in 0.001s",
+        "",
+        "OK"
+      ]
+    },
+    "s13-python-evaluation.log": {
+      "sha256": "1f5e4763d27e471893f4e404506567b0b2861ce9bd39e4ef57adaff27d3de62f",
+      "tail": [
+        "test_solver_cannot_override_truth_or_map (test_metrics.RunnerAndBoundary.test_solver_cannot_override_truth_or_map) ... ok",
+        "test_unknown_material_profile_scale_no_fake_photometry (test_metrics.RunnerAndBoundary.test_unknown_material_profile_scale_no_fake_photometry) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 39 tests in 0.374s",
+        "",
+        "OK"
+      ]
+    },
+    "s13-python-positive.log": {
+      "sha256": "72c23df05a3e7a9bba507cc2a558c626db28676ad6790bfc0fe4e5614da56131",
+      "tail": [
+        "test_external_packet_cannot_skip_required_cases_or_change_truth (test_acceptance.CompletedControls.test_external_packet_cannot_skip_required_cases_or_change_truth) ... ok",
+        "test_local_real_compiler_contracts (test_acceptance.CompletedControls.test_local_real_compiler_contracts) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 16 tests in 0.596s",
+        "",
+        "OK"
+      ]
+    },
+    "s13-renderers-preview-final.log": {
+      "sha256": "d5184893d048f6535bcc0e374d6064beb6eb1f253aad2f8b64a9313f1168bb5a",
+      "tail": [
+        "  rend2_glslc.vcxproj -> C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s13-renderers\\Release\\rend2_glslc.exe",
+        "  rend2_lightrecon_core.vcxproj -> C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s13-renderers\\shared\\rd-rend2\\lightrecon\\Release\\rend2_lightrecon_core.lib",
+        "  zlib-ng.vcxproj -> C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s13-renderers\\lib\\zlib-ng\\src\\Release\\zlibstatic.lib",
+        "cl : \u043a\u043e\u043c\u0430\u043d\u0434\u043d\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430 warning D9002: \u043f\u0440\u043e\u043f\u0443\u0441\u043a \u043d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e\u0433\u043e \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430 \"/arch:SSE2\" [C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s13-renderers\\codemp\\rd-rend2\\rd-rend2_x86_64.vcxproj]",
+        "  tr_lightrecon.cpp",
+        "     \u0421\u043e\u0437\u0434\u0430\u0435\u0442\u0441\u044f \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430 C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/codemp/rd-rend2/Release/rd-rend2_x86_64.lib \u0438 \u043e\u0431\u044a\u0435\u043a\u0442 C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/codemp/rd-rend2/Release/rd-rend2_x86_64.exp",
+        "  rd-rend2_x86_64.vcxproj -> C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s13-renderers\\Release\\rd-rend2_x86_64.dll"
+      ]
+    }
+  }
+}

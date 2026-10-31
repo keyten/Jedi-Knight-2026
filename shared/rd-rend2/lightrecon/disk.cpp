@@ -180,7 +180,7 @@ FIELDS(TransportField, v.source, v.component, v.quantity, v.unit, v.calibration,
 	   v.sampleDimensions[0], v.sampleDimensions[1], v.sampleDimensions[2], v.dataset, v.membership)
 FIELDS(VisibilityReference, v.dataset, v.kind, v.source, v.region)
 FIELDS(ContributionReference, v.dataset, v.sampleDomain, v.sources, v.component, v.quantity, v.unit,
-	   v.calibration)
+	   v.calibration,v.domain,v.configuration,v.membership)
 FIELDS(Diagnostic, v.severity, v.code, v.message, v.source, v.region, v.metric, v.metricUnit)
 FIELDS(UncertaintyFactor,v.cause,v.status,v.reason)
 FIELDS(CalibratedConfidence,v.meaning,v.probability,v.event,v.population,v.protocol,v.calibrationHash,v.independentFamilies,v.intervalNominal)
@@ -189,6 +189,11 @@ FIELDS(MaterialParameterState,v.material,v.reflectance,v.status)
 FIELDS(LightingConfiguration,v.id,v.provenance,v.key,v.profile,v.calibrationHypothesis,v.sources,v.materials,v.observationGain,v.firstBounce,v.searchComplete)
 FIELDS(CorrelatedPositionScatter,v.known,v.reference,v.xx,v.xy,v.xz,v.yy,v.yz,v.zz,v.samples,v.method)
 FIELDS(SourceUncertainty,v.id,v.source,v.track,v.provenance,v.version,v.method,v.inputHash,v.configurations,v.factors,v.existence,v.type,v.exactUse,v.fieldUse,v.positionScatter,v.relativePeak,v.directionSpreadRadians,v.peakColourBounded,v.peakColourLower,v.peakColourUpper,v.absoluteScaleKnown,v.complete,v.minimumCount,v.maximumCount,v.exactLight,v.approximateField)
+FIELDS(ReadinessAssessment,v.kind,v.status,v.scope,v.evidence,v.blocker)
+FIELDS(SourceAdmission,v.source,v.use,v.status,v.reason)
+FIELDS(InputDependency,v.kind,v.name,v.sha256,v.bytes)
+FIELDS(BuildCoverage,v.rawPages,v.rawPixels,v.derivedPixels,v.mappedSamples,v.gridIndices,v.requestedTraining,v.usedTraining,v.unavailableTraining,v.requestedValidation,v.usedValidation,v.requestedHeldout,v.usedHeldout,v.supportedAreaWorldSquared,v.mappedAreaWorldSquared,v.certifiedVisibilityFraction,v.regionAssignedFraction,v.rawComplete,v.derivedComplete,v.sourceTransferKnown,v.primariesKnown,v.geometryComplete,v.historicalProfileKnown,v.limitations)
+FIELDS(BuildAssessment,v.present,v.version,v.producer,v.algorithm,v.map,v.bspSha256,v.settingsHash,v.solverKey,v.uncertaintyKey,v.geometryKey,v.decoder,v.selectedProfile,v.trainingHash,v.validationHash,v.heldoutHash,v.fingerprint,v.seed,v.proposedSources,v.conditionalSources,v.resolvedSources,v.rejectedSources,v.inputsLoaded,v.solverExecuted,v.strictEvaluated,v.structuralValidated,v.payloadsValidated,v.selectedConfiguration,v.sampleDomain,v.diagnostics,v.coverage,v.profileHypotheses,v.trainingIntervalMse,v.validationIntervalMse,v.heldoutIntervalMse,v.heldoutBlackMse,v.dependencies,v.readiness,v.admissions)
 FIELDS(InputContent, v.kind, v.name, v.bytes, v.sha256)
 #undef FIELDS
 struct Writer
@@ -279,6 +284,9 @@ ENUM_RANGE(ProvenanceKind, External)
 ENUM_RANGE(UncertaintyStatus,Contradicted)
 ENUM_RANGE(UncertaintyCause,Numerical)
 ENUM_RANGE(ConfidenceMeaning,IndependentEmpiricalBinRate)
+ENUM_RANGE(ReadinessKind,RuntimeConsumers)
+ENUM_RANGE(AssessmentStatus,Validated)
+ENUM_RANGE(SourceUse,Specular)
 ENUM_RANGE(FieldMembership, Included)
 ENUM_RANGE(TransportRootKind, Unknown)
 ENUM_RANGE(CalibrationKind, UncalibratedRelative)
@@ -286,10 +294,10 @@ ENUM_RANGE(PhotometricUnit, Lux) ENUM_RANGE(HypothesisState, Rejected)
 	ENUM_RANGE(Suitability, Candidate) ENUM_RANGE(AngularKind, Tabulated)
 		ENUM_RANGE(DatasetPurpose, ObservationQuality) ENUM_RANGE(DatasetLayout, Procedural)
 			ENUM_RANGE(SunCoverage, IncludesExplicitSun)
-				ENUM_RANGE(TransportComponent, UnresolvedIrradiance)
+ENUM_RANGE(TransportComponent, LegacyAmbientIrradiance)
 					ENUM_RANGE(FieldQuantity, Radiance) ENUM_RANGE(VisibilityKind, SkyTransmittance)
 						ENUM_RANGE(ContributionComponent, Unresolved)
-							ENUM_RANGE(ContributionQuantity, AttributionFraction)
+							ENUM_RANGE(ContributionQuantity, LegacyRelativeChannels)
 								ENUM_RANGE(Severity, Error)
 #undef ENUM_RANGE
 									template <>
@@ -504,6 +512,8 @@ Id RecordId(const SunSource &v)
 {
 	return v.emitter;
 }
+Id RecordId(const LightingConfiguration& v){return v.id;}
+Id RecordId(const SourceUncertainty& v){return v.id;}
 struct Encoded
 {
 	SectionInfo info;
@@ -714,6 +724,7 @@ Error Encode(const ReconstructedLightingAsset &asset, const Fingerprint &fingerp
 		ADD(Diagnostics, diagnostics);
 		ADD(LightingConfigurations,lightingConfigurations);
 		ADD(Uncertainty,uncertainty);
+		if(asset.assessment.present)Add(sections,Section::Assessment,std::vector<BuildAssessment>{asset.assessment},metadataLimits);
 #undef ADD
 		uint64_t metadata = 0;
 		for (const auto &s : sections)
@@ -870,7 +881,7 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 				Require(Order(index.sections[previous - 1]) < Order(s), Code::Corrupt,
 						"duplicate/unordered sections");
 			++previous;
-			bool known = s.type >= 1 && s.type <= 16;
+			bool known = s.type >= 1 && s.type <= 17;
 			Require(known || s.type == uint32_t(Section::Chunk) || !(s.flags & 1),
 					Code::Unsupported, "unknown required section");
 			if (known)
@@ -887,7 +898,7 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 		ReconstructedLightingAsset asset;
 		for (const auto &s : index.sections)
 		{
-			if (s.type > 16)
+			if (s.type > 17)
 				continue;
 			budget.Take(s.bytes);
 			auto bytes = ReadBytes(reader, s.offset, s.bytes, limits.maxMetadataBytes);
@@ -929,6 +940,8 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 				READ(Diagnostics, diagnostics);
 				READ(LightingConfigurations,lightingConfigurations);
 				READ(Uncertainty,uncertainty);
+			case Section::Assessment:
+				Require(s.count==1,Code::Corrupt,"one producer assessment required");r.Value(asset.assessment);break;
 #undef READ
 			default:
 				break;

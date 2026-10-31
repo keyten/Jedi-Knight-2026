@@ -9,7 +9,7 @@ namespace Core
 {
 namespace Joint
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // training identity is separate from validation/checkpoint selection
 enum class Channel
 {
 	Surface,
@@ -237,6 +237,9 @@ Error Refit(const Request&,const Model& seed,const ReadContext&,Model&,Work&);
 // useful for nuisance profiling and geometry/RGB sensitivity. No held-out reader.
 Error AssessHypothesis(const Request&,const Model&,const ReadContext&,Model&,Score&,Work&,
 	std::vector<Prediction>* =nullptr);
+// Frozen source-linked transport extraction; no parameter fitting or hidden RGB.
+// Reuses exactly the strict direct roots and passive operator used by Solve.
+Error DecomposeFrozen(const Request&,const Model&,const ReadContext&,Indirect::Result&,Work&);
 // Value-only production evaluation; held-out data are accepted ONLY here after
 // freezing. Caller supplies geometry/prior Request, not training target access.
 Error EvaluateFrozen(const Request &, const Model &, std::shared_ptr<const ChunkSource<Observation>>,

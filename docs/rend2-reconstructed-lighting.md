@@ -1,4 +1,6 @@
-# Canonical reconstructed static lighting, schema 3
+# Canonical reconstructed static lighting, schema 4
+
+S13 adds a versioned producer/readiness assessment, explicit legacy-channel contribution domains, selected-configuration membership and fully validated payload publication. See [S13](rend2-producer-s13.md). Schema-1/2/3 assets are rejected; observation `.jkobs` archives are unchanged.
 
 S12 adds complete joint parameter configurations and typed per-cause uncertainty
 with independent event-calibration provenance. See [S12](rend2-uncertainty-s12.md).
@@ -68,10 +70,10 @@ any consumer to subtract an attributed contribution from baked lighting.
 
 ## Identity, version and provenance
 
-The stable schema identifier is `org.openjk.reconstructed-lighting`, version 3.
+The stable schema identifier is `org.openjk.reconstructed-lighting`, version 4.
 This is an in-memory semantic schema, not a native-struct binary file format.
 An incompatible schema change requires a version change; a reader must reject
-unsupported versions. `Validate` currently accepts version 3 only.
+unsupported versions. `Validate` currently accepts version 4 only.
 
 `lineage` identifies the reconstruction across revisions. Nonempty results need
 a lineage and root provenance. The fully empty default asset is valid and means
@@ -325,3 +327,14 @@ independent uncertainty, non-finite rejection, identity/reference stability,
 degenerate geometry, sun alternatives, calibration honesty, separate transport,
 sparse contribution descriptors and field dimensions. Renderer checks build
 `rdsp-rend2` and `rd-rend2` in a normal SP/MP configuration.
+
+
+## Offline producer publication (S13)
+
+`Core::Producer::Run` composes existing candidate/solar/Joint/uncertainty/passive-transport stages. It returns an immutable draft artifact only after independent final evaluation and canonical plus payload validation. `Publish` checks the owner generation again and atomically copies the validated asset into the existing Manager. No evaluator/renderer consumer is installed by this operation.
+
+`BuildAssessment` records seven independent readiness dimensions, all source/use admissions, raw/derived/evaluated observation denominators, supported profile hypotheses, private partition identities, calibration assumptions and cached prediction receipts. Unknown metrics are typed unknown/null. Diagnostic-only output may contain no sources and no prediction; it is never evidence of a black map or successful physical recovery.
+
+Producer sample/contribution/diagnostic chunks have versioned CPU encodings. Compiler-relative RGB channels with unverified primaries use `LegacyRelativeChannels`, an explicit domain string and uncalibrated-relative reference. The general `LightingSample` API rejects this quantity; raw legacy channels cannot silently become physical linear Rec709. Signed encoded-domain discrepancy is diagnostic data, never an irradiance field. Existing passive fields retain root/order/inclusion membership.
+
+Offline cache keys include the original BSP, actual sanitized archive hash, typed operator/settings/generation keys and partition identities. Optional provider/search policies not yet fully canonically serialized explicitly disable cacheability. Runtime fingerprint collection and early preflight remain `NotCacheable`; an offline cache hit is not game warm-load validation.

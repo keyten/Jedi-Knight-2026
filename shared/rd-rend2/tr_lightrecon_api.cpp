@@ -415,7 +415,8 @@ Result<VisibilitySample> Snapshot::QueryVisibility(const VisibilityQuery& query)
 Result<ContributionSample> Snapshot::SampleContribution(const ContributionQuery& query) const
 {
 	if (!query.sampleDomain || !query.sample || static_cast<unsigned>(query.component) > static_cast<unsigned>(ContributionComponent::Unresolved) ||
-		static_cast<unsigned>(query.quantity) > static_cast<unsigned>(ContributionQuantity::AttributionFraction)) return Failure<ContributionSample>(Status::InvalidArgument);
+		static_cast<unsigned>(query.quantity) > static_cast<unsigned>(ContributionQuantity::LegacyRelativeChannels)) return Failure<ContributionSample>(Status::InvalidArgument);
+	if(query.quantity==ContributionQuantity::LegacyRelativeChannels)return Failure<ContributionSample>(Status::Unsupported); // offline diagnostic channels, never linear Rec.709 LightingSample
 	const Status s = Check(query.source); if (s != Status::Ok) return Failure<ContributionSample>(s);
 	const auto d = data_->datasets.find(query.sampleDomain);
 	if (d == data_->datasets.end() || d->second->purpose != DatasetPurpose::SampleDomain) return Failure<ContributionSample>(Status::InvalidArgument);

@@ -1975,12 +1975,13 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		engine.reset(new Engine(r, read));
 		auto &e = *engine;
 		e.Pin();
+		auto selectionIdentity=e.identity;
 		if (validation)
 		{
 			GeometryKey k;
 			k.Digest(e.identity);
 			k.Digest(validation->Key());
-			e.identity = k.Finish();
+			selectionIdentity = k.Finish();
 		}
 		Need(!Zero(r.trainingKey) && r.candidates.size() <= r.options.maxCandidates, Code::InvalidInput,
 			 "Joint pinned training key / candidate budget");
@@ -2039,7 +2040,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				 "Missing patch material definition");
 		if (resume)
 		{
-			Need(resume->version == kVersion && resume->inputKey == e.identity, Code::InvalidState,
+			Need(resume->version == kVersion && resume->inputKey == selectionIdentity, Code::InvalidState,
 				 "Stale joint checkpoint");
 			Need(resume->completed.size() <= r.options.maxModels &&
 					 resume->catalog.size() <= r.options.maxCandidates &&
@@ -2059,7 +2060,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		}
 		else
 		{
-			checkpoint.inputKey = e.identity;
+			checkpoint.inputKey = selectionIdentity;
 			checkpoint.catalog = r.candidates;
 			std::sort(checkpoint.catalog.begin(), checkpoint.catalog.end(),
 					  [](const Candidate &a, const Candidate &b) { return a.id < b.id; });
@@ -2431,6 +2432,36 @@ Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &r
 		out = {};
 		return Failure(Code::MemoryLimit, "Hypothesis assessment allocation");
 	}
+}
+Error DecomposeFrozen(const Request& r,const Model& m,const ReadContext& read,Indirect::Result& out,Work& work)
+{
+	out={};work={};std::unique_ptr<Engine> engine;
+	try {
+		Need(r.transfer&&!r.transfer->Patches().empty()&&m.profile<r.profiles.size()&&m.strictReevaluated&&m.key==ModelKey(m),Code::InvalidInput,"Frozen decomposition needs a sealed strict model");
+		engine.reset(new Engine(r,read));auto& e=*engine;e.identity=m.trainingKey;
+		Need(m.geometryKey==r.geometry.geometryKey&&m.policyKey==e.Configuration()&&m.transferKey==r.transfer->Key(),Code::InvalidState,"Decomposition generation mismatch");
+		Need(e.Place(m),Code::MissingGeometry,"Decomposition source geometry not certified");
+		Indirect::Request q;q.transfer=r.transfer;q.trainingKey=m.trainingKey;q.contract=r.profiles[m.profile].contract;q.materials=m.materials;
+		for(const auto& s:m.sources)q.roots.push_back(e.Primary(m,s,true));
+		q.roots.insert(q.roots.end(),r.boundaryRoots.begin(),r.boundaryRoots.end());
+		for(auto& material:q.materials){material.lower=material.upper=material.initial;material.knowledge=Indirect::MaterialKnowledge::Known;}
+		auto rows=std::make_shared<Rows<Indirect::Observation>>();
+		size_t representative=0;
+        for(size_t i=0;i<r.transfer->Patches().size();++i) {
+            bool known=true;for(const auto& root:q.roots)known&=i<root.available.size() && root.available[i];
+            if(known){representative=i;break;}
+        }
+        Indirect::Observation row;row.id=1;row.patch=r.transfer->Patches()[representative].id;row.spatialBlock=1;row.areaWorldSquared=r.transfer->Patches()[representative].areaWorldSquared;rows->v->push_back(row);q.training=rows;q.count=1;
+		q.options.maxIterations=1;q.options.maxWork=r.options.maxWork;q.options.maxBytes=r.options.maxBytes;
+		Check(Indirect::Fit(q,read,out));e.work.links+=out.work.linkOperations;e.work.arithmetic+=out.work.linkOperations;e.Limit();
+		out.materials=m.materials;out.physicalBounceVerified=false;
+        if(std::any_of(m.materials.begin(),m.materials.end(),[](const Indirect::Reflectance& material){return material.knowledge!=Indirect::MaterialKnowledge::Known;})) {
+            for(auto& value:out.values){value.upperKnown=false;value.issues|=Indirect::UnknownMaterial;}
+            out.limitations.push_back("Frozen reflectance prediction only; numeric per-root bounds are conditional, not total material-uncertainty bounds");
+        }
+        work=e.work;return {};
+	}catch(const Error& error){out={};if(engine)work=engine->work;return error;}
+	catch(const std::bad_alloc&){out={};return Failure(Code::MemoryLimit,"Frozen decomposition allocation");}
 }
 Error EvaluateFrozen(const Request &r, const Model &model,
 					 std::shared_ptr<const ChunkSource<Observation>> source, uint64_t count, Role role,

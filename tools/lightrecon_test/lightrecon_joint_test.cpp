@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "joint_fixture.h"
 #include "lightrecon/shadow_evidence.h"
+#ifdef LIGHTRECON_PRODUCER_SUITE
+#include "producer_test_scene.h"
+#endif
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -74,7 +77,28 @@ J::Result Run(Rig &rig, const std::string &name, const std::vector<J::Source> &t
 					 rig.request.profiles[0].contract.operation == I::ObservationOperator::NetRadiantEncoded);
 	Oracle oracle(rig);
 	J::Result result;
-	auto error = J::Solve(rig.request, Read(), result, &oracle);
+	Error error;
+#ifdef LIGHTRECON_PRODUCER_SUITE
+    ProducerTest::Validation independent(rig);ProducerTest::Final final(rig);
+    ProducerTest::P::Result produced;
+    auto request=ProducerTest::Request(rig);
+    error=ProducerTest::P::Run(request,Read(),produced,&independent,&final);
+    result=produced.fitted;
+    if(expectGood) {
+        CHECK(error);
+        CHECK(produced.state==ProducerTest::P::State::Completed);
+        CHECK(produced.artifact.asset!=nullptr);
+        if(produced.artifact.asset){
+            CHECK(ProducerTest::P::ValidateArtifact(produced.artifact,Read()));
+            CHECK(produced.artifact.asset->assessment.resolvedSources==0);
+        }
+    } else if(!error) { // An unsupported final fit must not publish partial sources.
+        CHECK(!produced.artifact.asset);
+        error={};
+    }
+#else
+    error=J::Solve(rig.request,Read(),result,&oracle);
+#endif
 	if (!error)
 		std::printf("%s error %d: %s\n", name.c_str(), int(error.code), error.message.c_str());
 	CHECK(error);
@@ -90,7 +114,11 @@ J::Result Run(Rig &rig, const std::string &name, const std::vector<J::Source> &t
 						m.validation.blackMse, m.validation.worstBlockRmse);
 		std::ostringstream row;
 		row << "{\"name\":\"" << name << "\",\"state\":\"" << J::StateName(result.state)
-			<< "\",\"prediction_available\":false,\"models\":" << result.work.attemptedModels << "}";
+			<< "\",\"prediction_available\":false,\"models\":" << result.work.attemptedModels;
+#ifdef LIGHTRECON_PRODUCER_SUITE
+		row << ",\"publication\":" << ProducerTest::P::ReportJson(produced);
+#endif
+		row << "}";
 		rows.push_back(row.str());
 		return result;
 	}
@@ -138,7 +166,11 @@ J::Result Run(Rig &rig, const std::string &name, const std::vector<J::Source> &t
 		GeometryJson(row, s);
 		row << '}';
 	}
-	row << "],\"truth\":[";
+	row << "]";
+#ifdef LIGHTRECON_PRODUCER_SUITE
+	row << ",\"publication\":" << ProducerTest::P::ReportJson(produced);
+#endif
+	row << ",\"truth\":[";
 	for (size_t i = 0; i < truth.size(); ++i)
 	{
 		if (i)

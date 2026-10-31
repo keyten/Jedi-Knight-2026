@@ -1,0 +1,163 @@
+{
+  "compiled": [
+    {
+      "name": "point_room",
+      "peak_process_rss_bytes": 6287360,
+      "seconds": 0.698067200020887
+    },
+    {
+      "name": "point_room-wrong",
+      "peak_process_rss_bytes": 5926912,
+      "seconds": 0.9941839999519289
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 6844416,
+      "seconds": 5.313031200086698
+    },
+    {
+      "name": "two_colour-wrong",
+      "peak_process_rss_bytes": 6193152,
+      "seconds": 3.6629099999554455
+    },
+    {
+      "name": "door_occlusion",
+      "peak_process_rss_bytes": 6344704,
+      "seconds": 0.4477626000298187
+    },
+    {
+      "name": "door_occlusion-wrong",
+      "peak_process_rss_bytes": 5926912,
+      "seconds": 0.9602469999808818
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 6795264,
+      "seconds": 6.6716649000300094
+    }
+  ],
+  "evaluation_framework": {
+    "command": [
+      "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "-X",
+      "utf8",
+      "tools/rend2/evaluation/benchmark.py",
+      "--output",
+      "build/s13-evaluation",
+      "--analytical-answers",
+      "build/offline-suite-msvc-accepted/answers",
+      "--compiled-root",
+      "build/x02/compiled-fixtures-frozen",
+      "--compiled-answers",
+      "build/q3map2-bake-verified/answers",
+      "--stock-root",
+      "build/x02/final"
+    ],
+    "exit_code": 0,
+    "peak_working_set_bytes": 192184320,
+    "wall_seconds": 277.9465145000722
+  },
+  "publication_suite": [
+    {
+      "peak_process_rss_bytes": 6807552,
+      "seconds": 15.671490999986418,
+      "stage": "CPU-0"
+    },
+    {
+      "peak_process_rss_bytes": 6922240,
+      "seconds": 14.131120799924247,
+      "stage": "CPU-1"
+    }
+  ],
+  "stock_controller": {
+    "command": [
+      "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+      "-X",
+      "utf8",
+      "tools/rend2/producer/stock.py",
+      "--tool",
+      "build/s06-gcc/lightrecon_joint_tool.exe",
+      "--rays",
+      "build/s06-gcc/lightrecon_profile_rays.exe",
+      "--out",
+      "C:/Users/Keyten/AppData/Local/Temp/jk-lightrecon-s13-20261031-release"
+    ],
+    "exit_code": 0,
+    "peak_working_set_bytes": 437231616,
+    "wall_seconds": 80.62403249996714
+  },
+  "stock_native": {
+    "hoth2": [
+      {
+        "peak_process_rss_bytes": 37859328,
+        "seconds": 0.7536890000337735,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 37167104,
+        "seconds": 0.7560495999641716,
+        "selector": 3
+      }
+    ],
+    "hoth3": [
+      {
+        "peak_process_rss_bytes": 55992320,
+        "seconds": 1.5135284001007676,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 55382016,
+        "seconds": 1.214647600078024,
+        "selector": 3
+      }
+    ],
+    "kor1": [
+      {
+        "peak_process_rss_bytes": 40996864,
+        "seconds": 2.368737900047563,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 40472576,
+        "seconds": 2.4942995999008417,
+        "selector": 3
+      }
+    ],
+    "mp/ffa1": [
+      {
+        "peak_process_rss_bytes": 17428480,
+        "seconds": 1.0316131999716163,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 16736256,
+        "seconds": 0.8812635999638587,
+        "selector": 3
+      }
+    ],
+    "vjun2": [
+      {
+        "peak_process_rss_bytes": 49733632,
+        "seconds": 3.5017718999879435,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 49250304,
+        "seconds": 3.357834400027059,
+        "selector": 3
+      }
+    ],
+    "yavin1b": [
+      {
+        "peak_process_rss_bytes": 22605824,
+        "seconds": 0.38033320009708405,
+        "selector": 2
+      },
+      {
+        "peak_process_rss_bytes": 21962752,
+        "seconds": 0.39541509991977364,
+        "selector": 3
+      }
+    ]
+  }
+}

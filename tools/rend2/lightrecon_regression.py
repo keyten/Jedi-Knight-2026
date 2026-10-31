@@ -322,7 +322,7 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport') and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport', 'r_lightReconPreview') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 if shared_emission_utility(relative, text, m.start()):
                     continue
@@ -332,10 +332,16 @@ def production_audit():
     if re.search(r'\b(?:qgl\w+|GLSL_\w+|R_Volumetric\w+|R_ForwardPlus\w+)\s*\(|Cvar_(?:Set|Get)', adapter):
         failures.append('Canonical control adapter must not create GPU resources, shader permutations or force another cvar')
     debug = adapter[adapter.find('void R_LuxelDebugDraw('):]
-    if not re.search(r'if\s*\(s_luxelDebug.empty\(\).*?\)\s*return;', debug, re.S):
-        failures.append('Luxel debug must return before shader registration/submission with no explicit markers')
+    if not re.search(r'if\s*\(\(s_luxelDebug.empty\(\)\s*&&\s*s_reconstructionPreview.empty\(\)\).*?\)\s*return;', debug, re.S):
+        failures.append('Luxel/producer debug must return before shader registration/submission with no explicit markers')
     if not re.search(r'RE_RegisterShaderFromImage\("\*luxelDebug",\s*lightmapsVertex\b', debug):
         failures.append('Luxel markers must use the depth-tested vertex-colour shader, not a depth-disabled 2D shader')
+    preview=adapter[adapter.find('void R_LightReconPreview_f('):adapter.find('void R_LuxelDebugDraw(')]
+    normalized=re.sub(r'\s+','',preview)
+    if not all(re.sub(r'\s+','',v) in normalized for v in ('s_reconstructionPreview.clear()', 'JKRECONPREVIEW1', 'geometry->Map().sha256', 'count<=256', 'bytes>128*1024')):
+        failures.append('Data-only preview requires explicit clear/hash/schema/work bounds')
+    if re.search(r'RE_Add(?:Light|AdditiveLight|AreaLight)|tr\.sunDirection|R_ForwardPlus|R_Volumetric',preview):
+        failures.append('Preview must not publish runtime lighting')
     return failures
 
 

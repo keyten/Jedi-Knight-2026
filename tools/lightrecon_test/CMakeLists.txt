@@ -8,6 +8,17 @@ if(NOT TARGET rend2_lightrecon_core)
 	add_subdirectory(../../shared/rd-rend2/lightrecon "${CMAKE_CURRENT_BINARY_DIR}/core")
 endif()
 
+add_executable(lightrecon_producer_test lightrecon_producer_test.cpp)
+target_link_libraries(lightrecon_producer_test rend2_lightrecon_core)
+set_target_properties(lightrecon_producer_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+add_test(NAME lightrecon_producer COMMAND lightrecon_producer_test "${CMAKE_CURRENT_BINARY_DIR}/producer-cache-test")
+
+add_executable(lightrecon_producer_suite lightrecon_joint_test.cpp)
+target_compile_definitions(lightrecon_producer_suite PRIVATE LIGHTRECON_PRODUCER_SUITE=1)
+target_link_libraries(lightrecon_producer_suite rend2_lightrecon_core)
+set_target_properties(lightrecon_producer_suite PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+add_test(NAME lightrecon_producer_suite COMMAND lightrecon_producer_suite)
+
 add_executable(lightrecon_uncertainty_test lightrecon_uncertainty_test.cpp)
 target_link_libraries(lightrecon_uncertainty_test rend2_lightrecon_core)
 set_target_properties(lightrecon_uncertainty_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

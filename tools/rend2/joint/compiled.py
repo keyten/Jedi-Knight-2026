@@ -59,7 +59,7 @@ def score(rows,predictions):
     objective=sum(g[2]/g[3] for g in groups.values())/len(groups)+.25*max(g[2]/g[3] for g in groups.values())
     return dict(available=True,positive=positive,required=worst<=2,mse=mse,black=black,objective=objective,worst=worst)
 
-def case(tool,views,bakes,name,out,wrong=False):
+def case(tool,views,bakes,name,out,wrong=False,publish=False):
     directory=views/name;answer=load(bakes/'answers'/f'{name}.q3map-recipe.json')
     bsp=bakes/'authoring/base/maps'/f'{name}.bsp';bsp_hash=sha(bsp)
     if answer['compiled_bsp_sha256']!=bsp_hash:raise ValueError('Pinned BSP mismatch')
@@ -74,6 +74,13 @@ def case(tool,views,bakes,name,out,wrong=False):
     # XYZ is an explicit fixed-geometry benchmark prior. RGB never enters child input.
     candidates=[s['position_world'] for s in sources]
     lines=['JKJOINT1',str(int(wrong)),str(len(candidates))]
+    if publish:
+        coverage=load(directory/'views/coverage.json');source=coverage['source']
+        partitions=[sha(directory/'views'/('inputs' if role=='train' else 'evaluator')/(role+'.jsonl')) for role in rows]
+        counts=[source['raw_pixels']//(128*128),source['raw_pixels'],coverage['derived_texel_denominator'],coverage['groups']['map']['counts'].get('mapped',0),int(coverage['all_pages_complete'])]
+        # Mapped coverage uses existing categorized report; never call the fitting subset a full map.
+        counts[3]=coverage['groups']['map']['counts'].get('mapped',0)
+        lines=['JKJOINT13',' '.join(partitions),' '.join(map(str,counts)),str(int(wrong)),str(len(candidates))]
     for i,p in enumerate(candidates):lines.append(' '.join(map(str,[i+1,*p])))
     ids={};all_ids=set()
     for role in ('train','validation','heldout'):
@@ -88,7 +95,9 @@ def case(tool,views,bakes,name,out,wrong=False):
             lines.append(' '.join(map(str,values)))
     request=out/(name+('-wrong' if wrong else '')+'.txt');request.write_text('\n'.join(lines)+'\n')
     events=[];start=time.perf_counter()
-    with subprocess.Popen([str(tool.resolve()),str(training.geometry_path),str(request.resolve())],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1) as child:
+    command=[str(tool.resolve()),str(training.geometry_path),str(request.resolve())]
+    if publish:command.append(str((out/(request.stem+'-cache')).resolve()))
+    with subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1) as child:
         expired=[]
         def stop():
             expired.append(True)
@@ -97,10 +106,11 @@ def case(tool,views,bakes,name,out,wrong=False):
         try:
             for line in child.stdout:
                 event=json.loads(line);events.append(event)
-                if event['event']=='validation':
-                    prediction=[dict(p,id=ids['validation'][p['id']]) for p in event['predictions']]
-                    s=score(rows['validation'],prediction)
-                    child.stdin.write('SCORE '+' '.join(map(str,[int(s['available']),int(s['positive']),int(s['required']),s['mse'],s['black'],s['objective'],s['worst']]))+'\n');child.stdin.flush()
+                if event['event'] in ('validation','final'):
+                    role='validation' if event['event']=='validation' else 'heldout'
+                    prediction=[dict(p,id=ids[role][p['id']]) for p in event['predictions']]
+                    s=score(rows[role],prediction)
+                    child.stdin.write(('SCORE ' if role=='validation' else 'FINAL ')+' '.join(map(str,[int(s['available']),int(s['positive']),int(s['required']),s['mse'],s['black'],s['objective'],s['worst']]))+'\n');child.stdin.flush()
             _,stderr=child.communicate(timeout=10)
             rss=peak(child)
         finally:timer.cancel()
@@ -123,7 +133,7 @@ def case(tool,views,bakes,name,out,wrong=False):
         counts={role:len(values) for role,values in rows.items()},result=result,heldout=held,
         source_parameters=private_parameters,validation_calls=sum(e['event']=='validation' for e in events),
         protocol='Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs',
-        historical_compiler_identified=False)
+        historical_compiler_identified=False,producer_publication=publish)
     if not wrong and (not held.get('available') or held['mse']>1 or held['mse']>=held['black']*.02):
         raise ValueError('Required compiled positive held-out acceptance failed '+str(report))
     return report,dict(name=request.stem,seconds=time.perf_counter()-start,peak_process_rss_bytes=rss)

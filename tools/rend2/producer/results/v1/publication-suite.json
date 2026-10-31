@@ -1,0 +1,5489 @@
+{
+  "deterministic": true,
+  "executable_sha256": "bb5aab3176320d53e3042711097991ee6ec051fd111953ec7b78ac3681aacf96",
+  "limitations": [
+    "Controlled fixture attribution is conditional, not original stock emitter recovery",
+    "No posterior existence probabilities; no absolute legacy photometry",
+    "Unpacked grid/direct-only and native deluxe only where supported",
+    "Passive first bounce is not empirical compiler bounce replay"
+  ],
+  "owned": {
+    "cases": [
+      {
+        "alternatives": 1,
+        "black_mse": 0.756033583092,
+        "cache_hits": 912,
+        "evaluations": 520,
+        "heldout_mse": 1.24440884037e-06,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 6,
+        "local_amplitude_rank": 6,
+        "models": 7,
+        "name": "two_colour",
+        "pairs": 38934,
+        "physical_existence_certified": false,
+        "preferred_sources": 2,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "50521b3a3bb385230da0c0c135b99a53701c50f684ea47d05c152d02fe6d1989",
+          "candidates": 3,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 597,
+          "heldout_black_mse": 0.756033583092,
+          "heldout_interval_mse": 1.24440884037e-06,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 11538,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2940,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 7.46918896707e-07,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 4.05267118038e-07,
+          "validation_used": 8
+        },
+        "rays": 1260,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              -0.10000000149,
+              0.800000011921
+            ],
+            "rgb": [
+              3.29987382889,
+              0.0999684035778,
+              0.203256964684
+            ],
+            "root": 0
+          },
+          {
+            "id": 20,
+            "kind": 1,
+            "position": [
+              0.699999988079,
+              0.15000000596,
+              1.10000002384
+            ],
+            "rgb": [
+              0.100102886558,
+              0.300147742033,
+              2.09586215019
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 2.11328973726e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              -0.10000000149,
+              0.800000011921
+            ],
+            "rgb": [
+              3.29999995232,
+              0.10000000149,
+              0.20000000298
+            ],
+            "root": 0
+          },
+          {
+            "kind": 1,
+            "position": [
+              0.699999988079,
+              0.15000000596,
+              1.10000002384
+            ],
+            "rgb": [
+              0.10000000149,
+              0.300000011921,
+              2.09999990463
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 2.59770042097e-07
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 2.22313835449,
+        "cache_hits": 330,
+        "evaluations": 205,
+        "heldout_mse": 5.63604274362e-10,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 6,
+        "local_amplitude_rank": 6,
+        "models": 4,
+        "name": "same_colour",
+        "pairs": 14196,
+        "physical_existence_certified": false,
+        "preferred_sources": 2,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "e1c0027a1b95c5ece7cbf3ec1fe191d6361f7fd8779f1d9b9d90a2bfd0971788",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 270,
+          "heldout_black_mse": 2.22313835449,
+          "heldout_interval_mse": 5.63604274362e-10,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 11538,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2352,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 2.03749326053e-09,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 3.50414393798e-09,
+          "validation_used": 8
+        },
+        "rays": 672,
+        "sources": [
+          {
+            "id": 11,
+            "kind": 1,
+            "position": [
+              -0.699999988079,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.30008769035,
+              2.30008769035,
+              2.30013394356
+            ],
+            "root": 0
+          },
+          {
+            "id": 21,
+            "kind": 1,
+            "position": [
+              0.699999988079,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              1.69995510578,
+              1.69995510578,
+              1.69991230965
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 2.06014887838e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.699999988079,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.29999995232,
+              2.29999995232,
+              2.29999995232
+            ],
+            "root": 0
+          },
+          {
+            "kind": 1,
+            "position": [
+              0.699999988079,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              1.70000004768,
+              1.70000004768,
+              1.70000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 2.22217740505e-09
+      },
+      {
+        "alternatives": 2,
+        "black_mse": 0.376395460518,
+        "cache_hits": 52,
+        "evaluations": 66,
+        "heldout_mse": 2.32985544437e-12,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 4,
+        "name": "unknown_absolute_scale",
+        "pairs": 2436,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "a26136eb4211f17ef0d6eef5769a0f7f24bc97cdffbd121b7ec1a0bca9bc3232",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 85,
+          "heldout_black_mse": 0.376395460518,
+          "heldout_interval_mse": 2.32985544437e-12,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 1344,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 2.09614732978e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 1.85480334795e-12,
+          "validation_used": 8
+        },
+        "rays": 504,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              2.40000700951,
+              0.80000025034,
+              1.20000040531
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Unidentifiable",
+        "train_objective": 1.03000014577e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              2.40000009537,
+              0.800000011921,
+              1.20000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.21702416663e-12
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.120584644132,
+        "cache_hits": 1356,
+        "evaluations": 633,
+        "heldout_mse": 2.78875675586e-05,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 9,
+        "local_amplitude_rank": 9,
+        "models": 8,
+        "name": "point_spot_area",
+        "pairs": 57708,
+        "physical_existence_certified": false,
+        "preferred_sources": 3,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "7913f70a3dff08d6b90cef1bdc6b1b4f600f51b981e96dcb97186d859c49973a",
+          "candidates": 3,
+          "conditional_sources": 3,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 992,
+          "heldout_black_mse": 0.120584644132,
+          "heldout_interval_mse": 2.78875675586e-05,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 14280,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 26008,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 2.92223018483e-05,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 3.16961219401e-05,
+          "validation_used": 8
+        },
+        "rays": 7712,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.800000011921,
+              -0.10000000149,
+              0.600000023842
+            ],
+            "rgb": [
+              1.69794559479,
+              0.1979303509,
+              0.124091632664
+            ],
+            "root": 0
+          },
+          {
+            "cone_degrees": 56.6329852416,
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 20,
+            "kind": 2,
+            "position": [
+              0.5,
+              0,
+              1.10000002384
+            ],
+            "rgb": [
+              0.0933065712452,
+              1.79327607155,
+              0.180231437087
+            ],
+            "root": 0
+          },
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 30,
+            "kind": 3,
+            "position": [
+              -0.10000000149,
+              0,
+              1.25
+            ],
+            "rgb": [
+              0.168816015124,
+              0.169211417437,
+              3.28290081024
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 5.0976976925e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.800000011921,
+              -0.10000000149,
+              0.600000023842
+            ],
+            "rgb": [
+              1.70000004768,
+              0.20000000298,
+              0.10000000149
+            ],
+            "root": 0
+          },
+          {
+            "cone_degrees": 56.6329852416,
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 2,
+            "position": [
+              0.5,
+              0,
+              1.10000002384
+            ],
+            "rgb": [
+              0.10000000149,
+              1.79999995232,
+              0.10000000149
+            ],
+            "root": 0
+          },
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 3,
+            "position": [
+              -0.10000000149,
+              0,
+              1.25
+            ],
+            "rgb": [
+              0.10000000149,
+              0.10000000149,
+              4.09999990463
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "validation_objective": 2.28053186088e-05
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.0081773269401,
+        "cache_hits": 342,
+        "evaluations": 217,
+        "heldout_mse": 3.46752488788e-06,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 6,
+        "local_amplitude_rank": 6,
+        "models": 4,
+        "name": "adjacent_panels",
+        "pairs": 14700,
+        "physical_existence_certified": false,
+        "preferred_sources": 2,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "7e66b906544007ff5118499a3cc3912189940bcf666dcb8fddd62e77e353ba32",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 294,
+          "heldout_black_mse": 0.0081773269401,
+          "heldout_interval_mse": 3.46752488788e-06,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 11538,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 32904,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 4.53270973037e-06,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 5.59717938041e-06,
+          "validation_used": 8
+        },
+        "rays": 8560,
+        "sources": [
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 10,
+            "kind": 3,
+            "position": [
+              -0.5,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              4.1973772049,
+              0.19930152595,
+              0.362331300974
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 20,
+            "kind": 3,
+            "position": [
+              0.5,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              0.201767250896,
+              0.201325580478,
+              3.14371562004
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 2.40317282622e-05,
+        "truth": [
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 3,
+            "position": [
+              -0.5,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              4.19999980927,
+              0.20000000298,
+              0.20000000298
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 3,
+            "position": [
+              0.5,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              0.20000000298,
+              0.20000000298,
+              3.29999995232
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "validation_objective": 3.96386575761e-06
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.00232737436939,
+        "cache_hits": 64,
+        "evaluations": 74,
+        "heldout_mse": 1.14259248282e-15,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 3,
+        "name": "tube_type_alternative",
+        "pairs": 2940,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "2bdf8231eb9ebd5c00bc03817f5f1b1b96a30802a66ef6849932bbe07bb65455",
+          "candidates": 2,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 84,
+          "heldout_black_mse": 0.00232737436939,
+          "heldout_interval_mse": 1.14259248282e-15,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 22144,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 9.9078008529e-16,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 8.36931797014e-16,
+          "validation_used": 8
+        },
+        "rays": 6208,
+        "sources": [
+          {
+            "dimensions": [
+              0.800000011921,
+              0.0399999991059
+            ],
+            "direction": [
+              1,
+              0,
+              0
+            ],
+            "direction_convention": "tube-axis",
+            "id": 10,
+            "kind": 4,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              4.19999933243,
+              2.0999994278,
+              0.500003218651
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.03000000007e-05,
+        "truth": [
+          {
+            "dimensions": [
+              0.800000011921,
+              0.0399999991059
+            ],
+            "direction": [
+              1,
+              0,
+              0
+            ],
+            "direction_convention": "tube-axis",
+            "kind": 4,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              4.19999980927,
+              2.09999990463,
+              0.5
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 5.9303374205e-16
+      },
+      {
+        "alternatives": 2,
+        "black_mse": 0.434379218445,
+        "cache_hits": 324,
+        "evaluations": 199,
+        "heldout_mse": 1.92438657602e-15,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 4,
+        "name": "red_reflector",
+        "pairs": 13944,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "499f57b473349deaaee4ddebc9cc86486344f1e16e70fc3af7ca15fc875d0668",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 267,
+          "heldout_black_mse": 0.434379218445,
+          "heldout_interval_mse": 1.92438657602e-15,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 14746,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2520,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 3.02720811381e-14,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 1.89478062869e-14,
+          "validation_used": 8
+        },
+        "rays": 672,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.699999988079,
+              -0.10000000149,
+              0.800000011921
+            ],
+            "rgb": [
+              3.2000002861,
+              3.2000002861,
+              3.2000002861
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Unidentifiable",
+        "train_objective": 1.03000000249e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.699999988079,
+              -0.10000000149,
+              0.800000011921
+            ],
+            "rgb": [
+              3.20000004768,
+              3.20000004768,
+              3.20000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.2249460705e-14
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 2.08959742103,
+        "cache_hits": 228,
+        "evaluations": 151,
+        "heldout_mse": 1.87714587894e-10,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 6,
+        "local_amplitude_rank": 6,
+        "models": 4,
+        "name": "bright_plus_weak",
+        "pairs": 9912,
+        "physical_existence_certified": false,
+        "preferred_sources": 2,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "5a0f3c3d71818005be56b3ba046f564c23ef24bc1ff4b159f257c8b7643ad099",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 216,
+          "heldout_black_mse": 2.08959742103,
+          "heldout_interval_mse": 1.87714587894e-10,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 11538,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2352,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.23735645146e-09,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 2.27579612897e-09,
+          "validation_used": 8
+        },
+        "rays": 672,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.75,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              11.9998683929,
+              0,
+              0
+            ],
+            "root": 0
+          },
+          {
+            "id": 20,
+            "kind": 1,
+            "position": [
+              0.850000023842,
+              0,
+              0.449999988079
+            ],
+            "rgb": [
+              4.45523946837e-05,
+              0,
+              0.0550004653633
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 2.06009119832e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.75,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              12,
+              0,
+              0
+            ],
+            "root": 0
+          },
+          {
+            "kind": 1,
+            "position": [
+              0.850000023842,
+              0,
+              0.449999988079
+            ],
+            "rgb": [
+              0,
+              0,
+              0.054999999702
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.43125045217e-09
+      },
+      {
+        "alternatives": 4,
+        "black_mse": 1.29625983085,
+        "cache_hits": 176,
+        "evaluations": 138,
+        "heldout_mse": 1.33981714612e-12,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 11,
+        "name": "coincident_count_ambiguity",
+        "pairs": 7854,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "a810738f987ec6dbe14e97c22e5412c40769f70fdc0ceb6e523d5131e9bed5f0",
+          "candidates": 2,
+          "conditional_sources": 3,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 230,
+          "heldout_black_mse": 1.29625983085,
+          "heldout_interval_mse": 1.33981714612e-12,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 3444,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.18638432411e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 1.02273745028e-12,
+          "validation_used": 8
+        },
+        "rays": 924,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              3.00000309944,
+              3.00000309944,
+              3.00000309944
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Unidentifiable",
+        "train_objective": 1.03000008215e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              2,
+              2,
+              2
+            ],
+            "root": 0
+          },
+          {
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              1,
+              1,
+              1
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 6.73905375947e-13
+      },
+      {
+        "models": 2,
+        "name": "zero_signal",
+        "prediction_available": false,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "6bb06fd23ce8ac681e31e98380cc7b82d2b807c7664b3678ab47fce34b7fa471",
+          "candidates": 1,
+          "conditional_sources": 0,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 33,
+          "heldout_black_mse": null,
+          "heldout_interval_mse": null,
+          "heldout_used": 0,
+          "mapped_samples": 42,
+          "payload_bytes": 0,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 252,
+          "reason": "No positive independent light evidence",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "DiagnosticOnly",
+          "training_interval_mse": null,
+          "training_requested": 18,
+          "training_used": 0,
+          "validation_interval_mse": null,
+          "validation_used": 0
+        },
+        "state": "InsufficientSignal"
+      },
+      {
+        "alternatives": 2,
+        "black_mse": 0.0966666710377,
+        "cache_hits": 26,
+        "evaluations": 33,
+        "heldout_mse": 0,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 0,
+        "local_amplitude_rank": 0,
+        "models": 2,
+        "name": "ambient_no_fake_emitter",
+        "pairs": 1218,
+        "physical_existence_certified": false,
+        "preferred_sources": 0,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "fbb677ce160b64183147645b26acf2b6820a64ae376fa17c051ff4547fbc3e64",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 47,
+          "heldout_black_mse": 0.0966666710377,
+          "heldout_interval_mse": 0,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 588,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 0,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0,
+          "validation_used": 8
+        },
+        "rays": 252,
+        "sources": [],
+        "state": "Unidentifiable",
+        "train_objective": 0,
+        "truth": [],
+        "validation_objective": 0
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.595446215878,
+        "cache_hits": 381,
+        "evaluations": 411,
+        "heldout_mse": 1.56483236862e-12,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "joint_position_refinement",
+        "pairs": 17094,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "74dd38231e4cabc2cf3c6cceec21543b4e519cddb1ae8d9bd4499c16a63b5b78",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 421,
+          "heldout_black_mse": 0.595446215878,
+          "heldout_interval_mse": 1.56483236862e-12,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2718,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.224063289e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 8.752026881e-13,
+          "validation_used": 8
+        },
+        "rays": 2208,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              0.10000000149,
+              0,
+              0.899999976158
+            ],
+            "rgb": [
+              2.7999997139,
+              0.399995028973,
+              1.20000040531
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.06000008936e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              0.10000000149,
+              0,
+              0.899999976158
+            ],
+            "rgb": [
+              2.79999995232,
+              0.40000000596,
+              1.20000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 5.77781456938e-13
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.18632663812,
+        "cache_hits": 320,
+        "evaluations": 351,
+        "heldout_mse": 5.06940200741e-05,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "joint_spot_axis_known_cone",
+        "pairs": 14574,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "bd0428e1dba6eb423857fd26df563af3993238bf4897fcc6fb0f6d2e69f3ee1f",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 361,
+          "heldout_black_mse": 0.18632663812,
+          "heldout_interval_mse": 5.06940200741e-05,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 1652,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.12955755156e-05,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 7.56475231696e-06,
+          "validation_used": 8
+        },
+        "rays": 1352,
+        "sources": [
+          {
+            "cone_degrees": 56.6329852416,
+            "direction": [
+              -0.00431847013533,
+              -0.00396646186709,
+              -0.999982714653
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 10,
+            "kind": 2,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.17614459991,
+              1.09179866314,
+              0.496526628733
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.9279406293e-05,
+        "truth": [
+          {
+            "cone_degrees": 56.6329852416,
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 2,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.20000004768,
+              1.10000002384,
+              0.5
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 5.67356423772e-06
+      },
+      {
+        "models": 2,
+        "name": "free_spot_axis_cone_validation",
+        "prediction_available": false,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "e396da5740291a6a4f62fa37c60aade7e5d3f9a96618279dcf6455a48309bea9",
+          "candidates": 1,
+          "conditional_sources": 0,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 589,
+          "heldout_black_mse": null,
+          "heldout_interval_mse": null,
+          "heldout_used": 0,
+          "mapped_samples": 42,
+          "payload_bytes": 0,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 2085,
+          "reason": "No model passes required independent spatial blocks",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "DiagnosticOnly",
+          "training_interval_mse": null,
+          "training_requested": 18,
+          "training_used": 0,
+          "validation_interval_mse": null,
+          "validation_used": 0
+        },
+        "state": "Unavailable"
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.00385266567578,
+        "cache_hits": 224,
+        "evaluations": 247,
+        "heldout_mse": 2.97436071209e-11,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "joint_panel_dimensions",
+        "pairs": 10206,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "fa44596d646ee74688dcc590c5443970b8f71860be5a12e963a9d52fbe35cf55",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 257,
+          "heldout_black_mse": 0.00385266567578,
+          "heldout_interval_mse": 2.97436071209e-11,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 24040,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 2.47089325575e-11,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 1.96778762537e-11,
+          "validation_used": 8
+        },
+        "rays": 16144,
+        "sources": [
+          {
+            "dimensions": [
+              0.558591187,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "id": 10,
+            "kind": 3,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.20788764954,
+              1.10271835327,
+              0.501237094402
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.05000182452e-05,
+        "truth": [
+          {
+            "dimensions": [
+              0.560000002384,
+              0.239999994636
+            ],
+            "direction": [
+              0,
+              0,
+              -1
+            ],
+            "direction_convention": "emission-propagation",
+            "kind": 3,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.20000004768,
+              1.10000002384,
+              0.5
+            ],
+            "root": 0,
+            "tangent": [
+              1,
+              0,
+              0
+            ]
+          }
+        ],
+        "validation_objective": 1.32129266612e-11
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.00122108893882,
+        "cache_hits": 224,
+        "evaluations": 247,
+        "heldout_mse": 4.49687636206e-09,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "joint_tube_dimensions",
+        "pairs": 10206,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "5be615ab535455c1fb90bd78ea3c7abd1ed7114456cd0af15649d5958ba184ba",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 257,
+          "heldout_black_mse": 0.00122108893882,
+          "heldout_interval_mse": 4.49687636206e-09,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 48420,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 3.60511923538e-09,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 2.71448007175e-09,
+          "validation_used": 8
+        },
+        "rays": 32484,
+        "sources": [
+          {
+            "dimensions": [
+              0.766697883606,
+              0.0369246527553
+            ],
+            "direction": [
+              1,
+              0,
+              0
+            ],
+            "direction_convention": "tube-axis",
+            "id": 10,
+            "kind": 4,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.61384940147,
+              1.24226081371,
+              0.564665734768
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.05028020975e-05,
+        "truth": [
+          {
+            "dimensions": [
+              0.800000011921,
+              0.0399999991059
+            ],
+            "direction": [
+              1,
+              0,
+              0
+            ],
+            "direction_convention": "tube-axis",
+            "kind": 4,
+            "position": [
+              0,
+              0,
+              1.14999997616
+            ],
+            "rgb": [
+              3.20000004768,
+              1.10000002384,
+              0.5
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.89374778899e-09
+      },
+      {
+        "alternatives": 4,
+        "black_mse": 0.415763352524,
+        "cache_hits": 717,
+        "evaluations": 1132,
+        "heldout_mse": 2.15826199505e-12,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 12,
+        "name": "missing_initial_candidate",
+        "pairs": 106596,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "23b923d63b1afae23e2273306b835912ae85a3fea8dfc37a83553fc86204948b",
+          "candidates": 1,
+          "conditional_sources": 4,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 1676,
+          "heldout_black_mse": 0.415763352524,
+          "heldout_interval_mse": 2.15826199505e-12,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 159180,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.94975016071e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 1.75044700956e-12,
+          "validation_used": 8
+        },
+        "rays": 152964,
+        "sources": [
+          {
+            "id": 16733560728034182270,
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              2.70000100136,
+              0.399995028973,
+              1.10000443459
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Unidentifiable",
+        "train_objective": 1.06000013587e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              1
+            ],
+            "rgb": [
+              2.70000004768,
+              0.40000000596,
+              1.10000002384
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.15097803973e-12
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 122.944444444,
+        "cache_hits": 1366,
+        "evaluations": 1380,
+        "heldout_mse": 0,
+        "linear_amplitudes": false,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 4,
+        "name": "known_profile_alternative",
+        "pairs": 57624,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "40724c815a23e9854ed35e23a79e321a147d06b07a79ec9fe20b0be0aea4c9d1",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 1390,
+          "heldout_black_mse": 122.944444444,
+          "heldout_interval_mse": 0,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 504,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 0,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0,
+          "validation_used": 8
+        },
+        "rays": 252,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -35,
+              0,
+              60
+            ],
+            "rgb": [
+              34.9319419861,
+              12,
+              20.9329395294
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.03e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -35,
+              0,
+              60
+            ],
+            "rgb": [
+              35,
+              12,
+              21
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 0
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 31427.0277778,
+        "cache_hits": 608,
+        "evaluations": 615,
+        "heldout_mse": 0,
+        "linear_amplitudes": false,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "censored_ldr",
+        "pairs": 25662,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "4e6637e731e92b4c6c971bccaab84bf59df9c227867b718c965c9ac5623da3b1",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 625,
+          "heldout_black_mse": 31427.0277778,
+          "heldout_interval_mse": 0,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 378,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 0,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0,
+          "validation_used": 8
+        },
+        "rays": 126,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              40
+            ],
+            "rgb": [
+              400,
+              299.662994385,
+              200
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.03e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              40
+            ],
+            "rgb": [
+              400,
+              300,
+              200
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 0
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 849.361111111,
+        "cache_hits": 3474,
+        "evaluations": 4093,
+        "heldout_mse": 0.00192074180383,
+        "linear_amplitudes": false,
+        "local_amplitude_parameters": 6,
+        "local_amplitude_rank": 6,
+        "models": 4,
+        "name": "local_and_sun",
+        "pairs": 298452,
+        "physical_existence_certified": false,
+        "preferred_sources": 2,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "67d0c7985b4fc3c961546aba0e593dfa6ac8a0f57474dec7fab8a9018a94b4eb",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 5022,
+          "heldout_black_mse": 849.361111111,
+          "heldout_interval_mse": 0.00192074180383,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 11538,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/61120836602df253",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 102988,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 3.81033167981e-05,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0.000619121200603,
+          "validation_used": 8
+        },
+        "rays": 90868,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -40,
+              -10,
+              45
+            ],
+            "rgb": [
+              34.6655158997,
+              3.7924747467,
+              7.78238201141
+            ],
+            "root": 0
+          },
+          {
+            "direction": [
+              0,
+              0,
+              1
+            ],
+            "direction_convention": "receiver-to-source",
+            "id": 20,
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rgb": [
+              30.2195568085,
+              35.2603721619,
+              40.2277336121
+            ],
+            "root": 1
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 5.87033167981e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -40,
+              -10,
+              45
+            ],
+            "rgb": [
+              35,
+              4,
+              8
+            ],
+            "root": 0
+          },
+          {
+            "direction": [
+              0,
+              0,
+              1
+            ],
+            "direction_convention": "receiver-to-source",
+            "kind": 1,
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rgb": [
+              30,
+              35,
+              40
+            ],
+            "root": 1
+          }
+        ],
+        "validation_objective": 0.000425626579908
+      },
+      {
+        "grid_is_indirect": false,
+        "heldout_mse": 0,
+        "name": "distinct_grid_deluxe_operators",
+        "requested": 14,
+        "used": 14
+      },
+      {
+        "accepted_physical_sources": 0,
+        "name": "invalid_unknown_and_resource_controls"
+      },
+      {
+        "accepted": false,
+        "name": "unbounded_missing_geometry",
+        "unsupported_visibility_kept_unknown": true
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.0891650906702,
+        "cache_hits": 26,
+        "evaluations": 33,
+        "heldout_mse": 4.4811993622e-13,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "sealed_partition",
+        "pairs": 1218,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "797e40442d720a7d5b032c1b036ab98477bff8a97cc6487d398d7364a525f676",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 43,
+          "heldout_black_mse": 0.0891650906702,
+          "heldout_interval_mse": 4.4811993622e-13,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 756,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 3.00383329321e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 5.49139437626e-12,
+          "validation_used": 8
+        },
+        "rays": 252,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.50000405312,
+              0.699995040894,
+              1.20000040531
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.03000022735e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.5,
+              0.699999988079,
+              1.20000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 3.51831064282e-12
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.13152710012,
+        "cache_hits": 26,
+        "evaluations": 33,
+        "heldout_mse": 6.59915794849e-13,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "opening_and_occlusion",
+        "pairs": 1218,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "7c02d0c1d599dc9872be660da1d9544e7ad27176faedea015a8507eda23f90a6",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 43,
+          "heldout_black_mse": 0.13152710012,
+          "heldout_interval_mse": 6.59915794849e-13,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 8796,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 756,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 3.10951380385e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 5.49139437626e-12,
+          "validation_used": 8
+        },
+        "rays": 252,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.50000405312,
+              0.699995040894,
+              1.20000040531
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.03000023264e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.649999976158,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2.5,
+              0.699999988079,
+              1.20000004768
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 3.51831064282e-12
+      },
+      {
+        "alternatives": 1,
+        "black_mse": 0.135501156582,
+        "cache_hits": 26,
+        "evaluations": 33,
+        "heldout_mse": 4.72643529253e-13,
+        "linear_amplitudes": true,
+        "local_amplitude_parameters": 3,
+        "local_amplitude_rank": 3,
+        "models": 2,
+        "name": "high_reflectance_tail",
+        "pairs": 1218,
+        "physical_existence_certified": false,
+        "preferred_sources": 1,
+        "publication": {
+          "asset_available": true,
+          "cache_key": "263ca6af8b24f24128f4abf5d30ccabb2b806a306e6e860831940c76cdee23bc",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": true,
+          "derived_pixels": 0,
+          "evaluations": 43,
+          "heldout_black_mse": 0.135501156582,
+          "heldout_interval_mse": 4.72643529253e-13,
+          "heldout_used": 10,
+          "mapped_samples": 42,
+          "payload_bytes": 14746,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "specified-diffuse-integral",
+          "raw_pages": 0,
+          "raw_pixels": 0,
+          "rays": 756,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied candidate geometry priors; no claim of source discovery",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "training_interval_mse": 1.58849014189e-12,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 2.74854213463e-12,
+          "validation_used": 8
+        },
+        "rays": 252,
+        "sources": [
+          {
+            "id": 10,
+            "kind": 1,
+            "position": [
+              -0.600000023842,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2,
+              1.00000321865,
+              1.00000321865
+            ],
+            "root": 0
+          }
+        ],
+        "state": "Partial",
+        "train_objective": 1.0300001187e-05,
+        "truth": [
+          {
+            "kind": 1,
+            "position": [
+              -0.600000023842,
+              0,
+              0.800000011921
+            ],
+            "rgb": [
+              2,
+              1,
+              1
+            ],
+            "root": 0
+          }
+        ],
+        "validation_objective": 1.77517260151e-12
+      },
+      {
+        "automatic_position_error": 0,
+        "edges": 5,
+        "intensity_position_error": 0,
+        "name": "automatic_shadow_joint_ablation",
+        "oracle": false,
+        "rays": 383608,
+        "shadow_objective": 0.257922
+      }
+    ],
+    "checks": 351,
+    "failures": 0,
+    "schema": "org.openjk.joint-tests.v1"
+  },
+  "schema": "org.openjk.s11-benchmark.v1",
+  "source_metrics": {
+    "adjacent_panels": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "rectangle": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "rectangle->rectangle": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 2,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.04509637160748792
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0006244296402612888
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "roll_degrees": 0.0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.006787298347267138
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.04735888925396111
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "roll_degrees": 0.0,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "ambient_no_fake_emitter": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {},
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {},
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "metres",
+          "value": null
+        },
+        "position_world": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "world",
+          "value": null
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_count": 0,
+      "recall": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 0,
+      "truth_count": 0,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "bright_plus_weak": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.0967258333346072e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0011446376686606863
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 8.466569136763888e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "censored_ldr": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0003114646648847843
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "coincident_count_ambiguity": {
+      "ambiguous_truth_count": 2,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 2,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.5
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 3,
+        "numerator": 2,
+        "status": "Available",
+        "value": 0.6666666666666666
+      },
+      "false_negative": 1,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 9.614813431917819e-17
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.5000015497200001
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [
+        {
+          "prediction_index": 0,
+          "truths": [
+            0,
+            1
+          ]
+        }
+      ],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 2,
+        "numerator": 1,
+        "status": "Available",
+        "value": 0.5
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": [
+        1
+      ]
+    },
+    "high_reflectance_tail": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 9.855046840775323e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_panel_dimensions": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "rectangle": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "rectangle->rectangle": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.002515741746433095
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.002515741746433095,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.9762444024806587e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0024648755445232967
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "roll_degrees": 0.0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_position_refinement": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.276362263769958e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 8.515000135817746e-08
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_spot_axis_known_cone": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "spot": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "spot->spot": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.3359624623057607
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "cone_degrees": 0.0,
+          "direction_degrees": 0.3359624623057607,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 6.074884320661039e-05
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.00745482731704805
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_tube_dimensions": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "tube": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "tube->tube": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.07688366048354202
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.07688366048354202,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 3.7542890781758667e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.12932792113238892
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "known_profile_alternative": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0005130964481149812
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0019445146828571426
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "local_and_sun": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "sun": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1,
+        "sun->sun": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.006180134293603764
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.009556688580000078
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.00048723662569432604
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.005693340302500083
+            }
+          },
+          "prediction_index": 1,
+          "truth_index": 1
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "missing_initial_candidate": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.5830269619213959e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 3.532148085254354e-07
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "opening_and_occlusion": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.4882958672059967e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.6212480000277197e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "point_spot_area": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "rectangle": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "spot": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1,
+        "rectangle->rectangle": 1,
+        "spot->spot": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 6,
+        "numerator": 6,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 3,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 3,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.014949219406403652
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0012085016661050516
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "cone_degrees": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.04953755751526352
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0037354894156156745
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.05736976722146394
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.1992924666820786
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 2,
+          "roll_degrees": 0.0,
+          "truth_index": 2,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 3,
+        "numerator": 3,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 3,
+      "recall": {
+        "denominator": 3,
+        "numerator": 3,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 3,
+      "truth_count": 3,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "red_reflector": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 7.450624880952714e-08
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "same_colour": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 5.473028243734502e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 5.8257062077364606e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 6.851786248726523e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 2.643641102320024e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "sealed_partition": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.4882958672059967e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.6212480000277197e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "tube_type_alternative": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "tube": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "tube->tube": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 5.545050205226074e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.135333385781623e-07
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "two_colour": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0011883516619259629
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 3.821922176428471e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0004398353460996156
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.001970359346625466
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "unknown_absolute_scale": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "No shared unit and calibration/relative domain",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 7.895124425683974e-07
+            },
+            "relative_intensity": {
+              "reason": "No shared unit and calibration/relative domain",
+              "status": "NotComparable",
+              "value": null
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    }
+  },
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "d3b040df7c35947c777d4545d7e1a70125a7882e75d4fad9a5d44874d17cc815",
+    "shared/rd-rend2/lightrecon/emitter_shape.cpp": "d7505566bc8f3ad6410a1c9e3dbb14dd383af35db862076d157a9a356944fe3f",
+    "shared/rd-rend2/lightrecon/emitter_shape.h": "49b8932e051f7c3cb8eeb7c838934e18345d937d85910efacb45a7b7e4f3905e",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "fe7e29b636d251c2366ed03e1fd597adb1347d143a87e5bc1e37a3fe48a92bd7",
+    "shared/rd-rend2/lightrecon/indirect.h": "38f8042112c07faba0327e46288a2aff24fe96d70c9e98cf6fcc3de332c6b8ea",
+    "shared/rd-rend2/lightrecon/joint.cpp": "72cdc4152a9b6be446831722d347db8b6d90ca9cafe1f081a81fa670ec9d2b91",
+    "shared/rd-rend2/lightrecon/joint.h": "6fd34769566fa520f805ca72a0a47925bef4d5be3b9a1edca71fa301a2ead062",
+    "shared/rd-rend2/lightrecon/point_refine.cpp": "5590367e0768d8e93b1d4701e9b22b9466557e5226c592e86b04de3337558d47",
+    "shared/rd-rend2/lightrecon/shadow_evidence.cpp": "4fea5ce9df6f0b20959158350ce85f88fefe4d4bf8118b456a73f6d2d793377c",
+    "tools/lightrecon_test/joint_fixture.h": "001d0d25a453ca2db3c8f1a68d2583eb2aa05a0737323a4051956c08dd607efc",
+    "tools/lightrecon_test/lightrecon_joint_test.cpp": "b465b7fd2305c1a2feb92cacf5d329192033da4062c1a9c9e550fd82b853008e",
+    "tools/rend2/joint/benchmark.py": "6314de350ba96516db1f475b3ec7011601dec854eaa67656c3e14a79c68c03ca"
+  }
+}

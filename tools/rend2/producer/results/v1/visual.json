@@ -1,0 +1,53 @@
+{
+  "alignment_verified": false,
+  "comparison": {
+    "hoth2": {
+      "after": {
+        "changed_pixels": 228658,
+        "maximum": 254
+      },
+      "markers": {
+        "changed_pixels": 228652,
+        "maximum": 254
+      }
+    },
+    "hoth3": {
+      "after": {
+        "changed_pixels": 0,
+        "maximum": 0
+      },
+      "markers": {
+        "changed_pixels": 0,
+        "maximum": 0
+      }
+    }
+  },
+  "limitations": [
+    "Unfitted priors only",
+    "Occluded markers/unstable or obstructed camera",
+    "No successful recovered-stock-emitter alignment demonstration"
+  ],
+  "observations": {
+    "hoth2": {
+      "budget_exhausted": false,
+      "claim": "Unfitted legitimate glow priors only; no stock physical reconstruction demonstrated",
+      "done": true,
+      "exit_code": 0,
+      "marker_import": true,
+      "markers": 24,
+      "peak_process_rss_bytes": 615071744,
+      "seconds": 18.10999999998603
+    },
+    "hoth3": {
+      "budget_exhausted": false,
+      "claim": "Unfitted legitimate glow priors only; no stock physical reconstruction demonstrated",
+      "done": true,
+      "exit_code": 0,
+      "marker_import": true,
+      "markers": 24,
+      "peak_process_rss_bytes": 537948160,
+      "seconds": 17.67099999997299
+    }
+  },
+  "schema": "org.openjk.producer-visual.v1"
+}

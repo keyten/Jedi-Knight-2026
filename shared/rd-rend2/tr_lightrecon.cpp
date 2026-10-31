@@ -11,6 +11,7 @@
 #include <map>
 #include <cerrno>
 #include <climits>
+#include <sstream>
 
 qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
 
@@ -39,6 +40,15 @@ std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEviden
 }
 static std::vector<Rend2LightRecon::Core::SurfaceLightingObservation> s_luxelDebug;
 static qhandle_t s_luxelDebugShader = 0;
+struct ReconstructionPreviewMarker
+{
+    unsigned long long id = 0;
+    unsigned kind = 0, priorOnly = 0;
+    vec3_t position{}, right{}, up{}, forward{};
+    float width = 0, height = 0, length = 0, radius = 0, confidence = 0;
+    unsigned confidenceKnown = 0;
+};
+static std::vector<ReconstructionPreviewMarker> s_reconstructionPreview;
 
 std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void)
 {
@@ -71,6 +81,7 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	s_offlineDynamic.clear();
 	s_offlineSpaceError = {};
 	s_luxelDebug.clear();
+	s_reconstructionPreview.clear();
 	std::atomic_store(&s_emitterEvidence,
 					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	s_emitterEvidenceError = {};
@@ -88,6 +99,7 @@ LightReconWorldLoad::~LightReconWorldLoad()
 		std::atomic_store(&s_emitterEvidence,
 						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 		s_luxelDebug.clear();
+	s_reconstructionPreview.clear();
 	}
 }
 
@@ -177,6 +189,7 @@ void R_ClearReconstructedLighting(void)
 	std::atomic_store(&s_emitterEvidence,
 					  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 	std::vector<Rend2LightRecon::Core::SurfaceLightingObservation>().swap(s_luxelDebug);
+	std::vector<ReconstructionPreviewMarker>().swap(s_reconstructionPreview);
 	s_luxelDebugShader = 0;
 	s_reconstructedLighting.Unload();
 }
@@ -1112,10 +1125,51 @@ void R_LightReconObservations_f(void)
 		geometry->HdrSource().c_str());
 }
 
+// Explicit data-only marker import. Never reads an asset automatically, fits a
+// source, or writes runtime lighting state. Requires the captured original BSP hash.
+void R_LightReconPreview_f(void)
+{
+    s_reconstructionPreview.clear();
+    std::string name=ri.Cmd_Argc()==2 ? ri.Cmd_Argv(1) : "";
+    if(name=="off" || name.empty()) { ri.Printf(PRINT_ALL,"reconstruction-preview off; usage: r_lightReconPreview <safe-name>|off\n");return; }
+    if(name.size()>64 || name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")!=std::string::npos) {
+        ri.Printf(PRINT_ALL,"reconstruction-preview invalid name\n");return;
+    }
+    auto geometry=R_LuxelGeometry();
+    if(!geometry) { ri.Printf(PRINT_ALL,"reconstruction-preview requires explicit r_lightReconBuild 2/3 source capture; no fitting occurs\n");return; }
+    LightmapSourceFile file;
+    std::string path="lightrecon-preview/"+name+".txt";
+    int bytes=ri.FS_FOpenFileRead(path.c_str(),&file.handle,qtrue);
+    if(!file.handle || bytes<=0 || bytes>128*1024) {ri.Printf(PRINT_ALL,"reconstruction-preview missing/oversized file\n");return;}
+    std::string text(size_t(bytes),'\0');ri.FS_Read(&text[0],bytes,file.handle);
+    std::istringstream in(text);std::string magic,hash;unsigned count=0;
+    in>>magic>>hash>>count;
+    bool valid=bool(in) && magic=="JKRECONPREVIEW1" && hash==Rend2LightRecon::Disk::Hex(geometry->Map().sha256) && count<=256;
+    std::vector<ReconstructionPreviewMarker> markers;
+    for(unsigned i=0;valid && i<count;++i) {
+        ReconstructionPreviewMarker m;
+        in>>m.id>>m.kind>>m.priorOnly;
+        for(auto v:{m.position,m.right,m.up,m.forward})for(unsigned j=0;j<3;++j)in>>v[j];
+        in>>m.width>>m.height>>m.length>>m.radius>>m.confidenceKnown>>m.confidence;
+        valid=bool(in) && m.id && m.kind<=4 && m.priorOnly<=1 && m.confidenceKnown<=1 &&
+            std::isfinite(m.confidence) && m.confidence>=0 && m.confidence<=1;
+        for(auto v:{m.position,m.right,m.up,m.forward})for(unsigned j=0;j<3;++j)valid=valid && std::isfinite(v[j]) && std::abs(v[j])<1e7;
+        for(float v:{m.width,m.height,m.length,m.radius})valid=valid && std::isfinite(v) && v>=0 && v<1e5;
+        for(auto v:{m.right,m.up,m.forward})valid=valid && std::abs(VectorLengthSquared(v)-1)<.01f;
+        valid=valid && std::abs(DotProduct(m.right,m.up))<.01f && std::abs(DotProduct(m.right,m.forward))<.01f && std::abs(DotProduct(m.up,m.forward))<.01f;
+        if(valid) markers.push_back(m);
+    }
+    std::string extra;valid=valid && !(in>>extra);
+    if(!valid) {ri.Printf(PRINT_ALL,"reconstruction-preview rejected: map hash/finite frame/schema/data mismatch\n");return;}
+    s_reconstructionPreview.swap(markers);
+    ri.Printf(PRINT_ALL,"reconstruction-preview %u DATA ONLY markers; orange=conditional fitted hypothesis, magenta=UNFITTED prior; no lights\n",unsigned(s_reconstructionPreview.size()));
+    for(const auto &m:s_reconstructionPreview)
+        ri.Printf(PRINT_ALL,"preview id=%llu kind=%u position=%.2f %.2f %.2f priorOnly=%u existence=%s %.3f\n",m.id,m.kind,m.position[0],m.position[1],m.position[2],m.priorOnly,m.confidenceKnown?"specified":"Unknown",m.confidence);
+}
 void R_LuxelDebugDraw(const refdef_t *fd)
 {
 	// No debug state means no shader registration, poly submission or asset query.
-	if (s_luxelDebug.empty() || (fd->rdflags & RDF_NOWORLDMODEL))
+	if ((s_luxelDebug.empty() && s_reconstructionPreview.empty()) || (fd->rdflags & RDF_NOWORLDMODEL))
 		return;
 	if (!s_luxelDebugShader)
 		s_luxelDebugShader = RE_RegisterShaderFromImage("*luxelDebug", lightmapsVertex, stylesDefault,
@@ -1140,6 +1194,28 @@ void R_LuxelDebugDraw(const refdef_t *fd)
 		}
 		RE_AddPolyToScene(s_luxelDebugShader, 4, p, 1);
 	};
+    for(const auto &m:s_reconstructionPreview) {
+        vec3_t centre,delta;VectorCopy(m.position,centre);
+        // A directional source has no finite position. This anchor is a DRAWING
+        // widget in front of the camera, never a reconstructed world-space XYZ.
+        if(m.kind==4)VectorMA(fd->vieworg,96,fd->viewaxis[0],centre);
+        VectorSubtract(centre,fd->vieworg,delta);
+        if(VectorLengthSquared(delta)>2048*2048)continue;
+        byte colour[4]={255,150,30,255};if(m.priorOnly){colour[0]=255;colour[1]=40;colour[2]=230;}
+        auto axis=[&](const vec3_t v,float extent){vec3_t a,b;VectorMA(centre,-extent,v,a);VectorMA(centre,extent,v,b);line(a,b,colour);};
+        axis(m.right,std::max(4.f,m.kind==2?m.width:m.kind==3?m.length:m.radius));
+        axis(m.up,std::max(4.f,m.kind==2?m.height:m.radius));axis(m.forward,m.kind==1||m.kind==4?24.f:6.f);
+        if(m.kind==1||m.kind==4){
+            vec3_t tip,a,b;VectorMA(centre,24,m.forward,tip);VectorMA(tip,-6,m.forward,a);
+            VectorMA(a,3,m.right,b);line(tip,b,colour);VectorMA(a,-3,m.right,b);line(tip,b,colour);
+        }
+        if(m.kind==2) {
+            vec3_t corners[4];
+            for(unsigned i=0;i<4;++i) {VectorMA(centre,(i==0||i==3?-1:1)*m.width,m.right,corners[i]);VectorMA(corners[i],(i<2?-1:1)*m.height,m.up,corners[i]);}
+            for(unsigned i=0;i<4;++i)line(corners[i],corners[(i+1)%4],colour);
+        }
+    }
+
 	for (const auto &s : s_luxelDebug)
 	{
 		vec3_t p = {s.positionWorld.x, s.positionWorld.y, s.positionWorld.z},

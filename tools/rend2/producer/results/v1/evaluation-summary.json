@@ -1,0 +1,3035 @@
+{
+  "analytical_answers": 11,
+  "caveat": "Metric/oracle/readiness assertions, not autonomous producer fits; actual fits are separate witnesses",
+  "compiled_datasets": 12,
+  "metric_examples": 6,
+  "schema": "org.openjk.producer-evaluation-summary.v1",
+  "solver_executed_by_metric_runner": false,
+  "source_metrics": {
+    "adjacent_panels": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "rectangle": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "rectangle->rectangle": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 2,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.04509637160748792
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0006244296402612888
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "roll_degrees": 0.0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.006787298347267138
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.04735888925396111
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "roll_degrees": 0.0,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "ambient_no_fake_emitter": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {},
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {},
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "metres",
+          "value": null
+        },
+        "position_world": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "world",
+          "value": null
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "prediction_count": 0,
+      "recall": {
+        "denominator": 0,
+        "numerator": 0,
+        "reason": "Empty denominator",
+        "status": "Unavailable",
+        "value": null
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 0,
+      "truth_count": 0,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "bright_plus_weak": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.0967258333346072e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0011446376686606863
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 8.466569136763888e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "censored_ldr": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0003114646648847843
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "coincident_count_ambiguity": {
+      "ambiguous_truth_count": 2,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 2,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.5
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 3,
+        "numerator": 2,
+        "status": "Available",
+        "value": 0.6666666666666666
+      },
+      "false_negative": 1,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 9.614813431917819e-17
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.5000015497200001
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [
+        {
+          "prediction_index": 0,
+          "truths": [
+            0,
+            1
+          ]
+        }
+      ],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 2,
+        "numerator": 1,
+        "status": "Available",
+        "value": 0.5
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": [
+        1
+      ]
+    },
+    "high_reflectance_tail": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 9.855046840775323e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_panel_dimensions": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "rectangle": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "rectangle->rectangle": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.002515741746433095
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.002515741746433095,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.9762444024806587e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0024648755445232967
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "roll_degrees": 0.0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_position_refinement": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.276362263769958e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 8.515000135817746e-08
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_spot_axis_known_cone": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "spot": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "spot->spot": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.3359624623057607
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "cone_degrees": 0.0,
+          "direction_degrees": 0.3359624623057607,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 6.074884320661039e-05
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.00745482731704805
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "joint_tube_dimensions": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "tube": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "tube->tube": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.07688366048354202
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.07688366048354202,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 3.7542890781758667e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.12932792113238892
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "known_profile_alternative": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0005130964481149812
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0019445146828571426
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "local_and_sun": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "sun": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1,
+        "sun->sun": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.006180134293603764
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.009556688580000078
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.00048723662569432604
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.005693340302500083
+            }
+          },
+          "prediction_index": 1,
+          "truth_index": 1
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "missing_initial_candidate": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.5830269619213959e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 3.532148085254354e-07
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "opening_and_occlusion": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.4882958672059967e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.6212480000277197e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "point_spot_area": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "rectangle": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        },
+        "spot": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1,
+        "rectangle->rectangle": 1,
+        "spot->spot": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 6,
+        "numerator": 6,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 2,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 3,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 3,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.014949219406403652
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0012085016661050516
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "cone_degrees": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.04953755751526352
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.0037354894156156745
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.05736976722146394
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.1992924666820786
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 2,
+          "roll_degrees": 0.0,
+          "truth_index": 2,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 3,
+        "numerator": 3,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 3,
+      "recall": {
+        "denominator": 3,
+        "numerator": 3,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 3,
+      "truth_count": 3,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "red_reflector": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 7.450624880952714e-08
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "same_colour": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 5.473028243734502e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 5.8257062077364606e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 6.851786248726523e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 2.643641102320024e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "sealed_partition": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 1.4882958672059967e-06
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.6212480000277197e-06
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "tube_type_alternative": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "tube": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "tube->tube": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 1,
+          "status": "Available",
+          "unit": "fraction",
+          "value": 0.0
+        },
+        "direction_degrees": {
+          "count": 1,
+          "status": "Available",
+          "unit": "degrees",
+          "value": 0.0
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "dimension_relative": 0.0,
+          "direction_degrees": 0.0,
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 5.545050205226074e-07
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 1.135333385781623e-07
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "two_colour": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 2,
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 2
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 2
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 4,
+        "numerator": 4,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 2,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 2,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0011883516619259629
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 3.821922176428471e-05
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "Not jointly physically authored/calibrated",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 0.0004398353460996156
+            },
+            "relative_intensity": {
+              "status": "Available",
+              "value": 0.001970359346625466
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 1,
+          "truth_index": 1,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 2,
+      "recall": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 2,
+      "truth_count": 2,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    },
+    "unknown_absolute_scale": {
+      "ambiguous_truth_count": 0,
+      "by_kind": {
+        "point": {
+          "precision": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "predicted": 1,
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "truth": 1
+        }
+      },
+      "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+      "confusion": {
+        "point->point": 1
+      },
+      "environment_and_transport": {
+        "predicted": 0,
+        "truth": 0
+      },
+      "f1": {
+        "denominator": 2,
+        "numerator": 2,
+        "status": "Available",
+        "value": 1.0
+      },
+      "false_negative": 0,
+      "false_positive": 0,
+      "geometric_summary": {
+        "cone_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "dimension_relative": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "fraction",
+          "value": null
+        },
+        "direction_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        },
+        "position_metres": {
+          "count": 1,
+          "status": "Available",
+          "unit": "metres",
+          "value": 0.0
+        },
+        "position_world": {
+          "count": 1,
+          "status": "Available",
+          "unit": "world",
+          "value": 0.0
+        },
+        "roll_degrees": {
+          "count": 0,
+          "reason": "No comparable records",
+          "status": "Unavailable",
+          "unit": "degrees",
+          "value": null
+        }
+      },
+      "matches": [
+        {
+          "photometry": {
+            "absolute_intensity": {
+              "reason": "No shared unit and calibration/relative domain",
+              "status": "NotComparable",
+              "value": null
+            },
+            "chromaticity": {
+              "status": "Available",
+              "unit": "L2 normalized RGB simplex",
+              "value": 7.895124425683974e-07
+            },
+            "relative_intensity": {
+              "reason": "No shared unit and calibration/relative domain",
+              "status": "NotComparable",
+              "value": null
+            }
+          },
+          "position_metres": 0.0,
+          "position_world": 0.0,
+          "prediction_index": 0,
+          "truth_index": 0,
+          "xyz_metres": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "xyz_world": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "merge_neighbourhoods": [],
+      "precision": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "prediction_count": 1,
+      "recall": {
+        "denominator": 1,
+        "numerator": 1,
+        "status": "Available",
+        "value": 1.0
+      },
+      "scope": "Controlled fixture; supplied geometry priors except named refinement/search cases",
+      "split_neighbourhoods": [],
+      "true_positive": 1,
+      "truth_count": 1,
+      "unmatched_predictions": [],
+      "unmatched_truth": []
+    }
+  },
+  "stock_censuses": 3
+}

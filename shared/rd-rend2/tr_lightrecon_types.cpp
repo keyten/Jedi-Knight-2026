@@ -331,10 +331,10 @@ struct Validator
 		for (const TransportField& f : asset.transport)
 		{
 			if (!Common(f.source, "transport.source", false)) return false;
-			if (!EnumIn(f.component, TransportComponent::UnresolvedIrradiance) || !EnumIn(f.quantity, FieldQuantity::Radiance) ||
+			if (!EnumIn(f.component, TransportComponent::LegacyAmbientIrradiance) || !EnumIn(f.quantity, FieldQuantity::Radiance) ||
 				!ValidBounds(f.bounds)) return Fail("transport", "invalid component, quantity or bounds");
 			const bool irradiance = f.quantity == FieldQuantity::Irradiance;
-			if (((f.component == TransportComponent::IndirectIrradiance || f.component == TransportComponent::UnresolvedDirectIrradiance || f.component == TransportComponent::UnresolvedIrradiance) && !irradiance) ||
+			if (((f.component == TransportComponent::IndirectIrradiance || f.component == TransportComponent::UnresolvedDirectIrradiance || f.component == TransportComponent::UnresolvedIrradiance || f.component==TransportComponent::LegacyAmbientIrradiance) && !irradiance) ||
 				((f.component == TransportComponent::ReflectedRadiance || f.component == TransportComponent::UnattributedIncidentRadiance) && irradiance) ||
 				(f.unit != PhotometricUnit::Relative && f.unit != (irradiance ? PhotometricUnit::Lux : PhotometricUnit::Nits)))
 				return Fail("transport.unit", "component, quantity and unit conflict");
@@ -387,7 +387,7 @@ struct Validator
 		{
 			if (!Data(c.dataset, DatasetPurpose::Contributions, "contributions.dataset", true) ||
 				!Data(c.sampleDomain, DatasetPurpose::SampleDomain, "contributions.sampleDomain", true)) return false;
-			if (!EnumIn(c.component, ContributionComponent::Unresolved) || !EnumIn(c.quantity, ContributionQuantity::AttributionFraction) || c.sources.empty())
+			if (!EnumIn(c.component, ContributionComponent::Unresolved) || !EnumIn(c.quantity, ContributionQuantity::LegacyRelativeChannels) || c.sources.empty())
 				return Fail("contributions", "invalid component/quantity or no source IDs");
 			std::set<Id> seen;
 			for (Id source : c.sources)
@@ -395,7 +395,9 @@ struct Validator
 					(c.component == ContributionComponent::Direct && !emitters.count(source) &&
 					 !IsEnvironment(source)))
 					return Fail("contributions.sources", "missing/duplicate source or transport used as direct emitter");
-			if (c.quantity == ContributionQuantity::AttributionFraction)
+			if(c.configuration&&std::none_of(asset.lightingConfigurations.begin(),asset.lightingConfigurations.end(),[&](const LightingConfiguration& x){return x.id==c.configuration;}))return Fail("contributions.configuration","missing joint configuration");
+			if(c.quantity==ContributionQuantity::LegacyRelativeChannels){if(c.unit!=PhotometricUnit::Relative||c.domain.empty()||!CalibrationRef(c.calibration,c.unit,"contributions.calibration",true))return Fail("contributions","legacy channel contributions require explicit relative domain/calibration");}
+			else if (c.quantity == ContributionQuantity::AttributionFraction)
 			{
 				if (c.unit != PhotometricUnit::Relative || c.calibration) return Fail("contributions", "fractions are dimensionless");
 			}
@@ -410,7 +412,26 @@ struct Validator
 			if (!EnumIn(d.severity, Severity::Error) || (d.source && !sources.count(d.source)) || (d.region && !regions.count(d.region)) ||
 				!ValidEstimate(d.metric, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max()) ||
 				((d.metric.known || d.metric.bounded) && d.metricUnit.empty())) return Fail("diagnostics", "invalid reference, metric or unit");
-		return UncertaintyRecords();
+		if(!UncertaintyRecords())return false;
+		const auto& a=asset.assessment;
+		if(a.present){
+			if(a.version!=1||a.producer.empty()||a.algorithm.empty()||a.map.empty()||a.bspSha256.size()!=64||a.settingsHash.empty()||a.decoder.empty()||!a.inputsLoaded)return Fail("assessment","missing producer identity/dependency contract");
+			if(a.payloadsValidated&&!a.structuralValidated)return Fail("assessment","payload validation without structural validation");
+			if(a.strictEvaluated&&(!a.solverExecuted||a.solverKey.empty()||a.selectedProfile.empty()))return Fail("assessment","strict result lacks solver/profile identity");
+			if(a.selectedConfiguration&&std::none_of(asset.lightingConfigurations.begin(),asset.lightingConfigurations.end(),[&](const LightingConfiguration& c){return c.id==a.selectedConfiguration;}))return Fail("assessment","selected configuration absent");
+			if(!Data(a.sampleDomain,DatasetPurpose::SampleDomain,"assessment.sampleDomain")||!Data(a.diagnostics,DatasetPurpose::ObservationQuality,"assessment.diagnostics"))return false;
+			const auto& c=a.coverage;
+			if(!Nonnegative(a.trainingIntervalMse)||!Nonnegative(a.validationIntervalMse)||!Nonnegative(a.heldoutIntervalMse)||!Nonnegative(a.heldoutBlackMse))return Fail("assessment.prediction","invalid prediction metrics");
+			if(c.usedTraining>c.requestedTraining||c.unavailableTraining>c.requestedTraining||c.usedValidation>c.requestedValidation||c.usedHeldout>c.requestedHeldout||(c.rawPixels&&c.derivedPixels>c.rawPixels)||!Nonnegative(c.supportedAreaWorldSquared)||!Nonnegative(c.mappedAreaWorldSquared)||!Confidence(c.certifiedVisibilityFraction)||!Confidence(c.regionAssignedFraction))return Fail("assessment.coverage","invalid denominator/area/coverage");
+			std::set<unsigned> kinds;for(const auto& r:a.readiness){if(!EnumIn(r.kind,ReadinessKind::RuntimeConsumers)||!EnumIn(r.status,AssessmentStatus::Validated)||r.scope.empty()||!kinds.insert(unsigned(r.kind)).second||(r.status==AssessmentStatus::Validated&&r.evidence.empty()))return Fail("assessment.readiness","invalid scope/status/evidence");if(r.kind==ReadinessKind::OfflineSolver&&r.status==AssessmentStatus::Validated&&(!a.solverExecuted||!a.strictEvaluated||!a.structuralValidated||!a.payloadsValidated))return Fail("assessment.readiness","solver readiness without completed validated payloads");}
+			if(kinds.size()!=7)return Fail("assessment.readiness","all readiness dimensions required");
+			uint64_t conditional=0,resolvedCount=0,rejected=0;for(const auto& e:asset.emitters){conditional+=e.source.state==HypothesisState::Candidate;resolvedCount+=e.source.state==HypothesisState::Resolved;rejected+=e.source.state==HypothesisState::Rejected;}for(const auto& e:asset.environments){conditional+=e.source.state==HypothesisState::Candidate;resolvedCount+=e.source.state==HypothesisState::Resolved;rejected+=e.source.state==HypothesisState::Rejected;}
+			if(conditional!=a.conditionalSources||resolvedCount!=a.resolvedSources||rejected!=a.rejectedSources)return Fail("assessment.counts","physical/environment hypothesis counts disagree");
+			std::set<std::pair<Id,unsigned>> admissions;for(const auto& u:a.admissions){if(!sources.count(u.source)||!EnumIn(u.use,SourceUse::Specular)||!EnumIn(u.status,AssessmentStatus::Validated)||u.reason.empty()||!admissions.emplace(u.source,unsigned(u.use)).second)return Fail("assessment.admissions","missing/duplicate source/use");if((u.use==SourceUse::ExactEmitter||u.use==SourceUse::Shadow||u.use==SourceUse::Specular)&&u.status==AssessmentStatus::Validated&&sources[u.source]->evidence.exactLight!=Suitability::Candidate)return Fail("assessment.admissions","uncertain source claimed exact/shadow/specular ready");}
+			if(admissions.size()!=sources.size()*6)return Fail("assessment.admissions","every source/use must be assessed");
+			std::set<std::pair<std::string,std::string>> deps;for(const auto& d:a.dependencies)if(d.kind.empty()||d.name.empty()||d.sha256.size()!=64||!deps.emplace(d.kind,d.name).second)return Fail("assessment.dependencies","invalid/duplicate content identity");
+		}
+		return true;
 	}
 	bool IsEnvironment(Id source) const
 	{

@@ -434,10 +434,10 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 3 adds joint alternatives and typed uncertainty. Schema-2 empty
-			// witness was 935a8078...; both earlier semantic schemas are rejected.
-			CHECK(kSchemaVersion == 3);
-			CHECK(digest == "bdf7dceba59265891c5df61840f03610d81049d144b7163413d3c8ab487e35ef");
+			// Schema 4 adds explicit legacy-channel domains and production readiness.
+			// Earlier semantic schemas are rejected rather than silently reinterpreted.
+			CHECK(kSchemaVersion == 4);
+			CHECK(digest == "2c74b497e46ed0f111782aa0afa84ae9a0f18635162730ea4c4440f3dbdee716");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}
@@ -486,6 +486,10 @@ void CorruptionAndLimits()
 	reject(b,D::Code::Unsupported);
 	b=bytes;
 	Put(b,16,2,4); // old passive-transport schema, valid envelope/hash
+	RehashHeader(b);
+	reject(b,D::Code::Unsupported);
+	b=bytes;
+	Put(b,16,3,4); // no readiness or legacy-channel domain metadata
 	RehashHeader(b);
 	reject(b,D::Code::Unsupported);
 	b = bytes;

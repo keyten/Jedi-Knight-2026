@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 3;
+static constexpr uint32_t kSchemaVersion = 4;
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -210,7 +210,7 @@ struct EnvironmentLighting
 	SunCoverage sunCoverage = SunCoverage::Unknown; // adapter must resolve double counting
 };
 enum class TransportComponent { IndirectIrradiance, ReflectedRadiance, ApertureTransport,
-	UnresolvedDirectIrradiance, UnattributedIncidentRadiance, UnresolvedIrradiance };
+	UnresolvedDirectIrradiance, UnattributedIncidentRadiance, UnresolvedIrradiance, LegacyAmbientIrradiance };
 enum class FieldQuantity { Irradiance, Radiance };
 enum class FieldMembership { Unknown, Excluded, Included };
 enum class TransportRootKind { LocalEmitter, Sun, Sky, LegacyAmbient, Unknown };
@@ -253,7 +253,7 @@ struct VisibilityReference
 	// Missing entries ALWAYS mean unknown. PVS/region connectivity is not exact visibility.
 };
 enum class ContributionComponent { Direct, Indirect, Unresolved };
-enum class ContributionQuantity { IrradianceRGB, RadianceRGB, AttributionFraction };
+enum class ContributionQuantity { IrradianceRGB, RadianceRGB, AttributionFraction, LegacyRelativeChannels };
 struct ContributionReference
 {
 	Id dataset = 0;
@@ -263,6 +263,9 @@ struct ContributionReference
 	ContributionQuantity quantity = ContributionQuantity::IrradianceRGB;
 	PhotometricUnit unit = PhotometricUnit::Relative;
 	Id calibration = 0; // fractions require zero; RGB values follow field photometry rules
+	std::string domain; // explicit operator/domain; legacy channels are NOT physical Rec.709
+	Id configuration = 0; // complete joint hypothesis; alternatives must never be summed
+	TransportMembership membership;
 	// Sparse absence means unknown, not zero. Explicit zero records may be stored.
 	// Values are attribution evidence, never an instruction to subtract/promote energy.
 };
@@ -346,6 +349,54 @@ struct SourceUncertainty
 	Suitability exactLight=Suitability::Unknown, approximateField=Suitability::Unknown;
 };
 
+// S13: software completion, observation coverage, physical evidence and consumer
+// admission are independent dimensions. None of these records enables rendering.
+enum class ReadinessKind { Data, ForwardModel, OfflineSolver, KnownSourcePhysics,
+	StockConditional, ProductionCache, RuntimeConsumers };
+enum class AssessmentStatus { Unknown, Unavailable, Conditional, Validated };
+struct ReadinessAssessment {
+	ReadinessKind kind=ReadinessKind::Data;
+	AssessmentStatus status=AssessmentStatus::Unknown;
+	std::string scope, evidence, blocker;
+};
+enum class SourceUse { ExactEmitter, ApproximateField, Shadow, Diffuse, Volumetric, Specular };
+struct SourceAdmission {
+	Id source=0;
+	SourceUse use=SourceUse::ExactEmitter;
+	AssessmentStatus status=AssessmentStatus::Unknown;
+	std::string reason;
+};
+struct InputDependency {
+	std::string kind, name, sha256;
+	uint64_t bytes=0;
+};
+struct BuildCoverage {
+	uint64_t rawPages=0, rawPixels=0, derivedPixels=0, mappedSamples=0, gridIndices=0;
+	uint64_t requestedTraining=0, usedTraining=0, unavailableTraining=0;
+	uint64_t requestedValidation=0, usedValidation=0, requestedHeldout=0, usedHeldout=0;
+	Estimate supportedAreaWorldSquared, mappedAreaWorldSquared, certifiedVisibilityFraction,
+		regionAssignedFraction; // explicit unknowns; fractions are not physical accuracy
+	bool rawComplete=false, derivedComplete=false, sourceTransferKnown=false,
+		primariesKnown=false, geometryComplete=false, historicalProfileKnown=false;
+	std::vector<std::string> limitations;
+};
+struct BuildAssessment {
+	bool present=false;
+	uint32_t version=1;
+	std::string producer, algorithm, map, bspSha256, settingsHash, solverKey, uncertaintyKey,
+		geometryKey, decoder, selectedProfile, trainingHash, validationHash, heldoutHash, fingerprint;
+	uint64_t seed=0, proposedSources=0, conditionalSources=0, resolvedSources=0, rejectedSources=0;
+	bool inputsLoaded=false, solverExecuted=false, strictEvaluated=false,
+		structuralValidated=false, payloadsValidated=false;
+	Id selectedConfiguration=0, sampleDomain=0, diagnostics=0;
+	BuildCoverage coverage;
+	std::vector<std::string> profileHypotheses; // considered rules, not identified compiler identity
+	Estimate trainingIntervalMse,validationIntervalMse,heldoutIntervalMse,heldoutBlackMse;
+	std::vector<InputDependency> dependencies;
+	std::vector<ReadinessAssessment> readiness;
+	std::vector<SourceAdmission> admissions;
+};
+
 struct ReconstructedLightingAsset
 {
 	std::string schema = kSchema;
@@ -367,6 +418,7 @@ struct ReconstructedLightingAsset
 	std::vector<Diagnostic> diagnostics;
 	std::vector<LightingConfiguration> lightingConfigurations;
 	std::vector<SourceUncertainty> uncertainty;
+	BuildAssessment assessment;
 };
 
 // Strict boundary helpers: reject non-finite/invalid scales and overflow,

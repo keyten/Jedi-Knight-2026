@@ -1,0 +1,15 @@
+{
+  "schema": "org.openjk.producer-disabled-path.v1",
+  "revision": "0aa1757cf",
+  "source_differences": 0,
+  "programs": 27,
+  "gpu_compiled": true,
+  "driver": [
+    "Intel",
+    "Intel(R) UHD Graphics",
+    "3.2.0 - Build 27.20.100.8280"
+  ],
+  "historical_baseline_passed": false,
+  "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+  "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it"
+}
