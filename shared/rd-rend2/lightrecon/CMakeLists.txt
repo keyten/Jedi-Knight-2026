@@ -18,6 +18,7 @@ add_library(rend2_lightrecon_core STATIC
 	fit_evidence.h shadow_evidence.cpp shadow_evidence.h
 	indirect.cpp indirect.h
 	joint.cpp joint.h
+	uncertainty.cpp uncertainty.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h

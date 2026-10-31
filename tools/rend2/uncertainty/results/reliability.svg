@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="440" viewBox="0 0 560 440">
+<rect width="560" height="440" fill="white"/>
+<text x="65" y="24" font-family="sans-serif" font-size="16">S12 independent scene reliability (existence event)</text>
+<path d="M70 40V365H395M70 365L395 40" fill="none" stroke="#888"/>
+<text x="110" y="413" font-family="sans-serif" font-size="13">Frozen-bin empirical rate (not source posterior)</text>
+<text x="16" y="350" transform="rotate(-90 16 350)" font-family="sans-serif" font-size="13">Held-out family success rate</text>
+<path d="M114.8276 185.1307V365.0000" stroke="#1d6093"/>
+<circle cx="114.8276" cy="303.0952" r="5" fill="#1d6093"><title>bin 0, 14 evaluation families</title></circle>
+<path d="M151.2500 40.0000V365.0000" stroke="#1d6093"/>
+<circle cx="151.2500" cy="40.0000" r="5" fill="#1d6093"><title>bin 1, 1 evaluation families</title></circle>
+<path d="M395.0000 40.0000V365.0000" stroke="#1d6093"/>
+<circle cx="395.0000" cy="148.3333" r="5" fill="#1d6093"><title>bin 2, 3 evaluation families</title></circle>
+<path d="M313.7500 40.0000V365.0000" stroke="#1d6093"/>
+<circle cx="313.7500" cy="365.0000" r="5" fill="#1d6093"><title>bin 3, 1 evaluation families</title></circle>
+<text x="70" y="390" font-family="sans-serif" font-size="12">0</text>
+<text x="385" y="390" font-family="sans-serif" font-size="12">1</text>
+<text x="410" y="70" font-family="sans-serif" font-size="11">Error bars: family</text>
+<text x="410" y="86" font-family="sans-serif" font-size="11">Hoeffding 95% bounds.</text>
+<text x="410" y="115" font-family="sans-serif" font-size="11">Stock JA: uncalibrated.</text>
+</svg>

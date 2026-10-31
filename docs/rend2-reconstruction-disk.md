@@ -1,5 +1,10 @@
 # Reconstructed-lighting disk assets, format 1.0
 
+S12 raises the canonical semantic schema to **3** and adds optional metadata
+sections 15/16 (joint configurations and typed uncertainty). Existing schema-1/2
+keys/assets are rejected. See [S12](rend2-uncertainty-s12.md); the independent
+observation format is unchanged.
+
 S10 retains this envelope and raises its canonical semantic schema to **2** for
 explicit transport membership. `MakeKey` includes that schema. Version-1 assets
 and prior keys are rejected, without an implicit migration. The independent

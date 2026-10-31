@@ -6,6 +6,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include <algorithm>
 
 namespace Rend2LightRecon {
 namespace {
@@ -143,6 +144,54 @@ struct Validator
 			return Fail(path + ".evidence", "invalid confidence or suitability");
 		if (e.exactLight == Suitability::Candidate && (!physical || s.state == HypothesisState::Rejected))
 			return Fail(path + ".evidence.exactLight", "only non-rejected physical emitters can be exact candidates");
+		return true;
+	}
+	bool UncertaintyRecords()
+	{
+		std::map<Id,const LightingConfiguration*> configs;
+		std::map<Id,const SourceUncertainty*> records;
+		if(!Index(asset.lightingConfigurations,configs,"lightingConfigurations")||!Index(asset.uncertainty,records,"uncertainty"))return false;
+		for(const auto& c:asset.lightingConfigurations){
+			if(!provenance.count(c.provenance)||c.key.empty()||c.profile.empty()||c.calibrationHypothesis.empty())return Fail("lightingConfigurations","missing method identity/provenance");
+			if(!Positive(c.observationGain))return Fail("lightingConfigurations.observationGain","invalid gain");
+			std::set<Id> materials;for(const auto& m:c.materials)if(!m.material||!materials.insert(m.material).second||!Finite(m.reflectance)||m.reflectance.x<0||m.reflectance.y<0||m.reflectance.z<0||m.reflectance.x>1||m.reflectance.y>1||m.reflectance.z>1||!EnumIn(m.status,UncertaintyStatus::Contradicted))return Fail("lightingConfigurations.materials","invalid passive reflectance");
+			std::set<Id> tracks;for(const auto& s:c.sources){
+				if(!s.track||!tracks.insert(s.track).second||s.amplitudeDomain.empty()||!Finite(s.amplitude)||s.amplitude.x<0||s.amplitude.y<0||s.amplitude.z<0)return Fail("lightingConfigurations.sources","invalid track/amplitude domain");
+				if(!EnumIn(s.root,TransportRootKind::Unknown)||!Nonnegative(s.legacySpotDistanceWorld)||!Nonnegative(s.legacySpotRadiusWorld))return Fail("lightingConfigurations.sources","invalid root/spot convention");
+				if(s.root==TransportRootKind::Sky||s.root==TransportRootKind::LegacyAmbient||s.root==TransportRootKind::Unknown){if(!Finite(s.position.world)||!ValidFrame(s.frame))return Fail("lightingConfigurations.sources","invalid environment geometry");continue;}
+				if(s.root==TransportRootKind::Sun&&s.kind!=EmitterKind::Directional)return Fail("lightingConfigurations.sources","sun must be directional");
+				PhysicalEmitter e;e.kind=s.kind;e.position=s.position;e.frame=s.frame;e.geometry=s.dimensions;e.angular=s.angular;
+				e.source.id=s.track;e.source.provenance=c.provenance;
+				if(!Emitter(e,"lightingConfigurations.sources"))return false;
+			}
+		}
+		auto calibrated=[&](const CalibratedConfidence& c){
+			if(!EnumIn(c.meaning,ConfidenceMeaning::IndependentEmpiricalBinRate)||!Confidence(c.probability)||!Finite(c.intervalNominal))return false;
+			if(c.meaning==ConfidenceMeaning::Unknown)return !c.probability.known&&!c.probability.bounded;
+			return c.probability.known&&c.probability.bounded&&!c.event.empty()&&!c.population.empty()&&!c.protocol.empty()&&!c.calibrationHash.empty()&&c.independentFamilies&&c.intervalNominal>0&&c.intervalNominal<1;
+		};
+		std::set<Id> assessed;
+		for(const auto& item:asset.uncertainty){
+			const auto& lo=item.peakColourLower;const auto& hi=item.peakColourUpper;
+			if(!Finite(lo)||!Finite(hi)||(item.peakColourBounded&&(lo.x<0||lo.y<0||lo.z<0||hi.x>1||hi.y>1||hi.z>1||lo.x>hi.x||lo.y>hi.y||lo.z>hi.z)))return Fail("uncertainty.peakColour","invalid peak-normalized projection");
+			if(!sources.count(item.source)||!item.track||!assessed.insert(item.source).second||!provenance.count(item.provenance)||item.version!=1||item.method.empty()||item.inputHash.empty())return Fail("uncertainty","invalid source/method/provenance");
+			if(!calibrated(item.existence)||!calibrated(item.type)||!calibrated(item.exactUse)||!calibrated(item.fieldUse))return Fail("uncertainty.confidence","unsupported probability claim");
+			if(!Nonnegative(item.relativePeak)||!ValidEstimate(item.directionSpreadRadians,0,3.14159265359f)||item.minimumCount>item.maximumCount||!EnumIn(item.exactLight,Suitability::Candidate)||!EnumIn(item.approximateField,Suitability::Candidate))return Fail("uncertainty","invalid bounds/suitability");
+			std::set<unsigned> causes;for(const auto& f:item.factors)if(!EnumIn(f.cause,UncertaintyCause::Numerical)||!EnumIn(f.status,UncertaintyStatus::Contradicted)||f.reason.empty()||!causes.insert(unsigned(f.cause)).second)return Fail("uncertainty.factors","invalid/missing cause");
+			if(causes.size()!=13)return Fail("uncertainty.factors","every cause must be explicitly assessed or unknown");
+			std::set<Id> refs;for(Id id:item.configurations){if(!configs.count(id)||!refs.insert(id).second)return Fail("uncertainty.configurations","missing/duplicate configuration");if(std::none_of(configs[id]->sources.begin(),configs[id]->sources.end(),[&](const JointParameterState& s){return s.track==item.track;}))return Fail("uncertainty.configurations","track absent from referenced configuration");}
+			auto same=[](const Estimate& a,const Estimate& b){return a.known==b.known&&a.bounded==b.bounded&&a.value==b.value&&a.lower==b.lower&&a.upper==b.upper;};
+			const auto& evidence=sources[item.source]->evidence;
+			if(!same(item.existence.probability,evidence.physicalEmitterConfidence)||!same(item.fieldUse.probability,evidence.transportConfidence)||item.exactLight!=evidence.exactLight||item.approximateField!=evidence.approximateIrradiance)return Fail("uncertainty.evidence","typed and compatibility evidence disagree");
+			const auto& s=item.positionScatter;
+			if(!Finite(s.reference)||!Finite(s.xx)||!Finite(s.xy)||!Finite(s.xz)||!Finite(s.yy)||!Finite(s.yz)||!Finite(s.zz))return Fail("uncertainty.positionScatter","nonfinite covariance");
+			if(s.known){double scale=std::max(1.,std::max(double(s.xx),std::max(double(s.yy),double(s.zz))));double eps=scale*scale*1e-5;
+				if(s.samples<2||s.method.empty()||s.xx<0||s.yy<0||s.zz<0||double(s.xx)*s.yy-double(s.xy)*s.xy < -eps||double(s.xx)*s.zz-double(s.xz)*s.xz < -eps||double(s.yy)*s.zz-double(s.yz)*s.yz < -eps)return Fail("uncertainty.positionScatter","invalid PSD scatter");
+				double det=double(s.xx)*(double(s.yy)*s.zz-double(s.yz)*s.yz)-double(s.xy)*(double(s.xy)*s.zz-double(s.xz)*s.yz)+double(s.xz)*(double(s.xy)*s.yz-double(s.xz)*s.yy);
+				if(det < -eps*scale)return Fail("uncertainty.positionScatter","non PSD scatter");
+			}
+			if(item.exactLight==Suitability::Candidate&&(!item.complete||!item.absoluteScaleKnown||item.exactUse.meaning==ConfidenceMeaning::Unknown||sources[item.source]->evidence.exactLight!=Suitability::Candidate))return Fail("uncertainty.exactLight","unsupported exact-light suitability");
+		}
 		return true;
 	}
 	bool Emitter(const PhysicalEmitter& e, const std::string& path)
@@ -361,7 +410,7 @@ struct Validator
 			if (!EnumIn(d.severity, Severity::Error) || (d.source && !sources.count(d.source)) || (d.region && !regions.count(d.region)) ||
 				!ValidEstimate(d.metric, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max()) ||
 				((d.metric.known || d.metric.bounded) && d.metricUnit.empty())) return Fail("diagnostics", "invalid reference, metric or unit");
-		return true;
+		return UncertaintyRecords();
 	}
 	bool IsEnvironment(Id source) const
 	{

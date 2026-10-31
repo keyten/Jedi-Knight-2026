@@ -1,4 +1,8 @@
-# Canonical reconstructed static lighting, schema 2
+# Canonical reconstructed static lighting, schema 3
+
+S12 adds complete joint parameter configurations and typed per-cause uncertainty
+with independent event-calibration provenance. See [S12](rend2-uncertainty-s12.md).
+Schema-1/2 assets/cache keys are rejected; `.jkobs` observations are unchanged.
 
 S10 adds explicit transport root/component membership and reflection order, plus
 `UnresolvedIrradiance`. See [the S10 report](rend2-indirect-fitting-s10.md) for the
@@ -64,10 +68,10 @@ any consumer to subtract an attributed contribution from baked lighting.
 
 ## Identity, version and provenance
 
-The stable schema identifier is `org.openjk.reconstructed-lighting`, version 2.
+The stable schema identifier is `org.openjk.reconstructed-lighting`, version 3.
 This is an in-memory semantic schema, not a native-struct binary file format.
 An incompatible schema change requires a version change; a reader must reject
-unsupported versions. `Validate` currently accepts version 2 only.
+unsupported versions. `Validate` currently accepts version 3 only.
 
 `lineage` identifies the reconstruction across revisions. Nonempty results need
 a lineage and root provenance. The fully empty default asset is valid and means

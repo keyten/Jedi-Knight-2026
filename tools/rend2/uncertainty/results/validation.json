@@ -1,0 +1,116 @@
+{
+  "base_commit": "3b8d4721f8d22a41000cce8b02b380ea04fbc335",
+  "base_trees_equal": true,
+  "commands": [
+    {
+      "command": "cmake --build build/s06-gcc --parallel 2",
+      "exit_code": 0,
+      "result": "All standalone CPU tools Release"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc --output-on-failure --parallel 2 --timeout 360",
+      "exit_code": 0,
+      "result": "28/28, 250.10 seconds; point refinement 250.06s"
+    },
+    {
+      "command": "cmake --build build/lightrecon-core-renderers --config Release --target rdsp-rend2_x86_64 rd-rend2_x86_64 lightrecon_uncertainty_test lightrecon_disk_test lightrecon_joint_test --parallel 2",
+      "exit_code": 0,
+      "result": "SP/MP DLLs plus targeted CPU programs"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release -R ^lightrecon_(uncertainty|disk|joint)$ --output-on-failure --parallel 2 --timeout 360",
+      "exit_code": 0,
+      "result": "3/3, 18.32 seconds"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/evaluation -p test_metrics.py -v",
+      "exit_code": 0,
+      "result": "39 tests"
+    },
+    {
+      "command": "python -X utf8 -m unittest discover -s tools/rend2/evaluation/x05 -p test_acceptance.py -v",
+      "exit_code": 0,
+      "result": "16 tests, includes existing compiled-control contract checks"
+    },
+    {
+      "command": "python -X utf8 -m unittest tools.rend2.uncertainty.test_benchmark -v",
+      "exit_code": 0,
+      "result": "5 dashboard negative tests"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/uncertainty/benchmark.py --tests build/s06-gcc/lightrecon_uncertainty_test.exe --population build/s06-gcc/lightrecon_uncertainty_population.exe --out build/s12-final-checked",
+      "exit_code": 0,
+      "result": "Both programs twice; semantic equality"
+    },
+    {
+      "command": "python -X utf8 tools/rend2/point_refine/compare_shader_inputs.py --reference 3e6644819 --output build/s12-shader-inputs.json",
+      "exit_code": 0,
+      "result": "27 programs / 51 stages unchanged; not GPU compiled"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "ctest --test-dir build/s06-gcc -R ^lightrecon_(uncertainty|disk|joint)$ --output-on-failure --parallel 2",
+      "exit_code": 0,
+      "result": "After policy-key/threshold validation: 3/3, 13.20 seconds"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release -R ^lightrecon_(uncertainty|disk|joint)$ --output-on-failure --parallel 2",
+      "exit_code": 0,
+      "result": "After policy-key/threshold validation: 3/3, 19.15 seconds; SP/MP rebuild pass"
+    },
+    {
+      "command": "ctest --test-dir build/lightrecon-core-renderers -C Release -R ^lightrecon_uncertainty$ --output-on-failure",
+      "exit_code": 0,
+      "result": "Final test-only unknown-alpha/unbounded-negative additions: 1/1, 6.02 seconds; 81 assertions"
+    }
+  ],
+  "compiler": "GCC 16.2.0 / MSVC 19.27 Release",
+  "date": "2026-10-31",
+  "logs_sha256": {
+    "build/s12-acceptance-tests.log": "44ce0ac57a7bae22e9d68a0d1694cb620604139d1b70b059339721725a15fc08",
+    "build/s12-ctest-gcc.log": "bf7ecc099b0e6b69cd7348d61eb9289321eb3eb29e3d8ece0991c80e6d934873",
+    "build/s12-ctest-msvc.log": "0ca121752396575362c0ce8013412faf8dce2c7623b613830e39f03636e4f6ca",
+    "build/s12-dashboard-tests.log": "c8d6e818d3cb6bbc342b661196f85dbd1fbc231ee3e82bc227e5231b6abe7e3e",
+    "build/s12-key-ctest-gcc.log": "5bb21f5cc84bdb041d4e2a5abf00bdef03aedd751e40e507b19e3fc928c6ba75",
+    "build/s12-key-ctest-msvc.log": "70fa578510c498671f5a67f5272d3151f19564dc5f21852f6e3d4a3baf230792",
+    "build/s12-key-msvc.log": "f63856ffea2deb9b766c5ef45b8e1ff0ba8098bb3ea8437cbc4eef93f9aaebf6",
+    "build/s12-metrics-tests.log": "6ee6728d7c111355eeccbfa4c76d0a20c9b8285cd6c66de941832f4d31cad466",
+    "build/s12-msvc-final2.log": "4e616520bc7724c001facd0536093eaf016ee00216fd2966dacef7ba9f456032",
+    "build/s12-optics-ctest-msvc.log": "01678903df49895117e5516345fbf7b848806adfcb9558518e8e04e8ef625258",
+    "build/s12-shader-inputs.json": "960d71ccd9a875222c684105ff24c353cd926f1f02fb6e41fa7b7b79bc202a65"
+  },
+  "observed_intermediate_failures": [
+    "Refit input/output alias bug corrected and tested",
+    "Wrong proposed source blocked by required-block error correctly rejected without aborting valid alternatives",
+    "Initial unittest module invocation lacked legacy test import paths; discover invocations passed",
+    "Unresolved bootstrap multiplicity cancellation replaced with spatial block subsampling without replacement",
+    "Calibration/production admission mismatch found: excluded zero-signal calibration rows using training/validation-only admission; preserved superseded diagnostic, frozen bins/thresholds unchanged",
+    "Unknown-alpha negative test first rejected stale sealed metadata; fixed fixture to seal the new geometry and assert actual unknown-visibility coverage rejection"
+  ],
+  "original_pre_rebase_commit": "3e66448194922263af51bff4e3d70eeca09ea151",
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "schema": "org.openjk.s12-validation.v1",
+  "unperformed": [
+    "No game or visual runtime checks: no renderer behavior modified",
+    "No fresh q3map2 baking in S12; retained compiler controls/CPU forward regressions were reused",
+    "No stock-map confidence calibration or physical XYZ ground truth"
+  ],
+  "working_tree_source_hashes": {
+    "shared/rd-rend2/lightrecon/disk.cpp": "91026a6b918f083c1feb08bb069d094efd444edb7327be81a3251b34ece1f9e6",
+    "shared/rd-rend2/lightrecon/joint.cpp": "e631414cdf80633135d85f0dfc5da7c5e147956feea27d24b4ebe54186164647",
+    "shared/rd-rend2/lightrecon/joint.h": "1f6b8005cf6e83051141b45e7baf25c09f959282d311565561b4a06706fbbace",
+    "shared/rd-rend2/lightrecon/uncertainty.cpp": "78ef478982222c1454bd5fca2edded0afb34e645bb1b7642866d9acf61883987",
+    "shared/rd-rend2/lightrecon/uncertainty.h": "b4aeaf629d8dcdcfc0cc1d4ded645b52d9fb08b7d8ef6e83cd6d6d19cc377af3",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "bf1d86d84d997c04e3abfbabad92b50cb587aca9a147d2ac1c91672d8bccdd86",
+    "shared/rd-rend2/tr_lightrecon_types.h": "b9dc7d507fc75357dd7e7900255cef98ae9579bc0614ca3d4079f4a7137efd24",
+    "tools/lightrecon_test/joint_fixture.h": "001d0d25a453ca2db3c8f1a68d2583eb2aa05a0737323a4051956c08dd607efc",
+    "tools/lightrecon_test/joint_test_scene.h": "296c5fac63df0556033467631871eebc643e5bac4b9a29c50cdc380e7578ed57",
+    "tools/lightrecon_test/lightrecon_uncertainty_population.cpp": "3735ac542117239268d19d7a355499106821debdbb62292c973fad3b324b8e27",
+    "tools/lightrecon_test/lightrecon_uncertainty_test.cpp": "c8e4a6116c394296a105306bdad3a46e555051e55f3d4c5657d92608ff3e3b7f",
+    "tools/rend2/uncertainty/benchmark.py": "46ab42de74f503bc54e84997a53fc436fdc09654fd0719314d771208c1b71fca"
+  }
+}

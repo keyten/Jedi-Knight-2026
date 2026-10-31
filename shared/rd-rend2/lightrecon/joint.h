@@ -230,6 +230,13 @@ struct Result
 };
 Error Solve(const Request &, const ReadContext &, Result &, const Validation * = nullptr,
 			const Checkpoint *resume = nullptr, size_t roundsThisCall = SIZE_MAX);
+// Refit nuisance parameters of one supplied structural hypothesis. Training
+// only; no validation selection, hidden answers, asset publication or new IDs.
+Error Refit(const Request&,const Model& seed,const ReadContext&,Model&,Work&);
+// Strict parameter-value assessment without optimization. Reads training only;
+// useful for nuisance profiling and geometry/RGB sensitivity. No held-out reader.
+Error AssessHypothesis(const Request&,const Model&,const ReadContext&,Model&,Score&,Work&,
+	std::vector<Prediction>* =nullptr);
 // Value-only production evaluation; held-out data are accepted ONLY here after
 // freezing. Caller supplies geometry/prior Request, not training target access.
 Error EvaluateFrozen(const Request &, const Model &, std::shared_ptr<const ChunkSource<Observation>>,

@@ -101,6 +101,8 @@ enum class Section : uint32_t
 	Visibility = 12,
 	Contributions = 13,
 	Diagnostics = 14,
+	LightingConfigurations = 15,
+	Uncertainty = 16,
 	Chunk = 100
 };
 struct SectionInfo

@@ -1,0 +1,303 @@
+{
+  "dashboard": {
+    "calibration_families": 32,
+    "candidate_precision": 0.2391304347826087,
+    "candidate_records": 46,
+    "candidate_truth_coverage": 0.6470588235294118,
+    "evaluation_families": 16,
+    "existing_metric_diagnostic": {
+      "bins": [
+        {
+          "average_probability": 0.125,
+          "lower": 0.0,
+          "n": 35,
+          "observed_rate": 0.22857142857142856,
+          "upper": 0.2,
+          "wilson95": null
+        },
+        {
+          "average_probability": 0.25,
+          "lower": 0.2,
+          "n": 1,
+          "observed_rate": 1.0,
+          "upper": 0.4,
+          "wilson95": null
+        },
+        {
+          "lower": 0.4,
+          "n": 0,
+          "observed_rate": null,
+          "upper": 0.6
+        },
+        {
+          "average_probability": 0.75,
+          "lower": 0.6,
+          "n": 1,
+          "observed_rate": 0.0,
+          "upper": 0.8,
+          "wilson95": null
+        },
+        {
+          "average_probability": 1.0,
+          "lower": 0.8,
+          "n": 3,
+          "observed_rate": 0.6666666666666666,
+          "upper": 1.0,
+          "wilson95": null
+        }
+      ],
+      "brier": {
+        "count": 40,
+        "status": "Available",
+        "value": 0.216796875
+      },
+      "expected_calibration_error": {
+        "status": "Available",
+        "value": 0.153125
+      },
+      "heuristic_scores_not_probabilities": 0,
+      "independence_assumed": false,
+      "scored": 40,
+      "warning": "Reliability diagnostic; finite fixtures do not establish deployment calibration"
+    },
+    "false_candidates": 35,
+    "joint_configuration_coverage": {
+      "covered": 9,
+      "denominator": 14,
+      "meaning": "One retained complete configuration matches every truth injectively; not nominal 95% coverage"
+    },
+    "matched_truth": 11,
+    "missed_truth": 6,
+    "population": "S12 owned procedural planar rooms with supplied point positions v1",
+    "reliability": [
+      {
+        "bin": 0,
+        "calibration_families": 32,
+        "calibration_rate_interval95": [
+          0,
+          0.36508069783
+        ],
+        "evaluation_families": 14,
+        "evaluation_family_hoeffding95": [
+          0,
+          0.5534440882161744
+        ],
+        "observed_family_rate": 0.19047619047619047,
+        "predicted_rate": 0.125
+      },
+      {
+        "bin": 1,
+        "calibration_families": 4,
+        "calibration_rate_interval95": [
+          0,
+          0.92905075787
+        ],
+        "evaluation_families": 1,
+        "evaluation_family_hoeffding95": [
+          0,
+          1
+        ],
+        "observed_family_rate": 1.0,
+        "predicted_rate": 0.25
+      },
+      {
+        "bin": 2,
+        "calibration_families": 4,
+        "calibration_rate_interval95": [
+          0.32094924213,
+          1
+        ],
+        "evaluation_families": 3,
+        "evaluation_family_hoeffding95": [
+          0,
+          1
+        ],
+        "observed_family_rate": 0.6666666666666666,
+        "predicted_rate": 1
+      },
+      {
+        "bin": 3,
+        "calibration_families": 4,
+        "calibration_rate_interval95": [
+          0.0709492421297,
+          1
+        ],
+        "evaluation_families": 1,
+        "evaluation_family_hoeffding95": [
+          0,
+          1
+        ],
+        "observed_family_rate": 0.0,
+        "predicted_rate": 0.75
+      }
+    ],
+    "risk_coverage": [
+      {
+        "accepted_candidates": 40,
+        "candidate_coverage": 0.8695652173913043,
+        "false_accepted": 29,
+        "missed_or_abstained_truth": 6,
+        "mode": "rate",
+        "risk": 0.725,
+        "threshold": 0,
+        "truth_recall": 0.6470588235294118
+      },
+      {
+        "accepted_candidates": 5,
+        "candidate_coverage": 0.10869565217391304,
+        "false_accepted": 2,
+        "missed_or_abstained_truth": 14,
+        "mode": "rate",
+        "risk": 0.4,
+        "threshold": 0.25,
+        "truth_recall": 0.17647058823529413
+      },
+      {
+        "accepted_candidates": 4,
+        "candidate_coverage": 0.08695652173913043,
+        "false_accepted": 2,
+        "missed_or_abstained_truth": 15,
+        "mode": "rate",
+        "risk": 0.5,
+        "threshold": 0.5,
+        "truth_recall": 0.11764705882352941
+      },
+      {
+        "accepted_candidates": 4,
+        "candidate_coverage": 0.08695652173913043,
+        "false_accepted": 2,
+        "missed_or_abstained_truth": 15,
+        "mode": "rate",
+        "risk": 0.5,
+        "threshold": 0.75,
+        "truth_recall": 0.11764705882352941
+      },
+      {
+        "accepted_candidates": 3,
+        "candidate_coverage": 0.06521739130434782,
+        "false_accepted": 1,
+        "missed_or_abstained_truth": 15,
+        "mode": "rate",
+        "risk": 0.3333333333333333,
+        "threshold": 0.9,
+        "truth_recall": 0.11764705882352941
+      },
+      {
+        "accepted_candidates": 0,
+        "candidate_coverage": 0.0,
+        "false_accepted": 0,
+        "missed_or_abstained_truth": 17,
+        "mode": "rate",
+        "risk": null,
+        "threshold": 1.01,
+        "truth_recall": 0.0
+      },
+      {
+        "accepted_candidates": 40,
+        "candidate_coverage": 0.8695652173913043,
+        "false_accepted": 29,
+        "missed_or_abstained_truth": 6,
+        "mode": "lower",
+        "risk": 0.725,
+        "threshold": 0,
+        "truth_recall": 0.6470588235294118
+      },
+      {
+        "accepted_candidates": 3,
+        "candidate_coverage": 0.06521739130434782,
+        "false_accepted": 1,
+        "missed_or_abstained_truth": 15,
+        "mode": "lower",
+        "risk": 0.3333333333333333,
+        "threshold": 0.25,
+        "truth_recall": 0.11764705882352941
+      },
+      {
+        "accepted_candidates": 0,
+        "candidate_coverage": 0.0,
+        "false_accepted": 0,
+        "missed_or_abstained_truth": 17,
+        "mode": "lower",
+        "risk": null,
+        "threshold": 0.5,
+        "truth_recall": 0.0
+      },
+      {
+        "accepted_candidates": 0,
+        "candidate_coverage": 0.0,
+        "false_accepted": 0,
+        "missed_or_abstained_truth": 17,
+        "mode": "lower",
+        "risk": null,
+        "threshold": 0.75,
+        "truth_recall": 0.0
+      },
+      {
+        "accepted_candidates": 0,
+        "candidate_coverage": 0.0,
+        "false_accepted": 0,
+        "missed_or_abstained_truth": 17,
+        "mode": "lower",
+        "risk": null,
+        "threshold": 0.9,
+        "truth_recall": 0.0
+      },
+      {
+        "accepted_candidates": 0,
+        "candidate_coverage": 0.0,
+        "false_accepted": 0,
+        "missed_or_abstained_truth": 17,
+        "mode": "lower",
+        "risk": null,
+        "threshold": 1.01,
+        "truth_recall": 0.0
+      }
+    ],
+    "scope": "Independent procedural planar rooms with supplied candidate positions; not stock JA calibration",
+    "strata": [
+      {
+        "calibrated_records": 10,
+        "false_candidates": 11,
+        "missed": 3,
+        "scenes": 5,
+        "stratum": 0,
+        "true_sources": 5
+      },
+      {
+        "calibrated_records": 15,
+        "false_candidates": 10,
+        "missed": 1,
+        "scenes": 5,
+        "stratum": 1,
+        "true_sources": 6
+      },
+      {
+        "calibrated_records": 15,
+        "false_candidates": 14,
+        "missed": 2,
+        "scenes": 6,
+        "stratum": 2,
+        "true_sources": 6
+      }
+    ],
+    "true_sources": 17,
+    "uncalibrated_candidates": 6
+  },
+  "reason": "Prototype calibration included zero-signal rows but production Analyze abstains on them. Final calibration now uses the same positive-validation admission before seeing held-out RGB. This was a protocol correction, not threshold tuning.",
+  "schema": "org.openjk.s12-calibration-admission-diagnostic.v1",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/disk.cpp": "91026a6b918f083c1feb08bb069d094efd444edb7327be81a3251b34ece1f9e6",
+    "shared/rd-rend2/lightrecon/joint.cpp": "e631414cdf80633135d85f0dfc5da7c5e147956feea27d24b4ebe54186164647",
+    "shared/rd-rend2/lightrecon/joint.h": "1f6b8005cf6e83051141b45e7baf25c09f959282d311565561b4a06706fbbace",
+    "shared/rd-rend2/lightrecon/uncertainty.cpp": "e38cb6d3950ba21b96c77f38440d368fad3583ee572af31879e8ebb24ed99787",
+    "shared/rd-rend2/lightrecon/uncertainty.h": "b4aeaf629d8dcdcfc0cc1d4ded645b52d9fb08b7d8ef6e83cd6d6d19cc377af3",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "bf1d86d84d997c04e3abfbabad92b50cb587aca9a147d2ac1c91672d8bccdd86",
+    "shared/rd-rend2/tr_lightrecon_types.h": "b9dc7d507fc75357dd7e7900255cef98ae9579bc0614ca3d4079f4a7137efd24",
+    "tools/lightrecon_test/joint_fixture.h": "001d0d25a453ca2db3c8f1a68d2583eb2aa05a0737323a4051956c08dd607efc",
+    "tools/lightrecon_test/joint_test_scene.h": "296c5fac63df0556033467631871eebc643e5bac4b9a29c50cdc380e7578ed57",
+    "tools/lightrecon_test/lightrecon_uncertainty_population.cpp": "06fb27d5b40e0f02ec57879c4514d7ab511a4aded7f4912a0cfce8b7d5a29c70",
+    "tools/lightrecon_test/lightrecon_uncertainty_test.cpp": "fdc32f3bb43d29cfe50612a0e07636ccf8f04bac3e6c14568aeb8743fd7146c9",
+    "tools/rend2/uncertainty/benchmark.py": "f32491b44572600d52a64d0045601de26f65de7a7afe06178be539f2f4c41729"
+  },
+  "status": "SupersededCalibrationProtocol"
+}

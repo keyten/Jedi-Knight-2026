@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 2;
+static constexpr uint32_t kSchemaVersion = 3;
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -276,6 +276,76 @@ struct Diagnostic
 	std::string metricUnit; // explicit e.g. "world", "relative-rms", "lux"
 };
 
+// S12 semantics: sampled feasible configurations are not statistical confidence
+// regions. Empirical bin rates refer only to an independently calibrated event
+// and population; no generic [0,1] score becomes a source posterior.
+enum class UncertaintyStatus { Unknown, Unsupported, Conditional, Supported, Ambiguous, Contradicted };
+enum class UncertaintyCause { Existence, Type, Position, Orientation, Dimensions, RelativeColour,
+	AbsoluteScale, BakeProfile, Material, Visibility, ShadowAssociation, Attribution, Numerical };
+struct UncertaintyFactor
+{
+	UncertaintyCause cause=UncertaintyCause::Existence;
+	UncertaintyStatus status=UncertaintyStatus::Unknown;
+	std::string reason;
+};
+enum class ConfidenceMeaning { Unknown, IndependentEmpiricalBinRate };
+struct CalibratedConfidence
+{
+	ConfidenceMeaning meaning=ConfidenceMeaning::Unknown;
+	Estimate probability;
+	std::string event, population, protocol, calibrationHash;
+	uint32_t independentFamilies=0;
+	float intervalNominal=0; // interval for calibration-bin rate, not XYZ coverage
+};
+struct JointParameterState
+{
+	Id track=0;
+	TransportRootKind root=TransportRootKind::LocalEmitter;
+	EmitterKind kind=EmitterKind::Point;
+	Position position;
+	Frame frame;
+	EmitterGeometry dimensions;
+	AngularDistribution angular;
+	Vec3 amplitude;
+	std::string amplitudeDomain;
+	float legacySpotDistanceWorld=0,legacySpotRadiusWorld=0;
+};
+struct MaterialParameterState { Id material=0; Vec3 reflectance; UncertaintyStatus status=UncertaintyStatus::Unknown; };
+struct LightingConfiguration
+{
+	Id id=0, provenance=0;
+	std::string key, profile, calibrationHypothesis;
+	std::vector<JointParameterState> sources; // one complete mutually exclusive scene
+	std::vector<MaterialParameterState> materials;
+	float observationGain=1;
+	bool firstBounce=false;
+	bool searchComplete=false;
+};
+struct CorrelatedPositionScatter
+{
+	bool known=false;
+	Vec3 reference; // descriptive mean only; NEVER a published emitter centre
+	float xx=0,xy=0,xz=0,yy=0,yz=0,zz=0;
+	uint32_t samples=0;
+	std::string method; // sample scatter, not a posterior covariance/CI
+};
+struct SourceUncertainty
+{
+	Id id=0,source=0,track=0,provenance=0;
+	uint32_t version=1;
+	std::string method, inputHash;
+	std::vector<Id> configurations;
+	std::vector<UncertaintyFactor> factors;
+	CalibratedConfidence existence, type, exactUse, fieldUse;
+	CorrelatedPositionScatter positionScatter;
+	Estimate relativePeak, directionSpreadRadians;
+	bool peakColourBounded=false;
+	Vec3 peakColourLower,peakColourUpper; // projections of Q/max(Q), NOT physical chromaticity
+	bool absoluteScaleKnown=false, complete=false;
+	uint32_t minimumCount=0,maximumCount=0;
+	Suitability exactLight=Suitability::Unknown, approximateField=Suitability::Unknown;
+};
+
 struct ReconstructedLightingAsset
 {
 	std::string schema = kSchema;
@@ -295,6 +365,8 @@ struct ReconstructedLightingAsset
 	std::vector<VisibilityReference> visibility;
 	std::vector<ContributionReference> contributions;
 	std::vector<Diagnostic> diagnostics;
+	std::vector<LightingConfiguration> lightingConfigurations;
+	std::vector<SourceUncertainty> uncertainty;
 };
 
 // Strict boundary helpers: reject non-finite/invalid scales and overflow,

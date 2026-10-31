@@ -182,6 +182,13 @@ FIELDS(VisibilityReference, v.dataset, v.kind, v.source, v.region)
 FIELDS(ContributionReference, v.dataset, v.sampleDomain, v.sources, v.component, v.quantity, v.unit,
 	   v.calibration)
 FIELDS(Diagnostic, v.severity, v.code, v.message, v.source, v.region, v.metric, v.metricUnit)
+FIELDS(UncertaintyFactor,v.cause,v.status,v.reason)
+FIELDS(CalibratedConfidence,v.meaning,v.probability,v.event,v.population,v.protocol,v.calibrationHash,v.independentFamilies,v.intervalNominal)
+FIELDS(JointParameterState,v.track,v.root,v.kind,v.position,v.frame,v.dimensions,v.angular,v.amplitude,v.amplitudeDomain,v.legacySpotDistanceWorld,v.legacySpotRadiusWorld)
+FIELDS(MaterialParameterState,v.material,v.reflectance,v.status)
+FIELDS(LightingConfiguration,v.id,v.provenance,v.key,v.profile,v.calibrationHypothesis,v.sources,v.materials,v.observationGain,v.firstBounce,v.searchComplete)
+FIELDS(CorrelatedPositionScatter,v.known,v.reference,v.xx,v.xy,v.xz,v.yy,v.yz,v.zz,v.samples,v.method)
+FIELDS(SourceUncertainty,v.id,v.source,v.track,v.provenance,v.version,v.method,v.inputHash,v.configurations,v.factors,v.existence,v.type,v.exactUse,v.fieldUse,v.positionScatter,v.relativePeak,v.directionSpreadRadians,v.peakColourBounded,v.peakColourLower,v.peakColourUpper,v.absoluteScaleKnown,v.complete,v.minimumCount,v.maximumCount,v.exactLight,v.approximateField)
 FIELDS(InputContent, v.kind, v.name, v.bytes, v.sha256)
 #undef FIELDS
 struct Writer
@@ -269,6 +276,9 @@ template <class T> bool ValidEnum(uint32_t value);
 		return v <= uint32_t(T::last);                                                             \
 	}
 ENUM_RANGE(ProvenanceKind, External)
+ENUM_RANGE(UncertaintyStatus,Contradicted)
+ENUM_RANGE(UncertaintyCause,Numerical)
+ENUM_RANGE(ConfidenceMeaning,IndependentEmpiricalBinRate)
 ENUM_RANGE(FieldMembership, Included)
 ENUM_RANGE(TransportRootKind, Unknown)
 ENUM_RANGE(CalibrationKind, UncalibratedRelative)
@@ -702,6 +712,8 @@ Error Encode(const ReconstructedLightingAsset &asset, const Fingerprint &fingerp
 		ADD(Visibility, visibility);
 		ADD(Contributions, contributions);
 		ADD(Diagnostics, diagnostics);
+		ADD(LightingConfigurations,lightingConfigurations);
+		ADD(Uncertainty,uncertainty);
 #undef ADD
 		uint64_t metadata = 0;
 		for (const auto &s : sections)
@@ -858,7 +870,7 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 				Require(Order(index.sections[previous - 1]) < Order(s), Code::Corrupt,
 						"duplicate/unordered sections");
 			++previous;
-			bool known = s.type >= 1 && s.type <= 14;
+			bool known = s.type >= 1 && s.type <= 16;
 			Require(known || s.type == uint32_t(Section::Chunk) || !(s.flags & 1),
 					Code::Unsupported, "unknown required section");
 			if (known)
@@ -875,7 +887,7 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 		ReconstructedLightingAsset asset;
 		for (const auto &s : index.sections)
 		{
-			if (s.type > 14)
+			if (s.type > 16)
 				continue;
 			budget.Take(s.bytes);
 			auto bytes = ReadBytes(reader, s.offset, s.bytes, limits.maxMetadataBytes);
@@ -915,6 +927,8 @@ Error Open(const Reader &reader, const Fingerprint &expected, ReconstructedLight
 				READ(Visibility, visibility);
 				READ(Contributions, contributions);
 				READ(Diagnostics, diagnostics);
+				READ(LightingConfigurations,lightingConfigurations);
+				READ(Uncertainty,uncertainty);
 #undef READ
 			default:
 				break;

@@ -434,10 +434,10 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 2 intentionally changes metadata/header and schema-dependent key.
-			// The schema-1 witness was d01e4f61...; old assets are rejected below.
-			CHECK(kSchemaVersion == 2);
-			CHECK(digest == "935a80789be1e31acb3c9aa22342e2d16e99946087508d0ab35dafac141d34a4");
+			// Schema 3 adds joint alternatives and typed uncertainty. Schema-2 empty
+			// witness was 935a8078...; both earlier semantic schemas are rejected.
+			CHECK(kSchemaVersion == 3);
+			CHECK(digest == "bdf7dceba59265891c5df61840f03610d81049d144b7163413d3c8ab487e35ef");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}
@@ -482,6 +482,10 @@ void CorruptionAndLimits()
 	}
 	b=bytes;
 	Put(b,16,1,4); // valid envelope/hash, obsolete canonical schema
+	RehashHeader(b);
+	reject(b,D::Code::Unsupported);
+	b=bytes;
+	Put(b,16,2,4); // old passive-transport schema, valid envelope/hash
 	RehashHeader(b);
 	reject(b,D::Code::Unsupported);
 	b = bytes;

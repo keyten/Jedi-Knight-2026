@@ -2315,6 +2315,123 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		return Failure(Code::MemoryLimit, out.reason);
 	}
 }
+// These entry points accept caller-owned parameter proposals, never observed
+// validation/held-out RGB. They seal values against the original training policy.
+Error Refit(const Request &r, const Model &seed, const ReadContext &read, Model &out, Work &work)
+{
+	work = {};
+	std::unique_ptr<Engine> engine;
+	try
+	{
+		Model input = seed;
+		out = {}; // input/output aliasing is supported
+		Need(r.transfer && input.profile < r.profiles.size() && input.geometryKey == r.geometry.geometryKey &&
+				 input.transferKey == r.transfer->Key(),
+			 Code::InvalidInput, "Nuisance refit seed generation/profile mismatch");
+		input.physicalExistenceCertified = false;
+		input.sourceAllocationIdentifiable = false;
+		for (const auto &m : input.materials)
+		{
+			auto original =
+				std::find_if(r.materials.begin(), r.materials.end(),
+							 [&](const Indirect::Reflectance &a) { return a.material == m.material; });
+			Need(original != r.materials.end(), Code::InvalidInput, "Refit material is not in request");
+			for (unsigned c = 0; c < 3; ++c)
+				Need(Component(m.lower, c) >= Component(original->lower, c) &&
+						 Component(m.upper, c) <= Component(original->upper, c) &&
+						 Component(m.lower, c) <= Component(m.initial, c) &&
+						 Component(m.initial, c) <= Component(m.upper, c),
+					 Code::InvalidInput, "Refit material outside declared nuisance bounds");
+		}
+		engine.reset(new Engine(r, read));
+		engine->Pin();
+		out = engine->Optimize(input);
+		work = engine->work;
+		return {};
+	}
+	catch (const Error &e)
+	{
+		out = {};
+		if (engine)
+			work = engine->work;
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		out = {};
+		return Failure(Code::MemoryLimit, "Nuisance refit allocation");
+	}
+}
+Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &read, Model &out, Score &score,
+					   Work &work, std::vector<Prediction> *predictions)
+{
+	score = {};
+	work = {};
+	if (predictions)
+		predictions->clear();
+	std::unique_ptr<Engine> engine;
+	try
+	{
+		Model input = seed;
+		out = {};
+		Need(r.transfer && input.profile < r.profiles.size() && input.geometryKey == r.geometry.geometryKey &&
+				 input.transferKey == r.transfer->Key(),
+			 Code::InvalidInput, "Hypothesis generation/profile mismatch");
+		engine.reset(new Engine(r, read));
+		auto &e = *engine;
+		e.Pin();
+		Need(e.Place(input), Code::MissingGeometry, "Hypothesis source geometry not certified");
+		for (const auto &m : input.materials)
+		{
+			auto original =
+				std::find_if(r.materials.begin(), r.materials.end(),
+							 [&](const Indirect::Reflectance &a) { return a.material == m.material; });
+			Need(original != r.materials.end() && Positive(m.initial) && Peak(m.initial) <= 1,
+				 Code::InvalidInput, "Hypothesis material outside passive model");
+			for (unsigned c = 0; c < 3; ++c)
+				Need(Component(m.initial, c) >= Component(original->lower, c) &&
+						 Component(m.initial, c) <= Component(original->upper, c),
+					 Code::InvalidInput, "Hypothesis material bounds");
+		}
+		auto value = e.Evaluate(input, e.training, true);
+		out = std::move(input);
+		out.training = value.terms;
+		out.trainingKey = e.identity;
+		out.geometryKey = r.geometry.geometryKey;
+		out.transferKey = r.transfer->Key();
+		out.policyKey = e.Configuration();
+		out.strictReevaluated = true;
+		out.stationary = false;
+		out.validation = {};
+		out.key = ModelKey(out);
+		out.roots = value.roots;
+		out.reflectedPowerFraction = value.reflected;
+		out.omittedBouncePower = value.tail;
+		out.physicalExistenceCertified = false;
+		out.sourceAllocationIdentifiable = false;
+		out.localAmplitudeSpectrum = {};
+		out.absoluteScaleKnown =
+			r.profiles[out.profile].contract.incidentDomain == Indirect::Root::Domain::PhysicalLux &&
+			r.profiles[out.profile].contract.calibration.kind == CalibrationKind::PhysicallyAuthored;
+		score = value.score;
+		work = e.work;
+		if (predictions)
+			*predictions = std::move(value.values);
+		return {};
+	}
+	catch (const Error &error)
+	{
+		out = {};
+		if (engine)
+			work = engine->work;
+		return error;
+	}
+	catch (const std::bad_alloc &)
+	{
+		out = {};
+		return Failure(Code::MemoryLimit, "Hypothesis assessment allocation");
+	}
+}
 Error EvaluateFrozen(const Request &r, const Model &model,
 					 std::shared_ptr<const ChunkSource<Observation>> source, uint64_t count, Role role,
 					 const Disk::Digest &partition, const ReadContext &read, Score &score,
