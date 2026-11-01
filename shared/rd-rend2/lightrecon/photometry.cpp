@@ -102,11 +102,13 @@ Conversion<Value> Scale(const Value& v, double gain, double lo, double hi, bool 
 	return Good(out);
 }
 Conversion<Value> Photo(const ReconstructedLightingAsset& a, const Photometry& p, PhotometricQuantity q, const Source& s) {
-	if (!Validate(a) || !Interval(p.intensity) || (p.unit != PhotometricUnit::Relative && p.unit != UnitFor(q)))
+	if (!Validate(a) || !Interval(p.intensity) || !Finite(p.color.rgb) || (p.unit != PhotometricUnit::Relative && p.unit != UnitFor(q)))
 		return Fail<Value>(Code::Invalid, Reason::InvalidCalibration);
 	if (!p.intensity.known) return Fail<Value>(Code::Unavailable, Reason::MissingValue);
 	const Calibration* c = CalibrationAt(a,p.calibration);
 	if (!c) return Fail<Value>(Code::Unavailable, Reason::UnknownAbsoluteScale);
+	if ((p.unit==PhotometricUnit::Relative)!=(c->kind==CalibrationKind::UncalibratedRelative))
+		return Fail<Value>(Code::Incomparable,Reason::InvalidCalibration);
 	Value v; v.quantity=q; v.unit=p.unit; v.calibration=p.calibration;
 	v.domain = c->kind == CalibrationKind::PhysicallyAuthored ? Domain::PhysicalSI :
 		c->kind == CalibrationKind::LegacySceneEquivalent ? Domain::SceneEquivalent : Domain::SourceLinearRelative;
@@ -219,7 +221,8 @@ Conversion<Value> EnvironmentRadiance(const ReconstructedLightingAsset& a, const
 	return r;
 }
 Conversion<Value> Field(const ReconstructedLightingAsset& a, const TransportField& f, const Vec3& rgb) {
-	if (!Energy(rgb) || !Validate(a)) return Fail<Value>(Code::Invalid,Reason::InvalidNumber);
+	if (!Energy(rgb) || !Validate(a) || unsigned(f.quantity)>unsigned(FieldQuantity::Radiance))
+		return Fail<Value>(Code::Invalid,Reason::InvalidNumber);
 	const auto* c=CalibrationAt(a,f.calibration);
 	if (!c) return Fail<Value>(Code::Unavailable,Reason::UnknownAbsoluteScale);
 	Value v; v.rgb=rgb; v.unit=f.unit; v.calibration=f.calibration;

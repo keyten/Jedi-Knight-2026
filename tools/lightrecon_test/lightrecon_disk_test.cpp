@@ -505,6 +505,10 @@ void CorruptionAndLimits()
 	Put(b,16,3,4); // no readiness or legacy-channel domain metadata
 	RehashHeader(b);
 	reject(b,D::Code::Unsupported);
+	for (unsigned obsolete : {4u,5u}) {
+		b=bytes; Put(b,16,obsolete,4); RehashHeader(b);
+		reject(b,D::Code::Unsupported); // no structured scoped calibration mapping
+	}
 	b = bytes;
 	Put(b, 40, std::numeric_limits<uint64_t>::max());
 	RehashHeader(b);

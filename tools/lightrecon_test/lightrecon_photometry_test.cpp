@@ -226,6 +226,9 @@ void InvalidAndBlack() {
 	auto a=Asset(); auto e=Emitter(EmitterKind::Point); auto r=Receiver();
 	e.emission.intensity=Known(0); e.emission.color=Chromaticity(); auto black=P::Emission(a,e); CHECK(black && black.value.rgb.x==0);
 	e.emission.intensity=Estimate(); CHECK(P::Emission(a,e).reason==P::Reason::MissingValue);
+	e=Emitter(EmitterKind::Point); e.emission.unit=PhotometricUnit::Relative; CHECK(!P::Emission(a,e));
+	e=Emitter(EmitterKind::Point); e.emission.intensity=Known(0); e.emission.color.known=false;
+	e.emission.color.rgb.x=std::numeric_limits<float>::quiet_NaN(); CHECK(!P::Emission(a,e));
 	e=Emitter(EmitterKind::Point); e.emission.intensity.value=-1; CHECK(!P::Emission(a,e));
 	e=Emitter(EmitterKind::Point); e.emission.intensity.value=std::numeric_limits<float>::quiet_NaN(); CHECK(!P::Emission(a,e));
 	e=Emitter(EmitterKind::Point); e.emission.intensity=Known(1e10f);

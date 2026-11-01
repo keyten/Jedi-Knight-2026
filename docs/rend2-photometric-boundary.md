@@ -151,3 +151,17 @@ independent calibration evidence. Stock primaries, source transfer and bake
 profile remain unknown. P04 supplies no such evidence and certifies no stock
 source for exact physical rendering. No Forward+, fog, entity, LTC or shadow
 consumer is enabled, no shader is modified, and no visual validation is claimed.
+
+Validation on Windows x64 (MSVC 19.27, Release) passed all 32 initial standalone
+tests, followed by all six integration tests affected by merging the current
+transport-topology changes into this worktree. Final photometry tests passed
+251 checks on both MSVC and GCC (strict C++11); contract and disk tests also
+passed after the last numerical guards and schema-version rejection cases.
+Both `rd-rend2_x86_64` (MP) and `rdsp-rend2_x86_64` (SP) Release targets built.
+The final complete merged-worktree CTest run passed **33/33** tests in 462.36 s.
+
+Disabled-path preprocessing against task input `1fdd75bb7` matched all 27
+programs / 51 stages and their bindings; production dependency audit passed.
+The older global frozen baseline (`380ee0f7...`) already differs in current
+foliage/uniform code, so that baseline comparison is not reported as passing.
+No GPU compilation or runtime image comparison was performed for P04.
