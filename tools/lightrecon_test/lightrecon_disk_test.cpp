@@ -434,10 +434,11 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 4 adds explicit legacy-channel domains and production readiness.
+			// Schema 5 adds provider receipts/scopes; the header and empty-asset
+			// fingerprint intentionally change. This freezes the new encoded bytes.
 			// Earlier semantic schemas are rejected rather than silently reinterpreted.
-			CHECK(kSchemaVersion == 4);
-			CHECK(digest == "2c74b497e46ed0f111782aa0afa84ae9a0f18635162730ea4c4440f3dbdee716");
+			CHECK(kSchemaVersion == 5);
+			CHECK(digest == "ceed5d33e08f6cd5ad5ed59c6130ae3ead41bdf6ecd6bc0fb1c37400b2dfcb06");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}

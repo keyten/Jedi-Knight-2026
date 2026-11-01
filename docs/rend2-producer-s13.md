@@ -26,7 +26,12 @@ The publication suite also exposed a frozen-transport export bug: its dummy repr
 
 ## Canonical semantics and formats
 
-Canonical semantic schema is **4**. Schemas 1/2/3 are explicitly rejected. The independent `.jkobs` observation encoding is unchanged. The codec adds assessment section 17 and new contribution-domain/configuration/membership fields.
+S13 initially used canonical semantic schema **4**. The subsequent
+[optional-provider orchestration](rend2-provider-orchestration.md) uses schema
+**5**, assessment v2 and producer algorithm v2, retaining typed provider outcomes
+and independent model scopes. Schema-1/2/3/4 assets are rejected by the current
+codec. Historical S13 witnesses below retain their original schema/version;
+independent `.jkobs` observations are unchanged.
 
 | Record | Meaning |
 |---|---|

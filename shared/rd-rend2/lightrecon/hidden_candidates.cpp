@@ -3,6 +3,7 @@
 #include "hidden_candidates.h"
 #include "bake_math.h"
 #include "geometry_key.h"
+#include "provider_outcome.h"
 #include <map>
 #include <set>
 #include <tuple>
@@ -88,9 +89,11 @@ struct Engine
 	void Check()
 	{
 		Need(!Cancelled(read), Code::Cancelled, "Hidden candidate search cancelled");
-		Need(out.report.rays <= input.options.maxRays && out.report.traversalWork <= input.options.maxWork &&
-				 out.report.forwardCalls <= input.options.maxForwardCalls,
-			 Code::WorkLimit, "Hidden candidate work budget");
+		if(out.report.rays > input.options.maxRays || out.report.traversalWork > input.options.maxWork ||
+			out.report.forwardCalls > input.options.maxForwardCalls){
+			out.report.budgetScope=ProviderBudgetScope::Local;
+			throw Failure(Code::WorkLimit,"Hidden candidate work budget");
+		}
 	}
 };
 Error CountedVisibility::Query(const RayQuery &q, const ReadContext &r, RayResult &hit) const
@@ -831,17 +834,18 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 			Need(std::isfinite(x) && x > 0 && x <= 1e9, Code::InvalidInput, "Invalid finite candidate scale");
 		Need(r.training.count <= o.maxSamples && (!r.training.count || (r.training.owner && r.training.data)),
 			 Code::InvalidInput, "Invalid training sample lease");
-		Need(r.training.count * sizeof(Sample) * 8 <= o.maxBytes &&
-				 (!read.maxBytes || r.training.count * sizeof(Sample) * 8 <= read.maxBytes),
-			 Code::MemoryLimit, "Input sample scratch budget before allocation");
+		Need(!read.maxBytes || r.training.count*sizeof(Sample)*8<=read.maxBytes,
+			Code::MemoryLimit,"Global input sample scratch budget");
+		if(r.training.count*sizeof(Sample)*8>o.maxBytes){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Hidden sample scratch budget");}
 		Need(r.profiles.size() <= o.maxProfiles && r.directions.size() <= 32, Code::InvalidInput,
 			 "Profile/direction budget");
-		Need(r.areas.size() <= o.maxAreas, Code::WorkLimit, "Explicit area count budget before hashing");
+		if(r.areas.size()>o.maxAreas){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::WorkLimit,"Explicit area count budget before hashing");}
 		for (const auto &a : r.areas)
 			Need(a.reason.size() <= 4096, Code::MemoryLimit, "Area provenance text budget");
 		std::set<std::string> profileIds;
 		for (const auto &p : r.profiles)
 		{
+			auto validProfile=ValidateProviderProfile(p);if(!validProfile)throw validProfile;
 			Need(!p.id.empty() && profileIds.insert(p.id).second, Code::InvalidInput,
 				 "Duplicate profile identity");
 			Need(p.id.size() <= 256 && p.family.size() <= 256, Code::MemoryLimit,
@@ -895,8 +899,7 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 				 Code::InvalidInput, "Invalid directional mixture constraint");
 		out.key = Key(r, samples);
 		auto areas = Areas(r, samples);
-		Need(areas.size() <= o.maxAreas, Code::WorkLimit,
-			 "Too many local areas; issue explicit deterministic area shards");
+		if(areas.size()>o.maxAreas){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::WorkLimit,"Too many local areas; issue explicit deterministic area shards");}
 		uint64_t estimate =
 			uint64_t(o.maxNodesPerArea) * r.profiles.size() * (o.spots ? 3 : 1) *
 				(sizeof(Trial) + o.samplesPerArea * sizeof(SupportingObservation)) +
@@ -904,8 +907,8 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 				(sizeof(Hypothesis) + sizeof(EmitterEvidence) + sizeof(EmitterCandidate) + 2048 +
 				 o.samplesPerArea * (sizeof(SupportingObservation) + sizeof(uint32_t))) +
 			samples.size() * sizeof(Sample) * 8;
-		Need(estimate <= o.maxBytes && (!read.maxBytes || estimate <= read.maxBytes), Code::MemoryLimit,
-			 "Candidate accounted memory budget");
+		Need(!read.maxBytes || estimate<=read.maxBytes,Code::MemoryLimit,"Global candidate memory budget");
+		if(estimate>o.maxBytes){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Candidate accounted memory budget");}
 		out.report.accountedPeakBytes = estimate;
 		size_t maximumOutput =
 			areas.size() * r.profiles.size() * 3 * (o.spots ? 2 : 1) * o.retainedPerChannelProfile;
@@ -1128,16 +1131,23 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 			out.report.complete &= !report.searchLimited && !report.sampleLimited;
 			out.report.areas.push_back(report);
 		}
-		Need(!out.candidates.empty(), Code::Unavailable,
-			 "No supported multi-observation surface search; directions alone cannot create a lamp");
+		if(out.candidates.empty()){
+			uint64_t supported=0,unsupported=0;for(const auto&a:out.report.areas){supported+=a.selected;unsupported+=a.unsupportedReceivers;}
+			out.report.outcome=(r.profiles.empty()||(!supported&&unsupported))?ProviderOutcome::UnsupportedCapability:ProviderOutcome::NoSupportedEvidence;
+			throw Failure(Code::Unavailable,"No supported multi-observation surface search; directions alone cannot create a lamp");
+		}
+		out.report.outcome=out.report.complete?ProviderOutcome::Produced:ProviderOutcome::Partial;
 		out.report.diagnostics.push_back("Candidate geometry only; no final amplitudes, source promotion, "
 										 "physical confidence or runtime capability");
 		return {};
 	}
 	catch (const Error &e)
 	{
+		out.report.outcome=ProviderFailure(e,out.report.outcome,out.report.budgetScope);
+		auto generation=out.key;
 		auto report = std::move(out.report);
 		out = Result();
+		out.key=generation;
 		out.report = std::move(report);
 		out.report.complete = false;
 		out.report.diagnostics.push_back(e.message);
@@ -1145,8 +1155,9 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 	}
 	catch (const std::bad_alloc &)
 	{
-		out = Result();
+		auto report=std::move(out.report);out = Result();out.report=std::move(report);
 		out.report.complete = false;
+		out.report.outcome=ProviderOutcome::BudgetExceeded;out.report.budgetScope=ProviderBudgetScope::Global;
 		return Failure(Code::MemoryLimit, "Hidden candidate allocation failed");
 	}
 }

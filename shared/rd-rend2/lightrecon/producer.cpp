@@ -4,6 +4,7 @@
 #include "../tr_pbr_contract.h"
 #include "bake_math.h"
 #include "geometry_key.h"
+#include "provider_outcome.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -18,6 +19,15 @@ namespace Core
 {
 namespace Producer
 {
+struct PreparedProviders
+{
+	Disk::Digest binding{}, generation{};
+	Work work;
+	std::vector<std::string> stages;
+	std::vector<ProviderScenario> scenarios;
+	std::vector<Candidates::Provider>
+		leases; // retain original evidence/provenance, not just converted shapes
+};
 namespace
 {
 using namespace Bake::Detail;
@@ -42,10 +52,14 @@ void Text(GeometryKey &k, const std::string &s)
 	for (unsigned char c : s)
 		k.U(c);
 }
-double Peak(Vec3 v) { return std::max(double(v.x), std::max(double(v.y), double(v.z))); }
+double Peak(Vec3 v)
+{
+	return std::max(double(v.x), std::max(double(v.y), double(v.z)));
+}
 double Y(Vec3 v)
 {
-	return double(v.x) * Rend2PBR::kLumaR + double(v.y) * Rend2PBR::kLumaG + double(v.z) * Rend2PBR::kLumaB;
+	return double(v.x) * Rend2PBR::kLumaR + double(v.y) * Rend2PBR::kLumaG +
+		   double(v.z) * Rend2PBR::kLumaB;
 }
 Estimate Known(double x)
 {
@@ -67,14 +81,16 @@ std::string Escape(const std::string &in)
 		if (c == '"' || c == '\\')
 			s << '\\' << c;
 		else if (c < 32)
-			s << "\\u00" << std::hex << std::setw(2) << std::setfill('0') << unsigned(c) << std::dec;
+			s << "\\u00" << std::hex << std::setw(2) << std::setfill('0') << unsigned(c)
+			  << std::dec;
 		else
 			s << c;
 	}
 	s << '"';
 	return s.str();
 }
-const uint32_t SampleMagic = 0x53443331, ContributionMagic = 0x43443331, ObservationMagic = 0x4f443331;
+const uint32_t SampleMagic = 0x53443331, ContributionMagic = 0x43443331,
+			   ObservationMagic = 0x4f443331;
 const char *SampleEncoding = "org.openjk.producer-sample-domain";
 const char *ContributionEncoding = "org.openjk.producer-source-contributions";
 const char *ObservationEncoding = "org.openjk.producer-observation-diagnostics";
@@ -111,7 +127,9 @@ struct Reader
 {
 	const std::vector<uint8_t> &bytes;
 	size_t at = 0;
-	explicit Reader(const std::vector<uint8_t> &v) : bytes(v) {}
+	explicit Reader(const std::vector<uint8_t> &v) : bytes(v)
+	{
+	}
 	uint64_t U(unsigned n)
 	{
 		Need(n <= 8 && at <= bytes.size() && n <= bytes.size() - at, Code::ProviderError,
@@ -151,7 +169,10 @@ struct Reader
 		Need(v <= 1, Code::ProviderError, "Invalid payload boolean");
 		return v != 0;
 	}
-	void End() { Need(at == bytes.size(), Code::ProviderError, "Trailing producer payload"); }
+	void End()
+	{
+		Need(at == bytes.size(), Code::ProviderError, "Trailing producer payload");
+	}
 };
 void Write(Bytes &b, const SampleRecord &v)
 {
@@ -253,13 +274,14 @@ std::vector<const Disk::Chunk *> Chunks(const Artifact &a, Id id)
 	for (const auto &v : a.chunks)
 		if (v.dataset == id)
 			c.push_back(&v);
-	std::sort(c.begin(), c.end(),
-			  [](const Disk::Chunk *a, const Disk::Chunk *b) { return a->firstElement < b->firstElement; });
+	std::sort(c.begin(), c.end(), [](const Disk::Chunk *a, const Disk::Chunk *b) {
+		return a->firstElement < b->firstElement;
+	});
 	return c;
 }
 template <class T, class Read>
-Error DecodeRows(const Artifact &a, Id id, uint32_t magic, const char *encoding, const ReadContext &read,
-				 std::vector<T> &out, Read decode)
+Error DecodeRows(const Artifact &a, Id id, uint32_t magic, const char *encoding,
+				 const ReadContext &read, std::vector<T> &out, Read decode)
 {
 	out.clear();
 	try
@@ -402,6 +424,13 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	GeometryKey k;
 	k.U(kVersion);
 	k.U(kSchemaVersion);
+	k.U(r.providerPolicy.hiddenRequired);
+	k.U(r.providerPolicy.solarRequired);
+	k.U(r.providerPolicy.allowOptionalLocalBudget);
+	k.U(r.providerPolicy.maxScopedRequests);
+	k.U(bool(r.prepared));
+	if (r.prepared)
+		k.Digest(r.prepared->generation);
 	k.U(Joint::kVersion);
 	k.U(Uncertainty::kVersion);
 	k.U(Indirect::kVersion);
@@ -645,7 +674,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	k.U(bool(r.solar));
 	// Provider request policies are not yet canonically serialized here. Refuse
 	// cache reuse for these builds rather than trusting an incomplete settings key.
-	if (r.hidden || r.solar || !r.providers.empty())
+	if (r.hidden || r.solar || !r.providers.empty() || r.prepared)
 		f.complete[size_t(Disk::InputKind::Settings)] = false;
 	Text(k, r.metadata.revision);
 
@@ -669,6 +698,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 		k.U(c.environment.orientation.known);
 		k.V(c.environment.orientation.right);
 		k.V(c.environment.orientation.up);
+		k.V(c.environment.orientation.forward);
 		k.U(c.environment.amplitudeKnown);
 		k.V(c.environment.compilerRgbAmplitude);
 		Text(k, c.provider);
@@ -724,8 +754,9 @@ struct Assembly
 		: request(r), read(c), asset(AssetMetadata(r.metadata)), ids(asset, r.map.sha256)
 	{
 		Need(Validate(asset), Code::InvalidInput, "Producer input metadata invalid");
-		Need(r.fitting.profiles.empty() || r.metadata.units.worldUnitsPerMeter ==
-											   r.fitting.profiles.front().contract.units.worldUnitsPerMeter,
+		Need(r.fitting.profiles.empty() ||
+				 r.metadata.units.worldUnitsPerMeter ==
+					 r.fitting.profiles.front().contract.units.worldUnitsPerMeter,
 			 Code::InvalidInput, "Input/operator world scale differs");
 		provenance = ids.Span("producer-provenance");
 		Provenance p;
@@ -734,8 +765,8 @@ struct Assembly
 		p.producer = "org.openjk.inverse-lighting-producer/1";
 		p.locator = r.map.path;
 		p.contentHash = "sha256:" + Disk::Hex(r.map.sha256);
-		p.method =
-			"Strict production CPU fitting; conditional hypotheses and independent readiness dimensions";
+		p.method = "Strict production CPU fitting; conditional hypotheses and independent "
+				   "readiness dimensions";
 		if (asset.provenance)
 			p.parents.push_back(asset.provenance);
 		asset.provenanceRecords.push_back(p);
@@ -745,18 +776,19 @@ struct Assembly
 		calibration.id = relativeCalibration;
 		calibration.kind = CalibrationKind::UncalibratedRelative;
 		calibration.provenance = provenance;
-		calibration.method =
-			"Compiler-relative or specified scene-linear gauge; no absolute photometric measurement";
+		calibration.method = "Compiler-relative or specified scene-linear gauge; no absolute "
+							 "photometric measurement";
 		asset.calibrations.push_back(calibration);
 		auto &a = asset.assessment;
 		a.present = false;
 		a.producer = p.producer;
-		a.algorithm = "Joint/" + std::to_string(Joint::kVersion) + " + Uncertainty/1 + Producer/1";
+		a.algorithm = "Joint/" + std::to_string(Joint::kVersion) + " + Uncertainty/1 + Producer/" +
+					  std::to_string(kVersion);
 		a.map = r.map.path;
 		a.bspSha256 = Disk::Hex(r.map.sha256);
 		a.geometryKey = Disk::Hex(r.fitting.geometry.geometryKey);
 		a.decoder = r.decoder;
-		a.settingsHash = Disk::Hex(Disk::Hash(r.settingsIdentity.data(), r.settingsIdentity.size()));
+		a.settingsHash = Disk::Hex(Fingerprint(r).inputs.back().sha256);
 		a.seed = r.fitting.options.seed;
 		a.inputsLoaded = true;
 		a.coverage = r.coverage;
@@ -778,8 +810,8 @@ struct Assembly
 		}
 	}
 	template <class T>
-	Id DatasetRows(const std::string &name, DatasetPurpose purpose, const char *encoding, uint32_t magic,
-				   const std::vector<T> &rows)
+	Id DatasetRows(const std::string &name, DatasetPurpose purpose, const char *encoding,
+				   uint32_t magic, const std::vector<T> &rows)
 	{
 		Cancel(read);
 		Id id = ids.Span(name);
@@ -809,7 +841,8 @@ struct Assembly
 			c.bytes = std::move(b.bytes);
 			hash.Digest(Disk::Hash(c.bytes.data(), c.bytes.size()));
 			chunks.push_back(std::move(c));
-			Need(chunks.size() <= request.options.maxChunks, Code::WorkLimit, "Producer chunk count limit");
+			Need(chunks.size() <= request.options.maxChunks, Code::WorkLimit,
+				 "Producer chunk count limit");
 		}
 		d.contentHash = "sha256-chain:" + Disk::Hex(hash.Finish());
 		asset.datasets.push_back(d);
@@ -860,7 +893,8 @@ struct Assembly
 			if (validRegions.count(s.candidate.region))
 				source.regions.push_back(s.candidate.region);
 			const auto &model = request.fitting.profiles[primaryProfile].model;
-			bool colourKnown = request.coverage.primariesKnown && model.linearRec709PrimariesAttested;
+			bool colourKnown =
+				request.coverage.primariesKnown && model.linearRec709PrimariesAttested;
 			Photometry photometry;
 			photometry.calibration = relativeCalibration;
 			photometry.unit = PhotometricUnit::Relative;
@@ -875,18 +909,21 @@ struct Assembly
 			{
 				Need(colourKnown, Code::InvalidInput,
 					 "Physical source photometry needs independently attested linear primaries");
-				auto calibration = std::find_if(
-					asset.calibrations.begin(), asset.calibrations.end(), [&](const Calibration &c) {
-						return c.id == model.calibration.id && c.kind == CalibrationKind::PhysicallyAuthored;
-					});
+				auto calibration =
+					std::find_if(asset.calibrations.begin(), asset.calibrations.end(),
+								 [&](const Calibration &c) {
+									 return c.id == model.calibration.id &&
+											c.kind == CalibrationKind::PhysicallyAuthored;
+								 });
 				Need(calibration != asset.calibrations.end(), Code::InvalidInput,
 					 "Physical source calibration absent from input metadata");
 				photometry.calibration = calibration->id;
-				photometry.unit =
-					s.value.geometry.kind == EmitterKind::Point || s.value.geometry.kind == EmitterKind::Spot
-						? PhotometricUnit::Candela
-						: s.value.geometry.kind == EmitterKind::Directional ? PhotometricUnit::Lux
-																			: PhotometricUnit::Nits;
+				photometry.unit = s.value.geometry.kind == EmitterKind::Point ||
+										  s.value.geometry.kind == EmitterKind::Spot
+									  ? PhotometricUnit::Candela
+									  : s.value.geometry.kind == EmitterKind::Directional
+											? PhotometricUnit::Lux
+											: PhotometricUnit::Nits;
 			}
 			if (s.candidate.root == TransportRootKind::Sky)
 			{
@@ -928,7 +965,8 @@ struct Assembly
 		}
 		Id first = ids.Span("uncertainty-configuration-records",
 							uncertainty.witnesses.size() + uncertainty.tracks.size() + 1);
-		Check(Uncertainty::Attach(uncertainty, request.fitting, bindings, provenance, first, asset));
+		Check(
+			Uncertainty::Attach(uncertainty, request.fitting, bindings, provenance, first, asset));
 		for (const auto &c : asset.lightingConfigurations)
 			if (c.key == Disk::Hex(selected.key))
 				asset.assessment.selectedConfiguration = c.id;
@@ -946,8 +984,8 @@ Frame DirectionFrame(Vec3 travel)
 	f.up = Cross(z, x).Float();
 	return f;
 }
-bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model, const Joint::Request &r,
-			 Joint::Candidate &c)
+bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
+			 const Joint::Request &r, Joint::Candidate &c)
 {
 	if (!model.geometryKnown || model.nature == Candidates::Nature::TransportEvidence ||
 		model.fragmentUnion && model.parts.size() > 1)
@@ -969,8 +1007,9 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 	{
 		const auto &origin = Candidates::Evidence(catalog, ref);
 		c.parents.push_back(origin.id);
-		c.provenance += "; origin=" + std::to_string(origin.id) + ":" + EvidenceOriginName(origin.origin) +
-						":" + origin.source + ":" + origin.material;
+		c.provenance += "; origin=" + std::to_string(origin.id) + ":" +
+						EvidenceOriginName(origin.origin) + ":" + origin.source + ":" +
+						origin.material;
 	}
 	c.mayRemove = !model.protectedAuthored;
 	c.initialActive = model.protectedAuthored;
@@ -984,8 +1023,8 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 	s.fitPosition = model.tier > Candidates::Tier::Geometry;
 	s.fitFrame = s.fitCone = false;
 	s.fitDimensions = false;
-	s.evidence =
-		model.protectedAuthored ? Shape::ShapeEvidence::Authored : Shape::ShapeEvidence::VisibleFixture;
+	s.evidence = model.protectedAuthored ? Shape::ShapeEvidence::Authored
+										 : Shape::ShapeEvidence::VisibleFixture;
 	s.geometryPriorWeight = model.protectedAuthored ? 1 : .1;
 	s.maximumTranslationWorld = 16;
 	s.minimumDimensionWorld = .0001;
@@ -1020,15 +1059,16 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 		s.fitPosition = false;
 		return true;
 	}
-	g.kind =
-		model.sourceClass == Candidates::Class::Spot
-			? EmitterKind::Spot
-			: model.sourceClass == Candidates::Class::Area
-				  ? EmitterKind::Rectangle
-				  : model.sourceClass == Candidates::Class::Tube ? EmitterKind::Tube : EmitterKind::Point;
-	g.angular.kind = g.kind == EmitterKind::Point
-						 ? AngularKind::Isotropic
-						 : g.kind == EmitterKind::Spot ? AngularKind::SmoothCone : AngularKind::Lambertian;
+	g.kind = model.sourceClass == Candidates::Class::Spot
+				 ? EmitterKind::Spot
+				 : model.sourceClass == Candidates::Class::Area
+					   ? EmitterKind::Rectangle
+					   : model.sourceClass == Candidates::Class::Tube ? EmitterKind::Tube
+																	  : EmitterKind::Point;
+	g.angular.kind =
+		g.kind == EmitterKind::Point
+			? AngularKind::Isotropic
+			: g.kind == EmitterKind::Spot ? AngularKind::SmoothCone : AngularKind::Lambertian;
 	if (g.kind != EmitterKind::Point)
 	{
 		g.frame.known = e.orientationKnown;
@@ -1056,130 +1096,416 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 	}
 	return true;
 }
-Joint::Request Prepare(const Request &request, const ReadContext &read, Result &result)
+ProviderAssessment &BeginProvider(Result &result, const std::string &name, bool required)
 {
-	auto q = request.fitting;
+	ProviderAssessment r;
+	r.name = name;
+	r.required = required;
+	result.work.providers.push_back(r);
+	return result.work.providers.back();
+}
+bool FinishProvider(const Request &request, Result &result, ProviderAssessment &r, Error e,
+					ProviderOutcome declared, ProviderBudgetScope budget, bool complete,
+					uint64_t count)
+{
+	if (!e && count)
+	{
+		r.outcome = ProviderOutcome::Corrupt;
+		r.reason = "Failed provider retained inadmissible proposals";
+		r.errorCode = unsigned(Code::ProviderError);
+		throw Failure(Code::ProviderError, r.reason);
+	}
+	r.errorCode = unsigned(e.code);
+	r.outcome = ProviderFailure(e, declared, budget);
+	r.budgetScope = budget;
+	if (e)
+		r.outcome = count ? (complete ? ProviderOutcome::Produced : ProviderOutcome::Partial)
+						  : ProviderOutcome::NoSupportedEvidence;
+	r.reason = e ? (count ? "Evidence hypotheses only; not physical/exact-light certification"
+						  : "No supported evidence")
+				 : e.message;
+	r.records = count;
+	r.evidenceAvailable = count != 0;
+	r.searchComplete = e && complete;
+	r.operationSucceeded = bool(e) || r.outcome == ProviderOutcome::NoSupportedEvidence;
+	result.stages.push_back(r.name + ": " + ProviderOutcomeName(r.outcome) + "; " + r.reason);
+	bool optional = !r.required && (r.outcome == ProviderOutcome::NoSupportedEvidence ||
+									r.outcome == ProviderOutcome::UnsupportedCapability ||
+									(r.outcome == ProviderOutcome::BudgetExceeded &&
+									 budget == ProviderBudgetScope::Local &&
+									 request.providerPolicy.allowOptionalLocalBudget));
+	if (!e && !optional)
+		Check(e);
+	if (r.required && !r.evidenceAvailable)
+		throw Failure(Code::Unavailable, "Required provider has no admissible evidence: " + r.name);
+	return r.evidenceAvailable && bool(e);
+}
+std::vector<Candidates::Provider> GatherProviders(const Request &request, const ReadContext &read,
+												  Result &result)
+{
+	const auto &q = request.fitting;
 	auto providers = request.providers;
-	Disk::Digest regionKey{};
-	if (request.hidden && request.hidden->regions)
-		regionKey = request.hidden->regions->CertificationKey();
+	if (!q.candidates.empty())
+	{
+		auto &r = BeginProvider(result, "supplied-candidates", false);
+		r.ran = true;
+		for (const auto &c : q.candidates)
+			Need(Finite(V(c.shape.initial.rgbAmplitude)) && c.shape.initial.rgbAmplitude.x >= 0 &&
+					 c.shape.initial.rgbAmplitude.y >= 0 && c.shape.initial.rgbAmplitude.z >= 0,
+				 Code::InvalidInput, "Invalid supplied candidate RGB");
+		FinishProvider(request, result, r, {}, ProviderOutcome::Produced, ProviderBudgetScope::None,
+					   true, q.candidates.size());
+	}
+	result.work.candidates = q.candidates.size();
+	std::sort(providers.begin(), providers.end(),
+			  [](const Candidates::Provider &a, const Candidates::Provider &b) {
+				  return a.name < b.name;
+			  });
+	for (const auto &p : providers)
+	{
+		auto &r = BeginProvider(result, "supplied/" + p.name, false);
+		r.ran = true;
+		r.generation = Disk::Hex(p.generation);
+		Need(p.map == request.map.sha256 && p.geometryKey == q.geometry.geometryKey,
+			 Code::InvalidInput, "Supplied provider generation mismatch");
+		FinishProvider(request, result, r, {},
+					   p.candidates.count ? ProviderOutcome::Produced
+										  : ProviderOutcome::NoSupportedEvidence,
+					   ProviderBudgetScope::None, true, p.candidates.count);
+	}
+	auto &hidden = BeginProvider(result, "hidden", request.providerPolicy.hiddenRequired);
 	if (request.hidden)
 	{
+		hidden.ran = true;
 		Need(request.hidden->map.sha256 == request.map.sha256 &&
 				 request.hidden->geometry.geometryKey == q.geometry.geometryKey,
 			 Code::InvalidInput, "Hidden provider generation mismatch");
 		auto generated = std::make_shared<Hidden::Result>();
-		auto generatedStatus = Hidden::Generate(*request.hidden, read, *generated);
+		auto e = Hidden::Generate(*request.hidden, read, *generated);
 		result.work.hidden = generated->report;
-		Check(generatedStatus); // retain work/exclusion diagnostics on failed searches too
-		Candidates::Provider provider;
-		Check(Candidates::FromHidden("surface-response", request.map.sha256, q.geometry.geometryKey,
-									 regionKey, generated, provider));
-		providers.push_back(provider);
-		result.stages.push_back("hidden-candidate search executed; proposals are not physical lights");
+		hidden.generation = Disk::Hex(generated->key);
+		hidden.forwardCalls = generated->report.forwardCalls;
+		hidden.rays = generated->report.rays;
+		hidden.work = generated->report.traversalWork;
+		hidden.bytes = generated->report.accountedPeakBytes;
+		hidden.diagnostics = generated->report.diagnostics;
+		if (FinishProvider(request, result, hidden, e, generated->report.outcome,
+						   generated->report.budgetScope, generated->report.complete,
+						   generated->candidates.size()))
+		{
+			Candidates::Provider p;
+			Check(Candidates::FromHidden(
+				"surface-response", request.map.sha256, q.geometry.geometryKey,
+				request.hidden->regions ? request.hidden->regions->CertificationKey()
+										: Disk::Digest{},
+				generated, p));
+			providers.push_back(p);
+		}
 	}
+	else
+	{
+		Need(!hidden.required, Code::InvalidInput, "Required hidden provider not requested");
+		hidden.reason = "Not requested; hidden sources remain unresolved";
+	}
+	auto &solar = BeginProvider(result, "solar.fit", request.providerPolicy.solarRequired);
 	if (request.solar)
 	{
+		solar.ran = true;
 		Need(request.solar->mapKey == request.map.sha256 &&
 				 request.solar->geometry.geometryKey == q.geometry.geometryKey,
 			 Code::InvalidInput, "Solar provider generation mismatch");
 		Solar::FitResult fit;
-		auto solarStatus = Solar::Fit(*request.solar, read, fit);
+		auto e = Solar::Fit(*request.solar, read, fit);
 		result.work.solar = fit.work;
-		Check(solarStatus);
-		if (request.solarValidation)
+		solar.generation = Disk::Hex(fit.frozenKey);
+		solar.forwardCalls = fit.work.forwardCalls;
+		solar.rays = fit.work.rays;
+		solar.work = fit.work.traversal;
+		solar.diagnostics = fit.diagnostics;
+		bool fitted = FinishProvider(request, result, solar, e, fit.outcome, fit.work.budgetScope,
+									 fit.work.complete, fit.proposals.size());
+		if (fitted && request.solarValidation)
 		{
+			auto &validation =
+				BeginProvider(result, "solar.validation", request.providerPolicy.solarRequired);
+			validation.ran = true;
+			validation.generation = Disk::Hex(fit.frozenKey);
 			auto accepted = std::make_shared<Solar::Result>();
-			Check(request.solarValidation->Assess(fit, read, *accepted));
-			std::vector<Candidates::Provider> solar;
-			Check(Candidates::FromSolar("sun-sky", request.map.sha256, q.geometry.geometryKey, accepted,
-										solar));
-			providers.insert(providers.end(), solar.begin(), solar.end());
-			result.stages.push_back(std::string("independent solar assessment: ") +
-									Solar::StateName(accepted->state));
+			auto assessed = request.solarValidation->Assess(fit, read, *accepted);
+			validation.forwardCalls = accepted->work.forwardCalls;
+			validation.rays = accepted->work.rays;
+			validation.work = accepted->work.traversal;
+			validation.diagnostics = accepted->diagnostics;
+			if (FinishProvider(request, result, validation, assessed, accepted->outcome,
+							   accepted->work.budgetScope, accepted->work.complete,
+							   accepted->hypotheses.size()))
+			{
+				std::vector<Candidates::Provider> alternatives;
+				Check(Candidates::FromSolar("sun-sky", request.map.sha256, q.geometry.geometryKey,
+											accepted, alternatives));
+				providers.insert(providers.end(), alternatives.begin(), alternatives.end());
+			}
 		}
-		else
-			result.stages.push_back("solar fit unvalidated; no directional promotion");
+		else if (fitted)
+		{
+			auto &validation =
+				BeginProvider(result, "solar.validation", request.providerPolicy.solarRequired);
+			FinishProvider(
+				request, result, validation,
+				Failure(Code::Unavailable,
+						"Solar validation unavailable; UnknownSun/unresolved environment"),
+				ProviderOutcome::UnsupportedCapability, ProviderBudgetScope::None, false, 0);
+		}
 	}
-	if (providers.empty())
+	else
 	{
-		result.work.candidates = q.candidates.size();
-		result.stages.push_back("supplied candidate geometry priors; no claim of source discovery");
-		return q;
+		Need(!solar.required, Code::InvalidInput, "Required solar provider not requested");
+		solar.reason = "Not requested; UnknownSun/unresolved environment";
 	}
-	Candidates::Request input;
-	input.map = request.map.sha256;
-	input.geometryKey = q.geometry.geometryKey;
-	input.regionKey = regionKey;
-	input.providers = providers;
-	input.visibility = q.geometry.visibility;
-	input.limits = request.options.candidates;
+	return providers;
+}
+Disk::Digest ProviderGeneration(const Result &result, Disk::Digest catalog,
+								const ProviderScenario &scope)
+{
+	GeometryKey key;
+	key.U(kVersion);
+	key.Digest(catalog);
+	Text(key, scope.key);
+	Text(key, scope.profile);
+	Text(key, scope.scenario);
+	auto records = result.work.providers;
+	std::sort(
+		records.begin(), records.end(),
+		[](const ProviderAssessment &a, const ProviderAssessment &b) { return a.name < b.name; });
+	for (const auto &r : records)
+	{
+		Text(key, r.name);
+		Text(key, r.generation);
+		key.U(unsigned(r.outcome));
+		key.U(unsigned(r.budgetScope));
+		key.U(r.required);
+		key.U(r.records);
+		key.U(r.searchComplete);
+		key.U(r.outputsAdmitted);
+	}
+	return key.Finish();
+}
+void Plan(const Request &request, const ReadContext &read, Result &result)
+{
+	Need(request.providerPolicy.maxScopedRequests && request.providerPolicy.maxScopedRequests <= 64,
+		 Code::InvalidInput, "Provider scenario budget invalid");
+	auto providers = GatherProviders(request, read, result);
 	Candidates::Catalog catalog;
-	Check(Candidates::Consolidate(input, read, catalog));
-	result.work.candidates = catalog.models.size() + q.candidates.size();
-	std::set<std::pair<std::string, Disk::Digest>> contexts;
-	std::set<Disk::Digest> exclusiveScenarios;
-	for (const auto &m : catalog.models)
+	if (!providers.empty())
 	{
-		contexts.emplace(m.profile, m.scenario);
-		if (m.scenario != Disk::Digest{})
-			exclusiveScenarios.insert(m.scenario);
-		if (!m.profile.empty())
-			Need(q.profiles.size() == 1 && q.profiles[0].model.profile.id == m.profile, Code::Unavailable,
-				 "Provider-conditioned profile requires a separately scoped fitting request");
+		Candidates::Request input;
+		input.map = request.map.sha256;
+		input.geometryKey = request.fitting.geometry.geometryKey;
+		input.regionKey = request.hidden && request.hidden->regions
+							  ? request.hidden->regions->CertificationKey()
+							  : Disk::Digest{};
+		input.providers = providers;
+		input.visibility = request.fitting.geometry.visibility;
+		input.limits = request.options.candidates;
+		auto e = Candidates::Consolidate(input, read, catalog);
+		if (!e)
+		{
+			auto &r = BeginProvider(result, "consolidation", true);
+			r.ran = true;
+			FinishProvider(request, result, r, e, ProviderOutcome::Corrupt,
+						   ProviderBudgetScope::Global, false, 0);
+		}
 	}
-	Need(exclusiveScenarios.size() <= 1, Code::Unavailable,
-		 "Mutually exclusive provider scenarios require separate joint requests; never sum solar "
-		 "alternatives");
-	std::set<Id> selected;
+	result.work.candidates = catalog.models.size() + request.fitting.candidates.size();
+	using Context = std::pair<std::string, Disk::Digest>;
+	std::set<Context> contexts;
+	for (const auto &m : catalog.models)
+		if (!m.profile.empty() || m.scenario != Disk::Digest{})
+			contexts.emplace(m.profile, m.scenario);
+	if (contexts.empty())
+		contexts.emplace("", Disk::Digest{});
+	Need(contexts.size() <= request.providerPolicy.maxScopedRequests, Code::WorkLimit,
+		 "Mandatory scoped model-request budget exceeded");
+	Need(request.fitting.materials.size() <= 256 && request.fitting.profiles.size() <= 16 &&
+			 request.fitting.candidates.size() <= 512,
+		 Code::InvalidInput, "Scoped request exceeds joint input limits");
+	uint64_t copyBytes = sizeof(Request) + sizeof(PreparedProviders) + 65536 +
+						 request.fitting.materials.size() * 4096ull +
+						 request.fitting.profiles.size() * 131072ull +
+						 request.fitting.candidates.size() * sizeof(Joint::Candidate) +
+						 result.work.hidden.areas.size() * sizeof(Hidden::AreaReport);
+	for (const auto &c : request.fitting.candidates)
+		copyBytes += c.provenance.size() + c.provider.size() + c.parents.size() * sizeof(Id);
+	for (const auto &r : request.fitting.boundaryRoots)
+		copyBytes +=
+			sizeof(r) + r.incident.size() * sizeof(Vec3) + r.available.size() + r.provenance.size();
+	for (const auto &p : result.work.providers)
+	{
+		copyBytes += sizeof(p) + p.name.size() + p.reason.size() + p.generation.size();
+		for (const auto &d : p.diagnostics)
+			copyBytes += sizeof(d) + d.size();
+	}
+	uint64_t cap = read.maxBytes ? std::min(read.maxBytes, request.options.maxBytes)
+								 : request.options.maxBytes;
+	Need(copyBytes <= cap / contexts.size(), Code::MemoryLimit,
+		 "Mandatory scoped-request copy memory budget");
 	for (const auto &context : contexts)
 	{
-		Candidates::Cursor cursor;
-		auto policy = request.options.selection;
-		policy.profile = context.first;
-		policy.scenario = context.second;
-		for (unsigned wave = 0; wave < 64; ++wave)
+		Cancel(read);
+		auto scoped = std::make_shared<Request>(request);
+		scoped->hidden.reset();
+		scoped->solar.reset();
+		scoped->solarValidation = nullptr;
+		scoped->providers.clear();
+		auto &q = scoped->fitting;
+		if (!context.first.empty())
 		{
-			Cancel(read);
-			size_t remaining = q.options.maxCandidates > q.candidates.size()
-								   ? q.options.maxCandidates - q.candidates.size()
-								   : 0;
-			if (!remaining)
-				break;
-			policy.maxTickets = std::min(policy.maxTickets, remaining);
-			Candidates::Selection selection;
-			Check(Candidates::Select(catalog, policy, read, cursor, selection));
-			for (const auto &ticket : selection.tickets)
-			{
-				if (!ticket.completesModel || !selected.insert(ticket.model).second)
-					continue;
-				auto m = std::find_if(catalog.models.begin(), catalog.models.end(),
-									  [&](const Candidates::Model &m) { return m.id == ticket.model; });
-				Need(m != catalog.models.end(), Code::AlgorithmError, "Consolidated model ticket absent");
-				Joint::Candidate c;
-				if (Convert(catalog, *m, q, c))
-					q.candidates.push_back(c);
-				else
-					++result.work.deferred;
-			}
-			if (selection.exhausted || selection.tickets.empty())
-				break;
+			auto p =
+				std::find_if(q.profiles.begin(), q.profiles.end(), [&](const Joint::Profile &p) {
+					return p.model.profile.id == context.first;
+				});
+			Need(p != q.profiles.end(), Code::InvalidInput,
+				 "Provider profile is absent from requested model hypotheses");
+			auto profile = *p;
+			q.profiles = {profile};
 		}
+		std::set<Id> selected;
+		std::set<std::string> admittedProviders;
+		std::set<Context> included;
+		included.emplace("", Disk::Digest{});
+		included.emplace(context.first, Disk::Digest{});
+		included.insert(context);
+		for (const auto &c : included)
+		{
+			Candidates::Cursor cursor;
+			auto policy = request.options.selection;
+			policy.profile = c.first;
+			policy.scenario = c.second;
+			if (catalog.models.empty())
+				continue;
+			bool exists = std::any_of(catalog.models.begin(), catalog.models.end(),
+									  [&](const Candidates::Model &m) {
+										  return m.profile == c.first && m.scenario == c.second;
+									  });
+			if (!exists)
+				continue;
+			for (unsigned wave = 0; wave < 64; ++wave)
+			{
+				Cancel(read);
+				size_t remaining = q.options.maxCandidates > q.candidates.size()
+									   ? q.options.maxCandidates - q.candidates.size()
+									   : 0;
+				if (!remaining)
+					break;
+				policy.maxTickets = std::min(policy.maxTickets, remaining);
+				Candidates::Selection selection;
+				Check(Candidates::Select(catalog, policy, read, cursor, selection));
+				for (const auto &t : selection.tickets)
+				{
+					if (!t.completesModel || !selected.insert(t.model).second)
+						continue;
+					auto m =
+						std::find_if(catalog.models.begin(), catalog.models.end(),
+									 [&](const Candidates::Model &m) { return m.id == t.model; });
+					Need(m != catalog.models.end(), Code::AlgorithmError,
+						 "Consolidated model missing");
+					Joint::Candidate candidate;
+					if (Convert(catalog, *m, q, candidate))
+					{
+						q.candidates.push_back(candidate);
+						admittedProviders.insert(catalog.providers[m->primary.provider].name);
+					}
+				}
+				if (selection.exhausted || selection.tickets.empty())
+					break;
+			}
+		}
+		ProviderScenario scope;
+		scope.profile = context.first;
+		scope.scenario = Disk::Hex(context.second);
+		scope.selected = false; // selected only by Run inside this explicit request
+		GeometryKey key;
+		key.Digest(catalog.key);
+		Text(key, context.first);
+		key.Digest(context.second);
+		key.Digest(request.fitting.policyKey);
+		scope.key = Disk::Hex(key.Finish());
+		auto snapshot = std::make_shared<PreparedProviders>();
+		snapshot->work = result.work;
+		snapshot->stages = result.stages;
+		snapshot->stages.push_back("S05 consolidation/admission completed in one profile/scenario; "
+								   "deferred models remain explicit");
+		snapshot->scenarios = {scope};
+		snapshot->leases = providers;
+		snapshot->work.deferred = catalog.models.size() - selected.size();
+		for (auto &r : snapshot->work.providers)
+		{
+			std::string name =
+				r.name == "hidden"
+					? "surface-response"
+					: r.name == "solar.validation"
+						  ? "sun-sky"
+						  : r.name.find("supplied/") == 0 ? r.name.substr(9) : r.name;
+			if (r.evidenceAvailable)
+				r.outputsAdmitted =
+					r.name == "supplied-candidates" || admittedProviders.count(name);
+		}
+		Result receipt;
+		receipt.work = snapshot->work;
+		snapshot->generation = ProviderGeneration(receipt, catalog.key, scope);
+		scoped->prepared = snapshot;
+		snapshot->binding = Fingerprint(*scoped).inputs.back().sha256;
+		result.scenarios.push_back(scope);
+		result.scopedRequests.push_back(scoped);
 	}
-	result.work.deferred += catalog.models.size() - selected.size();
 	result.stages.push_back(
-		"S05 provider consolidation and local/class work admission; deferred models retained in diagnostics");
-	return q;
+		"Provider scenarios kept as independent model requests; never concatenate alternatives");
+}
+Joint::Request Prepare(const Request &request, const ReadContext &read, Result &result)
+{
+	if (request.prepared)
+	{
+		Need(Fingerprint(request).inputs.back().sha256 == request.prepared->binding,
+			 Code::InvalidInput, "Prepared provider request changed; stale generation/settings");
+		result.work = request.prepared->work;
+		result.stages = request.prepared->stages;
+		result.scenarios = request.prepared->scenarios;
+		for (auto &s : result.scenarios)
+			s.selected = true;
+		result.stages.push_back(
+			"Immutable prepared provider leases reused in one explicit model scope");
+		return request.fitting;
+	}
+	// Direct supplied candidates need no provider planning and retain cacheability.
+	GatherProviders(request, read, result);
+	for (auto &p : result.work.providers)
+		if (p.name == "supplied-candidates")
+			p.outputsAdmitted = true;
+	return request.fitting;
 }
 void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 {
 	auto &a = build.asset.assessment;
 	a.present = true;
+	a.providers = result.work.providers;
+	a.providerScenarios = result.scenarios;
+	for (const auto &s : build.asset.suns)
+	{
+		(void)s;
+		a.sunEvidence = AssessmentStatus::Conditional;
+	}
+	if (!build.asset.environments.empty())
+		a.environmentEvidence = AssessmentStatus::Conditional;
+	for (const auto &p : a.providers)
+		if (p.outcome != ProviderOutcome::Produced && p.outcome != ProviderOutcome::NotRequested)
+			a.coverage.limitations.push_back(p.name + ": " + ProviderOutcomeName(p.outcome) + "; " +
+											 p.reason);
 	a.solverExecuted = result.fitted.state != Joint::State::NotStarted;
 	a.proposedSources = result.work.candidates;
 	a.strictEvaluated = fitted;
 	a.coverage.usedTraining = result.training.used;
-	a.coverage.unavailableTraining = fitted ? result.training.unavailable : a.coverage.requestedTraining;
+	a.coverage.unavailableTraining =
+		fitted ? result.training.unavailable : a.coverage.requestedTraining;
 	a.coverage.requestedValidation = result.validation.requested;
 	a.coverage.usedValidation = result.validation.used;
 	a.coverage.requestedHeldout = result.final.score.requested;
@@ -1213,15 +1539,19 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 		a.coverage.derivedComplete ? AssessmentStatus::Conditional : AssessmentStatus::Unavailable,
 		"Reported full-map raw/derived coverage; fitting subset is separately counted", a.bspSha256,
 		"Geometric/transfer/material support remains per observation");
-	add(ReadinessKind::ForwardModel, fitted ? AssessmentStatus::Conditional : AssessmentStatus::Unavailable,
+	add(ReadinessKind::ForwardModel,
+		fitted ? AssessmentStatus::Conditional : AssessmentStatus::Unavailable,
 		"Selected feature-scoped strict historical/physical operator", a.selectedProfile,
-		"Compiler parity and shadow rules only in tested scopes; UnknownProfile has no numeric default");
-	add(ReadinessKind::OfflineSolver, fitted ? AssessmentStatus::Validated : AssessmentStatus::Unavailable,
+		"Compiler parity and shadow rules only in tested scopes; UnknownProfile has no numeric "
+		"default");
+	add(ReadinessKind::OfflineSolver,
+		fitted ? AssessmentStatus::Validated : AssessmentStatus::Unavailable,
 		"Bounded offline software execution and structural/payload validation", a.solverKey,
 		fitted ? "Not source-existence or map-completeness certification" : result.reason);
-	add(ReadinessKind::KnownSourcePhysics, AssessmentStatus::Unknown, "External ground-truth evaluation only",
-		result.final.evidence,
-		"No hidden source-answer reader is available to the producer; external benchmark measures physical "
+	add(ReadinessKind::KnownSourcePhysics, AssessmentStatus::Unknown,
+		"External ground-truth evaluation only", result.final.evidence,
+		"No hidden source-answer reader is available to the producer; external benchmark measures "
+		"physical "
 		"recovery");
 	add(ReadinessKind::StockConditional,
 		!a.coverage.historicalProfileKnown && fitted ? AssessmentStatus::Conditional
@@ -1230,7 +1560,8 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 		"Stock truth/absolute scale unavailable; no generic JA compiler claim");
 	add(ReadinessKind::ProductionCache, AssessmentStatus::Unavailable,
 		"Actual game map-load preflight/warm reuse", a.fingerprint,
-		"Only explicit offline fingerprint/cache is supported; runtime collector remains NotCacheable");
+		"Only explicit offline fingerprint/cache is supported; runtime collector remains "
+		"NotCacheable");
 	add(ReadinessKind::RuntimeConsumers, AssessmentStatus::Unavailable,
 		"Fog/entity/Forward+/LTC/shadow/PBR adapters", "data-only",
 		"No rendering consumer or lazy reconstruction is installed");
@@ -1252,16 +1583,18 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 			SourceAdmission x;
 			x.source = s.id;
 			x.use = SourceUse(use);
-			bool exact = use == unsigned(SourceUse::ExactEmitter) || use == unsigned(SourceUse::Shadow) ||
-						 use == unsigned(SourceUse::Specular);
+			bool exact = use == unsigned(SourceUse::ExactEmitter) ||
+						 use == unsigned(SourceUse::Shadow) || use == unsigned(SourceUse::Specular);
 			x.status = exact ? AssessmentStatus::Unavailable
 							 : s.evidence.approximateIrradiance == Suitability::Candidate
 								   ? AssessmentStatus::Conditional
 								   : AssessmentStatus::Unknown;
-			x.reason = exact ? "No independently calibrated exact/shadow/specular admission; canonical "
-							   "parameters remain hypotheses"
-							 : "Approximate field requires its own independent usefulness calibration and a "
-							   "consumer implementation";
+			x.reason =
+				exact
+					? "No independently calibrated exact/shadow/specular admission; canonical "
+					  "parameters remain hypotheses"
+					: "Approximate field requires its own independent usefulness calibration and a "
+					  "consumer implementation";
 			a.admissions.push_back(x);
 		}
 	};
@@ -1282,13 +1615,16 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	for (const auto &witness : out.uncertainty.witnesses)
 		if (witness.model.key == selected.key)
 			for (size_t i = 0; i < witness.tracks.size(); ++i)
-				sourceIds[witness.model.sources[i].candidate.id] = b.trackSources.at(witness.tracks[i]);
+				sourceIds[witness.model.sources[i].candidate.id] =
+					b.trackSources.at(witness.tracks[i]);
 	for (const auto &root : q.boundaryRoots)
 	{
 		Need(root.kind == TransportRootKind::LegacyAmbient, Code::Unavailable,
-			 "A fixed directional/environment root requires canonical source geometry, not an anonymous "
+			 "A fixed directional/environment root requires canonical source geometry, not an "
+			 "anonymous "
 			 "irradiance array");
-		Need(!b.ids.used.count(root.source), Code::InvalidInput, "Boundary root identity collision");
+		Need(!b.ids.used.count(root.source), Code::InvalidInput,
+			 "Boundary root identity collision");
 		b.ids.used.insert(root.source);
 		TransportField field;
 		field.source.id = root.source;
@@ -1308,7 +1644,8 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	}
 	for (auto &root : decomposition.fixedRoots)
 	{
-		Need(sourceIds.count(root.source), Code::AlgorithmError, "Frozen root has no canonical source");
+		Need(sourceIds.count(root.source), Code::AlgorithmError,
+			 "Frozen root has no canonical source");
 		root.source = sourceIds[root.source];
 	}
 	for (auto &root : decomposition.byRoot)
@@ -1317,10 +1654,13 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 												? b.relativeCalibration
 												: decomposition.contract.calibration.id;
 	Id first = b.ids.Span("passive-fields", 2 * (decomposition.byRoot.size() + 1) + 1);
-	if(decomposition.fitted)
-        Check(Indirect::AppendFields(*q.transfer, decomposition, first, b.provenance, b.asset, b.chunks, b.read));
-    else
-        b.asset.assessment.coverage.limitations.push_back("No comparable frozen surface transport samples; unavailable fields were not published");
+	if (decomposition.fitted)
+		Check(Indirect::AppendFields(*q.transfer, decomposition, first, b.provenance, b.asset,
+									 b.chunks, b.read));
+	else
+		b.asset.assessment.coverage.limitations.push_back(
+			"No comparable frozen surface transport samples; unavailable fields were not "
+			"published");
 	for (auto &field : b.asset.transport)
 		field.source.evidence.approximateIrradiance = Suitability::Unknown;
 	std::vector<SampleRecord> samples;
@@ -1339,19 +1679,19 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	}
 	std::sort(samples.begin(), samples.end(),
 			  [](const SampleRecord &a, const SampleRecord &b) { return a.id < b.id; });
-	a.sampleDomain =
-		b.DatasetRows("sample-domain", DatasetPurpose::SampleDomain, SampleEncoding, SampleMagic, samples);
+	a.sampleDomain = b.DatasetRows("sample-domain", DatasetPurpose::SampleDomain, SampleEncoding,
+								   SampleMagic, samples);
 	const auto &contract = q.profiles[selected.profile].contract;
-	Id calibration =
-		contract.unit == PhotometricUnit::Relative ? b.relativeCalibration : contract.calibration.id;
+	Id calibration = contract.unit == PhotometricUnit::Relative ? b.relativeCalibration
+																: contract.calibration.id;
 	for (const auto &root : decomposition.fixedRoots)
 	{
 		for (unsigned order = 0; order <= (contract.physicalTransportAssumed ? 1u : 0u); ++order)
 		{
 			std::vector<ContributionRecord> rows;
-			auto reflected =
-				std::find_if(decomposition.byRoot.begin(), decomposition.byRoot.end(),
-							 [&](const Indirect::RootBounce &x) { return x.source == root.source; });
+			auto reflected = std::find_if(
+				decomposition.byRoot.begin(), decomposition.byRoot.end(),
+				[&](const Indirect::RootBounce &x) { return x.source == root.source; });
 			Need(order == 0 || reflected != decomposition.byRoot.end(), Code::AlgorithmError,
 				 "Reflected root attribution missing");
 			for (size_t i = 0; i < q.transfer->Patches().size(); ++i)
@@ -1369,9 +1709,10 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 				r.upper = order ? reflected->upper[i] : r.value;
 				rows.push_back(r);
 			}
-			std::sort(rows.begin(), rows.end(), [](const ContributionRecord &a, const ContributionRecord &b) {
-				return a.sample < b.sample;
-			});
+			std::sort(rows.begin(), rows.end(),
+					  [](const ContributionRecord &a, const ContributionRecord &b) {
+						  return a.sample < b.sample;
+					  });
 			Id id = b.DatasetRows(
 				"source-contribution/" + std::to_string(root.source) + "/" + std::to_string(order),
 				DatasetPurpose::Contributions, ContributionEncoding, ContributionMagic, rows);
@@ -1396,8 +1737,8 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 			membership.source = root.source;
 			membership.kind = root.kind;
 			m.roots = {membership};
-			m.directLocal = m.directSun = m.directSky = m.legacyAmbient = m.reflected = m.unresolved =
-				FieldMembership::Excluded;
+			m.directLocal = m.directSun = m.directSky = m.legacyAmbient = m.reflected =
+				m.unresolved = FieldMembership::Excluded;
 			if (order)
 				m.reflected = FieldMembership::Included;
 			else if (root.kind == TransportRootKind::Sun)
@@ -1415,7 +1756,8 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	}
 	Joint::Model checked;
 	std::vector<Joint::Prediction> predictions;
-	Check(Joint::AssessHypothesis(q, selected, b.read, checked, out.training, out.work.strict, &predictions));
+	Check(Joint::AssessHypothesis(q, selected, b.read, checked, out.training, out.work.strict,
+								  &predictions));
 	Need(checked.key == selected.key, Code::InvalidState,
 		 "Producer strict reevaluation changed frozen model identity");
 	std::vector<ObservationRecord> rows;
@@ -1423,10 +1765,12 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	for (uint64_t firstRow = 0; firstRow < q.count; firstRow += 128)
 	{
 		Chunk<Joint::Observation> chunk;
-		Check(q.training->Read(firstRow, size_t(std::min(uint64_t(128), q.count - firstRow)), b.read, chunk));
+		Check(q.training->Read(firstRow, size_t(std::min(uint64_t(128), q.count - firstRow)),
+							   b.read, chunk));
 		for (size_t i = 0; i < chunk.count; ++i, ++ordinal)
 		{
-			Need(ordinal < predictions.size(), Code::AlgorithmError, "Prediction/observation mismatch");
+			Need(ordinal < predictions.size(), Code::AlgorithmError,
+				 "Prediction/observation mismatch");
 			const auto &o = chunk.data[i];
 			const auto &p = predictions[ordinal];
 			Need(o.id == p.id, Code::InvalidState, "Observation stream changed before publication");
@@ -1446,13 +1790,15 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 			v.unresolved = p.unresolved;
 			v.directionKnown = p.directionKnown;
 			v.directionToSource = p.directionToSource;
-			v.discrepancyKnown = o.comparable && p.available && o.channel == Joint::Channel::Surface;
+			v.discrepancyKnown =
+				o.comparable && p.available && o.channel == Joint::Channel::Surface;
 			V residual;
 			for (unsigned c = 0; c < 3; ++c)
 				if (o.rgb[c].present)
-					residual[c] = V(p.rgb)[c] < o.rgb[c].lower
-									  ? o.rgb[c].lower - V(p.rgb)[c]
-									  : V(p.rgb)[c] > o.rgb[c].upper ? o.rgb[c].upper - V(p.rgb)[c] : 0;
+					residual[c] =
+						V(p.rgb)[c] < o.rgb[c].lower
+							? o.rgb[c].lower - V(p.rgb)[c]
+							: V(p.rgb)[c] > o.rgb[c].upper ? o.rgb[c].upper - V(p.rgb)[c] : 0;
 			v.signedIntervalDiscrepancy = residual.Float();
 			rows.push_back(v);
 		}
@@ -1466,26 +1812,81 @@ Error ReadSamples(const Artifact &a, Id id, const ReadContext &c, std::vector<Sa
 {
 	return DecodeRows(a, id, SampleMagic, SampleEncoding, c, out, ReadSample);
 }
-Error ReadContributions(const Artifact &a, Id id, const ReadContext &c, std::vector<ContributionRecord> &out)
+Error ReadContributions(const Artifact &a, Id id, const ReadContext &c,
+						std::vector<ContributionRecord> &out)
 {
 	return DecodeRows(a, id, ContributionMagic, ContributionEncoding, c, out, ReadContribution);
 }
-Error ReadObservations(const Artifact &a, Id id, const ReadContext &c, std::vector<ObservationRecord> &out)
+Error ReadObservations(const Artifact &a, Id id, const ReadContext &c,
+					   std::vector<ObservationRecord> &out)
 {
 	return DecodeRows(a, id, ObservationMagic, ObservationEncoding, c, out, ReadObservation);
 }
 
-Error Run(const Request &original, const ReadContext &read, Result &out, const Joint::Validation *validation,
-		  const FinalEvaluation *final)
+Error PrepareModelRequests(const Request &request, const ReadContext &read, Result &out)
 {
 	out = {};
 	try
 	{
 		Cancel(read);
-		Need(original.options.maxSources && original.options.maxPatches && original.options.chunkRows &&
-				 original.options.chunkRows <= 4096 && original.options.maxBytes &&
-				 original.map.sha256 == original.fitting.mapKey && !original.map.path.empty() &&
-				 !original.decoder.empty() && !original.settingsIdentity.empty(),
+		Need(request.map.sha256 == request.fitting.mapKey && !request.map.path.empty() &&
+				 !request.settingsIdentity.empty() && !request.decoder.empty(),
+			 Code::InvalidInput, "Provider preparation map/settings identity invalid");
+		bool bsp = false;
+		for (const auto &i : request.fingerprint.inputs)
+			if (i.kind == Disk::InputKind::Bsp && i.sha256 == request.map.sha256 &&
+				i.bytes == request.map.bytes)
+				bsp = true;
+		Need(bsp, Code::InvalidInput, "Provider preparation BSP identity mismatch");
+		if (request.prepared)
+		{
+			Prepare(request, read, out);
+			out.scopedRequests.push_back(std::make_shared<const Request>(request));
+		}
+		else
+			Plan(request, read, out);
+		out.state = State::DiagnosticOnly;
+		out.reason = "Prepared independent model requests; fitting/publication not performed";
+		return {};
+	}
+	catch (const Error &e)
+	{
+		ProviderAssessment failure;
+		failure.name = "preparation.failure";
+		failure.required = true;
+		failure.ran = true;
+		failure.errorCode = unsigned(e.code);
+		failure.reason = e.message;
+		failure.outcome = ProviderFailure(e, ProviderOutcome::NotRequested, failure.budgetScope);
+		out.work.providers.push_back(failure);
+		out.state =
+			e.code == Code::Cancelled
+				? State::Cancelled
+				: (e.code == Code::MemoryLimit || e.code == Code::WorkLimit ? State::Budget
+																			: State::Failed);
+		out.reason = e.message;
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		out.state = State::Budget;
+		out.reason = "Provider preparation allocation failed";
+		return Failure(Code::MemoryLimit, out.reason);
+	}
+}
+
+Error Run(const Request &original, const ReadContext &read, Result &out,
+		  const Joint::Validation *validation, const FinalEvaluation *final)
+{
+	out = {};
+	try
+	{
+		Cancel(read);
+		Need(original.options.maxSources && original.options.maxPatches &&
+				 original.options.chunkRows && original.options.chunkRows <= 4096 &&
+				 original.options.maxBytes && original.map.sha256 == original.fitting.mapKey &&
+				 !original.map.path.empty() && !original.decoder.empty() &&
+				 !original.settingsIdentity.empty(),
 			 Code::InvalidInput, "Producer input/map/budget/decoder identity invalid");
 		Need(original.fitting.count <= original.fitting.options.maxObservations, Code::WorkLimit,
 			 "Producer training observation limit");
@@ -1499,20 +1900,52 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 				 (!final || original.heldoutKey == final->Key()),
 			 Code::InvalidInput, "Independent evaluation partition identity mismatch");
 		Request request = original;
-		request.fitting = Prepare(original, read, out);
+		bool pendingScopes = false;
+		if (!original.prepared &&
+			(original.hidden || original.solar || !original.providers.empty()))
+		{
+			Result preparation;
+			auto status = PrepareModelRequests(original, read, preparation);
+			out = std::move(preparation);
+			Check(status);
+			bool sameProfileLayout = out.scopedRequests.size() == 1 &&
+									 out.scopedRequests.front()->fitting.profiles.size() ==
+										 original.fitting.profiles.size();
+			if (sameProfileLayout)
+				for (size_t i = 0; i < original.fitting.profiles.size(); ++i)
+					sameProfileLayout &=
+						out.scopedRequests.front()->fitting.profiles[i].model.profile.id ==
+						original.fitting.profiles[i].model.profile.id;
+			if (out.scopedRequests.size() == 1 && sameProfileLayout)
+			{
+				request = *out.scopedRequests.front();
+				out.scopedRequests.clear();
+				request.fitting = Prepare(request, read, out);
+			}
+			else
+			{
+				pendingScopes = true;
+				out.reason = "Provider/profile scenarios require explicit scoped requests and "
+							 "rebound trusted evaluation; no combined model evaluated";
+			}
+		}
+		else
+			request.fitting = Prepare(original, read, out);
 		auto &q = request.fitting;
 		Need(q.candidates.size() <= request.options.maxSources, Code::WorkLimit,
 			 "Producer fitting-wave source budget exceeded");
 		Assembly build(request, read);
 		out.stages.push_back("immutable input/provenance validated");
-		bool admissible = !q.profiles.empty() && q.count && q.training && q.transfer;
+		bool admissible =
+			!pendingScopes && !q.profiles.empty() && q.count && q.training && q.transfer;
 		if (admissible)
 		{
 			Need(q.transfer->MapKey() == q.mapKey &&
 					 q.transfer->Patches().size() <= request.options.maxPatches,
 				 Code::WorkLimit, "Producer transfer generation/patch limit");
 			for (const auto &p : q.profiles)
-				if (p.model.law == Shape::Law::HistoricalBake && p.model.profile.id == "UnknownProfile")
+				if (p.model.law == Shape::Law::HistoricalBake &&
+					p.model.profile.id == "UnknownProfile")
 					admissible = false;
 		}
 		if (!admissible)
@@ -1520,8 +1953,10 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 			Need(request.options.retainUnsupportedDiagnostic, Code::Unavailable,
 				 "No supported numerical profile or training geometry");
 			out.state = State::DiagnosticOnly;
-			out.reason = "No admissible numerical reconstruction; UnknownProfile/unknown transfer/missing "
-						 "observations are not black predictions";
+			if (!pendingScopes)
+				out.reason = "No admissible numerical reconstruction; UnknownProfile/unknown "
+							 "transfer/missing "
+							 "observations are not black predictions";
 			out.stages.push_back(out.reason);
 			AssessReadiness(build, out, false);
 		}
@@ -1529,10 +1964,12 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 		{
 			Need(validation || !request.options.requireIndependentValidation, Code::Unavailable,
 				 "Producer requires independent validation before publication");
-			Check(Joint::Solve(q, read, out.fitted, validation));
+			auto jointStatus = Joint::Solve(q, read, out.fitted, validation);
 			out.work.solver = out.fitted.work;
-			out.stages.push_back("joint intensity/geometry/type/profile/visibility/passive-transport model "
-								 "selection executed");
+			Check(jointStatus);
+			out.stages.push_back(
+				"joint intensity/geometry/type/profile/visibility/passive-transport model "
+				"selection executed");
 			if (out.fitted.alternatives.empty() || out.fitted.preferred == SIZE_MAX)
 			{
 				Need(request.options.retainUnsupportedDiagnostic, Code::Unavailable,
@@ -1544,25 +1981,31 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 			else
 			{
 				const auto selected = out.fitted.alternatives[out.fitted.preferred];
-				Check(Uncertainty::Analyze(q, out.fitted, request.options.uncertainty, read, out.uncertainty,
-										   validation, request.calibration));
+				auto uncertaintyStatus =
+					Uncertainty::Analyze(q, out.fitted, request.options.uncertainty, read,
+										 out.uncertainty, validation, request.calibration);
 				out.work.uncertainty = out.uncertainty.work;
+				Check(uncertaintyStatus);
 				Need(out.uncertainty.complete, Code::WorkLimit,
 					 "Uncertainty schedule incomplete; no half-built artifact publication");
-				out.stages.push_back("joint alternative/configuration and uncertainty schedule complete");
+				out.stages.push_back(
+					"joint alternative/configuration and uncertainty schedule complete");
 				Need(final || !request.options.requireFinalEvaluation, Code::Unavailable,
 					 "Final held-out evaluation controller missing");
 				if (final)
 				{
 					Check(final->Assess(selected, read, out.final));
-					Need(out.final.score.partitionKey == final->Key() && out.final.score.available &&
-							 out.final.score.used && out.final.score.requiredBlocksPass,
+					Need(out.final.score.partitionKey == final->Key() &&
+							 out.final.score.available && out.final.score.used &&
+							 out.final.score.requiredBlocksPass,
 						 Code::Unavailable, "Final independent supported coverage failed");
-					Need(out.final.score.positive && out.final.score.blackMse > out.final.score.intervalMse,
-						 Code::Unavailable, "Final positive-light prediction does not improve over black");
+					Need(out.final.score.positive &&
+							 out.final.score.blackMse > out.final.score.intervalMse,
+						 Code::Unavailable,
+						 "Final positive-light prediction does not improve over black");
 				}
-				out.stages.push_back(
-					"final model frozen; independent held-out assessment performed without refitting");
+				out.stages.push_back("final model frozen; independent held-out assessment "
+									 "performed without refitting");
 				out.validation = selected.validation;
 				build.SourceRecords(selected, out.uncertainty);
 				build.asset.assessment.solverKey = Disk::Hex(selected.key);
@@ -1574,12 +2017,13 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 				MakePayloads(build, q, selected, out);
 				AssessReadiness(build, out, true);
 				out.state = State::Completed;
-				out.reason = "Operational conditional offline producer; structural publication is not "
-							 "physical-source certification";
+				out.reason =
+					"Operational conditional offline producer; structural publication is not "
+					"physical-source certification";
 			}
 		}
 		Cancel(read);
-		out.artifact.fingerprint = Fingerprint(original);
+		out.artifact.fingerprint = Fingerprint(request);
 		Disk::Digest cacheKey;
 		auto key = Disk::MakeKey(out.artifact.fingerprint, cacheKey);
 		if (key)
@@ -1588,9 +2032,10 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 			out.artifact.key = cacheKey;
 		}
 		else
-			build.asset.assessment.coverage.limitations.push_back("Offline fingerprint incomplete: " +
-																  key.message);
-		out.artifact.asset = std::make_shared<const ReconstructedLightingAsset>(std::move(build.asset));
+			build.asset.assessment.coverage.limitations.push_back(
+				"Offline fingerprint incomplete: " + key.message);
+		out.artifact.asset =
+			std::make_shared<const ReconstructedLightingAsset>(std::move(build.asset));
 		out.artifact.chunks = std::move(build.chunks);
 		out.artifact.completeness = Completeness::Partial;
 		for (const auto &c : out.artifact.chunks)
@@ -1600,17 +2045,27 @@ Error Run(const Request &original, const ReadContext &read, Result &out, const J
 			out.work.payloadBytes += c.bytes.size();
 		}
 		Check(ValidateArtifact(out.artifact, read));
-		out.stages.push_back(
-			"canonical structural and every referenced payload validated; data-only artifact sealed");
+		out.stages.push_back("canonical structural and every referenced payload validated; "
+							 "data-only artifact sealed");
 		return {};
 	}
 	catch (const Error &error)
 	{
+		ProviderAssessment failure;
+		failure.name = "producer.failure";
+		failure.required = true;
+		failure.ran = true;
+		failure.errorCode = unsigned(error.code);
+		failure.reason = error.message;
+		failure.outcome =
+			ProviderFailure(error, ProviderOutcome::NotRequested, failure.budgetScope);
+		out.work.providers.push_back(failure);
 		out.artifact = {};
 		out.state = error.code == Code::Cancelled
 						? State::Cancelled
-						: error.code == Code::WorkLimit || error.code == Code::MemoryLimit ? State::Budget
-																						   : State::Failed;
+						: error.code == Code::WorkLimit || error.code == Code::MemoryLimit
+							  ? State::Budget
+							  : State::Failed;
 		out.reason = error.message;
 		return error;
 	}
@@ -1632,7 +2087,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 		const auto &a = *artifact.asset;
 		std::string problem;
 		Need(Validate(a, &problem), Code::InvalidInput, "Canonical asset invalid: " + problem);
-		Need(a.assessment.present && a.assessment.structuralValidated && a.assessment.payloadsValidated,
+		Need(a.assessment.present && a.assessment.structuralValidated &&
+				 a.assessment.payloadsValidated,
 			 Code::InvalidInput, "Producer validation manifest absent/incomplete");
 		uint64_t bytes = 0;
 		std::set<Id> descriptors;
@@ -1655,8 +2111,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 			Id last = 0;
 			for (const auto &v : sampleRows)
 			{
-				Need(v.id > last && v.patch && std::isfinite(v.area) && v.area > 0 && Normal(V(v.normal)) &&
-						 v.style <= 255,
+				Need(v.id > last && v.patch && std::isfinite(v.area) && v.area > 0 &&
+						 Normal(V(v.normal)) && v.style <= 255,
 					 Code::ProviderError, "Invalid sample identity/geometry/area/style");
 				last = v.id;
 				samples.emplace(v.id, v);
@@ -1683,31 +2139,36 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 		{
 			Cancel(read);
 			Need(ref.sampleDomain == a.assessment.sampleDomain &&
-					 ref.configuration == a.assessment.selectedConfiguration && !ref.domain.empty() &&
-					 ref.membership.reflectionOrderKnown,
+					 ref.configuration == a.assessment.selectedConfiguration &&
+					 !ref.domain.empty() && ref.membership.reflectionOrderKnown,
 				 Code::ProviderError, "Contribution domain/configuration/order missing");
 			std::vector<ContributionRecord> rows;
 			Check(ReadContributions(artifact, ref.dataset, read, rows));
 			handled.insert(ref.dataset);
-			Need(rows.size() == samples.size(), Code::ProviderError, "Incomplete per-root surface coverage");
+			Need(rows.size() == samples.size(), Code::ProviderError,
+				 "Incomplete per-root surface coverage");
 			Id last = 0;
 			for (const auto &v : rows)
 			{
 				Need(v.sample > last && samples.count(v.sample) && sources.count(v.source) &&
-						 std::find(ref.sources.begin(), ref.sources.end(), v.source) != ref.sources.end() &&
-						 v.reflectionOrder <= 1 && unsigned(v.root) < unsigned(TransportRootKind::Unknown) &&
+						 std::find(ref.sources.begin(), ref.sources.end(), v.source) !=
+							 ref.sources.end() &&
+						 v.reflectionOrder <= 1 &&
+						 unsigned(v.root) < unsigned(TransportRootKind::Unknown) &&
 						 Positive(V(v.value)) && Positive(V(v.lower)) && Positive(V(v.upper)),
 					 Code::ProviderError, "Invalid root contribution record");
 				last = v.sample;
-				Need(identities.emplace(v.sample, v.source, v.reflectionOrder).second, Code::ProviderError,
-					 "Duplicate root/order contribution");
+				Need(identities.emplace(v.sample, v.source, v.reflectionOrder).second,
+					 Code::ProviderError, "Duplicate root/order contribution");
 				Need(ref.membership.minimumReflectionOrder == v.reflectionOrder &&
 						 ref.membership.maximumReflectionOrder == v.reflectionOrder &&
-						 ref.membership.roots.size() == 1 && ref.membership.roots[0].source == v.source &&
+						 ref.membership.roots.size() == 1 &&
+						 ref.membership.roots[0].source == v.source &&
 						 ref.membership.roots[0].kind == v.root,
 					 Code::ProviderError, "Contribution root/order membership mismatch");
 				for (unsigned c = 0; c < 3; ++c)
-					Need(V(v.lower)[c] <= V(v.value)[c] + 1e-5 && V(v.value)[c] <= V(v.upper)[c] + 1e-5,
+					Need(V(v.lower)[c] <= V(v.value)[c] + 1e-5 &&
+							 V(v.value)[c] <= V(v.upper)[c] + 1e-5,
 						 Code::ProviderError, "Contribution uncertainty bounds invalid");
 				auto &s = sum[v.sample];
 				s.available &= v.available;
@@ -1732,13 +2193,16 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 			for (const auto &v : rows)
 			{
 				Need(v.sample > last && v.role == Joint::Role::Training &&
-						 unsigned(v.channel) < unsigned(Joint::Channel::Count) && Positive(V(v.prediction)),
+						 unsigned(v.channel) < unsigned(Joint::Channel::Count) &&
+						 Positive(V(v.prediction)),
 					 Code::ProviderError, "Invalid observation diagnostic identity/domain");
 				last = v.sample;
 				if (v.directionKnown)
-					Need(Normal(V(v.directionToSource)), Code::ProviderError, "Invalid predicted direction");
+					Need(Normal(V(v.directionToSource)), Code::ProviderError,
+						 "Invalid predicted direction");
 				for (Vec3 rgb : {v.direct, v.sun, v.sky, v.ambient, v.indirect, v.unresolved})
-					Need(Positive(V(rgb)), Code::ProviderError, "Negative/nonfinite pre-encoding component");
+					Need(Positive(V(rgb)), Code::ProviderError,
+						 "Negative/nonfinite pre-encoding component");
 				if (v.channel != Joint::Channel::Surface)
 					continue;
 				Need(samples.count(v.patch), Code::ProviderError,
@@ -1746,11 +2210,13 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 				const auto &s = sum[v.patch];
 				if (!v.available)
 					continue;
-				Need(s.available, Code::ProviderError, "Known diagnostic with unknown root contribution");
+				Need(s.available, Code::ProviderError,
+					 "Known diagnostic with unknown root contribution");
 				const V stored[] = {V(v.direct), V(v.sun), V(v.sky), V(v.ambient), V(v.indirect)};
 				const V accumulated[] = {s.direct, s.sun, s.sky, s.ambient, s.indirect};
 				for (unsigned c = 0; c < 5; ++c)
-					Need(Length(stored[c] - accumulated[c]) <= 2e-5 * std::max(1., Length(stored[c])),
+					Need(Length(stored[c] - accumulated[c]) <=
+							 2e-5 * std::max(1., Length(stored[c])),
 						 Code::ProviderError, "Source/component contribution sum mismatch");
 			}
 		}
@@ -1760,19 +2226,21 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 			if (handled.count(d.id))
 				continue;
 			Need(d.purpose == DatasetPurpose::Transport &&
-					 d.encoding.find("org.openjk.passive-transport-samples/") == 0 && d.encodingVersion == 1,
+					 d.encoding.find("org.openjk.passive-transport-samples/") == 0 &&
+					 d.encodingVersion == 1,
 				 Code::UnsupportedSchema, "Referenced dataset has no validated producer decoder");
 			auto field = std::find_if(a.transport.begin(), a.transport.end(),
 									  [&](const TransportField &f) { return f.dataset == d.id; });
-			Need(field != a.transport.end(), Code::ProviderError, "Unreferenced passive field payload");
+			Need(field != a.transport.end(), Code::ProviderError,
+				 "Unreferenced passive field payload");
 			uint64_t next = 0;
 			GeometryKey hash;
 			std::set<Id> seen;
 			for (auto c : Chunks(artifact, d.id))
 			{
 				Cancel(read);
-				Need(c->firstElement == next && c->count <= d.chunkElements && next <= d.elementCount &&
-						 c->count <= d.elementCount - next,
+				Need(c->firstElement == next && c->count <= d.chunkElements &&
+						 next <= d.elementCount && c->count <= d.elementCount - next,
 					 Code::ProviderError, "Passive field chunk gap/range");
 				Reader r(c->bytes);
 				Need(r.U(4) == 0x3154474a && r.U(4) == 1 && r.U(4) == c->count &&
@@ -1817,7 +2285,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 		return Failure(Code::MemoryLimit, "Producer payload validation allocation");
 	}
 }
-Status Publish(const Artifact &artifact, Manager &owner, uint64_t generation, const ReadContext &read)
+Status Publish(const Artifact &artifact, Manager &owner, uint64_t generation,
+			   const ReadContext &read)
 {
 	if (read.cancellation && read.cancellation->IsCancelled())
 		return Status::Unavailable;
@@ -1841,8 +2310,10 @@ Error Load(const Disk::Cache &cache, const Disk::Fingerprint &fingerprint, const
 		Disk::Index index;
 		std::unique_ptr<Disk::FileReader> reader;
 		auto error = cache.Load(fingerprint, asset, index, reader);
-		Need(bool(error), error.code == Disk::Code::Missing || error.code == Disk::Code::NotCacheable
-							  ? Code::Unavailable : Code::ProviderError,
+		Need(bool(error),
+			 error.code == Disk::Code::Missing || error.code == Disk::Code::NotCacheable
+				 ? Code::Unavailable
+				 : Code::ProviderError,
 			 error.message);
 		Artifact candidate;
 		candidate.asset = std::make_shared<const ReconstructedLightingAsset>(std::move(asset));
@@ -1859,7 +2330,8 @@ Error Load(const Disk::Cache &cache, const Disk::Fingerprint &fingerprint, const
 				chunk.dataset = entry.dataset;
 				chunk.firstElement = entry.firstElement;
 				chunk.count = entry.count;
-				auto e = Disk::ReadChunk(*reader, index, chunk.dataset, chunk.firstElement, chunk.bytes);
+				auto e =
+					Disk::ReadChunk(*reader, index, chunk.dataset, chunk.firstElement, chunk.bytes);
 				Need(bool(e), Code::ProviderError, e.message);
 				bytes += chunk.bytes.size();
 				candidate.chunks.push_back(std::move(chunk));
@@ -1891,7 +2363,8 @@ Disk::Error Store(const Artifact &artifact, const Disk::Cache &cache, const Read
 }
 Backend::Backend(Request r, const ReadContext &read, const Joint::Validation *validation,
 				 const FinalEvaluation *final, std::shared_ptr<Disk::Cache> cache)
-	: request_(std::move(r)), read_(read), validation_(validation), final_(final), cache_(std::move(cache))
+	: request_(std::move(r)), read_(read), validation_(validation), final_(final),
+	  cache_(std::move(cache))
 {
 }
 Status Backend::LoadCache(BuildProduct &product)
@@ -1905,7 +2378,10 @@ Status Backend::LoadCache(BuildProduct &product)
 		return error.code == Code::Unavailable ? Status::Missing : Status::Corrupt;
 	last = {};
 	last.artifact = std::move(a);
-	last.state = last.artifact.asset->assessment.strictEvaluated ? State::Completed : State::DiagnosticOnly;
+	last.work.providers = last.artifact.asset->assessment.providers;
+	last.scenarios = last.artifact.asset->assessment.providerScenarios;
+	last.state =
+		last.artifact.asset->assessment.strictEvaluated ? State::Completed : State::DiagnosticOnly;
 	last.reason = "Validated offline cached artifact; no solver or rendering consumer invoked";
 	product.asset = last.artifact.asset;
 	product.completeness = Completeness::Partial;
@@ -1932,9 +2408,8 @@ Status Backend::Build(BuildProduct &product)
 std::string ReportJson(const Result &result)
 {
 	std::ostringstream s;
-	s << std::setprecision(12)
-	  << "{\"schema\":\"org.openjk.producer-report.v1\",\"state\":" << Escape(StateName(result.state))
-	  << ",\"reason\":" << Escape(result.reason)
+	s << std::setprecision(12) << "{\"schema\":\"org.openjk.producer-report.v1\",\"state\":"
+	  << Escape(StateName(result.state)) << ",\"reason\":" << Escape(result.reason)
 	  << ",\"asset_available\":" << (result.artifact.asset ? "true" : "false")
 	  << ",\"candidates\":" << result.work.candidates << ",\"deferred\":" << result.work.deferred
 	  << ",\"evaluations\":"
@@ -1955,7 +2430,8 @@ std::string ReportJson(const Result &result)
 		  << ",\"validation_used\":" << a.coverage.usedValidation
 		  << ",\"heldout_used\":" << a.coverage.usedHeldout
 		  << ",\"conditional_sources\":" << a.conditionalSources
-		  << ",\"resolved_sources\":" << a.resolvedSources << ",\"profile\":" << Escape(a.selectedProfile)
+		  << ",\"resolved_sources\":" << a.resolvedSources
+		  << ",\"profile\":" << Escape(a.selectedProfile)
 		  << ",\"cache_key\":" << Escape(a.fingerprint)
 		  << ",\"source_transfer_known\":" << (a.coverage.sourceTransferKnown ? "true" : "false")
 		  << ",\"primaries_known\":" << (a.coverage.primariesKnown ? "true" : "false")
@@ -1980,6 +2456,43 @@ std::string ReportJson(const Result &result)
 		   assessment ? &assessment->heldoutIntervalMse : nullptr);
 	metric("heldout_black_mse", result.final.score.available, result.final.score.blackMse,
 		   assessment ? &assessment->heldoutBlackMse : nullptr);
+	s << ",\"sun_evidence\":\""
+	  << (assessment && assessment->sunEvidence == AssessmentStatus::Conditional ? "Conditional"
+																				 : "UnknownSun")
+	  << "\",\"environment_evidence\":\""
+	  << (assessment && assessment->environmentEvidence == AssessmentStatus::Conditional
+			  ? "Conditional"
+			  : "UnresolvedEnvironment")
+	  << "\",\"providers\":[";
+	for (size_t i = 0; i < result.work.providers.size(); ++i)
+	{
+		const auto &p = result.work.providers[i];
+		s << (i ? "," : "") << "{\"name\":" << Escape(p.name)
+		  << ",\"outcome\":" << Escape(ProviderOutcomeName(p.outcome))
+		  << ",\"reason\":" << Escape(p.reason) << ",\"generation\":" << Escape(p.generation)
+		  << ",\"error_code\":" << p.errorCode << ",\"budget_scope\":" << unsigned(p.budgetScope)
+		  << ",\"required\":" << (p.required ? "true" : "false")
+		  << ",\"ran\":" << (p.ran ? "true" : "false")
+		  << ",\"operation_succeeded\":" << (p.operationSucceeded ? "true" : "false")
+		  << ",\"evidence_available\":" << (p.evidenceAvailable ? "true" : "false")
+		  << ",\"search_complete\":" << (p.searchComplete ? "true" : "false")
+		  << ",\"exact_lighting_admissible\":false,\"outputs_admitted\":"
+		  << (p.outputsAdmitted ? "true" : "false") << ",\"records\":" << p.records
+		  << ",\"forward_calls\":" << p.forwardCalls << ",\"rays\":" << p.rays
+		  << ",\"work\":" << p.work << ",\"bytes\":" << p.bytes << ",\"diagnostics\":[";
+		for (size_t j = 0; j < p.diagnostics.size(); ++j)
+			s << (j ? "," : "") << Escape(p.diagnostics[j]);
+		s << "]}";
+	}
+	s << "],\"scenarios\":[";
+	for (size_t i = 0; i < result.scenarios.size(); ++i)
+	{
+		const auto &p = result.scenarios[i];
+		s << (i ? "," : "") << "{\"key\":" << Escape(p.key) << ",\"profile\":" << Escape(p.profile)
+		  << ",\"scenario\":" << Escape(p.scenario)
+		  << ",\"selected\":" << (p.selected ? "true" : "false") << '}';
+	}
+	s << "]";
 	s << ",\"stages\":[";
 	for (size_t i = 0; i < result.stages.size(); ++i)
 		s << (i ? "," : "") << Escape(result.stages[i]);
@@ -1993,7 +2506,8 @@ Error DebugObj(const Artifact &artifact, size_t maxBytes, std::string &output)
 	{
 		Need(artifact.asset != nullptr, Code::Unavailable, "No debug artifact");
 		std::ostringstream s;
-		s << std::setprecision(9) << "# S13 DATA ONLY: candidate markers, no runtime illumination\n";
+		s << std::setprecision(9)
+		  << "# S13 DATA ONLY: candidate markers, no runtime illumination\n";
 		size_t index = 0;
 		for (const auto &e : artifact.asset->emitters)
 		{
@@ -2002,14 +2516,15 @@ Error DebugObj(const Artifact &artifact, size_t maxBytes, std::string &output)
 			V centre = e.position.world;
 			double size = 4;
 			if (e.kind == EmitterKind::Rectangle)
-				size = std::max(double(e.geometry.halfWidthWorld), double(e.geometry.halfHeightWorld));
+				size =
+					std::max(double(e.geometry.halfWidthWorld), double(e.geometry.halfHeightWorld));
 			if (e.kind == EmitterKind::Tube)
 				size = e.geometry.halfLengthWorld;
 			for (V axis : {V(e.frame.right), V(e.frame.up), V(e.frame.forward)})
 			{
 				auto a = centre - axis * size, b = centre + axis * size;
-				s << "v " << a.x << ' ' << a.y << ' ' << a.z << "\nv " << b.x << ' ' << b.y << ' ' << b.z
-				  << "\nl " << index + 1 << ' ' << index + 2 << "\n";
+				s << "v " << a.x << ' ' << a.y << ' ' << a.z << "\nv " << b.x << ' ' << b.y << ' '
+				  << b.z << "\nl " << index + 1 << ' ' << index + 2 << "\n";
 				index += 2;
 			}
 			Need(size_t(s.tellp()) <= maxBytes, Code::MemoryLimit, "Debug OBJ limit");
@@ -2054,7 +2569,8 @@ Error DebugPreview(const Artifact &artifact, size_t maximumBytes, std::string &o
 
 const char *StateName(State s)
 {
-	static const char *n[] = {"NotStarted", "DiagnosticOnly", "Completed", "Cancelled", "Budget", "Failed"};
+	static const char *n[] = {"NotStarted", "DiagnosticOnly", "Completed",
+							  "Cancelled",	"Budget",		  "Failed"};
 	return unsigned(s) < 6 ? n[unsigned(s)] : "Invalid";
 }
 } // namespace Producer

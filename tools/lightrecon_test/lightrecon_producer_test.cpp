@@ -8,15 +8,15 @@
 using namespace JointTest;
 namespace P = Rend2LightRecon::Core::Producer;
 int checks = 0, failures = 0;
-#define CHECK(x)                                                                                             \
-	do                                                                                                       \
-	{                                                                                                        \
-		++checks;                                                                                            \
-		if (!(x))                                                                                            \
-		{                                                                                                    \
-			++failures;                                                                                      \
-			std::printf("FAIL %d %s\n", __LINE__, #x);                                                       \
-		}                                                                                                    \
+#define CHECK(x)                                                                                   \
+	do                                                                                             \
+	{                                                                                              \
+		++checks;                                                                                  \
+		if (!(x))                                                                                  \
+		{                                                                                          \
+			++failures;                                                                            \
+			std::printf("FAIL %d %s\n", __LINE__, #x);                                             \
+		}                                                                                          \
 	} while (0)
 using namespace ProducerTest;
 std::vector<std::string> rows;
@@ -103,9 +103,10 @@ void Basic()
 	P::Result repeated;
 	Must(P::Run(request, Read(), repeated, &validation, &final));
 	std::vector<uint8_t> first, second;
-	CHECK(Disk::Encode(*result.artifact.asset, result.artifact.fingerprint, result.artifact.chunks, first));
-	CHECK(Disk::Encode(*repeated.artifact.asset, repeated.artifact.fingerprint, repeated.artifact.chunks,
-					   second));
+	CHECK(Disk::Encode(*result.artifact.asset, result.artifact.fingerprint, result.artifact.chunks,
+					   first));
+	CHECK(Disk::Encode(*repeated.artifact.asset, repeated.artifact.fingerprint,
+					   repeated.artifact.chunks, second));
 	CHECK(first == second);
 }
 void Transport()
@@ -128,16 +129,19 @@ void Transport()
 		}
 	}
 	rig.request.materials[0].knowledge = I::MaterialKnowledge::Bounded;
-	rig.request.materials[0].lower = Vec3(.2f,.05f,.01f);
-	rig.request.materials[0].upper = Vec3(.9f,.4f,.2f);
+	rig.request.materials[0].lower = Vec3(.2f, .05f, .01f);
+	rig.request.materials[0].upper = Vec3(.9f, .4f, .2f);
 	auto conditional = Run(rig, "conditional_reflectance_publication");
 	if (conditional.fitted.preferred != SIZE_MAX)
 	{
 		I::Result frozen;
 		J::Work work;
-		CHECK(J::DecomposeFrozen(rig.request, conditional.fitted.alternatives[conditional.fitted.preferred], Read(), frozen, work));
+		CHECK(J::DecomposeFrozen(rig.request,
+								 conditional.fitted.alternatives[conditional.fitted.preferred],
+								 Read(), frozen, work));
 		CHECK(frozen.materials[0].knowledge == I::MaterialKnowledge::Bounded);
-		for (const auto &value : frozen.values) CHECK(!value.upperKnown);
+		for (const auto &value : frozen.values)
+			CHECK(!value.upperKnown);
 	}
 	Rig ambient;
 	I::Root fill;
@@ -171,12 +175,12 @@ void GeometryAndShapes()
 	{
 		double best = 10;
 		for (const auto &e : positioned.artifact.asset->emitters)
-			best =
-				std::min(best, Length(V(e.position.world) - V(truth.shape.initial.geometry.position.world)));
+			best = std::min(
+				best, Length(V(e.position.world) - V(truth.shape.initial.geometry.position.world)));
 		CHECK(best < .2);
-		rows.push_back(
-			"{\"name\":\"independent_position_metric\",\"initial_world_error\":0.3,\"final_world_error\":" +
-			std::to_string(best) + "}");
+		rows.push_back("{\"name\":\"independent_position_metric\",\"initial_world_error\":0.3,"
+					   "\"final_world_error\":" +
+					   std::to_string(best) + "}");
 	}
 	for (auto kind : {EmitterKind::Spot, EmitterKind::Rectangle, EmitterKind::Tube})
 	{
@@ -195,6 +199,8 @@ void GeometryAndShapes()
 		}
 	}
 }
+std::shared_ptr<Hidden::Request> HiddenRequest(const Rig &, bool);
+std::shared_ptr<Solar::Request> SolarRequest(const Rig &, bool);
 void SunSky()
 {
 	Rig rig;
@@ -211,12 +217,40 @@ void SunSky()
 	sun.shape.upperRgb = Vec3(300, 300, 300);
 	rig.request.candidates = {sun};
 	rig.Observations(rig.Truth({Answer(sun, V(30, 35, 40))}));
-	auto result = Run(rig, "directional_sun_publication");
+	Run(rig,
+		"directional_sun_publication"); // retain the original full publication/cache assertions
+	auto request = Request(rig);
+	request.hidden = HiddenRequest(rig, false);
+	request.solar = SolarRequest(rig, false);
+	Validation validation(rig);
+	Final final(rig);
+	P::Result result;
+	CHECK(P::Run(request, Read(), result, &validation, &final));
+	CHECK(result.state == P::State::Completed);
+	CHECK(result.fitted.work.attemptedModels > 0);
+	rows.push_back("{\"name\":\"solar_candidates_no_hidden_proposals\",\"report\":" +
+				   P::ReportJson(result) + "}");
 	if (result.artifact.asset)
 	{
 		CHECK(result.artifact.asset->suns.size() == 1);
 		CHECK(result.artifact.asset->emitters[0].kind == EmitterKind::Directional);
 	}
+	auto local = CompilerPoint(25, V(-30, 0, 50));
+	rig.request.candidates = {sun, local};
+	rig.Observations(rig.Truth({Answer(sun, V(30, 35, 40)), Answer(local, V(60, 20, 15))}));
+	request = Request(rig);
+	request.hidden = HiddenRequest(rig, false);
+	request.solar = SolarRequest(rig, false);
+	CHECK(P::Run(request, Read(), result, &validation, &final));
+	CHECK(result.state == P::State::Completed);
+	if (result.artifact.asset)
+	{
+		CHECK(result.artifact.asset->suns.size() == 1);
+		CHECK(result.artifact.asset->emitters.size() == 2);
+	}
+	rows.push_back("{\"name\":\"local_lamp_supported_directional_prior\",\"report\":" +
+				   P::ReportJson(result) + "}");
+
 	Rig sky;
 	sky.scene.Quad(V(-64, -64, 3), V(64, -64, 3), V(64, 64, 3), V(-64, 64, 3), MaterialSky);
 	Rebuild(sky.scene);
@@ -228,12 +262,23 @@ void SunSky()
 	environment.shape.upperRgb = Vec3(300, 300, 300);
 	sky.request.candidates = {environment};
 	sky.Observations(sky.Truth({Answer(environment, V(30, 35, 40))}));
-	auto skyResult = Run(sky, "diffuse_sky_publication");
+	Run(sky, "diffuse_sky_publication");
+	auto skyRequest = Request(sky);
+	skyRequest.hidden = HiddenRequest(sky, false);
+	Validation skyValidation(sky);
+	Final skyFinal(sky);
+	P::Result skyResult;
+	CHECK(P::Run(skyRequest, Read(), skyResult, &skyValidation, &skyFinal));
+	CHECK(skyResult.state == P::State::Completed);
+	CHECK(skyResult.fitted.work.attemptedModels > 0);
+	rows.push_back(
+		"{\"name\":\"positive_sky_no_local_lamp\",\"report\":" + P::ReportJson(skyResult) + "}");
 	if (skyResult.artifact.asset)
 	{
 		CHECK(skyResult.artifact.asset->environments.size() == 1);
 		CHECK(skyResult.artifact.asset->suns.empty());
-		CHECK(skyResult.artifact.asset->environments[0].sunCoverage == SunCoverage::ExcludesExplicitSun);
+		CHECK(skyResult.artifact.asset->environments[0].sunCoverage ==
+			  SunCoverage::ExcludesExplicitSun);
 	}
 }
 void Negative()
@@ -274,8 +319,8 @@ void Negative()
 	CHECK(out.state == P::State::DiagnosticOnly);
 	CHECK(out.artifact.asset->emitters.empty());
 	CHECK(!out.artifact.asset->assessment.strictEvaluated);
-	rows.push_back(std::string("{\"name\":\"unknown_profile_diagnostic\",\"report\":") + P::ReportJson(out) +
-				   "}");
+	rows.push_back(std::string("{\"name\":\"unknown_profile_diagnostic\",\"report\":") +
+				   P::ReportJson(out) + "}");
 	CHECK(!P::Run(r, Read(), out, nullptr, &final));
 	CHECK(!out.artifact.asset);
 	final.fail = true;
@@ -293,7 +338,10 @@ void Negative()
 	CHECK(!out.artifact.asset);
 	struct Cancel final : Cancellation
 	{
-		bool IsCancelled() const noexcept override { return true; }
+		bool IsCancelled() const noexcept override
+		{
+			return true;
+		}
 	} cancel;
 	auto read = Read();
 	read.cancellation = &cancel;
@@ -305,6 +353,368 @@ void Negative()
 	CHECK(!error || out.state == P::State::DiagnosticOnly);
 	if (out.artifact.asset)
 		CHECK(out.artifact.asset->assessment.resolvedSources == 0);
+}
+
+const ProviderAssessment *Provider(const P::Result &r, const std::string &name)
+{
+	for (const auto &p : r.work.providers)
+		if (p.name == name)
+			return &p;
+	return nullptr;
+}
+std::shared_ptr<Hidden::Request> HiddenRequest(const Rig &rig, bool positive = false)
+{
+	auto h = std::make_shared<Hidden::Request>();
+	h->map = rig.scene.map;
+	h->units = rig.request.profiles[0].model.units;
+	h->geometry = rig.request.geometry;
+	h->domain = rig.scene.domain;
+	h->domainKey = Key("owned provider classifier");
+	h->analysisBounds = Box(V(-90, -85, 1), V(90, 85, 100));
+	h->profiles = {rig.request.profiles[0].model.law == S::Law::HistoricalBake
+					   ? rig.request.profiles[0].model.profile
+					   : Bake::NetRadiantProfile()};
+	h->options.allowAssumedProfiles = h->options.allowAssumedEncoding = true;
+	h->options.spots = false;
+	h->options.coarseDivisions = 2;
+	h->options.refinementRounds = 0;
+	h->options.maxNodesPerArea = 8;
+	if (positive)
+	{
+		auto samples = std::make_shared<std::vector<Hidden::Sample>>();
+		for (const auto &o : *rig.train->data)
+		{
+			Hidden::Sample a;
+			a.receiver = o.receiver;
+			a.areaWorldSquared = o.measure;
+			a.eligible = a.encodingAttested = true;
+			a.receiver.domain = Bake::Domain::EncodedRgb8BeforeQuantization;
+			for (unsigned k = 0; k < 3; ++k)
+				a.rgb[k] = uint8_t(std::min(254., o.rgb[k].lower));
+			samples->push_back(a);
+		}
+		h->training = Lease(samples);
+	}
+	return h;
+}
+std::shared_ptr<Solar::Request> SolarRequest(const Rig &rig, bool positive = false)
+{
+	auto q = std::make_shared<Solar::Request>();
+	q->mapKey = rig.scene.map.sha256;
+	q->lineage = "owned provider absence test";
+	q->geometry = rig.request.geometry;
+	q->units = rig.request.profiles[0].model.units;
+	q->profiles = {Bake::NetRadiantProfile()};
+	q->options.allowAssumedProfiles = q->options.allowAssumedObservationEncoding = true;
+	q->options.sphereDirections = 16;
+	q->options.refineSeeds = q->options.refineLevels = 0;
+	q->options.minSamples = 6;
+	q->options.minBlocks = 2;
+	q->options.blockWorld = 4;
+	q->options.minimumNormalEigenRatio = .001;
+	if (positive)
+	{
+		auto samples = std::make_shared<std::vector<Solar::Sample>>();
+		for (const auto &o : *rig.train->data)
+		{
+			Solar::Sample a;
+			a.receiver = o.receiver;
+			a.receiver.domain = Bake::Domain::EncodedRgb8BeforeQuantization;
+			a.areaWorldSquared = o.measure;
+			a.eligible = a.encodingVerifiedForProfile = true;
+			for (auto &v : a.rgb)
+				v = 80;
+			samples->push_back(a);
+		}
+		q->training = Lease(samples);
+	}
+	return q;
+}
+void ProviderIndependence()
+{
+	Rig rig;
+	auto lamp = Point(10, V(-.6, 0, .8), true);
+	lamp.mayRemove = false;
+	rig.request.candidates = {lamp};
+	rig.Observations(rig.Truth({Answer(lamp, V(2, 1, .5))}));
+	Validation val(rig);
+	Final final(rig);
+	auto r = Request(rig);
+	r.solar = SolarRequest(rig);
+	P::Result out;
+	auto e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e);
+	CHECK(out.state == P::State::Completed);
+	CHECK(out.fitted.work.attemptedModels > 0);
+	CHECK(Provider(out, "solar.fit") &&
+		  Provider(out, "solar.fit")->outcome == ProviderOutcome::NoSupportedEvidence);
+	CHECK(out.artifact.asset && out.artifact.asset->suns.empty() &&
+		  out.artifact.asset->environments.empty());
+	if (out.artifact.asset)
+	{
+		CHECK(out.artifact.asset->assessment.sunEvidence == AssessmentStatus::Unknown);
+		CHECK(out.artifact.asset->assessment.providers.size() == out.work.providers.size());
+		CHECK(out.artifact.asset->assessment.version == 2);
+		CHECK(!out.artifact.asset->assessment.admissions.empty());
+		auto malformed = *out.artifact.asset;
+		malformed.assessment.providers.front().exactLightingAdmissible = true;
+		CHECK(!Validate(malformed));
+		malformed = *out.artifact.asset;
+		malformed.assessment.sunEvidence = AssessmentStatus::Validated;
+		CHECK(!Validate(malformed));
+	}
+	rows.push_back("{\"name\":\"local_lamp_unknown_sun\",\"report\":" + P::ReportJson(out) + "}");
+	auto previous = out.artifact.asset;
+	auto required = r;
+	required.providerPolicy.solarRequired = true;
+	CHECK(!P::Run(required, Read(), out, &val, &final));
+	CHECK(!out.artifact.asset);
+	r.hidden = HiddenRequest(rig);
+	e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e);
+	CHECK(out.fitted.work.attemptedModels > 0);
+	CHECK(Provider(out, "hidden") &&
+		  Provider(out, "hidden")->outcome == ProviderOutcome::NoSupportedEvidence);
+	CHECK(out.artifact.asset && out.artifact.asset->emitters.size() == 1);
+	// Explicit local search budget must not cancel an independent supplied lamp.
+	auto budget = std::make_shared<Hidden::Request>(*r.hidden);
+	Hidden::SearchArea area;
+	area.id = 1;
+	area.reason = "owned local shard";
+	area.positions = area.receivers = budget->analysisBounds;
+	budget->areas = {area, area};
+	budget->areas[1].id = 2;
+	budget->options.maxAreas = 1;
+	r.hidden = budget;
+	e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e);
+	CHECK(out.fitted.work.attemptedModels > 0);
+	CHECK(Provider(out, "hidden") &&
+		  Provider(out, "hidden")->outcome == ProviderOutcome::BudgetExceeded &&
+		  Provider(out, "hidden")->budgetScope == ProviderBudgetScope::Local &&
+		  !Provider(out, "hidden")->searchComplete);
+	rows.push_back("{\"name\":\"optional_local_provider_budget\",\"report\":" + P::ReportJson(out) +
+				   "}");
+	auto strict = r;
+	strict.providerPolicy.hiddenRequired = true;
+	CHECK(!P::Run(strict, Read(), out, &val, &final));
+	CHECK(out.state == P::State::Budget);
+	strict = r;
+	strict.providerPolicy.allowOptionalLocalBudget = false;
+	CHECK(!P::Run(strict, Read(), out, &val, &final));
+	// Global read budget is never softened into an optional local budget.
+	auto tiny = Read();
+	tiny.maxBytes = 128;
+	CHECK(!P::Run(r, tiny, out, &val, &final));
+	CHECK(!out.artifact.asset);
+	r.hidden = HiddenRequest(rig);
+	auto corrupt = std::make_shared<Hidden::Request>(*r.hidden);
+	corrupt->profiles[0].schemaVersion = 999;
+	r.hidden = corrupt;
+	CHECK(!P::Run(r, Read(), out, &val, &final));
+	CHECK(!out.artifact.asset && out.fitted.state == J::State::NotStarted);
+	CHECK(out.work.hidden.outcome == ProviderOutcome::Corrupt);
+	r.hidden = HiddenRequest(rig);
+	auto stale = std::make_shared<Hidden::Request>(*r.hidden);
+	stale->geometry.geometryKey[0] ^= 1;
+	r.hidden = stale;
+	CHECK(!P::Run(r, Read(), out, &val, &final));
+	CHECK(!out.artifact.asset);
+	struct LaterCancel final : Cancellation
+	{
+		mutable unsigned calls = 0;
+		bool IsCancelled() const noexcept override
+		{
+			return ++calls >= 4;
+		}
+	} cancel;
+	r.hidden = HiddenRequest(rig);
+	auto read = Read();
+	read.cancellation = &cancel;
+	CHECK(P::Run(r, read, out, &val, &final).code == Code::Cancelled);
+	CHECK(!out.artifact.asset);
+	// A provider returning malformed validation data is a fatal operational error.
+	auto corruptSolar = std::make_shared<Solar::Request>(*SolarRequest(rig));
+	corruptSolar->profiles[0].formulaVersion = 999;
+	r.solar = corruptSolar;
+	CHECK(!P::Run(r, Read(), out, &val, &final));
+	CHECK(!out.artifact.asset);
+	CHECK(previous &&
+		  previous->assessment.providers.size() > 0); // immutable lease survives later failures
+}
+void ProviderScopes()
+{
+	Rig rig;
+	Bake::Recipe recipe;
+	recipe.fast = false;
+	rig.scene.Quad(V(-64, -64, 3), V(64, -64, 3), V(64, 64, 3), V(-64, 64, 3), MaterialSky);
+	Rebuild(rig.scene);
+	Historical(rig, recipe);
+	auto lamp = CompilerPoint(10, V(-30, 0, 50), true);
+	lamp.mayRemove = false;
+	rig.request.candidates = {lamp};
+	rig.Observations(rig.Truth({Answer(lamp, V(120, 50, 30))}));
+	auto r = Request(rig);
+	r.hidden = HiddenRequest(rig, true);
+	r.solar = SolarRequest(rig);
+	Validation val(rig);
+	Final final(rig);
+	P::Result out;
+	auto e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e);
+	CHECK(out.fitted.work.attemptedModels > 0);
+	rows.push_back("{\"name\":\"hidden_search_without_sun\",\"report\":" + P::ReportJson(out) +
+				   "}");
+	// Real positive Solar::Fit with independently unavailable validation: it must
+	// leave local candidates usable, never promote unvalidated directional roots.
+	struct NoValidation final : P::SolarValidation
+	{
+		mutable unsigned calls = 0;
+		Error Assess(const Solar::FitResult &, const ReadContext &,
+					 Solar::Result &out) const override
+		{
+			++calls;
+			out.outcome = ProviderOutcome::NoSupportedEvidence;
+			out.state = Solar::State::UnknownSun;
+			return Failure(Code::Unavailable, "owned independent validation lacks solar evidence");
+		}
+	} unavailable;
+	r.hidden = HiddenRequest(rig, true);
+	r.solar = SolarRequest(rig, true);
+	r.solarValidation = &unavailable;
+	e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e);
+	CHECK(out.fitted.work.attemptedModels > 0);
+	CHECK(unavailable.calls > 0);
+	CHECK(Provider(out, "solar.validation") &&
+		  Provider(out, "solar.validation")->outcome == ProviderOutcome::NoSupportedEvidence);
+	CHECK(out.artifact.asset && out.artifact.asset->suns.empty());
+	CHECK(Provider(out, "hidden") && Provider(out, "hidden")->evidenceAvailable);
+	rows.push_back("{\"name\":\"hidden_with_solar_validation_unavailable\",\"report\":" +
+				   P::ReportJson(out) + "}");
+	struct CorruptValidation final : P::SolarValidation
+	{
+		mutable unsigned calls = 0;
+		Error Assess(const Solar::FitResult &, const ReadContext &, Solar::Result &) const override
+		{
+			++calls;
+			return Failure(Code::ProviderError, "owned corrupt validation provider");
+		}
+	} corruptValidation;
+	r.solarValidation = &corruptValidation;
+	r.providerPolicy.solarRequired = true;
+	e = P::Run(r, Read(), out, &val, &final);
+	CHECK(e.code == Code::ProviderError);
+	CHECK(corruptValidation.calls > 0);
+	CHECK(!out.artifact.asset);
+	r.solarValidation = &unavailable;
+	r.providerPolicy.solarRequired = false;
+	// Explicitly supplied environment alternatives use the same provider API as
+	// Solar::FromSolar, with independent scenario tags and immutable leases.
+	auto make = [&](bool sky, const char *scenario) {
+		Candidates::Provider p;
+		p.name = sky ? "environment-sky" : "directional-sun";
+		p.map = r.map.sha256;
+		p.geometryKey = r.fitting.geometry.geometryKey;
+		p.generation = Key(scenario);
+		auto evidence = std::make_shared<std::vector<EmitterEvidence>>(1);
+		auto &e = (*evidence)[0];
+		e.id = sky ? 200 : 300;
+		e.origin = EvidenceOrigin::SunShader;
+		e.source = "owned independent environment hypothesis";
+		e.orientationKnown = true;
+		e.toSource = Vec3(0, 0, 1);
+		e.shapes = sky ? CandidateSky : CandidateSun;
+		e.staticEligible = true;
+		auto candidates = std::make_shared<std::vector<EmitterCandidate>>(1);
+		auto &c = (*candidates)[0];
+		c.id = e.id;
+		c.shapes = e.shapes;
+		c.evidence = {0};
+		c.staticEligible = true;
+		auto annotations = std::make_shared<std::vector<Candidates::Annotation>>(1);
+		auto &a = (*annotations)[0];
+		a.candidate = c.id;
+		a.scenario = Key(scenario);
+		a.profile = r.fitting.profiles[0].model.profile.id;
+		a.tier = Candidates::Tier::Geometry;
+		a.nature = Candidates::Nature::Environment;
+		p.evidence = Lease(evidence);
+		p.candidates = Lease(candidates);
+		p.annotations = Lease(annotations);
+		return p;
+	};
+	r.solar.reset();
+	r.solarValidation = nullptr;
+	r.providers = {make(false, "exclusive-sun"), make(true, "exclusive-sky")};
+	// A positive hidden-only profile legitimately adds a third, no-promoted-sun
+	// alternative. Check that cheaply without fitting every candidate combination.
+	P::Result withHidden;
+	CHECK(P::PrepareModelRequests(r, Read(), withHidden));
+	CHECK(withHidden.scopedRequests.size() == 3);
+	for (const auto &scope : withHidden.scopedRequests)
+	{
+		size_t roots = 0;
+		for (const auto &c : scope->fitting.candidates)
+			roots += c.root == TransportRootKind::Sun || c.root == TransportRootKind::Sky;
+		CHECK(roots <= 1);
+	}
+	// This separate fixture specifically tests solar candidates with NO hidden
+	// proposals, so its two directional/environment scenarios are the only scopes.
+	r.hidden = HiddenRequest(rig, false);
+	P::Result plan;
+	CHECK(P::PrepareModelRequests(r, Read(), plan));
+	CHECK(plan.scopedRequests.size() == 2);
+	CHECK(P::Run(r, Read(), out, &val, &final));
+	CHECK(out.state == P::State::DiagnosticOnly && out.fitted.state == J::State::NotStarted);
+	CHECK(out.scopedRequests.size() == 2);
+	for (const auto &scope : plan.scopedRequests)
+	{
+		size_t sun = 0, sky = 0;
+		for (const auto &c : scope->fitting.candidates)
+		{
+			sun += c.root == TransportRootKind::Sun;
+			sky += c.root == TransportRootKind::Sky;
+		}
+		CHECK(sun + sky == 1);
+		CHECK(scope->fitting.candidates.size() >= 2);
+		P::Result scopedResult;
+		CHECK(P::Run(*scope, Read(), scopedResult, &val, &final));
+		CHECK(scopedResult.fitted.work.attemptedModels > 0);
+		CHECK(scopedResult.scenarios.size() == 1 && scopedResult.scenarios.front().selected);
+		rows.push_back("{\"name\":\"independent_solar_scope\",\"report\":" +
+					   P::ReportJson(scopedResult) + "}");
+		auto changed = *scope;
+		changed.fitting.geometry.geometryKey[0] ^= 1;
+		CHECK(!P::Run(changed, Read(), out, &val, &final));
+	}
+	auto reverse = r;
+	std::reverse(reverse.providers.begin(), reverse.providers.end());
+	P::Result again;
+	CHECK(P::PrepareModelRequests(reverse, Read(), again));
+	CHECK(again.scenarios.size() == plan.scenarios.size());
+	if (again.scenarios.size() == plan.scenarios.size())
+		for (size_t i = 0; i < again.scenarios.size(); ++i)
+			CHECK(again.scenarios[i].key == plan.scenarios[i].key);
+	rows.push_back("{\"name\":\"exclusive_solar_scopes\",\"report\":" + P::ReportJson(plan) + "}");
+	// An automatically narrowed profile list cannot reuse callbacks bound to a
+	// different index layout. Even one scope must be explicitly rebound.
+	auto multi = r;
+	auto second = multi.fitting.profiles.front();
+	Bake::Recipe alt;
+	alt.fast = false;
+	alt.falloff = Bake::Falloff::Linear;
+	second.model.profile = Bake::NetRadiantProfile(alt);
+	second.contract.profile = second.model.profile;
+	multi.fitting.profiles.push_back(second);
+	multi.providers = {r.providers.front()};
+	CHECK(P::Run(multi, Read(), out, &val, &final));
+	CHECK(out.state == P::State::DiagnosticOnly && out.fitted.state == J::State::NotStarted);
+	CHECK(out.scopedRequests.size() == 1);
+	auto bounded = r;
+	bounded.providerPolicy.maxScopedRequests = 1;
+	CHECK(!P::PrepareModelRequests(bounded, Read(), out));
+	CHECK(out.state == P::State::Budget && !out.artifact.asset);
 }
 void Cache(const std::string &root)
 {
@@ -335,6 +745,13 @@ void Cache(const std::string &root)
 	CHECK(loaded.status == Status::Ok && !loaded.buildCalled);
 	CHECK(validation.calls == calls);
 	CHECK(previous.Asset());
+	CHECK(backend.last.work.providers.size() ==
+		  backend.last.artifact.asset->assessment.providers.size());
+	auto policyChanged = r;
+	policyChanged.providerPolicy.allowOptionalLocalBudget = false;
+	P::Backend policyBackend(policyChanged, Read(), &validation, &final, cache);
+	CHECK(ApplyBuildPolicy(BuildPolicy::CacheOnly, manager, &policyBackend).status ==
+		  Status::Missing);
 	for (unsigned i = 0; i < 40; ++i)
 	{
 		CHECK(P::Store(backend.last.artifact, *cache, Read()));
@@ -394,8 +811,9 @@ void Cache(const std::string &root)
 	CHECK(stillPublished.status == Status::Ok);
 	CHECK(failedWrite.last.artifact.asset);
 	CHECK(failedWrite.cacheWrite != Disk::Code::Ok);
-	rows.push_back("{\"name\":\"offline_cache_lifecycle\",\"warm_hit_without_fit\":true,\"production_mapload_"
-				   "cache\":false}");
+	rows.push_back(
+		"{\"name\":\"offline_cache_lifecycle\",\"warm_hit_without_fit\":true,\"production_mapload_"
+		"cache\":false}");
 }
 int main(int argc, char **argv)
 {
@@ -407,6 +825,8 @@ int main(int argc, char **argv)
 		GeometryAndShapes();
 		SunSky();
 		Negative();
+		ProviderIndependence();
+		ProviderScopes();
 		if (argc > 1)
 			Cache(argv[1]);
 		if (argc > 2)

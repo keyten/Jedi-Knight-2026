@@ -87,6 +87,7 @@ struct Options
 };
 struct Work
 {
+	ProviderBudgetScope budgetScope = ProviderBudgetScope::None;
 	uint64_t forwardCalls = 0, rays = 0, pairs = 0, traversal = 0, encodingCalls = 0, directions = 0;
 	bool complete = true; // failed forward calls may omit their partial traversal counters
 };
@@ -125,6 +126,7 @@ struct TrainingGeometry
 };
 struct FitResult
 {
+	ProviderOutcome outcome = ProviderOutcome::NotRequested;
 	State state = State::Unavailable;
 	std::string reason;
 	Disk::Digest mapKey{}, geometryKey{}, frozenKey{};
@@ -181,6 +183,7 @@ struct Decision
 };
 struct Result
 {
+	ProviderOutcome outcome = ProviderOutcome::NotRequested;
 	State state = State::Unavailable;
 	std::string reason;
 	std::vector<Hypothesis> hypotheses; // alternatives, NEVER sum these assets

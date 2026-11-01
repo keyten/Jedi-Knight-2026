@@ -415,7 +415,7 @@ struct Validator
 		if(!UncertaintyRecords())return false;
 		const auto& a=asset.assessment;
 		if(a.present){
-			if(a.version!=1||a.producer.empty()||a.algorithm.empty()||a.map.empty()||a.bspSha256.size()!=64||a.settingsHash.empty()||a.decoder.empty()||!a.inputsLoaded)return Fail("assessment","missing producer identity/dependency contract");
+			if(a.version!=2||a.producer.empty()||a.algorithm.empty()||a.map.empty()||a.bspSha256.size()!=64||a.settingsHash.empty()||a.decoder.empty()||!a.inputsLoaded)return Fail("assessment","missing producer identity/dependency contract");
 			if(a.payloadsValidated&&!a.structuralValidated)return Fail("assessment","payload validation without structural validation");
 			if(a.strictEvaluated&&(!a.solverExecuted||a.solverKey.empty()||a.selectedProfile.empty()))return Fail("assessment","strict result lacks solver/profile identity");
 			if(a.selectedConfiguration&&std::none_of(asset.lightingConfigurations.begin(),asset.lightingConfigurations.end(),[&](const LightingConfiguration& c){return c.id==a.selectedConfiguration;}))return Fail("assessment","selected configuration absent");
@@ -429,6 +429,19 @@ struct Validator
 			if(conditional!=a.conditionalSources||resolvedCount!=a.resolvedSources||rejected!=a.rejectedSources)return Fail("assessment.counts","physical/environment hypothesis counts disagree");
 			std::set<std::pair<Id,unsigned>> admissions;for(const auto& u:a.admissions){if(!sources.count(u.source)||!EnumIn(u.use,SourceUse::Specular)||!EnumIn(u.status,AssessmentStatus::Validated)||u.reason.empty()||!admissions.emplace(u.source,unsigned(u.use)).second)return Fail("assessment.admissions","missing/duplicate source/use");if((u.use==SourceUse::ExactEmitter||u.use==SourceUse::Shadow||u.use==SourceUse::Specular)&&u.status==AssessmentStatus::Validated&&sources[u.source]->evidence.exactLight!=Suitability::Candidate)return Fail("assessment.admissions","uncertain source claimed exact/shadow/specular ready");}
 			if(admissions.size()!=sources.size()*6)return Fail("assessment.admissions","every source/use must be assessed");
+			std::set<std::string> providerNames;
+			for(const auto& p:a.providers){
+				if(p.name.empty()||!providerNames.insert(p.name).second||!EnumIn(p.outcome,ProviderOutcome::NumericalFailure)||!EnumIn(p.budgetScope,ProviderBudgetScope::Global)||p.errorCode>10||p.exactLightingAdmissible)return Fail("assessment.providers","invalid provider receipt or unsupported exact certification");
+				if((p.outcome==ProviderOutcome::NotRequested&&p.ran)||(!p.ran&&(p.records||p.operationSucceeded))||(p.searchComplete&&p.outcome==ProviderOutcome::Partial)||(p.outputsAdmitted&&(!p.evidenceAvailable||!p.operationSucceeded))||(p.evidenceAvailable&&!p.records)||(p.outcome==ProviderOutcome::NoSupportedEvidence&&(p.evidenceAvailable||p.outputsAdmitted)))return Fail("assessment.providers","inconsistent execution/evidence/coverage");
+				if((p.outcome==ProviderOutcome::Produced||p.outcome==ProviderOutcome::Partial)&&(!p.ran||!p.operationSucceeded||!p.evidenceAvailable))return Fail("assessment.providers","produced outcome lacks successful evidence");
+				if(p.outcome==ProviderOutcome::BudgetExceeded&&(p.budgetScope!=ProviderBudgetScope::Local||p.searchComplete||p.outputsAdmitted))return Fail("assessment.providers","global/complete/admitted failed budget in published asset");
+				if(p.required&&p.outcome==ProviderOutcome::NotRequested)return Fail("assessment.providers","required provider was not run");
+				bool blocked=p.outcome==ProviderOutcome::InvalidInput||p.outcome==ProviderOutcome::Cancelled||p.outcome==ProviderOutcome::Corrupt||p.outcome==ProviderOutcome::NumericalFailure;
+				if(blocked|| (p.required&&(p.outcome==ProviderOutcome::NoSupportedEvidence||p.outcome==ProviderOutcome::UnsupportedCapability||p.outcome==ProviderOutcome::BudgetExceeded)))return Fail("assessment.providers","fatal or unsatisfied mandatory provider in published asset");
+			}
+			std::set<std::string> scenarioKeys;unsigned selectedScenarios=0;for(const auto&s:a.providerScenarios){if(s.key.size()!=64||s.scenario.size()!=64||!scenarioKeys.insert(s.key).second)return Fail("assessment.providerScenarios","invalid/duplicate scoped request identity");selectedScenarios+=s.selected;}
+			if(selectedScenarios>1||(a.solverExecuted&&!a.providerScenarios.empty()&&selectedScenarios!=1))return Fail("assessment.providerScenarios","incompatible scenarios combined or missing selected scope");
+			if((a.sunEvidence!=AssessmentStatus::Unknown&&a.sunEvidence!=AssessmentStatus::Conditional)||(a.environmentEvidence!=AssessmentStatus::Unknown&&a.environmentEvidence!=AssessmentStatus::Conditional))return Fail("assessment.components","unverified absence or exact environment claim");
 			std::set<std::pair<std::string,std::string>> deps;for(const auto& d:a.dependencies)if(d.kind.empty()||d.name.empty()||d.sha256.size()!=64||!deps.emplace(d.kind,d.name).second)return Fail("assessment.dependencies","invalid/duplicate content identity");
 		}
 		return true;
@@ -484,6 +497,23 @@ bool Validate(const ReconstructedLightingAsset& asset, std::string* error)
 	if (error) error->clear();
 	Validator validator(asset, error);
 	return validator.Run();
+}
+
+const char* ProviderOutcomeName(ProviderOutcome o)
+{
+ switch(o){
+ case ProviderOutcome::NotRequested:return "NotRequested";
+ case ProviderOutcome::Produced:return "Produced";
+ case ProviderOutcome::NoSupportedEvidence:return "NoSupportedEvidence";
+ case ProviderOutcome::Partial:return "Partial";
+ case ProviderOutcome::BudgetExceeded:return "BudgetExceeded";
+ case ProviderOutcome::InvalidInput:return "InvalidInput";
+ case ProviderOutcome::Cancelled:return "Cancelled";
+ case ProviderOutcome::Corrupt:return "Corrupt";
+ case ProviderOutcome::UnsupportedCapability:return "UnsupportedCapability";
+ case ProviderOutcome::NumericalFailure:return "NumericalFailure";
+ }
+ return "Invalid";
 }
 
 } // namespace Rend2LightRecon

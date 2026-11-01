@@ -146,6 +146,8 @@ struct AreaReport
 };
 struct Report
 {
+	ProviderOutcome outcome = ProviderOutcome::NotRequested;
+	ProviderBudgetScope budgetScope = ProviderBudgetScope::None;
 	std::vector<AreaReport> areas;
 	uint64_t rays = 0, traversalWork = 0, forwardCalls = 0, sourceReceiverPairs = 0;
 	uint64_t accountedPeakBytes = 0;

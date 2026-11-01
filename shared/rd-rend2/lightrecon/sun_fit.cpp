@@ -4,6 +4,7 @@
 #include "bake_math.h"
 #include "bake_trace.h"
 #include "geometry_key.h"
+#include "provider_outcome.h"
 #include <map>
 #include <set>
 #include <tuple>
@@ -115,10 +116,9 @@ struct Engine
 	void Check()
 	{
 		Require(!Cancelled(read), Code::Cancelled, "Sun/sky cancelled");
-		Require(work.rays <= options.maxRays && work.pairs <= options.maxPairs &&
-					work.traversal <= options.maxTraversalWork &&
-					work.encodingCalls <= options.maxEncodingCalls,
-				Code::WorkLimit, "Sun/sky work budget");
+		if(work.rays>options.maxRays || work.pairs>options.maxPairs || work.traversal>options.maxTraversalWork || work.encodingCalls>options.maxEncodingCalls){
+			work.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::WorkLimit,"Sun/sky work budget");
+		}
 	}
 	Bake::Result Forward(const Bake::ProfileHypothesis &p,
 						 const std::shared_ptr<std::vector<Bake::Receiver>> &receivers, Bake::SourceKind kind,
@@ -243,8 +243,8 @@ Rows Prepare(Engine &engine, const Bake::ProfileHypothesis &p, const Chunk<Sampl
 	rows.coverage.requested = input.count;
 	Require(input.count <= o.maxSamples && (!input.count || (input.data && input.owner)), Code::InvalidInput,
 			"Invalid/oversized sun/sky observation lease");
-	Require(input.count * sizeof(Sample) * 8 <= o.maxBytes, Code::MemoryLimit,
-			"Sun/sky receiver memory budget");
+	Require(!engine.read.maxBytes || input.count*sizeof(Sample)*8<=engine.read.maxBytes,Code::MemoryLimit,"Global sun/sky receiver memory budget");
+	if(input.count*sizeof(Sample)*8>o.maxBytes){engine.work.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Sun/sky receiver memory budget");}
 	// The linear amplitude block is verified only for this unfiltered output branch.
 	Require(Parameter(p, Bake::Feature::OutputEncoding, "gamma") == 1 &&
 				Parameter(p, Bake::Feature::OutputEncoding, "compensate") == 1 &&
@@ -847,6 +847,7 @@ Error Fit(const Request &request, const ReadContext &read, FitResult &out)
 		Require(request.profiles.size() <= request.options.maxProfiles, Code::InvalidInput,
 				"Sun/sky profile budget");
 		Require(request.hints.size() <= 256, Code::InvalidInput, "Sun/sky hint budget");
+		for(const auto&h:request.hints)Require(h.id&&!h.provenance.empty()&&(!h.staticEligible||Normal(V(h.toSource))),Code::InvalidInput,"Invalid directional hint/provenance");
 		std::set<std::string> profileIds;
 		for(const auto &p:request.profiles)Require(!p.id.empty()&&profileIds.insert(p.id).second,Code::InvalidInput,"Profile hypothesis IDs must be nonempty and unique");
 		Require(request.geometry.visibility || request.geometry.compilerTrace, Code::MissingGeometry,
@@ -873,6 +874,7 @@ Error Fit(const Request &request, const ReadContext &read, FitResult &out)
 		}
 		for (const auto &profile : request.profiles)
 		{
+			auto validProfile=ValidateProviderProfile(profile);if(!validProfile)throw validProfile;
 			uint64_t profileBytes = sizeof(profile);
 			profileBytes += profile.id.size() + profile.family.size() +
 							profile.compilerSourceRevision.size() + profile.compilerBinarySha256.size() +
@@ -888,11 +890,10 @@ Error Fit(const Request &request, const ReadContext &read, FitResult &out)
 			}
 			uint64_t candidateCapacity = request.options.sphereDirections + 6 + request.hints.size() +
 										 request.options.refineSeeds * request.options.refineLevels * 9;
-			Require(profileBytes <= 4096 * 16 &&
-						profileBytes <=
-							request.options.maxBytes /
-								std::max(uint64_t(1), candidateCapacity * 3 * request.profiles.size()),
-					Code::MemoryLimit, "Sun search profile/candidate memory budget");
+			Require(profileBytes<=4096*16,Code::MemoryLimit,"Sun profile metadata limit");
+			auto capacity=std::max(uint64_t(1),candidateCapacity*3*request.profiles.size());
+			Require(!read.maxBytes||profileBytes<=read.maxBytes/capacity,Code::MemoryLimit,"Global sun candidate memory budget");
+			if(profileBytes>request.options.maxBytes/capacity){engine.work.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Sun search profile/candidate memory budget");}
 			Rows rows;
 			try
 			{
@@ -1007,23 +1008,29 @@ Error Fit(const Request &request, const ReadContext &read, FitResult &out)
 													  "geometry/RGB; not force-enabled");
 			out.proposals.insert(out.proposals.end(), selected.begin(), selected.end());
 		}
-		Require(!out.proposals.empty(), Code::Unavailable,
-				"Unavailable: no positive supported training data/profile; no sun inferred");
+		if(out.proposals.empty()){
+			out.outcome=out.profileCoverage.empty()?ProviderOutcome::UnsupportedCapability:ProviderOutcome::NoSupportedEvidence;
+			throw Failure(Code::Unavailable,"Unavailable: no positive supported training data/profile; no sun inferred");
+		}
 		out.frozenKey = Frozen(out);
 		out.state = State::UnknownSun;
 		out.reason = "Frozen training proposals; independent validation required";
 		out.work = engine.work;
+		out.outcome=engine.work.complete?ProviderOutcome::Produced:ProviderOutcome::Partial;
 		return {};
 	}
 	catch (const Error &e)
 	{
 		auto diagnostics = out.diagnostics;
 		auto coverage = out.profileCoverage;
+		auto outcome=ProviderFailure(e,out.outcome,engine.work.budgetScope);
 		out = FitResult();
 		out.work = engine.work;
 		out.reason = e.message;
+		out.work.complete=false;
 		out.diagnostics = std::move(diagnostics);
 		out.profileCoverage = std::move(coverage);
+		out.outcome=outcome;
 		return e;
 	}
 	catch (const std::bad_alloc &)
@@ -1031,6 +1038,7 @@ Error Fit(const Request &request, const ReadContext &read, FitResult &out)
 		out = FitResult();
 		out.reason = "Sun search allocation failure";
 		out.work = engine.work;
+		out.outcome=ProviderOutcome::BudgetExceeded;out.work.budgetScope=ProviderBudgetScope::Global;
 		return Failure(Code::MemoryLimit, out.reason);
 	}
 }
@@ -1198,6 +1206,7 @@ Error ValidateAndPublish(const FitResult &fit, Disk::Digest mapKey, const Chunk<
 			out.reason = "UnknownSun: insufficient directional evidence or unresolved ambient/bounce/model "
 						 "discrepancy";
 			out.work = engine.work;
+			out.outcome=ProviderOutcome::NoSupportedEvidence;
 			return Failure(Code::Unavailable, out.reason);
 		}
 		for (auto &h : out.hypotheses)
@@ -1212,7 +1221,7 @@ Error ValidateAndPublish(const FitResult &fit, Disk::Digest mapKey, const Chunk<
 			const auto &r = cache.at(h.fitted.profile.id);
 			std::vector<double> basis(r.values.size(), 0);
 			if (h.fitted.model == Model::SunAndSky)
-				Require(SunBasis(engine, h.fitted.profile, r, V(h.fitted.toSource), basis), Code::Unavailable,
+				Require(SunBasis(engine, h.fitted.profile, r, V(h.fitted.toSource), basis), Code::ProviderError,
 						"Visibility changed during sun uncertainty evaluation");
 			auto slice = [&](bool isSun) -> Estimate {
 				V q(h.fitted.sunRgb), k(h.fitted.skyRgb), target = isSun ? q : k;
@@ -1249,13 +1258,15 @@ Error ValidateAndPublish(const FitResult &fit, Disk::Digest mapKey, const Chunk<
 			Canonical(fit, h);
 		}
 		out.work = engine.work;
+		out.outcome=engine.work.complete?ProviderOutcome::Produced:ProviderOutcome::Partial;
 		return {};
 	}
 	catch (const Error &e)
 	{
-		out = Result();
+		auto diagnostics=std::move(out.diagnostics);auto decisions=std::move(out.decisions);out = Result();out.diagnostics=std::move(diagnostics);out.decisions=std::move(decisions);
 		out.reason = e.message;
 		out.work = engine.work;
+		out.outcome=ProviderFailure(e,ProviderOutcome::UnsupportedCapability,out.work.budgetScope);
 		return e;
 	}
 	catch (const std::bad_alloc &)
@@ -1263,6 +1274,7 @@ Error ValidateAndPublish(const FitResult &fit, Disk::Digest mapKey, const Chunk<
 		out = Result();
 		out.reason = "Sun validation allocation failure";
 		out.work = engine.work;
+		out.outcome=ProviderOutcome::BudgetExceeded;out.work.budgetScope=ProviderBudgetScope::Global;
 		return Failure(Code::MemoryLimit, out.reason);
 	}
 }

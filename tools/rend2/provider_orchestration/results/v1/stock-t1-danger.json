@@ -1,0 +1,1493 @@
+{
+  "schema": "org.openjk.provider-stock.v1",
+  "bsp_sha256": "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3",
+  "archive_sha256": "e92302cfceace6627aede38d5be1f04333586ffa51b03d3dfda7d83c375b550c",
+  "train_validation_heldout": [
+    78,
+    28,
+    13
+  ],
+  "profiles": {
+    "isq": {
+      "schema": "org.openjk.all-stock-fit.v1",
+      "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+      "code": 8,
+      "producer": {
+        "schema": "org.openjk.producer-report.v1",
+        "state": "Budget",
+        "reason": "Bounded structural model search exhausted",
+        "asset_available": false,
+        "candidates": 1305,
+        "deferred": 1175,
+        "evaluations": 2,
+        "rays": 1887,
+        "payload_bytes": 0,
+        "training_interval_mse": null,
+        "validation_interval_mse": null,
+        "heldout_interval_mse": null,
+        "heldout_black_mse": null,
+        "sun_evidence": "UnknownSun",
+        "environment_evidence": "UnresolvedEnvironment",
+        "providers": [
+          {
+            "name": "supplied/original-emissive/authored",
+            "outcome": "Produced",
+            "reason": "Evidence hypotheses only; not physical/exact-light certification",
+            "generation": "a0708a9540bed7053318df03fdd6b06ddb7795e26a1d06bfca17a6779601d2c2",
+            "error_code": 0,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": true,
+            "search_complete": true,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": true,
+            "records": 1102,
+            "forward_calls": 0,
+            "rays": 0,
+            "work": 0,
+            "bytes": 0,
+            "diagnostics": []
+          },
+          {
+            "name": "hidden",
+            "outcome": "Partial",
+            "reason": "Evidence hypotheses only; not physical/exact-light certification",
+            "generation": "f6ca17d9fe905c465f89c0488b0158e96857131ad60ad04ce364793f604238dc",
+            "error_code": 0,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": true,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 8,
+            "forward_calls": 1041,
+            "rays": 1077,
+            "work": 130701,
+            "bytes": 7806720,
+            "diagnostics": [
+              "Area 3188614388282260896: no within-material positive surface contrast; no hidden source proposed",
+              "Receiver 453491663627183201 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 74394975936502354 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 1118786709417992662 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 130808552133080686 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 8604173369132934631 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Candidate geometry only; no final amplitudes, source promotion, physical confidence or runtime capability"
+            ]
+          },
+          {
+            "name": "solar.fit",
+            "outcome": "NoSupportedEvidence",
+            "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+            "generation": "0000000000000000000000000000000000000000000000000000000000000000",
+            "error_code": 1,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": false,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 0,
+            "forward_calls": 1,
+            "rays": 1241,
+            "work": 228027,
+            "bytes": 0,
+            "diagnostics": [
+              "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d: insufficient positive/spatial/comparable training coverage"
+            ]
+          },
+          {
+            "name": "producer.failure",
+            "outcome": "BudgetExceeded",
+            "reason": "Bounded structural model search exhausted",
+            "generation": "",
+            "error_code": 8,
+            "budget_scope": 2,
+            "required": true,
+            "ran": true,
+            "operation_succeeded": false,
+            "evidence_available": false,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 0,
+            "forward_calls": 0,
+            "rays": 0,
+            "work": 0,
+            "bytes": 0,
+            "diagnostics": []
+          }
+        ],
+        "scenarios": [
+          {
+            "key": "a42250662a9087bcd371e13bee168545bd587f6510b8a1bb43581ebec8330de6",
+            "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+            "scenario": "0000000000000000000000000000000000000000000000000000000000000000",
+            "selected": true
+          }
+        ],
+        "stages": [
+          "supplied/original-emissive/authored: Produced; Evidence hypotheses only; not physical/exact-light certification",
+          "hidden: Partial; Evidence hypotheses only; not physical/exact-light certification",
+          "solar.fit: NoSupportedEvidence; Unavailable: no positive supported training data/profile; no sun inferred",
+          "S05 consolidation/admission completed in one profile/scenario; deferred models remain explicit",
+          "Immutable prepared provider leases reused in one explicit model scope",
+          "immutable input/provenance validated"
+        ]
+      },
+      "joint_state": "Budget",
+      "joint_reason": "Bounded structural model search exhausted",
+      "hidden_search_complete": false,
+      "hidden_areas": 26,
+      "hidden_forward_calls": 1041,
+      "hidden_rays": 1077,
+      "solar_state": "Unavailable",
+      "solar_alternatives": 0,
+      "shadow_observed_gradients": 0,
+      "shadow_candidates": 0,
+      "no_oracle_correspondence": true,
+      "initial_catalogue": 128,
+      "work": {
+        "evaluations": 2,
+        "rays": 1887,
+        "forward_calls": 2,
+        "models": 96,
+        "rejected_models": 96,
+        "bytes": 55540736
+      },
+      "attempts": [
+        {
+          "proposal": "no-source/boundary-only",
+          "reason": "Shadow source count",
+          "sources": 0,
+          "state": "Unavailable"
+        },
+        {
+          "proposal": "activate:3617616140506472",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:15145671677203669",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:9737998194572567860",
+          "reason": "Shadow source count",
+          "sources": 1,
+          "state": "Unavailable"
+        },
+        {
+          "proposal": "activate:6914648136962479",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:437652486457876198",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:18944692396940151",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:567515718629649328",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:92782649524160216",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:570802373429164912",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:110867355036571641",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:656996831918895428",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:118754736938355655",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:752396310635421460",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:154431867229320201",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:896768383436989995",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:156830625300408861",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:957576465271954133",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:163139291823312577",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1051964977725467067",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:174129813687780885",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1258333857397930928",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:197484141500133034",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1530503420018653533",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:197899549952765733",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2067887656295120991",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:209983818338554222",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2087071628389964871",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:222292213228459821",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2179353114099868885",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:240375468714039104",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2742145973129623184",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:244834129131458279",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2757189345217952348",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:252264229048068751",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2801373030192426448",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:263272248722448168",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2864691463310385536",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:265344679569244671",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:3151831001408735234",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:317634609623789487",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:4312810676745640274",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:355243470460245492",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5390949142906037905",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:386574646072937155",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5691542512828083296",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:408472491854551191",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5812318988274328470",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:468066182556979928",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5895080879294330440",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:549109575366221949",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:6260887008351375400",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:577390495171253779",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:6764857609710828993",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:619179458694033512",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:7267656730286751244",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:635689807414016100",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:7507955560335076584",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:696529143581007756",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:723514345599341787",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:767113378893498801",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:794826552447095933",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:842101858808053948",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:865097111771586462",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:876865086611488280",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:877215828504329484",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:882739794991663142",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1026535368870707742",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1038053276308217261",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1042251613686011162",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1044934876796171012",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1057209315211715417",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1086446785965990309",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1384084324584379067",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1407213421675155625",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1440968043195400013",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1550932246714915624",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1611279746030473209",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1773291659146251724",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1906210380388774506",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1922906244814212868",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1923222904767860110",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1955370284024041102",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1965022513202659029",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2029734895146878662",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2089209475783410286",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2117555074374297796",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2123483683665564876",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2150744424704297428",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2233893902743617569",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2308274656088623369",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2575112068345644399",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2657271374584108199",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2779610518026521265",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2891703212733789094",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2937360917468723713",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        }
+      ],
+      "sources": [],
+      "final_evaluation_performed": false,
+      "source_xyz_error": null,
+      "photometric_si_error": null
+    },
+    "linear": {
+      "schema": "org.openjk.all-stock-fit.v1",
+      "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+      "code": 8,
+      "producer": {
+        "schema": "org.openjk.producer-report.v1",
+        "state": "Budget",
+        "reason": "Bounded structural model search exhausted",
+        "asset_available": false,
+        "candidates": 1302,
+        "deferred": 1172,
+        "evaluations": 2,
+        "rays": 1887,
+        "payload_bytes": 0,
+        "training_interval_mse": null,
+        "validation_interval_mse": null,
+        "heldout_interval_mse": null,
+        "heldout_black_mse": null,
+        "sun_evidence": "UnknownSun",
+        "environment_evidence": "UnresolvedEnvironment",
+        "providers": [
+          {
+            "name": "supplied/original-emissive/authored",
+            "outcome": "Produced",
+            "reason": "Evidence hypotheses only; not physical/exact-light certification",
+            "generation": "a0708a9540bed7053318df03fdd6b06ddb7795e26a1d06bfca17a6779601d2c2",
+            "error_code": 0,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": true,
+            "search_complete": true,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": true,
+            "records": 1102,
+            "forward_calls": 0,
+            "rays": 0,
+            "work": 0,
+            "bytes": 0,
+            "diagnostics": []
+          },
+          {
+            "name": "hidden",
+            "outcome": "Partial",
+            "reason": "Evidence hypotheses only; not physical/exact-light certification",
+            "generation": "682d63d99ab9544efd3232bede63b9f9da61370c176b1ca3c5ff79d80da4de63",
+            "error_code": 0,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": true,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 5,
+            "forward_calls": 1041,
+            "rays": 1077,
+            "work": 130701,
+            "bytes": 7806720,
+            "diagnostics": [
+              "Area 3188614388282260896: no within-material positive surface contrast; no hidden source proposed",
+              "Receiver 453491663627183201 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 74394975936502354 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 1118786709417992662 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 130808552133080686 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Receiver 8604173369132934631 unsupported by supplied point/profile implementation; other receivers remain usable",
+              "Candidate geometry only; no final amplitudes, source promotion, physical confidence or runtime capability"
+            ]
+          },
+          {
+            "name": "solar.fit",
+            "outcome": "NoSupportedEvidence",
+            "reason": "Unavailable: no positive supported training data/profile; no sun inferred",
+            "generation": "0000000000000000000000000000000000000000000000000000000000000000",
+            "error_code": 1,
+            "budget_scope": 0,
+            "required": false,
+            "ran": true,
+            "operation_succeeded": true,
+            "evidence_available": false,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 0,
+            "forward_calls": 1,
+            "rays": 1241,
+            "work": 228027,
+            "bytes": 0,
+            "diagnostics": [
+              "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50: insufficient positive/spatial/comparable training coverage"
+            ]
+          },
+          {
+            "name": "producer.failure",
+            "outcome": "BudgetExceeded",
+            "reason": "Bounded structural model search exhausted",
+            "generation": "",
+            "error_code": 8,
+            "budget_scope": 2,
+            "required": true,
+            "ran": true,
+            "operation_succeeded": false,
+            "evidence_available": false,
+            "search_complete": false,
+            "exact_lighting_admissible": false,
+            "outputs_admitted": false,
+            "records": 0,
+            "forward_calls": 0,
+            "rays": 0,
+            "work": 0,
+            "bytes": 0,
+            "diagnostics": []
+          }
+        ],
+        "scenarios": [
+          {
+            "key": "388036807524fc646e28e8244d03c0dd00566ce1a655894c06efe16a72946479",
+            "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+            "scenario": "0000000000000000000000000000000000000000000000000000000000000000",
+            "selected": true
+          }
+        ],
+        "stages": [
+          "supplied/original-emissive/authored: Produced; Evidence hypotheses only; not physical/exact-light certification",
+          "hidden: Partial; Evidence hypotheses only; not physical/exact-light certification",
+          "solar.fit: NoSupportedEvidence; Unavailable: no positive supported training data/profile; no sun inferred",
+          "S05 consolidation/admission completed in one profile/scenario; deferred models remain explicit",
+          "Immutable prepared provider leases reused in one explicit model scope",
+          "immutable input/provenance validated"
+        ]
+      },
+      "joint_state": "Budget",
+      "joint_reason": "Bounded structural model search exhausted",
+      "hidden_search_complete": false,
+      "hidden_areas": 26,
+      "hidden_forward_calls": 1041,
+      "hidden_rays": 1077,
+      "solar_state": "Unavailable",
+      "solar_alternatives": 0,
+      "shadow_observed_gradients": 0,
+      "shadow_candidates": 0,
+      "no_oracle_correspondence": true,
+      "initial_catalogue": 128,
+      "work": {
+        "evaluations": 2,
+        "rays": 1887,
+        "forward_calls": 2,
+        "models": 96,
+        "rejected_models": 96,
+        "bytes": 55540736
+      },
+      "attempts": [
+        {
+          "proposal": "no-source/boundary-only",
+          "reason": "Shadow source count",
+          "sources": 0,
+          "state": "Unavailable"
+        },
+        {
+          "proposal": "activate:3617616140506472",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:15145671677203669",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:9737998194572567860",
+          "reason": "Shadow source count",
+          "sources": 1,
+          "state": "Unavailable"
+        },
+        {
+          "proposal": "activate:6914648136962479",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:437652486457876198",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:18944692396940151",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:567515718629649328",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:92782649524160216",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:570802373429164912",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:110867355036571641",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:656996831918895428",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:118754736938355655",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:752396310635421460",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:154431867229320201",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:896768383436989995",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:156830625300408861",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:957576465271954133",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:163139291823312577",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1051964977725467067",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:174129813687780885",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1258333857397930928",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:197484141500133034",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1530503420018653533",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:197899549952765733",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2067887656295120991",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:209983818338554222",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2087071628389964871",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:222292213228459821",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2179353114099868885",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:240375468714039104",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2742145973129623184",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:244834129131458279",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2757189345217952348",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:252264229048068751",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2801373030192426448",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:263272248722448168",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2864691463310385536",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:265344679569244671",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:3151831001408735234",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:317634609623789487",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:4312810676745640274",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:355243470460245492",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5390949142906037905",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:386574646072937155",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5691542512828083296",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:408472491854551191",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5812318988274328470",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:468066182556979928",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:5895080879294330440",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:549109575366221949",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:6260887008351375400",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:577390495171253779",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:6764857609710828993",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:619179458694033512",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:7267656730286751244",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:635689807414016100",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:7507955560335076584",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:696529143581007756",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:723514345599341787",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:767113378893498801",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:794826552447095933",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:842101858808053948",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:865097111771586462",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:876865086611488280",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:877215828504329484",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:882739794991663142",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1026535368870707742",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1038053276308217261",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1042251613686011162",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1044934876796171012",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1057209315211715417",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1086446785965990309",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1384084324584379067",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1407213421675155625",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1440968043195400013",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1550932246714915624",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1611279746030473209",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1773291659146251724",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1906210380388774506",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1922906244814212868",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1923222904767860110",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1955370284024041102",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:1965022513202659029",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2029734895146878662",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2089209475783410286",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2117555074374297796",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2123483683665564876",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2150744424704297428",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2233893902743617569",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2308274656088623369",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2575112068345644399",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2657271374584108199",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2779610518026521265",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2891703212733789094",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        },
+        {
+          "proposal": "activate:2937360917468723713",
+          "reason": "Physically invalid source support/path/bounds",
+          "sources": 1,
+          "state": "PhysicallyInvalid"
+        }
+      ],
+      "sources": [],
+      "final_evaluation_performed": false,
+      "source_xyz_error": null,
+      "photometric_si_error": null
+    }
+  },
+  "resources": {
+    "state": "Completed",
+    "exit_code": 0,
+    "wall_seconds": 16.766000000061467,
+    "peak_process_rss_bytes": 40726528
+  },
+  "source_xyz_error": null,
+  "physical_recovery_verified": false,
+  "note": "Joint fitting reached; mandatory structural search budget exhausted. No stock sources recovered."
+}

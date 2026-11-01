@@ -1,0 +1,27 @@
+{
+  "schema": "org.openjk.provider-orchestration-witness.v1",
+  "base_commit": "4955d7cef985c98111158d631d20564057ff5a89",
+  "branch": "rend2-unified-wip",
+  "canonical_schema": 5,
+  "assessment_version": 2,
+  "producer_version": 2,
+  "controlled_repeated_identical": true,
+  "controlled_sha256": "10bed66f7eeac18ae6afc7a3b28442483d975a4c138d23a62031db8129eea0d2",
+  "source_sha256": {
+    "shared/rd-rend2/tr_lightrecon_types.h": "6f1d793a543ed4f0ccc6ec94df9bdc1539a17da7ada54b87032ac726c8dfb77a",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "2251d2b7a59268a2519c261bbb2515d3a987f6ac963a1727474e3c2cdaa628f5",
+    "shared/rd-rend2/lightrecon/disk.cpp": "3d674d6a677fdeae3348cb558e64f52e0664a68c44424162e5d021f90c9f3353",
+    "tools/lightrecon_test/lightrecon_producer_test.cpp": "261d206aba7756d9252a4c5fd07d63f0d21ee822f86ad039d42ac518267f5d9b",
+    "shared/rd-rend2/lightrecon/producer.cpp": "d1c0f9876348ac011e0e55a61c63f8a05b137ef8afdc349c6264c68e6b796096",
+    "shared/rd-rend2/lightrecon/producer.h": "b86f4ad60c7d9cc19e8ea85822f8ac0d82df94badfb333434afc3d5c396d0b47",
+    "shared/rd-rend2/lightrecon/hidden_candidates.cpp": "11a89c1246f4bbee198d8c67f403745e296181ce44e543c1dff32470f07b4603",
+    "shared/rd-rend2/lightrecon/hidden_candidates.h": "f8c1b305635554001776fe9606dab656113dd891d313cdc3cfc01b8dc35ca149",
+    "shared/rd-rend2/lightrecon/sun_fit.cpp": "1dae095ff85792a1a80af223d72e55b4ebfe8817b443234e6a52c5346da0dfce",
+    "shared/rd-rend2/lightrecon/sun_fit.h": "cafe0e48bcb9b72b90e0d234dbe903613d98d536c0b5e8507e960f14c94aae67",
+    "shared/rd-rend2/lightrecon/provider_outcome.h": "3dc6abd2b585a4f185e807500ff5c830aad4af113cf3319e7efcd0081a947f0d",
+    "tools/rend2/provider_orchestration/collect.py": "fddbdbf304a56a5e8f66b3822c3f2e36c6a8aa8fe30bc0f7ff9061ef010e0654",
+    "tools/rend2/provider_orchestration/verify_results.py": "73904fc95ba9e3d6bbca6e0498119d922a55d4bdcc1532fada75671176eec487"
+  },
+  "no_renderer_consumer": true,
+  "no_stock_physical_recovery_claim": true
+}

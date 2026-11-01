@@ -5,6 +5,11 @@ Branch: `rend2-unified-wip`; input commit:
 audit adapter and small capture/diagnostic fixes listed below. No runtime lighting
 consumer or source-discovery algorithm was added.
 
+**Follow-up:** [optional-provider orchestration](rend2-provider-orchestration.md)
+retests `t1_danger` after this frozen audit. Its unavailable solar provider no
+longer prevents reaching joint fitting. The original 57-map audit below remains
+unchanged historical evidence; proceeding to fitting is not stock recovery.
+
 **The project has working controlled CPU fitting components and a canonical
 producer, but has not demonstrated autonomous recovery of original lights from
 stock JA maps.** Invoking the complete producer on every installed stock BSP did

@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 4;
+static constexpr uint32_t kSchemaVersion = 5;
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -354,6 +354,25 @@ struct SourceUncertainty
 enum class ReadinessKind { Data, ForwardModel, OfflineSolver, KnownSourcePhysics,
 	StockConditional, ProductionCache, RuntimeConsumers };
 enum class AssessmentStatus { Unknown, Unavailable, Conditional, Validated };
+// Provider execution/evidence are independent of physical source certification.
+enum class ProviderOutcome { NotRequested, Produced, NoSupportedEvidence, Partial,
+	BudgetExceeded, InvalidInput, Cancelled, Corrupt, UnsupportedCapability, NumericalFailure };
+enum class ProviderBudgetScope { None, Local, Global };
+const char* ProviderOutcomeName(ProviderOutcome);
+struct ProviderAssessment {
+	std::string name, generation, reason;
+	ProviderOutcome outcome=ProviderOutcome::NotRequested;
+	ProviderBudgetScope budgetScope=ProviderBudgetScope::None;
+	uint32_t errorCode=0; // Core::Code, input contract v1; retained even for a tolerated outcome
+	bool required=false, ran=false, operationSucceeded=false, evidenceAvailable=false,
+		searchComplete=false, exactLightingAdmissible=false, outputsAdmitted=false;
+	uint64_t records=0, forwardCalls=0, rays=0, work=0, bytes=0;
+	std::vector<std::string> diagnostics;
+};
+struct ProviderScenario {
+	std::string key, profile, scenario; // immutable independently scoped model context
+	bool selected=false;
+};
 struct ReadinessAssessment {
 	ReadinessKind kind=ReadinessKind::Data;
 	AssessmentStatus status=AssessmentStatus::Unknown;
@@ -382,7 +401,7 @@ struct BuildCoverage {
 };
 struct BuildAssessment {
 	bool present=false;
-	uint32_t version=1;
+	uint32_t version=2;
 	std::string producer, algorithm, map, bspSha256, settingsHash, solverKey, uncertaintyKey,
 		geometryKey, decoder, selectedProfile, trainingHash, validationHash, heldoutHash, fingerprint;
 	uint64_t seed=0, proposedSources=0, conditionalSources=0, resolvedSources=0, rejectedSources=0;
@@ -395,6 +414,10 @@ struct BuildAssessment {
 	std::vector<InputDependency> dependencies;
 	std::vector<ReadinessAssessment> readiness;
 	std::vector<SourceAdmission> admissions;
+	std::vector<ProviderAssessment> providers;
+	std::vector<ProviderScenario> providerScenarios;
+	AssessmentStatus sunEvidence=AssessmentStatus::Unknown,
+		environmentEvidence=AssessmentStatus::Unknown; // never "absent" or verified zero
 };
 
 struct ReconstructedLightingAsset

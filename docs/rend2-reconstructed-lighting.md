@@ -1,4 +1,10 @@
-# Canonical reconstructed static lighting, schema 4
+# Canonical reconstructed static lighting, schema 5
+
+Schema 5 adds typed provider outcomes and independently scoped provider model
+requests to `BuildAssessment` v2. Unknown sun/environment and partial search are
+separate from zero energy and exact-light certification. See
+[provider orchestration](rend2-provider-orchestration.md). Schema 4 cache assets
+are rejected; `.jkobs` observations retain their independent version.
 
 S13 adds a versioned producer/readiness assessment, explicit legacy-channel contribution domains, selected-configuration membership and fully validated payload publication. See [S13](rend2-producer-s13.md). Schema-1/2/3 assets are rejected; observation `.jkobs` archives are unchanged.
 
@@ -70,10 +76,10 @@ any consumer to subtract an attributed contribution from baked lighting.
 
 ## Identity, version and provenance
 
-The stable schema identifier is `org.openjk.reconstructed-lighting`, version 4.
+The stable schema identifier is `org.openjk.reconstructed-lighting`, version 5.
 This is an in-memory semantic schema, not a native-struct binary file format.
 An incompatible schema change requires a version change; a reader must reject
-unsupported versions. `Validate` currently accepts version 4 only.
+unsupported versions. `Validate` currently accepts version 5 only.
 
 `lineage` identifies the reconstruction across revisions. Nonempty results need
 a lineage and root provenance. The fully empty default asset is valid and means

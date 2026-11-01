@@ -19,7 +19,7 @@ add_library(rend2_lightrecon_core STATIC
 	indirect.cpp indirect.h
 	joint.cpp joint.h
 	uncertainty.cpp uncertainty.h
-	producer.cpp producer.h
+	producer.cpp producer.h provider_outcome.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
 	classification.cpp classification.h

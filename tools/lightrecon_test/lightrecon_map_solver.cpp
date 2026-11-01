@@ -844,9 +844,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 		   << ",\"producer\":" << P::ReportJson(result)
 		   << ",\"joint_state\":" << Q(J::StateName(result.fitted.state))
 		   << ",\"joint_reason\":" << Q(result.fitted.reason) << ",\"hidden_search_complete\":"
-		   << (std::find(result.stages.begin(), result.stages.end(),
-						 "hidden-candidate search executed; proposals are not "
-						 "physical lights") != result.stages.end()
+		   << (std::any_of(result.work.providers.begin(), result.work.providers.end(),
+						   [](const ProviderAssessment &p) { return p.name == "hidden" && p.ran; })
 				   ? (result.work.hidden.complete ? "true" : "false")
 				   : "null")
 		   << ",\"hidden_areas\":" << result.work.hidden.areas.size()

@@ -1,0 +1,42 @@
+{
+  "full_cpu_initial": {
+    "log_sha256": "0f0c77c026c03c71da27bdf57affb57c6db654683925402c0015e9c1c74106ac",
+    "summary": "1 tests failed out of 31"
+  },
+  "schema_hash_disk_retest": {
+    "log_sha256": "8ce44018a72e322ad9796c34c562d8f40efa7a42bcbfa64bd64dcf12e8601c13",
+    "summary": "100% tests passed"
+  },
+  "final_receipt_validation": {
+    "log_sha256": "f5f1e46f543c9862338df67b3fb8010d831778e3836cc87db316f53e8f9bbbbb",
+    "summary": "100% tests passed"
+  },
+  "sp_mp_release": {
+    "log_sha256": "dcebde51e920b7a5787bf7c01b26a202398d6e95cc49ef8ad05674752353e29a",
+    "built": true
+  },
+  "disabled_path": {
+    "schema": "org.openjk.producer-disabled-path.v1",
+    "revision": "4955d7cef",
+    "source_differences": 0,
+    "programs": 27,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "historical_baseline_passed": false,
+    "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it",
+    "gpu_compilation_record": "Reused preceding audit; no new GPU visual validation"
+  },
+  "controlled_resources": {
+    "exit_code": 0,
+    "wall_seconds": 75.38977460004389,
+    "peak_working_set_bytes": 8867840
+  },
+  "controlled_assertions": 549,
+  "controlled_failures": 0,
+  "initial_failure_resolution": "Schema-4 empty archive checksum updated for explicit schema 5; no numerical tolerance change"
+}

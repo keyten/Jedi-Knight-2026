@@ -11,7 +11,14 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2;
+struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
+struct ProviderPolicy
+{
+	bool hiddenRequired = false, solarRequired = false;
+	bool allowOptionalLocalBudget = true;
+	size_t maxScopedRequests = 32;
+};
 class SolarValidation
 {
   public:
@@ -36,7 +43,8 @@ struct Options
 	uint64_t maxBytes = 128ull * 1024 * 1024, maxPayloadBytes = 64ull * 1024 * 1024;
 	size_t maxPatches = 8192, maxSources = 128, maxChunks = 32768, chunkRows = 128;
 	bool requireIndependentValidation = true, requireFinalEvaluation = true;
-	bool retainUnsupportedDiagnostic = true; // completed diagnostic, NEVER a successful reconstruction
+	bool retainUnsupportedDiagnostic =
+		true; // completed diagnostic, NEVER a successful reconstruction
 	Uncertainty::Options uncertainty;
 	Candidates::Limits candidates;
 	Candidates::Budget selection;
@@ -53,14 +61,17 @@ struct Request
 	LightmapMapIdentity map;
 	BuildCoverage coverage; // raw/map-wide denominators, never inferred from a small ROI
 	std::string decoder, settingsIdentity;
-	Disk::Digest validationKey{}, heldoutKey{}; // private partition identities, never withheld colours
-	Disk::Fingerprint fingerprint;				// completeness is caller-attested, never guessed here
+	Disk::Digest validationKey{},
+		heldoutKey{};			   // private partition identities, never withheld colours
+	Disk::Fingerprint fingerprint; // completeness is caller-attested, never guessed here
 	Joint::Request fitting;
 	std::vector<Candidates::Provider> providers;
 	std::shared_ptr<const Hidden::Request> hidden;
 	std::shared_ptr<const Solar::Request> solar;
 	const SolarValidation *solarValidation = nullptr; // borrowed synchronous trusted controller
 	const Uncertainty::CalibrationModel *calibration = nullptr;
+	ProviderPolicy providerPolicy;
+	std::shared_ptr<const PreparedProviders> prepared;
 	Options options;
 };
 enum class State
@@ -79,6 +90,7 @@ struct Work
 	Hidden::Report hidden;
 	Solar::Work solar;
 	uint64_t candidates = 0, deferred = 0, payloadBytes = 0;
+	std::vector<ProviderAssessment> providers;
 };
 struct Artifact
 {
@@ -99,7 +111,14 @@ struct Result
 	FinalReceipt final;
 	Work work;
 	std::vector<std::string> stages;
+	std::vector<ProviderScenario> scenarios;
+	// No fitting/held-out targets added: each request has its own profile/scenario.
+	// Rebind trusted validation/final callbacks to scopedRequest.fitting before Run.
+	std::vector<std::shared_ptr<const Request>> scopedRequests;
 };
+// Execute providers once, preserve their leases/outcomes, construct separate
+// model requests for mutually exclusive solar/profile scenarios. Does not fit.
+Error PrepareModelRequests(const Request &, const ReadContext &, Result &);
 // No publication on cancellation/numerical/work failure. Unknown-profile inputs
 // can return a diagnostic-only empty-resolved asset with explicit readiness.
 Error Run(const Request &, const ReadContext &, Result &, const Joint::Validation * = nullptr,
@@ -135,8 +154,10 @@ struct ObservationRecord
 // membership cross-references. Structural Validate(asset) alone is insufficient.
 Error ValidateArtifact(const Artifact &, const ReadContext &);
 Error ReadSamples(const Artifact &, Id dataset, const ReadContext &, std::vector<SampleRecord> &);
-Error ReadContributions(const Artifact &, Id dataset, const ReadContext &, std::vector<ContributionRecord> &);
-Error ReadObservations(const Artifact &, Id dataset, const ReadContext &, std::vector<ObservationRecord> &);
+Error ReadContributions(const Artifact &, Id dataset, const ReadContext &,
+						std::vector<ContributionRecord> &);
+Error ReadObservations(const Artifact &, Id dataset, const ReadContext &,
+					   std::vector<ObservationRecord> &);
 // Ticket/generation protects against publishing work from a replaced world.
 Status Publish(const Artifact &, Manager &, uint64_t expectedGeneration, const ReadContext &);
 Error Load(const Disk::Cache &, const Disk::Fingerprint &, const ReadContext &, Artifact &);
