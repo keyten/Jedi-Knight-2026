@@ -305,6 +305,7 @@ struct Engine
 		std::vector<Observation> rows;
 		rows.reserve(size_t(count));
 		Id last = 0;
+		std::set<std::pair<unsigned, Id>> correlated;
 		for (uint64_t a = 0; a < count; a += r.options.batchRows)
 		{
 			Limit();
@@ -320,6 +321,9 @@ struct Engine
 						 unsigned(x.channel) < unsigned(Channel::Count),
 					 Code::InvalidInput, "Joint identity/order/partition role");
 				last = x.id;
+				Need(!x.correlationGroup ||
+						 correlated.emplace(unsigned(x.channel), x.correlationGroup).second,
+					 Code::InvalidInput, "Repeated correlated observation vote");
 				Need(std::isfinite(x.measure) && x.measure > 0 && std::isfinite(x.sigma) &&
 						 x.sigma > 0 && std::isfinite(x.angularSigmaRadians) &&
 						 x.angularSigmaRadians > 0,
@@ -376,8 +380,13 @@ struct Engine
 		for (const auto &x : training)
 		{
 			k.U(x.id);
+			k.U(x.correlationGroup);
 			k.U(x.patch);
-			if(x.transport){k.Digest(x.transport->MeshKey());k.Digest(x.transport->ReceiverKey());}
+			if (x.transport)
+			{
+				k.Digest(x.transport->MeshKey());
+				k.Digest(x.transport->ReceiverKey());
+			}
 			k.U(x.region);
 			k.U(x.block);
 			k.U(unsigned(x.channel));

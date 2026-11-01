@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Hidden
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // independent correlation groups and statistical sampling mass
 enum class Kind
 {
 	PhysicalEmitterCandidate,
@@ -51,6 +51,8 @@ struct Sample
 	Bake::Receiver receiver;
 	uint8_t rgb[3] = {};
 	double areaWorldSquared = 0;
+	Id correlationGroup = 0;
+	double statisticalWeight = 0; // optional dimensionless sampling mass; never reflector area
 	bool eligible = false, encodingAttested = false, transportSuspected = false;
 	uint32_t materialUncertainty = 0;
 };
@@ -143,6 +145,8 @@ struct AreaReport
 	uint64_t nodes = 0, rejectedSolid = 0, rejectedOutside = 0, retained = 0;
 	uint64_t unknownRegion = 0, unknownVisibility = 0, profileUnsupported = 0;
 	bool searchLimited = false, sampleLimited = false;
+	uint64_t correlatedExcluded = 0, effectiveGroups = 0, largestMaterialGroup = 0;
+	std::string admission;
 };
 struct Report
 {

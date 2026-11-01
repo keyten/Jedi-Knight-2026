@@ -636,6 +636,11 @@ void Protocol()
 	bad.inputKey[0] ^= 1;
 	J::Result rejected;
 	CHECK(J::Solve(rig.request, Read(), rejected, &oracle, &bad).code == Code::InvalidState);
+	for (auto &row : *rig.train->data)
+		row.correlationGroup = 123;
+	CHECK(J::Solve(rig.request, Read(), rejected, &oracle).code == Code::InvalidInput);
+	for (auto &row : *rig.train->data)
+		row.correlationGroup = 0;
 	(*rig.train->data)[0].role = J::Role::Heldout;
 	CHECK(J::Solve(rig.request, Read(), rejected, &oracle).code == Code::InvalidInput);
 	(*rig.train->data)[0].role = J::Role::Training;

@@ -22,6 +22,33 @@ def sample(i, p):
 
 
 class BlindTests(unittest.TestCase):
+    def test_public_sampling_geometry_has_no_hidden_targets(self):
+        from solver_view import GEOMETRY_FIELDS, digest
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t); prefix=root/'fixture'
+            prefix.with_suffix('.source.json').write_text(json.dumps(dict(map_sha256='ab'*32,
+                pages=[dict(image=0,width=40,height=1,missing=0)],derived_complete=1)))
+            prefix.with_suffix('.public.jkobs').write_bytes(b'geometry-only')
+            records=[sample(i,[i*1024+512,512,512]) for i in range(40)]
+            prefix.with_suffix('.rows.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in records))
+            prepare(prefix,root/'old'); prepare(prefix,root/'indexed',publish_geometry=True)
+            self.assertEqual((root/'old/inputs/train.jsonl').read_bytes(),(root/'indexed/inputs/train.jsonl').read_bytes())
+            view=TrainingView(root/'indexed/inputs','ab'*32)
+            public=list(view.receiver_geometry())
+            self.assertEqual({r['role'] for r in public},{'train','validation','heldout'})
+            self.assertTrue(all(set(r)==GEOMETRY_FIELDS for r in public))
+            self.assertFalse(any('raw' in r or 'source' in r or 'scene' in r for r in public))
+            before=list(view.receiver_geometry())
+            (root/'indexed/evaluator/heldout.jsonl').write_text('hidden target mutation')
+            self.assertEqual(before,list(view.receiver_geometry()))
+            with self.assertRaises(PermissionError): list(TrainingView(root/'old/inputs','ab'*32).receiver_geometry())
+            # A maliciously rehashed sidecar still cannot smuggle hidden RGB.
+            path=root/'indexed/inputs/receivers-geometry.jsonl'; public[0]['raw']=[255]*3
+            path.write_text(''.join(json.dumps(r)+'\n' for r in public))
+            mp=root/'indexed/inputs/manifest.json'; manifest=json.loads(mp.read_text())
+            manifest['sha256'][path.name]=digest(path); mp.write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError): list(TrainingView(root/'indexed/inputs','ab'*32).receiver_geometry())
+
     def test_taxonomy(self):
         r=sample(0,[128]*3)
         q=quality(r)

@@ -5,6 +5,7 @@
 #include "lightrecon/producer.h"
 #include "lightrecon/shadow_evidence.h"
 #include "lightrecon/transport_mesh.h"
+#include "lightrecon/sampling.h"
 #include "source_footprint.h"
 #include <chrono>
 #include <fstream>
@@ -325,6 +326,7 @@ static std::array<std::vector<Selected>, 3> Scan(const O::Dataset &data, const O
 		}
 	return fold;
 }
+#include "sampling_audit.h"
 struct Validator final : J::Validation
 {
 	const J::Request &q;
@@ -864,7 +866,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 					   const std::shared_ptr<const StaticVisibility> &rays,
 					   const std::array<std::vector<Selected>, 3> &folds, const Census &census,
 					   const std::string &output, bool linear, Disk::Digest archiveHash,
-					   const TransportPreparation &transport, const Bounds *localScope = nullptr)
+					   const TransportPreparation &transport, const Bounds *localScope = nullptr,
+					   const SamplingSelection *sampling = nullptr)
 {
 	ReadContext read;
 	read.maxBytes = 512ull << 20;
@@ -875,6 +878,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	q.transfer = transport.transfer;
 	q.transportMesh = transport.mesh;
 	q.directOnlyConditional = true;
+	if(sampling){GeometryKey key;key.Digest(q.policyKey);key.Digest(sampling->plan.key);q.policyKey=key.Finish();}
 	Bake::Recipe recipe;
 	recipe.falloff = linear ? Bake::Falloff::Linear : Bake::Falloff::InverseSquare;
 	J::Profile profile;
@@ -935,6 +939,12 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	hidden->analysisBounds = q.sourceSearchBounds;
 	hidden->profiles = {profile.model.profile};
 	hidden->options.allowAssumedProfiles = hidden->options.allowAssumedEncoding = true;
+	std::set<Id> coarseIds;
+	if(sampling){
+		hidden->options.maxSamples=4096;hidden->options.localCellWorld=sampling->plan.report.localCellWorld;
+		for(const auto &job:sampling->plan.jobs){Hidden::SearchArea a;a.id=job.id;a.receivers=job.receivers;a.positions=job.sourceContext;for(unsigned c=0;c<3;++c){V lo(a.positions.minWorld),hi(a.positions.maxWorld);lo[c]=std::max(lo[c],V(q.sourceSearchBounds.minWorld)[c]);hi[c]=std::min(hi[c],V(q.sourceSearchBounds.maxWorld)[c]);a.positions.minWorld=lo.Float();a.positions.maxWorld=hi.Float();}a.reason="X10 geometry-defined local discovery, independent neighbouring evaluation blocks";hidden->areas.push_back(a);}
+		for(auto v:sampling->plan.global[size_t(SP::Purpose::CoarseCoverage)])coarseIds.insert(v.id);
+	}
 	auto hs = std::make_shared<std::vector<Hidden::Sample>>();
 	auto solar = std::make_shared<Solar::Request>();
 	solar->mapKey = q.mapKey;
@@ -971,13 +981,14 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 			materials.insert(v.receiver.material);
 			o.role = J::Role(role);
 			o.measure = v.weight;
+			if(sampling)o.correlationGroup=sampling->geometry.at(v.id).correlation;
 			o.comparable = true;
 			for (unsigned c = 0; c < 3; ++c)
 				o.rgb[c] = Amplitude::Rgb8(v.luxel.colour.raw.bytes[c]);
 			jr[role]->v->push_back(o);
 			Solar::Sample sky;
 			sky.receiver = v.receiver;
-			sky.areaWorldSquared = v.weight;
+			sky.areaWorldSquared = v.area;
 			sky.footprintRadiusWorld = v.radius;
 			sky.eligible = true;
 			sky.encodingVerifiedForProfile = false;
@@ -992,7 +1003,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 			{
 				Hidden::Sample h;
 				h.receiver = v.receiver;
-				h.areaWorldSquared = v.weight;
+				h.areaWorldSquared = v.area;
+				if(sampling){h.correlationGroup=sampling->geometry.at(v.id).correlation;h.statisticalWeight=v.weight;}
 				h.eligible = true;
 				h.encodingAttested = false;
 				h.materialUncertainty = v.luxel.classification.materialUncertainty;
@@ -1001,7 +1013,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 					h.rgb[c] = v.luxel.colour.raw.bytes[c];
 				hs->push_back(h);
 				hidden->directions.push_back(Hidden::DeluxeConstraint(h, v.luxel.deluxe, v.id, 1));
-				solar->hints.push_back(Solar::DeluxeHint(v.luxel.deluxe, v.id));
+				if(!sampling||coarseIds.count(v.id))solar->hints.push_back(Solar::DeluxeHint(v.luxel.deluxe, v.id));
 			}
 		}
 		keys[role] = k.Finish();
@@ -1297,11 +1309,15 @@ int main(int argc, char **argv)
 	try
 	{
 		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "local-density" ||
-										 std::string(argv[4]) == "transport-only")),
+									   std::string(argv[4]) == "transport-only" ||
+									   std::string(argv[4]) == "sampling-only" ||
+									   std::string(argv[4]) == "hierarchical")),
 			 "usage: lightrecon_map_solver dataset.jkobs output-folder "
-			 "expected-bsp-sha256 [local-density|transport-only]");
+			 "expected-bsp-sha256 [local-density|transport-only|sampling-only|hierarchical]");
 		bool local = argc == 5 && std::string(argv[4]) == "local-density";
 		bool transportOnly = argc == 5 && std::string(argv[4]) == "transport-only";
+		bool samplingOnly = argc == 5 && std::string(argv[4]) == "sampling-only";
+		bool hierarchical = argc == 5 && std::string(argv[4]) == "hierarchical";
 		ReadContext read;
 		read.maxBytes = 512ull << 20;
 		O::Options limits;
@@ -1383,8 +1399,10 @@ int main(int argc, char **argv)
 		}
 		facts << "]}";
 		facts.close();
+		std::unique_ptr<SamplingSelection> sampled;
+		if(samplingOnly||hierarchical){sampled.reset(new SamplingSelection(HierarchicalSelect(*data,source,folds,argv[2],read)));}
 		for (const auto &f : folds)
-			Need(f.size() >= 8, "Insufficient independent training/validation/held-out geometry "
+			Need(samplingOnly||hierarchical||f.size() >= 8, "Insufficient independent training/validation/held-out geometry "
 								"after footprint gaps");
 		auto geometry = Sanitized(source);
 		VisibilityBuildOptions b;
@@ -1392,6 +1410,8 @@ int main(int argc, char **argv)
 		b.patchToleranceWorld = data->Info().visibilityPatchToleranceWorld;
 		std::shared_ptr<const StaticVisibility> rays;
 		Check(StaticVisibility::Build(geometry, b, read, rays, source.domain));
+		if(samplingOnly){std::ofstream report(std::string(argv[2])+"/sampling-proposals.json");report<<SamplingProposals(*sampled,source,rays,folds,read);return 0;}
+		if(hierarchical)folds=sampled->folds;
 		Diagnostics(source, graph, rays, folds, read, argv[2]);
 		Need(focus.known, "Geometry-only transport scope unavailable");
 		auto transport = PrepareTransport(source, geometry, rays, folds, focus, argv[2], read);
@@ -1401,7 +1421,7 @@ int main(int argc, char **argv)
 			try
 			{
 				RunProfile(source, *data, graph, geometry, rays, folds, census, argv[2], linear,
-						   archiveHash, transport, local ? &focus : nullptr);
+						   archiveHash, transport, local ? &focus : nullptr,sampled.get());
 			}
 			catch (const std::exception &e)
 			{

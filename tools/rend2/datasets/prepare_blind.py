@@ -166,7 +166,7 @@ class Group:
                     localization_information='No hypothesis/Jacobian: not Fisher information; pixel independence unproven')
 
 
-def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 0.)):
+def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 0.), publish_geometry=False):
     if block <= 0 or gap < 0 or not math.isfinite(block + gap):
         raise ValueError('Invalid partition geometry')
     if len(origin) != 3 or not all(math.isfinite(v) for v in origin):
@@ -197,9 +197,11 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 
             primary_images[logical]=min(p['image'],primary_images.get(logical,p['image']))
     page_counts = Counter()
     page_start = time.perf_counter()
+    geometry_count = 0
     duplicate_ids = set()
     sample_path = output / 'sample-positions.tsv'
     with ExitStack() as stack:
+        geometry_stream = stack.enter_context((inputs / 'receivers-geometry.jsonl').open('w', encoding='utf-8', newline='\n')) if publish_geometry else None
         for stream in streams.values():
             stack.enter_context(stream)
         with sample_path.open('w', encoding='utf-8') as points:
@@ -245,6 +247,14 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 
                     raise ValueError('Quality grouping budget (65536 groups) exceeded')
                 primary=image==primary_images[pinfo.get('page',image)]
                 role = assignment(r, block, gap, seed, origin) if eligible(r) and primary else None
+                if geometry_stream is not None and eligible(r) and primary:
+                    cell = [math.floor((v-o)/block) for v,o in zip(r['position'],origin)]
+                    spatial_block = hashlib.sha256(json.dumps([seed,cell],separators=(',',':')).encode('ascii')).hexdigest()
+                    public = {k:r[k] for k in ('id','page','x','y','surface','slot','style','position','normal','area','footprint_radius')}
+                    public.update(role=role or 'gap', block=spatial_block,
+                                  encoding_known=bool(r['transfer'] and r['primaries']))
+                    geometry_stream.write(json.dumps(public,separators=(',',':'),allow_nan=False)+'\n')
+                    geometry_count += 1
                 if role:
                     record = {key: r[key] for key in sorted(FIELDS)}
                     streams[role].write(json.dumps(record, separators=(',', ':'), allow_nan=False) + '\n')
@@ -284,6 +294,10 @@ def prepare(prefix, output, block=1024., gap=8., seed=20261026, origin=(0., 0., 
     # The public manifest reveals counts/hashes, not RGB, raw images or light answers.
     if any(origin):
         manifest['partition_origin_world'] = list(origin)
+    if publish_geometry:
+        manifest['sampling_geometry'] = dict(schema='org.openjk.receiver-geometry.v1',count=geometry_count,
+                                            colour_targets='absent',roles_frozen_before_sampling=True)
+        manifest['sha256']['receivers-geometry.jsonl'] = digest(inputs / 'receivers-geometry.jsonl')
     write(inputs / 'manifest.json', manifest)
     private = dict(manifest, role='evaluator', source=source,
                    sha256={name:digest(evaluator / name) for name in ('validation.jsonl','heldout.jsonl','validation-grid.jsonl','heldout-grid.jsonl')})
@@ -297,8 +311,9 @@ def main():
     p.add_argument('--block', type=float, default=1024); p.add_argument('--gap', type=float, default=8)
     p.add_argument('--seed', type=int, default=20261026)
     p.add_argument('--origin', type=float, nargs=3, default=(0.,0.,0.), help='Geometry-only partition origin; source positions are not changed')
+    p.add_argument('--sampling-geometry', action='store_true', help='Publish bounded all-role geometry index, without hidden targets')
     args = p.parse_args()
-    report = prepare(args.prefix, args.output, args.block, args.gap, args.seed, args.origin)
+    report = prepare(args.prefix, args.output, args.block, args.gap, args.seed, args.origin, args.sampling_geometry)
     print(json.dumps({k:v for k,v in report.items() if k != 'groups'}, indent=2))
 
 

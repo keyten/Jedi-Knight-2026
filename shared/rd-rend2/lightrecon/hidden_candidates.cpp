@@ -160,6 +160,8 @@ Disk::Digest Key(const Request &r, const std::vector<Sample> &samples)
 		k.F(s.receiver.geometryErrorWorld);
 		k.F(s.receiver.mappingErrorWorld);
 		k.F(s.areaWorldSquared);
+		k.U(s.correlationGroup);
+		k.F(s.statisticalWeight);
 		for (auto b : s.rgb)
 			k.U(b);
 		k.U(s.encodingAttested);
@@ -366,6 +368,17 @@ double ShapeScore(const std::vector<Sample> &s, const std::vector<double> &weigh
 }
 std::vector<double> Weights(const std::vector<Sample> &samples)
 {
+	if (!samples.empty() && samples[0].correlationGroup)
+	{
+		double sum = 0;
+		for (const auto &s : samples)
+			sum += s.statisticalWeight;
+		Need(std::isfinite(sum)&&sum>0,Code::InvalidInput,"Sampling weight sum overflow");
+		std::vector<double> w;
+		for (const auto &s : samples)
+			w.push_back(s.statisticalWeight / sum);
+		return w;
+	}
 	std::map<Id, double> area;
 	for (const auto &s : samples)
 		area[s.receiver.surface] += s.areaWorldSquared;
@@ -583,10 +596,17 @@ std::vector<Sample> Select(const std::vector<Sample> &all, const SearchArea &a, 
 						   AreaReport &report)
 {
 	std::map<Id, std::vector<Sample>> surfaces;
+	std::set<Id> correlations;
 	for (const auto &s : all)
 		if (Inside(a.receivers, V(s.receiver.world)))
 		{
 			++report.requested;
+			if (s.correlationGroup && !correlations.insert(s.correlationGroup).second)
+			{
+				++report.correlatedExcluded;
+				++report.excluded;
+				continue;
+			}
 			if (!s.eligible || (!s.encodingAttested && !o.allowAssumedEncoding))
 			{
 				++report.excluded;
@@ -619,6 +639,11 @@ std::vector<Sample> Select(const std::vector<Sample> &all, const SearchArea &a, 
 		++round;
 	}
 	report.selected = selected.size();
+	report.effectiveGroups = selected.size();
+	std::map<Id, size_t> materialGroups;
+	for (const auto &s : selected)
+		report.largestMaterialGroup =
+			std::max<uint64_t>(report.largestMaterialGroup, ++materialGroups[s.receiver.material]);
 	report.sampleLimited = report.selected + report.excluded + report.saturated < report.requested;
 	return selected;
 }
@@ -889,11 +914,19 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 					 std::isfinite(s.areaWorldSquared) && s.areaWorldSquared > 0,
 				 Code::InvalidInput, "Invalid/duplicate receiver");
 			last = s.receiver.sample;
+			Need(std::isfinite(s.statisticalWeight) && s.statisticalWeight >= 0 &&
+					 ((s.correlationGroup && s.statisticalWeight > 0) ||
+					  (!s.correlationGroup && s.statisticalWeight == 0)),
+				 Code::InvalidInput, "Sampling correlation/weight contract");
+			Need(samples.empty() ||
+					 (bool(s.correlationGroup) == bool(samples.front().correlationGroup)),
+				 Code::InvalidInput, "Mixed sampling weight semantics");
 			Need(Length(V(s.receiver.world)) / o.localCellWorld < 1e12, Code::InvalidInput,
 				 "Spatial coordinate overflow");
 		}
 		for (const auto &d : r.directions)
-			Need(d.id && !d.provenance.empty() && d.provenance.size() <= 4096 && Finite(d.originWorld) &&
+			Need(d.id && !d.provenance.empty() && d.provenance.size() <= 4096 &&
+					 Finite(d.originWorld) &&
 					 (!d.usable || (Normal(d.toSource) && std::isfinite(d.halfAngleRadians) &&
 									d.halfAngleRadians > 0 && d.halfAngleRadians <= Pi)),
 				 Code::InvalidInput, "Invalid directional mixture constraint");
@@ -932,29 +965,37 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 			// unknown occluding geometry, which must still affect relevant rays.
 			Bake::Options supportOptions;
 			supportOptions.allowAssumed = o.allowAssumedProfiles;
-			selected.erase(std::remove_if(selected.begin(), selected.end(),
-										  [&](const Sample &sample) {
-											  bool supported = false;
-											  for (const auto &profile : r.profiles)
-												  supported |=
-													  Bake::Capability(profile, Bake::SourceKind::Point,
-																	   sample.receiver, supportOptions)
-														  .implemented;
-											  if (!supported)
-											  {
-												  ++report.unsupportedReceivers;
-												  ++report.excluded;
-												  out.report.diagnostics.push_back(
-													  "Receiver " + std::to_string(sample.receiver.sample) +
-													  " unsupported by supplied point/profile "
-													  "implementation; other receivers remain usable");
-											  }
-											  return !supported;
-										  }),
-						   selected.end());
+			selected.erase(
+				std::remove_if(selected.begin(), selected.end(),
+							   [&](const Sample &sample) {
+								   bool supported = false;
+								   for (const auto &profile : r.profiles)
+									   supported |=
+										   Bake::Capability(profile, Bake::SourceKind::Point,
+															sample.receiver, supportOptions)
+											   .implemented;
+								   if (!supported)
+								   {
+									   ++report.unsupportedReceivers;
+									   ++report.excluded;
+									   out.report.diagnostics.push_back(
+										   "Receiver " + std::to_string(sample.receiver.sample) +
+										   " unsupported by supplied point/profile "
+										   "implementation; other receivers remain usable");
+								   }
+								   return !supported;
+							   }),
+				selected.end());
 			report.selected = selected.size();
+			report.effectiveGroups = selected.size();
+			report.largestMaterialGroup = 0;
+			std::map<Id, size_t> supportedMaterials;
+			for (const auto &sample : selected)
+				report.largestMaterialGroup = std::max<uint64_t>(
+					report.largestMaterialGroup, ++supportedMaterials[sample.receiver.material]);
 			if (selected.size() < 6)
 			{
+				report.admission = "TooFewEffectiveTrainingReceivers";
 				out.report.areas.push_back(report);
 				continue;
 			}
@@ -965,26 +1006,28 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 				std::map<Id, size_t> count;
 				for (const auto &s : selected)
 				{
-					auto inserted = range.emplace(s.receiver.material,
-												  std::make_pair(double(s.rgb[c]), double(s.rgb[c])));
+					auto inserted = range.emplace(
+						s.receiver.material, std::make_pair(double(s.rgb[c]), double(s.rgb[c])));
 					auto &v = inserted.first->second;
 					v.first = std::min(v.first, double(s.rgb[c]));
 					v.second = std::max(v.second, double(s.rgb[c]));
 					count[s.receiver.material] += s.rgb[c] > 0;
 				}
 				for (const auto &v : range)
-					contrast |=
-						count[v.first] >= 4 &&
-						(v.second.second - v.second.first) / (v.second.second + 1) >= o.minimumContrast;
+					contrast |= count[v.first] >= 4 &&
+								(v.second.second - v.second.first) / (v.second.second + 1) >=
+									o.minimumContrast;
 			}
 			if (!contrast)
 			{
+				report.admission = "NoWithinMaterialPositiveContrast";
 				out.report.diagnostics.push_back(
 					"Area " + std::to_string(area.id) +
 					": no within-material positive surface contrast; no hidden source proposed");
 				out.report.areas.push_back(report);
 				continue;
 			}
+			report.admission = "ConditionalSourceSearch; not source-existence verification";
 			auto weights = Weights(selected);
 			std::vector<Trial> trials;
 			trials.reserve(o.maxNodesPerArea * r.profiles.size() * (o.spots ? 3 : 1));
@@ -997,8 +1040,9 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 						Pose p;
 						p.p = V(area.positions.minWorld) + V(2 * x + 1, 2 * y + 1, 2 * z + 1) * 1;
 						for (int a = 0; a < 3; ++a)
-							p.p[a] = V(area.positions.minWorld)[a] +
-									 (a == 0 ? 2 * x + 1 : a == 1 ? 2 * y + 1 : 2 * z + 1) * half[a];
+							p.p[a] =
+								V(area.positions.minWorld)[a] +
+								(a == 0 ? 2 * x + 1 : a == 1 ? 2 * y + 1 : 2 * z + 1) * half[a];
 						p.half = half;
 						queue.push_back(p);
 					}

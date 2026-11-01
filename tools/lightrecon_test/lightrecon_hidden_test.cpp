@@ -698,8 +698,27 @@ int main(int argc, char **argv)
 			H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0, false, sample));
 		CHECK(sample.rgb[0] == 255 && sample.rgb[1] == 127 && !sample.encodingAttested);
 		observation.raw.directionData = true;
-		CHECK(H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0, false, sample)
+		CHECK(H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0,
+								 false, sample)
 				  .code == Code::Unavailable);
+	}
+	{
+		Scene correlated;
+		correlated.Bake({{V(-24, 24, 160), V(350, 200, 100)}});
+		for (auto &s : *correlated.samples)
+		{
+			s.correlationGroup = 1;
+			s.statisticalWeight = 1;
+		}
+		H::Result r;
+		CHECK(correlated.Generate(r).code == Code::Unavailable);
+		CHECK(r.candidates.empty());
+		CHECK(!r.report.areas.empty() && r.report.areas[0].selected == 1);
+		CHECK(r.report.areas[0].correlatedExcluded == correlated.samples->size() - 1);
+		correlated.samples->front().statisticalWeight = -1;
+		CHECK(correlated.Generate(r).code == Code::InvalidInput);
+		for(auto &s:*correlated.samples){s.correlationGroup=s.receiver.sample;s.statisticalWeight=1e308;}
+		CHECK(correlated.Generate(r).code==Code::InvalidInput);
 	}
 	if (argc > 1)
 	{

@@ -16,6 +16,13 @@ The preparation path now preserves opposite sides and local uncertainty. Bounded
 transfer is incomplete; dpred's original precise mappings remain unsupported.
 This does not revise the historical audit into a stock-recovery success.
 
+**X10 follow-up:** [hierarchical sampling](rend2-observation-sampling-x10.md)
+compares the original sparse selection with bounded local gradients on seven
+maps without changing spatial folds or filtering gaps. It improves conditional
+discovery admission, but preserves weak/no-signal jobs and false-source risks.
+The experiment stops at production candidate proposals; it does not turn the
+frozen whole-map audit below into an accepted stock joint fit.
+
 **The project has working controlled CPU fitting components and a canonical
 producer, but has not demonstrated autonomous recovery of original lights from
 stock JA maps.** Invoking the complete producer on every installed stock BSP did

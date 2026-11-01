@@ -1,0 +1,12 @@
+{
+  "schema": "org.openjk.sampling-validation-x10.v1",
+  "stock_repeated_identically": true,
+  "compiled_repeated_identically": true,
+  "controlled_repeated_identically": true,
+  "stock_maps": 7,
+  "compiler_experiments": 18,
+  "controlled_assertions": 678,
+  "physical_source_recovery": false,
+  "stock_source_truth": "Unavailable",
+  "renderer_lighting_modified": false
+}

@@ -30,6 +30,7 @@ std::string Quote(const std::string &s)
 	}
 	return out + '"';
 }
+#include "sampling_protocol.h"
 int main(int argc, char **argv)
 {
 	try
@@ -59,8 +60,9 @@ int main(int argc, char **argv)
 		f.seekg(0);
 		std::string magic, map;
 		f >> magic >> map;
-		if (magic != "JKHIDDEN1" || map != Disk::Hex(s.metadata.map.sha256))
+		if ((magic != "JKHIDDEN1"&&magic!="JKSAMPLE1") || map != Disk::Hex(s.metadata.map.sha256))
 			throw std::runtime_error("Training schema/map fingerprint mismatch");
+		if(magic=="JKSAMPLE1")return SamplingProtocol(s,f);
 		H::Request r;
 		r.map = s.metadata.map;
 		r.units = s.metadata.units;

@@ -5,6 +5,11 @@ solver, recovered physical lights, consumer, shader or gameplay path was added.
 Stock maps remain `UnknownProfile`; a valid archive or complete mapping does not
 establish physical source positions, photometric scale, or solver readiness.
 
+The [X10 hierarchical sampling follow-up](rend2-observation-sampling-x10.md)
+separates this full-map census from dense local discovery/refinement and frozen
+independent evaluation. It reuses these encodings and never uses statistical
+stratum weights as physical transport area.
+
 ## Recorded experiments
 
 Licensed local stock assets were loaded by the actual Release SP renderer, with

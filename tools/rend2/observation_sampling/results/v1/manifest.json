@@ -1,0 +1,39 @@
+{
+  "schema": "org.openjk.sampling-manifest-x10.v1",
+  "base_commit": "f0a61afab271a0a8835296b212185485ae0eea7b",
+  "sampling_version": 1,
+  "hidden_version": 2,
+  "joint_version": 4,
+  "sources": {
+    "shared/rd-rend2/lightrecon/sampling.cpp": "4562a977835f998d6fc46a74ec092718f684347575d01728b35c01ab35208310",
+    "shared/rd-rend2/lightrecon/sampling.h": "51581751c14fd8aaa970994547412eaf7e7cdcc7df97ff143c58ed6248b208e7",
+    "shared/rd-rend2/lightrecon/hidden_candidates.cpp": "6456ac39d299968b1be4a3bbcd77ce6a017cb73e153a91c25cab071323c5c8cd",
+    "shared/rd-rend2/lightrecon/hidden_candidates.h": "dbaca48c2c3b4160a820321bc2a57c69916be20f420c43ac64fe4f30ea1b680d",
+    "shared/rd-rend2/lightrecon/joint.cpp": "0ddb37b884558af5051f9ade8cba0da0ef7ee43bacf8d42640a22e529101bb6e",
+    "shared/rd-rend2/lightrecon/joint.h": "7cbedf130c9ac8b1e41215e8065795cd940755eef7563ed16518c837f699ca86",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "523e797a05f7d66c5beb76d6b23c45e9958e5137c622de407d540f6535910577",
+    "tools/lightrecon_test/sampling_audit.h": "19b3f7353d44a9e0cb5a4c4105768fad6c7141e7402aa988547fa004b67a90ee",
+    "tools/lightrecon_test/sampling_protocol.h": "81ebbea996e98c3351fd3e6373b6a4c7dc6a45619046bbbf61b03912c99af5f1",
+    "tools/lightrecon_test/lightrecon_map_solver.cpp": "849c38b66642071f89122e63b6258b9827f8ad5e038e122fefe8d7014d3a8960",
+    "tools/lightrecon_test/lightrecon_sampling_test.cpp": "8a671ae1a62ab9883ef943259b871c8a838f6af2d5fc45d8323a80c767be3509",
+    "tools/lightrecon_test/lightrecon_hidden_tool.cpp": "16245b51b28fb0586d66def48d8e13544030d0f486e7961fc82f3a1e42d3232e",
+    "tools/lightrecon_test/lightrecon_hidden_test.cpp": "d17fb85c872ae0e408a74acdb24927969e48ed8447b1d2fcad09895bf41bbf2d",
+    "tools/lightrecon_test/lightrecon_joint_test.cpp": "456c895b4bf155688a2ad9407bee0ff957218c5d36807eb24e59fe9ffa619d81",
+    "tools/lightrecon_test/CMakeLists.txt": "f73a96d0143d427cd79815409adc01a0d59bfaa1ee2e35f7ace62ba24daa9955",
+    "tools/rend2/datasets/prepare_blind.py": "6e9b0c059b4bc4955b29326c63f0643ec64007ab497159d18900433892bd5517",
+    "tools/rend2/datasets/solver_view.py": "ce066baf35617d32197384f812a4d6fbcd06e3d2e2264439fffc77c467d3961a",
+    "tools/rend2/datasets/test_blind_views.py": "5872860db604b646ba48ac83866742fa433a8fc1f1b82037a2b6881d1d434ce8",
+    "tools/rend2/observation_sampling/run.py": "47cd7b90e6c76c16596d363319c3b8d83e35756fbb1c1c88998de729b3f918c0",
+    "tools/rend2/observation_sampling/compiled.py": "4dc4df17f7949fedc8f59de0ac341e5e24c5da5657e9f584b30e680f64b757f4",
+    "tools/rend2/observation_sampling/collect.py": "f41d5c0f8859c3210677fb42235de502f881ad4ab9f82111c97e6542798f17e2",
+    "tools/rend2/observation_sampling/verify_results.py": "e0060efdbc9f767f8fb4a690e6978813b66b76d8132977cd94f1cfdd2c134f9c",
+    "tools/rend2/observation_sampling/test_sampling.py": "037c8b07412271548db0f4336593151adbe48d057e39ddd866b8755402a44180"
+  },
+  "artifacts": {
+    "controlled.json": "37e62a72e44d82c172a529011a7a7486b2b6264116ea309cc2b3dd89c6200f06",
+    "stock.json": "64e312a219a7ac873d2196cbf8ab97c38be1d387ddcd0554203a6441f1f6a5aa",
+    "compiled.json": "f7c0d2b8ab292183d97fe7d0e36d8ace69933763ec4aea518e9cb0f53980f8b1",
+    "validation.json": "417d7463d0936c2bd115798802cd8bf746a49157c6429a902900a540f55a0323",
+    "checks.json": "45db1e4b581acb60adce66abe6ffcd6eea03a8617457c23d672da50cf8e0f774"
+  }
+}

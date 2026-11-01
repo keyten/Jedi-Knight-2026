@@ -1,0 +1,83 @@
+{
+  "schema": "org.openjk.sampling-checks-x10.v1",
+  "status": "Passed",
+  "cpu": {
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j2",
+    "passed": 34,
+    "failed": 0,
+    "wall_seconds": 194.15,
+    "source": "ctest-frozen.log"
+  },
+  "sampling": {
+    "assertions": 678,
+    "failures": 0,
+    "repeated_identically": true
+  },
+  "python": {
+    "sampling": 4,
+    "blind_views": 7,
+    "stock_audit": 4,
+    "failed": 0
+  },
+  "builds": {
+    "standalone_gcc_release": "Passed",
+    "sp_msbuild_release": "Passed",
+    "mp_msbuild_release": "Passed"
+  },
+  "renderer": {
+    "game_launched": false,
+    "lighting_consumer_changed": false,
+    "shader_source_or_binding_differences": 0,
+    "programs": 27,
+    "comparison_revision": "ec272791b",
+    "historical_frozen_baseline_passed": false,
+    "gpu_compile_scope": "Prior GL3.2 compile record reused; no new GPU compile in X10"
+  },
+  "repeated_experiments": {
+    "stock_maps_per_run": 7,
+    "stock_runs": 2,
+    "compiler_cases_per_run": 18,
+    "compiler_runs": 2
+  },
+  "initial_attempts": [
+    {
+      "attempt": "initial CTest",
+      "failed": [
+        "lightrecon_producer_suite",
+        "lightrecon_joint"
+      ],
+      "errors": [
+        "Invalid historical expansion recipe",
+        "Explicit model provenance and visibility generation required"
+      ],
+      "resolution": "Forced recompilation of both test objects after shared P04 header changes; both then passed with no relaxed checks. Full final suite passes."
+    },
+    {
+      "attempt": "concurrent rebuild",
+      "error": "Windows linker could not overwrite the still-running point_refine test executable",
+      "resolution": "Finished owned test before rebuilding; final full build passed"
+    },
+    {
+      "attempt": "initial compiled child run",
+      "error": "Controller accidentally requested 256 KiB instead of intended 512 MiB RSS",
+      "resolution": "Fixed dimensional expression to 512 * 1024**2; both final sets have 18 completed native children"
+    },
+    {
+      "attempt": "first final renderer command",
+      "error": "cmake absent from fresh shell PATH; compiler not launched",
+      "resolution": "Re-executed with pinned toolchain PATH; both Release DLL targets passed"
+    }
+  ],
+  "logs": {
+    "ctest-frozen.log": "71d626df0f3949bdfafd6e9c945e9264816f1cf8eb5a9ab82e48e99839320417",
+    "build-final-sealed.log": "44c5a92dab505d8a51b8a1895b4e3a0704cadcb06d203a3c1254ca04ebd04603",
+    "build-renderers-frozen.log": "92809abd6e88c328ecb91bc3c0265b7fd628f8499e83c2456017d91142c07d6f",
+    "python-sampling.log": "280ca1d476487d0ed76588692bddc7682894ea1090cd7f78d4a0ca9c84a4e6ac",
+    "python-blind.log": "6ebf6022e8ffac6f517154fefa010e25148a488cf31e1a8fbf9ca04c5a3b9960",
+    "python-audit.log": "75fc971fb7b094ddb120545d267640da40fa840f08ca8f101f739c213160b717",
+    "ctest-final.log": "17351d495b6f21f7caaf77c277dbd0b7b4fa9d51f81fe53ed7e8c34db7f59767",
+    "ctest-recheck.log": "d85e4925495f20c535d49dcd02a0ce9ce1f22f9090386b089640fb321a5bf03e",
+    "ctest-rebuilt.log": "76fc78f6dba7324894543e725c10b6fb1e999010ffc34655b7d273190cbfcf7d",
+    "disabled-comparison/report.json": "96b2385e0a5bc13cabfe9fda2e8ab215c4ce3714fc06eb8ddc2dbc17c5a5414f"
+  }
+}

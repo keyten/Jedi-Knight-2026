@@ -10,7 +10,7 @@ namespace Core
 {
 namespace Joint
 {
-constexpr uint32_t kVersion = 3; // X09: observation geometry is independent of transport support
+constexpr uint32_t kVersion = 4; // X10: correlation identities/statistical weights
 enum class Channel
 {
 	Surface,
@@ -29,6 +29,7 @@ enum class Role
 struct Observation
 {
 	Id id = 0, patch = 0, region = 0, block = 0;
+	Id correlationGroup = 0; // optional fixed geometry cluster; one vote per channel/fold
 	Bake::Receiver receiver;
 	// Non-null means evaluate direct at the original receiver, and integrate only
 	// reflected transport via this geometry-only mapping. patch=0 is then valid.
@@ -36,7 +37,7 @@ struct Observation
 	Channel channel = Channel::Surface;
 	Amplitude::Interval rgb[3];
 	Vec3 directionToSource;
-	double measure = 0, sigma = 1, angularSigmaRadians = 1;
+	double measure = 0, sigma = 1, angularSigmaRadians = 1; // statistical objective mass, not transport area
 	bool comparable = false, directionKnown = false, required = true;
 	Role role = Role::Training;
 };

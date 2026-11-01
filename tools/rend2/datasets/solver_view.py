@@ -13,6 +13,8 @@ SCHEMA = 'org.openjk.blind-observations.v1'
 FIELDS = {'id', 'page', 'x', 'y', 'surface', 'slot', 'style', 'position', 'normal',
           'area', 'raw', 'encoding', 'channel_flags', 'transfer', 'primaries',
           'source', 'scene', 'deluxe', 'classification', 'material_uncertainty'}
+GEOMETRY_FIELDS = {'id', 'page', 'x', 'y', 'surface', 'slot', 'style', 'position',
+                   'normal', 'area', 'footprint_radius', 'role', 'block', 'encoding_known'}
 GRID_FIELDS = {'id', 'map_sha256', 'ordinal', 'record', 'position', 'footprint_radius',
                'styles', 'ambient', 'directed', 'direction_bytes', 'to_source',
                'angular_bound', 'hdr', 'ambient_source', 'directed_source',
@@ -50,6 +52,11 @@ class TrainingView:
                 raise ValueError('Invalid/oversized training member')
             if digest(path) != m['sha256'][name]:
                 raise ValueError('Training member integrity failure')
+        if m.get('sampling_geometry'):
+            path = self._root / 'receivers-geometry.jsonl'
+            if (path.is_symlink() or not path.is_file() or path.stat().st_size > max_bytes or
+                    digest(path) != m['sha256'].get(path.name)):
+                raise ValueError('Receiver geometry member integrity failure')
 
     @property
     def geometry_path(self):
@@ -70,6 +77,25 @@ class TrainingView:
                 yield row
         if (count if 'count' in locals() else 0) != self._manifest['counts']['train']:
             raise ValueError('Truncated training stream')
+
+    def receiver_geometry(self):
+        """Public receiver geometry for all roles; never validation/held-out targets."""
+        if not self._manifest.get('sampling_geometry'):
+            raise PermissionError('Geometry sampling index was not published')
+        path = self._root / 'receivers-geometry.jsonl'
+        if digest(path) != self._manifest['sha256'][path.name]:
+            raise ValueError('Receiver geometry changed')
+        count = 0
+        with path.open(encoding='utf-8') as stream:
+            for count, line in enumerate(stream, 1):
+                if count > self._limit or len(line) > 32768:
+                    raise ValueError('Receiver geometry stream limit')
+                row = json.loads(line)
+                if set(row) != GEOMETRY_FIELDS or row['role'] not in ('train', 'validation', 'heldout', 'gap'):
+                    raise ValueError('Target/unknown data in public receiver geometry')
+                yield row
+        if count != self._manifest['sampling_geometry']['count']:
+            raise ValueError('Truncated receiver geometry')
 
     def grid_observations(self):
         path = self._root / 'grid.jsonl'
