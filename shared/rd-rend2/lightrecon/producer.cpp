@@ -464,6 +464,14 @@ Disk::Fingerprint Fingerprint(const Request &r)
 		f.complete[size_t(Disk::InputKind::Settings)] = false;
 	if (r.fitting.transfer)
 		k.Digest(r.fitting.transfer->Key());
+	k.U(r.fitting.directOnlyConditional);
+	if(r.fitting.transportMesh)
+	{
+		k.Digest(r.fitting.transportMesh->Key());
+		// The existing producer payload is a one-observation/one-patch format.
+		// Never cache a many-to-many mapping as though it had that old meaning.
+		f.complete[size_t(Disk::InputKind::Settings)] = false;
+	}
 	Text(k, r.settingsIdentity);
 	Text(k, r.decoder);
 	const auto &o = r.fitting.options;
@@ -2007,19 +2015,30 @@ Error Run(const Request &original, const ReadContext &read, Result &out,
 				out.stages.push_back("final model frozen; independent held-out assessment "
 									 "performed without refitting");
 				out.validation = selected.validation;
-				build.SourceRecords(selected, out.uncertainty);
-				build.asset.assessment.solverKey = Disk::Hex(selected.key);
-				build.asset.assessment.uncertaintyKey = Disk::Hex(out.uncertainty.key);
-				build.asset.assessment.selectedProfile =
-					q.profiles[selected.profile].model.law == Shape::Law::HistoricalBake
-						? q.profiles[selected.profile].model.profile.id
-						: "specified-diffuse-integral";
-				MakePayloads(build, q, selected, out);
-				AssessReadiness(build, out, true);
-				out.state = State::Completed;
-				out.reason =
-					"Operational conditional offline producer; structural publication is not "
-					"physical-source certification";
+				if (q.transportMesh)
+				{
+					out.state = State::DiagnosticOnly;
+					out.reason = "Independent observation/transport fitting completed; "
+								 "many-to-many mapping payload publication is not implemented";
+					out.stages.push_back(out.reason);
+					AssessReadiness(build, out, false);
+				}
+				else
+				{
+					build.SourceRecords(selected, out.uncertainty);
+					build.asset.assessment.solverKey = Disk::Hex(selected.key);
+					build.asset.assessment.uncertaintyKey = Disk::Hex(out.uncertainty.key);
+					build.asset.assessment.selectedProfile =
+						q.profiles[selected.profile].model.law == Shape::Law::HistoricalBake
+							? q.profiles[selected.profile].model.profile.id
+							: "specified-diffuse-integral";
+					MakePayloads(build, q, selected, out);
+					AssessReadiness(build, out, true);
+					out.state = State::Completed;
+					out.reason =
+						"Operational conditional offline producer; structural publication is not "
+						"physical-source certification";
+				}
 			}
 		}
 		Cancel(read);
@@ -2243,7 +2262,7 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 						 next <= d.elementCount && c->count <= d.elementCount - next,
 					 Code::ProviderError, "Passive field chunk gap/range");
 				Reader r(c->bytes);
-				Need(r.U(4) == 0x3154474a && r.U(4) == 1 && r.U(4) == c->count &&
+				Need(r.U(4) == 0x3154474a && r.U(4) == Indirect::kPayloadVersion && r.U(4) == c->count &&
 						 r.U(4) == unsigned(field->component),
 					 Code::ProviderError, "Passive field header");
 				for (uint64_t i = 0; i < c->count; ++i)

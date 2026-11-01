@@ -3,13 +3,14 @@
 #pragma once
 #include "emitter_shape.h"
 #include "indirect.h"
+#include "transport_mesh.h"
 namespace Rend2LightRecon
 {
 namespace Core
 {
 namespace Joint
 {
-constexpr uint32_t kVersion = 2; // training identity is separate from validation/checkpoint selection
+constexpr uint32_t kVersion = 3; // X09: observation geometry is independent of transport support
 enum class Channel
 {
 	Surface,
@@ -29,6 +30,9 @@ struct Observation
 {
 	Id id = 0, patch = 0, region = 0, block = 0;
 	Bake::Receiver receiver;
+	// Non-null means evaluate direct at the original receiver, and integrate only
+	// reflected transport via this geometry-only mapping. patch=0 is then valid.
+	std::shared_ptr<const Indirect::Topology::Mapping> transport;
 	Channel channel = Channel::Surface;
 	Amplitude::Interval rgb[3];
 	Vec3 directionToSource;
@@ -69,8 +73,8 @@ struct Terms
 	double shadow = 0, geometryPrior = 0, materialPrior = 0, complexity = 0, worstBlock = 0;
 	double Total() const
 	{
-		return surface + gridAmbient + gridDirected + gridDirection + deluxe + shadow + geometryPrior +
-			   materialPrior + complexity + worstBlock;
+		return surface + gridAmbient + gridDirected + gridDirection + deluxe + shadow +
+			   geometryPrior + materialPrior + complexity + worstBlock;
 	}
 };
 struct Group
@@ -84,6 +88,7 @@ struct Prediction
 {
 	Id id = 0, patch = 0;
 	bool available = false, directionKnown = false;
+	bool transportAvailable = true, directOnlyConditional = false;
 	Vec3 rgb, directionToSource;
 	Vec3 direct, sun, sky, ambient, indirect, unresolved, signedDiscrepancy;
 	uint32_t issues = 0;
@@ -115,6 +120,7 @@ struct Score
 	bool available = false, positive = false, requiredBlocksPass = false;
 	uint64_t requested = 0, used = 0, unavailable = 0;
 	uint64_t disabled = 0, incomparable = 0;
+	uint64_t transportUnavailable = 0, directOnlyConditional = 0;
 	// Surface RGB only; independent channel/region metrics remain in groups.
 	// Objective combines explicitly sigma-normalized weighted terms, never raw
 	// angular squared radians with RGB8 squared bytes.
@@ -178,6 +184,10 @@ struct Request
 	std::shared_ptr<const ChunkSource<Observation>> training;
 	uint64_t count = 0;
 	std::shared_ptr<const Indirect::Transfer> transfer;
+	std::shared_ptr<const Indirect::Topology::Mesh> transportMesh;
+	// A separately identified whole-model hypothesis. Never switches GI off for
+	// selected rows as source parameters change. Missing indirect is not zero GI.
+	bool directOnlyConditional = false;
 	std::vector<Indirect::Reflectance> materials;
 	std::vector<Indirect::Root> boundaryRoots; // immutable, identified ambient/etc.
 	Bake::EvaluationContext geometry;
@@ -232,18 +242,20 @@ Error Solve(const Request &, const ReadContext &, Result &, const Validation * =
 			const Checkpoint *resume = nullptr, size_t roundsThisCall = SIZE_MAX);
 // Refit nuisance parameters of one supplied structural hypothesis. Training
 // only; no validation selection, hidden answers, asset publication or new IDs.
-Error Refit(const Request&,const Model& seed,const ReadContext&,Model&,Work&);
+Error Refit(const Request &, const Model &seed, const ReadContext &, Model &, Work &);
 // Strict parameter-value assessment without optimization. Reads training only;
 // useful for nuisance profiling and geometry/RGB sensitivity. No held-out reader.
-Error AssessHypothesis(const Request&,const Model&,const ReadContext&,Model&,Score&,Work&,
-	std::vector<Prediction>* =nullptr);
+Error AssessHypothesis(const Request &, const Model &, const ReadContext &, Model &, Score &,
+					   Work &, std::vector<Prediction> * = nullptr);
 // Frozen source-linked transport extraction; no parameter fitting or hidden RGB.
 // Reuses exactly the strict direct roots and passive operator used by Solve.
-Error DecomposeFrozen(const Request&,const Model&,const ReadContext&,Indirect::Result&,Work&);
+Error DecomposeFrozen(const Request &, const Model &, const ReadContext &, Indirect::Result &,
+					  Work &);
 // Value-only production evaluation; held-out data are accepted ONLY here after
 // freezing. Caller supplies geometry/prior Request, not training target access.
-Error EvaluateFrozen(const Request &, const Model &, std::shared_ptr<const ChunkSource<Observation>>,
-					 uint64_t, Role, const Disk::Digest &partitionKey, const ReadContext &, Score &,
+Error EvaluateFrozen(const Request &, const Model &,
+					 std::shared_ptr<const ChunkSource<Observation>>, uint64_t, Role,
+					 const Disk::Digest &partitionKey, const ReadContext &, Score &,
 					 std::vector<Prediction> * = nullptr, Work * = nullptr);
 const char *StateName(State);
 } // namespace Joint

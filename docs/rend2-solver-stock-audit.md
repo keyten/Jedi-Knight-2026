@@ -10,6 +10,12 @@ retests `t1_danger` after this frozen audit. Its unavailable solar provider no
 longer prevents reaching joint fitting. The original 57-map audit below remains
 unchanged historical evidence; proceeding to fitting is not stock recovery.
 
+**X09 follow-up:** [independent transport topology](rend2-transport-topology-x09.md)
+reproduces the original `mp/siege_desert`, `t2_dpred` and `t3_bounty` singularities.
+The preparation path now preserves opposite sides and local uncertainty. Bounded
+transfer is incomplete; dpred's original precise mappings remain unsupported.
+This does not revise the historical audit into a stock-recovery success.
+
 **The project has working controlled CPU fitting components and a canonical
 producer, but has not demonstrated autonomous recovery of original lights from
 stock JA maps.** Invoking the complete producer on every installed stock BSP did

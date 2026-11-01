@@ -4,6 +4,7 @@
 #include "lightrecon/offline.h"
 #include "lightrecon/producer.h"
 #include "lightrecon/shadow_evidence.h"
+#include "lightrecon/transport_mesh.h"
 #include "source_footprint.h"
 #include <chrono>
 #include <fstream>
@@ -19,6 +20,7 @@ using namespace Bake::Detail;
 namespace O = Offline;
 namespace J = Joint;
 namespace P = Producer;
+namespace T = Indirect::Topology;
 static void Check(Error e)
 {
 	if (!e)
@@ -491,19 +493,388 @@ static std::string WorkJson(const J::Work &w)
 	  << ",\"rejected_models\":" << w.rejectedModels << ",\"bytes\":" << w.accountedBytes << '}';
 	return s.str();
 }
+struct TransportPreparation
+{
+	std::shared_ptr<const T::Mesh> mesh;
+	std::shared_ptr<const Indirect::Transfer> transfer;
+};
+static TransportPreparation PrepareTransport(const O::Sources &s,
+											 const std::shared_ptr<const SurfaceGeometry> &geometry,
+											 const std::shared_ptr<const StaticVisibility> &rays,
+											 const std::array<std::vector<Selected>, 3> &folds,
+											 const Bounds &scope, const std::string &folder,
+											 const ReadContext &read)
+{
+	auto start = std::chrono::steady_clock::now();
+	std::vector<const Selected *> observations;
+	for (const auto &fold : folds)
+		for (const auto &v : fold)
+			observations.push_back(&v);
+	std::sort(observations.begin(), observations.end(),
+			  [](const Selected *a, const Selected *b) { return a->id < b->id; });
+	std::ofstream witness(folder + "/transport-overlap-witnesses.tsv");
+	witness << std::setprecision(17)
+			<< "a\tb\trole_a\trole_b\tsurface_a\tsurface_b\tpage_a\tx_a\ty_a\tpage_b\tx_b\ty_"
+			   "b\ttriangle_a\ttriangle_b\trelation\tshared_area\tsame_material\tshared_original_"
+			   "triangle\tvertices_a\tvertices_b\n";
+	uint64_t overlapPairs = 0, oppositePairs = 0, crossingPairs = 0, crossFold = 0, sameSurface = 0,
+			 sameMaterial = 0, duplicateOriginal = 0, nodePairs = 0;
+	std::vector<std::pair<const Selected *, const Selected *>> failures;
+	double sharedArea = 0;
+	// Diagnostic replay of the old level-0/1 centroid rule, not a repaired topology.
+	auto nodes = [](const Bake::Receiver &r) {
+		std::vector<V> result;
+		for (size_t i = 0; i < r.footprint.count; ++i)
+		{
+			const auto &t = r.footprint.data[i];
+			V a(t.world[0]), b(t.world[1]), c(t.world[2]);
+			result.push_back((a + b + c) / 3);
+			V ab = (a + b) * .5, bc = (b + c) * .5, ca = (c + a) * .5;
+			for (auto v :
+				 {(a + ab + ca) / 3, (ab + b + bc) / 3, (ca + bc + c) / 3, (ab + bc + ca) / 3})
+				result.push_back(v);
+		}
+		return result;
+	};
+	std::vector<std::vector<V>> sampleNodes;
+	for (auto v : observations)
+		sampleNodes.push_back(nodes(v->receiver));
+	auto rawTriangleKeys = [&](Id surface) {
+		std::set<std::vector<float>> keys;
+		const auto &g = s.geometry->Surfaces().at(size_t(surface - 1));
+		for (size_t i = 0; i + 2 < g.indices.size(); i += 3)
+		{
+			std::vector<std::array<float, 3>> p;
+			for (unsigned c = 0; c < 3; ++c)
+			{
+				auto v = g.vertices.at(g.indices[i + c]).position;
+				p.push_back({{v.x, v.y, v.z}});
+			}
+			std::sort(p.begin(), p.end());
+			std::vector<float> key;
+			for (auto v : p)
+				key.insert(key.end(), v.begin(), v.end());
+			keys.insert(key);
+		}
+		return keys;
+	};
+	for (size_t i = 0; i < observations.size(); ++i)
+		for (size_t j = 0; j < i; ++j)
+		{
+			const auto &a = *observations[j], &b = *observations[i];
+			if (Length(V(a.receiver.world) - V(b.receiver.world)) > 256)
+				continue;
+			bool coincident = false;
+			for (auto x : sampleNodes[j])
+				for (auto y : sampleNodes[i])
+					coincident |= Length(x - y) < 1e-8;
+			nodePairs += coincident;
+			if (coincident && failures.size() < 16)
+				failures.emplace_back(&a, &b);
+			bool has = false, opposite = false, crossing = false, rawSame = false;
+			auto ak = rawTriangleKeys(a.receiver.surface), bk = rawTriangleKeys(b.receiver.surface);
+			for (auto k : ak)
+				rawSame |= bk.count(k) != 0;
+			for (size_t x = 0; x < a.receiver.footprint.count; ++x)
+				for (size_t y = 0; y < b.receiver.footprint.count; ++y)
+				{
+					auto contact =
+						T::Inspect(a.receiver.footprint.data[x], a.receiver.geometricNormal,
+								   b.receiver.footprint.data[y], b.receiver.geometricNormal);
+					if (contact.relation != T::Relation::SameSideOverlap &&
+						contact.relation != T::Relation::OppositeSideOverlap &&
+						contact.relation != T::Relation::Crossing)
+						continue;
+					has |= contact.relation == T::Relation::SameSideOverlap;
+					opposite |= contact.relation == T::Relation::OppositeSideOverlap;
+					crossing |= contact.relation == T::Relation::Crossing;
+					sharedArea += contact.sharedArea;
+					witness << a.id << '\t' << b.id << '\t' << a.role << '\t' << b.role << '\t'
+							<< a.receiver.surface - 1 << '\t' << b.receiver.surface - 1 << '\t'
+							<< a.luxel.surface.logicalLightmap << '\t' << a.luxel.surface.x << '\t'
+							<< a.luxel.surface.y << '\t' << b.luxel.surface.logicalLightmap << '\t'
+							<< b.luxel.surface.x << '\t' << b.luxel.surface.y << '\t' << x << '\t'
+							<< y << '\t' << unsigned(contact.relation) << '\t' << contact.sharedArea
+							<< '\t' << (a.receiver.material == b.receiver.material) << '\t'
+							<< rawSame;
+					for (const auto *t :
+						 {&a.receiver.footprint.data[x], &b.receiver.footprint.data[y]})
+					{
+						witness << '\t';
+						for (auto v : t->world)
+							witness << v.x << ',' << v.y << ',' << v.z << ';';
+					}
+					witness << '\n';
+				}
+			overlapPairs += has;
+			oppositePairs += opposite;
+			crossingPairs += crossing;
+			if (has)
+			{
+				crossFold += a.role != b.role;
+				sameSurface += a.receiver.surface == b.receiver.surface;
+				sameMaterial += a.receiver.material == b.receiver.material;
+				duplicateOriginal += rawSame;
+			}
+		}
+	TransportPreparation out;
+	T::Options options;
+	options.bounds = scope;
+	options.maximumEdgeWorld = 128;
+	options.maxPieces = 8192;
+	auto meshStart = std::chrono::steady_clock::now();
+	Check(T::Mesh::FromSurfaces(*geometry, rays->CertificationKey(), options, read, out.mesh));
+	double meshSeconds =
+		std::chrono::duration<double>(std::chrono::steady_clock::now() - meshStart).count();
+	// Test the actual old singular contacts, even when they lie outside the
+	// independently selected normal-diverse GI ROI. No favourable-ROI substitution.
+	std::ofstream contactGeometry(folder + "/transport-singular-geometry.tsv");
+	contactGeometry << std::setprecision(17)
+					<< "pair\tkind\tsample\tsurface\ttriangle\tmaterial\tnx\tny\tnz\tvertices\n";
+	for (size_t i = 0; i < failures.size(); ++i)
+		for (const auto *v : {failures[i].first, failures[i].second})
+		{
+			for (size_t t = 0; t < v->receiver.footprint.count; ++t)
+			{
+				contactGeometry << i << "\tmapped\t" << v->id << '\t' << v->receiver.surface - 1
+								<< '\t' << t << '\t' << v->receiver.material << '\t'
+								<< v->receiver.geometricNormal.x << '\t'
+								<< v->receiver.geometricNormal.y << '\t'
+								<< v->receiver.geometricNormal.z << '\t';
+				for (auto p : v->receiver.footprint.data[t].world)
+					contactGeometry << p.x << ',' << p.y << ',' << p.z << ';';
+				contactGeometry << '\n';
+			}
+			const auto &surface = s.geometry->Surfaces().at(size_t(v->receiver.surface - 1));
+			for (size_t t = 0; t + 2 < surface.indices.size(); t += 3)
+			{
+				contactGeometry << i << "\tsource\t" << v->id << '\t' << v->receiver.surface - 1
+								<< '\t' << t / 3 << '\t' << v->receiver.material << '\t'
+								<< v->receiver.geometricNormal.x << '\t'
+								<< v->receiver.geometricNormal.y << '\t'
+								<< v->receiver.geometricNormal.z << '\t';
+				for (unsigned c = 0; c < 3; ++c)
+				{
+					auto p = surface.vertices.at(surface.indices[t + c]).position;
+					contactGeometry << p.x << ',' << p.y << ',' << p.z << ';';
+				}
+				contactGeometry << '\n';
+			}
+		}
+	contactGeometry.close();
+	std::ofstream cases(folder + "/transport-contact-regressions.json");
+	cases << std::setprecision(17) << "[";
+	for (size_t i = 0; i < failures.size(); ++i)
+	{
+		const auto &a = *failures[i].first, &b = *failures[i].second;
+		auto ak = rawTriangleKeys(a.receiver.surface), bk = rawTriangleKeys(b.receiver.surface);
+		bool rawSame = false;
+		for (const auto &key : ak)
+			rawSame |= bk.count(key) != 0;
+		T::Options local;
+		V centre = (V(a.receiver.world) + V(b.receiver.world)) * .5;
+		local.bounds.known = true;
+		for (unsigned c = 0; c < 3; ++c)
+		{
+			V lo(local.bounds.minWorld), hi(local.bounds.maxWorld);
+			lo[c] = std::floor(centre[c] / 128) * 128 - 128;
+			hi[c] = lo[c] + 256;
+			local.bounds.minWorld = lo.Float();
+			local.bounds.maxWorld = hi.Float();
+		}
+		std::shared_ptr<const T::Mesh> m;
+		auto status = T::Mesh::FromSurfaces(*geometry, rays->CertificationKey(), local, read, m);
+		std::shared_ptr<const Indirect::Transfer> t;
+		std::shared_ptr<const T::Mapping> ma, mb;
+		if (status)
+		{
+			Indirect::BuildInput input;
+			input.mapKey = s.metadata.map.sha256;
+			input.geometry = rays;
+			input.moving = s.dynamic;
+			input.patchInterpretationKey = m->Key();
+			input.allowEmptySupport = true;
+			for (auto &e : m->Elements())
+				input.patches.push_back(e.patch);
+			Indirect::BuildOptions o;
+			o.subdivisions = 0;
+			o.maxRays = 250000;
+			o.maxWork = 16000000;
+			o.allowPartialWork = true;
+			status = Indirect::Transfer::Build(input, o, read, t);
+			Check(m->Map(a.receiver, read, ma));
+			Check(m->Map(b.receiver, read, mb));
+		}
+		cases << (i ? "," : "") << "{\"a\":" << a.id << ",\"b\":" << b.id
+			  << ",\"surface_a\":" << a.receiver.surface - 1
+			  << ",\"surface_b\":" << b.receiver.surface - 1
+			  << ",\"page_a\":" << a.luxel.surface.logicalLightmap
+			  << ",\"x_a\":" << a.luxel.surface.x << ",\"y_a\":" << a.luxel.surface.y
+			  << ",\"page_b\":" << b.luxel.surface.logicalLightmap
+			  << ",\"x_b\":" << b.luxel.surface.x << ",\"y_b\":" << b.luxel.surface.y
+			  << ",\"same_fold\":" << (a.role == b.role ? "true" : "false") << ",\"normal_dot\":"
+			  << Dot(V(a.receiver.geometricNormal), V(b.receiver.geometricNormal))
+			  << ",\"shared_original_triangle\":" << (rawSame ? "true" : "false")
+			  << ",\"code\":" << unsigned(status.code) << ",\"reason\":" << Q(status.message);
+		if (m)
+			cases << ",\"patches\":" << m->Elements().size()
+				  << ",\"unsupported_area\":" << m->Diagnostics().unsupportedArea
+				  << ",\"precision_excluded_pieces\":" << m->Diagnostics().precisionExcludedPieces
+				  << ",\"crossing_pairs\":" << m->Diagnostics().crossingPairs
+				  << ",\"a_mapping\":" << unsigned(ma->State())
+				  << ",\"b_mapping\":" << unsigned(mb->State());
+		if (t)
+			cases << ",\"coplanar_pairs\":" << t->Report().coplanarPairs
+				  << ",\"unresolved_pairs\":" << t->Report().unresolvedPairs
+				  << ",\"maximum_outgoing_fraction\":" << t->Report().maximumOutgoingFraction
+				  << ",\"local_budget_exceeded\":"
+				  << (t->Report().localBudgetExceeded ? "true" : "false");
+		cases << '}';
+	}
+	cases << ']';
+	cases.close();
+	Indirect::BuildInput input;
+	input.mapKey = s.metadata.map.sha256;
+	input.geometry = rays;
+	input.moving = s.dynamic;
+	input.patchInterpretationKey = out.mesh->Key();
+	input.completePatchSet = out.mesh->Diagnostics().complete;
+	input.allowEmptySupport = true;
+	for (const auto &e : out.mesh->Elements())
+		input.patches.push_back(e.patch);
+	Indirect::BuildOptions build;
+	build.maximumLinkDistanceWorld = 256;
+	build.subdivisions = 0;
+	build.maxBytes = 128ull << 20;
+	build.maxRays = 4000000;
+	build.allowPartialWork = true;
+	auto transferStart = std::chrono::steady_clock::now();
+	auto error = Indirect::Transfer::Build(std::move(input), build, read, out.transfer);
+	double transferSeconds =
+		std::chrono::duration<double>(std::chrono::steady_clock::now() - transferStart).count();
+	uint64_t mapped = 0, partial = 0, unavailable = 0;
+	double observationArea = 0, coveredArea = 0;
+	std::ofstream mapping(folder + "/observation-transport.tsv");
+	mapping << "observation\trole\tstate\tarea\tcovered_area\tpatch\tintersection_area\n"
+			<< std::setprecision(17);
+	for (auto observation : observations)
+	{
+		std::shared_ptr<const T::Mapping> m;
+		Check(out.mesh->Map(observation->receiver, read, m));
+		mapped += m->State() == T::Availability::Available;
+		partial += m->State() == T::Availability::Partial;
+		unavailable += m->State() == T::Availability::Unavailable;
+		observationArea += m->Area();
+		coveredArea += m->CoveredArea();
+		if (m->Weights().empty())
+			mapping << observation->id << '\t' << observation->role << '\t' << unsigned(m->State())
+					<< '\t' << m->Area() << '\t' << m->CoveredArea() << "\t0\t0\n";
+		for (auto w : m->Weights())
+			mapping << observation->id << '\t' << observation->role << '\t' << unsigned(m->State())
+					<< '\t' << m->Area() << '\t' << m->CoveredArea() << '\t' << w.patch << '\t'
+					<< w.areaWorldSquared << '\n';
+	}
+	std::ofstream obj(folder + "/transport.obj"), patches(folder + "/transport-patches.tsv");
+	obj << std::setprecision(17);
+	patches << std::setprecision(17) << "id\tmaterial\tarea\tprovenance_count\tnx\tny\tnz\n";
+	size_t vertex = 1;
+	for (const auto &e : out.mesh->Elements())
+	{
+		const auto &p = e.patch;
+		patches << p.id << '\t' << p.material << '\t' << p.areaWorldSquared << '\t'
+				<< e.sources.size() << '\t' << p.receiver.geometricNormal.x << '\t'
+				<< p.receiver.geometricNormal.y << '\t' << p.receiver.geometricNormal.z << '\n';
+		obj << "g patch_" << p.id << '\n';
+		for (size_t i = 0; i < p.receiver.footprint.count; ++i)
+		{
+			for (auto v : p.receiver.footprint.data[i].world)
+				obj << "v " << v.x << ' ' << v.y << ' ' << v.z << '\n';
+			obj << "f " << vertex << ' ' << vertex + 1 << ' ' << vertex + 2 << '\n';
+			vertex += 3;
+		}
+	}
+	const auto &r = out.mesh->Diagnostics();
+	std::ofstream json(folder + "/transport.json");
+	json << std::setprecision(17)
+		 << "{\"schema\":\"org.openjk.transport-topology-x09.v1\",\"map_sha256\":"
+		 << Q(Disk::Hex(s.metadata.map.sha256)) << ",\"mesh_key\":" << Q(Disk::Hex(out.mesh->Key()))
+		 << ",\"observations\":" << observations.size()
+		 << ",\"legacy_coincident_node_pairs\":" << nodePairs
+		 << ",\"legacy_same_side_overlap_pairs\":" << overlapPairs
+		 << ",\"legacy_opposite_side_pairs\":" << oppositePairs
+		 << ",\"legacy_crossing_pairs\":" << crossingPairs
+		 << ",\"legacy_cross_fold_overlap_pairs\":" << crossFold
+		 << ",\"legacy_same_surface_overlap_pairs\":" << sameSurface
+		 << ",\"legacy_same_material_overlap_pairs\":" << sameMaterial
+		 << ",\"legacy_duplicate_original_triangle_pairs\":" << duplicateOriginal
+		 << ",\"legacy_pairwise_shared_area\":" << sharedArea
+		 << ",\"topology_version\":" << T::kVersion
+		 << ",\"transfer_version\":" << Indirect::kVersion
+		 << ",\"scope\":\"geometry-selected 512-WU ROI, independent of folds and RGB; outside GI "
+			"unavailable\",\"input_triangles\":"
+		 << r.inputTriangles << ",\"scoped_triangles\":" << r.clippedTriangles
+		 << ",\"transport_patches\":" << out.mesh->Elements().size()
+		 << ",\"scoped_area\":" << r.scopedArea << ",\"output_area\":" << r.outputArea
+		 << ",\"deduplicated_area\":" << r.deduplicatedArea
+		 << ",\"unsupported_area\":" << r.unsupportedArea
+		 << ",\"unsupported_records\":" << r.unsupportedRecords
+		 << ",\"duplicate_overlaps\":" << r.duplicateOverlaps
+		 << ",\"conflicting_overlaps\":" << r.conflictingOverlaps
+		 << ",\"crossing_pairs\":" << r.crossingPairs << ",\"topology_work\":" << r.work
+		 << ",\"topology_accounted_peak_bytes\":" << r.bytes
+		 << ",\"mapped_observations\":" << mapped << ",\"partial_observations\":" << partial
+		 << ",\"unavailable_observations\":" << unavailable
+		 << ",\"observation_area\":" << observationArea
+		 << ",\"mapped_observation_area\":" << coveredArea
+		 << ",\"transfer_code\":" << unsigned(error.code)
+		 << ",\"transfer_reason\":" << Q(error.message);
+	if (out.transfer)
+	{
+		const auto &t = out.transfer->Report();
+		uint64_t positiveLinks=0,uncertainLinks=0;
+		for(const auto &l:out.transfer->Links()){positiveLinks+=l.conductance>0;uncertainLinks+=l.possibleConductance>l.conductance||(l.issues&Indirect::UnresolvedQuadrature)!=0;}
+		json << ",\"links\":" << out.transfer->Links().size() << ",\"rays\":" << t.rays
+			 << ",\"known_positive_links\":"<<positiveLinks<<",\"uncertain_links\":"<<uncertainLinks
+			 << ",\"unknown_rays\":"<<t.unknownRays<<",\"blocked_rays\":"<<t.blockedRays
+			 << ",\"complete_patch_set\":"<<(t.completePatchSet?"true":"false")
+			 << ",\"all_pairs_represented\":"<<(t.allPairsRepresented?"true":"false")
+			 << ",\"transfer_work\":" << t.work << ",\"transfer_accounted_bytes\":" << t.bytes
+			 << ",\"maximum_outgoing_fraction\":" << t.maximumOutgoingFraction
+			 << ",\"maximum_rule_difference\":" << t.maximumRuleDifference
+			 << ",\"refined_pairs\":" << t.refinedPairs
+			 << ",\"unresolved_pairs\":" << t.unresolvedPairs
+			 << ",\"energy_limited_pairs\":" << t.energyLimitedPairs;
+	}
+	json << ",\"precision_excluded_pieces\":" << r.precisionExcludedPieces
+		 << ",\"area_accounting_residual\":" << r.areaAccountingResidual;
+	if (out.transfer)
+		json << ",\"pair_search_complete\":"
+			 << (out.transfer->Report().pairSearchComplete ? "true" : "false")
+			 << ",\"local_budget_exceeded\":"
+			 << (out.transfer->Report().localBudgetExceeded ? "true" : "false");
+	json << ",\"mesh_seconds\":" << meshSeconds << ",\"transfer_seconds\":" << transferSeconds;
+	json << ",\"build_seconds\":"
+		 << std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() << '}';
+	json.close();
+	Check(error);
+	return out;
+}
 static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::RegionSnapshot &graph,
 					   const std::shared_ptr<const SurfaceGeometry> &geometry,
 					   const std::shared_ptr<const StaticVisibility> &rays,
 					   const std::array<std::vector<Selected>, 3> &folds, const Census &census,
 					   const std::string &output, bool linear, Disk::Digest archiveHash,
-					   const Bounds *localScope = nullptr)
+					   const TransportPreparation &transport, const Bounds *localScope = nullptr)
 {
 	ReadContext read;
 	read.maxBytes = 512ull << 20;
 	J::Request q;
 	q.mapKey = s.metadata.map.sha256;
 	q.policyKey = Key("All stock baseline 27119e46e: full-page census + global geometry strata "
-					  "+ all existing production stages, conditional gamma1/Rec709, v1");
+					  "+ X09 disjoint source geometry support, conditional gamma1/Rec709, v2");
+	q.transfer = transport.transfer;
+	q.transportMesh = transport.mesh;
+	q.directOnlyConditional = true;
 	Bake::Recipe recipe;
 	recipe.falloff = linear ? Bake::Falloff::Linear : Bake::Falloff::InverseSquare;
 	J::Profile profile;
@@ -520,10 +891,10 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	profile.contract.units = s.metadata.units;
 	profile.contract.transferAttested = profile.contract.primariesAttested =
 		true; // conditional recipe only, manifest explicitly UNKNOWN
-	profile.contract.physicalTransportAssumed = true;
+	profile.contract.physicalTransportAssumed = false;
 	profile.contract.provenance =
-		"Conditional gamma1 stored RGB comparison + bounded passive first "
-		"bounce, not historical GI replay";
+		"X09 separately identified conditional direct-only model; indirect energy is unavailable, "
+		"not zero; conditional gamma1 stored RGB comparison";
 	profile.calibrationHypothesis = "Unknown physical scale; compiler Q gauge=1";
 	q.profiles = {profile};
 	q.geometry.visibility = rays;
@@ -576,13 +947,9 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	std::array<std::shared_ptr<std::vector<Solar::Sample>>, 3> ss;
 	std::array<std::shared_ptr<Rows<J::Observation>>, 3> jr;
 	std::array<Disk::Digest, 3> keys;
-	Indirect::BuildInput transfer;
-	transfer.mapKey = q.mapKey;
-	transfer.geometry = rays;
-	transfer.moving = s.dynamic;
-	transfer.patchInterpretationKey = Key("Original source UV-clipped partial patch set, v1");
-	transfer.completePatchSet = false;
 	std::set<Id> ids, materials;
+	for (const auto &element : q.transportMesh->Elements())
+		materials.insert(element.patch.material);
 	for (unsigned role = 0; role < 3; ++role)
 	{
 		ss[role] = std::make_shared<std::vector<Solar::Sample>>();
@@ -595,19 +962,13 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 		{
 			Need(ids.insert(v.id).second, "Duplicate source/partition identity");
 			const auto &g = v.luxel.surface;
-			Indirect::Patch patch;
-			patch.id = v.id;
-			patch.material = g.materialIndex + 1;
-			patch.region = v.luxel.positiveRegion;
-			patch.areaWorldSquared = v.area;
-			patch.receiver = v.receiver;
-			transfer.patches.push_back(patch);
-			materials.insert(patch.material);
 			J::Observation o;
-			o.id = o.patch = v.id;
-			o.region = patch.region;
+			o.id = v.id;
+			o.region = v.luxel.positiveRegion;
 			o.block = v.block;
 			o.receiver = v.receiver;
+			Check(q.transportMesh->Map(v.receiver, read, o.transport));
+			materials.insert(v.receiver.material);
 			o.role = J::Role(role);
 			o.measure = v.weight;
 			o.comparable = true;
@@ -676,11 +1037,6 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 		hidden->directions.push_back(
 			usableDirections[k * usableDirections.size() /
 							 std::min(size_t(32), usableDirections.size())]);
-	Indirect::BuildOptions build;
-	build.maximumLinkDistanceWorld = 256;
-	build.subdivisions = 0;
-	build.maxBytes = 128ull << 20;
-	Check(Indirect::Transfer::Build(transfer, build, read, q.transfer));
 	for (auto id : materials)
 	{
 		Indirect::Reflectance m;
@@ -783,6 +1139,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	request.coverage.mappedAreaWorldSquared.known = true;
 	request.coverage.mappedAreaWorldSquared.value = float(census.mappedArea);
 	request.coverage.limitations = {
+		"X09 geometry-only local transport mesh; this whole fitting hypothesis is explicitly "
+		"direct-only conditional; missing GI is not zero",
 		"Whole-map scan; bounded global fitting subset, not exhaustive full-map "
 		"reconstruction",
 		"UnknownProfile, material and colour-domain hypotheses; no stock XYZ "
@@ -938,10 +1296,12 @@ int main(int argc, char **argv)
 {
 	try
 	{
-		Need(argc == 4 || (argc == 5 && std::string(argv[4]) == "local-density"),
+		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "local-density" ||
+										 std::string(argv[4]) == "transport-only")),
 			 "usage: lightrecon_map_solver dataset.jkobs output-folder "
-			 "expected-bsp-sha256 [local-density]");
-		bool local = argc == 5;
+			 "expected-bsp-sha256 [local-density|transport-only]");
+		bool local = argc == 5 && std::string(argv[4]) == "local-density";
+		bool transportOnly = argc == 5 && std::string(argv[4]) == "transport-only";
 		ReadContext read;
 		read.maxBytes = 512ull << 20;
 		O::Options limits;
@@ -1033,11 +1393,15 @@ int main(int argc, char **argv)
 		std::shared_ptr<const StaticVisibility> rays;
 		Check(StaticVisibility::Build(geometry, b, read, rays, source.domain));
 		Diagnostics(source, graph, rays, folds, read, argv[2]);
+		Need(focus.known, "Geometry-only transport scope unavailable");
+		auto transport = PrepareTransport(source, geometry, rays, folds, focus, argv[2], read);
+		if (transportOnly)
+			return 0;
 		for (bool linear : {false, true})
 			try
 			{
 				RunProfile(source, *data, graph, geometry, rays, folds, census, argv[2], linear,
-						   archiveHash, local ? &focus : nullptr);
+						   archiveHash, transport, local ? &focus : nullptr);
 			}
 			catch (const std::exception &e)
 			{

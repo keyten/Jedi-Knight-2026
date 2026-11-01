@@ -844,6 +844,8 @@ void CanonicalTests()
 	std::vector<uint8_t> payload;
 	CHECK(bool(Disk::ReadChunk(reader, index, asset.datasets[0].id, 0, payload)));
 	CHECK(payload == chunks[0].bytes);
+	CHECK(payload.size() > 8 && payload[4] == 1 && payload[5] == 0 && payload[6] == 0 &&
+		  payload[7] == 0); // field wire v1 is independent of transfer algorithm v2
 	auto old = asset;
 	old.version = 1;
 	CHECK(!Validate(old));

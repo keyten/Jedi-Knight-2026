@@ -1,5 +1,10 @@
 # S10: passive indirect illumination and unresolved transport
 
+Current topology/observation separation and local near-field uncertainty are
+documented in [X09](rend2-transport-topology-x09.md). Passive algorithm version 2
+uses independent disjoint support; the unchanged field wire payload is version 1.
+The original S10 results below describe the initial controlled scope.
+
 CPU/offline implementation, 2026-10-30, following the decision in
 [inverse-GI research](rend2-inverse-gi-research.md), particularly G4–G8 and the
 material/profile/energy counterexamples. The implementation does not create
@@ -50,9 +55,11 @@ E0 = local-direct + direct-sun + direct-sky + separately identified ambient
 ```
 
 `Cij=Cji` enforces reciprocity; known outgoing row fractions must not exceed one.
-The builder rejects a violated pair/row energy budget and requests finer supplied
-patches. It never rescales an invalid row to one or clamps a near-field inverse
-square singularity into a plausible answer. Roots and RGB channels propagate
+The current builder refines near-field pairs within a declared work budget, then
+marks unresolved/energy-inconsistent estimates locally unsupported. Invalid
+same-side overlapping raw support is still refused: use X09's topology builder.
+It never rescales an invalid row to one or clamps a near-field inverse-square
+singularity into a plausible answer. Roots and RGB channels propagate
 separately, so coloured bounce and overlapping sources have explicit origins.
 
 Area/distance units cancel in the transfer. Primary illumination must already be

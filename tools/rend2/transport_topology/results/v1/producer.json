@@ -1,0 +1,146 @@
+{
+  "schema": "org.openjk.transport-topology-producer.v1",
+  "maps": [
+    {
+      "map": "mp/siege_desert",
+      "profiles": {
+        "isq": {
+          "code": 8,
+          "producer_state": "Budget",
+          "producer_reason": "Bounded structural model search exhausted",
+          "joint_state": "Budget",
+          "joint_reason": "Bounded structural model search exhausted",
+          "work": {
+            "evaluations": 1,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 96,
+            "rejected_models": 96,
+            "bytes": 58661888
+          },
+          "attempt_reasons": {
+            "Shadow source count": 1,
+            "Physically invalid source support/path/bounds": 95
+          }
+        },
+        "linear": {
+          "code": 8,
+          "producer_state": "Budget",
+          "producer_reason": "Bounded structural model search exhausted",
+          "joint_state": "Budget",
+          "joint_reason": "Bounded structural model search exhausted",
+          "work": {
+            "evaluations": 1,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 96,
+            "rejected_models": 96,
+            "bytes": 58661888
+          },
+          "attempt_reasons": {
+            "Shadow source count": 1,
+            "Physically invalid source support/path/bounds": 95
+          }
+        }
+      },
+      "direct_only_conditional": true,
+      "physical_source_recovery": false,
+      "resources": {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 12.875,
+        "peak_process_rss_bytes": 60633088
+      }
+    },
+    {
+      "map": "t2_dpred",
+      "profiles": {
+        "isq": {
+          "code": 2,
+          "producer_state": "Failed",
+          "producer_reason": "Sun/sky hint budget",
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempt_reasons": {}
+        },
+        "linear": {
+          "code": 2,
+          "producer_state": "Failed",
+          "producer_reason": "Sun/sky hint budget",
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempt_reasons": {}
+        }
+      },
+      "direct_only_conditional": true,
+      "physical_source_recovery": false,
+      "resources": {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 13.983999999938533,
+        "peak_process_rss_bytes": 91455488
+      }
+    },
+    {
+      "map": "t3_bounty",
+      "profiles": {
+        "isq": {
+          "code": 2,
+          "producer_state": "Failed",
+          "producer_reason": "Sun/sky hint budget",
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempt_reasons": {}
+        },
+        "linear": {
+          "code": 2,
+          "producer_state": "Failed",
+          "producer_reason": "Sun/sky hint budget",
+          "joint_state": "NotStarted",
+          "joint_reason": "",
+          "work": {
+            "evaluations": 0,
+            "rays": 0,
+            "forward_calls": 0,
+            "models": 0,
+            "rejected_models": 0,
+            "bytes": 0
+          },
+          "attempt_reasons": {}
+        }
+      },
+      "direct_only_conditional": true,
+      "physical_source_recovery": false,
+      "resources": {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 14.920999999972992,
+        "peak_process_rss_bytes": 119406592
+      }
+    }
+  ]
+}

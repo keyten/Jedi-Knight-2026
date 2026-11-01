@@ -1,0 +1,11 @@
+{
+  "schema": "org.openjk.transport-topology-validation.v1",
+  "controlled_assertions": 152,
+  "failures": 0,
+  "controlled_repeat_identical": true,
+  "stock_repeat_identical": true,
+  "original_failures_reproduced": 3,
+  "stock_transfer_builds": 3,
+  "stock_physical_source_recovery": false,
+  "runtime_consumers_modified": false
+}

@@ -219,14 +219,22 @@ struct Engine
 	Bake::EvaluationContext effectiveGeometry;
 	Engine(const Request &q, const ReadContext &ctx) : r(q), read(ctx)
 	{
-		Need(r.transfer && !Zero(r.mapKey) && !Zero(r.policyKey) && r.transfer->MapKey() == r.mapKey &&
+		Need(r.transfer && !Zero(r.mapKey) && !Zero(r.policyKey) &&
+				 r.transfer->MapKey() == r.mapKey &&
 				 r.transfer->GeometryKey() == r.geometry.geometryKey,
 			 Code::MissingGeometry, "Joint geometry/map generation mismatch");
+		Need(!r.transportMesh || (r.transportMesh->MapKey() == r.mapKey &&
+								  r.transportMesh->GeometryKey() == r.geometry.geometryKey &&
+								  r.transportMesh->Key() == r.transfer->PatchInterpretationKey()),
+			 Code::MissingGeometry, "Stale transport mesh");
+		Need(!r.directOnlyConditional || r.transportMesh, Code::InvalidInput,
+			 "Conditional direct-only model requires independent observation geometry");
 		Need(!r.profiles.empty() && r.profiles.size() <= 16 && r.options.beamWidth &&
-				 r.options.beamWidth <= 16 && r.options.maxCandidates && r.options.maxCandidates <= 512 &&
-				 r.options.maxSources && r.options.maxSources <= 64 && r.options.maxModels &&
-				 r.options.maxModels <= 512 && r.options.restarts && r.options.restarts <= 32 &&
-				 r.options.batchRows && r.options.batchRows <= 1024 && r.options.maxRetained &&
+				 r.options.beamWidth <= 16 && r.options.maxCandidates &&
+				 r.options.maxCandidates <= 512 && r.options.maxSources &&
+				 r.options.maxSources <= 64 && r.options.maxModels && r.options.maxModels <= 512 &&
+				 r.options.restarts && r.options.restarts <= 32 && r.options.batchRows &&
+				 r.options.batchRows <= 1024 && r.options.maxRetained &&
 				 r.options.maxRetained <= 128,
 			 Code::InvalidInput, "Joint bounded search options");
 		Need(r.options.diagnosticSources <= 16 && r.options.diagnosticRows <= 512 &&
@@ -235,35 +243,40 @@ struct Engine
 			 Code::InvalidInput, "Joint diagnostic/iteration limits");
 		for (double x : {r.options.huber, r.options.parameterTolerance, r.options.positionStepWorld,
 						 r.options.angularStepRadians, r.options.logDimensionStep})
-			Need(std::isfinite(x) && x > 0, Code::InvalidInput, "Joint positive finite numerical tolerance");
-		for (double x :
-			 {r.options.objectiveTolerance, r.options.complexityPerSource, r.options.complexityPerParameter,
-			  r.options.equivalentValidationSlack, r.options.worstBlockWeight,
-			  r.options.maximumRequiredBlockRmse, r.options.minimumValidationImprovement, r.shadowWeight})
-			Need(std::isfinite(x) && x >= 0, Code::InvalidInput, "Joint finite nonnegative objective policy");
+			Need(std::isfinite(x) && x > 0, Code::InvalidInput,
+				 "Joint positive finite numerical tolerance");
+		for (double x : {r.options.objectiveTolerance, r.options.complexityPerSource,
+						 r.options.complexityPerParameter, r.options.equivalentValidationSlack,
+						 r.options.worstBlockWeight, r.options.maximumRequiredBlockRmse,
+						 r.options.minimumValidationImprovement, r.shadowWeight})
+			Need(std::isfinite(x) && x >= 0, Code::InvalidInput,
+				 "Joint finite nonnegative objective policy");
 		for (double x : r.options.channelWeight)
 			Need(std::isfinite(x) && x >= 0, Code::InvalidInput, "Joint channel weight");
 		for (const auto &p : r.profiles)
 		{
-			Need(p.model.units.worldUnitsPerMeter == p.contract.units.worldUnitsPerMeter, Code::InvalidInput,
-				 "Forward and observation geometry scales must agree");
+			Need(p.model.units.worldUnitsPerMeter == p.contract.units.worldUnitsPerMeter,
+				 Code::InvalidInput, "Forward and observation geometry scales must agree");
 			if (p.model.law == Shape::Law::HistoricalBake)
-				Need(p.model.profile.contentKey == p.contract.profile.contentKey, Code::InvalidInput,
+				Need(p.model.profile.contentKey == p.contract.profile.contentKey,
+					 Code::InvalidInput,
 					 "Forward and observation bake-profile hypotheses conflict");
 		}
 		Need(r.shadowWeight == 0 || (r.shadow && r.shadow->MapKey() == r.mapKey &&
 									 r.shadow->GeometryKey() == r.geometry.geometryKey),
 			 Code::MissingGeometry, "Joint shadow evidence generation mismatch");
-		uint64_t cap = read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
-		Need(r.transfer->Patches().size() * 1024ull + r.options.cacheBytes + 65536 <= cap, Code::MemoryLimit,
-			 "Joint patch/cache budget");
+		uint64_t cap =
+			read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
+		Need(r.transfer->Patches().size() * 1024ull + r.options.cacheBytes + 65536 <= cap,
+			 Code::MemoryLimit, "Joint patch/cache budget");
 		work.accountedBytes = r.transfer->Patches().size() * 1024ull + r.options.cacheBytes + 65536;
 		baseBytes = work.accountedBytes;
 		for (size_t i = 0; i < r.transfer->Patches().size(); ++i)
 			patchIndex[r.transfer->Patches()[i].id] = i;
 		Check(PointRefine::MakePlacement(r.placement, read, placement));
 		effectiveGeometry = r.geometry;
-		effectiveGeometry.visibility = std::make_shared<TransferVisibility>(r.transfer, work, r.options);
+		effectiveGeometry.visibility =
+			std::make_shared<TransferVisibility>(r.transfer, work, r.options);
 		Need(placement->MapKey() == r.mapKey && placement->GeometryKey() == r.geometry.geometryKey,
 			 Code::MissingGeometry, "Joint placement generation");
 	}
@@ -280,12 +293,13 @@ struct Engine
 							  .count()) < r.options.timeLimitMilliseconds,
 				 Code::WorkLimit, "Joint wall time safety limit");
 	}
-	std::vector<Observation> Load(std::shared_ptr<const ChunkSource<Observation>> src, uint64_t count,
-								  Role role)
+	std::vector<Observation> Load(std::shared_ptr<const ChunkSource<Observation>> src,
+								  uint64_t count, Role role)
 	{
 		Need(src && count && count <= r.options.maxObservations, Code::InvalidInput,
 			 "Joint explicit nonempty partition");
-		uint64_t cap = read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
+		uint64_t cap =
+			read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
 		Need(count * sizeof(Observation) * 3 + work.accountedBytes <= cap, Code::MemoryLimit,
 			 "Joint observation budget");
 		std::vector<Observation> rows;
@@ -295,7 +309,8 @@ struct Engine
 		{
 			Limit();
 			Chunk<Observation> c;
-			Check(src->Read(a, size_t(std::min<uint64_t>(r.options.batchRows, count - a)), read, c));
+			Check(
+				src->Read(a, size_t(std::min<uint64_t>(r.options.batchRows, count - a)), read, c));
 			Need(c.owner && c.data && c.count == std::min<uint64_t>(r.options.batchRows, count - a),
 				 Code::ProviderError, "Joint truncated partition");
 			for (size_t j = 0; j < c.count; ++j)
@@ -305,15 +320,31 @@ struct Engine
 						 unsigned(x.channel) < unsigned(Channel::Count),
 					 Code::InvalidInput, "Joint identity/order/partition role");
 				last = x.id;
-				Need(std::isfinite(x.measure) && x.measure > 0 && std::isfinite(x.sigma) && x.sigma > 0 &&
-						 std::isfinite(x.angularSigmaRadians) && x.angularSigmaRadians > 0,
+				Need(std::isfinite(x.measure) && x.measure > 0 && std::isfinite(x.sigma) &&
+						 x.sigma > 0 && std::isfinite(x.angularSigmaRadians) &&
+						 x.angularSigmaRadians > 0,
 					 Code::InvalidInput, "Joint observation weights");
 				if (x.channel == Channel::Surface)
-					Need(patchIndex.count(x.patch), Code::InvalidInput,
-						 "Joint observation references missing patch");
+				{
+					if (x.transport)
+					{
+						Need(r.transportMesh && x.transport->MeshKey() == r.transportMesh->Key() &&
+								 x.transport->Observation() == x.id && x.receiver.sample == x.id &&
+								 x.transport->ReceiverKey() ==
+									 Indirect::Topology::ReceiverKey(x.receiver),
+							 Code::InvalidInput,
+							 "Observation/transport mapping generation mismatch");
+						for (auto w : x.transport->Weights())
+							Need(patchIndex.count(w.patch), Code::InvalidInput,
+								 "Mapped transport element missing");
+					}
+					else
+						Need(patchIndex.count(x.patch), Code::InvalidInput,
+							 "Joint observation references missing patch");
+				}
 				for (auto v : x.rgb)
-					Need(!v.present || (std::isfinite(v.lower) && v.lower >= 0 && !std::isnan(v.upper) &&
-										v.upper >= v.lower),
+					Need(!v.present || (std::isfinite(v.lower) && v.lower >= 0 &&
+										!std::isnan(v.upper) && v.upper >= v.lower),
 						 Code::InvalidInput, "Joint invalid/censored interval");
 				Need(!x.directionKnown || Normal(x.directionToSource), Code::InvalidInput,
 					 "Joint direction convention/unit vector");
@@ -346,6 +377,7 @@ struct Engine
 		{
 			k.U(x.id);
 			k.U(x.patch);
+			if(x.transport){k.Digest(x.transport->MeshKey());k.Digest(x.transport->ReceiverKey());}
 			k.U(x.region);
 			k.U(x.block);
 			k.U(unsigned(x.channel));
@@ -452,6 +484,8 @@ struct Engine
 		k.U(kVersion);
 		k.Digest(r.policyKey);
 		k.Digest(r.transfer->Key());
+		k.U(r.directOnlyConditional);
+		if(r.transportMesh)k.Digest(r.transportMesh->Key());
 		for (const auto &p : r.profiles)
 		{
 			k.Digest(p.model.profile.contentKey);
@@ -621,7 +655,8 @@ struct Engine
 		}
 		return true;
 	}
-	Indirect::Root Primary(const Model &m, const Source &s, bool strict)
+	Indirect::Root Primary(const Model &m, const Source &s, bool strict,
+						   const std::vector<Bake::Receiver> *observationReceivers = nullptr)
 	{
 		const auto &p = r.profiles.at(m.profile);
 		Indirect::Root root;
@@ -629,32 +664,39 @@ struct Engine
 		root.kind = s.candidate.root;
 		root.domain = p.contract.incidentDomain;
 		root.calibration = p.contract.calibration.id;
-		root.sunCoverage =
-			root.kind == TransportRootKind::Sky ? SunCoverage::ExcludesExplicitSun : SunCoverage::Unknown;
+		root.sunCoverage = root.kind == TransportRootKind::Sky ? SunCoverage::ExcludesExplicitSun
+															   : SunCoverage::Unknown;
 		root.provenance = s.candidate.provenance;
 		GeometryKey generation;
 		generation.Digest(r.transfer->Key());
 		generation.Digest(p.model.profile.contentKey);
 		HashSource(generation, s, true);
 		generation.F(p.fixedGain);
-		for (size_t first = 0; first < r.transfer->Patches().size(); first += r.options.batchRows)
+		size_t receiverCount =
+			observationReceivers ? observationReceivers->size() : r.transfer->Patches().size();
+		for (size_t first = 0; first < receiverCount; first += r.options.batchRows)
 		{
 			Limit();
 			auto receivers = std::make_shared<std::vector<Bake::Receiver>>();
-			for (size_t i = first; i < std::min(first + r.options.batchRows, r.transfer->Patches().size());
-				 ++i)
-				receivers->push_back(r.transfer->Patches()[i].receiver);
+			for (size_t i = first; i < std::min(first + r.options.batchRows, receiverCount); ++i)
+				receivers->push_back(observationReceivers ? observationReceivers->at(i)
+														  : r.transfer->Patches()[i].receiver);
 			if (root.kind == TransportRootKind::LocalEmitter)
 			{
 				auto model = p.model;
-				model.output = model.output == Shape::Output::PhysicalLux ? Shape::Output::PhysicalLux
-																		  : Shape::Output::RelativeIncident;
+				model.output = model.output == Shape::Output::PhysicalLux
+								   ? Shape::Output::PhysicalLux
+								   : Shape::Output::RelativeIncident;
 				GeometryKey key;
 				key.Digest(r.transfer->Key());
 				key.Digest(p.model.profile.contentKey);
 				key.U(m.profile);
 				key.U(strict);
 				key.U(first);
+				key.U(observationReceivers != nullptr);
+				if (observationReceivers)
+					for (const auto &receiver : *receivers)
+						key.Digest(Indirect::Topology::ReceiverKey(receiver));
 				HashSource(key, s, false);
 				auto digest = key.Finish();
 				std::shared_ptr<const Shape::Block> block;
@@ -667,7 +709,8 @@ struct Engine
 				else
 				{
 					Check(Shape::Prepare(model, {s.value}, Lease(receivers), effectiveGeometry,
-										 strict ? r.strictSampling : r.coarseSampling, read, block));
+										 strict ? r.strictSampling : r.coarseSampling, read,
+										 block));
 					++work.preparationCalls;
 					const auto &w = block->PreparationWork();
 					work.pairs += w.pairs;
@@ -684,7 +727,8 @@ struct Engine
 					}
 				}
 				std::vector<Shape::Prediction> values;
-				linearProof &= block->Linear(s.candidate.shape.lowerRgb, s.candidate.shape.upperRgb, 0);
+				linearProof &=
+					block->Linear(s.candidate.shape.lowerRgb, s.candidate.shape.upperRgb, 0);
 				Shape::Work w;
 				Check(block->Evaluate({s.value.rgbAmplitude}, read, values, w));
 				++work.forwardCalls;
@@ -700,7 +744,8 @@ struct Engine
 			{
 				Need(p.model.law == Shape::Law::HistoricalBake, Code::Unavailable,
 					 "Physical sun/sky integral needs an explicit supported environment operator");
-				auto sources = std::make_shared<std::vector<Bake::SourceHypothesis>>(1, s.environment);
+				auto sources =
+					std::make_shared<std::vector<Bake::SourceHypothesis>>(1, s.environment);
 				(*sources)[0].compilerRgbAmplitude = s.value.rgbAmplitude;
 				(*sources)[0].amplitudeKnown = true;
 				Bake::Options o;
@@ -731,8 +776,131 @@ struct Engine
 		root.generation = generation.Finish();
 		return root;
 	}
-	std::vector<Indirect::PatchValue> Surface(const Model &m, bool strict, double &reflected, Estimate &tail,
-											  std::vector<RootPower> &roots)
+	std::vector<Indirect::PatchValue> ObservationSurface(
+		const Model &m, bool strict, const std::vector<Observation> &observations,
+		const std::vector<Indirect::PatchValue> &field)
+	{
+		const auto &p = r.profiles.at(m.profile);
+		std::vector<Bake::Receiver> receivers;
+		std::vector<size_t> indices;
+		std::vector<Indirect::PatchValue> result(observations.size());
+		for (size_t i = 0; i < observations.size(); ++i)
+			if (observations[i].transport)
+			{
+				receivers.push_back(observations[i].receiver);
+				indices.push_back(i);
+				result[i].comparable = true;
+			}
+		if (indices.empty())
+			return result;
+		std::set<Id> rootIds;
+		for (const auto &s : m.sources)
+		{
+			Need(s.candidate.id && rootIds.insert(s.candidate.id).second &&
+					 s.candidate.root != TransportRootKind::Unknown,
+				 Code::InvalidInput, "Mapped direct root identity/kind");
+			auto root = Primary(m, s, strict, &receivers);
+			for (size_t j = 0; j < indices.size(); ++j)
+			{
+				auto &v = result[indices[j]];
+				Vec3 *component =
+					root.kind == TransportRootKind::LocalEmitter
+						? &v.direct
+						: root.kind == TransportRootKind::Sun
+							  ? &v.sun
+							  : root.kind == TransportRootKind::Sky ? &v.sky : &v.ambient;
+				*component = (V(*component) + V(root.incident[j])).Float();
+				v.comparable &= root.available[j] != 0;
+				if (!root.available[j])
+					v.issues |= Indirect::MissingPrimary;
+			}
+		}
+		for (const auto &root : r.boundaryRoots)
+			Need(root.source && rootIds.insert(root.source).second &&
+					 root.kind != TransportRootKind::Unknown,
+				 Code::InvalidInput, "Mapped boundary root identity/kind");
+		for (auto i : indices)
+		{
+			auto &v = result[i];
+			const auto &x = observations[i];
+			const auto &mapping = *x.transport;
+			bool supported = mapping.State() == Indirect::Topology::Availability::Available;
+			V indirect;
+			for (auto w : mapping.Weights())
+			{
+				const auto &value = field.at(patchIndex.at(w.patch));
+				supported &= value.comparable;
+				v.issues |= value.issues;
+				indirect = indirect + V(value.indirect) * (w.areaWorldSquared / mapping.Area());
+			}
+			for (const auto &root : r.boundaryRoots)
+			{
+				if (mapping.State() != Indirect::Topology::Availability::Available)
+				{
+					v.comparable = false;
+					v.issues |= Indirect::MissingPrimary;
+					continue;
+				}
+				Vec3 *component =
+					root.kind == TransportRootKind::LocalEmitter
+						? &v.direct
+						: root.kind == TransportRootKind::Sun
+							  ? &v.sun
+							  : root.kind == TransportRootKind::Sky ? &v.sky : &v.ambient;
+				for (auto w : mapping.Weights())
+				{
+					size_t j = patchIndex.at(w.patch);
+					v.comparable &= root.available.at(j) != 0;
+					*component = (V(*component) +
+								  V(root.incident.at(j)) * (w.areaWorldSquared / mapping.Area()))
+									 .Float();
+				}
+			}
+			if (r.directOnlyConditional)
+				v.issues |= Indirect::MissingTransport | Indirect::OmittedLinks;
+			else if (p.contract.physicalTransportAssumed)
+			{
+				if (supported)
+					v.indirect = indirect.Float();
+				else
+				{
+					v.issues |= Indirect::MissingTransport | Indirect::OmittedLinks;
+					v.comparable = false;
+				}
+			}
+			v.totalPreencoding =
+				(V(v.direct) + V(v.sun) + V(v.sky) + V(v.ambient) + V(v.indirect)).Float();
+			v.totalPrediction = v.totalPreencoding;
+			if (p.contract.operation == Indirect::ObservationOperator::NetRadiantEncoded)
+			{
+				uint8_t packed[3];
+				Check(Bake::Encode(p.model.profile, v.totalPreencoding, v.totalPrediction, packed));
+			}
+			else if (p.contract.operation == Indirect::ObservationOperator::OutgoingLambertian)
+			{
+				auto mat = std::find_if(m.materials.begin(), m.materials.end(),
+										[&](const Indirect::Reflectance &rho) {
+											return rho.material == x.receiver.material;
+										});
+				Need(mat != m.materials.end(), Code::InvalidInput,
+					 "Missing mapped receiver reflectance");
+				if (mat->knowledge == Indirect::MaterialKnowledge::Unknown)
+				{
+					v.comparable = false;
+					v.issues |= Indirect::UnknownMaterial;
+				}
+				V a;
+				for (unsigned c = 0; c < 3; ++c)
+					a[c] = Component(v.totalPreencoding, c) * Component(mat->initial, c) / Pi;
+				v.totalPrediction = a.Float();
+			}
+			else if (p.contract.operation != Indirect::ObservationOperator::IncidentLinear)
+				v.comparable = false;
+		}
+		return result;
+	}
+	std::vector<Indirect::PatchValue> Surface(const Model &m, bool strict, double &reflected,
+											  Estimate &tail, std::vector<RootPower> &roots)
 	{
 		const auto &p = r.profiles.at(m.profile);
 		Need(std::isfinite(p.fixedGain) && p.fixedGain > 0 && !p.calibrationHypothesis.empty(),
@@ -745,6 +913,22 @@ struct Engine
 				 "Joint ambient must be one identified boundary root, not repeated per emitter");
 		}
 		std::vector<Indirect::PatchValue> total(r.transfer->Patches().size());
+		if (r.directOnlyConditional)
+		{
+			reflected = 0;
+			tail.known = false;
+			for (auto &v : total)
+				v.issues |= Indirect::MissingTransport | Indirect::OmittedLinks;
+			return total; // explicit whole-model omission, never a source-dependent row switch
+		}
+		if (total.empty())
+		{
+			Need(r.directOnlyConditional && r.transportMesh, Code::Unavailable,
+				 "No passive support: request explicit conditional direct-only analysis");
+			reflected = 0;
+			tail.known = false;
+			return total;
+		}
 		for (size_t i = 0; i < total.size(); ++i)
 		{
 			total[i].patch = r.transfer->Patches()[i].id;
@@ -759,30 +943,34 @@ struct Engine
 			Need(rootIdentities.insert(root.source).second, Code::InvalidInput,
 				 "Duplicate root identity would double count direct/reflected energy");
 			Need(root.kind != TransportRootKind::Unknown, Code::Unavailable,
-				 "Unknown-origin root cannot be relabelled ambient or physical bounce; use the separate "
+				 "Unknown-origin root cannot be relabelled ambient or physical bounce; use the "
+				 "separate "
 				 "frozen unresolved stage");
-			Need(root.source && !root.provenance.empty() && root.domain == p.contract.incidentDomain &&
+			Need(root.source && !root.provenance.empty() &&
+					 root.domain == p.contract.incidentDomain &&
 					 root.calibration == p.contract.calibration.id,
 				 Code::InvalidInput, "Root photometric domain/calibration/provenance mismatch");
-			Need(root.kind != TransportRootKind::Sky || root.sunCoverage == SunCoverage::ExcludesExplicitSun,
+			Need(root.kind != TransportRootKind::Sky ||
+					 root.sunCoverage == SunCoverage::ExcludesExplicitSun,
 				 Code::InvalidInput, "Sky root direct-sun membership must be explicit");
 			for (auto rgb : root.incident)
 				Need(Positive(rgb), Code::InvalidInput, "Invalid fixed root irradiance");
 			RootPower power;
 			power.source = root.source;
 			power.kind = root.kind;
-			if (!p.contract.physicalTransportAssumed)
+			if (!p.contract.physicalTransportAssumed || r.directOnlyConditional)
 			{
 				Need(root.incident.size() == total.size() && root.available.size() == total.size(),
 					 Code::InvalidInput, "Boundary root span mismatch");
 				for (size_t i = 0; i < total.size(); ++i)
 				{
 					auto &t = total[i];
-					Vec3 *component = root.kind == TransportRootKind::LocalEmitter
-										  ? &t.direct
-										  : root.kind == TransportRootKind::Sun
-												? &t.sun
-												: root.kind == TransportRootKind::Sky ? &t.sky : &t.ambient;
+					Vec3 *component =
+						root.kind == TransportRootKind::LocalEmitter
+							? &t.direct
+							: root.kind == TransportRootKind::Sun
+								  ? &t.sun
+								  : root.kind == TransportRootKind::Sky ? &t.sky : &t.ambient;
 					*component = (V(*component) + V(root.incident[i])).Float();
 					t.comparable &= root.available[i] != 0;
 					if (!root.available[i])
@@ -847,11 +1035,13 @@ struct Engine
 				a.upperKnown &= b.upperKnown;
 				a.issues |= b.issues;
 				double area = r.transfer->Patches()[i].areaWorldSquared;
-				primaryPower += area * (root.incident[i].x + root.incident[i].y + root.incident[i].z);
+				primaryPower +=
+					area * (root.incident[i].x + root.incident[i].y + root.incident[i].z);
 				reflectedPower += area * (b.indirect.x + b.indirect.y + b.indirect.z);
 				power.primaryAreaWeighted +=
 					area * (root.incident[i].x + root.incident[i].y + root.incident[i].z);
-				power.firstBounceAreaWeighted += area * (b.indirect.x + b.indirect.y + b.indirect.z);
+				power.firstBounceAreaWeighted +=
+					area * (b.indirect.x + b.indirect.y + b.indirect.z);
 				power.available &= root.available[i] && b.comparable;
 			}
 			roots.push_back(power);
@@ -874,7 +1064,8 @@ struct Engine
 		for (size_t i = 0; i < total.size(); ++i)
 		{
 			auto &a = total[i];
-			a.totalPreencoding = (V(a.direct) + V(a.sun) + V(a.sky) + V(a.ambient) + V(a.indirect)).Float();
+			a.totalPreencoding =
+				(V(a.direct) + V(a.sun) + V(a.sky) + V(a.ambient) + V(a.indirect)).Float();
 			Need(Positive(a.totalPreencoding), Code::AlgorithmError,
 				 "Nonfinite/negative global incident energy");
 			a.totalPrediction = a.totalPreencoding;
@@ -886,9 +1077,11 @@ struct Engine
 			else if (p.contract.operation == Indirect::ObservationOperator::OutgoingLambertian)
 			{
 				Id id = r.transfer->Patches()[i].material;
-				auto found = std::find_if(m.materials.begin(), m.materials.end(),
-										  [&](const Indirect::Reflectance &x) { return x.material == id; });
-				Need(found != m.materials.end(), Code::InvalidInput, "Missing receiver reflectance");
+				auto found =
+					std::find_if(m.materials.begin(), m.materials.end(),
+								 [&](const Indirect::Reflectance &x) { return x.material == id; });
+				Need(found != m.materials.end(), Code::InvalidInput,
+					 "Missing receiver reflectance");
 				V x;
 				for (unsigned c = 0; c < 3; ++c)
 					x[c] = Component(a.totalPreencoding, c) * Component(found->initial, c) / Pi;
@@ -921,8 +1114,8 @@ struct Engine
 				b.orientation = e.geometry.frame;
 				b.angular = e.geometry.angular;
 				b.geometry = e.geometry.geometry;
-				b.kind =
-					e.geometry.kind == EmitterKind::Point ? Bake::SourceKind::Point : Bake::SourceKind::Spot;
+				b.kind = e.geometry.kind == EmitterKind::Point ? Bake::SourceKind::Point
+															   : Bake::SourceKind::Spot;
 				b.spotTargetDistanceWorld = e.spotTargetDistanceWorld;
 				b.spotRadiusWorld = e.spotRadiusWorld;
 			}
@@ -934,7 +1127,8 @@ struct Engine
 		}
 		if (sources->empty())
 		{
-			value.available = x.channel == Channel::GridAmbient || x.channel == Channel::GridDirected;
+			value.available =
+				x.channel == Channel::GridAmbient || x.channel == Channel::GridDirected;
 			return value;
 		}
 		auto rows = std::make_shared<std::vector<Bake::Receiver>>(1, x.receiver);
@@ -965,18 +1159,20 @@ struct Engine
 						bool priors = true)
 	{
 		Limit();
-		Need(++work.evaluations <= r.options.maxEvaluations, Code::WorkLimit, "Joint evaluation budget");
+		Need(++work.evaluations <= r.options.maxEvaluations, Code::WorkLimit,
+			 "Joint evaluation budget");
 		Evaluation out;
-		linearProof =
-			r.profiles.at(m.profile).model.law == Shape::Law::DiffuseIntegral &&
-			(r.profiles.at(m.profile).contract.operation == Indirect::ObservationOperator::IncidentLinear ||
-			 r.profiles.at(m.profile).contract.operation ==
-				 Indirect::ObservationOperator::OutgoingLambertian) &&
-			r.shadowWeight == 0;
+		linearProof = r.profiles.at(m.profile).model.law == Shape::Law::DiffuseIntegral &&
+					  (r.profiles.at(m.profile).contract.operation ==
+						   Indirect::ObservationOperator::IncidentLinear ||
+					   r.profiles.at(m.profile).contract.operation ==
+						   Indirect::ObservationOperator::OutgoingLambertian) &&
+					  r.shadowWeight == 0;
 		for (size_t c = 1; c < size_t(Channel::Count); ++c)
 			if (r.options.channelWeight[c] > 0)
 				linearProof = false;
 		auto field = Surface(m, strict, out.reflected, out.tail, out.roots);
+		auto observed = ObservationSurface(m, strict, observations, field);
 		out.linear = linearProof;
 		using GroupKey = std::tuple<unsigned, Id, Id>;
 		std::map<GroupKey, Group> groups;
@@ -984,15 +1180,18 @@ struct Engine
 		GeometryKey admission;
 		out.score.requested = observations.size();
 		bool anyPositive = false;
-		for (const auto &x : observations)
+		for (size_t observationIndex = 0; observationIndex < observations.size();
+			 ++observationIndex)
 		{
+			const auto &x = observations[observationIndex];
 			Limit();
 			Prediction prediction;
 			prediction.id = x.id;
 			prediction.patch = x.patch;
 			if (x.channel == Channel::Surface)
 			{
-				const auto &y = field.at(patchIndex.at(x.patch));
+				const auto &y =
+					x.transport ? observed[observationIndex] : field.at(patchIndex.at(x.patch));
 				prediction.available = y.comparable;
 				prediction.rgb = y.totalPrediction;
 				prediction.direct = y.direct;
@@ -1001,6 +1200,11 @@ struct Engine
 				prediction.ambient = y.ambient;
 				prediction.indirect = y.indirect;
 				prediction.issues = y.issues;
+				prediction.transportAvailable = (y.issues & Indirect::MissingTransport) == 0;
+				prediction.directOnlyConditional =
+					!prediction.transportAvailable && r.directOnlyConditional;
+				out.score.transportUnavailable += !prediction.transportAvailable;
+				out.score.directOnlyConditional += prediction.directOnlyConditional;
 			}
 			else
 			{

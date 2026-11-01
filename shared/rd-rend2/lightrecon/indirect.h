@@ -10,7 +10,8 @@ namespace Core
 {
 namespace Indirect
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // X09: disjoint support, local unresolved near-field links
+constexpr uint32_t kPayloadVersion = 1; // unchanged field wire layout; independent of algorithm keys
 enum Issue : uint32_t
 {
 	UnknownOptics = 1u << 0,
@@ -24,7 +25,9 @@ enum Issue : uint32_t
 	MissingPrimary = 1u << 8,
 	UnresolvedAppearance = 1u << 9,
 	MeasurementCensored = 1u << 10,
-	ModelDiscrepancy = 1u << 11
+	ModelDiscrepancy = 1u << 11,
+	UnresolvedQuadrature = 1u << 12,
+	MissingTransport = 1u << 13
 };
 struct Patch
 {
@@ -36,6 +39,11 @@ struct BuildOptions
 {
 	double maximumLinkDistanceWorld = 256, receiverBiasWorld = .0001;
 	unsigned subdivisions = 1; // triangle subdivision level; refined rule is level+1
+	unsigned maxRefinementDepth = 5;
+	uint64_t maxQuadraturePairsPerLink = 65536;
+	double relativeRuleTolerance = .05, absoluteRuleTolerance = 1e-9;
+	bool allowPartialWork =
+		false; // optional GI stage's local work cap, never a global read/cancel error
 	size_t maxPatches = 50000, maxPairs = 1600000;
 	uint64_t maxBytes = 128ull * 1024 * 1024, maxWork = 128000000, maxRays = 4000000;
 };
@@ -51,8 +59,10 @@ struct BuildReport
 	// rays counts actual directional BVH queries. Reciprocal pairs enter blockedRays
 	// only on agreement; disagreement/moving/approximate paths enter unknownRays.
 	uint64_t candidatePairs = 0, rays = 0, work = 0, bytes = 0, blockedRays = 0, unknownRays = 0;
+	uint64_t coplanarPairs = 0, refinedPairs = 0, unresolvedPairs = 0, energyLimitedPairs = 0;
 	double maximumOutgoingFraction = 0, maximumRuleDifference = 0;
 	bool completePatchSet = false, allPairsRepresented = false;
+	bool pairSearchComplete = false, localBudgetExceeded = false;
 };
 struct BuildInput
 {
@@ -63,6 +73,7 @@ struct BuildInput
 		regions; // optional acceleration/diagnostic, never visibility proof
 	std::vector<DynamicBoundary> moving;
 	bool completePatchSet = false;
+	bool allowEmptySupport = false; // explicit direct-only conditional analysis, never complete GI
 };
 class Transfer
 {
@@ -75,6 +86,7 @@ class Transfer
 	Disk::Digest Key() const;
 	Disk::Digest MapKey() const;
 	Disk::Digest GeometryKey() const;
+	Disk::Digest PatchInterpretationKey() const;
 	const std::shared_ptr<const StaticVisibility> &Geometry() const;
 	Error QueryPath(const RayQuery &, const ReadContext &, RayResult &) const;
 
@@ -96,7 +108,8 @@ struct Root
 	Id source = 0;
 	TransportRootKind kind = TransportRootKind::Unknown;
 	SunCoverage sunCoverage = SunCoverage::Unknown; // sky roots must explicitly exclude direct sun
-	std::vector<Vec3> incident; // fixed pre-encoding irradiance-like values, patch ID ordering in transfer
+	std::vector<Vec3>
+		incident; // fixed pre-encoding irradiance-like values, patch ID ordering in transfer
 	std::vector<uint8_t> available;
 	Disk::Digest generation{};
 	std::string provenance;
@@ -166,7 +179,8 @@ struct Options
 {
 	size_t maxIterations = 32, maxEvaluations = 10000, maxObservations = 1000000;
 	uint64_t maxBytes = 128ull * 1024 * 1024, maxWork = 200000000;
-	double huber = 4, objectiveTolerance = 1e-10, parameterTolerance = 1e-5, plausibilitySlack = 1e-5;
+	double huber = 4, objectiveTolerance = 1e-10, parameterTolerance = 1e-5,
+		   plausibilitySlack = 1e-5;
 	UnresolvedOptions unresolved;
 };
 struct Request
@@ -197,12 +211,16 @@ struct RootBounce
 };
 struct Work
 {
-	uint64_t evaluations = 0, iterations = 0, linkOperations = 0, rowReads = 0, rays = 0, accountedBytes = 0;
+	uint64_t evaluations = 0, iterations = 0, linkOperations = 0, rowReads = 0, rays = 0,
+			 accountedBytes = 0;
 };
 struct Terms
 {
 	double data = 0, materialPrior = 0, unresolvedMagnitude = 0, smoothness = 0;
-	double Total() const { return data + materialPrior + unresolvedMagnitude + smoothness; }
+	double Total() const
+	{
+		return data + materialPrior + unresolvedMagnitude + smoothness;
+	}
 };
 struct Alternative
 {
@@ -212,7 +230,8 @@ struct Alternative
 };
 struct Result
 {
-	bool fitted = false, converged = false, absoluteScaleKnown = false, physicalBounceVerified = false;
+	bool fitted = false, converged = false, absoluteScaleKnown = false,
+		 physicalBounceVerified = false;
 	bool materialAllocationIdentifiable = false;
 	std::string stop;
 	Disk::Digest key{}, fixedRootsKey{}, trainingKey{}, transferKey{};
@@ -241,12 +260,12 @@ class DiagnosticSink
 	virtual ~DiagnosticSink() = default;
 	virtual Error Write(const Observation &, const PatchValue &, Vec3 signedIntervalResidual) = 0;
 };
-Error EvaluateFrozen(const Result &, std::shared_ptr<const ChunkSource<Observation>>, uint64_t, Role,
-					 const ReadContext &, Score &, DiagnosticSink * = nullptr);
+Error EvaluateFrozen(const Result &, std::shared_ptr<const ChunkSource<Observation>>, uint64_t,
+					 Role, const ReadContext &, Score &, DiagnosticSink * = nullptr);
 // Canonical descriptors + chunk payloads, never PhysicalEmitter records. Caller
 // supplies existing roots/provenance/calibration in asset. Atomic on failure.
-Error AppendFields(const Transfer &, const Result &, Id firstId, Id provenance, ReconstructedLightingAsset &,
-				   std::vector<Disk::Chunk> &, const ReadContext &);
+Error AppendFields(const Transfer &, const Result &, Id firstId, Id provenance,
+				   ReconstructedLightingAsset &, std::vector<Disk::Chunk> &, const ReadContext &);
 Error DebugTsv(const Result &, size_t maxBytes, std::string &);
 } // namespace Indirect
 } // namespace Core

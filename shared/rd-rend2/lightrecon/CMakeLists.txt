@@ -17,6 +17,7 @@ add_library(rend2_lightrecon_core STATIC
 	emitter_shape.cpp emitter_shape.h
 	fit_evidence.h shadow_evidence.cpp shadow_evidence.h
 	indirect.cpp indirect.h
+	transport_mesh.cpp transport_mesh.h
 	joint.cpp joint.h
 	uncertainty.cpp uncertainty.h
 	producer.cpp producer.h provider_outcome.h

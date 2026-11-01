@@ -3,6 +3,7 @@
 #include "indirect.h"
 #include "bake_math.h"
 #include "geometry_key.h"
+#include "transport_mesh.h"
 #include <algorithm>
 #include <functional>
 #include <iomanip>
@@ -58,6 +59,7 @@ struct Node
 	V p;
 	double area = 0;
 };
+struct LocalTransferBudget {};
 void Nodes(V a, V b, V c, unsigned depth, std::vector<Node> &out)
 {
 	if (depth)
@@ -138,6 +140,7 @@ const BuildReport &Transfer::Report() const { return data->report; }
 Disk::Digest Transfer::Key() const { return data->key; }
 Disk::Digest Transfer::MapKey() const { return data->input.mapKey; }
 Disk::Digest Transfer::GeometryKey() const { return data->input.geometry->CertificationKey(); }
+Disk::Digest Transfer::PatchInterpretationKey() const { return data->input.patchInterpretationKey; }
 const std::shared_ptr<const StaticVisibility> &Transfer::Geometry() const { return data->input.geometry; }
 Error Transfer::QueryPath(const RayQuery &q, const ReadContext &r, RayResult &out) const
 {
@@ -165,12 +168,19 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 		Need(input.geometry && !Zero(input.mapKey) && !Zero(input.patchInterpretationKey) &&
 				 input.geometry->GeometryIdentity().sha256 == input.mapKey,
 			 Code::MissingGeometry, "Transport map/geometry interpretation mismatch");
-		Need(!input.patches.empty() && input.patches.size() <= o.maxPatches && o.maxPatches <= 50000 &&
-				 o.maxPairs && o.maxPairs <= 1600000 && o.subdivisions <= 2,
+		Need((!input.patches.empty() || (input.allowEmptySupport && !input.completePatchSet)) &&
+				 input.patches.size() <= o.maxPatches && o.maxPatches <= 50000 && o.maxPairs &&
+				 o.maxPairs <= 1600000 && o.subdivisions <= 2,
 			 Code::MemoryLimit, "Patch/link/quadrature limits");
 		Need(std::isfinite(o.maximumLinkDistanceWorld) && o.maximumLinkDistanceWorld > 0 &&
-				 std::isfinite(o.receiverBiasWorld) && o.receiverBiasWorld >= 0 && o.maxRays && o.maxWork,
+				 std::isfinite(o.receiverBiasWorld) && o.receiverBiasWorld >= 0 && o.maxRays &&
+				 o.maxWork,
 			 Code::InvalidInput, "Transport build policy");
+		Need(o.maxRefinementDepth >= o.subdivisions + 1 && o.maxRefinementDepth <= 6 &&
+				 o.maxQuadraturePairsPerLink && o.maxQuadraturePairsPerLink <= 1048576 &&
+				 std::isfinite(o.relativeRuleTolerance) && o.relativeRuleTolerance > 0 &&
+				 std::isfinite(o.absoluteRuleTolerance) && o.absoluteRuleTolerance >= 0,
+			 Code::InvalidInput, "Near-field integration policy");
 		uint64_t cap = read.maxBytes ? std::min(read.maxBytes, o.maxBytes) : o.maxBytes;
 		Need(input.patches.size() * (sizeof(Patch) + 2048) + 65536 <= cap, Code::MemoryLimit,
 			 "Patch build preflight");
@@ -187,7 +197,13 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 		key.F(o.maximumLinkDistanceWorld);
 		key.F(o.receiverBiasWorld);
 		key.U(o.subdivisions);
+		key.U(o.maxRefinementDepth);
+		key.U(o.maxQuadraturePairsPerLink);
+		key.F(o.relativeRuleTolerance);
+		key.F(o.absoluteRuleTolerance);
+		key.U(o.allowPartialWork);
 		key.U(input.completePatchSet);
+		key.U(input.allowEmptySupport);
 		for (size_t i = 0; i < input.patches.size(); ++i)
 		{
 			Cancel(read);
@@ -197,9 +213,10 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 					 r.surface <= input.geometry->Surfaces().size() && Finite(r.world) &&
 					 Normal(r.geometricNormal) && Normal(r.shadingNormal) && !r.twoSided,
 				 Code::InvalidInput, "Patch identity, side and normal");
-			Need(r.footprint.owner && r.footprint.data && r.footprint.count && r.footprint.count <= 64 &&
-					 std::isfinite(p.areaWorldSquared) && p.areaWorldSquared > 0 &&
-					 std::isfinite(r.geometryErrorWorld) && r.geometryErrorWorld >= 0,
+			Need(r.footprint.owner && r.footprint.data && r.footprint.count &&
+					 r.footprint.count <= 64 && std::isfinite(p.areaWorldSquared) &&
+					 p.areaWorldSquared > 0 && std::isfinite(r.geometryErrorWorld) &&
+					 r.geometryErrorWorld >= 0,
 				 Code::InvalidInput, "Actual mapped footprint required");
 			double area = 0;
 			for (size_t t = 0; t < r.footprint.count; ++t)
@@ -214,12 +231,14 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 					key.V(f.world[k]);
 					key.V(f.normal[k]);
 				}
-				double a = Length(Cross(V(f.world[1]) - V(f.world[0]), V(f.world[2]) - V(f.world[0]))) * .5;
+				double a =
+					Length(Cross(V(f.world[1]) - V(f.world[0]), V(f.world[2]) - V(f.world[0]))) *
+					.5;
 				Need(a > 1e-14, Code::InvalidInput, "Degenerate patch footprint");
 				area += a;
 			}
-			Need(std::abs(area - p.areaWorldSquared) <= 1e-5 * std::max(1., area), Code::InvalidInput,
-				 "Patch area differs from original footprint");
+			Need(std::abs(area - p.areaWorldSquared) <= 1e-5 * std::max(1., area),
+				 Code::InvalidInput, "Patch area differs from original footprint");
 			key.U(p.id);
 			key.U(p.material);
 			key.U(p.region);
@@ -272,14 +291,26 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 			grid[cell(V(patches[i].receiver.world))].push_back(i);
 		auto step = [&]() {
 			Cancel(read);
-			Need(++r.work <= o.maxWork && r.rays <= o.maxRays, Code::WorkLimit,
-				 "Transfer build work/ray budget");
+			if (++r.work > o.maxWork || r.rays > o.maxRays)
+				throw LocalTransferBudget{};
 		};
-		auto integrate = [&](size_t a, size_t b, unsigned depth, double &possible, uint32_t &issues) {
+		auto integrate = [&](size_t a, size_t b, unsigned depth, double &possible, uint32_t &issues,
+							 bool &resolved) {
 			double sum = 0;
 			possible = 0;
 			const auto &A = patches[a];
 			const auto &B = patches[b];
+			uint64_t countA = A.receiver.footprint.count * (uint64_t(1) << (2 * depth)),
+					 countB = B.receiver.footprint.count * (uint64_t(1) << (2 * depth));
+			if (countA * countB > o.maxQuadraturePairsPerLink)
+			{
+				resolved = false;
+				return 0.;
+			}
+			Need((countA + countB) * sizeof(Node) + d->links.capacity() * sizeof(Link) +
+						 patches.size() * (sizeof(Patch) + 2048) + 65536 <=
+					 cap,
+				 Code::MemoryLimit, "Near-field quadrature scratch budget");
 			auto an = Nodes(A, depth), bn = Nodes(B, depth);
 			for (const auto &x : an)
 				for (const auto &y : bn)
@@ -287,15 +318,21 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 					step();
 					V delta = y.p - x.p;
 					double distance = Length(delta);
-					if (distance < 1e-8)
+					if (!(distance > 0))
 					{
-						throw Failure(Code::Unavailable, "Coincident/overlapping transport nodes; split or "
-														 "deduplicate original receiving patches");
+						// Never replace r by an epsilon. The bounded rule is unsupported here.
+						resolved = false;
+						return 0.;
 					}
 					V u = delta / distance;
 					double ca = std::max(0., Dot(V(A.receiver.geometricNormal), u)),
 						   cb = std::max(0., -Dot(V(B.receiver.geometricNormal), u));
 					double g = x.area * y.area * ca * cb / (Pi * distance * distance);
+					if (!std::isfinite(g))
+					{
+						resolved = false;
+						return 0.;
+					}
 					if (g <= 0)
 						continue;
 					RayQuery q;
@@ -303,20 +340,25 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 					q.endWorld = y.p.Float();
 					q.originSurface = A.receiver.surface;
 					q.targetSurface = B.receiver.surface;
-					q.targetToleranceWorld = std::min(distance * .01, std::max(1e-7, o.receiverBiasWorld));
+					q.targetToleranceWorld =
+						std::min(distance * .01, std::max(1e-7, o.receiverBiasWorld));
 					q.bias.absoluteWorld = q.bias.maximumWorld = o.receiverBiasWorld;
 					q.bias.relative = 0;
 					q.bias.normalKnown = true;
 					q.bias.geometricNormal = A.receiver.geometricNormal;
 					q.purpose = RayPurpose::IrradianceProbe;
 					auto trace = [&](RayQuery query, RayResult &hit) {
-						Need(r.rays < o.maxRays && r.work < o.maxWork, Code::WorkLimit,
-							 "Transfer work/ray budget");
+						if (r.rays >= o.maxRays || r.work >= o.maxWork)
+							throw LocalTransferBudget{};
 						query.maxWork = o.maxWork - r.work;
-						Check(d->input.geometry->Query(query, read, hit));
+						auto error = d->input.geometry->Query(query, read, hit);
 						++r.rays;
 						r.work += hit.nodeTests + hit.primitiveTests;
-						Need(r.work <= o.maxWork, Code::WorkLimit, "Transfer work budget");
+						if (error.code == Code::WorkLimit)
+							throw LocalTransferBudget{};
+						Check(error);
+						if (r.work > o.maxWork)
+							throw LocalTransferBudget{};
 					};
 					RayResult forward, reverse;
 					trace(q, forward);
@@ -331,13 +373,14 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 					};
 					// A reciprocal physical link needs agreement in both directions. Renderer
 					// one-sided culling is not proof of a transparent transport path.
-					if (is(forward, VisibilityState::Blocked) && is(reverse, VisibilityState::Blocked))
+					if (is(forward, VisibilityState::Blocked) &&
+						is(reverse, VisibilityState::Blocked))
 					{
 						r.blockedRays += 2;
 						continue;
 					}
-					bool unknown =
-						!is(forward, VisibilityState::Visible) || !is(reverse, VisibilityState::Visible);
+					bool unknown = !is(forward, VisibilityState::Visible) ||
+								   !is(reverse, VisibilityState::Visible);
 					for (const auto &m : d->input.moving)
 						if (!m.sweptExtentKnown || SegmentBox(m.bounds, x.p, y.p))
 						{
@@ -362,67 +405,170 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 		};
 		uint64_t visited = 0;
 		std::vector<double> outgoing(patches.size());
-		for (size_t i = 0; i < patches.size(); ++i)
+		try
 		{
-			step();
-			auto c = cell(V(patches[i].receiver.world));
-			for (int x = -1; x <= 1; ++x)
-				for (int y = -1; y <= 1; ++y)
-					for (int z = -1; z <= 1; ++z)
-					{
-						auto g = grid.find(Cell(std::get<0>(c) + x, std::get<1>(c) + y, std::get<2>(c) + z));
-						if (g == grid.end())
-							continue;
-						for (size_t j : g->second)
+			for (size_t i = 0; i < patches.size(); ++i)
+			{
+				step();
+				auto c = cell(V(patches[i].receiver.world));
+				for (int x = -1; x <= 1; ++x)
+					for (int y = -1; y <= 1; ++y)
+						for (int z = -1; z <= 1; ++z)
 						{
-							step();
-							if (j <= i)
+							auto g = grid.find(
+								Cell(std::get<0>(c) + x, std::get<1>(c) + y, std::get<2>(c) + z));
+							if (g == grid.end())
 								continue;
-							if (Length(V(patches[i].receiver.world) - V(patches[j].receiver.world)) >
-								o.maximumLinkDistanceWorld)
-								continue;
-							++visited;
-							Need(++r.candidatePairs <= o.maxPairs, Code::WorkLimit,
-								 "Sparse pair candidate budget; no silent link truncation");
-							if (patches[i].receiver.style != patches[j].receiver.style)
-								continue;
-							double cp = 0, fp = 0;
-							uint32_t flags = QuadratureApproximation;
-							double coarse = integrate(i, j, o.subdivisions, cp, flags),
-								   fine = integrate(i, j, o.subdivisions + 1, fp, flags);
-							double difference = std::abs(fine - coarse);
-							r.maximumRuleDifference = std::max(r.maximumRuleDifference, difference);
-							if (fp == 0 && fine == 0)
-								continue;
-							Link l;
-							l.a = uint32_t(i);
-							l.b = uint32_t(j);
-							l.conductance = fine;
-							l.possibleConductance = fp;
-							l.quadratureDifference = difference;
-							l.issues = flags;
-							Need(fine <= std::min(patches[i].areaWorldSquared, patches[j].areaWorldSquared) +
-											 1e-9,
-								 Code::Unavailable,
-								 "Near-field quadrature violates pair energy; subdivide supplied patches");
-							outgoing[i] += fine / patches[i].areaWorldSquared;
-							outgoing[j] += fine / patches[j].areaWorldSquared;
-							Need(std::max(outgoing[i], outgoing[j]) <= 1 + 1e-7, Code::Unavailable,
-								 "Outgoing form-factor budget exceeds one; no renormalization");
-							Need((d->links.size() + 1) * sizeof(Link) +
-										 patches.size() * (sizeof(Patch) + 2048) + 65536 <=
-									 cap,
-								 Code::MemoryLimit, "Sparse transfer allocation budget");
-							d->links.push_back(l);
+							for (size_t j : g->second)
+							{
+								step();
+								if (j <= i)
+									continue;
+								if (Length(V(patches[i].receiver.world) -
+										   V(patches[j].receiver.world)) >
+									o.maximumLinkDistanceWorld)
+									continue;
+								++visited;
+								if (++r.candidatePairs > o.maxPairs)
+									throw LocalTransferBudget{};
+								if (patches[i].receiver.style != patches[j].receiver.style)
+									continue;
+								bool allCoplanar = true, crossing = false;
+								for (size_t a = 0; a < patches[i].receiver.footprint.count; ++a)
+									for (size_t b = 0; b < patches[j].receiver.footprint.count; ++b)
+									{
+										step();
+										auto contact =
+											Topology::Inspect(patches[i].receiver.footprint.data[a],
+															  patches[i].receiver.geometricNormal,
+															  patches[j].receiver.footprint.data[b],
+															  patches[j].receiver.geometricNormal);
+										Need(contact.relation !=
+													 Topology::Relation::SameSideOverlap ||
+												 contact.sharedArea <=
+													 1e-10 * std::min(patches[i].areaWorldSquared,
+																	  patches[j].areaWorldSquared),
+											 Code::Unavailable,
+											 "Overlapping same-side transport area; construct "
+											 "disjoint topology first");
+										allCoplanar &=
+											contact.relation == Topology::Relation::Coplanar ||
+											contact.relation ==
+												Topology::Relation::OppositeSideOverlap;
+										crossing |=
+											contact.relation == Topology::Relation::Crossing;
+									}
+								// For planar pairs on one plane cos_i*cos_j is identically zero,
+								// including distinct opposite sides of an opaque zero-thickness
+								// sheet.
+								if (allCoplanar)
+								{
+									++r.coplanarPairs;
+									continue;
+								}
+								double cp = 0, fp = 0;
+								uint32_t flags = QuadratureApproximation;
+								bool resolved = !crossing;
+								double coarse = resolved ? integrate(i, j, o.subdivisions, cp,
+																	 flags, resolved)
+														 : 0,
+									   fine = resolved ? integrate(i, j, o.subdivisions + 1, fp,
+																   flags, resolved)
+													   : 0;
+								double difference = std::abs(fine - coarse);
+								unsigned depth = o.subdivisions + 1;
+								double pairArea = std::min(patches[i].areaWorldSquared,
+														   patches[j].areaWorldSquared);
+								while (resolved && (difference > o.absoluteRuleTolerance +
+																	 o.relativeRuleTolerance *
+																		 std::max(fine, fp) ||
+													fine > pairArea + 1e-9))
+								{
+									if (depth == o.maxRefinementDepth)
+									{
+										resolved = false;
+										break;
+									}
+									if (depth == o.subdivisions + 1)
+										++r.refinedPairs;
+									coarse = fine;
+									fine = integrate(i, j, ++depth, fp, flags, resolved);
+									difference = std::abs(fine - coarse);
+								}
+								if (!resolved)
+								{
+									++r.unresolvedPairs;
+									flags |= UnresolvedQuadrature | OmittedLinks;
+									fine = 0;
+									fp = pairArea; // finite passive capacity, NOT an asserted zero
+												   // link
+								}
+								r.maximumRuleDifference =
+									std::max(r.maximumRuleDifference, difference);
+								if (fp == 0 && fine == 0)
+									continue;
+								Link l;
+								l.a = uint32_t(i);
+								l.b = uint32_t(j);
+								l.conductance = fine;
+								l.possibleConductance = fp;
+								l.quadratureDifference = difference;
+								l.issues = flags;
+								outgoing[i] += fine / patches[i].areaWorldSquared;
+								outgoing[j] += fine / patches[j].areaWorldSquared;
+								Need((d->links.size() + 1) * sizeof(Link) +
+											 patches.size() * (sizeof(Patch) + 2048) + 65536 <=
+										 cap,
+									 Code::MemoryLimit, "Sparse transfer allocation budget");
+								d->links.push_back(l);
+							}
 						}
-					}
+			}
 		}
-		std::sort(d->links.begin(), d->links.end(),
-				  [](const Link &a, const Link &b) { return std::tie(a.a, a.b) < std::tie(b.a, b.b); });
-		r.completePatchSet = d->input.completePatchSet;
-		r.allPairsRepresented = visited == uint64_t(patches.size()) * (patches.size() - 1) / 2;
-		r.maximumOutgoingFraction = *std::max_element(outgoing.begin(), outgoing.end());
-		r.bytes = d->links.capacity() * sizeof(Link) + patches.size() * (sizeof(Patch) + 2048) + 65536;
+		catch (const LocalTransferBudget &)
+		{
+			Need(o.allowPartialWork, Code::WorkLimit,
+				 "Transfer local work/ray/pair budget exhausted");
+			r.localBudgetExceeded = true;
+		}
+		// An inconsistent row is unsupported, not normalized to unit energy. Remove
+		// its affected estimates symmetrically, preserving unrelated physical links.
+		for (auto &l : d->links)
+			if (outgoing[l.a] > 1 + 1e-7 || outgoing[l.b] > 1 + 1e-7)
+			{
+				++r.energyLimitedPairs;
+				l.conductance = 0;
+				l.possibleConductance =
+					std::min(patches[l.a].areaWorldSquared, patches[l.b].areaWorldSquared);
+				l.issues |= UnresolvedQuadrature | OmittedLinks;
+			}
+		std::fill(outgoing.begin(), outgoing.end(), 0.);
+		for (const auto &l : d->links)
+		{
+			outgoing[l.a] += l.conductance / patches[l.a].areaWorldSquared;
+			outgoing[l.b] += l.conductance / patches[l.b].areaWorldSquared;
+		}
+		std::sort(d->links.begin(), d->links.end(), [](const Link &a, const Link &b) {
+			return std::tie(a.a, a.b) < std::tie(b.a, b.b);
+		});
+		r.pairSearchComplete = !r.localBudgetExceeded;
+		r.completePatchSet = d->input.completePatchSet && !r.unresolvedPairs &&
+							 !r.energyLimitedPairs && r.pairSearchComplete;
+		r.allPairsRepresented =
+			r.pairSearchComplete && visited == uint64_t(patches.size()) * (patches.size() - 1) / 2;
+		r.maximumOutgoingFraction =
+			outgoing.empty() ? 0 : *std::max_element(outgoing.begin(), outgoing.end());
+		r.bytes =
+			d->links.capacity() * sizeof(Link) + patches.size() * (sizeof(Patch) + 2048) + 65536;
+		key.U(r.localBudgetExceeded);
+		for (const auto &l : d->links)
+		{
+			key.U(l.a);
+			key.U(l.b);
+			key.F(l.conductance);
+			key.F(l.possibleConductance);
+			key.U(l.issues);
+		}
 		d->key = key.Finish();
 		auto result = std::make_shared<Transfer>();
 		result->data = d;
@@ -440,8 +586,9 @@ Error Transfer::Build(BuildInput input, const BuildOptions &o, const ReadContext
 }
 
 Error PredictRoot(const Transfer &t, TransportRootKind kind, const Bake::ProfileHypothesis &p,
-				  const Chunk<Bake::SourceHypothesis> &sources, const Bake::EvaluationContext &geometry,
-				  const Bake::Options &o, const ReadContext &read, Root &out, Bake::Work &work)
+				  const Chunk<Bake::SourceHypothesis> &sources,
+				  const Bake::EvaluationContext &geometry, const Bake::Options &o,
+				  const ReadContext &read, Root &out, Bake::Work &work)
 {
 	out = {};
 	work = {};
@@ -449,10 +596,13 @@ Error PredictRoot(const Transfer &t, TransportRootKind kind, const Bake::Profile
 	{
 		Need(sources.count && sources.owner && sources.data, Code::InvalidInput,
 			 "Explicit fixed root required");
-		Need(geometry.geometryKey == t.GeometryKey(), Code::MissingGeometry, "Stale primary geometry");
-		Need(o.output == Bake::Domain::CompilerLinearRelative255 && o.mode == Bake::Mode::CompilerFaithful,
+		Need(geometry.geometryKey == t.GeometryKey(), Code::MissingGeometry,
+			 "Stale primary geometry");
+		Need(o.output == Bake::Domain::CompilerLinearRelative255 &&
+				 o.mode == Bake::Mode::CompilerFaithful,
 			 Code::Unavailable,
-			 "PredictRoot supports pre-encoding historical surface values only; physical caller supplies "
+			 "PredictRoot supports pre-encoding historical surface values only; physical caller "
+			 "supplies "
 			 "explicit incident values");
 		Need(kind == TransportRootKind::LocalEmitter || kind == TransportRootKind::Sun ||
 				 kind == TransportRootKind::Sky,
@@ -798,7 +948,7 @@ struct Engine
 			if (!Admissible() || r.contract.profile.family == "UnknownProfile")
 				v.issues |= UnknownProfile;
 			v.upperKnown = true;
-			if (v.issues & (UnknownOptics | MovingPath | ApproximateGeometry))
+			if (v.issues & (UnknownOptics | MovingPath | ApproximateGeometry | UnresolvedQuadrature))
 				v.comparable = false;
 		}
 		for (const auto &root : out.fixedRoots)
@@ -1471,7 +1621,7 @@ Error AppendFields(const Transfer &t, const Result &r, Id first, Id provenance,
 					u(bits, 4);
 				};
 				u(0x3154474a, 4);
-				u(kVersion, 4);
+				u(kPayloadVersion, 4);
 				u(block.count, 4);
 				u(unsigned(f.component), 4);
 				for (size_t i = a; i < a + block.count; ++i)

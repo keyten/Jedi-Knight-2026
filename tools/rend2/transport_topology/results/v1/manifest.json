@@ -1,0 +1,33 @@
+{
+  "schema": "org.openjk.transport-topology-manifest.v1",
+  "base_commit": "1fdd75bb794eb5aa0f631bd6b537c82bff29e9d4",
+  "topology_version": 1,
+  "indirect_version": 2,
+  "joint_version": 3,
+  "native_sha256": "72d5feec46a914957f3d9dffee087482560f3bdc07f7af488ba2ae380b698960",
+  "sources": {
+    "shared/rd-rend2/lightrecon/transport_mesh.cpp": "23eca8575e78f1782601fb2bd0250e92895c4de8c32e7ba22ab3045e883d1c9d",
+    "shared/rd-rend2/lightrecon/transport_mesh.h": "a42f068ff28ad6218895f4b87a8fb941b7a0e2b3e54a563df895ef6bd117352d",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "01bc5f7f581ed89d341b0feac056e397040974f43ecdd95c8d011ec769556c8e",
+    "shared/rd-rend2/lightrecon/indirect.h": "bd65db5d8dca015e45ee5b0448a1d784765a8cbb97936bc6a8f00683ba5606d6",
+    "shared/rd-rend2/lightrecon/joint.cpp": "ad7efd7a29177d5339cf26db8d8eab203d0763991e4f27d04a9a7283fef19065",
+    "shared/rd-rend2/lightrecon/joint.h": "ca34d0f31f9afa3a2281f8296cd3bd305fa21a8dc972ee08cde1a660acecad23",
+    "shared/rd-rend2/lightrecon/producer.cpp": "0ec1295aaaf126f12f8103a6200034e9ebc5a7f8b09147825b335c3dd884d95d",
+    "tools/lightrecon_test/lightrecon_transport_mesh_test.cpp": "102e6770f64415280fb185911f857805a5bb6d88b40e91772b687b5a32ac520f",
+    "tools/lightrecon_test/lightrecon_map_solver.cpp": "d2cc077cc0b248eee395bfb82206c31497507f5b09ed685ae7a61f01164d2e1d",
+    "tools/lightrecon_test/lightrecon_indirect_test.cpp": "0d6124045771799699d282f657ea188d1424de2d7930581f979df9c9e2c9c712",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "bd797905fa289025567dbb3abc1a1b1c4b89123894a00bd21fc60397fa0b5b29",
+    "tools/lightrecon_test/CMakeLists.txt": "c606b19eb1d35327ea33ea0f982ce5059f32ba9d2492eea4a381fcaa94486de0",
+    "tools/rend2/all_stock/architecture.py": "2bef2a9b4aa1e45584032fe75d11578d35cdac4115bfdc2c8fb0d20d9016e53d",
+    "tools/rend2/transport_topology/run.py": "579e572589c222b0de45a12d9a8763d7571ac00e61c0aae542a1f8da3339fa71",
+    "tools/rend2/transport_topology/collect.py": "b08b3fb7b9d2e7baaad78af219791ba919f5f2d58c31a25bbce62459003570b5",
+    "tools/rend2/transport_topology/verify_results.py": "6ff03c53357771403ce7442992c40cbbe54c0467f1aa7b039e25ab608bf04c85",
+    "tools/rend2/transport_topology/test_results.py": "a69b8cf6db2ee0b27ae238581cfe5195184d0b26cdc6a302fcf392cae728d5f2"
+  },
+  "artifacts": {
+    "controlled.json": "92e93427e6e367bc845053f59b21011dbaa49172b4ef70eb32d9ad4188fdd973",
+    "maps.json": "2d903fb1310f547b88f69eca59df8c422cdbbeab6712fa5408350cfe4ed07a4d",
+    "validation.json": "db45281a6b9e23f8570e609a7ccd5e71034043412212573cc933dedbca7ad8da",
+    "producer.json": "4593c6ea901838ee0b07894c141fd110022f0da9ecc3a2b22f55c286bcb6ae2e"
+  }
+}
