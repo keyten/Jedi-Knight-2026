@@ -1,6 +1,7 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "tr_lightrecon_types.h"
 #include "tr_pbr_contract.h"
+#include "lightrecon/photometry.h"
 
 #include <cmath>
 #include <limits>
@@ -308,6 +309,26 @@ struct Validator
 			if (c.kind == CalibrationKind::PhysicallyAuthored &&
 				provenance[c.provenance]->kind != ProvenanceKind::Authored && provenance[c.provenance]->kind != ProvenanceKind::External)
 				return Fail("calibrations.provenance", "physical authoring cannot be inferred from legacy/reconstructed observations");
+			const auto& m = c.relativeMapping;
+			if (m.version > 1 || !Nonnegative(m.canonicalUnitsPerRelative) ||
+				!Nonnegative(m.referenceP50) || !Nonnegative(m.referenceP95) || !Nonnegative(m.worldUnitsPerMeter) ||
+				!EnumIn(m.outputUnit, PhotometricUnit::Lux) || !EnumIn(m.quantity, PhotometricQuantity::ReceiverIrradiance))
+				return Fail("calibrations.relativeMapping", "invalid version, gain, distribution or units");
+			if (m.version) {
+				const auto target = calibrations.find(m.targetCalibration);
+				bool configuration = !m.configuration;
+				for (const auto& cfg : asset.lightingConfigurations) configuration = configuration || cfg.id == m.configuration;
+				const PhotometricUnit expected = m.quantity == PhotometricQuantity::EmittedIntensity ? PhotometricUnit::Candela :
+					m.quantity == PhotometricQuantity::EmittedRadiance || m.quantity == PhotometricQuantity::IncidentRadiance ?
+					PhotometricUnit::Nits : PhotometricUnit::Lux;
+				if (c.kind != CalibrationKind::UncalibratedRelative || c.method.empty() || m.inputDomain.empty() ||
+					m.referenceDistribution.empty() || !m.referenceSamples || !m.rec709PrimariesAttested || !m.linearTransferAttested ||
+					!m.canonicalUnitsPerRelative.known || !Positive(m.canonicalUnitsPerRelative.value) ||
+					(m.canonicalUnitsPerRelative.bounded && !Positive(m.canonicalUnitsPerRelative.lower)) ||
+					m.worldUnitsPerMeter != asset.units.worldUnitsPerMeter || m.outputUnit != expected || !configuration ||
+					target == calibrations.end() || target->second->kind != CalibrationKind::LegacySceneEquivalent)
+					return Fail("calibrations.relativeMapping", "mapping requires attested scoped scene-equivalent calibration");
+			}
 		}
 		for (const Dataset& d : asset.datasets)
 			if (!EnumIn(d.purpose, DatasetPurpose::ObservationQuality) || !EnumIn(d.layout, DatasetLayout::Procedural) ||
@@ -478,18 +499,14 @@ bool NormalizeChromaticity(const Vec3& rgb, Chromaticity& result)
 }
 bool SceneEmissionRGB(const ReconstructedLightingAsset& asset, const Photometry& emission, Vec3& rgb)
 {
-	if (!ValidUnits(asset.units) || !emission.intensity.known || !emission.color.known ||
-		!Nonnegative(emission.intensity) || !ValidColor(emission.color) ||
-		emission.unit == PhotometricUnit::Relative || !EnumIn(emission.unit, PhotometricUnit::Lux)) return false;
-	const Calibration* calibration = nullptr;
-	for (const Calibration& c : asset.calibrations)
-		if (c.id == emission.calibration) { if (calibration) return false; calibration = &c; }
-	if (!calibration || (calibration->kind != CalibrationKind::PhysicallyAuthored && calibration->kind != CalibrationKind::LegacySceneEquivalent)) return false;
-	const double y = double(emission.intensity.value) * asset.units.physicalToScene;
-	Vec3 result;
-	if (!StoreFloat(y * emission.color.rgb.x, result.x) || !StoreFloat(y * emission.color.rgb.y, result.y) ||
-		!StoreFloat(y * emission.color.rgb.z, result.z)) return false;
-	rgb = result;
+	PhysicalEmitter e; e.emission = emission;
+	e.kind = emission.unit == PhotometricUnit::Lux ? EmitterKind::Directional :
+		emission.unit == PhotometricUnit::Nits ? EmitterKind::Rectangle : EmitterKind::Point;
+	const auto value = Photometric::Emission(asset, e);
+	if (!value) return false;
+	const auto scene = Photometric::ToScene(asset, value.value);
+	if (!scene) return false;
+	rgb = scene.value.rgb;
 	return true;
 }
 bool Validate(const ReconstructedLightingAsset& asset, std::string* error)

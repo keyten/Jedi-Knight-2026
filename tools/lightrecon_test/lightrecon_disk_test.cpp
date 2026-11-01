@@ -93,6 +93,14 @@ ReconstructedLightingAsset Populated()
 		c.method = "synthetic reference scale, no measured legacy units";
 		a.calibrations.push_back(c);
 	}
+	auto& mapping=a.calibrations[2].relativeMapping;
+	mapping.version=1; mapping.inputDomain="test/source-linear-relative";
+	mapping.referenceDistribution="synthetic independent receiver reference /1";
+	mapping.targetCalibration=12; mapping.rec709PrimariesAttested=mapping.linearTransferAttested=true;
+	mapping.outputUnit=PhotometricUnit::Lux; mapping.canonicalUnitsPerRelative.known=true;
+	mapping.canonicalUnitsPerRelative.value=2; mapping.canonicalUnitsPerRelative.bounded=true;
+	mapping.canonicalUnitsPerRelative.lower=1; mapping.canonicalUnitsPerRelative.upper=3;
+	mapping.worldUnitsPerMeter=a.units.worldUnitsPerMeter; mapping.referenceSamples=17;
 	GeometryRegion region;
 	region.id = 40;
 	region.provenance = 1;
@@ -419,6 +427,10 @@ void RoundTrips()
 			CHECK(out.contributions[0].sources[1] == 200 && out.visibility[0].source == 101);
 			CHECK(out.calibrations[1].kind == CalibrationKind::LegacySceneEquivalent &&
 				  out.emitters[1].emission.unit == PhotometricUnit::Candela);
+			CHECK(out.calibrations[2].relativeMapping.version==1 &&
+				out.calibrations[2].relativeMapping.referenceSamples==17 &&
+				out.calibrations[2].relativeMapping.canonicalUnitsPerRelative.upper==3 &&
+				out.calibrations[2].relativeMapping.referenceDistribution==asset.calibrations[2].relativeMapping.referenceDistribution);
 			CHECK(out.provenanceRecords[1].parents == std::vector<Id>{1} &&
 				  out.provenanceRecords[1].observationQuality == 38);
 			CHECK(out.diagnostics[0].metric.value == -0.3f);
@@ -434,11 +446,11 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 5 adds provider receipts/scopes; the header and empty-asset
+			// Schema 6 adds optional scoped photometric calibration; the empty-asset
 			// fingerprint intentionally change. This freezes the new encoded bytes.
 			// Earlier semantic schemas are rejected rather than silently reinterpreted.
-			CHECK(kSchemaVersion == 5);
-			CHECK(digest == "ceed5d33e08f6cd5ad5ed59c6130ae3ead41bdf6ecd6bc0fb1c37400b2dfcb06");
+			CHECK(kSchemaVersion == 6);
+			CHECK(digest == "ad3c16533da0b2b7d579f12ffec0a450a2017bf360009286f856689162c8bf4a");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}
@@ -705,6 +717,7 @@ void NativeCache(const std::string &root)
 } // namespace
 int main(int argc, char **argv)
 {
+	std::setvbuf(stdout, nullptr, _IONBF, 0);
 	HashAndKeys();
 	RoundTrips();
 	CorruptionAndLimits();

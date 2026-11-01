@@ -1,4 +1,4 @@
-# Canonical reconstructed static lighting, schema 5
+# Canonical reconstructed static lighting, schema 6
 
 Schema 5 adds typed provider outcomes and independently scoped provider model
 requests to `BuildAssessment` v2. Unknown sun/environment and partial search are
@@ -76,7 +76,7 @@ any consumer to subtract an attributed contribution from baked lighting.
 
 ## Identity, version and provenance
 
-The stable schema identifier is `org.openjk.reconstructed-lighting`, version 5.
+The stable schema identifier is `org.openjk.reconstructed-lighting`, version 6.
 This is an in-memory semantic schema, not a native-struct binary file format.
 An incompatible schema change requires a version change; a reader must reject
 unsupported versions. `Validate` currently accepts version 5 only.
@@ -155,6 +155,15 @@ Length conversions accept nonnegative lengths; positions themselves can be signe
 The first two use `sceneRGB = chromaticity * Y * physicalToScene` when an adapter
 requests scene values. `SceneEmissionRGB` implements only this boundary multiply;
 the result retains its quantity (e.g. scene-scaled candela is not irradiance).
+
+Schema 6 optionally extends the existing `Calibration` with a versioned scoped
+relative-to-scene-equivalent mapping: attested linear primaries/transfer, input
+domain, profile/configuration, target quantity/unit, global gain/bounds, reference
+distribution and world scale. It establishes no measured historical SI scale.
+The strict [CPU conversion API and support matrix](rend2-photometric-boundary.md)
+preserve source uncertainty and root/path membership, reject incompatible domains
+and repeated scene scaling, and define an unsupported legacy attenuation boundary.
+Earlier cache schemas must be rebuilt; the disk reader rejects their versions.
 It rejects unknown colour/intensity and relative estimates. It does not validate
 the entire asset: callers must first validate assets received from a producer.
 Physical source values stay in their named units in the asset, independent of

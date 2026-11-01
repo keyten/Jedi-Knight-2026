@@ -52,6 +52,16 @@ void Text(GeometryKey &k, const std::string &s)
 	for (unsigned char c : s)
 		k.U(c);
 }
+void CalibrationMappingKey(GeometryKey& k, const Calibration& c)
+{
+	const auto& m=c.relativeMapping;
+	k.U(m.version); Text(k,m.inputDomain); Text(k,m.profile); Text(k,m.referenceDistribution);
+	k.U(m.configuration); k.U(m.targetCalibration); k.U(m.rec709PrimariesAttested); k.U(m.linearTransferAttested);
+	k.U(unsigned(m.outputUnit)); k.U(unsigned(m.quantity)); k.F(m.worldUnitsPerMeter); k.U(m.referenceSamples);
+	for (const auto* e : {&m.canonicalUnitsPerRelative,&m.referenceP50,&m.referenceP95}) {
+		k.U(e->known); k.F(e->value); k.U(e->bounded); k.F(e->lower); k.F(e->upper);
+	}
+}
 double Peak(Vec3 v)
 {
 	return std::max(double(v.x), std::max(double(v.y), double(v.z)));
@@ -572,6 +582,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 		k.U(p.contract.calibration.id);
 		k.U(unsigned(p.contract.calibration.kind));
 		Text(k, p.contract.calibration.method);
+		CalibrationMappingKey(k, p.contract.calibration);
 		k.U(p.contract.transferAttested);
 		k.U(p.contract.primariesAttested);
 		k.U(p.contract.physicalTransportAssumed);
@@ -719,12 +730,14 @@ Disk::Fingerprint Fingerprint(const Request &r)
 		k.U(unsigned(c.kind));
 		k.U(c.provenance);
 		Text(k, c.method);
+		CalibrationMappingKey(k, c);
 	}
 	for (const auto &p : r.fitting.profiles)
 	{
 		k.U(p.model.calibration.id);
 		k.U(unsigned(p.model.calibration.kind));
 		Text(k, p.model.calibration.method);
+		CalibrationMappingKey(k, p.model.calibration);
 		for (const auto &rule : p.model.profile.rules)
 		{
 			k.U(unsigned(rule.knowledge));

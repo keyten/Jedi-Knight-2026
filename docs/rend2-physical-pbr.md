@@ -11,6 +11,11 @@ physically authored values, calibrated legacy scene equivalents and uncalibrated
 relative estimates; historical LDR baked lighting is not a physical measurement.
 This data-only contract does not change the current rendering paths.
 
+The strict reusable [photometric conversion boundary](rend2-photometric-boundary.md)
+shares this contract's units, Y weights and cone profile, but reports invalid,
+unavailable and approximate conversions explicitly. It never substitutes runtime
+defaults or treats stock compiler Q as SI authoring. Exposure is separate.
+
 The separate [baked-observation CPU decoder](rend2-observation-decoding.md)
 preserves raw inputs, distinguishes source-linear hypotheses from renderer
 presentation transforms, and labels calibrated legacy RGB as scene equivalents.

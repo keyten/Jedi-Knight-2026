@@ -8,6 +8,11 @@ if(NOT TARGET rend2_lightrecon_core)
 	add_subdirectory(../../shared/rd-rend2/lightrecon "${CMAKE_CURRENT_BINARY_DIR}/core")
 endif()
 
+add_executable(lightrecon_photometry_test lightrecon_photometry_test.cpp)
+target_link_libraries(lightrecon_photometry_test rend2_lightrecon_core)
+set_target_properties(lightrecon_photometry_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+add_test(NAME lightrecon_photometry COMMAND lightrecon_photometry_test)
+
 add_executable(lightrecon_producer_test lightrecon_producer_test.cpp)
 add_executable(lightrecon_map_solver lightrecon_map_solver.cpp source_footprint.h)
 target_link_libraries(lightrecon_map_solver rend2_lightrecon_core)

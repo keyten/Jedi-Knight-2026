@@ -153,7 +153,11 @@ FIELDS(Frame, v.known, v.right, v.up, v.forward)
 FIELDS(Units, v.worldUnitsPerMeter, v.physicalToScene)
 FIELDS(Provenance, v.id, v.kind, v.locator, v.contentHash, v.producer, v.method, v.parents,
 	   v.observationIssues, v.observationQuality)
-FIELDS(Calibration, v.id, v.kind, v.provenance, v.method)
+FIELDS(RelativeCalibrationMapping, v.version, v.inputDomain, v.profile, v.referenceDistribution,
+	   v.configuration, v.targetCalibration, v.rec709PrimariesAttested, v.linearTransferAttested,
+	   v.outputUnit, v.quantity, v.canonicalUnitsPerRelative, v.worldUnitsPerMeter,
+	   v.referenceP50, v.referenceP95, v.referenceSamples)
+FIELDS(Calibration, v.id, v.kind, v.provenance, v.method, v.relativeMapping)
 FIELDS(Chromaticity, v.known, v.rgb)
 FIELDS(Photometry, v.unit, v.intensity, v.color, v.calibration)
 FIELDS(HypothesisGroup, v.id, v.description)
@@ -294,6 +298,7 @@ ENUM_RANGE(SourceUse,Specular)
 ENUM_RANGE(FieldMembership, Included)
 ENUM_RANGE(TransportRootKind, Unknown)
 ENUM_RANGE(CalibrationKind, UncalibratedRelative)
+ENUM_RANGE(PhotometricQuantity, ReceiverIrradiance)
 ENUM_RANGE(PhotometricUnit, Lux) ENUM_RANGE(HypothesisState, Rejected)
 	ENUM_RANGE(Suitability, Candidate) ENUM_RANGE(AngularKind, Tabulated)
 		ENUM_RANGE(DatasetPurpose, ObservationQuality) ENUM_RANGE(DatasetLayout, Procedural)

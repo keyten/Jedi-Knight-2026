@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 5;
+static constexpr uint32_t kSchemaVersion = 6;
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -85,15 +85,33 @@ struct Provenance
 };
 
 enum class CalibrationKind { PhysicallyAuthored, LegacySceneEquivalent, UncalibratedRelative };
+enum class PhotometricUnit { Relative, Candela, Nits, Lux };
+// Photometric RGB proxy, not spectral watts. Nits can describe emitted or
+// incoming radiance; Lux can describe normal-plane sun or receiver irradiance.
+enum class PhotometricQuantity { EmittedIntensity, EmittedRadiance,
+	DirectionalIlluminance, IncidentRadiance, ReceiverIrradiance };
+struct RelativeCalibrationMapping
+{
+	uint32_t version = 0; // 0 absent, 1 explicit scoped scene-equivalent mapping
+	std::string inputDomain, profile, referenceDistribution;
+	Id configuration = 0, targetCalibration = 0; // target MUST be LegacySceneEquivalent
+	bool rec709PrimariesAttested = false, linearTransferAttested = false;
+	PhotometricUnit outputUnit = PhotometricUnit::Relative;
+	PhotometricQuantity quantity = PhotometricQuantity::ReceiverIrradiance;
+	Estimate canonicalUnitsPerRelative; // positive global gain + optional bounds, NOT exposure
+	float worldUnitsPerMeter = 0;
+	Estimate referenceP50, referenceP95; // in inputDomain; unknown is allowed
+	uint64_t referenceSamples = 0;
+};
 struct Calibration
 {
 	Id id = 0;
 	CalibrationKind kind = CalibrationKind::UncalibratedRelative;
 	Id provenance = 0;
 	std::string method; // required for legacy calibration; includes reference/scale rationale
+	RelativeCalibrationMapping relativeMapping; // optional; never infers measured SI
 };
 
-enum class PhotometricUnit { Relative, Candela, Nits, Lux };
 struct Chromaticity
 {
 	bool known = false;
@@ -450,6 +468,8 @@ struct ReconstructedLightingAsset
 bool WorldToMeters(float world, const Units& units, float& meters);
 bool MetersToWorld(float meters, const Units& units, float& world);
 bool NormalizeChromaticity(const Vec3& rgb, Chromaticity& result);
+// Compatibility wrapper over Photometric::Emission/ToScene. New code uses the
+// typed receipt API in lightrecon/photometry.h to retain quantity and provenance.
 bool SceneEmissionRGB(const ReconstructedLightingAsset& asset, const Photometry& emission, Vec3& rgb);
 
 // Structural validation, no I/O and no estimator/renderer policy. First error
