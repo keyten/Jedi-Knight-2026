@@ -861,13 +861,14 @@ static TransportPreparation PrepareTransport(const O::Sources &s,
 	Check(error);
 	return out;
 }
+#include "scene_audit.h"
 static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::RegionSnapshot &graph,
 					   const std::shared_ptr<const SurfaceGeometry> &geometry,
 					   const std::shared_ptr<const StaticVisibility> &rays,
 					   const std::array<std::vector<Selected>, 3> &folds, const Census &census,
 					   const std::string &output, bool linear, Disk::Digest archiveHash,
 					   const TransportPreparation &transport, const Bounds *localScope = nullptr,
-					   const SamplingSelection *sampling = nullptr)
+					   const SamplingSelection *sampling = nullptr, bool scene = false)
 {
 	ReadContext read;
 	read.maxBytes = 512ull << 20;
@@ -1199,7 +1200,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	std::cerr << "production producer " << (linear ? "linear" : "isq") << " train=" << q.count
 			  << " seeds=" << hidden->directions.size() << "/" << requestedDirections << "\n";
 	P::Result result;
-	auto e = P::Run(request, read, result, &validation, &final);
+	auto e = scene ? SceneAttempt(request,hidden,sampling,jr,keys,read,output,linear?"linear":"isq",result)
+		: P::Run(request, read, result, &validation, &final);
 	std::ofstream areas(output + "/" + (linear ? "linear" : "isq") + "-hidden-areas.tsv");
 	areas << "area\trequested\tselected\tsaturated\tunsupported\tnodes\tretained\tunknown_"
 			 "visibility\n";
@@ -1311,13 +1313,14 @@ int main(int argc, char **argv)
 		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "local-density" ||
 									   std::string(argv[4]) == "transport-only" ||
 									   std::string(argv[4]) == "sampling-only" ||
-									   std::string(argv[4]) == "hierarchical")),
+									   std::string(argv[4]) == "hierarchical" || std::string(argv[4]) == "scene")),
 			 "usage: lightrecon_map_solver dataset.jkobs output-folder "
-			 "expected-bsp-sha256 [local-density|transport-only|sampling-only|hierarchical]");
+			 "expected-bsp-sha256 [local-density|transport-only|sampling-only|hierarchical|scene]");
 		bool local = argc == 5 && std::string(argv[4]) == "local-density";
 		bool transportOnly = argc == 5 && std::string(argv[4]) == "transport-only";
 		bool samplingOnly = argc == 5 && std::string(argv[4]) == "sampling-only";
-		bool hierarchical = argc == 5 && std::string(argv[4]) == "hierarchical";
+		bool scene = argc == 5 && std::string(argv[4]) == "scene";
+		bool hierarchical = scene || (argc == 5 && std::string(argv[4]) == "hierarchical");
 		ReadContext read;
 		read.maxBytes = 512ull << 20;
 		O::Options limits;
@@ -1400,7 +1403,7 @@ int main(int argc, char **argv)
 		facts << "]}";
 		facts.close();
 		std::unique_ptr<SamplingSelection> sampled;
-		if(samplingOnly||hierarchical){sampled.reset(new SamplingSelection(HierarchicalSelect(*data,source,folds,argv[2],read)));}
+		if(samplingOnly||hierarchical){sampled.reset(new SamplingSelection(HierarchicalSelect(*data,source,folds,argv[2],read,scene)));}
 		for (const auto &f : folds)
 			Need(samplingOnly||hierarchical||f.size() >= 8, "Insufficient independent training/validation/held-out geometry "
 								"after footprint gaps");
@@ -1421,7 +1424,7 @@ int main(int argc, char **argv)
 			try
 			{
 				RunProfile(source, *data, graph, geometry, rays, folds, census, argv[2], linear,
-						   archiveHash, transport, local ? &focus : nullptr,sampled.get());
+						   archiveHash, transport, local ? &focus : nullptr,sampled.get(),scene);
 			}
 			catch (const std::exception &e)
 			{

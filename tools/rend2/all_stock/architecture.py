@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[3]
 CORE = ROOT / 'shared/rd-rend2/lightrecon'
 NUMERICS = ('producer', 'joint', 'uncertainty', 'amplitude_fit', 'point_refine',
             'emitter_shape', 'hidden_candidates', 'sun_fit', 'indirect', 'bake_forward',
-            'bake_integral', 'bake_trace', 'candidate_pool', 'shadow_evidence', 'transport_mesh', 'sampling')
+            'bake_integral', 'bake_trace', 'candidate_pool', 'shadow_evidence', 'transport_mesh', 'sampling', 'scene_schedule')
 
 
 def audit():

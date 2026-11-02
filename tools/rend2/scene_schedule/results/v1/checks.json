@@ -1,0 +1,130 @@
+{
+  "schema": "org.openjk.scene-scheduler-checks.v1",
+  "status": "Passed",
+  "cpu": {
+    "passed": 35,
+    "failed": 0,
+    "wall_seconds": 287.73,
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j2"
+  },
+  "controlled": {
+    "assertions": 235,
+    "failed": 0,
+    "semantic_repeat": true,
+    "resources": {
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.734000000054948,
+      "peak_process_rss_bytes": 11317248
+    },
+    "protocol": "SuppliedFixedGeometrySceneSchedule; no XYZ discovery claim",
+    "scene_source_calibration": "Unknown absolute scale; relative RGB only"
+  },
+  "python": {
+    "scheduler": 2,
+    "all_stock": 4,
+    "blind_views": 7,
+    "failed": 0
+  },
+  "builds": {
+    "standalone_gcc_release": "Passed",
+    "sp_rend2_release": "Passed",
+    "mp_rend2_release": "Passed"
+  },
+  "architecture": {
+    "schema": "org.openjk.solver-architecture-audit.v1",
+    "modules": [
+      "producer",
+      "joint",
+      "uncertainty",
+      "amplitude_fit",
+      "point_refine",
+      "emitter_shape",
+      "hidden_candidates",
+      "sun_fit",
+      "indirect",
+      "bake_forward",
+      "bake_integral",
+      "bake_trace",
+      "candidate_pool",
+      "shadow_evidence",
+      "transport_mesh",
+      "sampling",
+      "scene_schedule"
+    ],
+    "forbidden_runtime_dependencies": [],
+    "dependency_check_pass": true,
+    "boundary": "Producer::Run -> immutable ReconstructedLightingAsset plus data payloads",
+    "decoder_exception": "RendererSettings describes presentation parity; source decoding is independently tested invariant",
+    "physical_validity": "hard geometry/finite/nonnegative constraints; uncertain geometry is not certified free",
+    "ranking": "validation objective + complexity + geometry/material priors; required-block gate first",
+    "priority_qualification": "No independent stock physical-truth oracle; ranking is not a proof of physical configuration",
+    "uncertainty": "runs before publication; remains conditional/unknown without calibration",
+    "budgets": "CPU offline work/memory limits, not renderer resource limits",
+    "consumer_status": "Unavailable; independent consumer gates do not enable renderer features"
+  },
+  "stock": {
+    "maps": 5,
+    "profiles_per_map": 2,
+    "repeated_runs": 2,
+    "physical_truth": "Unavailable",
+    "accepted_fits": 0,
+    "final_heldout_evaluations": 0,
+    "physical_emitters_published": 0
+  },
+  "runtime": {
+    "game_launched": false,
+    "renderer_lighting_changed": false,
+    "consumer_enabled": false
+  },
+  "initial_attempts": [
+    {
+      "scope": "Initial X11 C++ build",
+      "status": "Failed",
+      "cause": "Unqualified inherited callback type names and C++11 aggregate construction",
+      "resolution": "Qualified callback types; explicit engine constructor"
+    },
+    {
+      "scope": "Initial controlled tests",
+      "status": "Failed",
+      "cause": "A distant synthetic receiver was behind a real room wall; area-overflow status was InvalidInput; unsupported-profile cache expectation was too strong",
+      "resolution": "Separate positive three-shard opening fixture, preserve blocked distant rays, explicit WorkLimit, and positive known-profile cache control"
+    },
+    {
+      "scope": "x11-third/hoth3",
+      "status": "Failed",
+      "native_exit_code": 3221225477,
+      "cause": "Access violation; evidence ordinal incorrectly used as candidate ordinal in Producer conversion",
+      "resolution": "Canonical evidence/part references and span guards; three-evidence/one-candidate deterministic regression; both final five-map runs exit 0"
+    },
+    {
+      "scope": "x11-third/vjun2",
+      "status": "Failed",
+      "cause": "Scene allocation failure in the same experimental compact-catalog path",
+      "resolution": "Corrected primary reference; final runs complete; no independent allocator trace claimed"
+    },
+    {
+      "scope": "Debugger replay",
+      "status": "StoppedDiagnostic",
+      "cause": "Old binary replay was slow; no completed stack trace",
+      "resolution": "Only owned debugger/child stopped; initial failure retained; no exact debugger reproduction claimed"
+    },
+    {
+      "scope": "Concurrent map-tool rebuild",
+      "status": "Failed",
+      "cause": "Windows linker could not overwrite the active experimental executable",
+      "resolution": "Experiments now use hash-verified per-run executable copies; final builds pass"
+    }
+  ],
+  "logs": {
+    "ctest-release-final.log": "58e0846385ebaa4e745f94921b1ac5cdf230c597700db1f0b5942d5b956859a5",
+    "build-release-final.log": "88f975e4fed338f82e1c5864c1f9f050093322386e2c7bf67bb7eda248acad9c",
+    "build-renderers-final.log": "ff469f9358be6fd949caca9f2e3ef5b5486845c83d4fc93e6120697ab52b3fda",
+    "python-scheduler-final.log": "69f5f9388f174ffee1171112f7392185f7593415f0772b979e7f333f2540645a",
+    "python-audit.log": "d0fd70be27b8a6f2651dbab8cc97c606afa4a57213867a05182af6a19e3945ab",
+    "python-blind.log": "f3c9cf6184d763824ed222333c06ee6bf2151b506e438cd82ccc2c036d6ee515",
+    "architecture-final.json": "3087e41db66706af8bf4a078da303d0cf3ffc1b8396fa58e822e5d5e6d0078e2",
+    "build-fourth.log": "18ccd92e0c48c4febf29ec2f15a42404db66a634609c812715492d37fd0951ad",
+    "crash-replay-gdb.log": "c3c15314977c6f2e26efd65de499cc88f396eb3aa8162085a7f071614fa3901a"
+  }
+}

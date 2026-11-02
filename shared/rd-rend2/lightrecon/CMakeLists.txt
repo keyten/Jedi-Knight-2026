@@ -20,6 +20,7 @@ add_library(rend2_lightrecon_core STATIC
 	indirect.cpp indirect.h
 	transport_mesh.cpp transport_mesh.h
 	sampling.cpp sampling.h
+	scene_schedule.cpp scene_schedule.h
 	joint.cpp joint.h
 	uncertainty.cpp uncertainty.h
 	producer.cpp producer.h provider_outcome.h

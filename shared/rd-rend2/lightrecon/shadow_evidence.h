@@ -10,7 +10,7 @@ namespace Core
 {
 namespace Shadow
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // source-free baseline retains null-association loss
 enum Alternative : uint32_t
 {
 	CastShadow = 1u << 0,

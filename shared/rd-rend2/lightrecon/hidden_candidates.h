@@ -172,6 +172,10 @@ struct Result
 // Output owns its records, no world/renderer pointer, I/O, global cache or threads.
 // Errors clear proposals; capped local searches return explicit incomplete reports.
 Error Generate(const Request &, const ReadContext &, Result &);
+// Geometry-only scheduling, without invoking search or raising its local area cap.
+Error PlanAreas(const Request &, size_t maximum, const ReadContext &, std::vector<SearchArea> &);
+// Numerical request identity; metadata identity alone does not attest availability.
+Disk::Digest RequestIdentity(const Request &);
 } // namespace Hidden
 } // namespace Core
 } // namespace Rend2LightRecon

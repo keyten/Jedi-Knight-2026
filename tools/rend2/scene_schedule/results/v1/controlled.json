@@ -1,0 +1,1453 @@
+{
+  "checks": 235,
+  "failures": 0,
+  "protocol": "SuppliedFixedGeometrySceneSchedule",
+  "source_metrics": [
+    {
+      "candidate": 10,
+      "fitted_relative_rgb": [
+        3.2999382019,
+        0.09991119802,
+        0.200622543693
+      ],
+      "rgb_l2_error": 0.000631874548838
+    },
+    {
+      "candidate": 20,
+      "fitted_relative_rgb": [
+        0.100224785507,
+        0.300066500902,
+        2.09921360016
+      ],
+      "rgb_l2_error": 0.000820594665127
+    }
+  ],
+  "scene": {
+    "schema": "org.openjk.scene-schedule.v1",
+    "status": "Partial",
+    "reason": "Conditional scene-wide model; source existence/stock compiler identity not certified",
+    "graph_key": "be0ed7bbc7dbbaaff15659e40fbfd3f68dc43ed29d07441481f9e78b423e0ece",
+    "units": [
+      {
+        "id": 94531874738412823,
+        "generation": "6f4b60cf05989eff0e09e079e49e508e3c796c45e371d548744a7a4d0236c1f2",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 174134924085208670,
+        "generation": "f8bc8b8ff259b3775ac8b877387a2b52c63dab160aa88fcf231cd21681b7824f",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 398264299514052733,
+        "generation": "7e31b3c4e49489f852f9db384394358f562db7433ea768152897e9458f7ab4e2",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 414268637975562452,
+        "generation": "1d2273c6a24de459f02eb0c9b2600a947cc22028f2aa6c1b3524a2a9a4d549e4",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 815343287314950165,
+        "generation": "0074bef0900e519ab23ec1b7b29009c13c4593521f104c1f621027df70c8b666",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 1464782075725575865,
+        "generation": "a6adb68c3fb7ffb8f066c25740a6eb082f6bf04ee0d5694166ddfea061bb976b",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 1503339354712162249,
+        "generation": "781c407ddac99986de874d10a61c410e61f0fe97a4fe6f5e845f630e875e1ce3",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 1604666716922528636,
+        "generation": "966911e9ec712a977e50143153e5b6899c75f3c095dbe248c48f0e06481d9f3f",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 1671003992790107677,
+        "generation": "8625232622712a8ed35aee5a3e6d905b2577f12acfb76ad73fd3d7abba5ff7fd",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 1968627376733171703,
+        "generation": "75ca8afc809cc28d3d211e2ecf7d33ef48d6a15f76a38ba95f4e7e5263c061fa",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 2479628331734524432,
+        "generation": "69dbdde3d458326d90f9839e97b43f74757966c2121f2317b65c805b8e992c57",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 2537509311890505668,
+        "generation": "da0dfc2c01fd9ef28534cd55bc38bd71729ca8977cdf3dc03f9dac2fc5007c42",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 3165979345781584424,
+        "generation": "67f62ca21f5155d119b93804df8ab08f36e229783441ed23202fe025e3f1c11a",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 4907504052116079787,
+        "generation": "2f870d62d5887f1a9f6a4ebc5bddcf23ab44c9e72502c6121b92e7a410c49225",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 5158087620705279333,
+        "generation": "cb13a6f4f290504b1a6c2c8b00115b02878760a0fbd90bf4c48a65c694acfec1",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 5422671004982601951,
+        "generation": "95a5f4b8e6803fd6170427561a417e8031b2f84558567196d4a8115468e6709f",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 5773274263309288826,
+        "generation": "e9a9fc8ad46c8033ad60fae04c58c451fa3dad0d2302c0c4cc6e958d57b7a667",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 5983980297781031820,
+        "generation": "ea02bba83c3732f0fc6ccee886888e301ade813d1582a21e535efe00da17fca2",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 6041553596424109239,
+        "generation": "0436af4867ec7be07b27fdfa0834c6acc4011686e14b5466eb1261eceb0befd7",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 6557846507251471317,
+        "generation": "51dae6fb1d1a0d675e321eceea1da8e63503b0010b8b2a3bf3cd3284483528b5",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 6739017777815571027,
+        "generation": "a99616cc8fa926e5845a53c4bee5a991668c0358cd6f22630bd82cbb45510942",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 6834353628318715797,
+        "generation": "bf84ee42c20445e6ecffd6ca4c2ea69ed02efd4d257495c584fe93082f4b07b0",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 6951223291960125343,
+        "generation": "59601d87a3de0939707875135f995ba79bcd1c4c19a4c0652d79c83116b54e45",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 7216712593068887011,
+        "generation": "f9655c22ad6b3c0be6a414fbfc4f010af832e7e3f5effef31674089d2dd6478b",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 7405082744183313615,
+        "generation": "f591fe8294bf0c867488f88b8a2bb802454af7cc854980d2d6fe88137792e082",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 7419860866199484927,
+        "generation": "3f95d5d3d1f7280df48fd5c1a257084417240bf058bc726cd419e6f479aa6805",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 7467900830900261170,
+        "generation": "684997f3629dd82b5436dceb432b12abec44cc1642ac335d2d9ffc0a66f1b2bd",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 7907341700793425060,
+        "generation": "b8b2cf4a43653d0c031332a9902f5b5f9eb9c53232dd4efd812ba01e97a0bcff",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 8681376711285559895,
+        "generation": "d97ad7a56fb546eab3b25bdaa3795892c4cf5c77928e9597a366989297ea618f",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 9259012990626834714,
+        "generation": "b829e4a303a0742204f2260c5297a4f7880d3d70643f93fa4469aa6aa97aec73",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 9969014233934368702,
+        "generation": "d1e7fee48c676dae11e144c5410c777ce673b05e7de1ebeb207a7006077a495c",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 10092418502322207097,
+        "generation": "aae1d949bf45406e366e9f27d614e9ea5441cdaedc8ac85c9f2f1801230aa716",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 11021112823200786951,
+        "generation": "358e2e6850b05933e56e73a24e48e7df37d1e297565b8c242c6d5258d6ed323b",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 11318864867911861315,
+        "generation": "1270d77b222ad7f344df7b2286ec198326e817ce6bfe54b274e812c5e3e11d69",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 11500528038647887978,
+        "generation": "0537b977654882cb1c668675459454c65d23fd178308a9d0c48fa682fdf78cbb",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 11849613157108894674,
+        "generation": "020d5139229b4b0ebd40233130445e5e2f6f52892e2fa2a819bd449244a1655f",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 12218653708081081993,
+        "generation": "9ba96840683ebfe1eb7faf781845da3238cf13e210906713b22c99a6d2918697",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 12789784299356997059,
+        "generation": "1c6c6e6271f79de7a04cb17c248ed58b4c234ce7696c175abc8cf18a048e27b6",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 13384765859176748906,
+        "generation": "5b2997765f42eb9a43b8a53b10997563a7c4ce5acd79f88fcd0b797efd6aa1f5",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 14632012947480906709,
+        "generation": "bceb4da9f58e98b21593825d224a836b8e907b1ebbdec56d4e83fee29187ba71",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 14773995745490636588,
+        "generation": "3f177b978e3fb46e4025a980b2ba6a57e8e290cdb939569fec3c2c500ddfd554",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 14883770587815769896,
+        "generation": "c6ee293feb59b266b4a09c22a1c50b7291d37083f97a0f6bd15183f92854cd6e",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 15512846124107753963,
+        "generation": "7a3e10ddf2d1237fc1f2460707b86b83ebbff087a01cfc02a157e9a013eddd31",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 15693101101254161730,
+        "generation": "6ec2da61311837272aa0735bf045011cc8b7c34fb4988939c71135d1b3b01e20",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 16071407004007379658,
+        "generation": "2c37bdf5207ca7783b739387e4c67f44fbaa669965b972626ccb90e1c90c8b43",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 16185251500361085325,
+        "generation": "b95e22624260faa40a2a31fc2fc8f4514f88e104e4d724dc5e07683e456c79e0",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 16254641979427540076,
+        "generation": "45fad7c9d5861045fc76afddd214f765a6f185459241f186c1e76c98bc276d6d",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 16370372250027853137,
+        "generation": "d908b55486478195bf862634ad360fad9c4a8438d834ab742348890cb65ff711",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 17734869754386932468,
+        "generation": "b2aa7a9672b45089f38a345cabecabb77671bcc45ef20bcbb83748de23b7d21d",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      },
+      {
+        "id": 18148338361618796114,
+        "generation": "a4d4b76ca9ac9a925144714fcd24de3001e3dbae7c701522967ececc68c99e72",
+        "branch": 0,
+        "status": "Unsupported",
+        "training": 1,
+        "candidates": 0,
+        "complete": false,
+        "cached": false,
+        "rays": 0,
+        "work": 0,
+        "reason": "No supported multi-observation surface search; directions alone cannot create a lamp"
+      }
+    ],
+    "branches": [
+      {
+        "profile": "UnknownProfile",
+        "status": "Produced",
+        "catalog_models": 0,
+        "deferred": 0,
+        "waves": 1,
+        "joint_state": "Partial",
+        "preferred": 0,
+        "sources": 2,
+        "validation_mse": 1.53945302825e-08,
+        "black_mse": 1.16850502664,
+        "diagnostics": [],
+        "attempts": [
+          {
+            "proposal": "no-source/boundary-only",
+            "status": "Converged",
+            "reason": "",
+            "sources": 0
+          },
+          {
+            "proposal": "activate:10",
+            "status": "Partial",
+            "reason": "",
+            "sources": 1
+          },
+          {
+            "proposal": "activate:20",
+            "status": "Partial",
+            "reason": "",
+            "sources": 1
+          },
+          {
+            "proposal": "activate:20",
+            "status": "Partial",
+            "reason": "",
+            "sources": 2
+          }
+        ],
+        "omitted_attempts": 0
+      }
+    ],
+    "equivalent_branches": [
+      0
+    ],
+    "influence": [
+      {
+        "source": 10,
+        "unit": 94531874738412823,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 174134924085208670,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 398264299514052733,
+        "visible": 1,
+        "blocked": 0,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 414268637975562452,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 815343287314950165,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 1464782075725575865,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 1503339354712162249,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 1604666716922528636,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 1671003992790107677,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 1968627376733171703,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 2479628331734524432,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 2537509311890505668,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 3165979345781584424,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 4907504052116079787,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 5158087620705279333,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 5422671004982601951,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 5773274263309288826,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 5983980297781031820,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 6041553596424109239,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 6557846507251471317,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 6739017777815571027,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 6834353628318715797,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 6951223291960125343,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 7216712593068887011,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 7405082744183313615,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 7419860866199484927,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 7467900830900261170,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 7907341700793425060,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 8681376711285559895,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 9259012990626834714,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 9969014233934368702,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 10092418502322207097,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 11021112823200786951,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 11318864867911861315,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 11500528038647887978,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 11849613157108894674,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 12218653708081081993,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 12789784299356997059,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 13384765859176748906,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 14632012947480906709,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 14773995745490636588,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 14883770587815769896,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 15512846124107753963,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 15693101101254161730,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 16071407004007379658,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 16185251500361085325,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 16254641979427540076,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 16370372250027853137,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 17734869754386932468,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 10,
+        "unit": 18148338361618796114,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 94531874738412823,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 174134924085208670,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 398264299514052733,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 414268637975562452,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 815343287314950165,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 1464782075725575865,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 1503339354712162249,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 1604666716922528636,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 1671003992790107677,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 1968627376733171703,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 2479628331734524432,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 2537509311890505668,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 3165979345781584424,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 4907504052116079787,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 5158087620705279333,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 5422671004982601951,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 5773274263309288826,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 5983980297781031820,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 6041553596424109239,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 6557846507251471317,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 6739017777815571027,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 6834353628318715797,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 6951223291960125343,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 7216712593068887011,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 7405082744183313615,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 7419860866199484927,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 7467900830900261170,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 7907341700793425060,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 8681376711285559895,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 9259012990626834714,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 9969014233934368702,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 10092418502322207097,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 11021112823200786951,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 11318864867911861315,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 11500528038647887978,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 11849613157108894674,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 12218653708081081993,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 12789784299356997059,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 13384765859176748906,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 14632012947480906709,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 14773995745490636588,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 14883770587815769896,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 15512846124107753963,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 15693101101254161730,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 16071407004007379658,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 16185251500361085325,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 16254641979427540076,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 16370372250027853137,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 17734869754386932468,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      },
+      {
+        "source": 20,
+        "unit": 18148338361618796114,
+        "visible": 0,
+        "blocked": 1,
+        "unknown": 0
+      }
+    ],
+    "local_calls": 50,
+    "cache_hits": 0,
+    "joint_calls": 1,
+    "rays": 772,
+    "work": 115017,
+    "forward_calls": 332,
+    "candidate_inputs_deferred": 0,
+    "accounted_bytes": 1171776,
+    "influence_links": 100,
+    "influence_complete": true,
+    "candidates_unsupported": 0,
+    "fitting_evaluations": 199,
+    "fitting_models": 4,
+    "local_coverage_complete": false,
+    "candidate_coverage_complete": true,
+    "final_evaluated": false,
+    "stock_source_truth": null
+  },
+  "observation_contract": {
+    "operator": "Specified physical relative integral",
+    "rgb": "Scene-linear relative; no SI intensity calibration",
+    "geometry": "Owned analytical S10/S11/S13 fixtures; fixed XYZ supplied",
+    "historical_profile": "UnknownProfile does not define this physical-integral law"
+  }
+}

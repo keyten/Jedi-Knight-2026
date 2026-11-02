@@ -1205,6 +1205,64 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 		return Failure(Code::MemoryLimit, "Hidden candidate allocation failed");
 	}
 }
+Disk::Digest RequestIdentity(const Request &r)
+{
+	if (r.training.count > 65536 || r.areas.size() > 8192 ||
+		(r.training.count && (!r.training.owner || !r.training.data)))
+		return {};
+	std::vector<Sample> samples;
+	if (r.training.count)
+		samples.assign(r.training.data, r.training.data + r.training.count);
+	std::sort(samples.begin(), samples.end(), [](const Sample &a, const Sample &b) {
+		return a.receiver.sample < b.receiver.sample;
+	});
+	return Key(r, samples);
+}
+Error PlanAreas(const Request &r, size_t maximum, const ReadContext &read,
+				std::vector<SearchArea> &out)
+{
+	out.clear();
+	try
+	{
+		Need(!Cancelled(read), Code::Cancelled, "Area planning cancelled");
+		Need(maximum && maximum <= 8192 && r.areas.size() <= 8192 && r.training.count <= 65536 &&
+				 (!r.training.count || (r.training.owner && r.training.data)) &&
+				 std::isfinite(r.options.localCellWorld) && r.options.localCellWorld > 0 &&
+				 Valid(r.analysisBounds),
+			 Code::InvalidInput, "Scene area planning input/bounds");
+		Need(r.areas.size() <= maximum, Code::WorkLimit, "Explicit scene area graph budget");
+		Need(!read.maxBytes || r.training.count * sizeof(Sample) * 4 <= read.maxBytes,
+			 Code::MemoryLimit, "Scene area planning memory");
+		std::vector<Sample> samples;
+		if (r.training.count)
+			samples.assign(r.training.data, r.training.data + r.training.count);
+		for (const auto &s : samples)
+			Need(Finite(s.receiver.world) &&
+					 Length(V(s.receiver.world)) / r.options.localCellWorld < 1e12,
+				 Code::InvalidInput, "Scene planning coordinate range");
+		out = Areas(r, samples);
+		Need(out.size() <= maximum, Code::WorkLimit,
+			 "Scene work graph unit budget; use explicit further shards");
+		std::sort(out.begin(), out.end(),
+				  [](const SearchArea &a, const SearchArea &b) { return a.id < b.id; });
+		Id last = 0;
+		for (const auto &a : out)
+		{
+			Need(a.id > last && Valid(a.positions) && Valid(a.receivers), Code::InvalidInput,
+				 "Duplicate/invalid scene work area");
+			last = a.id;
+		}
+		return {};
+	}
+	catch (const Error &e)
+	{
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Failure(Code::MemoryLimit, "Scene area planning allocation");
+	}
+}
 } // namespace Hidden
 } // namespace Core
 } // namespace Rend2LightRecon

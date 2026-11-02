@@ -1,0 +1,48 @@
+{
+  "schema": "org.openjk.scene-schedule-witness.v1",
+  "input_commit": "d9cfa13ec14298da1dc2e0b44b96f9e52174b666",
+  "versions": {
+    "scene": 1,
+    "producer": 3,
+    "hidden": 2,
+    "joint": 4,
+    "shadow": 2
+  },
+  "sources": {
+    "shared/rd-rend2/lightrecon/scene_schedule.cpp": "7d6186f32eb280be7a9100cdd12a71cca2fd48c7af1facb5d867b44b6c086fa2",
+    "shared/rd-rend2/lightrecon/scene_schedule.h": "3ff594f69d2020432a24506dfb4cf963d295521883a9fbffd4d00a003f042ad3",
+    "shared/rd-rend2/lightrecon/producer.cpp": "3fc5a8a5378e31a934d6f12c4121d84d8933318c9a9b12aa7cc527f842267539",
+    "shared/rd-rend2/lightrecon/producer.h": "7106d299a0a130af376a220ed7cf6cfc3039571bd1775247c78bd38440b085c3",
+    "shared/rd-rend2/lightrecon/hidden_candidates.cpp": "c80eab7620b06e3d8fbc326c32423bb43746327845089249c5aeb49753272987",
+    "shared/rd-rend2/lightrecon/hidden_candidates.h": "fc88cd461717137588574349f0e0aa92e1a59977a173d02ff6a9c8a0734f9068",
+    "shared/rd-rend2/lightrecon/shadow_evidence.cpp": "aa59372a2d2fa309200fdec83303b7e034df539bf5d3bd76447aa0d05c7920b7",
+    "shared/rd-rend2/lightrecon/shadow_evidence.h": "1a6cb2d64b3d37a412fc0e7c7c7004eb1ff960ff84c984a06a820c09aa516dc7",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "3151c39adb5518d257d7d10efe985a40c1fa5ff3a408b2ca90b5117759a1520a",
+    "tools/lightrecon_test/scene_audit.h": "47e6d05c31b503ff816327f6cef1a496f481ec44bd4eed150ff4593f85907bec",
+    "tools/lightrecon_test/sampling_audit.h": "bd77538fb2bfdd4142b70a259d51fa1ab031fccdb4e388991fecd1bb7c10876e",
+    "tools/lightrecon_test/lightrecon_map_solver.cpp": "5c28efb8dda8b9c8d8d024080238d2b77990a609509ccb22398e44aefe718800",
+    "tools/lightrecon_test/lightrecon_scene_schedule_test.cpp": "17447516953b8319dd33105fdd52daef88606c892761545a0914a7c40b0d4915",
+    "tools/lightrecon_test/lightrecon_shadow_test.cpp": "c4c3c0ff32216c6a2466e232d9b5db001b8eb2a9e4a9bf57842433ecd62709c7",
+    "tools/lightrecon_test/CMakeLists.txt": "658f81467ade3920f22055a9221866d3b9bc31ded30b1858385667a862172a40",
+    "tools/rend2/scene_schedule/run.py": "dcce4b87d9c969ab55cfc9f4a43626b12a66d815d51510eabd5220b52b228078",
+    "tools/rend2/scene_schedule/collect.py": "560bd89dd61c267bf890cda6da39c08e963e9cfb9787b9707fc0e85546ad4524",
+    "tools/rend2/scene_schedule/verify.py": "e3df52b3617748586740a28dd8db5c3c964625169b02da0004e63b76712962f7",
+    "tools/rend2/scene_schedule/test_reports.py": "dc22fa6bb33dc6d7f681a57c0372639edca7bde9d6d282a73e6b071cab4b15ec",
+    "tools/lightrecon_test/joint_fixture.h": "001d0d25a453ca2db3c8f1a68d2583eb2aa05a0737323a4051956c08dd607efc",
+    "tools/lightrecon_test/joint_test_scene.h": "296c5fac63df0556033467631871eebc643e5bac4b9a29c50cdc380e7578ed57",
+    "tools/lightrecon_test/producer_test_scene.h": "9de5380e061a7809cdc08c97cd26b227eb0acbba07e79663aa091874b1b76e30",
+    "shared/rd-rend2/lightrecon/candidate_pool.cpp": "f49885dc1f2aa4e70ce797996390c92a5a44a59eb4c5a98178305c5903380363",
+    "shared/rd-rend2/lightrecon/candidate_pool.h": "dd8dda7d1a560076a3e8ce1985e7ce1b57dcb2b89c51cea491a40ffd76c35323",
+    "shared/rd-rend2/lightrecon/joint.cpp": "0ddb37b884558af5051f9ade8cba0da0ef7ee43bacf8d42640a22e529101bb6e",
+    "shared/rd-rend2/lightrecon/joint.h": "7cbedf130c9ac8b1e41215e8065795cd940755eef7563ed16518c837f699ca86",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "01bc5f7f581ed89d341b0feac056e397040974f43ecdd95c8d011ec769556c8e",
+    "shared/rd-rend2/lightrecon/indirect.h": "bd65db5d8dca015e45ee5b0448a1d784765a8cbb97936bc6a8f00683ba5606d6",
+    "shared/rd-rend2/lightrecon/sampling.cpp": "4562a977835f998d6fc46a74ec092718f684347575d01728b35c01ab35208310",
+    "shared/rd-rend2/lightrecon/sampling.h": "51581751c14fd8aaa970994547412eaf7e7cdcc7df97ff143c58ed6248b208e7"
+  },
+  "artifacts": {
+    "controlled.json": "79583dd6afcf054cd9ebf418311ac04d1b80af44a1cca9443031dbce1121edcf",
+    "stock.json": "209d307ee9f535c7cacaed7352929c272f5ae22312cbc4af59dc14dd1e63a0c8",
+    "checks.json": "fd8b05cbcf3f9b7d0cf11c88c90d7550016184607d5dd69da9a87d6e5723587a"
+  }
+}

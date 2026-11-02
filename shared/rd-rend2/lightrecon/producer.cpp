@@ -434,6 +434,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	GeometryKey k;
 	k.U(kVersion);
 	k.U(kSchemaVersion);
+	for(const auto&s:r.contextHypotheses)Text(k,s);
 	k.U(r.providerPolicy.hiddenRequired);
 	k.U(r.providerPolicy.solarRequired);
 	k.U(r.providerPolicy.allowOptionalLocalBudget);
@@ -818,6 +819,7 @@ struct Assembly
 											  ? profile.model.profile.id + "/" +
 													Disk::Hex(profile.model.profile.contentKey)
 											  : "specified-physical-integral-relative");
+		for(const auto&context:r.contextHypotheses)a.profileHypotheses.push_back(context);
 		a.coverage.requestedTraining = r.fitting.count;
 		a.trainingHash = Disk::Hex(r.fitting.trainingKey);
 		for (const auto &d : r.fingerprint.inputs)
@@ -1012,8 +1014,17 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 		model.fragmentUnion && model.parts.size() > 1)
 		return false;
 	const auto &provider = catalog.providers.at(model.primary.provider);
-	const auto &original = provider.candidates.data[model.primary.index];
-	const auto &e = provider.evidence.data[original.primary];
+	// Model::primary indexes EVIDENCE, not the candidate array. Several evidence
+	// records can support one candidate; compact multi-provider catalogs expose
+	// that distinction. Using it as a candidate index was an out-of-bounds read.
+	Need(model.primary.index < provider.evidence.count && !model.parts.empty(), Code::InvalidInput,
+		 "Consolidated primary evidence span");
+	const auto &e = Candidates::Evidence(catalog, model.primary);
+	const auto &part = model.parts.front();
+	const auto &partProvider = catalog.providers.at(part.provider);
+	Need(part.index < partProvider.candidates.count, Code::InvalidInput,
+		 "Consolidated candidate part span");
+	const auto &original = partProvider.candidates.data[part.index];
 	if (e.issues & (MovingEvidence | AnimatedEvidence | DynamicAuthoredMode))
 		return false;
 	c.id = model.id;
@@ -1896,6 +1907,78 @@ Error PrepareModelRequests(const Request &request, const ReadContext &read, Resu
 	}
 }
 
+bool MakeCandidate(const Candidates::Catalog &catalog, const Candidates::Model &model,
+				   const Joint::Request &request, Joint::Candidate &out)
+{
+	return Convert(catalog, model, request, out);
+}
+Disk::Fingerprint DependencyFingerprint(const Request &request)
+{
+	return Fingerprint(request);
+}
+
+Error RebindProviders(const Request &original, Request &refitted)
+{
+	try
+	{
+		if (!original.prepared)
+			return {};
+		Need(Fingerprint(original).inputs.back().sha256 == original.prepared->binding,
+			 Code::InvalidState, "Stale original provider snapshot");
+		const auto &a = original.fitting;
+		const auto &b = refitted.fitting;
+		Need(original.map.sha256 == refitted.map.sha256 && a.mapKey == b.mapKey &&
+				 a.trainingKey == b.trainingKey &&
+				 a.geometry.geometryKey == b.geometry.geometryKey &&
+				 a.geometry.materialKey == b.geometry.materialKey &&
+				 a.profiles.size() == b.profiles.size() &&
+				 a.boundaryRoots.size() == b.boundaryRoots.size(),
+			 Code::InvalidInput, "Refitted provider scene/observation identity changed");
+		for (size_t i = 0; i < a.profiles.size(); ++i)
+			Need(a.profiles[i].model.profile.contentKey == b.profiles[i].model.profile.contentKey &&
+					 a.profiles[i].model.law == b.profiles[i].model.law &&
+					 a.profiles[i].fixedGain == b.profiles[i].fixedGain,
+				 Code::InvalidInput, "Refitted provider profile/calibration scope changed");
+		for (size_t i = 0; i < a.boundaryRoots.size(); ++i)
+			Need(a.boundaryRoots[i].source == b.boundaryRoots[i].source &&
+					 a.boundaryRoots[i].generation == b.boundaryRoots[i].generation,
+				 Code::InvalidInput, "Refitted environment scenario changed");
+		// Only source hypotheses, numerical budgets, contextual alternatives and
+		// coverage/settings records may change. Encoding, calibration, root values,
+		// geometry, provider policy and independent partition identities stay pinned.
+		auto pinned = refitted;
+		pinned.fitting.candidates = original.fitting.candidates;
+		pinned.fitting.options = original.fitting.options;
+		pinned.options = original.options;
+		pinned.settingsIdentity = original.settingsIdentity;
+		pinned.contextHypotheses = original.contextHypotheses;
+		pinned.coverage = original.coverage;
+		pinned.prepared = original.prepared;
+		Need(Fingerprint(pinned).inputs.back().sha256 == original.prepared->binding,
+			 Code::InvalidInput,
+			 "Refitted provider observation/calibration/scene contract changed");
+		auto snapshot = std::make_shared<PreparedProviders>(*original.prepared);
+		refitted.prepared.reset();
+		GeometryKey key;
+		key.Digest(snapshot->generation);
+		key.Digest(Fingerprint(refitted).inputs.back().sha256);
+		snapshot->generation = key.Finish();
+		snapshot->stages.push_back("Scoped provider outcomes/provenance retained after offline "
+								   "scene source refit; missing components remain unknown");
+		refitted.prepared = snapshot;
+		snapshot->binding = Fingerprint(refitted).inputs.back().sha256;
+		return {};
+	}
+	catch (const Error &e)
+	{
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Failure(Code::MemoryLimit, "Rebinding provider diagnostics");
+	}
+}
+
 Error Run(const Request &original, const ReadContext &read, Result &out,
 		  const Joint::Validation *validation, const FinalEvaluation *final)
 {
@@ -1911,6 +1994,10 @@ Error Run(const Request &original, const ReadContext &read, Result &out,
 			 Code::InvalidInput, "Producer input/map/budget/decoder identity invalid");
 		Need(original.fitting.count <= original.fitting.options.maxObservations, Code::WorkLimit,
 			 "Producer training observation limit");
+		Need(original.contextHypotheses.size() <= 64, Code::InvalidInput,
+			 "Producer contextual hypothesis limit");
+		for (const auto &s : original.contextHypotheses)
+			Need(s.size() <= 4096, Code::InvalidInput, "Producer contextual hypothesis text limit");
 		bool bspMatched = false;
 		for (const auto &input : original.fingerprint.inputs)
 			if (input.kind == Disk::InputKind::Bsp && input.sha256 == original.map.sha256 &&

@@ -996,7 +996,9 @@ Error Objective::Inspect(const std::vector<FitEvidence::Source> &sources, const 
 		Cancel(read);
 		const auto &c = data->context;
 		const auto &p = c.policy;
-		Need(sources.size() > 0 && sources.size() <= p.maxSources, Code::InvalidInput, "Shadow source count");
+		// No emitters is a legitimate structural baseline. Eligible observed edges
+		// remain unassigned and pay nullCost; they do not silently disappear.
+		Need(sources.size() <= p.maxSources, Code::InvalidInput, "Shadow source count");
 		uint64_t cap = read.maxBytes ? std::min(read.maxBytes, p.maxBytes) : p.maxBytes;
 		Need(c.observations->edges.size() *
 						 (p.maxAssociationsPerEdge *

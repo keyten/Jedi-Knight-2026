@@ -710,6 +710,11 @@ void MultiSourceTests()
 	black.rgb = Vec3();
 	Must(o->Inspect({black}, Read(), r));
 	CHECK(!r.value.informative && r.value.matched == 0);
+	H::Report empty;
+	Must(o->Inspect({}, Read(), empty));
+	CHECK(empty.value.available && !empty.value.informative);
+	CHECK(empty.value.loss == r.value.loss && empty.value.rays == 0);
+	CHECK(empty.unassigned == empty.eligibleEdges);
 	Record("two_coloured_shadows", true, *e);
 	H::Context wrong = c;
 	wrong.visibility = Scene(true).visibility;

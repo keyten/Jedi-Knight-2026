@@ -10,6 +10,7 @@ struct SamplingSelection
 	std::array<std::vector<Selected>, 3> folds;
 	uint64_t reads = 0, poolCandidates = 0, poolDropped = 0, footprintWork = 0;
 	std::map<Id, SP::Geometry> geometry;
+	std::shared_ptr<std::vector<Hidden::Sample>> localTraining;
 };
 struct SamplingReference
 {
@@ -126,7 +127,8 @@ static SP::Quality SamplingMeasured(const std::vector<Selected> &rows,
 }
 static SamplingSelection HierarchicalSelect(const O::Dataset &data, const O::Sources &s,
 											const std::array<std::vector<Selected>, 3> &old,
-											const std::string &folder, const ReadContext &read)
+											const std::string &folder, const ReadContext &read,
+											bool retainLocalTraining = false)
 {
 	auto start = std::chrono::steady_clock::now();
 	SamplingSelection result;
@@ -280,6 +282,7 @@ static SamplingSelection HierarchicalSelect(const O::Dataset &data, const O::Sou
 		if (g.role == SP::Role::Training)
 			trainEntries[reference.at(g.id).entry].push_back(g.id);
 	std::vector<SP::Signal> signals;
+	if(retainLocalTraining)result.localTraining=std::make_shared<std::vector<Hidden::Sample>>();
 	for (const auto &group : trainEntries)
 	{
 		std::vector<O::Luxel> tile;
@@ -299,6 +302,19 @@ static SamplingSelection HierarchicalSelect(const O::Dataset &data, const O::Sou
 				v.censored[c] = l.colour.raw.bytes[c] == 255;
 			}
 			signals.push_back(v);
+			if(retainLocalTraining){
+				const auto&g=r.surface;const auto&support=*std::lower_bound(result.plan.geometry.begin(),result.plan.geometry.end(),id,[](const SP::Geometry&a,Id b){return a.id<b;});
+				Hidden::Sample sample;sample.receiver.sample=id;sample.receiver.surface=g.surface+1;sample.receiver.material=g.materialIndex+1;
+				sample.receiver.world=g.positionWorld;sample.receiver.geometricNormal=g.geometricNormal;sample.receiver.shadingNormal=g.shadingNormal;
+				sample.receiver.mappedPlanar=sample.receiver.compilerPlacementCertified=true;sample.receiver.mappingErrorWorld=g.mappingErrorBoundWorld;
+				sample.receiver.footprint=SourceFootprint::Footprint(s.geometry->Surfaces()[g.surface],g.styleSlot,g.x,g.y,g.geometricNormal,sample.areaWorldSquared);
+				sample.correlationGroup=support.correlation;sample.statisticalWeight=1;sample.eligible=true;sample.encodingAttested=r.encodingKnown;
+				// Unknown direct/GI mixture already yields AmbiguousSourceOrTransport.
+				// No independent transport-only evidence exists for every stock texel.
+				sample.transportSuspected=false;
+				sample.materialUncertainty=l.classification.materialUncertainty;for(unsigned c=0;c<3;++c)sample.rgb[c]=l.colour.raw.bytes[c];
+				result.localTraining->push_back(std::move(sample));
+			}
 		}
 	}
 	SP::Plan refined;

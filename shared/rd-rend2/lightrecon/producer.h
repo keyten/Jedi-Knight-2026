@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 2;
+constexpr uint32_t kVersion = 3; // scene-level conditional alternatives in publication identity
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {
@@ -61,6 +61,7 @@ struct Request
 	LightmapMapIdentity map;
 	BuildCoverage coverage; // raw/map-wide denominators, never inferred from a small ROI
 	std::string decoder, settingsIdentity;
+	std::vector<std::string> contextHypotheses; // competing scoped models, never summed lighting
 	Disk::Digest validationKey{},
 		heldoutKey{};			   // private partition identities, never withheld colours
 	Disk::Fingerprint fingerprint; // completeness is caller-attested, never guessed here
@@ -119,6 +120,14 @@ struct Result
 // Execute providers once, preserve their leases/outcomes, construct separate
 // model requests for mutually exclusive solar/profile scenarios. Does not fit.
 Error PrepareModelRequests(const Request &, const ReadContext &, Result &);
+// Reuse the canonical S05 -> Joint adapter in offline scheduling. False means
+// unsupported geometry/transport evidence; never substitute a point source.
+bool MakeCandidate(const Candidates::Catalog &, const Candidates::Model &,
+				   const Joint::Request &, Joint::Candidate &);
+Disk::Fingerprint DependencyFingerprint(const Request &); // same full CPU settings identity as Run
+// Retain scoped provider outcomes after a CPU refit, with original binding and
+// scene/profile/observation checks. Does not rerun or invent a provider result.
+Error RebindProviders(const Request &original, Request &refitted);
 // No publication on cancellation/numerical/work failure. Unknown-profile inputs
 // can return a diagnostic-only empty-resolved asset with explicit readiness.
 Error Run(const Request &, const ReadContext &, Result &, const Joint::Validation * = nullptr,

@@ -23,6 +23,12 @@ discovery admission, but preserves weak/no-signal jobs and false-source risks.
 The experiment stops at production candidate proposals; it does not turn the
 frozen whole-map audit below into an accepted stock joint fit.
 
+**X11 follow-up:** [bounded scene scheduler](rend2-scene-scheduler-x11.md) processes
+the larger work graph through one-area Hidden calls and compares bounded global
+candidate waves on map-wide observations. Its five-map regression reaches Joint;
+the report separately records rejected fits, unknown components and final
+held-out availability. This does not rewrite the earlier 57-map result.
+
 **The project has working controlled CPU fitting components and a canonical
 producer, but has not demonstrated autonomous recovery of original lights from
 stock JA maps.** Invoking the complete producer on every installed stock BSP did
