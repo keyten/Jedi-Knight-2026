@@ -9,6 +9,7 @@ add_library(rend2_lightrecon_core STATIC
 	input.cpp input.h session.cpp session.h control.cpp control.h lightmaps.cpp lightmaps.h
 	decode.cpp decode.h
 	photometry.cpp photometry.h
+	field_basis.cpp field_basis.h
 	bake_profile.h bake_forward.cpp bake_forward.h bake_math.h bake_trace.cpp bake_trace.h bake_integral.cpp
 	sun_fit.cpp sun_fit.h
 	hidden_candidates.cpp hidden_candidates.h

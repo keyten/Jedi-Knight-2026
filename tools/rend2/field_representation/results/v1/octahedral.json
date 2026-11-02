@@ -1,0 +1,278 @@
+{
+  "schema": "org.openjk.octahedral-irradiance-capacity.v1",
+  "rows": [
+    {
+      "scene": "uniform_hemisphere",
+      "size": 8,
+      "precision": "FP32",
+      "payload_bytes": 768,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.029390377829976166,
+        "relative_rms": 0.03969103016423272,
+        "minimum": 0.01256863586604595,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "uniform_hemisphere",
+      "size": 8,
+      "precision": "FP16",
+      "payload_bytes": 384,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.029389261634414538,
+        "relative_rms": 0.03968952276776568,
+        "minimum": 0.01256561279296875,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 9.847265888362214e-05
+    },
+    {
+      "scene": "uniform_hemisphere",
+      "size": 16,
+      "precision": "FP32",
+      "payload_bytes": 3072,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.009186654232942326,
+        "relative_rms": 0.012406365524712472,
+        "minimum": 0.0040536619917338704,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "uniform_hemisphere",
+      "size": 16,
+      "precision": "FP16",
+      "payload_bytes": 1536,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.009187894435685417,
+        "relative_rms": 0.012408040390029636,
+        "minimum": 0.004053660505091756,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.00010668300372000709
+    },
+    {
+      "scene": "uniform_hemisphere",
+      "size": 32,
+      "precision": "FP32",
+      "payload_bytes": 12288,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.0027487153654375393,
+        "relative_rms": 0.0037120769632024773,
+        "minimum": 0.0023712918479656445,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "uniform_hemisphere",
+      "size": 32,
+      "precision": "FP16",
+      "payload_bytes": 6144,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.0027611472657183248,
+        "relative_rms": 0.003728865958971702,
+        "minimum": 0.00237161704817985,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.00010816590696294112
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 8,
+      "precision": "FP32",
+      "payload_bytes": 768,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.02355558875957408,
+        "relative_rms": 0.06466547196656432,
+        "minimum": 0.047639275359375934,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 8,
+      "precision": "FP16",
+      "payload_bytes": 384,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.02355602649801117,
+        "relative_rms": 0.06466667365856707,
+        "minimum": 0.04764910322529449,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 5.105272119722344e-05
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 16,
+      "precision": "FP32",
+      "payload_bytes": 3072,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.007159407924576971,
+        "relative_rms": 0.01965421018210634,
+        "minimum": 0.047244888222557554,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 16,
+      "precision": "FP16",
+      "payload_bytes": 1536,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.00716372170532193,
+        "relative_rms": 0.019666052495651558,
+        "minimum": 0.04725327542329564,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 4.744903775576992e-05
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 32,
+      "precision": "FP32",
+      "payload_bytes": 12288,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.0021797990316759497,
+        "relative_rms": 0.005984046275145359,
+        "minimum": 0.047217844656840056,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "previous_three_coloured_lobes",
+      "size": 32,
+      "precision": "FP16",
+      "payload_bytes": 6144,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.002176311412107356,
+        "relative_rms": 0.005974471962749909,
+        "minimum": 0.04722457603986008,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 4.818295034089437e-05
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 8,
+      "precision": "FP32",
+      "payload_bytes": 768,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.031938467782826586,
+        "relative_rms": 0.08934900071270761,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 8,
+      "precision": "FP16",
+      "payload_bytes": 384,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.0319161915036495,
+        "relative_rms": 0.08928668202861784,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 5.842863860304916e-05
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 16,
+      "precision": "FP32",
+      "payload_bytes": 3072,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.010115395323174289,
+        "relative_rms": 0.02829817855024326,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 16,
+      "precision": "FP16",
+      "payload_bytes": 1536,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.010108838848326829,
+        "relative_rms": 0.028279836578430403,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 5.398366901952889e-05
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 32,
+      "precision": "FP32",
+      "payload_bytes": 12288,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.003333444650442428,
+        "relative_rms": 0.009325430088675117,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 0.0
+    },
+    {
+      "scene": "ideal_parallel_delta",
+      "size": 32,
+      "precision": "FP16",
+      "payload_bytes": 6144,
+      "stored_quantity": "E, not E/pi",
+      "error": {
+        "rmse": 0.003329257076690338,
+        "relative_rms": 0.009313715202015425,
+        "minimum": 0.0,
+        "negative_channels": 0,
+        "channels": 771
+      },
+      "extra_quantization_rmse": 4.982739963013101e-05
+    }
+  ],
+  "semantics": "Exact diffuse reference values are supplied at texel centres; this is capacity/interpolation/quantization, not a matched-budget unknown-field estimator, not incoming radiance or GPU performance",
+  "border": "CPU virtual octahedral folding; no claim of the pinned engine atlas margin/lookup replay",
+  "header_metadata_bytes_included": false
+}

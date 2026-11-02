@@ -1,0 +1,51 @@
+{
+  "schema": "org.openjk.field-representation-manifest.v1",
+  "base_commit": "9787e79452bef629155b00f785465ff6bdfc5733",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/field_basis.h": "876448138cfb138b55f189de681a97e414f0ff402d1fdf8dfa79a0cb9219ee56",
+    "shared/rd-rend2/lightrecon/field_basis.cpp": "015b84e8670023c4292296f8d8332fb5a07caa90c61d5e543e42548649ddb9f9",
+    "tools/lightrecon_test/lightrecon_field_basis_test.cpp": "098f32fb0c2efa4ed9a5aa7b90ea74dd4d5284b11ff2634a6c35f8f0d24a39de",
+    "tools/lightrecon_test/lightrecon_field_basis_tool.cpp": "27596571ed6b73d186e8abb8c18897d4371ae1a8e27a4b06ed7e50c17b84d14a",
+    "tools/rend2/field_representation/benchmark.py": "4287b93d9c3dcb38c24ca0d8f6b8e883234b691815364a5d3cac18e4c9b2326f",
+    "tools/rend2/field_representation/freeze.py": "30f8fe7b6f85d1e0fde7ed81a7c29dad47779ed3757d05917381ab47ab146b13",
+    "tools/rend2/field_representation/test_benchmark.py": "16e98b0634f40efc9b7fe56f12f8ef712b166274a8f717669e2f8858d93d3fe5",
+    "tools/rend2/field_representation/octahedral.py": "6b060d13c9d98bf1b499d09cc2a38ca37eb96b669908f9e6eef6df023d9810bc",
+    "tools/rend2/field_representation/test_octahedral.py": "dccfb6d91eac2443662f31eddc288b6449443f5cb4cc73aa1b7036958fd57751",
+    "shared/rd-rend2/lightrecon/CMakeLists.txt": "bc80e4abb0c225168e11da85c98fecffb29f00a07834bdf689fe6a18bdb75d4a",
+    "tools/lightrecon_test/CMakeLists.txt": "0b12f72d62ffcebc51bdac7e628291670324989c22e885ccf862e0e02a817f46",
+    "tools/rend2/all_stock/architecture.py": "7b682c0060c78f73de91f84a1216b290e62077306575ca6e96d4a3cf09a5d22f"
+  },
+  "executable_sha256": "eefeb1574bd591ae2e5f4437dd262fdeded324bbb9f230a7b83dbce7d34167f1",
+  "repeat_semantics": true,
+  "input": "Owned analytic angular/geometry fixtures, no JA pixels, no stock calibration",
+  "field_registration": false,
+  "renderer_changes": false,
+  "limits": {
+    "native_seconds": 900,
+    "process_bytes": 536870912,
+    "max_sg_kernel_evaluations": 100000000
+  },
+  "artifacts": {
+    "architecture.json": "caaf407aa70ccc355b84fabeeb6045acac3ec21ea94df254dc108795bfbdb791",
+    "checks.json": "866287fe91e175bd5708ccedd09cb972dfae7a8bdf460d0a4ac5efcd13087638",
+    "octahedral.json": "edf05e7b269184ec664f5c35c01b18199c4ac12a23d564ae19386931a90f71dd",
+    "performance.json": "9629a4cfd9f760a5b7e4fe9fd72477f15ba11c9c9883991832943c0c3f7d51c2",
+    "quality.csv": "b33f554d308462677b2ad1afad4c72b6c8c10d6664692ae4c6e6e1f71ae7aacd",
+    "quality.json": "39fd8e930c6a2054ea17929f74c00ba80568288ecd7adec9bb90ff1cbfde4fca",
+    "sg-recovery.json": "02ff2b0174808622271d6195001eaf5d4a552ae359160ba55c539d391a1fa098",
+    "spatial.json": "8bf2cd74df2070e954aa5d7616dedc168f175401b52eabd5b2410b2a58867706"
+  },
+  "reference_sources": {
+    "tools/rend2/ddgi_research/sources.json": "300a5ded3ba5c5835da5887e5b26d801407edb5d192f3d02c71c0b96c0f979d5",
+    "tools/rend2/rbdoom_research/sources.json": "7550e98954d57eeeed4a1a47562bd4d2d5548201b4f0083e5c9d25f8f3462723",
+    "tools/rend2/rbdoom_research/field_basis.py": "ffa5588e0b0dbdef5ea23c03c1a6c612aa56aa10d0a0a1be1f07a4950f5aa549"
+  },
+  "scope": "Angular representation decision, not field generation/renderer integration/stock light recovery",
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "processor": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "logical_processors": 12,
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "compiler": "GCC 16.2.0 / C++11 Release; SP/MP MSVC 2019 Release"
+  }
+}

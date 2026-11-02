@@ -1,0 +1,51 @@
+[
+  {
+    "representation": "SG_1",
+    "matching": "InsufficientLobes"
+  },
+  {
+    "representation": "SG_3",
+    "matching": "EvaluationOnly",
+    "angle_degrees": [
+      0.024328593650557017,
+      0.04420437593903598,
+      0.03735223295106899
+    ],
+    "sharpness_error": [
+      0,
+      0,
+      0
+    ],
+    "extra_lobes": 0
+  },
+  {
+    "representation": "SG_3_SH_L2",
+    "matching": "EvaluationOnly",
+    "angle_degrees": [
+      0.024328593650557017,
+      0.04420437593903598,
+      0.03735223295106899
+    ],
+    "sharpness_error": [
+      0,
+      0,
+      0
+    ],
+    "extra_lobes": 0
+  },
+  {
+    "representation": "SG_6",
+    "matching": "EvaluationOnly",
+    "angle_degrees": [
+      1.3086666417774044,
+      2.2728935953616354,
+      2.3296015665325465
+    ],
+    "sharpness_error": [
+      0,
+      0,
+      1.4310765425000014
+    ],
+    "extra_lobes": 3
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "ctest": {
+    "passed": 37,
+    "failed": 0,
+    "log_sha256": "0721d3db90d2d2956fa11946a3a7428f4bdd8e7fd7987d1af5e3b822f05c4ab1"
+  },
+  "native_log": "P03 angular basis: 970 checks, 0 failures",
+  "python": {
+    "passed": 10,
+    "log_sha256": "718c5ad85f1d6ed67e2b6abcc1e1276a7c04d90eafa3f51140a239b8d0fd3fec"
+  },
+  "renderers": {
+    "sp": true,
+    "mp": true,
+    "log_sha256": "3d5eb7d269fa6113b759b890e2bb416a42340a948f7910c9b3a170a4ef790454"
+  },
+  "ddgi_tests": {
+    "passed": 12,
+    "log_sha256": "3edd2da40795111ac2ce52b428e420bcaa976b1d68966dad9bdf2e3b8f3c53dd"
+  },
+  "rbdoom_tests": {
+    "passed": 13,
+    "log_sha256": "f5acf48b8e9ed7d89b41c8d4514fe68bd459abe130fc07a0aaa8f49974750ecc"
+  },
+  "renderer_launched": false,
+  "hardware_gpu_cost_measured": false
+}

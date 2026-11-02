@@ -1,0 +1,3479 @@
+{
+  "resources": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_field_basis_test.exe"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.3119999999180436,
+      "peak_process_rss_bytes": 4980736
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_field_basis_tool.exe",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\p03-comparison-final\\first.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 64.98499999998603,
+      "peak_process_rss_bytes": 8810496
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_field_basis_tool.exe",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\p03-comparison-final\\repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 59.73400000005495,
+      "peak_process_rss_bytes": 9338880
+    }
+  ],
+  "timings": [
+    [
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L1",
+        "build_seconds": 0.000596,
+        "radiance_seconds_per_query": 3.41186523438e-07,
+        "field_irradiance_seconds_per_query": 2.7519379845e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.2480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L2",
+        "build_seconds": 0.001062,
+        "radiance_seconds_per_query": 4.54956054687e-07,
+        "field_irradiance_seconds_per_query": 4.72868217054e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.61240310078e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L3",
+        "build_seconds": 0.001829,
+        "radiance_seconds_per_query": 7.1923828125e-07,
+        "field_irradiance_seconds_per_query": 7.17054263566e-07,
+        "eight_neighbour_field_irradiance_seconds": 6.62015503876e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L4",
+        "build_seconds": 0.002907,
+        "radiance_seconds_per_query": 1.10131835938e-06,
+        "field_irradiance_seconds_per_query": 1.06589147287e-06,
+        "eight_neighbour_field_irradiance_seconds": 9.14728682171e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L8",
+        "build_seconds": 0.010894,
+        "radiance_seconds_per_query": 3.64489746094e-06,
+        "field_irradiance_seconds_per_query": 3.6976744186e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.83023255814e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_1",
+        "build_seconds": 0.205911,
+        "radiance_seconds_per_query": 1.79077148437e-07,
+        "field_irradiance_seconds_per_query": 3.13643410853e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000257108527132,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_3",
+        "build_seconds": 0.806583,
+        "radiance_seconds_per_query": 4.43359375e-07,
+        "field_irradiance_seconds_per_query": 9.94534883721e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000823031007752,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.809588,
+        "radiance_seconds_per_query": 8.27026367187e-07,
+        "field_irradiance_seconds_per_query": 9.08837209302e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000791627906977,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_6",
+        "build_seconds": 2.203318,
+        "radiance_seconds_per_query": 8.13842773438e-07,
+        "field_irradiance_seconds_per_query": 0.00018419379845,
+        "eight_neighbour_field_irradiance_seconds": 0.00139734883721,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.0673828125e-07,
+        "field_irradiance_seconds_per_query": 3.99224806202e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.33333333333e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.80620155039e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L1",
+        "build_seconds": 0.000849,
+        "radiance_seconds_per_query": 3.02612304687e-07,
+        "field_irradiance_seconds_per_query": 2.90697674419e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.62790697674e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L2",
+        "build_seconds": 0.001359,
+        "radiance_seconds_per_query": 7.02270507813e-07,
+        "field_irradiance_seconds_per_query": 7.01550387597e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.73643410853e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L3",
+        "build_seconds": 0.002247,
+        "radiance_seconds_per_query": 1.09289550781e-06,
+        "field_irradiance_seconds_per_query": 1.10465116279e-06,
+        "eight_neighbour_field_irradiance_seconds": 9.04651162791e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L4",
+        "build_seconds": 0.003507,
+        "radiance_seconds_per_query": 1.08520507813e-06,
+        "field_irradiance_seconds_per_query": 1.23643410853e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.18062015504e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L8",
+        "build_seconds": 0.012998,
+        "radiance_seconds_per_query": 3.91186523437e-06,
+        "field_irradiance_seconds_per_query": 4.73255813953e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.96279069767e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_1",
+        "build_seconds": 0.244986,
+        "radiance_seconds_per_query": 2.50610351563e-07,
+        "field_irradiance_seconds_per_query": 2.66240310078e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00021596124031,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_3",
+        "build_seconds": 0.858522,
+        "radiance_seconds_per_query": 4.39697265625e-07,
+        "field_irradiance_seconds_per_query": 8.48798449612e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00065788372093,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.864749,
+        "radiance_seconds_per_query": 8.73046875e-07,
+        "field_irradiance_seconds_per_query": 8.91085271318e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000652201550388,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_6",
+        "build_seconds": 1.749743,
+        "radiance_seconds_per_query": 8.35205078125e-07,
+        "field_irradiance_seconds_per_query": 0.000180682170543,
+        "eight_neighbour_field_irradiance_seconds": 0.00147115503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.44458007813e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.55813953488e-06,
+        "explicit_reference_irradiance_seconds_per_query": 3.11627906977e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L1",
+        "build_seconds": 0.000771,
+        "radiance_seconds_per_query": 2.65014648438e-07,
+        "field_irradiance_seconds_per_query": 2.51937984496e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.13953488372e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L2",
+        "build_seconds": 0.001119,
+        "radiance_seconds_per_query": 5.75073242187e-07,
+        "field_irradiance_seconds_per_query": 4.14728682171e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.84496124031e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L3",
+        "build_seconds": 0.001835,
+        "radiance_seconds_per_query": 8.31176757812e-07,
+        "field_irradiance_seconds_per_query": 1.08914728682e-06,
+        "eight_neighbour_field_irradiance_seconds": 7.28682170543e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L4",
+        "build_seconds": 0.002909,
+        "radiance_seconds_per_query": 1.60534667969e-06,
+        "field_irradiance_seconds_per_query": 1.60852713178e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.33333333333e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L8",
+        "build_seconds": 0.011013,
+        "radiance_seconds_per_query": 3.84704589844e-06,
+        "field_irradiance_seconds_per_query": 3.81007751938e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.15503875969e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_1",
+        "build_seconds": 0.162217,
+        "radiance_seconds_per_query": 1.8603515625e-07,
+        "field_irradiance_seconds_per_query": 2.80503875969e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000223410852713,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_3",
+        "build_seconds": 0.863636,
+        "radiance_seconds_per_query": 4.8779296875e-07,
+        "field_irradiance_seconds_per_query": 8.51860465116e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000664170542636,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.866556,
+        "radiance_seconds_per_query": 9.21020507812e-07,
+        "field_irradiance_seconds_per_query": 8.08294573643e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000681503875969,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_6",
+        "build_seconds": 1.909855,
+        "radiance_seconds_per_query": 1.32690429687e-06,
+        "field_irradiance_seconds_per_query": 0.000176426356589,
+        "eight_neighbour_field_irradiance_seconds": 0.00148758914729,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.48852539063e-07,
+        "field_irradiance_seconds_per_query": 4.49612403101e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.77519379845e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000544968992248,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L1",
+        "build_seconds": 0.00059,
+        "radiance_seconds_per_query": 2.48657226563e-07,
+        "field_irradiance_seconds_per_query": 2.48062015504e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.06976744186e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L2",
+        "build_seconds": 0.001103,
+        "radiance_seconds_per_query": 4.18212890625e-07,
+        "field_irradiance_seconds_per_query": 4.26356589147e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48062015504e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L3",
+        "build_seconds": 0.001915,
+        "radiance_seconds_per_query": 6.76635742188e-07,
+        "field_irradiance_seconds_per_query": 6.74418604651e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.5503875969e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L4",
+        "build_seconds": 0.003047,
+        "radiance_seconds_per_query": 1.17651367188e-06,
+        "field_irradiance_seconds_per_query": 1.02325581395e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.16279069767e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L8",
+        "build_seconds": 0.011447,
+        "radiance_seconds_per_query": 3.40808105469e-06,
+        "field_irradiance_seconds_per_query": 3.39147286822e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.76356589147e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_1",
+        "build_seconds": 0.206144,
+        "radiance_seconds_per_query": 2.59033203125e-07,
+        "field_irradiance_seconds_per_query": 2.9496124031e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000239480620155,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_3",
+        "build_seconds": 0.827012,
+        "radiance_seconds_per_query": 4.65576171875e-07,
+        "field_irradiance_seconds_per_query": 8.57790697674e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000704023255814,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.830006,
+        "radiance_seconds_per_query": 8.4619140625e-07,
+        "field_irradiance_seconds_per_query": 7.92945736434e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000687689922481,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_6",
+        "build_seconds": 1.762327,
+        "radiance_seconds_per_query": 8.00170898438e-07,
+        "field_irradiance_seconds_per_query": 0.000167891472868,
+        "eight_neighbour_field_irradiance_seconds": 0.00133737984496,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.60205078125e-07,
+        "field_irradiance_seconds_per_query": 4.53488372093e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.76744186047e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000543457364341,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L1",
+        "build_seconds": 0.000728,
+        "radiance_seconds_per_query": 4.2041015625e-07,
+        "field_irradiance_seconds_per_query": 5.27131782946e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.55813953488e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L2",
+        "build_seconds": 0.001347,
+        "radiance_seconds_per_query": 4.17236328125e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48062015504e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L3",
+        "build_seconds": 0.002221,
+        "radiance_seconds_per_query": 6.61499023438e-07,
+        "field_irradiance_seconds_per_query": 7.13178294574e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.42635658915e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L4",
+        "build_seconds": 0.003576,
+        "radiance_seconds_per_query": 1.01342773438e-06,
+        "field_irradiance_seconds_per_query": 1.02325581395e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.24031007752e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L8",
+        "build_seconds": 0.013356,
+        "radiance_seconds_per_query": 3.44506835938e-06,
+        "field_irradiance_seconds_per_query": 3.31395348837e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.0023255814e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.51293945313e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.59689922481e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.72093023256e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L1",
+        "build_seconds": 0.000545,
+        "radiance_seconds_per_query": 2.76123046875e-07,
+        "field_irradiance_seconds_per_query": 2.7519379845e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.31007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L2",
+        "build_seconds": 0.001035,
+        "radiance_seconds_per_query": 4.34936523438e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.44186046512e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L3",
+        "build_seconds": 0.001768,
+        "radiance_seconds_per_query": 6.89453125e-07,
+        "field_irradiance_seconds_per_query": 7.01550387597e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.54263565891e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L4",
+        "build_seconds": 0.00281,
+        "radiance_seconds_per_query": 1.02221679687e-06,
+        "field_irradiance_seconds_per_query": 1.02713178295e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.38759689922e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L8",
+        "build_seconds": 0.010662,
+        "radiance_seconds_per_query": 3.78588867187e-06,
+        "field_irradiance_seconds_per_query": 3.90310077519e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.8976744186e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_1",
+        "build_seconds": 0.221706,
+        "radiance_seconds_per_query": 1.78833007812e-07,
+        "field_irradiance_seconds_per_query": 2.4019379845e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000186565891473,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_3",
+        "build_seconds": 0.879361,
+        "radiance_seconds_per_query": 3.93920898437e-07,
+        "field_irradiance_seconds_per_query": 9.24728682171e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000679108527132,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.882337,
+        "radiance_seconds_per_query": 7.78442382812e-07,
+        "field_irradiance_seconds_per_query": 8.44612403101e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000668534883721,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_6",
+        "build_seconds": 1.96519,
+        "radiance_seconds_per_query": 9.73510742187e-07,
+        "field_irradiance_seconds_per_query": 0.000187011627907,
+        "eight_neighbour_field_irradiance_seconds": 0.00144531782946,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.40307617187e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.44186046512e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00202082170543,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L1",
+        "build_seconds": 0.000546,
+        "radiance_seconds_per_query": 4.0625e-07,
+        "field_irradiance_seconds_per_query": 4.41860465116e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.2480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L2",
+        "build_seconds": 0.001021,
+        "radiance_seconds_per_query": 4.34936523438e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.60465116279e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L3",
+        "build_seconds": 0.001768,
+        "radiance_seconds_per_query": 7.25219726563e-07,
+        "field_irradiance_seconds_per_query": 7.05426356589e-07,
+        "eight_neighbour_field_irradiance_seconds": 6.1007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L4",
+        "build_seconds": 0.002859,
+        "radiance_seconds_per_query": 1.14794921875e-06,
+        "field_irradiance_seconds_per_query": 1.11240310078e-06,
+        "eight_neighbour_field_irradiance_seconds": 9.76744186047e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L8",
+        "build_seconds": 0.010557,
+        "radiance_seconds_per_query": 3.68676757812e-06,
+        "field_irradiance_seconds_per_query": 3.84496124031e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.95503875969e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_1",
+        "build_seconds": 0.189513,
+        "radiance_seconds_per_query": 1.71630859375e-07,
+        "field_irradiance_seconds_per_query": 2.74728682171e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000220643410853,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_3",
+        "build_seconds": 0.567566,
+        "radiance_seconds_per_query": 4.35668945313e-07,
+        "field_irradiance_seconds_per_query": 7.7011627907e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000638984496124,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.570366,
+        "radiance_seconds_per_query": 1.06408691406e-06,
+        "field_irradiance_seconds_per_query": 9.31395348837e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000701713178295,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_6",
+        "build_seconds": 1.957458,
+        "radiance_seconds_per_query": 1.21911621094e-06,
+        "field_irradiance_seconds_per_query": 0.000185678294574,
+        "eight_neighbour_field_irradiance_seconds": 0.00137937984496,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.71801757812e-07,
+        "field_irradiance_seconds_per_query": 4.22480620155e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.60465116279e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00218063565891,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L1",
+        "build_seconds": 0.000519,
+        "radiance_seconds_per_query": 2.58422851562e-07,
+        "field_irradiance_seconds_per_query": 2.55813953488e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.13178294574e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L2",
+        "build_seconds": 0.00099,
+        "radiance_seconds_per_query": 4.19189453125e-07,
+        "field_irradiance_seconds_per_query": 4.22480620155e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48837209302e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L3",
+        "build_seconds": 0.001695,
+        "radiance_seconds_per_query": 6.826171875e-07,
+        "field_irradiance_seconds_per_query": 7.55813953488e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.37209302326e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L4",
+        "build_seconds": 0.002847,
+        "radiance_seconds_per_query": 1.00012207031e-06,
+        "field_irradiance_seconds_per_query": 1.03488372093e-06,
+        "eight_neighbour_field_irradiance_seconds": 7.96124031008e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L8",
+        "build_seconds": 0.010348,
+        "radiance_seconds_per_query": 3.54370117188e-06,
+        "field_irradiance_seconds_per_query": 3.52325581395e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.83488372093e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_1",
+        "build_seconds": 0.173284,
+        "radiance_seconds_per_query": 2.53540039062e-07,
+        "field_irradiance_seconds_per_query": 2.64457364341e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000206480620155,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_3",
+        "build_seconds": 0.727136,
+        "radiance_seconds_per_query": 4.00268554687e-07,
+        "field_irradiance_seconds_per_query": 7.58565891473e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000630899224806,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.729998,
+        "radiance_seconds_per_query": 8.38500976563e-07,
+        "field_irradiance_seconds_per_query": 7.56627906977e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000651170542636,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_6",
+        "build_seconds": 1.581361,
+        "radiance_seconds_per_query": 1.91735839844e-06,
+        "field_irradiance_seconds_per_query": 0.000190992248062,
+        "eight_neighbour_field_irradiance_seconds": 0.0014346124031,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.39208984375e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.59689922481e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.31007751938e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L1",
+        "build_seconds": 0.00052,
+        "radiance_seconds_per_query": 2.65014648438e-07,
+        "field_irradiance_seconds_per_query": 2.63565891473e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.21705426357e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L2",
+        "build_seconds": 0.00102,
+        "radiance_seconds_per_query": 6.35498046875e-07,
+        "field_irradiance_seconds_per_query": 6.86046511628e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.92248062016e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L3",
+        "build_seconds": 0.001781,
+        "radiance_seconds_per_query": 8.9697265625e-07,
+        "field_irradiance_seconds_per_query": 7.98449612403e-07,
+        "eight_neighbour_field_irradiance_seconds": 6.6976744186e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L4",
+        "build_seconds": 0.002787,
+        "radiance_seconds_per_query": 1.06689453125e-06,
+        "field_irradiance_seconds_per_query": 1.08914728682e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.65891472868e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L8",
+        "build_seconds": 0.010558,
+        "radiance_seconds_per_query": 3.4423828125e-06,
+        "field_irradiance_seconds_per_query": 3.53875968992e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.72868217054e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_1",
+        "build_seconds": 0.168098,
+        "radiance_seconds_per_query": 2.6416015625e-07,
+        "field_irradiance_seconds_per_query": 2.81627906977e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000213658914729,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_3",
+        "build_seconds": 0.769152,
+        "radiance_seconds_per_query": 4.53857421875e-07,
+        "field_irradiance_seconds_per_query": 7.37325581395e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000618217054264,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.772189,
+        "radiance_seconds_per_query": 8.39477539063e-07,
+        "field_irradiance_seconds_per_query": 7.13527131783e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000565945736434,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_6",
+        "build_seconds": 2.311365,
+        "radiance_seconds_per_query": 8.07861328125e-07,
+        "field_irradiance_seconds_per_query": 0.000137833333333,
+        "eight_neighbour_field_irradiance_seconds": 0.00108881395349,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.16259765625e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31782945736e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00177093023256,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L1",
+        "build_seconds": 0.000539,
+        "radiance_seconds_per_query": 4.75219726563e-07,
+        "field_irradiance_seconds_per_query": 4.80620155039e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.01550387597e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L2",
+        "build_seconds": 0.000995,
+        "radiance_seconds_per_query": 7.25219726563e-07,
+        "field_irradiance_seconds_per_query": 7.28682170543e-07,
+        "eight_neighbour_field_irradiance_seconds": 6.07751937984e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L3",
+        "build_seconds": 0.001721,
+        "radiance_seconds_per_query": 7.31811523438e-07,
+        "field_irradiance_seconds_per_query": 7.59689922481e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.74418604651e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L4",
+        "build_seconds": 0.002734,
+        "radiance_seconds_per_query": 1.04418945313e-06,
+        "field_irradiance_seconds_per_query": 1.03488372093e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.01550387597e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L8",
+        "build_seconds": 0.010285,
+        "radiance_seconds_per_query": 3.5966796875e-06,
+        "field_irradiance_seconds_per_query": 3.57364341085e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.05426356589e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_1",
+        "build_seconds": 0.173306,
+        "radiance_seconds_per_query": 1.71508789062e-07,
+        "field_irradiance_seconds_per_query": 2.69341085271e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00022215503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_3",
+        "build_seconds": 0.697752,
+        "radiance_seconds_per_query": 4.111328125e-07,
+        "field_irradiance_seconds_per_query": 7.56860465116e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000623465116279,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.700466,
+        "radiance_seconds_per_query": 8.15551757813e-07,
+        "field_irradiance_seconds_per_query": 7.64186046512e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000623,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_6",
+        "build_seconds": 1.389623,
+        "radiance_seconds_per_query": 8.39721679687e-07,
+        "field_irradiance_seconds_per_query": 0.000170023255814,
+        "eight_neighbour_field_irradiance_seconds": 0.00133348062016,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 6.05834960938e-07,
+        "field_irradiance_seconds_per_query": 5.65891472868e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.02325581395e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.31007751938e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L1",
+        "build_seconds": 0.000579,
+        "radiance_seconds_per_query": 2.46337890625e-07,
+        "field_irradiance_seconds_per_query": 2.40310077519e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.04651162791e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L2",
+        "build_seconds": 0.001103,
+        "radiance_seconds_per_query": 4.01123046875e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.33333333333e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L3",
+        "build_seconds": 0.001868,
+        "radiance_seconds_per_query": 6.56982421875e-07,
+        "field_irradiance_seconds_per_query": 6.47286821705e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.32558139535e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L4",
+        "build_seconds": 0.002916,
+        "radiance_seconds_per_query": 9.84252929688e-07,
+        "field_irradiance_seconds_per_query": 9.84496124031e-07,
+        "eight_neighbour_field_irradiance_seconds": 8.23255813953e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L8",
+        "build_seconds": 0.011652,
+        "radiance_seconds_per_query": 4.1806640625e-06,
+        "field_irradiance_seconds_per_query": 3.44573643411e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.86666666667e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_1",
+        "build_seconds": 0.203267,
+        "radiance_seconds_per_query": 1.16577148438e-07,
+        "field_irradiance_seconds_per_query": 2.34728682171e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000264310077519,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_3",
+        "build_seconds": 0.821384,
+        "radiance_seconds_per_query": 3.58154296875e-07,
+        "field_irradiance_seconds_per_query": 8.9496124031e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000663984496124,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.823869,
+        "radiance_seconds_per_query": 7.66723632813e-07,
+        "field_irradiance_seconds_per_query": 8.32906976744e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000714294573643,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_6",
+        "build_seconds": 1.833933,
+        "radiance_seconds_per_query": 9.23095703125e-07,
+        "field_irradiance_seconds_per_query": 0.00018461627907,
+        "eight_neighbour_field_irradiance_seconds": 0.00139857364341,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.21142578125e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.43410852713e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00393254263566,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L1",
+        "build_seconds": 0.000557,
+        "radiance_seconds_per_query": 2.55859375e-07,
+        "field_irradiance_seconds_per_query": 2.40310077519e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.14728682171e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L2",
+        "build_seconds": 0.001104,
+        "radiance_seconds_per_query": 4.16625976562e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.44186046512e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L3",
+        "build_seconds": 0.001766,
+        "radiance_seconds_per_query": 6.7578125e-07,
+        "field_irradiance_seconds_per_query": 6.74418604651e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.57364341085e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L4",
+        "build_seconds": 0.002804,
+        "radiance_seconds_per_query": 1.20092773437e-06,
+        "field_irradiance_seconds_per_query": 1.25581395349e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.32558139535e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L8",
+        "build_seconds": 0.010726,
+        "radiance_seconds_per_query": 3.43530273438e-06,
+        "field_irradiance_seconds_per_query": 3.49224806202e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.72403100775e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_1",
+        "build_seconds": 0.214331,
+        "radiance_seconds_per_query": 2.56591796875e-07,
+        "field_irradiance_seconds_per_query": 3.37480620155e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000246255813953,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_3",
+        "build_seconds": 0.795357,
+        "radiance_seconds_per_query": 4.28100585938e-07,
+        "field_irradiance_seconds_per_query": 8.81007751938e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00069076744186,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.798217,
+        "radiance_seconds_per_query": 1.18225097656e-06,
+        "field_irradiance_seconds_per_query": 9.0511627907e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000756372093023,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_6",
+        "build_seconds": 1.675702,
+        "radiance_seconds_per_query": 8.0419921875e-07,
+        "field_irradiance_seconds_per_query": 0.000177914728682,
+        "eight_neighbour_field_irradiance_seconds": 0.0015515503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.07470703125e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.32558139535e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.72093023256e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L1",
+        "build_seconds": 0.00052,
+        "radiance_seconds_per_query": 2.48413085937e-07,
+        "field_irradiance_seconds_per_query": 2.44186046512e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.12403100775e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L2",
+        "build_seconds": 0.000986,
+        "radiance_seconds_per_query": 4.072265625e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31782945736e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L3",
+        "build_seconds": 0.001976,
+        "radiance_seconds_per_query": 6.50024414062e-07,
+        "field_irradiance_seconds_per_query": 6.51162790698e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.3488372093e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L4",
+        "build_seconds": 0.003278,
+        "radiance_seconds_per_query": 1.00817871094e-06,
+        "field_irradiance_seconds_per_query": 9.84496124031e-07,
+        "eight_neighbour_field_irradiance_seconds": 8.17054263566e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L8",
+        "build_seconds": 0.011415,
+        "radiance_seconds_per_query": 3.39697265625e-06,
+        "field_irradiance_seconds_per_query": 5.01937984496e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.6480620155e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_1",
+        "build_seconds": 0.186654,
+        "radiance_seconds_per_query": 1.61499023437e-07,
+        "field_irradiance_seconds_per_query": 2.54302325581e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00023588372093,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_3",
+        "build_seconds": 0.75552,
+        "radiance_seconds_per_query": 4.0966796875e-07,
+        "field_irradiance_seconds_per_query": 7.2503875969e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000575124031008,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.758261,
+        "radiance_seconds_per_query": 8.23608398438e-07,
+        "field_irradiance_seconds_per_query": 7.15348837209e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00057796124031,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_6",
+        "build_seconds": 1.515471,
+        "radiance_seconds_per_query": 7.24609375e-07,
+        "field_irradiance_seconds_per_query": 0.000156058139535,
+        "eight_neighbour_field_irradiance_seconds": 0.00125471317829,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.09790039063e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31782945736e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.37984496124e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L1",
+        "build_seconds": 0.000501,
+        "radiance_seconds_per_query": 3.95141601562e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.29457364341e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L2",
+        "build_seconds": 0.000952,
+        "radiance_seconds_per_query": 4.68872070312e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.82945736434e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L3",
+        "build_seconds": 0.001642,
+        "radiance_seconds_per_query": 7.83813476562e-07,
+        "field_irradiance_seconds_per_query": 9.41860465116e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.00775193798e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L4",
+        "build_seconds": 0.002625,
+        "radiance_seconds_per_query": 1.44348144531e-06,
+        "field_irradiance_seconds_per_query": 1.33720930233e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.21705426357e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L8",
+        "build_seconds": 0.00977,
+        "radiance_seconds_per_query": 3.89343261719e-06,
+        "field_irradiance_seconds_per_query": 4.40697674419e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.8e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_1",
+        "build_seconds": 0.168069,
+        "radiance_seconds_per_query": 2.44262695313e-07,
+        "field_irradiance_seconds_per_query": 3.24379844961e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000277271317829,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_3",
+        "build_seconds": 0.944129,
+        "radiance_seconds_per_query": 4.5751953125e-07,
+        "field_irradiance_seconds_per_query": 0.000107531007752,
+        "eight_neighbour_field_irradiance_seconds": 0.000738674418605,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.946891,
+        "radiance_seconds_per_query": 9.67895507813e-07,
+        "field_irradiance_seconds_per_query": 9.28992248062e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000729666666667,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_6",
+        "build_seconds": 1.824102,
+        "radiance_seconds_per_query": 7.95776367187e-07,
+        "field_irradiance_seconds_per_query": 0.000180282945736,
+        "eight_neighbour_field_irradiance_seconds": 0.00151893023256,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.13940429687e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.42635658915e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.47286821705e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L1",
+        "build_seconds": 0.000522,
+        "radiance_seconds_per_query": 2.56958007813e-07,
+        "field_irradiance_seconds_per_query": 2.59689922481e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.06201550388e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L2",
+        "build_seconds": 0.001003,
+        "radiance_seconds_per_query": 4.05395507813e-07,
+        "field_irradiance_seconds_per_query": 3.91472868217e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48062015504e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L3",
+        "build_seconds": 0.0017,
+        "radiance_seconds_per_query": 6.50024414062e-07,
+        "field_irradiance_seconds_per_query": 6.51162790698e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.3488372093e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L4",
+        "build_seconds": 0.002772,
+        "radiance_seconds_per_query": 9.85229492188e-07,
+        "field_irradiance_seconds_per_query": 9.84496124031e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.91472868217e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L8",
+        "build_seconds": 0.010516,
+        "radiance_seconds_per_query": 3.35693359375e-06,
+        "field_irradiance_seconds_per_query": 3.27519379845e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.74263565891e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_1",
+        "build_seconds": 0.175079,
+        "radiance_seconds_per_query": 1.57470703125e-07,
+        "field_irradiance_seconds_per_query": 2.18527131783e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000178542635659,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_3",
+        "build_seconds": 0.588272,
+        "radiance_seconds_per_query": 3.9697265625e-07,
+        "field_irradiance_seconds_per_query": 8.01705426357e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000637279069767,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.591144,
+        "radiance_seconds_per_query": 7.86865234375e-07,
+        "field_irradiance_seconds_per_query": 7.96589147287e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000648348837209,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_6",
+        "build_seconds": 1.834391,
+        "radiance_seconds_per_query": 7.91015625e-07,
+        "field_irradiance_seconds_per_query": 0.000158511627907,
+        "eight_neighbour_field_irradiance_seconds": 0.00139813178295,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 7.35229492187e-07,
+        "field_irradiance_seconds_per_query": 4.57364341085e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.75968992248e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000237248062016,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L1",
+        "build_seconds": 0.000498,
+        "radiance_seconds_per_query": 2.60009765625e-07,
+        "field_irradiance_seconds_per_query": 2.59689922481e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.17054263566e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L2",
+        "build_seconds": 0.000957,
+        "radiance_seconds_per_query": 4.23583984375e-07,
+        "field_irradiance_seconds_per_query": 4.22480620155e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.51162790698e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L3",
+        "build_seconds": 0.001637,
+        "radiance_seconds_per_query": 6.62841796875e-07,
+        "field_irradiance_seconds_per_query": 6.62790697674e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.57364341085e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L4",
+        "build_seconds": 0.002608,
+        "radiance_seconds_per_query": 9.873046875e-07,
+        "field_irradiance_seconds_per_query": 1.01937984496e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.03100775194e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L8",
+        "build_seconds": 0.009812,
+        "radiance_seconds_per_query": 3.76257324219e-06,
+        "field_irradiance_seconds_per_query": 3.47286821705e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.54108527132e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_1",
+        "build_seconds": 0.152978,
+        "radiance_seconds_per_query": 2.40600585938e-07,
+        "field_irradiance_seconds_per_query": 3.06201550388e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000294317829457,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_3",
+        "build_seconds": 0.524671,
+        "radiance_seconds_per_query": 6.48071289063e-07,
+        "field_irradiance_seconds_per_query": 9.17984496124e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000665372093023,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.527428,
+        "radiance_seconds_per_query": 8.291015625e-07,
+        "field_irradiance_seconds_per_query": 7.66782945736e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000674286821705,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_6",
+        "build_seconds": 1.828957,
+        "radiance_seconds_per_query": 1.11120605469e-06,
+        "field_irradiance_seconds_per_query": 0.000169228682171,
+        "eight_neighbour_field_irradiance_seconds": 0.00129621705426,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 5.03784179687e-07,
+        "field_irradiance_seconds_per_query": 6.62790697674e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.04651162791e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000731573643411,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L1",
+        "build_seconds": 0.000853,
+        "radiance_seconds_per_query": 2.55859375e-07,
+        "field_irradiance_seconds_per_query": 2.48062015504e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.17054263566e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L2",
+        "build_seconds": 0.001439,
+        "radiance_seconds_per_query": 4.2529296875e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48062015504e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L3",
+        "build_seconds": 0.002466,
+        "radiance_seconds_per_query": 6.8994140625e-07,
+        "field_irradiance_seconds_per_query": 6.82170542636e-07,
+        "eight_neighbour_field_irradiance_seconds": 6.23255813953e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L4",
+        "build_seconds": 0.004527,
+        "radiance_seconds_per_query": 1.04162597656e-06,
+        "field_irradiance_seconds_per_query": 1.02325581395e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.82945736434e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L8",
+        "build_seconds": 0.01118,
+        "radiance_seconds_per_query": 3.59338378906e-06,
+        "field_irradiance_seconds_per_query": 3.42635658915e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.9480620155e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.74365234375e-07,
+        "field_irradiance_seconds_per_query": 4.37984496124e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.31782945736e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.80620155039e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L1",
+        "build_seconds": 0.000679,
+        "radiance_seconds_per_query": 2.46459960937e-07,
+        "field_irradiance_seconds_per_query": 2.44186046512e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.06201550388e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L2",
+        "build_seconds": 0.001359,
+        "radiance_seconds_per_query": 4.01977539062e-07,
+        "field_irradiance_seconds_per_query": 3.95348837209e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L3",
+        "build_seconds": 0.001883,
+        "radiance_seconds_per_query": 6.56860351563e-07,
+        "field_irradiance_seconds_per_query": 6.43410852713e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.34108527132e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L4",
+        "build_seconds": 0.002832,
+        "radiance_seconds_per_query": 9.94506835937e-07,
+        "field_irradiance_seconds_per_query": 9.80620155039e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.95348837209e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L8",
+        "build_seconds": 0.011696,
+        "radiance_seconds_per_query": 3.46313476562e-06,
+        "field_irradiance_seconds_per_query": 3.38759689922e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.96821705426e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_1",
+        "build_seconds": 0.204295,
+        "radiance_seconds_per_query": 1.80786132812e-07,
+        "field_irradiance_seconds_per_query": 2.62170542636e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000210968992248,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_3",
+        "build_seconds": 0.791412,
+        "radiance_seconds_per_query": 4.22485351563e-07,
+        "field_irradiance_seconds_per_query": 7.61627906977e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000603472868217,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.79409,
+        "radiance_seconds_per_query": 8.38012695312e-07,
+        "field_irradiance_seconds_per_query": 7.81627906977e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000616294573643,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_6",
+        "build_seconds": 1.665934,
+        "radiance_seconds_per_query": 7.998046875e-07,
+        "field_irradiance_seconds_per_query": 0.00016457751938,
+        "eight_neighbour_field_irradiance_seconds": 0.00131403100775,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 5.93994140625e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.31007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000562534883721,
+        "radiance_includes_explicit_geometry": true
+      }
+    ],
+    [
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L1",
+        "build_seconds": 0.000533,
+        "radiance_seconds_per_query": 2.58544921875e-07,
+        "field_irradiance_seconds_per_query": 2.55813953488e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.16279069767e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L2",
+        "build_seconds": 0.000994,
+        "radiance_seconds_per_query": 4.22241210937e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.59689922481e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L3",
+        "build_seconds": 0.001677,
+        "radiance_seconds_per_query": 6.53930664062e-07,
+        "field_irradiance_seconds_per_query": 6.16279069767e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.22480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L4",
+        "build_seconds": 0.002618,
+        "radiance_seconds_per_query": 9.76440429687e-07,
+        "field_irradiance_seconds_per_query": 9.80620155039e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.97674418605e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SH_L8",
+        "build_seconds": 0.009848,
+        "radiance_seconds_per_query": 3.47497558594e-06,
+        "field_irradiance_seconds_per_query": 3.40310077519e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.83255813953e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_1",
+        "build_seconds": 0.18427,
+        "radiance_seconds_per_query": 1.84448242187e-07,
+        "field_irradiance_seconds_per_query": 3.07131782946e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000244341085271,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_3",
+        "build_seconds": 0.741695,
+        "radiance_seconds_per_query": 3.8525390625e-07,
+        "field_irradiance_seconds_per_query": 8.76356589147e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000686007751938,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.744341,
+        "radiance_seconds_per_query": 9.08935546875e-07,
+        "field_irradiance_seconds_per_query": 8.72209302326e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000693689922481,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "SG_6",
+        "build_seconds": 1.684251,
+        "radiance_seconds_per_query": 1.09997558594e-06,
+        "field_irradiance_seconds_per_query": 0.000180089147287,
+        "eight_neighbour_field_irradiance_seconds": 0.00148720155039,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "uniform_hemisphere",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.19799804688e-07,
+        "field_irradiance_seconds_per_query": 4.14728682171e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.43410852713e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.61240310078e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L1",
+        "build_seconds": 0.000522,
+        "radiance_seconds_per_query": 2.5732421875e-07,
+        "field_irradiance_seconds_per_query": 2.63565891473e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.16279069767e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L2",
+        "build_seconds": 0.000992,
+        "radiance_seconds_per_query": 4.15283203125e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.44186046512e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L3",
+        "build_seconds": 0.001696,
+        "radiance_seconds_per_query": 6.40747070313e-07,
+        "field_irradiance_seconds_per_query": 6.66666666667e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.19379844961e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L4",
+        "build_seconds": 0.002714,
+        "radiance_seconds_per_query": 9.75952148438e-07,
+        "field_irradiance_seconds_per_query": 9.76744186047e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.93798449612e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SH_L8",
+        "build_seconds": 0.010167,
+        "radiance_seconds_per_query": 3.36560058594e-06,
+        "field_irradiance_seconds_per_query": 3.26356589147e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.63410852713e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_1",
+        "build_seconds": 0.189459,
+        "radiance_seconds_per_query": 1.64184570313e-07,
+        "field_irradiance_seconds_per_query": 2.21744186047e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000180496124031,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_3",
+        "build_seconds": 0.58355,
+        "radiance_seconds_per_query": 3.8134765625e-07,
+        "field_irradiance_seconds_per_query": 7.15968992248e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000594914728682,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.586399,
+        "radiance_seconds_per_query": 7.958984375e-07,
+        "field_irradiance_seconds_per_query": 7.50310077519e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000610573643411,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "SG_6",
+        "build_seconds": 1.31005,
+        "radiance_seconds_per_query": 8.03344726563e-07,
+        "field_irradiance_seconds_per_query": 0.000165085271318,
+        "eight_neighbour_field_irradiance_seconds": 0.00133125581395,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "finite_directional_disk",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.09545898437e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.45736434109e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.36434108527e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L1",
+        "build_seconds": 0.000614,
+        "radiance_seconds_per_query": 2.490234375e-07,
+        "field_irradiance_seconds_per_query": 2.48062015504e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.10852713178e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L2",
+        "build_seconds": 0.001015,
+        "radiance_seconds_per_query": 4.02099609375e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L3",
+        "build_seconds": 0.001688,
+        "radiance_seconds_per_query": 6.41235351562e-07,
+        "field_irradiance_seconds_per_query": 7.67441860465e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.2480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L4",
+        "build_seconds": 0.002683,
+        "radiance_seconds_per_query": 9.71313476563e-07,
+        "field_irradiance_seconds_per_query": 9.41860465116e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.93023255814e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SH_L8",
+        "build_seconds": 0.009864,
+        "radiance_seconds_per_query": 3.35339355469e-06,
+        "field_irradiance_seconds_per_query": 3.26356589147e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.73410852713e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_1",
+        "build_seconds": 0.151742,
+        "radiance_seconds_per_query": 1.79443359375e-07,
+        "field_irradiance_seconds_per_query": 2.56782945736e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000211372093023,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_3",
+        "build_seconds": 0.696066,
+        "radiance_seconds_per_query": 4.0673828125e-07,
+        "field_irradiance_seconds_per_query": 7.21937984496e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000589945736434,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.698724,
+        "radiance_seconds_per_query": 1.18493652344e-06,
+        "field_irradiance_seconds_per_query": 7.5011627907e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000603930232558,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "SG_6",
+        "build_seconds": 1.564904,
+        "radiance_seconds_per_query": 8.04809570312e-07,
+        "field_irradiance_seconds_per_query": 0.000147201550388,
+        "eight_neighbour_field_irradiance_seconds": 0.00115871317829,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "opposing_directions",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 3.88793945312e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.18604651163e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00047411627907,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L1",
+        "build_seconds": 0.000588,
+        "radiance_seconds_per_query": 2.50854492187e-07,
+        "field_irradiance_seconds_per_query": 2.48062015504e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.08527131783e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L2",
+        "build_seconds": 0.001104,
+        "radiance_seconds_per_query": 4.0087890625e-07,
+        "field_irradiance_seconds_per_query": 4.06976744186e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.34108527132e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L3",
+        "build_seconds": 0.001889,
+        "radiance_seconds_per_query": 6.37084960937e-07,
+        "field_irradiance_seconds_per_query": 6.39534883721e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.2015503876e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L4",
+        "build_seconds": 0.002693,
+        "radiance_seconds_per_query": 9.40063476563e-07,
+        "field_irradiance_seconds_per_query": 9.41860465116e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.74418604651e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SH_L8",
+        "build_seconds": 0.009623,
+        "radiance_seconds_per_query": 3.35510253906e-06,
+        "field_irradiance_seconds_per_query": 3.40697674419e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.72403100775e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_1",
+        "build_seconds": 0.163744,
+        "radiance_seconds_per_query": 1.58935546875e-07,
+        "field_irradiance_seconds_per_query": 2.50387596899e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000199263565891,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_3",
+        "build_seconds": 0.704305,
+        "radiance_seconds_per_query": 4.18701171875e-07,
+        "field_irradiance_seconds_per_query": 7.6515503876e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000589271317829,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.706945,
+        "radiance_seconds_per_query": 8.01147460938e-07,
+        "field_irradiance_seconds_per_query": 7.39031007752e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00059815503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "SG_6",
+        "build_seconds": 1.630197,
+        "radiance_seconds_per_query": 7.70385742187e-07,
+        "field_irradiance_seconds_per_query": 0.000147042635659,
+        "eight_neighbour_field_irradiance_seconds": 0.00116789147287,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "red_blue_directions",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.24438476563e-07,
+        "field_irradiance_seconds_per_query": 4.06976744186e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.58139534884e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000488782945736,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L1",
+        "build_seconds": 0.000502,
+        "radiance_seconds_per_query": 2.7392578125e-07,
+        "field_irradiance_seconds_per_query": 2.71317829457e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.26356589147e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L2",
+        "build_seconds": 0.000947,
+        "radiance_seconds_per_query": 4.228515625e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.72093023256e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L3",
+        "build_seconds": 0.001644,
+        "radiance_seconds_per_query": 6.80908203125e-07,
+        "field_irradiance_seconds_per_query": 7.01550387597e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.19379844961e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L4",
+        "build_seconds": 0.002626,
+        "radiance_seconds_per_query": 1.01013183594e-06,
+        "field_irradiance_seconds_per_query": 1.02325581395e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.37209302326e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "SH_L8",
+        "build_seconds": 0.010583,
+        "radiance_seconds_per_query": 3.33947753906e-06,
+        "field_irradiance_seconds_per_query": 3.32170542636e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.64108527132e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "coloured_local_points",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.0478515625e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.3023255814e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.65891472868e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L1",
+        "build_seconds": 0.000502,
+        "radiance_seconds_per_query": 2.578125e-07,
+        "field_irradiance_seconds_per_query": 2.55813953488e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.06976744186e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L2",
+        "build_seconds": 0.000952,
+        "radiance_seconds_per_query": 3.99658203125e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31007751938e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L3",
+        "build_seconds": 0.001642,
+        "radiance_seconds_per_query": 6.35864257813e-07,
+        "field_irradiance_seconds_per_query": 6.82170542636e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.19379844961e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L4",
+        "build_seconds": 0.0026,
+        "radiance_seconds_per_query": 9.37866210937e-07,
+        "field_irradiance_seconds_per_query": 9.41860465116e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.64341085271e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SH_L8",
+        "build_seconds": 0.009801,
+        "radiance_seconds_per_query": 3.26489257812e-06,
+        "field_irradiance_seconds_per_query": 3.30620155039e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.66434108527e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_1",
+        "build_seconds": 0.202225,
+        "radiance_seconds_per_query": 9.38720703125e-08,
+        "field_irradiance_seconds_per_query": 2.06899224806e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000165945736434,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_3",
+        "build_seconds": 0.725889,
+        "radiance_seconds_per_query": 3.53759765625e-07,
+        "field_irradiance_seconds_per_query": 7.94418604651e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000631976744186,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.728339,
+        "radiance_seconds_per_query": 7.63793945313e-07,
+        "field_irradiance_seconds_per_query": 7.99263565891e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000638108527132,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "SG_6",
+        "build_seconds": 1.619297,
+        "radiance_seconds_per_query": 1.10363769531e-06,
+        "field_irradiance_seconds_per_query": 0.000169666666667,
+        "eight_neighbour_field_irradiance_seconds": 0.00133378294574,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "narrow_spot_aperture",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 3.91967773437e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.18604651163e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.0017548372093,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L1",
+        "build_seconds": 0.000496,
+        "radiance_seconds_per_query": 2.39135742187e-07,
+        "field_irradiance_seconds_per_query": 2.36434108527e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.00775193798e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L2",
+        "build_seconds": 0.00096,
+        "radiance_seconds_per_query": 3.87817382813e-07,
+        "field_irradiance_seconds_per_query": 3.91472868217e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.17829457364e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L3",
+        "build_seconds": 0.001692,
+        "radiance_seconds_per_query": 6.35620117187e-07,
+        "field_irradiance_seconds_per_query": 6.35658914729e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.21705426357e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L4",
+        "build_seconds": 0.002715,
+        "radiance_seconds_per_query": 9.40063476563e-07,
+        "field_irradiance_seconds_per_query": 9.45736434109e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.62790697674e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SH_L8",
+        "build_seconds": 0.010032,
+        "radiance_seconds_per_query": 3.20007324219e-06,
+        "field_irradiance_seconds_per_query": 3.27519379845e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.54108527132e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_1",
+        "build_seconds": 0.153178,
+        "radiance_seconds_per_query": 1.54663085937e-07,
+        "field_irradiance_seconds_per_query": 2.47713178295e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000203263565891,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_3",
+        "build_seconds": 0.484252,
+        "radiance_seconds_per_query": 3.88793945312e-07,
+        "field_irradiance_seconds_per_query": 7.35736434109e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000582968992248,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.486945,
+        "radiance_seconds_per_query": 7.89794921875e-07,
+        "field_irradiance_seconds_per_query": 7.36550387597e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000596899224806,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "SG_6",
+        "build_seconds": 1.608952,
+        "radiance_seconds_per_query": 7.48046875e-07,
+        "field_irradiance_seconds_per_query": 0.000152058139535,
+        "eight_neighbour_field_irradiance_seconds": 0.00119915503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "broad_spot_aperture",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 3.92456054687e-07,
+        "field_irradiance_seconds_per_query": 3.99224806202e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.18604651163e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00183188372093,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L1",
+        "build_seconds": 0.000493,
+        "radiance_seconds_per_query": 2.68432617187e-07,
+        "field_irradiance_seconds_per_query": 2.67441860465e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.37984496124e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L2",
+        "build_seconds": 0.000936,
+        "radiance_seconds_per_query": 4.28955078125e-07,
+        "field_irradiance_seconds_per_query": 4.26356589147e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48837209302e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L3",
+        "build_seconds": 0.001575,
+        "radiance_seconds_per_query": 9.86694335937e-07,
+        "field_irradiance_seconds_per_query": 9.80620155039e-07,
+        "eight_neighbour_field_irradiance_seconds": 8.48837209302e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L4",
+        "build_seconds": 0.002508,
+        "radiance_seconds_per_query": 1.31164550781e-06,
+        "field_irradiance_seconds_per_query": 1.51162790698e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.53488372093e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SH_L8",
+        "build_seconds": 0.009499,
+        "radiance_seconds_per_query": 3.38403320313e-06,
+        "field_irradiance_seconds_per_query": 3.40697674419e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.62945736434e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_1",
+        "build_seconds": 0.149822,
+        "radiance_seconds_per_query": 1.60278320312e-07,
+        "field_irradiance_seconds_per_query": 2.47364341085e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000201279069767,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_3",
+        "build_seconds": 0.626762,
+        "radiance_seconds_per_query": 3.779296875e-07,
+        "field_irradiance_seconds_per_query": 7.22015503876e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00057803875969,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.629343,
+        "radiance_seconds_per_query": 7.57080078125e-07,
+        "field_irradiance_seconds_per_query": 7.41124031008e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000591728682171,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "SG_6",
+        "build_seconds": 1.344064,
+        "radiance_seconds_per_query": 7.82958984375e-07,
+        "field_irradiance_seconds_per_query": 0.00016738372093,
+        "eight_neighbour_field_irradiance_seconds": 0.00124953488372,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "rectangle",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.02954101563e-07,
+        "field_irradiance_seconds_per_query": 3.72093023256e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.19379844961e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.06201550388e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L1",
+        "build_seconds": 0.000524,
+        "radiance_seconds_per_query": 2.39868164063e-07,
+        "field_irradiance_seconds_per_query": 2.32558139535e-07,
+        "eight_neighbour_field_irradiance_seconds": 2e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L2",
+        "build_seconds": 0.001009,
+        "radiance_seconds_per_query": 4.169921875e-07,
+        "field_irradiance_seconds_per_query": 3.83720930233e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.29457364341e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L3",
+        "build_seconds": 0.001631,
+        "radiance_seconds_per_query": 6.44897460938e-07,
+        "field_irradiance_seconds_per_query": 6.35658914729e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.2015503876e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L4",
+        "build_seconds": 0.002802,
+        "radiance_seconds_per_query": 9.541015625e-07,
+        "field_irradiance_seconds_per_query": 9.72868217054e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.62790697674e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SH_L8",
+        "build_seconds": 0.010095,
+        "radiance_seconds_per_query": 3.27001953125e-06,
+        "field_irradiance_seconds_per_query": 3.27131782946e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.5503875969e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_1",
+        "build_seconds": 0.154063,
+        "radiance_seconds_per_query": 1.52465820312e-07,
+        "field_irradiance_seconds_per_query": 2.3503875969e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000198837209302,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_3",
+        "build_seconds": 0.612316,
+        "radiance_seconds_per_query": 6.28051757813e-07,
+        "field_irradiance_seconds_per_query": 7.79573643411e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000595379844961,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.614944,
+        "radiance_seconds_per_query": 1.25109863281e-06,
+        "field_irradiance_seconds_per_query": 7.7519379845e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000630465116279,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "SG_6",
+        "build_seconds": 2.116328,
+        "radiance_seconds_per_query": 7.87231445312e-07,
+        "field_irradiance_seconds_per_query": 0.000127755813953,
+        "eight_neighbour_field_irradiance_seconds": 0.00101554263566,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "tube",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 3.96484375e-07,
+        "field_irradiance_seconds_per_query": 3.91472868217e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.18604651163e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00163459689922,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L1",
+        "build_seconds": 0.000603,
+        "radiance_seconds_per_query": 2.65380859375e-07,
+        "field_irradiance_seconds_per_query": 2.59689922481e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.20930232558e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L2",
+        "build_seconds": 0.00098,
+        "radiance_seconds_per_query": 4.17358398438e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.45736434109e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L3",
+        "build_seconds": 0.001636,
+        "radiance_seconds_per_query": 6.61987304687e-07,
+        "field_irradiance_seconds_per_query": 6.66666666667e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.38759689922e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L4",
+        "build_seconds": 0.002609,
+        "radiance_seconds_per_query": 1.408203125e-06,
+        "field_irradiance_seconds_per_query": 1.27906976744e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.18992248062e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SH_L8",
+        "build_seconds": 0.009869,
+        "radiance_seconds_per_query": 4.37744140625e-06,
+        "field_irradiance_seconds_per_query": 3.54651162791e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.82093023256e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_1",
+        "build_seconds": 0.154342,
+        "radiance_seconds_per_query": 1.6943359375e-07,
+        "field_irradiance_seconds_per_query": 2.65503875969e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000206565891473,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_3",
+        "build_seconds": 0.620348,
+        "radiance_seconds_per_query": 3.65234375e-07,
+        "field_irradiance_seconds_per_query": 7.08953488372e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00057288372093,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.622934,
+        "radiance_seconds_per_query": 7.60620117188e-07,
+        "field_irradiance_seconds_per_query": 7.38023255814e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000584263565891,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "SG_6",
+        "build_seconds": 1.335374,
+        "radiance_seconds_per_query": 7.69653320312e-07,
+        "field_irradiance_seconds_per_query": 0.000154829457364,
+        "eight_neighbour_field_irradiance_seconds": 0.00123459689922,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "two_sided_sheet",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 3.99780273438e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.2015503876e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.3023255814e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L1",
+        "build_seconds": 0.000542,
+        "radiance_seconds_per_query": 2.78076171875e-07,
+        "field_irradiance_seconds_per_query": 3.21705426357e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.60465116279e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L2",
+        "build_seconds": 0.001027,
+        "radiance_seconds_per_query": 6.36596679688e-07,
+        "field_irradiance_seconds_per_query": 6.16279069767e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.66666666667e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L3",
+        "build_seconds": 0.001713,
+        "radiance_seconds_per_query": 9.5654296875e-07,
+        "field_irradiance_seconds_per_query": 1.01937984496e-06,
+        "eight_neighbour_field_irradiance_seconds": 6.25581395349e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L4",
+        "build_seconds": 0.002698,
+        "radiance_seconds_per_query": 1.08825683594e-06,
+        "field_irradiance_seconds_per_query": 1.08527131783e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.2480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SH_L8",
+        "build_seconds": 0.010144,
+        "radiance_seconds_per_query": 3.40588378906e-06,
+        "field_irradiance_seconds_per_query": 3.27906976744e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.76589147287e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_1",
+        "build_seconds": 0.200977,
+        "radiance_seconds_per_query": 1.09008789063e-07,
+        "field_irradiance_seconds_per_query": 2.16976744186e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000176356589147,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_3",
+        "build_seconds": 0.683367,
+        "radiance_seconds_per_query": 3.40087890625e-07,
+        "field_irradiance_seconds_per_query": 8.02945736434e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000670372093023,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.685788,
+        "radiance_seconds_per_query": 1.23510742188e-06,
+        "field_irradiance_seconds_per_query": 0.000104197674419,
+        "eight_neighbour_field_irradiance_seconds": 0.000730503875969,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "SG_6",
+        "build_seconds": 1.753566,
+        "radiance_seconds_per_query": 1.00756835937e-06,
+        "field_irradiance_seconds_per_query": 0.000188608527132,
+        "eight_neighbour_field_irradiance_seconds": 0.00143713953488,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sun_and_soft_sky",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 5.49560546875e-07,
+        "field_irradiance_seconds_per_query": 6.39534883721e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.46511627907e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.00387827906977,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L1",
+        "build_seconds": 0.000545,
+        "radiance_seconds_per_query": 4.24438476563e-07,
+        "field_irradiance_seconds_per_query": 4.45736434109e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.48837209302e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L2",
+        "build_seconds": 0.001032,
+        "radiance_seconds_per_query": 5.17211914063e-07,
+        "field_irradiance_seconds_per_query": 6.74418604651e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.06201550388e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L3",
+        "build_seconds": 0.001748,
+        "radiance_seconds_per_query": 6.69189453125e-07,
+        "field_irradiance_seconds_per_query": 7.44186046512e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.66666666667e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L4",
+        "build_seconds": 0.002889,
+        "radiance_seconds_per_query": 1.02172851563e-06,
+        "field_irradiance_seconds_per_query": 1.03100775194e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.37984496124e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SH_L8",
+        "build_seconds": 0.010914,
+        "radiance_seconds_per_query": 3.5341796875e-06,
+        "field_irradiance_seconds_per_query": 3.36434108527e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.70542635659e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_1",
+        "build_seconds": 0.206147,
+        "radiance_seconds_per_query": 2.82958984375e-07,
+        "field_irradiance_seconds_per_query": 3.42131782946e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000273449612403,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_3",
+        "build_seconds": 0.795738,
+        "radiance_seconds_per_query": 4.82666015625e-07,
+        "field_irradiance_seconds_per_query": 9.26860465116e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000727651162791,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.798553,
+        "radiance_seconds_per_query": 8.10913085937e-07,
+        "field_irradiance_seconds_per_query": 8.37558139535e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000701720930233,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "SG_6",
+        "build_seconds": 1.722517,
+        "radiance_seconds_per_query": 8.04443359375e-07,
+        "field_irradiance_seconds_per_query": 0.000184701550388,
+        "eight_neighbour_field_irradiance_seconds": 0.0015394496124,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "diffuse_indirect",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.0673828125e-07,
+        "field_irradiance_seconds_per_query": 3.99224806202e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.34108527132e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.65891472868e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L1",
+        "build_seconds": 0.000525,
+        "radiance_seconds_per_query": 2.7783203125e-07,
+        "field_irradiance_seconds_per_query": 2.67441860465e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.27906976744e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L2",
+        "build_seconds": 0.000994,
+        "radiance_seconds_per_query": 4.5068359375e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.86821705426e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L3",
+        "build_seconds": 0.0017,
+        "radiance_seconds_per_query": 7.08129882812e-07,
+        "field_irradiance_seconds_per_query": 6.8992248062e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.86821705426e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L4",
+        "build_seconds": 0.002724,
+        "radiance_seconds_per_query": 1.265625e-06,
+        "field_irradiance_seconds_per_query": 1.37596899225e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.02790697674e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SH_L8",
+        "build_seconds": 0.010228,
+        "radiance_seconds_per_query": 4.11218261719e-06,
+        "field_irradiance_seconds_per_query": 3.68604651163e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.02558139535e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_1",
+        "build_seconds": 0.181565,
+        "radiance_seconds_per_query": 2.25952148437e-07,
+        "field_irradiance_seconds_per_query": 3.07054263566e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000247472868217,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_3",
+        "build_seconds": 0.771506,
+        "radiance_seconds_per_query": 6.42944335937e-07,
+        "field_irradiance_seconds_per_query": 8.71821705426e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000675054263566,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.774206,
+        "radiance_seconds_per_query": 1.05126953125e-06,
+        "field_irradiance_seconds_per_query": 8.33875968992e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000642674418605,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "SG_6",
+        "build_seconds": 1.55523,
+        "radiance_seconds_per_query": 8.193359375e-07,
+        "field_irradiance_seconds_per_query": 0.000174437984496,
+        "eight_neighbour_field_irradiance_seconds": 0.00138665891473,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "bright_window",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 6.32568359375e-07,
+        "field_irradiance_seconds_per_query": 6.12403100775e-07,
+        "eight_neighbour_field_irradiance_seconds": 4.96899224806e-06,
+        "explicit_reference_irradiance_seconds_per_query": 2.28682170543e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L1",
+        "build_seconds": 0.00058,
+        "radiance_seconds_per_query": 2.97241210938e-07,
+        "field_irradiance_seconds_per_query": 3.83720930233e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.40310077519e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L2",
+        "build_seconds": 0.00124,
+        "radiance_seconds_per_query": 6.79077148438e-07,
+        "field_irradiance_seconds_per_query": 6.8992248062e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.70542635659e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L3",
+        "build_seconds": 0.001973,
+        "radiance_seconds_per_query": 8.564453125e-07,
+        "field_irradiance_seconds_per_query": 9.80620155039e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.20930232558e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L4",
+        "build_seconds": 0.002961,
+        "radiance_seconds_per_query": 1.55053710937e-06,
+        "field_irradiance_seconds_per_query": 1.63565891473e-06,
+        "eight_neighbour_field_irradiance_seconds": 1.26124031008e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SH_L8",
+        "build_seconds": 0.010998,
+        "radiance_seconds_per_query": 4.39025878906e-06,
+        "field_irradiance_seconds_per_query": 4.76356589147e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.67364341085e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_1",
+        "build_seconds": 0.195652,
+        "radiance_seconds_per_query": 2.705078125e-07,
+        "field_irradiance_seconds_per_query": 3.79496124031e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000297310077519,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_3",
+        "build_seconds": 0.82386,
+        "radiance_seconds_per_query": 6.35375976563e-07,
+        "field_irradiance_seconds_per_query": 0.000106798449612,
+        "eight_neighbour_field_irradiance_seconds": 0.000849449612403,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.82709,
+        "radiance_seconds_per_query": 1.35913085937e-06,
+        "field_irradiance_seconds_per_query": 0.000106046511628,
+        "eight_neighbour_field_irradiance_seconds": 0.000869511627907,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "SG_6",
+        "build_seconds": 2.150973,
+        "radiance_seconds_per_query": 1.0263671875e-06,
+        "field_irradiance_seconds_per_query": 0.000211321705426,
+        "eight_neighbour_field_irradiance_seconds": 0.00165689147287,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "wall_occlusion",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.39575195313e-07,
+        "field_irradiance_seconds_per_query": 5.11627906977e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.68992248062e-06,
+        "explicit_reference_irradiance_seconds_per_query": 3.26356589147e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L1",
+        "build_seconds": 0.000541,
+        "radiance_seconds_per_query": 2.97485351562e-07,
+        "field_irradiance_seconds_per_query": 2.71317829457e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.57364341085e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L2",
+        "build_seconds": 0.000988,
+        "radiance_seconds_per_query": 4.6142578125e-07,
+        "field_irradiance_seconds_per_query": 4.18604651163e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.58914728682e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L3",
+        "build_seconds": 0.00171,
+        "radiance_seconds_per_query": 7.421875e-07,
+        "field_irradiance_seconds_per_query": 1e-06,
+        "eight_neighbour_field_irradiance_seconds": 5.64341085271e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L4",
+        "build_seconds": 0.002693,
+        "radiance_seconds_per_query": 1.10241699219e-06,
+        "field_irradiance_seconds_per_query": 1.05426356589e-06,
+        "eight_neighbour_field_irradiance_seconds": 7.93023255814e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SH_L8",
+        "build_seconds": 0.011611,
+        "radiance_seconds_per_query": 3.70007324219e-06,
+        "field_irradiance_seconds_per_query": 3.81395348837e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.81627906977e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_1",
+        "build_seconds": 0.190851,
+        "radiance_seconds_per_query": 1.62719726562e-07,
+        "field_irradiance_seconds_per_query": 2.28178294574e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000183201550388,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_3",
+        "build_seconds": 0.631818,
+        "radiance_seconds_per_query": 4.00268554687e-07,
+        "field_irradiance_seconds_per_query": 8.19728682171e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000636124031008,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.634618,
+        "radiance_seconds_per_query": 7.83203125e-07,
+        "field_irradiance_seconds_per_query": 7.92751937984e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000634201550388,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "SG_6",
+        "build_seconds": 1.909161,
+        "radiance_seconds_per_query": 7.65869140625e-07,
+        "field_irradiance_seconds_per_query": 0.000157953488372,
+        "eight_neighbour_field_irradiance_seconds": 0.00131070542636,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "sharp_light_weak_fill",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 5.74829101562e-07,
+        "field_irradiance_seconds_per_query": 4.22480620155e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.58914728682e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000251976744186,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L1",
+        "build_seconds": 0.000531,
+        "radiance_seconds_per_query": 2.48168945313e-07,
+        "field_irradiance_seconds_per_query": 2.51937984496e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.12403100775e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L2",
+        "build_seconds": 0.000959,
+        "radiance_seconds_per_query": 4.00634765625e-07,
+        "field_irradiance_seconds_per_query": 4.03100775194e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.99224806202e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L3",
+        "build_seconds": 0.001646,
+        "radiance_seconds_per_query": 6.3623046875e-07,
+        "field_irradiance_seconds_per_query": 6.35658914729e-07,
+        "eight_neighbour_field_irradiance_seconds": 5e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L4",
+        "build_seconds": 0.002673,
+        "radiance_seconds_per_query": 9.50439453125e-07,
+        "field_irradiance_seconds_per_query": 1.01162790698e-06,
+        "eight_neighbour_field_irradiance_seconds": 7.65891472868e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SH_L8",
+        "build_seconds": 0.010439,
+        "radiance_seconds_per_query": 3.29736328125e-06,
+        "field_irradiance_seconds_per_query": 3.26744186047e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.64031007752e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_1",
+        "build_seconds": 0.162372,
+        "radiance_seconds_per_query": 1.5966796875e-07,
+        "field_irradiance_seconds_per_query": 2.48023255814e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.00019688372093,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_3",
+        "build_seconds": 0.578601,
+        "radiance_seconds_per_query": 4.27001953125e-07,
+        "field_irradiance_seconds_per_query": 8.52170542636e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000596480620155,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.581272,
+        "radiance_seconds_per_query": 7.94311523437e-07,
+        "field_irradiance_seconds_per_query": 7.49069767442e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000596759689922,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "SG_6",
+        "build_seconds": 1.737103,
+        "radiance_seconds_per_query": 7.64404296875e-07,
+        "field_irradiance_seconds_per_query": 0.000151627906977,
+        "eight_neighbour_field_irradiance_seconds": 0.0011825503876,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "previous_three_coloured_lobes",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.11010742188e-07,
+        "field_irradiance_seconds_per_query": 3.99224806202e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.31782945736e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000724403100775,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L1",
+        "build_seconds": 0.000524,
+        "radiance_seconds_per_query": 2.392578125e-07,
+        "field_irradiance_seconds_per_query": 2.40310077519e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.00775193798e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L2",
+        "build_seconds": 0.000987,
+        "radiance_seconds_per_query": 3.86108398438e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.20930232558e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L3",
+        "build_seconds": 0.001695,
+        "radiance_seconds_per_query": 6.39404296875e-07,
+        "field_irradiance_seconds_per_query": 6.2015503876e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.22480620155e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L4",
+        "build_seconds": 0.002699,
+        "radiance_seconds_per_query": 9.43603515625e-07,
+        "field_irradiance_seconds_per_query": 9.49612403101e-07,
+        "eight_neighbour_field_irradiance_seconds": 7.67441860465e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "SH_L8",
+        "build_seconds": 0.010117,
+        "radiance_seconds_per_query": 3.3037109375e-06,
+        "field_irradiance_seconds_per_query": 3.27906976744e-06,
+        "eight_neighbour_field_irradiance_seconds": 2.62635658915e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "ideal_parallel_delta",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 4.00756835937e-07,
+        "field_irradiance_seconds_per_query": 3.83720930233e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.2015503876e-06,
+        "explicit_reference_irradiance_seconds_per_query": 1.66666666667e-06,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L1",
+        "build_seconds": 0.000506,
+        "radiance_seconds_per_query": 2.7392578125e-07,
+        "field_irradiance_seconds_per_query": 2.7519379845e-07,
+        "eight_neighbour_field_irradiance_seconds": 2.26356589147e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L2",
+        "build_seconds": 0.000949,
+        "radiance_seconds_per_query": 4.3408203125e-07,
+        "field_irradiance_seconds_per_query": 4.34108527132e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.58914728682e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L3",
+        "build_seconds": 0.001648,
+        "radiance_seconds_per_query": 6.61987304687e-07,
+        "field_irradiance_seconds_per_query": 6.62790697674e-07,
+        "eight_neighbour_field_irradiance_seconds": 5.67441860465e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L4",
+        "build_seconds": 0.002596,
+        "radiance_seconds_per_query": 9.853515625e-07,
+        "field_irradiance_seconds_per_query": 1.01937984496e-06,
+        "eight_neighbour_field_irradiance_seconds": 8.65891472868e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SH_L8",
+        "build_seconds": 0.009757,
+        "radiance_seconds_per_query": 3.78564453125e-06,
+        "field_irradiance_seconds_per_query": 3.67829457364e-06,
+        "eight_neighbour_field_irradiance_seconds": 3.72635658915e-05,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_1",
+        "build_seconds": 0.146838,
+        "radiance_seconds_per_query": 1.78466796875e-07,
+        "field_irradiance_seconds_per_query": 2.49496124031e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000211565891473,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_3",
+        "build_seconds": 0.715239,
+        "radiance_seconds_per_query": 4.18701171875e-07,
+        "field_irradiance_seconds_per_query": 7.53643410853e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000591224806202,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_3_SH_L2",
+        "build_seconds": 0.717992,
+        "radiance_seconds_per_query": 7.96630859375e-07,
+        "field_irradiance_seconds_per_query": 7.45658914729e-05,
+        "eight_neighbour_field_irradiance_seconds": 0.000605945736434,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "SG_6",
+        "build_seconds": 1.664104,
+        "radiance_seconds_per_query": 7.36206054687e-07,
+        "field_irradiance_seconds_per_query": 0.000155658914729,
+        "eight_neighbour_field_irradiance_seconds": 0.00124548837209,
+        "explicit_reference_irradiance_seconds_per_query": 0,
+        "radiance_includes_explicit_geometry": true
+      },
+      {
+        "scene": "extreme_dynamic_range",
+        "representation": "Explicit_SH_L2",
+        "build_seconds": 0,
+        "radiance_seconds_per_query": 5.1708984375e-07,
+        "field_irradiance_seconds_per_query": 3.87596899225e-07,
+        "eight_neighbour_field_irradiance_seconds": 3.19379844961e-06,
+        "explicit_reference_irradiance_seconds_per_query": 0.000507465116279,
+        "radiance_includes_explicit_geometry": true
+      }
+    ]
+  ]
+}

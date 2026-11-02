@@ -1,0 +1,234 @@
+{
+  "rows": [
+    {
+      "scene": "sealed",
+      "degree": 1,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Available",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": 50.0,
+      "strict_blocked_support_leak": 0.0
+    },
+    {
+      "scene": "sealed",
+      "degree": 2,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Available",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": 50.0,
+      "strict_blocked_support_leak": 0.0
+    },
+    {
+      "scene": "sealed",
+      "degree": 4,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Available",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": 50.0,
+      "strict_blocked_support_leak": 0.0
+    },
+    {
+      "scene": "sealed",
+      "degree": 8,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Available",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": 50.0,
+      "strict_blocked_support_leak": 0.0
+    },
+    {
+      "scene": "doorway",
+      "degree": 1,
+      "naive": 50.0,
+      "supported_value": 50.0,
+      "status": "Available",
+      "segment_weights": [
+        1.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "doorway",
+      "degree": 2,
+      "naive": 50.0,
+      "supported_value": 50.0,
+      "status": "Available",
+      "segment_weights": [
+        1.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "doorway",
+      "degree": 4,
+      "naive": 50.0,
+      "supported_value": 50.0,
+      "status": "Available",
+      "segment_weights": [
+        1.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "doorway",
+      "degree": 8,
+      "naive": 50.0,
+      "supported_value": 50.0,
+      "status": "Available",
+      "segment_weights": [
+        1.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "alpha_unknown",
+      "degree": 1,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "alpha_unknown",
+      "degree": 2,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "alpha_unknown",
+      "degree": 4,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "alpha_unknown",
+      "degree": 8,
+      "naive": 50.0,
+      "supported_value": 0.0,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        1.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "missing_geometry",
+      "degree": 1,
+      "naive": 50.0,
+      "supported_value": null,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        0.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "missing_geometry",
+      "degree": 2,
+      "naive": 50.0,
+      "supported_value": null,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        0.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "missing_geometry",
+      "degree": 4,
+      "naive": 50.0,
+      "supported_value": null,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        0.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    },
+    {
+      "scene": "missing_geometry",
+      "degree": 8,
+      "naive": 50.0,
+      "supported_value": null,
+      "status": "Unknown",
+      "segment_weights": [
+        0.0,
+        0.0
+      ],
+      "field_physical_truth_known": false,
+      "blocked_support_leak": null,
+      "strict_blocked_support_leak": null
+    }
+  ],
+  "no_admissible_support": {
+    "value": null,
+    "unknown": false,
+    "status": "Unavailable"
+  },
+  "semantics": "Support selection, not an inverse emitter oracle; Unknown never becomes certified clear. Different computational region IDs do not override a certified doorway segment."
+}

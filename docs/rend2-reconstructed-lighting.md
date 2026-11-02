@@ -1,5 +1,9 @@
 # Canonical reconstructed static lighting, schema 7
 
+P03 compares CPU angular SH L1/L2/L3/L4/L8, fitted SG and explicit-source hybrids.
+It selects quantity-specific field policy without registering a production field
+codec or changing this schema. See [P03 directional fields](rend2-directional-fields-p03.md).
+
 P06 retains the S13 contribution/sample codecs and adds prepared read-only
 contribution queries, membership v2, sparse coverage and scoped replacement
 proofs. Sample/observation payload v2 separates original observation IDs from
