@@ -1,6 +1,8 @@
 # Rendering cvar and console-command provenance
 
-This audit accompanies [rendering features](rendering-features.md). It compares
+This is the original 2026-10-28 provenance snapshot accompanying [rendering features](rendering-features.md).
+For the later history, see [changes since this audit](rendering-features/changes.md).
+The human-readable controls now live on the linked topic pages; defaults below remain pinned to the original audited commit. It compares
 currently registered engine/game/renderer names in this source snapshot against
 the **local** `rend2` branch. Names are case-insensitive and deduplicated across
 SP, MP and shared code. A name inherited anywhere in the baseline is excluded,
@@ -10,7 +12,7 @@ even if this branch adds another renderer or registration site.
 - Audited source: `rend2-unified-wip` at [`df7da6eb1`](https://github.com/keyten/BetterJK/commit/df7da6eb1a9f98c8bd22a57a7e21a2c712fb81d3).
 - `origin/rend2` was [`1215e136c`](https://github.com/keyten/BetterJK/commit/1215e136cf378b2b3ec2e10821221c3b6692b473); it is a different ref and was not substituted for the requested baseline.
 - Result: **687 cvars and 55 console commands** absent from the baseline and registered in the audited source.
-- Original feature-page coverage: **348 cvars and 30 commands missing**, including four misspelled particle-lighting names. The updated page mentions all 742 current names.
+- Original feature-page coverage: **348 cvars and 30 commands missing**, including four misspelled particle-lighting names. The 2026-10-28 feature reference covered all 742 names at that snapshot.
 
 ## Method and interpretation
 
