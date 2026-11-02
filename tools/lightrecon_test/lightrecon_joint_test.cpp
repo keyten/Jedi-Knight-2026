@@ -589,6 +589,44 @@ void Auxiliary()
 	Must(J::Solve(rig.request, Read(), unavailable, &oracle));
 	CHECK(unavailable.preferred == SIZE_MAX);
 }
+void DynamicScopeWitness()
+{
+	Rig rig;
+	auto c = Point(10, V(0, 0, 1));
+	rig.request.candidates = {c};
+	rig.Observations(rig.Truth({Answer(c, V(2.1, .4, .8))}));
+	Oracle oracle(rig);
+	J::Result baseline, known, unknown;
+	Must(J::Solve(rig.request, Read(), baseline, &oracle));
+	CHECK(baseline.preferred != SIZE_MAX);
+	DynamicBoundary d;
+	d.id = 717;
+	d.bounds = Box(V(100, 100, 100), V(101, 101, 101));
+	d.sweptExtentKnown = true;
+	rig.request.placement.dynamic = {d};
+	Must(J::Solve(rig.request, Read(), known, &oracle));
+	CHECK(known.preferred != SIZE_MAX);
+	// An unknown swept extent is genuinely missing evidence. Current global
+	// placement policy cannot use distant current-state bounds as a free certificate.
+	rig.request.placement.dynamic[0].sweptExtentKnown = false;
+	Must(J::Solve(rig.request, Read(), unknown, &oracle));
+	CHECK(unknown.preferred == SIZE_MAX);
+	bool witness = false;
+	for (const auto &a : unknown.attempts)
+		witness |= a.reason.find("Dynamic boundary=717 swept-extent=Unknown") != std::string::npos;
+	CHECK(witness);
+	std::ostringstream row;
+	row << "{\"name\":\"distant_unknown_motion_placement_blocker\","
+		   "\"positive_observations\":true,\"baseline_accepted\":"
+		<< (baseline.preferred != SIZE_MAX ? "true" : "false")
+		<< ",\"distant_known_motion_accepted\":" << (known.preferred != SIZE_MAX ? "true" : "false")
+		<< ",\"distant_unknown_motion_accepted\":false,\"typed_witness\":"
+		<< (witness ? "true" : "false")
+		<< ",\"unknown_joint_models\":" << unknown.work.attemptedModels
+		<< ",\"unknown_forward_calls\":" << unknown.work.forwardCalls
+		<< ",\"physical_lamp_absence_certified\":false}";
+	rows.push_back(row.str());
+}
 void Rejection()
 {
 	Rig rig;
@@ -832,6 +870,7 @@ int main(int argc, char **argv)
 		run("material", UnknownMaterial);
 		run("auxiliary", Auxiliary);
 		run("rejection", Rejection);
+		run("dynamic-scope", DynamicScopeWitness);
 		run("protocol", Protocol);
 		run("uncertainty", GeometryUncertainty);
 		run("walls", WallOpening);

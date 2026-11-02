@@ -521,3 +521,16 @@ row selection is not successful prediction coverage.
 | `yavin2` | 40 | 400,283 / 655,360 | 64,787 | 169 / 61 / 64 | 0 / 0 / 0 | 10.0 / 64.6 |
 
 <!-- ALL_STOCK_TABLE_END -->
+
+## X12 follow-up: native joint execution, still no accepted stock source model
+
+The [separately frozen X12 execution](rend2-stock-joint-fits-x12.md) preserves
+the 57-map v4 witness above. Six preselected maps now reach actual native
+`Joint::Solve` (48 calls across two conditional profiles); none completes a
+nonempty accepted fit, final heldout evaluation or physical-source publication.
+The new report distinguishes global unknown dynamic swept extents, finite-source
+clearance/comparable-row failures, an adapter coarse-block budget error (fixed),
+and unsupported compiler shading-normal replay. Positive input RGB is present.
+Passing compiled fixed-XYZ amplitude controls does not establish original stock
+lamp discovery. See the versioned JSON, private-debug hashes and explicit
+unperformed checks before interpreting stage completion as reconstruction.

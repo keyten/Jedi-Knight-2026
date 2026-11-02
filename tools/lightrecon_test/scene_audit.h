@@ -8,6 +8,7 @@ struct SceneControl final : SC::Validation, SC::FinalEvaluation
 	std::array<std::shared_ptr<Rows<J::Observation>>, 3> rows;
 	Disk::Digest validation{}, heldout{};
 	bool final = false;
+	mutable uint64_t calls = 0;
 	Disk::Digest Key() const override
 	{
 		return final ? heldout : validation;
@@ -15,12 +16,14 @@ struct SceneControl final : SC::Validation, SC::FinalEvaluation
 	Error Assess(const J::Request &q, const J::Model &m, const ReadContext &r,
 				 J::Score &s) const override
 	{
+		++calls;
 		return J::EvaluateFrozen(q, m, rows[1], rows[1]->v->size(), J::Role::Validation, validation,
 								 r, s);
 	}
 	Error Assess(const J::Request &q, const J::Model &m, const ReadContext &r,
 				 P::FinalReceipt &s) const override
 	{
+		++calls;
 		s.evidence = "Independent frozen stock observations; physical source truth and historical "
 					 "compiler unknown";
 		return J::EvaluateFrozen(q, m, rows[2], rows[2]->v->size(), J::Role::Heldout, heldout, r,
@@ -79,6 +82,12 @@ static Error SceneAttempt(P::Request request, const std::shared_ptr<Hidden::Requ
 	o.maxWork = 80000000;
 	o.timeLimitMilliseconds = 90000;
 	o.coarseRows = 64;
+	// Preserve every independent evidence block at the coarse stage. Geometry
+	// determines this minimum; no validation/held-out RGB enters the setting.
+	std::set<std::tuple<unsigned, Id, Id>> evidenceBlocks;
+	for (const auto &row : *rows[0]->v)
+		evidenceBlocks.emplace(unsigned(row.channel), row.region, row.block);
+	o.coarseRows = std::max(o.coarseRows, evidenceBlocks.size());
 	o.diagnosticSources = 4;
 	o.diagnosticRows = 64;
 	auto &u = request.options.uncertainty;
@@ -135,6 +144,19 @@ static Error SceneAttempt(P::Request request, const std::shared_ptr<Hidden::Requ
 						 [](const SC::Unit &u) { return u.status == SC::Status::Pending; }));
 	std::ofstream report(output + "/scheduler-" + name + ".json");
 	report << SC::ReportJson(result);
+	std::ofstream controller(output + "/scheduler-" + name + "-controller.json");
+	controller << "{\"validation_calls\":" << validation.calls << ",\"final_calls\":" << final.calls
+			   << ",\"sample_counts\":[" << rows[0]->v->size() << ',' << rows[1]->v->size() << ','
+			   << rows[2]->v->size()
+			   << "],\"direct_only_conditional\":true,"
+				  "\"geometry_refinement_enabled\":false,\"source_count_proposals_enabled\":true,"
+				  "\"shadow_weight\":"
+			   << request.fitting.shadowWeight << ",\"coarse_rows\":" << o.coarseRows
+			   << ",\"training_evidence_blocks\":" << evidenceBlocks.size()
+			   << ",\"canonical_asset_available\":"
+			   << (result.publication.artifact.asset ? "true" : "false")
+			   << ",\"uncertainty_attempts\":" << result.publication.uncertainty.attempts.size()
+			   << '}';
 	std::ofstream graph(output + "/scheduler-" + name + "-units.tsv");
 	graph << "unit\tprofile\tstatus\ttraining\tcandidates\tcomplete\tx0\ty0\tz0\tx1\ty1\tz1\trays\t"
 			 "work\n";

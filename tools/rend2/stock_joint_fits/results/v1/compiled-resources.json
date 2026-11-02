@@ -1,0 +1,37 @@
+[
+  {
+    "name": "point_room",
+    "peak_process_rss_bytes": 6447104,
+    "seconds": 1.0434086000313982
+  },
+  {
+    "name": "point_room-wrong",
+    "peak_process_rss_bytes": 6033408,
+    "seconds": 1.1550733000040054
+  },
+  {
+    "name": "two_colour",
+    "peak_process_rss_bytes": 7065600,
+    "seconds": 6.667590699973516
+  },
+  {
+    "name": "two_colour-wrong",
+    "peak_process_rss_bytes": 6369280,
+    "seconds": 4.754745000042021
+  },
+  {
+    "name": "door_occlusion",
+    "peak_process_rss_bytes": 6463488,
+    "seconds": 0.42363810003735125
+  },
+  {
+    "name": "door_occlusion-wrong",
+    "peak_process_rss_bytes": 6074368,
+    "seconds": 1.0033037000102922
+  },
+  {
+    "name": "two_colour",
+    "peak_process_rss_bytes": 6942720,
+    "seconds": 6.503498399979435
+  }
+]

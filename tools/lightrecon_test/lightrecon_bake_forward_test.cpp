@@ -90,6 +90,27 @@ struct Rig
 int main(int argc, char **argv)
 {
 	{
+		// X12 academy1 witness: one unsupported normal convention must report
+		// why a prepared batch is unavailable, never return successful black.
+		Rig t;
+		std::shared_ptr<const B::PreparedFactors> factors;
+		Check(bool(t.evaluator.Prepare(B::NetRadiantProfile(), Lease(t.sources), Lease(t.receivers),
+									 t.context, t.options, t.read, factors)), "supported normal factor batch");
+		Check(bool(factors), "supported factors available");
+		auto other = t.receivers->at(0);
+		other.sample = 717;
+		other.surface = 308;
+		other.shadingNormal = V(.01f, 0, std::sqrt(1.f - .0001f));
+		t.receivers->push_back(other);
+		auto error = t.evaluator.Prepare(B::NetRadiantProfile(), Lease(t.sources), Lease(t.receivers),
+									   t.context, t.options, t.read, factors);
+		Check(error.code == Code::Unavailable && !factors, "unsupported normal batch is not black");
+		Check(error.message.find("distinct shading normals") != std::string::npos,
+			  "normal capability reason survives");
+		Check(error.message.find("sample=717 surface=308") != std::string::npos,
+			  "unsupported receiver identity survives");
+	}
+	{
 		SurfaceLightingObservation observation;
 		observation.surface = 5;
 		observation.materialIndex = 7;

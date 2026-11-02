@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="365" viewBox="0 0 1120 365">
+<rect width="1120" height="365" fill="#101824"/>
+<style>text{fill:#e7eef8;font:14px sans-serif}.small{font-size:12px}.title{font-size:21px;font-weight:bold}</style>
+<text x="24" y="33" class="title">X12 native stock attempts: execution is not physical recovery</text>
+<text x="24" y="58" class="small">Frozen six-map policy; two conditional profiles; no stock XYZ/count truth. Counts, not confidence scores.</text>
+<text x="24" y="94" class="small">Map</text>
+<text x="200" y="94" class="small">Units/profile</text>
+<text x="350" y="94" class="small">Proposing</text>
+<text x="480" y="94" class="small">Candidates isq/lin</text>
+<text x="660" y="94" class="small">Joint isq/lin</text>
+<text x="825" y="94" class="small">Nonempty fits</text>
+<text x="995" y="94" class="small">Final heldout</text>
+<rect x="16" y="108" width="1088" height="28" fill="#192839"/>
+<text x="24" y="128" style="fill:#e7eef8">mp/duel4</text>
+<text x="200" y="128" style="fill:#e7eef8">25</text>
+<text x="350" y="128" style="fill:#e7eef8">6</text>
+<text x="480" y="128" style="fill:#e7eef8">6 / 8</text>
+<text x="660" y="128" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="128" style="fill:#ffb272">0</text>
+<text x="995" y="128" style="fill:#ffb272">0</text>
+<rect x="16" y="139" width="1088" height="28" fill="#162332"/>
+<text x="24" y="159" style="fill:#e7eef8">t1_danger</text>
+<text x="200" y="159" style="fill:#e7eef8">89</text>
+<text x="350" y="159" style="fill:#e7eef8">38</text>
+<text x="480" y="159" style="fill:#e7eef8">39 / 39</text>
+<text x="660" y="159" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="159" style="fill:#ffb272">0</text>
+<text x="995" y="159" style="fill:#ffb272">0</text>
+<rect x="16" y="170" width="1088" height="28" fill="#192839"/>
+<text x="24" y="190" style="fill:#e7eef8">mp/siege_desert</text>
+<text x="200" y="190" style="fill:#e7eef8">58</text>
+<text x="350" y="190" style="fill:#e7eef8">4</text>
+<text x="480" y="190" style="fill:#e7eef8">5 / 4</text>
+<text x="660" y="190" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="190" style="fill:#ffb272">0</text>
+<text x="995" y="190" style="fill:#ffb272">0</text>
+<rect x="16" y="201" width="1088" height="28" fill="#162332"/>
+<text x="24" y="221" style="fill:#e7eef8">academy1</text>
+<text x="200" y="221" style="fill:#e7eef8">1761</text>
+<text x="350" y="221" style="fill:#e7eef8">66</text>
+<text x="480" y="221" style="fill:#e7eef8">80 / 82</text>
+<text x="660" y="221" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="221" style="fill:#ffb272">0</text>
+<text x="995" y="221" style="fill:#ffb272">0</text>
+<rect x="16" y="232" width="1088" height="28" fill="#192839"/>
+<text x="24" y="252" style="fill:#e7eef8">hoth3</text>
+<text x="200" y="252" style="fill:#e7eef8">853</text>
+<text x="350" y="252" style="fill:#e7eef8">243</text>
+<text x="480" y="252" style="fill:#e7eef8">251 / 251</text>
+<text x="660" y="252" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="252" style="fill:#ffb272">0</text>
+<text x="995" y="252" style="fill:#ffb272">0</text>
+<rect x="16" y="263" width="1088" height="28" fill="#162332"/>
+<text x="24" y="283" style="fill:#e7eef8">hoth2</text>
+<text x="200" y="283" style="fill:#e7eef8">811</text>
+<text x="350" y="283" style="fill:#e7eef8">29</text>
+<text x="480" y="283" style="fill:#e7eef8">30 / 29</text>
+<text x="660" y="283" style="fill:#e7eef8">4 / 4</text>
+<text x="825" y="283" style="fill:#ffb272">0</text>
+<text x="995" y="283" style="fill:#ffb272">0</text>
+<text x="24" y="326" class="small">Positive observations exist. Rejections: motion extent / clearance / unavailable rows / coarse block budget.</text>
+<text x="24" y="347" class="small">academy1 v2 fixes the block budget, then exposes unsupported shading-normal replay. No wall/uncertainty gate was relaxed.</text>
+</svg>

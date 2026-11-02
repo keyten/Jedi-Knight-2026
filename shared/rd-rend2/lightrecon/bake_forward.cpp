@@ -844,8 +844,12 @@ Error CpuForwardEvaluator::Prepare(const ProfileHypothesis &p, const Chunk<Sourc
 					return Failure(Code::Cancelled, "Prepare cancelled");
 				if (sources.data[j].kind == SourceKind::Sky)
 					return Failure(Code::Unavailable, "Sky expansion is not cached");
-				if (!Capability(p, sources.data[j].kind, receivers.data[i], o).implemented)
-					return Failure(Code::Unavailable, "Unsupported factor operation");
+				auto support = Capability(p, sources.data[j].kind, receivers.data[i], o);
+				if (!support.implemented)
+					return Failure(Code::Unavailable,
+						"Unsupported factor operation: " + support.reason +
+						" sample=" + std::to_string(receivers.data[i].sample) +
+						" surface=" + std::to_string(receivers.data[i].surface));
 				e = MakeFactor(sources.data[j], receivers.data[i], recipe, c, o, read,
 							   f->records_[i * sources.count + j], w);
 				if (!e)

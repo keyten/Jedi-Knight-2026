@@ -394,6 +394,10 @@ static void Diagnostics(const O::Sources &s, const O::RegionSnapshot &graph,
 	  << ",\"patch_error_world\":" << g.maximumPatchErrorWorld
 	  << ",\"peak_build_bytes_accounted\":" << g.peakBuildBytes
 	  << ",\"dynamic_bounds\":" << s.dynamic.size()
+	  << ",\"dynamic_unknown_extent\":"
+	  << std::count_if(s.dynamic.begin(), s.dynamic.end(), [](const DynamicBoundary &d) {
+			 return !d.sweptExtentKnown || !d.bounds.known;
+		 })
 	  << ",\"region_scope\":\"captured bounded ROI, not full "
 		 "map\",\"region_free_cells\":"
 	  << graph.report.freeCells << ",\"region_solid_cells\":" << graph.report.solidCells

@@ -771,6 +771,17 @@ void NegativeGeometry()
 	CHECK(P::MakePlacement(moving, Context(), p));
 	CHECK(p->Check(Vec3(-80, -60, 120), Vec3(-80, -60, 120), .1, Context(), result));
 	CHECK(result.state == P::Constraint::Dynamic);
+	CHECK(result.dynamicBoundary == b.id && !result.dynamicExtentUnknown);
+	// Same distant current geometry, changed knowledge of its complete motion.
+	moving.dynamic[0].bounds = Box(V(1000, 1000, 1000), V(1001, 1001, 1001));
+	CHECK(P::MakePlacement(moving, Context(), p));
+	CHECK(p->Check(Vec3(-80, -60, 120), Vec3(-80, -60, 120), .1, Context(), result));
+	CHECK(result.state == P::Constraint::Free);
+	moving.dynamic[0].sweptExtentKnown = false;
+	CHECK(P::MakePlacement(moving, Context(), p));
+	CHECK(p->Check(Vec3(-80, -60, 120), Vec3(-80, -60, 120), .1, Context(), result));
+	CHECK(result.state == P::Constraint::Dynamic && result.dynamicExtentUnknown);
+	CHECK(result.dynamicBoundary == b.id);
 	auto invalid = f.request;
 	invalid.placement = p;
 	invalid.lighting.geometry.geometryKey = Key("stale");

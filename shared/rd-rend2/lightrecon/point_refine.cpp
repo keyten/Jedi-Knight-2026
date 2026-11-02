@@ -152,6 +152,8 @@ class Scene final : public PlacementProvider
 					if (!d.sweptExtentKnown || !d.bounds.known || Overlap(box, d.bounds))
 					{
 						out.state = Constraint::Dynamic;
+						out.dynamicBoundary = d.id;
+						out.dynamicExtentUnknown = !d.sweptExtentKnown || !d.bounds.known;
 						return false;
 					}
 				}

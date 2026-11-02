@@ -1,0 +1,28 @@
+{
+  "schema": "org.openjk.stock-joint-witness.v1",
+  "base_commit": "a83d663ff5a45e4ff629e95e94d655c433b1946b",
+  "artifacts": {
+    "v1/checks.json": "8b022b8dcff164b0a9691d1054e97953263e11c6a22c40c86683d9c79a97b179",
+    "v1/compiled-resources.json": "13c31bebab7b48bf0e82328f51b3e99ac6569afa8800f4320127c8740bec07a9",
+    "v1/compiled.json": "53241632dd7e551a3433a8ea2d61d36f08e39bbf1ece2e47ca07f220b4ec7a73",
+    "v1/forward.json": "fbd8eca42e232e499f72d45bdc88775ce8e9f80517593e458b2b8dd1176197b8",
+    "v1/motion-witness.json": "ed649ee58f599cfc2765c694c0dee908eb50335cd44c19eab04932d0fdfdefb1",
+    "v1/protocol.json": "8b27255d5be6b959f989815ae67bea3d843386530a2f1e60da8a27dd2b5dbb0c",
+    "v1/stages.csv": "506db52dd38a3700bad74347733324367a054f8c81a08f0b474bd4a315e04e81",
+    "v1/stages.svg": "82f15cba9024a7898a0ca37ec68044ba5df059bee70fe0c98e8d8f4449f479ce",
+    "v1/stock.json": "8b70003472efae586908992c87846899216d2a171555af4fba0a0649adc17230",
+    "v1/tables.md": "c52633cde6c0746292ed1c60194f0e12af25658b07e97951959367d1f9401f3a",
+    "v2/initial.json": "7b484c655c5bbea1d117f6cedf1303a9ecd3831ded232dc8a22ed00ec311de3b",
+    "v2/protocol.json": "436c0085254a439611b024d65e72c57f9ccd8a29c9c24ae4d3b84c7ceed5cd0c",
+    "v2/stock.json": "76cb37e21ab13913838f5499d13314bd1b34a07a4236412bbaf78c25d13a9aee"
+  },
+  "source_files": {
+    "tools/rend2/stock_joint_fits/collect.py": "ca81fab426466cc277c7e8ad6530d6a816b8c052c1fcb291c0c494a59c9b87f7",
+    "tools/rend2/stock_joint_fits/finalize.py": "35984bb158c7d7706daa8242684332d6eea10f162a5677518a7a76ed3ad07f2b",
+    "tools/rend2/stock_joint_fits/freeze.py": "9eb363a962da144a1f778cf1c190f3313b3182cac7f37fc74ea54604ccf047dc",
+    "tools/rend2/stock_joint_fits/report.py": "ae70e0c9306e83f2089c9b2b7fc4116d4b23336a920dea58eeafe6295553c58c",
+    "tools/rend2/stock_joint_fits/run.py": "7faaf7875cc97f4d03980ed4489cef284674ab3e3c05a9d0040e276f538cc65b",
+    "tools/rend2/stock_joint_fits/test_reports.py": "111e1381889c6a039d957d6ed3d1e56cd404c76ea4934129478091682ec4c28a"
+  },
+  "conclusion": "Native fixed-XYZ compiler fitting works; no accepted original-stock source model"
+}

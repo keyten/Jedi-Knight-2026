@@ -29,6 +29,8 @@ struct PlacementResult
 {
 	Constraint state = Constraint::UnknownGeometry;
 	Id region = 0;
+	Id dynamicBoundary = 0; // first blocking/uncertain motion witness, not a static occluder
+	bool dynamicExtentUnknown = false;
 	bool regionKnown = false;
 	uint64_t work = 0, rays = 0;
 };

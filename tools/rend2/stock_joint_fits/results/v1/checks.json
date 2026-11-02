@@ -1,0 +1,191 @@
+{
+  "schema": "org.openjk.stock-joint-checks.v1",
+  "cpu": {
+    "passed": 35,
+    "failed": 0,
+    "measurement": {
+      "command": [
+        "ctest",
+        "--test-dir",
+        "build/s06-gcc",
+        "--output-on-failure",
+        "-j2"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 290.9925214999821,
+      "peak_working_set_bytes": 14036992
+    },
+    "rss_scope": "CTest driver only; native map/fixture RSS measured separately"
+  },
+  "builds": {
+    "sp_release": "Passed",
+    "mp_release": "Passed",
+    "measurement": {
+      "command": [
+        "cmake",
+        "--build",
+        "build/s13-renderers",
+        "--config",
+        "Release",
+        "--target",
+        "rdsp-rend2_x86_64",
+        "rd-rend2_x86_64",
+        "--parallel",
+        "2"
+      ],
+      "exit_code": 0,
+      "wall_seconds": 37.875306500005536,
+      "peak_working_set_bytes": 14147584
+    },
+    "rss_scope": "Build driver only; not compiler process peaks"
+  },
+  "python": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/rend2/datasets",
+        "-p",
+        "test_blind_views.py",
+        "-v"
+      ],
+      "passed": 7,
+      "log_sha256": "d9c917683cd4e77332f201a087ca17e340d7edd9144ecad4b60cc10da5196174"
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/rend2/bake_model",
+        "-p",
+        "test_cpp_forward.py",
+        "-v"
+      ],
+      "passed": 6,
+      "log_sha256": "406ef169be5998777ea166fbec5c22e7d0868f6f6cee4c5f039916b1bfac4889"
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/rend2/all_stock",
+        "-p",
+        "test_audit.py",
+        "-v"
+      ],
+      "passed": 4,
+      "log_sha256": "8cd2c06f245ee55b5b720f59289317e4956014aa1e7c5963d36b1053c602bbfa"
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/rend2/scene_schedule",
+        "-p",
+        "test_reports.py",
+        "-v"
+      ],
+      "passed": 2,
+      "log_sha256": "69f5f9388f174ffee1171112f7392185f7593415f0772b979e7f333f2540645a"
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tools/rend2/stock_joint_fits",
+        "-p",
+        "test_reports.py",
+        "-v"
+      ],
+      "passed": 4,
+      "log_sha256": "40d85b5515cc23497066e92097dec4e5c57886b58578d1a26dc0ef02f5fd2016"
+    }
+  ],
+  "architecture": {
+    "schema": "org.openjk.solver-architecture-audit.v1",
+    "modules": [
+      "producer",
+      "joint",
+      "uncertainty",
+      "amplitude_fit",
+      "point_refine",
+      "emitter_shape",
+      "hidden_candidates",
+      "sun_fit",
+      "indirect",
+      "bake_forward",
+      "bake_integral",
+      "bake_trace",
+      "candidate_pool",
+      "shadow_evidence",
+      "transport_mesh",
+      "sampling",
+      "scene_schedule"
+    ],
+    "forbidden_runtime_dependencies": [],
+    "dependency_check_pass": true,
+    "boundary": "Producer::Run -> immutable ReconstructedLightingAsset plus data payloads",
+    "decoder_exception": "RendererSettings describes presentation parity; source decoding is independently tested invariant",
+    "physical_validity": "hard geometry/finite/nonnegative constraints; uncertain geometry is not certified free",
+    "ranking": "validation objective + complexity + geometry/material priors; required-block gate first",
+    "priority_qualification": "No independent stock physical-truth oracle; ranking is not a proof of physical configuration",
+    "uncertainty": "runs before publication; remains conditional/unknown without calibration",
+    "budgets": "CPU offline work/memory limits, not renderer resource limits",
+    "consumer_status": "Unavailable; independent consumer gates do not enable renderer features"
+  },
+  "disabled_path": {
+    "schema": "org.openjk.producer-disabled-path.v1",
+    "revision": "a83d663ff",
+    "source_differences": 0,
+    "programs": 27,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "historical_baseline_passed": false,
+    "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it"
+  },
+  "native_log_sha256": {
+    "build/x12-cpu.log": "6805291d702cdd5a979e6ff172567dbfdbc79541b9ee1d2cb711b8dd497e1010",
+    "build/x12-renderers-retry.log": "bcef176f1bc36f973aca2d36f379aac107b27c8a8e8c670f1c6a0cb1aae08688"
+  },
+  "initial_execution_issues": [
+    "First renderer build wrapper lacked cmake in PATH; no compiler started; retry passed",
+    "Initial all_stock test_reports.py pattern ran zero tests; corrected test_audit.py ran all four",
+    "Historical shader baseline still has 3870 difference lines; all 27 current programs compile and input-revision comparison has zero differences"
+  ],
+  "unperformed": [
+    "New complex compiled discovery bridge",
+    "Private stock rebake",
+    "Accepted stock final heldout/source ablations: no supported source model",
+    "Runtime marker screenshots: no game launched"
+  ]
+}

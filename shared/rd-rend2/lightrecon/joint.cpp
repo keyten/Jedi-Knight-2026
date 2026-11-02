@@ -207,6 +207,7 @@ struct Engine
 	const Request &r;
 	const ReadContext &read;
 	Work work;
+	std::string placementFailure;
 	std::vector<Observation> training;
 	Disk::Digest identity{};
 	std::shared_ptr<const PointRefine::PlacementProvider> placement;
@@ -546,52 +547,68 @@ struct Engine
 	}
 	bool Place(const Model &m)
 	{
-		if (m.sources.size() > r.options.maxSources)
+		placementFailure.clear();
+		auto reject = [&](Id source, const std::string &why) {
+			placementFailure = "source=" + std::to_string(source) + " " + why;
 			return false;
+		};
+		auto constraint = [&](Id source, const char *scope, const PointRefine::PlacementResult &p) {
+			return reject(source, std::string(scope) + ":" + PointRefine::ConstraintName(p.state) +
+									  (p.state == PointRefine::Constraint::Dynamic
+										   ? " boundary=" + std::to_string(p.dynamicBoundary) +
+												 (p.dynamicExtentUnknown ? " swept-extent=Unknown"
+																		 : " swept-extent=Known")
+										   : ""));
+		};
+		if (m.sources.size() > r.options.maxSources)
+			return reject(0, "source-count bound");
 		std::set<Id> ids, families;
 		for (const auto &s : m.sources)
 		{
 			const auto &c = s.candidate;
-			if (!c.id || !ids.insert(c.id).second || (c.family && !families.insert(c.family).second))
-				return false;
+			if (!c.id || !ids.insert(c.id).second ||
+				(c.family && !families.insert(c.family).second))
+				return reject(c.id, "duplicate identity/family");
 			if (!Positive(s.value.rgbAmplitude))
-				return false;
+				return reject(c.id, "nonfinite/negative amplitude");
 			for (unsigned j = 0; j < 3; ++j)
 				if (Component(s.value.rgbAmplitude, j) < Component(c.shape.lowerRgb, j) ||
 					Component(s.value.rgbAmplitude, j) > Component(c.shape.upperRgb, j))
-					return false;
+					return reject(c.id, "amplitude bounds");
 			if (c.root != TransportRootKind::LocalEmitter)
 			{
 				if (c.root == TransportRootKind::Sun &&
-					(!s.environment.orientation.known || !Normal(s.environment.orientation.forward)))
-					return false;
+					(!s.environment.orientation.known ||
+					 !Normal(s.environment.orientation.forward)))
+					return reject(c.id, "sun direction");
 				if (c.root == TransportRootKind::Sun && c.environment.orientation.known)
 				{
-					double angle = std::acos(
-						Clamp(Dot(V(s.environment.orientation.forward), V(c.environment.orientation.forward)),
-							  -1., 1.));
+					double angle = std::acos(Clamp(Dot(V(s.environment.orientation.forward),
+													   V(c.environment.orientation.forward)),
+												   -1., 1.));
 					if (angle > c.maximumEnvironmentRotationRadians + 1e-5)
-						return false;
+						return reject(c.id, "sun rotation bound");
 				}
 				continue;
 			}
 			const auto &p = s.value.geometry;
 			if (!Finite(p.position.world) || !Finite(c.shape.centreBounds.minWorld) ||
-				!Finite(c.shape.centreBounds.maxWorld) || !Inside(c.shape.centreBounds, p.position.world) ||
+				!Finite(c.shape.centreBounds.maxWorld) ||
+				!Inside(c.shape.centreBounds, p.position.world) ||
 				Length(V(p.position.world) - V(c.shape.initial.geometry.position.world)) >
 					c.shape.maximumTranslationWorld + 1e-5)
-				return false;
+				return reject(c.id, "position/search/translation bounds");
 			if (p.kind != EmitterKind::Point)
 			{
 				if (!p.frame.known || !Normal(p.frame.forward) || !Normal(p.frame.right) ||
 					Length(Cross(V(p.frame.right), V(p.frame.up)) - V(p.frame.forward)) > 1e-4)
-					return false;
+					return reject(c.id, "emitter frame");
 				double trace = Dot(V(p.frame.right), V(c.shape.initial.geometry.frame.right)) +
 							   Dot(V(p.frame.up), V(c.shape.initial.geometry.frame.up)) +
 							   Dot(V(p.frame.forward), V(c.shape.initial.geometry.frame.forward));
 				double a = std::acos(Clamp((trace - 1) * .5, -1., 1.));
 				if (a > c.shape.maximumRotationRadians + 1e-5)
-					return false;
+					return reject(c.id, "emitter rotation bound");
 			}
 			if (p.kind == EmitterKind::Rectangle || p.kind == EmitterKind::Tube)
 			{
@@ -601,7 +618,7 @@ struct Engine
 															: 2 * p.geometry.radiusWorld;
 				if (a < c.shape.minimumDimensionWorld || a > c.shape.maximumDimensionWorld ||
 					b < c.shape.minimumDimensionWorld || b > c.shape.maximumDimensionWorld)
-					return false;
+					return reject(c.id, "emitter dimensions");
 			}
 			PointRefine::PlacementResult placed;
 			Check(placement->Check(c.shape.initial.geometry.position.world, p.position.world,
@@ -610,7 +627,7 @@ struct Engine
 			work.traversal += placed.work;
 			Limit();
 			if (placed.state != PointRefine::Constraint::Free)
-				return false;
+				return constraint(c.id, "centre/path", placed);
 			// Extended emitting support is checked explicitly; a free centre alone is insufficient.
 			if (p.kind == EmitterKind::Rectangle || p.kind == EmitterKind::Tube)
 			{
@@ -621,35 +638,36 @@ struct Engine
 						p.kind == EmitterKind::Rectangle
 							? std::abs(Component(p.frame.right, axis)) * p.geometry.halfWidthWorld +
 								  std::abs(Component(p.frame.up, axis)) * p.geometry.halfHeightWorld
-							: std::abs(Component(p.frame.right, axis)) * p.geometry.halfLengthWorld +
+							: std::abs(Component(p.frame.right, axis)) *
+									  p.geometry.halfLengthWorld +
 								  p.geometry.radiusWorld *
 									  std::sqrt(std::pow(Component(p.frame.up, axis), 2) +
 												std::pow(Component(p.frame.forward, axis), 2));
 					radius = std::max(radius, extent);
 				}
-				Check(placement->Check(p.position.world, p.position.world, radius + c.clearanceWorld, read,
-									   placed));
+				Check(placement->Check(p.position.world, p.position.world,
+									   radius + c.clearanceWorld, read, placed));
 				work.rays += placed.rays;
 				work.traversal += placed.work;
 				Limit();
 				if (placed.state != PointRefine::Constraint::Free)
-					return false;
+					return constraint(c.id, "extent", placed);
 				unsigned count = p.kind == EmitterKind::Rectangle ? 4 : 16;
 				for (unsigned j = 0; j < count; ++j)
 				{
 					V target = p.position.world;
 					if (p.kind == EmitterKind::Rectangle)
 						target = target +
-								 V(p.frame.right) *
-									 (j & 1 ? p.geometry.halfWidthWorld : -p.geometry.halfWidthWorld) +
-								 V(p.frame.up) *
-									 (j & 2 ? p.geometry.halfHeightWorld : -p.geometry.halfHeightWorld);
+								 V(p.frame.right) * (j & 1 ? p.geometry.halfWidthWorld
+														   : -p.geometry.halfWidthWorld) +
+								 V(p.frame.up) * (j & 2 ? p.geometry.halfHeightWorld
+														: -p.geometry.halfHeightWorld);
 					else
 					{
 						double a = 2 * Pi * (j % 8) / 8;
 						target = target +
-								 V(p.frame.right) *
-									 (j < 8 ? -p.geometry.halfLengthWorld : p.geometry.halfLengthWorld) +
+								 V(p.frame.right) * (j < 8 ? -p.geometry.halfLengthWorld
+														   : p.geometry.halfLengthWorld) +
 								 V(p.frame.up) * (p.geometry.radiusWorld * std::cos(a)) +
 								 V(p.frame.forward) * (p.geometry.radiusWorld * std::sin(a));
 					}
@@ -658,7 +676,7 @@ struct Engine
 					work.traversal += placed.work;
 					Limit();
 					if (placed.state != PointRefine::Constraint::Free)
-						return false;
+						return constraint(c.id, "rim/path", placed);
 				}
 			}
 		}
@@ -1863,9 +1881,16 @@ struct Engine
 			std::sort(training.begin(), training.end(),
 					  [](const Observation &a, const Observation &b) { return a.id < b.id; });
 		}
-		Need(Place(m), Code::MissingGeometry, "Physically invalid source support/path/bounds");
+		bool placed = Place(m);
+		Need(placed, Code::MissingGeometry,
+			 "Physically invalid source support/path/bounds: " + placementFailure);
 		Evaluation best = Evaluate(m, training, false);
-		Need(best.score.available, Code::Unavailable, "Joint comparable training coverage missing");
+		Need(best.score.available, Code::Unavailable,
+			 "Joint comparable training coverage missing: requested=" +
+				 std::to_string(best.score.requested) + " used=" + std::to_string(best.score.used) +
+				 " unavailable=" + std::to_string(best.score.unavailable) +
+				 " incomparable=" + std::to_string(best.score.incomparable) +
+				 " disabled=" + std::to_string(best.score.disabled));
 		for (size_t sweep = 0; sweep < r.options.jointSweeps; ++sweep)
 		{
 			double before = best.terms.Total();

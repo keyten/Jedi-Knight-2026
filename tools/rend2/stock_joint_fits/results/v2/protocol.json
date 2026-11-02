@@ -1,0 +1,66 @@
+{
+  "schema": "org.openjk.stock-joint-protocol.v2",
+  "revision": "a83d663ff5a45e4ff629e95e94d655c433b1946b",
+  "inventory_sha256": "3f5e7e321f64debab087d05fd78d916d7c4fa89d0508088af7669ad1d261c6a9",
+  "preserved_v4_sha256": "87397b6f7453f043c9b5b58ecdc9db3faa9f476908fa984fd878791dd5628594",
+  "preserved_x11_sha256": "209d307ee9f535c7cacaed7352929c272f5ae22312cbc4af59dc14dd1e63a0c8",
+  "maps": [
+    {
+      "map": "academy1",
+      "selection": "positive observations; scene scheduling regression",
+      "bsp_sha256": "d50ad832c18a08c5f57c9cc1e1e6048d9a7cd50b33b6d70c3897ff9fffbc3ad3",
+      "archive_member": "maps/academy1.bsp",
+      "mode": "sp",
+      "dataset_sha256": "ed7de3960ee59c0daaf111625abed4ee3ae47436a4372322ec046de95ba0b9b6",
+      "dataset_bytes": 230092312
+    }
+  ],
+  "frozen_before_new_evaluation": true,
+  "environment": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "python": "3.12.14"
+  },
+  "selection_uses_heldout_rgb": false,
+  "native_policy": "Identical X11 bounds except coarseRows=max(64, distinct training channel/region/block tuples); no RGB-dependent setting change",
+  "compiler": "GCC 16.2.0; Release; CMake 4.4.2; double accumulation",
+  "split": {
+    "seed": 20261031,
+    "block_world": 256,
+    "origin": [
+      17,
+      31,
+      47
+    ],
+    "proportions": [
+      0.6,
+      0.2,
+      0.2
+    ],
+    "gap": "3 * footprint radius + 1 world unit"
+  },
+  "profiles": [
+    "conditional NetRadiant inverse-square",
+    "conditional NetRadiant linear"
+  ],
+  "historical_stock_profile": "UnknownProfile",
+  "absolute_photometry": "Unknown",
+  "maximum_joint_calls_per_profile": 4,
+  "maximum_models_per_call": 12,
+  "scene_max_rays": 4000000,
+  "scene_max_work": 500000000,
+  "process_seconds": 600,
+  "process_bytes": 1073741824,
+  "no_fit_policy": "No held-out query/publication; diagnose precise blockers without weakening physical gates",
+  "acceptance": [
+    "positive comparable observations",
+    "independent held-out improvement over black/ambient",
+    "no known opaque-wall contradictions",
+    "uncertainty retained",
+    "canonical payload validation; no SI/exact-source claims"
+  ],
+  "conditional_ablations": "Only for an accepted stock fit: removal, wrong XYZ/profile/type/count, direct versus passive GI",
+  "optional_later_changes": "Must use a separately versioned protocol and retain this attempt",
+  "parent_protocol_sha256": "8b27255d5be6b959f989815ae67bea3d843386530a2f1e60da8a27dd2b5dbb0c",
+  "reason_for_revision": "academy1 v1 had 0 validation calls: coarse observation budget smaller than mandatory geometry blocks; no held-out predictions were read"
+}

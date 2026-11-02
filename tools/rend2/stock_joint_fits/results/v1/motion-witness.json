@@ -1,0 +1,18 @@
+{
+  "schema": "org.openjk.joint-tests.v1",
+  "checks": 4,
+  "failures": 0,
+  "cases": [
+    {
+      "name": "distant_unknown_motion_placement_blocker",
+      "positive_observations": true,
+      "baseline_accepted": true,
+      "distant_known_motion_accepted": true,
+      "distant_unknown_motion_accepted": false,
+      "typed_witness": true,
+      "unknown_joint_models": 2,
+      "unknown_forward_calls": 0,
+      "physical_lamp_absence_certified": false
+    }
+  ]
+}
